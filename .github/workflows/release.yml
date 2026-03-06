@@ -53,8 +53,8 @@ jobs:
           KEY_ALIAS: ${{ secrets.KEY_ALIAS }}
           KEY_PASSWORD: ${{ secrets.KEY_PASSWORD }}
 
-      - name: Build release APK
-        run: ./gradlew assembleRelease
+      - name: Build release APK and AAB
+        run: ./gradlew assembleRelease bundleRelease
         env:
           KEYSTORE_PASSWORD: ${{ secrets.KEYSTORE_PASSWORD }}
           KEY_ALIAS: ${{ secrets.KEY_ALIAS }}
@@ -66,3 +66,4 @@ jobs:
           generate_release_notes: true
           files: |
             app/build/outputs/apk/release/haven-*-release.apk
+            app/build/outputs/bundle/release/*.aab

@@ -1,0 +1,10 @@
+Haven v1.0.0
+
+- SSH and Reticulum terminal with multi-tab support
+- OSC support: clipboard (52), hyperlinks (8), notifications (9/777), CWD tracking (7)
+- Open URL button in selection toolbar
+- Terminal notifications (toast foreground, system notification background)
+- Hack font for Unicode glyph support
+- Mouse mode with SGR wheel events
+- Session manager integration (tmux, screen, Zellij)
+- Word-expand selection on long-press

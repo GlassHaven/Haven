@@ -48,20 +48,17 @@ import androidx.compose.ui.input.pointer.PointerInputScope
 import androidx.compose.ui.input.pointer.pointerInput
 import androidx.compose.ui.layout.onSizeChanged
 import androidx.compose.ui.platform.LocalContext
-import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.platform.LocalView
 import androidx.compose.ui.text.font.FontFamily
-import androidx.compose.ui.unit.IntOffset
 import androidx.compose.ui.unit.IntSize
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
-import androidx.compose.ui.window.Popup
-import androidx.compose.ui.window.PopupProperties
 import kotlin.math.abs
 import androidx.core.content.res.ResourcesCompat
 import androidx.core.view.WindowCompat
 import androidx.core.view.WindowInsetsCompat
 import androidx.hilt.navigation.compose.hiltViewModel
+import org.connectbot.terminal.ModifierManager
 import org.connectbot.terminal.Terminal
 import sh.haven.core.data.preferences.UserPreferencesRepository
 
@@ -224,8 +221,6 @@ fun TerminalScreen(
                     val isMouseMode by activeTab.mouseMode.collectAsState()
                     var surfaceSize by remember { mutableStateOf(IntSize.Zero) }
 
-                    val density = LocalDensity.current
-
                     Box(
                         modifier = Modifier
                             .weight(1f)
@@ -240,6 +235,20 @@ fun TerminalScreen(
                             }
                             .then(terminalModifier),
                     ) {
+                        // ModifierManager bridges our Ctrl/Alt toolbar state to the
+                        // library's KeyboardHandler. clearTransients is a no-op here
+                        // because the library calls it during recomposition, not after
+                        // key processing. We clear modifiers ourselves via
+                        // onInputProcessed below.
+                        val modifierManager = remember(viewModel) {
+                            object : ModifierManager {
+                                override fun isCtrlActive() = viewModel.ctrlActive.value
+                                override fun isAltActive() = viewModel.altActive.value
+                                override fun isShiftActive() = false
+                                override fun clearTransients() { /* no-op */ }
+                            }
+                        }
+
                         Terminal(
                             terminalEmulator = activeTab.emulator,
                             modifier = Modifier.fillMaxSize(),
@@ -249,65 +258,33 @@ fun TerminalScreen(
                             backgroundColor = Color(colorScheme.background),
                             foregroundColor = Color(colorScheme.foreground),
                             focusRequester = focusRequester,
+                            modifierManager = modifierManager,
                             onSelectionControllerAvailable = { selectionController = it },
                         )
 
-                        // Floating selection toolbar (Copy / Paste / Open URL)
-                        if (selectionActive && selectionController != null) {
-                            val ctrl = selectionController!!
-                            val sel = remember(selectionActive) {
-                                getSelectionRange(ctrl)
-                            }
-
-                            val popupOffset = remember(sel, surfaceSize) {
-                                if (sel == null || surfaceSize == IntSize.Zero) {
-                                    IntOffset(0, 0)
-                                } else {
-                                    val dims = activeTab.emulator.dimensions
-                                    val cellH = surfaceSize.height.toFloat() / dims.rows
-                                    val cellW = surfaceSize.width.toFloat() / dims.columns
-                                    // Position above the start of selection
-                                    val topRow = minOf(sel.startRow, sel.endRow)
-                                    val midCol = (sel.startCol + sel.endCol) / 2
-                                    val toolbarHeightPx = with(density) { 48.dp.toPx() }
-                                    val y = (topRow * cellH - toolbarHeightPx)
-                                        .coerceAtLeast(0f)
-                                    val x = (midCol * cellW).coerceIn(
-                                        0f,
-                                        (surfaceSize.width - 200 * density.density),
-                                    )
-                                    IntOffset(x.toInt(), y.toInt())
-                                }
-                            }
-
-                            Popup(
-                                offset = popupOffset,
-                                properties = PopupProperties(
-                                    focusable = false,
-                                    clippingEnabled = false,
-                                ),
-                            ) {
-                                SelectionToolbar(
-                                    controller = ctrl,
-                                    hyperlinkUri = currentHyperlinkUri,
-                                    onPaste = { text ->
-                                        activeTab.sendInput(text.toByteArray())
-                                    },
-                                )
-                            }
-                        }
                     }
 
-                    // Keyboard toolbar always visible
-                    KeyboardToolbar(
-                        onSendBytes = { bytes -> activeTab.sendInput(bytes) },
-                        focusRequester = focusRequester,
-                        ctrlActive = ctrlActive,
-                        altActive = altActive,
-                        onToggleCtrl = viewModel::toggleCtrl,
-                        onToggleAlt = viewModel::toggleAlt,
-                        modifier = Modifier.fillMaxWidth(),
-                    )
+                    // Selection toolbar replaces keyboard toolbar during selection
+                    if (selectionActive && selectionController != null) {
+                        SelectionToolbar(
+                            controller = selectionController!!,
+                            hyperlinkUri = currentHyperlinkUri,
+                            onPaste = { text ->
+                                activeTab.sendInput(text.toByteArray())
+                            },
+                            modifier = Modifier.fillMaxWidth(),
+                        )
+                    } else {
+                        KeyboardToolbar(
+                            onSendBytes = { bytes -> activeTab.sendInput(bytes) },
+                            focusRequester = focusRequester,
+                            ctrlActive = ctrlActive,
+                            altActive = altActive,
+                            onToggleCtrl = viewModel::toggleCtrl,
+                            onToggleAlt = viewModel::toggleAlt,
+                            modifier = Modifier.fillMaxWidth(),
+                        )
+                    }
                 }
             }
         }

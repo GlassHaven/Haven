@@ -25,6 +25,18 @@ class SshSessionManager @Inject constructor(
     private val hostKeyVerifier: HostKeyVerifier,
 ) {
 
+    data class PortForwardInfo(
+        val ruleId: String,
+        val type: PortForwardType,
+        val bindAddress: String,
+        val bindPort: Int,
+        val targetHost: String,
+        val targetPort: Int,
+        val actualBoundPort: Int = bindPort,
+    )
+
+    enum class PortForwardType { LOCAL, REMOTE }
+
     data class SessionState(
         val sessionId: String,
         val profileId: String,
@@ -37,6 +49,7 @@ class SshSessionManager @Inject constructor(
         val connectionConfig: ConnectionConfig? = null,
         val sessionManager: SessionManager = SessionManager.NONE,
         val chosenSessionName: String? = null,
+        val activeForwards: List<PortForwardInfo> = emptyList(),
     ) {
         enum class Status { CONNECTING, CONNECTED, RECONNECTING, DISCONNECTED, ERROR }
     }
@@ -264,6 +277,17 @@ class SshSessionManager @Inject constructor(
                 }
                 termSession?.reconnect(channel, newClient)
 
+                // Restore port forwards
+                val forwards = _sessions.value[sessionId]?.activeForwards.orEmpty()
+                if (forwards.isNotEmpty()) {
+                    // Clear current list, re-apply will add them back
+                    _sessions.update { map ->
+                        val existing = map[sessionId] ?: return@update map
+                        map + (sessionId to existing.copy(activeForwards = emptyList()))
+                    }
+                    applyPortForwards(sessionId, forwards)
+                }
+
                 updateStatus(sessionId, SessionState.Status.CONNECTED)
                 Log.d(TAG, "Reconnected $sessionId on attempt $attempt")
                 return
@@ -338,6 +362,65 @@ class SshSessionManager @Inject constructor(
         _sessions.update { map ->
             val existing = map[sessionId] ?: return@update map
             map + (sessionId to existing.copy(chosenSessionName = name))
+        }
+    }
+
+    /**
+     * Activate port forwards on a connected session.
+     * Each rule is applied independently; failures are logged but don't block others.
+     */
+    fun applyPortForwards(sessionId: String, rules: List<PortForwardInfo>) {
+        val session = _sessions.value[sessionId] ?: return
+        val activated = mutableListOf<PortForwardInfo>()
+
+        for (rule in rules) {
+            try {
+                when (rule.type) {
+                    PortForwardType.LOCAL -> {
+                        val actualPort = session.client.setPortForwardingL(
+                            rule.bindAddress, rule.bindPort, rule.targetHost, rule.targetPort,
+                        )
+                        activated.add(rule.copy(actualBoundPort = actualPort))
+                        Log.d(TAG, "Port forward activated: L ${rule.bindAddress}:$actualPort -> ${rule.targetHost}:${rule.targetPort}")
+                    }
+                    PortForwardType.REMOTE -> {
+                        session.client.setPortForwardingR(
+                            rule.bindAddress, rule.bindPort, rule.targetHost, rule.targetPort,
+                        )
+                        activated.add(rule)
+                        Log.d(TAG, "Port forward activated: R ${rule.bindAddress}:${rule.bindPort} -> ${rule.targetHost}:${rule.targetPort}")
+                    }
+                }
+            } catch (e: Exception) {
+                Log.w(TAG, "Failed to activate port forward ${rule.ruleId}: ${e.message}")
+            }
+        }
+
+        _sessions.update { map ->
+            val existing = map[sessionId] ?: return@update map
+            map + (sessionId to existing.copy(activeForwards = existing.activeForwards + activated))
+        }
+    }
+
+    /**
+     * Remove a single port forward from a connected session.
+     */
+    fun removePortForward(sessionId: String, forward: PortForwardInfo) {
+        val session = _sessions.value[sessionId] ?: return
+        try {
+            when (forward.type) {
+                PortForwardType.LOCAL -> session.client.delPortForwardingL(forward.bindAddress, forward.actualBoundPort)
+                PortForwardType.REMOTE -> session.client.delPortForwardingR(forward.bindPort)
+            }
+            Log.d(TAG, "Port forward removed: ${forward.type} ${forward.bindAddress}:${forward.bindPort}")
+        } catch (e: Exception) {
+            Log.w(TAG, "Failed to remove port forward ${forward.ruleId}: ${e.message}")
+        }
+        _sessions.update { map ->
+            val existing = map[sessionId] ?: return@update map
+            map + (sessionId to existing.copy(
+                activeForwards = existing.activeForwards.filter { it.ruleId != forward.ruleId },
+            ))
         }
     }
 

@@ -31,6 +31,7 @@ import androidx.compose.material.icons.filled.DriveFileRenameOutline
 import androidx.compose.material.icons.filled.Edit
 import androidx.compose.material.icons.filled.LinkOff
 import androidx.compose.material.icons.filled.Password
+import androidx.compose.material.icons.filled.SyncAlt
 import androidx.compose.material.icons.filled.VpnKey
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.rememberScrollState
@@ -101,6 +102,7 @@ fun ConnectionsScreen(
     var editingProfile by remember { mutableStateOf<ConnectionProfile?>(null) }
     var connectingProfile by remember { mutableStateOf<ConnectionProfile?>(null) }
     var deployingProfile by remember { mutableStateOf<ConnectionProfile?>(null) }
+    var portForwardProfile by remember { mutableStateOf<ConnectionProfile?>(null) }
     var quickConnectText by remember { mutableStateOf("") }
 
     val snackbarHostState = remember { SnackbarHostState() }
@@ -230,6 +232,25 @@ fun ConnectionsScreen(
         )
     }
 
+    portForwardProfile?.let { profile ->
+        val pfRulesFlow = remember(profile.id) { viewModel.portForwardRules(profile.id) }
+        val pfRules by pfRulesFlow.collectAsState()
+        val allSessions by viewModel.sessions.collectAsState()
+        val activeForwards = allSessions.values
+            .filter { it.profileId == profile.id }
+            .flatMap { it.activeForwards }
+
+        PortForwardDialog(
+            profileLabel = profile.label,
+            profileId = profile.id,
+            rules = pfRules,
+            activeForwards = activeForwards,
+            onSave = { rule -> viewModel.savePortForwardRule(rule) },
+            onDelete = { ruleId -> viewModel.deletePortForwardRule(ruleId, profile.id) },
+            onDismiss = { portForwardProfile = null },
+        )
+    }
+
     sessionSelection?.let { selection ->
         SessionPickerDialog(
             managerLabel = selection.managerLabel,
@@ -327,6 +348,7 @@ fun ConnectionsScreen(
                             onDisconnect = { viewModel.disconnect(profile.id) },
                             onDeployKey = { deployingProfile = profile },
                             onConnectWithPassword = { connectingProfile = profile },
+                            onPortForwards = { portForwardProfile = profile },
                         )
                     }
                 }
@@ -349,6 +371,7 @@ private fun ConnectionListItem(
     onDisconnect: () -> Unit,
     onDeployKey: () -> Unit,
     onConnectWithPassword: () -> Unit,
+    onPortForwards: () -> Unit,
 ) {
     var showMenu by remember { mutableStateOf(false) }
     var showRenameDialog by remember { mutableStateOf(false) }
@@ -418,6 +441,13 @@ private fun ConnectionListItem(
                 leadingIcon = { Icon(Icons.Filled.Edit, null) },
                 onClick = { showMenu = false; onEdit() },
             )
+            if (profile.isSsh) {
+                DropdownMenuItem(
+                    text = { Text("Port Forwards") },
+                    leadingIcon = { Icon(Icons.Filled.SyncAlt, null) },
+                    onClick = { showMenu = false; onPortForwards() },
+                )
+            }
             if (profile.isSsh && profileStatus != ProfileStatus.CONNECTED) {
                 DropdownMenuItem(
                     text = { Text("Connect with password") },

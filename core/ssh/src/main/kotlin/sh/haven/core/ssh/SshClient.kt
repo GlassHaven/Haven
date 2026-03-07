@@ -184,6 +184,39 @@ class SshClient : Closeable {
     }
 
     /**
+     * Set up local port forwarding (ssh -L).
+     * Returns the actual bound port (useful if bindPort is 0 for ephemeral).
+     */
+    fun setPortForwardingL(bindAddress: String, localPort: Int, remoteHost: String, remotePort: Int): Int {
+        val sess = session ?: throw IllegalStateException("Not connected")
+        return sess.setPortForwardingL(bindAddress, localPort, remoteHost, remotePort)
+    }
+
+    /**
+     * Set up remote port forwarding (ssh -R).
+     */
+    fun setPortForwardingR(bindAddress: String, remotePort: Int, localHost: String, localPort: Int) {
+        val sess = session ?: throw IllegalStateException("Not connected")
+        sess.setPortForwardingR(bindAddress, remotePort, localHost, localPort)
+    }
+
+    /**
+     * Remove a local port forward.
+     */
+    fun delPortForwardingL(bindAddress: String, localPort: Int) {
+        val sess = session ?: throw IllegalStateException("Not connected")
+        sess.delPortForwardingL(bindAddress, localPort)
+    }
+
+    /**
+     * Remove a remote port forward.
+     */
+    fun delPortForwardingR(remotePort: Int) {
+        val sess = session ?: throw IllegalStateException("Not connected")
+        sess.delPortForwardingR(remotePort)
+    }
+
+    /**
      * Disconnect the current session and clear loaded identities.
      */
     fun disconnect() {

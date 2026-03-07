@@ -21,9 +21,11 @@ import kotlinx.coroutines.delay
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
 import sh.haven.core.data.db.entities.ConnectionProfile
+import sh.haven.core.data.db.entities.PortForwardRule
 import sh.haven.core.data.db.entities.SshKey
 import sh.haven.core.data.preferences.UserPreferencesRepository
 import sh.haven.core.data.repository.ConnectionRepository
+import sh.haven.core.data.repository.PortForwardRepository
 import sh.haven.core.data.repository.SshKeyRepository
 import sh.haven.core.ssh.ConnectionConfig
 import sh.haven.core.ssh.HostKeyResult
@@ -50,6 +52,7 @@ enum class ProfileStatus { CONNECTING, CONNECTED, RECONNECTING, DISCONNECTED, ER
 class ConnectionsViewModel @Inject constructor(
     @ApplicationContext private val appContext: Context,
     private val repository: ConnectionRepository,
+    private val portForwardRepository: PortForwardRepository,
     private val sshSessionManager: SshSessionManager,
     private val reticulumSessionManager: ReticulumSessionManager,
     private val reticulumBridge: ReticulumBridge,
@@ -533,6 +536,15 @@ class ConnectionsViewModel @Inject constructor(
     private suspend fun finishConnect(sessionId: String, profileId: String) {
         withContext(Dispatchers.IO) {
             sshSessionManager.openShellForSession(sessionId)
+
+            // Apply enabled port forward rules
+            val rules = portForwardRepository.getEnabledForProfile(profileId)
+            if (rules.isNotEmpty()) {
+                sshSessionManager.applyPortForwards(
+                    sessionId,
+                    rules.map { it.toForwardInfo() },
+                )
+            }
         }
         sshSessionManager.updateStatus(sessionId, SshSessionManager.SessionState.Status.CONNECTED)
         repository.markConnected(profileId)
@@ -611,6 +623,67 @@ class ConnectionsViewModel @Inject constructor(
         }
         return pem.toByteArray()
     }
+
+    // --- Port Forward Management ---
+
+    fun portForwardRules(profileId: String): StateFlow<List<PortForwardRule>> =
+        portForwardRepository.observeForProfile(profileId)
+            .stateIn(viewModelScope, SharingStarted.WhileSubscribed(5000), emptyList())
+
+    fun savePortForwardRule(rule: PortForwardRule) {
+        viewModelScope.launch {
+            val session = sshSessionManager.getSessionsForProfile(rule.profileId)
+                .firstOrNull { it.status == SshSessionManager.SessionState.Status.CONNECTED }
+
+            // If editing an existing rule on a live session, remove the old forward first
+            if (session != null) {
+                val oldForward = session.activeForwards.firstOrNull { it.ruleId == rule.id }
+                if (oldForward != null) {
+                    withContext(Dispatchers.IO) {
+                        sshSessionManager.removePortForward(session.sessionId, oldForward)
+                    }
+                }
+            }
+
+            portForwardRepository.save(rule)
+
+            // Activate the new/updated forward on the live session
+            if (session != null && rule.enabled) {
+                withContext(Dispatchers.IO) {
+                    sshSessionManager.applyPortForwards(session.sessionId, listOf(rule.toForwardInfo()))
+                }
+            }
+        }
+    }
+
+    fun deletePortForwardRule(ruleId: String, profileId: String) {
+        viewModelScope.launch {
+            // Deactivate on live session if connected
+            val session = sshSessionManager.getSessionsForProfile(profileId)
+                .firstOrNull { it.status == SshSessionManager.SessionState.Status.CONNECTED }
+            if (session != null) {
+                val forward = session.activeForwards.firstOrNull { it.ruleId == ruleId }
+                if (forward != null) {
+                    withContext(Dispatchers.IO) {
+                        sshSessionManager.removePortForward(session.sessionId, forward)
+                    }
+                }
+            }
+            portForwardRepository.delete(ruleId)
+        }
+    }
+
+    private fun PortForwardRule.toForwardInfo() = SshSessionManager.PortForwardInfo(
+        ruleId = id,
+        type = when (type) {
+            PortForwardRule.Type.LOCAL -> SshSessionManager.PortForwardType.LOCAL
+            PortForwardRule.Type.REMOTE -> SshSessionManager.PortForwardType.REMOTE
+        },
+        bindAddress = bindAddress,
+        bindPort = bindPort,
+        targetHost = targetHost,
+        targetPort = targetPort,
+    )
 
     fun disconnect(profileId: String) {
         sshSessionManager.removeAllSessionsForProfile(profileId)

@@ -21,7 +21,7 @@ object DatabaseModule {
             HavenDatabase::class.java,
             "haven.db",
         )
-            .addMigrations(HavenDatabase.MIGRATION_1_2, HavenDatabase.MIGRATION_2_3, HavenDatabase.MIGRATION_3_4)
+            .addMigrations(HavenDatabase.MIGRATION_1_2, HavenDatabase.MIGRATION_2_3, HavenDatabase.MIGRATION_3_4, HavenDatabase.MIGRATION_4_5)
             .build()
     }
 
@@ -36,4 +36,7 @@ object DatabaseModule {
 
     @Provides
     fun provideSshKeyDao(db: HavenDatabase): SshKeyDao = db.sshKeyDao()
+
+    @Provides
+    fun providePortForwardRuleDao(db: HavenDatabase): PortForwardRuleDao = db.portForwardRuleDao()
 }

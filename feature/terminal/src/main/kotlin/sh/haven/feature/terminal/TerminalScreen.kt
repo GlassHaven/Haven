@@ -219,6 +219,7 @@ fun TerminalScreen(
                     }
 
                     val isMouseMode by activeTab.mouseMode.collectAsState()
+                    val isBracketPaste by activeTab.bracketPasteMode.collectAsState()
                     var surfaceSize by remember { mutableStateOf(IntSize.Zero) }
 
                     Box(
@@ -269,6 +270,7 @@ fun TerminalScreen(
                         SelectionToolbar(
                             controller = selectionController!!,
                             hyperlinkUri = currentHyperlinkUri,
+                            bracketPasteMode = isBracketPaste,
                             onPaste = { text ->
                                 activeTab.sendInput(text.toByteArray())
                             },
@@ -280,6 +282,7 @@ fun TerminalScreen(
                             focusRequester = focusRequester,
                             ctrlActive = ctrlActive,
                             altActive = altActive,
+                            bracketPasteMode = isBracketPaste,
                             onToggleCtrl = viewModel::toggleCtrl,
                             onToggleAlt = viewModel::toggleAlt,
                             modifier = Modifier.fillMaxWidth(),

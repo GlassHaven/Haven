@@ -6,10 +6,11 @@ import kotlinx.coroutines.flow.asStateFlow
 
 /**
  * Scans terminal output byte buffers for DECSET/DECRST escape sequences that
- * enable or disable mouse tracking modes.
+ * enable or disable private terminal modes.
  *
- * Tracks modes 1000 (basic), 1002 (button-event), and 1003 (any-event).
- * Exposes whether any mouse tracking mode is currently active.
+ * Tracks:
+ * - Mouse modes 1000 (basic), 1002 (button-event), 1003 (any-event)
+ * - Bracketed paste mode 2004
  *
  * Pattern: ESC [ ? <digits> h  (enable)
  *          ESC [ ? <digits> l  (disable)
@@ -35,8 +36,12 @@ class MouseModeTracker {
     private val _mouseMode = MutableStateFlow(false)
     val mouseMode: StateFlow<Boolean> = _mouseMode.asStateFlow()
 
+    private val _bracketPasteMode = MutableStateFlow(false)
+    val bracketPasteMode: StateFlow<Boolean> = _bracketPasteMode.asStateFlow()
+
     companion object {
         private val MOUSE_MODES = setOf(1000, 1002, 1003)
+        private const val BRACKET_PASTE_MODE = 2004
     }
 
     /**
@@ -105,12 +110,14 @@ class MouseModeTracker {
     }
 
     private fun applyMode(mode: Int, enable: Boolean) {
-        if (mode !in MOUSE_MODES) return
-        if (enable) {
-            activeModes.add(mode)
-        } else {
-            activeModes.remove(mode)
+        when (mode) {
+            in MOUSE_MODES -> {
+                if (enable) activeModes.add(mode) else activeModes.remove(mode)
+                _mouseMode.value = activeModes.isNotEmpty()
+            }
+            BRACKET_PASTE_MODE -> {
+                _bracketPasteMode.value = enable
+            }
         }
-        _mouseMode.value = activeModes.isNotEmpty()
     }
 }

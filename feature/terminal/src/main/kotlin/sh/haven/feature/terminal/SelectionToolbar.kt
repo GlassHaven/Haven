@@ -180,6 +180,7 @@ private enum class AnchorTarget { START, END }
 fun SelectionToolbar(
     controller: SelectionController,
     hyperlinkUri: String? = null,
+    bracketPasteMode: Boolean = false,
     onPaste: (String) -> Unit = {},
     modifier: Modifier = Modifier,
 ) {
@@ -207,12 +208,16 @@ fun SelectionToolbar(
                 controller.clearSelection()
             }
 
-            // Paste
+            // Paste (wrapped in bracket paste sequences when mode 2004 is active)
             SelectionIconButton(Icons.Filled.ContentPaste, "Paste") {
                 val text = clipboardManager.getText()?.text
                 if (!text.isNullOrEmpty()) {
                     controller.clearSelection()
-                    onPaste(text)
+                    if (bracketPasteMode) {
+                        onPaste("\u001b[200~$text\u001b[201~")
+                    } else {
+                        onPaste(text)
+                    }
                 }
             }
 

@@ -10,7 +10,7 @@
 
 - [ ] **Keyboard toolbar customization** — Smaller keys, more keys per row, user-editable layout, multi-row option (JuiceSSH-style).
 - [x] **OSC sequence support** — OSC 8 hyperlinks (clickable links in terminal output), OSC 9/777 notifications (toast foreground, Android notification background), OSC 7 working directory tracking.
-- [ ] **Bracket paste mode** — Wrap pasted text in `ESC[200~`/`ESC[201~` when DECSET 2004 is enabled, preventing accidental execution of multi-line paste.
+- [x] **Bracket paste mode** — Wrap pasted text in `ESC[200~`/`ESC[201~` when DECSET 2004 is enabled, preventing accidental execution of multi-line paste.
 - [ ] **SFTP integration with CWD** — Use OSC 7 working directory to open SFTP browser at the current remote path.
 
 ## Longer-term

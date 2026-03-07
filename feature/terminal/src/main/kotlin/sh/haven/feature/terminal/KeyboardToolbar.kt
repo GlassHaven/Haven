@@ -55,6 +55,7 @@ fun KeyboardToolbar(
     focusRequester: FocusRequester,
     ctrlActive: Boolean = false,
     altActive: Boolean = false,
+    bracketPasteMode: Boolean = false,
     onToggleCtrl: () -> Unit = {},
     onToggleAlt: () -> Unit = {},
     modifier: Modifier = Modifier,
@@ -86,11 +87,15 @@ fun KeyboardToolbar(
                 }
             }
 
-            // Paste
+            // Paste (wrapped in bracket paste sequences when mode 2004 is active)
             ToolbarIconButton(Icons.Filled.ContentPaste, "Paste") {
                 val text = clipboardManager.getText()?.text
                 if (!text.isNullOrEmpty()) {
-                    onSendBytes(text.toByteArray())
+                    if (bracketPasteMode) {
+                        onSendBytes("\u001b[200~".toByteArray() + text.toByteArray() + "\u001b[201~".toByteArray())
+                    } else {
+                        onSendBytes(text.toByteArray())
+                    }
                 }
             }
 

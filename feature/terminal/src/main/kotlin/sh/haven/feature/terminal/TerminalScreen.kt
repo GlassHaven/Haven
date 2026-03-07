@@ -48,11 +48,15 @@ import androidx.compose.ui.input.pointer.PointerInputScope
 import androidx.compose.ui.input.pointer.pointerInput
 import androidx.compose.ui.layout.onSizeChanged
 import androidx.compose.ui.platform.LocalContext
+import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.platform.LocalView
 import androidx.compose.ui.text.font.FontFamily
+import androidx.compose.ui.unit.IntOffset
 import androidx.compose.ui.unit.IntSize
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import androidx.compose.ui.window.Popup
+import androidx.compose.ui.window.PopupProperties
 import kotlin.math.abs
 import androidx.core.content.res.ResourcesCompat
 import androidx.core.view.WindowCompat
@@ -214,6 +218,8 @@ fun TerminalScreen(
                     // isSelectionActive is backed by Compose MutableState, so
                     // this block recomposes when selection starts/ends.
                     val selectionActive = selectionController?.isSelectionActive == true
+                    val currentHyperlinkUri by activeTab.hyperlinkUri.collectAsState()
+
                     LaunchedEffect(selectionActive) {
                         onSelectionActiveChanged(selectionActive)
                         if (selectionActive && selectionController != null) {
@@ -223,6 +229,8 @@ fun TerminalScreen(
 
                     val isMouseMode by activeTab.mouseMode.collectAsState()
                     var surfaceSize by remember { mutableStateOf(IntSize.Zero) }
+
+                    val density = LocalDensity.current
 
                     Box(
                         modifier = Modifier
@@ -249,27 +257,63 @@ fun TerminalScreen(
                             focusRequester = focusRequester,
                             onSelectionControllerAvailable = { selectionController = it },
                         )
+
+                        // Floating selection toolbar (Copy / Paste / Open URL)
+                        if (selectionActive && selectionController != null) {
+                            val ctrl = selectionController!!
+                            val sel = remember(selectionActive) {
+                                getSelectionRange(ctrl)
+                            }
+
+                            val popupOffset = remember(sel, surfaceSize) {
+                                if (sel == null || surfaceSize == IntSize.Zero) {
+                                    IntOffset(0, 0)
+                                } else {
+                                    val dims = activeTab.emulator.dimensions
+                                    val cellH = surfaceSize.height.toFloat() / dims.rows
+                                    val cellW = surfaceSize.width.toFloat() / dims.columns
+                                    // Position above the start of selection
+                                    val topRow = minOf(sel.startRow, sel.endRow)
+                                    val midCol = (sel.startCol + sel.endCol) / 2
+                                    val toolbarHeightPx = with(density) { 48.dp.toPx() }
+                                    val y = (topRow * cellH - toolbarHeightPx)
+                                        .coerceAtLeast(0f)
+                                    val x = (midCol * cellW).coerceIn(
+                                        0f,
+                                        (surfaceSize.width - 200 * density.density),
+                                    )
+                                    IntOffset(x.toInt(), y.toInt())
+                                }
+                            }
+
+                            Popup(
+                                offset = popupOffset,
+                                properties = PopupProperties(
+                                    focusable = false,
+                                    clippingEnabled = false,
+                                ),
+                            ) {
+                                SelectionToolbar(
+                                    controller = ctrl,
+                                    hyperlinkUri = currentHyperlinkUri,
+                                    onPaste = { text ->
+                                        activeTab.sendInput(text.toByteArray())
+                                    },
+                                )
+                            }
+                        }
                     }
 
-                    // Show selection toolbar when selecting, keyboard toolbar otherwise
-                    val currentHyperlinkUri by activeTab.hyperlinkUri.collectAsState()
-                    if (selectionActive && selectionController != null) {
-                        SelectionToolbar(
-                            controller = selectionController!!,
-                            hyperlinkUri = currentHyperlinkUri,
-                            modifier = Modifier.fillMaxWidth(),
-                        )
-                    } else {
-                        KeyboardToolbar(
-                            onSendBytes = { bytes -> activeTab.sendInput(bytes) },
-                            focusRequester = focusRequester,
-                            ctrlActive = ctrlActive,
-                            altActive = altActive,
-                            onToggleCtrl = viewModel::toggleCtrl,
-                            onToggleAlt = viewModel::toggleAlt,
-                            modifier = Modifier.fillMaxWidth(),
-                        )
-                    }
+                    // Keyboard toolbar always visible
+                    KeyboardToolbar(
+                        onSendBytes = { bytes -> activeTab.sendInput(bytes) },
+                        focusRequester = focusRequester,
+                        ctrlActive = ctrlActive,
+                        altActive = altActive,
+                        onToggleCtrl = viewModel::toggleCtrl,
+                        onToggleAlt = viewModel::toggleAlt,
+                        modifier = Modifier.fillMaxWidth(),
+                    )
                 }
             }
         }

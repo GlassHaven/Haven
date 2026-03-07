@@ -14,6 +14,7 @@ import androidx.compose.material.icons.automirrored.filled.KeyboardArrowLeft
 import androidx.compose.material.icons.automirrored.filled.KeyboardArrowRight
 import androidx.compose.material.icons.filled.Close
 import androidx.compose.material.icons.filled.ContentCopy
+import androidx.compose.material.icons.filled.ContentPaste
 import androidx.compose.material.icons.filled.KeyboardArrowDown
 import androidx.compose.material.icons.filled.KeyboardArrowUp
 import androidx.compose.material.icons.automirrored.filled.OpenInNew
@@ -79,6 +80,37 @@ private class AnchorMover(controller: SelectionController) {
         }
     }
 }
+
+/**
+ * Read the current selection range (startRow, startCol, endRow, endCol)
+ * from the library-internal SelectionManager via reflection.
+ * Returns null if no selection is active or reflection fails.
+ */
+internal fun getSelectionRange(
+    controller: org.connectbot.terminal.SelectionController,
+): SelectionPosition? {
+    try {
+        val mgrField = controller.javaClass.getDeclaredField("\$selectionManager")
+        mgrField.isAccessible = true
+        val mgr = mgrField.get(controller) ?: return null
+        val range = mgr.javaClass.getMethod("getSelectionRange").invoke(mgr) ?: return null
+        val startRow = range.javaClass.getMethod("getStartRow").invoke(range) as Int
+        val startCol = range.javaClass.getMethod("getStartCol").invoke(range) as Int
+        val endRow = range.javaClass.getMethod("getEndRow").invoke(range) as Int
+        val endCol = range.javaClass.getMethod("getEndCol").invoke(range) as Int
+        return SelectionPosition(startRow, startCol, endRow, endCol)
+    } catch (e: Exception) {
+        Log.d(TAG, "getSelectionRange: ${e.message}")
+        return null
+    }
+}
+
+internal data class SelectionPosition(
+    val startRow: Int,
+    val startCol: Int,
+    val endRow: Int,
+    val endCol: Int,
+)
 
 /**
  * Expand a single-character selection to the word (contiguous non-whitespace
@@ -148,6 +180,7 @@ private enum class AnchorTarget { START, END }
 fun SelectionToolbar(
     controller: SelectionController,
     hyperlinkUri: String? = null,
+    onPaste: (String) -> Unit = {},
     modifier: Modifier = Modifier,
 ) {
     val clipboardManager = LocalClipboardManager.current
@@ -172,6 +205,15 @@ fun SelectionToolbar(
                     Toast.makeText(context, "Copied", Toast.LENGTH_SHORT).show()
                 }
                 controller.clearSelection()
+            }
+
+            // Paste
+            SelectionIconButton(Icons.Filled.ContentPaste, "Paste") {
+                val text = clipboardManager.getText()?.text
+                if (!text.isNullOrEmpty()) {
+                    controller.clearSelection()
+                    onPaste(text)
+                }
             }
 
             // Open URL (detected in selection text, or from OSC 8 hyperlink)
@@ -267,7 +309,7 @@ private fun SelectionIconButton(icon: ImageVector, description: String, onClick:
  * Detect a URL in the selected text. Returns null if no URL found.
  * Auto-adds "https://" if the matched text has no scheme.
  */
-private fun detectUrl(text: String?): String? {
+internal fun detectUrl(text: String?): String? {
     if (text.isNullOrBlank()) return null
     val matcher = Patterns.WEB_URL.matcher(text)
     if (!matcher.find()) return null

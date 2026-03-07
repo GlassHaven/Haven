@@ -109,6 +109,17 @@ class ReticulumSession(
         }
     }
 
+    /**
+     * Detach without closing the underlying rnsh session.
+     * Stops the reader/writer but leaves the Python session alive.
+     */
+    fun detach() {
+        if (closed) return
+        closed = true
+        writeExecutor.shutdown()
+        readerThread?.interrupt()
+    }
+
     override fun close() {
         if (closed) return
         closed = true

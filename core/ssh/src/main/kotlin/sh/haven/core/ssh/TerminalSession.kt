@@ -166,6 +166,20 @@ class TerminalSession(
         }
     }
 
+    /**
+     * Detach from the channel without disconnecting it.
+     * Stops the reader thread and write executor but leaves the shell channel
+     * alive so a new TerminalSession can be attached to it.
+     * Used when TerminalViewModel is cleared but the SSH connection persists
+     * (e.g., Activity destroyed while foreground service keeps the process alive).
+     */
+    fun detach() {
+        if (closed) return
+        closed = true
+        writeExecutor.shutdown()
+        readerThread?.interrupt()
+    }
+
     override fun close() {
         if (closed) return
         closed = true

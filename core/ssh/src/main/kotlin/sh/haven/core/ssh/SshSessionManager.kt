@@ -184,6 +184,21 @@ class SshSessionManager @Inject constructor(
     }
 
     /**
+     * Detach a terminal session without closing the shell channel.
+     * Called when TerminalViewModel is cleared (Activity destroyed) but the
+     * process stays alive via the foreground service. Allows a new
+     * TerminalViewModel to re-create a TerminalSession on the same channel.
+     */
+    fun detachTerminalSession(sessionId: String) {
+        val session = _sessions.value[sessionId] ?: return
+        session.terminalSession?.detach()
+        _sessions.update { map ->
+            val existing = map[sessionId] ?: return@update map
+            map + (sessionId to existing.copy(terminalSession = null))
+        }
+    }
+
+    /**
      * Attempt to reconnect a dropped session with exponential backoff.
      * Called on the ioExecutor thread.
      */

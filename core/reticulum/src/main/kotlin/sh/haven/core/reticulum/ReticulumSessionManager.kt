@@ -154,6 +154,18 @@ class ReticulumSessionManager @Inject constructor(
         return reticulumSession
     }
 
+    /**
+     * Detach a terminal session without closing the underlying rnsh session.
+     */
+    fun detachTerminalSession(sessionId: String) {
+        val session = _sessions.value[sessionId] ?: return
+        session.reticulumSession?.detach()
+        _sessions.update { map ->
+            val existing = map[sessionId] ?: return@update map
+            map + (sessionId to existing.copy(reticulumSession = null))
+        }
+    }
+
     fun isReadyForTerminal(sessionId: String): Boolean {
         val session = _sessions.value[sessionId] ?: return false
         return session.status == SessionState.Status.CONNECTED &&

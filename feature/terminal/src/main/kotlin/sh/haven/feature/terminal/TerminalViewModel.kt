@@ -109,6 +109,20 @@ class TerminalViewModel @Inject constructor(
     private val preferencesRepository: UserPreferencesRepository,
 ) : ViewModel() {
 
+    override fun onCleared() {
+        super.onCleared()
+        // Detach terminal sessions so they can be re-picked up by a new ViewModel.
+        // This happens when the Activity is destroyed but the process stays alive
+        // (foreground service keeps SSH connections open).
+        for (tab in _tabs.value) {
+            when (tab.transportType) {
+                "SSH" -> sessionManager.detachTerminalSession(tab.sessionId)
+                "RETICULUM" -> reticulumSessionManager.detachTerminalSession(tab.sessionId)
+            }
+        }
+        trackedSessionIds.clear()
+    }
+
     val terminalColorScheme: StateFlow<UserPreferencesRepository.TerminalColorScheme> =
         preferencesRepository.terminalColorScheme
             .stateIn(

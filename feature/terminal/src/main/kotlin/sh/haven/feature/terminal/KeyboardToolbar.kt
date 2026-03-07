@@ -12,6 +12,7 @@ import androidx.compose.foundation.rememberScrollState
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.KeyboardArrowLeft
 import androidx.compose.material.icons.automirrored.filled.KeyboardArrowRight
+import androidx.compose.material.icons.filled.ContentPaste
 import androidx.compose.material.icons.filled.Keyboard
 import androidx.compose.material.icons.filled.KeyboardArrowDown
 import androidx.compose.material.icons.filled.KeyboardArrowUp
@@ -30,6 +31,7 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.focus.FocusRequester
 import androidx.compose.ui.graphics.vector.ImageVector
+import androidx.compose.ui.platform.LocalClipboardManager
 import androidx.compose.ui.platform.LocalView
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
@@ -58,6 +60,7 @@ fun KeyboardToolbar(
     modifier: Modifier = Modifier,
 ) {
     var shiftActive by remember { mutableStateOf(false) }
+    val clipboardManager = LocalClipboardManager.current
     val view = LocalView.current
     val imeVisible = WindowInsets.isImeVisible
 
@@ -80,6 +83,14 @@ fun KeyboardToolbar(
                 } else {
                     focusRequester.requestFocus()
                     controller.show(WindowInsetsCompat.Type.ime())
+                }
+            }
+
+            // Paste
+            ToolbarIconButton(Icons.Filled.ContentPaste, "Paste") {
+                val text = clipboardManager.getText()?.text
+                if (!text.isNullOrEmpty()) {
+                    onSendBytes(text.toByteArray())
                 }
             }
 

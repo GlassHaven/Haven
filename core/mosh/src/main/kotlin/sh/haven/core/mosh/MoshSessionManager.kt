@@ -1,13 +1,11 @@
 package sh.haven.core.mosh
 
-import android.content.Context
 import android.util.Log
 import dagger.hilt.android.qualifiers.ApplicationContext
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.flow.update
-import java.io.File
 import java.util.UUID
 import java.util.concurrent.Executors
 import javax.inject.Inject
@@ -19,10 +17,12 @@ private const val TAG = "MoshSessionManager"
  * Manages active Mosh sessions across the app.
  * Parallel to ReticulumSessionManager: simple connect/disconnect lifecycle,
  * no reconnect logic (mosh handles roaming internally over UDP).
+ *
+ * Uses pure Kotlin MoshTransport — no native binary or PTY needed.
  */
 @Singleton
 class MoshSessionManager @Inject constructor(
-    @ApplicationContext private val context: Context,
+    @ApplicationContext private val context: android.content.Context,
 ) {
 
     data class SessionState(
@@ -30,8 +30,9 @@ class MoshSessionManager @Inject constructor(
         val profileId: String,
         val label: String,
         val status: Status,
-        val masterFd: Int = -1,
-        val childPid: Int = -1,
+        val serverIp: String = "",
+        val moshPort: Int = 0,
+        val moshKey: String = "",
         val moshSession: MoshSession? = null,
         /** Shell command to run after mosh connects (e.g. session manager attach). */
         val initialCommand: String? = null,
@@ -69,9 +70,9 @@ class MoshSessionManager @Inject constructor(
     }
 
     /**
-     * Connect a registered session by spawning mosh-client.
-     * Must be called on a background thread.
-     * After this, call [createTerminalSession] to wire up terminal I/O.
+     * Connect a registered session using the pure Kotlin mosh transport.
+     * Stores connection parameters; the actual transport starts when
+     * [createTerminalSession] is called.
      */
     fun connectSession(
         sessionId: String,
@@ -81,56 +82,25 @@ class MoshSessionManager @Inject constructor(
         cols: Int,
         rows: Int,
     ) {
-        val session = _sessions.value[sessionId]
+        _sessions.value[sessionId]
             ?: throw IllegalStateException("Session $sessionId not found")
 
-        val moshClientPath = findMoshClient()
-            ?: throw RuntimeException("mosh-client binary not found")
-
-        Log.d(TAG, "Spawning mosh-client: $serverIp:$moshPort")
-
-        val argv = arrayOf(
-            moshClientPath,
-            serverIp,
-            moshPort.toString(),
-        )
-
-        // Ensure terminfo is available for ncurses
-        val terminfoDest = File(context.filesDir, "terminfo")
-        if (!File(terminfoDest, "x/xterm-256color").exists()) {
-            extractTerminfo(terminfoDest)
-        }
-
-        val env = arrayOf(
-            "MOSH_KEY=$moshKey",
-            "TERM=xterm-256color",
-            "TERMINFO=${terminfoDest.absolutePath}",
-            "HOME=${context.filesDir.absolutePath}",
-            "PATH=/system/bin:/vendor/bin",
-            "LANG=C.UTF-8",
-            "LC_ALL=C.UTF-8",
-        )
-
-        val result = PtyHelper.nativeForkPty(moshClientPath, argv, env, rows, cols)
-            ?: throw RuntimeException("forkpty() failed for mosh-client")
-
-        val masterFd = result[0]
-        val childPid = result[1]
-        Log.d(TAG, "mosh-client spawned: pid=$childPid fd=$masterFd")
+        Log.d(TAG, "Connecting mosh session: $serverIp:$moshPort")
 
         _sessions.update { map ->
             val existing = map[sessionId] ?: return@update map
             map + (sessionId to existing.copy(
                 status = SessionState.Status.CONNECTED,
-                masterFd = masterFd,
-                childPid = childPid,
+                serverIp = serverIp,
+                moshPort = moshPort,
+                moshKey = moshKey,
             ))
         }
     }
 
     /**
      * Create a [MoshSession] for a connected session.
-     * Returns the session, or null if not ready.
+     * The transport starts immediately and terminal output flows via [onDataReceived].
      */
     fun createTerminalSession(
         sessionId: String,
@@ -139,14 +109,15 @@ class MoshSessionManager @Inject constructor(
         val session = _sessions.value[sessionId] ?: return null
         if (session.status != SessionState.Status.CONNECTED) return null
         if (session.moshSession != null) return null
-        if (session.masterFd < 0) return null
+        if (session.serverIp.isEmpty()) return null
 
         val moshSession = MoshSession(
             sessionId = sessionId,
             profileId = session.profileId,
             label = session.label,
-            masterFd = session.masterFd,
-            childPid = session.childPid,
+            serverIp = session.serverIp,
+            moshPort = session.moshPort,
+            moshKey = session.moshKey,
             onDataReceived = onDataReceived,
             onDisconnected = { _ ->
                 Log.d(TAG, "Session $sessionId disconnected")
@@ -166,11 +137,11 @@ class MoshSessionManager @Inject constructor(
         val session = _sessions.value[sessionId] ?: return false
         return session.status == SessionState.Status.CONNECTED &&
             session.moshSession == null &&
-            session.masterFd >= 0
+            session.serverIp.isNotEmpty()
     }
 
     /**
-     * Detach a terminal session without killing mosh-client.
+     * Detach a terminal session without killing the mosh transport.
      */
     fun detachTerminalSession(sessionId: String) {
         val session = _sessions.value[sessionId] ?: return
@@ -253,38 +224,6 @@ class MoshSessionManager @Inject constructor(
             SessionState.Status.CONNECTING in statuses -> SessionState.Status.CONNECTING
             SessionState.Status.ERROR in statuses -> SessionState.Status.ERROR
             else -> SessionState.Status.DISCONNECTED
-        }
-    }
-
-    /**
-     * Find the mosh-client binary. It's packaged as libmoshclient.so in jniLibs.
-     *
-     * With extractNativeLibs=true, Android extracts native libs to nativeLibraryDir
-     * which has the correct SELinux context (apk_data_file) for execv().
-     * Files in app's filesDir (app_data_file) are blocked by SELinux execute_no_trans.
-     */
-    private fun findMoshClient(): String? {
-        // Execute directly from nativeLibraryDir — only location Android allows execv()
-        val nativeLib = File(context.applicationInfo.nativeLibraryDir, "libmoshclient.so")
-        if (nativeLib.exists()) {
-            Log.d(TAG, "Found mosh-client at ${nativeLib.absolutePath}")
-            return nativeLib.absolutePath
-        }
-
-        Log.e(TAG, "mosh-client not found in nativeLibraryDir: ${context.applicationInfo.nativeLibraryDir}")
-        return null
-    }
-
-    private fun extractTerminfo(dest: File) {
-        try {
-            val assetPath = "terminfo/x/xterm-256color"
-            val outFile = File(dest, "x/xterm-256color")
-            outFile.parentFile?.mkdirs()
-            context.assets.open(assetPath).use { input ->
-                outFile.outputStream().use { output -> input.copyTo(output) }
-            }
-        } catch (e: Exception) {
-            Log.e(TAG, "Failed to extract terminfo", e)
         }
     }
 }

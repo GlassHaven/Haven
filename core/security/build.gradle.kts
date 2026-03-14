@@ -10,7 +10,6 @@ android {
     compileSdk = 36
 
     defaultConfig {
-        missingDimensionStrategy("distribution", "full")
         minSdk = 26
     }
 

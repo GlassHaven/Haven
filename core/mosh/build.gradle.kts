@@ -10,20 +10,7 @@ android {
     compileSdk = 36
 
     defaultConfig {
-        missingDimensionStrategy("distribution", "full")
         minSdk = 26
-
-        externalNativeBuild {
-            cmake {
-                arguments("-DANDROID_STL=none")
-            }
-        }
-    }
-
-    externalNativeBuild {
-        cmake {
-            path = file("src/main/cpp/CMakeLists.txt")
-        }
     }
 
     compileOptions {
@@ -37,6 +24,7 @@ dependencies {
     implementation(libs.coroutines.android)
     implementation(libs.hilt.android)
     ksp(libs.hilt.compiler)
+    implementation(libs.bouncycastle)
 
     testImplementation(libs.junit)
 }

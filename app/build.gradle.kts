@@ -21,7 +21,7 @@ android {
         testInstrumentationRunner = "androidx.test.runner.AndroidJUnitRunner"
     }
 
-    flavorDimensions += listOf("abi", "distribution")
+    flavorDimensions += listOf("abi")
     productFlavors {
         create("arm64") {
             dimension = "abi"
@@ -30,14 +30,6 @@ android {
         create("x64") {
             dimension = "abi"
             ndk { abiFilters += "x86_64" }
-        }
-        create("full") {
-            dimension = "distribution"
-            buildConfigField("boolean", "MOSH_ENABLED", "true")
-        }
-        create("foss") {
-            dimension = "distribution"
-            buildConfigField("boolean", "MOSH_ENABLED", "false")
         }
     }
 
@@ -67,12 +59,7 @@ android {
     }
 
     // Version code scheme: base * 10 + offset
-    // full:  arm64=1, x64=2
-    // foss:  arm64=3, x64=4
-    val variantCodes = mapOf(
-        "arm64Full" to 1, "x64Full" to 2,
-        "arm64Foss" to 3, "x64Foss" to 4,
-    )
+    val variantCodes = mapOf("arm64" to 1, "x64" to 2)
 
     applicationVariants.all {
         val variant = this
@@ -82,10 +69,9 @@ android {
             if (code != null) {
                 output.versionCodeOverride = (defaultConfig.versionCode ?: 0) * 10 + code
             }
-            // e.g., haven-2.0.16-arm64-full-release.apk
+            // e.g., haven-2.0.17-arm64-release.apk
             val abi = variant.productFlavors.first { it.dimension == "abi" }.name
-            val dist = variant.productFlavors.first { it.dimension == "distribution" }.name
-            output.outputFileName = "haven-${variant.versionName}-$abi-$dist-${variant.buildType.name}.apk"
+            output.outputFileName = "haven-${variant.versionName}-$abi-${variant.buildType.name}.apk"
         }
     }
 
@@ -113,13 +99,6 @@ android {
     }
 }
 
-// Exclude prebuilt mosh binary from foss variants
-androidComponents {
-    onVariants(selector().withFlavor("distribution" to "foss")) { variant ->
-        variant.packaging.jniLibs.excludes.add("**/libmoshclient.so")
-        variant.packaging.resources.excludes.add("**/terminfo/**")
-    }
-}
 
 dependencies {
     implementation(project(":core:ui"))

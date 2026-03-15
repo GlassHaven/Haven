@@ -20,7 +20,7 @@ android {
 }
 
 dependencies {
-    api("sh.haven:mosh-transport:0.1.0")
+    api("sh.haven:ssp-transport:0.1.0")
     implementation(libs.coroutines.core)
     implementation(libs.coroutines.android)
     implementation(libs.hilt.android)

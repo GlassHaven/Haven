@@ -4,4 +4,4 @@
 	branch = fix-popScrollbackLine-0.0.22
 [submodule "mosh-kotlin"]
 	path = mosh-kotlin
-	url = https://github.com/GlassOnTin/mosh-kotlin.git
+	url = https://github.com/GlassOnTin/ssp-transport.git

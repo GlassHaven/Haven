@@ -23,10 +23,10 @@ includeBuild("termlib") {
     }
 }
 
-// Pure Kotlin mosh transport library (submodule).
+// Pure Kotlin SSP transport library (submodule).
 includeBuild("mosh-kotlin") {
     dependencySubstitution {
-        substitute(module("sh.haven:mosh-transport")).using(project(":"))
+        substitute(module("sh.haven:ssp-transport")).using(project(":"))
     }
 }
 

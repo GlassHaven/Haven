@@ -85,9 +85,11 @@ fun SftpScreen(
     val transferProgress by viewModel.transferProgress.collectAsState()
     val error by viewModel.error.collectAsState()
     val message by viewModel.message.collectAsState()
+    val lastDownload by viewModel.lastDownload.collectAsState()
 
     viewModel.syncConnectedProfiles()
 
+    val context = LocalContext.current
     val snackbarHostState = remember { SnackbarHostState() }
 
     LaunchedEffect(error) {
@@ -97,15 +99,39 @@ fun SftpScreen(
         }
     }
 
-    LaunchedEffect(message) {
-        message?.let {
-            snackbarHostState.showSnackbar(it)
-            viewModel.dismissMessage()
+    LaunchedEffect(lastDownload) {
+        val dl = lastDownload ?: return@LaunchedEffect
+        viewModel.dismissMessage() // clear the plain message so it doesn't double-show
+        val result = snackbarHostState.showSnackbar(
+            message = "Downloaded ${dl.fileName}",
+            actionLabel = "Open",
+            duration = androidx.compose.material3.SnackbarDuration.Long,
+        )
+        if (result == androidx.compose.material3.SnackbarResult.ActionPerformed) {
+            try {
+                val mimeType = context.contentResolver.getType(dl.uri) ?: "*/*"
+                val intent = android.content.Intent(android.content.Intent.ACTION_VIEW).apply {
+                    setDataAndType(dl.uri, mimeType)
+                    addFlags(android.content.Intent.FLAG_GRANT_READ_URI_PERMISSION)
+                }
+                context.startActivity(intent)
+            } catch (e: Exception) {
+                snackbarHostState.showSnackbar("No app found to open this file")
+            }
         }
+        viewModel.clearLastDownload()
+    }
+
+    LaunchedEffect(message) {
+        // Only show plain messages when there's no download result (download has its own snackbar)
+        val msg = message ?: return@LaunchedEffect
+        if (lastDownload == null) {
+            snackbarHostState.showSnackbar(msg)
+        }
+        viewModel.dismissMessage()
     }
 
     // File picker for upload
-    val context = LocalContext.current
     val uploadLauncher = rememberLauncherForActivityResult(
         ActivityResultContracts.OpenDocument()
     ) { uri ->

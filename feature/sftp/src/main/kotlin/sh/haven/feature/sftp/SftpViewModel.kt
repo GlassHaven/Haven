@@ -93,6 +93,12 @@ class SftpViewModel @Inject constructor(
     private val _message = MutableStateFlow<String?>(null)
     val message: StateFlow<String?> = _message.asStateFlow()
 
+    /** Emitted after a successful download with the destination URI for "Open" action. */
+    data class DownloadResult(val fileName: String, val uri: Uri)
+    private val _lastDownload = MutableStateFlow<DownloadResult?>(null)
+    val lastDownload: StateFlow<DownloadResult?> = _lastDownload.asStateFlow()
+    fun clearLastDownload() { _lastDownload.value = null }
+
     private var sftpChannel: ChannelSftp? = null
 
     init {
@@ -234,6 +240,7 @@ class SftpViewModel @Inject constructor(
                         channel.get(entry.path, out, monitor)
                     }
                 }
+                _lastDownload.value = DownloadResult(entry.name, destinationUri)
                 _message.value = "Downloaded ${entry.name}"
             } catch (e: Exception) {
                 Log.e(TAG, "Download failed", e)

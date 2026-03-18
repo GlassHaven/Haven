@@ -23,6 +23,13 @@ includeBuild("termlib") {
     }
 }
 
+// Pure Kotlin ET transport library (submodule).
+includeBuild("et-kotlin") {
+    dependencySubstitution {
+        substitute(module("sh.haven:et-transport")).using(project(":"))
+    }
+}
+
 // Pure Kotlin SSP transport library (submodule).
 includeBuild("mosh-kotlin") {
     dependencySubstitution {

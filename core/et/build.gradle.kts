@@ -24,7 +24,7 @@ android {
 }
 
 dependencies {
-    implementation(libs.bouncycastle)
+    api("sh.haven:et-transport:0.1.0")
     implementation(libs.coroutines.core)
     implementation(libs.coroutines.android)
     implementation(libs.hilt.android)

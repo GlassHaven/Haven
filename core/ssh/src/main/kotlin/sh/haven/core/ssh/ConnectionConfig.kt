@@ -23,6 +23,7 @@ data class ConnectionConfig(
             }
             override fun hashCode(): Int = keyBytes.contentHashCode() * 31 + passphrase.hashCode()
         }
+        data class PrivateKeys(val keys: List<Pair<String, ByteArray>>) : AuthMethod
     }
 
     companion object {

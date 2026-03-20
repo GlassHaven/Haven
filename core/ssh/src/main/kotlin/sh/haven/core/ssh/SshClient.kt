@@ -72,6 +72,11 @@ class SshClient : Closeable {
                     auth.passphrase.ifEmpty { null }?.toByteArray(),
                 )
             }
+            is ConnectionConfig.AuthMethod.PrivateKeys -> {
+                auth.keys.forEachIndexed { i, (label, keyBytes) ->
+                    jsch.addIdentity("haven-key-$i-$label", keyBytes, null, null)
+                }
+            }
         }
 
         // Apply user SSH options (overrides defaults above)
@@ -175,6 +180,11 @@ class SshClient : Closeable {
                     null,
                     auth.passphrase.ifEmpty { null }?.toByteArray(),
                 )
+            }
+            is ConnectionConfig.AuthMethod.PrivateKeys -> {
+                auth.keys.forEachIndexed { i, (label, keyBytes) ->
+                    jsch.addIdentity("haven-key-$i-$label", keyBytes, null, null)
+                }
             }
         }
 

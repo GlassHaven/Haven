@@ -1309,14 +1309,14 @@ class ConnectionsViewModel @Inject constructor(
             }
         }
 
-        // No explicit key but keys are available — try first key when password is empty
+        // No explicit key but keys are available — try all keys
         if (password.isEmpty()) {
             val keys = sshKeyRepository.getAll()
             if (keys.isNotEmpty()) {
-                val key = keys.first()
-                return ConnectionConfig.AuthMethod.PrivateKey(
-                    keyBytes = rawKeyToPem(key.privateKeyBytes, key.keyType),
-                    passphrase = "",
+                return ConnectionConfig.AuthMethod.PrivateKeys(
+                    keys = keys.map { key ->
+                        key.label to rawKeyToPem(key.privateKeyBytes, key.keyType)
+                    }
                 )
             }
         }

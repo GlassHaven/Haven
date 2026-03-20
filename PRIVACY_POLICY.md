@@ -11,7 +11,7 @@ Haven does not collect, transmit, or share any personal data. All data stays on 
 ## What Haven stores locally
 
 - **Connection profiles**: hostnames, ports, usernames, and optionally RDP/VNC passwords you configure. Stored in a local database on your device.
-- **SSH keys**: private keys you generate or import. Stored in encrypted local storage on your device.
+- **SSH keys**: private keys you generate or import. Stored as BLOBs in Haven's local Room database (`haven.db`) within the app's private storage directory (`/data/data/sh.haven.app/`). This directory is protected by Android's app sandbox — no other app can access it. If the key was encrypted with a passphrase, Haven stores the decrypted version after you unlock it during import, so the passphrase is not needed at connect time. The original passphrase is not stored.
 - **Known hosts**: SSH server fingerprints accepted via trust-on-first-use. Stored locally.
 - **App preferences**: settings such as theme, font size, color scheme, biometric lock preference, and lock timeout. Stored in local preferences on your device.
 

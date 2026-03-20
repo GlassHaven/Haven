@@ -2,6 +2,7 @@ package sh.haven.core.ssh
 
 import com.jcraft.jsch.JSch
 import com.jcraft.jsch.KeyPair
+import java.io.ByteArrayOutputStream
 import java.security.MessageDigest
 import java.util.Base64
 
@@ -56,9 +57,19 @@ object SshKeyImporter {
             val fpB64 = Base64.getEncoder().withoutPadding().encodeToString(digest)
             val fingerprint = "SHA256:$fpB64"
 
+            // Store decrypted key so passphrase isn't needed at connect time.
+            // For unencrypted keys, store the original bytes unchanged.
+            val storedBytes = if (passphrase != null) {
+                val out = ByteArrayOutputStream()
+                kpair.writePrivateKey(out)
+                out.toByteArray()
+            } else {
+                fileBytes
+            }
+
             return ImportedKey(
                 keyType = keyTypeName,
-                privateKeyBytes = fileBytes,
+                privateKeyBytes = storedBytes,
                 publicKeyOpenSsh = publicKeyOpenSsh,
                 fingerprintSha256 = fingerprint,
             )

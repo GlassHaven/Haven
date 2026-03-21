@@ -1,3 +1,5 @@
+import java.io.File
+
 plugins {
     alias(libs.plugins.android.application)
     alias(libs.plugins.kotlin.android)
@@ -12,7 +14,7 @@ android {
     compileSdk = 36
 
     defaultConfig {
-        applicationId = "sh.haven.app"
+        applicationId = "com.hension.haven"
         minSdk = 26
         targetSdk = 35
         versionCode = 74
@@ -46,6 +48,10 @@ android {
     }
 
     buildTypes {
+        debug {
+            applicationIdSuffix = ".dev"
+            versionNameSuffix = "-dev"
+        }
         release {
             signingConfig = signingConfigs.getByName("release")
             isMinifyEnabled = true
@@ -146,7 +152,18 @@ dependencies {
 
 chaquopy {
     defaultConfig {
-        version = "3.13"
+        version = "3.12"
+        val buildPythonCandidates = listOf(
+            System.getenv("CHAQUOPY_BUILD_PYTHON"),
+            System.getenv("LOCALAPPDATA")?.let { "$it\\Programs\\Python\\Python312\\python.exe" },
+            System.getenv("LOCALAPPDATA")?.let { "$it\\Programs\\Python\\Python313\\python.exe" },
+            "C:\\Python312\\python.exe",
+            "C:\\Python313\\python.exe",
+        ).filterNotNull()
+        val buildPythonPath = buildPythonCandidates.firstOrNull { File(it).exists() }
+        if (buildPythonPath != null) {
+            buildPython(buildPythonPath)
+        }
 
         pip {
             install("rns")

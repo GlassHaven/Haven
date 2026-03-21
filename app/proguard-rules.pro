@@ -22,6 +22,9 @@
 -keep class com.hierynomus.** { *; }
 -keep class net.engio.** { *; }
 
+# mbassador optional EL API (not present on Android)
+-dontwarn javax.el.**
+
 # Keep Hilt generated classes
 -keep class dagger.hilt.** { *; }
 -keep class javax.inject.** { *; }

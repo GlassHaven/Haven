@@ -4,6 +4,7 @@ import android.app.Activity
 import android.content.ClipData
 import android.content.ClipboardManager
 import android.content.Context
+import android.content.res.Configuration
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.height
@@ -321,11 +322,14 @@ fun TerminalScreen(
                     // the View hierarchy, bypassing termlib's hardcoded US QWERTY
                     // symbol table.
                     val currentSelectionActive by rememberUpdatedState(selectionActive)
+                    val hasHardwareKeyboard by rememberUpdatedState(
+                        context.resources.configuration.keyboard != Configuration.KEYBOARD_NOKEYS,
+                    )
                     DisposableEffect(activeTab) {
                         val interceptor = { event: android.view.KeyEvent ->
                             handleLayoutAwareKeyEvent(
                                 event, activeTab,
-                                currentSelectionActive, viewModel,
+                                currentSelectionActive, hasHardwareKeyboard, viewModel,
                             )
                         }
                         KeyEventInterceptor.handler = interceptor
@@ -571,9 +575,18 @@ private fun handleLayoutAwareKeyEvent(
     event: android.view.KeyEvent,
     activeTab: TerminalTab,
     selectionActive: Boolean,
+    hasHardwareKeyboard: Boolean,
     viewModel: TerminalViewModel,
 ): Boolean {
     if (event.action != android.view.KeyEvent.ACTION_DOWN) return false
+    if (!hasHardwareKeyboard) return false
+
+    // Only remap physical keyboard input. IME/software keyboard events must
+    // flow through InputConnection (commitText), otherwise composing input
+    // like Chinese Pinyin gets sent as raw Latin letters.
+    if ((event.flags and android.view.KeyEvent.FLAG_SOFT_KEYBOARD) != 0) return false
+    if (event.deviceId == android.view.KeyCharacterMap.VIRTUAL_KEYBOARD) return false
+    if (!event.isFromSource(android.view.InputDevice.SOURCE_KEYBOARD)) return false
 
     // Don't intercept during text selection — termlib manages selection keys
     if (selectionActive) return false

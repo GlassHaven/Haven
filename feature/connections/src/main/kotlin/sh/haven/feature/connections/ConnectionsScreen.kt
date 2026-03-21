@@ -33,6 +33,7 @@ import androidx.compose.material.icons.filled.LinkOff
 import androidx.compose.material.icons.filled.Password
 import androidx.compose.material.icons.filled.SyncAlt
 import androidx.compose.material.icons.filled.Laptop
+import androidx.compose.material.icons.filled.Refresh
 import androidx.compose.material.icons.filled.VpnKey
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.shape.RoundedCornerShape
@@ -266,6 +267,20 @@ fun ConnectionsScreen(
                 if (existing == null) viewModel.saveConnection(profile)
                 connectingProfile = profile
             },
+            onConnectSshDirect = { ip, port ->
+                showVmSetup = false
+                val existing = connections.find {
+                    it.host == ip && it.port == port && it.username == "droid"
+                }
+                val profile = existing ?: ConnectionProfile(
+                    label = "Linux VM",
+                    host = ip,
+                    port = port,
+                    username = "droid",
+                )
+                if (existing == null) viewModel.saveConnection(profile)
+                connectingProfile = profile
+            },
             onConnectVnc = { port ->
                 showVmSetup = false
                 val sshPort = localVmStatus.sshPort ?: 8022
@@ -276,6 +291,24 @@ fun ConnectionsScreen(
                     ?: ConnectionProfile(
                         label = "Linux VM",
                         host = "localhost",
+                        port = sshPort,
+                        username = "droid",
+                        vncPort = port,
+                        vncSshForward = false,
+                    )
+                viewModel.saveConnection(profile)
+                connectingProfile = profile
+            },
+            onConnectVncDirect = { ip, port ->
+                showVmSetup = false
+                val existing = connections.find {
+                    it.host == ip && it.username == "droid"
+                }
+                val sshPort = localVmStatus.directSshPort ?: 22
+                val profile = (existing?.copy(vncPort = port, vncSshForward = false))
+                    ?: ConnectionProfile(
+                        label = "Linux VM",
+                        host = ip,
                         port = sshPort,
                         username = "droid",
                         vncPort = port,
@@ -516,6 +549,7 @@ fun ConnectionsScreen(
                 LinuxVmCard(
                     vmStatus = localVmStatus,
                     onClick = { showVmSetup = true },
+                    onRefresh = { viewModel.refreshLocalVm() },
                     modifier = Modifier.padding(horizontal = 16.dp, vertical = 4.dp),
                 )
             }
@@ -973,9 +1007,12 @@ private fun RenameDialog(
 private fun LinuxVmCard(
     vmStatus: LocalVmStatus,
     onClick: () -> Unit,
+    onRefresh: () -> Unit,
     modifier: Modifier = Modifier,
 ) {
-    val hasServices = vmStatus.sshPort != null || vmStatus.vncPort != null
+    val hasLocalServices = vmStatus.sshPort != null || vmStatus.vncPort != null
+    val hasDirectServices = vmStatus.directSshPort != null || vmStatus.directVncPort != null
+    val hasServices = hasLocalServices || hasDirectServices
     Card(
         onClick = onClick,
         shape = RoundedCornerShape(12.dp),
@@ -983,7 +1020,7 @@ private fun LinuxVmCard(
     ) {
         Row(
             verticalAlignment = Alignment.CenterVertically,
-            modifier = Modifier.padding(12.dp),
+            modifier = Modifier.padding(start = 12.dp, top = 12.dp, bottom = 12.dp, end = 4.dp),
         ) {
             Icon(
                 Icons.Filled.Laptop,
@@ -999,11 +1036,24 @@ private fun LinuxVmCard(
                         vmStatus.sshPort?.let { add("SSH :$it") }
                         vmStatus.vncPort?.let { add("VNC :$it") }
                     }
-                    Text(
-                        services.joinToString(" · ") + " on localhost",
-                        style = MaterialTheme.typography.bodySmall,
-                        color = MaterialTheme.colorScheme.onSurfaceVariant,
-                    )
+                    if (services.isNotEmpty()) {
+                        Text(
+                            services.joinToString(" · ") + " on localhost",
+                            style = MaterialTheme.typography.bodySmall,
+                            color = MaterialTheme.colorScheme.onSurfaceVariant,
+                        )
+                    }
+                    if (hasDirectServices) {
+                        val directServices = buildList {
+                            vmStatus.directSshPort?.let { add("SSH :$it") }
+                            vmStatus.directVncPort?.let { add("VNC :$it") }
+                        }
+                        Text(
+                            directServices.joinToString(" · ") + " on ${vmStatus.directIp}",
+                            style = MaterialTheme.typography.bodySmall,
+                            color = MaterialTheme.colorScheme.onSurfaceVariant,
+                        )
+                    }
                 } else {
                     Text(
                         "Tap to set up",
@@ -1018,6 +1068,13 @@ private fun LinuxVmCard(
                     contentDescription = "Active",
                     tint = Color(0xFF4CAF50),
                     modifier = Modifier.size(10.dp),
+                )
+            }
+            IconButton(onClick = onRefresh, modifier = Modifier.size(32.dp)) {
+                Icon(
+                    Icons.Filled.Refresh,
+                    contentDescription = "Refresh VM status",
+                    modifier = Modifier.size(18.dp),
                 )
             }
         }

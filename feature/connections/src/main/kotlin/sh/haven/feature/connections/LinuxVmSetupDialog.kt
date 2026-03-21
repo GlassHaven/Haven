@@ -62,10 +62,15 @@ vncserver :1 -localhost no -geometry 1920x1080"""
 fun LinuxVmSetupDialog(
     vmStatus: LocalVmStatus,
     onConnectSsh: (port: Int) -> Unit,
+    onConnectSshDirect: (ip: String, port: Int) -> Unit,
     onConnectVnc: (port: Int) -> Unit,
+    onConnectVncDirect: (ip: String, port: Int) -> Unit,
     onDismiss: () -> Unit,
 ) {
     val context = LocalContext.current
+    val hasLocalServices = vmStatus.sshPort != null || vmStatus.vncPort != null
+    val hasDirectServices = vmStatus.directSshPort != null || vmStatus.directVncPort != null
+    val hasAnyServices = hasLocalServices || hasDirectServices
 
     AlertDialog(
         onDismissRequest = onDismiss,
@@ -73,7 +78,7 @@ fun LinuxVmSetupDialog(
         text = {
             Column(modifier = Modifier.verticalScroll(rememberScrollState())) {
                 // Status section
-                if (vmStatus.sshPort != null || vmStatus.vncPort != null) {
+                if (hasAnyServices) {
                     Text("Detected services", style = MaterialTheme.typography.titleSmall)
                     Spacer(Modifier.height(4.dp))
                     if (vmStatus.sshPort != null) {
@@ -88,6 +93,20 @@ fun LinuxVmSetupDialog(
                             label = "VNC on localhost:${vmStatus.vncPort}",
                             actionLabel = "Connect",
                             onClick = { onConnectVnc(vmStatus.vncPort) },
+                        )
+                    }
+                    if (vmStatus.directIp != null && vmStatus.directSshPort != null) {
+                        StatusRow(
+                            label = "SSH on ${vmStatus.directIp}:${vmStatus.directSshPort}",
+                            actionLabel = "Connect",
+                            onClick = { onConnectSshDirect(vmStatus.directIp, vmStatus.directSshPort) },
+                        )
+                    }
+                    if (vmStatus.directIp != null && vmStatus.directVncPort != null) {
+                        StatusRow(
+                            label = "VNC on ${vmStatus.directIp}:${vmStatus.directVncPort}",
+                            actionLabel = "Connect",
+                            onClick = { onConnectVncDirect(vmStatus.directIp, vmStatus.directVncPort) },
                         )
                     }
                     Spacer(Modifier.height(16.dp))

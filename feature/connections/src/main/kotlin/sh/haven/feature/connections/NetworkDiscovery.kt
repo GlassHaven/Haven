@@ -15,6 +15,11 @@ import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.withContext
+import kotlinx.coroutines.Job
+import kotlinx.coroutines.delay
+import kotlinx.coroutines.launch
+import java.io.BufferedReader
+import java.io.FileReader
 import java.net.Inet4Address
 import java.net.InetSocketAddress
 import java.net.Socket
@@ -32,6 +37,9 @@ data class LocalVmStatus(
     val terminalAppInstalled: Boolean = false,
     val sshPort: Int? = null,
     val vncPort: Int? = null,
+    val directIp: String? = null,
+    val directSshPort: Int? = null,
+    val directVncPort: Int? = null,
 )
 
 /**
@@ -55,12 +63,14 @@ class NetworkDiscovery(private val context: Context) {
     private val mdnsHosts = mutableSetOf<DiscoveredHost>()
     private val arpHosts = mutableSetOf<DiscoveredHost>()
     private val smbScanHosts = mutableSetOf<DiscoveredHost>()
+    private var vmPollingJob: Job? = null
 
     fun start() {
         startMdns()
     }
 
     fun stop() {
+        stopVmPolling()
         stopMdns()
         mdnsHosts.clear()
         arpHosts.clear()
@@ -70,21 +80,53 @@ class NetworkDiscovery(private val context: Context) {
         _localVm.value = LocalVmStatus()
     }
 
+    fun startVmPolling(scope: kotlinx.coroutines.CoroutineScope) {
+        stopVmPolling()
+        vmPollingJob = scope.launch {
+            while (true) {
+                scanLocalVm()
+                delay(5_000)
+            }
+        }
+    }
+
+    fun stopVmPolling() {
+        vmPollingJob?.cancel()
+        vmPollingJob = null
+    }
+
     /**
      * Probe localhost for SSH/VNC ports commonly used by the Android Linux VM.
      * The Terminal app auto-forwards guest TCP ports to localhost via vsock.
+     * Also probes the VM's direct IP on the avf_tap_fixed interface.
      */
     suspend fun scanLocalVm() {
         withContext(Dispatchers.IO) {
             val terminalInstalled = isTerminalAppInstalled()
+            // Use 100ms timeout for localhost — connections are instant or not there
             val sshPorts = listOf(8022, 2222, 22)
             val vncPorts = listOf(5900, 5901, 5902)
-            val sshPort = sshPorts.firstOrNull { probePort("127.0.0.1", it, 200) }
-            val vncPort = vncPorts.firstOrNull { probePort("127.0.0.1", it, 200) }
+
+            // Probe localhost forwarded ports
+            val sshPort = sshPorts.firstOrNull { probePort("127.0.0.1", it, 100) }
+            val vncPort = vncPorts.firstOrNull { probePort("127.0.0.1", it, 100) }
+
+            // Probe VM's direct IP (avf_tap_fixed interface)
+            val vmIp = discoverVmDirectIp()
+            var directSshPort: Int? = null
+            var directVncPort: Int? = null
+            if (vmIp != null) {
+                directSshPort = if (probePort(vmIp, 22, 100)) 22 else null
+                directVncPort = vncPorts.firstOrNull { probePort(vmIp, it, 100) }
+            }
+
             _localVm.value = LocalVmStatus(
                 terminalAppInstalled = terminalInstalled,
                 sshPort = sshPort,
                 vncPort = vncPort,
+                directIp = if (directSshPort != null || directVncPort != null) vmIp else null,
+                directSshPort = directSshPort,
+                directVncPort = directVncPort,
             )
             if (terminalInstalled) {
                 Log.d(TAG, "Android Terminal app detected")
@@ -95,6 +137,60 @@ class NetworkDiscovery(private val context: Context) {
             if (vncPort != null) {
                 Log.d(TAG, "Local VM VNC detected on port $vncPort")
             }
+            if (vmIp != null && (directSshPort != null || directVncPort != null)) {
+                Log.d(TAG, "VM direct IP $vmIp: SSH=$directSshPort VNC=$directVncPort")
+            }
+        }
+    }
+
+    /**
+     * Discover the VM's direct IP by reading /proc/net/route for avf_tap interfaces.
+     * Returns the gateway IP or derived host IP (e.g. 10.255.32.2).
+     */
+    private fun discoverVmDirectIp(): String? {
+        return try {
+            BufferedReader(FileReader("/proc/net/route")).use { reader ->
+                reader.readLine() // skip header
+                var line = reader.readLine()
+                while (line != null) {
+                    val fields = line.split("\t")
+                    if (fields.size >= 3 && fields[0].startsWith("avf_tap")) {
+                        // Gateway field is in little-endian hex
+                        val gatewayHex = fields[2]
+                        if (gatewayHex != "00000000") {
+                            val ip = hexToIp(gatewayHex)
+                            if (ip != null) return@use ip
+                        }
+                        // Try destination field as network base, VM is typically at .2
+                        val destHex = fields[1]
+                        if (destHex != "00000000") {
+                            val baseIp = hexToIp(destHex)
+                            if (baseIp != null) {
+                                val parts = baseIp.split(".")
+                                if (parts.size == 4) {
+                                    return@use "${parts[0]}.${parts[1]}.${parts[2]}.2"
+                                }
+                            }
+                        }
+                    }
+                    line = reader.readLine()
+                }
+                null
+            }
+        } catch (e: Exception) {
+            Log.d(TAG, "Could not read /proc/net/route for VM IP: ${e.message}")
+            null
+        }
+    }
+
+    /** Convert little-endian hex IP from /proc/net/route to dotted notation. */
+    private fun hexToIp(hex: String): String? {
+        if (hex.length != 8) return null
+        return try {
+            val n = hex.toLong(16)
+            "${n and 0xFF}.${(n shr 8) and 0xFF}.${(n shr 16) and 0xFF}.${(n shr 24) and 0xFF}"
+        } catch (_: Exception) {
+            null
         }
     }
 

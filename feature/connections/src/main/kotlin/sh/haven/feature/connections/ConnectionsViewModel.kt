@@ -310,6 +310,10 @@ class ConnectionsViewModel @Inject constructor(
 
     fun startNetworkDiscovery() {
         networkDiscovery.start()
+        networkDiscovery.startVmPolling(viewModelScope)
+    }
+
+    fun refreshLocalVm() {
         viewModelScope.launch {
             networkDiscovery.scanLocalVm()
         }
@@ -338,7 +342,7 @@ class ConnectionsViewModel @Inject constructor(
     }
 
     fun stopNetworkDiscovery() {
-        networkDiscovery.stop()
+        networkDiscovery.stop() // also stops VM polling
     }
 
     fun refreshDiscoveredDestinations() {
@@ -649,6 +653,11 @@ class ConnectionsViewModel @Inject constructor(
                     repository.save(profile.copy(sshPassword = password))
                 } else if (rememberPassword == false && profile.sshPassword != null) {
                     repository.save(profile.copy(sshPassword = null))
+                }
+
+                // Auto-deploy SSH key for VM connections after first password connect
+                if (password.isNotBlank()) {
+                    maybeAutoDeployKey(profile, password)
                 }
             } catch (e: Exception) {
                 Log.e(TAG, "connectSsh failed for ${profile.label}: ${e.message}", e)
@@ -1625,6 +1634,76 @@ class ConnectionsViewModel @Inject constructor(
 
     fun dismissDeploySuccess() {
         _deploySuccess.value = false
+    }
+
+    /**
+     * Auto-deploy the first SSH key to a localhost/VM profile after a successful
+     * password-based connect. Only fires if keys exist and haven't been deployed yet.
+     */
+    private fun maybeAutoDeployKey(profile: ConnectionProfile, password: String) {
+        val isLocalVm = profile.host in listOf("localhost", "127.0.0.1") ||
+            profile.host == localVmStatus.value.directIp
+        if (!isLocalVm) return
+
+        viewModelScope.launch {
+            val keys = sshKeyRepository.observeAll().first()
+            if (keys.isEmpty()) return@launch
+
+            // Check if key is already deployed by trying key auth
+            val testClient = SshClient()
+            try {
+                val keyAuth = resolveAuthMethod(profile, "")
+                if (keyAuth is ConnectionConfig.AuthMethod.Password) return@launch // no keys to deploy
+                val config = ConnectionConfig(
+                    host = profile.host,
+                    port = profile.port,
+                    username = profile.username,
+                    authMethod = keyAuth,
+                )
+                withContext(Dispatchers.IO) {
+                    testClient.connect(config)
+                }
+                // Key auth succeeded — already deployed
+                testClient.disconnect()
+                return@launch
+            } catch (_: Exception) {
+                testClient.disconnect()
+            }
+
+            // Key auth failed — deploy the first key
+            val key = keys.first()
+            val deployClient = SshClient()
+            try {
+                val config = ConnectionConfig(
+                    host = profile.host,
+                    port = profile.port,
+                    username = profile.username,
+                    authMethod = ConnectionConfig.AuthMethod.Password(password),
+                )
+                withContext(Dispatchers.IO) {
+                    deployClient.connect(config)
+                }
+                // Skip host key verification — we already verified during the connect
+
+                val pubKey = key.publicKeyOpenSsh.trim()
+                val command = "mkdir -p ~/.ssh && chmod 700 ~/.ssh && " +
+                    "grep -qF '${pubKey.substringAfterLast(' ')}' ~/.ssh/authorized_keys 2>/dev/null || " +
+                    "echo '${pubKey}' >> ~/.ssh/authorized_keys && " +
+                    "chmod 600 ~/.ssh/authorized_keys"
+
+                val result = withContext(Dispatchers.IO) {
+                    deployClient.execCommand(command)
+                }
+                if (result.exitStatus == 0) {
+                    _deploySuccess.value = true
+                    Log.d(TAG, "Auto-deployed SSH key to ${profile.host}:${profile.port}")
+                }
+            } catch (e: Exception) {
+                Log.d(TAG, "Auto-deploy key failed (non-fatal): ${e.message}")
+            } finally {
+                deployClient.disconnect()
+            }
+        }
     }
 
     fun deployKey(profile: ConnectionProfile, keyId: String, password: String) {

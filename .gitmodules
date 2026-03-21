@@ -1,6 +1,6 @@
 [submodule "termlib"]
 	path = termlib
-	url = https://github.com/GlassOnTin/termlib.git
+	url = https://github.com/hension-code/termlib.git
 	branch = fix-popScrollbackLine-0.0.22
 [submodule "mosh-kotlin"]
 	path = mosh-kotlin

@@ -48,6 +48,7 @@ class BackupService @Inject constructor(
                 put("host", p.host)
                 put("port", p.port)
                 put("username", p.username)
+                put("sshPassword", p.sshPassword ?: JSONObject.NULL)
                 put("authType", p.authType.name)
                 put("keyId", p.keyId ?: JSONObject.NULL)
                 put("colorTag", p.colorTag)
@@ -178,6 +179,7 @@ class BackupService @Inject constructor(
                             host = c.getString("host"),
                             port = c.getInt("port"),
                             username = c.getString("username"),
+                            sshPassword = c.optStringOrNull("sshPassword"),
                             authType = ConnectionProfile.AuthType.valueOf(
                                 c.optString("authType", "PASSWORD"),
                             ),

@@ -314,8 +314,8 @@ fun ConnectionsScreen(
             profile = profile,
             hasKeys = sshKeys.isNotEmpty(),
             onDismiss = { connectingProfile = null },
-            onConnect = { password ->
-                viewModel.connect(profile, password)
+            onConnect = { password, rememberPassword ->
+                viewModel.connect(profile, password, rememberPassword = rememberPassword)
                 connectingProfile = null
             },
         )
@@ -326,8 +326,8 @@ fun ConnectionsScreen(
             profile = profile,
             hasKeys = sshKeys.isNotEmpty(),
             onDismiss = { viewModel.dismissPasswordFallback() },
-            onConnect = { password ->
-                viewModel.connect(profile, password)
+            onConnect = { password, rememberPassword ->
+                viewModel.connect(profile, password, rememberPassword = rememberPassword)
                 viewModel.dismissPasswordFallback()
             },
         )
@@ -644,6 +644,9 @@ private fun onTapProfile(
         }
     } else if (profile.isReticulum) {
         viewModel.connect(profile, "")
+    } else if (!profile.sshPassword.isNullOrBlank()) {
+        val savedPassword = profile.sshPassword ?: ""
+        viewModel.connect(profile, savedPassword)
     } else if (sshKeys.isNotEmpty()) {
         viewModel.connectWithKey(profile)
     } else {

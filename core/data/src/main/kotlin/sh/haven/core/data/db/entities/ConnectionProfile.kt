@@ -12,6 +12,7 @@ data class ConnectionProfile(
     val host: String,
     val port: Int = 22,
     val username: String,
+    val sshPassword: String? = null,
     val authType: AuthType = AuthType.PASSWORD,
     val keyId: String? = null,
     val colorTag: Int = 0,

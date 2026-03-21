@@ -42,6 +42,7 @@ import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.DisposableEffect
 import androidx.compose.runtime.LaunchedEffect
+import androidx.compose.ui.platform.LocalConfiguration
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.key
@@ -321,8 +322,9 @@ fun TerminalScreen(
                     // the View hierarchy, bypassing termlib's hardcoded US QWERTY
                     // symbol table.
                     val currentSelectionActive by rememberUpdatedState(selectionActive)
+                    val configuration = LocalConfiguration.current
                     val hasHardwareKeyboard by rememberUpdatedState(
-                        context.resources.configuration.keyboard != android.content.res.Configuration.KEYBOARD_NOKEYS,
+                        configuration.keyboard != android.content.res.Configuration.KEYBOARD_NOKEYS,
                     )
                     DisposableEffect(activeTab) {
                         val interceptor = { event: android.view.KeyEvent ->

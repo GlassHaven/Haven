@@ -106,6 +106,7 @@ fun HavenNavHost(
     ) { innerPadding ->
         HorizontalPager(
             state = pagerState,
+            userScrollEnabled = pagerState.currentPage != Screen.Desktop.ordinal,
             modifier = Modifier
                 .padding(innerPadding)
                 .consumeWindowInsets(innerPadding)

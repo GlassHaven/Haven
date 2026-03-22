@@ -1,0 +1,7 @@
+v3.0.0
+- Local Xfce4 desktop via PRoot + Xvnc (no root required)
+- Fix VNC black screen on initial connect and after reconnect
+- Fix deleted connection profiles reappearing
+- Fix disconnect not stopping local and SMB sessions
+- Prevent duplicate local terminal tabs on repeated taps
+- VNC password support for local desktop

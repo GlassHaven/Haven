@@ -154,17 +154,29 @@ class VncClient(private val config: VncConfig) : Closeable {
     private fun startClientEventLoop(sess: VncSession) {
         clientEventLoop = Thread({
             try {
-                var incremental = false
+                var receivedPixels = false
+                var lastPixelTime = System.currentTimeMillis()
                 while (running) {
                     if (paused) {
                         Thread.sleep(200)
                         continue
                     }
                     val interval = 1000L / config.targetFps
-                    sess.requestFramebufferUpdate(incremental)
-                    incremental = true
-                    sess.waitForFramebufferUpdate()
-                    Thread.sleep(interval)
+                    val now = System.currentTimeMillis()
+
+                    // If we haven't received pixel data in 2s, force a full refresh
+                    val forceFullRefresh = receivedPixels && (now - lastPixelTime > 2000)
+                    val incremental = receivedPixels && !forceFullRefresh
+
+                    sess.requestFramebufferUpdate(incremental = incremental)
+
+                    // Use timeout so we don't block forever on incremental requests
+                    val got = sess.waitForFramebufferUpdate(2000)
+                    if (got && sess.lastUpdateHadRectangles) {
+                        receivedPixels = true
+                        lastPixelTime = System.currentTimeMillis()
+                    }
+                    if (got) Thread.sleep(interval)
                 }
             } catch (_: InterruptedException) {
             } catch (e: Exception) {

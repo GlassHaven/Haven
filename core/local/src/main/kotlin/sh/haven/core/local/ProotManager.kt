@@ -379,9 +379,18 @@ class ProotManager @Inject constructor(
 
             // Write VNC password
             runCommandInProot("mkdir -p /root/.vnc")
-            runCommandInProot(
-                "echo '$vncPassword' | vncpasswd -f > /root/.vnc/passwd && chmod 600 /root/.vnc/passwd"
-            )
+            if (vncPassword.isNotEmpty()) {
+                val (pwdOut, pwdExit) = runCommandInProot(
+                    "echo '$vncPassword' | vncpasswd -f > /root/.vnc/passwd && chmod 600 /root/.vnc/passwd"
+                )
+                Log.d(TAG, "vncpasswd exit=$pwdExit output=$pwdOut")
+                val passwdFile = File(rootfsDir, "root/.vnc/passwd")
+                Log.d(TAG, "passwd file exists=${passwdFile.exists()} size=${passwdFile.length()}")
+            } else {
+                // No password — remove any existing passwd file so server uses None
+                File(rootfsDir, "root/.vnc/passwd").delete()
+                Log.d(TAG, "No VNC password set, using SecurityTypes None")
+            }
 
             // Write xstartup
             runCommandInProot("""cat > /root/.vnc/xstartup << 'XEOF'
@@ -408,14 +417,32 @@ chmod +x /root/.vnc/xstartup""")
      * The process stays alive until explicitly killed or the app exits.
      */
     fun startVncServer() {
-        // Kill any existing VNC process
+        // Kill any existing VNC process (our handle + orphans from previous app instances)
         vncProcess?.destroyForcibly()
+        killOrphanedXvnc()
 
         val prootBin = prootBinary ?: return
         val loaderPath = File(context.applicationInfo.nativeLibraryDir, "libproot_loader.so").absolutePath
 
         // Clean up stale lock files
         File(context.cacheDir, ".X1-lock").delete()
+
+        // Ensure /root and session files exist on the host filesystem
+        // (PRoot's --link2symlink can't always create them inside the rootfs)
+        val rootHome = File(rootfsDir, "root")
+        rootHome.mkdirs()
+        File(rootHome, ".ICEauthority").apply { if (!exists()) createNewFile() }
+        File(rootHome, ".Xauthority").apply { if (!exists()) createNewFile() }
+
+        // Use VncAuth if password file exists and has content, otherwise None
+        val passwdFile = File(rootfsDir, "root/.vnc/passwd")
+        val useAuth = passwdFile.exists() && passwdFile.length() >= 8
+        val securityArg = if (useAuth) {
+            "-SecurityTypes VncAuth -PasswordFile /root/.vnc/passwd"
+        } else {
+            "-SecurityTypes None"
+        }
+        Log.d(TAG, "Starting Xvnc: useAuth=$useAuth passwdSize=${passwdFile.length()}")
 
         val process = ProcessBuilder(
             prootBin, "-0", "--link2symlink",
@@ -426,9 +453,16 @@ chmod +x /root/.vnc/xstartup""")
             "/bin/busybox", "sh", "-c",
             "rm -f /tmp/.X1-lock /tmp/.X11-unix/X1 && " +
                 "Xvnc :1 -geometry 1280x720 " +
-                "-SecurityTypes None " +
-                "-localhost 0 &" +
-                " sleep 2 && DISPLAY=:1 startxfce4",
+                "$securityArg " +
+                "-BlacklistThreshold 10000 " +
+                "-localhost 0 & " +
+                "sleep 3; " +
+                "export DISPLAY=:1; " +
+                "export HOME=/root; " +
+                "xfwm4 & " +
+                "xfce4-panel & " +
+                "xfdesktop & " +
+                "wait",
         ).apply {
             environment().apply {
                 put("HOME", "/root")
@@ -455,6 +489,36 @@ chmod +x /root/.vnc/xstartup""")
     fun stopVncServer() {
         vncProcess?.destroyForcibly()
         vncProcess = null
+        killOrphanedXvnc()
+    }
+
+    /**
+     * Kill any Xvnc processes that survived a previous app instance.
+     * PRoot child processes can outlive the Java Process handle.
+     * Android's toolbox ps doesn't support -eo, so we grep the default output.
+     */
+    private fun killOrphanedXvnc() {
+        try {
+            // Android ps: columns are USER PID PPID VSZ RSS WCHAN ADDR S NAME (or similar)
+            // Use grep to find Xvnc or proot lines, awk to get PID (field 2)
+            val proc = ProcessBuilder("sh", "-c",
+                "ps -A 2>/dev/null | grep -E 'Xvnc|proot' | grep -v grep | awk '{print \$2}'"
+            ).redirectErrorStream(true).start()
+            val pids = proc.inputStream.bufferedReader().readText().trim()
+            proc.waitFor()
+            if (pids.isNotEmpty()) {
+                Log.d(TAG, "Killing orphaned VNC/proot PIDs: $pids")
+                for (pid in pids.lines()) {
+                    try {
+                        ProcessBuilder("kill", "-9", pid.trim()).start().waitFor()
+                    } catch (_: Exception) {}
+                }
+            } else {
+                Log.d(TAG, "No orphaned Xvnc/proot processes found")
+            }
+        } catch (e: Exception) {
+            Log.w(TAG, "killOrphanedXvnc failed: ${e.message}")
+        }
     }
 
     fun resetDesktopState() {

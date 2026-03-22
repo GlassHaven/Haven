@@ -27,6 +27,9 @@ class VncSession(
     @Volatile var framebufferWidth: Int = 0
     @Volatile var framebufferHeight: Int = 0
 
+    /** Set by Framebuffer.processUpdate — true when the last update contained rectangles with pixel data. */
+    @Volatile var lastUpdateHadRectangles: Boolean = false
+
     private val outputLock = ReentrantLock(true)
     private val fbLock = ReentrantLock()
     private val fbCondition = fbLock.newCondition()
@@ -42,6 +45,24 @@ class VncSession(
         try {
             while (!fbUpdated) fbCondition.await()
             fbUpdated = false
+        } finally {
+            fbLock.unlock()
+        }
+    }
+
+    /**
+     * Wait for a framebuffer update with a timeout.
+     * Returns true if an update was received, false if timed out.
+     */
+    fun waitForFramebufferUpdate(timeoutMs: Long): Boolean {
+        fbLock.lock()
+        try {
+            if (!fbUpdated) {
+                fbCondition.await(timeoutMs, java.util.concurrent.TimeUnit.MILLISECONDS)
+            }
+            val got = fbUpdated
+            fbUpdated = false
+            return got
         } finally {
             fbLock.unlock()
         }

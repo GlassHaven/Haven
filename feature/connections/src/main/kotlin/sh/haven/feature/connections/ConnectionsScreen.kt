@@ -1149,6 +1149,13 @@ private fun DesktopSetupDialog(
                                 "This downloads ~100MB of packages.",
                             style = MaterialTheme.typography.bodySmall,
                         )
+                        OutlinedTextField(
+                            value = password,
+                            onValueChange = { password = it },
+                            label = { Text("VNC Password") },
+                            singleLine = true,
+                            modifier = Modifier.fillMaxWidth(),
+                        )
                     }
                     is sh.haven.core.local.ProotManager.DesktopSetupState.Installing -> {
                         Row(
@@ -1178,7 +1185,7 @@ private fun DesktopSetupDialog(
         confirmButton = {
             if (desktopState is sh.haven.core.local.ProotManager.DesktopSetupState.Idle) {
                 TextButton(
-                    onClick = { onStart("") },
+                    onClick = { onStart(password) },
                 ) { Text("Install") }
             }
         },

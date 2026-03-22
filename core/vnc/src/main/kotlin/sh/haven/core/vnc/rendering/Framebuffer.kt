@@ -43,6 +43,7 @@ class Framebuffer(private val session: VncSession) {
     fun processUpdate(update: FramebufferUpdate) {
         val input = session.inputStream
         try {
+            session.lastUpdateHadRectangles = update.numberOfRectangles > 0
             for (i in 0 until update.numberOfRectangles) {
                 val rect = Rectangle.decode(input)
                 when (rect.encoding) {

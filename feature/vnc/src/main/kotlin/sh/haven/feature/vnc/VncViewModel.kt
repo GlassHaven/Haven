@@ -118,6 +118,8 @@ class VncViewModel @Inject constructor(
     }
 
     fun connect(host: String, port: Int, password: String?) {
+        // Guard: skip if already connected to the same target
+        if (_connected.value && client?.running == true) return
         viewModelScope.launch(Dispatchers.IO) {
             try {
                 _error.value = null
@@ -133,6 +135,9 @@ class VncViewModel @Inject constructor(
         host: String, port: Int, password: String?,
         displayHost: String? = null, displayPort: Int? = null,
     ) {
+        // Stop any previous client to avoid orphaned threads
+        client?.stop()
+
         val config = VncConfig().apply {
             colorDepth = ColorDepth.BPP_24_TRUE
             targetFps = 10

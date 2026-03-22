@@ -437,7 +437,10 @@ class ConnectionsViewModel @Inject constructor(
             sshSessionManager.removeAllSessionsForProfile(id)
             reticulumSessionManager.removeAllSessionsForProfile(id)
             moshSessionManager.removeAllSessionsForProfile(id)
+            etSessionManager.removeAllSessionsForProfile(id)
             smbSessionManager.removeAllSessionsForProfile(id)
+            localSessionManager.removeAllSessionsForProfile(id)
+            localSessionManager.prootManager.stopVncServer()
             repository.delete(id)
         }
     }
@@ -597,10 +600,11 @@ class ConnectionsViewModel @Inject constructor(
                 }
                 Log.d(TAG, "VNC server start initiated")
 
-                // Create VNC connection profile
+                // Create or update VNC connection profile
                 val existing = connections.value.find {
                     it.isVnc && it.host == "localhost" && it.vncPort == 5901
                 }
+                val pwd = vncPassword.ifEmpty { null }
                 if (existing == null) {
                     val vncProfile = ConnectionProfile(
                         label = "${localProfile.label} Desktop",
@@ -609,15 +613,17 @@ class ConnectionsViewModel @Inject constructor(
                         username = "",
                         connectionType = "VNC",
                         vncPort = 5901,
-                        vncPassword = null,
+                        vncPassword = pwd,
                         vncSshForward = false,
                     )
                     repository.save(vncProfile)
+                } else if (existing.vncPassword != pwd) {
+                    repository.save(existing.copy(vncPassword = pwd))
                 }
 
-                // Give VNC server and Xfce4 time to start
-                delay(5000)
-                _navigateToVnc.value = VncNavigation("localhost", 5901, null)
+                // Give VNC server (3s) and Xfce4 time to start
+                delay(7000)
+                _navigateToVnc.value = VncNavigation("localhost", 5901, pwd)
                 prootManager.resetDesktopState()
                 Log.d(TAG, "Navigating to VNC localhost:5901")
             }
@@ -630,6 +636,13 @@ class ConnectionsViewModel @Inject constructor(
 
     private fun connectLocal(profile: ConnectionProfile) {
         viewModelScope.launch {
+            // Skip if already connected
+            val existing = localSessionManager.getSessionsForProfile(profile.id)
+            if (existing.any { it.status == LocalSessionManager.SessionState.Status.CONNECTED }) {
+                _navigateToTerminal.value = profile.id
+                return@launch
+            }
+
             _connectingProfileId.value = profile.id
             _error.value = null
 
@@ -1698,12 +1711,16 @@ class ConnectionsViewModel @Inject constructor(
         reticulumSessionManager.removeAllSessionsForProfile(profileId)
         moshSessionManager.removeAllSessionsForProfile(profileId)
         etSessionManager.removeAllSessionsForProfile(profileId)
+        smbSessionManager.removeAllSessionsForProfile(profileId)
+        localSessionManager.removeAllSessionsForProfile(profileId)
+        localSessionManager.prootManager.stopVncServer()
         updateServiceNotification()
     }
 
     private fun updateServiceNotification() {
         if (sshSessionManager.hasActiveSessions || reticulumSessionManager.activeSessions.isNotEmpty() ||
-            moshSessionManager.activeSessions.isNotEmpty() || etSessionManager.activeSessions.isNotEmpty()) {
+            moshSessionManager.activeSessions.isNotEmpty() || etSessionManager.activeSessions.isNotEmpty() ||
+            localSessionManager.activeSessions.isNotEmpty()) {
             // Re-start the service to refresh the notification count
             startForegroundServiceIfNeeded()
         } else {

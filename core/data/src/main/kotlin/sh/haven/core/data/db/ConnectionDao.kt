@@ -38,4 +38,7 @@ interface ConnectionDao {
 
     @Query("UPDATE connection_profiles SET vncPort = :port, vncPassword = :password, vncSshForward = :sshForward WHERE id = :id")
     suspend fun updateVncSettings(id: String, port: Int, password: String?, sshForward: Boolean = true)
+
+    @Query("UPDATE connection_profiles SET sortOrder = :sortOrder WHERE id = :id")
+    suspend fun updateSortOrder(id: String, sortOrder: Int)
 }

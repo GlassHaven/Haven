@@ -434,6 +434,15 @@ class ConnectionsViewModel @Inject constructor(
         }
     }
 
+    /** Persist new sort order for a reordered list of top-level profile IDs. */
+    fun reorderConnections(orderedIds: List<String>) {
+        viewModelScope.launch {
+            orderedIds.forEachIndexed { index, id ->
+                repository.updateSortOrder(id, index)
+            }
+        }
+    }
+
     fun deleteConnection(id: String) {
         viewModelScope.launch {
             sessionManagerRegistry.disconnectProfile(id)

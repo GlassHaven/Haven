@@ -13,13 +13,16 @@ import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxSize
+import androidx.compose.foundation.layout.offset
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
+import androidx.compose.foundation.gestures.detectVerticalDragGestures
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
+import androidx.compose.foundation.lazy.rememberLazyListState
 import androidx.compose.foundation.text.KeyboardActions
 import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.material.icons.Icons
@@ -34,6 +37,7 @@ import androidx.compose.material.icons.filled.Password
 import androidx.compose.material.icons.filled.SyncAlt
 import androidx.compose.material.icons.filled.Laptop
 import androidx.compose.material.icons.filled.Refresh
+import androidx.compose.material.icons.filled.DragHandle
 import androidx.compose.material.icons.filled.VpnKey
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.shape.RoundedCornerShape
@@ -66,8 +70,11 @@ import androidx.compose.runtime.DisposableEffect
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableFloatStateOf
 import androidx.compose.runtime.mutableIntStateOf
+import androidx.compose.runtime.mutableStateListOf
 import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.rememberUpdatedState
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.runtime.setValue
@@ -77,7 +84,12 @@ import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.text.input.ImeAction
 import androidx.compose.ui.platform.LocalUriHandler
+import androidx.compose.ui.input.pointer.pointerInput
+import androidx.compose.ui.layout.onGloballyPositioned
+import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.unit.dp
+import androidx.compose.ui.zIndex
+import kotlin.math.roundToInt
 import androidx.core.content.ContextCompat
 import androidx.hilt.navigation.compose.hiltViewModel
 import sh.haven.core.data.db.entities.ConnectionProfile
@@ -587,11 +599,26 @@ fun ConnectionsScreen(
                     .groupBy({ it.first }, { it.second })
                 val renderedAsChild = dependentsByParent.values.flatten().map { it.id }.toSet()
 
-                LazyColumn(modifier = Modifier.fillMaxSize()) {
-                    // Top-level: no jump host, or jump host not in saved profiles (orphan)
-                    val topLevel = connections.filter { it.id !in renderedAsChild }
-                    topLevel.forEach { profile ->
+                // Top-level: no jump host, or jump host not in saved profiles (orphan)
+                val topLevel = connections.filter { it.id !in renderedAsChild }
+
+                // Drag-to-reorder state
+                var draggedId by remember { mutableStateOf<String?>(null) }
+                var dragOffset by remember { mutableFloatStateOf(0f) }
+                val reorderedIds = remember { mutableStateListOf<String>() }
+                // Sync reorderedIds when the source list changes
+                val topLevelIds = topLevel.map { it.id }
+                if (reorderedIds.toList() != topLevelIds && draggedId == null) {
+                    reorderedIds.clear()
+                    reorderedIds.addAll(topLevelIds)
+                }
+                val orderedTopLevel = reorderedIds.mapNotNull { id -> topLevel.find { it.id == id } }
+                val lazyListState = rememberLazyListState()
+
+                LazyColumn(state = lazyListState, modifier = Modifier.fillMaxSize()) {
+                    orderedTopLevel.forEach { profile ->
                         item(key = profile.id) {
+                            val isDragged = draggedId == profile.id
                             ConnectionTreeItem(
                                 profile = profile,
                                 indent = 0,
@@ -612,6 +639,51 @@ fun ConnectionsScreen(
                                 onPortForwards = { portForwardProfile = profile },
                                 onNewSession = { viewModel.openNewSession(profile.id) },
                                 onSetupDesktop = { setupDesktopProfile = profile },
+                                dragModifier = Modifier
+                                    .zIndex(if (isDragged) 1f else 0f)
+                                    .offset(
+                                        y = with(LocalDensity.current) {
+                                            if (isDragged) dragOffset.roundToInt().toDp() else 0.dp
+                                        },
+                                    ),
+                                onDragStart = {
+                                    draggedId = profile.id
+                                    dragOffset = 0f
+                                },
+                                onDrag = { delta ->
+                                    dragOffset += delta
+                                    val fromIdx = reorderedIds.indexOf(profile.id)
+                                    if (fromIdx < 0) return@ConnectionTreeItem
+                                    val visibleItems = lazyListState.layoutInfo.visibleItemsInfo
+                                    val draggedInfo = visibleItems.find { it.key == profile.id }
+                                        ?: return@ConnectionTreeItem
+                                    // Use actual layout distance between top-level items
+                                    // (accounts for nested children between them)
+                                    if (dragOffset > 0 && fromIdx < reorderedIds.lastIndex) {
+                                        val nextInfo = visibleItems.find { it.key == reorderedIds[fromIdx + 1] }
+                                        if (nextInfo != null) {
+                                            val dist = nextInfo.offset - draggedInfo.offset
+                                            if (dragOffset > dist / 2) {
+                                                reorderedIds.add(fromIdx + 1, reorderedIds.removeAt(fromIdx))
+                                                dragOffset -= dist
+                                            }
+                                        }
+                                    } else if (dragOffset < 0 && fromIdx > 0) {
+                                        val prevInfo = visibleItems.find { it.key == reorderedIds[fromIdx - 1] }
+                                        if (prevInfo != null) {
+                                            val dist = draggedInfo.offset - prevInfo.offset
+                                            if (dragOffset < -dist / 2) {
+                                                reorderedIds.add(fromIdx - 1, reorderedIds.removeAt(fromIdx))
+                                                dragOffset += dist
+                                            }
+                                        }
+                                    }
+                                },
+                                onDragEnd = {
+                                    draggedId = null
+                                    dragOffset = 0f
+                                    viewModel.reorderConnections(reorderedIds.toList())
+                                },
                             )
                         }
                         val deps = dependentsByParent[profile.id].orEmpty()
@@ -732,6 +804,10 @@ private fun ConnectionTreeItem(
     onPortForwards: () -> Unit,
     onNewSession: () -> Unit,
     onSetupDesktop: () -> Unit = {},
+    dragModifier: Modifier = Modifier,
+    onDragStart: () -> Unit = {},
+    onDrag: (Float) -> Unit = {},
+    onDragEnd: () -> Unit = {},
 ) {
     val profileStatus = profileStatuses[profile.id]
     var showMenu by remember { mutableStateOf(false) }
@@ -766,8 +842,30 @@ private fun ConnectionTreeItem(
         )
     }
 
-    Box {
+    Box(modifier = dragModifier) {
         Row(verticalAlignment = Alignment.CenterVertically) {
+            // Drag handle for top-level items
+            if (indent == 0) {
+                val currentOnDragStart by rememberUpdatedState(onDragStart)
+                val currentOnDrag by rememberUpdatedState(onDrag)
+                val currentOnDragEnd by rememberUpdatedState(onDragEnd)
+                Icon(
+                    Icons.Filled.DragHandle,
+                    contentDescription = "Reorder",
+                    tint = MaterialTheme.colorScheme.outline,
+                    modifier = Modifier
+                        .size(32.dp)
+                        .padding(start = 4.dp)
+                        .pointerInput(Unit) {
+                            detectVerticalDragGestures(
+                                onDragStart = { currentOnDragStart() },
+                                onDragEnd = { currentOnDragEnd() },
+                                onDragCancel = { currentOnDragEnd() },
+                                onVerticalDrag = { _, dragAmount -> currentOnDrag(dragAmount) },
+                            )
+                        },
+                )
+            }
             if (indent > 0) {
                 // Tree connector
                 val lineColor = MaterialTheme.colorScheme.outlineVariant

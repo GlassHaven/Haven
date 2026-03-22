@@ -21,4 +21,6 @@ class ConnectionRepository @Inject constructor(
     suspend fun delete(id: String) = connectionDao.deleteById(id)
 
     suspend fun markConnected(id: String) = connectionDao.updateLastConnected(id)
+
+    suspend fun updateSortOrder(id: String, sortOrder: Int) = connectionDao.updateSortOrder(id, sortOrder)
 }

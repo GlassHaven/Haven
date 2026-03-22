@@ -394,6 +394,14 @@ fun TerminalScreen(
                             }
                         }
 
+                        // Update native emulator colors when scheme changes
+                        LaunchedEffect(colorScheme, activeTab.emulator) {
+                            activeTab.emulator?.setDefaultColors(
+                                colorScheme.foreground.toInt(),
+                                colorScheme.background.toInt(),
+                            )
+                        }
+
                         CompositionLocalProvider(LocalClipboardManager provides smartClipboard) {
                             Terminal(
                                 terminalEmulator = activeTab.emulator,
@@ -413,6 +421,7 @@ fun TerminalScreen(
 
                     KeyboardToolbar(
                         onSendBytes = { bytes -> activeTab.sendInput(bytes) },
+                        onDispatchKey = { mods, key -> activeTab.emulator?.dispatchKey(mods, key) },
                         focusRequester = focusRequester,
                         ctrlActive = ctrlActive,
                         altActive = altActive,

@@ -1,0 +1,4 @@
+v3.1.0
+- Fix arrow keys in Mutt, vim, and other TUI apps (DECCKM support)
+- Fix terminal color scheme not applying (Light theme, etc.)
+- Drop tint2 from Openbox (incompatible with PRoot)

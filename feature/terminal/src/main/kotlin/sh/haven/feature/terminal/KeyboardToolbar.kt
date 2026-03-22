@@ -56,10 +56,6 @@ private const val ESC = "\u001b"
 private val KEY_ESC = byteArrayOf(0x1b)
 private val KEY_TAB = byteArrayOf(0x09)
 private val KEY_SHIFT_TAB = "$ESC[Z".toByteArray()
-private val KEY_UP = "$ESC[A".toByteArray()
-private val KEY_DOWN = "$ESC[B".toByteArray()
-private val KEY_RIGHT = "$ESC[C".toByteArray()
-private val KEY_LEFT = "$ESC[D".toByteArray()
 private val KEY_HOME = "$ESC[H".toByteArray()
 private val KEY_END = "$ESC[F".toByteArray()
 private val KEY_PGUP = "$ESC[5~".toByteArray()
@@ -98,6 +94,7 @@ private val NAV_CELL_WIDTH = 44.dp
 @Composable
 fun KeyboardToolbar(
     onSendBytes: (ByteArray) -> Unit,
+    onDispatchKey: (modifiers: Int, key: Int) -> Unit = { _, _ -> },
     focusRequester: FocusRequester,
     ctrlActive: Boolean = false,
     altActive: Boolean = false,
@@ -153,6 +150,7 @@ fun KeyboardToolbar(
             AlignedToolbarContent(
                 layout = layout,
                 onSendBytes = onSendBytes,
+                onDispatchKey = onDispatchKey,
                 focusRequester = focusRequester,
                 ctrlActive = ctrlActive,
                 altActive = altActive,
@@ -202,6 +200,7 @@ fun KeyboardToolbar(
 private fun AlignedToolbarContent(
     layout: ToolbarLayout,
     onSendBytes: (ByteArray) -> Unit,
+    onDispatchKey: (Int, Int) -> Unit = { _, _ -> },
     focusRequester: FocusRequester,
     ctrlActive: Boolean,
     altActive: Boolean,
@@ -228,9 +227,9 @@ private fun AlignedToolbarContent(
     // If no nav keys present, fall back to simple rows
     if (presentNavKeys.isEmpty()) {
         Column {
-            ToolbarRow(layout.row1, onSendBytes, focusRequester, ctrlActive, altActive,
+            ToolbarRow(layout.row1, onSendBytes, onDispatchKey, focusRequester, ctrlActive, altActive,
                 shiftActive, imeVisible, view, onToggleCtrl, onToggleAlt, onToggleShift, onShiftUsed, onVncTap)
-            ToolbarRow(layout.row2, onSendBytes, focusRequester, ctrlActive, altActive,
+            ToolbarRow(layout.row2, onSendBytes, onDispatchKey, focusRequester, ctrlActive, altActive,
                 shiftActive, imeVisible, view, onToggleCtrl, onToggleAlt, onToggleShift, onShiftUsed, onVncTap)
         }
         return
@@ -246,7 +245,7 @@ private fun AlignedToolbarContent(
         Column(modifier = Modifier.width(IntrinsicSize.Max)) {
             KeyRow(Modifier.fillMaxWidth()) {
                 for (item in row1Left) {
-                    RenderItem(item, onSendBytes, focusRequester, ctrlActive, altActive,
+                    RenderItem(item, onSendBytes, onDispatchKey, focusRequester, ctrlActive, altActive,
                         shiftActive, imeVisible, view, onToggleCtrl, onToggleAlt, onToggleShift, onShiftUsed)
                 }
             }
@@ -256,7 +255,7 @@ private fun AlignedToolbarContent(
                     ToolbarIconButton(Icons.Filled.DesktopWindows, "VNC Desktop", onVncTap)
                 }
                 for (item in row2Left) {
-                    RenderItem(item, onSendBytes, focusRequester, ctrlActive, altActive,
+                    RenderItem(item, onSendBytes, onDispatchKey, focusRequester, ctrlActive, altActive,
                         shiftActive, imeVisible, view, onToggleCtrl, onToggleAlt, onToggleShift, onShiftUsed)
                 }
             }
@@ -267,7 +266,7 @@ private fun AlignedToolbarContent(
             KeyRow {
                 for (key in NAV_GRID_TOP) {
                     if (key != null && key in presentNavKeys) {
-                        NavBuiltInKey(key, onSendBytes, shiftActive, onShiftUsed)
+                        NavBuiltInKey(key, onSendBytes, onDispatchKey, shiftActive, onShiftUsed)
                     } else {
                         NavCell {}
                     }
@@ -276,7 +275,7 @@ private fun AlignedToolbarContent(
             KeyRow {
                 for (key in NAV_GRID_BOTTOM) {
                     if (key != null && key in presentNavKeys) {
-                        NavBuiltInKey(key, onSendBytes, shiftActive, onShiftUsed)
+                        NavBuiltInKey(key, onSendBytes, onDispatchKey, shiftActive, onShiftUsed)
                     } else {
                         NavCell {}
                     }
@@ -290,7 +289,7 @@ private fun AlignedToolbarContent(
                 if (row1Right.isNotEmpty()) {
                     KeyRow {
                         for (item in row1Right) {
-                            RenderItem(item, onSendBytes, focusRequester, ctrlActive, altActive,
+                            RenderItem(item, onSendBytes, onDispatchKey, focusRequester, ctrlActive, altActive,
                                 shiftActive, imeVisible, view, onToggleCtrl, onToggleAlt, onToggleShift, onShiftUsed)
                         }
                     }
@@ -299,7 +298,7 @@ private fun AlignedToolbarContent(
                 }
                 KeyRow {
                     for (item in row2Right) {
-                        RenderItem(item, onSendBytes, focusRequester, ctrlActive, altActive,
+                        RenderItem(item, onSendBytes, onDispatchKey, focusRequester, ctrlActive, altActive,
                             shiftActive, imeVisible, view, onToggleCtrl, onToggleAlt, onToggleShift, onShiftUsed)
                     }
                 }
@@ -337,27 +336,41 @@ private fun splitAroundNav(row: List<ToolbarItem>): Pair<List<ToolbarItem>, List
 private fun NavBuiltInKey(
     key: ToolbarKey,
     onSendBytes: (ByteArray) -> Unit,
+    onDispatchKey: (Int, Int) -> Unit,
     shiftActive: Boolean,
     onShiftUsed: () -> Unit,
 ) {
+    // Arrow and nav keys go through dispatchKey so libvterm applies
+    // DECCKM (application cursor mode) — needed for Mutt, vim, etc.
     when (key) {
-        ToolbarKey.ARROW_LEFT -> NavArrowButton("\u2190") { onSendBytes(KEY_LEFT) }
-        ToolbarKey.ARROW_UP -> NavArrowButton("\u2191") { onSendBytes(KEY_UP) }
-        ToolbarKey.ARROW_DOWN -> NavArrowButton("\u2193") { onSendBytes(KEY_DOWN) }
-        ToolbarKey.ARROW_RIGHT -> NavArrowButton("\u2192") { onSendBytes(KEY_RIGHT) }
-        ToolbarKey.HOME -> NavTextButton("Home") { onSendBytes(KEY_HOME) }
-        ToolbarKey.END -> NavTextButton("End") { onSendBytes(KEY_END) }
-        ToolbarKey.PGUP -> NavTextButton("PgUp") { onSendBytes(KEY_PGUP) }
-        ToolbarKey.PGDN -> NavTextButton("PgDn") { onSendBytes(KEY_PGDN) }
+        ToolbarKey.ARROW_LEFT -> NavArrowButton("\u2190") { onDispatchKey(0, VTERM_KEY_LEFT) }
+        ToolbarKey.ARROW_UP -> NavArrowButton("\u2191") { onDispatchKey(0, VTERM_KEY_UP) }
+        ToolbarKey.ARROW_DOWN -> NavArrowButton("\u2193") { onDispatchKey(0, VTERM_KEY_DOWN) }
+        ToolbarKey.ARROW_RIGHT -> NavArrowButton("\u2192") { onDispatchKey(0, VTERM_KEY_RIGHT) }
+        ToolbarKey.HOME -> NavTextButton("Home") { onDispatchKey(0, VTERM_KEY_HOME) }
+        ToolbarKey.END -> NavTextButton("End") { onDispatchKey(0, VTERM_KEY_END) }
+        ToolbarKey.PGUP -> NavTextButton("PgUp") { onDispatchKey(0, VTERM_KEY_PAGEUP) }
+        ToolbarKey.PGDN -> NavTextButton("PgDn") { onDispatchKey(0, VTERM_KEY_PAGEDOWN) }
         else -> Spacer(Modifier.width(NAV_CELL_WIDTH))
     }
 }
+
+// VTermKey constants (from libvterm/include/vterm_keycodes.h)
+private const val VTERM_KEY_UP = 5
+private const val VTERM_KEY_DOWN = 6
+private const val VTERM_KEY_LEFT = 7
+private const val VTERM_KEY_RIGHT = 8
+private const val VTERM_KEY_HOME = 11
+private const val VTERM_KEY_END = 12
+private const val VTERM_KEY_PAGEUP = 13
+private const val VTERM_KEY_PAGEDOWN = 14
 
 /** Render any toolbar item (non-nav keys in the left/right sections). */
 @Composable
 private fun RenderItem(
     item: ToolbarItem,
     onSendBytes: (ByteArray) -> Unit,
+    onDispatchKey: (Int, Int) -> Unit = { _, _ -> },
     focusRequester: FocusRequester,
     ctrlActive: Boolean,
     altActive: Boolean,
@@ -373,6 +386,7 @@ private fun RenderItem(
         is ToolbarItem.BuiltIn -> BuiltInKey(
             key = item.key,
             onSendBytes = onSendBytes,
+            onDispatchKey = onDispatchKey,
             focusRequester = focusRequester,
             ctrlActive = ctrlActive,
             altActive = altActive,
@@ -407,6 +421,7 @@ private fun RenderItem(
 private fun ToolbarRow(
     items: List<ToolbarItem>,
     onSendBytes: (ByteArray) -> Unit,
+    onDispatchKey: (Int, Int) -> Unit = { _, _ -> },
     focusRequester: FocusRequester,
     ctrlActive: Boolean,
     altActive: Boolean,
@@ -426,7 +441,7 @@ private fun ToolbarRow(
         verticalAlignment = Alignment.CenterVertically,
     ) {
         for (item in items) {
-            RenderItem(item, onSendBytes, focusRequester, ctrlActive, altActive,
+            RenderItem(item, onSendBytes, onDispatchKey, focusRequester, ctrlActive, altActive,
                 shiftActive, imeVisible, view, onToggleCtrl, onToggleAlt, onToggleShift, onShiftUsed)
             if (item is ToolbarItem.BuiltIn && item.key == ToolbarKey.KEYBOARD && onVncTap != null) {
                 ToolbarIconButton(Icons.Filled.DesktopWindows, "VNC Desktop", onVncTap)
@@ -439,6 +454,7 @@ private fun ToolbarRow(
 private fun BuiltInKey(
     key: ToolbarKey,
     onSendBytes: (ByteArray) -> Unit,
+    onDispatchKey: (Int, Int) -> Unit = { _, _ -> },
     focusRequester: FocusRequester,
     ctrlActive: Boolean,
     altActive: Boolean,
@@ -487,15 +503,15 @@ private fun BuiltInKey(
                 }
             }
         }
-        // Nav keys in BuiltInKey (used by flat ToolbarRow / selection mode row 1)
-        ToolbarKey.ARROW_LEFT -> ToolbarArrowButton("\u2190") { onSendBytes(KEY_LEFT) }
-        ToolbarKey.ARROW_UP -> ToolbarArrowButton("\u2191") { onSendBytes(KEY_UP) }
-        ToolbarKey.ARROW_DOWN -> ToolbarArrowButton("\u2193") { onSendBytes(KEY_DOWN) }
-        ToolbarKey.ARROW_RIGHT -> ToolbarArrowButton("\u2192") { onSendBytes(KEY_RIGHT) }
-        ToolbarKey.HOME -> ToolbarTextButton("Home") { onSendBytes(KEY_HOME) }
-        ToolbarKey.END -> ToolbarTextButton("End") { onSendBytes(KEY_END) }
-        ToolbarKey.PGUP -> ToolbarTextButton("PgUp") { onSendBytes(KEY_PGUP) }
-        ToolbarKey.PGDN -> ToolbarTextButton("PgDn") { onSendBytes(KEY_PGDN) }
+        // Nav keys — routed through dispatchKey for DECCKM support
+        ToolbarKey.ARROW_LEFT -> ToolbarArrowButton("\u2190") { onDispatchKey(0, VTERM_KEY_LEFT) }
+        ToolbarKey.ARROW_UP -> ToolbarArrowButton("\u2191") { onDispatchKey(0, VTERM_KEY_UP) }
+        ToolbarKey.ARROW_DOWN -> ToolbarArrowButton("\u2193") { onDispatchKey(0, VTERM_KEY_DOWN) }
+        ToolbarKey.ARROW_RIGHT -> ToolbarArrowButton("\u2192") { onDispatchKey(0, VTERM_KEY_RIGHT) }
+        ToolbarKey.HOME -> ToolbarTextButton("Home") { onDispatchKey(0, VTERM_KEY_HOME) }
+        ToolbarKey.END -> ToolbarTextButton("End") { onDispatchKey(0, VTERM_KEY_END) }
+        ToolbarKey.PGUP -> ToolbarTextButton("PgUp") { onDispatchKey(0, VTERM_KEY_PAGEUP) }
+        ToolbarKey.PGDN -> ToolbarTextButton("PgDn") { onDispatchKey(0, VTERM_KEY_PAGEDOWN) }
         else -> {
             val ch = key.char ?: return
             SymbolButton(key.label) {

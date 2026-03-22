@@ -581,9 +581,21 @@ class ConnectionsViewModel @Inject constructor(
             val prootManager = localSessionManager.prootManager
             prootManager.setupDesktop(vncPassword)
 
-            if (prootManager.desktopState.value is sh.haven.core.local.ProotManager.DesktopSetupState.Complete) {
-                // Start VNC in the active PRoot session
-                localSessionManager.startVncInSession(localProfile.id)
+            val state = prootManager.desktopState.value
+            Log.d(TAG, "Desktop setup result: $state")
+            if (state is sh.haven.core.local.ProotManager.DesktopSetupState.Complete) {
+                // Ensure Local Shell is connected (VNC server runs inside its PRoot session)
+                val activeSessions = localSessionManager.getSessionsForProfile(localProfile.id)
+                Log.d(TAG, "Local sessions for ${localProfile.id}: ${activeSessions.map { "${it.sessionId}=${it.status}" }}")
+                val hasActiveSession = activeSessions
+                    .any { it.status == sh.haven.core.local.LocalSessionManager.SessionState.Status.CONNECTED }
+                // Start VNC server via a standalone proot process
+                // (doesn't need an active terminal session)
+                Log.d(TAG, "Starting VNC server via proot...")
+                withContext(Dispatchers.IO) {
+                    prootManager.startVncServer()
+                }
+                Log.d(TAG, "VNC server start initiated")
 
                 // Create VNC connection profile
                 val existing = connections.value.find {
@@ -597,16 +609,17 @@ class ConnectionsViewModel @Inject constructor(
                         username = "",
                         connectionType = "VNC",
                         vncPort = 5901,
-                        vncPassword = vncPassword,
+                        vncPassword = null,
                         vncSshForward = false,
                     )
                     repository.save(vncProfile)
                 }
 
-                // Small delay for VNC server to start
-                delay(1500)
-                _navigateToVnc.value = VncNavigation("localhost", 5901, vncPassword)
+                // Give VNC server and Xfce4 time to start
+                delay(5000)
+                _navigateToVnc.value = VncNavigation("localhost", 5901, null)
                 prootManager.resetDesktopState()
+                Log.d(TAG, "Navigating to VNC localhost:5901")
             }
         }
     }

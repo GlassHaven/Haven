@@ -320,8 +320,10 @@ class ProotManager @Inject constructor(
         val prootBin = prootBinary ?: throw IllegalStateException("PRoot not available")
         val loaderPath = File(context.applicationInfo.nativeLibraryDir, "libproot_loader.so").absolutePath
         val process = ProcessBuilder(
-            prootBin, "-0", "-r", rootfsDir.absolutePath,
+            prootBin, "-0", "--link2symlink",
+            "-r", rootfsDir.absolutePath,
             "-b", "/dev", "-b", "/proc", "-b", "/sys",
+            "-b", "${context.cacheDir.absolutePath}:/tmp",
             "-w", "/root",
             "/bin/busybox", "sh", "-c", command,
         ).apply {
@@ -343,18 +345,35 @@ class ProotManager @Inject constructor(
      */
     suspend fun setupDesktop(vncPassword: String) {
         try {
-            _desktopState.value = DesktopSetupState.Installing("Installing packages (~100MB download)...")
+            // Ensure rootfs is installed first
+            if (!isRootfsInstalled) {
+                installRootfs()
+                if (_state.value is SetupState.Error) {
+                    _desktopState.value = DesktopSetupState.Error("Rootfs install failed")
+                    return
+                }
+            }
+
+            if (!isDesktopInstalled) {
+                _desktopState.value = DesktopSetupState.Installing("Installing packages (~100MB download)...")
 
             val (installOutput, installExit) = runCommandInProot(
                 "apk update && apk add tigervnc xfce4 xfce4-terminal dbus-x11 font-noto"
             )
-            if (installExit != 0) {
+            Log.d(TAG, "apk install exit=$installExit output(last 300)=${installOutput.takeLast(300)}")
+
+            // Check if key binaries were installed — apk may return exit 1 for
+            // non-fatal trigger errors (gtk icon cache, fontscale, etc.)
+            val checkInstalled = File(rootfsDir, "usr/bin/Xvnc").exists() &&
+                File(rootfsDir, "usr/bin/startxfce4").exists()
+            if (!checkInstalled) {
                 _desktopState.value = DesktopSetupState.Error(
-                    "Package install failed (exit $installExit): ${installOutput.takeLast(200)}"
+                    "Package install failed: ${installOutput.takeLast(300)}"
                 )
                 return
             }
             Log.d(TAG, "Desktop packages installed")
+            }
 
             _desktopState.value = DesktopSetupState.Installing("Configuring VNC...")
 
@@ -379,6 +398,63 @@ chmod +x /root/.vnc/xstartup""")
             Log.e(TAG, "Desktop setup failed", e)
             _desktopState.value = DesktopSetupState.Error(e.message ?: "Setup failed")
         }
+    }
+
+    private var vncProcess: Process? = null
+
+    /**
+     * Start the VNC server as a background proot process.
+     * Xvnc runs directly (not via vncserver wrapper) to avoid lock file issues.
+     * The process stays alive until explicitly killed or the app exits.
+     */
+    fun startVncServer() {
+        // Kill any existing VNC process
+        vncProcess?.destroyForcibly()
+
+        val prootBin = prootBinary ?: return
+        val loaderPath = File(context.applicationInfo.nativeLibraryDir, "libproot_loader.so").absolutePath
+
+        // Clean up stale lock files
+        File(context.cacheDir, ".X1-lock").delete()
+
+        val process = ProcessBuilder(
+            prootBin, "-0", "--link2symlink",
+            "-r", rootfsDir.absolutePath,
+            "-b", "/dev", "-b", "/proc", "-b", "/sys",
+            "-b", "${context.cacheDir.absolutePath}:/tmp",
+            "-w", "/root",
+            "/bin/busybox", "sh", "-c",
+            "rm -f /tmp/.X1-lock /tmp/.X11-unix/X1 && " +
+                "Xvnc :1 -geometry 1280x720 " +
+                "-SecurityTypes None " +
+                "-localhost 0 &" +
+                " sleep 2 && DISPLAY=:1 startxfce4",
+        ).apply {
+            environment().apply {
+                put("HOME", "/root")
+                put("PATH", "/usr/local/sbin:/usr/local/bin:/usr/sbin:/usr/bin:/sbin:/bin")
+                put("PROOT_TMP_DIR", context.cacheDir.absolutePath)
+                put("PROOT_LOADER", loaderPath)
+            }
+            redirectErrorStream(true)
+        }.start()
+
+        vncProcess = process
+
+        // Log output on a background thread
+        Thread({
+            try {
+                process.inputStream.bufferedReader().forEachLine { line ->
+                    Log.d(TAG, "Xvnc: $line")
+                }
+            } catch (_: Exception) {}
+            Log.d(TAG, "VNC process exited: ${process.waitFor()}")
+        }, "vnc-server-log").apply { isDaemon = true }.start()
+    }
+
+    fun stopVncServer() {
+        vncProcess?.destroyForcibly()
+        vncProcess = null
     }
 
     fun resetDesktopState() {

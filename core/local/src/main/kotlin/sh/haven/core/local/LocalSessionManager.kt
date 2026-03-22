@@ -93,11 +93,13 @@ class LocalSessionManager @Inject constructor(
             val args = arrayOf(
                 prootBinary,
                 "-0",                    // fake root
+                "--link2symlink",        // fix link() for X11 lock files
                 "-r", rootfsDir.absolutePath,
                 "-b", "/dev",
                 "-b", "/proc",
                 "-b", "/sys",
                 "-b", "/storage",
+                "-b", "${context.cacheDir.absolutePath}:/tmp",
                 "-w", "/root",
                 "/bin/busybox", "sh", "-l",
             )
@@ -236,7 +238,7 @@ class LocalSessionManager @Inject constructor(
             .find { it.profileId == profileId && it.status == SessionState.Status.CONNECTED }
             ?: return
         session.localSession?.sendInput(
-            "vncserver :1 -geometry 1280x720 -localhost no 2>&1 &\n".toByteArray()
+            "vncserver :1 2>&1 &\n".toByteArray()
         )
         Log.d(TAG, "Sent VNC start command to session ${session.sessionId}")
     }

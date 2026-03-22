@@ -44,8 +44,11 @@ class VncClient(private val config: VncConfig) : Closeable {
             val output = socket.getOutputStream()
             val sess = VncSession(config, input, output)
 
+            Log.d(TAG, "Handshaking...")
             Handshaker.handshake(sess)
+            Log.d(TAG, "Initialising...")
             Initializer.initialise(sess)
+            Log.d(TAG, "Connected: ${sess.serverInit?.name} ${sess.serverInit?.framebufferWidth}x${sess.serverInit?.framebufferHeight}")
 
             session = sess
             val framebuffer = Framebuffer(sess)
@@ -53,6 +56,7 @@ class VncClient(private val config: VncConfig) : Closeable {
             startServerEventLoop(sess, framebuffer)
             startClientEventLoop(sess)
         } catch (e: Exception) {
+            Log.e(TAG, "Connection failed during setup", e)
             handleError(e)
         }
     }

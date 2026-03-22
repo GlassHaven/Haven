@@ -16,7 +16,8 @@
 set -euo pipefail
 cd "$(dirname "$0")"
 
-PROOT_VERSION="5.4.0"
+PROOT_REPO="https://github.com/termux/proot"
+PROOT_COMMIT="ab2e3464d04483b98a0614b470f3f8950d5a6468"
 TALLOC_VERSION="2.4.2"
 
 # Auto-detect NDK
@@ -39,10 +40,10 @@ API=26  # minSdk
 
 # Download sources
 mkdir -p dl
-if [ ! -f "dl/proot-$PROOT_VERSION.tar.gz" ]; then
-    echo "Downloading PRoot $PROOT_VERSION..."
-    curl -L -o "dl/proot-$PROOT_VERSION.tar.gz" \
-        "https://github.com/proot-me/proot/archive/refs/tags/v$PROOT_VERSION.tar.gz"
+if [ ! -d "dl/proot-termux" ]; then
+    echo "Cloning Termux PRoot..."
+    git clone --depth 1 "$PROOT_REPO" "dl/proot-termux"
+    (cd "dl/proot-termux" && git checkout "$PROOT_COMMIT" 2>/dev/null || true)
 fi
 
 if [ ! -f "dl/talloc-$TALLOC_VERSION.tar.gz" ]; then
@@ -131,10 +132,13 @@ REP_EOF
     )
     echo "talloc built: $TALLOC_INSTALL/lib/libtalloc.a"
 
-    # Build PRoot
-    echo "Building PRoot..."
-    local PROOT_SRC="$BUILD_DIR/proot-$PROOT_VERSION"
-    tar xzf "dl/proot-$PROOT_VERSION.tar.gz" -C "$BUILD_DIR"
+    # Build PRoot (Termux fork)
+    echo "Building PRoot (Termux fork)..."
+    local PROOT_SRC="$BUILD_DIR/proot-termux"
+    cp -a "dl/proot-termux" "$PROOT_SRC"
+
+    # Patch missing includes for NDK
+    sed -i '1i #include <string.h>' "$PROOT_SRC/src/extension/ashmem_memfd/ashmem_memfd.c" 2>/dev/null || true
 
     (
         cd "$PROOT_SRC/src"
@@ -161,9 +165,13 @@ REP_EOF
         ls -la proot
     )
 
-    # Install
+    # Install proot + loader
     mkdir -p "$JNILIBS/$ABI"
     cp "$PROOT_SRC/src/proot" "$JNILIBS/$ABI/libproot.so"
+    if [ -f "$PROOT_SRC/src/loader/loader" ]; then
+        "$STRIP" "$PROOT_SRC/src/loader/loader"
+        cp "$PROOT_SRC/src/loader/loader" "$JNILIBS/$ABI/libproot_loader.so"
+    fi
     echo "Installed: $JNILIBS/$ABI/libproot.so ($(stat -c %s "$JNILIBS/$ABI/libproot.so") bytes)"
 }
 

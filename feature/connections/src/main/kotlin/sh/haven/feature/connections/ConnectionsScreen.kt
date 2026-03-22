@@ -732,6 +732,7 @@ private fun ConnectionTreeItem(
     val profileStatus = profileStatuses[profile.id]
     var showMenu by remember { mutableStateOf(false) }
     var showRenameDialog by remember { mutableStateOf(false) }
+    var showDeleteConfirm by remember { mutableStateOf(false) }
 
     if (showRenameDialog) {
         RenameDialog(
@@ -740,6 +741,23 @@ private fun ConnectionTreeItem(
             onRename = { newLabel ->
                 onRename(newLabel)
                 showRenameDialog = false
+            },
+        )
+    }
+
+    if (showDeleteConfirm) {
+        AlertDialog(
+            onDismissRequest = { showDeleteConfirm = false },
+            title = { Text("Delete connection?") },
+            text = { Text("Delete \"${profile.label}\"? This cannot be undone.") },
+            confirmButton = {
+                TextButton(onClick = {
+                    showDeleteConfirm = false
+                    onDelete()
+                }) { Text("Delete", color = MaterialTheme.colorScheme.error) }
+            },
+            dismissButton = {
+                TextButton(onClick = { showDeleteConfirm = false }) { Text("Cancel") }
             },
         )
     }
@@ -878,7 +896,7 @@ private fun ConnectionTreeItem(
             DropdownMenuItem(
                 text = { Text("Delete") },
                 leadingIcon = { Icon(Icons.Filled.Delete, null) },
-                onClick = { showMenu = false; onDelete() },
+                onClick = { showMenu = false; showDeleteConfirm = true },
             )
         }
     }
@@ -1131,13 +1149,6 @@ private fun DesktopSetupDialog(
                                 "This downloads ~100MB of packages.",
                             style = MaterialTheme.typography.bodySmall,
                         )
-                        OutlinedTextField(
-                            value = password,
-                            onValueChange = { password = it },
-                            label = { Text("VNC Password") },
-                            singleLine = true,
-                            modifier = Modifier.fillMaxWidth(),
-                        )
                     }
                     is sh.haven.core.local.ProotManager.DesktopSetupState.Installing -> {
                         Row(
@@ -1167,8 +1178,7 @@ private fun DesktopSetupDialog(
         confirmButton = {
             if (desktopState is sh.haven.core.local.ProotManager.DesktopSetupState.Idle) {
                 TextButton(
-                    onClick = { onStart(password) },
-                    enabled = password.length >= 6,
+                    onClick = { onStart("") },
                 ) { Text("Install") }
             }
         },

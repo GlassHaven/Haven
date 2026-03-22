@@ -15,6 +15,7 @@ Terminal:
 VNC Remote Desktop:
 - VNC desktop viewer with pinch-to-zoom and pan
 - SSH tunnel support for encrypted VNC connections
+- Local Xfce4 desktop via PRoot + Xvnc — no root required
 - Fullscreen mode with immersive display
 - Keyboard toolbar with modifier keys and symbols for remote desktop use
 - Touch-to-click with drag gesture support

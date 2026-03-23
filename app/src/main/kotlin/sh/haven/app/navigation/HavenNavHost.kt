@@ -114,7 +114,7 @@ fun HavenNavHost(
     ) { innerPadding ->
         HorizontalPager(
             state = pagerState,
-            userScrollEnabled = !desktopFullscreen && !desktopConnected,
+            userScrollEnabled = !desktopFullscreen && !desktopConnected && !terminalSelectionActive,
             modifier = Modifier
                 .padding(innerPadding)
                 .consumeWindowInsets(innerPadding)
@@ -190,8 +190,10 @@ fun HavenNavHost(
                             }
                         },
                         onSelectionActiveChanged = { terminalSelectionActive = it },
-                        terminalModifier = if (terminalSelectionActive) Modifier
-                            else Modifier.pagerSwipeOverride(pagerState, coroutineScope),
+                        terminalModifier = Modifier.pagerSwipeOverride(
+                            pagerState, coroutineScope,
+                            isSelectionActive = { terminalSelectionActive },
+                        ),
                     )
                     LaunchedEffect(pendingTerminalProfileId) {
                         if (pendingTerminalProfileId != null) {
@@ -257,12 +259,19 @@ fun HavenNavHost(
 }
 
 /**
- * Intercepts horizontal drag gestures at [PointerEventPass.Initial] (before children)
- * and forwards them to the [PagerState]. Vertical drags and taps pass through to children.
+ * Intercepts all gestures on [PointerEventPass.Initial] to prevent the
+ * HorizontalPager's built-in scroll from stealing the touch. Horizontal
+ * drags are forwarded to the [PagerState] programmatically; all other
+ * gestures (vertical scroll, selection, hold) are consumed on Initial
+ * so the pager never intercepts them — Terminal.kt handles them on Main.
+ *
+ * When [isSelectionActive] returns true, horizontal forwarding is suppressed
+ * so selection drag isn't misinterpreted as a tab swipe.
  */
 private fun Modifier.pagerSwipeOverride(
     pagerState: PagerState,
     scope: CoroutineScope,
+    isSelectionActive: () -> Boolean = { false },
 ): Modifier = pointerInput(pagerState) {
     val touchSlopPx = viewConfiguration.touchSlop
     awaitEachGesture {
@@ -284,13 +293,17 @@ private fun Modifier.pagerSwipeOverride(
                 isHorizontal = abs(totalX) > abs(totalY)
             }
 
-            if (isHorizontal) {
-                change.consume()
+            // Always consume on Initial to prevent the pager's
+            // built-in scrollable from intercepting the gesture.
+            change.consume()
+
+            // Forward horizontal drags to pager (unless selection active)
+            if (isHorizontal && !isSelectionActive()) {
                 pagerState.dispatchRawDelta(-delta.x)
             }
         } while (change.pressed)
 
-        if (isHorizontal) {
+        if (isHorizontal && !isSelectionActive()) {
             val threshold = size.width / 4
             val target = when {
                 totalX < -threshold -> pagerState.currentPage + 1

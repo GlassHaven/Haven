@@ -41,103 +41,42 @@ import androidx.compose.ui.text.AnnotatedString
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import org.connectbot.terminal.SelectionController
+import org.connectbot.terminal.SelectionRange
 
 private const val TAG = "SelectionToolbar"
 
 /**
- * Reflective helper for moving individual selection anchors.
- *
- * The connectbot termlib library marks SelectionManager and SelectionRange as
- * `internal`, so we can't reference them at compile time. The anonymous
- * SelectionController implementation captures the SelectionManager in a field
- * named `$selectionManager`. We use reflection to read the current selection
- * range and call updateSelectionStart / updateSelectionEnd independently.
+ * Helper for moving individual selection anchors via the public
+ * SelectionController API (no reflection needed).
  */
-private class AnchorMover(controller: SelectionController) {
-    private val manager: Any? = try {
-        val field = controller.javaClass.getDeclaredField("\$selectionManager")
-        field.isAccessible = true
-        field.get(controller)
-    } catch (e: Exception) {
-        Log.d(TAG, "Could not extract SelectionManager: ${e.message}")
-        null
+private class AnchorMover(private val controller: SelectionController) {
+    fun moveStart(dCol: Int, dRow: Int) {
+        val range = controller.getSelectionRange() ?: return
+        controller.updateSelectionStart(range.startRow + dRow, range.startCol + dCol)
     }
-
-    val available: Boolean = manager != null
-
-    fun moveStart(dCol: Int, dRow: Int) = moveAnchorInternal("Start", dCol, dRow)
-    fun moveEnd(dCol: Int, dRow: Int) = moveAnchorInternal("End", dCol, dRow)
-
-    private fun moveAnchorInternal(which: String, dCol: Int, dRow: Int) {
-        val mgr = manager ?: return
-        try {
-            val rangeGetter = mgr.javaClass.getMethod("getSelectionRange")
-            val range = rangeGetter.invoke(mgr) ?: return
-            val row = range.javaClass.getMethod("get${which}Row").invoke(range) as Int
-            val col = range.javaClass.getMethod("get${which}Col").invoke(range) as Int
-            val update = mgr.javaClass.getMethod("updateSelection$which", Int::class.java, Int::class.java)
-            update.invoke(mgr, row + dRow, col + dCol)
-        } catch (e: Exception) {
-            Log.d(TAG, "AnchorMover.move$which failed: ${e.message}")
-        }
+    fun moveEnd(dCol: Int, dRow: Int) {
+        val range = controller.getSelectionRange() ?: return
+        controller.updateSelectionEnd(range.endRow + dRow, range.endCol + dCol)
     }
 }
-
-/**
- * Read the current selection range (startRow, startCol, endRow, endCol)
- * from the library-internal SelectionManager via reflection.
- * Returns null if no selection is active or reflection fails.
- */
-internal fun getSelectionRange(
-    controller: org.connectbot.terminal.SelectionController,
-): SelectionPosition? {
-    try {
-        val mgrField = controller.javaClass.getDeclaredField("\$selectionManager")
-        mgrField.isAccessible = true
-        val mgr = mgrField.get(controller) ?: return null
-        val range = mgr.javaClass.getMethod("getSelectionRange").invoke(mgr) ?: return null
-        val startRow = range.javaClass.getMethod("getStartRow").invoke(range) as Int
-        val startCol = range.javaClass.getMethod("getStartCol").invoke(range) as Int
-        val endRow = range.javaClass.getMethod("getEndRow").invoke(range) as Int
-        val endCol = range.javaClass.getMethod("getEndCol").invoke(range) as Int
-        return SelectionPosition(startRow, startCol, endRow, endCol)
-    } catch (e: Exception) {
-        Log.d(TAG, "getSelectionRange: ${e.message}")
-        return null
-    }
-}
-
-internal data class SelectionPosition(
-    val startRow: Int,
-    val startCol: Int,
-    val endRow: Int,
-    val endCol: Int,
-)
 
 /**
  * Expand a single-character selection to the word (contiguous non-whitespace
  * token) under the cursor. Called immediately after long-press starts selection.
  *
- * Uses reflection to access:
- * - SelectionManager from the SelectionController (library-internal)
- * - TerminalSnapshot from the TerminalEmulator (library-internal getSnapshot$lib)
+ * Uses the public SelectionController API for anchor manipulation.
+ * Still uses reflection for snapshot line text (internal to termlib).
  */
 internal fun expandSelectionToWord(
     controller: SelectionController,
     emulator: org.connectbot.terminal.TerminalEmulator,
 ) {
     try {
-        // Get SelectionManager from controller
-        val mgrField = controller.javaClass.getDeclaredField("\$selectionManager")
-        mgrField.isAccessible = true
-        val mgr = mgrField.get(controller) ?: return
+        val range = controller.getSelectionRange() ?: return
+        val row = range.startRow
+        val col = range.startCol
 
-        // Get current selection position
-        val range = mgr.javaClass.getMethod("getSelectionRange").invoke(mgr) ?: return
-        val row = range.javaClass.getMethod("getStartRow").invoke(range) as Int
-        val col = range.javaClass.getMethod("getStartCol").invoke(range) as Int
-
-        // Get line text at selection row
+        // Get line text at selection row (still requires reflection for snapshot)
         val lines = getSnapshotLines(emulator) ?: return
         if (row < 0 || row >= lines.size) return
         val text = getLineText(lines[row])
@@ -154,39 +93,11 @@ internal fun expandSelectionToWord(
 
         // Update selection anchors if expanded
         if (startCol != col || endCol != col) {
-            val updateStart = mgr.javaClass.getMethod(
-                "updateSelectionStart", Int::class.java, Int::class.java,
-            )
-            val updateEnd = mgr.javaClass.getMethod(
-                "updateSelectionEnd", Int::class.java, Int::class.java,
-            )
-            updateStart.invoke(mgr, row, startCol)
-            updateEnd.invoke(mgr, row, endCol)
+            controller.updateSelectionStart(row, startCol)
+            controller.updateSelectionEnd(row, endCol)
         }
     } catch (e: Exception) {
         Log.d(TAG, "expandSelectionToWord: ${e.message}")
-    }
-}
-
-/**
- * Set the selection end anchor to an absolute cell position.
- * Used by the highlighter-drag gesture during long-press selection.
- */
-internal fun updateSelectionEndAbsolute(
-    controller: SelectionController,
-    row: Int,
-    col: Int,
-) {
-    try {
-        val mgrField = controller.javaClass.getDeclaredField("\$selectionManager")
-        mgrField.isAccessible = true
-        val mgr = mgrField.get(controller) ?: return
-        val update = mgr.javaClass.getMethod(
-            "updateSelectionEnd", Int::class.java, Int::class.java,
-        )
-        update.invoke(mgr, row, col)
-    } catch (e: Exception) {
-        Log.d(TAG, "updateSelectionEndAbsolute: ${e.message}")
     }
 }
 
@@ -214,19 +125,6 @@ private fun getLineText(line: Any): String {
     return try {
         line.javaClass.getMethod("getText").invoke(line) as String
     } catch (e: Exception) { "" }
-}
-
-/** Get terminal column count via reflection on emulator.dimensions. */
-private fun getTerminalColumns(
-    emulator: org.connectbot.terminal.TerminalEmulator,
-): Int? {
-    return try {
-        val dims = emulator.javaClass.getMethod("getDimensions").invoke(emulator)
-        dims.javaClass.getMethod("getColumns").invoke(dims) as Int
-    } catch (e: Exception) {
-        Log.d(TAG, "getTerminalColumns: ${e.message}")
-        null
-    }
 }
 
 /** True if the character is a vertical box-drawing border. */
@@ -288,7 +186,7 @@ private fun extractPanelContent(
  */
 private fun extractWithSoftWrapUnwrap(
     fullTexts: List<String>,
-    sel: SelectionPosition,
+    sel: SelectionRange,
     columns: Int,
 ): String {
     // Extract selected portion of each line
@@ -329,8 +227,8 @@ internal fun smartCopy(
     controller: SelectionController,
     emulator: org.connectbot.terminal.TerminalEmulator,
 ): String? {
-    val sel = getSelectionRange(controller) ?: return null
-    val columns = getTerminalColumns(emulator) ?: return null
+    val sel = controller.getSelectionRange() ?: return null
+    val columns = emulator.dimensions.columns
     val snapshotLines = getSnapshotLines(emulator) ?: return null
 
     val fullTexts = (sel.startRow..sel.endRow).map { row ->
@@ -457,8 +355,7 @@ fun SelectionToolbarContent(
         }
 
         // Anchor target toggle: Start / End
-        if (anchorMover.available) {
-            SelectionToggleButton(
+        SelectionToggleButton(
                 label = if (anchorTarget == AnchorTarget.START) "Start" else "End",
                 active = anchorTarget == AnchorTarget.START,
                 onClick = {
@@ -466,7 +363,6 @@ fun SelectionToolbarContent(
                         AnchorTarget.START else AnchorTarget.END
                 },
             )
-        }
 
         // D-pad arrows
         SelectionIconButton(Icons.Filled.KeyboardArrowUp, "Up") {

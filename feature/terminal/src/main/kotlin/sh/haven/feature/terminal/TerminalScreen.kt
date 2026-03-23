@@ -58,19 +58,13 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.focus.FocusRequester
 import androidx.compose.ui.graphics.Color
 import sh.haven.core.ui.KeyEventInterceptor
-import androidx.compose.ui.input.pointer.PointerEventPass
-import androidx.compose.ui.input.pointer.PointerInputScope
-import androidx.compose.ui.input.pointer.pointerInput
-import androidx.compose.ui.layout.onSizeChanged
 import androidx.compose.ui.platform.LocalClipboardManager
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.platform.LocalView
 import androidx.compose.ui.text.font.FontFamily
-import androidx.compose.ui.unit.IntSize
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import kotlinx.coroutines.launch
-import kotlin.math.abs
 import androidx.core.content.res.ResourcesCompat
 import androidx.core.view.WindowCompat
 import androidx.compose.foundation.layout.WindowInsets
@@ -393,12 +387,31 @@ fun TerminalScreen(
                     }
 
                     val isMouseMode by activeTab.mouseMode.collectAsState()
-                    // Mouse clicks (tap/long-press) only when setting enabled;
-                    // scroll wheel always works when TUI app requests mouse mode.
-                    val isMouseClickMode = isMouseMode && mouseInputEnabled
-                    val currentActiveMouseMode by activeTab.activeMouseMode.collectAsState()
                     val isBracketPaste by activeTab.bracketPasteMode.collectAsState()
-                    var surfaceSize by remember { mutableStateOf(IntSize.Zero) }
+
+                    // Build gesture callback when mouse mode is active.
+                    // Taps and long-presses are gated by mouseInputEnabled;
+                    // scroll wheel always works when the TUI requests mouse mode.
+                    val gestureCallback = remember(activeTab, isMouseMode, mouseInputEnabled) {
+                        if (isMouseMode) object : org.connectbot.terminal.TerminalGestureCallback {
+                            override fun onTap(col: Int, row: Int): Boolean {
+                                if (!mouseInputEnabled) return false
+                                activeTab.sendInput(sgrMouseButton(0, col + 1, row + 1, true))
+                                activeTab.sendInput(sgrMouseButton(0, col + 1, row + 1, false))
+                                return true
+                            }
+                            override fun onLongPress(col: Int, row: Int): Boolean {
+                                if (!mouseInputEnabled) return false
+                                activeTab.sendInput(sgrMouseButton(2, col + 1, row + 1, true))
+                                activeTab.sendInput(sgrMouseButton(2, col + 1, row + 1, false))
+                                return false // also allow selection after right-click
+                            }
+                            override fun onScroll(col: Int, row: Int, scrollUp: Boolean): Boolean {
+                                activeTab.sendInput(sgrMouseWheel(scrollUp, col + 1, row + 1))
+                                return true // suppress scrollback
+                            }
+                        } else null
+                    }
 
                     // Smart clipboard intercepts all terminal copy operations
                     // (toolbar button + library popup) to strip TUI borders and
@@ -415,18 +428,6 @@ fun TerminalScreen(
                     Box(
                         modifier = Modifier
                             .weight(1f)
-                            .onSizeChanged { surfaceSize = it }
-                            .pointerInput(activeTab.sessionId, isMouseMode, mouseInputEnabled) {
-                                terminalGestureInterceptor(
-                                    activeTab = activeTab,
-                                    mouseMode = isMouseMode,
-                                    mouseClickMode = isMouseClickMode,
-                                    isSelectionActive = { selectionController?.isSelectionActive == true },
-                                    selectionController = { selectionController },
-                                    surfaceSize = { surfaceSize },
-                                    activeMouseMode = { currentActiveMouseMode },
-                                )
-                            }
                             .then(terminalModifier),
                     ) {
                         // ModifierManager bridges our Ctrl/Alt toolbar state to the
@@ -466,7 +467,7 @@ fun TerminalScreen(
                                 onFontSizeChanged = { newSize ->
                                     viewModel.setFontSize(newSize.value.toInt())
                                 },
-                                mouseMode = isMouseClickMode,
+                                gestureCallback = gestureCallback,
                             )
                         }
 
@@ -732,12 +733,6 @@ private fun isSpecialTerminalKey(keyCode: Int): Boolean {
     }
 }
 
-/** Pixels of vertical drag accumulated before emitting one scroll event. */
-private const val SCROLL_THRESHOLD_PX = 40f
-
-/** Millis after a drag gesture before long-press selection is allowed again. */
-private const val DRAG_SELECTION_COOLDOWN_MS = 600L
-
 /**
  * Build an SGR-encoded mouse wheel escape sequence.
  * Scroll up: button 64, scroll down: button 65.
@@ -757,247 +752,6 @@ private fun sgrMouseWheel(scrollUp: Boolean, col: Int, row: Int): ByteArray {
 private fun sgrMouseButton(button: Int, col: Int, row: Int, pressed: Boolean): ByteArray {
     val suffix = if (pressed) 'M' else 'm'
     return "\u001b[<$button;$col;${row}$suffix".toByteArray()
-}
-
-/** Millis to wait for long-press to trigger right-click in mouse mode. */
-private const val MOUSE_LONG_PRESS_MS = 400L
-
-/** Millis after touch-down to suppress tab-swipe, giving time for a second finger (pinch). */
-private const val MULTITOUCH_GRACE_MS = 50L
-
-/** Millis after last multi-touch event to suppress gestures from stale finger lift-off. */
-private const val MULTITOUCH_LIFTOFF_MS = 300L
-
-/** Gesture kind — once classified per touch, locked for the touch lifetime. */
-private enum class GestureKind { UNDECIDED, TAB_SWIPE, SCROLL, SELECTION, MOUSE_CLICK }
-
-/** Fraction of terminal height at top/bottom that triggers edge-scroll during selection drag. */
-private const val EDGE_SCROLL_ZONE = 0.12f
-
-/** Millis between edge-scroll steps while finger is in the zone. */
-private const val EDGE_SCROLL_INTERVAL_MS = 150L
-
-/**
- * Unified gesture interceptor for the terminal surface.
- *
- * Runs on PointerEventPass.Initial so it sees events before the Terminal
- * composable's internal gesture handler.
- *
- * Gesture classification is mutually exclusive — once a touch is classified
- * as tab-swipe, scroll, or selection-extend, it stays that way until the
- * finger lifts:
- *
- * - Hold still (undecided): passes through to Terminal for long-press detection
- * - Horizontal drag (TAB_SWIPE): passes through for page swiping / tab navigation
- * - Vertical drag (SCROLL): consumed, emits SGR mouse wheel sequences (mouse mode)
- * - Selection active (SELECTION): consumed, extends selection like a highlighter;
- *   dragging near top/bottom edge auto-scrolls the terminal slowly
- *
- * [isSelectionActive] and [selectionController] are read dynamically so the
- * handler doesn't restart when selection state changes mid-gesture.
- */
-private suspend fun PointerInputScope.terminalGestureInterceptor(
-    activeTab: TerminalTab,
-    mouseMode: Boolean,
-    mouseClickMode: Boolean = mouseMode,
-    isSelectionActive: () -> Boolean,
-    selectionController: () -> org.connectbot.terminal.SelectionController?,
-    surfaceSize: () -> IntSize,
-    activeMouseMode: () -> Int?,
-) {
-    val touchSlop = viewConfiguration.touchSlop
-    var lastDragEndTime = 0L
-    var lastMultiTouchTime = 0L
-
-    awaitPointerEventScope {
-        while (true) {
-            val down = awaitPointerEvent(PointerEventPass.Initial)
-            val firstChange = down.changes.firstOrNull() ?: continue
-            if (!firstChange.pressed) continue
-
-            // If selection is already active at touch-start (handle manipulation),
-            // don't intercept — let Terminal handle its own selection UI.
-            if (isSelectionActive()) continue
-
-            val inCooldown = System.currentTimeMillis() - lastDragEndTime < DRAG_SELECTION_COOLDOWN_MS
-            val inPinchCooldown = System.currentTimeMillis() - lastMultiTouchTime < MULTITOUCH_LIFTOFF_MS
-
-            val startX = firstChange.position.x
-            val startY = firstChange.position.y
-            var kind = GestureKind.UNDECIDED
-            var accumulatedY = 0f
-            var wasDrag = false
-            var lastEdgeScrollTime = 0L
-            val touchDownTime = System.currentTimeMillis()
-            var longPressHandled = false
-
-            while (true) {
-                val event = awaitPointerEvent(PointerEventPass.Initial)
-                val change = event.changes.firstOrNull() ?: break
-                if (!change.pressed) break
-
-                // Multi-touch (pinch-to-zoom) — consume all pointers so the
-                // pager doesn't interpret finger spread as a tab swipe,
-                // and prevent the tap handler from firing a mouse click on lift.
-                if (event.changes.size > 1) {
-                    kind = GestureKind.SCROLL // not UNDECIDED → no tap on lift
-                    lastMultiTouchTime = System.currentTimeMillis()
-                    event.changes.forEach { it.consume() }
-                    continue
-                }
-
-                // Selection always takes priority — the Terminal's long-press
-                // detector runs on a later PointerEventPass, so isSelectionActive()
-                // may lag our Initial pass by one event.  Checking every event and
-                // allowing override of TAB_SWIPE/SCROLL prevents both gestures from
-                // firing simultaneously.
-                if (isSelectionActive() && kind != GestureKind.SELECTION) {
-                    kind = GestureKind.SELECTION
-                }
-
-                // In mouse click mode: detect long-press for right-click while still UNDECIDED
-                if (mouseClickMode && kind == GestureKind.UNDECIDED && !longPressHandled) {
-                    val elapsed = System.currentTimeMillis() - touchDownTime
-                    if (elapsed >= MOUSE_LONG_PRESS_MS) {
-                        longPressHandled = true
-                        kind = GestureKind.MOUSE_CLICK
-                        change.consume()
-
-                        // Send right-click (button 2) press + release
-                        val size = surfaceSize()
-                        if (size.width > 0 && size.height > 0) {
-                            val dims = activeTab.emulator.dimensions
-                            val col = ((startX / size.width) * dims.columns)
-                                .toInt().coerceIn(1, dims.columns)
-                            val row = ((startY / size.height) * dims.rows)
-                                .toInt().coerceIn(1, dims.rows)
-                            activeTab.sendInput(sgrMouseButton(2, col, row, pressed = true))
-                            activeTab.sendInput(sgrMouseButton(2, col, row, pressed = false))
-                        }
-                        continue
-                    }
-                }
-
-                // Classify by first significant movement
-                if (kind == GestureKind.UNDECIDED) {
-                    val dx = change.position.x - startX
-                    val dy = change.position.y - startY
-                    val absDx = abs(dx)
-                    val absDy = abs(dy)
-
-                    if (absDx > touchSlop || absDy > touchSlop) {
-                        wasDrag = true
-                        kind = if (absDx > absDy) GestureKind.TAB_SWIPE
-                               else GestureKind.SCROLL
-                        if (kind == GestureKind.SCROLL && mouseMode) {
-                            accumulatedY = dy
-                        }
-                    }
-                }
-
-                when (kind) {
-                    GestureKind.UNDECIDED -> {
-                        if (mouseClickMode || inCooldown || inPinchCooldown) change.consume()
-                    }
-
-                    GestureKind.MOUSE_CLICK -> {
-                        // Already handled above; consume remaining events
-                        change.consume()
-                    }
-
-                    GestureKind.TAB_SWIPE -> {
-                        // Give multi-touch detection time before letting
-                        // the pager see horizontal movement — prevents a
-                        // two-finger pinch from being grabbed as a tab swipe
-                        // when the first finger moves before the second lands
-                        // or when a stale finger lifts after a pinch ends.
-                        val elapsed = System.currentTimeMillis() - touchDownTime
-                        val sincePinch = System.currentTimeMillis() - lastMultiTouchTime
-                        if (elapsed < MULTITOUCH_GRACE_MS || sincePinch < MULTITOUCH_LIFTOFF_MS) {
-                            change.consume()
-                        }
-                        // Otherwise don't consume — events pass through to
-                        // the pager naturally.  Staying in the loop lets us
-                        // detect late selection activation and override.
-                    }
-
-                    GestureKind.SCROLL -> {
-                        if (mouseMode) {
-                            change.consume()
-                            accumulatedY += change.position.y - change.previousPosition.y
-
-                            while (abs(accumulatedY) >= SCROLL_THRESHOLD_PX) {
-                                val draggedUp = accumulatedY < 0
-                                accumulatedY += if (draggedUp) SCROLL_THRESHOLD_PX else -SCROLL_THRESHOLD_PX
-                                val scrollUp = !draggedUp
-
-                                val size = surfaceSize()
-                                if (size.width > 0 && size.height > 0) {
-                                    val dims = activeTab.emulator.dimensions
-                                    val col = ((change.position.x / size.width) * dims.columns)
-                                        .toInt().coerceIn(1, dims.columns)
-                                    val row = ((change.position.y / size.height) * dims.rows)
-                                        .toInt().coerceIn(1, dims.rows)
-                                    activeTab.sendInput(sgrMouseWheel(scrollUp, col, row))
-                                }
-                            }
-                        }
-                    }
-
-                    GestureKind.SELECTION -> {
-                        change.consume()
-                        val ctrl = selectionController() ?: continue
-                        val size = surfaceSize()
-                        if (size.width <= 0 || size.height <= 0) continue
-
-                        val dims = activeTab.emulator.dimensions
-                        val col = ((change.position.x / size.width) * dims.columns)
-                            .toInt().coerceIn(0, dims.columns - 1)
-                        val row = ((change.position.y / size.height) * dims.rows)
-                            .toInt().coerceIn(0, dims.rows - 1)
-                        updateSelectionEndAbsolute(ctrl, row, col)
-
-                        // Edge-scroll: when finger is near top/bottom and mouse
-                        // mode is active, emit slow scroll events so the user
-                        // can extend selection beyond the visible screen.
-                        // Only in mouse mode — without it, SGR sequences would
-                        // appear as literal text on the prompt.
-                        if (mouseMode) {
-                            val relY = change.position.y / size.height
-                            val now = System.currentTimeMillis()
-                            if ((relY < EDGE_SCROLL_ZONE || relY > 1f - EDGE_SCROLL_ZONE) &&
-                                now - lastEdgeScrollTime >= EDGE_SCROLL_INTERVAL_MS
-                            ) {
-                                val scrollUp = relY < EDGE_SCROLL_ZONE
-                                activeTab.sendInput(sgrMouseWheel(scrollUp, col + 1, row + 1))
-                                lastEdgeScrollTime = now
-                            }
-                        }
-                    }
-                }
-            }
-
-            // Finger lifted — handle tap (UNDECIDED means no drag/long-press occurred)
-            val sincePinchEnd = System.currentTimeMillis() - lastMultiTouchTime
-            if (mouseClickMode && kind == GestureKind.UNDECIDED && !longPressHandled && sincePinchEnd > MULTITOUCH_LIFTOFF_MS) {
-                // Tap: send left click (button 0) press + release
-                val size = surfaceSize()
-                if (size.width > 0 && size.height > 0) {
-                    val dims = activeTab.emulator.dimensions
-                    val col = ((startX / size.width) * dims.columns)
-                        .toInt().coerceIn(1, dims.columns)
-                    val row = ((startY / size.height) * dims.rows)
-                        .toInt().coerceIn(1, dims.rows)
-                    activeTab.sendInput(sgrMouseButton(0, col, row, pressed = true))
-                    activeTab.sendInput(sgrMouseButton(0, col, row, pressed = false))
-                }
-            }
-
-            if (wasDrag) {
-                lastDragEndTime = System.currentTimeMillis()
-            }
-        }
-    }
 }
 
 @Composable

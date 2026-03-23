@@ -39,6 +39,7 @@ import androidx.compose.material.icons.filled.Info
 import androidx.compose.material.icons.filled.KeyboardAlt
 import androidx.compose.material.icons.filled.Palette
 import androidx.compose.material.icons.filled.Search
+import androidx.compose.material.icons.filled.SelectAll
 import androidx.compose.material.icons.filled.Terminal
 import androidx.compose.material.icons.filled.TextFields
 import androidx.compose.material3.AlertDialog
@@ -102,6 +103,7 @@ fun SettingsScreen(
     val verboseLoggingEnabled by viewModel.verboseLoggingEnabled.collectAsState()
     val mouseInputEnabled by viewModel.mouseInputEnabled.collectAsState()
     val hideExtraToolbarWithExternalKeyboard by viewModel.hideExtraToolbarWithExternalKeyboard.collectAsState()
+    val terminalTextSelectionEnabledByDefault by viewModel.terminalTextSelectionEnabledByDefault.collectAsState()
     val backupStatus by viewModel.backupStatus.collectAsState()
     var showAuditLog by remember { mutableStateOf(false) }
     var showFontSizeDialog by remember { mutableStateOf(false) }
@@ -239,6 +241,13 @@ fun SettingsScreen(
             subtitle = "When an external keyboard is connected, hide the Ctrl/Alt toolbar in Terminal, VNC, and RDP",
             checked = hideExtraToolbarWithExternalKeyboard,
             onCheckedChange = viewModel::setHideExtraToolbarWithExternalKeyboard,
+        )
+        SettingsToggleItem(
+            icon = Icons.Filled.SelectAll,
+            title = "Terminal text selection enabled by default",
+            subtitle = "When off, long-press selection starts disabled and can be turned on with the corner checkbox",
+            checked = terminalTextSelectionEnabledByDefault,
+            onCheckedChange = viewModel::setTerminalTextSelectionEnabledByDefault,
         )
         SettingsToggleItem(
             icon = Icons.Filled.Search,

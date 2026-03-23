@@ -24,6 +24,7 @@ import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.DesktopWindows
 import androidx.compose.material.icons.filled.Keyboard
 import androidx.compose.material3.ButtonDefaults
+import androidx.compose.material3.Checkbox
 import androidx.compose.material3.FilledTonalButton
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
@@ -43,6 +44,8 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.focus.FocusRequester
 import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.platform.LocalView
+import androidx.compose.ui.semantics.contentDescription
+import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.core.view.WindowCompat
@@ -119,6 +122,9 @@ fun KeyboardToolbar(
     onToggleCtrl: () -> Unit = {},
     onToggleAlt: () -> Unit = {},
     onVncTap: (() -> Unit)? = null,
+    selectionToggleVisible: Boolean = false,
+    selectionEnabled: Boolean = true,
+    onSelectionEnabledChange: (Boolean) -> Unit = {},
     selectionController: SelectionController? = null,
     selectionActive: Boolean = false,
     hyperlinkUri: String? = null,
@@ -155,6 +161,9 @@ fun KeyboardToolbar(
                             imeVisible = imeVisible,
                             view = view,
                             onVncTap = onVncTap,
+                            selectionToggleVisible = selectionToggleVisible,
+                            selectionEnabled = selectionEnabled,
+                            onSelectionEnabledChange = onSelectionEnabledChange,
                         )
                     }
                     SelectionToolbarContent(
@@ -174,6 +183,9 @@ fun KeyboardToolbar(
                     imeVisible = imeVisible,
                     view = view,
                     onVncTap = onVncTap,
+                    selectionToggleVisible = selectionToggleVisible,
+                    selectionEnabled = selectionEnabled,
+                    onSelectionEnabledChange = onSelectionEnabledChange,
                 )
             } else {
                 Column {
@@ -188,6 +200,9 @@ fun KeyboardToolbar(
                                 imeVisible = imeVisible,
                                 view = view,
                                 onVncTap = onVncTap,
+                                selectionToggleVisible = selectionToggleVisible,
+                                selectionEnabled = selectionEnabled,
+                                onSelectionEnabledChange = onSelectionEnabledChange,
                             )
                         }
                     }
@@ -213,6 +228,9 @@ private fun AlignedToolbarContent(
     imeVisible: Boolean,
     view: android.view.View,
     onVncTap: (() -> Unit)?,
+    selectionToggleVisible: Boolean,
+    selectionEnabled: Boolean,
+    onSelectionEnabledChange: (Boolean) -> Unit,
 ) {
     val cb = LocalToolbarCallbacks.current
     // Split each row into: left (non-nav), right (non-nav after nav keys)
@@ -229,10 +247,32 @@ private fun AlignedToolbarContent(
     // If no nav keys present, fall back to simple rows
     if (presentNavKeys.isEmpty()) {
         Column {
-            ToolbarRow(layout.row1, focusRequester, ctrlActive, altActive,
-                shiftActive, imeVisible, view, onVncTap)
-            ToolbarRow(layout.row2, focusRequester, ctrlActive, altActive,
-                shiftActive, imeVisible, view, onVncTap)
+            ToolbarRow(
+                items = layout.row1,
+                focusRequester = focusRequester,
+                ctrlActive = ctrlActive,
+                altActive = altActive,
+                shiftActive = shiftActive,
+                imeVisible = imeVisible,
+                view = view,
+                onVncTap = onVncTap,
+                selectionToggleVisible = selectionToggleVisible,
+                selectionEnabled = selectionEnabled,
+                onSelectionEnabledChange = onSelectionEnabledChange,
+            )
+            ToolbarRow(
+                items = layout.row2,
+                focusRequester = focusRequester,
+                ctrlActive = ctrlActive,
+                altActive = altActive,
+                shiftActive = shiftActive,
+                imeVisible = imeVisible,
+                view = view,
+                onVncTap = onVncTap,
+                selectionToggleVisible = selectionToggleVisible,
+                selectionEnabled = selectionEnabled,
+                onSelectionEnabledChange = onSelectionEnabledChange,
+            )
         }
         return
     }
@@ -252,10 +292,12 @@ private fun AlignedToolbarContent(
                 }
             }
             KeyRow(Modifier.fillMaxWidth()) {
-                // VNC Desktop icon at start of row 2
-                if (onVncTap != null) {
-                    ToolbarIconButton(Icons.Filled.DesktopWindows, "VNC Desktop", onVncTap)
-                }
+                ToolbarLeadingAccessory(
+                    onVncTap = onVncTap,
+                    selectionToggleVisible = selectionToggleVisible,
+                    selectionEnabled = selectionEnabled,
+                    onSelectionEnabledChange = onSelectionEnabledChange,
+                )
                 for (item in row2Left) {
                     RenderItem(item, focusRequester, ctrlActive, altActive,
                         shiftActive, imeVisible, view)
@@ -417,6 +459,9 @@ private fun ToolbarRow(
     imeVisible: Boolean,
     view: android.view.View,
     onVncTap: (() -> Unit)? = null,
+    selectionToggleVisible: Boolean = false,
+    selectionEnabled: Boolean = true,
+    onSelectionEnabledChange: (Boolean) -> Unit = {},
 ) {
     Row(
         modifier = Modifier
@@ -427,9 +472,39 @@ private fun ToolbarRow(
         for (item in items) {
             RenderItem(item, focusRequester, ctrlActive, altActive,
                 shiftActive, imeVisible, view)
-            if (item is ToolbarItem.BuiltIn && item.key == ToolbarKey.KEYBOARD && onVncTap != null) {
-                ToolbarIconButton(Icons.Filled.DesktopWindows, "VNC Desktop", onVncTap)
+            if (item is ToolbarItem.BuiltIn && item.key == ToolbarKey.KEYBOARD) {
+                ToolbarLeadingAccessory(
+                    onVncTap = onVncTap,
+                    selectionToggleVisible = selectionToggleVisible,
+                    selectionEnabled = selectionEnabled,
+                    onSelectionEnabledChange = onSelectionEnabledChange,
+                )
             }
+        }
+    }
+}
+
+@Composable
+private fun ToolbarLeadingAccessory(
+    onVncTap: (() -> Unit)?,
+    selectionToggleVisible: Boolean,
+    selectionEnabled: Boolean,
+    onSelectionEnabledChange: (Boolean) -> Unit,
+) {
+    when {
+        selectionToggleVisible -> {
+            ToolbarCheckbox(
+                checked = selectionEnabled,
+                description = if (selectionEnabled) {
+                    "Disable text selection"
+                } else {
+                    "Enable text selection"
+                },
+                onCheckedChange = onSelectionEnabledChange,
+            )
+        }
+        onVncTap != null -> {
+            ToolbarIconButton(Icons.Filled.DesktopWindows, "VNC Desktop", onVncTap)
         }
     }
 }
@@ -699,6 +774,27 @@ private fun SymbolButton(label: String, onClick: () -> Unit) {
         contentPadding = PaddingValues(horizontal = 6.dp, vertical = 0.dp),
     ) {
         Text(label, fontSize = 12.sp, lineHeight = 12.sp)
+    }
+}
+
+@Composable
+private fun ToolbarCheckbox(
+    checked: Boolean,
+    description: String,
+    onCheckedChange: (Boolean) -> Unit,
+) {
+    Box(
+        modifier = Modifier
+            .padding(horizontal = 1.dp)
+            .size(32.dp)
+            .semantics { contentDescription = description },
+        contentAlignment = Alignment.Center,
+    ) {
+        Checkbox(
+            checked = checked,
+            onCheckedChange = onCheckedChange,
+            modifier = Modifier.size(18.dp),
+        )
     }
 }
 

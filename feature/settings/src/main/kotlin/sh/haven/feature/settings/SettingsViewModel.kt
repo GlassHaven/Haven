@@ -100,6 +100,10 @@ class SettingsViewModel @Inject constructor(
         preferencesRepository.hideExtraToolbarWithExternalKeyboard
             .stateIn(viewModelScope, SharingStarted.WhileSubscribed(5000), false)
 
+    val terminalTextSelectionEnabledByDefault: StateFlow<Boolean> =
+        preferencesRepository.terminalTextSelectionEnabledByDefault
+            .stateIn(viewModelScope, SharingStarted.WhileSubscribed(5000), true)
+
     val terminalFontSize: StateFlow<Int> = preferencesRepository.terminalFontSize
         .stateIn(
             viewModelScope,
@@ -210,6 +214,12 @@ class SettingsViewModel @Inject constructor(
     fun setHideExtraToolbarWithExternalKeyboard(enabled: Boolean) {
         viewModelScope.launch {
             preferencesRepository.setHideExtraToolbarWithExternalKeyboard(enabled)
+        }
+    }
+
+    fun setTerminalTextSelectionEnabledByDefault(enabled: Boolean) {
+        viewModelScope.launch {
+            preferencesRepository.setTerminalTextSelectionEnabledByDefault(enabled)
         }
     }
 

@@ -151,8 +151,42 @@ chaquopy {
         version = "3.13"
 
         pip {
-            install("rns")
-            install("rnsh")
+            System.getenv("HAVEN_CA_BUNDLE")?.let { options("--cert", it) }
+            System.getenv("HAVEN_PIP_TRUSTED_HOSTS")
+                ?.split(',')
+                ?.map { it.trim() }
+                ?.filter { it.isNotEmpty() }
+                ?.forEach { host -> options("--trusted-host", host) }
+            System.getenv("HAVEN_PYTHON_WHEEL_DIR")?.let {
+                options("--no-index")
+                options("--find-links", it)
+            }
+
+            if (System.getenv("HAVEN_PYTHON_WHEEL_DIR") != null) {
+                install("pycparser==3.0")
+                install("pyserial==3.5")
+                install("rns==1.1.4")
+                install("rnsh==0.1.7")
+            } else {
+                val localPycparserWheel = System.getenv("HAVEN_PYCPARSER_WHEEL")
+                val localPyserialWheel = System.getenv("HAVEN_PYSERIAL_WHEEL")
+                val localRnsWheel = System.getenv("HAVEN_RNS_WHEEL")
+                val localRnshWheel = System.getenv("HAVEN_RNSH_WHEEL")
+                if (
+                    localPycparserWheel != null &&
+                    localPyserialWheel != null &&
+                    localRnsWheel != null &&
+                    localRnshWheel != null
+                ) {
+                    install(localPycparserWheel)
+                    install(localPyserialWheel)
+                    install(localRnsWheel)
+                    install(localRnshWheel)
+                } else {
+                    install("rns")
+                    install("rnsh")
+                }
+            }
         }
     }
 }

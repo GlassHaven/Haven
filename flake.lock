@@ -1,0 +1,115 @@
+{
+  "nodes": {
+    "et-kotlin-src": {
+      "flake": false,
+      "locked": {
+        "lastModified": 1773824207,
+        "narHash": "sha256-3b/itpeauJFN089AtPrZtV2HYEqYvHI5lE12OdKx4FU=",
+        "ref": "refs/heads/main",
+        "rev": "67a8e831642686590a8484bda2d6b4a1fd0ca288",
+        "revCount": 1,
+        "type": "git",
+        "url": "https://github.com/GlassOnTin/et-kotlin.git"
+      },
+      "original": {
+        "rev": "67a8e831642686590a8484bda2d6b4a1fd0ca288",
+        "type": "git",
+        "url": "https://github.com/GlassOnTin/et-kotlin.git"
+      }
+    },
+    "flake-utils": {
+      "inputs": {
+        "systems": "systems"
+      },
+      "locked": {
+        "lastModified": 1731533236,
+        "narHash": "sha256-l0KFg5HjrsfsO/JpG+r7fRrqm12kzFHyUHqHCVpMMbI=",
+        "owner": "numtide",
+        "repo": "flake-utils",
+        "rev": "11707dc2f618dd54ca8739b309ec4fc024de578b",
+        "type": "github"
+      },
+      "original": {
+        "owner": "numtide",
+        "repo": "flake-utils",
+        "type": "github"
+      }
+    },
+    "mosh-kotlin-src": {
+      "flake": false,
+      "locked": {
+        "lastModified": 1773604581,
+        "narHash": "sha256-I+FCPADaW2PMhsBe/4GhbGMtoLDneQr1zqeLC9ueTxg=",
+        "ref": "refs/heads/main",
+        "rev": "dec26cae135f8ecf770379a9bfc053e23e60557d",
+        "revCount": 12,
+        "type": "git",
+        "url": "https://github.com/GlassOnTin/ssp-transport.git"
+      },
+      "original": {
+        "rev": "dec26cae135f8ecf770379a9bfc053e23e60557d",
+        "type": "git",
+        "url": "https://github.com/GlassOnTin/ssp-transport.git"
+      }
+    },
+    "nixpkgs": {
+      "locked": {
+        "lastModified": 1774346495,
+        "narHash": "sha256-yis9kgmiu8oUZzTP/rZw7B4sPvccAl8calH0bpBY7xQ=",
+        "owner": "nixos",
+        "repo": "nixpkgs",
+        "rev": "2ae9a8f1b697c4bf117314754bc8f568f97c6250",
+        "type": "github"
+      },
+      "original": {
+        "owner": "nixos",
+        "ref": "release-25.11",
+        "repo": "nixpkgs",
+        "type": "github"
+      }
+    },
+    "root": {
+      "inputs": {
+        "et-kotlin-src": "et-kotlin-src",
+        "flake-utils": "flake-utils",
+        "mosh-kotlin-src": "mosh-kotlin-src",
+        "nixpkgs": "nixpkgs",
+        "termlib-src": "termlib-src"
+      }
+    },
+    "systems": {
+      "locked": {
+        "lastModified": 1681028828,
+        "narHash": "sha256-Vy1rq5AaRuLzOxct8nz4T6wlgyUR7zLU309k9mBC768=",
+        "owner": "nix-systems",
+        "repo": "default",
+        "rev": "da67096a3b9bf56a91d16901293e51ba5b49a27e",
+        "type": "github"
+      },
+      "original": {
+        "owner": "nix-systems",
+        "repo": "default",
+        "type": "github"
+      }
+    },
+    "termlib-src": {
+      "flake": false,
+      "locked": {
+        "lastModified": 1774298789,
+        "narHash": "sha256-ng0xsrvn3O1LUCMDG9mJ3R9PekCYor8FE3lhxsmbZ6o=",
+        "ref": "refs/heads/main",
+        "rev": "b1df4c5f748ff5899078ef2797f515ffae729ddb",
+        "revCount": 191,
+        "type": "git",
+        "url": "https://github.com/GlassOnTin/termlib.git"
+      },
+      "original": {
+        "rev": "b1df4c5f748ff5899078ef2797f515ffae729ddb",
+        "type": "git",
+        "url": "https://github.com/GlassOnTin/termlib.git"
+      }
+    }
+  },
+  "root": "root",
+  "version": 7
+}

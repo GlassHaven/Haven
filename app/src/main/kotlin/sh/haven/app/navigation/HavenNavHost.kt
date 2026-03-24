@@ -284,6 +284,8 @@ private fun Modifier.pagerSwipeOverride(
         var decided = false
         var isHorizontal = false
 
+        var selectionInterrupted = false
+
         do {
             val event = awaitPointerEvent(PointerEventPass.Initial)
             val change = event.changes.firstOrNull() ?: break
@@ -301,12 +303,18 @@ private fun Modifier.pagerSwipeOverride(
             change.consume()
 
             // Forward horizontal drags to pager (unless selection active)
-            if (isHorizontal && !isSelectionActive()) {
-                pagerState.dispatchRawDelta(-delta.x)
+            if (isHorizontal && !selectionInterrupted) {
+                if (isSelectionActive()) {
+                    // Selection activated mid-swipe — snap pager back
+                    selectionInterrupted = true
+                    scope.launch { pagerState.animateScrollToPage(pagerState.currentPage) }
+                } else {
+                    pagerState.dispatchRawDelta(-delta.x)
+                }
             }
         } while (change.pressed)
 
-        if (isHorizontal && !isSelectionActive()) {
+        if (isHorizontal && !selectionInterrupted && !isSelectionActive()) {
             val threshold = size.width / 4
             val target = when {
                 totalX < -threshold -> pagerState.currentPage + 1
@@ -314,6 +322,9 @@ private fun Modifier.pagerSwipeOverride(
                 else -> pagerState.currentPage
             }.coerceIn(0, pagerState.pageCount - 1)
             scope.launch { pagerState.animateScrollToPage(target) }
+        } else if (selectionInterrupted) {
+            // Ensure pager settles on current page
+            scope.launch { pagerState.animateScrollToPage(pagerState.currentPage) }
         }
     }
 }

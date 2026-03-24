@@ -42,6 +42,7 @@ class BackupServiceTest {
 
     private lateinit var connectionDao: ConnectionDao
     private lateinit var connectionRepository: sh.haven.core.data.repository.ConnectionRepository
+    private lateinit var connectionGroupDao: sh.haven.core.data.db.ConnectionGroupDao
     private lateinit var sshKeyDao: SshKeyDao
     private lateinit var sshKeyRepository: sh.haven.core.data.repository.SshKeyRepository
     private lateinit var knownHostDao: KnownHostDao
@@ -53,6 +54,7 @@ class BackupServiceTest {
     fun setup() {
         connectionDao = mockk(relaxed = true)
         connectionRepository = mockk(relaxed = true)
+        connectionGroupDao = mockk(relaxed = true)
         sshKeyDao = mockk(relaxed = true)
         sshKeyRepository = mockk(relaxed = true)
         knownHostDao = mockk(relaxed = true)
@@ -61,7 +63,7 @@ class BackupServiceTest {
         val prefsFile = File(tempFolder.root, "test.preferences_pb")
         dataStore = PreferenceDataStoreFactory.create { prefsFile }
 
-        service = BackupService(connectionDao, connectionRepository, sshKeyDao, sshKeyRepository, knownHostDao, portForwardRuleDao, dataStore)
+        service = BackupService(connectionDao, connectionRepository, connectionGroupDao, sshKeyDao, sshKeyRepository, knownHostDao, portForwardRuleDao, dataStore)
     }
 
     // -- Encrypt/Decrypt roundtrip --

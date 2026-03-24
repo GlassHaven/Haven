@@ -40,6 +40,7 @@ class UserPreferencesRepository @Inject constructor(
     private val mouseInputEnabledKey = booleanPreferencesKey("mouse_input_enabled")
     private val terminalRightClickKey = booleanPreferencesKey("terminal_right_click")
     private val allowStandardKeyboardKey = booleanPreferencesKey("allow_standard_keyboard")
+    private val showTerminalTabBarKey = booleanPreferencesKey("show_terminal_tab_bar")
     private val reorderHintShownKey = booleanPreferencesKey("reorder_hint_shown")
     private val screenOrderKey = stringPreferencesKey("screen_order")
     private val waylandShellCommandKey = stringPreferencesKey("wayland_shell_command")
@@ -141,6 +142,17 @@ class UserPreferencesRepository @Inject constructor(
     suspend fun setAllowStandardKeyboard(enabled: Boolean) {
         dataStore.edit { prefs ->
             prefs[allowStandardKeyboardKey] = enabled
+        }
+    }
+
+    /** Whether the terminal session tab bar is shown above the terminal. */
+    val showTerminalTabBar: Flow<Boolean> = dataStore.data.map { prefs ->
+        prefs[showTerminalTabBarKey] ?: true
+    }
+
+    suspend fun setShowTerminalTabBar(enabled: Boolean) {
+        dataStore.edit { prefs ->
+            prefs[showTerminalTabBarKey] = enabled
         }
     }
 

@@ -134,6 +134,9 @@ class SettingsViewModel @Inject constructor(
     val allowStandardKeyboard: StateFlow<Boolean> = preferencesRepository.allowStandardKeyboard
         .stateIn(viewModelScope, SharingStarted.WhileSubscribed(5000), false)
 
+    val showTerminalTabBar: StateFlow<Boolean> = preferencesRepository.showTerminalTabBar
+        .stateIn(viewModelScope, SharingStarted.WhileSubscribed(5000), true)
+
     val terminalFontSize: StateFlow<Int> = preferencesRepository.terminalFontSize
         .stateIn(
             viewModelScope,
@@ -278,6 +281,12 @@ class SettingsViewModel @Inject constructor(
     fun setAllowStandardKeyboard(enabled: Boolean) {
         viewModelScope.launch {
             preferencesRepository.setAllowStandardKeyboard(enabled)
+        }
+    }
+
+    fun setShowTerminalTabBar(enabled: Boolean) {
+        viewModelScope.launch {
+            preferencesRepository.setShowTerminalTabBar(enabled)
         }
     }
 

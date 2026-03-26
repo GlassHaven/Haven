@@ -18,7 +18,9 @@ import kotlinx.coroutines.flow.stateIn
 import kotlinx.coroutines.CompletableDeferred
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.Job
+import kotlinx.coroutines.async
 import kotlinx.coroutines.delay
+import kotlinx.coroutines.flow.update
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
 import sh.haven.core.data.db.entities.ConnectionProfile
@@ -58,6 +60,15 @@ private const val TAG = "ConnectionsVM"
 
 /** Unified connection status that maps both SSH and Reticulum states. */
 enum class ProfileStatus { CONNECTING, CONNECTED, RECONNECTING, DISCONNECTED, ERROR }
+
+data class GroupLaunchState(
+    val groupId: String,
+    val total: Int,
+    val completed: Int,
+    val succeeded: Int,
+    val skipped: Int,
+    val connectingIds: Set<String>,
+)
 
 @HiltViewModel
 class ConnectionsViewModel @Inject constructor(
@@ -237,6 +248,10 @@ class ConnectionsViewModel @Inject constructor(
     /** The profileId currently being connected (for spinner in UI). */
     private val _connectingProfileId = MutableStateFlow<String?>(null)
     val connectingProfileId: StateFlow<String?> = _connectingProfileId.asStateFlow()
+
+    /** Tracks progress of a group launch operation. */
+    private val _groupLaunchState = MutableStateFlow<GroupLaunchState?>(null)
+    val groupLaunchState: StateFlow<GroupLaunchState?> = _groupLaunchState.asStateFlow()
 
     private val _error = MutableStateFlow<String?>(null)
     val error: StateFlow<String?> = _error.asStateFlow()
@@ -523,6 +538,79 @@ class ConnectionsViewModel @Inject constructor(
             connectionGroupDao.getById(id)?.let {
                 connectionGroupDao.upsert(it.copy(colorTag = colorTag))
             }
+        }
+    }
+
+    /**
+     * Returns true if the profile can connect without interactive dialogs.
+     * VNC/RDP/SMB are excluded (they navigate to non-terminal screens).
+     * SSH/Mosh/ET require a saved password or SSH keys.
+     */
+    private fun canAutoConnect(profile: ConnectionProfile, keys: List<SshKey>): Boolean = when {
+        profile.isLocal -> true
+        profile.isReticulum -> true
+        profile.isVnc -> false
+        profile.isRdp -> false
+        profile.isSmb -> false
+        else -> !profile.sshPassword.isNullOrBlank() || keys.isNotEmpty()
+    }
+
+    /**
+     * Launch all auto-connectable profiles in a group concurrently.
+     * Skips already-connected profiles and profiles requiring interactive auth.
+     */
+    fun launchGroup(groupId: String) {
+        if (_groupLaunchState.value != null) return
+
+        viewModelScope.launch {
+            val allProfiles = connections.value.filter { it.groupId == groupId }
+            val statuses = profileStatuses.value
+            val keys = sshKeys.value
+
+            val disconnected = allProfiles.filter { statuses[it.id] != ProfileStatus.CONNECTED }
+            val launchable = disconnected.filter { canAutoConnect(it, keys) }
+            val skipped = disconnected.size - launchable.size
+
+            if (launchable.isEmpty()) return@launch
+
+            _groupLaunchState.value = GroupLaunchState(
+                groupId = groupId,
+                total = launchable.size,
+                completed = 0,
+                succeeded = 0,
+                skipped = skipped,
+                connectingIds = launchable.map { it.id }.toSet(),
+            )
+
+            val deferreds = launchable.map { profile ->
+                async {
+                    val success = try {
+                        connectSilent(profile)
+                        true
+                    } catch (e: Exception) {
+                        Log.e(TAG, "Group launch failed for ${profile.label}: ${e.message}")
+                        false
+                    }
+                    _groupLaunchState.update { state ->
+                        state?.copy(
+                            connectingIds = state.connectingIds - profile.id,
+                            completed = state.completed + 1,
+                            succeeded = state.succeeded + if (success) 1 else 0,
+                        )
+                    }
+                    success
+                }
+            }
+
+            val outcomes = deferreds.map { it.await() }
+            val successCount = outcomes.count { it }
+
+            if (successCount > 0) {
+                launchable.firstOrNull()?.let { _navigateToTerminal.value = it.id }
+            }
+
+            delay(1500)
+            _groupLaunchState.value = null
         }
     }
 
@@ -1520,7 +1608,7 @@ class ConnectionsViewModel @Inject constructor(
         return jumpSessionId to false
     }
 
-    private suspend fun finishConnect(sessionId: String, profileId: String, verboseLog: String? = pendingVerboseLogs.remove(sessionId)) {
+    private suspend fun finishConnect(sessionId: String, profileId: String, verboseLog: String? = pendingVerboseLogs.remove(sessionId), silent: Boolean = false) {
         withContext(Dispatchers.IO) {
             sshSessionManager.openShellForSession(sessionId)
 
@@ -1535,6 +1623,16 @@ class ConnectionsViewModel @Inject constructor(
         }
         sshSessionManager.updateStatus(sessionId, SshSessionManager.SessionState.Status.CONNECTED)
         repository.markConnected(profileId)
+        // Persist the effective session manager name for group launch restore
+        sshSessionManager.getSession(sessionId)?.let { session ->
+            val rawName = session.chosenSessionName ?: session.label ?: sessionId.take(8)
+            val effectiveName = rawName.replace(Regex("[^A-Za-z0-9._-]"), "-")
+            if (session.sessionManager != SessionManager.NONE) {
+                repository.getById(profileId)?.let { profile ->
+                    repository.save(profile.copy(lastSessionName = effectiveName))
+                }
+            }
+        }
         val authDetail = sshSessionManager.getConnectionConfigForProfile(profileId)?.first?.let { config ->
             when (config.authMethod) {
                 is ConnectionConfig.AuthMethod.Password -> "password"
@@ -1545,7 +1643,9 @@ class ConnectionsViewModel @Inject constructor(
         }
         connectionLogRepository.logEvent(profileId, ConnectionLog.Status.CONNECTED, details = authDetail, verboseLog = verboseLog)
         startForegroundServiceIfNeeded()
-        _navigateToTerminal.value = profileId
+        if (!silent) {
+            _navigateToTerminal.value = profileId
+        }
     }
 
     /**
@@ -1559,6 +1659,7 @@ class ConnectionsViewModel @Inject constructor(
         client: SshClient,
         manager: SessionManager,
         chosenSessionName: String?,
+        silent: Boolean = false,
     ) {
         val moshConnect = withContext(Dispatchers.IO) {
             val moshCmd = "mosh-server new -s -c 256 -l LANG=en_US.UTF-8"
@@ -1593,11 +1694,13 @@ class ConnectionsViewModel @Inject constructor(
 
         // Build session manager command with chosen or default session name
         val smCmd = manager.command
+        var effectiveSessionName: String? = null
         if (smCmd != null) {
             val rawName = chosenSessionName
                 ?: moshSessionManager.sessions.value[sessionId]?.label
                 ?: sessionId.take(8)
             val sanitized = rawName.replace(Regex("[^A-Za-z0-9._-]"), "-")
+            effectiveSessionName = sanitized
             moshSessionManager.setInitialCommand(sessionId, smCmd(sanitized))
         }
 
@@ -1614,9 +1717,16 @@ class ConnectionsViewModel @Inject constructor(
         }
 
         repository.markConnected(profileId)
+        if (effectiveSessionName != null) {
+            repository.getById(profileId)?.let { profile ->
+                repository.save(profile.copy(lastSessionName = effectiveSessionName))
+            }
+        }
         connectionLogRepository.logEvent(profileId, ConnectionLog.Status.CONNECTED)
         startForegroundServiceIfNeeded()
-        _navigateToTerminal.value = profileId
+        if (!silent) {
+            _navigateToTerminal.value = profileId
+        }
     }
 
     /**
@@ -1629,6 +1739,7 @@ class ConnectionsViewModel @Inject constructor(
         client: SshClient,
         manager: SessionManager,
         chosenSessionName: String?,
+        silent: Boolean = false,
     ) {
         val etPort = profile.etPort
         val (etClientId, etPasskey) = withContext(Dispatchers.IO) {
@@ -1667,11 +1778,13 @@ class ConnectionsViewModel @Inject constructor(
 
         // Build session manager command with chosen or default session name
         val smCmd = manager.command
+        var effectiveSessionName: String? = null
         if (smCmd != null) {
             val rawName = chosenSessionName
                 ?: etSessionManager.sessions.value[sessionId]?.label
                 ?: sessionId.take(8)
             val sanitized = rawName.replace(Regex("[^A-Za-z0-9._-]"), "-")
+            effectiveSessionName = sanitized
             etSessionManager.setInitialCommand(sessionId, smCmd(sanitized))
         }
 
@@ -1687,9 +1800,14 @@ class ConnectionsViewModel @Inject constructor(
         }
 
         repository.markConnected(profile.id)
+        if (effectiveSessionName != null) {
+            repository.save(profile.copy(lastSessionName = effectiveSessionName))
+        }
         connectionLogRepository.logEvent(profile.id, ConnectionLog.Status.CONNECTED)
         startForegroundServiceIfNeeded()
-        _navigateToTerminal.value = profile.id
+        if (!silent) {
+            _navigateToTerminal.value = profile.id
+        }
     }
 
     /**
@@ -2071,6 +2189,241 @@ class ConnectionsViewModel @Inject constructor(
             }
         } else {
             preferencesRepository.sessionManager.first().toSshSessionManager()
+        }
+    }
+
+    // --- Silent (non-interactive) connect methods for group launch ---
+
+    /**
+     * Connect a profile without interactive dialogs. Throws on failure.
+     * Does not set _connectingProfileId or emit _navigateToTerminal.
+     */
+    private suspend fun connectSilent(profile: ConnectionProfile) {
+        when {
+            profile.isLocal -> connectLocalSilent(profile)
+            profile.isReticulum -> connectReticulumSilent(profile)
+            profile.isEternalTerminal -> connectEtSilent(profile)
+            profile.isMosh -> connectMoshSilent(profile)
+            else -> connectSshSilent(profile)
+        }
+    }
+
+    private suspend fun connectLocalSilent(profile: ConnectionProfile) {
+        val existing = localSessionManager.getSessionsForProfile(profile.id)
+        if (existing.any { it.status == LocalSessionManager.SessionState.Status.CONNECTED }) {
+            return
+        }
+
+        val prootManager = localSessionManager.prootManager
+        if (prootManager.prootBinary != null && !prootManager.isRootfsInstalled) {
+            prootManager.installRootfs()
+        }
+
+        val sessionId = localSessionManager.registerSession(profile.id, profile.label)
+        try {
+            localSessionManager.connectSession(sessionId)
+            repository.markConnected(profile.id)
+            connectionLogRepository.logEvent(profile.id, ConnectionLog.Status.CONNECTED)
+            startForegroundServiceIfNeeded()
+        } catch (e: Exception) {
+            Log.e(TAG, "connectLocalSilent failed: ${e.message}", e)
+            connectionLogRepository.logEvent(profile.id, ConnectionLog.Status.FAILED, details = e.message)
+            localSessionManager.updateStatus(sessionId, LocalSessionManager.SessionState.Status.ERROR)
+            localSessionManager.removeSession(sessionId)
+            throw e
+        }
+    }
+
+    private suspend fun connectReticulumSilent(profile: ConnectionProfile) {
+        val destinationHash = profile.destinationHash
+            ?: throw Exception("No destination hash for ${profile.label}")
+
+        val sessionId = reticulumSessionManager.registerSession(
+            profileId = profile.id,
+            label = profile.label,
+            destinationHash = destinationHash,
+        )
+
+        try {
+            val configDir = File(appContext.filesDir, "reticulum").apply { mkdirs() }.absolutePath
+            withContext(Dispatchers.IO) {
+                reticulumSessionManager.connectSession(
+                    sessionId = sessionId,
+                    configDir = configDir,
+                    host = profile.reticulumHost,
+                    port = profile.reticulumPort,
+                )
+            }
+            repository.markConnected(profile.id)
+            connectionLogRepository.logEvent(profile.id, ConnectionLog.Status.CONNECTED)
+            startForegroundServiceIfNeeded()
+        } catch (e: Exception) {
+            reticulumSessionManager.updateStatus(sessionId, ReticulumSessionManager.SessionState.Status.ERROR)
+            reticulumSessionManager.removeSession(sessionId)
+            throw e
+        }
+    }
+
+    private suspend fun connectSshSilent(profile: ConnectionProfile) {
+        val password = profile.sshPassword ?: ""
+        val verboseEnabled = preferencesRepository.verboseLoggingEnabled.first()
+        val verboseLogger = if (verboseEnabled) SshVerboseLogger() else null
+        val client = SshClient().apply {
+            fidoAuthenticator = this@ConnectionsViewModel.fidoAuthenticator
+            this.verboseLogger = verboseLogger
+        }
+        val sessionId = sshSessionManager.registerSession(profile.id, profile.label, client)
+        var autoCreatedJumpSessionId: String? = null
+
+        try {
+            val jumpProfileId = profile.jumpProfileId
+            val jumpSessionId = if (jumpProfileId != null) {
+                val (jid, reused) = connectJumpHost(jumpProfileId, password)
+                if (!reused) autoCreatedJumpSessionId = jid
+                jid
+            } else null
+
+            if (jumpSessionId != null) {
+                sshSessionManager.setJumpSessionId(sessionId, jumpSessionId)
+            }
+
+            withContext(Dispatchers.IO) {
+                val authMethod = resolveAuthMethod(profile, password)
+                val config = ConnectionConfig(
+                    host = profile.host,
+                    port = profile.port,
+                    username = profile.username,
+                    authMethod = authMethod,
+                    sshOptions = ConnectionConfig.parseSshOptions(profile.sshOptions),
+                )
+                val proxy = if (jumpSessionId != null) {
+                    sshSessionManager.createProxyJump(jumpSessionId)
+                        ?: throw Exception("Jump host session not usable for tunneling")
+                } else {
+                    createNetworkProxy(profile)
+                }
+                val hostKeyEntry = client.connect(config, proxy = proxy)
+
+                // Silent TOFU: accept new hosts, reject changed keys
+                when (val result = hostKeyVerifier.verify(hostKeyEntry)) {
+                    is HostKeyResult.Trusted -> {}
+                    is HostKeyResult.NewHost -> hostKeyVerifier.accept(result.entry)
+                    is HostKeyResult.KeyChanged -> {
+                        client.disconnect()
+                        throw Exception("Host key changed for ${profile.host} — possible MITM")
+                    }
+                }
+
+                val sshSessionMgr = resolveSessionManager(profile)
+                val cmdOverride = preferencesRepository.sessionCommandOverride.first()
+                sshSessionManager.storeConnectionConfig(sessionId, config, sshSessionMgr, cmdOverride)
+            }
+
+            verboseLogger?.drain()?.let { pendingVerboseLogs[sessionId] = it }
+
+            // Restore last session name if persisted, so the session manager
+            // command (tmux -A, zellij --create, screen -dRR) reattaches to it.
+            profile.lastSessionName?.let {
+                sshSessionManager.setChosenSessionName(sessionId, it)
+            }
+            finishConnect(sessionId, profile.id, verboseLog = verboseLogger?.drain(), silent = true)
+        } catch (e: Exception) {
+            Log.e(TAG, "connectSshSilent failed for ${profile.label}: ${e.message}", e)
+            connectionLogRepository.logEvent(profile.id, ConnectionLog.Status.FAILED, details = e.message, verboseLog = verboseLogger?.drain())
+            sshSessionManager.updateStatus(sessionId, SshSessionManager.SessionState.Status.ERROR)
+            sshSessionManager.removeSession(sessionId)
+            autoCreatedJumpSessionId?.let { sshSessionManager.removeSession(it) }
+            throw e
+        }
+    }
+
+    private suspend fun connectMoshSilent(profile: ConnectionProfile) {
+        val password = profile.sshPassword ?: ""
+        val sessionId = moshSessionManager.registerSession(profileId = profile.id, label = profile.label)
+
+        try {
+            val client = withContext(Dispatchers.IO) {
+                val authMethod = resolveAuthMethod(profile, password)
+                val config = ConnectionConfig(
+                    host = profile.host,
+                    port = profile.port,
+                    username = profile.username,
+                    authMethod = authMethod,
+                    sshOptions = ConnectionConfig.parseSshOptions(profile.sshOptions),
+                )
+                val sshClient = SshClient()
+                val jumpProfileId = profile.jumpProfileId
+                val proxy = if (jumpProfileId != null) {
+                    val (jid, _) = connectJumpHost(jumpProfileId, password)
+                    sshSessionManager.createProxyJump(jid)
+                } else {
+                    createNetworkProxy(profile)
+                }
+                val hostKeyEntry = sshClient.connect(config, proxy = proxy)
+
+                when (val result = hostKeyVerifier.verify(hostKeyEntry)) {
+                    is HostKeyResult.Trusted -> {}
+                    is HostKeyResult.NewHost -> hostKeyVerifier.accept(result.entry)
+                    is HostKeyResult.KeyChanged -> {
+                        sshClient.disconnect()
+                        throw Exception("Host key changed for ${profile.host} — possible MITM")
+                    }
+                }
+                sshClient
+            }
+
+            val smgr = resolveSessionManager(profile)
+            finishMoshConnect(sessionId, profile.id, profile.host, client, smgr, profile.lastSessionName, silent = true)
+        } catch (e: Exception) {
+            Log.e(TAG, "connectMoshSilent failed for ${profile.label}: ${e.message}", e)
+            moshSessionManager.updateStatus(sessionId, MoshSessionManager.SessionState.Status.ERROR)
+            moshSessionManager.removeSession(sessionId)
+            throw e
+        }
+    }
+
+    private suspend fun connectEtSilent(profile: ConnectionProfile) {
+        val password = profile.sshPassword ?: ""
+        val sessionId = etSessionManager.registerSession(profileId = profile.id, label = profile.label)
+
+        try {
+            val client = withContext(Dispatchers.IO) {
+                val authMethod = resolveAuthMethod(profile, password)
+                val config = ConnectionConfig(
+                    host = profile.host,
+                    port = profile.port,
+                    username = profile.username,
+                    authMethod = authMethod,
+                    sshOptions = ConnectionConfig.parseSshOptions(profile.sshOptions),
+                )
+                val sshClient = SshClient()
+                val jumpProfileId = profile.jumpProfileId
+                val proxy = if (jumpProfileId != null) {
+                    val (jid, _) = connectJumpHost(jumpProfileId, password)
+                    sshSessionManager.createProxyJump(jid)
+                } else {
+                    createNetworkProxy(profile)
+                }
+                val hostKeyEntry = sshClient.connect(config, proxy = proxy)
+
+                when (val result = hostKeyVerifier.verify(hostKeyEntry)) {
+                    is HostKeyResult.Trusted -> {}
+                    is HostKeyResult.NewHost -> hostKeyVerifier.accept(result.entry)
+                    is HostKeyResult.KeyChanged -> {
+                        sshClient.disconnect()
+                        throw Exception("Host key changed for ${profile.host} — possible MITM")
+                    }
+                }
+                sshClient
+            }
+
+            val smgr = resolveSessionManager(profile)
+            finishEtConnect(sessionId, profile, client, smgr, profile.lastSessionName, silent = true)
+        } catch (e: Exception) {
+            Log.e(TAG, "connectEtSilent failed for ${profile.label}: ${e.message}", e)
+            etSessionManager.updateStatus(sessionId, EtSessionManager.SessionState.Status.ERROR)
+            etSessionManager.removeSession(sessionId)
+            throw e
         }
     }
 }

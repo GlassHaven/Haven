@@ -34,7 +34,7 @@ The fundamental challenge of mobile work: connections drop, the OS kills the app
 
 - **Connection groups/folders** — collapsible groups for organizing large server fleets. The colorTag and search/filter (v3.12.0) are quick wins; full group hierarchy is the next step.
 - **Workspace profiles** — "Work" auto-opens SSH tabs + port forwards + SFTP sidebar. One tap to resume full working context.
-- **Network transition** — detect WiFi/cellular/VPN changes and reconnect proactively instead of waiting for TCP timeout.
+- ~~**Network transition**~~ — shipped. NetworkMonitor detects WiFi/cellular/VPN changes and triggers immediate reconnect via SshConnectionService instead of waiting for TCP timeout.
 - **Background keepalive resilience** — Android Doze mode and app standby break long SSH sessions. Document best practices (battery exemption) and add reconnect actions to the persistent notification.
 
 ### 2. PRoot as development environment (most differentiated)

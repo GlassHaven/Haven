@@ -47,6 +47,8 @@ data class ConnectionProfile(
     val proxyHost: String? = null,
     val proxyPort: Int = 1080,
     val groupId: String? = null,
+    /** Last session manager session name used (for group launch restore). */
+    val lastSessionName: String? = null,
 ) {
     enum class AuthType {
         PASSWORD,

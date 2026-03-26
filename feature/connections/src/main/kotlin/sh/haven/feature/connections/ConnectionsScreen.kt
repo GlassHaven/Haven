@@ -41,6 +41,7 @@ import androidx.compose.material.icons.filled.ExpandMore
 import androidx.compose.material.icons.filled.Folder
 import androidx.compose.material.icons.filled.LinkOff
 import androidx.compose.material.icons.filled.Password
+import androidx.compose.material.icons.filled.PlayArrow
 import androidx.compose.material.icons.filled.Search
 import androidx.compose.material.icons.filled.SyncAlt
 import androidx.compose.material.icons.filled.Laptop
@@ -166,6 +167,7 @@ fun ConnectionsScreen(
     val showMoshSetupGuide by viewModel.showMoshSetupGuide.collectAsState()
     val showMoshClientMissing by viewModel.showMoshClientMissing.collectAsState()
     val desktopSetupState by viewModel.desktopSetupState.collectAsState()
+    val groupLaunchState by viewModel.groupLaunchState.collectAsState()
 
     LaunchedEffect(navigateToTerminal) {
         navigateToTerminal?.let { profileId ->
@@ -759,9 +761,14 @@ fun ConnectionsScreen(
                                 ConnectionGroupHeader(
                                     group = group,
                                     connectionCount = groupProfileCount,
+                                    isLaunching = groupLaunchState?.groupId == group.id,
+                                    launchProgress = groupLaunchState?.takeIf { it.groupId == group.id }?.let {
+                                        "${it.succeeded}/${it.total}"
+                                    },
                                     onToggleCollapsed = { viewModel.toggleGroupCollapsed(group.id) },
                                     onRename = { newLabel -> viewModel.renameGroup(group.id, newLabel) },
                                     onDelete = { viewModel.deleteGroup(group.id) },
+                                    onLaunchGroup = { viewModel.launchGroup(group.id) },
                                 )
                             }
                         } else {
@@ -774,7 +781,8 @@ fun ConnectionsScreen(
                                     isLastChild = false,
                                     profileStatuses = profileStatuses,
                                     profileColors = profileColors,
-                                    isConnecting = connectingProfileId == profile.id,
+                                    isConnecting = connectingProfileId == profile.id ||
+                                        groupLaunchState?.connectingIds?.contains(profile.id) == true,
                                     hasKeys = sshKeys.isNotEmpty(),
                                     hasDependents = profile.id in dependentsByParent,
                                     jumpHostLabel = profile.jumpProfileId?.let { profileMap[it]?.label },
@@ -854,7 +862,8 @@ fun ConnectionsScreen(
                                         isLastChild = index == deps.lastIndex,
                                         profileStatuses = profileStatuses,
                                         profileColors = profileColors,
-                                        isConnecting = connectingProfileId == dep.id,
+                                        isConnecting = connectingProfileId == dep.id ||
+                                            groupLaunchState?.connectingIds?.contains(dep.id) == true,
                                         hasKeys = sshKeys.isNotEmpty(),
                                         hasDependents = false,
                                         jumpHostLabel = null,
@@ -1544,9 +1553,12 @@ private fun NewGroupDialog(
 private fun ConnectionGroupHeader(
     group: ConnectionGroup,
     connectionCount: Int,
+    isLaunching: Boolean = false,
+    launchProgress: String? = null,
     onToggleCollapsed: () -> Unit,
     onRename: (String) -> Unit,
     onDelete: () -> Unit,
+    onLaunchGroup: () -> Unit = {},
 ) {
     var showMenu by remember { mutableStateOf(false) }
     var showRenameDialog by remember { mutableStateOf(false) }
@@ -1588,11 +1600,33 @@ private fun ConnectionGroupHeader(
                 }
             },
             trailingContent = {
-                IconButton(onClick = onToggleCollapsed) {
-                    Icon(
-                        if (group.collapsed) Icons.Filled.ExpandMore else Icons.Filled.ExpandLess,
-                        contentDescription = if (group.collapsed) "Expand" else "Collapse",
-                    )
+                Row(verticalAlignment = Alignment.CenterVertically) {
+                    if (isLaunching) {
+                        Text(
+                            launchProgress ?: "",
+                            style = MaterialTheme.typography.labelSmall,
+                            color = MaterialTheme.colorScheme.onSurfaceVariant,
+                        )
+                        Spacer(Modifier.width(4.dp))
+                        CircularProgressIndicator(
+                            modifier = Modifier.size(18.dp),
+                            strokeWidth = 2.dp,
+                        )
+                    } else {
+                        IconButton(onClick = onLaunchGroup) {
+                            Icon(
+                                Icons.Filled.PlayArrow,
+                                contentDescription = "Launch group",
+                                modifier = Modifier.size(20.dp),
+                            )
+                        }
+                    }
+                    IconButton(onClick = onToggleCollapsed) {
+                        Icon(
+                            if (group.collapsed) Icons.Filled.ExpandMore else Icons.Filled.ExpandLess,
+                            contentDescription = if (group.collapsed) "Expand" else "Collapse",
+                        )
+                    }
                 }
             },
             modifier = Modifier.combinedClickable(
@@ -1604,6 +1638,11 @@ private fun ConnectionGroupHeader(
             expanded = showMenu,
             onDismissRequest = { showMenu = false },
         ) {
+            DropdownMenuItem(
+                text = { Text("Launch All") },
+                leadingIcon = { Icon(Icons.Filled.PlayArrow, null) },
+                onClick = { showMenu = false; onLaunchGroup() },
+            )
             DropdownMenuItem(
                 text = { Text("Rename") },
                 leadingIcon = { Icon(Icons.Filled.DriveFileRenameOutline, null) },

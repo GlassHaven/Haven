@@ -243,10 +243,6 @@ fun TerminalScreen(
                     Tab(
                         selected = activeTabIndex == index,
                         onClick = { viewModel.selectTab(index) },
-                        modifier = Modifier.combinedClickable(
-                            onClick = { viewModel.selectTab(index) },
-                            onLongClick = { viewModel.addTab() },
-                        ),
                         text = {
                             Row(verticalAlignment = Alignment.CenterVertically) {
                                 profileColors[tab.profileId]?.let { color ->

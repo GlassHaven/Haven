@@ -26,3 +26,9 @@
 # Keep Hilt generated classes
 -keep class dagger.hilt.** { *; }
 -keep class javax.inject.** { *; }
+
+# Keep Mosh transport and protobuf-lite generated messages.
+# Release builds are minified in CI, while local debug builds are not.
+# Mosh relies on protobuf extensions for terminal output and input framing.
+-keep class sh.haven.core.mosh.** { *; }
+-keep class sh.haven.mosh.** { *; }

@@ -69,27 +69,37 @@ class RdpSession(
             c.setFrameCallback(object : FrameCallback {
                 override fun onFrameUpdate(x: UShort, y: UShort, w: UShort, h: UShort) {
                     if (closed) return
-                    // Fetch updated framebuffer and convert to Bitmap
-                    refreshBitmap()
+                    try {
+                        refreshBitmap()
+                    } catch (e: Exception) {
+                        Log.e(TAG, "Frame update failed (${x},${y} ${w}x${h})", e)
+                        onError?.invoke(e)
+                    }
                 }
 
                 override fun onResize(width: UShort, height: UShort) {
                     if (closed) return
                     Log.d(TAG, "Desktop resized: ${width}x${height}")
-                    // Recreate bitmap at new size
-                    synchronized(this@RdpSession) {
-                        currentBitmap?.recycle()
-                        currentBitmap = null
+                    try {
+                        synchronized(this@RdpSession) {
+                            currentBitmap?.recycle()
+                            currentBitmap = null
+                        }
+                        refreshBitmap()
+                    } catch (e: Exception) {
+                        Log.e(TAG, "Resize failed (${width}x${height})", e)
+                        onError?.invoke(e)
                     }
-                    refreshBitmap()
                 }
             })
 
+            Log.d(TAG, "Connecting to $host:$port...")
             c.connect(host, port.toUShort())
             Log.d(TAG, "RDP connected to $host:$port")
 
             // Initial frame
             refreshBitmap()
+            Log.d(TAG, "Initial frame received")
         } catch (e: Exception) {
             Log.e(TAG, "RDP connection failed", e)
             onError?.invoke(e)
@@ -99,8 +109,21 @@ class RdpSession(
     }
 
     private fun refreshBitmap() {
-        val frame = client?.getFramebuffer() ?: return
-        val bitmap = frameToBitmap(frame)
+        val c = client ?: return
+        val frame = try {
+            c.getFramebuffer() ?: return
+        } catch (e: Exception) {
+            Log.e(TAG, "getFramebuffer() failed", e)
+            onError?.invoke(e)
+            return
+        }
+        val bitmap = try {
+            frameToBitmap(frame)
+        } catch (e: Exception) {
+            Log.e(TAG, "frameToBitmap() failed (${frame.width}x${frame.height}, ${frame.pixels.size} bytes)", e)
+            onError?.invoke(e)
+            return
+        }
         synchronized(this) {
             currentBitmap = bitmap
         }

@@ -141,6 +141,7 @@ class RdpViewModel @Inject constructor(
         password: String,
         domain: String,
     ) {
+        Log.d(TAG, "doConnect: $host:$port user=$username domain=$domain")
         val session = RdpSession(
             sessionId = "rdp-${System.currentTimeMillis()}",
             host = host,
@@ -160,8 +161,15 @@ class RdpViewModel @Inject constructor(
         }
 
         rdpSession = session
-        session.start()
-        _connected.value = true
+        try {
+            session.start()
+            _connected.value = true
+            Log.d(TAG, "RDP session started")
+        } catch (e: Exception) {
+            Log.e(TAG, "RDP session.start() threw", e)
+            _error.value = describeError(e, host, port)
+            rdpSession = null
+        }
     }
 
     /** Find the SSH client for a session across all session managers. */

@@ -37,4 +37,24 @@ kotlin {
     }
 }
 
+// Build IronRDP native library from Rust source via cargo-ndk.
+// Prerequisites: rustup, cargo-ndk, aarch64-linux-android + x86_64-linux-android targets.
+// The .so files are NOT committed — they're built as part of the Gradle build.
+val buildRdpNative by tasks.registering(Exec::class) {
+    val rustDir = file("rust")
+    val jniDir = file("jniLibs")
+
+    inputs.dir(rustDir.resolve("src"))
+    inputs.file(rustDir.resolve("Cargo.toml"))
+    inputs.file(rustDir.resolve("Cargo.lock"))
+    outputs.dir(jniDir)
+
+    workingDir = rustDir
+    commandLine("cargo", "ndk",
+        "-o", jniDir.absolutePath,
+        "-t", "arm64-v8a",
+        "-t", "x86_64",
+        "build", "--release")
+}
+
 // No publishing block needed — consumed via includeBuild() in settings.gradle.kts

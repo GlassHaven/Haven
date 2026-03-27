@@ -937,15 +937,11 @@ private fun onTapProfile(
         // VNC: connect directly (password stored in profile)
         viewModel.connect(profile, "")
     } else if (profile.isRdp) {
-        if (!viewModel.isRdpAvailable) {
-            viewModel.connect(profile, "")  // triggers error message
+        val savedPassword = profile.rdpPassword
+        if (savedPassword != null) {
+            viewModel.connect(profile, savedPassword)
         } else {
-            val savedPassword = profile.rdpPassword
-            if (savedPassword != null) {
-                viewModel.connect(profile, savedPassword)
-            } else {
-                showPasswordDialog()
-            }
+            showPasswordDialog()
         }
     } else if (profile.isSmb) {
         val savedPassword = profile.smbPassword

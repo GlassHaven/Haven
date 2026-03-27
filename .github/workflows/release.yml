@@ -33,6 +33,12 @@ jobs:
       - name: Install SDK platform 36, CMake, and NDK
         run: sdkmanager "platforms;android-36" "cmake;3.31.6" "ndk;28.0.13004108" "ndk;27.0.12077973"
 
+      - name: Set up Rust toolchain
+        run: |
+          rustup default stable
+          rustup target add aarch64-linux-android x86_64-linux-android
+          cargo install cargo-ndk --locked
+
       - name: Cache Gradle packages
         uses: actions/cache@v5
         with:
@@ -42,6 +48,16 @@ jobs:
           key: gradle-${{ runner.os }}-${{ hashFiles('**/*.gradle*', '**/gradle-wrapper.properties', '**/libs.versions.toml') }}
           restore-keys: gradle-${{ runner.os }}-
 
+      - name: Cache Cargo registry
+        uses: actions/cache@v5
+        with:
+          path: |
+            ~/.cargo/registry
+            ~/.cargo/git
+            rdp-kotlin/rust/target
+          key: cargo-${{ runner.os }}-${{ hashFiles('rdp-kotlin/rust/Cargo.lock') }}
+          restore-keys: cargo-${{ runner.os }}-
+
       - name: Grant execute permission for gradlew
         run: chmod +x gradlew
 
@@ -49,14 +65,14 @@ jobs:
         run: echo "${{ secrets.KEYSTORE_BASE64 }}" | base64 -d > haven-release.jks
 
       - name: Run unit tests
-        run: ./gradlew testFullReleaseUnitTest
+        run: ./gradlew testReleaseUnitTest
         env:
           KEYSTORE_PASSWORD: ${{ secrets.KEYSTORE_PASSWORD }}
           KEY_ALIAS: ${{ secrets.KEY_ALIAS }}
           KEY_PASSWORD: ${{ secrets.KEY_PASSWORD }}
 
-      - name: Build full release APK and AAB
-        run: ./gradlew :app:assembleArm64FullRelease :app:assembleX64FullRelease :app:bundleArm64FullRelease :app:bundleX64FullRelease
+      - name: Build release APK and AAB
+        run: ./gradlew :app:assembleArm64Release :app:assembleX64Release :app:bundleArm64Release :app:bundleX64Release
         env:
           KEYSTORE_PASSWORD: ${{ secrets.KEYSTORE_PASSWORD }}
           KEY_ALIAS: ${{ secrets.KEY_ALIAS }}
@@ -67,5 +83,5 @@ jobs:
         with:
           generate_release_notes: true
           files: |
-            app/build/outputs/apk/*Full/release/haven-*-release.apk
-            app/build/outputs/bundle/*FullRelease/*.aab
+            app/build/outputs/apk/*/release/haven-*-release.apk
+            app/build/outputs/bundle/*Release/*.aab

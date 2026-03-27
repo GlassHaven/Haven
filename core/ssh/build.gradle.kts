@@ -13,12 +13,6 @@ android {
         minSdk = 26
     }
 
-    flavorDimensions += "store"
-    productFlavors {
-        create("foss") { dimension = "store" }
-        create("full") { dimension = "store" }
-    }
-
     compileOptions {
         sourceCompatibility = JavaVersion.VERSION_17
         targetCompatibility = JavaVersion.VERSION_17
@@ -37,7 +31,7 @@ dependencies {
     implementation(project(":core:mosh"))
     implementation(project(":core:et"))
     implementation(project(":core:local"))
-    "fullImplementation"(project(":core:rdp"))
+    implementation(project(":core:rdp"))
     implementation(project(":core:smb"))
     implementation(project(":core:fido"))
     implementation(libs.bouncycastle)

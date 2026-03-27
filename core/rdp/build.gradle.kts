@@ -22,11 +22,18 @@ android {
         unitTests.isReturnDefaultValues = true
     }
 
-    // Include pre-built native libraries from rdp-kotlin
+    // Include native libraries built from Rust source by rdp-kotlin:buildRdpNative
     sourceSets {
         getByName("main") {
             jniLibs.srcDirs("${rootProject.projectDir}/rdp-kotlin/jniLibs")
         }
+    }
+}
+
+// Ensure Rust native library is built before this module compiles
+tasks.configureEach {
+    if (name == "preBuild") {
+        dependsOn(gradle.includedBuild("rdp-kotlin").task(":buildRdpNative"))
     }
 }
 

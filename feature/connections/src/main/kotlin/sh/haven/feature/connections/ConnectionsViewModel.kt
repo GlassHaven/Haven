@@ -682,21 +682,7 @@ class ConnectionsViewModel @Inject constructor(
         _navigateToVnc.value = VncNavigation(host, port, password)
     }
 
-    /** Check if RDP is available (full build only — excluded from FOSS/F-Droid). */
-    val isRdpAvailable: Boolean by lazy {
-        try {
-            Class.forName("sh.haven.rdp.RdpClient")
-            true
-        } catch (_: ClassNotFoundException) {
-            false
-        }
-    }
-
     private fun connectRdp(profile: ConnectionProfile, password: String) {
-        if (!isRdpAvailable) {
-            _error.value = "RDP is not available in the F-Droid build. Install Haven from GitHub releases for RDP support."
-            return
-        }
         val host = profile.host
         val port = profile.rdpPort
         val username = profile.rdpUsername ?: profile.username

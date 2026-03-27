@@ -5,7 +5,9 @@ import android.content.ClipData
 import android.content.ClipboardManager
 import android.content.Context
 import androidx.compose.foundation.background
+import androidx.compose.foundation.ExperimentalFoundationApi
 import androidx.compose.foundation.clickable
+import androidx.compose.foundation.combinedClickable
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
@@ -88,7 +90,7 @@ private val TAB_GROUP_COLORS = listOf(
     Color(0xFF8D6E63), // brown
 )
 
-@OptIn(androidx.compose.foundation.layout.ExperimentalLayoutApi::class)
+@OptIn(androidx.compose.foundation.layout.ExperimentalLayoutApi::class, ExperimentalFoundationApi::class)
 @Composable
 fun TerminalScreen(
     navigateToProfileId: String? = null,
@@ -241,6 +243,10 @@ fun TerminalScreen(
                     Tab(
                         selected = activeTabIndex == index,
                         onClick = { viewModel.selectTab(index) },
+                        modifier = Modifier.combinedClickable(
+                            onClick = { viewModel.selectTab(index) },
+                            onLongClick = { viewModel.addTab() },
+                        ),
                         text = {
                             Row(verticalAlignment = Alignment.CenterVertically) {
                                 profileColors[tab.profileId]?.let { color ->
@@ -261,20 +267,6 @@ fun TerminalScreen(
                                     )
                                 }
                                 Text(tab.label, maxLines = 1)
-                                if (activeTabIndex == index) {
-                                    Spacer(Modifier.width(8.dp))
-                                    IconButton(
-                                        onClick = { viewModel.addTab() },
-                                        enabled = !newTabLoading,
-                                        modifier = Modifier.size(20.dp),
-                                    ) {
-                                        Icon(
-                                            Icons.Filled.Add,
-                                            contentDescription = "Clone tab",
-                                            modifier = Modifier.size(14.dp),
-                                        )
-                                    }
-                                }
                                 IconButton(
                                     onClick = { viewModel.closeTab(tab.sessionId) },
                                     modifier = Modifier.size(20.dp),
@@ -290,6 +282,18 @@ fun TerminalScreen(
                     )
                 }
             } // PrimaryScrollableTabRow
+                // New tab button — separated from tab close buttons
+                IconButton(
+                    onClick = { viewModel.addTab() },
+                    enabled = !newTabLoading,
+                    modifier = Modifier.size(36.dp),
+                ) {
+                    Icon(
+                        Icons.Filled.Add,
+                        contentDescription = "New tab",
+                        modifier = Modifier.size(18.dp),
+                    )
+                }
                 if (showCopyOutputButton) {
                     IconButton(
                         onClick = {

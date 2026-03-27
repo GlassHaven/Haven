@@ -1098,6 +1098,10 @@ class TerminalViewModel @Inject constructor(
     private val _newTabLoading = MutableStateFlow(false)
     val newTabLoading: StateFlow<Boolean> = _newTabLoading.asStateFlow()
 
+    private val _newTabMessage = MutableStateFlow<String?>(null)
+    val newTabMessage: StateFlow<String?> = _newTabMessage.asStateFlow()
+    fun dismissNewTabMessage() { _newTabMessage.value = null }
+
     /**
      * Add a new tab by creating a fresh connection to the same server as the current tab.
      */
@@ -1114,14 +1118,12 @@ class TerminalViewModel @Inject constructor(
         }
 
         if (activeTab.transportType == "MOSH") {
-            // Mosh doesn't support multiple tabs to same server from one bootstrap
-            Log.w(TAG, "addTab: mosh sessions don't support new tabs (use SSH for multi-tab)")
+            _newTabMessage.value = "New tabs not supported for Mosh. Use SSH transport for multi-tab."
             return
         }
 
         if (activeTab.transportType == "ET") {
-            // ET doesn't support multiple tabs to same server from one bootstrap
-            Log.w(TAG, "addTab: ET sessions don't support new tabs (use SSH for multi-tab)")
+            _newTabMessage.value = "New tabs not supported for ET. Use SSH transport for multi-tab."
             return
         }
 

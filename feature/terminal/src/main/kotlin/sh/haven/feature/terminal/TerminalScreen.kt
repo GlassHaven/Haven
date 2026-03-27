@@ -117,11 +117,20 @@ fun TerminalScreen(
     val navigateToConnections by viewModel.navigateToConnections.collectAsState()
     val newTabSessionPicker by viewModel.newTabSessionPicker.collectAsState()
     val newTabLoading by viewModel.newTabLoading.collectAsState()
+    val newTabMessage by viewModel.newTabMessage.collectAsState()
     var vncDialogInfo by remember { mutableStateOf<VncInfo?>(null) }
     var localVncLoading by remember { mutableStateOf(false) }
     val coroutineScope = androidx.compose.runtime.rememberCoroutineScope()
 
     val context = LocalContext.current
+
+    LaunchedEffect(newTabMessage) {
+        newTabMessage?.let {
+            android.widget.Toast.makeText(context, it, android.widget.Toast.LENGTH_SHORT).show()
+            viewModel.dismissNewTabMessage()
+        }
+    }
+
     val hackTypeface = remember {
         ResourcesCompat.getFont(context, sh.haven.core.ui.R.font.hack_regular)
             ?: android.graphics.Typeface.MONOSPACE

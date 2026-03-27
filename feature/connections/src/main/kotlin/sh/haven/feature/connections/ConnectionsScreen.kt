@@ -1097,12 +1097,16 @@ private fun ConnectionTreeItem(
                     when {
                         isConnecting -> CircularProgressIndicator(modifier = Modifier.size(24.dp))
                         profileStatus == ProfileStatus.RECONNECTING -> CircularProgressIndicator(modifier = Modifier.size(12.dp), strokeWidth = 2.dp)
-                        profileStatus == ProfileStatus.CONNECTED -> Icon(
-                            Icons.Filled.Circle,
-                            contentDescription = "Connected",
-                            tint = profileColors[profile.id] ?: Color(0xFF4CAF50),
-                            modifier = Modifier.size(12.dp),
-                        )
+                        profileStatus == ProfileStatus.CONNECTED -> {
+                            val connectedColor = if (profile.colorTag in 1..PROFILE_COLORS.size)
+                                PROFILE_COLORS[profile.colorTag - 1] else Color(0xFF4CAF50)
+                            Icon(
+                                Icons.Filled.Circle,
+                                contentDescription = "Connected",
+                                tint = connectedColor,
+                                modifier = Modifier.size(12.dp),
+                            )
+                        }
                         profileStatus == ProfileStatus.ERROR -> Icon(
                             Icons.Filled.Circle,
                             contentDescription = "Error",

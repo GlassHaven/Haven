@@ -79,10 +79,12 @@ Notifications appear as a toast in the foreground or as an Android notification 
 
 ## Install
 
-| Channel | |
-|---|---|
-| [GitHub Releases](https://github.com/GlassOnTin/Haven/releases/latest) | Free, signed APK |
-| [F-Droid](https://f-droid.org/en/packages/sh.haven.app) | Free, built from source |
+| Channel | | RDP |
+|---|---|---|
+| [GitHub Releases](https://github.com/GlassOnTin/Haven/releases/latest) | Full build, signed APK | Yes |
+| [F-Droid](https://f-droid.org/en/packages/sh.haven.app) | FOSS build, built from source | No |
+
+The **GitHub release** is the recommended install for most users. It includes all features including RDP (Remote Desktop). The **F-Droid build** excludes RDP (IronRDP library) to meet F-Droid's FOSS-only policy. SSH, Mosh, ET, VNC, and SFTP work in both builds.
 
 ### Build from source
 

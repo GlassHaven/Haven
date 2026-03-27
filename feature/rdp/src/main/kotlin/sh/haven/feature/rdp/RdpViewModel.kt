@@ -121,6 +121,10 @@ class RdpViewModel @Inject constructor(
             } catch (e: Exception) {
                 Log.e(TAG, "SSH tunnel setup failed", e)
                 _error.value = describeError(e, remoteHost, remotePort)
+                val profileId = rdpProfileId
+                if (profileId != null) {
+                    connectionLogRepository.logEvent(profileId, ConnectionLog.Status.FAILED, details = "SSH tunnel: ${e.message}")
+                }
             }
         }
     }
@@ -144,11 +148,15 @@ class RdpViewModel @Inject constructor(
             } catch (e: Exception) {
                 Log.e(TAG, "RDP connect failed", e)
                 _error.value = describeError(e, host, port)
+                val profileId = rdpProfileId
+                if (profileId != null) {
+                    connectionLogRepository.logEvent(profileId, ConnectionLog.Status.FAILED, details = e.message)
+                }
             }
         }
     }
 
-    private fun doConnect(
+    private suspend fun doConnect(
         host: String,
         port: Int,
         username: String,
@@ -183,9 +191,20 @@ class RdpViewModel @Inject constructor(
             session.start()
             _connected.value = true
             Log.d(TAG, "RDP session started")
+            // Log the connection with any verbose data captured during start()
+            val profileId = rdpProfileId
+            if (profileId != null) {
+                val startLog = session.drainVerboseLog()
+                connectionLogRepository.logEvent(profileId, ConnectionLog.Status.CONNECTED, verboseLog = startLog)
+            }
         } catch (e: Exception) {
             Log.e(TAG, "RDP session.start() threw", e)
             _error.value = describeError(e, host, port)
+            val profileId = rdpProfileId
+            if (profileId != null) {
+                val failLog = session.drainVerboseLog()
+                connectionLogRepository.logEvent(profileId, ConnectionLog.Status.FAILED, details = e.message, verboseLog = failLog)
+            }
             rdpSession = null
         }
     }

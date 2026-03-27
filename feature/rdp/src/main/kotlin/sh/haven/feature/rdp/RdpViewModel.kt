@@ -12,12 +12,17 @@ import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.launch
 import sh.haven.core.et.EtSessionManager
 import sh.haven.core.mosh.MoshSessionManager
+import sh.haven.core.data.db.entities.ConnectionLog
+import sh.haven.core.data.preferences.UserPreferencesRepository
+import sh.haven.core.data.repository.ConnectionLogRepository
 import sh.haven.core.rdp.RdpSession
 import sh.haven.core.rdp.RdpSessionManager
 import sh.haven.core.ssh.SshClient
 import sh.haven.core.ssh.SshSessionManager
 import sh.haven.rdp.MouseButton
+import kotlinx.coroutines.flow.first
 import java.net.ConnectException
+import java.util.concurrent.ConcurrentLinkedQueue
 import java.net.NoRouteToHostException
 import java.net.SocketTimeoutException
 import java.net.UnknownHostException
@@ -38,6 +43,8 @@ class RdpViewModel @Inject constructor(
     private val sshSessionManager: SshSessionManager,
     private val moshSessionManager: MoshSessionManager,
     private val etSessionManager: EtSessionManager,
+    private val connectionLogRepository: ConnectionLogRepository,
+    private val preferencesRepository: UserPreferencesRepository,
 ) : ViewModel() {
 
     private val _frame = MutableStateFlow<Bitmap?>(null)
@@ -50,6 +57,8 @@ class RdpViewModel @Inject constructor(
     val error: StateFlow<String?> = _error.asStateFlow()
 
     private var rdpSession: RdpSession? = null
+    private var rdpVerboseBuffer: ConcurrentLinkedQueue<String>? = null
+    private var rdpProfileId: String? = null
     private var tunnelPort: Int? = null
     private var tunnelSessionId: String? = null
 
@@ -116,6 +125,11 @@ class RdpViewModel @Inject constructor(
         }
     }
 
+    /** Set the connection profile ID for logging. Call before connect(). */
+    fun setProfileId(profileId: String) {
+        rdpProfileId = profileId
+    }
+
     fun connect(
         host: String,
         port: Int,
@@ -142,6 +156,9 @@ class RdpViewModel @Inject constructor(
         domain: String,
     ) {
         Log.d(TAG, "doConnect: $host:$port user=$username domain=$domain")
+        val verboseEnabled = kotlinx.coroutines.runBlocking { preferencesRepository.verboseLoggingEnabled.first() }
+        val verboseBuffer = if (verboseEnabled) ConcurrentLinkedQueue<String>() else null
+        rdpVerboseBuffer = verboseBuffer
         val session = RdpSession(
             sessionId = "rdp-${System.currentTimeMillis()}",
             host = host,
@@ -149,6 +166,7 @@ class RdpViewModel @Inject constructor(
             username = username,
             password = password,
             domain = domain,
+            verboseBuffer = verboseBuffer,
         )
 
         session.onFrameUpdate = { bitmap ->
@@ -182,8 +200,14 @@ class RdpViewModel @Inject constructor(
 
     fun disconnect() {
         viewModelScope.launch(Dispatchers.IO) {
+            val verboseLog = rdpSession?.drainVerboseLog()
             rdpSession?.close()
             rdpSession = null
+            val profileId = rdpProfileId
+            if (profileId != null) {
+                connectionLogRepository.logEvent(profileId, ConnectionLog.Status.DISCONNECTED, verboseLog = verboseLog)
+                rdpProfileId = null
+            }
             // Tear down SSH tunnel if one was created
             val tp = tunnelPort
             val tsId = tunnelSessionId

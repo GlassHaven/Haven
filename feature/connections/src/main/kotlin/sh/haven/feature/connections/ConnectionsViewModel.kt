@@ -302,7 +302,7 @@ class ConnectionsViewModel @Inject constructor(
     val navigateToVnc: StateFlow<VncNavigation?> = _navigateToVnc.asStateFlow()
 
     /** Emitted to navigate to RDP screen with connection params. */
-    data class RdpNavigation(val host: String, val port: Int, val username: String, val password: String, val domain: String, val sshForward: Boolean = false, val sshProfileId: String? = null, val sshSessionId: String? = null)
+    data class RdpNavigation(val host: String, val port: Int, val username: String, val password: String, val domain: String, val sshForward: Boolean = false, val sshProfileId: String? = null, val sshSessionId: String? = null, val profileId: String? = null)
     private val _navigateToRdp = MutableStateFlow<RdpNavigation?>(null)
     val navigateToRdp: StateFlow<RdpNavigation?> = _navigateToRdp.asStateFlow()
 
@@ -716,6 +716,7 @@ class ConnectionsViewModel @Inject constructor(
                         sshForward = true,
                         sshProfileId = sshProfileId,
                         sshSessionId = sshSessionId,
+                        profileId = profile.id,
                     )
                 } catch (e: Exception) {
                     Log.e(TAG, "Failed to connect SSH tunnel host for RDP", e)
@@ -724,7 +725,7 @@ class ConnectionsViewModel @Inject constructor(
                     _connectingProfileId.value = null
                 }
             } else {
-                _navigateToRdp.value = RdpNavigation(host, port, username, rdpPassword, domain, profile.rdpSshForward, profile.rdpSshProfileId)
+                _navigateToRdp.value = RdpNavigation(host, port, username, rdpPassword, domain, profile.rdpSshForward, profile.rdpSshProfileId, profileId = profile.id)
             }
         }
     }

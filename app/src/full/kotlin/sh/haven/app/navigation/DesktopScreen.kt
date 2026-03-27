@@ -41,6 +41,7 @@ fun DesktopScreen(
     pendingRdpSshForward: Boolean = false,
     pendingRdpSshSessionId: String? = null,
     pendingRdpSshProfileId: String? = null,
+    pendingRdpProfileId: String? = null,
     toolbarLayout: ToolbarLayout = ToolbarLayout.DEFAULT,
     onPendingConsumed: () -> Unit = {},
     onFullscreenChanged: (Boolean) -> Unit = {},
@@ -49,17 +50,21 @@ fun DesktopScreen(
     // 0 = VNC, 1 = RDP — persisted across recompositions
     var selectedTab by rememberSaveable { mutableIntStateOf(0) }
 
+    val vncViewModel: VncViewModel = hiltViewModel()
+    val rdpViewModel: RdpViewModel = hiltViewModel()
+
     // Auto-select tab when pending params arrive
     LaunchedEffect(pendingVncHost) {
         if (pendingVncHost != null) selectedTab = 0
     }
     LaunchedEffect(pendingRdpHost) {
-        if (pendingRdpHost != null) selectedTab = 1
+        if (pendingRdpHost != null) {
+            selectedTab = 1
+            pendingRdpProfileId?.let { rdpViewModel.setProfileId(it) }
+        }
     }
 
     // Check if either protocol is connected (to hide tab bar during active session)
-    val vncViewModel: VncViewModel = hiltViewModel()
-    val rdpViewModel: RdpViewModel = hiltViewModel()
     val vncConnected by vncViewModel.connected.collectAsState()
     val rdpConnected by rdpViewModel.connected.collectAsState()
     val anyConnected = vncConnected || rdpConnected

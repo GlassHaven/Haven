@@ -32,6 +32,7 @@ fun DesktopScreen(
     pendingRdpSshForward: Boolean = false,
     pendingRdpSshSessionId: String? = null,
     pendingRdpSshProfileId: String? = null,
+    pendingRdpProfileId: String? = null,
     toolbarLayout: ToolbarLayout = ToolbarLayout.DEFAULT,
     onPendingConsumed: () -> Unit = {},
     onFullscreenChanged: (Boolean) -> Unit = {},

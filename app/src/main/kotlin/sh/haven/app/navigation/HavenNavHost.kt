@@ -100,6 +100,7 @@ fun HavenNavHost(
     var pendingRdpSshForward by rememberSaveable { mutableStateOf(false) }
     var pendingRdpSshSessionId by rememberSaveable { mutableStateOf<String?>(null) }
     var pendingRdpSshProfileId by rememberSaveable { mutableStateOf<String?>(null) }
+    var pendingRdpProfileId by rememberSaveable { mutableStateOf<String?>(null) }
 
     // Disable pager swipe while terminal text selection is active
     var terminalSelectionActive by remember { mutableStateOf(false) }
@@ -162,7 +163,7 @@ fun HavenNavHost(
                             pagerState.animateScrollToPage(pageOf(Screen.Desktop))
                         }
                     },
-                    onNavigateToRdp = { host, port, username, password, domain, sshForward, sshProfileId, sshSessionId ->
+                    onNavigateToRdp = { host, port, username, password, domain, sshForward, sshProfileId, sshSessionId, profileId ->
                         pendingRdpHost = host
                         pendingRdpPort = port
                         pendingRdpUsername = username
@@ -171,6 +172,7 @@ fun HavenNavHost(
                         pendingRdpSshForward = sshForward
                         pendingRdpSshProfileId = sshProfileId
                         pendingRdpSshSessionId = sshSessionId
+                        pendingRdpProfileId = profileId
                         coroutineScope.launch {
                             pagerState.animateScrollToPage(pageOf(Screen.Desktop))
                         }
@@ -241,6 +243,7 @@ fun HavenNavHost(
                         pendingRdpSshForward = false
                         pendingRdpSshSessionId = null
                         pendingRdpSshProfileId = null
+                        pendingRdpProfileId = null
                     }
                     DesktopScreen(
                         isActive = pagerState.settledPage == pageOf(Screen.Desktop),
@@ -257,6 +260,7 @@ fun HavenNavHost(
                         pendingRdpSshForward = pendingRdpSshForward,
                         pendingRdpSshSessionId = pendingRdpSshSessionId,
                         pendingRdpSshProfileId = pendingRdpSshProfileId,
+                        pendingRdpProfileId = pendingRdpProfileId,
                         toolbarLayout = toolbarLayout,
                         onPendingConsumed = consumePending,
                         onFullscreenChanged = { desktopFullscreen = it },

@@ -10,6 +10,7 @@ import sh.haven.rdp.RdpConfig
 import sh.haven.rdp.RdpException
 import java.io.Closeable
 import java.nio.ByteBuffer
+import java.util.concurrent.ConcurrentLinkedQueue
 
 private const val TAG = "RdpSession"
 
@@ -32,12 +33,19 @@ class RdpSession(
     private val width: Int = 1920,
     private val height: Int = 1080,
     private val onDisconnected: (() -> Unit)? = null,
+    private val verboseBuffer: ConcurrentLinkedQueue<String>? = null,
 ) : Closeable {
 
     @Volatile
     private var closed = false
     private var client: RdpClient? = null
     private var currentBitmap: Bitmap? = null
+    private val startTime = System.currentTimeMillis()
+
+    private fun log(level: String, msg: String) {
+        if (level == "E") Log.e(TAG, msg) else Log.d(TAG, msg)
+        verboseBuffer?.add("+${System.currentTimeMillis() - startTime}ms [$TAG] $level: $msg")
+    }
 
     /** Called on frame updates. Set by the ViewModel. */
     var onFrameUpdate: ((Bitmap) -> Unit)? = null
@@ -51,7 +59,7 @@ class RdpSession(
      */
     fun start() {
         if (closed) return
-        Log.d(TAG, "Starting RDP session $sessionId: $host:$port user=$username")
+        log("D", "Starting RDP session $sessionId: $host:$port user=$username")
 
         try {
             val config = RdpConfig(
@@ -72,14 +80,14 @@ class RdpSession(
                     try {
                         refreshBitmap()
                     } catch (e: Exception) {
-                        Log.e(TAG, "Frame update failed (${x},${y} ${w}x${h})", e)
+                        log("E", "Frame update failed (${x},${y} ${w}x${h}): ${e.message}")
                         onError?.invoke(e)
                     }
                 }
 
                 override fun onResize(width: UShort, height: UShort) {
                     if (closed) return
-                    Log.d(TAG, "Desktop resized: ${width}x${height}")
+                    log("D", "Desktop resized: ${width}x${height}")
                     try {
                         synchronized(this@RdpSession) {
                             currentBitmap?.recycle()
@@ -87,21 +95,21 @@ class RdpSession(
                         }
                         refreshBitmap()
                     } catch (e: Exception) {
-                        Log.e(TAG, "Resize failed (${width}x${height})", e)
+                        log("E", "Resize failed (${width}x${height}): ${e.message}")
                         onError?.invoke(e)
                     }
                 }
             })
 
-            Log.d(TAG, "Connecting to $host:$port...")
+            log("D", "Connecting to $host:$port...")
             c.connect(host, port.toUShort())
-            Log.d(TAG, "RDP connected to $host:$port")
+            log("D", "RDP connected to $host:$port")
 
             // Initial frame
             refreshBitmap()
-            Log.d(TAG, "Initial frame received")
+            log("D", "Initial frame received")
         } catch (e: Exception) {
-            Log.e(TAG, "RDP connection failed", e)
+            log("E", "RDP connection failed: ${e.message}")
             onError?.invoke(e)
             onDisconnected?.invoke()
             throw e
@@ -113,14 +121,14 @@ class RdpSession(
         val frame = try {
             c.getFramebuffer() ?: return
         } catch (e: Exception) {
-            Log.e(TAG, "getFramebuffer() failed", e)
+            log("E", "getFramebuffer() failed: ${e.message}")
             onError?.invoke(e)
             return
         }
         val bitmap = try {
             frameToBitmap(frame)
         } catch (e: Exception) {
-            Log.e(TAG, "frameToBitmap() failed (${frame.width}x${frame.height}, ${frame.pixels.size} bytes)", e)
+            log("E", "frameToBitmap() failed (${frame.width}x${frame.height}, ${frame.pixels.size} bytes): ${e.message}")
             onError?.invoke(e)
             return
         }
@@ -183,14 +191,26 @@ class RdpSession(
         client?.sendClipboardText(text)
     }
 
+    /** Drain captured verbose logs. Returns null if verbose logging was not enabled. */
+    fun drainVerboseLog(): String? {
+        val buf = verboseBuffer ?: return null
+        if (buf.isEmpty()) return null
+        val sb = StringBuilder()
+        while (true) {
+            val line = buf.poll() ?: break
+            sb.appendLine(line)
+        }
+        return sb.toString().trimEnd()
+    }
+
     override fun close() {
         if (closed) return
         closed = true
-        Log.d(TAG, "Closing RDP session $sessionId")
+        log("D", "Closing RDP session $sessionId")
         try {
             client?.disconnect()
         } catch (e: Exception) {
-            Log.w(TAG, "Error disconnecting RDP", e)
+            log("E", "Error disconnecting RDP: ${e.message}")
         }
         client = null
         synchronized(this) {

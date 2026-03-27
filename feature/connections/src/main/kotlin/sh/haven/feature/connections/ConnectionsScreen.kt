@@ -123,7 +123,7 @@ fun ConnectionsScreen(
     onNavigateToTerminal: (profileId: String) -> Unit = {},
     onNavigateToNewSession: (profileId: String) -> Unit = {},
     onNavigateToVnc: (host: String, port: Int, password: String?) -> Unit = { _, _, _ -> },
-    onNavigateToRdp: (host: String, port: Int, username: String, password: String, domain: String, sshForward: Boolean, sshProfileId: String?, sshSessionId: String?) -> Unit = { _, _, _, _, _, _, _, _ -> },
+    onNavigateToRdp: (host: String, port: Int, username: String, password: String, domain: String, sshForward: Boolean, sshProfileId: String?, sshSessionId: String?, profileId: String?) -> Unit = { _, _, _, _, _, _, _, _, _ -> },
     onNavigateToSmb: (profileId: String) -> Unit = {},
     viewModel: ConnectionsViewModel = hiltViewModel(),
 ) {
@@ -185,7 +185,7 @@ fun ConnectionsScreen(
 
     LaunchedEffect(navigateToRdp) {
         navigateToRdp?.let { nav ->
-            onNavigateToRdp(nav.host, nav.port, nav.username, nav.password, nav.domain, nav.sshForward, nav.sshProfileId, nav.sshSessionId)
+            onNavigateToRdp(nav.host, nav.port, nav.username, nav.password, nav.domain, nav.sshForward, nav.sshProfileId, nav.sshSessionId, nav.profileId)
             viewModel.onNavigated()
         }
     }

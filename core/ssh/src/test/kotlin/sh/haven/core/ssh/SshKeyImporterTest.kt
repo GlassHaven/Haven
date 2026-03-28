@@ -159,14 +159,13 @@ class SshKeyImporterTest {
     }
 
     @Test
-    fun `import encrypted key with correct passphrase stores decrypted bytes`() {
+    fun `import encrypted key with correct passphrase stores original encrypted bytes`() {
         val result = SshKeyImporter.import(encryptedRsaPem, "test-passphrase")
-        // The stored bytes must differ from the encrypted input — they should be the
-        // decrypted (unencrypted) private key written out by JSch.
-        assertFalse(
-            "Stored key bytes should not equal the encrypted input",
+        assertTrue(
+            "Stored key bytes should equal the original encrypted input",
             encryptedRsaPem.contentEquals(result.privateKeyBytes)
         )
+        assertTrue("isEncrypted should be true", result.isEncrypted)
     }
 
     @Test
@@ -230,22 +229,13 @@ class SshKeyImporterTest {
     }
 
     @Test
-    fun `import encrypted Ed25519 key with correct passphrase stores decrypted bytes`() {
+    fun `import encrypted Ed25519 key with correct passphrase stores original encrypted bytes`() {
         val result = SshKeyImporter.import(encryptedEd25519Pem, "test-ed25519-pass")
-        assertFalse(
-            "Stored key bytes should not equal the encrypted input",
+        assertTrue(
+            "Stored key bytes should equal the original encrypted input",
             encryptedEd25519Pem.contentEquals(result.privateKeyBytes)
         )
-    }
-
-    @Test
-    fun `import encrypted Ed25519 key extracts 64-byte key material`() {
-        val result = SshKeyImporter.import(encryptedEd25519Pem, "test-ed25519-pass")
-        // 64 bytes = prv_array (32) + pub_array (32) from JSch reflection
-        assertEquals(
-            "Expected 64-byte Ed25519 key material (prv + pub)",
-            64, result.privateKeyBytes.size
-        )
+        assertTrue("isEncrypted should be true", result.isEncrypted)
     }
 
     @Test

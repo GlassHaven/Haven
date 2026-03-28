@@ -199,39 +199,33 @@ class SshKeyExporterTest {
     """.trimIndent().toByteArray()
 
     @Test
-    fun `encrypted Ed25519 import then toPem produces JSch-loadable key`() {
-        // Step 1: Import encrypted key (simulates user importing their key file)
+    fun `encrypted Ed25519 import stores original PEM and JSch loads with passphrase`() {
+        // Step 1: Import encrypted key — stores original encrypted bytes
         val imported = SshKeyImporter.import(encryptedEd25519Pem, "test-ed25519-pass")
         assertEquals("ssh-ed25519", imported.keyType)
-        // 64 bytes = prv_array (32) + pub_array (32) from JSch reflection
-        assertEquals("Expected 64-byte key material from import", 64, imported.privateKeyBytes.size)
-
-        // Step 2: Convert stored bytes to PEM for JSch (simulates auth-time conversion)
-        // This is the exact path used by ConnectionsViewModel.rawKeyToPem()
-        val authPem = SshKeyExporter.toPem(imported.privateKeyBytes, imported.keyType)
-        val pemStr = authPem.decodeToString()
+        assertTrue("isEncrypted should be true", imported.isEncrypted)
         assertTrue(
-            "Expected OpenSSH PEM format, got: ${pemStr.take(40)}",
-            pemStr.startsWith("-----BEGIN OPENSSH PRIVATE KEY-----"),
+            "Stored bytes should be the original encrypted PEM",
+            encryptedEd25519Pem.contentEquals(imported.privateKeyBytes),
         )
 
-        // Step 3: Verify JSch can load the key (simulates jsch.addIdentity at connect time)
+        // Step 2: Verify JSch can load the encrypted key with passphrase at connect time
         val jsch = JSch()
-        val kpair = KeyPair.load(jsch, authPem, null)
-        assertNotNull("JSch must be able to parse the auth-time PEM", kpair)
+        val kpair = KeyPair.load(jsch, imported.privateKeyBytes, null)
+        assertNotNull("JSch must be able to parse the encrypted PEM", kpair)
+        assertTrue("Key must be encrypted", kpair.isEncrypted)
+        assertTrue("Passphrase must decrypt the key", kpair.decrypt("test-ed25519-pass"))
         assertEquals("Key type must be ED25519", KeyPair.ED25519, kpair.keyType)
-        assertFalse("Key must not be encrypted", kpair.isEncrypted)
         kpair.dispose()
     }
 
     @Test
     fun `encrypted Ed25519 full sequence preserves fingerprint`() {
-        // Import → store 64-byte key material → toPem → reimport should produce same fingerprint
+        // Import → store encrypted bytes → reimport with passphrase → same fingerprint
         val imported = SshKeyImporter.import(encryptedEd25519Pem, "test-ed25519-pass")
-        val authPem = SshKeyExporter.toPem(imported.privateKeyBytes, imported.keyType)
-        val reimported = SshKeyImporter.import(authPem)
+        val reimported = SshKeyImporter.import(imported.privateKeyBytes, "test-ed25519-pass")
         assertEquals(
-            "Fingerprint must be stable through import → toPem → reimport",
+            "Fingerprint must be stable through import → store → reimport",
             imported.fingerprintSha256, reimported.fingerprintSha256,
         )
     }

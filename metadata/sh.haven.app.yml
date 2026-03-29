@@ -117,9 +117,9 @@ Builds:
       - yes
 
   # v4.0.0+: Go/gomobile for rclone cloud storage, Rust/cargo-ndk for RDP
-  - versionName: 4.3.2
-    versionCode: 1381
-    commit: v4.3.2
+  - versionName: 4.3.3
+    versionCode: 1391
+    commit: v4.3.3
     subdir: app
     sudo:
       - apt-get update
@@ -144,9 +144,9 @@ Builds:
     gradle:
       - arm64
 
-  - versionName: 4.3.2
-    versionCode: 1382
-    commit: v4.3.2
+  - versionName: 4.3.3
+    versionCode: 1392
+    commit: v4.3.3
     subdir: app
     sudo:
       - apt-get update
@@ -173,5 +173,5 @@ Builds:
 
 AutoUpdateMode: Version
 UpdateCheckMode: Tags
-CurrentVersion: 4.3.2
-CurrentVersionCode: 1381
+CurrentVersion: 4.3.3
+CurrentVersionCode: 1391

@@ -62,6 +62,7 @@ import androidx.compose.foundation.combinedClickable
 import androidx.compose.foundation.border
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.gestures.detectDragGesturesAfterLongPress
+import androidx.compose.foundation.gestures.detectVerticalDragGestures
 import androidx.compose.foundation.gestures.scrollBy
 import androidx.compose.foundation.layout.offset
 import androidx.compose.material.icons.filled.Add
@@ -192,7 +193,20 @@ fun KeyboardToolbar(
     CompositionLocalProvider(LocalToolbarCallbacks provides callbacks) {
         Surface(
             tonalElevation = if (reorderMode) 4.dp else 2.dp,
-            modifier = modifier,
+            modifier = modifier.pointerInput(reorderMode) {
+                if (reorderMode) return@pointerInput
+                detectVerticalDragGestures { _, dragAmount ->
+                    val window = (view.context as? android.app.Activity)?.window
+                        ?: return@detectVerticalDragGestures
+                    val controller = WindowCompat.getInsetsController(window, view)
+                    if (dragAmount > 15f) {
+                        controller.hide(WindowInsetsCompat.Type.ime())
+                    } else if (dragAmount < -15f) {
+                        focusRequester.requestFocus()
+                        controller.show(WindowInsetsCompat.Type.ime())
+                    }
+                }
+            },
         ) {
             if (reorderMode) {
                 ReorderToolbarContent(

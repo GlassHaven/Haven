@@ -333,7 +333,9 @@ private fun Modifier.pagerSwipeOverride(
 
             if (!decided && totalX * totalX + totalY * totalY > touchSlopPx * touchSlopPx) {
                 decided = true
-                isHorizontal = abs(totalX) > abs(totalY)
+                // Require 2:1 horizontal:vertical ratio to trigger page swipe,
+                // preventing accidental tab switches during vertical scroll (#40.8)
+                isHorizontal = abs(totalX) > abs(totalY) * 2
             }
 
             // Consume on Initial to prevent the pager's built-in scrollable

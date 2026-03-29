@@ -84,7 +84,7 @@ enum class ToolbarKey(val id: String, val label: String, val isModifier: Boolean
 
         /** Default row 1: keyboard toggle, function keys, nav block top. */
         val DEFAULT_ROW1 = listOf(
-            KEYBOARD, ESC_KEY, TAB_KEY, HOME, ARROW_UP, END, PGUP,
+            KEYBOARD, ESC_KEY, TAB_KEY, SYM_SLASH, HOME, ARROW_UP, END, PGUP,
         )
 
         /** Default row 2: modifiers, nav block bottom, symbols. */

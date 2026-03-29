@@ -527,6 +527,20 @@ fun TerminalScreen(
                                 focusRequester = focusRequester,
                                 modifierManager = modifierManager,
                                 onSelectionControllerAvailable = { selectionController = it },
+                                onTerminalDoubleTap = {
+                                    val window = (view.context as? Activity)?.window ?: return@Terminal
+                                    val controller = WindowCompat.getInsetsController(window, view)
+                                    val rootView = window.decorView
+                                    val imeShowing = androidx.core.view.ViewCompat
+                                        .getRootWindowInsets(rootView)
+                                        ?.isVisible(WindowInsetsCompat.Type.ime()) == true
+                                    if (imeShowing) {
+                                        controller.hide(WindowInsetsCompat.Type.ime())
+                                    } else {
+                                        focusRequester.requestFocus()
+                                        controller.show(WindowInsetsCompat.Type.ime())
+                                    }
+                                },
                                 onFontSizeChanged = { newSize ->
                                     viewModel.setFontSize(newSize.value.toInt())
                                 },

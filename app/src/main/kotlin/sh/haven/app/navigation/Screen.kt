@@ -17,7 +17,7 @@ enum class Screen(
     Connections("connections", "Connect", Icons.Filled.Cable),
     Terminal("terminal", "Terminal", Icons.Filled.Terminal),
     Desktop("desktop", "Desktop", Icons.Filled.DesktopWindows),
-    Sftp("sftp", "Files", Icons.Filled.Folder),
     Keys("keys", "Keys", Icons.Filled.VpnKey),
+    Sftp("sftp", "Files", Icons.Filled.Folder),
     Settings("settings", "Settings", Icons.Filled.Settings),
 }

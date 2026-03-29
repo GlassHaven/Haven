@@ -79,3 +79,9 @@ val buildRcloneNative by tasks.registering(Exec::class) {
         environment("ANDROID_HOME", sdkRoot)
     }
 }
+
+// Ensure the Go native build completes before Kotlin compilation,
+// because compileKotlin needs rcbridge-bindings.jar produced by gomobile.
+tasks.named("compileKotlin") {
+    dependsOn(buildRcloneNative)
+}

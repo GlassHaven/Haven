@@ -1,9 +1,7 @@
 Categories:
-  - System
   - Internet
-
+  - System
 License: GPL-3.0-only
-
 AuthorName: GlassOnTin
 SourceCode: https://github.com/GlassOnTin/Haven
 IssueTracker: https://github.com/GlassOnTin/Haven/issues
@@ -11,167 +9,120 @@ Changelog: https://github.com/GlassOnTin/Haven/releases
 
 AutoName: Haven
 
-Description: |-
-  Haven is an open source SSH, VNC, RDP, SFTP and cloud storage client for
-  Android.
-
-  Connect to your servers with a full terminal emulator, view remote desktops
-  over VNC or RDP, browse and transfer files over SFTP, manage your SSH
-  keys, and access 60+ cloud storage providers (Google Drive, Dropbox,
-  OneDrive, S3, and more) via rclone — all from your phone. Supports Mosh,
-  Eternal Terminal, and session managers (tmux, screen, zellij).
-
 RepoType: git
 Repo: https://github.com/GlassOnTin/Haven.git
 
 Builds:
-  - versionName: 0.5.6
-    versionCode: 13
-    commit: v0.5.6
+  - versionName: 2.2.2
+    versionCode: 661
+    commit: 2ed1f101b97d926b7e142c5b44f84b2c3f05b5a5
     subdir: app
-    gradle:
-      - yes
-
-  - versionName: 0.7.0
-    versionCode: 15
-    commit: v0.7.0
-    subdir: app
-    gradle:
-      - yes
-
-  - versionName: 0.7.1
-    versionCode: 16
-    commit: v0.7.1
-    subdir: app
-    gradle:
-      - yes
-
-  - versionName: 0.7.2
-    versionCode: 17
-    commit: v0.7.2
-    subdir: app
-    gradle:
-      - yes
-
-  - versionName: 0.8.0
-    versionCode: 18
-    commit: v0.8.0
-    subdir: app
-    gradle:
-      - yes
-
-  - versionName: 0.8.1
-    versionCode: 19
-    commit: v0.8.1
-    subdir: app
-    gradle:
-      - yes
-
-  - versionName: 0.8.2
-    versionCode: 20
-    commit: v0.8.2
-    subdir: app
-    gradle:
-      - yes
-
-  - versionName: 0.8.3
-    versionCode: 21
-    commit: v0.8.3
-    subdir: app
-    gradle:
-      - yes
-
-  - versionName: 0.8.4
-    versionCode: 22
-    commit: v0.8.4
-    subdir: app
-    gradle:
-      - yes
-
-  - versionName: 0.8.5
-    versionCode: 23
-    commit: v0.8.5
-    subdir: app
-    gradle:
-      - yes
-
-  - versionName: 0.8.6
-    versionCode: 24
-    commit: v0.8.6
-    subdir: app
-    gradle:
-      - yes
-
-  - versionName: 0.8.7
-    versionCode: 25
-    commit: v0.8.7
-    subdir: app
-    gradle:
-      - yes
-
-  - versionName: 2.0.0
-    versionCode: 45
-    commit: v2.0.0
-    subdir: app
-    gradle:
-      - yes
-
-  # v4.0.0+: Go/gomobile for rclone cloud storage, Rust/cargo-ndk for RDP
-  - versionName: 4.3.6
-    versionCode: 1421
-    commit: v4.3.6
-    subdir: app
-    sudo:
-      - apt-get update
-      - apt-get install -y make gcc libc-dev golang-go
-    srclibs:
-      - go@go1.26.1
-    prebuild:
-      - sdkmanager 'platforms;android-35' 'build-tools;36.0.0'
-    build:
-      - pushd $$go$$/src
-      - ./make.bash
-      - popd
-      - export PATH="$$go$$/bin:$PATH"
-      - export GOPATH="$HOME/go"
-      - go install golang.org/x/mobile/cmd/gomobile@latest
-      - go install golang.org/x/mobile/cmd/gobind@latest
-      - export PATH="$GOPATH/bin:$PATH"
-      - export ANDROID_NDK_HOME=$$NDK$$
-      - cd ../rclone-android
-      - bash tools/build-android.sh
-    ndk: 28.2.13676358
+    submodules: true
     gradle:
       - arm64
 
-  - versionName: 4.3.6
-    versionCode: 1422
-    commit: v4.3.6
+  - versionName: 2.2.2
+    versionCode: 662
+    commit: 2ed1f101b97d926b7e142c5b44f84b2c3f05b5a5
     subdir: app
-    sudo:
-      - apt-get update
-      - apt-get install -y make gcc libc-dev golang-go
-    srclibs:
-      - go@go1.26.1
-    prebuild:
-      - sdkmanager 'platforms;android-35' 'build-tools;36.0.0'
-    build:
-      - pushd $$go$$/src
-      - ./make.bash
-      - popd
-      - export PATH="$$go$$/bin:$PATH"
-      - export GOPATH="$HOME/go"
-      - go install golang.org/x/mobile/cmd/gomobile@latest
-      - go install golang.org/x/mobile/cmd/gobind@latest
-      - export PATH="$GOPATH/bin:$PATH"
-      - export ANDROID_NDK_HOME=$$NDK$$
-      - cd ../rclone-android
-      - bash tools/build-android.sh
-    ndk: 28.2.13676358
+    submodules: true
     gradle:
       - x64
 
+  - versionName: 2.3.1-rc1
+    versionCode: 681
+    commit: 6b55afaf103561193e701772905957a1f966e966
+    subdir: app
+    submodules: true
+    gradle:
+      - arm64
+
+  - versionName: 2.3.1-rc1
+    versionCode: 682
+    commit: 6b55afaf103561193e701772905957a1f966e966
+    subdir: app
+    submodules: true
+    gradle:
+      - x64
+
+  - versionName: 3.17.0
+    versionCode: 1171
+    commit: 70891a87f5c8fe2fe07fd769c7180b5adab16895
+    subdir: app
+    submodules: true
+    sudo:
+      - apt-get update
+      - apt-get install -y make binutils gawk
+      - sdkmanager "ndk;27.0.12077973" "ndk;28.0.13004108" "cmake;3.31.6"
+    gradle:
+      - arm64Foss
+    scandelete:
+      - rdp-kotlin/jniLibs/
+
+  - versionName: 3.17.0
+    versionCode: 1172
+    commit: 70891a87f5c8fe2fe07fd769c7180b5adab16895
+    subdir: app
+    submodules: true
+    sudo:
+      - apt-get update
+      - apt-get install -y make binutils gawk
+      - sdkmanager "ndk;27.0.12077973" "ndk;28.0.13004108" "cmake;3.31.6"
+    gradle:
+      - x64Foss
+    scandelete:
+      - rdp-kotlin/jniLibs/
+
+  - versionName: 4.3.0
+    versionCode: 1361
+    commit: 03dd062177d715602e68caba876c179a7d1984cd
+    subdir: app
+    submodules: true
+    sudo:
+      - echo "deb https://deb.debian.org/debian forky main" > /etc/apt/sources.list.d/forky.list
+      - apt-get update
+      - apt-get install -y make binutils gawk gcc libc-dev rustup
+      - apt-get install -y -t forky golang-go
+    gradle:
+      - arm64
+    scandelete:
+      - rdp-kotlin/jniLibs/
+      - rclone-android/build
+    build:
+      - sdkmanager "cmake;3.31.6"
+      - rustup default 1.86.0
+      - rustup target add aarch64-linux-android
+      - cargo install cargo-ndk@4.1.2 --locked
+      - go install golang.org/x/mobile/cmd/gomobile@v0.0.0-20250606033058-a2a15c67f36f
+    ndk: r27
+
+  - versionName: 4.3.0
+    versionCode: 1362
+    commit: 03dd062177d715602e68caba876c179a7d1984cd
+    subdir: app
+    submodules: true
+    sudo:
+      - echo "deb https://deb.debian.org/debian forky main" > /etc/apt/sources.list.d/forky.list
+      - apt-get update
+      - apt-get install -y make binutils gawk gcc libc-dev rustup
+      - apt-get install -y -t forky golang-go
+    gradle:
+      - x64
+    scandelete:
+      - rdp-kotlin/jniLibs/
+      - rclone-android/build
+    build:
+      - sdkmanager "cmake;3.31.6"
+      - rustup default 1.86.0
+      - rustup target add x86_64-linux-android
+      - cargo install cargo-ndk@4.1.2 --locked
+      - go install golang.org/x/mobile/cmd/gomobile@v0.0.0-20250606033058-a2a15c67f36f
+    ndk: r27
+
 AutoUpdateMode: Version
 UpdateCheckMode: Tags
-CurrentVersion: 4.3.6
-CurrentVersionCode: 1421
+VercodeOperation:
+  - 10 * %c + 1
+  - 10 * %c + 2
+CurrentVersion: 4.3.0
+CurrentVersionCode: 1362

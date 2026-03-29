@@ -355,10 +355,10 @@ private fun Modifier.pagerSwipeOverride(
                 isHorizontal = abs(totalX) > abs(totalY) * 2
             }
 
-            // Consume on Initial to prevent the pager's built-in scrollable
-            // from intercepting the gesture — but not when selection is active,
-            // so the terminal can handle selection handle drags.
-            if (!isSelectionActive()) {
+            // Consume horizontal drags on Initial to prevent the pager's built-in
+            // scrollable from intercepting — but let vertical events through so
+            // the terminal can handle scrollback and mouse input.
+            if (decided && isHorizontal && !isSelectionActive()) {
                 change.consume()
             }
 

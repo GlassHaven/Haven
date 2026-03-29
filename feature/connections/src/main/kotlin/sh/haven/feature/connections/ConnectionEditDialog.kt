@@ -383,7 +383,6 @@ fun ConnectionEditDialog(
                         "mega" to "MEGA",
                         "pcloud" to "pCloud",
                         "box" to "Box",
-                        "local" to "Local Filesystem",
                     )
                     var providerExpanded by remember { mutableStateOf(false) }
                     ExposedDropdownMenuBox(

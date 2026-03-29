@@ -172,6 +172,9 @@ class SettingsViewModel @Inject constructor(
             NavBlockMode.ALIGNED,
         )
 
+    val screenOrder: StateFlow<List<String>> = preferencesRepository.screenOrder
+        .stateIn(viewModelScope, SharingStarted.WhileSubscribed(5000), emptyList())
+
     fun setBiometricEnabled(enabled: Boolean) {
         viewModelScope.launch {
             preferencesRepository.setBiometricEnabled(enabled)
@@ -259,6 +262,12 @@ class SettingsViewModel @Inject constructor(
     fun setNavBlockMode(mode: NavBlockMode) {
         viewModelScope.launch {
             preferencesRepository.setNavBlockMode(mode)
+        }
+    }
+
+    fun setScreenOrder(routes: List<String>) {
+        viewModelScope.launch {
+            preferencesRepository.setScreenOrder(routes)
         }
     }
 }

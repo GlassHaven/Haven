@@ -39,6 +39,7 @@ class UserPreferencesRepository @Inject constructor(
     private val mouseInputEnabledKey = booleanPreferencesKey("mouse_input_enabled")
     private val terminalRightClickKey = booleanPreferencesKey("terminal_right_click")
     private val reorderHintShownKey = booleanPreferencesKey("reorder_hint_shown")
+    private val screenOrderKey = stringPreferencesKey("screen_order")
 
     val biometricEnabled: Flow<Boolean> = dataStore.data.map { prefs ->
         prefs[biometricEnabledKey] ?: false
@@ -128,6 +129,17 @@ class UserPreferencesRepository @Inject constructor(
     suspend fun setReorderHintShown() {
         dataStore.edit { prefs ->
             prefs[reorderHintShownKey] = true
+        }
+    }
+
+    /** Comma-separated route names defining bottom navigation tab order. */
+    val screenOrder: Flow<List<String>> = dataStore.data.map { prefs ->
+        prefs[screenOrderKey]?.split(",")?.filter { it.isNotBlank() } ?: emptyList()
+    }
+
+    suspend fun setScreenOrder(routes: List<String>) {
+        dataStore.edit { prefs ->
+            prefs[screenOrderKey] = routes.joinToString(",")
         }
     }
 

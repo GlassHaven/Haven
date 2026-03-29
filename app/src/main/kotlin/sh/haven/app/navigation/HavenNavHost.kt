@@ -2,11 +2,13 @@ package sh.haven.app.navigation
 
 import androidx.compose.foundation.gestures.awaitEachGesture
 import androidx.compose.foundation.gestures.awaitFirstDown
+import androidx.compose.foundation.gestures.detectDragGesturesAfterLongPress
 import androidx.compose.foundation.layout.WindowInsets
 import androidx.compose.foundation.layout.consumeWindowInsets
 import androidx.compose.foundation.layout.exclude
 import androidx.compose.foundation.layout.ime
 import androidx.compose.foundation.layout.imePadding
+import androidx.compose.foundation.layout.offset
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.pager.HorizontalPager
 import androidx.compose.foundation.pager.PagerState
@@ -21,15 +23,25 @@ import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableFloatStateOf
+import androidx.compose.runtime.mutableIntStateOf
+import androidx.compose.runtime.mutableStateListOf
+import androidx.compose.runtime.mutableStateMapOf
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.hapticfeedback.HapticFeedbackType
 import androidx.compose.ui.input.pointer.PointerEventPass
 import androidx.compose.ui.input.pointer.pointerInput
 import androidx.compose.ui.input.pointer.positionChange
+import androidx.compose.ui.layout.onGloballyPositioned
+import androidx.compose.ui.layout.positionInParent
+import androidx.compose.ui.platform.LocalHapticFeedback
+import androidx.compose.ui.unit.IntOffset
+import androidx.compose.ui.zIndex
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.launch
 import sh.haven.core.data.preferences.UserPreferencesRepository
@@ -40,6 +52,7 @@ import sh.haven.feature.settings.SettingsScreen
 import sh.haven.feature.sftp.SftpScreen
 import sh.haven.feature.terminal.TerminalScreen
 import kotlin.math.abs
+import kotlin.math.roundToInt
 
 @Composable
 fun HavenNavHost(
@@ -50,12 +63,31 @@ fun HavenNavHost(
     val connections by connectionRepository.observeAll()
         .collectAsState(initial = emptyList())
     val hasDesktopConnections = connections.any { it.isVnc || it.isRdp || it.isLocal }
-    val screens = remember(hasDesktopConnections) {
-        Screen.entries.filter { screen ->
+    val screenOrderPref by preferencesRepository.screenOrder
+        .collectAsState(initial = emptyList())
+    val screens = remember(screenOrderPref, hasDesktopConnections) {
+        val ordered = if (screenOrderPref.isNotEmpty()) {
+            val byRoute = screenOrderPref.mapNotNull { route ->
+                Screen.entries.find { it.route == route }
+            }
+            val missing = Screen.entries.filter { it !in byRoute }
+            byRoute + missing
+        } else {
+            Screen.entries.toList()
+        }
+        ordered.filter { screen ->
             when (screen) {
                 Screen.Desktop -> hasDesktopConnections
                 else -> true
             }
+        }
+    }
+    // Separate mutable list for nav bar visual order during drag (pager untouched)
+    val navScreens = remember { mutableStateListOf<Screen>() }
+    LaunchedEffect(screens) {
+        if (navScreens.toList() != screens) {
+            navScreens.clear()
+            navScreens.addAll(screens)
         }
     }
     val pagerState = rememberPagerState { screens.size }
@@ -115,21 +147,107 @@ fun HavenNavHost(
     // Disable pager swipe when VNC/RDP is connected (pinch-to-zoom conflicts)
     var desktopConnected by remember { mutableStateOf(false) }
 
+    // Nav bar drag-to-reorder state
+    var navDragIndex by remember { mutableIntStateOf(-1) }
+    var navDragOffset by remember { mutableFloatStateOf(0f) }
+    val navItemLefts = remember { mutableStateMapOf<Int, Float>() }
+    val navItemWidths = remember { mutableStateMapOf<Int, Float>() }
+    val haptic = LocalHapticFeedback.current
+
     Scaffold(
         contentWindowInsets = ScaffoldDefaults.contentWindowInsets.exclude(WindowInsets.ime),
         bottomBar = {
             if (!desktopFullscreen) {
                 NavigationBar {
-                    screens.forEachIndexed { index, screen ->
+                    val currentScreen = screens.getOrNull(pagerState.currentPage)
+                    navScreens.forEachIndexed { index, screen ->
+                        val isDragged = index == navDragIndex
                         NavigationBarItem(
                             icon = { Icon(screen.icon, contentDescription = screen.label) },
                             label = { Text(screen.label) },
-                            selected = pagerState.currentPage == index,
+                            selected = screen == currentScreen,
                             onClick = {
-                                coroutineScope.launch {
-                                    pagerState.animateScrollToPage(index)
+                                if (navDragIndex < 0) {
+                                    val pageIndex = screens.indexOf(screen)
+                                    if (pageIndex >= 0) coroutineScope.launch {
+                                        pagerState.animateScrollToPage(pageIndex)
+                                    }
                                 }
-                            }
+                            },
+                            modifier = Modifier
+                                .onGloballyPositioned { coords ->
+                                    navItemLefts[index] = coords.positionInParent().x
+                                    navItemWidths[index] = coords.size.width.toFloat()
+                                }
+                                .then(
+                                    if (isDragged) {
+                                        Modifier
+                                            .zIndex(1f)
+                                            .offset { IntOffset(navDragOffset.roundToInt(), 0) }
+                                    } else {
+                                        Modifier
+                                    },
+                                )
+                                .pointerInput(Unit) {
+                                    detectDragGesturesAfterLongPress(
+                                        onDragStart = {
+                                            navDragIndex = index
+                                            navDragOffset = 0f
+                                            haptic.performHapticFeedback(HapticFeedbackType.LongPress)
+                                        },
+                                        onDrag = { change, offset ->
+                                            change.consume()
+                                            navDragOffset += offset.x
+                                            val di = navDragIndex
+                                            if (di < 0) return@detectDragGesturesAfterLongPress
+                                            val myLeft = navItemLefts[di] ?: return@detectDragGesturesAfterLongPress
+                                            val myW = navItemWidths[di] ?: return@detectDragGesturesAfterLongPress
+                                            val myCenter = myLeft + myW / 2 + navDragOffset
+                                            // Swap right
+                                            if (di < navScreens.size - 1) {
+                                                val nextLeft = navItemLefts[di + 1] ?: 0f
+                                                val nextW = navItemWidths[di + 1] ?: 0f
+                                                if (myCenter > nextLeft + nextW / 2) {
+                                                    val item = navScreens.removeAt(di)
+                                                    navScreens.add(di + 1, item)
+                                                    navDragOffset -= nextW
+                                                    navDragIndex = di + 1
+                                                    haptic.performHapticFeedback(HapticFeedbackType.TextHandleMove)
+                                                }
+                                            }
+                                            // Swap left
+                                            if (di > 0) {
+                                                val prevLeft = navItemLefts[di - 1] ?: 0f
+                                                val prevW = navItemWidths[di - 1] ?: 0f
+                                                if (myCenter < prevLeft + prevW / 2) {
+                                                    val item = navScreens.removeAt(di)
+                                                    navScreens.add(di - 1, item)
+                                                    navDragOffset += prevW
+                                                    navDragIndex = di - 1
+                                                    haptic.performHapticFeedback(HapticFeedbackType.TextHandleMove)
+                                                }
+                                            }
+                                        },
+                                        onDragEnd = {
+                                            navDragIndex = -1
+                                            navDragOffset = 0f
+                                            coroutineScope.launch {
+                                                preferencesRepository.setScreenOrder(
+                                                    navScreens.map { it.route },
+                                                )
+                                            }
+                                        },
+                                        onDragCancel = {
+                                            navDragIndex = -1
+                                            navDragOffset = 0f
+                                            coroutineScope.launch {
+                                                preferencesRepository.setScreenOrder(
+                                                    navScreens.map { it.route },
+                                                )
+                                            }
+                                        },
+                                    )
+                                },
                         )
                     }
                 }

@@ -10,6 +10,7 @@ import androidx.activity.result.contract.ActivityResultContracts
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
+import androidx.compose.foundation.gestures.detectDragGesturesAfterLongPress
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
@@ -17,6 +18,7 @@ import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
+import androidx.compose.foundation.layout.offset
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
@@ -34,7 +36,9 @@ import androidx.compose.material.icons.filled.Delete
 import androidx.compose.material.icons.filled.Edit
 import androidx.compose.material.icons.filled.Favorite
 import androidx.compose.material.icons.filled.Fingerprint
+import androidx.compose.material.icons.filled.DragHandle
 import androidx.compose.material.icons.filled.History
+import androidx.compose.material.icons.filled.Reorder
 import androidx.compose.material.icons.filled.ListAlt
 import androidx.compose.material.icons.filled.ScreenLockPortrait
 import androidx.compose.material.icons.filled.Timer
@@ -69,13 +73,21 @@ import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableFloatStateOf
+import androidx.compose.runtime.mutableIntStateOf
 import androidx.compose.runtime.mutableStateListOf
+import androidx.compose.runtime.mutableStateMapOf
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.draw.clip
+import androidx.compose.ui.draw.shadow
+import androidx.compose.ui.hapticfeedback.HapticFeedbackType
+import androidx.compose.ui.input.pointer.pointerInput
+import androidx.compose.ui.layout.onGloballyPositioned
+import androidx.compose.ui.layout.positionInParent
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.platform.LocalHapticFeedback
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.semantics.Role
 import androidx.compose.ui.graphics.vector.ImageVector
@@ -83,9 +95,13 @@ import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.text.font.FontFamily
 import androidx.compose.ui.text.input.PasswordVisualTransformation
 import androidx.compose.ui.text.style.TextDecoration
+import androidx.compose.ui.unit.IntOffset
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import androidx.compose.ui.zIndex
+import kotlin.math.roundToInt
 import androidx.hilt.navigation.compose.hiltViewModel
+import sh.haven.core.ui.navigation.Screen
 import sh.haven.core.data.preferences.MACRO_PRESETS
 import sh.haven.core.data.preferences.NavBlockMode
 import sh.haven.core.data.preferences.ToolbarItem
@@ -129,6 +145,8 @@ fun SettingsScreen(
     var showBackupPasswordDialog by remember { mutableStateOf<BackupAction?>(null) }
     var showLockTimeoutDialog by remember { mutableStateOf(false) }
     var showOsc133SetupDialog by remember { mutableStateOf(false) }
+    var showScreenOrderDialog by remember { mutableStateOf(false) }
+    val screenOrder by viewModel.screenOrder.collectAsState()
 
     val context = LocalContext.current
 
@@ -286,6 +304,12 @@ fun SettingsScreen(
             subtitle = theme.label,
             onClick = { showThemeDialog = true },
         )
+        SettingsItem(
+            icon = Icons.Filled.Reorder,
+            title = "Screen order",
+            subtitle = "Reorder bottom navigation tabs",
+            onClick = { showScreenOrderDialog = true },
+        )
 
         HorizontalDivider(modifier = Modifier.padding(vertical = 8.dp))
 
@@ -362,6 +386,17 @@ fun SettingsScreen(
             onSelect = { selected ->
                 viewModel.setTheme(selected)
                 showThemeDialog = false
+            },
+        )
+    }
+
+    if (showScreenOrderDialog) {
+        ScreenOrderDialog(
+            currentOrder = screenOrder,
+            onDismiss = { showScreenOrderDialog = false },
+            onSave = { newOrder ->
+                viewModel.setScreenOrder(newOrder.map { it.route })
+                showScreenOrderDialog = false
             },
         )
     }
@@ -687,6 +722,141 @@ private fun AboutDialog(
                 TextButton(onClick = onOpenGitHub) {
                     Text("GitHub")
                 }
+            }
+        },
+    )
+}
+
+@Composable
+private fun ScreenOrderDialog(
+    currentOrder: List<String>,
+    onDismiss: () -> Unit,
+    onSave: (List<Screen>) -> Unit,
+) {
+    val allScreens = Screen.entries.toList()
+    val initial = if (currentOrder.isNotEmpty()) {
+        val byRoute = currentOrder.mapNotNull { route ->
+            allScreens.find { it.route == route }
+        }
+        val missing = allScreens.filter { it !in byRoute }
+        byRoute + missing
+    } else {
+        allScreens
+    }
+    val order = remember { mutableStateListOf(*initial.toTypedArray()) }
+    var draggedIndex by remember { mutableIntStateOf(-1) }
+    var dragOffset by remember { mutableFloatStateOf(0f) }
+    val itemTops = remember { mutableStateMapOf<Int, Float>() }
+    val itemHeights = remember { mutableStateMapOf<Int, Float>() }
+    val haptic = LocalHapticFeedback.current
+
+    AlertDialog(
+        onDismissRequest = onDismiss,
+        title = { Text("Screen order") },
+        text = {
+            Column {
+                order.forEachIndexed { index, screen ->
+                    val isDragged = index == draggedIndex
+                    ListItem(
+                        headlineContent = { Text(screen.label) },
+                        leadingContent = {
+                            Icon(
+                                screen.icon,
+                                contentDescription = null,
+                                tint = MaterialTheme.colorScheme.primary,
+                            )
+                        },
+                        trailingContent = {
+                            Icon(
+                                Icons.Filled.DragHandle,
+                                contentDescription = "Drag to reorder",
+                                tint = MaterialTheme.colorScheme.onSurfaceVariant,
+                            )
+                        },
+                        modifier = Modifier
+                            .onGloballyPositioned { coords ->
+                                itemTops[index] = coords.positionInParent().y
+                                itemHeights[index] = coords.size.height.toFloat()
+                            }
+                            .then(
+                                if (isDragged) {
+                                    Modifier
+                                        .zIndex(1f)
+                                        .offset { IntOffset(0, dragOffset.roundToInt()) }
+                                        .shadow(8.dp, RoundedCornerShape(8.dp))
+                                } else {
+                                    Modifier
+                                },
+                            )
+                            .pointerInput(Unit) {
+                                detectDragGesturesAfterLongPress(
+                                    onDragStart = {
+                                        draggedIndex = order.indexOf(screen)
+                                        dragOffset = 0f
+                                        haptic.performHapticFeedback(HapticFeedbackType.LongPress)
+                                    },
+                                    onDrag = { change, offset ->
+                                        change.consume()
+                                        dragOffset += offset.y
+                                        val di = draggedIndex
+                                        if (di < 0) return@detectDragGesturesAfterLongPress
+                                        val myTop = itemTops[di] ?: return@detectDragGesturesAfterLongPress
+                                        val myH = itemHeights[di] ?: return@detectDragGesturesAfterLongPress
+                                        val myCenter = myTop + myH / 2 + dragOffset
+                                        // Check swap with neighbor below
+                                        if (di < order.size - 1) {
+                                            val nextTop = itemTops[di + 1] ?: 0f
+                                            val nextH = itemHeights[di + 1] ?: 0f
+                                            val nextCenter = nextTop + nextH / 2
+                                            if (myCenter > nextCenter) {
+                                                val item = order.removeAt(di)
+                                                order.add(di + 1, item)
+                                                dragOffset -= nextH
+                                                // Update positions after swap
+                                                itemTops[di] = myTop
+                                                itemTops[di + 1] = myTop + nextH
+                                                draggedIndex = di + 1
+                                                haptic.performHapticFeedback(HapticFeedbackType.TextHandleMove)
+                                            }
+                                        }
+                                        // Check swap with neighbor above
+                                        if (di > 0) {
+                                            val prevTop = itemTops[di - 1] ?: 0f
+                                            val prevH = itemHeights[di - 1] ?: 0f
+                                            val prevCenter = prevTop + prevH / 2
+                                            if (myCenter < prevCenter) {
+                                                val item = order.removeAt(di)
+                                                order.add(di - 1, item)
+                                                dragOffset += prevH
+                                                itemTops[di - 1] = myTop - prevH
+                                                itemTops[di] = myTop
+                                                draggedIndex = di - 1
+                                                haptic.performHapticFeedback(HapticFeedbackType.TextHandleMove)
+                                            }
+                                        }
+                                    },
+                                    onDragEnd = {
+                                        draggedIndex = -1
+                                        dragOffset = 0f
+                                    },
+                                    onDragCancel = {
+                                        draggedIndex = -1
+                                        dragOffset = 0f
+                                    },
+                                )
+                            },
+                    )
+                }
+            }
+        },
+        confirmButton = {
+            TextButton(onClick = { onSave(order.toList()) }) {
+                Text("Save")
+            }
+        },
+        dismissButton = {
+            TextButton(onClick = onDismiss) {
+                Text("Cancel")
             }
         },
     )

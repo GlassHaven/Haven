@@ -36,6 +36,7 @@ import androidx.compose.material.icons.filled.Delete
 import androidx.compose.material.icons.filled.DesktopWindows
 import androidx.compose.material.icons.filled.DriveFileRenameOutline
 import androidx.compose.material.icons.filled.Edit
+import androidx.compose.material.icons.filled.Restore
 import androidx.compose.material.icons.filled.ExpandLess
 import androidx.compose.material.icons.filled.ExpandMore
 import androidx.compose.material.icons.filled.Folder
@@ -463,9 +464,11 @@ fun ConnectionsScreen(
         SessionPickerDialog(
             managerLabel = selection.managerLabel,
             sessionNames = selection.sessionNames,
+            previousSessionNames = selection.previousSessionNames,
             canKill = selection.manager.killCommand != null,
             canRename = selection.manager.renameCommand != null,
             onSelect = { name -> viewModel.onSessionSelected(selection.sessionId, name) },
+            onRestore = { names -> viewModel.restorePreviousSessions(selection.sessionId, names) },
             onKill = { name -> viewModel.killRemoteSession(name) },
             onRename = { old, new -> viewModel.renameRemoteSession(old, new) },
             onNewSession = { viewModel.onSessionSelected(selection.sessionId, null) },
@@ -1265,9 +1268,11 @@ private fun EmptyState() {
 private fun SessionPickerDialog(
     managerLabel: String,
     sessionNames: List<String>,
+    previousSessionNames: List<String> = emptyList(),
     canKill: Boolean = false,
     canRename: Boolean = false,
     onSelect: (String) -> Unit,
+    onRestore: (List<String>) -> Unit = {},
     onKill: (String) -> Unit = {},
     onRename: (old: String, new: String) -> Unit = { _, _ -> },
     onNewSession: () -> Unit,
@@ -1291,9 +1296,42 @@ private fun SessionPickerDialog(
         title = { Text("$managerLabel sessions") },
         text = {
             Column(modifier = Modifier.verticalScroll(rememberScrollState())) {
-                sessionNames.forEach { name ->
+                // Restore previous sessions button (if any match)
+                if (previousSessionNames.size > 1) {
                     ListItem(
-                        headlineContent = { Text(name) },
+                        headlineContent = {
+                            Text(
+                                "Restore ${previousSessionNames.size} previous sessions",
+                                color = MaterialTheme.colorScheme.primary,
+                            )
+                        },
+                        supportingContent = {
+                            Text(
+                                previousSessionNames.joinToString(", "),
+                                style = MaterialTheme.typography.bodySmall,
+                                maxLines = 1,
+                            )
+                        },
+                        leadingContent = {
+                            Icon(
+                                Icons.Filled.Restore,
+                                contentDescription = null,
+                                tint = MaterialTheme.colorScheme.primary,
+                            )
+                        },
+                        modifier = Modifier.clickable { onRestore(previousSessionNames) },
+                    )
+                    HorizontalDivider(modifier = Modifier.padding(vertical = 4.dp))
+                }
+                sessionNames.forEach { name ->
+                    val wasPrevious = name in previousSessionNames
+                    ListItem(
+                        headlineContent = {
+                            Text(
+                                name,
+                                fontWeight = if (wasPrevious) androidx.compose.ui.text.font.FontWeight.Bold else null,
+                            )
+                        },
                         trailingContent = {
                             Row {
                                 if (canRename) {

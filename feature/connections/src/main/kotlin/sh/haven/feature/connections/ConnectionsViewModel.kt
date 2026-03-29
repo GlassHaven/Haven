@@ -345,6 +345,8 @@ class ConnectionsViewModel @Inject constructor(
         val profileId: String,
         val managerLabel: String,
         val sessionNames: List<String>,
+        /** Session names that were open last time (for "Restore" action). */
+        val previousSessionNames: List<String> = emptyList(),
         val manager: SessionManager = SessionManager.NONE,
         /** "SSH" or "MOSH" — determines which finish path onSessionSelected uses. */
         val transportType: String = "SSH",
@@ -1059,11 +1061,17 @@ class ConnectionsViewModel @Inject constructor(
                         }
                     }
                     if (existingSessions.isNotEmpty()) {
+                        // Parse previously open sessions from the pipe-delimited lastSessionName
+                        val previousNames = profile.lastSessionName
+                            ?.split("|")
+                            ?.filter { it.isNotBlank() && it in existingSessions }
+                            ?: emptyList()
                         _sessionSelection.value = SessionSelection(
                             sessionId = sessionId,
                             profileId = profile.id,
                             managerLabel = sshSessionMgr.label,
                             sessionNames = existingSessions,
+                            previousSessionNames = previousNames,
                             manager = sshSessionMgr,
                         )
                         _connectingProfileId.value = null
@@ -1431,6 +1439,54 @@ class ConnectionsViewModel @Inject constructor(
      * Called from the session picker dialog when user selects a session.
      * @param sessionName The name to attach to, or null to create a new session.
      */
+    /**
+     * Restore multiple previous sessions by opening one tab per session name.
+     * The first session uses the existing SSH connection; additional sessions
+     * open new SSH connections to the same host.
+     */
+    fun restorePreviousSessions(sessionId: String, sessionNames: List<String>) {
+        val sel = _sessionSelection.value
+        _sessionSelection.value = null
+        if (sel == null || sessionNames.isEmpty()) return
+
+        val profileId = sel.profileId
+        viewModelScope.launch {
+            _connectingProfileId.value = profileId
+            try {
+                // First session uses the already-open SSH connection
+                sshSessionManager.setChosenSessionName(sessionId, sessionNames.first())
+                finishConnect(sessionId, profileId)
+
+                // Additional sessions need new SSH connections
+                for (name in sessionNames.drop(1)) {
+                    val profile = repository.getById(profileId) ?: break
+                    val password = profile.sshPassword ?: ""
+                    // Reuse the stored connection config from the first session
+                    val configPair = sshSessionManager.getConnectionConfigForProfile(profileId) ?: break
+                    val (config, _) = configPair
+                    val newClient = withContext(Dispatchers.IO) {
+                        SshClient().apply { connectBlocking(config) }
+                    }
+                    val newSessionId = sshSessionManager.registerSession(profileId, profile.label, newClient)
+                    val manager = sel.manager
+                    val cmdOverride = withContext(Dispatchers.IO) {
+                        preferencesRepository.sessionCommandOverride.first()
+                    }
+                    sshSessionManager.storeConnectionConfig(newSessionId, config, manager, cmdOverride)
+                    sshSessionManager.setChosenSessionName(newSessionId, name)
+                    finishConnect(newSessionId, profileId, silent = true)
+                }
+                // Navigate to terminal after all tabs are open
+                _navigateToTerminal.value = profileId
+            } catch (e: Exception) {
+                Log.e(TAG, "Restore sessions failed", e)
+                _error.value = "Restore failed: ${e.message}"
+            } finally {
+                _connectingProfileId.value = null
+            }
+        }
+    }
+
     fun onSessionSelected(sessionId: String, sessionName: String?) {
         val sel = _sessionSelection.value
         _sessionSelection.value = null
@@ -1713,13 +1769,20 @@ class ConnectionsViewModel @Inject constructor(
         }
         sshSessionManager.updateStatus(sessionId, SshSessionManager.SessionState.Status.CONNECTED)
         repository.markConnected(profileId)
-        // Persist the effective session manager name for group launch restore
+        // Persist all open session names for this profile (pipe-delimited)
         sshSessionManager.getSession(sessionId)?.let { session ->
-            val rawName = session.chosenSessionName ?: session.label ?: sessionId.take(8)
-            val effectiveName = rawName.replace(Regex("[^A-Za-z0-9._-]"), "-")
             if (session.sessionManager != SessionManager.NONE) {
+                // Collect session names from all sessions for this profile
+                val allNames = sshSessionManager.sessions.value.values
+                    .filter { it.profileId == profileId && it.chosenSessionName != null }
+                    .map { it.chosenSessionName!!.replace(Regex("[^A-Za-z0-9._-]"), "-") }
+                    .toMutableList()
+                // Add the current session if not already included
+                val currentName = (session.chosenSessionName ?: session.label ?: sessionId.take(8))
+                    .replace(Regex("[^A-Za-z0-9._-]"), "-")
+                if (currentName !in allNames) allNames.add(currentName)
                 repository.getById(profileId)?.let { profile ->
-                    repository.save(profile.copy(lastSessionName = effectiveName))
+                    repository.save(profile.copy(lastSessionName = allNames.joinToString("|")))
                 }
             }
         }

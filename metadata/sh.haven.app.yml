@@ -12,12 +12,14 @@ Changelog: https://github.com/GlassOnTin/Haven/releases
 AutoName: Haven
 
 Description: |-
-  Haven is an open source SSH, VNC, RDP and SFTP client for Android.
+  Haven is an open source SSH, VNC, RDP, SFTP and cloud storage client for
+  Android.
 
   Connect to your servers with a full terminal emulator, view remote desktops
-  over VNC or RDP, browse and transfer files over SFTP, and manage your SSH
-  keys — all from your phone. Supports Mosh, Eternal Terminal, and session
-  managers (tmux, screen, zellij).
+  over VNC or RDP, browse and transfer files over SFTP, manage your SSH
+  keys, and access 60+ cloud storage providers (Google Drive, Dropbox,
+  OneDrive, S3, and more) via rclone — all from your phone. Supports Mosh,
+  Eternal Terminal, and session managers (tmux, screen, zellij).
 
 RepoType: git
 Repo: https://github.com/GlassOnTin/Haven.git
@@ -114,7 +116,62 @@ Builds:
     gradle:
       - yes
 
+  # v4.0.0+: Go/gomobile for rclone cloud storage, Rust/cargo-ndk for RDP
+  - versionName: 4.0.0
+    versionCode: 1331
+    commit: v4.0.0
+    subdir: app
+    sudo:
+      - apt-get update
+      - apt-get install -y make gcc libc-dev golang-go
+    srclibs:
+      - go@go1.26.1
+    prebuild:
+      - sdkmanager 'platforms;android-35' 'build-tools;36.0.0'
+    build:
+      - pushd $$go$$/src
+      - ./make.bash
+      - popd
+      - export PATH="$$go$$/bin:$PATH"
+      - export GOPATH="$HOME/go"
+      - go install golang.org/x/mobile/cmd/gomobile@latest
+      - go install golang.org/x/mobile/cmd/gobind@latest
+      - export PATH="$GOPATH/bin:$PATH"
+      - export ANDROID_NDK_HOME=$$NDK$$
+      - cd ../rclone-android
+      - bash tools/build-android.sh
+    ndk: 28.2.13676358
+    gradle:
+      - arm64
+
+  - versionName: 4.0.0
+    versionCode: 1332
+    commit: v4.0.0
+    subdir: app
+    sudo:
+      - apt-get update
+      - apt-get install -y make gcc libc-dev golang-go
+    srclibs:
+      - go@go1.26.1
+    prebuild:
+      - sdkmanager 'platforms;android-35' 'build-tools;36.0.0'
+    build:
+      - pushd $$go$$/src
+      - ./make.bash
+      - popd
+      - export PATH="$$go$$/bin:$PATH"
+      - export GOPATH="$HOME/go"
+      - go install golang.org/x/mobile/cmd/gomobile@latest
+      - go install golang.org/x/mobile/cmd/gobind@latest
+      - export PATH="$GOPATH/bin:$PATH"
+      - export ANDROID_NDK_HOME=$$NDK$$
+      - cd ../rclone-android
+      - bash tools/build-android.sh
+    ndk: 28.2.13676358
+    gradle:
+      - x64
+
 AutoUpdateMode: Version
 UpdateCheckMode: Tags
-CurrentVersion: 2.0.0
-CurrentVersionCode: 45
+CurrentVersion: 4.0.0
+CurrentVersionCode: 1331

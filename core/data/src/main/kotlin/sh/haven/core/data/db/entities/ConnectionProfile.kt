@@ -51,6 +51,10 @@ data class ConnectionProfile(
     val lastSessionName: String? = null,
     /** Disable alternate screen buffer (DECSET 1049) so scrollback works in screen/vim. */
     val disableAltScreen: Boolean = false,
+    /** rclone remote name (e.g. "gdrive"). */
+    val rcloneRemoteName: String? = null,
+    /** rclone provider type (e.g. "drive", "s3", "dropbox"). */
+    val rcloneProvider: String? = null,
 ) {
     enum class AuthType {
         PASSWORD,
@@ -65,6 +69,7 @@ data class ConnectionProfile(
     val isRdp: Boolean get() = connectionType == "RDP"
     val isSmb: Boolean get() = connectionType == "SMB"
     val isLocal: Boolean get() = connectionType == "LOCAL"
+    val isRclone: Boolean get() = connectionType == "RCLONE"
     val isDesktop: Boolean get() = isVnc || isRdp
-    val isTerminal: Boolean get() = !isDesktop && !isSmb
+    val isTerminal: Boolean get() = !isDesktop && !isSmb && !isRclone
 }

@@ -5,7 +5,7 @@
 <h1 align="center">Haven</h1>
 
 <p align="center">
-  Free SSH, VNC, RDP &amp; SFTP client for Android
+  Free SSH, VNC, RDP, SFTP &amp; cloud storage client for Android
 </p>
 
 <p align="center">
@@ -52,9 +52,13 @@
 
 **SFTP** — Browse remote directories, upload and download files, delete, copy path, toggle hidden files, sort by name/size/date, and multi-server tabs.
 
+**Cloud Storage** — Browse, upload, download, and manage files on 60+ cloud providers via [rclone](https://rclone.org) — Google Drive, Dropbox, OneDrive, Amazon S3, Backblaze B2, and more. OAuth authentication with automatic browser flow. Upload individual files or entire folders with conflict resolution (skip/replace). Appears alongside SFTP and SMB in the Files tab.
+
 **SSH Keys** — Generate Ed25519, RSA, and ECDSA keys on-device. Import keys from file (PEM/OpenSSH format). One-tap public key copy and deploy key dialog for `authorized_keys` setup. Assign specific keys to individual connections.
 
-**Connections** — Saved profiles with transport selection (SSH, Mosh, Eternal Terminal, VNC, RDP, Reticulum), host key TOFU verification, fingerprint change detection, auto-reconnect with backoff, password fallback, local/remote port forwarding (-L/-R), ProxyJump multi-hop tunneling (-J) with tree view, SOCKS5/SOCKS4/HTTP proxy support (Tor .onion compatible), and RDP-over-SSH tunnel profiles.
+**SMB** — Browse Windows/Samba file shares with optional SSH tunneling for secure access over the internet.
+
+**Connections** — Saved profiles with transport selection (SSH, Mosh, Eternal Terminal, VNC, RDP, SMB, Cloud Storage, Reticulum), host key TOFU verification, fingerprint change detection, auto-reconnect with backoff, password fallback, local/remote port forwarding (-L/-R), ProxyJump multi-hop tunneling (-J) with tree view, SOCKS5/SOCKS4/HTTP proxy support (Tor .onion compatible), and RDP-over-SSH tunnel profiles.
 
 **Reticulum** — Connect over [Reticulum](https://reticulum.network) mesh networks via [rnsh](https://github.com/acehoss/rnsh) or [Sideband](https://github.com/markqvist/Sideband) with announce-based destination discovery and hop count.
 
@@ -84,15 +88,20 @@ Notifications appear as a toast in the foreground or as an Android notification 
 | [GitHub Releases](https://github.com/GlassOnTin/Haven/releases/latest) | Signed APK, all features |
 | [F-Droid](https://f-droid.org/en/packages/sh.haven.app) | Built from source, all features |
 
-Both builds are identical — SSH, Mosh, Eternal Terminal, VNC, RDP, and SFTP. IronRDP (Rust) is built from source via `cargo-ndk`.
+Both builds are identical — SSH, Mosh, Eternal Terminal, VNC, RDP, SFTP, and Cloud Storage. IronRDP (Rust) is built from source via `cargo-ndk`. rclone (Go) is built from source via `gomobile`.
 
 ### Build from source
 
-Requires [Rust](https://rustup.rs/) with Android targets and `cargo-ndk`:
+Requires [Rust](https://rustup.rs/) with Android targets, `cargo-ndk`, [Go](https://go.dev/dl/) 1.26+, and `gomobile`:
 
 ```bash
+# Rust (for RDP)
 rustup target add aarch64-linux-android x86_64-linux-android
 cargo install cargo-ndk
+
+# Go (for rclone cloud storage)
+go install golang.org/x/mobile/cmd/gomobile@latest
+go install golang.org/x/mobile/cmd/gobind@latest
 
 git clone https://github.com/GlassOnTin/Haven.git
 cd Haven
@@ -100,6 +109,18 @@ cd Haven
 ```
 
 Output: `app/build/outputs/apk/debug/haven-*-debug.apk`
+
+## Third-party libraries
+
+| Library | Purpose | License |
+|---------|---------|---------|
+| [rclone](https://rclone.org) | Cloud storage engine (60+ providers) | MIT |
+| [IronRDP](https://github.com/Devolutions/IronRDP) | RDP protocol (Rust/UniFFI) | MIT / Apache-2.0 |
+| [JSch](https://github.com/mwiede/jsch) | SSH/SFTP protocol | BSD |
+| [smbj](https://github.com/hierynomus/smbj) | SMB/CIFS protocol | Apache-2.0 |
+| [ConnectBot termlib](https://github.com/connectbot/connectbot) | Terminal emulator | Apache-2.0 |
+| [PRoot](https://proot-me.github.io) | Local Linux shell (userspace chroot) | GPL-2.0 |
+| [Jetpack Compose](https://developer.android.com/jetpack/compose) | UI toolkit | Apache-2.0 |
 
 ## License
 

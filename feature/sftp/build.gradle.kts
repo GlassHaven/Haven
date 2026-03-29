@@ -32,7 +32,9 @@ dependencies {
     implementation(project(":core:et"))
     implementation(project(":core:data"))
     implementation(project(":core:smb"))
+    implementation(project(":core:rclone"))
 
+    implementation("androidx.documentfile:documentfile:1.0.1")
     implementation(libs.hilt.android)
     ksp(libs.hilt.compiler)
     implementation(libs.hilt.navigation.compose)

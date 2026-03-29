@@ -52,6 +52,7 @@ import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.ui.unit.dp
+import androidx.compose.ui.window.DialogProperties
 import sh.haven.core.data.db.entities.ConnectionProfile
 
 /** Profile group colors — matches PROFILE_COLORS in ConnectionsScreen. */
@@ -90,6 +91,7 @@ fun ConnectionEditDialog(
         existing?.isVnc == true -> "VNC"
         existing?.isRdp == true -> "RDP"
         existing?.isSmb == true -> "SMB"
+        existing?.isRclone == true -> "RCLONE"
         existing?.isEternalTerminal == true -> "ET"
         existing?.isMosh == true -> "MOSH"
         existing?.isReticulum == true -> "RETICULUM"
@@ -103,6 +105,7 @@ fun ConnectionEditDialog(
         "VNC" -> "VNC"
         "RDP" -> "RDP"
         "SMB" -> "SMB"
+        "RCLONE" -> "RCLONE"
         else -> "SSH"
     }
     var label by rememberSaveable { mutableStateOf(existing?.label ?: "") }
@@ -149,6 +152,8 @@ fun ConnectionEditDialog(
         )
     }
     var rnsHost by rememberSaveable { mutableStateOf(existing?.reticulumHost ?: "") }
+    var rcloneRemoteName by rememberSaveable { mutableStateOf(existing?.rcloneRemoteName ?: "") }
+    var rcloneProvider by rememberSaveable { mutableStateOf(existing?.rcloneProvider ?: "") }
     var rnsPort by rememberSaveable { mutableStateOf(existing?.reticulumPort?.toString() ?: "4242") }
 
     val isEdit = existing != null
@@ -156,6 +161,8 @@ fun ConnectionEditDialog(
 
     AlertDialog(
         onDismissRequest = onDismiss,
+        properties = DialogProperties(usePlatformDefaultWidth = false),
+        modifier = Modifier.fillMaxWidth(0.92f),
         title = { Text(title) },
         text = {
             Column(modifier = Modifier.verticalScroll(rememberScrollState())) {
@@ -168,6 +175,7 @@ fun ConnectionEditDialog(
                     "VNC" to "VNC (Desktop)",
                     "RDP" to "RDP (Desktop)",
                     "SMB" to "SMB (File Share)",
+                    "RCLONE" to "Cloud Storage (rclone)",
                     "RETICULUM" to "Reticulum",
                 )
                 var transportExpanded by remember { mutableStateOf(false) }
@@ -211,7 +219,7 @@ fun ConnectionEditDialog(
                         }
                     }
                 }
-                Spacer(Modifier.height(8.dp))
+                Spacer(Modifier.height(4.dp))
 
                 OutlinedTextField(
                     value = label,
@@ -224,6 +232,7 @@ fun ConnectionEditDialog(
                                 "VNC" -> "My VNC Desktop"
                                 "RDP" -> "My RDP Desktop"
                                 "SMB" -> "My File Share"
+                                "RCLONE" -> "My Google Drive"
                                 "RETICULUM" -> "My Node"
                                 else -> "My Server"
                             }
@@ -232,7 +241,7 @@ fun ConnectionEditDialog(
                     singleLine = true,
                     modifier = Modifier.fillMaxWidth(),
                 )
-                Spacer(Modifier.height(8.dp))
+                Spacer(Modifier.height(4.dp))
 
                 // Color tag picker
                 Row(
@@ -289,7 +298,7 @@ fun ConnectionEditDialog(
                         }
                     }
                 }
-                Spacer(Modifier.height(8.dp))
+                Spacer(Modifier.height(4.dp))
 
                 // Group picker
                 if (groups.isNotEmpty()) {
@@ -331,7 +340,7 @@ fun ConnectionEditDialog(
                             }
                         }
                     }
-                    Spacer(Modifier.height(8.dp))
+                    Spacer(Modifier.height(4.dp))
                 }
 
                 if (connectionType == "LOCAL") {
@@ -342,6 +351,71 @@ fun ConnectionEditDialog(
                         style = MaterialTheme.typography.bodySmall,
                         color = MaterialTheme.colorScheme.onSurfaceVariant,
                     )
+                } else if (connectionType == "RCLONE") {
+                    Text(
+                        "Connect to cloud storage via rclone. " +
+                            "Supports Google Drive, Dropbox, S3, OneDrive, and 60+ providers. " +
+                            "Configure the remote in the rclone config flow after saving.",
+                        style = MaterialTheme.typography.bodySmall,
+                        color = MaterialTheme.colorScheme.onSurfaceVariant,
+                    )
+                    Spacer(Modifier.height(4.dp))
+                    OutlinedTextField(
+                        value = rcloneRemoteName,
+                        onValueChange = { rcloneRemoteName = it.filter { c -> c.isLetterOrDigit() || c == '_' || c == '-' } },
+                        label = { Text("Remote Name") },
+                        placeholder = { Text("gdrive") },
+                        supportingText = { Text("Internal name for this remote (letters, digits, -, _)") },
+                        singleLine = true,
+                        modifier = Modifier.fillMaxWidth(),
+                    )
+                    Spacer(Modifier.height(4.dp))
+
+                    val providerOptions = listOf(
+                        "drive" to "Google Drive",
+                        "dropbox" to "Dropbox",
+                        "onedrive" to "Microsoft OneDrive",
+                        "s3" to "Amazon S3 / Compatible",
+                        "b2" to "Backblaze B2",
+                        "sftp" to "SFTP",
+                        "webdav" to "WebDAV",
+                        "ftp" to "FTP",
+                        "mega" to "MEGA",
+                        "pcloud" to "pCloud",
+                        "box" to "Box",
+                        "local" to "Local Filesystem",
+                    )
+                    var providerExpanded by remember { mutableStateOf(false) }
+                    ExposedDropdownMenuBox(
+                        expanded = providerExpanded,
+                        onExpandedChange = { providerExpanded = it },
+                    ) {
+                        OutlinedTextField(
+                            value = providerOptions.firstOrNull { it.first == rcloneProvider }?.second
+                                ?: rcloneProvider.ifEmpty { "Select provider..." },
+                            onValueChange = {},
+                            readOnly = true,
+                            label = { Text("Provider") },
+                            trailingIcon = { ExposedDropdownMenuDefaults.TrailingIcon(providerExpanded) },
+                            modifier = Modifier
+                                .fillMaxWidth()
+                                .menuAnchor(MenuAnchorType.PrimaryNotEditable),
+                        )
+                        ExposedDropdownMenu(
+                            expanded = providerExpanded,
+                            onDismissRequest = { providerExpanded = false },
+                        ) {
+                            providerOptions.forEach { (value, displayLabel) ->
+                                DropdownMenuItem(
+                                    text = { Text(displayLabel) },
+                                    onClick = {
+                                        rcloneProvider = value
+                                        providerExpanded = false
+                                    },
+                                )
+                            }
+                        }
+                    }
                 } else if (connectionType == "VNC") {
                     // VNC: host, port, password
                     OutlinedTextField(
@@ -352,7 +426,7 @@ fun ConnectionEditDialog(
                         singleLine = true,
                         modifier = Modifier.fillMaxWidth(),
                     )
-                    Spacer(Modifier.height(8.dp))
+                    Spacer(Modifier.height(4.dp))
                     OutlinedTextField(
                         value = port,
                         onValueChange = { port = it.filter { c -> c.isDigit() } },
@@ -362,7 +436,7 @@ fun ConnectionEditDialog(
                         keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Number),
                         modifier = Modifier.width(120.dp),
                     )
-                    Spacer(Modifier.height(8.dp))
+                    Spacer(Modifier.height(4.dp))
                     OutlinedTextField(
                         value = vncPassword,
                         onValueChange = { vncPassword = it },
@@ -386,7 +460,7 @@ fun ConnectionEditDialog(
                         singleLine = true,
                         modifier = Modifier.fillMaxWidth(),
                     )
-                    Spacer(Modifier.height(8.dp))
+                    Spacer(Modifier.height(4.dp))
                     Row(
                         horizontalArrangement = Arrangement.spacedBy(8.dp),
                     ) {
@@ -407,7 +481,7 @@ fun ConnectionEditDialog(
                             modifier = Modifier.width(80.dp),
                         )
                     }
-                    Spacer(Modifier.height(8.dp))
+                    Spacer(Modifier.height(4.dp))
                     OutlinedTextField(
                         value = rdpPassword,
                         onValueChange = { rdpPassword = it },
@@ -416,7 +490,7 @@ fun ConnectionEditDialog(
                         visualTransformation = androidx.compose.ui.text.input.PasswordVisualTransformation(),
                         modifier = Modifier.fillMaxWidth(),
                     )
-                    Spacer(Modifier.height(8.dp))
+                    Spacer(Modifier.height(4.dp))
                     OutlinedTextField(
                         value = rdpDomain,
                         onValueChange = { rdpDomain = it },
@@ -425,7 +499,7 @@ fun ConnectionEditDialog(
                         singleLine = true,
                         modifier = Modifier.fillMaxWidth(),
                     )
-                    Spacer(Modifier.height(8.dp))
+                    Spacer(Modifier.height(4.dp))
                     FilterChip(
                         selected = rdpSshForward,
                         onClick = {
@@ -442,7 +516,7 @@ fun ConnectionEditDialog(
                     if (rdpSshForward) {
                         val sshCandidates = sshProfiles.filter { it.isSsh }
                         if (sshCandidates.isNotEmpty()) {
-                            Spacer(Modifier.height(8.dp))
+                            Spacer(Modifier.height(4.dp))
                             var sshExpanded by remember { mutableStateOf(false) }
                             val selectedSsh = sshCandidates.firstOrNull { it.id == rdpSshProfileId }
                             ExposedDropdownMenuBox(
@@ -616,7 +690,7 @@ fun ConnectionEditDialog(
                             modifier = Modifier.fillMaxWidth(),
                         )
                     }
-                    Spacer(Modifier.height(8.dp))
+                    Spacer(Modifier.height(4.dp))
                     OutlinedTextField(
                         value = smbShare,
                         onValueChange = { smbShare = it },
@@ -625,7 +699,7 @@ fun ConnectionEditDialog(
                         singleLine = true,
                         modifier = Modifier.fillMaxWidth(),
                     )
-                    Spacer(Modifier.height(8.dp))
+                    Spacer(Modifier.height(4.dp))
                     Row(
                         horizontalArrangement = Arrangement.spacedBy(8.dp),
                     ) {
@@ -646,7 +720,7 @@ fun ConnectionEditDialog(
                             modifier = Modifier.width(80.dp),
                         )
                     }
-                    Spacer(Modifier.height(8.dp))
+                    Spacer(Modifier.height(4.dp))
                     OutlinedTextField(
                         value = smbPassword,
                         onValueChange = { smbPassword = it },
@@ -655,7 +729,7 @@ fun ConnectionEditDialog(
                         visualTransformation = androidx.compose.ui.text.input.PasswordVisualTransformation(),
                         modifier = Modifier.fillMaxWidth(),
                     )
-                    Spacer(Modifier.height(8.dp))
+                    Spacer(Modifier.height(4.dp))
                     OutlinedTextField(
                         value = smbDomain,
                         onValueChange = { smbDomain = it },
@@ -664,7 +738,7 @@ fun ConnectionEditDialog(
                         singleLine = true,
                         modifier = Modifier.fillMaxWidth(),
                     )
-                    Spacer(Modifier.height(8.dp))
+                    Spacer(Modifier.height(4.dp))
                     FilterChip(
                         selected = smbSshForward,
                         onClick = {
@@ -681,7 +755,7 @@ fun ConnectionEditDialog(
                     if (smbSshForward) {
                         val sshCandidates = sshProfiles.filter { it.isSsh }
                         if (sshCandidates.isNotEmpty()) {
-                            Spacer(Modifier.height(8.dp))
+                            Spacer(Modifier.height(4.dp))
                             var sshExpanded by remember { mutableStateOf(false) }
                             val selectedSsh = sshCandidates.firstOrNull { it.id == smbSshProfileId }
                             ExposedDropdownMenuBox(
@@ -860,7 +934,7 @@ fun ConnectionEditDialog(
                             modifier = Modifier.fillMaxWidth(),
                         )
                     }
-                    Spacer(Modifier.height(8.dp))
+                    Spacer(Modifier.height(4.dp))
                     Row(
                         horizontalArrangement = Arrangement.spacedBy(8.dp),
                     ) {
@@ -885,7 +959,7 @@ fun ConnectionEditDialog(
                     // Jump host selector — exclude self to prevent circular references
                     val jumpCandidates = sshProfiles.filter { it.id != existing?.id && it.isSsh }
                     if (jumpCandidates.isNotEmpty()) {
-                        Spacer(Modifier.height(8.dp))
+                        Spacer(Modifier.height(4.dp))
                         var jumpExpanded by remember { mutableStateOf(false) }
                         val selectedJump = jumpCandidates.firstOrNull { it.id == jumpProfileId }
 
@@ -949,7 +1023,7 @@ fun ConnectionEditDialog(
                     }
 
                     // Proxy configuration
-                    Spacer(Modifier.height(8.dp))
+                    Spacer(Modifier.height(4.dp))
                     var proxyExpanded by remember { mutableStateOf(false) }
                     val proxyOptions = listOf(
                         null to "None (direct)",
@@ -995,7 +1069,7 @@ fun ConnectionEditDialog(
                     }
 
                     if (proxyType != null) {
-                        Spacer(Modifier.height(8.dp))
+                        Spacer(Modifier.height(4.dp))
                         Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
                             OutlinedTextField(
                                 value = proxyHost,
@@ -1057,7 +1131,7 @@ fun ConnectionEditDialog(
                     }
 
                     // Session manager
-                    Spacer(Modifier.height(8.dp))
+                    Spacer(Modifier.height(4.dp))
                     val sessionManagerOptions = listOf(
                         null to "Default ($globalSessionManagerLabel)",
                         "NONE" to "None",
@@ -1099,7 +1173,7 @@ fun ConnectionEditDialog(
 
                     // ET port (shown only for Eternal Terminal)
                     if (selectedTransport == "ET") {
-                        Spacer(Modifier.height(8.dp))
+                        Spacer(Modifier.height(4.dp))
                         OutlinedTextField(
                             value = etPort,
                             onValueChange = { etPort = it.filter { c -> c.isDigit() } },
@@ -1129,7 +1203,7 @@ fun ConnectionEditDialog(
                     }
 
                     // SSH options
-                    Spacer(Modifier.height(8.dp))
+                    Spacer(Modifier.height(4.dp))
                     OutlinedTextField(
                         value = sshOptions,
                         onValueChange = { sshOptions = it },
@@ -1142,7 +1216,7 @@ fun ConnectionEditDialog(
                     )
 
                     // Alternate screen buffer toggle
-                    Spacer(Modifier.height(8.dp))
+                    Spacer(Modifier.height(4.dp))
                     FilterChip(
                         selected = disableAltScreen,
                         onClick = { disableAltScreen = !disableAltScreen },
@@ -1158,7 +1232,7 @@ fun ConnectionEditDialog(
 
                     // SSH key selector
                     if (sshKeys.isNotEmpty()) {
-                        Spacer(Modifier.height(8.dp))
+                        Spacer(Modifier.height(4.dp))
                         var keyExpanded by remember { mutableStateOf(false) }
                         val selectedKey = sshKeys.firstOrNull { it.id == keyId }
                         ExposedDropdownMenuBox(
@@ -1256,7 +1330,7 @@ fun ConnectionEditDialog(
                         singleLine = true,
                         modifier = Modifier.fillMaxWidth(),
                     )
-                    Spacer(Modifier.height(8.dp))
+                    Spacer(Modifier.height(4.dp))
                     FilterChip(
                         selected = localSideband,
                         onClick = {
@@ -1269,7 +1343,7 @@ fun ConnectionEditDialog(
                         label = { Text("Local Sideband") },
                     )
                     if (!localSideband) {
-                        Spacer(Modifier.height(8.dp))
+                        Spacer(Modifier.height(4.dp))
                         Row(
                             horizontalArrangement = Arrangement.spacedBy(8.dp),
                         ) {
@@ -1301,6 +1375,7 @@ fun ConnectionEditDialog(
                 "VNC" -> host.isNotBlank()
                 "RDP" -> host.isNotBlank() && rdpUsername.isNotBlank() && (!rdpSshForward || rdpSshProfileId != null)
                 "SMB" -> host.isNotBlank() && smbShare.isNotBlank() && (!smbSshForward || smbSshProfileId != null)
+                "RCLONE" -> rcloneRemoteName.isNotBlank() && rcloneProvider.isNotBlank()
                 else -> destinationHash.length == 32 && (localSideband || rnsHost.isNotBlank())
             }
             TextButton(
@@ -1355,6 +1430,22 @@ fun ConnectionEditDialog(
                             rdpDomain = rdpDomain.ifBlank { null },
                             rdpSshForward = rdpSshForward,
                             rdpSshProfileId = if (rdpSshForward) rdpSshProfileId else null,
+                            colorTag = colorTag,
+                            groupId = groupId,
+                        )
+                    } else if (connectionType == "RCLONE") {
+                        (existing ?: ConnectionProfile(
+                            label = label,
+                            host = "",
+                            username = "",
+                        )).copy(
+                            label = label.ifBlank { "$rcloneProvider: $rcloneRemoteName" },
+                            host = "",
+                            port = 0,
+                            username = "",
+                            connectionType = "RCLONE",
+                            rcloneRemoteName = rcloneRemoteName,
+                            rcloneProvider = rcloneProvider,
                             colorTag = colorTag,
                             groupId = groupId,
                         )

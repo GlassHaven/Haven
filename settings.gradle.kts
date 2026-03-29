@@ -44,6 +44,13 @@ includeBuild("rdp-kotlin") {
     }
 }
 
+// rclone Go bridge compiled via gomobile for cloud storage backends.
+includeBuild("rclone-android") {
+    dependencySubstitution {
+        substitute(module("sh.haven:rclone-transport")).using(project(":"))
+    }
+}
+
 rootProject.name = "Haven"
 
 include(":app")
@@ -63,6 +70,7 @@ include(":core:et")
 include(":core:vnc")
 include(":core:rdp")
 include(":core:smb")
+include(":core:rclone")
 include(":core:fido")
 include(":core:local")
 

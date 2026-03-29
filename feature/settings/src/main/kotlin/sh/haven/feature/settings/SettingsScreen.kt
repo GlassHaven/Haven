@@ -637,7 +637,7 @@ private fun AboutDialog(
                 )
                 Spacer(modifier = Modifier.height(4.dp))
                 Text(
-                    text = "Open source SSH client for Android",
+                    text = "Open source SSH, VNC, RDP & cloud storage client for Android",
                     style = MaterialTheme.typography.bodyMedium,
                     color = MaterialTheme.colorScheme.onSurfaceVariant,
                 )
@@ -650,6 +650,28 @@ private fun AboutDialog(
                     text = "Android ${Build.VERSION.RELEASE} (API ${Build.VERSION.SDK_INT})",
                     style = MaterialTheme.typography.bodySmall,
                 )
+                Spacer(modifier = Modifier.height(16.dp))
+                Text(
+                    text = "Open Source Libraries",
+                    style = MaterialTheme.typography.titleSmall,
+                )
+                Spacer(modifier = Modifier.height(4.dp))
+                val libraries = listOf(
+                    "rclone" to "Cloud storage engine (60+ providers) — MIT",
+                    "IronRDP" to "RDP protocol (Rust/UniFFI) — MIT/Apache-2.0",
+                    "JSch" to "SSH/SFTP protocol — BSD",
+                    "smbj" to "SMB/CIFS protocol — Apache-2.0",
+                    "ConnectBot termlib" to "Terminal emulator — Apache-2.0",
+                    "PRoot" to "Local Linux shell — GPL-2.0",
+                    "Jetpack Compose" to "UI toolkit — Apache-2.0",
+                )
+                libraries.forEach { (name, desc) ->
+                    Text(
+                        text = "$name — $desc",
+                        style = MaterialTheme.typography.bodySmall,
+                        color = MaterialTheme.colorScheme.onSurfaceVariant,
+                    )
+                }
             }
         },
         confirmButton = {

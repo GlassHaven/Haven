@@ -21,7 +21,7 @@ object DatabaseModule {
             HavenDatabase::class.java,
             "haven.db",
         )
-            .addMigrations(HavenDatabase.MIGRATION_1_2, HavenDatabase.MIGRATION_2_3, HavenDatabase.MIGRATION_3_4, HavenDatabase.MIGRATION_4_5, HavenDatabase.MIGRATION_5_6, HavenDatabase.MIGRATION_6_7, HavenDatabase.MIGRATION_7_8, HavenDatabase.MIGRATION_8_9, HavenDatabase.MIGRATION_9_10, HavenDatabase.MIGRATION_10_11, HavenDatabase.MIGRATION_11_12, HavenDatabase.MIGRATION_12_13, HavenDatabase.MIGRATION_13_14, HavenDatabase.MIGRATION_14_15, HavenDatabase.MIGRATION_15_16, HavenDatabase.MIGRATION_16_17, HavenDatabase.MIGRATION_17_18, HavenDatabase.MIGRATION_18_19, HavenDatabase.MIGRATION_19_20, HavenDatabase.MIGRATION_20_21, HavenDatabase.MIGRATION_21_22, HavenDatabase.MIGRATION_22_23, HavenDatabase.MIGRATION_23_24)
+            .addMigrations(HavenDatabase.MIGRATION_1_2, HavenDatabase.MIGRATION_2_3, HavenDatabase.MIGRATION_3_4, HavenDatabase.MIGRATION_4_5, HavenDatabase.MIGRATION_5_6, HavenDatabase.MIGRATION_6_7, HavenDatabase.MIGRATION_7_8, HavenDatabase.MIGRATION_8_9, HavenDatabase.MIGRATION_9_10, HavenDatabase.MIGRATION_10_11, HavenDatabase.MIGRATION_11_12, HavenDatabase.MIGRATION_12_13, HavenDatabase.MIGRATION_13_14, HavenDatabase.MIGRATION_14_15, HavenDatabase.MIGRATION_15_16, HavenDatabase.MIGRATION_16_17, HavenDatabase.MIGRATION_17_18, HavenDatabase.MIGRATION_18_19, HavenDatabase.MIGRATION_19_20, HavenDatabase.MIGRATION_20_21, HavenDatabase.MIGRATION_21_22, HavenDatabase.MIGRATION_22_23, HavenDatabase.MIGRATION_23_24, HavenDatabase.MIGRATION_24_25)
             .build()
     }
 

@@ -3,6 +3,7 @@ package sh.haven.feature.sftp
 import android.text.format.Formatter
 import androidx.activity.compose.rememberLauncherForActivityResult
 import androidx.activity.result.contract.ActivityResultContracts
+import androidx.compose.animation.AnimatedVisibility
 import androidx.compose.foundation.ExperimentalFoundationApi
 import androidx.compose.foundation.combinedClickable
 import androidx.compose.foundation.layout.Arrangement
@@ -30,12 +31,17 @@ import androidx.compose.material.icons.filled.Refresh
 import androidx.compose.material.icons.filled.Visibility
 import androidx.compose.material.icons.filled.VisibilityOff
 import androidx.compose.material.icons.automirrored.filled.Sort
+import androidx.compose.material.icons.filled.ArrowUpward
 import androidx.compose.material.icons.filled.Upload
 import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.DropdownMenu
 import androidx.compose.material3.DropdownMenuItem
 import androidx.compose.material3.ExperimentalMaterial3Api
+import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.FloatingActionButton
+import androidx.compose.material3.OutlinedTextField
+import androidx.compose.material3.SmallFloatingActionButton
+import androidx.compose.material3.TextButton
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.LinearProgressIndicator
@@ -74,6 +80,7 @@ import java.util.Locale
 @Composable
 fun SftpScreen(
     pendingSmbProfileId: String? = null,
+    pendingRcloneProfileId: String? = null,
     viewModel: SftpViewModel = hiltViewModel(),
 ) {
     val connectedProfiles by viewModel.connectedProfiles.collectAsState()
@@ -87,9 +94,14 @@ fun SftpScreen(
     val error by viewModel.error.collectAsState()
     val message by viewModel.message.collectAsState()
     val lastDownload by viewModel.lastDownload.collectAsState()
+    val uploadConflict by viewModel.uploadConflict.collectAsState()
 
     LaunchedEffect(pendingSmbProfileId) {
         pendingSmbProfileId?.let { viewModel.setPendingSmbProfile(it) }
+    }
+
+    LaunchedEffect(pendingRcloneProfileId) {
+        pendingRcloneProfileId?.let { viewModel.setPendingRcloneProfile(it) }
     }
 
     viewModel.syncConnectedProfiles()
@@ -147,6 +159,18 @@ fun SftpScreen(
                 if (cursor.moveToFirst() && nameIndex >= 0) cursor.getString(nameIndex) else null
             } ?: uri.lastPathSegment?.substringAfterLast('/') ?: "upload"
             viewModel.uploadFile(fileName, uri)
+        }
+    }
+
+    // New folder dialog state
+    var showNewFolderDialog by remember { mutableStateOf(false) }
+
+    // Folder upload picker
+    val folderUploadLauncher = rememberLauncherForActivityResult(
+        ActivityResultContracts.OpenDocumentTree()
+    ) { uri ->
+        if (uri != null) {
+            viewModel.uploadFolder(uri)
         }
     }
 
@@ -216,8 +240,57 @@ fun SftpScreen(
         snackbarHost = { SnackbarHost(snackbarHostState) },
         floatingActionButton = {
             if (activeProfileId != null) {
-                FloatingActionButton(onClick = { uploadLauncher.launch(arrayOf("*/*")) }) {
-                    Icon(Icons.Filled.Upload, "Upload file")
+                var fabExpanded by remember { mutableStateOf(false) }
+                Column(horizontalAlignment = Alignment.End) {
+                    androidx.compose.animation.AnimatedVisibility(visible = fabExpanded) {
+                        Column(
+                            horizontalAlignment = Alignment.End,
+                            verticalArrangement = Arrangement.spacedBy(8.dp),
+                            modifier = Modifier.padding(bottom = 8.dp),
+                        ) {
+                            SmallFloatingActionButton(onClick = {
+                                fabExpanded = false
+                                showNewFolderDialog = true
+                            }) {
+                                Icon(Icons.Filled.CreateNewFolder, "New folder")
+                            }
+                            SmallFloatingActionButton(onClick = {
+                                fabExpanded = false
+                                folderUploadLauncher.launch(null)
+                            }) {
+                                Box(
+                                    contentAlignment = Alignment.Center,
+                                    modifier = Modifier.size(24.dp),
+                                ) {
+                                    Icon(
+                                        Icons.Filled.Folder,
+                                        "Upload folder",
+                                        modifier = Modifier.size(24.dp),
+                                    )
+                                    Icon(
+                                        Icons.Filled.ArrowUpward,
+                                        contentDescription = null,
+                                        modifier = Modifier
+                                            .size(14.dp)
+                                            .padding(top = 2.dp),
+                                        tint = MaterialTheme.colorScheme.primaryContainer,
+                                    )
+                                }
+                            }
+                            SmallFloatingActionButton(onClick = {
+                                fabExpanded = false
+                                uploadLauncher.launch(arrayOf("*/*"))
+                            }) {
+                                Icon(Icons.Filled.Upload, "Upload file")
+                            }
+                        }
+                    }
+                    FloatingActionButton(onClick = { fabExpanded = !fabExpanded }) {
+                        Icon(
+                            if (fabExpanded) Icons.Filled.CreateNewFolder else Icons.Filled.Upload,
+                            if (fabExpanded) "Close" else "Actions",
+                        )
+                    }
                 }
             }
         },
@@ -322,6 +395,65 @@ fun SftpScreen(
                 }
             }
         }
+    }
+
+    // New Folder dialog
+    if (showNewFolderDialog) {
+        var folderName by remember { mutableStateOf("") }
+        AlertDialog(
+            onDismissRequest = { showNewFolderDialog = false },
+            title = { Text("New Folder") },
+            text = {
+                OutlinedTextField(
+                    value = folderName,
+                    onValueChange = { folderName = it },
+                    label = { Text("Folder name") },
+                    singleLine = true,
+                    modifier = Modifier.fillMaxWidth(),
+                )
+            },
+            confirmButton = {
+                TextButton(
+                    onClick = {
+                        showNewFolderDialog = false
+                        viewModel.createDirectory(folderName)
+                    },
+                    enabled = folderName.isNotBlank(),
+                ) { Text("Create") }
+            },
+            dismissButton = {
+                TextButton(onClick = { showNewFolderDialog = false }) { Text("Cancel") }
+            },
+        )
+    }
+
+    // Upload conflict dialog
+    uploadConflict?.let { conflict ->
+        AlertDialog(
+            onDismissRequest = { viewModel.resolveConflict(SftpViewModel.ConflictChoice.SKIP) },
+            title = { Text("File Already Exists") },
+            text = { Text("\"${conflict.fileName}\" already exists in this location.") },
+            confirmButton = {
+                Row(horizontalArrangement = Arrangement.spacedBy(4.dp)) {
+                    TextButton(onClick = { viewModel.resolveConflict(SftpViewModel.ConflictChoice.REPLACE) }) {
+                        Text("Replace")
+                    }
+                    TextButton(onClick = { viewModel.resolveConflict(SftpViewModel.ConflictChoice.REPLACE_ALL) }) {
+                        Text("Replace All")
+                    }
+                }
+            },
+            dismissButton = {
+                Row(horizontalArrangement = Arrangement.spacedBy(4.dp)) {
+                    TextButton(onClick = { viewModel.resolveConflict(SftpViewModel.ConflictChoice.SKIP) }) {
+                        Text("Skip")
+                    }
+                    TextButton(onClick = { viewModel.resolveConflict(SftpViewModel.ConflictChoice.SKIP_ALL) }) {
+                        Text("Skip All")
+                    }
+                }
+            },
+        )
     }
 }
 

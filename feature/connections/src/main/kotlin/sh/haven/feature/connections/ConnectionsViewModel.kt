@@ -48,6 +48,8 @@ import sh.haven.core.mosh.MoshSessionManager
 import sh.haven.core.et.EtSessionManager
 import sh.haven.core.fido.FidoAuthenticator
 import sh.haven.core.local.LocalSessionManager
+import sh.haven.core.rclone.RcloneClient
+import sh.haven.core.rclone.RcloneSessionManager
 import sh.haven.core.reticulum.ReticulumBridge
 import sh.haven.core.reticulum.ReticulumSessionManager
 import sh.haven.core.smb.SmbSessionManager
@@ -82,6 +84,8 @@ class ConnectionsViewModel @Inject constructor(
     private val etSessionManager: EtSessionManager,
     private val reticulumBridge: ReticulumBridge,
     private val smbSessionManager: SmbSessionManager,
+    private val rcloneSessionManager: RcloneSessionManager,
+    private val rcloneClient: RcloneClient,
     private val fidoAuthenticator: FidoAuthenticator,
     private val localSessionManager: LocalSessionManager,
     private val sessionManagerRegistry: SessionManagerRegistry,
@@ -139,7 +143,8 @@ class ConnectionsViewModel @Inject constructor(
             combine(
                 smbSessionManager.sessions,
                 localSessionManager.sessions,
-            ) { smb, local -> arrayOf(smb, local) },
+                rcloneSessionManager.sessions,
+            ) { smb, local, rclone -> arrayOf(smb, local, rclone) },
         ) { base, extra ->
             @Suppress("UNCHECKED_CAST")
             val sshMap = base[0] as Map<String, SshSessionManager.SessionState>
@@ -153,6 +158,8 @@ class ConnectionsViewModel @Inject constructor(
             val smbMap = extra[0] as Map<String, SmbSessionManager.SessionState>
             @Suppress("UNCHECKED_CAST")
             val localMap = extra[1] as Map<String, LocalSessionManager.SessionState>
+            @Suppress("UNCHECKED_CAST")
+            val rcloneMap = extra[2] as Map<String, RcloneSessionManager.SessionState>
             val result = mutableMapOf<String, ProfileStatus>()
 
             // Track which profiles have transport-specific sessions (Mosh/ET/RNS/Local).
@@ -238,6 +245,21 @@ class ConnectionsViewModel @Inject constructor(
                 }
             }
 
+            // Rclone statuses (merge)
+            rcloneMap.values.groupBy { it.profileId }.forEach { (profileId, states) ->
+                val statuses = states.map { it.status }
+                val rcloneStatus = when {
+                    RcloneSessionManager.SessionState.Status.CONNECTED in statuses -> ProfileStatus.CONNECTED
+                    RcloneSessionManager.SessionState.Status.CONNECTING in statuses -> ProfileStatus.CONNECTING
+                    RcloneSessionManager.SessionState.Status.ERROR in statuses -> ProfileStatus.ERROR
+                    else -> ProfileStatus.DISCONNECTED
+                }
+                val existing = result[profileId]
+                if (existing == null || rcloneStatus.ordinal < existing.ordinal) {
+                    result[profileId] = rcloneStatus
+                }
+            }
+
             result.toMap()
         }.stateIn(viewModelScope, SharingStarted.WhileSubscribed(5000), emptyMap())
 
@@ -310,6 +332,9 @@ class ConnectionsViewModel @Inject constructor(
     private val _navigateToSmb = MutableStateFlow<String?>(null)
     val navigateToSmb: StateFlow<String?> = _navigateToSmb.asStateFlow()
 
+    private val _navigateToRclone = MutableStateFlow<String?>(null)
+    val navigateToRclone: StateFlow<String?> = _navigateToRclone.asStateFlow()
+
     /** Emitted to open a new session (new tab) on an already-connected profile. */
     private val _newSessionProfileId = MutableStateFlow<String?>(null)
     val newSessionProfileId: StateFlow<String?> = _newSessionProfileId.asStateFlow()
@@ -343,6 +368,7 @@ class ConnectionsViewModel @Inject constructor(
         _navigateToVnc.value = null
         _navigateToRdp.value = null
         _navigateToSmb.value = null
+        _navigateToRclone.value = null
         _newSessionProfileId.value = null
     }
 
@@ -547,6 +573,7 @@ class ConnectionsViewModel @Inject constructor(
     private fun canAutoConnect(profile: ConnectionProfile, keys: List<SshKey>): Boolean = when {
         profile.isLocal -> true
         profile.isReticulum -> true
+        profile.isRclone -> true
         profile.isVnc -> false
         profile.isRdp -> false
         profile.isSmb -> false
@@ -657,6 +684,10 @@ class ConnectionsViewModel @Inject constructor(
             connectSmb(profile, password)
             return
         }
+        if (profile.isRclone) {
+            connectRclone(profile)
+            return
+        }
         if (profile.isReticulum) {
             connectReticulum(profile)
             return
@@ -755,6 +786,46 @@ class ConnectionsViewModel @Inject constructor(
             } catch (e: Exception) {
                 Log.e(TAG, "Failed to connect SMB", e)
                 _error.value = "SMB: ${e.message}"
+            } finally {
+                _connectingProfileId.value = null
+            }
+        }
+    }
+
+    private fun connectRclone(profile: ConnectionProfile) {
+        val remoteName = profile.rcloneRemoteName ?: return
+        val provider = profile.rcloneProvider ?: ""
+        viewModelScope.launch {
+            repository.markConnected(profile.id)
+            try {
+                _connectingProfileId.value = profile.id
+                val sessionId = rcloneSessionManager.registerSession(profile.id, profile.label)
+                withContext(Dispatchers.IO) {
+                    rcloneSessionManager.connectSession(sessionId, remoteName, provider)
+                }
+                // If connected immediately (no OAuth needed), navigate to Files
+                if (rcloneSessionManager.isProfileConnected(profile.id)) {
+                    _navigateToRclone.value = profile.id
+                }
+                // Otherwise OAuth is in progress — the session will become CONNECTED
+                // when the user completes the browser flow. Watch for it.
+                else {
+                    launch {
+                        rcloneSessionManager.sessions.collect { sessions ->
+                            val connected = sessions.values.any {
+                                it.profileId == profile.id &&
+                                    it.status == RcloneSessionManager.SessionState.Status.CONNECTED
+                            }
+                            if (connected) {
+                                _navigateToRclone.value = profile.id
+                                return@collect
+                            }
+                        }
+                    }
+                }
+            } catch (e: Exception) {
+                Log.e(TAG, "Failed to connect rclone remote", e)
+                _error.value = "rclone: ${e.message}"
             } finally {
                 _connectingProfileId.value = null
             }

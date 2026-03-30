@@ -3,129 +3,217 @@ package sh.haven.core.wayland
 import android.annotation.SuppressLint
 import android.view.KeyEvent as AndroidKeyEvent
 import android.view.MotionEvent
-import android.view.SurfaceHolder
-import android.view.SurfaceView
+import android.graphics.SurfaceTexture
+import android.view.Surface
+import android.view.TextureView
 import android.view.inputmethod.BaseInputConnection
 import android.view.inputmethod.EditorInfo
 import android.view.inputmethod.InputConnection
+import androidx.compose.foundation.gestures.awaitEachGesture
+import androidx.compose.foundation.gestures.awaitFirstDown
+import androidx.compose.foundation.layout.Box
+import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.DisposableEffect
+import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableFloatStateOf
+import androidx.compose.runtime.remember
+import androidx.compose.runtime.setValue
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.geometry.Offset
+import androidx.compose.ui.graphics.graphicsLayer
+import androidx.compose.ui.input.pointer.PointerEventPass
+import androidx.compose.ui.input.pointer.pointerInput
 import androidx.compose.ui.viewinterop.AndroidView
 
 /**
  * Composable that displays the native Wayland compositor output
  * and forwards touch + keyboard input to the compositor.
+ * Zoom and pan are handled at the Compose level via graphicsLayer transforms.
  */
 @SuppressLint("ClickableViewAccessibility")
 @Composable
 fun WaylandDesktopView(modifier: Modifier = Modifier) {
+    var zoom by remember { mutableFloatStateOf(1f) }
+    var panX by remember { mutableFloatStateOf(0f) }
+    var panY by remember { mutableFloatStateOf(0f) }
+
     DisposableEffect(Unit) {
         onDispose {
             WaylandBridge.nativeSetSurface(null)
         }
     }
 
-    AndroidView(
-        factory = { context ->
-            object : SurfaceView(context) {
-                init {
-                    isFocusable = true
-                    isFocusableInTouchMode = true
+    Box(
+        modifier = modifier
+            .pointerInput(Unit) {
+                awaitEachGesture {
+                    // Wait for first finger
+                    awaitFirstDown(requireUnconsumed = false, pass = PointerEventPass.Initial)
+                    var prevCentroid = Offset.Zero
+                    var prevSpan = 0f
+                    var gestureStarted = false
 
-                    holder.addCallback(object : SurfaceHolder.Callback {
-                        override fun surfaceCreated(holder: SurfaceHolder) {
-                            WaylandBridge.nativeSetSurface(holder.surface)
-                        }
-                        override fun surfaceChanged(h: SurfaceHolder, f: Int, w: Int, h2: Int) {}
-                        override fun surfaceDestroyed(holder: SurfaceHolder) {
-                            WaylandBridge.nativeSetSurface(null)
-                        }
-                    })
+                    do {
+                        val event = awaitPointerEvent(PointerEventPass.Initial)
+                        val pointers = event.changes.filter { it.pressed }
+                        val count = pointers.size
 
-                    setOnTouchListener { view, event ->
-                        if (event.actionMasked == MotionEvent.ACTION_DOWN) {
-                            if (!hasFocus()) requestFocus()
-                            val imm = context.getSystemService(
-                                android.content.Context.INPUT_METHOD_SERVICE
-                            ) as android.view.inputmethod.InputMethodManager
-                            imm.restartInput(this)
-                            imm.showSoftInput(this, 0)
-                        }
-                        val nx = event.x / view.width
-                        val ny = event.y / view.height
-                        when (event.actionMasked) {
-                            MotionEvent.ACTION_DOWN ->
-                                WaylandBridge.nativeSendTouch(0, nx, ny)
-                            MotionEvent.ACTION_UP, MotionEvent.ACTION_CANCEL ->
-                                WaylandBridge.nativeSendTouch(1, nx, ny)
-                            MotionEvent.ACTION_MOVE ->
-                                WaylandBridge.nativeSendTouch(2, nx, ny)
-                        }
-                        true
-                    }
-                }
+                        // Only intercept multi-finger gestures (zoom/pan).
+                        // Single-finger events pass through to the AndroidView.
+                        if (count >= 2) {
+                            val centroid = Offset(
+                                pointers.map { it.position.x }.average().toFloat(),
+                                pointers.map { it.position.y }.average().toFloat(),
+                            )
+                            val span = pointers.map {
+                                (it.position - centroid).getDistance()
+                            }.average().toFloat()
 
-                override fun onCreateInputConnection(outAttrs: EditorInfo): InputConnection {
-                    outAttrs.inputType = android.text.InputType.TYPE_CLASS_TEXT
-                    outAttrs.imeOptions = EditorInfo.IME_FLAG_NO_FULLSCREEN or
-                        EditorInfo.IME_FLAG_NO_EXTRACT_UI
-                    val view = this
-                    return object : BaseInputConnection(view, false) {
-                        override fun commitText(text: CharSequence?, newCursorPosition: Int): Boolean {
-                            text?.forEach { ch -> sendCharAsEvdev(ch) }
-                            return true
-                        }
+                            if (gestureStarted && prevSpan > 0f && span > 0f) {
+                                val scaleFactor = span / prevSpan
+                                val newZoom = (zoom * scaleFactor).coerceIn(0.5f, 5f)
+                                panX += (centroid.x - panX) * (1 - scaleFactor)
+                                panY += (centroid.y - panY) * (1 - scaleFactor)
+                                zoom = newZoom
 
-                        override fun deleteSurroundingText(beforeLength: Int, afterLength: Int): Boolean {
-                            repeat(beforeLength) {
-                                WaylandBridge.nativeSendKey(14, 1) // KEY_BACKSPACE
-                                WaylandBridge.nativeSendKey(14, 0)
+                                val dx = centroid.x - prevCentroid.x
+                                val dy = centroid.y - prevCentroid.y
+                                panX += dx
+                                panY += dy
                             }
-                            return true
+                            prevCentroid = centroid
+                            prevSpan = span
+                            gestureStarted = true
+                            event.changes.forEach { it.consume() }
                         }
+                    } while (event.changes.any { it.pressed })
+                }
+            },
+    ) {
+        AndroidView(
+            factory = { context ->
+                @SuppressLint("ClickableViewAccessibility")
+                object : TextureView(context) {
+                    init {
+                        isFocusable = true
+                        isFocusableInTouchMode = true
 
-                        override fun sendKeyEvent(event: AndroidKeyEvent): Boolean {
-                            val evdev = androidToEvdev(event.keyCode)
-                            if (evdev >= 0) {
-                                val pressed = if (event.action == AndroidKeyEvent.ACTION_DOWN) 1 else 0
-                                WaylandBridge.nativeSendKey(evdev, pressed)
+                        surfaceTextureListener = object : TextureView.SurfaceTextureListener {
+                            private var nativeSurface: Surface? = null
+                            override fun onSurfaceTextureAvailable(st: SurfaceTexture, w: Int, h: Int) {
+                                android.util.Log.i("WaylandTV", "TextureAvailable: ${w}x${h} view=${width}x${height}")
+                                st.setDefaultBufferSize(w, h)
+                                nativeSurface = Surface(st)
+                                WaylandBridge.nativeSetSurface(nativeSurface)
+                            }
+                            override fun onSurfaceTextureSizeChanged(st: SurfaceTexture, w: Int, h: Int) {
+                                android.util.Log.i("WaylandTV", "TextureSizeChanged: ${w}x${h} view=${width}x${height}")
+                                st.setDefaultBufferSize(w, h)
+                            }
+                            override fun onSurfaceTextureDestroyed(st: SurfaceTexture): Boolean {
+                                WaylandBridge.nativeSetSurface(null)
+                                nativeSurface?.release()
+                                nativeSurface = null
                                 return true
                             }
-                            return super.sendKeyEvent(event)
+                            override fun onSurfaceTextureUpdated(st: SurfaceTexture) {}
+                        }
+
+                        setOnTouchListener { view, event ->
+                            // Single-finger: pointer events + keyboard
+                            if (event.pointerCount == 1) {
+                                if (event.actionMasked == MotionEvent.ACTION_DOWN) {
+                                    if (!hasFocus()) requestFocus()
+                                    val imm = context.getSystemService(
+                                        android.content.Context.INPUT_METHOD_SERVICE
+                                    ) as android.view.inputmethod.InputMethodManager
+                                    imm.restartInput(this)
+                                    imm.showSoftInput(this, 0)
+                                }
+                                val nx = event.x / view.width
+                                val ny = event.y / view.height
+                                when (event.actionMasked) {
+                                    MotionEvent.ACTION_DOWN ->
+                                        WaylandBridge.nativeSendTouch(0, nx, ny)
+                                    MotionEvent.ACTION_UP, MotionEvent.ACTION_CANCEL ->
+                                        WaylandBridge.nativeSendTouch(1, nx, ny)
+                                    MotionEvent.ACTION_MOVE ->
+                                        WaylandBridge.nativeSendTouch(2, nx, ny)
+                                }
+                            }
+                            true
                         }
                     }
-                }
 
-                override fun onCheckIsTextEditor(): Boolean = true
+                    override fun onCreateInputConnection(outAttrs: EditorInfo): InputConnection {
+                        outAttrs.inputType = android.text.InputType.TYPE_CLASS_TEXT
+                        outAttrs.imeOptions = EditorInfo.IME_FLAG_NO_FULLSCREEN or
+                            EditorInfo.IME_FLAG_NO_EXTRACT_UI
+                        val view = this
+                        return object : BaseInputConnection(view, false) {
+                            override fun commitText(text: CharSequence?, newCursorPosition: Int): Boolean {
+                                text?.forEach { ch -> sendCharAsEvdev(ch) }
+                                return true
+                            }
 
-                override fun onKeyDown(keyCode: Int, event: AndroidKeyEvent?): Boolean {
-                    val evdev = androidToEvdev(keyCode)
-                    if (evdev >= 0) {
-                        WaylandBridge.nativeSendKey(evdev, 1)
+                            override fun deleteSurroundingText(beforeLength: Int, afterLength: Int): Boolean {
+                                repeat(beforeLength) {
+                                    WaylandBridge.nativeSendKey(14, 1) // KEY_BACKSPACE
+                                    WaylandBridge.nativeSendKey(14, 0)
+                                }
+                                return true
+                            }
+
+                            override fun sendKeyEvent(event: AndroidKeyEvent): Boolean {
+                                val evdev = androidToEvdev(event.keyCode)
+                                if (evdev >= 0) {
+                                    val pressed = if (event.action == AndroidKeyEvent.ACTION_DOWN) 1 else 0
+                                    WaylandBridge.nativeSendKey(evdev, pressed)
+                                    return true
+                                }
+                                return super.sendKeyEvent(event)
+                            }
+                        }
+                    }
+
+                    override fun onCheckIsTextEditor(): Boolean = true
+
+                    override fun onKeyDown(keyCode: Int, event: AndroidKeyEvent?): Boolean {
+                        val evdev = androidToEvdev(keyCode)
+                        if (evdev >= 0) {
+                            WaylandBridge.nativeSendKey(evdev, 1)
+                            return true
+                        }
+                        return super.onKeyDown(keyCode, event)
+                    }
+
+                    override fun onKeyUp(keyCode: Int, event: AndroidKeyEvent?): Boolean {
+                        val evdev = androidToEvdev(keyCode)
+                        if (evdev >= 0) {
+                            WaylandBridge.nativeSendKey(evdev, 0)
+                            return true
+                        }
+                        return super.onKeyUp(keyCode, event)
+                    }
+
+                    override fun onKeyMultiple(keyCode: Int, repeatCount: Int, event: AndroidKeyEvent?): Boolean {
+                        val chars = event?.characters ?: return super.onKeyMultiple(keyCode, repeatCount, event)
+                        for (ch in chars) { sendCharAsEvdev(ch) }
                         return true
                     }
-                    return super.onKeyDown(keyCode, event)
                 }
-
-                override fun onKeyUp(keyCode: Int, event: AndroidKeyEvent?): Boolean {
-                    val evdev = androidToEvdev(keyCode)
-                    if (evdev >= 0) {
-                        WaylandBridge.nativeSendKey(evdev, 0)
-                        return true
-                    }
-                    return super.onKeyUp(keyCode, event)
-                }
-
-                override fun onKeyMultiple(keyCode: Int, repeatCount: Int, event: AndroidKeyEvent?): Boolean {
-                    val chars = event?.characters ?: return super.onKeyMultiple(keyCode, repeatCount, event)
-                    for (ch in chars) { sendCharAsEvdev(ch) }
-                    return true
-                }
-            }
-        },
-        modifier = modifier,
-    )
+            },
+            modifier = Modifier
+                .fillMaxSize()
+                .graphicsLayer {
+                    scaleX = zoom
+                    scaleY = zoom
+                    translationX = panX
+                    translationY = panY
+                },
+        )
+    }
 }
 
 /** Map Android KeyEvent keyCode to Linux evdev scancode (input-event-codes.h). */
@@ -221,7 +309,6 @@ private const val KEY_LEFTSHIFT = 42
  * Returns (-1, false) for unmapped characters.
  */
 private fun charToEvdevWithShift(ch: Char): Pair<Int, Boolean> = when (ch) {
-    // Lowercase letters
     'a' -> 30 to false; 'b' -> 48 to false; 'c' -> 46 to false
     'd' -> 32 to false; 'e' -> 18 to false; 'f' -> 33 to false
     'g' -> 34 to false; 'h' -> 35 to false; 'i' -> 23 to false
@@ -231,7 +318,6 @@ private fun charToEvdevWithShift(ch: Char): Pair<Int, Boolean> = when (ch) {
     's' -> 31 to false; 't' -> 20 to false; 'u' -> 22 to false
     'v' -> 47 to false; 'w' -> 17 to false; 'x' -> 45 to false
     'y' -> 21 to false; 'z' -> 44 to false
-    // Uppercase letters → same evdev code + Shift
     'A' -> 30 to true; 'B' -> 48 to true; 'C' -> 46 to true
     'D' -> 32 to true; 'E' -> 18 to true; 'F' -> 33 to true
     'G' -> 34 to true; 'H' -> 35 to true; 'I' -> 23 to true
@@ -241,19 +327,15 @@ private fun charToEvdevWithShift(ch: Char): Pair<Int, Boolean> = when (ch) {
     'S' -> 31 to true; 'T' -> 20 to true; 'U' -> 22 to true
     'V' -> 47 to true; 'W' -> 17 to true; 'X' -> 45 to true
     'Y' -> 21 to true; 'Z' -> 44 to true
-    // Digits
     '0' -> 11 to false; '1' -> 2 to false; '2' -> 3 to false
     '3' -> 4 to false; '4' -> 5 to false; '5' -> 6 to false
     '6' -> 7 to false; '7' -> 8 to false; '8' -> 9 to false
     '9' -> 10 to false
-    // Whitespace / control
     ' ' -> 57 to false; '\n' -> 28 to false; '\t' -> 15 to false
-    // Unshifted punctuation
     '.' -> 52 to false; ',' -> 51 to false; '/' -> 53 to false
     '-' -> 12 to false; '=' -> 13 to false; ';' -> 39 to false
     '\'' -> 40 to false; '`' -> 41 to false; '[' -> 26 to false
     ']' -> 27 to false; '\\' -> 43 to false
-    // Shifted symbols
     '!' -> 2 to true;  '@' -> 3 to true;  '#' -> 4 to true
     '$' -> 5 to true;  '%' -> 6 to true;  '^' -> 7 to true
     '&' -> 8 to true;  '*' -> 9 to true;  '(' -> 10 to true

@@ -48,4 +48,11 @@ object WaylandBridge {
 
     /** Resize compositor output without recreating the surface. width/height in physical pixels. */
     external fun nativeResize(width: Int, height: Int)
+
+    /** Set zoom level in permille (500-4000, where 1000 = 1:1). Higher = bigger text.
+     *  commit=true reflows the terminal (use on pinch end). */
+    external fun nativeSetZoom(zoomPermille: Int, commit: Boolean)
+
+    /** Set viewport offset in compositor buffer pixels (for pan/scroll). */
+    external fun nativeSetViewport(x: Int, y: Int)
 }

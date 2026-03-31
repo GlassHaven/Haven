@@ -270,4 +270,13 @@ class SettingsViewModel @Inject constructor(
             preferencesRepository.setScreenOrder(routes)
         }
     }
+
+    val waylandShellCommand: StateFlow<String> = preferencesRepository.waylandShellCommand
+        .stateIn(viewModelScope, SharingStarted.Eagerly, "/bin/sh -l")
+
+    fun setWaylandShellCommand(command: String) {
+        viewModelScope.launch {
+            preferencesRepository.setWaylandShellCommand(command)
+        }
+    }
 }

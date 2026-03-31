@@ -33,6 +33,9 @@ import androidx.compose.material.icons.filled.CloudUpload
 import androidx.compose.material.icons.filled.ColorLens
 import androidx.compose.material.icons.filled.ContentCopy
 import androidx.compose.material.icons.filled.Delete
+import androidx.compose.foundation.layout.Arrangement
+import androidx.compose.material.icons.filled.DesktopWindows
+import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.material.icons.filled.Edit
 import androidx.compose.material.icons.filled.Favorite
 import androidx.compose.material.icons.filled.Fingerprint
@@ -132,7 +135,9 @@ fun SettingsScreen(
     val mouseInputEnabled by viewModel.mouseInputEnabled.collectAsState()
     val terminalRightClick by viewModel.terminalRightClick.collectAsState()
     val backupStatus by viewModel.backupStatus.collectAsState()
+    val waylandShellCommand by viewModel.waylandShellCommand.collectAsState()
     var showAuditLog by remember { mutableStateOf(false) }
+    var showWaylandShellDialog by remember { mutableStateOf(false) }
     var showFontSizeDialog by remember { mutableStateOf(false) }
     var showSessionManagerDialog by remember { mutableStateOf(false) }
     var showThemeDialog by remember { mutableStateOf(false) }
@@ -314,6 +319,15 @@ fun SettingsScreen(
         HorizontalDivider(modifier = Modifier.padding(vertical = 8.dp))
 
         SettingsItem(
+            icon = Icons.Filled.DesktopWindows,
+            title = "Wayland desktop shell",
+            subtitle = waylandShellCommand,
+            onClick = { showWaylandShellDialog = true },
+        )
+
+        HorizontalDivider(modifier = Modifier.padding(vertical = 8.dp))
+
+        SettingsItem(
             icon = Icons.Filled.CloudUpload,
             title = "Export backup",
             subtitle = "Keys, connections, and settings",
@@ -397,6 +411,47 @@ fun SettingsScreen(
             onSave = { newOrder ->
                 viewModel.setScreenOrder(newOrder.map { it.route })
                 showScreenOrderDialog = false
+            },
+        )
+    }
+
+    if (showWaylandShellDialog) {
+        var shellCmd by rememberSaveable { mutableStateOf(waylandShellCommand) }
+        val shellOptions = listOf("/bin/sh -l", "/bin/ash -l", "/bin/bash -l", "/bin/zsh", "/bin/fish")
+        AlertDialog(
+            onDismissRequest = { showWaylandShellDialog = false },
+            title = { Text("Wayland Desktop Shell") },
+            text = {
+                Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
+                    Text(
+                        "Shell command to run inside the Wayland desktop foot terminal. " +
+                            "Install additional shells with apk (e.g. apk add bash).",
+                        style = MaterialTheme.typography.bodySmall,
+                    )
+                    OutlinedTextField(
+                        value = shellCmd,
+                        onValueChange = { v -> shellCmd = v },
+                        label = { Text("Shell command") },
+                        singleLine = true,
+                        modifier = Modifier.fillMaxWidth(),
+                    )
+                    shellOptions.forEach { option ->
+                        FilterChip(
+                            selected = shellCmd == option,
+                            onClick = { shellCmd = option },
+                            label = { Text(option) },
+                        )
+                    }
+                }
+            },
+            confirmButton = {
+                TextButton(onClick = {
+                    viewModel.setWaylandShellCommand(shellCmd)
+                    showWaylandShellDialog = false
+                }) { Text("Save") }
+            },
+            dismissButton = {
+                TextButton(onClick = { showWaylandShellDialog = false }) { Text("Cancel") }
             },
         )
     }

@@ -48,7 +48,11 @@
 
 **Terminal** — VT100/xterm emulator with multi-tab sessions, [Mosh](https://mosh.org) (Mobile Shell) for roaming connections and [Eternal Terminal](https://eternalterminal.dev) (ET) for persistent sessions — both with pure Kotlin protocol implementations (no native binaries), tmux/zellij/screen auto-attach with **session restore** (remembers previously open sessions and offers to reopen them), tab reordering via long-press menu, color-coded tabs matching connection profiles, mouse mode for TUI apps, configurable keyboard toolbar (Esc, Tab, Ctrl, Alt, AltGr, arrows with key repeat), text selection with copy and Open URL, configurable font size, and six color schemes.
 
-**Desktop (VNC)** — Remote desktop viewer with RFB 3.8 protocol support. Pinch-to-zoom, two-finger pan and scroll, single-finger drag for window management, soft keyboard with X11 KeySym mapping. Fullscreen mode with NoMachine-style corner hotspot for session controls. Connect directly or tunnel through SSH. Supports Raw, CopyRect, RRE, Hextile, and ZLib encodings. **Local Desktop** — one-tap desktop running on-device via PRoot, no root required. Choose from Xfce4 or Openbox (X11/Xvnc) or Labwc (Wayland/wayvnc, experimental).
+**Desktop (VNC)** — Remote desktop viewer with RFB 3.8 protocol support. Pinch-to-zoom, two-finger pan and scroll, single-finger drag for window management, soft keyboard with X11 KeySym mapping. Fullscreen mode with NoMachine-style corner hotspot for session controls. Connect directly or tunnel through SSH. Supports Raw, CopyRect, RRE, Hextile, and ZLib encodings.
+
+**Native Wayland Desktop** — GPU-accelerated Wayland compositor (labwc) running natively inside Haven. Full interactive terminal with keyboard input, mouse interaction, server-side window decorations, pinch-to-zoom, and fullscreen mode with corner overlay menu. The GPU pipeline renders via OpenGL ES 3.2 on the device's GPU and presents frames zero-copy to the display via ASurfaceControl. Configurable shell (/bin/sh, bash, zsh, fish) and shared keyboard toolbar (Esc, Tab, Ctrl, Alt, arrows, function keys). No root required — runs in PRoot with an Alpine Linux rootfs.
+
+**Local Desktop (X11)** — one-tap desktop running on-device via PRoot. Choose from Xfce4 or Openbox with X11/Xvnc. For Wayland, use the Native Wayland Desktop above.
 
 **Desktop (RDP)** — Remote Desktop Protocol client built on [IronRDP](https://github.com/Devolutions/IronRDP) via UniFFI Kotlin bindings. Connects to Windows Remote Desktop, xrdp (Linux), and GNOME Remote Desktop. Pinch-to-zoom, pan, keyboard with scancode mapping, mouse input. SSH tunnel support with auto-connect through saved SSH profiles. Saved connection profiles with optional stored password.
 
@@ -133,6 +137,8 @@ Output: `app/build/outputs/apk/debug/haven-*-debug.apk`
 | [smbj](https://github.com/hierynomus/smbj) | SMB/CIFS protocol | Apache-2.0 |
 | [ConnectBot termlib](https://github.com/connectbot/connectbot) | Terminal emulator | Apache-2.0 |
 | [PRoot](https://proot-me.github.io) | Local Linux shell (userspace chroot) | GPL-2.0 |
+| [labwc](https://labwc.github.io) | Wayland compositor (native desktop) | GPL-2.0 |
+| [wlroots](https://gitlab.freedesktop.org/wlroots/wlroots) | Wayland compositor library | MIT |
 | [Jetpack Compose](https://developer.android.com/jetpack/compose) | UI toolkit | Apache-2.0 |
 
 ## License

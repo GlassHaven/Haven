@@ -16,8 +16,9 @@ Three concentric circles, in priority order:
 
 1. **Terminal via VPN to workstation** — SSH, session persistence (tmux/zellij), reliable reconnect with session restore. Running Claude Code, development tools, system administration.
 2. **File management across boundaries** — SFTP, SMB, and 60+ cloud providers (Google Drive, Dropbox, S3, OneDrive, etc.) in a unified browser. Cross-filesystem copy/move between any combination.
-3. **Remote graphical desktop** — VNC/RDP to remote machines or local PRoot Xfce.
-4. **Local PRoot development** — portable Linux environment on the phone itself.
+3. **Remote graphical desktop** — VNC/RDP to remote machines.
+4. **Native local desktop** — GPU-accelerated Wayland compositor with window management, keyboard, mouse, zoom, fullscreen. A real Linux desktop on your phone.
+5. **Local PRoot development** — portable Linux environment on the phone itself.
 
 ## Cohesion assessment
 
@@ -39,7 +40,20 @@ The fundamental challenge of mobile work: connections drop, the OS kills the app
 - ~~**Network transition**~~ — shipped. NetworkMonitor detects WiFi/cellular/VPN changes and triggers immediate reconnect via SshConnectionService instead of waiting for TCP timeout.
 - **Background keepalive resilience** — Android Doze mode and app standby break long SSH sessions. Document best practices (battery exemption) and add reconnect actions to the persistent notification.
 
-### 2. PRoot as development environment (most differentiated)
+### 2. Native Wayland desktop (most differentiated)
+
+Haven embeds a GPU-accelerated Wayland compositor (labwc/wlroots) running natively in the app process. This is a full window manager with server-side decorations, not a VNC mirror.
+
+- ~~**Keyboard interaction**~~ — shipped in v4.10.0–v4.15.0. Full IME support with Shift/symbol mapping, shared keyboard toolbar (Esc, Tab, Ctrl, Alt, arrows, F1–F12).
+- ~~**GPU acceleration**~~ — shipped in v4.13.0–v4.14.0. GLES2 compositing via AHardwareBuffer, zero-copy display via ASurfaceControl.
+- ~~**Window management**~~ — shipped in v4.11.0. SSD theme, titlebar buttons (close/maximize/minimize), auto-maximize, mouse interaction.
+- ~~**Fullscreen + overlay menu**~~ — shipped in v4.16.0. NoMachine-style corner hotspot.
+- **Configurable shell** — shipped in v4.16.0. /bin/sh, bash, zsh, fish selectable from Settings.
+- **Multiple windows** — launch additional Wayland clients (GUI apps, second terminal) within the compositor.
+- **GL client passthrough** — virgl/venus for GPU-accelerated graphical apps inside PRoot.
+- **Standalone compositor** — expose socket for external clients (Termux, chroot). Partially shipped (works on rooted/PRoot, SELinux limits cross-app on non-rooted).
+
+### 3. PRoot as development environment
 
 No other Android app ships a full Linux userland. This is Haven's unique wedge.
 
@@ -48,14 +62,14 @@ No other Android app ships a full Linux userland. This is Haven's unique wedge.
 - **Storage management** — PRoot rootfs images grow. Show disk usage, offer cleanup, support external storage.
 - **Friction-free transition** — make it easy to start in PRoot and graduate to remote when you need power.
 
-### 3. Security as brand
+### 4. Security as brand
 
 - ~~**Tor/SOCKS proxy support**~~ — shipped in v3.11.0. SOCKS5/SOCKS4/HTTP proxy per profile, .onion address detection.
 - ~~**Rootfs integrity verification**~~ — shipped in v3.12.2. SHA-256 checksum for Alpine minirootfs downloads.
 - **Per-profile biometric unlock** — high-security connections require biometric each time, not just at app launch.
 - **Audit log** — surface the existing ConnectionLog entity in the UI for security-conscious users.
 
-### 4. Terminal polish (ongoing)
+### 5. Terminal polish (ongoing)
 
 Split panes, scrollback search, and session persistence are provided by tmux/zellij/screen — Haven delegates to these via SessionManagerRegistry rather than reimplementing them. Terminal work focuses on the touch interface layer:
 
@@ -76,4 +90,4 @@ Split panes, scrollback search, and session persistence are provided by tmux/zel
 
 A public library succeeds not by having every book, but by having the right books, organized well, in a building that's pleasant to be in. Haven's "books" (protocols) are sufficient. The work now is in the "organization" (workflow continuity, workspaces, connection groups) and the "building" (touch interface polish, gesture reliability). The PRoot environment is the maker space in the basement — unique, powerful, and the reason some people choose this library over any other.
 
-**Connect the workflows, keep the security story clean, polish the touch layer.** Width is sufficient. Depth is the opportunity.
+**Connect the workflows, keep the security story clean, polish the touch layer.** Width is sufficient. Depth is the opportunity. The native Wayland compositor opens a new axis — Haven evolves from a thin client into a portable OS environment where terminal, desktop, and file management are unified.

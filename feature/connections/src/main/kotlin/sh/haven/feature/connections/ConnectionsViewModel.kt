@@ -129,6 +129,15 @@ class ConnectionsViewModel @Inject constructor(
         .map { it.label }
         .stateIn(viewModelScope, SharingStarted.WhileSubscribed(5000), "None")
 
+    val batteryPromptDismissed: StateFlow<Boolean> = preferencesRepository.batteryPromptDismissed
+        .stateIn(viewModelScope, SharingStarted.WhileSubscribed(5000), true) // default true to avoid flash
+
+    fun dismissBatteryPrompt() {
+        viewModelScope.launch {
+            preferencesRepository.setBatteryPromptDismissed()
+        }
+    }
+
     val sessions: StateFlow<Map<String, SshSessionManager.SessionState>> = sshSessionManager.sessions
 
     /** Derive profile-level statuses for the connections list UI (merges SSH + Reticulum + Mosh + ET). */

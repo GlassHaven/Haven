@@ -41,6 +41,7 @@ class UserPreferencesRepository @Inject constructor(
     private val reorderHintShownKey = booleanPreferencesKey("reorder_hint_shown")
     private val screenOrderKey = stringPreferencesKey("screen_order")
     private val waylandShellCommandKey = stringPreferencesKey("wayland_shell_command")
+    private val batteryPromptDismissedKey = booleanPreferencesKey("battery_prompt_dismissed")
 
     val biometricEnabled: Flow<Boolean> = dataStore.data.map { prefs ->
         prefs[biometricEnabledKey] ?: false
@@ -141,6 +142,17 @@ class UserPreferencesRepository @Inject constructor(
     suspend fun setScreenOrder(routes: List<String>) {
         dataStore.edit { prefs ->
             prefs[screenOrderKey] = routes.joinToString(",")
+        }
+    }
+
+    /** Whether the user has dismissed the battery optimization prompt. */
+    val batteryPromptDismissed: Flow<Boolean> = dataStore.data.map { prefs ->
+        prefs[batteryPromptDismissedKey] ?: false
+    }
+
+    suspend fun setBatteryPromptDismissed() {
+        dataStore.edit { prefs ->
+            prefs[batteryPromptDismissedKey] = true
         }
     }
 

@@ -1,8 +1,12 @@
 package sh.haven.feature.connections
 
 import android.Manifest
+import android.content.Intent
 import android.content.pm.PackageManager
+import android.net.Uri
 import android.os.Build
+import android.os.PowerManager
+import android.provider.Settings
 import androidx.activity.compose.rememberLauncherForActivityResult
 import androidx.activity.result.contract.ActivityResultContracts
 import androidx.compose.foundation.ExperimentalFoundationApi
@@ -86,6 +90,7 @@ import androidx.compose.runtime.mutableFloatStateOf
 import androidx.compose.runtime.mutableIntStateOf
 import androidx.compose.runtime.mutableStateListOf
 import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.runtime.rememberUpdatedState
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.saveable.rememberSaveable
@@ -102,6 +107,7 @@ import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.zIndex
 import kotlin.math.roundToInt
+import kotlinx.coroutines.launch
 import androidx.core.content.ContextCompat
 import androidx.hilt.navigation.compose.hiltViewModel
 import sh.haven.core.data.db.entities.ConnectionGroup
@@ -268,6 +274,58 @@ fun ConnectionsScreen(
                 permissionLauncher.launch(Manifest.permission.POST_NOTIFICATIONS)
             }
         }
+    }
+
+    // Gently offer to disable battery optimization so the foreground service
+    // (and SSH connections) survive when the app is backgrounded.
+    val batteryPromptDismissed by viewModel.batteryPromptDismissed.collectAsState()
+    var showBatteryDialog by rememberSaveable { mutableStateOf(false) }
+    val scope = rememberCoroutineScope()
+
+    LaunchedEffect(batteryPromptDismissed) {
+        if (!batteryPromptDismissed) {
+            val pm = context.getSystemService(PowerManager::class.java)
+            if (pm != null && !pm.isIgnoringBatteryOptimizations(context.packageName)) {
+                showBatteryDialog = true
+            }
+        }
+    }
+
+    if (showBatteryDialog) {
+        AlertDialog(
+            onDismissRequest = {
+                showBatteryDialog = false
+                viewModel.dismissBatteryPrompt()
+            },
+            title = { Text("Keep connections alive?") },
+            text = {
+                Text(
+                    "Android may close background SSH connections to save battery. " +
+                        "Disabling battery optimization for Haven prevents this."
+                )
+            },
+            confirmButton = {
+                TextButton(onClick = {
+                    showBatteryDialog = false
+                    viewModel.dismissBatteryPrompt()
+                    val intent = Intent(
+                        Settings.ACTION_REQUEST_IGNORE_BATTERY_OPTIMIZATIONS,
+                        Uri.parse("package:${context.packageName}")
+                    )
+                    context.startActivity(intent)
+                }) {
+                    Text("Allow")
+                }
+            },
+            dismissButton = {
+                TextButton(onClick = {
+                    showBatteryDialog = false
+                    viewModel.dismissBatteryPrompt()
+                }) {
+                    Text("Not now")
+                }
+            },
+        )
     }
 
     // Probe for Sideband and start collecting announces as soon as the

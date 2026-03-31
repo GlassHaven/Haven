@@ -56,6 +56,7 @@ rootProject.name = "Haven"
 include(":app")
 
 include(":core:ui")
+include(":core:toolbar")
 include(":core:ssh")
 include(":core:security")
 include(":core:data")

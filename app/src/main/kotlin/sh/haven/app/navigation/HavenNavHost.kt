@@ -392,6 +392,8 @@ fun HavenNavHost(
                 Screen.Desktop -> if (waylandRunning || pendingWaylandDesktop) {
                     sh.haven.core.wayland.WaylandDesktopView(
                         modifier = Modifier.fillMaxSize(),
+                        toolbarLayout = toolbarLayout,
+                        navBlockMode = navBlockMode,
                     )
                 } else {
                     val consumePending = {

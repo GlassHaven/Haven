@@ -1,5 +1,6 @@
 package sh.haven.feature.terminal
 
+import sh.haven.core.toolbar.KeyboardToolbar
 import android.app.Activity
 import android.content.ClipData
 import android.content.ClipboardManager
@@ -627,6 +628,14 @@ fun TerminalScreen(
                         },
                         onToolbarLayoutChanged = onToolbarLayoutChanged,
                         onOpenSettings = onOpenToolbarSettings,
+                        selectionContent = selectionController?.let { ctrl -> {
+                            SelectionToolbarContent(
+                                controller = ctrl,
+                                hyperlinkUri = currentHyperlinkUri,
+                                bracketPasteMode = isBracketPaste,
+                                onPaste = { text -> activeTab.sendInput(text.toByteArray()) },
+                            )
+                        } },
                         modifier = Modifier.fillMaxWidth(),
                     )
                 }

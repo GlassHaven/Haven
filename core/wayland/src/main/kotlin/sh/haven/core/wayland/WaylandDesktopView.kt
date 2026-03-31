@@ -12,7 +12,9 @@ import android.view.inputmethod.InputConnection
 import androidx.compose.foundation.gestures.awaitEachGesture
 import androidx.compose.foundation.gestures.awaitFirstDown
 import androidx.compose.foundation.layout.Box
+import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.fillMaxSize
+import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.DisposableEffect
 import androidx.compose.runtime.getValue
@@ -25,6 +27,8 @@ import androidx.compose.ui.graphics.graphicsLayer
 import androidx.compose.ui.input.pointer.PointerEventPass
 import androidx.compose.ui.input.pointer.pointerInput
 import androidx.compose.ui.viewinterop.AndroidView
+import sh.haven.core.data.preferences.NavBlockMode
+import sh.haven.core.data.preferences.ToolbarLayout
 
 /**
  * Composable that displays the native Wayland compositor output
@@ -33,7 +37,11 @@ import androidx.compose.ui.viewinterop.AndroidView
  */
 @SuppressLint("ClickableViewAccessibility")
 @Composable
-fun WaylandDesktopView(modifier: Modifier = Modifier) {
+fun WaylandDesktopView(
+    modifier: Modifier = Modifier,
+    toolbarLayout: ToolbarLayout = ToolbarLayout.DEFAULT,
+    navBlockMode: NavBlockMode = NavBlockMode.ALIGNED,
+) {
     var zoom by remember { mutableFloatStateOf(1f) }
     var panX by remember { mutableFloatStateOf(0f) }
     var panY by remember { mutableFloatStateOf(0f) }
@@ -44,8 +52,9 @@ fun WaylandDesktopView(modifier: Modifier = Modifier) {
         }
     }
 
+    Column(modifier = modifier) {
     Box(
-        modifier = modifier
+        modifier = Modifier.weight(1f)
             .pointerInput(Unit) {
                 awaitEachGesture {
                     // Wait for first finger
@@ -214,6 +223,12 @@ fun WaylandDesktopView(modifier: Modifier = Modifier) {
                 },
         )
     }
+    WaylandToolbar(
+        layout = toolbarLayout,
+        navBlockMode = navBlockMode,
+        modifier = Modifier.fillMaxWidth(),
+    )
+    } // Column
 }
 
 /** Map Android KeyEvent keyCode to Linux evdev scancode (input-event-codes.h). */
@@ -308,7 +323,7 @@ private const val KEY_LEFTSHIFT = 42
  * Map a typed character to (evdev keycode, needsShift).
  * Returns (-1, false) for unmapped characters.
  */
-private fun charToEvdevWithShift(ch: Char): Pair<Int, Boolean> = when (ch) {
+internal fun charToEvdevWithShift(ch: Char): Pair<Int, Boolean> = when (ch) {
     'a' -> 30 to false; 'b' -> 48 to false; 'c' -> 46 to false
     'd' -> 32 to false; 'e' -> 18 to false; 'f' -> 33 to false
     'g' -> 34 to false; 'h' -> 35 to false; 'i' -> 23 to false
@@ -347,7 +362,7 @@ private fun charToEvdevWithShift(ch: Char): Pair<Int, Boolean> = when (ch) {
 }
 
 /** Send a character as evdev key event(s), wrapping with Shift when needed. */
-private fun sendCharAsEvdev(ch: Char) {
+internal fun sendCharAsEvdev(ch: Char) {
     val (evdev, needsShift) = charToEvdevWithShift(ch)
     if (evdev < 0) return
     if (needsShift) WaylandBridge.nativeSendKey(KEY_LEFTSHIFT, 1)

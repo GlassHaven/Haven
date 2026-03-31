@@ -1,4 +1,4 @@
-package sh.haven.feature.terminal
+package sh.haven.core.toolbar
 
 import android.app.Activity
 import android.content.ClipboardManager
@@ -168,6 +168,7 @@ fun KeyboardToolbar(
     onReorderModeChanged: (Boolean) -> Unit = {},
     onToolbarLayoutChanged: (ToolbarLayout) -> Unit = {},
     onOpenSettings: () -> Unit = {},
+    selectionContent: (@Composable () -> Unit)? = null,
     modifier: Modifier = Modifier,
 ) {
     var shiftActive by remember { mutableStateOf(false) }
@@ -231,12 +232,7 @@ fun KeyboardToolbar(
                             vncLoading = vncLoading,
                         )
                     }
-                    SelectionToolbarContent(
-                        controller = selectionController,
-                        hyperlinkUri = hyperlinkUri,
-                        bracketPasteMode = bracketPasteMode,
-                        onPaste = onPaste,
-                    )
+                    selectionContent?.invoke()
                 }
             } else if (layout.rows.size >= 2 && navBlockMode == sh.haven.core.data.preferences.NavBlockMode.ALIGNED) {
                 AlignedToolbarContent(

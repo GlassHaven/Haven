@@ -46,6 +46,9 @@ object WaylandBridge {
     /** Send key event. linuxKeyCode: evdev keycode. pressed: 1=down, 0=up. */
     external fun nativeSendKey(linuxKeyCode: Int, pressed: Int)
 
+    /** Send scroll event. axis: 0=vertical, 1=horizontal. value: positive=down/right. */
+    external fun nativeSendScroll(axis: Int, value: Float)
+
     /** Resize compositor output without recreating the surface. width/height in physical pixels. */
     external fun nativeResize(width: Int, height: Int)
 

@@ -87,6 +87,10 @@ fun WaylandToolbar(
             altActive = !altActive
             WaylandBridge.nativeSendKey(56, if (altActive) 1 else 0)
         },
+        onPaste = { text ->
+            // Type each character as evdev key events into the compositor
+            text.forEach { ch -> sendCharAsEvdev(ch) }
+        },
         modifier = modifier,
     )
 }

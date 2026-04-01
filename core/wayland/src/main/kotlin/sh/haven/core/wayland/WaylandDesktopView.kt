@@ -129,15 +129,29 @@ fun WaylandDesktopView(
 
                             if (gestureStarted && prevSpan > 0f && span > 0f) {
                                 val scaleFactor = span / prevSpan
-                                val newZoom = (zoom * scaleFactor).coerceIn(0.5f, 5f)
-                                panX += (centroid.x - panX) * (1 - scaleFactor)
-                                panY += (centroid.y - panY) * (1 - scaleFactor)
-                                zoom = newZoom
-
-                                val dx = centroid.x - prevCentroid.x
                                 val dy = centroid.y - prevCentroid.y
-                                panX += dx
-                                panY += dy
+                                val dx = centroid.x - prevCentroid.x
+                                val isPinch = kotlin.math.abs(scaleFactor - 1f) > 0.02f
+
+                                if (isPinch) {
+                                    // Pinch-to-zoom
+                                    val newZoom = (zoom * scaleFactor).coerceIn(0.5f, 5f)
+                                    panX += (centroid.x - panX) * (1 - scaleFactor)
+                                    panY += (centroid.y - panY) * (1 - scaleFactor)
+                                    zoom = newZoom
+                                    panX += dx
+                                    panY += dy
+                                } else if (zoom == 1f) {
+                                    // Two-finger scroll (no zoom active)
+                                    WaylandBridge.nativeSendScroll(0, -dy / 10f) // vertical
+                                    if (kotlin.math.abs(dx) > 5f) {
+                                        WaylandBridge.nativeSendScroll(1, -dx / 10f) // horizontal
+                                    }
+                                } else {
+                                    // Pan when zoomed in
+                                    panX += dx
+                                    panY += dy
+                                }
                             }
                             prevCentroid = centroid
                             prevSpan = span

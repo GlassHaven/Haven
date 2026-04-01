@@ -741,10 +741,14 @@ chmod +x /root/.vnc/xstartup""")
                 // virgl GPU passthrough env vars
                 "export GALLIUM_DRIVER=virpipe; " +
                 "export VTEST_SOCKET=/tmp/.virgl_test; " +
-                // Start Xvfb for X11 apps (OpenSCAD, FreeCAD, glxgears)
-                "Xvfb :0 -screen 0 640x480x24 >/dev/null 2>&1 & " +
+                // Start XWayland for X11 apps (renders into Wayland compositor)
+                // Xvfb for X11 apps. XWayland would be better (visible in
+                // compositor) but needs labwc rebuilt with -Dxwayland=enabled.
+                "mkdir -p /tmp/.X11-unix; " +
+                "Xvfb :0 -screen 0 1280x720x24 >/dev/null 2>&1 & " +
+                "sleep 1; " +
                 "export DISPLAY=:0; " +
-                "foot -e $shellCommand 2>&1 & " +
+                "foot -e $shellCommand 2>&1; " +
                 "wait",
         ).apply {
             environment().apply {

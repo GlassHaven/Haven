@@ -72,7 +72,7 @@
     <!-- Wayland section -->
     <string name="settings_wayland_shell_title">Wayland desktop shell</string>
     <string name="settings_shizuku_title">Termux Wayland access (Shizuku)</string>
-    <string name="settings_shizuku_enabled">Enabled — socket linked to /data/local/tmp/haven-wayland/</string>
+    <string name="settings_shizuku_enabled">Enabled — socket at /data/local/tmp/haven-wayland/ when desktop is running</string>
     <string name="settings_shizuku_available">Shizuku installed — tap to grant permission</string>
     <string name="settings_shizuku_not_installed">Install Shizuku for cross-app socket access</string>
 

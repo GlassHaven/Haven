@@ -112,7 +112,7 @@ class ProotManager @Inject constructor(
         ),
         WAYLAND_NATIVE(
             label = "Native Wayland",
-            packages = "foot font-noto xkeyboard-config xwayland mesa-dri-gallium mesa-gbm mesa-gl mesa-demos",
+            packages = "foot font-noto xkeyboard-config xwayland mesa-dri-gallium mesa-gbm mesa-gl htop",
             verifyBinary = "usr/bin/foot",
             startCommands = "", // compositor runs natively via WaylandBridge, not in PRoot
             sizeEstimate = "~5MB",
@@ -635,10 +635,49 @@ chmod +x /root/.vnc/xstartup""")
             |width=40
             |lines=15
             |prompt=>
+            |launch-prefix=/usr/local/bin/launch
             """.trimMargin()
         )
 
         writeLabwcMenu()
+
+        // .desktop files so fuzzel has something to show.
+        // Write to both user and system dirs — fuzzel may not resolve
+        // $HOME inside dbus-run-session depending on environment.
+        val appsDir = File(root, ".local/share/applications").apply { mkdirs() }
+        val sysAppsDir = File(rootfsDir, "usr/share/applications").apply { mkdirs() }
+        val desktopEntries = mutableMapOf(
+            "foot.desktop" to """
+                |[Desktop Entry]
+                |Name=Terminal
+                |Exec=foot
+                |Icon=utilities-terminal
+                |Type=Application
+                |Categories=System;TerminalEmulator;
+                """.trimMargin(),
+            "htop.desktop" to """
+                |[Desktop Entry]
+                |Name=System Monitor
+                |Exec=foot htop
+                |Icon=utilities-system-monitor
+                |Type=Application
+                |Categories=System;Monitor;
+                """.trimMargin(),
+        )
+        if (File(rootfsDir, "usr/bin/thunar").exists()) {
+            desktopEntries["thunar.desktop"] = """
+                |[Desktop Entry]
+                |Name=File Manager
+                |Exec=thunar
+                |Icon=system-file-manager
+                |Type=Application
+                |Categories=System;FileManager;
+                """.trimMargin()
+        }
+        for ((name, content) in desktopEntries) {
+            File(appsDir, name).writeText(content)
+            File(sysAppsDir, name).writeText(content)
+        }
 
         Log.d(TAG, "Desktop config files written")
     }
@@ -893,6 +932,8 @@ chmod +x /root/.vnc/xstartup""")
             "/bin/busybox", "sh", "-c",
             "export HOME=/root; " +
                 "export XDG_RUNTIME_DIR=/tmp/xdg-runtime; " +
+                "export XDG_DATA_HOME=/root/.local/share; " +
+                "export XDG_DATA_DIRS=/usr/local/share:/usr/share; " +
                 "export WAYLAND_DISPLAY=wayland-0; " +
                 "unset FONTCONFIG_FILE; " +
                 "unset XKB_CONFIG_ROOT; " +
@@ -908,6 +949,9 @@ chmod +x /root/.vnc/xstartup""")
                 "i=0; while [ ! -e /tmp/.X11-unix/X0 ] && [ \$i -lt 5 ]; do sleep 1; i=\$((i+1)); done; " +
                 "if [ ! -e /tmp/.X11-unix/X0 ]; then Xvfb :0 -screen 0 1280x720x24 >/dev/null 2>&1 & sleep 1; fi; " +
                 "export DISPLAY=:0; " +
+                // App launcher wrapper — runs apps in a clean session
+                // so they survive fuzzel's exit
+                "mkdir -p /usr/local/bin; printf '#!/bin/sh\\n\"\\$@\" &\\n' > /usr/local/bin/launch && chmod +x /usr/local/bin/launch; " +
                 // Auto-start desktop components if installed.
                 // dbus-run-session provides the session bus waybar requires.
                 "if [ -x /usr/bin/waybar ]; then " +

@@ -11,6 +11,7 @@ import com.jcraft.jsch.SftpProgressMonitor
 import dagger.hilt.android.lifecycle.HiltViewModel
 import dagger.hilt.android.qualifiers.ApplicationContext
 import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.delay
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.SharingStarted
 import kotlinx.coroutines.flow.StateFlow
@@ -28,6 +29,8 @@ import sh.haven.core.et.EtSessionManager
 import sh.haven.core.mosh.MoshSessionManager
 import sh.haven.core.rclone.RcloneClient
 import sh.haven.core.rclone.RcloneSessionManager
+import sh.haven.core.rclone.SyncConfig
+import sh.haven.core.rclone.SyncProgress
 import sh.haven.core.smb.SmbClient
 import sh.haven.core.smb.SmbSessionManager
 import sh.haven.core.ssh.SshClient
@@ -131,6 +134,27 @@ class SftpViewModel @Inject constructor(
     val mediaExtensionsSet: StateFlow<Set<String>> = preferencesRepository.mediaExtensions
         .map { str -> str.lowercase().split("\\s+".toRegex()).filter { it.isNotEmpty() }.toSet() }
         .stateIn(viewModelScope, SharingStarted.Eagerly, parseMediaExtensions(UserPreferencesRepository.DEFAULT_MEDIA_EXTENSIONS))
+
+    /** Sync progress for the active rclone sync operation. */
+    private val _syncProgress = MutableStateFlow<SyncProgress?>(null)
+    val syncProgress: StateFlow<SyncProgress?> = _syncProgress.asStateFlow()
+
+    /** Controls sync dialog visibility. */
+    private val _showSyncDialog = MutableStateFlow(false)
+    val showSyncDialog: StateFlow<Boolean> = _showSyncDialog.asStateFlow()
+
+    /** Pre-filled source for sync dialog. */
+    private val _syncDialogSource = MutableStateFlow<String?>(null)
+    val syncDialogSource: StateFlow<String?> = _syncDialogSource.asStateFlow()
+
+    /** Available rclone remotes for sync destination picker. */
+    private val _availableRemotes = MutableStateFlow<List<String>>(emptyList())
+    val availableRemotes: StateFlow<List<String>> = _availableRemotes.asStateFlow()
+
+    /** Dry run summary text. */
+    private val _dryRunResult = MutableStateFlow<String?>(null)
+    val dryRunResult: StateFlow<String?> = _dryRunResult.asStateFlow()
+    fun dismissDryRunResult() { _dryRunResult.value = null }
 
     /** Whether the current folder contains playable media files (rclone only). */
     private val _hasMediaFiles = MutableStateFlow(false)
@@ -1321,6 +1345,94 @@ class SftpViewModel @Inject constructor(
                 Log.e(TAG, "Play folder failed", e)
                 _error.value = "Playback failed: ${e.message}"
             }
+        }
+    }
+
+    // ── Folder sync ───────────────────────────────────────────────────
+
+    fun showSyncDialog(sourcePath: String? = null) {
+        val remote = activeRcloneRemote ?: return
+        val path = sourcePath ?: _currentPath.value
+        _syncDialogSource.value = "$remote:$path"
+        viewModelScope.launch(Dispatchers.IO) {
+            try {
+                _availableRemotes.value = rcloneClient.listRemotes()
+            } catch (e: Exception) {
+                Log.e(TAG, "Failed to list remotes", e)
+            }
+        }
+        _showSyncDialog.value = true
+    }
+
+    fun dismissSyncDialog() {
+        _showSyncDialog.value = false
+    }
+
+    fun startSync(config: SyncConfig) {
+        _showSyncDialog.value = false
+        viewModelScope.launch {
+            try {
+                withContext(Dispatchers.IO) { rcloneClient.resetStats() }
+
+                val jobId = withContext(Dispatchers.IO) { rcloneClient.startSync(config) }
+
+                // Poll progress until finished
+                while (true) {
+                    delay(500)
+                    val status = withContext(Dispatchers.IO) { rcloneClient.getJobStatus(jobId) }
+                    val stats = withContext(Dispatchers.IO) { rcloneClient.getStats() }
+
+                    val eta = if (stats.speed > 0 && stats.totalBytes > stats.bytes) {
+                        ((stats.totalBytes - stats.bytes) / stats.speed).toLong()
+                    } else 0L
+
+                    _syncProgress.value = SyncProgress(
+                        jobId = jobId,
+                        mode = config.mode,
+                        bytes = stats.bytes,
+                        totalBytes = stats.totalBytes,
+                        speed = stats.speed,
+                        eta = eta,
+                        transfersCompleted = stats.transfers,
+                        totalTransfers = stats.totalTransfers,
+                        errors = stats.errors,
+                        finished = status.finished,
+                        success = status.success,
+                        errorMessage = status.error,
+                        dryRun = config.dryRun,
+                    )
+
+                    if (status.finished) break
+                }
+
+                val final = _syncProgress.value
+                _syncProgress.value = null
+                rcloneClient.activeSyncJobId = null
+
+                if (config.dryRun) {
+                    val files = final?.totalTransfers ?: 0
+                    val bytes = android.text.format.Formatter.formatFileSize(appContext, final?.totalBytes ?: 0)
+                    _dryRunResult.value = "Would transfer $files files ($bytes)"
+                } else if (final?.success == true) {
+                    val files = final.transfersCompleted
+                    _message.value = "Sync complete: $files files transferred"
+                    refresh()
+                } else {
+                    _error.value = "Sync failed: ${final?.errorMessage ?: "unknown error"}"
+                }
+            } catch (e: Exception) {
+                Log.e(TAG, "Sync failed", e)
+                _syncProgress.value = null
+                rcloneClient.activeSyncJobId = null
+                _error.value = "Sync failed: ${e.message}"
+            }
+        }
+    }
+
+    fun cancelSync() {
+        val jobId = rcloneClient.activeSyncJobId ?: return
+        viewModelScope.launch(Dispatchers.IO) {
+            rcloneClient.cancelJob(jobId)
         }
     }
 

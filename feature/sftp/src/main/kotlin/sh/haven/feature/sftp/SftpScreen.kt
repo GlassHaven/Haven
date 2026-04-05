@@ -34,13 +34,21 @@ import androidx.compose.material.icons.filled.Description
 import androidx.compose.material.icons.filled.Download
 import androidx.compose.material.icons.filled.Folder
 import androidx.compose.material.icons.filled.PlayArrow
+import androidx.compose.material.icons.filled.ExpandLess
+import androidx.compose.material.icons.filled.ExpandMore
 import androidx.compose.material.icons.filled.Refresh
+import androidx.compose.material.icons.filled.Sync
 import androidx.compose.material.icons.filled.Visibility
 import androidx.compose.material.icons.filled.VisibilityOff
 import androidx.compose.material.icons.automirrored.filled.Sort
 import androidx.compose.material.icons.filled.ArrowUpward
 import androidx.compose.material.icons.filled.Upload
+import androidx.compose.material3.Checkbox
 import androidx.compose.material3.CircularProgressIndicator
+import androidx.compose.material3.ExposedDropdownMenuBox
+import androidx.compose.material3.ExposedDropdownMenuDefaults
+import androidx.compose.material3.FilterChip
+import androidx.compose.material3.HorizontalDivider
 import androidx.compose.material3.DropdownMenu
 import androidx.compose.material3.DropdownMenuItem
 import androidx.compose.material3.ExperimentalMaterial3Api
@@ -81,6 +89,9 @@ import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import androidx.hilt.navigation.compose.hiltViewModel
 import kotlinx.coroutines.launch
+import sh.haven.core.rclone.SyncConfig
+import sh.haven.core.rclone.SyncFilters
+import sh.haven.core.rclone.SyncMode
 import sh.haven.feature.sftp.SftpViewModel.Companion.isMediaFile
 import java.text.SimpleDateFormat
 import java.util.Date
@@ -107,6 +118,11 @@ fun SftpScreen(
     val uploadConflict by viewModel.uploadConflict.collectAsState()
     val fileClipboard by viewModel.clipboard.collectAsState()
     val isRclone by viewModel.isRcloneProfile.collectAsState()
+    val syncProgress by viewModel.syncProgress.collectAsState()
+    val showSyncDialog by viewModel.showSyncDialog.collectAsState()
+    val syncDialogSource by viewModel.syncDialogSource.collectAsState()
+    val availableRemotes by viewModel.availableRemotes.collectAsState()
+    val dryRunResult by viewModel.dryRunResult.collectAsState()
     val hasMediaFiles by viewModel.hasMediaFiles.collectAsState()
     val mediaExtensions by viewModel.mediaExtensionsSet.collectAsState()
 
@@ -328,6 +344,14 @@ fun SftpScreen(
                                     Icon(Icons.Filled.PlayArrow, stringResource(R.string.sftp_play_folder))
                                 }
                             }
+                            if (isRclone) {
+                                SmallFloatingActionButton(onClick = {
+                                    fabExpanded = false
+                                    viewModel.showSyncDialog()
+                                }) {
+                                    Icon(Icons.Filled.Sync, stringResource(R.string.sftp_sync))
+                                }
+                            }
                         }
                     }
                     if (fileClipboard != null) {
@@ -355,7 +379,53 @@ fun SftpScreen(
                 .fillMaxSize()
                 .padding(innerPadding),
         ) {
-            if (loading) {
+            val sp = syncProgress
+            if (sp != null) {
+                Column(modifier = Modifier.fillMaxWidth()) {
+                    if (sp.totalBytes > 0) {
+                        LinearProgressIndicator(
+                            progress = { sp.fraction },
+                            modifier = Modifier.fillMaxWidth(),
+                        )
+                    } else {
+                        LinearProgressIndicator(modifier = Modifier.fillMaxWidth())
+                    }
+                    Row(
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .padding(horizontal = 16.dp, vertical = 2.dp),
+                        horizontalArrangement = Arrangement.SpaceBetween,
+                    ) {
+                        Text(
+                            "${sp.mode.label}: ${sp.transfersCompleted}/${sp.totalTransfers} files" +
+                                if (sp.errors > 0) " (${sp.errors} errors)" else "",
+                            style = MaterialTheme.typography.labelSmall,
+                            color = MaterialTheme.colorScheme.onSurfaceVariant,
+                        )
+                        Text(
+                            "${Formatter.formatFileSize(context, sp.speed.toLong())}/s  ${sp.etaFormatted}",
+                            style = MaterialTheme.typography.labelSmall,
+                            color = MaterialTheme.colorScheme.onSurfaceVariant,
+                        )
+                    }
+                    Row(
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .padding(horizontal = 16.dp),
+                        horizontalArrangement = Arrangement.SpaceBetween,
+                        verticalAlignment = Alignment.CenterVertically,
+                    ) {
+                        Text(
+                            "${Formatter.formatFileSize(context, sp.bytes)} / ${Formatter.formatFileSize(context, sp.totalBytes)}",
+                            style = MaterialTheme.typography.labelSmall,
+                            color = MaterialTheme.colorScheme.onSurfaceVariant,
+                        )
+                        TextButton(onClick = { viewModel.cancelSync() }) {
+                            Text(stringResource(R.string.common_cancel), style = MaterialTheme.typography.labelSmall)
+                        }
+                    }
+                }
+            } else if (loading) {
                 val progress = transferProgress
                 if (progress != null && (progress.totalBytes > 0 || progress.fileName.isNotEmpty())) {
                     Column(modifier = Modifier.fillMaxWidth()) {
@@ -526,6 +596,9 @@ fun SftpScreen(
                                 onPlay = if (isRclone && entry.isMediaFile(mediaExtensions)) {
                                     { viewModel.playMediaFile(entry) }
                                 } else null,
+                                onSync = if (isRclone && entry.isDirectory) {
+                                    { viewModel.showSyncDialog(entry.path) }
+                                } else null,
                             )
                         }
                     }
@@ -592,6 +665,235 @@ fun SftpScreen(
             },
         )
     }
+
+    // Sync dialog
+    if (showSyncDialog) {
+        SyncDialog(
+            source = syncDialogSource ?: "",
+            remotes = availableRemotes,
+            onDismiss = { viewModel.dismissSyncDialog() },
+            onStart = { config -> viewModel.startSync(config) },
+        )
+    }
+
+    // Dry run results
+    dryRunResult?.let { result ->
+        AlertDialog(
+            onDismissRequest = { viewModel.dismissDryRunResult() },
+            title = { Text(stringResource(R.string.sftp_dry_run_results)) },
+            text = { Text(result) },
+            confirmButton = {
+                TextButton(onClick = { viewModel.dismissDryRunResult() }) {
+                    Text(stringResource(R.string.common_ok))
+                }
+            },
+        )
+    }
+}
+
+@OptIn(ExperimentalMaterial3Api::class)
+@Composable
+private fun SyncDialog(
+    source: String,
+    remotes: List<String>,
+    onDismiss: () -> Unit,
+    onStart: (SyncConfig) -> Unit,
+) {
+    var srcFs by remember { mutableStateOf(source) }
+    var dstRemote by remember { mutableStateOf(remotes.firstOrNull() ?: "") }
+    var dstPath by remember { mutableStateOf("") }
+    var mode by remember { mutableStateOf(SyncMode.COPY) }
+    var showFilters by remember { mutableStateOf(false) }
+    var includeText by remember { mutableStateOf("") }
+    var excludeText by remember { mutableStateOf("") }
+    var minSize by remember { mutableStateOf("") }
+    var maxSize by remember { mutableStateOf("") }
+    var bwLimit by remember { mutableStateOf("") }
+    var dryRun by remember { mutableStateOf(false) }
+    var remoteExpanded by remember { mutableStateOf(false) }
+
+    AlertDialog(
+        onDismissRequest = onDismiss,
+        title = { Text(stringResource(R.string.sftp_folder_sync)) },
+        text = {
+            Column(
+                verticalArrangement = Arrangement.spacedBy(8.dp),
+                modifier = Modifier.fillMaxWidth(),
+            ) {
+                // Source
+                OutlinedTextField(
+                    value = srcFs,
+                    onValueChange = { srcFs = it },
+                    label = { Text(stringResource(R.string.sftp_source)) },
+                    singleLine = true,
+                    modifier = Modifier.fillMaxWidth(),
+                )
+
+                // Destination remote + path
+                Row(
+                    horizontalArrangement = Arrangement.spacedBy(8.dp),
+                    modifier = Modifier.fillMaxWidth(),
+                ) {
+                    ExposedDropdownMenuBox(
+                        expanded = remoteExpanded,
+                        onExpandedChange = { remoteExpanded = it },
+                        modifier = Modifier.weight(1f),
+                    ) {
+                        OutlinedTextField(
+                            value = dstRemote,
+                            onValueChange = {},
+                            readOnly = true,
+                            label = { Text(stringResource(R.string.sftp_destination)) },
+                            trailingIcon = { ExposedDropdownMenuDefaults.TrailingIcon(remoteExpanded) },
+                            singleLine = true,
+                            modifier = Modifier.menuAnchor(),
+                        )
+                        ExposedDropdownMenu(
+                            expanded = remoteExpanded,
+                            onDismissRequest = { remoteExpanded = false },
+                        ) {
+                            remotes.forEach { remote ->
+                                DropdownMenuItem(
+                                    text = { Text(remote) },
+                                    onClick = {
+                                        dstRemote = remote
+                                        remoteExpanded = false
+                                    },
+                                )
+                            }
+                        }
+                    }
+                    OutlinedTextField(
+                        value = dstPath,
+                        onValueChange = { dstPath = it },
+                        label = { Text(stringResource(R.string.sftp_destination_path)) },
+                        singleLine = true,
+                        modifier = Modifier.weight(1f),
+                    )
+                }
+
+                // Mode selector
+                Row(horizontalArrangement = Arrangement.spacedBy(4.dp)) {
+                    SyncMode.entries.forEach { m ->
+                        FilterChip(
+                            selected = mode == m,
+                            onClick = { mode = m },
+                            label = {
+                                Text(
+                                    when (m) {
+                                        SyncMode.COPY -> stringResource(R.string.sftp_mode_copy)
+                                        SyncMode.SYNC -> stringResource(R.string.sftp_mode_sync)
+                                        SyncMode.MOVE -> stringResource(R.string.sftp_mode_move)
+                                    },
+                                )
+                            },
+                        )
+                    }
+                }
+                Text(
+                    when (mode) {
+                        SyncMode.COPY -> stringResource(R.string.sftp_mode_copy_desc)
+                        SyncMode.SYNC -> stringResource(R.string.sftp_mode_sync_desc)
+                        SyncMode.MOVE -> stringResource(R.string.sftp_mode_move_desc)
+                    },
+                    style = MaterialTheme.typography.bodySmall,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant,
+                )
+
+                // Advanced filters (collapsible)
+                TextButton(onClick = { showFilters = !showFilters }) {
+                    Icon(
+                        if (showFilters) Icons.Filled.ExpandLess else Icons.Filled.ExpandMore,
+                        null,
+                        modifier = Modifier.size(18.dp),
+                    )
+                    Spacer(Modifier.width(4.dp))
+                    Text(stringResource(R.string.sftp_advanced_filters))
+                }
+
+                if (showFilters) {
+                    OutlinedTextField(
+                        value = includeText,
+                        onValueChange = { includeText = it },
+                        label = { Text(stringResource(R.string.sftp_include_patterns)) },
+                        placeholder = { Text("*.mp3\n*.flac") },
+                        minLines = 2,
+                        maxLines = 4,
+                        modifier = Modifier.fillMaxWidth(),
+                    )
+                    OutlinedTextField(
+                        value = excludeText,
+                        onValueChange = { excludeText = it },
+                        label = { Text(stringResource(R.string.sftp_exclude_patterns)) },
+                        placeholder = { Text("*.tmp\nThumbs.db") },
+                        minLines = 2,
+                        maxLines = 4,
+                        modifier = Modifier.fillMaxWidth(),
+                    )
+                    Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+                        OutlinedTextField(
+                            value = minSize,
+                            onValueChange = { minSize = it },
+                            label = { Text(stringResource(R.string.sftp_min_size)) },
+                            placeholder = { Text("e.g. 1M") },
+                            singleLine = true,
+                            modifier = Modifier.weight(1f),
+                        )
+                        OutlinedTextField(
+                            value = maxSize,
+                            onValueChange = { maxSize = it },
+                            label = { Text(stringResource(R.string.sftp_max_size)) },
+                            placeholder = { Text("e.g. 1G") },
+                            singleLine = true,
+                            modifier = Modifier.weight(1f),
+                        )
+                    }
+                    OutlinedTextField(
+                        value = bwLimit,
+                        onValueChange = { bwLimit = it },
+                        label = { Text(stringResource(R.string.sftp_bandwidth_limit)) },
+                        placeholder = { Text("e.g. 10M") },
+                        singleLine = true,
+                        modifier = Modifier.fillMaxWidth(),
+                    )
+                }
+
+                // Dry run checkbox
+                Row(verticalAlignment = Alignment.CenterVertically) {
+                    Checkbox(checked = dryRun, onCheckedChange = { dryRun = it })
+                    Text(stringResource(R.string.sftp_dry_run))
+                }
+            }
+        },
+        confirmButton = {
+            TextButton(
+                onClick = {
+                    val dstFs = if (dstPath.isNotBlank()) "$dstRemote:$dstPath" else "$dstRemote:"
+                    onStart(
+                        SyncConfig(
+                            srcFs = srcFs,
+                            dstFs = dstFs,
+                            mode = mode,
+                            filters = SyncFilters(
+                                includePatterns = includeText.lines().filter { it.isNotBlank() },
+                                excludePatterns = excludeText.lines().filter { it.isNotBlank() },
+                                minSize = minSize.ifBlank { null },
+                                maxSize = maxSize.ifBlank { null },
+                                bandwidthLimit = bwLimit.ifBlank { null },
+                            ),
+                            dryRun = dryRun,
+                        ),
+                    )
+                },
+                enabled = srcFs.isNotBlank() && dstRemote.isNotBlank(),
+            ) {
+                Text(if (dryRun) stringResource(R.string.sftp_preview) else stringResource(R.string.sftp_start_sync))
+            }
+        },
+        dismissButton = {
+            TextButton(onClick = onDismiss) { Text(stringResource(R.string.common_cancel)) }
+        },
+    )
 }
 
 @OptIn(ExperimentalFoundationApi::class)
@@ -605,6 +907,7 @@ private fun FileListItem(
     onCopy: () -> Unit = {},
     onCut: () -> Unit = {},
     onPlay: (() -> Unit)? = null,
+    onSync: (() -> Unit)? = null,
 ) {
     val context = LocalContext.current
     var showMenu by remember { mutableStateOf(false) }
@@ -646,6 +949,13 @@ private fun FileListItem(
                     text = { Text(stringResource(R.string.sftp_play)) },
                     leadingIcon = { Icon(Icons.Filled.PlayArrow, null) },
                     onClick = { showMenu = false; onPlay() },
+                )
+            }
+            if (onSync != null) {
+                DropdownMenuItem(
+                    text = { Text(stringResource(R.string.sftp_sync)) },
+                    leadingIcon = { Icon(Icons.Filled.Sync, null) },
+                    onClick = { showMenu = false; onSync() },
                 )
             }
             if (!entry.isDirectory) {

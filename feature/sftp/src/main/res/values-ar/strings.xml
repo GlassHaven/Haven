@@ -94,4 +94,27 @@
     <string name="sftp_skip_all">تخطي الكل</string>
     <string name="sftp_play">Play</string>
     <string name="sftp_play_folder">Play folder</string>
+    <string name="sftp_sync">Sync</string>
+    <string name="sftp_folder_sync">Folder Sync</string>
+    <string name="sftp_source">Source</string>
+    <string name="sftp_destination">Destination</string>
+    <string name="sftp_destination_path">Path</string>
+    <string name="sftp_mode_copy">Copy</string>
+    <string name="sftp_mode_sync">Mirror</string>
+    <string name="sftp_mode_move">Move</string>
+    <string name="sftp_mode_copy_desc">Copy new and updated files. No deletions.</string>
+    <string name="sftp_mode_sync_desc">Make destination identical to source. Deletes extras.</string>
+    <string name="sftp_mode_move_desc">Move files to destination. Deletes from source.</string>
+    <string name="sftp_advanced_filters">Advanced filters</string>
+    <string name="sftp_include_patterns">Include patterns (one per line)</string>
+    <string name="sftp_exclude_patterns">Exclude patterns (one per line)</string>
+    <string name="sftp_min_size">Min size</string>
+    <string name="sftp_max_size">Max size</string>
+    <string name="sftp_bandwidth_limit">Bandwidth limit</string>
+    <string name="sftp_dry_run">Dry run (preview only)</string>
+    <string name="sftp_start_sync">Start</string>
+    <string name="sftp_preview">Preview</string>
+    <string name="sftp_dry_run_results">Dry Run Results</string>
+    <string name="sftp_start_for_real">Start for real</string>
+    <string name="sftp_sync_cancelled">Sync cancelled</string>
 </resources>

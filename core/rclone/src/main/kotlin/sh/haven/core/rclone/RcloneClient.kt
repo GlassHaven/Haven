@@ -197,6 +197,88 @@ class RcloneClient @Inject constructor(
         )
     }
 
+    // ── Sync operations ──────────────────────────────────────────────
+
+    /** Active sync job ID, stored here (singleton) so it survives ViewModel recreation. */
+    @Volatile
+    var activeSyncJobId: Long? = null
+
+    /**
+     * Start an async rclone sync/copy/move operation.
+     * Returns the job ID for status polling.
+     */
+    fun startSync(config: SyncConfig): Long {
+        check(initialized) { "RcloneClient.initialize() must be called first" }
+        val params = JSONObject()
+        params.put("srcFs", config.srcFs)
+        params.put("dstFs", config.dstFs)
+        params.put("_async", true)
+
+        // Build filter object
+        val filters = config.filters
+        if (filters.includePatterns.isNotEmpty() || filters.excludePatterns.isNotEmpty()
+            || filters.minSize != null || filters.maxSize != null
+        ) {
+            val filterObj = JSONObject()
+            if (filters.includePatterns.isNotEmpty()) {
+                filterObj.put("IncludeRule", org.json.JSONArray(filters.includePatterns))
+            }
+            if (filters.excludePatterns.isNotEmpty()) {
+                filterObj.put("ExcludeRule", org.json.JSONArray(filters.excludePatterns))
+            }
+            filters.minSize?.let { filterObj.put("MinSize", it) }
+            filters.maxSize?.let { filterObj.put("MaxSize", it) }
+            params.put("_filter", filterObj)
+        }
+
+        // Build config object (dry run, bandwidth limit)
+        if (config.dryRun || filters.bandwidthLimit != null) {
+            val configObj = JSONObject()
+            if (config.dryRun) configObj.put("DryRun", true)
+            filters.bandwidthLimit?.let { configObj.put("BwLimit", it) }
+            params.put("_config", configObj)
+        }
+
+        val result = rpc(config.mode.rcMethod, params)
+        val jobId = result.getLong("jobid")
+        activeSyncJobId = jobId
+        return jobId
+    }
+
+    /** Query the status of an async rclone job. */
+    fun getJobStatus(jobId: Long): SyncJobStatus {
+        check(initialized) { "RcloneClient.initialize() must be called first" }
+        val result = rpc("job/status", JSONObject().put("jobid", jobId))
+        return SyncJobStatus(
+            jobId = jobId,
+            finished = result.optBoolean("finished", false),
+            success = result.optBoolean("success", false),
+            error = result.optString("error", "").ifEmpty { null },
+            duration = result.optDouble("duration", 0.0),
+        )
+    }
+
+    /** Cancel a running async rclone job. */
+    fun cancelJob(jobId: Long) {
+        check(initialized) { "RcloneClient.initialize() must be called first" }
+        try {
+            rpc("job/stop", JSONObject().put("jobid", jobId))
+        } catch (_: Exception) {
+            // Job may already be finished
+        }
+        if (activeSyncJobId == jobId) activeSyncJobId = null
+    }
+
+    /** Reset global transfer statistics (call before starting a new sync). */
+    fun resetStats() {
+        if (!initialized) return
+        try {
+            rpc("core/stats-reset", JSONObject())
+        } catch (_: Exception) {
+            // Not critical
+        }
+    }
+
     // ── Media server ──────────────────────────────────────────────────
 
     /**

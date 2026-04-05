@@ -30,6 +30,7 @@ import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.collectAsState
+import kotlinx.coroutines.flow.MutableStateFlow
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
@@ -84,7 +85,8 @@ fun DesktopScreen(
             DesktopEmptyState()
         } else {
             // Tab bar — always visible when tabs exist (hidden in fullscreen by parent)
-            if (tabs.size > 1 || activeTab?.connected?.value != true) {
+            val isConnected by (activeTab?.connected ?: MutableStateFlow(false)).collectAsState()
+            if (tabs.size > 1 || !isConnected) {
                 DesktopTabBar(
                     tabs = tabs,
                     activeTabIndex = activeTabIndex,

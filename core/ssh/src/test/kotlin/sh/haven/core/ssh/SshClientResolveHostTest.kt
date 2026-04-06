@@ -6,6 +6,7 @@ import io.mockk.mockkStatic
 import io.mockk.unmockkStatic
 import org.junit.After
 import org.junit.Assert.assertEquals
+import org.junit.Assert.assertThrows
 import org.junit.Before
 import org.junit.Test
 
@@ -48,8 +49,9 @@ class SshClientResolveHostTest {
     @Test
     fun `resolveHost does not treat onion-like suffix as onion`() {
         // "notonion" should not match — only exact ".onion" suffix
-        val result = SshClient.resolveHost("host.notonion")
-        // Will attempt DNS resolution, fail, and return as-is
-        assertEquals("host.notonion", result)
+        // DNS fails for this fake hostname, throwing UnknownHostException
+        assertThrows(java.net.UnknownHostException::class.java) {
+            SshClient.resolveHost("host.notonion")
+        }
     }
 }

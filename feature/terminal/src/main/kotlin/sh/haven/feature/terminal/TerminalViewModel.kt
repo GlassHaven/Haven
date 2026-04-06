@@ -394,26 +394,8 @@ class TerminalViewModel @Inject constructor(
         }
     }
 
-    /** Ensure a VNC connection profile exists for local desktop (so Desktop tab is visible). */
-    suspend fun ensureLocalVncProfile() {
-        val existing = connectionRepository.getAll()
-            .find { it.connectionType == "VNC" && it.host == "localhost" && it.vncPort == 5901 }
-        if (existing == null) {
-            val tab = _tabs.value.getOrNull(_activeTabIndex.value)
-            val profile = tab?.let { connectionRepository.getById(it.profileId) }
-            connectionRepository.save(
-                ConnectionProfile(
-                    label = "${profile?.label ?: "Local"} Desktop",
-                    host = "localhost",
-                    port = 5901,
-                    username = "",
-                    connectionType = "VNC",
-                    vncPort = 5901,
-                    vncSshForward = false,
-                )
-            )
-        }
-    }
+    /** No-op — VNC profiles are no longer needed for local desktops. */
+    suspend fun ensureLocalVncProfile() { }
 
     /** Get the stored VNC password for local desktop (localhost:5901). */
     suspend fun getLocalVncPassword(): String? =

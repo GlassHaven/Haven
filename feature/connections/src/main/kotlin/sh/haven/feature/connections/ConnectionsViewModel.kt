@@ -907,27 +907,9 @@ class ConnectionsViewModel @Inject constructor(
             } else {
                 val port = desktopManager.getVncPort(de) ?: 5901
                 Log.d(TAG, "startDesktop: VNC port=$port")
-                // Create or update VNC connection profile for this desktop
-                val existing = connections.value.find {
-                    it.isVnc && it.host == "localhost" && it.vncPort == port
-                }
                 val pwd = connections.value
                     .find { it.isVnc && it.host == "localhost" }
                     ?.vncPassword
-                if (existing == null) {
-                    val vncProfile = ConnectionProfile(
-                        label = "${de.label} Desktop",
-                        host = "localhost",
-                        port = port,
-                        username = "",
-                        connectionType = "VNC",
-                        vncPort = port,
-                        vncPassword = pwd,
-                        vncSshForward = false,
-                    )
-                    repository.save(vncProfile)
-                    Log.d(TAG, "startDesktop: created VNC profile localhost:$port")
-                }
                 Log.d(TAG, "startDesktop: waiting for VNC server on port $port...")
                 // Wait up to 8s for VNC port to become available
                 val ready = withContext(Dispatchers.IO) {

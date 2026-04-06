@@ -252,14 +252,30 @@ fun ConnectionsScreen(
     var filterText by rememberSaveable { mutableStateOf("") }
 
     val snackbarHostState = remember { SnackbarHostState() }
+    val context = LocalContext.current
 
     LaunchedEffect(error) {
         error?.let {
+            android.widget.Toast.makeText(context, it, android.widget.Toast.LENGTH_LONG).show()
             snackbarHostState.showSnackbar(
                 message = it,
                 duration = androidx.compose.material3.SnackbarDuration.Long,
             )
             viewModel.dismissError()
+        }
+    }
+
+    // Safety net: if a connection attempt spins for more than 20s without resolving
+    // to a terminal, error, or password dialog, it's a silent failure. Show a toast
+    // and clear the spinner. This catches all unhappy paths: DNS hangs, blocked
+    // coroutines, session manager failures, race conditions, etc.
+    LaunchedEffect(connectingProfileId) {
+        if (connectingProfileId != null) {
+            kotlinx.coroutines.delay(20_000)
+            // Still spinning after 20s?
+            if (viewModel.connectingProfileId.value != null) {
+                viewModel.showError("Connection timed out — check host, port, and credentials")
+            }
         }
     }
 
@@ -273,7 +289,6 @@ fun ConnectionsScreen(
 
     // Request POST_NOTIFICATIONS permission on Android 13+ so the foreground
     // service notification is visible and "Disconnect All" action works.
-    val context = LocalContext.current
     val permissionLauncher = rememberLauncherForActivityResult(
         ActivityResultContracts.RequestPermission(),
     ) { /* granted or denied — either way, foreground service still works */ }
@@ -1036,18 +1051,14 @@ private fun onTapProfile(
     showPasswordDialog: () -> Unit,
 ) {
     if (profile.isLocal) {
-        // Local: no auth needed, handles both fresh connect and re-navigate
         viewModel.connect(profile, "")
     } else if (profileStatus == ProfileStatus.CONNECTED && profile.isRclone) {
         onNavigateToRclone(profile.id)
     } else if (profileStatus == ProfileStatus.CONNECTED && profile.isSmb) {
         onNavigateToSmb(profile.id)
     } else if (profileStatus == ProfileStatus.CONNECTED) {
-        // ensureShellForProfile navigates via _navigateToTerminal when ready
-        // (handles jump host sessions that need shell setup or session picker)
         viewModel.ensureShellForProfile(profile.id)
     } else if (profile.isVnc) {
-        // VNC: connect directly (password stored in profile)
         viewModel.connect(profile, "")
     } else if (profile.isRdp) {
         val savedPassword = profile.rdpPassword

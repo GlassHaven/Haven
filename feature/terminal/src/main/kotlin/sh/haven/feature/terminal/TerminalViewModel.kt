@@ -1126,6 +1126,11 @@ class TerminalViewModel @Inject constructor(
                     }
                 } catch (_: TimeoutCancellationException) {
                     Log.w(TAG, "selectTabByProfileId: tab for $profileId not created within 5s")
+                    android.os.Handler(android.os.Looper.getMainLooper()).post {
+                        android.widget.Toast.makeText(appContext,
+                            "Terminal failed to open — check that your session manager (tmux/zellij/screen) is installed on the remote host",
+                            android.widget.Toast.LENGTH_LONG).show()
+                    }
                 }
             }
         }

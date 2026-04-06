@@ -307,15 +307,22 @@ class SshClient : Closeable {
 
             if (ip != null) return ip
 
-            Log.w(TAG, "Failed to resolve $hostname, using as-is")
-            return hostname
+            throw java.net.UnknownHostException("Could not resolve hostname: $hostname")
         }
 
         private fun resolveSystem(hostname: String): String? {
             return try {
-                InetAddress.getByName(hostname).hostAddress
+                // InetAddress.getByName has no timeout — run it in a thread with a deadline
+                val future = java.util.concurrent.CompletableFuture.supplyAsync {
+                    InetAddress.getByName(hostname).hostAddress
+                }
+                future.get(5, java.util.concurrent.TimeUnit.SECONDS)
+            } catch (e: java.util.concurrent.TimeoutException) {
+                Log.w(TAG, "DNS resolve timed out for $hostname")
+                null
             } catch (e: Exception) {
-                Log.w(TAG, "System DNS resolve failed for $hostname", e)
+                val cause = if (e is java.util.concurrent.ExecutionException) e.cause ?: e else e
+                Log.w(TAG, "System DNS resolve failed for $hostname", cause)
                 null
             }
         }

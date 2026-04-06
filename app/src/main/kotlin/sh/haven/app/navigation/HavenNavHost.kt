@@ -357,13 +357,18 @@ fun HavenNavHost(
                             isSelectionActive = { terminalSelectionActive || terminalReorderMode },
                         ),
                     )
+                    // Clear pending IDs after the terminal has had a chance to consume them.
+                    // Use a small delay to avoid cancelling the LaunchedEffect in TerminalScreen
+                    // that calls selectTabByProfileId (which may need up to 5s to find the tab).
                     LaunchedEffect(pendingTerminalProfileId) {
                         if (pendingTerminalProfileId != null) {
+                            kotlinx.coroutines.delay(6000)
                             pendingTerminalProfileId = null
                         }
                     }
                     LaunchedEffect(pendingNewSessionProfileId) {
                         if (pendingNewSessionProfileId != null) {
+                            kotlinx.coroutines.delay(6000)
                             pendingNewSessionProfileId = null
                         }
                     }

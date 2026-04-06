@@ -1168,7 +1168,14 @@ class ConnectionsViewModel @Inject constructor(
                     sshSessionManager.removeSession(jid)
                 }
                 val msg = e.message ?: ""
-                val isAuthError = keyOnly && (
+                val isNetworkError = e is java.net.ConnectException ||
+                    e is java.net.UnknownHostException ||
+                    e is java.net.SocketTimeoutException ||
+                    e is java.net.NoRouteToHostException ||
+                    msg.contains("refused", ignoreCase = true) ||
+                    msg.contains("timed out", ignoreCase = true) ||
+                    msg.contains("unreachable", ignoreCase = true)
+                val isAuthError = keyOnly && !isNetworkError && (
                     msg.contains("Auth fail", ignoreCase = true) ||
                     msg.contains("Auth cancel", ignoreCase = true) ||
                     msg.contains("authentication", ignoreCase = true) ||
@@ -1177,7 +1184,7 @@ class ConnectionsViewModel @Inject constructor(
                 if (isAuthError) {
                     Log.d(TAG, "Auth failed, showing password fallback for ${profile.label}")
                     _passwordFallback.value = profile
-                } else if (keyOnly && msg.isBlank()) {
+                } else if (keyOnly && !isNetworkError && msg.isBlank()) {
                     // Unknown error with key auth — try password
                     _passwordFallback.value = profile
                 } else {
@@ -1862,6 +1869,19 @@ class ConnectionsViewModel @Inject constructor(
         startForegroundServiceIfNeeded()
         if (!silent) {
             _navigateToTerminal.value = profileId
+            // Verify a terminal tab appears — if the session manager (tmux/zellij/screen)
+            // isn't installed on the remote host, the shell exits silently and no tab is created.
+            viewModelScope.launch {
+                kotlinx.coroutines.delay(6000)
+                val hasTerminal = sshSessionManager.sessions.value.values.any {
+                    it.profileId == profileId &&
+                        it.status == SshSessionManager.SessionState.Status.CONNECTED &&
+                        it.shellChannel?.isConnected == true
+                }
+                if (!hasTerminal) {
+                    _error.value = "Shell closed — is your session manager (tmux/zellij/screen) installed on this host?"
+                }
+            }
         }
     }
 

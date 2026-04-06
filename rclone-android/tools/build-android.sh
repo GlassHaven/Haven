@@ -18,6 +18,9 @@ AAR_DIR="$PROJECT_DIR/build"
 # Ensure Go is on PATH (supports /usr/local/go and GOPATH/bin)
 export PATH="/usr/local/go/bin:${GOPATH:-$HOME/go}/bin:${PATH}"
 
+# gobind needs -mod=mod to resolve golang.org/x/mobile/bind from the module cache
+export GOFLAGS="${GOFLAGS:+$GOFLAGS }-mod=mod"
+
 # Detect Android SDK/NDK from environment
 ANDROID_HOME="${ANDROID_HOME:-${ANDROID_SDK_ROOT:-}}"
 if [ -z "$ANDROID_HOME" ]; then

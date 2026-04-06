@@ -85,6 +85,9 @@ class SettingsViewModel @Inject constructor(
     val showLinuxVmCard: StateFlow<Boolean> = preferencesRepository.showLinuxVmCard
         .stateIn(viewModelScope, SharingStarted.WhileSubscribed(5000), true)
 
+    val showDesktopsCard: StateFlow<Boolean> = preferencesRepository.showDesktopsCard
+        .stateIn(viewModelScope, SharingStarted.WhileSubscribed(5000), true)
+
     val showSearchButton: StateFlow<Boolean> = preferencesRepository.showSearchButton
         .stateIn(viewModelScope, SharingStarted.WhileSubscribed(5000), false)
 
@@ -193,6 +196,12 @@ class SettingsViewModel @Inject constructor(
     fun setShowLinuxVmCard(enabled: Boolean) {
         viewModelScope.launch {
             preferencesRepository.setShowLinuxVmCard(enabled)
+        }
+    }
+
+    fun setShowDesktopsCard(enabled: Boolean) {
+        viewModelScope.launch {
+            preferencesRepository.setShowDesktopsCard(enabled)
         }
     }
 

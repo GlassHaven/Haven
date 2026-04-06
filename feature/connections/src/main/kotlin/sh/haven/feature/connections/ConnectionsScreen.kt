@@ -164,6 +164,7 @@ fun ConnectionsScreen(
     val discoveredHosts by viewModel.discoveredHosts.collectAsState()
     val localVmStatus by viewModel.localVmStatus.collectAsState()
     val showLinuxVmCard by viewModel.showLinuxVmCard.collectAsState()
+    val showDesktopsCard by viewModel.showDesktopsCard.collectAsState()
     val connectingProfileId by viewModel.connectingProfileId.collectAsState()
     val launchingDesktop by viewModel.launchingDesktop.collectAsState()
     val error by viewModel.error.collectAsState()
@@ -846,8 +847,8 @@ fun ConnectionsScreen(
                 }
 
                 LazyColumn(state = lazyListState, modifier = Modifier.fillMaxSize()) {
-                    // Desktop Manager section — shows when PRoot rootfs is installed
-                    if (viewModel.isRootfsReady) {
+                    // Desktop Manager section — shows when PRoot rootfs is installed and not hidden
+                    if (showDesktopsCard && viewModel.isRootfsReady) {
                         item(key = "desktop-manager") {
                             DesktopManagerSection(
                                 installedDesktops = viewModel.installedDesktops,

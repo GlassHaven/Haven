@@ -37,6 +37,8 @@
     <string name="settings_lock_timeout_title">Lock timeout</string>
     <string name="settings_prevent_screenshots_title">Prevent screenshots</string>
     <string name="settings_prevent_screenshots_subtitle">Block screen capture and task switcher preview</string>
+    <string name="settings_show_desktops_title">Show Desktops card</string>
+    <string name="settings_show_desktops_subtitle">Show desktop environment manager on the Connections screen</string>
     <string name="settings_show_linux_vm_title">Show Linux VM card</string>
     <string name="settings_show_linux_vm_subtitle">Show Android Linux VM setup on the Connections screen</string>
 

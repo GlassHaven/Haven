@@ -126,6 +126,7 @@ fun SettingsScreen(
     val biometricEnabled by viewModel.biometricEnabled.collectAsState()
     val screenSecurity by viewModel.screenSecurity.collectAsState()
     val showLinuxVmCard by viewModel.showLinuxVmCard.collectAsState()
+    val showDesktopsCard by viewModel.showDesktopsCard.collectAsState()
     val lockTimeout by viewModel.lockTimeout.collectAsState()
     val fontSize by viewModel.terminalFontSize.collectAsState()
     val theme by viewModel.theme.collectAsState()
@@ -230,6 +231,13 @@ fun SettingsScreen(
             subtitle = stringResource(R.string.settings_prevent_screenshots_subtitle),
             checked = screenSecurity,
             onCheckedChange = viewModel::setScreenSecurity,
+        )
+        SettingsToggleItem(
+            icon = Icons.Filled.DesktopWindows,
+            title = stringResource(R.string.settings_show_desktops_title),
+            subtitle = stringResource(R.string.settings_show_desktops_subtitle),
+            checked = showDesktopsCard,
+            onCheckedChange = viewModel::setShowDesktopsCard,
         )
         SettingsToggleItem(
             icon = Icons.Filled.Laptop,

@@ -43,6 +43,7 @@ class UserPreferencesRepository @Inject constructor(
     private val waylandShellCommandKey = stringPreferencesKey("wayland_shell_command")
     private val batteryPromptDismissedKey = booleanPreferencesKey("battery_prompt_dismissed")
     private val showLinuxVmCardKey = booleanPreferencesKey("show_linux_vm_card")
+    private val showDesktopsCardKey = booleanPreferencesKey("show_desktops_card")
     private val mediaExtensionsKey = stringPreferencesKey("media_extensions")
     private val lastMediaServerPortKey = intPreferencesKey("last_media_server_port")
 
@@ -167,6 +168,17 @@ class UserPreferencesRepository @Inject constructor(
     suspend fun setShowLinuxVmCard(enabled: Boolean) {
         dataStore.edit { prefs ->
             prefs[showLinuxVmCardKey] = enabled
+        }
+    }
+
+    /** Whether the Desktops card is shown on the Connections screen. */
+    val showDesktopsCard: Flow<Boolean> = dataStore.data.map { prefs ->
+        prefs[showDesktopsCardKey] ?: true
+    }
+
+    suspend fun setShowDesktopsCard(enabled: Boolean) {
+        dataStore.edit { prefs ->
+            prefs[showDesktopsCardKey] = enabled
         }
     }
 

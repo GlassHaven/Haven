@@ -405,6 +405,9 @@ class ConnectionsViewModel @Inject constructor(
     val showLinuxVmCard: StateFlow<Boolean> = preferencesRepository.showLinuxVmCard
         .stateIn(viewModelScope, SharingStarted.WhileSubscribed(5000), true)
 
+    val showDesktopsCard: StateFlow<Boolean> = preferencesRepository.showDesktopsCard
+        .stateIn(viewModelScope, SharingStarted.WhileSubscribed(5000), true)
+
     private var periodicRefreshJob: Job? = null
 
     fun startPeriodicRefresh() {

@@ -1,60 +1,55 @@
-Haven is an open-source SSH, VNC, RDP, and SFTP client for Android.
-
-Connect to your servers with a full terminal emulator, view remote desktops over VNC or RDP, browse and transfer files over SFTP, and manage your SSH keys — all from your phone.
+Haven is an open-source SSH, VNC, RDP, and SFTP client for Android with a native Wayland desktop and cloud storage.
 
 Terminal:
-- Full VT100/xterm terminal emulator with Unicode support (Hack font)
-- Multiple tabs per server
-- Session manager integration (tmux, zellij, screen, byobu)
-- Mouse mode with scroll events for TUI apps (vim, zellij, htop)
-- Keyboard toolbar with Esc, Tab, Ctrl, Alt, arrow keys, and shell symbols
-- Text selection with word expansion, d-pad adjustment, copy, and Open URL
-- 6 color schemes: Haven, Classic Green, Light, Solarized Dark, Dracula, Monokai
-- Configurable font size (8–32 sp)
+- Full VT100/xterm emulator with Unicode, multiple tabs, and 6 color schemes
+- Session persistence via tmux, zellij, screen, or byobu
+- Mouse mode for TUI apps (vim, htop, mc)
+- Configurable keyboard toolbar with Esc, Ctrl, Alt, arrows, function keys, and custom macros
+- Text selection with word expansion, copy, and clickable URL detection
+- Voice input and autocomplete mode
+- Mosh and Eternal Terminal for roaming and persistent connections
+
+Native Wayland Desktop:
+- GPU-accelerated labwc compositor running directly on your device
+- Waybar panel, fuzzel app launcher, thunar file manager, mousepad editor
+- Starter Pack addon with Firefox, calculator, image viewer
+- XWayland for X11 app compatibility
+- Multi-desktop management — run multiple desktops simultaneously
+- No root required (PRoot with Alpine Linux)
 
 VNC Remote Desktop:
-- VNC desktop viewer with pinch-to-zoom and pan
-- SSH tunnel support for encrypted VNC connections
-- Local Xfce4 desktop via PRoot + Xvnc — no root required
-- Fullscreen mode with immersive display
-- Keyboard toolbar with modifier keys and symbols for remote desktop use
+- VNC viewer with pinch-to-zoom, pan, and fullscreen mode
+- SSH tunnel support for encrypted connections
 - Touch-to-click with drag gesture support
 
 RDP Remote Desktop:
-- RDP client for Windows Remote Desktop, xrdp (Linux), GNOME Remote Desktop
-- Pinch-to-zoom, pan, keyboard with scancode mapping
-- SSH tunnel with auto-connect through saved SSH profiles
-- Saved connection profiles with optional stored password
+- Connect to Windows Remote Desktop, xrdp, and GNOME Remote Desktop
+- Pinch-to-zoom, keyboard with scancode mapping
+- SSH tunnel with auto-connect through saved profiles
 
-OSC escape sequence support:
-- OSC 52: remote clipboard set
-- OSC 8: hyperlinks
-- OSC 9/777: terminal notifications (toast or Android notification)
-- OSC 7: working directory tracking
+Cloud Storage:
+- 60+ providers via rclone — Google Drive, Dropbox, OneDrive, S3, and more
+- OAuth authentication with browser flow
+- Folder sync with filters, bandwidth limits, and dry-run preview
+- Media streaming to VLC via local HTTP server
+- DLNA server for smart TVs and Chromecast
+
+File Transfer:
+- SFTP browser with upload, download, rename, delete, and folder transfer
+- SMB/Windows file share browsing with optional SSH tunnel
+- Cross-filesystem copy between any backends
 
 Networking:
-- SSH with auto-reconnect and exponential backoff
-- SSH port forwarding (local and remote)
-- ProxyJump multi-hop tunneling with connection tree view
-- Reticulum support via rnsh (Sideband or direct TCP gateway) with announce-based discovery
+- SSH with auto-reconnect, port forwarding, and ProxyJump multi-hop
+- Tailscale peer auto-discovery
+- Reticulum mesh network support via rnsh
 - Network discovery for SSH hosts on local network
-- Trust-on-first-use host key verification with fingerprint display
-
-File transfer:
-- SFTP file browser with upload, download, delete, and path copy
-- Sort by name, size, or date; toggle hidden files
 
 Security:
 - SSH key generation (Ed25519, RSA, ECDSA) with encrypted storage
-- Import keys from file (PEM/OpenSSH format)
-- Assign specific keys to individual connections
-- Encrypted backup and restore for keys, connections, and settings
-- Biometric app lock (fingerprint or face) with configurable timeout
+- FIDO2 hardware key support (ed25519-sk, ecdsa-sk) via NFC or USB
+- Biometric app lock with configurable timeout
+- Connection audit log
 - No ads, no tracking, no data collection
-- All data stays on your device
 
-Appearance:
-- Light, dark, and system-default themes
-- Material You dynamic colors on Android 12+
-
-Haven is free and open source (GPLv3). Source code available on GitHub.
+Haven is free and open source (GPLv3).

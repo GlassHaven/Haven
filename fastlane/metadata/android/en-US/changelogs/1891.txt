@@ -1,0 +1,10 @@
+Major update since v3.17.0:
+- Native Wayland desktop with GPU-accelerated compositor (labwc), waybar panel, app launcher
+- Cloud storage: 60+ providers via rclone with sync, streaming, and DLNA
+- RDP now available on F-Droid (IronRDP built from source)
+- Mosh and Eternal Terminal for roaming connections
+- FIDO2 hardware key support (NFC/USB)
+- Tailscale peer auto-discovery
+- Voice input and autocomplete mode
+- Multi-desktop management
+- SMB file share browsing

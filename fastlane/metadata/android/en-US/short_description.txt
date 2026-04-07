@@ -1,1 +1,1 @@
-Secure SSH terminal, VNC/RDP desktop, and SFTP client for Android
+SSH terminal, Wayland desktop, VNC/RDP, cloud storage & SFTP for Android

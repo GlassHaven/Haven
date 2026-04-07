@@ -1,0 +1,50 @@
+Haven是一款开源的Android SSH、VNC、RDP和SFTP客户端，内置原生Wayland桌面和云存储功能。
+
+终端：
+- 支持Unicode、多标签页和6种配色方案的VT100/xterm终端模拟器
+- 通过tmux、zellij、screen或byobu保持会话
+- TUI应用鼠标模式（vim、htop、mc）
+- 可配置的键盘工具栏，支持Esc、Ctrl、Alt、方向键、功能键和自定义宏
+- 文本选择，支持词语扩展、复制和URL检测
+- 语音输入和自动补全
+- Mosh和Eternal Terminal支持移动和持久连接
+
+原生Wayland桌面：
+- GPU加速的labwc合成器，直接在设备上运行
+- waybar面板、fuzzel应用启动器、thunar文件管理器、mousepad编辑器
+- 入门包含Firefox、计算器、图片查看器
+- XWayland支持X11应用兼容
+- 多桌面管理——同时运行多个桌面
+- 无需root（基于Alpine Linux的PRoot）
+
+VNC远程桌面：
+- VNC查看器，支持双指缩放、平移和全屏模式
+- SSH隧道加密连接
+
+RDP远程桌面：
+- 连接Windows远程桌面、xrdp和GNOME远程桌面
+- 双指缩放，键盘扫描码映射
+
+云存储：
+- 通过rclone支持60多个提供商——Google Drive、Dropbox、OneDrive、S3等
+- 浏览器OAuth认证
+- 文件夹同步，支持过滤器和带宽限制
+- 通过本地HTTP服务器向VLC流媒体
+- DLNA服务器，支持智能电视和Chromecast
+
+文件传输：
+- SFTP浏览器，支持上传、下载、重命名、删除和文件夹传输
+- SMB/Windows文件共享，可选SSH隧道
+
+网络：
+- SSH自动重连、端口转发和ProxyJump多跳
+- Tailscale节点自动发现
+- 通过rnsh的Reticulum网状网络
+
+安全：
+- SSH密钥生成（Ed25519、RSA、ECDSA）和加密存储
+- FIDO2硬件密钥（ed25519-sk、ecdsa-sk），支持NFC或USB
+- 可配置超时的生物识别锁定
+- 无广告、无追踪、无数据收集
+
+Haven免费且开源（GPLv3）。

@@ -1,0 +1,50 @@
+Haven est un client open source SSH, VNC, RDP et SFTP pour Android avec un bureau Wayland natif et stockage cloud.
+
+Terminal :
+- Emulateur VT100/xterm avec Unicode, onglets multiples et 6 thèmes de couleurs
+- Persistance des sessions via tmux, zellij, screen ou byobu
+- Mode souris pour les applis TUI (vim, htop, mc)
+- Barre d'outils clavier configurable avec Esc, Ctrl, Alt, flèches, touches de fonction et macros
+- Sélection de texte avec expansion de mots, copie et détection d'URLs
+- Saisie vocale et saisie automatique
+- Mosh et Eternal Terminal pour les connexions mobiles et persistantes
+
+Bureau Wayland natif :
+- Compositeur labwc accéléré par GPU directement sur votre appareil
+- Panneau waybar, lanceur fuzzel, gestionnaire de fichiers thunar, éditeur mousepad
+- Pack de démarrage avec Firefox, calculatrice, visionneuse d'images
+- XWayland pour la compatibilité des applis X11
+- Gestion multi-bureau — exécutez plusieurs bureaux simultanément
+- Pas de root requis (PRoot avec Alpine Linux)
+
+Bureau distant VNC :
+- Visionneuse VNC avec zoom par pincement, défilement et plein écran
+- Tunnel SSH pour les connexions chiffrées
+
+Bureau distant RDP :
+- Connexion à Windows Remote Desktop, xrdp et GNOME Remote Desktop
+- Zoom par pincement, clavier avec mappage de scancodes
+
+Stockage cloud :
+- Plus de 60 fournisseurs via rclone — Google Drive, Dropbox, OneDrive, S3 et plus
+- Authentification OAuth via le navigateur
+- Synchronisation de dossiers avec filtres et limites de bande passante
+- Streaming multimédia vers VLC via serveur HTTP local
+- Serveur DLNA pour smart TV et Chromecast
+
+Transfert de fichiers :
+- Navigateur SFTP avec envoi, téléchargement, renommage, suppression et transfert de dossiers
+- Partages SMB/Windows avec tunnel SSH optionnel
+
+Réseau :
+- SSH avec reconnexion automatique, transfert de ports et ProxyJump multi-sauts
+- Découverte automatique des pairs Tailscale
+- Réseau mesh Reticulum via rnsh
+
+Sécurité :
+- Génération de clés SSH (Ed25519, RSA, ECDSA) avec stockage chiffré
+- Clés matérielles FIDO2 (ed25519-sk, ecdsa-sk) via NFC ou USB
+- Verrouillage biométrique avec délai configurable
+- Pas de publicité, pas de pistage, pas de collecte de données
+
+Haven est gratuit et open source (GPLv3).

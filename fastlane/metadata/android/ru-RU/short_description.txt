@@ -1,0 +1,1 @@
+SSH-терминал, рабочий стол Wayland, VNC/RDP, облако и SFTP

@@ -1,0 +1,50 @@
+Haven ist ein Open-Source-Client für SSH, VNC, RDP und SFTP für Android mit nativem Wayland-Desktop und Cloud-Speicher.
+
+Terminal:
+- VT100/xterm-Emulator mit Unicode, mehreren Tabs und 6 Farbschemata
+- Sitzungspersistenz über tmux, zellij, screen oder byobu
+- Mausmodus für TUI-Apps (vim, htop, mc)
+- Konfigurierbare Tastatur-Toolbar mit Esc, Ctrl, Alt, Pfeiltasten, Funktionstasten und benutzerdefinierten Makros
+- Textauswahl mit Worterweiterung, Kopieren und klickbarer URL-Erkennung
+- Spracheingabe und Autovervollständigung
+- Mosh und Eternal Terminal für mobile und dauerhafte Verbindungen
+
+Nativer Wayland-Desktop:
+- GPU-beschleunigter labwc-Compositor direkt auf Ihrem Gerät
+- Waybar-Panel, fuzzel-App-Launcher, thunar-Dateimanager, mousepad-Editor
+- Starter-Paket mit Firefox, Taschenrechner, Bildbetrachter
+- XWayland für X11-App-Kompatibilität
+- Multi-Desktop-Verwaltung — mehrere Desktops gleichzeitig
+- Kein Root erforderlich (PRoot mit Alpine Linux)
+
+VNC-Remote-Desktop:
+- VNC-Viewer mit Pinch-to-Zoom, Schwenken und Vollbildmodus
+- SSH-Tunnel für verschlüsselte Verbindungen
+
+RDP-Remote-Desktop:
+- Verbindung zu Windows Remote Desktop, xrdp und GNOME Remote Desktop
+- Pinch-to-Zoom, Tastatur mit Scancode-Mapping
+
+Cloud-Speicher:
+- Über 60 Anbieter via rclone — Google Drive, Dropbox, OneDrive, S3 und mehr
+- OAuth-Authentifizierung über den Browser
+- Ordnersynchronisierung mit Filtern und Bandbreitenbegrenzung
+- Medienstreaming zu VLC über lokalen HTTP-Server
+- DLNA-Server für Smart-TVs und Chromecast
+
+Dateiübertragung:
+- SFTP-Browser mit Upload, Download, Umbenennen, Löschen und Ordnerübertragung
+- SMB/Windows-Freigaben mit optionalem SSH-Tunnel
+
+Netzwerk:
+- SSH mit automatischer Wiederverbindung, Portweiterleitung und ProxyJump-Multi-Hop
+- Automatische Tailscale-Peer-Erkennung
+- Reticulum-Mesh-Netzwerk über rnsh
+
+Sicherheit:
+- SSH-Schlüsselgenerierung (Ed25519, RSA, ECDSA) mit verschlüsselter Speicherung
+- FIDO2-Hardwareschlüssel (ed25519-sk, ecdsa-sk) über NFC oder USB
+- Biometrische App-Sperre mit konfigurierbarem Timeout
+- Keine Werbung, kein Tracking, keine Datenerfassung
+
+Haven ist kostenlos und quelloffen (GPLv3).

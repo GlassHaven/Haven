@@ -1,0 +1,1 @@
+SSHターミナル、Waylandデスクトップ、VNC/RDP、クラウドストレージ、SFTP

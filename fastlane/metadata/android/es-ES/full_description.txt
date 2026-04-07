@@ -1,0 +1,50 @@
+Haven es un cliente de código abierto para SSH, VNC, RDP y SFTP para Android con escritorio Wayland nativo y almacenamiento en la nube.
+
+Terminal:
+- Emulador VT100/xterm con Unicode, pestañas y 6 esquemas de colores
+- Persistencia de sesión con tmux, zellij, screen o byobu
+- Modo ratón para apps TUI (vim, htop, mc)
+- Barra de herramientas configurable con Esc, Ctrl, Alt, flechas, teclas de función y macros
+- Selección de texto con expansión de palabras, copiar y detección de URLs
+- Entrada de voz y autocompletar
+- Mosh y Eternal Terminal para conexiones móviles y persistentes
+
+Escritorio Wayland nativo:
+- Compositor labwc acelerado por GPU directamente en tu dispositivo
+- Panel waybar, lanzador fuzzel, gestor de archivos thunar, editor mousepad
+- Paquete inicial con Firefox, calculadora, visor de imágenes
+- XWayland para compatibilidad con apps X11
+- Gestión multi-escritorio — ejecuta varios escritorios simultáneamente
+- Sin root (PRoot con Alpine Linux)
+
+Escritorio remoto VNC:
+- Visor VNC con pellizcar para zoom, desplazamiento y pantalla completa
+- Túnel SSH para conexiones cifradas
+
+Escritorio remoto RDP:
+- Conexión a Windows Remote Desktop, xrdp y GNOME Remote Desktop
+- Pellizcar para zoom, teclado con mapeo de scancodes
+
+Almacenamiento en la nube:
+- Más de 60 proveedores vía rclone — Google Drive, Dropbox, OneDrive, S3 y más
+- Autenticación OAuth desde el navegador
+- Sincronización de carpetas con filtros y límites de ancho de banda
+- Streaming de medios a VLC por servidor HTTP local
+- Servidor DLNA para smart TVs y Chromecast
+
+Transferencia de archivos:
+- Navegador SFTP con subida, descarga, renombrar, eliminar y transferencia de carpetas
+- Navegación de recursos compartidos SMB/Windows con túnel SSH opcional
+
+Redes:
+- SSH con reconexión automática, reenvío de puertos y ProxyJump multi-salto
+- Descubrimiento automático de pares Tailscale
+- Red mesh Reticulum vía rnsh
+
+Seguridad:
+- Generación de claves SSH (Ed25519, RSA, ECDSA) con almacenamiento cifrado
+- Claves hardware FIDO2 (ed25519-sk, ecdsa-sk) por NFC o USB
+- Bloqueo biométrico con tiempo configurable
+- Sin anuncios, sin rastreo, sin recopilación de datos
+
+Haven es gratuito y de código abierto (GPLv3).

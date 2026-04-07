@@ -1,0 +1,1 @@
+Terminal SSH, escritorio Wayland, VNC/RDP, nube y SFTP para Android

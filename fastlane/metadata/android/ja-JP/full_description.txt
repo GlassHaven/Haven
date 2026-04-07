@@ -1,0 +1,50 @@
+Havenは、Android向けのオープンソースSSH、VNC、RDP、SFTPクライアントです。ネイティブWaylandデスクトップとクラウドストレージを搭載しています。
+
+ターミナル:
+- Unicode、複数タブ、6つのカラースキームに対応したVT100/xtermエミュレータ
+- tmux、zellij、screen、byobuによるセッション保持
+- TUIアプリ（vim、htop、mc）用マウスモード
+- Esc、Ctrl、Alt、矢印キー、ファンクションキー、カスタムマクロ対応のキーボードツールバー
+- 単語拡張、コピー、URL検出付きテキスト選択
+- 音声入力とオートコンプリート
+- Mosh、Eternal Terminalによるモバイル・持続接続
+
+ネイティブWaylandデスクトップ:
+- デバイス上で直接動作するGPUアクセラレーション対応labwcコンポジタ
+- waybarパネル、fuzzelランチャー、thunarファイルマネージャ、mousepadエディタ
+- Firefox、電卓、画像ビューア付きスターターパック
+- X11アプリ互換のXWayland
+- マルチデスクトップ管理 — 複数のデスクトップを同時実行
+- root不要（Alpine Linux搭載PRoot）
+
+VNCリモートデスクトップ:
+- ピンチズーム、スクロール、フルスクリーン対応VNCビューア
+- 暗号化接続用SSHトンネル
+
+RDPリモートデスクトップ:
+- Windows Remote Desktop、xrdp、GNOME Remote Desktopに接続
+- ピンチズーム、スキャンコードマッピング対応キーボード
+
+クラウドストレージ:
+- rclone経由で60以上のプロバイダ — Google Drive、Dropbox、OneDrive、S3など
+- ブラウザ経由のOAuth認証
+- フィルタと帯域制限付きフォルダ同期
+- ローカルHTTPサーバー経由でVLCへメディアストリーミング
+- スマートTV・Chromecast向けDLNAサーバー
+
+ファイル転送:
+- アップロード、ダウンロード、リネーム、削除、フォルダ転送対応SFTPブラウザ
+- SSHトンネル対応SMB/Windowsファイル共有
+
+ネットワーク:
+- 自動再接続、ポートフォワーディング、ProxyJumpマルチホップ対応SSH
+- Tailscaleピア自動検出
+- rnsh経由のReticulumメッシュネットワーク
+
+セキュリティ:
+- SSH鍵生成（Ed25519、RSA、ECDSA）と暗号化ストレージ
+- NFC/USB経由のFIDO2ハードウェアキー（ed25519-sk、ecdsa-sk）
+- タイムアウト設定可能な生体認証ロック
+- 広告なし、トラッキングなし、データ収集なし
+
+Havenは無料でオープンソース（GPLv3）です。

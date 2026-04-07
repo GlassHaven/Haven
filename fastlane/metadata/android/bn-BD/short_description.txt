@@ -1,0 +1,1 @@
+SSH টার্মিনাল, Wayland ডেস্কটপ, VNC/RDP, ক্লাউড ও SFTP Android-এর জন্য

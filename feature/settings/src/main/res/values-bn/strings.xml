@@ -63,6 +63,7 @@
     <string name="settings_right_click_title">লং-প্রেসে রাইট-ক্লিক</string>
     <string name="settings_right_click_subtitle">টেক্সট সিলেকশনের বদলে টার্মিনালে রাইট-ক্লিক পাঠান। tmux কনটেক্সট মেনুর জন্য উপযোগী</string>
     <string name="settings_standard_keyboard_title">ভয়েস ইনপুট এবং স্বয়ংসম্পূর্ণ</string>
+    <string name="settings_standard_keyboard_subtitle">নিরাপদ কীবোর্ড ফ্ল্যাগ নিষ্ক্রিয় করে (পাসওয়ার্ড মোড, কোনো সাজেশন নেই)। ভয়েস ইনপুট, সোয়াইপ টাইপিং এবং শব্দ প্রেডিকশন সক্রিয় করে — তবে IME টাইপ করা পাসওয়ার্ড শিখতে পারে</string>
 
     <!-- Appearance section -->
     <string name="settings_theme_title">থিম</string>

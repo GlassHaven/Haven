@@ -63,6 +63,7 @@
     <string name="settings_right_click_title">Langes Drücken = Rechtsklick</string>
     <string name="settings_right_click_subtitle">Rechtsklick ans Terminal senden statt Textauswahl. Nützlich für tmux-Kontextmenüs</string>
     <string name="settings_standard_keyboard_title">Spracheingabe und Autovervollständigung</string>
+    <string name="settings_standard_keyboard_subtitle">Deaktiviert sichere Tastaturflags (Passwortmodus, keine Vorschläge). Aktiviert Spracheingabe, Wischtippen und Wortvorhersagen — die Tastatur kann jedoch eingegebene Passwörter lernen</string>
 
     <!-- Appearance section -->
     <string name="settings_theme_title">Design</string>

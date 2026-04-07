@@ -63,6 +63,7 @@
     <string name="settings_right_click_title">Toque longo envia clique direito</string>
     <string name="settings_right_click_subtitle">Enviar clique direito ao terminal em vez de iniciar seleção de texto. Útil para menus de contexto do tmux</string>
     <string name="settings_standard_keyboard_title">Entrada de voz e preenchimento automático</string>
+    <string name="settings_standard_keyboard_subtitle">Desativa os indicadores de teclado seguro (modo senha, sem sugestões). Ativa entrada de voz, digitação por deslizamento e previsão de palavras — mas o teclado pode aprender as senhas digitadas</string>
 
     <!-- Appearance section -->
     <string name="settings_theme_title">Tema</string>

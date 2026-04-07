@@ -63,6 +63,7 @@
     <string name="settings_right_click_title">長押しで右クリック</string>
     <string name="settings_right_click_subtitle">テキスト選択の代わりにターミナルに右クリックを送信。tmuxコンテキストメニューに便利</string>
     <string name="settings_standard_keyboard_title">音声入力とオートコンプリート</string>
+    <string name="settings_standard_keyboard_subtitle">セキュアキーボードフラグを無効にします（パスワードモード、候補なし）。音声入力、スワイプ入力、単語予測を有効にしますが、IMEが入力したパスワードを学習する可能性があります</string>
 
     <!-- Appearance section -->
     <string name="settings_theme_title">テーマ</string>

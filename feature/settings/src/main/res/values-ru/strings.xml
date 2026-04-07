@@ -63,6 +63,7 @@
     <string name="settings_right_click_title">Удержание — правый клик</string>
     <string name="settings_right_click_subtitle">Отправлять правый клик в терминал вместо выделения текста. Полезно для контекстного меню tmux</string>
     <string name="settings_standard_keyboard_title">Голосовой ввод и автодополнение</string>
+    <string name="settings_standard_keyboard_subtitle">Отключает флаги защищённой клавиатуры (режим пароля, без подсказок). Включает голосовой ввод, свайп-набор и предсказание слов — но клавиатура может запоминать введённые пароли</string>
 
     <!-- Appearance section -->
     <string name="settings_theme_title">Тема</string>

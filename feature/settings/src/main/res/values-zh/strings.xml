@@ -63,6 +63,7 @@
     <string name="settings_right_click_title">长按发送右键点击</string>
     <string name="settings_right_click_subtitle">向终端发送右键点击而不是开始文本选择。适用于 tmux 上下文菜单</string>
     <string name="settings_standard_keyboard_title">语音输入和自动补全</string>
+    <string name="settings_standard_keyboard_subtitle">禁用安全键盘标志（密码模式、无建议）。启用语音输入、滑动输入和词语预测——但输入法可能会学习输入的密码</string>
 
     <!-- Appearance section -->
     <string name="settings_theme_title">主题</string>

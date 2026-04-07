@@ -63,6 +63,7 @@
     <string name="settings_right_click_title">लॉन्ग-प्रेस राइट-क्लिक भेजे</string>
     <string name="settings_right_click_subtitle">टेक्स्ट चयन शुरू करने के बजाय टर्मिनल को राइट-क्लिक भेजें। tmux संदर्भ मेनू के लिए उपयोगी</string>
     <string name="settings_standard_keyboard_title">वॉइस इनपुट और ऑटोकंप्लीट</string>
+    <string name="settings_standard_keyboard_subtitle">सुरक्षित कीबोर्ड फ़्लैग अक्षम करता है (पासवर्ड मोड, कोई सुझाव नहीं)। वॉइस इनपुट, स्वाइप टाइपिंग और शब्द भविष्यवाणी सक्षम करता है — लेकिन IME टाइप किए गए पासवर्ड सीख सकता है</string>
 
     <!-- Appearance section -->
     <string name="settings_theme_title">थीम</string>

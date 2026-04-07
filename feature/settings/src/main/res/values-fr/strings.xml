@@ -63,6 +63,7 @@
     <string name="settings_right_click_title">Appui long = clic droit</string>
     <string name="settings_right_click_subtitle">Envoyer un clic droit au terminal au lieu de sélectionner du texte. Utile pour les menus contextuels tmux</string>
     <string name="settings_standard_keyboard_title">Saisie vocale et saisie automatique</string>
+    <string name="settings_standard_keyboard_subtitle">Désactive les indicateurs de clavier sécurisé (mode mot de passe, pas de suggestions). Active la saisie vocale, la saisie par glissement et la prédiction de mots — mais le clavier peut mémoriser les mots de passe saisis</string>
 
     <!-- Appearance section -->
     <string name="settings_theme_title">Thème</string>

@@ -62,6 +62,7 @@
     <string name="settings_mouse_input_subtitle">Transmettre les taps comme clics et l\'appui long comme clic droit quand des applis comme htop, mc ou vim activent le suivi de la souris</string>
     <string name="settings_right_click_title">Appui long = clic droit</string>
     <string name="settings_right_click_subtitle">Envoyer un clic droit au terminal au lieu de sélectionner du texte. Utile pour les menus contextuels tmux</string>
+    <string name="settings_standard_keyboard_title">Saisie vocale et saisie automatique</string>
 
     <!-- Appearance section -->
     <string name="settings_theme_title">Thème</string>

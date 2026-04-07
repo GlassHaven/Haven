@@ -62,6 +62,7 @@
     <string name="settings_mouse_input_subtitle">Taps als Klicks und langes Drücken als Rechtsklick weiterleiten, wenn Apps wie htop, mc oder vim Mausverfolgung aktivieren</string>
     <string name="settings_right_click_title">Langes Drücken = Rechtsklick</string>
     <string name="settings_right_click_subtitle">Rechtsklick ans Terminal senden statt Textauswahl. Nützlich für tmux-Kontextmenüs</string>
+    <string name="settings_standard_keyboard_title">Spracheingabe und Autovervollständigung</string>
 
     <!-- Appearance section -->
     <string name="settings_theme_title">Design</string>

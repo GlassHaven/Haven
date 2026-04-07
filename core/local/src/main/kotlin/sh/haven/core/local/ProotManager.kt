@@ -117,6 +117,17 @@ class ProotManager @Inject constructor(
             sizeEstimate = "~15MB",
             isWayland = true,
         ),
+        XFCE4_WAYLAND(
+            label = "Xfce4 (Wayland)",
+            packages = "foot font-noto xkeyboard-config xwayland mesa-dri-gallium mesa-gbm mesa-gl " +
+                "xfce4-panel xfce4-terminal xfdesktop thunar xfce4-settings mousepad " +
+                "xfce4-appfinder dbus-x11",
+            verifyBinary = "root/.haven-xfce4-wayland",
+            startCommands = "", // compositor runs natively via WaylandBridge, not in PRoot
+            sizeEstimate = "~110MB",
+            isWayland = true,
+            isNative = true,
+        ),
         WAYLAND_NATIVE(
             label = "Native Wayland",
             packages = "foot font-noto xkeyboard-config xwayland mesa-dri-gallium mesa-gbm mesa-gl htop",
@@ -532,7 +543,12 @@ class ProotManager @Inject constructor(
 
             // Check if key binaries were installed — apk may return exit 1 for
             // non-fatal trigger errors (gtk icon cache, fontscale, etc.)
-            val checkInstalled = File(rootfsDir, de.verifyBinary).exists()
+            // For marker-based DEs, check that the output contains "OK:" (apk success)
+            val checkInstalled = if (de.verifyBinary.startsWith("root/.haven-")) {
+                installOutput.contains("OK:")
+            } else {
+                File(rootfsDir, de.verifyBinary).exists()
+            }
             if (!checkInstalled) {
                 _desktopState.value = DesktopSetupState.Error(
                     "Package install failed: ${installOutput.takeLast(300)}"
@@ -544,6 +560,10 @@ class ProotManager @Inject constructor(
             File(rootfsDir, "root").mkdirs()
             val updated = installedDesktops + de
             File(rootfsDir, "root/.haven-desktop").writeText(updated.joinToString("\n") { it.name })
+            // Create DE-specific marker file for installedDesktops check
+            if (de.verifyBinary.startsWith("root/.haven-")) {
+                File(rootfsDir, de.verifyBinary).writeText(de.name)
+            }
             Log.d(TAG, "${de.label} packages installed")
             }
 
@@ -655,6 +675,10 @@ chmod +x /root/.vnc/xstartup""")
                 marker.delete()
             } else {
                 marker.writeText(remaining.joinToString("\n") { it.name })
+            }
+            // Remove DE-specific marker file
+            if (de.verifyBinary.startsWith("root/.haven-")) {
+                File(rootfsDir, de.verifyBinary).delete()
             }
             Log.d(TAG, "${de.label} uninstalled, remaining: ${remaining.map { it.name }}")
             _desktopState.value = DesktopSetupState.Complete

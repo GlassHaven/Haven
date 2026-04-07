@@ -358,20 +358,37 @@ class DesktopManager @Inject constructor(
                     // virgl GPU passthrough env vars
                     "export GALLIUM_DRIVER=virpipe; " +
                     "export VTEST_SOCKET=/tmp/.virgl_test; " +
-                    // XWayland startup with fallback to Xvfb
-                    "mkdir -p /tmp/.X11-unix; " +
-                    "i=0; while [ ! -e /tmp/.X11-unix/X0 ] && [ \$i -lt 5 ]; do sleep 1; i=\$((i+1)); done; " +
-                    "if [ ! -e /tmp/.X11-unix/X0 ]; then Xvfb :0 -screen 0 1280x720x24 >/dev/null 2>&1 & sleep 1; fi; " +
-                    "export DISPLAY=:0; " +
                     // App launcher wrapper
                     "mkdir -p /usr/local/bin; printf '#!/bin/sh\\n\"\\$@\" &\\n' > /usr/local/bin/launch && chmod +x /usr/local/bin/launch; " +
-                    // Auto-start desktop components if installed
-                    "if [ -x /usr/bin/waybar ]; then " +
-                        "dbus-run-session waybar >/tmp/waybar.log 2>&1 & sleep 2; " +
-                    "fi; " +
-                    "[ -x /usr/bin/thunar ] && thunar --daemon & " +
-                    "foot -e $shellCommand 2>&1; " +
-                    "wait",
+                    // Auto-start desktop components based on DE type
+                    if (de == ProotManager.DesktopEnvironment.XFCE4_WAYLAND) {
+                        // Xfce panel + apps as native Wayland clients. GTK3 on Alpine has
+                        // the Wayland backend (mousepad renders natively). The --disable-wm-check
+                        // flag is needed because labwc doesn't advertise an X11 WM to Wayland clients.
+                        // wnck warnings (window list) are harmless — it's X11-only but non-fatal.
+                        "dbus-run-session sh -c '" +
+                            "xfce4-panel --disable-wm-check >/tmp/xfce4-panel.log 2>&1 & " +
+                            "xfdesktop --disable-wm-check >/tmp/xfdesktop.log 2>&1 & " +
+                            "sleep 1; " +
+                            "thunar --daemon >/dev/null 2>&1 & " +
+                            "xfce4-terminal >/dev/null 2>&1 & " +
+                            "while true; do sleep 3600; done" +
+                            "' 2>&1; wait"
+                    } else {
+                        // Native Wayland: set up XWayland for X11 app compatibility
+                        "mkdir -p /tmp/.X11-unix; " +
+                        "i=0; while ! ls /tmp/.X11-unix/X* >/dev/null 2>&1 && [ \$i -lt 5 ]; do sleep 1; i=\$((i+1)); done; " +
+                        "if ls /tmp/.X11-unix/X* >/dev/null 2>&1; then " +
+                            "XDISP=\$(ls /tmp/.X11-unix/ | sort | head -1 | sed 's/X//'); " +
+                            "export DISPLAY=:\$XDISP; " +
+                        "fi; " +
+                        "if [ -x /usr/bin/waybar ]; then " +
+                            "dbus-run-session waybar >/tmp/waybar.log 2>&1 & sleep 2; " +
+                        "fi; " +
+                        "[ -x /usr/bin/thunar ] && thunar --daemon & " +
+                        "foot -e $shellCommand 2>&1; " +
+                        "wait"
+                    },
             ).apply {
                 environment().apply {
                     put("HOME", "/root")

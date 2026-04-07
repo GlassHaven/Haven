@@ -369,7 +369,7 @@ class DesktopManager @Inject constructor(
                     "fi; " +
                     // Auto-start desktop components if installed
                     "if [ -x /usr/bin/waybar ]; then " +
-                        "dbus-run-session waybar >/tmp/waybar.log 2>&1 & sleep 2; " +
+                        "GDK_SCALE=1 GDK_DPI_SCALE=1 dbus-run-session waybar >/tmp/waybar.log 2>&1 & sleep 2; " +
                     "fi; " +
                     "[ -x /usr/bin/thunar ] && thunar --daemon & " +
                     "foot -e $shellCommand 2>&1; " +

@@ -8,9 +8,9 @@
 # (see build-proot/build.sh:15-16).
 #
 # Phase 0 goal: prove the toolchain, 16 KB page alignment, and execve-from-
-# nativeLibraryDir all work on real Android 14/15 hardware. This build uses
-# only FFmpeg's built-in encoders (mpeg4 video, native aac audio) — no
-# libx264/libx265/etc. Those come in Phase 1 after this spike is green.
+# nativeLibraryDir all work on real Android 14/15 hardware. Encoder libs are
+# added incrementally (libx264 first, then the rest of the approved set) so
+# each addition can be verified on device before layering the next.
 #
 # Prerequisites:
 #   - Android NDK r27+ (auto-detected from ~/Android/Sdk/ndk/ or $ANDROID_NDK_HOME)
@@ -88,6 +88,243 @@ for tool in "$CC" "$CXX" "$AR" "$RANLIB" "$STRIP" "$NM"; do
     [ -x "$tool" ] || { echo "ERROR: toolchain tool missing: $tool" >&2; exit 1; }
 done
 
+# --- Paths + shared env for dep builds -----------------------------------
+# All external libs (libx264, libx265, libvpx, opus, vorbis, lame, libass,
+# freetype, gnutls, …) install into this sysroot. FFmpeg's configure picks
+# them up via --extra-cflags/--extra-ldflags and PKG_CONFIG_LIBDIR.
+DEPS_SYSROOT="$SCRIPT_DIR/sysroot/$ABI"
+DL_DIR="$SCRIPT_DIR/dl"
+SRC_DIR="$SCRIPT_DIR/src"
+mkdir -p "$DEPS_SYSROOT"/{lib/pkgconfig,include} "$DL_DIR" "$SRC_DIR"
+
+export PKG_CONFIG_LIBDIR="$DEPS_SYSROOT/lib/pkgconfig"
+export PKG_CONFIG_PATH="$DEPS_SYSROOT/lib/pkgconfig"
+export CC CXX AR RANLIB STRIP NM
+
+# --- Dep build helpers ---------------------------------------------------
+fetch_git_tag() {
+    # fetch_git_tag <name> <repo> <tag>
+    local name="$1" repo="$2" tag="$3"
+    local dst="$SRC_DIR/$name"
+    if [ ! -d "$dst/.git" ]; then
+        echo "  [fetch] $name @ $tag"
+        rm -rf "$dst"
+        git clone --depth 1 --branch "$tag" "$repo" "$dst" 2>&1 | tail -3
+    else
+        echo "  [cached] $name"
+    fi
+}
+
+fetch_tarball() {
+    # fetch_tarball <name> <url> <tarball-filename> <extracted-dir>
+    local name="$1" url="$2" tarball="$3" extracted="$4"
+    local dst="$SRC_DIR/$name"
+    if [ -d "$dst" ]; then echo "  [cached] $name"; return; fi
+    [ -f "$DL_DIR/$tarball" ] || {
+        echo "  [download] $url"
+        curl -fsSL -o "$DL_DIR/$tarball" "$url"
+    }
+    tar -xf "$DL_DIR/$tarball" -C "$SRC_DIR"
+    if [ "$extracted" != "$name" ]; then
+        mv "$SRC_DIR/$extracted" "$dst"
+    fi
+    echo "  [fetched] $name"
+}
+
+# Common flags used by every autotools dep.
+_dep_cflags="--target=${TARGET}${API} --sysroot=$TOOLCHAIN/sysroot -fPIC -O2 -I$DEPS_SYSROOT/include"
+_dep_ldflags="--target=${TARGET}${API} --sysroot=$TOOLCHAIN/sysroot -L$DEPS_SYSROOT/lib"
+
+build_autotools() {
+    # build_autotools <name> <marker-file> [extra configure args...]
+    local name="$1" marker="$2"; shift 2
+    if [ -f "$marker" ] && [ "${FORCE_REBUILD:-}" != "1" ]; then
+        echo "=== $name already built ==="
+        return
+    fi
+    echo "=== Building $name for $ABI ==="
+    local SRC="$SRC_DIR/$name"
+    local LOG="$SCRIPT_DIR/dep-$name.log"
+    (
+        cd "$SRC"
+        make distclean >/dev/null 2>&1 || true
+        if [ ! -x ./configure ] && [ -x ./autogen.sh ]; then
+            NOCONFIGURE=1 ./autogen.sh >> "$LOG" 2>&1
+        fi
+        CC="$CC" CXX="$CXX" AR="$AR" RANLIB="$RANLIB" STRIP="$STRIP" \
+        CFLAGS="$_dep_cflags" CXXFLAGS="$_dep_cflags" LDFLAGS="$_dep_ldflags" \
+        ./configure \
+            --host="${TARGET}" \
+            --prefix="$DEPS_SYSROOT" \
+            --disable-shared \
+            --enable-static \
+            "$@" \
+            >> "$LOG" 2>&1
+        make -j"$(nproc)" >> "$LOG" 2>&1
+        make install >> "$LOG" 2>&1
+    ) || { echo "ERROR: $name build failed, last 40 log lines:"; tail -40 "$LOG"; exit 1; }
+    echo "  $name built"
+}
+
+build_x264() {
+    local name=x264
+    local marker="$DEPS_SYSROOT/lib/libx264.a"
+    if [ -f "$marker" ] && [ "${FORCE_REBUILD:-}" != "1" ]; then
+        echo "=== libx264 already built ==="
+        return
+    fi
+    echo "=== Building libx264 for $ABI ==="
+    # x264 moves slowly; "stable" branch is the recommended line for embedded.
+    fetch_git_tag "$name" "https://code.videolan.org/videolan/x264.git" "stable"
+
+    local SRC="$SRC_DIR/$name"
+    local LOG="$SCRIPT_DIR/dep-$name.log"
+    # x264's configure miscomputes SRCPATH for out-of-tree builds and fails
+    # to find config.sub, so we build in-tree. `make distclean` first to
+    # avoid state from prior runs polluting this one.
+    (
+        cd "$SRC"
+        make distclean >/dev/null 2>&1 || true
+        ./configure \
+            --host=aarch64-linux \
+            --cross-prefix="$TOOLCHAIN/bin/llvm-" \
+            --prefix="$DEPS_SYSROOT" \
+            --enable-static \
+            --enable-pic \
+            --disable-cli \
+            --disable-opencl \
+            --extra-cflags="--target=${TARGET}${API} --sysroot=$TOOLCHAIN/sysroot -fPIC" \
+            --extra-ldflags="--target=${TARGET}${API} --sysroot=$TOOLCHAIN/sysroot" \
+            > "$LOG" 2>&1
+        make -j"$(nproc)" >> "$LOG" 2>&1
+        make install >> "$LOG" 2>&1
+    ) || { echo "ERROR: libx264 build failed, last 40 log lines:"; tail -40 "$LOG"; exit 1; }
+    echo "  libx264: $(ls -lh "$DEPS_SYSROOT/lib/libx264.a" | awk '{print $5}')"
+}
+
+build_mp3lame() {
+    fetch_tarball lame \
+        "https://downloads.sourceforge.net/project/lame/lame/3.100/lame-3.100.tar.gz" \
+        "lame-3.100.tar.gz" "lame-3.100"
+    build_autotools lame "$DEPS_SYSROOT/lib/libmp3lame.a" \
+        --disable-frontend --disable-decoder
+}
+
+build_opus() {
+    fetch_tarball opus \
+        "https://downloads.xiph.org/releases/opus/opus-1.5.2.tar.gz" \
+        "opus-1.5.2.tar.gz" "opus-1.5.2"
+    build_autotools opus "$DEPS_SYSROOT/lib/libopus.a" \
+        --disable-doc --disable-extra-programs
+}
+
+build_libogg() {
+    fetch_tarball ogg \
+        "https://downloads.xiph.org/releases/ogg/libogg-1.3.5.tar.gz" \
+        "libogg-1.3.5.tar.gz" "libogg-1.3.5"
+    build_autotools ogg "$DEPS_SYSROOT/lib/libogg.a"
+}
+
+build_libvorbis() {
+    fetch_tarball vorbis \
+        "https://downloads.xiph.org/releases/vorbis/libvorbis-1.3.7.tar.gz" \
+        "libvorbis-1.3.7.tar.gz" "libvorbis-1.3.7"
+    build_autotools vorbis "$DEPS_SYSROOT/lib/libvorbis.a" \
+        --with-ogg="$DEPS_SYSROOT" --disable-examples
+}
+
+build_vpx() {
+    local marker="$DEPS_SYSROOT/lib/libvpx.a"
+    if [ -f "$marker" ] && [ "${FORCE_REBUILD:-}" != "1" ]; then
+        echo "=== libvpx already built ==="
+        return
+    fi
+    echo "=== Building libvpx for $ABI ==="
+    fetch_git_tag vpx "https://chromium.googlesource.com/webm/libvpx" "v1.14.1"
+    local SRC="$SRC_DIR/vpx"
+    local LOG="$SCRIPT_DIR/dep-vpx.log"
+    local VPX_TARGET
+    case "$ABI" in
+        arm64-v8a) VPX_TARGET=arm64-android-gcc ;;
+        x86_64)    VPX_TARGET=x86_64-android-gcc ;;
+    esac
+    (
+        cd "$SRC"
+        make distclean >/dev/null 2>&1 || true
+        # libvpx's configure understands --force-target= to bypass the triple
+        # whitelist, and uses CROSS= as the tool prefix.
+        CROSS="$TOOLCHAIN/bin/llvm-" \
+        CC="$CC" CXX="$CXX" \
+        LD="$CC" AS="$CC" \
+        ./configure \
+            --target="$VPX_TARGET" \
+            --prefix="$DEPS_SYSROOT" \
+            --disable-examples \
+            --disable-tools \
+            --disable-docs \
+            --disable-unit-tests \
+            --enable-pic \
+            --enable-static --disable-shared \
+            --enable-vp8 --enable-vp9 \
+            --extra-cflags="--target=${TARGET}${API} --sysroot=$TOOLCHAIN/sysroot" \
+            --extra-cxxflags="--target=${TARGET}${API} --sysroot=$TOOLCHAIN/sysroot" \
+            > "$LOG" 2>&1
+        make -j"$(nproc)" >> "$LOG" 2>&1
+        make install >> "$LOG" 2>&1
+    ) || { echo "ERROR: libvpx build failed, last 40 log lines:"; tail -40 "$LOG"; exit 1; }
+    echo "  libvpx built"
+}
+
+build_x265() {
+    local marker="$DEPS_SYSROOT/lib/libx265.a"
+    if [ -f "$marker" ] && [ "${FORCE_REBUILD:-}" != "1" ]; then
+        echo "=== libx265 already built ==="
+        return
+    fi
+    echo "=== Building libx265 for $ABI ==="
+    fetch_git_tag x265 "https://bitbucket.org/multicoreware/x265_git.git" "4.1"
+    local SRC="$SRC_DIR/x265"
+    local LOG="$SCRIPT_DIR/dep-x265.log"
+    local BUILD="$SCRIPT_DIR/build-$ABI/deps/x265"
+    rm -rf "$BUILD"
+    mkdir -p "$BUILD"
+    (
+        cd "$BUILD"
+        cmake "$SRC/source" \
+            -DCMAKE_TOOLCHAIN_FILE="$ANDROID_NDK_HOME/build/cmake/android.toolchain.cmake" \
+            -DANDROID_ABI="$ABI" \
+            -DANDROID_PLATFORM="android-$API" \
+            -DCMAKE_INSTALL_PREFIX="$DEPS_SYSROOT" \
+            -DENABLE_SHARED=OFF \
+            -DENABLE_CLI=OFF \
+            -DENABLE_LIBNUMA=OFF \
+            -DENABLE_ASSEMBLY=OFF \
+            -DCROSS_COMPILE_ARM64=ON \
+            > "$LOG" 2>&1
+        make -j"$(nproc)" >> "$LOG" 2>&1
+        make install >> "$LOG" 2>&1
+    ) || { echo "ERROR: libx265 build failed, last 40 log lines:"; tail -40 "$LOG"; exit 1; }
+
+    # x265's cmake script emits a malformed Libs.private when cross-compiling
+    # with clang (`-l-l:libunwind.a`). Strip the corruption so ffmpeg's
+    # pkg-config --static check can parse it.
+    local PC="$DEPS_SYSROOT/lib/pkgconfig/x265.pc"
+    if [ -f "$PC" ]; then
+        sed -i 's| -l-l:libunwind.a||g' "$PC"
+    fi
+
+    echo "  libx265 built"
+}
+
+# --- Build external deps -------------------------------------------------
+build_x264
+build_mp3lame
+build_opus
+build_libogg
+build_libvorbis
+build_vpx
+build_x265
+
 # --- Fetch FFmpeg source (shallow clone, throwaway) ---------------------
 mkdir -p "$SCRIPT_DIR/src"
 FFMPEG_SRC="$SCRIPT_DIR/src/ffmpeg"
@@ -111,8 +348,13 @@ echo "=== Configuring FFmpeg for $ABI ==="
 
 # PIE is required for Android 23+ binaries.
 # -z max-page-size=16384 is required for Android 15 16 KB page alignment.
-EXTRA_CFLAGS="-fPIE -O2 -DANDROID"
-EXTRA_LDFLAGS="-pie -Wl,-z,max-page-size=16384"
+# -I / -L point at DEPS_SYSROOT so ffmpeg picks up libx264 and friends.
+# Note: we do NOT use -Wl,-rpath,$ORIGIN here because ffmpeg's configure
+# runs a shell eval on ldflags, which mangles $ORIGIN to empty. Instead,
+# the caller must set LD_LIBRARY_PATH to point at nativeLibraryDir so the
+# binary finds libc++_shared.so (pulled in by libx265's C++ code).
+EXTRA_CFLAGS="-fPIE -O2 -DANDROID -I$DEPS_SYSROOT/include"
+EXTRA_LDFLAGS="-pie -Wl,-z,max-page-size=16384 -L$DEPS_SYSROOT/lib"
 
 # Minimal set: just enough to prove encoding + probing works. No external libs.
 # Built-in encoders used for smoke testing:
@@ -138,6 +380,15 @@ EXTRA_LDFLAGS="-pie -Wl,-z,max-page-size=16384"
         --extra-cflags="$EXTRA_CFLAGS" \
         --extra-ldflags="$EXTRA_LDFLAGS" \
         --enable-pic \
+        --pkg-config=pkg-config \
+        --pkg-config-flags="--static" \
+        --enable-gpl \
+        --enable-libx264 \
+        --enable-libx265 \
+        --enable-libvpx \
+        --enable-libmp3lame \
+        --enable-libopus \
+        --enable-libvorbis \
         --disable-doc \
         --disable-htmlpages \
         --disable-manpages \
@@ -162,11 +413,16 @@ EXTRA_LDFLAGS="-pie -Wl,-z,max-page-size=16384"
         --enable-demuxer=aac \
         --enable-demuxer=mp3 \
         --enable-demuxer=wav \
+        --enable-demuxer=ogg \
+        --enable-demuxer=webm_dash_manifest \
         --enable-muxer=mp4 \
         --enable-muxer=mov \
         --enable-muxer=matroska \
+        --enable-muxer=webm \
         --enable-muxer=mp3 \
         --enable-muxer=wav \
+        --enable-muxer=ogg \
+        --enable-muxer=opus \
         --enable-muxer=null \
         --enable-decoder=h264 \
         --enable-decoder=hevc \
@@ -175,6 +431,13 @@ EXTRA_LDFLAGS="-pie -Wl,-z,max-page-size=16384"
         --enable-decoder=mp3 \
         --enable-decoder=pcm_s16le \
         --enable-encoder=mpeg4 \
+        --enable-encoder=libx264 \
+        --enable-encoder=libx265 \
+        --enable-encoder=libvpx_vp8 \
+        --enable-encoder=libvpx_vp9 \
+        --enable-encoder=libmp3lame \
+        --enable-encoder=libopus \
+        --enable-encoder=libvorbis \
         --enable-encoder=aac \
         --enable-encoder=pcm_s16le \
         --enable-encoder=rawvideo \
@@ -187,6 +450,7 @@ EXTRA_LDFLAGS="-pie -Wl,-z,max-page-size=16384"
         --enable-filter=anull \
         --enable-filter=aformat \
         --enable-filter=format \
+        --enable-filter=aresample \
         --enable-bsf=h264_mp4toannexb \
         --enable-bsf=hevc_mp4toannexb \
         --enable-bsf=aac_adtstoasc \
@@ -235,12 +499,24 @@ else
     echo "  readelf not available; skipping alignment check"
 fi
 
+# --- Copy libc++_shared.so (runtime dep of libx265 C++ code) ------------
+# libffmpeg.so and libffprobe.so link against libc++_shared.so because
+# libx265 and a few other deps use C++. We rely on -Wl,-rpath,$ORIGIN so
+# the binary finds it in its own directory at runtime — ship it alongside.
+LIBCXX_SRC="$TOOLCHAIN/sysroot/usr/lib/${TARGET}/libc++_shared.so"
+if [ ! -f "$LIBCXX_SRC" ]; then
+    echo "ERROR: libc++_shared.so not found at $LIBCXX_SRC" >&2
+    exit 1
+fi
+cp "$LIBCXX_SRC" "$BIN_DIR/libc++_shared.so"
+
 # --- Populate spike module jniLibs (if present) --------------------------
 SPIKE_JNI="$SCRIPT_DIR/spike/src/main/jniLibs/$ABI"
 if [ -d "$SCRIPT_DIR/spike" ]; then
     mkdir -p "$SPIKE_JNI"
-    cp "$BIN_DIR/libffmpeg.so"  "$SPIKE_JNI/libffmpeg.so"
-    cp "$BIN_DIR/libffprobe.so" "$SPIKE_JNI/libffprobe.so"
+    cp "$BIN_DIR/libffmpeg.so"      "$SPIKE_JNI/libffmpeg.so"
+    cp "$BIN_DIR/libffprobe.so"     "$SPIKE_JNI/libffprobe.so"
+    cp "$BIN_DIR/libc++_shared.so"  "$SPIKE_JNI/libc++_shared.so"
     echo ""
     echo "=== Populated spike jniLibs ==="
     ls -lh "$SPIKE_JNI"/

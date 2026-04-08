@@ -74,6 +74,7 @@ class SpikeActivity : Activity() {
 
         if (copied) {
             total++; if (checkTranscode(ffmpeg, testIn, testOut)) passed++
+            total++; if (checkExternalEncoders(ffmpeg, testIn)) passed++
             total++; if (checkCancel(ffmpeg, testIn, File(filesDir, "cancel_out.mkv"))) passed++
         } else {
             log("SKIP: transcode / cancel (no test asset)")
@@ -140,11 +141,66 @@ class SpikeActivity : Activity() {
         }
     }
 
+    /**
+     * Encode the same input once per external encoder library that this
+     * build claims to support, and report which ones actually work.
+     */
+    private fun checkExternalEncoders(ffmpeg: File, input: File): Boolean {
+        log("[3b] Checking external encoders (libx264, libx265, libvpx, libmp3lame, libopus, libvorbis)...")
+        data class Case(val name: String, val vcodec: String?, val acodec: String?, val container: String)
+        val cases = listOf(
+            Case("libx264 -> mp4",      "libx264", "aac",        "mp4"),
+            Case("libx265 -> mkv",      "libx265", "aac",        "matroska"),
+            Case("libvpx_vp9 -> webm",  "libvpx-vp9", "libopus", "webm"),
+            Case("libmp3lame",          null,      "libmp3lame", "mp3"),
+            Case("libvorbis -> ogg",    null,      "libvorbis",  "ogg")
+        )
+        var allOk = true
+        for (c in cases) {
+            val out = File(filesDir, "enc_${c.name.replace("[^a-z0-9]".toRegex(), "_")}.${c.container}")
+            out.delete()
+            val cmd = mutableListOf(
+                ffmpeg.absolutePath,
+                "-loglevel", "error",
+                "-y",
+                "-i", input.absolutePath
+            )
+            if (c.vcodec != null) {
+                cmd += listOf("-c:v", c.vcodec, "-preset", "ultrafast", "-crf", "30")
+            } else {
+                cmd += listOf("-vn")
+            }
+            if (c.acodec != null) {
+                cmd += listOf("-c:a", c.acodec, "-b:a", "96k")
+            } else {
+                cmd += listOf("-an")
+            }
+            cmd += listOf("-f", c.container, out.absolutePath)
+            try {
+                val res = runProcess(cmd, timeoutSec = 60)
+                val ok = res.exit == 0 && out.exists() && out.length() > 0
+                if (ok) {
+                    log("  ${c.name}: PASS (${out.length()} bytes)")
+                } else {
+                    log("  ${c.name}: FAIL exit=${res.exit} stderr=${res.stderr.take(120)}")
+                    allOk = false
+                }
+            } catch (t: Throwable) {
+                log("  ${c.name}: EXCEPTION ${t.message?.take(120)}")
+                allOk = false
+            } finally {
+                out.delete()
+            }
+        }
+        log(if (allOk) "  PASS" else "  FAIL")
+        return allOk
+    }
+
     private fun checkCancel(ffmpeg: File, input: File, output: File): Boolean {
         log("[4] Checking SIGTERM cancel mid-encode...")
         output.delete()
         return try {
-            val proc = ProcessBuilder(
+            val pb = ProcessBuilder(
                 ffmpeg.absolutePath,
                 "-loglevel", "warning",
                 "-stream_loop", "5",
@@ -154,7 +210,9 @@ class SpikeActivity : Activity() {
                 "-c:a", "aac",
                 "-f", "matroska",
                 "-y", output.absolutePath
-            ).redirectErrorStream(true).start()
+            ).redirectErrorStream(true)
+            pb.environment()["LD_LIBRARY_PATH"] = applicationInfo.nativeLibraryDir
+            val proc = pb.start()
 
             // Let it run long enough to produce real work.
             Thread.sleep(2000)
@@ -182,9 +240,12 @@ class SpikeActivity : Activity() {
     private data class ProcessResult(val exit: Int, val stdout: String, val stderr: String)
 
     private fun runProcess(cmd: List<String>, timeoutSec: Long): ProcessResult {
-        val proc = ProcessBuilder(cmd)
-            .redirectErrorStream(false)
-            .start()
+        val pb = ProcessBuilder(cmd).redirectErrorStream(false)
+        // libffmpeg.so links against libc++_shared.so (pulled in by libx265's
+        // C++ code). We ship libc++_shared.so alongside in jniLibs, so point
+        // the dynamic linker at nativeLibraryDir.
+        pb.environment()["LD_LIBRARY_PATH"] = applicationInfo.nativeLibraryDir
+        val proc = pb.start()
         val finished = proc.waitFor(timeoutSec, TimeUnit.SECONDS)
         if (!finished) {
             proc.destroyForcibly()

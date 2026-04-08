@@ -27,4 +27,5 @@ build-ffmpeg/sysroot/
 build-ffmpeg/spike/build/
 build-ffmpeg/spike/src/main/jniLibs/
 build-ffmpeg/build.log
+build-ffmpeg/dep-*.log
 .claude/

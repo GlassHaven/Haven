@@ -33,6 +33,7 @@ import sh.haven.core.data.repository.ConnectionRepository
 import sh.haven.core.data.repository.PortForwardRepository
 import sh.haven.core.data.repository.SshKeyRepository
 import sh.haven.core.ssh.ConnectionConfig
+import sh.haven.core.ssh.HostKeyAuthFailure
 import sh.haven.core.ssh.HostKeyResult
 import sh.haven.core.ssh.HostKeyVerifier
 import sh.haven.core.ssh.KnownHostEntry
@@ -321,6 +322,46 @@ class ConnectionsViewModel @Inject constructor(
         (_hostKeyPrompt.value as? HostKeyPrompt.NewHost)?.deferred?.complete(false)
         (_hostKeyPrompt.value as? HostKeyPrompt.KeyChanged)?.deferred?.complete(false)
         _hostKeyPrompt.value = null
+    }
+
+    /**
+     * Run TOFU host-key verification against [entry], prompting the user for
+     * accept/reject on first contact or key change. Throws if rejected.
+     *
+     * Shared by every interactive connect path so that they behave the same
+     * way on fresh contact, key change, and (post-fix) auth-failure-after-KEX.
+     */
+    private suspend fun runTofuVerification(
+        entry: KnownHostEntry,
+        clientToDisconnectOnReject: SshClient? = null,
+        rejectedOnNewHostMessage: String = "Host key rejected by user",
+        rejectedOnChangeMessage: String = "Host key change rejected by user",
+    ) {
+        when (val result = hostKeyVerifier.verify(entry)) {
+            is HostKeyResult.Trusted -> return
+            is HostKeyResult.NewHost -> {
+                val deferred = CompletableDeferred<Boolean>()
+                _hostKeyPrompt.value = HostKeyPrompt.NewHost(result.entry, deferred)
+                if (!deferred.await()) {
+                    clientToDisconnectOnReject?.disconnect()
+                    throw Exception(rejectedOnNewHostMessage)
+                }
+                hostKeyVerifier.accept(result.entry)
+            }
+            is HostKeyResult.KeyChanged -> {
+                val deferred = CompletableDeferred<Boolean>()
+                _hostKeyPrompt.value = HostKeyPrompt.KeyChanged(
+                    oldFingerprint = result.old.fingerprint,
+                    entry = result.new,
+                    deferred = deferred,
+                )
+                if (!deferred.await()) {
+                    clientToDisconnectOnReject?.disconnect()
+                    throw Exception(rejectedOnChangeMessage)
+                }
+                hostKeyVerifier.accept(result.new)
+            }
+        }
     }
 
     /** Emitted once after a successful connect to trigger navigation to terminal (profileId). */
@@ -1114,33 +1155,16 @@ class ConnectionsViewModel @Inject constructor(
                         createNetworkProxy(profile)
                     }
                     Log.d(TAG, "Connecting to ${config.host}:${config.port} (proxy=${proxy != null})")
-                    val hostKeyEntry = client.connect(config, proxy = proxy)
-
-                    // TOFU host key verification
-                    when (val result = hostKeyVerifier.verify(hostKeyEntry)) {
-                        is HostKeyResult.Trusted -> { /* key matches — continue */ }
-                        is HostKeyResult.NewHost -> {
-                            val deferred = CompletableDeferred<Boolean>()
-                            _hostKeyPrompt.value = HostKeyPrompt.NewHost(result.entry, deferred)
-                            if (!deferred.await()) {
-                                client.disconnect()
-                                throw Exception("Host key rejected by user")
-                            }
-                            hostKeyVerifier.accept(result.entry)
-                        }
-                        is HostKeyResult.KeyChanged -> {
-                            val deferred = CompletableDeferred<Boolean>()
-                            _hostKeyPrompt.value = HostKeyPrompt.KeyChanged(
-                                oldFingerprint = result.old.fingerprint,
-                                entry = result.new,
-                                deferred = deferred,
-                            )
-                            if (!deferred.await()) {
-                                client.disconnect()
-                                throw Exception("Host key change rejected by user")
-                            }
-                            hostKeyVerifier.accept(result.new)
-                        }
+                    try {
+                        val hostKeyEntry = client.connect(config, proxy = proxy)
+                        runTofuVerification(hostKeyEntry, clientToDisconnectOnReject = client)
+                    } catch (e: HostKeyAuthFailure) {
+                        // KEX succeeded but auth failed — still run the TOFU
+                        // prompt on first contact (Haven#75 follow-up) then
+                        // rethrow the underlying JSch auth error so the catch
+                        // block below can trigger the password-fallback UX.
+                        runTofuVerification(e.hostKey, clientToDisconnectOnReject = null)
+                        throw e.cause ?: e
                     }
 
                     val sshSessionMgr = resolveSessionManager(profile)
@@ -1318,33 +1342,12 @@ class ConnectionsViewModel @Inject constructor(
                         createNetworkProxy(profile)
                     }
 
-                    val hostKeyEntry = sshClient.connect(config, proxy = proxy)
-
-                    // TOFU host key verification
-                    when (val result = hostKeyVerifier.verify(hostKeyEntry)) {
-                        is HostKeyResult.Trusted -> {}
-                        is HostKeyResult.NewHost -> {
-                            val deferred = CompletableDeferred<Boolean>()
-                            _hostKeyPrompt.value = HostKeyPrompt.NewHost(result.entry, deferred)
-                            if (!deferred.await()) {
-                                sshClient.disconnect()
-                                throw Exception("Host key rejected by user")
-                            }
-                            hostKeyVerifier.accept(result.entry)
-                        }
-                        is HostKeyResult.KeyChanged -> {
-                            val deferred = CompletableDeferred<Boolean>()
-                            _hostKeyPrompt.value = HostKeyPrompt.KeyChanged(
-                                oldFingerprint = result.old.fingerprint,
-                                entry = result.new,
-                                deferred = deferred,
-                            )
-                            if (!deferred.await()) {
-                                sshClient.disconnect()
-                                throw Exception("Host key change rejected by user")
-                            }
-                            hostKeyVerifier.accept(result.new)
-                        }
+                    try {
+                        val hostKeyEntry = sshClient.connect(config, proxy = proxy)
+                        runTofuVerification(hostKeyEntry, clientToDisconnectOnReject = sshClient)
+                    } catch (e: HostKeyAuthFailure) {
+                        runTofuVerification(e.hostKey, clientToDisconnectOnReject = null)
+                        throw e.cause ?: e
                     }
 
                     sshClient
@@ -1451,33 +1454,12 @@ class ConnectionsViewModel @Inject constructor(
                         createNetworkProxy(profile)
                     }
 
-                    val hostKeyEntry = sshClient.connect(config, proxy = proxy)
-
-                    // TOFU host key verification
-                    when (val result = hostKeyVerifier.verify(hostKeyEntry)) {
-                        is HostKeyResult.Trusted -> {}
-                        is HostKeyResult.NewHost -> {
-                            val deferred = CompletableDeferred<Boolean>()
-                            _hostKeyPrompt.value = HostKeyPrompt.NewHost(result.entry, deferred)
-                            if (!deferred.await()) {
-                                sshClient.disconnect()
-                                throw Exception("Host key rejected by user")
-                            }
-                            hostKeyVerifier.accept(result.entry)
-                        }
-                        is HostKeyResult.KeyChanged -> {
-                            val deferred = CompletableDeferred<Boolean>()
-                            _hostKeyPrompt.value = HostKeyPrompt.KeyChanged(
-                                oldFingerprint = result.old.fingerprint,
-                                entry = result.new,
-                                deferred = deferred,
-                            )
-                            if (!deferred.await()) {
-                                sshClient.disconnect()
-                                throw Exception("Host key change rejected by user")
-                            }
-                            hostKeyVerifier.accept(result.new)
-                        }
+                    try {
+                        val hostKeyEntry = sshClient.connect(config, proxy = proxy)
+                        runTofuVerification(hostKeyEntry, clientToDisconnectOnReject = sshClient)
+                    } catch (e: HostKeyAuthFailure) {
+                        runTofuVerification(e.hostKey, clientToDisconnectOnReject = null)
+                        throw e.cause ?: e
                     }
 
                     sshClient
@@ -1832,34 +1814,23 @@ class ConnectionsViewModel @Inject constructor(
                 sshOptions = ConnectionConfig.parseSshOptions(jumpProfile.sshOptions),
             )
             Log.d(TAG, "Jump host SSH connecting...")
-            val hostKeyEntry = jumpClient.connect(config)
-            Log.d(TAG, "Jump host SSH connected, verifying host key...")
-
-            // TOFU for jump host
-            when (val result = hostKeyVerifier.verify(hostKeyEntry)) {
-                is HostKeyResult.Trusted -> {}
-                is HostKeyResult.NewHost -> {
-                    val deferred = CompletableDeferred<Boolean>()
-                    _hostKeyPrompt.value = HostKeyPrompt.NewHost(result.entry, deferred)
-                    if (!deferred.await()) {
-                        jumpClient.disconnect()
-                        throw Exception("Jump host key rejected by user")
-                    }
-                    hostKeyVerifier.accept(result.entry)
-                }
-                is HostKeyResult.KeyChanged -> {
-                    val deferred = CompletableDeferred<Boolean>()
-                    _hostKeyPrompt.value = HostKeyPrompt.KeyChanged(
-                        oldFingerprint = result.old.fingerprint,
-                        entry = result.new,
-                        deferred = deferred,
-                    )
-                    if (!deferred.await()) {
-                        jumpClient.disconnect()
-                        throw Exception("Jump host key change rejected by user")
-                    }
-                    hostKeyVerifier.accept(result.new)
-                }
+            try {
+                val hostKeyEntry = jumpClient.connect(config)
+                Log.d(TAG, "Jump host SSH connected, verifying host key...")
+                runTofuVerification(
+                    hostKeyEntry,
+                    clientToDisconnectOnReject = jumpClient,
+                    rejectedOnNewHostMessage = "Jump host key rejected by user",
+                    rejectedOnChangeMessage = "Jump host key change rejected by user",
+                )
+            } catch (e: HostKeyAuthFailure) {
+                runTofuVerification(
+                    e.hostKey,
+                    clientToDisconnectOnReject = null,
+                    rejectedOnNewHostMessage = "Jump host key rejected by user",
+                    rejectedOnChangeMessage = "Jump host key change rejected by user",
+                )
+                throw e.cause ?: e
             }
 
             sshSessionManager.storeConnectionConfig(jumpSessionId, config, SessionManager.NONE)
@@ -2421,35 +2392,12 @@ class ConnectionsViewModel @Inject constructor(
                     username = profile.username,
                     authMethod = ConnectionConfig.AuthMethod.Password(password),
                 )
-                val hostKeyEntry = client.connect(config)
-
-                // TOFU host key verification for deploy
-                when (val result = hostKeyVerifier.verify(hostKeyEntry)) {
-                    is HostKeyResult.Trusted -> { /* key matches — continue */ }
-                    is HostKeyResult.NewHost -> {
-                        val deferred = CompletableDeferred<Boolean>()
-                        _hostKeyPrompt.value = HostKeyPrompt.NewHost(result.entry, deferred)
-                        if (!deferred.await()) {
-                            client.disconnect()
-                            _error.value = "Host key rejected"
-                            return@launch
-                        }
-                        hostKeyVerifier.accept(result.entry)
-                    }
-                    is HostKeyResult.KeyChanged -> {
-                        val deferred = CompletableDeferred<Boolean>()
-                        _hostKeyPrompt.value = HostKeyPrompt.KeyChanged(
-                            oldFingerprint = result.old.fingerprint,
-                            entry = result.new,
-                            deferred = deferred,
-                        )
-                        if (!deferred.await()) {
-                            client.disconnect()
-                            _error.value = "Host key change rejected"
-                            return@launch
-                        }
-                        hostKeyVerifier.accept(result.new)
-                    }
+                try {
+                    val hostKeyEntry = client.connect(config)
+                    runTofuVerification(hostKeyEntry, clientToDisconnectOnReject = client)
+                } catch (e: HostKeyAuthFailure) {
+                    runTofuVerification(e.hostKey, clientToDisconnectOnReject = null)
+                    throw e.cause ?: e
                 }
 
                 val pubKey = key.publicKeyOpenSsh.trim()

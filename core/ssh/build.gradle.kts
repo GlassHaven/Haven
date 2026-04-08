@@ -47,6 +47,9 @@ dependencies {
     testImplementation(libs.junit)
     testImplementation(libs.mockk)
     testImplementation(libs.coroutines.test)
+    // Embedded SSH server used to reproduce the v4.51.0 TOFU bypass bug (#75 follow-up)
+    testImplementation(libs.sshd.core)
+    testRuntimeOnly(libs.slf4j.simple)
 }
 
 kotlin {

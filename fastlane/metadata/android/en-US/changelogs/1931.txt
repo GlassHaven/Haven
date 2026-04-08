@@ -1,0 +1,4 @@
+- Fix host key fingerprint not shown on first connect when auth
+  fails (#75). Fresh installs now always see the TOFU prompt, even
+  if the first password or key attempt is wrong.
+- Verbose SSH log is still captured for failed initial attempts.

@@ -5,6 +5,7 @@ import com.jcraft.jsch.ChannelExec
 import com.jcraft.jsch.ChannelSftp
 import com.jcraft.jsch.ChannelShell
 import com.jcraft.jsch.JSch
+import com.jcraft.jsch.JSchException
 import com.jcraft.jsch.Proxy
 import com.jcraft.jsch.Session
 import sh.haven.core.fido.FidoAuthenticator
@@ -103,7 +104,20 @@ class SshClient : Closeable {
         // Apply user SSH options (overrides defaults above)
         config.sshOptions.forEach { (key, value) -> sess.setConfig(key, value) }
 
-        sess.connect(connectTimeoutMs)
+        try {
+            sess.connect(connectTimeoutMs)
+        } catch (e: JSchException) {
+            // KEX may have completed before the auth step failed — e.g. encrypted
+            // keys tried with null passphrase, MaxAuthTries tripped, or wrong
+            // remembered password. In that case JSch already has the server's
+            // host key, and the caller needs it to drive TOFU verification so
+            // the user sees a fingerprint prompt on first contact instead of
+            // just an opaque "Auth fail" error. See GlassOnTin/Haven#75 follow-up.
+            val capturedHostKey = tryExtractHostKey(sess, config.host, config.port)
+            try { sess.disconnect() } catch (_: Throwable) { /* best effort */ }
+            if (capturedHostKey != null) throw HostKeyAuthFailure(capturedHostKey, e)
+            throw e
+        }
         session = sess
         registerAgentIdentities(config)
         extractHostKey(sess, config.host, config.port)
@@ -225,7 +239,15 @@ class SshClient : Closeable {
 
         config.sshOptions.forEach { (key, value) -> sess.setConfig(key, value) }
 
-        sess.connect(connectTimeoutMs)
+        try {
+            sess.connect(connectTimeoutMs)
+        } catch (e: JSchException) {
+            // Mirror of the async connect() path — see the comment there.
+            val capturedHostKey = tryExtractHostKey(sess, config.host, config.port)
+            try { sess.disconnect() } catch (_: Throwable) { /* best effort */ }
+            if (capturedHostKey != null) throw HostKeyAuthFailure(capturedHostKey, e)
+            throw e
+        }
         session = sess
         registerAgentIdentities(config)
         return extractHostKey(sess, config.host, config.port)
@@ -265,6 +287,28 @@ class SshClient : Closeable {
             // JSch HostKey.getKey() returns the base64-encoded public key
             publicKeyBase64 = hk.key,
         )
+    }
+
+    /**
+     * Nullable variant used when we can't be sure KEX completed — e.g. called
+     * from the catch block after a failed [Session.connect]. JSch exposes
+     * [Session.getHostKey] only after the KEX init response arrives, so a
+     * null return here means the failure happened earlier in the handshake
+     * (connect refused, bad version, KEX alg mismatch, etc.) and there is no
+     * host key for the caller to verify.
+     */
+    private fun tryExtractHostKey(sess: Session, host: String, port: Int): KnownHostEntry? {
+        return try {
+            val hk = sess.hostKey ?: return null
+            KnownHostEntry(
+                hostname = host,
+                port = port,
+                keyType = hk.type,
+                publicKeyBase64 = hk.key,
+            )
+        } catch (_: Throwable) {
+            null
+        }
     }
 
     /**

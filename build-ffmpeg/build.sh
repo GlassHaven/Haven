@@ -304,6 +304,39 @@ build_harfbuzz() {
         --disable-introspection
 }
 
+build_mbedtls() {
+    local marker="$DEPS_SYSROOT/lib/libmbedtls.a"
+    if [ -f "$marker" ] && [ "${FORCE_REBUILD:-}" != "1" ]; then
+        echo "=== mbedtls already built ==="
+        return
+    fi
+    echo "=== Building mbedtls for $ABI ==="
+    fetch_tarball mbedtls \
+        "https://github.com/Mbed-TLS/mbedtls/releases/download/mbedtls-3.6.2/mbedtls-3.6.2.tar.bz2" \
+        "mbedtls-3.6.2.tar.bz2" "mbedtls-3.6.2"
+    local SRC="$SRC_DIR/mbedtls"
+    local LOG="$SCRIPT_DIR/dep-mbedtls.log"
+    local BUILD="$SCRIPT_DIR/build-$ABI/deps/mbedtls"
+    rm -rf "$BUILD"
+    mkdir -p "$BUILD"
+    (
+        cd "$BUILD"
+        cmake "$SRC" \
+            -DCMAKE_TOOLCHAIN_FILE="$ANDROID_NDK_HOME/build/cmake/android.toolchain.cmake" \
+            -DANDROID_ABI="$ABI" \
+            -DANDROID_PLATFORM="android-$API" \
+            -DCMAKE_INSTALL_PREFIX="$DEPS_SYSROOT" \
+            -DUSE_SHARED_MBEDTLS_LIBRARY=OFF \
+            -DUSE_STATIC_MBEDTLS_LIBRARY=ON \
+            -DENABLE_TESTING=OFF \
+            -DENABLE_PROGRAMS=OFF \
+            > "$LOG" 2>&1
+        make -j"$(nproc)" >> "$LOG" 2>&1
+        make install >> "$LOG" 2>&1
+    ) || { echo "ERROR: mbedtls build failed, last 40 log lines:"; tail -40 "$LOG"; exit 1; }
+    echo "  mbedtls built"
+}
+
 build_libass() {
     fetch_tarball libass \
         "https://github.com/libass/libass/releases/download/0.17.3/libass-0.17.3.tar.xz" \
@@ -366,6 +399,7 @@ build_freetype
 build_fribidi
 build_harfbuzz
 build_libass
+build_mbedtls
 
 # --- Fetch FFmpeg source (shallow clone, throwaway) ---------------------
 mkdir -p "$SCRIPT_DIR/src"
@@ -425,6 +459,7 @@ EXTRA_LDFLAGS="-pie -Wl,-z,max-page-size=16384 -L$DEPS_SYSROOT/lib"
         --pkg-config=pkg-config \
         --pkg-config-flags="--static" \
         --enable-gpl \
+        --enable-version3 \
         --enable-libx264 \
         --enable-libx265 \
         --enable-libvpx \
@@ -435,6 +470,7 @@ EXTRA_LDFLAGS="-pie -Wl,-z,max-page-size=16384 -L$DEPS_SYSROOT/lib"
         --enable-libfribidi \
         --enable-libharfbuzz \
         --enable-libass \
+        --enable-mbedtls \
         --disable-doc \
         --disable-htmlpages \
         --disable-manpages \
@@ -454,6 +490,12 @@ EXTRA_LDFLAGS="-pie -Wl,-z,max-page-size=16384 -L$DEPS_SYSROOT/lib"
         --enable-avfilter \
         --enable-protocol=file \
         --enable-protocol=pipe \
+        --enable-protocol=tcp \
+        --enable-protocol=udp \
+        --enable-protocol=tls \
+        --enable-protocol=https \
+        --enable-protocol=http \
+        --enable-protocol=httpproxy \
         --enable-demuxer=mov \
         --enable-demuxer=matroska \
         --enable-demuxer=aac \

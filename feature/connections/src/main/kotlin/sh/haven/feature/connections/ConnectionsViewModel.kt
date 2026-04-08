@@ -284,6 +284,15 @@ class ConnectionsViewModel @Inject constructor(
     private val _error = MutableStateFlow<String?>(null)
     val error: StateFlow<String?> = _error.asStateFlow()
 
+    /**
+     * Non-fatal warning surfaced alongside a successful or in-progress connect.
+     * Distinct from [error] so the UI can style it differently and so callers
+     * don't accidentally abort a working connection on a cosmetic warning.
+     * Example: agent forwarding enabled but all stored keys are encrypted.
+     */
+    private val _warning = MutableStateFlow<String?>(null)
+    val warning: StateFlow<String?> = _warning.asStateFlow()
+
     private val _showMoshSetupGuide = MutableStateFlow(false)
     val showMoshSetupGuide: StateFlow<Boolean> = _showMoshSetupGuide.asStateFlow()
 
@@ -2120,15 +2129,79 @@ class ConnectionsViewModel @Inject constructor(
     }
 
     /**
-     * Build the list of identities to expose via SSH agent forwarding for [profile].
-     * Returns empty list when `profile.forwardAgent` is false. Encrypted keys are skipped
-     * — unlocking them at sign-request time would require re-prompting the user mid-session.
+     * Resolved agent-forwarding identities for a profile, plus diagnostics
+     * needed to warn the user when the forwarded agent would be empty (e.g.
+     * all stored SSH keys are passphrase-protected or none are stored at all).
+     */
+    private data class AgentIdentitiesResult(
+        val keys: List<Pair<String, ByteArray>>,
+        val skippedEncryptedCount: Int,
+        val hadNoStoredKeys: Boolean,
+        val forwardAgentEnabled: Boolean,
+    ) {
+        /**
+         * User-visible warning if [forwardAgentEnabled] is true but [keys] ended
+         * up empty. Returns null otherwise — no warning needed either when
+         * forwarding is disabled, or when at least one usable key was found.
+         */
+        val warningMessage: String?
+            get() {
+                if (!forwardAgentEnabled || keys.isNotEmpty()) return null
+                return when {
+                    skippedEncryptedCount > 0 -> buildString {
+                        append("Agent forwarding enabled but all ")
+                        append(skippedEncryptedCount)
+                        append(" stored SSH key")
+                        if (skippedEncryptedCount != 1) append("s are")
+                        else append(" is")
+                        append(" passphrase-protected; the forwarded agent will be empty.")
+                    }
+                    hadNoStoredKeys -> "Agent forwarding enabled but no SSH keys are stored in Haven; the forwarded agent will be empty."
+                    else -> null
+                }
+            }
+    }
+
+    /**
+     * Pure helper — computes the agent-forwarding result for [profile]
+     * without any side effects. Kept separate from [agentIdentitiesFor] so
+     * the warning logic can be unit-tested.
+     */
+    private suspend fun computeAgentIdentities(profile: ConnectionProfile): AgentIdentitiesResult {
+        if (!profile.forwardAgent) {
+            return AgentIdentitiesResult(
+                keys = emptyList(),
+                skippedEncryptedCount = 0,
+                hadNoStoredKeys = false,
+                forwardAgentEnabled = false,
+            )
+        }
+        val allKeys = sshKeyRepository.getAllDecrypted()
+        val usable = allKeys.filter { !it.isEncrypted }
+        return AgentIdentitiesResult(
+            keys = usable.map { key -> key.label to rawKeyToPem(key.privateKeyBytes, key.keyType) },
+            skippedEncryptedCount = allKeys.size - usable.size,
+            hadNoStoredKeys = allKeys.isEmpty(),
+            forwardAgentEnabled = true,
+        )
+    }
+
+    /**
+     * Build the list of identities to expose via SSH agent forwarding for
+     * [profile]. Side-effectfully publishes a non-fatal warning to [warning]
+     * when agent forwarding is enabled but the forwarded agent would end up
+     * empty (e.g. all stored SSH keys are passphrase-protected, or none are
+     * stored at all) — the connection itself still proceeds, the warning is
+     * shown via snackbar so the user isn't left guessing why `ssh-add -l` on
+     * the remote returns nothing.
+     *
+     * Encrypted keys are skipped because JSch's ChannelAgentForwarding has
+     * no hook for unlocking them at sign-request time.
      */
     private suspend fun agentIdentitiesFor(profile: ConnectionProfile): List<Pair<String, ByteArray>> {
-        if (!profile.forwardAgent) return emptyList()
-        return sshKeyRepository.getAllDecrypted()
-            .filter { !it.isEncrypted }
-            .map { key -> key.label to rawKeyToPem(key.privateKeyBytes, key.keyType) }
+        val result = computeAgentIdentities(profile)
+        result.warningMessage?.let { _warning.value = it }
+        return result.keys
     }
 
     /**
@@ -2296,6 +2369,10 @@ class ConnectionsViewModel @Inject constructor(
 
     fun showError(message: String) {
         _error.value = message
+    }
+
+    fun dismissWarning() {
+        _warning.value = null
     }
 
     private val _deploySuccess = MutableStateFlow(false)

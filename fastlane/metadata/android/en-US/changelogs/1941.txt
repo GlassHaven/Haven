@@ -1,0 +1,4 @@
+- Warn when agent forwarding is enabled but all stored SSH keys are
+  passphrase-protected (or none are stored). Previously the forwarded
+  agent was silently empty and `ssh-add -l` on the remote returned
+  nothing with no explanation (#75).

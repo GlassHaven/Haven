@@ -169,6 +169,7 @@ fun ConnectionsScreen(
     val connectingProfileId by viewModel.connectingProfileId.collectAsState()
     val launchingDesktop by viewModel.launchingDesktop.collectAsState()
     val error by viewModel.error.collectAsState()
+    val warning by viewModel.warning.collectAsState()
     val navigateToTerminal by viewModel.navigateToTerminal.collectAsState()
     val navigateToVnc by viewModel.navigateToVnc.collectAsState()
     val navigateToRdp by viewModel.navigateToRdp.collectAsState()
@@ -272,6 +273,20 @@ fun ConnectionsScreen(
                 duration = androidx.compose.material3.SnackbarDuration.Long,
             )
             viewModel.dismissError()
+        }
+    }
+
+    // Non-fatal warnings (e.g. agent-forwarding enabled but all stored
+    // keys are encrypted). Rendered as a snackbar + toast like errors so
+    // they're discoverable, but the connection itself still proceeds.
+    LaunchedEffect(warning) {
+        warning?.let {
+            android.widget.Toast.makeText(context, it, android.widget.Toast.LENGTH_LONG).show()
+            snackbarHostState.showSnackbar(
+                message = it,
+                duration = androidx.compose.material3.SnackbarDuration.Long,
+            )
+            viewModel.dismissWarning()
         }
     }
 

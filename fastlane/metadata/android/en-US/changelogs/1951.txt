@@ -1,0 +1,5 @@
+- Fix FIDO2 SSH keys never detecting the security key (#15).
+  Discovery of USB and NFC keys is now self-started inside the
+  assertion flow instead of relying on dead-code entry points
+  that were never called. Nitrokey, SoloKeys, Feitian, Titan, and
+  YubiKey should now all light up when SSH auth asks for a touch.

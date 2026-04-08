@@ -23,6 +23,7 @@ import dagger.hilt.android.AndroidEntryPoint
 import sh.haven.app.navigation.HavenNavHost
 import sh.haven.core.data.preferences.UserPreferencesRepository
 import sh.haven.core.data.repository.ConnectionRepository
+import sh.haven.core.fido.FidoAuthenticator
 import sh.haven.core.security.BiometricAuthenticator
 import sh.haven.core.ssh.SshConnectionService
 import sh.haven.core.ui.KeyEventInterceptor
@@ -36,6 +37,10 @@ class MainActivity : AppCompatActivity() {
     @Inject lateinit var biometricAuthenticator: BiometricAuthenticator
     // Eagerly injected to trigger one-time password encryption migration
     @Inject lateinit var connectionRepository: ConnectionRepository
+    // Published to FidoAuthenticator in onResume so NFC reader mode can
+    // be enabled during FIDO2 SSH assertions. Without this, Nitrokey /
+    // SoloKey / YubiKey-over-NFC flows never saw a Tag (#15).
+    @Inject lateinit var fidoAuthenticator: FidoAuthenticator
 
     private fun exitIfDisconnected() {
         if (SshConnectionService.disconnectedAll) {
@@ -48,6 +53,12 @@ class MainActivity : AppCompatActivity() {
     override fun onResume() {
         super.onResume()
         exitIfDisconnected()
+        fidoAuthenticator.setActiveActivity(this)
+    }
+
+    override fun onPause() {
+        fidoAuthenticator.clearActiveActivity(this)
+        super.onPause()
     }
 
     override fun onNewIntent(intent: Intent) {

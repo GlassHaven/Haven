@@ -19,6 +19,7 @@ import kotlinx.coroutines.CompletableDeferred
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.withContext
 import java.io.IOException
+import java.lang.ref.WeakReference
 import java.security.MessageDigest
 import javax.inject.Inject
 import javax.inject.Singleton
@@ -33,9 +34,20 @@ data class FidoAssertionResult(
 )
 
 /**
- * Manages FIDO2 authenticator interactions using generic CTAP2 protocol.
- * Supports any FIDO2 security key over USB HID or NFC ISO-DEP —
- * not limited to YubiKeys.
+ * Manages FIDO2 authenticator interactions using the generic CTAP2 protocol.
+ * Works with any FIDO2 security key over USB HID or NFC ISO-DEP —
+ * YubiKey, Nitrokey, SoloKeys, Feitian, Trezor, Google Titan, etc.
+ *
+ * Discovery is self-driven: calling [getAssertion] transparently enumerates
+ * already-plugged USB devices, registers a receiver for USB attach events,
+ * and — if a host [Activity] has been published via [setActiveActivity] —
+ * enables NFC reader mode for the duration of the assertion. All of that
+ * is torn down when the assertion completes or fails.
+ *
+ * This replaces the pre-fix design where `startUsbDiscovery` and
+ * `startNfcDiscovery` were public entry points that the rest of the app
+ * never actually called — meaning security keys were never detected and
+ * the SSH auth path hung forever on `pendingDevice.await()`. See #15.
  */
 @Singleton
 class FidoAuthenticator @Inject constructor(
@@ -48,97 +60,51 @@ class FidoAuthenticator @Inject constructor(
     }
 
     private var pendingDevice: CompletableDeferred<ConnectedDevice>? = null
-    private var usbReceiver: BroadcastReceiver? = null
+
+    /**
+     * Weak reference to the currently-resumed foreground [Activity], used
+     * as the host for NFC reader mode during an in-flight assertion. Set
+     * by the activity's `onResume` / cleared on `onPause`. NFC reader
+     * mode is not available outside of a foreground activity context —
+     * USB discovery still works without one.
+     */
+    private var activeActivity: WeakReference<Activity>? = null
 
     /** Callback for UI to show/hide "touch your security key" prompt. */
     var onTouchRequired: ((Boolean) -> Unit)? = null
 
-    fun startUsbDiscovery(activity: Activity) {
-        Log.d(TAG, "Starting USB FIDO discovery")
-        val usbManager = context.getSystemService(Context.USB_SERVICE) as UsbManager
-
-        // Check already-connected devices
-        for (device in usbManager.deviceList.values) {
-            if (isFidoHidDevice(device)) {
-                Log.d(TAG, "Found already-connected FIDO device: ${device.productName}")
-                pendingDevice?.complete(ConnectedDevice.Usb(device))
-                return
-            }
-        }
-
-        // Register for USB attach events
-        val receiver = object : BroadcastReceiver() {
-            override fun onReceive(ctx: Context, intent: Intent) {
-                when (intent.action) {
-                    UsbManager.ACTION_USB_DEVICE_ATTACHED -> {
-                        val device = if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU) {
-                            intent.getParcelableExtra(UsbManager.EXTRA_DEVICE, UsbDevice::class.java)
-                        } else {
-                            @Suppress("DEPRECATION")
-                            intent.getParcelableExtra(UsbManager.EXTRA_DEVICE)
-                        }
-                        if (device != null && isFidoHidDevice(device)) {
-                            Log.d(TAG, "USB FIDO device attached: ${device.productName}")
-                            pendingDevice?.complete(ConnectedDevice.Usb(device))
-                        }
-                    }
-                    ACTION_USB_PERMISSION -> {
-                        // Permission result — handled inline in getAssertion
-                    }
-                }
-            }
-        }
-        usbReceiver = receiver
-        val filter = IntentFilter().apply {
-            addAction(UsbManager.ACTION_USB_DEVICE_ATTACHED)
-            addAction(ACTION_USB_PERMISSION)
-        }
-        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU) {
-            context.registerReceiver(receiver, filter, Context.RECEIVER_NOT_EXPORTED)
-        } else {
-            context.registerReceiver(receiver, filter)
-        }
-    }
-
-    fun startNfcDiscovery(activity: Activity) {
-        val nfcAdapter = NfcAdapter.getDefaultAdapter(context)
-        if (nfcAdapter == null) {
-            Log.w(TAG, "NFC not available")
-            return
-        }
-        Log.d(TAG, "Starting NFC FIDO discovery")
-        nfcAdapter.enableReaderMode(
-            activity,
-            { tag ->
-                if (IsoDep.get(tag) != null) {
-                    Log.d(TAG, "NFC FIDO tag detected")
-                    pendingDevice?.complete(ConnectedDevice.Nfc(tag))
-                }
-            },
-            NfcAdapter.FLAG_READER_NFC_A or NfcAdapter.FLAG_READER_NFC_B or
-                NfcAdapter.FLAG_READER_SKIP_NDEF_CHECK,
-            null,
-        )
-    }
-
-    fun stopDiscovery(activity: Activity) {
-        try {
-            usbReceiver?.let { context.unregisterReceiver(it) }
-            usbReceiver = null
-        } catch (_: Exception) {}
-        try {
-            NfcAdapter.getDefaultAdapter(context)?.disableReaderMode(activity)
-        } catch (_: Exception) {}
+    /**
+     * Publish the foreground activity from `Activity.onResume`. Required to
+     * enable NFC reader mode during [getAssertion]; USB-only flows work
+     * without it.
+     */
+    fun setActiveActivity(activity: Activity) {
+        activeActivity = WeakReference(activity)
     }
 
     /**
-     * Perform a FIDO2 assertion. Blocks until a security key is connected/tapped
-     * and the user touches it.
+     * Clear the foreground activity reference from `Activity.onPause`. Only
+     * clears when [activity] matches the currently-published one — guards
+     * against races where a new activity resumes before the old pauses.
+     */
+    fun clearActiveActivity(activity: Activity) {
+        if (activeActivity?.get() === activity) {
+            activeActivity = null
+        }
+    }
+
+    /**
+     * Perform a FIDO2 assertion. Blocks until a security key is connected
+     * (USB) or tapped (NFC) and the user touches it to authorise signing.
      *
-     * @param rpId       The relying party ID (application string, e.g. "ssh:")
-     * @param message    The SSH sign data to hash and sign
-     * @param credentialId The credential ID (key_handle) from the SK key file
-     * @return The assertion result with signature, flags, and counter
+     * Discovery is started inline and cleaned up in the finally block —
+     * callers do not need to pre-arm anything. USB keys already plugged in
+     * at call time are detected immediately; otherwise a broadcast receiver
+     * catches the attach event.
+     *
+     * @param rpId         the relying party ID (for SSH this is "ssh:")
+     * @param message      the SSH sign data to hash and sign
+     * @param credentialId the credential ID (key handle) from the SK key file
      */
     suspend fun getAssertion(
         rpId: String,
@@ -149,13 +115,35 @@ class FidoAuthenticator @Inject constructor(
 
         val clientDataHash = MessageDigest.getInstance("SHA-256").digest(message)
 
+        val deferred = CompletableDeferred<ConnectedDevice>()
+        pendingDevice = deferred
+
+        // ----- USB: check already connected, else register attach receiver
+        val usbManager = context.getSystemService(Context.USB_SERVICE) as UsbManager
+        val alreadyConnectedUsb = usbManager.deviceList.values.firstOrNull { isFidoHidDevice(it) }
+        var usbReceiver: BroadcastReceiver? = null
+        if (alreadyConnectedUsb != null) {
+            Log.d(TAG, "FIDO key already plugged in: ${alreadyConnectedUsb.productName ?: "(unknown product)"}")
+            deferred.complete(ConnectedDevice.Usb(alreadyConnectedUsb))
+        } else {
+            usbReceiver = registerUsbAttachReceiver(deferred)
+            Log.d(TAG, "Registered USB attach receiver; waiting for key to be plugged in")
+        }
+
+        // ----- NFC: if an activity is in the foreground, enable reader mode
+        val nfcActivity = activeActivity?.get()
+        var nfcEnabled = false
+        if (nfcActivity != null && !deferred.isCompleted) {
+            nfcEnabled = startNfcReaderModeOnMain(nfcActivity, deferred)
+            Log.d(TAG, "NFC reader mode ${if (nfcEnabled) "enabled" else "unavailable"} for current activity")
+        } else if (nfcActivity == null) {
+            Log.d(TAG, "No foreground activity — NFC path disabled, USB only")
+        }
+
         onTouchRequired?.invoke(true)
 
         try {
-            val deferred = CompletableDeferred<ConnectedDevice>()
-            pendingDevice = deferred
-            Log.d(TAG, "Waiting for security key (USB or NFC)...")
-
+            Log.d(TAG, "Waiting for security key (USB${if (nfcEnabled) " or NFC" else ""})...")
             val device = deferred.await()
 
             val result = when (device) {
@@ -170,11 +158,105 @@ class FidoAuthenticator @Inject constructor(
             result
         } finally {
             pendingDevice = null
+            usbReceiver?.let {
+                try {
+                    context.unregisterReceiver(it)
+                } catch (_: IllegalArgumentException) {
+                    // already unregistered
+                }
+            }
+            if (nfcEnabled && nfcActivity != null) {
+                stopNfcReaderModeOnMain(nfcActivity)
+            }
             onTouchRequired?.invoke(false)
         }
     }
 
-    private fun performUsbAssertion(
+    /**
+     * Register a broadcast receiver for USB attach events that completes
+     * [deferred] when a FIDO HID device is plugged in. Returns the receiver
+     * for later unregistration.
+     */
+    private fun registerUsbAttachReceiver(
+        deferred: CompletableDeferred<ConnectedDevice>,
+    ): BroadcastReceiver {
+        val receiver = object : BroadcastReceiver() {
+            override fun onReceive(ctx: Context, intent: Intent) {
+                if (intent.action != UsbManager.ACTION_USB_DEVICE_ATTACHED) return
+                val device = if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU) {
+                    intent.getParcelableExtra(UsbManager.EXTRA_DEVICE, UsbDevice::class.java)
+                } else {
+                    @Suppress("DEPRECATION")
+                    intent.getParcelableExtra(UsbManager.EXTRA_DEVICE)
+                }
+                if (device != null && isFidoHidDevice(device)) {
+                    Log.d(TAG, "USB FIDO device attached: ${device.productName ?: "(unknown product)"}")
+                    deferred.complete(ConnectedDevice.Usb(device))
+                }
+            }
+        }
+        val filter = IntentFilter(UsbManager.ACTION_USB_DEVICE_ATTACHED)
+        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU) {
+            context.registerReceiver(receiver, filter, Context.RECEIVER_NOT_EXPORTED)
+        } else {
+            context.registerReceiver(receiver, filter)
+        }
+        return receiver
+    }
+
+    /**
+     * Enable NFC reader mode on [activity] to catch a FIDO tap and complete
+     * [deferred]. NFC APIs must be called on the main thread, hence the
+     * handler hop. Returns true if reader mode was successfully enabled,
+     * false if the device lacks NFC or the call failed.
+     */
+    private suspend fun startNfcReaderModeOnMain(
+        activity: Activity,
+        deferred: CompletableDeferred<ConnectedDevice>,
+    ): Boolean {
+        val nfcAdapter = NfcAdapter.getDefaultAdapter(context) ?: run {
+            Log.d(TAG, "NFC not available on this device")
+            return false
+        }
+        return withContext(Dispatchers.Main) {
+            try {
+                nfcAdapter.enableReaderMode(
+                    activity,
+                    { tag ->
+                        if (IsoDep.get(tag) != null) {
+                            Log.d(TAG, "NFC FIDO tag detected")
+                            deferred.complete(ConnectedDevice.Nfc(tag))
+                        }
+                    },
+                    NfcAdapter.FLAG_READER_NFC_A or NfcAdapter.FLAG_READER_NFC_B or
+                        NfcAdapter.FLAG_READER_SKIP_NDEF_CHECK,
+                    null,
+                )
+                true
+            } catch (e: Exception) {
+                Log.w(TAG, "Failed to enable NFC reader mode: ${e.message}")
+                false
+            }
+        }
+    }
+
+    /**
+     * Disable NFC reader mode on [activity]. Must be called on the main thread.
+     * Swallows exceptions — NFC teardown errors should not mask the assertion
+     * result.
+     */
+    private suspend fun stopNfcReaderModeOnMain(activity: Activity) {
+        val nfcAdapter = NfcAdapter.getDefaultAdapter(context) ?: return
+        withContext(Dispatchers.Main) {
+            try {
+                nfcAdapter.disableReaderMode(activity)
+            } catch (_: Exception) {
+                // best effort
+            }
+        }
+    }
+
+    private suspend fun performUsbAssertion(
         device: UsbDevice,
         rpId: String,
         clientDataHash: ByteArray,
@@ -184,6 +266,7 @@ class FidoAuthenticator @Inject constructor(
 
         // Request USB permission if needed
         if (!usbManager.hasPermission(device)) {
+            Log.d(TAG, "Requesting USB permission for ${device.productName ?: "(unknown product)"}")
             val permDeferred = CompletableDeferred<Boolean>()
             val permReceiver = object : BroadcastReceiver() {
                 override fun onReceive(ctx: Context, intent: Intent) {
@@ -206,9 +289,10 @@ class FidoAuthenticator @Inject constructor(
                 device,
                 PendingIntent.getBroadcast(context, 0, Intent(ACTION_USB_PERMISSION), flags),
             )
-            // Block until permission is granted (we're on Dispatchers.IO)
-            val granted = kotlinx.coroutines.runBlocking { permDeferred.await() }
-            context.unregisterReceiver(permReceiver)
+            val granted = permDeferred.await()
+            try {
+                context.unregisterReceiver(permReceiver)
+            } catch (_: IllegalArgumentException) {}
             if (!granted) throw IOException("USB permission denied")
         }
 
@@ -293,11 +377,10 @@ class FidoAuthenticator @Inject constructor(
         )
     }
 
-    /** Check if a USB device is a FIDO HID device (interface class 0x03). */
+    /** Check if a USB device exposes a HID interface (FIDO keys always do). */
     private fun isFidoHidDevice(device: UsbDevice): Boolean {
         for (i in 0 until device.interfaceCount) {
             val iface = device.getInterface(i)
-            // FIDO keys use HID class (0x03) with no subclass/protocol
             if (iface.interfaceClass == UsbConstants.USB_CLASS_HID) {
                 return true
             }

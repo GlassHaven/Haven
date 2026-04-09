@@ -1,0 +1,6 @@
+- Fix the first bottom-nav tab wrapping to two lines on narrower
+  devices (reported on a Samsung S23). The app module had a
+  duplicate `nav_connections = "Connections"` shadowing the
+  shorter "Connect" string in :core:ui; removed the duplicate
+  and hardened the nav label to one line with ellipsis so no
+  locale can wrap in the future (#78).

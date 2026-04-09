@@ -2,12 +2,10 @@
 <resources>
     <string name="app_name">Haven</string>
 
-    <!-- Navigation -->
-    <string name="nav_connections">Connections</string>
-    <string name="nav_terminal">Terminal</string>
-    <string name="nav_sftp">Files</string>
-    <string name="nav_keys">Keys</string>
-    <string name="nav_settings">Settings</string>
+    <!-- Navigation labels live in :core:ui strings.xml so all locales
+         share one source. The previous `nav_connections = "Connections"`
+         override here shadowed :core:ui's shorter "Connect" and wrapped
+         to two lines in the bottom nav on narrower devices (#78). -->
 
     <!-- Common strings shared across modules -->
     <string name="common_cancel">Cancel</string>

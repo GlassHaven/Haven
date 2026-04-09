@@ -21,6 +21,7 @@ import androidx.compose.material3.NavigationBarItem
 import androidx.compose.material3.Scaffold
 import androidx.compose.material3.ScaffoldDefaults
 import androidx.compose.material3.Text
+import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.collectAsState
@@ -166,7 +167,19 @@ fun HavenNavHost(
                         val isDragged = index == navDragIndex
                         NavigationBarItem(
                             icon = { Icon(screen.icon, contentDescription = stringResource(screen.labelRes)) },
-                            label = { Text(stringResource(screen.labelRes)) },
+                            label = {
+                                // maxLines = 1 + ellipsis guards against any locale whose
+                                // nav label is too long for the tab slot on narrow devices
+                                // (e.g. Samsung S23 portrait with 5 tabs). Previously the
+                                // label could wrap to two lines and distort the whole bar
+                                // height — see #78.
+                                Text(
+                                    text = stringResource(screen.labelRes),
+                                    maxLines = 1,
+                                    overflow = TextOverflow.Ellipsis,
+                                    softWrap = false,
+                                )
+                            },
                             selected = screen == currentScreen,
                             onClick = {
                                 if (navDragIndex < 0) {

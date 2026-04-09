@@ -1,0 +1,8 @@
+- Fix arrow keys not working in Mutt (and other ncurses-based apps)
+  over Mosh (#73). The mosh client was sending each byte of an
+  escape sequence like `ESC O A` in its own protobuf instruction,
+  and mosh-server was writing them to the pty in separate calls.
+  ncurses' ESC-timeout interpreted the gaps as a bare ESC followed
+  by O and A, and Mutt showed "key is not bound". Consecutive
+  keystroke bytes are now coalesced into a single instruction,
+  matching upstream mosh-client's `UserStream::diff_from`.

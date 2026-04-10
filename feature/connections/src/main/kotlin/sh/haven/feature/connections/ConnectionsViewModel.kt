@@ -476,14 +476,23 @@ class ConnectionsViewModel @Inject constructor(
                 val configDir = File(appContext.filesDir, "reticulum")
                     .apply { mkdirs() }.absolutePath
                 reticulumTransport.init(configDir, host, port, networkName, passphrase)
+                Log.d(TAG, "scanReticulum: transport initialised, waiting for announces...")
 
-                // Collect announces for a few seconds
+                // Also request paths for any saved rnsh destinations — this
+                // triggers the gateway to forward cached announces/paths.
+                requestPathsForSavedConnections()
+
+                // Collect announces for 10 seconds (init + TCP connect + announce
+                // propagation can take several seconds)
                 val job = launch {
                     reticulumTransport.discoveredDestinations.collect { list ->
                         _discoveredDestinations.value = list
+                        if (list.isNotEmpty()) {
+                            Log.d(TAG, "scanReticulum: ${list.size} destination(s) discovered so far")
+                        }
                     }
                 }
-                kotlinx.coroutines.delay(5000)
+                kotlinx.coroutines.delay(10_000)
                 job.cancel()
 
                 // Final snapshot

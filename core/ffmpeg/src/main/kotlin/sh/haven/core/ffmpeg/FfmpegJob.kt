@@ -22,11 +22,29 @@ class FfmpegJob internal constructor(
     private val stdoutBuilder = StringBuilder()
 
     private val stderrThread = Thread({
-        process.errorStream.bufferedReader().useLines { lines ->
-            for (line in lines) {
-                synchronized(stderrLines) { stderrLines.add(line) }
-                onStderr(line)
+        // FFmpeg writes progress using \r (carriage return) to overwrite the
+        // same line, not \n. BufferedReader.readLine() only splits on \n, so
+        // progress updates would accumulate into one giant line that only
+        // appears when ffmpeg finishes. Read char-by-char and split on both.
+        val reader = process.errorStream.bufferedReader()
+        val buf = StringBuilder()
+        var ch: Int
+        while (reader.read().also { ch = it } != -1) {
+            if (ch == '\r'.code || ch == '\n'.code) {
+                if (buf.isNotEmpty()) {
+                    val line = buf.toString()
+                    buf.clear()
+                    synchronized(stderrLines) { stderrLines.add(line) }
+                    onStderr(line)
+                }
+            } else {
+                buf.append(ch.toChar())
             }
+        }
+        if (buf.isNotEmpty()) {
+            val line = buf.toString()
+            synchronized(stderrLines) { stderrLines.add(line) }
+            onStderr(line)
         }
     }, "ffmpeg-stderr").apply { isDaemon = true; start() }
 

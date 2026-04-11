@@ -597,13 +597,27 @@ class SftpViewModel @Inject constructor(
                     else -> sh.haven.core.ffmpeg.TranscodeCommand.h264(cacheInput.absolutePath, cacheOutput.absolutePath)
                 }.videoFilters(videoFilters).audioFilters(audioFilters)
 
+                // Probe input duration for accurate progress
+                val durationSec = withContext(Dispatchers.IO) {
+                    val probeResult = ffmpegExecutor.probe(listOf(
+                        "-v", "error", "-show_entries", "format=duration",
+                        "-of", "default=noprint_wrappers=1:nokey=1",
+                        cacheInput.absolutePath,
+                    ))
+                    probeResult.stdout.trim().toDoubleOrNull() ?: 0.0
+                }
+
                 val convertLabel = "\u2699 Converting to $format"
-                _transferProgress.value = TransferProgress(convertLabel, 100, 0, isPercentage = true)
+                _transferProgress.value = if (durationSec > 0) {
+                    TransferProgress(convertLabel, 100, 0, isPercentage = true)
+                } else {
+                    TransferProgress(convertLabel, 0, 0) // indeterminate
+                }
                 val result = withContext(Dispatchers.IO) {
                     ffmpegExecutor.execute(cmd.build()) { stderrLine ->
                         val progress = sh.haven.core.ffmpeg.FfmpegProgress.parse(stderrLine)
-                        if (progress != null) {
-                            val pct = (progress.timeSeconds * 10).toLong().coerceIn(0, 99)
+                        if (progress != null && durationSec > 0) {
+                            val pct = ((progress.timeSeconds / durationSec) * 100).toLong().coerceIn(0, 99)
                             _transferProgress.value = TransferProgress(convertLabel, 100, pct, isPercentage = true)
                         }
                     }

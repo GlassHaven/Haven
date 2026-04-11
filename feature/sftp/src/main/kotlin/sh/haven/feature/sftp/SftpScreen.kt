@@ -7,6 +7,10 @@ import androidx.compose.animation.AnimatedVisibility
 import androidx.compose.foundation.ExperimentalFoundationApi
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.combinedClickable
+import androidx.compose.foundation.text.BasicTextField
+import androidx.compose.foundation.text.KeyboardActions
+import androidx.compose.foundation.text.KeyboardOptions
+import androidx.compose.ui.text.input.ImeAction
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
@@ -263,11 +267,31 @@ fun SftpScreen(
         topBar = {
             TopAppBar(
                 title = {
-                    Text(
-                        currentPath,
-                        maxLines = 1,
-                        overflow = TextOverflow.Ellipsis,
-                    )
+                    var editingPath by remember { mutableStateOf(false) }
+                    var pathText by remember(currentPath) { mutableStateOf(currentPath) }
+                    if (editingPath) {
+                        BasicTextField(
+                            value = pathText,
+                            onValueChange = { pathText = it },
+                            singleLine = true,
+                            textStyle = MaterialTheme.typography.titleMedium.copy(
+                                color = MaterialTheme.colorScheme.onSurface,
+                            ),
+                            keyboardOptions = KeyboardOptions(imeAction = ImeAction.Go),
+                            keyboardActions = KeyboardActions(onGo = {
+                                editingPath = false
+                                viewModel.navigateTo(pathText)
+                            }),
+                            modifier = Modifier.fillMaxWidth(),
+                        )
+                    } else {
+                        Text(
+                            currentPath,
+                            maxLines = 1,
+                            overflow = TextOverflow.Ellipsis,
+                            modifier = Modifier.clickable { editingPath = true },
+                        )
+                    }
                 },
                 navigationIcon = {
                     if (currentPath != "/" && activeProfileId != null) {

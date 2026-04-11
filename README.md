@@ -146,4 +146,4 @@ Output: `app/build/outputs/apk/debug/haven-*-debug.apk`
 
 ## License
 
-[GPLv3](LICENSE)
+[AGPLv3](LICENSE)

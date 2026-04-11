@@ -27,6 +27,8 @@ import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableFloatStateOf
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
+import androidx.compose.runtime.saveable.Saver
+import androidx.compose.runtime.saveable.listSaver
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
@@ -82,6 +84,11 @@ class FilterState {
         if (speed != 1f) add(AudioFilter.Speed(speed))
     }
 
+    /** Reset manual color adjustments to defaults (used when auto color is enabled). */
+    fun resetColorSliders() {
+        brightness = 0f; contrast = 1f; saturation = 1f; gamma = 1f
+    }
+
     fun hasFilters(): Boolean =
         brightness != 0f || contrast != 1f || saturation != 1f || gamma != 1f ||
             sharpen != 0f || denoise > 0f || stabilize || autoColor ||
@@ -97,13 +104,39 @@ class FilterState {
             if (af.isNotEmpty()) append("-af \"${AudioFilter.chain(af)}\"")
         }.ifEmpty { "No filters" }
     }
+
+    companion object {
+        /** Saver for rememberSaveable — survives configuration changes (rotation). */
+        val Saver: Saver<FilterState, *> = listSaver(
+            save = { listOf(
+                it.brightness, it.contrast, it.saturation, it.gamma,
+                it.sharpen, it.denoise, it.speed,
+                if (it.stabilize) 1f else 0f,
+                if (it.autoColor) 1f else 0f,
+                it.rotation.toFloat(),
+                it.volume,
+                if (it.normalizeAudio) 1f else 0f,
+            ) },
+            restore = { list ->
+                FilterState().apply {
+                    brightness = list[0]; contrast = list[1]
+                    saturation = list[2]; gamma = list[3]
+                    sharpen = list[4]; denoise = list[5]
+                    speed = list[6]
+                    stabilize = list[7] != 0f; autoColor = list[8] != 0f
+                    rotation = list[9].toInt()
+                    volume = list[10]; normalizeAudio = list[11] != 0f
+                }
+            },
+        )
+    }
 }
 
 /**
  * Collapsible filter section for the Convert dialog.
  */
 @Composable
-fun FilterSection(state: FilterState, isAudioOnly: Boolean = false) {
+fun FilterSection(state: FilterState, isAudioOnly: Boolean = false, onFilterChanged: () -> Unit = {}) {
     var expanded by remember { mutableStateOf(false) }
     var showVideo by remember { mutableStateOf(true) }
     var showAudio by remember { mutableStateOf(true) }
@@ -157,12 +190,13 @@ fun FilterSection(state: FilterState, isAudioOnly: Boolean = false) {
                                 newPresets.add(preset.key)
                                 when (preset.key) {
                                     "stabilize" -> state.stabilize = true
-                                    "fix_colors" -> state.autoColor = true
-                                    "enhance" -> { state.autoColor = true; state.sharpen = 0.5f }
+                                    "fix_colors" -> { state.autoColor = true; state.resetColorSliders() }
+                                    "enhance" -> { state.autoColor = true; state.resetColorSliders(); state.sharpen = 0.5f }
                                     "normalize_audio" -> state.normalizeAudio = true
                                 }
                             }
                             state.activePresets = newPresets
+                            onFilterChanged()
                         },
                         label = { Text(preset.label) },
                     )
@@ -177,16 +211,20 @@ fun FilterSection(state: FilterState, isAudioOnly: Boolean = false) {
                 Spacer(Modifier.height(8.dp))
                 SectionHeader("Video", showVideo) { showVideo = it }
                 if (showVideo) {
-                    ToggleRow("Stabilize (deshake)", state.stabilize) { state.stabilize = it }
-                    ToggleRow("Auto color correction", state.autoColor) { state.autoColor = it }
-                    LabeledSlider("Brightness", state.brightness, -1f..1f) { state.brightness = it }
-                    LabeledSlider("Contrast", state.contrast, 0f..3f) { state.contrast = it }
-                    LabeledSlider("Saturation", state.saturation, 0f..3f) { state.saturation = it }
-                    LabeledSlider("Gamma", state.gamma, 0.1f..5f) { state.gamma = it }
-                    LabeledSlider("Sharpen", state.sharpen, -1.5f..3f) { state.sharpen = it }
-                    LabeledSlider("Denoise", state.denoise, 0f..20f) { state.denoise = it }
-                    LabeledSlider("Speed", state.speed, 0.25f..4f) { state.speed = it }
-                    RotationPicker(state.rotation) { state.rotation = it }
+                    ToggleRow("Stabilize (deshake)", state.stabilize) { state.stabilize = it; onFilterChanged() }
+                    ToggleRow("Auto color correction", state.autoColor) {
+                        state.autoColor = it
+                        if (it) state.resetColorSliders()
+                        onFilterChanged()
+                    }
+                    LabeledSlider("Brightness", state.brightness, -1f..1f) { state.brightness = it; onFilterChanged() }
+                    LabeledSlider("Contrast", state.contrast, 0f..3f) { state.contrast = it; onFilterChanged() }
+                    LabeledSlider("Saturation", state.saturation, 0f..3f) { state.saturation = it; onFilterChanged() }
+                    LabeledSlider("Gamma", state.gamma, 0.1f..5f) { state.gamma = it; onFilterChanged() }
+                    LabeledSlider("Sharpen", state.sharpen, -1.5f..3f) { state.sharpen = it; onFilterChanged() }
+                    LabeledSlider("Denoise", state.denoise, 0f..20f) { state.denoise = it; onFilterChanged() }
+                    LabeledSlider("Speed", state.speed, 0.25f..4f) { state.speed = it; onFilterChanged() }
+                    RotationPicker(state.rotation) { state.rotation = it; onFilterChanged() }
                 }
 
                 Spacer(Modifier.height(8.dp))
@@ -197,8 +235,8 @@ fun FilterSection(state: FilterState, isAudioOnly: Boolean = false) {
             Spacer(Modifier.height(8.dp))
             SectionHeader("Audio", showAudio) { showAudio = it }
             if (showAudio) {
-                ToggleRow("Normalize loudness (EBU R128)", state.normalizeAudio) { state.normalizeAudio = it }
-                LabeledSlider("Volume (dB)", state.volume, -20f..20f) { state.volume = it }
+                ToggleRow("Normalize loudness (EBU R128)", state.normalizeAudio) { state.normalizeAudio = it; onFilterChanged() }
+                LabeledSlider("Volume (dB)", state.volume, -20f..20f) { state.volume = it; onFilterChanged() }
                 if (!isAudioOnly) {
                     Text(
                         "Audio speed synced with video speed",
@@ -284,19 +322,20 @@ private fun LabeledSlider(
 
 @Composable
 private fun RotationPicker(selected: Int, onSelect: (Int) -> Unit) {
-    val options = listOf("None" to 0, "90 CW" to 1, "180" to 2, "90 CCW" to 3)
-    Row(
-        modifier = Modifier.padding(horizontal = 8.dp, vertical = 4.dp),
-        verticalAlignment = Alignment.CenterVertically,
-    ) {
-        Text("Rotation", style = MaterialTheme.typography.bodyMedium, modifier = Modifier.weight(1f))
-        options.forEach { (label, value) ->
-            FilterChip(
-                selected = selected == value,
-                onClick = { onSelect(value) },
-                label = { Text(label, style = MaterialTheme.typography.labelSmall) },
-                modifier = Modifier.padding(start = 4.dp),
-            )
+    val options = listOf("None" to 0, "90\u00B0" to 1, "180\u00B0" to 2, "270\u00B0" to 3)
+    Column(modifier = Modifier.padding(horizontal = 8.dp, vertical = 4.dp)) {
+        Text("Rotation", style = MaterialTheme.typography.bodyMedium)
+        Row(
+            horizontalArrangement = Arrangement.spacedBy(4.dp),
+            modifier = Modifier.padding(top = 4.dp),
+        ) {
+            options.forEach { (label, value) ->
+                FilterChip(
+                    selected = selected == value,
+                    onClick = { onSelect(value) },
+                    label = { Text(label, style = MaterialTheme.typography.labelSmall) },
+                )
+            }
         }
     }
 }

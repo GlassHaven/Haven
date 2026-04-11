@@ -1,10 +1,12 @@
 package sh.haven.feature.sftp
 
+import android.graphics.BitmapFactory
 import android.text.format.Formatter
 import androidx.activity.compose.rememberLauncherForActivityResult
 import androidx.activity.result.contract.ActivityResultContracts
 import androidx.compose.animation.AnimatedVisibility
 import androidx.compose.foundation.ExperimentalFoundationApi
+import androidx.compose.foundation.Image
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.combinedClickable
 import androidx.compose.foundation.background
@@ -63,6 +65,7 @@ import androidx.compose.material3.Checkbox
 import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.ExposedDropdownMenuBox
 import androidx.compose.material3.ExposedDropdownMenuDefaults
+import androidx.compose.material3.FilledTonalButton
 import androidx.compose.material3.FilterChip
 import androidx.compose.material3.HorizontalDivider
 import androidx.compose.material3.DropdownMenu
@@ -87,16 +90,22 @@ import androidx.compose.material3.SnackbarHostState
 import androidx.compose.material3.Tab
 import androidx.compose.material3.Text
 import androidx.compose.material3.TopAppBar
+import androidx.compose.material3.Slider
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableFloatStateOf
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
+import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.draw.clip
+import androidx.compose.ui.graphics.asImageBitmap
+import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.platform.LocalClipboardManager
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.platform.LocalContext
@@ -145,9 +154,14 @@ fun SftpScreen(
     val folderSizeResult by viewModel.folderSizeResult.collectAsState()
     val folderSizeLoading by viewModel.folderSizeLoading.collectAsState()
     val dlnaRunning by viewModel.dlnaServerRunning.collectAsState()
+    val previewState by viewModel.previewState.collectAsState()
+    val previewDuration by viewModel.previewDuration.collectAsState()
+    val convertDialogEntry by viewModel.convertDialogEntry.collectAsState()
+    val showFullscreenPreview by viewModel.showFullscreenPreview.collectAsState()
+    val audioPreviewState by viewModel.audioPreviewState.collectAsState()
+    val inputHasVideo by viewModel.inputHasVideo.collectAsState()
 
     var showRenameDialog by remember { mutableStateOf<SftpEntry?>(null) }
-    var showConvertDialog by remember { mutableStateOf<SftpEntry?>(null) }
 
     LaunchedEffect(pendingSmbProfileId) {
         pendingSmbProfileId?.let { viewModel.setPendingSmbProfile(it) }
@@ -704,7 +718,7 @@ fun SftpScreen(
                                 onCopy = { viewModel.copyToClipboard(listOf(entry), isCut = false) },
                                 onCut = { viewModel.copyToClipboard(listOf(entry), isCut = true) },
                                 onConvert = if (!entry.isDirectory && entry.isMediaFile(mediaExtensions)) {
-                                    { showConvertDialog = entry }
+                                    { viewModel.openConvertDialog(entry) }
                                 } else null,
                                 onStream = if (!entry.isDirectory && viewModel.isLocalProfile()) {
                                     { viewModel.streamFile(entry) }
@@ -843,52 +857,267 @@ fun SftpScreen(
         )
     }
 
-    // Convert format picker + filter UI
-    showConvertDialog?.let { entry ->
-        var selectedFormat by remember { mutableStateOf("h264") }
-        val filterState = remember { FilterState() }
-        val formats = listOf(
-            "h264" to "H.264 (MP4)",
-            "h265" to "H.265 (MP4)",
-            "vp9" to "VP9 (WebM)",
-            "mp3" to "MP3 (audio only)",
+    // Convert format picker + filter UI + preview
+    convertDialogEntry?.let { entry ->
+        val isAudioOnlyInput = !inputHasVideo
+
+        // Container format options
+        val containers = if (isAudioOnlyInput) {
+            listOf("mp3" to "MP3", "wav" to "WAV", "ogg" to "OGG", "opus" to "Opus", "flac" to "FLAC", "m4a" to "M4A")
+        } else {
+            listOf("mp4" to "MP4", "mkv" to "MKV", "webm" to "WebM", "mov" to "MOV", "avi" to "AVI", "mpegts" to "MPEG-TS")
+        }
+        // Video encoder options (filtered by container)
+        val videoEncoders = listOf(
+            "libx264" to "H.264 (x264)", "libx265" to "H.265 (x265)",
+            "libvpx-vp9" to "VP9", "libvpx" to "VP8",
+            "mpeg4" to "MPEG-4", "copy" to "Copy (no re-encode)",
         )
+        // Audio encoder options
+        val audioEncoders = listOf(
+            "aac" to "AAC", "libmp3lame" to "MP3 (LAME)", "libopus" to "Opus",
+            "libvorbis" to "Vorbis", "pcm_s16le" to "PCM 16-bit",
+            "flac" to "FLAC", "copy" to "Copy (no re-encode)",
+        )
+
+        var selectedContainer by rememberSaveable { mutableStateOf(if (isAudioOnlyInput) "mp3" else "mp4") }
+        var selectedVideoEnc by rememberSaveable { mutableStateOf("libx264") }
+        var selectedAudioEnc by rememberSaveable { mutableStateOf("aac") }
+        val filterState = rememberSaveable(saver = FilterState.Saver) { FilterState() }
+        val isAudioOnly = isAudioOnlyInput
+        var previewSeek by rememberSaveable { mutableFloatStateOf(0f) }
+        var previewStale by rememberSaveable { mutableStateOf(false) }
+
+        // Prepare preview (probe duration, cache remote file) on dialog open
+        LaunchedEffect(entry) {
+            viewModel.preparePreview(entry)
+        }
+
+        // Switch defaults when probe reveals audio-only input
+        LaunchedEffect(isAudioOnlyInput) {
+            if (isAudioOnlyInput) {
+                selectedContainer = "mp3"
+                selectedAudioEnc = "libmp3lame"
+            }
+        }
+
+        // Set initial seek to 10% once duration is known
+        LaunchedEffect(previewDuration) {
+            if (previewDuration > 0 && previewSeek == 0f) {
+                previewSeek = (previewDuration * 0.1).toFloat()
+            }
+        }
+
+        val onDismiss = {
+            viewModel.dismissConvertDialog()
+        }
+
         AlertDialog(
-            onDismissRequest = { showConvertDialog = null },
+            onDismissRequest = onDismiss,
             title = { Text(stringResource(R.string.sftp_convert_title)) },
             text = {
                 Column(modifier = Modifier.verticalScroll(rememberScrollState())) {
                     Text(entry.name, style = MaterialTheme.typography.bodySmall)
                     Spacer(Modifier.height(12.dp))
 
-                    // Format selection
-                    Text(stringResource(R.string.sftp_convert_format), style = MaterialTheme.typography.labelMedium)
-                    formats.forEach { (key, label) ->
-                        Row(
-                            verticalAlignment = Alignment.CenterVertically,
+                    // --- Preview area (video files only) ---
+                    if (!isAudioOnly) {
+                        Box(
+                            contentAlignment = Alignment.Center,
                             modifier = Modifier
                                 .fillMaxWidth()
-                                .clickable { selectedFormat = key }
-                                .padding(vertical = 2.dp),
+                                .height(180.dp)
+                                .clip(MaterialTheme.shapes.medium)
+                                .background(MaterialTheme.colorScheme.surfaceVariant),
                         ) {
-                            RadioButton(selected = selectedFormat == key, onClick = { selectedFormat = key })
-                            Spacer(Modifier.width(8.dp))
-                            Text(label)
+                            when (val ps = previewState) {
+                                is SftpViewModel.PreviewState.Idle -> {
+                                    Text(
+                                        "Preparing preview...",
+                                        style = MaterialTheme.typography.bodySmall,
+                                        color = MaterialTheme.colorScheme.onSurfaceVariant,
+                                    )
+                                }
+                                is SftpViewModel.PreviewState.Generating -> {
+                                    CircularProgressIndicator(modifier = Modifier.size(32.dp))
+                                }
+                                is SftpViewModel.PreviewState.Ready -> {
+                                    val bitmap = remember(ps.imagePath) {
+                                        BitmapFactory.decodeFile(ps.imagePath)
+                                    }
+                                    if (bitmap != null) {
+                                        Image(
+                                            bitmap = bitmap.asImageBitmap(),
+                                            contentDescription = "Preview frame — tap for fullscreen",
+                                            contentScale = ContentScale.Fit,
+                                            modifier = Modifier
+                                                .fillMaxSize()
+                                                .clickable { viewModel.setFullscreenPreview(true) },
+                                        )
+                                    }
+                                    if (previewStale) {
+                                        Text(
+                                            "Tap Preview to refresh",
+                                            style = MaterialTheme.typography.labelSmall,
+                                            color = MaterialTheme.colorScheme.onSurfaceVariant,
+                                            modifier = Modifier
+                                                .align(Alignment.BottomEnd)
+                                                .background(
+                                                    MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.8f),
+                                                    shape = MaterialTheme.shapes.small,
+                                                )
+                                                .padding(horizontal = 6.dp, vertical = 2.dp),
+                                        )
+                                    }
+                                }
+                                is SftpViewModel.PreviewState.Failed -> {
+                                    Text(
+                                        ps.error,
+                                        style = MaterialTheme.typography.bodySmall,
+                                        color = MaterialTheme.colorScheme.error,
+                                    )
+                                }
+                            }
                         }
+
+                        // Seek slider + Preview button
+                        if (previewDuration > 0) {
+                            Spacer(Modifier.height(4.dp))
+                            Row(
+                                verticalAlignment = Alignment.CenterVertically,
+                                modifier = Modifier.fillMaxWidth(),
+                            ) {
+                                Slider(
+                                    value = previewSeek,
+                                    onValueChange = { previewSeek = it; previewStale = true },
+                                    valueRange = 0f..previewDuration.toFloat(),
+                                    modifier = Modifier.weight(1f),
+                                )
+                                Text(
+                                    formatTimestamp(previewSeek.toDouble()),
+                                    style = MaterialTheme.typography.labelSmall,
+                                    modifier = Modifier.padding(start = 4.dp),
+                                )
+                            }
+                        }
+
+                        // Preview button
+                        FilledTonalButton(
+                            onClick = {
+                                previewStale = false
+                                viewModel.previewFrame(
+                                    previewSeek.toDouble(),
+                                    filterState.buildVideoFilters(),
+                                )
+                            },
+                            enabled = previewState !is SftpViewModel.PreviewState.Generating,
+                            modifier = Modifier.fillMaxWidth(),
+                        ) {
+                            Icon(Icons.Filled.Refresh, contentDescription = null, modifier = Modifier.size(16.dp))
+                            Spacer(Modifier.width(4.dp))
+                            Text("Preview")
+                        }
+
+                        Spacer(Modifier.height(12.dp))
+                        HorizontalDivider()
+                        Spacer(Modifier.height(8.dp))
                     }
 
+                    // Format selection — container + encoder dropdowns
+                    Text("Container", style = MaterialTheme.typography.labelMedium)
+                    DropdownSelector(
+                        options = containers,
+                        selected = selectedContainer,
+                        onSelect = { selectedContainer = it },
+                    )
+                    Spacer(Modifier.height(8.dp))
+
+                    if (!isAudioOnly) {
+                        Text("Video encoder", style = MaterialTheme.typography.labelMedium)
+                        DropdownSelector(
+                            options = videoEncoders,
+                            selected = selectedVideoEnc,
+                            onSelect = { selectedVideoEnc = it },
+                        )
+                        Spacer(Modifier.height(8.dp))
+                    }
+
+                    Text("Audio encoder", style = MaterialTheme.typography.labelMedium)
+                    DropdownSelector(
+                        options = audioEncoders,
+                        selected = selectedAudioEnc,
+                        onSelect = { selectedAudioEnc = it },
+                    )
                     Spacer(Modifier.height(8.dp))
 
                     // Filter section (collapsible)
                     FilterSection(
                         state = filterState,
-                        isAudioOnly = selectedFormat == "mp3",
+                        isAudioOnly = isAudioOnly,
+                        onFilterChanged = { previewStale = true },
                     )
+
+                    // Audio preview playback
+                    if (previewDuration > 0) {
+                        Spacer(Modifier.height(8.dp))
+                        Row(
+                            verticalAlignment = Alignment.CenterVertically,
+                            modifier = Modifier.fillMaxWidth(),
+                        ) {
+                            when (audioPreviewState) {
+                                is SftpViewModel.AudioPreviewState.Playing -> {
+                                    FilledTonalButton(
+                                        onClick = { viewModel.stopAudioPreview() },
+                                        modifier = Modifier.weight(1f),
+                                    ) {
+                                        Icon(Icons.Filled.Stop, contentDescription = null, modifier = Modifier.size(16.dp))
+                                        Spacer(Modifier.width(4.dp))
+                                        Text("Stop")
+                                    }
+                                }
+                                is SftpViewModel.AudioPreviewState.Generating -> {
+                                    FilledTonalButton(
+                                        onClick = {},
+                                        enabled = false,
+                                        modifier = Modifier.weight(1f),
+                                    ) {
+                                        CircularProgressIndicator(modifier = Modifier.size(14.dp), strokeWidth = 2.dp)
+                                        Spacer(Modifier.width(4.dp))
+                                        Text("Preparing...")
+                                    }
+                                }
+                                else -> {
+                                    FilledTonalButton(
+                                        onClick = {
+                                            viewModel.previewAudio(
+                                                previewSeek.toDouble(),
+                                                filterState.buildAudioFilters(),
+                                                filterState.buildVideoFilters(),
+                                            )
+                                        },
+                                        modifier = Modifier.weight(1f),
+                                    ) {
+                                        Icon(Icons.Filled.PlayArrow, contentDescription = null, modifier = Modifier.size(16.dp))
+                                        Spacer(Modifier.width(4.dp))
+                                        Text("Play 5s preview")
+                                    }
+                                }
+                            }
+                        }
+                        if (audioPreviewState is SftpViewModel.AudioPreviewState.Failed) {
+                            Text(
+                                (audioPreviewState as SftpViewModel.AudioPreviewState.Failed).error,
+                                style = MaterialTheme.typography.bodySmall,
+                                color = MaterialTheme.colorScheme.error,
+                                modifier = Modifier.padding(top = 4.dp),
+                            )
+                        }
+                    }
 
                     // Live CLI preview
                     Spacer(Modifier.height(12.dp))
                     val cliPreview = remember(
-                        selectedFormat,
+                        selectedContainer, selectedVideoEnc, selectedAudioEnc,
                         filterState.brightness, filterState.contrast,
                         filterState.saturation, filterState.gamma,
                         filterState.sharpen, filterState.denoise,
@@ -896,18 +1125,14 @@ fun SftpScreen(
                         filterState.speed, filterState.rotation,
                         filterState.volume, filterState.normalizeAudio,
                     ) {
-                        val inFile = entry.name
-                        val baseName = inFile.substringBeforeLast('.')
-                        val outExt = when (selectedFormat) {
-                            "h265" -> "mp4"; "vp9" -> "webm"; "mp3" -> "mp3"; else -> "mp4"
+                        val cmd = sh.haven.core.ffmpeg.TranscodeCommand("input", "output.$selectedContainer")
+                        if (!isAudioOnly) {
+                            cmd.videoCodec(selectedVideoEnc)
+                        } else {
+                            cmd.extra("-vn")
                         }
-                        val cmd = when (selectedFormat) {
-                            "h264" -> sh.haven.core.ffmpeg.TranscodeCommand.h264("input", "output.$outExt")
-                            "h265" -> sh.haven.core.ffmpeg.TranscodeCommand.h265("input", "output.$outExt")
-                            "vp9" -> sh.haven.core.ffmpeg.TranscodeCommand.vp9("input", "output.$outExt")
-                            "mp3" -> sh.haven.core.ffmpeg.TranscodeCommand.mp3("input", "output.$outExt")
-                            else -> sh.haven.core.ffmpeg.TranscodeCommand.h264("input", "output.$outExt")
-                        }.videoFilters(filterState.buildVideoFilters())
+                        cmd.audioCodec(selectedAudioEnc)
+                            .videoFilters(filterState.buildVideoFilters())
                             .audioFilters(filterState.buildAudioFilters())
                         "ffmpeg " + cmd.build().joinToString(" ") { arg ->
                             if (arg.contains(',') || arg.contains('=')) "\"$arg\"" else arg
@@ -934,18 +1159,70 @@ fun SftpScreen(
             },
             confirmButton = {
                 TextButton(onClick = {
-                    showConvertDialog = null
+                    viewModel.dismissConvertDialog()
                     viewModel.convertFile(
-                        entry, selectedFormat,
-                        filterState.buildVideoFilters(),
-                        filterState.buildAudioFilters(),
+                        entry = entry,
+                        container = selectedContainer,
+                        videoEncoder = if (isAudioOnly) null else selectedVideoEnc,
+                        audioEncoder = selectedAudioEnc,
+                        videoFilters = filterState.buildVideoFilters(),
+                        audioFilters = filterState.buildAudioFilters(),
                     )
                 }) { Text(stringResource(R.string.sftp_convert)) }
             },
             dismissButton = {
-                TextButton(onClick = { showConvertDialog = null }) { Text(stringResource(R.string.common_cancel)) }
+                TextButton(onClick = onDismiss) { Text(stringResource(R.string.common_cancel)) }
             },
         )
+
+        // Fullscreen preview overlay
+        if (showFullscreenPreview) {
+            val ps = previewState
+            if (ps is SftpViewModel.PreviewState.Ready) {
+                val fullBitmap = remember(ps.imagePath) {
+                    BitmapFactory.decodeFile(ps.imagePath)
+                }
+                if (fullBitmap != null) {
+                    androidx.compose.ui.window.Dialog(
+                        onDismissRequest = { viewModel.setFullscreenPreview(false) },
+                        properties = androidx.compose.ui.window.DialogProperties(
+                            usePlatformDefaultWidth = false,
+                        ),
+                    ) {
+                        Box(
+                            contentAlignment = Alignment.Center,
+                            modifier = Modifier
+                                .fillMaxSize()
+                                .background(MaterialTheme.colorScheme.scrim.copy(alpha = 0.9f))
+                                .clickable { viewModel.setFullscreenPreview(false) },
+                        ) {
+                            Image(
+                                bitmap = fullBitmap.asImageBitmap(),
+                                contentDescription = "Fullscreen preview",
+                                contentScale = ContentScale.Fit,
+                                modifier = Modifier
+                                    .fillMaxSize()
+                                    .padding(16.dp),
+                            )
+                            // Timestamp badge
+                            Text(
+                                formatTimestamp(previewSeek.toDouble()),
+                                style = MaterialTheme.typography.labelMedium,
+                                color = MaterialTheme.colorScheme.inverseOnSurface,
+                                modifier = Modifier
+                                    .align(Alignment.BottomCenter)
+                                    .padding(bottom = 32.dp)
+                                    .background(
+                                        MaterialTheme.colorScheme.inverseSurface.copy(alpha = 0.7f),
+                                        shape = MaterialTheme.shapes.small,
+                                    )
+                                    .padding(horizontal = 12.dp, vertical = 4.dp),
+                            )
+                        }
+                    }
+                }
+            }
+        }
     }
 
     // Folder size loading
@@ -1379,4 +1656,52 @@ private fun EmptyState() {
             modifier = Modifier.padding(top = 4.dp),
         )
     }
+}
+
+/** Format seconds as M:SS or H:MM:SS. */
+/**
+ * Compact dropdown selector for encoder/container choices.
+ * Shows the selected label with a dropdown on tap.
+ */
+@Composable
+private fun DropdownSelector(
+    options: List<Pair<String, String>>,
+    selected: String,
+    onSelect: (String) -> Unit,
+) {
+    var expanded by remember { mutableStateOf(false) }
+    val selectedLabel = options.firstOrNull { it.first == selected }?.second ?: selected
+    Box {
+        Surface(
+            onClick = { expanded = true },
+            shape = MaterialTheme.shapes.small,
+            color = MaterialTheme.colorScheme.surfaceVariant,
+            modifier = Modifier.fillMaxWidth(),
+        ) {
+            Row(
+                verticalAlignment = Alignment.CenterVertically,
+                modifier = Modifier.padding(horizontal = 12.dp, vertical = 10.dp),
+            ) {
+                Text(selectedLabel, style = MaterialTheme.typography.bodyMedium, modifier = Modifier.weight(1f))
+                Icon(Icons.Filled.ExpandMore, contentDescription = null, modifier = Modifier.size(20.dp))
+            }
+        }
+        DropdownMenu(expanded = expanded, onDismissRequest = { expanded = false }) {
+            options.forEach { (key, label) ->
+                DropdownMenuItem(
+                    text = { Text(label) },
+                    onClick = { onSelect(key); expanded = false },
+                )
+            }
+        }
+    }
+}
+
+private fun formatTimestamp(seconds: Double): String {
+    val totalSec = seconds.toInt().coerceAtLeast(0)
+    val h = totalSec / 3600
+    val m = (totalSec % 3600) / 60
+    val s = totalSec % 60
+    return if (h > 0) String.format(Locale.US, "%d:%02d:%02d", h, m, s)
+    else String.format(Locale.US, "%d:%02d", m, s)
 }

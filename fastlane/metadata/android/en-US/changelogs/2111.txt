@@ -1,0 +1,23 @@
+v5.1.0: Convert dialog preview, encoder/container selection
+
+Preview:
+- Frame preview in convert dialog — see filter effects before converting
+- Tap preview for fullscreen view, survives screen rotation
+- Seek slider to preview any point in the file
+- Audio preview — plays a 5-second clip with current filters applied
+
+Encoder selection:
+- Separate dropdowns for container format, video encoder, and audio encoder
+- Video containers: MP4, MKV, WebM, MOV, AVI, MPEG-TS
+- Audio containers: MP3, WAV, OGG, Opus, FLAC, M4A
+- Stream copy option for both video and audio (no re-encoding)
+
+Audio-only files:
+- Auto-detected via ffprobe (album art excluded)
+- Video preview and video encoder hidden for audio files
+- Only audio container formats shown
+
+Other:
+- Auto color correction resets manual color sliders to defaults
+- FFmpeg build config opened up — all codecs/formats/filters enabled
+- Fix MediaStore API level lint warning for API < 29

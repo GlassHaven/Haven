@@ -25,6 +25,9 @@ class TranscodeCommand(
     private val aFilters = mutableListOf<AudioFilter>()
     private var extraArgs = mutableListOf<String>()
     private var overwrite = true
+    private var seekSeconds: Double? = null
+    private var durationSeconds: Double? = null
+    private var framesLimit: Int? = null
 
     fun videoCodec(codec: String) = apply { vCodec = codec }
     fun audioCodec(codec: String) = apply { aCodec = codec }
@@ -40,12 +43,25 @@ class TranscodeCommand(
     fun overwrite(value: Boolean) = apply { overwrite = value }
     fun extra(vararg args: String) = apply { extraArgs.addAll(args) }
 
+    /** Seek to a position before decoding. Emitted before -i for fast keyframe seek. */
+    fun seekTo(seconds: Double) = apply { seekSeconds = seconds }
+
+    /** Limit output duration in seconds (-t flag). */
+    fun duration(seconds: Double) = apply { durationSeconds = seconds }
+
+    /** Limit output to N video frames (-frames:v flag). */
+    fun frames(count: Int) = apply { framesLimit = count }
+
     /** Copy video and audio streams without re-encoding. */
     fun copy() = apply { vCodec = "copy"; aCodec = "copy" }
 
     fun build(): List<String> = buildList {
         if (overwrite) add("-y")
+        // -ss before -i = fast keyframe seek (input seeking)
+        seekSeconds?.let { add("-ss"); add(String.format(java.util.Locale.US, "%.3f", it)) }
         add("-i"); add(input)
+        // -t after -i = limit output duration
+        durationSeconds?.let { add("-t"); add(String.format(java.util.Locale.US, "%.3f", it)) }
 
         vCodec?.let { add("-c:v"); add(it) }
         aCodec?.let { add("-c:a"); add(it) }
@@ -68,6 +84,7 @@ class TranscodeCommand(
             add("-af"); add(AudioFilter.chain(aFilters))
         }
 
+        framesLimit?.let { add("-frames:v"); add(it.toString()) }
         addAll(extraArgs)
         add(output)
     }
@@ -103,5 +120,20 @@ class TranscodeCommand(
                 .extra("-vn")
                 .audioCodec("libmp3lame")
                 .audioBitrate(bitrate)
+
+        /**
+         * Extract a single frame as a 1-frame MP4 at the given seek position.
+         * Uses libx264 ultrafast because the bundled ffmpeg may not include
+         * the mjpeg encoder or image2 muxer. The caller decodes the MP4 to
+         * a Bitmap via Android's MediaMetadataRetriever.
+         */
+        fun frameAt(input: String, output: String, seekSeconds: Double = 0.0) =
+            TranscodeCommand(input, output)
+                .seekTo(seekSeconds)
+                .videoCodec("libx264")
+                .preset("ultrafast")
+                .crf(18)
+                .frames(1)
+                .extra("-an")
     }
 }

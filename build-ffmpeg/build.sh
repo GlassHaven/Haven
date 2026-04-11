@@ -432,11 +432,11 @@ echo "=== Configuring FFmpeg for $ABI ==="
 EXTRA_CFLAGS="-fPIE -O2 -DANDROID -I$DEPS_SYSROOT/include"
 EXTRA_LDFLAGS="-pie -Wl,-z,max-page-size=16384 -L$DEPS_SYSROOT/lib"
 
-# Minimal set: just enough to prove encoding + probing works. No external libs.
-# Built-in encoders used for smoke testing:
-#   - mpeg4 video (built in, no libx264 dependency)
-#   - aac audio (native FFmpeg encoder, no fdk-aac dependency)
-#   - rawvideo (passthrough sanity check)
+# Full codec/format/filter build — enable all built-in components plus
+# external libs (x264, x265, vpx, opus, vorbis, lame, ass, freetype,
+# mbedtls). Only devices and hardware accelerators are disabled since
+# they need platform-specific setup. This gives users broad format
+# support without gating features behind build-time flags.
 (
     cd "$BUILD_DIR"
     "$FFMPEG_SRC/configure" \
@@ -478,7 +478,6 @@ EXTRA_LDFLAGS="-pie -Wl,-z,max-page-size=16384 -L$DEPS_SYSROOT/lib"
         --disable-txtpages \
         --disable-debug \
         --enable-small \
-        --disable-everything \
         --disable-ffplay \
         --enable-ffmpeg \
         --enable-ffprobe \
@@ -488,94 +487,21 @@ EXTRA_LDFLAGS="-pie -Wl,-z,max-page-size=16384 -L$DEPS_SYSROOT/lib"
         --enable-swscale \
         --enable-swresample \
         --enable-avfilter \
-        --enable-protocol=file \
-        --enable-protocol=pipe \
-        --enable-protocol=tcp \
-        --enable-protocol=udp \
-        --enable-protocol=tls \
-        --enable-protocol=https \
-        --enable-protocol=http \
-        --enable-protocol=httpproxy \
-        --enable-demuxer=mov \
-        --enable-demuxer=matroska \
-        --enable-demuxer=aac \
-        --enable-demuxer=mp3 \
-        --enable-demuxer=wav \
-        --enable-demuxer=ogg \
-        --enable-demuxer=flac \
-        --enable-demuxer=avi \
-        --enable-demuxer=mpegts \
-        --enable-demuxer=webm_dash_manifest \
-        --enable-muxer=mp4 \
-        --enable-muxer=mov \
-        --enable-muxer=matroska \
-        --enable-muxer=webm \
-        --enable-muxer=mp3 \
-        --enable-muxer=wav \
-        --enable-muxer=ogg \
-        --enable-muxer=opus \
-        --enable-muxer=hls \
-        --enable-muxer=mpegts \
-        --enable-muxer=null \
-        --enable-decoder=h264 \
-        --enable-decoder=hevc \
-        --enable-decoder=mpeg4 \
-        --enable-decoder=aac \
-        --enable-decoder=mp3 \
-        --enable-decoder=flac \
-        --enable-decoder=vorbis \
-        --enable-decoder=opus \
-        --enable-decoder=mjpeg \
-        --enable-decoder=png \
-        --enable-decoder=pcm_s16le \
-        --enable-encoder=mpeg4 \
-        --enable-encoder=libx264 \
-        --enable-encoder=libx265 \
-        --enable-encoder=libvpx_vp8 \
-        --enable-encoder=libvpx_vp9 \
-        --enable-encoder=libmp3lame \
-        --enable-encoder=libopus \
-        --enable-encoder=libvorbis \
-        --enable-encoder=aac \
-        --enable-encoder=pcm_s16le \
-        --enable-encoder=rawvideo \
-        --enable-parser=h264 \
-        --enable-parser=hevc \
-        --enable-parser=aac \
-        --enable-parser=mpeg4video \
-        --enable-filter=scale \
-        --enable-filter=null \
-        --enable-filter=anull \
-        --enable-filter=aformat \
-        --enable-filter=format \
-        --enable-filter=aresample \
-        --enable-filter=ass \
-        --enable-filter=subtitles \
-        --enable-filter=drawtext \
-        --enable-filter=eq \
-        --enable-filter=curves \
-        --enable-filter=colorbalance \
-        --enable-filter=hue \
-        --enable-filter=normalize \
-        --enable-filter=unsharp \
-        --enable-filter=deshake \
-        --enable-filter=crop \
-        --enable-filter=rotate \
-        --enable-filter=transpose \
-        --enable-filter=fade \
-        --enable-filter=pad \
-        --enable-filter=fps \
-        --enable-filter=setpts \
-        --enable-filter=atadenoise \
-        --enable-filter=nlmeans \
-        --enable-filter=overlay \
-        --enable-filter=volume \
-        --enable-filter=loudnorm \
-        --enable-filter=afade \
-        --enable-filter=atempo \
-        --enable-bsf=h264_mp4toannexb \
-        --enable-bsf=hevc_mp4toannexb \
-        --enable-bsf=aac_adtstoasc \
+        \
+        --enable-decoders \
+        --enable-encoders \
+        --enable-demuxers \
+        --enable-muxers \
+        --enable-parsers \
+        --enable-protocols \
+        --enable-filters \
+        --enable-bsfs \
+        \
+        --disable-devices \
+        --disable-hwaccels \
+        --disable-programs \
+        --enable-ffmpeg \
+        --enable-ffprobe \
         2>&1 | tee configure.log | tail -40
     echo "(full configure log: $BUILD_DIR/configure.log)"
 )

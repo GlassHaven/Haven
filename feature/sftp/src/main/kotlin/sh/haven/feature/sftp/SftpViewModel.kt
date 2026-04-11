@@ -137,6 +137,54 @@ class SftpViewModel @Inject constructor(
     /** Whether ffmpeg binaries are available for media conversion. */
     val ffmpegAvailable: Boolean get() = ffmpegExecutor.isAvailable()
 
+    /** Preview frame state for the convert dialog. */
+    sealed class PreviewState {
+        data object Idle : PreviewState()
+        data object Generating : PreviewState()
+        data class Ready(val imagePath: String) : PreviewState()
+        data class Failed(val error: String) : PreviewState()
+    }
+
+    private val _previewState = MutableStateFlow<PreviewState>(PreviewState.Idle)
+    val previewState: StateFlow<PreviewState> = _previewState.asStateFlow()
+
+    /** Duration of the file currently open for preview (seconds), probed once. */
+    private val _previewDuration = MutableStateFlow(0.0)
+    val previewDuration: StateFlow<Double> = _previewDuration.asStateFlow()
+
+    /** Cached input path for preview — avoids re-downloading remote files. */
+    private var previewCachedInput: java.io.File? = null
+
+    /** Whether the input file has a real video stream (not just album art). */
+    private val _inputHasVideo = MutableStateFlow(true)
+    val inputHasVideo: StateFlow<Boolean> = _inputHasVideo.asStateFlow()
+
+    /** Entry currently shown in the convert dialog — stored in ViewModel to survive rotation. */
+    private val _convertDialogEntry = MutableStateFlow<SftpEntry?>(null)
+    val convertDialogEntry: StateFlow<SftpEntry?> = _convertDialogEntry.asStateFlow()
+
+    fun openConvertDialog(entry: SftpEntry) { _convertDialogEntry.value = entry }
+    fun dismissConvertDialog() { _convertDialogEntry.value = null; clearPreview() }
+
+    /** Whether the fullscreen preview overlay is showing — survives rotation. */
+    private val _showFullscreenPreview = MutableStateFlow(false)
+    val showFullscreenPreview: StateFlow<Boolean> = _showFullscreenPreview.asStateFlow()
+
+    fun setFullscreenPreview(show: Boolean) { _showFullscreenPreview.value = show }
+
+    /** Audio preview playback state. */
+    sealed class AudioPreviewState {
+        data object Idle : AudioPreviewState()
+        data object Generating : AudioPreviewState()
+        data object Playing : AudioPreviewState()
+        data class Failed(val error: String) : AudioPreviewState()
+    }
+
+    private val _audioPreviewState = MutableStateFlow<AudioPreviewState>(AudioPreviewState.Idle)
+    val audioPreviewState: StateFlow<AudioPreviewState> = _audioPreviewState.asStateFlow()
+
+    private var audioPreviewPlayer: android.media.MediaPlayer? = null
+
     /** Parsed set of media extensions from user preferences. */
     val mediaExtensionsSet: StateFlow<Set<String>> = preferencesRepository.mediaExtensions
         .map { str -> str.lowercase().split("\\s+".toRegex()).filter { it.isNotEmpty() }.toSet() }
@@ -632,7 +680,9 @@ class SftpViewModel @Inject constructor(
      */
     fun convertFile(
         entry: SftpEntry,
-        format: String,
+        container: String,
+        videoEncoder: String? = null,
+        audioEncoder: String = "aac",
         videoFilters: List<sh.haven.core.ffmpeg.VideoFilter> = emptyList(),
         audioFilters: List<sh.haven.core.ffmpeg.AudioFilter> = emptyList(),
     ) {
@@ -682,22 +732,28 @@ class SftpViewModel @Inject constructor(
 
                 // Phase 2: Transcode
                 val baseName = entry.name.substringBeforeLast('.')
-                val outExt = when (format) {
-                    "h265" -> "mp4"
-                    "vp9" -> "webm"
-                    "mp3" -> "mp3"
-                    else -> "mp4"
+                // Map container key to file extension
+                val outExt = when (container) {
+                    "mpegts" -> "ts"; "m4a" -> "m4a"; else -> container
                 }
                 val outName = "${baseName}_converted.$outExt"
                 val cacheOutput = java.io.File(appContext.cacheDir, outName)
 
-                val cmd = when (format) {
-                    "h264" -> sh.haven.core.ffmpeg.TranscodeCommand.h264(cacheInput.absolutePath, cacheOutput.absolutePath)
-                    "h265" -> sh.haven.core.ffmpeg.TranscodeCommand.h265(cacheInput.absolutePath, cacheOutput.absolutePath)
-                    "vp9" -> sh.haven.core.ffmpeg.TranscodeCommand.vp9(cacheInput.absolutePath, cacheOutput.absolutePath)
-                    "mp3" -> sh.haven.core.ffmpeg.TranscodeCommand.mp3(cacheInput.absolutePath, cacheOutput.absolutePath)
-                    else -> sh.haven.core.ffmpeg.TranscodeCommand.h264(cacheInput.absolutePath, cacheOutput.absolutePath)
-                }.videoFilters(videoFilters).audioFilters(audioFilters)
+                val cmd = sh.haven.core.ffmpeg.TranscodeCommand(cacheInput.absolutePath, cacheOutput.absolutePath)
+                if (videoEncoder != null) {
+                    cmd.videoCodec(videoEncoder)
+                    // Sensible defaults for common encoders
+                    when (videoEncoder) {
+                        "libx264" -> cmd.crf(23).preset("medium")
+                        "libx265" -> cmd.crf(28).preset("medium")
+                        "libvpx-vp9" -> cmd.crf(31).extra("-b:v", "0")
+                    }
+                } else {
+                    cmd.extra("-vn")
+                }
+                cmd.audioCodec(audioEncoder)
+                    .videoFilters(videoFilters)
+                    .audioFilters(audioFilters)
 
                 // Probe input duration for accurate progress
                 val durationSec = withContext(Dispatchers.IO) {
@@ -709,7 +765,7 @@ class SftpViewModel @Inject constructor(
                     probeResult.stdout.trim().toDoubleOrNull() ?: 0.0
                 }
 
-                val convertLabel = "\u2699 Converting to $format"
+                val convertLabel = "\u2699 Converting to $outExt"
                 _transferProgress.value = if (durationSec > 0) {
                     TransferProgress(convertLabel, 100, 0, isPercentage = true)
                 } else {
@@ -730,22 +786,40 @@ class SftpViewModel @Inject constructor(
                     return@launch
                 }
 
-                // Phase 3: Copy to Downloads via MediaStore
+                // Phase 3: Copy to Downloads via MediaStore (API 29+) or direct file (older)
                 withContext(Dispatchers.IO) {
-                    val values = android.content.ContentValues().apply {
-                        put(android.provider.MediaStore.Downloads.DISPLAY_NAME, outName)
-                        put(android.provider.MediaStore.Downloads.MIME_TYPE, when (outExt) {
-                            "mp4" -> "video/mp4"
-                            "webm" -> "video/webm"
-                            "mp3" -> "audio/mpeg"
-                            else -> "application/octet-stream"
-                        })
+                    val mimeType = when (outExt) {
+                        "mp4", "m4a" -> if (videoEncoder != null) "video/mp4" else "audio/mp4"
+                        "mkv" -> "video/x-matroska"
+                        "webm" -> "video/webm"
+                        "mov" -> "video/quicktime"
+                        "avi" -> "video/x-msvideo"
+                        "ts" -> "video/mp2t"
+                        "mp3" -> "audio/mpeg"
+                        "wav" -> "audio/wav"
+                        "ogg" -> "audio/ogg"
+                        "opus" -> "audio/opus"
+                        "flac" -> "audio/flac"
+                        else -> "application/octet-stream"
                     }
-                    val uri = appContext.contentResolver.insert(
-                        android.provider.MediaStore.Downloads.EXTERNAL_CONTENT_URI, values
-                    ) ?: throw IllegalStateException("Failed to create Downloads entry")
-                    appContext.contentResolver.openOutputStream(uri)?.use { out ->
-                        cacheOutput.inputStream().use { it.copyTo(out) }
+                    if (android.os.Build.VERSION.SDK_INT >= android.os.Build.VERSION_CODES.Q) {
+                        val values = android.content.ContentValues().apply {
+                            put(android.provider.MediaStore.Downloads.DISPLAY_NAME, outName)
+                            put(android.provider.MediaStore.Downloads.MIME_TYPE, mimeType)
+                        }
+                        val uri = appContext.contentResolver.insert(
+                            android.provider.MediaStore.Downloads.EXTERNAL_CONTENT_URI, values
+                        ) ?: throw IllegalStateException("Failed to create Downloads entry")
+                        appContext.contentResolver.openOutputStream(uri)?.use { out ->
+                            cacheOutput.inputStream().use { it.copyTo(out) }
+                        }
+                    } else {
+                        @Suppress("DEPRECATION")
+                        val dlDir = android.os.Environment.getExternalStoragePublicDirectory(
+                            android.os.Environment.DIRECTORY_DOWNLOADS
+                        )
+                        val dest = java.io.File(dlDir, outName)
+                        cacheOutput.copyTo(dest, overwrite = true)
                     }
                 }
 
@@ -801,6 +875,240 @@ class SftpViewModel @Inject constructor(
     fun stopStream() {
         hlsStreamServer.stop()
         _message.value = "Stream stopped"
+    }
+
+    /**
+     * Probe the duration of a media file and cache the input for preview.
+     * Called once when the convert dialog opens. For remote files, downloads
+     * to cache first so subsequent preview frames are fast.
+     */
+    fun preparePreview(entry: SftpEntry) {
+        val profileId = _activeProfileId.value ?: return
+        viewModelScope.launch {
+            try {
+                _previewState.value = PreviewState.Generating
+
+                // Get or download input file
+                val inputFile = if (_isLocalProfile.value) {
+                    java.io.File(entry.path)
+                } else {
+                    val cached = java.io.File(appContext.cacheDir, "ffmpeg_in_${entry.name}")
+                    if (!cached.exists() || cached.length() == 0L) {
+                        withContext(Dispatchers.IO) {
+                            cached.outputStream().use { out ->
+                                if (_isRcloneProfile.value) {
+                                    val remote = activeRcloneRemote ?: throw IllegalStateException("Rclone not connected")
+                                    rcloneClient.copyFile(remote, entry.path, cached.parent!!, cached.name)
+                                } else if (_isSmbProfile.value) {
+                                    val client = activeSmbClient ?: throw IllegalStateException("SMB not connected")
+                                    client.download(entry.path, out) { _, _ -> }
+                                } else {
+                                    val channel = getOrOpenChannel(profileId) ?: throw IllegalStateException("Not connected")
+                                    channel.get(entry.path, out, object : SftpProgressMonitor {
+                                        override fun init(op: Int, src: String, dest: String, max: Long) {}
+                                        override fun count(bytes: Long): Boolean = true
+                                        override fun end() {}
+                                    })
+                                }
+                            }
+                        }
+                    }
+                    cached
+                }
+                previewCachedInput = inputFile
+
+                // Probe duration and detect video streams
+                val (durationSec, hasVideo) = withContext(Dispatchers.IO) {
+                    val durResult = ffmpegExecutor.probe(listOf(
+                        "-v", "error", "-show_entries", "format=duration",
+                        "-of", "default=noprint_wrappers=1:nokey=1",
+                        inputFile.absolutePath,
+                    ))
+                    val dur = durResult.stdout.trim().toDoubleOrNull() ?: 0.0
+
+                    // Check for real video stream (exclude attached pictures like album art)
+                    val videoResult = ffmpegExecutor.probe(listOf(
+                        "-v", "error", "-select_streams", "v",
+                        "-show_entries", "stream=codec_type:stream_disposition=attached_pic",
+                        "-of", "flat", inputFile.absolutePath,
+                    ))
+                    val probeOut = videoResult.stdout
+                    val hasVideoStream = probeOut.contains("codec_type=\"video\"")
+                    val isAttachedPic = probeOut.contains("attached_pic=1")
+                    val realVideo = hasVideoStream && !isAttachedPic
+                    Log.d(TAG, "preparePreview: duration=$dur hasVideo=$realVideo")
+                    dur to realVideo
+                }
+                _previewDuration.value = durationSec
+                _inputHasVideo.value = hasVideo
+
+                // Generate initial frame at 10% into the file (video only)
+                if (hasVideo) {
+                    val seekPos = (durationSec * 0.1).coerceAtLeast(0.0)
+                    generatePreviewFrame(inputFile, seekPos, emptyList())
+                } else {
+                    _previewState.value = PreviewState.Idle
+                }
+            } catch (e: Exception) {
+                Log.e(TAG, "preparePreview failed", e)
+                _previewState.value = PreviewState.Failed(e.message ?: "Preview failed")
+            }
+        }
+    }
+
+    /**
+     * Generate a single preview frame with the current filters at the given seek position.
+     * Fast — typically completes in under a second.
+     */
+    fun previewFrame(
+        seekSeconds: Double,
+        videoFilters: List<sh.haven.core.ffmpeg.VideoFilter>,
+    ) {
+        val inputFile = previewCachedInput ?: return
+        viewModelScope.launch {
+            generatePreviewFrame(inputFile, seekSeconds, videoFilters)
+        }
+    }
+
+    private suspend fun generatePreviewFrame(
+        inputFile: java.io.File,
+        seekSeconds: Double,
+        videoFilters: List<sh.haven.core.ffmpeg.VideoFilter>,
+    ) {
+        try {
+            _previewState.value = PreviewState.Generating
+            // Output a 1-frame MP4 (bundled ffmpeg has libx264 but not mjpeg encoder)
+            val outputFile = java.io.File(appContext.cacheDir, "ffmpeg_preview.mp4")
+
+            val cmd = sh.haven.core.ffmpeg.TranscodeCommand.frameAt(
+                inputFile.absolutePath, outputFile.absolutePath, seekSeconds,
+            ).videoFilters(videoFilters)
+
+            val result = withContext(Dispatchers.IO) {
+                ffmpegExecutor.execute(cmd.build())
+            }
+
+            if (result.success && outputFile.exists() && outputFile.length() > 0) {
+                // Extract bitmap from the 1-frame MP4 via MediaMetadataRetriever
+                val jpgFile = java.io.File(appContext.cacheDir, "ffmpeg_preview.jpg")
+                withContext(Dispatchers.IO) {
+                    val retriever = android.media.MediaMetadataRetriever()
+                    try {
+                        retriever.setDataSource(outputFile.absolutePath)
+                        val bitmap = retriever.getFrameAtTime(0)
+                        if (bitmap != null) {
+                            jpgFile.outputStream().use { out ->
+                                bitmap.compress(android.graphics.Bitmap.CompressFormat.JPEG, 90, out)
+                            }
+                            bitmap.recycle()
+                        }
+                    } finally {
+                        retriever.release()
+                    }
+                }
+                if (jpgFile.exists() && jpgFile.length() > 0) {
+                    _previewState.value = PreviewState.Ready(jpgFile.absolutePath)
+                } else {
+                    _previewState.value = PreviewState.Failed("Failed to decode preview frame")
+                }
+            } else {
+                Log.e(TAG, "ffmpeg frame extraction failed: exit=${result.exitCode} stderr=${result.stderr.take(500)}")
+                _previewState.value = PreviewState.Failed(
+                    "Frame extraction failed (exit ${result.exitCode})"
+                )
+            }
+        } catch (e: Exception) {
+            Log.e(TAG, "generatePreviewFrame failed", e)
+            _previewState.value = PreviewState.Failed(e.message ?: "Preview failed")
+        }
+    }
+
+    /** Reset preview state when the convert dialog is dismissed. */
+    fun clearPreview() {
+        _previewState.value = PreviewState.Idle
+        _previewDuration.value = 0.0
+        _inputHasVideo.value = true
+        _showFullscreenPreview.value = false
+        stopAudioPreview()
+        // Don't delete cached input — convertFile reuses it
+    }
+
+    /**
+     * Generate a short audio clip with filters applied and play it.
+     * Extracts ~5 seconds starting from the seek position.
+     */
+    fun previewAudio(
+        seekSeconds: Double,
+        audioFilters: List<sh.haven.core.ffmpeg.AudioFilter>,
+        videoFilters: List<sh.haven.core.ffmpeg.VideoFilter> = emptyList(),
+    ) {
+        val inputFile = previewCachedInput ?: return
+        stopAudioPreview()
+        viewModelScope.launch {
+            try {
+                _audioPreviewState.value = AudioPreviewState.Generating
+                val outputFile = java.io.File(appContext.cacheDir, "ffmpeg_audio_preview.mp4")
+
+                // Build a short clip with audio filters
+                val cmd = sh.haven.core.ffmpeg.TranscodeCommand(
+                    inputFile.absolutePath, outputFile.absolutePath,
+                ).seekTo(seekSeconds)
+                    .duration(5.0)
+                    .audioCodec("aac")
+                    .audioFilters(audioFilters)
+                if (_inputHasVideo.value) {
+                    cmd.videoCodec("libx264").preset("ultrafast").crf(28)
+                        .videoFilters(videoFilters)
+                } else {
+                    cmd.extra("-vn")
+                }
+
+                val result = withContext(Dispatchers.IO) {
+                    ffmpegExecutor.execute(cmd.build())
+                }
+
+                if (!result.success || !outputFile.exists() || outputFile.length() == 0L) {
+                    Log.e(TAG, "Audio preview transcode failed: exit=${result.exitCode} stderr=${result.stderr.take(500)}")
+                    _audioPreviewState.value = AudioPreviewState.Failed("Preview failed (exit ${result.exitCode})")
+                    return@launch
+                }
+
+                // Play the clip
+                withContext(Dispatchers.IO) {
+                    val player = android.media.MediaPlayer()
+                    player.setDataSource(outputFile.absolutePath)
+                    player.setOnCompletionListener {
+                        _audioPreviewState.value = AudioPreviewState.Idle
+                        it.release()
+                        audioPreviewPlayer = null
+                    }
+                    player.setOnErrorListener { mp, _, _ ->
+                        _audioPreviewState.value = AudioPreviewState.Failed("Playback error")
+                        mp.release()
+                        audioPreviewPlayer = null
+                        true
+                    }
+                    player.prepare()
+                    player.start()
+                    audioPreviewPlayer = player
+                }
+                _audioPreviewState.value = AudioPreviewState.Playing
+            } catch (e: Exception) {
+                Log.e(TAG, "previewAudio failed", e)
+                _audioPreviewState.value = AudioPreviewState.Failed(e.message ?: "Preview failed")
+            }
+        }
+    }
+
+    fun stopAudioPreview() {
+        try {
+            audioPreviewPlayer?.let {
+                if (it.isPlaying) it.stop()
+                it.release()
+            }
+        } catch (_: Exception) {}
+        audioPreviewPlayer = null
+        _audioPreviewState.value = AudioPreviewState.Idle
     }
 
     fun uploadFile(fileName: String, sourceUri: Uri) {

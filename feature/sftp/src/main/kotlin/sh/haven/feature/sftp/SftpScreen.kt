@@ -7,16 +7,27 @@ import androidx.compose.animation.AnimatedVisibility
 import androidx.compose.foundation.ExperimentalFoundationApi
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.combinedClickable
+import androidx.compose.foundation.background
+import androidx.compose.foundation.text.BasicTextField
+import androidx.compose.foundation.text.selection.SelectionContainer
+import androidx.compose.ui.text.font.FontFamily
+import androidx.compose.ui.unit.sp
+import androidx.compose.foundation.text.KeyboardActions
+import androidx.compose.foundation.text.KeyboardOptions
+import androidx.compose.ui.text.input.ImeAction
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
+import androidx.compose.foundation.layout.height
+import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
-import androidx.compose.foundation.layout.width
+import androidx.compose.foundation.rememberScrollState
+import androidx.compose.foundation.verticalScroll
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.lazy.itemsIndexed
@@ -136,6 +147,7 @@ fun SftpScreen(
     val dlnaRunning by viewModel.dlnaServerRunning.collectAsState()
 
     var showRenameDialog by remember { mutableStateOf<SftpEntry?>(null) }
+    var showConvertDialog by remember { mutableStateOf<SftpEntry?>(null) }
 
     LaunchedEffect(pendingSmbProfileId) {
         pendingSmbProfileId?.let { viewModel.setPendingSmbProfile(it) }
@@ -259,11 +271,31 @@ fun SftpScreen(
         topBar = {
             TopAppBar(
                 title = {
-                    Text(
-                        currentPath,
-                        maxLines = 1,
-                        overflow = TextOverflow.Ellipsis,
-                    )
+                    var editingPath by remember { mutableStateOf(false) }
+                    var pathText by remember(currentPath) { mutableStateOf(currentPath) }
+                    if (editingPath) {
+                        BasicTextField(
+                            value = pathText,
+                            onValueChange = { pathText = it },
+                            singleLine = true,
+                            textStyle = MaterialTheme.typography.titleMedium.copy(
+                                color = MaterialTheme.colorScheme.onSurface,
+                            ),
+                            keyboardOptions = KeyboardOptions(imeAction = ImeAction.Go),
+                            keyboardActions = KeyboardActions(onGo = {
+                                editingPath = false
+                                viewModel.navigateTo(pathText)
+                            }),
+                            modifier = Modifier.fillMaxWidth(),
+                        )
+                    } else {
+                        Text(
+                            currentPath,
+                            maxLines = 1,
+                            overflow = TextOverflow.Ellipsis,
+                            modifier = Modifier.clickable { editingPath = true },
+                        )
+                    }
                 },
                 navigationIcon = {
                     if (currentPath != "/" && activeProfileId != null) {
@@ -476,7 +508,8 @@ fun SftpScreen(
                             )
                             if (progress.totalBytes > 0) {
                                 Text(
-                                    "${Formatter.formatFileSize(context, progress.transferredBytes)} / ${Formatter.formatFileSize(context, progress.totalBytes)}",
+                                    if (progress.isPercentage) "${(progress.fraction * 100).toInt()}%"
+                                    else "${Formatter.formatFileSize(context, progress.transferredBytes)} / ${Formatter.formatFileSize(context, progress.totalBytes)}",
                                     style = MaterialTheme.typography.labelSmall,
                                     color = MaterialTheme.colorScheme.onSurfaceVariant,
                                 )
@@ -509,7 +542,13 @@ fun SftpScreen(
                                         verticalAlignment = Alignment.CenterVertically,
                                         horizontalArrangement = Arrangement.spacedBy(4.dp),
                                     ) {
-                                        if (profile.isRclone) {
+                                        if (profile.isLocal) {
+                                            Icon(
+                                                Icons.Filled.Folder,
+                                                contentDescription = null,
+                                                modifier = Modifier.size(14.dp),
+                                            )
+                                        } else if (profile.isRclone) {
                                             Icon(
                                                 Icons.Filled.Cloud,
                                                 contentDescription = null,
@@ -520,6 +559,33 @@ fun SftpScreen(
                                     }
                                 },
                             )
+                        }
+                    }
+                }
+
+                // Storage permission banner for local file browser
+                if (viewModel.needsStoragePermission) {
+                    Surface(tonalElevation = 2.dp, color = MaterialTheme.colorScheme.secondaryContainer) {
+                        Row(
+                            modifier = Modifier
+                                .fillMaxWidth()
+                                .clickable {
+                                    val intent = android.content.Intent(
+                                        android.provider.Settings.ACTION_MANAGE_APP_ALL_FILES_ACCESS_PERMISSION,
+                                        android.net.Uri.parse("package:${context.packageName}"),
+                                    )
+                                    context.startActivity(intent)
+                                }
+                                .padding(horizontal = 16.dp, vertical = 12.dp),
+                            verticalAlignment = Alignment.CenterVertically,
+                        ) {
+                            Icon(Icons.Filled.Folder, null, tint = MaterialTheme.colorScheme.onSecondaryContainer)
+                            Spacer(Modifier.width(12.dp))
+                            Column(modifier = Modifier.weight(1f)) {
+                                Text("Storage access needed", style = MaterialTheme.typography.bodyMedium)
+                                Text("Tap to grant access to all files", style = MaterialTheme.typography.bodySmall,
+                                    color = MaterialTheme.colorScheme.onSecondaryContainer.copy(alpha = 0.7f))
+                            }
                         }
                     }
                 }
@@ -599,6 +665,27 @@ fun SftpScreen(
                                 onTap = {
                                     if (entry.isDirectory) {
                                         viewModel.navigateTo(entry.path)
+                                    } else if (viewModel.isLocalProfile()) {
+                                        // Open local file with system app
+                                        try {
+                                            val file = java.io.File(entry.path)
+                                            val uri = androidx.core.content.FileProvider.getUriForFile(
+                                                context, "${context.packageName}.fileprovider", file
+                                            )
+                                            val ext = file.extension.lowercase()
+                                            val mime = android.webkit.MimeTypeMap.getSingleton()
+                                                .getMimeTypeFromExtension(ext) ?: "*/*"
+                                            val intent = android.content.Intent(android.content.Intent.ACTION_VIEW).apply {
+                                                setDataAndType(uri, mime)
+                                                addFlags(android.content.Intent.FLAG_GRANT_READ_URI_PERMISSION)
+                                            }
+                                            context.startActivity(intent)
+                                        } catch (_: Exception) {
+                                            scope.launch {
+                                                @Suppress("LocalContextGetResourceValueCall")
+                                                snackbarHostState.showSnackbar(context.getString(R.string.sftp_no_app_to_open))
+                                            }
+                                        }
                                     }
                                 },
                                 onDownload = {
@@ -616,6 +703,12 @@ fun SftpScreen(
                                 },
                                 onCopy = { viewModel.copyToClipboard(listOf(entry), isCut = false) },
                                 onCut = { viewModel.copyToClipboard(listOf(entry), isCut = true) },
+                                onConvert = if (!entry.isDirectory && entry.isMediaFile(mediaExtensions)) {
+                                    { showConvertDialog = entry }
+                                } else null,
+                                onStream = if (!entry.isDirectory && viewModel.isLocalProfile()) {
+                                    { viewModel.streamFile(entry) }
+                                } else null,
                                 onPlay = if (isRclone && entry.isMediaFile(mediaExtensions)) {
                                     { viewModel.playMediaFile(entry) }
                                 } else null,
@@ -746,6 +839,111 @@ fun SftpScreen(
             },
             dismissButton = {
                 TextButton(onClick = { showRenameDialog = null }) { Text(stringResource(R.string.common_cancel)) }
+            },
+        )
+    }
+
+    // Convert format picker + filter UI
+    showConvertDialog?.let { entry ->
+        var selectedFormat by remember { mutableStateOf("h264") }
+        val filterState = remember { FilterState() }
+        val formats = listOf(
+            "h264" to "H.264 (MP4)",
+            "h265" to "H.265 (MP4)",
+            "vp9" to "VP9 (WebM)",
+            "mp3" to "MP3 (audio only)",
+        )
+        AlertDialog(
+            onDismissRequest = { showConvertDialog = null },
+            title = { Text(stringResource(R.string.sftp_convert_title)) },
+            text = {
+                Column(modifier = Modifier.verticalScroll(rememberScrollState())) {
+                    Text(entry.name, style = MaterialTheme.typography.bodySmall)
+                    Spacer(Modifier.height(12.dp))
+
+                    // Format selection
+                    Text(stringResource(R.string.sftp_convert_format), style = MaterialTheme.typography.labelMedium)
+                    formats.forEach { (key, label) ->
+                        Row(
+                            verticalAlignment = Alignment.CenterVertically,
+                            modifier = Modifier
+                                .fillMaxWidth()
+                                .clickable { selectedFormat = key }
+                                .padding(vertical = 2.dp),
+                        ) {
+                            RadioButton(selected = selectedFormat == key, onClick = { selectedFormat = key })
+                            Spacer(Modifier.width(8.dp))
+                            Text(label)
+                        }
+                    }
+
+                    Spacer(Modifier.height(8.dp))
+
+                    // Filter section (collapsible)
+                    FilterSection(
+                        state = filterState,
+                        isAudioOnly = selectedFormat == "mp3",
+                    )
+
+                    // Live CLI preview
+                    Spacer(Modifier.height(12.dp))
+                    val cliPreview = remember(
+                        selectedFormat,
+                        filterState.brightness, filterState.contrast,
+                        filterState.saturation, filterState.gamma,
+                        filterState.sharpen, filterState.denoise,
+                        filterState.stabilize, filterState.autoColor,
+                        filterState.speed, filterState.rotation,
+                        filterState.volume, filterState.normalizeAudio,
+                    ) {
+                        val inFile = entry.name
+                        val baseName = inFile.substringBeforeLast('.')
+                        val outExt = when (selectedFormat) {
+                            "h265" -> "mp4"; "vp9" -> "webm"; "mp3" -> "mp3"; else -> "mp4"
+                        }
+                        val cmd = when (selectedFormat) {
+                            "h264" -> sh.haven.core.ffmpeg.TranscodeCommand.h264("input", "output.$outExt")
+                            "h265" -> sh.haven.core.ffmpeg.TranscodeCommand.h265("input", "output.$outExt")
+                            "vp9" -> sh.haven.core.ffmpeg.TranscodeCommand.vp9("input", "output.$outExt")
+                            "mp3" -> sh.haven.core.ffmpeg.TranscodeCommand.mp3("input", "output.$outExt")
+                            else -> sh.haven.core.ffmpeg.TranscodeCommand.h264("input", "output.$outExt")
+                        }.videoFilters(filterState.buildVideoFilters())
+                            .audioFilters(filterState.buildAudioFilters())
+                        "ffmpeg " + cmd.build().joinToString(" ") { arg ->
+                            if (arg.contains(',') || arg.contains('=')) "\"$arg\"" else arg
+                        }
+                    }
+                    SelectionContainer {
+                        Text(
+                            cliPreview,
+                            style = MaterialTheme.typography.bodySmall.copy(
+                                fontFamily = FontFamily.Monospace,
+                                fontSize = 10.sp,
+                            ),
+                            color = MaterialTheme.colorScheme.onSurfaceVariant,
+                            modifier = Modifier
+                                .fillMaxWidth()
+                                .background(
+                                    MaterialTheme.colorScheme.surfaceVariant,
+                                    shape = MaterialTheme.shapes.small,
+                                )
+                                .padding(8.dp),
+                        )
+                    }
+                }
+            },
+            confirmButton = {
+                TextButton(onClick = {
+                    showConvertDialog = null
+                    viewModel.convertFile(
+                        entry, selectedFormat,
+                        filterState.buildVideoFilters(),
+                        filterState.buildAudioFilters(),
+                    )
+                }) { Text(stringResource(R.string.sftp_convert)) }
+            },
+            dismissButton = {
+                TextButton(onClick = { showConvertDialog = null }) { Text(stringResource(R.string.common_cancel)) }
             },
         )
     }
@@ -1005,6 +1203,8 @@ private fun FileListItem(
     onCut: () -> Unit = {},
     onPlay: (() -> Unit)? = null,
     onSync: (() -> Unit)? = null,
+    onConvert: (() -> Unit)? = null,
+    onStream: (() -> Unit)? = null,
     onRename: () -> Unit = {},
     onShareLink: (() -> Unit)? = null,
     onFolderSize: (() -> Unit)? = null,
@@ -1063,6 +1263,20 @@ private fun FileListItem(
                     text = { Text(stringResource(R.string.sftp_download)) },
                     leadingIcon = { Icon(Icons.Filled.Download, null) },
                     onClick = { showMenu = false; onDownload() },
+                )
+            }
+            if (onConvert != null) {
+                DropdownMenuItem(
+                    text = { Text(stringResource(R.string.sftp_convert)) },
+                    leadingIcon = { Icon(Icons.Filled.Sync, null) },
+                    onClick = { showMenu = false; onConvert() },
+                )
+            }
+            if (onStream != null) {
+                DropdownMenuItem(
+                    text = { Text(stringResource(R.string.sftp_stream)) },
+                    leadingIcon = { Icon(Icons.Filled.CastConnected, null) },
+                    onClick = { showMenu = false; onStream() },
                 )
             }
             DropdownMenuItem(

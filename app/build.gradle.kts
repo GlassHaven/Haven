@@ -116,6 +116,7 @@ dependencies {
     implementation(project(":core:rdp"))
     implementation(project(":core:smb"))
     implementation(project(":core:rclone"))
+    implementation(project(":core:ffmpeg"))
     implementation(project(":core:fido"))
     implementation(project(":core:local"))
     implementation(project(":core:wayland"))

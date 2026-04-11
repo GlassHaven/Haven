@@ -95,6 +95,7 @@ include(":core:rclone")
 include(":core:fido")
 include(":core:local")
 include(":core:wayland")
+include(":core:ffmpeg")
 
 include(":feature:settings")
 include(":feature:vnc")

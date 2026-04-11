@@ -33,6 +33,7 @@ dependencies {
     implementation(project(":core:data"))
     implementation(project(":core:smb"))
     implementation(project(":core:rclone"))
+    implementation(project(":core:ffmpeg"))
 
     implementation("androidx.documentfile:documentfile:1.0.1")
     implementation(libs.hilt.android)

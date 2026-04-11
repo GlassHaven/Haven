@@ -94,6 +94,15 @@
     <string name="sftp_directory_icon">Directory</string>
     <string name="sftp_file_icon">File</string>
     <string name="sftp_download">Download</string>
+    <string name="sftp_convert">Convert</string>
+    <string name="sftp_stream">Stream</string>
+    <string name="sftp_streaming">Streaming on %s</string>
+    <string name="sftp_stream_stop">Stop</string>
+    <string name="sftp_convert_title">Convert media</string>
+    <string name="sftp_convert_format">Output format</string>
+    <string name="sftp_converting">Converting %s</string>
+    <string name="sftp_convert_done">Saved to %s</string>
+    <string name="sftp_downloading_for_convert">Downloading for conversion…</string>
     <string name="sftp_cut">Cut</string>
     <string name="sftp_copy_path">Copy path</string>
 

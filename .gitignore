@@ -20,4 +20,12 @@ com/jcraft/jsch/
 build-proot/build-*/
 build-proot/dl/
 core/local/src/main/jniLibs/*/libproot*.so
+build-ffmpeg/build-*/
+build-ffmpeg/dl/
+build-ffmpeg/src/
+build-ffmpeg/sysroot/
+build-ffmpeg/spike/build/
+build-ffmpeg/spike/src/main/jniLibs/
+build-ffmpeg/build.log
+build-ffmpeg/dep-*.log
 .claude/

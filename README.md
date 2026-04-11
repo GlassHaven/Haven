@@ -73,7 +73,7 @@ How it compares to alternatives:
 
 See [PRoot documentation](https://proot-me.github.io/) for technical details.
 
-**Reticulum** — Connect over [Reticulum](https://reticulum.network) mesh networks via [rnsh](https://github.com/acehoss/rnsh) or [Sideband](https://github.com/markqvist/Sideband) with announce-based destination discovery and hop count.
+**Reticulum** — Connect over [Reticulum](https://reticulum.network) mesh networks with native Kotlin transport (reticulum-kt + rnsh-kt). Two-way terminal sessions over IFAC-protected TCP gateways, announce-based rnsh node discovery via scan button, configurable IFAC network name and passphrase. No Python runtime or Chaquopy dependency — pure Kotlin implementation with Flow-based I/O.
 
 **Security** — Screen lock with biometric or device PIN/password/pattern, configurable timeout (immediate/30s/1m/5m/never), no telemetry or analytics, local storage only. Keyboard security: all credential fields set `IME_FLAG_NO_PERSONALIZED_LEARNING` to prevent keyboard apps from recording passwords, with a warning when the active keyboard has internet access. Encrypted backup/restore with AES-256-GCM. See [PRIVACY_POLICY.md](PRIVACY_POLICY.md).
 
@@ -120,7 +120,7 @@ cargo install cargo-ndk
 go install golang.org/x/mobile/cmd/gomobile@latest
 go install golang.org/x/mobile/cmd/gobind@latest
 
-git clone https://github.com/GlassOnTin/Haven.git
+git clone --recurse-submodules https://github.com/GlassOnTin/Haven.git
 cd Haven
 ./gradlew assembleDebug
 ```
@@ -136,6 +136,8 @@ Output: `app/build/outputs/apk/debug/haven-*-debug.apk`
 | [JSch](https://github.com/mwiede/jsch) | SSH/SFTP protocol | BSD |
 | [smbj](https://github.com/hierynomus/smbj) | SMB/CIFS protocol | Apache-2.0 |
 | [ConnectBot termlib](https://github.com/connectbot/connectbot) | Terminal emulator | Apache-2.0 |
+| [reticulum-kt](https://github.com/GlassOnTin/reticulum-kt) | Reticulum mesh network transport (Kotlin) | MIT |
+| [rnsh-kt](https://github.com/GlassOnTin/rnsh-kt) | Reticulum remote shell client (Kotlin) | MIT |
 | [PRoot](https://proot-me.github.io) | Local Linux shell (userspace chroot) | GPL-2.0 |
 | [labwc](https://labwc.github.io) | Wayland compositor (native desktop) | GPL-2.0 |
 | [wlroots](https://gitlab.freedesktop.org/wlroots/wlroots) | Wayland compositor library | MIT |

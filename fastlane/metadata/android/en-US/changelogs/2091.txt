@@ -1,0 +1,7 @@
+Fix Mosh arrow keys in Mutt and reduce display lag (#73)
+
+- Wake send loop immediately when a server diff is applied, so the
+  ack reaches the server within 20ms instead of up to 3 seconds
+- Eliminates cascading diff skips that caused DECCKM mode divergence
+  (arrow keys generating wrong escape sequences in Mutt)
+- Reduces display lag during rapid output (login banners, scrolling)

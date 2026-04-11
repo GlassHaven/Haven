@@ -514,7 +514,13 @@ fun SftpScreen(
                                         verticalAlignment = Alignment.CenterVertically,
                                         horizontalArrangement = Arrangement.spacedBy(4.dp),
                                     ) {
-                                        if (profile.isRclone) {
+                                        if (profile.isLocal) {
+                                            Icon(
+                                                Icons.Filled.Folder,
+                                                contentDescription = null,
+                                                modifier = Modifier.size(14.dp),
+                                            )
+                                        } else if (profile.isRclone) {
                                             Icon(
                                                 Icons.Filled.Cloud,
                                                 contentDescription = null,

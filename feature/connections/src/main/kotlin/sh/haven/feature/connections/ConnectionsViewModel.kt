@@ -296,6 +296,9 @@ class ConnectionsViewModel @Inject constructor(
     private val _warning = MutableStateFlow<String?>(null)
     val warning: StateFlow<String?> = _warning.asStateFlow()
 
+    /** Profiles that have already shown the agent-forwarding warning this session. */
+    private val agentWarningShownFor = mutableSetOf<String>()
+
     /**
      * Direct re-export of [FidoAuthenticator.touchPrompt] so the connections
      * screen can show a "plug in / tap your security key" prompt during a
@@ -2237,7 +2240,11 @@ class ConnectionsViewModel @Inject constructor(
      */
     private suspend fun agentIdentitiesFor(profile: ConnectionProfile): List<Pair<String, ByteArray>> {
         val result = computeAgentIdentities(profile)
-        result.warningMessage?.let { _warning.value = it }
+        result.warningMessage?.let {
+            if (agentWarningShownFor.add(profile.id)) {
+                _warning.value = it
+            }
+        }
         return result.keys
     }
 

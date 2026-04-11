@@ -1,0 +1,4 @@
+Show agent-forwarding warning only once per session (#75)
+
+- "Agent will be empty" toast now shows once per profile per app session
+  instead of on every connection

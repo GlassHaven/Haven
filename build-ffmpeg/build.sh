@@ -511,6 +511,8 @@ EXTRA_LDFLAGS="-pie -Wl,-z,max-page-size=16384 -L$DEPS_SYSROOT/lib"
         --enable-muxer=wav \
         --enable-muxer=ogg \
         --enable-muxer=opus \
+        --enable-muxer=hls \
+        --enable-muxer=mpegts \
         --enable-muxer=null \
         --enable-decoder=h264 \
         --enable-decoder=hevc \

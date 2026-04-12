@@ -145,6 +145,7 @@ fun SettingsScreen(
     val connectionLoggingEnabled by viewModel.connectionLoggingEnabled.collectAsState()
     val verboseLoggingEnabled by viewModel.verboseLoggingEnabled.collectAsState()
     val mcpAgentEndpointEnabled by viewModel.mcpAgentEndpointEnabled.collectAsState()
+    val unseenAgentActivity by viewModel.unseenAgentActivity.collectAsState()
     val mouseInputEnabled by viewModel.mouseInputEnabled.collectAsState()
     val terminalRightClick by viewModel.terminalRightClick.collectAsState()
     val allowStandardKeyboard by viewModel.allowStandardKeyboard.collectAsState()
@@ -152,6 +153,7 @@ fun SettingsScreen(
     val waylandShellCommand by viewModel.waylandShellCommand.collectAsState()
     val mediaExtensions by viewModel.mediaExtensions.collectAsState()
     var showAuditLog by remember { mutableStateOf(false) }
+    var showAgentActivity by remember { mutableStateOf(false) }
     var showLanguageDialog by remember { mutableStateOf(false) }
     var showWaylandShellDialog by remember { mutableStateOf(false) }
     var showMediaExtensionsDialog by remember { mutableStateOf(false) }
@@ -208,6 +210,10 @@ fun SettingsScreen(
 
     if (showAuditLog) {
         AuditLogScreen(onBack = { showAuditLog = false })
+        return
+    }
+    if (showAgentActivity) {
+        AgentActivityScreen(onBack = { showAgentActivity = false })
         return
     }
 
@@ -338,6 +344,12 @@ fun SettingsScreen(
                 title = "Also available in PRoot",
                 subtitle = "~/.config/haven/mcp-servers.json",
                 onClick = {},
+            )
+            SettingsItem(
+                icon = Icons.Filled.History,
+                title = if (unseenAgentActivity) "View agent activity  ●" else "View agent activity",
+                subtitle = "Every MCP call recorded with redacted args",
+                onClick = { showAgentActivity = true },
             )
         }
 

@@ -12,7 +12,9 @@ import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.flow.stateIn
 import kotlinx.coroutines.launch
+import kotlinx.coroutines.flow.combine
 import sh.haven.core.data.backup.BackupService
+import sh.haven.core.data.db.AgentAuditEventDao
 import sh.haven.core.data.preferences.NavBlockMode
 import sh.haven.core.data.preferences.ToolbarLayout
 import sh.haven.core.data.preferences.UserPreferencesRepository
@@ -25,6 +27,7 @@ class SettingsViewModel @Inject constructor(
     private val preferencesRepository: UserPreferencesRepository,
     private val authenticator: BiometricAuthenticator,
     private val backupService: BackupService,
+    private val agentAuditEventDao: AgentAuditEventDao,
 ) : ViewModel() {
 
     val biometricAvailable: Boolean =
@@ -102,6 +105,18 @@ class SettingsViewModel @Inject constructor(
 
     val mcpAgentEndpointEnabled: StateFlow<Boolean> = preferencesRepository.mcpAgentEndpointEnabled
         .stateIn(viewModelScope, SharingStarted.WhileSubscribed(5000), false)
+
+    /**
+     * True when there is at least one agent audit event the user
+     * hasn't visited the activity screen since. Drives the unseen
+     * dot on the "View agent activity" row in Settings.
+     */
+    val unseenAgentActivity: StateFlow<Boolean> = combine(
+        agentAuditEventDao.observeLatestTimestamp(),
+        preferencesRepository.lastViewedAgentAuditTimestamp,
+    ) { latest, lastViewed ->
+        latest != null && latest > lastViewed
+    }.stateIn(viewModelScope, SharingStarted.WhileSubscribed(5000), false)
 
     val mouseInputEnabled: StateFlow<Boolean> = preferencesRepository.mouseInputEnabled
         .stateIn(viewModelScope, SharingStarted.WhileSubscribed(5000), true)

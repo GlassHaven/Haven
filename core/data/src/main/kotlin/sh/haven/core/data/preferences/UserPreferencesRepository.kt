@@ -5,6 +5,7 @@ import androidx.datastore.preferences.core.Preferences
 import androidx.datastore.preferences.core.booleanPreferencesKey
 import androidx.datastore.preferences.core.edit
 import androidx.datastore.preferences.core.intPreferencesKey
+import androidx.datastore.preferences.core.longPreferencesKey
 import androidx.datastore.preferences.core.stringPreferencesKey
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.map
@@ -48,6 +49,7 @@ class UserPreferencesRepository @Inject constructor(
     private val mediaExtensionsKey = stringPreferencesKey("media_extensions")
     private val lastMediaServerPortKey = intPreferencesKey("last_media_server_port")
     private val mcpAgentEndpointEnabledKey = booleanPreferencesKey("mcp_agent_endpoint_enabled")
+    private val lastViewedAgentAuditTimestampKey = longPreferencesKey("last_viewed_agent_audit_timestamp")
 
     val biometricEnabled: Flow<Boolean> = dataStore.data.map { prefs ->
         prefs[biometricEnabledKey] ?: false
@@ -240,6 +242,22 @@ class UserPreferencesRepository @Inject constructor(
     suspend fun setMcpAgentEndpointEnabled(enabled: Boolean) {
         dataStore.edit { prefs ->
             prefs[mcpAgentEndpointEnabledKey] = enabled
+        }
+    }
+
+    /**
+     * Wall-clock timestamp of the most recent visit to the agent
+     * activity log. The Settings badge compares this against the
+     * latest event in [sh.haven.core.data.db.AgentAuditEventDao] to
+     * decide whether to show an "unseen" dot.
+     */
+    val lastViewedAgentAuditTimestamp: Flow<Long> = dataStore.data.map { prefs ->
+        prefs[lastViewedAgentAuditTimestampKey] ?: 0L
+    }
+
+    suspend fun setLastViewedAgentAuditTimestamp(timestamp: Long) {
+        dataStore.edit { prefs ->
+            prefs[lastViewedAgentAuditTimestampKey] = timestamp
         }
     }
 

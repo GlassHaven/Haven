@@ -24,6 +24,9 @@ interface AgentAuditEventDao {
     @Query("SELECT MAX(timestamp) FROM agent_audit_events")
     suspend fun latestTimestamp(): Long?
 
+    @Query("SELECT MAX(timestamp) FROM agent_audit_events")
+    fun observeLatestTimestamp(): Flow<Long?>
+
     /**
      * Drop everything older than [olderThan] AND then keep only the
      * newest [keepNewest] rows. The two-step trim handles both the

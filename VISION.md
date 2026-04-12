@@ -74,6 +74,21 @@ The build-vs-delegate rule has a useful test: *if the user would want to invoke 
 
 This is also why certain features are explicitly not going to be built (see "Scope boundaries" below): a text editor, a media player, a chat UI. Those would be presentations of nothing — they don't compose with Haven's primitives, they just duplicate work the OS already supports well.
 
+### Presentation is shared with agents
+
+The surfaces Haven builds are not only for human eyes. An AI agent operating alongside the user — whether running in PRoot on the device or in a remote shell Haven is connected to — needs to **work with and within what the user sees**. That imposes two concrete requirements on every presentation surface Haven owns:
+
+**Observable state.** Every view has state: which backend and path the file browser is on, what's in the terminal's current scrollback and which command wrote it, which file is loaded in the convert dialog with what filters, which port forwards are active and bound to which ports, what the connection status of each session is. That state must be exposed in a form an agent can read — the same StateFlow pattern the Compose UI already subscribes to. If a human can see it, an agent must be able to query it.
+
+**Actionable API.** Every action a tap can perform must also be a function an agent can call. Haven's ViewModel methods — `convertFile`, `streamFile`, `playMediaFile`, `navigateTo`, `setPortForwardingDynamic`, `connect`, and their peers — are the vocabulary that both humans and agents use to operate the primitives. There is no "agent-only" bypass layer. If the agent can do it, the user can watch it happen in the UI. If the user can do it, the agent gets a tool-use handle for it.
+
+This rules out two failure modes:
+
+1. **Silent automation** — the agent acting through a hidden channel the user can't see. Every agent operation is reflected in the same UI surface a human would use, so the user can observe, interrupt, and take over mid-workflow. "Haven is doing something" and "the screen is showing something" must always be the same thing.
+2. **Divergent state** — the agent's model of "what's happening" drifting from the user's. Both subscribe to the same state flows, so what Haven shows is ground truth for both.
+
+The practical consequence is that the agent transport — a tool-use server (MCP or equivalent) that exposes Haven's ViewModels as callable tools over a local loopback socket — is not an optional add-on. It falls out of the build-vs-delegate rule directly: if we build a presentation surface because it needs to compose with other primitives, we also need to make that surface addressable from outside the UI process, because an agent is just another caller that needs the same composition. Humans tap, agents call, both observe — same surface, same state, same truth.
+
 ## The integration thesis — composition is the product
 
 The three primitives are not the product. What you can *do by composing them* is the product. A coherent OS is one where the three compose without friction. Haven's design target: every workflow below should be one flow inside the app.
@@ -96,9 +111,10 @@ What this means in practice:
 - **Agents in a remote runtime**: SSH to the workstation where your real agent lives, keep the session alive across network drops, and come back to a session that remembers what the agent was doing.
 - **Credentials that humans and agents share**: one encrypted keystore, SSH agent forwarding so the remote agent can use keys that never leave the phone, host key TOFU so a compromised gateway can't silently inject itself.
 - **Files that humans and agents both operate on**: the unified namespace means "the project folder" is one path whether the agent is running in PRoot, on the workstation, or pulling from cloud storage.
+- **Shared presentation**: agents address Haven's ViewModels through a tool-use transport (see "Presentation is shared with agents" above) — they can open the convert dialog, toggle a port forward, start a stream, or change the active SFTP path, and the user sees every action happen on the screen they're already looking at. No hidden automation; no divergent state. The UI is ground truth for both.
 - **Observation**: the terminal tab, the file browser, and the persistent notification give a human operator a clear view of what their agent is doing and where. Haven is the dashboard, not a black box.
 
-Haven is *not* building an AI assistant. It's building the layer that makes AI assistants useful wherever a human wants to point them — mobile, distributed, multi-backend. The agent sees the same OS abstraction the human does.
+Haven is *not* building an AI assistant. It's building the layer that makes AI assistants useful wherever a human wants to point them — mobile, distributed, multi-backend. The agent sees the same OS abstraction the human does, and operates through the same surfaces the human uses, so the human always keeps the wheel.
 
 ## Development priorities
 
@@ -112,6 +128,16 @@ Whenever two primitives meet, there should be zero friction. Current gaps:
 - **Agent forwarding UX** — the plumbing exists; the story of "forward my phone's keys to the remote agent and be able to trust it" needs to be a dialog, not a config file.
 - **Workspace profiles** — "Work" opens SSH tab + port forwards + SFTP sidebar + Wayland tab + Claude Code pane in one tap, resumes to the same composition next launch.
 - **Desktop ↔ file browser ↔ terminal** — cross-tab actions (drag a file from the SFTP tab into the native Wayland compositor, copy output from a terminal into the convert dialog).
+
+### 1a. Agent transport — make the shared viewport real
+
+The shared-viewport idea from the presentation section needs a concrete transport before it means anything in practice. The work is small and self-contained:
+
+- **Tool-use server** — a local loopback server (MCP or a simple JSON-RPC over Unix socket) that exposes Haven's ViewModel methods as callable tools. Starts on app launch, tokens held in-memory, accessible only from local processes.
+- **Session + state inspection tools** — first-class read operations: list connections, get connection status, read current terminal scrollback, read current file-browser state, read convert dialog state, read active port forwards.
+- **Action tools** — first-class write operations mirroring the existing UI verbs: navigate, convert, stream, play, setPortForwarding, openDialog, confirmDialog. Every action appears in the UI as if a human tapped it.
+- **Audit and consent** — visible indicator when an agent is connected; per-action confirm option for destructive operations (delete, upload, publish); a log the user can scroll through to see what was done and when.
+- **Discovery** — a "copy agent endpoint" button in Settings so the user can point `claude-code` or another MCP client at Haven in one step.
 
 ### 2. The namespace as the action surface
 

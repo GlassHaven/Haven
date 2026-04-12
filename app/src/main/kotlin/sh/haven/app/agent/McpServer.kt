@@ -74,6 +74,13 @@ class McpServer @Inject constructor(
 
     private val scope = CoroutineScope(SupervisorJob() + Dispatchers.IO)
 
+    /**
+     * Serializes [start] and [stop] so preference-driven toggles that
+     * land close together can never leave the server with a half-torn
+     * listener or a zombie accept thread.
+     */
+    private val lifecycleLock = Any()
+
     private var serverSocket: ServerSocket? = null
     private var serverThread: Thread? = null
 
@@ -121,9 +128,20 @@ class McpServer @Inject constructor(
      * deterministic range so a reconnecting MCP client can find us
      * again after an app restart). Falls back to an OS-assigned port
      * if all preferred ports are busy.
+     *
+     * Idempotent: if a healthy instance is already running this is a
+     * no-op; if a stale instance is detected (flag set but listener
+     * socket closed or accept thread dead) it's torn down and
+     * re-created. This matters because the Android process can be
+     * suspended for long periods and the server's threads may be
+     * killed out from under it while [isRunning] still reads `true`.
      */
-    fun start() {
-        if (isRunning) return
+    fun start() = synchronized(lifecycleLock) {
+        if (isHealthy()) return@synchronized
+        if (isRunning) {
+            Log.w(TAG, "start() found stale instance, tearing down before rebinding")
+            stopLocked()
+        }
         val ss = bindLoopback()
         serverSocket = ss
         port = ss.localPort
@@ -132,11 +150,19 @@ class McpServer @Inject constructor(
         Log.i(TAG, "MCP server listening on ${_endpointUrl.value}")
 
         serverThread = thread(name = "mcp-http", isDaemon = true) {
-            while (isRunning) {
+            while (isRunning && !ss.isClosed) {
                 try {
                     val client = ss.accept()
                     thread(name = "mcp-client", isDaemon = true) {
-                        handleClient(client)
+                        try {
+                            handleClient(client)
+                        } catch (e: Throwable) {
+                            // Last-resort guard so one bad request can
+                            // never kill a worker thread silently and
+                            // leave the peer socket in CLOSE_WAIT.
+                            Log.w(TAG, "worker crashed: ${e.message}")
+                            try { client.close() } catch (_: Exception) {}
+                        }
                     }
                 } catch (_: IOException) {
                     // Socket closed by stop() — expected on shutdown
@@ -151,13 +177,32 @@ class McpServer @Inject constructor(
 
     override fun close() = stop()
 
-    fun stop() {
+    fun stop() = synchronized(lifecycleLock) {
+        stopLocked()
+    }
+
+    /** Must be called while holding [lifecycleLock]. */
+    private fun stopLocked() {
         isRunning = false
         try { serverSocket?.close() } catch (_: Exception) {}
         serverSocket = null
         serverThread = null
         port = 0
         _endpointUrl.value = null
+    }
+
+    /**
+     * True iff the server is running AND the listener socket is still
+     * bound AND the accept thread is still alive. Used by [start] to
+     * distinguish a healthy instance from a process-suspend zombie.
+     */
+    private fun isHealthy(): Boolean {
+        if (!isRunning) return false
+        val ss = serverSocket ?: return false
+        if (ss.isClosed) return false
+        val t = serverThread ?: return false
+        if (!t.isAlive) return false
+        return true
     }
 
     // --- Socket binding ---

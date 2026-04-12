@@ -29,3 +29,7 @@ build-ffmpeg/spike/src/main/jniLibs/
 build-ffmpeg/build.log
 build-ffmpeg/dep-*.log
 .claude/
+
+# Personal dev notes — never committed
+DEV.local.md
+*.local.md

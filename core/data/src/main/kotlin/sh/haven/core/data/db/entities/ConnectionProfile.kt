@@ -25,6 +25,7 @@ data class ConnectionProfile(
     val jumpProfileId: String? = null,
     val sshOptions: String? = null,
     val vncPort: Int? = null,
+    val vncUsername: String? = null,
     val vncPassword: String? = null,
     val vncSshForward: Boolean = true,
     val sessionManager: String? = null,

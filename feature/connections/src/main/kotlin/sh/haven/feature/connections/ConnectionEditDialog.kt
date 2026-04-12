@@ -139,6 +139,7 @@ fun ConnectionEditDialog(
     var smbDomain by rememberSaveable { mutableStateOf(existing?.smbDomain ?: "") }
     var smbSshForward by rememberSaveable { mutableStateOf(existing?.smbSshForward ?: false) }
     var smbSshProfileId by rememberSaveable { mutableStateOf(existing?.smbSshProfileId) }
+    var vncUsername by rememberSaveable { mutableStateOf(existing?.vncUsername ?: "") }
     var vncPassword by rememberSaveable { mutableStateOf(existing?.vncPassword ?: "") }
     var destinationHash by rememberSaveable { mutableStateOf(existing?.destinationHash ?: "") }
     var jumpProfileId by rememberSaveable { mutableStateOf(existing?.jumpProfileId) }
@@ -461,6 +462,14 @@ fun ConnectionEditDialog(
                     )
                     Spacer(Modifier.height(4.dp))
                     OutlinedTextField(
+                        value = vncUsername,
+                        onValueChange = { vncUsername = it },
+                        label = { Text("Username (optional — VeNCrypt only)") },
+                        singleLine = true,
+                        modifier = Modifier.fillMaxWidth(),
+                    )
+                    Spacer(Modifier.height(4.dp))
+                    OutlinedTextField(
                         value = vncPassword,
                         onValueChange = { vncPassword = it },
                         label = { Text("Password (optional)") },
@@ -469,7 +478,7 @@ fun ConnectionEditDialog(
                     )
                     Spacer(Modifier.height(4.dp))
                     Text(
-                        "VNC passwords are limited to 8 characters",
+                        "Leave username blank for classic VncAuth (8-char password). Fill username for VeNCrypt (wayvnc, TigerVNC) — supports longer passwords and TLS encryption.",
                         style = MaterialTheme.typography.bodySmall,
                         color = MaterialTheme.colorScheme.onSurfaceVariant,
                     )
@@ -1563,6 +1572,7 @@ fun ConnectionEditDialog(
                             username = "",
                             connectionType = "VNC",
                             vncPort = vncPortInt,
+                            vncUsername = vncUsername.ifBlank { null },
                             vncPassword = vncPassword.ifBlank { null },
                             colorTag = colorTag,
                             groupId = groupId,

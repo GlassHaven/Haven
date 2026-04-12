@@ -145,6 +145,7 @@ class DesktopViewModel @Inject constructor(
         host: String,
         port: Int,
         password: String?,
+        username: String? = null,
         sshForward: Boolean = false,
         sshSessionId: String? = null,
         profileId: String? = null,
@@ -204,6 +205,7 @@ class DesktopViewModel @Inject constructor(
                     targetFps = 10
                     shared = true
                     if (!password.isNullOrEmpty()) passwordSupplier = { password }
+                    if (!username.isNullOrEmpty()) usernameSupplier = { username }
                     onScreenUpdate = { bitmap -> frame.value = bitmap }
                     onError = { e ->
                         Log.e(TAG, "VNC error on tab $tabId", e)

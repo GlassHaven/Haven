@@ -32,10 +32,11 @@ class VncClient(private val config: VncConfig) : Closeable {
     var paused = false
 
     fun start(host: String, port: Int) {
-        start(Socket(host, port))
+        start(Socket(host, port), host)
     }
 
-    fun start(socket: Socket) {
+    /** Start with an existing socket. [host] is used for TLS SNI / certificate checks. */
+    fun start(socket: Socket, host: String = socket.inetAddress?.hostAddress ?: "localhost") {
         if (running) throw IllegalStateException("VNC client is already running")
         running = true
 
@@ -45,7 +46,7 @@ class VncClient(private val config: VncConfig) : Closeable {
             val sess = VncSession(config, input, output)
 
             Log.d(TAG, "Handshaking...")
-            Handshaker.handshake(sess)
+            Handshaker.handshake(sess, socket, host)
             Log.d(TAG, "Initialising...")
             Initializer.initialise(sess)
             Log.d(TAG, "Connected: ${sess.serverInit?.name} ${sess.serverInit?.framebufferWidth}x${sess.serverInit?.framebufferHeight}")

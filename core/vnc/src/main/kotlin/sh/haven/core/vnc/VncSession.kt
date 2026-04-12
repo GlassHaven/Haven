@@ -17,9 +17,15 @@ import java.util.concurrent.locks.ReentrantLock
  */
 class VncSession(
     val config: VncConfig,
-    val inputStream: InputStream,
-    val outputStream: OutputStream,
+    inputStream: InputStream,
+    outputStream: OutputStream,
 ) {
+    /** Streams are var so the handshaker can swap in TLS-wrapped versions for VeNCrypt. */
+    var inputStream: InputStream = inputStream
+        internal set
+    var outputStream: OutputStream = outputStream
+        internal set
+
     var protocolVersion: ProtocolVersion? = null
     var serverInit: ServerInit? = null
     var pixelFormat: PixelFormat? = null

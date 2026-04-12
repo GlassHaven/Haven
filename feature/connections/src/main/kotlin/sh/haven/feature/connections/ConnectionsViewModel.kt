@@ -397,7 +397,7 @@ class ConnectionsViewModel @Inject constructor(
     val navigateToConnections: StateFlow<Boolean> = _navigateToConnections.asStateFlow()
 
     /** Emitted to navigate to VNC screen with connection params. */
-    data class VncNavigation(val host: String, val port: Int, val password: String?)
+    data class VncNavigation(val host: String, val port: Int, val password: String?, val username: String? = null)
     private val _navigateToVnc = MutableStateFlow<VncNavigation?>(null)
     val navigateToVnc: StateFlow<VncNavigation?> = _navigateToVnc.asStateFlow()
 
@@ -835,10 +835,11 @@ class ConnectionsViewModel @Inject constructor(
         val host = profile.host
         val port = profile.vncPort ?: profile.port
         val password = profile.vncPassword
+        val username = profile.vncUsername
         viewModelScope.launch {
             repository.markConnected(profile.id)
         }
-        _navigateToVnc.value = VncNavigation(host, port, password)
+        _navigateToVnc.value = VncNavigation(host, port, password, username)
     }
 
     private fun connectRdp(profile: ConnectionProfile, password: String) {

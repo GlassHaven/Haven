@@ -193,6 +193,7 @@ fun VncScreen(
     pendingHost: String? = null,
     pendingPort: Int? = null,
     pendingPassword: String? = null,
+    pendingUsername: String? = null,
     pendingSshForward: Boolean = false,
     pendingSshSessionId: String? = null,
     toolbarLayout: ToolbarLayout = ToolbarLayout.DEFAULT,
@@ -209,7 +210,7 @@ fun VncScreen(
                     pendingSshSessionId, "localhost", pendingPort ?: 5900, pendingPassword,
                 )
             } else {
-                viewModel.connect(pendingHost, pendingPort ?: 5900, pendingPassword)
+                viewModel.connect(pendingHost, pendingPort ?: 5900, pendingPassword, pendingUsername)
             }
             onPendingConsumed()
         }

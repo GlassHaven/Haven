@@ -109,7 +109,7 @@ class VncViewModel @Inject constructor(
                 tunnelPort = localPort
                 tunnelSessionId = sessionId
                 Log.d(TAG, "SSH tunnel: localhost:$localPort -> $remoteHost:$remotePort")
-                doConnect("127.0.0.1", localPort, password, remoteHost, remotePort)
+                doConnect("127.0.0.1", localPort, password, displayHost = remoteHost, displayPort = remotePort)
             } catch (e: Exception) {
                 Log.e(TAG, "SSH tunnel setup failed", e)
                 _error.value = describeError(e, remoteHost, remotePort)
@@ -117,13 +117,13 @@ class VncViewModel @Inject constructor(
         }
     }
 
-    fun connect(host: String, port: Int, password: String?) {
+    fun connect(host: String, port: Int, password: String?, username: String? = null) {
         // Guard: skip if already connected to the same target
         if (_connected.value && client?.running == true) return
         viewModelScope.launch(Dispatchers.IO) {
             try {
                 _error.value = null
-                doConnect(host, port, password, host, port)
+                doConnect(host, port, password, username = username, displayHost = host, displayPort = port)
             } catch (e: Exception) {
                 Log.e(TAG, "VNC connect failed", e)
                 _error.value = describeError(e, host, port)
@@ -132,7 +132,7 @@ class VncViewModel @Inject constructor(
     }
 
     private fun doConnect(
-        host: String, port: Int, password: String?,
+        host: String, port: Int, password: String?, username: String? = null,
         displayHost: String? = null, displayPort: Int? = null,
     ) {
         // Stop any previous client to avoid orphaned threads
@@ -144,6 +144,9 @@ class VncViewModel @Inject constructor(
             shared = true
             if (!password.isNullOrEmpty()) {
                 passwordSupplier = { password }
+            }
+            if (!username.isNullOrEmpty()) {
+                usernameSupplier = { username }
             }
             onScreenUpdate = { bitmap ->
                 _frame.value = bitmap

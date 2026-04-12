@@ -302,8 +302,8 @@ fun HavenNavHost(
                             pagerState.animateScrollToPage(pageOf(Screen.Terminal))
                         }
                     },
-                    onNavigateToVnc = { host, port, password ->
-                        desktopViewModel.addVncSession(host, port, password)
+                    onNavigateToVnc = { host, port, password, username ->
+                        desktopViewModel.addVncSession(host, port, password, username)
                         coroutineScope.launch {
                             pagerState.animateScrollToPage(pageOf(Screen.Desktop))
                         }

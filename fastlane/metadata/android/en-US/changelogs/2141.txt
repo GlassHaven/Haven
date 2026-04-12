@@ -1,0 +1,23 @@
+v5.1.3: VNC VeNCrypt + HLS video streaming fix
+
+VNC:
+- Add VeNCrypt (RFB security type 19) with TLSPlain, X509Plain,
+  TLSVnc, X509Vnc, TLSNone, X509None, and Plain sub-types (#76)
+- Connects to wayvnc, TigerVNC, libvncserver, x11vnc servers that
+  require a username in addition to a password
+- Wraps the socket in TLS after sub-type selection — all RFB traffic
+  after authentication is encrypted
+- Add vncUsername field to connection profiles (DB migration 31→32)
+
+HLS media streaming:
+- Fix video streaming failing with MEDIA_ERR_SRC_NOT_SUPPORTED on
+  Chrome: force H.264 Main profile level 4.0, cap at 1920x1080,
+  cap at 30fps, yuv420p pixel format. Portrait screen recordings
+  (e.g. 1344x2992 @ 55fps) now play correctly.
+- HLS player starts muted to satisfy Chrome's autoplay policy,
+  with a "Tap to unmute" overlay button
+- Playlist is now properly marked as VOD with #EXT-X-PLAYLIST-TYPE
+- Removed append_list hls_flag (was producing spurious
+  EXT-X-DISCONTINUITY markers)
+- Silent -an flag for video inputs with no audio track (avoids the
+  "b:a unused" warning)

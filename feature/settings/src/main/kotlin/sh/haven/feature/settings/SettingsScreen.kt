@@ -146,6 +146,7 @@ fun SettingsScreen(
     val verboseLoggingEnabled by viewModel.verboseLoggingEnabled.collectAsState()
     val mcpAgentEndpointEnabled by viewModel.mcpAgentEndpointEnabled.collectAsState()
     val unseenAgentActivity by viewModel.unseenAgentActivity.collectAsState()
+    val requireAgentConsentForWrites by viewModel.requireAgentConsentForWrites.collectAsState()
     val mouseInputEnabled by viewModel.mouseInputEnabled.collectAsState()
     val terminalRightClick by viewModel.terminalRightClick.collectAsState()
     val allowStandardKeyboard by viewModel.allowStandardKeyboard.collectAsState()
@@ -350,6 +351,15 @@ fun SettingsScreen(
                 title = if (unseenAgentActivity) "View agent activity  ●" else "View agent activity",
                 subtitle = "Every MCP call recorded with redacted args",
                 onClick = { showAgentActivity = true },
+            )
+            SettingsToggleItem(
+                icon = Icons.Filled.Fingerprint,
+                title = "Confirm destructive agent actions",
+                subtitle = "Prompt before any agent call that writes, " +
+                    "deletes, uploads, or disconnects. Read-only calls " +
+                    "(the only kind in this build) never prompt.",
+                checked = requireAgentConsentForWrites,
+                onCheckedChange = viewModel::setRequireAgentConsentForWrites,
             )
         }
 

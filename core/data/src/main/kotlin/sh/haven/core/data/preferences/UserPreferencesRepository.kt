@@ -50,6 +50,7 @@ class UserPreferencesRepository @Inject constructor(
     private val lastMediaServerPortKey = intPreferencesKey("last_media_server_port")
     private val mcpAgentEndpointEnabledKey = booleanPreferencesKey("mcp_agent_endpoint_enabled")
     private val lastViewedAgentAuditTimestampKey = longPreferencesKey("last_viewed_agent_audit_timestamp")
+    private val requireAgentConsentForWritesKey = booleanPreferencesKey("require_agent_consent_for_writes")
 
     val biometricEnabled: Flow<Boolean> = dataStore.data.map { prefs ->
         prefs[biometricEnabledKey] ?: false
@@ -258,6 +259,24 @@ class UserPreferencesRepository @Inject constructor(
     suspend fun setLastViewedAgentAuditTimestamp(timestamp: Long) {
         dataStore.edit { prefs ->
             prefs[lastViewedAgentAuditTimestampKey] = timestamp
+        }
+    }
+
+    /**
+     * Whether destructive agent actions (writes, deletes, uploads,
+     * disconnects) must be confirmed by the user. Default **true** —
+     * the §85 rule from VISION.md says the user always keeps the
+     * wheel, and that means an explicit per-action gate by default.
+     * No mutating MCP tools exist yet; the toggle is in place so the
+     * first one that does inherits the right default.
+     */
+    val requireAgentConsentForWrites: Flow<Boolean> = dataStore.data.map { prefs ->
+        prefs[requireAgentConsentForWritesKey] ?: true
+    }
+
+    suspend fun setRequireAgentConsentForWrites(enabled: Boolean) {
+        dataStore.edit { prefs ->
+            prefs[requireAgentConsentForWritesKey] = enabled
         }
     }
 

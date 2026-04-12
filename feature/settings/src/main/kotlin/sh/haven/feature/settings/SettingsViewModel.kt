@@ -111,6 +111,13 @@ class SettingsViewModel @Inject constructor(
      * hasn't visited the activity screen since. Drives the unseen
      * dot on the "View agent activity" row in Settings.
      */
+    val requireAgentConsentForWrites: StateFlow<Boolean> = preferencesRepository.requireAgentConsentForWrites
+        .stateIn(viewModelScope, SharingStarted.WhileSubscribed(5000), true)
+
+    fun setRequireAgentConsentForWrites(enabled: Boolean) {
+        viewModelScope.launch { preferencesRepository.setRequireAgentConsentForWrites(enabled) }
+    }
+
     val unseenAgentActivity: StateFlow<Boolean> = combine(
         agentAuditEventDao.observeLatestTimestamp(),
         preferencesRepository.lastViewedAgentAuditTimestamp,

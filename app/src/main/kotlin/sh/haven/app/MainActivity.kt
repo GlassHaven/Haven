@@ -20,6 +20,7 @@ import androidx.lifecycle.Lifecycle
 import androidx.lifecycle.LifecycleEventObserver
 import androidx.lifecycle.compose.LocalLifecycleOwner
 import dagger.hilt.android.AndroidEntryPoint
+import sh.haven.app.agent.AgentConsentManager
 import sh.haven.app.navigation.HavenNavHost
 import sh.haven.core.data.preferences.UserPreferencesRepository
 import sh.haven.core.data.repository.ConnectionRepository
@@ -41,6 +42,10 @@ class MainActivity : AppCompatActivity() {
     // be enabled during FIDO2 SSH assertions. Without this, Nitrokey /
     // SoloKey / YubiKey-over-NFC flows never saw a Tag (#15).
     @Inject lateinit var fidoAuthenticator: FidoAuthenticator
+    // Tracks foreground state so AgentConsentManager can fail-closed
+    // when there's no activity to render the prompt. The §85 rule
+    // forbids letting destructive agent calls slip through silently.
+    @Inject lateinit var agentConsentManager: AgentConsentManager
 
     private fun exitIfDisconnected() {
         if (SshConnectionService.disconnectedAll) {
@@ -54,10 +59,12 @@ class MainActivity : AppCompatActivity() {
         super.onResume()
         exitIfDisconnected()
         fidoAuthenticator.setActiveActivity(this)
+        agentConsentManager.setForegroundActive(true)
     }
 
     override fun onPause() {
         fidoAuthenticator.clearActiveActivity(this)
+        agentConsentManager.setForegroundActive(false)
         super.onPause()
     }
 

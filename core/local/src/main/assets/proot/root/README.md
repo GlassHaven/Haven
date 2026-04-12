@@ -136,7 +136,46 @@ there's a local JSON-RPC endpoint at `http://127.0.0.1:8730/mcp`
 that any MCP-aware client (including anything running in this
 PRoot) can query to read Haven's state — saved connections,
 active sessions, rclone directories, etc. The endpoint is
-loopback-only and read-only. See Haven's Settings for details.
+loopback-only and read-only.
+
+### Auto-advertised server config
+
+Whenever the endpoint is enabled, Haven drops a ready-to-use MCP
+server config file at:
+
+```
+~/.config/haven/mcp-servers.json
+```
+
+The file contains a standard `mcpServers` block with Haven's URL.
+Any MCP-compatible client can merge or source it. A typical first
+step:
+
+```sh
+cat ~/.config/haven/mcp-servers.json
+```
+
+To wire it into whichever MCP client you have installed, consult
+that client's documentation for how it loads server configs —
+usually a config file in `~/.config/<client>/` that expects the
+same `mcpServers` shape. Many clients accept a
+`--mcp-config <path>` flag that points directly at the advertised
+file.
+
+When you toggle the endpoint off in Settings, the file is removed.
+It is never persisted across that toggle.
+
+### Available tools (v1, read-only)
+
+- `get_app_info` — Haven version and capability list
+- `list_connections` — saved SSH / VNC / RDP / SMB / rclone profiles
+- `list_sessions` — active SSH sessions with port forwards
+- `list_rclone_remotes` — configured cloud remotes
+- `list_rclone_directory` — file listings anywhere in an rclone remote
+
+Mutation tools (start session, set port forward, convert file,
+disconnect, etc.) will ship in a later Haven release behind a
+per-action consent dialog.
 
 ## Files you can edit
 

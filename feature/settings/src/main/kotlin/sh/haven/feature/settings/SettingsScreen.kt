@@ -294,6 +294,16 @@ fun SettingsScreen(
             // Endpoint URL is always the canonical port range start —
             // the server binds to the first free port in 8730..8739
             val endpointUrl = "http://127.0.0.1:8730/mcp"
+            val mcpConfigJson = """
+                {
+                  "mcpServers": {
+                    "haven": {
+                      "type": "http",
+                      "url": "$endpointUrl"
+                    }
+                  }
+                }
+            """.trimIndent()
             SettingsItem(
                 icon = Icons.Filled.ContentCopy,
                 title = "Copy agent endpoint URL",
@@ -306,6 +316,28 @@ fun SettingsScreen(
                     )
                     Toast.makeText(context, "Endpoint copied", Toast.LENGTH_SHORT).show()
                 },
+            )
+            SettingsItem(
+                icon = Icons.Filled.ContentCopy,
+                title = "Copy MCP client config",
+                subtitle = "Standard JSON snippet to paste into any MCP client",
+                onClick = {
+                    val clipboard = context.getSystemService(Context.CLIPBOARD_SERVICE)
+                        as? android.content.ClipboardManager
+                    clipboard?.setPrimaryClip(
+                        android.content.ClipData.newPlainText(
+                            "Haven MCP server config",
+                            mcpConfigJson,
+                        ),
+                    )
+                    Toast.makeText(context, "Config copied", Toast.LENGTH_SHORT).show()
+                },
+            )
+            SettingsItem(
+                icon = Icons.Filled.Info,
+                title = "Also available in PRoot",
+                subtitle = "~/.config/haven/mcp-servers.json",
+                onClick = {},
             )
         }
 

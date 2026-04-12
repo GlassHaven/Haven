@@ -10,6 +10,7 @@ import kotlinx.coroutines.SupervisorJob
 import kotlinx.coroutines.flow.distinctUntilChanged
 import kotlinx.coroutines.flow.onEach
 import kotlinx.coroutines.flow.launchIn
+import java.io.File
 import javax.inject.Inject
 
 @HiltAndroidApp
@@ -33,11 +34,60 @@ class HavenApp : Application() {
         // local processes (or an AI agent you've pointed at it) can
         // query, so it must be an explicit opt-in. When the user toggles
         // it in Settings we react by starting or stopping the server.
+        //
+        // We also advertise the endpoint to the PRoot rootfs by writing
+        // a ready-to-merge MCP server config JSON to
+        // /root/.config/haven/mcp-servers.json, so any MCP client the
+        // user has installed in PRoot can pick it up with a one-liner.
+        // When the endpoint is disabled the file is removed again.
         preferencesRepository.mcpAgentEndpointEnabled
             .distinctUntilChanged()
             .onEach { enabled ->
-                if (enabled) mcpServer.start() else mcpServer.stop()
+                if (enabled) {
+                    mcpServer.start()
+                    advertiseEndpointToProot()
+                } else {
+                    mcpServer.stop()
+                    removeEndpointFromProot()
+                }
             }
             .launchIn(appScope)
+    }
+
+    /**
+     * Path to the advertised MCP config file inside the extracted
+     * Alpine rootfs. The file is visible as `/root/.config/haven/
+     * mcp-servers.json` from inside PRoot.
+     */
+    private val prootMcpConfigFile: File
+        get() = File(
+            filesDir,
+            "proot/rootfs/alpine/root/.config/haven/mcp-servers.json",
+        )
+
+    private fun advertiseEndpointToProot() {
+        val rootfsDir = File(filesDir, "proot/rootfs/alpine")
+        if (!rootfsDir.exists()) return
+        val json = mcpServer.mcpServerConfigJson ?: return
+        try {
+            val target = prootMcpConfigFile
+            target.parentFile?.mkdirs()
+            target.writeText(json)
+            android.util.Log.d("HavenApp", "advertised MCP endpoint to ${target.absolutePath}")
+        } catch (e: Exception) {
+            android.util.Log.w("HavenApp", "failed to advertise MCP endpoint to PRoot: ${e.message}")
+        }
+    }
+
+    private fun removeEndpointFromProot() {
+        try {
+            val target = prootMcpConfigFile
+            if (target.exists()) {
+                target.delete()
+                android.util.Log.d("HavenApp", "removed advertised MCP endpoint from PRoot")
+            }
+        } catch (_: Exception) {
+            // Best-effort cleanup
+        }
     }
 }

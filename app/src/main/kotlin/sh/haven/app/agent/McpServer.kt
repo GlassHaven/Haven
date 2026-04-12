@@ -88,6 +88,28 @@ class McpServer @Inject constructor(
     private val _endpointUrl = MutableStateFlow<String?>(null)
     val endpointUrl: StateFlow<String?> = _endpointUrl.asStateFlow()
 
+    /**
+     * Standard MCP server registration JSON for the Haven endpoint.
+     * Null when the server isn't running. Any MCP-aware client can
+     * merge this into its own config; the shape is compatible with
+     * the common `{ "mcpServers": { "name": { "type", "url" } } }`
+     * format most clients accept.
+     */
+    val mcpServerConfigJson: String?
+        get() {
+            val url = _endpointUrl.value ?: return null
+            return """
+                {
+                  "mcpServers": {
+                    "haven": {
+                      "type": "http",
+                      "url": "$url"
+                    }
+                  }
+                }
+            """.trimIndent()
+        }
+
     private val tools = McpTools(
         connectionRepository = connectionRepository,
         sshSessionManager = sshSessionManager,

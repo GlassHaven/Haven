@@ -9,10 +9,17 @@ is uninstalled.
 
 ## What's already here
 
-A minimal Alpine minirootfs with `busybox` as `/bin`. That's it.
-Haven deliberately ships almost nothing so the baseline is small
-and Haven does not impose a toolchain preference. Everything else
-is one `apk add` away.
+Alpine's minirootfs with `busybox` as `/bin`, plus a tiny baseline
+that makes the environment immediately usable without any further
+setup:
+
+- `bash`             — interactive shell with readline support
+- `curl`             — for fetching install scripts and testing endpoints
+- `ca-certificates`  — so HTTPS to the public internet just works
+- `openssh-client`   — `ssh`, `scp`, `ssh-keygen`, `~/.ssh/config`
+
+That's deliberately minimal. Haven does not impose a toolchain
+preference, so anything beyond these four is one `apk add` away.
 
 ## Installing tools
 
@@ -53,12 +60,10 @@ machine that has the real toolchain.
 
 ### Setting up a remote workstation
 
-Inside this PRoot:
+Inside this PRoot — `~/.ssh` is already created for you with 0700
+permissions, `openssh-client` is already installed:
 
 ```sh
-# Generate a key dedicated to this PRoot
-apk add openssh-client
-mkdir -p ~/.ssh && chmod 700 ~/.ssh
 ssh-keygen -t ed25519 -C "proot@$(hostname)" -N "" -f ~/.ssh/id_ed25519
 cat ~/.ssh/id_ed25519.pub  # copy this output
 ```

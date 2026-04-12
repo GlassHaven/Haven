@@ -297,6 +297,15 @@ class ProotManager @Inject constructor(
                 seedRootHome(rootfsDir)
             }
 
+            // Install a minimal baseline of packages so the environment is
+            // immediately usable: bash (readline + .inputrc), curl +
+            // ca-certificates (for the user to follow install instructions
+            // over HTTPS), and openssh-client (for the remote-compute
+            // composition pattern documented in /root/README.md). Best-
+            // effort — if network is unavailable the rootfs is still fully
+            // usable with busybox and the user can run `apk add` later.
+            installBaseline()
+
             _state.value = SetupState.Ready
         } catch (e: Exception) {
             Log.e(TAG, "Rootfs install failed", e)
@@ -472,31 +481,105 @@ class ProotManager @Inject constructor(
     }
 
     /**
-     * Copy the templated /root/.profile and /root/README.md out of the
-     * APK assets into the freshly extracted rootfs. Only writes files
-     * that don't already exist so users can customise without the next
-     * rootfs install clobbering their edits.
+     * Seed a freshly-extracted rootfs with Haven's vendor-neutral
+     * defaults:
+     *
+     *  - `/root/.profile`     — interactive shell defaults + rexec helper
+     *  - `/root/README.md`    — welcome doc explaining the environment
+     *  - `/root/.inputrc`     — readline config (honoured once bash is installed)
+     *  - `/root/.ssh/`        — empty directory with 0700 permissions
+     *  - `/etc/profile.d/haven.sh` — universal PATH for any future user
+     *
+     * All files are only written if they don't already exist, so
+     * future rootfs refreshes never clobber user edits.
      */
     private fun seedRootHome(rootfsDir: File) {
         val rootHome = File(rootfsDir, "root").apply { mkdirs() }
-        val assetsToCopy = mapOf(
+        val rootAssets = mapOf(
             "proot/root/profile" to ".profile",
             "proot/root/README.md" to "README.md",
+            "proot/root/inputrc" to ".inputrc",
         )
-        for ((assetPath, targetName) in assetsToCopy) {
-            val target = File(rootHome, targetName)
-            if (target.exists()) {
-                Log.d(TAG, "Preserving existing /root/$targetName")
-                continue
-            }
+        for ((assetPath, targetName) in rootAssets) {
+            copyAssetIfAbsent(assetPath, File(rootHome, targetName), "/root/$targetName")
+        }
+
+        // Create /root/.ssh with owner-only permissions so the user
+        // doesn't have to remember chmod 700 before putting keys here.
+        val sshDir = File(rootHome, ".ssh")
+        if (!sshDir.exists()) {
             try {
-                context.assets.open(assetPath).use { input ->
-                    target.outputStream().use { output -> input.copyTo(output) }
+                sshDir.mkdirs()
+                // Java File API can't fully express 0700, so use the
+                // POSIX chmod syscall from android.system.Os
+                try {
+                    android.system.Os.chmod(sshDir.absolutePath, 0b111_000_000) // 0700
+                } catch (_: Throwable) {
+                    // Fall back to best-effort via File API
+                    sshDir.setReadable(true, true)
+                    sshDir.setWritable(true, true)
+                    sshDir.setExecutable(true, true)
+                    sshDir.setReadable(false, false)
+                    sshDir.setWritable(false, false)
+                    sshDir.setExecutable(false, false)
                 }
-                Log.d(TAG, "Seeded /root/$targetName from $assetPath")
+                Log.d(TAG, "Created /root/.ssh (0700)")
             } catch (e: Exception) {
-                Log.w(TAG, "Failed to seed /root/$targetName: ${e.message}")
+                Log.w(TAG, "Failed to create /root/.ssh: ${e.message}")
             }
+        }
+
+        // /etc/profile.d/haven.sh — system-wide snippet for any shell
+        // account that ever gets created in this rootfs
+        val profileD = File(rootfsDir, "etc/profile.d").apply { mkdirs() }
+        copyAssetIfAbsent(
+            "proot/etc/profile.d/haven.sh",
+            File(profileD, "haven.sh"),
+            "/etc/profile.d/haven.sh",
+        )
+    }
+
+    /** Copy an asset into [target] unless [target] already exists. Best-effort. */
+    private fun copyAssetIfAbsent(assetPath: String, target: File, displayPath: String) {
+        if (target.exists()) {
+            Log.d(TAG, "Preserving existing $displayPath")
+            return
+        }
+        try {
+            target.parentFile?.mkdirs()
+            context.assets.open(assetPath).use { input ->
+                target.outputStream().use { output -> input.copyTo(output) }
+            }
+            Log.d(TAG, "Seeded $displayPath from $assetPath")
+        } catch (e: Exception) {
+            Log.w(TAG, "Failed to seed $displayPath: ${e.message}")
+        }
+    }
+
+    /**
+     * Install a minimal baseline of packages into the fresh rootfs.
+     * Best-effort — if network or mirrors are unavailable the rootfs
+     * is still fully usable with just the busybox utilities Alpine's
+     * minirootfs ships. Failure here never fails the overall install.
+     *
+     * The baseline is deliberately tiny: just enough for an interactive
+     * session and to follow the SSH setup instructions in the README.
+     * Everything else (git, vim, compilers, language runtimes) is the
+     * user's choice and stays an explicit `apk add` away.
+     */
+    private suspend fun installBaseline() {
+        try {
+            val (output, code) = runCommandInProot(
+                "apk update >/dev/null 2>&1 && " +
+                    "apk add --no-cache bash curl ca-certificates openssh-client 2>&1 | tail -5",
+            )
+            if (code == 0) {
+                Log.d(TAG, "Baseline packages installed")
+            } else {
+                Log.w(TAG, "Baseline install exit=$code tail=${output.takeLast(200)}")
+            }
+        } catch (e: Exception) {
+            Log.w(TAG, "Baseline install failed (non-fatal): ${e.message}")
         }
     }
 

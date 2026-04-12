@@ -1,0 +1,36 @@
+# Readline configuration for /root. Used by bash and any other
+# readline-consuming tool; silently ignored by busybox ash, so it's
+# safe to ship before the user has installed bash.
+
+# Show completion matches in color by file type
+set colored-stats on
+
+# Highlight the common prefix of completion matches
+set colored-completion-prefix on
+
+# Case-insensitive completion
+set completion-ignore-case on
+set completion-map-case on
+
+# Show all ambiguous completions on the first Tab (don't make us
+# hit Tab twice)
+set show-all-if-ambiguous on
+set show-all-if-unmodified on
+
+# Add the file-type indicator (/, *, @) to completion listings
+set visible-stats on
+
+# Don't ring the terminal bell
+set bell-style none
+
+# Menu-complete cycles through matches in-place
+set menu-complete-display-prefix on
+
+# Up / Down search history based on what you've already typed on
+# the current line — by far the biggest interactive UX win.
+"\e[A": history-search-backward
+"\e[B": history-search-forward
+
+# Ctrl+Left / Ctrl+Right walk word boundaries
+"\e[1;5C": forward-word
+"\e[1;5D": backward-word

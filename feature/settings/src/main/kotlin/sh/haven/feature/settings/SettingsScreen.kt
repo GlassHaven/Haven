@@ -283,86 +283,6 @@ fun SettingsScreen(
             )
         }
 
-        // MCP agent endpoint — OFF by default. The endpoint gives local
-        // processes (and any AI agent you point at it) read access to
-        // connection profiles, active sessions, and cloud file listings.
-        SettingsToggleItem(
-            icon = Icons.Filled.Hub,
-            title = "Agent endpoint (MCP)",
-            subtitle = if (mcpAgentEndpointEnabled) {
-                "Enabled — local MCP server exposes read-only tools on loopback"
-            } else {
-                "Disabled — turn on to let local AI agents inspect Haven's state"
-            },
-            checked = mcpAgentEndpointEnabled,
-            onCheckedChange = viewModel::setMcpAgentEndpointEnabled,
-        )
-        if (mcpAgentEndpointEnabled) {
-            // Endpoint URL is always the canonical port range start —
-            // the server binds to the first free port in 8730..8739
-            val endpointUrl = "http://127.0.0.1:8730/mcp"
-            val mcpConfigJson = """
-                {
-                  "mcpServers": {
-                    "haven": {
-                      "type": "http",
-                      "url": "$endpointUrl"
-                    }
-                  }
-                }
-            """.trimIndent()
-            SettingsItem(
-                icon = Icons.Filled.ContentCopy,
-                title = "Copy agent endpoint URL",
-                subtitle = endpointUrl,
-                onClick = {
-                    val clipboard = context.getSystemService(Context.CLIPBOARD_SERVICE)
-                        as? android.content.ClipboardManager
-                    clipboard?.setPrimaryClip(
-                        android.content.ClipData.newPlainText("Haven MCP endpoint", endpointUrl),
-                    )
-                    Toast.makeText(context, "Endpoint copied", Toast.LENGTH_SHORT).show()
-                },
-            )
-            SettingsItem(
-                icon = Icons.Filled.ContentCopy,
-                title = "Copy MCP client config",
-                subtitle = "Standard JSON snippet to paste into any MCP client",
-                onClick = {
-                    val clipboard = context.getSystemService(Context.CLIPBOARD_SERVICE)
-                        as? android.content.ClipboardManager
-                    clipboard?.setPrimaryClip(
-                        android.content.ClipData.newPlainText(
-                            "Haven MCP server config",
-                            mcpConfigJson,
-                        ),
-                    )
-                    Toast.makeText(context, "Config copied", Toast.LENGTH_SHORT).show()
-                },
-            )
-            SettingsItem(
-                icon = Icons.Filled.Info,
-                title = "Also available in PRoot",
-                subtitle = "~/.config/haven/mcp-servers.json",
-                onClick = {},
-            )
-            SettingsItem(
-                icon = Icons.Filled.History,
-                title = if (unseenAgentActivity) "View agent activity  ●" else "View agent activity",
-                subtitle = "Every MCP call recorded with redacted args",
-                onClick = { showAgentActivity = true },
-            )
-            SettingsToggleItem(
-                icon = Icons.Filled.Fingerprint,
-                title = "Confirm destructive agent actions",
-                subtitle = "Prompt before any agent call that writes, " +
-                    "deletes, uploads, or disconnects. Read-only calls " +
-                    "(the only kind in this build) never prompt.",
-                checked = requireAgentConsentForWrites,
-                onCheckedChange = viewModel::setRequireAgentConsentForWrites,
-            )
-        }
-
         SettingsItem(
             icon = Icons.Filled.Terminal,
             title = stringResource(R.string.settings_session_persistence_title),
@@ -530,6 +450,88 @@ fun SettingsScreen(
                         }
                     }
                 },
+            )
+        }
+
+        // MCP agent endpoint — grouped near Shizuku because both are
+        // "lets an outside thing poke Haven" surfaces: Shizuku lets
+        // privileged Android helpers reach in, MCP lets local AI
+        // agents and scripts reach in. OFF by default. Read-only in
+        // this build.
+        SettingsToggleItem(
+            icon = Icons.Filled.Hub,
+            title = "Agent endpoint (MCP)",
+            subtitle = if (mcpAgentEndpointEnabled) {
+                "Enabled — local MCP server exposes read-only tools on loopback"
+            } else {
+                "Disabled — turn on to let local AI agents inspect Haven's state"
+            },
+            checked = mcpAgentEndpointEnabled,
+            onCheckedChange = viewModel::setMcpAgentEndpointEnabled,
+        )
+        if (mcpAgentEndpointEnabled) {
+            // Endpoint URL is always the canonical port range start —
+            // the server binds to the first free port in 8730..8739
+            val endpointUrl = "http://127.0.0.1:8730/mcp"
+            val mcpConfigJson = """
+                {
+                  "mcpServers": {
+                    "haven": {
+                      "type": "http",
+                      "url": "$endpointUrl"
+                    }
+                  }
+                }
+            """.trimIndent()
+            SettingsItem(
+                icon = Icons.Filled.ContentCopy,
+                title = "Copy agent endpoint URL",
+                subtitle = endpointUrl,
+                onClick = {
+                    val clipboard = context.getSystemService(Context.CLIPBOARD_SERVICE)
+                        as? android.content.ClipboardManager
+                    clipboard?.setPrimaryClip(
+                        android.content.ClipData.newPlainText("Haven MCP endpoint", endpointUrl),
+                    )
+                    Toast.makeText(context, "Endpoint copied", Toast.LENGTH_SHORT).show()
+                },
+            )
+            SettingsItem(
+                icon = Icons.Filled.ContentCopy,
+                title = "Copy MCP client config",
+                subtitle = "Standard JSON snippet to paste into any MCP client",
+                onClick = {
+                    val clipboard = context.getSystemService(Context.CLIPBOARD_SERVICE)
+                        as? android.content.ClipboardManager
+                    clipboard?.setPrimaryClip(
+                        android.content.ClipData.newPlainText(
+                            "Haven MCP server config",
+                            mcpConfigJson,
+                        ),
+                    )
+                    Toast.makeText(context, "Config copied", Toast.LENGTH_SHORT).show()
+                },
+            )
+            SettingsItem(
+                icon = Icons.Filled.Info,
+                title = "Also available in PRoot",
+                subtitle = "~/.config/haven/mcp-servers.json",
+                onClick = {},
+            )
+            SettingsItem(
+                icon = Icons.Filled.History,
+                title = if (unseenAgentActivity) "View agent activity  ●" else "View agent activity",
+                subtitle = "Every MCP call recorded with redacted args",
+                onClick = { showAgentActivity = true },
+            )
+            SettingsToggleItem(
+                icon = Icons.Filled.Fingerprint,
+                title = "Confirm destructive agent actions",
+                subtitle = "Prompt before any agent call that writes, " +
+                    "deletes, uploads, or disconnects. Read-only calls " +
+                    "(the only kind in this build) never prompt.",
+                checked = requireAgentConsentForWrites,
+                onCheckedChange = viewModel::setRequireAgentConsentForWrites,
             )
         }
 

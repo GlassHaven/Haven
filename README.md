@@ -13,7 +13,7 @@
 <p align="center">
   <a href="https://github.com/GlassOnTin/Haven/releases/latest"><img src="https://img.shields.io/github/v/release/GlassOnTin/Haven?style=flat-square" alt="Release" /></a>
   <a href="https://f-droid.org/en/packages/sh.haven.app"><img src="https://img.shields.io/f-droid/v/sh.haven.app?style=flat-square" alt="F-Droid" /></a>
-  <a href="https://github.com/GlassOnTin/Haven/actions/workflows/release.yml"><img src="https://github.com/GlassOnTin/Haven/actions/workflows/release.yml/badge.svg" alt="Build" /></a>
+  <a href="https://github.com/GlassOnTin/Haven/actions/workflows/ci.yml?query=branch%3Amain"><img src="https://img.shields.io/github/check-runs/GlassOnTin/Haven/main?style=flat-square&label=build" alt="Build" /></a>
   <a href="LICENSE"><img src="https://img.shields.io/github/license/GlassOnTin/Haven?style=flat-square" alt="License" /></a>
   <img src="https://img.shields.io/badge/Android-8.0%2B-3ddc84?style=flat-square&logo=android&logoColor=white" alt="Android 8.0+" />
   <a href="https://github.com/GlassOnTin/Haven/releases"><img src="https://img.shields.io/github/downloads/GlassOnTin/Haven/total?style=flat-square&label=downloads" alt="Downloads" /></a>

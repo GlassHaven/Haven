@@ -19,6 +19,9 @@ android {
         targetCompatibility = JavaVersion.VERSION_17
     }
 
+    testOptions {
+        unitTests.isReturnDefaultValues = true
+    }
 
     buildFeatures {
         compose = true
@@ -40,6 +43,8 @@ dependencies {
     ksp(libs.hilt.compiler)
     implementation(libs.hilt.navigation.compose)
     implementation(libs.lifecycle.viewmodel)
+
+    testImplementation(libs.junit)
 }
 
 kotlin {

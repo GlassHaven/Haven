@@ -118,6 +118,88 @@ class ConnectionConfigTest {
         assert(key1 != key3)
     }
 
+    // H3: passphrase is held as a CharArray so it can be zeroed.
+    // These tests pin the contract that drove the security fix —
+    // future refactors that revert PrivateKey.passphrase to String
+    // (or any other immutable type) will fail compilation here.
+
+    @Test
+    fun `PrivateKey passphrase is a CharArray`() {
+        val key = ConnectionConfig.AuthMethod.PrivateKey(
+            keyBytes = byteArrayOf(1),
+            passphrase = charArrayOf('s', 'e', 'c', 'r', 'e', 't'),
+        )
+        assertTrue(key.passphrase.contentEquals(charArrayOf('s', 'e', 'c', 'r', 'e', 't')))
+    }
+
+    @Test
+    fun `PrivateKey String secondary constructor copies into CharArray`() {
+        val key = ConnectionConfig.AuthMethod.PrivateKey(byteArrayOf(1), "secret")
+        assertTrue(key.passphrase.contentEquals(charArrayOf('s', 'e', 'c', 'r', 'e', 't')))
+    }
+
+    @Test
+    fun `PrivateKey clear zeros the passphrase in place`() {
+        val passphrase = charArrayOf('h', 'u', 'n', 't', 'e', 'r', '2')
+        val key = ConnectionConfig.AuthMethod.PrivateKey(byteArrayOf(1), passphrase)
+        key.clear()
+        // The same array the caller passed in is now zeroed — no residual
+        // characters can be recovered from a heap dump after teardown.
+        assertTrue(passphrase.all { it == '\u0000' })
+        assertTrue(key.passphrase.all { it == '\u0000' })
+    }
+
+    @Test
+    fun `PrivateKey equals compares passphrase content not reference`() {
+        val a = ConnectionConfig.AuthMethod.PrivateKey(byteArrayOf(1), charArrayOf('p', 'w'))
+        val b = ConnectionConfig.AuthMethod.PrivateKey(byteArrayOf(1), charArrayOf('p', 'w'))
+        val c = ConnectionConfig.AuthMethod.PrivateKey(byteArrayOf(1), charArrayOf('p', 'x'))
+        assertEquals(a, b)
+        assertEquals(a.hashCode(), b.hashCode())
+        assert(a != c)
+    }
+
+    @Test
+    fun `PrivateKey defaults to empty passphrase`() {
+        val key = ConnectionConfig.AuthMethod.PrivateKey(byteArrayOf(1))
+        assertEquals(0, key.passphrase.size)
+    }
+
+    @Test
+    fun `PrivateKey copy() preserves data class semantics for SshSessionManager deep-copy`() {
+        // SshSessionManager.getConnectionConfigForProfile() relies on
+        // PrivateKey.copy(keyBytes = ...) to make a defensive copy of the
+        // key material before handing it to a reconnect path. Pin that
+        // the data class copy() is still generated.
+        val original = ConnectionConfig.AuthMethod.PrivateKey(
+            keyBytes = byteArrayOf(1, 2, 3),
+            passphrase = charArrayOf('p', 'w'),
+        )
+        val duplicate = original.copy(keyBytes = original.keyBytes.copyOf())
+        assertTrue(duplicate.keyBytes.contentEquals(byteArrayOf(1, 2, 3)))
+        assertTrue(duplicate.passphrase.contentEquals(charArrayOf('p', 'w')))
+        // Mutating the copy's keyBytes must not affect the original.
+        duplicate.keyBytes[0] = 0
+        assertEquals(1.toByte(), original.keyBytes[0])
+    }
+
+    // M3: Password.clear() pre-existed but pin its contract for completeness.
+
+    @Test
+    fun `Password clear zeros the password CharArray`() {
+        val pw = charArrayOf('a', 'b', 'c')
+        val auth = ConnectionConfig.AuthMethod.Password(pw)
+        auth.clear()
+        assertTrue(pw.all { it == '\u0000' })
+        assertTrue(auth.password.all { it == '\u0000' })
+    }
+
+    @Test
+    fun `Password String secondary constructor stores a CharArray`() {
+        val auth = ConnectionConfig.AuthMethod.Password("hunter2")
+        assertTrue(auth.password.contentEquals(charArrayOf('h', 'u', 'n', 't', 'e', 'r', '2')))
+    }
+
     // PrivateKeys auth method
 
     @Test

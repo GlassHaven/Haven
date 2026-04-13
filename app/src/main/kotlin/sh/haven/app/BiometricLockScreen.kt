@@ -34,6 +34,64 @@ import androidx.lifecycle.Lifecycle
 import androidx.lifecycle.LifecycleEventObserver
 import sh.haven.core.security.BiometricAuthenticator
 
+/**
+ * What the lock screen should render for a given biometric availability.
+ *
+ * Sealed so that adding a new state forces every site (composable +
+ * unit tests) to handle it explicitly. Critically, no variant means
+ * "auto unlock" — that's what the C2 fix enforces. Future refactors
+ * cannot accidentally re-introduce a silent-bypass branch without
+ * adding a new sealed subtype.
+ */
+internal sealed class BiometricLockState {
+    /** Biometric/device-credential is available — render the prompt. */
+    object Prompt : BiometricLockState()
+
+    /**
+     * Authentication cannot be performed at all (no enrolment, or no
+     * hardware, or no host activity). Render an explanation and a
+     * recovery path. Never call onUnlocked from this state.
+     */
+    data class Blocked(
+        val title: String,
+        val body: String,
+        val canOpenSettings: Boolean,
+    ) : BiometricLockState()
+}
+
+/**
+ * Pure decision function for the lock screen UI. Kept non-composable
+ * and non-Android so it can be exercised by plain JVM unit tests
+ * (see BiometricLockStateTest).
+ */
+internal fun biometricLockStateFor(
+    availability: BiometricAuthenticator.Availability,
+    hasFragmentActivity: Boolean,
+): BiometricLockState {
+    if (!hasFragmentActivity) {
+        return BiometricLockState.Blocked(
+            title = "Haven is locked",
+            body = "Cannot show authentication prompt in this context.",
+            canOpenSettings = false,
+        )
+    }
+    return when (availability) {
+        BiometricAuthenticator.Availability.AVAILABLE -> BiometricLockState.Prompt
+        BiometricAuthenticator.Availability.NOT_ENROLLED -> BiometricLockState.Blocked(
+            title = "Set up a screen lock",
+            body = "Haven app-lock is enabled, but this device has no screen lock " +
+                "or biometric enrolled. Set one up in device Settings to unlock.",
+            canOpenSettings = true,
+        )
+        BiometricAuthenticator.Availability.NO_HARDWARE -> BiometricLockState.Blocked(
+            title = "Authentication unavailable",
+            body = "This device cannot authenticate (no biometric hardware and no " +
+                "device credential). Set up a PIN or password in Settings to unlock.",
+            canOpenSettings = true,
+        )
+    }
+}
+
 @Composable
 fun BiometricLockScreen(
     authenticator: BiometricAuthenticator,
@@ -59,59 +117,43 @@ fun BiometricLockScreen(
         onDispose { lifecycleOwner.lifecycle.removeObserver(observer) }
     }
 
-    // No host activity — refuse to unlock. Better to be stuck on a blank
-    // screen than to hand out credentials.
-    if (activity == null) {
+    val lockState = biometricLockStateFor(availability, hasFragmentActivity = activity != null)
+    if (lockState is BiometricLockState.Blocked) {
+        val maybeActivity = activity
         LockedSurface(
-            title = "Haven is locked",
-            body = "Cannot show authentication prompt in this context.",
+            title = lockState.title,
+            body = lockState.body,
+            primaryLabel = if (lockState.canOpenSettings) "Open device settings" else null,
+            onPrimary = if (lockState.canOpenSettings && maybeActivity != null) {
+                {
+                    runCatching {
+                        maybeActivity.startActivity(
+                            Intent(Settings.ACTION_SECURITY_SETTINGS)
+                                .addFlags(Intent.FLAG_ACTIVITY_NEW_TASK),
+                        )
+                    }
+                }
+            } else null,
         )
         return
     }
 
-    // Biometric/device-credential not available — show a clear blocked
-    // state with a path to fix it. NEVER auto-unlock: the user enabled
-    // app-lock for a reason, and silently bypassing it on hardware
-    // unenrollment turns the lock into security theatre.
-    if (availability != BiometricAuthenticator.Availability.AVAILABLE) {
-        val (heading, explanation) = when (availability) {
-            BiometricAuthenticator.Availability.NOT_ENROLLED ->
-                "Set up a screen lock" to
-                    "Haven app-lock is enabled, but this device has no screen lock " +
-                    "or biometric enrolled. Set one up in device Settings to unlock."
-            BiometricAuthenticator.Availability.NO_HARDWARE ->
-                "Authentication unavailable" to
-                    "This device cannot authenticate (no biometric hardware and no " +
-                    "device credential). Set up a PIN or password in Settings to unlock."
-            else -> "Haven is locked" to "Authenticate to continue"
-        }
-        LockedSurface(
-            title = heading,
-            body = explanation,
-            primaryLabel = "Open device settings",
-            onPrimary = {
-                runCatching {
-                    activity.startActivity(
-                        Intent(Settings.ACTION_SECURITY_SETTINGS)
-                            .addFlags(Intent.FLAG_ACTIVITY_NEW_TASK),
-                    )
-                }
-            },
-        )
-        return
-    }
+    // lockState is Prompt — biometricLockStateFor() guarantees this only
+    // happens when activity != null, but the compiler can't see through
+    // the sealed-class branch. Bind a local non-null ref.
+    val promptActivity = activity!!
 
     // Trigger counter: increment to re-launch authentication
     var authTrigger by remember { mutableStateOf(0) }
 
     LaunchedEffect(authTrigger) {
         errorMessage = null
-        when (val result = authenticator.authenticate(activity)) {
+        when (val result = authenticator.authenticate(promptActivity)) {
             is BiometricAuthenticator.AuthResult.Success -> onUnlocked()
             is BiometricAuthenticator.AuthResult.Failure -> errorMessage = result.message
             is BiometricAuthenticator.AuthResult.Cancelled -> {
                 // User cancelled — send them back to the home screen
-                (activity as? android.app.Activity)?.moveTaskToBack(true)
+                promptActivity.moveTaskToBack(true)
             }
         }
     }

@@ -1,0 +1,10 @@
+v5.4.0: Stream SFTP media files without downloading
+
+- SFTP browser: the Stream menu entry now works for
+  media files on SFTP profiles. Haven serves the remote
+  file over a loopback HTTP bridge backed by
+  ChannelSftp.get(path, skip), so ffmpeg reads only the
+  bytes it needs — no full cache download.
+- Convert dialog previews for SFTP use the same bridge.
+- MCP agent: new list_sftp_directory, stream_sftp_file
+  and stop_stream tools.

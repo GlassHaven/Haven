@@ -346,6 +346,11 @@ fun HavenNavHost(
                         NavigationBarItem(
                             icon = { Icon(screen.icon, contentDescription = stringResource(screen.labelRes)) },
                             label = {
+                                // maxLines = 1 + ellipsis guards against any locale whose
+                                // nav label is too long for the tab slot on narrow devices
+                                // (e.g. Samsung S23 portrait with 5 tabs). Previously the
+                                // label could wrap to two lines and distort the whole bar
+                                // height — see #78.
                                 Text(
                                     text = stringResource(screen.labelRes),
                                     maxLines = 1,
@@ -358,6 +363,8 @@ fun HavenNavHost(
                                 if (navDragIndex < 0) {
                                     val pageIndex = screens.indexOf(screen)
                                     if (pageIndex >= 0) coroutineScope.launch {
+                                        // Use instant scroll to avoid double-jump through
+                                        // intermediate pages during animated scroll
                                         pagerState.scrollToPage(pageIndex)
                                     }
                                 }

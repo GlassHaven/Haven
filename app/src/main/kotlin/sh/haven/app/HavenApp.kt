@@ -1,8 +1,6 @@
 package sh.haven.app
 
 import android.app.Application
-import com.chaquo.python.Python
-import com.chaquo.python.android.AndroidPlatform
 import dagger.hilt.android.HiltAndroidApp
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
@@ -23,9 +21,6 @@ class HavenApp : Application() {
 
     override fun onCreate() {
         super.onCreate()
-        if (!Python.isStarted()) {
-            Python.start(AndroidPlatform(this))
-        }
         // Register Shizuku binder listeners early so the async callback
         // has time to fire before any UI checks isShizukuAvailable().
         sh.haven.core.local.WaylandSocketHelper.initShizukuListeners()

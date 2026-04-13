@@ -1041,13 +1041,13 @@ class SftpViewModel @Inject constructor(
                         val profileId = _activeProfileId.value
                             ?: throw IllegalStateException("No active profile")
                         val port = withContext(Dispatchers.IO) { sftpStreamServer.start() }
-                        val key = sftpStreamServer.publish(
+                        val urlPath = sftpStreamServer.publish(
                             path = entry.path,
                             size = entry.size,
                             contentType = guessContentType(entry.name),
                             opener = sftpOpener(profileId, entry.path),
                         )
-                        "http://127.0.0.1:$port/$key"
+                        "http://127.0.0.1:$port$urlPath"
                     }
                 }
                 Log.w(TAG, "Starting HLS stream for $streamInput")
@@ -1150,13 +1150,13 @@ class SftpViewModel @Inject constructor(
                         // a few hundred KB) instead of downloading the whole
                         // file to cache.
                         val port = withContext(Dispatchers.IO) { sftpStreamServer.start() }
-                        val key = sftpStreamServer.publish(
+                        val urlPath = sftpStreamServer.publish(
                             path = entry.path,
                             size = entry.size,
                             contentType = guessContentType(entry.name),
                             opener = sftpOpener(profileId, entry.path),
                         )
-                        inputSource = "http://127.0.0.1:$port/$key"
+                        inputSource = "http://127.0.0.1:$port$urlPath"
                         isRemote = true
                         Log.d(TAG, "preparePreview: using SFTP HTTP URL $inputSource")
                     }

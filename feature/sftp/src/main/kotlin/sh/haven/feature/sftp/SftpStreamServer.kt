@@ -7,10 +7,14 @@ import java.io.OutputStream
 import java.net.InetAddress
 import java.net.ServerSocket
 import java.net.Socket
+import java.security.MessageDigest
+import java.security.SecureRandom
 import java.util.concurrent.ConcurrentHashMap
 import javax.inject.Inject
 import javax.inject.Singleton
 import kotlin.concurrent.thread
+import kotlin.io.encoding.Base64
+import kotlin.io.encoding.ExperimentalEncodingApi
 
 private const val TAG = "SftpStreamServer"
 
@@ -49,10 +53,20 @@ class SftpStreamServer @Inject constructor() : Closeable {
     private var serverThread: Thread? = null
     private val entries = ConcurrentHashMap<String, Entry>()
     private val channelLock = Any()
+    private val tokenBytes = ByteArray(32)
 
     @Volatile
     var port: Int = 0
         private set
+
+    /**
+     * Per-server-start random token. Required as the first URL path
+     * segment on every request — without it, requests get 404. Prevents
+     * other apps on the device from reading SFTP files via the loopback
+     * port (the port itself is enumerable, the token is not).
+     */
+    @Volatile
+    private var token: String = ""
 
     @Volatile
     private var running: Boolean = false
@@ -60,6 +74,8 @@ class SftpStreamServer @Inject constructor() : Closeable {
     /** Start the loopback server. Returns the bound port. Idempotent. */
     fun start(preferredPort: Int = 0): Int {
         if (running) return port
+        SecureRandom().nextBytes(tokenBytes)
+        token = encodeTokenUrlSafe(tokenBytes)
         val ss = ServerSocket(preferredPort, 4, InetAddress.getByName("127.0.0.1"))
         serverSocket = ss
         port = ss.localPort
@@ -79,10 +95,12 @@ class SftpStreamServer @Inject constructor() : Closeable {
     }
 
     /**
-     * Register a file and return the URL path segment to use. The key is
-     * the URL-encoded file path. Re-publishing the same key replaces the
-     * previous opener so a caller can point ffmpeg at the same URL with
-     * a fresh channel after reconnecting.
+     * Register a file and return the absolute URL path (beginning with
+     * `/`) to use. The path includes the per-server-start auth token —
+     * callers concatenate it onto `http://127.0.0.1:$port` to form the
+     * full URL. Re-publishing the same file path replaces the previous
+     * opener so a caller can point ffmpeg at the same URL with a fresh
+     * channel after reconnecting.
      */
     fun publish(
         path: String,
@@ -94,7 +112,7 @@ class SftpStreamServer @Inject constructor() : Closeable {
             java.net.URLEncoder.encode(it, "UTF-8").replace("+", "%20")
         }
         entries[key] = Entry(path = path, size = size, contentType = contentType, opener = opener)
-        return key
+        return "/$token/$key"
     }
 
     override fun close() = stop()
@@ -105,6 +123,8 @@ class SftpStreamServer @Inject constructor() : Closeable {
         serverSocket = null
         serverThread = null
         entries.clear()
+        token = ""
+        tokenBytes.fill(0)
         port = 0
     }
 
@@ -127,8 +147,20 @@ class SftpStreamServer @Inject constructor() : Closeable {
                     }
                 }
 
-                val key = target.removePrefix("/").substringBefore('?')
                 val out = s.getOutputStream()
+                val pathOnly = target.substringBefore('?').removePrefix("/")
+                val slash = pathOnly.indexOf('/')
+                if (slash <= 0) {
+                    writeStatus(out, 404, "Not Found")
+                    return
+                }
+                val receivedToken = pathOnly.substring(0, slash)
+                val key = pathOnly.substring(slash + 1)
+                val expected = token
+                if (expected.isEmpty() || !constantTimeEquals(receivedToken, expected)) {
+                    writeStatus(out, 404, "Not Found")
+                    return
+                }
                 val entry = entries[key]
                 if (entry == null) {
                     writeStatus(out, 404, "Not Found")
@@ -177,7 +209,6 @@ class SftpStreamServer @Inject constructor() : Closeable {
                     append("Content-Type: ${entry.contentType}\r\n")
                     append("Content-Length: $length\r\n")
                     append("Accept-Ranges: bytes\r\n")
-                    append("Access-Control-Allow-Origin: *\r\n")
                     append("Connection: close\r\n\r\n")
                 }
                 out.write(hdr.toByteArray())
@@ -217,4 +248,11 @@ class SftpStreamServer @Inject constructor() : Closeable {
         out.write(resp.toByteArray())
         out.flush()
     }
+
+    @OptIn(ExperimentalEncodingApi::class)
+    private fun encodeTokenUrlSafe(bytes: ByteArray): String =
+        Base64.UrlSafe.encode(bytes).trimEnd('=')
+
+    private fun constantTimeEquals(a: String, b: String): Boolean =
+        MessageDigest.isEqual(a.toByteArray(Charsets.US_ASCII), b.toByteArray(Charsets.US_ASCII))
 }

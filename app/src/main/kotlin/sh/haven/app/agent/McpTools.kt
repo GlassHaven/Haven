@@ -303,7 +303,7 @@ internal class McpTools(
         }
 
         val streamPort = sftpStreamServer.start()
-        val key = sftpStreamServer.publish(
+        val urlPath = sftpStreamServer.publish(
             path = path,
             size = size,
             contentType = guessContentType(path),
@@ -317,7 +317,7 @@ internal class McpTools(
                 }
             },
         )
-        val sourceUrl = "http://127.0.0.1:$streamPort/$key"
+        val sourceUrl = "http://127.0.0.1:$streamPort$urlPath"
         val hlsPort = hlsStreamServer.startFile(sourceUrl)
         JSONObject().apply {
             put("profileId", profileId)

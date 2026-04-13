@@ -1,6 +1,24 @@
 <?xml version="1.0" encoding="utf-8"?>
 <paths>
+    <!--
+      FileProvider paths. Anything reachable via these declarations can
+      be turned into a content:// URI and shared via Intent. Keep them
+      as narrow as possible — every entry is an attack surface.
+
+      cache-path covers staging files (downloaded APK, generated HLS
+      playlists) and the local-browser "App Cache" root. cacheDir
+      contains no Haven secrets.
+
+      external-path covers the local-browser "Internal Storage" and
+      "Downloads" roots — user data the user already controls.
+
+      files-path is narrowed to the PRoot alpine rootfs only, so the
+      Tink credential keystore, DataStore preferences, and any other
+      filesDir contents stay off-limits. The previous <root-path .="."/>
+      entry exposed the entire app data directory including the Room
+      database with encrypted credentials and is intentionally removed.
+    -->
     <cache-path name="cache" path="." />
     <external-path name="external" path="." />
-    <root-path name="root" path="." />
+    <files-path name="proot" path="proot/" />
 </paths>

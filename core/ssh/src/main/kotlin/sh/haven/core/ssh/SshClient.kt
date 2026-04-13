@@ -73,14 +73,14 @@ class SshClient : Closeable {
 
         when (val auth = config.authMethod) {
             is ConnectionConfig.AuthMethod.Password -> {
-                sess.setPassword(String(auth.password))
+                sess.setPassword(charsToUtf8Bytes(auth.password))
             }
             is ConnectionConfig.AuthMethod.PrivateKey -> {
                 jsch.addIdentity(
                     "haven-key",
                     auth.keyBytes,
                     null,
-                    auth.passphrase.ifEmpty { null }?.toByteArray(),
+                    if (auth.passphrase.isNotEmpty()) charsToUtf8Bytes(auth.passphrase) else null,
                 )
             }
             is ConnectionConfig.AuthMethod.PrivateKeys -> {
@@ -216,14 +216,14 @@ class SshClient : Closeable {
 
         when (val auth = config.authMethod) {
             is ConnectionConfig.AuthMethod.Password -> {
-                sess.setPassword(String(auth.password))
+                sess.setPassword(charsToUtf8Bytes(auth.password))
             }
             is ConnectionConfig.AuthMethod.PrivateKey -> {
                 jsch.addIdentity(
                     "haven-key-${System.nanoTime()}",
                     auth.keyBytes,
                     null,
-                    auth.passphrase.ifEmpty { null }?.toByteArray(),
+                    if (auth.passphrase.isNotEmpty()) charsToUtf8Bytes(auth.passphrase) else null,
                 )
             }
             is ConnectionConfig.AuthMethod.PrivateKeys -> {
@@ -343,6 +343,33 @@ class SshClient : Closeable {
         } catch (e: Throwable) {
             diag("Could not read JSch identity repo: ${e.javaClass.simpleName}: ${e.message}")
         }
+    }
+
+    /**
+     * Encode a `CharArray` to its UTF-8 byte representation without
+     * passing through `String`. JSch's `setPassword(byte[])` and
+     * `addIdentity(..., byte[] passphrase)` overloads are used so the
+     * secret never lands in an immutable `String` (which can't be
+     * zeroed). The returned `ByteArray` is handed to JSch, which
+     * keeps a reference for the lifetime of the auth attempt — the
+     * caller is responsible for clearing the source `CharArray` via
+     * `AuthMethod.Password.clear()` / `AuthMethod.PrivateKey.clear()`
+     * once the session is established.
+     */
+    private fun charsToUtf8Bytes(chars: CharArray): ByteArray {
+        val cb = java.nio.CharBuffer.wrap(chars)
+        val bb = Charsets.UTF_8.encode(cb)
+        val limit = bb.limit()
+        val out = ByteArray(limit)
+        bb.get(out)
+        // Best-effort wipe of the temporary ByteBuffer's backing array
+        // before it goes out of scope. No-op for a direct buffer.
+        if (bb.hasArray()) {
+            val backing = bb.array()
+            val from = bb.arrayOffset()
+            java.util.Arrays.fill(backing, from, from + limit, 0.toByte())
+        }
+        return out
     }
 
     private fun extractHostKey(sess: Session, host: String, port: Int): KnownHostEntry {

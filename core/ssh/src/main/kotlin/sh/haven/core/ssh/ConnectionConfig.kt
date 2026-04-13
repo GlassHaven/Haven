@@ -27,13 +27,30 @@ data class ConnectionConfig(
             constructor(passwordString: String) : this(passwordString.toCharArray())
             fun clear() { password.fill('\u0000') }
         }
-        data class PrivateKey(val keyBytes: ByteArray, val passphrase: String = "") : AuthMethod {
+        /**
+         * Private-key auth. The passphrase is held as a [CharArray] so it
+         * can be zeroed via [clear] after the SSH session has consumed it
+         * — `String` would intern/move the value out of reach. Use the
+         * String secondary constructor only at boundaries you don't
+         * control (UI text fields).
+         */
+        data class PrivateKey(
+            val keyBytes: ByteArray,
+            val passphrase: CharArray = CharArray(0),
+        ) : AuthMethod {
+            constructor(keyBytes: ByteArray, passphrase: String) :
+                this(keyBytes, passphrase.toCharArray())
+
+            fun clear() { passphrase.fill('\u0000') }
+
             override fun equals(other: Any?): Boolean {
                 if (this === other) return true
                 if (other !is PrivateKey) return false
-                return keyBytes.contentEquals(other.keyBytes) && passphrase == other.passphrase
+                return keyBytes.contentEquals(other.keyBytes) &&
+                    passphrase.contentEquals(other.passphrase)
             }
-            override fun hashCode(): Int = keyBytes.contentHashCode() * 31 + passphrase.hashCode()
+            override fun hashCode(): Int =
+                keyBytes.contentHashCode() * 31 + passphrase.contentHashCode()
         }
         data class PrivateKeys(val keys: List<Pair<String, ByteArray>>) : AuthMethod
         /** FIDO2 SK key — signing delegated to hardware security key. */

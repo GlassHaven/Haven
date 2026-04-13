@@ -636,7 +636,10 @@ class SshSessionManager @Inject constructor(
         // Zero out auth material so it doesn't linger in heap
         when (val auth = session.connectionConfig?.authMethod) {
             is ConnectionConfig.AuthMethod.Password -> auth.clear()
-            is ConnectionConfig.AuthMethod.PrivateKey -> auth.keyBytes.fill(0)
+            is ConnectionConfig.AuthMethod.PrivateKey -> {
+                auth.keyBytes.fill(0)
+                auth.clear()
+            }
             else -> {}
         }
     }

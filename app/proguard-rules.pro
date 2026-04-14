@@ -29,6 +29,12 @@
 # Keep termlib classes — native JNI renderer accesses fields by name
 -keep class org.connectbot.terminal.** { *; }
 
+# Keep mosh transport + generated protobuf classes.
+# The pure-Kotlin transport reflects on protobuf field names like `width_`.
+# If R8 renames those fields, Mosh connects but never establishes a usable
+# terminal session in release builds.
+-keep class sh.haven.mosh.** { *; }
+
 # Keep smbj (reflection-based protocol handling)
 -keep class com.hierynomus.** { *; }
 -keep class net.engio.** { *; }

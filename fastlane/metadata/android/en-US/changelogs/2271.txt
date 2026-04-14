@@ -1,0 +1,17 @@
+v5.4.5: Reticulum and terminal copy work in release builds
+
+Two latent bugs of the same shape as #82 and #93, found in a
+post-ship reflection-in-minified-code sweep:
+
+- Reticulum features were silently broken in release builds.
+  rns-core and rns-interfaces do extensive class-literal
+  reflection (link::class.java.getMethod("getLinkId"), etc),
+  but the consumer-rules.pro keep rule lives in the unused
+  rns-android module and never reached Haven's R8 pass. Added
+  explicit keeps for network.reticulum.** and org.msgpack.**.
+- Terminal smart copy and word-expand-on-long-press relied on
+  reflection into TerminalEmulator's internal snapshot flow
+  (getSnapshot$lib), which Kotlin mangles to getSnapshot$lib_release
+  in release builds, so selection helpers silently returned null.
+  Added a public getSnapshotLineTexts() accessor to termlib and
+  removed the reflection.

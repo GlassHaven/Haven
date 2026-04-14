@@ -54,6 +54,25 @@
 -keep class dagger.hilt.** { *; }
 -keep class javax.inject.** { *; }
 
+# Keep Reticulum — rns-core and rns-interfaces do extensive class-literal
+# reflection (link::class.java.getMethod("getLinkId"), getInitiator,
+# receive, validateProof, getExpectedHops, getAttachedInterfaceHash,
+# clientCount, etc). The rns-android module has a consumer-rules.pro
+# with the correct keeps, but Haven consumes rns-core/rns-interfaces
+# directly via settings.gradle.kts substitution and rns-android is never
+# pulled in, so those consumer rules never reach the app's R8 pass.
+# Without this, every reflective link/packet operation throws
+# NoSuchMethodException in release builds (verified against v5.4.4
+# mapping.txt: Transport → w4.q, Reticulum → j4.a).
+-keep class network.reticulum.** { *; }
+-keep interface network.reticulum.** { *; }
+
+# Keep MessagePack — Reticulum's serialization path resolves classes
+# by string name (e.g. MessageBufferU). Same reason as above: rns-android
+# consumer rules aren't reaching us.
+-keep class org.msgpack.** { *; }
+-dontwarn org.msgpack.**
+
 # Keep JNA Structure subclasses — IronRDP (UniFFI-generated sh.haven.rdp.**)
 # uses @Structure.FieldOrder("capacity", "len", ...) string literals that
 # JNA resolves reflectively at runtime. R8 renames the @JvmField properties

@@ -65,7 +65,6 @@ private class AnchorMover(private val controller: SelectionController) {
  * token) under the cursor. Called immediately after long-press starts selection.
  *
  * Uses the public SelectionController API for anchor manipulation.
- * Still uses reflection for snapshot line text (internal to termlib).
  */
 internal fun expandSelectionToWord(
     controller: SelectionController,
@@ -76,10 +75,9 @@ internal fun expandSelectionToWord(
         val row = range.startRow
         val col = range.startCol
 
-        // Get line text at selection row (still requires reflection for snapshot)
         val lines = getSnapshotLines(emulator) ?: return
         if (row < 0 || row >= lines.size) return
-        val text = getLineText(lines[row])
+        val text = lines[row]
         if (col < 0 || col >= text.length) return
 
         // Don't expand if long-pressed on whitespace
@@ -102,29 +100,21 @@ internal fun expandSelectionToWord(
 }
 
 /**
- * Extract snapshot lines from the terminal emulator via reflection.
- * Returns null if reflection fails.
+ * Plain-text lines of the terminal's current snapshot. Returns null on
+ * any failure so callers can fall back cleanly. Previously used
+ * reflection to read the internal `snapshot` StateFlow, which silently
+ * broke under Kotlin's `$lib_release` visibility mangling in release
+ * builds; now calls `TerminalEmulator.getSnapshotLineTexts()` directly.
  */
-@Suppress("UNCHECKED_CAST")
 private fun getSnapshotLines(
     emulator: org.connectbot.terminal.TerminalEmulator,
-): List<Any>? {
+): List<String>? {
     return try {
-        val snapshotFlow = emulator.javaClass.getMethod("getSnapshot\$lib").invoke(emulator)
-        val snapshot = snapshotFlow.javaClass.getMethod("getValue").invoke(snapshotFlow)
-            ?: return null
-        snapshot.javaClass.getMethod("getLines").invoke(snapshot) as List<Any>
+        emulator.getSnapshotLineTexts()
     } catch (e: Exception) {
         Log.d(TAG, "getSnapshotLines: ${e.message}")
         null
     }
-}
-
-/** Get text content of a snapshot line via reflection. */
-private fun getLineText(line: Any): String {
-    return try {
-        line.javaClass.getMethod("getText").invoke(line) as String
-    } catch (e: Exception) { "" }
 }
 
 /** True if the character is a vertical box-drawing border. */
@@ -221,7 +211,8 @@ private fun extractWithSoftWrapUnwrap(
  * 2. Soft-wrap unwrapping — joins lines that were soft-wrapped at the terminal
  *    width boundary, so copied text reads as it would in a wider terminal.
  *
- * Falls back to [SelectionController.copySelection] if reflection fails.
+ * Returns null if the emulator snapshot is unavailable; callers should
+ * fall back to [SelectionController.copySelection] in that case.
  */
 internal fun smartCopy(
     controller: SelectionController,
@@ -232,7 +223,7 @@ internal fun smartCopy(
     val snapshotLines = getSnapshotLines(emulator) ?: return null
 
     val fullTexts = (sel.startRow..sel.endRow).map { row ->
-        if (row in snapshotLines.indices) getLineText(snapshotLines[row]) else ""
+        if (row in snapshotLines.indices) snapshotLines[row] else ""
     }
 
     val borderCols = findConsistentBorderColumns(fullTexts)

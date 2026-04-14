@@ -1,0 +1,12 @@
+v5.4.3: Shizuku detection works in release builds
+
+- Fixes #82. Haven could not detect Shizuku on release
+  builds because R8 was pruning the reflected Shizuku API
+  methods (pingBinder, addBinderReceivedListenerSticky,
+  checkSelfPermission, requestPermission, newProcess).
+  Every reflection lookup threw NoSuchMethodException,
+  leaving the Settings row stuck on "installed but not
+  running" even when Shizuku was active.
+- Added a ProGuard keep rule for rikka.shizuku.** and
+  moe.shizuku.**. Verified on a Pixel 8 Pro with a release
+  APK built via the GitHub Actions signing keys.

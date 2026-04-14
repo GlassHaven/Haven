@@ -9,15 +9,14 @@ import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
-import androidx.compose.foundation.text.KeyboardActions
-import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Warning
 import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.Checkbox
+import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.material3.Icon
-import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.MaterialTheme
+import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
@@ -31,10 +30,9 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.text.input.ImeAction
 import androidx.compose.ui.text.input.KeyboardType
-import androidx.compose.ui.text.input.PasswordVisualTransformation
-import androidx.compose.ui.text.input.PlatformImeOptions
 import androidx.compose.ui.unit.dp
 import sh.haven.core.data.db.entities.ConnectionProfile
+import sh.haven.core.ui.PasswordField
 
 /**
  * Intent of the password prompt — drives label, helper text, and the
@@ -82,14 +80,22 @@ fun PasswordDialog(
     profile: ConnectionProfile,
     hasKeys: Boolean,
     onDismiss: () -> Unit,
-    onConnect: (password: String, rememberPassword: Boolean) -> Unit,
+    onConnect: (username: String?, password: String, rememberPassword: Boolean) -> Unit,
     mode: PasswordDialogMode = if (hasKeys) PasswordDialogMode.PASSWORD_OR_UNASSIGNED_KEY
         else PasswordDialogMode.PASSWORD_ONLY,
     assignedKeyLabel: String? = null,
 ) {
+    val needsUsername = profile.username.isBlank() && (profile.isSsh || profile.isReticulum)
+    var username by remember { mutableStateOf("") }
     var password by remember { mutableStateOf("") }
     var rememberPassword by remember { mutableStateOf(!profile.sshPassword.isNullOrBlank()) }
     val keyboardHasInternet = rememberKeyboardHasInternet()
+    val canSubmit = !needsUsername || username.isNotBlank()
+    val submit: () -> Unit = {
+        if (canSubmit) {
+            onConnect(if (needsUsername) username else null, password, rememberPassword)
+        }
+    }
 
     val fieldLabel = when (mode) {
         PasswordDialogMode.ASSIGNED_ENCRYPTED_KEY_PASSPHRASE -> "Key passphrase"
@@ -136,7 +142,22 @@ fun PasswordDialog(
                             )
                         }
                     }
+                    needsUsername -> Text("${profile.host}:${profile.port}")
                     else -> Text("${profile.username}@${profile.host}:${profile.port}")
+                }
+                if (needsUsername) {
+                    Spacer(Modifier.height(8.dp))
+                    OutlinedTextField(
+                        value = username,
+                        onValueChange = { username = it },
+                        label = { Text("Username") },
+                        singleLine = true,
+                        keyboardOptions = KeyboardOptions(
+                            keyboardType = KeyboardType.Text,
+                            imeAction = ImeAction.Next,
+                        ),
+                        modifier = Modifier.fillMaxWidth(),
+                    )
                 }
                 if (mode == PasswordDialogMode.ASSIGNED_ENCRYPTED_KEY_PASSPHRASE && assignedKeyLabel != null) {
                     Spacer(Modifier.height(4.dp))
@@ -146,20 +167,13 @@ fun PasswordDialog(
                         color = MaterialTheme.colorScheme.onSurfaceVariant,
                     )
                 }
-                OutlinedTextField(
+                Spacer(Modifier.height(8.dp))
+                PasswordField(
                     value = password,
                     onValueChange = { password = it },
-                    label = { Text(fieldLabel) },
-                    singleLine = true,
-                    visualTransformation = PasswordVisualTransformation(),
-                    keyboardOptions = KeyboardOptions(
-                        keyboardType = KeyboardType.Password,
-                        imeAction = ImeAction.Go,
-                        platformImeOptions = PlatformImeOptions("flagNoPersonalizedLearning"),
-                    ),
-                    keyboardActions = KeyboardActions(
-                        onGo = { onConnect(password, rememberPassword) },
-                    ),
+                    label = fieldLabel,
+                    imeAction = ImeAction.Go,
+                    onImeAction = submit,
                     modifier = Modifier.fillMaxWidth(),
                 )
                 if (profile.isSsh || profile.isSmb) {
@@ -202,7 +216,7 @@ fun PasswordDialog(
             }
         },
         confirmButton = {
-            TextButton(onClick = { onConnect(password, rememberPassword) }) {
+            TextButton(onClick = submit, enabled = canSubmit) {
                 Text("Connect")
             }
         },

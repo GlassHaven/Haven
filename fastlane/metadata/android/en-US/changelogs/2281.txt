@@ -1,0 +1,15 @@
+v5.5.0: show-password toggle and prompt-at-connect username
+
+- Show password toggle (#90): every password and passphrase
+  field now has an eye icon at the trailing edge that switches
+  between masked and cleartext. Defaults to masked. State is
+  per-field and survives rotation. Used by the connect/auth
+  prompt, key passphrase, deploy-key, RDP/SMB/Reticulum edit,
+  encrypted backup, and key-import dialogs.
+
+- Connection without a saved username (#91): SSH, Mosh, and
+  Eternal Terminal profiles can now be saved with the username
+  field left empty. When you connect, Haven prompts for the
+  username alongside the password instead of requiring one
+  saved entry per user on the same host. The runtime username
+  is used only for that session and is not persisted.

@@ -514,16 +514,10 @@ fun ConnectionEditDialog(
                         )
                     }
                     Spacer(Modifier.height(4.dp))
-                    OutlinedTextField(
+                    sh.haven.core.ui.PasswordField(
                         value = rdpPassword,
                         onValueChange = { rdpPassword = it },
-                        label = { Text("Password (optional)") },
-                        singleLine = true,
-                        visualTransformation = androidx.compose.ui.text.input.PasswordVisualTransformation(),
-                        keyboardOptions = KeyboardOptions(
-                            keyboardType = KeyboardType.Password,
-                            platformImeOptions = PlatformImeOptions("flagNoPersonalizedLearning"),
-                        ),
+                        label = "Password (optional)",
                         modifier = Modifier.fillMaxWidth(),
                     )
                     Spacer(Modifier.height(4.dp))
@@ -757,16 +751,10 @@ fun ConnectionEditDialog(
                         )
                     }
                     Spacer(Modifier.height(4.dp))
-                    OutlinedTextField(
+                    sh.haven.core.ui.PasswordField(
                         value = smbPassword,
                         onValueChange = { smbPassword = it },
-                        label = { Text("Password (optional)") },
-                        singleLine = true,
-                        visualTransformation = androidx.compose.ui.text.input.PasswordVisualTransformation(),
-                        keyboardOptions = KeyboardOptions(
-                            keyboardType = KeyboardType.Password,
-                            platformImeOptions = PlatformImeOptions("flagNoPersonalizedLearning"),
-                        ),
+                        label = "Password (optional)",
                         modifier = Modifier.fillMaxWidth(),
                     )
                     Spacer(Modifier.height(4.dp))
@@ -982,7 +970,7 @@ fun ConnectionEditDialog(
                             value = username,
                             onValueChange = { username = it },
                             label = { Text("Username") },
-                            placeholder = { Text("root") },
+                            placeholder = { Text("Leave empty to ask at connect time") },
                             singleLine = true,
                             modifier = Modifier.weight(1f),
                         )
@@ -1425,13 +1413,11 @@ fun ConnectionEditDialog(
                             modifier = Modifier.fillMaxWidth(),
                         )
                         Spacer(Modifier.height(4.dp))
-                        OutlinedTextField(
+                        sh.haven.core.ui.PasswordField(
                             value = rnsPassphrase,
                             onValueChange = { rnsPassphrase = it },
-                            label = { Text("Passphrase") },
-                            placeholder = { Text("IFAC passphrase (optional)") },
-                            singleLine = true,
-                            visualTransformation = androidx.compose.ui.text.input.PasswordVisualTransformation(),
+                            label = "Passphrase",
+                            placeholder = "IFAC passphrase (optional)",
                             modifier = Modifier.fillMaxWidth(),
                         )
                     }
@@ -1534,7 +1520,7 @@ fun ConnectionEditDialog(
         confirmButton = {
             val canSave = when (connectionType) {
                 "LOCAL" -> true // No host/auth needed
-                "SSH" -> host.isNotBlank() && username.isNotBlank()
+                "SSH" -> host.isNotBlank()
                 "VNC" -> host.isNotBlank()
                 "RDP" -> host.isNotBlank() && rdpUsername.isNotBlank() && (!rdpSshForward || rdpSshProfileId != null)
                 "SMB" -> host.isNotBlank() && smbShare.isNotBlank() && (!smbSshForward || smbSshProfileId != null)

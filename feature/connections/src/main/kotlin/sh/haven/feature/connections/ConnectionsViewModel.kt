@@ -788,6 +788,11 @@ class ConnectionsViewModel @Inject constructor(
      * Try connecting with key auth (no password dialog). On failure, show password dialog.
      */
     fun connectWithKey(profile: ConnectionProfile) {
+        if (profile.username.isBlank() && (profile.isSsh || profile.isReticulum)) {
+            // Route through the prompt dialog so the user can supply a username first.
+            _passwordFallback.value = profile
+            return
+        }
         connect(profile, password = "", keyOnly = true)
     }
 
@@ -795,7 +800,13 @@ class ConnectionsViewModel @Inject constructor(
         _passwordFallback.value = null
     }
 
-    fun connect(profile: ConnectionProfile, password: String, keyOnly: Boolean = false, rememberPassword: Boolean? = null) {
+    fun connect(
+        profile: ConnectionProfile,
+        password: String,
+        keyOnly: Boolean = false,
+        rememberPassword: Boolean? = null,
+        usernameOverride: String? = null,
+    ) {
         if (profile.isLocal) {
             connectLocal(profile)
             return
@@ -820,15 +831,25 @@ class ConnectionsViewModel @Inject constructor(
             connectReticulum(profile)
             return
         }
+        // SSH-family: if the saved profile has no username, the user must supply one
+        // at connect time via the prompt dialog. Resolve here, then thread the runtime
+        // value through to the connect routines as a per-call override — the persisted
+        // profile must not be mutated, since the whole point of leaving it blank is to
+        // reuse one connection entry for many users.
+        val runtimeUsername = usernameOverride?.takeIf { it.isNotBlank() }
+        if (profile.username.isBlank() && runtimeUsername == null) {
+            _passwordFallback.value = profile
+            return
+        }
         if (profile.isEternalTerminal) {
-            connectEternalTerminal(profile, password, keyOnly)
+            connectEternalTerminal(profile, password, keyOnly, usernameOverride = runtimeUsername)
             return
         }
         if (profile.isMosh) {
-            connectMosh(profile, password, keyOnly)
+            connectMosh(profile, password, keyOnly, usernameOverride = runtimeUsername)
             return
         }
-        connectSsh(profile, password, keyOnly, rememberPassword)
+        connectSsh(profile, password, keyOnly, rememberPassword, usernameOverride = runtimeUsername)
     }
 
     private fun connectVnc(profile: ConnectionProfile) {
@@ -1155,7 +1176,14 @@ class ConnectionsViewModel @Inject constructor(
         }
     }
 
-    private fun connectSsh(profile: ConnectionProfile, password: String, keyOnly: Boolean, rememberPassword: Boolean? = null) {
+    private fun connectSsh(
+        profile: ConnectionProfile,
+        password: String,
+        keyOnly: Boolean,
+        rememberPassword: Boolean? = null,
+        usernameOverride: String? = null,
+    ) {
+        val effectiveUsername = usernameOverride?.takeIf { it.isNotBlank() } ?: profile.username
         viewModelScope.launch {
             _connectingProfileId.value = profile.id
             _error.value = null
@@ -1188,7 +1216,7 @@ class ConnectionsViewModel @Inject constructor(
                     val config = ConnectionConfig(
                         host = profile.host,
                         port = profile.port,
-                        username = profile.username,
+                        username = effectiveUsername,
                         authMethod = authMethod,
                         sshOptions = ConnectionConfig.parseSshOptions(profile.sshOptions),
                         forwardAgent = profile.forwardAgent,
@@ -1259,11 +1287,17 @@ class ConnectionsViewModel @Inject constructor(
                 // No existing sessions or no session manager — proceed directly
                 finishConnect(sessionId, profile.id, verboseLog = verboseLogger?.drain())
 
-                // Save or clear remembered password after successful connect
-                if (rememberPassword == true && password.isNotBlank()) {
-                    repository.save(profile.copy(sshPassword = password))
-                } else if (rememberPassword == false && profile.sshPassword != null) {
-                    repository.save(profile.copy(sshPassword = null))
+                // Save or clear remembered password after successful connect.
+                // Skip if the username came from a runtime prompt — the profile is
+                // explicitly multi-user and persisting one user's password would
+                // bleed it into other sessions.
+                val multiUserProfile = usernameOverride != null
+                if (!multiUserProfile) {
+                    if (rememberPassword == true && password.isNotBlank()) {
+                        repository.save(profile.copy(sshPassword = password))
+                    } else if (rememberPassword == false && profile.sshPassword != null) {
+                        repository.save(profile.copy(sshPassword = null))
+                    }
                 }
 
                 // Auto-deploy SSH key for VM connections after first password connect
@@ -1352,7 +1386,13 @@ class ConnectionsViewModel @Inject constructor(
         }
     }
 
-    private fun connectEternalTerminal(profile: ConnectionProfile, password: String, keyOnly: Boolean) {
+    private fun connectEternalTerminal(
+        profile: ConnectionProfile,
+        password: String,
+        keyOnly: Boolean,
+        usernameOverride: String? = null,
+    ) {
+        val effectiveUsername = usernameOverride?.takeIf { it.isNotBlank() } ?: profile.username
         viewModelScope.launch {
             _connectingProfileId.value = profile.id
             _error.value = null
@@ -1372,7 +1412,7 @@ class ConnectionsViewModel @Inject constructor(
                     val config = ConnectionConfig(
                         host = profile.host,
                         port = profile.port,
-                        username = profile.username,
+                        username = effectiveUsername,
                         authMethod = authMethod,
                         sshOptions = ConnectionConfig.parseSshOptions(profile.sshOptions),
                         forwardAgent = profile.forwardAgent,
@@ -1464,7 +1504,13 @@ class ConnectionsViewModel @Inject constructor(
         }
     }
 
-    private fun connectMosh(profile: ConnectionProfile, password: String, keyOnly: Boolean) {
+    private fun connectMosh(
+        profile: ConnectionProfile,
+        password: String,
+        keyOnly: Boolean,
+        usernameOverride: String? = null,
+    ) {
+        val effectiveUsername = usernameOverride?.takeIf { it.isNotBlank() } ?: profile.username
         viewModelScope.launch {
             _connectingProfileId.value = profile.id
             _error.value = null
@@ -1484,7 +1530,7 @@ class ConnectionsViewModel @Inject constructor(
                     val config = ConnectionConfig(
                         host = profile.host,
                         port = profile.port,
-                        username = profile.username,
+                        username = effectiveUsername,
                         authMethod = authMethod,
                         sshOptions = ConnectionConfig.parseSshOptions(profile.sshOptions),
                         forwardAgent = profile.forwardAgent,

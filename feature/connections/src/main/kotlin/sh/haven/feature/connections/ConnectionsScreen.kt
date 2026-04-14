@@ -538,8 +538,13 @@ fun ConnectionsScreen(
             mode = mode,
             assignedKeyLabel = assignedKey?.label,
             onDismiss = { connectingProfile = null },
-            onConnect = { password, rememberPassword ->
-                viewModel.connect(profile, password, rememberPassword = rememberPassword)
+            onConnect = { username, password, rememberPassword ->
+                viewModel.connect(
+                    profile,
+                    password,
+                    rememberPassword = rememberPassword,
+                    usernameOverride = username,
+                )
                 connectingProfile = null
             },
         )
@@ -566,8 +571,13 @@ fun ConnectionsScreen(
             mode = mode,
             assignedKeyLabel = assignedKey?.label,
             onDismiss = { viewModel.dismissPasswordFallback() },
-            onConnect = { password, rememberPassword ->
-                viewModel.connect(profile, password, rememberPassword = rememberPassword)
+            onConnect = { username, password, rememberPassword ->
+                viewModel.connect(
+                    profile,
+                    password,
+                    rememberPassword = rememberPassword,
+                    usernameOverride = username,
+                )
                 viewModel.dismissPasswordFallback()
             },
         )
@@ -725,16 +735,10 @@ fun ConnectionsScreen(
             onDismissRequest = { viewModel.dismissDesktopVncPasswordPrompt() },
             title = { Text("VNC Password") },
             text = {
-                OutlinedTextField(
+                sh.haven.core.ui.PasswordField(
                     value = vncPwd,
                     onValueChange = { vncPwd = it },
-                    label = { Text("Password") },
-                    singleLine = true,
-                    visualTransformation = androidx.compose.ui.text.input.PasswordVisualTransformation(),
-                    keyboardOptions = androidx.compose.foundation.text.KeyboardOptions(
-                        keyboardType = androidx.compose.ui.text.input.KeyboardType.Password,
-                        platformImeOptions = androidx.compose.ui.text.input.PlatformImeOptions("flagNoPersonalizedLearning"),
-                    ),
+                    label = "Password",
                     modifier = Modifier.fillMaxWidth(),
                 )
             },
@@ -1180,6 +1184,9 @@ private fun onTapProfile(
         }
     } else if (profile.isReticulum) {
         viewModel.connect(profile, "")
+    } else if (profile.username.isBlank()) {
+        // Profile saved without a username — always prompt so the user can pick one.
+        showPasswordDialog()
     } else if (!profile.sshPassword.isNullOrBlank()) {
         viewModel.connect(profile, profile.sshPassword!!)
     } else if (sshKeys.isNotEmpty()) {

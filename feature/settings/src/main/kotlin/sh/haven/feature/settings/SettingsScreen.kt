@@ -985,34 +985,22 @@ private fun BackupPasswordDialog(
                     color = MaterialTheme.colorScheme.onSurfaceVariant,
                 )
                 Spacer(Modifier.height(12.dp))
-                OutlinedTextField(
+                sh.haven.core.ui.PasswordField(
                     value = password,
                     onValueChange = { password = it },
-                    label = { Text(stringResource(R.string.settings_backup_password_label)) },
-                    visualTransformation = PasswordVisualTransformation(),
-                    singleLine = true,
-                    keyboardOptions = KeyboardOptions(
-                        keyboardType = KeyboardType.Password,
-                        platformImeOptions = PlatformImeOptions("flagNoPersonalizedLearning"),
-                    ),
+                    label = stringResource(R.string.settings_backup_password_label),
                     isError = passwordError != null,
-                    supportingText = passwordError?.let { { Text(it) } },
+                    supportingText = passwordError,
                     modifier = Modifier.fillMaxWidth(),
                 )
                 if (isExport) {
                     Spacer(Modifier.height(8.dp))
-                    OutlinedTextField(
+                    sh.haven.core.ui.PasswordField(
                         value = confirmPassword,
                         onValueChange = { confirmPassword = it },
-                        label = { Text(stringResource(R.string.settings_backup_confirm_password_label)) },
-                        visualTransformation = PasswordVisualTransformation(),
-                        singleLine = true,
-                        keyboardOptions = KeyboardOptions(
-                            keyboardType = KeyboardType.Password,
-                            platformImeOptions = PlatformImeOptions("flagNoPersonalizedLearning"),
-                        ),
+                        label = stringResource(R.string.settings_backup_confirm_password_label),
                         isError = confirmError != null,
-                        supportingText = confirmError?.let { { Text(it) } },
+                        supportingText = confirmError,
                         modifier = Modifier.fillMaxWidth(),
                     )
                 }

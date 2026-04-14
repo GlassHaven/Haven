@@ -1,0 +1,11 @@
+v5.4.1: Security hardening
+
+- SFTP loopback bridge requires a random per-session
+  token, blocking other apps from reading SFTP files
+  via the local port. CORS wildcard removed.
+- Biometric app-lock no longer auto-unlocks when the
+  device biometric is unenrolled.
+- FileProvider <root-path> dropped; the credential DB
+  is no longer reachable via FileProvider URIs.
+- SSH passphrases held as CharArray and wiped on
+  teardown; passwords no longer pass through String.

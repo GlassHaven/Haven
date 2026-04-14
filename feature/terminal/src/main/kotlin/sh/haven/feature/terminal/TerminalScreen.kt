@@ -120,6 +120,7 @@ fun TerminalScreen(
     mouseInputEnabled: Boolean = true,
     terminalRightClick: Boolean = false,
     allowStandardKeyboard: Boolean = false,
+    showTabBar: Boolean = true,
     onNavigateToConnections: () -> Unit = {},
     onNavigateToVnc: (host: String, port: Int, password: String?, sshForward: Boolean, sshSessionId: String?) -> Unit = { _, _, _, _, _ -> },
     onSelectionActiveChanged: (Boolean) -> Unit = {},
@@ -241,7 +242,7 @@ fun TerminalScreen(
                 foregroundColor = Color(colorScheme.foreground),
             )
         } else {
-            // Tab row — always show when tabs exist so "+" button is accessible
+            // Tab row — can be hidden via Settings when the user wants more terminal space
             val profileColors = remember(tabs) {
                 tabs.associate { tab ->
                     val color = if (tab.colorTag in 1..TAB_GROUP_COLORS.size) {
@@ -255,207 +256,209 @@ fun TerminalScreen(
             val clampedIndex = activeTabIndex.coerceIn(0, tabs.size - 1)
             val indicatorColor = profileColors[tabs.getOrNull(clampedIndex)?.profileId]
 
-            Surface(tonalElevation = 2.dp) {
-                Row(
-                    modifier = Modifier
-                        .fillMaxWidth()
-                        .horizontalScroll(rememberScrollState())
-                        .padding(horizontal = 4.dp, vertical = 2.dp),
-                    verticalAlignment = Alignment.CenterVertically,
-                ) {
-                    tabs.forEachIndexed { index, tab ->
-                        val reconnecting by tab.isReconnecting.collectAsState()
-                        val selected = activeTabIndex == index
-                        var showTabMenu by remember { mutableStateOf(false) }
-                        val tabColor = profileColors[tab.profileId]
+            if (showTabBar) {
+                Surface(tonalElevation = 2.dp) {
+                    Row(
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .horizontalScroll(rememberScrollState())
+                            .padding(horizontal = 4.dp, vertical = 2.dp),
+                        verticalAlignment = Alignment.CenterVertically,
+                    ) {
+                        tabs.forEachIndexed { index, tab ->
+                            val reconnecting by tab.isReconnecting.collectAsState()
+                            val selected = activeTabIndex == index
+                            var showTabMenu by remember { mutableStateOf(false) }
+                            val tabColor = profileColors[tab.profileId]
 
-                        Box {
-                            Surface(
-                                modifier = Modifier
-                                    .padding(horizontal = 2.dp)
-                                    .combinedClickable(
-                                        onClick = { viewModel.selectTab(index) },
-                                        onLongClick = { showTabMenu = true },
-                                    ),
-                                shape = MaterialTheme.shapes.small,
-                                color = if (selected) {
-                                    tabColor?.copy(alpha = 0.55f)
-                                        ?: MaterialTheme.colorScheme.secondaryContainer
-                                } else {
-                                    tabColor?.copy(alpha = 0.25f)
-                                        ?: MaterialTheme.colorScheme.surface
-                                },
-                                contentColor = run {
-                                    val bg = tabColor ?: return@run if (selected) {
-                                        MaterialTheme.colorScheme.onSecondaryContainer
-                                    } else {
-                                        MaterialTheme.colorScheme.onSurfaceVariant
-                                    }
-                                    val alpha = if (selected) 0.55f else 0.25f
-                                    // Blend tab color over surface to get effective luminance
-                                    val surfaceLum = MaterialTheme.colorScheme.surface.luminance()
-                                    val effectiveLum = surfaceLum * (1 - alpha) + bg.luminance() * alpha
-                                    if (effectiveLum > 0.5f) Color.Black else Color.White
-                                },
-                                tonalElevation = if (selected) 4.dp else 0.dp,
-                            ) {
-                                Row(
-                                    modifier = Modifier.padding(
-                                        horizontal = 12.dp,
-                                        vertical = 8.dp,
-                                    ),
-                                    verticalAlignment = Alignment.CenterVertically,
-                                ) {
-                                    if (reconnecting) {
-                                        Icon(
-                                            Icons.Filled.Autorenew,
-                                            contentDescription = stringResource(R.string.terminal_reconnecting),
-                                            modifier = Modifier.size(14.dp),
-                                            tint = MaterialTheme.colorScheme.error,
-                                        )
-                                    }
-                                    Text(
-                                        tab.label,
-                                        maxLines = 1,
-                                        style = MaterialTheme.typography.labelLarge,
-                                    )
-                                }
-                            }
-                            // Refresh remote sessions when popup opens
-                            LaunchedEffect(showTabMenu) {
-                                if (showTabMenu) viewModel.refreshRemoteSessions()
-                            }
-                            // Long-press action bar
-                            DropdownMenu(
-                                expanded = showTabMenu,
-                                onDismissRequest = { showTabMenu = false },
-                                modifier = Modifier.fillMaxWidth(),
-                            ) {
-                                Row(
+                            Box {
+                                Surface(
                                     modifier = Modifier
-                                        .fillMaxWidth()
-                                        .padding(horizontal = 4.dp),
-                                    horizontalArrangement = Arrangement.SpaceBetween,
-                                    verticalAlignment = Alignment.CenterVertically,
-                                ) {
-                                    TextButton(
-                                        onClick = {
-                                            showTabMenu = false
-                                            viewModel.addTab()
-                                        },
-                                        enabled = !newTabLoading,
-                                    ) {
-                                        if (newTabLoading) {
-                                            CircularProgressIndicator(
-                                                modifier = Modifier.size(18.dp),
-                                                strokeWidth = 2.dp,
-                                            )
-                                        } else {
-                                            Icon(Icons.Filled.Add, null, modifier = Modifier.size(18.dp))
-                                        }
-                                        Spacer(Modifier.width(4.dp))
-                                        Text(
-                                            if (newTabLoading) stringResource(R.string.terminal_new_tab_connecting)
-                                            else stringResource(R.string.terminal_sessions),
-                                        )
-                                    }
-                                    Row {
-                                        IconButton(
-                                            onClick = { viewModel.moveTab(index, -1); showTabMenu = false },
-                                            enabled = index > 0,
-                                            modifier = Modifier.size(36.dp),
-                                        ) {
-                                            Icon(Icons.AutoMirrored.Filled.ArrowBack, stringResource(R.string.terminal_move_left), modifier = Modifier.size(18.dp))
-                                        }
-                                        IconButton(
-                                            onClick = { viewModel.moveTab(index, 1); showTabMenu = false },
-                                            enabled = index < tabs.size - 1,
-                                            modifier = Modifier.size(36.dp),
-                                        ) {
-                                            Icon(Icons.AutoMirrored.Filled.ArrowForward, stringResource(R.string.terminal_move_right), modifier = Modifier.size(18.dp))
-                                        }
-                                    }
-                                    TextButton(
-                                        onClick = {
-                                            showTabMenu = false
-                                            viewModel.closeTab(tab.sessionId)
-                                        },
-                                        colors = ButtonDefaults.textButtonColors(
-                                            contentColor = MaterialTheme.colorScheme.error,
+                                        .padding(horizontal = 2.dp)
+                                        .combinedClickable(
+                                            onClick = { viewModel.selectTab(index) },
+                                            onLongClick = { showTabMenu = true },
                                         ),
+                                    shape = MaterialTheme.shapes.small,
+                                    color = if (selected) {
+                                        tabColor?.copy(alpha = 0.55f)
+                                            ?: MaterialTheme.colorScheme.secondaryContainer
+                                    } else {
+                                        tabColor?.copy(alpha = 0.25f)
+                                            ?: MaterialTheme.colorScheme.surface
+                                    },
+                                    contentColor = run {
+                                        val bg = tabColor ?: return@run if (selected) {
+                                            MaterialTheme.colorScheme.onSecondaryContainer
+                                        } else {
+                                            MaterialTheme.colorScheme.onSurfaceVariant
+                                        }
+                                        val alpha = if (selected) 0.55f else 0.25f
+                                        // Blend tab color over surface to get effective luminance
+                                        val surfaceLum = MaterialTheme.colorScheme.surface.luminance()
+                                        val effectiveLum = surfaceLum * (1 - alpha) + bg.luminance() * alpha
+                                        if (effectiveLum > 0.5f) Color.Black else Color.White
+                                    },
+                                    tonalElevation = if (selected) 4.dp else 0.dp,
+                                ) {
+                                    Row(
+                                        modifier = Modifier.padding(
+                                            horizontal = 12.dp,
+                                            vertical = 8.dp,
+                                        ),
+                                        verticalAlignment = Alignment.CenterVertically,
                                     ) {
-                                        Text(stringResource(R.string.terminal_close))
-                                        Spacer(Modifier.width(4.dp))
-                                        Icon(Icons.Filled.Close, null, modifier = Modifier.size(18.dp))
+                                        if (reconnecting) {
+                                            Icon(
+                                                Icons.Filled.Autorenew,
+                                                contentDescription = stringResource(R.string.terminal_reconnecting),
+                                                modifier = Modifier.size(14.dp),
+                                                tint = MaterialTheme.colorScheme.error,
+                                            )
+                                        }
+                                        Text(
+                                            tab.label,
+                                            maxLines = 1,
+                                            style = MaterialTheme.typography.labelLarge,
+                                        )
                                     }
                                 }
-                                // Show connected sessions without tabs + remote sessions (tmux/zellij)
-                                val untabbed by viewModel.untabbedSessions.collectAsState()
-                                val remoteSessions by viewModel.remoteSessionNames.collectAsState()
-                                val tabbedRemoteSessions = tabs.map { it.label }.toSet()
-                                val untabbedRemote = remoteSessions.filter { it !in tabbedRemoteSessions }
-                                if (untabbed.isNotEmpty() || untabbedRemote.isNotEmpty()) {
-                                    HorizontalDivider(modifier = Modifier.padding(vertical = 4.dp))
-                                    // Remote sessions (tmux/zellij/screen) on current connection
-                                    untabbedRemote.forEach { name ->
-                                        DropdownMenuItem(
-                                            text = { Text(name, style = MaterialTheme.typography.bodySmall) },
-                                            leadingIcon = { Icon(Icons.Filled.Add, null, modifier = Modifier.size(16.dp)) },
+                                // Refresh remote sessions when popup opens
+                                LaunchedEffect(showTabMenu) {
+                                    if (showTabMenu) viewModel.refreshRemoteSessions()
+                                }
+                                // Long-press action bar
+                                DropdownMenu(
+                                    expanded = showTabMenu,
+                                    onDismissRequest = { showTabMenu = false },
+                                    modifier = Modifier.fillMaxWidth(),
+                                ) {
+                                    Row(
+                                        modifier = Modifier
+                                            .fillMaxWidth()
+                                            .padding(horizontal = 4.dp),
+                                        horizontalArrangement = Arrangement.SpaceBetween,
+                                        verticalAlignment = Alignment.CenterVertically,
+                                    ) {
+                                        TextButton(
                                             onClick = {
                                                 showTabMenu = false
-                                                viewModel.openRemoteSession(tab.profileId, name)
+                                                viewModel.addTab()
                                             },
-                                        )
+                                            enabled = !newTabLoading,
+                                        ) {
+                                            if (newTabLoading) {
+                                                CircularProgressIndicator(
+                                                    modifier = Modifier.size(18.dp),
+                                                    strokeWidth = 2.dp,
+                                                )
+                                            } else {
+                                                Icon(Icons.Filled.Add, null, modifier = Modifier.size(18.dp))
+                                            }
+                                            Spacer(Modifier.width(4.dp))
+                                            Text(
+                                                if (newTabLoading) stringResource(R.string.terminal_new_tab_connecting)
+                                                else stringResource(R.string.terminal_sessions),
+                                            )
+                                        }
+                                        Row {
+                                            IconButton(
+                                                onClick = { viewModel.moveTab(index, -1); showTabMenu = false },
+                                                enabled = index > 0,
+                                                modifier = Modifier.size(36.dp),
+                                            ) {
+                                                Icon(Icons.AutoMirrored.Filled.ArrowBack, stringResource(R.string.terminal_move_left), modifier = Modifier.size(18.dp))
+                                            }
+                                            IconButton(
+                                                onClick = { viewModel.moveTab(index, 1); showTabMenu = false },
+                                                enabled = index < tabs.size - 1,
+                                                modifier = Modifier.size(36.dp),
+                                            ) {
+                                                Icon(Icons.AutoMirrored.Filled.ArrowForward, stringResource(R.string.terminal_move_right), modifier = Modifier.size(18.dp))
+                                            }
+                                        }
+                                        TextButton(
+                                            onClick = {
+                                                showTabMenu = false
+                                                viewModel.closeTab(tab.sessionId)
+                                            },
+                                            colors = ButtonDefaults.textButtonColors(
+                                                contentColor = MaterialTheme.colorScheme.error,
+                                            ),
+                                        ) {
+                                            Text(stringResource(R.string.terminal_close))
+                                            Spacer(Modifier.width(4.dp))
+                                            Icon(Icons.Filled.Close, null, modifier = Modifier.size(18.dp))
+                                        }
                                     }
-                                    // Other SSH connections without tabs
-                                    untabbed.forEach { session ->
-                                        DropdownMenuItem(
-                                            text = { Text(session.label, style = MaterialTheme.typography.bodySmall) },
-                                            leadingIcon = { Icon(Icons.Filled.Cable, null, modifier = Modifier.size(16.dp)) },
-                                            onClick = {
-                                                showTabMenu = false
-                                                viewModel.selectTabByProfileId(session.profileId)
-                                            },
-                                        )
+                                    // Show connected sessions without tabs + remote sessions (tmux/zellij)
+                                    val untabbed by viewModel.untabbedSessions.collectAsState()
+                                    val remoteSessions by viewModel.remoteSessionNames.collectAsState()
+                                    val tabbedRemoteSessions = tabs.map { it.label }.toSet()
+                                    val untabbedRemote = remoteSessions.filter { it !in tabbedRemoteSessions }
+                                    if (untabbed.isNotEmpty() || untabbedRemote.isNotEmpty()) {
+                                        HorizontalDivider(modifier = Modifier.padding(vertical = 4.dp))
+                                        // Remote sessions (tmux/zellij/screen) on current connection
+                                        untabbedRemote.forEach { name ->
+                                            DropdownMenuItem(
+                                                text = { Text(name, style = MaterialTheme.typography.bodySmall) },
+                                                leadingIcon = { Icon(Icons.Filled.Add, null, modifier = Modifier.size(16.dp)) },
+                                                onClick = {
+                                                    showTabMenu = false
+                                                    viewModel.openRemoteSession(tab.profileId, name)
+                                                },
+                                            )
+                                        }
+                                        // Other SSH connections without tabs
+                                        untabbed.forEach { session ->
+                                            DropdownMenuItem(
+                                                text = { Text(session.label, style = MaterialTheme.typography.bodySmall) },
+                                                leadingIcon = { Icon(Icons.Filled.Cable, null, modifier = Modifier.size(16.dp)) },
+                                                onClick = {
+                                                    showTabMenu = false
+                                                    viewModel.selectTabByProfileId(session.profileId)
+                                                },
+                                            )
+                                        }
                                     }
                                 }
                             }
                         }
-                    }
-                    // Action buttons after tabs
-                    if (showCopyOutputButton) {
-                        IconButton(
-                            onClick = {
-                                val output = viewModel.copyLastCommandOutput()
-                                if (output != null) {
-                                    val clip = context.getSystemService(Context.CLIPBOARD_SERVICE) as ClipboardManager
-                                    clip.setPrimaryClip(ClipData.newPlainText("command output", output))
-                                    @Suppress("LocalContextGetResourceValueCall")
-                                    android.widget.Toast.makeText(context, context.getString(R.string.terminal_copied_output, output.length), android.widget.Toast.LENGTH_SHORT).show()
-                                } else {
-                                    @Suppress("LocalContextGetResourceValueCall")
-                                    android.widget.Toast.makeText(context, context.getString(R.string.terminal_no_command_output), android.widget.Toast.LENGTH_SHORT).show()
-                                }
-                            },
-                            modifier = Modifier.size(36.dp),
-                        ) {
-                            Icon(
-                                Icons.Filled.ContentCopy,
-                                contentDescription = stringResource(R.string.terminal_copy_last_output),
-                                modifier = Modifier.size(18.dp),
-                            )
+                        // Action buttons after tabs
+                        if (showCopyOutputButton) {
+                            IconButton(
+                                onClick = {
+                                    val output = viewModel.copyLastCommandOutput()
+                                    if (output != null) {
+                                        val clip = context.getSystemService(Context.CLIPBOARD_SERVICE) as ClipboardManager
+                                        clip.setPrimaryClip(ClipData.newPlainText("command output", output))
+                                        @Suppress("LocalContextGetResourceValueCall")
+                                        android.widget.Toast.makeText(context, context.getString(R.string.terminal_copied_output, output.length), android.widget.Toast.LENGTH_SHORT).show()
+                                    } else {
+                                        @Suppress("LocalContextGetResourceValueCall")
+                                        android.widget.Toast.makeText(context, context.getString(R.string.terminal_no_command_output), android.widget.Toast.LENGTH_SHORT).show()
+                                    }
+                                },
+                                modifier = Modifier.size(36.dp),
+                            ) {
+                                Icon(
+                                    Icons.Filled.ContentCopy,
+                                    contentDescription = stringResource(R.string.terminal_copy_last_output),
+                                    modifier = Modifier.size(18.dp),
+                                )
+                            }
                         }
-                    }
-                    if (showSearchButton) {
-                        IconButton(
-                            onClick = { viewModel.sendSearchKeys() },
-                            modifier = Modifier.size(36.dp),
-                        ) {
-                            Icon(
-                                Icons.Filled.Search,
-                                contentDescription = stringResource(R.string.terminal_search),
-                                modifier = Modifier.size(18.dp),
-                            )
+                        if (showSearchButton) {
+                            IconButton(
+                                onClick = { viewModel.sendSearchKeys() },
+                                modifier = Modifier.size(36.dp),
+                            ) {
+                                Icon(
+                                    Icons.Filled.Search,
+                                    contentDescription = stringResource(R.string.terminal_search),
+                                    modifier = Modifier.size(18.dp),
+                                )
+                            }
                         }
                     }
                 }

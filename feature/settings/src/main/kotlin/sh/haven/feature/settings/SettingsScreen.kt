@@ -149,6 +149,7 @@ fun SettingsScreen(
     val mouseInputEnabled by viewModel.mouseInputEnabled.collectAsState()
     val terminalRightClick by viewModel.terminalRightClick.collectAsState()
     val allowStandardKeyboard by viewModel.allowStandardKeyboard.collectAsState()
+    val showTerminalTabBar by viewModel.showTerminalTabBar.collectAsState()
     val backupStatus by viewModel.backupStatus.collectAsState()
     val waylandShellCommand by viewModel.waylandShellCommand.collectAsState()
     val mediaExtensions by viewModel.mediaExtensions.collectAsState()
@@ -354,6 +355,13 @@ fun SettingsScreen(
             subtitle = stringResource(R.string.settings_standard_keyboard_subtitle),
             checked = allowStandardKeyboard,
             onCheckedChange = viewModel::setAllowStandardKeyboard,
+        )
+        SettingsToggleItem(
+            icon = Icons.Filled.ListAlt,
+            title = "Show terminal tab bar",
+            subtitle = "Show session tabs above the terminal",
+            checked = showTerminalTabBar,
+            onCheckedChange = viewModel::setShowTerminalTabBar,
         )
 
         SettingsSection("Connections screen")

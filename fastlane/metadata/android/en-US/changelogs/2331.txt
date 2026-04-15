@@ -1,0 +1,36 @@
+v5.6.3: URL detector wrap-boundary fix
+
+Tapping a long URL in termlib could open a truncated prefix of
+the URL instead of the full one. Happened when a CLI that
+hard-wraps its own output — e.g. Claude Code's markdown
+renderer — broke the URL across two terminal rows.
+
+The multi-row URL continuation walker in getHyperlinkUrlAt
+had two compounding problems:
+
+1. It rejected indented continuation rows outright, so a
+   markdown bullet wrap like "  - See this: https://long/" on
+   row r and "    path" on row r+1 had the walker bailing at
+   the leading whitespace instead of joining the rows.
+
+2. It would glue unrelated short rows together whenever both
+   edges of the joined text happened to be URL-safe. A short
+   "prefix https://example.com/path" row followed by "next
+   line of unrelated prose" would produce a Frankenstein
+   "https://example.com/pathnext" URL.
+
+Fix uses a slack-tolerance check against the previous row's
+right margin: a row is only considered wrappable when it has
+at most 2 cells of unused slack (or softWrapped is set by the
+terminal emulator). When the previous row is exactly full,
+leading whitespace on the continuation row is stripped so the
+URL regex sees a contiguous string; tap offsets are adjusted
+so clicks on the continuation row still resolve correctly.
+
+Tests: 10/10 TerminalScreenStateUrlTest cases pass, including
+two new ones — the wrap-with-trailing-cells CLI-hard-wrap
+case and a guard case for the short-row-followed-by-prose
+false positive. Full :lib:testDebugUnitTest suite passes.
+
+Only touches termlib's URL continuation walker in
+TerminalScreenState.kt (and its tests). No other changes.

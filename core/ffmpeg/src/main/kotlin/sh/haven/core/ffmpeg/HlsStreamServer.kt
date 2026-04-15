@@ -29,10 +29,20 @@ class HlsStreamServer @Inject constructor(
     private val ffmpegExecutor: FfmpegExecutor,
 ) : Closeable {
 
+    /** One entry in a folder-as-playlist stream. */
+    data class PlaylistItem(val title: String, val input: String)
+
     private var serverSocket: ServerSocket? = null
     private var serverThread: Thread? = null
     private var ffmpegJob: FfmpegJob? = null
     private var hlsDir: File? = null
+
+    /** Non-empty when streaming a folder playlist. */
+    @Volatile
+    private var playlist: List<PlaylistItem> = emptyList()
+
+    @Volatile
+    private var currentIndex: Int = 0
 
     @Volatile
     var port: Int = 0
@@ -43,6 +53,14 @@ class HlsStreamServer @Inject constructor(
         private set
 
     /**
+     * Optional observer for ffmpeg stderr lines. Lets callers capture the
+     * transcoder output into their own verbose-log buffer (Haven's audit
+     * log) alongside the normal Log.w broadcast to logcat.
+     */
+    @Volatile
+    var onStderr: ((String) -> Unit)? = null
+
+    /**
      * Start streaming a media file.
      *
      * @param inputPath Absolute path to the input file
@@ -51,12 +69,55 @@ class HlsStreamServer @Inject constructor(
      */
     fun startFile(inputPath: String, preferredPort: Int = 8080): Int {
         stop()
+        val dir = prepareHlsDir()
+        playlist = emptyList()
+        currentIndex = 0
+        startFfmpegForInput(inputPath, dir)
+        startHttpServer(preferredPort, dir)
+        return port
+    }
 
+    /**
+     * Start streaming a folder playlist. The first item begins playing
+     * immediately; the browser UI lets the viewer skip to any other item.
+     * Each switch restarts ffmpeg with fresh segments.
+     *
+     * @param items list of media files to stream, already resolved to local
+     *              paths or HTTP loopback URLs
+     */
+    fun startPlaylist(items: List<PlaylistItem>, preferredPort: Int = 8080): Int {
+        require(items.isNotEmpty()) { "playlist must not be empty" }
+        stop()
+        val dir = prepareHlsDir()
+        playlist = items
+        currentIndex = 0
+        startFfmpegForInput(items[0].input, dir)
+        startHttpServer(preferredPort, dir)
+        return port
+    }
+
+    /** Switch a running playlist stream to a different item. */
+    @Synchronized
+    fun switchTo(index: Int) {
+        val items = playlist
+        if (items.isEmpty() || index !in items.indices) return
+        val dir = hlsDir ?: return
+        ffmpegJob?.cancel()
+        ffmpegJob = null
+        // Wipe old segments so the player doesn't splice frames together.
+        dir.listFiles()?.forEach { if (it.name.startsWith("seg") || it.name.endsWith(".m3u8")) it.delete() }
+        currentIndex = index
+        startFfmpegForInput(items[index].input, dir)
+    }
+
+    private fun prepareHlsDir(): File {
         val dir = File(context.cacheDir, "hls_stream").apply { mkdirs() }
-        // Clean old segments
         dir.listFiles()?.forEach { it.delete() }
         hlsDir = dir
+        return dir
+    }
 
+    private fun startFfmpegForInput(inputPath: String, dir: File) {
         val playlistPath = File(dir, "stream.m3u8").absolutePath
 
         // Probe input for video + audio streams (excluding attached pictures like album art)
@@ -124,17 +185,21 @@ class HlsStreamServer @Inject constructor(
         }
 
         Log.w(TAG, "Starting ffmpeg HLS: ${args.joinToString(" ")}")
-        ffmpegJob = ffmpegExecutor.startJob(args) { line ->
+        onStderr?.invoke("cmd=ffmpeg ${args.joinToString(" ")}")
+        val job = ffmpegExecutor.startJob(args) { line ->
             Log.w(TAG, "ffmpeg: $line")
+            onStderr?.invoke(line)
         }
+        ffmpegJob = job
 
         // Monitor ffmpeg in a background thread — log if it exits early
         Thread({
-            val result = ffmpegJob?.await()
-            Log.w(TAG, "ffmpeg exited: code=${result?.exitCode} stderr=${result?.stderr?.take(500)}")
+            val result = job.await()
+            Log.w(TAG, "ffmpeg exited: code=${result.exitCode} stderr=${result.stderr.take(500)}")
         }, "hls-ffmpeg-monitor").apply { isDaemon = true }.start()
+    }
 
-        // Start HTTP server
+    private fun startHttpServer(preferredPort: Int, dir: File) {
         val ss = ServerSocket(preferredPort, 10, InetAddress.getByName("0.0.0.0"))
         serverSocket = ss
         port = ss.localPort
@@ -153,8 +218,6 @@ class HlsStreamServer @Inject constructor(
                 }
             }
         }
-
-        return port
     }
 
     /**
@@ -166,34 +229,15 @@ class HlsStreamServer @Inject constructor(
      */
     fun startCustom(ffmpegArgs: List<String>, preferredPort: Int = 8080): Int {
         stop()
-
-        val dir = File(context.cacheDir, "hls_stream").apply { mkdirs() }
-        dir.listFiles()?.forEach { it.delete() }
-        hlsDir = dir
+        val dir = prepareHlsDir()
+        playlist = emptyList()
+        currentIndex = 0
 
         ffmpegJob = ffmpegExecutor.startJob(ffmpegArgs) { line ->
             Log.d(TAG, "ffmpeg: $line")
         }
 
-        val ss = ServerSocket(preferredPort, 10, InetAddress.getByName("0.0.0.0"))
-        serverSocket = ss
-        port = ss.localPort
-        isRunning = true
-
-        serverThread = thread(name = "hls-http", isDaemon = true) {
-            Log.i(TAG, "HLS server listening on port $port")
-            while (isRunning) {
-                try {
-                    val client = ss.accept()
-                    thread(name = "hls-client", isDaemon = true) {
-                        handleClient(client, dir)
-                    }
-                } catch (_: Exception) {
-                    break
-                }
-            }
-        }
-
+        startHttpServer(preferredPort, dir)
         return port
     }
 
@@ -209,6 +253,8 @@ class HlsStreamServer @Inject constructor(
         port = 0
         hlsDir?.listFiles()?.forEach { it.delete() }
         hlsDir = null
+        playlist = emptyList()
+        currentIndex = 0
     }
 
     private fun handleClient(socket: Socket, hlsDir: File) {
@@ -228,6 +274,22 @@ class HlsStreamServer @Inject constructor(
                 when {
                     path == "/" || path == "/index.html" -> {
                         servePlayerPage(out)
+                    }
+                    path == "/playlist.json" -> {
+                        servePlaylistJson(out)
+                    }
+                    path.startsWith("/switch") -> {
+                        val idx = path.substringAfter("i=", "").substringBefore('&')
+                            .toIntOrNull()
+                        if (idx != null && idx in playlist.indices) {
+                            switchTo(idx)
+                            val body = "{\"ok\":true,\"index\":$idx}"
+                            val bytes = body.toByteArray()
+                            out.write(("HTTP/1.1 200 OK\r\nContent-Type: application/json\r\nContent-Length: ${bytes.size}\r\nAccess-Control-Allow-Origin: *\r\n\r\n").toByteArray())
+                            out.write(bytes)
+                        } else {
+                            out.write("HTTP/1.1 400 Bad Request\r\nContent-Length: 0\r\n\r\n".toByteArray())
+                        }
                     }
                     path.endsWith(".m3u8") -> {
                         serveFile(out, File(hlsDir, "stream.m3u8"), "application/vnd.apple.mpegurl")
@@ -267,6 +329,32 @@ class HlsStreamServer @Inject constructor(
         out.write(bytes)
     }
 
+    private fun servePlaylistJson(out: java.io.OutputStream) {
+        val items = playlist
+        val json = buildString {
+            append("{\"current\":").append(currentIndex).append(",\"items\":[")
+            items.forEachIndexed { i, it ->
+                if (i > 0) append(',')
+                append('"').append(jsonEscape(it.title)).append('"')
+            }
+            append("]}")
+        }
+        val bytes = json.toByteArray()
+        out.write(("HTTP/1.1 200 OK\r\nContent-Type: application/json\r\nContent-Length: ${bytes.size}\r\nAccess-Control-Allow-Origin: *\r\nCache-Control: no-cache\r\n\r\n").toByteArray())
+        out.write(bytes)
+    }
+
+    private fun jsonEscape(s: String): String = buildString(s.length) {
+        for (c in s) when (c) {
+            '\\' -> append("\\\\")
+            '"' -> append("\\\"")
+            '\n' -> append("\\n")
+            '\r' -> append("\\r")
+            '\t' -> append("\\t")
+            else -> if (c < ' ') append(String.format("\\u%04x", c.code)) else append(c)
+        }
+    }
+
     private fun servePlayerPage(out: java.io.OutputStream) {
         val html = """
 <!DOCTYPE html>
@@ -279,6 +367,28 @@ class HlsStreamServer @Inject constructor(
          justify-content: center; min-height: 100vh; font-family: sans-serif; color: #fff; }
   video { max-width: 100%; max-height: 100vh; }
   .info { position: fixed; top: 8px; left: 8px; color: #888; font-size: 12px; pointer-events: none; }
+  /* Playlist sidebar — hidden when playlist is empty (single-file mode). */
+  #playlist {
+    position: fixed; top: 0; right: 0; bottom: 0; width: 280px;
+    background: rgba(20, 20, 20, 0.92); color: #eee; overflow-y: auto;
+    padding: 12px 0; font-size: 13px;
+    transform: translateX(100%); transition: transform 0.2s;
+    z-index: 10;
+  }
+  #playlist.visible { transform: translateX(0); }
+  #playlist .head { padding: 4px 16px 12px; color: #aaa; font-size: 11px; text-transform: uppercase; letter-spacing: 0.08em; }
+  #playlist .item { padding: 10px 16px; cursor: pointer; border-left: 3px solid transparent; word-break: break-word; }
+  #playlist .item:hover { background: rgba(255,255,255,0.05); }
+  #playlist .item.current { background: rgba(255,255,255,0.08); border-left-color: #4ea1ff; color: #fff; }
+  #playlist-toggle {
+    position: fixed; top: 16px; right: 16px;
+    background: rgba(0,0,0,0.7); color: #fff;
+    padding: 8px 12px; border-radius: 20px;
+    font-size: 13px; cursor: pointer; user-select: none;
+    border: 1px solid rgba(255,255,255,0.3);
+    display: none; z-index: 11;
+  }
+  #playlist-toggle.visible { display: block; }
   /* Overlay shown while the video is muted — tap to unmute and keep playing. */
   #unmute {
     position: fixed; top: 16px; right: 16px;
@@ -304,6 +414,8 @@ class HlsStreamServer @Inject constructor(
 <div class="info">Haven Stream</div>
 <video id="v" controls autoplay muted playsinline></video>
 <div id="unmute">🔇 Tap to unmute</div>
+<div id="playlist-toggle">☰ Playlist</div>
+<div id="playlist"><div class="head">Playlist</div><div id="playlist-items"></div></div>
 <div id="status"></div>
 <script src="https://cdn.jsdelivr.net/npm/hls.js@latest"></script>
 <script>
@@ -351,24 +463,81 @@ class HlsStreamServer @Inject constructor(
     });
   }
 
-  if (video.canPlayType('application/vnd.apple.mpegurl')) {
-    // Safari / iOS — native HLS
-    video.src = src;
-    video.addEventListener('loadedmetadata', tryPlay, { once: true });
-  } else if (Hls.isSupported()) {
-    const hls = new Hls();
-    hls.on(Hls.Events.ERROR, (_, data) => {
-      console.warn('hls.js error:', data);
-      if (data.fatal) {
-        showStatus('Stream error: ' + data.details, true);
-      }
-    });
-    hls.on(Hls.Events.MANIFEST_PARSED, tryPlay);
-    hls.loadSource(src);
-    hls.attachMedia(video);
-  } else {
-    showStatus('HLS is not supported in this browser', true);
+  // HLS loader — use hls.js where possible, native HLS on Safari.
+  // The loader is wrapped so we can tear down and reload on playlist switches.
+  let hls = null;
+  const nativeHls = video.canPlayType('application/vnd.apple.mpegurl');
+
+  function loadSource() {
+    if (nativeHls) {
+      video.src = src + '?t=' + Date.now();
+      video.addEventListener('loadedmetadata', tryPlay, { once: true });
+    } else if (window.Hls && Hls.isSupported()) {
+      if (hls) { try { hls.destroy(); } catch(e) {} }
+      hls = new Hls();
+      hls.on(Hls.Events.ERROR, (_, data) => {
+        console.warn('hls.js error:', data);
+        if (data.fatal) showStatus('Stream error: ' + data.details, true);
+      });
+      hls.on(Hls.Events.MANIFEST_PARSED, tryPlay);
+      hls.loadSource(src);
+      hls.attachMedia(video);
+    } else {
+      showStatus('HLS is not supported in this browser', true);
+    }
   }
+
+  loadSource();
+
+  // Playlist UI — only visible when /playlist.json has entries.
+  const playlistEl = document.getElementById('playlist');
+  const itemsEl = document.getElementById('playlist-items');
+  const toggleBtn = document.getElementById('playlist-toggle');
+  toggleBtn.addEventListener('click', () => playlistEl.classList.toggle('visible'));
+
+  function renderPlaylist(data) {
+    itemsEl.innerHTML = '';
+    if (!data.items || data.items.length === 0) return;
+    toggleBtn.classList.add('visible');
+    playlistEl.classList.add('visible');
+    data.items.forEach((title, i) => {
+      const row = document.createElement('div');
+      row.className = 'item' + (i === data.current ? ' current' : '');
+      row.textContent = (i + 1) + '. ' + title;
+      row.addEventListener('click', () => switchTo(i));
+      itemsEl.appendChild(row);
+    });
+  }
+
+  async function switchTo(i) {
+    try {
+      showStatus('Loading item ' + (i + 1) + '…', false);
+      await fetch('/switch?i=' + i);
+      // Wait for ffmpeg to produce the first segment before reloading the
+      // source. Poll the playlist file for ~6 s.
+      for (let attempt = 0; attempt < 30; attempt++) {
+        await new Promise(r => setTimeout(r, 200));
+        const r = await fetch('/stream.m3u8?t=' + Date.now(), { cache: 'no-store' });
+        if (r.ok) {
+          const text = await r.text();
+          if (text.indexOf('seg') !== -1) break;
+        }
+      }
+      loadSource();
+      refreshPlaylist();
+    } catch (e) {
+      showStatus('Switch failed: ' + e, true);
+    }
+  }
+
+  async function refreshPlaylist() {
+    try {
+      const r = await fetch('/playlist.json', { cache: 'no-store' });
+      if (r.ok) renderPlaylist(await r.json());
+    } catch (e) { /* ignore */ }
+  }
+
+  refreshPlaylist();
 </script>
 </body></html>
         """.trimIndent()

@@ -27,6 +27,7 @@ class TranscodeCommand(
     private var overwrite = true
     private var seekSeconds: Double? = null
     private var durationSeconds: Double? = null
+    private var toSeconds: Double? = null
     private var framesLimit: Int? = null
 
     fun videoCodec(codec: String) = apply { vCodec = codec }
@@ -49,6 +50,14 @@ class TranscodeCommand(
     /** Limit output duration in seconds (-t flag). */
     fun duration(seconds: Double) = apply { durationSeconds = seconds }
 
+    /**
+     * Stop writing output when the input timestamp reaches [seconds] (-to flag,
+     * absolute end time). Mutually exclusive with [duration]; if both are set,
+     * whichever ffmpeg sees first wins — but note that -to is relative to the
+     * seek point when -ss is used before -i.
+     */
+    fun to(seconds: Double) = apply { toSeconds = seconds }
+
     /** Limit output to N video frames (-frames:v flag). */
     fun frames(count: Int) = apply { framesLimit = count }
 
@@ -62,6 +71,7 @@ class TranscodeCommand(
         add("-i"); add(input)
         // -t after -i = limit output duration
         durationSeconds?.let { add("-t"); add(String.format(java.util.Locale.US, "%.3f", it)) }
+        toSeconds?.let { add("-to"); add(String.format(java.util.Locale.US, "%.3f", it)) }
 
         vCodec?.let { add("-c:v"); add(it) }
         aCodec?.let { add("-c:a"); add(it) }
@@ -120,6 +130,71 @@ class TranscodeCommand(
                 .extra("-vn")
                 .audioCodec("libmp3lame")
                 .audioBitrate(bitrate)
+
+        /**
+         * Lossless trim: fast seek to [startSec], then stream-copy for
+         * `endSec - startSec` seconds. Uses -t (duration) rather than -to
+         * (absolute end) so the semantics are unambiguous regardless of how
+         * ffmpeg interprets output timestamps after -ss.
+         */
+        fun trim(input: String, output: String, startSec: Double, endSec: Double) =
+            TranscodeCommand(input, output)
+                .seekTo(startSec)
+                .duration((endSec - startSec).coerceAtLeast(0.0))
+                .copy()
+
+        /**
+         * Audio-only extraction in the requested codec.
+         *
+         * @param codec one of "libmp3lame", "aac", "libopus", "flac", or "copy"
+         *              (copy keeps the source audio stream bit-exact)
+         * @param bitrate e.g. "192k"; ignored for "copy" and "flac"
+         */
+        fun extractAudio(
+            input: String,
+            output: String,
+            codec: String = "libmp3lame",
+            bitrate: String = "192k",
+        ): TranscodeCommand {
+            val cmd = TranscodeCommand(input, output)
+                .extra("-vn")
+                .audioCodec(codec)
+            if (codec != "copy" && codec != "flac") cmd.audioBitrate(bitrate)
+            return cmd
+        }
+
+        /**
+         * Contact sheet: sample one frame every [sampleEverySec] seconds,
+         * scale each sample to [tileWidth]x[tileHeight], and tile the
+         * resulting frames into a [cols]x[rows] grid. Output is a
+         * single-frame MP4 (same trick as [frameAt]) so the bundled ffmpeg
+         * doesn't need mjpeg/image2 muxers; the caller decodes to a Bitmap
+         * via MediaMetadataRetriever and saves as PNG.
+         */
+        fun contactSheet(
+            input: String,
+            output: String,
+            sampleEverySec: Double,
+            cols: Int,
+            rows: Int,
+            tileWidth: Int,
+            tileHeight: Int,
+        ): TranscodeCommand {
+            val fps = if (sampleEverySec <= 0.0) 1.0 else 1.0 / sampleEverySec
+            val vf = "fps=${String.format(java.util.Locale.US, "%.6f", fps)}," +
+                    "scale=${tileWidth}:${tileHeight}:force_original_aspect_ratio=decrease," +
+                    "pad=${tileWidth}:${tileHeight}:(ow-iw)/2:(oh-ih)/2," +
+                    "tile=${cols}x${rows}"
+            return TranscodeCommand(input, output)
+                .videoCodec("libx264")
+                .preset("ultrafast")
+                .crf(18)
+                .frames(1)
+                // Force MP4 muxer so a caller-chosen output name with e.g. .png
+                // doesn't trip ffmpeg's image2 auto-detection. The caller is
+                // expected to use a .mp4 intermediate and decode to Bitmap.
+                .extra("-an", "-vf", vf, "-f", "mp4", "-pix_fmt", "yuv420p")
+        }
 
         /**
          * Extract a single frame as a 1-frame MP4 at the given seek position.

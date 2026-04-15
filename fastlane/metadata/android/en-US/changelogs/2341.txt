@@ -1,0 +1,45 @@
+v5.7.0: media toolbelt + folder-as-playlist streaming
+
+SFTP file browser grows a Media… bottom sheet for
+media files with five actions:
+
+  Info — ffprobe container/duration/codec/bitrate/
+         streams/chapters with copy-JSON
+  Trim — lossless cut via -c copy -ss -t, saved
+         next to source; no re-encode
+  Audio — extract as MP3/AAC/Opus/FLAC with
+         bitrate slider
+  Sheet — sampled thumbnail grid rendered through
+         libx264 + the tile filter, decoded to PNG
+  Convert — the existing transcode dialog,
+         relocated into the sheet
+
+Directory long-press gains Stream folder playlist.
+HlsStreamServer queues every media file in the
+folder and serves an HTTP player with a sidebar;
+clicking a title restarts ffmpeg on that item and
+the player transparently reloads the stream.
+
+ffmpeg stderr + command line from every media
+action (plus the existing Stream flow) now flows
+through a new onStderr hook and lands in
+Settings → View connection log, with the full
+transcoder output visible when the row is
+expanded. Gated on the existing connection-
+logging preference.
+
+Empty SFTP directories previously rendered as a
+blank pane with no back-to-parent affordance,
+stranding users mid-navigation. The empty state
+now lives inside the file list so the ".." row
+stays tappable and an explicit "empty folder"
+label sits below it.
+
+Contact sheet issues that surfaced during
+testing:
+ - Forced -f mp4 and a .mp4 cache intermediate
+   so ffmpeg doesn't auto-pick the image2 muxer
+   from a user-facing .png extension
+ - Dropped the sample interval floor from 0.5s
+   to 0.04s so short clips (a 5-second edge case)
+   can fill a 4×4 tile grid evenly

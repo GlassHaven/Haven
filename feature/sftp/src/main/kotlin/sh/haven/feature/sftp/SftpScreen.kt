@@ -60,6 +60,7 @@ import androidx.compose.material.icons.filled.Edit
 import androidx.compose.material.icons.filled.Share
 import androidx.compose.material.icons.filled.FolderOpen
 import androidx.compose.material.icons.filled.CastConnected
+import androidx.compose.material.icons.filled.Movie
 import androidx.compose.material.icons.filled.Stop
 import androidx.compose.material3.Checkbox
 import androidx.compose.material3.CircularProgressIndicator
@@ -157,6 +158,11 @@ fun SftpScreen(
     val previewState by viewModel.previewState.collectAsState()
     val previewDuration by viewModel.previewDuration.collectAsState()
     val convertDialogEntry by viewModel.convertDialogEntry.collectAsState()
+    val mediaSheetEntry by viewModel.mediaSheetEntry.collectAsState()
+    val trimDialogEntry by viewModel.trimDialogEntry.collectAsState()
+    val extractAudioDialogEntry by viewModel.extractAudioDialogEntry.collectAsState()
+    val contactSheetDialogEntry by viewModel.contactSheetDialogEntry.collectAsState()
+    val mediaInfoState by viewModel.mediaInfoState.collectAsState()
     val showFullscreenPreview by viewModel.showFullscreenPreview.collectAsState()
     val audioPreviewState by viewModel.audioPreviewState.collectAsState()
     val inputHasVideo by viewModel.inputHasVideo.collectAsState()
@@ -643,38 +649,43 @@ fun SftpScreen(
                     }
                 }
 
-                // File list
-                if (entries.isEmpty() && !loading) {
-                    Box(
-                        modifier = Modifier.fillMaxSize(),
-                        contentAlignment = Alignment.Center,
-                    ) {
-                        Text(
-                            stringResource(R.string.sftp_empty_directory),
-                            style = MaterialTheme.typography.bodyLarge,
-                            color = MaterialTheme.colorScheme.onSurfaceVariant,
-                        )
+                // File list — always renders the LazyColumn so the parent-dir
+                // "..\" row stays available even when the directory is empty.
+                LazyColumn(modifier = Modifier.fillMaxSize()) {
+                    // ".." parent directory entry
+                    if (currentPath != "/" && currentPath.isNotEmpty()) {
+                        item(key = "__parent__") {
+                            ListItem(
+                                headlineContent = { Text("..") },
+                                supportingContent = { Text(stringResource(R.string.sftp_parent_directory)) },
+                                leadingContent = {
+                                    Icon(
+                                        Icons.AutoMirrored.Filled.ArrowBack,
+                                        contentDescription = stringResource(R.string.sftp_navigate_up_icon),
+                                        tint = MaterialTheme.colorScheme.primary,
+                                    )
+                                },
+                                modifier = Modifier.clickable { viewModel.navigateUp() },
+                            )
+                        }
                     }
-                } else {
-                    LazyColumn(modifier = Modifier.fillMaxSize()) {
-                        // ".." parent directory entry
-                        if (currentPath != "/" && currentPath.isNotEmpty()) {
-                            item(key = "__parent__") {
-                                ListItem(
-                                    headlineContent = { Text("..") },
-                                    supportingContent = { Text(stringResource(R.string.sftp_parent_directory)) },
-                                    leadingContent = {
-                                        Icon(
-                                            Icons.AutoMirrored.Filled.ArrowBack,
-                                            contentDescription = stringResource(R.string.sftp_navigate_up_icon),
-                                            tint = MaterialTheme.colorScheme.primary,
-                                        )
-                                    },
-                                    modifier = Modifier.clickable { viewModel.navigateUp() },
+                    if (entries.isEmpty() && !loading) {
+                        item(key = "__empty__") {
+                            Box(
+                                modifier = Modifier
+                                    .fillMaxWidth()
+                                    .padding(vertical = 48.dp),
+                                contentAlignment = Alignment.Center,
+                            ) {
+                                Text(
+                                    stringResource(R.string.sftp_empty_directory),
+                                    style = MaterialTheme.typography.bodyLarge,
+                                    color = MaterialTheme.colorScheme.onSurfaceVariant,
                                 )
                             }
                         }
-                        itemsIndexed(entries, key = { index, entry -> "${activeProfileId}:${index}:${entry.path}" }) { _, entry ->
+                    }
+                    itemsIndexed(entries, key = { index, entry -> "${activeProfileId}:${index}:${entry.path}" }) { _, entry ->
                             FileListItem(
                                 entry = entry,
                                 onTap = {
@@ -722,12 +733,15 @@ fun SftpScreen(
                                 },
                                 onCopy = { viewModel.copyToClipboard(listOf(entry), isCut = false) },
                                 onCut = { viewModel.copyToClipboard(listOf(entry), isCut = true) },
-                                onConvert = if (!entry.isDirectory && entry.isMediaFile(mediaExtensions)) {
-                                    { viewModel.openConvertDialog(entry) }
+                                onMediaSheet = if (!entry.isDirectory && entry.isMediaFile(mediaExtensions)) {
+                                    { viewModel.openMediaSheet(entry) }
                                 } else null,
                                 onStream = if (!entry.isDirectory && entry.isMediaFile(mediaExtensions) &&
                                     !viewModel.isSmbProfile()) {
                                     { viewModel.streamFile(entry) }
+                                } else null,
+                                onStreamFolder = if (entry.isDirectory && !viewModel.isSmbProfile()) {
+                                    { viewModel.streamFolder(entry.path) }
                                 } else null,
                                 onPlay = if (isRclone && entry.isMediaFile(mediaExtensions)) {
                                     { viewModel.playMediaFile(entry) }
@@ -744,7 +758,6 @@ fun SftpScreen(
                                 } else null,
                             )
                         }
-                    }
                 }
             }
         }
@@ -859,6 +872,56 @@ fun SftpScreen(
             },
             dismissButton = {
                 TextButton(onClick = { showRenameDialog = null }) { Text(stringResource(R.string.common_cancel)) }
+            },
+        )
+    }
+
+    // Media actions bottom sheet — primary entry for ffmpeg-powered features
+    mediaSheetEntry?.let { entry ->
+        MediaActionsSheet(
+            entry = entry,
+            onDismiss = { viewModel.dismissMediaSheet() },
+            onMediaInfo = { viewModel.loadMediaInfo(entry) },
+            onTrim = { viewModel.openTrimDialog(entry) },
+            onExtractAudio = { viewModel.openExtractAudioDialog(entry) },
+            onContactSheet = { viewModel.openContactSheetDialog(entry) },
+            onConvert = { viewModel.openConvertDialog(entry) },
+        )
+    }
+
+    mediaInfoState?.let { state ->
+        MediaInfoDialog(state = state, onDismiss = { viewModel.dismissMediaInfo() })
+    }
+
+    trimDialogEntry?.let { entry ->
+        TrimDialog(
+            entry = entry,
+            onDismiss = { viewModel.dismissTrimDialog() },
+            onConfirm = { start, end, out ->
+                viewModel.dismissTrimDialog()
+                viewModel.trimFile(entry, start, end, out)
+            },
+        )
+    }
+
+    extractAudioDialogEntry?.let { entry ->
+        ExtractAudioDialog(
+            entry = entry,
+            onDismiss = { viewModel.dismissExtractAudioDialog() },
+            onConfirm = { codec, bitrate, out ->
+                viewModel.dismissExtractAudioDialog()
+                viewModel.extractAudio(entry, codec, bitrate, out)
+            },
+        )
+    }
+
+    contactSheetDialogEntry?.let { entry ->
+        ContactSheetDialog(
+            entry = entry,
+            onDismiss = { viewModel.dismissContactSheetDialog() },
+            onConfirm = { cols, rows, tw, th, out ->
+                viewModel.dismissContactSheetDialog()
+                viewModel.makeContactSheet(entry, cols, rows, tw, th, out)
             },
         )
     }
@@ -1593,8 +1656,9 @@ private fun FileListItem(
     onCut: () -> Unit = {},
     onPlay: (() -> Unit)? = null,
     onSync: (() -> Unit)? = null,
-    onConvert: (() -> Unit)? = null,
+    onMediaSheet: (() -> Unit)? = null,
     onStream: (() -> Unit)? = null,
+    onStreamFolder: (() -> Unit)? = null,
     onRename: () -> Unit = {},
     onShareLink: (() -> Unit)? = null,
     onFolderSize: (() -> Unit)? = null,
@@ -1655,11 +1719,11 @@ private fun FileListItem(
                     onClick = { showMenu = false; onDownload() },
                 )
             }
-            if (onConvert != null) {
+            if (onMediaSheet != null) {
                 DropdownMenuItem(
-                    text = { Text(stringResource(R.string.sftp_convert)) },
-                    leadingIcon = { Icon(Icons.Filled.Sync, null) },
-                    onClick = { showMenu = false; onConvert() },
+                    text = { Text(stringResource(R.string.sftp_media)) },
+                    leadingIcon = { Icon(Icons.Filled.Movie, null) },
+                    onClick = { showMenu = false; onMediaSheet() },
                 )
             }
             if (onStream != null) {
@@ -1667,6 +1731,13 @@ private fun FileListItem(
                     text = { Text(stringResource(R.string.sftp_stream)) },
                     leadingIcon = { Icon(Icons.Filled.CastConnected, null) },
                     onClick = { showMenu = false; onStream() },
+                )
+            }
+            if (onStreamFolder != null) {
+                DropdownMenuItem(
+                    text = { Text(stringResource(R.string.sftp_stream_folder)) },
+                    leadingIcon = { Icon(Icons.Filled.CastConnected, null) },
+                    onClick = { showMenu = false; onStreamFolder() },
                 )
             }
             DropdownMenuItem(

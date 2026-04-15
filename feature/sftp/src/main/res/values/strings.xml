@@ -106,6 +106,53 @@
     <string name="sftp_cut">Cut</string>
     <string name="sftp_copy_path">Copy path</string>
 
+    <!-- Media action sheet & dialogs -->
+    <string name="sftp_media">Media…</string>
+    <string name="sftp_stream_folder">Stream folder playlist</string>
+    <string name="sftp_output_filename">Output filename</string>
+    <string name="sftp_convert_sub">Re-encode video or audio with filters</string>
+
+    <string name="sftp_media_info">Media info</string>
+    <string name="sftp_media_info_sub">Codec, duration, streams</string>
+    <string name="sftp_media_info_probing">Probing…</string>
+    <string name="sftp_media_info_failed">ffprobe failed: %s</string>
+    <string name="sftp_media_info_container">Container</string>
+    <string name="sftp_media_info_duration">Duration</string>
+    <string name="sftp_media_info_bitrate">Bitrate</string>
+    <string name="sftp_media_info_size">Size</string>
+    <string name="sftp_media_info_video_streams">Video</string>
+    <string name="sftp_media_info_audio_streams">Audio</string>
+    <string name="sftp_media_info_subtitle_streams">Subtitles</string>
+    <string name="sftp_media_info_video">Video</string>
+    <string name="sftp_media_info_audio">Audio</string>
+    <string name="sftp_media_info_subtitle">Subtitle</string>
+    <string name="sftp_media_info_chapters">Chapters: %d</string>
+    <string name="sftp_media_info_copy">Copy JSON</string>
+
+    <string name="sftp_trim">Trim (lossless)</string>
+    <string name="sftp_trim_sub">Cut a clip without re-encoding</string>
+    <string name="sftp_trim_title">Trim clip</string>
+    <string name="sftp_trim_explain">Start and end as H:MM:SS. Stream-copy, no re-encode.</string>
+    <string name="sftp_trim_start">Start</string>
+    <string name="sftp_trim_end">End</string>
+    <string name="sftp_trim_action">Trim</string>
+
+    <string name="sftp_extract_audio">Extract audio</string>
+    <string name="sftp_extract_audio_sub">Save soundtrack as MP3/AAC/Opus/FLAC</string>
+    <string name="sftp_extract_audio_title">Extract audio</string>
+    <string name="sftp_extract_audio_format">Format</string>
+    <string name="sftp_extract_audio_bitrate">Bitrate: %d kbps</string>
+    <string name="sftp_extract_audio_action">Extract</string>
+
+    <string name="sftp_contact_sheet">Contact sheet</string>
+    <string name="sftp_contact_sheet_sub">Grid of thumbnails sampled across the file</string>
+    <string name="sftp_contact_sheet_title">Contact sheet</string>
+    <string name="sftp_contact_sheet_explain">Samples frames evenly across the clip into a tiled PNG.</string>
+    <string name="sftp_contact_sheet_cols">Columns</string>
+    <string name="sftp_contact_sheet_rows">Rows</string>
+    <string name="sftp_contact_sheet_tile">Tile size: %1$d × %2$d</string>
+    <string name="sftp_contact_sheet_action">Build sheet</string>
+
     <!-- SortDropdown -->
     <string name="sftp_sort_name_asc">Name A-Z</string>
     <string name="sftp_sort_name_desc">Name Z-A</string>

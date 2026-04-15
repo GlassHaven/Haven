@@ -22,8 +22,10 @@ import kotlinx.coroutines.CompletableDeferred
 import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
+import sh.haven.core.data.db.entities.ConnectionLog
 import sh.haven.core.data.db.entities.ConnectionProfile
 import sh.haven.core.data.preferences.UserPreferencesRepository
+import sh.haven.core.data.repository.ConnectionLogRepository
 import sh.haven.core.data.repository.ConnectionRepository
 import sh.haven.core.et.EtSessionManager
 import sh.haven.core.mosh.MoshSessionManager
@@ -100,6 +102,7 @@ class SftpViewModel @Inject constructor(
     private val rcloneSessionManager: RcloneSessionManager,
     private val rcloneClient: RcloneClient,
     private val repository: ConnectionRepository,
+    private val connectionLogRepository: ConnectionLogRepository,
     private val preferencesRepository: UserPreferencesRepository,
     private val ffmpegExecutor: sh.haven.core.ffmpeg.FfmpegExecutor,
     val hlsStreamServer: sh.haven.core.ffmpeg.HlsStreamServer,
@@ -187,6 +190,40 @@ class SftpViewModel @Inject constructor(
 
     fun openConvertDialog(entry: SftpEntry) { _convertDialogEntry.value = entry }
     fun dismissConvertDialog() { _convertDialogEntry.value = null; clearPreview() }
+
+    /** Which entry the media-actions bottom sheet is showing, if any. */
+    private val _mediaSheetEntry = MutableStateFlow<SftpEntry?>(null)
+    val mediaSheetEntry: StateFlow<SftpEntry?> = _mediaSheetEntry.asStateFlow()
+    fun openMediaSheet(entry: SftpEntry) { _mediaSheetEntry.value = entry }
+    fun dismissMediaSheet() { _mediaSheetEntry.value = null }
+
+    /** Trim dialog state. */
+    private val _trimDialogEntry = MutableStateFlow<SftpEntry?>(null)
+    val trimDialogEntry: StateFlow<SftpEntry?> = _trimDialogEntry.asStateFlow()
+    fun openTrimDialog(entry: SftpEntry) { _trimDialogEntry.value = entry }
+    fun dismissTrimDialog() { _trimDialogEntry.value = null }
+
+    /** Extract-audio dialog state. */
+    private val _extractAudioDialogEntry = MutableStateFlow<SftpEntry?>(null)
+    val extractAudioDialogEntry: StateFlow<SftpEntry?> = _extractAudioDialogEntry.asStateFlow()
+    fun openExtractAudioDialog(entry: SftpEntry) { _extractAudioDialogEntry.value = entry }
+    fun dismissExtractAudioDialog() { _extractAudioDialogEntry.value = null }
+
+    /** Contact-sheet dialog state. */
+    private val _contactSheetDialogEntry = MutableStateFlow<SftpEntry?>(null)
+    val contactSheetDialogEntry: StateFlow<SftpEntry?> = _contactSheetDialogEntry.asStateFlow()
+    fun openContactSheetDialog(entry: SftpEntry) { _contactSheetDialogEntry.value = entry }
+    fun dismissContactSheetDialog() { _contactSheetDialogEntry.value = null }
+
+    /** Media-info panel state: null = hidden; Loading = probing; Loaded = show result. */
+    sealed class MediaInfoState {
+        data class Loading(val entry: SftpEntry) : MediaInfoState()
+        data class Loaded(val entry: SftpEntry, val info: sh.haven.core.ffmpeg.MediaInfo) : MediaInfoState()
+        data class Failed(val entry: SftpEntry, val reason: String) : MediaInfoState()
+    }
+    private val _mediaInfoState = MutableStateFlow<MediaInfoState?>(null)
+    val mediaInfoState: StateFlow<MediaInfoState?> = _mediaInfoState.asStateFlow()
+    fun dismissMediaInfo() { _mediaInfoState.value = null }
 
     /** Whether the fullscreen preview overlay is showing — survives rotation. */
     private val _showFullscreenPreview = MutableStateFlow(false)
@@ -1007,6 +1044,532 @@ class SftpViewModel @Inject constructor(
         }
     }
 
+    // ── Media info / trim / extract audio / contact sheet ────────────────
+
+    /**
+     * Persist a media-job event to the ConnectionLog store so its captured
+     * ffmpeg stderr + command line is visible in the existing Audit Log UI.
+     * No-op for the synthetic "local" profile since it isn't in the DB and
+     * the foreign-key insert would fail.
+     *
+     * Gated on the user's connectionLoggingEnabled preference — we call the
+     * repository which honours that gate, so logging is silently skipped if
+     * the user hasn't opted in.
+     */
+    private suspend fun logMediaEvent(
+        entry: SftpEntry,
+        label: String,
+        status: ConnectionLog.Status,
+        startMs: Long,
+        verboseLog: String,
+        extra: String?,
+    ) {
+        val profileId = _activeProfileId.value ?: return
+        if (profileId == "local") return
+        try {
+            connectionLogRepository.logEvent(
+                profileId = profileId,
+                status = status,
+                durationMs = System.currentTimeMillis() - startMs,
+                details = buildString {
+                    append(label.trim())
+                    append(": ").append(entry.name)
+                    if (!extra.isNullOrBlank()) append(" — ").append(extra)
+                },
+                verboseLog = verboseLog,
+            )
+        } catch (e: Exception) {
+            Log.w(TAG, "logMediaEvent failed", e)
+        }
+    }
+
+
+    /**
+     * Resolve an [entry] to an ffmpeg-readable input string without
+     * downloading the whole file:
+     *  - local → absolute path
+     *  - rclone → loopback HTTP URL via ensureMediaServer
+     *  - SFTP → loopback HTTP URL via sftpStreamServer
+     *  - SMB → throws (no HTTP bridge yet)
+     */
+    private suspend fun resolveStreamInput(entry: SftpEntry): String {
+        return when {
+            _isLocalProfile.value -> entry.path
+            _isRcloneProfile.value -> {
+                val port = ensureMediaServer()
+                val encodedPath = entry.path
+                    .trimStart('/')
+                    .split('/')
+                    .joinToString("/") { java.net.URLEncoder.encode(it, "UTF-8").replace("+", "%20") }
+                "http://127.0.0.1:$port/$encodedPath"
+            }
+            _isSmbProfile.value -> throw IllegalStateException("SMB not supported for this action")
+            else -> {
+                val profileId = _activeProfileId.value
+                    ?: throw IllegalStateException("No active profile")
+                val port = withContext(Dispatchers.IO) { sftpStreamServer.start() }
+                val urlPath = sftpStreamServer.publish(
+                    path = entry.path,
+                    size = entry.size,
+                    contentType = guessContentType(entry.name),
+                    opener = sftpOpener(profileId, entry.path),
+                )
+                "http://127.0.0.1:$port$urlPath"
+            }
+        }
+    }
+
+    /** Upload [cacheOutput] to the chosen destination. Mirrors convertFile phase 3. */
+    private suspend fun saveProcessedOutput(
+        entry: SftpEntry,
+        cacheOutput: java.io.File,
+        outName: String,
+        mimeType: String,
+        destination: ConvertDestination,
+    ): String {
+        val profileId = _activeProfileId.value
+        return when (destination) {
+            ConvertDestination.DOWNLOADS -> {
+                withContext(Dispatchers.IO) {
+                    if (android.os.Build.VERSION.SDK_INT >= android.os.Build.VERSION_CODES.Q) {
+                        val values = android.content.ContentValues().apply {
+                            put(android.provider.MediaStore.Downloads.DISPLAY_NAME, outName)
+                            put(android.provider.MediaStore.Downloads.MIME_TYPE, mimeType)
+                        }
+                        val uri = appContext.contentResolver.insert(
+                            android.provider.MediaStore.Downloads.EXTERNAL_CONTENT_URI, values,
+                        ) ?: throw IllegalStateException("Failed to create Downloads entry")
+                        appContext.contentResolver.openOutputStream(uri)?.use { out ->
+                            cacheOutput.inputStream().use { it.copyTo(out) }
+                        }
+                    } else {
+                        @Suppress("DEPRECATION")
+                        val dlDir = android.os.Environment.getExternalStoragePublicDirectory(
+                            android.os.Environment.DIRECTORY_DOWNLOADS,
+                        )
+                        cacheOutput.copyTo(java.io.File(dlDir, outName), overwrite = true)
+                    }
+                }
+                "Downloads"
+            }
+            ConvertDestination.SOURCE_FOLDER -> {
+                val sourceDir = entry.path.substringBeforeLast('/', "").ifEmpty { "/" }
+                val destPath = if (sourceDir == "/") "/$outName" else "$sourceDir/$outName"
+                when {
+                    _isLocalProfile.value -> {
+                        withContext(Dispatchers.IO) {
+                            cacheOutput.copyTo(java.io.File(destPath), overwrite = true)
+                        }
+                        sourceDir
+                    }
+                    _isRcloneProfile.value -> {
+                        val remote = activeRcloneRemote
+                            ?: throw IllegalStateException("Rclone not connected")
+                        val uploadLabel = "\u2B06 Uploading $outName"
+                        _transferProgress.value = TransferProgress(uploadLabel, 0, 0)
+                        withContext(Dispatchers.IO) {
+                            rcloneClient.copyFile(
+                                cacheOutput.parent!!, cacheOutput.name,
+                                remote, destPath.trimStart('/'),
+                            )
+                        }
+                        "$remote:$sourceDir"
+                    }
+                    _isSmbProfile.value -> {
+                        val client = activeSmbClient
+                            ?: throw IllegalStateException("SMB not connected")
+                        val uploadLabel = "\u2B06 Uploading $outName"
+                        _transferProgress.value = TransferProgress(uploadLabel, cacheOutput.length(), 0)
+                        withContext(Dispatchers.IO) {
+                            cacheOutput.inputStream().use { input ->
+                                client.upload(input, destPath, cacheOutput.length()) { transferred, total ->
+                                    _transferProgress.value = TransferProgress(uploadLabel, total, transferred)
+                                }
+                            }
+                        }
+                        sourceDir
+                    }
+                    else -> {
+                        val channel = getOrOpenChannel(profileId!!)
+                            ?: throw IllegalStateException("Not connected")
+                        val uploadLabel = "\u2B06 Uploading $outName"
+                        _transferProgress.value = TransferProgress(uploadLabel, cacheOutput.length(), 0)
+                        withContext(Dispatchers.IO) {
+                            cacheOutput.inputStream().use { input ->
+                                var transferred = 0L
+                                val total = cacheOutput.length()
+                                val monitor = object : SftpProgressMonitor {
+                                    override fun init(op: Int, src: String, dest: String, max: Long) {}
+                                    override fun count(bytes: Long): Boolean {
+                                        transferred += bytes
+                                        _transferProgress.value = TransferProgress(uploadLabel, total, transferred)
+                                        return true
+                                    }
+                                    override fun end() {}
+                                }
+                                channel.put(input, destPath, monitor)
+                            }
+                        }
+                        sourceDir
+                    }
+                }
+            }
+        }
+    }
+
+    /**
+     * Shared execution helper for trim / extractAudio / contactSheet:
+     * resolve input, run the caller-built TranscodeCommand, optionally
+     * post-process the output, then save to the destination.
+     *
+     * @param postProcess optional transformation; returns the final file to upload
+     *                    (e.g. contact sheet decodes 1-frame MP4 → PNG)
+     */
+    private fun runMediaJob(
+        entry: SftpEntry,
+        outName: String,
+        outMimeType: String,
+        destination: ConvertDestination,
+        label: String,
+        buildCommand: (input: String, output: String) -> sh.haven.core.ffmpeg.TranscodeCommand,
+        postProcess: (suspend (java.io.File) -> java.io.File)? = null,
+        /**
+         * Name ffmpeg writes to inside the cache dir. If null the cache file
+         * uses [outName], which works only when the ffmpeg output format
+         * matches the user-facing extension. Contact sheet in particular
+         * needs a .mp4 intermediate even though outName ends in .png.
+         */
+        intermediateName: String? = null,
+    ) {
+        viewModelScope.launch {
+            var cacheOutput: java.io.File? = null
+            var finalOutput: java.io.File? = null
+            val logBuffer = StringBuilder()
+            val startTime = System.currentTimeMillis()
+            fun appendLog(line: String) {
+                val elapsed = System.currentTimeMillis() - startTime
+                logBuffer.append("+${elapsed}ms ").append(line).append('\n')
+            }
+            try {
+                _loading.value = true
+                val ffmpegInput = resolveStreamInput(entry)
+                appendLog("input=$ffmpegInput")
+                cacheOutput = java.io.File(appContext.cacheDir, "ffmpeg_out_${intermediateName ?: outName}")
+
+                val durationSec = withContext(Dispatchers.IO) {
+                    val probeResult = ffmpegExecutor.probe(sh.haven.core.ffmpeg.ProbeCommand.durationOnly(ffmpegInput))
+                    probeResult.stdout.trim().toDoubleOrNull() ?: 0.0
+                }
+
+                _transferProgress.value = if (durationSec > 0) {
+                    TransferProgress(label, 100, 0, isPercentage = true)
+                } else {
+                    TransferProgress(label, 0, 0)
+                }
+
+                val cmd = buildCommand(ffmpegInput, cacheOutput.absolutePath)
+                val args = cmd.build()
+                Log.d(TAG, "$label: ffmpeg ${args.joinToString(" ")}")
+                appendLog("cmd=ffmpeg ${args.joinToString(" ")}")
+                val result = withContext(Dispatchers.IO) {
+                    ffmpegExecutor.execute(args) { stderrLine ->
+                        Log.d(TAG, "ffmpeg: $stderrLine")
+                        appendLog("ffmpeg: $stderrLine")
+                        val progress = sh.haven.core.ffmpeg.FfmpegProgress.parse(stderrLine)
+                        if (progress != null && durationSec > 0) {
+                            val pct = ((progress.timeSeconds / durationSec) * 100).toLong().coerceIn(0, 99)
+                            _transferProgress.value = TransferProgress(label, 100, pct, isPercentage = true)
+                        }
+                    }
+                }
+                val outSize = cacheOutput.takeIf { it.exists() }?.length() ?: -1
+                Log.d(TAG, "$label: ffmpeg exit=${result.exitCode} outputSize=$outSize")
+                appendLog("exit=${result.exitCode} outputSize=$outSize")
+                if (!result.success) {
+                    _error.value = "$label failed (exit ${result.exitCode})"
+                    logMediaEvent(entry, label, ConnectionLog.Status.FAILED, startTime, logBuffer.toString(), "exit ${result.exitCode}")
+                    return@launch
+                }
+
+                finalOutput = postProcess?.invoke(cacheOutput) ?: cacheOutput
+                appendLog("postProcess done → ${finalOutput.name} size=${finalOutput.length()}")
+                val savedLocation = saveProcessedOutput(
+                    entry = entry,
+                    cacheOutput = finalOutput,
+                    outName = finalOutput.name,
+                    mimeType = outMimeType,
+                    destination = destination,
+                )
+                appendLog("saved → $savedLocation")
+                _message.value = "Saved ${finalOutput.name} to $savedLocation"
+                logMediaEvent(entry, label, ConnectionLog.Status.CONNECTED, startTime, logBuffer.toString(), savedLocation)
+                if (destination == ConvertDestination.SOURCE_FOLDER) {
+                    val sourceDir = entry.path.substringBeforeLast('/', "").ifEmpty { "/" }
+                    if (_currentPath.value == sourceDir) refresh()
+                }
+            } catch (e: Exception) {
+                Log.e(TAG, "$label failed; preserving cacheOutput=${cacheOutput?.absolutePath} size=${cacheOutput?.takeIf { it.exists() }?.length() ?: -1}", e)
+                appendLog("EXCEPTION: ${e.javaClass.simpleName}: ${e.message}")
+                logMediaEvent(entry, label, ConnectionLog.Status.FAILED, startTime, logBuffer.toString(), e.message)
+                _error.value = "$label failed: ${e.message}"
+                return@launch  // don't delete on failure — leave for inspection
+            } finally {
+                _loading.value = false
+                _transferProgress.value = null
+            }
+            // Success-only cleanup
+            cacheOutput?.takeIf { it.exists() }?.delete()
+            if (finalOutput != null && finalOutput != cacheOutput) {
+                finalOutput.takeIf { it.exists() }?.delete()
+            }
+        }
+    }
+
+    /** Probe a remote media file and surface the result via [mediaInfoState]. */
+    fun loadMediaInfo(entry: SftpEntry) {
+        _mediaInfoState.value = MediaInfoState.Loading(entry)
+        viewModelScope.launch {
+            try {
+                val input = resolveStreamInput(entry)
+                val result = withContext(Dispatchers.IO) {
+                    ffmpegExecutor.probe(sh.haven.core.ffmpeg.ProbeCommand.fullInfo(input))
+                }
+                if (!result.success) {
+                    _mediaInfoState.value = MediaInfoState.Failed(entry, "ffprobe exit ${result.exitCode}")
+                    return@launch
+                }
+                val info = sh.haven.core.ffmpeg.ProbeCommand.parse(result.stdout)
+                _mediaInfoState.value = MediaInfoState.Loaded(entry, info)
+            } catch (e: Exception) {
+                Log.e(TAG, "loadMediaInfo failed", e)
+                _mediaInfoState.value = MediaInfoState.Failed(entry, e.message ?: "unknown error")
+            }
+        }
+    }
+
+    /** Lossless trim (-c copy) writing an output clip. */
+    fun trimFile(
+        entry: SftpEntry,
+        startSec: Double,
+        endSec: Double,
+        outName: String,
+        destination: ConvertDestination = ConvertDestination.SOURCE_FOLDER,
+    ) {
+        if (endSec <= startSec) {
+            _error.value = "Trim end must be after start"
+            return
+        }
+        val ext = outName.substringAfterLast('.', "mp4")
+        val mime = when (ext.lowercase()) {
+            "mp4", "m4a" -> "video/mp4"
+            "mkv" -> "video/x-matroska"
+            "webm" -> "video/webm"
+            "mov" -> "video/quicktime"
+            "mp3" -> "audio/mpeg"
+            else -> "application/octet-stream"
+        }
+        runMediaJob(
+            entry = entry,
+            outName = outName,
+            outMimeType = mime,
+            destination = destination,
+            label = "\u2702 Trimming ${entry.name}",
+            buildCommand = { input, output ->
+                sh.haven.core.ffmpeg.TranscodeCommand.trim(input, output, startSec, endSec)
+            },
+        )
+    }
+
+    /** Audio-only extraction to the chosen codec/bitrate. */
+    fun extractAudio(
+        entry: SftpEntry,
+        codec: String,
+        bitrate: String,
+        outName: String,
+        destination: ConvertDestination = ConvertDestination.SOURCE_FOLDER,
+    ) {
+        val mime = when (codec) {
+            "libmp3lame" -> "audio/mpeg"
+            "aac" -> "audio/aac"
+            "libopus" -> "audio/opus"
+            "flac" -> "audio/flac"
+            "copy" -> "audio/octet-stream"
+            else -> "audio/octet-stream"
+        }
+        runMediaJob(
+            entry = entry,
+            outName = outName,
+            outMimeType = mime,
+            destination = destination,
+            label = "\u266B Extracting audio from ${entry.name}",
+            buildCommand = { input, output ->
+                sh.haven.core.ffmpeg.TranscodeCommand.extractAudio(input, output, codec, bitrate)
+            },
+        )
+    }
+
+    /**
+     * Produce a contact-sheet PNG: samples frames evenly across the file's
+     * duration (if known) or every [fallbackSampleEverySec] seconds otherwise,
+     * tiles them into a [cols]x[rows] grid, then decodes the single-frame MP4
+     * output to a Bitmap and compresses to PNG.
+     */
+    fun makeContactSheet(
+        entry: SftpEntry,
+        cols: Int,
+        rows: Int,
+        tileWidth: Int,
+        tileHeight: Int,
+        outName: String,
+        fallbackSampleEverySec: Double = 10.0,
+        destination: ConvertDestination = ConvertDestination.SOURCE_FOLDER,
+    ) {
+        runMediaJob(
+            entry = entry,
+            outName = outName,
+            outMimeType = "image/png",
+            destination = destination,
+            label = "\u25A6 Building contact sheet",
+            // Intermediate is an MP4 — ffmpeg picks the muxer from the
+            // extension, so we must NOT write to a .png file directly.
+            intermediateName = "contact_sheet_${System.currentTimeMillis()}.mp4",
+            buildCommand = { input, output ->
+                // Probe duration to pick a sampling interval that fits cols*rows
+                // frames evenly across the file. Falls back to a fixed interval
+                // if the probe returns 0 (live streams, broken headers).
+                //
+                // Tight minimum (0.04 s = 25 fps) so short clips still sample
+                // enough frames to fill the tile grid. A 5-second clip with
+                // 4x4=16 tiles needs sampleEverySec ≈ 0.31 s.
+                val every = runCatching {
+                    val r = ffmpegExecutor.probe(sh.haven.core.ffmpeg.ProbeCommand.durationOnly(input))
+                    val dur = r.stdout.trim().toDoubleOrNull() ?: 0.0
+                    val tiles = (cols * rows).coerceAtLeast(1)
+                    if (dur > 0) (dur / tiles).coerceAtLeast(0.04) else fallbackSampleEverySec
+                }.getOrDefault(fallbackSampleEverySec)
+                Log.d(TAG, "contactSheet: cols=$cols rows=$rows every=${"%.3f".format(every)}s tile=${tileWidth}x$tileHeight")
+                sh.haven.core.ffmpeg.TranscodeCommand.contactSheet(
+                    input = input,
+                    output = output,
+                    sampleEverySec = every,
+                    cols = cols,
+                    rows = rows,
+                    tileWidth = tileWidth,
+                    tileHeight = tileHeight,
+                )
+            },
+            postProcess = { mp4 ->
+                // Decode the 1-frame MP4 to a Bitmap and save as PNG.
+                withContext(Dispatchers.IO) {
+                    val retriever = android.media.MediaMetadataRetriever()
+                    try {
+                        retriever.setDataSource(mp4.absolutePath)
+                        val bitmap = retriever.getFrameAtTime(0)
+                            ?: throw IllegalStateException("Failed to decode contact sheet frame")
+                        val png = java.io.File(appContext.cacheDir, outName)
+                        png.outputStream().use { out ->
+                            if (!bitmap.compress(android.graphics.Bitmap.CompressFormat.PNG, 100, out)) {
+                                throw IllegalStateException("PNG compression failed")
+                            }
+                        }
+                        bitmap.recycle()
+                        png
+                    } finally {
+                        try { retriever.release() } catch (_: Exception) {}
+                    }
+                }
+            },
+        )
+    }
+
+    /**
+     * Stream every media file in [folderPath] as an HLS playlist. The in-app
+     * HLS server queues the items and exposes a playlist sidebar in the web
+     * player so the viewer can skip between them; each switch transparently
+     * restarts ffmpeg on the chosen file.
+     */
+    fun streamFolder(folderPath: String) {
+        Log.w(TAG, "streamFolder: $folderPath")
+        if (_isSmbProfile.value) {
+            _error.value = "Streaming is not supported for SMB yet"
+            return
+        }
+        viewModelScope.launch {
+            val logBuffer = StringBuilder()
+            val startTime = System.currentTimeMillis()
+            fun appendLog(line: String) {
+                val elapsed = System.currentTimeMillis() - startTime
+                logBuffer.append("+${elapsed}ms ").append(line).append('\n')
+            }
+            try {
+                _loading.value = true
+                val mediaEntries = _entries.value
+                    .filter { !it.isDirectory && it.isMediaFile(mediaExtensionsSet.value) }
+                    .sortedWith(compareBy(NATURAL_SORT_COMPARATOR) { it.name })
+                if (mediaEntries.isEmpty()) {
+                    _error.value = "No media files in this folder"
+                    return@launch
+                }
+
+                val items = mediaEntries.map { entry ->
+                    sh.haven.core.ffmpeg.HlsStreamServer.PlaylistItem(
+                        title = entry.name,
+                        input = resolveStreamInput(entry),
+                    )
+                }
+                appendLog("streamFolder: ${items.size} items in $folderPath")
+                items.forEachIndexed { i, it -> appendLog("  [$i] ${it.title} → ${it.input}") }
+                hlsStreamServer.onStderr = { line -> appendLog("ffmpeg: $line") }
+                val port = hlsStreamServer.startPlaylist(items)
+                val ip = withContext(Dispatchers.IO) {
+                    java.net.NetworkInterface.getNetworkInterfaces()?.toList()
+                        ?.filter { it.isUp && !it.isLoopback }
+                        ?.flatMap { it.inetAddresses.toList() }
+                        ?.firstOrNull { !it.isLoopbackAddress && it is java.net.Inet4Address }
+                        ?.hostAddress ?: "127.0.0.1"
+                }
+                val url = "http://$ip:$port/"
+                val clipboard = appContext.getSystemService(Context.CLIPBOARD_SERVICE)
+                    as? android.content.ClipboardManager
+                clipboard?.setPrimaryClip(
+                    android.content.ClipData.newPlainText("Haven stream URL", url),
+                )
+                _message.value = "Streaming ${items.size} files on $url (copied to clipboard)"
+                appendLog("streaming at $url")
+                // Synthesize an entry for the folder so the event lands under
+                // the right profile; entry.name is the folder basename.
+                val folderName = folderPath.trimEnd('/').substringAfterLast('/')
+                    .ifEmpty { folderPath }
+                val syntheticEntry = SftpEntry(
+                    name = folderName,
+                    path = folderPath,
+                    isDirectory = true,
+                    size = 0,
+                    modifiedTime = 0,
+                    permissions = "",
+                )
+                logMediaEvent(syntheticEntry, "\u25B6 Stream playlist", ConnectionLog.Status.CONNECTED, startTime, logBuffer.toString(), "$url (${items.size} files)")
+                val intent = android.content.Intent(
+                    android.content.Intent.ACTION_VIEW,
+                    android.net.Uri.parse(url),
+                ).addFlags(android.content.Intent.FLAG_ACTIVITY_NEW_TASK)
+                appContext.startActivity(intent)
+            } catch (e: Exception) {
+                Log.e(TAG, "streamFolder failed", e)
+                appendLog("EXCEPTION: ${e.javaClass.simpleName}: ${e.message}")
+                val folderName = folderPath.trimEnd('/').substringAfterLast('/').ifEmpty { folderPath }
+                val syntheticEntry = SftpEntry(
+                    name = folderName, path = folderPath, isDirectory = true,
+                    size = 0, modifiedTime = 0, permissions = "",
+                )
+                logMediaEvent(syntheticEntry, "\u25B6 Stream playlist", ConnectionLog.Status.FAILED, startTime, logBuffer.toString(), e.message)
+                _error.value = "Stream folder failed: ${e.message}"
+            } finally {
+                _loading.value = false
+            }
+        }
+    }
+
     /**
      * Start an HLS stream for the given file and open it in a browser.
      *
@@ -1024,6 +1587,12 @@ class SftpViewModel @Inject constructor(
             return
         }
         viewModelScope.launch {
+            val logBuffer = StringBuilder()
+            val startTime = System.currentTimeMillis()
+            fun appendLog(line: String) {
+                val elapsed = System.currentTimeMillis() - startTime
+                logBuffer.append("+${elapsed}ms ").append(line).append('\n')
+            }
             try {
                 // Resolve the ffmpeg input path or URL
                 val streamInput: String = when {
@@ -1051,6 +1620,8 @@ class SftpViewModel @Inject constructor(
                     }
                 }
                 Log.w(TAG, "Starting HLS stream for $streamInput")
+                appendLog("streamFile: input=$streamInput")
+                hlsStreamServer.onStderr = { line -> appendLog("ffmpeg: $line") }
                 val port = hlsStreamServer.startFile(streamInput)
                 // Get the device's LAN IP so the URL is shareable with other
                 // devices on the same network. Falls back to 127.0.0.1 if we
@@ -1071,6 +1642,8 @@ class SftpViewModel @Inject constructor(
                     android.content.ClipData.newPlainText("Haven stream URL", url)
                 )
                 _message.value = "Streaming on $url (copied to clipboard)"
+                appendLog("streaming at $url")
+                logMediaEvent(entry, "\u25B6 Stream", ConnectionLog.Status.CONNECTED, startTime, logBuffer.toString(), url)
                 // Open the shareable URL in the browser — the address bar will
                 // show it, so the user can copy/share from there too.
                 val intent = android.content.Intent(
@@ -1080,6 +1653,8 @@ class SftpViewModel @Inject constructor(
                 appContext.startActivity(intent)
             } catch (e: Exception) {
                 Log.e(TAG, "Stream failed", e)
+                appendLog("EXCEPTION: ${e.javaClass.simpleName}: ${e.message}")
+                logMediaEvent(entry, "\u25B6 Stream", ConnectionLog.Status.FAILED, startTime, logBuffer.toString(), e.message)
                 _error.value = "Stream failed: ${e.message}"
             }
         }
@@ -2018,7 +2593,7 @@ class SftpViewModel @Inject constructor(
                     loadEntries(channel, path)
                 }
             } catch (e: Exception) {
-                Log.e(TAG, "List directory failed", e)
+                Log.e(TAG, "List directory failed: path='$path'", e)
                 _error.value = "Failed to list: ${e.message}"
             } finally {
                 if (!pasteInProgress.get()) _loading.value = false

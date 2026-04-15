@@ -1,0 +1,44 @@
+v5.6.2: mosh shell-exit freeze (#92)
+
+When you typed 'exit' in a plain mosh shell, the session went
+silent — no logout message, further keys did nothing, only
+force-disconnect recovered it. Root cause in the user's
+provided logs: mosh-server stops producing output when the PTY
+child closes, which leaves a 5-10s natural quiet window.
+MoshTransport's NETWORK_STALL_MS was set to 5 seconds, so the
+client mistook that quiet window for a dead socket and called
+rebindSocket() from the send loop. rebindSocket() closed the
+UDP socket while the receive loop was still blocked inside
+recvfrom(), producing the 'recvfrom failed: EBADF (Bad file
+descriptor)' error the logs showed repeatedly. Repeated 6-second
+stall-and-rebind cycles after that generated a new local source
+port on each pass, which the mosh-server's peer tracking could
+not follow during its own shutdown grace period, and the session
+never recovered.
+
+Two fixes in mosh-kotlin:
+
+1. NETWORK_STALL_MS 5000 -> 30000. Upstream mosh-client gives a
+   server ~60 seconds of silence before declaring it dead. 5s
+   was well inside normal keepalive jitter, especially at
+   session end. 30s keeps us responsive to real interface loss
+   without racing mosh-server's shutdown path.
+
+2. rebindSocket() is now serialized under a socketLock with
+   sendFragment(), and the socket field is @Volatile. A rebind
+   can no longer race a concurrent send or leave the receive
+   loop staring at a half-closed socket.
+
+Verified: builds clean, :core:mosh:testDebugUnitTest passes.
+Not yet verified: a full end-to-end repro of the user's mosh
++ exit sequence on device (the bug needs a specific timing
+window; the mechanical fix is correct by inspection of the
+logs).
+
+Follow-up tracked separately: mosh-server emits a shutdown
+marker in its final packet that standard mosh-client uses to
+surface 'session ended' in the UI. Haven's client does not
+interpret it today, which is why the user saw a 'still green'
+connection card after the shell exited. Detecting that marker
+and transitioning the session card to Disconnected is the
+proper UX fix and will land in a later release.

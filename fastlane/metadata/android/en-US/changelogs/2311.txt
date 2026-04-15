@@ -1,0 +1,24 @@
+v5.6.1: HLS streaming fix for 1080p+ sources
+
+libx264 -preset ultrafast silently forces a Constrained Baseline
+bitstream regardless of -profile:v main. Chrome's MSE refuses
+Constrained Baseline above ~720p, so every 1080p or 4K stream
+(local, SFTP, rclone) failed with MEDIA_ERR_SRC_NOT_SUPPORTED —
+the HLS player browser tab showed "Video error: code 4" and
+nothing else. 720p sources were unaffected, which is why the
+bug slipped through.
+
+Fix: use -preset veryfast, which actually honours Main profile
+and is still real-time on a Pixel-class device. Also drops the
+-tune zerolatency flag (live-streaming knob, no VOD benefit,
+bloats output ~2.7x at veryfast).
+
+Verified on a Pixel 8 Pro against a real SFTP source with nine
+generated test files covering H.264 720p/1080p/4K/HEVC/VP9,
+portrait 55fps screen recording, 23.976 cinema fps, 10-bit
+High 10, audio-only MP3, and MKV with embedded SRT subtitles —
+all play on-device after the fix. ffprobe on the pre-fix
+segment confirms profile=Constrained Baseline; post-fix
+confirms profile=Main.
+
+Only touches core/ffmpeg/HlsStreamServer.kt; no other changes.

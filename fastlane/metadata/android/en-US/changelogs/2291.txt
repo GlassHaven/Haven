@@ -1,15 +1,21 @@
-v5.5.1: Eternal Terminal works in release builds
+v5.5.1: broaden et-kotlin R8 keep rule (good hygiene)
 
-Same shape as #82, #93, and the v5.4.5 Reticulum sweep. The
-proguard rule covering the et-kotlin submodule was scoped to
-`sh.haven.et.protocol.**` only, leaving `sh.haven.et.transport`,
-`sh.haven.et.crypto`, and the top-level `EtLogger` exposed to R8.
-The v5.5.0 release mapping shows EtTransport renamed to h5.b
-and the ET infrastructure classes stripped or inlined.
+The proguard rule covering the et-kotlin submodule was scoped
+to `sh.haven.et.protocol.**` only, leaving
+`sh.haven.et.transport.EtTransport`, `sh.haven.et.crypto.EtCrypto`,
+and the top-level `EtLogger` exposed to R8. The v5.5.0 release
+mapping confirmed R8 was renaming EtTransport to h5.b and
+stripping the ET infrastructure classes. Broadened the rule to
+`sh.haven.et.**` to mirror the existing `sh.haven.mosh.**` rule
+that already covers the mosh submodule.
 
-Broadened the keep rule to `sh.haven.et.**`, mirroring the
-`sh.haven.mosh.**` rule that already covers the mosh submodule.
-Verified against the rebuilt v5.5.1 mapping: all 11 et-kotlin
-classes (EtLogger, NoOpEtLogger, StdEtLogger, EtCrypto,
-EtProtocol, EtTransport, EtTransportKt, plus three nested
-classes) are preserved under their source names.
+Caveat — this is a structural correction, not a validated
+causal fix for a reported runtime failure. A user reported
+Eternal Terminal failing in v5.4.5 release; a post-fix bisect
+on signed v5.4.5 against the same host could not reproduce the
+failure. Whatever broke ET originally was something else
+(likely transient network or profile state) and self-resolved.
+Pure-Kotlin renames across a closed graph should be safe at
+runtime — there is no reflection in the et-kotlin source. The
+keep rule fix is worth keeping because the rule shape was
+demonstrably wrong; it is not worth claiming as a bug fix.

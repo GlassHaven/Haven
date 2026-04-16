@@ -193,6 +193,9 @@
     <string name="sftp_folder_size_title">Folder Size</string>
     <string name="sftp_calculating_size">Calculating…</string>
 
+    <!-- Filter -->
+    <string name="sftp_filter">Filter files</string>
+
     <!-- DLNA -->
     <string name="sftp_start_dlna">Start DLNA server</string>
     <string name="sftp_stop_dlna">Stop DLNA server</string>

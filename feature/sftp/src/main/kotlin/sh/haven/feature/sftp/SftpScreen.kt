@@ -61,6 +61,8 @@ import androidx.compose.material.icons.filled.Share
 import androidx.compose.material.icons.filled.FolderOpen
 import androidx.compose.material.icons.filled.CastConnected
 import androidx.compose.material.icons.filled.Movie
+import androidx.compose.material.icons.filled.FilterList
+import androidx.compose.material.icons.filled.Close
 import androidx.compose.material.icons.filled.Stop
 import androidx.compose.material3.Checkbox
 import androidx.compose.material3.CircularProgressIndicator
@@ -170,8 +172,12 @@ fun SftpScreen(
     val inputHasVideo by viewModel.inputHasVideo.collectAsState()
     val previewIsRemote by viewModel.previewIsRemote.collectAsState()
     val editorFile by viewModel.editorFile.collectAsState()
+    val editorSaving by viewModel.editorSaving.collectAsState()
     val editorOpen = editorFile !is SftpViewModel.EditorFileState.Closed
     LaunchedEffect(editorOpen) { onEditorOpenChanged(editorOpen) }
+
+    val fileFilter by viewModel.fileFilter.collectAsState()
+    val filterMode by viewModel.filterMode.collectAsState()
 
     var showRenameDialog by remember { mutableStateOf<SftpEntry?>(null) }
 
@@ -292,6 +298,7 @@ fun SftpScreen(
     val clipboardManager = LocalClipboardManager.current
     val scope = rememberCoroutineScope()
     var showSortMenu by remember { mutableStateOf(false) }
+    var showFilterBar by rememberSaveable { mutableStateOf(false) }
 
     if (editorOpen) {
         var editorWordWrap by rememberSaveable { mutableStateOf(true) }
@@ -304,7 +311,9 @@ fun SftpScreen(
                 else -> sh.haven.feature.editor.EditorState.Idle
             },
             wordWrap = editorWordWrap,
+            saving = editorSaving,
             onToggleWordWrap = { editorWordWrap = !editorWordWrap },
+            onSave = { content -> viewModel.saveEditorContent(content) },
             onBack = { viewModel.closeEditor() },
         )
         return
@@ -370,6 +379,20 @@ fun SftpScreen(
                 },
                 actions = {
                     if (activeProfileId != null) {
+                        IconButton(onClick = {
+                            showFilterBar = !showFilterBar
+                            if (!showFilterBar) viewModel.setFileFilter("")
+                        }) {
+                            Icon(
+                                Icons.Filled.FilterList,
+                                contentDescription = stringResource(R.string.sftp_filter),
+                                tint = if (fileFilter.isNotEmpty()) {
+                                    MaterialTheme.colorScheme.primary
+                                } else {
+                                    MaterialTheme.colorScheme.onSurfaceVariant
+                                },
+                            )
+                        }
                         IconButton(onClick = { viewModel.toggleShowHidden() }) {
                             Icon(
                                 if (showHidden) Icons.Filled.Visibility else Icons.Filled.VisibilityOff,
@@ -498,6 +521,51 @@ fun SftpScreen(
                 .fillMaxSize()
                 .padding(innerPadding),
         ) {
+            AnimatedVisibility(visible = showFilterBar && activeProfileId != null) {
+                Row(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .padding(horizontal = 8.dp, vertical = 4.dp),
+                    verticalAlignment = Alignment.CenterVertically,
+                ) {
+                    OutlinedTextField(
+                        value = fileFilter,
+                        onValueChange = { viewModel.setFileFilter(it) },
+                        placeholder = {
+                            Text(
+                                if (filterMode == SftpViewModel.FilterMode.GLOB) "*.txt, config*" else "\\.(txt|md)$",
+                                style = MaterialTheme.typography.bodySmall,
+                            )
+                        },
+                        singleLine = true,
+                        modifier = Modifier.weight(1f),
+                        textStyle = MaterialTheme.typography.bodySmall,
+                        trailingIcon = if (fileFilter.isNotEmpty()) {
+                            {
+                                IconButton(onClick = { viewModel.setFileFilter("") }) {
+                                    Icon(Icons.Filled.Close, contentDescription = null, modifier = Modifier.size(18.dp))
+                                }
+                            }
+                        } else null,
+                    )
+                    Spacer(Modifier.width(8.dp))
+                    FilterChip(
+                        selected = filterMode == SftpViewModel.FilterMode.REGEX,
+                        onClick = {
+                            viewModel.setFilterMode(
+                                if (filterMode == SftpViewModel.FilterMode.GLOB) SftpViewModel.FilterMode.REGEX
+                                else SftpViewModel.FilterMode.GLOB,
+                            )
+                        },
+                        label = {
+                            Text(
+                                if (filterMode == SftpViewModel.FilterMode.GLOB) "Glob" else "Regex",
+                                style = MaterialTheme.typography.labelSmall,
+                            )
+                        },
+                    )
+                }
+            }
             val sp = syncProgress
             if (sp != null) {
                 Column(modifier = Modifier.fillMaxWidth()) {

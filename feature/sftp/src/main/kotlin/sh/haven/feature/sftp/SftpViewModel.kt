@@ -130,6 +130,12 @@ class SftpViewModel @Inject constructor(
     private val _showHidden = MutableStateFlow(false)
     val showHidden: StateFlow<Boolean> = _showHidden.asStateFlow()
 
+    enum class FilterMode { GLOB, REGEX }
+    private val _fileFilter = MutableStateFlow("")
+    val fileFilter: StateFlow<String> = _fileFilter.asStateFlow()
+    private val _filterMode = MutableStateFlow(FilterMode.GLOB)
+    val filterMode: StateFlow<FilterMode> = _filterMode.asStateFlow()
+
     private val _loading = MutableStateFlow(false)
     val loading: StateFlow<Boolean> = _loading.asStateFlow()
 
@@ -304,8 +310,14 @@ class SftpViewModel @Inject constructor(
     private val _editorFile = MutableStateFlow<EditorFileState>(EditorFileState.Closed)
     val editorFile: StateFlow<EditorFileState> = _editorFile.asStateFlow()
 
+    private val _editorSaving = MutableStateFlow(false)
+    val editorSaving: StateFlow<Boolean> = _editorSaving.asStateFlow()
+
+    private var editorEntry: SftpEntry? = null
+
     fun openInEditor(entry: SftpEntry) {
         if (entry.isDirectory) return
+        editorEntry = entry
         _editorFile.value = EditorFileState.Loading
         viewModelScope.launch {
             try {
@@ -343,8 +355,57 @@ class SftpViewModel @Inject constructor(
         }
     }
 
+    fun saveEditorContent(content: String) {
+        val entry = editorEntry ?: return
+        _editorSaving.value = true
+        viewModelScope.launch {
+            try {
+                val data = content.toByteArray(Charsets.UTF_8)
+                if (_isLocalProfile.value) {
+                    withContext(Dispatchers.IO) {
+                        java.io.File(entry.path).writeBytes(data)
+                    }
+                } else if (_isRcloneProfile.value) {
+                    withContext(Dispatchers.IO) {
+                        val remote = activeRcloneRemote ?: throw IllegalStateException("Rclone not connected")
+                        val tempFile = java.io.File(appContext.cacheDir, "editor_save_${entry.name}")
+                        try {
+                            tempFile.writeBytes(data)
+                            rcloneClient.copyFile(
+                                tempFile.parent!!, tempFile.name,
+                                remote, entry.path,
+                            )
+                        } finally {
+                            tempFile.delete()
+                        }
+                    }
+                } else if (_isSmbProfile.value) {
+                    withContext(Dispatchers.IO) {
+                        val client = activeSmbClient ?: throw IllegalStateException("SMB not connected")
+                        java.io.ByteArrayInputStream(data).use { input ->
+                            client.upload(input, entry.path, data.size.toLong()) { _, _ -> }
+                        }
+                    }
+                } else {
+                    val transport = currentSshTransport() ?: throw IllegalStateException("Not connected")
+                    java.io.ByteArrayInputStream(data).use { input ->
+                        transport.upload(input, data.size.toLong(), entry.path) { _, _ -> }
+                    }
+                }
+                _editorFile.value = EditorFileState.Open(entry.name, entry.path, content)
+                _message.value = "Saved ${entry.name}"
+            } catch (e: Exception) {
+                Log.e(TAG, "Failed to save file from editor", e)
+                _error.value = "Save failed: ${e.message}"
+            } finally {
+                _editorSaving.value = false
+            }
+        }
+    }
+
     fun closeEditor() {
         _editorFile.value = EditorFileState.Closed
+        editorEntry = null
     }
 
     /** DLNA server state. */
@@ -674,11 +735,78 @@ class SftpViewModel @Inject constructor(
         applyFilter()
     }
 
+    fun setFileFilter(pattern: String) {
+        _fileFilter.value = pattern
+        applyFilter()
+    }
+
+    fun setFilterMode(mode: FilterMode) {
+        _filterMode.value = mode
+        applyFilter()
+    }
+
     private fun applyFilter() {
         val all = _allEntries.value
-        val filtered = if (_showHidden.value) all else all.filter { !it.name.startsWith(".") }
+        var filtered = if (_showHidden.value) all else all.filter { !it.name.startsWith(".") }
+
+        val pattern = _fileFilter.value
+        if (pattern.isNotEmpty()) {
+            val regex = try {
+                when (_filterMode.value) {
+                    FilterMode.REGEX -> Regex(pattern, RegexOption.IGNORE_CASE)
+                    FilterMode.GLOB -> globToRegex(pattern)
+                }
+            } catch (_: Exception) {
+                null
+            }
+            if (regex != null) {
+                filtered = filtered.filter { it.isDirectory || regex.containsMatchIn(it.name) }
+            }
+        }
+
         _entries.value = filtered
         _hasMediaFiles.value = _isRcloneProfile.value && filtered.any { it.isMediaFile(mediaExtensionsSet.value) }
+    }
+
+    private fun globToRegex(glob: String): Regex {
+        val sb = StringBuilder("^")
+        var i = 0
+        while (i < glob.length) {
+            when (glob[i]) {
+                '*' -> sb.append(".*")
+                '?' -> sb.append(".")
+                '.' -> sb.append("\\.")
+                '[' -> {
+                    sb.append('[')
+                    i++
+                    if (i < glob.length && glob[i] == '!') {
+                        sb.append('^')
+                        i++
+                    }
+                    while (i < glob.length && glob[i] != ']') {
+                        if (glob[i] == '\\' && i + 1 < glob.length) {
+                            sb.append("\\${glob[i + 1]}")
+                            i++
+                        } else {
+                            sb.append(glob[i])
+                        }
+                        i++
+                    }
+                    sb.append(']')
+                }
+                '\\' -> {
+                    i++
+                    if (i < glob.length) sb.append(Regex.escape(glob[i].toString()))
+                }
+                else -> {
+                    if (glob[i] in "(){}+|^$") sb.append("\\")
+                    sb.append(glob[i])
+                }
+            }
+            i++
+        }
+        sb.append("$")
+        return Regex(sb.toString(), RegexOption.IGNORE_CASE)
     }
 
     fun refresh() {

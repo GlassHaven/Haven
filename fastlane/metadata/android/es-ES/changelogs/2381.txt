@@ -1,0 +1,24 @@
+v5.8.3: detección de fin de sesión mosh (#92)
+
+Las sesiones mosh ahora detectan cuándo termina el shell
+remoto y se desconectan limpiamente en lugar de quedarse
+colgadas indefinidamente.
+
+Anteriormente, escribir `exit` en una sesión mosh dejaba
+el terminal congelado — la tarjeta de conexión permanecía
+verde y la única solución era desconectar manualmente.
+El transporte retransmitía indefinidamente porque no tenía
+mecanismo para detectar que mosh-server había terminado.
+
+La corrección añade detección de silencio del servidor en
+dos etapas:
+  10s sin paquetes del servidor: reconectar el socket UDP
+    una vez (recupera roaming de IP / cambio de WiFi).
+  15s sin paquetes del servidor: disparar onDisconnect y
+    cambiar la tarjeta de conexión a Desconectado.
+
+mosh-server normalmente envía keepalives cada ~3s, por lo
+que 15s de silencio indican de forma fiable que el proceso
+del servidor ha terminado. El umbral supera ampliamente la
+ventana de apagado de ~4s de mosh-server tras la salida del
+shell, tolerando aún breves interrupciones de red.

@@ -1,0 +1,24 @@
+v5.8.3: detecção de encerramento de sessão mosh (#92)
+
+Sessões mosh agora detectam quando o shell remoto encerra
+e desconectam de forma limpa em vez de travar
+indefinidamente.
+
+Anteriormente, digitar `exit` em uma sessão mosh deixava
+o terminal congelado — o cartão de conexão permanecia verde
+e a única solução era desconectar manualmente. O transporte
+retransmitia indefinidamente porque não havia mecanismo
+para detectar que o mosh-server havia encerrado.
+
+A correção adiciona detecção de silêncio do servidor em
+duas etapas:
+  10s sem pacotes do servidor: reconectar o socket UDP
+    uma vez (recupera roaming de IP / handoff de WiFi).
+  15s sem pacotes do servidor: disparar onDisconnect e
+    transicionar o cartão de conexão para Desconectado.
+
+O mosh-server normalmente envia keepalives a cada ~3s,
+portanto 15s de silêncio indicam de forma confiável que o
+processo do servidor encerrou. O limite está bem além da
+janela de desligamento de ~4s do mosh-server após a saída
+do shell, ainda tolerando breves interrupções de rede.

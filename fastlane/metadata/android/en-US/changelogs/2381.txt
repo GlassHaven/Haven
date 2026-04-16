@@ -1,0 +1,22 @@
+v5.8.3: mosh session-end detection (#92)
+
+Mosh sessions now detect when the remote shell exits
+and disconnect cleanly instead of hanging forever.
+
+Previously, typing `exit` in a mosh session left the
+terminal frozen — the connection card stayed green and
+the only recovery was manual disconnect. The transport
+retransmitted indefinitely because it had no mechanism
+to detect that mosh-server had exited.
+
+The fix adds two-stage server silence detection:
+  10s without server packets: rebind the UDP socket
+    once (recovers IP roaming / WiFi handoff).
+  15s without server packets: fire onDisconnect and
+    transition the connection card to Disconnected.
+
+Mosh-server normally sends keepalives every ~3s, so
+15s of silence reliably indicates the server process
+has exited. The threshold is well past mosh-server's
+~4s shutdown window after shell exit while still
+tolerating brief network hiccups.

@@ -1,0 +1,23 @@
+v5.8.3: mosh-Sitzungsende-Erkennung (#92)
+
+Mosh-Sitzungen erkennen jetzt, wenn die Remote-Shell
+beendet wird, und trennen die Verbindung sauber, anstatt
+endlos zu hängen.
+
+Zuvor blieb das Terminal beim Eingeben von `exit` in einer
+mosh-Sitzung eingefroren — die Verbindungskarte blieb grün
+und die einzige Lösung war manuelles Trennen. Der Transport
+sendete endlos erneut, da es keinen Mechanismus gab, um zu
+erkennen, dass mosh-server beendet wurde.
+
+Die Korrektur fügt eine zweistufige Server-Stille-Erkennung hinzu:
+  10s ohne Server-Pakete: den UDP-Socket einmal neu binden
+    (stellt IP-Roaming / WiFi-Handoff wieder her).
+  15s ohne Server-Pakete: onDisconnect auslösen und die
+    Verbindungskarte auf „Getrennt" umschalten.
+
+mosh-server sendet normalerweise alle ~3s keepalives, daher
+zeigen 15s Stille zuverlässig an, dass der Server-Prozess
+beendet wurde. Der Schwellenwert liegt deutlich über dem
+~4s-Shutdown-Fenster von mosh-server nach Shell-Ende und
+toleriert dennoch kurze Netzwerkunterbrechungen.

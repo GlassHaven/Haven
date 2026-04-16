@@ -69,6 +69,7 @@ import androidx.compose.material.icons.filled.Check
 import androidx.compose.material.icons.filled.CheckCircle
 import androidx.compose.material.icons.filled.RadioButtonUnchecked
 import androidx.compose.material.icons.filled.SelectAll
+import androidx.compose.material.icons.filled.Person
 import androidx.compose.material3.Checkbox
 import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.ExposedDropdownMenuBox
@@ -194,6 +195,7 @@ fun SftpScreen(
     val selectedPaths by viewModel.selectedPaths.collectAsState()
     val selectionMode by viewModel.selectionMode.collectAsState()
     val chmodRequest by viewModel.chmodRequest.collectAsState()
+    val chownRequest by viewModel.chownRequest.collectAsState()
 
     var showRenameDialog by remember { mutableStateOf<SftpEntry?>(null) }
 
@@ -390,6 +392,8 @@ fun SftpScreen(
                     },
                     onPermissions = { viewModel.openChmodDialogForSelection() },
                     supportsPermissions = viewModel.supportsPermissions(),
+                    onOwnership = { viewModel.openChownDialogForSelection() },
+                    supportsOwnership = viewModel.supportsOwnership(),
                 )
             } else TopAppBar(
                 title = {
@@ -892,6 +896,9 @@ fun SftpScreen(
                                 onPermissions = if (viewModel.supportsPermissions()) {
                                     { viewModel.openChmodDialog(entry) }
                                 } else null,
+                                onOwnership = if (viewModel.supportsOwnership()) {
+                                    { viewModel.openChownDialog(entry) }
+                                } else null,
                                 onTap = {
                                     if (selectionMode) {
                                         viewModel.toggleSelection(entry)
@@ -998,6 +1005,26 @@ fun SftpScreen(
                 if (req.batch) viewModel.chmodSelected(mode)
                 else req.entry?.let { viewModel.chmodEntry(it, mode) }
                 viewModel.dismissChmodDialog()
+            },
+        )
+    }
+
+    // Ownership dialog — single entry via context menu, or batch via
+    // selection top bar → person icon.
+    chownRequest?.let { req ->
+        val title = if (req.batch) {
+            stringResource(R.string.sftp_ownership_dialog_title_batch, selectedPaths.size)
+        } else {
+            req.entry?.name ?: stringResource(R.string.sftp_ownership_dialog_title)
+        }
+        ChownDialog(
+            title = title,
+            initialOwner = req.currentOwner,
+            onDismiss = { viewModel.dismissChownDialog() },
+            onApply = { owner ->
+                if (req.batch) viewModel.chownSelected(owner)
+                else req.entry?.let { viewModel.chownEntry(it, owner) }
+                viewModel.dismissChownDialog()
             },
         )
     }
@@ -1898,6 +1925,7 @@ private fun FileListItem(
     onCopy: () -> Unit = {},
     onCut: () -> Unit = {},
     onPermissions: (() -> Unit)? = null,
+    onOwnership: (() -> Unit)? = null,
     onPlay: (() -> Unit)? = null,
     onSync: (() -> Unit)? = null,
     onMediaSheet: (() -> Unit)? = null,
@@ -1975,6 +2003,13 @@ private fun FileListItem(
                     text = { Text(stringResource(R.string.sftp_permissions)) },
                     leadingIcon = { Icon(Icons.Filled.Security, null) },
                     onClick = { showMenu = false; onPermissions() },
+                )
+            }
+            if (onOwnership != null) {
+                DropdownMenuItem(
+                    text = { Text(stringResource(R.string.sftp_ownership)) },
+                    leadingIcon = { Icon(Icons.Filled.Person, null) },
+                    onClick = { showMenu = false; onOwnership() },
                 )
             }
             if (onPlay != null) {
@@ -2100,6 +2135,8 @@ private fun SelectionTopBar(
     onCut: () -> Unit,
     onPermissions: () -> Unit,
     supportsPermissions: Boolean,
+    onOwnership: () -> Unit,
+    supportsOwnership: Boolean,
 ) {
     var confirmDelete by remember { mutableStateOf(false) }
     TopAppBar(
@@ -2124,6 +2161,11 @@ private fun SelectionTopBar(
             if (supportsPermissions) {
                 IconButton(onClick = onPermissions) {
                     Icon(Icons.Filled.Security, stringResource(R.string.sftp_permissions))
+                }
+            }
+            if (supportsOwnership) {
+                IconButton(onClick = onOwnership) {
+                    Icon(Icons.Filled.Person, stringResource(R.string.sftp_ownership))
                 }
             }
             IconButton(onClick = { confirmDelete = true }) {
@@ -2222,6 +2264,52 @@ private fun ChmodDialog(
             TextButton(onClick = { onApply(mode) }) {
                 Text(stringResource(R.string.sftp_permissions_apply))
             }
+        },
+        dismissButton = {
+            TextButton(onClick = onDismiss) { Text(stringResource(R.string.common_cancel)) }
+        },
+    )
+}
+
+/**
+ * Ownership editor. Single text field accepting `user`, `group`, or
+ * `user:group` — same syntax as the remote `chown` command. Server
+ * does the name→UID translation.
+ */
+@Composable
+private fun ChownDialog(
+    title: String,
+    initialOwner: String,
+    onDismiss: () -> Unit,
+    onApply: (String) -> Unit,
+) {
+    var owner by rememberSaveable(initialOwner) { mutableStateOf(initialOwner) }
+    AlertDialog(
+        onDismissRequest = onDismiss,
+        title = { Text(title) },
+        text = {
+            Column {
+                Text(
+                    stringResource(R.string.sftp_ownership_hint),
+                    style = MaterialTheme.typography.bodySmall,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant,
+                )
+                Spacer(Modifier.height(8.dp))
+                OutlinedTextField(
+                    value = owner,
+                    onValueChange = { owner = it },
+                    label = { Text(stringResource(R.string.sftp_ownership_label)) },
+                    placeholder = { Text("user:group") },
+                    singleLine = true,
+                    modifier = Modifier.fillMaxWidth(),
+                )
+            }
+        },
+        confirmButton = {
+            TextButton(
+                onClick = { onApply(owner.trim()) },
+                enabled = owner.isNotBlank(),
+            ) { Text(stringResource(R.string.sftp_ownership_apply)) }
         },
         dismissButton = {
             TextButton(onClick = onDismiss) { Text(stringResource(R.string.common_cancel)) }

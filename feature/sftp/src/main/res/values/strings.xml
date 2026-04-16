@@ -131,6 +131,14 @@
     <string name="sftp_permissions_execute">Execute</string>
     <string name="sftp_permissions_apply">Apply</string>
 
+    <!-- Ownership -->
+    <string name="sftp_ownership">Owner…</string>
+    <string name="sftp_ownership_dialog_title">Owner</string>
+    <string name="sftp_ownership_dialog_title_batch">Owner — %1$d items</string>
+    <string name="sftp_ownership_label">Owner</string>
+    <string name="sftp_ownership_hint">Enter user, group, or user:group. Name resolution happens on the remote. Typically requires root.</string>
+    <string name="sftp_ownership_apply">Apply</string>
+
     <!-- Media action sheet & dialogs -->
     <string name="sftp_media">Media…</string>
     <string name="sftp_stream_folder">Stream folder playlist</string>

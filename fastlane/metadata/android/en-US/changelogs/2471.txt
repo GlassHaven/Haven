@@ -1,0 +1,12 @@
+v5.14.0: chown in the SFTP file browser
+
+Companion to the permissions editor shipped in v5.13. Open
+the Owner dialog from a file's context menu or from the
+selection top bar (person icon) — enter `user`, `group`, or
+`user:group` and the remote runs `chown` directly.
+
+Name resolution happens on the server, so either names or
+numeric UIDs are accepted. Works over SFTP and SCP.
+Typically requires root on the remote. SMB, rclone, and
+local files are unaffected — those backends have no
+ownership concept that maps cleanly.

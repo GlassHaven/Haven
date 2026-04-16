@@ -51,6 +51,10 @@ data class SftpEntry(
     val modifiedTime: Long,
     val permissions: String,
     val mimeType: String = "",
+    /** Owner name (SCP `ls -la`) or numeric UID (SFTP `SftpATTRS`). Empty if unknown. */
+    val owner: String = "",
+    /** Group name (SCP `ls -la`) or numeric GID (SFTP `SftpATTRS`). Empty if unknown. */
+    val group: String = "",
 )
 
 /**
@@ -2587,6 +2591,90 @@ class SftpViewModel @Inject constructor(
 
     fun dismissChmodDialog() { _chmodRequest.value = null }
 
+    /**
+     * Target for the chown dialog. When [batch] is true, applies the
+     * entered `user` / `user:group` string to every selected entry;
+     * otherwise just to [entry]. [currentOwner] is a pre-fill for the
+     * text field — parsed from the first 8 chars of the permissions
+     * string is too fragile, so we leave it blank unless we can parse
+     * it cheaply.
+     */
+    data class ChownRequest(val entry: SftpEntry?, val currentOwner: String, val batch: Boolean)
+
+    private val _chownRequest = MutableStateFlow<ChownRequest?>(null)
+    val chownRequest: StateFlow<ChownRequest?> = _chownRequest.asStateFlow()
+
+    fun openChownDialog(entry: SftpEntry) {
+        val seed = formatOwnerGroup(entry.owner, entry.group)
+        _chownRequest.value = ChownRequest(entry = entry, currentOwner = seed, batch = false)
+        // Over the SFTP subsystem JSch only exposes numeric UID/GID. Resolve
+        // to human-readable names asynchronously via a remote `ls -ld`
+        // so the dialog first appears with "1000:1000" and then swaps in
+        // "ian:ian" once the lookup returns.
+        if (looksNumeric(seed) && !_isLocalProfile.value && !_isRcloneProfile.value && !_isSmbProfile.value) {
+            viewModelScope.launch {
+                resolveOwnerName(entry.path)?.let { resolved ->
+                    if (_chownRequest.value?.entry == entry) {
+                        _chownRequest.value = ChownRequest(entry = entry, currentOwner = resolved, batch = false)
+                    }
+                }
+            }
+        }
+    }
+
+    fun openChownDialogForSelection() {
+        val targets = selectedEntries()
+        if (targets.isEmpty()) return
+        // Pre-fill only if the whole selection shares the same owner:group,
+        // otherwise leave blank so the user has to type it explicitly.
+        val owners = targets.map { formatOwnerGroup(it.owner, it.group) }.toSet()
+        val seed = if (owners.size == 1) owners.single() else ""
+        _chownRequest.value = ChownRequest(entry = null, currentOwner = seed, batch = true)
+        if (owners.size == 1 && looksNumeric(seed)) {
+            viewModelScope.launch {
+                resolveOwnerName(targets.first().path)?.let { resolved ->
+                    if (_chownRequest.value?.batch == true) {
+                        _chownRequest.value = ChownRequest(entry = null, currentOwner = resolved, batch = true)
+                    }
+                }
+            }
+        }
+    }
+
+    private fun looksNumeric(s: String): Boolean =
+        s.isNotEmpty() && s.all { it.isDigit() || it == ':' }
+
+    /**
+     * Portable remote lookup: `ls -ld -- PATH` columns 3 and 4 are user
+     * and group. Works on GNU, BSD, busybox, macOS. Returns null if the
+     * command fails or the output doesn't parse — in that case the
+     * dialog keeps its numeric placeholder.
+     */
+    private suspend fun resolveOwnerName(path: String): String? {
+        val profileId = _activeProfileId.value ?: return null
+        val ssh = sessionManager.getSshClientForProfile(profileId) ?: return null
+        return withContext(Dispatchers.IO) {
+            try {
+                val cmd = "LC_ALL=C ls -ld -- '${path.replace("'", "'\\''")}'"
+                val r = ssh.execCommand(cmd)
+                if (r.exitStatus != 0) return@withContext null
+                val parts = r.stdout.trim().split(Regex("\\s+"))
+                if (parts.size < 4) null else "${parts[2]}:${parts[3]}"
+            } catch (e: Exception) {
+                Log.w(TAG, "resolveOwnerName failed for $path: ${e.message}")
+                null
+            }
+        }
+    }
+
+    private fun formatOwnerGroup(owner: String, group: String): String = when {
+        owner.isEmpty() && group.isEmpty() -> ""
+        group.isEmpty() -> owner
+        else -> "$owner:$group"
+    }
+
+    fun dismissChownDialog() { _chownRequest.value = null }
+
     /** True while at least one entry is selected. */
     val selectionMode: StateFlow<Boolean> = _selectedPaths
         .map { it.isNotEmpty() }
@@ -2681,6 +2769,56 @@ class SftpViewModel @Inject constructor(
         }
     }
 
+    fun chownSelected(owner: String) {
+        val targets = selectedEntries()
+        if (targets.isEmpty() || owner.isBlank()) return
+        viewModelScope.launch {
+            _loading.value = true
+            var applied = 0
+            val failures = mutableListOf<String>()
+            for (entry in targets) {
+                try {
+                    chownOne(entry, owner)
+                    applied++
+                } catch (e: UnsupportedOperationException) {
+                    failures.add("${entry.name}: ownership not supported on this backend")
+                    break
+                } catch (e: Exception) {
+                    Log.e(TAG, "chown failed for ${entry.path}", e)
+                    failures.add("${entry.name}: ${e.message ?: e.javaClass.simpleName}")
+                }
+            }
+            clearSelection()
+            if (failures.isEmpty()) {
+                _message.value = "Owner set on $applied item${if (applied != 1) "s" else ""}"
+            } else {
+                _error.value = "Applied $applied, failed ${failures.size}: ${failures.first()}"
+            }
+            _loading.value = false
+            refresh()
+        }
+    }
+
+    /** chown a single entry via shell `chown user:group -- path` on the remote. */
+    fun chownEntry(entry: SftpEntry, owner: String) {
+        if (owner.isBlank()) return
+        viewModelScope.launch {
+            try {
+                _loading.value = true
+                chownOne(entry, owner)
+                _message.value = "Owner updated on ${entry.name}"
+                refresh()
+            } catch (e: UnsupportedOperationException) {
+                _error.value = "Ownership not supported on this backend"
+            } catch (e: Exception) {
+                Log.e(TAG, "chown failed", e)
+                _error.value = "chown failed: ${e.message}"
+            } finally {
+                _loading.value = false
+            }
+        }
+    }
+
     /** chmod a single entry (used by both single-entry and batch paths). */
     fun chmodEntry(entry: SftpEntry, mode: Int) {
         viewModelScope.launch {
@@ -2743,6 +2881,29 @@ class SftpViewModel @Inject constructor(
     /** Whether the active backend understands POSIX permissions. */
     fun supportsPermissions(): Boolean =
         _isLocalProfile.value || (!_isRcloneProfile.value && !_isSmbProfile.value)
+
+    /**
+     * Whether the active backend supports changing ownership. Same set
+     * as [supportsPermissions] minus local files — an unrooted Android
+     * app can't chown outside its own UID.
+     */
+    fun supportsOwnership(): Boolean =
+        !_isLocalProfile.value && !_isRcloneProfile.value && !_isSmbProfile.value
+
+    private suspend fun chownOne(entry: SftpEntry, owner: String) {
+        when {
+            _isLocalProfile.value ->
+                throw UnsupportedOperationException("chown not supported on local files")
+            _isRcloneProfile.value ->
+                throw UnsupportedOperationException("chown not supported on rclone remotes")
+            _isSmbProfile.value ->
+                throw UnsupportedOperationException("chown not supported on SMB shares")
+            else -> {
+                val transport = currentSshTransport() ?: throw IllegalStateException("Not connected")
+                transport.chown(entry.path, owner)
+            }
+        }
+    }
 
     fun sharePublicLink(entry: SftpEntry) {
         viewModelScope.launch {
@@ -3381,6 +3542,8 @@ class SftpViewModel @Inject constructor(
                         size = attrs.size,
                         modifiedTime = attrs.mTime.toLong(),
                         permissions = attrs.permissionsString ?: "",
+                        owner = attrs.uId.toString(),
+                        group = attrs.gId.toString(),
                     )
                 )
             }

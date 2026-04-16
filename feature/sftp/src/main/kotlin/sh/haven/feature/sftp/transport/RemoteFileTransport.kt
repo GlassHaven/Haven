@@ -62,4 +62,12 @@ interface RemoteFileTransport {
      * recursion, caller is responsible for walking a tree.
      */
     suspend fun chmod(path: String, mode: Int)
+
+    /**
+     * Change ownership of [path]. [owner] is a `user` or `user:group`
+     * string, passed straight to the remote `chown` command. Name-to-UID
+     * resolution happens on the server, so either names or numeric IDs
+     * are accepted. Typically requires root on the remote side.
+     */
+    suspend fun chown(path: String, owner: String)
 }

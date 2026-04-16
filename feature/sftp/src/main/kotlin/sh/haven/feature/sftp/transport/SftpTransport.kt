@@ -4,15 +4,21 @@ import com.jcraft.jsch.ChannelSftp
 import com.jcraft.jsch.SftpProgressMonitor
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.withContext
+import sh.haven.core.ssh.SshClient
 import sh.haven.feature.sftp.SftpEntry
 
 /**
  * [RemoteFileTransport] backed by JSch's SFTP channel. A thin wrapper that
  * lifts the channel operations out of SftpViewModel so the view model's
  * SSH code path becomes transport-agnostic.
+ *
+ * [sshClient] is optional — it is only consulted for [chown], which
+ * needs a shell exec channel because JSch's `ChannelSftp.chown` requires
+ * a numeric UID and users usually want to chown by name.
  */
 class SftpTransport(
     private val channelProvider: () -> ChannelSftp,
+    private val sshClient: SshClient? = null,
 ) : RemoteFileTransport {
 
     override val label: String = "SFTP"
@@ -35,6 +41,11 @@ class SftpTransport(
                         size = attrs.size,
                         modifiedTime = attrs.mTime.toLong(),
                         permissions = attrs.permissionsString ?: "",
+                        // JSch reports UID/GID as integers — no name lookup over
+                        // the SFTP subsystem. Users can still type a name in
+                        // the chown dialog; the server resolves it.
+                        owner = attrs.uId.toString(),
+                        group = attrs.gId.toString(),
                     )
                 )
             }
@@ -124,4 +135,15 @@ class SftpTransport(
     override suspend fun chmod(path: String, mode: Int) = withContext(Dispatchers.IO) {
         channelProvider().chmod(mode, path)
     }
+
+    override suspend fun chown(path: String, owner: String) {
+        val ssh = sshClient
+            ?: throw UnsupportedOperationException("chown requires a shell channel — not available on this session")
+        val cmd = "chown ${shellQuote(owner)} -- ${shellQuote(path)}"
+        val r = ssh.execCommand(cmd)
+        if (r.exitStatus != 0) throw java.io.IOException("chown failed: ${r.stderr.trim()}")
+    }
+
+    private fun shellQuote(s: String): String =
+        "'" + s.replace("'", "'\\''") + "'"
 }

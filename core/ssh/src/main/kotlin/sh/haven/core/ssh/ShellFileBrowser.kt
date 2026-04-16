@@ -26,6 +26,8 @@ class ShellFileBrowser(private val client: SshClient) {
         val isDirectory: Boolean,
         val isSymlink: Boolean,
         val permissions: String,
+        val owner: String = "",
+        val group: String = "",
     )
 
     /**
@@ -115,6 +117,8 @@ class ShellFileBrowser(private val client: SshClient) {
             isDirectory = isDirectory,
             isSymlink = isSymlink,
             permissions = perms,
+            owner = parts[2],
+            group = parts[3],
         )
     }
 

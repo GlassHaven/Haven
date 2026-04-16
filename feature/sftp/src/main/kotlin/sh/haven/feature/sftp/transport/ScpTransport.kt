@@ -40,6 +40,8 @@ class ScpTransport(
                 size = it.size,
                 modifiedTime = it.modifiedTimeSeconds,
                 permissions = it.permissions,
+                owner = it.owner,
+                group = it.group,
             )
         }
     }
@@ -133,6 +135,12 @@ class ScpTransport(
         val cmd = "chmod $octal -- ${shellQuote(path)}"
         val r = sshClient.execCommand(cmd)
         if (r.exitStatus != 0) throw java.io.IOException("chmod failed: ${r.stderr.trim()}")
+    }
+
+    override suspend fun chown(path: String, owner: String) {
+        val cmd = "chown ${shellQuote(owner)} -- ${shellQuote(path)}"
+        val r = sshClient.execCommand(cmd)
+        if (r.exitStatus != 0) throw java.io.IOException("chown failed: ${r.stderr.trim()}")
     }
 
     private fun shellQuote(s: String): String =

@@ -1,0 +1,10 @@
+v5.12.0: image tools — view, crop, rotate, perspective
+
+Long-press any image file in the SFTP browser → "Open in
+image tools" to view, crop, rotate (90° steps), and fix
+perspective (four-corner drag). Apply, preview, save back
+through the active transport — SFTP, SCP, SMB, rclone, or
+local.
+
+Works the same way as the editor — no separate app, no
+round-trip download.

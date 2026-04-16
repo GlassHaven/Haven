@@ -120,4 +120,8 @@ class SftpTransport(
         val channel = channelProvider()
         if (isDirectory) channel.rmdir(path) else channel.rm(path)
     }
+
+    override suspend fun chmod(path: String, mode: Int) = withContext(Dispatchers.IO) {
+        channelProvider().chmod(mode, path)
+    }
 }

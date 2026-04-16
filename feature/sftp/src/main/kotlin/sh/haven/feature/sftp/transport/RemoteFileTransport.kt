@@ -54,4 +54,12 @@ interface RemoteFileTransport {
     suspend fun rename(from: String, to: String)
 
     suspend fun delete(path: String, isDirectory: Boolean)
+
+    /**
+     * Apply POSIX permissions to [path]. [mode] is the usual 0..07777
+     * integer (setuid/setgid/sticky plus rwx for owner/group/other).
+     * Both transports map this onto a single remote syscall — no
+     * recursion, caller is responsible for walking a tree.
+     */
+    suspend fun chmod(path: String, mode: Int)
 }

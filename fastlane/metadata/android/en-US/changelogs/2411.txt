@@ -1,0 +1,8 @@
+v5.9.0: built-in text editor for SFTP file browser
+
+New read-only text viewer backed by Sora Editor. Long-press
+any file in the SFTP browser → "Open in editor" to view with
+line numbers, word-wrap toggle, and cursor position.
+
+Works across all backends — SSH, SCP, SMB, rclone, and local.
+Editing and save support follow in v5.10.

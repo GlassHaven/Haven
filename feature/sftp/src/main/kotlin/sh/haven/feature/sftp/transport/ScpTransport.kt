@@ -127,6 +127,14 @@ class ScpTransport(
         if (r.exitStatus != 0) throw java.io.IOException("rm failed: ${r.stderr.trim()}")
     }
 
+    override suspend fun chmod(path: String, mode: Int) {
+        // %04o renders 0..07777 as zero-padded octal including setuid/setgid/sticky.
+        val octal = "%04o".format(mode and 0xFFF)
+        val cmd = "chmod $octal -- ${shellQuote(path)}"
+        val r = sshClient.execCommand(cmd)
+        if (r.exitStatus != 0) throw java.io.IOException("chmod failed: ${r.stderr.trim()}")
+    }
+
     private fun shellQuote(s: String): String =
         "'" + s.replace("'", "'\\''") + "'"
 }

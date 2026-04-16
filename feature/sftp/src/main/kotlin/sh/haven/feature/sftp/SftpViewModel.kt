@@ -953,6 +953,7 @@ class SftpViewModel @Inject constructor(
     fun navigateTo(path: String) {
         val profileId = _activeProfileId.value ?: return
         _currentPath.value = path
+        _selectedPaths.value = emptySet()
         when {
             _isLocalProfile.value -> listLocalDirectory(path)
             _isRcloneProfile.value -> listRcloneDirectory(path)
@@ -2543,6 +2544,206 @@ class SftpViewModel @Inject constructor(
         }
     }
 
+    // ===== Multi-select =====
+
+    /**
+     * Paths (absolute, matching [SftpEntry.path]) currently selected in the
+     * file list. Non-empty means the UI is in selection mode — the top bar
+     * switches to a contextual action bar and taps toggle selection instead
+     * of navigating / opening.
+     */
+    private val _selectedPaths = MutableStateFlow<Set<String>>(emptySet())
+    val selectedPaths: StateFlow<Set<String>> = _selectedPaths.asStateFlow()
+
+    /**
+     * Target for the permissions dialog. Non-null opens the dialog. When
+     * a single entry is supplied the dialog edits that entry's mode and
+     * writes it back via [chmodEntry]; when [batch] is true it applies the
+     * mode to the full selection via [chmodSelected].
+     */
+    data class ChmodRequest(val entry: SftpEntry?, val currentMode: Int, val batch: Boolean)
+
+    private val _chmodRequest = MutableStateFlow<ChmodRequest?>(null)
+    val chmodRequest: StateFlow<ChmodRequest?> = _chmodRequest.asStateFlow()
+
+    /** Open the permissions dialog for a single entry. */
+    fun openChmodDialog(entry: SftpEntry) {
+        val mode = permissionsStringToMode(entry.permissions) ?: MODE_0644
+        _chmodRequest.value = ChmodRequest(entry = entry, currentMode = mode, batch = false)
+    }
+
+    /**
+     * Open the permissions dialog for the current multi-selection. The
+     * seed mode is the first selected entry's mode if unambiguous, else
+     * 0644 as a neutral default.
+     */
+    fun openChmodDialogForSelection() {
+        val targets = selectedEntries()
+        if (targets.isEmpty()) return
+        val modes = targets.mapNotNull { permissionsStringToMode(it.permissions) }.toSet()
+        val seed = if (modes.size == 1) modes.single() else MODE_0644
+        _chmodRequest.value = ChmodRequest(entry = null, currentMode = seed, batch = true)
+    }
+
+    fun dismissChmodDialog() { _chmodRequest.value = null }
+
+    /** True while at least one entry is selected. */
+    val selectionMode: StateFlow<Boolean> = _selectedPaths
+        .map { it.isNotEmpty() }
+        .stateIn(viewModelScope, SharingStarted.Eagerly, false)
+
+    fun toggleSelection(entry: SftpEntry) {
+        _selectedPaths.value = _selectedPaths.value.toMutableSet().apply {
+            if (contains(entry.path)) remove(entry.path) else add(entry.path)
+        }
+    }
+
+    fun selectAll() {
+        _selectedPaths.value = _entries.value.map { it.path }.toSet()
+    }
+
+    fun clearSelection() {
+        _selectedPaths.value = emptySet()
+    }
+
+    /** Resolve current selection to the matching [SftpEntry] objects, preserving list order. */
+    private fun selectedEntries(): List<SftpEntry> {
+        val selected = _selectedPaths.value
+        return _entries.value.filter { it.path in selected }
+    }
+
+    /**
+     * Delete every selected entry. Keeps going on individual failures and
+     * reports aggregate success/failure counts through [_message] / [_error]
+     * at the end. Clears the selection and refreshes the listing on
+     * completion.
+     */
+    fun deleteSelected() {
+        val targets = selectedEntries()
+        if (targets.isEmpty()) return
+        viewModelScope.launch {
+            _loading.value = true
+            var deleted = 0
+            val failures = mutableListOf<String>()
+            for (entry in targets) {
+                try {
+                    deleteOne(entry)
+                    deleted++
+                } catch (e: Exception) {
+                    Log.e(TAG, "Delete failed for ${entry.path}", e)
+                    failures.add("${entry.name}: ${e.message ?: e.javaClass.simpleName}")
+                }
+            }
+            clearSelection()
+            if (failures.isEmpty()) {
+                _message.value = "Deleted $deleted item${if (deleted != 1) "s" else ""}"
+            } else {
+                _error.value = "Deleted $deleted, failed ${failures.size}: ${failures.first()}"
+            }
+            _loading.value = false
+            refresh()
+        }
+    }
+
+    /**
+     * Chmod every selected entry to [mode]. Skips backends that do not
+     * carry POSIX permissions (SMB, rclone) and reports how many were
+     * applied vs skipped. Directories are chmod'd non-recursively —
+     * entries inside a selected directory keep their existing modes.
+     */
+    fun chmodSelected(mode: Int) {
+        val targets = selectedEntries()
+        if (targets.isEmpty()) return
+        viewModelScope.launch {
+            _loading.value = true
+            var applied = 0
+            val failures = mutableListOf<String>()
+            for (entry in targets) {
+                try {
+                    chmodOne(entry, mode)
+                    applied++
+                } catch (e: UnsupportedOperationException) {
+                    failures.add("${entry.name}: permissions not supported on this backend")
+                    break // same answer for every entry on this backend
+                } catch (e: Exception) {
+                    Log.e(TAG, "chmod failed for ${entry.path}", e)
+                    failures.add("${entry.name}: ${e.message ?: e.javaClass.simpleName}")
+                }
+            }
+            clearSelection()
+            if (failures.isEmpty()) {
+                _message.value = "Permissions set on $applied item${if (applied != 1) "s" else ""}"
+            } else {
+                _error.value = "Applied $applied, failed ${failures.size}: ${failures.first()}"
+            }
+            _loading.value = false
+            refresh()
+        }
+    }
+
+    /** chmod a single entry (used by both single-entry and batch paths). */
+    fun chmodEntry(entry: SftpEntry, mode: Int) {
+        viewModelScope.launch {
+            try {
+                _loading.value = true
+                chmodOne(entry, mode)
+                _message.value = "Permissions updated on ${entry.name}"
+                refresh()
+            } catch (e: UnsupportedOperationException) {
+                _error.value = "Permissions not supported on this backend"
+            } catch (e: Exception) {
+                Log.e(TAG, "chmod failed", e)
+                _error.value = "chmod failed: ${e.message}"
+            } finally {
+                _loading.value = false
+            }
+        }
+    }
+
+    private suspend fun deleteOne(entry: SftpEntry) {
+        if (_isLocalProfile.value) {
+            withContext(Dispatchers.IO) {
+                val f = java.io.File(entry.path)
+                val ok = if (entry.isDirectory) f.deleteRecursively() else f.delete()
+                if (!ok) throw java.io.IOException("Could not delete ${entry.path}")
+            }
+        } else if (_isRcloneProfile.value) {
+            withContext(Dispatchers.IO) {
+                val remote = activeRcloneRemote ?: throw IllegalStateException("Rclone not connected")
+                if (entry.isDirectory) rcloneClient.deleteDir(remote, entry.path)
+                else rcloneClient.deleteFile(remote, entry.path)
+            }
+        } else if (_isSmbProfile.value) {
+            withContext(Dispatchers.IO) {
+                val client = activeSmbClient ?: throw IllegalStateException("SMB not connected")
+                client.delete(entry.path, entry.isDirectory)
+            }
+        } else {
+            val transport = currentSshTransport() ?: throw IllegalStateException("Not connected")
+            transport.delete(entry.path, entry.isDirectory)
+        }
+    }
+
+    private suspend fun chmodOne(entry: SftpEntry, mode: Int) {
+        when {
+            _isLocalProfile.value -> withContext(Dispatchers.IO) {
+                android.system.Os.chmod(entry.path, mode)
+            }
+            _isRcloneProfile.value ->
+                throw UnsupportedOperationException("chmod not supported on rclone remotes")
+            _isSmbProfile.value ->
+                throw UnsupportedOperationException("chmod not supported on SMB shares")
+            else -> {
+                val transport = currentSshTransport() ?: throw IllegalStateException("Not connected")
+                transport.chmod(entry.path, mode)
+            }
+        }
+    }
+
+    /** Whether the active backend understands POSIX permissions. */
+    fun supportsPermissions(): Boolean =
+        _isLocalProfile.value || (!_isRcloneProfile.value && !_isSmbProfile.value)
+
     fun sharePublicLink(entry: SftpEntry) {
         viewModelScope.launch {
             try {
@@ -3582,6 +3783,62 @@ class SftpViewModel @Inject constructor(
 
     companion object {
         private val MEDIA_MIME_PREFIXES = listOf("audio/", "video/")
+
+        // Kotlin has no octal literal syntax, so POSIX mode bits are
+        // declared as hex with their octal meaning in the name.
+        private const val MODE_SETUID  = 0x800 // 04000
+        private const val MODE_SETGID  = 0x400 // 02000
+        private const val MODE_STICKY  = 0x200 // 01000
+        private const val MODE_O_READ  = 0x100 // 00400
+        private const val MODE_O_WRITE = 0x080 // 00200
+        private const val MODE_O_EXEC  = 0x040 // 00100
+        private const val MODE_G_READ  = 0x020 // 00040
+        private const val MODE_G_WRITE = 0x010 // 00020
+        private const val MODE_G_EXEC  = 0x008 // 00010
+        private const val MODE_R_READ  = 0x004 // 00004
+        private const val MODE_R_WRITE = 0x002 // 00002
+        private const val MODE_R_EXEC  = 0x001 // 00001
+        const val MODE_MASK = 0xFFF            // 07777
+        const val MODE_0644 = MODE_O_READ or MODE_O_WRITE or MODE_G_READ or MODE_R_READ
+
+        /**
+         * Parse the 10-char Unix permissions string ("-rwxr-xr-x",
+         * "drwx------", "-rwsr-xr-x") into the numeric mode bits used by
+         * chmod. Returns null for strings that don't look like the
+         * expected format (e.g. JSch occasionally returns an empty
+         * string for symlinked entries). Only the low 12 bits are set —
+         * setuid/setgid/sticky from s/S/t/T are preserved, the file-type
+         * nibble is not.
+         */
+        fun permissionsStringToMode(perms: String): Int? {
+            if (perms.length < 10) return null
+            var mode = 0
+            fun bit(ch: Char, on: Char, value: Int) {
+                if (ch == on) mode = mode or value
+            }
+            bit(perms[1], 'r', MODE_O_READ)
+            bit(perms[2], 'w', MODE_O_WRITE)
+            when (perms[3]) {
+                'x' -> mode = mode or MODE_O_EXEC
+                's' -> mode = mode or MODE_O_EXEC or MODE_SETUID
+                'S' -> mode = mode or MODE_SETUID
+            }
+            bit(perms[4], 'r', MODE_G_READ)
+            bit(perms[5], 'w', MODE_G_WRITE)
+            when (perms[6]) {
+                'x' -> mode = mode or MODE_G_EXEC
+                's' -> mode = mode or MODE_G_EXEC or MODE_SETGID
+                'S' -> mode = mode or MODE_SETGID
+            }
+            bit(perms[7], 'r', MODE_R_READ)
+            bit(perms[8], 'w', MODE_R_WRITE)
+            when (perms[9]) {
+                'x' -> mode = mode or MODE_R_EXEC
+                't' -> mode = mode or MODE_R_EXEC or MODE_STICKY
+                'T' -> mode = mode or MODE_STICKY
+            }
+            return mode
+        }
 
         fun parseMediaExtensions(str: String): Set<String> =
             str.lowercase().split("\\s+".toRegex()).filter { it.isNotEmpty() }.toSet()

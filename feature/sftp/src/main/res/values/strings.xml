@@ -108,6 +108,29 @@
     <string name="sftp_cut">Cut</string>
     <string name="sftp_copy_path">Copy path</string>
 
+    <!-- Multi-select -->
+    <string name="sftp_selection_enter">Select</string>
+    <string name="sftp_selection_selected">Selected</string>
+    <string name="sftp_selection_unselected">Not selected</string>
+    <string name="sftp_selection_clear">Clear selection</string>
+    <string name="sftp_selection_select_all">Select all</string>
+    <string name="sftp_selection_count">%1$d selected</string>
+    <string name="sftp_delete_selection_title">Delete selected items?</string>
+    <string name="sftp_delete_selection_message">%1$d item(s) will be deleted. This cannot be undone.</string>
+
+    <!-- Permissions -->
+    <string name="sftp_permissions">Permissions…</string>
+    <string name="sftp_permissions_dialog_title">Permissions</string>
+    <string name="sftp_permissions_dialog_title_batch">Permissions — %1$d items</string>
+    <string name="sftp_permissions_octal">Octal (e.g. 0755)</string>
+    <string name="sftp_permissions_owner">Owner</string>
+    <string name="sftp_permissions_group">Group</string>
+    <string name="sftp_permissions_other">Other</string>
+    <string name="sftp_permissions_read">Read</string>
+    <string name="sftp_permissions_write">Write</string>
+    <string name="sftp_permissions_execute">Execute</string>
+    <string name="sftp_permissions_apply">Apply</string>
+
     <!-- Media action sheet & dialogs -->
     <string name="sftp_media">Media…</string>
     <string name="sftp_stream_folder">Stream folder playlist</string>

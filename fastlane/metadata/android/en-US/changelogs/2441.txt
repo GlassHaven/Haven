@@ -1,0 +1,9 @@
+v5.11.1: single-tap text files to open in editor
+
+Tapping a recognised text file in the SFTP browser now
+opens it directly in the editor instead of prompting for a
+download target. Non-text files still take the download /
+media action they had before.
+
+Uses the same TextMate scope detection introduced in v5.11
+to decide what counts as "text".

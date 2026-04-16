@@ -1,0 +1,10 @@
+v5.11.0: syntax highlighting + terminal-matched editor theme
+
+Editor recognises 30+ languages via TextMate grammars —
+shell, Python, YAML, JSON, TOML, Markdown, Dockerfile,
+nginx, Kotlin, Rust, Go, and more. Scope is detected from
+the filename and extension.
+
+Editor colours now match your terminal colour scheme, so
+the editor and terminal feel like one app on the same
+device.

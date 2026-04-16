@@ -1,0 +1,11 @@
+v5.10.0: editor save + file-browser filter
+
+The built-in editor is now read-write. Edit a text file, tap
+Save, and the content is streamed back to the remote through
+the same transport used for reading (SFTP, SCP, SMB, rclone,
+local). Unsaved-changes indicator and cancel-on-back.
+
+Find and replace (with optional regex) within the open file.
+
+SFTP browser: new filter bar — glob or regex match against
+the file list, survives navigation.

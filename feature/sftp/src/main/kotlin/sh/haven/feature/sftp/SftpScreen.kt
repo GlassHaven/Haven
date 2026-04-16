@@ -64,6 +64,11 @@ import androidx.compose.material.icons.filled.Movie
 import androidx.compose.material.icons.filled.FilterList
 import androidx.compose.material.icons.filled.Close
 import androidx.compose.material.icons.filled.Stop
+import androidx.compose.material.icons.filled.Security
+import androidx.compose.material.icons.filled.Check
+import androidx.compose.material.icons.filled.CheckCircle
+import androidx.compose.material.icons.filled.RadioButtonUnchecked
+import androidx.compose.material.icons.filled.SelectAll
 import androidx.compose.material3.Checkbox
 import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.ExposedDropdownMenuBox
@@ -185,6 +190,10 @@ fun SftpScreen(
 
     val fileFilter by viewModel.fileFilter.collectAsState()
     val filterMode by viewModel.filterMode.collectAsState()
+
+    val selectedPaths by viewModel.selectedPaths.collectAsState()
+    val selectionMode by viewModel.selectionMode.collectAsState()
+    val chmodRequest by viewModel.chmodRequest.collectAsState()
 
     var showRenameDialog by remember { mutableStateOf<SftpEntry?>(null) }
 
@@ -354,9 +363,35 @@ fun SftpScreen(
         return
     }
 
+    // Back press while in selection mode clears selection instead of
+    // navigating up / exiting the screen.
+    androidx.activity.compose.BackHandler(enabled = selectionMode) {
+        viewModel.clearSelection()
+    }
+
     Scaffold(
         topBar = {
-            TopAppBar(
+            if (selectionMode) {
+                SelectionTopBar(
+                    count = selectedPaths.size,
+                    totalVisible = entries.size,
+                    onClear = { viewModel.clearSelection() },
+                    onSelectAll = { viewModel.selectAll() },
+                    onDelete = { viewModel.deleteSelected() },
+                    onCopy = {
+                        val targets = entries.filter { it.path in selectedPaths }
+                        viewModel.copyToClipboard(targets, isCut = false)
+                        viewModel.clearSelection()
+                    },
+                    onCut = {
+                        val targets = entries.filter { it.path in selectedPaths }
+                        viewModel.copyToClipboard(targets, isCut = true)
+                        viewModel.clearSelection()
+                    },
+                    onPermissions = { viewModel.openChmodDialogForSelection() },
+                    supportsPermissions = viewModel.supportsPermissions(),
+                )
+            } else TopAppBar(
                 title = {
                     var editingPath by remember { mutableStateOf(false) }
                     var pathText by remember(currentPath) { mutableStateOf(currentPath) }
@@ -850,8 +885,17 @@ fun SftpScreen(
                     itemsIndexed(entries, key = { index, entry -> "${activeProfileId}:${index}:${entry.path}" }) { _, entry ->
                             FileListItem(
                                 entry = entry,
+                                selected = entry.path in selectedPaths,
+                                selectionActive = selectionMode,
+                                onToggleSelect = { viewModel.toggleSelection(entry) },
+                                onEnterSelection = { viewModel.toggleSelection(entry) },
+                                onPermissions = if (viewModel.supportsPermissions()) {
+                                    { viewModel.openChmodDialog(entry) }
+                                } else null,
                                 onTap = {
-                                    if (entry.isDirectory) {
+                                    if (selectionMode) {
+                                        viewModel.toggleSelection(entry)
+                                    } else if (entry.isDirectory) {
                                         viewModel.navigateTo(entry.path)
                                     } else if (sh.haven.feature.editor.TextMateSupport.scopeForFileName(entry.name) != null) {
                                         viewModel.openInEditor(entry)
@@ -935,6 +979,27 @@ fun SftpScreen(
                 }
             }
         }
+    }
+
+    // Permissions dialog — opened either for a single entry (context
+    // menu → Permissions…) or for the current multi-selection (selection
+    // top bar → shield icon).
+    chmodRequest?.let { req ->
+        val title = if (req.batch) {
+            stringResource(R.string.sftp_permissions_dialog_title_batch, selectedPaths.size)
+        } else {
+            req.entry?.name ?: stringResource(R.string.sftp_permissions_dialog_title)
+        }
+        ChmodDialog(
+            initialMode = req.currentMode,
+            title = title,
+            onDismiss = { viewModel.dismissChmodDialog() },
+            onApply = { mode ->
+                if (req.batch) viewModel.chmodSelected(mode)
+                else req.entry?.let { viewModel.chmodEntry(it, mode) }
+                viewModel.dismissChmodDialog()
+            },
+        )
     }
 
     // New Folder dialog
@@ -1826,8 +1891,13 @@ private fun FileListItem(
     onDownload: () -> Unit,
     onDelete: () -> Unit,
     onCopyPath: () -> Unit,
+    selected: Boolean = false,
+    selectionActive: Boolean = false,
+    onToggleSelect: () -> Unit = {},
+    onEnterSelection: () -> Unit = {},
     onCopy: () -> Unit = {},
     onCut: () -> Unit = {},
+    onPermissions: (() -> Unit)? = null,
     onPlay: (() -> Unit)? = null,
     onSync: (() -> Unit)? = null,
     onMediaSheet: (() -> Unit)? = null,
@@ -1852,29 +1922,61 @@ private fun FileListItem(
                 @Suppress("LocalContextGetResourceValueCall")
                 val sizeText = if (entry.isDirectory) context.getString(R.string.sftp_directory) else Formatter.formatFileSize(context, entry.size)
                 val dateText = dateFormat.format(Date(entry.modifiedTime * 1000))
-                Text("$sizeText  $dateText")
+                val extra = entry.permissions.takeIf { it.isNotEmpty() }?.let { "  $it" } ?: ""
+                Text("$sizeText  $dateText$extra")
             },
             leadingContent = {
-                Icon(
-                    if (entry.isDirectory) Icons.Filled.Folder else Icons.Filled.Description,
-                    contentDescription = stringResource(if (entry.isDirectory) R.string.sftp_directory_icon else R.string.sftp_file_icon),
-                    tint = if (entry.isDirectory) {
-                        MaterialTheme.colorScheme.primary
-                    } else {
-                        MaterialTheme.colorScheme.onSurfaceVariant
-                    },
-                )
+                if (selectionActive) {
+                    Icon(
+                        if (selected) Icons.Filled.CheckCircle else Icons.Filled.RadioButtonUnchecked,
+                        contentDescription = stringResource(
+                            if (selected) R.string.sftp_selection_selected else R.string.sftp_selection_unselected
+                        ),
+                        tint = if (selected) MaterialTheme.colorScheme.primary
+                               else MaterialTheme.colorScheme.onSurfaceVariant,
+                    )
+                } else {
+                    Icon(
+                        if (entry.isDirectory) Icons.Filled.Folder else Icons.Filled.Description,
+                        contentDescription = stringResource(if (entry.isDirectory) R.string.sftp_directory_icon else R.string.sftp_file_icon),
+                        tint = if (entry.isDirectory) {
+                            MaterialTheme.colorScheme.primary
+                        } else {
+                            MaterialTheme.colorScheme.onSurfaceVariant
+                        },
+                    )
+                }
             },
-            modifier = Modifier.combinedClickable(
-                onClick = onTap,
-                onLongClick = { showMenu = true },
-            ),
+            modifier = Modifier
+                .then(
+                    if (selected) Modifier.background(MaterialTheme.colorScheme.primaryContainer)
+                    else Modifier
+                )
+                .combinedClickable(
+                    onClick = onTap,
+                    onLongClick = {
+                        if (selectionActive) onToggleSelect()
+                        else showMenu = true
+                    },
+                ),
         )
 
         DropdownMenu(
             expanded = showMenu,
             onDismissRequest = { showMenu = false },
         ) {
+            DropdownMenuItem(
+                text = { Text(stringResource(R.string.sftp_selection_enter)) },
+                leadingIcon = { Icon(Icons.Filled.Check, null) },
+                onClick = { showMenu = false; onEnterSelection() },
+            )
+            if (onPermissions != null) {
+                DropdownMenuItem(
+                    text = { Text(stringResource(R.string.sftp_permissions)) },
+                    leadingIcon = { Icon(Icons.Filled.Security, null) },
+                    onClick = { showMenu = false; onPermissions() },
+                )
+            }
             if (onPlay != null) {
                 DropdownMenuItem(
                     text = { Text(stringResource(R.string.sftp_play)) },
@@ -1977,6 +2079,181 @@ private fun FileListItem(
                 leadingIcon = { Icon(Icons.Filled.Delete, null) },
                 onClick = { showMenu = false; onDelete() },
             )
+        }
+    }
+}
+
+/**
+ * Contextual app bar shown while at least one file is selected. Replaces
+ * the browse-mode TopAppBar — tapping the close icon clears the selection
+ * and restores the regular bar.
+ */
+@OptIn(ExperimentalMaterial3Api::class)
+@Composable
+private fun SelectionTopBar(
+    count: Int,
+    totalVisible: Int,
+    onClear: () -> Unit,
+    onSelectAll: () -> Unit,
+    onDelete: () -> Unit,
+    onCopy: () -> Unit,
+    onCut: () -> Unit,
+    onPermissions: () -> Unit,
+    supportsPermissions: Boolean,
+) {
+    var confirmDelete by remember { mutableStateOf(false) }
+    TopAppBar(
+        title = { Text(stringResource(R.string.sftp_selection_count, count)) },
+        navigationIcon = {
+            IconButton(onClick = onClear) {
+                Icon(Icons.Filled.Close, stringResource(R.string.sftp_selection_clear))
+            }
+        },
+        actions = {
+            if (count < totalVisible) {
+                IconButton(onClick = onSelectAll) {
+                    Icon(Icons.Filled.SelectAll, stringResource(R.string.sftp_selection_select_all))
+                }
+            }
+            IconButton(onClick = onCopy) {
+                Icon(Icons.Filled.FileCopy, stringResource(R.string.common_copy))
+            }
+            IconButton(onClick = onCut) {
+                Icon(Icons.Filled.ContentCut, stringResource(R.string.sftp_cut))
+            }
+            if (supportsPermissions) {
+                IconButton(onClick = onPermissions) {
+                    Icon(Icons.Filled.Security, stringResource(R.string.sftp_permissions))
+                }
+            }
+            IconButton(onClick = { confirmDelete = true }) {
+                Icon(Icons.Filled.Delete, stringResource(R.string.common_delete))
+            }
+        },
+    )
+    if (confirmDelete) {
+        AlertDialog(
+            onDismissRequest = { confirmDelete = false },
+            title = { Text(stringResource(R.string.sftp_delete_selection_title)) },
+            text = { Text(stringResource(R.string.sftp_delete_selection_message, count)) },
+            confirmButton = {
+                TextButton(onClick = {
+                    confirmDelete = false
+                    onDelete()
+                }) { Text(stringResource(R.string.common_delete)) }
+            },
+            dismissButton = {
+                TextButton(onClick = { confirmDelete = false }) {
+                    Text(stringResource(R.string.common_cancel))
+                }
+            },
+        )
+    }
+}
+
+/**
+ * Permissions editor dialog. The 9-checkbox grid (owner/group/other ×
+ * r/w/x) and the octal text field are kept in sync — editing either
+ * updates the other. Special bits (setuid/setgid/sticky) are not
+ * exposed in the grid but survive a round-trip through the octal field.
+ */
+@Composable
+private fun ChmodDialog(
+    initialMode: Int,
+    title: String,
+    onDismiss: () -> Unit,
+    onApply: (Int) -> Unit,
+) {
+    var mode by rememberSaveable { mutableStateOf(initialMode and SftpViewModel.MODE_MASK) }
+    var octalText by rememberSaveable { mutableStateOf("%04o".format(initialMode and SftpViewModel.MODE_MASK)) }
+
+    // Keep text and mode in sync when a checkbox changes.
+    fun setMode(newMode: Int) {
+        mode = newMode and SftpViewModel.MODE_MASK
+        octalText = "%04o".format(mode)
+    }
+
+    fun flipBit(bit: Int, on: Boolean) {
+        setMode(if (on) mode or bit else mode and bit.inv())
+    }
+
+    AlertDialog(
+        onDismissRequest = onDismiss,
+        title = { Text(title) },
+        text = {
+            Column {
+                OutlinedTextField(
+                    value = octalText,
+                    onValueChange = { text ->
+                        octalText = text.take(5).filter { it.isDigit() }
+                        val parsed = octalText.toIntOrNull(8)
+                        if (parsed != null) mode = parsed and SftpViewModel.MODE_MASK
+                    },
+                    label = { Text(stringResource(R.string.sftp_permissions_octal)) },
+                    singleLine = true,
+                    keyboardOptions = KeyboardOptions(keyboardType = androidx.compose.ui.text.input.KeyboardType.Number),
+                    modifier = Modifier.fillMaxWidth(),
+                )
+                Spacer(Modifier.height(12.dp))
+                Row(modifier = Modifier.fillMaxWidth()) {
+                    Spacer(Modifier.weight(0.9f))
+                    Text(stringResource(R.string.sftp_permissions_read),
+                        style = MaterialTheme.typography.labelMedium,
+                        modifier = Modifier.weight(1f),
+                        textAlign = androidx.compose.ui.text.style.TextAlign.Center)
+                    Text(stringResource(R.string.sftp_permissions_write),
+                        style = MaterialTheme.typography.labelMedium,
+                        modifier = Modifier.weight(1f),
+                        textAlign = androidx.compose.ui.text.style.TextAlign.Center)
+                    Text(stringResource(R.string.sftp_permissions_execute),
+                        style = MaterialTheme.typography.labelMedium,
+                        modifier = Modifier.weight(1f),
+                        textAlign = androidx.compose.ui.text.style.TextAlign.Center)
+                }
+                PermissionRow(stringResource(R.string.sftp_permissions_owner),
+                    readBit = 0x100, writeBit = 0x080, execBit = 0x040, mode = mode, onFlip = ::flipBit)
+                PermissionRow(stringResource(R.string.sftp_permissions_group),
+                    readBit = 0x020, writeBit = 0x010, execBit = 0x008, mode = mode, onFlip = ::flipBit)
+                PermissionRow(stringResource(R.string.sftp_permissions_other),
+                    readBit = 0x004, writeBit = 0x002, execBit = 0x001, mode = mode, onFlip = ::flipBit)
+            }
+        },
+        confirmButton = {
+            TextButton(onClick = { onApply(mode) }) {
+                Text(stringResource(R.string.sftp_permissions_apply))
+            }
+        },
+        dismissButton = {
+            TextButton(onClick = onDismiss) { Text(stringResource(R.string.common_cancel)) }
+        },
+    )
+}
+
+@Composable
+private fun PermissionRow(
+    label: String,
+    readBit: Int,
+    writeBit: Int,
+    execBit: Int,
+    mode: Int,
+    onFlip: (bit: Int, on: Boolean) -> Unit,
+) {
+    Row(
+        modifier = Modifier.fillMaxWidth(),
+        verticalAlignment = Alignment.CenterVertically,
+    ) {
+        Text(
+            label,
+            style = MaterialTheme.typography.bodyMedium,
+            modifier = Modifier.weight(0.9f),
+        )
+        for (bit in listOf(readBit, writeBit, execBit)) {
+            Box(modifier = Modifier.weight(1f), contentAlignment = Alignment.Center) {
+                Checkbox(
+                    checked = (mode and bit) != 0,
+                    onCheckedChange = { onFlip(bit, it) },
+                )
+            }
         }
     }
 }

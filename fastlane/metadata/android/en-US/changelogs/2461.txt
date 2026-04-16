@@ -1,0 +1,12 @@
+v5.13.0: multi-select + permissions editor in the file browser
+
+Long-press any file (or tap Select) to enter selection mode
+with a contextual action bar — copy, cut, chmod, and batch
+delete across the selection. Tap the circle icon on each
+entry to toggle, or use Select All from the bar.
+
+Permissions editor: open the shield icon or the new
+"Permissions…" menu item to edit Unix permissions via an
+octal field or 3×3 rwx checkbox grid. Applies over SFTP or
+SCP; local files chmod directly. SMB and cloud backends
+are unaffected (no POSIX permission model).

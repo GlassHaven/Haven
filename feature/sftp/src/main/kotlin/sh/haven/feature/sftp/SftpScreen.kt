@@ -821,6 +821,8 @@ fun SftpScreen(
                                 onTap = {
                                     if (entry.isDirectory) {
                                         viewModel.navigateTo(entry.path)
+                                    } else if (sh.haven.feature.editor.TextMateSupport.scopeForFileName(entry.name) != null) {
+                                        viewModel.openInEditor(entry)
                                     } else if (isRclone && entry.isMediaFile(mediaExtensions)) {
                                         // Rclone media file: play via the rclone HTTP
                                         // media server (no full download needed).

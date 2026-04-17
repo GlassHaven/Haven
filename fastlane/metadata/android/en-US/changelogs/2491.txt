@@ -1,0 +1,16 @@
+v5.16.0: drop Google Nearby Connections (F-Droid compatibility)
+
+Removes a transitive `com.google.android.gms:play-services-nearby`
+dependency from the `reticulum-kt` submodule. That dep was pulled
+into every Haven APK via `rns-android` even though Haven never
+instantiated the Nearby driver — so this is pure dead-weight
+removal:
+
+- Slightly smaller APK (one fewer Google library linked).
+- Fewer runtime permissions requested (BLUETOOTH_* remain for BLE;
+  ACCESS_WIFI_STATE / CHANGE_WIFI_STATE / NEARBY_WIFI_DEVICES gone).
+- Unblocks F-Droid publishing — the F-Droid scanner rejects any
+  `com.google.android.gms` artifact.
+
+The abstract Nearby transport interfaces in `rns-interfaces` stay.
+No Haven-visible feature changes.

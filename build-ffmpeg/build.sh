@@ -186,7 +186,7 @@ build_x264() {
         cd "$SRC"
         make distclean >/dev/null 2>&1 || true
         ./configure \
-            --host=aarch64-linux \
+            --host="${ARCH}-linux" \
             --cross-prefix="$TOOLCHAIN/bin/llvm-" \
             --prefix="$DEPS_SYSROOT" \
             --enable-static \
@@ -196,14 +196,16 @@ build_x264() {
             --extra-cflags="--target=${TARGET}${API} --sysroot=$TOOLCHAIN/sysroot -fPIC" \
             --extra-ldflags="--target=${TARGET}${API} --sysroot=$TOOLCHAIN/sysroot" \
             > "$LOG" 2>&1
-        # Only install the static library + headers. `make install` also
-        # runs install-cli, which x264 unconditionally points at
-        # /usr/local/bin — the F-Droid buildserver runs as an unprivileged
-        # user, so `install -d /usr/local/bin` fails with EPERM even
-        # though we passed --disable-cli. We don't ship the x264 binary
-        # anyway; only libx264.a is linked into libffmpeg.so.
-        make -j"$(nproc)" >> "$LOG" 2>&1
-        make install-lib-static install-lib-dev >> "$LOG" 2>&1
+        # x264's Makefile ignores --prefix for the install targets (hardwired
+        # /usr/local paths in $(bindir)/$(libdir)/$(includedir)), which blows
+        # up on unprivileged buildservers like F-Droid. Skip `make install`
+        # entirely and copy the artifacts ourselves — this is all FFmpeg
+        # actually needs to link against libx264.
+        make -j"$(nproc)" lib-static >> "$LOG" 2>&1
+        mkdir -p "$DEPS_SYSROOT/lib/pkgconfig" "$DEPS_SYSROOT/include" >> "$LOG" 2>&1
+        cp libx264.a "$DEPS_SYSROOT/lib/" >> "$LOG" 2>&1
+        cp x264.h x264_config.h "$DEPS_SYSROOT/include/" >> "$LOG" 2>&1
+        cp x264.pc "$DEPS_SYSROOT/lib/pkgconfig/" >> "$LOG" 2>&1
     ) || { echo "ERROR: libx264 build failed, last 40 log lines:"; tail -40 "$LOG"; exit 1; }
     echo "  libx264: $(ls -lh "$DEPS_SYSROOT/lib/libx264.a" | awk '{print $5}')"
 }

@@ -1,0 +1,12 @@
+v5.20.0-rc2: clamp selection Copy/Paste row (#98)
+
+Small UX fix on top of rc1's floating IME composer.
+
+When you long-press text in the terminal, a small Copy/Paste
+button row appears above the selection. The buttons were
+anchored at `endColumn × charWidth`, with no right-edge clamp —
+so a selection that ended near the right of the terminal pushed
+the Row off-screen (@mio-19, #98). Now clamped within the
+terminal's viewport on both axes.
+
+No other behaviour changes from rc1.

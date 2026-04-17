@@ -196,8 +196,14 @@ build_x264() {
             --extra-cflags="--target=${TARGET}${API} --sysroot=$TOOLCHAIN/sysroot -fPIC" \
             --extra-ldflags="--target=${TARGET}${API} --sysroot=$TOOLCHAIN/sysroot" \
             > "$LOG" 2>&1
+        # Only install the static library + headers. `make install` also
+        # runs install-cli, which x264 unconditionally points at
+        # /usr/local/bin — the F-Droid buildserver runs as an unprivileged
+        # user, so `install -d /usr/local/bin` fails with EPERM even
+        # though we passed --disable-cli. We don't ship the x264 binary
+        # anyway; only libx264.a is linked into libffmpeg.so.
         make -j"$(nproc)" >> "$LOG" 2>&1
-        make install >> "$LOG" 2>&1
+        make install-lib-static install-lib-dev >> "$LOG" 2>&1
     ) || { echo "ERROR: libx264 build failed, last 40 log lines:"; tail -40 "$LOG"; exit 1; }
     echo "  libx264: $(ls -lh "$DEPS_SYSROOT/lib/libx264.a" | awk '{print $5}')"
 }

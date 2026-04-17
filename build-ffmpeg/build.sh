@@ -251,10 +251,19 @@ build_vpx() {
     fetch_git_tag vpx "https://chromium.googlesource.com/webm/libvpx" "v1.14.1"
     local SRC="$SRC_DIR/vpx"
     local LOG="$SCRIPT_DIR/dep-vpx.log"
-    local VPX_TARGET
+    local VPX_TARGET VPX_AS
     case "$ABI" in
-        arm64-v8a) VPX_TARGET=arm64-android-gcc ;;
-        x86_64)    VPX_TARGET=x86_64-android-gcc ;;
+        arm64-v8a)
+            VPX_TARGET=arm64-android-gcc
+            # clang assembles NEON/inline-asm directly for ARM
+            VPX_AS="$CC"
+            ;;
+        x86_64)
+            VPX_TARGET=x86_64-android-gcc
+            # libvpx's x86 assembly is nasm syntax; clang can't parse it
+            # (fails with `clang: error: unknown argument: '-f'`).
+            VPX_AS="nasm"
+            ;;
     esac
     (
         cd "$SRC"
@@ -263,7 +272,7 @@ build_vpx() {
         # whitelist, and uses CROSS= as the tool prefix.
         CROSS="$TOOLCHAIN/bin/llvm-" \
         CC="$CC" CXX="$CXX" \
-        LD="$CC" AS="$CC" \
+        LD="$CC" AS="$VPX_AS" \
         ./configure \
             --target="$VPX_TARGET" \
             --prefix="$DEPS_SYSROOT" \

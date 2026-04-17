@@ -1,0 +1,21 @@
+v5.18.0: secure keyboard — Voice + Raw toolbar keys (#70, #96)
+
+Two new toolbar keys for controlling how much of the IME surface the
+terminal exposes. Both are off by default; add them to your toolbar
+(long-press the keyboard icon → reorder → drag in).
+
+• Voice — enables Gboard voice input, swipe, and autocomplete. Same
+  state as Settings → Keyboard → Use standard keyboard, but reachable
+  without leaving the terminal.
+• Raw — returns no input connection to the IME at all. Gboard has
+  nothing to attach to, so its microphone, suggestion strip, and AI
+  Core writing assist cannot appear. Physical keyboards still work;
+  soft-keyboard input comes through as raw key events only. No IME
+  composition, so no CJK.
+
+Raw and Voice are mutually exclusive; turning one on auto-clears the
+other. Terminal mode (default) now also sets
+IME_FLAG_NO_PERSONALIZED_LEARNING unconditionally, which tells
+Gboard's word bank and AI Core to keep their hands off the terminal
+field — not enough on its own against the most recent Gboard /
+Android 16 patch combination (hence Raw).

@@ -40,6 +40,7 @@ class UserPreferencesRepository @Inject constructor(
     private val mouseInputEnabledKey = booleanPreferencesKey("mouse_input_enabled")
     private val terminalRightClickKey = booleanPreferencesKey("terminal_right_click")
     private val allowStandardKeyboardKey = booleanPreferencesKey("allow_standard_keyboard")
+    private val rawKeyboardModeKey = booleanPreferencesKey("raw_keyboard_mode")
     private val interceptCtrlShiftVKey = booleanPreferencesKey("intercept_ctrl_shift_v")
     private val showTerminalTabBarKey = booleanPreferencesKey("show_terminal_tab_bar")
     private val reorderHintShownKey = booleanPreferencesKey("reorder_hint_shown")
@@ -143,6 +144,28 @@ class UserPreferencesRepository @Inject constructor(
     suspend fun setAllowStandardKeyboard(enabled: Boolean) {
         dataStore.edit { prefs ->
             prefs[allowStandardKeyboardKey] = enabled
+            // Raw and Standard are mutually exclusive; turning one on
+            // automatically turns the other off so the toolbar state
+            // stays consistent with the IME behaviour.
+            if (enabled) prefs[rawKeyboardModeKey] = false
+        }
+    }
+
+    /**
+     * When true, the terminal returns no InputConnection at all — Gboard
+     * has nothing to decorate, so its mic, suggestion strip, and AI Core
+     * writing assist cannot appear. Physical keyboard input still flows
+     * through `View.dispatchKeyEvent`. Soft-keyboard input comes through as
+     * raw key events only; no IME composition (so no CJK).
+     */
+    val rawKeyboardMode: Flow<Boolean> = dataStore.data.map { prefs ->
+        prefs[rawKeyboardModeKey] ?: false
+    }
+
+    suspend fun setRawKeyboardMode(enabled: Boolean) {
+        dataStore.edit { prefs ->
+            prefs[rawKeyboardModeKey] = enabled
+            if (enabled) prefs[allowStandardKeyboardKey] = false
         }
     }
 

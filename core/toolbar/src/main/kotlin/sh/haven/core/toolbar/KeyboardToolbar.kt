@@ -146,6 +146,25 @@ data class ToolbarCallbacks(
     val onSnippetTap: (ToolbarItem.Custom) -> Unit = {},
     val onAddSnippet: (ToolbarItem.Custom) -> Unit = {},
     val onDeleteSnippet: (ToolbarItem.Custom) -> Unit = {},
+    /**
+     * Current state of the "standard keyboard" preference — when true the
+     * terminal's IME runs in full-featured mode (voice input, swipe,
+     * autocomplete); when false it's the secure/terminal mode with no
+     * suggestions. Drives the visual on/off tint of the Voice toolbar key.
+     */
+    val allowStandardKeyboard: Boolean = false,
+    /** Flip [allowStandardKeyboard]. Usually persisted to preferences. */
+    val onToggleStandardKeyboard: () -> Unit = {},
+    /**
+     * Raw keyboard mode — when true the terminal returns no InputConnection
+     * at all, so Gboard has nothing to decorate and its mic, suggestion
+     * strip and AI Core writing assist cannot appear. Drives the Raw
+     * toolbar key's on/off tint. Mutually exclusive with
+     * [allowStandardKeyboard].
+     */
+    val rawKeyboardMode: Boolean = false,
+    /** Flip [rawKeyboardMode]. */
+    val onToggleRawKeyboard: () -> Unit = {},
 )
 
 val LocalToolbarCallbacks = compositionLocalOf<ToolbarCallbacks> {
@@ -176,6 +195,10 @@ fun KeyboardToolbar(
     onToolbarLayoutChanged: (ToolbarLayout) -> Unit = {},
     onOpenSettings: () -> Unit = {},
     selectionContent: (@Composable () -> Unit)? = null,
+    allowStandardKeyboard: Boolean = false,
+    onToggleStandardKeyboard: () -> Unit = {},
+    rawKeyboardMode: Boolean = false,
+    onToggleRawKeyboard: () -> Unit = {},
     modifier: Modifier = Modifier,
 ) {
     var shiftActive by remember { mutableStateOf(false) }
@@ -226,6 +249,10 @@ fun KeyboardToolbar(
                 onSendBytes(snippet.send.toByteArray())
             }
         },
+        allowStandardKeyboard = allowStandardKeyboard,
+        onToggleStandardKeyboard = onToggleStandardKeyboard,
+        rawKeyboardMode = rawKeyboardMode,
+        onToggleRawKeyboard = onToggleRawKeyboard,
         onAddSnippet = { snippet ->
             val newRows = layout.rows.toMutableList()
             if (newRows.isNotEmpty()) {
@@ -684,6 +711,16 @@ private fun BuiltInKey(
                 cb.onSendBytes(KEY_TAB)
             }
         }
+        ToolbarKey.VOICE_KEYBOARD -> ToolbarToggleButton(
+            label = "Voice",
+            active = cb.allowStandardKeyboard,
+            onClick = cb.onToggleStandardKeyboard,
+        )
+        ToolbarKey.RAW_KEYBOARD -> ToolbarToggleButton(
+            label = "Raw",
+            active = cb.rawKeyboardMode,
+            onClick = cb.onToggleRawKeyboard,
+        )
         ToolbarKey.PASTE -> ToolbarTextButton("Paste") {
             val text = cb.clipboardManager?.primaryClip
                 ?.getItemAt(0)?.text?.toString()

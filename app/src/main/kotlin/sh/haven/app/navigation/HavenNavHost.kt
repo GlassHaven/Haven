@@ -146,6 +146,8 @@ fun HavenNavHost(
         .collectAsState(initial = false)
     val allowStandardKeyboard by preferencesRepository.allowStandardKeyboard
         .collectAsState(initial = false)
+    val rawKeyboardMode by preferencesRepository.rawKeyboardMode
+        .collectAsState(initial = false)
     val interceptCtrlShiftV by preferencesRepository.interceptCtrlShiftV
         .collectAsState(initial = true)
     val showTerminalTabBar by preferencesRepository.showTerminalTabBar
@@ -262,6 +264,17 @@ fun HavenNavHost(
                         mouseInputEnabled = mouseInputEnabled,
                         terminalRightClick = terminalRightClick,
                         allowStandardKeyboard = allowStandardKeyboard,
+                        onToggleStandardKeyboard = {
+                            coroutineScope.launch {
+                                preferencesRepository.setAllowStandardKeyboard(!allowStandardKeyboard)
+                            }
+                        },
+                        rawKeyboardMode = rawKeyboardMode,
+                        onToggleRawKeyboard = {
+                            coroutineScope.launch {
+                                preferencesRepository.setRawKeyboardMode(!rawKeyboardMode)
+                            }
+                        },
                         interceptCtrlShiftV = interceptCtrlShiftV,
                         showTabBar = showTerminalTabBar,
                         onNavigateToConnections = {

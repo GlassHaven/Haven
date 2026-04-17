@@ -120,6 +120,9 @@ fun TerminalScreen(
     mouseInputEnabled: Boolean = true,
     terminalRightClick: Boolean = false,
     allowStandardKeyboard: Boolean = false,
+    onToggleStandardKeyboard: () -> Unit = {},
+    rawKeyboardMode: Boolean = false,
+    onToggleRawKeyboard: () -> Unit = {},
     interceptCtrlShiftV: Boolean = true,
     showTabBar: Boolean = true,
     onNavigateToConnections: () -> Unit = {},
@@ -663,6 +666,7 @@ fun TerminalScreen(
                                 },
                                 gestureCallback = gestureCallback,
                                 allowStandardKeyboard = allowStandardKeyboard,
+                                rawKeyboardMode = rawKeyboardMode,
                             )
                         }
 
@@ -713,6 +717,10 @@ fun TerminalScreen(
                         },
                         onToolbarLayoutChanged = onToolbarLayoutChanged,
                         onOpenSettings = onOpenToolbarSettings,
+                        allowStandardKeyboard = allowStandardKeyboard,
+                        onToggleStandardKeyboard = onToggleStandardKeyboard,
+                        rawKeyboardMode = rawKeyboardMode,
+                        onToggleRawKeyboard = onToggleRawKeyboard,
                         selectionContent = selectionController?.let { ctrl -> {
                             SelectionToolbarContent(
                                 controller = ctrl,

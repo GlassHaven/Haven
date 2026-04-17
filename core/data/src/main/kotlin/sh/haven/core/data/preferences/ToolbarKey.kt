@@ -11,6 +11,8 @@ enum class ToolbarKey(val id: String, val label: String, val isModifier: Boolean
     TAB_KEY("tab", "Tab", isAction = true),
     PASTE("paste", "Paste", isAction = true),
     SNIPPETS("snippets", "Snippets", isAction = true),
+    VOICE_KEYBOARD("voice_kb", "Voice", isAction = true),
+    RAW_KEYBOARD("raw_kb", "Raw", isAction = true),
     SHIFT("shift", "Shift", isModifier = true),
     CTRL("ctrl", "Ctrl", isModifier = true),
     ALT("alt", "Alt", isModifier = true),

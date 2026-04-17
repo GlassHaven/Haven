@@ -1,0 +1,13 @@
+v5.19.0: fix Voice mode not re-enabling Gboard mic (#70)
+
+Follow-up to v5.18.0. The Voice toolbar key was setting the
+preference correctly but the microphone still didn't come back on
+Android 16 + AI Core. Root cause: v5.18.0 set
+IME_FLAG_NO_PERSONALIZED_LEARNING unconditionally, and recent
+Gboard builds treat that flag as strong enough to also suppress the
+microphone — even when the field is otherwise a full text input.
+
+v5.19.0 only sets the flag when you're in secure / terminal mode.
+Flipping Voice on now drops the flag, and Gboard shows mic +
+suggestion strip as expected. Raw mode still fully hides Gboard
+(it can't decorate a field that doesn't exist).

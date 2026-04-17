@@ -252,7 +252,12 @@ class SmartTerminalClipboard(
         val emulator = getEmulator()
         if (controller != null) {
             val processed = smartCopy(controller, emulator)
-            if (processed != null) {
+            // Only substitute when smartCopy produced real content. Emptiness
+            // means the emulator snapshot has drifted past the selection rows
+            // (e.g. new output arrived between long-press and Copy tap) —
+            // use the caller's text instead of clobbering the clipboard
+            // with an empty string.
+            if (!processed.isNullOrBlank()) {
                 delegate.setText(AnnotatedString(processed))
                 return
             }

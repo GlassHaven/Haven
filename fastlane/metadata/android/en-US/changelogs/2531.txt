@@ -1,0 +1,24 @@
+v5.20.0-rc1: floating IME composer (#96)
+
+Release candidate for focused CJK testing. Not yet the stable
+release — please report issues.
+
+The terminal's IME path used to project in-flight composition text
+directly into the terminal, one character at a time, then erase
+and rewrite it on every candidate change. For CJK input (romaji →
+hiragana → kanji, pinyin conversion, etc.) that looked like
+flicker; over mosh / ET the per-keystroke round-trips made it
+painful.
+
+v5.20.0-rc1 keeps the composition in a **floating overlay** near
+the terminal cursor. The partial text is visible to you but never
+reaches the remote shell. When the IME commits (you tap a
+candidate), the final text lands in the terminal in one go — no
+flicker, no ghost backspaces.
+
+The overlay is blue to distinguish it from the green compose-key
+buffer. English / Latin input is unchanged because those IMEs
+don't use composition. Swipe typing on Gboard also goes through
+the overlay and commits as a single word on lift.
+
+Please test with your primary IME and report back on #96.

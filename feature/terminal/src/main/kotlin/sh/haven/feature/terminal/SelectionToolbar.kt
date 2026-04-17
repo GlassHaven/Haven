@@ -64,6 +64,12 @@ private class AnchorMover(private val controller: SelectionController) {
  * Expand a single-character selection to the word (contiguous non-whitespace
  * token) under the cursor. Called immediately after long-press starts selection.
  *
+ * If the token reaches a row edge and adjacent rows contribute URL-safe
+ * characters that together form a URL (scheme-prefixed or `www.`), the
+ * selection is extended across those continuation rows so long-pressing a
+ * wrapped URL selects the whole URL instead of the visible fragment. Fixes
+ * the wrapped-URL smartcopy truncation reported against v5.20.x.
+ *
  * Uses the public SelectionController API for anchor manipulation.
  */
 internal fun expandSelectionToWord(
@@ -89,6 +95,15 @@ internal fun expandSelectionToWord(
         var endCol = col
         while (endCol < text.length - 1 && !text[endCol + 1].isWhitespace()) endCol++
 
+        // Try to extend across URL wrap boundaries when the token reaches a
+        // row edge and joins into a URL-looking string on neighbouring rows.
+        val urlRange = expandAcrossUrlWrap(lines, row, startCol, endCol)
+        if (urlRange != null) {
+            controller.updateSelectionStart(urlRange.startRow, urlRange.startCol)
+            controller.updateSelectionEnd(urlRange.endRow, urlRange.endCol)
+            return
+        }
+
         // Update selection anchors if expanded
         if (startCol != col || endCol != col) {
             controller.updateSelectionStart(row, startCol)
@@ -98,6 +113,100 @@ internal fun expandSelectionToWord(
         Log.d(TAG, "expandSelectionToWord: ${e.message}")
     }
 }
+
+/**
+ * Bounds of the full URL a single-row word belongs to, walked outward across
+ * wrap-continuation rows. Returns null if the word doesn't extend beyond its
+ * row, or if the joined text across rows doesn't look like a URL.
+ *
+ * A continuation row is one whose terminal-padding-trimmed text ends with a
+ * URL-safe character (heading backward) or starts with a URL-safe character
+ * at column 0 (heading forward). The final joined text must contain a URL
+ * scheme (`://`) or a bare `www.` prefix to guard against sprawling a
+ * selection into adjacent prose that happens to lack whitespace at the row
+ * boundary.
+ */
+internal data class UrlSpan(
+    val startRow: Int,
+    val startCol: Int,
+    val endRow: Int,
+    val endCol: Int,
+)
+
+internal fun expandAcrossUrlWrap(
+    lines: List<String>,
+    row: Int,
+    wordStartCol: Int,
+    wordEndCol: Int,
+): UrlSpan? {
+    val currentText = lines[row]
+    val trimmedLen = currentText.trimTerminalPadding().length
+
+    var startRow = row
+    var startCol = wordStartCol
+    var endRow = row
+    var endCol = wordEndCol
+
+    // Walk backward into previous rows while the word we're tracking sits at
+    // column 0 and the previous row's last non-padding character is URL-safe.
+    while (startCol == 0 && startRow > 0) {
+        val prev = lines[startRow - 1].trimTerminalPadding()
+        if (prev.isEmpty() || !prev.last().isUrlSafe()) break
+        // Find where the URL-safe run starts on `prev` (last whitespace
+        // boundary before end). That's our new start column.
+        var s = prev.length
+        while (s > 0 && !prev[s - 1].isWhitespace() && prev[s - 1].isUrlSafe()) s--
+        startRow -= 1
+        startCol = s
+    }
+
+    // Walk forward into next rows while we're at this row's trimmed edge
+    // and the next row begins with a URL-safe character at column 0.
+    while (endCol >= trimmedLen - 1 && endRow < lines.size - 1) {
+        val next = lines[endRow + 1]
+        if (next.isEmpty() || !next[0].isUrlSafe() || next[0].isWhitespace()) break
+        // Find where the URL-safe run ends on `next`.
+        var e = 0
+        while (e < next.length && !next[e].isWhitespace() && next[e].isUrlSafe()) e++
+        endRow += 1
+        endCol = (e - 1).coerceAtLeast(0)
+    }
+
+    // No continuation found → fall back to single-row word.
+    if (startRow == row && endRow == row) return null
+
+    // Verify the joined text actually looks like a URL before using the
+    // expanded bounds. "iss" + "ues/89" can form a URL continuation, but we
+    // only want to override the word walk when the result is definitely a
+    // URL and not just adjacent prose.
+    val joined = buildString {
+        for (r in startRow..endRow) {
+            val line = lines[r]
+            val from = if (r == startRow) startCol else 0
+            val toExclusive = if (r == endRow) {
+                (endCol + 1).coerceAtMost(line.length)
+            } else {
+                line.trimTerminalPadding().length
+            }
+            if (from < toExclusive) append(line.substring(from, toExclusive))
+        }
+    }
+    if (!joined.contains("://") && !joined.contains("www.")) return null
+
+    return UrlSpan(startRow, startCol, endRow, endCol)
+}
+
+/** Strip trailing whitespace AND NUL padding that the emulator uses for empty cells. */
+private fun String.trimTerminalPadding(): String =
+    trimEnd { it.isWhitespace() || it == '\u0000' }
+
+/**
+ * Whether a character commonly appears inside URLs. Mirrors termlib's internal
+ * helper; duplicated here because termlib marks it `internal` and Haven lives
+ * in a different Gradle module.
+ */
+private fun Char.isUrlSafe(): Boolean =
+    isLetterOrDigit() || this in "/:@!$&'()*+,;=-._~%?#[]"
 
 /**
  * Plain-text lines of the terminal's current snapshot. Returns null on

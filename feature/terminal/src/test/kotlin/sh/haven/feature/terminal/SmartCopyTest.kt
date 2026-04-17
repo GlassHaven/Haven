@@ -177,6 +177,99 @@ class SmartCopyTest {
         assertEquals("raw text", captured.captured.text)
     }
 
+    // ---------- expandAcrossUrlWrap ----------
+
+    @Test
+    fun `URL wrap walks forward across a scheme-prefixed continuation`() {
+        // Tapped word "https://github.com/GlassOnTin/Haven/iss" sits at
+        // row 0 cols 0..38 (the row's full trimmed width); the URL
+        // continues as "ues/89" on row 1.
+        val span = expandAcrossUrlWrap(
+            lines = listOf(
+                "https://github.com/GlassOnTin/Haven/iss",
+                "ues/89",
+                "more prose",
+            ),
+            row = 0,
+            wordStartCol = 0,
+            wordEndCol = 38,
+        )
+        assertNotNull(span)
+        assertEquals(0, span!!.startRow)
+        assertEquals(0, span.startCol)
+        assertEquals(1, span.endRow)
+        assertEquals(5, span.endCol)  // 'ues/89' ends at col 5
+    }
+
+    @Test
+    fun `URL wrap walks backward from a continuation row into the scheme row`() {
+        // Long-press on "ues/89" (row 1) should walk backward to pick up
+        // the URL start on row 0.
+        val span = expandAcrossUrlWrap(
+            lines = listOf(
+                "https://github.com/GlassOnTin/Haven/iss",
+                "ues/89",
+            ),
+            row = 1,
+            wordStartCol = 0,
+            wordEndCol = 5,
+        )
+        assertNotNull(span)
+        assertEquals(0, span!!.startRow)
+        assertEquals(0, span.startCol)
+        assertEquals(1, span.endRow)
+        assertEquals(5, span.endCol)
+    }
+
+    @Test
+    fun `URL wrap does not consume adjacent prose without a URL scheme`() {
+        // Two long contiguous tokens on adjacent rows but no scheme in
+        // the joined text — don't expand.
+        val span = expandAcrossUrlWrap(
+            lines = listOf(
+                "abcdefghijklmnopqrstuvwxyzabcdefghijklmn",
+                "opqrstuvwxyz",
+            ),
+            row = 0,
+            wordStartCol = 0,
+            wordEndCol = 39,
+        )
+        assertNull(span)
+    }
+
+    @Test
+    fun `URL wrap returns null when word is mid-row`() {
+        // Word in the middle of a row has whitespace on both sides — not
+        // wrapped, nothing to do.
+        val span = expandAcrossUrlWrap(
+            lines = listOf(
+                "  https://example.com  ",
+                "  next line text  ",
+            ),
+            row = 0,
+            wordStartCol = 2,
+            wordEndCol = 20,
+        )
+        assertNull(span)
+    }
+
+    @Test
+    fun `URL wrap stops when continuation row starts with whitespace`() {
+        // The next row is indented prose — not a URL continuation.
+        val span = expandAcrossUrlWrap(
+            lines = listOf(
+                "https://example.com/some/pa",
+                "  indented continuation",
+            ),
+            row = 0,
+            wordStartCol = 0,
+            wordEndCol = 26,
+        )
+        assertNull(span)
+    }
+
+    // ---------- SmartTerminalClipboard.setText ----------
+
     @Test
     fun `setText falls back when smartCopy returns only whitespace`() {
         // A selection covering only trailing padding/whitespace on a row —

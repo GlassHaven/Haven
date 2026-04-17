@@ -1,0 +1,16 @@
+v5.20.1: wrapped URL smartcopy
+
+Long-pressing a URL that's wrapped across two or more terminal
+rows used to copy only the visible fragment on the row you
+tapped — so a tap on "https://github.com/.../issues/89" that
+wrapped at "...issues/89" gave you "https://github.com/..."
+without the trailing "/issues/89".
+
+The long-press word-expansion now walks across wrap continuation
+rows when the joined text contains a URL scheme (://) or a
+bare www. prefix, so the whole URL lands on the clipboard in
+one shot. Non-URL words at row edges still get the single-row
+word walk — adjacent prose isn't sprawled into.
+
+Also landed: unit tests around the smart-copy pipeline so
+future regressions in this area get caught before ship.

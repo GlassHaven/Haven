@@ -1059,7 +1059,12 @@ fun ConnectionsScreen(
                                                     val dist = nextInfo.offset - draggedInfo.offset
                                                     if (dragOffset > dist / 2) {
                                                         reorderedIds.add(fromIdx + 1, reorderedIds.removeAt(fromIdx))
-                                                        dragOffset = 0f
+                                                        // Preserve visual continuity: the item's list
+                                                        // position just jumped by `dist`, so subtract
+                                                        // `dist` from dragOffset instead of resetting
+                                                        // to zero — otherwise the visual row leaps a
+                                                        // full row ahead of the finger on each swap.
+                                                        dragOffset -= dist
                                                     }
                                                 }
                                             } else if (dragOffset < 0 && fromIdx > 0) {
@@ -1068,7 +1073,10 @@ fun ConnectionsScreen(
                                                     val dist = draggedInfo.offset - prevInfo.offset
                                                     if (dragOffset < -dist / 2) {
                                                         reorderedIds.add(fromIdx - 1, reorderedIds.removeAt(fromIdx))
-                                                        dragOffset = 0f
+                                                        // Mirror of the downward case — the item
+                                                        // jumped one row up, so add `dist` back to
+                                                        // dragOffset so visual tracking stays 1:1.
+                                                        dragOffset += dist
                                                     }
                                                 }
                                             }

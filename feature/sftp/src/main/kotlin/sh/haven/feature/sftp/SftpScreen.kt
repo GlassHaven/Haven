@@ -30,7 +30,15 @@ import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.verticalScroll
+import androidx.compose.foundation.gestures.awaitEachGesture
+import androidx.compose.foundation.gestures.awaitFirstDown
 import androidx.compose.foundation.lazy.LazyColumn
+import androidx.compose.runtime.rememberUpdatedState
+import androidx.compose.ui.input.pointer.PointerEventPass
+import androidx.compose.ui.input.pointer.pointerInput
+import androidx.compose.ui.input.pointer.positionChange
+import androidx.compose.ui.input.pointer.util.VelocityTracker
+import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.lazy.itemsIndexed
 import androidx.compose.material.icons.Icons
@@ -852,7 +860,72 @@ fun SftpScreen(
 
                 // File list — always renders the LazyColumn so the parent-dir
                 // "..\" row stays available even when the directory is empty.
-                LazyColumn(modifier = Modifier.fillMaxSize()) {
+                //
+                // Contextual back gesture (#89):
+                //   - SLOW horizontal drag → passes through to the pager,
+                //     so Haven's normal tab-swipe behaviour still takes
+                //     you to the Terminal page as expected.
+                //   - FAST right-flick → intercepted here. Inside a
+                //     subdirectory it navigates up one level; at root it
+                //     falls through to the pager (which then flings to
+                //     Terminal on its own).
+                //
+                // We observe events on the Initial pointer-event pass
+                // without consuming them; a VelocityTracker watches the
+                // drag, and we only claim the gesture (via change.consume)
+                // once it has crossed the fast-flick threshold. Below
+                // that threshold the pager sees the drag as normal.
+                val density = LocalDensity.current
+                val minFlickDistancePx = with(density) { 40.dp.toPx() }
+                // Velocity in px/s above which we treat the gesture as a
+                // flick rather than a tab-swipe drag. Half of Android's
+                // default fling threshold — Haven users reach this
+                // easily without a deliberate whip of the finger.
+                val flickVelocityPx = with(density) { 200.dp.toPx() }
+                val currentPathState = rememberUpdatedState(currentPath)
+                val selectionModeState = rememberUpdatedState(selectionMode)
+                Box(
+                    modifier = Modifier
+                        .fillMaxSize()
+                        .pointerInput(Unit) {
+                            awaitEachGesture {
+                                val down = awaitFirstDown(
+                                    requireUnconsumed = false,
+                                    pass = PointerEventPass.Initial,
+                                )
+                                val velocityTracker = VelocityTracker()
+                                velocityTracker.addPosition(down.uptimeMillis, down.position)
+                                var totalDx = 0f
+                                var claimed = false
+                                while (true) {
+                                    val event = awaitPointerEvent(pass = PointerEventPass.Initial)
+                                    val change = event.changes.firstOrNull { it.id == down.id }
+                                        ?: break
+                                    if (!change.pressed) break
+                                    totalDx += change.positionChange().x
+                                    velocityTracker.addPosition(change.uptimeMillis, change.position)
+                                    if (!claimed && !selectionModeState.value) {
+                                        val v = velocityTracker.calculateVelocity().x
+                                        val path = currentPathState.value
+                                        // Claim once: rightward flick, past
+                                        // minimum distance, fast enough, and
+                                        // not at root (at root the pager's
+                                        // natural flick→Terminal is what we
+                                        // want anyway).
+                                        if (totalDx >= minFlickDistancePx &&
+                                            v >= flickVelocityPx &&
+                                            path != "/" && path.isNotEmpty()
+                                        ) {
+                                            claimed = true
+                                        }
+                                    }
+                                    if (claimed) change.consume()
+                                }
+                                if (claimed) viewModel.navigateUp()
+                            }
+                        },
+                ) {
+                    LazyColumn(modifier = Modifier.fillMaxSize()) {
                     // ".." parent directory entry
                     if (currentPath != "/" && currentPath.isNotEmpty()) {
                         item(key = "__parent__") {
@@ -983,7 +1056,8 @@ fun SftpScreen(
                                 } else null,
                             )
                         }
-                }
+                    }  // LazyColumn
+                }  // Box with swipe-back detection
             }
         }
     }

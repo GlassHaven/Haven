@@ -1,0 +1,21 @@
+v5.21.0-rc1: fast right-flick navigates up in Files (#89)
+
+Adds a velocity-based right-flick gesture to the file browser:
+
+- SLOW horizontal drag → passes through to the tab pager as
+  before, swiping to the Terminal tab.
+- FAST rightward flick in a subdirectory → navigates up one
+  directory (same effect as tapping the ".." row).
+- FAST flick at root → falls through to the pager (swipes to
+  Terminal).
+
+Uses Compose's Initial-pass pointer events so we observe the
+drag without consuming it; a VelocityTracker only claims the
+gesture once the finger has clearly flicked (≥200 dp/s, ≥40 dp
+travel). Below that threshold the pager handles the drag
+normally. Disabled during multi-select so a sideways flick
+doesn't drop your selection.
+
+RC release because the velocity feel may want further tuning
+once more people have it in-hand. Please try it and feed back
+on #89.

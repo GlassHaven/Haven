@@ -142,6 +142,7 @@ class ConnectionsViewModelSessionTest {
             },
             hostKeyVerifier = mockk(relaxed = true),
             connectionLogRepository = mockk(relaxed = true),
+            tunnelManager = mockk(relaxed = true),
         )
     }
 

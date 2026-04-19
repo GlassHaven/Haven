@@ -11,6 +11,7 @@ import sh.haven.core.data.db.entities.ConnectionProfile
 import sh.haven.core.data.db.entities.KnownHost
 import sh.haven.core.data.db.entities.PortForwardRule
 import sh.haven.core.data.db.entities.SshKey
+import sh.haven.core.data.db.entities.TunnelConfig
 
 @Database(
     entities = [
@@ -21,8 +22,9 @@ import sh.haven.core.data.db.entities.SshKey
         SshKey::class,
         PortForwardRule::class,
         AgentAuditEvent::class,
+        TunnelConfig::class,
     ],
-    version = 34,
+    version = 35,
     exportSchema = true,
 )
 abstract class HavenDatabase : RoomDatabase() {
@@ -33,6 +35,7 @@ abstract class HavenDatabase : RoomDatabase() {
     abstract fun sshKeyDao(): SshKeyDao
     abstract fun portForwardRuleDao(): PortForwardRuleDao
     abstract fun agentAuditEventDao(): AgentAuditEventDao
+    abstract fun tunnelConfigDao(): TunnelConfigDao
 
     companion object {
         val MIGRATION_1_2 = object : Migration(1, 2) {
@@ -295,6 +298,30 @@ abstract class HavenDatabase : RoomDatabase() {
         val MIGRATION_33_34 = object : Migration(33, 34) {
             override fun migrate(db: SupportSQLiteDatabase) {
                 db.execSQL("ALTER TABLE connection_profiles ADD COLUMN fileTransport TEXT NOT NULL DEFAULT 'AUTO'")
+            }
+        }
+
+        /**
+         * Per-app WireGuard (#102): add the `tunnel_configs` table for
+         * named tunnel configurations the user manages in settings, and
+         * an optional `tunnelConfigId` reference on each connection
+         * profile. Existing profiles get NULL and behave as before.
+         */
+        val MIGRATION_34_35 = object : Migration(34, 35) {
+            override fun migrate(db: SupportSQLiteDatabase) {
+                db.execSQL(
+                    """
+                    CREATE TABLE IF NOT EXISTS `tunnel_configs` (
+                        `id` TEXT NOT NULL,
+                        `label` TEXT NOT NULL,
+                        `type` TEXT NOT NULL,
+                        `configText` BLOB NOT NULL,
+                        `createdAt` INTEGER NOT NULL,
+                        PRIMARY KEY(`id`)
+                    )
+                    """.trimIndent(),
+                )
+                db.execSQL("ALTER TABLE connection_profiles ADD COLUMN tunnelConfigId TEXT")
             }
         }
     }

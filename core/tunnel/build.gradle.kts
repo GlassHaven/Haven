@@ -1,13 +1,12 @@
 plugins {
     alias(libs.plugins.android.library)
     alias(libs.plugins.kotlin.android)
-    alias(libs.plugins.kotlin.compose)
     alias(libs.plugins.hilt)
     alias(libs.plugins.ksp)
 }
 
 android {
-    namespace = "sh.haven.feature.connections"
+    namespace = "sh.haven.core.tunnel"
     compileSdk = 36
 
     defaultConfig {
@@ -19,36 +18,21 @@ android {
         targetCompatibility = JavaVersion.VERSION_17
     }
 
-
-    buildFeatures {
-        compose = true
-    }
-
     testOptions {
         unitTests.isReturnDefaultValues = true
     }
 }
 
 dependencies {
-    implementation(project(":core:ui"))
-    implementation(project(":core:ssh"))
-    implementation(project(":core:tunnel"))
-    implementation(project(":core:reticulum"))
-    implementation(project(":core:mosh"))
-    implementation(project(":core:et"))
+    // JSch Proxy interface is the integration seam — tunnels expose themselves
+    // to SshClient by implementing it.
+    api(libs.jsch)
     implementation(project(":core:data"))
-    implementation(project(":core:smb"))
-    implementation(project(":core:rclone"))
-    implementation(project(":core:fido"))
-    implementation(project(":core:local"))
-    implementation(project(":core:wayland"))
-
+    implementation(libs.coroutines.core)
+    implementation(libs.coroutines.android)
     implementation(libs.hilt.android)
     ksp(libs.hilt.compiler)
-    implementation(libs.hilt.navigation.compose)
-    implementation(libs.lifecycle.viewmodel)
 
-    testImplementation(project(":core:rdp"))
     testImplementation(libs.junit)
     testImplementation(libs.mockk)
     testImplementation(libs.coroutines.test)

@@ -98,6 +98,7 @@ class ConnectionsViewModel @Inject constructor(
     private val preferencesRepository: UserPreferencesRepository,
     private val hostKeyVerifier: HostKeyVerifier,
     private val connectionLogRepository: ConnectionLogRepository,
+    private val tunnelManager: sh.haven.core.tunnel.TunnelManager,
 ) : ViewModel() {
 
     /** Verbose SSH log captured during connect, keyed by sessionId. Consumed by finishConnect. */
@@ -1279,12 +1280,21 @@ class ConnectionsViewModel @Inject constructor(
                         agentIdentities = agentIdentitiesFor(profile),
                     )
 
-                    // Create proxy — jump host takes priority, then SOCKS/HTTP proxy
-                    val proxy = if (jumpSessionId != null) {
-                        sshSessionManager.createProxyJump(jumpSessionId)
+                    // Proxy precedence: jump host > WireGuard tunnel (#102) > SOCKS/HTTP.
+                    // The three are mutually exclusive at connect time — if a
+                    // profile somehow has both a jump host and a tunnel configured,
+                    // the jump host wins (it's the more explicit hop) and the
+                    // tunnel is ignored for now.
+                    val tunnelId = profile.tunnelConfigId
+                    val proxy = when {
+                        jumpSessionId != null -> sshSessionManager.createProxyJump(jumpSessionId)
                             ?: throw Exception("Jump host session not usable for tunneling")
-                    } else {
-                        createNetworkProxy(profile)
+                        tunnelId != null -> {
+                            val tunnel = tunnelManager.getTunnel(tunnelId)
+                                ?: throw Exception("Tunnel config $tunnelId not found")
+                            sh.haven.core.tunnel.TunnelProxy(tunnel)
+                        }
+                        else -> createNetworkProxy(profile)
                     }
                     Log.d(TAG, "Connecting to ${config.host}:${config.port} (proxy=${proxy != null})")
                     try {

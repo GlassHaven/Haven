@@ -77,6 +77,12 @@ data class ConnectionProfile(
      * Ignored for non-SSH profiles.
      */
     val fileTransport: String = "AUTO",
+    /**
+     * Optional id of a [TunnelConfig] to route this profile's connection
+     * through (per-app WireGuard / Tailscale — see #102). Null means
+     * "connect directly via the system network".
+     */
+    val tunnelConfigId: String? = null,
 ) {
     enum class AuthType {
         PASSWORD,

@@ -81,6 +81,7 @@ include(":core:toolbar")
 include(":core:ssh")
 include(":core:security")
 include(":core:data")
+include(":core:tunnel")
 
 include(":feature:connections")
 include(":feature:terminal")

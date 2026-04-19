@@ -1,0 +1,38 @@
+v5.23.0: per-app WireGuard (#102)
+
+Route individual connection profiles through a WireGuard
+tunnel without engaging Android's system-wide VPN. Your main
+WG app stays free; other apps continue on the normal network.
+
+How it works:
+
+- Settings → Security & privacy → Tunnels (or the "Add
+  WireGuard tunnel…" link inside the profile dropdown):
+  paste a wg-quick config or load a .conf file. Config text
+  is an encrypted blob in the Haven DB.
+- On every SSH profile, a "Route through" dropdown now lists
+  None / SOCKS5 / SOCKS4 / HTTP / each saved WG tunnel.
+  Picking a tunnel routes that profile's SSH socket through
+  wireguard-go + a userspace gVisor netstack bundled into
+  the existing rclone-android native library. No Android
+  VpnService, no consent dialog.
+
+Matters for people who:
+
+- Already use the system WG app for general traffic and don't
+  want Haven to take the single VPN slot.
+- Want Haven-only tunnelling so other apps keep using the
+  normal network.
+- Have a dyndns-pointed WireGuard peer: endpoint hostnames
+  are resolved at tunnel-start (same as wg-quick), with IPv4
+  preferred over IPv6 because home-network IPv6 reachability
+  to WG peers is flaky in practice.
+
+Verified end-to-end against a Fritz!Box running WireGuard.
+Tailscale follows as a strictly-additive PR — the Tunnel
+abstraction was generalised in this release specifically to
+keep that cheap.
+
+Debug APK gains ~25 MB because wireguard-go + gVisor
+netstack are sizeable Go libraries. Release builds with R8
+strip unused symbols.

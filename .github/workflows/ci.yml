@@ -11,90 +11,21 @@ concurrency:
   cancel-in-progress: true
 
 jobs:
-  build:
-    runs-on: ubuntu-latest
-    timeout-minutes: 45
+  # Three independent Gradle entry-points run as parallel jobs instead of
+  # sequentially in one. Each restores the shared toolchain + caches from
+  # the composite action; the second run of each job type reuses the cache
+  # populated by the first, so the duplicated cache-restore cost is minimal.
 
+  test:
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
     steps:
       - uses: actions/checkout@v6
         with:
           submodules: recursive
-
-      # The build pulls JDK + Android SDK + NDK + Go + gomobile + Rust
-      # and fills the runner disk. Free the ~25GB of preinstalled
-      # software we don't use before any tooling is installed, so we
-      # don't delete anything we just set up.
-      - name: Free disk space
-        uses: jlumbroso/free-disk-space@main
-        with:
-          tool-cache: false
-          android: false
-          dotnet: true
-          haskell: true
-          large-packages: true
-          docker-images: true
-          swap-storage: true
-
-      - name: Set up JDK 17
-        uses: actions/setup-java@v5
-        with:
-          java-version: '17'
-          distribution: 'temurin'
-
-      - name: Set up Android SDK
-        uses: android-actions/setup-android@v4
-
-      - name: Install SDK platform 36, CMake, and NDK
-        run: sdkmanager "platforms;android-36" "cmake;3.31.6" "ndk;28.0.13004108" "ndk;27.0.12077973"
-
-      - name: Set up Go toolchain
-        uses: actions/setup-go@v6
-        with:
-          go-version: '1.26'
-          cache-dependency-path: rclone-android/go/go.sum
-
-      - name: Install gomobile
-        run: |
-          go install golang.org/x/mobile/cmd/gomobile@latest
-          go install golang.org/x/mobile/cmd/gobind@latest
-
-      - name: Set up Rust toolchain
-        run: |
-          rustup default stable
-          rustup target add aarch64-linux-android x86_64-linux-android
-          cargo install cargo-ndk --locked
-
-      - name: Cache Gradle packages
-        uses: actions/cache@v5
-        with:
-          path: |
-            ~/.gradle/caches
-            ~/.gradle/wrapper
-          key: gradle-${{ runner.os }}-${{ hashFiles('**/*.gradle*', '**/gradle-wrapper.properties', '**/libs.versions.toml') }}
-          restore-keys: gradle-${{ runner.os }}-
-
-      - name: Cache Cargo registry
-        uses: actions/cache@v5
-        with:
-          path: |
-            ~/.cargo/registry
-            ~/.cargo/git
-            rdp-kotlin/rust/target
-          key: cargo-${{ runner.os }}-${{ hashFiles('rdp-kotlin/rust/Cargo.lock') }}
-          restore-keys: cargo-${{ runner.os }}-
-
-      - name: Grant execute permission for gradlew
-        run: chmod +x gradlew
-
-      - name: Build debug APK
-        run: ./gradlew assembleDebug
-
+      - uses: ./.github/actions/setup-toolchain
       - name: Run unit tests
         run: ./gradlew testDebugUnitTest
-
-      - name: Run lint
-        run: ./gradlew lintDebug
-
       - name: Upload test results
         if: always()
         uses: actions/upload-artifact@v7
@@ -103,6 +34,16 @@ jobs:
           path: '**/build/reports/tests/'
           retention-days: 14
 
+  lint:
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    steps:
+      - uses: actions/checkout@v6
+        with:
+          submodules: recursive
+      - uses: ./.github/actions/setup-toolchain
+      - name: Run lint
+        run: ./gradlew lintDebug
       - name: Upload lint results
         if: always()
         uses: actions/upload-artifact@v7
@@ -114,10 +55,23 @@ jobs:
           if-no-files-found: ignore
           retention-days: 14
 
+  build:
+    runs-on: ubuntu-latest
+    timeout-minutes: 45
+    steps:
+      - uses: actions/checkout@v6
+        with:
+          submodules: recursive
+      - uses: ./.github/actions/setup-toolchain
+      # Build arm64 only in CI — the x64 flavor exists for emulator support
+      # and Play Store fat distribution, not smoke-testing main. Cuts build
+      # work roughly in half vs :app:assembleDebug (which expands to both).
+      - name: Build arm64 debug APK
+        run: ./gradlew :app:assembleArm64Debug
       - name: Upload debug APK
         if: success()
         uses: actions/upload-artifact@v7
         with:
           name: app-debug
-          path: app/build/outputs/apk/*/debug/haven-*-debug.apk
+          path: app/build/outputs/apk/arm64/debug/haven-*-arm64-debug.apk
           retention-days: 7

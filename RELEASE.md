@@ -71,6 +71,33 @@ Or open the release on GitHub and paste the notes into the body field.
 
 F-Droid auto-detects new tags via `AutoUpdateMode: Version` + `UpdateCheckMode: Tags`. The bot opens an update MR against `fdroid/fdroiddata`; linsui merges after the build succeeds. The fastlane changelog you wrote in step 2 is the text the F-Droid client displays.
 
+### Tool-version alignment
+
+F-Droid's buildserver is the authoritative build environment — failing there blocks the public release. The recipe at [fdroiddata/metadata/sh.haven.app.yml](https://gitlab.com/fdroid/fdroiddata/-/blob/master/metadata/sh.haven.app.yml) pins specific tool versions, and our CI mirrors them in `.github/actions/setup-toolchain/action.yml`. When you bump a pin in one place, bump it in the other — otherwise CI passes on a version F-Droid doesn't have and vice-versa.
+
+| Tool | F-Droid pin | Our CI |
+|---|---|---|
+| NDK | `r28c` (`28.2.13676358`) — declared per-module in `core/local`, `termlib/lib` | `sdkmanager "ndk;28.2.13676358"` in the composite action |
+| Rust | `rustup default 1.85.0` | `rustup default 1.85.0` |
+| `cargo-ndk` | `3.5.4` | `3.5.4` |
+| CMake | `3.31.6` | `3.31.6` |
+| `gomobile` / `gobind` | `@latest` | `@latest` (cached, refreshes via key bump) |
+| Go | `1.26` (implicit — matches our `actions/setup-go`) | `1.26` |
+
+Things Haven's CI does **not** exercise but F-Droid does:
+
+- `build-proot/build.sh`, `build-ffmpeg/build.sh`, `wayland-android/build_liblabwc_android.sh` — F-Droid has these in its `scandelete` list (it deletes the committed `.so`s and rebuilds from source). Our CI uses the committed pre-built binaries. A regression in any of those scripts won't show up until the F-Droid bot MR's build step fails on GitLab. If you touch those scripts or their deps, smoke-test locally before tagging:
+  ```bash
+  rm -rf core/ffmpeg/src/main/jniLibs core/wayland/src/main/jniLibs core/local/src/main/jniLibs
+  ABI=arm64-v8a bash build-ffmpeg/build.sh
+  bash build-proot/build.sh
+  pushd wayland-android && ABI=arm64-v8a ./build_liblabwc_android.sh && popd
+  ```
+
+### If the F-Droid build fails
+
+Watch [fdroid/fdroiddata merge requests tagged with our app](https://gitlab.com/fdroid/fdroiddata/-/merge_requests?scope=all&search=sh.haven.app). The bot MR shows the build log; common causes are tool-version skew vs what's above, new apt deps the recipe's `sudo:` block doesn't install, or submodule commits the buildserver can't reach. When fixed, comment `@fdroidbot rebuild` on the MR.
+
 ## 6. Verify
 
 - [ ] GitHub release page has APK and a non-empty body

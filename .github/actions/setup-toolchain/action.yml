@@ -1,0 +1,108 @@
+name: Set up Haven toolchain
+description: >
+  Install and cache the full build toolchain — JDK 17, Android SDK/NDK/CMake,
+  Go + gomobile, Rust + cargo-ndk — shared by the CI and Release workflows.
+  Everything downloadable is cached; only the toolchain install steps that
+  can't be cached (setup-java, setup-android, setup-go) re-run each time,
+  but those complete in seconds off the runner image.
+
+runs:
+  using: composite
+  steps:
+    # Free ~25GB of preinstalled software we don't use so Android SDK + NDK +
+    # Go + Rust + gradle caches fit on the runner disk.
+    - name: Free disk space
+      uses: jlumbroso/free-disk-space@main
+      with:
+        tool-cache: false
+        android: false
+        dotnet: true
+        haskell: true
+        large-packages: true
+        docker-images: true
+        swap-storage: true
+
+    - name: Set up JDK 17
+      uses: actions/setup-java@v5
+      with:
+        java-version: '17'
+        distribution: 'temurin'
+
+    - name: Set up Android SDK
+      uses: android-actions/setup-android@v4
+
+    # Only install the NDK we actually pin in per-module ndkVersion
+    # (core/local + termlib/lib: 28.2.13676358, r28c, matching F-Droid).
+    # Adding unrelated NDK versions wastes ~2GB of runner disk and
+    # buys nothing.
+    - name: Install SDK platform 36, CMake, and NDK
+      shell: bash
+      run: sdkmanager "platforms;android-36" "cmake;3.31.6" "ndk;28.2.13676358"
+
+    - name: Set up Go toolchain
+      uses: actions/setup-go@v6
+      with:
+        go-version: '1.26'
+        cache-dependency-path: rclone-android/go/go.sum
+
+    # gomobile + gobind get re-downloaded + recompiled on every clean run
+    # (~1m). Cache the installed binaries in ~/go/bin keyed on the Go
+    # version so repeat runs skip the `go install`.
+    - name: Cache gomobile binaries
+      id: gomobile-cache
+      uses: actions/cache@v5
+      with:
+        path: |
+          ~/go/bin/gomobile
+          ~/go/bin/gobind
+        key: gomobile-${{ runner.os }}-go1.26
+
+    - name: Install gomobile
+      if: steps.gomobile-cache.outputs.cache-hit != 'true'
+      shell: bash
+      run: |
+        go install golang.org/x/mobile/cmd/gomobile@latest
+        go install golang.org/x/mobile/cmd/gobind@latest
+
+    # Tool-version pins below match fdroiddata's sh.haven.app.yml recipe —
+    # the F-Droid buildserver is the authoritative environment (failing
+    # there blocks the public release), so our CI mirrors its versions
+    # rather than drifting ahead on `stable`. Update both places together.
+    - name: Cache cargo-ndk
+      id: cargo-ndk-cache
+      uses: actions/cache@v5
+      with:
+        path: ~/.cargo/bin/cargo-ndk
+        key: cargo-ndk-${{ runner.os }}-3.5.4
+
+    - name: Set up Rust toolchain + cargo-ndk
+      shell: bash
+      run: |
+        rustup default 1.85.0
+        rustup target add aarch64-linux-android x86_64-linux-android
+        if [ ! -x ~/.cargo/bin/cargo-ndk ]; then
+          cargo install cargo-ndk --locked --version 3.5.4
+        fi
+
+    - name: Cache Gradle packages
+      uses: actions/cache@v5
+      with:
+        path: |
+          ~/.gradle/caches
+          ~/.gradle/wrapper
+        key: gradle-${{ runner.os }}-${{ hashFiles('**/*.gradle*', '**/gradle-wrapper.properties', '**/libs.versions.toml') }}
+        restore-keys: gradle-${{ runner.os }}-
+
+    - name: Cache Cargo registry + rdp-kotlin target
+      uses: actions/cache@v5
+      with:
+        path: |
+          ~/.cargo/registry
+          ~/.cargo/git
+          rdp-kotlin/rust/target
+        key: cargo-${{ runner.os }}-${{ hashFiles('rdp-kotlin/rust/Cargo.lock') }}
+        restore-keys: cargo-${{ runner.os }}-
+
+    - name: Grant execute permission for gradlew
+      shell: bash
+      run: chmod +x gradlew

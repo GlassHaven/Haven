@@ -99,6 +99,7 @@ class ConnectionsViewModel @Inject constructor(
     private val hostKeyVerifier: HostKeyVerifier,
     private val connectionLogRepository: ConnectionLogRepository,
     private val tunnelManager: sh.haven.core.tunnel.TunnelManager,
+    private val tunnelConfigRepository: sh.haven.core.data.repository.TunnelConfigRepository,
 ) : ViewModel() {
 
     /** Verbose SSH log captured during connect, keyed by sessionId. Consumed by finishConnect. */
@@ -131,6 +132,10 @@ class ConnectionsViewModel @Inject constructor(
 
     val sshKeys: StateFlow<List<SshKey>> = sshKeyRepository.observeAll()
         .stateIn(viewModelScope, SharingStarted.WhileSubscribed(5000), emptyList())
+
+    val tunnelConfigs: StateFlow<List<sh.haven.core.data.db.entities.TunnelConfig>> =
+        tunnelConfigRepository.observeAll()
+            .stateIn(viewModelScope, SharingStarted.WhileSubscribed(5000), emptyList())
 
     val globalSessionManagerLabel: StateFlow<String> = preferencesRepository.sessionManager
         .map { it.label }

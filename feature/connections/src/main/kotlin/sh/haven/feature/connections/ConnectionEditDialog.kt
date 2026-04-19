@@ -33,6 +33,7 @@ import androidx.compose.material3.OutlinedButton
 import androidx.compose.material3.DropdownMenuItem
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.ExposedDropdownMenuBox
+import androidx.compose.material3.HorizontalDivider
 import androidx.compose.material3.ExposedDropdownMenuDefaults
 import androidx.compose.material3.FilterChip
 import androidx.compose.material3.Icon
@@ -82,6 +83,8 @@ fun ConnectionEditDialog(
     sshProfiles: List<ConnectionProfile> = emptyList(),
     groups: List<sh.haven.core.data.db.entities.ConnectionGroup> = emptyList(),
     sshKeys: List<sh.haven.core.data.db.entities.SshKey> = emptyList(),
+    tunnelConfigs: List<sh.haven.core.data.db.entities.TunnelConfig> = emptyList(),
+    onManageTunnels: (() -> Unit)? = null,
     globalSessionManagerLabel: String = "None",
     subnetScanning: Boolean = false,
     smbSubnetScanning: Boolean = false,
@@ -148,6 +151,7 @@ fun ConnectionEditDialog(
     var proxyHost by rememberSaveable { mutableStateOf(existing?.proxyHost ?: "") }
     var proxyPort by rememberSaveable { mutableStateOf(existing?.proxyPort?.toString() ?: "1080") }
     var keyId by rememberSaveable { mutableStateOf(existing?.keyId) }
+    var tunnelConfigId by rememberSaveable { mutableStateOf(existing?.tunnelConfigId) }
     var sshOptions by rememberSaveable { mutableStateOf(existing?.sshOptions ?: "") }
     var moshServerCommand by rememberSaveable { mutableStateOf(existing?.moshServerCommand ?: "") }
     var postLoginCommand by rememberSaveable { mutableStateOf(existing?.postLoginCommand ?: "") }
@@ -1407,6 +1411,77 @@ fun ConnectionEditDialog(
                             }
                         }
                     }
+
+                    // Tunnel picker — route this profile through a saved
+                    // WireGuard config (#102). The "Manage tunnels..."
+                    // link opens the full management screen for cases
+                    // where the user hasn't added any yet.
+                    Spacer(Modifier.height(4.dp))
+                    var tunnelExpanded by remember { mutableStateOf(false) }
+                    val selectedTunnel = tunnelConfigs.firstOrNull { it.id == tunnelConfigId }
+                    ExposedDropdownMenuBox(
+                        expanded = tunnelExpanded,
+                        onExpandedChange = { tunnelExpanded = it },
+                    ) {
+                        OutlinedTextField(
+                            value = selectedTunnel?.label ?: "Direct (no tunnel)",
+                            onValueChange = {},
+                            readOnly = true,
+                            label = { Text("Route through tunnel") },
+                            trailingIcon = { ExposedDropdownMenuDefaults.TrailingIcon(tunnelExpanded) },
+                            modifier = Modifier
+                                .fillMaxWidth()
+                                .menuAnchor(MenuAnchorType.PrimaryNotEditable),
+                        )
+                        ExposedDropdownMenu(
+                            expanded = tunnelExpanded,
+                            onDismissRequest = { tunnelExpanded = false },
+                        ) {
+                            DropdownMenuItem(
+                                text = { Text("Direct (no tunnel)") },
+                                onClick = {
+                                    tunnelConfigId = null
+                                    tunnelExpanded = false
+                                },
+                            )
+                            tunnelConfigs.forEach { tunnel ->
+                                DropdownMenuItem(
+                                    text = {
+                                        Column {
+                                            Text(tunnel.label)
+                                            Text(
+                                                runCatching {
+                                                    sh.haven.core.data.db.entities.TunnelConfigType
+                                                        .fromStorage(tunnel.type).name
+                                                }.getOrDefault(tunnel.type),
+                                                style = MaterialTheme.typography.bodySmall,
+                                                color = MaterialTheme.colorScheme.onSurfaceVariant,
+                                            )
+                                        }
+                                    },
+                                    onClick = {
+                                        tunnelConfigId = tunnel.id
+                                        tunnelExpanded = false
+                                    },
+                                )
+                            }
+                            if (onManageTunnels != null) {
+                                HorizontalDivider()
+                                DropdownMenuItem(
+                                    text = {
+                                        Text(
+                                            "Manage tunnels…",
+                                            color = MaterialTheme.colorScheme.primary,
+                                        )
+                                    },
+                                    onClick = {
+                                        tunnelExpanded = false
+                                        onManageTunnels()
+                                    },
+                                )
+                            }
+                        }
+                    }
                 } else {
                     // --- Reticulum connection form ---
                     // Order: gateway config → scan → destination hash
@@ -1695,6 +1770,7 @@ fun ConnectionEditDialog(
                             proxyHost = proxyHost.ifBlank { null },
                             proxyPort = proxyPort.toIntOrNull() ?: 1080,
                             keyId = keyId,
+                            tunnelConfigId = tunnelConfigId,
                             sshOptions = sshOptions.ifBlank { null },
                             moshServerCommand = moshServerCommand.ifBlank { null },
                             postLoginCommand = postLoginCommand.ifBlank { null },

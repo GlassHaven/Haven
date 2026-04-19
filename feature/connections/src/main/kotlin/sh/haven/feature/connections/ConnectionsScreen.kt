@@ -146,6 +146,8 @@ fun ConnectionsScreen(
     val connections by viewModel.connections.collectAsState()
     val groups by viewModel.groups.collectAsState()
     val sshKeys by viewModel.sshKeys.collectAsState()
+    val tunnelConfigs by viewModel.tunnelConfigs.collectAsState()
+    var showTunnelsScreen by remember { mutableStateOf(false) }
     val profileStatuses by viewModel.profileStatuses.collectAsState()
     val sessions by viewModel.sessions.collectAsState()
 
@@ -406,6 +408,8 @@ fun ConnectionsScreen(
             sshProfiles = connections,
             groups = groups,
             sshKeys = sshKeys,
+            tunnelConfigs = tunnelConfigs,
+            onManageTunnels = { showTunnelsScreen = true },
             globalSessionManagerLabel = globalSessionManagerLabel,
             subnetScanning = subnetScanning,
             smbSubnetScanning = smbSubnetScanning,
@@ -504,6 +508,8 @@ fun ConnectionsScreen(
             sshProfiles = connections,
             groups = groups,
             sshKeys = sshKeys,
+            tunnelConfigs = tunnelConfigs,
+            onManageTunnels = { showTunnelsScreen = true },
             globalSessionManagerLabel = globalSessionManagerLabel,
             subnetScanning = subnetScanning,
             smbSubnetScanning = smbSubnetScanning,
@@ -614,6 +620,21 @@ fun ConnectionsScreen(
             onSubmit = { viewModel.submitKeyboardInteractiveResponses(it) },
             onCancel = { viewModel.cancelKeyboardInteractive() },
         )
+    }
+
+    // Rendered as a full-screen overlay Dialog so it's above the profile
+    // edit dialog when the user taps "Manage tunnels…" from the picker.
+    if (showTunnelsScreen) {
+        androidx.compose.ui.window.Dialog(
+            onDismissRequest = { showTunnelsScreen = false },
+            properties = androidx.compose.ui.window.DialogProperties(
+                usePlatformDefaultWidth = false,
+            ),
+        ) {
+            sh.haven.feature.tunnel.TunnelsScreen(
+                onBack = { showTunnelsScreen = false },
+            )
+        }
     }
 
     deployingProfile?.let { profile ->

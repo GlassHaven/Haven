@@ -30,6 +30,7 @@ dependencies {
     implementation(project(":core:data"))
     implementation(project(":core:local"))
     implementation(project(":core:security"))
+    implementation(project(":feature:tunnel"))
 
     implementation(libs.appcompat)
     implementation(libs.hilt.android)

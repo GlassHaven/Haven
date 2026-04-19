@@ -43,6 +43,7 @@ import androidx.compose.material.icons.filled.Edit
 import androidx.compose.material.icons.filled.Favorite
 import androidx.compose.material.icons.filled.Language
 import androidx.compose.material.icons.filled.Fingerprint
+import androidx.compose.material.icons.filled.VpnLock
 import androidx.compose.material.icons.filled.DragHandle
 import androidx.compose.material.icons.filled.History
 import androidx.compose.material.icons.filled.Hub
@@ -158,6 +159,7 @@ fun SettingsScreen(
     val mediaExtensions by viewModel.mediaExtensions.collectAsState()
     var showAuditLog by remember { mutableStateOf(false) }
     var showAgentActivity by remember { mutableStateOf(false) }
+    var showTunnels by remember { mutableStateOf(false) }
     var showLanguageDialog by remember { mutableStateOf(false) }
     var showWaylandShellDialog by remember { mutableStateOf(false) }
     var showMediaExtensionsDialog by remember { mutableStateOf(false) }
@@ -227,6 +229,10 @@ fun SettingsScreen(
         AgentActivityScreen(onBack = { showAgentActivity = false })
         return
     }
+    if (showTunnels) {
+        sh.haven.feature.tunnel.TunnelsScreen(onBack = { showTunnels = false })
+        return
+    }
 
     Column(modifier = Modifier.fillMaxSize()) {
         TopAppBar(title = { Text(stringResource(R.string.settings_title)) })
@@ -256,6 +262,12 @@ fun SettingsScreen(
             subtitle = stringResource(R.string.settings_prevent_screenshots_subtitle),
             checked = screenSecurity,
             onCheckedChange = viewModel::setScreenSecurity,
+        )
+        SettingsItem(
+            icon = Icons.Filled.VpnLock,
+            title = "Tunnels",
+            subtitle = "Per-app WireGuard configs — route individual connection profiles through a tunnel without a system-wide VPN.",
+            onClick = { showTunnels = true },
         )
         SettingsToggleItem(
             icon = Icons.Filled.History,

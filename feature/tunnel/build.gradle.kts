@@ -7,7 +7,7 @@ plugins {
 }
 
 android {
-    namespace = "sh.haven.feature.connections"
+    namespace = "sh.haven.feature.tunnel"
     compileSdk = 36
 
     defaultConfig {
@@ -19,37 +19,22 @@ android {
         targetCompatibility = JavaVersion.VERSION_17
     }
 
-
     buildFeatures {
         compose = true
-    }
-
-    testOptions {
-        unitTests.isReturnDefaultValues = true
     }
 }
 
 dependencies {
     implementation(project(":core:ui"))
-    implementation(project(":core:ssh"))
-    implementation(project(":core:tunnel"))
-    implementation(project(":feature:tunnel"))
-    implementation(project(":core:reticulum"))
-    implementation(project(":core:mosh"))
-    implementation(project(":core:et"))
     implementation(project(":core:data"))
-    implementation(project(":core:smb"))
-    implementation(project(":core:rclone"))
-    implementation(project(":core:fido"))
-    implementation(project(":core:local"))
-    implementation(project(":core:wayland"))
+    implementation(project(":core:tunnel"))
 
+    implementation(libs.activity.compose)
     implementation(libs.hilt.android)
     ksp(libs.hilt.compiler)
     implementation(libs.hilt.navigation.compose)
     implementation(libs.lifecycle.viewmodel)
 
-    testImplementation(project(":core:rdp"))
     testImplementation(libs.junit)
     testImplementation(libs.mockk)
     testImplementation(libs.coroutines.test)

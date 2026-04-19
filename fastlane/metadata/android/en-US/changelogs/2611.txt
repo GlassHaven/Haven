@@ -1,0 +1,26 @@
+v5.22.0-rc2: keyboard-interactive 2FA — diagnostic build (#100)
+
+Same user-facing feature as rc1 (multi-prompt keyboard-interactive
+dialog for 2FA / PAM / TOTP servers) plus:
+
+- Diagnostic logging (tag HavenKI) at every layer of the KI flow
+  so a trace can be captured via `adb logcat -s HavenKI:D` when
+  the dialog misbehaves. Testing against a local paramiko KI
+  server shows round 2 of a two-round challenge landing on the
+  server with an empty response within 46 ms of round 1 — way
+  too fast for human typing. Trying to narrow down which layer
+  (JSch ↔ prompter bridge, ViewModel state, or Compose dialog)
+  is firing empty.
+
+- Honouring F-Droid's tool-version pins. CI now installs Rust
+  1.85.0 + cargo-ndk 3.5.4 + NDK r28c — matching what the F-Droid
+  buildserver uses — so "builds on CI, breaks on F-Droid" skew
+  should stop happening.
+
+- Release workflow now builds arm64 and x64 in parallel and
+  publishes both to a single GitHub release. Cut the historical
+  45-minute timeout risk roughly in half.
+
+If you try 2FA with this build and hit the empty-round-2 bug,
+please grab a HavenKI logcat slice and drop it on GH #100. Codes
+1:1 to specific failure modes (which layer drops the response).

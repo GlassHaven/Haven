@@ -1,0 +1,45 @@
+v5.24.0: per-app Tailscale (#55, #102)
+
+Tailscale joins WireGuard as a second per-app tunnel backend
+(v5.23.0 shipped WireGuard). Each SSH profile can route through
+its own tunnel without taking Android's system VPN slot — other
+apps, and your main Tailscale / WireGuard Android app, keep
+using the network normally.
+
+- Add a Tailscale config in Tunnels (Settings → Security &
+  privacy → Tunnels, or from the profile picker). Paste an
+  authkey generated from the Tailscale admin console. Haven
+  joins the tailnet on first use and reuses the node state
+  thereafter — a one-time key is fine.
+- On an SSH profile, the "Route through" dropdown lists your
+  Tailscale configs alongside WireGuard configs and the
+  existing SOCKS/HTTP proxies. Pick one; the profile tunnels
+  through the tailnet.
+- MagicDNS works: use `peer.<tailnet>.ts.net` as the host.
+  Direct UDP path attempted, DERP fallback automatic.
+- Runs entirely in-process via tsnet + a userspace gVisor
+  netstack. No VpnService consent dialog, no single-VPN-slot
+  contention.
+
+What Android made us earn:
+
+- tsnet assumes Linux-server sandboxing; Android SDK 30+
+  denies Go stdlib's net.Interfaces (netlink). We register
+  the hook Tailscale added for their own Android app
+  (netmon.RegisterInterfaceGetter) and feed it
+  interface data from libc getifaddrs via cgo — same path
+  Java's NetworkInterface.getNetworkInterfaces uses, which
+  IS permitted for untrusted_app SELinux contexts.
+- First dial against a cold peer has 30 s of headroom
+  (up from JSch's 10 s default) because peer session setup
+  + MagicDNS resolution + DERP handshake can easily eat
+  1-2 s before the application TCP SYN flows.
+
+Size: +15 MB in libgojni.so (wireguard-go + gVisor were
+already bundled; this release adds Tailscale's control
+plane). Debug APK ~126 MB; release APK after R8 ~100 MB.
+
+Closes the gap from #55 and #102 — the previous resolution
+of "use the Tailscale Android app" required taking the
+system VPN slot, which is the premise these issues wanted
+to avoid.

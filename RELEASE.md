@@ -10,6 +10,24 @@ Each release needs **three pieces of release-note content** written before the t
 
 The arm64 versionCode is `versionCode × 10 + 1` (see `app/build.gradle.kts`: `output.versionCodeOverride = (defaultConfig.versionCode ?: 0) * 10 + abiCode`). For versionCode 246 → `2461.txt`.
 
+## 0. Upstream any generic termlib fixes
+
+Before tagging, look over the termlib commits since the last Haven release. Anything generic (no Haven-module dependency, no Haven-specific config, no references to `sh.haven.*`) belongs upstream in `connectbot/termlib` — carrying it on our fork long-term is rebase hazard (see `termlib/REBASE.md`).
+
+```bash
+cd /home/ian/Code/Haven/termlib
+# Commits since the last upstream-synced point
+git log upstream/main.. --oneline
+```
+
+For each candidate, decide:
+
+- **Upstream-worthy** → open a PR against `connectbot/termlib` **before** tagging the Haven release. Even if it's not merged by release time, open it now so the conversation starts. Paste the PR URL into the Haven release notes so users can track it. Examples that should be upstreamed: IME robustness fixes, scroll/URL-detector fixes, terminal-core API additions (like `getSnapshotLineTexts`), the `replaceText` / `updateSelection` / internal-DEL fixes shipped in v5.21.0 (#99).
+- **Haven-only, correctly** → the allowed list is in `termlib/REBASE.md` (`rawKeyboardMode`, `allowStandardKeyboard`, `composingText: StateFlow<String>`). Anything else on that list is either still awaiting upstream review or needs to be reconsidered.
+- **Blocked on upstream review** → note the upstream PR number in the Haven release notes so users know the patch is in-flight, not divergent.
+
+Don't block the Haven release on upstream acceptance — open the PR, link it, and ship. The rebase checklist (`termlib/REBASE.md`) picks up accepted PRs on the next monthly rebase and drops them from the fork.
+
 ## 1. Bump version
 
 Edit `app/build.gradle.kts`:

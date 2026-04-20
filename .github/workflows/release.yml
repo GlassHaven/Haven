@@ -12,9 +12,38 @@ env:
   FORCE_JAVASCRIPT_ACTIONS_TO_NODE24: "true"
 
 jobs:
+  # Skip a full ~16 min testReleaseUnitTest re-run when CI has already
+  # verified the tagged commit on main — same commit, same test invocation
+  # would produce the same result. Falls through to a real test run if
+  # CI hasn't reported yet (rare: tag created without a prior main push)
+  # or reported anything other than success.
+  verify-ci:
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    outputs:
+      ci-passed: ${{ steps.check.outputs.passed }}
+    steps:
+      - name: Check CI status on tagged commit
+        id: check
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          # combined status endpoint aggregates required-check results for
+          # this SHA. "success" means every required check passed.
+          state=$(gh api "repos/${GITHUB_REPOSITORY}/commits/${GITHUB_SHA}/status" --jq '.state' || echo "unknown")
+          echo "CI combined state for ${GITHUB_SHA:0:7}: ${state}"
+          if [ "$state" = "success" ]; then
+            echo "passed=true" >> "$GITHUB_OUTPUT"
+          else
+            echo "passed=false" >> "$GITHUB_OUTPUT"
+          fi
+
   # Unit tests run once — flavor-agnostic, not worth duplicating per ABI.
+  # Skipped entirely when CI already reported success for this SHA.
   test:
-    runs-on: ubuntu-latest-8-cores
+    needs: verify-ci
+    if: needs.verify-ci.outputs.ci-passed != 'true'
+    runs-on: ubuntu-latest
     timeout-minutes: 30
     steps:
       - uses: actions/checkout@v6
@@ -30,9 +59,16 @@ jobs:
 
   # One signed APK + AAB per ABI in parallel — roughly halves wall time vs
   # running all four Gradle tasks sequentially in a single job.
+  #
+  # `needs: [verify-ci, test]` with `if: !cancelled() && (test skipped OR
+  # test succeeded)` lets build proceed when CI has already greenlit the
+  # SHA (test was skipped) or when a fresh test run passes.
   build:
-    needs: test
-    runs-on: ubuntu-latest-8-cores
+    needs: [verify-ci, test]
+    if: |
+      !cancelled() &&
+      (needs.verify-ci.outputs.ci-passed == 'true' || needs.test.result == 'success')
+    runs-on: ubuntu-latest
     timeout-minutes: 45
     strategy:
       fail-fast: false

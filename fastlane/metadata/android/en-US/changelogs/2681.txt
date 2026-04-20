@@ -1,0 +1,16 @@
+v5.24.4: smarter URL tap-to-open + scrollback-aware selection
+
+Tap resolution for URLs treats the terminal as a 2D grid now. URLs
+wrapped under Claude Code's `⎿` prefix, inside box-drawn panels,
+across markdown table rows, or any scenario with formatting scaffolding
+on continuation lines now resolve to the full URL — not just the
+fragment on the tapped row.
+
+Also fixes a scrollback bug that affected both URL taps and text
+selection: when scrolled back, visible rows that mapped to the
+current screen were being resolved against the scrollback buffer
+instead, producing blank selections or wrong-row URL lookups.
+
+13 new spec tests cover the URL detector (markdown tables, box
+frames, formatting prefixes, convexity guards, false-positive
+rejection); full termlib suite is 316/316 green.

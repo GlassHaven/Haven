@@ -40,10 +40,10 @@ Haven does not use any third-party analytics, crash reporting, or advertising SD
 
 ## Open Source
 
-Haven is open source software licensed under the GNU General Public License v3.0. The source code is available at https://github.com/GlassOnTin/Haven.
+Haven is open source software licensed under the GNU General Public License v3.0. The source code is available at https://github.com/GlassHaven/Haven.
 
 If concerned, build it yourself, or ask an AI to build it for you.
 
 ## Contact
 
-For questions about this privacy policy, open an issue at https://github.com/GlassOnTin/Haven/issues.
+For questions about this privacy policy, open an issue at https://github.com/GlassHaven/Haven/issues.

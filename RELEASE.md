@@ -62,7 +62,7 @@ The `v*` tag triggers the **Release** workflow on GitHub Actions which:
 Once the release exists, edit its body so users see what changed instead of just a compare link. The fastlane changelog is a solid seed — copy it and expand with any context worth highlighting.
 
 ```bash
-gh release edit v<x.y.z> --repo GlassOnTin/Haven --notes-file fastlane/metadata/android/en-US/changelogs/<arm64VersionCode>.txt
+gh release edit v<x.y.z> --repo GlassHaven/Haven --notes-file fastlane/metadata/android/en-US/changelogs/<arm64VersionCode>.txt
 ```
 
 Or open the release on GitHub and paste the notes into the body field.

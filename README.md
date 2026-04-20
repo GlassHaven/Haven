@@ -11,17 +11,17 @@
 > *"Haven is an interesting vibe coding experiment. Let's see what comes out of it."* — DBP
 
 <p align="center">
-  <a href="https://github.com/GlassOnTin/Haven/releases/latest"><img src="https://img.shields.io/github/v/release/GlassOnTin/Haven?style=flat-square" alt="Release" /></a>
+  <a href="https://github.com/GlassHaven/Haven/releases/latest"><img src="https://img.shields.io/github/v/release/GlassOnTin/Haven?style=flat-square" alt="Release" /></a>
   <a href="https://f-droid.org/en/packages/sh.haven.app"><img src="https://img.shields.io/f-droid/v/sh.haven.app?style=flat-square" alt="F-Droid" /></a>
-  <a href="https://github.com/GlassOnTin/Haven/actions/workflows/ci.yml?query=branch%3Amain"><img src="https://img.shields.io/github/check-runs/GlassOnTin/Haven/main?style=flat-square&label=build" alt="Build" /></a>
+  <a href="https://github.com/GlassHaven/Haven/actions/workflows/ci.yml?query=branch%3Amain"><img src="https://img.shields.io/github/check-runs/GlassOnTin/Haven/main?style=flat-square&label=build" alt="Build" /></a>
   <a href="LICENSE"><img src="https://img.shields.io/github/license/GlassOnTin/Haven?style=flat-square" alt="License" /></a>
   <img src="https://img.shields.io/badge/Android-8.0%2B-3ddc84?style=flat-square&logo=android&logoColor=white" alt="Android 8.0+" />
-  <a href="https://github.com/GlassOnTin/Haven/releases"><img src="https://img.shields.io/github/downloads/GlassOnTin/Haven/total?style=flat-square&label=downloads" alt="Downloads" /></a>
+  <a href="https://github.com/GlassHaven/Haven/releases"><img src="https://img.shields.io/github/downloads/GlassOnTin/Haven/total?style=flat-square&label=downloads" alt="Downloads" /></a>
   <a href="https://ko-fi.com/glassontin"><img src="https://img.shields.io/badge/Ko--fi-support-ff5e5b?style=flat-square&logo=ko-fi&logoColor=white" alt="Ko-fi" /></a>
 </p>
 
 <p align="center">
-  <a href="https://github.com/GlassOnTin/Haven/releases/latest">GitHub Releases</a> &bull;
+  <a href="https://github.com/GlassHaven/Haven/releases/latest">GitHub Releases</a> &bull;
   <a href="https://f-droid.org/en/packages/sh.haven.app">F-Droid</a>
 </p>
 
@@ -65,7 +65,7 @@ Available in 11 languages: English, Chinese (simplified), Spanish, Hindi, Arabic
 
 | Channel | |
 |---|---|
-| [GitHub Releases](https://github.com/GlassOnTin/Haven/releases/latest) | Signed APK, all features |
+| [GitHub Releases](https://github.com/GlassHaven/Haven/releases/latest) | Signed APK, all features |
 | [F-Droid](https://f-droid.org/en/packages/sh.haven.app) | Built from source, all features |
 
 Both builds are identical — SSH, Mosh, Eternal Terminal, VNC, RDP, SFTP, and Cloud Storage. IronRDP (Rust) is built from source via `cargo-ndk`. rclone (Go) is built from source via `gomobile`.
@@ -83,7 +83,7 @@ cargo install cargo-ndk
 go install golang.org/x/mobile/cmd/gomobile@latest
 go install golang.org/x/mobile/cmd/gobind@latest
 
-git clone --recurse-submodules https://github.com/GlassOnTin/Haven.git
+git clone --recurse-submodules https://github.com/GlassHaven/Haven.git
 cd Haven
 ./gradlew assembleDebug
 ```

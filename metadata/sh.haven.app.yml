@@ -3,14 +3,14 @@ Categories:
   - System
 License: GPL-3.0-only
 AuthorName: GlassOnTin
-SourceCode: https://github.com/GlassOnTin/Haven
-IssueTracker: https://github.com/GlassOnTin/Haven/issues
-Changelog: https://github.com/GlassOnTin/Haven/releases
+SourceCode: https://github.com/GlassHaven/Haven
+IssueTracker: https://github.com/GlassHaven/Haven/issues
+Changelog: https://github.com/GlassHaven/Haven/releases
 
 AutoName: Haven
 
 RepoType: git
-Repo: https://github.com/GlassOnTin/Haven.git
+Repo: https://github.com/GlassHaven/Haven.git
 
 Builds:
   - versionName: 2.2.2

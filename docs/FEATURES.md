@@ -1,6 +1,11 @@
+---
+layout: default
+title: Features
+---
+
 # Features
 
-Full feature detail for Haven. The [README](../README.md) has a short summary.
+Full feature detail for Haven. The [landing page](index.html) has a short summary.
 
 ## Terminal
 
@@ -80,4 +85,4 @@ Connect over [Reticulum](https://reticulum.network) mesh networks with native Ko
 
 ## Security
 
-Screen lock with biometric or device PIN/password/pattern, configurable timeout (immediate/30s/1m/5m/never), no telemetry or analytics, local storage only. Keyboard security: all credential fields set `IME_FLAG_NO_PERSONALIZED_LEARNING` to prevent keyboard apps from recording passwords, with a warning when the active keyboard has internet access. Encrypted backup/restore with AES-256-GCM. See [PRIVACY_POLICY.md](../PRIVACY_POLICY.md).
+Screen lock with biometric or device PIN/password/pattern, configurable timeout (immediate/30s/1m/5m/never), no telemetry or analytics, local storage only. Keyboard security: all credential fields set `IME_FLAG_NO_PERSONALIZED_LEARNING` to prevent keyboard apps from recording passwords, with a warning when the active keyboard has internet access. Encrypted backup/restore with AES-256-GCM. See the [privacy policy](privacy-policy.html).

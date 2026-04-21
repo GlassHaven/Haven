@@ -1,0 +1,8 @@
+title: Haven
+description: Free SSH, VNC, RDP, SFTP & cloud storage client for Android
+theme: jekyll-theme-cayman
+url: https://glasshaven.github.io
+baseurl: /Haven
+github:
+  repository_url: https://github.com/GlassHaven/Haven
+show_downloads: false

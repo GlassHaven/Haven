@@ -3371,18 +3371,30 @@ class SftpViewModel @Inject constructor(
 
     private fun acquirePasteWakeLock() {
         if (pasteWakeLock?.isHeld == true) return
-        val pm = appContext.getSystemService(Context.POWER_SERVICE) as android.os.PowerManager
-        pasteWakeLock = pm.newWakeLock(
-            android.os.PowerManager.PARTIAL_WAKE_LOCK,
-            "sh.haven.app:paste",
-        ).apply {
-            setReferenceCounted(false)
-            acquire(60 * 60 * 1000L) // 1 hour safety cap; released in finally regardless
+        try {
+            val pm = appContext.getSystemService(Context.POWER_SERVICE) as android.os.PowerManager
+            pasteWakeLock = pm.newWakeLock(
+                android.os.PowerManager.PARTIAL_WAKE_LOCK,
+                "sh.haven.app:paste",
+            ).apply {
+                setReferenceCounted(false)
+                acquire(60 * 60 * 1000L) // 1 hour safety cap; released in finally regardless
+            }
+        } catch (e: SecurityException) {
+            // WAKE_LOCK permission missing (pre-v5.24.11 builds didn't declare
+            // it in the manifest). Paste should still work — the wake lock is
+            // a stability-on-device nice-to-have, not a correctness dependency.
+            Log.w(TAG, "Could not acquire paste wake lock: ${e.message}")
+            pasteWakeLock = null
         }
     }
 
     private fun releasePasteWakeLock() {
-        pasteWakeLock?.takeIf { it.isHeld }?.release()
+        try {
+            pasteWakeLock?.takeIf { it.isHeld }?.release()
+        } catch (e: Exception) {
+            Log.w(TAG, "Releasing paste wake lock failed: ${e.message}")
+        }
         pasteWakeLock = null
     }
 

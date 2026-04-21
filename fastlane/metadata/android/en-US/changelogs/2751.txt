@@ -1,0 +1,19 @@
+v5.24.11: fix paste SecurityException on missing WAKE_LOCK
+
+v5.24.9 started acquiring a partial wake lock during paste so
+long transfers stay reliable with the screen off, but the WAKE_LOCK
+permission wasn't declared in the manifest. On devices that enforce
+this strictly the paste now failed with:
+
+  Paste failed: Neither user <uid> nor current process has
+  android.permission.WAKE_LOCK
+
+Two fixes:
+
+- Declare android.permission.WAKE_LOCK in the manifest (normal-level
+  permission, no runtime prompt).
+- Defensively swallow SecurityException in the acquire path so if the
+  permission ever goes missing again, paste still works — the wake
+  lock is a stability nicety, not a correctness dependency.
+
+Regression from v5.24.9.

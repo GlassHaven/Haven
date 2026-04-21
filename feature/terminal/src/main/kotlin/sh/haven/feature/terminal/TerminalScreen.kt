@@ -609,27 +609,25 @@ fun TerminalScreen(
                             onPauseOrDispose {}
                         }
 
-                        // Hardware Ctrl+Shift+V: read the (real, non-smart)
-                        // system clipboard and feed it through the same paste
-                        // path the toolbar button uses, including bracketed-paste
-                        // wrapping when the remote app has mode 2004 active.
-                        // Null when the user has turned the shortcut off, so the
-                        // V key passes through to the shell unchanged.
-                        val pasteShortcut: (() -> Unit)? = if (interceptCtrlShiftV) {
-                            {
-                                val text = realClipboard.getText()?.text
-                                if (!text.isNullOrEmpty()) {
-                                    val payload = if (isBracketPaste) {
-                                        "\u001b[200~$text\u001b[201~"
-                                    } else {
-                                        text
-                                    }
-                                    activeTab.sendInput(payload.toByteArray())
+                        // Shared paste action: read the (real, non-smart) system
+                        // clipboard and send via sendInput, wrapping in bracketed-
+                        // paste when the remote app has mode 2004 active.
+                        val doPaste: () -> Unit = {
+                            val text = realClipboard.getText()?.text
+                            if (!text.isNullOrEmpty()) {
+                                val payload = if (isBracketPaste) {
+                                    "\u001b[200~$text\u001b[201~"
+                                } else {
+                                    text
                                 }
+                                activeTab.sendInput(payload.toByteArray())
                             }
-                        } else {
-                            null
                         }
+
+                        // Hardware Ctrl+Shift+V shortcut. Null when the user has
+                        // turned the shortcut off, so the V key passes through to
+                        // the shell unchanged.
+                        val pasteShortcut: (() -> Unit)? = if (interceptCtrlShiftV) doPaste else null
 
                         val keyboardMode = when {
                             rawKeyboardMode -> HavenKeyboardMode.Raw
@@ -648,6 +646,7 @@ fun TerminalScreen(
                                 focusRequester = focusRequester,
                                 modifierManager = modifierManager,
                                 onPasteShortcut = pasteShortcut,
+                                onPasteRequest = doPaste,
                                 onSelectionControllerAvailable = { selectionController = it },
                                 onTerminalDoubleTap = {
                                     val window = (view.context as? Activity)?.window ?: return@HavenTerminal

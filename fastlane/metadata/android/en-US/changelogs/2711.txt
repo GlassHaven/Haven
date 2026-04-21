@@ -1,0 +1,16 @@
+v5.24.7: paste from selection popup actually reaches the remote
+
+The small Paste button next to Copy and More in the text-selection popup
+was writing clipboard text into the local terminal screen buffer instead
+of sending it to the PTY. Pasted text rendered on screen but vim, nano,
+tmux — anything running remotely — never saw it. If you saved and quit
+nano after that kind of paste, your work went unwritten.
+
+The Ctrl+Shift+V hardware shortcut and the keyboard-toolbar paste button
+were always correct; the selection-popup button was the only broken
+path, regressed since v5.15.0 (2026-03-31).
+
+Bracketed-paste wrapping (mode 2004) now applies uniformly across all
+three paste triggers.
+
+Fixes #103 on GitHub.

@@ -51,6 +51,7 @@ fun HavenTerminal(
     onFontSizeChanged: ((TextUnit) -> Unit)? = null,
     gestureCallback: TerminalGestureCallback? = null,
     onPasteShortcut: (() -> Unit)? = null,
+    onPasteRequest: (() -> Unit)? = null,
     keyboardMode: HavenKeyboardMode = HavenKeyboardMode.Secure,
 ) {
     Terminal(
@@ -78,5 +79,6 @@ fun HavenTerminal(
         allowStandardKeyboard = keyboardMode is HavenKeyboardMode.Standard,
         rawKeyboardMode = keyboardMode is HavenKeyboardMode.Raw,
         onPasteShortcut = onPasteShortcut,
+        onPasteRequest = onPasteRequest,
     )
 }

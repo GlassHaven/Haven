@@ -32,6 +32,8 @@ import sh.haven.core.data.db.entities.ConnectionProfile
 import sh.haven.core.data.db.entities.KnownHost
 import sh.haven.core.data.db.entities.PortForwardRule
 import sh.haven.core.data.db.entities.SshKey
+import sh.haven.core.data.db.entities.TunnelConfig
+import sh.haven.core.data.repository.TunnelConfigRepository
 import java.io.File
 
 @RunWith(RobolectricTestRunner::class)
@@ -47,6 +49,7 @@ class BackupServiceTest {
     private lateinit var sshKeyRepository: sh.haven.core.data.repository.SshKeyRepository
     private lateinit var knownHostDao: KnownHostDao
     private lateinit var portForwardRuleDao: PortForwardRuleDao
+    private lateinit var tunnelConfigRepository: TunnelConfigRepository
     private lateinit var dataStore: DataStore<Preferences>
     private lateinit var service: BackupService
 
@@ -59,11 +62,14 @@ class BackupServiceTest {
         sshKeyRepository = mockk(relaxed = true)
         knownHostDao = mockk(relaxed = true)
         portForwardRuleDao = mockk(relaxed = true)
+        tunnelConfigRepository = mockk(relaxed = true)
+        // Default: no tunnels stored. Individual tests override as needed.
+        coEvery { tunnelConfigRepository.getAllDecrypted() } returns emptyList()
 
         val prefsFile = File(tempFolder.root, "test.preferences_pb")
         dataStore = PreferenceDataStoreFactory.create { prefsFile }
 
-        service = BackupService(connectionDao, connectionRepository, connectionGroupDao, sshKeyDao, sshKeyRepository, knownHostDao, portForwardRuleDao, dataStore)
+        service = BackupService(connectionDao, connectionRepository, connectionGroupDao, sshKeyDao, sshKeyRepository, knownHostDao, portForwardRuleDao, tunnelConfigRepository, dataStore)
     }
 
     // -- Encrypt/Decrypt roundtrip --
@@ -479,6 +485,113 @@ class BackupServiceTest {
         coVerify(exactly = 1) { sshKeyRepository.save(any()) }
         coVerify(exactly = 3) { knownHostDao.upsert(any()) }
         coVerify(exactly = 1) { portForwardRuleDao.upsert(any()) }
+    }
+
+    // -- v2 additions: tunnels + the 13 previously-dropped connection fields --
+
+    @Test
+    fun `tunnel config fields survive export-import roundtrip`() = runTest {
+        val tunnel = TunnelConfig(
+            id = "tun-1",
+            label = "Home WG",
+            type = "WIREGUARD",
+            configText = "[Interface]\nPrivateKey = abc\n[Peer]\nEndpoint = 1.2.3.4:51820\n".toByteArray(),
+            createdAt = 1700000000000L,
+        )
+
+        coEvery { connectionRepository.getAll() } returns emptyList()
+        coEvery { sshKeyDao.getAll() } returns emptyList()
+        coEvery { sshKeyRepository.getAllDecrypted() } returns emptyList()
+        coEvery { knownHostDao.getAll() } returns emptyList()
+        coEvery { portForwardRuleDao.getAll() } returns emptyList()
+        coEvery { tunnelConfigRepository.getAllDecrypted() } returns listOf(tunnel)
+
+        val encrypted = service.export("pw")
+
+        val captured = slot<TunnelConfig>()
+        coEvery { tunnelConfigRepository.save(capture(captured)) } returns Unit
+
+        val result = service.import(encrypted, "pw")
+        assertTrue("Import errors: ${result.errors}", result.errors.isEmpty())
+
+        val imported = captured.captured
+        assertEquals("tun-1", imported.id)
+        assertEquals("Home WG", imported.label)
+        assertEquals("WIREGUARD", imported.type)
+        assertArrayEquals(tunnel.configText, imported.configText)
+        assertEquals(1700000000000L, imported.createdAt)
+    }
+
+    @Test
+    fun `connection profile v2 fields survive export-import roundtrip`() = runTest {
+        val profile = ConnectionProfile(
+            id = "conn-v2",
+            label = "Full",
+            host = "h",
+            username = "u",
+            vncUsername = "vncuser",
+            lastSessionName = "tmux-work",
+            disableAltScreen = true,
+            rcloneRemoteName = "drive",
+            rcloneProvider = "drive",
+            useAndroidShell = true,
+            forwardAgent = true,
+            reticulumNetworkName = "mynet",
+            reticulumPassphrase = "secret",
+            postLoginCommand = "tmux attach",
+            postLoginBeforeSessionManager = false,
+            fileTransport = "SFTP",
+            tunnelConfigId = "tun-1",
+        )
+
+        coEvery { connectionRepository.getAll() } returns listOf(profile)
+        coEvery { sshKeyDao.getAll() } returns emptyList()
+        coEvery { sshKeyRepository.getAllDecrypted() } returns emptyList()
+        coEvery { knownHostDao.getAll() } returns emptyList()
+        coEvery { portForwardRuleDao.getAll() } returns emptyList()
+
+        val encrypted = service.export("pw")
+
+        val captured = slot<ConnectionProfile>()
+        coEvery { connectionRepository.save(capture(captured)) } returns Unit
+
+        val result = service.import(encrypted, "pw")
+        assertTrue("Import errors: ${result.errors}", result.errors.isEmpty())
+
+        val imported = captured.captured
+        assertEquals("vncuser", imported.vncUsername)
+        assertEquals("tmux-work", imported.lastSessionName)
+        assertEquals(true, imported.disableAltScreen)
+        assertEquals("drive", imported.rcloneRemoteName)
+        assertEquals("drive", imported.rcloneProvider)
+        assertEquals(true, imported.useAndroidShell)
+        assertEquals(true, imported.forwardAgent)
+        assertEquals("mynet", imported.reticulumNetworkName)
+        assertEquals("secret", imported.reticulumPassphrase)
+        assertEquals("tmux attach", imported.postLoginCommand)
+        assertEquals(false, imported.postLoginBeforeSessionManager)
+        assertEquals("SFTP", imported.fileTransport)
+        assertEquals("tun-1", imported.tunnelConfigId)
+    }
+
+    @Test
+    fun `v1 backup without tunnels imports cleanly`() = runTest {
+        // Build a v1 JSON envelope with no tunnels key at all — the format
+        // before v5.24.9. Import must succeed, no errors, no tunnel saves.
+        val json = JSONObject().apply {
+            put("version", 1)
+            put("created", System.currentTimeMillis())
+            put("connections", org.json.JSONArray())
+            put("keys", org.json.JSONArray())
+            put("knownHosts", org.json.JSONArray())
+            put("portForwards", org.json.JSONArray())
+            put("settings", JSONObject())
+        }
+        val encrypted = encryptForTest(json.toString().toByteArray(Charsets.UTF_8), "pw")
+
+        val result = service.import(encrypted, "pw")
+        assertTrue("Import errors: ${result.errors}", result.errors.isEmpty())
+        coVerify(exactly = 0) { tunnelConfigRepository.save(any()) }
     }
 
     /**

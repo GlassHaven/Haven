@@ -16,6 +16,8 @@ import sh.haven.core.data.db.entities.ConnectionProfile
 import sh.haven.core.data.db.entities.KnownHost
 import sh.haven.core.data.db.entities.PortForwardRule
 import sh.haven.core.data.db.entities.SshKey
+import sh.haven.core.data.db.entities.TunnelConfig
+import sh.haven.core.data.repository.TunnelConfigRepository
 import java.security.SecureRandom
 import javax.crypto.Cipher
 import javax.crypto.SecretKeyFactory
@@ -34,6 +36,7 @@ class BackupService @Inject constructor(
     private val sshKeyRepository: sh.haven.core.data.repository.SshKeyRepository,
     private val knownHostDao: KnownHostDao,
     private val portForwardRuleDao: PortForwardRuleDao,
+    private val tunnelConfigRepository: TunnelConfigRepository,
     private val dataStore: DataStore<Preferences>,
 ) {
     data class BackupResult(val count: Int, val errors: List<String> = emptyList())
@@ -66,6 +69,7 @@ class BackupService @Inject constructor(
                 put("sshOptions", p.sshOptions ?: JSONObject.NULL)
                 put("moshServerCommand", p.moshServerCommand ?: JSONObject.NULL)
                 put("vncPort", p.vncPort ?: JSONObject.NULL)
+                put("vncUsername", p.vncUsername ?: JSONObject.NULL)
                 put("vncPassword", p.vncPassword ?: JSONObject.NULL)
                 put("vncSshForward", p.vncSshForward)
                 put("sessionManager", p.sessionManager ?: JSONObject.NULL)
@@ -88,9 +92,39 @@ class BackupService @Inject constructor(
                 put("proxyHost", p.proxyHost ?: JSONObject.NULL)
                 put("proxyPort", p.proxyPort)
                 put("groupId", p.groupId ?: JSONObject.NULL)
+                // Version-2 additions — fields the v1 schema missed. Adding
+                // them here unconditionally is safe because the v1 importer
+                // uses opt*() helpers that fall back to the ConnectionProfile
+                // default when a key is absent.
+                put("lastSessionName", p.lastSessionName ?: JSONObject.NULL)
+                put("disableAltScreen", p.disableAltScreen)
+                put("rcloneRemoteName", p.rcloneRemoteName ?: JSONObject.NULL)
+                put("rcloneProvider", p.rcloneProvider ?: JSONObject.NULL)
+                put("useAndroidShell", p.useAndroidShell)
+                put("forwardAgent", p.forwardAgent)
+                put("reticulumNetworkName", p.reticulumNetworkName ?: JSONObject.NULL)
+                put("reticulumPassphrase", p.reticulumPassphrase ?: JSONObject.NULL)
+                put("postLoginCommand", p.postLoginCommand ?: JSONObject.NULL)
+                put("postLoginBeforeSessionManager", p.postLoginBeforeSessionManager)
+                put("fileTransport", p.fileTransport)
+                put("tunnelConfigId", p.tunnelConfigId ?: JSONObject.NULL)
             })
         }
         json.put("connections", connections)
+
+        // Tunnel configs (WireGuard / Tailscale). Decrypted here — the backup
+        // file has its own AES-GCM layer around the whole payload.
+        val tunnels = JSONArray()
+        tunnelConfigRepository.getAllDecrypted().forEach { t ->
+            tunnels.put(JSONObject().apply {
+                put("id", t.id)
+                put("label", t.label)
+                put("type", t.type)
+                put("configText", Base64.encodeToString(t.configText, Base64.NO_WRAP))
+                put("createdAt", t.createdAt)
+            })
+        }
+        json.put("tunnels", tunnels)
 
         // Connection groups
         val groups = JSONArray()
@@ -225,6 +259,31 @@ class BackupService @Inject constructor(
             }
         }
 
+        // Tunnel configs (v2+). Import before connections so each
+        // ConnectionProfile.tunnelConfigId has a target row to reference.
+        // v1 backups simply won't have this key — optJSONArray returns null
+        // and we skip.
+        val tunnels = json.optJSONArray("tunnels")
+        if (tunnels != null) {
+            for (i in 0 until tunnels.length()) {
+                try {
+                    val t = tunnels.getJSONObject(i)
+                    tunnelConfigRepository.save(
+                        TunnelConfig(
+                            id = t.getString("id"),
+                            label = t.getString("label"),
+                            type = t.getString("type"),
+                            configText = Base64.decode(t.getString("configText"), Base64.NO_WRAP),
+                            createdAt = t.optLong("createdAt", System.currentTimeMillis()),
+                        ),
+                    )
+                    count++
+                } catch (e: Exception) {
+                    errors.add("Tunnel ${i}: ${e.message}")
+                }
+            }
+        }
+
         // Connections
         val connections = json.optJSONArray("connections")
         if (connections != null) {
@@ -254,6 +313,7 @@ class BackupService @Inject constructor(
                             sshOptions = c.optStringOrNull("sshOptions"),
                             moshServerCommand = c.optStringOrNull("moshServerCommand"),
                             vncPort = c.optIntOrNull("vncPort"),
+                            vncUsername = c.optStringOrNull("vncUsername"),
                             vncPassword = c.optStringOrNull("vncPassword"),
                             vncSshForward = c.optBoolean("vncSshForward", true),
                             sessionManager = c.optStringOrNull("sessionManager"),
@@ -276,6 +336,22 @@ class BackupService @Inject constructor(
                             proxyHost = c.optStringOrNull("proxyHost"),
                             proxyPort = c.optInt("proxyPort", 1080),
                             groupId = c.optStringOrNull("groupId"),
+                            // v2 additions. v1 backups don't carry these keys,
+                            // so opt* falls back to the ConnectionProfile defaults
+                            // — safe because v1 was written when these fields
+                            // either didn't exist or were always at default.
+                            lastSessionName = c.optStringOrNull("lastSessionName"),
+                            disableAltScreen = c.optBoolean("disableAltScreen", false),
+                            rcloneRemoteName = c.optStringOrNull("rcloneRemoteName"),
+                            rcloneProvider = c.optStringOrNull("rcloneProvider"),
+                            useAndroidShell = c.optBoolean("useAndroidShell", false),
+                            forwardAgent = c.optBoolean("forwardAgent", false),
+                            reticulumNetworkName = c.optStringOrNull("reticulumNetworkName"),
+                            reticulumPassphrase = c.optStringOrNull("reticulumPassphrase"),
+                            postLoginCommand = c.optStringOrNull("postLoginCommand"),
+                            postLoginBeforeSessionManager = c.optBoolean("postLoginBeforeSessionManager", true),
+                            fileTransport = c.optString("fileTransport", "AUTO"),
+                            tunnelConfigId = c.optStringOrNull("tunnelConfigId"),
                         ),
                     )
                     count++
@@ -390,7 +466,13 @@ class BackupService @Inject constructor(
     }
 
     companion object {
-        private const val BACKUP_VERSION = 1
+        // v2 (2026-04-21): add tunnels section (WireGuard / Tailscale) and the
+        // 13 ConnectionProfile fields the v1 schema silently dropped. Files
+        // keep the original HAVEN_BACKUP_V1 magic header because the envelope
+        // format (AES-GCM wrapper) is unchanged — the version bump only
+        // affects the inner JSON payload schema. v1 files still restore
+        // cleanly (the new keys default to ConnectionProfile defaults).
+        private const val BACKUP_VERSION = 2
         private const val MAGIC = "HAVEN_BACKUP_V1"
         private const val SALT_LENGTH = 16
         private const val IV_LENGTH = 12

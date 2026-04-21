@@ -23,6 +23,19 @@ class TunnelConfigRepository @Inject constructor(
 
     suspend fun getAll(): List<TunnelConfig> = tunnelConfigDao.getAll()
 
+    /**
+     * Return every stored config with [TunnelConfig.configText] decrypted.
+     * Used by the backup export path — the backup file has its own encryption
+     * layer, so the DB keystore wrap is unpeeled here.
+     */
+    suspend fun getAllDecrypted(): List<TunnelConfig> = tunnelConfigDao.getAll().map { row ->
+        if (KeyEncryption.isEncrypted(row.configText)) {
+            row.copy(configText = KeyEncryption.decrypt(context, row.configText))
+        } else {
+            row
+        }
+    }
+
     /** Return the decrypted config, or null if no row. */
     suspend fun getById(id: String): TunnelConfig? {
         val row = tunnelConfigDao.getById(id) ?: return null

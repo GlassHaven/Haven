@@ -1,0 +1,27 @@
+v5.24.10: backup now includes tunnels and 13 missing settings
+
+Encrypted backup export/import now covers the WireGuard + Tailscale
+tunnel configs stored in the "Tunnels" settings screen — these weren't
+in the backup at all before, so restoring onto a fresh install
+silently dropped them. If you generated a backup with v5.24.9 or
+earlier, re-export with v5.24.10 to capture them.
+
+Thirteen ConnectionProfile fields were also being silently dropped on
+restore and are now preserved end-to-end:
+
+- tunnelConfigId (the per-profile "Route through tunnel" selection)
+- vncUsername (VeNCrypt VNC auth)
+- rcloneRemoteName, rcloneProvider (rclone profile binding)
+- reticulumNetworkName, reticulumPassphrase (IFAC auth)
+- postLoginCommand, postLoginBeforeSessionManager (auto-run after SSH)
+- fileTransport (AUTO / SFTP / SCP preference)
+- forwardAgent (ssh-agent forwarding)
+- disableAltScreen (per-profile terminal behaviour)
+- useAndroidShell (Local profile shell choice)
+- lastSessionName (tmux/zellij last-session memory)
+
+The backup file format is version 2. v1 backups from older versions
+still restore cleanly — missing keys fall back to ConnectionProfile
+defaults, same as before.
+
+Three round-trip regression tests added.

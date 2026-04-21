@@ -1,0 +1,15 @@
+v5.24.8: physical keyboard no longer wipes Gboard autocorrect
+
+Pressing any key on a physical keyboard used to reset the IME's
+tracked context — including when the key was just Shift, or the
+capital letter Shift produced. Result: if you typed a few words on
+the soft keyboard, tapped Shift+A on a physical keyboard mid-sentence,
+Gboard's autocorrect suggestions for the preceding text went away.
+
+The reset now fires only on Enter and Escape — actual command
+boundaries. Typing letters, modifiers, arrows, backspace, Tab, and
+function keys on a physical keyboard all leave the IME's context
+intact, so Gboard's autocorrect for the soft keyboard survives
+brief hardware-keyboard interjections.
+
+Follow-up to #99.

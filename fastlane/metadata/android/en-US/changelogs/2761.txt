@@ -1,0 +1,35 @@
+v5.24.12: resumable paste — survives connection drops and app restarts
+
+Paste is now persistent. Every leaf file in a copy/paste is recorded to
+a queue table before the transfer starts, and each file's progress
+cursor is written back to disk as bytes flow. When something
+interrupts the transfer — WiFi drop, SFTP server bouncing, the app
+being killed, the phone rebooting — the SFTP tab comes back up with
+a banner at the top showing how many files are still pending:
+
+  Unfinished paste
+  46 files · 3.8 GB remaining       [Discard] [Resume]
+
+Tapping Resume picks up where the transfer left off. On SFTP
+destinations the in-flight file resumes mid-byte via the existing
+ChannelSftp.RESUME plumbing. Local destinations open the file in
+append mode and skip the matching prefix of the source.
+
+Transient failures (broken pipes, connection resets, SSH timeouts)
+now auto-retry within the same paste — three attempts per file with
+1s / 2s / 4s backoff. Only a permanent error (source missing,
+permission denied) leaves the row pending for you to handle.
+
+The banner stays until you explicitly Discard or the queue drains.
+Connection settings can be edited between resume attempts — there
+is no auto-abort on "source unavailable", so a temporarily-unplugged
+USB SD card or a server that's offline can be reconnected and the
+remaining transfers retried as many times as needed.
+
+Scope notes:
+- Directory paste works: the queue expands directories into
+  leaf-file rows at start-time.
+- Rclone-to-rclone paste is unchanged (server-side copy, nothing to
+  persist).
+- Cut-of-directory still leaves empty source directories behind
+  after the move completes — a future pass will clean these up.

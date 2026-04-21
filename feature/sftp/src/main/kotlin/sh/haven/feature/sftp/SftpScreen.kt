@@ -81,6 +81,7 @@ import androidx.compose.material3.DropdownMenu
 import androidx.compose.material3.DropdownMenuItem
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.AlertDialog
+import androidx.compose.material3.Button
 import androidx.compose.material3.FloatingActionButton
 import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.SmallFloatingActionButton
@@ -161,6 +162,8 @@ fun SftpScreen(
     val lastDownload by viewModel.lastDownload.collectAsState()
     val uploadConflict by viewModel.uploadConflict.collectAsState()
     val pasteConflict by viewModel.conflictPrompt.collectAsState()
+    val pastePendingCount by viewModel.pastePendingCount.collectAsState()
+    val pastePendingBytes by viewModel.pastePendingBytes.collectAsState()
     val fileClipboard by viewModel.clipboard.collectAsState()
     val isRclone by viewModel.isRcloneProfile.collectAsState()
     val syncProgress by viewModel.syncProgress.collectAsState()
@@ -695,6 +698,61 @@ fun SftpScreen(
                             Text(stringResource(R.string.common_cancel), style = MaterialTheme.typography.labelSmall)
                         }
                     }
+                }
+            } else if (pastePendingCount > 0 && !loading) {
+                // Persistent resume banner — a previous paste was interrupted
+                // (process death, connection drop, explicit cancel) and the
+                // queue still has PENDING rows. Stays visible across tab
+                // switches and app restarts until the user resumes or
+                // discards.
+                var confirmDiscard by remember { mutableStateOf(false) }
+                Surface(
+                    modifier = Modifier.fillMaxWidth(),
+                    color = MaterialTheme.colorScheme.secondaryContainer,
+                ) {
+                    Row(
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .padding(horizontal = 16.dp, vertical = 8.dp),
+                        verticalAlignment = Alignment.CenterVertically,
+                    ) {
+                        Column(modifier = Modifier.weight(1f)) {
+                            Text(
+                                "Unfinished paste",
+                                style = MaterialTheme.typography.labelLarge,
+                                color = MaterialTheme.colorScheme.onSecondaryContainer,
+                            )
+                            Text(
+                                "$pastePendingCount ${if (pastePendingCount == 1) "file" else "files"} · " +
+                                    Formatter.formatFileSize(context, pastePendingBytes) + " remaining",
+                                style = MaterialTheme.typography.labelSmall,
+                                color = MaterialTheme.colorScheme.onSecondaryContainer,
+                            )
+                        }
+                        TextButton(onClick = { confirmDiscard = true }) {
+                            Text("Discard")
+                        }
+                        Spacer(Modifier.width(4.dp))
+                        Button(onClick = { viewModel.resumePasteQueue() }) {
+                            Text("Resume")
+                        }
+                    }
+                }
+                if (confirmDiscard) {
+                    AlertDialog(
+                        onDismissRequest = { confirmDiscard = false },
+                        title = { Text("Discard unfinished paste?") },
+                        text = { Text("Pending files will be removed from the queue. This cannot be undone.") },
+                        confirmButton = {
+                            TextButton(onClick = {
+                                viewModel.discardPasteQueue()
+                                confirmDiscard = false
+                            }) { Text("Discard") }
+                        },
+                        dismissButton = {
+                            TextButton(onClick = { confirmDiscard = false }) { Text("Keep") }
+                        },
+                    )
                 }
             } else if (loading) {
                 val progress = transferProgress

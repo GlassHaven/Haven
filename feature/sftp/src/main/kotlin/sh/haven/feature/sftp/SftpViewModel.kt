@@ -43,6 +43,19 @@ import javax.inject.Inject
 
 private const val TAG = "SftpViewModel"
 
+/** How many bytes must flow through a transfer before we update the queue row's
+ *  `bytesTransferred` cursor. Smaller = tighter resume resolution at the cost of
+ *  more DB writes. 1 MB strikes a balance — negligible replay on crash, cheap DB
+ *  traffic on multi-GB SFTP uploads. */
+private const val QUEUE_PROGRESS_PERSIST_BYTES = 1L * 1024 * 1024
+
+/** Per-row retry budget for transient failures (connection drops, broken pipes).
+ *  Permanent failures — missing source, permission denied — don't retry. */
+private const val QUEUE_RETRY_ATTEMPTS = 3
+
+/** First backoff in ms between retries; doubled each attempt (1s / 2s / 4s). */
+private const val QUEUE_RETRY_BACKOFF_MS = 1_000L
+
 data class SftpEntry(
     val name: String,
     val path: String,
@@ -136,6 +149,7 @@ class SftpViewModel @Inject constructor(
     private val ffmpegExecutor: sh.haven.core.ffmpeg.FfmpegExecutor,
     val hlsStreamServer: sh.haven.core.ffmpeg.HlsStreamServer,
     private val sftpStreamServer: SftpStreamServer,
+    private val pasteQueueDao: sh.haven.core.data.db.PasteQueueDao,
     @ApplicationContext private val appContext: Context,
 ) : ViewModel() {
 
@@ -189,6 +203,32 @@ class SftpViewModel @Inject constructor(
      * some devices escalates all the way to a kernel watchdog reboot.
      */
     private var pasteWakeLock: android.os.PowerManager.WakeLock? = null
+
+    /**
+     * Observable count of files still pending in the persistent paste queue.
+     * Drives the "Unfinished paste: N files remaining" banner at the top of
+     * the SFTP screen. Non-zero means a previous paste was interrupted
+     * (network drop, process death, reboot) and the user can tap Resume.
+     */
+    val pastePendingCount: StateFlow<Int> =
+        pasteQueueDao.observeCountByStatus(sh.haven.core.data.db.entities.PasteQueueEntry.STATUS_PENDING)
+            .stateIn(viewModelScope, SharingStarted.WhileSubscribed(5_000), 0)
+
+    /**
+     * Observable total bytes remaining across pending queue rows — the
+     * banner shows this in a human-readable form.
+     */
+    val pastePendingBytes: StateFlow<Long> =
+        pasteQueueDao.observePendingBytes(sh.haven.core.data.db.entities.PasteQueueEntry.STATUS_PENDING)
+            .stateIn(viewModelScope, SharingStarted.WhileSubscribed(5_000), 0L)
+
+    /** ID of the queue row currently being transferred, so the progress monitor
+     *  can throttle `bytesTransferred` updates back to the DB. Null when no
+     *  transfer is in flight. */
+    @Volatile
+    private var currentQueueRowId: Long? = null
+    @Volatile
+    private var lastQueueRowBytesPersist: Long = 0L
 
     private val _error = MutableStateFlow<String?>(null)
     val error: StateFlow<String?> = _error.asStateFlow()
@@ -3450,14 +3490,159 @@ class SftpViewModel @Inject constructor(
     }
 
 
+    /** One flattened leaf-file operation waiting to be persisted to the paste queue. */
+    private data class PasteLeaf(
+        val sourcePath: String,
+        val sourceName: String,
+        val size: Long,
+        val destPath: String,
+        val isTopLevel: Boolean,
+    )
+
+    /**
+     * Walk a clipboard into a flat list of leaf-file paste operations, expanding
+     * directories in order. The returned [PasteLeaf.destPath] bakes in any
+     * directory prefix so the executor can treat each leaf atomically — it
+     * only needs to mkdir-p the parent before the copy.
+     *
+     * For the rclone-to-rclone case the old server-side copyFile path is still
+     * the fastest option (no bytes flow through the phone), so we return an
+     * empty list and let the caller fall through to the non-queue path.
+     */
+    private fun enumerateLeaves(
+        cb: FileClipboard,
+        destType: BackendType,
+        destRootPath: String,
+    ): List<PasteLeaf> {
+        val leaves = mutableListOf<PasteLeaf>()
+        for (entry in cb.entries) {
+            val destTop = destRootPath.trimEnd('/') + "/" + entry.name
+            walkEntry(cb, entry, destTop, isTopLevel = true, leaves)
+        }
+        return leaves
+    }
+
+    private fun walkEntry(
+        cb: FileClipboard,
+        entry: SftpEntry,
+        destPath: String,
+        isTopLevel: Boolean,
+        out: MutableList<PasteLeaf>,
+    ) {
+        if (!entry.isDirectory) {
+            out.add(PasteLeaf(entry.path, entry.name, entry.size, destPath, isTopLevel))
+            return
+        }
+        val children: List<SftpEntry> = when (cb.sourceBackendType) {
+            BackendType.LOCAL -> {
+                java.io.File(entry.path).listFiles()?.map { f ->
+                    SftpEntry(f.name, f.absolutePath, f.isDirectory, if (f.isDirectory) 0 else f.length(), f.lastModified() / 1000, "")
+                } ?: emptyList()
+            }
+            BackendType.RCLONE -> {
+                rcloneClient.listDirectory(cb.sourceRemoteName!!, entry.path).map { rc ->
+                    SftpEntry(rc.name, "${entry.path.trimEnd('/')}/${rc.name}", rc.isDir, rc.size, 0, "")
+                }
+            }
+            BackendType.SFTP -> {
+                val channel = cb.sourceSftpChannel
+                    ?: sessionManager.openSftpForProfile(cb.sourceProfileId) ?: return
+                val results = mutableListOf<SftpEntry>()
+                channel.ls(entry.path) { lsEntry ->
+                    val name = lsEntry.filename
+                    if (name != "." && name != "..") {
+                        results.add(SftpEntry(name, "${entry.path.trimEnd('/')}/$name", lsEntry.attrs.isDir, lsEntry.attrs.size, lsEntry.attrs.mTime.toLong(), ""))
+                    }
+                    com.jcraft.jsch.ChannelSftp.LsEntrySelector.CONTINUE
+                }
+                results
+            }
+            BackendType.SMB -> {
+                val client = cb.sourceSmbClient
+                    ?: smbSessionManager.getClientForProfile(cb.sourceProfileId) ?: return
+                client.listDirectory(entry.path).map { smb ->
+                    SftpEntry(smb.name, smb.path, smb.isDirectory, smb.size, smb.modifiedTime, "")
+                }
+            }
+        }
+        for (child in children) {
+            val childDest = destPath.trimEnd('/') + "/" + child.name
+            walkEntry(cb, child, childDest, isTopLevel = false, out)
+        }
+    }
+
+    /**
+     * mkdir-p equivalent for the destination backend. Safe to call for a path
+     * that already exists — each layer ignores "already exists" errors.
+     */
+    private fun ensureDestParent(
+        destType: BackendType,
+        destProfileId: String,
+        destRemote: String?,
+        destPath: String,
+    ) {
+        val parent = destPath.substringBeforeLast('/', "").takeIf { it.isNotEmpty() && it != "/" }
+            ?: return
+        try {
+            when (destType) {
+                BackendType.LOCAL -> java.io.File(parent).mkdirs()
+                BackendType.SFTP -> {
+                    val channel = getOrOpenChannel(destProfileId) ?: return
+                    // Walk parents shallowest-first, ignoring "already exists".
+                    val parts = parent.split("/").filter { it.isNotEmpty() }
+                    val isAbsolute = parent.startsWith("/")
+                    var acc = if (isAbsolute) "" else "."
+                    for (p in parts) {
+                        acc = if (acc.isEmpty()) "/$p" else "$acc/$p"
+                        try { channel.mkdir(acc) } catch (_: Exception) { /* exists or permission */ }
+                    }
+                }
+                BackendType.SMB -> {
+                    activeSmbClient?.mkdir(parent)
+                }
+                BackendType.RCLONE -> destRemote?.let { rcloneClient.mkdir(it, parent) }
+            }
+        } catch (e: Exception) {
+            Log.w(TAG, "ensureDestParent failed for $parent: ${e.message}")
+        }
+    }
+
+    /**
+     * Delete a single leaf file at the source after a cut+paste has copied
+     * it to the destination. Directories left behind by cut operations are
+     * not rmdir'd — the queue works on leaves only and a future pass can
+     * plumb per-batch directory cleanup.
+     */
+    private fun deleteSourceLeaf(
+        sourceType: BackendType,
+        sourceProfileId: String,
+        sourceRemoteName: String?,
+        sourcePath: String,
+    ) {
+        try {
+            when (sourceType) {
+                BackendType.LOCAL -> java.io.File(sourcePath).delete()
+                BackendType.RCLONE -> sourceRemoteName?.let { rcloneClient.deleteFile(it, sourcePath) }
+                BackendType.SFTP -> {
+                    val channel = sessionManager.openSftpForProfile(sourceProfileId)
+                    channel?.rm(sourcePath)
+                }
+                BackendType.SMB -> {
+                    val client = smbSessionManager.getClientForProfile(sourceProfileId)
+                    client?.delete(sourcePath, isDirectory = false)
+                }
+            }
+        } catch (e: Exception) {
+            Log.w(TAG, "deleteSourceLeaf failed for $sourcePath: ${e.message}")
+        }
+    }
+
     fun pasteFromClipboard() {
         val cb = _clipboard.value ?: return
         val destProfileId = _activeProfileId.value ?: return
         val destPath = _currentPath.value
         Log.d(TAG, "pasteFromClipboard: ${cb.entries.size} entries from ${cb.sourceBackendType}(${cb.sourceProfileId}) " +
-            "to dest=$destProfileId, destPath=$destPath, isRclone=${_isRcloneProfile.value}, isSmb=${_isSmbProfile.value}, " +
-            "srcSftp=${cb.sourceSftpChannel?.isConnected}, srcSmb=${cb.sourceSmbClient != null}, " +
-            "dstRclone=$activeRcloneRemote, dstSftp=${sftpChannel?.isConnected}, dstSmb=${activeSmbClient != null}")
+            "to dest=$destProfileId, destPath=$destPath, isRclone=${_isRcloneProfile.value}, isSmb=${_isSmbProfile.value}")
 
         val destType = when {
             _isLocalProfile.value -> BackendType.LOCAL
@@ -3466,6 +3651,14 @@ class SftpViewModel @Inject constructor(
             else -> BackendType.SFTP
         }
         val destRemote = activeRcloneRemote
+
+        // Same-remote rclone: stays on the server-side copyFile fast path
+        // (no bytes flow through the phone, so there's nothing meaningful to
+        // resume and queue persistence adds latency for free).
+        if (cb.sourceBackendType == BackendType.RCLONE && destType == BackendType.RCLONE) {
+            viewModelScope.launch { pasteFromClipboardRcloneToRclone(cb, destProfileId, destRemote, destPath) }
+            return
+        }
 
         viewModelScope.launch {
             try {
@@ -3477,85 +3670,97 @@ class SftpViewModel @Inject constructor(
                 acquirePasteWakeLock()
                 _transferProgress.value = TransferProgress("Scanning selection…", 0, 0)
 
-                // Pre-walk the selection to know total file count. For pure
-                // local sources this is fast (just java.io listing). For
-                // remote sources (SFTP/SMB/rclone) it costs a directory
-                // listing per subdir — acceptable for interactive paste,
-                // and a counted progress label is much more useful than a
-                // mystery "Preparing…".
-                val total = withContext(Dispatchers.IO) { countPasteFiles(cb) }
-                pasteTotalFiles.set(total)
-                _transferProgress.value = TransferProgress(
-                    if (total > 0) "Uploading 0 of $total…" else "Uploading…",
-                    0, 0,
-                )
+                val leaves = withContext(Dispatchers.IO) {
+                    enumerateLeaves(cb, destType, destPath)
+                }
 
+                // Apply conflict resolution to top-level leaves (anything a
+                // user directly put on the clipboard). Deeper descendants
+                // inherit the batch-resolution if set, otherwise default to
+                // OVERWRITE — matching the old crossCopyDir behaviour.
+                val resolved = mutableListOf<PasteLeaf>()
+                val actions = mutableListOf<ConflictAction>()
+                val resumeBytes = mutableListOf<Long>()
                 var skipped = 0
-                for (entry in cb.entries) {
-                    var destEntryPath = destPath.trimEnd('/') + "/" + entry.name
-                    var resumeFromByte = 0L
-
-                    // Conflict resolution applies only to top-level files. For
-                    // directory copies, child conflicts are silently overwritten
-                    // by the recursive path — a future pass can plumb the dialog
-                    // through crossCopyDir.
-                    if (!entry.isDirectory) {
-                        val resolved = resolveConflictIfExists(
-                            entry, destType, destProfileId, destRemote, destEntryPath,
-                        )
-                        if (resolved != null) {
-                            val (action, destSize) = resolved
-                            when (action) {
-                                ConflictAction.SKIP -> {
-                                    skipped++
-                                    continue
-                                }
-                                ConflictAction.RENAME -> {
-                                    destEntryPath = withContext(Dispatchers.IO) {
-                                        findUniqueName(destType, destProfileId, destRemote, destEntryPath)
-                                    }
-                                }
-                                ConflictAction.RESUME -> {
-                                    resumeFromByte = destSize
-                                }
-                                ConflictAction.OVERWRITE -> { /* default crossCopyFile path */ }
-                            }
-                        }
+                for (leaf in leaves) {
+                    if (!leaf.isTopLevel) {
+                        resolved.add(leaf)
+                        actions.add(batchResolution ?: ConflictAction.OVERWRITE)
+                        resumeBytes.add(0L)
+                        continue
                     }
-
-                    withContext(Dispatchers.IO) {
-                        if (cb.sourceBackendType == BackendType.RCLONE && destType == BackendType.RCLONE) {
-                            val srcRemote = cb.sourceRemoteName ?: throw IllegalStateException("No source remote")
-                            val dstRemote = destRemote ?: throw IllegalStateException("No dest remote")
-                            if (entry.isDirectory) {
-                                rcloneClient.mkdir(dstRemote, destEntryPath)
-                                copyRcloneDir(srcRemote, entry.path, dstRemote, destEntryPath)
-                            } else {
-                                beforePasteFile(entry.name, entry.size, 0)
-                                rcloneClient.copyFile(srcRemote, entry.path, dstRemote, destEntryPath)
-                            }
-                        } else {
-                            if (entry.isDirectory) {
-                                crossCopyDir(cb, entry, destType, destProfileId, destRemote, destEntryPath)
-                            } else {
-                                crossCopyFile(cb, entry, destType, destProfileId, destRemote, destEntryPath, resumeFromByte)
-                            }
-                        }
+                    val virtualEntry = SftpEntry(leaf.sourceName, leaf.sourcePath, false, leaf.size, 0, "")
+                    val check = resolveConflictIfExists(virtualEntry, destType, destProfileId, destRemote, leaf.destPath)
+                    if (check == null) {
+                        resolved.add(leaf)
+                        actions.add(ConflictAction.OVERWRITE)
+                        resumeBytes.add(0L)
+                        continue
                     }
-
-                    if (cb.isCut) {
-                        withContext(Dispatchers.IO) {
-                            deleteSourceEntry(cb, entry)
+                    val (action, destSize) = check
+                    when (action) {
+                        ConflictAction.SKIP -> skipped++
+                        ConflictAction.RENAME -> {
+                            val newPath = withContext(Dispatchers.IO) {
+                                findUniqueName(destType, destProfileId, destRemote, leaf.destPath)
+                            }
+                            resolved.add(leaf.copy(destPath = newPath))
+                            actions.add(ConflictAction.RENAME)
+                            resumeBytes.add(0L)
+                        }
+                        ConflictAction.RESUME -> {
+                            resolved.add(leaf)
+                            actions.add(ConflictAction.RESUME)
+                            resumeBytes.add(destSize)
+                        }
+                        ConflictAction.OVERWRITE -> {
+                            resolved.add(leaf)
+                            actions.add(ConflictAction.OVERWRITE)
+                            resumeBytes.add(0L)
                         }
                     }
                 }
 
+                val rows = resolved.mapIndexed { i, leaf ->
+                    sh.haven.core.data.db.entities.PasteQueueEntry(
+                        indexInBatch = i,
+                        sourceBackendType = cb.sourceBackendType.name,
+                        sourceProfileId = cb.sourceProfileId,
+                        sourceRemoteName = cb.sourceRemoteName,
+                        sourcePath = leaf.sourcePath,
+                        sourceName = leaf.sourceName,
+                        sourceSize = leaf.size,
+                        destBackendType = destType.name,
+                        destProfileId = destProfileId,
+                        destRemote = destRemote,
+                        destPath = leaf.destPath,
+                        isCut = cb.isCut,
+                        conflictAction = actions[i].name,
+                        bytesTransferred = resumeBytes[i],
+                    )
+                }
+
+                withContext(Dispatchers.IO) {
+                    pasteQueueDao.clear()
+                    pasteQueueDao.insertAll(rows)
+                }
                 _clipboard.value = null
+
+                pasteTotalFiles.set(rows.size)
+                executePasteQueue()
+
                 val copied = pasteFileCount.get()
+                val stillPending = withContext(Dispatchers.IO) {
+                    pasteQueueDao.countByStatus(sh.haven.core.data.db.entities.PasteQueueEntry.STATUS_PENDING)
+                }
                 val verb = if (cb.isCut) "Moved" else "Copied"
                 _message.value = when {
+                    stillPending > 0 -> "$verb $copied — $stillPending still pending (Resume to retry)"
                     skipped > 0 -> "$verb $copied files — skipped $skipped"
                     else -> "$verb $copied files"
+                }
+                if (stillPending == 0) {
+                    withContext(Dispatchers.IO) { pasteQueueDao.clear() }
                 }
                 refresh()
             } catch (e: Exception) {
@@ -3569,6 +3774,226 @@ class SftpViewModel @Inject constructor(
                 batchResolution = null
                 releasePasteWakeLock()
             }
+        }
+    }
+
+    /** Same-remote rclone paste — unchanged server-side copy path. */
+    private suspend fun pasteFromClipboardRcloneToRclone(
+        cb: FileClipboard,
+        destProfileId: String,
+        destRemote: String?,
+        destPath: String,
+    ) {
+        try {
+            _loading.value = true
+            pasteInProgress.set(true)
+            pasteFileCount.set(0)
+            pasteTotalFiles.set(0)
+            acquirePasteWakeLock()
+            val total = withContext(Dispatchers.IO) { countPasteFiles(cb) }
+            pasteTotalFiles.set(total)
+            _transferProgress.value = TransferProgress(
+                if (total > 0) "Uploading 0 of $total…" else "Uploading…", 0, 0,
+            )
+            for (entry in cb.entries) {
+                val destEntryPath = destPath.trimEnd('/') + "/" + entry.name
+                withContext(Dispatchers.IO) {
+                    val srcRemote = cb.sourceRemoteName ?: throw IllegalStateException("No source remote")
+                    val dstRemote = destRemote ?: throw IllegalStateException("No dest remote")
+                    if (entry.isDirectory) {
+                        rcloneClient.mkdir(dstRemote, destEntryPath)
+                        copyRcloneDir(srcRemote, entry.path, dstRemote, destEntryPath)
+                    } else {
+                        beforePasteFile(entry.name, entry.size, 0)
+                        rcloneClient.copyFile(srcRemote, entry.path, dstRemote, destEntryPath)
+                    }
+                }
+                if (cb.isCut) withContext(Dispatchers.IO) { deleteSourceEntry(cb, entry) }
+            }
+            _clipboard.value = null
+            _message.value = "${if (cb.isCut) "Moved" else "Copied"} ${pasteFileCount.get()} files"
+            refresh()
+        } catch (e: Exception) {
+            Log.e(TAG, "rclone→rclone paste failed", e)
+            _error.value = "Paste failed: ${e.message}"
+        } finally {
+            pasteInProgress.set(false)
+            _loading.value = false
+            _transferProgress.value = null
+            releasePasteWakeLock()
+        }
+    }
+
+    /**
+     * Drive the persisted queue end-to-end. Called from both the initial
+     * paste and [resumePasteQueue]. Continues across per-row failures — a
+     * single flaky file doesn't block the rest of the batch.
+     */
+    private suspend fun executePasteQueue() {
+        while (true) {
+            val row = withContext(Dispatchers.IO) {
+                pasteQueueDao.getByStatus(sh.haven.core.data.db.entities.PasteQueueEntry.STATUS_PENDING).firstOrNull()
+            } ?: break
+            withContext(Dispatchers.IO) { executeQueueRow(row) }
+        }
+    }
+
+    /**
+     * Execute a single paste-queue row. Retries transient failures (connection
+     * drops, per-call IO errors) up to [QUEUE_RETRY_ATTEMPTS] times with
+     * exponential backoff, then marks the row failed-but-pending so the user
+     * can retry via the resume banner.
+     */
+    private suspend fun executeQueueRow(row: sh.haven.core.data.db.entities.PasteQueueEntry) {
+        val sourceType = BackendType.valueOf(row.sourceBackendType)
+        val destType = BackendType.valueOf(row.destBackendType)
+        val virtualCb = FileClipboard(
+            entries = emptyList(),
+            sourceProfileId = row.sourceProfileId,
+            sourceBackendType = sourceType,
+            sourceRemoteName = row.sourceRemoteName,
+            isCut = row.isCut,
+        )
+        val virtualEntry = SftpEntry(
+            name = row.sourceName, path = row.sourcePath, isDirectory = false,
+            size = row.sourceSize, modifiedTime = 0, permissions = "",
+        )
+        val action = try { ConflictAction.valueOf(row.conflictAction) } catch (_: Exception) { ConflictAction.OVERWRITE }
+        var resumeFromByte = if (action == ConflictAction.RESUME) row.bytesTransferred else 0L
+
+        currentQueueRowId = row.id
+        lastQueueRowBytesPersist = resumeFromByte
+        var lastError: Throwable? = null
+        try {
+            ensureDestParent(destType, row.destProfileId, row.destRemote, row.destPath)
+            var attempt = 0
+            while (true) {
+                try {
+                    crossCopyFile(
+                        virtualCb, virtualEntry,
+                        destType, row.destProfileId, row.destRemote,
+                        row.destPath, resumeFromByte,
+                    )
+                    break
+                } catch (e: Exception) {
+                    if (!isTransientTransferError(e) || attempt >= QUEUE_RETRY_ATTEMPTS - 1) throw e
+                    attempt++
+                    lastError = e
+                    val delayMs = QUEUE_RETRY_BACKOFF_MS * (1L shl (attempt - 1)) // 1s, 3s, 9s-ish
+                    Log.w(TAG, "Paste row ${row.id} attempt $attempt failed (${e.message}); retrying in ${delayMs}ms")
+                    kotlinx.coroutines.delay(delayMs)
+                    // Resume from whatever the monitor last persisted — gives us
+                    // a free mid-file retry via ChannelSftp.RESUME / append.
+                    val current = withContext(Dispatchers.IO) {
+                        pasteQueueDao.getByStatus(sh.haven.core.data.db.entities.PasteQueueEntry.STATUS_PENDING)
+                            .firstOrNull { it.id == row.id }
+                    }
+                    resumeFromByte = current?.bytesTransferred ?: resumeFromByte
+                }
+            }
+            // Success
+            pasteQueueDao.updateStatus(
+                row.id, sh.haven.core.data.db.entities.PasteQueueEntry.STATUS_DONE, row.sourceSize, null,
+            )
+            if (row.isCut) {
+                deleteSourceLeaf(sourceType, row.sourceProfileId, row.sourceRemoteName, row.sourcePath)
+            }
+        } catch (e: Exception) {
+            Log.w(TAG, "Paste row ${row.id} failed permanently: ${e.message}")
+            val latest = withContext(Dispatchers.IO) {
+                pasteQueueDao.getByStatus(sh.haven.core.data.db.entities.PasteQueueEntry.STATUS_PENDING)
+                    .firstOrNull { it.id == row.id }
+            }
+            pasteQueueDao.updateStatus(
+                row.id, sh.haven.core.data.db.entities.PasteQueueEntry.STATUS_PENDING,
+                latest?.bytesTransferred ?: resumeFromByte,
+                (lastError ?: e).message ?: "failed",
+            )
+        } finally {
+            currentQueueRowId = null
+        }
+    }
+
+    /**
+     * Heuristic: which exceptions warrant a same-row retry? Network drops and
+     * mid-stream IO failures retry; everything else (FileNotFoundException for
+     * missing source, permission errors) surfaces to the resume banner so the
+     * user can fix the root cause.
+     */
+    private fun isTransientTransferError(e: Throwable): Boolean {
+        return when (e) {
+            is com.jcraft.jsch.JSchException,
+            is com.jcraft.jsch.SftpException,
+            is java.net.SocketException,
+            is java.net.SocketTimeoutException,
+            is javax.net.ssl.SSLException,
+            -> true
+            is java.io.IOException -> {
+                val msg = e.message.orEmpty()
+                // Fresh channel timeout, SSH closure, and "broken pipe" — all
+                // transient. FileNotFoundException is a subclass but shouldn't
+                // retry (source is gone).
+                e !is java.io.FileNotFoundException && (
+                    msg.contains("broken pipe", ignoreCase = true) ||
+                        msg.contains("reset", ignoreCase = true) ||
+                        msg.contains("closed", ignoreCase = true) ||
+                        msg.contains("timeout", ignoreCase = true)
+                    )
+            }
+            else -> false
+        }
+    }
+
+    /** Resume a persisted paste queue — typically invoked from the banner's Resume button. */
+    fun resumePasteQueue() {
+        viewModelScope.launch {
+            try {
+                _loading.value = true
+                pasteInProgress.set(true)
+                batchResolution = null
+                acquirePasteWakeLock()
+                val pending = withContext(Dispatchers.IO) {
+                    pasteQueueDao.countByStatus(sh.haven.core.data.db.entities.PasteQueueEntry.STATUS_PENDING)
+                }
+                val done = withContext(Dispatchers.IO) {
+                    pasteQueueDao.countByStatus(sh.haven.core.data.db.entities.PasteQueueEntry.STATUS_DONE)
+                }
+                pasteTotalFiles.set(pending + done)
+                pasteFileCount.set(done)
+                _transferProgress.value = TransferProgress("Resuming: $pending pending…", 0, 0)
+
+                executePasteQueue()
+
+                val stillPending = withContext(Dispatchers.IO) {
+                    pasteQueueDao.countByStatus(sh.haven.core.data.db.entities.PasteQueueEntry.STATUS_PENDING)
+                }
+                val nowDone = withContext(Dispatchers.IO) {
+                    pasteQueueDao.countByStatus(sh.haven.core.data.db.entities.PasteQueueEntry.STATUS_DONE)
+                }
+                _message.value = when {
+                    stillPending > 0 -> "Resumed $nowDone — $stillPending still pending"
+                    else -> "Resume complete: $nowDone files"
+                }
+                if (stillPending == 0) {
+                    withContext(Dispatchers.IO) { pasteQueueDao.clear() }
+                }
+                refresh()
+            } catch (e: Exception) {
+                Log.e(TAG, "Resume failed", e)
+                _error.value = "Resume failed: ${e.message}"
+            } finally {
+                pasteInProgress.set(false)
+                _loading.value = false
+                _transferProgress.value = null
+                releasePasteWakeLock()
+            }
+        }
+    }
+
+    /** Explicitly drop the paste queue — banner's Discard button. */
+    fun discardPasteQueue() {
+        viewModelScope.launch(Dispatchers.IO) {
+            pasteQueueDao.clear()
         }
     }
 
@@ -3624,6 +4049,7 @@ class SftpViewModel @Inject constructor(
                     srcFile.inputStream().use { input ->
                         client.upload(input, destPath, total) { transferred, max ->
                             _transferProgress.value = TransferProgress(label, max, transferred)
+                            maybePersistQueueProgress(transferred)
                         }
                     }
                 }
@@ -3723,9 +4149,29 @@ class SftpViewModel @Inject constructor(
         override fun count(bytes: Long): Boolean {
             transferred += bytes
             _transferProgress.value = TransferProgress(label, total, transferred)
+            maybePersistQueueProgress(transferred)
             return true
         }
         override fun end() {}
+    }
+
+    /**
+     * Throttled `bytesTransferred` writer for the in-flight queue row. Writes
+     * at most once per [QUEUE_PROGRESS_PERSIST_BYTES] so we cap DB traffic
+     * during fast local transfers while still keeping the resume cursor close
+     * to current — a crash costs at most that many bytes of replay.
+     */
+    private fun maybePersistQueueProgress(transferred: Long) {
+        val rowId = currentQueueRowId ?: return
+        if (transferred - lastQueueRowBytesPersist < QUEUE_PROGRESS_PERSIST_BYTES) return
+        lastQueueRowBytesPersist = transferred
+        // Fire-and-forget on the DB thread. Dropping a write is fine — the
+        // next one picks up the latest value.
+        viewModelScope.launch(Dispatchers.IO) {
+            try {
+                pasteQueueDao.updateBytesTransferred(rowId, transferred)
+            } catch (_: Exception) { /* best-effort */ }
+        }
     }
 
     /**
@@ -3788,6 +4234,7 @@ class SftpViewModel @Inject constructor(
             out.write(buffer, 0, n)
             transferred += n
             _transferProgress.value = TransferProgress(label, total, transferred)
+            maybePersistQueueProgress(transferred)
         }
         out.flush()
     }

@@ -9,6 +9,7 @@ import sh.haven.core.data.db.entities.ConnectionGroup
 import sh.haven.core.data.db.entities.ConnectionLog
 import sh.haven.core.data.db.entities.ConnectionProfile
 import sh.haven.core.data.db.entities.KnownHost
+import sh.haven.core.data.db.entities.PasteQueueEntry
 import sh.haven.core.data.db.entities.PortForwardRule
 import sh.haven.core.data.db.entities.SshKey
 import sh.haven.core.data.db.entities.TunnelConfig
@@ -23,8 +24,9 @@ import sh.haven.core.data.db.entities.TunnelConfig
         PortForwardRule::class,
         AgentAuditEvent::class,
         TunnelConfig::class,
+        PasteQueueEntry::class,
     ],
-    version = 35,
+    version = 36,
     exportSchema = true,
 )
 abstract class HavenDatabase : RoomDatabase() {
@@ -36,6 +38,7 @@ abstract class HavenDatabase : RoomDatabase() {
     abstract fun portForwardRuleDao(): PortForwardRuleDao
     abstract fun agentAuditEventDao(): AgentAuditEventDao
     abstract fun tunnelConfigDao(): TunnelConfigDao
+    abstract fun pasteQueueDao(): PasteQueueDao
 
     companion object {
         val MIGRATION_1_2 = object : Migration(1, 2) {
@@ -322,6 +325,48 @@ abstract class HavenDatabase : RoomDatabase() {
                     """.trimIndent(),
                 )
                 db.execSQL("ALTER TABLE connection_profiles ADD COLUMN tunnelConfigId TEXT")
+            }
+        }
+
+        /**
+         * Persistent paste queue so a long-running copy/paste survives app
+         * backgrounding, process death, reboots, and transient connection
+         * drops. Each row is a leaf file; [status] flips from PENDING to
+         * DONE as each transfer completes, and [bytesTransferred] lets
+         * the resume path pick up mid-file via ChannelSftp.RESUME.
+         */
+        val MIGRATION_35_36 = object : Migration(35, 36) {
+            override fun migrate(db: SupportSQLiteDatabase) {
+                db.execSQL(
+                    """
+                    CREATE TABLE IF NOT EXISTS `paste_queue_entries` (
+                        `id` INTEGER NOT NULL PRIMARY KEY AUTOINCREMENT,
+                        `indexInBatch` INTEGER NOT NULL,
+                        `sourceBackendType` TEXT NOT NULL,
+                        `sourceProfileId` TEXT NOT NULL,
+                        `sourceRemoteName` TEXT,
+                        `sourcePath` TEXT NOT NULL,
+                        `sourceName` TEXT NOT NULL,
+                        `sourceSize` INTEGER NOT NULL,
+                        `sourceIsDirectory` INTEGER NOT NULL DEFAULT 0,
+                        `destBackendType` TEXT NOT NULL,
+                        `destProfileId` TEXT NOT NULL,
+                        `destRemote` TEXT,
+                        `destPath` TEXT NOT NULL,
+                        `isCut` INTEGER NOT NULL DEFAULT 0,
+                        `conflictAction` TEXT NOT NULL DEFAULT 'OVERWRITE',
+                        `bytesTransferred` INTEGER NOT NULL DEFAULT 0,
+                        `status` TEXT NOT NULL DEFAULT 'PENDING',
+                        `lastError` TEXT,
+                        `createdAt` INTEGER NOT NULL,
+                        `updatedAt` INTEGER NOT NULL
+                    )
+                    """.trimIndent(),
+                )
+                db.execSQL(
+                    "CREATE INDEX IF NOT EXISTS `index_paste_queue_entries_status` " +
+                        "ON `paste_queue_entries` (`status`)",
+                )
             }
         }
     }

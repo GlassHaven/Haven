@@ -85,6 +85,30 @@ enum class SortMode {
     NAME_ASC, NAME_DESC, SIZE_ASC, SIZE_DESC, DATE_ASC, DATE_DESC
 }
 
+/**
+ * Action to take when a paste target file already exists at the destination.
+ *
+ * Modelled on Windows Explorer's "File in Use" / "Replace or Skip" dialog,
+ * driven from [SftpViewModel.conflictPrompt] and surfaced by the UI as a
+ * single dialog with an "Apply to all" checkbox.
+ *
+ * [RESUME] is only offered when the destination is SFTP or LOCAL *and* the
+ * existing file is smaller than the source — the only shape where an append-
+ * from-offset actually recovers the partial transfer. SMB and rclone destinations
+ * fall back to OVERWRITE / SKIP / RENAME because neither backend supports a
+ * resumable append through Haven's current plumbing.
+ */
+enum class ConflictAction { RESUME, OVERWRITE, SKIP, RENAME }
+
+/** One pending conflict-resolution prompt. UI calls [onChoice] exactly once. */
+data class ConflictPrompt(
+    val fileName: String,
+    val sourceSize: Long,
+    val destSize: Long,
+    val canResume: Boolean,
+    val onChoice: (action: ConflictAction, applyToAll: Boolean) -> Unit,
+)
+
 /** Transfer progress for download/upload operations. */
 data class TransferProgress(
     val fileName: String,
@@ -145,6 +169,26 @@ class SftpViewModel @Inject constructor(
 
     private val _transferProgress = MutableStateFlow<TransferProgress?>(null)
     val transferProgress: StateFlow<TransferProgress?> = _transferProgress.asStateFlow()
+
+    /** Non-null while a paste-time file conflict is awaiting the user's choice. */
+    private val _conflictPrompt = MutableStateFlow<ConflictPrompt?>(null)
+    val conflictPrompt: StateFlow<ConflictPrompt?> = _conflictPrompt.asStateFlow()
+
+    /**
+     * Resolution the user chose with "Apply to all" for the current paste batch.
+     * Reset to null at the start of every [pasteFromClipboard] call. When set,
+     * subsequent conflicts in this batch silently apply this action instead of
+     * prompting again.
+     */
+    private var batchResolution: ConflictAction? = null
+
+    /**
+     * Partial wake lock held for the duration of an active paste. Without this,
+     * the CPU can drop to a low-power state mid-transfer (phone locked, screen
+     * off) and the simultaneous USB + network IO becomes unreliable — which on
+     * some devices escalates all the way to a kernel watchdog reboot.
+     */
+    private var pasteWakeLock: android.os.PowerManager.WakeLock? = null
 
     private val _error = MutableStateFlow<String?>(null)
     val error: StateFlow<String?> = _error.asStateFlow()
@@ -3203,7 +3247,7 @@ class SftpViewModel @Inject constructor(
      * progress update so the user sees live movement through the batch
      * instead of a long "Preparing..." on the first (often largest) file.
      */
-    private fun beforePasteFile(fileName: String) {
+    private fun beforePasteFile(fileName: String, fileSize: Long = 0, resumeFrom: Long = 0) {
         val current = pasteFileCount.incrementAndGet()
         val total = pasteTotalFiles.get()
         val label = if (total > 0) {
@@ -3211,7 +3255,135 @@ class SftpViewModel @Inject constructor(
         } else {
             "Uploading $current: $fileName"
         }
-        _transferProgress.value = TransferProgress(label, 0, 0)
+        _transferProgress.value = TransferProgress(label, fileSize, resumeFrom)
+    }
+
+    /**
+     * Probe the destination backend for an existing file at [destPath].
+     *
+     * Returns the size in bytes if a regular file exists, null if the path is
+     * absent, a directory, or the probe itself failed (treat as "not known to
+     * exist" so we default to the existing silent-overwrite behaviour rather
+     * than blocking the paste on a flaky backend).
+     */
+    private fun probeDestFile(
+        destType: BackendType,
+        destProfileId: String,
+        destRemote: String?,
+        destPath: String,
+    ): Long? = try {
+        when (destType) {
+            BackendType.LOCAL -> {
+                val f = java.io.File(destPath)
+                if (f.exists() && f.isFile) f.length() else null
+            }
+            BackendType.SFTP -> {
+                val channel = getOrOpenChannel(destProfileId) ?: return null
+                try {
+                    val attrs = channel.stat(destPath)
+                    if (attrs.isDir) null else attrs.size
+                } catch (_: Exception) { null }
+            }
+            BackendType.SMB -> {
+                val client = activeSmbClient ?: return null
+                val parent = destPath.substringBeforeLast('/', "")
+                val name = destPath.substringAfterLast('/')
+                if (parent.isEmpty()) null
+                else client.listDirectory(parent)
+                    .firstOrNull { it.name == name && !it.isDirectory }
+                    ?.size
+            }
+            BackendType.RCLONE -> {
+                val remote = destRemote ?: return null
+                val parent = destPath.substringBeforeLast('/', "")
+                val name = destPath.substringAfterLast('/')
+                if (parent.isEmpty()) null
+                else rcloneClient.listDirectory(remote, parent)
+                    .firstOrNull { it.name == name && !it.isDir }
+                    ?.size
+            }
+        }
+    } catch (e: Exception) {
+        Log.w(TAG, "probeDestFile failed for $destPath: ${e.message}")
+        null
+    }
+
+    /**
+     * Generate a Windows-style unique destination path by appending `(1)`, `(2)`
+     * etc. before any extension, looping until [probeDestFile] returns null.
+     * Falls back to the original path after 999 attempts (which would also be
+     * a sign something else is wrong).
+     */
+    private fun findUniqueName(
+        destType: BackendType,
+        destProfileId: String,
+        destRemote: String?,
+        destPath: String,
+    ): String {
+        val lastSlash = destPath.lastIndexOf('/')
+        val dir = if (lastSlash >= 0) destPath.substring(0, lastSlash) else ""
+        val name = if (lastSlash >= 0) destPath.substring(lastSlash + 1) else destPath
+        val dot = name.lastIndexOf('.')
+        val stem = if (dot > 0) name.substring(0, dot) else name
+        val ext = if (dot > 0) name.substring(dot) else ""
+        for (i in 1..999) {
+            val candidate = if (dir.isEmpty()) "$stem ($i)$ext" else "$dir/$stem ($i)$ext"
+            if (probeDestFile(destType, destProfileId, destRemote, candidate) == null) return candidate
+        }
+        return destPath
+    }
+
+    /**
+     * If [destPath] already exists, suspend until the user picks a [ConflictAction]
+     * (unless [batchResolution] is already set by "Apply to all"). Returns null
+     * when the destination is free and the caller should proceed as normal.
+     *
+     * Must be called from a coroutine — suspends on the UI via a
+     * [CompletableDeferred] completed by the dialog.
+     */
+    private suspend fun resolveConflictIfExists(
+        entry: SftpEntry,
+        destType: BackendType,
+        destProfileId: String,
+        destRemote: String?,
+        destPath: String,
+    ): Pair<ConflictAction, Long>? {
+        val destSize = withContext(Dispatchers.IO) {
+            probeDestFile(destType, destProfileId, destRemote, destPath)
+        } ?: return null
+
+        batchResolution?.let { return it to destSize }
+
+        val deferred = CompletableDeferred<Pair<ConflictAction, Boolean>>()
+        _conflictPrompt.value = ConflictPrompt(
+            fileName = entry.name,
+            sourceSize = entry.size,
+            destSize = destSize,
+            canResume = (destType == BackendType.SFTP || destType == BackendType.LOCAL) &&
+                destSize in 1 until entry.size,
+            onChoice = { action, applyToAll -> deferred.complete(action to applyToAll) },
+        )
+        val (choice, applyToAll) = deferred.await()
+        _conflictPrompt.value = null
+        if (applyToAll) batchResolution = choice
+        return choice to destSize
+    }
+
+    private fun acquirePasteWakeLock() {
+        if (pasteWakeLock?.isHeld == true) return
+        val pm = appContext.getSystemService(Context.POWER_SERVICE) as android.os.PowerManager
+        pasteWakeLock = pm.newWakeLock(
+            android.os.PowerManager.PARTIAL_WAKE_LOCK,
+            "sh.haven.app:paste",
+        ).apply {
+            setReferenceCounted(false)
+            acquire(60 * 60 * 1000L) // 1 hour safety cap; released in finally regardless
+        }
+    }
+
+    private fun releasePasteWakeLock() {
+        pasteWakeLock?.takeIf { it.isHeld }?.release()
+        pasteWakeLock = null
     }
 
     /**
@@ -3289,6 +3461,8 @@ class SftpViewModel @Inject constructor(
                 pasteInProgress.set(true)
                 pasteFileCount.set(0)
                 pasteTotalFiles.set(0)
+                batchResolution = null
+                acquirePasteWakeLock()
                 _transferProgress.value = TransferProgress("Scanning selection…", 0, 0)
 
                 // Pre-walk the selection to know total file count. For pure
@@ -3304,8 +3478,38 @@ class SftpViewModel @Inject constructor(
                     0, 0,
                 )
 
+                var skipped = 0
                 for (entry in cb.entries) {
-                    val destEntryPath = destPath.trimEnd('/') + "/" + entry.name
+                    var destEntryPath = destPath.trimEnd('/') + "/" + entry.name
+                    var resumeFromByte = 0L
+
+                    // Conflict resolution applies only to top-level files. For
+                    // directory copies, child conflicts are silently overwritten
+                    // by the recursive path — a future pass can plumb the dialog
+                    // through crossCopyDir.
+                    if (!entry.isDirectory) {
+                        val resolved = resolveConflictIfExists(
+                            entry, destType, destProfileId, destRemote, destEntryPath,
+                        )
+                        if (resolved != null) {
+                            val (action, destSize) = resolved
+                            when (action) {
+                                ConflictAction.SKIP -> {
+                                    skipped++
+                                    continue
+                                }
+                                ConflictAction.RENAME -> {
+                                    destEntryPath = withContext(Dispatchers.IO) {
+                                        findUniqueName(destType, destProfileId, destRemote, destEntryPath)
+                                    }
+                                }
+                                ConflictAction.RESUME -> {
+                                    resumeFromByte = destSize
+                                }
+                                ConflictAction.OVERWRITE -> { /* default crossCopyFile path */ }
+                            }
+                        }
+                    }
 
                     withContext(Dispatchers.IO) {
                         if (cb.sourceBackendType == BackendType.RCLONE && destType == BackendType.RCLONE) {
@@ -3315,14 +3519,14 @@ class SftpViewModel @Inject constructor(
                                 rcloneClient.mkdir(dstRemote, destEntryPath)
                                 copyRcloneDir(srcRemote, entry.path, dstRemote, destEntryPath)
                             } else {
-                                beforePasteFile(entry.name)
+                                beforePasteFile(entry.name, entry.size, 0)
                                 rcloneClient.copyFile(srcRemote, entry.path, dstRemote, destEntryPath)
                             }
                         } else {
                             if (entry.isDirectory) {
                                 crossCopyDir(cb, entry, destType, destProfileId, destRemote, destEntryPath)
                             } else {
-                                crossCopyFile(cb, entry, destType, destProfileId, destRemote, destEntryPath)
+                                crossCopyFile(cb, entry, destType, destProfileId, destRemote, destEntryPath, resumeFromByte)
                             }
                         }
                     }
@@ -3335,7 +3539,12 @@ class SftpViewModel @Inject constructor(
                 }
 
                 _clipboard.value = null
-                _message.value = "${if (cb.isCut) "Moved" else "Copied"} ${pasteFileCount.get()} files"
+                val copied = pasteFileCount.get()
+                val verb = if (cb.isCut) "Moved" else "Copied"
+                _message.value = when {
+                    skipped > 0 -> "$verb $copied files — skipped $skipped"
+                    else -> "$verb $copied files"
+                }
                 refresh()
             } catch (e: Exception) {
                 Log.e(TAG, "Paste failed", e)
@@ -3344,6 +3553,9 @@ class SftpViewModel @Inject constructor(
                 pasteInProgress.set(false)
                 _loading.value = false
                 _transferProgress.value = null
+                _conflictPrompt.value = null
+                batchResolution = null
+                releasePasteWakeLock()
             }
         }
     }
@@ -3367,34 +3579,54 @@ class SftpViewModel @Inject constructor(
         cb: FileClipboard, entry: SftpEntry,
         destType: BackendType, destProfileId: String, destRemote: String?,
         destPath: String,
+        resumeFromByte: Long = 0,
     ) {
-        beforePasteFile(entry.name)
-
         if (cb.sourceBackendType == BackendType.LOCAL) {
             val srcFile = java.io.File(entry.path)
+            val total = srcFile.length()
+            beforePasteFile(entry.name, total, resumeFromByte)
+            val label = _transferProgress.value?.fileName ?: entry.name
             when (destType) {
                 BackendType.LOCAL -> {
-                    writeLocalFileWithMediaStoreFallback(srcFile, destPath)
+                    writeLocalFileWithProgress(srcFile, destPath, total, resumeFromByte, label)
                 }
                 BackendType.RCLONE -> {
+                    // rclone's copyFile is opaque — we can't surface per-byte
+                    // progress, so leave the bar at the known size/0 set by
+                    // beforePasteFile.
                     rcloneClient.copyFile(srcFile.parent!!, srcFile.name, destRemote!!, destPath)
                 }
                 BackendType.SFTP -> {
                     val channel = getOrOpenChannel(destProfileId) ?: throw IllegalStateException("SFTP not connected")
-                    srcFile.inputStream().use { input -> channel.put(input, destPath) }
+                    srcFile.inputStream().use { input ->
+                        val monitor = sftpProgressMonitor(label, total, resumeFromByte)
+                        val mode = if (resumeFromByte > 0) ChannelSftp.RESUME else ChannelSftp.OVERWRITE
+                        // RESUME mode: JSch skips source up to destination size
+                        // and appends the remainder, so we pass the full stream
+                        // (no caller-side skip).
+                        channel.put(input, destPath, monitor, mode)
+                    }
                 }
                 BackendType.SMB -> {
                     val client = activeSmbClient ?: throw IllegalStateException("SMB not connected")
-                    srcFile.inputStream().use { input -> client.upload(input, destPath, srcFile.length()) { _, _ -> } }
+                    srcFile.inputStream().use { input ->
+                        client.upload(input, destPath, total) { transferred, max ->
+                            _transferProgress.value = TransferProgress(label, max, transferred)
+                        }
+                    }
                 }
             }
             return
         }
 
+        // Remote source — two-phase copy via a cache file. Progress bar covers
+        // download (phase 1) and upload (phase 2) with a combined label so the
+        // user sees continuous movement rather than two jumps.
         val tempFile = java.io.File(appContext.cacheDir, "cross_copy_${entry.name}")
+        val knownSize = if (entry.size > 0) entry.size else 0L
+        beforePasteFile(entry.name, knownSize * 2, 0) // doubled: download + upload phases
+        val baseLabel = _transferProgress.value?.fileName ?: entry.name
         try {
-            // Download from source to temp (remote sources only — LOCAL went
-            // through the fast-path above).
             when (cb.sourceBackendType) {
                 BackendType.LOCAL -> {
                     // unreachable — handled by fast-path above
@@ -3407,36 +3639,145 @@ class SftpViewModel @Inject constructor(
                     val channel = cb.sourceSftpChannel
                         ?: sessionManager.openSftpForProfile(cb.sourceProfileId)
                         ?: throw IllegalStateException("SFTP not connected")
-                    tempFile.outputStream().use { out -> channel.get(entry.path, out) }
+                    tempFile.outputStream().use { out ->
+                        val monitor = sftpProgressMonitor("\u2B07 $baseLabel", knownSize * 2, 0)
+                        channel.get(entry.path, out, monitor)
+                    }
                 }
                 BackendType.SMB -> {
                     val client = cb.sourceSmbClient
                         ?: smbSessionManager.getClientForProfile(cb.sourceProfileId)
                         ?: throw IllegalStateException("SMB not connected")
-                    tempFile.outputStream().use { out -> client.download(entry.path, out) { _, _ -> } }
+                    tempFile.outputStream().use { out ->
+                        client.download(entry.path, out) { transferred, max ->
+                            _transferProgress.value = TransferProgress(
+                                "\u2B07 $baseLabel",
+                                if (max > 0) max * 2 else knownSize * 2,
+                                transferred,
+                            )
+                        }
+                    }
                 }
             }
 
-            // Upload from temp to destination
+            // Phase 2: upload from cache. Downloaded size seeds the bar's starting
+            // point so progress continues rather than restarting.
+            val downloaded = tempFile.length()
             when (destType) {
                 BackendType.LOCAL -> {
-                    writeLocalFileWithMediaStoreFallback(tempFile, destPath)
+                    writeLocalFileWithProgress(tempFile, destPath, downloaded * 2, downloaded, "\u2B06 $baseLabel")
                 }
                 BackendType.RCLONE -> {
                     rcloneClient.copyFile(tempFile.parent!!, tempFile.name, destRemote!!, destPath)
                 }
                 BackendType.SFTP -> {
                     val channel = getOrOpenChannel(destProfileId) ?: throw IllegalStateException("SFTP not connected")
-                    tempFile.inputStream().use { input -> channel.put(input, destPath) }
+                    tempFile.inputStream().use { input ->
+                        val monitor = sftpProgressMonitor("\u2B06 $baseLabel", downloaded * 2, downloaded)
+                        val mode = if (resumeFromByte > 0) ChannelSftp.RESUME else ChannelSftp.OVERWRITE
+                        channel.put(input, destPath, monitor, mode)
+                    }
                 }
                 BackendType.SMB -> {
                     val client = activeSmbClient ?: throw IllegalStateException("SMB not connected")
-                    tempFile.inputStream().use { input -> client.upload(input, destPath, tempFile.length()) { _, _ -> } }
+                    tempFile.inputStream().use { input ->
+                        client.upload(input, destPath, downloaded) { transferred, _ ->
+                            _transferProgress.value = TransferProgress("\u2B06 $baseLabel", downloaded * 2, downloaded + transferred)
+                        }
+                    }
                 }
             }
         } finally {
             tempFile.delete()
         }
+    }
+
+    /**
+     * Inline-built [SftpProgressMonitor] that updates [_transferProgress] with
+     * the same label/total throughout a single put or get call. Pre-seeds the
+     * running byte counter with [initialTransferred] so resume-mode transfers
+     * show a continuous bar from destination-already-has-this-many-bytes
+     * rather than restarting at zero.
+     */
+    private fun sftpProgressMonitor(
+        label: String,
+        total: Long,
+        initialTransferred: Long,
+    ): SftpProgressMonitor = object : SftpProgressMonitor {
+        private var transferred = initialTransferred
+        override fun init(op: Int, src: String, dest: String, max: Long) {
+            _transferProgress.value = TransferProgress(label, total, transferred)
+        }
+        override fun count(bytes: Long): Boolean {
+            transferred += bytes
+            _transferProgress.value = TransferProgress(label, total, transferred)
+            return true
+        }
+        override fun end() {}
+    }
+
+    /**
+     * LOCAL-to-LOCAL copy with per-chunk progress reporting and support for
+     * resume (append from [resumeFromByte]). Falls back to the MediaStore
+     * delete-and-reinsert path if the direct write fails with a permissions
+     * error under Downloads/.
+     */
+    private fun writeLocalFileWithProgress(
+        source: java.io.File,
+        destPath: String,
+        total: Long,
+        resumeFromByte: Long,
+        label: String,
+    ) {
+        if (resumeFromByte == 0L) {
+            try {
+                java.io.File(destPath).parentFile?.mkdirs()
+                source.inputStream().use { input ->
+                    java.io.FileOutputStream(destPath, false).use { out ->
+                        copyStreamWithProgress(input, out, total, 0L, label)
+                    }
+                }
+                return
+            } catch (e: java.io.IOException) {
+                Log.w(TAG, "Direct write to $destPath failed (${e.message}); falling back to MediaStore path")
+                writeLocalFileWithMediaStoreFallback(source, destPath)
+                return
+            } catch (e: SecurityException) {
+                Log.w(TAG, "Direct write to $destPath denied; falling back to MediaStore path")
+                writeLocalFileWithMediaStoreFallback(source, destPath)
+                return
+            }
+        }
+        // Resume: open destination in append mode, skip the source stream to
+        // the matching offset, and count progress from there. MediaStore
+        // append isn't supported, so resume is silently downgraded to overwrite
+        // on that path.
+        source.inputStream().use { input ->
+            input.skip(resumeFromByte)
+            java.io.FileOutputStream(destPath, true).use { out ->
+                copyStreamWithProgress(input, out, total, resumeFromByte, label)
+            }
+        }
+    }
+
+    private fun copyStreamWithProgress(
+        input: java.io.InputStream,
+        out: java.io.OutputStream,
+        total: Long,
+        startOffset: Long,
+        label: String,
+    ) {
+        val buffer = ByteArray(64 * 1024)
+        var transferred = startOffset
+        _transferProgress.value = TransferProgress(label, total, transferred)
+        while (true) {
+            val n = input.read(buffer)
+            if (n == -1) break
+            out.write(buffer, 0, n)
+            transferred += n
+            _transferProgress.value = TransferProgress(label, total, transferred)
+        }
+        out.flush()
     }
 
     /**

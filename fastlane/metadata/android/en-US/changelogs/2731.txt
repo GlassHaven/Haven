@@ -1,0 +1,21 @@
+v5.24.9: paste conflict dialog + byte progress + wake lock
+
+Paste now detects when a file already exists at the destination and
+opens a Windows Explorer-style dialog with four choices — Resume,
+Overwrite, Keep both (rename), Skip — plus an "Apply to all remaining
+files" checkbox for batch pastes. Resume is offered only when the
+destination is SFTP or local and the existing file is smaller than
+the source, i.e. when append-from-offset is actually recovering a
+partial transfer.
+
+Progress bar now shows byte counters during the entire upload instead
+of sitting at "Uploading 1 of N" with no detail until done. All
+destination backends show per-chunk progress: SFTP via the JSch
+SftpProgressMonitor, SMB via its existing progress callback, local
+via buffered streaming, and rclone remains indeterminate (opaque
+server-side copy).
+
+Haven now holds a partial wake lock for the duration of a paste so
+the CPU can't drop to a low-power state mid-transfer. Heavy USB +
+network I/O with the screen off previously risked scheduler stalls
+on some devices.

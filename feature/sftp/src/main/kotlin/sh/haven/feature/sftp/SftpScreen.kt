@@ -160,6 +160,7 @@ fun SftpScreen(
     val message by viewModel.message.collectAsState()
     val lastDownload by viewModel.lastDownload.collectAsState()
     val uploadConflict by viewModel.uploadConflict.collectAsState()
+    val pasteConflict by viewModel.conflictPrompt.collectAsState()
     val fileClipboard by viewModel.clipboard.collectAsState()
     val isRclone by viewModel.isRcloneProfile.collectAsState()
     val syncProgress by viewModel.syncProgress.collectAsState()
@@ -1098,6 +1099,12 @@ fun SftpScreen(
                 }
             },
         )
+    }
+
+    // Paste-time conflict dialog (Windows Explorer-style: Resume / Overwrite /
+    // Skip / Rename, with an "Apply to all" checkbox for batch paste).
+    pasteConflict?.let { prompt ->
+        PasteConflictDialog(prompt = prompt)
     }
 
     // Sync dialog
@@ -2503,6 +2510,66 @@ private fun formatTimestamp(seconds: Double): String {
     val s = totalSec % 60
     return if (h > 0) String.format(Locale.US, "%d:%02d:%02d", h, m, s)
     else String.format(Locale.US, "%d:%02d", m, s)
+}
+
+@Composable
+private fun PasteConflictDialog(prompt: ConflictPrompt) {
+    val context = LocalContext.current
+    var applyToAll by remember { mutableStateOf(false) }
+
+    AlertDialog(
+        onDismissRequest = { prompt.onChoice(ConflictAction.SKIP, applyToAll) },
+        title = { Text("File already exists") },
+        text = {
+            Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
+                Text("${prompt.fileName}", style = MaterialTheme.typography.titleSmall)
+                Text(
+                    "Existing: ${Formatter.formatFileSize(context, prompt.destSize)}  " +
+                        "·  New: ${Formatter.formatFileSize(context, prompt.sourceSize)}",
+                    style = MaterialTheme.typography.bodySmall,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant,
+                )
+                if (prompt.canResume) {
+                    Text(
+                        "Existing file is smaller than the source — resume continues from the current offset.",
+                        style = MaterialTheme.typography.bodySmall,
+                        color = MaterialTheme.colorScheme.onSurfaceVariant,
+                    )
+                }
+                Row(
+                    verticalAlignment = Alignment.CenterVertically,
+                    modifier = Modifier.padding(top = 4.dp),
+                ) {
+                    Checkbox(
+                        checked = applyToAll,
+                        onCheckedChange = { applyToAll = it },
+                    )
+                    Text(
+                        "Apply to all remaining files",
+                        style = MaterialTheme.typography.bodyMedium,
+                    )
+                }
+            }
+        },
+        confirmButton = {
+            Column(horizontalAlignment = Alignment.End) {
+                if (prompt.canResume) {
+                    TextButton(onClick = { prompt.onChoice(ConflictAction.RESUME, applyToAll) }) {
+                        Text("Resume")
+                    }
+                }
+                TextButton(onClick = { prompt.onChoice(ConflictAction.OVERWRITE, applyToAll) }) {
+                    Text("Overwrite")
+                }
+                TextButton(onClick = { prompt.onChoice(ConflictAction.RENAME, applyToAll) }) {
+                    Text("Keep both (rename)")
+                }
+                TextButton(onClick = { prompt.onChoice(ConflictAction.SKIP, applyToAll) }) {
+                    Text("Skip")
+                }
+            }
+        },
+    )
 }
 
 private val IMAGE_EXTENSIONS = setOf(

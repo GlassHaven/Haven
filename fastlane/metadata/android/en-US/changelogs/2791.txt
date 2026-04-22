@@ -1,0 +1,21 @@
+v5.24.15: backup now preserves SSH-key passphrase flag
+
+Confirmed during an audit that every ConnectionProfile field and every
+tunnel_configs row round-trips through backup export/import correctly
+— including the saved VNC settings (port, username, password,
+tunnel-through-SSH) added in v5.24.10 and edited in v5.24.14.
+
+One small residual gap: SshKey.isEncrypted — the flag marking whether
+the private key material itself is passphrase-protected — wasn't in
+the export/import schema. It defaulted to false on restore, which
+could have prevented JSch from prompting for the passphrase on the
+first use of a restored key. Now serialised and imported alongside
+the other SshKey fields.
+
+v1 and v2 backups still restore cleanly; the flag falls back to false
+when the key is absent from the JSON, preserving the pre-fix
+behaviour for older files.
+
+Follow-up to #104: same audit verified that vncPort, vncUsername,
+vncPassword, and vncSshForward have been in the backup since v5.24.10
+— no action needed there.

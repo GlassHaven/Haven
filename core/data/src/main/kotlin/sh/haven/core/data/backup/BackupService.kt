@@ -150,6 +150,10 @@ class BackupService @Inject constructor(
                 put("publicKeyOpenSsh", k.publicKeyOpenSsh)
                 put("fingerprintSha256", k.fingerprintSha256)
                 put("createdAt", k.createdAt)
+                // Whether the key material itself is passphrase-protected —
+                // distinct from on-disk encryption. Backups need to preserve
+                // this so JSch knows to prompt for the passphrase on use.
+                put("isEncrypted", k.isEncrypted)
             })
         }
         json.put("keys", keys)
@@ -250,6 +254,7 @@ class BackupService @Inject constructor(
                             publicKeyOpenSsh = k.getString("publicKeyOpenSsh"),
                             fingerprintSha256 = k.getString("fingerprintSha256"),
                             createdAt = k.getLong("createdAt"),
+                            isEncrypted = k.optBoolean("isEncrypted", false),
                         ),
                     )
                     count++

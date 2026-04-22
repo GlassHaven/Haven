@@ -145,6 +145,19 @@ fun ConnectionEditDialog(
     var smbSshProfileId by rememberSaveable { mutableStateOf(existing?.smbSshProfileId) }
     var vncUsername by rememberSaveable { mutableStateOf(existing?.vncUsername ?: "") }
     var vncPassword by rememberSaveable { mutableStateOf(existing?.vncPassword ?: "") }
+    // Saved VNC settings on an SSH profile — editable via the SSH section when
+    // the user has ticked "Save for this connection" in the terminal's VNC
+    // quick-dialog. `null` means no VNC settings are stored on this profile,
+    // so the section stays hidden (#104).
+    var vncSavedPort by rememberSaveable {
+        mutableStateOf(existing?.vncPort?.toString() ?: "")
+    }
+    var vncSavedSshForward by rememberSaveable {
+        mutableStateOf(existing?.vncSshForward ?: true)
+    }
+    var vncSettingsStored by rememberSaveable {
+        mutableStateOf(existing?.connectionType == "SSH" && existing?.vncPort != null)
+    }
     var destinationHash by rememberSaveable { mutableStateOf(existing?.destinationHash ?: "") }
     var jumpProfileId by rememberSaveable { mutableStateOf(existing?.jumpProfileId) }
     var proxyType by rememberSaveable { mutableStateOf(existing?.proxyType) }
@@ -1468,6 +1481,58 @@ fun ConnectionEditDialog(
                         }
                     }
 
+                    // Saved VNC settings (shown when the SSH profile has had
+                    // VNC configured via the terminal's VNC quick-dialog with
+                    // "Save for this connection" ticked). Without this block
+                    // the only way to edit was to delete and recreate the
+                    // profile — #104.
+                    if (vncSettingsStored) {
+                        Spacer(Modifier.height(12.dp))
+                        Text(
+                            "Saved VNC settings",
+                            style = MaterialTheme.typography.labelLarge,
+                            color = MaterialTheme.colorScheme.onSurfaceVariant,
+                        )
+                        Spacer(Modifier.height(4.dp))
+                        OutlinedTextField(
+                            value = vncSavedPort,
+                            onValueChange = { vncSavedPort = it.filter { c -> c.isDigit() } },
+                            label = { Text("VNC port") },
+                            placeholder = { Text("5900") },
+                            singleLine = true,
+                            keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Number),
+                            modifier = Modifier.width(120.dp),
+                        )
+                        Spacer(Modifier.height(4.dp))
+                        OutlinedTextField(
+                            value = vncUsername,
+                            onValueChange = { vncUsername = it },
+                            label = { Text("VNC username (optional — VeNCrypt only)") },
+                            singleLine = true,
+                            modifier = Modifier.fillMaxWidth(),
+                        )
+                        Spacer(Modifier.height(4.dp))
+                        OutlinedTextField(
+                            value = vncPassword,
+                            onValueChange = { vncPassword = it },
+                            label = { Text("VNC password") },
+                            singleLine = true,
+                            modifier = Modifier.fillMaxWidth(),
+                        )
+                        Spacer(Modifier.height(4.dp))
+                        Row(verticalAlignment = Alignment.CenterVertically) {
+                            androidx.compose.material3.Checkbox(
+                                checked = vncSavedSshForward,
+                                onCheckedChange = { vncSavedSshForward = it },
+                            )
+                            Text("Tunnel through SSH")
+                        }
+                        Spacer(Modifier.height(4.dp))
+                        TextButton(onClick = { vncSettingsStored = false }) {
+                            Text("Clear saved VNC settings")
+                        }
+                    }
+
                 } else {
                     // --- Reticulum connection form ---
                     // Order: gateway config → scan → destination hash
@@ -1739,6 +1804,11 @@ fun ConnectionEditDialog(
                         )
                     } else if (connectionType == "SSH") {
                         val portInt = port.toIntOrNull() ?: 22
+                        // Saved VNC settings round-trip: if the section was
+                        // visible and the user didn't hit "Clear", persist the
+                        // edited values; if they cleared it, null everything
+                        // out so the quick-dialog reprompts next time.
+                        val vncPortInt = if (vncSettingsStored) vncSavedPort.toIntOrNull() else null
                         (existing ?: ConnectionProfile(
                             label = label,
                             host = host,
@@ -1769,6 +1839,10 @@ fun ConnectionEditDialog(
                             useEternalTerminal = selectedTransport == "ET",
                             etPort = etPortInt,
                             fileTransport = fileTransport,
+                            vncPort = vncPortInt,
+                            vncUsername = if (vncSettingsStored) vncUsername.ifBlank { null } else null,
+                            vncPassword = if (vncSettingsStored) vncPassword.ifBlank { null } else null,
+                            vncSshForward = if (vncSettingsStored) vncSavedSshForward else true,
                             colorTag = colorTag,
                             groupId = groupId,
                         )

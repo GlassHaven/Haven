@@ -1,0 +1,21 @@
+v5.24.14: fix VNC over SSH tunnel + editable VNC settings (#104)
+
+Two fixes:
+
+1. **VNC through SSH tunnel now uses 127.0.0.1** instead of the
+   hardcoded "localhost". When the destination was resolved by the
+   SSH server, "localhost" could route to the IPv6 loopback first —
+   and a VNC server bound only to 127.0.0.1 (common for wayvnc,
+   including the Debian default) rejected the ::1 attempt, which on
+   some sshd builds surfaced as a closed channel rather than the
+   expected retry fallback. Using the explicit IPv4 address matches
+   the manual port-forward workaround that already worked.
+
+2. **Saved VNC settings are now editable from the connection edit
+   dialog.** Ticking "Save for this connection" in the terminal's
+   VNC quick-dialog writes vncPort / vncUsername / vncPassword /
+   vncSshForward to the SSH profile — but until now there was no
+   UI path to re-open them, so changing a setting required deleting
+   and recreating the entire profile. The SSH edit dialog now shows
+   a "Saved VNC settings" section when the profile has any, and a
+   "Clear saved VNC settings" button to wipe them.

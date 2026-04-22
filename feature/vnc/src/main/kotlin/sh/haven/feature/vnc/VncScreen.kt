@@ -206,8 +206,14 @@ fun VncScreen(
     LaunchedEffect(pendingHost) {
         if (pendingHost != null) {
             if (pendingSshForward && pendingSshSessionId != null) {
+                // 127.0.0.1 rather than "localhost" so sshd doesn't resolve
+                // through getaddrinfo and hit the IPv6 loopback first — a
+                // VNC server bound only to 127.0.0.1 (common for wayvnc)
+                // rejects the ::1 attempt and depending on the sshd version
+                // the retry can surface as a closed channel rather than
+                // a successful fallback (#104).
                 viewModel.connectViaSsh(
-                    pendingSshSessionId, "localhost", pendingPort ?: 5900, pendingPassword,
+                    pendingSshSessionId, "127.0.0.1", pendingPort ?: 5900, pendingPassword,
                 )
             } else {
                 viewModel.connect(pendingHost, pendingPort ?: 5900, pendingPassword, pendingUsername)

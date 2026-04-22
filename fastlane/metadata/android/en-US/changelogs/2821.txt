@@ -1,0 +1,16 @@
+v5.24.18: smart-copy URLs with wrapped #fragments and ?query strings
+
+The 2D URL blob detector from v5.24.4 would miss URLs whose continuation
+row only carried the fragment or query part — e.g. a GitHub
+issue-comment link wrapping as
+
+    ⎿ https://github.com/org/repo/issues/
+      106#issuecomment-4298664962
+
+Long-pressing copied just the first row. Fix: accept `/`, `#`, `?`, `&`,
+or `=` on the continuation row as structural evidence the URL carries
+over, rather than requiring `/` specifically. These are the glyphs
+English prose essentially never contains inside a URL-safe run.
+
+Two new spec tests cover the behaviour — fragment-anchor wrap and
+query-string wrap.

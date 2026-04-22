@@ -26,30 +26,43 @@ class FfmpegJob internal constructor(
         // same line, not \n. BufferedReader.readLine() only splits on \n, so
         // progress updates would accumulate into one giant line that only
         // appears when ffmpeg finishes. Read char-by-char and split on both.
-        val reader = process.errorStream.bufferedReader()
-        val buf = StringBuilder()
-        var ch: Int
-        while (reader.read().also { ch = it } != -1) {
-            if (ch == '\r'.code || ch == '\n'.code) {
-                if (buf.isNotEmpty()) {
-                    val line = buf.toString()
-                    buf.clear()
-                    synchronized(stderrLines) { stderrLines.add(line) }
-                    onStderr(line)
+        try {
+            val reader = process.errorStream.bufferedReader()
+            val buf = StringBuilder()
+            var ch: Int
+            while (reader.read().also { ch = it } != -1) {
+                if (ch == '\r'.code || ch == '\n'.code) {
+                    if (buf.isNotEmpty()) {
+                        val line = buf.toString()
+                        buf.clear()
+                        synchronized(stderrLines) { stderrLines.add(line) }
+                        onStderr(line)
+                    }
+                } else {
+                    buf.append(ch.toChar())
                 }
-            } else {
-                buf.append(ch.toChar())
             }
-        }
-        if (buf.isNotEmpty()) {
-            val line = buf.toString()
-            synchronized(stderrLines) { stderrLines.add(line) }
-            onStderr(line)
+            if (buf.isNotEmpty()) {
+                val line = buf.toString()
+                synchronized(stderrLines) { stderrLines.add(line) }
+                onStderr(line)
+            }
+        } catch (_: java.io.IOException) {
+            // Normal when cancel()/destroyForcibly() closes the stream from
+            // another thread, or when Android kills the ffmpeg PhantomProcess
+            // mid-transcode. Either way, we're done reading and the job
+            // status is already reflected via process.exitValue(). Without
+            // this catch the uncaught InterruptedIOException crashes the
+            // whole app with a FATAL EXCEPTION.
         }
     }, "ffmpeg-stderr").apply { isDaemon = true; start() }
 
     private val stdoutThread = Thread({
-        stdoutBuilder.append(process.inputStream.bufferedReader().readText())
+        try {
+            stdoutBuilder.append(process.inputStream.bufferedReader().readText())
+        } catch (_: java.io.IOException) {
+            // Same rationale as stderrThread above.
+        }
     }, "ffmpeg-stdout").apply { isDaemon = true; start() }
 
     val isRunning: Boolean get() = process.isAlive

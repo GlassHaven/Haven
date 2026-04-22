@@ -1,0 +1,18 @@
+v5.24.16: fix app crash when an ffmpeg job is cancelled or killed
+
+FfmpegJob's stderr / stdout reader threads didn't wrap their read loop
+in a try/catch, so whenever the ffmpeg subprocess exited unexpectedly —
+cancel, Android killing it as a PhantomProcessRecord during a long
+transcode, or the stream being closed from another thread — the
+reader's blocking read() threw InterruptedIOException and that
+propagated as a FATAL EXCEPTION, taking the whole app down.
+
+Reader threads now swallow IOException quietly. The job status still
+comes from process.exitValue(), so cancellations and OS kills surface
+cleanly instead of crashing.
+
+Visible symptom: HLS streaming a large 4K HEVC file (long transcode
+times) could crash Haven mid-stream. The crash is fixed. Whether the
+transcode itself completes on a given device still depends on
+Android's phantom-process policy, which a follow-up foreground
+service will address.

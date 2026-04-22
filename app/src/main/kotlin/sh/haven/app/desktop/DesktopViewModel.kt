@@ -185,12 +185,20 @@ class DesktopViewModel @Inject constructor(
                 if (sshForward && sshSessionId != null) {
                     val sshClient = findSshClient(sshSessionId)
                         ?: throw IllegalStateException("SSH session not found")
-                    val lp = sshClient.setPortForwardingL("127.0.0.1", 0, host, port)
+                    // Tunnel target is 127.0.0.1 on the SSH server, not the
+                    // SSH profile's external host. VNC servers like wayvnc
+                    // typically bind loopback only; using the SSH host's
+                    // external address makes sshd try to connect back to
+                    // itself over the public interface and hit ECONNREFUSED.
+                    // This was #104's actual cause; the earlier 127.0.0.1
+                    // fix in VncScreen covered the pure VNC→tunnel path
+                    // but missed the saved-on-SSH Desktop-tab path.
+                    val lp = sshClient.setPortForwardingL("127.0.0.1", 0, "127.0.0.1", port)
                     tunnelPort = lp
                     tunnelSessionId = sshSessionId
                     actualHost = "127.0.0.1"
                     actualPort = lp
-                    Log.d(TAG, "VNC SSH tunnel: localhost:$lp -> $host:$port")
+                    Log.d(TAG, "VNC SSH tunnel: localhost:$lp -> 127.0.0.1:$port (via $host)")
                 } else {
                     actualHost = host
                     actualPort = port

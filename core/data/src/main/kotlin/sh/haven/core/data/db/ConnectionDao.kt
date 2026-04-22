@@ -35,8 +35,8 @@ interface ConnectionDao {
     @Query("UPDATE connection_profiles SET lastConnected = :timestamp WHERE id = :id")
     suspend fun updateLastConnected(id: String, timestamp: Long = System.currentTimeMillis())
 
-    @Query("UPDATE connection_profiles SET vncPort = :port, vncPassword = :password, vncSshForward = :sshForward WHERE id = :id")
-    suspend fun updateVncSettings(id: String, port: Int, password: String?, sshForward: Boolean = true)
+    @Query("UPDATE connection_profiles SET vncPort = :port, vncUsername = :username, vncPassword = :password, vncSshForward = :sshForward WHERE id = :id")
+    suspend fun updateVncSettings(id: String, port: Int, username: String?, password: String?, sshForward: Boolean = true)
 
     @Query("UPDATE connection_profiles SET sortOrder = :sortOrder WHERE id = :id")
     suspend fun updateSortOrder(id: String, sortOrder: Int)

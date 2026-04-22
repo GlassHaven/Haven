@@ -289,9 +289,9 @@ fun HavenNavHost(
                                 pagerState.animateScrollToPage(pageOf(Screen.Connections))
                             }
                         },
-                        onNavigateToVnc = { host, port, password, sshForward, sshSessionId ->
+                        onNavigateToVnc = { host, port, username, password, sshForward, sshSessionId ->
                             desktopViewModel.addVncSession(
-                                host, port, password,
+                                host, port, password, username,
                                 sshForward = sshForward,
                                 sshSessionId = sshSessionId,
                             )

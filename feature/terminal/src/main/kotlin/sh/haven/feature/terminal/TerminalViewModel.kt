@@ -231,6 +231,7 @@ data class TerminalTab(
 data class VncInfo(
     val host: String,
     val port: Int,
+    val username: String?,
     val password: String?,
     val sshForward: Boolean,
     val profileId: String,
@@ -415,6 +416,7 @@ class TerminalViewModel @Inject constructor(
         return VncInfo(
             host = host,
             port = profile?.vncPort ?: 5900,
+            username = profile?.vncUsername,
             password = profile?.vncPassword,
             sshForward = profile?.vncSshForward ?: true,
             profileId = tab.profileId,
@@ -496,9 +498,9 @@ class TerminalViewModel @Inject constructor(
     }
 
     /** Save VNC settings for a profile. */
-    fun saveVncSettings(profileId: String, port: Int, password: String?, sshForward: Boolean) {
+    fun saveVncSettings(profileId: String, port: Int, username: String?, password: String?, sshForward: Boolean) {
         viewModelScope.launch(Dispatchers.IO) {
-            connectionRepository.updateVncSettings(profileId, port, password, sshForward)
+            connectionRepository.updateVncSettings(profileId, port, username, password, sshForward)
         }
     }
 

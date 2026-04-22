@@ -1,0 +1,27 @@
+v5.24.19: actual fix for VNC over SSH tunnel + VNC username field (#104)
+
+Nesos-ita followed up on v5.24.18 noting VNC-through-SSH still didn't
+connect. They were right — the v5.24.14 "localhost → 127.0.0.1" change
+fixed a different code path (pure VNC connect), not the one their
+Haven actually uses (saved-on-SSH-profile VNC). Their netcat test
+confirmed: Haven was closing the TCP socket immediately without even
+reading the RFB protocol version.
+
+Root cause: `DesktopViewModel.addVncSession` set up the SSH port
+forward targeting the SSH profile's EXTERNAL host (e.g. 10.0.0.2),
+not loopback on the SSH server. wayvnc (and most VNC servers) bind
+only to 127.0.0.1, so sshd opened the tunnel channel and then hit
+ECONNREFUSED trying to reach `10.0.0.2:5900`, closing the channel
+back to the client. Haven received a channel-closed, closed the
+socket, and the user saw "connection closed without sending".
+
+Fix: the tunnel target is now always 127.0.0.1 when "Tunnel through
+SSH" is on. The remote display of the SSH profile's host is kept
+only for logging.
+
+Also added the missing VNC username field to the quick-settings
+dialog (the one that pops up the first time you tap VNC on an SSH
+session). Previously the field only appeared in the connection edit
+dialog — which made setting up a VeNCrypt connection require two
+passes. Now the username can be set inline with the password on
+the first connect.

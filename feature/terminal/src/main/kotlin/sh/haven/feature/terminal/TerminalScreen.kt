@@ -127,7 +127,7 @@ fun TerminalScreen(
     interceptCtrlShiftV: Boolean = true,
     showTabBar: Boolean = true,
     onNavigateToConnections: () -> Unit = {},
-    onNavigateToVnc: (host: String, port: Int, password: String?, sshForward: Boolean, sshSessionId: String?) -> Unit = { _, _, _, _, _ -> },
+    onNavigateToVnc: (host: String, port: Int, username: String?, password: String?, sshForward: Boolean, sshSessionId: String?) -> Unit = { _, _, _, _, _, _ -> },
     onSelectionActiveChanged: (Boolean) -> Unit = {},
     onReorderModeChanged: (Boolean) -> Unit = {},
     onToolbarLayoutChanged: (ToolbarLayout) -> Unit = {},
@@ -210,14 +210,15 @@ fun TerminalScreen(
         VncSettingsDialog(
             host = info.host,
             initialPort = info.port,
+            initialUsername = info.username,
             initialPassword = info.password,
             initialSshForward = info.sshForward,
-            onConnect = { port, password, sshForward, save ->
+            onConnect = { port, username, password, sshForward, save ->
                 if (save) {
-                    viewModel.saveVncSettings(info.profileId, port, password, sshForward)
+                    viewModel.saveVncSettings(info.profileId, port, username, password, sshForward)
                 }
                 vncDialogInfo = null
-                onNavigateToVnc(info.host, port, password, sshForward, info.sessionId)
+                onNavigateToVnc(info.host, port, username, password, sshForward, info.sessionId)
             },
             onDismiss = { vncDialogInfo = null },
         )
@@ -691,7 +692,7 @@ fun TerminalScreen(
                             coroutineScope.launch {
                                 val info = viewModel.getActiveVncInfo() ?: return@launch
                                 if (info.stored) {
-                                    onNavigateToVnc(info.host, info.port, info.password, info.sshForward, info.sessionId)
+                                    onNavigateToVnc(info.host, info.port, info.username, info.password, info.sshForward, info.sessionId)
                                 } else {
                                     vncDialogInfo = info
                                 }
@@ -705,7 +706,7 @@ fun TerminalScreen(
                                     kotlinx.coroutines.delay(4000)
                                     val pwd = viewModel.getLocalVncPassword()
                                     localVncLoading = false
-                                    onNavigateToVnc("localhost", 5901, pwd, false, null)
+                                    onNavigateToVnc("localhost", 5901, null, pwd, false, null)
                                 }
                             }
                         }} else null,
@@ -994,12 +995,14 @@ private fun sgrMouseButton(button: Int, col: Int, row: Int, pressed: Boolean): B
 private fun VncSettingsDialog(
     host: String,
     initialPort: Int,
+    initialUsername: String?,
     initialPassword: String?,
     initialSshForward: Boolean,
-    onConnect: (port: Int, password: String?, sshForward: Boolean, save: Boolean) -> Unit,
+    onConnect: (port: Int, username: String?, password: String?, sshForward: Boolean, save: Boolean) -> Unit,
     onDismiss: () -> Unit,
 ) {
     var port by remember { mutableStateOf(initialPort.toString()) }
+    var username by remember { mutableStateOf(initialUsername ?: "") }
     var password by remember { mutableStateOf(initialPassword ?: "") }
     var sshForward by remember { mutableStateOf(initialSshForward) }
     var save by remember { mutableStateOf(true) }
@@ -1015,6 +1018,15 @@ private fun VncSettingsDialog(
                     value = port,
                     onValueChange = { port = it },
                     label = { Text(stringResource(R.string.terminal_port)) },
+                    singleLine = true,
+                    modifier = Modifier.fillMaxWidth(),
+                )
+                androidx.compose.foundation.layout.Spacer(Modifier.size(8.dp))
+                OutlinedTextField(
+                    value = username,
+                    onValueChange = { username = it },
+                    label = { Text("Username (optional — VeNCrypt only)") },
+                    placeholder = { Text("Leave blank for classic VncAuth") },
                     singleLine = true,
                     modifier = Modifier.fillMaxWidth(),
                 )
@@ -1047,7 +1059,7 @@ private fun VncSettingsDialog(
             TextButton(
                 onClick = {
                     val p = port.toIntOrNull() ?: 5900
-                    onConnect(p, password.ifEmpty { null }, sshForward, save)
+                    onConnect(p, username.ifEmpty { null }, password.ifEmpty { null }, sshForward, save)
                 },
             ) {
                 Text(stringResource(R.string.terminal_connect))

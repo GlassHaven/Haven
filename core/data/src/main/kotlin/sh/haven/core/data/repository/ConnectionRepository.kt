@@ -51,8 +51,8 @@ class ConnectionRepository @Inject constructor(
 
     suspend fun updateSortOrder(id: String, sortOrder: Int) = connectionDao.updateSortOrder(id, sortOrder)
 
-    suspend fun updateVncSettings(id: String, port: Int, password: String?, sshForward: Boolean) =
-        connectionDao.updateVncSettings(id, port, password?.let { CredentialEncryption.encrypt(context, it) }, sshForward)
+    suspend fun updateVncSettings(id: String, port: Int, username: String?, password: String?, sshForward: Boolean) =
+        connectionDao.updateVncSettings(id, port, username, password?.let { CredentialEncryption.encrypt(context, it) }, sshForward)
 
     private fun encryptPasswords(profile: ConnectionProfile): ConnectionProfile = profile.copy(
         sshPassword = profile.sshPassword?.let { CredentialEncryption.encrypt(context, it) },

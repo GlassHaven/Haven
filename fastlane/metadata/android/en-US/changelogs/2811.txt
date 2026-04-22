@@ -1,0 +1,23 @@
+v5.24.17: clearer SSH-tunnel UX on RDP and SMB connection dialogs
+
+The "SSH tunnel" checkbox on RDP and SMB connection profiles lived near
+the bottom of the form with no visual link to the Host field, and
+defaulted the tunnel target to "localhost" — which, thanks to the same
+IPv6 getaddrinfo quirk fixed for VNC in v5.24.14, could fail against
+services bound only to 127.0.0.1.
+
+RDP form reorganised:
+
+- **Tunnel through SSH** toggle (renamed from "SSH tunnel") and the
+  "SSH connection" picker both moved to the top of the dialog so
+  the decision reads as a single unit before the RDP-target fields.
+- When the tunnel is on, the Host field relabels to "RDP host (on
+  SSH server)" with supporting text explaining that this is where
+  the RDP service is reachable from the SSH server's perspective
+  (usually 127.0.0.1 if they're the same machine).
+- Default Host changed from "localhost" to "127.0.0.1" when the
+  tunnel is enabled, avoiding the IPv6 resolution ambiguity.
+
+SMB: same label rename and default-host change. Full reorganisation
+of the SMB form is a larger follow-up (SMB has host discovery
+chips that tightly couple with the Host field).

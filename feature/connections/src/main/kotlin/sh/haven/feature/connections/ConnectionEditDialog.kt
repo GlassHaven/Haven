@@ -502,66 +502,30 @@ fun ConnectionEditDialog(
                         color = MaterialTheme.colorScheme.onSurfaceVariant,
                     )
                 } else if (connectionType == "RDP") {
-                    // RDP: host, port, username, domain
-                    OutlinedTextField(
-                        value = host,
-                        onValueChange = { host = it },
-                        label = { Text("Host") },
-                        placeholder = { Text("192.168.1.100") },
-                        singleLine = true,
-                        modifier = Modifier.fillMaxWidth(),
-                    )
-                    Spacer(Modifier.height(4.dp))
-                    Row(
-                        horizontalArrangement = Arrangement.spacedBy(8.dp),
-                    ) {
-                        OutlinedTextField(
-                            value = rdpUsername,
-                            onValueChange = { rdpUsername = it },
-                            label = { Text("Username") },
-                            placeholder = { Text("user") },
-                            singleLine = true,
-                            modifier = Modifier.weight(1f),
-                        )
-                        OutlinedTextField(
-                            value = port,
-                            onValueChange = { port = it.filter { c -> c.isDigit() } },
-                            label = { Text("Port") },
-                            singleLine = true,
-                            keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Number),
-                            modifier = Modifier.width(80.dp),
-                        )
-                    }
-                    Spacer(Modifier.height(4.dp))
-                    sh.haven.core.ui.PasswordField(
-                        value = rdpPassword,
-                        onValueChange = { rdpPassword = it },
-                        label = "Password (optional)",
-                        modifier = Modifier.fillMaxWidth(),
-                    )
-                    Spacer(Modifier.height(4.dp))
-                    OutlinedTextField(
-                        value = rdpDomain,
-                        onValueChange = { rdpDomain = it },
-                        label = { Text("Domain (optional)") },
-                        placeholder = { Text("WORKGROUP") },
-                        singleLine = true,
-                        modifier = Modifier.fillMaxWidth(),
-                    )
-                    Spacer(Modifier.height(4.dp))
+                    // RDP: SSH tunnel toggle first (it changes what Host means),
+                    // then host, port, username, domain.
                     FilterChip(
                         selected = rdpSshForward,
                         onClick = {
                             rdpSshForward = !rdpSshForward
                             if (rdpSshForward) {
-                                if (host.isBlank()) host = "localhost"
+                                // Default to 127.0.0.1 (not "localhost") so
+                                // the remote sshd doesn't hit the IPv6
+                                // loopback first and fail against a
+                                // server bound to IPv4 only. Matches the
+                                // VNC tunnel fix in v5.24.14.
+                                if (host.isBlank() || host == "localhost") host = "127.0.0.1"
                             } else {
                                 rdpSshProfileId = null
-                                if (host == "localhost") host = ""
+                                if (host == "127.0.0.1" || host == "localhost") host = ""
                             }
                         },
-                        label = { Text("SSH tunnel") },
+                        label = { Text("Tunnel through SSH") },
                     )
+                    // SSH profile dropdown sits right next to the tunnel toggle
+                    // so the two fields read as one decision ("tunnel through
+                    // [this SSH connection]"), rather than having the SSH
+                    // picker buried at the bottom of the dialog.
                     if (rdpSshForward) {
                         val sshCandidates = sshProfiles.filter { it.isSsh }
                         if (sshCandidates.isNotEmpty()) {
@@ -605,6 +569,60 @@ fun ConnectionEditDialog(
                             )
                         }
                     }
+                    Spacer(Modifier.height(4.dp))
+                    OutlinedTextField(
+                        value = host,
+                        onValueChange = { host = it },
+                        label = { Text(if (rdpSshForward) "RDP host (on SSH server)" else "Host") },
+                        placeholder = { Text(if (rdpSshForward) "127.0.0.1" else "192.168.1.100") },
+                        supportingText = if (rdpSshForward) {
+                            {
+                                Text(
+                                    "Where the RDP server is reachable from the SSH server — usually 127.0.0.1 if they're the same machine.",
+                                    style = MaterialTheme.typography.bodySmall,
+                                )
+                            }
+                        } else null,
+                        singleLine = true,
+                        modifier = Modifier.fillMaxWidth(),
+                    )
+                    Spacer(Modifier.height(4.dp))
+                    Row(
+                        horizontalArrangement = Arrangement.spacedBy(8.dp),
+                    ) {
+                        OutlinedTextField(
+                            value = rdpUsername,
+                            onValueChange = { rdpUsername = it },
+                            label = { Text("Username") },
+                            placeholder = { Text("user") },
+                            singleLine = true,
+                            modifier = Modifier.weight(1f),
+                        )
+                        OutlinedTextField(
+                            value = port,
+                            onValueChange = { port = it.filter { c -> c.isDigit() } },
+                            label = { Text("Port") },
+                            singleLine = true,
+                            keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Number),
+                            modifier = Modifier.width(80.dp),
+                        )
+                    }
+                    Spacer(Modifier.height(4.dp))
+                    sh.haven.core.ui.PasswordField(
+                        value = rdpPassword,
+                        onValueChange = { rdpPassword = it },
+                        label = "Password (optional)",
+                        modifier = Modifier.fillMaxWidth(),
+                    )
+                    Spacer(Modifier.height(4.dp))
+                    OutlinedTextField(
+                        value = rdpDomain,
+                        onValueChange = { rdpDomain = it },
+                        label = { Text("Domain (optional)") },
+                        placeholder = { Text("WORKGROUP") },
+                        singleLine = true,
+                        modifier = Modifier.fillMaxWidth(),
+                    )
                 } else if (connectionType == "SMB") {
                     // SMB: host (with discovery), share, username, port, password, domain, SSH tunnel
                     val filteredSmbHosts = remember(discoveredSmbHosts, host) {
@@ -791,13 +809,17 @@ fun ConnectionEditDialog(
                         onClick = {
                             smbSshForward = !smbSshForward
                             if (smbSshForward) {
-                                if (host.isBlank()) host = "localhost"
+                                // 127.0.0.1 rather than "localhost" so the
+                                // remote sshd doesn't resolve to the IPv6
+                                // loopback first. Matches the VNC tunnel
+                                // fix in v5.24.14.
+                                if (host.isBlank() || host == "localhost") host = "127.0.0.1"
                             } else {
                                 smbSshProfileId = null
-                                if (host == "localhost") host = ""
+                                if (host == "127.0.0.1" || host == "localhost") host = ""
                             }
                         },
-                        label = { Text("SSH tunnel") },
+                        label = { Text("Tunnel through SSH") },
                     )
                     if (smbSshForward) {
                         val sshCandidates = sshProfiles.filter { it.isSsh }

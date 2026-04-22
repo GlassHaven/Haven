@@ -1,0 +1,15 @@
+v5.24.13: fix two small UI bugs (#105)
+
+Port forward dialog: the Local/Remote/Dynamic type picker placed all
+three chips in a fixed-width row. On narrow screens (Motorola Edge
+20-class handsets, phones in split-screen) the third chip squeezed
+its "Dynamic (-D)" label into a single-character column so it
+rendered vertically. The row now flows to a second line when the
+chips don't fit side-by-side.
+
+Add-tunnel dialog: the full-size Dialog used for the WireGuard /
+Tailscale editor had no opaque background, so whatever was behind
+it showed through — the whole sheet looked semi-transparent. Added
+a Surface wrapper so the dialog reads cleanly.
+
+Both reported on #105.

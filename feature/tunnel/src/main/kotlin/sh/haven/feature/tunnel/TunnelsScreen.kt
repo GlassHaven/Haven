@@ -30,6 +30,7 @@ import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.Scaffold
 import androidx.compose.material3.SnackbarHost
 import androidx.compose.material3.SnackbarHostState
+import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
@@ -257,16 +258,20 @@ private fun AddTunnelDialog(
 
     // Use a full-size Dialog rather than AlertDialog so the config editor
     // gets real screen width instead of the AlertDialog's narrow column.
+    // Wrap in Surface so the dialog has an opaque background — without it
+    // the full-size Dialog draws against whatever's behind it, making the
+    // whole sheet look semi-transparent (#105).
     Dialog(
         onDismissRequest = onDismiss,
         properties = DialogProperties(usePlatformDefaultWidth = false),
     ) {
-        Column(
-            modifier = Modifier
-                .fillMaxSize()
-                .padding(16.dp),
-            verticalArrangement = Arrangement.spacedBy(12.dp),
-        ) {
+        Surface(modifier = Modifier.fillMaxSize()) {
+            Column(
+                modifier = Modifier
+                    .fillMaxSize()
+                    .padding(16.dp),
+                verticalArrangement = Arrangement.spacedBy(12.dp),
+            ) {
             Text(
                 "Add tunnel",
                 style = MaterialTheme.typography.headlineSmall,
@@ -370,6 +375,7 @@ private fun AddTunnelDialog(
                     },
                     enabled = canSubmit,
                 ) { Text("Save") }
+            }
             }
         }
     }

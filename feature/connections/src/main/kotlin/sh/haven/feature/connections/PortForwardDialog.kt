@@ -2,6 +2,7 @@ package sh.haven.feature.connections
 
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.FlowRow
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxWidth
@@ -395,8 +396,10 @@ private fun PortForwardForm(
         (bindPortIsWarning || bindPortError == null)
 
     Column {
-        // Type selector
-        Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+        // Type selector — FlowRow so the three chips reflow to a second line
+        // on narrow screens (e.g. Edge 20-class handsets) instead of squeezing
+        // each label into a single character column (#105).
+        FlowRow(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
             FilterChip(
                 selected = isLocal,
                 onClick = {

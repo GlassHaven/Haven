@@ -210,7 +210,6 @@ class DesktopViewModel @Inject constructor(
 
                 val config = VncConfig().apply {
                     colorDepth = ColorDepth.BPP_24_TRUE
-                    targetFps = 10
                     shared = true
                     if (!password.isNullOrEmpty()) passwordSupplier = { password }
                     if (!username.isNullOrEmpty()) usernameSupplier = { username }

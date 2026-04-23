@@ -12,6 +12,12 @@ class VncConfig {
     var onError: ((Exception) -> Unit)? = null
     var onBell: (() -> Unit)? = null
     var onRemoteClipboard: ((String) -> Unit)? = null
+    /**
+     * Called when the server sends a new cursor shape via the Cursor
+     * pseudo-encoding. Args: ARGB_8888 bitmap, hotspot x, hotspot y.
+     * An empty cursor (0×0) is signalled as a null bitmap and hotspot 0,0.
+     */
+    var onCursorUpdate: ((Bitmap?, Int, Int) -> Unit)? = null
     var shared: Boolean = true
     var targetFps: Int = 30
     var colorDepth: ColorDepth = ColorDepth.BPP_24_TRUE

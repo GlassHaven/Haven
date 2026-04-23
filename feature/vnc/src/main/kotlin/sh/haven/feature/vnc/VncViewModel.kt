@@ -39,6 +39,13 @@ data class SshTunnelOption(
     val profileId: String,
 )
 
+/** Remote cursor shape, to be drawn at the local pointer position. */
+data class CursorOverlay(
+    val bitmap: Bitmap,
+    val hotspotX: Int,
+    val hotspotY: Int,
+)
+
 @HiltViewModel
 class VncViewModel @Inject constructor(
     private val sshSessionManager: SshSessionManager,
@@ -58,6 +65,14 @@ class VncViewModel @Inject constructor(
 
     private val _serverName = MutableStateFlow<String?>(null)
     val serverName: StateFlow<String?> = _serverName.asStateFlow()
+
+    /** Most recent cursor shape from the server, or null if none received. */
+    private val _cursor = MutableStateFlow<CursorOverlay?>(null)
+    val cursor: StateFlow<CursorOverlay?> = _cursor.asStateFlow()
+
+    /** Current pointer position in framebuffer coords — updated every time we send one. */
+    private val _pointerPos = MutableStateFlow(0 to 0)
+    val pointerPos: StateFlow<Pair<Int, Int>> = _pointerPos.asStateFlow()
 
     private var client: VncClient? = null
     private var tunnelPort: Int? = null
@@ -145,7 +160,6 @@ class VncViewModel @Inject constructor(
 
         val config = VncConfig().apply {
             colorDepth = ColorDepth.BPP_24_TRUE
-            targetFps = 10
             shared = true
             if (!password.isNullOrEmpty()) {
                 passwordSupplier = { password }
@@ -155,6 +169,9 @@ class VncViewModel @Inject constructor(
             }
             onScreenUpdate = { bitmap ->
                 _frame.value = bitmap
+            }
+            onCursorUpdate = { bitmap, hotspotX, hotspotY ->
+                _cursor.value = if (bitmap == null) null else CursorOverlay(bitmap, hotspotX, hotspotY)
             }
             onError = { e ->
                 Log.e(TAG, "VNC error", e)
@@ -205,10 +222,13 @@ class VncViewModel @Inject constructor(
             }
             _connected.value = false
             _frame.value = null
+            _cursor.value = null
+            _pointerPos.value = 0 to 0
         }
     }
 
     fun sendPointer(x: Int, y: Int) {
+        _pointerPos.value = x to y
         viewModelScope.launch(Dispatchers.IO) { client?.moveMouse(x, y) }
     }
 
@@ -221,6 +241,7 @@ class VncViewModel @Inject constructor(
     }
 
     fun sendClick(x: Int, y: Int, button: Int = 1) {
+        _pointerPos.value = x to y
         viewModelScope.launch(Dispatchers.IO) {
             client?.moveMouse(x, y)
             client?.click(button)

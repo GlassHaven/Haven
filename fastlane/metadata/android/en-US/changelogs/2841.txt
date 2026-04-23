@@ -1,0 +1,48 @@
+v5.24.20: VNC latency, remote cursor, ZRLE encoding (#107)
+
+Three changes rolled together, all driven by Nesos-ita's report in
+#107 that Haven's VNC viewer had multi-second click latency and no
+visible remote cursor while a third-party VNC app on the same LAN
+worked fine.
+
+1. Click-to-paint latency dropped from multi-second to ~one RTT.
+
+   The client loop was pacing its FramebufferUpdateRequests on a
+   fixed interval — sleeping unconditionally after each response. Two
+   call sites (VncViewModel.doConnect, DesktopViewModel.addVncSession)
+   hard-coded targetFps=10, so pointer events got sent immediately
+   but the next refresh request could wait up to 100 ms, and each
+   subsequent frame was throttled the same way. Removed both
+   overrides (default is 30 FPS), and replaced the fixed sleep with
+   a reactive wake on VncSession.waitForInput — any pointer / button /
+   key / clipboard send now signals the loop to issue the next
+   request immediately. The FPS setting is still an upper bound.
+
+2. Remote cursor is now drawn.
+
+   The VNC decoder already received the Cursor pseudo-encoding but
+   threw the pixels and mask away. Replaced the skip with a real
+   decoder that builds an ARGB bitmap (mask-zero pixels become
+   transparent) and emits it via a new VncConfig.onCursorUpdate
+   callback. VncViewModel holds the latest cursor + pointer position
+   and the Compose viewer paints the cursor on top of the framebuffer
+   at (pointer − hotspot), reusing the existing zoom/pan transform.
+
+3. ZRLE encoding implemented; ZLIB now actually advertised.
+
+   Modern VNC servers (TigerVNC, RealVNC, wayvnc) prefer ZRLE for
+   the wire format. We previously advertised only RAW / COPYRECT /
+   RRE / HEXTILE, forcing servers to fall back. Added ZRLE(16) to
+   the Encoding enum with all five subencodings (raw CPIXEL, solid,
+   packed palette, plain RLE, palette RLE) and a session-continuous
+   inflater separate from ZLIB's. Also fixed a latent bug in the
+   ZLIB decoder where it re-entered the zlib stream per rect
+   instead of treating it as continuous (RFC 6143 §7.7.5), and added
+   ZLIB to the advertised list alongside ZRLE.
+
+TIGHT encoding deferred — it's a much larger change (JPEG
+subencoding + gradient filter) and ZRLE alone closes the gap
+against the Pi VNC servers.
+
+Unit tests added for the ZRLE subencodings, the cursor decoder, and
+the reactive input-wake behaviour.

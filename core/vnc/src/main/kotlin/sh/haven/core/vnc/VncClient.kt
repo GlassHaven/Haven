@@ -177,7 +177,10 @@ class VncClient(private val config: VncConfig) : Closeable {
                         receivedPixels = true
                         lastPixelTime = System.currentTimeMillis()
                     }
-                    if (got) Thread.sleep(interval)
+                    // Pace the next request: wait up to `interval` ms, but wake
+                    // immediately if the UI sent input so the next refresh goes
+                    // out on the RTT instead of on the scheduled tick.
+                    if (got) sess.waitForInput(interval)
                 }
             } catch (_: InterruptedException) {
             } catch (e: Exception) {

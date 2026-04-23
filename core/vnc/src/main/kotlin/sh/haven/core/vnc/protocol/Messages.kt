@@ -105,6 +105,7 @@ enum class Encoding(val code: Int) {
     RRE(2),
     HEXTILE(5),
     ZLIB(6),
+    ZRLE(16),
     DESKTOP_SIZE(-223),
     CURSOR(-239);
 

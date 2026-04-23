@@ -32,12 +32,18 @@ object Initializer {
         session.pixelFormat = pixelFormat
         SetPixelFormat(pixelFormat).encode(session.outputStream)
 
+        // Preference order matters: servers pick the first advertised encoding
+        // they support. ZRLE is the modern default on TigerVNC / RealVNC, ZLIB
+        // is a useful fallback for older servers that lack it.
         val encodings = mutableListOf<Encoding>()
+        encodings += Encoding.ZRLE
         encodings += Encoding.HEXTILE
+        encodings += Encoding.ZLIB
         encodings += Encoding.RRE
         encodings += Encoding.COPYRECT
         encodings += Encoding.RAW
         encodings += Encoding.DESKTOP_SIZE
+        encodings += Encoding.CURSOR
         SetEncodings(encodings).encode(session.outputStream)
         session.outputStream.flush()
     }

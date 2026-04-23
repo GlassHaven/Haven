@@ -126,10 +126,14 @@ fun VncSessionContent(
     onKeyUp: (keySym: Int) -> Unit,
     onDisconnect: () -> Unit,
     onFullscreenChanged: (Boolean) -> Unit = {},
+    cursor: StateFlow<CursorOverlay?>? = null,
+    pointerPos: StateFlow<Pair<Int, Int>>? = null,
 ) {
     val connectedState by connected.collectAsState()
     val frameState by frame.collectAsState()
     val errorState by error.collectAsState()
+    val cursorState = cursor?.collectAsState()?.value
+    val pointerState = pointerPos?.collectAsState()?.value ?: (0 to 0)
 
     var fullscreen by rememberSaveable { mutableStateOf(false) }
     val view = LocalView.current
@@ -180,6 +184,8 @@ fun VncSessionContent(
             onKeyUp = onKeyUp,
             onToggleFullscreen = { fullscreen = !fullscreen },
             onDisconnect = onDisconnect,
+            cursor = cursorState,
+            pointerPos = pointerState,
         )
     } else {
         VncPlaceholder(error = errorState)
@@ -242,6 +248,8 @@ fun VncScreen(
         onKeyUp = { keySym -> viewModel.sendKey(keySym, false) },
         onDisconnect = { viewModel.disconnect() },
         onFullscreenChanged = onFullscreenChanged,
+        cursor = viewModel.cursor,
+        pointerPos = viewModel.pointerPos,
     )
 }
 
@@ -297,9 +305,12 @@ private fun VncViewer(
     onKeyUp: (Int) -> Unit,
     onToggleFullscreen: () -> Unit,
     onDisconnect: () -> Unit,
+    cursor: CursorOverlay? = null,
+    pointerPos: Pair<Int, Int> = 0 to 0,
 ) {
     var viewSize by remember { mutableStateOf(IntSize.Zero) }
     val imageBitmap = remember(frame) { frame.asImageBitmap() }
+    val cursorImage = remember(cursor?.bitmap) { cursor?.bitmap?.asImageBitmap() }
 
     // Zoom & pan state
     var zoom by remember { mutableFloatStateOf(1f) }
@@ -483,6 +494,19 @@ private fun VncViewer(
                     },
             ) {
                 drawVncFrame(imageBitmap, frame.width, frame.height)
+                if (cursorImage != null && cursor != null) {
+                    drawVncCursor(
+                        cursor = cursorImage,
+                        cursorW = cursor.bitmap.width,
+                        cursorH = cursor.bitmap.height,
+                        hotspotX = cursor.hotspotX,
+                        hotspotY = cursor.hotspotY,
+                        pointerX = pointerPos.first,
+                        pointerY = pointerPos.second,
+                        fbWidth = frame.width,
+                        fbHeight = frame.height,
+                    )
+                }
             }
         }
 
@@ -736,6 +760,38 @@ private fun DrawScope.drawVncFrame(
         srcSize = androidx.compose.ui.unit.IntSize(srcWidth, srcHeight),
         dstOffset = androidx.compose.ui.unit.IntOffset(offsetX.toInt(), offsetY.toInt()),
         dstSize = androidx.compose.ui.unit.IntSize(dstW.toInt(), dstH.toInt()),
+    )
+}
+
+private fun DrawScope.drawVncCursor(
+    cursor: androidx.compose.ui.graphics.ImageBitmap,
+    cursorW: Int,
+    cursorH: Int,
+    hotspotX: Int,
+    hotspotY: Int,
+    pointerX: Int,
+    pointerY: Int,
+    fbWidth: Int,
+    fbHeight: Int,
+) {
+    val viewW = size.width
+    val viewH = size.height
+    val scale = minOf(viewW / fbWidth, viewH / fbHeight)
+    val fbOffsetX = (viewW - fbWidth * scale) / 2
+    val fbOffsetY = (viewH - fbHeight * scale) / 2
+
+    // Cursor origin in framebuffer coords; scale into view.
+    val cx = fbOffsetX + (pointerX - hotspotX) * scale
+    val cy = fbOffsetY + (pointerY - hotspotY) * scale
+    val dstW = cursorW * scale
+    val dstH = cursorH * scale
+
+    drawImage(
+        image = cursor,
+        srcOffset = androidx.compose.ui.unit.IntOffset.Zero,
+        srcSize = androidx.compose.ui.unit.IntSize(cursorW, cursorH),
+        dstOffset = androidx.compose.ui.unit.IntOffset(cx.toInt(), cy.toInt()),
+        dstSize = androidx.compose.ui.unit.IntSize(dstW.toInt().coerceAtLeast(1), dstH.toInt().coerceAtLeast(1)),
     )
 }
 

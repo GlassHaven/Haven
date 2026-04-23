@@ -41,6 +41,10 @@ class VncSession(
     private val fbCondition = fbLock.newCondition()
     @Volatile private var fbUpdated = false
 
+    private val inputLock = ReentrantLock()
+    private val inputCondition = inputLock.newCondition()
+    @Volatile private var inputPending = false
+
     // Mouse state
     private val buttons = BooleanArray(8)
     private var mouseX = 0
@@ -84,6 +88,37 @@ class VncSession(
         }
     }
 
+    /**
+     * Wait for input to be sent by the UI, up to [timeoutMs].
+     * Returns true if input was signalled, false on timeout. The client loop uses
+     * this as a reactive pacing primitive: normally waits out the frame interval,
+     * but wakes immediately after the user clicks / types so the next
+     * FramebufferUpdateRequest goes out without delay.
+     */
+    fun waitForInput(timeoutMs: Long): Boolean {
+        inputLock.lock()
+        try {
+            if (!inputPending) {
+                inputCondition.await(timeoutMs, java.util.concurrent.TimeUnit.MILLISECONDS)
+            }
+            val signalled = inputPending
+            inputPending = false
+            return signalled
+        } finally {
+            inputLock.unlock()
+        }
+    }
+
+    private fun signalInputSent() {
+        inputLock.lock()
+        try {
+            inputPending = true
+            inputCondition.signalAll()
+        } finally {
+            inputLock.unlock()
+        }
+    }
+
     fun requestFramebufferUpdate(incremental: Boolean) {
         val msg = FramebufferUpdateRequest(incremental, 0, 0, framebufferWidth, framebufferHeight)
         sendMessage(msg)
@@ -100,20 +135,26 @@ class VncSession(
         sendMouseStatus()
     }
 
+    /** Current pointer position (in framebuffer coords). */
+    fun pointerPosition(): Pair<Int, Int> = mouseX to mouseY
+
     private fun sendMouseStatus() {
         var mask = 0
         for (i in buttons.indices) {
             if (buttons[i]) mask = mask or (1 shl i)
         }
         sendMessage(PointerEvent(mouseX, mouseY, mask))
+        signalInputSent()
     }
 
     fun sendKeyEvent(keySym: Int, pressed: Boolean) {
         sendMessage(KeyEvent(keySym, pressed))
+        signalInputSent()
     }
 
     fun sendClientCutText(text: String) {
         sendMessage(ClientCutText(text))
+        signalInputSent()
     }
 
     fun sendMessage(msg: Encodable) {

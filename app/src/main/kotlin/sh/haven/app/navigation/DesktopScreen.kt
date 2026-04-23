@@ -70,6 +70,7 @@ fun DesktopScreen(
     desktopViewModel: DesktopViewModel,
     toolbarLayout: ToolbarLayout = ToolbarLayout.DEFAULT,
     navBlockMode: NavBlockMode = NavBlockMode.ALIGNED,
+    inputMode: String = "DIRECT",
     onFullscreenChanged: (Boolean) -> Unit = {},
     onConnectedChanged: (Boolean) -> Unit = {},
 ) {
@@ -123,6 +124,7 @@ fun DesktopScreen(
                             onFullscreenChanged = onFullscreenChanged,
                             cursor = tab.cursor,
                             pointerPos = tab.pointerPos,
+                            inputMode = inputMode,
                         )
 
                         is DesktopTab.Rdp -> RdpSessionContent(

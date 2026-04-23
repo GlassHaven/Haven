@@ -135,7 +135,7 @@ private val PROFILE_COLORS = listOf(
 fun ConnectionsScreen(
     onNavigateToTerminal: (profileId: String) -> Unit = {},
     onNavigateToNewSession: (profileId: String) -> Unit = {},
-    onNavigateToVnc: (host: String, port: Int, password: String?, username: String?, sshForward: Boolean, sshSessionId: String?, profileId: String?) -> Unit = { _, _, _, _, _, _, _ -> },
+    onNavigateToVnc: (host: String, port: Int, password: String?, username: String?, sshForward: Boolean, sshSessionId: String?, profileId: String?, colorDepth: String) -> Unit = { _, _, _, _, _, _, _, _ -> },
     onNavigateToRdp: (host: String, port: Int, username: String, password: String, domain: String, sshForward: Boolean, sshProfileId: String?, sshSessionId: String?, profileId: String?) -> Unit = { _, _, _, _, _, _, _, _, _ -> },
     onNavigateToSmb: (profileId: String) -> Unit = {},
     onNavigateToRclone: (profileId: String) -> Unit = {},
@@ -207,7 +207,7 @@ fun ConnectionsScreen(
 
     LaunchedEffect(navigateToVnc) {
         navigateToVnc?.let { nav ->
-            onNavigateToVnc(nav.host, nav.port, nav.password, nav.username, nav.sshForward, nav.sshSessionId, nav.profileId)
+            onNavigateToVnc(nav.host, nav.port, nav.password, nav.username, nav.sshForward, nav.sshSessionId, nav.profileId, nav.colorDepth)
             viewModel.onNavigated()
         }
     }

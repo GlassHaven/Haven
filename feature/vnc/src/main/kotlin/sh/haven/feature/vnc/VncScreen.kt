@@ -129,6 +129,7 @@ fun VncSessionContent(
     onFullscreenChanged: (Boolean) -> Unit = {},
     cursor: StateFlow<CursorOverlay?>? = null,
     pointerPos: StateFlow<Pair<Int, Int>>? = null,
+    inputMode: String = "DIRECT",
 ) {
     val connectedState by connected.collectAsState()
     val frameState by frame.collectAsState()
@@ -187,6 +188,7 @@ fun VncSessionContent(
             onDisconnect = onDisconnect,
             cursor = cursorState,
             pointerPos = pointerState,
+            inputMode = inputMode,
         )
     } else {
         VncPlaceholder(error = errorState)
@@ -308,6 +310,7 @@ private fun VncViewer(
     onDisconnect: () -> Unit,
     cursor: CursorOverlay? = null,
     pointerPos: Pair<Int, Int> = 0 to 0,
+    inputMode: String = "DIRECT",
 ) {
     var viewSize by remember { mutableStateOf(IntSize.Zero) }
     val imageBitmap = remember(frame) { frame.asImageBitmap() }
@@ -317,6 +320,26 @@ private fun VncViewer(
     var zoom by remember { mutableFloatStateOf(1f) }
     var panX by remember { mutableFloatStateOf(0f) }
     var panY by remember { mutableFloatStateOf(0f) }
+
+    // Mario-camera viewport pan: when in touchpad mode and zoomed, snap the
+    // pan so the cursor always stays inside the inner dead-zone of the view.
+    LaunchedEffect(pointerPos, inputMode, zoom, viewSize, frame.width, frame.height) {
+        if (inputMode == "TOUCHPAD" && zoom > 1f && viewSize.width > 0 && viewSize.height > 0) {
+            val (newPanX, newPanY) = cameraFollow(
+                cursorFbX = pointerPos.first,
+                cursorFbY = pointerPos.second,
+                fbWidth = frame.width,
+                fbHeight = frame.height,
+                viewW = viewSize.width.toFloat(),
+                viewH = viewSize.height.toFloat(),
+                zoom = zoom,
+                panX = panX,
+                panY = panY,
+            )
+            if (newPanX != panX) panX = newPanX
+            if (newPanY != panY) panY = newPanY
+        }
+    }
 
     // Keyboard
     val focusRequester = remember { FocusRequester() }
@@ -356,7 +379,7 @@ private fun VncViewer(
                 .onSizeChanged { viewSize = it }
                 // All touch handling: tap, drag, pinch-to-zoom, two-finger pan/scroll.
                 // Uses Initial pass and consumes all events so the pager can't steal them.
-                .pointerInput(frame.width, frame.height, viewSize) {
+                .pointerInput(frame.width, frame.height, viewSize, inputMode) {
                     val touchSlopPx = viewConfiguration.touchSlop
                     awaitEachGesture {
                         val firstDown = awaitFirstDown(
@@ -375,6 +398,13 @@ private fun VncViewer(
                         var longPressFired = false
                         val longPressMs = viewConfiguration.longPressTimeoutMillis
                         val downUptimeMs = firstDown.uptimeMillis
+                        // In TOUCHPAD mode, the gesture handler maintains its
+                        // own virtual cursor seeded from the inbound pointerPos.
+                        // Single-finger drag integrates screen-space deltas
+                        // (divided by zoom for framebuffer-space) into
+                        // virtualCursor, which is what tap/long-press/drag
+                        // callbacks receive instead of screenToVnc(finger).
+                        var virtualCursor = pointerPos
 
                         var event: PointerEvent
                         do {
@@ -390,12 +420,16 @@ private fun VncViewer(
                             if (timedEvent == null) {
                                 // Timeout — fire long press (right-click)
                                 if (!longPressFired && !dragging && totalMovement < touchSlopPx) {
-                                    val pos = screenToVnc(
-                                        lastSinglePos, viewSize,
-                                        frame.width, frame.height,
-                                        zoom, panX, panY,
-                                    )
-                                    onLongPress(pos.first, pos.second)
+                                    val (vx, vy) = if (inputMode == "TOUCHPAD") {
+                                        virtualCursor
+                                    } else {
+                                        screenToVnc(
+                                            lastSinglePos, viewSize,
+                                            frame.width, frame.height,
+                                            zoom, panX, panY,
+                                        )
+                                    }
+                                    onLongPress(vx, vy)
                                     longPressFired = true
                                 }
                                 // Wait for the actual next event
@@ -461,19 +495,37 @@ private fun VncViewer(
                                 pointers.forEach { it.consume() }
                             } else if (count == 1 && totalFingers == 1) {
                                 val change = pointers.first()
-                                totalMovement += change.positionChange().getDistance()
+                                val deltaScreen = change.positionChange()
+                                totalMovement += deltaScreen.getDistance()
                                 lastSinglePos = change.position
-                                val pos = screenToVnc(
-                                    change.position, viewSize,
-                                    frame.width, frame.height,
-                                    zoom, panX, panY,
-                                )
-                                // Start drag (button 1 press) once movement exceeds touch slop
-                                if (!longPressFired && !dragging && totalMovement >= touchSlopPx) {
-                                    onDragStart(pos.first, pos.second)
-                                    dragging = true
-                                } else if (dragging) {
-                                    onDrag(pos.first, pos.second)
+                                if (inputMode == "TOUCHPAD") {
+                                    // Integrate finger delta into virtualCursor in
+                                    // framebuffer coords (screen delta / zoom).
+                                    // No button press — drag-with-button isn't
+                                    // supported in touchpad mode v1; users who
+                                    // need it switch back to direct touch.
+                                    val scale = if (zoom > 0f) zoom else 1f
+                                    val nx = (virtualCursor.first + (deltaScreen.x / scale).toInt())
+                                        .coerceIn(0, frame.width - 1)
+                                    val ny = (virtualCursor.second + (deltaScreen.y / scale).toInt())
+                                        .coerceIn(0, frame.height - 1)
+                                    virtualCursor = nx to ny
+                                    if (!longPressFired && totalMovement >= touchSlopPx) {
+                                        onDrag(nx, ny)
+                                    }
+                                } else {
+                                    val pos = screenToVnc(
+                                        change.position, viewSize,
+                                        frame.width, frame.height,
+                                        zoom, panX, panY,
+                                    )
+                                    // Start drag (button 1 press) once movement exceeds touch slop
+                                    if (!longPressFired && !dragging && totalMovement >= touchSlopPx) {
+                                        onDragStart(pos.first, pos.second)
+                                        dragging = true
+                                    } else if (dragging) {
+                                        onDrag(pos.first, pos.second)
+                                    }
                                 }
                                 change.consume()
                             }
@@ -486,11 +538,15 @@ private fun VncViewer(
 
                         // Short tap with little movement = click (skip if long press fired)
                         if (totalFingers == 1 && totalMovement < touchSlopPx && !longPressFired) {
-                            val (vx, vy) = screenToVnc(
-                                lastSinglePos, viewSize,
-                                frame.width, frame.height,
-                                zoom, panX, panY,
-                            )
+                            val (vx, vy) = if (inputMode == "TOUCHPAD") {
+                                virtualCursor
+                            } else {
+                                screenToVnc(
+                                    lastSinglePos, viewSize,
+                                    frame.width, frame.height,
+                                    zoom, panX, panY,
+                                )
+                            }
                             onTap(vx, vy)
                         }
                     }
@@ -810,6 +866,60 @@ private fun DrawScope.drawVncCursor(
         dstOffset = androidx.compose.ui.unit.IntOffset(cx.toInt(), cy.toInt()),
         dstSize = androidx.compose.ui.unit.IntSize(dstW.toInt().coerceAtLeast(1), dstH.toInt().coerceAtLeast(1)),
     )
+}
+
+/**
+ * Mario-camera viewport pan: keep the cursor inside an inner dead-zone of
+ * the view. Returns the (panX, panY) we should snap to. No-op when not
+ * zoomed in (whole framebuffer fits, no point panning).
+ *
+ * Math: the forward transform from framebuffer (fbX, fbY) to screen pixel is:
+ *   localX = fbX * fitScale + fitOffsetX
+ *   screenX = (localX - cx) * zoom + cx + panX
+ * (and analogously for Y). For each axis independently, if the cursor's
+ * screen position lands outside the dead-zone, adjust pan so it lands on
+ * the dead-zone boundary.
+ */
+internal fun cameraFollow(
+    cursorFbX: Int, cursorFbY: Int,
+    fbWidth: Int, fbHeight: Int,
+    viewW: Float, viewH: Float,
+    zoom: Float, panX: Float, panY: Float,
+    deadZoneFraction: Float = 0.30f,
+): Pair<Float, Float> {
+    if (zoom <= 1f) return panX to panY
+    if (viewW <= 0f || viewH <= 0f || fbWidth <= 0 || fbHeight <= 0) return panX to panY
+
+    val cx = viewW / 2f
+    val cy = viewH / 2f
+    val fitScale = minOf(viewW / fbWidth, viewH / fbHeight)
+    val fitOffsetX = (viewW - fbWidth * fitScale) / 2f
+    val fitOffsetY = (viewH - fbHeight * fitScale) / 2f
+
+    val localX = cursorFbX * fitScale + fitOffsetX
+    val localY = cursorFbY * fitScale + fitOffsetY
+    val screenX = (localX - cx) * zoom + cx + panX
+    val screenY = (localY - cy) * zoom + cy + panY
+
+    // Dead-zone: centred rectangle of size view * (1 - margin).
+    val marginX = viewW * (deadZoneFraction / 2f)
+    val marginY = viewH * (deadZoneFraction / 2f)
+    val minX = marginX
+    val maxX = viewW - marginX
+    val minY = marginY
+    val maxY = viewH - marginY
+
+    val newPanX = when {
+        screenX < minX -> panX + (minX - screenX)
+        screenX > maxX -> panX - (screenX - maxX)
+        else -> panX
+    }
+    val newPanY = when {
+        screenY < minY -> panY + (minY - screenY)
+        screenY > maxY -> panY - (screenY - maxY)
+        else -> panY
+    }
+    return newPanX to newPanY
 }
 
 /**

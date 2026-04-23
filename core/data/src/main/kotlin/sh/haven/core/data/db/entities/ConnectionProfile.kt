@@ -29,6 +29,14 @@ data class ConnectionProfile(
     val vncPassword: String? = null,
     val vncSshForward: Boolean = true,
     val vncSshProfileId: String? = null,
+    /**
+     * VNC pixel format negotiated with the server. One of "BPP_24_TRUE"
+     * (default), "BPP_16_TRUE", "BPP_8_TRUE", or "BPP_8_INDEXED". Lower
+     * depths use less bandwidth on slow links — RealVNC uses 8-bit
+     * indexed for mobile data, which is what users on 3 Mbps paths
+     * need to make Haven usable (Nesos-ita, #107).
+     */
+    val vncColorDepth: String = "BPP_24_TRUE",
     val sessionManager: String? = null,
     val useMosh: Boolean = false,
     val useEternalTerminal: Boolean = false,

@@ -158,6 +158,8 @@ fun HavenNavHost(
         .collectAsState(initial = true)
     val showTerminalTabBar by preferencesRepository.showTerminalTabBar
         .collectAsState(initial = true)
+    val desktopInputMode by preferencesRepository.desktopInputMode
+        .collectAsState(initial = "DIRECT")
 
     // Profile ID to focus when navigating to terminal
     var pendingTerminalProfileId by rememberSaveable { mutableStateOf<String?>(null) }
@@ -219,12 +221,13 @@ fun HavenNavHost(
                             pagerState.animateScrollToPage(pageOf(Screen.Terminal))
                         }
                     },
-                    onNavigateToVnc = { host, port, password, username, sshForward, sshSessionId, profileId ->
+                    onNavigateToVnc = { host, port, password, username, sshForward, sshSessionId, profileId, colorDepth ->
                         desktopViewModel.addVncSession(
                             host, port, password, username,
                             sshForward = sshForward,
                             sshSessionId = sshSessionId,
                             profileId = profileId,
+                            colorDepth = colorDepth,
                         )
                         coroutineScope.launch {
                             pagerState.animateScrollToPage(pageOf(Screen.Desktop))
@@ -348,6 +351,7 @@ fun HavenNavHost(
                         desktopViewModel = desktopViewModel,
                         toolbarLayout = toolbarLayout,
                         navBlockMode = navBlockMode,
+                        inputMode = desktopInputMode,
                         onFullscreenChanged = { desktopFullscreen = it },
                         onConnectedChanged = { desktopConnected = it },
                     )

@@ -31,6 +31,7 @@ import androidx.compose.material.icons.filled.BugReport
 import androidx.compose.material.icons.filled.CloudDownload
 import androidx.compose.material.icons.filled.CloudUpload
 import androidx.compose.material.icons.filled.Laptop
+import androidx.compose.material.icons.filled.Mouse
 import androidx.compose.material.icons.filled.InstallMobile
 import androidx.compose.material.icons.filled.ColorLens
 import androidx.compose.material.icons.filled.ContentCopy
@@ -150,6 +151,7 @@ fun SettingsScreen(
     val unseenAgentActivity by viewModel.unseenAgentActivity.collectAsState()
     val requireAgentConsentForWrites by viewModel.requireAgentConsentForWrites.collectAsState()
     val mouseInputEnabled by viewModel.mouseInputEnabled.collectAsState()
+    val desktopInputMode by viewModel.desktopInputMode.collectAsState()
     val terminalRightClick by viewModel.terminalRightClick.collectAsState()
     val allowStandardKeyboard by viewModel.allowStandardKeyboard.collectAsState()
     val interceptCtrlShiftV by viewModel.interceptCtrlShiftV.collectAsState()
@@ -355,6 +357,18 @@ fun SettingsScreen(
             onCheckedChange = { enabled ->
                 viewModel.setShowCopyOutputButton(enabled)
                 if (enabled) showOsc133SetupDialog = true
+            },
+        )
+        SettingsToggleItem(
+            icon = Icons.Filled.Mouse,
+            title = "Touchpad input (VNC/RDP)",
+            subtitle = if (desktopInputMode == "TOUCHPAD")
+                "Drag moves the remote cursor; tap clicks at the cursor. The viewport follows the cursor when zoomed."
+            else
+                "Direct touch — finger position is the pointer. Toggle on for trackpad-style input.",
+            checked = desktopInputMode == "TOUCHPAD",
+            onCheckedChange = { enabled ->
+                viewModel.setDesktopInputMode(if (enabled) "TOUCHPAD" else "DIRECT")
             },
         )
         SettingsToggleItem(

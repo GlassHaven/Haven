@@ -26,7 +26,7 @@ import sh.haven.core.data.db.entities.TunnelConfig
         TunnelConfig::class,
         PasteQueueEntry::class,
     ],
-    version = 37,
+    version = 38,
     exportSchema = true,
 )
 abstract class HavenDatabase : RoomDatabase() {
@@ -379,6 +379,20 @@ abstract class HavenDatabase : RoomDatabase() {
             override fun migrate(db: SupportSQLiteDatabase) {
                 db.execSQL(
                     "ALTER TABLE connection_profiles ADD COLUMN vncSshProfileId TEXT DEFAULT NULL"
+                )
+            }
+        }
+
+        /**
+         * Per-profile VNC pixel format (24-bit / 16-bit / 8-bit). Defaults
+         * to existing behaviour. Added so users on slow mobile paths can
+         * downshift to 256 colours and have a usable session, mirroring
+         * RealVNC's behaviour (Nesos-ita on #107).
+         */
+        val MIGRATION_37_38 = object : Migration(37, 38) {
+            override fun migrate(db: SupportSQLiteDatabase) {
+                db.execSQL(
+                    "ALTER TABLE connection_profiles ADD COLUMN vncColorDepth TEXT NOT NULL DEFAULT 'BPP_24_TRUE'"
                 )
             }
         }

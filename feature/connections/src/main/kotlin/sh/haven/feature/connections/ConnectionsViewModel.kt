@@ -466,6 +466,7 @@ class ConnectionsViewModel @Inject constructor(
         val sshProfileId: String? = null,
         val sshSessionId: String? = null,
         val profileId: String? = null,
+        val colorDepth: String = "BPP_24_TRUE",
     )
     private val _navigateToVnc = MutableStateFlow<VncNavigation?>(null)
     val navigateToVnc: StateFlow<VncNavigation?> = _navigateToVnc.asStateFlow()
@@ -942,6 +943,7 @@ class ConnectionsViewModel @Inject constructor(
                         sshProfileId = sshProfileId,
                         sshSessionId = sshSessionId,
                         profileId = profile.id,
+                        colorDepth = profile.vncColorDepth,
                     )
                 } catch (e: Exception) {
                     Log.e(TAG, "Failed to connect SSH tunnel host for VNC", e)
@@ -955,6 +957,7 @@ class ConnectionsViewModel @Inject constructor(
                     sshForward = profile.vncSshForward,
                     sshProfileId = profile.vncSshProfileId,
                     profileId = profile.id,
+                    colorDepth = profile.vncColorDepth,
                 )
             }
         }

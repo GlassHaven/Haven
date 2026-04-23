@@ -1,0 +1,52 @@
+v5.24.26: VNC touchpad mode + per-profile colour depth (#107)
+
+The two remaining open follow-ups from Nesos-ita's #107 testing.
+
+1. Per-profile VNC colour depth.
+
+   The connection edit dialog has a new "Colour depth" dropdown with
+   three options:
+   - 24-bit colour (best quality) — the existing default.
+   - 16-bit colour (faster).
+   - 256 colours (lowest bandwidth).
+
+   This is the manual-toggle equivalent of RealVNC's colour-depth
+   downshift on slow links. On a 3 Mbps mobile path, picking
+   256 colours makes the session usable. The decoder already
+   supported all three depths end-to-end (8-bit indexed via the
+   colour map, 16-bit + 32-bit via the regular pixel decoder), so
+   this is purely a wiring change — new `vncColorDepth` field on
+   `connection_profiles` (DB migration 37 → 38), threaded through
+   `VncNavigation` → `addVncSession` → `VncConfig.colorDepth`.
+   Backup/restore round-trips the new field.
+
+   Bandwidth-based auto-downshift (RealVNC also does this) is a
+   separate, larger piece — needs a byte counter on the input
+   stream and moving-average throughput. Not in this release.
+
+2. Touchpad input mode (Settings → Touchpad input).
+
+   New global toggle. When on, VNC drag moves a remote cursor
+   relatively (laptop-trackpad style), tap clicks at the *current
+   cursor position* (not the finger position), long-press
+   right-clicks at the cursor. Two-finger pan/zoom/scroll stay
+   identical in both modes — they were already conflict-free with
+   right-click, so no collision (Nesos-ita's main complaint about
+   the existing two-finger / right-click clash goes away because
+   right-click is now triggered by single-finger long-press at the
+   cursor instead).
+
+   When the framebuffer is zoomed in, the viewport auto-pans to
+   keep the cursor inside the inner 70% dead-zone of the view —
+   the "Mario camera" follow Nesos-ita described. At 1× zoom (no
+   zoom) there's no pan adjustment, since the whole framebuffer
+   already fits.
+
+   v1 limitation: drag-with-button (move windows, select text)
+   isn't supported in touchpad mode yet — the gesture only moves
+   the cursor. Users who need drag-with-button can switch back to
+   Direct touch. RDP touchpad parity is also a follow-up; for now
+   the toggle only affects VNC sessions.
+
+Both changes affect the multi-tab Desktop path; the legacy
+VncScreen path keeps its existing direct-touch behaviour.

@@ -50,6 +50,7 @@ class UserPreferencesRepository @Inject constructor(
     private val showLinuxVmCardKey = booleanPreferencesKey("show_linux_vm_card")
     private val showDesktopsCardKey = booleanPreferencesKey("show_desktops_card")
     private val mediaExtensionsKey = stringPreferencesKey("media_extensions")
+    private val desktopInputModeKey = stringPreferencesKey("desktop_input_mode")
     private val lastMediaServerPortKey = intPreferencesKey("last_media_server_port")
     private val mcpAgentEndpointEnabledKey = booleanPreferencesKey("mcp_agent_endpoint_enabled")
     private val lastViewedAgentAuditTimestampKey = longPreferencesKey("last_viewed_agent_audit_timestamp")
@@ -111,6 +112,23 @@ class UserPreferencesRepository @Inject constructor(
     suspend fun setVerboseLoggingEnabled(enabled: Boolean) {
         dataStore.edit { prefs ->
             prefs[verboseLoggingEnabledKey] = enabled
+        }
+    }
+
+    /**
+     * VNC/RDP desktop input style. "DIRECT" (default) — finger position is
+     * the pointer position. "TOUCHPAD" — drag moves a remote cursor
+     * relatively (laptop-trackpad style), tap clicks at the *cursor*
+     * position. The cursor is also auto-followed by the viewport when
+     * zoomed.
+     */
+    val desktopInputMode: Flow<String> = dataStore.data.map { prefs ->
+        prefs[desktopInputModeKey] ?: "DIRECT"
+    }
+
+    suspend fun setDesktopInputMode(mode: String) {
+        dataStore.edit { prefs ->
+            prefs[desktopInputModeKey] = mode
         }
     }
 

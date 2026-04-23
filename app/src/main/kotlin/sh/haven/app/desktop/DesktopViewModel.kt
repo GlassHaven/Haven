@@ -149,6 +149,7 @@ class DesktopViewModel @Inject constructor(
         sshForward: Boolean = false,
         sshSessionId: String? = null,
         profileId: String? = null,
+        colorDepth: String = "BPP_24_TRUE",
     ) {
         viewModelScope.launch(Dispatchers.IO) {
             // Deduplicate: if a tab for the same connection exists, reuse or replace
@@ -211,7 +212,8 @@ class DesktopViewModel @Inject constructor(
                 val pointerPos = MutableStateFlow(0 to 0)
 
                 val config = VncConfig().apply {
-                    colorDepth = ColorDepth.BPP_24_TRUE
+                    this.colorDepth = runCatching { ColorDepth.valueOf(colorDepth) }
+                        .getOrDefault(ColorDepth.BPP_24_TRUE)
                     shared = true
                     if (!password.isNullOrEmpty()) passwordSupplier = { password }
                     if (!username.isNullOrEmpty()) usernameSupplier = { username }

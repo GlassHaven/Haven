@@ -125,6 +125,13 @@ class SettingsViewModel @Inject constructor(
         latest != null && latest > lastViewed
     }.stateIn(viewModelScope, SharingStarted.WhileSubscribed(5000), false)
 
+    val desktopInputMode: StateFlow<String> = preferencesRepository.desktopInputMode
+        .stateIn(viewModelScope, SharingStarted.WhileSubscribed(5000), "DIRECT")
+
+    fun setDesktopInputMode(mode: String) {
+        viewModelScope.launch { preferencesRepository.setDesktopInputMode(mode) }
+    }
+
     val mouseInputEnabled: StateFlow<Boolean> = preferencesRepository.mouseInputEnabled
         .stateIn(viewModelScope, SharingStarted.WhileSubscribed(5000), true)
 

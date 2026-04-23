@@ -149,6 +149,7 @@ fun ConnectionEditDialog(
         mutableStateOf(existing?.let { it.connectionType == "VNC" && it.vncSshForward && it.vncSshProfileId != null } ?: false)
     }
     var vncSshProfileId by rememberSaveable { mutableStateOf(existing?.vncSshProfileId) }
+    var vncColorDepth by rememberSaveable { mutableStateOf(existing?.vncColorDepth ?: "BPP_24_TRUE") }
     // Saved VNC settings on an SSH profile — editable via the SSH section when
     // the user has ticked "Save for this connection" in the terminal's VNC
     // quick-dialog. `null` means no VNC settings are stored on this profile,
@@ -572,6 +573,43 @@ fun ConnectionEditDialog(
                         style = MaterialTheme.typography.bodySmall,
                         color = MaterialTheme.colorScheme.onSurfaceVariant,
                     )
+                    Spacer(Modifier.height(8.dp))
+                    val depthOptions = listOf(
+                        "BPP_24_TRUE" to "24-bit colour (best quality)",
+                        "BPP_16_TRUE" to "16-bit colour (faster)",
+                        "BPP_8_INDEXED" to "256 colours (lowest bandwidth)",
+                    )
+                    var depthExpanded by remember { mutableStateOf(false) }
+                    val selectedDepth = depthOptions.firstOrNull { it.first == vncColorDepth } ?: depthOptions.first()
+                    ExposedDropdownMenuBox(
+                        expanded = depthExpanded,
+                        onExpandedChange = { depthExpanded = it },
+                    ) {
+                        OutlinedTextField(
+                            value = selectedDepth.second,
+                            onValueChange = {},
+                            readOnly = true,
+                            label = { Text("Colour depth") },
+                            trailingIcon = { ExposedDropdownMenuDefaults.TrailingIcon(depthExpanded) },
+                            modifier = Modifier
+                                .fillMaxWidth()
+                                .menuAnchor(MenuAnchorType.PrimaryNotEditable),
+                        )
+                        ExposedDropdownMenu(
+                            expanded = depthExpanded,
+                            onDismissRequest = { depthExpanded = false },
+                        ) {
+                            depthOptions.forEach { (value, label) ->
+                                DropdownMenuItem(
+                                    text = { Text(label) },
+                                    onClick = {
+                                        vncColorDepth = value
+                                        depthExpanded = false
+                                    },
+                                )
+                            }
+                        }
+                    }
                 } else if (connectionType == "RDP") {
                     // RDP: SSH tunnel toggle first (it changes what Host means),
                     // then host, port, username, domain.
@@ -1823,6 +1861,7 @@ fun ConnectionEditDialog(
                             vncPassword = vncPassword.ifBlank { null },
                             vncSshForward = vncSshForward,
                             vncSshProfileId = if (vncSshForward) vncSshProfileId else null,
+                            vncColorDepth = vncColorDepth,
                             colorTag = colorTag,
                             groupId = groupId,
                         )

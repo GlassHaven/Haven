@@ -207,6 +207,8 @@ class DesktopViewModel @Inject constructor(
                 val connected = MutableStateFlow(false)
                 val frame = MutableStateFlow<Bitmap?>(null)
                 val error = MutableStateFlow<String?>(null)
+                val cursor = MutableStateFlow<sh.haven.feature.vnc.CursorOverlay?>(null)
+                val pointerPos = MutableStateFlow(0 to 0)
 
                 val config = VncConfig().apply {
                     colorDepth = ColorDepth.BPP_24_TRUE
@@ -214,6 +216,9 @@ class DesktopViewModel @Inject constructor(
                     if (!password.isNullOrEmpty()) passwordSupplier = { password }
                     if (!username.isNullOrEmpty()) usernameSupplier = { username }
                     onScreenUpdate = { bitmap -> frame.value = bitmap }
+                    onCursorUpdate = { bmp, hx, hy ->
+                        cursor.value = if (bmp == null) null else sh.haven.feature.vnc.CursorOverlay(bmp, hx, hy)
+                    }
                     onError = { e ->
                         Log.e(TAG, "VNC error on tab $tabId", e)
                         error.value = VncViewModel.describeError(e, host, port)
@@ -233,6 +238,8 @@ class DesktopViewModel @Inject constructor(
                     _connected = connected,
                     _frame = frame,
                     _error = error,
+                    _cursor = cursor,
+                    _pointerPos = pointerPos,
                     tunnelPort = tunnelPort,
                     tunnelSessionId = tunnelSessionId,
                 )
@@ -420,6 +427,10 @@ class DesktopViewModel @Inject constructor(
     // --- Input forwarding (operates on active tab) ---
 
     fun sendPointer(x: Int, y: Int) {
+        when (val tab = activeTab.value) {
+            is DesktopTab.Vnc -> tab._pointerPos.value = x to y
+            else -> {}
+        }
         viewModelScope.launch(Dispatchers.IO) {
             when (val tab = activeTab.value) {
                 is DesktopTab.Vnc -> tab.client.moveMouse(x, y)
@@ -456,6 +467,10 @@ class DesktopViewModel @Inject constructor(
     }
 
     fun sendClick(x: Int, y: Int, button: Int = 1) {
+        when (val tab = activeTab.value) {
+            is DesktopTab.Vnc -> tab._pointerPos.value = x to y
+            else -> {}
+        }
         viewModelScope.launch(Dispatchers.IO) {
             when (val tab = activeTab.value) {
                 is DesktopTab.Vnc -> {

@@ -506,6 +506,9 @@ private fun RdpViewer(
                         scaleY = zoom
                         translationX = panX
                         translationY = panY
+                        // Clip so zoomed/panned pixels don't escape into the
+                        // sibling bottom toolbar (see #107 for VNC equivalent).
+                        clip = true
                     },
             ) {
                 drawRemoteFrame(imageBitmap, frame.width, frame.height)

@@ -1,0 +1,38 @@
+v5.24.25: VNC cursor in Desktop tabs, clip zoom overflow (#107)
+
+Two direct fixes from Nesos-ita's feedback on #107 after testing
+v5.24.21:
+
+1. Remote cursor now draws in the Desktop multi-tab path.
+
+   v5.24.20 shipped the Cursor-pseudo-encoding decoder and a bitmap
+   overlay, but only the legacy `VncScreen → VncViewModel` path was
+   wired to the `cursor` and `pointerPos` StateFlows. The Desktop
+   multi-tab path (where an RDP/VNC tab opened from the Connections
+   screen lives) passed nulls, so the cursor never appeared for any
+   user going through that path — which is most users.
+
+   Fixed by adding `_cursor` and `_pointerPos` MutableStateFlows to
+   `DesktopTab.Vnc`, wiring `VncConfig.onCursorUpdate` into
+   `_cursor`, and updating `_pointerPos` from
+   `DesktopViewModel.sendPointer` / `sendClick`. Threaded both
+   flows into the `VncSessionContent` call at
+   `DesktopScreen.kt:104`.
+
+2. Zoomed framebuffer no longer paints over the bottom toolbar.
+
+   The Canvas used `Modifier.graphicsLayer { scaleX = zoom; ... }`
+   to apply the zoom/pan transform, but `graphicsLayer` defaults to
+   `clip = false` — so when you zoomed in and panned, the rendered
+   pixels escaped the Canvas's layout bounds and painted over the
+   sibling Disconnect / Reset-zoom / Fullscreen toolbar in the
+   enclosing Column. Setting `clip = true` clips the render output
+   to the Canvas bounds. Applied to both VNC and RDP viewers.
+
+Still open from the same report:
+
+- Touchpad mode (drag moves a remote cursor RealVNC-style, with a
+  Mario-camera viewport follow). Larger design piece — separate
+  release.
+- Colour-depth adaptation for low-bandwidth links (RealVNC
+  downshifts to 256 colours on 3 Mbps paths). Separate follow-up.

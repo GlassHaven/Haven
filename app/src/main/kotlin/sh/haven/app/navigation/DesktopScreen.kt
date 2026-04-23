@@ -121,6 +121,8 @@ fun DesktopScreen(
                             onKeyUp = { keySym -> desktopViewModel.sendVncKey(keySym, false) },
                             onDisconnect = { desktopViewModel.closeTab(tab.id) },
                             onFullscreenChanged = onFullscreenChanged,
+                            cursor = tab.cursor,
+                            pointerPos = tab.pointerPos,
                         )
 
                         is DesktopTab.Rdp -> RdpSessionContent(

@@ -504,6 +504,10 @@ private fun VncViewer(
                         scaleY = zoom
                         translationX = panX
                         translationY = panY
+                        // Without this, zoomed/panned pixels escape the Canvas's
+                        // layout bounds and paint over the sibling bottom toolbar
+                        // in the enclosing Column (reported by Nesos-ita on #107).
+                        clip = true
                     },
             ) {
                 drawVncFrame(imageBitmap, frame.width, frame.height)

@@ -5,6 +5,7 @@ import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import sh.haven.core.vnc.VncClient
 import sh.haven.core.rdp.RdpSession
+import sh.haven.feature.vnc.CursorOverlay
 
 /**
  * A single tab on the Desktop screen, representing an active VNC, RDP,
@@ -33,6 +34,10 @@ sealed class DesktopTab {
         val _connected: MutableStateFlow<Boolean> = MutableStateFlow(false),
         val _frame: MutableStateFlow<Bitmap?> = MutableStateFlow(null),
         val _error: MutableStateFlow<String?> = MutableStateFlow(null),
+        /** Latest cursor shape received from the server via the Cursor pseudo-encoding. */
+        val _cursor: MutableStateFlow<CursorOverlay?> = MutableStateFlow(null),
+        /** Local pointer position we last sent to the server (framebuffer coords). */
+        val _pointerPos: MutableStateFlow<Pair<Int, Int>> = MutableStateFlow(0 to 0),
         val tunnelPort: Int? = null,
         val tunnelSessionId: String? = null,
         val profileId: String? = null,
@@ -40,6 +45,8 @@ sealed class DesktopTab {
         override val connected: StateFlow<Boolean> get() = _connected
         override val frame: StateFlow<Bitmap?> get() = _frame
         override val error: StateFlow<String?> get() = _error
+        val cursor: StateFlow<CursorOverlay?> get() = _cursor
+        val pointerPos: StateFlow<Pair<Int, Int>> get() = _pointerPos
     }
 
     data class Rdp(

@@ -40,13 +40,13 @@ jobs:
 
   # Unit tests run once — flavor-agnostic, not worth duplicating per ABI.
   # Skipped entirely when CI already reported success for this SHA.
-  # Runs on the 8-core larger runner when a full test run is needed;
-  # Rust + Go + Gradle all scale well with extra cores.
+  # Runs on the free 4-core runner; larger runners are paid-tier and were
+  # silently queueing release builds once that budget was exhausted.
   test:
     needs: verify-ci
     if: needs.verify-ci.outputs.ci-passed != 'true'
-    runs-on: ubuntu-latest-m
-    timeout-minutes: 30
+    runs-on: ubuntu-latest
+    timeout-minutes: 45
     steps:
       - uses: actions/checkout@v6
         with:
@@ -70,11 +70,13 @@ jobs:
     if: |
       !cancelled() &&
       (needs.verify-ci.outputs.ci-passed == 'true' || needs.test.result == 'success')
-    # 8-core larger runner — arm64 + x64 build jobs run in parallel (matrix),
-    # each one compiling Rust/Go/Gradle on 8 cores. Roughly halves build
-    # wall time vs the free 4-core runner.
-    runs-on: ubuntu-latest-m
-    timeout-minutes: 45
+    # Free 4-core runner — arm64 + x64 build jobs run in parallel (matrix).
+    # Paid larger-tier runners silently queue forever once the Actions
+    # spending cap is hit, so we use the free tier and eat the extra build
+    # time. Timeout is generous to allow the full Rust/Go/Gradle compile
+    # on 4 cores (observed: ~60 min per ABI worst-case).
+    runs-on: ubuntu-latest
+    timeout-minutes: 90
     strategy:
       fail-fast: false
       matrix:

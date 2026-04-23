@@ -178,6 +178,12 @@ fun RdpSessionContent(
         DesktopPlaceholder(
             protocol = "RDP",
             error = errorState,
+            progressState = when {
+                errorState != null -> ProgressState.Error
+                !connectedState -> ProgressState.Connecting
+                else -> ProgressState.WaitingForFrame
+            },
+            onDisconnect = onDisconnect,
         )
     }
 }
@@ -247,10 +253,14 @@ fun RdpScreen(
     )
 }
 
+internal enum class ProgressState { Connecting, WaitingForFrame, Error }
+
 @Composable
 private fun DesktopPlaceholder(
     protocol: String,
     error: String?,
+    progressState: ProgressState = ProgressState.Error,
+    onDisconnect: (() -> Unit)? = null,
 ) {
     Column(
         modifier = Modifier
@@ -261,11 +271,40 @@ private fun DesktopPlaceholder(
     ) {
         Text(protocol, style = MaterialTheme.typography.headlineMedium)
         Spacer(Modifier.height(16.dp))
-        Text(
-            "Add a connection on the Connections tab",
-            style = MaterialTheme.typography.bodyLarge,
-            color = MaterialTheme.colorScheme.onSurfaceVariant,
-        )
+        when (progressState) {
+            ProgressState.Connecting -> {
+                androidx.compose.material3.CircularProgressIndicator()
+                Spacer(Modifier.height(12.dp))
+                Text(
+                    "Connecting…",
+                    style = MaterialTheme.typography.bodyLarge,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant,
+                )
+                Text(
+                    "Handshake in progress. If this hangs, enable verbose connection logging in Settings and retry to see the underlying error.",
+                    style = MaterialTheme.typography.bodySmall,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant,
+                    textAlign = androidx.compose.ui.text.style.TextAlign.Center,
+                    modifier = Modifier.padding(top = 8.dp),
+                )
+            }
+            ProgressState.WaitingForFrame -> {
+                androidx.compose.material3.CircularProgressIndicator()
+                Spacer(Modifier.height(12.dp))
+                Text(
+                    "Connected — waiting for first frame…",
+                    style = MaterialTheme.typography.bodyLarge,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant,
+                )
+            }
+            ProgressState.Error -> {
+                Text(
+                    "Connection failed",
+                    style = MaterialTheme.typography.bodyLarge,
+                    color = MaterialTheme.colorScheme.error,
+                )
+            }
+        }
         if (error != null) {
             Spacer(Modifier.height(16.dp))
             Card(
@@ -280,6 +319,12 @@ private fun DesktopPlaceholder(
                     style = MaterialTheme.typography.bodySmall,
                     modifier = Modifier.padding(12.dp),
                 )
+            }
+        }
+        if (onDisconnect != null && (progressState == ProgressState.Error || progressState == ProgressState.Connecting)) {
+            Spacer(Modifier.height(16.dp))
+            TextButton(onClick = onDisconnect) {
+                Text(if (progressState == ProgressState.Error) "Close" else "Cancel")
             }
         }
     }

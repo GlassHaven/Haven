@@ -82,6 +82,25 @@ pub trait ClipboardCallback: Send + Sync {
     fn on_remote_clipboard(&self, text: String);
 }
 
+/// Lifecycle + error surface for the RDP session, driven from the session
+/// thread. Kotlin uses this to decide when to show the frame vs. a connecting
+/// state vs. an error. Previously every failure in `run_rdp_session` went to
+/// the Rust `log` crate (visible only via `adb logcat`), so the UI sat on the
+/// empty placeholder with no explanation.
+#[uniffi::export(with_foreign)]
+pub trait SessionCallback: Send + Sync {
+    /// Fired once the RDP handshake + capability exchange completes and the
+    /// server has reported a desktop size. `on_resize` fires immediately
+    /// after; frames follow.
+    fn on_connected(&self, width: u16, height: u16);
+    /// Fired when the session thread terminates with an error. `message` is
+    /// an English description of the last failure observed.
+    fn on_error(&self, message: String);
+    /// Fired when the session thread exits cleanly (graceful server
+    /// disconnect or local `disconnect()`).
+    fn on_disconnected(&self);
+}
+
 /// Internal state for the RDP session.
 struct SessionState {
     connected: bool,
@@ -89,6 +108,7 @@ struct SessionState {
     dirty_rects: Vec<RdpRect>,
     frame_callback: Option<Arc<dyn FrameCallback>>,
     clipboard_callback: Option<Arc<dyn ClipboardCallback>>,
+    session_callback: Option<Arc<dyn SessionCallback>>,
     shutdown: bool,
 }
 
@@ -123,6 +143,7 @@ impl RdpClient {
                 dirty_rects: Vec::new(),
                 frame_callback: None,
                 clipboard_callback: None,
+                session_callback: None,
                 shutdown: false,
             })),
             input_queue: Arc::new(Mutex::new(Vec::new())),
@@ -132,7 +153,12 @@ impl RdpClient {
 
     pub fn connect(&self, host: String, port: u16) -> Result<(), RdpError> {
         let addr = format!("{}:{}", host, port);
-        let stream = TcpStream::connect(&addr).map_err(|_| RdpError::ConnectionFailed)?;
+        let stream = TcpStream::connect(&addr).map_err(|e| {
+            // TCP-level failure is surfaced synchronously through the return
+            // value — no thread yet, no callback to fire.
+            error!("TCP connect to {} failed: {}", addr, e);
+            RdpError::ConnectionFailed
+        })?;
         stream
             .set_nonblocking(false)
             .map_err(|_| RdpError::IoError)?;
@@ -150,8 +176,21 @@ impl RdpClient {
         let handle = std::thread::Builder::new()
             .name("rdp-session".into())
             .spawn(move || {
-                if let Err(e) = run_rdp_session(stream, &config, &state, &input_queue, &server_name, server_addr) {
-                    error!("RDP session error: {}", e);
+                let result = run_rdp_session(stream, &config, &state, &input_queue, &server_name, server_addr);
+                let session_cb = state.read().ok().and_then(|s| s.session_callback.clone());
+                match result {
+                    Err(e) => {
+                        error!("RDP session error: {}", e);
+                        if let Some(cb) = session_cb {
+                            cb.on_error(format!("{}", e));
+                        }
+                    }
+                    Ok(()) => {
+                        info!("RDP session exited cleanly");
+                        if let Some(cb) = session_cb {
+                            cb.on_disconnected();
+                        }
+                    }
                 }
                 if let Ok(mut s) = state.write() {
                     s.connected = false;
@@ -200,6 +239,12 @@ impl RdpClient {
     pub fn set_frame_callback(&self, cb: Arc<dyn FrameCallback>) {
         if let Ok(mut s) = self.state.write() {
             s.frame_callback = Some(cb);
+        }
+    }
+
+    pub fn set_session_callback(&self, cb: Arc<dyn SessionCallback>) {
+        if let Ok(mut s) = self.state.write() {
+            s.session_callback = Some(cb);
         }
     }
 
@@ -397,6 +442,11 @@ fn create_tls_config() -> Result<rustls::ClientConfig, RdpError> {
 }
 
 /// Run the blocking RDP session on a dedicated thread.
+///
+/// Returns the raw error message on failure so Kotlin can surface it to the
+/// user rather than swallowing every failure into a generic "Connection
+/// failed" — which is what happened before and produced the "nothing
+/// happens, empty Desktop screen" symptom in #106.
 fn run_rdp_session(
     stream: TcpStream,
     config: &RdpConfig,
@@ -404,7 +454,7 @@ fn run_rdp_session(
     input_queue: &Arc<Mutex<Vec<InputEvent>>>,
     server_name: &str,
     server_addr: SocketAddr,
-) -> Result<(), RdpError> {
+) -> Result<(), String> {
     use ironrdp_blocking::{connect_begin, connect_finalize, mark_as_upgraded, Framed};
     use ironrdp_connector::ServerName;
     use ironrdp_session::{ActiveStage, ActiveStageOutput};
@@ -417,13 +467,11 @@ fn run_rdp_session(
     // Phase 1: Connection initiation (pre-TLS)
     let mut framed = Framed::new(stream);
     let should_upgrade = connect_begin(&mut framed, &mut connector)
-        .map_err(|e| {
-            error!("connect_begin failed: {:?}", e);
-            RdpError::ConnectionFailed
-        })?;
+        .map_err(|e| format!("RDP negotiation failed: {:?}", e))?;
 
     // Phase 2: TLS upgrade
-    let tls_config = create_tls_config()?;
+    let tls_config = create_tls_config()
+        .map_err(|e| format!("TLS configuration failed: {}", e))?;
     let (raw_stream, leftover) = framed.into_inner();
 
     let server_name_ref = rustls::pki_types::ServerName::try_from(server_name.to_string())
@@ -434,7 +482,7 @@ fn run_rdp_session(
     let tls_connector = rustls::ClientConnection::new(
         Arc::new(tls_config),
         server_name_ref,
-    ).map_err(|_| RdpError::TlsError)?;
+    ).map_err(|e| format!("TLS connector init failed: {}", e))?;
 
     let tls_stream = rustls::StreamOwned::new(tls_connector, raw_stream);
     let mut tls_framed = Framed::new_with_leftover(tls_stream, leftover);
@@ -477,11 +525,12 @@ fn run_rdp_session(
         None, // no Kerberos config
     ).map_err(|e| {
         let msg = format!("{:?}", e);
-        error!("connect_finalize failed: {}", msg);
         if msg.contains("Authentication") || msg.contains("Credssp") || msg.contains("LOGON_FAILED") {
-            RdpError::AuthenticationFailed
+            format!("Authentication failed: {}", msg)
+        } else if msg.contains("Tls") || msg.contains("TLS") || msg.contains("unexpected_message") {
+            format!("TLS handshake failed: {}", msg)
         } else {
-            RdpError::ConnectionFailed
+            format!("RDP connect finalize failed: {}", msg)
         }
     })?;
 
@@ -492,18 +541,21 @@ fn run_rdp_session(
 
     let mut image = DecodedImage::new(PixelFormat::RgbA32, fb_width, fb_height);
 
-    let resize_cb = {
-        let mut s = state.write().map_err(|_| RdpError::IoError)?;
+    let (resize_cb, session_cb) = {
+        let mut s = state.write().map_err(|_| "session state lock poisoned".to_string())?;
         s.connected = true;
         s.framebuffer = Some(FrameData {
             width: fb_width,
             height: fb_height,
             pixels: vec![0u8; fb_width as usize * fb_height as usize * 4],
         });
-        s.frame_callback.clone()
+        (s.frame_callback.clone(), s.session_callback.clone())
     };
-    // Invoke callback outside the lock to avoid deadlock when Kotlin
-    // calls getFramebuffer() from within the callback.
+    // Invoke callbacks outside the lock so Kotlin handlers that call back
+    // into getFramebuffer() don't deadlock on the state RwLock.
+    if let Some(cb) = session_cb {
+        cb.on_connected(fb_width, fb_height);
+    }
     if let Some(cb) = resize_cb {
         cb.on_resize(fb_width, fb_height);
     }

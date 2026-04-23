@@ -327,15 +327,29 @@ class DesktopViewModel @Inject constructor(
                     Log.e(TAG, "RDP error on tab $tabId", e)
                     error.value = RdpViewModel.describeError(e, host, port)
                     connected.value = false
+                    if (profileId != null) {
+                        viewModelScope.launch(Dispatchers.IO) {
+                            connectionLogRepository.logEvent(profileId, ConnectionLog.Status.FAILED, details = e.message)
+                        }
+                    }
+                }
+                session.onConnected = { _, _ ->
+                    // Real handshake complete — only now flip the tab to
+                    // "connected". Before this the UI stays on a Connecting
+                    // state rather than a misleading empty framebuffer.
+                    connected.value = true
+                    if (profileId != null) {
+                        viewModelScope.launch(Dispatchers.IO) {
+                            val startLog = session.drainVerboseLog()
+                            connectionLogRepository.logEvent(profileId, ConnectionLog.Status.CONNECTED, verboseLog = startLog)
+                        }
+                    }
                 }
 
                 session.start()
-                connected.value = true
-
-                if (profileId != null) {
-                    val startLog = session.drainVerboseLog()
-                    connectionLogRepository.logEvent(profileId, ConnectionLog.Status.CONNECTED, verboseLog = startLog)
-                }
+                // NB: intentionally no `connected.value = true` here — that
+                // happens in session.onConnected once the Rust worker
+                // thread completes the handshake.
 
                 val tab = DesktopTab.Rdp(
                     id = tabId,

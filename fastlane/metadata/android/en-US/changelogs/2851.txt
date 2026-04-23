@@ -1,0 +1,53 @@
+v5.24.21: RDP error surfacing + "Connecting" state (#106)
+
+Two users (tarokeitaro, TacticalGator) reported RDP connections on
+v5.24.19 landing on the Desktop tab and "nothing happens" — direct
+connection, via WireGuard, and via SSH tunnel, same symptom. Not an
+F-Droid-stale-version issue; happens on current builds.
+
+Root cause is a UX bug, not the protocol itself:
+
+- The Rust `RdpClient::connect()` spawns a worker thread and returns
+  immediately. The handshake, TLS upgrade and capability exchange all
+  happen on that worker. The old Kotlin code logged "RDP connected
+  to <host>" and "Initial frame received" right after connect()
+  returned — neither was actually true, both fired before the worker
+  had done anything.
+- If the worker thread then errored (e.g. TLS handshake rejected),
+  the Rust side called `error!("RDP session error: {}", e)` —
+  which goes to Android logcat only, never crossing back into Kotlin.
+  The `onError` callback in `RdpSession` was never invoked.
+- The Kotlin side set `connected.value = true` synchronously after
+  `session.start()` returned, which meant the tab marked itself as
+  connected *before* the handshake even ran. Then `RdpSessionContent`
+  saw `connected=true && frame=null` and rendered `DesktopPlaceholder`
+  with the empty-state copy "Add a connection on the Connections
+  tab" — indistinguishable from "you haven't started anything".
+
+Fix:
+
+- Added a `SessionCallback` trait to the UniFFI surface with
+  `on_connected(w, h)`, `on_error(message)`, `on_disconnected()`.
+  The Rust worker thread now surfaces every failure through the
+  callback, passing the real error message so the UI can show it
+  (TLS handshake failure, CredSSP auth failure, negotiation failure,
+  etc. all come through distinct). No error path remains
+  logcat-only.
+- `RdpSession.start()` no longer lies — only logs what actually
+  happened, and defers "connected" until `on_connected` fires.
+- `DesktopViewModel` no longer sets `connected.value = true` on
+  `session.start()` return; it sets it in the `onConnected`
+  callback, and logs the CONNECTED audit event only at that point.
+  Errors now log the FAILED audit event with the Rust-side message.
+- The RDP placeholder now distinguishes three states:
+  "Connecting…" (spinner), "Connected — waiting for first frame…"
+  (spinner), and "Connection failed" (red text + the real error).
+  A Close/Cancel button is offered so a hung connection can be
+  aborted without going back to the Connections tab.
+
+This doesn't yet fix the underlying TLS handshake incompatibility
+that's likely behind some of the RDP failures (rustls 0.23 + newer
+OpenSSL-backed xrdp combinations) — that needs the real error
+message to narrow down, which this change exposes for the first
+time. Follow-up investigation once we have real-world error
+strings to work with.

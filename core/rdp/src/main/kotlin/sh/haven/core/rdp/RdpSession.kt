@@ -8,6 +8,7 @@ import sh.haven.rdp.MouseButton
 import sh.haven.rdp.RdpClient
 import sh.haven.rdp.RdpConfig
 import sh.haven.rdp.RdpException
+import sh.haven.rdp.SessionCallback
 import java.io.Closeable
 import java.nio.ByteBuffer
 import java.util.concurrent.ConcurrentLinkedQueue
@@ -54,8 +55,22 @@ class RdpSession(
     var onError: ((Exception) -> Unit)? = null
 
     /**
-     * Start the RDP connection on the current thread.
-     * Call from Dispatchers.IO.
+     * Called once the RDP handshake + capability exchange completes. Prior to
+     * this the session is still in the "Connecting" phase even though
+     * [start] has returned — the Rust connect() only spawns the worker
+     * thread. The UI uses this to flip from "Connecting…" to the rendered
+     * framebuffer.
+     */
+    var onConnected: ((Int, Int) -> Unit)? = null
+
+    /**
+     * Start the RDP session. Call from `Dispatchers.IO`.
+     *
+     * Returns once the TCP connection is established and the worker thread
+     * is spawned — this is NOT equivalent to a usable RDP session. The
+     * handshake, TLS upgrade and capability exchange happen asynchronously
+     * on the worker thread; [onConnected] fires when it completes, [onError]
+     * fires if it fails.
      */
     fun start() {
         if (closed) return
@@ -101,13 +116,28 @@ class RdpSession(
                 }
             })
 
-            log("D", "Connecting to $host:$port...")
-            c.connect(host, port.toUShort())
-            log("D", "RDP connected to $host:$port")
+            c.setSessionCallback(object : SessionCallback {
+                override fun onConnected(width: UShort, height: UShort) {
+                    if (closed) return
+                    log("D", "RDP handshake complete: ${width}x${height}")
+                    onConnected?.invoke(width.toInt(), height.toInt())
+                }
 
-            // Initial frame
-            refreshBitmap()
-            log("D", "Initial frame received")
+                override fun onError(message: String) {
+                    if (closed) return
+                    log("E", "RDP session error: $message")
+                    this@RdpSession.onError?.invoke(RuntimeException(message))
+                }
+
+                override fun onDisconnected() {
+                    if (closed) return
+                    log("D", "RDP session ended cleanly")
+                    onDisconnected?.invoke()
+                }
+            })
+
+            log("D", "Connecting to $host:$port (worker thread will handle handshake)")
+            c.connect(host, port.toUShort())
         } catch (e: UnsatisfiedLinkError) {
             val msg = "RDP native library failed to load: ${e.message}"
             log("E", msg)
@@ -116,7 +146,7 @@ class RdpSession(
             onDisconnected?.invoke()
             throw wrapped
         } catch (e: Exception) {
-            log("E", "RDP connection failed: ${e.message}")
+            log("E", "RDP connect dispatch failed: ${e.message}")
             onError?.invoke(e)
             onDisconnected?.invoke()
             throw e

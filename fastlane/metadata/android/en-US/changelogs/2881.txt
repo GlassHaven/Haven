@@ -1,0 +1,46 @@
+v5.24.24: rolls up v5.24.22 + v5.24.23 (earlier tags didn't publish)
+
+v5.24.22 and v5.24.23 were tagged earlier today but their release
+workflows got stuck queued indefinitely on the paid ubuntu-latest-m
+runner pool once the Actions spending cap was hit. This bundle
+re-releases both on the free ubuntu-latest tier.
+
+Rolled-up changes:
+
+From v5.24.22 (VNC↔SSH parity with RDP + icon fix):
+- The VNC connection form now has the same "Tunnel through SSH"
+  toggle and SSH-profile picker that RDP and SMB already had. A
+  standalone VNC profile can finally opt into SSH tunneling from
+  the edit dialog (host relabels to "VNC host (on SSH server)",
+  defaults to 127.0.0.1 when the toggle is on).
+- Data model: new `vncSshProfileId` column (DB migration 36 → 37),
+  round-tripped in BackupService. ConnectionsViewModel.connectVnc
+  auto-connects the paired SSH session and opens the tunnel when
+  `vncSshForward && vncSshProfileId` is set.
+- Fullscreen overlay: "Reset zoom" no longer uses the same icon as
+  "Exit fullscreen" — they were visually identical when stacked.
+  Reset-zoom now uses `FitScreen`. Applied to VNC and RDP viewers.
+
+From v5.24.23 (pinch-zoom fix):
+- Pinch-zoom in VNC and RDP used incorrect math: the
+  zoom-around-centroid formula assumed the graphicsLayer scale
+  pivot was the view origin (0, 0), but Compose's default
+  TransformOrigin is the view center. Every pinch away from the
+  middle injected a (centroid − viewCenter) displacement into
+  the pan, felt like "zoom flies off sideways". Correct formula
+  in use now: `pan' = (centroid − viewCenter) * (1 − r) + pan * r`
+  with `r = newZoom / zoom` (clamp-aware).
+
+New in v5.24.24:
+- CI: release test+build jobs moved to the free `ubuntu-latest`
+  runner instead of the paid `ubuntu-latest-m` tier. Paid larger
+  runners silently queue once the Actions spending cap is hit,
+  which blocked v5.24.22 and v5.24.23 from ever publishing. Timeouts
+  bumped to absorb the slower 4-core wall time.
+
+#107 feedback that's still open (follow-ups, not in this release):
+cursor is missing on the DesktopTab multi-session VNC path (only
+wired through the legacy VncScreen path in v5.24.20); z-order bug
+where a zoomed image paints over the overlay toolbar; touchpad-mode
+request (drag moves a remote cursor RealVNC-style, with a Mario-
+camera follow); and a low-bandwidth color-depth adaptation.

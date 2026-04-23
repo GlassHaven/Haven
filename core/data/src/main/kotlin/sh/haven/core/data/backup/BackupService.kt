@@ -72,6 +72,7 @@ class BackupService @Inject constructor(
                 put("vncUsername", p.vncUsername ?: JSONObject.NULL)
                 put("vncPassword", p.vncPassword ?: JSONObject.NULL)
                 put("vncSshForward", p.vncSshForward)
+                put("vncSshProfileId", p.vncSshProfileId ?: JSONObject.NULL)
                 put("sessionManager", p.sessionManager ?: JSONObject.NULL)
                 put("useMosh", p.useMosh)
                 put("useEternalTerminal", p.useEternalTerminal)
@@ -321,6 +322,7 @@ class BackupService @Inject constructor(
                             vncUsername = c.optStringOrNull("vncUsername"),
                             vncPassword = c.optStringOrNull("vncPassword"),
                             vncSshForward = c.optBoolean("vncSshForward", true),
+                            vncSshProfileId = c.optStringOrNull("vncSshProfileId"),
                             sessionManager = c.optStringOrNull("sessionManager"),
                             useMosh = c.optBoolean("useMosh", false),
                             useEternalTerminal = c.optBoolean("useEternalTerminal", false),

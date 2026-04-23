@@ -457,7 +457,16 @@ class ConnectionsViewModel @Inject constructor(
     val navigateToConnections: StateFlow<Boolean> = _navigateToConnections.asStateFlow()
 
     /** Emitted to navigate to VNC screen with connection params. */
-    data class VncNavigation(val host: String, val port: Int, val password: String?, val username: String? = null)
+    data class VncNavigation(
+        val host: String,
+        val port: Int,
+        val password: String?,
+        val username: String? = null,
+        val sshForward: Boolean = false,
+        val sshProfileId: String? = null,
+        val sshSessionId: String? = null,
+        val profileId: String? = null,
+    )
     private val _navigateToVnc = MutableStateFlow<VncNavigation?>(null)
     val navigateToVnc: StateFlow<VncNavigation?> = _navigateToVnc.asStateFlow()
 
@@ -919,8 +928,36 @@ class ConnectionsViewModel @Inject constructor(
         val username = profile.vncUsername
         viewModelScope.launch {
             repository.markConnected(profile.id)
+            val sshProfileId = profile.vncSshProfileId
+            if (profile.vncSshForward && sshProfileId != null) {
+                // Auto-connect SSH tunnel host (reuses existing session if
+                // available), mirroring the RDP path. The VNC screen itself
+                // uses this sshSessionId to open the local forward.
+                try {
+                    _connectingProfileId.value = profile.id
+                    val (sshSessionId, _) = connectJumpHost(sshProfileId, "")
+                    _navigateToVnc.value = VncNavigation(
+                        host, port, password, username,
+                        sshForward = true,
+                        sshProfileId = sshProfileId,
+                        sshSessionId = sshSessionId,
+                        profileId = profile.id,
+                    )
+                } catch (e: Exception) {
+                    Log.e(TAG, "Failed to connect SSH tunnel host for VNC", e)
+                    _error.value = "SSH tunnel: ${e.message}"
+                } finally {
+                    _connectingProfileId.value = null
+                }
+            } else {
+                _navigateToVnc.value = VncNavigation(
+                    host, port, password, username,
+                    sshForward = profile.vncSshForward,
+                    sshProfileId = profile.vncSshProfileId,
+                    profileId = profile.id,
+                )
+            }
         }
-        _navigateToVnc.value = VncNavigation(host, port, password, username)
     }
 
     private fun connectRdp(profile: ConnectionProfile, password: String) {

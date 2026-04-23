@@ -28,6 +28,7 @@ data class ConnectionProfile(
     val vncUsername: String? = null,
     val vncPassword: String? = null,
     val vncSshForward: Boolean = true,
+    val vncSshProfileId: String? = null,
     val sessionManager: String? = null,
     val useMosh: Boolean = false,
     val useEternalTerminal: Boolean = false,

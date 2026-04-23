@@ -1,0 +1,33 @@
+v5.24.22: VNC↔SSH tunnel parity with RDP + reset-zoom icon fix
+
+Two small things:
+
+1. The VNC connection form now has the same "Tunnel through SSH"
+   toggle and SSH-profile picker that RDP and SMB already had.
+   Previously a standalone VNC profile had no way to opt into SSH
+   tunneling from the edit dialog — the capability only existed via
+   VNC-creds-saved-on-an-SSH-profile or the runtime quick-connect
+   dialog. Now VNC matches RDP: toggle "Tunnel through SSH", pick
+   an SSH connection, set the VNC host to where the VNC server is
+   reachable from the SSH side (usually 127.0.0.1, as wayvnc and
+   TigerVNC bind loopback-only by default).
+
+   New `vncSshProfileId` column on `connection_profiles` (DB
+   migration 36 → 37). Backup/restore round-trips the new field.
+   Launching a VNC profile with `vncSshForward && vncSshProfileId`
+   set now auto-connects the SSH host and opens the tunnel, same
+   shape as `connectRdp`.
+
+2. In the fullscreen overlay toolbar, the "Reset zoom" button was
+   using the same FullscreenExit icon as the "Exit fullscreen"
+   button below it — two visually identical buttons stacked. The
+   Reset-zoom button now uses the `FitScreen` icon (four corners
+   framing a rectangle), so it's distinguishable at a glance. Same
+   fix applied to the RDP viewer.
+
+#106 is still open pending real error strings from the reporters —
+this release doesn't change the RDP error plumbing from v5.24.21.
+Reporters should update to v5.24.21 or later, enable verbose
+connection logging in Settings, retry, and paste the exact error
+that appears in the red card so we can write a targeted TLS or
+protocol-level fix.

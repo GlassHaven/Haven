@@ -145,6 +145,10 @@ fun ConnectionEditDialog(
     var smbSshProfileId by rememberSaveable { mutableStateOf(existing?.smbSshProfileId) }
     var vncUsername by rememberSaveable { mutableStateOf(existing?.vncUsername ?: "") }
     var vncPassword by rememberSaveable { mutableStateOf(existing?.vncPassword ?: "") }
+    var vncSshForward by rememberSaveable {
+        mutableStateOf(existing?.let { it.connectionType == "VNC" && it.vncSshForward && it.vncSshProfileId != null } ?: false)
+    }
+    var vncSshProfileId by rememberSaveable { mutableStateOf(existing?.vncSshProfileId) }
     // Saved VNC settings on an SSH profile — editable via the SSH section when
     // the user has ticked "Save for this connection" in the terminal's VNC
     // quick-dialog. `null` means no VNC settings are stored on this profile,
@@ -460,12 +464,79 @@ fun ConnectionEditDialog(
                         color = MaterialTheme.colorScheme.onSurfaceVariant,
                     )
                 } else if (connectionType == "VNC") {
-                    // VNC: host, port, password
+                    // VNC: same shape as RDP — tunnel toggle first (it changes
+                    // what Host means), then connection fields. Mirrors the
+                    // RDP block below for consistency (see #107 follow-up).
+                    FilterChip(
+                        selected = vncSshForward,
+                        onClick = {
+                            vncSshForward = !vncSshForward
+                            if (vncSshForward) {
+                                if (host.isBlank() || host == "localhost") host = "127.0.0.1"
+                            } else {
+                                vncSshProfileId = null
+                                if (host == "127.0.0.1" || host == "localhost") host = ""
+                            }
+                        },
+                        label = { Text("Tunnel through SSH") },
+                    )
+                    if (vncSshForward) {
+                        val sshCandidates = sshProfiles.filter { it.isSsh }
+                        if (sshCandidates.isNotEmpty()) {
+                            Spacer(Modifier.height(4.dp))
+                            var sshExpanded by remember { mutableStateOf(false) }
+                            val selectedSsh = sshCandidates.firstOrNull { it.id == vncSshProfileId }
+                            ExposedDropdownMenuBox(
+                                expanded = sshExpanded,
+                                onExpandedChange = { sshExpanded = it },
+                            ) {
+                                OutlinedTextField(
+                                    value = selectedSsh?.label ?: "Select SSH connection",
+                                    onValueChange = {},
+                                    readOnly = true,
+                                    label = { Text("SSH connection") },
+                                    trailingIcon = { ExposedDropdownMenuDefaults.TrailingIcon(sshExpanded) },
+                                    modifier = Modifier
+                                        .fillMaxWidth()
+                                        .menuAnchor(MenuAnchorType.PrimaryNotEditable),
+                                )
+                                ExposedDropdownMenu(
+                                    expanded = sshExpanded,
+                                    onDismissRequest = { sshExpanded = false },
+                                ) {
+                                    sshCandidates.forEach { candidate ->
+                                        DropdownMenuItem(
+                                            text = { Text(candidate.label) },
+                                            onClick = {
+                                                vncSshProfileId = candidate.id
+                                                sshExpanded = false
+                                            },
+                                        )
+                                    }
+                                }
+                            }
+                        } else {
+                            Text(
+                                "Add an SSH connection first",
+                                style = MaterialTheme.typography.bodySmall,
+                                color = MaterialTheme.colorScheme.error,
+                            )
+                        }
+                    }
+                    Spacer(Modifier.height(4.dp))
                     OutlinedTextField(
                         value = host,
                         onValueChange = { host = it },
-                        label = { Text("Host") },
-                        placeholder = { Text("192.168.1.100") },
+                        label = { Text(if (vncSshForward) "VNC host (on SSH server)" else "Host") },
+                        placeholder = { Text(if (vncSshForward) "127.0.0.1" else "192.168.1.100") },
+                        supportingText = if (vncSshForward) {
+                            {
+                                Text(
+                                    "Where the VNC server is reachable from the SSH server — usually 127.0.0.1 if they're the same machine (wayvnc etc. bind loopback only).",
+                                    style = MaterialTheme.typography.bodySmall,
+                                )
+                            }
+                        } else null,
                         singleLine = true,
                         modifier = Modifier.fillMaxWidth(),
                     )
@@ -1711,7 +1782,7 @@ fun ConnectionEditDialog(
             val canSave = when (connectionType) {
                 "LOCAL" -> true // No host/auth needed
                 "SSH" -> host.isNotBlank()
-                "VNC" -> host.isNotBlank()
+                "VNC" -> host.isNotBlank() && (!vncSshForward || vncSshProfileId != null)
                 "RDP" -> host.isNotBlank() && rdpUsername.isNotBlank() && (!rdpSshForward || rdpSshProfileId != null)
                 "SMB" -> host.isNotBlank() && smbShare.isNotBlank() && (!smbSshForward || smbSshProfileId != null)
                 "RCLONE" -> rcloneProvider.isNotBlank()
@@ -1750,6 +1821,8 @@ fun ConnectionEditDialog(
                             vncPort = vncPortInt,
                             vncUsername = vncUsername.ifBlank { null },
                             vncPassword = vncPassword.ifBlank { null },
+                            vncSshForward = vncSshForward,
+                            vncSshProfileId = if (vncSshForward) vncSshProfileId else null,
                             colorTag = colorTag,
                             groupId = groupId,
                         )

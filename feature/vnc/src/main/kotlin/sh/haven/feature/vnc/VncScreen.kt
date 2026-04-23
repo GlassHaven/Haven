@@ -35,6 +35,7 @@ import androidx.compose.material.icons.filled.Close
 import androidx.compose.material.icons.filled.ExpandLess
 import androidx.compose.material.icons.filled.ExpandMore
 import androidx.compose.material.icons.filled.Fullscreen
+import androidx.compose.material.icons.filled.FitScreen
 import androidx.compose.material.icons.filled.FullscreenExit
 import androidx.compose.material.icons.filled.Keyboard
 import androidx.compose.material.icons.filled.KeyboardHide
@@ -723,7 +724,7 @@ private fun VncViewer(
                             panY = 0f
                         }) {
                             Icon(
-                                Icons.Default.FullscreenExit,
+                                Icons.Default.FitScreen,
                                 contentDescription = "Reset zoom",
                             )
                         }

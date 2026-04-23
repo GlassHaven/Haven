@@ -26,7 +26,7 @@ import sh.haven.core.data.db.entities.TunnelConfig
         TunnelConfig::class,
         PasteQueueEntry::class,
     ],
-    version = 36,
+    version = 37,
     exportSchema = true,
 )
 abstract class HavenDatabase : RoomDatabase() {
@@ -366,6 +366,19 @@ abstract class HavenDatabase : RoomDatabase() {
                 db.execSQL(
                     "CREATE INDEX IF NOT EXISTS `index_paste_queue_entries_status` " +
                         "ON `paste_queue_entries` (`status`)",
+                )
+            }
+        }
+
+        /**
+         * Bring VNC saved-on-profile fields in line with RDP/SMB: a VNC
+         * connection can now opt into SSH tunneling via a paired SSH
+         * profile, same as RDP's rdpSshProfileId. Default null = no tunnel.
+         */
+        val MIGRATION_36_37 = object : Migration(36, 37) {
+            override fun migrate(db: SupportSQLiteDatabase) {
+                db.execSQL(
+                    "ALTER TABLE connection_profiles ADD COLUMN vncSshProfileId TEXT DEFAULT NULL"
                 )
             }
         }

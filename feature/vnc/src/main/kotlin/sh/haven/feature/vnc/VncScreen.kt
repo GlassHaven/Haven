@@ -424,10 +424,22 @@ private fun VncViewer(
 
                                 if (gestureStarted) {
                                     if (prevSpan > 0f && span > 0f) {
-                                        val scaleFactor = span / prevSpan
-                                        val newZoom = (zoom * scaleFactor).coerceIn(0.5f, 5f)
-                                        panX += (centroid.x - panX) * (1 - scaleFactor)
-                                        panY += (centroid.y - panY) * (1 - scaleFactor)
+                                        val requestedScale = span / prevSpan
+                                        val newZoom = (zoom * requestedScale).coerceIn(0.5f, 5f)
+                                        // Keep the content point under the pinch
+                                        // centroid stationary during the zoom.
+                                        // graphicsLayer's default TransformOrigin
+                                        // is the view center, so the pivot is
+                                        // (cx, cy), not (0, 0).
+                                        //   pan' = (centroid - center)(1 - r) + pan * r
+                                        // where r is the *actual* applied scale
+                                        // (may be less than the finger-requested
+                                        // scale if we hit the min/max zoom clamp).
+                                        val actualScale = if (zoom > 0f) newZoom / zoom else 1f
+                                        val cx = viewSize.width / 2f
+                                        val cy = viewSize.height / 2f
+                                        panX = (centroid.x - cx) * (1 - actualScale) + panX * actualScale
+                                        panY = (centroid.y - cy) * (1 - actualScale) + panY * actualScale
                                         zoom = newZoom
                                     }
                                     val dx = centroid.x - prevCentroid.x

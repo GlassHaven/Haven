@@ -1,0 +1,18 @@
+v5.24.23: pinch-zoom anchors to the finger centroid
+
+The VNC and RDP viewers' pinch-zoom gesture was subtly wrong: the
+zoom-around-centroid math assumed `graphicsLayer`'s scale pivot was
+the view origin (0, 0), but the default `TransformOrigin` is the
+view center. So every pinch away from the middle injected a
+(centroid − center) worth of error into the pan, which the user
+perceived as "the zoom flies off sideways".
+
+Fixed the formula: the pan adjustment is now
+  pan' = (centroid − viewCenter) · (1 − r) + pan · r
+where `r` is the *actual* applied scale (clamp-aware —
+`newZoom / zoom`, not the raw finger ratio), so zooming at the min
+or max zoom bound also behaves correctly.
+
+Same fix applied to the RDP viewer, same issue.
+
+No user-visible change otherwise.

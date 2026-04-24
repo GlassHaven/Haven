@@ -162,8 +162,14 @@ impl RdpClient {
         stream
             .set_nonblocking(false)
             .map_err(|_| RdpError::IoError)?;
+        // Generous read timeout for the handshake phase. CredSSP/NLA
+        // against Windows servers can take >1s to round-trip the NTLM
+        // challenge; 100ms was too short and surfaced as WouldBlock
+        // mid-handshake (#109 — surf5726's Windows RDP target). The
+        // session loop shrinks this back to 100ms after connect_finalize
+        // so shutdown polling stays responsive.
         stream
-            .set_read_timeout(Some(std::time::Duration::from_millis(100)))
+            .set_read_timeout(Some(std::time::Duration::from_secs(30)))
             .map_err(|_| RdpError::IoError)?;
 
         let server_addr: SocketAddr = stream.peer_addr().map_err(|_| RdpError::IoError)?;
@@ -464,6 +470,13 @@ fn run_rdp_session(
     let rdp_config = build_config(config);
     let mut connector = ironrdp_connector::ClientConnector::new(rdp_config, server_addr);
 
+    // Keep a clone of the underlying TCP stream so we can adjust the read
+    // timeout out-of-band without having to reach through the TLS wrap.
+    // Used post-handshake to shrink the 30s handshake timeout back to
+    // 100ms for responsive shutdown polling in the session loop.
+    let stream_ctl = stream.try_clone()
+        .map_err(|e| format!("TcpStream::try_clone failed: {}", e))?;
+
     // Phase 1: Connection initiation (pre-TLS)
     let mut framed = Framed::new(stream);
     let should_upgrade = connect_begin(&mut framed, &mut connector)
@@ -561,6 +574,13 @@ fn run_rdp_session(
     }
 
     let mut active_stage = ActiveStage::new(connection_result);
+
+    // Handshake is done; shrink the read timeout to 100ms so the session
+    // loop can poll the shutdown flag promptly. WouldBlock/TimedOut are
+    // handled by `continue` in the loop below.
+    if let Err(e) = stream_ctl.set_read_timeout(Some(std::time::Duration::from_millis(100))) {
+        error!("set_read_timeout post-handshake failed (non-fatal): {}", e);
+    }
 
     // Input state tracking
     let mut input_db = ironrdp_input::Database::new();

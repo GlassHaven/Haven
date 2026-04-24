@@ -1,0 +1,30 @@
+v5.24.31: RDP CredSSP/NLA handshake timeout fix (#109)
+
+surf5726 reported RDP failing against a Windows RDP server with:
+
+  RDP connect finalize failed: Error { context: "read frame by hint",
+    kind: Custom, source: Some(Os { code: 11, kind: WouldBlock,
+    message: "Try again" }) }
+
+(The error plumbing from v5.24.21 that surfaced this is what
+finally gave us something to act on — the earlier "switch to
+Desktop tab and nothing happens" reports from #106 were the same
+class of failure hidden behind empty state.)
+
+Root cause: rdp-kotlin/rust/src/lib.rs set the TCP read timeout to
+100ms globally on the socket. 100ms was short enough for the
+session loop to poll the shutdown flag responsively, but during
+CredSSP NLA the Windows server can easily take >1s to compute its
+NTLM challenge/AUTHENTICATE round-trip. When the client's read
+fired first with WouldBlock, ironrdp-blocking's connect_finalize
+bubbled it up as a fatal error. The earlier xrdp tests never hit
+this because xrdp's default security mode is plain SSL, no CredSSP.
+
+Fix: generous 30s read timeout during handshake, then shrink to
+100ms after connect_finalize succeeds, right before the session
+loop starts. A try_clone'd TcpStream handle stays around for the
+out-of-band timeout change without having to reach through the
+rustls wrap. Session-loop WouldBlock/TimedOut handling is
+unchanged (still `continue`s the polling loop).
+
+#109 should be resolved for Windows RDP + CredSSP targets.

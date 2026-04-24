@@ -1,0 +1,16 @@
+v5.24.36: stop text editor crashing the app on first file open
+
+Opening any file in the built-in text editor crashed Haven instantly
+with "Abstract classes can't be instantiated" or a NullPointerException
+in a regex initializer. R8 had stripped the synthetic no-arg
+constructors and static state of the editor's TextMate grammar engine.
+
+Three keep rules added:
+- io.github.rosemoe.sora.langs.textmate.** — Gson reflective
+  deserialization of language-definition lists
+- org.eclipse.tm4e.** — TextMate grammar / language config models
+- org.joni.**, org.jcodings.** — Joni regex engine; static
+  initializers depend on cross-class constants
+
+Same fix applies to anyone embedding sora-editor + tm4e behind R8;
+none of these libraries ship consumer-friendly proguard rules.

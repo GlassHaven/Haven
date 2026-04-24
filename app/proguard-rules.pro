@@ -101,3 +101,29 @@
 -keep interface rikka.shizuku.** { *; }
 -keep class moe.shizuku.** { *; }
 -keep interface moe.shizuku.** { *; }
+
+# sora-editor's TextMate language registry deserializes JSON language /
+# theme / grammar definitions with Gson, into both its own wrapper types
+# (rosemoe.sora.langs.textmate.registry) AND the underlying tm4e engine
+# types (org.eclipse.tm4e.*). R8 obfuscates the class names which Gson
+# then reports as "Abstract classes can't be instantiated" the first
+# time the editor opens any file with a detectable language. Keep both
+# package trees whole — they're all data carriers.
+-keep class io.github.rosemoe.sora.langs.textmate.** { *; }
+-keep class org.eclipse.tm4e.** { *; }
+-keepclassmembers class io.github.rosemoe.sora.langs.textmate.** {
+    <init>(...);
+    <fields>;
+}
+-keepclassmembers class org.eclipse.tm4e.** {
+    <init>(...);
+    <fields>;
+}
+
+# Joni (Java Oniguruma regex engine) and jcodings (its byte-encoding
+# dep) cannot be minified — Joni has heavy reliance on cross-class
+# static constants and reflective lookups, and R8 stripping any of
+# them produces NullPointerException in <clinit> the first time a
+# regex is compiled. Both libs are pulled in transitively by tm4e.
+-keep class org.joni.** { *; }
+-keep class org.jcodings.** { *; }

@@ -1,6 +1,7 @@
 package sh.haven.feature.rdp
 
 import android.graphics.Bitmap
+import android.os.SystemClock
 import androidx.compose.foundation.Canvas
 import androidx.compose.foundation.background
 import androidx.compose.foundation.gestures.awaitEachGesture
@@ -368,6 +369,11 @@ private fun RdpViewer(
     // Touchpad-mode virtual cursor — composable scope so it survives lifts.
     var virtualCursor by remember(inputMode) { mutableStateOf(pointerPos) }
 
+    // Tap-then-drag state — see VncScreen for the full rationale. RDP
+    // has no long-press right-click branch, so we only need the
+    // follow-up window for triggering button-1 drag.
+    var lastTapUpMs by remember { mutableStateOf(0L) }
+
     // Mario-camera viewport pan: when in touchpad mode and zoomed, snap the
     // pan so the cursor always stays inside the inner dead-zone of the view.
     LaunchedEffect(virtualCursor, inputMode, zoom, viewSize, frame.width, frame.height) {
@@ -441,6 +447,10 @@ private fun RdpViewer(
                         var totalMovement = 0f
                         var lastSinglePos = firstDown.position
                         var dragging = false
+                        // Tap-then-drag follow-up window (touchpad mode only).
+                        val isFollowUpTouch = inputMode == "TOUCHPAD" &&
+                            (firstDown.uptimeMillis - lastTapUpMs) <= 300L
+                        var dragButtonPressed = false
 
                         do {
                             val event = awaitPointerEvent(PointerEventPass.Initial)
@@ -507,7 +517,12 @@ private fun RdpViewer(
                                         .coerceIn(0, frame.height - 1)
                                     virtualCursor = nx to ny
                                     if (totalMovement >= touchSlopPx) {
-                                        onDrag(nx, ny)
+                                        if (isFollowUpTouch && !dragButtonPressed) {
+                                            onDragStart(nx, ny)
+                                            dragButtonPressed = true
+                                        } else {
+                                            onDrag(nx, ny)
+                                        }
                                     }
                                 } else {
                                     val pos = screenToRemote(
@@ -526,7 +541,7 @@ private fun RdpViewer(
                             }
                         } while (event.changes.any { it.pressed })
 
-                        if (dragging) {
+                        if (dragging || dragButtonPressed) {
                             onDragEnd()
                         }
 
@@ -541,6 +556,13 @@ private fun RdpViewer(
                                 )
                             }
                             onTap(vx, vy)
+                            if (inputMode == "TOUCHPAD" && !isFollowUpTouch) {
+                                lastTapUpMs = SystemClock.uptimeMillis()
+                            } else {
+                                lastTapUpMs = 0L
+                            }
+                        } else {
+                            lastTapUpMs = 0L
                         }
                     }
                 },

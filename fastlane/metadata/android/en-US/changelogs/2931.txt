@@ -1,0 +1,27 @@
+v5.24.29: drag-with-button in touchpad mode (#107)
+
+Touchpad mode now supports drag-with-button-1 — moving windows,
+selecting text, dragging scrollbars — via the standard trackpad
+"tap-then-drag" gesture (RealVNC convention).
+
+How it works:
+
+- Single tap → click (immediate, as before).
+- Tap, then within 300 ms touch down again and move → drag with
+  button 1 held. Cursor follows finger; button 1 releases on lift.
+- Tap, then within 300 ms tap again without moving → second click
+  (effectively a double-click via two onTap callbacks).
+- Plain long-press (no preceding tap) → right-click at cursor
+  (unchanged).
+
+The 300 ms follow-up window also suppresses the long-press
+right-click timer for that touch — so tap-tap-hold-still doesn't
+misfire as a phantom right-click. Plain hold (no preceding tap)
+still triggers right-click.
+
+Implemented for both VNC and RDP. Direct touch mode is
+unchanged in both protocols.
+
+Still open from #107: low-bandwidth auto colour-depth downshift.
+That's the last big piece — needs an input-stream byte counter
+and an EWMA throughput tracker. Separate release.

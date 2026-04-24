@@ -363,6 +363,14 @@ private fun VncViewer(
     // latest server-reported pointer.
     var virtualCursor by remember(inputMode) { mutableStateOf(pointerPos) }
 
+    // Tap-then-drag state: the uptime at which the previous short-tap
+    // ended. A touch-down within TAP_THEN_DRAG_WINDOW_MS of this
+    // timestamp is treated as a follow-up gesture — if it moves, it's a
+    // drag with button 1 held (RealVNC convention); if it stays still,
+    // the long-press right-click is suppressed so tap-tap-hold-still
+    // resolves as a double-click via two onTap callbacks instead.
+    var lastTapUpMs by remember { mutableStateOf(0L) }
+
     // Auto-hide overlay after 4 seconds
     LaunchedEffect(overlayVisible) {
         if (overlayVisible) {
@@ -407,6 +415,13 @@ private fun VncViewer(
                         var longPressFired = false
                         val longPressMs = viewConfiguration.longPressTimeoutMillis
                         val downUptimeMs = firstDown.uptimeMillis
+                        // Tap-then-drag follow-up window: this touch came
+                        // within 300 ms of the previous tap's lift. In
+                        // touchpad mode that signals "drag with button 1"
+                        // (RealVNC convention).
+                        val isFollowUpTouch = inputMode == "TOUCHPAD" &&
+                            (downUptimeMs - lastTapUpMs) <= 300L
+                        var dragButtonPressed = false
                         // virtualCursor is hoisted to composable scope so
                         // it survives across gesture lifts — the
                         // pointerInput closure captures pointerPos as a
@@ -427,11 +442,11 @@ private fun VncViewer(
 
                             if (timedEvent == null) {
                                 // Timeout — fire long press (right-click), but
-                                // only when this gesture has stayed single-finger.
-                                // Two stationary fingers stationary for >400 ms
-                                // would otherwise trip a phantom right-click
-                                // mid-pinch (Nesos-ita on #107).
-                                if (totalFingers == 1 && !longPressFired && !dragging && totalMovement < touchSlopPx) {
+                                // only when this gesture has stayed single-finger
+                                // AND isn't a follow-up to a recent tap (in which
+                                // case we want to allow the user to start a drag
+                                // with button 1, not get a phantom right-click).
+                                if (totalFingers == 1 && !longPressFired && !dragging && totalMovement < touchSlopPx && !isFollowUpTouch) {
                                     val (vx, vy) = if (inputMode == "TOUCHPAD") {
                                         virtualCursor
                                     } else {
@@ -513,9 +528,10 @@ private fun VncViewer(
                                 if (inputMode == "TOUCHPAD") {
                                     // Integrate finger delta into virtualCursor in
                                     // framebuffer coords (screen delta / zoom).
-                                    // No button press — drag-with-button isn't
-                                    // supported in touchpad mode v1; users who
-                                    // need it switch back to direct touch.
+                                    // If this gesture is a tap-then-touch
+                                    // follow-up, the first time we cross the
+                                    // touch slop we press button 1 (drag with
+                                    // button), then continue normally.
                                     val scale = if (zoom > 0f) zoom else 1f
                                     val nx = (virtualCursor.first + (deltaScreen.x / scale).toInt())
                                         .coerceIn(0, frame.width - 1)
@@ -523,7 +539,12 @@ private fun VncViewer(
                                         .coerceIn(0, frame.height - 1)
                                     virtualCursor = nx to ny
                                     if (!longPressFired && totalMovement >= touchSlopPx) {
-                                        onDrag(nx, ny)
+                                        if (isFollowUpTouch && !dragButtonPressed) {
+                                            onDragStart(nx, ny)
+                                            dragButtonPressed = true
+                                        } else {
+                                            onDrag(nx, ny)
+                                        }
                                     }
                                 } else {
                                     val pos = screenToVnc(
@@ -543,12 +564,16 @@ private fun VncViewer(
                             }
                         } while (event.changes.any { it.pressed })
 
-                        // Release button 1 if drag was active
-                        if (dragging) {
+                        // Release button 1 if drag was active (direct-mode
+                        // drag or touchpad tap-then-drag).
+                        if (dragging || dragButtonPressed) {
                             onDragEnd()
                         }
 
-                        // Short tap with little movement = click (skip if long press fired)
+                        // Short tap with little movement = click (skip if
+                        // long press fired). Record the lift time so a
+                        // subsequent touch within 300 ms is treated as a
+                        // tap-then-drag follow-up.
                         if (totalFingers == 1 && totalMovement < touchSlopPx && !longPressFired) {
                             val (vx, vy) = if (inputMode == "TOUCHPAD") {
                                 virtualCursor
@@ -560,6 +585,19 @@ private fun VncViewer(
                                 )
                             }
                             onTap(vx, vy)
+                            if (inputMode == "TOUCHPAD" && !isFollowUpTouch) {
+                                lastTapUpMs = SystemClock.uptimeMillis()
+                            } else {
+                                // Either non-touchpad mode (no follow-up
+                                // semantics) or this *was* the follow-up
+                                // tap (don't chain into a third touch).
+                                lastTapUpMs = 0L
+                            }
+                        } else {
+                            // Drag, multi-finger, or long-press fired: this
+                            // gesture didn't end with a clean tap, so don't
+                            // chain to a follow-up.
+                            lastTapUpMs = 0L
                         }
                     }
                 },

@@ -431,6 +431,7 @@ class DesktopViewModel @Inject constructor(
     fun sendPointer(x: Int, y: Int) {
         when (val tab = activeTab.value) {
             is DesktopTab.Vnc -> tab._pointerPos.value = x to y
+            is DesktopTab.Rdp -> tab._pointerPos.value = x to y
             else -> {}
         }
         viewModelScope.launch(Dispatchers.IO) {
@@ -471,6 +472,7 @@ class DesktopViewModel @Inject constructor(
     fun sendClick(x: Int, y: Int, button: Int = 1) {
         when (val tab = activeTab.value) {
             is DesktopTab.Vnc -> tab._pointerPos.value = x to y
+            is DesktopTab.Rdp -> tab._pointerPos.value = x to y
             else -> {}
         }
         viewModelScope.launch(Dispatchers.IO) {

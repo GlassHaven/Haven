@@ -146,6 +146,8 @@ fun DesktopScreen(
                             onKeyUp = { scancode -> desktopViewModel.sendRdpKey(scancode, false) },
                             onDisconnect = { desktopViewModel.closeTab(tab.id) },
                             onFullscreenChanged = onFullscreenChanged,
+                            pointerPos = tab.pointerPos,
+                            inputMode = inputMode,
                         )
 
                         is DesktopTab.Wayland -> WaylandDesktopView(

@@ -1,0 +1,23 @@
+v5.24.28: RDP touchpad parity (#107)
+
+The Settings → "Touchpad input" toggle now applies to RDP sessions
+too, not just VNC.
+
+- DesktopTab.Rdp gains _pointerPos to drive the touchpad-mode
+  virtual cursor (RDP doesn't transmit cursor-shape pseudo-encodings
+  like VNC does, so the on-screen cursor is the system mouse pointer
+  the server already paints into the framebuffer — no separate
+  cursor decoder needed).
+- DesktopViewModel.sendPointer / sendClick now track _pointerPos for
+  RDP tabs.
+- RdpScreen single-finger gesture handler forks on inputMode the
+  same way VNC does: TOUCHPAD integrates screen-space deltas into
+  virtualCursor (divided by zoom), tap clicks at the cursor instead
+  of the finger, no button-1 press during cursor moves.
+- Camera-follow ("Mario camera") wired via the same LaunchedEffect
+  pattern; helper is duplicated in RdpScreen (feature/rdp doesn't
+  depend on feature/vnc, and it's a small pure function).
+
+v1 limitations carry over from VNC: drag-with-button isn't
+supported in touchpad mode for either protocol — separate release
+once the gesture convention is decided.

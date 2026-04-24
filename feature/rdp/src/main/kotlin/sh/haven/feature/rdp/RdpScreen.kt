@@ -121,10 +121,13 @@ fun RdpSessionContent(
     onKeyUp: (scancode: Int) -> Unit,
     onDisconnect: () -> Unit,
     onFullscreenChanged: (Boolean) -> Unit = {},
+    pointerPos: StateFlow<Pair<Int, Int>>? = null,
+    inputMode: String = "DIRECT",
 ) {
     val connectedState by connected.collectAsState()
     val frameState by frame.collectAsState()
     val errorState by error.collectAsState()
+    val pointerState = pointerPos?.collectAsState()?.value ?: (0 to 0)
 
     var fullscreen by rememberSaveable { mutableStateOf(false) }
     val view = LocalView.current
@@ -174,6 +177,8 @@ fun RdpSessionContent(
             onKeyUp = onKeyUp,
             onToggleFullscreen = { fullscreen = !fullscreen },
             onDisconnect = onDisconnect,
+            pointerPos = pointerState,
+            inputMode = inputMode,
         )
     } else {
         DesktopPlaceholder(
@@ -349,6 +354,8 @@ private fun RdpViewer(
     onKeyUp: (Int) -> Unit,
     onToggleFullscreen: () -> Unit,
     onDisconnect: () -> Unit,
+    pointerPos: Pair<Int, Int> = 0 to 0,
+    inputMode: String = "DIRECT",
 ) {
     var viewSize by remember { mutableStateOf(IntSize.Zero) }
     val imageBitmap = remember(frame) { frame.asImageBitmap() }
@@ -357,6 +364,29 @@ private fun RdpViewer(
     var zoom by rememberSaveable { mutableFloatStateOf(1f) }
     var panX by rememberSaveable { mutableFloatStateOf(0f) }
     var panY by rememberSaveable { mutableFloatStateOf(0f) }
+
+    // Touchpad-mode virtual cursor — composable scope so it survives lifts.
+    var virtualCursor by remember(inputMode) { mutableStateOf(pointerPos) }
+
+    // Mario-camera viewport pan: when in touchpad mode and zoomed, snap the
+    // pan so the cursor always stays inside the inner dead-zone of the view.
+    LaunchedEffect(virtualCursor, inputMode, zoom, viewSize, frame.width, frame.height) {
+        if (inputMode == "TOUCHPAD" && zoom > 1f && viewSize.width > 0 && viewSize.height > 0) {
+            val (newPanX, newPanY) = cameraFollow(
+                cursorFbX = virtualCursor.first,
+                cursorFbY = virtualCursor.second,
+                fbWidth = frame.width,
+                fbHeight = frame.height,
+                viewW = viewSize.width.toFloat(),
+                viewH = viewSize.height.toFloat(),
+                zoom = zoom,
+                panX = panX,
+                panY = panY,
+            )
+            if (newPanX != panX) panX = newPanX
+            if (newPanY != panY) panY = newPanY
+        }
+    }
 
     // Keyboard
     val focusRequester = remember { FocusRequester() }
@@ -395,7 +425,7 @@ private fun RdpViewer(
                 .fillMaxWidth()
                 .background(Color.Black)
                 .onSizeChanged { viewSize = it }
-                .pointerInput(frame.width, frame.height, viewSize) {
+                .pointerInput(frame.width, frame.height, viewSize, inputMode) {
                     val touchSlopPx = viewConfiguration.touchSlop
                     awaitEachGesture {
                         val firstDown = awaitFirstDown(
@@ -466,18 +496,31 @@ private fun RdpViewer(
                                 pointers.forEach { it.consume() }
                             } else if (count == 1 && totalFingers == 1) {
                                 val change = pointers.first()
-                                totalMovement += change.positionChange().getDistance()
+                                val deltaScreen = change.positionChange()
+                                totalMovement += deltaScreen.getDistance()
                                 lastSinglePos = change.position
-                                val pos = screenToRemote(
-                                    change.position, viewSize,
-                                    frame.width, frame.height,
-                                    zoom, panX, panY,
-                                )
-                                if (!dragging && totalMovement >= touchSlopPx) {
-                                    onDragStart(pos.first, pos.second)
-                                    dragging = true
-                                } else if (dragging) {
-                                    onDrag(pos.first, pos.second)
+                                if (inputMode == "TOUCHPAD") {
+                                    val scale = if (zoom > 0f) zoom else 1f
+                                    val nx = (virtualCursor.first + (deltaScreen.x / scale).toInt())
+                                        .coerceIn(0, frame.width - 1)
+                                    val ny = (virtualCursor.second + (deltaScreen.y / scale).toInt())
+                                        .coerceIn(0, frame.height - 1)
+                                    virtualCursor = nx to ny
+                                    if (totalMovement >= touchSlopPx) {
+                                        onDrag(nx, ny)
+                                    }
+                                } else {
+                                    val pos = screenToRemote(
+                                        change.position, viewSize,
+                                        frame.width, frame.height,
+                                        zoom, panX, panY,
+                                    )
+                                    if (!dragging && totalMovement >= touchSlopPx) {
+                                        onDragStart(pos.first, pos.second)
+                                        dragging = true
+                                    } else if (dragging) {
+                                        onDrag(pos.first, pos.second)
+                                    }
                                 }
                                 change.consume()
                             }
@@ -488,11 +531,15 @@ private fun RdpViewer(
                         }
 
                         if (totalFingers == 1 && totalMovement < touchSlopPx) {
-                            val (vx, vy) = screenToRemote(
-                                lastSinglePos, viewSize,
-                                frame.width, frame.height,
-                                zoom, panX, panY,
-                            )
+                            val (vx, vy) = if (inputMode == "TOUCHPAD") {
+                                virtualCursor
+                            } else {
+                                screenToRemote(
+                                    lastSinglePos, viewSize,
+                                    frame.width, frame.height,
+                                    zoom, panX, panY,
+                                )
+                            }
                             onTap(vx, vy)
                         }
                     }
@@ -775,6 +822,54 @@ private fun DrawScope.drawRemoteFrame(
  * Map a screen touch coordinate to remote desktop coordinates,
  * accounting for zoom and pan.
  */
+/**
+ * Mario-camera viewport pan: keep the cursor inside an inner dead-zone of
+ * the view. Returns the (panX, panY) we should snap to. No-op when not
+ * zoomed in (whole framebuffer fits, no point panning). Mirror of the VNC
+ * helper of the same name; kept local because feature/rdp doesn't depend
+ * on feature/vnc.
+ */
+internal fun cameraFollow(
+    cursorFbX: Int, cursorFbY: Int,
+    fbWidth: Int, fbHeight: Int,
+    viewW: Float, viewH: Float,
+    zoom: Float, panX: Float, panY: Float,
+    deadZoneFraction: Float = 0.30f,
+): Pair<Float, Float> {
+    if (zoom <= 1f) return panX to panY
+    if (viewW <= 0f || viewH <= 0f || fbWidth <= 0 || fbHeight <= 0) return panX to panY
+
+    val cx = viewW / 2f
+    val cy = viewH / 2f
+    val fitScale = minOf(viewW / fbWidth, viewH / fbHeight)
+    val fitOffsetX = (viewW - fbWidth * fitScale) / 2f
+    val fitOffsetY = (viewH - fbHeight * fitScale) / 2f
+
+    val localX = cursorFbX * fitScale + fitOffsetX
+    val localY = cursorFbY * fitScale + fitOffsetY
+    val screenX = (localX - cx) * zoom + cx + panX
+    val screenY = (localY - cy) * zoom + cy + panY
+
+    val marginX = viewW * (deadZoneFraction / 2f)
+    val marginY = viewH * (deadZoneFraction / 2f)
+    val minX = marginX
+    val maxX = viewW - marginX
+    val minY = marginY
+    val maxY = viewH - marginY
+
+    val newPanX = when {
+        screenX < minX -> panX + (minX - screenX)
+        screenX > maxX -> panX - (screenX - maxX)
+        else -> panX
+    }
+    val newPanY = when {
+        screenY < minY -> panY + (minY - screenY)
+        screenY > maxY -> panY - (screenY - maxY)
+        else -> panY
+    }
+    return newPanX to newPanY
+}
+
 private fun screenToRemote(
     offset: Offset,
     viewSize: IntSize,

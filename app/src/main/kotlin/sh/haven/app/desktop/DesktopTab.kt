@@ -57,6 +57,8 @@ sealed class DesktopTab {
         val _connected: MutableStateFlow<Boolean> = MutableStateFlow(false),
         val _frame: MutableStateFlow<Bitmap?> = MutableStateFlow(null),
         val _error: MutableStateFlow<String?> = MutableStateFlow(null),
+        /** Local pointer position we last sent — drives the touchpad-mode virtual cursor seed. */
+        val _pointerPos: MutableStateFlow<Pair<Int, Int>> = MutableStateFlow(0 to 0),
         val tunnelPort: Int? = null,
         val tunnelSessionId: String? = null,
         val profileId: String? = null,
@@ -64,6 +66,7 @@ sealed class DesktopTab {
         override val connected: StateFlow<Boolean> get() = _connected
         override val frame: StateFlow<Bitmap?> get() = _frame
         override val error: StateFlow<String?> get() = _error
+        val pointerPos: StateFlow<Pair<Int, Int>> get() = _pointerPos
     }
 
     data class Wayland(

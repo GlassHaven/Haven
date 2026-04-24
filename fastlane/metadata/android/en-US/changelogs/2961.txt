@@ -1,0 +1,25 @@
+v5.24.32: classify CredSSP auth failures clearly (#109)
+
+Follow-up from surf5726's v5.24.31 test. The handshake-timeout fix
+let the connection reach all the way through CredSSP before
+failing — but the new failure was:
+
+  RDP connect finalize failed: ... AlertReceived(InternalError)
+
+Windows RDP servers with NLA tear down the TLS session with a
+rude `internal_error` TLS alert (code 80) when they reject
+credentials during CredSSP. They don't send a clean CredSSP error
+PDU; they just drop the connection. ironrdp surfaces this as a
+generic InvalidData error, which our classifier was labelling as
+"RDP connect finalize failed" — unhelpful.
+
+Fix: detect `AlertReceived(InternalError)`,
+`AlertReceived(AccessDenied)`, and `AlertReceived(BadCertificate)`
+in the connect_finalize error path and label the failure as
+"Authentication failed: server rejected credentials (check
+username, password, and domain)" with the underlying details
+appended.
+
+No protocol change — this is purely a message-classification
+tweak so the user knows to check credentials rather than assume
+the server is unreachable.

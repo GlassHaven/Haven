@@ -538,7 +538,23 @@ fn run_rdp_session(
         None, // no Kerberos config
     ).map_err(|e| {
         let msg = format!("{:?}", e);
-        if msg.contains("Authentication") || msg.contains("Credssp") || msg.contains("LOGON_FAILED") {
+        // Windows RDP servers with NLA tear down the TLS session with an
+        // `internal_error` alert (TLS alert code 80) when they reject the
+        // user's credentials during CredSSP — they don't send a clean
+        // CredSSP error PDU, they just drop the connection with a rude
+        // TLS alert. Surface that as an authentication failure rather
+        // than a generic TLS error so the user knows to check their
+        // username / password / domain (#109 — surf5726).
+        if msg.contains("AlertReceived(InternalError)") ||
+            msg.contains("AlertReceived(AccessDenied)") ||
+            msg.contains("AlertReceived(BadCertificate)")
+        {
+            format!(
+                "Authentication failed: server rejected credentials \
+                (check username, password, and domain). {}",
+                msg
+            )
+        } else if msg.contains("Authentication") || msg.contains("Credssp") || msg.contains("LOGON_FAILED") {
             format!("Authentication failed: {}", msg)
         } else if msg.contains("Tls") || msg.contains("TLS") || msg.contains("unexpected_message") {
             format!("TLS handshake failed: {}", msg)

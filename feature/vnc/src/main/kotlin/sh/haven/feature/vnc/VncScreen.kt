@@ -515,34 +515,44 @@ private fun VncViewer(
                                 }.average().toFloat()
 
                                 if (gestureStarted) {
-                                    if (prevSpan > 0f && span > 0f) {
-                                        val requestedScale = span / prevSpan
-                                        val newZoom = (zoom * requestedScale).coerceIn(0.5f, 5f)
-                                        // Keep the content point under the pinch
-                                        // centroid stationary during the zoom.
-                                        // graphicsLayer's default TransformOrigin
-                                        // is the view center, so the pivot is
-                                        // (cx, cy), not (0, 0).
-                                        //   pan' = (centroid - center)(1 - r) + pan * r
-                                        // where r is the *actual* applied scale
-                                        // (may be less than the finger-requested
-                                        // scale if we hit the min/max zoom clamp).
-                                        val actualScale = if (zoom > 0f) newZoom / zoom else 1f
-                                        val cx = viewSize.width / 2f
-                                        val cy = viewSize.height / 2f
-                                        panX = (centroid.x - cx) * (1 - actualScale) + panX * actualScale
-                                        panY = (centroid.y - cy) * (1 - actualScale) + panY * actualScale
-                                        zoom = newZoom
-                                    }
-                                    val dx = centroid.x - prevCentroid.x
-                                    val dy = centroid.y - prevCentroid.y
-                                    panX += dx
-                                    panY += dy
-
-                                    cumulativeScrollY += centroid.y - prevCentroid.y
-                                    if (abs(cumulativeScrollY) > 40f) {
-                                        if (cumulativeScrollY < 0) onScrollUp() else onScrollDown()
-                                        cumulativeScrollY = 0f
+                                    // Routing: 3+ fingers operate on the local
+                                    // viewport (pan + pinch-zoom); 2 fingers
+                                    // emit remote scroll-wheel events only.
+                                    // Locked by totalFingers so lifting back to
+                                    // 2 mid-gesture doesn't re-purpose the
+                                    // gesture. This avoids the previous clash
+                                    // where two-finger drag both panned the
+                                    // viewport AND sent scroll wheel.
+                                    if (totalFingers >= 3) {
+                                        if (prevSpan > 0f && span > 0f) {
+                                            val requestedScale = span / prevSpan
+                                            val newZoom = (zoom * requestedScale).coerceIn(0.5f, 5f)
+                                            // Keep the content point under the pinch
+                                            // centroid stationary during the zoom.
+                                            // graphicsLayer's default TransformOrigin
+                                            // is the view center, so the pivot is
+                                            // (cx, cy), not (0, 0).
+                                            //   pan' = (centroid - center)(1 - r) + pan * r
+                                            // where r is the *actual* applied scale
+                                            // (may be less than the finger-requested
+                                            // scale if we hit the min/max zoom clamp).
+                                            val actualScale = if (zoom > 0f) newZoom / zoom else 1f
+                                            val cx = viewSize.width / 2f
+                                            val cy = viewSize.height / 2f
+                                            panX = (centroid.x - cx) * (1 - actualScale) + panX * actualScale
+                                            panY = (centroid.y - cy) * (1 - actualScale) + panY * actualScale
+                                            zoom = newZoom
+                                        }
+                                        val dx = centroid.x - prevCentroid.x
+                                        val dy = centroid.y - prevCentroid.y
+                                        panX += dx
+                                        panY += dy
+                                    } else {
+                                        cumulativeScrollY += centroid.y - prevCentroid.y
+                                        if (abs(cumulativeScrollY) > 40f) {
+                                            if (cumulativeScrollY < 0) onScrollUp() else onScrollDown()
+                                            cumulativeScrollY = 0f
+                                        }
                                     }
                                 }
 

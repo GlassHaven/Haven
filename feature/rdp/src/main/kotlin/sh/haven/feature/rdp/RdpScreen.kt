@@ -472,30 +472,35 @@ private fun RdpViewer(
                                 }.average().toFloat()
 
                                 if (gestureStarted) {
-                                    if (prevSpan > 0f && span > 0f) {
-                                        val requestedScale = span / prevSpan
-                                        val newZoom = (zoom * requestedScale).coerceIn(0.5f, 5f)
-                                        // graphicsLayer's default TransformOrigin
-                                        // is the view center, so the scale pivot
-                                        // is (cx, cy). Use the *actual* applied
-                                        // scale (clamp-aware) so we don't over-pan
-                                        // when the zoom hits a limit.
-                                        val actualScale = if (zoom > 0f) newZoom / zoom else 1f
-                                        val cx = viewSize.width / 2f
-                                        val cy = viewSize.height / 2f
-                                        panX = (centroid.x - cx) * (1 - actualScale) + panX * actualScale
-                                        panY = (centroid.y - cy) * (1 - actualScale) + panY * actualScale
-                                        zoom = newZoom
-                                    }
-                                    val dx = centroid.x - prevCentroid.x
-                                    val dy = centroid.y - prevCentroid.y
-                                    panX += dx
-                                    panY += dy
-
-                                    cumulativeScrollY += centroid.y - prevCentroid.y
-                                    if (abs(cumulativeScrollY) > 40f) {
-                                        if (cumulativeScrollY < 0) onScrollUp() else onScrollDown()
-                                        cumulativeScrollY = 0f
+                                    // 3+ fingers = local viewport pan/zoom;
+                                    // 2 fingers = remote scroll-wheel only.
+                                    // See VncScreen for the full rationale.
+                                    if (totalFingers >= 3) {
+                                        if (prevSpan > 0f && span > 0f) {
+                                            val requestedScale = span / prevSpan
+                                            val newZoom = (zoom * requestedScale).coerceIn(0.5f, 5f)
+                                            // graphicsLayer's default TransformOrigin
+                                            // is the view center, so the scale pivot
+                                            // is (cx, cy). Use the *actual* applied
+                                            // scale (clamp-aware) so we don't over-pan
+                                            // when the zoom hits a limit.
+                                            val actualScale = if (zoom > 0f) newZoom / zoom else 1f
+                                            val cx = viewSize.width / 2f
+                                            val cy = viewSize.height / 2f
+                                            panX = (centroid.x - cx) * (1 - actualScale) + panX * actualScale
+                                            panY = (centroid.y - cy) * (1 - actualScale) + panY * actualScale
+                                            zoom = newZoom
+                                        }
+                                        val dx = centroid.x - prevCentroid.x
+                                        val dy = centroid.y - prevCentroid.y
+                                        panX += dx
+                                        panY += dy
+                                    } else {
+                                        cumulativeScrollY += centroid.y - prevCentroid.y
+                                        if (abs(cumulativeScrollY) > 40f) {
+                                            if (cumulativeScrollY < 0) onScrollUp() else onScrollDown()
+                                            cumulativeScrollY = 0f
+                                        }
                                     }
                                 }
 

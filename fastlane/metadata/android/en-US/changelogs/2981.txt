@@ -1,0 +1,17 @@
+v5.24.34: separate VNC/RDP gestures for remote scroll vs viewport pan
+
+Two-finger drag was doing both at once: it scrolled the remote
+*and* dragged the viewport. Trying to scroll a remote browser also
+panned the framebuffer, and trying to pan the framebuffer also
+fired a scroll wheel into whatever app was focused on the remote.
+Reported on #107.
+
+New gesture model — no toggle:
+  - 1 finger: tap / drag / long-press as before
+  - 2 fingers: remote mouse-wheel scroll only
+  - 3 fingers: local viewport pan + pinch-zoom
+
+Locked by max-fingers-seen during a gesture, so once you've used
+three fingers (or two), dropping back doesn't re-purpose the
+gesture mid-stroke. Same gesture model in both VNC and RDP
+sessions.

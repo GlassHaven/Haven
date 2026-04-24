@@ -152,6 +152,7 @@ fun SettingsScreen(
     val requireAgentConsentForWrites by viewModel.requireAgentConsentForWrites.collectAsState()
     val mouseInputEnabled by viewModel.mouseInputEnabled.collectAsState()
     val desktopInputMode by viewModel.desktopInputMode.collectAsState()
+    val bandwidthAutoSuggest by viewModel.bandwidthAutoSuggest.collectAsState()
     val terminalRightClick by viewModel.terminalRightClick.collectAsState()
     val allowStandardKeyboard by viewModel.allowStandardKeyboard.collectAsState()
     val interceptCtrlShiftV by viewModel.interceptCtrlShiftV.collectAsState()
@@ -370,6 +371,13 @@ fun SettingsScreen(
             onCheckedChange = { enabled ->
                 viewModel.setDesktopInputMode(if (enabled) "TOUCHPAD" else "DIRECT")
             },
+        )
+        SettingsToggleItem(
+            icon = Icons.Filled.CloudDownload,
+            title = "Suggest 256 colours on slow VNC links",
+            subtitle = "Detects throughput below ~1 Mbps after a few seconds and offers a one-tap reconnect at 256 colours. Off silences the prompt.",
+            checked = bandwidthAutoSuggest,
+            onCheckedChange = viewModel::setBandwidthAutoSuggest,
         )
         SettingsToggleItem(
             icon = Icons.Filled.Terminal,

@@ -51,6 +51,7 @@ class UserPreferencesRepository @Inject constructor(
     private val showDesktopsCardKey = booleanPreferencesKey("show_desktops_card")
     private val mediaExtensionsKey = stringPreferencesKey("media_extensions")
     private val desktopInputModeKey = stringPreferencesKey("desktop_input_mode")
+    private val bandwidthAutoSuggestKey = booleanPreferencesKey("bandwidth_auto_suggest")
     private val lastMediaServerPortKey = intPreferencesKey("last_media_server_port")
     private val mcpAgentEndpointEnabledKey = booleanPreferencesKey("mcp_agent_endpoint_enabled")
     private val lastViewedAgentAuditTimestampKey = longPreferencesKey("last_viewed_agent_audit_timestamp")
@@ -129,6 +130,22 @@ class UserPreferencesRepository @Inject constructor(
     suspend fun setDesktopInputMode(mode: String) {
         dataStore.edit { prefs ->
             prefs[desktopInputModeKey] = mode
+        }
+    }
+
+    /**
+     * When true (default), VNC sessions on slow connections will surface a
+     * banner suggesting a colour-depth downshift (#107). The user picks
+     * "switch" or "dismiss"; nothing happens automatically beyond the
+     * suggestion. Disable to silence the banner entirely.
+     */
+    val bandwidthAutoSuggest: Flow<Boolean> = dataStore.data.map { prefs ->
+        prefs[bandwidthAutoSuggestKey] ?: true
+    }
+
+    suspend fun setBandwidthAutoSuggest(enabled: Boolean) {
+        dataStore.edit { prefs ->
+            prefs[bandwidthAutoSuggestKey] = enabled
         }
     }
 

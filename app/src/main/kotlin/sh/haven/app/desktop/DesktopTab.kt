@@ -38,15 +38,29 @@ sealed class DesktopTab {
         val _cursor: MutableStateFlow<CursorOverlay?> = MutableStateFlow(null),
         /** Local pointer position we last sent to the server (framebuffer coords). */
         val _pointerPos: MutableStateFlow<Pair<Int, Int>> = MutableStateFlow(0 to 0),
+        /** Suggested colour-depth downshift on slow connections (#107); null = none. */
+        val _bandwidthSuggestion: MutableStateFlow<String?> = MutableStateFlow(null),
         val tunnelPort: Int? = null,
         val tunnelSessionId: String? = null,
         val profileId: String? = null,
+        // Original connection params kept so the bandwidth-suggestion banner
+        // can do a clean reconnect at the new colour depth without losing
+        // tunnel / auth context. Default empty string means "unknown" — the
+        // connect path falls back to the profile lookup if profileId != null.
+        val originalHost: String = "",
+        val originalPort: Int = 5900,
+        val originalUsername: String? = null,
+        val originalPassword: String? = null,
+        val sshForward: Boolean = false,
+        val sshSessionId: String? = null,
+        val colorDepth: String = "BPP_24_TRUE",
     ) : DesktopTab() {
         override val connected: StateFlow<Boolean> get() = _connected
         override val frame: StateFlow<Bitmap?> get() = _frame
         override val error: StateFlow<String?> get() = _error
         val cursor: StateFlow<CursorOverlay?> get() = _cursor
         val pointerPos: StateFlow<Pair<Int, Int>> get() = _pointerPos
+        val bandwidthSuggestion: StateFlow<String?> get() = _bandwidthSuggestion
     }
 
     data class Rdp(

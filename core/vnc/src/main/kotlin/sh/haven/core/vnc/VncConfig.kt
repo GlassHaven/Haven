@@ -18,6 +18,17 @@ class VncConfig {
      * An empty cursor (0×0) is signalled as a null bitmap and hotspot 0,0.
      */
     var onCursorUpdate: ((Bitmap?, Int, Int) -> Unit)? = null
+
+    /**
+     * Fired once per session when measured throughput is sustained below
+     * the recommend-downshift threshold (currently <1 Mbps over a 10 s
+     * window) AND the current colour depth is higher than the suggestion.
+     * Argument is the suggested [ColorDepth] (always
+     * [ColorDepth.BPP_8_INDEXED] in v1). The UI shows a non-blocking
+     * banner; a clean reconnect at the new depth happens only on user
+     * confirmation.
+     */
+    var onBandwidthSuggestion: ((ColorDepth) -> Unit)? = null
     var shared: Boolean = true
     var targetFps: Int = 30
     var colorDepth: ColorDepth = ColorDepth.BPP_24_TRUE

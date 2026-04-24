@@ -1,0 +1,34 @@
+v5.24.30: low-bandwidth auto-suggest (#107 final)
+
+Last item from #107 — VNC sessions on slow connections now surface
+a non-blocking banner offering a one-tap reconnect at 256 colours.
+
+How it works:
+- A CountingInputStream wraps the (post-handshake, post-TLS) VNC
+  input stream. ThroughputTracker keeps a 10-second rolling window
+  of (timestamp, bytesRead) samples.
+- The client event loop samples once per iteration. After 10s of
+  data and if measured throughput is sustained below 1 Mbps AND the
+  current colour depth is 24-bit, fires a one-shot suggestion via
+  VncConfig.onBandwidthSuggestion.
+- DesktopViewModel surfaces the suggestion as a StateFlow on the
+  Vnc tab. The viewer renders a non-blocking banner above the
+  framebuffer: "Slow connection — switch to 256 colours? [Switch]
+  [Dismiss]".
+- Switch persists vncColorDepth on the profile (if any), closes the
+  current tab, and reconnects with the new depth.
+- Dismiss clears the banner; suggestion is one-shot per session so
+  it won't keep nagging.
+
+Why suggest-don't-auto: mid-session SetPixelFormat is fiddly with
+ZRLE/ZLIB because the zlib streams are session-continuous (RFC
+6143) — there's no clean framing marker between in-flight 4-byte
+pixels and new 1-byte pixels. A reconnect with the new depth is
+safe and idiomatic.
+
+New global preference (Settings → "Suggest 256 colours on slow VNC
+links", default on) silences the banner entirely for users who
+want to manage colour depth themselves.
+
+This closes the open follow-ups from #107. Touchpad mode, drag-
+with-button, RDP touchpad parity, and bandwidth-suggest are all in.

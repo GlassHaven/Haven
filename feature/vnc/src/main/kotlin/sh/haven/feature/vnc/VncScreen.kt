@@ -130,6 +130,9 @@ fun VncSessionContent(
     cursor: StateFlow<CursorOverlay?>? = null,
     pointerPos: StateFlow<Pair<Int, Int>>? = null,
     inputMode: String = "DIRECT",
+    bandwidthSuggestion: StateFlow<String?>? = null,
+    onAcceptBandwidthSuggestion: (() -> Unit)? = null,
+    onDismissBandwidthSuggestion: (() -> Unit)? = null,
 ) {
     val connectedState by connected.collectAsState()
     val frameState by frame.collectAsState()
@@ -189,6 +192,9 @@ fun VncSessionContent(
             cursor = cursorState,
             pointerPos = pointerState,
             inputMode = inputMode,
+            bandwidthSuggestion = bandwidthSuggestion?.collectAsState()?.value,
+            onAcceptBandwidthSuggestion = onAcceptBandwidthSuggestion,
+            onDismissBandwidthSuggestion = onDismissBandwidthSuggestion,
         )
     } else {
         VncPlaceholder(error = errorState)
@@ -311,6 +317,9 @@ private fun VncViewer(
     cursor: CursorOverlay? = null,
     pointerPos: Pair<Int, Int> = 0 to 0,
     inputMode: String = "DIRECT",
+    bandwidthSuggestion: String? = null,
+    onAcceptBandwidthSuggestion: (() -> Unit)? = null,
+    onDismissBandwidthSuggestion: (() -> Unit)? = null,
 ) {
     var viewSize by remember { mutableStateOf(IntSize.Zero) }
     val imageBitmap = remember(frame) { frame.asImageBitmap() }
@@ -387,6 +396,28 @@ private fun VncViewer(
 
     Box(modifier = Modifier.fillMaxSize()) {
     Column(modifier = Modifier.fillMaxSize()) {
+        // Bandwidth-suggestion banner (#107 follow-up). Non-blocking; user
+        // chooses Switch (clean reconnect at 256 colours) or Dismiss.
+        if (!fullscreen && bandwidthSuggestion != null && onAcceptBandwidthSuggestion != null && onDismissBandwidthSuggestion != null) {
+            Surface(
+                color = MaterialTheme.colorScheme.tertiaryContainer,
+                modifier = Modifier.fillMaxWidth(),
+            ) {
+                Row(
+                    modifier = Modifier.padding(horizontal = 12.dp, vertical = 6.dp),
+                    verticalAlignment = Alignment.CenterVertically,
+                ) {
+                    Text(
+                        text = "Slow connection — switch to 256 colours for usable performance?",
+                        style = MaterialTheme.typography.bodySmall,
+                        color = MaterialTheme.colorScheme.onTertiaryContainer,
+                        modifier = Modifier.weight(1f),
+                    )
+                    TextButton(onClick = onAcceptBandwidthSuggestion) { Text("Switch") }
+                    TextButton(onClick = onDismissBandwidthSuggestion) { Text("Dismiss") }
+                }
+            }
+        }
         // VNC canvas
         Box(
             modifier = Modifier

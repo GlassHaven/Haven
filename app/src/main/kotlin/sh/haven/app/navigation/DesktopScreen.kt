@@ -125,6 +125,9 @@ fun DesktopScreen(
                             cursor = tab.cursor,
                             pointerPos = tab.pointerPos,
                             inputMode = inputMode,
+                            bandwidthSuggestion = tab.bandwidthSuggestion,
+                            onAcceptBandwidthSuggestion = { desktopViewModel.acceptBandwidthSuggestion(tab.id) },
+                            onDismissBandwidthSuggestion = { desktopViewModel.dismissBandwidthSuggestion(tab.id) },
                         )
 
                         is DesktopTab.Rdp -> RdpSessionContent(

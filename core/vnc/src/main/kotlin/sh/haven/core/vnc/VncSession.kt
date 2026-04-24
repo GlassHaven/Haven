@@ -30,6 +30,14 @@ class VncSession(
     var serverInit: ServerInit? = null
     var pixelFormat: PixelFormat? = null
 
+    /**
+     * Set by [VncClient] post-handshake to the [sh.haven.core.vnc.io.CountingInputStream]
+     * that wraps [inputStream]. Used by the bandwidth-suggestion feature
+     * (#107) to estimate session throughput.
+     */
+    var bandwidthCounter: sh.haven.core.vnc.io.CountingInputStream? = null
+        internal set
+
     @Volatile var framebufferWidth: Int = 0
     @Volatile var framebufferHeight: Int = 0
 

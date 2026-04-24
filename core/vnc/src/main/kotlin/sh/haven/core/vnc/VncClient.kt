@@ -2,6 +2,8 @@ package sh.haven.core.vnc
 
 import android.graphics.Bitmap
 import android.util.Log
+import sh.haven.core.vnc.io.CountingInputStream
+import sh.haven.core.vnc.io.ThroughputTracker
 import sh.haven.core.vnc.protocol.Handshaker
 import sh.haven.core.vnc.protocol.Initializer
 import sh.haven.core.vnc.rendering.Framebuffer
@@ -50,6 +52,16 @@ class VncClient(private val config: VncConfig) : Closeable {
             Log.d(TAG, "Initialising...")
             Initializer.initialise(sess)
             Log.d(TAG, "Connected: ${sess.serverInit?.name} ${sess.serverInit?.framebufferWidth}x${sess.serverInit?.framebufferHeight}")
+
+            // Wrap the (now-final) input stream with a byte counter for the
+            // bandwidth-suggestion feature (#107). On VeNCrypt-TLS sessions
+            // the stream we wrap is the SSLSocket's stream — i.e. counted
+            // bytes are the post-decryption payload, not raw on-the-wire
+            // bytes. The TLS overhead is small and bandwidth-decisions
+            // care about magnitude, so this is fine.
+            val counter = CountingInputStream(sess.inputStream)
+            sess.inputStream = counter
+            sess.bandwidthCounter = counter
 
             session = sess
             val framebuffer = Framebuffer(sess)
@@ -157,6 +169,14 @@ class VncClient(private val config: VncConfig) : Closeable {
             try {
                 var receivedPixels = false
                 var lastPixelTime = System.currentTimeMillis()
+                // Bandwidth-suggestion state (#107). Sample bytes-received
+                // every loop iteration into the tracker. Once we've measured
+                // for at least 10s and throughput is sustained below the
+                // suggest-downshift threshold, fire one suggestion. The
+                // ViewModel debounces and the UI shows a banner.
+                val tracker = ThroughputTracker(windowMs = 10_000L)
+                val sessionStartMs = System.currentTimeMillis()
+                var bandwidthSuggestionFired = false
                 while (running) {
                     if (paused) {
                         Thread.sleep(200)
@@ -177,6 +197,24 @@ class VncClient(private val config: VncConfig) : Closeable {
                         receivedPixels = true
                         lastPixelTime = System.currentTimeMillis()
                     }
+
+                    // Bandwidth check.
+                    sess.bandwidthCounter?.let { counter ->
+                        tracker.sample(now, counter.bytesRead)
+                        if (!bandwidthSuggestionFired &&
+                            (now - sessionStartMs) > 10_000L &&
+                            tracker.windowSpanMs() >= 10_000L &&
+                            config.colorDepth == ColorDepth.BPP_24_TRUE
+                        ) {
+                            val bps = tracker.throughputBytesPerSec() ?: 0.0
+                            // <1 Mbps = 125_000 bytes/sec.
+                            if (bps in 1.0..125_000.0) {
+                                bandwidthSuggestionFired = true
+                                config.onBandwidthSuggestion?.invoke(ColorDepth.BPP_8_INDEXED)
+                            }
+                        }
+                    }
+
                     // Pace the next request: wait up to `interval` ms, but wake
                     // immediately if the UI sent input so the next refresh goes
                     // out on the RTT instead of on the scheduled tick.

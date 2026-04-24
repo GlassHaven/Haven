@@ -14,6 +14,7 @@ import kotlinx.coroutines.flow.combine
 import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.flow.stateIn
 import kotlinx.coroutines.launch
+import kotlinx.coroutines.withContext
 import sh.haven.core.data.db.entities.ConnectionLog
 import sh.haven.core.data.preferences.UserPreferencesRepository
 import sh.haven.core.data.repository.ConnectionLogRepository
@@ -86,6 +87,53 @@ class DesktopViewModel @Inject constructor(
         _tabs.value = tabs
         if (_activeTabIndex.value == fromIndex) _activeTabIndex.value = toIndex
         else if (_activeTabIndex.value == toIndex) _activeTabIndex.value = fromIndex
+    }
+
+    /**
+     * User dismissed the bandwidth-suggestion banner — clear it; the
+     * session-side bandwidthSuggestionFired flag stops it re-firing.
+     */
+    fun dismissBandwidthSuggestion(tabId: String) {
+        val tab = _tabs.value.firstOrNull { it.id == tabId } as? DesktopTab.Vnc ?: return
+        tab._bandwidthSuggestion.value = null
+    }
+
+    /**
+     * User accepted the bandwidth-suggestion banner — persist the new
+     * colour depth on the profile (if any), close the existing tab, and
+     * reconnect with the new depth.
+     */
+    fun acceptBandwidthSuggestion(tabId: String) {
+        val tab = _tabs.value.firstOrNull { it.id == tabId } as? DesktopTab.Vnc ?: return
+        val newDepth = tab._bandwidthSuggestion.value ?: return
+        val pid = tab.profileId
+        viewModelScope.launch(Dispatchers.IO) {
+            if (pid != null) {
+                connectionRepository.getById(pid)?.let { existing ->
+                    if (existing.vncColorDepth != newDepth) {
+                        connectionRepository.save(existing.copy(vncColorDepth = newDepth))
+                    }
+                }
+            }
+            // Snapshot before close, since closeTab disposes the tab.
+            val host = tab.originalHost.ifEmpty { return@launch }
+            val port = tab.originalPort
+            val username = tab.originalUsername
+            val password = tab.originalPassword
+            val sshForward = tab.sshForward
+            val sshSessionId = tab.sshSessionId
+            withContext(Dispatchers.Main) { closeTab(tabId) }
+            addVncSession(
+                host = host,
+                port = port,
+                password = password,
+                username = username,
+                sshForward = sshForward,
+                sshSessionId = sshSessionId,
+                profileId = pid,
+                colorDepth = newDepth,
+            )
+        }
     }
 
     fun closeTab(tabId: String) {
@@ -210,6 +258,7 @@ class DesktopViewModel @Inject constructor(
                 val error = MutableStateFlow<String?>(null)
                 val cursor = MutableStateFlow<sh.haven.feature.vnc.CursorOverlay?>(null)
                 val pointerPos = MutableStateFlow(0 to 0)
+                val bandwidthSuggestion = MutableStateFlow<String?>(null)
 
                 val config = VncConfig().apply {
                     this.colorDepth = runCatching { ColorDepth.valueOf(colorDepth) }
@@ -220,6 +269,18 @@ class DesktopViewModel @Inject constructor(
                     onScreenUpdate = { bitmap -> frame.value = bitmap }
                     onCursorUpdate = { bmp, hx, hy ->
                         cursor.value = if (bmp == null) null else sh.haven.feature.vnc.CursorOverlay(bmp, hx, hy)
+                    }
+                    onBandwidthSuggestion = { suggested ->
+                        // Only surface if the global preference is on. If
+                        // the user's already dismissed the banner this
+                        // session, the StateFlow is set to null and the
+                        // session-side flag (bandwidthSuggestionFired)
+                        // prevents re-firing.
+                        viewModelScope.launch {
+                            if (preferencesRepository.bandwidthAutoSuggest.first()) {
+                                bandwidthSuggestion.value = suggested.name
+                            }
+                        }
                     }
                     onError = { e ->
                         Log.e(TAG, "VNC error on tab $tabId", e)
@@ -242,8 +303,16 @@ class DesktopViewModel @Inject constructor(
                     _error = error,
                     _cursor = cursor,
                     _pointerPos = pointerPos,
+                    _bandwidthSuggestion = bandwidthSuggestion,
                     tunnelPort = tunnelPort,
                     tunnelSessionId = tunnelSessionId,
+                    originalHost = host,
+                    originalPort = port,
+                    originalUsername = username,
+                    originalPassword = password,
+                    sshForward = sshForward,
+                    sshSessionId = sshSessionId,
+                    colorDepth = colorDepth,
                 )
 
                 val tabs = _tabs.value.toMutableList()

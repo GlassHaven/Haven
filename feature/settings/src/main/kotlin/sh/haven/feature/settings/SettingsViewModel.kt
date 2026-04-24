@@ -132,6 +132,13 @@ class SettingsViewModel @Inject constructor(
         viewModelScope.launch { preferencesRepository.setDesktopInputMode(mode) }
     }
 
+    val bandwidthAutoSuggest: StateFlow<Boolean> = preferencesRepository.bandwidthAutoSuggest
+        .stateIn(viewModelScope, SharingStarted.WhileSubscribed(5000), true)
+
+    fun setBandwidthAutoSuggest(enabled: Boolean) {
+        viewModelScope.launch { preferencesRepository.setBandwidthAutoSuggest(enabled) }
+    }
+
     val mouseInputEnabled: StateFlow<Boolean> = preferencesRepository.mouseInputEnabled
         .stateIn(viewModelScope, SharingStarted.WhileSubscribed(5000), true)
 

@@ -442,6 +442,7 @@ private fun RdpViewer(
                         var totalFingers = 1
                         var prevCentroid = firstDown.position
                         var prevSpan = 0f
+                        var prevCount = 0
                         var gestureStarted = false
                         var cumulativeScrollY = 0f
                         var totalMovement = 0f
@@ -471,7 +472,11 @@ private fun RdpViewer(
                                     (it.position - centroid).getDistance()
                                 }.average().toFloat()
 
-                                if (gestureStarted) {
+                                // Skip delta on the frame where pointer count
+                                // changed — the centroid recomputes over a
+                                // different pointer set, so the apparent jump
+                                // would feed in as a real pan/zoom delta.
+                                if (gestureStarted && count == prevCount) {
                                     // 3+ fingers = local viewport pan/zoom;
                                     // 2 fingers = remote scroll-wheel only.
                                     // See VncScreen for the full rationale.
@@ -507,6 +512,7 @@ private fun RdpViewer(
                                 gestureStarted = true
                                 prevCentroid = centroid
                                 prevSpan = span
+                                prevCount = count
 
                                 pointers.forEach { it.consume() }
                             } else if (count == 1 && totalFingers == 1) {

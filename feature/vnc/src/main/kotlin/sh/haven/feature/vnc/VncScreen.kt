@@ -438,6 +438,7 @@ private fun VncViewer(
                         var totalFingers = 1
                         var prevCentroid = firstDown.position
                         var prevSpan = 0f
+                        var prevCount = 0
                         var gestureStarted = false
                         var cumulativeScrollY = 0f
                         var totalMovement = 0f
@@ -514,7 +515,13 @@ private fun VncViewer(
                                     (it.position - centroid).getDistance()
                                 }.average().toFloat()
 
-                                if (gestureStarted) {
+                                // Skip delta application on the frame where the
+                                // pointer-count changed. Otherwise the centroid
+                                // (and span) recompute over a different set of
+                                // pointers and the apparent jump gets fed in as
+                                // a real pan/zoom delta — which made the
+                                // viewport visibly jump as fingers lifted.
+                                if (gestureStarted && count == prevCount) {
                                     // Routing: 3+ fingers operate on the local
                                     // viewport (pan + pinch-zoom); 2 fingers
                                     // emit remote scroll-wheel events only.
@@ -559,6 +566,7 @@ private fun VncViewer(
                                 gestureStarted = true
                                 prevCentroid = centroid
                                 prevSpan = span
+                                prevCount = count
 
                                 pointers.forEach { it.consume() }
                             } else if (count == 1 && totalFingers == 1) {

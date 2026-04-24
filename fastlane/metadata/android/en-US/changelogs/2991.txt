@@ -1,0 +1,12 @@
+v5.24.35: stop viewport jumping when 3 fingers lift (#107)
+
+Follow-up to v5.24.34's three-finger gesture model. Lifting one
+of the three fingers caused the viewport to jump: the centroid
+(average position) was recomputed over the remaining two fingers,
+so it teleported. The next frame fed that teleport in as a real
+pan delta and the framebuffer skipped sideways.
+
+Fix: track the pointer count between frames and skip delta
+application on the frame where it changes. Pinch span gets the
+same treatment so zoom doesn't snap on a finger lift either.
+Same fix in VNC and RDP.

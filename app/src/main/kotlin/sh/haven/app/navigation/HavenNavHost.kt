@@ -297,11 +297,12 @@ fun HavenNavHost(
                                 pagerState.animateScrollToPage(pageOf(Screen.Connections))
                             }
                         },
-                        onNavigateToVnc = { host, port, username, password, sshForward, sshSessionId ->
+                        onNavigateToVnc = { host, port, username, password, sshForward, sshSessionId, colorDepth ->
                             desktopViewModel.addVncSession(
                                 host, port, password, username,
                                 sshForward = sshForward,
                                 sshSessionId = sshSessionId,
+                                colorDepth = colorDepth,
                             )
                             coroutineScope.launch {
                                 pagerState.animateScrollToPage(pageOf(Screen.Desktop))

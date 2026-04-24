@@ -354,6 +354,15 @@ private fun VncViewer(
     // Fullscreen overlay toolbar
     var overlayVisible by remember { mutableStateOf(false) }
 
+    // Virtual cursor position for TOUCHPAD mode. Hoisted to composable
+    // scope so it persists across gesture lifts — Nesos-ita reported on
+    // #107 that cursor "teleported back" on each finger lift, because
+    // the previous implementation re-seeded it inside the pointerInput
+    // closure (which captures pointerPos as a snapshot at composition).
+    // Reset when inputMode changes so re-entering touchpad picks up the
+    // latest server-reported pointer.
+    var virtualCursor by remember(inputMode) { mutableStateOf(pointerPos) }
+
     // Auto-hide overlay after 4 seconds
     LaunchedEffect(overlayVisible) {
         if (overlayVisible) {
@@ -398,13 +407,12 @@ private fun VncViewer(
                         var longPressFired = false
                         val longPressMs = viewConfiguration.longPressTimeoutMillis
                         val downUptimeMs = firstDown.uptimeMillis
-                        // In TOUCHPAD mode, the gesture handler maintains its
-                        // own virtual cursor seeded from the inbound pointerPos.
-                        // Single-finger drag integrates screen-space deltas
-                        // (divided by zoom for framebuffer-space) into
-                        // virtualCursor, which is what tap/long-press/drag
-                        // callbacks receive instead of screenToVnc(finger).
-                        var virtualCursor = pointerPos
+                        // virtualCursor is hoisted to composable scope so
+                        // it survives across gesture lifts — the
+                        // pointerInput closure captures pointerPos as a
+                        // snapshot, so a local re-seed here would reset
+                        // the cursor on every finger-down (Nesos-ita's
+                        // touchpad report on #107).
 
                         var event: PointerEvent
                         do {
@@ -418,8 +426,12 @@ private fun VncViewer(
                             }
 
                             if (timedEvent == null) {
-                                // Timeout — fire long press (right-click)
-                                if (!longPressFired && !dragging && totalMovement < touchSlopPx) {
+                                // Timeout — fire long press (right-click), but
+                                // only when this gesture has stayed single-finger.
+                                // Two stationary fingers stationary for >400 ms
+                                // would otherwise trip a phantom right-click
+                                // mid-pinch (Nesos-ita on #107).
+                                if (totalFingers == 1 && !longPressFired && !dragging && totalMovement < touchSlopPx) {
                                     val (vx, vy) = if (inputMode == "TOUCHPAD") {
                                         virtualCursor
                                     } else {
@@ -664,11 +676,18 @@ private fun VncViewer(
             )
         }
 
-        // Bottom toolbar (hidden in fullscreen)
+        // Bottom toolbar (hidden in fullscreen).
+        // Solid background so a zoomed framebuffer doesn't show through —
+        // Nesos-ita reported on #107 that the toolbar looked like the
+        // image was overpainting it. The image is correctly clipped to
+        // the Canvas (clip = true on the graphicsLayer); the leak was
+        // visual transparency on this Row, which previously had no
+        // background at all.
         if (!fullscreen) {
             Row(
                 modifier = Modifier
                     .fillMaxWidth()
+                    .background(MaterialTheme.colorScheme.surface)
                     .padding(horizontal = 8.dp, vertical = 4.dp),
                 verticalAlignment = Alignment.CenterVertically,
             ) {

@@ -1,0 +1,33 @@
+v5.24.27: four follow-ups from Nesos-ita's v5.24.26 test (#107)
+
+1. Bottom toolbar background. The Disconnect / Reset zoom /
+   Fullscreen Row had no background colour, so the framebuffer
+   showed *through* it when zoomed (not actual bleed past the
+   Canvas — clip = true is doing its job). Solid surface
+   background applied. Same fix for RDP's equivalent toolbar.
+
+2. Touchpad cursor reset on every finger lift. The virtualCursor
+   was declared inside the pointerInput { awaitEachGesture {} }
+   closure, but pointerPos isn't in the pointerInput keys, so the
+   closure captured pointerPos as a snapshot at composition (0,0)
+   and re-seeded virtualCursor from that on every gesture start —
+   making the cursor "teleport back" on each touch. Hoisted to
+   composable scope as a remember{mutableStateOf(pointerPos)}, so
+   it survives across gesture lifts.
+
+3. Two-finger long-press collision. The long-press right-click
+   timer fired whenever a single touch stayed still for >400 ms,
+   regardless of how many fingers were down. Two stationary
+   fingers (mid-pinch) tripped a phantom right-click. Added
+   totalFingers == 1 to the long-press condition.
+
+4. Colour-depth picker in the quick-connect VNC dialog. v5.24.26
+   added the picker to the connection edit dialog, but the dialog
+   that pops up the first time you tap VNC on an SSH session also
+   needed it. Threaded vncColorDepth through VncInfo, the dialog,
+   the save path, and the navigation lambda all the way to
+   addVncSession.
+
+#107 still open: low-bandwidth auto-downshift, drag-with-button in
+touchpad mode, and RDP touchpad parity. All bigger pieces; their
+own releases.

@@ -600,11 +600,14 @@ private fun RdpViewer(
             )
         }
 
-        // Bottom toolbar (hidden in fullscreen)
+        // Bottom toolbar (hidden in fullscreen). Solid background so a
+        // zoomed framebuffer doesn't show through (matches the fix to
+        // VNC's equivalent toolbar from #107).
         if (!fullscreen) {
             Row(
                 modifier = Modifier
                     .fillMaxWidth()
+                    .background(MaterialTheme.colorScheme.surface)
                     .padding(horizontal = 8.dp, vertical = 4.dp),
                 verticalAlignment = Alignment.CenterVertically,
             ) {

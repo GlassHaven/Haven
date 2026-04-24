@@ -237,6 +237,7 @@ data class VncInfo(
     val profileId: String,
     val sessionId: String,
     val stored: Boolean,
+    val colorDepth: String = "BPP_24_TRUE",
 )
 
 @HiltViewModel
@@ -422,6 +423,7 @@ class TerminalViewModel @Inject constructor(
             profileId = tab.profileId,
             sessionId = tab.sessionId,
             stored = profile?.vncPort != null,
+            colorDepth = profile?.vncColorDepth ?: "BPP_24_TRUE",
         )
     }
 
@@ -498,9 +500,24 @@ class TerminalViewModel @Inject constructor(
     }
 
     /** Save VNC settings for a profile. */
-    fun saveVncSettings(profileId: String, port: Int, username: String?, password: String?, sshForward: Boolean) {
+    fun saveVncSettings(
+        profileId: String,
+        port: Int,
+        username: String?,
+        password: String?,
+        sshForward: Boolean,
+        colorDepth: String = "BPP_24_TRUE",
+    ) {
         viewModelScope.launch(Dispatchers.IO) {
             connectionRepository.updateVncSettings(profileId, port, username, password, sshForward)
+            // Colour depth lives on the profile but isn't part of the
+            // single-call updateVncSettings signature in
+            // ConnectionRepository — patch it via a fresh getById/upsert
+            // so the VNC-on-SSH save path doesn't lose the new setting.
+            val existing = connectionRepository.getById(profileId)
+            if (existing != null && existing.vncColorDepth != colorDepth) {
+                connectionRepository.save(existing.copy(vncColorDepth = colorDepth))
+            }
         }
     }
 

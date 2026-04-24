@@ -39,9 +39,13 @@ import androidx.compose.material.icons.filled.DriveFileRenameOutline
 import androidx.compose.material.icons.filled.Search
 import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.CircularProgressIndicator
+import androidx.compose.material3.DropdownMenuItem
+import androidx.compose.material3.ExposedDropdownMenuBox
+import androidx.compose.material3.ExposedDropdownMenuDefaults
 import androidx.compose.material3.HorizontalDivider
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
+import androidx.compose.material3.MenuAnchorType
 import androidx.compose.material3.ListItem
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.OutlinedTextField
@@ -127,7 +131,7 @@ fun TerminalScreen(
     interceptCtrlShiftV: Boolean = true,
     showTabBar: Boolean = true,
     onNavigateToConnections: () -> Unit = {},
-    onNavigateToVnc: (host: String, port: Int, username: String?, password: String?, sshForward: Boolean, sshSessionId: String?) -> Unit = { _, _, _, _, _, _ -> },
+    onNavigateToVnc: (host: String, port: Int, username: String?, password: String?, sshForward: Boolean, sshSessionId: String?, colorDepth: String) -> Unit = { _, _, _, _, _, _, _ -> },
     onSelectionActiveChanged: (Boolean) -> Unit = {},
     onReorderModeChanged: (Boolean) -> Unit = {},
     onToolbarLayoutChanged: (ToolbarLayout) -> Unit = {},
@@ -213,12 +217,13 @@ fun TerminalScreen(
             initialUsername = info.username,
             initialPassword = info.password,
             initialSshForward = info.sshForward,
-            onConnect = { port, username, password, sshForward, save ->
+            initialColorDepth = info.colorDepth,
+            onConnect = { port, username, password, sshForward, colorDepth, save ->
                 if (save) {
-                    viewModel.saveVncSettings(info.profileId, port, username, password, sshForward)
+                    viewModel.saveVncSettings(info.profileId, port, username, password, sshForward, colorDepth)
                 }
                 vncDialogInfo = null
-                onNavigateToVnc(info.host, port, username, password, sshForward, info.sessionId)
+                onNavigateToVnc(info.host, port, username, password, sshForward, info.sessionId, colorDepth)
             },
             onDismiss = { vncDialogInfo = null },
         )
@@ -692,7 +697,7 @@ fun TerminalScreen(
                             coroutineScope.launch {
                                 val info = viewModel.getActiveVncInfo() ?: return@launch
                                 if (info.stored) {
-                                    onNavigateToVnc(info.host, info.port, info.username, info.password, info.sshForward, info.sessionId)
+                                    onNavigateToVnc(info.host, info.port, info.username, info.password, info.sshForward, info.sessionId, info.colorDepth)
                                 } else {
                                     vncDialogInfo = info
                                 }
@@ -706,7 +711,7 @@ fun TerminalScreen(
                                     kotlinx.coroutines.delay(4000)
                                     val pwd = viewModel.getLocalVncPassword()
                                     localVncLoading = false
-                                    onNavigateToVnc("localhost", 5901, null, pwd, false, null)
+                                    onNavigateToVnc("localhost", 5901, null, pwd, false, null, "BPP_24_TRUE")
                                 }
                             }
                         }} else null,
@@ -991,6 +996,7 @@ private fun sgrMouseButton(button: Int, col: Int, row: Int, pressed: Boolean): B
     return "\u001b[<$button;$col;${row}$suffix".toByteArray()
 }
 
+@OptIn(androidx.compose.material3.ExperimentalMaterial3Api::class)
 @Composable
 private fun VncSettingsDialog(
     host: String,
@@ -998,13 +1004,15 @@ private fun VncSettingsDialog(
     initialUsername: String?,
     initialPassword: String?,
     initialSshForward: Boolean,
-    onConnect: (port: Int, username: String?, password: String?, sshForward: Boolean, save: Boolean) -> Unit,
+    initialColorDepth: String = "BPP_24_TRUE",
+    onConnect: (port: Int, username: String?, password: String?, sshForward: Boolean, colorDepth: String, save: Boolean) -> Unit,
     onDismiss: () -> Unit,
 ) {
     var port by remember { mutableStateOf(initialPort.toString()) }
     var username by remember { mutableStateOf(initialUsername ?: "") }
     var password by remember { mutableStateOf(initialPassword ?: "") }
     var sshForward by remember { mutableStateOf(initialSshForward) }
+    var colorDepth by remember { mutableStateOf(initialColorDepth) }
     var save by remember { mutableStateOf(true) }
 
     AlertDialog(
@@ -1046,6 +1054,43 @@ private fun VncSettingsDialog(
                     )
                     Text(stringResource(R.string.terminal_tunnel_through_ssh))
                 }
+                androidx.compose.foundation.layout.Spacer(Modifier.size(8.dp))
+                val depthOptions = listOf(
+                    "BPP_24_TRUE" to "24-bit colour (best quality)",
+                    "BPP_16_TRUE" to "16-bit colour (faster)",
+                    "BPP_8_INDEXED" to "256 colours (lowest bandwidth)",
+                )
+                var depthExpanded by remember { mutableStateOf(false) }
+                val selectedDepth = depthOptions.firstOrNull { it.first == colorDepth } ?: depthOptions.first()
+                ExposedDropdownMenuBox(
+                    expanded = depthExpanded,
+                    onExpandedChange = { depthExpanded = it },
+                ) {
+                    OutlinedTextField(
+                        value = selectedDepth.second,
+                        onValueChange = {},
+                        readOnly = true,
+                        label = { Text("Colour depth") },
+                        trailingIcon = { ExposedDropdownMenuDefaults.TrailingIcon(depthExpanded) },
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .menuAnchor(MenuAnchorType.PrimaryNotEditable),
+                    )
+                    ExposedDropdownMenu(
+                        expanded = depthExpanded,
+                        onDismissRequest = { depthExpanded = false },
+                    ) {
+                        depthOptions.forEach { (value, label) ->
+                            DropdownMenuItem(
+                                text = { Text(label) },
+                                onClick = {
+                                    colorDepth = value
+                                    depthExpanded = false
+                                },
+                            )
+                        }
+                    }
+                }
                 Row(verticalAlignment = Alignment.CenterVertically) {
                     androidx.compose.material3.Checkbox(
                         checked = save,
@@ -1059,7 +1104,7 @@ private fun VncSettingsDialog(
             TextButton(
                 onClick = {
                     val p = port.toIntOrNull() ?: 5900
-                    onConnect(p, username.ifEmpty { null }, password.ifEmpty { null }, sshForward, save)
+                    onConnect(p, username.ifEmpty { null }, password.ifEmpty { null }, sshForward, colorDepth, save)
                 },
             ) {
                 Text(stringResource(R.string.terminal_connect))

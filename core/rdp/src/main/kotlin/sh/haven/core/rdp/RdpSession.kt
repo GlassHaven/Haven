@@ -33,6 +33,7 @@ class RdpSession(
     private val domain: String = "",
     private val width: Int = 1920,
     private val height: Int = 1080,
+    private val useNla: Boolean = true,
     private val onDisconnected: (() -> Unit)? = null,
     private val verboseBuffer: ConcurrentLinkedQueue<String>? = null,
 ) : Closeable {
@@ -84,6 +85,7 @@ class RdpSession(
                 width = width.toUShort(),
                 height = height.toUShort(),
                 colorDepth = 32u,
+                enableCredssp = useNla,
             )
 
             val c = RdpClient(config)

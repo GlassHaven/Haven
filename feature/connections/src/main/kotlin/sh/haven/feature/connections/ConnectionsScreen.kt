@@ -136,7 +136,7 @@ fun ConnectionsScreen(
     onNavigateToTerminal: (profileId: String) -> Unit = {},
     onNavigateToNewSession: (profileId: String) -> Unit = {},
     onNavigateToVnc: (host: String, port: Int, password: String?, username: String?, sshForward: Boolean, sshSessionId: String?, profileId: String?, colorDepth: String) -> Unit = { _, _, _, _, _, _, _, _ -> },
-    onNavigateToRdp: (host: String, port: Int, username: String, password: String, domain: String, sshForward: Boolean, sshProfileId: String?, sshSessionId: String?, profileId: String?) -> Unit = { _, _, _, _, _, _, _, _, _ -> },
+    onNavigateToRdp: (host: String, port: Int, username: String, password: String, domain: String, sshForward: Boolean, sshProfileId: String?, sshSessionId: String?, profileId: String?, useNla: Boolean) -> Unit = { _, _, _, _, _, _, _, _, _, _ -> },
     onNavigateToSmb: (profileId: String) -> Unit = {},
     onNavigateToRclone: (profileId: String) -> Unit = {},
     onNavigateToWayland: () -> Unit = {},
@@ -221,7 +221,7 @@ fun ConnectionsScreen(
 
     LaunchedEffect(navigateToRdp) {
         navigateToRdp?.let { nav ->
-            onNavigateToRdp(nav.host, nav.port, nav.username, nav.password, nav.domain, nav.sshForward, nav.sshProfileId, nav.sshSessionId, nav.profileId)
+            onNavigateToRdp(nav.host, nav.port, nav.username, nav.password, nav.domain, nav.sshForward, nav.sshProfileId, nav.sshSessionId, nav.profileId, nav.useNla)
             viewModel.onNavigated()
         }
     }

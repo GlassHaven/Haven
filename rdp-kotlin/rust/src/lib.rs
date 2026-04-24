@@ -47,6 +47,11 @@ pub struct RdpConfig {
     pub width: u16,
     pub height: u16,
     pub color_depth: u8,
+    /// Request CredSSP / NLA during the handshake. Default true (callers
+    /// should construct this with true). Set false to fall back to SSL-
+    /// only security, useful against servers where ironrdp's CredSSP
+    /// doesn't interop — #109, Windows Server 2025 Datacenter.
+    pub enable_credssp: bool,
 }
 
 #[derive(Debug, Clone, uniffi::Record)]
@@ -313,7 +318,7 @@ fn build_config(config: &RdpConfig) -> ironrdp_connector::Config {
             Some(config.domain.clone())
         },
         enable_tls: true,
-        enable_credssp: true,
+        enable_credssp: config.enable_credssp,
         desktop_size: DesktopSize {
             width: config.width,
             height: config.height,

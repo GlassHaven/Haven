@@ -26,7 +26,7 @@ import sh.haven.core.data.db.entities.TunnelConfig
         TunnelConfig::class,
         PasteQueueEntry::class,
     ],
-    version = 38,
+    version = 39,
     exportSchema = true,
 )
 abstract class HavenDatabase : RoomDatabase() {
@@ -393,6 +393,20 @@ abstract class HavenDatabase : RoomDatabase() {
             override fun migrate(db: SupportSQLiteDatabase) {
                 db.execSQL(
                     "ALTER TABLE connection_profiles ADD COLUMN vncColorDepth TEXT NOT NULL DEFAULT 'BPP_24_TRUE'"
+                )
+            }
+        }
+
+        /**
+         * Per-profile NLA / CredSSP toggle for RDP, default on. Allows
+         * users to fall back to SSL-only security on servers where
+         * ironrdp's CredSSP implementation doesn't interoperate
+         * (#109 — Windows Server 2025 Datacenter).
+         */
+        val MIGRATION_38_39 = object : Migration(38, 39) {
+            override fun migrate(db: SupportSQLiteDatabase) {
+                db.execSQL(
+                    "ALTER TABLE connection_profiles ADD COLUMN rdpUseNla INTEGER NOT NULL DEFAULT 1"
                 )
             }
         }

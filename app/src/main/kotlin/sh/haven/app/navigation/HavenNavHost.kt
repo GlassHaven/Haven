@@ -233,10 +233,11 @@ fun HavenNavHost(
                             pagerState.animateScrollToPage(pageOf(Screen.Desktop))
                         }
                     },
-                    onNavigateToRdp = { host, port, username, password, domain, sshForward, sshProfileId, sshSessionId, profileId ->
+                    onNavigateToRdp = { host, port, username, password, domain, sshForward, sshProfileId, sshSessionId, profileId, useNla ->
                         desktopViewModel.addRdpSession(
                             host, port, username, password, domain,
                             sshForward, sshSessionId, sshProfileId, profileId,
+                            useNla = useNla,
                         )
                         coroutineScope.launch {
                             pagerState.animateScrollToPage(pageOf(Screen.Desktop))

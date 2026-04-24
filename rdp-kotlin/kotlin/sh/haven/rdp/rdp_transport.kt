@@ -2879,7 +2879,14 @@ data class RdpConfig (
     var `domain`: kotlin.String, 
     var `width`: kotlin.UShort, 
     var `height`: kotlin.UShort, 
-    var `colorDepth`: kotlin.UByte
+    var `colorDepth`: kotlin.UByte, 
+    /**
+     * Request CredSSP / NLA during the handshake. Default true (callers
+     * should construct this with true). Set false to fall back to SSL-
+     * only security, useful against servers where ironrdp's CredSSP
+     * doesn't interop — #109, Windows Server 2025 Datacenter.
+     */
+    var `enableCredssp`: kotlin.Boolean
 ) {
     
     companion object
@@ -2897,6 +2904,7 @@ public object FfiConverterTypeRdpConfig: FfiConverterRustBuffer<RdpConfig> {
             FfiConverterUShort.read(buf),
             FfiConverterUShort.read(buf),
             FfiConverterUByte.read(buf),
+            FfiConverterBoolean.read(buf),
         )
     }
 
@@ -2906,7 +2914,8 @@ public object FfiConverterTypeRdpConfig: FfiConverterRustBuffer<RdpConfig> {
             FfiConverterString.allocationSize(value.`domain`) +
             FfiConverterUShort.allocationSize(value.`width`) +
             FfiConverterUShort.allocationSize(value.`height`) +
-            FfiConverterUByte.allocationSize(value.`colorDepth`)
+            FfiConverterUByte.allocationSize(value.`colorDepth`) +
+            FfiConverterBoolean.allocationSize(value.`enableCredssp`)
     )
 
     override fun write(value: RdpConfig, buf: ByteBuffer) {
@@ -2916,6 +2925,7 @@ public object FfiConverterTypeRdpConfig: FfiConverterRustBuffer<RdpConfig> {
             FfiConverterUShort.write(value.`width`, buf)
             FfiConverterUShort.write(value.`height`, buf)
             FfiConverterUByte.write(value.`colorDepth`, buf)
+            FfiConverterBoolean.write(value.`enableCredssp`, buf)
     }
 }
 

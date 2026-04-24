@@ -1,0 +1,40 @@
+v5.24.33: per-profile NLA toggle for RDP (#109)
+
+Diagnostic conclusion from surf5726's #109 testing: ironrdp's
+CredSSP / NTLM implementation doesn't interoperate with Windows
+Server 2025 Datacenter — the client's stage-3 AUTHENTICATE reaches
+the server, and the server responds with a TLS internal_error
+alert instead of a clean CredSSP response. MS's own Remote Desktop
+app connects to the same server with the same credentials, so the
+problem is specifically on Haven's side.
+
+The root cause is upstream in ironrdp / sspi-rs — tracked there;
+likely MIC placement in NTLMv2 AUTHENTICATE and/or pub_key_auth
+hash format vs. Microsoft's strictest checks. That fix will take
+time.
+
+Workaround shipped this release: a per-profile "Network Level
+Authentication (NLA)" checkbox on the RDP connection edit dialog
+(default on, i.e. current behaviour). Turning it off makes Haven
+request only SSL security — no CredSSP. The server must have
+"Require Network Level Authentication" disabled in Remote Desktop
+settings for SSL-only mode to connect; many home/dev setups allow
+this, most domain-joined production setups don't.
+
+Data model: new `rdpUseNla: Boolean` column on
+connection_profiles (default true), migration 38 → 39, round-
+tripped in BackupService.
+
+Rust side: `RdpConfig.enable_credssp` is now configurable instead
+of hard-coded true; `build_config` passes it through to ironrdp's
+connector config.
+
+Kotlin plumbing: `RdpSession` takes `useNla`, `DesktopViewModel.
+addRdpSession` takes it, `ConnectionsViewModel.RdpNavigation`
+carries it, `HavenNavHost` threads it from Connections screen
+navigation to Desktop tab creation.
+
+If you're hitting the same #109 symptom, edit the RDP profile,
+untick "Network Level Authentication", and reconnect. You'll get
+a Windows login prompt rendered inside the session instead of the
+client-side NLA step.

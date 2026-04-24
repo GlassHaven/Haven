@@ -47,6 +47,15 @@ data class ConnectionProfile(
     val rdpPassword: String? = null,
     val rdpSshForward: Boolean = false,
     val rdpSshProfileId: String? = null,
+    /**
+     * Request Network Level Authentication (CredSSP) during the RDP
+     * handshake. Default true. Turn off to force SSL-only security —
+     * needed for some servers where ironrdp's CredSSP doesn't interop
+     * (seen with Windows Server 2025 Datacenter on #109). The server
+     * must have "Require Network Level Authentication" disabled for
+     * SSL-only mode to connect.
+     */
+    val rdpUseNla: Boolean = true,
     val smbPort: Int = 445,
     val smbShare: String? = null,
     val smbDomain: String? = null,

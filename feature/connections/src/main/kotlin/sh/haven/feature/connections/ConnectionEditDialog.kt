@@ -138,6 +138,7 @@ fun ConnectionEditDialog(
     var rdpDomain by rememberSaveable { mutableStateOf(existing?.rdpDomain ?: "") }
     var rdpSshForward by rememberSaveable { mutableStateOf(existing?.rdpSshForward ?: false) }
     var rdpSshProfileId by rememberSaveable { mutableStateOf(existing?.rdpSshProfileId) }
+    var rdpUseNla by rememberSaveable { mutableStateOf(existing?.rdpUseNla ?: true) }
     var smbShare by rememberSaveable { mutableStateOf(existing?.smbShare ?: "") }
     var smbPassword by rememberSaveable { mutableStateOf(existing?.smbPassword ?: "") }
     var smbDomain by rememberSaveable { mutableStateOf(existing?.smbDomain ?: "") }
@@ -731,6 +732,22 @@ fun ConnectionEditDialog(
                         placeholder = { Text("WORKGROUP") },
                         singleLine = true,
                         modifier = Modifier.fillMaxWidth(),
+                    )
+                    Spacer(Modifier.height(4.dp))
+                    Row(verticalAlignment = Alignment.CenterVertically) {
+                        androidx.compose.material3.Checkbox(
+                            checked = rdpUseNla,
+                            onCheckedChange = { rdpUseNla = it },
+                        )
+                        Text(
+                            "Network Level Authentication (NLA)",
+                            style = MaterialTheme.typography.bodyMedium,
+                        )
+                    }
+                    Text(
+                        "Default on. Turn off if the server rejects Haven's NLA (some Windows Server 2025 setups — the server must have \"Require NLA\" disabled for SSL-only to connect).",
+                        style = MaterialTheme.typography.bodySmall,
+                        color = MaterialTheme.colorScheme.onSurfaceVariant,
                     )
                 } else if (connectionType == "SMB") {
                     // SMB: host (with discovery), share, username, port, password, domain, SSH tunnel
@@ -1883,6 +1900,7 @@ fun ConnectionEditDialog(
                             rdpDomain = rdpDomain.ifBlank { null },
                             rdpSshForward = rdpSshForward,
                             rdpSshProfileId = if (rdpSshForward) rdpSshProfileId else null,
+                            rdpUseNla = rdpUseNla,
                             colorTag = colorTag,
                             groupId = groupId,
                         )

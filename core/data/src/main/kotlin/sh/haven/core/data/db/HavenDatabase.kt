@@ -412,16 +412,15 @@ abstract class HavenDatabase : RoomDatabase() {
         }
 
         /**
-         * Per-profile RDP colour depth, default 24bpp. 24bpp works
-         * against both Windows and xrdp (verified empirically on
-         * #109). 32bpp negotiates RemoteFX-with-alpha on Windows but
-         * breaks against xrdp (custom 32bpp RLE that ironrdp can't
-         * decode). 16bpp is the low-bandwidth fallback.
+         * Per-profile RDP colour depth, default 16bpp. 16 is the
+         * only value verified to work against every server type;
+         * 24 fails on Windows (server resets connection) and 32
+         * fails on xrdp (blank screen). #109.
          */
         val MIGRATION_39_40 = object : Migration(39, 40) {
             override fun migrate(db: SupportSQLiteDatabase) {
                 db.execSQL(
-                    "ALTER TABLE connection_profiles ADD COLUMN rdpColorDepth INTEGER NOT NULL DEFAULT 24"
+                    "ALTER TABLE connection_profiles ADD COLUMN rdpColorDepth INTEGER NOT NULL DEFAULT 16"
                 )
             }
         }

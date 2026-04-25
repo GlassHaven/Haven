@@ -338,7 +338,7 @@ class BackupService @Inject constructor(
                             rdpSshForward = c.optBoolean("rdpSshForward", false),
                             rdpSshProfileId = c.optStringOrNull("rdpSshProfileId"),
                             rdpUseNla = c.optBoolean("rdpUseNla", true),
-                            rdpColorDepth = c.optInt("rdpColorDepth", 24),
+                            rdpColorDepth = c.optInt("rdpColorDepth", 16),
                             smbPort = c.optInt("smbPort", 445),
                             smbShare = c.optStringOrNull("smbShare"),
                             smbDomain = c.optStringOrNull("smbDomain"),

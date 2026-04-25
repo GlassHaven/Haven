@@ -347,7 +347,7 @@ class DesktopViewModel @Inject constructor(
         sshProfileId: String? = null,
         profileId: String? = null,
         useNla: Boolean = true,
-        colorDepth: Int = 24,
+        colorDepth: Int = 16,
     ) {
         viewModelScope.launch(Dispatchers.IO) {
             // Deduplicate: if a tab for the same connection exists, reuse or replace

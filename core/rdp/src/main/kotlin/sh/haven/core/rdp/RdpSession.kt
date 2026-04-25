@@ -34,7 +34,7 @@ class RdpSession(
     private val width: Int = 1920,
     private val height: Int = 1080,
     private val useNla: Boolean = true,
-    private val colorDepth: Int = 24,
+    private val colorDepth: Int = 16,
     private val onDisconnected: (() -> Unit)? = null,
     private val verboseBuffer: ConcurrentLinkedQueue<String>? = null,
 ) : Closeable {

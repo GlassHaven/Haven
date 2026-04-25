@@ -57,14 +57,17 @@ data class ConnectionProfile(
      */
     val rdpUseNla: Boolean = true,
     /**
-     * RDP colour depth in bits per pixel. Default 24 — works against
-     * both Windows and xrdp and gives smooth updates on both. 32
-     * negotiates RemoteFX with alpha on Windows but breaks against
-     * xrdp (custom 32bpp RLE that ironrdp can't decode). 16 is the
-     * fallback for very low-bandwidth links — line-by-line repaints
-     * but minimal data. (#109)
+     * RDP colour depth in bits per pixel. Default 16 — the only
+     * value that works against every server (Windows + xrdp).
+     * Empirical matrix from #109:
+     *   16: Windows ✓ (slow), xrdp ✓
+     *   24: Windows ✗ (server resets connection), xrdp ✓
+     *   32: Windows ✓ (smoother), xrdp ✗ (blank — custom RLE
+     *        ironrdp can't decode)
+     * Per-profile so users can pick 24 for xrdp or 32 for Windows
+     * once they know their server type.
      */
-    val rdpColorDepth: Int = 24,
+    val rdpColorDepth: Int = 16,
     val smbPort: Int = 445,
     val smbShare: String? = null,
     val smbDomain: String? = null,

@@ -1,0 +1,21 @@
+v5.24.43: revert RDP colour-depth default to 16-bit; clarify picker
+
+surf5726 reported (#109) that v5.24.42's 24-bit default fails on
+Windows servers with `ConnectionReset` — the server kicks the
+connection mid-handshake. 32-bit works on Windows but at extra
+bandwidth cost; 24-bit only works against xrdp.
+
+Empirical matrix:
+
+  - 16-bit: Windows ✓ slow, xrdp ✓
+  - 24-bit: Windows ✗ ConnectionReset, xrdp ✓
+  - 32-bit: Windows ✓ smoother, xrdp ✗ blank
+
+No single value works smoothly everywhere. Default reverted to
+16-bit (the only universally-compatible choice). Picker labels
+updated to spell out the matrix so users can pick the right depth
+for their server type.
+
+For Windows targets where the 16-bit line-by-line repaints are
+intolerable, switch the profile to 32-bit. For xrdp targets where
+24-bit gives smoother updates than 16-bit, switch to 24.

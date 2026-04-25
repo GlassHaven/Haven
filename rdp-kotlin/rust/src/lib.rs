@@ -333,9 +333,16 @@ fn build_config(config: &RdpConfig) -> ironrdp_connector::Config {
         ime_file_name: String::new(),
         bitmap: Some(BitmapConfig {
             lossy_compression: true,
-            // Request 16bpp: xrdp's 32bpp uses a custom RLE variant that
-            // ironrdp doesn't decode. 16bpp uses standard interleaved RLE.
-            color_depth: 16,
+            // Honour the depth Kotlin passes. Kotlin defaults to 32 in
+            // RdpSession, which Windows Server negotiates as 32bpp +
+            // RemoteFX — smooth tile-based updates. Previously
+            // hardcoded to 16 here for xrdp compatibility (xrdp's
+            // 32bpp uses a custom RLE variant that ironrdp doesn't
+            // decode), but that meant Windows users were stuck on
+            // 16bpp interleaved RLE — line-by-line repaints, surf5726
+            // on #109. xrdp users who need lower depth can be served
+            // by a per-profile picker (follow-up to v5.24.40).
+            color_depth: u32::from(config.color_depth),
             codecs: {
                 use ironrdp_pdu::rdp::capability_sets::*;
                 BitmapCodecs(vec![

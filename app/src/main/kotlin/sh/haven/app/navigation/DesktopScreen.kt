@@ -81,6 +81,28 @@ fun DesktopScreen(
 
     LaunchedEffect(anyConnected) { onConnectedChanged(anyConnected) }
 
+    // While a desktop session is active, request landscape so the
+    // remote desktop has room — phone screens are too narrow in
+    // portrait to be usable for VNC/RDP. USER_LANDSCAPE respects the
+    // user's auto-rotate setting for which way they hold the phone.
+    // Restored to UNSPECIFIED when no session is connected (or when
+    // the screen leaves composition) so other screens follow normal
+    // device rotation rules. surf5726 reported on #109.
+    val activity = androidx.compose.ui.platform.LocalContext.current as? android.app.Activity
+    androidx.compose.runtime.DisposableEffect(anyConnected, activity) {
+        if (anyConnected) {
+            activity?.requestedOrientation =
+                android.content.pm.ActivityInfo.SCREEN_ORIENTATION_USER_LANDSCAPE
+        } else {
+            activity?.requestedOrientation =
+                android.content.pm.ActivityInfo.SCREEN_ORIENTATION_UNSPECIFIED
+        }
+        onDispose {
+            activity?.requestedOrientation =
+                android.content.pm.ActivityInfo.SCREEN_ORIENTATION_UNSPECIFIED
+        }
+    }
+
     Column(modifier = Modifier.fillMaxSize()) {
         if (tabs.isEmpty()) {
             DesktopEmptyState()

@@ -1,0 +1,50 @@
+v5.24.40: Samsung keyboard typing fix (#110), RDP auto-rotate +
+proper colour depth (#109)
+
+== Samsung Keyboard typing in Secure mode (#110) ==
+
+Reported by SeriousM on Galaxy S23 with the stock Samsung Keyboard:
+text input was silently dropped — pressing keys produced nothing
+(only ESC worked). Logcat showed Samsung's customised IME
+framework refusing to engage:
+
+  ssi() view is not EditText
+
+Samsung's framework gates input on TYPE_TEXT_FLAG_AUTO_CORRECT
+being set on the focused field. Haven's Secure keyboard mode (the
+default — designed to suppress autocorrect / personalised
+learning when typing passwords) didn't set that flag, so Samsung
+treated the terminal view as not-a-text-editor and dropped every
+commitText call. Gboard didn't enforce that gate, which is why the
+bug only surfaced on Samsung devices.
+
+Fix: set both AUTO_CORRECT and NO_SUGGESTIONS in Secure mode.
+They're contradictory by spec but the combination keeps the
+suggestion strip suppressed (no autocorrect UI, no learning) AND
+satisfies Samsung's "this is a real text editor" check.
+
+Workaround for users still on v5.24.39 or earlier: Settings →
+Keyboard & input → Keyboard mode → Standard.
+
+== RDP auto-rotates to landscape during a session (#109) ==
+
+surf5726 reported that RDP wouldn't follow the device into
+landscape, leaving the desktop crammed into portrait. The
+DesktopScreen now requests SCREEN_ORIENTATION_USER_LANDSCAPE
+while a desktop session is active, restoring the default on
+disconnect or screen exit. Respects the user's auto-rotate
+setting for which landscape direction.
+
+== RDP colour depth actually honours the requested value (#109) ==
+
+The Rust binding hardcoded 16bpp for ironrdp's bitmap config and
+ignored the value passed from Kotlin. Effect: every RDP session
+ran at 16bpp regardless of intent, which forced the legacy
+interleaved-RLE bitmap codec (line-by-line repaints surf5726
+described after dragging a window). Kotlin already passed 32u
+in RdpSession.connect; honouring it lets Windows servers
+negotiate 32bpp + RemoteFX for smooth tile-based updates.
+
+xrdp at 32bpp uses a custom RLE variant ironrdp can't decode; if
+that hits anyone, a per-profile RDP colour-depth picker (mirror
+of the VNC one) is the follow-up.

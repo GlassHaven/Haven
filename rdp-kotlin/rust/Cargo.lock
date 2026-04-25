@@ -2195,6 +2195,7 @@ dependencies = [
  "rustls",
  "smallvec",
  "uniffi",
+ "x509-cert",
 ]
 
 [[package]]

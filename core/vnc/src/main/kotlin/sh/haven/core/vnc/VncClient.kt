@@ -101,9 +101,94 @@ class VncClient(private val config: VncConfig) : Closeable {
         updateKey(keySym, false)
     }
 
+    /**
+     * Type a string of printable characters using explicit shift-pair
+     * encoding: every shifted character (uppercase letter, `!@#$%^&*` …)
+     * is sent as `Shift-down → base key down/up → Shift-up`. We never
+     * hand the server a "shifted-form" keysym like `0x41` ('A') or
+     * `0x3a` (':') and let it figure out the modifier — many VNC
+     * servers (notably QEMU's built-in one) misinterpret those and
+     * produce mojibake like "iWr HTTP!8765/ENABLE…" for "iwr http:8765/
+     * enable…". Driving the shift modifier ourselves matches what
+     * RealVNC and TigerVNC do for the same compatibility reason.
+     *
+     * All chars go through a single call (single thread of execution)
+     * so on-wire ordering is guaranteed. A 5 ms inter-char gap is
+     * conservative pacing for servers that inject at the scancode
+     * level and drop bursts above ~1 kHz. Assumes a US keyboard layout
+     * for the shift map; non-US layouts will need a per-layout table.
+     */
+    fun typeText(text: String) {
+        // Send the literal X11 keysym for each character (e.g. 0x41 for
+        // 'A', 0x3a for ':') and explicitly wrap shifted chars with
+        // Shift_L down/up events. QEMU's keymap requires both:
+        //   - the keysym must be the shifted form, because the keymap
+        //     entry is `colon 0x27 shift` / `A 0x1e shift` (no entries
+        //     for "send the base keysym and we'll auto-shift")
+        //   - the shift modifier must be held, because without it QEMU
+        //     falls through to the unshifted entry on the same scancode
+        //     (so ':' would render as ';')
+        //
+        // Pacing: 10 ms after shift-down so the modifier registers
+        // before the key, 5 ms key down→up, 15 ms char→char. Bursts
+        // faster than this drop chars against QEMU's VNC.
+        for (ch in text) {
+            val (keySym, needsShift) = charToKeyEvent(ch)
+            if (needsShift) {
+                session?.sendKeyEvent(SHIFT_L, true)
+                if (sleep(10)) return
+            }
+            session?.sendKeyEvent(keySym, true)
+            if (sleep(5)) return
+            session?.sendKeyEvent(keySym, false)
+            if (needsShift) {
+                if (sleep(5)) return
+                session?.sendKeyEvent(SHIFT_L, false)
+            }
+            if (sleep(15)) return
+        }
+    }
+
+    /** Returns true if interrupted (caller should bail). */
+    private fun sleep(ms: Long): Boolean {
+        return try { Thread.sleep(ms); false } catch (_: InterruptedException) { true }
+    }
+
     /** Copy text to the remote clipboard. */
     fun copyText(text: String) {
         session?.sendClientCutText(text)
+    }
+
+    /**
+     * Map a printable character to (literal X11 keysym, needsShift).
+     * The keysym is *always* the literal X11 keysym for the printed
+     * character (e.g. 0x41 for 'A', 0x3a for ':'); needsShift tells us
+     * whether to wrap with Shift_L events. QEMU's keymap relies on both
+     * being correct — see [typeText].
+     */
+    private fun charToKeyEvent(ch: Char): Pair<Int, Boolean> = when (ch) {
+        '\n', '\r' -> RETURN to false
+        '\t'       -> TAB to false
+        '\b'       -> BACKSPACE to false
+        ' '        -> 0x20 to false
+        in 'a'..'z' -> ch.code to false
+        in 'A'..'Z' -> ch.code to true
+        in '0'..'9' -> ch.code to false
+        // Unshifted US-layout symbols
+        '-', '=', '[', ']', '\\', ';', '\'', ',', '.', '/', '`' -> ch.code to false
+        // Shifted US-layout symbols
+        '!', '@', '#', '$', '%', '^', '&', '*', '(', ')',
+        '_', '+', '{', '}', '|', ':', '"', '<', '>', '?', '~' -> ch.code to true
+        // Latin-1 / Unicode pass-through, no shift. Won't render
+        // correctly on non-US server keymaps; needs per-layout work.
+        else -> ch.code to false
+    }
+
+    private companion object {
+        const val RETURN = 0xff0d
+        const val TAB = 0xff09
+        const val BACKSPACE = 0xff08
+        const val SHIFT_L = 0xffe1
     }
 
     override fun close() {

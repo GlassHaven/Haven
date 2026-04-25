@@ -497,25 +497,58 @@ fn run_rdp_session(
             server_addr.ip().into()
         ));
 
-    let tls_connector = rustls::ClientConnection::new(
+    let mut tls_conn = rustls::ClientConnection::new(
         Arc::new(tls_config),
         server_name_ref,
     ).map_err(|e| format!("TLS connector init failed: {}", e))?;
 
-    let tls_stream = rustls::StreamOwned::new(tls_connector, raw_stream);
+    // Drive the TLS handshake to completion *before* reading the server
+    // certificate. rustls is lazy: peer_certificates() returns None
+    // until the first IO triggers the handshake. Without this we passed
+    // an empty buffer as `server_public_key`, CredSSP's pub_key_auth
+    // hash never matched the server, and Windows tore down the TLS
+    // session with `internal_error` (#106 / #109). Fix verified against
+    // a Windows Server 2025 Datacenter VM with strict NLA.
+    let mut socket = raw_stream;
+    if let Err(e) = tls_conn.complete_io(&mut socket) {
+        return Err(format!("TLS handshake failed: {}", e));
+    }
+
+    let tls_stream = rustls::StreamOwned::new(tls_conn, socket);
     let mut tls_framed = Framed::new_with_leftover(tls_stream, leftover);
 
     let upgraded = mark_as_upgraded(should_upgrade, &mut connector);
 
-    // Phase 3: Extract server public key from TLS for CredSSP
-    let server_public_key = tls_framed
+    // Phase 3: Extract the SubjectPublicKey BIT STRING bits — *not* the
+    // full DER of the leaf certificate. CredSSP's pub_key_auth hashes
+    // these exact bytes (SHA-256 of `magic || nonce || subject_public_key`)
+    // and the server independently computes the same hash from its own
+    // SPKI; if we feed it the full cert DER, the hashes never match and
+    // Server 2025 disconnects with TLS internal_error. Older Windows
+    // versions weren't strict enough to catch the mismatch — but it was
+    // always wrong. Reproducer (Devolutions/sspi-rs#651) shows full-DER
+    // → AlertReceived(InternalError) and SPKI → success against the
+    // same VM with the same credentials.
+    let raw_cert_der = tls_framed
         .get_inner()
         .0
         .conn
         .peer_certificates()
         .and_then(|certs| certs.first())
         .map(|cert| cert.as_ref().to_vec())
-        .unwrap_or_default();
+        .ok_or_else(|| "no peer certificate after TLS handshake".to_string())?;
+
+    let server_public_key = {
+        use x509_cert::der::Decode as _;
+        let cert = x509_cert::Certificate::from_der(&raw_cert_der)
+            .map_err(|e| format!("parse server cert: {}", e))?;
+        cert.tbs_certificate
+            .subject_public_key_info
+            .subject_public_key
+            .as_bytes()
+            .ok_or_else(|| "subject public key BIT STRING is not byte-aligned".to_string())?
+            .to_vec()
+    };
 
     // Phase 4: CredSSP + remaining connection sequence
     let sname = ServerName::new(server_name.to_string());

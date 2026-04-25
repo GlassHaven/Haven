@@ -1,0 +1,53 @@
+v5.24.37: RDP NLA actually works (#106 / #109) + VNC paste no longer garbles
+
+== RDP NLA — verified fix ==
+
+NLA has been broken in Haven since RDP shipped in v2.4.0 — every
+NLA-enabled Windows server rejected the connection. Misattributed to
+ironrdp/sspi-rs across #106 and #109; the bug was actually two
+mistakes in Haven's TLS-cert handling:
+
+  1. We read the server cert before driving the TLS handshake.
+     rustls is lazy; peer_certificates() returned None and we
+     passed an empty buffer into CredSSP. The pub_key_auth SHA-256
+     hash never matched what the server computed, and Windows tore
+     down the TLS session with an internal_error alert —
+     surf5726's #109 symptom.
+
+  2. Even with a populated cert, we passed the *full DER* of the
+     leaf certificate. CredSSP's pub_key_auth hashes the
+     SubjectPublicKey BIT STRING bits — not the wrapper.
+     Server 2025 enforces this strictly.
+
+Fix: drive the handshake to completion via tls_conn.complete_io(),
+then parse the cert with x509-cert and pass only the
+subject_public_key.as_bytes(). Mirrors what ironrdp's example
+client and ironrdp-tls::extract_tls_server_public_key have always
+done.
+
+Verified empirically against a Windows Server 2025 Datacenter VM
+with strict NLA, both via a standalone reproducer and live from
+the phone. The per-profile NLA toggle from v5.24.33 stays for any
+server that genuinely doesn't speak CredSSP.
+
+== VNC paste no longer garbles ==
+
+Pasting into a VNC session against QEMU's built-in VNC server
+produced mojibake — uppercase letters became lowercase, ":"
+became "!", chars dropped. Two compounding causes:
+
+  - Each pasted character launched its own coroutine on
+    Dispatchers.IO. Down/up events interleaved on the wire and
+    the server saw overlapping shift state.
+  - QEMU's VNC keymap requires both the literal X11 keysym
+    (e.g. 0x3a for ":") *and* an explicit Shift_L modifier event.
+    Sending just the keysym falls through to the unshifted entry
+    on the same scancode (";").
+
+Fix: route paste through a single typeText() coroutine that
+sends the literal keysym for each char and explicitly wraps
+shifted chars (uppercase A-Z and US-layout shifted symbols) with
+Shift_L down/up, with conservative pacing for QEMU's input
+buffer. Also pushes the pasted text to the remote VNC clipboard
+as defence-in-depth so Ctrl+V still works on the remote even
+when synth-typing has issues.

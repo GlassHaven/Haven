@@ -32,6 +32,7 @@ import androidx.compose.foundation.text.BasicTextField
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Close
+import androidx.compose.material.icons.filled.ContentPaste
 import androidx.compose.material.icons.filled.ExpandLess
 import androidx.compose.material.icons.filled.ExpandMore
 import androidx.compose.material.icons.filled.Fullscreen
@@ -85,6 +86,7 @@ import androidx.compose.ui.input.pointer.pointerInput
 import androidx.compose.ui.input.pointer.pointerInteropFilter
 import androidx.compose.ui.input.pointer.positionChange
 import androidx.compose.ui.layout.onSizeChanged
+import androidx.compose.ui.platform.LocalClipboardManager
 import androidx.compose.ui.platform.LocalSoftwareKeyboardController
 import androidx.compose.ui.text.TextRange
 import androidx.compose.ui.text.input.TextFieldValue
@@ -123,6 +125,7 @@ fun VncSessionContent(
     onScrollUp: () -> Unit,
     onScrollDown: () -> Unit,
     onTypeChar: (Char) -> Unit,
+    onTypeText: (String) -> Unit = { s -> s.forEach(onTypeChar) },
     onKeyDown: (keySym: Int) -> Unit,
     onKeyUp: (keySym: Int) -> Unit,
     onDisconnect: () -> Unit,
@@ -185,6 +188,7 @@ fun VncSessionContent(
             onScrollUp = onScrollUp,
             onScrollDown = onScrollDown,
             onTypeChar = onTypeChar,
+            onTypeText = onTypeText,
             onKeyDown = onKeyDown,
             onKeyUp = onKeyUp,
             onToggleFullscreen = { fullscreen = !fullscreen },
@@ -253,6 +257,7 @@ fun VncScreen(
         onScrollUp = { viewModel.scrollUp() },
         onScrollDown = { viewModel.scrollDown() },
         onTypeChar = { ch -> viewModel.typeKey(charToKeySym(ch)) },
+        onTypeText = { text -> viewModel.typeText(text) },
         onKeyDown = { keySym -> viewModel.sendKey(keySym, true) },
         onKeyUp = { keySym -> viewModel.sendKey(keySym, false) },
         onDisconnect = { viewModel.disconnect() },
@@ -310,6 +315,7 @@ private fun VncViewer(
     onScrollUp: () -> Unit,
     onScrollDown: () -> Unit,
     onTypeChar: (Char) -> Unit,
+    onTypeText: (String) -> Unit = { s -> s.forEach(onTypeChar) },
     onKeyDown: (Int) -> Unit,
     onKeyUp: (Int) -> Unit,
     onToggleFullscreen: () -> Unit,
@@ -690,11 +696,13 @@ private fun VncViewer(
                 val newText = newValue.text
 
                 if (newText.length > oldText.length) {
-                    // Characters were typed
+                    // Characters were typed (or pasted). Route through
+                    // onTypeText so multi-char input goes via the
+                    // serialized typeText path — the previous one-
+                    // launch-per-char model interleaved key events on
+                    // the wire and Windows VNC produced "half-capitals".
                     val added = newText.substring(oldText.length)
-                    for (ch in added) {
-                        onTypeChar(ch)
-                    }
+                    onTypeText(added)
                 } else if (newText.length < oldText.length) {
                     // Backspace
                     val deleted = oldText.length - newText.length

@@ -256,6 +256,18 @@ class VncViewModel @Inject constructor(
         viewModelScope.launch(Dispatchers.IO) { client?.type(keySym) }
     }
 
+    /**
+     * Type a string sequentially in a single coroutine and also push it
+     * to the remote VNC clipboard. The clipboard sync is defence-in-depth
+     * for apps where Ctrl+V works better than synth-typed key events.
+     */
+    fun typeText(text: String) {
+        viewModelScope.launch(Dispatchers.IO) {
+            client?.copyText(text)
+            client?.typeText(text)
+        }
+    }
+
     fun scrollUp() {
         viewModelScope.launch(Dispatchers.IO) { client?.click(4) }
     }

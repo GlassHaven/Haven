@@ -572,6 +572,21 @@ class DesktopViewModel @Inject constructor(
         }
     }
 
+    /**
+     * Type a string sequentially via the active VNC tab. Single coroutine
+     * so key down/up events stay in source order on the wire — see
+     * [VncClient.typeText]. Also pushes the text to the remote VNC
+     * clipboard as defence-in-depth (Ctrl+V on the remote then works
+     * regardless of synth-typing fidelity).
+     */
+    fun typeVncText(text: String) {
+        viewModelScope.launch(Dispatchers.IO) {
+            val client = (activeTab.value as? DesktopTab.Vnc)?.client ?: return@launch
+            client.copyText(text)
+            client.typeText(text)
+        }
+    }
+
     fun sendRdpKey(scancode: Int, pressed: Boolean) {
         viewModelScope.launch(Dispatchers.IO) {
             (activeTab.value as? DesktopTab.Rdp)?.session?.sendKey(scancode, pressed)

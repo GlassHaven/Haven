@@ -118,6 +118,7 @@ fun DesktopScreen(
                             onScrollUp = { desktopViewModel.scrollUp() },
                             onScrollDown = { desktopViewModel.scrollDown() },
                             onTypeChar = { ch -> desktopViewModel.typeVncKey(charToKeySym(ch)) },
+                            onTypeText = { text -> desktopViewModel.typeVncText(text) },
                             onKeyDown = { keySym -> desktopViewModel.sendVncKey(keySym, true) },
                             onKeyUp = { keySym -> desktopViewModel.sendVncKey(keySym, false) },
                             onDisconnect = { desktopViewModel.closeTab(tab.id) },

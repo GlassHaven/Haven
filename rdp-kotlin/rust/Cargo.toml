@@ -16,6 +16,7 @@ ironrdp-cliprdr = "0.5"
 ironrdp-graphics = "0.7"
 ironrdp-tls = { version = "0.2", features = ["rustls"] }
 ironrdp-pdu = "0.7"
+x509-cert = { version = "0.2", default-features = false }
 smallvec = "1"
 log = "0.4"
 android_logger = "0.14"

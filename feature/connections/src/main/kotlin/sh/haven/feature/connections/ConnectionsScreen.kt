@@ -31,6 +31,7 @@ import androidx.compose.foundation.lazy.rememberLazyListState
 import androidx.compose.foundation.text.KeyboardActions
 import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.automirrored.filled.ArrowBack
 import androidx.compose.material.icons.filled.Add
 import androidx.compose.material.icons.filled.Cable
 import androidx.compose.material.icons.filled.Circle
@@ -54,7 +55,9 @@ import androidx.compose.material.icons.filled.Laptop
 import androidx.compose.material.icons.filled.Refresh
 import androidx.compose.material.icons.filled.DragHandle
 import androidx.compose.material.icons.filled.Stop
+import androidx.compose.material.icons.filled.Terminal
 import androidx.compose.material.icons.filled.VpnKey
+import androidx.compose.material.icons.filled.VpnLock
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material3.Card
@@ -148,6 +151,7 @@ fun ConnectionsScreen(
     val sshKeys by viewModel.sshKeys.collectAsState()
     val tunnelConfigs by viewModel.tunnelConfigs.collectAsState()
     var showTunnelsScreen by remember { mutableStateOf(false) }
+    var showDesktopsScreen by remember { mutableStateOf(false) }
     val profileStatuses by viewModel.profileStatuses.collectAsState()
     val sessions by viewModel.sessions.collectAsState()
 
@@ -637,6 +641,51 @@ fun ConnectionsScreen(
         }
     }
 
+    // Desktops overlay — DesktopManagerSection used to live inline at
+    // the top of the connection list. Behind a topbar icon now so the
+    // list isn't permanently topped by the desktop manager.
+    if (showDesktopsScreen) {
+        androidx.compose.ui.window.Dialog(
+            onDismissRequest = { showDesktopsScreen = false },
+            properties = androidx.compose.ui.window.DialogProperties(
+                usePlatformDefaultWidth = false,
+            ),
+        ) {
+            Scaffold(
+                topBar = {
+                    TopAppBar(
+                        title = { Text("Desktops") },
+                        navigationIcon = {
+                            IconButton(onClick = { showDesktopsScreen = false }) {
+                                Icon(
+                                    Icons.AutoMirrored.Filled.ArrowBack,
+                                    contentDescription = "Back",
+                                )
+                            }
+                        },
+                    )
+                },
+            ) { padding ->
+                Column(
+                    modifier = Modifier
+                        .padding(padding)
+                        .fillMaxSize()
+                        .verticalScroll(rememberScrollState()),
+                ) {
+                    DesktopManagerSection(
+                        installedDesktops = viewModel.installedDesktops,
+                        desktopStates = desktopStates,
+                        desktopSetupState = desktopSetupState,
+                        onInstall = { de -> setupDesktopDe = de },
+                        onStart = { de -> viewModel.startDesktop(de) },
+                        onStop = { de -> viewModel.stopDesktop(de) },
+                        onUninstall = { de -> viewModel.uninstallDesktop(de) },
+                    )
+                }
+            }
+        }
+    }
+
     deployingProfile?.let { profile ->
         DeployKeyDialog(
             profile = profile,
@@ -803,6 +852,33 @@ fun ConnectionsScreen(
             TopAppBar(
                 title = { Text(stringResource(R.string.connections_title)) },
                 actions = {
+                    // Local terminal (PRoot) — one-tap entry to the
+                    // local Linux environment Haven ships. Always
+                    // visible because PRoot ships with the app; if no
+                    // LOCAL profile exists yet it's created on first
+                    // tap. Replaces the previous Android Linux VM
+                    // (com.android.virtualization.terminal) icon —
+                    // that's a much rarer code path; users with that
+                    // app installed can still create a regular SSH
+                    // profile pointed at it.
+                    IconButton(onClick = { viewModel.connectLocalTerminal() }) {
+                        Icon(Icons.Filled.Terminal, contentDescription = "Local terminal")
+                    }
+                    // Desktops likewise — the DesktopManagerSection now
+                    // lives behind this icon as a full-screen overlay
+                    // rather than always sitting at the top of the list.
+                    if (showDesktopsCard && viewModel.isRootfsReady) {
+                        IconButton(onClick = { showDesktopsScreen = true }) {
+                            Icon(Icons.Filled.DesktopWindows, contentDescription = "Desktops")
+                        }
+                    }
+                    // Tunnels are connection definitions (per-app
+                    // WireGuard configs that other profiles route
+                    // through), so they belong on this screen rather
+                    // than in app Settings where they used to live.
+                    IconButton(onClick = { showTunnelsScreen = true }) {
+                        Icon(Icons.Filled.VpnLock, contentDescription = "Tunnels")
+                    }
                     IconButton(onClick = { showNewGroupDialog = true }) {
                         Icon(Icons.Filled.CreateNewFolder, contentDescription = stringResource(R.string.connections_new_group_action))
                     }
@@ -882,15 +958,6 @@ fun ConnectionsScreen(
             }
 
             // Linux VM card — shown when Terminal app is installed and not hidden in settings
-            if (showLinuxVmCard && localVmStatus.terminalAppInstalled) {
-                LinuxVmCard(
-                    vmStatus = localVmStatus,
-                    onClick = { showVmSetup = true },
-                    onRefresh = { viewModel.refreshLocalVm() },
-                    modifier = Modifier.padding(horizontal = 16.dp, vertical = 4.dp),
-                )
-            }
-
             if (connections.isEmpty()) {
                 EmptyState()
             } else {
@@ -903,7 +970,11 @@ fun ConnectionsScreen(
                     }
                     .groupBy({ it.first }, { it.second })
                 val renderedAsChild = dependentsByParent.values.flatten().map { it.id }.toSet()
-                val allTopLevel = connections.filter { it.id !in renderedAsChild }
+                // Hide LOCAL profiles from the main list — they're now
+                // launched via the topbar Terminal icon, which finds or
+                // creates one as needed. Showed up here as duplicates
+                // of the topbar entry.
+                val allTopLevel = connections.filter { it.id !in renderedAsChild && !it.isLocal }
 
                 // Filter by search text (match label, host, username)
                 val isFiltering = filterText.isNotBlank()
@@ -1002,21 +1073,6 @@ fun ConnectionsScreen(
                 }
 
                 LazyColumn(state = lazyListState, modifier = Modifier.fillMaxSize()) {
-                    // Desktop Manager section — shows when PRoot rootfs is installed and not hidden
-                    if (showDesktopsCard && viewModel.isRootfsReady) {
-                        item(key = "desktop-manager") {
-                            DesktopManagerSection(
-                                installedDesktops = viewModel.installedDesktops,
-                                desktopStates = desktopStates,
-                                desktopSetupState = desktopSetupState,
-                                onInstall = { de -> setupDesktopDe = de },
-                                onStart = { de -> viewModel.startDesktop(de) },
-                                onStop = { de -> viewModel.stopDesktop(de) },
-                                onUninstall = { de -> viewModel.uninstallDesktop(de) },
-                            )
-                        }
-                    }
-
                     displayIds.forEach { key ->
                         if (key.startsWith("group-")) {
                             val gid = key.removePrefix("group-")

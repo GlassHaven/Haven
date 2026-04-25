@@ -1235,6 +1235,37 @@ class ConnectionsViewModel @Inject constructor(
         _navigateToWayland.value = false
     }
 
+    /**
+     * Topbar "Local terminal" icon entry point. Finds an existing LOCAL
+     * profile and connects it; if none exists, creates one (PRoot
+     * shell, default name) first then connects. Means the user always
+     * has a one-tap path to the local PRoot environment regardless of
+     * whether they've explicitly added it to their connection list.
+     */
+    fun connectLocalTerminal() {
+        viewModelScope.launch {
+            val existing = connections.value.firstOrNull { it.isLocal && !it.useAndroidShell }
+            if (existing != null) {
+                connectLocal(existing)
+                return@launch
+            }
+            val seeded = ConnectionProfile(
+                label = "Local Shell",
+                host = "localhost",
+                username = "",
+                port = 0,
+                connectionType = "LOCAL",
+                useAndroidShell = false,
+            )
+            repository.save(seeded)
+            // Re-read from the StateFlow to pick up the assigned id.
+            val saved = connections.value.firstOrNull {
+                it.isLocal && it.label == "Local Shell" && !it.useAndroidShell
+            } ?: seeded
+            connectLocal(saved)
+        }
+    }
+
     private fun connectLocal(profile: ConnectionProfile) {
         viewModelScope.launch {
             // Skip if already connected

@@ -163,7 +163,6 @@ fun SettingsScreen(
     val mediaExtensions by viewModel.mediaExtensions.collectAsState()
     var showAuditLog by remember { mutableStateOf(false) }
     var showAgentActivity by remember { mutableStateOf(false) }
-    var showTunnels by remember { mutableStateOf(false) }
     var showLanguageDialog by remember { mutableStateOf(false) }
     var showWaylandShellDialog by remember { mutableStateOf(false) }
     var showMediaExtensionsDialog by remember { mutableStateOf(false) }
@@ -234,11 +233,6 @@ fun SettingsScreen(
         AgentActivityScreen(onBack = { showAgentActivity = false })
         return
     }
-    if (showTunnels) {
-        sh.haven.feature.tunnel.TunnelsScreen(onBack = { showTunnels = false })
-        return
-    }
-
     Column(modifier = Modifier.fillMaxSize()) {
         TopAppBar(title = { Text(stringResource(R.string.settings_title)) })
     Column(modifier = Modifier.fillMaxSize().verticalScroll(rememberScrollState())) {
@@ -268,35 +262,6 @@ fun SettingsScreen(
             checked = screenSecurity,
             onCheckedChange = viewModel::setScreenSecurity,
         )
-        SettingsItem(
-            icon = Icons.Filled.VpnLock,
-            title = "Tunnels",
-            subtitle = "Per-app WireGuard configs — route individual connection profiles through a tunnel without a system-wide VPN.",
-            onClick = { showTunnels = true },
-        )
-        SettingsToggleItem(
-            icon = Icons.Filled.History,
-            title = stringResource(R.string.settings_connection_logging_title),
-            subtitle = stringResource(R.string.settings_connection_logging_subtitle),
-            checked = connectionLoggingEnabled,
-            onCheckedChange = viewModel::setConnectionLoggingEnabled,
-        )
-        if (connectionLoggingEnabled) {
-            SettingsItem(
-                icon = Icons.Filled.ListAlt,
-                title = stringResource(R.string.settings_view_connection_log_title),
-                subtitle = stringResource(R.string.settings_view_connection_log_subtitle),
-                onClick = { showAuditLog = true },
-            )
-            SettingsToggleItem(
-                icon = Icons.Filled.BugReport,
-                title = stringResource(R.string.settings_verbose_logging_title),
-                subtitle = stringResource(R.string.settings_verbose_logging_subtitle),
-                checked = verboseLoggingEnabled,
-                onCheckedChange = viewModel::setVerboseLoggingEnabled,
-            )
-        }
-
         SettingsSection("Appearance")
         SettingsItem(
             icon = Icons.Filled.ColorLens,
@@ -328,72 +293,12 @@ fun SettingsScreen(
             )
         }
 
-        SettingsSection("Terminal")
-        SettingsItem(
-            icon = Icons.Filled.Terminal,
-            title = stringResource(R.string.settings_session_persistence_title),
-            subtitle = if (sessionManager == UserPreferencesRepository.SessionManager.NONE) {
-                stringResource(R.string.settings_session_persistence_none)
-            } else {
-                sessionManager.label
-            },
-            onClick = { showSessionManagerDialog = true },
-        )
+        SettingsSection("Keyboard & input")
         SettingsItem(
             icon = Icons.Filled.KeyboardAlt,
             title = stringResource(R.string.settings_toolbar_title),
             subtitle = stringResource(R.string.settings_toolbar_subtitle),
             onClick = { showToolbarConfigDialog = true },
-        )
-        SettingsToggleItem(
-            icon = Icons.Filled.Search,
-            title = stringResource(R.string.settings_search_button_title),
-            subtitle = stringResource(R.string.settings_search_button_subtitle),
-            checked = showSearchButton,
-            onCheckedChange = viewModel::setShowSearchButton,
-        )
-        SettingsToggleItem(
-            icon = Icons.Filled.ContentCopy,
-            title = stringResource(R.string.settings_copy_output_title),
-            subtitle = stringResource(R.string.settings_copy_output_subtitle),
-            checked = showCopyOutputButton,
-            onCheckedChange = { enabled ->
-                viewModel.setShowCopyOutputButton(enabled)
-                if (enabled) showOsc133SetupDialog = true
-            },
-        )
-        SettingsToggleItem(
-            icon = Icons.Filled.Mouse,
-            title = "Touchpad input (VNC/RDP)",
-            subtitle = if (desktopInputMode == "TOUCHPAD")
-                "Drag moves the remote cursor; tap clicks at the cursor. The viewport follows the cursor when zoomed."
-            else
-                "Direct touch — finger position is the pointer. Toggle on for trackpad-style input.",
-            checked = desktopInputMode == "TOUCHPAD",
-            onCheckedChange = { enabled ->
-                viewModel.setDesktopInputMode(if (enabled) "TOUCHPAD" else "DIRECT")
-            },
-        )
-        SettingsToggleItem(
-            icon = Icons.Filled.CloudDownload,
-            title = "Suggest 256 colours on slow VNC links",
-            subtitle = "Detects throughput below ~1 Mbps after a few seconds and offers a one-tap reconnect at 256 colours. Off silences the prompt.",
-            checked = bandwidthAutoSuggest,
-            onCheckedChange = viewModel::setBandwidthAutoSuggest,
-        )
-        SettingsToggleItem(
-            icon = Icons.Filled.Terminal,
-            title = stringResource(R.string.settings_mouse_input_title),
-            subtitle = stringResource(R.string.settings_mouse_input_subtitle),
-            checked = mouseInputEnabled,
-            onCheckedChange = viewModel::setMouseInputEnabled,
-        )
-        SettingsToggleItem(
-            icon = Icons.Filled.Terminal,
-            title = stringResource(R.string.settings_right_click_title),
-            subtitle = stringResource(R.string.settings_right_click_subtitle),
-            checked = terminalRightClick,
-            onCheckedChange = viewModel::setTerminalRightClick,
         )
         // Keyboard mode tri-state picker. Replaces the previous binary
         // "Voice input and autocomplete" toggle so users can find all
@@ -423,12 +328,76 @@ fun SettingsScreen(
             checked = interceptCtrlShiftV,
             onCheckedChange = viewModel::setInterceptCtrlShiftV,
         )
+
+        SettingsSection("Terminal")
+        SettingsItem(
+            icon = Icons.Filled.Terminal,
+            title = stringResource(R.string.settings_session_persistence_title),
+            subtitle = if (sessionManager == UserPreferencesRepository.SessionManager.NONE) {
+                stringResource(R.string.settings_session_persistence_none)
+            } else {
+                sessionManager.label
+            },
+            onClick = { showSessionManagerDialog = true },
+        )
+        SettingsToggleItem(
+            icon = Icons.Filled.Search,
+            title = stringResource(R.string.settings_search_button_title),
+            subtitle = stringResource(R.string.settings_search_button_subtitle),
+            checked = showSearchButton,
+            onCheckedChange = viewModel::setShowSearchButton,
+        )
+        SettingsToggleItem(
+            icon = Icons.Filled.ContentCopy,
+            title = stringResource(R.string.settings_copy_output_title),
+            subtitle = stringResource(R.string.settings_copy_output_subtitle),
+            checked = showCopyOutputButton,
+            onCheckedChange = { enabled ->
+                viewModel.setShowCopyOutputButton(enabled)
+                if (enabled) showOsc133SetupDialog = true
+            },
+        )
+        SettingsToggleItem(
+            icon = Icons.Filled.Terminal,
+            title = stringResource(R.string.settings_mouse_input_title),
+            subtitle = stringResource(R.string.settings_mouse_input_subtitle),
+            checked = mouseInputEnabled,
+            onCheckedChange = viewModel::setMouseInputEnabled,
+        )
+        SettingsToggleItem(
+            icon = Icons.Filled.Terminal,
+            title = stringResource(R.string.settings_right_click_title),
+            subtitle = stringResource(R.string.settings_right_click_subtitle),
+            checked = terminalRightClick,
+            onCheckedChange = viewModel::setTerminalRightClick,
+        )
         SettingsToggleItem(
             icon = Icons.Filled.ListAlt,
             title = "Show terminal tab bar",
             subtitle = "Show session tabs above the terminal",
             checked = showTerminalTabBar,
             onCheckedChange = viewModel::setShowTerminalTabBar,
+        )
+
+        SettingsSection("Desktop (VNC & RDP)")
+        SettingsToggleItem(
+            icon = Icons.Filled.Mouse,
+            title = "Touchpad input",
+            subtitle = if (desktopInputMode == "TOUCHPAD")
+                "Drag moves the remote cursor; tap clicks at the cursor. The viewport follows the cursor when zoomed."
+            else
+                "Direct touch — finger position is the pointer. Toggle on for trackpad-style input.",
+            checked = desktopInputMode == "TOUCHPAD",
+            onCheckedChange = { enabled ->
+                viewModel.setDesktopInputMode(if (enabled) "TOUCHPAD" else "DIRECT")
+            },
+        )
+        SettingsToggleItem(
+            icon = Icons.Filled.CloudDownload,
+            title = "Suggest 256 colours on slow VNC links",
+            subtitle = "Detects throughput below ~1 Mbps after a few seconds and offers a one-tap reconnect at 256 colours. Off silences the prompt.",
+            checked = bandwidthAutoSuggest,
+            onCheckedChange = viewModel::setBandwidthAutoSuggest,
         )
 
         SettingsSection("Connections screen")
@@ -452,6 +421,57 @@ fun SettingsScreen(
             subtitle = stringResource(R.string.settings_screen_order_subtitle),
             onClick = { showScreenOrderDialog = true },
         )
+
+        SettingsSection("Diagnostics")
+        SettingsToggleItem(
+            icon = Icons.Filled.History,
+            title = stringResource(R.string.settings_connection_logging_title),
+            subtitle = stringResource(R.string.settings_connection_logging_subtitle),
+            checked = connectionLoggingEnabled,
+            onCheckedChange = viewModel::setConnectionLoggingEnabled,
+        )
+        if (connectionLoggingEnabled) {
+            SettingsItem(
+                icon = Icons.Filled.ListAlt,
+                title = stringResource(R.string.settings_view_connection_log_title),
+                subtitle = stringResource(R.string.settings_view_connection_log_subtitle),
+                onClick = { showAuditLog = true },
+            )
+            SettingsToggleItem(
+                icon = Icons.Filled.BugReport,
+                title = stringResource(R.string.settings_verbose_logging_title),
+                subtitle = stringResource(R.string.settings_verbose_logging_subtitle),
+                checked = verboseLoggingEnabled,
+                onCheckedChange = viewModel::setVerboseLoggingEnabled,
+            )
+        }
+        run {
+            val context = LocalContext.current
+            val helper = sh.haven.core.local.WaylandSocketHelper
+            var capturing by remember { mutableStateOf(helper.isCapturingLogcat) }
+            SettingsItem(
+                icon = Icons.Filled.BugReport,
+                title = "Logcat Capture",
+                subtitle = if (capturing)
+                    "Recording to /sdcard/Download/haven-logcat.txt"
+                else
+                    "Capture logcat for remote debugging",
+                onClick = {
+                    if (capturing) {
+                        helper.stopLogcatCapture()
+                        capturing = false
+                        Toast.makeText(context, "Logcat saved", Toast.LENGTH_SHORT).show()
+                    } else {
+                        capturing = helper.startLogcatCapture()
+                        if (capturing) {
+                            Toast.makeText(context, "Logcat capture started", Toast.LENGTH_SHORT).show()
+                        } else {
+                            Toast.makeText(context, "Failed to start capture", Toast.LENGTH_SHORT).show()
+                        }
+                    }
+                },
+            )
+        }
 
         SettingsSection("Advanced")
         SettingsItem(
@@ -503,29 +523,6 @@ fun SettingsScreen(
                                     android.net.Uri.parse("https://shizuku.rikka.app/download/"),
                                 ))
                             }
-                        }
-                    }
-                },
-            )
-            var capturing by remember { mutableStateOf(helper.isCapturingLogcat) }
-            SettingsItem(
-                icon = Icons.Filled.BugReport,
-                title = "Logcat Capture",
-                subtitle = if (capturing)
-                    "Recording to /sdcard/Download/haven-logcat.txt"
-                else
-                    "Capture logcat for remote debugging",
-                onClick = {
-                    if (capturing) {
-                        helper.stopLogcatCapture()
-                        capturing = false
-                        Toast.makeText(context, "Logcat saved", Toast.LENGTH_SHORT).show()
-                    } else {
-                        capturing = helper.startLogcatCapture()
-                        if (capturing) {
-                            Toast.makeText(context, "Logcat capture started", Toast.LENGTH_SHORT).show()
-                        } else {
-                            Toast.makeText(context, "Failed to start capture", Toast.LENGTH_SHORT).show()
                         }
                     }
                 },

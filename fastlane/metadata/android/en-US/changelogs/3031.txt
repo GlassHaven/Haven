@@ -1,0 +1,38 @@
+v5.24.39: Settings screen tidy-up
+
+The Settings list had grown to 41 entries spread across seven loose
+groupings. Mid-list items frequently sat in the wrong section (touchpad
+input was under Terminal; logcat capture was under Advanced; keyboard
+mode lived in Terminal next to mouse-mode toggles).
+
+Reorganised into ten sections with each item where you'd actually look
+for it:
+
+  - Security & privacy: biometric, screenshots, tunnels
+  - Appearance: theme, colour scheme, font, language
+  - Keyboard & input (NEW): toolbar layout, keyboard mode, Ctrl+Shift+V
+  - Terminal: session persistence, search button, copy button, mouse,
+    right-click, tab bar
+  - Desktop (VNC & RDP) (NEW): touchpad input, slow-link 256 colours
+  - Connections screen: desktops/Linux VM cards, screen order
+  - Diagnostics (NEW): connection logging + view log + verbose;
+    logcat capture (moved from Advanced)
+  - Advanced: Wayland shell, Shizuku, MCP agent endpoint, media
+    extensions
+  - Backup: export, import
+  - About
+
+Tunnels, the local PRoot terminal, and the Desktops manager all
+moved out of inline placement and into the Connections topbar:
+  - Terminal icon → local PRoot terminal (find-or-create on tap)
+  - DesktopWindows icon → Desktops manager (was a section at the
+    top of the list)
+  - VpnLock icon → Tunnels (was Settings → Security & privacy)
+Frees the top of the connection list so it starts with actual
+connections; each secondary surface is one tap away. The "Manage
+tunnels…" entry inside the per-profile tunnel picker still works
+the same way. LOCAL connection profiles are now hidden from the
+list (they were duplicating the topbar entry).
+
+No new entries, no behaviour change — just shorter routes from
+"opens Settings" to "finds the toggle".

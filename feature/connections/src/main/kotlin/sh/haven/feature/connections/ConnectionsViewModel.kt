@@ -1650,18 +1650,20 @@ class ConnectionsViewModel @Inject constructor(
                 etSessionManager.updateStatus(sessionId, EtSessionManager.SessionState.Status.ERROR)
                 etSessionManager.removeSession(sessionId)
                 val msg = e.message ?: ""
-                val isAuthError = keyOnly && (
+                val isAuthMessage =
                     msg.contains("Auth fail", ignoreCase = true) ||
                         msg.contains("Auth cancel", ignoreCase = true) ||
                         msg.contains("authentication", ignoreCase = true) ||
                         msg.contains("publickey", ignoreCase = true)
-                    )
+                val isAuthError = keyOnly && isAuthMessage
                 if (isFidoAuth && (isAuthError || (keyOnly && msg.isBlank()))) {
                     val fidoDetail = fidoAuthenticator.lastAssertionError
                     _error.value = if (fidoDetail != null) "Security key: $fidoDetail"
                     else msg.ifBlank { "Security key authentication failed" }
                 } else if (isAuthError || (keyOnly && msg.isBlank())) {
                     _passwordFallback.value = profile
+                } else if (!keyOnly && isAuthMessage) {
+                    _error.value = "Authentication failed — check username and password"
                 } else {
                     _error.value = msg.ifBlank { "Eternal Terminal connection failed" }
                 }
@@ -1779,12 +1781,12 @@ class ConnectionsViewModel @Inject constructor(
                 moshSessionManager.updateStatus(sessionId, MoshSessionManager.SessionState.Status.ERROR)
                 moshSessionManager.removeSession(sessionId)
                 val msg = e.message ?: ""
-                val isAuthError = keyOnly && (
+                val isAuthMessage =
                     msg.contains("Auth fail", ignoreCase = true) ||
                         msg.contains("Auth cancel", ignoreCase = true) ||
                         msg.contains("authentication", ignoreCase = true) ||
                         msg.contains("publickey", ignoreCase = true)
-                    )
+                val isAuthError = keyOnly && isAuthMessage
                 if (isFidoAuth && (isAuthError || (keyOnly && msg.isBlank()))) {
                     val fidoDetail = fidoAuthenticator.lastAssertionError
                     _error.value = if (fidoDetail != null) "Security key: $fidoDetail"
@@ -1797,6 +1799,8 @@ class ConnectionsViewModel @Inject constructor(
                     _showMoshSetupGuide.value = true
                 } else if (msg.contains("mosh-client binary not found", ignoreCase = true)) {
                     _showMoshClientMissing.value = true
+                } else if (!keyOnly && isAuthMessage) {
+                    _error.value = "Authentication failed — check username and password"
                 } else {
                     _error.value = msg.ifBlank { "Mosh connection failed" }
                 }

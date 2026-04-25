@@ -1,0 +1,12 @@
+v5.24.44: friendly auth-error message on Mosh + Eternal Terminal too
+
+Follow-up to PR #111 (jensrot) which fixed the SSH path. Same JSch
+"Auth cancel for methods publickey,password" jargon was leaking
+through to the user from the Mosh and Eternal Terminal connect
+paths in ConnectionsViewModel — both build on the same SSH
+transport and surface JSch's raw exception text.
+
+Applied the same shape (extract `isAuthMessage` from the gate;
+add `else if (!keyOnly && isAuthMessage)` branch that sets the
+friendly "Authentication failed — check username and password"
+message). Three call sites now consistent.

@@ -347,6 +347,7 @@ class DesktopViewModel @Inject constructor(
         sshProfileId: String? = null,
         profileId: String? = null,
         useNla: Boolean = true,
+        colorDepth: Int = 24,
     ) {
         viewModelScope.launch(Dispatchers.IO) {
             // Deduplicate: if a tab for the same connection exists, reuse or replace
@@ -400,6 +401,7 @@ class DesktopViewModel @Inject constructor(
                     password = password,
                     domain = domain,
                     useNla = useNla,
+                    colorDepth = colorDepth,
                     verboseBuffer = verboseBuffer,
                 )
                 session.onFrameUpdate = { bitmap -> frame.value = bitmap }

@@ -34,6 +34,7 @@ class RdpSession(
     private val width: Int = 1920,
     private val height: Int = 1080,
     private val useNla: Boolean = true,
+    private val colorDepth: Int = 24,
     private val onDisconnected: (() -> Unit)? = null,
     private val verboseBuffer: ConcurrentLinkedQueue<String>? = null,
 ) : Closeable {
@@ -84,13 +85,11 @@ class RdpSession(
                 domain = domain,
                 width = width.toUShort(),
                 height = height.toUShort(),
-                // 16bpp default for xrdp compatibility — xrdp's 32bpp uses
-                // a custom RLE variant that ironrdp can't decode (blank
-                // screen). Windows servers handle 16bpp fine but with
-                // line-by-line repaints; surf5726's #109 ask for smoother
-                // updates lands properly via a per-profile colour-depth
-                // picker (queued v5.24.42), mirror of the VNC one.
-                colorDepth = 16u,
+                // Per-profile colour depth (#109). Default 16 is xrdp-
+                // safe; user can switch to 32 for Windows servers to get
+                // RemoteFX-driven smooth updates. Picker lives in the
+                // RDP block of ConnectionEditDialog.
+                colorDepth = colorDepth.toUByte(),
                 enableCredssp = useNla,
             )
 

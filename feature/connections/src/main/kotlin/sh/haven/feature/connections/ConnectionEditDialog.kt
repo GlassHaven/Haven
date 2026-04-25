@@ -139,6 +139,7 @@ fun ConnectionEditDialog(
     var rdpSshForward by rememberSaveable { mutableStateOf(existing?.rdpSshForward ?: false) }
     var rdpSshProfileId by rememberSaveable { mutableStateOf(existing?.rdpSshProfileId) }
     var rdpUseNla by rememberSaveable { mutableStateOf(existing?.rdpUseNla ?: true) }
+    var rdpColorDepth by rememberSaveable { mutableStateOf(existing?.rdpColorDepth ?: 24) }
     var smbShare by rememberSaveable { mutableStateOf(existing?.smbShare ?: "") }
     var smbPassword by rememberSaveable { mutableStateOf(existing?.smbPassword ?: "") }
     var smbDomain by rememberSaveable { mutableStateOf(existing?.smbDomain ?: "") }
@@ -749,6 +750,49 @@ fun ConnectionEditDialog(
                         style = MaterialTheme.typography.bodySmall,
                         color = MaterialTheme.colorScheme.onSurfaceVariant,
                     )
+                    Spacer(Modifier.height(8.dp))
+                    // Colour-depth picker. 24 is a safe sweet-spot —
+                    // works against both Windows and xrdp; 32 breaks
+                    // xrdp because ironrdp can't decode its custom 32bpp
+                    // RLE; 16 is the lowest-bandwidth option for very
+                    // slow links. #109.
+                    val rdpDepthOptions = listOf(
+                        24 to "24-bit (default — works on Windows + xrdp)",
+                        16 to "16-bit (low bandwidth, line-by-line repaints)",
+                        32 to "32-bit (Windows only — black screen on xrdp)",
+                    )
+                    var rdpDepthExpanded by remember { mutableStateOf(false) }
+                    val selectedRdpDepth = rdpDepthOptions.firstOrNull { it.first == rdpColorDepth }
+                        ?: rdpDepthOptions.first()
+                    ExposedDropdownMenuBox(
+                        expanded = rdpDepthExpanded,
+                        onExpandedChange = { rdpDepthExpanded = it },
+                    ) {
+                        OutlinedTextField(
+                            value = selectedRdpDepth.second,
+                            onValueChange = {},
+                            readOnly = true,
+                            label = { Text("Colour depth") },
+                            trailingIcon = { ExposedDropdownMenuDefaults.TrailingIcon(rdpDepthExpanded) },
+                            modifier = Modifier
+                                .fillMaxWidth()
+                                .menuAnchor(MenuAnchorType.PrimaryNotEditable),
+                        )
+                        ExposedDropdownMenu(
+                            expanded = rdpDepthExpanded,
+                            onDismissRequest = { rdpDepthExpanded = false },
+                        ) {
+                            rdpDepthOptions.forEach { (value, label) ->
+                                DropdownMenuItem(
+                                    text = { Text(label) },
+                                    onClick = {
+                                        rdpColorDepth = value
+                                        rdpDepthExpanded = false
+                                    },
+                                )
+                            }
+                        }
+                    }
                 } else if (connectionType == "SMB") {
                     // SMB: host (with discovery), share, username, port, password, domain, SSH tunnel
                     val filteredSmbHosts = remember(discoveredSmbHosts, host) {
@@ -1944,6 +1988,7 @@ fun ConnectionEditDialog(
                             rdpSshForward = rdpSshForward,
                             rdpSshProfileId = if (rdpSshForward) rdpSshProfileId else null,
                             rdpUseNla = rdpUseNla,
+                            rdpColorDepth = rdpColorDepth,
                             colorTag = colorTag,
                             groupId = groupId,
                         )

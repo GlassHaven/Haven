@@ -1,0 +1,24 @@
+v5.24.42: per-profile RDP colour depth picker (#109)
+
+Resolves the v5.24.40/.41 trade-off cleanly. Each RDP profile now
+has a Colour depth dropdown in its edit dialog (mirror of the VNC
+one):
+
+  - 24-bit (default) — works against Windows and xrdp; smooth
+    updates on both
+  - 16-bit — low bandwidth, line-by-line repaints
+  - 32-bit — Windows only; black screen on xrdp (custom 32bpp
+    RLE that ironrdp can't decode)
+
+24-bit chosen as the new default after empirical verification
+that it works against both Windows and xrdp without the codec
+mismatch that affected v5.24.40. xrdp users can stay on 24 (or
+drop to 16 for low-bandwidth links). Windows users can pick 32
+to negotiate RemoteFX-with-alpha for slightly better fidelity.
+
+Data: new `rdpColorDepth` column on `connection_profiles`
+(default 24), DB migration 39 → 40, BackupService roundtrips it.
+
+Note: 8-bit (256 colour) isn't offered — ironrdp rejects it
+during the GCC capability exchange (`unsupported color depth: 8`),
+so the picker doesn't include it.

@@ -85,6 +85,7 @@ class BackupService @Inject constructor(
                 put("rdpSshForward", p.rdpSshForward)
                 put("rdpSshProfileId", p.rdpSshProfileId ?: JSONObject.NULL)
                 put("rdpUseNla", p.rdpUseNla)
+                put("rdpColorDepth", p.rdpColorDepth)
                 put("smbPort", p.smbPort)
                 put("smbShare", p.smbShare ?: JSONObject.NULL)
                 put("smbDomain", p.smbDomain ?: JSONObject.NULL)
@@ -337,6 +338,7 @@ class BackupService @Inject constructor(
                             rdpSshForward = c.optBoolean("rdpSshForward", false),
                             rdpSshProfileId = c.optStringOrNull("rdpSshProfileId"),
                             rdpUseNla = c.optBoolean("rdpUseNla", true),
+                            rdpColorDepth = c.optInt("rdpColorDepth", 24),
                             smbPort = c.optInt("smbPort", 445),
                             smbShare = c.optStringOrNull("smbShare"),
                             smbDomain = c.optStringOrNull("smbDomain"),

@@ -56,6 +56,15 @@ data class ConnectionProfile(
      * SSL-only mode to connect.
      */
     val rdpUseNla: Boolean = true,
+    /**
+     * RDP colour depth in bits per pixel. Default 24 — works against
+     * both Windows and xrdp and gives smooth updates on both. 32
+     * negotiates RemoteFX with alpha on Windows but breaks against
+     * xrdp (custom 32bpp RLE that ironrdp can't decode). 16 is the
+     * fallback for very low-bandwidth links — line-by-line repaints
+     * but minimal data. (#109)
+     */
+    val rdpColorDepth: Int = 24,
     val smbPort: Int = 445,
     val smbShare: String? = null,
     val smbDomain: String? = null,

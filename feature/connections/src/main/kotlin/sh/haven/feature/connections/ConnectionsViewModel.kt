@@ -1438,12 +1438,13 @@ class ConnectionsViewModel @Inject constructor(
                     msg.contains("refused", ignoreCase = true) ||
                     msg.contains("timed out", ignoreCase = true) ||
                     msg.contains("unreachable", ignoreCase = true)
-                val isAuthError = keyOnly && !isNetworkError && (
+                val isAuthMessage = !isNetworkError && (
                     msg.contains("Auth fail", ignoreCase = true) ||
                     msg.contains("Auth cancel", ignoreCase = true) ||
                     msg.contains("authentication", ignoreCase = true) ||
                     msg.contains("publickey", ignoreCase = true)
                 )
+                val isAuthError = keyOnly && isAuthMessage
                 if (isFidoAuth && (isAuthError || (keyOnly && !isNetworkError))) {
                     val fidoDetail = fidoAuthenticator.lastAssertionError
                     _error.value = if (fidoDetail != null) {
@@ -1456,6 +1457,8 @@ class ConnectionsViewModel @Inject constructor(
                     _passwordFallback.value = profile
                 } else if (keyOnly && !isNetworkError && msg.isBlank()) {
                     _passwordFallback.value = profile
+                } else if (!keyOnly && isAuthMessage) {
+                    _error.value = "Authentication failed — check username and password"
                 } else {
                     _error.value = msg.ifBlank { "Connection failed" }
                 }

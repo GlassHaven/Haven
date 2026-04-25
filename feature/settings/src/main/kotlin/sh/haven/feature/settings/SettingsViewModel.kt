@@ -148,6 +148,9 @@ class SettingsViewModel @Inject constructor(
     val allowStandardKeyboard: StateFlow<Boolean> = preferencesRepository.allowStandardKeyboard
         .stateIn(viewModelScope, SharingStarted.WhileSubscribed(5000), false)
 
+    val rawKeyboardMode: StateFlow<Boolean> = preferencesRepository.rawKeyboardMode
+        .stateIn(viewModelScope, SharingStarted.WhileSubscribed(5000), false)
+
     val interceptCtrlShiftV: StateFlow<Boolean> = preferencesRepository.interceptCtrlShiftV
         .stateIn(viewModelScope, SharingStarted.WhileSubscribed(5000), true)
 
@@ -298,6 +301,37 @@ class SettingsViewModel @Inject constructor(
     fun setAllowStandardKeyboard(enabled: Boolean) {
         viewModelScope.launch {
             preferencesRepository.setAllowStandardKeyboard(enabled)
+        }
+    }
+
+    fun setRawKeyboardMode(enabled: Boolean) {
+        viewModelScope.launch {
+            preferencesRepository.setRawKeyboardMode(enabled)
+        }
+    }
+
+    /**
+     * Set the keyboard mode by name. The repo already enforces mutual
+     * exclusion between raw and standard, so the order of writes here
+     * doesn't matter functionally — we set the new mode last so the
+     * UI state lands deterministically.
+     */
+    fun setKeyboardMode(mode: String) {
+        viewModelScope.launch {
+            when (mode) {
+                "RAW" -> {
+                    preferencesRepository.setAllowStandardKeyboard(false)
+                    preferencesRepository.setRawKeyboardMode(true)
+                }
+                "STANDARD" -> {
+                    preferencesRepository.setRawKeyboardMode(false)
+                    preferencesRepository.setAllowStandardKeyboard(true)
+                }
+                else -> { // SECURE — both off
+                    preferencesRepository.setAllowStandardKeyboard(false)
+                    preferencesRepository.setRawKeyboardMode(false)
+                }
+            }
         }
     }
 

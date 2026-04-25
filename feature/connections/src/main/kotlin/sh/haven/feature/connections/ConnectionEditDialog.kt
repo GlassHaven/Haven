@@ -1675,6 +1675,49 @@ fun ConnectionEditDialog(
                             )
                             Text("Tunnel through SSH")
                         }
+                        Spacer(Modifier.height(8.dp))
+                        // Colour-depth picker — same shape as the dedicated
+                        // VNC-profile path. Was missing here, so users with
+                        // an SSH profile that stored VNC settings via the
+                        // terminal's quick dialog had no way to switch to
+                        // 256-colour mode (#107 follow-up from Nesos-ita).
+                        val savedDepthOptions = listOf(
+                            "BPP_24_TRUE" to "24-bit colour (best quality)",
+                            "BPP_16_TRUE" to "16-bit colour (faster)",
+                            "BPP_8_INDEXED" to "256 colours (lowest bandwidth)",
+                        )
+                        var savedDepthExpanded by remember { mutableStateOf(false) }
+                        val selectedSavedDepth = savedDepthOptions.firstOrNull { it.first == vncColorDepth }
+                            ?: savedDepthOptions.first()
+                        ExposedDropdownMenuBox(
+                            expanded = savedDepthExpanded,
+                            onExpandedChange = { savedDepthExpanded = it },
+                        ) {
+                            OutlinedTextField(
+                                value = selectedSavedDepth.second,
+                                onValueChange = {},
+                                readOnly = true,
+                                label = { Text("VNC colour depth") },
+                                trailingIcon = { ExposedDropdownMenuDefaults.TrailingIcon(savedDepthExpanded) },
+                                modifier = Modifier
+                                    .fillMaxWidth()
+                                    .menuAnchor(MenuAnchorType.PrimaryNotEditable),
+                            )
+                            ExposedDropdownMenu(
+                                expanded = savedDepthExpanded,
+                                onDismissRequest = { savedDepthExpanded = false },
+                            ) {
+                                savedDepthOptions.forEach { (value, label) ->
+                                    DropdownMenuItem(
+                                        text = { Text(label) },
+                                        onClick = {
+                                            vncColorDepth = value
+                                            savedDepthExpanded = false
+                                        },
+                                    )
+                                }
+                            }
+                        }
                         Spacer(Modifier.height(4.dp))
                         TextButton(onClick = { vncSettingsStored = false }) {
                             Text("Clear saved VNC settings")
@@ -1995,6 +2038,7 @@ fun ConnectionEditDialog(
                             vncUsername = if (vncSettingsStored) vncUsername.ifBlank { null } else null,
                             vncPassword = if (vncSettingsStored) vncPassword.ifBlank { null } else null,
                             vncSshForward = if (vncSettingsStored) vncSavedSshForward else true,
+                            vncColorDepth = if (vncSettingsStored) vncColorDepth else "BPP_24_TRUE",
                             colorTag = colorTag,
                             groupId = groupId,
                         )

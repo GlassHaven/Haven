@@ -1,0 +1,52 @@
+v5.24.38: keyboard-mode picker, RDP error hints, VNC colour depth on
+SSH profiles, IME diagnostics
+
+== Settings → Keyboard mode (replaces "Voice input and autocomplete") ==
+
+Three explicit modes in one Settings entry, each with a one-line
+"use this when…" description:
+
+  - Secure (default) — IME suggestions, mic and writing-assist all
+    suppressed. Best for typing passwords.
+  - Standard — Full Gboard features (autocorrect, swipe, voice). Try
+    this if your software keyboard isn't working in Secure mode.
+  - Raw — No software keyboard at all. Only physical keys reach the
+    terminal. Strongest privacy.
+
+The Raw toolbar key still works as an in-session shortcut, but the
+mode is no longer hidden behind a toolbar layout customisation.
+
+== RDP "what does this error actually mean?" hints ==
+
+When an RDP connection fails, the red error card now gets a friendly
+diagnosis above it for known patterns:
+
+  - "STANDARD_RDP_SECURITY" → server is using legacy unencrypted RDP;
+    link to the xrdp-side fix on issue #106.
+  - "AlertReceived(InternalError)" → was the v5.24.36-and-earlier
+    NLA bug; if you're on a newer build, server doesn't speak CredSSP
+    — try unticking NLA on the profile.
+  - "STATUS_LOGON_FAILURE" / "0xc000006d" → wrong credentials; try
+    DOMAIN\\User syntax for domain-joined accounts.
+
+The raw error text remains visible underneath either way.
+
+== VNC colour depth on SSH-with-VNC profiles (#107 follow-up) ==
+
+The "Saved VNC settings" block in the connection-edit dialog gained
+the colour-depth dropdown that the dedicated VNC profile path has
+had since v5.24.26. SSH profiles that store VNC settings (via the
+terminal's VNC quick dialog with "Save" ticked) can now switch
+between 24-bit / 16-bit / 256-colour without recreating the profile.
+Reported by Nesos-ita.
+
+== IME diagnostic logging in termlib (for #110) ==
+
+SeriousM reported that text input is silently dropped on Android 16
+in v5.24.19+ (only ESC works). The IME path had no logging, so a
+remote logcat told us nothing about which method Android is calling
+or what we're returning. Added Log.d entries at every
+InputConnection callback (onCreateInputConnection, setComposingText,
+finishComposingText, deleteSurroundingText, sendKeyEvent,
+replaceText, commitText). Tag is "ImeInputView". Capture via
+Settings → Logcat Capture.

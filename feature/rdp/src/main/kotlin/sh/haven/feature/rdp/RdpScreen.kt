@@ -83,6 +83,7 @@ import androidx.compose.ui.input.pointer.pointerInteropFilter
 import androidx.compose.ui.input.pointer.positionChange
 import androidx.compose.ui.layout.onSizeChanged
 import androidx.compose.ui.platform.LocalSoftwareKeyboardController
+import androidx.compose.ui.platform.LocalUriHandler
 import androidx.compose.ui.text.TextRange
 import androidx.compose.ui.text.input.TextFieldValue
 import androidx.compose.ui.platform.LocalView
@@ -313,6 +314,43 @@ private fun DesktopPlaceholder(
             }
         }
         if (error != null) {
+            // Friendly diagnosis above the raw error text for known
+            // failure patterns. Detected by substring match on the
+            // server's error string — cheap, robust, and the raw text
+            // remains visible underneath for anything else.
+            val hint = rdpErrorHint(error)
+            if (hint != null) {
+                Spacer(Modifier.height(16.dp))
+                val uriHandler = LocalUriHandler.current
+                Card(
+                    colors = CardDefaults.cardColors(
+                        containerColor = MaterialTheme.colorScheme.tertiaryContainer,
+                    ),
+                    modifier = Modifier.fillMaxWidth(),
+                ) {
+                    androidx.compose.foundation.layout.Column(
+                        modifier = Modifier.padding(12.dp),
+                    ) {
+                        Text(
+                            text = hint.title,
+                            color = MaterialTheme.colorScheme.onTertiaryContainer,
+                            style = MaterialTheme.typography.bodyMedium,
+                        )
+                        Spacer(Modifier.height(4.dp))
+                        Text(
+                            text = hint.body,
+                            color = MaterialTheme.colorScheme.onTertiaryContainer,
+                            style = MaterialTheme.typography.bodySmall,
+                        )
+                        if (hint.linkUrl != null && hint.linkLabel != null) {
+                            Spacer(Modifier.height(4.dp))
+                            TextButton(onClick = { uriHandler.openUri(hint.linkUrl) }) {
+                                Text(hint.linkLabel)
+                            }
+                        }
+                    }
+                }
+            }
             Spacer(Modifier.height(16.dp))
             Card(
                 colors = CardDefaults.cardColors(
@@ -1133,3 +1171,40 @@ private const val SC_LEFT = 0x4B
 private const val SC_RIGHT = 0x4D
 private const val SC_WIN_L = 0x5B
 private const val SC_F1 = 0x3B
+
+/** A friendly diagnosis layered on top of an opaque server error string. */
+internal data class RdpErrorHint(
+    val title: String,
+    val body: String,
+    val linkLabel: String? = null,
+    val linkUrl: String? = null,
+)
+
+/**
+ * Map raw RDP failure strings to a human-readable diagnosis. Returns null
+ * when no specific pattern matches; the caller still shows the raw error
+ * underneath either way.
+ */
+internal fun rdpErrorHint(error: String): RdpErrorHint? = when {
+    "STANDARD_RDP_SECURITY" in error -> RdpErrorHint(
+        title = "Server is using legacy unencrypted RDP",
+        body = "Haven only supports TLS-encrypted RDP. Your server (commonly xrdp on Linux) " +
+            "negotiated the deprecated STANDARD_RDP_SECURITY protocol — usually because " +
+            "the server's TLS certificate is missing or unreadable. Regenerate /etc/xrdp/cert.pem " +
+            "and /etc/xrdp/key.pem on the server, then restart xrdp.",
+        linkLabel = "Server-side fix instructions",
+        linkUrl = "https://github.com/GlassHaven/Haven/issues/106#issuecomment-4319030771",
+    )
+    "AlertReceived(InternalError)" in error -> RdpErrorHint(
+        title = "Server rejected the TLS session during NLA",
+        body = "This used to be the symptom of a Haven bug fixed in v5.24.37 — if you're on a " +
+            "newer build and still see this, the server may not speak CredSSP at all. Try unticking " +
+            "Network Level Authentication on the connection profile and reconnecting.",
+    )
+    "STATUS_LOGON_FAILURE" in error || "0xc000006d" in error -> RdpErrorHint(
+        title = "Wrong username or password",
+        body = "The server completed CredSSP cleanly and rejected your credentials. Check the " +
+            "username (try DOMAIN\\User if the account is domain-joined) and password.",
+    )
+    else -> null
+}

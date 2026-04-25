@@ -155,6 +155,7 @@ fun SettingsScreen(
     val bandwidthAutoSuggest by viewModel.bandwidthAutoSuggest.collectAsState()
     val terminalRightClick by viewModel.terminalRightClick.collectAsState()
     val allowStandardKeyboard by viewModel.allowStandardKeyboard.collectAsState()
+    val rawKeyboardMode by viewModel.rawKeyboardMode.collectAsState()
     val interceptCtrlShiftV by viewModel.interceptCtrlShiftV.collectAsState()
     val showTerminalTabBar by viewModel.showTerminalTabBar.collectAsState()
     val backupStatus by viewModel.backupStatus.collectAsState()
@@ -172,6 +173,7 @@ fun SettingsScreen(
     var showColorSchemeDialog by remember { mutableStateOf(false) }
     var showAboutDialog by remember { mutableStateOf(false) }
     var showToolbarConfigDialog by remember { mutableStateOf(false) }
+    var showKeyboardModeDialog by remember { mutableStateOf(false) }
     LaunchedEffect(openToolbarConfig) {
         if (openToolbarConfig) {
             showToolbarConfigDialog = true
@@ -393,12 +395,26 @@ fun SettingsScreen(
             checked = terminalRightClick,
             onCheckedChange = viewModel::setTerminalRightClick,
         )
-        SettingsToggleItem(
+        // Keyboard mode tri-state picker. Replaces the previous binary
+        // "Voice input and autocomplete" toggle so users can find all
+        // three modes (Secure / Standard / Raw) from one settings entry
+        // — the Raw mode used to be reachable only via the keyboard
+        // toolbar's Raw key, which most users never added.
+        val keyboardModeId = when {
+            rawKeyboardMode -> "RAW"
+            allowStandardKeyboard -> "STANDARD"
+            else -> "SECURE"
+        }
+        val keyboardModeLabel = when (keyboardModeId) {
+            "RAW" -> "Raw — physical keyboard only"
+            "STANDARD" -> "Standard — full Gboard features"
+            else -> "Secure — default, suppresses autocorrect"
+        }
+        SettingsItem(
             icon = Icons.Filled.Keyboard,
-            title = stringResource(R.string.settings_standard_keyboard_title),
-            subtitle = stringResource(R.string.settings_standard_keyboard_subtitle),
-            checked = allowStandardKeyboard,
-            onCheckedChange = viewModel::setAllowStandardKeyboard,
+            title = "Keyboard mode",
+            subtitle = keyboardModeLabel,
+            onClick = { showKeyboardModeDialog = true },
         )
         SettingsToggleItem(
             icon = Icons.Filled.ContentPaste,
@@ -678,6 +694,63 @@ fun SettingsScreen(
             onSelect = { selected ->
                 viewModel.setTheme(selected)
                 showThemeDialog = false
+            },
+        )
+    }
+
+    if (showKeyboardModeDialog) {
+        val modes = listOf(
+            Triple("SECURE", "Secure (default)",
+                "Real software keyboard with privacy flags set: Gboard mic, autocorrect, swipe typing and writing-assist are suppressed. Best for typing passwords; works with Bluetooth keyboards too."),
+            Triple("STANDARD", "Standard",
+                "Full Gboard features — voice input, swipe typing, autocorrect, word predictions. Pick this if your software keyboard isn't working in Secure mode, or if you want autocorrect."),
+            Triple("RAW", "Raw — Bluetooth/USB only",
+                "No software keyboard at all. Only physical keys (Bluetooth or USB) reach the terminal. Strongest privacy; on-screen keyboard won't appear when you tap the terminal."),
+        )
+        val current = when {
+            rawKeyboardMode -> "RAW"
+            allowStandardKeyboard -> "STANDARD"
+            else -> "SECURE"
+        }
+        AlertDialog(
+            onDismissRequest = { showKeyboardModeDialog = false },
+            title = { Text("Keyboard mode") },
+            text = {
+                Column {
+                    modes.forEach { (id, label, description) ->
+                        Row(
+                            verticalAlignment = Alignment.Top,
+                            modifier = Modifier
+                                .fillMaxWidth()
+                                .clickable {
+                                    viewModel.setKeyboardMode(id)
+                                    showKeyboardModeDialog = false
+                                }
+                                .padding(vertical = 8.dp, horizontal = 4.dp),
+                        ) {
+                            RadioButton(
+                                selected = id == current,
+                                onClick = null,
+                                modifier = Modifier.padding(top = 2.dp),
+                            )
+                            Spacer(Modifier.width(12.dp))
+                            Column {
+                                Text(label, style = MaterialTheme.typography.bodyLarge)
+                                Spacer(Modifier.height(2.dp))
+                                Text(
+                                    description,
+                                    style = MaterialTheme.typography.bodySmall,
+                                    color = MaterialTheme.colorScheme.onSurfaceVariant,
+                                )
+                            }
+                        }
+                    }
+                }
+            },
+            confirmButton = {
+                TextButton(onClick = { showKeyboardModeDialog = false }) {
+                    Text(stringResource(R.string.common_cancel))
+                }
             },
         )
     }

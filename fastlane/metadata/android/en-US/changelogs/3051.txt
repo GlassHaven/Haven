@@ -1,0 +1,11 @@
+v5.24.41: hotfix — revert RDP colour-depth default to 16bpp (xrdp compat)
+
+v5.24.40's "honour the requested colour depth" change had the
+predicted xrdp regression: blank screen on local xrdp because
+ironrdp doesn't decode xrdp's custom 32bpp RLE variant. Reverting
+the Kotlin default from 32 → 16 restores the v5.24.39 behaviour.
+
+Surf5726's request for smoother RDP updates (#109) needs the
+per-profile colour-depth picker (mirror of the VNC one); that's
+v5.24.42. Until then, RDP runs at 16bpp + interleaved RLE for all
+servers — works everywhere, line-by-line repaints on Windows.

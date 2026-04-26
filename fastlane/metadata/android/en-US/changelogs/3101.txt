@@ -1,0 +1,20 @@
+v5.24.46: sticky toolbar modifiers fire on first keypress (#110)
+
+Follow-up to v5.24.45's Samsung Keyboard fix. The previous release
+committed Samsung's composing buffer on finishComposingText so typed
+text reached the terminal — but Ctrl+D from the toolbar still needed
+a third ENTER tap because Samsung buffers each character's
+sendKeyEvent until space/enter, and the Ctrl modifier got consumed
+on whichever flushed first.
+
+ImeInputView now eager-commits each composing-text delta in Secure
+mode (the IME's authoritative running guess for the current word
+becomes terminal input immediately), and suppresses Samsung's later
+deferred sendKeyEvent for chars we already sent. Net effect:
+- Toolbar Ctrl + D fires Ctrl+D on the very next keypress, no ENTER
+  required
+- Multi-char typed words appear in the terminal as you type them
+  rather than at word boundaries
+- No double input from Samsung's batch flush
+- CJK Compose mode and Standard-keyboard autocorrect paths are
+  unchanged (fullEditor=true keeps the floating-overlay model)

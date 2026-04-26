@@ -1,0 +1,61 @@
+#!/usr/bin/env bash
+# pre-push: catch the submodule footgun where the parent repo pushes a
+# commit referencing a submodule SHA that CI can't compile against —
+# typically because the submodule had uncommitted/unpushed work that
+# the parent's working tree silently relied on.
+#
+# Symptom this hook prevents (v5.24.50, #94):
+#   - Edit termlib files; never `git commit` them inside the submodule.
+#   - Local Haven build works (working tree has the changes).
+#   - Push the parent. CI checks out the submodule at its pinned SHA
+#     (which doesn't have the changes) and fails to compile.
+#
+# Three checks, each prints a warning and exits non-zero if violated:
+#   1. Submodule has uncommitted changes (worktree differs from HEAD).
+#   2. Submodule HEAD is ahead of its upstream tracking branch
+#      (commits exist locally that haven't been pushed).
+#   3. Submodule's recorded pointer in the parent index differs from
+#      its actual HEAD (the `+` flag in `git submodule status`).
+#
+# Override with `git push --no-verify` if you really mean it.
+
+set -euo pipefail
+
+bad=0
+warn() { echo "PRE-PUSH WARN: $*" >&2; bad=1; }
+
+# Process substitution so the loop runs in this shell — `bad` survives.
+while read -r line; do
+    [ -z "$line" ] && continue
+    flag="${line:0:1}"
+    rest="${line:1}"
+    sha="${rest%% *}"
+    rest_after_sha="${rest#* }"
+    path="${rest_after_sha%% *}"
+
+    case "$flag" in
+        '+'|'U')
+            warn "submodule '$path' SHA mismatch (parent pin=$sha differs from submodule HEAD). Did you forget 'git add $path' after committing inside the submodule?"
+            ;;
+    esac
+
+    # Only inspect initialised submodules (skip '-')
+    if [ -d "$path/.git" ] || [ -f "$path/.git" ]; then
+        if ! git -C "$path" diff --quiet HEAD 2>/dev/null; then
+            warn "submodule '$path' has uncommitted changes — CI won't see them. The parent's pinned SHA is the only source of truth."
+        fi
+        if upstream=$(git -C "$path" rev-parse --abbrev-ref --symbolic-full-name '@{u}' 2>/dev/null); then
+            if git -C "$path" log "$upstream..HEAD" --oneline -1 2>/dev/null | grep -q .; then
+                warn "submodule '$path' has commits ahead of $upstream — push the submodule first."
+            fi
+        fi
+    fi
+done < <(git submodule status 2>/dev/null)
+
+if [ "$bad" -ne 0 ]; then
+    echo "" >&2
+    echo "Push aborted by pre-push hook (tools/git-hooks/pre-push)." >&2
+    echo "Override with --no-verify if you really mean it." >&2
+    exit 1
+fi
+exit 0

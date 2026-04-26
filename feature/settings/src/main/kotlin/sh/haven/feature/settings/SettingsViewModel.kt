@@ -142,6 +142,9 @@ class SettingsViewModel @Inject constructor(
     val mouseInputEnabled: StateFlow<Boolean> = preferencesRepository.mouseInputEnabled
         .stateIn(viewModelScope, SharingStarted.WhileSubscribed(5000), true)
 
+    val mouseDragSelects: StateFlow<Boolean> = preferencesRepository.mouseDragSelects
+        .stateIn(viewModelScope, SharingStarted.WhileSubscribed(5000), true)
+
     val terminalRightClick: StateFlow<Boolean> = preferencesRepository.terminalRightClick
         .stateIn(viewModelScope, SharingStarted.WhileSubscribed(5000), false)
 
@@ -289,6 +292,12 @@ class SettingsViewModel @Inject constructor(
     fun setMouseInputEnabled(enabled: Boolean) {
         viewModelScope.launch {
             preferencesRepository.setMouseInputEnabled(enabled)
+        }
+    }
+
+    fun setMouseDragSelects(enabled: Boolean) {
+        viewModelScope.launch {
+            preferencesRepository.setMouseDragSelects(enabled)
         }
     }
 

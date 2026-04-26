@@ -151,6 +151,7 @@ fun SettingsScreen(
     val unseenAgentActivity by viewModel.unseenAgentActivity.collectAsState()
     val requireAgentConsentForWrites by viewModel.requireAgentConsentForWrites.collectAsState()
     val mouseInputEnabled by viewModel.mouseInputEnabled.collectAsState()
+    val mouseDragSelects by viewModel.mouseDragSelects.collectAsState()
     val desktopInputMode by viewModel.desktopInputMode.collectAsState()
     val bandwidthAutoSuggest by viewModel.bandwidthAutoSuggest.collectAsState()
     val terminalRightClick by viewModel.terminalRightClick.collectAsState()
@@ -363,6 +364,13 @@ fun SettingsScreen(
             subtitle = stringResource(R.string.settings_mouse_input_subtitle),
             checked = mouseInputEnabled,
             onCheckedChange = viewModel::setMouseInputEnabled,
+        )
+        SettingsToggleItem(
+            icon = Icons.Filled.Terminal,
+            title = "Drag-to-select in TUI mouse mode",
+            subtitle = "Forward press+motion+release to tmux/zellij so selection extends across the viewport via the remote's own scrollback. When off, drag scrolls the remote (legacy behaviour).",
+            checked = mouseDragSelects,
+            onCheckedChange = viewModel::setMouseDragSelects,
         )
         SettingsToggleItem(
             icon = Icons.Filled.Terminal,

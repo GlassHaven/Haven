@@ -148,6 +148,8 @@ fun HavenNavHost(
         .collectAsState(initial = false)
     val mouseInputEnabled by preferencesRepository.mouseInputEnabled
         .collectAsState(initial = true)
+    val mouseDragSelects by preferencesRepository.mouseDragSelects
+        .collectAsState(initial = true)
     val terminalRightClick by preferencesRepository.terminalRightClick
         .collectAsState(initial = false)
     val allowStandardKeyboard by preferencesRepository.allowStandardKeyboard
@@ -279,6 +281,7 @@ fun HavenNavHost(
                         showSearchButton = showSearchButton,
                         showCopyOutputButton = showCopyOutputButton,
                         mouseInputEnabled = mouseInputEnabled,
+                        mouseDragSelects = mouseDragSelects,
                         terminalRightClick = terminalRightClick,
                         allowStandardKeyboard = allowStandardKeyboard,
                         onToggleStandardKeyboard = {

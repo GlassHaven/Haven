@@ -38,6 +38,7 @@ class UserPreferencesRepository @Inject constructor(
     private val connectionLoggingEnabledKey = booleanPreferencesKey("connection_logging_enabled")
     private val verboseLoggingEnabledKey = booleanPreferencesKey("verbose_logging_enabled")
     private val mouseInputEnabledKey = booleanPreferencesKey("mouse_input_enabled")
+    private val mouseDragSelectsKey = booleanPreferencesKey("mouse_drag_selects")
     private val terminalRightClickKey = booleanPreferencesKey("terminal_right_click")
     private val allowStandardKeyboardKey = booleanPreferencesKey("allow_standard_keyboard")
     private val rawKeyboardModeKey = booleanPreferencesKey("raw_keyboard_mode")
@@ -157,6 +158,23 @@ class UserPreferencesRepository @Inject constructor(
     suspend fun setMouseInputEnabled(enabled: Boolean) {
         dataStore.edit { prefs ->
             prefs[mouseInputEnabledKey] = enabled
+        }
+    }
+
+    /**
+     * When true, single-finger drag in TUI mouse mode forwards mouse press +
+     * motion + release to the remote, so tmux/zellij can do their own
+     * selection in copy-mode (selection extends across viewport boundaries
+     * via tmux's own scrollback). When false, drag falls back to scroll-via-
+     * wheel-events (the legacy behaviour). (#94)
+     */
+    val mouseDragSelects: Flow<Boolean> = dataStore.data.map { prefs ->
+        prefs[mouseDragSelectsKey] ?: true
+    }
+
+    suspend fun setMouseDragSelects(enabled: Boolean) {
+        dataStore.edit { prefs ->
+            prefs[mouseDragSelectsKey] = enabled
         }
     }
 

@@ -123,6 +123,7 @@ fun TerminalScreen(
     showSearchButton: Boolean = false,
     showCopyOutputButton: Boolean = false,
     mouseInputEnabled: Boolean = true,
+    mouseDragSelects: Boolean = true,
     terminalRightClick: Boolean = false,
     allowStandardKeyboard: Boolean = false,
     onToggleStandardKeyboard: () -> Unit = {},
@@ -545,7 +546,7 @@ fun TerminalScreen(
                     // Build gesture callback when mouse mode is active.
                     // Taps and long-presses are gated by mouseInputEnabled;
                     // scroll wheel always works when the TUI requests mouse mode.
-                    val gestureCallback = remember(activeTab, isMouseMode, mouseInputEnabled, terminalRightClick) {
+                    val gestureCallback = remember(activeTab, isMouseMode, mouseInputEnabled, mouseDragSelects, terminalRightClick) {
                         if (isMouseMode) object : org.connectbot.terminal.TerminalGestureCallback {
                             override fun onTap(col: Int, row: Int): Boolean {
                                 if (!mouseInputEnabled) return false
@@ -563,6 +564,22 @@ fun TerminalScreen(
                             override fun onScroll(col: Int, row: Int, scrollUp: Boolean): Boolean {
                                 activeTab.sendInput(sgrMouseWheel(scrollUp, col + 1, row + 1))
                                 return true // suppress scrollback
+                            }
+                            override fun onMouseDrag(
+                                col: Int,
+                                row: Int,
+                                phase: org.connectbot.terminal.MouseDragPhase,
+                            ): Boolean {
+                                if (!mouseInputEnabled || !mouseDragSelects) return false
+                                when (phase) {
+                                    org.connectbot.terminal.MouseDragPhase.Start ->
+                                        activeTab.sendInput(sgrMouseButton(0, col + 1, row + 1, true))
+                                    org.connectbot.terminal.MouseDragPhase.Move ->
+                                        activeTab.sendInput(sgrMouseMotion(0, col + 1, row + 1))
+                                    org.connectbot.terminal.MouseDragPhase.End ->
+                                        activeTab.sendInput(sgrMouseButton(0, col + 1, row + 1, false))
+                                }
+                                return true // claim the drag — terminal stops scroll fallback
                             }
                         } else null
                     }
@@ -991,6 +1008,20 @@ private fun sgrMouseWheel(scrollUp: Boolean, col: Int, row: Int): ByteArray {
  * Format: ESC [ < button ; col ; row M (press) or m (release)
  * Button 0 = left, 2 = right. col and row are 1-based.
  */
+/**
+ * SGR mouse motion-while-button-held sequence (xterm button-event mode 1002).
+ * Format: ESC [ < (button | 32) ; col ; row M
+ * The +32 mask flags the event as motion-while-held rather than press; tmux
+ * uses it to extend a running selection in copy-mode. col/row are 1-based.
+ *
+ * (#94 — without these, the remote sees only press+release and can't track
+ * a drag-to-select.)
+ */
+private fun sgrMouseMotion(button: Int, col: Int, row: Int): ByteArray {
+    val code = button or 32
+    return "[<$code;$col;${row}M".toByteArray()
+}
+
 private fun sgrMouseButton(button: Int, col: Int, row: Int, pressed: Boolean): ByteArray {
     val suffix = if (pressed) 'M' else 'm'
     return "\u001b[<$button;$col;${row}$suffix".toByteArray()

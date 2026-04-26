@@ -1,0 +1,30 @@
+v5.24.50: drag-to-select in tmux/zellij mouse mode (#94)
+
+When a TUI app (tmux, zellij, htop, vim, etc.) requests mouse mode,
+single-finger drag now forwards a mouse-press + motion-while-held +
+mouse-release sequence to the remote, so tmux can do its own
+selection in copy-mode. Selection extends naturally across the
+viewport boundary because tmux's copy-mode auto-scrolls and extends
+its own selection — same as on a desktop terminal.
+
+Previously, drag in mouse mode only sent quantized scroll-wheel
+events; the remote saw a single click followed by scroll, never a
+selection-in-progress, so tmux couldn't select anything. The local
+selection highlight Haven drew was bounded to the viewport rows,
+which is what the user reported as "selection still has no way to
+cross the screen boundary."
+
+The new path also sends scroll-wheel events alongside motion when
+the finger reaches the top/bottom edge zone of the viewport, so
+tmux's auto-scroll-while-selecting fires (matching xterm/iTerm
+behaviour).
+
+Toggle in Settings → "Drag-to-select in TUI mouse mode" (default
+on; turn off to revert to the legacy drag-to-scroll behaviour).
+Long-press still starts Haven's local selection unchanged, as a
+fallback when you want Haven's selection toolbar instead of the
+remote's copy-mode.
+
+Plain shells (no tmux/zellij/screen) still need a separate piece
+to extend selection across Haven's local scrollback — that's the
+session-manager-aware-search work tracked in the same issue.

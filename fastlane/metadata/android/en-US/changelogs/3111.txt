@@ -1,0 +1,21 @@
+v5.24.47: granular RDP TLS errors + actionable session-manager toast (#109)
+
+Two diagnostic improvements that fall out of agevlakh's #109 report:
+
+RDP TLS failures used to collapse cipher mismatches, version mismatches,
+certificate problems, and HandshakeFailure alerts all into a single
+"TLS negotiation failed. The server may require specific security
+settings." Future bug reports now arrive with the actual rustls failure
+mode named — "no shared TLS parameters", "HandshakeFailure", "server
+certificate problem (UnknownIssuer)", etc. — and an actionable hint
+about the most compatible server-side setting (ECDHE-RSA + AES-GCM
+over TLS 1.2/1.3, since Haven uses rustls/ring which has narrower
+cipher coverage than Windows SChannel or OpenSSL).
+
+The "Terminal failed to open" toast now names the configured session
+manager (tmux/zellij/screen) and includes the install command for the
+profile's actual environment — apt/dnf for SSH/remote, plain apt for
+local PRoot — plus the option to switch session manager in connection
+settings. Replaces the generic "check that your session manager is
+installed on the remote host" message that didn't help local-PRoot
+users hit by the same toast.

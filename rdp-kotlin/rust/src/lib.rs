@@ -396,6 +396,59 @@ fn build_config(config: &RdpConfig) -> ironrdp_connector::Config {
     }
 }
 
+/// Translate a rustls handshake error into a human-readable string that
+/// names the actual failure mode rather than the generic "TLS handshake
+/// failed". The Kotlin layer pattern-matches on these strings (see
+/// `RdpViewModel.describeError`) to render an actionable user message.
+///
+/// We pull out the cases users actually hit with non-Windows RDP servers:
+///   - cipher / kx-group / sig-scheme not in common (peer-incompatible)
+///   - TLS-version mismatch
+///   - HandshakeFailure alert from peer (often the server-side equivalent
+///     of "no shared cipher")
+///   - certificate problems (algorithm, expiry, name mismatch)
+///   - peer protocol misbehaviour
+///
+/// Anything we don't specifically recognise falls through to a `{:?}` dump
+/// so unknown variants still leave a usable trail in bug reports. (#109)
+fn diagnose_tls_error(e: &rustls::Error) -> String {
+    use rustls::Error;
+    match e {
+        Error::PeerIncompatible(reason) => format!(
+            "no shared TLS parameters with server ({:?}) — \
+            Haven uses the rustls/ring crypto provider which supports a narrower \
+            cipher set than OpenSSL/SChannel. The server may need ECDHE-RSA + \
+            AES-GCM (TLS 1.2 or 1.3) enabled.",
+            reason
+        ),
+        Error::AlertReceived(alert) => format!(
+            "server sent TLS alert ({:?}). HandshakeFailure here usually means \
+            the server has no cipher suite in common with us.",
+            alert
+        ),
+        Error::InvalidCertificate(cert_err) => format!(
+            "server certificate problem ({:?})",
+            cert_err
+        ),
+        Error::PeerMisbehaved(reason) => format!(
+            "server misbehaved during TLS handshake ({:?})",
+            reason
+        ),
+        Error::NoApplicationProtocol => {
+            "server requires an ALPN protocol Haven doesn't advertise".to_string()
+        }
+        Error::InappropriateMessage { expect_types, got_type } => format!(
+            "unexpected TLS message: expected {:?}, got {:?}",
+            expect_types, got_type
+        ),
+        Error::InappropriateHandshakeMessage { expect_types, got_type } => format!(
+            "unexpected TLS handshake message: expected {:?}, got {:?}",
+            expect_types, got_type
+        ),
+        other => format!("{:?}", other),
+    }
+}
+
 /// Create a rustls TLS connector that accepts any server certificate.
 /// RDP servers typically use self-signed certificates.
 fn create_tls_config() -> Result<rustls::ClientConfig, RdpError> {
@@ -518,7 +571,17 @@ fn run_rdp_session(
     // a Windows Server 2025 Datacenter VM with strict NLA.
     let mut socket = raw_stream;
     if let Err(e) = tls_conn.complete_io(&mut socket) {
-        return Err(format!("TLS handshake failed: {}", e));
+        // io::Error from complete_io wraps a rustls::Error — fish it out so
+        // we can surface the specific failure mode (cipher mismatch, version
+        // mismatch, cert problem, alert-from-peer) rather than collapsing
+        // every TLS failure into a single opaque "TLS handshake failed".
+        // See diagnose_tls_error for the mapping. (#109 follow-up)
+        let inner = e.get_ref().and_then(|i| i.downcast_ref::<rustls::Error>());
+        let detail = match inner {
+            Some(rustls_err) => diagnose_tls_error(rustls_err),
+            None => format!("{}", e),
+        };
+        return Err(format!("TLS handshake failed: {}", detail));
     }
 
     let tls_stream = rustls::StreamOwned::new(tls_conn, socket);

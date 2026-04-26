@@ -1145,10 +1145,19 @@ class TerminalViewModel @Inject constructor(
                     }
                 } catch (_: TimeoutCancellationException) {
                     Log.w(TAG, "selectTabByProfileId: tab for $profileId not created within 5s")
+                    val profile = runCatching { connectionRepository.getById(profileId) }.getOrNull()
+                    val mgr = profile?.sessionManager ?: "tmux"
+                    val msg = if (profile?.isLocal == true) {
+                        "Terminal failed to open — install $mgr inside the local PRoot " +
+                            "(e.g. \"apt install $mgr\"), or change the session manager " +
+                            "in the connection's settings."
+                    } else {
+                        "Terminal failed to open — install $mgr on the remote host " +
+                            "(e.g. \"sudo apt install $mgr\" or \"sudo dnf install $mgr\"), " +
+                            "or change the session manager in the connection's settings."
+                    }
                     android.os.Handler(android.os.Looper.getMainLooper()).post {
-                        android.widget.Toast.makeText(appContext,
-                            "Terminal failed to open — check that your session manager (tmux/zellij/screen) is installed on the remote host",
-                            android.widget.Toast.LENGTH_LONG).show()
+                        android.widget.Toast.makeText(appContext, msg, android.widget.Toast.LENGTH_LONG).show()
                     }
                 }
             }

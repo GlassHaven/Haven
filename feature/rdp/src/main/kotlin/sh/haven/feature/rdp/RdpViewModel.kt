@@ -298,6 +298,40 @@ class RdpViewModel @Inject constructor(
     }
 
     companion object {
+        /**
+         * Render a Rust-side rustls failure message into something a human can act on.
+         * The Rust layer (`rdp-kotlin/rust/src/lib.rs::diagnose_tls_error`) already
+         * names the specific failure mode; we re-shape it for the end user and tack
+         * on a hint about what to try server-side. (#109)
+         */
+        private fun describeTlsFailure(msg: String): String {
+            val classified = when {
+                msg.contains("no shared TLS parameters", ignoreCase = true) ||
+                    msg.contains("PeerIncompatible", ignoreCase = true) -> buildString {
+                    append("TLS negotiation failed: no shared cipher / key-exchange / signature with the server.\n\n")
+                    append("Haven uses the rustls/ring TLS stack, which supports a narrower cipher set than ")
+                    append("Microsoft's Windows RDP client (SChannel) or OpenSSL. The most compatible server-side ")
+                    append("setting is ECDHE-RSA + AES-GCM over TLS 1.2 or 1.3.")
+                }
+                msg.contains("HandshakeFailure", ignoreCase = true) -> buildString {
+                    append("TLS handshake failed: server rejected our cipher list.\n\n")
+                    append("This usually means the server has no cipher suite in common with Haven. ")
+                    append("Enable ECDHE-RSA + AES-GCM (TLS 1.2 or 1.3) on the server, or check the server's RDP TLS configuration.")
+                }
+                msg.contains("certificate problem", ignoreCase = true) ||
+                    msg.contains("InvalidCertificate", ignoreCase = true) -> buildString {
+                    append("TLS handshake failed: server certificate problem.\n\n")
+                    append("Detail: $msg")
+                }
+                msg.contains("ALPN", ignoreCase = true) -> buildString {
+                    append("TLS negotiation failed: server requires an application protocol Haven doesn't advertise.\n\n")
+                    append("Detail: $msg")
+                }
+                else -> "TLS negotiation failed.\n\nDetail: $msg"
+            }
+            return classified + "\n\nIf this persists please file an issue at https://github.com/GlassHaven/Haven/issues with the message above."
+        }
+
         /** Map RDP/network exceptions to user-friendly messages. */
         fun describeError(e: Exception, host: String? = null, port: Int? = null): String {
             val portStr = port?.toString() ?: "3389"
@@ -335,7 +369,7 @@ class RdpViewModel @Inject constructor(
                             append("Domain can usually be left empty for Linux/xrdp connections.")
                         }
                         msg.contains("TLS", ignoreCase = true) || msg.contains("SSL", ignoreCase = true) ->
-                            "TLS negotiation failed. The server may require specific security settings."
+                            describeTlsFailure(msg)
                         else -> msg
                     }
                 }

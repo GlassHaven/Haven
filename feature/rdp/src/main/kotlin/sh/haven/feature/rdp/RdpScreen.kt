@@ -1206,5 +1206,27 @@ internal fun rdpErrorHint(error: String): RdpErrorHint? = when {
         body = "The server completed CredSSP cleanly and rejected your credentials. Check the " +
             "username (try DOMAIN\\User if the account is domain-joined) and password.",
     )
+    "MessageAltered" in error || "public-key hash" in error -> RdpErrorHint(
+        title = "Server rejected the CredSSP public-key hash",
+        body = "Linux gnome-remote-desktop and certain xrdp builds compute the CredSSP " +
+            "pub_key_auth hash differently than Haven's ironrdp/sspi-rs — the TLS handshake " +
+            "succeeds but NLA fails one layer up.\n\n" +
+            "Workaround: edit this connection's profile and uncheck \"Network Level " +
+            "Authentication (NLA)\". RDP will fall back to authenticating after channel setup, " +
+            "which doesn't go through the mismatched hash.",
+        linkLabel = "Issue tracker",
+        linkUrl = "https://github.com/GlassHaven/Haven/issues/109",
+    )
+    "TimeSkew" in error -> RdpErrorHint(
+        title = "Device clock differs from server's",
+        body = "CredSSP rejects the session when the device clock is more than a few minutes " +
+            "off the server's. Check Settings → Date & time → Set automatically and reconnect.",
+    )
+    "no shared TLS parameters" in error || "PeerIncompatible" in error -> RdpErrorHint(
+        title = "Server requires TLS ciphers Haven doesn't support",
+        body = "Haven uses the rustls/ring TLS stack which has narrower cipher coverage than " +
+            "Microsoft's RDP client (SChannel) or OpenSSL. The most compatible server-side " +
+            "setting is ECDHE-RSA + AES-GCM over TLS 1.2 or 1.3.",
+    )
     else -> null
 }

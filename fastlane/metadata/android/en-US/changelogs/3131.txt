@@ -1,0 +1,15 @@
+v5.24.49: structured RDP error hint cards (#109)
+
+Three new RdpErrorHint patterns turn the diagnostic strings shipped
+in v5.24.47/v5.24.48 into top-level hint cards above the raw error
+in the failed-connection screen:
+
+- "Server rejected the CredSSP public-key hash" — for the
+  gnome-remote-desktop / FreeRDP-server NLA interop case. Spells out
+  the workaround inline (uncheck NLA on the profile) and links to the
+  tracking issue.
+- "Device clock differs from server's" — for CredSSP TimeSkew
+  rejections, with the Settings → Date & time pointer.
+- "Server requires TLS ciphers Haven doesn't support" — for the
+  rustls/ring vs SChannel/OpenSSL cipher coverage gap that surfaces
+  on hosts with narrow cipher configs.

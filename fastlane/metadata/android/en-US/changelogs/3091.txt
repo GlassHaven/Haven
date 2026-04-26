@@ -1,0 +1,17 @@
+v5.24.45: Samsung Keyboard typing in Secure mode (#110 follow-up)
+
+v5.24.40 satisfied Samsung's "view is not EditText" gate so the
+keyboard now talks to Haven's InputConnection — but logcat from
+SeriousM showed Samsung composes typed text via setComposingText
+then accepts via finishComposingText without ever firing
+commitText. Our Secure-mode finishComposingText handler early-
+returned, dropping the composing buffer on the floor. ENTER still
+worked (separate sendKeyEvent path), so the user saw ENTER fire
+but no typed characters appear.
+
+ImeInputView now tracks the composing buffer in both fullEditor
+(CJK overlay) and non-fullEditor (Secure) modes, and commits the
+accumulated text on finishComposingText in Secure mode. The
+floating overlay flow is still gated to fullEditor so Samsung
+typing doesn't flash mid-word state in the terminal — the typed
+word lands at the word boundary instead.

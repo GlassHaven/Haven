@@ -1,0 +1,12 @@
+v5.24.51: hotfix — pin termlib submodule to MouseDrag commit (#94)
+
+v5.24.50 added the drag-to-select-in-tmux feature on the Haven side
+but the termlib submodule pointer wasn't updated to the commit that
+defines TerminalGestureCallback.onMouseDrag and MouseDragPhase. CI
+failed to compile feature/terminal because the symbols didn't exist
+at the pinned termlib SHA. Local builds worked because the working
+tree had the changes, masking the gap.
+
+This release pins the submodule to termlib commit 8fca17c (which adds
+the MouseDrag callback + gesture state) so the v5.24.50 feature
+actually compiles and ships. Same code, just the right submodule pin.

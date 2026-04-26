@@ -449,6 +449,102 @@ fn diagnose_tls_error(e: &rustls::Error) -> String {
     }
 }
 
+/// Translate an ironrdp `connect_finalize` error into a human-readable
+/// string. Walks the structured error kind first (so we can match on
+/// CredSSP / Negotiation / AccessDenied without substring sniffing),
+/// falls back to a `{:?}` dump for anything we don't recognise.
+///
+/// Output is consumed by `RdpViewModel.describeError` on the Kotlin
+/// side, which adds workaround hints (e.g. "try unchecking NLA")
+/// keyed off the leading classification word.
+fn diagnose_finalize_error(e: &ironrdp_connector::ConnectorError) -> String {
+    use ironrdp_connector::{ConnectorErrorKind, sspi};
+
+    let raw = format!("{:?}", e);
+    let kind_str = match e.kind() {
+        ConnectorErrorKind::Credssp(sspi_err) => {
+            let inner = diagnose_credssp_error(sspi_err);
+            // Tag with "Credssp:" so the Kotlin classifier can pivot
+            // on "Authentication" vs "TLS" cleanly.
+            format!("Authentication failed (CredSSP): {}", inner)
+        }
+        ConnectorErrorKind::Negotiation(failure) => {
+            format!("RDP security negotiation failed: {}", failure)
+        }
+        ConnectorErrorKind::AccessDenied => {
+            "Authentication failed: server denied access".to_string()
+        }
+        ConnectorErrorKind::Encode(enc) => {
+            format!("RDP protocol encode error: {:?}", enc)
+        }
+        ConnectorErrorKind::Decode(dec) => {
+            format!("RDP protocol decode error: {:?}", dec)
+        }
+        ConnectorErrorKind::Reason(r) => {
+            format!("RDP connect finalize failed: {}", r)
+        }
+        ConnectorErrorKind::Custom | ConnectorErrorKind::General => {
+            classify_raw_finalize(&raw)
+        }
+        // ConnectorErrorKind is #[non_exhaustive] in ironrdp 0.8 — catch
+        // any future-added variants by falling back to substring sniffing.
+        _ => classify_raw_finalize(&raw),
+    };
+    let _ = sspi::ErrorKind::OutOfSequence; // suppress unused-import warning
+    kind_str
+}
+
+/// Substring-sniffing fallback for ConnectorErrorKind variants we don't
+/// handle structurally (Custom / General catch-alls and any future
+/// non-exhaustive additions). These tend to wrap TLS-layer failures
+/// (rustls alert received during CredSSP network IO) — preserve the
+/// pre-existing patterns so the Windows-NLA case (#109 surf5726) still
+/// maps to the friendly "server rejected credentials" message.
+fn classify_raw_finalize(raw: &str) -> String {
+    if raw.contains("AlertReceived(InternalError)") ||
+        raw.contains("AlertReceived(AccessDenied)") ||
+        raw.contains("AlertReceived(BadCertificate)")
+    {
+        format!(
+            "Authentication failed: server rejected credentials \
+            (check username, password, and domain). {}",
+            raw
+        )
+    } else if raw.contains("Tls") || raw.contains("TLS") || raw.contains("unexpected_message") {
+        format!("TLS handshake failed: {}", raw)
+    } else {
+        format!("RDP connect finalize failed: {}", raw)
+    }
+}
+
+/// Translate an sspi-rs CredSSP error into a human-readable string.
+/// MessageAltered specifically maps to "could not verify a public key
+/// hash" — typically caused by a mismatch between the client's view of
+/// the TLS server certificate's public key bytes and the server's
+/// (most often hit against gnome-remote-desktop / FreeRDP server with
+/// certain certificate types). LogonDenied = wrong credentials.
+fn diagnose_credssp_error(e: &ironrdp_connector::sspi::Error) -> String {
+    use ironrdp_connector::sspi::ErrorKind;
+    let kind_label = match e.error_type {
+        ErrorKind::LogonDenied => "wrong username or password",
+        ErrorKind::MessageAltered => {
+            "server rejected the public-key hash — \
+            this typically means the server's CredSSP impl computed a \
+            different SHA-256 over the TLS certificate's public key than \
+            Haven did. Try unchecking 'Network Level Authentication' on \
+            the connection profile (Linux gnome-remote-desktop is the \
+            usual offender)"
+        }
+        ErrorKind::IncompleteCredentials => "incomplete credentials",
+        ErrorKind::NoCredentials => "no credentials provided",
+        ErrorKind::InvalidToken => "server returned invalid CredSSP token",
+        ErrorKind::OutOfSequence => "CredSSP messages out of sequence",
+        ErrorKind::TimeSkew => "system clock differs from server's by too much",
+        _ => "CredSSP failed",
+    };
+    format!("{} ({:?}: {})", kind_label, e.error_type, e.description)
+}
+
 /// Create a rustls TLS connector that accepts any server certificate.
 /// RDP servers typically use self-signed certificates.
 fn create_tls_config() -> Result<rustls::ClientConfig, RdpError> {
@@ -644,32 +740,7 @@ fn run_rdp_session(
         sname,
         server_public_key,
         None, // no Kerberos config
-    ).map_err(|e| {
-        let msg = format!("{:?}", e);
-        // Windows RDP servers with NLA tear down the TLS session with an
-        // `internal_error` alert (TLS alert code 80) when they reject the
-        // user's credentials during CredSSP — they don't send a clean
-        // CredSSP error PDU, they just drop the connection with a rude
-        // TLS alert. Surface that as an authentication failure rather
-        // than a generic TLS error so the user knows to check their
-        // username / password / domain (#109 — surf5726).
-        if msg.contains("AlertReceived(InternalError)") ||
-            msg.contains("AlertReceived(AccessDenied)") ||
-            msg.contains("AlertReceived(BadCertificate)")
-        {
-            format!(
-                "Authentication failed: server rejected credentials \
-                (check username, password, and domain). {}",
-                msg
-            )
-        } else if msg.contains("Authentication") || msg.contains("Credssp") || msg.contains("LOGON_FAILED") {
-            format!("Authentication failed: {}", msg)
-        } else if msg.contains("Tls") || msg.contains("TLS") || msg.contains("unexpected_message") {
-            format!("TLS handshake failed: {}", msg)
-        } else {
-            format!("RDP connect finalize failed: {}", msg)
-        }
-    })?;
+    ).map_err(|e| diagnose_finalize_error(&e))?;
 
     // Session is connected
     let fb_width = connection_result.desktop_size.width;

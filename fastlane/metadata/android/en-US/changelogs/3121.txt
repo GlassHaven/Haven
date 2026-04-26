@@ -1,0 +1,20 @@
+v5.24.48: structured CredSSP/NLA error reporting (#109)
+
+Follow-up to v5.24.47's TLS-error work. The Rust connect_finalize
+error path now downcasts ironrdp's ConnectorErrorKind structurally
+(Credssp / Negotiation / AccessDenied / etc.) instead of pattern-
+matching on Debug-formatted strings — and CredSSP errors get an
+inner sspi::ErrorKind translation so MessageAltered, LogonDenied,
+TimeSkew, IncompleteCredentials each render with their actual cause.
+
+The most common interop trap surfaces inline now: a server that
+rejects the CredSSP public-key hash (Linux gnome-remote-desktop
+and certain xrdp builds compute the hash differently than ironrdp/
+sspi-rs) returns "Authentication failed: server rejected the
+CredSSP public-key hash" with the workaround inline — uncheck NLA
+on the connection profile.
+
+Substring fallback retained for ConnectorErrorKind variants we
+don't handle structurally (Custom/General catch-alls and any
+non-exhaustive future additions), so the Windows-NLA case still
+maps to the friendly "server rejected credentials" message.

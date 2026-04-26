@@ -362,14 +362,49 @@ class RdpViewModel @Inject constructor(
                 else -> {
                     val msg = e.message ?: "Unknown error"
                     when {
+                        // CredSSP MessageAltered = pub_key_auth hash mismatch.
+                        // Most often caused by gnome-remote-desktop /
+                        // FreeRDP-server interop bugs. The fix is server-side
+                        // (uncheck NLA on the connection profile).
+                        msg.contains("MessageAltered", ignoreCase = true) ||
+                            msg.contains("public-key hash", ignoreCase = true) -> buildString {
+                            append("Authentication failed: server rejected the CredSSP public-key hash.\n\n")
+                            append("This is usually a server-side interop bug — Linux gnome-remote-desktop ")
+                            append("and certain xrdp builds compute the hash differently than Haven's ironrdp/sspi-rs.\n\n")
+                            append("Workaround: edit this connection profile and uncheck \"Network Level Authentication (NLA)\". ")
+                            append("Without NLA, RDP authenticates after channel setup instead — slower but unaffected by this mismatch.\n\n")
+                            append("Detail: $msg")
+                        }
+                        msg.contains("LogonDenied", ignoreCase = true) ||
+                            msg.contains("wrong username", ignoreCase = true) -> buildString {
+                            append("Authentication failed: wrong username or password.\n\n")
+                            append("For Linux/xrdp the credentials should match a system account; ")
+                            append("Domain can usually be left empty.\n\nDetail: $msg")
+                        }
+                        msg.contains("TimeSkew", ignoreCase = true) -> buildString {
+                            append("Authentication failed: clock skew with server is too large.\n\n")
+                            append("Check that the device's clock is correct (Settings → Date & time → Set automatically).\n\n")
+                            append("Detail: $msg")
+                        }
+                        msg.contains("(CredSSP)", ignoreCase = true) ||
+                            msg.contains("Credssp", ignoreCase = true) -> buildString {
+                            append("Authentication failed during CredSSP/NLA.\n\n")
+                            append("Detail: $msg\n\n")
+                            append("If this is a Linux server, try unchecking \"Network Level Authentication (NLA)\" in the connection profile.")
+                        }
                         msg.contains("Authentication", ignoreCase = true) -> buildString {
                             append("Authentication failed.\n\n")
                             append("Check your username and password.\n")
                             append("For xrdp, the username/password should match a system account.\n")
-                            append("Domain can usually be left empty for Linux/xrdp connections.")
+                            append("Domain can usually be left empty for Linux/xrdp connections.\n\n")
+                            append("Detail: $msg")
                         }
                         msg.contains("TLS", ignoreCase = true) || msg.contains("SSL", ignoreCase = true) ->
                             describeTlsFailure(msg)
+                        msg.contains("RDP security negotiation", ignoreCase = true) -> buildString {
+                            append("RDP security negotiation failed.\n\n")
+                            append("Detail: $msg")
+                        }
                         else -> msg
                     }
                 }

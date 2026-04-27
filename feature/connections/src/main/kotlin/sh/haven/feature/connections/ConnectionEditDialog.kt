@@ -206,12 +206,18 @@ fun ConnectionEditDialog(
         title = { Text(title) },
         text = {
             Column(modifier = Modifier.verticalScroll(rememberScrollState())) {
-                // Transport selector
+                // Transport selector. LOCAL deliberately omitted: the local
+                // PRoot terminal is launched via the Connections topbar
+                // Terminal icon (which find-or-creates a single canonical
+                // Local profile). Saving a Local profile via "+" succeeded
+                // but then the main list filtered it out as a duplicate of
+                // the topbar entry — a dead-end UX (#114). For existing
+                // Local profiles in the DB (created before this dropdown
+                // pruning), the topbar's find-or-create still picks them up.
                 val transportOptions = listOf(
                     "SSH" to "SSH",
                     "MOSH" to "Mosh",
                     "ET" to "Eternal Terminal",
-                    "LOCAL" to "Local Shell (PRoot)",
                     "VNC" to "VNC (Desktop)",
                     "RDP" to "RDP (Desktop)",
                     "SMB" to "SMB (File Share)",

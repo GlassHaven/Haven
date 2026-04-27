@@ -1,0 +1,21 @@
+v5.24.52: remove dead-end "+" → Local Shell flow (#114)
+
+Evengard (#114) hit the case where adding a Local Shell connection
+via "+" appears to do nothing. The Save actually worked — the
+profile got persisted to the DB — but the v5.24.39 reorg that
+moved local PRoot to the Connections topbar Terminal icon also
+filtered Local profiles out of the main connection list to avoid
+showing them as duplicates of the topbar entry. The "+" → Local
+Shell path wasn't removed at the same time, leaving a dead-end
+where Save succeeds but the result is invisible.
+
+This release removes "Local Shell (PRoot)" from the "+" transport
+dropdown so the dead-end can't catch anyone. Existing Local
+profiles in users' DBs are unaffected — the topbar Terminal icon's
+find-or-create logic continues to pick them up regardless of how
+they were originally created.
+
+The "Use native Android shell" toggle was also only reachable via
+this same hidden flow, so it's gone too. If anyone needs the
+Android-shell variant they can reopen #114 with that as a separate
+ask — it'll need its own UI affordance.

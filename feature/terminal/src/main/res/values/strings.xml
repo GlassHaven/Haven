@@ -56,6 +56,7 @@
     <string name="terminal_rename_session">Rename session</string>
     <string name="terminal_kill_session">Kill session</string>
     <string name="terminal_new_session">New session</string>
+    <string name="terminal_new_session_create">Create</string>
 
     <!-- VncSettingsDialog -->
     <string name="terminal_vnc_desktop">VNC Desktop</string>

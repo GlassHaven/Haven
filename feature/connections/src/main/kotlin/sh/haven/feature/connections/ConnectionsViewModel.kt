@@ -502,6 +502,8 @@ class ConnectionsViewModel @Inject constructor(
         val manager: SessionManager = SessionManager.NONE,
         /** "SSH" or "MOSH" — determines which finish path onSessionSelected uses. */
         val transportType: String = "SSH",
+        /** Pre-filled name for the "Create new session" text field. (#112) */
+        val suggestedNewName: String = "",
     )
 
     private val _sessionSelection = MutableStateFlow<SessionSelection?>(null)
@@ -1426,6 +1428,7 @@ class ConnectionsViewModel @Inject constructor(
                             sessionNames = existingSessions,
                             previousSessionNames = previousNames,
                             manager = sshSessionMgr,
+                            suggestedNewName = generateUniqueSessionName(profile.label, existingSessions),
                         )
                         _connectingProfileId.value = null
                         return@launch // UI will call onSessionSelected() to continue
@@ -1632,6 +1635,7 @@ class ConnectionsViewModel @Inject constructor(
                             sessionNames = existingSessions,
                             manager = smgr,
                             transportType = "ET",
+                            suggestedNewName = generateUniqueSessionName(profile.label, existingSessions),
                         )
                         _connectingProfileId.value = null
                         return@launch // UI will call onSessionSelected() to continue
@@ -1763,6 +1767,7 @@ class ConnectionsViewModel @Inject constructor(
                             sessionNames = existingSessions,
                             manager = smgr,
                             transportType = "MOSH",
+                            suggestedNewName = generateUniqueSessionName(profile.label, existingSessions),
                         )
                         _connectingProfileId.value = null
                         return@launch // UI will call onSessionSelected() to continue

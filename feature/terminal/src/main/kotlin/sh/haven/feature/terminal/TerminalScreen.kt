@@ -76,6 +76,7 @@ import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.focus.FocusRequester
+import androidx.compose.ui.focus.onFocusChanged
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.graphics.Color
 import sh.haven.core.ui.KeyEventInterceptor
@@ -235,13 +236,16 @@ fun TerminalScreen(
         NewTabSessionPickerDialog(
             managerLabel = selection.managerLabel,
             sessionNames = selection.sessionNames,
+            suggestedNewName = selection.suggestedNewName,
             canKill = selection.manager.killCommand != null,
             canRename = selection.manager.renameCommand != null,
             error = selection.error,
             onSelect = { name -> viewModel.onNewTabSessionSelected(selection.sessionId, name) },
             onKill = { name -> viewModel.killRemoteSession(name) },
             onRename = { old, new -> viewModel.renameRemoteSession(old, new) },
-            onNewSession = { viewModel.onNewTabSessionSelected(selection.sessionId, null) },
+            onNewSession = { name ->
+                viewModel.onNewTabSessionSelected(selection.sessionId, name.takeIf { it.isNotBlank() })
+            },
             onDismiss = { viewModel.dismissNewTabSessionPicker() },
         )
     }
@@ -790,13 +794,14 @@ private fun EmptyTerminalState(
 private fun NewTabSessionPickerDialog(
     managerLabel: String,
     sessionNames: List<String>,
+    suggestedNewName: String = "",
     canKill: Boolean = false,
     canRename: Boolean = false,
     error: String? = null,
     onSelect: (String) -> Unit,
     onKill: (String) -> Unit = {},
     onRename: (old: String, new: String) -> Unit = { _, _ -> },
-    onNewSession: () -> Unit,
+    onNewSession: (name: String) -> Unit,
     onDismiss: () -> Unit,
 ) {
     var renamingSession by remember { mutableStateOf<String?>(null) }
@@ -852,21 +857,9 @@ private fun NewTabSessionPickerDialog(
                     )
                 }
                 HorizontalDivider(modifier = Modifier.padding(vertical = 4.dp))
-                ListItem(
-                    headlineContent = {
-                        Text(
-                            stringResource(R.string.terminal_new_session),
-                            color = MaterialTheme.colorScheme.primary,
-                        )
-                    },
-                    leadingContent = {
-                        Icon(
-                            Icons.Filled.Add,
-                            contentDescription = null,
-                            tint = MaterialTheme.colorScheme.primary,
-                        )
-                    },
-                    modifier = Modifier.clickable { onNewSession() },
+                NewSessionInlineRow(
+                    suggestedName = suggestedNewName,
+                    onCreate = onNewSession,
                 )
             }
         },
@@ -876,6 +869,74 @@ private fun NewTabSessionPickerDialog(
             }
         },
     )
+}
+
+/**
+ * The "Create new session" row at the bottom of [NewTabSessionPickerDialog].
+ * A pre-filled text field with a Create button. The field's text is
+ * selected on first focus so a tap-then-type immediately replaces the
+ * suggestion. Keyboard "Done" / Enter triggers Create. Mirrored from
+ * the connections-module SessionPickerDialog for consistency. (#112)
+ */
+@Composable
+private fun NewSessionInlineRow(
+    suggestedName: String,
+    onCreate: (String) -> Unit,
+) {
+    var fieldValue by remember(suggestedName) {
+        mutableStateOf(
+            androidx.compose.ui.text.input.TextFieldValue(
+                text = suggestedName,
+                selection = androidx.compose.ui.text.TextRange(0, suggestedName.length),
+            )
+        )
+    }
+    var hasBeenFocused by remember { mutableStateOf(false) }
+    Row(
+        modifier = Modifier
+            .fillMaxWidth()
+            .padding(horizontal = 16.dp, vertical = 8.dp),
+        verticalAlignment = Alignment.CenterVertically,
+        horizontalArrangement = Arrangement.spacedBy(8.dp),
+    ) {
+        Icon(
+            Icons.Filled.Add,
+            contentDescription = null,
+            tint = MaterialTheme.colorScheme.primary,
+        )
+        OutlinedTextField(
+            value = fieldValue,
+            onValueChange = { fieldValue = it },
+            label = { Text(stringResource(R.string.terminal_new_session)) },
+            singleLine = true,
+            modifier = Modifier
+                .weight(1f)
+                .onFocusChanged { focusState ->
+                    if (focusState.isFocused && !hasBeenFocused) {
+                        hasBeenFocused = true
+                        fieldValue = fieldValue.copy(
+                            selection = androidx.compose.ui.text.TextRange(0, fieldValue.text.length),
+                        )
+                    } else if (!focusState.isFocused) {
+                        hasBeenFocused = false
+                    }
+                },
+            keyboardOptions = androidx.compose.foundation.text.KeyboardOptions(
+                imeAction = androidx.compose.ui.text.input.ImeAction.Done,
+            ),
+            keyboardActions = androidx.compose.foundation.text.KeyboardActions(
+                onDone = {
+                    if (fieldValue.text.isNotBlank()) onCreate(fieldValue.text)
+                },
+            ),
+        )
+        androidx.compose.material3.Button(
+            onClick = { onCreate(fieldValue.text) },
+            enabled = fieldValue.text.isNotBlank(),
+        ) {
+            Text(stringResource(R.string.terminal_new_session_create))
+        }
+    }
 }
 
 /**

@@ -77,7 +77,9 @@ import androidx.compose.material3.SingleChoiceSegmentedButtonRow
 import androidx.compose.material3.FloatingActionButton
 import androidx.compose.material3.HorizontalDivider
 import androidx.compose.material3.Icon
+import androidx.compose.material3.Button
 import androidx.compose.material3.IconButton
+import androidx.compose.ui.focus.onFocusChanged
 import androidx.compose.material3.ListItem
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.OutlinedTextField
@@ -722,13 +724,19 @@ fun ConnectionsScreen(
             managerLabel = selection.managerLabel,
             sessionNames = selection.sessionNames,
             previousSessionNames = selection.previousSessionNames,
+            suggestedNewName = selection.suggestedNewName,
             canKill = selection.manager.killCommand != null,
             canRename = selection.manager.renameCommand != null,
             onSelect = { name -> viewModel.onSessionSelected(selection.sessionId, name) },
             onRestore = { names -> viewModel.restorePreviousSessions(selection.sessionId, names) },
             onKill = { name -> viewModel.killRemoteSession(name) },
             onRename = { old, new -> viewModel.renameRemoteSession(old, new) },
-            onNewSession = { viewModel.onSessionSelected(selection.sessionId, null) },
+            onNewSession = { name ->
+                // Empty string is treated as "use the suggestion the ViewModel
+                // would generate" — pass null down so the existing fallback
+                // path runs. Any non-empty user input goes through as-is.
+                viewModel.onSessionSelected(selection.sessionId, name.takeIf { it.isNotBlank() })
+            },
             onDismiss = { viewModel.dismissSessionPicker() },
         )
     }
@@ -1574,13 +1582,14 @@ private fun SessionPickerDialog(
     managerLabel: String,
     sessionNames: List<String>,
     previousSessionNames: List<String> = emptyList(),
+    suggestedNewName: String = "",
     canKill: Boolean = false,
     canRename: Boolean = false,
     onSelect: (String) -> Unit,
     onRestore: (List<String>) -> Unit = {},
     onKill: (String) -> Unit = {},
     onRename: (old: String, new: String) -> Unit = { _, _ -> },
-    onNewSession: () -> Unit,
+    onNewSession: (name: String) -> Unit,
     onDismiss: () -> Unit,
 ) {
     var renamingSession by remember { mutableStateOf<String?>(null) }
@@ -1662,21 +1671,9 @@ private fun SessionPickerDialog(
                     )
                 }
                 HorizontalDivider(modifier = Modifier.padding(vertical = 4.dp))
-                ListItem(
-                    headlineContent = {
-                        Text(
-                            stringResource(R.string.connections_new_session),
-                            color = MaterialTheme.colorScheme.primary,
-                        )
-                    },
-                    leadingContent = {
-                        Icon(
-                            Icons.Filled.Add,
-                            contentDescription = null,
-                            tint = MaterialTheme.colorScheme.primary,
-                        )
-                    },
-                    modifier = Modifier.clickable { onNewSession() },
+                NewSessionInlineRow(
+                    suggestedName = suggestedNewName,
+                    onCreate = onNewSession,
                 )
             }
         },
@@ -1686,6 +1683,78 @@ private fun SessionPickerDialog(
             }
         },
     )
+}
+
+/**
+ * The "Create new session" row at the bottom of [SessionPickerDialog] and
+ * [NewTabSessionPickerDialog] in TerminalScreen. A pre-filled text field
+ * with a Create button. The field's text is selected on first focus so a
+ * tap-then-type immediately replaces the suggestion. Keyboard "Done" /
+ * Enter triggers Create. (#112)
+ */
+@Composable
+internal fun NewSessionInlineRow(
+    suggestedName: String,
+    onCreate: (String) -> Unit,
+) {
+    var fieldValue by remember(suggestedName) {
+        mutableStateOf(
+            androidx.compose.ui.text.input.TextFieldValue(
+                text = suggestedName,
+                selection = androidx.compose.ui.text.TextRange(0, suggestedName.length),
+            )
+        )
+    }
+    var hasBeenFocused by remember { mutableStateOf(false) }
+    Row(
+        modifier = Modifier
+            .fillMaxWidth()
+            .padding(horizontal = 16.dp, vertical = 8.dp),
+        verticalAlignment = Alignment.CenterVertically,
+        horizontalArrangement = Arrangement.spacedBy(8.dp),
+    ) {
+        Icon(
+            Icons.Filled.Add,
+            contentDescription = null,
+            tint = MaterialTheme.colorScheme.primary,
+        )
+        OutlinedTextField(
+            value = fieldValue,
+            onValueChange = { fieldValue = it },
+            label = { Text(stringResource(R.string.connections_new_session)) },
+            singleLine = true,
+            modifier = Modifier
+                .weight(1f)
+                .onFocusChanged { focusState ->
+                    // Re-select all on each refocus so a tap-then-type wipes
+                    // the field — matches SeriousM's request in #112. The
+                    // `hasBeenFocused` gate prevents fighting with the user's
+                    // own selection moves while they're already typing.
+                    if (focusState.isFocused && !hasBeenFocused) {
+                        hasBeenFocused = true
+                        fieldValue = fieldValue.copy(
+                            selection = androidx.compose.ui.text.TextRange(0, fieldValue.text.length),
+                        )
+                    } else if (!focusState.isFocused) {
+                        hasBeenFocused = false
+                    }
+                },
+            keyboardOptions = androidx.compose.foundation.text.KeyboardOptions(
+                imeAction = androidx.compose.ui.text.input.ImeAction.Done,
+            ),
+            keyboardActions = androidx.compose.foundation.text.KeyboardActions(
+                onDone = {
+                    if (fieldValue.text.isNotBlank()) onCreate(fieldValue.text)
+                },
+            ),
+        )
+        Button(
+            onClick = { onCreate(fieldValue.text) },
+            enabled = fieldValue.text.isNotBlank(),
+        ) {
+            Text(stringResource(R.string.connections_new_session_create))
+        }
+    }
 }
 
 @Composable

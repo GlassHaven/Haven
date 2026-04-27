@@ -1209,6 +1209,8 @@ class TerminalViewModel @Inject constructor(
         val sessionId: String,
         val manager: SessionManager = SessionManager.NONE,
         val error: String? = null,
+        /** Pre-filled name for the "Create new session" text field. (#112) */
+        val suggestedNewName: String = "",
     )
 
     private val _newTabSessionPicker = MutableStateFlow<NewTabSessionSelection?>(null)
@@ -1358,12 +1360,15 @@ class TerminalViewModel @Inject constructor(
                         }
                     }
                     if (existingSessions.isNotEmpty()) {
+                        val baseLabel = sessionManager.getSession(sessionId)?.label
+                            ?: sessionId.take(8)
                         _newTabSessionPicker.value = NewTabSessionSelection(
                             profileId = profileId,
                             managerLabel = sshSessionMgr.label,
                             sessionNames = existingSessions,
                             sessionId = sessionId,
                             manager = sshSessionMgr,
+                            suggestedNewName = generateUniqueSessionName(baseLabel, existingSessions),
                         )
                         _newTabLoading.value = false
                         return@launch

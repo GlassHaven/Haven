@@ -1,0 +1,22 @@
+v5.24.55: pick a name for "Create new session" (#112)
+
+SeriousM (#112) asked to be able to choose the name of a new session
+before creating it, instead of accepting the auto-generated one.
+
+The session-picker dialog (both connect-time and add-tab time, both
+SSH and ET/Mosh after v5.24.54) now ends with an inline text field
+pre-filled with the auto-generated unique name and a Create button.
+Tap the field to edit; the existing text is selected so a single
+tap-then-type wipes it. Press Enter or tap Create to confirm. The
+field's initial selection-on-focus matches SeriousM's request.
+
+Behaviour for users who don't change the name is unchanged — the
+auto-generated suggestion produces the same name the previous
+"+ New session" tap would have produced ("devbox", then "devbox-2",
+etc.). The new field just gives you the option to customise it
+before commit.
+
+Same composable used by both the connect-time SessionPickerDialog
+(in feature/connections) and the add-tab NewTabSessionPickerDialog
+(in feature/terminal); kept inlined per-module to avoid a cross-
+module dependency.

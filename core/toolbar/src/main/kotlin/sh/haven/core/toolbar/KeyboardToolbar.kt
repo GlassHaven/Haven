@@ -25,6 +25,8 @@ import androidx.compose.foundation.rememberScrollState
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.DesktopWindows
 import androidx.compose.material.icons.filled.Keyboard
+import androidx.compose.material.icons.filled.Lock
+import androidx.compose.material.icons.filled.LockOpen
 import androidx.compose.material3.ButtonDefaults
 import androidx.compose.material3.FilledTonalButton
 import androidx.compose.material3.Icon
@@ -711,8 +713,17 @@ private fun BuiltInKey(
                 cb.onSendBytes(KEY_TAB)
             }
         }
-        ToolbarKey.VOICE_KEYBOARD -> ToolbarToggleButton(
-            label = "Voice",
+        ToolbarKey.VOICE_KEYBOARD -> ToolbarIconToggleButton(
+            // Padlock icon: closed when Secure (default — no suggestions, no
+            // autocorrect, no learning, no extract UI); open when Standard
+            // mode is active (voice + suggestions + autocorrect all enabled).
+            // The previous "Voice" text label was misleading because voice
+            // input is just one of the things the toggle unlocks. (#115)
+            icon = if (cb.allowStandardKeyboard) Icons.Filled.LockOpen else Icons.Filled.Lock,
+            contentDescription = if (cb.allowStandardKeyboard)
+                "Standard keyboard (voice, suggestions, autocorrect on)"
+            else
+                "Secure keyboard (no suggestions, no autocorrect)",
             active = cb.allowStandardKeyboard,
             onClick = cb.onToggleStandardKeyboard,
         )
@@ -969,6 +980,42 @@ private fun ToolbarToggleButton(label: String, active: Boolean, onClick: () -> U
         },
     ) {
         Text(label, fontSize = 11.sp, lineHeight = 11.sp)
+    }
+}
+
+/**
+ * Icon-based toggle button. Same shape as [ToolbarToggleButton] but uses an
+ * ImageVector instead of a text label. Used for keys where an icon conveys
+ * the on/off state more clearly than a word — e.g. the Secure-keyboard
+ * toggle's padlock open/closed (#115 follow-up).
+ */
+@Composable
+private fun ToolbarIconToggleButton(
+    icon: androidx.compose.ui.graphics.vector.ImageVector,
+    contentDescription: String,
+    active: Boolean,
+    onClick: () -> Unit,
+) {
+    FilledTonalButton(
+        onClick = onClick,
+        modifier = Modifier
+            .padding(horizontal = 1.dp)
+            .height(32.dp),
+        contentPadding = PaddingValues(horizontal = 8.dp, vertical = 0.dp),
+        colors = if (active) {
+            ButtonDefaults.filledTonalButtonColors(
+                containerColor = MaterialTheme.colorScheme.primary,
+                contentColor = MaterialTheme.colorScheme.onPrimary,
+            )
+        } else {
+            ButtonDefaults.filledTonalButtonColors()
+        },
+    ) {
+        Icon(
+            imageVector = icon,
+            contentDescription = contentDescription,
+            modifier = Modifier.size(18.dp),
+        )
     }
 }
 

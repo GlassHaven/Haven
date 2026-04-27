@@ -1,0 +1,22 @@
+v5.24.57: deep jump-host chains in the list + padlock toolbar key (#116, #115)
+
+Two threads landed together:
+
+#116 (schaene) — multi-level jump-host chains lost the deepest
+profile from the connections list. Tree A → B → C, where C uses B
+as its jump host and B uses A: only A and B rendered, C was
+filtered out as a child but never reached by the rendering loop
+(only walked one level deep). Replaced the inline single-level
+loop with an iterative DFS over `dependentsByParent`, with a
+visited-set cycle guard. Chains of any depth render with the
+correct indentation now. The drag-modifier follows the topmost
+ancestor's drag state so the whole subtree moves together.
+
+#115 follow-up (Voice key rebrand) — the toolbar's "Voice" toggle
+was misleadingly labelled. Voice input is just one of the things
+the toggle unlocks; it really swaps between Secure-mode and
+Standard-mode (which enables suggestions, autocorrect, swipe,
+voice, and learning together). Replaced the "Voice" text label
+with a padlock icon — closed when Secure (default), open when
+Standard mode is active. The contentDescription spells out what's
+on/off for accessibility.

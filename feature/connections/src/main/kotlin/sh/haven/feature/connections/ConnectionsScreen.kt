@@ -1190,21 +1190,35 @@ fun ConnectionsScreen(
                                     },
                                 )
                             }
-                            // Dependent children (jump hosts)
-                            val deps = dependentsByParent[profile.id].orEmpty()
-                            deps.forEachIndexed { index, dep ->
+                            // Dependent children (jump hosts), recursive so chains
+                            // deeper than one level (A → B → C) all render. Iterative
+                            // DFS via a stack so we can stay inside LazyListScope
+                            // without needing to invent a self-recursive lambda.
+                            // Cycle guard: visited set prevents an infinite loop if
+                            // someone manages to create a jumpProfileId cycle. (#116)
+                            val ancestorDragged = draggedId == profile.id
+                            val visited = mutableSetOf<String>(profile.id)
+                            // Triple: (profile, indent, isLastSibling-at-this-level)
+                            val stack = ArrayDeque<Triple<ConnectionProfile, Int, Boolean>>()
+                            val topKids = dependentsByParent[profile.id].orEmpty()
+                            // Push in reverse so the popped order matches sibling order.
+                            for (i in topKids.indices.reversed()) {
+                                stack.addFirst(Triple(topKids[i], 1, i == topKids.lastIndex))
+                            }
+                            while (stack.isNotEmpty()) {
+                                val (dep, depIndent, isLastAtLevel) = stack.removeFirst()
+                                if (!visited.add(dep.id)) continue
                                 item(key = dep.id) {
-                                    val parentDragged = draggedId == profile.id
                                     ConnectionTreeItem(
                                         profile = dep,
-                                        indent = 1,
-                                        isLastChild = index == deps.lastIndex,
+                                        indent = depIndent,
+                                        isLastChild = isLastAtLevel,
                                         profileStatuses = profileStatuses,
                                         profileColors = profileColors,
                                         isConnecting = connectingProfileId == dep.id ||
                                             groupLaunchState?.connectingIds?.contains(dep.id) == true,
                                         hasKeys = sshKeys.isNotEmpty(),
-                                        hasDependents = false,
+                                        hasDependents = dep.id in dependentsByParent,
                                         jumpHostLabel = null,
                                         onTap = { onTapProfile(dep, profileStatuses[dep.id], sshKeys, viewModel, onNavigateToSmb, onNavigateToRclone) { connectingProfile = dep } },
                                         onRename = { newLabel -> viewModel.saveConnection(dep.copy(label = newLabel)) },
@@ -1216,7 +1230,7 @@ fun ConnectionsScreen(
                                         onConnectWithPassword = { connectingProfile = dep },
                                         onPortForwards = { portForwardProfile = dep },
                                         onNewSession = { viewModel.openNewSession(dep.id) },
-                                        dragModifier = if (parentDragged) Modifier
+                                        dragModifier = if (ancestorDragged) Modifier
                                             .zIndex(1f)
                                             .offset(
                                                 y = with(LocalDensity.current) {
@@ -1224,6 +1238,11 @@ fun ConnectionsScreen(
                                                 },
                                             ) else Modifier,
                                     )
+                                }
+                                // Push this dep's children at the next indent level.
+                                val grandKids = dependentsByParent[dep.id].orEmpty()
+                                for (i in grandKids.indices.reversed()) {
+                                    stack.addFirst(Triple(grandKids[i], depIndent + 1, i == grandKids.lastIndex))
                                 }
                             }
                         }

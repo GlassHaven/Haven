@@ -1,0 +1,22 @@
+v5.24.53: Local Shell profiles back in the connections list (#114)
+
+Reverses both the v5.24.39 list-filter that hid Local profiles and
+v5.24.52's removal of the "+" → Local Shell dropdown entry.
+Treating the topbar Terminal icon and a list entry as duplicates
+was over-eager — they're really shortcut-vs-source-of-truth, the
+same shape as RDP and the Desktops topbar icon. Other transports
+appear in the list alongside their topbar shortcuts; Local should
+too.
+
+Net effect:
+
+- Local profiles appear in the main connections list and can be
+  added / edited / deleted / re-tagged / grouped like every other
+  transport.
+- The topbar Terminal icon's one-tap find-or-create-and-connect
+  remains for the common case.
+- The "Use native Android shell" toggle, session manager picker,
+  custom labels and color tags are reachable again via the standard
+  edit dialog — no more dead-end.
+- Existing Local profiles in users' DBs become visible without any
+  migration.

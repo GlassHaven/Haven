@@ -970,11 +970,16 @@ fun ConnectionsScreen(
                     }
                     .groupBy({ it.first }, { it.second })
                 val renderedAsChild = dependentsByParent.values.flatten().map { it.id }.toSet()
-                // Hide LOCAL profiles from the main list — they're now
-                // launched via the topbar Terminal icon, which finds or
-                // creates one as needed. Showed up here as duplicates
-                // of the topbar entry.
-                val allTopLevel = connections.filter { it.id !in renderedAsChild && !it.isLocal }
+                // Local profiles show in the list like every other transport.
+                // The topbar Terminal icon is a quick-launch convenience for
+                // the common case (one tap, find-or-create, connect) but the
+                // list is the source of truth — adds, edits, multi-profile
+                // setups, and config tweaks (session manager, label, color
+                // tag, useAndroidShell) all happen here. Earlier filter
+                // (#114) treated topbar + list as duplicates, but they're
+                // really shortcut-vs-canonical, like RDP and the Desktops
+                // topbar icon.
+                val allTopLevel = connections.filter { it.id !in renderedAsChild }
 
                 // Filter by search text (match label, host, username)
                 val isFiltering = filterText.isNotBlank()

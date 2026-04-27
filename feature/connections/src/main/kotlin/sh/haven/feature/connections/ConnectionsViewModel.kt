@@ -1885,10 +1885,18 @@ class ConnectionsViewModel @Inject constructor(
                 return
             }
             val profileId = sel.profileId
+            // "Create new session" → null sessionName. Generate a unique name
+            // here (matching the SSH path below) so each new-session click
+            // really creates a new session instead of attaching multiple
+            // participants to a session named after the connection. (#113)
+            val effectiveName = sessionName ?: generateUniqueSessionName(
+                moshSessionManager.sessions.value[sessionId]?.label ?: sessionId.take(8),
+                sel.sessionNames,
+            )
             viewModelScope.launch {
                 _connectingProfileId.value = profileId
                 try {
-                    finishMoshConnect(sessionId, profileId, serverHost, client, sel.manager, sessionName, verboseLogger = pendingLogger)
+                    finishMoshConnect(sessionId, profileId, serverHost, client, sel.manager, effectiveName, verboseLogger = pendingLogger)
                 } catch (e: Exception) {
                     client.disconnect()
                     moshSessionManager.updateStatus(sessionId, MoshSessionManager.SessionState.Status.ERROR)
@@ -1915,10 +1923,18 @@ class ConnectionsViewModel @Inject constructor(
                 return
             }
             val profileId = sel.profileId
+            // Same fix as Mosh above: generate a unique session name when the
+            // user picks "Create new session" so each click really creates a
+            // new session rather than re-attaching to one named after the
+            // connection. (#113)
+            val effectiveName = sessionName ?: generateUniqueSessionName(
+                etSessionManager.sessions.value[sessionId]?.label ?: sessionId.take(8),
+                sel.sessionNames,
+            )
             viewModelScope.launch {
                 _connectingProfileId.value = profileId
                 try {
-                    finishEtConnect(sessionId, profile, client, sel.manager, sessionName, verboseLogger = pendingLogger)
+                    finishEtConnect(sessionId, profile, client, sel.manager, effectiveName, verboseLogger = pendingLogger)
                 } catch (e: Exception) {
                     client.disconnect()
                     etSessionManager.updateStatus(sessionId, EtSessionManager.SessionState.Status.ERROR)

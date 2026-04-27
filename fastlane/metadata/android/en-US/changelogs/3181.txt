@@ -1,0 +1,29 @@
+v5.24.54: ET/Mosh "Create new session" really creates new (#113)
+
+SeriousM (#113) reported that under Eternal Terminal + Zellij the
+session picker's "Create new session" option always names the new
+session after the connection (e.g. "devbox"), so a second click
+attaches multiple participants to the same Zellij session instead
+of creating a new one.
+
+Cause: ConnectionsViewModel.onSessionSelected was passing the raw
+sessionName (null when the user picked "Create new session")
+straight to finishEtConnect / finishMoshConnect, both of which
+fall back to the session's label (the connection name) — same
+fallback every time. The SSH path correctly used
+generateUniqueSessionName(label, remoteNames) to disambiguate;
+ET and Mosh just hadn't been wired the same way.
+
+Fixed: ET and Mosh branches now generate the unique name in
+onSessionSelected before calling the finish function, mirroring the
+SSH path. So the first "Create new session" click against an empty
+remote produces "devbox"; the second produces "devbox-2"; etc.
+
+Also clarified the long-press "new tab not supported" message for
+ET and Mosh. The previous text ("Use SSH transport for multi-tab")
+read as contradictory next to the picker's "Create new session"
+option, since they're talking about different things — the picker
+adds sessions inside the existing tunnel, the long-press would add
+another tunnel. New text spells out the within-tunnel option
+(Zellij's Ctrl-o then s, or tmux's prefix) and notes that switching
+to SSH is what unlocks multiple tabs per profile.

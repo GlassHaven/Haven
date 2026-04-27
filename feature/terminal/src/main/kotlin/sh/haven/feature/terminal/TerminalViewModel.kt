@@ -1238,12 +1238,28 @@ class TerminalViewModel @Inject constructor(
         }
 
         if (activeTab.transportType == "MOSH") {
-            _newTabMessage.value = "New tabs not supported for Mosh. Use SSH transport for multi-tab."
+            // Mosh tunnels each session via its own UDP exchange, so a "new
+            // tab" means a fresh Mosh connection — same shape as SSH multi-
+            // tab. We don't support that yet. Within the existing tab,
+            // Zellij/tmux session-switching keys still work to add named
+            // sessions to the same tunnel. (#113)
+            _newTabMessage.value = "Mosh supports one tab per connection. " +
+                "To open another session inside this tab, use Zellij " +
+                "(Ctrl-o then s) or tmux's prefix. For multiple tabs, " +
+                "switch the profile to SSH transport."
             return
         }
 
         if (activeTab.transportType == "ET") {
-            _newTabMessage.value = "New tabs not supported for ET. Use SSH transport for multi-tab."
+            // Same shape as Mosh — ET tunnels each session via its own SSH
+            // bootstrap, so a new tab means a new connection. The picker
+            // dialog's "Create new session" option is for sessions inside
+            // the existing tunnel, not for new tabs — clarify the
+            // distinction. (#113)
+            _newTabMessage.value = "Eternal Terminal supports one tab per " +
+                "connection. To open another session inside this tab, use " +
+                "Zellij (Ctrl-o then s) or tmux's prefix. For multiple " +
+                "tabs, switch the profile to SSH transport."
             return
         }
 

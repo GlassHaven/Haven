@@ -1,0 +1,25 @@
+v5.24.56: stop Gboard rewriting commands in Secure mode (#115)
+
+agevlakh (#115) reported that Gboard's autocorrect rewrites typed
+commands in the terminal even though Secure mode is supposed to be
+the locked-down typing mode.
+
+Cause: v5.24.40 (#110) added TYPE_TEXT_FLAG_AUTO_CORRECT to Secure-
+mode input flags so Samsung Keyboard's InputMethodManager_LC gate
+would recognise the field as a real text editor and dispatch input.
+Gboard, however, honours AUTO_CORRECT literally — the suggestion
+strip stays hidden via NO_SUGGESTIONS, but the silent autocorrect-
+on-space still fires and rewrites whatever you typed.
+
+Fix: detect the active IME via Settings.Secure.DEFAULT_INPUT_METHOD
+and only set AUTO_CORRECT for IMEs in the Samsung family
+(com.samsung.android.honeyboard, com.samsung.android.icecone,
+com.sec.android.inputmethod). Gboard / FUTO / Heliboard / Unexpected
+Keyboard / etc. now get NO_SUGGESTIONS only — no autocorrect
+rewriting, full typing through to the terminal.
+
+Risk: other IMEs may have the same Samsung-style "must see
+AUTO_CORRECT or I won't dispatch" gate that we don't know about
+yet. They'd start silently dropping commitText calls. The existing
+ImeInputView log tag will reveal them quickly; add to the
+AUTO_CORRECT_GATED_IME_PACKAGES set when reported.

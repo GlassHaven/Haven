@@ -46,7 +46,6 @@
     <string name="terminal_sessions_title">جلسات %s</string>
     <string name="terminal_rename_session">إعادة تسمية الجلسة</string>
     <string name="terminal_kill_session">إنهاء الجلسة</string>
-    <string name="terminal_new_session">جلسة جديدة</string>
 
     <!-- VncSettingsDialog -->
     <string name="terminal_vnc_desktop">سطح مكتب VNC</string>

@@ -46,7 +46,6 @@
     <string name="terminal_sessions_title">Sessões de %s</string>
     <string name="terminal_rename_session">Renomear sessão</string>
     <string name="terminal_kill_session">Encerrar sessão</string>
-    <string name="terminal_new_session">Nova sessão</string>
 
     <!-- VncSettingsDialog -->
     <string name="terminal_vnc_desktop">Desktop VNC</string>

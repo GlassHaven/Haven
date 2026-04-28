@@ -46,7 +46,6 @@
     <string name="terminal_sessions_title">%s 会话</string>
     <string name="terminal_rename_session">重命名会话</string>
     <string name="terminal_kill_session">终止会话</string>
-    <string name="terminal_new_session">新建会话</string>
 
     <!-- VncSettingsDialog -->
     <string name="terminal_vnc_desktop">VNC 桌面</string>

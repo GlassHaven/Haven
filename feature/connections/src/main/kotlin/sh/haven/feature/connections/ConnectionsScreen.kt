@@ -32,6 +32,7 @@ import androidx.compose.foundation.text.KeyboardActions
 import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.ArrowBack
+import androidx.compose.material.icons.automirrored.filled.ArrowForward
 import androidx.compose.material.icons.filled.Add
 import androidx.compose.material.icons.filled.Cable
 import androidx.compose.material.icons.filled.Circle
@@ -1740,7 +1741,6 @@ internal fun NewSessionInlineRow(
         OutlinedTextField(
             value = fieldValue,
             onValueChange = { fieldValue = it },
-            label = { Text(stringResource(R.string.connections_new_session)) },
             singleLine = true,
             modifier = Modifier
                 .weight(1f)
@@ -1767,11 +1767,14 @@ internal fun NewSessionInlineRow(
                 },
             ),
         )
-        Button(
+        IconButton(
             onClick = { onCreate(fieldValue.text) },
             enabled = fieldValue.text.isNotBlank(),
         ) {
-            Text(stringResource(R.string.connections_new_session_create))
+            Icon(
+                Icons.AutoMirrored.Filled.ArrowForward,
+                contentDescription = stringResource(R.string.connections_new_session_create),
+            )
         }
     }
 }

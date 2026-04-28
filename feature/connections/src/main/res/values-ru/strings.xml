@@ -90,7 +90,6 @@
     <string name="connections_restore_previous_sessions">Восстановить %1$d предыдущих сессий</string>
     <string name="connections_rename_session">Переименовать сессию</string>
     <string name="connections_kill_session">Завершить сессию</string>
-    <string name="connections_new_session">Новая сессия</string>
 
     <!-- Rename dialog -->
     <string name="connections_rename_title">Переименовать подключение</string>

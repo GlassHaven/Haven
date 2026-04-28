@@ -90,7 +90,6 @@
     <string name="connections_restore_previous_sessions">%1$d पिछले सत्र पुनर्स्थापित करें</string>
     <string name="connections_rename_session">सत्र का नाम बदलें</string>
     <string name="connections_kill_session">सत्र समाप्त करें</string>
-    <string name="connections_new_session">नया सत्र</string>
 
     <!-- Rename dialog -->
     <string name="connections_rename_title">कनेक्शन का नाम बदलें</string>

@@ -46,7 +46,6 @@
     <string name="terminal_sessions_title">%s সেশন</string>
     <string name="terminal_rename_session">সেশনের নাম পরিবর্তন</string>
     <string name="terminal_kill_session">সেশন বন্ধ</string>
-    <string name="terminal_new_session">নতুন সেশন</string>
 
     <!-- VncSettingsDialog -->
     <string name="terminal_vnc_desktop">VNC ডেস্কটপ</string>

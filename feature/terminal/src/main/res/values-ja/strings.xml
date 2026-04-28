@@ -46,7 +46,6 @@
     <string name="terminal_sessions_title">%s セッション</string>
     <string name="terminal_rename_session">セッション名を変更</string>
     <string name="terminal_kill_session">セッションを終了</string>
-    <string name="terminal_new_session">新しいセッション</string>
 
     <!-- VncSettingsDialog -->
     <string name="terminal_vnc_desktop">VNCデスクトップ</string>

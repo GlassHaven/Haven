@@ -90,7 +90,6 @@
     <string name="connections_restore_previous_sessions">恢复 %1$d 个之前的会话</string>
     <string name="connections_rename_session">重命名会话</string>
     <string name="connections_kill_session">终止会话</string>
-    <string name="connections_new_session">新建会话</string>
 
     <!-- Rename dialog -->
     <string name="connections_rename_title">重命名连接</string>

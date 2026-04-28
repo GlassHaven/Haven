@@ -90,7 +90,6 @@
     <string name="connections_restore_previous_sessions">استعادة %1$d جلسات سابقة</string>
     <string name="connections_rename_session">إعادة تسمية الجلسة</string>
     <string name="connections_kill_session">إنهاء الجلسة</string>
-    <string name="connections_new_session">جلسة جديدة</string>
 
     <!-- Rename dialog -->
     <string name="connections_rename_title">إعادة تسمية الاتصال</string>

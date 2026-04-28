@@ -90,7 +90,6 @@
     <string name="connections_restore_previous_sessions">%1$d件の以前のセッションを復元</string>
     <string name="connections_rename_session">セッション名を変更</string>
     <string name="connections_kill_session">セッションを終了</string>
-    <string name="connections_new_session">新しいセッション</string>
 
     <!-- Rename dialog -->
     <string name="connections_rename_title">接続名を変更</string>

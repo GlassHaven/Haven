@@ -46,7 +46,6 @@
     <string name="terminal_sessions_title">%s सत्र</string>
     <string name="terminal_rename_session">सत्र का नाम बदलें</string>
     <string name="terminal_kill_session">सत्र समाप्त करें</string>
-    <string name="terminal_new_session">नया सत्र</string>
 
     <!-- VncSettingsDialog -->
     <string name="terminal_vnc_desktop">VNC डेस्कटॉप</string>

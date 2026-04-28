@@ -90,7 +90,6 @@
     <string name="connections_restore_previous_sessions">%1$d vorherige Sitzungen wiederherstellen</string>
     <string name="connections_rename_session">Sitzung umbenennen</string>
     <string name="connections_kill_session">Sitzung beenden</string>
-    <string name="connections_new_session">Neue Sitzung</string>
 
     <!-- Rename dialog -->
     <string name="connections_rename_title">Verbindung umbenennen</string>

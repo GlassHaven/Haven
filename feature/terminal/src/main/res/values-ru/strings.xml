@@ -46,7 +46,6 @@
     <string name="terminal_sessions_title">Сессии %s</string>
     <string name="terminal_rename_session">Переименовать сессию</string>
     <string name="terminal_kill_session">Завершить сессию</string>
-    <string name="terminal_new_session">Новая сессия</string>
 
     <!-- VncSettingsDialog -->
     <string name="terminal_vnc_desktop">Рабочий стол VNC</string>

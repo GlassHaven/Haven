@@ -907,7 +907,6 @@ private fun NewSessionInlineRow(
         OutlinedTextField(
             value = fieldValue,
             onValueChange = { fieldValue = it },
-            label = { Text(stringResource(R.string.terminal_new_session)) },
             singleLine = true,
             modifier = Modifier
                 .weight(1f)
@@ -930,11 +929,14 @@ private fun NewSessionInlineRow(
                 },
             ),
         )
-        androidx.compose.material3.Button(
+        IconButton(
             onClick = { onCreate(fieldValue.text) },
             enabled = fieldValue.text.isNotBlank(),
         ) {
-            Text(stringResource(R.string.terminal_new_session_create))
+            Icon(
+                Icons.AutoMirrored.Filled.ArrowForward,
+                contentDescription = stringResource(R.string.terminal_new_session_create),
+            )
         }
     }
 }

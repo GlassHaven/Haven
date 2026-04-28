@@ -90,7 +90,6 @@
     <string name="connections_restore_previous_sessions">%1$d পূর্ববর্তী সেশন পুনরুদ্ধার</string>
     <string name="connections_rename_session">সেশনের নাম পরিবর্তন</string>
     <string name="connections_kill_session">সেশন বন্ধ</string>
-    <string name="connections_new_session">নতুন সেশন</string>
 
     <!-- Rename dialog -->
     <string name="connections_rename_title">সংযোগের নাম পরিবর্তন</string>

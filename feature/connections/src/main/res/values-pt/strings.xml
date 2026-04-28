@@ -90,7 +90,6 @@
     <string name="connections_restore_previous_sessions">Restaurar %1$d sessões anteriores</string>
     <string name="connections_rename_session">Renomear sessão</string>
     <string name="connections_kill_session">Encerrar sessão</string>
-    <string name="connections_new_session">Nova sessão</string>
 
     <!-- Rename dialog -->
     <string name="connections_rename_title">Renomear conexão</string>

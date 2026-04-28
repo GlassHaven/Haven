@@ -1,0 +1,20 @@
+v5.24.59: roomier "new session" inline row in the picker
+
+The "+ New session [text field] [Create]" row that v5.24.55 added to
+the session picker felt cramped: the leading "+" icon already conveys
+"new session", so the OutlinedTextField's "New session" label was
+redundant and stole the field's first line of vertical space, and the
+text "Create" button on the right ate horizontal room the suggested-
+name field needed.
+
+Dropped the OutlinedTextField label (the leading "+" icon is the
+affordance) and replaced the "Create" button with a forward-arrow
+IconButton (Icons.AutoMirrored.Filled.ArrowForward, RTL-aware). The
+field now gets the full row width minus an icon-button on each side,
+which is what most users will care about — typing room for the
+suggested name.
+
+Stale string resources `terminal_new_session` and
+`connections_new_session` removed across all 11 locales; the Create
+text on the button became contentDescription on the IconButton, so
+the existing `*_new_session_create` strings still pull their weight.

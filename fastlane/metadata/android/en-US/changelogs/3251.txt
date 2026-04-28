@@ -1,0 +1,13 @@
+v5.24.61: shorter "Rename" label in the tab menu
+
+The tab long-press "Rename session" item from v5.24.60 was wordier
+than it needed to be — the menu's already attached to a specific tab
+so "session" is implied. Switched the DropdownMenuItem text to the
+existing common "Rename" string (already translated across all 11
+locales as `common_rename`).
+
+The icon-button rename in the picker dialog still uses the longer
+`terminal_rename_session` for its content description — the picker
+lists multiple sessions where "session" is the disambiguator, and
+content descriptions are read aloud by screen readers and benefit
+from the explicit context.

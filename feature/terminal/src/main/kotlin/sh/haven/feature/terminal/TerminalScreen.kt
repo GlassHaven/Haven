@@ -427,7 +427,7 @@ fun TerminalScreen(
                                     if (renameableName != null) {
                                         HorizontalDivider(modifier = Modifier.padding(vertical = 4.dp))
                                         DropdownMenuItem(
-                                            text = { Text(stringResource(R.string.terminal_rename_session)) },
+                                            text = { Text(stringResource(R.string.common_rename)) },
                                             leadingIcon = {
                                                 Icon(
                                                     Icons.Filled.DriveFileRenameOutline,

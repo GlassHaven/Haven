@@ -2032,7 +2032,8 @@ class ConnectionsViewModel @Inject constructor(
                 val renameResult = withContext(Dispatchers.IO) {
                     client.execCommand(renameCmd)
                 }
-                if (renameResult.exitStatus != 0) {
+                val renameSucceeded = renameResult.exitStatus == 0
+                if (!renameSucceeded) {
                     Log.w(TAG, "renameRemoteSession failed: exit=${renameResult.exitStatus} stderr='${renameResult.stderr}'")
 
                     _error.value = renameResult.stderr.ifBlank { "Rename failed (exit ${renameResult.exitStatus})" }
@@ -2051,12 +2052,50 @@ class ConnectionsViewModel @Inject constructor(
                         emptyList()
                     }
                 }
-                _sessionSelection.value = sel.copy(sessionNames = updated)
+                if (renameSucceeded) {
+                    propagateSessionRename(sel.profileId, oldName, newName)
+                }
+                val newPrev = renameInList(sel.previousSessionNames, oldName, newName)
+                _sessionSelection.value = sel.copy(
+                    sessionNames = updated,
+                    previousSessionNames = newPrev,
+                )
             } catch (e: Exception) {
                 _error.value = "Failed to rename session: ${e.message}"
             }
         }
     }
+
+    /**
+     * After a successful remote rename, update the cached session name everywhere
+     * Haven still references the old name: the profile's stored `lastSessionName`
+     * (used for restore-on-reconnect), and any live SSH session record on this
+     * profile whose `chosenSessionName` matches. Tab labels follow via syncSessions.
+     */
+    private suspend fun propagateSessionRename(profileId: String, oldName: String, newName: String) {
+        val oldSan = sanitizeSessionName(oldName)
+        val newSan = sanitizeSessionName(newName)
+        if (oldSan == newSan) return
+        val profile = repository.getById(profileId) ?: return
+        profile.lastSessionName?.takeIf { it.isNotBlank() }?.let { current ->
+            val parts = current.split("|")
+            if (oldSan in parts) {
+                val updated = parts.map { if (it == oldSan) newSan else it }.joinToString("|")
+                if (updated != current) repository.save(profile.copy(lastSessionName = updated))
+            }
+        }
+        sshSessionManager.sessions.value.values
+            .filter { it.profileId == profileId && sanitizeSessionName(it.chosenSessionName ?: "") == oldSan }
+            .forEach { sshSessionManager.setChosenSessionName(it.sessionId, newName) }
+    }
+
+    private fun renameInList(names: List<String>, oldName: String, newName: String): List<String> {
+        val oldSan = sanitizeSessionName(oldName)
+        return names.map { if (sanitizeSessionName(it) == oldSan) newName else it }
+    }
+
+    private fun sanitizeSessionName(name: String): String =
+        name.replace(Regex("[^A-Za-z0-9._-]"), "-")
 
     /**
      * Generate a session name that doesn't conflict with existing remote sessions.

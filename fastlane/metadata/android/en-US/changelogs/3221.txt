@@ -1,0 +1,34 @@
+v5.24.58: rename-session also updates the cached name
+
+When you renamed a remote tmux/zellij/screen session via the picker
+dialog, the rename succeeded on the remote but Haven kept referring to
+the old name in two places:
+
+  1. The profile's stored `lastSessionName` (the pipe-delimited list
+     used to recognise "previously open sessions" on next reconnect
+     and to drive the Restore button) — still listed the old name, so
+     after the rename the picker stopped showing the renamed session
+     under "previously open" and Restore wouldn't bring it back.
+
+  2. Any live SSH session record on the same profile whose
+     chosenSessionName matched the old name — the tab label kept
+     reading the old name even though the underlying tmux session was
+     now the new name.
+
+After a successful rename we now substitute the new name in both
+places. Tab labels follow via syncSessions: SSH tabs whose label has
+fallen out of sync with the underlying chosenSessionName get refreshed
+on the next session-state emission.
+
+Sanitisation is applied symmetrically (same regex as the lastSessionName
+write path) so a comparison like "my session" → "my-session" matches the
+already-stored sanitised form.
+
+The current picker's `previousSessionNames` list is updated in-place too,
+so the Restore section stops showing the old name immediately without
+waiting for a reload.
+
+MOSH/ET tabs derive their label from `profile.lastSessionName` rather
+than a per-session `chosenSessionName`; the DB write covers them on
+next tab creation but live MOSH/ET tab labels still need a reconnect
+to pick up the rename. Out of scope for this fix.

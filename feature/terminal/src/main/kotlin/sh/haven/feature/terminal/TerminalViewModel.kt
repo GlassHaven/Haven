@@ -1086,6 +1086,18 @@ class TerminalViewModel @Inject constructor(
             trackedSessionIds.add(session.sessionId)
         }
 
+        // Refresh SSH tab labels when the underlying session's chosenSessionName changes
+        // (e.g. after a remote rename). Only updates label-shaped tabs; leaves bespoke
+        // labels alone.
+        for (i in currentTabs.indices) {
+            val tab = currentTabs[i]
+            if (tab.transportType != "SSH") continue
+            val name = sshSessions[tab.sessionId]?.chosenSessionName
+            if (!name.isNullOrBlank() && tab.label != name) {
+                currentTabs[i] = tab.copy(label = name)
+            }
+        }
+
         _tabs.value = currentTabs
 
         // Clamp active index
@@ -1553,7 +1565,8 @@ class TerminalViewModel @Inject constructor(
                 val renameResult = withContext(Dispatchers.IO) {
                     session.client.execCommand(renameCmd)
                 }
-                val renameError = if (renameResult.exitStatus != 0) {
+                val renameSucceeded = renameResult.exitStatus == 0
+                val renameError = if (!renameSucceeded) {
                     Log.w(TAG, "renameRemoteSession failed: exit=${renameResult.exitStatus} stderr='${renameResult.stderr}'")
 
                     renameResult.stderr.ifBlank { "Rename failed (exit ${renameResult.exitStatus})" }
@@ -1571,6 +1584,9 @@ class TerminalViewModel @Inject constructor(
                         emptyList()
                     }
                 }
+                if (renameSucceeded) {
+                    propagateSessionRename(sel.profileId, oldName, newName)
+                }
                 if (updated.isNotEmpty()) {
                     _newTabSessionPicker.value = sel.copy(sessionNames = updated, error = renameError)
                 } else {
@@ -1581,6 +1597,32 @@ class TerminalViewModel @Inject constructor(
             }
         }
     }
+
+    /**
+     * After a successful remote rename, update the cached session name everywhere
+     * Haven still references the old name: the profile's stored `lastSessionName`
+     * (used for restore-on-reconnect), and any live SSH session record on this
+     * profile whose `chosenSessionName` matches. Tab labels follow via syncSessions.
+     */
+    private suspend fun propagateSessionRename(profileId: String, oldName: String, newName: String) {
+        val oldSan = sanitizeSessionName(oldName)
+        val newSan = sanitizeSessionName(newName)
+        if (oldSan == newSan) return
+        val profile = connectionRepository.getById(profileId) ?: return
+        profile.lastSessionName?.takeIf { it.isNotBlank() }?.let { current ->
+            val parts = current.split("|")
+            if (oldSan in parts) {
+                val updated = parts.map { if (it == oldSan) newSan else it }.joinToString("|")
+                if (updated != current) connectionRepository.save(profile.copy(lastSessionName = updated))
+            }
+        }
+        sessionManager.sessions.value.values
+            .filter { it.profileId == profileId && sanitizeSessionName(it.chosenSessionName ?: "") == oldSan }
+            .forEach { sessionManager.setChosenSessionName(it.sessionId, newName) }
+    }
+
+    private fun sanitizeSessionName(name: String): String =
+        name.replace(Regex("[^A-Za-z0-9._-]"), "-")
 
     fun dismissNewTabSessionPicker() {
         val sel = _newTabSessionPicker.value ?: return

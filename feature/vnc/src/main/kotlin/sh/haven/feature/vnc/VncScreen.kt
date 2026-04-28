@@ -1446,6 +1446,19 @@ private const val XK_INSERT = 0xff63
 private const val XK_SHIFT_L = 0xffe1
 private const val XK_CONTROL_L = 0xffe3
 private const val XK_ALT_L = 0xffe9
+private const val XK_SUPER_L = 0xffeb
+private const val XK_F1 = 0xffbe
+private const val XK_F2 = 0xffbf
+private const val XK_F3 = 0xffc0
+private const val XK_F4 = 0xffc1
+private const val XK_F5 = 0xffc2
+private const val XK_F6 = 0xffc3
+private const val XK_F7 = 0xffc4
+private const val XK_F8 = 0xffc5
+private const val XK_F9 = 0xffc6
+private const val XK_F10 = 0xffc7
+private const val XK_F11 = 0xffc8
+private const val XK_F12 = 0xffc9
 
 /** Convert a printable character to its X11 KeySym. */
 fun charToKeySym(ch: Char): Int = when (ch) {
@@ -1474,5 +1487,19 @@ private fun androidKeyToKeySym(key: Key): Int? = when (key) {
     Key.ShiftLeft, Key.ShiftRight -> XK_SHIFT_L
     Key.CtrlLeft, Key.CtrlRight -> XK_CONTROL_L
     Key.AltLeft, Key.AltRight -> XK_ALT_L
+    Key.MetaLeft, Key.MetaRight -> XK_SUPER_L
+    Key.F1 -> XK_F1
+    Key.F2 -> XK_F2
+    Key.F3 -> XK_F3
+    Key.F4 -> XK_F4
+    Key.F5 -> XK_F5
+    Key.F6 -> XK_F6
+    Key.F7 -> XK_F7
+    Key.F8 -> XK_F8
+    Key.F9 -> XK_F9
+    Key.F10 -> XK_F10
+    Key.F11 -> XK_F11
+    Key.F12 -> XK_F12
     else -> null
 }
+

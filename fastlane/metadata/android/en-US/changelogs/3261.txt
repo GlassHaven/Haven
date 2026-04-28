@@ -1,0 +1,23 @@
+v5.24.62: F1..F12 + Win key forward to VNC/RDP after the focus dance
+
+Fills two long-standing gaps in the BasicTextField onPreviewKeyEvent
+path that VNC and RDP use for hardware-keyboard input (active after
+tapping the canvas + dismissing the soft keyboard so the picker icon
+shows its captured-state downward arrow):
+
+  - Function keys F1..F12 now map. VNC sends X11 KeySyms 0xffbe..0xffc9
+    (XK_F1..XK_F12); RDP sends AT-set-1 scancodes 0x3B..0x44 + 0x57/0x58.
+    Previously androidKeyToKeySym / androidKeyToScancode returned null
+    for these and the keys silently dropped.
+
+  - Windows / Meta key now maps. VNC sends X11 Super_L (XK_SUPER_L =
+    0xffeb); RDP sends SC_WIN_L (0x5B, already defined). Same
+    null-drop bug as F-keys before.
+
+Wider goal — forwarding Alt+Tab / Alt+F4 / Win+letter combos that
+Android's window manager intercepts above the view hierarchy — is
+out of scope here. Two attempts at an Activity-level dispatchKeyEvent
+interceptor (mirroring the pattern TerminalScreen uses successfully)
+broke the BasicTextField hardware-key path on test devices for
+reasons not yet pinned down. The salvaged F-key + Win-key mappings
+are the working subset that doesn't depend on that interceptor.

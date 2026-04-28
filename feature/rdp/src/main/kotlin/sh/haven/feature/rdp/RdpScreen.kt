@@ -1155,8 +1155,22 @@ private fun androidKeyToScancode(key: Key): Int? = when (key) {
     Key.ShiftLeft, Key.ShiftRight -> SC_SHIFT_L
     Key.CtrlLeft, Key.CtrlRight -> SC_CTRL_L
     Key.AltLeft, Key.AltRight -> SC_ALT_L
+    Key.MetaLeft, Key.MetaRight -> SC_WIN_L
+    Key.F1 -> SC_F1
+    Key.F2 -> SC_F2
+    Key.F3 -> SC_F3
+    Key.F4 -> SC_F4
+    Key.F5 -> SC_F5
+    Key.F6 -> SC_F6
+    Key.F7 -> SC_F7
+    Key.F8 -> SC_F8
+    Key.F9 -> SC_F9
+    Key.F10 -> SC_F10
+    Key.F11 -> SC_F11
+    Key.F12 -> SC_F12
     else -> null
 }
+
 
 // Windows scancodes (Set 1 / AT keyboard)
 private const val SC_ESCAPE = 0x01
@@ -1178,6 +1192,17 @@ private const val SC_LEFT = 0x4B
 private const val SC_RIGHT = 0x4D
 private const val SC_WIN_L = 0x5B
 private const val SC_F1 = 0x3B
+private const val SC_F2 = 0x3C
+private const val SC_F3 = 0x3D
+private const val SC_F4 = 0x3E
+private const val SC_F5 = 0x3F
+private const val SC_F6 = 0x40
+private const val SC_F7 = 0x41
+private const val SC_F8 = 0x42
+private const val SC_F9 = 0x43
+private const val SC_F10 = 0x44
+private const val SC_F11 = 0x57
+private const val SC_F12 = 0x58
 
 /** A friendly diagnosis layered on top of an opaque server error string. */
 internal data class RdpErrorHint(

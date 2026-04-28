@@ -285,7 +285,19 @@ fun TerminalScreen(
                             val reconnecting by tab.isReconnecting.collectAsState()
                             val selected = activeTabIndex == index
                             var showTabMenu by remember { mutableStateOf(false) }
+                            var renameDialogFor by remember { mutableStateOf<String?>(null) }
                             val tabColor = profileColors[tab.profileId]
+
+                            renameDialogFor?.let { name ->
+                                RenameSessionDialog(
+                                    currentLabel = name,
+                                    onDismiss = { renameDialogFor = null },
+                                    onRename = { newName ->
+                                        viewModel.renameAttachedSession(tab.sessionId, newName)
+                                        renameDialogFor = null
+                                    },
+                                )
+                            }
 
                             Box {
                                 Surface(
@@ -406,6 +418,28 @@ fun TerminalScreen(
                                             Spacer(Modifier.width(4.dp))
                                             Icon(Icons.Filled.Close, null, modifier = Modifier.size(18.dp))
                                         }
+                                    }
+                                    // Rename action for the current tab — only when the underlying SSH
+                                    // session is wrapped in a session manager (tmux/zellij/screen/byobu)
+                                    // that supports rename. Avoids forcing the user to open the picker
+                                    // via a duplicate connection just to rename an existing session.
+                                    val renameableName = viewModel.renameableSessionName(tab.sessionId)
+                                    if (renameableName != null) {
+                                        HorizontalDivider(modifier = Modifier.padding(vertical = 4.dp))
+                                        DropdownMenuItem(
+                                            text = { Text(stringResource(R.string.terminal_rename_session)) },
+                                            leadingIcon = {
+                                                Icon(
+                                                    Icons.Filled.DriveFileRenameOutline,
+                                                    null,
+                                                    modifier = Modifier.size(16.dp),
+                                                )
+                                            },
+                                            onClick = {
+                                                showTabMenu = false
+                                                renameDialogFor = renameableName
+                                            },
+                                        )
                                     }
                                     // Show connected sessions without tabs + remote sessions (tmux/zellij)
                                     val untabbed by viewModel.untabbedSessions.collectAsState()

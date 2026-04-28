@@ -1599,6 +1599,44 @@ class TerminalViewModel @Inject constructor(
     }
 
     /**
+     * Returns the current chosen session name if the tab's underlying SSH
+     * session is wrapped in a session manager (tmux/zellij/screen/byobu) that
+     * supports rename. Null if there's nothing to rename — used by the long-
+     * press menu to decide whether to surface the Rename action.
+     */
+    fun renameableSessionName(sessionId: String): String? {
+        val s = sessionManager.getSession(sessionId) ?: return null
+        val name = s.chosenSessionName?.takeIf { it.isNotBlank() } ?: return null
+        if (s.sessionManager.renameCommand == null) return null
+        return name
+    }
+
+    /**
+     * Rename the tmux/zellij/screen session backing a connected tab — no need
+     * to open a duplicate session via the picker. On success, propagates the
+     * new name to the profile's lastSessionName + chosenSessionName + tab label.
+     */
+    fun renameAttachedSession(sessionId: String, newName: String) {
+        val s = sessionManager.getSession(sessionId) ?: return
+        val oldName = s.chosenSessionName?.takeIf { it.isNotBlank() } ?: return
+        val cmd = s.sessionManager.renameCommand?.invoke(oldName, newName) ?: return
+        viewModelScope.launch {
+            try {
+                val result = withContext(Dispatchers.IO) { s.client.execCommand(cmd) }
+                if (result.exitStatus != 0) {
+                    Log.w(TAG, "renameAttachedSession failed: exit=${result.exitStatus} stderr='${result.stderr}'")
+                    _newTabMessage.value = result.stderr.ifBlank { "Rename failed (exit ${result.exitStatus})" }
+                    return@launch
+                }
+                propagateSessionRename(s.profileId, oldName, newName)
+            } catch (e: Exception) {
+                Log.e(TAG, "renameAttachedSession failed", e)
+                _newTabMessage.value = "Failed to rename session: ${e.message}"
+            }
+        }
+    }
+
+    /**
      * After a successful remote rename, update the cached session name everywhere
      * Haven still references the old name: the profile's stored `lastSessionName`
      * (used for restore-on-reconnect), and any live SSH session record on this

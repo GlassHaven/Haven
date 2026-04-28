@@ -1,0 +1,23 @@
+v5.24.60: rename a session straight from the tab long-press menu
+
+The only path to renaming an existing tmux/zellij/screen session was
+to open a duplicate connection and reach the picker dialog (or hit
+"+ New tab" on a connected session). For an already-attached tab —
+the case you're most likely to want to rename — that's busywork and
+spins up a redundant SSH session.
+
+Tab long-press menu now grows a "Rename session" item below the
+move/close row when the tab is backed by a session manager that
+supports rename (tmux, zellij, screen, byobu — i.e. anything where
+SessionManager.renameCommand is non-null and the tab has a
+chosenSessionName). Picking it opens the same RenameSessionDialog
+the picker uses, pre-filled with the current name.
+
+The rename then flows through the v5.24.58 propagation path:
+remote rename via the existing SSH client, then DB lastSessionName +
+in-memory chosenSessionName + tab label all updated. No new SSH
+session, no picker round-trip.
+
+For tabs without a session manager (NONE) or without a
+chosenSessionName (e.g. the tab fell back to the connection label),
+the menu item is hidden — there's nothing remote to rename.

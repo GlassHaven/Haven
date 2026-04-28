@@ -13,6 +13,7 @@ import androidx.compose.foundation.clickable
 import androidx.compose.foundation.gestures.detectDragGesturesAfterLongPress
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.FlowRow
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxSize
@@ -1857,7 +1858,11 @@ private fun ToolbarSimpleEditor(
             }
         },
         dismissButton = {
-            Row {
+            // FlowRow so longer translated labels (de: "Zurücksetzen / JSON bearbeiten /
+            // Abbrechen") wrap to a second line instead of crushing into vertical-letter
+            // strips and inflating the row height — which clipped the function-keys list
+            // above on (#118).
+            FlowRow(horizontalArrangement = Arrangement.End) {
                 TextButton(onClick = {
                     assignments = ToolbarKey.entries.associateWith { key ->
                         when (key) {

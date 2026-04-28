@@ -1,0 +1,27 @@
+v5.24.63: keyboard-toolbar config dialog truncated function-keys list in German (#118)
+
+@gitcodeerrors reported on #118 that switching the app language from
+English to German made the keyboard-toolbar configuration dialog
+appear to lose half its function-keys entries — only Keyboard / Esc /
+Tab / Paste / Snippets / Voice were visible, with Raw / Shift / Ctrl
+(and everything below) clipped.
+
+Cause: the dialog's `dismissButton` slot held a single `Row` with three
+`TextButton`s — Reset / Edit JSON / Cancel. In English those labels
+fit horizontally; in German "Zurücksetzen / JSON bearbeiten /
+Abbrechen" overflows the row's allocated width, and the last button's
+text wraps character-by-character vertically ("A b b r e c h e n" as a
+column of single letters). That balloons the dismissButton row's
+height enough that Material3's AlertDialog measurement squeezes the
+scrollable `text` slot above it, clipping the upper rows of the
+function-keys list before the user has a chance to scroll.
+
+Fix: swap the dismissButton's `Row` for a `FlowRow(horizontalArrangement
+= Arrangement.End)`, so the three buttons wrap onto a second line
+when the row width is insufficient, instead of crushing into vertical-
+letter strips. The buttons keep their original order; the only
+difference is they now wrap cleanly when translated labels exceed
+the available width.
+
+No string changes — the same English / German strings are used. Only
+the layout primitive that holds them changes.

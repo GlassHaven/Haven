@@ -52,7 +52,7 @@ impl DvcEncode for GfxClientMessage {}
 /// throttle at `max_unacknowledged_frame_count` (FreeRDP-style: queue_depth=0
 /// means "no backlog, please send the next frame").
 pub struct EgfxProcessor {
-    _state: Arc<RwLock<SessionState>>,
+    state: Arc<RwLock<SessionState>>,
     capabilities_received: bool,
     server_pdu_count: u64,
     /// MS-RDPEGFX wraps every DVC payload in an RDP_SEGMENTED_DATA PDU
@@ -72,7 +72,7 @@ pub struct EgfxProcessor {
 impl EgfxProcessor {
     pub fn new(state: Arc<RwLock<SessionState>>) -> Self {
         Self {
-            _state: state,
+            state,
             capabilities_received: false,
             server_pdu_count: 0,
             zgfx: Decompressor::new(),
@@ -192,6 +192,7 @@ impl EgfxProcessor {
                     "EGFX[{n}]: EndFrame frame_id={} total_decoded={}",
                     p.frame_id, self.total_frames_decoded
                 );
+                self.flush_dirty_to_framebuffer();
                 self.maybe_dump_surface(p.frame_id);
                 let ack = FrameAcknowledgePdu {
                     queue_depth: QueueDepth::Unavailable, // FreeRDP-equivalent of "send the next frame"
@@ -262,6 +263,137 @@ impl EgfxProcessor {
 }
 
 impl EgfxProcessor {
+    /// Drain dirty rects from `SurfaceManager`, project each through the
+    /// surface's `MapSurfaceToOutput` mapping, and copy the corresponding
+    /// pixels from the surface (RGBA8888) into `SessionState.framebuffer`
+    /// (BGRA in memory, i.e. Android `ARGB_8888` little-endian). Coalesces
+    /// all rects into a single bounding-box `on_frame_update` call so the
+    /// Kotlin/Compose side gets one repaint per frame instead of dozens.
+    fn flush_dirty_to_framebuffer(&mut self) {
+        let dirty = self.surfaces.take_dirty();
+        if dirty.is_empty() {
+            return;
+        }
+        // Project to host-output coords + collect (left, top, w, h) per
+        // rect for the copy step. We do the lookups up-front so the
+        // SessionState write lock is held only for the actual blit.
+        struct ProjectedRect {
+            surface_id: u16,
+            // surface-local bounds (clipped to surface)
+            sx: u32,
+            sy: u32,
+            w: u32,
+            h: u32,
+            // host-output bounds (after MapSurfaceToOutput translation)
+            ox: i32,
+            oy: i32,
+        }
+        let mut projected: Vec<ProjectedRect> = Vec::with_capacity(dirty.len());
+        for (sid, r) in &dirty {
+            let Some(surface) = self.surfaces.surface(*sid) else {
+                continue;
+            };
+            let (sx, sy, w, h) = clip_to_surface(r, surface.width, surface.height);
+            if w == 0 || h == 0 {
+                continue;
+            }
+            let mapping = self.surfaces.output_for(*sid);
+            let (ox, oy) = match mapping {
+                Some(m) => (
+                    m.output_origin_x + sx as i32,
+                    m.output_origin_y + sy as i32,
+                ),
+                None => (sx as i32, sy as i32),
+            };
+            projected.push(ProjectedRect {
+                surface_id: *sid,
+                sx,
+                sy,
+                w,
+                h,
+                ox,
+                oy,
+            });
+        }
+        if projected.is_empty() {
+            return;
+        }
+
+        // Bounding box across all rects (in output coords) for the callback.
+        let mut bb_l = i32::MAX;
+        let mut bb_t = i32::MAX;
+        let mut bb_r = i32::MIN;
+        let mut bb_b = i32::MIN;
+
+        let state = self.state.clone();
+        let frame_cb = {
+            let mut s = match state.write() {
+                Ok(s) => s,
+                Err(_) => return,
+            };
+            let Some(fb) = s.framebuffer.as_mut() else {
+                return;
+            };
+            let fb_w = fb.width as i32;
+            let fb_h = fb.height as i32;
+            for pr in &projected {
+                let Some(surface) = self.surfaces.surface(pr.surface_id) else {
+                    continue;
+                };
+                // Clip to framebuffer bounds.
+                let dst_l = pr.ox.max(0);
+                let dst_t = pr.oy.max(0);
+                let dst_r = (pr.ox + pr.w as i32).min(fb_w);
+                let dst_b = (pr.oy + pr.h as i32).min(fb_h);
+                if dst_r <= dst_l || dst_b <= dst_t {
+                    continue;
+                }
+                let copy_w = (dst_r - dst_l) as usize;
+                let copy_h = (dst_b - dst_t) as usize;
+                let src_x = (pr.sx as i32 + (dst_l - pr.ox)) as usize;
+                let src_y = (pr.sy as i32 + (dst_t - pr.oy)) as usize;
+                let src_stride = surface.width as usize * 4;
+                let dst_stride = fb.width as usize * 4;
+                for row in 0..copy_h {
+                    let s_off = (src_y + row) * src_stride + src_x * 4;
+                    let d_off = (dst_t as usize + row) * dst_stride + dst_l as usize * 4;
+                    // Surface is RGBA8888 (R,G,B,A bytes); framebuffer is
+                    // BGRA in memory (Android ARGB_8888 little-endian).
+                    // Swap R<->B per pixel during the copy.
+                    let src_row = &surface.pixels[s_off..s_off + copy_w * 4];
+                    let dst_row = &mut fb.pixels[d_off..d_off + copy_w * 4];
+                    for px in 0..copy_w {
+                        let i = px * 4;
+                        dst_row[i] = src_row[i + 2];     // B
+                        dst_row[i + 1] = src_row[i + 1]; // G
+                        dst_row[i + 2] = src_row[i];     // R
+                        dst_row[i + 3] = src_row[i + 3]; // A
+                    }
+                }
+                bb_l = bb_l.min(dst_l);
+                bb_t = bb_t.min(dst_t);
+                bb_r = bb_r.max(dst_r);
+                bb_b = bb_b.max(dst_b);
+            }
+            s.frame_callback.clone()
+        };
+        if bb_r <= bb_l || bb_b <= bb_t {
+            return;
+        }
+        debug!(
+            "EGFX flush: {} dirty rect(s) -> bbox ({bb_l},{bb_t})-({bb_r},{bb_b})",
+            dirty.len()
+        );
+        if let Some(cb) = frame_cb {
+            cb.on_frame_update(
+                bb_l as u16,
+                bb_t as u16,
+                (bb_r - bb_l) as u16,
+                (bb_b - bb_t) as u16,
+            );
+        }
+    }
+
     /// If `EGFX_DUMP_DIR` is set, write surface 0 as a PPM after each
     /// EndFrame. Useful for visual diff against a VNC reference shot from
     /// the host smoke driver — no extra image-crate dependency.
@@ -332,7 +464,7 @@ impl EgfxProcessor {
                     return;
                 };
                 surface.blit_rgba(u32::from(r.left), u32::from(r.top), w, h, &tile);
-                self.surfaces.dirty.push(r.clone());
+                self.surfaces.dirty.push((p.surface_id, r.clone()));
             }
             other => {
                 debug!(
@@ -341,6 +473,21 @@ impl EgfxProcessor {
                 );
             }
         }
+    }
+}
+
+/// Clip an EGFX rectangle (RDPGFX_RECT16, exclusive right/bottom) to a
+/// surface of the given size. Returns `(x, y, w, h)` in surface-local
+/// pixels. `(0, 0, 0, 0)` if the rect is fully outside.
+fn clip_to_surface(r: &ironrdp_pdu::geometry::InclusiveRectangle, sw: u32, sh: u32) -> (u32, u32, u32, u32) {
+    let l = u32::from(r.left).min(sw);
+    let t = u32::from(r.top).min(sh);
+    let right = u32::from(r.right).min(sw);
+    let bottom = u32::from(r.bottom).min(sh);
+    if right <= l || bottom <= t {
+        (0, 0, 0, 0)
+    } else {
+        (l, t, right - l, bottom - t)
     }
 }
 

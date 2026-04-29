@@ -117,9 +117,10 @@ pub struct SurfaceManager {
     /// Cached tiles keyed by `cache_slot`. Each entry is a packed RGBA8888
     /// rectangle, stored alongside its (w, h) so we know how to redraw it.
     cache: HashMap<u16, CachedTile>,
-    /// Union of dirty rectangles (in output coordinates) since the last
-    /// `take_dirty()`. Used to drive the framebuffer FrameCallback.
-    pub dirty: Vec<InclusiveRectangle>,
+    /// Dirty rectangles since the last `take_dirty()`, paired with the
+    /// surface they apply to. Coordinates are surface-local; the projection
+    /// step looks up `output_map` to translate to host framebuffer coords.
+    pub dirty: Vec<(u16, InclusiveRectangle)>,
 }
 
 #[derive(Debug, Clone)]
@@ -176,7 +177,7 @@ impl SurfaceManager {
         let rgba = color_to_rgba(&p.fill_pixel);
         for r in &p.rectangles {
             surface.fill_rect(r, rgba);
-            self.dirty.push(rect_translated(r, &self.output_map.get(&p.surface_id)));
+            self.dirty.push((p.surface_id, r.clone()));
         }
     }
 
@@ -203,12 +204,15 @@ impl SurfaceManager {
         };
         for point in &p.destination_points {
             dst.blit_rgba(u32::from(point.x), u32::from(point.y), w, h, &tile);
-            self.dirty.push(InclusiveRectangle {
-                left: point.x,
-                top: point.y,
-                right: point.x.saturating_add(w as u16),
-                bottom: point.y.saturating_add(h as u16),
-            });
+            self.dirty.push((
+                dst_id,
+                InclusiveRectangle {
+                    left: point.x,
+                    top: point.y,
+                    right: point.x.saturating_add(w as u16),
+                    bottom: point.y.saturating_add(h as u16),
+                },
+            ));
         }
     }
 
@@ -254,12 +258,15 @@ impl SurfaceManager {
         let pixels = tile.pixels.clone();
         for point in &p.destination_points {
             dst.blit_rgba(u32::from(point.x), u32::from(point.y), w, h, &pixels);
-            self.dirty.push(InclusiveRectangle {
-                left: point.x,
-                top: point.y,
-                right: point.x.saturating_add(w as u16),
-                bottom: point.y.saturating_add(h as u16),
-            });
+            self.dirty.push((
+                p.surface_id,
+                InclusiveRectangle {
+                    left: point.x,
+                    top: point.y,
+                    right: point.x.saturating_add(w as u16),
+                    bottom: point.y.saturating_add(h as u16),
+                },
+            ));
         }
     }
 
@@ -267,10 +274,10 @@ impl SurfaceManager {
         self.cache.remove(&p.cache_slot);
     }
 
-    /// Take the dirty-rect accumulator. Caller is expected to project these
-    /// through `output_map` and notify the host framebuffer (Phase 3c).
-    #[allow(dead_code)]
-    pub fn take_dirty(&mut self) -> Vec<InclusiveRectangle> {
+    /// Take the dirty-rect accumulator. Each entry is `(surface_id, rect)`
+    /// in surface-local coords; the caller (egfx::framebuffer) projects
+    /// through `output_map` to drive the host FrameCallback.
+    pub fn take_dirty(&mut self) -> Vec<(u16, InclusiveRectangle)> {
         std::mem::take(&mut self.dirty)
     }
 
@@ -319,21 +326,4 @@ fn copy_rect_out(src: &Surface, r: &InclusiveRectangle, w: u32, h: u32, out: &mu
     }
 }
 
-/// Translate a surface-local rectangle into output coordinates using the
-/// surface's MapSurfaceToOutput mapping (or pass-through if unmapped).
-#[allow(dead_code)] // returned data lives in self.dirty for now; framebuffer projection lands in 3c
-fn rect_translated(r: &InclusiveRectangle, m: &Option<&OutputMapping>) -> InclusiveRectangle {
-    if let Some(m) = m {
-        let dx = m.output_origin_x as i32;
-        let dy = m.output_origin_y as i32;
-        InclusiveRectangle {
-            left: (r.left as i32 + dx).max(0).min(u16::MAX as i32) as u16,
-            top: (r.top as i32 + dy).max(0).min(u16::MAX as i32) as u16,
-            right: (r.right as i32 + dx).max(0).min(u16::MAX as i32) as u16,
-            bottom: (r.bottom as i32 + dy).max(0).min(u16::MAX as i32) as u16,
-        }
-    } else {
-        r.clone()
-    }
-}
 

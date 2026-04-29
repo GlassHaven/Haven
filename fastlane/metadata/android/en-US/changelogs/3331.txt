@@ -1,0 +1,50 @@
+v5.24.69: smooth Windows RDP via the Graphics Pipeline (EGFX) (#106, #109)
+
+Before this release, Windows RDP sessions repainted line-by-line: the
+slow-path bitmap fallback was the only path the client knew how to
+take. Modern Windows servers prefer the Graphics Pipeline Extension
+(MS-RDPEGFX) — surface-based tile updates with frame ACKs — and they
+emit ClearCodec / RemoteFxProgressive tiles that the slow-path can't
+even see. The result was visible window chrome but blank or stale
+content for anything Windows decided to send over EGFX, which is most
+of a 2025-era desktop.
+
+This release brings up the EGFX client end-to-end:
+
+- Negotiate EGFX over the dynamic virtual channel (DRDYNVC) at
+  connect time. The connector patch sets the
+  SUPPORT_DYN_VC_GFX_PROTOCOL early-capability bit that ironrdp
+  doesn't expose; without it the server never opens the EGFX channel.
+- Decompress every wire payload through ZGFX, then loop-decode the
+  concatenated server PDUs that share one DVC frame.
+- A new SurfaceManager handles CreateSurface / DeleteSurface /
+  MapSurfaceToOutput / SurfaceToSurface / SolidFill and the
+  64-slot tile cache (SurfaceToCache / CacheToSurface /
+  EvictCacheEntry).
+- ClearCodec decoder ports the FreeRDP composition pipeline:
+  residual + bands + RAW/RLEX subcodecs, with glyph and vbar
+  caches tracked across frames. This carries ~93% of typical
+  Windows desktop tiles.
+- RemoteFxProgressive decoder for the rest — RLGR1 entropy
+  decode, per-subband lShift, extrapolate-mode inverse DWT
+  (asymmetric 33+31 / 17+16 / 9+8 levels), YCbCr → RGBA. The
+  refinement-pass UPGRADE tile type is logged + skipped for now.
+- FrameAcknowledge after every EndFrame so the server doesn't
+  throttle at max_unacknowledged_frame_count.
+- Surface-to-host-framebuffer projection on EndFrame, coalesced
+  to one bounding-box repaint per frame.
+
+The slow-path fallback stays in place for servers that won't open
+EGFX (older xrdp builds), so Linux RDP targets still work.
+
+Verified against Windows Server 2025 NLA on the test VM: smooth
+desktop, the cmd-window region that used to leave a black
+rectangle now paints PowerShell output legibly. xrdp on Debian 12
+still works via the slow-path. gnome-remote-desktop daemon-binding
+issue is unrelated and unchanged.
+
+CI also got a retry shim: gitlab.freedesktop.org has been
+intermittently 500/503/PROTOCOL_ERROR'ing on the wayland-android
+submodule clones (cairo, xorgproto, fontconfig, libxau). Submodule
+init now retries 3× with 15 s back-off so a flaky upstream
+doesn't kill the build.

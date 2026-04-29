@@ -38,6 +38,11 @@ name = "rdp-cli"
 path = "src/bin/rdp-cli.rs"
 required-features = ["host-cli"]
 
+[[bin]]
+name = "clear-trace"
+path = "src/bin/clear-trace.rs"
+required-features = ["host-cli"]
+
 [features]
 default = []
 host-cli = ["env_logger"]

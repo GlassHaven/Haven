@@ -12,14 +12,16 @@ use ironrdp_core::{impl_as_any, Encode, EncodeResult, ReadCursor, WriteCursor};
 use ironrdp_dvc::{DvcClientProcessor, DvcEncode, DvcMessage, DvcProcessor};
 use ironrdp_graphics::zgfx::Decompressor;
 use ironrdp_pdu::rdp::vc::dvc::gfx::{
-    CapabilitiesAdvertisePdu, CapabilitiesV10Flags, CapabilitySet, ClientPdu, FrameAcknowledgePdu,
-    QueueDepth, ServerPdu,
+    CapabilitiesAdvertisePdu, CapabilitiesV10Flags, CapabilitySet, ClientPdu, Codec1Type,
+    FrameAcknowledgePdu, QueueDepth, ServerPdu, WireToSurface1Pdu,
 };
 use ironrdp_pdu::PduResult;
 use log::{debug, info, warn};
 
+mod clear;
 mod surface;
 
+use clear::ClearDecoder;
 use surface::SurfaceManager;
 
 use crate::SessionState;
@@ -61,6 +63,10 @@ pub struct EgfxProcessor {
     /// the server can correlate decode progress.
     total_frames_decoded: u32,
     surfaces: SurfaceManager,
+    /// ClearCodec context (sequence counter, glyph + vbar caches). The
+    /// decoder is per-channel, not per-surface — the spec requires the
+    /// caches to survive `ResetGraphics`.
+    clear_decoder: ClearDecoder,
 }
 
 impl EgfxProcessor {
@@ -72,6 +78,7 @@ impl EgfxProcessor {
             zgfx: Decompressor::new(),
             total_frames_decoded: 0,
             surfaces: SurfaceManager::new(),
+            clear_decoder: ClearDecoder::new(),
         }
     }
 }
@@ -185,6 +192,7 @@ impl EgfxProcessor {
                     "EGFX[{n}]: EndFrame frame_id={} total_decoded={}",
                     p.frame_id, self.total_frames_decoded
                 );
+                self.maybe_dump_surface(p.frame_id);
                 let ack = FrameAcknowledgePdu {
                     queue_depth: QueueDepth::Unavailable, // FreeRDP-equivalent of "send the next frame"
                     frame_id: p.frame_id,
@@ -192,12 +200,7 @@ impl EgfxProcessor {
                 };
                 out.push(Box::new(GfxClientMessage(ClientPdu::FrameAcknowledge(ack))));
             }
-            ServerPdu::WireToSurface1(p) => debug!(
-                "EGFX[{n}]: WireToSurface1 surface={} codec={:?} {} bytes",
-                p.surface_id,
-                p.codec_id,
-                p.bitmap_data.len()
-            ),
+            ServerPdu::WireToSurface1(p) => self.handle_wire_to_surface1(n, p),
             ServerPdu::WireToSurface2(p) => debug!(
                 "EGFX[{n}]: WireToSurface2 surface={} codec={:?} ctx={} {} bytes",
                 p.surface_id,
@@ -254,6 +257,89 @@ impl EgfxProcessor {
         }
         if !self.capabilities_received {
             warn!("EGFX[{n}]: server PDU before CapabilitiesConfirm");
+        }
+    }
+}
+
+impl EgfxProcessor {
+    /// If `EGFX_DUMP_DIR` is set, write surface 0 as a PPM after each
+    /// EndFrame. Useful for visual diff against a VNC reference shot from
+    /// the host smoke driver — no extra image-crate dependency.
+    fn maybe_dump_surface(&self, frame_id: u32) {
+        let Ok(dir) = std::env::var("EGFX_DUMP_DIR") else {
+            return;
+        };
+        let Some(s) = self.surfaces.surface(0) else {
+            return;
+        };
+        let path = format!("{dir}/surface0_frame{frame_id:04}.ppm");
+        let mut buf = format!("P6\n{} {}\n255\n", s.width, s.height).into_bytes();
+        // Surface stores RGBA8888; PPM is RGB.
+        buf.reserve(s.pixels.len() / 4 * 3);
+        for px in s.pixels.chunks_exact(4) {
+            buf.extend_from_slice(&px[..3]);
+        }
+        if let Err(e) = std::fs::write(&path, &buf) {
+            warn!("EGFX surface dump to {path} failed: {e}");
+        } else {
+            info!("EGFX surface dumped to {path}");
+        }
+    }
+
+    fn handle_wire_to_surface1(&mut self, n: u64, p: &WireToSurface1Pdu) {
+        // MS-RDPEGFX `RDPGFX_RECT16` uses *exclusive* right/bottom for
+        // WireToSurface destinations (matches FreeRDP's `width = right -
+        // left`). ironrdp names the type `InclusiveRectangle`, but for this
+        // PDU the right/bottom indices are one-past-end, so we drop the +1.
+        let r = &p.destination_rectangle;
+        let w = (r.right as i32 - r.left as i32).max(0) as u32;
+        let h = (r.bottom as i32 - r.top as i32).max(0) as u32;
+        debug!(
+            "EGFX[{n}]: WireToSurface1 surface={} codec={:?} pf={:?} {}x{} @({},{}) {} bytes",
+            p.surface_id,
+            p.codec_id,
+            p.pixel_format,
+            w,
+            h,
+            r.left,
+            r.top,
+            p.bitmap_data.len()
+        );
+        if w == 0 || h == 0 {
+            return;
+        }
+        match p.codec_id {
+            Codec1Type::ClearCodec => {
+                let tile = match self.clear_decoder.decompress(&p.bitmap_data, w, h) {
+                    Ok(t) => t,
+                    Err(e) => {
+                        warn!(
+                            "EGFX[{n}]: ClearCodec decompress failed: {e} ({w}x{h}, {} bytes)",
+                            p.bitmap_data.len()
+                        );
+                        // For triage of future regressions, dumping the
+                        // payload to /tmp under EGFX_DUMP_DIR matches the
+                        // surface-dump convention.
+                        if let Ok(dir) = std::env::var("EGFX_DUMP_DIR") {
+                            let path = format!("{dir}/clear_fail_{n}_{w}x{h}.bin");
+                            let _ = std::fs::write(&path, &p.bitmap_data);
+                        }
+                        return;
+                    }
+                };
+                let Some(surface) = self.surfaces.surface_mut(p.surface_id) else {
+                    warn!("EGFX[{n}]: WireToSurface1 unknown surface {}", p.surface_id);
+                    return;
+                };
+                surface.blit_rgba(u32::from(r.left), u32::from(r.top), w, h, &tile);
+                self.surfaces.dirty.push(r.clone());
+            }
+            other => {
+                debug!(
+                    "EGFX[{n}]: WireToSurface1 codec {other:?} not yet handled ({} bytes ignored)",
+                    p.bitmap_data.len()
+                );
+            }
         }
     }
 }

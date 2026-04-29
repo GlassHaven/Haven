@@ -50,12 +50,14 @@ impl Surface {
     }
 
     fn fill_rect(&mut self, rect: &InclusiveRectangle, rgba: [u8; 4]) {
-        // Server-side rectangles are inclusive: right == 1280 means the last
-        // column is x=1280, hence right+1 below. Clip to surface bounds.
+        // MS-RDPEGFX RDPGFX_RECT16 uses *exclusive* right/bottom (matches
+        // FreeRDP's `width = right - left`). ironrdp names the type
+        // `InclusiveRectangle` but for EGFX PDUs we treat right/bottom as
+        // one-past-end. Clip to surface bounds.
         let l = rect.left.min(self.width as u16) as u32;
         let t = rect.top.min(self.height as u16) as u32;
-        let r = (rect.right as u32 + 1).min(self.width);
-        let b = (rect.bottom as u32 + 1).min(self.height);
+        let r = (rect.right as u32).min(self.width);
+        let b = (rect.bottom as u32).min(self.height);
         if r <= l || b <= t {
             return;
         }
@@ -185,9 +187,10 @@ impl SurfaceManager {
         // text region). To keep the borrow checker happy we copy out first.
         let src_id = p.source_surface_id;
         let dst_id = p.destination_surface_id;
+        // RDPGFX_RECT16 — exclusive right/bottom, see fill_rect note.
         let src_rect = &p.source_rectangle;
-        let w = (src_rect.right as i32 - src_rect.left as i32 + 1).max(0) as u32;
-        let h = (src_rect.bottom as i32 - src_rect.top as i32 + 1).max(0) as u32;
+        let w = (src_rect.right as i32 - src_rect.left as i32).max(0) as u32;
+        let h = (src_rect.bottom as i32 - src_rect.top as i32).max(0) as u32;
         let Some(src) = self.surfaces.get(&src_id) else {
             warn!("SurfaceToSurface: unknown source surface {}", src_id);
             return;
@@ -203,8 +206,8 @@ impl SurfaceManager {
             self.dirty.push(InclusiveRectangle {
                 left: point.x,
                 top: point.y,
-                right: point.x.saturating_add(w as u16).saturating_sub(1),
-                bottom: point.y.saturating_add(h as u16).saturating_sub(1),
+                right: point.x.saturating_add(w as u16),
+                bottom: point.y.saturating_add(h as u16),
             });
         }
     }
@@ -214,9 +217,10 @@ impl SurfaceManager {
             warn!("SurfaceToCache: unknown source surface {}", p.surface_id);
             return;
         };
+        // RDPGFX_RECT16 — exclusive right/bottom.
         let r = &p.source_rectangle;
-        let w = (r.right as i32 - r.left as i32 + 1).max(0) as u32;
-        let h = (r.bottom as i32 - r.top as i32 + 1).max(0) as u32;
+        let w = (r.right as i32 - r.left as i32).max(0) as u32;
+        let h = (r.bottom as i32 - r.top as i32).max(0) as u32;
         if w == 0 || h == 0 {
             return;
         }
@@ -253,8 +257,8 @@ impl SurfaceManager {
             self.dirty.push(InclusiveRectangle {
                 left: point.x,
                 top: point.y,
-                right: point.x.saturating_add(w as u16).saturating_sub(1),
-                bottom: point.y.saturating_add(h as u16).saturating_sub(1),
+                right: point.x.saturating_add(w as u16),
+                bottom: point.y.saturating_add(h as u16),
             });
         }
     }

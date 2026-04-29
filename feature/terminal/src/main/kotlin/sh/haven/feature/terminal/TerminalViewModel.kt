@@ -37,6 +37,14 @@ import javax.inject.Inject
 
 private const val TAG = "TerminalViewModel"
 
+/** Transports that keep the server-side PTY alive across client disconnects;
+ *  closing one needs an explicit session-manager detach key first, otherwise
+ *  zellij/tmux/screen never sees the client leave. SSH gets HUP for free. */
+private val TRANSPORTS_NEEDING_EXPLICIT_DETACH = setOf("MOSH", "ET")
+
+/** How long to wait for a Mosh/ET detach packet to land before tearing down. */
+private const val SESSION_MANAGER_DETACH_DELAY_MS = 300L
+
 /** Main-thread handler for posting emulator writes. */
 private val mainHandler = android.os.Handler(android.os.Looper.getMainLooper())
 
@@ -1184,7 +1192,37 @@ class TerminalViewModel @Inject constructor(
     }
 
     fun closeTab(sessionId: String) {
-        // Check all four managers
+        val tab = _tabs.value.firstOrNull { it.sessionId == sessionId }
+        if (tab != null && tab.transportType in TRANSPORTS_NEEDING_EXPLICIT_DETACH) {
+            viewModelScope.launch(Dispatchers.IO) {
+                sendSessionManagerDetach(tab)
+                removeTabAndSync(sessionId)
+            }
+        } else {
+            removeTabAndSync(sessionId)
+        }
+    }
+
+    /** Close all sessions for a profile (called from connections disconnect). */
+    fun closeSession(profileId: String) {
+        val profileTabs = _tabs.value.filter { it.profileId == profileId }
+        val needsDetach = profileTabs.filter { it.transportType in TRANSPORTS_NEEDING_EXPLICIT_DETACH }
+        if (needsDetach.isNotEmpty()) {
+            viewModelScope.launch(Dispatchers.IO) {
+                val smName = effectiveSessionManagerName(profileId)
+                val detachBytes = detachBytesFor(smName)
+                if (detachBytes != null) {
+                    needsDetach.forEach { it.sendInput(detachBytes) }
+                    kotlinx.coroutines.delay(SESSION_MANAGER_DETACH_DELAY_MS)
+                }
+                removeAllForProfileAndSync(profileId)
+            }
+        } else {
+            removeAllForProfileAndSync(profileId)
+        }
+    }
+
+    private fun removeTabAndSync(sessionId: String) {
         if (sessionManager.sessions.value.containsKey(sessionId)) {
             sessionManager.removeSession(sessionId)
         } else if (moshSessionManager.sessions.value.containsKey(sessionId)) {
@@ -1200,8 +1238,7 @@ class TerminalViewModel @Inject constructor(
         syncSessions()
     }
 
-    /** Close all sessions for a profile (called from connections disconnect). */
-    fun closeSession(profileId: String) {
+    private fun removeAllForProfileAndSync(profileId: String) {
         sessionManager.removeAllSessionsForProfile(profileId)
         reticulumSessionManager.removeAllSessionsForProfile(profileId)
         moshSessionManager.removeAllSessionsForProfile(profileId)
@@ -1211,6 +1248,33 @@ class TerminalViewModel @Inject constructor(
             _tabs.value.filter { it.profileId == profileId }.map { it.sessionId }.toSet()
         )
         syncSessions()
+    }
+
+    /**
+     * Send the session manager's detach key sequence over a Mosh or ET tab so
+     * the server-side multiplexer (zellij/tmux/screen) drops this client before
+     * we tear the transport down. SSH gets HUP for free when the channel
+     * closes; Mosh and ET keep the PTY alive across disconnects, so without
+     * this nudge the next reconnect looks like a second concurrent client.
+     */
+    private suspend fun sendSessionManagerDetach(tab: TerminalTab) {
+        val smName = effectiveSessionManagerName(tab.profileId)
+        val detachBytes = detachBytesFor(smName) ?: return
+        tab.sendInput(detachBytes)
+        kotlinx.coroutines.delay(SESSION_MANAGER_DETACH_DELAY_MS)
+    }
+
+    private suspend fun effectiveSessionManagerName(profileId: String): String {
+        val profile = connectionRepository.getById(profileId)
+        return profile?.sessionManager?.uppercase()
+            ?: preferencesRepository.sessionManager.first().name
+    }
+
+    private fun detachBytesFor(smName: String): ByteArray? = when (smName) {
+        "TMUX", "BYOBU" -> byteArrayOf(0x02, 'd'.code.toByte()) // Ctrl+B d
+        "ZELLIJ" -> byteArrayOf(0x0F, 'd'.code.toByte())        // Ctrl+O d
+        "SCREEN" -> byteArrayOf(0x01, 'd'.code.toByte())        // Ctrl+A d
+        else -> null
     }
 
     /** When non-null, the UI should show a session picker for a new tab. */

@@ -1,0 +1,36 @@
+v5.24.67: detach zellij/tmux/screen on Mosh + Eternal Terminal close (#119)
+
+@SeriousM reported on #119 that closing a Mosh or Eternal Terminal
+connection to a zellij session left the server-side session-manager
+client attached. Each reconnect created a fresh client while the old
+one was still considered attached — visible as a growing "another user
+is watching" / viewer count inside zellij. The same pattern shows up
+with tmux and screen.
+
+Cause: SSH gets detach for free because closing the SSH channel sends
+SIGHUP to the server-side PTY, and zellij/tmux/screen detect the
+controlling terminal hanging up and detach. Mosh and Eternal Terminal
+both deliberately keep the server-side PTY alive across client
+disconnects (that's the whole feature), so the multiplexer never sees
+HUP and stays attached. Haven's existing teardown only closed the
+transport — it didn't tell the multiplexer the user was leaving.
+
+Fix: when closing a Mosh or ET tab whose profile has a session manager
+configured, send the multiplexer's default detach key sequence first,
+wait briefly for it to reach the server, then tear the transport down
+as before:
+
+- zellij default — Ctrl+O d (0x0F 0x64)
+- tmux / byobu  — prefix (Ctrl+B) d (0x02 0x64)
+- screen        — prefix (Ctrl+A) d (0x01 0x64)
+
+SSH path is untouched; HUP already does the right thing there. Both
+explicit tab close and "disconnect from connections list" go through
+the new path. ViewModel teardown when the Activity dies still does the
+old transport-preserving detach so reattaching after a brief
+backgrounding still works.
+
+Caveat: assumes default keybinds. Custom-keybind users (uncommon for
+zellij and screen, somewhat common for tmux remapping the prefix to
+Ctrl+A) won't get a clean detach yet — that needs per-profile config
+which can come later.

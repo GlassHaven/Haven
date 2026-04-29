@@ -12,7 +12,8 @@ use ironrdp_core::{impl_as_any, Encode, EncodeResult, ReadCursor, WriteCursor};
 use ironrdp_dvc::{DvcClientProcessor, DvcEncode, DvcMessage, DvcProcessor};
 use ironrdp_graphics::zgfx::Decompressor;
 use ironrdp_pdu::rdp::vc::dvc::gfx::{
-    CapabilitiesAdvertisePdu, CapabilitiesV10Flags, CapabilitySet, ClientPdu, ServerPdu,
+    CapabilitiesAdvertisePdu, CapabilitiesV10Flags, CapabilitySet, ClientPdu, FrameAcknowledgePdu,
+    QueueDepth, ServerPdu,
 };
 use ironrdp_pdu::{decode_err, PduResult};
 use log::{debug, info, warn};
@@ -38,7 +39,12 @@ impl Encode for GfxClientMessage {
 
 impl DvcEncode for GfxClientMessage {}
 
-/// Phase-2 EGFX processor: caps + logging only.
+/// EGFX processor: caps, frame ACKs, server-PDU logging.
+///
+/// Surface management and codec decoding land in egfx::surface and
+/// egfx::rfx (Phase 3). For now we ACK every frame so the server doesn't
+/// throttle at `max_unacknowledged_frame_count` (FreeRDP-style: queue_depth=0
+/// means "no backlog, please send the next frame").
 pub struct EgfxProcessor {
     _state: Arc<RwLock<SessionState>>,
     capabilities_received: bool,
@@ -47,6 +53,9 @@ pub struct EgfxProcessor {
     /// with ZGFX (RDP 8.0) bulk compression. The decompressor keeps a
     /// 2.5 MB sliding history shared across the whole channel lifetime.
     zgfx: Decompressor,
+    /// Total EndFrame count we've seen — included in every FrameAck so
+    /// the server can correlate decode progress.
+    total_frames_decoded: u32,
 }
 
 impl EgfxProcessor {
@@ -56,6 +65,7 @@ impl EgfxProcessor {
             capabilities_received: false,
             server_pdu_count: 0,
             zgfx: Decompressor::new(),
+            total_frames_decoded: 0,
         }
     }
 }
@@ -80,39 +90,50 @@ impl DvcProcessor for EgfxProcessor {
     }
 
     fn process(&mut self, _channel_id: u32, payload: &[u8]) -> PduResult<Vec<DvcMessage>> {
-        self.server_pdu_count = self.server_pdu_count.saturating_add(1);
-        let n = self.server_pdu_count;
         // Step 1: ZGFX decompress (every EGFX wire payload is wrapped).
         let mut decompressed = Vec::with_capacity(payload.len() * 4);
         if let Err(e) = self.zgfx.decompress(payload, &mut decompressed) {
-            warn!("EGFX[{n}]: zgfx decompress failed ({e:?}); skipping {} byte payload", payload.len());
+            warn!(
+                "EGFX zgfx decompress failed ({e:?}); skipping {} byte payload",
+                payload.len()
+            );
             return Ok(Vec::new());
         }
         debug!(
-            "EGFX[{n}] zgfx in={} out={} (ratio {:.2}x)",
+            "EGFX zgfx in={} out={} (ratio {:.2}x)",
             payload.len(),
             decompressed.len(),
             decompressed.len() as f32 / payload.len().max(1) as f32
         );
-        // Step 2: decode one or more concatenated ServerPdus.
+        // Step 2: decode every concatenated ServerPdu in the buffer. A single
+        // DVC message often carries StartFrame / WireToSurface* / EndFrame
+        // back-to-back for one surface update.
+        let mut out_messages: Vec<DvcMessage> = Vec::new();
         let mut cur = ReadCursor::new(&decompressed);
-        let pdu = match <ServerPdu as ironrdp_core::Decode>::decode(&mut cur) {
-            Ok(p) => p,
-            Err(e) => {
-                let head_hex: String = decompressed
-                    .iter()
-                    .take(32)
-                    .map(|b| format!("{:02x}", b))
-                    .collect::<Vec<_>>()
-                    .join(" ");
-                warn!(
-                    "EGFX[{n}]: decode failed ({e}); decompressed head: {}",
-                    head_hex
-                );
-                return Ok(Vec::new());
-            }
-        };
-        match &pdu {
+        while !cur.is_empty() {
+            self.server_pdu_count = self.server_pdu_count.saturating_add(1);
+            let n = self.server_pdu_count;
+            let pdu = match <ServerPdu as ironrdp_core::Decode>::decode(&mut cur) {
+                Ok(p) => p,
+                Err(e) => {
+                    warn!(
+                        "EGFX[{n}]: decode failed ({e}); {} bytes remaining",
+                        cur.len()
+                    );
+                    break;
+                }
+            };
+            self.dispatch(n, &pdu, &mut out_messages);
+        }
+        Ok(out_messages)
+    }
+}
+
+impl EgfxProcessor {
+    /// Inspect a single decoded server PDU. Push any client-side reply
+    /// (frame ack, etc.) into `out`.
+    fn dispatch(&mut self, n: u64, pdu: &ServerPdu, out: &mut Vec<DvcMessage>) {
+        match pdu {
             ServerPdu::CapabilitiesConfirm(c) => {
                 self.capabilities_received = true;
                 info!("EGFX[{n}]: CapabilitiesConfirm {:?}", c.0);
@@ -138,7 +159,19 @@ impl DvcProcessor for EgfxProcessor {
                 "EGFX[{n}]: StartFrame frame_id={} timestamp={:?}",
                 p.frame_id, p.timestamp
             ),
-            ServerPdu::EndFrame(p) => debug!("EGFX[{n}]: EndFrame frame_id={}", p.frame_id),
+            ServerPdu::EndFrame(p) => {
+                self.total_frames_decoded = self.total_frames_decoded.saturating_add(1);
+                debug!(
+                    "EGFX[{n}]: EndFrame frame_id={} total_decoded={}",
+                    p.frame_id, self.total_frames_decoded
+                );
+                let ack = FrameAcknowledgePdu {
+                    queue_depth: QueueDepth::Unavailable, // FreeRDP-equivalent of "send the next frame"
+                    frame_id: p.frame_id,
+                    total_frames_decoded: self.total_frames_decoded,
+                };
+                out.push(Box::new(GfxClientMessage(ClientPdu::FrameAcknowledge(ack))));
+            }
             ServerPdu::WireToSurface1(p) => debug!(
                 "EGFX[{n}]: WireToSurface1 surface={} codec={:?} {} bytes",
                 p.surface_id,
@@ -158,21 +191,32 @@ impl DvcProcessor for EgfxProcessor {
                 p.rectangles.len(),
                 p.fill_pixel
             ),
-            ServerPdu::SurfaceToSurface(_)
-            | ServerPdu::SurfaceToCache(_)
-            | ServerPdu::CacheToSurface(_)
-            | ServerPdu::EvictCacheEntry(_)
-            | ServerPdu::DeleteEncodingContext(_)
-            | ServerPdu::CacheImportReply(_)
-            | ServerPdu::MapSurfaceToScaledOutput(_)
-            | ServerPdu::MapSurfaceToScaledWindow(_) => {
-                debug!("EGFX[{n}]: {:?}", std::mem::discriminant(&pdu));
+            ServerPdu::SurfaceToSurface(_) => debug!("EGFX[{n}]: SurfaceToSurface"),
+            ServerPdu::SurfaceToCache(p) => debug!(
+                "EGFX[{n}]: SurfaceToCache surface={} key=0x{:016x} cache_slot={}",
+                p.surface_id, p.cache_key, p.cache_slot
+            ),
+            ServerPdu::CacheToSurface(p) => debug!(
+                "EGFX[{n}]: CacheToSurface cache_slot={} surface={} positions={}",
+                p.cache_slot,
+                p.surface_id,
+                p.destination_points.len()
+            ),
+            ServerPdu::EvictCacheEntry(p) => {
+                debug!("EGFX[{n}]: EvictCacheEntry cache_slot={}", p.cache_slot)
+            }
+            ServerPdu::DeleteEncodingContext(_) => debug!("EGFX[{n}]: DeleteEncodingContext"),
+            ServerPdu::CacheImportReply(_) => debug!("EGFX[{n}]: CacheImportReply"),
+            ServerPdu::MapSurfaceToScaledOutput(_) => {
+                debug!("EGFX[{n}]: MapSurfaceToScaledOutput")
+            }
+            ServerPdu::MapSurfaceToScaledWindow(_) => {
+                debug!("EGFX[{n}]: MapSurfaceToScaledWindow")
             }
         }
         if !self.capabilities_received {
             warn!("EGFX[{n}]: server PDU before CapabilitiesConfirm");
         }
-        Ok(Vec::new())
     }
 }
 

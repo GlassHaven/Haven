@@ -92,6 +92,10 @@ fn main() -> ExitCode {
     let pass = args[4].clone();
     let domain = args.get(5).cloned().unwrap_or_default();
     let seconds: u64 = args.get(6).and_then(|s| s.parse().ok()).unwrap_or(30);
+    // Optional 8th arg: a string of unicode chars to type ~1s after connect.
+    // Use "\r" / "\n" for Enter, "\b" for backspace. Useful to coax a server
+    // into emitting EGFX surface updates instead of just sitting idle.
+    let type_after = args.get(7).cloned().unwrap_or_default();
 
     let config = RdpConfig {
         username: user,
@@ -125,10 +129,26 @@ fn main() -> ExitCode {
     }
 
     let deadline = Instant::now() + Duration::from_secs(seconds);
+    let mut typed = type_after.is_empty();
     while Instant::now() < deadline {
         if error.load(Ordering::Acquire) {
             client.disconnect();
             return ExitCode::from(1);
+        }
+        if !typed && connected.load(Ordering::Acquire) {
+            // Wait 2s after the connected callback so the server has time to
+            // finish initial paint, then poke each char (unicode press +
+            // release, 80 ms apart).
+            std::thread::sleep(Duration::from_secs(2));
+            for ch in type_after.chars() {
+                let cp = ch as u32;
+                eprintln!("[type] U+{cp:04x} ({ch:?})");
+                client.send_unicode_key(cp, true);
+                std::thread::sleep(Duration::from_millis(40));
+                client.send_unicode_key(cp, false);
+                std::thread::sleep(Duration::from_millis(80));
+            }
+            typed = true;
         }
         std::thread::sleep(Duration::from_millis(200));
     }

@@ -57,17 +57,26 @@ data class ConnectionProfile(
      */
     val rdpUseNla: Boolean = true,
     /**
-     * RDP colour depth in bits per pixel. Default 16 — the only
-     * value that works against every server (Windows + xrdp).
-     * Empirical matrix from #109:
-     *   16: Windows ✓ (slow), xrdp ✓
+     * RDP colour depth in bits per pixel. Default 32 — required by
+     * Windows when the EGFX `SUPPORT_DYN_VC_GFX_PROTOCOL` early-cap
+     * flag is set (v5.24.69+). 16 worked against every server type
+     * before EGFX, but Windows now TCP-FINs the connection mid-MCS
+     * if the legacy color_depth in the GCC core data is `Bpp8`.
+     *
+     * Empirical matrix as of v5.24.69:
+     *   16: Windows ✗ (server TCP-FIN after MCS Connect with EGFX
+     *        flag set), xrdp ✓
      *   24: Windows ✗ (server resets connection), xrdp ✓
-     *   32: Windows ✓ (smoother), xrdp ✗ (blank — custom RLE
-     *        ironrdp can't decode)
-     * Per-profile so users can pick 24 for xrdp or 32 for Windows
-     * once they know their server type.
+     *   32: Windows ✓ (EGFX path), xrdp untested visually under
+     *        the patched ironrdp — pre-EGFX matrix said xrdp ✗
+     *        (custom RLE).
+     *
+     * Migration 40_41 auto-bumps existing 16-valued profiles to 32
+     * iff `rdpUseNla = 1`, since NLA-on strongly correlates with
+     * Windows-class servers. Profiles with NLA off keep 16, since
+     * those tend to be xrdp / Linux-RDP setups.
      */
-    val rdpColorDepth: Int = 16,
+    val rdpColorDepth: Int = 32,
     val smbPort: Int = 445,
     val smbShare: String? = null,
     val smbDomain: String? = null,

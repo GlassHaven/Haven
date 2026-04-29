@@ -1,0 +1,33 @@
+v5.24.70: auto-bump RDP colour depth so Windows servers stop closing the connection mid-handshake
+
+Tighter follow-up to the EGFX work in v5.24.69. With the
+SUPPORT_DYN_VC_GFX_PROTOCOL early-capability flag set, modern Windows
+servers now close the TCP connection mid-MCS Connect if the legacy
+color_depth field in the GCC core data is Bpp8 (= 16-bit). The error
+surfaced as a confusing "TLS handshake failed" message even though
+TLS and CredSSP had already succeeded — the failure was a post-
+handshake socket close while we were waiting for the server's
+ConnectInitial response.
+
+Existing profiles created before EGFX defaulted to 16-bit and would
+all hit this wall against Windows once they updated to v5.24.69. The
+fix:
+
+- Database migration 40 -> 41 auto-bumps existing profiles from 16
+  to 32 bits, *but only* when "Network Level Authentication" is on
+  for that profile. NLA-on strongly correlates with Windows-class
+  servers, so this targets the population that actually needs the
+  bump. Profiles with NLA off (typically xrdp / Linux RDP targets)
+  keep 16, since the pre-EGFX matrix had 32 marked as broken on
+  xrdp's custom RLE path.
+- New profiles default to 32-bit instead of 16-bit.
+- Existing profile docs were misleading ("16 is the only value that
+  works against every server"); rewritten to reflect post-EGFX
+  reality.
+
+If you have an xrdp profile with NLA off and notice a blank screen
+after this update, flip the colour depth back to 16 in the profile
+editor.
+
+The misleading TLS error itself is being addressed separately; this
+release fixes the immediate config trap so users don't hit it.

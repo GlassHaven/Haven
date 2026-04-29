@@ -139,7 +139,7 @@ fun ConnectionEditDialog(
     var rdpSshForward by rememberSaveable { mutableStateOf(existing?.rdpSshForward ?: false) }
     var rdpSshProfileId by rememberSaveable { mutableStateOf(existing?.rdpSshProfileId) }
     var rdpUseNla by rememberSaveable { mutableStateOf(existing?.rdpUseNla ?: true) }
-    var rdpColorDepth by rememberSaveable { mutableStateOf(existing?.rdpColorDepth ?: 16) }
+    var rdpColorDepth by rememberSaveable { mutableStateOf(existing?.rdpColorDepth ?: 32) }
     var smbShare by rememberSaveable { mutableStateOf(existing?.smbShare ?: "") }
     var smbPassword by rememberSaveable { mutableStateOf(existing?.smbPassword ?: "") }
     var smbDomain by rememberSaveable { mutableStateOf(existing?.smbDomain ?: "") }

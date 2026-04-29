@@ -26,7 +26,7 @@ import sh.haven.core.data.db.entities.TunnelConfig
         TunnelConfig::class,
         PasteQueueEntry::class,
     ],
-    version = 40,
+    version = 41,
     exportSchema = true,
 )
 abstract class HavenDatabase : RoomDatabase() {
@@ -412,15 +412,41 @@ abstract class HavenDatabase : RoomDatabase() {
         }
 
         /**
-         * Per-profile RDP colour depth, default 16bpp. 16 is the
-         * only value verified to work against every server type;
-         * 24 fails on Windows (server resets connection) and 32
-         * fails on xrdp (blank screen). #109.
+         * Per-profile RDP colour depth, default 16bpp. 16 was the
+         * only value verified to work against every server type
+         * pre-EGFX; 24 fails on Windows (server resets connection)
+         * and 32 was thought to fail on xrdp (custom RLE). #109.
+         *
+         * The "default 16" assumption is invalidated by v5.24.69's
+         * EGFX patch — see MIGRATION_40_41.
          */
         val MIGRATION_39_40 = object : Migration(39, 40) {
             override fun migrate(db: SupportSQLiteDatabase) {
                 db.execSQL(
                     "ALTER TABLE connection_profiles ADD COLUMN rdpColorDepth INTEGER NOT NULL DEFAULT 16"
+                )
+            }
+        }
+
+        /**
+         * EGFX (v5.24.69) sets the `SUPPORT_DYN_VC_GFX_PROTOCOL`
+         * early-capability flag, which makes Windows servers
+         * stricter about the legacy `color_depth` field in the GCC
+         * core data: `Bpp8` (= 16-bit) now causes the server to
+         * TCP-FIN after MCS Connect, mid-handshake, with no useful
+         * error. Bumping to 32 fixes Windows but is risky for xrdp
+         * users (whose pre-EGFX matrix had 32 marked as broken).
+         *
+         * NLA-on strongly correlates with Windows-class servers, so
+         * this migration only auto-bumps profiles with
+         * `rdpUseNla = 1`. Profiles with NLA off (typically xrdp
+         * targets) keep 16. Users who hit the new failure mode and
+         * have NLA off can flip the depth manually in the dialog.
+         */
+        val MIGRATION_40_41 = object : Migration(40, 41) {
+            override fun migrate(db: SupportSQLiteDatabase) {
+                db.execSQL(
+                    "UPDATE connection_profiles SET rdpColorDepth = 32 WHERE rdpColorDepth = 16 AND rdpUseNla = 1"
                 )
             }
         }

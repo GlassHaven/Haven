@@ -2,6 +2,8 @@ use std::net::{SocketAddr, TcpStream};
 use std::sync::{Arc, Mutex, RwLock};
 use log::{debug, error, info};
 
+mod egfx;
+
 uniffi::setup_scaffolding!();
 
 fn init_logging() {
@@ -600,12 +602,16 @@ fn create_tls_config() -> Result<rustls::ClientConfig, RdpError> {
 
     // Explicitly use ring provider — auto-detection panics on Android
     let provider = rustls::crypto::ring::default_provider();
-    Ok(rustls::ClientConfig::builder_with_provider(provider.into())
+    let mut config = rustls::ClientConfig::builder_with_provider(provider.into())
         .with_safe_default_protocol_versions()
         .map_err(|_| RdpError::TlsError)?
         .dangerous()
         .with_custom_certificate_verifier(Arc::new(AcceptAnyServerCert))
-        .with_no_client_auth())
+        .with_no_client_auth();
+    // Honour SSLKEYLOGFILE (no-op when the env var is unset). Useful for host
+    // wireshark debugging via rdp-cli; on device the env var is never set.
+    config.key_log = Arc::new(rustls::KeyLogFile::new());
+    Ok(config)
 }
 
 /// Run the blocking RDP session on a dedicated thread.
@@ -629,7 +635,11 @@ fn run_rdp_session(
     use ironrdp_graphics::image_processing::PixelFormat;
 
     let rdp_config = build_config(config);
-    let mut connector = ironrdp_connector::ClientConnector::new(rdp_config, server_addr);
+    let mut connector = ironrdp_connector::ClientConnector::new(rdp_config, server_addr)
+        .with_static_channel(
+            ironrdp_dvc::DrdynvcClient::new()
+                .with_dynamic_channel(crate::egfx::EgfxProcessor::new(state.clone())),
+        );
 
     // Keep a clone of the underlying TCP stream so we can adjust the read
     // timeout out-of-band without having to reach through the TLS wrap.

@@ -4,7 +4,7 @@ version = "0.1.0"
 edition = "2021"
 
 [lib]
-crate-type = ["cdylib"]
+crate-type = ["cdylib", "rlib"]
 name = "rdp_transport"
 
 [dependencies]
@@ -16,6 +16,9 @@ ironrdp-cliprdr = "0.5"
 ironrdp-graphics = "0.7"
 ironrdp-tls = { version = "0.2", features = ["rustls"] }
 ironrdp-pdu = "0.7"
+ironrdp-dvc = "0.5"
+ironrdp-svc = "0.6"
+ironrdp-core = "0.1"
 x509-cert = { version = "0.2", default-features = false }
 smallvec = "1"
 log = "0.4"
@@ -27,8 +30,31 @@ rustls = { version = "0.23", default-features = false, features = ["ring", "logg
 name = "uniffi-bindgen"
 path = "uniffi-bindgen.rs"
 
+# Host-side smoke driver for the same RdpClient the Kotlin AAR uses.
+# Lets us iterate on the protocol without rebuilding the AAR + redeploying
+# to the device. Linux/macOS only — depends on env_logger for log output.
+[[bin]]
+name = "rdp-cli"
+path = "src/bin/rdp-cli.rs"
+required-features = ["host-cli"]
+
+[features]
+default = []
+host-cli = ["env_logger"]
+
+[dependencies.env_logger]
+version = "0.11"
+optional = true
+
 [build-dependencies]
 uniffi = { version = "0.28", features = ["build"] }
+
+# Local fork of ironrdp-connector with one Haven-specific patch:
+# advertise SUPPORT_DYN_VC_GFX_PROTOCOL (0x0100) in the Client Core Data so
+# servers open the EGFX dynamic virtual channel. Upstream rejects an unconditional
+# default; we may upstream a Config flag once the integration stabilises.
+[patch.crates-io]
+ironrdp-connector = { path = "vendor/ironrdp-connector" }
 
 [profile.release]
 opt-level = "z"

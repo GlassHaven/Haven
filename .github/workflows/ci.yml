@@ -22,7 +22,8 @@ jobs:
     steps:
       - uses: actions/checkout@v6
         with:
-          submodules: recursive
+          submodules: false
+      - uses: ./.github/actions/init-submodules-with-retry
       - uses: ./.github/actions/setup-toolchain
       - name: Run unit tests
         run: ./gradlew testDebugUnitTest
@@ -40,7 +41,8 @@ jobs:
     steps:
       - uses: actions/checkout@v6
         with:
-          submodules: recursive
+          submodules: false
+      - uses: ./.github/actions/init-submodules-with-retry
       - uses: ./.github/actions/setup-toolchain
       - name: Run lint
         run: ./gradlew lintDebug
@@ -61,7 +63,8 @@ jobs:
     steps:
       - uses: actions/checkout@v6
         with:
-          submodules: recursive
+          submodules: false
+      - uses: ./.github/actions/init-submodules-with-retry
       - uses: ./.github/actions/setup-toolchain
       # Build arm64 only in CI — the x64 flavor exists for emulator support
       # and Play Store fat distribution, not smoke-testing main. Cuts build

@@ -1,0 +1,39 @@
+name: Init submodules with retry
+description: |
+  Run `git submodule update --init --recursive` with 3 attempts and a 15s
+  backoff. Use this AFTER `actions/checkout` (with `submodules: false`)
+  in jobs that need a recursive submodule tree.
+
+  Why a separate action: gitlab.freedesktop.org (cairo / xcbproto /
+  xorgproto / libxau) intermittently returns HTTP 500 / PROTOCOL_ERROR /
+  early EOF mid fetch-pack. Top-level repo checkout from github.com is
+  reliable; only the submodule init fails. Retrying the same command
+  almost always succeeds on attempt 2 or 3.
+
+  Failures on attempts 1-2 are emitted as `::warning::` so they show up
+  in the run summary but don't fail the job; failure on attempt 3 is a
+  real outage and fails the job with `::error::`.
+
+runs:
+  using: composite
+  steps:
+    - name: Init submodules with retry
+      shell: bash
+      run: |
+        set +e
+        for attempt in 1 2 3; do
+          echo "::group::Submodule init attempt $attempt"
+          git submodule update --init --recursive --jobs 4
+          rc=$?
+          echo "::endgroup::"
+          if [ "$rc" -eq 0 ]; then
+            echo "Submodules ready on attempt $attempt"
+            exit 0
+          fi
+          if [ "$attempt" -lt 3 ]; then
+            echo "::warning::Submodule init failed (rc=$rc) on attempt $attempt; sleeping 15s before retry"
+            sleep 15
+          fi
+        done
+        echo "::error::Submodule init failed after 3 attempts; upstream likely down"
+        exit 1

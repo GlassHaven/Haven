@@ -498,10 +498,16 @@ fn diagnose_finalize_error(e: &ironrdp_connector::ConnectorError) -> String {
 
 /// Substring-sniffing fallback for ConnectorErrorKind variants we don't
 /// handle structurally (Custom / General catch-alls and any future
-/// non-exhaustive additions). These tend to wrap TLS-layer failures
-/// (rustls alert received during CredSSP network IO) — preserve the
-/// pre-existing patterns so the Windows-NLA case (#109 surf5726) still
-/// maps to the friendly "server rejected credentials" message.
+/// non-exhaustive additions).
+///
+/// **Phase invariant:** this function only sees errors from
+/// `connect_finalize`. By that point the TLS handshake has already
+/// completed (driven by `complete_io` on line ~679 of `run_rdp_session`)
+/// and, if NLA is on, CredSSP has also completed. So **any** failure
+/// reaching here is post-handshake — never a TLS handshake failure
+/// itself. Older versions of this fallback labelled the rustls
+/// "unexpected EOF" path as "TLS handshake failed", which sent users
+/// looking at the wrong layer (#TODO file follow-up).
 fn classify_raw_finalize(raw: &str) -> String {
     if raw.contains("AlertReceived(InternalError)") ||
         raw.contains("AlertReceived(AccessDenied)") ||
@@ -512,8 +518,31 @@ fn classify_raw_finalize(raw: &str) -> String {
             (check username, password, and domain). {}",
             raw
         )
+    } else if raw.contains("UnexpectedEof") ||
+        raw.contains("peer closed connection without sending TLS close_notify")
+    {
+        // Server closed the TCP socket during RDP setup, *after* TLS
+        // (and CredSSP if NLA was on) had already succeeded. Most
+        // common trigger we've seen: the profile's colour depth is 16
+        // and the server is modern Windows — once we set
+        // SUPPORT_DYN_VC_GFX_PROTOCOL on the early-cap flag, Windows
+        // TCP-FINs the connection if the GCC core's legacy
+        // color_depth is Bpp8. Setting the profile's colour depth to
+        // 32 fixes it. (v5.24.69+; auto-bumped by Migration 40_41 for
+        // NLA-on profiles in v5.24.70.)
+        format!(
+            "Server closed the connection during RDP setup (after \
+            TLS + authentication succeeded). Most common cause: the \
+            profile's colour depth is 16 against a modern Windows \
+            server — try 32. ({})",
+            raw
+        )
     } else if raw.contains("Tls") || raw.contains("TLS") || raw.contains("unexpected_message") {
-        format!("TLS handshake failed: {}", raw)
+        // TLS-related error after the handshake — rustls alert during
+        // CredSSP IO, mid-session protocol error, etc. Distinct from a
+        // handshake failure (which would have surfaced earlier from
+        // complete_io).
+        format!("Server sent a TLS error during RDP setup: {}", raw)
     } else {
         format!("RDP connect finalize failed: {}", raw)
     }
@@ -1211,5 +1240,63 @@ fn update_framebuffer(
     // getFramebuffer() which needs a read lock.
     if let Some(cb) = frame_cb {
         cb.on_frame_update(rdp_rect.x, rdp_rect.y, rdp_rect.width, rdp_rect.height);
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use super::classify_raw_finalize;
+
+    /// The wire-format string that surfaced as "TLS handshake failed"
+    /// on the Pixel against winserver2025 + colorDepth=16 (v5.24.69).
+    /// This is a post-handshake socket close — TLS and CredSSP both
+    /// succeeded in the trace; the server TCP-FIN'd during MCS Connect.
+    /// Old wrapper labelled it "TLS handshake failed:". New wrapper
+    /// must point at the real cause (server hung up; check colour depth).
+    #[test]
+    fn unexpected_eof_after_credssp_no_longer_labelled_as_tls_handshake() {
+        let raw = r#"Error { context: "read frame by hint", kind: Custom, source: Some(Custom { kind: UnexpectedEof, error: "peer closed connection without sending TLS close_notify: https://docs.rs/rustls/latest/rustls/manual/_03_howto/index.html#unexpected-eof" }) }"#;
+        let out = classify_raw_finalize(raw);
+        assert!(
+            !out.starts_with("TLS handshake failed"),
+            "regression: still labelling post-handshake close as TLS handshake — {out}"
+        );
+        assert!(
+            out.starts_with("Server closed the connection during RDP setup"),
+            "expected server-closed framing, got: {out}"
+        );
+        assert!(
+            out.contains("colour depth"),
+            "should hint at colour depth fix, got: {out}"
+        );
+    }
+
+    /// AlertReceived(InternalError) → still maps to the "rejected
+    /// credentials" branch, unchanged from the #109 baseline.
+    #[test]
+    fn alert_internal_error_still_maps_to_credentials() {
+        let raw = "Error { kind: General, source: AlertReceived(InternalError) }";
+        let out = classify_raw_finalize(raw);
+        assert!(
+            out.starts_with("Authentication failed: server rejected credentials"),
+            "credentials path regressed: {out}"
+        );
+    }
+
+    /// A generic TLS-shaped error after handshake (e.g. mid-session
+    /// alert) is no longer mislabeled as "TLS handshake failed". It
+    /// should land in the post-handshake bucket.
+    #[test]
+    fn generic_tls_error_post_handshake_does_not_say_handshake_failed() {
+        let raw = "Error { kind: Custom, source: Some(\"Tls protocol error during MCS\") }";
+        let out = classify_raw_finalize(raw);
+        assert!(
+            !out.starts_with("TLS handshake failed"),
+            "post-handshake TLS error must not say 'handshake failed': {out}"
+        );
+        assert!(
+            out.contains("RDP setup"),
+            "expected post-handshake framing: {out}"
+        );
     }
 }

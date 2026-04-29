@@ -1,8 +1,8 @@
 //! EGFX (MS-RDPEGFX) client over DRDYNVC.
 //!
-//! Phase 2 scope: open the channel, exchange capabilities, log every server
-//! PDU we observe. No surface management, no codec decoding yet — that lands
-//! in egfx::surface and egfx::rfx in Phase 3.
+//! Phase 3a scope: surface + cache management, SolidFill, frame ACKs.
+//! Codec-decoded WireToSurface tiles land in 3b — without codec decode the
+//! cache stays empty so cache replays are no-ops, but everything else works.
 //!
 //! Channel name: "Microsoft::Windows::RDS::Graphics".
 
@@ -15,8 +15,12 @@ use ironrdp_pdu::rdp::vc::dvc::gfx::{
     CapabilitiesAdvertisePdu, CapabilitiesV10Flags, CapabilitySet, ClientPdu, FrameAcknowledgePdu,
     QueueDepth, ServerPdu,
 };
-use ironrdp_pdu::{decode_err, PduResult};
+use ironrdp_pdu::PduResult;
 use log::{debug, info, warn};
+
+mod surface;
+
+use surface::SurfaceManager;
 
 use crate::SessionState;
 
@@ -56,6 +60,7 @@ pub struct EgfxProcessor {
     /// Total EndFrame count we've seen — included in every FrameAck so
     /// the server can correlate decode progress.
     total_frames_decoded: u32,
+    surfaces: SurfaceManager,
 }
 
 impl EgfxProcessor {
@@ -66,6 +71,7 @@ impl EgfxProcessor {
             server_pdu_count: 0,
             zgfx: Decompressor::new(),
             total_frames_decoded: 0,
+            surfaces: SurfaceManager::new(),
         }
     }
 }
@@ -145,16 +151,27 @@ impl EgfxProcessor {
                     p.height,
                     p.monitors.len()
                 );
+                self.surfaces.reset();
             }
-            ServerPdu::CreateSurface(p) => debug!(
-                "EGFX[{n}]: CreateSurface id={} {}x{} pixfmt={:?}",
-                p.surface_id, p.width, p.height, p.pixel_format
-            ),
-            ServerPdu::DeleteSurface(p) => debug!("EGFX[{n}]: DeleteSurface id={}", p.surface_id),
-            ServerPdu::MapSurfaceToOutput(p) => debug!(
-                "EGFX[{n}]: MapSurfaceToOutput id={} ->({},{})",
-                p.surface_id, p.output_origin_x, p.output_origin_y
-            ),
+            ServerPdu::CreateSurface(p) => {
+                debug!(
+                    "EGFX[{n}]: CreateSurface id={} {}x{} pixfmt={:?}",
+                    p.surface_id, p.width, p.height, p.pixel_format
+                );
+                self.surfaces.create_surface(p);
+            }
+            ServerPdu::DeleteSurface(p) => {
+                debug!("EGFX[{n}]: DeleteSurface id={}", p.surface_id);
+                self.surfaces.delete_surface(p);
+            }
+            ServerPdu::MapSurfaceToOutput(p) => {
+                debug!(
+                    "EGFX[{n}]: MapSurfaceToOutput id={} ->({},{})",
+                    p.surface_id, p.output_origin_x, p.output_origin_y
+                );
+                self.surfaces
+                    .map_to_output(p.surface_id, p.output_origin_x as i32, p.output_origin_y as i32);
+            }
             ServerPdu::StartFrame(p) => debug!(
                 "EGFX[{n}]: StartFrame frame_id={} timestamp={:?}",
                 p.frame_id, p.timestamp
@@ -185,25 +202,43 @@ impl EgfxProcessor {
                 p.codec_context_id,
                 p.bitmap_data.len()
             ),
-            ServerPdu::SolidFill(p) => debug!(
-                "EGFX[{n}]: SolidFill surface={} rects={} colour={:?}",
-                p.surface_id,
-                p.rectangles.len(),
-                p.fill_pixel
-            ),
-            ServerPdu::SurfaceToSurface(_) => debug!("EGFX[{n}]: SurfaceToSurface"),
-            ServerPdu::SurfaceToCache(p) => debug!(
-                "EGFX[{n}]: SurfaceToCache surface={} key=0x{:016x} cache_slot={}",
-                p.surface_id, p.cache_key, p.cache_slot
-            ),
-            ServerPdu::CacheToSurface(p) => debug!(
-                "EGFX[{n}]: CacheToSurface cache_slot={} surface={} positions={}",
-                p.cache_slot,
-                p.surface_id,
-                p.destination_points.len()
-            ),
+            ServerPdu::SolidFill(p) => {
+                debug!(
+                    "EGFX[{n}]: SolidFill surface={} rects={} colour={:?}",
+                    p.surface_id,
+                    p.rectangles.len(),
+                    p.fill_pixel
+                );
+                self.surfaces.solid_fill(p);
+            }
+            ServerPdu::SurfaceToSurface(p) => {
+                debug!(
+                    "EGFX[{n}]: SurfaceToSurface src={} dst={} points={}",
+                    p.source_surface_id,
+                    p.destination_surface_id,
+                    p.destination_points.len()
+                );
+                self.surfaces.surface_to_surface(p);
+            }
+            ServerPdu::SurfaceToCache(p) => {
+                debug!(
+                    "EGFX[{n}]: SurfaceToCache surface={} key=0x{:016x} cache_slot={}",
+                    p.surface_id, p.cache_key, p.cache_slot
+                );
+                self.surfaces.surface_to_cache(p);
+            }
+            ServerPdu::CacheToSurface(p) => {
+                debug!(
+                    "EGFX[{n}]: CacheToSurface cache_slot={} surface={} positions={}",
+                    p.cache_slot,
+                    p.surface_id,
+                    p.destination_points.len()
+                );
+                self.surfaces.cache_to_surface(p);
+            }
             ServerPdu::EvictCacheEntry(p) => {
-                debug!("EGFX[{n}]: EvictCacheEntry cache_slot={}", p.cache_slot)
+                debug!("EGFX[{n}]: EvictCacheEntry cache_slot={}", p.cache_slot);
+                self.surfaces.evict_cache(p);
             }
             ServerPdu::DeleteEncodingContext(_) => debug!("EGFX[{n}]: DeleteEncodingContext"),
             ServerPdu::CacheImportReply(_) => debug!("EGFX[{n}]: CacheImportReply"),

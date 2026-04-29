@@ -13,15 +13,17 @@ use ironrdp_dvc::{DvcClientProcessor, DvcEncode, DvcMessage, DvcProcessor};
 use ironrdp_graphics::zgfx::Decompressor;
 use ironrdp_pdu::rdp::vc::dvc::gfx::{
     CapabilitiesAdvertisePdu, CapabilitiesV10Flags, CapabilitySet, ClientPdu, Codec1Type,
-    FrameAcknowledgePdu, QueueDepth, ServerPdu, WireToSurface1Pdu,
+    Codec2Type, FrameAcknowledgePdu, QueueDepth, ServerPdu, WireToSurface1Pdu, WireToSurface2Pdu,
 };
 use ironrdp_pdu::PduResult;
 use log::{debug, info, warn};
 
 mod clear;
+mod progressive;
 mod surface;
 
 use clear::ClearDecoder;
+use progressive::ProgressiveDecoder;
 use surface::SurfaceManager;
 
 use crate::SessionState;
@@ -67,6 +69,9 @@ pub struct EgfxProcessor {
     /// decoder is per-channel, not per-surface — the spec requires the
     /// caches to survive `ResetGraphics`.
     clear_decoder: ClearDecoder,
+    /// RemoteFxProgressive context (sync state, context flags, IDWT
+    /// scratch buffers). Per-channel, survives across PDUs.
+    progressive_decoder: ProgressiveDecoder,
 }
 
 impl EgfxProcessor {
@@ -79,6 +84,7 @@ impl EgfxProcessor {
             total_frames_decoded: 0,
             surfaces: SurfaceManager::new(),
             clear_decoder: ClearDecoder::new(),
+            progressive_decoder: ProgressiveDecoder::new(),
         }
     }
 }
@@ -202,13 +208,7 @@ impl EgfxProcessor {
                 out.push(Box::new(GfxClientMessage(ClientPdu::FrameAcknowledge(ack))));
             }
             ServerPdu::WireToSurface1(p) => self.handle_wire_to_surface1(n, p),
-            ServerPdu::WireToSurface2(p) => debug!(
-                "EGFX[{n}]: WireToSurface2 surface={} codec={:?} ctx={} {} bytes",
-                p.surface_id,
-                p.codec_id,
-                p.codec_context_id,
-                p.bitmap_data.len()
-            ),
+            ServerPdu::WireToSurface2(p) => self.handle_wire_to_surface2(n, p),
             ServerPdu::SolidFill(p) => {
                 debug!(
                     "EGFX[{n}]: SolidFill surface={} rects={} colour={:?}",
@@ -471,6 +471,63 @@ impl EgfxProcessor {
                     "EGFX[{n}]: WireToSurface1 codec {other:?} not yet handled ({} bytes ignored)",
                     p.bitmap_data.len()
                 );
+            }
+        }
+    }
+
+    fn handle_wire_to_surface2(&mut self, n: u64, p: &WireToSurface2Pdu) {
+        debug!(
+            "EGFX[{n}]: WireToSurface2 surface={} codec={:?} ctx={} {} bytes",
+            p.surface_id,
+            p.codec_id,
+            p.codec_context_id,
+            p.bitmap_data.len()
+        );
+        if let Ok(dir) = std::env::var("EGFX_DUMP_DIR") {
+            let path = format!(
+                "{dir}/wts2_{n}_surface{}_ctx{}_codec{:?}.bin",
+                p.surface_id, p.codec_context_id, p.codec_id
+            );
+            let _ = std::fs::write(&path, &p.bitmap_data);
+        }
+        match p.codec_id {
+            Codec2Type::RemoteFxProgressive => {
+                let mut tiles = Vec::new();
+                if let Err(e) =
+                    self.progressive_decoder
+                        .decode(p.surface_id, &p.bitmap_data, &mut tiles)
+                {
+                    warn!(
+                        "EGFX[{n}]: Progressive decode failed: {e} ({} bytes)",
+                        p.bitmap_data.len()
+                    );
+                    return;
+                }
+                debug!(
+                    "EGFX[{n}]: Progressive surface={} produced {} tile(s)",
+                    p.surface_id,
+                    tiles.len()
+                );
+                {
+                    let Some(surface) = self.surfaces.surface_mut(p.surface_id) else {
+                        warn!("EGFX[{n}]: WireToSurface2 unknown surface {}", p.surface_id);
+                        return;
+                    };
+                    for tile in &tiles {
+                        surface.blit_rgba(u32::from(tile.x), u32::from(tile.y), 64, 64, &tile.rgba);
+                    }
+                }
+                for tile in &tiles {
+                    self.surfaces.dirty.push((
+                        p.surface_id,
+                        ironrdp_pdu::geometry::InclusiveRectangle {
+                            left: tile.x,
+                            top: tile.y,
+                            right: tile.x.saturating_add(64),
+                            bottom: tile.y.saturating_add(64),
+                        },
+                    ));
+                }
             }
         }
     }

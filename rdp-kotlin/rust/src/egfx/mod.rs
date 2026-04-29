@@ -83,9 +83,12 @@ impl DvcProcessor for EgfxProcessor {
         CHANNEL_NAME
     }
 
-    /// Sent immediately after the DVC is created. Advertise RemoteFX-only
-    /// capabilities (V10 with AVC_DISABLED) so the server picks RFX, not AVC —
-    /// AVC decoding is Phase 2 work in the original plan, out of scope here.
+    /// Sent immediately after the DVC is created. Advertise V10 with
+    /// `AVC_DISABLED` so the server picks ClearCodec / RemoteFX-Progressive /
+    /// classic RemoteFX over AVC. Codec-version-only restriction (e.g.
+    /// advertising V8) does *not* limit the server to classic RemoteFX —
+    /// codec selection is per-tile by content type, independent of cap
+    /// version, so Windows still emits ClearCodec for desktop UI either way.
     fn start(&mut self, _channel_id: u32) -> PduResult<Vec<DvcMessage>> {
         let caps = CapabilitiesAdvertisePdu(vec![CapabilitySet::V10 {
             flags: CapabilitiesV10Flags::AVC_DISABLED,

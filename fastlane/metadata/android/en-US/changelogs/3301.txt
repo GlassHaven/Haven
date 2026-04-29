@@ -1,0 +1,36 @@
+v5.24.66: black-bg residue after exiting nano / vim with the keyboard up (#120)
+
+@agevlakh reported on #120 that exiting `nano` over an SSH session
+left a band of solid-black-background lines in the scrollback. The
+text content of those lines is correct (post-exit shell prompts) but
+the cell background is pure indexed-0 black instead of the theme
+default; subsequent output renders normally, so the corruption is
+confined to a few specific rows.
+
+Pixel-sampling the reporter's video confirms the cells really do
+have a non-default bg baked in (RGB 0,0,0 vs the theme's RGB 35,37,30),
+and the maintainer reproduced it locally — a single tab-switch resize
+clears the artefact, but rapid resizes during the IME inset animation
+trigger it.
+
+Cause: `Terminal.kt`'s resize `LaunchedEffect` was keyed on
+`availableWidth/Height` and called `terminalEmulator.resize(...)` with
+no debounce. While the IME insets animate, Compose's `onSizeChanged`
+fires many times per second, so each frame propagates straight through
+to `vterm_set_size`. libvterm's `resize_buffer` fills newly-cleared
+cells with `screen->pen` for both the active and inactive buffers —
+so while a foreground app (nano, vim) is mid-redraw with its menu-bar
+pen still active, those colours get baked into rows of the *primary*
+buffer too. After the app exits the alt-screen, those rows scroll into
+scrollback as the user keeps typing.
+
+Fix: debounce the resize coroutine with a short (80 ms) delay. Each
+new size cancels the in-flight `LaunchedEffect`, so only the final
+stable size completes the delay and reaches the emulator — the same
+"single resize" path that already worked when switching tabs. The
+first resize after the emulator is constructed bypasses the delay so
+initial paint stays snappy.
+
+No libvterm change yet; the inactive-buffer-resize-with-active-pen is
+a real bug in upstream too, but the debounce is enough to ship the
+user-visible fix.

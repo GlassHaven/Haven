@@ -1,0 +1,35 @@
+v5.24.72: typing into Windows RDP works in the Desktop multi-session view
+
+Hot follow-up to v5.24.71. After the EGFX work landed, typing letters
+into a Windows RDP session inside Haven's multi-session Desktop view
+silently dropped — the keys reached the FFI but never made it into
+cmd / PowerShell. Enter, Tab, the arrows, and other "named" keys
+worked because they take a different code path; raw letters and
+numbers did not.
+
+The cause was on the wire. ASCII characters were being sent as
+TS_FP_UNICODE_KEYBOARD_EVENT (the WM_UNICHAR Windows message). That
+event is only honoured by IME-aware Win32 apps (Notepad, Edge,
+Word). Console hosts (cmd, PowerShell) and most full-screen apps
+silently ignore it — which is well-documented in MS-RDPBCGR but
+not something Haven was respecting.
+
+mstsc and FreeRDP avoid the trap by sending ASCII as scancode-based
+WM_KEYDOWN/WM_KEYUP events, with shift held when needed. Haven now
+does the same:
+
+- New shared helper `typeRdpChar(ch, sendKey, sendUnicode)` in the
+  feature/rdp module. Maps US-layout ASCII (a-z, A-Z, 0-9, space,
+  tab, return, backspace, and the common shifted symbols) to AT
+  Set 1 scancodes. Non-ASCII falls through to the Unicode path
+  (still useful for the IME-aware app subset).
+- Both RDP entry points were converted: the standalone RdpScreen
+  and the Desktop multi-session view's RDP tab.
+
+Existing scancode paths (Enter, modifier keys, F-keys, arrows) are
+unchanged. Soft-keyboard typing benefits too — the InputConnection's
+commitText() call funnels through the same onTypeChar handler.
+
+Non-US layouts will type the wrong characters with this fix; that
+needs a per-profile keyboard-layout setting, which is out of scope
+for this release. File an issue if it's blocking.

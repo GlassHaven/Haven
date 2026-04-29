@@ -167,7 +167,13 @@ fun DesktopScreen(
                             onDragEnd = { desktopViewModel.releaseButton(1) },
                             onScrollUp = { desktopViewModel.scrollUp() },
                             onScrollDown = { desktopViewModel.scrollDown() },
-                            onTypeChar = { ch -> desktopViewModel.typeRdpUnicode(ch.code) },
+                            onTypeChar = { ch ->
+                                sh.haven.feature.rdp.typeRdpChar(
+                                    ch = ch,
+                                    sendKey = { sc, pressed -> desktopViewModel.sendRdpKey(sc, pressed) },
+                                    sendUnicode = { codepoint -> desktopViewModel.typeRdpUnicode(codepoint) },
+                                )
+                            },
                             onKeyDown = { scancode -> desktopViewModel.sendRdpKey(scancode, true) },
                             onKeyUp = { scancode -> desktopViewModel.sendRdpKey(scancode, false) },
                             onDisconnect = { desktopViewModel.closeTab(tab.id) },

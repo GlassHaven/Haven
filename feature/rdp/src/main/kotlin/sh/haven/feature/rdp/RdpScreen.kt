@@ -256,7 +256,13 @@ fun RdpScreen(
         onDragEnd = { viewModel.releaseButton() },
         onScrollUp = { viewModel.scrollUp() },
         onScrollDown = { viewModel.scrollDown() },
-        onTypeChar = { ch -> viewModel.typeUnicode(ch.code) },
+        onTypeChar = { ch ->
+            typeRdpChar(
+                ch = ch,
+                sendKey = { sc, pressed -> viewModel.sendKey(sc, pressed) },
+                sendUnicode = { codepoint -> viewModel.typeUnicode(codepoint) },
+            )
+        },
         onKeyDown = { scancode -> viewModel.sendKey(scancode, true) },
         onKeyUp = { scancode -> viewModel.sendKey(scancode, false) },
         onDisconnect = { viewModel.disconnect() },
@@ -671,7 +677,6 @@ private fun RdpViewer(
                 .size(1.dp)
                 .focusRequester(focusRequester)
                 .onPreviewKeyEvent { event ->
-                    // Map Compose Key to Windows scancode for RDP
                     val scancode = androidKeyToScancode(event.key)
                     if (scancode != null) {
                         when (event.type) {

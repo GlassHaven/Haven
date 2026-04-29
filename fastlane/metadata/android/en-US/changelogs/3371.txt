@@ -1,0 +1,26 @@
+v5.24.73: orientation toggle button on RDP and VNC viewers
+
+A new rotate-icon button on the session toolbar (and the fullscreen
+overlay menu) cycles between three orientation modes:
+
+- **Lock landscape** — what Haven did before, and the default. Phone
+  ignores its rotation sensor; the activity stays in landscape
+  regardless of how you hold it (USER_LANDSCAPE — left or right
+  is up to you).
+- **Lock portrait** — useful for narrow window-like apps on the
+  remote, or when you actually want to read a long file in
+  portrait.
+- **Auto** — follow the phone's normal auto-rotate behaviour. The
+  remote desktop will scale to whatever orientation you're holding
+  the device in.
+
+The previous force-landscape behaviour from the Desktop multi-
+session view (#109/surf5726) moves into the per-session composable,
+so each session screen manages its own orientation choice and
+restores UNSPECIFIED on dispose. No change for users who don't tap
+the button — it still defaults to landscape.
+
+The choice is preserved across configuration changes (rotation,
+process death, theme switch) via rememberSaveable, but it's not yet
+persisted per profile — closing and reopening a tab resets to
+landscape. Per-profile persistence can come later if it's needed.

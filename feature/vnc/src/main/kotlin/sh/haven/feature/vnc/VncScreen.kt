@@ -44,6 +44,9 @@ import androidx.compose.material.icons.filled.FullscreenExit
 import androidx.compose.material.icons.filled.Keyboard
 import androidx.compose.material.icons.filled.KeyboardHide
 import androidx.compose.material.icons.filled.Menu
+import androidx.compose.material.icons.filled.ScreenLockLandscape
+import androidx.compose.material.icons.filled.ScreenLockPortrait
+import androidx.compose.material.icons.filled.ScreenRotation
 import androidx.compose.material3.Button
 import androidx.compose.material3.ButtonDefaults
 import androidx.compose.material3.Card
@@ -357,6 +360,24 @@ private fun VncViewer(
             )
             if (newPanX != panX) panX = newPanX
             if (newPanY != panY) panY = newPanY
+        }
+    }
+
+    // Orientation toggle (Landscape -> Portrait -> Auto). The Activity's
+    // requestedOrientation defaults to UNSPECIFIED globally, but Haven's
+    // session views default to Landscape (USER_LANDSCAPE) since
+    // narrow-portrait phones aren't usable for full-desktop content.
+    // Persist across config changes via rememberSaveable so a rotation
+    // doesn't reset the user's choice.
+    val activity = androidx.compose.ui.platform.LocalContext.current as? android.app.Activity
+    var orientationMode by rememberSaveable { mutableStateOf(OrientationMode.Landscape) }
+    LaunchedEffect(orientationMode, activity) {
+        activity?.requestedOrientation = orientationMode.activityValue
+    }
+    DisposableEffect(activity) {
+        onDispose {
+            activity?.requestedOrientation =
+                android.content.pm.ActivityInfo.SCREEN_ORIENTATION_UNSPECIFIED
         }
     }
 
@@ -824,6 +845,10 @@ private fun VncViewer(
                     )
                 }
 
+                IconButton(onClick = { orientationMode = orientationMode.next() }) {
+                    Icon(orientationMode.icon, contentDescription = orientationMode.description)
+                }
+
                 Spacer(Modifier.weight(1f))
 
                 // Reset zoom button
@@ -917,6 +942,9 @@ private fun VncViewer(
                             else Icons.Default.Keyboard,
                             contentDescription = "Toggle keyboard",
                         )
+                    }
+                    IconButton(onClick = { orientationMode = orientationMode.next() }) {
+                        Icon(orientationMode.icon, contentDescription = orientationMode.description)
                     }
                     if (zoom != 1f || panX != 0f || panY != 0f) {
                         IconButton(onClick = {
@@ -1477,6 +1505,40 @@ fun charToKeySym(ch: Char): Int = when (ch) {
 }
 
 /** Map Android Key to X11 KeySym for special (non-printable) keys. */
+/**
+ * Three-state orientation cycle for the session toolbar's rotate
+ * button. Defaults to Landscape (matches the pre-existing forced-
+ * landscape behaviour in DesktopScreen.kt for #109/surf5726). The
+ * button cycles Landscape -> Portrait -> Auto and back. `Auto` here
+ * means "follow the system / device orientation".
+ *
+ * Mirror of the same enum in feature/rdp/RdpScreen.kt — kept private
+ * in each module to avoid a cross-feature dependency for ~15 LOC.
+ */
+private enum class OrientationMode(
+    val activityValue: Int,
+    val icon: androidx.compose.ui.graphics.vector.ImageVector,
+    val description: String,
+) {
+    Landscape(
+        activityValue = android.content.pm.ActivityInfo.SCREEN_ORIENTATION_USER_LANDSCAPE,
+        icon = Icons.Default.ScreenLockLandscape,
+        description = "Lock landscape (tap to switch to portrait)",
+    ),
+    Portrait(
+        activityValue = android.content.pm.ActivityInfo.SCREEN_ORIENTATION_USER_PORTRAIT,
+        icon = Icons.Default.ScreenLockPortrait,
+        description = "Lock portrait (tap to switch to auto)",
+    ),
+    Auto(
+        activityValue = android.content.pm.ActivityInfo.SCREEN_ORIENTATION_UNSPECIFIED,
+        icon = Icons.Default.ScreenRotation,
+        description = "Auto rotate (tap to switch to landscape)",
+    );
+
+    fun next(): OrientationMode = entries[(ordinal + 1) % entries.size]
+}
+
 private fun androidKeyToKeySym(key: Key): Int? = when (key) {
     Key.Enter -> XK_RETURN
     Key.Tab -> XK_TAB

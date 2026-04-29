@@ -4,6 +4,10 @@ import android.util.Log
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.SupervisorJob
+import kotlinx.coroutines.flow.MutableStateFlow
+import kotlinx.coroutines.flow.StateFlow
+import kotlinx.coroutines.flow.asStateFlow
+import kotlinx.coroutines.launch
 import sh.haven.mosh.MoshLogger
 import sh.haven.mosh.transport.MoshTransport
 import java.io.Closeable
@@ -51,6 +55,10 @@ class MoshSession(
     private val scope = CoroutineScope(SupervisorJob() + Dispatchers.IO)
     private var transport: MoshTransport? = null
 
+    /** Forwarded from [MoshTransport.secondsUntilDisconnect]; null while healthy. */
+    private val _secondsUntilDisconnect = MutableStateFlow<Int?>(null)
+    val secondsUntilDisconnect: StateFlow<Int?> = _secondsUntilDisconnect.asStateFlow()
+
     /**
      * Start the mosh transport: opens UDP socket, begins send/receive loops.
      *
@@ -96,6 +104,9 @@ class MoshSession(
         )
         transport = t
         t.start(scope)
+        scope.launch {
+            t.secondsUntilDisconnect.collect { _secondsUntilDisconnect.value = it }
+        }
     }
 
     /**

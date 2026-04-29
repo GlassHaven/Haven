@@ -45,6 +45,9 @@ private val TRANSPORTS_NEEDING_EXPLICIT_DETACH = setOf("MOSH", "ET")
 /** How long to wait for a Mosh/ET detach packet to land before tearing down. */
 private const val SESSION_MANAGER_DETACH_DELAY_MS = 300L
 
+/** Sentinel for transports that don't report a stall countdown. */
+private val NEVER_STALLS: StateFlow<Int?> = MutableStateFlow(null)
+
 /** Main-thread handler for posting emulator writes. */
 private val mainHandler = android.os.Handler(android.os.Looper.getMainLooper())
 
@@ -230,6 +233,10 @@ data class TerminalTab(
     val cwd: StateFlow<String?>,
     val hyperlinkUri: StateFlow<String?>,
     val isReconnecting: StateFlow<Boolean>,
+    /** Non-null when the transport has gone silent and is counting down to a
+     *  forced disconnect. Currently only Mosh emits a value; other transports
+     *  stay null. */
+    val secondsUntilDisconnect: StateFlow<Int?>,
     val sendInput: (ByteArray) -> Unit,
     val resize: (Int, Int) -> Unit,
     val close: () -> Unit,
@@ -755,6 +762,7 @@ class TerminalViewModel @Inject constructor(
                     cwd = cwdFlow,
                     hyperlinkUri = hyperlinkFlow,
                     isReconnecting = reconnectingFlow,
+                    secondsUntilDisconnect = NEVER_STALLS,
                     sendInput = { data -> termSession.sendToSsh(data) },
                     resize = { cols, rows -> termSession.resize(cols, rows) },
                     close = { termSession.close() },
@@ -827,6 +835,7 @@ class TerminalViewModel @Inject constructor(
                     cwd = rnsCwdFlow,
                     hyperlinkUri = rnsHyperlinkFlow,
                     isReconnecting = MutableStateFlow(false),
+                    secondsUntilDisconnect = NEVER_STALLS,
                     sendInput = { data -> rnsSession.sendInput(data) },
                     resize = { cols, rows -> rnsSession.resize(cols, rows) },
                     close = { rnsSession.close() },
@@ -921,6 +930,7 @@ class TerminalViewModel @Inject constructor(
                     cwd = moshCwdFlow,
                     hyperlinkUri = moshHyperlinkFlow,
                     isReconnecting = MutableStateFlow(false),
+                    secondsUntilDisconnect = moshSession.secondsUntilDisconnect,
                     sendInput = { data -> moshSession.sendInput(data) },
                     resize = { cols, rows -> moshSession.resize(cols, rows) },
                     close = { moshSession.close() },
@@ -1014,6 +1024,7 @@ class TerminalViewModel @Inject constructor(
                     cwd = etCwdFlow,
                     hyperlinkUri = etHyperlinkFlow,
                     isReconnecting = MutableStateFlow(false),
+                    secondsUntilDisconnect = NEVER_STALLS,
                     sendInput = { data -> etSession.sendInput(data) },
                     resize = { cols, rows -> etSession.resize(cols, rows) },
                     close = { etSession.close() },
@@ -1086,6 +1097,7 @@ class TerminalViewModel @Inject constructor(
                     cwd = localCwdFlow,
                     hyperlinkUri = localHyperlinkFlow,
                     isReconnecting = MutableStateFlow(false),
+                    secondsUntilDisconnect = NEVER_STALLS,
                     sendInput = { data -> localSession.sendInput(data) },
                     resize = { cols, rows -> localSession.resize(cols, rows) },
                     close = { localSession.close() },

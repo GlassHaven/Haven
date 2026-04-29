@@ -37,6 +37,12 @@ import androidx.compose.material.icons.filled.DesktopWindows
 import androidx.compose.material.icons.filled.ContentCopy
 import androidx.compose.material.icons.filled.DriveFileRenameOutline
 import androidx.compose.material.icons.filled.Search
+import androidx.compose.material.icons.filled.WifiOff
+import androidx.compose.animation.AnimatedVisibility
+import androidx.compose.animation.fadeIn
+import androidx.compose.animation.fadeOut
+import androidx.compose.animation.slideInVertically
+import androidx.compose.animation.slideOutVertically
 import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.DropdownMenuItem
@@ -735,6 +741,10 @@ fun TerminalScreen(
                             )
                         }
 
+                        DisconnectCountdownBanner(
+                            stallFlow = activeTab.secondsUntilDisconnect,
+                            modifier = Modifier.align(Alignment.TopCenter),
+                        )
                     }
 
                     KeyboardToolbar(
@@ -1244,6 +1254,56 @@ private fun VncSettingsDialog(
             }
         },
     )
+}
+
+/**
+ * Top-aligned banner shown over the terminal when the transport has gone
+ * silent and is counting down to a forced disconnect. Hidden when the flow
+ * is null. Currently driven by Mosh; other transports always emit null.
+ */
+@Composable
+private fun DisconnectCountdownBanner(
+    stallFlow: kotlinx.coroutines.flow.StateFlow<Int?>,
+    modifier: Modifier = Modifier,
+) {
+    val seconds by stallFlow.collectAsState()
+    val visible = seconds != null
+    AnimatedVisibility(
+        visible = visible,
+        enter = fadeIn() + slideInVertically { -it },
+        exit = fadeOut() + slideOutVertically { -it },
+        modifier = modifier,
+    ) {
+        val s = seconds ?: 0
+        Surface(
+            color = MaterialTheme.colorScheme.errorContainer,
+            contentColor = MaterialTheme.colorScheme.onErrorContainer,
+            shape = MaterialTheme.shapes.small,
+            tonalElevation = 4.dp,
+            shadowElevation = 4.dp,
+            modifier = Modifier.padding(8.dp),
+        ) {
+            Row(
+                verticalAlignment = Alignment.CenterVertically,
+                modifier = Modifier.padding(horizontal = 12.dp, vertical = 6.dp),
+            ) {
+                Icon(
+                    Icons.Filled.WifiOff,
+                    contentDescription = null,
+                    modifier = Modifier.size(16.dp),
+                )
+                Spacer(Modifier.width(8.dp))
+                Text(
+                    text = if (s > 0) {
+                        stringResource(R.string.terminal_disconnect_countdown, s)
+                    } else {
+                        stringResource(R.string.terminal_disconnect_now)
+                    },
+                    style = MaterialTheme.typography.labelMedium,
+                )
+            }
+        }
+    }
 }
 
 @Composable

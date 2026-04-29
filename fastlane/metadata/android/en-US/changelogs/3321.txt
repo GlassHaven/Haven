@@ -1,0 +1,23 @@
+v5.24.68: disconnect-countdown banner for stalled Mosh sessions
+
+When a Mosh session goes silent — typing `exit` inside the shell, the
+remote host vanishing, the network falling away — the client used to
+sit unresponsive for up to 8 seconds before the SESSION_DEAD
+heuristic fired and tore the transport down. There was no signal in
+the UI to say "the connection's gone, give me a moment" — just a
+frozen terminal.
+
+Now `MoshTransport` exposes a `secondsUntilDisconnect: StateFlow<Int?>`
+that flips non-null once we're past the keepalive window with no
+inbound packets, and counts down from ~4s to the SESSION_DEAD
+deadline. The terminal screen shows a small top-of-pane banner
+("Disconnected — closing in N s") while it's non-null, switching to
+"Disconnected — closing" at zero. Any received packet (recovery,
+reconnect) clears the banner instantly.
+
+Mosh-only for now. ET is TCP and signals close more cleanly so
+doesn't need it; SSH disconnect already has its own reconnect-state
+indicator on the tab.
+
+The underlying SESSION_DEAD timeout itself is unchanged — the
+visibility change is the whole win.

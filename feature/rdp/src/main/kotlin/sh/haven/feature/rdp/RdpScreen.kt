@@ -545,7 +545,15 @@ private fun RdpViewer(
                                     } else {
                                         cumulativeScrollY += centroid.y - prevCentroid.y
                                         if (abs(cumulativeScrollY) > 40f) {
-                                            if (cumulativeScrollY < 0) onScrollUp() else onScrollDown()
+                                            // Direct manipulation (Android Y grows down):
+                                            // dragging fingers down (delta > 0) sends a
+                                            // wheel-up notch on the remote so the page
+                                            // moves down with the fingers, matching every
+                                            // other touchscreen app. The earlier mapping
+                                            // sent wheel-down for finger-down, which
+                                            // matched mouse-wheel convention but felt
+                                            // inverted on a touchscreen.
+                                            if (cumulativeScrollY < 0) onScrollDown() else onScrollUp()
                                             cumulativeScrollY = 0f
                                         }
                                     }

@@ -1,0 +1,34 @@
+v5.24.71: better error message for the colour-depth wall + natural two-finger scroll
+
+Two unrelated UX cleanups follow up the EGFX work:
+
+**RDP error message accuracy.** When the v5.24.69 EGFX work caused
+modern Windows servers to TCP-FIN the connection because the
+profile's colour depth was 16 (Bpp8 in the GCC core data), the
+client surfaced "TLS handshake failed" — even though TLS and
+authentication had both succeeded and the actual close was
+mid-MCS-Connect. The error wrapper for `connect_finalize` failures
+was naming the wrong protocol layer. It now says:
+
+    Server closed the connection during RDP setup (after TLS +
+    authentication succeeded). Most common cause: the profile's
+    colour depth is 16 against a modern Windows server — try 32.
+
+This works alongside v5.24.70's auto-bump migration: profiles with
+NLA on were bumped automatically, but anyone hitting the wall some
+other way (NLA off + Windows, restored backup with old colour
+depth, fresh profile manually set to 16) now sees a message that
+points at the actual fix rather than sending them looking at the
+TLS layer. Three unit tests added to lock the new framing in.
+
+**Two-finger scroll direction.** The 2-finger drag handler in the
+RDP and VNC viewers was wired to mouse-wheel convention: dragging
+fingers down sent a wheel-down notch, so the page on the remote
+moved up under your fingers. On a touchscreen this feels backwards
+— every other Android app uses direct manipulation, where the
+content under your fingers moves with you. Flipped both handlers
+so a downward drag scrolls the remote view down with the gesture
+and an upward drag scrolls it up. The wire-level scrollUp() /
+scrollDown() ViewModel calls and their +120 / -120 RDP/VNC wheel
+deltas are unchanged; only which gesture invokes which handler
+flipped.

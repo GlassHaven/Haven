@@ -1,0 +1,41 @@
+v5.24.78: VNC/RDP/SMB-over-SSH-tunnel auth + leaked sessions on failure (#121)
+
+KoriKraut (#121) reported that an SSH connection (saved password) and a
+plain VNC connection both worked, but VNC over an SSH tunnel failed with:
+
+    Auth cancel for methods public key,password
+
+— and every retry left another undismissable "active session" in the
+notification ("5 active sessions"). Two bugs in connectJumpHost.
+
+== 1. Empty password on the auto-connect path ==
+
+VNC, RDP, and SMB tunnel call sites all invoked
+connectJumpHost(sshProfileId, "") because the user clicked the *VNC*
+profile (not the SSH one) so there's no user-typed password to pass.
+connectJumpHost forwarded that empty string to resolveAuthMethod, which
+fell through to AuthMethod.Password(""). For SSH profiles that auth
+with a saved password (no key configured), JSch then exhausted both
+key and password attempts and reported "Auth cancel for methods …".
+
+Fix: when the caller passes an empty password, fall back to
+jumpProfile.sshPassword ?: "". User-typed passwords (the explicit
+SSH-side jump-chain path used by #116) still take precedence.
+
+== 2. Failed jump-host sessions leaked into the active-sessions list ==
+
+connectJumpHost registers the SSH session before driving auth so the
+session manager can track it during connect. If anything inside the
+withContext block threw — auth failure, host-key rejection, network
+loss — the session was already registered and the exception bubbled
+straight up through the caller's catch. Result: the session sat in
+the manager forever, untouchable from UI. Each retry added another.
+
+Fix: wrap the auth flow in try/catch; on any throw, mark the session
+ERROR and removeSession before rethrowing. Mirrors what connectSshSilent
+already does for the primary SSH path.
+
+Untested with a real password-auth jump host in this session — the
+fix is small and the change to connectSshSilent's existing pattern is
+mechanical, but a re-test by KoriKraut would confirm both the auth
+landing and the active-sessions count returning to expectations.

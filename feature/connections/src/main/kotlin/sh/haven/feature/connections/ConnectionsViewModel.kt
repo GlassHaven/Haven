@@ -2142,48 +2142,67 @@ class ConnectionsViewModel @Inject constructor(
         val jumpProfile = repository.getById(jumpProfileId)
             ?: throw Exception("Jump host profile not found")
 
+        // Auto-connect paths (VNC/RDP/SMB-over-SSH-tunnel) call us with an
+        // empty password — they don't have one to pass. Fall back to the
+        // jump-host profile's saved sshPassword so password-auth jumps
+        // actually succeed instead of bouncing off "Auth cancel for methods
+        // public key,password" (#121, KoriKraut). Explicit SSH-side jump
+        // chains keep the user-typed password they passed in.
+        val effectivePassword = if (password.isEmpty()) jumpProfile.sshPassword ?: "" else password
+
         Log.d(TAG, "Auto-connecting jump host: ${jumpProfile.label} (${jumpProfile.host}:${jumpProfile.port})")
         val jumpClient = SshClient()
         val jumpSessionId = sshSessionManager.registerSession(jumpProfileId, "Jump: ${jumpProfile.label}", jumpClient)
 
-        withContext(Dispatchers.IO) {
-            val authMethod = resolveAuthMethod(jumpProfile, password)
-            val config = ConnectionConfig(
-                host = jumpProfile.host,
-                port = jumpProfile.port,
-                username = jumpProfile.username,
-                authMethod = authMethod,
-                sshOptions = ConnectionConfig.parseSshOptions(jumpProfile.sshOptions),
-            )
-            Log.d(TAG, "Jump host SSH connecting...")
-            try {
-                val hostKeyEntry = jumpClient.connect(
-                    config,
-                    keyboardInteractivePrompter = keyboardInteractivePrompter,
+        try {
+            withContext(Dispatchers.IO) {
+                val authMethod = resolveAuthMethod(jumpProfile, effectivePassword)
+                val config = ConnectionConfig(
+                    host = jumpProfile.host,
+                    port = jumpProfile.port,
+                    username = jumpProfile.username,
+                    authMethod = authMethod,
+                    sshOptions = ConnectionConfig.parseSshOptions(jumpProfile.sshOptions),
                 )
-                Log.d(TAG, "Jump host SSH connected, verifying host key...")
-                runTofuVerification(
-                    hostKeyEntry,
-                    clientToDisconnectOnReject = jumpClient,
-                    rejectedOnNewHostMessage = "Jump host key rejected by user",
-                    rejectedOnChangeMessage = "Jump host key change rejected by user",
-                )
-            } catch (e: HostKeyAuthFailure) {
-                runTofuVerification(
-                    e.hostKey,
-                    clientToDisconnectOnReject = null,
-                    rejectedOnNewHostMessage = "Jump host key rejected by user",
-                    rejectedOnChangeMessage = "Jump host key change rejected by user",
-                )
-                throw e.cause ?: e
+                Log.d(TAG, "Jump host SSH connecting...")
+                try {
+                    val hostKeyEntry = jumpClient.connect(
+                        config,
+                        keyboardInteractivePrompter = keyboardInteractivePrompter,
+                    )
+                    Log.d(TAG, "Jump host SSH connected, verifying host key...")
+                    runTofuVerification(
+                        hostKeyEntry,
+                        clientToDisconnectOnReject = jumpClient,
+                        rejectedOnNewHostMessage = "Jump host key rejected by user",
+                        rejectedOnChangeMessage = "Jump host key change rejected by user",
+                    )
+                } catch (e: HostKeyAuthFailure) {
+                    runTofuVerification(
+                        e.hostKey,
+                        clientToDisconnectOnReject = null,
+                        rejectedOnNewHostMessage = "Jump host key rejected by user",
+                        rejectedOnChangeMessage = "Jump host key change rejected by user",
+                    )
+                    throw e.cause ?: e
+                }
+
+                sshSessionManager.storeConnectionConfig(jumpSessionId, config, SessionManager.NONE)
             }
 
-            sshSessionManager.storeConnectionConfig(jumpSessionId, config, SessionManager.NONE)
+            sshSessionManager.updateStatus(jumpSessionId, SshSessionManager.SessionState.Status.CONNECTED)
+            Log.d(TAG, "Jump host connected: ${jumpProfile.label} ($jumpSessionId), isConnected=${jumpClient.isConnected}")
+            return jumpSessionId to false
+        } catch (e: Exception) {
+            // Auth failure (or anything else) used to leave the registered
+            // session orphaned in the active-sessions list — undismissable,
+            // and one accumulates per retry (#121, KoriKraut: "5 active
+            // sessions"). Mark it ERROR and unregister before re-throwing.
+            Log.e(TAG, "Jump host connect failed for ${jumpProfile.label}: ${e.message}", e)
+            sshSessionManager.updateStatus(jumpSessionId, SshSessionManager.SessionState.Status.ERROR)
+            sshSessionManager.removeSession(jumpSessionId)
+            throw e
         }
-
-        sshSessionManager.updateStatus(jumpSessionId, SshSessionManager.SessionState.Status.CONNECTED)
-        Log.d(TAG, "Jump host connected: ${jumpProfile.label} ($jumpSessionId), isConnected=${jumpClient.isConnected}")
-        return jumpSessionId to false
     }
 
     private suspend fun finishConnect(sessionId: String, profileId: String, verboseLog: String? = pendingVerboseLogs.remove(sessionId), silent: Boolean = false) {

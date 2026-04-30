@@ -1,6 +1,6 @@
 use std::net::{SocketAddr, TcpStream};
 use std::sync::{Arc, Mutex, RwLock};
-use log::{debug, error, info};
+use log::{debug, error, info, warn};
 
 mod egfx;
 
@@ -1009,6 +1009,23 @@ fn try_handle_slow_path_bitmap(
     };
 
     debug!("Update PDU payload: {} bytes", update_bytes.len());
+
+    // If EGFX_PDU_DUMP_DIR is set, capture the legacy slow-path
+    // BitmapUpdateData payload too — the BitmapUpdate type is the
+    // *other* RDPGFX_RECT16 consumer affected by IronRDP PR #1238
+    // (exclusive vs inclusive rectangles), and having a real
+    // Server 2025 capture of one helps validate the type flip.
+    if let Ok(dir) = std::env::var("EGFX_PDU_DUMP_DIR") {
+        // Counter is process-local and best-effort; we just want
+        // unique-enough filenames per dump session.
+        use std::sync::atomic::{AtomicU64, Ordering};
+        static N: AtomicU64 = AtomicU64::new(0);
+        let n = N.fetch_add(1, Ordering::Relaxed);
+        let path = format!("{dir}/slow_path_bitmap_update_{n:04}.bin");
+        if let Err(e) = std::fs::write(&path, &update_bytes) {
+            warn!("EGFX_PDU_DUMP write failed for {path}: {e}");
+        }
+    }
 
     let mut cursor = ReadCursor::new(&update_bytes);
     let bitmap_update = match BitmapUpdateData::decode(&mut cursor) {

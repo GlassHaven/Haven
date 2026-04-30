@@ -135,6 +135,7 @@ impl DvcProcessor for EgfxProcessor {
         while !cur.is_empty() {
             self.server_pdu_count = self.server_pdu_count.saturating_add(1);
             let n = self.server_pdu_count;
+            let pdu_start = cur.pos();
             let pdu = match <ServerPdu as ironrdp_core::Decode>::decode(&mut cur) {
                 Ok(p) => p,
                 Err(e) => {
@@ -145,6 +146,8 @@ impl DvcProcessor for EgfxProcessor {
                     break;
                 }
             };
+            let pdu_end = cur.pos();
+            maybe_dump_pdu(n, &decompressed[pdu_start..pdu_end], &pdu);
             self.dispatch(n, &pdu, &mut out_messages);
         }
         Ok(out_messages)
@@ -549,3 +552,48 @@ fn clip_to_surface(r: &ironrdp_pdu::geometry::InclusiveRectangle, sw: u32, sh: u
 }
 
 impl DvcClientProcessor for EgfxProcessor {}
+
+/// If `EGFX_PDU_DUMP_DIR` is set, write the post-zgfx-decompressed bytes
+/// of each [`ServerPdu`] to `<dir>/pdu_NNNN_<kind>.bin`. Useful as
+/// regression / upstream-bug-report fixtures: the bytes are exactly what
+/// the `<ServerPdu as Decode>::decode` parser saw, so feeding them back
+/// through the same parser is a deterministic reproduction.
+///
+/// Names are zero-padded so a normal `ls` lists them in arrival order.
+/// Logs (not panics) on I/O failure — a session shouldn't die because
+/// the brewer's dump dir is full.
+fn maybe_dump_pdu(n: u64, bytes: &[u8], pdu: &ServerPdu) {
+    let Ok(dir) = std::env::var("EGFX_PDU_DUMP_DIR") else {
+        return;
+    };
+    let kind = pdu_kind_label(pdu);
+    let path = format!("{dir}/pdu_{n:04}_{kind}.bin");
+    if let Err(e) = std::fs::write(&path, bytes) {
+        warn!("EGFX_PDU_DUMP write failed for {path}: {e}");
+    }
+}
+
+fn pdu_kind_label(p: &ServerPdu) -> &'static str {
+    // Exhaustive match — if upstream adds a ServerPdu variant we want
+    // the build to break here so we add it to the dump filename.
+    match p {
+        ServerPdu::CapabilitiesConfirm(_) => "capabilities_confirm",
+        ServerPdu::ResetGraphics(_) => "reset_graphics",
+        ServerPdu::CreateSurface(_) => "create_surface",
+        ServerPdu::DeleteSurface(_) => "delete_surface",
+        ServerPdu::MapSurfaceToOutput(_) => "map_surface_to_output",
+        ServerPdu::MapSurfaceToScaledOutput(_) => "map_surface_to_scaled_output",
+        ServerPdu::MapSurfaceToScaledWindow(_) => "map_surface_to_scaled_window",
+        ServerPdu::StartFrame(_) => "start_frame",
+        ServerPdu::EndFrame(_) => "end_frame",
+        ServerPdu::WireToSurface1(_) => "wire_to_surface1",
+        ServerPdu::WireToSurface2(_) => "wire_to_surface2",
+        ServerPdu::SolidFill(_) => "solid_fill",
+        ServerPdu::SurfaceToSurface(_) => "surface_to_surface",
+        ServerPdu::SurfaceToCache(_) => "surface_to_cache",
+        ServerPdu::CacheToSurface(_) => "cache_to_surface",
+        ServerPdu::EvictCacheEntry(_) => "evict_cache_entry",
+        ServerPdu::DeleteEncodingContext(_) => "delete_encoding_context",
+        ServerPdu::CacheImportReply(_) => "cache_import_reply",
+    }
+}

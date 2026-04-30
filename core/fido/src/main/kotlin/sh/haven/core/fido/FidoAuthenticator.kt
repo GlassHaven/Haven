@@ -321,9 +321,14 @@ class FidoAuthenticator @Inject constructor(
             }
             val flags = if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.S)
                 PendingIntent.FLAG_MUTABLE else 0
+            // Android 14+ (targetSdk 34+) rejects FLAG_MUTABLE PendingIntents
+            // built around an implicit Intent. UsbManager fills the granted-flag
+            // extra back into the intent so it must stay MUTABLE — make the
+            // intent explicit by package instead. See #15 (olmari, Pixel 9 Fold).
+            val permIntent = Intent(ACTION_USB_PERMISSION).setPackage(context.packageName)
             usbManager.requestPermission(
                 device,
-                PendingIntent.getBroadcast(context, 0, Intent(ACTION_USB_PERMISSION), flags),
+                PendingIntent.getBroadcast(context, 0, permIntent, flags),
             )
             val granted = try {
                 withTimeoutOrNull(USB_PERMISSION_TIMEOUT_MS) { permDeferred.await() }

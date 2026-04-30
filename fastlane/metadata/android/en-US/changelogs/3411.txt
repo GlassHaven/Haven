@@ -1,0 +1,25 @@
+v5.24.77: FIDO2 SSH on Android 14+ — fix the PendingIntent crash (#15)
+
+olmari (#15) hit an immediate crash on a Pixel 9 Fold (Android 15) the
+moment they tried to use an imported ED25519 SK key with their YubiKey:
+
+    sh.haven.app: Targeting U+ (version 34 and above) disallows
+    creating or retrieving a PendingIntent with FLAG_MUTABLE, an
+    implicit Intent ... use FLAG_IMMUTABLE.
+
+Cause: FidoAuthenticator's USB-permission request built a
+PendingIntent around an implicit Intent (`Intent(ACTION_USB_PERMISSION)`
+with no package set) and Haven's targetSdk is 35. Android 14+ blocks
+that combination — UsbManager.requestPermission fills the
+EXTRA_PERMISSION_GRANTED flag back into the intent so we must keep
+FLAG_MUTABLE, which means the Intent itself has to be made explicit.
+
+Fix: set `.setPackage(context.packageName)` on the permission Intent
+before wrapping it in the PendingIntent. The broadcast still only
+reaches Haven's own receiver (it always did — the IntentFilter is on
+our action), but Android 14+'s safety check now sees an explicit
+target and lets the MUTABLE flag through.
+
+Untested with a physical YubiKey on Android 14+ in this session;
+relies on olmari (or any FIDO2-key user) to confirm. The change is
+one line + an explanatory comment.

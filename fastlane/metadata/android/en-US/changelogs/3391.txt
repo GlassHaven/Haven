@@ -1,0 +1,15 @@
+v5.24.75: lint fix — use LocalActivity instead of casting LocalContext
+
+CI lint failed on v5.24.73 + v5.24.74 with:
+
+    LocalContext should not be cast to Activity, use LocalActivity instead
+
+The orientation toggle code in RdpScreen, VncScreen, and DesktopScreen
+fetched the host Activity via `LocalContext.current as? Activity`, which
+the Compose lint rule flags as fragile (the cast can fail on test or
+preview hosts). Switched to `androidx.activity.compose.LocalActivity.current`
+which returns the ComponentActivity directly. activity-compose 1.10.1
+already in the project supplies it.
+
+No behaviour change. Same orientation toggle, same Activity. Just a CI
+green-run.

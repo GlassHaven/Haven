@@ -265,7 +265,7 @@ fun RdpScreen(
     // inside RdpSessionContent / RdpViewer that would otherwise tear
     // down a `remember` on slot-position shifts. Apply to the
     // Activity directly.
-    val activity = androidx.compose.ui.platform.LocalContext.current as? android.app.Activity
+    val activity = androidx.activity.compose.LocalActivity.current
     var orientationValue by remember {
         mutableStateOf(android.content.pm.ActivityInfo.SCREEN_ORIENTATION_LANDSCAPE)
     }

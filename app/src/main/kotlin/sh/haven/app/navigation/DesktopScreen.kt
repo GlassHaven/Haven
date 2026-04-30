@@ -91,7 +91,7 @@ fun DesktopScreen(
     // here applies the chosen orientation to the Activity from a
     // stable parent (DesktopScreen itself, not the conditional
     // child).
-    val activity = androidx.compose.ui.platform.LocalContext.current as? android.app.Activity
+    val activity = androidx.activity.compose.LocalActivity.current
     val desktopOrientation by desktopViewModel.desktopOrientation.collectAsState()
     LaunchedEffect(desktopOrientation, activity) {
         activity?.requestedOrientation = desktopOrientation

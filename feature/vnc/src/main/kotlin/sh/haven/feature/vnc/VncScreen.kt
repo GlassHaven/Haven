@@ -254,7 +254,7 @@ fun VncScreen(
     // Standalone-path orientation state. Lives in VncScreen (the
     // outer composable) so it sits above any conditional siblings
     // inside VncSessionContent / VncViewer. Mirrors RdpScreen.
-    val activity = androidx.compose.ui.platform.LocalContext.current as? android.app.Activity
+    val activity = androidx.activity.compose.LocalActivity.current
     var orientationValue by remember {
         mutableStateOf(android.content.pm.ActivityInfo.SCREEN_ORIENTATION_LANDSCAPE)
     }

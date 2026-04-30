@@ -1,0 +1,30 @@
+v5.24.76: stop Gboard auto-capitalising / auto-spacing terminal input (#115)
+
+agevlakh (#115) reported that the v5.24.56 fix didn't actually stop
+Gboard rewriting commands. A Huawei Pura 70 video showed typed "cd"
+landing as "CD" and "ip" as "IP " — autocapitalisation and
+auto-spacing still firing through Gboard even with
+TYPE_TEXT_FLAG_NO_SUGGESTIONS set on the input field.
+
+Cause: NO_SUGGESTIONS only commits Gboard to hiding the suggestion
+strip. Its silent autocorrect / autocap / autospace heuristics fire
+independently and still rewrite committed text on word boundaries.
+Removing TYPE_TEXT_FLAG_AUTO_CORRECT (the v5.24.56 fix) cut the
+strongest trigger but left these heuristics in play.
+
+Fix: for non-Samsung IMEs, layer TYPE_TEXT_VARIATION_VISIBLE_PASSWORD
+on top of TYPE_CLASS_TEXT in default Secure mode. Visible-password
+is the standard Android opt-out from every IME smart behaviour —
+autocorrect, autocap, autospace, autocomplete, learning. Samsung-
+gated IMEs keep the existing NO_SUGGESTIONS | AUTO_CORRECT combo
+(changing them would re-open #110, the Galaxy S23 input-drop bug).
+
+Tradeoff: VISIBLE_PASSWORD disables IME composition, so default
+Secure mode no longer supports CJK input. Users who type Chinese,
+Japanese, or Korean should switch to Compose mode (Settings →
+Keyboard) which still uses TYPE_CLASS_TEXT only. Voice input and
+swipe typing similarly belong in Standard mode.
+
+Untested on agevlakh's exact device — please test once F-Droid
+publishes (or sideload from the GitHub release) and reopen #115 if
+the autocap / autospace persists.

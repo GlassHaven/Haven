@@ -75,9 +75,11 @@ F-Droid auto-detects new tags via `AutoUpdateMode: Version` + `UpdateCheckMode: 
 
 F-Droid's buildserver is the authoritative build environment — failing there blocks the public release. The recipe at [fdroiddata/metadata/sh.haven.app.yml](https://gitlab.com/fdroid/fdroiddata/-/blob/master/metadata/sh.haven.app.yml) pins specific tool versions, and our CI mirrors them in `.github/actions/setup-toolchain/action.yml`. When you bump a pin in one place, bump it in the other — otherwise CI passes on a version F-Droid doesn't have and vice-versa.
 
+The buildserver no longer pre-installs NDKs in its Docker image — `fdroidserver.common.auto_install_ndk` fetches whatever the build entry's `ndk:` field requests via `sdkmanager` on demand. So the NDK pin lives in our gradle modules; the F-Droid manifest's `ndk:` line just tells the buildserver to install the same one.
+
 | Tool | F-Droid pin | Our CI |
 |---|---|---|
-| NDK | `r28c` (`28.2.13676358`) — declared per-module in `core/local`, `termlib/lib` | `sdkmanager "ndk;28.2.13676358"` in the composite action |
+| NDK | `r29` (`29.0.14206865`) — declared per-module in `core/local`, `termlib/lib` | `sdkmanager "ndk;29.0.14206865"` in the composite action |
 | Rust | `rustup default 1.85.0` | `rustup default 1.85.0` |
 | `cargo-ndk` | `3.5.4` | `3.5.4` |
 | CMake | `3.31.6` | `3.31.6` |

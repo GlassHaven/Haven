@@ -31,13 +31,16 @@ runs:
     - name: Set up Android SDK
       uses: android-actions/setup-android@v4
 
-    # Only install the NDK we actually pin in per-module ndkVersion
-    # (core/local + termlib/lib: 28.2.13676358, r28c, matching F-Droid).
-    # Adding unrelated NDK versions wastes ~2GB of runner disk and
-    # buys nothing.
+    # Only install the NDK we pin in per-module ndkVersion
+    # (core/local + termlib/lib: 29.0.14206865, r29 stable). F-Droid's
+    # buildserver no longer pre-installs NDKs in the Docker image —
+    # fdroidserver.common.auto_install_ndk fetches whatever the
+    # manifest's ndk: field requests via sdkmanager on demand. Bumped
+    # off r28c (28.2.13676358) once Google moved that to the
+    # unsupported list (GlassHaven/Haven#77).
     - name: Install SDK platform 36, CMake, and NDK
       shell: bash
-      run: sdkmanager "platforms;android-36" "cmake;3.31.6" "ndk;28.2.13676358"
+      run: sdkmanager "platforms;android-36" "cmake;3.31.6" "ndk;29.0.14206865"
 
     - name: Set up Go toolchain
       uses: actions/setup-go@v6

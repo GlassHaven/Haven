@@ -3,7 +3,9 @@
 # Cross-compile PRoot for Android arm64-v8a and x86_64.
 #
 # Prerequisites:
-#   - Android NDK r27+ (set ANDROID_NDK_HOME or auto-detected from ~/Android/Sdk/ndk/)
+#   - Android NDK r28+ (tested against r29 stable; r28+ is required for the
+#     ARM64 TLS alignment fix the build_for_arch step relies on). Set
+#     ANDROID_NDK_HOME, or let the script auto-detect from ~/Android/Sdk/ndk/.
 #   - Standard build tools: make, git
 #   - PRoot source: build-proot/proot-termux submodule (git submodule update --init)
 #   - Talloc source: build-proot/talloc/ (vendored)
@@ -32,7 +34,8 @@ if [ ! -f "talloc/talloc.c" ]; then
     exit 1
 fi
 
-# Auto-detect NDK (pick newest available, needs r28+ for ARM64 TLS alignment)
+# Auto-detect NDK (pick newest available; needs r28+ for the ARM64 TLS
+# alignment fix below — tested against r29 stable).
 if [ -z "${ANDROID_NDK_HOME:-}" ]; then
     for NDK_BASE in "$HOME/Android/Sdk/ndk" "${ANDROID_HOME:-/nonexistent}/ndk" "${ANDROID_SDK_ROOT:-/nonexistent}/ndk"; do
         if [ -d "$NDK_BASE" ]; then

@@ -8,7 +8,7 @@ plugins {
 android {
     namespace = "sh.haven.core.local"
     compileSdk = 36
-    ndkVersion = "28.2.13676358"
+    ndkVersion = "29.0.14206865"
 
     defaultConfig {
         minSdk = 26
@@ -60,7 +60,8 @@ val buildProot by tasks.registering(Exec::class) {
 
     workingDir = rootProject.file("build-proot")
     commandLine("bash", "build.sh")
-    // Let build.sh auto-detect the newest NDK (needs r28+ for ARM64 TLS alignment)
+    // Let build.sh auto-detect the newest NDK (needs r28+ for the ARM64
+    // TLS alignment fix; we ship against r29 stable in CI).
     environment("PROOT_OUTPUT", jniLibsDir.absolutePath)
 }
 

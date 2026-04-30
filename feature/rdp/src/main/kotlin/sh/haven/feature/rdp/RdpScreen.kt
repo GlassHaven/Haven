@@ -131,6 +131,19 @@ fun RdpSessionContent(
     onFullscreenChanged: (Boolean) -> Unit = {},
     pointerPos: StateFlow<Pair<Int, Int>>? = null,
     inputMode: String = "DIRECT",
+    /**
+     * Activity orientation constant
+     * (`ActivityInfo.SCREEN_ORIENTATION_*`) currently in effect for
+     * this session. The owner is responsible for applying it to the
+     * Activity (via `requestedOrientation = ...`) — this composable
+     * only renders the toolbar button reflecting the value.
+     */
+    currentOrientation: Int = android.content.pm.ActivityInfo.SCREEN_ORIENTATION_LANDSCAPE,
+    /**
+     * Cycle landscape -> portrait -> auto. The owner mutates its
+     * stored orientation; this composable just calls back.
+     */
+    onCycleOrientation: () -> Unit = {},
 ) {
     val connectedState by connected.collectAsState()
     val frameState by frame.collectAsState()
@@ -187,6 +200,8 @@ fun RdpSessionContent(
             onDisconnect = onDisconnect,
             pointerPos = pointerState,
             inputMode = inputMode,
+            currentOrientation = currentOrientation,
+            onCycleOrientation = onCycleOrientation,
         )
     } else {
         DesktopPlaceholder(
@@ -245,6 +260,25 @@ fun RdpScreen(
         }
     }
 
+    // Standalone-path orientation state. Lives in RdpScreen (the
+    // outer composable) so it sits above any conditional siblings
+    // inside RdpSessionContent / RdpViewer that would otherwise tear
+    // down a `remember` on slot-position shifts. Apply to the
+    // Activity directly.
+    val activity = androidx.compose.ui.platform.LocalContext.current as? android.app.Activity
+    var orientationValue by remember {
+        mutableStateOf(android.content.pm.ActivityInfo.SCREEN_ORIENTATION_LANDSCAPE)
+    }
+    LaunchedEffect(orientationValue, activity) {
+        activity?.requestedOrientation = orientationValue
+    }
+    DisposableEffect(activity) {
+        onDispose {
+            activity?.requestedOrientation =
+                android.content.pm.ActivityInfo.SCREEN_ORIENTATION_UNSPECIFIED
+        }
+    }
+
     RdpSessionContent(
         connected = viewModel.connected,
         frame = viewModel.frame,
@@ -270,6 +304,8 @@ fun RdpScreen(
         onKeyUp = { scancode -> viewModel.sendKey(scancode, false) },
         onDisconnect = { viewModel.disconnect() },
         onFullscreenChanged = onFullscreenChanged,
+        currentOrientation = orientationValue,
+        onCycleOrientation = { orientationValue = cycleRdpOrientation(orientationValue) },
     )
 }
 
@@ -408,7 +444,16 @@ private fun RdpViewer(
     onDisconnect: () -> Unit,
     pointerPos: Pair<Int, Int> = 0 to 0,
     inputMode: String = "DIRECT",
+    currentOrientation: Int = android.content.pm.ActivityInfo.SCREEN_ORIENTATION_LANDSCAPE,
+    onCycleOrientation: () -> Unit = {},
 ) {
+    // Map the activity-orientation constant to the local enum for
+    // icon/description rendering. Source-of-truth for the value lives
+    // outside this composable (RdpScreen for the standalone path,
+    // DesktopViewModel for the multi-session Desktop view) so it
+    // survives recomposition cycles that would tear down a `remember`
+    // here.
+    val orientationMode = OrientationMode.fromActivityValue(currentOrientation)
     var viewSize by remember { mutableStateOf(IntSize.Zero) }
     val imageBitmap = remember(frame) { frame.asImageBitmap() }
 
@@ -442,27 +487,6 @@ private fun RdpViewer(
             )
             if (newPanX != panX) panX = newPanX
             if (newPanY != panY) panY = newPanY
-        }
-    }
-
-    // Orientation toggle (Landscape -> Portrait -> Auto). The Activity's
-    // requestedOrientation defaults to UNSPECIFIED globally, but Haven's
-    // session views default to Landscape (USER_LANDSCAPE) since
-    // narrow-portrait phones aren't usable for full-desktop content.
-    // Persist across config changes via rememberSaveable so a rotation
-    // doesn't reset the user's choice.
-    val activity = androidx.compose.ui.platform.LocalContext.current as? android.app.Activity
-    var orientationMode by rememberSaveable { mutableStateOf(OrientationMode.Landscape) }
-    LaunchedEffect(orientationMode, activity) {
-        activity?.requestedOrientation = orientationMode.activityValue
-    }
-    DisposableEffect(activity) {
-        onDispose {
-            // Leave the activity in UNSPECIFIED so non-session screens
-            // follow normal device rotation rules. (Mirrors the prior
-            // DesktopScreen-level guard for the surf5726 case in #109.)
-            activity?.requestedOrientation =
-                android.content.pm.ActivityInfo.SCREEN_ORIENTATION_UNSPECIFIED
         }
     }
 
@@ -795,7 +819,7 @@ private fun RdpViewer(
                     )
                 }
 
-                IconButton(onClick = { orientationMode = orientationMode.next() }) {
+                IconButton(onClick = onCycleOrientation) {
                     Icon(orientationMode.icon, contentDescription = orientationMode.description)
                 }
 
@@ -890,7 +914,7 @@ private fun RdpViewer(
                             contentDescription = "Toggle keyboard",
                         )
                     }
-                    IconButton(onClick = { orientationMode = orientationMode.next() }) {
+                    IconButton(onClick = onCycleOrientation) {
                         Icon(orientationMode.icon, contentDescription = orientationMode.description)
                     }
                     if (zoom != 1f || panX != 0f || panY != 0f) {
@@ -1194,12 +1218,12 @@ private enum class OrientationMode(
     val description: String,
 ) {
     Landscape(
-        activityValue = android.content.pm.ActivityInfo.SCREEN_ORIENTATION_USER_LANDSCAPE,
+        activityValue = android.content.pm.ActivityInfo.SCREEN_ORIENTATION_LANDSCAPE,
         icon = Icons.Default.ScreenLockLandscape,
         description = "Lock landscape (tap to switch to portrait)",
     ),
     Portrait(
-        activityValue = android.content.pm.ActivityInfo.SCREEN_ORIENTATION_USER_PORTRAIT,
+        activityValue = android.content.pm.ActivityInfo.SCREEN_ORIENTATION_PORTRAIT,
         icon = Icons.Default.ScreenLockPortrait,
         description = "Lock portrait (tap to switch to auto)",
     ),
@@ -1210,7 +1234,20 @@ private enum class OrientationMode(
     );
 
     fun next(): OrientationMode = entries[(ordinal + 1) % entries.size]
+
+    companion object {
+        fun fromActivityValue(value: Int): OrientationMode = entries.firstOrNull { it.activityValue == value } ?: Landscape
+    }
 }
+
+/**
+ * Cycle the activity-orientation constant `LANDSCAPE -> PORTRAIT ->
+ * UNSPECIFIED -> LANDSCAPE`. Public so the Desktop multi-session
+ * `DesktopViewModel.cycleDesktopOrientation` can share the same
+ * cycle order as the standalone path's button.
+ */
+fun cycleRdpOrientation(current: Int): Int =
+    OrientationMode.fromActivityValue(current).next().activityValue
 
 private fun androidKeyToScancode(key: Key): Int? = when (key) {
     Key.Enter -> SC_RETURN

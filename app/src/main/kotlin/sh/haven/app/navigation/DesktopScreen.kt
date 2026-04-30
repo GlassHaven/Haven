@@ -81,12 +81,27 @@ fun DesktopScreen(
 
     LaunchedEffect(anyConnected) { onConnectedChanged(anyConnected) }
 
-    // Orientation is controlled per-session by the toolbar rotate
-    // button on RdpSessionContent / VncSessionContent. Each session
-    // composable defaults to Landscape (matching the previous
-    // surf5726 behaviour for #109) and lets the user cycle to
-    // Portrait or Auto. Composable disposal restores UNSPECIFIED, so
-    // navigating away from a session releases the lock.
+    // Orientation is owned by DesktopViewModel — keeping the state
+    // outside the inner composables sidesteps the slot-position shift
+    // that the conditional tab bar (line 97 below) caused: when
+    // `isConnected` momentarily flips during a rotation
+    // recomposition, the bar appeared/disappeared and Compose tore
+    // down + recreated RdpViewer / VncViewer, resetting their
+    // `remember` state to the Landscape default. The LaunchedEffect
+    // here applies the chosen orientation to the Activity from a
+    // stable parent (DesktopScreen itself, not the conditional
+    // child).
+    val activity = androidx.compose.ui.platform.LocalContext.current as? android.app.Activity
+    val desktopOrientation by desktopViewModel.desktopOrientation.collectAsState()
+    LaunchedEffect(desktopOrientation, activity) {
+        activity?.requestedOrientation = desktopOrientation
+    }
+    androidx.compose.runtime.DisposableEffect(activity) {
+        onDispose {
+            activity?.requestedOrientation =
+                android.content.pm.ActivityInfo.SCREEN_ORIENTATION_UNSPECIFIED
+        }
+    }
 
     Column(modifier = Modifier.fillMaxSize()) {
         if (tabs.isEmpty()) {
@@ -136,6 +151,8 @@ fun DesktopScreen(
                             bandwidthSuggestion = tab.bandwidthSuggestion,
                             onAcceptBandwidthSuggestion = { desktopViewModel.acceptBandwidthSuggestion(tab.id) },
                             onDismissBandwidthSuggestion = { desktopViewModel.dismissBandwidthSuggestion(tab.id) },
+                            currentOrientation = desktopOrientation,
+                            onCycleOrientation = { desktopViewModel.cycleDesktopOrientation() },
                         )
 
                         is DesktopTab.Rdp -> RdpSessionContent(
@@ -165,6 +182,8 @@ fun DesktopScreen(
                             onFullscreenChanged = onFullscreenChanged,
                             pointerPos = tab.pointerPos,
                             inputMode = inputMode,
+                            currentOrientation = desktopOrientation,
+                            onCycleOrientation = { desktopViewModel.cycleDesktopOrientation() },
                         )
 
                         is DesktopTab.Wayland -> WaylandDesktopView(

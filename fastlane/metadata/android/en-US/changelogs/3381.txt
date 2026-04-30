@@ -1,0 +1,41 @@
+v5.24.74: orientation toggle actually sticks
+
+Fixes the rotate button shipped in v5.24.73, which would briefly show
+the requested orientation and then snap back to landscape every
+time. Two real bugs underneath:
+
+**No `configChanges` on MainActivity.** Without it, every actual
+rotation destroyed and recreated the activity. Our DisposableEffect
+saw the destruction and reset `requestedOrientation` to UNSPECIFIED;
+the recreated activity rotated, the cycle repeated infinitely. Fixed
+by declaring `android:configChanges="orientation|screenSize|...|locale"`
+on MainActivity in the manifest, the standard list for Compose apps
+that handle config changes themselves.
+
+**Composable subtree recreation reset the local state.** The
+multi-session DesktopScreen has a conditional tab-bar:
+
+    if (tabs.size > 1 || !isConnected) { DesktopTabBar(...) }
+
+When `isConnected` momentarily flips during a rotation
+recomposition, the bar appears/disappears, the session content's
+slot position in the parent Column shifts, and Compose treats it as
+a new instance. Any `remember { ... }` state inside the session
+content is dropped and re-initialised to the default — Landscape.
+Our LaunchedEffect then writes Landscape back to the activity, and
+the user-selected Portrait choice is lost.
+
+Lift the source-of-truth out of the inner composables:
+
+- Multi-session Desktop view → `DesktopViewModel.desktopOrientation`
+  (a StateFlow<Int>). The activity orientation is applied from
+  DesktopScreen itself, which sits above the conditional bar.
+- Standalone RdpScreen / VncScreen → state owned by the outer
+  composable's `remember`, above any conditional siblings.
+
+The inner `RdpViewer` / `VncViewer` are now stateless w.r.t.
+orientation: they take `currentOrientation: Int` + `onCycleOrientation:
+() -> Unit` as parameters and only render the icon. Both VNC and RDP
+toolbar buttons + fullscreen overlay menus go through the same
+single source of truth, so cycling Landscape -> Portrait -> Auto on
+either side stays in sync.

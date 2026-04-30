@@ -603,6 +603,35 @@ class DesktopViewModel @Inject constructor(
         }
     }
 
+    /**
+     * Per-Desktop-view orientation override. Stored in the ViewModel
+     * so it survives any composable subtree recreation that happens
+     * when the conditional tab-bar in DesktopScreen comes/goes during
+     * an orientation change — that recreation reset a Composable-
+     * local `remember` state to its initial value (Landscape) and
+     * the LaunchedEffect immediately wrote Landscape back, so the
+     * lock never took effect.
+     *
+     * Values are the raw `ActivityInfo.SCREEN_ORIENTATION_*`
+     * constants since the enum is private to feature modules. Cycle
+     * order matches the toolbar button: Landscape -> Portrait -> Auto.
+     */
+    private val _desktopOrientation = MutableStateFlow(
+        android.content.pm.ActivityInfo.SCREEN_ORIENTATION_LANDSCAPE
+    )
+    val desktopOrientation: StateFlow<Int> = _desktopOrientation.asStateFlow()
+
+    fun cycleDesktopOrientation() {
+        _desktopOrientation.value = when (_desktopOrientation.value) {
+            android.content.pm.ActivityInfo.SCREEN_ORIENTATION_LANDSCAPE ->
+                android.content.pm.ActivityInfo.SCREEN_ORIENTATION_PORTRAIT
+            android.content.pm.ActivityInfo.SCREEN_ORIENTATION_PORTRAIT ->
+                android.content.pm.ActivityInfo.SCREEN_ORIENTATION_UNSPECIFIED
+            else ->
+                android.content.pm.ActivityInfo.SCREEN_ORIENTATION_LANDSCAPE
+        }
+    }
+
     fun scrollUp() {
         viewModelScope.launch(Dispatchers.IO) {
             when (val tab = activeTab.value) {

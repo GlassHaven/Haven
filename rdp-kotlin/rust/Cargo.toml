@@ -43,6 +43,14 @@ name = "clear-trace"
 path = "src/bin/clear-trace.rs"
 required-features = ["host-cli"]
 
+# Decode an EGFX_PDU_DUMP_DIR capture and print a one-line summary per
+# file. Use as a triage step on captures before sending them upstream
+# (e.g. to Devolutions/IronRDP#1238).
+[[bin]]
+name = "replay-egfx-pdu"
+path = "src/bin/replay-egfx-pdu.rs"
+required-features = ["host-cli"]
+
 [features]
 default = []
 host-cli = ["env_logger"]

@@ -71,6 +71,7 @@ fun DesktopScreen(
     toolbarLayout: ToolbarLayout = ToolbarLayout.DEFAULT,
     navBlockMode: NavBlockMode = NavBlockMode.ALIGNED,
     inputMode: String = "DIRECT",
+    isActive: Boolean = true,
     onFullscreenChanged: (Boolean) -> Unit = {},
     onConnectedChanged: (Boolean) -> Unit = {},
 ) {
@@ -93,8 +94,20 @@ fun DesktopScreen(
     // child).
     val activity = androidx.activity.compose.LocalActivity.current
     val desktopOrientation by desktopViewModel.desktopOrientation.collectAsState()
-    LaunchedEffect(desktopOrientation, activity) {
-        activity?.requestedOrientation = desktopOrientation
+    // Apply the desktop's chosen orientation only when this page is the
+    // settled pager destination. HorizontalPager composes adjacent pages
+    // during a swipe gesture; without an `isActive` gate, briefly drifting
+    // through Desktop in the pager (e.g. a long swipe across screens, or a
+    // user with Desktop adjacent to where they're swiping) would fire this
+    // LaunchedEffect on entry, snap the activity to landscape, and the
+    // DisposableEffect.onDispose would snap it back to UNSPECIFIED — a
+    // visible orientation flash with no Desktop interaction at all.
+    LaunchedEffect(desktopOrientation, activity, isActive) {
+        activity?.requestedOrientation = if (isActive) {
+            desktopOrientation
+        } else {
+            android.content.pm.ActivityInfo.SCREEN_ORIENTATION_UNSPECIFIED
+        }
     }
     androidx.compose.runtime.DisposableEffect(activity) {
         onDispose {

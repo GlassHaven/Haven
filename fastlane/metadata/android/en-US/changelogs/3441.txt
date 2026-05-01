@@ -1,0 +1,26 @@
+v5.24.80: don't flip orientation when the pager grazes Desktop during a swipe
+
+User report: sliding the screen pager from Keys to Settings briefly
+flipped the device to landscape and back to portrait — even though the
+Desktop tab was never selected. Same flash showed up on any swipe that
+passed close enough for HorizontalPager to compose the Desktop page.
+
+Cause: DesktopScreen's orientation `LaunchedEffect` (added in
+v5.24.74) wrote `requestedOrientation = desktopOrientation` (default
+LANDSCAPE) the moment DesktopScreen entered composition, and the
+matching `DisposableEffect.onDispose` reset it to `UNSPECIFIED` when
+the screen left composition. HorizontalPager composes adjacent pages
+during a swipe gesture, so the user saw the lock-and-unlock cycle
+without ever landing on Desktop.
+
+Fix: gate the orientation write on `isActive` — only apply
+`desktopOrientation` when DesktopScreen is the *settled* pager page.
+The flag is wired in HavenNavHost from
+`pagerState.settledPage == pageOf(Screen.Desktop)`, mirroring how
+TerminalScreen already uses an `isActive` gate. While inactive the
+Desktop page now keeps the activity at `SCREEN_ORIENTATION_UNSPECIFIED`
+so passing the page in a swipe is a no-op.
+
+The orientation toggle button still works when actually on the Desktop
+tab — the gate only suppresses orientation writes when the user isn't
+there.

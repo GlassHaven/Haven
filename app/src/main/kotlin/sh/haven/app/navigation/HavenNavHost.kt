@@ -361,6 +361,7 @@ fun HavenNavHost(
                         toolbarLayout = toolbarLayout,
                         navBlockMode = navBlockMode,
                         inputMode = desktopInputMode,
+                        isActive = pagerState.settledPage == pageOf(Screen.Desktop),
                         onFullscreenChanged = { desktopFullscreen = it },
                         onConnectedChanged = { desktopConnected = it },
                     )

@@ -11,12 +11,12 @@
 > *"Haven is an interesting vibe coding experiment. Let's see what comes out of it."* — DBP
 
 <p align="center">
-  <a href="https://github.com/GlassHaven/Haven/releases/latest"><img src="https://img.shields.io/github/v/release/GlassOnTin/Haven?style=flat-square" alt="Release" /></a>
+  <a href="https://github.com/GlassHaven/Haven/releases/latest"><img src="https://img.shields.io/github/v/release/GlassHaven/Haven?style=flat-square" alt="Release" /></a>
   <a href="https://f-droid.org/en/packages/sh.haven.app"><img src="https://img.shields.io/f-droid/v/sh.haven.app?style=flat-square" alt="F-Droid" /></a>
   <a href="https://github.com/GlassHaven/Haven/actions/workflows/ci.yml?query=branch%3Amain"><img src="https://github.com/GlassHaven/Haven/actions/workflows/ci.yml/badge.svg?branch=main" alt="Build" /></a>
-  <a href="LICENSE"><img src="https://img.shields.io/github/license/GlassOnTin/Haven?style=flat-square" alt="License" /></a>
+  <a href="LICENSE"><img src="https://img.shields.io/badge/license-AGPL--3.0-orange?style=flat-square" alt="License" /></a>
   <img src="https://img.shields.io/badge/Android-8.0%2B-3ddc84?style=flat-square&logo=android&logoColor=white" alt="Android 8.0+" />
-  <a href="https://github.com/GlassHaven/Haven/releases"><img src="https://img.shields.io/github/downloads/GlassOnTin/Haven/total?style=flat-square&label=downloads" alt="Downloads" /></a>
+  <a href="https://github.com/GlassHaven/Haven/releases"><img src="https://img.shields.io/github/downloads/GlassHaven/Haven/total?style=flat-square&label=downloads" alt="Downloads" /></a>
   <a href="https://ko-fi.com/glassontin"><img src="https://img.shields.io/badge/Ko--fi-support-ff5e5b?style=flat-square&logo=ko-fi&logoColor=white" alt="Ko-fi" /></a>
 </p>
 

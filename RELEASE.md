@@ -37,6 +37,11 @@ versionCode = <increment>
 versionName = "<x.y.z>"
 ```
 
+Also update the static release badge in `README.md` to match — the
+`shields.io/badge/release-v<x.y.z>-blue` URL hard-codes the version
+because the dynamic shields lookup is unreliable behind GitHub's
+camo image proxy.
+
 ## 2. Write the changelog
 
 Create `fastlane/metadata/android/en-US/changelogs/<arm64VersionCode>.txt` — the short release note that F-Droid displays. Aim for one short summary line followed by a paragraph or two of what actually changed. Keep under ~500 bytes.

@@ -62,6 +62,8 @@
     <string name="settings_search_button_subtitle">Show search icon in tab bar — sends your session manager\'s native search keys (tmux/zellij/screen) or shell Ctrl+R</string>
     <string name="settings_copy_output_title">Copy last output</string>
     <string name="settings_copy_output_subtitle">Show copy icon in tab bar — copies the last command\'s output. Requires shell integration (tap for setup)</string>
+    <string name="settings_keep_screen_on_title">Keep screen on in terminal</string>
+    <string name="settings_keep_screen_on_subtitle">The display stays awake while a terminal tab is open. Drains battery; only worth turning on if you watch long-running output</string>
     <string name="settings_mouse_input_title">Mouse input in TUI apps</string>
     <string name="settings_mouse_input_subtitle">Forward taps as clicks and long-press as right-click when apps like htop, mc, or vim enable mouse tracking</string>
     <string name="settings_right_click_title">Long-press sends right-click</string>

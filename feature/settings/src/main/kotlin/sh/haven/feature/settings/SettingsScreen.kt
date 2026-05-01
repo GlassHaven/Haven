@@ -51,6 +51,7 @@ import androidx.compose.material.icons.filled.History
 import androidx.compose.material.icons.filled.Hub
 import androidx.compose.material.icons.filled.Reorder
 import androidx.compose.material.icons.filled.ListAlt
+import androidx.compose.material.icons.filled.LightMode
 import androidx.compose.material.icons.filled.ScreenLockPortrait
 import androidx.compose.material.icons.filled.Timer
 import androidx.compose.material.icons.filled.Info
@@ -146,6 +147,7 @@ fun SettingsScreen(
     val navBlockMode by viewModel.navBlockMode.collectAsState()
     val showSearchButton by viewModel.showSearchButton.collectAsState()
     val showCopyOutputButton by viewModel.showCopyOutputButton.collectAsState()
+    val keepScreenOnInTerminal by viewModel.keepScreenOnInTerminal.collectAsState()
     val connectionLoggingEnabled by viewModel.connectionLoggingEnabled.collectAsState()
     val verboseLoggingEnabled by viewModel.verboseLoggingEnabled.collectAsState()
     val mcpAgentEndpointEnabled by viewModel.mcpAgentEndpointEnabled.collectAsState()
@@ -358,6 +360,13 @@ fun SettingsScreen(
                 viewModel.setShowCopyOutputButton(enabled)
                 if (enabled) showOsc133SetupDialog = true
             },
+        )
+        SettingsToggleItem(
+            icon = Icons.Filled.LightMode,
+            title = stringResource(R.string.settings_keep_screen_on_title),
+            subtitle = stringResource(R.string.settings_keep_screen_on_subtitle),
+            checked = keepScreenOnInTerminal,
+            onCheckedChange = viewModel::setKeepScreenOnInTerminal,
         )
         SettingsToggleItem(
             icon = Icons.Filled.Terminal,

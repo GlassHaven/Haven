@@ -97,6 +97,9 @@ class SettingsViewModel @Inject constructor(
     val showCopyOutputButton: StateFlow<Boolean> = preferencesRepository.showCopyOutputButton
         .stateIn(viewModelScope, SharingStarted.WhileSubscribed(5000), false)
 
+    val keepScreenOnInTerminal: StateFlow<Boolean> = preferencesRepository.keepScreenOnInTerminal
+        .stateIn(viewModelScope, SharingStarted.WhileSubscribed(5000), false)
+
     val connectionLoggingEnabled: StateFlow<Boolean> = preferencesRepository.connectionLoggingEnabled
         .stateIn(viewModelScope, SharingStarted.WhileSubscribed(5000), false)
 
@@ -268,6 +271,12 @@ class SettingsViewModel @Inject constructor(
     fun setShowCopyOutputButton(enabled: Boolean) {
         viewModelScope.launch {
             preferencesRepository.setShowCopyOutputButton(enabled)
+        }
+    }
+
+    fun setKeepScreenOnInTerminal(enabled: Boolean) {
+        viewModelScope.launch {
+            preferencesRepository.setKeepScreenOnInTerminal(enabled)
         }
     }
 

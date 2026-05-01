@@ -1,0 +1,18 @@
+v5.24.79: opt-in "Keep screen on in terminal" setting (#122)
+
+agevlakh (#122) asked for the display to stay awake while working in a
+terminal session — useful when watching long-running output or reading
+without typing. Added a new toggle in Settings:
+
+  Keep screen on in terminal — off by default
+
+When enabled, every active terminal tab sets the underlying View's
+keepScreenOn flag while it's composed and clears it on dispose. So the
+flag is automatically lifted the moment the user navigates away from
+the terminal screen (Connections, Files, VNC, RDP, Settings) — only
+the terminal itself burns the battery, no other Haven surface does.
+
+Default off because the battery cost is real; turn it on if you read
+remote output more often than you actively type. (Pinch-to-zoom for
+text size remains the gesture for the second half of #122 — no
+volume-key intercept; volume buttons keep controlling system volume.)

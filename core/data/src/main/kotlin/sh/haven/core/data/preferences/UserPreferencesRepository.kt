@@ -35,6 +35,7 @@ class UserPreferencesRepository @Inject constructor(
     private val screenSecurityKey = booleanPreferencesKey("screen_security")
     private val showSearchButtonKey = booleanPreferencesKey("show_search_button")
     private val showCopyOutputButtonKey = booleanPreferencesKey("show_copy_output_button")
+    private val keepScreenOnInTerminalKey = booleanPreferencesKey("keep_screen_on_in_terminal")
     private val connectionLoggingEnabledKey = booleanPreferencesKey("connection_logging_enabled")
     private val verboseLoggingEnabledKey = booleanPreferencesKey("verbose_logging_enabled")
     private val mouseInputEnabledKey = booleanPreferencesKey("mouse_input_enabled")
@@ -92,6 +93,17 @@ class UserPreferencesRepository @Inject constructor(
     suspend fun setShowCopyOutputButton(enabled: Boolean) {
         dataStore.edit { prefs ->
             prefs[showCopyOutputButtonKey] = enabled
+        }
+    }
+
+    /** Keep the screen on while a terminal tab is foregrounded. Off by default. */
+    val keepScreenOnInTerminal: Flow<Boolean> = dataStore.data.map { prefs ->
+        prefs[keepScreenOnInTerminalKey] ?: false
+    }
+
+    suspend fun setKeepScreenOnInTerminal(enabled: Boolean) {
+        dataStore.edit { prefs ->
+            prefs[keepScreenOnInTerminalKey] = enabled
         }
     }
 

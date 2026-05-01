@@ -129,6 +129,7 @@ fun TerminalScreen(
     navBlockMode: sh.haven.core.data.preferences.NavBlockMode = sh.haven.core.data.preferences.NavBlockMode.ALIGNED,
     showSearchButton: Boolean = false,
     showCopyOutputButton: Boolean = false,
+    keepScreenOnInTerminal: Boolean = false,
     mouseInputEnabled: Boolean = true,
     mouseDragSelects: Boolean = true,
     terminalRightClick: Boolean = false,
@@ -174,6 +175,18 @@ fun TerminalScreen(
             ?: android.graphics.Typeface.MONOSPACE
     }
     val view = LocalView.current
+
+    // Keep the screen awake while a terminal tab is in the foreground when
+    // the user has opted in (Settings → "Keep screen on in terminal", #122).
+    // DisposableEffect tied to the View ensures the flag is cleared as soon
+    // as TerminalScreen leaves composition (navigating to another tab,
+    // process death recreating). Tabs without an active session still keep
+    // the screen on — the request is "while in the terminal", not "while a
+    // shell is connected", so a deliberately quiet session doesn't blank.
+    DisposableEffect(view, keepScreenOnInTerminal) {
+        view.keepScreenOn = keepScreenOnInTerminal
+        onDispose { view.keepScreenOn = false }
+    }
 
     LaunchedEffect(navigateToConnections) {
         if (navigateToConnections) {

@@ -120,6 +120,34 @@ Haven is *not* building an AI assistant. It's building the layer that makes AI a
 
 The thesis is clear; the work is making it feel seamless. Priorities are ordered by leverage, not by effort.
 
+### Growth diagnostic — where each primitive sits today
+
+A growth plan needs a diagnosis. Mapped onto the three primitives and the seams between them, Haven currently looks like this:
+
+- **Heart — local-tier namespace (SSH, SFTP, rclone): three productive organs, two of them fused.** SSH and SFTP share a JSch session per profile (`SshSessionManager.SessionState` reuses the SSH client and exposes `sftpChannel` alongside the shell channel) — closing one closes the other; the seam is load-bearing. Rclone is the workhorse for 60+ cloud providers and carries its own HTTP-serve bridge for conversion and streaming, but its file browser and operation paths sit alongside SFTP/SMB rather than sharing code with them — adding a new universal action (encrypt, inspect, hash) lights up one tab at a time, not all of them. The leverage move is fusing rclone into the same operation code path the other backends use, so future backend additions and future actions both compose for free.
+- **Shoulders — VNC, RDP, SMB, i18n: exercising well.** Tunnel-aware protocols open SSH port-forwards on demand and a `tunnelDependents` set tears the shared tunnel down cleanly when the last consumer leaves. Localisation reaches ten locales. Work here is reach (EGFX, more codecs, per-locale changelogs) rather than missing seams.
+- **Extremities — Reticulum: cold.** `ReticulumTransport` returns only an `RnshShellSession`. No SFTP-over-Reticulum, no tunnelable port, no file sync. Warming the extremity means giving Reticulum the same surface area SSH already has, not a parallel one.
+- **Smile — MCP: shipping, not yet opinionated.** Eighteen tools across read and write paths, all dispatching into the same repositories the UI uses (load-bearing). What's missing is a tool that *only Haven* could expose — a cross-protocol verb no single-purpose client has the substrate for. Until that verb exists, the MCP surface is a competent bridge, not a moat.
+
+Priorities below are ordered by what this diagnostic implies.
+
+### Juxtapositions — places that look unified but aren't
+
+Several Haven features present a unified surface (one Connections list, one file browser, one keystore icon, one terminal) but underneath are parallel implementations that share no operation code. Each instance taxes future work: a new universal action takes N implementations to land, a new backend has to plug into N call sites, and the tax compounds. Naming the pattern as a class lets future commits collapse instances deliberately rather than discovering each one fresh.
+
+Verified by code audit:
+
+- **File browser per-backend dispatch (largest instance).** `SftpViewModel` carries the `when { isLocal -> … isRclone -> … isSmb -> … else -> … }` shape across roughly fifty call sites: list, copy, paste, delete, rename, probe-destination, metadata. `RemoteFileTransport` unifies SFTP and SCP only. Collapsing this into one backend-agnostic operation interface plus per-backend drivers is the single largest architectural lever in the heart.
+- **MCP tools per backend.** `McpTools.kt` defines `list_sftp_directory` and `list_rclone_directory` as distinct tools; the same shape repeats for upload/delete and friends. One `list_directory` tool with a backend argument removes the duplication and is what an agent would prefer regardless.
+- **VNC and RDP as parallel remote-desktop stacks.** `VncSession` and `RdpSession` share no base interface; clipboard, framebuffer scaling, reconnect, and tunnel attachment are reimplemented in each. A `RemoteDesktopSession` abstraction lights up universal verbs (record, paste, scale-to-fit, attach-tunnel) for both at once.
+- **Keystore as three stores.** SSH keys live behind `KeyEncryption` (Tink AEAD), FIDO2 credentials behind `FidoIdentity`, encrypted profile credentials elsewhere. No unified key-material API, so audit/export/migration is per-type. A thin `Keystore` interface over the three makes security rent — TOFU, biometric unlock, per-profile auth — cheaper to charge consistently.
+- **Foreground service hardcoded to known transports.** `SshConnectionService` calls `disconnectAll()` on each session manager it knows about. Adding a new transport requires editing the service. A `ForegroundSessionParticipant` interface that managers register against removes the per-transport hardcoding.
+- **Session managers as dispatch, not abstraction.** `SessionManagerRegistry` injects all seven managers (SSH, Mosh, ET, Reticulum, SMB, Local, RDP) and dispatches by type rather than over a common base interface. Session restore, scrollback persistence, and input dispatch are each reinvented. Any future "remember and restore every session on app launch" feature has to integrate with all seven.
+
+Audited and **already unified** — no work needed: network discovery (`NetworkDiscovery` merges mDNS, ARP, Tailscale, and SMB scan into one `StateFlow<List<DiscoveredHost>>`); the ffmpeg convert pipeline (URL-driven, no per-backend special-case); `ConnectionLogRepository` writes (one Room table, callers populate per-layer, which is fine).
+
+The unifying move in every verified case is the same shape: one shared interface plus N drivers, replacing a switch statement plus N parallel implementations. None of these are quick refactors — the file-browser case alone is the largest in the codebase — but the cumulative payoff is "every new universal action lands once, every new backend lights up everywhere."
+
 ### 1. Composition polish — make the three primitives snap together
 
 Whenever two primitives meet, there should be zero friction. Current gaps:
@@ -128,6 +156,8 @@ Whenever two primitives meet, there should be zero friction. Current gaps:
 - **Agent forwarding UX** — the plumbing exists; the story of "forward my phone's keys to the remote agent and be able to trust it" needs to be a dialog, not a config file.
 - **Workspace profiles** — "Work" opens SSH tab + port forwards + SFTP sidebar + Wayland tab + a PRoot shell tab in one tap, resumes to the same composition next launch.
 - **Desktop ↔ file browser ↔ terminal** — cross-tab actions (drag a file from the SFTP tab into the native Wayland compositor, copy output from a terminal into the convert dialog).
+- **rclone fused into shared operation code** — rclone is fully productive on its own, but its browser routes through `RcloneClient` while SFTP/SMB go through `FileBrowserViewModel`. Cross-tab paste works, but lookup, metadata, and operation code aren't shared. Routing all rclone calls through the same actions the SFTP tab uses means a new backend or a new universal action (encrypt, inspect, hash) lights every tab up at once.
+- **Reticulum carrying more than shell** — today `ReticulumTransport` returns only `RnshShellSession`. SFTP-over-Reticulum and Reticulum-as-tunnelable-port are the moves that turn the extremity into a working limb. The Reticulum mesh is the only transport in Haven that survives full internet loss, so anything load-bearing routed through it is a unique capability, not a duplicate path.
 
 ### 1a. Agent transport — shipped (v5.24.81)
 
@@ -147,6 +177,21 @@ What's still ahead in this lane:
 - **`connect_profile`** — the one deferred verb. Lifting `ConnectionsViewModel.connectSshSilent` into a singleton needs the FIDO / jump-host / verbose-logger plumbing untangled. Best done after the SSH-proto migration (#58) settles.
 - **Cross-tab agent verbs** — opening the convert dialog with prefilled args, navigating the file browser to a path, etc. Dialog state is Composable-scoped today; this needs a state-promotion refactor and is its own arc.
 - **MCP `resources/*` capability** — file-shaped resources for "what's on the screen right now" so an agent can pull a snapshot without polling.
+
+### 1b. MCP as a bidirectional protocol — Haven as host *and* client
+
+Section 1a covers Haven publishing an MCP server: agents reach into Haven's primitives. The mirror image is Haven becoming an MCP *client* — discovering and consuming capabilities published by other Android apps that speak the protocol. Together, the two halves turn MCP from a single-direction agent transport into a generic capability bus, with Haven as one peer among others.
+
+This is not the same as shipping an AI assistant or bundling a vendor's agent CLI (both excluded under "Scope boundaries"). Haven still has no model, no chat UI, no prompt language — only the primitives, the surfaces, and the ability to compose those primitives with capabilities that other locally installed apps choose to expose. The user is still the one pointing the agent at things; the agent is still operating through observable UI; the trust model is still per-action consent. What changes is what's in the agent's vocabulary.
+
+Concrete shape:
+
+- **Discovery without dynamic code.** Installed apps that publish MCP servers register via a documented Android `<intent-filter>` plus manifest `meta-data`. Haven enumerates them, surfaces them in Settings → Agent endpoints, and lets the user enable specific capability bundles. No bytecode is loaded from outside the APK; the F-Droid reproducible-build rule stays satisfied because each plugin is a separately source-built APK.
+- **Composition with Haven primitives.** When external MCP capabilities are present, Haven's MCP server can advertise them as part of its own capability list (or proxy them transparently) so an agent connected to Haven sees one tool surface that combines Haven primitives with external capabilities. Example workflows: *Reticulum-fallback file sync* — Haven's SFTP plus an external "watch this directory" capability; *RDP clipboard ↔ SFTP path* — Haven's RDP clipboard plus an external "translate path" capability; *agent journal* — Haven's audit log plus an external "summarise" capability.
+- **The first cross-protocol verb.** The king-making call is picking a single verb only Haven's substrate can implement, exposing it through the existing MCP server, and letting it grow teeth before the plugin scaffolding is built. Candidates: `mirror_directory_with_fallback` — SFTP primary, rclone secondary, Reticulum tertiary, single transactional API; `move_session` — hand a live SSH/RDP session between transports without dropping; `compose_workspace` — open a multi-tab workspace from a single agent-supplied descriptor (workspace profiles done agent-first).
+- **Audit and consent extend unchanged.** External capabilities go through the same `AgentConsentManager` per-action prompt and the same `AgentAuditRecorder` Room table. The user can't tell from the consent sheet whether a tool is a Haven primitive or a plugin's; they don't need to.
+
+The bidirectional direction is consistent with the three-primitives frame: Haven's primitives stay scoped, but the *agent vocabulary* over those primitives grows. The plugin system lives at the orchestration layer, never at the bytecode layer.
 
 ### 2. The namespace as the action surface
 

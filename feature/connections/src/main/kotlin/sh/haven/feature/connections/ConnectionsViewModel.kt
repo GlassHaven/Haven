@@ -1091,18 +1091,30 @@ class ConnectionsViewModel @Inject constructor(
                 if (rcloneSessionManager.isProfileConnected(profile.id)) {
                     _navigateToRclone.value = profile.id
                 }
-                // Otherwise OAuth is in progress — the session will become CONNECTED
-                // when the user completes the browser flow. Watch for it.
+                // Otherwise OAuth is in progress — the session will become
+                // CONNECTED when the user completes the browser flow.
+                // Watch for both terminal states: CONNECTED → navigate;
+                // ERROR → surface the rclone error message as a toast so
+                // the user isn't stuck on a silent spinner if OAuth fails
+                // (browser dismissed, no browser app installed, bad
+                // client_id, network blip during token exchange, etc).
                 else {
                     launch {
                         rcloneSessionManager.sessions.collect { sessions ->
-                            val connected = sessions.values.any {
-                                it.profileId == profile.id &&
-                                    it.status == RcloneSessionManager.SessionState.Status.CONNECTED
-                            }
-                            if (connected) {
-                                _navigateToRclone.value = profile.id
-                                return@collect
+                            val ours = sessions.values.firstOrNull { it.profileId == profile.id }
+                                ?: return@collect
+                            when (ours.status) {
+                                RcloneSessionManager.SessionState.Status.CONNECTED -> {
+                                    _navigateToRclone.value = profile.id
+                                    return@collect
+                                }
+                                RcloneSessionManager.SessionState.Status.ERROR -> {
+                                    _error.value = ours.errorMessage
+                                        ?: "rclone connection failed — see Settings → Connection log"
+                                    _connectingProfileId.value = null
+                                    return@collect
+                                }
+                                else -> Unit
                             }
                         }
                     }

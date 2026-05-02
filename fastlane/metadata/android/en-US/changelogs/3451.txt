@@ -45,3 +45,8 @@ Other fixes:
   rclone profiles forces a fresh OAuth flow without the user needing
   to delete and re-add the connection — useful when stored tokens
   have gone stale and silent refresh is failing.
+- OAuth failures now surface to the user as toasts (no browser
+  installed, browser dismissed, network error during token exchange,
+  bad client_id, etc.) instead of leaving the user on a silent
+  spinner. SessionState carries an errorMessage; ConnectionsViewModel
+  observes ERROR alongside CONNECTED so failure paths are user-visible.

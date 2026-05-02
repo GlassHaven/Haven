@@ -1,0 +1,36 @@
+v5.24.86: Tailscale tunnels now support custom control servers (Headscale)
+
+Triggered by mcbalaam (#124): Haven's Tailscale integration was hard-
+coded to controlplane.tailscale.com, so users running their own
+Headscale coordination server had no way to point Haven at it.
+
+Headscale and Tailscale's hosted control plane speak the same protocol —
+the only thing that needed to flow through was the URL. Plumbed it end-
+to-end:
+
+* Go bridge (rclone-android/go/tsbridge): StartTunnel takes a fourth
+  string parameter, controlURL, threaded into tsnet.Server.ControlURL.
+  Empty string preserves the default Tailscale endpoint.
+* TailscaleTunnel.kt: passes the URL through to the regenerated
+  Tsbridge.startTunnel binding.
+* TunnelManager: extracts the URL from the stored config blob and
+  passes it on construction.
+* Storage format: switched the Tailscale configText from raw authkey
+  bytes to a small JSON envelope, {"authKey": "…", "controlUrl": "…"}.
+  Existing v1 configs (raw bytes) are still read via TailscaleConfigBlob's
+  legacy fallback — no re-add required.
+* Add-tunnel dialog: new "Control plane URL (optional)" field with a
+  Headscale-style placeholder and an explanatory supporting line. The
+  authkey field's helper text now mentions both Tailscale and Headscale.
+* Validation: a non-empty URL must start with https:// (or http:// for
+  local-network testing).
+
+5 unit tests on the JSON envelope (round-trip with and without URL,
+legacy raw-bytes decode, malformed-JSON fallback, blank-URL is omitted
+from encoded blob). 14 tunnel-module tests total, all passing.
+
+Not tested against a real Headscale server in this branch — needs
+mcbalaam (or anyone else running Headscale) to confirm the wire works.
+First run will consume the authkey against your Headscale URL and
+persist node state under tailscale-<configId>/, same as the default-
+endpoint flow.

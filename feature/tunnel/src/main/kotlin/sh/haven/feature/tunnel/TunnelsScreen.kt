@@ -127,8 +127,8 @@ fun TunnelsScreen(
                 viewModel.addWireguardConfig(label, configText)
                 showAddDialog = false
             },
-            onSubmitTailscale = { label, authKey ->
-                viewModel.addTailscaleConfig(label, authKey)
+            onSubmitTailscale = { label, authKey, controlUrl ->
+                viewModel.addTailscaleConfig(label, authKey, controlUrl)
                 showAddDialog = false
             },
         )
@@ -221,12 +221,13 @@ private fun TunnelRow(
 private fun AddTunnelDialog(
     onDismiss: () -> Unit,
     onSubmitWireguard: (label: String, configText: String) -> Unit,
-    onSubmitTailscale: (label: String, authKey: String) -> Unit,
+    onSubmitTailscale: (label: String, authKey: String, controlUrl: String) -> Unit,
 ) {
     var type by remember { mutableStateOf(sh.haven.core.data.db.entities.TunnelConfigType.WIREGUARD) }
     var label by remember { mutableStateOf("") }
     var configText by remember { mutableStateOf("") }
     var authKey by remember { mutableStateOf("") }
+    var controlUrl by remember { mutableStateOf("") }
     val context = LocalContext.current
 
     // Use OpenDocument (SAF) rather than GetContent so the user can pick
@@ -337,7 +338,7 @@ private fun AddTunnelDialog(
                 }
                 sh.haven.core.data.db.entities.TunnelConfigType.TAILSCALE -> {
                     Text(
-                        "Generate an authkey in the Tailscale admin console (Settings → Keys). Haven joins your tailnet on first use and reuses the node state after that, so a one-time key is fine. Reusable keys let you reconnect after reinstall.",
+                        "Generate an authkey in the Tailscale admin console (Settings → Keys), or in your Headscale CLI (`headscale preauthkeys create`). Haven joins your tailnet on first use and reuses the node state after that, so a one-time key is fine. Reusable keys let you reconnect after reinstall.",
                         style = MaterialTheme.typography.bodySmall,
                         color = MaterialTheme.colorScheme.onSurfaceVariant,
                     )
@@ -345,6 +346,28 @@ private fun AddTunnelDialog(
                         value = authKey,
                         onValueChange = { authKey = it },
                         label = { Text("Auth key (tskey-auth-…)") },
+                        singleLine = true,
+                        modifier = Modifier.fillMaxWidth(),
+                        textStyle = MaterialTheme.typography.bodyMedium.copy(
+                            fontFamily = FontFamily.Monospace,
+                        ),
+                    )
+                    OutlinedTextField(
+                        value = controlUrl,
+                        onValueChange = { controlUrl = it },
+                        label = { Text("Control plane URL (optional)") },
+                        placeholder = {
+                            Text(
+                                "https://headscale.example.com",
+                                fontFamily = FontFamily.Monospace,
+                            )
+                        },
+                        supportingText = {
+                            Text(
+                                "Leave blank for Tailscale's hosted controlplane. Set to a Headscale URL for a self-hosted coordination server.",
+                                style = MaterialTheme.typography.bodySmall,
+                            )
+                        },
                         singleLine = true,
                         modifier = Modifier.fillMaxWidth(),
                         textStyle = MaterialTheme.typography.bodyMedium.copy(
@@ -370,7 +393,7 @@ private fun AddTunnelDialog(
                             sh.haven.core.data.db.entities.TunnelConfigType.WIREGUARD ->
                                 onSubmitWireguard(label, configText)
                             sh.haven.core.data.db.entities.TunnelConfigType.TAILSCALE ->
-                                onSubmitTailscale(label, authKey)
+                                onSubmitTailscale(label, authKey, controlUrl)
                         }
                     },
                     enabled = canSubmit,

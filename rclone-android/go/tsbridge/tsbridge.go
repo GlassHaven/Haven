@@ -245,6 +245,13 @@ type Conn struct {
 // directory. hostname is advertised to the tailnet (shows up in the
 // admin console); blank picks tsnet's default.
 //
+// controlURL points the client at a coordination server other than
+// Tailscale's hosted controlplane.tailscale.com. Empty string keeps
+// the default; non-empty is typically a self-hosted Headscale server
+// (e.g. "https://headscale.example.com"). Tailscale's own control
+// plane and Headscale share the same control protocol, so the same
+// tsnet client speaks both — see #124, mcbalaam (Headscale users).
+//
 // Blocks until authenticated AND the peer map has been received, so a
 // subsequent Dial to a MagicDNS name works first-try. Internal timeout
 // is 60 s — first-run authkey consumption + control-plane handshake +
@@ -256,7 +263,7 @@ type Conn struct {
 // tsnet's internal logs route through Go's default logger which
 // gomobile surfaces under logcat's "GoLog" tag, so a stuck handshake
 // or DERP failure is diagnosable without a separate debug build.
-func StartTunnel(authKey, stateDir, hostname string) (*TunnelHandle, error) {
+func StartTunnel(authKey, stateDir, hostname, controlURL string) (*TunnelHandle, error) {
 	if authKey == "" {
 		return nil, errors.New("authkey required")
 	}
@@ -267,12 +274,13 @@ func StartTunnel(authKey, stateDir, hostname string) (*TunnelHandle, error) {
 		hostname = "haven-android"
 	}
 	srv := &tsnet.Server{
-		AuthKey:   authKey,
-		Dir:       stateDir,
-		Hostname:  hostname,
-		Ephemeral: false,
-		Logf:      tsnetLogf,
-		UserLogf:  tsnetLogf,
+		AuthKey:    authKey,
+		Dir:        stateDir,
+		Hostname:   hostname,
+		ControlURL: controlURL, // empty = default controlplane.tailscale.com
+		Ephemeral:  false,
+		Logf:       tsnetLogf,
+		UserLogf:   tsnetLogf,
 	}
 	ctx, cancel := context.WithTimeout(context.Background(), 60*time.Second)
 	defer cancel()

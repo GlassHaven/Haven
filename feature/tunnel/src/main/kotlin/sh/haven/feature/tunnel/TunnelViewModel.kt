@@ -61,8 +61,12 @@ class TunnelViewModel @Inject constructor(
      * Create a Tailscale tunnel config. The authkey joins the tailnet on
      * first use; tsnet persists node state under a per-config dir so
      * subsequent starts don't re-consume it.
+     *
+     * [controlURL] points at a self-hosted Headscale (or other compatible)
+     * coordination server, e.g. "https://headscale.example.com". Leave
+     * blank for the default Tailscale control plane (#124, mcbalaam).
      */
-    fun addTailscaleConfig(label: String, authKey: String) {
+    fun addTailscaleConfig(label: String, authKey: String, controlURL: String = "") {
         if (label.isBlank()) {
             _error.value = "Label is required"
             return
@@ -71,9 +75,21 @@ class TunnelViewModel @Inject constructor(
             _error.value = "Auth key is required"
             return
         }
+        val trimmedUrl = controlURL.trim()
+        if (trimmedUrl.isNotEmpty() &&
+            !trimmedUrl.startsWith("https://") &&
+            !trimmedUrl.startsWith("http://")
+        ) {
+            _error.value = "Control plane URL must start with https:// (or http:// for local testing)"
+            return
+        }
         // Strip any leading/trailing whitespace paste artifacts — authkeys
-        // are a single token with no internal spaces.
-        save(label, TunnelConfigType.TAILSCALE, authKey.trim().toByteArray())
+        // are a single token with no internal spaces. Control URL likewise.
+        val blob = sh.haven.core.tunnel.TailscaleConfigBlob(
+            authKey = authKey.trim(),
+            controlURL = trimmedUrl,
+        )
+        save(label, TunnelConfigType.TAILSCALE, blob.encode())
     }
 
     private fun save(label: String, type: TunnelConfigType, bytes: ByteArray) {

@@ -21,15 +21,19 @@ import java.io.OutputStream
  * only consumed on first use; persistent node state lives in [stateDir]
  * and is reused on subsequent starts of the same [TunnelConfig], so the
  * authkey stays valid for its configured lifetime in the admin console.
+ *
+ * [controlURL] points at a self-hosted Headscale (or other compatible)
+ * coordination server; empty keeps the default controlplane.tailscale.com.
  */
 class TailscaleTunnel internal constructor(
     authKey: String,
     stateDir: File,
     hostname: String,
+    controlURL: String = "",
 ) : Tunnel {
 
     private val native: NativeHandle = try {
-        Tsbridge.startTunnel(authKey, stateDir.absolutePath, hostname)
+        Tsbridge.startTunnel(authKey, stateDir.absolutePath, hostname, controlURL)
     } catch (e: Exception) {
         throw IOException("Failed to start Tailscale tunnel: ${e.message}", e)
     }

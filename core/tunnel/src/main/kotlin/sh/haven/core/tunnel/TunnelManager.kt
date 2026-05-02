@@ -78,11 +78,15 @@ class DefaultTunnelFactory @Inject constructor(
 ) : TunnelFactory {
     override fun create(config: TunnelConfig): Tunnel = when (config.typeEnum) {
         TunnelConfigType.WIREGUARD -> WireguardTunnel(String(config.configText))
-        TunnelConfigType.TAILSCALE -> TailscaleTunnel(
-            authKey = String(config.configText).trim(),
-            stateDir = File(context.filesDir, "tailscale-${config.id}").also { it.mkdirs() },
-            hostname = deriveHostname(config.label),
-        )
+        TunnelConfigType.TAILSCALE -> {
+            val parsed = TailscaleConfigBlob.parse(config.configText)
+            TailscaleTunnel(
+                authKey = parsed.authKey,
+                stateDir = File(context.filesDir, "tailscale-${config.id}").also { it.mkdirs() },
+                hostname = deriveHostname(config.label),
+                controlURL = parsed.controlURL,
+            )
+        }
     }
 
     /**

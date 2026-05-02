@@ -311,6 +311,24 @@ internal class McpTools(
             consentLevel = ConsentLevel.NEVER,
         ) { _ -> openDeveloperSettings() },
 
+        "install_apk_from_url" to ToolHandler(
+            description = "Download an APK from a URL and install it on the device via Shizuku-driven `pm install`. Useful for agent-driven self-update or sideloading over VPN where wireless ADB isn't reachable. Requires Shizuku running and granted to Haven. Installation happens silently from the user's perspective once consent is given — no system installer dialog.",
+            inputSchema = JSONObject().apply {
+                put("type", "object")
+                put("properties", JSONObject().apply {
+                    put("url", JSONObject().apply {
+                        put("type", "string")
+                        put("description", "http(s) URL pointing at a signed APK file. Should resolve to APK bytes (no HTML wrapper).")
+                    })
+                })
+                put("required", JSONArray().put("url"))
+            },
+            consentLevel = ConsentLevel.EVERY_CALL,
+            summarise = { args ->
+                "INSTALL APK from ${args.optString("url").take(60)} — runs as code on this device. Only allow trusted sources."
+            },
+        ) { args -> installApkFromUrl(args) },
+
         "enable_wireless_adb" to ToolHandler(
             description = "Turn on Android's Wireless debugging (`adb connect` over WiFi) by setting `adb_wifi_enabled=1` via Shizuku. Requires Shizuku to be running and Haven to have its permission granted. NOTE: on Android 11+, a host that has never paired with this device must still complete the pairing-code flow manually — this tool cannot bypass that. For an already-paired host (the common case after a phone reboot) flipping the flag is enough.",
             inputSchema = emptyObjectSchema(),
@@ -903,6 +921,111 @@ internal class McpTools(
             )
         } catch (e: Exception) {
             throw McpError(-32603, "Failed to open Developer Settings: ${e.message}")
+        }
+    }
+
+    private suspend fun installApkFromUrl(args: JSONObject): JSONObject = withContext(Dispatchers.IO) {
+        val urlString = args.optString("url").ifEmpty {
+            throw McpError(-32602, "Missing required argument: url")
+        }
+        val url = try {
+            java.net.URL(urlString)
+        } catch (e: Exception) {
+            throw McpError(-32602, "Invalid URL: ${e.message}")
+        }
+        if (url.protocol !in setOf("http", "https")) {
+            throw McpError(-32602, "Only http(s) URLs are supported (got ${url.protocol})")
+        }
+        // Stage the APK in app cache, then pipe it into `pm install -S`
+        // via Shizuku. Cap at 200 MB so a misdirected URL can't fill
+        // the device storage; full Haven release APKs are ~80–100 MB,
+        // so the cap leaves headroom.
+        val maxBytes = 200L * 1024 * 1024
+        val cacheDir = File(context.cacheDir, "agent-install").apply { mkdirs() }
+        val target = File(cacheDir, "haven-agent-install-${System.currentTimeMillis()}.apk")
+        val written = try {
+            val conn = (url.openConnection() as java.net.HttpURLConnection).apply {
+                connectTimeout = 30_000
+                readTimeout = 60_000
+                instanceFollowRedirects = true
+                setRequestProperty("User-Agent", "Haven/1.0 (install_apk_from_url)")
+            }
+            conn.connect()
+            if (conn.responseCode !in 200..299) {
+                throw McpError(-32603, "HTTP ${conn.responseCode} from ${url.host}")
+            }
+            try {
+                conn.inputStream.use { input ->
+                    target.outputStream().use { output ->
+                        val buf = ByteArray(64 * 1024)
+                        var total = 0L
+                        while (true) {
+                            val n = input.read(buf)
+                            if (n < 0) break
+                            total += n
+                            if (total > maxBytes) {
+                                target.delete()
+                                throw McpError(-32603, "APK exceeds ${maxBytes / (1024 * 1024)} MiB cap")
+                            }
+                            output.write(buf, 0, n)
+                        }
+                        total
+                    }
+                }
+            } finally {
+                conn.disconnect()
+            }
+        } catch (e: McpError) {
+            throw e
+        } catch (e: Exception) {
+            target.delete()
+            throw McpError(-32603, "Download failed: ${e.message}")
+        }
+        // Sanity check — APK is a zip, magic bytes 0x50 0x4B ("PK").
+        // Reject HTML / plain-text bodies that 200'd despite being the
+        // wrong content type. Cheap and catches the most common
+        // wrong-URL failure mode.
+        val firstFour = target.inputStream().use { stream ->
+            ByteArray(4).also { stream.read(it) }
+        }
+        if (firstFour[0] != 0x50.toByte() || firstFour[1] != 0x4B.toByte()) {
+            target.delete()
+            throw McpError(
+                -32603,
+                "Downloaded $written bytes but they don't start with the zip/APK magic — wrong URL?",
+            )
+        }
+        // Hand off to Shizuku — `pm install -S <size>` reads APK bytes
+        // from stdin. Working directory of the shell process doesn't
+        // need to see our cache dir; we pipe FileInputStream directly.
+        val result = try {
+            sh.haven.core.local.WaylandSocketHelper.execAsShizukuWithStdin(
+                cmd = "pm install -S $written",
+                stdin = target.inputStream(),
+            )
+        } catch (e: IllegalStateException) {
+            target.delete()
+            throw McpError(
+                -32603,
+                "${e.message}. Install Shizuku from https://shizuku.rikka.app and grant Haven permission, then retry.",
+            )
+        } catch (e: Exception) {
+            target.delete()
+            throw McpError(-32603, "Shizuku exec failed: ${e.message}")
+        } finally {
+            // Best-effort cleanup of the staged APK regardless of outcome.
+            target.delete()
+        }
+        if (result.exitCode != 0 || !result.output.contains("Success")) {
+            throw McpError(
+                -32603,
+                "pm install exited ${result.exitCode}: ${result.output.take(500)}",
+            )
+        }
+        JSONObject().apply {
+            put("installed", true)
+            put("bytesDownloaded", written)
+            put("output", result.output)
         }
     }
 

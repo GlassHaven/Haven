@@ -35,6 +35,7 @@ import androidx.compose.material.icons.automirrored.filled.ArrowBack
 import androidx.compose.material.icons.automirrored.filled.ArrowForward
 import androidx.compose.material.icons.filled.Add
 import androidx.compose.material.icons.filled.Cable
+import androidx.compose.material.icons.filled.Close
 import androidx.compose.material.icons.filled.Circle
 import androidx.compose.material.icons.filled.Clear
 import androidx.compose.material.icons.filled.ContentCopy
@@ -1138,6 +1139,7 @@ fun ConnectionsScreen(
                                     onConnectWithPassword = { connectingProfile = profile },
                                     onPortForwards = { portForwardProfile = profile },
                                     onReauthRclone = { viewModel.reauthRcloneProfile(profile) },
+                                    onCancelOAuth = { viewModel.cancelPendingOAuth(profile) },
                                     onNewSession = { viewModel.openNewSession(profile.id) },
                                     enableDrag = !isFiltering,
                                     dragModifier = if (!isFiltering) Modifier
@@ -1239,6 +1241,7 @@ fun ConnectionsScreen(
                                         onConnectWithPassword = { connectingProfile = dep },
                                         onPortForwards = { portForwardProfile = dep },
                                         onReauthRclone = { viewModel.reauthRcloneProfile(dep) },
+                                        onCancelOAuth = { viewModel.cancelPendingOAuth(dep) },
                                         onNewSession = { viewModel.openNewSession(dep.id) },
                                         dragModifier = if (ancestorDragged) Modifier
                                             .zIndex(1f)
@@ -1362,6 +1365,7 @@ private fun ConnectionTreeItem(
     onConnectWithPassword: () -> Unit,
     onPortForwards: () -> Unit,
     onReauthRclone: () -> Unit,
+    onCancelOAuth: () -> Unit,
     onNewSession: () -> Unit,
     enableDrag: Boolean = true,
     dragModifier: Modifier = Modifier,
@@ -1567,6 +1571,19 @@ private fun ConnectionTreeItem(
                     text = { Text("Re-authenticate") },
                     leadingIcon = { Icon(Icons.Filled.Refresh, null) },
                     onClick = { showMenu = false; onReauthRclone() },
+                )
+            }
+            if (profile.isRclone && profileStatus == ProfileStatus.CONNECTING) {
+                // OAuth has a 5-min timeout, but if the user dismissed
+                // the browser or the callback never reaches rclone's
+                // listener, this lets them clear the spinner manually.
+                // Underlying gomobile worker keeps blocking until
+                // process restart — that's an rclone-android limitation
+                // documented in RcloneSessionManager.cancelPendingOAuth.
+                DropdownMenuItem(
+                    text = { Text("Cancel OAuth") },
+                    leadingIcon = { Icon(Icons.Filled.Close, null) },
+                    onClick = { showMenu = false; onCancelOAuth() },
                 )
             }
             if (profile.isSsh && profileStatus == ProfileStatus.CONNECTED) {

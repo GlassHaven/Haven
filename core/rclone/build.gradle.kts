@@ -39,6 +39,7 @@ tasks.configureEach {
 
 dependencies {
     api("sh.haven:rclone-transport:0.1.0")
+    implementation(project(":core:data"))
     implementation(libs.coroutines.core)
     implementation(libs.coroutines.android)
     implementation(libs.hilt.android)

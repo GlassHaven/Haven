@@ -1,0 +1,32 @@
+v5.24.82: rclone OAuth — timeout, cancel, audit-log entries
+
+Closes the OAuth-UX arc started in v5.24.81. Three pieces:
+
+1. **5-minute timeout on the OAuth wait.** Previously, dismissing the
+browser or losing network during the token exchange would leave
+`createRemote` blocking until app restart. Now the watcher trips
+after 5 minutes, marks the session ERROR with "OAuth timed out — no
+callback received from the browser. Tap Re-authenticate to try
+again," and surfaces a toast.
+
+2. **Cancel pending OAuth.** New "Cancel OAuth" entry in the
+long-press menu, visible only on rclone profiles in the CONNECTING
+state. Marks the session ERROR immediately so the spinner clears.
+Caveat: rclone-android (gomobile binding) doesn't honour Java
+thread interrupts, so the underlying worker keeps running until app
+restart — bounded by a cached thread pool. A proper rclone-side
+cancellation primitive is a future improvement.
+
+3. **OAuth events in the audit log.** `ConnectionLog` now records
+"OAuth started", "OAuth completed", "OAuth timed out", "OAuth
+cancelled by user", and "OAuth failed: <reason>" entries against
+the rclone profile, alongside the existing SSH/Mosh/ET lifecycle
+entries. Visible under Settings → Connection logging → View
+connection log when logging is enabled.
+
+Plus one new MCP tool: **install_apk_from_url** — Shizuku-gated,
+downloads an APK from a URL and installs it via `pm install -S`.
+Useful for agent-driven self-update over VPN where wireless ADB
+isn't reachable. Requires Shizuku running and granted to Haven.
+EVERY_CALL consent with a strong "installs arbitrary code" warning
+in the prompt.

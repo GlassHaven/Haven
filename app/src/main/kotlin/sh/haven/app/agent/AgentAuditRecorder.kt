@@ -190,6 +190,9 @@ private fun summariseResult(toolName: String?, result: JSONObject?): String? {
         }
         "open_local_shell" -> if (result.optBoolean("reused", false)) "reused existing" else "opened"
         "open_developer_settings" -> "opened"
+        "install_apk_from_url" -> result.optLong("bytesDownloaded", -1L).takeIf { it >= 0 }?.let {
+            "${it / 1024 / 1024} MiB installed"
+        }
         "enable_wireless_adb" -> {
             val ip = result.optString("ip", "")
             val port = result.optInt("port", -1)

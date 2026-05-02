@@ -432,6 +432,46 @@ object WaylandSocketHelper {
         return ShizukuExecResult(exitCode = exit, output = merged)
     }
 
+    /**
+     * Run [cmd] as the Shizuku shell user with [stdin] piped into the
+     * process's standard input. Used for `pm install -S <size>` which
+     * reads APK bytes from stdin — sidesteps the cacheDir-permissions
+     * problem (Shizuku's shell uid can't read app-private storage)
+     * because the shell process inherits stdin from us.
+     *
+     * The caller's [stdin] is fully consumed and closed; stdout + stderr
+     * are merged into [ShizukuExecResult.output].
+     */
+    fun execAsShizukuWithStdin(cmd: String, stdin: java.io.InputStream): ShizukuExecResult {
+        if (!isShizukuAvailable()) {
+            throw IllegalStateException("Shizuku is not running")
+        }
+        if (!hasShizukuPermission()) {
+            throw IllegalStateException("Shizuku permission not granted to Haven")
+        }
+        val process = newShizukuProcess(cmd)
+        // Pipe stdin on a worker thread so we can drain stdout/stderr in
+        // parallel — `pm install` doesn't return until it's read every
+        // byte and we've seen its result line, so blocking on either
+        // side independently would deadlock.
+        val stdinThread = Thread({
+            try {
+                stdin.use { input ->
+                    process.outputStream.use { it.write(input.readBytes()) }
+                }
+            } catch (_: Exception) {
+                // Best-effort; if the process died early we just stop feeding.
+            }
+        }, "shizuku-stdin").apply { isDaemon = true }
+        stdinThread.start()
+        val output = process.inputStream.bufferedReader().use { it.readText() }
+        val err = process.errorStream.bufferedReader().use { it.readText() }
+        val exit = process.waitFor()
+        stdinThread.join(2_000)
+        val merged = listOf(output.trim(), err.trim()).filter { it.isNotEmpty() }.joinToString("\n")
+        return ShizukuExecResult(exitCode = exit, output = merged)
+    }
+
     private fun newShizukuProcess(cmd: String): Process {
         val clazz = Class.forName("rikka.shizuku.Shizuku")
         val method = clazz.getDeclaredMethod(

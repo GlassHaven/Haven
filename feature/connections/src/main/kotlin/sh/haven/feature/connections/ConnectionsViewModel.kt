@@ -1047,6 +1047,18 @@ class ConnectionsViewModel @Inject constructor(
     }
 
     /**
+     * Cancel an in-flight OAuth flow for [profile]. Best-effort: marks
+     * the underlying rclone session ERROR so the UI clears the spinner;
+     * the gomobile worker thread keeps running in the background until
+     * app restart (rclone-android has no cancellation primitive).
+     */
+    fun cancelPendingOAuth(profile: ConnectionProfile) {
+        rcloneSessionManager.getSessionsForProfile(profile.id).forEach {
+            rcloneSessionManager.cancelPendingOAuth(it.sessionId)
+        }
+    }
+
+    /**
      * Force a fresh OAuth flow on an rclone profile by dropping the
      * stored remote in rclone's config, then running the normal connect
      * path (which sees no remote and starts OAuth via

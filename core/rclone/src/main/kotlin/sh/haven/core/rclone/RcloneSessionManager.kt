@@ -10,17 +10,27 @@ import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.flow.update
+import sh.haven.core.data.db.entities.ConnectionLog
+import sh.haven.core.data.repository.ConnectionLogRepository
 import java.util.UUID
+import java.util.concurrent.ConcurrentHashMap
 import java.util.concurrent.Executors
+import java.util.concurrent.Future
+import java.util.concurrent.TimeUnit
+import java.util.concurrent.TimeoutException
 import javax.inject.Inject
 import javax.inject.Singleton
 
 private const val TAG = "RcloneSessionMgr"
 
+/** OAuth flow timeout — no browser callback within this window = abort. */
+private const val OAUTH_TIMEOUT_MS = 5L * 60 * 1000
+
 @Singleton
 class RcloneSessionManager @Inject constructor(
     private val client: RcloneClient,
     @ApplicationContext private val context: Context,
+    private val connectionLogRepository: ConnectionLogRepository,
 ) {
 
     data class SessionState(
@@ -44,10 +54,30 @@ class RcloneSessionManager @Inject constructor(
     private val _sessions = MutableStateFlow<Map<String, SessionState>>(emptyMap())
     val sessions: StateFlow<Map<String, SessionState>> = _sessions.asStateFlow()
 
-    /** Background thread for blocking OAuth config/create calls. */
-    private val oauthExecutor = Executors.newSingleThreadExecutor { r ->
+    /**
+     * Worker pool for blocking OAuth `config/create` calls. Cached
+     * pool because the gomobile binding doesn't honour Java thread
+     * interrupts: when an OAuth times out, the worker thread is
+     * effectively leaked until process restart. A bounded pool would
+     * deadlock once the leak count hit the bound; cached + daemon
+     * threads keeps retries working at the cost of letting a few stuck
+     * threads sit there until app restart. Documented limitation.
+     */
+    private val oauthExecutor = Executors.newCachedThreadPool { r ->
         Thread(r, "rclone-oauth").apply { isDaemon = true }
     }
+
+    /**
+     * Single-thread scheduler for the per-session timeout watchers.
+     * One thread is plenty because watchers do almost nothing — they
+     * call `Future.get(timeout)` and dispatch the result.
+     */
+    private val oauthWatchExecutor = Executors.newSingleThreadExecutor { r ->
+        Thread(r, "rclone-oauth-watch").apply { isDaemon = true }
+    }
+
+    /** Tracks in-flight OAuth futures so cancelPendingOAuth can reach them. */
+    private val oauthFutures = ConcurrentHashMap<String, Future<*>>()
 
     fun registerSession(profileId: String, label: String): String {
         val sessionId = UUID.randomUUID().toString()
@@ -156,26 +186,80 @@ class RcloneSessionManager @Inject constructor(
         }, "rclone-url-monitor").apply { isDaemon = true }
         urlMonitor.start()
 
-        // Run config/create on the OAuth thread (blocks until OAuth completes).
-        // On any throw — user dismissed the browser, callback never reached
-        // rclone's localhost listener, network blip during token exchange,
-        // bad client_id in the rclone build, etc. — propagate the message
-        // to the SessionState so the ConnectionsViewModel can surface a
-        // toast instead of leaving the user on a silent spinner.
-        oauthExecutor.execute {
+        // Run config/create on a worker thread, watched by a separate
+        // future-aware watcher so timeout + cancel can both interrupt
+        // the wait without depending on the gomobile binding to honour
+        // Java interrupts (which it doesn't). On any terminal state —
+        // success, timeout, cancel, exception — surface a useful
+        // SessionState.errorMessage and audit-log the event.
+        logOAuthEvent(sessionId, "OAuth started for '$remoteName' (provider=$provider)")
+        val future: Future<*> = oauthExecutor.submit {
+            client.createRemote(remoteName, provider)
+        }
+        oauthFutures[sessionId] = future
+
+        oauthWatchExecutor.execute {
             try {
-                client.createRemote(remoteName, provider)
+                future.get(OAUTH_TIMEOUT_MS, TimeUnit.MILLISECONDS)
                 Log.d(TAG, "OAuth completed for '$remoteName'")
                 markConnected(sessionId, remoteName, provider)
+                logOAuthEvent(sessionId, "OAuth completed for '$remoteName'")
+            } catch (_: TimeoutException) {
+                Log.w(TAG, "OAuth timed out after ${OAUTH_TIMEOUT_MS / 1000}s for '$remoteName'")
+                future.cancel(true)  // best-effort interrupt; gomobile may not honour
+                val msg = "OAuth timed out after ${OAUTH_TIMEOUT_MS / 60_000} minutes — no callback received from the browser. Tap Re-authenticate to try again."
+                failSession(sessionId, msg)
+                logOAuthEvent(sessionId, "OAuth timed out for '$remoteName'", failed = true)
+            } catch (_: java.util.concurrent.CancellationException) {
+                Log.i(TAG, "OAuth cancelled by user for '$remoteName'")
+                failSession(sessionId, "OAuth cancelled.")
+                logOAuthEvent(sessionId, "OAuth cancelled by user for '$remoteName'", failed = true)
+            } catch (e: java.util.concurrent.ExecutionException) {
+                val cause = e.cause ?: e
+                Log.e(TAG, "OAuth failed for '$remoteName'", cause)
+                val msg = "rclone OAuth failed: ${cause.message ?: cause.javaClass.simpleName}"
+                failSession(sessionId, msg)
+                logOAuthEvent(sessionId, msg, failed = true)
             } catch (e: Exception) {
-                Log.e(TAG, "OAuth failed for '$remoteName'", e)
-                failSession(
-                    sessionId,
-                    "rclone OAuth failed: ${e.message ?: e.javaClass.simpleName}",
-                )
+                Log.e(TAG, "OAuth watcher unexpected exception for '$remoteName'", e)
+                val msg = "rclone OAuth watcher failed: ${e.message ?: e.javaClass.simpleName}"
+                failSession(sessionId, msg)
+                logOAuthEvent(sessionId, msg, failed = true)
             } finally {
                 urlMonitor.interrupt()
+                oauthFutures.remove(sessionId)
             }
+        }
+    }
+
+    /**
+     * Cancel the in-flight OAuth flow for [sessionId], if any. Marks
+     * the session ERROR and best-effort interrupts the worker thread.
+     * The underlying gomobile call may still be running; that thread
+     * will be reclaimed on app restart.
+     */
+    fun cancelPendingOAuth(sessionId: String) {
+        val future = oauthFutures[sessionId] ?: return
+        Log.i(TAG, "User cancelled OAuth for session $sessionId")
+        future.cancel(true)
+    }
+
+    /** Append an OAuth lifecycle event to the per-profile audit log. */
+    private fun logOAuthEvent(sessionId: String, message: String, failed: Boolean = false) {
+        val profileId = _sessions.value[sessionId]?.profileId ?: return
+        // Best-effort, fire-and-forget — audit must never break the
+        // OAuth path. Using runBlocking on the watcher thread is fine
+        // because Room writes are quick and the watcher is dedicated.
+        try {
+            kotlinx.coroutines.runBlocking {
+                connectionLogRepository.logEvent(
+                    profileId = profileId,
+                    status = if (failed) ConnectionLog.Status.FAILED else ConnectionLog.Status.CONNECTED,
+                    details = message,
+                )
+            }
+        } catch (e: Exception) {
+            Log.w(TAG, "audit insert for OAuth event failed: ${e.message}")
         }
     }
 

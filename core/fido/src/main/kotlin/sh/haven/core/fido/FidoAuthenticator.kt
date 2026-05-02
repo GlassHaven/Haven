@@ -25,6 +25,8 @@ import kotlinx.coroutines.withTimeoutOrNull
 import java.io.IOException
 import java.lang.ref.WeakReference
 import java.security.MessageDigest
+import java.security.interfaces.ECPrivateKey
+import java.security.interfaces.ECPublicKey
 import javax.inject.Inject
 import javax.inject.Singleton
 
@@ -48,6 +50,16 @@ sealed class FidoTouchPrompt {
     data object WaitingForKey : FidoTouchPrompt()
     /** Key detected; CTAP2 in flight; waiting for the user to physically touch it. */
     data object TouchKey : FidoTouchPrompt()
+    /**
+     * Key requires PIN (verify-required SK key). UI should show a password
+     * field and call [submit] with the entered PIN, or [submit] with null
+     * to cancel. [retriesRemaining] is the authenticator-reported count
+     * after a previous wrong PIN attempt; null on the first attempt.
+     */
+    data class EnterPin(
+        val submit: (String?) -> Unit,
+        val retriesRemaining: Int? = null,
+    ) : FidoTouchPrompt()
 }
 
 /**
@@ -61,10 +73,11 @@ sealed class FidoTouchPrompt {
  * enables NFC reader mode for the duration of the assertion. All of that
  * is torn down when the assertion completes or fails.
  *
- * This replaces the pre-fix design where `startUsbDiscovery` and
- * `startNfcDiscovery` were public entry points that the rest of the app
- * never actually called — meaning security keys were never detected and
- * the SSH auth path hung forever on `pendingDevice.await()`. See #15.
+ * For verify-required SK keys (`ssh-keygen -O verify-required`), the
+ * [getAssertion] caller passes `requireUv = true`, which triggers a
+ * full CTAP2 PIN/UV Auth Protocol exchange (see [Ctap2PinProtocol]) before
+ * the GetAssertion call. The user is prompted via the
+ * [FidoTouchPrompt.EnterPin] state.
  */
 @Singleton
 class FidoAuthenticator @Inject constructor(
@@ -128,17 +141,24 @@ class FidoAuthenticator @Inject constructor(
      * at call time are detected immediately; otherwise a broadcast receiver
      * catches the attach event.
      *
-     * @param rpId         the relying party ID (for SSH this is "ssh:")
+     * @param rpId         the relying party ID (for SSH this is "ssh:" or
+     *                     a custom string set with `ssh-keygen -O application=…`)
      * @param message      the SSH sign data to hash and sign
      * @param credentialId the credential ID (key handle) from the SK key file
+     * @param requireUv    true when the SK key was registered with
+     *                     verify-required (`SSH_SK_USER_VERIFICATION_REQUIRED`).
+     *                     Triggers the CTAP2 clientPIN exchange before the
+     *                     actual GetAssertion call.
      */
     suspend fun getAssertion(
         rpId: String,
         message: ByteArray,
         credentialId: ByteArray,
+        requireUv: Boolean = false,
     ): FidoAssertionResult = withContext(Dispatchers.IO) {
         lastAssertionError = null
-        Log.d(TAG, "FIDO2 assertion requested: rpId=$rpId, message=${message.size}b, credId=${credentialId.size}b")
+        Log.d(TAG, "FIDO2 assertion requested: rpId=$rpId, message=${message.size}b, " +
+            "credId=${credentialId.size}b, requireUv=$requireUv")
 
         val clientDataHash = MessageDigest.getInstance("SHA-256").digest(message)
 
@@ -177,13 +197,21 @@ class FidoAuthenticator @Inject constructor(
             Log.d(TAG, "Waiting for security key (USB${if (nfcEnabled) " or NFC" else ""})...")
             val device = deferred.await()
 
-            // Device just landed — switch the prompt to "touch your key now"
-            // before sending the CTAP2 GetAssertion command.
-            _touchPrompt.value = FidoTouchPrompt.TouchKey
+            // Device just landed — for the non-UV path, switch the prompt to
+            // "touch your key now" before sending GetAssertion. For the UV
+            // path, performXxxAssertion will toggle EnterPin then TouchKey
+            // at the right moments.
+            if (!requireUv) {
+                _touchPrompt.value = FidoTouchPrompt.TouchKey
+            }
 
             val result = when (device) {
-                is ConnectedDevice.Usb -> performUsbAssertion(device.device, rpId, clientDataHash, credentialId)
-                is ConnectedDevice.Nfc -> performNfcAssertion(device.tag, rpId, clientDataHash, credentialId)
+                is ConnectedDevice.Usb -> performUsbAssertion(
+                    device.device, rpId, clientDataHash, credentialId, requireUv,
+                )
+                is ConnectedDevice.Nfc -> performNfcAssertion(
+                    device.tag, rpId, clientDataHash, credentialId, requireUv,
+                )
             }
 
             Log.d(TAG, "FIDO2 assertion success: sig=${result.signature.size}b, flags=0x${
@@ -296,6 +324,7 @@ class FidoAuthenticator @Inject constructor(
         rpId: String,
         clientDataHash: ByteArray,
         credentialId: ByteArray,
+        requireUv: Boolean,
     ): FidoAssertionResult {
         val usbManager = context.getSystemService(Context.USB_SERVICE) as UsbManager
 
@@ -372,9 +401,21 @@ class FidoAuthenticator @Inject constructor(
             CtapHidTransport(connection, endpointIn, endpointOut).use { transport ->
                 Log.d(TAG, "CTAPHID init...")
                 transport.init()
-                Log.d(TAG, "CTAPHID init complete, sending GetAssertion (rpId=$rpId)")
 
-                val command = Ctap2Cbor.encodeGetAssertionCommand(rpId, clientDataHash, credentialId)
+                val (pinUvAuthParam, pinProtocol) = if (requireUv) {
+                    runUvPinProtocol(rpId, clientDataHash) { transport.sendCborCommand(it) }
+                } else null to null
+
+                Log.d(TAG, "CTAPHID init complete, sending GetAssertion (rpId=$rpId, uv=${pinUvAuthParam != null})")
+
+                _touchPrompt.value = FidoTouchPrompt.TouchKey
+                val command = Ctap2Cbor.encodeGetAssertionCommand(
+                    rpId = rpId,
+                    clientDataHash = clientDataHash,
+                    credentialId = credentialId,
+                    pinUvAuthParam = pinUvAuthParam,
+                    pinUvAuthProtocol = pinProtocol,
+                )
                 val response = transport.sendCborCommand(command) {
                     _touchPrompt.value = FidoTouchPrompt.TouchKey
                 }
@@ -382,7 +423,7 @@ class FidoAuthenticator @Inject constructor(
                 Log.d(TAG, "CTAP response: ${response.size} bytes, status=0x${
                     if (response.isNotEmpty()) "%02x".format(response[0]) else "empty"
                 }")
-                return parseCtap2Response(response)
+                return parseCtap2AssertionResponse(response)
             }
         } catch (e: Exception) {
             Log.e(TAG, "USB FIDO assertion failed: ${e.javaClass.simpleName}: ${e.message}")
@@ -391,11 +432,12 @@ class FidoAuthenticator @Inject constructor(
         }
     }
 
-    private fun performNfcAssertion(
+    private suspend fun performNfcAssertion(
         tag: Tag,
         rpId: String,
         clientDataHash: ByteArray,
         credentialId: ByteArray,
+        requireUv: Boolean,
     ): FidoAssertionResult {
         val isoDep = IsoDep.get(tag) ?: throw IOException("Tag does not support ISO-DEP")
 
@@ -403,20 +445,166 @@ class FidoAuthenticator @Inject constructor(
             transport.connect()
             transport.select()
 
-            val command = Ctap2Cbor.encodeGetAssertionCommand(rpId, clientDataHash, credentialId)
-            val response = transport.sendCborCommand(command)
+            val (pinUvAuthParam, pinProtocol) = if (requireUv) {
+                runUvPinProtocol(rpId, clientDataHash) { transport.sendCborCommand(it) }
+            } else null to null
 
-            return parseCtap2Response(response)
+            _touchPrompt.value = FidoTouchPrompt.TouchKey
+            val command = Ctap2Cbor.encodeGetAssertionCommand(
+                rpId = rpId,
+                clientDataHash = clientDataHash,
+                credentialId = credentialId,
+                pinUvAuthParam = pinUvAuthParam,
+                pinUvAuthProtocol = pinProtocol,
+            )
+            val response = transport.sendCborCommand(command)
+            return parseCtap2AssertionResponse(response)
         }
     }
 
-    private fun parseCtap2Response(response: ByteArray): FidoAssertionResult {
+    /**
+     * Run the CTAP2 clientPIN protocol against an authenticator over [send]
+     * (one round-trip per CBOR command, status byte preserved). Returns
+     * `(pinUvAuthParam, protocolVersion)` to be included in the subsequent
+     * GetAssertion. Throws [IOException] if the key has no PIN configured,
+     * the user cancels, or PIN entry exhausts the authenticator's retry
+     * counter.
+     */
+    private suspend fun runUvPinProtocol(
+        rpId: String,
+        clientDataHash: ByteArray,
+        send: (ByteArray) -> ByteArray,
+    ): Pair<ByteArray, Int> {
+        // 1. authenticatorGetInfo to learn supported protocols and PIN state
+        val infoResp = send(Ctap2Cbor.encodeGetInfoCommand())
+        ensureOk(infoResp, "GetInfo")
+        val info = Ctap2Cbor.decodeGetInfoResponse(infoResp.copyOfRange(1, infoResp.size))
+        Log.d(TAG, "GetInfo: pinProtocols=${info.pinUvAuthProtocols}, " +
+            "clientPinSet=${info.clientPinSet}, uvBuiltIn=${info.uvBuiltIn}")
+
+        if (!info.clientPinSet) {
+            throw IOException(
+                "This SK key requires verification, but the security key has no " +
+                "PIN configured. Set a PIN with `ykman fido access change-pin` " +
+                "(YubiKey) or your manufacturer's tool, then try again."
+            )
+        }
+
+        val protocol = Ctap2PinProtocol.pick(info.pinUvAuthProtocols)
+            ?: throw IOException("Authenticator does not support PIN protocol v1 or v2")
+        Log.d(TAG, "Using PIN/UV auth protocol v${protocol.version}")
+
+        // 2. clientPIN getKeyAgreement → authenticator's COSE_Key
+        val kaResp = send(Ctap2Cbor.encodeClientPinGetKeyAgreement(protocol.version))
+        ensureOk(kaResp, "clientPIN getKeyAgreement")
+        val cose = Ctap2Cbor.decodeClientPinKeyAgreementResponse(kaResp.copyOfRange(1, kaResp.size))
+        val authenticatorPub = protocol.coseKeyToEcPublic(cose.x, cose.y)
+
+        // 3. ECDH on platform side → shared secret
+        val ephemeral = protocol.generateEphemeralKeyPair()
+        val z = protocol.ecdh(ephemeral.private as ECPrivateKey, authenticatorPub)
+        val sharedSecret = protocol.deriveSharedSecret(z)
+        val (ephX, ephY) = protocol.ecPublicToCoseCoords(ephemeral.public as ECPublicKey)
+        val platformKa = Ctap2Cbor.CoseEcdhPubKey(ephX, ephY)
+
+        // 4. Loop: prompt PIN → getPinUvAuthToken. On wrong PIN, retry until
+        //    the user cancels or the authenticator returns a hard failure.
+        var retriesNote: Int? = null
+        while (true) {
+            val pin = promptPin(retriesNote)
+                ?: throw IOException("PIN entry cancelled")
+            if (pin.length < 4) throw IOException("PIN must be at least 4 characters")
+
+            val pinHash = MessageDigest.getInstance("SHA-256")
+                .digest(pin.toByteArray(Charsets.UTF_8))
+                .copyOfRange(0, 16)
+            val pinHashEnc = protocol.encrypt(sharedSecret, pinHash)
+
+            val tokReq = Ctap2Cbor.encodeClientPinGetTokenWithPermissions(
+                protocol = protocol.version,
+                platformKeyAgreement = platformKa,
+                pinHashEnc = pinHashEnc,
+                permissions = Ctap2Cbor.PERMISSION_GET_ASSERTION,
+                rpId = rpId,
+            )
+            val tokResp = send(tokReq)
+            when (val status = tokResp[0]) {
+                Ctap2Cbor.STATUS_OK -> {
+                    val encToken = Ctap2Cbor.decodeClientPinTokenResponse(
+                        tokResp.copyOfRange(1, tokResp.size)
+                    )
+                    val token = protocol.decrypt(sharedSecret, encToken)
+                    val authParam = protocol.authenticate(token, clientDataHash)
+                    Log.d(TAG, "PIN verified; pinUvAuthParam=${authParam.size}b")
+                    return authParam to protocol.version
+                }
+                Ctap2Cbor.STATUS_PIN_INVALID -> {
+                    retriesNote = (retriesNote ?: 8) - 1
+                    Log.w(TAG, "Wrong PIN; ~$retriesNote attempts remain (estimated)")
+                    if (retriesNote <= 0) {
+                        throw IOException("Too many wrong PIN attempts.")
+                    }
+                    // Loop and prompt again.
+                }
+                Ctap2Cbor.STATUS_PIN_BLOCKED -> throw IOException(
+                    "Security key PIN is blocked. Reset the FIDO2 application " +
+                        "with the manufacturer's tool (e.g. `ykman fido reset`) " +
+                        "and re-enroll."
+                )
+                Ctap2Cbor.STATUS_PIN_AUTH_BLOCKED -> throw IOException(
+                    "PIN auth temporarily blocked. Unplug and replug the key, " +
+                        "then try again."
+                )
+                Ctap2Cbor.STATUS_PIN_NOT_SET -> throw IOException(
+                    "Security key has no PIN set; configure one and try again."
+                )
+                else -> throw IOException(
+                    "PIN exchange failed: CTAP2 error 0x${"%02x".format(status)}"
+                )
+            }
+        }
+        // unreachable — the while(true) only exits via return or throw
+        @Suppress("UNREACHABLE_CODE")
+        error("unreachable")
+    }
+
+    /**
+     * Show the PIN entry dialog and await the user's response. Returns the
+     * entered PIN, or null when the user cancels.
+     */
+    private suspend fun promptPin(retriesRemaining: Int?): String? {
+        val deferred = CompletableDeferred<String?>()
+        _touchPrompt.value = FidoTouchPrompt.EnterPin(
+            submit = { pin -> if (!deferred.isCompleted) deferred.complete(pin) },
+            retriesRemaining = retriesRemaining,
+        )
+        return try {
+            deferred.await()
+        } finally {
+            // Caller flips _touchPrompt to TouchKey or null next; clearing here
+            // would briefly hide the dialog. Leaving the EnterPin state in place
+            // is fine since the next line of the caller reassigns it.
+        }
+    }
+
+    /** Throw a descriptive IOException if [response] does not lead with STATUS_OK. */
+    private fun ensureOk(response: ByteArray, context: String) {
+        if (response.isEmpty()) throw IOException("$context: empty CTAP2 response")
+        val status = response[0]
+        if (status != Ctap2Cbor.STATUS_OK) {
+            throw IOException("$context: CTAP2 error 0x${"%02x".format(status)}")
+        }
+    }
+
+    private fun parseCtap2AssertionResponse(response: ByteArray): FidoAssertionResult {
         require(response.isNotEmpty()) { "Empty CTAP2 response" }
 
         val status = response[0]
         if (status != Ctap2Cbor.STATUS_OK) {
             val desc = when (status) {
-                Ctap2Cbor.STATUS_NO_CREDENTIALS -> "No matching credential on this key"
+                Ctap2Cbor.STATUS_NO_CREDENTIALS ->
+                    "No matching credential on this key (or the credential requires " +
+                        "PIN verification — re-check that the PIN was accepted)"
                 Ctap2Cbor.STATUS_ACTION_TIMEOUT -> "User did not touch the key in time"
                 else -> "CTAP2 error 0x${"%02x".format(status)}"
             }

@@ -50,10 +50,19 @@ class FidoIdentity(
     override fun getSignature(data: ByteArray): ByteArray = getSignature(data, algName)
 
     override fun getSignature(data: ByteArray, alg: String): ByteArray {
+        // SSH SK key flags (drafts-miller-ssh-agent §3.1.4 / sk-api.h):
+        //   0x01 = SSH_SK_USER_PRESENCE_REQUIRED  — always set; CTAP2 up:true.
+        //   0x04 = SSH_SK_USER_VERIFICATION_REQUIRED  — `ssh-keygen -O verify-required`.
+        //          We must do CTAP2 PIN protocol before GetAssertion, otherwise
+        //          the authenticator filters this credential out of the allowList
+        //          and returns CTAP2_ERR_NO_CREDENTIALS (0x2E).
+        val requireUv = (skKeyData.flags.toInt() and 0x04) != 0
+
         Log.d(TAG, "getSignature called: alg=$alg, dataLen=${data.size}")
         Log.d(TAG, "Requesting FIDO2 assertion from security key...")
         Log.d(TAG, "  rpId (application): ${skKeyData.application}")
         Log.d(TAG, "  credentialId: ${skKeyData.credentialId.size} bytes")
+        Log.d(TAG, "  flags=0x${"%02x".format(skKeyData.flags)} requireUv=$requireUv")
 
         // Block the JSch thread while waiting for FIDO2 hardware response.
         // This is intentional — JSch's auth is synchronous.
@@ -63,6 +72,7 @@ class FidoIdentity(
                     rpId = skKeyData.application,
                     message = data,
                     credentialId = skKeyData.credentialId,
+                    requireUv = requireUv,
                 )
             }
         } catch (e: Exception) {

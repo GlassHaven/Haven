@@ -1,0 +1,36 @@
+v5.24.83: i18n catch-up — 1180 missing translations, 10 locales
+
+Triggered by issue #125 (Chinese translation gaps). Audit found that
+the same gaps existed in all 10 shipped locales — not just Chinese —
+because new strings have been landing without backfilling
+translations. The MissingTranslation lint check was disabled at the
+project root, so the drift went unnoticed.
+
+Coverage before:
+
+  feature/sftp        69 strings missing per locale (recent media
+                      features: convert / trim / extract audio /
+                      contact sheet / permissions / ownership / media
+                      info)
+  feature/terminal    3 missing per locale
+  feature/connections 1 missing per locale
+  feature/settings    2 missing per locale
+  feature/editor      19 missing — entire module had no translations
+  feature/imagetools  15 missing — entire module had no translations
+  termlib selection   9 missing — entire submodule had no translations
+
+After: 1:1 across all 10 modules × all 10 locales. Translations are
+AI-assisted in the same style as the original i18n bundle; native-
+speaker corrections welcome via PR.
+
+Also:
+
+* MissingTranslation lint flipped from "disabled" to "warning" so
+  this can't drift silently again. CI is unaffected; the gap surfaces
+  in lint reports.
+
+* scripts/i18n_backfill.py + scripts/i18n_drift.py keep the
+  translation tables in source so future drift can be regenerated
+  rather than hand-typed.
+
+No code changes — strings only.

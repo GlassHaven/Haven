@@ -1,7 +1,17 @@
 <?xml version="1.0" encoding="utf-8"?>
 <network-security-config>
-    <!-- Haven only makes SSH connections, not HTTP.
-         This config ensures no cleartext HTTP is allowed
-         if any HTTP client is ever added. -->
+    <!-- Default: refuse cleartext for everything outside loopback. -->
     <base-config cleartextTrafficPermitted="false" />
+    <!-- Loopback (127.0.0.1) cannot be MITM'd, and Haven's own
+         architecture leans on loopback HTTP servers (rclone serve,
+         HLS, the MCP transport, and any port forward that resolves
+         to phone-side 127.0.0.1 — e.g. an SSH `-L` rule that tunnels
+         a workstation HTTP server back to the device). Allowing
+         cleartext only here keeps the safe default for the wider
+         internet while letting in-process HTTP clients reach those
+         servers. -->
+    <domain-config cleartextTrafficPermitted="true">
+        <domain includeSubdomains="false">127.0.0.1</domain>
+        <domain includeSubdomains="false">localhost</domain>
+    </domain-config>
 </network-security-config>

@@ -11,7 +11,7 @@
 > *"Haven is an interesting vibe coding experiment. Let's see what comes out of it."* — DBP
 
 <p align="center">
-  <a href="https://github.com/GlassHaven/Haven/releases/latest"><img src="https://img.shields.io/badge/release-v5.24.80-blue?style=flat-square" alt="Release" /></a>
+  <a href="https://github.com/GlassHaven/Haven/releases/latest"><img src="https://img.shields.io/badge/release-v5.24.81-blue?style=flat-square" alt="Release" /></a>
   <a href="https://f-droid.org/en/packages/sh.haven.app"><img src="https://img.shields.io/f-droid/v/sh.haven.app?style=flat-square" alt="F-Droid" /></a>
   <a href="https://github.com/GlassHaven/Haven/actions/workflows/ci.yml?query=branch%3Amain"><img src="https://github.com/GlassHaven/Haven/actions/workflows/ci.yml/badge.svg?branch=main" alt="Build" /></a>
   <a href="LICENSE"><img src="https://img.shields.io/badge/license-AGPL--3.0-orange?style=flat-square" alt="License" /></a>
@@ -45,7 +45,7 @@
 
 ## At a glance
 
-- **Terminal** — Mosh / Eternal Terminal / SSH with tmux-aware session restore, configurable keyboard toolbar, OSC 52/8/9/777/7/133 integration.
+- **Terminal** — Mosh / Eternal Terminal / SSH with tmux-aware session restore, configurable keyboard toolbar, OSC 52/8/9/777/7/133 integration. Bundled Hack Nerd Font Mono renders Powerline / Devicons / Font Awesome / Material Design glyphs in shell prompts out of the box.
 - **Desktop** — VNC (RFB 3.8 with VeNCrypt), RDP (via IronRDP), a native Wayland compositor (labwc on GLES2), and one-tap local X11 desktop via PRoot.
 - **Files** — Unified browser for SFTP/SCP, SMB, and 60+ cloud providers. Multi-select, built-in editor, image tools, chmod, cross-filesystem copy/move.
 - **Media** — Transcode and stream on-device with FFmpeg 8.0; HLS streaming to the LAN; DLNA server for cloud media.
@@ -54,6 +54,7 @@
 - **Local shell** — Alpine Linux via PRoot (no root, any Android 8+ device).
 - **Reticulum** — rnsh over Reticulum mesh networks, pure Kotlin.
 - **Security** — Biometric lock, no telemetry, encrypted backup/restore (AES-256-GCM).
+- **Agent transport (MCP)** — Optional local loopback MCP server exposes Haven's read and write surfaces as tools. Every action prompts the user for consent; every call shows up in the audit log. Tunnel through any SSH profile in one tap so an MCP client running on the workstation reaches Haven via `localhost`. Disabled by default; under Settings → Agent endpoint.
 
 See [docs/FEATURES.md](docs/FEATURES.md) for the full, detailed feature list.
 

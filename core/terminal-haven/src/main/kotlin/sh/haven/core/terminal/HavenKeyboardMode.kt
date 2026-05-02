@@ -36,4 +36,51 @@ sealed interface HavenKeyboardMode {
      * CJK. Equivalent to ConnectBot's old `TYPE_NULL` behaviour.
      */
     data object Raw : HavenKeyboardMode
+
+    /**
+     * User-configured EditorInfo flag set. Same plumbing as Secure but
+     * with each underlying bit individually toggleable so power users
+     * can tune around IME-specific quirks (#115 follow-up): get voice
+     * input on Gboard while keeping autocorrect off, or unblock
+     * Samsung's commit-text gate without enabling autocap, etc.
+     */
+    data class Custom(val flags: ImeFlagSet) : HavenKeyboardMode
 }
+
+/**
+ * Individual IME flag toggles for [HavenKeyboardMode.Custom]. Each
+ * boolean maps to one EditorInfo bit; [ImeInputView] reads this struct
+ * and assembles `inputType` / `imeOptions` from it directly when the
+ * mode is Custom.
+ *
+ * Defaults match what the Secure preset would have set, so flipping
+ * into Custom mode without further tweaks preserves behaviour.
+ */
+data class ImeFlagSet(
+    /** `TYPE_TEXT_FLAG_NO_SUGGESTIONS` — hide the suggestion strip. */
+    val noSuggestions: Boolean = true,
+    /**
+     * `TYPE_TEXT_VARIATION_VISIBLE_PASSWORD` — strongest "don't rewrite
+     * my input" hint. Universally honoured by Gboard; keeps autocap,
+     * autospace, and word-substitution autocorrect off. Mutually
+     * exclusive with composition (CJK / voice / swipe) on most IMEs.
+     */
+    val visiblePassword: Boolean = true,
+    /**
+     * `TYPE_TEXT_FLAG_AUTO_CORRECT` — required by Samsung Honeyboard's
+     * IMM gate to dispatch input at all (#110), but explicitly enables
+     * autocorrect-on-space on Gboard. Off by default.
+     */
+    val autoCorrect: Boolean = false,
+    /**
+     * Give `BaseInputConnection` a real Editable so the IME can do
+     * composition (voice input, swipe typing). Implies
+     * non-`VISIBLE_PASSWORD` input type — the user picks one or the
+     * other.
+     */
+    val fullEditor: Boolean = false,
+    /** `IME_FLAG_NO_EXTRACT_UI` — suppress fullscreen IME in landscape. */
+    val noExtractUi: Boolean = true,
+    /** `IME_FLAG_NO_PERSONALIZED_LEARNING` — privacy: IME doesn't learn input. */
+    val noPersonalizedLearning: Boolean = true,
+)

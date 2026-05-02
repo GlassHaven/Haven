@@ -20,7 +20,8 @@ import androidx.lifecycle.Lifecycle
 import androidx.lifecycle.LifecycleEventObserver
 import androidx.lifecycle.compose.LocalLifecycleOwner
 import dagger.hilt.android.AndroidEntryPoint
-import sh.haven.app.agent.AgentConsentManager
+import sh.haven.app.agent.ConsentHost
+import sh.haven.core.data.agent.AgentConsentManager
 import sh.haven.app.navigation.HavenNavHost
 import sh.haven.core.data.preferences.UserPreferencesRepository
 import sh.haven.core.data.repository.ConnectionRepository
@@ -142,6 +143,10 @@ class MainActivity : AppCompatActivity() {
                         preferencesRepository = preferencesRepository,
                         connectionRepository = connectionRepository,
                     )
+                    // Floats above whatever screen is active so an
+                    // agent's consent prompt is unmissable. No-op when
+                    // there are no pending requests.
+                    ConsentHost()
                 }
             }
         }

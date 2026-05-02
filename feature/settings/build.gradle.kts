@@ -30,6 +30,10 @@ dependencies {
     implementation(project(":core:data"))
     implementation(project(":core:local"))
     implementation(project(":core:security"))
+    // Lets the "Tunnel to a remote SSH profile…" Settings shortcut
+    // live-activate the new -R rule on a currently-connected session,
+    // mirroring the existing port-forward UI behaviour.
+    implementation(project(":core:ssh"))
     implementation(project(":feature:tunnel"))
 
     implementation(libs.appcompat)

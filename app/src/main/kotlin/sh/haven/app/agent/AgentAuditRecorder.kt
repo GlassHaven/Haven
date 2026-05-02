@@ -168,6 +168,33 @@ private fun summariseResult(toolName: String?, result: JSONObject?): String? {
             if (n >= 0) "$n entries at $remote:$path" else null
         }
         "get_app_info" -> result.optString("version", "").takeIf { it.isNotEmpty() }?.let { "version $it" }
+        "play_file" -> result.optString("mimeType", "").takeIf { it.isNotEmpty() }?.let { "dispatched $it" }
+        "read_terminal_scrollback" -> result.optInt("byteCount", -1).takeIf { it >= 0 }?.let { "$it bytes" }
+        "disconnect_profile" -> "disconnected"
+        "add_port_forward" -> {
+            val activated = result.optBoolean("activated", false)
+            val bound = if (result.has("actualBoundPort")) " bound:${result.optInt("actualBoundPort")}" else ""
+            "saved${if (activated) ", activated" else ""}$bound"
+        }
+        "remove_port_forward" -> if (result.optBoolean("deactivated", false)) "removed and deactivated" else "removed"
+        "upload_file_to_sftp" -> result.optLong("bytesUploaded", -1L).takeIf { it >= 0 }?.let { "uploaded ${it} bytes" }
+        "delete_sftp_file" -> "deleted"
+        "send_terminal_input" -> result.optInt("bytesSent", -1).takeIf { it >= 0 }?.let { "$it bytes typed" }
+        "convert_file" -> {
+            val size = result.optLong("sizeBytes", -1L)
+            val ms = result.optLong("durationMs", -1L)
+            if (size >= 0 && ms >= 0) "${size / 1024} KiB in ${ms} ms" else null
+        }
+        "set_terminal_font_from_url" -> result.optLong("bytesDownloaded", -1L).takeIf { it >= 0 }?.let {
+            "${it / 1024} KiB installed"
+        }
+        "open_local_shell" -> if (result.optBoolean("reused", false)) "reused existing" else "opened"
+        "open_developer_settings" -> "opened"
+        "enable_wireless_adb" -> {
+            val ip = result.optString("ip", "")
+            val port = result.optInt("port", -1)
+            if (ip.isNotEmpty() && port > 0) "enabled at $ip:$port" else "enabled"
+        }
         else -> null
     } ?: "ok"
 }

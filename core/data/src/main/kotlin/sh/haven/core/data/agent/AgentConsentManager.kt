@@ -1,4 +1,4 @@
-package sh.haven.app.agent
+package sh.haven.core.data.agent
 
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow

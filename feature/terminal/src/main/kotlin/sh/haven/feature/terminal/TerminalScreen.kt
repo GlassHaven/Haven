@@ -125,6 +125,13 @@ fun TerminalScreen(
     isActive: Boolean = false,
     terminalModifier: Modifier = Modifier,
     fontSize: Int = UserPreferencesRepository.DEFAULT_FONT_SIZE,
+    /**
+     * Optional override for the terminal typeface — Settings → Terminal
+     * font lets the user pick a Nerd Font (or any TTF/OTF) so prompts
+     * with extended glyphs render instead of showing tofu boxes (#123).
+     * Null means "fall back to the bundled Hack Regular".
+     */
+    terminalFontPath: String? = null,
     toolbarLayout: ToolbarLayout = ToolbarLayout.DEFAULT,
     navBlockMode: sh.haven.core.data.preferences.NavBlockMode = sh.haven.core.data.preferences.NavBlockMode.ALIGNED,
     showSearchButton: Boolean = false,
@@ -137,6 +144,12 @@ fun TerminalScreen(
     onToggleStandardKeyboard: () -> Unit = {},
     rawKeyboardMode: Boolean = false,
     onToggleRawKeyboard: () -> Unit = {},
+    /**
+     * Non-null = user has selected the Custom keyboard mode and these
+     * are the EditorInfo flag toggles to apply. Null = use one of the
+     * preset modes (Secure/Standard/Raw above). #115 follow-up.
+     */
+    customKeyboardFlags: sh.haven.core.terminal.ImeFlagSet? = null,
     interceptCtrlShiftV: Boolean = true,
     showTabBar: Boolean = true,
     onNavigateToConnections: () -> Unit = {},
@@ -170,8 +183,18 @@ fun TerminalScreen(
         }
     }
 
-    val hackTypeface = remember {
-        ResourcesCompat.getFont(context, sh.haven.core.ui.R.font.hack_regular)
+    // Resolve the terminal typeface: user-supplied font path wins
+    // (covers any TTF/OTF the user picked); falls back to the bundled
+    // Hack Nerd Font Mono so Powerline / Devicons / Font Awesome
+    // glyphs in shell prompts render out of the box (#123), then
+    // platform monospace if even that fails to load. Re-read whenever
+    // the path changes — callers observe the preference Flow, so a
+    // Settings change triggers a recomposition with a new typeface
+    // here.
+    val hackTypeface = remember(terminalFontPath) {
+        terminalFontPath
+            ?.let { runCatching { android.graphics.Typeface.createFromFile(it) }.getOrNull() }
+            ?: ResourcesCompat.getFont(context, sh.haven.core.ui.R.font.hack_nerd_font_mono_regular)
             ?: android.graphics.Typeface.MONOSPACE
     }
     val view = LocalView.current
@@ -712,6 +735,7 @@ fun TerminalScreen(
                         val keyboardMode = when {
                             rawKeyboardMode -> HavenKeyboardMode.Raw
                             allowStandardKeyboard -> HavenKeyboardMode.Standard
+                            customKeyboardFlags != null -> HavenKeyboardMode.Custom(customKeyboardFlags!!)
                             else -> HavenKeyboardMode.Secure
                         }
                         CompositionLocalProvider(LocalClipboardManager provides smartClipboard) {

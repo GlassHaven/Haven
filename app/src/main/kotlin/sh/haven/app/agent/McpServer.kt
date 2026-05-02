@@ -13,10 +13,19 @@ import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
 import org.json.JSONArray
 import org.json.JSONObject
+import sh.haven.core.data.agent.AgentConsentManager
+import sh.haven.core.data.agent.ConsentDecision
+import sh.haven.core.data.agent.ConsentLevel
 import sh.haven.core.data.db.entities.AgentAuditEvent
+import sh.haven.core.data.font.TerminalFontInstaller
+import sh.haven.core.data.preferences.UserPreferencesRepository
 import sh.haven.core.data.repository.ConnectionRepository
+import sh.haven.core.data.repository.PortForwardRepository
+import sh.haven.core.ffmpeg.FfmpegExecutor
 import sh.haven.core.ffmpeg.HlsStreamServer
+import sh.haven.core.local.LocalSessionManager
 import sh.haven.core.rclone.RcloneClient
+import sh.haven.core.ssh.SessionManagerRegistry
 import sh.haven.core.ssh.SshSessionManager
 import sh.haven.feature.sftp.SftpStreamServer
 import java.io.BufferedReader
@@ -71,11 +80,18 @@ private const val TAG = "McpServer"
 class McpServer @Inject constructor(
     @ApplicationContext private val context: Context,
     private val connectionRepository: ConnectionRepository,
+    private val portForwardRepository: PortForwardRepository,
     private val sshSessionManager: SshSessionManager,
+    private val sessionManagerRegistry: SessionManagerRegistry,
     private val rcloneClient: RcloneClient,
     private val sftpStreamServer: SftpStreamServer,
     private val hlsStreamServer: HlsStreamServer,
+    private val ffmpegExecutor: FfmpegExecutor,
+    private val preferencesRepository: UserPreferencesRepository,
+    private val terminalFontInstaller: TerminalFontInstaller,
+    private val localSessionManager: LocalSessionManager,
     private val auditRecorder: AgentAuditRecorder,
+    private val consentManager: AgentConsentManager,
 ) : Closeable {
 
     /**
@@ -135,11 +151,18 @@ class McpServer @Inject constructor(
         }
 
     private val tools = McpTools(
+        context = context,
         connectionRepository = connectionRepository,
+        portForwardRepository = portForwardRepository,
         sshSessionManager = sshSessionManager,
+        sessionManagerRegistry = sessionManagerRegistry,
         rcloneClient = rcloneClient,
         sftpStreamServer = sftpStreamServer,
         hlsStreamServer = hlsStreamServer,
+        ffmpegExecutor = ffmpegExecutor,
+        preferencesRepository = preferencesRepository,
+        terminalFontInstaller = terminalFontInstaller,
+        localSessionManager = localSessionManager,
     )
 
     /**
@@ -348,6 +371,14 @@ class McpServer @Inject constructor(
             val result = dispatch(method, params)
             if (result is JSONObject) resultJson = result
             if (isNotification) "" else jsonRpcResult(id, result)
+        } catch (e: ConsentDeniedError) {
+            // User denied via the bottom-sheet prompt, or no foreground
+            // activity was available to ask. Audit it as DENIED so the
+            // user can tell intent-from-the-agent apart from runtime
+            // failure later.
+            outcome = AgentAuditEvent.Outcome.DENIED
+            errorMessage = e.message
+            if (isNotification) "" else jsonRpcError(id, e.code, e.message ?: "User denied")
         } catch (e: McpError) {
             outcome = AgentAuditEvent.Outcome.ERROR
             errorMessage = e.message
@@ -436,6 +467,31 @@ class McpServer @Inject constructor(
         val name = params.optString("name", "")
             .ifEmpty { throw McpError(-32602, "Missing tool name") }
         val arguments = params.optJSONObject("arguments") ?: JSONObject()
+        // Look up consent metadata before invoking the handler. Unknown
+        // tools fall through to tools.call() which will throw the right
+        // error; treating them as NEVER avoids prompting on a typo.
+        val consent = tools.consentFor(name)
+        if (consent != null && consent.level != ConsentLevel.NEVER) {
+            val summary = try {
+                consent.summary(arguments)
+            } catch (e: Exception) {
+                // A summary builder shouldn't crash the dispatcher; fall
+                // back to the tool name so the prompt still renders.
+                Log.w(TAG, "summary builder for '$name' threw: ${e.message}")
+                name
+            }
+            val decision = runBlocking {
+                consentManager.requestConsent(
+                    toolName = name,
+                    clientHint = lastClientHint,
+                    summary = summary,
+                    level = consent.level,
+                )
+            }
+            if (decision == ConsentDecision.DENY) {
+                throw ConsentDeniedError(name)
+            }
+        }
         val content = try {
             runBlocking { tools.call(name, arguments) }
         } catch (e: McpError) {
@@ -516,4 +572,13 @@ class McpServer @Inject constructor(
 }
 
 /** Lightweight error type carrying a JSON-RPC error code. */
-class McpError(val code: Int, message: String) : RuntimeException(message)
+open class McpError(val code: Int, message: String) : RuntimeException(message)
+
+/**
+ * Raised by the dispatcher when the user denies a consent prompt (or no
+ * foreground activity is available to render one). Audit is recorded
+ * with [AgentAuditEvent.Outcome.DENIED] so the dashboard can distinguish
+ * "the agent tried and we said no" from "the agent tried and it broke."
+ */
+class ConsentDeniedError(toolName: String) :
+    McpError(-32000, "User denied: $toolName")

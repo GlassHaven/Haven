@@ -12,7 +12,9 @@ import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.flow.update
 import kotlinx.coroutines.launch
 import sh.haven.core.data.preferences.UserPreferencesRepository
+import sh.haven.core.data.terminal.ScrollbackRing
 import java.util.UUID
+import java.util.concurrent.ConcurrentHashMap
 import java.util.concurrent.Executors
 import javax.inject.Inject
 import javax.inject.Singleton
@@ -258,6 +260,7 @@ class LocalSessionManager @Inject constructor(
     fun removeSession(sessionId: String) {
         val session = _sessions.value[sessionId] ?: return
         _sessions.update { it - sessionId }
+        agentScrollback.remove(sessionId)
         ioExecutor.execute {
             try {
                 session.localSession?.close()
@@ -265,6 +268,73 @@ class LocalSessionManager @Inject constructor(
                 Log.e(TAG, "tearDown failed for $sessionId", e)
             }
         }
+    }
+
+    // --- Agent transport entry points -----------------------------------
+    //
+    // The MCP open_local_shell tool wants to (a) start a real PTY without
+    // a UI tab on top of it and (b) read/write that PTY through stable
+    // sessionId-keyed APIs that mirror the SSH side. The trio below
+    // (agent scrollback ring + headless start + sendInput) provides that;
+    // each piece is intentionally narrow so a future first-class "shell
+    // session that renders nowhere" mode can subsume them cleanly.
+
+    private val agentScrollback = ConcurrentHashMap<String, ScrollbackRing>()
+
+    /**
+     * Soft cap on the agent-scope mirror of recent stdout for headless
+     * local shells. Matches [SshSessionManager]'s cap so behaviour is
+     * uniform across transports.
+     */
+    private val agentScrollbackBytes = 256 * 1024
+
+    /**
+     * Spin up the PTY for [sessionId] without an attached UI surface,
+     * mirroring stdout into [agentScrollback] so
+     * [readAgentScrollback] can return what the agent would see.
+     * Idempotent — if a [LocalSession] already exists for [sessionId]
+     * (e.g. the user opened a terminal tab for it), this is a no-op.
+     */
+    fun startHeadlessShell(sessionId: String) {
+        val session = _sessions.value[sessionId] ?: return
+        if (session.localSession != null) return
+        val ring = agentScrollback.computeIfAbsent(sessionId) {
+            ScrollbackRing(agentScrollbackBytes)
+        }
+        val onData: (ByteArray, Int, Int) -> Unit = { data, off, len ->
+            ring.append(data, off, len)
+        }
+        val ls = createTerminalSession(sessionId, onData) ?: return
+        // Default to a sensible PTY size; the UI will resize once a tab
+        // attaches. 80x24 keeps line wrapping predictable for an agent
+        // that's about to do `printf` glyph tests.
+        ls.start(rows = 24, cols = 80)
+    }
+
+    /**
+     * Send [text] as UTF-8 to the PTY for [sessionId]. Throws when no
+     * session exists or no [LocalSession] is attached — the agent
+     * transport surfaces those as JSON-RPC errors.
+     */
+    fun sendInput(sessionId: String, text: String) {
+        val session = _sessions.value[sessionId]
+            ?: throw IllegalStateException("No local session: $sessionId")
+        val localSession = session.localSession
+            ?: throw IllegalStateException(
+                "Local session $sessionId has no active process — call open_local_shell first")
+        localSession.sendInput(text.toByteArray(Charsets.UTF_8))
+    }
+
+    /**
+     * Read the most recent [maxBytes] of stdout from the agent-scope
+     * ring for [sessionId], or null if no ring exists yet (no headless
+     * or UI tab has run on this session).
+     */
+    fun readAgentScrollback(sessionId: String, maxBytes: Int): ByteArray? {
+        val ring = agentScrollback[sessionId] ?: return null
+        val full = ring.snapshot()
+        return if (full.size <= maxBytes) full
+        else full.copyOfRange(full.size - maxBytes, full.size)
     }
 
     fun removeAllSessionsForProfile(profileId: String) {

@@ -14,8 +14,8 @@ android {
         applicationId = "sh.haven.app"
         minSdk = 26
         targetSdk = 35
-        versionCode = 344
-        versionName = "5.24.80"
+        versionCode = 345
+        versionName = "5.24.81"
 
         testInstrumentationRunner = "androidx.test.runner.AndroidJUnitRunner"
     }
@@ -120,6 +120,7 @@ dependencies {
     implementation(project(":core:fido"))
     implementation(project(":core:local"))
     implementation(project(":core:wayland"))
+    implementation(project(":core:terminal-haven"))
 
     implementation(project(":feature:connections"))
     implementation(project(":feature:terminal"))

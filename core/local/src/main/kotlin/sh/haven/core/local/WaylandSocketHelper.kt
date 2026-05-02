@@ -399,6 +399,39 @@ object WaylandSocketHelper {
         }.start()
     }
 
+    /**
+     * Result of a Shizuku-issued shell command. [exitCode] is the
+     * `waitFor` value (0 success); [output] is stdout+stderr merged so
+     * the caller sees errno-style messages alongside any normal output.
+     * On a non-zero exit, [output] is the most useful diagnostic.
+     */
+    data class ShizukuExecResult(val exitCode: Int, val output: String)
+
+    /**
+     * Run [cmd] as the Shizuku-bound shell user (`sh -c "$cmd"`) and
+     * collect its output. Throws [IllegalStateException] when Shizuku
+     * isn't running or hasn't granted the app permission — the caller
+     * should surface a clean message and let the user fix Shizuku.
+     *
+     * Public so MCP tools (and any other in-process caller that needs
+     * to run a privileged shell command) can reuse the same plumbing
+     * the Wayland helper already wired up.
+     */
+    fun execAsShizuku(cmd: String): ShizukuExecResult {
+        if (!isShizukuAvailable()) {
+            throw IllegalStateException("Shizuku is not running")
+        }
+        if (!hasShizukuPermission()) {
+            throw IllegalStateException("Shizuku permission not granted to Haven")
+        }
+        val process = newShizukuProcess(cmd)
+        val output = process.inputStream.bufferedReader().use { it.readText() }
+        val err = process.errorStream.bufferedReader().use { it.readText() }
+        val exit = process.waitFor()
+        val merged = listOf(output.trim(), err.trim()).filter { it.isNotEmpty() }.joinToString("\n")
+        return ShizukuExecResult(exitCode = exit, output = merged)
+    }
+
     private fun newShizukuProcess(cmd: String): Process {
         val clazz = Class.forName("rikka.shizuku.Shizuku")
         val method = clazz.getDeclaredMethod(

@@ -8,10 +8,22 @@ import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.flow.update
 import kotlinx.coroutines.runBlocking
+import sh.haven.core.data.terminal.ScrollbackRing
 import java.util.UUID
+import java.util.concurrent.ConcurrentHashMap
 import java.util.concurrent.Executors
 import javax.inject.Inject
 import javax.inject.Singleton
+
+/**
+ * Soft cap on per-session terminal scrollback exposed to the agent
+ * transport. The agent's `read_terminal_scrollback` tool returns
+ * (a slice of) this buffer; everything older than 256 KiB rolls off.
+ * Compose's terminal still keeps its own visual scrollback — this is a
+ * separate, app-scoped mirror so the agent can read what the user sees
+ * without going through activity-scoped state.
+ */
+private const val AGENT_SCROLLBACK_CAPACITY_BYTES = 256 * 1024
 
 private const val TAG = "SshSessionManager"
 
@@ -61,6 +73,16 @@ class SshSessionManager @Inject constructor(
 
     private val _sessions = MutableStateFlow<Map<String, SessionState>>(emptyMap())
     val sessions: StateFlow<Map<String, SessionState>> = _sessions.asStateFlow()
+
+    /**
+     * Per-session app-scoped mirror of recent SSH stdout bytes for the
+     * agent transport's `read_terminal_scrollback` tool. Allocated lazily
+     * when the first terminal session is created on a session, dropped
+     * in [removeSession] so closed sessions don't leak. We keep this in
+     * a separate map rather than [SessionState] so the data class shape
+     * stays unchanged for unrelated consumers.
+     */
+    private val agentScrollback = ConcurrentHashMap<String, ScrollbackRing>()
 
     /** Background executor for disconnect I/O so callers on main thread don't block. */
     private val ioExecutor = Executors.newSingleThreadExecutor { r ->
@@ -151,13 +173,23 @@ class SshSessionManager @Inject constructor(
         val session = _sessions.value[sessionId] ?: return null
         val channel = session.shellChannel ?: return null
         val pendingCmds = buildPendingCommands(sessionId, session.sessionManager, session.postLoginCommand, session.postLoginBeforeSessionManager)
+        // Mirror raw SSH stdout into an app-scoped ring buffer so the
+        // agent transport can read the same bytes the emulator sees,
+        // without reaching into activity-scoped state.
+        val ring = agentScrollback.computeIfAbsent(sessionId) {
+            ScrollbackRing(AGENT_SCROLLBACK_CAPACITY_BYTES)
+        }
+        val mirroringCallback: (ByteArray, Int, Int) -> Unit = { data, off, len ->
+            ring.append(data, off, len)
+            onDataReceived(data, off, len)
+        }
         val termSession = TerminalSession(
             sessionId = sessionId,
             profileId = session.profileId,
             label = session.label,
             channel = channel,
             client = session.client,
-            onDataReceived = onDataReceived,
+            onDataReceived = mirroringCallback,
             onDisconnected = { cleanExit ->
                 if (cleanExit) {
                     Log.d(TAG, "Session $sessionId exited cleanly — not reconnecting")
@@ -413,11 +445,48 @@ class SshSessionManager @Inject constructor(
         // Cascade: disconnect any sessions that use this one as a jump host
         val dependents = _sessions.value.values.filter { it.jumpSessionId == sessionId }
         _sessions.update { it - sessionId }
+        agentScrollback.remove(sessionId)
         ioExecutor.execute { tearDown(session) }
         for (dep in dependents) {
             Log.d(TAG, "Cascading disconnect from jump host $sessionId to ${dep.sessionId}")
             removeSession(dep.sessionId)
         }
+    }
+
+    /**
+     * Read the most recent [maxBytes] of raw SSH stdout for [sessionId]
+     * from the agent-scope ring buffer, or null if no ring exists yet
+     * (no terminal session has been created on this SSH session).
+     *
+     * Bytes are returned in chronological order. ANSI escape sequences,
+     * OSC markers, and other control bytes are preserved — the agent is
+     * expected to parse them or ask the user to strip them.
+     */
+    fun readAgentScrollback(sessionId: String, maxBytes: Int): ByteArray? {
+        val ring = agentScrollback[sessionId] ?: return null
+        val full = ring.snapshot()
+        return if (full.size <= maxBytes) full
+        else full.copyOfRange(full.size - maxBytes, full.size)
+    }
+
+    /**
+     * Send [text] as UTF-8 bytes to the active terminal session for
+     * [sessionId]. Throws [IllegalStateException] if there is no
+     * connected session with an attached terminal session — the agent
+     * transport surfaces that as a JSON-RPC error.
+     *
+     * Routed through [TerminalSession.sendToSsh] (rather than writing
+     * the shell channel directly) so it shares the same back-pressure
+     * and serialised-write executor that user keystrokes use; an agent
+     * pasting a long block can't interleave bytes with a human typing.
+     */
+    fun sendInput(sessionId: String, text: String) {
+        val session = _sessions.value[sessionId]
+            ?: throw IllegalStateException("No SSH session: $sessionId")
+        val terminal = session.terminalSession
+            ?: throw IllegalStateException(
+                "Session $sessionId has no active terminal — open a terminal tab first")
+        terminal.sendToSsh(text.toByteArray(Charsets.UTF_8))
     }
 
     fun getSession(sessionId: String): SessionState? = _sessions.value[sessionId]

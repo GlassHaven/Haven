@@ -13,13 +13,25 @@ import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.flow.stateIn
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.flow.combine
+import sh.haven.core.data.agent.AgentConsentManager
 import sh.haven.core.data.backup.BackupService
 import sh.haven.core.data.db.AgentAuditEventDao
+import sh.haven.core.data.db.entities.ConnectionProfile
+import sh.haven.core.data.db.entities.PortForwardRule
+import sh.haven.core.data.font.TerminalFontInstaller
 import sh.haven.core.data.preferences.NavBlockMode
 import sh.haven.core.data.preferences.ToolbarLayout
 import sh.haven.core.data.preferences.UserPreferencesRepository
+import sh.haven.core.data.repository.ConnectionRepository
+import sh.haven.core.data.repository.PortForwardRepository
 import sh.haven.core.security.BiometricAuthenticator
+import sh.haven.core.ssh.SshSessionManager
+import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.withContext
 import javax.inject.Inject
+
+/** Loopback port the MCP server prefers; matches `McpServer.bindLoopback`. */
+private const val MCP_PORT = 8730
 
 @HiltViewModel
 class SettingsViewModel @Inject constructor(
@@ -28,7 +40,68 @@ class SettingsViewModel @Inject constructor(
     private val authenticator: BiometricAuthenticator,
     private val backupService: BackupService,
     private val agentAuditEventDao: AgentAuditEventDao,
+    private val connectionRepository: ConnectionRepository,
+    private val portForwardRepository: PortForwardRepository,
+    private val sshSessionManager: SshSessionManager,
+    private val agentConsentManager: AgentConsentManager,
+    private val terminalFontInstaller: TerminalFontInstaller,
 ) : ViewModel() {
+
+    val terminalFontPath: StateFlow<String?> = preferencesRepository.terminalFontPath
+        .stateIn(viewModelScope, SharingStarted.WhileSubscribed(5000), null)
+
+    /**
+     * Import a TTF/OTF from a SAF content URI. Thin wrapper over
+     * [TerminalFontInstaller] so the SAF picker and the URL dialog
+     * (and the agent transport's `set_terminal_font_from_url` tool)
+     * all funnel through the same install path.
+     *
+     * Returns the saved path on success, or null if the import failed.
+     * Caller surfaces a Toast.
+     */
+    suspend fun importCustomTerminalFont(uri: Uri, displayName: String): String? {
+        return when (val r = terminalFontInstaller.installFromContentUri(uri, displayName)) {
+            is TerminalFontInstaller.Result.Success -> r.path
+            is TerminalFontInstaller.Result.Failure -> null
+        }
+    }
+
+    /**
+     * Download a font from [urlString] and install it. Returns the
+     * installer result so the dialog can render Success vs Failure
+     * with a meaningful Toast — the failure path is too rich to
+     * collapse to null/non-null.
+     */
+    suspend fun installTerminalFontFromUrl(urlString: String): TerminalFontInstaller.Result =
+        terminalFontInstaller.installFromUrl(urlString)
+
+    /** Reset to the bundled Hack Regular by clearing the saved path. */
+    fun clearCustomTerminalFont() {
+        viewModelScope.launch { terminalFontInstaller.reset() }
+    }
+
+    /** Outcome of a "Tunnel MCP through this profile" tap. */
+    data class McpTunnelResult(
+        /** True if the rule was live-applied to a connected session. */
+        val activated: Boolean,
+        /**
+         * Server-side bound port reported by the live session, if
+         * activated. May differ from [MCP_PORT] when the rule was saved
+         * with `bindPort=0` (OS-pick) or when the server retried a
+         * conflicting bind.
+         */
+        val actualBoundPort: Int? = null,
+    )
+
+    /**
+     * Drop every memoised ONCE_PER_SESSION consent so the next call to
+     * each tool re-prompts. DENY decisions are never memoised, so this
+     * only ever loosens the cache; nothing the user gave a one-time
+     * blanket allow to gets stuck in a stricter state by clearing.
+     */
+    fun forgetMemoisedAgentAllows() {
+        viewModelScope.launch { agentConsentManager.clearMemoised() }
+    }
 
     val biometricAvailable: Boolean =
         authenticator.checkAvailability(appContext) == BiometricAuthenticator.Availability.AVAILABLE
@@ -108,6 +181,59 @@ class SettingsViewModel @Inject constructor(
 
     val mcpAgentEndpointEnabled: StateFlow<Boolean> = preferencesRepository.mcpAgentEndpointEnabled
         .stateIn(viewModelScope, SharingStarted.WhileSubscribed(5000), false)
+
+    /**
+     * SSH-family profiles eligible for the "Tunnel MCP through this
+     * profile" shortcut. The shortcut creates a remote port-forward
+     * (`-R`) on the chosen session, binding [MCP_PORT] on the server
+     * back to phone-side `127.0.0.1:[MCP_PORT]`. From an MCP client
+     * running on the remote host this looks like a plain
+     * `http://127.0.0.1:8730/mcp` endpoint — no MCP-server change
+     * needed.
+     */
+    val sshProfilesForTunnel: StateFlow<List<ConnectionProfile>> = connectionRepository.observeAll()
+        .stateIn(viewModelScope, SharingStarted.WhileSubscribed(5000), emptyList())
+
+    /**
+     * Save a `-R [MCP_PORT]:127.0.0.1:[MCP_PORT]` rule on [profileId]
+     * and, if the profile has a connected SSH session, install it on
+     * the live channel immediately so the user doesn't have to
+     * reconnect. Mirrors `ConnectionsViewModel.savePortForwardRule`'s
+     * live-apply path; on a fresh (unconnected) profile the rule is
+     * still persisted and will activate on the next connect.
+     */
+    suspend fun createMcpReverseTunnel(profileId: String): McpTunnelResult {
+        val rule = PortForwardRule(
+            profileId = profileId,
+            type = PortForwardRule.Type.REMOTE,
+            bindAddress = "127.0.0.1",
+            bindPort = MCP_PORT,
+            targetHost = "127.0.0.1",
+            targetPort = MCP_PORT,
+            enabled = true,
+        )
+        portForwardRepository.save(rule)
+
+        val session = sshSessionManager.getSessionsForProfile(profileId)
+            .firstOrNull { it.status == SshSessionManager.SessionState.Status.CONNECTED }
+            ?: return McpTunnelResult(activated = false)
+        val info = SshSessionManager.PortForwardInfo(
+            ruleId = rule.id,
+            type = SshSessionManager.PortForwardType.REMOTE,
+            bindAddress = rule.bindAddress,
+            bindPort = rule.bindPort,
+            targetHost = rule.targetHost,
+            targetPort = rule.targetPort,
+        )
+        withContext(Dispatchers.IO) {
+            sshSessionManager.applyPortForwards(session.sessionId, listOf(info))
+        }
+        val bound = sshSessionManager.getSession(session.sessionId)
+            ?.activeForwards
+            ?.firstOrNull { it.ruleId == rule.id }
+            ?.actualBoundPort
+        return McpTunnelResult(activated = true, actualBoundPort = bound)
+    }
 
     /**
      * True when there is at least one agent audit event the user
@@ -339,19 +465,51 @@ class SettingsViewModel @Inject constructor(
             when (mode) {
                 "RAW" -> {
                     preferencesRepository.setAllowStandardKeyboard(false)
+                    preferencesRepository.setKeyboardCustomMode(false)
                     preferencesRepository.setRawKeyboardMode(true)
                 }
                 "STANDARD" -> {
                     preferencesRepository.setRawKeyboardMode(false)
+                    preferencesRepository.setKeyboardCustomMode(false)
                     preferencesRepository.setAllowStandardKeyboard(true)
                 }
-                else -> { // SECURE — both off
+                "CUSTOM" -> {
+                    preferencesRepository.setRawKeyboardMode(false)
+                    preferencesRepository.setAllowStandardKeyboard(false)
+                    preferencesRepository.setKeyboardCustomMode(true)
+                }
+                else -> { // SECURE — all off
                     preferencesRepository.setAllowStandardKeyboard(false)
                     preferencesRepository.setRawKeyboardMode(false)
+                    preferencesRepository.setKeyboardCustomMode(false)
                 }
             }
         }
     }
+
+    // --- Custom IME flag toggles (visible when keyboard mode = Custom) ---
+
+    val keyboardCustomMode: StateFlow<Boolean> = preferencesRepository.keyboardCustomMode
+        .stateIn(viewModelScope, SharingStarted.WhileSubscribed(5000), false)
+    val imeFlagNoSuggestions: StateFlow<Boolean> = preferencesRepository.imeFlagNoSuggestions
+        .stateIn(viewModelScope, SharingStarted.WhileSubscribed(5000), true)
+    val imeFlagVisiblePassword: StateFlow<Boolean> = preferencesRepository.imeFlagVisiblePassword
+        .stateIn(viewModelScope, SharingStarted.WhileSubscribed(5000), true)
+    val imeFlagAutoCorrect: StateFlow<Boolean> = preferencesRepository.imeFlagAutoCorrect
+        .stateIn(viewModelScope, SharingStarted.WhileSubscribed(5000), false)
+    val imeFlagFullEditor: StateFlow<Boolean> = preferencesRepository.imeFlagFullEditor
+        .stateIn(viewModelScope, SharingStarted.WhileSubscribed(5000), false)
+    val imeFlagNoExtractUi: StateFlow<Boolean> = preferencesRepository.imeFlagNoExtractUi
+        .stateIn(viewModelScope, SharingStarted.WhileSubscribed(5000), true)
+    val imeFlagNoPersonalizedLearning: StateFlow<Boolean> = preferencesRepository.imeFlagNoPersonalizedLearning
+        .stateIn(viewModelScope, SharingStarted.WhileSubscribed(5000), true)
+
+    fun setImeFlagNoSuggestions(v: Boolean) { viewModelScope.launch { preferencesRepository.setImeFlagNoSuggestions(v) } }
+    fun setImeFlagVisiblePassword(v: Boolean) { viewModelScope.launch { preferencesRepository.setImeFlagVisiblePassword(v) } }
+    fun setImeFlagAutoCorrect(v: Boolean) { viewModelScope.launch { preferencesRepository.setImeFlagAutoCorrect(v) } }
+    fun setImeFlagFullEditor(v: Boolean) { viewModelScope.launch { preferencesRepository.setImeFlagFullEditor(v) } }
+    fun setImeFlagNoExtractUi(v: Boolean) { viewModelScope.launch { preferencesRepository.setImeFlagNoExtractUi(v) } }
+    fun setImeFlagNoPersonalizedLearning(v: Boolean) { viewModelScope.launch { preferencesRepository.setImeFlagNoPersonalizedLearning(v) } }
 
     fun setInterceptCtrlShiftV(enabled: Boolean) {
         viewModelScope.launch {

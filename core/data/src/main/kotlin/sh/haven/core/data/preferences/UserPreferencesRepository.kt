@@ -18,6 +18,8 @@ class UserPreferencesRepository @Inject constructor(
 ) {
     private val biometricEnabledKey = booleanPreferencesKey("biometric_enabled")
     private val terminalFontSizeKey = intPreferencesKey("terminal_font_size")
+    // Absolute path to a user-chosen Nerd Font (or any TTF/OTF). #123.
+    private val terminalFontPathKey = stringPreferencesKey("terminal_font_path")
     private val themeKey = stringPreferencesKey("theme")
     private val sessionManagerKey = stringPreferencesKey("session_manager")
     private val reticulumRpcKeyKey = stringPreferencesKey("reticulum_rpc_key")
@@ -43,6 +45,16 @@ class UserPreferencesRepository @Inject constructor(
     private val terminalRightClickKey = booleanPreferencesKey("terminal_right_click")
     private val allowStandardKeyboardKey = booleanPreferencesKey("allow_standard_keyboard")
     private val rawKeyboardModeKey = booleanPreferencesKey("raw_keyboard_mode")
+    // Custom keyboard mode (#115 follow-up) — when on, overrides the
+    // Secure/Standard inferential logic in ImeInputView and uses the
+    // ime_flag_* toggles below to assemble EditorInfo manually.
+    private val keyboardCustomModeKey = booleanPreferencesKey("keyboard_custom_mode")
+    private val imeFlagNoSuggestionsKey = booleanPreferencesKey("ime_flag_no_suggestions")
+    private val imeFlagVisiblePasswordKey = booleanPreferencesKey("ime_flag_visible_password")
+    private val imeFlagAutoCorrectKey = booleanPreferencesKey("ime_flag_auto_correct")
+    private val imeFlagFullEditorKey = booleanPreferencesKey("ime_flag_full_editor")
+    private val imeFlagNoExtractUiKey = booleanPreferencesKey("ime_flag_no_extract_ui")
+    private val imeFlagNoPersonalizedLearningKey = booleanPreferencesKey("ime_flag_no_personalized_learning")
     private val interceptCtrlShiftVKey = booleanPreferencesKey("intercept_ctrl_shift_v")
     private val showTerminalTabBarKey = booleanPreferencesKey("show_terminal_tab_bar")
     private val reorderHintShownKey = booleanPreferencesKey("reorder_hint_shown")
@@ -209,10 +221,13 @@ class UserPreferencesRepository @Inject constructor(
     suspend fun setAllowStandardKeyboard(enabled: Boolean) {
         dataStore.edit { prefs ->
             prefs[allowStandardKeyboardKey] = enabled
-            // Raw and Standard are mutually exclusive; turning one on
-            // automatically turns the other off so the toolbar state
-            // stays consistent with the IME behaviour.
-            if (enabled) prefs[rawKeyboardModeKey] = false
+            // Raw, Standard, and Custom are mutually exclusive; turning
+            // one on automatically turns the others off so the toolbar
+            // state stays consistent with the IME behaviour.
+            if (enabled) {
+                prefs[rawKeyboardModeKey] = false
+                prefs[keyboardCustomModeKey] = false
+            }
         }
     }
 
@@ -230,9 +245,52 @@ class UserPreferencesRepository @Inject constructor(
     suspend fun setRawKeyboardMode(enabled: Boolean) {
         dataStore.edit { prefs ->
             prefs[rawKeyboardModeKey] = enabled
-            if (enabled) prefs[allowStandardKeyboardKey] = false
+            if (enabled) {
+                prefs[allowStandardKeyboardKey] = false
+                prefs[keyboardCustomModeKey] = false
+            }
         }
     }
+
+    /**
+     * When on, ImeInputView ignores the Secure/Standard preset logic
+     * and instead reads the six ime_flag_* toggles below to assemble
+     * the EditorInfo it returns. Mutually exclusive with Standard and
+     * Raw modes; turning it on clears the others.
+     */
+    val keyboardCustomMode: Flow<Boolean> = dataStore.data.map { prefs ->
+        prefs[keyboardCustomModeKey] ?: false
+    }
+
+    suspend fun setKeyboardCustomMode(enabled: Boolean) {
+        dataStore.edit { prefs ->
+            prefs[keyboardCustomModeKey] = enabled
+            if (enabled) {
+                prefs[allowStandardKeyboardKey] = false
+                prefs[rawKeyboardModeKey] = false
+            }
+        }
+    }
+
+    /**
+     * Custom IME flag toggles. Defaults match the Secure preset so a
+     * user flipping into Custom mode without further changes preserves
+     * their current behaviour. Each flow exposes the live value; each
+     * setter persists it. Effects only fire while Custom mode is on.
+     */
+    val imeFlagNoSuggestions: Flow<Boolean> = dataStore.data.map { it[imeFlagNoSuggestionsKey] ?: true }
+    val imeFlagVisiblePassword: Flow<Boolean> = dataStore.data.map { it[imeFlagVisiblePasswordKey] ?: true }
+    val imeFlagAutoCorrect: Flow<Boolean> = dataStore.data.map { it[imeFlagAutoCorrectKey] ?: false }
+    val imeFlagFullEditor: Flow<Boolean> = dataStore.data.map { it[imeFlagFullEditorKey] ?: false }
+    val imeFlagNoExtractUi: Flow<Boolean> = dataStore.data.map { it[imeFlagNoExtractUiKey] ?: true }
+    val imeFlagNoPersonalizedLearning: Flow<Boolean> = dataStore.data.map { it[imeFlagNoPersonalizedLearningKey] ?: true }
+
+    suspend fun setImeFlagNoSuggestions(v: Boolean) { dataStore.edit { it[imeFlagNoSuggestionsKey] = v } }
+    suspend fun setImeFlagVisiblePassword(v: Boolean) { dataStore.edit { it[imeFlagVisiblePasswordKey] = v } }
+    suspend fun setImeFlagAutoCorrect(v: Boolean) { dataStore.edit { it[imeFlagAutoCorrectKey] = v } }
+    suspend fun setImeFlagFullEditor(v: Boolean) { dataStore.edit { it[imeFlagFullEditorKey] = v } }
+    suspend fun setImeFlagNoExtractUi(v: Boolean) { dataStore.edit { it[imeFlagNoExtractUiKey] = v } }
+    suspend fun setImeFlagNoPersonalizedLearning(v: Boolean) { dataStore.edit { it[imeFlagNoPersonalizedLearningKey] = v } }
 
     /**
      * Intercept Ctrl+Shift+V from a hardware keyboard as "paste from Android
@@ -398,6 +456,24 @@ class UserPreferencesRepository @Inject constructor(
 
     val terminalFontSize: Flow<Int> = dataStore.data.map { prefs ->
         prefs[terminalFontSizeKey] ?: DEFAULT_FONT_SIZE
+    }
+
+    /**
+     * Absolute path to a user-chosen TTF/OTF font that the terminal
+     * should use in place of the bundled Hack font. Empty/null means
+     * "use the default". The picker copies the chosen font into the
+     * app's private files dir so we own the lifecycle and survive a
+     * source-document permission revocation.
+     */
+    val terminalFontPath: Flow<String?> = dataStore.data.map { prefs ->
+        prefs[terminalFontPathKey]?.takeIf { it.isNotBlank() }
+    }
+
+    suspend fun setTerminalFontPath(path: String?) {
+        dataStore.edit { prefs ->
+            if (path.isNullOrBlank()) prefs.remove(terminalFontPathKey)
+            else prefs[terminalFontPathKey] = path
+        }
     }
 
     val sessionManager: Flow<SessionManager> = dataStore.data.map { prefs ->

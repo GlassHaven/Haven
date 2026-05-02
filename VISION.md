@@ -129,15 +129,24 @@ Whenever two primitives meet, there should be zero friction. Current gaps:
 - **Workspace profiles** — "Work" opens SSH tab + port forwards + SFTP sidebar + Wayland tab + a PRoot shell tab in one tap, resumes to the same composition next launch.
 - **Desktop ↔ file browser ↔ terminal** — cross-tab actions (drag a file from the SFTP tab into the native Wayland compositor, copy output from a terminal into the convert dialog).
 
-### 1a. Agent transport — make the shared viewport real
+### 1a. Agent transport — shipped (v5.24.81)
 
-The shared-viewport idea from the presentation section needs a concrete transport before it means anything in practice. The work is small and self-contained:
+The shared-viewport idea is now a concrete transport. Haven's local
+loopback MCP server exposes 18 tools across read and write paths, and
+every non-read call surfaces a non-skippable bottom-sheet consent
+prompt before the action runs. What landed:
 
-- **Tool-use server** — a local loopback server (MCP or a simple JSON-RPC over Unix socket) that exposes Haven's ViewModel methods as callable tools. Starts on app launch, tokens held in-memory, accessible only from local processes.
-- **Session + state inspection tools** — first-class read operations: list connections, get connection status, read current terminal scrollback, read current file-browser state, read convert dialog state, read active port forwards.
-- **Action tools** — first-class write operations mirroring the existing UI verbs: navigate, convert, stream, play, setPortForwarding, openDialog, confirmDialog. Every action appears in the UI as if a human tapped it.
-- **Audit and consent** — visible indicator when an agent is connected; per-action confirm option for destructive operations (delete, upload, publish); a log the user can scroll through to see what was done and when.
-- **Discovery** — a "copy agent endpoint" button in Settings so the user can point any MCP client at Haven in one step.
+- **Tool-use server** — MCP / JSON-RPC over HTTP loopback (port range 8730–8739), Streamable HTTP stateless transport. Disabled by default; toggled in Settings → Agent endpoint.
+- **State inspection tools** (no prompt) — `list_connections`, `list_sessions`, `list_rclone_directory`, `list_sftp_directory`, `stream_sftp_file`, `read_terminal_scrollback`, `play_file`, `get_app_info`, `list_rclone_remotes`, `stop_stream`.
+- **Action tools** (per-action consent) — `open_local_shell`, `send_terminal_input`, `add_port_forward`, `remove_port_forward`, `upload_file_to_sftp`, `delete_sftp_file`, `disconnect_profile`, `convert_file`, `set_terminal_font_from_url`, `open_developer_settings`, `enable_wireless_adb` (Shizuku-gated).
+- **Audit and consent** — `AgentConsentManager` with foreground fail-closed semantics; `AgentAuditRecorder` writes every call to a Room table with redacted args; in-app "agent active" chip on the Connections top bar lights up on recent activity; `AgentActivityScreen` is the dashboard.
+- **Discovery** — Settings exposes the endpoint URL, an MCP-config JSON snippet, and a "Tunnel through SSH profile…" shortcut that adds a `-R 8730` rule on the chosen profile so a remote MCP client reaches Haven via `localhost` through the existing SSH session.
+
+What's still ahead in this lane:
+
+- **`connect_profile`** — the one deferred verb. Lifting `ConnectionsViewModel.connectSshSilent` into a singleton needs the FIDO / jump-host / verbose-logger plumbing untangled. Best done after the SSH-proto migration (#58) settles.
+- **Cross-tab agent verbs** — opening the convert dialog with prefilled args, navigating the file browser to a path, etc. Dialog state is Composable-scoped today; this needs a state-promotion refactor and is its own arc.
+- **MCP `resources/*` capability** — file-shaped resources for "what's on the screen right now" so an agent can pull a snapshot without polling.
 
 ### 2. The namespace as the action surface
 

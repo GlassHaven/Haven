@@ -147,6 +147,7 @@ fun ConnectionsScreen(
     onNavigateToRclone: (profileId: String) -> Unit = {},
     onNavigateToWayland: () -> Unit = {},
     onNavigateToConnections: () -> Unit = {},
+    onNavigateToAgentActivity: () -> Unit = {},
     viewModel: ConnectionsViewModel = hiltViewModel(),
 ) {
     val connections by viewModel.connections.collectAsState()
@@ -861,6 +862,12 @@ fun ConnectionsScreen(
             TopAppBar(
                 title = { Text(stringResource(R.string.connections_title)) },
                 actions = {
+                    // Lit when the MCP transport has been called in the
+                    // last 30s; absent entirely until the audit table
+                    // has its first row. Tapping jumps to the audit
+                    // log. Driven off the same Room table the
+                    // AgentActivityScreen reads from.
+                    AgentActiveChip(onClick = onNavigateToAgentActivity)
                     // Local terminal (PRoot) — one-tap entry to the
                     // local Linux environment Haven ships. Always
                     // visible because PRoot ships with the app; if no

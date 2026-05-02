@@ -138,6 +138,10 @@ fun HavenNavHost(
 
     val terminalFontSize by preferencesRepository.terminalFontSize
         .collectAsState(initial = UserPreferencesRepository.DEFAULT_FONT_SIZE)
+    // User-picked Nerd Font / custom TTF for the terminal (#123).
+    // Null = fall back to bundled Hack Regular.
+    val terminalFontPath by preferencesRepository.terminalFontPath
+        .collectAsState(initial = null)
     val toolbarLayout by preferencesRepository.toolbarLayout
         .collectAsState(initial = sh.haven.core.data.preferences.ToolbarLayout.DEFAULT)
     val navBlockMode by preferencesRepository.navBlockMode
@@ -158,6 +162,33 @@ fun HavenNavHost(
         .collectAsState(initial = false)
     val rawKeyboardMode by preferencesRepository.rawKeyboardMode
         .collectAsState(initial = false)
+    // Custom keyboard mode + per-flag toggles (#115 follow-up).
+    // Build a non-null ImeFlagSet only when Custom mode is on; null
+    // when off, so TerminalScreen falls through to the preset logic.
+    val keyboardCustomMode by preferencesRepository.keyboardCustomMode
+        .collectAsState(initial = false)
+    val imeFlagNoSuggestions by preferencesRepository.imeFlagNoSuggestions
+        .collectAsState(initial = true)
+    val imeFlagVisiblePassword by preferencesRepository.imeFlagVisiblePassword
+        .collectAsState(initial = true)
+    val imeFlagAutoCorrect by preferencesRepository.imeFlagAutoCorrect
+        .collectAsState(initial = false)
+    val imeFlagFullEditor by preferencesRepository.imeFlagFullEditor
+        .collectAsState(initial = false)
+    val imeFlagNoExtractUi by preferencesRepository.imeFlagNoExtractUi
+        .collectAsState(initial = true)
+    val imeFlagNoPersonalizedLearning by preferencesRepository.imeFlagNoPersonalizedLearning
+        .collectAsState(initial = true)
+    val customKeyboardFlags = if (keyboardCustomMode) {
+        sh.haven.core.terminal.ImeFlagSet(
+            noSuggestions = imeFlagNoSuggestions,
+            visiblePassword = imeFlagVisiblePassword,
+            autoCorrect = imeFlagAutoCorrect,
+            fullEditor = imeFlagFullEditor,
+            noExtractUi = imeFlagNoExtractUi,
+            noPersonalizedLearning = imeFlagNoPersonalizedLearning,
+        )
+    } else null
     val interceptCtrlShiftV by preferencesRepository.interceptCtrlShiftV
         .collectAsState(initial = true)
     val showTerminalTabBar by preferencesRepository.showTerminalTabBar
@@ -271,6 +302,16 @@ fun HavenNavHost(
                             pagerState.animateScrollToPage(pageOf(Screen.Connections))
                         }
                     },
+                    onNavigateToAgentActivity = {
+                        // No deep-link to AgentActivityScreen exists
+                        // (it's a state flag inside SettingsScreen);
+                        // jumping to Settings is one tap away from the
+                        // audit view, which is good enough for a
+                        // one-bit indicator.
+                        coroutineScope.launch {
+                            pagerState.animateScrollToPage(pageOf(Screen.Settings))
+                        }
+                    },
                 )
                 Screen.Terminal -> {
                     TerminalScreen(
@@ -278,6 +319,7 @@ fun HavenNavHost(
                         newSessionProfileId = pendingNewSessionProfileId,
                         isActive = pagerState.settledPage == pageOf(Screen.Terminal),
                         fontSize = terminalFontSize,
+                        terminalFontPath = terminalFontPath,
                         toolbarLayout = toolbarLayout,
                         navBlockMode = navBlockMode,
                         showSearchButton = showSearchButton,
@@ -293,6 +335,7 @@ fun HavenNavHost(
                             }
                         },
                         rawKeyboardMode = rawKeyboardMode,
+                        customKeyboardFlags = customKeyboardFlags,
                         onToggleRawKeyboard = {
                             coroutineScope.launch {
                                 preferencesRepository.setRawKeyboardMode(!rawKeyboardMode)

@@ -78,6 +78,16 @@ fun HavenTerminal(
         gestureCallback = gestureCallback,
         allowStandardKeyboard = keyboardMode is HavenKeyboardMode.Standard,
         rawKeyboardMode = keyboardMode is HavenKeyboardMode.Raw,
+        customImeFlags = (keyboardMode as? HavenKeyboardMode.Custom)?.let {
+            org.connectbot.terminal.ImeFlagBundle(
+                noSuggestions = it.flags.noSuggestions,
+                visiblePassword = it.flags.visiblePassword,
+                autoCorrect = it.flags.autoCorrect,
+                fullEditor = it.flags.fullEditor,
+                noExtractUi = it.flags.noExtractUi,
+                noPersonalizedLearning = it.flags.noPersonalizedLearning,
+            )
+        },
         onPasteShortcut = onPasteShortcut,
         onPasteRequest = onPasteRequest,
     )

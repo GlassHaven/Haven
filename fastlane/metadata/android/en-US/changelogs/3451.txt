@@ -1,0 +1,40 @@
+v5.24.81: MCP agent transport, Nerd Font default, custom IME flags
+
+The big one. Three landings:
+
+1. **MCP agent transport (v2).** Haven's local loopback MCP server now
+exposes 18 tools across read and write paths. Read tools (no prompt):
+list_connections, list_sessions, list_rclone_directory,
+list_sftp_directory, stream_sftp_file, read_terminal_scrollback,
+play_file, get_app_info, etc. Action tools (per-action consent prompt):
+open_local_shell, send_terminal_input, add_port_forward,
+remove_port_forward, upload_file_to_sftp, delete_sftp_file,
+disconnect_profile, convert_file, set_terminal_font_from_url,
+open_developer_settings, enable_wireless_adb (Shizuku-gated). Every
+non-read call surfaces a non-skippable bottom sheet showing the action
+summary; backgrounded Haven fail-closes (DENIED audit). Tunnel-MCP-to-
+remote-SSH-profile shortcut in Settings adds the -R rule in one tap.
+"Agent active" chip on the Connections top bar lights up while the MCP
+endpoint has had recent calls; tap to jump to the audit log.
+
+2. **Hack Nerd Font Mono is the new default terminal font (#123).**
+Powerline arrows, Devicons, Font Awesome, Material Design Icons,
+Codicons, Weather Icons all render out of the box — no manual install.
+Bundled font is +2.4 MB on the APK; full composite-license attribution
+in NOTICE-Fonts.md and the in-app About dialog. Custom font support
+also gains a "Install font from URL…" Settings shortcut and a matching
+MCP tool, so an agent can install a font as part of a workflow.
+
+3. **Custom keyboard mode (#115 follow-up).** Pick exactly which
+EditorInfo bits the terminal sets — useful for working around IME
+quirks (e.g. voice input on Gboard while keeping autocorrect off).
+Six toggles in Settings → IME flags: hide suggestion strip, suppress
+autocorrect/autocap/autospace, enable autocorrect protocol (Samsung),
+voice & swipe (full editor), suppress fullscreen IME, block IME from
+learning. Defaults match the Secure preset.
+
+Other fixes: cleartext-loopback network security config so the MCP
+client can hit 127.0.0.1 over HTTP through SSH tunnels; coroutine-
+scope-survives-dialog-dismissal fix (silent install bug); polymorphic
+session dispatch in send_terminal_input / read_terminal_scrollback
+across SSH and local-shell sessions.

@@ -49,6 +49,8 @@ import androidx.compose.material.icons.filled.VpnLock
 import androidx.compose.material.icons.filled.DragHandle
 import androidx.compose.material.icons.filled.History
 import androidx.compose.material.icons.filled.Hub
+import androidx.compose.material.icons.filled.LockReset
+import androidx.compose.material.icons.filled.SwapVert
 import androidx.compose.material.icons.filled.Reorder
 import androidx.compose.material.icons.filled.ListAlt
 import androidx.compose.material.icons.filled.LightMode
@@ -60,7 +62,10 @@ import androidx.compose.material.icons.filled.KeyboardAlt
 import androidx.compose.material.icons.filled.Palette
 import androidx.compose.material.icons.filled.Search
 import androidx.compose.material.icons.filled.Keyboard
+import androidx.compose.material.icons.filled.Tune
 import androidx.compose.material.icons.filled.Terminal
+import androidx.compose.material.icons.filled.FontDownload
+import androidx.compose.material.icons.filled.RestartAlt
 import androidx.compose.material.icons.filled.TextFields
 import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.CircularProgressIndicator
@@ -91,6 +96,7 @@ import androidx.compose.runtime.mutableStateListOf
 import androidx.compose.runtime.mutableStateMapOf
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
+import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.draw.clip
@@ -125,6 +131,7 @@ import sh.haven.core.data.preferences.ToolbarItem
 import sh.haven.core.data.preferences.ToolbarKey
 import sh.haven.core.data.preferences.ToolbarLayout
 import sh.haven.core.data.preferences.UserPreferencesRepository
+import kotlinx.coroutines.launch
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -160,6 +167,7 @@ fun SettingsScreen(
     val terminalRightClick by viewModel.terminalRightClick.collectAsState()
     val allowStandardKeyboard by viewModel.allowStandardKeyboard.collectAsState()
     val rawKeyboardMode by viewModel.rawKeyboardMode.collectAsState()
+    val keyboardCustomMode by viewModel.keyboardCustomMode.collectAsState()
     val interceptCtrlShiftV by viewModel.interceptCtrlShiftV.collectAsState()
     val showTerminalTabBar by viewModel.showTerminalTabBar.collectAsState()
     val backupStatus by viewModel.backupStatus.collectAsState()
@@ -167,6 +175,15 @@ fun SettingsScreen(
     val mediaExtensions by viewModel.mediaExtensions.collectAsState()
     var showAuditLog by remember { mutableStateOf(false) }
     var showAgentActivity by remember { mutableStateOf(false) }
+    var showMcpTunnelPicker by remember { mutableStateOf(false) }
+    var showFontUrlDialog by remember { mutableStateOf(false) }
+    // Lifted to SettingsScreen scope so a dialog's confirm handler can
+    // dismiss the dialog AND still complete its async work + show the
+    // result Toast. Earlier these scopes lived inside the `if (showX)`
+    // blocks, which meant dismissing the dialog (showX = false) yanked
+    // the if-branch out of composition and cancelled the scope before
+    // the launched coroutine produced anything — silent install bug.
+    val settingsScope = rememberCoroutineScope()
     var showLanguageDialog by remember { mutableStateOf(false) }
     var showWaylandShellDialog by remember { mutableStateOf(false) }
     var showMediaExtensionsDialog by remember { mutableStateOf(false) }
@@ -177,6 +194,7 @@ fun SettingsScreen(
     var showAboutDialog by remember { mutableStateOf(false) }
     var showToolbarConfigDialog by remember { mutableStateOf(false) }
     var showKeyboardModeDialog by remember { mutableStateOf(false) }
+    var showImeFlagsDialog by remember { mutableStateOf(false) }
     LaunchedEffect(openToolbarConfig) {
         if (openToolbarConfig) {
             showToolbarConfigDialog = true
@@ -209,6 +227,40 @@ fun SettingsScreen(
             showBackupPasswordDialog = BackupAction.Restore(uri)
         }
     }
+    // Custom-terminal-font picker (#123). MIME filter is loose because
+    // many file managers report TTF/OTF as application/octet-stream;
+    // we re-validate via Typeface.createFromFile after import.
+    val fontImportScope = rememberCoroutineScope()
+    val fontImportLauncher = rememberLauncherForActivityResult(
+        ActivityResultContracts.OpenDocument(),
+    ) { uri ->
+        if (uri != null) {
+            val displayName = run {
+                var n: String? = null
+                runCatching {
+                    context.contentResolver.query(uri, null, null, null, null)?.use { c ->
+                        if (c.moveToFirst()) {
+                            val ix = c.getColumnIndex(android.provider.OpenableColumns.DISPLAY_NAME)
+                            if (ix >= 0) n = c.getString(ix)
+                        }
+                    }
+                }
+                n ?: uri.lastPathSegment ?: "font.ttf"
+            }
+            fontImportScope.launch {
+                val path = viewModel.importCustomTerminalFont(uri, displayName)
+                if (path != null) {
+                    Toast.makeText(context, "Terminal font set to $displayName", Toast.LENGTH_SHORT).show()
+                } else {
+                    Toast.makeText(
+                        context,
+                        "Could not load that font — Android couldn't decode it as a typeface",
+                        Toast.LENGTH_LONG,
+                    ).show()
+                }
+            }
+        }
+    }
 
     // Show toast on backup status changes
     LaunchedEffect(backupStatus) {
@@ -236,6 +288,45 @@ fun SettingsScreen(
     if (showAgentActivity) {
         AgentActivityScreen(onBack = { showAgentActivity = false })
         return
+    }
+    if (showMcpTunnelPicker) {
+        McpTunnelPickerDialog(
+            profiles = viewModel.sshProfilesForTunnel.collectAsState().value,
+            onPick = { profileId ->
+                showMcpTunnelPicker = false
+                settingsScope.launch {
+                    val result = viewModel.createMcpReverseTunnel(profileId)
+                    val msg = if (result.activated) {
+                        val portSuffix = result.actualBoundPort?.let { " — bound on remote :$it" } ?: ""
+                        "Reverse tunnel active$portSuffix"
+                    } else {
+                        "Reverse-tunnel rule saved — reconnect the profile to activate"
+                    }
+                    Toast.makeText(context, msg, Toast.LENGTH_LONG).show()
+                }
+            },
+            onDismiss = { showMcpTunnelPicker = false },
+        )
+    }
+    if (showFontUrlDialog) {
+        FontFromUrlDialog(
+            onInstall = { url ->
+                showFontUrlDialog = false
+                settingsScope.launch {
+                    when (val r = viewModel.installTerminalFontFromUrl(url)) {
+                        is sh.haven.core.data.font.TerminalFontInstaller.Result.Success ->
+                            Toast.makeText(
+                                context,
+                                "Installed (${r.bytesInstalled / 1024} KiB)",
+                                Toast.LENGTH_SHORT,
+                            ).show()
+                        is sh.haven.core.data.font.TerminalFontInstaller.Result.Failure ->
+                            Toast.makeText(context, r.message, Toast.LENGTH_LONG).show()
+                    }
+                }
+            },
+            onDismiss = { showFontUrlDialog = false },
+        )
     }
     Column(modifier = Modifier.fillMaxSize()) {
         TopAppBar(title = { Text(stringResource(R.string.settings_title)) })
@@ -286,6 +377,41 @@ fun SettingsScreen(
             onClick = { showFontSizeDialog = true },
         )
         run {
+            val customFontPath by viewModel.terminalFontPath.collectAsState()
+            val activeFontLabel = if (customFontPath == null) {
+                "Hack Nerd Font Mono (default)"
+            } else {
+                "Custom: ${java.io.File(customFontPath!!).nameWithoutExtension}"
+            }
+            SettingsItem(
+                icon = Icons.Filled.FontDownload,
+                title = "Terminal font",
+                subtitle = "$activeFontLabel — tap to pick a TTF/OTF (Nerd Fonts work)",
+                onClick = {
+                    // Loose MIME — many file managers report fonts as
+                    // application/octet-stream; we revalidate post-import.
+                    fontImportLauncher.launch(arrayOf("font/ttf", "font/otf", "application/octet-stream", "*/*"))
+                },
+            )
+            SettingsItem(
+                icon = Icons.Filled.CloudDownload,
+                title = "Install font from URL…",
+                subtitle = "Fetch a TTF/OTF directly (mirrors the agent's set_terminal_font_from_url tool)",
+                onClick = { showFontUrlDialog = true },
+            )
+            if (customFontPath != null) {
+                SettingsItem(
+                    icon = Icons.Filled.RestartAlt,
+                    title = "Reset terminal font",
+                    subtitle = "Go back to bundled Hack Nerd Font Mono",
+                    onClick = {
+                        viewModel.clearCustomTerminalFont()
+                        Toast.makeText(context, "Terminal font reset", Toast.LENGTH_SHORT).show()
+                    },
+                )
+            }
+        }
+        run {
             val currentLocale = androidx.appcompat.app.AppCompatDelegate.getApplicationLocales()
             val currentLang = if (currentLocale.isEmpty) "System default"
                 else java.util.Locale.forLanguageTag(currentLocale.toLanguageTags()).displayLanguage
@@ -311,12 +437,14 @@ fun SettingsScreen(
         // toolbar's Raw key, which most users never added.
         val keyboardModeId = when {
             rawKeyboardMode -> "RAW"
+            keyboardCustomMode -> "CUSTOM"
             allowStandardKeyboard -> "STANDARD"
             else -> "SECURE"
         }
         val keyboardModeLabel = when (keyboardModeId) {
             "RAW" -> "Raw — physical keyboard only"
             "STANDARD" -> "Standard — full Gboard features"
+            "CUSTOM" -> "Custom — user-selected EditorInfo flags"
             else -> "Secure — default, suppresses autocorrect"
         }
         SettingsItem(
@@ -325,6 +453,14 @@ fun SettingsScreen(
             subtitle = keyboardModeLabel,
             onClick = { showKeyboardModeDialog = true },
         )
+        if (keyboardCustomMode) {
+            SettingsItem(
+                icon = Icons.Filled.Tune,
+                title = "IME flags",
+                subtitle = "Pick which EditorInfo bits the terminal sets",
+                onClick = { showImeFlagsDialog = true },
+            )
+        }
         SettingsToggleItem(
             icon = Icons.Filled.ContentPaste,
             title = "Ctrl+Shift+V pastes",
@@ -550,15 +686,16 @@ fun SettingsScreen(
         // MCP agent endpoint — grouped near Shizuku because both are
         // "lets an outside thing poke Haven" surfaces: Shizuku lets
         // privileged Android helpers reach in, MCP lets local AI
-        // agents and scripts reach in. OFF by default. Read-only in
-        // this build.
+        // agents and scripts reach in. OFF by default. Read tools run
+        // unprompted, write tools require a per-call (or per-session)
+        // bottom-sheet consent.
         SettingsToggleItem(
             icon = Icons.Filled.Hub,
             title = "Agent endpoint (MCP)",
             subtitle = if (mcpAgentEndpointEnabled) {
-                "Enabled — local MCP server exposes read-only tools on loopback"
+                "Enabled — local MCP server on loopback. Write tools prompt for consent."
             } else {
-                "Disabled — turn on to let local AI agents inspect Haven's state"
+                "Disabled — turn on to let local AI agents read state and (with consent) act on it"
             },
             checked = mcpAgentEndpointEnabled,
             onCheckedChange = viewModel::setMcpAgentEndpointEnabled,
@@ -613,6 +750,12 @@ fun SettingsScreen(
                 onClick = {},
             )
             SettingsItem(
+                icon = Icons.Filled.SwapVert,
+                title = "Tunnel to a remote SSH profile…",
+                subtitle = "Add a -R 8730 → 127.0.0.1:8730 rule so an MCP client running on the SSH server can reach Haven via localhost",
+                onClick = { showMcpTunnelPicker = true },
+            )
+            SettingsItem(
                 icon = Icons.Filled.History,
                 title = if (unseenAgentActivity) "View agent activity  ●" else "View agent activity",
                 subtitle = "Every MCP call recorded with redacted args",
@@ -623,9 +766,18 @@ fun SettingsScreen(
                 title = "Confirm destructive agent actions",
                 subtitle = "Prompt before any agent call that writes, " +
                     "deletes, uploads, or disconnects. Read-only calls " +
-                    "(the only kind in this build) never prompt.",
+                    "never prompt.",
                 checked = requireAgentConsentForWrites,
                 onCheckedChange = viewModel::setRequireAgentConsentForWrites,
+            )
+            SettingsItem(
+                icon = Icons.Filled.LockReset,
+                title = "Forget remembered allows",
+                subtitle = "Re-prompt for every tool that previously got a once-per-session approval.",
+                onClick = {
+                    viewModel.forgetMemoisedAgentAllows()
+                    Toast.makeText(context, "Remembered allows cleared", Toast.LENGTH_SHORT).show()
+                },
             )
         }
 
@@ -721,9 +873,12 @@ fun SettingsScreen(
                 "Full Gboard features — voice input, swipe typing, autocorrect, word predictions. Pick this if your software keyboard isn't working in Secure mode, or if you want autocorrect."),
             Triple("RAW", "Raw — Bluetooth/USB only",
                 "No software keyboard at all. Only physical keys (Bluetooth or USB) reach the terminal. Strongest privacy; on-screen keyboard won't appear when you tap the terminal."),
+            Triple("CUSTOM", "Custom — pick your own flags",
+                "Advanced. Choose which EditorInfo bits the terminal sets so you can mix-and-match around your IME's quirks (e.g. voice input on Gboard without autocorrect). Configure under Settings → \"IME flags\" once selected."),
         )
         val current = when {
             rawKeyboardMode -> "RAW"
+            keyboardCustomMode -> "CUSTOM"
             allowStandardKeyboard -> "STANDARD"
             else -> "SECURE"
         }
@@ -767,6 +922,24 @@ fun SettingsScreen(
                     Text(stringResource(R.string.common_cancel))
                 }
             },
+        )
+    }
+
+    if (showImeFlagsDialog) {
+        ImeFlagsDialog(
+            noSuggestions = viewModel.imeFlagNoSuggestions.collectAsState().value,
+            visiblePassword = viewModel.imeFlagVisiblePassword.collectAsState().value,
+            autoCorrect = viewModel.imeFlagAutoCorrect.collectAsState().value,
+            fullEditor = viewModel.imeFlagFullEditor.collectAsState().value,
+            noExtractUi = viewModel.imeFlagNoExtractUi.collectAsState().value,
+            noPersonalizedLearning = viewModel.imeFlagNoPersonalizedLearning.collectAsState().value,
+            onNoSuggestions = viewModel::setImeFlagNoSuggestions,
+            onVisiblePassword = viewModel::setImeFlagVisiblePassword,
+            onAutoCorrect = viewModel::setImeFlagAutoCorrect,
+            onFullEditor = viewModel::setImeFlagFullEditor,
+            onNoExtractUi = viewModel::setImeFlagNoExtractUi,
+            onNoPersonalizedLearning = viewModel::setImeFlagNoPersonalizedLearning,
+            onDismiss = { showImeFlagsDialog = false },
         )
     }
 
@@ -1205,6 +1378,7 @@ private fun AboutDialog(
                     "ConnectBot termlib" to "Terminal emulator — Apache-2.0",
                     "PRoot" to "Local Linux shell — GPL-2.0",
                     "Jetpack Compose" to "UI toolkit — Apache-2.0",
+                    "Hack Nerd Font Mono" to "Terminal default font — Hack (MIT/Bitstream Vera) + Nerd Fonts patcher (MIT) + Font Awesome (CC-BY 4.0) + Material Design Icons (Apache-2.0) + Devicons/Octicons/Codicons/Powerline/Pomicons/Seti UI (MIT) + Weather Icons (SIL OFL 1.1) + IEC Power Symbols (Public Domain). See NOTICE-Fonts.md.",
                 )
                 libraries.forEach { (name, desc) ->
                     Text(
@@ -2278,4 +2452,223 @@ private fun DevInstallDialog(
             ) { Text("Cancel") }
         },
     )
+}
+
+/**
+ * Profile-picker dialog for "Tunnel to a remote SSH profile…" — the
+ * one-tap shortcut that adds a `-R 8730:127.0.0.1:8730` rule on the
+ * chosen profile so an MCP client running on the SSH server can reach
+ * Haven's loopback endpoint via the tunnel.
+ */
+@Composable
+private fun McpTunnelPickerDialog(
+    profiles: List<sh.haven.core.data.db.entities.ConnectionProfile>,
+    onPick: (profileId: String) -> Unit,
+    onDismiss: () -> Unit,
+) {
+    val sshProfiles = profiles.filter { it.isSsh }
+    AlertDialog(
+        onDismissRequest = onDismiss,
+        title = { Text("Tunnel MCP through which profile?") },
+        text = {
+            if (sshProfiles.isEmpty()) {
+                Text(
+                    "No SSH profiles. Create one in Connections, then come back here to add the reverse tunnel.",
+                )
+            } else {
+                Column(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .verticalScroll(rememberScrollState()),
+                ) {
+                    Text(
+                        "Saving a -R 8730:127.0.0.1:8730 rule on the chosen profile. Reconnect the profile to apply. From an MCP client on the remote host the endpoint is the same http://127.0.0.1:8730/mcp.",
+                        style = MaterialTheme.typography.bodySmall,
+                        color = MaterialTheme.colorScheme.onSurfaceVariant,
+                        modifier = Modifier.padding(bottom = 12.dp),
+                    )
+                    sshProfiles.forEach { profile ->
+                        ListItem(
+                            headlineContent = { Text(profile.label) },
+                            supportingContent = {
+                                Text(
+                                    "${profile.username.ifEmpty { "(prompt)" }}@${profile.host}:${profile.port}",
+                                    style = MaterialTheme.typography.bodySmall,
+                                )
+                            },
+                            modifier = Modifier
+                                .fillMaxWidth()
+                                .clickable { onPick(profile.id) },
+                        )
+                    }
+                }
+            }
+        },
+        confirmButton = {
+            TextButton(onClick = onDismiss) { Text("Cancel") }
+        },
+    )
+}
+
+/**
+ * Dialog asking the user for a TTF/OTF URL. The actual download +
+ * validation + persistence happens in TerminalFontInstaller via
+ * SettingsViewModel.installTerminalFontFromUrl. The dialog itself just
+ * collects the URL string and shows a one-line hint.
+ */
+@Composable
+private fun FontFromUrlDialog(
+    onInstall: (url: String) -> Unit,
+    onDismiss: () -> Unit,
+) {
+    var url by remember { mutableStateOf("") }
+    val canSubmit = url.isNotBlank() && (url.startsWith("http://") || url.startsWith("https://"))
+    AlertDialog(
+        onDismissRequest = onDismiss,
+        title = { Text("Install font from URL") },
+        text = {
+            Column(modifier = Modifier.fillMaxWidth()) {
+                Text(
+                    "Paste a direct link to a TTF or OTF font file. Common Nerd Fonts have raw TTFs on GitHub at github.com/ryanoasis/nerd-fonts/raw/master/patched-fonts/<Name>/Regular/<Name>NerdFont-Regular.ttf — copy that URL here.",
+                    style = MaterialTheme.typography.bodySmall,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant,
+                    modifier = Modifier.padding(bottom = 12.dp),
+                )
+                OutlinedTextField(
+                    value = url,
+                    onValueChange = { url = it.trim() },
+                    placeholder = { Text("https://…/font.ttf") },
+                    singleLine = true,
+                    modifier = Modifier.fillMaxWidth(),
+                )
+            }
+        },
+        confirmButton = {
+            TextButton(
+                onClick = { onInstall(url) },
+                enabled = canSubmit,
+            ) { Text("Install") }
+        },
+        dismissButton = {
+            TextButton(onClick = onDismiss) { Text(stringResource(R.string.common_cancel)) }
+        },
+    )
+}
+
+/**
+ * Per-flag toggles for the Custom keyboard mode (#115 follow-up).
+ * Each row is one EditorInfo bit with a one-line explanation; the
+ * matrix is documented at the top of NOTICE-Fonts.md... no wait, the
+ * comment in HavenKeyboardMode.kt + the dialog text below is enough.
+ *
+ * No "save" button — toggles persist on tap so the user can iterate.
+ * Conflicting selections (e.g. visiblePassword + fullEditor) are
+ * preserved verbatim and the user discovers what their IME does with
+ * the combination by trying it.
+ */
+@Composable
+private fun ImeFlagsDialog(
+    noSuggestions: Boolean,
+    visiblePassword: Boolean,
+    autoCorrect: Boolean,
+    fullEditor: Boolean,
+    noExtractUi: Boolean,
+    noPersonalizedLearning: Boolean,
+    onNoSuggestions: (Boolean) -> Unit,
+    onVisiblePassword: (Boolean) -> Unit,
+    onAutoCorrect: (Boolean) -> Unit,
+    onFullEditor: (Boolean) -> Unit,
+    onNoExtractUi: (Boolean) -> Unit,
+    onNoPersonalizedLearning: (Boolean) -> Unit,
+    onDismiss: () -> Unit,
+) {
+    AlertDialog(
+        onDismissRequest = onDismiss,
+        title = { Text("IME flags") },
+        text = {
+            Column(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .verticalScroll(rememberScrollState()),
+            ) {
+                Text(
+                    "Each toggle controls one EditorInfo bit. Different IMEs honour different combinations; tweak until your terminal types verbatim while still letting through the IME features you need.",
+                    style = MaterialTheme.typography.bodySmall,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant,
+                    modifier = Modifier.padding(bottom = 12.dp),
+                )
+                ImeFlagToggle(
+                    title = "Hide suggestion strip",
+                    detail = "TYPE_TEXT_FLAG_NO_SUGGESTIONS — universally honoured",
+                    checked = noSuggestions,
+                    onCheckedChange = onNoSuggestions,
+                )
+                ImeFlagToggle(
+                    title = "Suppress autocorrect / autocap / autospace",
+                    detail = "TYPE_TEXT_VARIATION_VISIBLE_PASSWORD — strongest hint; Gboard honours it. Mutually exclusive with full editor on most IMEs (no swipe / voice).",
+                    checked = visiblePassword,
+                    onCheckedChange = onVisiblePassword,
+                )
+                ImeFlagToggle(
+                    title = "Enable autocorrect protocol",
+                    detail = "TYPE_TEXT_FLAG_AUTO_CORRECT — required by Samsung Honeyboard's commit-text gate (#110); explicitly enables autocorrect on Gboard.",
+                    checked = autoCorrect,
+                    onCheckedChange = onAutoCorrect,
+                )
+                ImeFlagToggle(
+                    title = "Voice & swipe (full editor)",
+                    detail = "Give the IME a real Editable. Needed for voice input, swipe typing, and CJK composition. Conflicts with the autocorrect-suppression hint above.",
+                    checked = fullEditor,
+                    onCheckedChange = onFullEditor,
+                )
+                ImeFlagToggle(
+                    title = "Suppress fullscreen IME",
+                    detail = "IME_FLAG_NO_EXTRACT_UI — stops landscape's fullscreen IME UI from showing.",
+                    checked = noExtractUi,
+                    onCheckedChange = onNoExtractUi,
+                )
+                ImeFlagToggle(
+                    title = "Block IME from learning",
+                    detail = "IME_FLAG_NO_PERSONALIZED_LEARNING — privacy: IME's word bank ignores typed text. Strong enough on Gboard to also hide the mic.",
+                    checked = noPersonalizedLearning,
+                    onCheckedChange = onNoPersonalizedLearning,
+                )
+            }
+        },
+        confirmButton = {
+            TextButton(onClick = onDismiss) { Text(stringResource(R.string.common_close)) }
+        },
+    )
+}
+
+@Composable
+private fun ImeFlagToggle(
+    title: String,
+    detail: String,
+    checked: Boolean,
+    onCheckedChange: (Boolean) -> Unit,
+) {
+    Row(
+        verticalAlignment = Alignment.Top,
+        modifier = Modifier
+            .fillMaxWidth()
+            .clickable { onCheckedChange(!checked) }
+            .padding(vertical = 6.dp),
+    ) {
+        Switch(
+            checked = checked,
+            onCheckedChange = onCheckedChange,
+            modifier = Modifier.padding(top = 2.dp),
+        )
+        Spacer(Modifier.width(12.dp))
+        Column(modifier = Modifier.weight(1f)) {
+            Text(title, style = MaterialTheme.typography.bodyLarge)
+            Spacer(Modifier.height(2.dp))
+            Text(
+                detail,
+                style = MaterialTheme.typography.bodySmall,
+                color = MaterialTheme.colorScheme.onSurfaceVariant,
+            )
+        }
+    }
 }

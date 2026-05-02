@@ -1,0 +1,56 @@
+v5.24.85: VNC/RDP/SMB-over-SSH disconnect now tears down the tunnel too (#121)
+
+Triggered by KoriKraut: after disconnecting a VNC-over-SSH connection, the
+underlying SSH session stayed up (green dot in the connections list)
+even though it had been opened solely as a tunnel for the VNC forward.
+Long-press → Disconnect on the SSH profile cleaned it up, but disconnect-
+the-VNC-and-have-it-go-away is the right default.
+
+Root cause: `connectJumpHost` in ConnectionsViewModel registers the SSH
+session against the SSH profile's id. The disconnect path then operates
+on the dependent's profile id (e.g. the VNC profile), which doesn't
+intersect — so the SSH session has no incoming reference and just keeps
+idling.
+
+Fix: refcount-style tracking on SshSessionManager.SessionState:
+
+* `tunnelOpened: Boolean` — set when the SSH session was created by an
+  auto-tunnel call (VNC/RDP/SMB), distinguishing it from sessions the
+  user opened directly (terminal/SFTP).
+* `tunnelDependents: Set<String>` — profile IDs currently using this
+  SSH session as their forward.
+
+`connectJumpHost` now takes an optional `tunnelOwnerProfileId`; the
+VNC/RDP/SMB call sites pass their own profile id. New session →
+`markTunnelOpened`. Reused session → `attachTunnelDependent` (without
+flipping the tunnelOpened flag, so the user's terminal SSH that VNC
+piggy-backed on isn't dragged down later).
+
+`ConnectionsViewModel.disconnect` calls
+`sshSessionManager.releaseTunnelDependent(profileId)` after the regular
+registry teardown. That method removes the dependent from every
+session's set; for any session where (a) tunnelOpened is true and
+(b) the set is now empty, it tears the session down.
+
+Three behavioural cases covered:
+
+| Scenario                                                      | After VNC disconnect |
+|---------------------------------------------------------------|----------------------|
+| Open VNC-over-SSH (SSH freshly tunnel-opened)                 | SSH torn down (new) |
+| Open SSH terminal, then VNC reuses same SSH                   | SSH stays            |
+| Open VNC1 + VNC2 sharing one tunnel SSH; disconnect VNC1 only | SSH stays for VNC2   |
+
+Side-note for the same report: "Nothing in the terminal tab though
+(should there?)" — no. The tunnel SSH connects but never opens a shell
+channel; there's nothing for a terminal tab to show. That's expected.
+
+5 new unit tests (markTunnelOpened seeds the set, release tears down a
+solely-tunneled session, release leaves a multi-dependent session
+alive, release leaves a user-opened-then-reused session alive, release
+on an unknown profile is a no-op). 145 SSH-module tests total, all
+passing.
+
+Not exercised on real hardware in this branch — needs a VNC profile
+with sshSshForward enabled and a saved SSH profile. KoriKraut, when
+v5.24.85 hits F-Droid: tap the connection, disconnect, expect the
+green dot on the SSH profile to clear by itself.

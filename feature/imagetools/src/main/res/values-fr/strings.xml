@@ -1,0 +1,18 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string name="imagetools_title">Outils d’image</string>
+    <string name="imagetools_perspective">Perspective</string>
+    <string name="imagetools_crop">Recadrer</string>
+    <string name="imagetools_rotate">Pivoter</string>
+    <string name="imagetools_apply">Appliquer</string>
+    <string name="imagetools_save">Enregistrer</string>
+    <string name="imagetools_reset">Réinitialiser</string>
+    <string name="imagetools_original">Original</string>
+    <string name="imagetools_result">Résultat</string>
+    <string name="imagetools_processing">Traitement…</string>
+    <string name="imagetools_failed">Échec : %s</string>
+    <string name="imagetools_saved">%s enregistré</string>
+    <string name="imagetools_open">Outils d’image</string>
+    <string name="imagetools_view">Voir</string>
+    <string name="imagetools_loading">Chargement de l’image…</string>
+</resources>

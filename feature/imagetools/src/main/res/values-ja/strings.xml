@@ -1,0 +1,18 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string name="imagetools_title">画像ツール</string>
+    <string name="imagetools_perspective">遠近補正</string>
+    <string name="imagetools_crop">切り抜き</string>
+    <string name="imagetools_rotate">回転</string>
+    <string name="imagetools_apply">適用</string>
+    <string name="imagetools_save">保存</string>
+    <string name="imagetools_reset">リセット</string>
+    <string name="imagetools_original">元の画像</string>
+    <string name="imagetools_result">結果</string>
+    <string name="imagetools_processing">処理中…</string>
+    <string name="imagetools_failed">失敗: %s</string>
+    <string name="imagetools_saved">%s を保存しました</string>
+    <string name="imagetools_open">画像ツール</string>
+    <string name="imagetools_view">表示</string>
+    <string name="imagetools_loading">画像を読み込み中…</string>
+</resources>

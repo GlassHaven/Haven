@@ -130,4 +130,6 @@
     <string name="connections_desktop_uninstall_title">Uninstall desktop?</string>
     <string name="connections_desktop_uninstall_message">Uninstall %1$s? Packages will be removed from the PRoot environment.</string>
     <string name="connections_use_android_shell">Use native Android shell</string>
+    <!-- Backfilled translations (i18n drift fix) -->
+    <string name="connections_new_session_create">إنشاء</string>
 </resources>

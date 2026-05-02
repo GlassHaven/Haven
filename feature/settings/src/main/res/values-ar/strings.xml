@@ -192,4 +192,7 @@
     <string name="settings_show_desktops_subtitle">Show desktop environment manager on the Connections screen</string>
     <string name="settings_show_linux_vm_title">Show Linux VM card</string>
     <string name="settings_show_linux_vm_subtitle">Show Android Linux VM setup on the Connections screen</string>
+    <!-- Backfilled translations (i18n drift fix) -->
+    <string name="settings_keep_screen_on_title">إبقاء الشاشة مضاءة في الطرفية</string>
+    <string name="settings_keep_screen_on_subtitle">تبقى الشاشة مضاءة طالما توجد علامة تبويب طرفية مفتوحة. يستهلك ذلك البطارية؛ يستحق التفعيل فقط إذا كنت تراقب مخرجات طويلة.</string>
 </resources>

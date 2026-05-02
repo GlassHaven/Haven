@@ -1,0 +1,22 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string name="editor_title">Редактор</string>
+    <string name="editor_loading">Загрузка файла…</string>
+    <string name="editor_failed">Не удалось загрузить: %s</string>
+    <string name="editor_line">Стр. %1$d, Стлб. %2$d</string>
+    <string name="editor_word_wrap">Перенос слов</string>
+    <string name="editor_open_in_editor">Открыть в редакторе</string>
+    <string name="editor_save">Сохранить</string>
+    <string name="editor_saved">%s сохранено</string>
+    <string name="editor_save_failed">Не удалось сохранить: %s</string>
+    <string name="editor_undo">Отменить</string>
+    <string name="editor_redo">Повторить</string>
+    <string name="editor_find">Найти</string>
+    <string name="editor_find_prev">Предыдущее совпадение</string>
+    <string name="editor_find_next">Следующее совпадение</string>
+    <string name="editor_close_search">Закрыть поиск</string>
+    <string name="editor_regex">Regex</string>
+    <string name="editor_replace">Заменить</string>
+    <string name="editor_replace_one">Заменить</string>
+    <string name="editor_replace_all">Все</string>
+</resources>

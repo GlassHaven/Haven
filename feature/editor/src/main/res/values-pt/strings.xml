@@ -1,0 +1,22 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string name="editor_title">Editor</string>
+    <string name="editor_loading">Carregando arquivo…</string>
+    <string name="editor_failed">Falha ao carregar: %s</string>
+    <string name="editor_line">Lin %1$d, Col %2$d</string>
+    <string name="editor_word_wrap">Quebra de linha</string>
+    <string name="editor_open_in_editor">Abrir no editor</string>
+    <string name="editor_save">Salvar</string>
+    <string name="editor_saved">%s salvo</string>
+    <string name="editor_save_failed">Falha ao salvar: %s</string>
+    <string name="editor_undo">Desfazer</string>
+    <string name="editor_redo">Refazer</string>
+    <string name="editor_find">Buscar</string>
+    <string name="editor_find_prev">Correspondência anterior</string>
+    <string name="editor_find_next">Próxima correspondência</string>
+    <string name="editor_close_search">Fechar busca</string>
+    <string name="editor_regex">Regex</string>
+    <string name="editor_replace">Substituir</string>
+    <string name="editor_replace_one">Substituir</string>
+    <string name="editor_replace_all">Tudo</string>
+</resources>

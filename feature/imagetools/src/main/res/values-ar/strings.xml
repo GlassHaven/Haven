@@ -1,0 +1,18 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string name="imagetools_title">أدوات الصور</string>
+    <string name="imagetools_perspective">المنظور</string>
+    <string name="imagetools_crop">قص</string>
+    <string name="imagetools_rotate">تدوير</string>
+    <string name="imagetools_apply">تطبيق</string>
+    <string name="imagetools_save">حفظ</string>
+    <string name="imagetools_reset">إعادة تعيين</string>
+    <string name="imagetools_original">الأصل</string>
+    <string name="imagetools_result">النتيجة</string>
+    <string name="imagetools_processing">جارٍ المعالجة…</string>
+    <string name="imagetools_failed">فشل: %s</string>
+    <string name="imagetools_saved">تم حفظ %s</string>
+    <string name="imagetools_open">أدوات الصور</string>
+    <string name="imagetools_view">عرض</string>
+    <string name="imagetools_loading">جارٍ تحميل الصورة…</string>
+</resources>

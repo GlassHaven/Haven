@@ -1,0 +1,22 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string name="editor_title">Éditeur</string>
+    <string name="editor_loading">Chargement du fichier…</string>
+    <string name="editor_failed">Échec du chargement : %s</string>
+    <string name="editor_line">Lig. %1$d, Col. %2$d</string>
+    <string name="editor_word_wrap">Retour à la ligne</string>
+    <string name="editor_open_in_editor">Ouvrir dans l’éditeur</string>
+    <string name="editor_save">Enregistrer</string>
+    <string name="editor_saved">%s enregistré</string>
+    <string name="editor_save_failed">Échec de l’enregistrement : %s</string>
+    <string name="editor_undo">Annuler</string>
+    <string name="editor_redo">Rétablir</string>
+    <string name="editor_find">Rechercher</string>
+    <string name="editor_find_prev">Correspondance précédente</string>
+    <string name="editor_find_next">Correspondance suivante</string>
+    <string name="editor_close_search">Fermer la recherche</string>
+    <string name="editor_regex">Regex</string>
+    <string name="editor_replace">Remplacer</string>
+    <string name="editor_replace_one">Remplacer</string>
+    <string name="editor_replace_all">Tout</string>
+</resources>

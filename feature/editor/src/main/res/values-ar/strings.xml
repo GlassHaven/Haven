@@ -1,0 +1,22 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string name="editor_title">المحرر</string>
+    <string name="editor_loading">جارٍ تحميل الملف…</string>
+    <string name="editor_failed">فشل التحميل: %s</string>
+    <string name="editor_line">س %1$d، ع %2$d</string>
+    <string name="editor_word_wrap">التفاف الكلمات</string>
+    <string name="editor_open_in_editor">فتح في المحرر</string>
+    <string name="editor_save">حفظ</string>
+    <string name="editor_saved">تم حفظ %s</string>
+    <string name="editor_save_failed">فشل الحفظ: %s</string>
+    <string name="editor_undo">تراجع</string>
+    <string name="editor_redo">إعادة</string>
+    <string name="editor_find">بحث</string>
+    <string name="editor_find_prev">المطابقة السابقة</string>
+    <string name="editor_find_next">المطابقة التالية</string>
+    <string name="editor_close_search">إغلاق البحث</string>
+    <string name="editor_regex">Regex</string>
+    <string name="editor_replace">استبدال</string>
+    <string name="editor_replace_one">استبدال</string>
+    <string name="editor_replace_all">الكل</string>
+</resources>

@@ -1,0 +1,22 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string name="editor_title">एडिटर</string>
+    <string name="editor_loading">फ़ाइल लोड हो रही है…</string>
+    <string name="editor_failed">लोड करने में विफल: %s</string>
+    <string name="editor_line">पं %1$d, स्तं %2$d</string>
+    <string name="editor_word_wrap">वर्ड रैप</string>
+    <string name="editor_open_in_editor">एडिटर में खोलें</string>
+    <string name="editor_save">सहेजें</string>
+    <string name="editor_saved">%s सहेजा गया</string>
+    <string name="editor_save_failed">सहेजने में विफल: %s</string>
+    <string name="editor_undo">पूर्ववत् करें</string>
+    <string name="editor_redo">फिर से करें</string>
+    <string name="editor_find">ढूँढें</string>
+    <string name="editor_find_prev">पिछला मिलान</string>
+    <string name="editor_find_next">अगला मिलान</string>
+    <string name="editor_close_search">खोज बंद करें</string>
+    <string name="editor_regex">Regex</string>
+    <string name="editor_replace">बदलें</string>
+    <string name="editor_replace_one">बदलें</string>
+    <string name="editor_replace_all">सभी</string>
+</resources>

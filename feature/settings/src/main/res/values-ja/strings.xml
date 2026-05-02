@@ -192,4 +192,7 @@
     <string name="settings_show_desktops_subtitle">Show desktop environment manager on the Connections screen</string>
     <string name="settings_show_linux_vm_title">Show Linux VM card</string>
     <string name="settings_show_linux_vm_subtitle">Show Android Linux VM setup on the Connections screen</string>
+    <!-- Backfilled translations (i18n drift fix) -->
+    <string name="settings_keep_screen_on_title">ターミナルで画面をオンに保つ</string>
+    <string name="settings_keep_screen_on_subtitle">ターミナルのタブが開いている間、画面はスリープしません。バッテリーを消費するため、長時間の出力を見守るときのみ有効です。</string>
 </resources>

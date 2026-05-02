@@ -192,4 +192,7 @@
     <string name="settings_show_desktops_subtitle">Show desktop environment manager on the Connections screen</string>
     <string name="settings_show_linux_vm_title">Show Linux VM card</string>
     <string name="settings_show_linux_vm_subtitle">Show Android Linux VM setup on the Connections screen</string>
+    <!-- Backfilled translations (i18n drift fix) -->
+    <string name="settings_keep_screen_on_title">Garder l’écran allumé dans le terminal</string>
+    <string name="settings_keep_screen_on_subtitle">L’écran reste allumé tant qu’un onglet de terminal est ouvert. Cela consomme la batterie ; n’activez que si vous surveillez de longues sorties.</string>
 </resources>

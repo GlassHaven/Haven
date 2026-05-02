@@ -67,4 +67,8 @@
     <string name="terminal_new_tab_shell_failed">Failed to open shell: %s</string>
     <string name="terminal_new_tab_reticulum_no_session">No active Reticulum session to clone</string>
     <string name="terminal_new_tab_connecting">Connecting…</string>
+    <!-- Backfilled translations (i18n drift fix) -->
+    <string name="terminal_disconnect_countdown">Déconnecté — fermeture dans %1$ds</string>
+    <string name="terminal_disconnect_now">Déconnecté — fermeture</string>
+    <string name="terminal_new_session_create">Créer</string>
 </resources>

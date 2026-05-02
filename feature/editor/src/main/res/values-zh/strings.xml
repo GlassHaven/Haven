@@ -1,0 +1,22 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string name="editor_title">编辑器</string>
+    <string name="editor_loading">正在加载文件…</string>
+    <string name="editor_failed">加载失败：%s</string>
+    <string name="editor_line">第 %1$d 行，第 %2$d 列</string>
+    <string name="editor_word_wrap">自动换行</string>
+    <string name="editor_open_in_editor">在编辑器中打开</string>
+    <string name="editor_save">保存</string>
+    <string name="editor_saved">已保存 %s</string>
+    <string name="editor_save_failed">保存失败：%s</string>
+    <string name="editor_undo">撤销</string>
+    <string name="editor_redo">重做</string>
+    <string name="editor_find">查找</string>
+    <string name="editor_find_prev">上一个匹配</string>
+    <string name="editor_find_next">下一个匹配</string>
+    <string name="editor_close_search">关闭搜索</string>
+    <string name="editor_regex">Regex</string>
+    <string name="editor_replace">替换</string>
+    <string name="editor_replace_one">替换</string>
+    <string name="editor_replace_all">全部</string>
+</resources>

@@ -1,0 +1,18 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string name="imagetools_title">ইমেজ টুলস</string>
+    <string name="imagetools_perspective">পরিপ্রেক্ষিত</string>
+    <string name="imagetools_crop">ক্রপ</string>
+    <string name="imagetools_rotate">ঘোরান</string>
+    <string name="imagetools_apply">প্রয়োগ করুন</string>
+    <string name="imagetools_save">সংরক্ষণ</string>
+    <string name="imagetools_reset">রিসেট</string>
+    <string name="imagetools_original">মূল</string>
+    <string name="imagetools_result">ফলাফল</string>
+    <string name="imagetools_processing">প্রসেস হচ্ছে…</string>
+    <string name="imagetools_failed">ব্যর্থ: %s</string>
+    <string name="imagetools_saved">%s সংরক্ষিত হয়েছে</string>
+    <string name="imagetools_open">ইমেজ টুলস</string>
+    <string name="imagetools_view">দেখুন</string>
+    <string name="imagetools_loading">ইমেজ লোড হচ্ছে…</string>
+</resources>

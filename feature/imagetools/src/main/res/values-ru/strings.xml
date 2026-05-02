@@ -1,0 +1,18 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string name="imagetools_title">Инструменты изображения</string>
+    <string name="imagetools_perspective">Перспектива</string>
+    <string name="imagetools_crop">Обрезать</string>
+    <string name="imagetools_rotate">Повернуть</string>
+    <string name="imagetools_apply">Применить</string>
+    <string name="imagetools_save">Сохранить</string>
+    <string name="imagetools_reset">Сбросить</string>
+    <string name="imagetools_original">Оригинал</string>
+    <string name="imagetools_result">Результат</string>
+    <string name="imagetools_processing">Обработка…</string>
+    <string name="imagetools_failed">Ошибка: %s</string>
+    <string name="imagetools_saved">%s сохранено</string>
+    <string name="imagetools_open">Инструменты изображения</string>
+    <string name="imagetools_view">Просмотр</string>
+    <string name="imagetools_loading">Загрузка изображения…</string>
+</resources>

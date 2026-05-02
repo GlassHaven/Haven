@@ -192,4 +192,7 @@
     <string name="settings_show_desktops_subtitle">Show desktop environment manager on the Connections screen</string>
     <string name="settings_show_linux_vm_title">Show Linux VM card</string>
     <string name="settings_show_linux_vm_subtitle">Show Android Linux VM setup on the Connections screen</string>
+    <!-- Backfilled translations (i18n drift fix) -->
+    <string name="settings_keep_screen_on_title">टर्मिनल में स्क्रीन चालू रखें</string>
+    <string name="settings_keep_screen_on_subtitle">टर्मिनल टैब खुले रहने पर डिस्प्ले चालू रहता है। बैटरी खर्च होती है; केवल लंबी आउटपुट देखते समय चालू रखना उचित है।</string>
 </resources>

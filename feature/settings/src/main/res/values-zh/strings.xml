@@ -192,4 +192,7 @@
     <string name="settings_show_desktops_subtitle">Show desktop environment manager on the Connections screen</string>
     <string name="settings_show_linux_vm_title">Show Linux VM card</string>
     <string name="settings_show_linux_vm_subtitle">Show Android Linux VM setup on the Connections screen</string>
+    <!-- Backfilled translations (i18n drift fix) -->
+    <string name="settings_keep_screen_on_title">在终端中保持屏幕常亮</string>
+    <string name="settings_keep_screen_on_subtitle">打开终端标签时，屏幕会保持唤醒。会消耗电量；只有在观察长时间运行的输出时才值得开启。</string>
 </resources>

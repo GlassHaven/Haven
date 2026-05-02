@@ -192,4 +192,7 @@
     <string name="settings_show_desktops_subtitle">Show desktop environment manager on the Connections screen</string>
     <string name="settings_show_linux_vm_title">Show Linux VM card</string>
     <string name="settings_show_linux_vm_subtitle">Show Android Linux VM setup on the Connections screen</string>
+    <!-- Backfilled translations (i18n drift fix) -->
+    <string name="settings_keep_screen_on_title">Manter tela ligada no terminal</string>
+    <string name="settings_keep_screen_on_subtitle">A tela permanece acordada enquanto uma aba do terminal está aberta. Consome bateria; só vale a pena se você acompanha saídas demoradas.</string>
 </resources>

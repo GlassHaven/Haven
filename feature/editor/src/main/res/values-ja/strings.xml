@@ -1,0 +1,22 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string name="editor_title">エディター</string>
+    <string name="editor_loading">ファイルを読み込み中…</string>
+    <string name="editor_failed">読み込みに失敗: %s</string>
+    <string name="editor_line">%1$d 行、%2$d 列</string>
+    <string name="editor_word_wrap">折り返し</string>
+    <string name="editor_open_in_editor">エディターで開く</string>
+    <string name="editor_save">保存</string>
+    <string name="editor_saved">%s を保存しました</string>
+    <string name="editor_save_failed">保存に失敗: %s</string>
+    <string name="editor_undo">元に戻す</string>
+    <string name="editor_redo">やり直し</string>
+    <string name="editor_find">検索</string>
+    <string name="editor_find_prev">前の一致</string>
+    <string name="editor_find_next">次の一致</string>
+    <string name="editor_close_search">検索を閉じる</string>
+    <string name="editor_regex">Regex</string>
+    <string name="editor_replace">置換</string>
+    <string name="editor_replace_one">置換</string>
+    <string name="editor_replace_all">すべて</string>
+</resources>

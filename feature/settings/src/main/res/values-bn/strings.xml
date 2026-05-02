@@ -192,4 +192,7 @@
     <string name="settings_show_desktops_subtitle">Show desktop environment manager on the Connections screen</string>
     <string name="settings_show_linux_vm_title">Show Linux VM card</string>
     <string name="settings_show_linux_vm_subtitle">Show Android Linux VM setup on the Connections screen</string>
+    <!-- Backfilled translations (i18n drift fix) -->
+    <string name="settings_keep_screen_on_title">টার্মিনালে স্ক্রিন চালু রাখুন</string>
+    <string name="settings_keep_screen_on_subtitle">টার্মিনাল ট্যাব খোলা থাকলে ডিসপ্লে জাগ্রত থাকে। ব্যাটারি খরচ হয়; দীর্ঘ আউটপুট দেখার সময় শুধু কার্যকর।</string>
 </resources>

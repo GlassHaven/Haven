@@ -192,4 +192,7 @@
     <string name="settings_show_desktops_subtitle">Show desktop environment manager on the Connections screen</string>
     <string name="settings_show_linux_vm_title">Show Linux VM card</string>
     <string name="settings_show_linux_vm_subtitle">Show Android Linux VM setup on the Connections screen</string>
+    <!-- Backfilled translations (i18n drift fix) -->
+    <string name="settings_keep_screen_on_title">Bildschirm im Terminal anlassen</string>
+    <string name="settings_keep_screen_on_subtitle">Das Display bleibt wach, solange ein Terminal-Tab offen ist. Verbraucht Akku; nur sinnvoll bei langen Ausgaben.</string>
 </resources>

@@ -1,0 +1,18 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string name="imagetools_title">图像工具</string>
+    <string name="imagetools_perspective">透视校正</string>
+    <string name="imagetools_crop">裁剪</string>
+    <string name="imagetools_rotate">旋转</string>
+    <string name="imagetools_apply">应用</string>
+    <string name="imagetools_save">保存</string>
+    <string name="imagetools_reset">重置</string>
+    <string name="imagetools_original">原图</string>
+    <string name="imagetools_result">结果</string>
+    <string name="imagetools_processing">正在处理…</string>
+    <string name="imagetools_failed">失败：%s</string>
+    <string name="imagetools_saved">已保存 %s</string>
+    <string name="imagetools_open">图像工具</string>
+    <string name="imagetools_view">查看</string>
+    <string name="imagetools_loading">正在加载图像…</string>
+</resources>

@@ -33,8 +33,15 @@ autocorrect/autocap/autospace, enable autocorrect protocol (Samsung),
 voice & swipe (full editor), suppress fullscreen IME, block IME from
 learning. Defaults match the Secure preset.
 
-Other fixes: cleartext-loopback network security config so the MCP
-client can hit 127.0.0.1 over HTTP through SSH tunnels; coroutine-
-scope-survives-dialog-dismissal fix (silent install bug); polymorphic
-session dispatch in send_terminal_input / read_terminal_scrollback
-across SSH and local-shell sessions.
+Other fixes:
+- Cleartext-loopback network security config so the MCP client can
+  hit 127.0.0.1 over HTTP through SSH tunnels.
+- Coroutine-scope-survives-dialog-dismissal fix (silent install bug).
+- Polymorphic session dispatch in send_terminal_input /
+  read_terminal_scrollback across SSH and local-shell sessions.
+- Tapping a disconnected rclone profile no longer shows the SSH-style
+  password prompt; the rclone connect path handles OAuth itself
+  (#108). New "Re-authenticate" entry in the long-press menu for
+  rclone profiles forces a fresh OAuth flow without the user needing
+  to delete and re-add the connection — useful when stored tokens
+  have gone stale and silent refresh is failing.

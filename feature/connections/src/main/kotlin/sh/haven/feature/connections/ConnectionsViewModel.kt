@@ -1046,6 +1046,36 @@ class ConnectionsViewModel @Inject constructor(
         }
     }
 
+    /**
+     * Force a fresh OAuth flow on an rclone profile by dropping the
+     * stored remote in rclone's config, then running the normal connect
+     * path (which sees no remote and starts OAuth via
+     * [RcloneSessionManager.connectSession]). Use this when stored
+     * tokens have gone stale and silent refresh is failing — saves the
+     * user from delete-and-re-add the entire Haven profile (#108).
+     *
+     * Disconnects any live session first so the existing connection's
+     * state doesn't survive the re-auth and confuse the next connect.
+     */
+    fun reauthRcloneProfile(profile: ConnectionProfile) {
+        val remoteName = profile.rcloneRemoteName ?: return
+        viewModelScope.launch {
+            // Tear down any live rclone session for this profile before
+            // we drop the underlying config. Otherwise the stale
+            // session sits in CONNECTED with credentials that no
+            // longer exist.
+            rcloneSessionManager.removeAllSessionsForProfile(profile.id)
+            withContext(Dispatchers.IO) {
+                try {
+                    rcloneClient.deleteRemote(remoteName)
+                } catch (e: Exception) {
+                    Log.w(TAG, "deleteRemote('$remoteName') failed before re-auth: ${e.message}")
+                }
+            }
+            connectRclone(profile)
+        }
+    }
+
     private fun connectRclone(profile: ConnectionProfile) {
         val remoteName = profile.rcloneRemoteName ?: return
         val provider = profile.rcloneProvider ?: ""

@@ -1137,6 +1137,7 @@ fun ConnectionsScreen(
                                     onDeployKey = { deployingProfile = profile },
                                     onConnectWithPassword = { connectingProfile = profile },
                                     onPortForwards = { portForwardProfile = profile },
+                                    onReauthRclone = { viewModel.reauthRcloneProfile(profile) },
                                     onNewSession = { viewModel.openNewSession(profile.id) },
                                     enableDrag = !isFiltering,
                                     dragModifier = if (!isFiltering) Modifier
@@ -1237,6 +1238,7 @@ fun ConnectionsScreen(
                                         onDeployKey = { deployingProfile = dep },
                                         onConnectWithPassword = { connectingProfile = dep },
                                         onPortForwards = { portForwardProfile = dep },
+                                        onReauthRclone = { viewModel.reauthRcloneProfile(dep) },
                                         onNewSession = { viewModel.openNewSession(dep.id) },
                                         dragModifier = if (ancestorDragged) Modifier
                                             .zIndex(1f)
@@ -1318,6 +1320,14 @@ private fun onTapProfile(
         }
     } else if (profile.isReticulum) {
         viewModel.connect(profile, "")
+    } else if (profile.isRclone) {
+        // Rclone profiles don't take a Haven-side password — credentials
+        // live inside rclone's own config, and OAuth providers run their
+        // browser flow via RcloneSessionManager.connectSession. Routing
+        // straight through `connect()` lets connectRclone handle that
+        // (#108: previously fell through to the password catch-all and
+        // confused the user).
+        viewModel.connect(profile, "")
     } else if (profile.username.isBlank()) {
         // Profile saved without a username — always prompt so the user can pick one.
         showPasswordDialog()
@@ -1351,6 +1361,7 @@ private fun ConnectionTreeItem(
     onDeployKey: () -> Unit,
     onConnectWithPassword: () -> Unit,
     onPortForwards: () -> Unit,
+    onReauthRclone: () -> Unit,
     onNewSession: () -> Unit,
     enableDrag: Boolean = true,
     dragModifier: Modifier = Modifier,
@@ -1544,6 +1555,18 @@ private fun ConnectionTreeItem(
                     text = { Text(stringResource(R.string.connections_menu_connect_with_password)) },
                     leadingIcon = { Icon(Icons.Filled.Password, null) },
                     onClick = { showMenu = false; onConnectWithPassword() },
+                )
+            }
+            if (profile.isRclone) {
+                // For OAuth rclone providers (gdrive, dropbox, onedrive…)
+                // tokens go stale and the rclone backend silently fails
+                // to refresh, leaving Haven unable to connect. This
+                // forces a fresh OAuth flow without the user needing
+                // to delete + re-add the connection.
+                DropdownMenuItem(
+                    text = { Text("Re-authenticate") },
+                    leadingIcon = { Icon(Icons.Filled.Refresh, null) },
+                    onClick = { showMenu = false; onReauthRclone() },
                 )
             }
             if (profile.isSsh && profileStatus == ProfileStatus.CONNECTED) {

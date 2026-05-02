@@ -248,4 +248,77 @@ class SshSessionManagerTest {
         verify { c1.disconnect() }
         verify { c2.disconnect() }
     }
+
+    // ----- Tunnel-dependent tracking (#121, KoriKraut) -----
+
+    @Test
+    fun `markTunnelOpened sets flag and seeds dependent set`() {
+        val c = mockk<SshClient>(relaxed = true)
+        val sshSid = manager.registerSession("ssh-host", "SSH", c)
+        manager.markTunnelOpened(sshSid, "vnc-1")
+
+        val s = manager.getSession(sshSid)!!
+        assertTrue(s.tunnelOpened)
+        assertEquals(setOf("vnc-1"), s.tunnelDependents)
+    }
+
+    @Test
+    fun `releaseTunnelDependent tears down session opened solely as a tunnel`() {
+        val c = mockk<SshClient>(relaxed = true)
+        val sshSid = manager.registerSession("ssh-host", "SSH", c)
+        manager.markTunnelOpened(sshSid, "vnc-1")
+
+        val torn = manager.releaseTunnelDependent("vnc-1")
+
+        assertEquals(listOf(sshSid), torn)
+        assertNull(manager.getSession(sshSid))
+        Thread.sleep(200)
+        verify { c.disconnect() }
+    }
+
+    @Test
+    fun `releaseTunnelDependent keeps session alive when other dependents remain`() {
+        val c = mockk<SshClient>(relaxed = true)
+        val sshSid = manager.registerSession("ssh-host", "SSH", c)
+        manager.markTunnelOpened(sshSid, "vnc-1")
+        manager.attachTunnelDependent(sshSid, "rdp-1")
+
+        // First dependent released — second still depends on it
+        val torn = manager.releaseTunnelDependent("vnc-1")
+        assertTrue(torn.isEmpty())
+        assertNotNull(manager.getSession(sshSid))
+        assertEquals(setOf("rdp-1"), manager.getSession(sshSid)!!.tunnelDependents)
+
+        // Last dependent released — now torn down
+        val torn2 = manager.releaseTunnelDependent("rdp-1")
+        assertEquals(listOf(sshSid), torn2)
+        assertNull(manager.getSession(sshSid))
+    }
+
+    @Test
+    fun `releaseTunnelDependent does not tear down user-opened session that VNC reused`() {
+        // Scenario: user opens SSH terminal (tunnelOpened = false), then opens
+        // VNC that REUSES the same SSH session (attachTunnelDependent). On
+        // VNC disconnect the user's terminal session must not be killed.
+        val c = mockk<SshClient>(relaxed = true)
+        val sshSid = manager.registerSession("ssh-host", "SSH", c)
+        // No markTunnelOpened — opened directly by user
+        manager.attachTunnelDependent(sshSid, "vnc-1")
+
+        val torn = manager.releaseTunnelDependent("vnc-1")
+        assertTrue("user-opened SSH must survive VNC disconnect", torn.isEmpty())
+        assertNotNull(manager.getSession(sshSid))
+        assertEquals(emptySet<String>(), manager.getSession(sshSid)!!.tunnelDependents)
+    }
+
+    @Test
+    fun `releaseTunnelDependent for unknown profile is no-op`() {
+        val c = mockk<SshClient>(relaxed = true)
+        val sshSid = manager.registerSession("ssh-host", "SSH", c)
+        manager.markTunnelOpened(sshSid, "vnc-1")
+
+        val torn = manager.releaseTunnelDependent("nobody-knows")
+        assertTrue(torn.isEmpty())
+        assertNotNull(manager.getSession(sshSid))
+    }
 }

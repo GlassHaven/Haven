@@ -938,7 +938,9 @@ class ConnectionsViewModel @Inject constructor(
                 // uses this sshSessionId to open the local forward.
                 try {
                     _connectingProfileId.value = profile.id
-                    val (sshSessionId, _) = connectJumpHost(sshProfileId, "")
+                    val (sshSessionId, _) = connectJumpHost(
+                        sshProfileId, "", tunnelOwnerProfileId = profile.id,
+                    )
                     _navigateToVnc.value = VncNavigation(
                         host, port, password, username,
                         sshForward = true,
@@ -979,7 +981,9 @@ class ConnectionsViewModel @Inject constructor(
                 try {
                     _connectingProfileId.value = profile.id
                     // Pass empty password — SSH profile uses its own auth (key or password)
-                    val (sshSessionId, _) = connectJumpHost(sshProfileId, "")
+                    val (sshSessionId, _) = connectJumpHost(
+                        sshProfileId, "", tunnelOwnerProfileId = profile.id,
+                    )
                     _navigateToRdp.value = RdpNavigation(
                         host, port, username, rdpPassword, domain,
                         sshForward = true,
@@ -1017,7 +1021,9 @@ class ConnectionsViewModel @Inject constructor(
                 var tunnelPort: Int? = null
 
                 if (profile.smbSshForward && sshProfileId != null) {
-                    val (sshSessionId, _) = connectJumpHost(sshProfileId, "")
+                    val (sshSessionId, _) = connectJumpHost(
+                        sshProfileId, "", tunnelOwnerProfileId = profile.id,
+                    )
                     val sshClient = sshSessionManager.sessions.value[sshSessionId]?.client
                         ?: throw IllegalStateException("SSH tunnel session not found")
                     // Set up local port forward: random port -> remoteHost:smbPort
@@ -2184,12 +2190,23 @@ class ConnectionsViewModel @Inject constructor(
      * Connect to a jump host profile, reusing an existing connected session if available.
      * Returns Pair(sessionId, reused) — reused=true if an existing session was used.
      */
-    private suspend fun connectJumpHost(jumpProfileId: String, password: String): Pair<String, Boolean> {
+    private suspend fun connectJumpHost(
+        jumpProfileId: String,
+        password: String,
+        tunnelOwnerProfileId: String? = null,
+    ): Pair<String, Boolean> {
         // Reuse existing connected session for this jump profile
         val existing = sshSessionManager.getSessionsForProfile(jumpProfileId)
             .firstOrNull { it.status == SshSessionManager.SessionState.Status.CONNECTED }
         if (existing != null) {
             Log.d(TAG, "Reusing existing jump host session ${existing.sessionId}")
+            // Reused session might have been opened directly by the user
+            // (terminal) — record the new dependent without flipping the
+            // tunnelOpened flag, so disconnecting the dependent later won't
+            // also tear down a session the user wants kept alive.
+            if (tunnelOwnerProfileId != null) {
+                sshSessionManager.attachTunnelDependent(existing.sessionId, tunnelOwnerProfileId)
+            }
             return existing.sessionId to true
         }
 
@@ -2246,6 +2263,11 @@ class ConnectionsViewModel @Inject constructor(
 
             sshSessionManager.updateStatus(jumpSessionId, SshSessionManager.SessionState.Status.CONNECTED)
             Log.d(TAG, "Jump host connected: ${jumpProfile.label} ($jumpSessionId), isConnected=${jumpClient.isConnected}")
+            // Newly-opened tunnel session: bind it to its owner so the
+            // session is torn down when the owner disconnects (#121).
+            if (tunnelOwnerProfileId != null) {
+                sshSessionManager.markTunnelOpened(jumpSessionId, tunnelOwnerProfileId)
+            }
             return jumpSessionId to false
         } catch (e: Exception) {
             // Auth failure (or anything else) used to leave the registered
@@ -2764,6 +2786,11 @@ class ConnectionsViewModel @Inject constructor(
 
         viewModelScope.launch { connectionLogRepository.logEvent(profileId, ConnectionLog.Status.DISCONNECTED, verboseLog = transportLog) }
         sessionManagerRegistry.disconnectProfile(profileId)
+        // Tear down any SSH session that was opened SOLELY as a tunnel for
+        // this profile (VNC/RDP/SMB-over-SSH-forward). Sessions the user
+        // opened directly — e.g. a terminal that the VNC profile then
+        // reused — are kept alive (#121, KoriKraut).
+        sshSessionManager.releaseTunnelDependent(profileId)
         localSessionManager.desktopManager.stopAll()
         updateServiceNotification()
     }

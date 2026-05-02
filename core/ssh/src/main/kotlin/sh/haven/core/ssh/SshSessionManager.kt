@@ -67,6 +67,21 @@ class SshSessionManager @Inject constructor(
         val activeForwards: List<PortForwardInfo> = emptyList(),
         /** Session ID of the jump host session, if this connection goes through one. */
         val jumpSessionId: String? = null,
+        /**
+         * True when this session was opened automatically as a tunnel for
+         * another profile (VNC/RDP/SMB-over-SSH-forward), as opposed to
+         * being opened directly by the user. Combined with an empty
+         * [tunnelDependents], signals the session can be torn down when
+         * its last consumer disconnects (#121, KoriKraut).
+         */
+        val tunnelOpened: Boolean = false,
+        /**
+         * Profile IDs of non-SSH connections (VNC, RDP, SMB) currently
+         * using this SSH session as their tunnel. When this empties on a
+         * [tunnelOpened] session, the session is torn down by
+         * [releaseTunnelDependent].
+         */
+        val tunnelDependents: Set<String> = emptySet(),
     ) {
         enum class Status { CONNECTING, CONNECTED, RECONNECTING, DISCONNECTED, ERROR }
     }
@@ -564,6 +579,75 @@ class SshSessionManager @Inject constructor(
             val existing = map[sessionId] ?: return@update map
             map + (sessionId to existing.copy(jumpSessionId = jumpSessionId))
         }
+    }
+
+    /**
+     * Mark [sessionId] as having been opened as a tunnel for
+     * [dependentProfileId] (a VNC/RDP/SMB profile that needs this SSH
+     * session for port forwarding). When the last dependent is released,
+     * the session is torn down — see [releaseTunnelDependent].
+     *
+     * Call this only when the session is freshly opened by the auto-tunnel
+     * path; for sessions that were already connected and just had a new
+     * dependent attached, use [attachTunnelDependent] instead so the
+     * tunnelOpened flag isn't (re-)set on a user-opened session.
+     */
+    fun markTunnelOpened(sessionId: String, dependentProfileId: String) {
+        _sessions.update { map ->
+            val existing = map[sessionId] ?: return@update map
+            map + (sessionId to existing.copy(
+                tunnelOpened = true,
+                tunnelDependents = existing.tunnelDependents + dependentProfileId,
+            ))
+        }
+    }
+
+    /**
+     * Add [dependentProfileId] to an existing session's dependent set
+     * without changing its [SessionState.tunnelOpened] flag. Use when an
+     * already-connected session is reused by a new VNC/RDP/SMB tunnel —
+     * the session might have been opened directly by the user (terminal),
+     * and we don't want to inherit a teardown policy that would close it
+     * when the tunnel goes away.
+     */
+    fun attachTunnelDependent(sessionId: String, dependentProfileId: String) {
+        _sessions.update { map ->
+            val existing = map[sessionId] ?: return@update map
+            map + (sessionId to existing.copy(
+                tunnelDependents = existing.tunnelDependents + dependentProfileId,
+            ))
+        }
+    }
+
+    /**
+     * Remove [dependentProfileId] from every session's tunnel-dependent
+     * set. Tears down any session that (a) was opened solely as a tunnel
+     * ([SessionState.tunnelOpened] = true) and (b) has no remaining
+     * dependents after the removal. Returns the list of session IDs
+     * actually torn down (for logging / audit purposes).
+     *
+     * Called by [ConnectionsViewModel.disconnect] when a VNC/RDP/SMB
+     * profile is disconnected, so the SSH session that was opened only
+     * to carry its forward stops idling on the user's connections list
+     * (#121, KoriKraut).
+     */
+    fun releaseTunnelDependent(dependentProfileId: String): List<String> {
+        val toTearDown = mutableListOf<String>()
+        _sessions.update { map ->
+            map.mapValues { (_, session) ->
+                if (dependentProfileId !in session.tunnelDependents) return@mapValues session
+                val newDeps = session.tunnelDependents - dependentProfileId
+                if (newDeps.isEmpty() && session.tunnelOpened) {
+                    toTearDown += session.sessionId
+                }
+                session.copy(tunnelDependents = newDeps)
+            }
+        }
+        for (sid in toTearDown) {
+            Log.d(TAG, "Tearing down orphaned tunnel session $sid (last dependent $dependentProfileId released)")
+            removeSession(sid)
+        }
+        return toTearDown
     }
 
     /**

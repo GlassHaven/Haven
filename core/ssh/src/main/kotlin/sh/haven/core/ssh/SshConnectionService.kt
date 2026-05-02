@@ -17,33 +17,17 @@ import kotlinx.coroutines.SupervisorJob
 import kotlinx.coroutines.cancel
 import kotlinx.coroutines.flow.debounce
 import kotlinx.coroutines.launch
-import sh.haven.core.et.EtSessionManager
-import sh.haven.core.mosh.MoshSessionManager
-import sh.haven.core.local.LocalSessionManager
-import sh.haven.core.rdp.RdpSessionManager
-import sh.haven.core.reticulum.ReticulumSessionManager
 import javax.inject.Inject
 
 @AndroidEntryPoint
 class SshConnectionService : Service() {
 
+    /** Kept as a direct dependency for SSH-specific reconnect on network restore. */
     @Inject
     lateinit var sessionManager: SshSessionManager
 
     @Inject
-    lateinit var reticulumSessionManager: ReticulumSessionManager
-
-    @Inject
-    lateinit var moshSessionManager: MoshSessionManager
-
-    @Inject
-    lateinit var etSessionManager: EtSessionManager
-
-    @Inject
-    lateinit var rdpSessionManager: RdpSessionManager
-
-    @Inject
-    lateinit var localSessionManager: LocalSessionManager
+    lateinit var participants: Set<@JvmSuppressWildcards ForegroundSessionParticipant>
 
     @Inject
     lateinit var networkMonitor: NetworkMonitor
@@ -83,12 +67,7 @@ class SshConnectionService : Service() {
     override fun onStartCommand(intent: Intent?, flags: Int, startId: Int): Int {
         if (intent?.action == ACTION_DISCONNECT_ALL) {
             disconnectedAll = true
-            sessionManager.disconnectAll()
-            reticulumSessionManager.disconnectAll()
-            moshSessionManager.disconnectAll()
-            etSessionManager.disconnectAll()
-            rdpSessionManager.disconnectAll()
-            localSessionManager.disconnectAll()
+            participants.forEach { it.disconnectAll() }
             stopForeground(STOP_FOREGROUND_REMOVE)
             stopSelf()
             // Bring the activity to the foreground so it can finish itself
@@ -109,30 +88,15 @@ class SshConnectionService : Service() {
         networkMonitor.stop()
         serviceScope.cancel()
         super.onDestroy()
-        sessionManager.disconnectAll()
-        reticulumSessionManager.disconnectAll()
-        moshSessionManager.disconnectAll()
-        etSessionManager.disconnectAll()
-        rdpSessionManager.disconnectAll()
-        localSessionManager.disconnectAll()
+        participants.forEach { it.disconnectAll() }
     }
 
     private fun buildNotification(): Notification {
-        val sshActive = sessionManager.activeSessions
-        val rnsActive = reticulumSessionManager.activeSessions
-        val moshActive = moshSessionManager.activeSessions
-        val etActive = etSessionManager.activeSessions
-        val rdpActive = rdpSessionManager.activeSessions
-        val localActive = localSessionManager.activeSessions
-        val count = sshActive.size + rnsActive.size + moshActive.size + etActive.size + rdpActive.size + localActive.size
-
-        val sshLabels = sshActive.distinctBy { it.profileId }.map { it.label }
-        val rnsLabels = rnsActive.distinctBy { it.profileId }.map { it.label }
-        val moshLabels = moshActive.distinctBy { it.profileId }.map { it.label }
-        val etLabels = etActive.distinctBy { it.profileId }.map { it.label }
-        val rdpLabels = rdpActive.distinctBy { it.profileId }.map { it.label }
-        val localLabels = localActive.distinctBy { it.profileId }.map { it.label }
-        val labels = (sshLabels + rnsLabels + moshLabels + etLabels + rdpLabels + localLabels).joinToString(", ")
+        val activeByParticipant = participants.map { it.activeSessions }
+        val count = activeByParticipant.sumOf { it.size }
+        val labels = activeByParticipant
+            .flatMap { sessions -> sessions.distinctBy { it.profileId } }
+            .joinToString(", ") { it.label }
 
         val disconnectIntent = Intent(this, SshConnectionService::class.java).apply {
             action = ACTION_DISCONNECT_ALL

@@ -39,6 +39,12 @@ class SmbSessionManager @Inject constructor() {
     private val _sessions = MutableStateFlow<Map<String, SessionState>>(emptyMap())
     val sessions: StateFlow<Map<String, SessionState>> = _sessions.asStateFlow()
 
+    val activeSessions: List<SessionState>
+        get() = _sessions.value.values.filter {
+            it.status == SessionState.Status.CONNECTED ||
+                it.status == SessionState.Status.CONNECTING
+        }
+
     private val ioExecutor = Executors.newSingleThreadExecutor { r ->
         Thread(r, "smb-session-io").apply { isDaemon = true }
     }
@@ -135,6 +141,21 @@ class SmbSessionManager @Inject constructor() {
         _sessions.update { map -> map.filterValues { it.profileId != profileId } }
         ioExecutor.execute {
             toRemove.forEach { session ->
+                try {
+                    session.smbClient?.close()
+                    session.sshClient?.close()
+                } catch (e: Exception) {
+                    Log.e(TAG, "tearDown failed for ${session.sessionId}", e)
+                }
+            }
+        }
+    }
+
+    fun disconnectAll() {
+        val all = _sessions.value.values.toList()
+        _sessions.update { emptyMap() }
+        ioExecutor.execute {
+            all.forEach { session ->
                 try {
                     session.smbClient?.close()
                     session.sshClient?.close()

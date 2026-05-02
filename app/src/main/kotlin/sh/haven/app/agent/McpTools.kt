@@ -89,7 +89,7 @@ internal class McpTools(
         ) { _ -> listConnections() },
 
         "list_sessions" to ToolHandler(
-            description = "List currently registered SSH sessions and their status (connecting, connected, reconnecting, disconnected, error). Each session's active port forwards are included.",
+            description = "List currently registered sessions across all transports (ssh, mosh, et, reticulum, rdp, smb, local) with sessionId, profileId, label, status (connecting, connected, reconnecting, disconnected, error), and transport. SSH sessions additionally include sessionManager, channel state, jump-session linkage, and active port forwards.",
             inputSchema = emptyObjectSchema(),
         ) { _ -> listSessions() },
 
@@ -476,7 +476,8 @@ internal class McpTools(
     }
 
     private fun listSessions(): JSONObject {
-        val sessions = sshSessionManager.sessions.value.values
+        val sessions = sessionManagerRegistry.allSessions
+        val sshStates = sshSessionManager.sessions.value
         val arr = JSONArray()
         for (s in sessions) {
             arr.put(JSONObject().apply {
@@ -484,24 +485,30 @@ internal class McpTools(
                 put("profileId", s.profileId)
                 put("label", s.label)
                 put("status", s.status.name)
-                put("sessionManager", s.sessionManager.name)
-                put("chosenSessionName", s.chosenSessionName ?: JSONObject.NULL)
-                put("hasShell", s.shellChannel != null)
-                put("hasSftp", s.sftpChannel != null)
-                put("jumpSessionId", s.jumpSessionId ?: JSONObject.NULL)
-                put("activeForwards", JSONArray().apply {
-                    for (f in s.activeForwards) {
-                        put(JSONObject().apply {
-                            put("ruleId", f.ruleId)
-                            put("type", f.type.name)
-                            put("bindAddress", f.bindAddress)
-                            put("bindPort", f.bindPort)
-                            put("actualBoundPort", f.actualBoundPort)
-                            put("targetHost", f.targetHost)
-                            put("targetPort", f.targetPort)
+                put("transport", s.transport.name)
+                if (s.transport == sh.haven.core.ssh.Transport.SSH) {
+                    val sshState = sshStates[s.sessionId]
+                    if (sshState != null) {
+                        put("sessionManager", sshState.sessionManager.name)
+                        put("chosenSessionName", sshState.chosenSessionName ?: JSONObject.NULL)
+                        put("hasShell", sshState.shellChannel != null)
+                        put("hasSftp", sshState.sftpChannel != null)
+                        put("jumpSessionId", sshState.jumpSessionId ?: JSONObject.NULL)
+                        put("activeForwards", JSONArray().apply {
+                            for (f in sshState.activeForwards) {
+                                put(JSONObject().apply {
+                                    put("ruleId", f.ruleId)
+                                    put("type", f.type.name)
+                                    put("bindAddress", f.bindAddress)
+                                    put("bindPort", f.bindPort)
+                                    put("actualBoundPort", f.actualBoundPort)
+                                    put("targetHost", f.targetHost)
+                                    put("targetPort", f.targetPort)
+                                })
+                            }
                         })
                     }
-                })
+                }
             })
         }
         return JSONObject().apply {

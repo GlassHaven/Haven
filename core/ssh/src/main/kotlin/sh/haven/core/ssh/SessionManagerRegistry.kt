@@ -44,5 +44,55 @@ class SessionManagerRegistry @Inject constructor(
             mosh.activeSessions.isNotEmpty() ||
             et.activeSessions.isNotEmpty() ||
             local.activeSessions.isNotEmpty() ||
-            rdp.activeSessions.isNotEmpty()
+            rdp.activeSessions.isNotEmpty() ||
+            smb.activeSessions.isNotEmpty()
+
+    /**
+     * All sessions across all transports as a unified [Session] view.
+     * Includes inactive sessions (DISCONNECTED, ERROR) so consumers can present
+     * a full registered-session list, not just live ones.
+     */
+    val allSessions: List<Session>
+        get() = ssh.sessions.value.values.map { it.toSession() } +
+            reticulum.sessions.value.values.map { it.toSession() } +
+            mosh.sessions.value.values.map { it.toSession() } +
+            et.sessions.value.values.map { it.toSession() } +
+            smb.sessions.value.values.map { it.toSession() } +
+            local.sessions.value.values.map { it.toSession() } +
+            rdp.sessions.value.values.map { it.toSession() }
+
+    /** All sessions belonging to a single profile, across all transports. */
+    fun sessionsForProfile(profileId: String): List<Session> =
+        allSessions.filter { it.profileId == profileId }
 }
+
+private data class UnifiedSession(
+    override val sessionId: String,
+    override val profileId: String,
+    override val label: String,
+    override val status: SessionStatus,
+    override val transport: Transport,
+) : Session
+
+private fun mapStatus(name: String): SessionStatus = SessionStatus.valueOf(name)
+
+private fun SshSessionManager.SessionState.toSession() =
+    UnifiedSession(sessionId, profileId, label, mapStatus(status.name), Transport.SSH)
+
+private fun MoshSessionManager.SessionState.toSession() =
+    UnifiedSession(sessionId, profileId, label, mapStatus(status.name), Transport.MOSH)
+
+private fun EtSessionManager.SessionState.toSession() =
+    UnifiedSession(sessionId, profileId, label, mapStatus(status.name), Transport.ET)
+
+private fun ReticulumSessionManager.SessionState.toSession() =
+    UnifiedSession(sessionId, profileId, label, mapStatus(status.name), Transport.RETICULUM)
+
+private fun LocalSessionManager.SessionState.toSession() =
+    UnifiedSession(sessionId, profileId, label, mapStatus(status.name), Transport.LOCAL)
+
+private fun RdpSessionManager.SessionState.toSession() =
+    UnifiedSession(sessionId, profileId, label, mapStatus(status.name), Transport.RDP)
+
+private fun SmbSessionManager.SessionState.toSession() =
+    UnifiedSession(sessionId, profileId, label, mapStatus(status.name), Transport.SMB)

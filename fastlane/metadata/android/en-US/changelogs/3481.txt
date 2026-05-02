@@ -1,0 +1,44 @@
+v5.24.84: SK keys with verify-required PINs now work (issue #15)
+
+Triggered by olmari's report that a PIN-protected ed25519-sk key got past
+the original USB-permission fix in v5.24.78 but still hit
+"No matching credential on this key" (CTAP2 status 0x2E) — even though
+the rpId and credential ID were correct.
+
+Root cause: Haven only sent {up: true} in CTAP2 GetAssertion options,
+never {uv: true} or a pinUvAuthParam. Per FIDO2 §5.2 the authenticator
+filters the allowList for credentials whose verify-required policy is
+satisfied; with no UV provided, a verify-required credential gets removed
+and the empty filtered list reports back as NO_CREDENTIALS. The
+"verify-required" bit was already parsed from the SK key file
+(SkKeyData.flags & 0x04) — Haven just wasn't acting on it.
+
+Fix: full CTAP2 clientPIN protocol pre-flight before GetAssertion when
+the SK key carries SSH_SK_USER_VERIFICATION_REQUIRED:
+
+1. authenticatorGetInfo (0x04) to learn supported pinUvAuthProtocols
+   and that a PIN is configured on the key.
+2. clientPIN getKeyAgreement (0x06/2) → authenticator's COSE_Key.
+3. Platform generates an ephemeral P-256 keypair, runs ECDH, derives
+   the shared secret (HKDF-SHA-256 for v2; raw SHA-256 for v1).
+4. PIN entry dialog appears (new FidoTouchPrompt.EnterPin state).
+5. clientPIN getPinUvAuthTokenUsingPinWithPermissions (0x06/9) with
+   permissions=ga and rpId binding.
+6. Decrypt the returned token, compute pinUvAuthParam = HMAC-SHA-256
+   of the SSH clientDataHash, include keys 6 + 7 in GetAssertion.
+
+Both PIN protocol v2 (preferred) and v1 are implemented; the platform
+picks whichever the authenticator advertises. Wrong-PIN attempts loop
+back to the prompt with an estimated retries-remaining note; PIN_BLOCKED
+and PIN_AUTH_BLOCKED surface dedicated error messages.
+
+Verified:
+- 13 unit tests covering ECDH symmetry, v2 encrypt/decrypt round-trip,
+  fresh IV per call, HMAC determinism, v1 zero-IV round-trip, v1 HMAC
+  truncation to 16 bytes, COSE_Key encode/decode, GetAssertion CBOR
+  shape with and without auth params, GetInfo decoder.
+- Full app builds cleanly (arm64 debug).
+
+Not verified on real hardware in this branch — needs a YubiKey 5 or
+similar with PIN set and a verify-required ed25519-sk key. Native-key
+holders running the F-Droid build, please report back on issue #15.

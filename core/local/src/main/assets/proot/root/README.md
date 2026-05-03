@@ -21,6 +21,33 @@ setup:
 That's deliberately minimal. Haven does not impose a toolchain
 preference, so anything beyond these four is one `apk add` away.
 
+## Reaching your Android files
+
+Haven bind-mounts the device's `/storage` tree into this PRoot, so
+your Android-visible storage shows up at:
+
+```
+/storage/emulated/0/        # primary user storage
+/storage/emulated/0/Download
+/storage/emulated/0/DCIM
+/storage/emulated/0/Documents
+```
+
+Note: PRoot does not provide the conventional `/sdcard` shortcut,
+only the canonical `/storage/...` path. If you want the shortcut,
+create it yourself once:
+
+```sh
+ln -s /storage/emulated/0 ~/sdcard
+```
+
+Read access works out of the box. Write access depends on the
+"All files access" (MANAGE_EXTERNAL_STORAGE) permission Haven asked
+for — if writes fail, grant it from Android Settings → Apps →
+Haven → Permissions → Files and media. Removable storage (USB-C
+sticks, microSD readers) appears as further entries under
+`/storage/`.
+
 ## Installing tools
 
 Refresh the package index first:

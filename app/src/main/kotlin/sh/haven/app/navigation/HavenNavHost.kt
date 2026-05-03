@@ -84,6 +84,13 @@ fun HavenNavHost(
     val desktopViewModel: DesktopViewModel = hiltViewModel()
     val desktopTabs by desktopViewModel.tabs.collectAsState()
 
+    // Agent activity audit overlay — opened by the AgentActiveChip on the
+    // Connections top bar, dismissed via the screen's back arrow. Lifted
+    // here so the chip can deep-link directly instead of jumping to
+    // Settings as a fallback. Settings still has its own entry; both
+    // surfaces render the same screen.
+    var showAgentActivityOverlay by remember { mutableStateOf(false) }
+
     // Native Wayland desktop — poll compositor state reactively
     var waylandRunning by remember { mutableStateOf(false) }
     LaunchedEffect(Unit) {
@@ -322,16 +329,7 @@ fun HavenNavHost(
                             pagerState.animateScrollToPage(pageOf(Screen.Connections))
                         }
                     },
-                    onNavigateToAgentActivity = {
-                        // No deep-link to AgentActivityScreen exists
-                        // (it's a state flag inside SettingsScreen);
-                        // jumping to Settings is one tap away from the
-                        // audit view, which is good enough for a
-                        // one-bit indicator.
-                        coroutineScope.launch {
-                            pagerState.animateScrollToPage(pageOf(Screen.Settings))
-                        }
-                    },
+                    onNavigateToAgentActivity = { showAgentActivityOverlay = true },
                 )
                 Screen.Terminal -> {
                     TerminalScreen(
@@ -641,6 +639,15 @@ fun HavenNavHost(
                     .imePadding(),
             )
         }
+    }
+
+    // Agent-activity audit overlay — rendered above the pager when the
+    // chip on the Connections top bar (or any future deep-link) toggles
+    // it on. Dismissed via the screen's back arrow.
+    if (showAgentActivityOverlay) {
+        sh.haven.feature.settings.AgentActivityScreen(
+            onBack = { showAgentActivityOverlay = false },
+        )
     }
 }
 

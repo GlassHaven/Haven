@@ -11,12 +11,18 @@ import androidx.compose.foundation.combinedClickable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.ExperimentalLayoutApi
+import androidx.compose.foundation.layout.FlowRow
+import androidx.compose.foundation.layout.Row
+import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
+import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
+import androidx.compose.foundation.text.selection.SelectionContainer
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Add
 import androidx.compose.material.icons.filled.ContentCopy
@@ -24,20 +30,29 @@ import androidx.compose.material.icons.filled.Delete
 import androidx.compose.material.icons.filled.ContentPaste
 import androidx.compose.material.icons.filled.FileDownload
 import androidx.compose.material.icons.filled.FileUpload
+import androidx.compose.material.icons.filled.Fingerprint
 import androidx.compose.material.icons.filled.Key
+import androidx.compose.material.icons.filled.Password
+import androidx.compose.material.icons.filled.Shield
+import androidx.compose.material.icons.filled.TouchApp
 import androidx.compose.material.icons.filled.VpnKey
 import androidx.compose.material3.AlertDialog
+import androidx.compose.material3.AssistChip
+import androidx.compose.material3.AssistChipDefaults
 import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.DropdownMenu
 import androidx.compose.material3.DropdownMenuItem
 import androidx.compose.material3.FloatingActionButton
+import androidx.compose.material3.HorizontalDivider
 import androidx.compose.material3.Icon
+import androidx.compose.material3.IconButton
 import androidx.compose.material3.ListItem
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.Scaffold
 import androidx.compose.material3.SnackbarHost
 import androidx.compose.material3.SnackbarHostState
+import androidx.compose.material3.Switch
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
@@ -54,7 +69,12 @@ import androidx.compose.ui.res.stringResource
 import sh.haven.core.ui.PasswordField
 import androidx.compose.ui.unit.dp
 import androidx.hilt.navigation.compose.hiltViewModel
+import androidx.compose.ui.graphics.vector.ImageVector
+import androidx.compose.ui.text.font.FontFamily
 import sh.haven.core.data.db.entities.SshKey
+import sh.haven.core.security.KeystoreEntry
+import sh.haven.core.security.KeystoreFlag
+import sh.haven.core.security.KeystoreStore
 import sh.haven.core.security.SshKeyGenerator
 import java.text.SimpleDateFormat
 import java.util.Date
@@ -66,12 +86,15 @@ fun KeysScreen(
     viewModel: KeysViewModel = hiltViewModel(),
 ) {
     val keys by viewModel.keys.collectAsState()
+    val keyEntries by viewModel.keyEntries.collectAsState()
+    val passwordEntries by viewModel.passwordEntries.collectAsState()
     val generating by viewModel.generating.collectAsState()
     val error by viewModel.error.collectAsState()
     val needsPassphrase by viewModel.needsPassphrase.collectAsState()
     val importResult by viewModel.importResult.collectAsState()
     val message by viewModel.message.collectAsState()
     val pendingExportKeyId by viewModel.pendingExportKeyId.collectAsState()
+    var pendingPasswordWipe by remember { mutableStateOf<KeystoreEntry?>(null) }
 
     var showAddKeyDialog by remember { mutableStateOf(false) }
     var showGenerateDialog by remember { mutableStateOf(false) }
@@ -137,7 +160,7 @@ fun KeysScreen(
             }
         },
     ) { innerPadding ->
-        if (keys.isEmpty() && !generating) {
+        if (keys.isEmpty() && passwordEntries.isEmpty() && !generating) {
             Column(
                 modifier = Modifier
                     .fillMaxSize()
@@ -170,97 +193,66 @@ fun KeysScreen(
                     .fillMaxSize()
                     .padding(innerPadding),
             ) {
-                items(keys, key = { it.id }) { sshKey ->
-                    Box {
-                        ListItem(
-                            modifier = Modifier.combinedClickable(
-                                onClick = {
-                                    copyPublicKey(context, sshKey)
-                                },
-                                onLongClick = {
-                                    contextMenuKeyId = sshKey.id
-                                },
-                            ),
-                            headlineContent = { Text(sshKey.label) },
-                            supportingContent = {
-                                Column {
-                                    Text(
-                                        sshKey.keyType,
-                                        style = MaterialTheme.typography.bodySmall,
-                                    )
-                                    Text(
-                                        sshKey.fingerprintSha256,
-                                        style = MaterialTheme.typography.bodySmall,
-                                        color = MaterialTheme.colorScheme.onSurfaceVariant,
-                                    )
-                                }
-                            },
-                            trailingContent = {
-                                Text(
-                                    formatDate(sshKey.createdAt),
-                                    style = MaterialTheme.typography.labelSmall,
-                                    color = MaterialTheme.colorScheme.onSurfaceVariant,
-                                )
-                            },
-                            leadingContent = {
-                                Icon(
-                                    if (sshKey.keyType.startsWith("sk-"))
-                                        Icons.Filled.Key
-                                    else
-                                        Icons.Filled.VpnKey,
-                                    contentDescription = null,
-                                    tint = MaterialTheme.colorScheme.primary,
-                                )
+                if (keys.isNotEmpty()) {
+                    item(key = "ssh-header") { SectionHeader("SSH keys (${keys.size})") }
+                    items(keys, key = { it.id }) { sshKey ->
+                        SshKeyAuditRow(
+                            sshKey = sshKey,
+                            entry = keyEntries[sshKey.id],
+                            menuOpen = contextMenuKeyId == sshKey.id,
+                            onMenuOpen = { contextMenuKeyId = sshKey.id },
+                            onMenuDismiss = { contextMenuKeyId = null },
+                            onCopyPublic = { copyPublicKey(context, sshKey) },
+                            onExportPrivate = { viewModel.requestExport(sshKey.id) },
+                            onDelete = { viewModel.deleteKey(sshKey.id) },
+                            onBiometricToggle = { protected ->
+                                viewModel.setBiometricProtected(sshKey.id, protected)
                             },
                         )
-
-                        DropdownMenu(
-                            expanded = contextMenuKeyId == sshKey.id,
-                            onDismissRequest = { contextMenuKeyId = null },
-                        ) {
-                            DropdownMenuItem(
-                                text = { Text(stringResource(R.string.keys_copy_public_key)) },
-                                onClick = {
-                                    copyPublicKey(context, sshKey)
-                                    contextMenuKeyId = null
-                                },
-                                leadingIcon = {
-                                    Icon(Icons.Filled.ContentCopy, contentDescription = null)
-                                },
-                            )
-                            if (!sshKey.keyType.startsWith("sk-")) {
-                                DropdownMenuItem(
-                                    text = { Text(stringResource(R.string.keys_export_private_key)) },
-                                    onClick = {
-                                        contextMenuKeyId = null
-                                        viewModel.requestExport(sshKey.id)
-                                    },
-                                    leadingIcon = {
-                                        Icon(Icons.Filled.FileDownload, contentDescription = null)
-                                    },
-                                )
-                            }
-                            DropdownMenuItem(
-                                text = {
-                                    Text(stringResource(R.string.common_delete), color = MaterialTheme.colorScheme.error)
-                                },
-                                onClick = {
-                                    viewModel.deleteKey(sshKey.id)
-                                    contextMenuKeyId = null
-                                },
-                                leadingIcon = {
-                                    Icon(
-                                        Icons.Filled.Delete,
-                                        contentDescription = null,
-                                        tint = MaterialTheme.colorScheme.error,
-                                    )
-                                },
-                            )
-                        }
+                        HorizontalDivider()
                     }
                 }
+                if (passwordEntries.isNotEmpty()) {
+                    item(key = "password-header") {
+                        SectionHeader("Stored passwords (${passwordEntries.size})")
+                    }
+                    items(passwordEntries, key = { "pw-${it.id}" }) { entry ->
+                        PasswordAuditRow(
+                            entry = entry,
+                            onWipeRequested = { pendingPasswordWipe = entry },
+                        )
+                        HorizontalDivider()
+                    }
+                }
+                item(key = "footer-spacer") { Spacer(Modifier.height(80.dp)) }
             }
         }
+    }
+
+    pendingPasswordWipe?.let { entry ->
+        AlertDialog(
+            onDismissRequest = { pendingPasswordWipe = null },
+            title = { Text("Clear ${entry.label}?") },
+            text = {
+                Text(
+                    "Wiping clears the saved password on this profile. " +
+                        "The profile itself stays — you'll be prompted next " +
+                        "time you connect.",
+                )
+            },
+            confirmButton = {
+                TextButton(onClick = {
+                    val pending = pendingPasswordWipe
+                    pendingPasswordWipe = null
+                    pending?.let { viewModel.wipePasswordEntry(it) }
+                }) { Text(stringResource(R.string.common_delete)) }
+            },
+            dismissButton = {
+                TextButton(onClick = { pendingPasswordWipe = null }) {
+                    Text(stringResource(android.R.string.cancel))
+                }
+            },
+        )
     }
 
     if (showAddKeyDialog) {
@@ -536,4 +528,186 @@ private fun copyPublicKey(context: Context, sshKey: SshKey) {
 private fun formatDate(timestamp: Long): String {
     val sdf = SimpleDateFormat("yyyy-MM-dd", Locale.getDefault())
     return sdf.format(Date(timestamp))
+}
+
+@Composable
+private fun SectionHeader(label: String) {
+    Text(
+        text = label,
+        style = MaterialTheme.typography.labelLarge,
+        color = MaterialTheme.colorScheme.primary,
+        modifier = Modifier
+            .fillMaxWidth()
+            .padding(horizontal = 16.dp, vertical = 12.dp),
+    )
+}
+
+@OptIn(ExperimentalLayoutApi::class, ExperimentalFoundationApi::class)
+@Composable
+private fun SshKeyAuditRow(
+    sshKey: SshKey,
+    entry: KeystoreEntry?,
+    menuOpen: Boolean,
+    onMenuOpen: () -> Unit,
+    onMenuDismiss: () -> Unit,
+    onCopyPublic: () -> Unit,
+    onExportPrivate: () -> Unit,
+    onDelete: () -> Unit,
+    onBiometricToggle: (Boolean) -> Unit,
+) {
+    val flags = entry?.flags ?: emptySet()
+    Box(
+        modifier = Modifier
+            .fillMaxWidth()
+            .combinedClickable(onClick = onCopyPublic, onLongClick = onMenuOpen),
+    ) {
+        Column(modifier = Modifier.padding(horizontal = 16.dp, vertical = 12.dp)) {
+            Row(verticalAlignment = Alignment.CenterVertically) {
+                Icon(
+                    imageVector = if (sshKey.keyType.startsWith("sk-")) Icons.Filled.Key
+                    else Icons.Filled.VpnKey,
+                    contentDescription = null,
+                    tint = MaterialTheme.colorScheme.primary,
+                    modifier = Modifier.padding(end = 12.dp),
+                )
+                Column(modifier = Modifier.weight(1f)) {
+                    Text(text = sshKey.label, style = MaterialTheme.typography.bodyLarge)
+                    Text(
+                        text = sshKey.keyType,
+                        style = MaterialTheme.typography.bodySmall,
+                        color = MaterialTheme.colorScheme.onSurfaceVariant,
+                    )
+                    SelectionContainer {
+                        Text(
+                            text = sshKey.fingerprintSha256,
+                            style = MaterialTheme.typography.bodySmall,
+                            fontFamily = FontFamily.Monospace,
+                            color = MaterialTheme.colorScheme.onSurfaceVariant,
+                        )
+                    }
+                }
+                Text(
+                    text = formatDate(sshKey.createdAt),
+                    style = MaterialTheme.typography.labelSmall,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant,
+                )
+            }
+            if (flags.isNotEmpty()) {
+                Spacer(Modifier.height(8.dp))
+                FlowRow(
+                    horizontalArrangement = Arrangement.spacedBy(6.dp),
+                    verticalArrangement = Arrangement.spacedBy(4.dp),
+                ) {
+                    flags.sortedBy { it.ordinal }.forEach { flag -> FlagChip(flag) }
+                }
+            }
+            Spacer(Modifier.height(8.dp))
+            Row(verticalAlignment = Alignment.CenterVertically) {
+                Text(
+                    text = "Require biometric to use",
+                    style = MaterialTheme.typography.bodyMedium,
+                    modifier = Modifier.weight(1f),
+                )
+                Switch(
+                    checked = KeystoreFlag.BIOMETRIC_PROTECTED in flags,
+                    onCheckedChange = onBiometricToggle,
+                )
+            }
+        }
+
+        DropdownMenu(
+            expanded = menuOpen,
+            onDismissRequest = onMenuDismiss,
+        ) {
+            DropdownMenuItem(
+                text = { Text(stringResource(R.string.keys_copy_public_key)) },
+                onClick = { onCopyPublic(); onMenuDismiss() },
+                leadingIcon = { Icon(Icons.Filled.ContentCopy, contentDescription = null) },
+            )
+            if (!sshKey.keyType.startsWith("sk-")) {
+                DropdownMenuItem(
+                    text = { Text(stringResource(R.string.keys_export_private_key)) },
+                    onClick = { onMenuDismiss(); onExportPrivate() },
+                    leadingIcon = { Icon(Icons.Filled.FileDownload, contentDescription = null) },
+                )
+            }
+            DropdownMenuItem(
+                text = {
+                    Text(
+                        stringResource(R.string.common_delete),
+                        color = MaterialTheme.colorScheme.error,
+                    )
+                },
+                onClick = { onDelete(); onMenuDismiss() },
+                leadingIcon = {
+                    Icon(
+                        Icons.Filled.Delete,
+                        contentDescription = null,
+                        tint = MaterialTheme.colorScheme.error,
+                    )
+                },
+            )
+        }
+    }
+}
+
+@OptIn(ExperimentalLayoutApi::class)
+@Composable
+private fun PasswordAuditRow(
+    entry: KeystoreEntry,
+    onWipeRequested: () -> Unit,
+) {
+    Row(
+        modifier = Modifier
+            .fillMaxWidth()
+            .padding(horizontal = 16.dp, vertical = 12.dp),
+        verticalAlignment = Alignment.Top,
+    ) {
+        Icon(
+            imageVector = Icons.Filled.Password,
+            contentDescription = null,
+            tint = MaterialTheme.colorScheme.onSurfaceVariant,
+            modifier = Modifier.padding(top = 4.dp, end = 12.dp),
+        )
+        Column(modifier = Modifier.weight(1f)) {
+            Text(text = entry.label, style = MaterialTheme.typography.bodyLarge)
+            Text(
+                text = entry.algorithm,
+                style = MaterialTheme.typography.bodySmall,
+                color = MaterialTheme.colorScheme.onSurfaceVariant,
+            )
+            if (entry.flags.isNotEmpty()) {
+                Spacer(Modifier.height(4.dp))
+                FlowRow(
+                    horizontalArrangement = Arrangement.spacedBy(6.dp),
+                    verticalArrangement = Arrangement.spacedBy(4.dp),
+                ) {
+                    entry.flags.sortedBy { it.ordinal }.forEach { flag -> FlagChip(flag) }
+                }
+            }
+        }
+        IconButton(onClick = onWipeRequested) {
+            Icon(
+                imageVector = Icons.Filled.Delete,
+                contentDescription = "Wipe ${entry.label}",
+            )
+        }
+    }
+}
+
+@Composable
+private fun FlagChip(flag: KeystoreFlag) {
+    val (label, icon) = when (flag) {
+        KeystoreFlag.HARDWARE_BACKED -> "Hardware-backed" to Icons.Filled.Shield
+        KeystoreFlag.REQUIRES_PASSPHRASE -> "Passphrase" to Icons.Filled.Key
+        KeystoreFlag.REQUIRES_USER_PRESENCE -> "User presence" to Icons.Filled.TouchApp
+        KeystoreFlag.REQUIRES_USER_VERIFICATION -> "User verification" to Icons.Filled.Fingerprint
+        KeystoreFlag.BIOMETRIC_PROTECTED -> "Biometric required" to Icons.Filled.Fingerprint
+    }
+    AssistChip(
+        onClick = {},
+        label = { Text(label, style = MaterialTheme.typography.labelSmall) },
+        leadingIcon = { Icon(icon, contentDescription = null, modifier = Modifier.padding(2.dp)) },
+        colors = AssistChipDefaults.assistChipColors(),
+    )
 }

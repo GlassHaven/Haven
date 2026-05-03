@@ -70,15 +70,18 @@ class SshKeySection @Inject constructor(
      */
     override suspend fun fetch(entryId: String): KeystoreFetch {
         val row = sshKeyDao.getById(entryId) ?: return KeystoreFetch.NotFound
+        Log.d(TAG, "fetch(id=$entryId, label=${row.label}, biometricProtected=${row.biometricProtected})")
         // Biometric gate runs *before* the decrypt — a denied prompt
         // returns Failed without ever asking Tink to unwrap the bytes.
         // Foreground-inactive surfaces as the same Failed string so a
         // backgrounded app retry path is uniform with a denied prompt.
         if (row.biometricProtected) {
+            Log.d(TAG, "fetch(id=$entryId): requesting biometric gate")
             val decision = biometricGate.request(
                 label = "Unlock ${row.label}",
                 detail = row.fingerprintSha256,
             )
+            Log.d(TAG, "fetch(id=$entryId): gate returned $decision")
             when (decision) {
                 BiometricGate.Decision.ALLOW -> { /* proceed */ }
                 BiometricGate.Decision.DENY ->

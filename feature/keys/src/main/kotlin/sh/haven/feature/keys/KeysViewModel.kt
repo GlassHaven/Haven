@@ -7,29 +7,113 @@ import android.content.Context
 import android.net.Uri
 import android.util.Log
 import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.ExperimentalCoroutinesApi
+import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.SharingStarted
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
+import kotlinx.coroutines.flow.combine
+import kotlinx.coroutines.flow.flatMapLatest
+import kotlinx.coroutines.flow.flow
+import kotlinx.coroutines.flow.flowOf
+import kotlinx.coroutines.flow.map
 import kotlinx.coroutines.flow.stateIn
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
 import sh.haven.core.data.db.entities.SshKey
+import sh.haven.core.data.repository.ConnectionRepository
 import sh.haven.core.data.repository.SshKeyRepository
 import sh.haven.core.fido.SkKeyData
 import sh.haven.core.fido.SkKeyParser
+import sh.haven.core.security.Keystore
+import sh.haven.core.security.KeystoreEntry
+import sh.haven.core.security.KeystoreFlag
+import sh.haven.core.security.KeystoreStore
 import sh.haven.core.security.SshKeyGenerator
 import sh.haven.core.ssh.SshKeyExporter
 import sh.haven.core.ssh.SshKeyImporter
 import javax.inject.Inject
 
+@OptIn(ExperimentalCoroutinesApi::class)
 @HiltViewModel
 class KeysViewModel @Inject constructor(
     private val repository: SshKeyRepository,
+    private val connectionRepository: ConnectionRepository,
+    private val keystore: Keystore,
 ) : ViewModel() {
 
     val keys: StateFlow<List<SshKey>> = repository.observeAll()
         .stateIn(viewModelScope, SharingStarted.WhileSubscribed(5000), emptyList())
+
+    /**
+     * Per-key audit metadata indexed by [SshKey.id]. Refreshed whenever
+     * the underlying key list changes (insert / delete / passphrase
+     * toggle / biometric toggle). The Keys screen looks up flags +
+     * KeyKind from here while still rendering the [SshKey] row's
+     * key-specific actions (copy public, export private).
+     */
+    private val refreshTicker = MutableStateFlow(0L)
+
+    val keyEntries: StateFlow<Map<String, KeystoreEntry>> = combine(
+        repository.observeAll(),
+        refreshTicker,
+    ) { _, _ -> Unit }
+        .flatMapLatest {
+            flow {
+                emit(
+                    keystore.enumerate()
+                        .filter { it.store == KeystoreStore.SSH_KEYS }
+                        .associateBy { it.id },
+                )
+            }
+        }
+        .stateIn(viewModelScope, SharingStarted.WhileSubscribed(5000), emptyMap())
+
+    /**
+     * Profile-password entries. Sourced from [Keystore.enumerate] for
+     * [KeystoreStore.PROFILE_CREDENTIALS] — gives us the same audit
+     * metadata as SSH keys (HARDWARE_BACKED chip, plaintext detection,
+     * fingerprint-shaped id) without surfacing the actual password
+     * value.
+     */
+    val passwordEntries: StateFlow<List<KeystoreEntry>> = combine(
+        connectionRepository.observeAll(),
+        refreshTicker,
+    ) { _, _ -> Unit }
+        .flatMapLatest {
+            flow {
+                emit(
+                    keystore.enumerate()
+                        .filter { it.store == KeystoreStore.PROFILE_CREDENTIALS },
+                )
+            }
+        }
+        .stateIn(viewModelScope, SharingStarted.WhileSubscribed(5000), emptyList())
+
+    /**
+     * Toggle the BIOMETRIC_PROTECTED flag on an SSH key. Refreshes the
+     * audit-metadata flow on success so the screen reflects the change.
+     */
+    fun setBiometricProtected(keyId: String, protected: Boolean) {
+        viewModelScope.launch {
+            val ok = keystore.setBiometricProtected(KeystoreStore.SSH_KEYS, keyId, protected)
+            if (ok) refreshTicker.value = System.nanoTime()
+        }
+    }
+
+    /** Wipe a stored profile password (clears the column without removing the profile). */
+    fun wipePasswordEntry(entry: KeystoreEntry) {
+        viewModelScope.launch {
+            val ok = keystore.wipe(entry.store, entry.id)
+            if (ok) {
+                refreshTicker.value = System.nanoTime()
+                _message.value = "Cleared ${entry.label}"
+            } else {
+                _error.value = "Could not clear ${entry.label}"
+            }
+        }
+    }
 
     private val _generating = MutableStateFlow(false)
     val generating: StateFlow<Boolean> = _generating.asStateFlow()

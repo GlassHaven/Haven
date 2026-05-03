@@ -29,7 +29,6 @@ import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Add
 import androidx.compose.material.icons.filled.BugReport
-import androidx.compose.material.icons.filled.Shield
 import androidx.compose.material.icons.filled.CloudDownload
 import androidx.compose.material.icons.filled.CloudUpload
 import androidx.compose.material.icons.filled.Laptop
@@ -176,7 +175,6 @@ fun SettingsScreen(
     val mediaExtensions by viewModel.mediaExtensions.collectAsState()
     var showAuditLog by remember { mutableStateOf(false) }
     var showAgentActivity by remember { mutableStateOf(false) }
-    var showKeystoreAudit by remember { mutableStateOf(false) }
     var showMcpTunnelPicker by remember { mutableStateOf(false) }
     var showFontUrlDialog by remember { mutableStateOf(false) }
     // Lifted to SettingsScreen scope so a dialog's confirm handler can
@@ -291,10 +289,6 @@ fun SettingsScreen(
         AgentActivityScreen(onBack = { showAgentActivity = false })
         return
     }
-    if (showKeystoreAudit) {
-        KeystoreAuditScreen(onBack = { showKeystoreAudit = false })
-        return
-    }
     if (showMcpTunnelPicker) {
         McpTunnelPickerDialog(
             profiles = viewModel.sshProfilesForTunnel.collectAsState().value,
@@ -362,12 +356,6 @@ fun SettingsScreen(
             subtitle = stringResource(R.string.settings_prevent_screenshots_subtitle),
             checked = screenSecurity,
             onCheckedChange = viewModel::setScreenSecurity,
-        )
-        SettingsItem(
-            icon = Icons.Filled.Shield,
-            title = "Security audit",
-            subtitle = "Review every key and saved password — metadata only, never the secrets themselves. Wipe per entry.",
-            onClick = { showKeystoreAudit = true },
         )
         SettingsSection("Appearance")
         SettingsItem(

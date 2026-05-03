@@ -37,7 +37,18 @@ class TerminalViewModelTest {
         localSessionManager = mockk<LocalSessionManager>(relaxed = true) {
             every { sessions } returns MutableStateFlow(emptyMap())
         }
-        viewModel = TerminalViewModel(mockk(relaxed = true), sessionManager, reticulumSessionManager, moshSessionManager, etSessionManager, localSessionManager, mockk(relaxed = true), mockk(relaxed = true), mockk(relaxed = true))
+        viewModel = TerminalViewModel(
+            mockk(relaxed = true),
+            sessionManager,
+            reticulumSessionManager,
+            moshSessionManager,
+            etSessionManager,
+            localSessionManager,
+            mockk(relaxed = true),
+            mockk(relaxed = true),
+            mockk(relaxed = true),
+            sh.haven.core.data.agent.AgentUiCommandBus(),
+        )
     }
 
     @Test

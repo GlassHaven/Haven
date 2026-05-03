@@ -13,7 +13,11 @@ equivalent):
 * open_convert_dialog_with_args — stage a transcode in the convert
   dialog with prefilled container/codec, user reviews and taps Convert
 
-Plus ~50 new unit tests pinning consent gating, tool metadata, audit
-redaction, and the new FileBackend ops.
+MCP tools collapse to one verb each (#127): list_directory, upload_file,
+delete_file resolve the right backend from profileId. Old per-backend
+tools kept as deprecated aliases.
+
+Plus ~60 new unit tests pinning consent gating, tool metadata, audit
+redaction, and the new FileBackend + MCP unification.
 
 No behaviour change for anyone not driving Haven via MCP.

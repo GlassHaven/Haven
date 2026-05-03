@@ -2542,15 +2542,28 @@ class ConnectionsViewModel @Inject constructor(
             }
         }
 
-        // No explicit key but keys are available — try all keys (skip encrypted keys
-        // that need a passphrase — they require explicit assignment to a connection)
+        // No explicit key but keys are available — try every key the
+        // server might accept. Two filters apply:
+        //
+        // - skip encrypted keys (passphrase-protected); we don't have
+        //   the passphrase here, and they require explicit assignment.
+        // - skip biometric-protected keys (#129); each fetch on a
+        //   biometric-protected key fires a fresh prompt, so walking
+        //   N keys in the auto-try fallback would prompt the user N
+        //   times. Biometric-protected keys are explicit-assignment-only.
+        //
+        // Filter on raw rows (sshKeyDao) before paying the fetch cost,
+        // so we don't even fire the gate for keys we'd skip anyway.
         if (password.isEmpty()) {
-            val keys = sshKeyRepository.getAllDecrypted()
-                .filter { !it.isEncrypted }
+            val candidates = sshKeyRepository.getAll()
+                .filter { !it.isEncrypted && !it.biometricProtected }
+            val keys = candidates.mapNotNull { row ->
+                sshKeyRepository.getDecryptedKeyBytes(row.id)?.let { row to it }
+            }
             if (keys.isNotEmpty()) {
                 return ConnectionConfig.AuthMethod.PrivateKeys(
-                    keys = keys.map { key ->
-                        key.label to rawKeyToPem(key.privateKeyBytes, key.keyType)
+                    keys = keys.map { (row, bytes) ->
+                        row.label to rawKeyToPem(bytes, row.keyType)
                     }
                 )
             }

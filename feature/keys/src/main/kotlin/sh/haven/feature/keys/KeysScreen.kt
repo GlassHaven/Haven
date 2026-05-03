@@ -25,6 +25,8 @@ import androidx.compose.material.icons.filled.ContentPaste
 import androidx.compose.material.icons.filled.FileDownload
 import androidx.compose.material.icons.filled.FileUpload
 import androidx.compose.material.icons.filled.Key
+import androidx.compose.material.icons.filled.RemoveCircleOutline
+import androidx.compose.material.icons.filled.VerifiedUser
 import androidx.compose.material.icons.filled.VpnKey
 import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.CircularProgressIndicator
@@ -72,6 +74,7 @@ fun KeysScreen(
     val importResult by viewModel.importResult.collectAsState()
     val message by viewModel.message.collectAsState()
     val pendingExportKeyId by viewModel.pendingExportKeyId.collectAsState()
+    val pendingCertKeyId by viewModel.pendingCertKeyId.collectAsState()
 
     var showAddKeyDialog by remember { mutableStateOf(false) }
     var showGenerateDialog by remember { mutableStateOf(false) }
@@ -98,6 +101,22 @@ fun KeysScreen(
         viewModel.clearPendingExport()
         if (uri != null && keyId != null) {
             viewModel.exportPrivateKey(context, keyId, uri)
+        }
+    }
+
+    val certPickerLauncher = rememberLauncherForActivityResult(
+        ActivityResultContracts.OpenDocument(),
+    ) { uri ->
+        val keyId = pendingCertKeyId
+        viewModel.clearPendingCert()
+        if (uri != null && keyId != null) {
+            viewModel.attachCertificateFromUri(context, keyId, uri)
+        }
+    }
+
+    LaunchedEffect(pendingCertKeyId) {
+        pendingCertKeyId?.let {
+            certPickerLauncher.launch(arrayOf("*/*"))
         }
     }
 
@@ -185,7 +204,9 @@ fun KeysScreen(
                             supportingContent = {
                                 Column {
                                     Text(
-                                        sshKey.keyType,
+                                        if (sshKey.certificateBytes != null)
+                                            "${sshKey.keyType} + cert"
+                                        else sshKey.keyType,
                                         style = MaterialTheme.typography.bodySmall,
                                     )
                                     Text(
@@ -237,6 +258,29 @@ fun KeysScreen(
                                     },
                                     leadingIcon = {
                                         Icon(Icons.Filled.FileDownload, contentDescription = null)
+                                    },
+                                )
+                            }
+                            if (sshKey.certificateBytes != null) {
+                                DropdownMenuItem(
+                                    text = { Text("Remove certificate") },
+                                    onClick = {
+                                        viewModel.detachCertificate(sshKey.id)
+                                        contextMenuKeyId = null
+                                    },
+                                    leadingIcon = {
+                                        Icon(Icons.Filled.RemoveCircleOutline, contentDescription = null)
+                                    },
+                                )
+                            } else {
+                                DropdownMenuItem(
+                                    text = { Text("Attach certificate") },
+                                    onClick = {
+                                        contextMenuKeyId = null
+                                        viewModel.requestAttachCertificate(sshKey.id)
+                                    },
+                                    leadingIcon = {
+                                        Icon(Icons.Filled.VerifiedUser, contentDescription = null)
                                     },
                                 )
                             }

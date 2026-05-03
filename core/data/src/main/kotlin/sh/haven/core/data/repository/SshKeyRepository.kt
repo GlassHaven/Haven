@@ -46,5 +46,27 @@ class SshKeyRepository @Inject constructor(
         }
     }
 
+    /** Attach a certificate to an existing key, encrypting at rest. */
+    suspend fun attachCertificate(keyId: String, certBytes: ByteArray) {
+        val key = sshKeyDao.getById(keyId) ?: return
+        val encrypted = KeyEncryption.encrypt(context, certBytes)
+        sshKeyDao.upsert(key.copy(certificateBytes = encrypted))
+    }
+
+    /** Remove certificate from a key. */
+    suspend fun detachCertificate(keyId: String) {
+        val key = sshKeyDao.getById(keyId) ?: return
+        sshKeyDao.upsert(key.copy(certificateBytes = null))
+    }
+
+    /** Get decrypted certificate bytes for use during SSH auth. */
+    suspend fun getDecryptedCertBytes(id: String): ByteArray? {
+        val key = sshKeyDao.getById(id) ?: return null
+        val certBytes = key.certificateBytes ?: return null
+        return if (KeyEncryption.isEncrypted(certBytes)) {
+            KeyEncryption.decrypt(context, certBytes)
+        } else certBytes
+    }
+
     suspend fun delete(id: String) = sshKeyDao.deleteById(id)
 }

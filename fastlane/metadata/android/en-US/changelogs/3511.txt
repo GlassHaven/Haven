@@ -1,0 +1,19 @@
+v5.24.87: file browser unification + cross-tab agent verbs
+
+File browser ops (delete, mkdir, rename, read/write small files) now
+flow through one FileBackend abstraction across local, SMB, rclone,
+and SSH. ~300 lines of per-backend `if/else` ladders in SftpViewModel
+collapse to single backend.op() calls; new operations land once
+instead of four times. Continues issue #126's architectural unification.
+
+Agent transport gains three cross-tab verbs (NEVER consent — tap-
+equivalent):
+* navigate_sftp_browser — open the file browser at a path
+* focus_terminal_session — bring an existing terminal tab to front
+* open_convert_dialog_with_args — stage a transcode in the convert
+  dialog with prefilled container/codec, user reviews and taps Convert
+
+Plus ~50 new unit tests pinning consent gating, tool metadata, audit
+redaction, and the new FileBackend ops.
+
+No behaviour change for anyone not driving Haven via MCP.

@@ -335,8 +335,12 @@ class McpServer @Inject constructor(
         }
     }
 
-    /** Parse a JSON-RPC 2.0 request and return the response body. */
-    private fun handleJsonRpc(body: String): String {
+    /**
+     * Parse a JSON-RPC 2.0 request and return the response body. Visible
+     * to tests in the same module so the consent gate, error mapping, and
+     * audit-outcome plumbing can be exercised without sockets.
+     */
+    internal fun handleJsonRpc(body: String): String {
         if (body.isBlank()) {
             return jsonRpcError(null, -32700, "Parse error: empty body")
         }

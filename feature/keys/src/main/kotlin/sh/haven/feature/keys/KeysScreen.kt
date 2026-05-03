@@ -194,7 +194,9 @@ fun KeysScreen(
                     .padding(innerPadding),
             ) {
                 if (keys.isNotEmpty()) {
-                    item(key = "ssh-header") { SectionHeader("SSH keys (${keys.size})") }
+                    item(key = "ssh-header") {
+                        SectionHeader(stringResource(R.string.keys_section_ssh, keys.size))
+                    }
                     items(keys, key = { it.id }) { sshKey ->
                         SshKeyAuditRow(
                             sshKey = sshKey,
@@ -214,7 +216,7 @@ fun KeysScreen(
                 }
                 if (passwordEntries.isNotEmpty()) {
                     item(key = "password-header") {
-                        SectionHeader("Stored passwords (${passwordEntries.size})")
+                        SectionHeader(stringResource(R.string.keys_section_passwords, passwordEntries.size))
                     }
                     items(passwordEntries, key = { "pw-${it.id}" }) { entry ->
                         PasswordAuditRow(
@@ -232,14 +234,8 @@ fun KeysScreen(
     pendingPasswordWipe?.let { entry ->
         AlertDialog(
             onDismissRequest = { pendingPasswordWipe = null },
-            title = { Text("Clear ${entry.label}?") },
-            text = {
-                Text(
-                    "Wiping clears the saved password on this profile. " +
-                        "The profile itself stays — you'll be prompted next " +
-                        "time you connect.",
-                )
-            },
+            title = { Text(stringResource(R.string.keys_clear_password_title, entry.label)) },
+            text = { Text(stringResource(R.string.keys_clear_password_body)) },
             confirmButton = {
                 TextButton(onClick = {
                     val pending = pendingPasswordWipe
@@ -604,7 +600,7 @@ private fun SshKeyAuditRow(
             Spacer(Modifier.height(8.dp))
             Row(verticalAlignment = Alignment.CenterVertically) {
                 Text(
-                    text = "Require biometric to use",
+                    text = stringResource(R.string.keys_require_biometric),
                     style = MaterialTheme.typography.bodyMedium,
                     modifier = Modifier.weight(1f),
                 )
@@ -689,7 +685,7 @@ private fun PasswordAuditRow(
         IconButton(onClick = onWipeRequested) {
             Icon(
                 imageVector = Icons.Filled.Delete,
-                contentDescription = "Wipe ${entry.label}",
+                contentDescription = stringResource(R.string.keys_wipe_content_description, entry.label),
             )
         }
     }
@@ -697,12 +693,20 @@ private fun PasswordAuditRow(
 
 @Composable
 private fun FlagChip(flag: KeystoreFlag) {
-    val (label, icon) = when (flag) {
-        KeystoreFlag.HARDWARE_BACKED -> "Hardware-backed" to Icons.Filled.Shield
-        KeystoreFlag.REQUIRES_PASSPHRASE -> "Passphrase" to Icons.Filled.Key
-        KeystoreFlag.REQUIRES_USER_PRESENCE -> "User presence" to Icons.Filled.TouchApp
-        KeystoreFlag.REQUIRES_USER_VERIFICATION -> "User verification" to Icons.Filled.Fingerprint
-        KeystoreFlag.BIOMETRIC_PROTECTED -> "Biometric required" to Icons.Filled.Fingerprint
+    val labelRes = when (flag) {
+        KeystoreFlag.HARDWARE_BACKED -> R.string.keys_chip_hardware_backed
+        KeystoreFlag.REQUIRES_PASSPHRASE -> R.string.keys_chip_passphrase
+        KeystoreFlag.REQUIRES_USER_PRESENCE -> R.string.keys_chip_user_presence
+        KeystoreFlag.REQUIRES_USER_VERIFICATION -> R.string.keys_chip_user_verification
+        KeystoreFlag.BIOMETRIC_PROTECTED -> R.string.keys_chip_biometric
+    }
+    val label = stringResource(labelRes)
+    val icon = when (flag) {
+        KeystoreFlag.HARDWARE_BACKED -> Icons.Filled.Shield
+        KeystoreFlag.REQUIRES_PASSPHRASE -> Icons.Filled.Key
+        KeystoreFlag.REQUIRES_USER_PRESENCE -> Icons.Filled.TouchApp
+        KeystoreFlag.REQUIRES_USER_VERIFICATION -> Icons.Filled.Fingerprint
+        KeystoreFlag.BIOMETRIC_PROTECTED -> Icons.Filled.Fingerprint
     }
     AssistChip(
         onClick = {},

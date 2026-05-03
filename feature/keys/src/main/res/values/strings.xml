@@ -64,4 +64,15 @@
 
     <!-- copyPublicKey -->
     <string name="keys_ssh_public_key_clip_label">SSH Public Key</string>
+    <string name="keys_section_ssh">SSH keys (%1$d)</string>
+    <string name="keys_section_passwords">Stored passwords (%1$d)</string>
+    <string name="keys_chip_hardware_backed">Hardware-backed</string>
+    <string name="keys_chip_passphrase">Passphrase</string>
+    <string name="keys_chip_user_presence">User presence</string>
+    <string name="keys_chip_user_verification">User verification</string>
+    <string name="keys_chip_biometric">Biometric required</string>
+    <string name="keys_require_biometric">Require biometric to use</string>
+    <string name="keys_clear_password_title">Clear %1$s?</string>
+    <string name="keys_clear_password_body">Wiping clears the saved password on this profile. The profile itself stays — you\'ll be prompted next time you connect.</string>
+    <string name="keys_wipe_content_description">Wipe %1$s</string>
 </resources>

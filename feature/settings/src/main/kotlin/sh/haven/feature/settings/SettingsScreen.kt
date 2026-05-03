@@ -332,7 +332,7 @@ fun SettingsScreen(
         TopAppBar(title = { Text(stringResource(R.string.settings_title)) })
     Column(modifier = Modifier.fillMaxSize().verticalScroll(rememberScrollState())) {
 
-        SettingsSection("Security & privacy")
+        SettingsSection(stringResource(R.string.settings_section_security_privacy))
         if (viewModel.biometricAvailable) {
             SettingsToggleItem(
                 icon = Icons.Filled.Fingerprint,
@@ -357,7 +357,7 @@ fun SettingsScreen(
             checked = screenSecurity,
             onCheckedChange = viewModel::setScreenSecurity,
         )
-        SettingsSection("Appearance")
+        SettingsSection(stringResource(R.string.settings_section_appearance))
         SettingsItem(
             icon = Icons.Filled.ColorLens,
             title = stringResource(R.string.settings_theme_title),
@@ -423,7 +423,7 @@ fun SettingsScreen(
             )
         }
 
-        SettingsSection("Keyboard & input")
+        SettingsSection(stringResource(R.string.settings_section_keyboard_input))
         SettingsItem(
             icon = Icons.Filled.KeyboardAlt,
             title = stringResource(R.string.settings_toolbar_title),
@@ -469,7 +469,7 @@ fun SettingsScreen(
             onCheckedChange = viewModel::setInterceptCtrlShiftV,
         )
 
-        SettingsSection("Terminal")
+        SettingsSection(stringResource(R.string.settings_section_terminal))
         SettingsItem(
             icon = Icons.Filled.Terminal,
             title = stringResource(R.string.settings_session_persistence_title),
@@ -513,8 +513,8 @@ fun SettingsScreen(
         )
         SettingsToggleItem(
             icon = Icons.Filled.Terminal,
-            title = "Drag-to-select in TUI mouse mode",
-            subtitle = "Forward press+motion+release to tmux/zellij so selection extends across the viewport via the remote's own scrollback. When off, drag scrolls the remote (legacy behaviour).",
+            title = stringResource(R.string.settings_drag_select_title),
+            subtitle = stringResource(R.string.settings_drag_select_subtitle),
             checked = mouseDragSelects,
             onCheckedChange = viewModel::setMouseDragSelects,
         )
@@ -527,20 +527,22 @@ fun SettingsScreen(
         )
         SettingsToggleItem(
             icon = Icons.Filled.ListAlt,
-            title = "Show terminal tab bar",
-            subtitle = "Show session tabs above the terminal",
+            title = stringResource(R.string.settings_show_terminal_tab_bar_title),
+            subtitle = stringResource(R.string.settings_show_terminal_tab_bar_subtitle),
             checked = showTerminalTabBar,
             onCheckedChange = viewModel::setShowTerminalTabBar,
         )
 
-        SettingsSection("Desktop (VNC & RDP)")
+        SettingsSection(stringResource(R.string.settings_section_desktop))
         SettingsToggleItem(
             icon = Icons.Filled.Mouse,
-            title = "Touchpad input",
-            subtitle = if (desktopInputMode == "TOUCHPAD")
-                "Drag moves the remote cursor; tap clicks at the cursor. The viewport follows the cursor when zoomed."
-            else
-                "Direct touch — finger position is the pointer. Toggle on for trackpad-style input.",
+            title = stringResource(R.string.settings_touchpad_input_title),
+            subtitle = stringResource(
+                if (desktopInputMode == "TOUCHPAD")
+                    R.string.settings_touchpad_input_touchpad_subtitle
+                else
+                    R.string.settings_touchpad_input_direct_subtitle
+            ),
             checked = desktopInputMode == "TOUCHPAD",
             onCheckedChange = { enabled ->
                 viewModel.setDesktopInputMode(if (enabled) "TOUCHPAD" else "DIRECT")
@@ -548,13 +550,13 @@ fun SettingsScreen(
         )
         SettingsToggleItem(
             icon = Icons.Filled.CloudDownload,
-            title = "Suggest 256 colours on slow VNC links",
-            subtitle = "Detects throughput below ~1 Mbps after a few seconds and offers a one-tap reconnect at 256 colours. Off silences the prompt.",
+            title = stringResource(R.string.settings_bandwidth_suggest_title),
+            subtitle = stringResource(R.string.settings_bandwidth_suggest_subtitle),
             checked = bandwidthAutoSuggest,
             onCheckedChange = viewModel::setBandwidthAutoSuggest,
         )
 
-        SettingsSection("Connections screen")
+        SettingsSection(stringResource(R.string.settings_section_connections_screen))
         SettingsToggleItem(
             icon = Icons.Filled.DesktopWindows,
             title = stringResource(R.string.settings_show_desktops_title),
@@ -576,7 +578,7 @@ fun SettingsScreen(
             onClick = { showScreenOrderDialog = true },
         )
 
-        SettingsSection("Diagnostics")
+        SettingsSection(stringResource(R.string.settings_section_diagnostics))
         SettingsToggleItem(
             icon = Icons.Filled.History,
             title = stringResource(R.string.settings_connection_logging_title),
@@ -627,7 +629,7 @@ fun SettingsScreen(
             )
         }
 
-        SettingsSection("Advanced")
+        SettingsSection(stringResource(R.string.settings_section_advanced))
         SettingsItem(
             icon = Icons.Filled.DesktopWindows,
             title = stringResource(R.string.settings_wayland_shell_title),
@@ -788,7 +790,7 @@ fun SettingsScreen(
             onClick = { showMediaExtensionsDialog = true },
         )
 
-        SettingsSection("Backup")
+        SettingsSection(stringResource(R.string.settings_section_backup))
         SettingsItem(
             icon = Icons.Filled.CloudUpload,
             title = stringResource(R.string.settings_export_backup_title),
@@ -816,7 +818,7 @@ fun SettingsScreen(
             )
         }
 
-        SettingsSection("About")
+        SettingsSection(stringResource(R.string.settings_section_about))
         SettingsItem(
             icon = Icons.Filled.Info,
             title = stringResource(R.string.settings_about_title),

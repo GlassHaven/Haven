@@ -60,13 +60,13 @@
     <string name="terminal_rename_session_title">重命名会话</string>
     <string name="terminal_name">名称</string>
     <string name="terminal_rename">重命名</string>
-    <string name="terminal_new_tab_no_active">No active session to clone</string>
-    <string name="terminal_new_tab_no_config">Connection config not found — try reconnecting first</string>
-    <string name="terminal_new_tab_host_key_changed">Host key changed for %s — connection refused for security</string>
-    <string name="terminal_new_tab_connection_failed">Could not connect: %s</string>
-    <string name="terminal_new_tab_shell_failed">Failed to open shell: %s</string>
-    <string name="terminal_new_tab_reticulum_no_session">No active Reticulum session to clone</string>
-    <string name="terminal_new_tab_connecting">Connecting…</string>
+    <string name="terminal_new_tab_no_active">没有可克隆的活动会话</string>
+    <string name="terminal_new_tab_no_config">未找到连接配置 — 请先尝试重新连接</string>
+    <string name="terminal_new_tab_host_key_changed">%s 的主机密钥已更改 — 出于安全考虑拒绝连接</string>
+    <string name="terminal_new_tab_connection_failed">无法连接：%s</string>
+    <string name="terminal_new_tab_shell_failed">无法打开 shell：%s</string>
+    <string name="terminal_new_tab_reticulum_no_session">没有可克隆的活动 Reticulum 会话</string>
+    <string name="terminal_new_tab_connecting">连接中…</string>
     <!-- Backfilled translations (i18n drift fix) -->
     <string name="terminal_disconnect_countdown">已断开 — 将在 %1$ds 后关闭</string>
     <string name="terminal_disconnect_now">已断开 — 正在关闭</string>

@@ -78,7 +78,7 @@
     <string name="connections_mosh_install_prompt">在服务器上安装：</string>
     <string name="connections_mosh_install_commands">\u0020 Ubuntu/Debian:  sudo apt install mosh\n\u0020 Fedora/RHEL:    sudo dnf install mosh\n\u0020 Arch:           sudo pacman -S mosh\n\u0020 macOS:          brew install mosh</string>
     <string name="connections_mosh_firewall_note">服务器防火墙须开放 UDP 端口 60001。</string>
-    <string name="connections_mosh_github">Mosh on GitHub</string>
+    <string name="connections_mosh_github">GitHub 上的 Mosh</string>
 
     <!-- Mosh client missing dialog -->
     <string name="connections_mosh_client_missing_title">Mosh 客户端未构建</string>
@@ -106,7 +106,7 @@
     <string name="connections_desktop_openbox_description">在 PRoot 环境中安装桌面环境和 VNC 服务器。Openbox 是最小化的——右键点击桌面打开应用菜单。</string>
     <string name="connections_desktop_vnc_description">在 PRoot 环境中安装桌面环境和 VNC 服务器。</string>
     <string name="connections_desktop_vnc_password">VNC 密码</string>
-    <string name="connections_desktop_shell">Shell</string>
+    <string name="connections_desktop_shell">终端</string>
     <string name="connections_desktop_installed">桌面已安装。正在连接 VNC\u2026</string>
     <string name="connections_desktop_setup_failed">设置失败：%1$s</string>
 
@@ -122,14 +122,14 @@
     <string name="connections_menu_delete_group">删除分组</string>
     <string name="connections_new_group_action">新建分组</string>
     <string name="connections_desktop_addons_header">桌面功能（可选）</string>
-    <string name="connections_menu_duplicate">Duplicate</string>
-    <string name="connections_desktops_title">Desktops</string>
-    <string name="connections_desktop_start">Start</string>
-    <string name="connections_desktop_stop">Stop</string>
-    <string name="connections_desktop_native_running">Native compositor</string>
-    <string name="connections_desktop_uninstall_title">Uninstall desktop?</string>
-    <string name="connections_desktop_uninstall_message">Uninstall %1$s? Packages will be removed from the PRoot environment.</string>
-    <string name="connections_use_android_shell">Use native Android shell</string>
+    <string name="connections_menu_duplicate">复制连接</string>
+    <string name="connections_desktops_title">桌面</string>
+    <string name="connections_desktop_start">启动</string>
+    <string name="connections_desktop_stop">停止</string>
+    <string name="connections_desktop_native_running">原生合成器</string>
+    <string name="connections_desktop_uninstall_title">卸载桌面？</string>
+    <string name="connections_desktop_uninstall_message">卸载 %1$s？将从 PRoot 环境中移除相关包。</string>
+    <string name="connections_use_android_shell">使用原生 Android shell</string>
     <!-- Backfilled translations (i18n drift fix) -->
     <string name="connections_new_session_create">创建</string>
 </resources>

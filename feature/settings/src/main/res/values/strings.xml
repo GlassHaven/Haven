@@ -196,4 +196,23 @@
     <string name="common_support">Support</string>
     <string name="common_github">GitHub</string>
     <string name="common_simple">Simple</string>
+    <string name="settings_section_security_privacy">Security &amp; privacy</string>
+    <string name="settings_section_appearance">Appearance</string>
+    <string name="settings_section_keyboard_input">Keyboard &amp; input</string>
+    <string name="settings_section_terminal">Terminal</string>
+    <string name="settings_section_desktop">Desktop (VNC &amp; RDP)</string>
+    <string name="settings_section_connections_screen">Connections screen</string>
+    <string name="settings_section_diagnostics">Diagnostics</string>
+    <string name="settings_section_advanced">Advanced</string>
+    <string name="settings_section_backup">Backup</string>
+    <string name="settings_section_about">About</string>
+    <string name="settings_drag_select_title">Drag-to-select in TUI mouse mode</string>
+    <string name="settings_drag_select_subtitle">Forward press+motion+release to tmux/zellij so selection extends across the viewport via the remote\'s own scrollback. When off, drag scrolls the remote (legacy behaviour).</string>
+    <string name="settings_show_terminal_tab_bar_title">Show terminal tab bar</string>
+    <string name="settings_show_terminal_tab_bar_subtitle">Show session tabs above the terminal</string>
+    <string name="settings_touchpad_input_title">Touchpad input</string>
+    <string name="settings_touchpad_input_direct_subtitle">Direct touch — finger position is the pointer. Toggle on for trackpad-style input.</string>
+    <string name="settings_touchpad_input_touchpad_subtitle">Drag moves the remote cursor; tap clicks at the cursor. The viewport follows the cursor when zoomed.</string>
+    <string name="settings_bandwidth_suggest_title">Suggest 256 colours on slow VNC links</string>
+    <string name="settings_bandwidth_suggest_subtitle">Detects throughput below ~1 Mbps after a few seconds and offers a one-tap reconnect at 256 colours. Off silences the prompt.</string>
 </resources>

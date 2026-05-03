@@ -92,58 +92,58 @@
     <string name="sftp_replace_all">全部替换</string>
     <string name="sftp_skip">跳过</string>
     <string name="sftp_skip_all">全部跳过</string>
-    <string name="sftp_play">Play</string>
-    <string name="sftp_play_folder">Play folder</string>
-    <string name="sftp_sync">Sync</string>
-    <string name="sftp_folder_sync">Folder Sync</string>
-    <string name="sftp_source">Source</string>
-    <string name="sftp_destination">Destination</string>
-    <string name="sftp_destination_path">Path</string>
-    <string name="sftp_mode_copy">Copy</string>
-    <string name="sftp_mode_sync">Mirror</string>
-    <string name="sftp_mode_move">Move</string>
-    <string name="sftp_mode_copy_desc">Copy new and updated files. No deletions.</string>
-    <string name="sftp_mode_sync_desc">Make destination identical to source. Deletes extras.</string>
-    <string name="sftp_mode_move_desc">Move files to destination. Deletes from source.</string>
-    <string name="sftp_advanced_filters">Advanced filters</string>
-    <string name="sftp_include_patterns">Include patterns (one per line)</string>
-    <string name="sftp_exclude_patterns">Exclude patterns (one per line)</string>
-    <string name="sftp_min_size">Min size</string>
-    <string name="sftp_max_size">Max size</string>
-    <string name="sftp_bandwidth_limit">Bandwidth limit</string>
-    <string name="sftp_dry_run">Dry run (preview only)</string>
-    <string name="sftp_start_sync">Start</string>
-    <string name="sftp_preview">Preview</string>
-    <string name="sftp_dry_run_results">Dry Run Results</string>
-    <string name="sftp_start_for_real">Start for real</string>
-    <string name="sftp_sync_cancelled">Sync cancelled</string>
+    <string name="sftp_play">播放</string>
+    <string name="sftp_play_folder">播放文件夹</string>
+    <string name="sftp_sync">同步</string>
+    <string name="sftp_folder_sync">文件夹同步</string>
+    <string name="sftp_source">源</string>
+    <string name="sftp_destination">目标</string>
+    <string name="sftp_destination_path">路径</string>
+    <string name="sftp_mode_copy">复制</string>
+    <string name="sftp_mode_sync">镜像</string>
+    <string name="sftp_mode_move">移动</string>
+    <string name="sftp_mode_copy_desc">复制新文件和更新过的文件。不删除任何文件。</string>
+    <string name="sftp_mode_sync_desc">使目标与源完全一致。删除多余文件。</string>
+    <string name="sftp_mode_move_desc">将文件移动到目标。源中的文件将被删除。</string>
+    <string name="sftp_advanced_filters">高级过滤器</string>
+    <string name="sftp_include_patterns">包含模式（每行一个）</string>
+    <string name="sftp_exclude_patterns">排除模式（每行一个）</string>
+    <string name="sftp_min_size">最小大小</string>
+    <string name="sftp_max_size">最大大小</string>
+    <string name="sftp_bandwidth_limit">带宽限制</string>
+    <string name="sftp_dry_run">试运行（仅预览）</string>
+    <string name="sftp_start_sync">开始</string>
+    <string name="sftp_preview">预览</string>
+    <string name="sftp_dry_run_results">试运行结果</string>
+    <string name="sftp_start_for_real">正式开始</string>
+    <string name="sftp_sync_cancelled">同步已取消</string>
     <!-- Rename dialog -->
-    <string name="sftp_rename_title">Rename</string>
-    <string name="sftp_new_name">New name</string>
+    <string name="sftp_rename_title">重命名</string>
+    <string name="sftp_new_name">新名称</string>
 
     <!-- Share link -->
-    <string name="sftp_share_link">Share link</string>
-    <string name="sftp_link_copied">Link copied</string>
+    <string name="sftp_share_link">分享链接</string>
+    <string name="sftp_link_copied">已复制链接</string>
 
     <!-- Folder size -->
-    <string name="sftp_folder_size">Folder size</string>
-    <string name="sftp_folder_size_title">Folder Size</string>
-    <string name="sftp_calculating_size">Calculating…</string>
+    <string name="sftp_folder_size">文件夹大小</string>
+    <string name="sftp_folder_size_title">文件夹大小</string>
+    <string name="sftp_calculating_size">计算中…</string>
 
     <!-- DLNA -->
-    <string name="sftp_start_dlna">Start DLNA server</string>
-    <string name="sftp_stop_dlna">Stop DLNA server</string>
+    <string name="sftp_start_dlna">启动 DLNA 服务器</string>
+    <string name="sftp_stop_dlna">停止 DLNA 服务器</string>
     <!-- Convert -->
-    <string name="sftp_convert">Convert</string>
-    <string name="sftp_convert_title">Convert media</string>
-    <string name="sftp_convert_format">Output format</string>
-    <string name="sftp_converting">Converting %s</string>
-    <string name="sftp_convert_done">Saved to %s</string>
+    <string name="sftp_convert">转换</string>
+    <string name="sftp_convert_title">转换媒体</string>
+    <string name="sftp_convert_format">输出格式</string>
+    <string name="sftp_converting">正在转换 %s</string>
+    <string name="sftp_convert_done">已保存到 %s</string>
     <!-- Stream -->
-    <string name="sftp_stream">Stream</string>
-    <string name="sftp_streaming">Streaming on %s</string>
-    <string name="sftp_stream_stop">Stop</string>
-    <string name="sftp_downloading_for_convert">Downloading for conversion…</string>
+    <string name="sftp_stream">流式播放</string>
+    <string name="sftp_streaming">正在 %s 上流式播放</string>
+    <string name="sftp_stream_stop">停止</string>
+    <string name="sftp_downloading_for_convert">正在下载以进行转换…</string>
     <!-- Backfilled translations (i18n drift fix) -->
     <string name="sftp_play_in_browser">在浏览器中播放</string>
     <string name="sftp_stream_to_network">流式传输到网络</string>

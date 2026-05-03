@@ -56,12 +56,24 @@ class SshKeyRepository @Inject constructor(
         }
     }
 
-    /** Get all keys with decrypted private key bytes. */
-    suspend fun getAllDecrypted(): List<SshKey> = sshKeyDao.getAll().map { key ->
-        if (KeyEncryption.isEncrypted(key.privateKeyBytes)) {
-            key.copy(privateKeyBytes = KeyEncryption.decrypt(context, key.privateKeyBytes))
-        } else {
-            key
+    /**
+     * Get every stored key with decrypted private bytes. Routes each
+     * row through [Keystore.fetch] so any biometric-protected entry
+     * triggers its prompt before its bytes are returned. A row whose
+     * fetch failed (denied prompt, decrypt error) is silently dropped
+     * — callers walking the list (e.g. ConnectionsViewModel's "try
+     * every key" fallback when no explicit key is assigned) treat a
+     * missing key the same as a key the server doesn't accept.
+     */
+    suspend fun getAllDecrypted(): List<SshKey> = sshKeyDao.getAll().mapNotNull { key ->
+        when (val r = keystore.fetch(KeystoreStore.SSH_KEYS, key.id)) {
+            is KeystoreFetch.Bytes -> key.copy(privateKeyBytes = r.data)
+            is KeystoreFetch.NotFound -> null
+            is KeystoreFetch.Failed -> {
+                Log.w(TAG, "getAllDecrypted: fetch for ${key.id} failed (${r.reason})")
+                null
+            }
+            is KeystoreFetch.Password -> null
         }
     }
 

@@ -46,6 +46,24 @@ class LocalFileBackend(
         }
     }
 
+    override suspend fun delete(path: String, isDirectory: Boolean) = withContext(Dispatchers.IO) {
+        val f = File(path)
+        val ok = if (isDirectory) f.deleteRecursively() else f.delete()
+        if (!ok) throw java.io.IOException("Could not delete $path")
+    }
+
+    override suspend fun mkdir(path: String) = withContext(Dispatchers.IO) {
+        val f = File(path)
+        if (!f.mkdirs() && !f.isDirectory) {
+            throw java.io.IOException("Could not create $path")
+        }
+    }
+
+    override suspend fun rename(from: String, to: String) = withContext(Dispatchers.IO) {
+        val ok = File(from).renameTo(File(to))
+        if (!ok) throw java.io.IOException("Could not rename $from to $to")
+    }
+
     private fun listRoots(): List<SftpEntry> {
         val roots = mutableListOf<SftpEntry>()
         val storage = Environment.getExternalStorageDirectory()

@@ -28,4 +28,16 @@ class SmbFileBackend(
             )
         }
     }
+
+    override suspend fun delete(path: String, isDirectory: Boolean) = withContext(Dispatchers.IO) {
+        client.delete(path, isDirectory)
+    }
+
+    override suspend fun mkdir(path: String) = withContext(Dispatchers.IO) {
+        client.mkdir(path)
+    }
+
+    override suspend fun rename(from: String, to: String) = withContext(Dispatchers.IO) {
+        client.rename(from, to)
+    }
 }

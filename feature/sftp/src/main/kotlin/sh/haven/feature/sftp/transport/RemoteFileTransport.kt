@@ -22,8 +22,6 @@ interface RemoteFileTransport : FileBackend {
     /** Whether this transport supports recursive operations (always true). */
     val supportsRecursive: Boolean get() = true
 
-    override suspend fun list(path: String): List<SftpEntry>
-
     /**
      * Stream bytes from [input] to [destPath]. [sizeHint] is the declared
      * total size in bytes; SCP requires it to be known up-front (it is part
@@ -48,12 +46,6 @@ interface RemoteFileTransport : FileBackend {
         sizeHint: Long,
         onBytes: (transferred: Long, total: Long) -> Unit,
     )
-
-    suspend fun mkdir(path: String)
-
-    suspend fun rename(from: String, to: String)
-
-    suspend fun delete(path: String, isDirectory: Boolean)
 
     /**
      * Apply POSIX permissions to [path]. [mode] is the usual 0..07777

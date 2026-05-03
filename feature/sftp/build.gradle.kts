@@ -47,6 +47,8 @@ dependencies {
     implementation(libs.lifecycle.viewmodel)
 
     testImplementation(libs.junit)
+    testImplementation(libs.mockk)
+    testImplementation(libs.coroutines.test)
 }
 
 kotlin {

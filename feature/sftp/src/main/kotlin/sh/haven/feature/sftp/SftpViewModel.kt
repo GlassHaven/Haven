@@ -2480,30 +2480,8 @@ class SftpViewModel @Inject constructor(
         viewModelScope.launch {
             try {
                 _loading.value = true
-                if (_isLocalProfile.value) {
-                    withContext(Dispatchers.IO) {
-                        val f = java.io.File(entry.path)
-                        val ok = if (entry.isDirectory) f.deleteRecursively() else f.delete()
-                        if (!ok) throw java.io.IOException("Could not delete ${entry.path}")
-                    }
-                } else if (_isRcloneProfile.value) {
-                    withContext(Dispatchers.IO) {
-                        val remote = activeRcloneRemote ?: throw IllegalStateException("Rclone not connected")
-                        if (entry.isDirectory) {
-                            rcloneClient.deleteDir(remote, entry.path)
-                        } else {
-                            rcloneClient.deleteFile(remote, entry.path)
-                        }
-                    }
-                } else if (_isSmbProfile.value) {
-                    withContext(Dispatchers.IO) {
-                        val client = activeSmbClient ?: throw IllegalStateException("SMB not connected")
-                        client.delete(entry.path, entry.isDirectory)
-                    }
-                } else {
-                    val transport = currentSshTransport() ?: throw IllegalStateException("Not connected")
-                    transport.delete(entry.path, entry.isDirectory)
-                }
+                val backend = currentFileBackend() ?: throw IllegalStateException("Not connected")
+                backend.delete(entry.path, entry.isDirectory)
                 _message.value = "Deleted ${entry.name}"
                 refresh()
             } catch (e: Exception) {
@@ -2523,42 +2501,8 @@ class SftpViewModel @Inject constructor(
                 val parentPath = _currentPath.value
                 val newPath = if (parentPath.isEmpty() || parentPath == "/") newName
                     else "${parentPath.trimEnd('/')}/$newName"
-                if (_isLocalProfile.value) {
-                    withContext(Dispatchers.IO) {
-                        val ok = java.io.File(entry.path).renameTo(java.io.File(newPath))
-                        if (!ok) throw java.io.IOException("Could not rename ${entry.path}")
-                    }
-                } else if (_isRcloneProfile.value) {
-                    withContext(Dispatchers.IO) {
-                        val remote = activeRcloneRemote ?: throw IllegalStateException("Rclone not connected")
-                        if (entry.isDirectory) {
-                            val config = SyncConfig(
-                                srcFs = "$remote:${entry.path}",
-                                dstFs = "$remote:$newPath",
-                                mode = sh.haven.core.rclone.SyncMode.MOVE,
-                            )
-                            val jobId = rcloneClient.startSync(config)
-                            while (true) {
-                                delay(200)
-                                val status = rcloneClient.getJobStatus(jobId)
-                                if (status.finished) {
-                                    if (!status.success) throw Exception(status.error ?: "Rename failed")
-                                    break
-                                }
-                            }
-                        } else {
-                            rcloneClient.moveFile(remote, entry.path, remote, newPath)
-                        }
-                    }
-                } else if (_isSmbProfile.value) {
-                    withContext(Dispatchers.IO) {
-                        val client = activeSmbClient ?: throw IllegalStateException("SMB not connected")
-                        client.rename(entry.path, newPath)
-                    }
-                } else {
-                    val transport = currentSshTransport() ?: throw IllegalStateException("Not connected")
-                    transport.rename(entry.path, newPath)
-                }
+                val backend = currentFileBackend() ?: throw IllegalStateException("Not connected")
+                backend.rename(entry.path, newPath)
                 _message.value = "Renamed to $newName"
                 refresh()
             } catch (e: Exception) {
@@ -2861,27 +2805,8 @@ class SftpViewModel @Inject constructor(
     }
 
     private suspend fun deleteOne(entry: SftpEntry) {
-        if (_isLocalProfile.value) {
-            withContext(Dispatchers.IO) {
-                val f = java.io.File(entry.path)
-                val ok = if (entry.isDirectory) f.deleteRecursively() else f.delete()
-                if (!ok) throw java.io.IOException("Could not delete ${entry.path}")
-            }
-        } else if (_isRcloneProfile.value) {
-            withContext(Dispatchers.IO) {
-                val remote = activeRcloneRemote ?: throw IllegalStateException("Rclone not connected")
-                if (entry.isDirectory) rcloneClient.deleteDir(remote, entry.path)
-                else rcloneClient.deleteFile(remote, entry.path)
-            }
-        } else if (_isSmbProfile.value) {
-            withContext(Dispatchers.IO) {
-                val client = activeSmbClient ?: throw IllegalStateException("SMB not connected")
-                client.delete(entry.path, entry.isDirectory)
-            }
-        } else {
-            val transport = currentSshTransport() ?: throw IllegalStateException("Not connected")
-            transport.delete(entry.path, entry.isDirectory)
-        }
+        val backend = currentFileBackend() ?: throw IllegalStateException("Not connected")
+        backend.delete(entry.path, entry.isDirectory)
     }
 
     private suspend fun chmodOne(entry: SftpEntry, mode: Int) {
@@ -3093,26 +3018,8 @@ class SftpViewModel @Inject constructor(
         viewModelScope.launch {
             try {
                 _loading.value = true
-                if (_isLocalProfile.value) {
-                    withContext(Dispatchers.IO) {
-                        if (!java.io.File(fullPath).mkdirs() && !java.io.File(fullPath).isDirectory) {
-                            throw java.io.IOException("Could not create $fullPath")
-                        }
-                    }
-                } else if (_isRcloneProfile.value) {
-                    withContext(Dispatchers.IO) {
-                        val remote = activeRcloneRemote ?: throw IllegalStateException("Rclone not connected")
-                        rcloneClient.mkdir(remote, fullPath)
-                    }
-                } else if (_isSmbProfile.value) {
-                    withContext(Dispatchers.IO) {
-                        val client = activeSmbClient ?: throw IllegalStateException("SMB not connected")
-                        client.mkdir(fullPath)
-                    }
-                } else {
-                    val transport = currentSshTransport() ?: throw IllegalStateException("Not connected")
-                    transport.mkdir(fullPath)
-                }
+                val backend = currentFileBackend() ?: throw IllegalStateException("Not connected")
+                backend.mkdir(fullPath)
                 _message.value = "Created $name"
                 refresh()
             } catch (e: Exception) {

@@ -9,10 +9,12 @@ import sh.haven.feature.sftp.SftpEntry
  * remotes. The [SftpViewModel] dispatches its listing path through this
  * interface so the per-backend `when` blocks collapse to a single call.
  *
- * Stage 1 of issue #126 covers listing only — copy/paste, delete, rename,
- * mkdir, chmod and chown still go through the existing per-backend code.
- * As each operation generalises across all four backends it gets promoted
- * to a method on this interface.
+ * Stage 1 of issue #126 covered listing only. Stage 2 promotes the
+ * non-streaming structural ops (delete, mkdir, rename) so creating /
+ * deleting / renaming work the same way regardless of which backend the
+ * user is browsing. Streaming ops (upload / download) and POSIX-only ops
+ * (chmod / chown) still live on [RemoteFileTransport] and ship in later
+ * stages.
  */
 interface FileBackend {
     /** Display badge — "SFTP", "SCP", "Local", "SMB", or "Rclone". */
@@ -26,4 +28,30 @@ interface FileBackend {
      * UI's `currentPath` says.
      */
     suspend fun list(path: String): List<SftpEntry>
+
+    /**
+     * Delete the entry at [path]. [isDirectory] is required because some
+     * backends (rclone, SMB) take different code paths for files vs dirs;
+     * callers always know which they're deleting from the [SftpEntry]
+     * they had in hand. Recursive directory deletion is the contract —
+     * SMB's `rmdir`, rclone's `purge`, and SSH's `rm -rf` all match.
+     */
+    suspend fun delete(path: String, isDirectory: Boolean)
+
+    /**
+     * Create the directory at [path]. `mkdir -p` semantics: missing
+     * intermediate parents are created; an existing directory is a no-op
+     * rather than an error. Errors only fire for genuinely impossible
+     * cases (path is a file, no permission, etc).
+     */
+    suspend fun mkdir(path: String)
+
+    /**
+     * Rename [from] → [to]. For SSH and Local this is the obvious one-call
+     * rename; SMB uses an open-with-DELETE handle; rclone splits internally
+     * between `operations/movefile` (files) and a `sync MOVE` job
+     * (directories), with implementations probing the source type as
+     * needed.
+     */
+    suspend fun rename(from: String, to: String)
 }

@@ -52,16 +52,29 @@ class BiometricGate @Inject constructor() {
     @Volatile
     private var foregroundActive: Boolean = false
 
+    /**
+     * Epoch millis of the most recent successful [request]. Subsequent
+     * [request] calls within [SESSION_UNLOCK_MS] return ALLOW silently
+     * — the same pattern OS keychains use, so opening a connection
+     * that needs to fetch several biometric-protected keys back-to-back
+     * doesn't show N prompts. Cleared on every [setForegroundActive]
+     * transition to false; backgrounding Haven re-locks immediately.
+     */
+    @Volatile
+    private var lastAuthAt: Long = 0L
+
     private val _pending = MutableStateFlow<List<Request>>(emptyList())
     val pending: StateFlow<List<Request>> = _pending.asStateFlow()
 
     /**
      * Activity layer reports its visibility through this. Without a
      * foreground host the prompt cannot render, so [request] fails
-     * closed when this is false.
+     * closed when this is false. Backgrounding also clears the
+     * session-unlock window so a relaunch always re-prompts.
      */
     fun setForegroundActive(active: Boolean) {
         foregroundActive = active
+        if (!active) lastAuthAt = 0L
     }
 
     /**
@@ -69,12 +82,20 @@ class BiometricGate @Inject constructor() {
      * request, or [timeoutMs] elapses. Returns [Decision.UNAVAILABLE]
      * if no Activity is foregrounded; [Decision.DENY] on timeout or
      * explicit cancel.
+     *
+     * If a previous request was authorized within [SESSION_UNLOCK_MS]
+     * this call returns [Decision.ALLOW] immediately without prompting.
+     * That's how a single connection attempt that walks multiple
+     * biometric-protected keys gets one prompt instead of N.
      */
     suspend fun request(
         label: String,
         detail: String? = null,
         timeoutMs: Long = 60_000,
     ): Decision {
+        if (System.currentTimeMillis() - lastAuthAt < SESSION_UNLOCK_MS) {
+            return Decision.ALLOW
+        }
         if (!foregroundActive) return Decision.UNAVAILABLE
 
         val id = nextId.getAndIncrement()
@@ -92,7 +113,20 @@ class BiometricGate @Inject constructor() {
             pendingDeferreds.remove(id)
             _pending.value = _pending.value.filterNot { it.id == id }
         }
+        if (decision == Decision.ALLOW) {
+            lastAuthAt = System.currentTimeMillis()
+        }
         return decision
+    }
+
+    companion object {
+        /**
+         * Window during which a fresh successful biometric auth lets
+         * subsequent requests pass silently. 30 seconds is enough to
+         * complete a connection that walks multiple keys back-to-back
+         * but short enough that a forgotten phone re-locks quickly.
+         */
+        const val SESSION_UNLOCK_MS = 30_000L
     }
 
     /** Called by the Activity host when the prompt resolves. */

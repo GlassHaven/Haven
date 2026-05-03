@@ -26,6 +26,10 @@ android {
 
 dependencies {
     implementation(project(":core:security"))
+    // The Keystore aggregator surfaces FIDO SK credentials alongside
+    // regular SSH keys, so the SshKeySection adapter needs SkKeyData
+    // to detect and parse SK blobs stored in the ssh_keys table.
+    implementation(project(":core:fido"))
 
     implementation(libs.room.runtime)
     implementation(libs.room.ktx)

@@ -1030,7 +1030,7 @@ class SftpViewModel @Inject constructor(
             _allEntries.value = emptyList()
             _entries.value = emptyList()
             when {
-                isLocal -> listLocalDirectory("/")
+                isLocal -> loadDirectoryEntries("/")
                 isRclone -> openRcloneAndList(profileId)
                 isSmb -> openSmbAndList(profileId)
                 else -> openSftpAndList(profileId, "/")
@@ -1039,15 +1039,10 @@ class SftpViewModel @Inject constructor(
     }
 
     fun navigateTo(path: String) {
-        val profileId = _activeProfileId.value ?: return
+        _activeProfileId.value ?: return
         _currentPath.value = path
         _selectedPaths.value = emptySet()
-        when {
-            _isLocalProfile.value -> listLocalDirectory(path)
-            _isRcloneProfile.value -> listRcloneDirectory(path)
-            _isSmbProfile.value -> listSmbDirectory(path)
-            else -> listDirectory(profileId, path)
-        }
+        loadDirectoryEntries(path)
     }
 
     fun navigateUp() {
@@ -1153,84 +1148,8 @@ class SftpViewModel @Inject constructor(
     }
 
     fun refresh() {
-        val profileId = _activeProfileId.value ?: return
-        when {
-            _isLocalProfile.value -> listLocalDirectory(_currentPath.value)
-            _isRcloneProfile.value -> listRcloneDirectory(_currentPath.value)
-            _isSmbProfile.value -> listSmbDirectory(_currentPath.value)
-            else -> listDirectory(profileId, _currentPath.value)
-        }
-    }
-
-    /**
-     * List local device filesystem entries.
-     * Uses "/" as the root showing common Android storage locations,
-     * then standard java.io.File listing within directories.
-     */
-    private fun listLocalRoots(): List<SftpEntry> {
-        val roots = mutableListOf<SftpEntry>()
-        val storage = android.os.Environment.getExternalStorageDirectory()
-        if (storage.canRead()) {
-            roots.add(SftpEntry("Internal Storage", storage.absolutePath, true, 0, storage.lastModified() / 1000, ""))
-        }
-        val downloads = android.os.Environment.getExternalStoragePublicDirectory(android.os.Environment.DIRECTORY_DOWNLOADS)
-        if (downloads.canRead()) {
-            roots.add(SftpEntry("Downloads", downloads.absolutePath, true, 0, downloads.lastModified() / 1000, ""))
-        }
-        // Removable storage — USB SD card readers, USB flash drives, and
-        // (on some phones) physical microSD slots. StorageManager enumerates
-        // all mounted volumes; each one with a readable `.directory`
-        // (API 30+) is surfaced as its own root. The primary emulated volume
-        // is deliberately skipped because `Internal Storage` above already
-        // covers it.
-        if (android.os.Build.VERSION.SDK_INT >= android.os.Build.VERSION_CODES.R) {
-            val sm = appContext.getSystemService(android.os.storage.StorageManager::class.java)
-            val primaryPath = storage.absolutePath
-            sm?.storageVolumes?.forEach { volume ->
-                try {
-                    if (volume.isPrimary) return@forEach
-                    val state = volume.state
-                    if (state != android.os.Environment.MEDIA_MOUNTED &&
-                        state != android.os.Environment.MEDIA_MOUNTED_READ_ONLY) {
-                        return@forEach
-                    }
-                    val dir = volume.directory ?: return@forEach
-                    if (dir.absolutePath == primaryPath) return@forEach
-                    if (!dir.canRead()) return@forEach
-                    val label = volume.getDescription(appContext)
-                        ?: dir.name
-                        ?: "Removable Storage"
-                    roots.add(
-                        SftpEntry(
-                            name = label,
-                            path = dir.absolutePath,
-                            isDirectory = true,
-                            size = 0,
-                            modifiedTime = dir.lastModified() / 1000,
-                            permissions = "",
-                        ),
-                    )
-                } catch (e: Exception) {
-                    Log.w(TAG, "Skipping storage volume: ${e.message}")
-                }
-            }
-        }
-        // PRoot Alpine rootfs — only surfaced when the rootfs has been
-        // installed. Lands the user in /root (the shell's home dir)
-        // rather than the rootfs top, since that's where ~/.profile,
-        // ~/README.md, ~/.ssh/, and ~/.config/haven/ live. The user
-        // can navigate up to see /etc, /usr, /var etc. if they want.
-        val prootHome = java.io.File(appContext.filesDir, "proot/rootfs/alpine/root")
-        if (prootHome.exists() && prootHome.canRead()) {
-            roots.add(
-                SftpEntry(
-                    "PRoot (~/)", prootHome.absolutePath, true, 0,
-                    prootHome.lastModified() / 1000, "",
-                ),
-            )
-        }
-        roots.add(SftpEntry("App Cache", appContext.cacheDir.absolutePath, true, 0, appContext.cacheDir.lastModified() / 1000, ""))
-        return roots
+        _activeProfileId.value ?: return
+        loadDirectoryEntries(_currentPath.value)
     }
 
     /** Whether the active profile is the local filesystem. */
@@ -1243,49 +1162,6 @@ class SftpViewModel @Inject constructor(
             android.os.Build.VERSION.SDK_INT >= android.os.Build.VERSION_CODES.R &&
             !android.os.Environment.isExternalStorageManager()
 
-    private fun listLocalDirectory(path: String) {
-        viewModelScope.launch {
-            try {
-                _loading.value = true
-                val entries = withContext(Dispatchers.IO) {
-                    val dir = if (path == "/") {
-                        return@withContext listLocalRoots()
-                    } else {
-                        val file = java.io.File(path)
-                        val files = file.listFiles()
-                        if (files == null) {
-                            // Can't read this directory — jump back to root
-                            _currentPath.value = "/"
-                            return@withContext listLocalRoots()
-                        }
-                        files.map { f ->
-                            SftpEntry(
-                                name = f.name,
-                                path = f.absolutePath,
-                                isDirectory = f.isDirectory,
-                                size = if (f.isDirectory) 0 else f.length(),
-                                modifiedTime = f.lastModified() / 1000,
-                                permissions = buildString {
-                                    if (f.canRead()) append('r') else append('-')
-                                    if (f.canWrite()) append('w') else append('-')
-                                    if (f.canExecute()) append('x') else append('-')
-                                },
-                            )
-                        }
-                    }
-                    dir
-                }
-                val sorted = sortEntries(entries, _sortMode.value)
-                _allEntries.value = sorted
-                applyFilter()
-            } catch (e: Exception) {
-                Log.e(TAG, "Local listing failed", e)
-                _error.value = "Failed to list directory: ${e.message}"
-            } finally {
-                _loading.value = false
-            }
-        }
-    }
 
     fun downloadFile(entry: SftpEntry, destinationUri: Uri) {
         val profileId = _activeProfileId.value ?: return
@@ -4484,12 +4360,29 @@ class SftpViewModel @Inject constructor(
         return resolution.transport
     }
 
-    private fun listDirectory(profileId: String, path: String) {
+    /**
+     * Resolve the [FileBackend] for the active profile — local, SMB, rclone,
+     * or SSH — and surface the SFTP→SCP fallback announcement / transport
+     * badge as a side effect. Listing dispatches through here regardless of
+     * backend; per-backend code paths only exist for upload, download,
+     * mkdir, rename, delete, chmod and chown (issue #126 stages 2+).
+     */
+    private suspend fun currentFileBackend(): sh.haven.feature.sftp.transport.FileBackend? {
+        val profileId = _activeProfileId.value ?: return null
+        val resolution = withContext(Dispatchers.IO) {
+            transportSelector.resolveFileBackend(profileId)
+        } ?: return null
+        resolution.announceFallback?.let { _message.value = it }
+        _activeTransportLabel.value = resolution.backend.label
+        return resolution.backend
+    }
+
+    private fun loadDirectoryEntries(path: String) {
         viewModelScope.launch {
             try {
                 if (!pasteInProgress.get()) _loading.value = true
-                val transport = currentSshTransport() ?: throw IllegalStateException("Not connected")
-                val results = transport.list(path)
+                val backend = currentFileBackend() ?: throw IllegalStateException("Not connected")
+                val results = backend.list(path)
                 _allEntries.value = sortEntries(results, _sortMode.value)
                 applyFilter()
             } catch (e: Exception) {
@@ -4499,45 +4392,6 @@ class SftpViewModel @Inject constructor(
                 if (!pasteInProgress.get()) _loading.value = false
             }
         }
-    }
-
-    private fun loadEntries(channel: ChannelSftp, path: String) {
-        val results = mutableListOf<SftpEntry>()
-        val symlinkIndices = mutableListOf<Int>()
-        channel.ls(path) { lsEntry ->
-            val name = lsEntry.filename
-            if (name != "." && name != "..") {
-                val attrs = lsEntry.attrs
-                val fullPath = path.trimEnd('/') + "/" + name
-                if (attrs.isLink) symlinkIndices.add(results.size)
-                results.add(
-                    SftpEntry(
-                        name = name,
-                        path = fullPath,
-                        isDirectory = attrs.isDir,
-                        size = attrs.size,
-                        modifiedTime = attrs.mTime.toLong(),
-                        permissions = attrs.permissionsString ?: "",
-                        owner = attrs.uId.toString(),
-                        group = attrs.gId.toString(),
-                    )
-                )
-            }
-            ChannelSftp.LsEntrySelector.CONTINUE
-        }
-        // Resolve symlinks AFTER ls() completes — calling stat() inside the ls
-        // callback corrupts JSch's read buffer (interleaved SFTP requests).
-        for (i in symlinkIndices) {
-            try {
-                if (channel.stat(results[i].path).isDir) {
-                    results[i] = results[i].copy(isDirectory = true)
-                }
-            } catch (_: Exception) {
-                // broken symlink or permission denied
-            }
-        }
-        _allEntries.value = sortEntries(results, _sortMode.value)
-        applyFilter()
     }
 
     private fun getOrOpenChannel(profileId: String): ChannelSftp? {
@@ -4576,54 +4430,18 @@ class SftpViewModel @Inject constructor(
     private fun openSmbAndList(profileId: String) {
         viewModelScope.launch {
             try {
-                if (!pasteInProgress.get()) _loading.value = true
                 withContext(Dispatchers.IO) {
                     val client = smbSessionManager.getClientForProfile(profileId)
                         ?: throw IllegalStateException("SMB session not connected")
                     activeSmbClient = client
-                    _currentPath.value = "/"
-                    loadSmbEntries(client, "/")
                 }
+                _currentPath.value = "/"
+                loadDirectoryEntries("/")
             } catch (e: Exception) {
                 Log.e(TAG, "SMB open failed", e)
                 _error.value = "SMB failed: ${e.message}"
-            } finally {
-                _loading.value = false
             }
         }
-    }
-
-    private fun listSmbDirectory(path: String) {
-        viewModelScope.launch {
-            try {
-                if (!pasteInProgress.get()) _loading.value = true
-                withContext(Dispatchers.IO) {
-                    val client = activeSmbClient ?: throw IllegalStateException("SMB not connected")
-                    loadSmbEntries(client, path)
-                }
-            } catch (e: Exception) {
-                Log.e(TAG, "SMB list directory failed", e)
-                _error.value = "Failed to list: ${e.message}"
-            } finally {
-                if (!pasteInProgress.get()) _loading.value = false
-            }
-        }
-    }
-
-    private fun loadSmbEntries(client: SmbClient, path: String) {
-        val smbEntries = client.listDirectory(path)
-        val results = smbEntries.map { entry ->
-            SftpEntry(
-                name = entry.name,
-                path = entry.path,
-                isDirectory = entry.isDirectory,
-                size = entry.size,
-                modifiedTime = entry.modifiedTime,
-                permissions = entry.permissions,
-            )
-        }
-        _allEntries.value = sortEntries(results, _sortMode.value)
-        applyFilter()
     }
 
     // ── Rclone helpers ────────────────────────────────────────────────
@@ -4631,7 +4449,6 @@ class SftpViewModel @Inject constructor(
     private fun openRcloneAndList(profileId: String) {
         viewModelScope.launch {
             try {
-                if (!pasteInProgress.get()) _loading.value = true
                 withContext(Dispatchers.IO) {
                     val remoteName = rcloneSessionManager.getRemoteNameForProfile(profileId)
                     Log.d(TAG, "openRcloneAndList: profileId=$profileId, remoteName=$remoteName, " +
@@ -4640,55 +4457,14 @@ class SftpViewModel @Inject constructor(
                     activeRcloneRemote = remoteName
                     try { _remoteCapabilities.value = rcloneClient.getCapabilities(remoteName) }
                     catch (_: Exception) { _remoteCapabilities.value = sh.haven.core.rclone.RemoteCapabilities() }
-                    _currentPath.value = "/"
-                    loadRcloneEntries(remoteName, "")
                 }
+                _currentPath.value = "/"
+                loadDirectoryEntries("/")
             } catch (e: Exception) {
                 Log.e(TAG, "Rclone open failed", e)
                 _error.value = "Cloud storage failed: ${e.message}"
-            } finally {
-                _loading.value = false
             }
         }
-    }
-
-    private fun listRcloneDirectory(path: String) {
-        viewModelScope.launch {
-            try {
-                if (!pasteInProgress.get()) _loading.value = true
-                withContext(Dispatchers.IO) {
-                    val remote = activeRcloneRemote ?: throw IllegalStateException("Rclone not connected")
-                    loadRcloneEntries(remote, path)
-                }
-            } catch (e: Exception) {
-                Log.e(TAG, "Rclone list directory failed", e)
-                _error.value = "Failed to list: ${e.message}"
-            } finally {
-                if (!pasteInProgress.get()) _loading.value = false
-            }
-        }
-    }
-
-    private fun loadRcloneEntries(remote: String, path: String) {
-        val rcloneEntries = rcloneClient.listDirectory(remote, path)
-        val results = rcloneEntries.map { entry ->
-            val modTime = try {
-                java.time.Instant.parse(entry.modTime).epochSecond
-            } catch (_: Exception) {
-                0L
-            }
-            SftpEntry(
-                name = entry.name,
-                path = if (path.isEmpty() || path == "/") entry.name else "${path.trimEnd('/')}/${entry.name}",
-                isDirectory = entry.isDir,
-                size = entry.size,
-                modifiedTime = modTime,
-                permissions = if (entry.isDir) "drwxr-xr-x" else "-rw-r--r--",
-                mimeType = entry.mimeType,
-            )
-        }
-        _allEntries.value = sortEntries(results, _sortMode.value)
-        applyFilter()
     }
 
     private fun sortEntries(entries: List<SftpEntry>, mode: SortMode): List<SftpEntry> {

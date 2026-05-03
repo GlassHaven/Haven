@@ -5,24 +5,24 @@ import java.io.InputStream
 import java.io.OutputStream
 
 /**
- * Abstraction over the SSH-backed file operations the SFTP screen needs.
- * Two implementations live alongside this interface:
+ * Abstraction over the SSH-backed file operations the SFTP screen needs —
+ * the richer cousin of [FileBackend] for transports that can do more than
+ * list. Two implementations live alongside this interface:
  *  - [SftpTransport] — wraps JSch's ChannelSftp (the historical happy path)
  *  - [ScpTransport]  — speaks legacy SCP (scp -t / -f) over an exec channel
  *                       plus `ls -la` for directory listings
  *
- * The rclone / SMB / local backends in SftpViewModel don't use this
- * interface — they predate it and have different semantics. Only the SSH
- * code paths dispatch through here.
+ * The rclone / SMB / local backends share the [FileBackend.list] surface
+ * with this interface but stay on their own per-backend dispatch for
+ * upload, download, mkdir, rename, delete, chmod and chown. Each of those
+ * operations gets promoted to [FileBackend] once it generalises across
+ * every backend (issue #126, stages 2 onwards).
  */
-interface RemoteFileTransport {
-    /** "SFTP" or "SCP". Shown in the path-bar badge. */
-    val label: String
-
+interface RemoteFileTransport : FileBackend {
     /** Whether this transport supports recursive operations (always true). */
     val supportsRecursive: Boolean get() = true
 
-    suspend fun list(path: String): List<SftpEntry>
+    override suspend fun list(path: String): List<SftpEntry>
 
     /**
      * Stream bytes from [input] to [destPath]. [sizeHint] is the declared

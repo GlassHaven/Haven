@@ -19,6 +19,7 @@ import sh.haven.core.data.repository.SshKeyRepository
 import sh.haven.core.fido.SkKeyData
 import sh.haven.core.fido.SkKeyParser
 import sh.haven.core.security.SshKeyGenerator
+import sh.haven.core.ssh.SshCertificateParser
 import sh.haven.core.ssh.SshKeyExporter
 import sh.haven.core.ssh.SshKeyImporter
 import javax.inject.Inject
@@ -219,6 +220,63 @@ class KeysViewModel @Inject constructor(
                 _error.value = "Export failed: ${e.message}"
             }
         }
+    }
+
+    /** Attach a certificate file to an existing key. */
+    fun attachCertificateFromUri(context: Context, keyId: String, uri: Uri) {
+        viewModelScope.launch {
+            try {
+                val bytes = withContext(Dispatchers.IO) {
+                    context.contentResolver.openInputStream(uri)?.use { it.readBytes() }
+                }
+                if (bytes == null || bytes.isEmpty()) {
+                    _error.value = "Could not read certificate file"
+                    return@launch
+                }
+                val certInfo = SshCertificateParser.parse(bytes)
+                if (certInfo == null) {
+                    _error.value = "Not a valid SSH certificate file"
+                    return@launch
+                }
+                val key = repository.getById(keyId)
+                if (key == null) {
+                    _error.value = "Key not found"
+                    return@launch
+                }
+                if (!SshCertificateParser.matchesKey(certInfo, key.fingerprintSha256)) {
+                    _error.value = "Certificate does not match this key"
+                    return@launch
+                }
+                if (!SshCertificateParser.isCurrentlyValid(certInfo)) {
+                    _message.value = "Warning: certificate has expired"
+                }
+                repository.attachCertificate(keyId, certInfo.rawBlob)
+                _message.value = "Certificate attached (principals: ${certInfo.validPrincipals.joinToString()})"
+            } catch (e: Exception) {
+                Log.e("KeysViewModel", "Certificate attach failed", e)
+                _error.value = "Failed to attach certificate: ${e.message}"
+            }
+        }
+    }
+
+    /** Remove certificate from a key. */
+    fun detachCertificate(keyId: String) {
+        viewModelScope.launch {
+            repository.detachCertificate(keyId)
+            _message.value = "Certificate removed"
+        }
+    }
+
+    /** Key ID pending certificate attachment — UI launches SAF file picker when set. */
+    private val _pendingCertKeyId = MutableStateFlow<String?>(null)
+    val pendingCertKeyId: StateFlow<String?> = _pendingCertKeyId.asStateFlow()
+
+    fun requestAttachCertificate(keyId: String) {
+        _pendingCertKeyId.value = keyId
+    }
+
+    fun clearPendingCert() {
+        _pendingCertKeyId.value = null
     }
 
     fun deleteKey(id: String) {

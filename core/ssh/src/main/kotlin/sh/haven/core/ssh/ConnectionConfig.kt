@@ -37,6 +37,7 @@ data class ConnectionConfig(
         data class PrivateKey(
             val keyBytes: ByteArray,
             val passphrase: CharArray = CharArray(0),
+            val certBytes: ByteArray? = null,
         ) : AuthMethod {
             constructor(keyBytes: ByteArray, passphrase: String) :
                 this(keyBytes, passphrase.toCharArray())
@@ -54,7 +55,7 @@ data class ConnectionConfig(
         }
         data class PrivateKeys(val keys: List<Pair<String, ByteArray>>) : AuthMethod
         /** FIDO2 SK key — signing delegated to hardware security key. */
-        data class FidoKey(val skKeyData: ByteArray) : AuthMethod {
+        data class FidoKey(val skKeyData: ByteArray, val certBytes: ByteArray? = null) : AuthMethod {
             override fun equals(other: Any?): Boolean {
                 if (this === other) return true
                 if (other !is FidoKey) return false

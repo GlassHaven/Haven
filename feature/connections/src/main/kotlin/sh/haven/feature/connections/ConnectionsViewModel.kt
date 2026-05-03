@@ -2527,10 +2527,15 @@ class ConnectionsViewModel @Inject constructor(
             val keyBytes = sshKeyRepository.getDecryptedKeyBytes(keyId)
             val key = sshKeyRepository.getById(keyId)
             if (keyBytes != null && key != null) {
+                val certBytes = sshKeyRepository.getDecryptedCertBytes(keyId)
                 // FIDO2 SK keys use hardware signing, not PEM key material
                 if (key.keyType.startsWith("sk-")) {
-                    Log.d(TAG, "Using FIDO2 SK key: ${key.keyType}")
-                    return ConnectionConfig.AuthMethod.FidoKey(skKeyData = keyBytes)
+                    Log.d(TAG, "Using FIDO2 SK key: ${key.keyType}" +
+                        if (certBytes != null) " (with certificate)" else "")
+                    return ConnectionConfig.AuthMethod.FidoKey(
+                        skKeyData = keyBytes,
+                        certBytes = certBytes,
+                    )
                 }
                 // For encrypted keys, pass the original encrypted bytes + passphrase.
                 // JSch decrypts at auth time — key never stored in plaintext.
@@ -2538,6 +2543,7 @@ class ConnectionsViewModel @Inject constructor(
                 return ConnectionConfig.AuthMethod.PrivateKey(
                     keyBytes = if (key.isEncrypted) keyBytes else rawKeyToPem(keyBytes, key.keyType),
                     passphrase = passphrase,
+                    certBytes = certBytes,
                 )
             }
         }

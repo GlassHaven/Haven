@@ -26,7 +26,7 @@ import sh.haven.core.data.db.entities.TunnelConfig
         TunnelConfig::class,
         PasteQueueEntry::class,
     ],
-    version = 41,
+    version = 42,
     exportSchema = true,
 )
 abstract class HavenDatabase : RoomDatabase() {
@@ -447,6 +447,14 @@ abstract class HavenDatabase : RoomDatabase() {
             override fun migrate(db: SupportSQLiteDatabase) {
                 db.execSQL(
                     "UPDATE connection_profiles SET rdpColorDepth = 32 WHERE rdpColorDepth = 16 AND rdpUseNla = 1"
+                )
+            }
+        }
+
+        val MIGRATION_41_42 = object : Migration(41, 42) {
+            override fun migrate(db: SupportSQLiteDatabase) {
+                db.execSQL(
+                    "ALTER TABLE ssh_keys ADD COLUMN certificateBytes BLOB DEFAULT NULL"
                 )
             }
         }

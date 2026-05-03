@@ -16,6 +16,8 @@ data class SshKey(
     val createdAt: Long = System.currentTimeMillis(),
     /** True if privateKeyBytes are passphrase-encrypted. Passphrase prompted at connect time. */
     val isEncrypted: Boolean = false,
+    /** Raw bytes of the OpenSSH user certificate (-cert.pub file), null if none attached. */
+    val certificateBytes: ByteArray? = null,
 ) {
     override fun equals(other: Any?): Boolean {
         if (this === other) return true

@@ -4,6 +4,9 @@ import android.content.Context
 import io.mockk.coEvery
 import io.mockk.coVerify
 import io.mockk.mockk
+import io.mockk.slot
+import kotlinx.coroutines.coroutineScope
+import kotlinx.coroutines.launch
 import kotlinx.coroutines.test.runTest
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertFalse
@@ -32,11 +35,29 @@ class SshKeySectionTest {
         for (row in rows) {
             coEvery { dao.getById(row.id) } returns row
         }
+        // No biometric tests in this overload — pass a gate with
+        // foregroundActive=false so any accidental BIOMETRIC_PROTECTED
+        // fetch short-circuits to UNAVAILABLE, surfaced as a Failed
+        // result. Tests that exercise the gate use [newSectionWithGate].
         // KeyEncryption.decrypt is only reached on the encrypted-bytes
         // branch of fetch(); the tests below stick to legacy plaintext
         // and FIDO SK blobs so the Context never gets used. Mock it
         // anyway to satisfy the Hilt-shaped constructor.
-        return SshKeySection(dao, mockk<Context>(relaxed = true)) to dao
+        return SshKeySection(dao, mockk<Context>(relaxed = true), BiometricGate()) to dao
+    }
+
+    /** Variant that exposes the [BiometricGate] for tests that need to drive its decision. */
+    private fun newSectionWithGate(
+        rows: List<SshKey>,
+        gate: BiometricGate,
+    ): Pair<SshKeySection, SshKeyDao> {
+        val dao = mockk<SshKeyDao>(relaxed = true)
+        coEvery { dao.getAll() } returns rows
+        for (row in rows) {
+            coEvery { dao.getById(row.id) } returns row
+        }
+        coEvery { dao.upsert(any()) } returns Unit
+        return SshKeySection(dao, mockk<Context>(relaxed = true), gate) to dao
     }
 
     @Test
@@ -238,6 +259,118 @@ class SshKeySectionTest {
         val (section, dao) = newSection(emptyList())
         coEvery { dao.getById(any()) } returns null
         assertEquals(KeystoreFetch.NotFound, section.fetch("ghost"))
+    }
+
+    @Test
+    fun `biometricProtected column surfaces BIOMETRIC_PROTECTED flag`() = runTest {
+        val row = SshKey(
+            id = "k-bio", label = "high-security",
+            keyType = "Ed25519",
+            privateKeyBytes = "-----BEGIN OPENSSH PRIVATE KEY-----".toByteArray(),
+            publicKeyOpenSsh = "ssh-ed25519 …",
+            fingerprintSha256 = "SHA256:bio",
+            biometricProtected = true,
+        )
+        val (section, _) = newSection(listOf(row))
+        val flags = section.enumerate().single().flags
+        assertTrue("BIOMETRIC_PROTECTED must surface", KeystoreFlag.BIOMETRIC_PROTECTED in flags)
+    }
+
+    @Test
+    fun `setBiometricProtected upserts the row with the new flag`() = runTest {
+        val row = SshKey(
+            id = "k-toggle", label = "toggle",
+            keyType = "Ed25519",
+            privateKeyBytes = "-----BEGIN".toByteArray(),
+            publicKeyOpenSsh = "ssh-ed25519 …",
+            fingerprintSha256 = "SHA256:toggle",
+            biometricProtected = false,
+        )
+        val (section, dao) = newSectionWithGate(listOf(row), BiometricGate())
+        val captured = slot<SshKey>()
+        coEvery { dao.upsert(capture(captured)) } returns Unit
+
+        assertTrue(section.setBiometricProtected("k-toggle", true))
+        assertEquals(true, captured.captured.biometricProtected)
+    }
+
+    @Test
+    fun `setBiometricProtected returns false on no-op write`() = runTest {
+        val row = SshKey(
+            id = "k-already", label = "already",
+            keyType = "Ed25519",
+            privateKeyBytes = "-----BEGIN".toByteArray(),
+            publicKeyOpenSsh = "ssh-ed25519 …",
+            fingerprintSha256 = "SHA256:al",
+            biometricProtected = true,
+        )
+        val (section, dao) = newSectionWithGate(listOf(row), BiometricGate())
+        assertFalse(section.setBiometricProtected("k-already", true))
+        coVerify(exactly = 0) { dao.upsert(any()) }
+    }
+
+    @Test
+    fun `setBiometricProtected on unknown id returns false`() = runTest {
+        val (section, dao) = newSectionWithGate(emptyList(), BiometricGate())
+        coEvery { dao.getById(any()) } returns null
+        assertFalse(section.setBiometricProtected("ghost", true))
+    }
+
+    @Test
+    fun `fetch on biometric-protected key with no foreground returns Failed`() = runTest {
+        val row = SshKey(
+            id = "k-bio-fail", label = "off",
+            keyType = "Ed25519",
+            privateKeyBytes = "-----BEGIN OPENSSH PRIVATE KEY-----".toByteArray(),
+            publicKeyOpenSsh = "ssh-ed25519 …",
+            fingerprintSha256 = "SHA256:bio-fail",
+            biometricProtected = true,
+        )
+        // Gate is foreground-inactive — request() short-circuits to
+        // UNAVAILABLE, which the section maps to Failed with a
+        // biometric-required reason. Pins the fail-closed contract.
+        val gate = BiometricGate() // foregroundActive=false by default
+        val (section, _) = newSectionWithGate(listOf(row), gate)
+        val result = section.fetch("k-bio-fail")
+        assertTrue("expected Failed, got: $result", result is KeystoreFetch.Failed)
+        assertTrue(
+            "reason must mention biometric, got: ${(result as KeystoreFetch.Failed).reason}",
+            result.reason.contains("biometric", ignoreCase = true) ||
+                result.reason.contains("authentication", ignoreCase = true),
+        )
+    }
+
+    @Test
+    fun `fetch on biometric-protected key with allowed prompt returns Bytes`() = runTest {
+        val pem = "-----BEGIN OPENSSH PRIVATE KEY-----\n…".toByteArray()
+        val row = SshKey(
+            id = "k-bio-ok", label = "ok",
+            keyType = "Ed25519",
+            privateKeyBytes = pem,
+            publicKeyOpenSsh = "ssh-ed25519 …",
+            fingerprintSha256 = "SHA256:bio-ok",
+            biometricProtected = true,
+        )
+        val gate = BiometricGate().apply { setForegroundActive(true) }
+        val (section, _) = newSectionWithGate(listOf(row), gate)
+
+        // Race: section.fetch suspends inside gate.request waiting for
+        // a respond. Auto-respond ALLOW as soon as the request lands;
+        // the launched collector runs concurrently with the fetch.
+        val result = coroutineScope {
+            val responder = launch {
+                gate.pending.collect { pending ->
+                    pending.firstOrNull()?.let { gate.respond(it.id, BiometricGate.Decision.ALLOW) }
+                }
+            }
+            try {
+                section.fetch("k-bio-ok")
+            } finally {
+                responder.cancel()
+            }
+        }
+        assertTrue("expected Bytes, got: $result", result is KeystoreFetch.Bytes)
+        assertTrue((result as KeystoreFetch.Bytes).data.contentEquals(pem))
     }
 
     @Test

@@ -149,6 +149,39 @@ class UnifiedKeystoreTest {
     }
 
     @Test
+    fun `setBiometricProtected on SSH_KEYS routes to the SSH section`() = runTest {
+        val sshSection = mockk<SshKeySection>(relaxed = true).apply {
+            every { store } returns KeystoreStore.SSH_KEYS
+            coEvery { setBiometricProtected("k1", true) } returns true
+        }
+        val credSection = mockk<ProfileCredentialSection>(relaxed = true).apply {
+            every { store } returns KeystoreStore.PROFILE_CREDENTIALS
+        }
+        val keystore = UnifiedKeystore(sshSection, credSection)
+
+        assertTrue(keystore.setBiometricProtected(KeystoreStore.SSH_KEYS, "k1", true))
+        coVerify { sshSection.setBiometricProtected("k1", true) }
+    }
+
+    @Test
+    fun `setBiometricProtected on PROFILE_CREDENTIALS is a no-op returning false`() = runTest {
+        // Per #129 stage 5 the biometric toggle is SSH-keys-only.
+        // Pinning the no-op contract so a future stage that adds
+        // password-level biometric protection has to update this test
+        // explicitly.
+        val sshSection = mockk<SshKeySection>(relaxed = true).apply {
+            every { store } returns KeystoreStore.SSH_KEYS
+        }
+        val credSection = mockk<ProfileCredentialSection>(relaxed = true).apply {
+            every { store } returns KeystoreStore.PROFILE_CREDENTIALS
+        }
+        val keystore = UnifiedKeystore(sshSection, credSection)
+
+        assertFalse(keystore.setBiometricProtected(KeystoreStore.PROFILE_CREDENTIALS, "p1/sshPassword", true))
+        coVerify(exactly = 0) { sshSection.setBiometricProtected(any(), any()) }
+    }
+
+    @Test
     fun `wipe routes profile creds to the right section`() = runTest {
         val sshSection = mockk<SshKeySection>(relaxed = true).apply {
             every { store } returns KeystoreStore.SSH_KEYS

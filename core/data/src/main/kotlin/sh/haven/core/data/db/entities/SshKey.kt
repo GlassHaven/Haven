@@ -16,6 +16,13 @@ data class SshKey(
     val createdAt: Long = System.currentTimeMillis(),
     /** True if privateKeyBytes are passphrase-encrypted. Passphrase prompted at connect time. */
     val isEncrypted: Boolean = false,
+    /**
+     * True if a successful biometric authentication is required before
+     * the key bytes can be fetched (#129 stage 5). Set/cleared via the
+     * Settings → Security audit screen toggle. Unprotected by default
+     * — existing keys keep working without an extra prompt.
+     */
+    val biometricProtected: Boolean = false,
 ) {
     override fun equals(other: Any?): Boolean {
         if (this === other) return true

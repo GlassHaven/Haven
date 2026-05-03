@@ -44,6 +44,8 @@ enum class KeystoreFlag {
     REQUIRES_USER_PRESENCE,
     /** FIDO2 SK key has the user-verification-required flag set (PIN or biometric). */
     REQUIRES_USER_VERIFICATION,
+    /** User has opted this entry into a per-fetch BiometricPrompt (#129 stage 5). */
+    BIOMETRIC_PROTECTED,
 }
 
 /**
@@ -201,7 +203,22 @@ interface Keystore {
      * Retrieve secret material for a single entry. Routes to the
      * matching [KeystoreSection]. Returns [KeystoreFetch.NotFound] for
      * unknown stores or missing entry ids; [KeystoreFetch.Failed] for
-     * decrypt errors (with a human-readable, secret-free reason).
+     * decrypt errors (with a human-readable, secret-free reason);
+     * [KeystoreFetch.Failed] with a "biometric required" reason when an
+     * entry is gated behind biometric auth and the prompt was denied
+     * or unavailable.
      */
     suspend fun fetch(store: KeystoreStore, entryId: String): KeystoreFetch
+
+    /**
+     * Toggle [KeystoreFlag.BIOMETRIC_PROTECTED] on a single entry.
+     * Currently supported only on [KeystoreStore.SSH_KEYS]; other
+     * stores return false (no-op). Returns true when the value
+     * actually changed.
+     */
+    suspend fun setBiometricProtected(
+        store: KeystoreStore,
+        entryId: String,
+        protected: Boolean,
+    ): Boolean
 }

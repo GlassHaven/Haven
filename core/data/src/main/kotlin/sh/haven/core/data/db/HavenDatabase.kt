@@ -26,7 +26,7 @@ import sh.haven.core.data.db.entities.TunnelConfig
         TunnelConfig::class,
         PasteQueueEntry::class,
     ],
-    version = 41,
+    version = 42,
     exportSchema = true,
 )
 abstract class HavenDatabase : RoomDatabase() {
@@ -447,6 +447,22 @@ abstract class HavenDatabase : RoomDatabase() {
             override fun migrate(db: SupportSQLiteDatabase) {
                 db.execSQL(
                     "UPDATE connection_profiles SET rdpColorDepth = 32 WHERE rdpColorDepth = 16 AND rdpUseNla = 1"
+                )
+            }
+        }
+
+        /**
+         * Per-key biometric protection (#129 stage 5). Adds the
+         * `biometricProtected` flag on each SSH key; when true, the
+         * unified Keystore.fetch path requires a successful
+         * BiometricPrompt before returning the key material. Default
+         * 0 — every existing key behaves as before until the user
+         * flips the toggle in Settings → Security audit.
+         */
+        val MIGRATION_41_42 = object : Migration(41, 42) {
+            override fun migrate(db: SupportSQLiteDatabase) {
+                db.execSQL(
+                    "ALTER TABLE ssh_keys ADD COLUMN biometricProtected INTEGER NOT NULL DEFAULT 0"
                 )
             }
         }

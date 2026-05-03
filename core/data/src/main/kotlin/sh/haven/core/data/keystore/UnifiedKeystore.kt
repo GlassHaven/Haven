@@ -65,4 +65,22 @@ class UnifiedKeystore @Inject constructor(
         val section = sections[store] ?: return KeystoreFetch.NotFound
         return section.fetch(entryId)
     }
+
+    /**
+     * Per-entry biometric protection only applies to SSH keys today —
+     * that's where high-security identities live and where the UI
+     * surfaces the toggle. Other stores return false (no-op) so the
+     * audit screen can render a uniform call without branching on
+     * store type at the call site.
+     */
+    override suspend fun setBiometricProtected(
+        store: KeystoreStore,
+        entryId: String,
+        protected: Boolean,
+    ): Boolean {
+        return when (store) {
+            KeystoreStore.SSH_KEYS -> sshKeySection.setBiometricProtected(entryId, protected)
+            KeystoreStore.PROFILE_CREDENTIALS -> false
+        }
+    }
 }

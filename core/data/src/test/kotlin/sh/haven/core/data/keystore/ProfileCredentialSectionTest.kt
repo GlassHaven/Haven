@@ -47,6 +47,9 @@ class ProfileCredentialSectionTest {
         return ProfileCredentialSection(dao, mockk<Context>(relaxed = true)) to dao
     }
 
+    // ProfileCredentialSection has no biometric gate dep — biometric
+    // protection is SSH-keys-only in stage 5.
+
     @Test
     fun `enumerate emits one entry per non-null password field`() = runTest {
         val p = profile(

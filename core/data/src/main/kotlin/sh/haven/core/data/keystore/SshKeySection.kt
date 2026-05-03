@@ -36,6 +36,7 @@ private const val TAG = "SshKeySection"
 class SshKeySection @Inject constructor(
     private val sshKeyDao: SshKeyDao,
     @ApplicationContext private val appContext: Context,
+    private val biometricGate: BiometricGate,
 ) : KeystoreSection {
 
     override val store: KeystoreStore = KeystoreStore.SSH_KEYS
@@ -69,6 +70,23 @@ class SshKeySection @Inject constructor(
      */
     override suspend fun fetch(entryId: String): KeystoreFetch {
         val row = sshKeyDao.getById(entryId) ?: return KeystoreFetch.NotFound
+        // Biometric gate runs *before* the decrypt — a denied prompt
+        // returns Failed without ever asking Tink to unwrap the bytes.
+        // Foreground-inactive surfaces as the same Failed string so a
+        // backgrounded app retry path is uniform with a denied prompt.
+        if (row.biometricProtected) {
+            val decision = biometricGate.request(
+                label = "Unlock ${row.label}",
+                detail = row.fingerprintSha256,
+            )
+            when (decision) {
+                BiometricGate.Decision.ALLOW -> { /* proceed */ }
+                BiometricGate.Decision.DENY ->
+                    return KeystoreFetch.Failed("Biometric authentication required")
+                BiometricGate.Decision.UNAVAILABLE ->
+                    return KeystoreFetch.Failed("Biometric authentication required")
+            }
+        }
         return try {
             val raw = row.privateKeyBytes
             val out = when {
@@ -85,6 +103,19 @@ class SshKeySection @Inject constructor(
             // and any UI surface keep it generic.
             KeystoreFetch.Failed("Decryption failed")
         }
+    }
+
+    /**
+     * Toggle the [SshKey.biometricProtected] flag on a single row.
+     * Called from the Settings → Security audit screen's per-entry
+     * "Require biometric" switch. Returns true when the row exists
+     * and the value changed; false for unknown id or no-op write.
+     */
+    suspend fun setBiometricProtected(entryId: String, protected: Boolean): Boolean {
+        val row = sshKeyDao.getById(entryId) ?: return false
+        if (row.biometricProtected == protected) return false
+        sshKeyDao.upsert(row.copy(biometricProtected = protected))
+        return true
     }
 
     private fun toEntry(row: SshKey): KeystoreEntry {
@@ -116,6 +147,12 @@ class SshKeySection @Inject constructor(
             if (row.isEncrypted) flags.add(KeystoreFlag.REQUIRES_PASSPHRASE)
             row.keyType
         }
+        // BIOMETRIC_PROTECTED is independent of FIDO / passphrase /
+        // hardware-backed — it's an additional gate set by the user
+        // through Settings → Security audit. Surfacing it in flags
+        // lets the UI render the chip and the fetch path consult the
+        // gate without re-reading the row.
+        if (row.biometricProtected) flags.add(KeystoreFlag.BIOMETRIC_PROTECTED)
 
         return KeystoreEntry(
             id = row.id,

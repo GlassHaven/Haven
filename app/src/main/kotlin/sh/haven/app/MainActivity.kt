@@ -50,6 +50,11 @@ class MainActivity : AppCompatActivity() {
     // Cross-tab navigation verbs: HavenNavHost collects from this so an
     // MCP `navigate_sftp_browser` switches the pager to the right tab.
     @Inject lateinit var agentUiCommandBus: sh.haven.core.data.agent.AgentUiCommandBus
+    // Keystore biometric gate: a fetch on a BIOMETRIC_PROTECTED entry
+    // queues a request here, this Activity collects, runs
+    // BiometricPrompt, and posts the decision back. Foreground tracking
+    // mirrors AgentConsentManager (fail-closed when backgrounded).
+    @Inject lateinit var biometricGate: sh.haven.core.data.keystore.BiometricGate
 
     private fun exitIfDisconnected() {
         if (SshConnectionService.disconnectedAll) {
@@ -64,11 +69,13 @@ class MainActivity : AppCompatActivity() {
         exitIfDisconnected()
         fidoAuthenticator.setActiveActivity(this)
         agentConsentManager.setForegroundActive(true)
+        biometricGate.setForegroundActive(true)
     }
 
     override fun onPause() {
         fidoAuthenticator.clearActiveActivity(this)
         agentConsentManager.setForegroundActive(false)
+        biometricGate.setForegroundActive(false)
         super.onPause()
     }
 
@@ -151,6 +158,11 @@ class MainActivity : AppCompatActivity() {
                     // agent's consent prompt is unmissable. No-op when
                     // there are no pending requests.
                     ConsentHost()
+                    // Same pattern for BIOMETRIC_PROTECTED keystore
+                    // fetches — the gate publishes; this host renders
+                    // BiometricPrompt; the result resumes the
+                    // suspending fetch caller.
+                    sh.haven.app.agent.BiometricGateHost()
                 }
             }
         }

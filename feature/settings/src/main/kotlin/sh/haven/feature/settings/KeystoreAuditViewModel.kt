@@ -67,4 +67,28 @@ class KeystoreAuditViewModel @Inject constructor(
             }
         }
     }
+
+    /**
+     * Flip the BIOMETRIC_PROTECTED flag on [entry]. Only SSH-key
+     * entries support this today (UnifiedKeystore returns false for
+     * other stores); the screen hides the toggle for those, but if a
+     * caller invokes this on an unsupported entry the no-op result
+     * propagates back through `onResult`.
+     */
+    fun setBiometricProtected(
+        entry: KeystoreEntry,
+        protected: Boolean,
+        onResult: (Boolean) -> Unit,
+    ) {
+        viewModelScope.launch {
+            _busy.value = true
+            try {
+                val ok = keystore.setBiometricProtected(entry.store, entry.id, protected)
+                onResult(ok)
+                if (ok) _snapshot.value = keystore.exportAudit()
+            } finally {
+                _busy.value = false
+            }
+        }
+    }
 }

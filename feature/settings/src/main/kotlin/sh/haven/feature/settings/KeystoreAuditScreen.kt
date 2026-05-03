@@ -30,6 +30,7 @@ import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Surface
+import androidx.compose.material3.Switch
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
 import androidx.compose.material3.TopAppBar
@@ -106,6 +107,13 @@ fun KeystoreAuditScreen(
                             EntryRow(
                                 entry = entry,
                                 onWipeRequested = { pendingWipe = entry },
+                                onBiometricToggle = { protected ->
+                                    viewModel.setBiometricProtected(entry, protected) { ok ->
+                                        if (!ok) {
+                                            lastResult = "Biometric protection not supported for ${entry.label}"
+                                        }
+                                    }
+                                },
                             )
                         }
                     }
@@ -209,6 +217,7 @@ private fun StoreHeader(store: KeystoreStore, count: Int) {
 private fun EntryRow(
     entry: KeystoreEntry,
     onWipeRequested: () -> Unit,
+    onBiometricToggle: (Boolean) -> Unit,
 ) {
     Row(
         modifier = Modifier
@@ -250,6 +259,24 @@ private fun EntryRow(
                     }
                 }
             }
+            // Biometric toggle is SSH-keys-only today (UnifiedKeystore
+            // returns false for credential entries). Hiding the row on
+            // unsupported kinds avoids a misleading "this didn't do
+            // anything" tap.
+            if (entry.keyKind == KeyKind.SSH_PRIVATE || entry.keyKind == KeyKind.SSH_FIDO_SK) {
+                Spacer(Modifier.height(8.dp))
+                Row(verticalAlignment = Alignment.CenterVertically) {
+                    Text(
+                        text = "Require biometric to use",
+                        style = MaterialTheme.typography.bodyMedium,
+                        modifier = Modifier.weight(1f),
+                    )
+                    Switch(
+                        checked = KeystoreFlag.BIOMETRIC_PROTECTED in entry.flags,
+                        onCheckedChange = onBiometricToggle,
+                    )
+                }
+            }
         }
         IconButton(onClick = onWipeRequested) {
             Icon(
@@ -268,6 +295,7 @@ private fun FlagChip(flag: KeystoreFlag) {
         KeystoreFlag.REQUIRES_PASSPHRASE -> "Passphrase" to Icons.Filled.Key
         KeystoreFlag.REQUIRES_USER_PRESENCE -> "User presence" to Icons.Filled.TouchApp
         KeystoreFlag.REQUIRES_USER_VERIFICATION -> "User verification" to Icons.Filled.Fingerprint
+        KeystoreFlag.BIOMETRIC_PROTECTED -> "Biometric required" to Icons.Filled.Fingerprint
     }
     AssistChip(
         onClick = {},

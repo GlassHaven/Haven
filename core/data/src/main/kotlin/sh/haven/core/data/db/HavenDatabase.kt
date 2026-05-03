@@ -26,7 +26,7 @@ import sh.haven.core.data.db.entities.TunnelConfig
         TunnelConfig::class,
         PasteQueueEntry::class,
     ],
-    version = 42,
+    version = 43,
     exportSchema = true,
 )
 abstract class HavenDatabase : RoomDatabase() {
@@ -463,6 +463,22 @@ abstract class HavenDatabase : RoomDatabase() {
             override fun migrate(db: SupportSQLiteDatabase) {
                 db.execSQL(
                     "ALTER TABLE ssh_keys ADD COLUMN biometricProtected INTEGER NOT NULL DEFAULT 0"
+                )
+            }
+        }
+
+        /**
+         * SSH certificate auth (#133 phase 1). Adds an optional
+         * `certificateBytes` BLOB column on each SSH key, holding the
+         * contents of an `id_xxx-cert.pub` file signed by a CA the
+         * remote server trusts. SshClient wraps private + cert via
+         * OpenSshCertificateAwareIdentityFile when this is non-null.
+         * Default null — existing keys behave as plain key auth.
+         */
+        val MIGRATION_42_43 = object : Migration(42, 43) {
+            override fun migrate(db: SupportSQLiteDatabase) {
+                db.execSQL(
+                    "ALTER TABLE ssh_keys ADD COLUMN certificateBytes BLOB DEFAULT NULL"
                 )
             }
         }

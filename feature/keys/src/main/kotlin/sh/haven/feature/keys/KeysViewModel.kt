@@ -311,6 +311,82 @@ class KeysViewModel @Inject constructor(
         }
     }
 
+    /**
+     * Pending key id for "attach certificate" — UI launches the SAF
+     * file picker when this is set, then calls
+     * [importCertificateFromUri] with the chosen Uri.
+     */
+    private val _pendingCertKeyId = MutableStateFlow<String?>(null)
+    val pendingCertKeyId: StateFlow<String?> = _pendingCertKeyId.asStateFlow()
+
+    fun requestAttachCertificate(keyId: String) {
+        _pendingCertKeyId.value = keyId
+    }
+
+    fun clearPendingCertificate() {
+        _pendingCertKeyId.value = null
+    }
+
+    /**
+     * Read the certificate file the user picked and attach it to the
+     * pending key. Lightweight validation: the file must start with
+     * one of the OpenSSH cert key-type prefixes
+     * (e.g. `ssh-ed25519-cert-v01@openssh.com`); otherwise we fail
+     * loudly so the user knows they picked the wrong file.
+     */
+    fun importCertificateFromUri(context: Context, keyId: String, uri: Uri) {
+        viewModelScope.launch {
+            try {
+                val bytes = withContext(Dispatchers.IO) {
+                    context.contentResolver.openInputStream(uri)?.use { it.readBytes() }
+                } ?: throw IllegalStateException("Could not read certificate file")
+                if (!looksLikeOpenSshCertificate(bytes)) {
+                    _error.value = "File doesn't look like an OpenSSH certificate (id_xxx-cert.pub)"
+                    return@launch
+                }
+                repository.setCertificateBytes(keyId, bytes)
+                refreshTicker.value = System.nanoTime()
+                _message.value = "Certificate attached"
+            } catch (e: Exception) {
+                Log.e("KeysViewModel", "Attach certificate failed", e)
+                _error.value = "Attach failed: ${e.message}"
+            }
+        }
+    }
+
+    /**
+     * Header-prefix check for an OpenSSH certificate `.pub` file.
+     * Files start with the cert key type followed by a space, e.g.
+     * `ssh-ed25519-cert-v01@openssh.com AAAAB3...`. Tolerates leading
+     * whitespace and works on the first ~80 bytes; we don't fully parse.
+     */
+    private fun looksLikeOpenSshCertificate(bytes: ByteArray): Boolean {
+        if (bytes.isEmpty()) return false
+        val head = bytes.copyOf(minOf(bytes.size, 80)).toString(Charsets.US_ASCII).trimStart()
+        return CERT_KEY_TYPE_PREFIXES.any { head.startsWith("$it ") }
+    }
+
+    private companion object {
+        val CERT_KEY_TYPE_PREFIXES = listOf(
+            "ssh-rsa-cert-v01@openssh.com",
+            "ssh-dss-cert-v01@openssh.com",
+            "ecdsa-sha2-nistp256-cert-v01@openssh.com",
+            "ecdsa-sha2-nistp384-cert-v01@openssh.com",
+            "ecdsa-sha2-nistp521-cert-v01@openssh.com",
+            "ssh-ed25519-cert-v01@openssh.com",
+            "sk-ecdsa-sha2-nistp256-cert-v01@openssh.com",
+            "sk-ssh-ed25519-cert-v01@openssh.com",
+        )
+    }
+
+    fun removeCertificate(keyId: String) {
+        viewModelScope.launch {
+            repository.setCertificateBytes(keyId, null)
+            refreshTicker.value = System.nanoTime()
+            _message.value = "Certificate removed"
+        }
+    }
+
     fun showError(msg: String) {
         _error.value = msg
     }

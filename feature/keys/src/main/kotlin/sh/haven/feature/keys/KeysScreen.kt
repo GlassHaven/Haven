@@ -25,6 +25,7 @@ import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.text.selection.SelectionContainer
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Add
+import androidx.compose.material.icons.filled.Badge
 import androidx.compose.material.icons.filled.ContentCopy
 import androidx.compose.material.icons.filled.Delete
 import androidx.compose.material.icons.filled.ContentPaste
@@ -94,6 +95,7 @@ fun KeysScreen(
     val importResult by viewModel.importResult.collectAsState()
     val message by viewModel.message.collectAsState()
     val pendingExportKeyId by viewModel.pendingExportKeyId.collectAsState()
+    val pendingCertKeyId by viewModel.pendingCertKeyId.collectAsState()
     var pendingPasswordWipe by remember { mutableStateOf<KeystoreEntry?>(null) }
 
     var showAddKeyDialog by remember { mutableStateOf(false) }
@@ -127,6 +129,24 @@ fun KeysScreen(
     LaunchedEffect(pendingExportKeyId) {
         pendingExportKeyId?.let { keyId ->
             exportLauncher.launch(viewModel.getExportFileName(keyId))
+        }
+    }
+
+    val certPickerLauncher = rememberLauncherForActivityResult(
+        ActivityResultContracts.OpenDocument(),
+    ) { uri ->
+        val keyId = pendingCertKeyId
+        viewModel.clearPendingCertificate()
+        if (uri != null && keyId != null) {
+            viewModel.importCertificateFromUri(context, keyId, uri)
+        }
+    }
+
+    LaunchedEffect(pendingCertKeyId) {
+        pendingCertKeyId?.let {
+            // SAF doesn't filter on `*-cert.pub` shape; accept anything
+            // and let the ViewModel reject non-cert content.
+            certPickerLauncher.launch(arrayOf("*/*"))
         }
     }
 
@@ -201,6 +221,7 @@ fun KeysScreen(
                         SshKeyAuditRow(
                             sshKey = sshKey,
                             entry = keyEntries[sshKey.id],
+                            hasCertificate = sshKey.certificateBytes != null,
                             menuOpen = contextMenuKeyId == sshKey.id,
                             onMenuOpen = { contextMenuKeyId = sshKey.id },
                             onMenuDismiss = { contextMenuKeyId = null },
@@ -210,6 +231,8 @@ fun KeysScreen(
                             onBiometricToggle = { protected ->
                                 viewModel.setBiometricProtected(sshKey.id, protected)
                             },
+                            onAttachCertificate = { viewModel.requestAttachCertificate(sshKey.id) },
+                            onRemoveCertificate = { viewModel.removeCertificate(sshKey.id) },
                         )
                         HorizontalDivider()
                     }
@@ -543,6 +566,7 @@ private fun SectionHeader(label: String) {
 private fun SshKeyAuditRow(
     sshKey: SshKey,
     entry: KeystoreEntry?,
+    hasCertificate: Boolean,
     menuOpen: Boolean,
     onMenuOpen: () -> Unit,
     onMenuDismiss: () -> Unit,
@@ -550,6 +574,8 @@ private fun SshKeyAuditRow(
     onExportPrivate: () -> Unit,
     onDelete: () -> Unit,
     onBiometricToggle: (Boolean) -> Unit,
+    onAttachCertificate: () -> Unit,
+    onRemoveCertificate: () -> Unit,
 ) {
     val flags = entry?.flags ?: emptySet()
     Box(
@@ -588,13 +614,32 @@ private fun SshKeyAuditRow(
                     color = MaterialTheme.colorScheme.onSurfaceVariant,
                 )
             }
-            if (flags.isNotEmpty()) {
+            if (flags.isNotEmpty() || hasCertificate) {
                 Spacer(Modifier.height(8.dp))
                 FlowRow(
                     horizontalArrangement = Arrangement.spacedBy(6.dp),
                     verticalArrangement = Arrangement.spacedBy(4.dp),
                 ) {
                     flags.sortedBy { it.ordinal }.forEach { flag -> FlagChip(flag) }
+                    if (hasCertificate) {
+                        AssistChip(
+                            onClick = {},
+                            label = {
+                                Text(
+                                    stringResource(R.string.keys_chip_certificate),
+                                    style = MaterialTheme.typography.labelSmall,
+                                )
+                            },
+                            leadingIcon = {
+                                Icon(
+                                    Icons.Filled.Badge,
+                                    contentDescription = null,
+                                    modifier = Modifier.padding(2.dp),
+                                )
+                            },
+                            colors = AssistChipDefaults.assistChipColors(),
+                        )
+                    }
                 }
             }
             Spacer(Modifier.height(8.dp))
@@ -626,6 +671,22 @@ private fun SshKeyAuditRow(
                     onClick = { onMenuDismiss(); onExportPrivate() },
                     leadingIcon = { Icon(Icons.Filled.FileDownload, contentDescription = null) },
                 )
+                // Certificate attach / remove (#133 phase 1). FIDO SK keys
+                // skip this — their signing path doesn't compose with
+                // OpenSSH cert auth.
+                if (hasCertificate) {
+                    DropdownMenuItem(
+                        text = { Text(stringResource(R.string.keys_remove_certificate)) },
+                        onClick = { onMenuDismiss(); onRemoveCertificate() },
+                        leadingIcon = { Icon(Icons.Filled.Badge, contentDescription = null) },
+                    )
+                } else {
+                    DropdownMenuItem(
+                        text = { Text(stringResource(R.string.keys_attach_certificate)) },
+                        onClick = { onMenuDismiss(); onAttachCertificate() },
+                        leadingIcon = { Icon(Icons.Filled.Badge, contentDescription = null) },
+                    )
+                }
             }
             DropdownMenuItem(
                 text = {

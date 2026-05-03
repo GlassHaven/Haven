@@ -75,4 +75,7 @@
     <string name="keys_clear_password_title">清除 %1$s？</string>
     <string name="keys_clear_password_body">清除将删除此连接已保存的密码。连接本身保留 — 下次连接时会提示输入密码。</string>
     <string name="keys_wipe_content_description">清除 %1$s</string>
+    <string name="keys_attach_certificate">附加证书</string>
+    <string name="keys_remove_certificate">移除证书</string>
+    <string name="keys_chip_certificate">已附加证书</string>
 </resources>

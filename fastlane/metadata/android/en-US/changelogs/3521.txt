@@ -27,5 +27,11 @@ Settings section headers extracted + translated. Connection-edit
 dialog field labels (Transport / Label / Host / etc) remain in
 English; that's a separate ~30-string arc.
 
+SSH certificate auth (#133 phase 1): keys can now have an OpenSSH
+certificate (id_xxx-cert.pub) attached via the Keys tab long-press
+menu. When connecting, JSch validates against the cert's CA
+signature so step-ca / Authentik / Okta SSH-cert flows work after
+a manual import. OIDC + auto-renewal is the next phase.
+
 Plus: robot icon on Connections now opens the agent activity log
 directly instead of dropping you in Settings.

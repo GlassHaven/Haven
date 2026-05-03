@@ -78,4 +78,18 @@ class SshKeyRepository @Inject constructor(
     }
 
     suspend fun delete(id: String) = sshKeyDao.deleteById(id)
+
+    /**
+     * Read the optional OpenSSH certificate bytes attached to [id]
+     * (#133 phase 1). Certificates are public material, no decryption
+     * applied. Null when the key has no cert attached.
+     */
+    suspend fun getCertificateBytes(id: String): ByteArray? =
+        sshKeyDao.getById(id)?.certificateBytes
+
+    /** Attach (or replace) the certificate bytes for an existing key. */
+    suspend fun setCertificateBytes(id: String, certBytes: ByteArray?) {
+        val key = sshKeyDao.getById(id) ?: return
+        sshKeyDao.upsert(key.copy(certificateBytes = certBytes))
+    }
 }

@@ -83,10 +83,15 @@ class SshClient : Closeable {
                 fallbackKiPassword = auth.password
             }
             is ConnectionConfig.AuthMethod.PrivateKey -> {
+                // Pass the OpenSSH cert (when present) as the third
+                // public-key arg. JSch detects the cert magic bytes and
+                // internally wraps the identity in
+                // OpenSshCertificateAwareIdentityFile, so the server
+                // gets cert+sig validated via its trusted CA. (#133)
                 jsch.addIdentity(
                     "haven-key",
                     auth.keyBytes,
-                    null,
+                    auth.certificateBytes,
                     if (auth.passphrase.isNotEmpty()) charsToUtf8Bytes(auth.passphrase) else null,
                 )
             }
@@ -244,7 +249,7 @@ class SshClient : Closeable {
                 jsch.addIdentity(
                     "haven-key-${System.nanoTime()}",
                     auth.keyBytes,
-                    null,
+                    auth.certificateBytes,
                     if (auth.passphrase.isNotEmpty()) charsToUtf8Bytes(auth.passphrase) else null,
                 )
             }

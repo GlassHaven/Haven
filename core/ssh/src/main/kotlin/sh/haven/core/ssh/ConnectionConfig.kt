@@ -37,6 +37,15 @@ data class ConnectionConfig(
         data class PrivateKey(
             val keyBytes: ByteArray,
             val passphrase: CharArray = CharArray(0),
+            /**
+             * Optional OpenSSH certificate bytes (raw `id_xxx-cert.pub`
+             * content) to pair with [keyBytes] for cert-based SSH auth
+             * (#133 phase 1). When non-null, [SshClient] uses
+             * `OpenSshCertificateAwareIdentityFile.newInstance` so the
+             * server validates against the CA signature alongside the
+             * public key.
+             */
+            val certificateBytes: ByteArray? = null,
         ) : AuthMethod {
             constructor(keyBytes: ByteArray, passphrase: String) :
                 this(keyBytes, passphrase.toCharArray())
@@ -47,10 +56,14 @@ data class ConnectionConfig(
                 if (this === other) return true
                 if (other !is PrivateKey) return false
                 return keyBytes.contentEquals(other.keyBytes) &&
-                    passphrase.contentEquals(other.passphrase)
+                    passphrase.contentEquals(other.passphrase) &&
+                    (certificateBytes?.contentEquals(other.certificateBytes ?: byteArrayOf())
+                        ?: (other.certificateBytes == null))
             }
             override fun hashCode(): Int =
-                keyBytes.contentHashCode() * 31 + passphrase.contentHashCode()
+                keyBytes.contentHashCode() * 31 +
+                    passphrase.contentHashCode() * 17 +
+                    (certificateBytes?.contentHashCode() ?: 0)
         }
         data class PrivateKeys(val keys: List<Pair<String, ByteArray>>) : AuthMethod
         /** FIDO2 SK key — signing delegated to hardware security key. */

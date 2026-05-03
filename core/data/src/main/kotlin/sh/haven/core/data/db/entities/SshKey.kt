@@ -23,6 +23,16 @@ data class SshKey(
      * — existing keys keep working without an extra prompt.
      */
     val biometricProtected: Boolean = false,
+    /**
+     * Optional OpenSSH certificate bytes (the contents of an
+     * `id_xxx-cert.pub` file) signed by a CA the server trusts.
+     * When present, [SshClient] wraps the private key + cert in
+     * [com.jcraft.jsch.OpenSshCertificateAwareIdentityFile] so the
+     * server's CA-pinned auth flow accepts the connection. Stored as
+     * raw text bytes — certificates are public material, no encryption
+     * applied. Null for the common case (#133 phase 1).
+     */
+    val certificateBytes: ByteArray? = null,
 ) {
     override fun equals(other: Any?): Boolean {
         if (this === other) return true

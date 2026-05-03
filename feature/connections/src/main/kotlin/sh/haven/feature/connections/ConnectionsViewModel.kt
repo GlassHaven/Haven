@@ -2535,9 +2535,14 @@ class ConnectionsViewModel @Inject constructor(
                 // For encrypted keys, pass the original encrypted bytes + passphrase.
                 // JSch decrypts at auth time — key never stored in plaintext.
                 val passphrase = if (key.isEncrypted) password.toCharArray() else CharArray(0)
+                // Attach the OpenSSH certificate when present (#133): pulled
+                // separately from the metadata fetch since the cert is public
+                // and not gated by biometric. Null = plain pubkey auth.
+                val certBytes = sshKeyRepository.getCertificateBytes(keyId)
                 return ConnectionConfig.AuthMethod.PrivateKey(
                     keyBytes = if (key.isEncrypted) keyBytes else rawKeyToPem(keyBytes, key.keyType),
                     passphrase = passphrase,
+                    certificateBytes = certBytes,
                 )
             }
         }

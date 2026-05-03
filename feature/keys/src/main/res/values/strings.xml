@@ -75,4 +75,7 @@
     <string name="keys_clear_password_title">Clear %1$s?</string>
     <string name="keys_clear_password_body">Wiping clears the saved password on this profile. The profile itself stays — you\'ll be prompted next time you connect.</string>
     <string name="keys_wipe_content_description">Wipe %1$s</string>
+    <string name="keys_attach_certificate">Attach certificate</string>
+    <string name="keys_remove_certificate">Remove certificate</string>
+    <string name="keys_chip_certificate">Certificate attached</string>
 </resources>

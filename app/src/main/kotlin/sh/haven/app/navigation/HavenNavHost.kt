@@ -143,12 +143,14 @@ fun HavenNavHost(
     // internal state in parallel.
     LaunchedEffect(agentUiCommandBus, screens) {
         agentUiCommandBus.commands.collect { command ->
-            when (command) {
-                is sh.haven.core.data.agent.AgentUiCommand.NavigateToSftpPath -> {
-                    val target = screens.indexOfFirst { it.route == sh.haven.core.ui.navigation.Screen.Sftp.route }
-                    if (target >= 0) pagerState.animateScrollToPage(target)
-                }
+            val route = when (command) {
+                is sh.haven.core.data.agent.AgentUiCommand.NavigateToSftpPath ->
+                    sh.haven.core.ui.navigation.Screen.Sftp.route
+                is sh.haven.core.data.agent.AgentUiCommand.FocusTerminalSession ->
+                    sh.haven.core.ui.navigation.Screen.Terminal.route
             }
+            val target = screens.indexOfFirst { it.route == route }
+            if (target >= 0) pagerState.animateScrollToPage(target)
         }
     }
 

@@ -177,6 +177,21 @@ internal class McpTools(
             consentLevel = ConsentLevel.NEVER,
         ) { args -> playFile(args) },
 
+        "focus_terminal_session" to ToolHandler(
+            description = "Switch to the Terminal tab and bring the session with this sessionId to the front. Tap-equivalent — same effect as the user tapping the Terminal tab and tapping the session header. Use list_sessions to discover live sessionIds; stale IDs drop silently without error.",
+            inputSchema = JSONObject().apply {
+                put("type", "object")
+                put("properties", JSONObject().apply {
+                    put("sessionId", JSONObject().apply {
+                        put("type", "string")
+                        put("description", "Active session ID (from list_sessions). Must be a session attached to a Terminal tab.")
+                    })
+                })
+                put("required", JSONArray().put("sessionId"))
+            },
+            consentLevel = ConsentLevel.NEVER,
+        ) { args -> focusTerminalSession(args) },
+
         "navigate_sftp_browser" to ToolHandler(
             description = "Switch to the Files tab and open the file browser at the given path on the given profile. Tap-equivalent — same effect as the user tapping into the SFTP screen and entering the path. The path is interpreted by whichever backend the profile resolves to (POSIX absolute for SSH/Local, share-relative for SMB, remote-relative for rclone).",
             inputSchema = JSONObject().apply {
@@ -650,6 +665,18 @@ internal class McpTools(
             "wav" -> "audio/wav"
             else -> "application/octet-stream"
         }
+
+    private fun focusTerminalSession(args: JSONObject): JSONObject {
+        val sessionId = args.optString("sessionId").ifEmpty {
+            throw McpError(-32602, "Missing required argument: sessionId")
+        }
+        val command = sh.haven.core.data.agent.AgentUiCommand.FocusTerminalSession(sessionId)
+        val delivered = agentUiCommandBus.emit(command)
+        return JSONObject().apply {
+            put("delivered", delivered)
+            put("sessionId", sessionId)
+        }
+    }
 
     private suspend fun navigateSftpBrowser(args: JSONObject): JSONObject {
         val profileId = args.optString("profileId").ifEmpty {

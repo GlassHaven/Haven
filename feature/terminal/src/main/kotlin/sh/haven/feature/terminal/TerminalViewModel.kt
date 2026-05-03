@@ -266,7 +266,22 @@ class TerminalViewModel @Inject constructor(
     private val hostKeyVerifier: HostKeyVerifier,
     private val preferencesRepository: UserPreferencesRepository,
     private val connectionRepository: sh.haven.core.data.repository.ConnectionRepository,
+    private val agentUiCommandBus: sh.haven.core.data.agent.AgentUiCommandBus,
 ) : ViewModel() {
+
+    init {
+        // Cross-tab agent verbs: when an MCP `focus_terminal_session`
+        // call posts here, find the matching tab and bring it to the
+        // front. The matching pager switch happens in HavenNavHost.
+        viewModelScope.launch {
+            agentUiCommandBus.commands.collect { command ->
+                if (command is sh.haven.core.data.agent.AgentUiCommand.FocusTerminalSession) {
+                    val index = _tabs.value.indexOfFirst { it.sessionId == command.sessionId }
+                    if (index >= 0) selectTab(index)
+                }
+            }
+        }
+    }
 
     private val activeRecorders = mutableListOf<TerminalRecorder>()
 

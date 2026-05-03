@@ -74,6 +74,22 @@ class AgentUiCommandBusTest {
     }
 
     @Test
+    fun `FocusTerminalSession round-trips through the bus`() = runTest(UnconfinedTestDispatcher()) {
+        // Pin the second variant — collectors filter by type, so a new
+        // variant lighting up has to round-trip cleanly even when
+        // existing collectors only handle the older one.
+        val bus = AgentUiCommandBus()
+        val received = mutableListOf<AgentUiCommand>()
+        val job = launch { bus.commands.collect { received.add(it) } }
+
+        val cmd = AgentUiCommand.FocusTerminalSession(sessionId = "sess-42")
+        assertTrue(bus.emit(cmd))
+
+        assertEquals(listOf(cmd), received)
+        job.cancel()
+    }
+
+    @Test
     fun `commands flow type is a SharedFlow`() {
         // Compile-time guarantee that the public surface is read-only —
         // callers cannot reach the underlying MutableSharedFlow and

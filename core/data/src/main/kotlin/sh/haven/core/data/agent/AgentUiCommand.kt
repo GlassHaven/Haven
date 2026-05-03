@@ -29,4 +29,19 @@ sealed class AgentUiCommand {
         val profileId: String,
         val path: String,
     ) : AgentUiCommand()
+
+    /**
+     * Bring the terminal tab for [sessionId] to the front. The
+     * collector switches the pager to the Terminal page; the
+     * [sh.haven.feature.terminal.TerminalViewModel] finds the matching
+     * tab by sessionId and calls `selectTab(index)`.
+     *
+     * Tap-equivalent: same effect as the user tapping the Terminal tab
+     * and tapping the right session header. No effect when no tab
+     * matches — agents discover live sessionIds via `list_sessions`,
+     * so a stale ID drops silently.
+     */
+    data class FocusTerminalSession(
+        val sessionId: String,
+    ) : AgentUiCommand()
 }

@@ -80,6 +80,7 @@ class McpToolsConsentTest {
             // Navigation: opens a screen at a path the user could already
             // tap to. Tap-equivalent, no consent needed.
             "navigate_sftp_browser",
+            "focus_terminal_session",
         )) {
             val c = tools.consentFor(name)
                 ?: error("$name not registered")

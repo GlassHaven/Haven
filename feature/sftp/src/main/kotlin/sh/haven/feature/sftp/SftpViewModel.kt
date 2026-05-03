@@ -161,13 +161,11 @@ class SftpViewModel @Inject constructor(
         // run in parallel against the same SharedFlow.
         viewModelScope.launch {
             agentUiCommandBus.commands.collect { command ->
-                when (command) {
-                    is sh.haven.core.data.agent.AgentUiCommand.NavigateToSftpPath -> {
-                        if (_activeProfileId.value != command.profileId) {
-                            selectProfile(command.profileId)
-                        }
-                        navigateTo(command.path)
+                if (command is sh.haven.core.data.agent.AgentUiCommand.NavigateToSftpPath) {
+                    if (_activeProfileId.value != command.profileId) {
+                        selectProfile(command.profileId)
                     }
+                    navigateTo(command.path)
                 }
             }
         }

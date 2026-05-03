@@ -90,6 +90,30 @@ class AgentUiCommandBusTest {
     }
 
     @Test
+    fun `OpenConvertDialog round-trips with prefill args`() = runTest(UnconfinedTestDispatcher()) {
+        val bus = AgentUiCommandBus()
+        val received = mutableListOf<AgentUiCommand>()
+        val job = launch { bus.commands.collect { received.add(it) } }
+
+        val cmd = AgentUiCommand.OpenConvertDialog(
+            profileId = "p1",
+            sourcePath = "/var/media/clip.mkv",
+            container = "mp4",
+            videoEncoder = "libx264",
+            audioEncoder = "aac",
+        )
+        assertTrue(bus.emit(cmd))
+
+        assertEquals(listOf(cmd), received)
+        // Optional fields stay nullable so a missing arg from the agent
+        // doesn't force the dialog into a wrong default.
+        val nullArgs = AgentUiCommand.OpenConvertDialog(profileId = "p1", sourcePath = "/x.mp4")
+        assertTrue(bus.emit(nullArgs))
+        assertEquals(listOf(cmd, nullArgs), received)
+        job.cancel()
+    }
+
+    @Test
     fun `commands flow type is a SharedFlow`() {
         // Compile-time guarantee that the public surface is read-only —
         // callers cannot reach the underlying MutableSharedFlow and

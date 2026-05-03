@@ -146,6 +146,8 @@ fun HavenNavHost(
             val route = when (command) {
                 is sh.haven.core.data.agent.AgentUiCommand.NavigateToSftpPath ->
                     sh.haven.core.ui.navigation.Screen.Sftp.route
+                is sh.haven.core.data.agent.AgentUiCommand.OpenConvertDialog ->
+                    sh.haven.core.ui.navigation.Screen.Sftp.route
                 is sh.haven.core.data.agent.AgentUiCommand.FocusTerminalSession ->
                     sh.haven.core.ui.navigation.Screen.Terminal.route
             }

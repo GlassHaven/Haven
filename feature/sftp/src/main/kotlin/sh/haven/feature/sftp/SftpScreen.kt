@@ -1305,12 +1305,23 @@ fun SftpScreen(
             "aac" -> "m4a"
             else -> if (isAudioOnlyInput) "mp3" else "mp4"
         }
-        var selectedContainer by rememberSaveable { mutableStateOf(defaultContainer) }
+        // Agent prefill — when the dialog was opened by an MCP
+        // open_convert_dialog_with_args verb, the supplied container /
+        // codec choices override our extension-based defaults so the
+        // user sees what the agent suggested. Read once per entry.
+        val agentPrefill = remember(entry) { viewModel.convertDialogPrefill.value }
+        var selectedContainer by rememberSaveable(entry) {
+            mutableStateOf(agentPrefill?.container ?: defaultContainer)
+        }
         // Default both encoders to "copy" (stream remux) — fastest, lossless,
         // works instantly when the source codecs fit the chosen container.
         // User can switch to a real encoder if they need to transcode.
-        var selectedVideoEnc by rememberSaveable { mutableStateOf("copy") }
-        var selectedAudioEnc by rememberSaveable { mutableStateOf("copy") }
+        var selectedVideoEnc by rememberSaveable(entry) {
+            mutableStateOf(agentPrefill?.videoEncoder ?: "copy")
+        }
+        var selectedAudioEnc by rememberSaveable(entry) {
+            mutableStateOf(agentPrefill?.audioEncoder ?: "copy")
+        }
         val filterState = rememberSaveable(saver = FilterState.Saver) { FilterState() }
         val compressionState = rememberSaveable(saver = CompressionState.Saver) { CompressionState() }
         val isAudioOnly = isAudioOnlyInput

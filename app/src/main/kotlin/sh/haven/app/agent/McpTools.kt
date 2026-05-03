@@ -177,6 +177,37 @@ internal class McpTools(
             consentLevel = ConsentLevel.NEVER,
         ) { args -> playFile(args) },
 
+        "open_convert_dialog_with_args" to ToolHandler(
+            description = "Stage a conversion in the SFTP screen's convert dialog with the given container / codec defaults. Switches to the SFTP tab and opens the dialog; the user reviews and taps Convert to actually run ffmpeg. Tap-equivalent — the agent suggests, the user confirms. Use convert_file (EVERY_CALL consent) to skip the dialog and run the conversion directly.",
+            inputSchema = JSONObject().apply {
+                put("type", "object")
+                put("properties", JSONObject().apply {
+                    put("profileId", JSONObject().apply {
+                        put("type", "string")
+                        put("description", "Connection profile ID. Use list_connections to find IDs.")
+                    })
+                    put("sourcePath", JSONObject().apply {
+                        put("type", "string")
+                        put("description", "Absolute path of the source file.")
+                    })
+                    put("container", JSONObject().apply {
+                        put("type", "string")
+                        put("description", "Pre-selected container, e.g. 'mp4', 'mkv', 'webm', 'mp3'. Optional — defaults to source extension.")
+                    })
+                    put("videoEncoder", JSONObject().apply {
+                        put("type", "string")
+                        put("description", "Pre-selected video codec, e.g. 'libx264', 'libx265', 'copy'. Optional — defaults to 'copy'.")
+                    })
+                    put("audioEncoder", JSONObject().apply {
+                        put("type", "string")
+                        put("description", "Pre-selected audio codec, e.g. 'aac', 'libopus', 'copy'. Optional — defaults to 'copy'.")
+                    })
+                })
+                put("required", JSONArray().put("profileId").put("sourcePath"))
+            },
+            consentLevel = ConsentLevel.NEVER,
+        ) { args -> openConvertDialogWithArgs(args) },
+
         "focus_terminal_session" to ToolHandler(
             description = "Switch to the Terminal tab and bring the session with this sessionId to the front. Tap-equivalent — same effect as the user tapping the Terminal tab and tapping the session header. Use list_sessions to discover live sessionIds; stale IDs drop silently without error.",
             inputSchema = JSONObject().apply {
@@ -665,6 +696,35 @@ internal class McpTools(
             "wav" -> "audio/wav"
             else -> "application/octet-stream"
         }
+
+    private suspend fun openConvertDialogWithArgs(args: JSONObject): JSONObject {
+        val profileId = args.optString("profileId").ifEmpty {
+            throw McpError(-32602, "Missing required argument: profileId")
+        }
+        val sourcePath = args.optString("sourcePath").ifEmpty {
+            throw McpError(-32602, "Missing required argument: sourcePath")
+        }
+        if (profileId != "local") {
+            connectionRepository.getById(profileId)
+                ?: throw McpError(-32602, "Unknown profileId: $profileId")
+        }
+        val command = sh.haven.core.data.agent.AgentUiCommand.OpenConvertDialog(
+            profileId = profileId,
+            sourcePath = sourcePath,
+            container = args.optString("container").ifEmpty { null },
+            videoEncoder = args.optString("videoEncoder").ifEmpty { null },
+            audioEncoder = args.optString("audioEncoder").ifEmpty { null },
+        )
+        val delivered = agentUiCommandBus.emit(command)
+        return JSONObject().apply {
+            put("delivered", delivered)
+            put("profileId", profileId)
+            put("sourcePath", sourcePath)
+            put("container", command.container ?: JSONObject.NULL)
+            put("videoEncoder", command.videoEncoder ?: JSONObject.NULL)
+            put("audioEncoder", command.audioEncoder ?: JSONObject.NULL)
+        }
+    }
 
     private fun focusTerminalSession(args: JSONObject): JSONObject {
         val sessionId = args.optString("sessionId").ifEmpty {

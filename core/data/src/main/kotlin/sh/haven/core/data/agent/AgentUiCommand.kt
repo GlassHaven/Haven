@@ -44,4 +44,29 @@ sealed class AgentUiCommand {
     data class FocusTerminalSession(
         val sessionId: String,
     ) : AgentUiCommand()
+
+    /**
+     * Stage a conversion job in the SFTP screen's convert dialog with
+     * the given form-field defaults. The user reviews and taps Convert
+     * to actually run ffmpeg — the agent suggests, the user confirms.
+     * Tap-equivalent because the destructive action (transcode) still
+     * requires the user's tap on the dialog's Convert button.
+     *
+     * Any of [container] / [videoEncoder] / [audioEncoder] may be null,
+     * in which case the dialog uses its existing defaults (extension-
+     * based for container, "copy" for encoders). The dialog's audio-
+     * only auto-correct still runs, so a video container suggested for
+     * an audio-only source self-corrects on probe.
+     *
+     * VISION.md §1a names this verb explicitly as the example for
+     * cross-tab agent-driven UI — opening a primitive's dialog with
+     * prefilled args.
+     */
+    data class OpenConvertDialog(
+        val profileId: String,
+        val sourcePath: String,
+        val container: String? = null,
+        val videoEncoder: String? = null,
+        val audioEncoder: String? = null,
+    ) : AgentUiCommand()
 }

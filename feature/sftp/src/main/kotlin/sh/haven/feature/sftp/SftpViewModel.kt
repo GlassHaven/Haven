@@ -161,11 +161,42 @@ class SftpViewModel @Inject constructor(
         // run in parallel against the same SharedFlow.
         viewModelScope.launch {
             agentUiCommandBus.commands.collect { command ->
-                if (command is sh.haven.core.data.agent.AgentUiCommand.NavigateToSftpPath) {
-                    if (_activeProfileId.value != command.profileId) {
-                        selectProfile(command.profileId)
+                when (command) {
+                    is sh.haven.core.data.agent.AgentUiCommand.NavigateToSftpPath -> {
+                        if (_activeProfileId.value != command.profileId) {
+                            selectProfile(command.profileId)
+                        }
+                        navigateTo(command.path)
                     }
-                    navigateTo(command.path)
+                    is sh.haven.core.data.agent.AgentUiCommand.OpenConvertDialog -> {
+                        if (_activeProfileId.value != command.profileId) {
+                            selectProfile(command.profileId)
+                        }
+                        // Construct a partial entry from just the path —
+                        // the dialog's preview prep will probe actual
+                        // size/mimeType/duration on its own. Name comes
+                        // from the path basename so the dialog title
+                        // makes sense.
+                        val name = command.sourcePath.substringAfterLast('/')
+                            .ifEmpty { command.sourcePath }
+                        val entry = SftpEntry(
+                            name = name,
+                            path = command.sourcePath,
+                            isDirectory = false,
+                            size = 0L,
+                            modifiedTime = 0L,
+                            permissions = "",
+                        )
+                        openConvertDialogPrefilled(
+                            entry = entry,
+                            prefill = SftpViewModel.ConvertDialogPrefill(
+                                container = command.container,
+                                videoEncoder = command.videoEncoder,
+                                audioEncoder = command.audioEncoder,
+                            ),
+                        )
+                    }
+                    else -> Unit
                 }
             }
         }
@@ -302,6 +333,21 @@ class SftpViewModel @Inject constructor(
     val convertDialogEntry: StateFlow<SftpEntry?> = _convertDialogEntry.asStateFlow()
 
     /**
+     * Optional initial values for the convert dialog's form fields. Set by
+     * the agent's `open_convert_dialog_with_args` verb when it stages a
+     * conversion for the user to review; null when the user opened the
+     * dialog manually (in which case the existing extension-based defaults
+     * apply). Read once on dialog composition.
+     */
+    data class ConvertDialogPrefill(
+        val container: String? = null,
+        val videoEncoder: String? = null,
+        val audioEncoder: String? = null,
+    )
+    private val _convertDialogPrefill = MutableStateFlow<ConvertDialogPrefill?>(null)
+    val convertDialogPrefill: StateFlow<ConvertDialogPrefill?> = _convertDialogPrefill.asStateFlow()
+
+    /**
      * Label of the transport currently servicing the active SSH profile —
      * `"SFTP"`, `"SCP"`, or null while non-SSH backends are active. Shown
      * as a badge in the path bar so users always know what they're on.
@@ -309,8 +355,27 @@ class SftpViewModel @Inject constructor(
     private val _activeTransportLabel = MutableStateFlow<String?>(null)
     val activeTransportLabel: StateFlow<String?> = _activeTransportLabel.asStateFlow()
 
-    fun openConvertDialog(entry: SftpEntry) { _convertDialogEntry.value = entry }
-    fun dismissConvertDialog() { _convertDialogEntry.value = null; clearPreview() }
+    fun openConvertDialog(entry: SftpEntry) {
+        _convertDialogPrefill.value = null
+        _convertDialogEntry.value = entry
+    }
+
+    /**
+     * Open the convert dialog for [entry] with the given form-field
+     * defaults pre-selected. Used by the agent's
+     * `open_convert_dialog_with_args` verb so a remote MCP client can
+     * stage a conversion for the user to review and confirm.
+     */
+    fun openConvertDialogPrefilled(entry: SftpEntry, prefill: ConvertDialogPrefill?) {
+        _convertDialogPrefill.value = prefill
+        _convertDialogEntry.value = entry
+    }
+
+    fun dismissConvertDialog() {
+        _convertDialogEntry.value = null
+        _convertDialogPrefill.value = null
+        clearPreview()
+    }
 
     /** Which entry the media-actions bottom sheet is showing, if any. */
     private val _mediaSheetEntry = MutableStateFlow<SftpEntry?>(null)

@@ -77,10 +77,13 @@ class McpToolsConsentTest {
             "list_rclone_directory",
             "list_sftp_directory",
             "read_terminal_scrollback",
-            // Navigation: opens a screen at a path the user could already
-            // tap to. Tap-equivalent, no consent needed.
+            // Navigation + dialog-staging: open a screen at a path or
+            // stage a dialog with prefilled args. The destructive action
+            // (transcode, in the convert case) still requires the user
+            // to tap Convert in the dialog. Tap-equivalent, no consent.
             "navigate_sftp_browser",
             "focus_terminal_session",
+            "open_convert_dialog_with_args",
         )) {
             val c = tools.consentFor(name)
                 ?: error("$name not registered")

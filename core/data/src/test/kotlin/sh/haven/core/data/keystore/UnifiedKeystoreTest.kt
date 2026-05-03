@@ -79,6 +79,42 @@ class UnifiedKeystoreTest {
     }
 
     @Test
+    fun `exportAudit captures a snapshot containing every entry`() = runTest {
+        val sshSection = mockk<SshKeySection>(relaxed = true).apply {
+            every { store } returns KeystoreStore.SSH_KEYS
+            coEvery { enumerate() } returns listOf(
+                entry("ssh-1", KeystoreStore.SSH_KEYS),
+                entry("ssh-2", KeystoreStore.SSH_KEYS),
+            )
+        }
+        val credSection = mockk<ProfileCredentialSection>(relaxed = true).apply {
+            every { store } returns KeystoreStore.PROFILE_CREDENTIALS
+            coEvery { enumerate() } returns listOf(
+                entry("p1/sshPassword", KeystoreStore.PROFILE_CREDENTIALS),
+            )
+        }
+        val keystore = UnifiedKeystore(sshSection, credSection)
+
+        val snapshot = keystore.exportAudit()
+        assertEquals(3, snapshot.entries.size)
+        assertEquals(
+            listOf("ssh-1", "ssh-2", "p1/sshPassword"),
+            snapshot.entries.map { it.id },
+        )
+        // Counts surface for at-a-glance audit summaries.
+        assertEquals(2, snapshot.countsByStore[KeystoreStore.SSH_KEYS])
+        assertEquals(1, snapshot.countsByStore[KeystoreStore.PROFILE_CREDENTIALS])
+        // capturedAt must be set; appVersion stays null at this layer
+        // (the wrapping audit screen / backup flow fills it in).
+        assertTrue(
+            "capturedAt must be a recent timestamp, got: ${snapshot.capturedAt}",
+            snapshot.capturedAt > 0 &&
+                snapshot.capturedAt <= System.currentTimeMillis(),
+        )
+        assertEquals(null, snapshot.appVersion)
+    }
+
+    @Test
     fun `wipe routes profile creds to the right section`() = runTest {
         val sshSection = mockk<SshKeySection>(relaxed = true).apply {
             every { store } returns KeystoreStore.SSH_KEYS

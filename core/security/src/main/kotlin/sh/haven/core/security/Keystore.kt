@@ -70,6 +70,31 @@ data class KeystoreEntry(
 )
 
 /**
+ * Snapshot of every [KeystoreEntry] across every section at a single
+ * point in time, suitable for export, audit-log archival, or
+ * round-tripping into a JSON backup. Carries only metadata — the same
+ * "no plaintext key material" invariant [KeystoreEntry] enforces is
+ * preserved here. The user can hand this file to anyone (an auditor,
+ * a security review, themselves on another device) without leaking
+ * secrets.
+ */
+data class KeystoreAuditSnapshot(
+    /** Epoch millis when the snapshot was taken. */
+    val capturedAt: Long,
+    /** Optional app version label. Useful for distinguishing snapshots taken across upgrades; null when not supplied. */
+    val appVersion: String? = null,
+    val entries: List<KeystoreEntry>,
+) {
+    /** Counts per [KeystoreStore], for at-a-glance audit summaries. */
+    val countsByStore: Map<KeystoreStore, Int>
+        get() = entries.groupingBy { it.store }.eachCount()
+
+    /** Counts per [KeyKind], distinguishing SSH_PRIVATE vs SSH_FIDO_SK vs PROFILE_PASSWORD. */
+    val countsByKind: Map<KeyKind, Int>
+        get() = entries.groupingBy { it.keyKind }.eachCount()
+}
+
+/**
  * One conceptual region of the unified [Keystore]. Each region wraps a
  * concrete persistent store (Room DAO / SharedPrefs / etc.) and
  * translates between its native shape and [KeystoreEntry].
@@ -110,4 +135,15 @@ interface Keystore {
      * actually wiped — false for unknown ids or no-op stores.
      */
     suspend fun wipe(store: KeystoreStore, entryId: String): Boolean
+
+    /**
+     * Capture a [KeystoreAuditSnapshot] of every entry across every
+     * section. Intended for export, periodic audit archival, or backup
+     * to a host that's syncing the user's metadata (without the
+     * secrets themselves). Implementations should populate
+     * [KeystoreAuditSnapshot.appVersion] when they have access to a
+     * stable version label; otherwise leave it null and let the caller
+     * supply one.
+     */
+    suspend fun exportAudit(): KeystoreAuditSnapshot
 }

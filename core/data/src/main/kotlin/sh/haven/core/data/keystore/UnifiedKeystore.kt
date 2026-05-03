@@ -1,6 +1,7 @@
 package sh.haven.core.data.keystore
 
 import sh.haven.core.security.Keystore
+import sh.haven.core.security.KeystoreAuditSnapshot
 import sh.haven.core.security.KeystoreEntry
 import sh.haven.core.security.KeystoreSection
 import sh.haven.core.security.KeystoreStore
@@ -42,5 +43,20 @@ class UnifiedKeystore @Inject constructor(
     override suspend fun wipe(store: KeystoreStore, entryId: String): Boolean {
         val section = sections[store] ?: return false
         return section.wipe(entryId)
+    }
+
+    /**
+     * Capture a snapshot at [System.currentTimeMillis]. The version
+     * label stays null here — `core/data` has no stable handle on the
+     * app's BuildConfig. The audit screen / backup flow that wraps
+     * this call is expected to fill in `appVersion` itself before
+     * persisting.
+     */
+    override suspend fun exportAudit(): KeystoreAuditSnapshot {
+        return KeystoreAuditSnapshot(
+            capturedAt = System.currentTimeMillis(),
+            appVersion = null,
+            entries = enumerate(),
+        )
     }
 }

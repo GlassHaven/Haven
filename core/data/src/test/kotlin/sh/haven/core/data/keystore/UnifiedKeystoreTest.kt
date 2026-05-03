@@ -11,6 +11,7 @@ import org.junit.Assert.assertTrue
 import org.junit.Test
 import sh.haven.core.security.KeyKind
 import sh.haven.core.security.KeystoreEntry
+import sh.haven.core.security.KeystoreFetch
 import sh.haven.core.security.KeystoreSection
 import sh.haven.core.security.KeystoreStore
 
@@ -112,6 +113,39 @@ class UnifiedKeystoreTest {
                 snapshot.capturedAt <= System.currentTimeMillis(),
         )
         assertEquals(null, snapshot.appVersion)
+    }
+
+    @Test
+    fun `fetch routes to the matching section`() = runTest {
+        val sshSection = mockk<SshKeySection>(relaxed = true).apply {
+            every { store } returns KeystoreStore.SSH_KEYS
+            coEvery { fetch("k1") } returns KeystoreFetch.Bytes(byteArrayOf(0x01, 0x02))
+        }
+        val credSection = mockk<ProfileCredentialSection>(relaxed = true).apply {
+            every { store } returns KeystoreStore.PROFILE_CREDENTIALS
+        }
+        val keystore = UnifiedKeystore(sshSection, credSection)
+
+        val result = keystore.fetch(KeystoreStore.SSH_KEYS, "k1")
+        assertTrue("expected Bytes, got: $result", result is KeystoreFetch.Bytes)
+        coVerify { sshSection.fetch("k1") }
+        coVerify(exactly = 0) { credSection.fetch(any()) }
+    }
+
+    @Test
+    fun `fetch on unknown store returns NotFound without touching sections`() = runTest {
+        // Can't easily construct a "third" KeystoreStore at compile time
+        // — the enum is exhaustive — so test the unknown-id path with a
+        // store the keystore knows but the section doesn't have.
+        val sshSection = mockk<SshKeySection>(relaxed = true).apply {
+            every { store } returns KeystoreStore.SSH_KEYS
+            coEvery { fetch("ghost") } returns KeystoreFetch.NotFound
+        }
+        val credSection = mockk<ProfileCredentialSection>(relaxed = true).apply {
+            every { store } returns KeystoreStore.PROFILE_CREDENTIALS
+        }
+        val keystore = UnifiedKeystore(sshSection, credSection)
+        assertEquals(KeystoreFetch.NotFound, keystore.fetch(KeystoreStore.SSH_KEYS, "ghost"))
     }
 
     @Test

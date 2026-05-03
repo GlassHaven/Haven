@@ -1,15 +1,21 @@
 package sh.haven.core.data.keystore
 
+import android.content.Context
+import android.util.Log
+import dagger.hilt.android.qualifiers.ApplicationContext
 import sh.haven.core.data.db.ConnectionDao
 import sh.haven.core.data.db.entities.ConnectionProfile
 import sh.haven.core.security.CredentialEncryption
 import sh.haven.core.security.KeyKind
 import sh.haven.core.security.KeystoreEntry
+import sh.haven.core.security.KeystoreFetch
 import sh.haven.core.security.KeystoreFlag
 import sh.haven.core.security.KeystoreSection
 import sh.haven.core.security.KeystoreStore
 import javax.inject.Inject
 import javax.inject.Singleton
+
+private const val TAG = "ProfileCredentialSection"
 
 /**
  * [KeystoreSection] over the password fields on [ConnectionProfile]
@@ -25,6 +31,7 @@ import javax.inject.Singleton
 @Singleton
 class ProfileCredentialSection @Inject constructor(
     private val connectionDao: ConnectionDao,
+    @ApplicationContext private val appContext: Context,
 ) : KeystoreSection {
 
     override val store: KeystoreStore = KeystoreStore.PROFILE_CREDENTIALS
@@ -95,5 +102,32 @@ class ProfileCredentialSection @Inject constructor(
         if (field.read(profile) == null) return false
         connectionDao.upsert(field.write(profile, null))
         return true
+    }
+
+    /**
+     * Decrypt the password value for the column identified by
+     * [entryId] (`"<profileId>/<fieldName>"`). Encrypted ("ENC:")
+     * values go through [CredentialEncryption.decrypt]; legacy
+     * plaintext values pass through unchanged (they're already
+     * plaintext and the migration path in `ConnectionRepository`
+     * upgrades them on next save).
+     */
+    override suspend fun fetch(entryId: String): KeystoreFetch {
+        val (profileId, fieldName) = entryId.split('/', limit = 2).takeIf { it.size == 2 }
+            ?: return KeystoreFetch.NotFound
+        val field = fields.firstOrNull { it.name == fieldName } ?: return KeystoreFetch.NotFound
+        val profile = connectionDao.getById(profileId) ?: return KeystoreFetch.NotFound
+        val raw = field.read(profile)?.takeIf { it.isNotEmpty() } ?: return KeystoreFetch.NotFound
+        return try {
+            val plain = if (CredentialEncryption.isEncrypted(raw)) {
+                CredentialEncryption.decrypt(appContext, raw)
+            } else {
+                raw
+            }
+            KeystoreFetch.Password(plain)
+        } catch (e: Exception) {
+            Log.w(TAG, "fetch failed for $entryId: ${e.message}")
+            KeystoreFetch.Failed("Decryption failed")
+        }
     }
 }

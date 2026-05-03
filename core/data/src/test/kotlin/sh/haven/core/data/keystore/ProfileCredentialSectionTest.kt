@@ -1,5 +1,6 @@
 package sh.haven.core.data.keystore
 
+import android.content.Context
 import io.mockk.coEvery
 import io.mockk.coVerify
 import io.mockk.mockk
@@ -12,6 +13,7 @@ import org.junit.Test
 import sh.haven.core.data.db.ConnectionDao
 import sh.haven.core.data.db.entities.ConnectionProfile
 import sh.haven.core.security.KeyKind
+import sh.haven.core.security.KeystoreFetch
 import sh.haven.core.security.KeystoreFlag
 import sh.haven.core.security.KeystoreStore
 
@@ -42,7 +44,7 @@ class ProfileCredentialSectionTest {
         val dao = mockk<ConnectionDao>(relaxed = true)
         coEvery { dao.getAll() } returns profiles
         for (p in profiles) coEvery { dao.getById(p.id) } returns p
-        return ProfileCredentialSection(dao) to dao
+        return ProfileCredentialSection(dao, mockk<Context>(relaxed = true)) to dao
     }
 
     @Test
@@ -148,6 +150,48 @@ class ProfileCredentialSectionTest {
         val (section, dao) = newSection(listOf(p))
         assertFalse(section.wipe("p1/vncPassword"))
         coVerify(exactly = 0) { dao.upsert(any()) }
+    }
+
+    @Test
+    fun `fetch on legacy plaintext password returns the value unchanged`() = runTest {
+        // Legacy plaintext (no ENC: prefix) bypasses CredentialEncryption
+        // entirely. Tests cover the migration-incomplete state without
+        // needing the Android Keystore to spin up Tink.
+        val p = profile(sshPassword = "legacy-plaintext")
+        val (section, _) = newSection(listOf(p))
+        val result = section.fetch("p1/sshPassword")
+        assertTrue("expected Password, got: $result", result is KeystoreFetch.Password)
+        assertEquals("legacy-plaintext", (result as KeystoreFetch.Password).value)
+    }
+
+    @Test
+    fun `fetch on missing profile returns NotFound`() = runTest {
+        val (section, dao) = newSection(emptyList())
+        coEvery { dao.getById(any()) } returns null
+        assertEquals(KeystoreFetch.NotFound, section.fetch("ghost/sshPassword"))
+    }
+
+    @Test
+    fun `fetch with malformed entryId returns NotFound`() = runTest {
+        val (section, _) = newSection(emptyList())
+        assertEquals(KeystoreFetch.NotFound, section.fetch("no-slash-here"))
+    }
+
+    @Test
+    fun `fetch on null password returns NotFound`() = runTest {
+        // Profile exists but the field is null. Distinguish from "wrong
+        // entryId" — both surface as NotFound but the dao gets touched
+        // here, not in the malformed-id case.
+        val p = profile(sshPassword = "ENC:x") // vncPassword is null
+        val (section, _) = newSection(listOf(p))
+        assertEquals(KeystoreFetch.NotFound, section.fetch("p1/vncPassword"))
+    }
+
+    @Test
+    fun `fetch on unknown field name returns NotFound`() = runTest {
+        val p = profile(sshPassword = "ENC:x")
+        val (section, _) = newSection(listOf(p))
+        assertEquals(KeystoreFetch.NotFound, section.fetch("p1/notARealField"))
     }
 
     @Test

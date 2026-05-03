@@ -1,12 +1,15 @@
 package sh.haven.core.data.keystore
 
+import android.content.Context
 import android.util.Log
+import dagger.hilt.android.qualifiers.ApplicationContext
 import sh.haven.core.data.db.SshKeyDao
 import sh.haven.core.data.db.entities.SshKey
 import sh.haven.core.fido.SkKeyData
 import sh.haven.core.security.KeyEncryption
 import sh.haven.core.security.KeyKind
 import sh.haven.core.security.KeystoreEntry
+import sh.haven.core.security.KeystoreFetch
 import sh.haven.core.security.KeystoreFlag
 import sh.haven.core.security.KeystoreSection
 import sh.haven.core.security.KeystoreStore
@@ -32,6 +35,7 @@ private const val TAG = "SshKeySection"
 @Singleton
 class SshKeySection @Inject constructor(
     private val sshKeyDao: SshKeyDao,
+    @ApplicationContext private val appContext: Context,
 ) : KeystoreSection {
 
     override val store: KeystoreStore = KeystoreStore.SSH_KEYS
@@ -48,6 +52,39 @@ class SshKeySection @Inject constructor(
         val existed = sshKeyDao.getById(entryId) != null
         if (existed) sshKeyDao.deleteById(entryId)
         return existed
+    }
+
+    /**
+     * Fetch the row's stored bytes. For a regular SSH key the bytes
+     * are decrypted via [KeyEncryption] (Tink AEAD); for a FIDO2 SK
+     * credential the bytes are the serialized [SkKeyData] descriptor,
+     * which contains no signing material. The caller's
+     * [KeystoreEntry.keyKind] tells which kind they're looking at.
+     *
+     * Bytes returned here are secret-bearing for [KeyKind.SSH_PRIVATE]
+     * — caller must treat as plaintext key material. For
+     * [KeyKind.SSH_FIDO_SK] they're public-shaped (the descriptor) but
+     * still kept inside the same envelope so callers don't have to
+     * branch on kind to decrypt.
+     */
+    override suspend fun fetch(entryId: String): KeystoreFetch {
+        val row = sshKeyDao.getById(entryId) ?: return KeystoreFetch.NotFound
+        return try {
+            val raw = row.privateKeyBytes
+            val out = when {
+                SkKeyData.isSkKeyBlob(raw) -> raw
+                KeyEncryption.isEncrypted(raw) -> KeyEncryption.decrypt(appContext, raw)
+                // Legacy unencrypted row from before encryption was
+                // added — pass through unchanged.
+                else -> raw
+            }
+            KeystoreFetch.Bytes(out)
+        } catch (e: Exception) {
+            Log.w(TAG, "fetch failed for key id=${row.id}: ${e.message}")
+            // Don't leak the cipher message verbatim; the audit row
+            // and any UI surface keep it generic.
+            KeystoreFetch.Failed("Decryption failed")
+        }
     }
 
     private fun toEntry(row: SshKey): KeystoreEntry {

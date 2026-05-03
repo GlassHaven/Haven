@@ -3,6 +3,7 @@ package sh.haven.core.data.keystore
 import sh.haven.core.security.Keystore
 import sh.haven.core.security.KeystoreAuditSnapshot
 import sh.haven.core.security.KeystoreEntry
+import sh.haven.core.security.KeystoreFetch
 import sh.haven.core.security.KeystoreSection
 import sh.haven.core.security.KeystoreStore
 import javax.inject.Inject
@@ -58,5 +59,10 @@ class UnifiedKeystore @Inject constructor(
             appVersion = null,
             entries = enumerate(),
         )
+    }
+
+    override suspend fun fetch(store: KeystoreStore, entryId: String): KeystoreFetch {
+        val section = sections[store] ?: return KeystoreFetch.NotFound
+        return section.fetch(entryId)
     }
 }

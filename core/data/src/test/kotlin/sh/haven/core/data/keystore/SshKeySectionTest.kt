@@ -1,5 +1,6 @@
 package sh.haven.core.data.keystore
 
+import android.content.Context
 import io.mockk.coEvery
 import io.mockk.coVerify
 import io.mockk.mockk
@@ -13,6 +14,7 @@ import sh.haven.core.data.db.SshKeyDao
 import sh.haven.core.data.db.entities.SshKey
 import sh.haven.core.fido.SkKeyData
 import sh.haven.core.security.KeyKind
+import sh.haven.core.security.KeystoreFetch
 import sh.haven.core.security.KeystoreFlag
 import sh.haven.core.security.KeystoreStore
 
@@ -30,7 +32,11 @@ class SshKeySectionTest {
         for (row in rows) {
             coEvery { dao.getById(row.id) } returns row
         }
-        return SshKeySection(dao) to dao
+        // KeyEncryption.decrypt is only reached on the encrypted-bytes
+        // branch of fetch(); the tests below stick to legacy plaintext
+        // and FIDO SK blobs so the Context never gets used. Mock it
+        // anyway to satisfy the Hilt-shaped constructor.
+        return SshKeySection(dao, mockk<Context>(relaxed = true)) to dao
     }
 
     @Test
@@ -179,6 +185,59 @@ class SshKeySectionTest {
         }
         val (section, _) = newSection(rows)
         assertEquals(listOf("a", "b", "c"), section.enumerate().map { it.id })
+    }
+
+    @Test
+    fun `fetch returns legacy plaintext bytes unchanged`() = runTest {
+        // Bytes that don't start with the SK magic AND don't look like
+        // Tink AEAD ciphertext (first byte 0x2D '-' hits the PEM
+        // shortcut in KeyEncryption.isEncrypted, falling through to
+        // legacy-passthrough).
+        val pemPrefix = "-----BEGIN OPENSSH PRIVATE KEY-----\n…".toByteArray()
+        val row = SshKey(
+            id = "k-legacy", label = "legacy",
+            keyType = "Ed25519",
+            privateKeyBytes = pemPrefix,
+            publicKeyOpenSsh = "ssh-ed25519 …",
+            fingerprintSha256 = "SHA256:legacy",
+        )
+        val (section, _) = newSection(listOf(row))
+        val result = section.fetch("k-legacy")
+        assertTrue("expected Bytes, got: $result", result is KeystoreFetch.Bytes)
+        assertTrue((result as KeystoreFetch.Bytes).data.contentEquals(pemPrefix))
+    }
+
+    @Test
+    fun `fetch on FIDO SK returns the descriptor bytes unchanged`() = runTest {
+        // SK blobs aren't encrypted — the descriptor (credentialId +
+        // public key) is fetched verbatim. The signing material lives
+        // on the security key, never here.
+        val sk = SkKeyData(
+            algorithmName = "sk-ssh-ed25519@openssh.com",
+            publicKeyBlob = byteArrayOf(0x01, 0x02),
+            application = "ssh:primary",
+            credentialId = byteArrayOf(0x10, 0x20),
+            flags = 0x05,
+        )
+        val skBytes = SkKeyData.serialize(sk)
+        val row = SshKey(
+            id = "fido-fetch", label = "yubikey",
+            keyType = "ed25519-sk",
+            privateKeyBytes = skBytes,
+            publicKeyOpenSsh = "sk-ssh-ed25519@openssh.com …",
+            fingerprintSha256 = "SHA256:sk",
+        )
+        val (section, _) = newSection(listOf(row))
+        val result = section.fetch("fido-fetch")
+        assertTrue("expected Bytes, got: $result", result is KeystoreFetch.Bytes)
+        assertTrue((result as KeystoreFetch.Bytes).data.contentEquals(skBytes))
+    }
+
+    @Test
+    fun `fetch on missing entry returns NotFound`() = runTest {
+        val (section, dao) = newSection(emptyList())
+        coEvery { dao.getById(any()) } returns null
+        assertEquals(KeystoreFetch.NotFound, section.fetch("ghost"))
     }
 
     @Test

@@ -95,6 +95,43 @@ data class KeystoreAuditSnapshot(
 }
 
 /**
+ * Result of a [KeystoreSection.fetch] / [Keystore.fetch] call. The
+ * sealed shape forces callers to handle every state explicitly: a
+ * successful fetch returns either decrypted bytes or a decrypted
+ * password value, a missing entry returns [NotFound], and a decrypt /
+ * IO error surfaces as [Failed].
+ *
+ * The plaintext-bearing variants ([Bytes], [Password]) are the *only*
+ * surface in this package that exposes secret material. Callers MUST
+ * treat them as secret — never log, never persist outside the source
+ * store, and zero / overwrite when done where feasible.
+ */
+sealed class KeystoreFetch {
+    /**
+     * Plaintext key material. For [KeyKind.SSH_PRIVATE] the bytes are
+     * the decrypted private key (PEM / OpenSSH); for
+     * [KeyKind.SSH_FIDO_SK] the bytes are the serialized SK descriptor
+     * (credential ID + public key, no signing material). The
+     * corresponding [KeystoreEntry.keyKind] tells callers which they
+     * have.
+     */
+    class Bytes(val data: ByteArray) : KeystoreFetch()
+
+    /** Plaintext password value for a profile credential. */
+    class Password(val value: String) : KeystoreFetch()
+
+    /** Entry id not registered in this section / store. */
+    data object NotFound : KeystoreFetch()
+
+    /**
+     * Fetch failed. [reason] is a short human-readable label suitable
+     * for surfacing in the audit log; it never carries cipher state or
+     * the secret itself.
+     */
+    class Failed(val reason: String) : KeystoreFetch()
+}
+
+/**
  * One conceptual region of the unified [Keystore]. Each region wraps a
  * concrete persistent store (Room DAO / SharedPrefs / etc.) and
  * translates between its native shape and [KeystoreEntry].
@@ -114,6 +151,19 @@ interface KeystoreSection {
      * something was actually wiped.
      */
     suspend fun wipe(entryId: String): Boolean
+
+    /**
+     * Retrieve the secret material for [entryId]. Implementations
+     * decrypt at-rest material and return the plaintext via
+     * [KeystoreFetch.Bytes] or [KeystoreFetch.Password]; missing or
+     * failed lookups surface through [KeystoreFetch.NotFound] /
+     * [KeystoreFetch.Failed].
+     *
+     * Stage 4 of issue #129 will layer per-entry biometric gating on
+     * top of this method. The current contract is unconditional:
+     * whoever calls [fetch] gets the material if the lookup succeeds.
+     */
+    suspend fun fetch(entryId: String): KeystoreFetch
 }
 
 /**
@@ -146,4 +196,12 @@ interface Keystore {
      * supply one.
      */
     suspend fun exportAudit(): KeystoreAuditSnapshot
+
+    /**
+     * Retrieve secret material for a single entry. Routes to the
+     * matching [KeystoreSection]. Returns [KeystoreFetch.NotFound] for
+     * unknown stores or missing entry ids; [KeystoreFetch.Failed] for
+     * decrypt errors (with a human-readable, secret-free reason).
+     */
+    suspend fun fetch(store: KeystoreStore, entryId: String): KeystoreFetch
 }

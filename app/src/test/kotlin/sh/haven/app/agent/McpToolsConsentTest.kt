@@ -63,6 +63,7 @@ class McpToolsConsentTest {
             terminalFontInstaller = mockk<TerminalFontInstaller>(relaxed = true),
             localSessionManager = mockk<LocalSessionManager>(relaxed = true),
             agentUiCommandBus = sh.haven.core.data.agent.AgentUiCommandBus(),
+            transportSelector = mockk<sh.haven.feature.sftp.transport.TransportSelector>(relaxed = true),
         )
     }
 
@@ -74,6 +75,10 @@ class McpToolsConsentTest {
             "list_connections",
             "list_sessions",
             "list_rclone_remotes",
+            // Unified backend-agnostic listing (#127). The two
+            // per-backend tools below are deprecated aliases pointing
+            // at this one.
+            "list_directory",
             "list_rclone_directory",
             "list_sftp_directory",
             "read_terminal_scrollback",
@@ -113,6 +118,11 @@ class McpToolsConsentTest {
     fun `destructive write tools are EVERY_CALL`() {
         val tools = newTools()
         for (name in listOf(
+            // Unified backend-agnostic write/delete (#127).
+            "upload_file",
+            "delete_file",
+            // Deprecated SSH-only originals — kept for backward compat,
+            // still EVERY_CALL.
             "upload_file_to_sftp",
             "delete_sftp_file",
             "send_terminal_input",
@@ -127,6 +137,33 @@ class McpToolsConsentTest {
                 "$name must prompt on every call",
                 ConsentLevel.EVERY_CALL,
                 c.level,
+            )
+        }
+    }
+
+    @Test
+    fun `deprecated tool descriptions point at the unified replacement`() {
+        // Pin the deprecation breadcrumbs so a future renamer doesn't
+        // silently drop the migration hint. Agents that still use the
+        // old tool names should be nudged toward the new ones via the
+        // tools/list response.
+        val tools = newTools()
+        val defs = tools.definitions().associateBy { it.optString("name") }
+        for ((deprecated, replacement) in mapOf(
+            "list_sftp_directory" to "list_directory",
+            "list_rclone_directory" to "list_directory",
+            "upload_file_to_sftp" to "upload_file",
+            "delete_sftp_file" to "delete_file",
+        )) {
+            val desc = defs[deprecated]?.optString("description")
+                ?: error("$deprecated missing")
+            assertTrue(
+                "$deprecated description must mention DEPRECATED, got: $desc",
+                desc.contains("DEPRECATED", ignoreCase = true),
+            )
+            assertTrue(
+                "$deprecated description must point at $replacement, got: $desc",
+                desc.contains(replacement),
             )
         }
     }

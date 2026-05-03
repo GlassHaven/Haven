@@ -60,6 +60,7 @@ internal class McpTools(
     private val terminalFontInstaller: TerminalFontInstaller,
     private val localSessionManager: LocalSessionManager,
     private val agentUiCommandBus: sh.haven.core.data.agent.AgentUiCommandBus,
+    private val transportSelector: sh.haven.feature.sftp.transport.TransportSelector,
 ) {
 
     /**
@@ -99,8 +100,26 @@ internal class McpTools(
             inputSchema = emptyObjectSchema(),
         ) { _ -> listRcloneRemotes() },
 
+        "list_directory" to ToolHandler(
+            description = "List entries at a path on any connected backend (local, SSH/SFTP, SMB, rclone). Resolves the right driver from profileId — pass the literal string 'local' for the device filesystem, otherwise a profile ID from list_connections. Returns name, path, isDir, size, modTime, permissions, and mimeType for each entry. Replaces list_sftp_directory and list_rclone_directory; those still work as deprecated aliases.",
+            inputSchema = JSONObject().apply {
+                put("type", "object")
+                put("properties", JSONObject().apply {
+                    put("profileId", JSONObject().apply {
+                        put("type", "string")
+                        put("description", "Connection profile ID, or 'local' for the device filesystem.")
+                    })
+                    put("path", JSONObject().apply {
+                        put("type", "string")
+                        put("description", "Directory path to list. Default '/' (POSIX backends), '' (rclone root), '/' for local synthetic-roots view.")
+                    })
+                })
+                put("required", JSONArray().put("profileId"))
+            },
+        ) { args -> listDirectory(args) },
+
         "list_rclone_directory" to ToolHandler(
-            description = "List files and subdirectories at a given path on an rclone remote. Returns name, isDir, size, mimeType, and modTime for each entry.",
+            description = "DEPRECATED: prefer list_directory(profileId=..., path=...). List files and subdirectories at a given path on an rclone remote. Returns name, isDir, size, mimeType, and modTime for each entry.",
             inputSchema = JSONObject().apply {
                 put("type", "object")
                 put("properties", JSONObject().apply {
@@ -118,7 +137,7 @@ internal class McpTools(
         ) { args -> listRcloneDirectory(args) },
 
         "list_sftp_directory" to ToolHandler(
-            description = "List files at a path on a connected SFTP profile. Requires an already-connected SSH/SFTP session for the profile.",
+            description = "DEPRECATED: prefer list_directory(profileId=..., path=...). List files at a path on a connected SFTP profile. Requires an already-connected SSH/SFTP session for the profile.",
             inputSchema = JSONObject().apply {
                 put("type", "object")
                 put("properties", JSONObject().apply {
@@ -317,8 +336,43 @@ internal class McpTools(
             summarise = { args -> "Remove port-forward rule ${args.optString("ruleId").take(8)}…?" },
         ) { args -> removePortForward(args) },
 
+        "upload_file" to ToolHandler(
+            description = "Write a local file to a path on any connected backend (local, SSH, SMB, rclone). Source must live under Haven's app cache (context.cacheDir) — the agent has no other writable surface, so this constraint blocks reads of arbitrary device files via the upload destination. Currently uses small-file semantics (loads the source into memory); streaming variants ship in a later #126 stage. Replaces upload_file_to_sftp; that still works as a deprecated alias for the SSH streaming path.",
+            inputSchema = JSONObject().apply {
+                put("type", "object")
+                put("properties", JSONObject().apply {
+                    put("profileId", JSONObject().apply { put("type", "string"); put("description", "Connection profile ID, or 'local' for the device filesystem.") })
+                    put("localPath", JSONObject().apply { put("type", "string"); put("description", "Absolute path to a file under context.cacheDir on the device.") })
+                    put("remotePath", JSONObject().apply { put("type", "string"); put("description", "Destination path on the target backend.") })
+                })
+                put("required", JSONArray().put("profileId").put("localPath").put("remotePath"))
+            },
+            consentLevel = ConsentLevel.EVERY_CALL,
+            summarise = { args ->
+                val pid = args.optString("profileId")
+                val local = args.optString("localPath", "?")
+                val size = try { File(local).length() } catch (_: Exception) { 0L }
+                val sizeStr = if (size > 0) "${size / 1024} KiB" else "(unknown size)"
+                "Upload $sizeStr → ${args.optString("remotePath")} on \"${profileLabel(pid)}\"?"
+            },
+        ) { args -> uploadFile(args) },
+
+        "delete_file" to ToolHandler(
+            description = "Delete a file (not a directory) on any connected backend (local, SSH, SMB, rclone). Replaces delete_sftp_file; that still works as a deprecated alias.",
+            inputSchema = JSONObject().apply {
+                put("type", "object")
+                put("properties", JSONObject().apply {
+                    put("profileId", JSONObject().apply { put("type", "string"); put("description", "Connection profile ID, or 'local' for the device filesystem.") })
+                    put("path", JSONObject().apply { put("type", "string"); put("description", "Path of the file to delete.") })
+                })
+                put("required", JSONArray().put("profileId").put("path"))
+            },
+            consentLevel = ConsentLevel.EVERY_CALL,
+            summarise = { args -> "Delete ${args.optString("path")} on \"${profileLabel(args.optString("profileId"))}\"?" },
+        ) { args -> deleteFile(args) },
+
         "upload_file_to_sftp" to ToolHandler(
-            description = "Upload a local file to a path on a connected SFTP profile. Source must be a path under Haven's app cache (context.cacheDir) — the agent has no other writable surface, so this constraint blocks reads of arbitrary files via the upload destination. Requires a connected SSH/SFTP session.",
+            description = "DEPRECATED: prefer upload_file(profileId=..., localPath=..., remotePath=...). Upload a local file to a path on a connected SFTP profile. Source must be a path under Haven's app cache (context.cacheDir) — the agent has no other writable surface, so this constraint blocks reads of arbitrary files via the upload destination. Requires a connected SSH/SFTP session. Uses streaming SFTP put (no in-memory buffer); use this for files larger than ~50 MiB until upload_file gains streaming support.",
             inputSchema = JSONObject().apply {
                 put("type", "object")
                 put("properties", JSONObject().apply {
@@ -339,7 +393,7 @@ internal class McpTools(
         ) { args -> uploadFileToSftp(args) },
 
         "delete_sftp_file" to ToolHandler(
-            description = "Delete a file (not directory) from a connected SFTP profile. Requires a connected SSH/SFTP session.",
+            description = "DEPRECATED: prefer delete_file(profileId=..., path=...). Delete a file (not directory) from a connected SFTP profile. Requires a connected SSH/SFTP session.",
             inputSchema = JSONObject().apply {
                 put("type", "object")
                 put("properties", JSONObject().apply {
@@ -598,6 +652,117 @@ internal class McpTools(
             }
         } catch (e: Exception) {
             throw McpError(-32603, "Failed to list rclone remotes: ${e.message}")
+        }
+    }
+
+    /**
+     * Backend-agnostic listing — collapses [listSftpDirectory] and
+     * [listRcloneDirectory] (which stay registered as deprecated
+     * aliases). Resolves the [FileBackend] from `profileId` via
+     * [transportSelector], so adding a new backend lights this up
+     * automatically.
+     */
+    private suspend fun listDirectory(args: JSONObject): JSONObject = withContext(Dispatchers.IO) {
+        val profileId = args.optString("profileId").ifEmpty {
+            throw McpError(-32602, "Missing required argument: profileId")
+        }
+        val path = args.optString("path", "/").ifEmpty { "/" }
+        val resolution = transportSelector.resolveFileBackend(profileId)
+            ?: throw McpError(-32603, "No connected backend for profile $profileId")
+        val arr = JSONArray()
+        try {
+            for (entry in resolution.backend.list(path)) {
+                arr.put(JSONObject().apply {
+                    put("name", entry.name)
+                    put("path", entry.path)
+                    put("isDir", entry.isDirectory)
+                    put("size", entry.size)
+                    put("mtime", entry.modifiedTime)
+                    put("permissions", entry.permissions)
+                    entry.mimeType?.let { put("mimeType", it) }
+                })
+            }
+        } catch (e: Exception) {
+            throw McpError(-32603, "Failed to list $path: ${e.message}")
+        }
+        JSONObject().apply {
+            put("profileId", profileId)
+            put("backend", resolution.backend.label)
+            put("path", path)
+            put("count", arr.length())
+            put("entries", arr)
+        }
+    }
+
+    /**
+     * Backend-agnostic upload via [FileBackend.writeBytes]. Loads the
+     * source into memory; agents wanting streaming for large files
+     * still use the SSH-only [uploadFileToSftp] until #126 stage 4+
+     * promotes streaming to [FileBackend].
+     */
+    private suspend fun uploadFile(args: JSONObject): JSONObject = withContext(Dispatchers.IO) {
+        val profileId = args.optString("profileId").ifEmpty {
+            throw McpError(-32602, "Missing required argument: profileId")
+        }
+        val localPath = args.optString("localPath").ifEmpty {
+            throw McpError(-32602, "Missing required argument: localPath")
+        }
+        val remotePath = args.optString("remotePath").ifEmpty {
+            throw McpError(-32602, "Missing required argument: remotePath")
+        }
+        val cacheRoot = context.cacheDir.canonicalFile
+        val source = try {
+            File(localPath).canonicalFile
+        } catch (e: Exception) {
+            throw McpError(-32602, "Cannot resolve localPath: ${e.message}")
+        }
+        if (!source.path.startsWith(cacheRoot.path + File.separator) && source.path != cacheRoot.path) {
+            throw McpError(-32602, "localPath must be inside Haven's app cache (${cacheRoot.path})")
+        }
+        if (!source.exists() || !source.isFile) {
+            throw McpError(-32602, "localPath does not point to a regular file")
+        }
+        val resolution = transportSelector.resolveFileBackend(profileId)
+            ?: throw McpError(-32603, "No connected backend for profile $profileId")
+        val data = source.readBytes()
+        try {
+            resolution.backend.writeBytes(remotePath, data)
+        } catch (e: Exception) {
+            throw McpError(-32603, "Upload failed: ${e.message}")
+        }
+        JSONObject().apply {
+            put("profileId", profileId)
+            put("backend", resolution.backend.label)
+            put("remotePath", remotePath)
+            put("bytesUploaded", source.length())
+        }
+    }
+
+    /**
+     * Backend-agnostic file delete via [FileBackend.delete]. Refuses
+     * directories — `delete_file` always passes `isDirectory = false`
+     * so an agent that wants directory deletion has to use a separate
+     * verb when one ships.
+     */
+    private suspend fun deleteFile(args: JSONObject): JSONObject = withContext(Dispatchers.IO) {
+        val profileId = args.optString("profileId").ifEmpty {
+            throw McpError(-32602, "Missing required argument: profileId")
+        }
+        val path = args.optString("path").ifEmpty {
+            throw McpError(-32602, "Missing required argument: path")
+        }
+        val resolution = transportSelector.resolveFileBackend(profileId)
+            ?: throw McpError(-32603, "No connected backend for profile $profileId")
+        try {
+            resolution.backend.delete(path, isDirectory = false)
+        } catch (e: Exception) {
+            throw McpError(-32603, "Delete failed: ${e.message}")
+        }
+        JSONObject().apply {
+            put("profileId", profileId)
+            put("backend", resolution.backend.label)
+            put("path", path)
+            put("deleted", true)
         }
     }
 

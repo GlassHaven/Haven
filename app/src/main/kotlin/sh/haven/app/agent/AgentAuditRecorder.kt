@@ -167,6 +167,12 @@ private fun summariseResult(toolName: String?, result: JSONObject?): String? {
             val path = result.optString("path", "")
             if (n >= 0) "$n entries at $remote:$path" else null
         }
+        "list_directory" -> {
+            val n = result.optInt("count", -1)
+            val backend = result.optString("backend", "")
+            val path = result.optString("path", "")
+            if (n >= 0) "$n entries via $backend at $path" else null
+        }
         "get_app_info" -> result.optString("version", "").takeIf { it.isNotEmpty() }?.let { "version $it" }
         "play_file" -> result.optString("mimeType", "").takeIf { it.isNotEmpty() }?.let { "dispatched $it" }
         "navigate_sftp_browser" -> {
@@ -184,6 +190,12 @@ private fun summariseResult(toolName: String?, result: JSONObject?): String? {
         "remove_port_forward" -> if (result.optBoolean("deactivated", false)) "removed and deactivated" else "removed"
         "upload_file_to_sftp" -> result.optLong("bytesUploaded", -1L).takeIf { it >= 0 }?.let { "uploaded ${it} bytes" }
         "delete_sftp_file" -> "deleted"
+        "upload_file" -> {
+            val n = result.optLong("bytesUploaded", -1L)
+            val backend = result.optString("backend", "")
+            if (n >= 0) "uploaded $n bytes via $backend" else null
+        }
+        "delete_file" -> result.optString("backend", "").takeIf { it.isNotEmpty() }?.let { "deleted via $it" } ?: "deleted"
         "send_terminal_input" -> result.optInt("bytesSent", -1).takeIf { it >= 0 }?.let { "$it bytes typed" }
         "convert_file" -> {
             val size = result.optLong("sizeBytes", -1L)

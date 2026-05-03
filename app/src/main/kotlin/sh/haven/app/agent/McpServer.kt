@@ -93,6 +93,7 @@ class McpServer @Inject constructor(
     private val auditRecorder: AgentAuditRecorder,
     private val consentManager: AgentConsentManager,
     private val agentUiCommandBus: sh.haven.core.data.agent.AgentUiCommandBus,
+    private val transportSelector: sh.haven.feature.sftp.transport.TransportSelector,
 ) : Closeable {
 
     /**
@@ -165,6 +166,7 @@ class McpServer @Inject constructor(
         terminalFontInstaller = terminalFontInstaller,
         localSessionManager = localSessionManager,
         agentUiCommandBus = agentUiCommandBus,
+        transportSelector = transportSelector,
     )
 
     /**

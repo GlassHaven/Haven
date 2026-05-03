@@ -62,11 +62,12 @@ class McpToolsConsentTest {
             preferencesRepository = mockk<UserPreferencesRepository>(relaxed = true),
             terminalFontInstaller = mockk<TerminalFontInstaller>(relaxed = true),
             localSessionManager = mockk<LocalSessionManager>(relaxed = true),
+            agentUiCommandBus = sh.haven.core.data.agent.AgentUiCommandBus(),
         )
     }
 
     @Test
-    fun `read-only tools are NEVER`() {
+    fun `read-only and tap-equivalent tools are NEVER`() {
         val tools = newTools()
         for (name in listOf(
             "get_app_info",
@@ -76,6 +77,9 @@ class McpToolsConsentTest {
             "list_rclone_directory",
             "list_sftp_directory",
             "read_terminal_scrollback",
+            // Navigation: opens a screen at a path the user could already
+            // tap to. Tap-equivalent, no consent needed.
+            "navigate_sftp_browser",
         )) {
             val c = tools.consentFor(name)
                 ?: error("$name not registered")

@@ -169,6 +169,11 @@ private fun summariseResult(toolName: String?, result: JSONObject?): String? {
         }
         "get_app_info" -> result.optString("version", "").takeIf { it.isNotEmpty() }?.let { "version $it" }
         "play_file" -> result.optString("mimeType", "").takeIf { it.isNotEmpty() }?.let { "dispatched $it" }
+        "navigate_sftp_browser" -> {
+            val pid = result.optString("profileId", "")
+            val path = result.optString("path", "")
+            if (pid.isNotEmpty()) "$pid:$path" else null
+        }
         "read_terminal_scrollback" -> result.optInt("byteCount", -1).takeIf { it >= 0 }?.let { "$it bytes" }
         "disconnect_profile" -> "disconnected"
         "add_port_forward" -> {

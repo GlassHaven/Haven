@@ -62,6 +62,7 @@ class McpServerConsentTest {
             localSessionManager = mockk<LocalSessionManager>(relaxed = true),
             auditRecorder = auditRecorder,
             consentManager = consentManager,
+            agentUiCommandBus = sh.haven.core.data.agent.AgentUiCommandBus(),
         )
         return server to auditRecorder
     }

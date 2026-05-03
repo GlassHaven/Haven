@@ -78,6 +78,7 @@ import kotlin.math.roundToInt
 fun HavenNavHost(
     preferencesRepository: UserPreferencesRepository,
     connectionRepository: ConnectionRepository,
+    agentUiCommandBus: sh.haven.core.data.agent.AgentUiCommandBus,
 ) {
     // Desktop multi-session ViewModel — hoisted to nav scope so it survives tab switches
     val desktopViewModel: DesktopViewModel = hiltViewModel()
@@ -133,6 +134,21 @@ fun HavenNavHost(
         DebugNavEvents.requests.collect { route ->
             val target = screens.indexOfFirst { it.route == route }
             if (target >= 0) pagerState.animateScrollToPage(target)
+        }
+    }
+
+    // Agent UI commands — when an MCP tool posts a navigation verb, switch
+    // the pager to the right tab so the user lands where the agent asked.
+    // The matching feature ViewModel collects the same bus and adjusts its
+    // internal state in parallel.
+    LaunchedEffect(agentUiCommandBus, screens) {
+        agentUiCommandBus.commands.collect { command ->
+            when (command) {
+                is sh.haven.core.data.agent.AgentUiCommand.NavigateToSftpPath -> {
+                    val target = screens.indexOfFirst { it.route == sh.haven.core.ui.navigation.Screen.Sftp.route }
+                    if (target >= 0) pagerState.animateScrollToPage(target)
+                }
+            }
         }
     }
 

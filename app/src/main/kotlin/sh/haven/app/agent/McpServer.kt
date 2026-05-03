@@ -92,6 +92,7 @@ class McpServer @Inject constructor(
     private val localSessionManager: LocalSessionManager,
     private val auditRecorder: AgentAuditRecorder,
     private val consentManager: AgentConsentManager,
+    private val agentUiCommandBus: sh.haven.core.data.agent.AgentUiCommandBus,
 ) : Closeable {
 
     /**
@@ -163,6 +164,7 @@ class McpServer @Inject constructor(
         preferencesRepository = preferencesRepository,
         terminalFontInstaller = terminalFontInstaller,
         localSessionManager = localSessionManager,
+        agentUiCommandBus = agentUiCommandBus,
     )
 
     /**

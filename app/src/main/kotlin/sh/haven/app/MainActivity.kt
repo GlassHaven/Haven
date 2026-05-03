@@ -47,6 +47,9 @@ class MainActivity : AppCompatActivity() {
     // when there's no activity to render the prompt. The §85 rule
     // forbids letting destructive agent calls slip through silently.
     @Inject lateinit var agentConsentManager: AgentConsentManager
+    // Cross-tab navigation verbs: HavenNavHost collects from this so an
+    // MCP `navigate_sftp_browser` switches the pager to the right tab.
+    @Inject lateinit var agentUiCommandBus: sh.haven.core.data.agent.AgentUiCommandBus
 
     private fun exitIfDisconnected() {
         if (SshConnectionService.disconnectedAll) {
@@ -142,6 +145,7 @@ class MainActivity : AppCompatActivity() {
                     HavenNavHost(
                         preferencesRepository = preferencesRepository,
                         connectionRepository = connectionRepository,
+                        agentUiCommandBus = agentUiCommandBus,
                     )
                     // Floats above whatever screen is active so an
                     // agent's consent prompt is unmissable. No-op when

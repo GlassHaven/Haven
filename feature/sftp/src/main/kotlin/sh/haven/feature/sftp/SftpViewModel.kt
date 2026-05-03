@@ -150,8 +150,28 @@ class SftpViewModel @Inject constructor(
     val hlsStreamServer: sh.haven.core.ffmpeg.HlsStreamServer,
     private val sftpStreamServer: SftpStreamServer,
     private val pasteQueueDao: sh.haven.core.data.db.PasteQueueDao,
+    private val agentUiCommandBus: sh.haven.core.data.agent.AgentUiCommandBus,
     @ApplicationContext private val appContext: Context,
 ) : ViewModel() {
+
+    init {
+        // Subscribe to agent-driven UI commands so an MCP-issued navigation
+        // verb can drive the file browser to a new profile/path. The
+        // matching pager switch happens in HavenNavHost; both collectors
+        // run in parallel against the same SharedFlow.
+        viewModelScope.launch {
+            agentUiCommandBus.commands.collect { command ->
+                when (command) {
+                    is sh.haven.core.data.agent.AgentUiCommand.NavigateToSftpPath -> {
+                        if (_activeProfileId.value != command.profileId) {
+                            selectProfile(command.profileId)
+                        }
+                        navigateTo(command.path)
+                    }
+                }
+            }
+        }
+    }
 
     private val _connectedProfiles = MutableStateFlow<List<ConnectionProfile>>(emptyList())
     val connectedProfiles: StateFlow<List<ConnectionProfile>> = _connectedProfiles.asStateFlow()

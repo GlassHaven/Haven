@@ -59,6 +59,7 @@ internal class McpTools(
     private val preferencesRepository: UserPreferencesRepository,
     private val terminalFontInstaller: TerminalFontInstaller,
     private val localSessionManager: LocalSessionManager,
+    private val agentUiCommandBus: sh.haven.core.data.agent.AgentUiCommandBus,
 ) {
 
     /**
@@ -175,6 +176,25 @@ internal class McpTools(
             },
             consentLevel = ConsentLevel.NEVER,
         ) { args -> playFile(args) },
+
+        "navigate_sftp_browser" to ToolHandler(
+            description = "Switch to the Files tab and open the file browser at the given path on the given profile. Tap-equivalent — same effect as the user tapping into the SFTP screen and entering the path. The path is interpreted by whichever backend the profile resolves to (POSIX absolute for SSH/Local, share-relative for SMB, remote-relative for rclone).",
+            inputSchema = JSONObject().apply {
+                put("type", "object")
+                put("properties", JSONObject().apply {
+                    put("profileId", JSONObject().apply {
+                        put("type", "string")
+                        put("description", "Connection profile ID (or the literal string \"local\" for the device filesystem). Use list_connections to find IDs.")
+                    })
+                    put("path", JSONObject().apply {
+                        put("type", "string")
+                        put("description", "Directory path to open. Default '/' for SSH/Local, '' for rclone (treated as remote root).")
+                    })
+                })
+                put("required", JSONArray().put("profileId"))
+            },
+            consentLevel = ConsentLevel.NEVER,
+        ) { args -> navigateSftpBrowser(args) },
 
         "read_terminal_scrollback" to ToolHandler(
             description = "Return the most recent bytes of raw SSH stdout for an active terminal session, exactly as the user sees them (ANSI escapes, OSC markers, control bytes preserved). Use list_sessions to discover sessionIds. The buffer is capped at 256 KiB per session and rolls older bytes off; the human terminal still keeps its own visual scrollback separately.",
@@ -630,6 +650,30 @@ internal class McpTools(
             "wav" -> "audio/wav"
             else -> "application/octet-stream"
         }
+
+    private suspend fun navigateSftpBrowser(args: JSONObject): JSONObject {
+        val profileId = args.optString("profileId").ifEmpty {
+            throw McpError(-32602, "Missing required argument: profileId")
+        }
+        val path = args.optString("path").ifEmpty { "/" }
+        // Best-effort existence check so a typo'd profileId returns a
+        // useful error instead of silently posting a command nobody
+        // collects. "local" is a synthetic profile that has no DB row.
+        if (profileId != "local") {
+            connectionRepository.getById(profileId)
+                ?: throw McpError(-32602, "Unknown profileId: $profileId")
+        }
+        val command = sh.haven.core.data.agent.AgentUiCommand.NavigateToSftpPath(
+            profileId = profileId,
+            path = path,
+        )
+        val delivered = agentUiCommandBus.emit(command)
+        return JSONObject().apply {
+            put("delivered", delivered)
+            put("profileId", profileId)
+            put("path", path)
+        }
+    }
 
     private fun playFile(args: JSONObject): JSONObject {
         val url = args.optString("url").ifEmpty {

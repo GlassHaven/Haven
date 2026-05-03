@@ -1,5 +1,6 @@
 package sh.haven.feature.sftp.transport
 
+import android.content.Context
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.withContext
@@ -7,6 +8,7 @@ import sh.haven.core.rclone.RcloneClient
 import sh.haven.core.rclone.SyncConfig
 import sh.haven.core.rclone.SyncMode
 import sh.haven.feature.sftp.SftpEntry
+import java.io.File
 import java.time.Instant
 
 /**
@@ -14,10 +16,17 @@ import java.time.Instant
  * `gdrive:`) is captured at resolution time; rclone treats the empty
  * string as remote root, so the synthetic `"/"` from `currentPath` is
  * normalised here rather than at the call site.
+ *
+ * [appContext] is needed for the temp-file dance behind [readBytes] and
+ * [writeBytes]: rclone's RPC takes file paths, not streams, so small-file
+ * round trips through the app cache. The cache directory is private to
+ * Haven and cleared by Android under memory pressure, which is the
+ * correct lifetime for these throwaway buffers.
  */
 class RcloneFileBackend(
     private val client: RcloneClient,
     private val remoteName: String,
+    private val appContext: Context,
 ) : FileBackend {
 
     override val label: String = "Rclone"
@@ -81,6 +90,26 @@ class RcloneFileBackend(
             }
         } else {
             client.moveFile(remoteName, from, remoteName, to)
+        }
+    }
+
+    override suspend fun readBytes(path: String): ByteArray = withContext(Dispatchers.IO) {
+        val tempFile = File(appContext.cacheDir, "rclone-read-${System.nanoTime()}.bin")
+        try {
+            client.copyFile(remoteName, path, tempFile.parent!!, tempFile.name)
+            tempFile.readBytes()
+        } finally {
+            tempFile.delete()
+        }
+    }
+
+    override suspend fun writeBytes(path: String, data: ByteArray) = withContext(Dispatchers.IO) {
+        val tempFile = File(appContext.cacheDir, "rclone-write-${System.nanoTime()}.bin")
+        try {
+            tempFile.writeBytes(data)
+            client.copyFile(tempFile.parent!!, tempFile.name, remoteName, path)
+        } finally {
+            tempFile.delete()
         }
     }
 

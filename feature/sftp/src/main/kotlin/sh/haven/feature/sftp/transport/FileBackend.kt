@@ -54,4 +54,22 @@ interface FileBackend {
      * needed.
      */
     suspend fun rename(from: String, to: String)
+
+    /**
+     * Read the file at [path] into a [ByteArray]. Intended for small
+     * files — the editor's text content, a single image for the image
+     * tools, a downloaded font. The legacy [SftpViewModel] paths used
+     * `ByteArrayOutputStream` for the same use cases. Large files with
+     * progress reporting still go through [RemoteFileTransport.download]
+     * (SSH/SCP only); this surface is the small-file shorthand that
+     * generalises to every backend.
+     */
+    suspend fun readBytes(path: String): ByteArray
+
+    /**
+     * Write [data] to [path], replacing any existing content. Intended
+     * for small files (see [readBytes]). The file is created if it
+     * doesn't exist; the parent directory must already exist.
+     */
+    suspend fun writeBytes(path: String, data: ByteArray)
 }

@@ -4,6 +4,8 @@ import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.withContext
 import sh.haven.core.smb.SmbClient
 import sh.haven.feature.sftp.SftpEntry
+import java.io.ByteArrayInputStream
+import java.io.ByteArrayOutputStream
 
 /**
  * [FileBackend] over a connected [SmbClient]. Constructed per-resolution
@@ -39,5 +41,17 @@ class SmbFileBackend(
 
     override suspend fun rename(from: String, to: String) = withContext(Dispatchers.IO) {
         client.rename(from, to)
+    }
+
+    override suspend fun readBytes(path: String): ByteArray = withContext(Dispatchers.IO) {
+        val buffer = ByteArrayOutputStream()
+        client.download(path, buffer) { _, _ -> }
+        buffer.toByteArray()
+    }
+
+    override suspend fun writeBytes(path: String, data: ByteArray) = withContext(Dispatchers.IO) {
+        ByteArrayInputStream(data).use { input ->
+            client.upload(input, path, data.size.toLong()) { _, _ -> }
+        }
     }
 }

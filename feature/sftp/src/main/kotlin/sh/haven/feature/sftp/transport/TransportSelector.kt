@@ -112,7 +112,7 @@ class TransportSelector @Inject constructor(
         }
         if (rcloneSessionManager.isProfileConnected(profileId)) {
             val remote = rcloneSessionManager.getRemoteNameForProfile(profileId) ?: return null
-            return FileBackendResolution(RcloneFileBackend(rcloneClient, remote))
+            return FileBackendResolution(RcloneFileBackend(rcloneClient, remote, appContext))
         }
         val profile = connectionRepository.getById(profileId) ?: return null
         val resolution = resolve(profile) ?: return null

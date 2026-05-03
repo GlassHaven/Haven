@@ -433,32 +433,8 @@ class SftpViewModel @Inject constructor(
         _editorFile.value = EditorFileState.Loading
         viewModelScope.launch {
             try {
-                val bytes = java.io.ByteArrayOutputStream()
-                if (_isLocalProfile.value) {
-                    withContext(Dispatchers.IO) {
-                        java.io.File(entry.path).inputStream().use { it.copyTo(bytes) }
-                    }
-                } else if (_isRcloneProfile.value) {
-                    withContext(Dispatchers.IO) {
-                        val remote = activeRcloneRemote ?: throw IllegalStateException("Rclone not connected")
-                        val tempFile = java.io.File(appContext.cacheDir, "editor_${entry.name}")
-                        try {
-                            rcloneClient.copyFile(remote, entry.path, tempFile.parent!!, tempFile.name)
-                            tempFile.inputStream().use { it.copyTo(bytes) }
-                        } finally {
-                            tempFile.delete()
-                        }
-                    }
-                } else if (_isSmbProfile.value) {
-                    withContext(Dispatchers.IO) {
-                        val client = activeSmbClient ?: throw IllegalStateException("SMB not connected")
-                        client.download(entry.path, bytes) { _, _ -> }
-                    }
-                } else {
-                    val transport = currentSshTransport() ?: throw IllegalStateException("Not connected")
-                    transport.download(entry.path, bytes, entry.size) { _, _ -> }
-                }
-                val content = bytes.toByteArray().toString(Charsets.UTF_8)
+                val backend = currentFileBackend() ?: throw IllegalStateException("Not connected")
+                val content = backend.readBytes(entry.path).toString(Charsets.UTF_8)
                 _editorFile.value = EditorFileState.Open(entry.name, entry.path, content)
             } catch (e: Exception) {
                 Log.e(TAG, "Failed to load file for editor", e)
@@ -473,37 +449,8 @@ class SftpViewModel @Inject constructor(
         viewModelScope.launch {
             try {
                 val data = content.toByteArray(Charsets.UTF_8)
-                if (_isLocalProfile.value) {
-                    withContext(Dispatchers.IO) {
-                        java.io.File(entry.path).writeBytes(data)
-                    }
-                } else if (_isRcloneProfile.value) {
-                    withContext(Dispatchers.IO) {
-                        val remote = activeRcloneRemote ?: throw IllegalStateException("Rclone not connected")
-                        val tempFile = java.io.File(appContext.cacheDir, "editor_save_${entry.name}")
-                        try {
-                            tempFile.writeBytes(data)
-                            rcloneClient.copyFile(
-                                tempFile.parent!!, tempFile.name,
-                                remote, entry.path,
-                            )
-                        } finally {
-                            tempFile.delete()
-                        }
-                    }
-                } else if (_isSmbProfile.value) {
-                    withContext(Dispatchers.IO) {
-                        val client = activeSmbClient ?: throw IllegalStateException("SMB not connected")
-                        java.io.ByteArrayInputStream(data).use { input ->
-                            client.upload(input, entry.path, data.size.toLong()) { _, _ -> }
-                        }
-                    }
-                } else {
-                    val transport = currentSshTransport() ?: throw IllegalStateException("Not connected")
-                    java.io.ByteArrayInputStream(data).use { input ->
-                        transport.upload(input, data.size.toLong(), entry.path) { _, _ -> }
-                    }
-                }
+                val backend = currentFileBackend() ?: throw IllegalStateException("Not connected")
+                backend.writeBytes(entry.path, data)
                 _editorFile.value = EditorFileState.Open(entry.name, entry.path, content)
                 _message.value = "Saved ${entry.name}"
             } catch (e: Exception) {
@@ -554,28 +501,8 @@ class SftpViewModel @Inject constructor(
         viewModelScope.launch {
             try {
                 val cachePath = java.io.File(appContext.cacheDir, "imgtools_${entry.name}").absolutePath
-                val bytes = java.io.ByteArrayOutputStream()
-                if (_isLocalProfile.value) {
-                    withContext(Dispatchers.IO) {
-                        java.io.File(entry.path).inputStream().use { it.copyTo(bytes) }
-                    }
-                } else if (_isRcloneProfile.value) {
-                    withContext(Dispatchers.IO) {
-                        val remote = activeRcloneRemote ?: throw IllegalStateException("Rclone not connected")
-                        val tempFile = java.io.File(cachePath)
-                        rcloneClient.copyFile(remote, entry.path, tempFile.parent!!, tempFile.name)
-                        tempFile.inputStream().use { it.copyTo(bytes) }
-                    }
-                } else if (_isSmbProfile.value) {
-                    withContext(Dispatchers.IO) {
-                        val client = activeSmbClient ?: throw IllegalStateException("SMB not connected")
-                        client.download(entry.path, bytes) { _, _ -> }
-                    }
-                } else {
-                    val transport = currentSshTransport() ?: throw IllegalStateException("Not connected")
-                    transport.download(entry.path, bytes, entry.size) { _, _ -> }
-                }
-                val data = bytes.toByteArray()
+                val backend = currentFileBackend() ?: throw IllegalStateException("Not connected")
+                val data = backend.readBytes(entry.path)
                 withContext(Dispatchers.IO) {
                     java.io.File(cachePath).writeBytes(data)
                 }
@@ -729,31 +656,8 @@ class SftpViewModel @Inject constructor(
                 val data = withContext(Dispatchers.IO) {
                     java.io.File(current.resultCachePath).readBytes()
                 }
-                if (_isLocalProfile.value) {
-                    withContext(Dispatchers.IO) {
-                        java.io.File(entry.path).writeBytes(data)
-                    }
-                } else if (_isRcloneProfile.value) {
-                    withContext(Dispatchers.IO) {
-                        val remote = activeRcloneRemote ?: throw IllegalStateException("Rclone not connected")
-                        rcloneClient.copyFile(
-                            java.io.File(current.resultCachePath).parent!!, java.io.File(current.resultCachePath).name,
-                            remote, entry.path,
-                        )
-                    }
-                } else if (_isSmbProfile.value) {
-                    withContext(Dispatchers.IO) {
-                        val client = activeSmbClient ?: throw IllegalStateException("SMB not connected")
-                        java.io.ByteArrayInputStream(data).use { input ->
-                            client.upload(input, entry.path, data.size.toLong()) { _, _ -> }
-                        }
-                    }
-                } else {
-                    val transport = currentSshTransport() ?: throw IllegalStateException("Not connected")
-                    java.io.ByteArrayInputStream(data).use { input ->
-                        transport.upload(input, data.size.toLong(), entry.path) { _, _ -> }
-                    }
-                }
+                val backend = currentFileBackend() ?: throw IllegalStateException("Not connected")
+                backend.writeBytes(entry.path, data)
                 _message.value = "Saved ${entry.name}"
                 closeImageTools()
             } catch (e: Exception) {

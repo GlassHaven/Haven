@@ -1,6 +1,8 @@
 package sh.haven.feature.sftp.transport
 
 import sh.haven.feature.sftp.SftpEntry
+import java.io.ByteArrayInputStream
+import java.io.ByteArrayOutputStream
 import java.io.InputStream
 import java.io.OutputStream
 
@@ -62,4 +64,26 @@ interface RemoteFileTransport : FileBackend {
      * are accepted. Typically requires root on the remote side.
      */
     suspend fun chown(path: String, owner: String)
+
+    /**
+     * Default [FileBackend.readBytes] for SSH-backed transports — runs
+     * the existing streaming [download] into an in-memory buffer, no
+     * progress callbacks. Concrete transports (SFTP / SCP) inherit this
+     * unless they have a faster small-file path.
+     */
+    override suspend fun readBytes(path: String): ByteArray {
+        val buffer = ByteArrayOutputStream()
+        download(path, buffer, sizeHint = -1L) { _, _ -> }
+        return buffer.toByteArray()
+    }
+
+    /**
+     * Default [FileBackend.writeBytes] for SSH-backed transports — wraps
+     * the existing streaming [upload] around a [ByteArrayInputStream].
+     */
+    override suspend fun writeBytes(path: String, data: ByteArray) {
+        ByteArrayInputStream(data).use { input ->
+            upload(input, data.size.toLong(), path) { _, _ -> }
+        }
+    }
 }

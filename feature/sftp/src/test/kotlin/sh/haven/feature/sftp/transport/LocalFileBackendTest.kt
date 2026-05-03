@@ -122,4 +122,41 @@ class LocalFileBackendTest {
             File(tempRoot, "anywhere").absolutePath,
         )
     }
+
+    @Test
+    fun `readBytes returns the file contents`() = runTest {
+        val src = File(tempRoot, "data.bin").apply { writeBytes(byteArrayOf(1, 2, 3, 4, 5)) }
+        val read = backend.readBytes(src.absolutePath)
+        assertTrue("readBytes must return the original 5 bytes",
+            read.contentEquals(byteArrayOf(1, 2, 3, 4, 5)))
+    }
+
+    @Test
+    fun `readBytes round-trips UTF-8 text`() = runTest {
+        val src = File(tempRoot, "text.txt").apply { writeText("héllo wörld\n") }
+        val text = backend.readBytes(src.absolutePath).toString(Charsets.UTF_8)
+        assertEquals("héllo wörld\n", text)
+    }
+
+    @Test
+    fun `writeBytes creates a new file`() = runTest {
+        val target = File(tempRoot, "fresh.bin")
+        backend.writeBytes(target.absolutePath, byteArrayOf(7, 8, 9))
+        assertTrue(target.exists())
+        assertTrue(target.readBytes().contentEquals(byteArrayOf(7, 8, 9)))
+    }
+
+    @Test
+    fun `writeBytes replaces existing content`() = runTest {
+        // Replacing semantics are essential — the editor save path
+        // would otherwise append to the old content.
+        val target = File(tempRoot, "stale.txt").apply { writeText("OLD") }
+        backend.writeBytes(target.absolutePath, "NEW".toByteArray(Charsets.UTF_8))
+        assertEquals("NEW", target.readText())
+    }
+
+    @Test(expected = java.io.IOException::class)
+    fun `readBytes on missing path throws`() = runTest {
+        backend.readBytes(File(tempRoot, "absent").absolutePath)
+    }
 }

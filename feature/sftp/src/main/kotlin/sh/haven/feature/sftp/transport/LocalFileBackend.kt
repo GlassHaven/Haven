@@ -64,6 +64,14 @@ class LocalFileBackend(
         if (!ok) throw java.io.IOException("Could not rename $from to $to")
     }
 
+    override suspend fun readBytes(path: String): ByteArray = withContext(Dispatchers.IO) {
+        File(path).readBytes()
+    }
+
+    override suspend fun writeBytes(path: String, data: ByteArray) = withContext(Dispatchers.IO) {
+        File(path).writeBytes(data)
+    }
+
     private fun listRoots(): List<SftpEntry> {
         val roots = mutableListOf<SftpEntry>()
         val storage = Environment.getExternalStorageDirectory()

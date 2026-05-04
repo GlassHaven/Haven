@@ -241,6 +241,8 @@ fun HavenNavHost(
 
     // Desktop fullscreen hides bottom nav and system bars
     var desktopFullscreen by remember { mutableStateOf(false) }
+    // Terminal fullscreen — same chrome behaviour, owned by TerminalScreen (#138)
+    var terminalFullscreen by remember { mutableStateOf(false) }
     // Disable pager swipe when VNC/RDP is connected (pinch-to-zoom conflicts)
     var desktopConnected by remember { mutableStateOf(false) }
     // Disable pager swipe when SFTP text editor or image tools are open
@@ -266,7 +268,7 @@ fun HavenNavHost(
     val pagerContent: @Composable (Modifier) -> Unit = { modifier ->
         HorizontalPager(
             state = pagerState,
-            userScrollEnabled = !desktopFullscreen && !desktopConnected && !terminalSelectionActive && !sftpEditorOpen && !sftpImageToolOpen,
+            userScrollEnabled = !desktopFullscreen && !terminalFullscreen && !desktopConnected && !terminalSelectionActive && !sftpEditorOpen && !sftpImageToolOpen,
             modifier = modifier,
         ) { page ->
             when (screens[page]) {
@@ -361,6 +363,7 @@ fun HavenNavHost(
                         },
                         interceptCtrlShiftV = interceptCtrlShiftV,
                         showTabBar = showTerminalTabBar,
+                        onFullscreenChanged = { terminalFullscreen = it },
                         onNavigateToConnections = {
                             coroutineScope.launch {
                                 pagerState.animateScrollToPage(pageOf(Screen.Connections))
@@ -487,7 +490,7 @@ fun HavenNavHost(
     Scaffold(
         contentWindowInsets = ScaffoldDefaults.contentWindowInsets.exclude(WindowInsets.ime),
         bottomBar = {
-            if (!desktopFullscreen && !useSideNavigation) {
+            if (!desktopFullscreen && !terminalFullscreen && !useSideNavigation) {
                 NavigationBar {
                     val currentScreen = screens.getOrNull(pagerState.currentPage)
                     navScreens.forEachIndexed { index, screen ->
@@ -599,7 +602,7 @@ fun HavenNavHost(
                     .consumeWindowInsets(innerPadding)
                     .imePadding(),
             ) {
-                if (!desktopFullscreen) {
+                if (!desktopFullscreen && !terminalFullscreen) {
                     NavigationRail(
                         modifier = Modifier.fillMaxHeight(),
                     ) {

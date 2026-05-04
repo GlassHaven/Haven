@@ -7,6 +7,11 @@ import android.content.ClipboardManager
 import android.content.Context
 import android.content.Intent
 import android.net.Uri
+import androidx.activity.compose.BackHandler
+import androidx.compose.material.icons.filled.Fullscreen
+import androidx.compose.material.icons.filled.FullscreenExit
+import androidx.compose.runtime.saveable.rememberSaveable
+import androidx.core.view.WindowInsetsControllerCompat
 import androidx.compose.foundation.background
 import androidx.compose.foundation.ExperimentalFoundationApi
 import androidx.compose.foundation.clickable
@@ -153,6 +158,7 @@ fun TerminalScreen(
     customKeyboardFlags: sh.haven.core.terminal.ImeFlagSet? = null,
     interceptCtrlShiftV: Boolean = true,
     showTabBar: Boolean = true,
+    onFullscreenChanged: (Boolean) -> Unit = {},
     onNavigateToConnections: () -> Unit = {},
     onNavigateToVnc: (host: String, port: Int, username: String?, password: String?, sshForward: Boolean, sshSessionId: String?, colorDepth: String) -> Unit = { _, _, _, _, _, _, _ -> },
     onSelectionActiveChanged: (Boolean) -> Unit = {},
@@ -162,6 +168,41 @@ fun TerminalScreen(
     viewModel: TerminalViewModel = hiltViewModel(),
 ) {
     var reorderMode by remember { mutableStateOf(false) }
+    // Fullscreen state — survives rotation via rememberSaveable.
+    // Setting this true tells the parent to hide the bottom nav / side
+    // rail and tells us to hide the tab bar; LaunchedEffect below also
+    // hides the system status + nav bars. Mirrors the desktop fullscreen
+    // pattern in VncScreen / RdpScreen.
+    var fullscreen by rememberSaveable { mutableStateOf(false) }
+    val view = LocalView.current
+    val window = (view.context as? android.app.Activity)?.window
+    LaunchedEffect(fullscreen) {
+        onFullscreenChanged(fullscreen)
+        if (window != null) {
+            val controller = WindowCompat.getInsetsController(window, view)
+            if (fullscreen) {
+                controller.hide(WindowInsetsCompat.Type.systemBars())
+                controller.systemBarsBehavior =
+                    WindowInsetsControllerCompat.BEHAVIOR_SHOW_TRANSIENT_BARS_BY_SWIPE
+            } else {
+                controller.show(WindowInsetsCompat.Type.systemBars())
+            }
+        }
+    }
+    DisposableEffect(Unit) {
+        onDispose {
+            // Belt-and-braces: if the screen is torn down while still
+            // in fullscreen (e.g. user backgrounds the app), make sure
+            // the system bars come back so the next surface isn't stuck
+            // edge-to-edge.
+            if (fullscreen && window != null) {
+                WindowCompat.getInsetsController(window, view)
+                    .show(WindowInsetsCompat.Type.systemBars())
+                onFullscreenChanged(false)
+            }
+        }
+    }
+    BackHandler(enabled = fullscreen) { fullscreen = false }
     val tabs by viewModel.tabs.collectAsState()
     val activeTabIndex by viewModel.activeTabIndex.collectAsState()
     val ctrlActive by viewModel.ctrlActive.collectAsState()
@@ -198,7 +239,6 @@ fun TerminalScreen(
             ?: ResourcesCompat.getFont(context, sh.haven.core.ui.R.font.hack_nerd_font_mono_regular)
             ?: android.graphics.Typeface.MONOSPACE
     }
-    val view = LocalView.current
 
     // Keep the screen awake while a terminal tab is in the foreground when
     // the user has opted in (Settings → "Keep screen on in terminal", #122).
@@ -324,7 +364,7 @@ fun TerminalScreen(
             val clampedIndex = activeTabIndex.coerceIn(0, tabs.size - 1)
             val indicatorColor = profileColors[tabs.getOrNull(clampedIndex)?.profileId]
 
-            if (showTabBar) {
+            if (showTabBar && !fullscreen) {
                 Surface(tonalElevation = 2.dp) {
                     Row(
                         modifier = Modifier
@@ -607,12 +647,28 @@ fun TerminalScreen(
                     val hasHardwareKeyboard by rememberUpdatedState(
                         configuration.keyboard != android.content.res.Configuration.KEYBOARD_NOKEYS,
                     )
+                    val currentFullscreen by rememberUpdatedState(fullscreen)
                     DisposableEffect(activeTab) {
                         val interceptor = { event: android.view.KeyEvent ->
-                            handleLayoutAwareKeyEvent(
-                                event, activeTab,
-                                currentSelectionActive, hasHardwareKeyboard, viewModel,
-                            )
+                            // F11 toggles fullscreen (#138). Caught here, before
+                            // handleLayoutAwareKeyEvent forwards it to the shell —
+                            // tradeoff: TUI apps that use F11 won't see it. Pinpox
+                            // confirmed this scope; revisit if users push back.
+                            if (event.keyCode == android.view.KeyEvent.KEYCODE_F11 &&
+                                event.action == android.view.KeyEvent.ACTION_DOWN
+                            ) {
+                                fullscreen = !currentFullscreen
+                                true
+                            } else if (event.keyCode == android.view.KeyEvent.KEYCODE_F11) {
+                                // Swallow the matching ACTION_UP so the shell never
+                                // sees a half key event.
+                                true
+                            } else {
+                                handleLayoutAwareKeyEvent(
+                                    event, activeTab,
+                                    currentSelectionActive, hasHardwareKeyboard, viewModel,
+                                )
+                            }
                         }
                         KeyEventInterceptor.handler = interceptor
                         onDispose {
@@ -797,9 +853,31 @@ fun TerminalScreen(
                             stallFlow = activeTab.secondsUntilDisconnect,
                             modifier = Modifier.align(Alignment.TopCenter),
                         )
+
+                        // Fullscreen toggle (#138). Small low-opacity overlay
+                        // top-right; the TopCenter slot is taken by the
+                        // disconnect banner so they never collide.
+                        IconButton(
+                            onClick = { fullscreen = !fullscreen },
+                            modifier = Modifier
+                                .align(Alignment.TopEnd)
+                                .padding(2.dp)
+                                .size(32.dp),
+                        ) {
+                            Icon(
+                                imageVector = if (fullscreen) Icons.Filled.FullscreenExit
+                                else Icons.Filled.Fullscreen,
+                                contentDescription = stringResource(
+                                    if (fullscreen) R.string.terminal_exit_fullscreen
+                                    else R.string.terminal_enter_fullscreen,
+                                ),
+                                tint = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.55f),
+                                modifier = Modifier.size(20.dp),
+                            )
+                        }
                     }
 
-                    KeyboardToolbar(
+                    if (!fullscreen) KeyboardToolbar(
                         onSendBytes = { bytes -> activeTab.sendInput(bytes) },
                         onDispatchKey = { mods, key -> activeTab.emulator?.dispatchKey(mods, key) },
                         focusRequester = focusRequester,

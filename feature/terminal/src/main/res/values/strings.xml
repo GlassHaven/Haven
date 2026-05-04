@@ -72,4 +72,6 @@
     <string name="terminal_rename_session_title">Rename Session</string>
     <string name="terminal_name">Name</string>
     <string name="terminal_rename">Rename</string>
+    <string name="terminal_enter_fullscreen">Enter fullscreen</string>
+    <string name="terminal_exit_fullscreen">Exit fullscreen</string>
 </resources>

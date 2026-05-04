@@ -1,0 +1,24 @@
+v5.24.95: Terminal fullscreen mode (#138)
+
+pinpox: phone/tablet + Bluetooth keyboard as a remote workstation
+benefits from a fullscreen toggle that hands the whole screen to the
+terminal — no bottom nav, no tab bar, no keyboard toolbar, no system
+status/nav bars.
+
+  • Toggle button: small overlay top-right of the terminal area.
+  • Hardware F11: also toggles. Tradeoff — TUI apps that use F11 will
+    no longer see it; revisit if it bites real workflows.
+  • System back exits fullscreen first, then exits the screen.
+  • State persists rotation (rememberSaveable). Restored on dispose
+    so a backgrounded session doesn't leave system bars hidden.
+
+Hides, while fullscreen is on:
+  • Tab bar above the terminal
+  • Keyboard toolbar below
+  • Bottom nav (or side rail on tablets)
+  • System status + nav bars (BEHAVIOR_SHOW_TRANSIENT_BARS_BY_SWIPE)
+  • Pager swipe between tabs is disabled (otherwise the only exit
+    affordance would be the corner button + F11 + back)
+
+Mirrors the existing VNC/RDP fullscreen pattern; both can coexist on
+their respective screens without interference.

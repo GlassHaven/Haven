@@ -1,0 +1,18 @@
+v5.24.93: Force IPv4 → tri-state Address Family selector (#137)
+
+pannal: a Boolean "Force IPv4" undersells the failure mode. Networks
+with broken IPv4-but-working-IPv6 also exist (carrier-grade NAT
+translation tables filling up, IPv6-only labs reaching legacy hosts
+through bad NAT64). Replacing the toggle with a three-way selector:
+Auto / IPv4 only / IPv6 only.
+
+In the connection edit dialog → Advanced. "Auto" is the default
+(dual-stack, system resolver picks); "IPv4 only" skips AAAA records
+and dials the first A; "IPv6 only" skips A and dials the first AAAA.
+
+DB migration 44→45 generalises the existing `forceIpv4` Boolean
+column to an `addressFamily` String column ('AUTO' / 'IPV4_ONLY' /
+'IPV6_ONLY'). Existing profiles with forceIpv4=1 migrate to
+'IPV4_ONLY'; everything else to 'AUTO'. SQLite < 3.35 doesn't
+support DROP COLUMN, so the migration does the table-recreate
+dance.

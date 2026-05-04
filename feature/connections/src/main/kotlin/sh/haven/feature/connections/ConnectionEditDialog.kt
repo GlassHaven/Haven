@@ -40,6 +40,9 @@ import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.MenuAnchorType
 import androidx.compose.material3.OutlinedTextField
+import androidx.compose.material3.SegmentedButton
+import androidx.compose.material3.SegmentedButtonDefaults
+import androidx.compose.material3.SingleChoiceSegmentedButtonRow
 import androidx.compose.material3.SuggestionChip
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
@@ -179,7 +182,7 @@ fun ConnectionEditDialog(
     var disableAltScreen by rememberSaveable { mutableStateOf(existing?.disableAltScreen ?: false) }
     var useAndroidShell by rememberSaveable { mutableStateOf(existing?.useAndroidShell ?: false) }
     var forwardAgent by rememberSaveable { mutableStateOf(existing?.forwardAgent ?: false) }
-    var forceIpv4 by rememberSaveable { mutableStateOf(existing?.forceIpv4 ?: false) }
+    var addressFamily by rememberSaveable { mutableStateOf(existing?.addressFamily ?: "AUTO") }
     var selectedSessionManager by rememberSaveable { mutableStateOf(existing?.sessionManager) }
     var etPort by rememberSaveable { mutableStateOf(existing?.etPort?.toString() ?: "2022") }
     var localSideband by rememberSaveable {
@@ -1635,17 +1638,39 @@ fun ConnectionEditDialog(
                         )
                     }
 
-                    // Force IPv4 (#137) — for networks where AAAA records
-                    // resolve but the IPv6 path doesn't route.
-                    Spacer(Modifier.height(4.dp))
-                    FilterChip(
-                        selected = forceIpv4,
-                        onClick = { forceIpv4 = !forceIpv4 },
-                        label = { Text("Force IPv4") },
+                    // Address family (#137) — for networks where one of A or
+                    // AAAA resolves but doesn't route. Per-connection.
+                    Spacer(Modifier.height(8.dp))
+                    Text(
+                        stringResource(R.string.connection_address_family_label),
+                        style = MaterialTheme.typography.bodyMedium,
                     )
-                    if (forceIpv4) {
+                    Spacer(Modifier.height(4.dp))
+                    val addressFamilyOptions = listOf(
+                        "AUTO" to stringResource(R.string.connection_address_family_auto),
+                        "IPV4_ONLY" to stringResource(R.string.connection_address_family_ipv4_only),
+                        "IPV6_ONLY" to stringResource(R.string.connection_address_family_ipv6_only),
+                    )
+                    SingleChoiceSegmentedButtonRow(modifier = Modifier.fillMaxWidth()) {
+                        addressFamilyOptions.forEachIndexed { index, (key, label) ->
+                            SegmentedButton(
+                                selected = addressFamily == key,
+                                onClick = { addressFamily = key },
+                                shape = SegmentedButtonDefaults.itemShape(
+                                    index = index,
+                                    count = addressFamilyOptions.size,
+                                ),
+                            ) { Text(label) }
+                        }
+                    }
+                    val familyHint = when (addressFamily) {
+                        "IPV4_ONLY" -> stringResource(R.string.connection_address_family_ipv4_hint)
+                        "IPV6_ONLY" -> stringResource(R.string.connection_address_family_ipv6_hint)
+                        else -> null
+                    }
+                    if (familyHint != null) {
                         Text(
-                            "Skip AAAA records and connect over IPv4 only. Useful when DNS returns IPv6 but the network can't route it.",
+                            familyHint,
                             style = MaterialTheme.typography.bodySmall,
                             color = MaterialTheme.colorScheme.onSurfaceVariant,
                         )
@@ -2104,7 +2129,7 @@ fun ConnectionEditDialog(
                             disableAltScreen = disableAltScreen,
                             useAndroidShell = useAndroidShell,
                             forwardAgent = forwardAgent,
-                            forceIpv4 = forceIpv4,
+                            addressFamily = addressFamily,
                             sessionManager = selectedSessionManager,
                             useMosh = selectedTransport == "MOSH",
                             useEternalTerminal = selectedTransport == "ET",

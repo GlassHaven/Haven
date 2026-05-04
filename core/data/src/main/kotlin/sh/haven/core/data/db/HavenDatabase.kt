@@ -26,7 +26,7 @@ import sh.haven.core.data.db.entities.TunnelConfig
         TunnelConfig::class,
         PasteQueueEntry::class,
     ],
-    version = 44,
+    version = 45,
     exportSchema = true,
 )
 abstract class HavenDatabase : RoomDatabase() {
@@ -494,6 +494,108 @@ abstract class HavenDatabase : RoomDatabase() {
                 db.execSQL(
                     "ALTER TABLE connection_profiles ADD COLUMN forceIpv4 INTEGER NOT NULL DEFAULT 0"
                 )
+            }
+        }
+
+        /**
+         * Generalise the `forceIpv4` Boolean to a tri-state
+         * `addressFamily` selector — `AUTO`, `IPV4_ONLY`, `IPV6_ONLY`
+         * (#137 follow-up). Networks with broken IPv4 paths exist too,
+         * so a Boolean undersells the failure mode (pannal).
+         *
+         * SQLite ≥ 3.35 supports `DROP COLUMN`, but Haven's minSdk 26
+         * ships SQLite 3.18, which doesn't — so do the table-recreate
+         * dance: copy through a `_new` table, dropping `forceIpv4` and
+         * carrying its value into the new `addressFamily` column.
+         */
+        val MIGRATION_44_45 = object : Migration(44, 45) {
+            override fun migrate(db: SupportSQLiteDatabase) {
+                db.execSQL("""
+                    CREATE TABLE `connection_profiles_new` (
+                        `id` TEXT NOT NULL,
+                        `label` TEXT NOT NULL,
+                        `host` TEXT NOT NULL,
+                        `port` INTEGER NOT NULL,
+                        `username` TEXT NOT NULL,
+                        `sshPassword` TEXT,
+                        `authType` TEXT NOT NULL,
+                        `keyId` TEXT,
+                        `colorTag` INTEGER NOT NULL,
+                        `lastConnected` INTEGER,
+                        `sortOrder` INTEGER NOT NULL,
+                        `connectionType` TEXT NOT NULL,
+                        `destinationHash` TEXT,
+                        `reticulumHost` TEXT NOT NULL,
+                        `reticulumPort` INTEGER NOT NULL,
+                        `jumpProfileId` TEXT,
+                        `sshOptions` TEXT,
+                        `vncPort` INTEGER,
+                        `vncUsername` TEXT,
+                        `vncPassword` TEXT,
+                        `vncSshForward` INTEGER NOT NULL,
+                        `vncSshProfileId` TEXT,
+                        `vncColorDepth` TEXT NOT NULL,
+                        `sessionManager` TEXT,
+                        `useMosh` INTEGER NOT NULL,
+                        `useEternalTerminal` INTEGER NOT NULL,
+                        `etPort` INTEGER NOT NULL,
+                        `rdpPort` INTEGER NOT NULL,
+                        `rdpUsername` TEXT,
+                        `rdpDomain` TEXT,
+                        `rdpPassword` TEXT,
+                        `rdpSshForward` INTEGER NOT NULL,
+                        `rdpSshProfileId` TEXT,
+                        `rdpUseNla` INTEGER NOT NULL,
+                        `rdpColorDepth` INTEGER NOT NULL,
+                        `smbPort` INTEGER NOT NULL,
+                        `smbShare` TEXT,
+                        `smbDomain` TEXT,
+                        `smbPassword` TEXT,
+                        `smbSshForward` INTEGER NOT NULL,
+                        `smbSshProfileId` TEXT,
+                        `proxyType` TEXT,
+                        `proxyHost` TEXT,
+                        `proxyPort` INTEGER NOT NULL,
+                        `groupId` TEXT,
+                        `lastSessionName` TEXT,
+                        `disableAltScreen` INTEGER NOT NULL,
+                        `rcloneRemoteName` TEXT,
+                        `rcloneProvider` TEXT,
+                        `useAndroidShell` INTEGER NOT NULL,
+                        `moshServerCommand` TEXT,
+                        `forwardAgent` INTEGER NOT NULL,
+                        `addressFamily` TEXT NOT NULL DEFAULT 'AUTO',
+                        `reticulumNetworkName` TEXT,
+                        `reticulumPassphrase` TEXT,
+                        `postLoginCommand` TEXT,
+                        `postLoginBeforeSessionManager` INTEGER NOT NULL,
+                        `fileTransport` TEXT NOT NULL,
+                        `tunnelConfigId` TEXT,
+                        PRIMARY KEY(`id`)
+                    )
+                """.trimIndent())
+                db.execSQL("""
+                    INSERT INTO connection_profiles_new
+                    SELECT
+                        id, label, host, port, username, sshPassword, authType,
+                        keyId, colorTag, lastConnected, sortOrder, connectionType,
+                        destinationHash, reticulumHost, reticulumPort, jumpProfileId,
+                        sshOptions, vncPort, vncUsername, vncPassword, vncSshForward,
+                        vncSshProfileId, vncColorDepth, sessionManager, useMosh,
+                        useEternalTerminal, etPort, rdpPort, rdpUsername, rdpDomain,
+                        rdpPassword, rdpSshForward, rdpSshProfileId, rdpUseNla,
+                        rdpColorDepth, smbPort, smbShare, smbDomain, smbPassword,
+                        smbSshForward, smbSshProfileId, proxyType, proxyHost,
+                        proxyPort, groupId, lastSessionName, disableAltScreen,
+                        rcloneRemoteName, rcloneProvider, useAndroidShell,
+                        moshServerCommand, forwardAgent,
+                        CASE WHEN forceIpv4 = 1 THEN 'IPV4_ONLY' ELSE 'AUTO' END,
+                        reticulumNetworkName, reticulumPassphrase, postLoginCommand,
+                        postLoginBeforeSessionManager, fileTransport, tunnelConfigId
+                    FROM connection_profiles
+                """.trimIndent())
+                db.execSQL("DROP TABLE connection_profiles")
+                db.execSQL("ALTER TABLE connection_profiles_new RENAME TO connection_profiles")
             }
         }
     }

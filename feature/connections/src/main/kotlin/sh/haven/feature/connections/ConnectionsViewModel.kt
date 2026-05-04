@@ -1417,7 +1417,7 @@ class ConnectionsViewModel @Inject constructor(
                         authMethod = authMethod,
                         sshOptions = ConnectionConfig.parseSshOptions(profile.sshOptions),
                         forwardAgent = profile.forwardAgent,
-                        forceIpv4 = profile.forceIpv4,
+                        addressFamily = profile.addressFamilyForSsh,
                         agentIdentities = agentIdentitiesFor(profile),
                     )
 
@@ -1639,7 +1639,7 @@ class ConnectionsViewModel @Inject constructor(
                         authMethod = authMethod,
                         sshOptions = ConnectionConfig.parseSshOptions(profile.sshOptions),
                         forwardAgent = profile.forwardAgent,
-                        forceIpv4 = profile.forceIpv4,
+                        addressFamily = profile.addressFamilyForSsh,
                         agentIdentities = agentIdentitiesFor(profile),
                     )
 
@@ -1771,7 +1771,7 @@ class ConnectionsViewModel @Inject constructor(
                         authMethod = authMethod,
                         sshOptions = ConnectionConfig.parseSshOptions(profile.sshOptions),
                         forwardAgent = profile.forwardAgent,
-                        forceIpv4 = profile.forceIpv4,
+                        addressFamily = profile.addressFamilyForSsh,
                         agentIdentities = agentIdentitiesFor(profile),
                     )
 
@@ -2237,7 +2237,7 @@ class ConnectionsViewModel @Inject constructor(
                     username = jumpProfile.username,
                     authMethod = authMethod,
                     sshOptions = ConnectionConfig.parseSshOptions(jumpProfile.sshOptions),
-                    forceIpv4 = jumpProfile.forceIpv4,
+                    addressFamily = jumpProfile.addressFamilyForSsh,
                 )
                 Log.d(TAG, "Jump host SSH connecting...")
                 try {
@@ -3096,7 +3096,7 @@ class ConnectionsViewModel @Inject constructor(
                     authMethod = authMethod,
                     sshOptions = ConnectionConfig.parseSshOptions(profile.sshOptions),
                     forwardAgent = profile.forwardAgent,
-                        forceIpv4 = profile.forceIpv4,
+                        addressFamily = profile.addressFamilyForSsh,
                     agentIdentities = agentIdentitiesFor(profile),
                 )
                 val proxy = if (jumpSessionId != null) {
@@ -3156,7 +3156,7 @@ class ConnectionsViewModel @Inject constructor(
                     authMethod = authMethod,
                     sshOptions = ConnectionConfig.parseSshOptions(profile.sshOptions),
                     forwardAgent = profile.forwardAgent,
-                        forceIpv4 = profile.forceIpv4,
+                        addressFamily = profile.addressFamilyForSsh,
                     agentIdentities = agentIdentitiesFor(profile),
                 )
                 val sshClient = SshClient().apply {
@@ -3209,7 +3209,7 @@ class ConnectionsViewModel @Inject constructor(
                     authMethod = authMethod,
                     sshOptions = ConnectionConfig.parseSshOptions(profile.sshOptions),
                     forwardAgent = profile.forwardAgent,
-                        forceIpv4 = profile.forceIpv4,
+                        addressFamily = profile.addressFamilyForSsh,
                     agentIdentities = agentIdentitiesFor(profile),
                 )
                 val sshClient = SshClient().apply {
@@ -3246,3 +3246,10 @@ class ConnectionsViewModel @Inject constructor(
         }
     }
 }
+
+/**
+ * The two enums share names by construction (#137) — defined separately
+ * because `core/data` can't depend on `core/ssh`. Convert via name lookup.
+ */
+private val ConnectionProfile.addressFamilyForSsh: ConnectionConfig.AddressFamily
+    get() = ConnectionConfig.AddressFamily.valueOf(addressFamilyEnum.name)

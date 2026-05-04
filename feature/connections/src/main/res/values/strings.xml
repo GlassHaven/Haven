@@ -175,4 +175,10 @@
     <string name="connections_file_transport_sftp_desc">Force the modern SFTP subsystem. Fails if it\'s disabled server-side.</string>
     <string name="connections_file_transport_scp_label">SCP (legacy)</string>
     <string name="connections_file_transport_scp_desc">Force legacy scp -t/-f and shell ls. Use on hardened or embedded servers.</string>
+    <string name="connection_address_family_label">Address family</string>
+    <string name="connection_address_family_auto">Auto</string>
+    <string name="connection_address_family_ipv4_only">IPv4 only</string>
+    <string name="connection_address_family_ipv6_only">IPv6 only</string>
+    <string name="connection_address_family_ipv4_hint">Skip AAAA records and connect over IPv4. Useful when DNS returns IPv6 but the network can\'t route it.</string>
+    <string name="connection_address_family_ipv6_hint">Skip A records and connect over IPv6. Useful on IPv6-only networks where IPv4 NAT is broken.</string>
 </resources>

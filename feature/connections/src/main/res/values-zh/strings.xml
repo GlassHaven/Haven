@@ -174,4 +174,10 @@
     <string name="connections_file_transport_sftp_desc">强制使用现代 SFTP 子系统。若服务器端已禁用则失败。</string>
     <string name="connections_file_transport_scp_label">SCP（旧版）</string>
     <string name="connections_file_transport_scp_desc">强制使用旧版 scp -t/-f 和 shell ls。适用于加固或嵌入式服务器。</string>
+    <string name="connection_address_family_label">地址族</string>
+    <string name="connection_address_family_auto">自动</string>
+    <string name="connection_address_family_ipv4_only">仅 IPv4</string>
+    <string name="connection_address_family_ipv6_only">仅 IPv6</string>
+    <string name="connection_address_family_ipv4_hint">跳过 AAAA 记录，仅通过 IPv4 连接。适用于 DNS 返回 IPv6 但网络无法路由的情况。</string>
+    <string name="connection_address_family_ipv6_hint">跳过 A 记录，仅通过 IPv6 连接。适用于 IPv4 NAT 损坏的纯 IPv6 网络。</string>
 </resources>

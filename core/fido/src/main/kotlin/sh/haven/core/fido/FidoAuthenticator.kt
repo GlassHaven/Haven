@@ -480,7 +480,8 @@ class FidoAuthenticator @Inject constructor(
         ensureOk(infoResp, "GetInfo")
         val info = Ctap2Cbor.decodeGetInfoResponse(infoResp.copyOfRange(1, infoResp.size))
         Log.d(TAG, "GetInfo: pinProtocols=${info.pinUvAuthProtocols}, " +
-            "clientPinSet=${info.clientPinSet}, uvBuiltIn=${info.uvBuiltIn}")
+            "clientPinSet=${info.clientPinSet}, uvBuiltIn=${info.uvBuiltIn}, " +
+            "pinUvAuthToken=${info.pinUvAuthTokenSupported}")
 
         if (!info.clientPinSet) {
             throw IOException(
@@ -492,7 +493,12 @@ class FidoAuthenticator @Inject constructor(
 
         val protocol = Ctap2PinProtocol.pick(info.pinUvAuthProtocols)
             ?: throw IOException("Authenticator does not support PIN protocol v1 or v2")
-        Log.d(TAG, "Using PIN/UV auth protocol v${protocol.version}")
+        // CTAP 2.1 keys advertise `pinUvAuthToken: true` and accept subCommand
+        // 0x09 (with permissions). CTAP 2.0 / 2.1-PRE keys (e.g. older YubiKey 5
+        // firmware) only support legacy 0x05; calling 0x09 returns INVALID_COMMAND.
+        val useWithPermissions = info.pinUvAuthTokenSupported
+        Log.d(TAG, "Using PIN/UV auth protocol v${protocol.version}, " +
+            "subCmd=${if (useWithPermissions) "0x09 (with permissions)" else "0x05 (legacy)"}")
 
         // 2. clientPIN getKeyAgreement → authenticator's COSE_Key
         val kaResp = send(Ctap2Cbor.encodeClientPinGetKeyAgreement(protocol.version))
@@ -520,13 +526,21 @@ class FidoAuthenticator @Inject constructor(
                 .copyOfRange(0, 16)
             val pinHashEnc = protocol.encrypt(sharedSecret, pinHash)
 
-            val tokReq = Ctap2Cbor.encodeClientPinGetTokenWithPermissions(
-                protocol = protocol.version,
-                platformKeyAgreement = platformKa,
-                pinHashEnc = pinHashEnc,
-                permissions = Ctap2Cbor.PERMISSION_GET_ASSERTION,
-                rpId = rpId,
-            )
+            val tokReq = if (useWithPermissions) {
+                Ctap2Cbor.encodeClientPinGetTokenWithPermissions(
+                    protocol = protocol.version,
+                    platformKeyAgreement = platformKa,
+                    pinHashEnc = pinHashEnc,
+                    permissions = Ctap2Cbor.PERMISSION_GET_ASSERTION,
+                    rpId = rpId,
+                )
+            } else {
+                Ctap2Cbor.encodeClientPinGetTokenLegacy(
+                    protocol = protocol.version,
+                    platformKeyAgreement = platformKa,
+                    pinHashEnc = pinHashEnc,
+                )
+            }
             val tokResp = send(tokReq)
             when (val status = tokResp[0]) {
                 Ctap2Cbor.STATUS_OK -> {

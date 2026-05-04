@@ -1,0 +1,19 @@
+v5.24.94: FIDO2 PIN — fall back to legacy getPinToken on CTAP 2.0 keys (#15)
+
+olmari (#15): YubiKey 5 with verify-required SK key returned CTAP2
+INVALID_COMMAND (0x01) right after PIN entry, both on USB and NFC.
+
+Cause: v5.24.84 always sent `getPinUvAuthTokenUsingPinWithPermissions`
+(subCommand 0x09), a CTAP 2.1 feature. CTAP 2.0 / 2.1-PRE firmware (the
+YubiKey 5 line shipped before mid-2021) only implements the legacy
+`getPinToken` (subCommand 0x05); calling 0x09 on those keys returns
+INVALID_COMMAND.
+
+Fix: parse `options.pinUvAuthToken` from the GetInfo response and pick
+the matching subCommand:
+
+  • pinUvAuthToken: true   → 0x09 (with permissions, scoped to GetAssertion + rpId)
+  • absent or false        → 0x05 (legacy, implicitly bound to all permissions)
+
+Both v1 and v2 PIN protocols work on either subCommand; the crypto
+(ECDH → derive → AES-CBC pinHashEnc → HMAC clientDataHash) is identical.

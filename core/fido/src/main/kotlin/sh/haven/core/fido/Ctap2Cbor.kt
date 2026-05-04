@@ -35,6 +35,7 @@ object Ctap2Cbor {
 
     // clientPIN subcommand codes
     const val PIN_SUB_GET_KEY_AGREEMENT = 2
+    const val PIN_SUB_GET_PIN_TOKEN_LEGACY = 5
     const val PIN_SUB_GET_PIN_TOKEN_WITH_PERMS = 9
 
     // PIN/UV permission bits (FIDO2 §6.5.5.7)
@@ -51,6 +52,14 @@ object Ctap2Cbor {
         val clientPinSet: Boolean,
         /** Built-in user verification (biometric) is configured. */
         val uvBuiltIn: Boolean,
+        /**
+         * `pinUvAuthToken: true` in GetInfo options means the authenticator
+         * implements CTAP 2.1 `getPinUvAuthTokenUsingPinWithPermissions`
+         * (subCommand 0x09). Older CTAP 2.0 / 2.1-PRE keys (e.g. YubiKey 5
+         * shipped before mid-2021) only support the legacy `getPinToken`
+         * (subCommand 0x05); calling 0x09 on them returns INVALID_COMMAND.
+         */
+        val pinUvAuthTokenSupported: Boolean,
     )
 
     /** Authenticator's COSE_Key from clientPIN getKeyAgreement (P-256 only). */
@@ -144,6 +153,7 @@ object Ctap2Cbor {
         var pinProtocols: List<Int> = emptyList()
         var clientPin = false
         var uv = false
+        var pinUvAuthToken = false
 
         for (i in 0 until mapSize) {
             val key = readSignedInt(buf)
@@ -156,6 +166,7 @@ object Ctap2Cbor {
                         when (optKey) {
                             "clientPin" -> clientPin = optVal
                             "uv" -> uv = optVal
+                            "pinUvAuthToken" -> pinUvAuthToken = optVal
                         }
                     }
                 }
@@ -171,6 +182,7 @@ object Ctap2Cbor {
             pinUvAuthProtocols = pinProtocols,
             clientPinSet = clientPin,
             uvBuiltIn = uv,
+            pinUvAuthTokenSupported = pinUvAuthToken,
         )
     }
 
@@ -183,6 +195,30 @@ object Ctap2Cbor {
         encodeMapHeader(out, 2)
         encodeUint(out, 1); encodeUint(out, protocol)
         encodeUint(out, 2); encodeUint(out, PIN_SUB_GET_KEY_AGREEMENT)
+        return out.toByteArray()
+    }
+
+    /**
+     * clientPIN subcommand 5 (getPinToken — legacy CTAP 2.0):
+     *   { 1: protocol, 2: 5, 3: platformKeyAgreement (COSE_Key), 6: pinHashEnc }
+     *
+     * Returned token is implicitly bound to GetAssertion + MakeCredential
+     * permissions on every rpId — the per-permission/per-rpId scoping that
+     * subCommand 9 introduced is unavailable here. Use this when GetInfo's
+     * `options.pinUvAuthToken` is absent or false.
+     */
+    fun encodeClientPinGetTokenLegacy(
+        protocol: Int,
+        platformKeyAgreement: CoseEcdhPubKey,
+        pinHashEnc: ByteArray,
+    ): ByteArray {
+        val out = ByteArrayOutputStream()
+        out.write(CMD_CLIENT_PIN.toInt())
+        encodeMapHeader(out, 4)
+        encodeUint(out, 1); encodeUint(out, protocol)
+        encodeUint(out, 2); encodeUint(out, PIN_SUB_GET_PIN_TOKEN_LEGACY)
+        encodeUint(out, 3); encodeCoseEcdhKey(out, platformKeyAgreement)
+        encodeUint(out, 6); encodeByteString(out, pinHashEnc)
         return out.toByteArray()
     }
 

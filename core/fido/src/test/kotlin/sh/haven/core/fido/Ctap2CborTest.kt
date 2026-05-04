@@ -38,6 +38,7 @@ class Ctap2CborTest {
     @Test
     fun `getInfo decoder extracts pin protocols and clientPin flag`() {
         // Hand-crafted CBOR: { 4: { "clientPin": true, "uv": false }, 6: [1, 2] }
+        // No pinUvAuthToken option — CTAP 2.0 shape (e.g. YubiKey 5 firmware 5.2.x)
         val data = byteArrayOf(
             0xA2.toByte(),                       // map(2)
             0x04,                                // key 4 (options)
@@ -54,6 +55,53 @@ class Ctap2CborTest {
         assertEquals(listOf(1, 2), info.pinUvAuthProtocols)
         assertTrue(info.clientPinSet)
         assertFalse(info.uvBuiltIn)
+        assertFalse(
+            "pinUvAuthToken absent must decode as false (CTAP 2.0 / YubiKey 5 pre-5.4 path)",
+            info.pinUvAuthTokenSupported,
+        )
+    }
+
+    @Test
+    fun `getInfo decoder reads pinUvAuthToken option when present`() {
+        // CTAP 2.1 shape: options { clientPin: true, pinUvAuthToken: true }, protocols [2, 1]
+        val data = byteArrayOf(
+            0xA2.toByte(),                       // map(2)
+            0x04,                                // key 4 (options)
+            0xA2.toByte(),                       // map(2)
+            0x69, 0x63, 0x6C, 0x69, 0x65, 0x6E, 0x74, 0x50, 0x69, 0x6E, // text(9) "clientPin"
+            0xF5.toByte(),                       // true
+            0x6E, 0x70, 0x69, 0x6E, 0x55, 0x76, 0x41, 0x75,
+            0x74, 0x68, 0x54, 0x6F, 0x6B, 0x65, 0x6E,        // text(14) "pinUvAuthToken"
+            0xF5.toByte(),                       // true
+            0x06,                                // key 6 (pinUvAuthProtocols)
+            0x82.toByte(),                       // array(2)
+            0x02, 0x01,                          // [2, 1]
+        )
+        val info = Ctap2Cbor.decodeGetInfoResponse(data)
+        assertTrue(info.pinUvAuthTokenSupported)
+    }
+
+    @Test
+    fun `legacy getPinToken encoder emits subCommand 5 with no permissions or rpId`() {
+        // CTAP 2.0 path (#15, olmari's YubiKey returning INVALID_COMMAND on subCmd 9):
+        // Request is { 1: protocol, 2: 5, 3: COSE_Key, 6: pinHashEnc } — map(4).
+        val pair = Ctap2PinProtocol.V2.generateEphemeralKeyPair()
+        val (x, y) = Ctap2PinProtocol.V2.ecPublicToCoseCoords(
+            pair.public as java.security.interfaces.ECPublicKey,
+        )
+        val cmd = Ctap2Cbor.encodeClientPinGetTokenLegacy(
+            protocol = 2,
+            platformKeyAgreement = Ctap2Cbor.CoseEcdhPubKey(x, y),
+            pinHashEnc = ByteArray(32),
+        )
+        assertEquals(Ctap2Cbor.CMD_CLIENT_PIN, cmd[0])
+        assertEquals(0xA4.toByte(), cmd[1]) // map(4) — protocol, sub, KA, pinHashEnc
+        // Locate the subCommand value: bytes are { 0xA4, 0x01, 0x02, 0x02, <sub> ... }
+        // i.e. map header, key 1, value 2 (protocol), key 2, value <sub>.
+        assertEquals(
+            "subCommand byte must be 5 (legacy getPinToken)",
+            Ctap2Cbor.PIN_SUB_GET_PIN_TOKEN_LEGACY.toByte(), cmd[5],
+        )
     }
 
     @Test

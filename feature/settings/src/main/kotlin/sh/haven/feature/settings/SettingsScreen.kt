@@ -1591,6 +1591,14 @@ private fun ColorSchemeDialog(
         text = {
             Column(modifier = Modifier.verticalScroll(rememberScrollState())) {
                 UserPreferencesRepository.TerminalColorScheme.entries.forEach { scheme ->
+                    // MATERIAL_YOU's "background" / "foreground" longs are
+                    // sentinel placeholders — derive the swatch from the
+                    // live MaterialTheme so the preview matches what the
+                    // terminal will actually look like.
+                    val previewBg = if (scheme.isDynamic) MaterialTheme.colorScheme.surface
+                        else Color(scheme.background)
+                    val previewFg = if (scheme.isDynamic) MaterialTheme.colorScheme.onSurface
+                        else Color(scheme.foreground)
                     ListItem(
                         headlineContent = {
                             Row(verticalAlignment = Alignment.CenterVertically) {
@@ -1598,7 +1606,7 @@ private fun ColorSchemeDialog(
                                     modifier = Modifier
                                         .size(32.dp)
                                         .clip(RoundedCornerShape(4.dp))
-                                        .background(Color(scheme.background))
+                                        .background(previewBg)
                                         .border(
                                             1.dp,
                                             MaterialTheme.colorScheme.outline,
@@ -1608,7 +1616,7 @@ private fun ColorSchemeDialog(
                                 ) {
                                     Text(
                                         text = "A",
-                                        color = Color(scheme.foreground),
+                                        color = previewFg,
                                         fontFamily = FontFamily.Monospace,
                                     )
                                 }

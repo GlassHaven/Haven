@@ -1,0 +1,15 @@
+v5.24.91: Material You terminal colour scheme (#139)
+
+New "Material You" entry in Settings → Terminal → Colour scheme.
+When selected, the terminal foreground / background pull from
+`MaterialTheme.colorScheme.surface` / `onSurface` instead of a fixed
+palette, so the terminal chrome follows the system's dynamic theme
+(wallpaper-driven, switches with light / dark mode). Default stays
+HAVEN to preserve existing users' look.
+
+Limited to fg / bg in this round — the 16 ANSI colours and the
+256-colour palette stay at xterm defaults. Harmonising the ANSI
+colours with the dynamic scheme is a follow-up since picking a
+palette that matches every wallpaper-derived hue without losing
+SGR-code legibility takes more design care than dropping the
+default scheme over the chrome.

@@ -54,6 +54,7 @@ import androidx.compose.material3.IconButton
 import androidx.compose.material3.MenuAnchorType
 import androidx.compose.material3.ListItem
 import androidx.compose.material3.MaterialTheme
+import androidx.compose.ui.graphics.toArgb
 import androidx.compose.material3.OutlinedTextField
 import androidx.compose.foundation.horizontalScroll
 import androidx.compose.foundation.layout.Arrangement
@@ -292,12 +293,21 @@ fun TerminalScreen(
         )
     }
 
+    // Resolve the active terminal foreground/background. For static
+    // schemes use the enum's fixed longs; for MATERIAL_YOU pull live
+    // values from the system theme so the terminal stays in sync with
+    // the wallpaper-driven dynamic palette.
+    val terminalBg: Color = if (colorScheme.isDynamic) MaterialTheme.colorScheme.surface
+        else Color(colorScheme.background)
+    val terminalFg: Color = if (colorScheme.isDynamic) MaterialTheme.colorScheme.onSurface
+        else Color(colorScheme.foreground)
+
     Column(modifier = Modifier.fillMaxSize()) {
         if (tabs.isEmpty()) {
             EmptyTerminalState(
                 fontSize = fontSize,
-                backgroundColor = Color(colorScheme.background),
-                foregroundColor = Color(colorScheme.foreground),
+                backgroundColor = terminalBg,
+                foregroundColor = terminalFg,
             )
         } else {
             // Tab row — can be hidden via Settings when the user wants more terminal space
@@ -695,19 +705,24 @@ fun TerminalScreen(
                             }
                         }
 
-                        // Update native emulator colors when scheme changes
-                        LaunchedEffect(colorScheme, activeTab.emulator) {
+                        // Update native emulator colors when scheme changes.
+                        // MATERIAL_YOU: pulled from MaterialTheme above and
+                        // re-applied whenever the system theme shifts (light /
+                        // dark / wallpaper change), so the terminal repaints.
+                        val terminalFgArgb = terminalFg.toArgb()
+                        val terminalBgArgb = terminalBg.toArgb()
+                        LaunchedEffect(terminalFgArgb, terminalBgArgb, activeTab.emulator) {
                             activeTab.emulator?.setDefaultColors(
-                                colorScheme.foreground.toInt(),
-                                colorScheme.background.toInt(),
+                                terminalFgArgb,
+                                terminalBgArgb,
                             )
                         }
 
                         // Force terminal redraw on resume from background
                         androidx.lifecycle.compose.LifecycleResumeEffect(activeTab.emulator) {
                             activeTab.emulator?.setDefaultColors(
-                                colorScheme.foreground.toInt(),
-                                colorScheme.background.toInt(),
+                                terminalFgArgb,
+                                terminalBgArgb,
                             )
                             onPauseOrDispose {}
                         }
@@ -745,8 +760,8 @@ fun TerminalScreen(
                                 initialFontSize = fontSize.sp,
                                 typeface = hackTypeface,
                                 keyboardEnabled = true,
-                                backgroundColor = Color(colorScheme.background),
-                                foregroundColor = Color(colorScheme.foreground),
+                                backgroundColor = terminalBg,
+                                foregroundColor = terminalFg,
                                 focusRequester = focusRequester,
                                 modifierManager = modifierManager,
                                 onPasteShortcut = pasteShortcut,

@@ -637,6 +637,16 @@ class UserPreferencesRepository @Inject constructor(
         val background: Long,
         val foreground: Long,
     ) {
+        /**
+         * Sentinel scheme — actual fg/bg come from the live
+         * `MaterialTheme.colorScheme` (surface / onSurface). The fixed
+         * longs here are sane fallbacks for code paths that can't reach
+         * MaterialTheme (e.g. emulator construction in
+         * `TerminalViewModel`); the Compose layer overrides immediately
+         * via `setDefaultColors`. Call sites that *can* reach the
+         * theme should check [isDynamic] and use the live colours.
+         */
+        MATERIAL_YOU("Material You", 0xFF1A1A1A, 0xFFE0E0E0),
         HAVEN("Haven", 0xFF1A1A2E, 0xFF00E676),
         CLASSIC_GREEN("Classic Green", 0xFF000000, 0xFF00FF00),
         LIGHT("Light", 0xFFFFFFFF, 0xFF1A1A1A),
@@ -651,6 +661,9 @@ class UserPreferencesRepository @Inject constructor(
         PINK("Pink", 0xFF2D001E, 0xFFFF9EC6),
         LAVENDER("Lavender", 0xFF1E1629, 0xFFCDB4DB),
         OCEAN("Ocean", 0xFF0A192F, 0xFF64FFDA);
+
+        /** True when fg/bg should be sourced from the live system theme rather than the enum's static longs. */
+        val isDynamic: Boolean get() = this == MATERIAL_YOU
 
         companion object {
             fun fromString(value: String?): TerminalColorScheme =

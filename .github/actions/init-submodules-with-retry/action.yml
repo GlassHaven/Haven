@@ -1,29 +1,69 @@
 name: Init submodules with retry
 description: |
-  Run `git submodule update --init --recursive` with 3 attempts and a 15s
-  backoff. Use this AFTER `actions/checkout` (with `submodules: false`)
-  in jobs that need a recursive submodule tree.
+  Run `git submodule update --init` with 3 attempts and a 15s backoff.
+  Use this AFTER `actions/checkout` (with `submodules: false`) in jobs
+  that need a submodule tree.
 
-  Why a separate action: gitlab.freedesktop.org (cairo / xcbproto /
-  xorgproto / libxau) intermittently returns HTTP 500 / PROTOCOL_ERROR /
-  early EOF mid fetch-pack. Top-level repo checkout from github.com is
-  reliable; only the submodule init fails. Retrying the same command
-  almost always succeeds on attempt 2 or 3.
+  Why a separate action: gitlab.freedesktop.org (cairo / mesa-drm /
+  fontconfig / libxau / libxcb / wayland and friends — pulled
+  transitively via wayland-android) intermittently returns HTTP 500-503,
+  PROTOCOL_ERROR, or early EOF mid fetch-pack. Top-level repo checkout
+  from github.com is reliable; only the submodule init fails. Retrying
+  the same command almost always succeeds on attempt 2 or 3.
 
   Failures on attempts 1-2 are emitted as `::warning::` so they show up
   in the run summary but don't fail the job; failure on attempt 3 is a
   real outage and fails the job with `::error::`.
+
+  ### `paths` input
+
+  Default behaviour is `--recursive`, i.e. every submodule including the
+  freedesktop chain under `wayland-android`. Jobs that don't need the
+  Wayland native build (e.g. unit-test jobs that just compile Kotlin)
+  can pass `paths` to limit the init to a subset — typical safe set:
+    paths: |
+      termlib
+      mosh-kotlin
+      et-kotlin
+      reticulum-kt
+      rnsh-kt
+      build-proot/proot-termux
+      rclone-android
+  When `paths` is set the init is non-recursive and skips
+  `wayland-android` entirely, sidestepping freedesktop outages.
+
+inputs:
+  paths:
+    description: |
+      Newline-separated list of submodule paths to init. Empty (default)
+      means init every submodule recursively, matching the prior
+      behaviour. When non-empty the init is non-recursive.
+    required: false
+    default: ""
 
 runs:
   using: composite
   steps:
     - name: Init submodules with retry
       shell: bash
+      env:
+        SUBMODULE_PATHS: ${{ inputs.paths }}
       run: |
         set +e
+        # Build the submodule update command. Empty paths → recursive
+        # init of everything (legacy behaviour). Non-empty → non-recursive
+        # init of just the listed paths.
+        if [ -z "$SUBMODULE_PATHS" ]; then
+          cmd=(git submodule update --init --recursive --jobs 4)
+        else
+          # shellcheck disable=SC2206
+          paths=( $(echo "$SUBMODULE_PATHS" | tr '\n' ' ') )
+          cmd=(git submodule update --init --jobs 4 -- "${paths[@]}")
+          echo "Initialising only: ${paths[*]}"
+        fi
         for attempt in 1 2 3; do
           echo "::group::Submodule init attempt $attempt"
-          git submodule update --init --recursive --jobs 4
+          "${cmd[@]}"
           rc=$?
           echo "::endgroup::"
           if [ "$rc" -eq 0 ]; then

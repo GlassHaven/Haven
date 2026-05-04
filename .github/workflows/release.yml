@@ -51,7 +51,21 @@ jobs:
       - uses: actions/checkout@v6
         with:
           submodules: false
+      # Unit tests don't compile the Wayland native build, so we skip
+      # `wayland-android` entirely — its freedesktop submodule chain
+      # (cairo, mesa-drm, fontconfig, libinput) goes through
+      # gitlab.freedesktop.org which intermittently 5xxs and breaks
+      # this job for non-test reasons. The build job below still does
+      # the full recursive init.
       - uses: ./.github/actions/init-submodules-with-retry
+        with:
+          paths: |
+            termlib
+            mosh-kotlin
+            et-kotlin
+            reticulum-kt
+            rnsh-kt
+            build-proot/proot-termux
       - uses: ./.github/actions/setup-toolchain
       - name: Run release unit tests
         run: ./gradlew testReleaseUnitTest

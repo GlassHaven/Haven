@@ -502,43 +502,28 @@ class DesktopViewModel @Inject constructor(
     // --- Input forwarding (operates on active tab) ---
 
     fun sendPointer(x: Int, y: Int) {
+        // Mirror the latest pointer into per-tab state so the UI overlay
+        // (cursor / virtual cursor seed) repaints immediately, without
+        // waiting for the IO dispatch round-trip.
         when (val tab = activeTab.value) {
             is DesktopTab.Vnc -> tab._pointerPos.value = x to y
             is DesktopTab.Rdp -> tab._pointerPos.value = x to y
             else -> {}
         }
         viewModelScope.launch(Dispatchers.IO) {
-            when (val tab = activeTab.value) {
-                is DesktopTab.Vnc -> tab.client.moveMouse(x, y)
-                is DesktopTab.Rdp -> tab.session.sendMouseMove(x, y)
-                else -> {}
-            }
+            activeTab.value?.remoteDesktop?.sendMouseMove(x, y)
         }
     }
 
     fun pressButton(button: Int = 1) {
         viewModelScope.launch(Dispatchers.IO) {
-            when (val tab = activeTab.value) {
-                is DesktopTab.Vnc -> tab.client.updateMouseButton(button, true)
-                is DesktopTab.Rdp -> tab.session.sendMouseButton(
-                    sh.haven.rdp.MouseButton.entries.getOrElse(button - 1) { sh.haven.rdp.MouseButton.LEFT },
-                    true,
-                )
-                else -> {}
-            }
+            activeTab.value?.remoteDesktop?.sendMouseButton(button, pressed = true)
         }
     }
 
     fun releaseButton(button: Int = 1) {
         viewModelScope.launch(Dispatchers.IO) {
-            when (val tab = activeTab.value) {
-                is DesktopTab.Vnc -> tab.client.updateMouseButton(button, false)
-                is DesktopTab.Rdp -> tab.session.sendMouseButton(
-                    sh.haven.rdp.MouseButton.entries.getOrElse(button - 1) { sh.haven.rdp.MouseButton.LEFT },
-                    false,
-                )
-                else -> {}
-            }
+            activeTab.value?.remoteDesktop?.sendMouseButton(button, pressed = false)
         }
     }
 
@@ -549,16 +534,7 @@ class DesktopViewModel @Inject constructor(
             else -> {}
         }
         viewModelScope.launch(Dispatchers.IO) {
-            when (val tab = activeTab.value) {
-                is DesktopTab.Vnc -> {
-                    tab.client.moveMouse(x, y)
-                    tab.client.click(button)
-                }
-                is DesktopTab.Rdp -> tab.session.sendMouseClick(x, y,
-                    sh.haven.rdp.MouseButton.entries.getOrElse(button - 1) { sh.haven.rdp.MouseButton.LEFT },
-                )
-                else -> {}
-            }
+            activeTab.value?.remoteDesktop?.sendMouseClick(x, y, button)
         }
     }
 
@@ -634,21 +610,13 @@ class DesktopViewModel @Inject constructor(
 
     fun scrollUp() {
         viewModelScope.launch(Dispatchers.IO) {
-            when (val tab = activeTab.value) {
-                is DesktopTab.Vnc -> tab.client.click(4)
-                is DesktopTab.Rdp -> tab.session.sendMouseWheel(true, 120)
-                else -> {}
-            }
+            activeTab.value?.remoteDesktop?.sendMouseWheel(deltaY = 1)
         }
     }
 
     fun scrollDown() {
         viewModelScope.launch(Dispatchers.IO) {
-            when (val tab = activeTab.value) {
-                is DesktopTab.Vnc -> tab.client.click(5)
-                is DesktopTab.Rdp -> tab.session.sendMouseWheel(true, -120)
-                else -> {}
-            }
+            activeTab.value?.remoteDesktop?.sendMouseWheel(deltaY = -1)
         }
     }
 
@@ -708,9 +676,8 @@ class DesktopViewModel @Inject constructor(
 
     private fun pauseAllExcept(activeIndex: Int) {
         _tabs.value.forEachIndexed { index, tab ->
-            if (tab is DesktopTab.Vnc) {
-                tab.client.paused = index != activeIndex
-            }
+            val rd = tab.remoteDesktop ?: return@forEachIndexed
+            if (index == activeIndex) rd.resume() else rd.pause()
         }
     }
 

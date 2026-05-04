@@ -19,6 +19,14 @@ sealed class DesktopTab {
     abstract val frame: StateFlow<Bitmap?>
     abstract val error: StateFlow<String?>
 
+    /**
+     * The protocol-neutral session driver, populated for tabs that
+     * carry a remote desktop connection. Null for tabs without one
+     * (e.g. native Wayland, which renders into a TextureView and
+     * has no agent-driveable input plane). #128.
+     */
+    abstract val remoteDesktop: RemoteDesktopSession?
+
     /** Protocol indicator for the tab bar icon/label. */
     val protocol: String get() = when (this) {
         is Vnc -> "VNC"
@@ -58,6 +66,7 @@ sealed class DesktopTab {
         override val connected: StateFlow<Boolean> get() = _connected
         override val frame: StateFlow<Bitmap?> get() = _frame
         override val error: StateFlow<String?> get() = _error
+        override val remoteDesktop: RemoteDesktopSession = VncDesktopSession(client)
         val cursor: StateFlow<CursorOverlay?> get() = _cursor
         val pointerPos: StateFlow<Pair<Int, Int>> get() = _pointerPos
         val bandwidthSuggestion: StateFlow<String?> get() = _bandwidthSuggestion
@@ -80,6 +89,7 @@ sealed class DesktopTab {
         override val connected: StateFlow<Boolean> get() = _connected
         override val frame: StateFlow<Bitmap?> get() = _frame
         override val error: StateFlow<String?> get() = _error
+        override val remoteDesktop: RemoteDesktopSession = RdpDesktopSession(session)
         val pointerPos: StateFlow<Pair<Int, Int>> get() = _pointerPos
     }
 
@@ -93,5 +103,6 @@ sealed class DesktopTab {
         override val connected: StateFlow<Boolean> get() = _connected
         override val frame: StateFlow<Bitmap?> = MutableStateFlow(null) // N/A — uses TextureView
         override val error: StateFlow<String?> get() = _error
+        override val remoteDesktop: RemoteDesktopSession? = null
     }
 }

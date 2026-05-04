@@ -1,0 +1,43 @@
+v5.24.96: RemoteDesktopSession abstraction over VNC + RDP (#128)
+
+VISION.md "Juxtapositions" sweep — places that look unified but
+aren't — had four items. Three (#129 Keystore, #130-131 ForegroundSession-
+Participant, #131 SessionManagerRegistry collapse) already landed.
+This is the fourth: VNC and RDP shared no base interface, so universal
+verbs needed N implementations and DesktopViewModel had to type-dispatch
+seven input methods.
+
+New `RemoteDesktopSession` interface in `app/desktop/`:
+
+  • sendMouseMove(x, y)
+  • sendMouseButton(button, pressed)
+  • sendMouseClick(x, y, button)
+  • sendMouseWheel(deltaY)
+  • sendClipboardText(text)
+  • pause() / resume()
+  • close()
+
+`VncDesktopSession` wraps `VncClient`; `RdpDesktopSession` wraps
+`RdpSession`. Mouse-button numbering is the X11 convention (1=left,
+2=middle, 3=right); each adapter translates to its native shape. VNC's
+scroll-as-click-4/5 trick lives behind sendMouseWheel; RDP's pause is
+a no-op (server-push, no client-side throttle).
+
+DesktopViewModel.sendPointer / pressButton / releaseButton / sendClick /
+scrollUp / scrollDown / pauseAllExcept all collapse from `when (tab) {
+is Vnc -> ... is Rdp -> ... }` to a single `tab.remoteDesktop?.X(...)`.
+
+Out of scope for this PR (tracked separately):
+
+  • Keyboard input — VNC X11 keysym vs RDP scancode + Unicode is the
+    most divergent surface; needs a `RemoteDesktopKeyEvent` ADT.
+  • UI composable collapse (VncSessionContent + RdpSessionContent) —
+    chrome diverges meaningfully (cursor overlay, bandwidth chip,
+    orientation control); not a juxtaposition.
+  • Frame / connection-state unification — different signal patterns
+    (poll vs callback); separate design pass.
+  • New backends (Spice, RustDesk) — the abstraction now makes adding
+    one a third adapter, not a parallel stack.
+
+Driver code in core/vnc and core/rdp is untouched. 17 new unit tests
+pin the verb-routing contract.

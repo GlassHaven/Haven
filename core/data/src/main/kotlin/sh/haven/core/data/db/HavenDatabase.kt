@@ -26,7 +26,7 @@ import sh.haven.core.data.db.entities.TunnelConfig
         TunnelConfig::class,
         PasteQueueEntry::class,
     ],
-    version = 43,
+    version = 44,
     exportSchema = true,
 )
 abstract class HavenDatabase : RoomDatabase() {
@@ -479,6 +479,20 @@ abstract class HavenDatabase : RoomDatabase() {
             override fun migrate(db: SupportSQLiteDatabase) {
                 db.execSQL(
                     "ALTER TABLE ssh_keys ADD COLUMN certificateBytes BLOB DEFAULT NULL"
+                )
+            }
+        }
+
+        /**
+         * Per-connection IPv4-only toggle (#137). On networks where
+         * AAAA records resolve but the IPv6 path doesn't route, the
+         * user can flip this to skip IPv6 entirely. Default 0 — every
+         * existing profile keeps the dual-stack behaviour.
+         */
+        val MIGRATION_43_44 = object : Migration(43, 44) {
+            override fun migrate(db: SupportSQLiteDatabase) {
+                db.execSQL(
+                    "ALTER TABLE connection_profiles ADD COLUMN forceIpv4 INTEGER NOT NULL DEFAULT 0"
                 )
             }
         }

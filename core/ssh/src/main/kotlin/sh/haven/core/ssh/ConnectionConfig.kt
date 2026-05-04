@@ -9,6 +9,13 @@ data class ConnectionConfig(
     /** Enable SSH agent forwarding (OpenSSH `ForwardAgent`). */
     val forwardAgent: Boolean = false,
     /**
+     * When true, [SshClient] resolves the hostname to an IPv4 address
+     * before connecting and skips any IPv6 records the resolver might
+     * return. Useful on networks where AAAA records resolve but the
+     * IPv6 path doesn't route (#137).
+     */
+    val forceIpv4: Boolean = false,
+    /**
      * Keys to expose via the forwarded agent channel. Each pair is (label, private key bytes).
      * Only consulted when [forwardAgent] is true. Encrypted keys must be excluded by the caller
      * — JSch's ChannelAgentForwarding silently skips identities whose `isEncrypted()` returns true.

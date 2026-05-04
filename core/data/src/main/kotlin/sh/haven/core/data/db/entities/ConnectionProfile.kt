@@ -101,6 +101,12 @@ data class ConnectionProfile(
     val moshServerCommand: String? = null,
     /** Enable SSH agent forwarding (OpenSSH `ForwardAgent`) — exposes non-encrypted stored SSH keys to the remote session. */
     val forwardAgent: Boolean = false,
+    /**
+     * When true, hostname resolution is filtered to IPv4 only and any
+     * AAAA records are skipped. Useful on networks where IPv6 resolves
+     * but doesn't route. #137.
+     */
+    val forceIpv4: Boolean = false,
     /** IFAC network name for Reticulum gateway isolation (maps to ifacNetname). */
     val reticulumNetworkName: String? = null,
     /** IFAC passphrase for Reticulum gateway isolation (maps to ifacNetkey). */

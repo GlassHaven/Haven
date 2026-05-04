@@ -1,0 +1,18 @@
+v5.24.92: per-connection force-IPv4 toggle (#137)
+
+pannal: on networks where AAAA records resolve but the IPv6 path
+doesn't route, the SSH connect attempt would dial the broken IPv6
+and stall instead of falling back to IPv4. Adding a per-connection
+"Force IPv4" toggle in the connection edit dialog (Advanced
+section). When on, hostname resolution skips AAAA records entirely
+and dials the first A record returned.
+
+DB migration 43→44 adds a `forceIpv4` boolean column to
+`connection_profiles`, default 0. SshClient.resolveHost gains an
+ipv4Only parameter that filters InetAddress.getAllByName output to
+the first Inet4Address.
+
+The toggle is per-connection — global "always IPv4" is a future
+add if anyone needs it. Hostname resolution still uses the system
+resolver (mDNS for .local, system DNS otherwise); only the address-
+family filter changes when the toggle is on.

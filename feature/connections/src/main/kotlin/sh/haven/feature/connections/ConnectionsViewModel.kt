@@ -1417,6 +1417,7 @@ class ConnectionsViewModel @Inject constructor(
                         authMethod = authMethod,
                         sshOptions = ConnectionConfig.parseSshOptions(profile.sshOptions),
                         forwardAgent = profile.forwardAgent,
+                        forceIpv4 = profile.forceIpv4,
                         agentIdentities = agentIdentitiesFor(profile),
                     )
 
@@ -1638,6 +1639,7 @@ class ConnectionsViewModel @Inject constructor(
                         authMethod = authMethod,
                         sshOptions = ConnectionConfig.parseSshOptions(profile.sshOptions),
                         forwardAgent = profile.forwardAgent,
+                        forceIpv4 = profile.forceIpv4,
                         agentIdentities = agentIdentitiesFor(profile),
                     )
 
@@ -1769,6 +1771,7 @@ class ConnectionsViewModel @Inject constructor(
                         authMethod = authMethod,
                         sshOptions = ConnectionConfig.parseSshOptions(profile.sshOptions),
                         forwardAgent = profile.forwardAgent,
+                        forceIpv4 = profile.forceIpv4,
                         agentIdentities = agentIdentitiesFor(profile),
                     )
 
@@ -2234,6 +2237,7 @@ class ConnectionsViewModel @Inject constructor(
                     username = jumpProfile.username,
                     authMethod = authMethod,
                     sshOptions = ConnectionConfig.parseSshOptions(jumpProfile.sshOptions),
+                    forceIpv4 = jumpProfile.forceIpv4,
                 )
                 Log.d(TAG, "Jump host SSH connecting...")
                 try {
@@ -3092,6 +3096,7 @@ class ConnectionsViewModel @Inject constructor(
                     authMethod = authMethod,
                     sshOptions = ConnectionConfig.parseSshOptions(profile.sshOptions),
                     forwardAgent = profile.forwardAgent,
+                        forceIpv4 = profile.forceIpv4,
                     agentIdentities = agentIdentitiesFor(profile),
                 )
                 val proxy = if (jumpSessionId != null) {
@@ -3151,6 +3156,7 @@ class ConnectionsViewModel @Inject constructor(
                     authMethod = authMethod,
                     sshOptions = ConnectionConfig.parseSshOptions(profile.sshOptions),
                     forwardAgent = profile.forwardAgent,
+                        forceIpv4 = profile.forceIpv4,
                     agentIdentities = agentIdentitiesFor(profile),
                 )
                 val sshClient = SshClient().apply {
@@ -3203,6 +3209,7 @@ class ConnectionsViewModel @Inject constructor(
                     authMethod = authMethod,
                     sshOptions = ConnectionConfig.parseSshOptions(profile.sshOptions),
                     forwardAgent = profile.forwardAgent,
+                        forceIpv4 = profile.forceIpv4,
                     agentIdentities = agentIdentitiesFor(profile),
                 )
                 val sshClient = SshClient().apply {

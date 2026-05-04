@@ -179,6 +179,7 @@ fun ConnectionEditDialog(
     var disableAltScreen by rememberSaveable { mutableStateOf(existing?.disableAltScreen ?: false) }
     var useAndroidShell by rememberSaveable { mutableStateOf(existing?.useAndroidShell ?: false) }
     var forwardAgent by rememberSaveable { mutableStateOf(existing?.forwardAgent ?: false) }
+    var forceIpv4 by rememberSaveable { mutableStateOf(existing?.forceIpv4 ?: false) }
     var selectedSessionManager by rememberSaveable { mutableStateOf(existing?.sessionManager) }
     var etPort by rememberSaveable { mutableStateOf(existing?.etPort?.toString() ?: "2022") }
     var localSideband by rememberSaveable {
@@ -1634,6 +1635,22 @@ fun ConnectionEditDialog(
                         )
                     }
 
+                    // Force IPv4 (#137) — for networks where AAAA records
+                    // resolve but the IPv6 path doesn't route.
+                    Spacer(Modifier.height(4.dp))
+                    FilterChip(
+                        selected = forceIpv4,
+                        onClick = { forceIpv4 = !forceIpv4 },
+                        label = { Text("Force IPv4") },
+                    )
+                    if (forceIpv4) {
+                        Text(
+                            "Skip AAAA records and connect over IPv4 only. Useful when DNS returns IPv6 but the network can't route it.",
+                            style = MaterialTheme.typography.bodySmall,
+                            color = MaterialTheme.colorScheme.onSurfaceVariant,
+                        )
+                    }
+
                     // SSH key selector
                     if (sshKeys.isNotEmpty()) {
                         Spacer(Modifier.height(4.dp))
@@ -2087,6 +2104,7 @@ fun ConnectionEditDialog(
                             disableAltScreen = disableAltScreen,
                             useAndroidShell = useAndroidShell,
                             forwardAgent = forwardAgent,
+                            forceIpv4 = forceIpv4,
                             sessionManager = selectedSessionManager,
                             useMosh = selectedTransport == "MOSH",
                             useEternalTerminal = selectedTransport == "ET",

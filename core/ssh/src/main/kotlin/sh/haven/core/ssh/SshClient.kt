@@ -62,7 +62,7 @@ class SshClient : Closeable {
         disconnect()
         verboseLogger?.let { jsch.setInstanceLogger(it) }
 
-        val resolvedIp = if (proxy != null) config.host else resolveHost(config.host)
+        val resolvedIp = if (proxy != null) config.host else resolveHost(config.host, ipv4Only = config.forceIpv4)
         val sess = jsch.getSession(config.username, resolvedIp, config.port)
         if (proxy != null) sess.setProxy(proxy)
         // Accept any key at the JSch level; we verify post-connect ourselves (TOFU)
@@ -231,7 +231,7 @@ class SshClient : Closeable {
         disconnect()
         verboseLogger?.let { jsch.setInstanceLogger(it) }
 
-        val resolvedIp = if (proxy != null) config.host else resolveHost(config.host)
+        val resolvedIp = if (proxy != null) config.host else resolveHost(config.host, ipv4Only = config.forceIpv4)
         val sess = jsch.getSession(config.username, resolvedIp, config.port)
         if (proxy != null) sess.setProxy(proxy)
         sess.setConfig("StrictHostKeyChecking", "no")
@@ -541,29 +541,44 @@ class SshClient : Closeable {
          * changes (e.g. switching between local and remote DNS) take effect
          * without restarting the app.
          */
-        fun resolveHost(hostname: String): String {
-            // Already an IP literal — skip resolution
+        fun resolveHost(hostname: String, ipv4Only: Boolean = false): String {
+            // Already an IP literal — skip resolution. (IPv6 literals contain ':',
+            // never matched by the IPv4 regex; passing them through verbatim
+            // is fine — JSch won't dial them when ipv4Only is set since the
+            // input is already pinned.)
             if (hostname.matches(Regex("""\d{1,3}(\.\d{1,3}){3}"""))) return hostname
 
             // .onion addresses must not be resolved locally — they require a SOCKS proxy
             if (hostname.endsWith(".onion")) return hostname
 
             val ip = if (hostname.endsWith(".local") || hostname.endsWith(".local.")) {
-                resolveMdns(hostname) ?: resolveSystem(hostname)
+                resolveMdns(hostname) ?: resolveSystem(hostname, ipv4Only)
             } else {
-                resolveSystem(hostname)
+                resolveSystem(hostname, ipv4Only)
             }
 
             if (ip != null) return ip
 
-            throw java.net.UnknownHostException("Could not resolve hostname: $hostname")
+            val why = if (ipv4Only) " (no A record / IPv4 address found, force-IPv4 enabled)" else ""
+            throw java.net.UnknownHostException("Could not resolve hostname: $hostname$why")
         }
 
-        private fun resolveSystem(hostname: String): String? {
+        private fun resolveSystem(hostname: String, ipv4Only: Boolean = false): String? {
             return try {
-                // InetAddress.getByName has no timeout — run it in a thread with a deadline
+                // InetAddress.getByName/getAllByName has no timeout — run it in a thread with a deadline
                 val future = java.util.concurrent.CompletableFuture.supplyAsync {
-                    InetAddress.getByName(hostname).hostAddress
+                    if (ipv4Only) {
+                        // Force-IPv4 (#137): walk every address the resolver
+                        // returns, pick the first IPv4. If none, returning
+                        // null surfaces as a clear "no A record" error rather
+                        // than the JSch-level "could not connect" once we'd
+                        // tried IPv6.
+                        InetAddress.getAllByName(hostname)
+                            .firstOrNull { it is java.net.Inet4Address }
+                            ?.hostAddress
+                    } else {
+                        InetAddress.getByName(hostname).hostAddress
+                    }
                 }
                 future.get(5, java.util.concurrent.TimeUnit.SECONDS)
             } catch (e: java.util.concurrent.TimeoutException) {

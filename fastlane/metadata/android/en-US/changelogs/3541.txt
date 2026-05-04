@@ -1,0 +1,24 @@
+v5.24.90: nano-exit garbage attempt fix (#120)
+
+agevlakh's report on #120: editing an existing file in nano then
+exiting leaves stale content in scrollback and the cursor at the
+top of the screen. Ctrl+L clears it. Other full-screen tools
+(vim, less, htop) don't repro. The original .66 fix targeted a
+different trigger and doesn't cover this case.
+
+Working theory: the render-cache (currentLines + pending damage
+regions) drifts out of sync with libvterm's primary buffer during
+the alt-screen window. On exit, the renderer paints whatever
+stale state the cache held; Ctrl+L heals it because the shell
+writes new content over the stale cells.
+
+Termlib hook on VTERM_PROP_ALTSCREEN: when alt-screen transitions
+OFF, queue a full-screen redamage and let processPendingUpdates
+re-pull every cell from libvterm — same effect Ctrl+L produces,
+but automatic. Activation path left alone; alt-screen entry
+always paints fresh.
+
+Untested in the wild yet — needs agevlakh to retest the same
+edit-existing-file repro. If the libvterm state itself is
+corrupted (not just our cache), this won't help and we'll have
+to look at the primary-buffer save/restore pair around resize.

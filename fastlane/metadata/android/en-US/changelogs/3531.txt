@@ -1,0 +1,25 @@
+v5.24.89: zh-CN follow-up — connection-edit dialog translated
+
+Triggered by qtgf520 (#125, #135): the New / Edit Connection dialog
+was the single largest English-only surface left in zh-CN after
+v5.24.88. About 35 hardcoded labels extracted to strings.xml and
+translated:
+
+* Dialog titles: New Connection / Edit Connection
+* Top-level fields visible in every transport: Transport, Label,
+  Color, Host, Port, Username, Jump Host (-J), Route through,
+  Session Manager, SSH Options + ssh_config helper, Post-login
+  command + helper, File transport section + helper text
+* Per-protocol VNC / RDP / SMB / rclone field labels: Tunnel
+  through SSH, SSH connection, Colour depth, Username (VeNCrypt
+  variant), Password (optional), Domain (optional), Share Name,
+  Provider, Group
+* SSH-specific extras: Proxy Host, ET Port, mosh-server command +
+  helper, Scan Network, Scanning, dropdown defaults (None,
+  None (direct), Default (None))
+* File-transport choice descriptions (Auto / SFTP only / SCP
+  legacy) and their per-mode helper text
+
+What's still hardcoded: protocol-specific placeholder hints (IP
+literals like "192.168.1.100", "5900", "WORKGROUP", "shared")
+which are intentional examples rather than translatable copy.

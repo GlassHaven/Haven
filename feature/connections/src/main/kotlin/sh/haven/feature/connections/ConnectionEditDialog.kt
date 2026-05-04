@@ -197,7 +197,7 @@ fun ConnectionEditDialog(
     var fileTransport by rememberSaveable { mutableStateOf(existing?.fileTransport ?: "AUTO") }
 
     val isEdit = existing != null
-    val title = if (isEdit) "Edit Connection" else "New Connection"
+    val title = if (isEdit) stringResource(R.string.connections_dialog_edit) else stringResource(R.string.connections_dialog_new)
 
     AlertDialog(
         onDismissRequest = onDismiss,
@@ -232,7 +232,7 @@ fun ConnectionEditDialog(
                         value = transportOptions.first { it.first == selectedTransport }.second,
                         onValueChange = {},
                         readOnly = true,
-                        label = { Text("Transport") },
+                        label = { Text(stringResource(R.string.connections_field_transport)) },
                         trailingIcon = { ExposedDropdownMenuDefaults.TrailingIcon(transportExpanded) },
                         modifier = Modifier
                             .fillMaxWidth()
@@ -269,7 +269,7 @@ fun ConnectionEditDialog(
                 OutlinedTextField(
                     value = label,
                     onValueChange = { label = it },
-                    label = { Text("Label") },
+                    label = { Text(stringResource(R.string.connections_field_label)) },
                     placeholder = {
                         Text(
                             when (connectionType) {
@@ -294,7 +294,7 @@ fun ConnectionEditDialog(
                     verticalAlignment = Alignment.CenterVertically,
                     modifier = Modifier.fillMaxWidth(),
                 ) {
-                    Text("Color", style = MaterialTheme.typography.bodyMedium)
+                    Text(stringResource(R.string.connections_field_color), style = MaterialTheme.typography.bodyMedium)
                     // "None" option
                     Box(
                         contentAlignment = Alignment.Center,
@@ -357,7 +357,7 @@ fun ConnectionEditDialog(
                             value = selectedGroup?.label ?: "None",
                             onValueChange = {},
                             readOnly = true,
-                            label = { Text("Group") },
+                            label = { Text(stringResource(R.string.connections_field_group)) },
                             trailingIcon = { ExposedDropdownMenuDefaults.TrailingIcon(groupExpanded) },
                             modifier = Modifier
                                 .fillMaxWidth()
@@ -368,7 +368,7 @@ fun ConnectionEditDialog(
                             onDismissRequest = { groupExpanded = false },
                         ) {
                             DropdownMenuItem(
-                                text = { Text("None") },
+                                text = { Text(stringResource(R.string.connections_dropdown_none)) },
                                 onClick = {
                                     groupId = null
                                     groupExpanded = false
@@ -440,7 +440,7 @@ fun ConnectionEditDialog(
                                 ?: rcloneProvider.ifEmpty { "Select provider..." },
                             onValueChange = {},
                             readOnly = true,
-                            label = { Text("Provider") },
+                            label = { Text(stringResource(R.string.connections_field_provider)) },
                             trailingIcon = { ExposedDropdownMenuDefaults.TrailingIcon(providerExpanded) },
                             modifier = Modifier
                                 .fillMaxWidth()
@@ -486,7 +486,7 @@ fun ConnectionEditDialog(
                                 if (host == "127.0.0.1" || host == "localhost") host = ""
                             }
                         },
-                        label = { Text("Tunnel through SSH") },
+                        label = { Text(stringResource(R.string.connections_field_tunnel_through_ssh)) },
                     )
                     if (vncSshForward) {
                         val sshCandidates = sshProfiles.filter { it.isSsh }
@@ -502,7 +502,7 @@ fun ConnectionEditDialog(
                                     value = selectedSsh?.label ?: "Select SSH connection",
                                     onValueChange = {},
                                     readOnly = true,
-                                    label = { Text("SSH connection") },
+                                    label = { Text(stringResource(R.string.connections_field_ssh_connection)) },
                                     trailingIcon = { ExposedDropdownMenuDefaults.TrailingIcon(sshExpanded) },
                                     modifier = Modifier
                                         .fillMaxWidth()
@@ -552,7 +552,7 @@ fun ConnectionEditDialog(
                     OutlinedTextField(
                         value = port,
                         onValueChange = { port = it.filter { c -> c.isDigit() } },
-                        label = { Text("Port") },
+                        label = { Text(stringResource(R.string.connections_field_port)) },
                         placeholder = { Text("5900") },
                         singleLine = true,
                         keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Number),
@@ -562,7 +562,7 @@ fun ConnectionEditDialog(
                     OutlinedTextField(
                         value = vncUsername,
                         onValueChange = { vncUsername = it },
-                        label = { Text("Username (optional — VeNCrypt only)") },
+                        label = { Text(stringResource(R.string.connections_field_username_vnc)) },
                         singleLine = true,
                         modifier = Modifier.fillMaxWidth(),
                     )
@@ -570,7 +570,7 @@ fun ConnectionEditDialog(
                     OutlinedTextField(
                         value = vncPassword,
                         onValueChange = { vncPassword = it },
-                        label = { Text("Password (optional)") },
+                        label = { Text(stringResource(R.string.connections_field_password_optional)) },
                         singleLine = true,
                         modifier = Modifier.fillMaxWidth(),
                     )
@@ -596,7 +596,7 @@ fun ConnectionEditDialog(
                             value = selectedDepth.second,
                             onValueChange = {},
                             readOnly = true,
-                            label = { Text("Colour depth") },
+                            label = { Text(stringResource(R.string.connections_field_colour_depth)) },
                             trailingIcon = { ExposedDropdownMenuDefaults.TrailingIcon(depthExpanded) },
                             modifier = Modifier
                                 .fillMaxWidth()
@@ -636,7 +636,7 @@ fun ConnectionEditDialog(
                                 if (host == "127.0.0.1" || host == "localhost") host = ""
                             }
                         },
-                        label = { Text("Tunnel through SSH") },
+                        label = { Text(stringResource(R.string.connections_field_tunnel_through_ssh)) },
                     )
                     // SSH profile dropdown sits right next to the tunnel toggle
                     // so the two fields read as one decision ("tunnel through
@@ -656,7 +656,7 @@ fun ConnectionEditDialog(
                                     value = selectedSsh?.label ?: "Select SSH connection",
                                     onValueChange = {},
                                     readOnly = true,
-                                    label = { Text("SSH connection") },
+                                    label = { Text(stringResource(R.string.connections_field_ssh_connection)) },
                                     trailingIcon = { ExposedDropdownMenuDefaults.TrailingIcon(sshExpanded) },
                                     modifier = Modifier
                                         .fillMaxWidth()
@@ -709,7 +709,7 @@ fun ConnectionEditDialog(
                         OutlinedTextField(
                             value = rdpUsername,
                             onValueChange = { rdpUsername = it },
-                            label = { Text("Username") },
+                            label = { Text(stringResource(R.string.connections_field_username)) },
                             placeholder = { Text("user") },
                             singleLine = true,
                             modifier = Modifier.weight(1f),
@@ -717,7 +717,7 @@ fun ConnectionEditDialog(
                         OutlinedTextField(
                             value = port,
                             onValueChange = { port = it.filter { c -> c.isDigit() } },
-                            label = { Text("Port") },
+                            label = { Text(stringResource(R.string.connections_field_port)) },
                             singleLine = true,
                             keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Number),
                             modifier = Modifier.width(80.dp),
@@ -727,14 +727,14 @@ fun ConnectionEditDialog(
                     sh.haven.core.ui.PasswordField(
                         value = rdpPassword,
                         onValueChange = { rdpPassword = it },
-                        label = "Password (optional)",
+                        label = stringResource(R.string.connections_field_password_optional),
                         modifier = Modifier.fillMaxWidth(),
                     )
                     Spacer(Modifier.height(4.dp))
                     OutlinedTextField(
                         value = rdpDomain,
                         onValueChange = { rdpDomain = it },
-                        label = { Text("Domain (optional)") },
+                        label = { Text(stringResource(R.string.connections_field_domain_optional)) },
                         placeholder = { Text("WORKGROUP") },
                         singleLine = true,
                         modifier = Modifier.fillMaxWidth(),
@@ -779,7 +779,7 @@ fun ConnectionEditDialog(
                             value = selectedRdpDepth.second,
                             onValueChange = {},
                             readOnly = true,
-                            label = { Text("Colour depth") },
+                            label = { Text(stringResource(R.string.connections_field_colour_depth)) },
                             trailingIcon = { ExposedDropdownMenuDefaults.TrailingIcon(rdpDepthExpanded) },
                             modifier = Modifier
                                 .fillMaxWidth()
@@ -835,11 +835,11 @@ fun ConnectionEditDialog(
                             if (smbSubnetScanning) {
                                 CircularProgressIndicator(modifier = Modifier.size(14.dp), strokeWidth = 2.dp)
                                 Spacer(Modifier.width(4.dp))
-                                Text("Scanning", style = MaterialTheme.typography.labelSmall)
+                                Text(stringResource(R.string.connections_scanning), style = MaterialTheme.typography.labelSmall)
                             } else {
                                 Icon(Icons.Filled.Radar, contentDescription = null, modifier = Modifier.size(16.dp))
                                 Spacer(Modifier.width(4.dp))
-                                Text("Scan Network", style = MaterialTheme.typography.labelSmall)
+                                Text(stringResource(R.string.connections_scan_network), style = MaterialTheme.typography.labelSmall)
                             }
                         }
                     }
@@ -856,7 +856,7 @@ fun ConnectionEditDialog(
                                     host = it
                                     smbHostExpanded = true
                                 },
-                                label = { Text("Host") },
+                                label = { Text(stringResource(R.string.connections_field_host)) },
                                 placeholder = { Text("192.168.1.100") },
                                 singleLine = true,
                                 trailingIcon = {
@@ -928,7 +928,7 @@ fun ConnectionEditDialog(
                         OutlinedTextField(
                             value = host,
                             onValueChange = { host = it },
-                            label = { Text("Host") },
+                            label = { Text(stringResource(R.string.connections_field_host)) },
                             placeholder = { Text("192.168.1.100") },
                             singleLine = true,
                             modifier = Modifier.fillMaxWidth(),
@@ -938,7 +938,7 @@ fun ConnectionEditDialog(
                     OutlinedTextField(
                         value = smbShare,
                         onValueChange = { smbShare = it },
-                        label = { Text("Share Name") },
+                        label = { Text(stringResource(R.string.connections_field_share_name)) },
                         placeholder = { Text("shared") },
                         singleLine = true,
                         modifier = Modifier.fillMaxWidth(),
@@ -950,7 +950,7 @@ fun ConnectionEditDialog(
                         OutlinedTextField(
                             value = username,
                             onValueChange = { username = it },
-                            label = { Text("Username") },
+                            label = { Text(stringResource(R.string.connections_field_username)) },
                             placeholder = { Text("user") },
                             singleLine = true,
                             modifier = Modifier.weight(1f),
@@ -958,7 +958,7 @@ fun ConnectionEditDialog(
                         OutlinedTextField(
                             value = port,
                             onValueChange = { port = it.filter { c -> c.isDigit() } },
-                            label = { Text("Port") },
+                            label = { Text(stringResource(R.string.connections_field_port)) },
                             singleLine = true,
                             keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Number),
                             modifier = Modifier.width(80.dp),
@@ -968,14 +968,14 @@ fun ConnectionEditDialog(
                     sh.haven.core.ui.PasswordField(
                         value = smbPassword,
                         onValueChange = { smbPassword = it },
-                        label = "Password (optional)",
+                        label = stringResource(R.string.connections_field_password_optional),
                         modifier = Modifier.fillMaxWidth(),
                     )
                     Spacer(Modifier.height(4.dp))
                     OutlinedTextField(
                         value = smbDomain,
                         onValueChange = { smbDomain = it },
-                        label = { Text("Domain (optional)") },
+                        label = { Text(stringResource(R.string.connections_field_domain_optional)) },
                         placeholder = { Text("WORKGROUP") },
                         singleLine = true,
                         modifier = Modifier.fillMaxWidth(),
@@ -996,7 +996,7 @@ fun ConnectionEditDialog(
                                 if (host == "127.0.0.1" || host == "localhost") host = ""
                             }
                         },
-                        label = { Text("Tunnel through SSH") },
+                        label = { Text(stringResource(R.string.connections_field_tunnel_through_ssh)) },
                     )
                     if (smbSshForward) {
                         val sshCandidates = sshProfiles.filter { it.isSsh }
@@ -1012,7 +1012,7 @@ fun ConnectionEditDialog(
                                     value = selectedSsh?.label ?: "Select SSH connection",
                                     onValueChange = {},
                                     readOnly = true,
-                                    label = { Text("SSH connection") },
+                                    label = { Text(stringResource(R.string.connections_field_ssh_connection)) },
                                     trailingIcon = { ExposedDropdownMenuDefaults.TrailingIcon(sshExpanded) },
                                     modifier = Modifier
                                         .fillMaxWidth()
@@ -1076,11 +1076,11 @@ fun ConnectionEditDialog(
                             if (subnetScanning) {
                                 CircularProgressIndicator(modifier = Modifier.size(14.dp), strokeWidth = 2.dp)
                                 Spacer(Modifier.width(4.dp))
-                                Text("Scanning", style = MaterialTheme.typography.labelSmall)
+                                Text(stringResource(R.string.connections_scanning), style = MaterialTheme.typography.labelSmall)
                             } else {
                                 Icon(Icons.Filled.Radar, contentDescription = null, modifier = Modifier.size(16.dp))
                                 Spacer(Modifier.width(4.dp))
-                                Text("Scan Network", style = MaterialTheme.typography.labelSmall)
+                                Text(stringResource(R.string.connections_scan_network), style = MaterialTheme.typography.labelSmall)
                             }
                         }
                     }
@@ -1099,7 +1099,7 @@ fun ConnectionEditDialog(
                                     host = it
                                     hostExpanded = true
                                 },
-                                label = { Text("Host") },
+                                label = { Text(stringResource(R.string.connections_field_host)) },
                                 placeholder = { Text("192.168.1.1") },
                                 singleLine = true,
                                 trailingIcon = {
@@ -1174,7 +1174,7 @@ fun ConnectionEditDialog(
                         OutlinedTextField(
                             value = host,
                             onValueChange = { host = it },
-                            label = { Text("Host") },
+                            label = { Text(stringResource(R.string.connections_field_host)) },
                             placeholder = { Text("192.168.1.1") },
                             singleLine = true,
                             modifier = Modifier.fillMaxWidth(),
@@ -1187,15 +1187,15 @@ fun ConnectionEditDialog(
                         OutlinedTextField(
                             value = username,
                             onValueChange = { username = it },
-                            label = { Text("Username") },
-                            placeholder = { Text("Leave empty to ask at connect time") },
+                            label = { Text(stringResource(R.string.connections_field_username)) },
+                            placeholder = { Text(stringResource(R.string.connections_username_placeholder_ask)) },
                             singleLine = true,
                             modifier = Modifier.weight(1f),
                         )
                         OutlinedTextField(
                             value = port,
                             onValueChange = { port = it.filter { c -> c.isDigit() } },
-                            label = { Text("Port") },
+                            label = { Text(stringResource(R.string.connections_field_port)) },
                             singleLine = true,
                             keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Number),
                             modifier = Modifier.width(80.dp),
@@ -1217,7 +1217,7 @@ fun ConnectionEditDialog(
                                 value = selectedJump?.label ?: "None (direct)",
                                 onValueChange = {},
                                 readOnly = true,
-                                label = { Text("Jump Host (-J)") },
+                                label = { Text(stringResource(R.string.connections_field_jump_host)) },
                                 trailingIcon = { ExposedDropdownMenuDefaults.TrailingIcon(expanded = jumpExpanded) },
                                 modifier = Modifier
                                     .fillMaxWidth()
@@ -1228,7 +1228,7 @@ fun ConnectionEditDialog(
                                 onDismissRequest = { jumpExpanded = false },
                             ) {
                                 DropdownMenuItem(
-                                    text = { Text("None (direct)") },
+                                    text = { Text(stringResource(R.string.connections_dropdown_none_direct)) },
                                     onClick = {
                                         jumpProfileId = null
                                         jumpExpanded = false
@@ -1291,7 +1291,7 @@ fun ConnectionEditDialog(
                             value = selectedLabel,
                             onValueChange = {},
                             readOnly = true,
-                            label = { Text("Route through") },
+                            label = { Text(stringResource(R.string.connections_field_route_through)) },
                             trailingIcon = { ExposedDropdownMenuDefaults.TrailingIcon(expanded = proxyExpanded) },
                             modifier = Modifier
                                 .fillMaxWidth()
@@ -1302,7 +1302,7 @@ fun ConnectionEditDialog(
                             onDismissRequest = { proxyExpanded = false },
                         ) {
                             DropdownMenuItem(
-                                text = { Text("None (direct)") },
+                                text = { Text(stringResource(R.string.connections_dropdown_none_direct)) },
                                 onClick = {
                                     proxyType = null
                                     proxyHost = ""
@@ -1376,14 +1376,14 @@ fun ConnectionEditDialog(
                             OutlinedTextField(
                                 value = proxyHost,
                                 onValueChange = { proxyHost = it },
-                                label = { Text("Proxy Host") },
+                                label = { Text(stringResource(R.string.connections_field_proxy_host)) },
                                 singleLine = true,
                                 modifier = Modifier.weight(1f),
                             )
                             OutlinedTextField(
                                 value = proxyPort,
                                 onValueChange = { proxyPort = it.filter { c -> c.isDigit() } },
-                                label = { Text("Port") },
+                                label = { Text(stringResource(R.string.connections_field_port)) },
                                 singleLine = true,
                                 keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Number),
                                 modifier = Modifier.width(80.dp),
@@ -1451,7 +1451,7 @@ fun ConnectionEditDialog(
                             value = sessionManagerOptions.firstOrNull { it.first == selectedSessionManager }?.second ?: "Default ($globalSessionManagerLabel)",
                             onValueChange = {},
                             readOnly = true,
-                            label = { Text("Session Manager") },
+                            label = { Text(stringResource(R.string.connections_field_session_manager)) },
                             trailingIcon = { ExposedDropdownMenuDefaults.TrailingIcon(smExpanded) },
                             modifier = Modifier
                                 .fillMaxWidth()
@@ -1479,7 +1479,7 @@ fun ConnectionEditDialog(
                         OutlinedTextField(
                             value = etPort,
                             onValueChange = { etPort = it.filter { c -> c.isDigit() } },
-                            label = { Text("ET Port") },
+                            label = { Text(stringResource(R.string.connections_field_et_port)) },
                             singleLine = true,
                             keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Number),
                             modifier = Modifier.width(120.dp),
@@ -1498,9 +1498,9 @@ fun ConnectionEditDialog(
                         OutlinedTextField(
                             value = moshServerCommand,
                             onValueChange = { moshServerCommand = it },
-                            label = { Text("mosh-server command") },
+                            label = { Text(stringResource(R.string.connections_field_mosh_server_command)) },
                             placeholder = { Text("mosh-server new -s -c 256 -l LANG=en_US.UTF-8") },
-                            supportingText = { Text("Leave blank for default. Use authbind for ports below 1024.") },
+                            supportingText = { Text(stringResource(R.string.connections_helper_mosh_server)) },
                             singleLine = false,
                             minLines = 1,
                             maxLines = 3,
@@ -1521,9 +1521,9 @@ fun ConnectionEditDialog(
                     OutlinedTextField(
                         value = sshOptions,
                         onValueChange = { sshOptions = it },
-                        label = { Text("SSH Options") },
+                        label = { Text(stringResource(R.string.connections_field_ssh_options)) },
                         placeholder = { Text("ServerAliveInterval 60\nServerAliveCountMax 3") },
-                        supportingText = { Text("ssh_config format: Key Value (one per line)") },
+                        supportingText = { Text(stringResource(R.string.connections_helper_ssh_options)) },
                         minLines = 2,
                         maxLines = 4,
                         modifier = Modifier.fillMaxWidth(),
@@ -1534,14 +1534,14 @@ fun ConnectionEditDialog(
                     OutlinedTextField(
                         value = postLoginCommand,
                         onValueChange = { postLoginCommand = it },
-                        label = { Text("Post-login command") },
+                        label = { Text(stringResource(R.string.connections_field_post_login)) },
                         placeholder = { Text("cd /app && clear") },
                         supportingText = {
                             Text(
                                 if (postLoginCommand.isNotBlank() && postLoginBeforeSessionManager) {
                                     "Runs before session manager starts."
                                 } else {
-                                    "Sent after login."
+                                    stringResource(R.string.connections_helper_post_login)
                                 },
                             )
                         },
@@ -1565,15 +1565,21 @@ fun ConnectionEditDialog(
                         style = MaterialTheme.typography.titleSmall,
                     )
                     Text(
-                        "How the Files tab moves data to/from this server.",
+                        stringResource(R.string.connections_helper_file_transport),
                         style = MaterialTheme.typography.bodySmall,
                         color = MaterialTheme.colorScheme.onSurfaceVariant,
                     )
                     Column(modifier = Modifier.fillMaxWidth()) {
                         listOf(
-                            Triple("AUTO", "Auto", "Try SFTP, fall back to SCP if the sftp-server subsystem is unavailable."),
-                            Triple("SFTP", "SFTP only", "Force the modern SFTP subsystem. Fails if it's disabled server-side."),
-                            Triple("SCP", "SCP (legacy)", "Force legacy scp -t/-f and shell ls. Use on hardened or embedded servers."),
+                            Triple("AUTO",
+                                stringResource(R.string.connections_file_transport_auto),
+                                stringResource(R.string.connections_file_transport_auto_desc)),
+                            Triple("SFTP",
+                                stringResource(R.string.connections_file_transport_sftp_label),
+                                stringResource(R.string.connections_file_transport_sftp_desc)),
+                            Triple("SCP",
+                                stringResource(R.string.connections_file_transport_scp_label),
+                                stringResource(R.string.connections_file_transport_scp_desc)),
                         ).forEach { (value, label, sub) ->
                             Row(
                                 verticalAlignment = Alignment.CenterVertically,
@@ -1724,7 +1730,7 @@ fun ConnectionEditDialog(
                                 checked = vncSavedSshForward,
                                 onCheckedChange = { vncSavedSshForward = it },
                             )
-                            Text("Tunnel through SSH")
+                            Text(stringResource(R.string.connections_field_tunnel_through_ssh))
                         }
                         Spacer(Modifier.height(8.dp))
                         // Colour-depth picker — same shape as the dedicated
@@ -1807,7 +1813,7 @@ fun ConnectionEditDialog(
                             OutlinedTextField(
                                 value = rnsPort,
                                 onValueChange = { rnsPort = it.filter { c -> c.isDigit() } },
-                                label = { Text("Port") },
+                                label = { Text(stringResource(R.string.connections_field_port)) },
                                 singleLine = true,
                                 keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Number),
                                 modifier = Modifier.width(80.dp),
@@ -1916,9 +1922,9 @@ fun ConnectionEditDialog(
                     OutlinedTextField(
                         value = postLoginCommand,
                         onValueChange = { postLoginCommand = it },
-                        label = { Text("Post-login command") },
+                        label = { Text(stringResource(R.string.connections_field_post_login)) },
                         placeholder = { Text("cd /app && clear") },
-                        supportingText = { Text("Sent after login.") },
+                        supportingText = { Text(stringResource(R.string.connections_helper_post_login)) },
                         singleLine = false,
                         minLines = 1,
                         maxLines = 3,

@@ -1,0 +1,9 @@
+Fix zero-byte destination when copying a file from SFTP (or any
+remote backend) to local storage on the phone. The phase-2 of the
+remote→local paste was passing the source temp file's full size as
+a resume offset, which caused the local writer to skip every byte
+of the payload before opening the destination — the file appeared
+with the right name but no contents.
+
+Regression introduced in v5.24.12 (resumable paste queue) and
+reported by @slartibart70 in GH#142.

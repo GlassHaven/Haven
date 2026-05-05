@@ -3795,7 +3795,18 @@ class SftpViewModel @Inject constructor(
             val label = _transferProgress.value?.fileName ?: entry.name
             when (destType) {
                 BackendType.LOCAL -> {
-                    writeLocalFileWithProgress(srcFile, destPath, total, resumeFromByte, label)
+                    // LOCAL → LOCAL paste: progress and transfer offsets
+                    // coincide — the queue cursor counts both bytes
+                    // already shown to the user *and* bytes already on
+                    // disk at the destination.
+                    writeLocalFileWithProgress(
+                        source = srcFile,
+                        destPath = destPath,
+                        total = total,
+                        progressOffset = resumeFromByte,
+                        transferOffset = resumeFromByte,
+                        label = label,
+                    )
                 }
                 BackendType.RCLONE -> {
                     // rclone's copyFile is opaque — we can't surface per-byte
@@ -3873,7 +3884,20 @@ class SftpViewModel @Inject constructor(
             val downloaded = tempFile.length()
             when (destType) {
                 BackendType.LOCAL -> {
-                    writeLocalFileWithProgress(tempFile, destPath, downloaded * 2, downloaded, "\u2B06 $baseLabel")
+                    // Phase 2 of REMOTE \u2192 LOCAL paste: the temp file
+                    // already holds the full source. Seed the progress
+                    // bar past the download half (`progressOffset =
+                    // downloaded`) but write the temp file's full
+                    // contents to the destination
+                    // (`transferOffset = 0`). GH#142.
+                    writeLocalFileWithProgress(
+                        source = tempFile,
+                        destPath = destPath,
+                        total = downloaded * 2,
+                        progressOffset = downloaded,
+                        transferOffset = 0L,
+                        label = "\u2B06 $baseLabel",
+                    )
                 }
                 BackendType.RCLONE -> {
                     rcloneClient.copyFile(tempFile.parent!!, tempFile.name, destRemote!!, destPath)
@@ -3950,20 +3974,38 @@ class SftpViewModel @Inject constructor(
      * delete-and-reinsert path if the direct write fails with a permissions
      * error under Downloads/.
      */
+    /**
+     * Stream [source] into [destPath] with progress updates. The two
+     * offset parameters cover separate concerns:
+     *
+     * - [progressOffset] seeds the progress bar past bytes that an
+     *   earlier phase already accounted for (e.g. the download phase
+     *   of a cross-backend copy). Display only.
+     * - [transferOffset] is a real resume cursor: when non-zero the
+     *   source stream is skipped past it and the destination opens in
+     *   append mode, so a crashed paste retried from the queue picks
+     *   up where it left off.
+     *
+     * GH#142 was the conflation of the two: the phase-2 call site
+     * passed the temp file's size as `resumeFromByte`, which got
+     * interpreted as a transfer-skip offset and dropped every byte of
+     * the payload on the floor.
+     */
     private fun writeLocalFileWithProgress(
         source: java.io.File,
         destPath: String,
         total: Long,
-        resumeFromByte: Long,
+        progressOffset: Long,
+        transferOffset: Long,
         label: String,
     ) {
-        if (resumeFromByte == 0L) {
+        _transferProgress.value = TransferProgress(label, total, progressOffset)
+        if (transferOffset == 0L) {
             try {
-                java.io.File(destPath).parentFile?.mkdirs()
-                source.inputStream().use { input ->
-                    java.io.FileOutputStream(destPath, false).use { out ->
-                        copyStreamWithProgress(input, out, total, 0L, label)
-                    }
+                writeFileWithOptionalResume(source, destPath, 0L) { written ->
+                    val displayed = progressOffset + written
+                    _transferProgress.value = TransferProgress(label, total, displayed)
+                    maybePersistQueueProgress(displayed)
                 }
                 return
             } catch (e: java.io.IOException) {
@@ -3976,37 +4018,14 @@ class SftpViewModel @Inject constructor(
                 return
             }
         }
-        // Resume: open destination in append mode, skip the source stream to
-        // the matching offset, and count progress from there. MediaStore
-        // append isn't supported, so resume is silently downgraded to overwrite
-        // on that path.
-        source.inputStream().use { input ->
-            input.skip(resumeFromByte)
-            java.io.FileOutputStream(destPath, true).use { out ->
-                copyStreamWithProgress(input, out, total, resumeFromByte, label)
-            }
+        // Resume case: append mode + source skip. MediaStore append
+        // isn't supported, so this path doesn't fall back — only the
+        // first attempt for a path can hit MediaStore.
+        writeFileWithOptionalResume(source, destPath, transferOffset) { written ->
+            val displayed = progressOffset + written
+            _transferProgress.value = TransferProgress(label, total, displayed)
+            maybePersistQueueProgress(displayed)
         }
-    }
-
-    private fun copyStreamWithProgress(
-        input: java.io.InputStream,
-        out: java.io.OutputStream,
-        total: Long,
-        startOffset: Long,
-        label: String,
-    ) {
-        val buffer = ByteArray(64 * 1024)
-        var transferred = startOffset
-        _transferProgress.value = TransferProgress(label, total, transferred)
-        while (true) {
-            val n = input.read(buffer)
-            if (n == -1) break
-            out.write(buffer, 0, n)
-            transferred += n
-            _transferProgress.value = TransferProgress(label, total, transferred)
-            maybePersistQueueProgress(transferred)
-        }
-        out.flush()
     }
 
     /**

@@ -58,7 +58,14 @@ fun AgentActivityScreen(
     var showClearDialog by remember { mutableStateOf(false) }
     var expandedId by remember { mutableStateOf<Long?>(null) }
 
-    Column(modifier = Modifier.fillMaxSize()) {
+    // Opaque background so the screen renders correctly when mounted as
+    // an overlay over the pager (HavenNavHost) — without it the
+    // Connections list bled through (#138 follow-up).
+    Column(
+        modifier = Modifier
+            .fillMaxSize()
+            .background(MaterialTheme.colorScheme.background),
+    ) {
         TopAppBar(
             title = { Text("Agent activity") },
             navigationIcon = {

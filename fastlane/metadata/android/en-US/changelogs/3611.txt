@@ -1,0 +1,10 @@
+v5.24.97: AgentActivityScreen overlay readability
+
+The robot chip on the Connections top bar opens the agent audit log
+as an overlay over the pager. The screen's root Column had no
+background colour, so the Connections list bled through and made the
+overlay illegible.
+
+Fix: paint the Column with `MaterialTheme.colorScheme.background`.
+Self-contained — Settings still renders the same screen via its own
+mounting path; the explicit background is harmless there.

@@ -1,0 +1,10 @@
+Workspace profiles — bundle terminal sessions, file-browser tabs,
+remote desktops and the Wayland tab into a named workspace and reopen
+them all in one tap. Long-press the launcher icon for shortcuts to
+your saved workspaces. The `compose_workspace` MCP verb lets agents
+launch the same bundles.
+
+Plus: fix an IndexOutOfBoundsException that could fire when tapping
+the back button rapidly in the SFTP browser. Concurrent directory
+listings raced on the JSch channel; they now serialise, and the
+channel resets cleanly if it does get corrupted.

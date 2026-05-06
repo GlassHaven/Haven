@@ -10,7 +10,9 @@ import com.jcraft.jsch.ChannelSftp
 import com.jcraft.jsch.SftpProgressMonitor
 import dagger.hilt.android.lifecycle.HiltViewModel
 import dagger.hilt.android.qualifiers.ApplicationContext
+import kotlinx.coroutines.CancellationException
 import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.Job
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.SharingStarted
@@ -20,6 +22,8 @@ import kotlinx.coroutines.flow.stateIn
 import kotlinx.coroutines.flow.map
 import kotlinx.coroutines.CompletableDeferred
 import kotlinx.coroutines.flow.first
+import kotlinx.coroutines.sync.Mutex
+import kotlinx.coroutines.sync.withLock
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
 import sh.haven.core.data.db.entities.ConnectionLog
@@ -4290,21 +4294,62 @@ class SftpViewModel @Inject constructor(
         return resolution.backend
     }
 
+    /**
+     * Mutex serialising directory listings so two concurrent navigations
+     * don't share the underlying [ChannelSftp]. JSch's `ChannelSftp` is
+     * not thread-safe — overlapping `ls` calls corrupt the internal
+     * packet-buffer state, surfacing as
+     * `IndexOutOfBoundsException` from `PipedInputStream.read`. Rapid
+     * back-navigation (three taps in a row hitting `navigateUp`) is the
+     * common trigger: the user reported it via #144.
+     */
+    private val listMutex = Mutex()
+
+    /** Latest in-flight listing job; cancelled when a new navigation arrives. */
+    private var listJob: Job? = null
+
     private fun loadDirectoryEntries(path: String) {
-        viewModelScope.launch {
-            try {
-                if (!pasteInProgress.get()) _loading.value = true
-                val backend = currentFileBackend() ?: throw IllegalStateException("Not connected")
-                val results = backend.list(path)
-                _allEntries.value = sortEntries(results, _sortMode.value)
-                applyFilter()
-            } catch (e: Exception) {
-                Log.e(TAG, "List directory failed: path='$path'", e)
-                _error.value = "Failed to list: ${e.message}"
-            } finally {
-                if (!pasteInProgress.get()) _loading.value = false
+        // Cancel anything queued on the mutex from a previous tap so
+        // we don't accumulate stale work behind the in-flight call.
+        listJob?.cancel()
+        listJob = viewModelScope.launch {
+            listMutex.withLock {
+                try {
+                    if (!pasteInProgress.get()) _loading.value = true
+                    val backend = currentFileBackend() ?: throw IllegalStateException("Not connected")
+                    val results = backend.list(path)
+                    _allEntries.value = sortEntries(results, _sortMode.value)
+                    applyFilter()
+                } catch (e: CancellationException) {
+                    throw e // propagate normal cancellation
+                } catch (e: IndexOutOfBoundsException) {
+                    // JSch's ChannelSftp.ls surfaces buffer corruption as
+                    // IOOB (PipedInputStream.read with a negative length).
+                    // Once the packet stream is desynchronised, every
+                    // subsequent op on the same channel fails — close it
+                    // so getOrOpenChannel rebuilds a fresh one next time.
+                    Log.w(TAG, "SFTP channel corrupt at path='$path'; resetting", e)
+                    resetSftpChannel()
+                    _error.value = "SFTP channel error — please try again"
+                } catch (e: Exception) {
+                    Log.e(TAG, "List directory failed: path='$path'", e)
+                    _error.value = "Failed to list: ${e.message}"
+                } finally {
+                    if (!pasteInProgress.get()) _loading.value = false
+                }
             }
         }
+    }
+
+    private fun resetSftpChannel() {
+        sftpChannel?.let { ch ->
+            try {
+                ch.disconnect()
+            } catch (_: Exception) {
+                // best effort — caller already knows the channel is bad
+            }
+        }
+        sftpChannel = null
     }
 
     private fun getOrOpenChannel(profileId: String): ChannelSftp? {

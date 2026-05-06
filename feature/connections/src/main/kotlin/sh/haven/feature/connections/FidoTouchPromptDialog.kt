@@ -54,9 +54,15 @@ private fun TouchDialog(prompt: FidoTouchPrompt) {
         is FidoTouchPrompt.WaitingForKey -> "Security key required" to
             "Plug in your security key over USB, or tap it on the back of " +
             "the device for NFC. Haven will continue automatically once it is detected."
-        is FidoTouchPrompt.TouchKey -> "Touch your security key" to
-            "Press the button on your security key now to authorise the SSH " +
-            "signature. The key may blink to indicate it is waiting."
+        is FidoTouchPrompt.TouchKey -> when (prompt.transport) {
+            FidoTouchPrompt.TouchKey.Transport.USB -> "Touch your security key" to
+                "Press the button on your security key now to authorise the SSH " +
+                "signature. The key may blink to indicate it is waiting."
+            FidoTouchPrompt.TouchKey.Transport.NFC -> "Hold your security key" to
+                "Keep the security key against the back of the device for two " +
+                "seconds while it signs. Moving it away early aborts the " +
+                "exchange and you'll need to tap it again."
+        }
         is FidoTouchPrompt.EnterPin -> error("PinEntryDialog handles this state")
     }
 

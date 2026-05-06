@@ -48,8 +48,21 @@ data class FidoAssertionResult(
 sealed class FidoTouchPrompt {
     /** Discovery active — waiting for the user to plug in or tap a key. */
     data object WaitingForKey : FidoTouchPrompt()
-    /** Key detected; CTAP2 in flight; waiting for the user to physically touch it. */
-    data object TouchKey : FidoTouchPrompt()
+
+    /**
+     * Key detected; CTAP2 in flight; waiting for the user to physically
+     * activate it. [transport] dictates the UI copy: USB users press the
+     * key's button, NFC users hold the key against the phone for the
+     * full exchange. The latter case is the load-bearing one — pulling
+     * the key away too early raises `TagLostException` mid-CTAP and the
+     * SSH auth path then disconnects with an opaque "Auth fail" error,
+     * which is exactly the failure mode reported in `#15` for
+     * SoloKey-via-NFC users.
+     */
+    data class TouchKey(val transport: Transport) : FidoTouchPrompt() {
+        enum class Transport { USB, NFC }
+    }
+
     /**
      * Key requires PIN (verify-required SK key). UI should show a password
      * field and call [submit] with the entered PIN, or [submit] with null
@@ -188,21 +201,31 @@ class FidoAuthenticator @Inject constructor(
         }
 
         // If a USB key was already plugged in, we already completed the
-        // deferred above — skip straight to TouchKey. Otherwise tell the
-        // UI we're waiting for the user to plug in / tap.
-        _touchPrompt.value = if (deferred.isCompleted) FidoTouchPrompt.TouchKey
-        else FidoTouchPrompt.WaitingForKey
+        // deferred above (line 174) via the already-attached USB branch —
+        // skip straight to TouchKey with USB transport. Otherwise tell
+        // the UI we're waiting for the user to plug in / tap.
+        _touchPrompt.value = if (deferred.isCompleted) {
+            FidoTouchPrompt.TouchKey(FidoTouchPrompt.TouchKey.Transport.USB)
+        } else {
+            FidoTouchPrompt.WaitingForKey
+        }
 
         try {
             Log.d(TAG, "Waiting for security key (USB${if (nfcEnabled) " or NFC" else ""})...")
             val device = deferred.await()
 
             // Device just landed — for the non-UV path, switch the prompt to
-            // "touch your key now" before sending GetAssertion. For the UV
-            // path, performXxxAssertion will toggle EnterPin then TouchKey
-            // at the right moments.
+            // "touch your key now" before sending GetAssertion, with the
+            // transport dictated by which discovery branch fired. The UV
+            // path goes through `performXxxAssertion` which toggles
+            // EnterPin then TouchKey at the right moments.
             if (!requireUv) {
-                _touchPrompt.value = FidoTouchPrompt.TouchKey
+                _touchPrompt.value = FidoTouchPrompt.TouchKey(
+                    when (device) {
+                        is ConnectedDevice.Usb -> FidoTouchPrompt.TouchKey.Transport.USB
+                        is ConnectedDevice.Nfc -> FidoTouchPrompt.TouchKey.Transport.NFC
+                    },
+                )
             }
 
             val result = when (device) {
@@ -408,7 +431,7 @@ class FidoAuthenticator @Inject constructor(
 
                 Log.d(TAG, "CTAPHID init complete, sending GetAssertion (rpId=$rpId, uv=${pinUvAuthParam != null})")
 
-                _touchPrompt.value = FidoTouchPrompt.TouchKey
+                _touchPrompt.value = FidoTouchPrompt.TouchKey(FidoTouchPrompt.TouchKey.Transport.USB)
                 val command = Ctap2Cbor.encodeGetAssertionCommand(
                     rpId = rpId,
                     clientDataHash = clientDataHash,
@@ -417,7 +440,7 @@ class FidoAuthenticator @Inject constructor(
                     pinUvAuthProtocol = pinProtocol,
                 )
                 val response = transport.sendCborCommand(command) {
-                    _touchPrompt.value = FidoTouchPrompt.TouchKey
+                    _touchPrompt.value = FidoTouchPrompt.TouchKey(FidoTouchPrompt.TouchKey.Transport.USB)
                 }
 
                 Log.d(TAG, "CTAP response: ${response.size} bytes, status=0x${
@@ -449,7 +472,7 @@ class FidoAuthenticator @Inject constructor(
                 runUvPinProtocol(rpId, clientDataHash) { transport.sendCborCommand(it) }
             } else null to null
 
-            _touchPrompt.value = FidoTouchPrompt.TouchKey
+            _touchPrompt.value = FidoTouchPrompt.TouchKey(FidoTouchPrompt.TouchKey.Transport.NFC)
             val command = Ctap2Cbor.encodeGetAssertionCommand(
                 rpId = rpId,
                 clientDataHash = clientDataHash,

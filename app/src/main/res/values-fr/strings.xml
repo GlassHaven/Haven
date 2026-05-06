@@ -36,4 +36,30 @@
     <!-- Battery optimization -->
     <string name="battery_title">Maintenir les connexions ?</string>
     <string name="battery_message">Android peut fermer les connexions SSH en arrière-plan pour économiser la batterie. Désactiver l\'optimisation de la batterie pour Haven empêche cela.</string>
+
+    <!-- Workspace profiles -->
+    <string name="workspace_section_title">Espaces de travail</string>
+    <string name="workspace_save_current">Enregistrer l\'actuel…</string>
+    <string name="workspace_empty_hint">Ouvrez les sessions à regrouper, puis appuyez sur Enregistrer l\'actuel. Une pression les rouvrira toutes la prochaine fois.</string>
+    <string name="workspace_save_dialog_title">Enregistrer comme espace de travail</string>
+    <string name="workspace_save_dialog_name_label">Nom</string>
+    <string name="workspace_save_dialog_items_label">Éléments à inclure</string>
+    <string name="workspace_save_dialog_no_items">Rien à enregistrer — connectez d\'abord une session, ouvrez Wayland ou parcourez un partage.</string>
+    <string name="workspace_save_action">Enregistrer</string>
+    <string name="workspace_card_kind_terminal">Terminal</string>
+    <string name="workspace_card_kind_file_browser">Fichiers</string>
+    <string name="workspace_card_kind_desktop">Bureau</string>
+    <string name="workspace_card_kind_wayland">Wayland</string>
+    <string name="workspace_card_kind_count">%1$s × %2$d</string>
+    <string name="workspace_card_no_items">vide</string>
+    <string name="workspace_long_press_delete">Supprimer</string>
+    <string name="workspace_delete_confirm_title">Supprimer l\'espace de travail ?</string>
+    <string name="workspace_delete_confirm_message">\"%1$s\" sera supprimé. Les connexions référencées restent.</string>
+    <string name="workspace_launch_progress">Ouverture de %1$s — %2$d / %3$d</string>
+    <string name="workspace_launch_completed">%1$s ouvert</string>
+    <string name="workspace_launch_partial">%1$s — %2$d sur %3$d éléments ouverts</string>
+    <string name="workspace_launch_cancelled">%1$s annulé</string>
+    <string name="workspace_launch_failed">Échec : %1$s</string>
+    <string name="workspace_launch_cancel">Annuler</string>
+    <string name="workspace_launch_dismiss">Fermer</string>
 </resources>

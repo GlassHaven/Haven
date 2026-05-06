@@ -36,4 +36,30 @@
     <!-- Battery optimization -->
     <string name="battery_title">接続を維持しますか？</string>
     <string name="battery_message">Androidはバッテリー節約のためにバックグラウンドのSSH接続を切断することがあります。Havenのバッテリー最適化を無効にするとこれを防げます。</string>
+
+    <!-- Workspace profiles -->
+    <string name="workspace_section_title">ワークスペース</string>
+    <string name="workspace_save_current">現在を保存…</string>
+    <string name="workspace_empty_hint">まとめたいセッションを開いてから「現在を保存」をタップしてください。次回ワンタップですべて再び開きます。</string>
+    <string name="workspace_save_dialog_title">ワークスペースとして保存</string>
+    <string name="workspace_save_dialog_name_label">名前</string>
+    <string name="workspace_save_dialog_items_label">含める項目</string>
+    <string name="workspace_save_dialog_no_items">保存するものがありません — まずセッションに接続するか、Wayland を開くか、共有を参照してください。</string>
+    <string name="workspace_save_action">保存</string>
+    <string name="workspace_card_kind_terminal">ターミナル</string>
+    <string name="workspace_card_kind_file_browser">ファイル</string>
+    <string name="workspace_card_kind_desktop">デスクトップ</string>
+    <string name="workspace_card_kind_wayland">Wayland</string>
+    <string name="workspace_card_kind_count">%1$s × %2$d</string>
+    <string name="workspace_card_no_items">空</string>
+    <string name="workspace_long_press_delete">削除</string>
+    <string name="workspace_delete_confirm_title">ワークスペースを削除しますか?</string>
+    <string name="workspace_delete_confirm_message">「%1$s」が削除されます。参照しているコネクションはそのまま残ります。</string>
+    <string name="workspace_launch_progress">%1$s を開いています — %2$d / %3$d</string>
+    <string name="workspace_launch_completed">%1$s を開きました</string>
+    <string name="workspace_launch_partial">%1$s — %3$d 件中 %2$d 件を開きました</string>
+    <string name="workspace_launch_cancelled">%1$s をキャンセルしました</string>
+    <string name="workspace_launch_failed">失敗: %1$s</string>
+    <string name="workspace_launch_cancel">キャンセル</string>
+    <string name="workspace_launch_dismiss">閉じる</string>
 </resources>

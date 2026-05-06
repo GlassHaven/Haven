@@ -64,6 +64,8 @@ class McpServerConsentTest {
             consentManager = consentManager,
             agentUiCommandBus = sh.haven.core.data.agent.AgentUiCommandBus(),
             transportSelector = mockk<sh.haven.feature.sftp.transport.TransportSelector>(relaxed = true),
+            workspaceRepository = mockk<sh.haven.core.data.repository.WorkspaceRepository>(relaxed = true),
+            workspaceLauncher = mockk<sh.haven.app.workspace.WorkspaceLauncher>(relaxed = true),
         )
         return server to auditRecorder
     }

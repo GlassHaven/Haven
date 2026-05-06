@@ -36,4 +36,30 @@
     <!-- Battery optimization -->
     <string name="battery_title">সংযোগ সক্রিয় রাখবেন?</string>
     <string name="battery_message">Android ব্যাটারি সাশ্রয়ের জন্য ব্যাকগ্রাউন্ড SSH সংযোগ বন্ধ করতে পারে। Haven-এর জন্য ব্যাটারি অপ্টিমাইজেশন নিষ্ক্রিয় করলে এটি প্রতিরোধ করা যায়।</string>
+
+    <!-- Workspace profiles -->
+    <string name="workspace_section_title">কর্মক্ষেত্র</string>
+    <string name="workspace_save_current">বর্তমান সংরক্ষণ করুন…</string>
+    <string name="workspace_empty_hint">যে সেশনগুলি একসাথে রাখতে চান সেগুলি খুলুন, তারপর বর্তমান সংরক্ষণ করুন এ টোকা দিন। পরের বার এক স্পর্শে সেগুলি সব আবার খুলবে।</string>
+    <string name="workspace_save_dialog_title">কর্মক্ষেত্র হিসেবে সংরক্ষণ করুন</string>
+    <string name="workspace_save_dialog_name_label">নাম</string>
+    <string name="workspace_save_dialog_items_label">অন্তর্ভুক্ত করার আইটেম</string>
+    <string name="workspace_save_dialog_no_items">সংরক্ষণ করার কিছু নেই — প্রথমে একটি সেশন সংযোগ করুন, Wayland খুলুন, বা একটি শেয়ার ব্রাউজ করুন।</string>
+    <string name="workspace_save_action">সংরক্ষণ করুন</string>
+    <string name="workspace_card_kind_terminal">টার্মিনাল</string>
+    <string name="workspace_card_kind_file_browser">ফাইল</string>
+    <string name="workspace_card_kind_desktop">ডেস্কটপ</string>
+    <string name="workspace_card_kind_wayland">Wayland</string>
+    <string name="workspace_card_kind_count">%1$s × %2$d</string>
+    <string name="workspace_card_no_items">খালি</string>
+    <string name="workspace_long_press_delete">মুছুন</string>
+    <string name="workspace_delete_confirm_title">কর্মক্ষেত্র মুছবেন?</string>
+    <string name="workspace_delete_confirm_message">\"%1$s\" সরানো হবে। উল্লেখিত সংযোগগুলি থাকে।</string>
+    <string name="workspace_launch_progress">%1$s খোলা হচ্ছে — %2$d / %3$d</string>
+    <string name="workspace_launch_completed">%1$s খোলা হয়েছে</string>
+    <string name="workspace_launch_partial">%1$s — %3$d টি আইটেমের মধ্যে %2$d টি খোলা হয়েছে</string>
+    <string name="workspace_launch_cancelled">%1$s বাতিল করা হয়েছে</string>
+    <string name="workspace_launch_failed">ব্যর্থ: %1$s</string>
+    <string name="workspace_launch_cancel">বাতিল</string>
+    <string name="workspace_launch_dismiss">বন্ধ করুন</string>
 </resources>

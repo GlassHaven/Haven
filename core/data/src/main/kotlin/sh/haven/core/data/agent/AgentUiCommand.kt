@@ -69,4 +69,39 @@ sealed class AgentUiCommand {
         val videoEncoder: String? = null,
         val audioEncoder: String? = null,
     ) : AgentUiCommand()
+
+    /**
+     * Open a new terminal tab for [profileId]. The transport (SSH /
+     * Mosh / ET / Reticulum / Local) derives from the profile's
+     * `connectionType` and flags — this verb is profile-shaped, not
+     * transport-shaped, mirroring how the user opens a terminal by
+     * tapping the profile row.
+     *
+     * Used by the workspace launcher to materialise terminal items.
+     * Same constraint as [NavigateToSftpPath]: collector must be a live
+     * `TerminalViewModel`. Drops silently otherwise.
+     */
+    data class OpenTerminalSession(
+        val profileId: String,
+    ) : AgentUiCommand()
+
+    /**
+     * Open a new remote-desktop tab for [profileId]. The kind (VNC /
+     * RDP) derives from the profile's `connectionType`. Wayland tabs go
+     * through [OpenWaylandDesktop] instead since they have no profile.
+     *
+     * Collector is `DesktopViewModel`, which is nav-scoped, so emissions
+     * always land regardless of which tab the user is currently viewing.
+     */
+    data class OpenRemoteDesktop(
+        val profileId: String,
+    ) : AgentUiCommand()
+
+    /**
+     * Add a Wayland desktop tab. The compositor lifecycle stays lazy —
+     * the tab is added but the compositor only starts on user
+     * interaction, matching how `addWaylandTab` works for direct user
+     * taps.
+     */
+    data object OpenWaylandDesktop : AgentUiCommand()
 }

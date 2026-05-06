@@ -36,4 +36,30 @@
     <!-- Battery optimization -->
     <string name="battery_title">Поддерживать соединения?</string>
     <string name="battery_message">Android может закрывать фоновые SSH-подключения для экономии батареи. Отключение оптимизации батареи для Haven предотвращает это.</string>
+
+    <!-- Workspace profiles -->
+    <string name="workspace_section_title">Рабочие пространства</string>
+    <string name="workspace_save_current">Сохранить текущее…</string>
+    <string name="workspace_empty_hint">Откройте сеансы, которые хотите объединить, затем нажмите «Сохранить текущее». В следующий раз одно касание откроет их все снова.</string>
+    <string name="workspace_save_dialog_title">Сохранить как рабочее пространство</string>
+    <string name="workspace_save_dialog_name_label">Название</string>
+    <string name="workspace_save_dialog_items_label">Элементы для включения</string>
+    <string name="workspace_save_dialog_no_items">Нечего сохранять — сначала подключите сеанс, откройте Wayland или просмотрите общий ресурс.</string>
+    <string name="workspace_save_action">Сохранить</string>
+    <string name="workspace_card_kind_terminal">Терминал</string>
+    <string name="workspace_card_kind_file_browser">Файлы</string>
+    <string name="workspace_card_kind_desktop">Рабочий стол</string>
+    <string name="workspace_card_kind_wayland">Wayland</string>
+    <string name="workspace_card_kind_count">%1$s × %2$d</string>
+    <string name="workspace_card_no_items">пусто</string>
+    <string name="workspace_long_press_delete">Удалить</string>
+    <string name="workspace_delete_confirm_title">Удалить рабочее пространство?</string>
+    <string name="workspace_delete_confirm_message">«%1$s» будет удалено. Связанные соединения остаются.</string>
+    <string name="workspace_launch_progress">Открывается %1$s — %2$d / %3$d</string>
+    <string name="workspace_launch_completed">%1$s открыто</string>
+    <string name="workspace_launch_partial">%1$s — открыто %2$d из %3$d элементов</string>
+    <string name="workspace_launch_cancelled">%1$s отменено</string>
+    <string name="workspace_launch_failed">Ошибка: %1$s</string>
+    <string name="workspace_launch_cancel">Отмена</string>
+    <string name="workspace_launch_dismiss">Закрыть</string>
 </resources>

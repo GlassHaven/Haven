@@ -36,4 +36,30 @@
     <!-- Battery optimization -->
     <string name="battery_title">إبقاء الاتصالات نشطة؟</string>
     <string name="battery_message">قد يغلق Android اتصالات SSH في الخلفية لتوفير البطارية. تعطيل تحسين البطارية لـ Haven يمنع ذلك.</string>
+
+    <!-- Workspace profiles -->
+    <string name="workspace_section_title">مساحات العمل</string>
+    <string name="workspace_save_current">حفظ الحالية…</string>
+    <string name="workspace_empty_hint">افتح الجلسات التي تريد تجميعها معًا ثم اضغط على حفظ الحالية. لمسة واحدة ستعيد فتحها جميعًا في المرة القادمة.</string>
+    <string name="workspace_save_dialog_title">حفظ كمساحة عمل</string>
+    <string name="workspace_save_dialog_name_label">الاسم</string>
+    <string name="workspace_save_dialog_items_label">العناصر المراد تضمينها</string>
+    <string name="workspace_save_dialog_no_items">لا يوجد ما يمكن حفظه — اتصل بجلسة، أو افتح Wayland، أو تصفح مشاركة أولًا.</string>
+    <string name="workspace_save_action">حفظ</string>
+    <string name="workspace_card_kind_terminal">الطرفية</string>
+    <string name="workspace_card_kind_file_browser">الملفات</string>
+    <string name="workspace_card_kind_desktop">سطح المكتب</string>
+    <string name="workspace_card_kind_wayland">Wayland</string>
+    <string name="workspace_card_kind_count">%1$s × %2$d</string>
+    <string name="workspace_card_no_items">فارغ</string>
+    <string name="workspace_long_press_delete">حذف</string>
+    <string name="workspace_delete_confirm_title">حذف مساحة العمل؟</string>
+    <string name="workspace_delete_confirm_message">ستتم إزالة \"%1$s\". تبقى الاتصالات المشار إليها.</string>
+    <string name="workspace_launch_progress">جارٍ فتح %1$s — %2$d / %3$d</string>
+    <string name="workspace_launch_completed">تم فتح %1$s</string>
+    <string name="workspace_launch_partial">%1$s — تم فتح %2$d من %3$d عناصر</string>
+    <string name="workspace_launch_cancelled">تم إلغاء %1$s</string>
+    <string name="workspace_launch_failed">فشل: %1$s</string>
+    <string name="workspace_launch_cancel">إلغاء</string>
+    <string name="workspace_launch_dismiss">إغلاق</string>
 </resources>

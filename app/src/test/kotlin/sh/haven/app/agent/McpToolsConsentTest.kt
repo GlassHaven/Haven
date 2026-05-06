@@ -64,6 +64,8 @@ class McpToolsConsentTest {
             localSessionManager = mockk<LocalSessionManager>(relaxed = true),
             agentUiCommandBus = sh.haven.core.data.agent.AgentUiCommandBus(),
             transportSelector = mockk<sh.haven.feature.sftp.transport.TransportSelector>(relaxed = true),
+            workspaceRepository = mockk<sh.haven.core.data.repository.WorkspaceRepository>(relaxed = true),
+            workspaceLauncher = mockk<sh.haven.app.workspace.WorkspaceLauncher>(relaxed = true),
         )
     }
 
@@ -89,6 +91,9 @@ class McpToolsConsentTest {
             "navigate_sftp_browser",
             "focus_terminal_session",
             "open_convert_dialog_with_args",
+            // Listing the user's saved workspaces is read-only and
+            // surfaces no secrets — no consent.
+            "list_workspaces",
         )) {
             val c = tools.consentFor(name)
                 ?: error("$name not registered")
@@ -103,6 +108,10 @@ class McpToolsConsentTest {
             "disconnect_profile",
             "add_port_forward",
             "remove_port_forward",
+            // compose_workspace can launch many sessions in one go;
+            // gate it once per (client, tool) so the user grants the
+            // bundle and isn't re-prompted per-item underneath.
+            "compose_workspace",
         )) {
             val c = tools.consentFor(name)
                 ?: error("$name not registered")

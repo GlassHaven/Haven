@@ -40,4 +40,30 @@
     <!-- Battery optimization -->
     <string name="battery_title">Keep connections alive?</string>
     <string name="battery_message">Android may close background SSH connections to save battery. Disabling battery optimization for Haven prevents this.</string>
+
+    <!-- Workspace profiles -->
+    <string name="workspace_section_title">Workspaces</string>
+    <string name="workspace_save_current">Save current…</string>
+    <string name="workspace_empty_hint">Open the sessions you want bundled together, then tap Save current. One tap will reopen them all next time.</string>
+    <string name="workspace_save_dialog_title">Save as workspace</string>
+    <string name="workspace_save_dialog_name_label">Name</string>
+    <string name="workspace_save_dialog_items_label">Items to include</string>
+    <string name="workspace_save_dialog_no_items">Nothing to save — connect a session, open Wayland, or browse a share first.</string>
+    <string name="workspace_save_action">Save</string>
+    <string name="workspace_card_kind_terminal">Terminal</string>
+    <string name="workspace_card_kind_file_browser">Files</string>
+    <string name="workspace_card_kind_desktop">Desktop</string>
+    <string name="workspace_card_kind_wayland">Wayland</string>
+    <string name="workspace_card_kind_count">%1$s × %2$d</string>
+    <string name="workspace_card_no_items">empty</string>
+    <string name="workspace_long_press_delete">Delete</string>
+    <string name="workspace_delete_confirm_title">Delete workspace?</string>
+    <string name="workspace_delete_confirm_message">\"%1$s\" will be removed. The connections it references stay.</string>
+    <string name="workspace_launch_progress">Opening %1$s — %2$d / %3$d</string>
+    <string name="workspace_launch_completed">Opened %1$s</string>
+    <string name="workspace_launch_partial">%1$s — %2$d of %3$d items opened</string>
+    <string name="workspace_launch_cancelled">Cancelled %1$s</string>
+    <string name="workspace_launch_failed">Failed: %1$s</string>
+    <string name="workspace_launch_cancel">Cancel</string>
+    <string name="workspace_launch_dismiss">Dismiss</string>
 </resources>

@@ -36,4 +36,30 @@
     <!-- Battery optimization -->
     <string name="battery_title">保持连接？</string>
     <string name="battery_message">Android 可能会为省电而关闭后台 SSH 连接。为 Haven 禁用电池优化可以防止此情况。</string>
+
+    <!-- Workspace profiles -->
+    <string name="workspace_section_title">工作区</string>
+    <string name="workspace_save_current">保存当前…</string>
+    <string name="workspace_empty_hint">打开你想一起绑定的会话,然后点击保存当前。下次一键即可全部重新打开。</string>
+    <string name="workspace_save_dialog_title">另存为工作区</string>
+    <string name="workspace_save_dialog_name_label">名称</string>
+    <string name="workspace_save_dialog_items_label">要包含的项目</string>
+    <string name="workspace_save_dialog_no_items">没有可保存的内容 — 请先连接会话、打开 Wayland 或浏览共享。</string>
+    <string name="workspace_save_action">保存</string>
+    <string name="workspace_card_kind_terminal">终端</string>
+    <string name="workspace_card_kind_file_browser">文件</string>
+    <string name="workspace_card_kind_desktop">桌面</string>
+    <string name="workspace_card_kind_wayland">Wayland</string>
+    <string name="workspace_card_kind_count">%1$s × %2$d</string>
+    <string name="workspace_card_no_items">空</string>
+    <string name="workspace_long_press_delete">删除</string>
+    <string name="workspace_delete_confirm_title">删除工作区?</string>
+    <string name="workspace_delete_confirm_message">\"%1$s\" 将被删除。它引用的连接保持不变。</string>
+    <string name="workspace_launch_progress">正在打开 %1$s — %2$d / %3$d</string>
+    <string name="workspace_launch_completed">已打开 %1$s</string>
+    <string name="workspace_launch_partial">%1$s — 已打开 %3$d 个项目中的 %2$d 个</string>
+    <string name="workspace_launch_cancelled">已取消 %1$s</string>
+    <string name="workspace_launch_failed">失败: %1$s</string>
+    <string name="workspace_launch_cancel">取消</string>
+    <string name="workspace_launch_dismiss">关闭</string>
 </resources>

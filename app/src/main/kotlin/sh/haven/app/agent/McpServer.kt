@@ -94,6 +94,8 @@ class McpServer @Inject constructor(
     private val consentManager: AgentConsentManager,
     private val agentUiCommandBus: sh.haven.core.data.agent.AgentUiCommandBus,
     private val transportSelector: sh.haven.feature.sftp.transport.TransportSelector,
+    private val workspaceRepository: sh.haven.core.data.repository.WorkspaceRepository,
+    private val workspaceLauncher: sh.haven.app.workspace.WorkspaceLauncher,
 ) : Closeable {
 
     /**
@@ -167,6 +169,8 @@ class McpServer @Inject constructor(
         localSessionManager = localSessionManager,
         agentUiCommandBus = agentUiCommandBus,
         transportSelector = transportSelector,
+        workspaceRepository = workspaceRepository,
+        workspaceLauncher = workspaceLauncher,
     )
 
     /**

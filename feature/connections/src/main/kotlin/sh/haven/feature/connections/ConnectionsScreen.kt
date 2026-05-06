@@ -149,6 +149,13 @@ fun ConnectionsScreen(
     onNavigateToWayland: () -> Unit = {},
     onNavigateToConnections: () -> Unit = {},
     onNavigateToAgentActivity: () -> Unit = {},
+    /**
+     * Slot for the Workspaces section, supplied by the host (HavenNavHost
+     * provides it via WorkspaceSection). Rendered as the first item in
+     * the list so saved workspaces sit above the per-profile rows.
+     * Defaults to no-op so existing test/preview call sites keep working.
+     */
+    workspaceSection: @Composable () -> Unit = {},
     viewModel: ConnectionsViewModel = hiltViewModel(),
 ) {
     val connections by viewModel.connections.collectAsState()
@@ -1095,6 +1102,7 @@ fun ConnectionsScreen(
                 }
 
                 LazyColumn(state = lazyListState, modifier = Modifier.fillMaxSize()) {
+                    item(key = "workspace-section") { workspaceSection() }
                     displayIds.forEach { key ->
                         if (key.startsWith("group-")) {
                             val gid = key.removePrefix("group-")

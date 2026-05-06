@@ -36,4 +36,30 @@
     <!-- Battery optimization -->
     <string name="battery_title">कनेक्शन सक्रिय रखें?</string>
     <string name="battery_message">Android बैटरी बचाने के लिए बैकग्राउंड SSH कनेक्शन बंद कर सकता है। Haven के लिए बैटरी ऑप्टिमाइज़ेशन अक्षम करने से यह रुक जाएगा।</string>
+
+    <!-- Workspace profiles -->
+    <string name="workspace_section_title">वर्कस्पेस</string>
+    <string name="workspace_save_current">वर्तमान सहेजें…</string>
+    <string name="workspace_empty_hint">जिन सत्रों को साथ बंडल करना है उन्हें खोलें, फिर वर्तमान सहेजें पर टैप करें। एक टैप अगली बार उन्हें फिर से खोल देगा।</string>
+    <string name="workspace_save_dialog_title">वर्कस्पेस के रूप में सहेजें</string>
+    <string name="workspace_save_dialog_name_label">नाम</string>
+    <string name="workspace_save_dialog_items_label">शामिल करने योग्य आइटम</string>
+    <string name="workspace_save_dialog_no_items">सहेजने के लिए कुछ नहीं है — पहले एक सत्र कनेक्ट करें, Wayland खोलें, या एक शेयर ब्राउज़ करें।</string>
+    <string name="workspace_save_action">सहेजें</string>
+    <string name="workspace_card_kind_terminal">टर्मिनल</string>
+    <string name="workspace_card_kind_file_browser">फ़ाइलें</string>
+    <string name="workspace_card_kind_desktop">डेस्कटॉप</string>
+    <string name="workspace_card_kind_wayland">Wayland</string>
+    <string name="workspace_card_kind_count">%1$s × %2$d</string>
+    <string name="workspace_card_no_items">खाली</string>
+    <string name="workspace_long_press_delete">हटाएं</string>
+    <string name="workspace_delete_confirm_title">वर्कस्पेस हटाएं?</string>
+    <string name="workspace_delete_confirm_message">\"%1$s\" हटा दिया जाएगा। संदर्भित कनेक्शन बने रहेंगे।</string>
+    <string name="workspace_launch_progress">%1$s खुल रहा है — %2$d / %3$d</string>
+    <string name="workspace_launch_completed">%1$s खुल गया</string>
+    <string name="workspace_launch_partial">%1$s — %3$d आइटम में से %2$d खुले</string>
+    <string name="workspace_launch_cancelled">%1$s रद्द किया गया</string>
+    <string name="workspace_launch_failed">विफल: %1$s</string>
+    <string name="workspace_launch_cancel">रद्द करें</string>
+    <string name="workspace_launch_dismiss">बंद करें</string>
 </resources>

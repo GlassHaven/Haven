@@ -157,6 +157,12 @@ fun HavenNavHost(
                     sh.haven.core.ui.navigation.Screen.Sftp.route
                 is sh.haven.core.data.agent.AgentUiCommand.FocusTerminalSession ->
                     sh.haven.core.ui.navigation.Screen.Terminal.route
+                is sh.haven.core.data.agent.AgentUiCommand.OpenTerminalSession ->
+                    sh.haven.core.ui.navigation.Screen.Terminal.route
+                is sh.haven.core.data.agent.AgentUiCommand.OpenRemoteDesktop ->
+                    sh.haven.core.ui.navigation.Screen.Desktop.route
+                is sh.haven.core.data.agent.AgentUiCommand.OpenWaylandDesktop ->
+                    sh.haven.core.ui.navigation.Screen.Desktop.route
             }
             val target = screens.indexOfFirst { it.route == route }
             if (target >= 0) pagerState.animateScrollToPage(target)
@@ -332,6 +338,7 @@ fun HavenNavHost(
                         }
                     },
                     onNavigateToAgentActivity = { showAgentActivityOverlay = true },
+                    workspaceSection = { sh.haven.app.workspace.ui.WorkspaceSection() },
                 )
                 Screen.Terminal -> {
                     TerminalScreen(

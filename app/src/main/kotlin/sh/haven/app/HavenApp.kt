@@ -16,6 +16,7 @@ class HavenApp : Application() {
 
     @Inject lateinit var mcpServer: sh.haven.app.agent.McpServer
     @Inject lateinit var preferencesRepository: sh.haven.core.data.preferences.UserPreferencesRepository
+    @Inject lateinit var workspaceShortcutManager: sh.haven.app.workspace.WorkspaceShortcutManager
 
     private val appScope = CoroutineScope(SupervisorJob() + Dispatchers.IO)
 
@@ -24,6 +25,11 @@ class HavenApp : Application() {
         // Register Shizuku binder listeners early so the async callback
         // has time to fire before any UI checks isShizukuAvailable().
         sh.haven.core.local.WaylandSocketHelper.initShizukuListeners()
+
+        // Mirror saved workspaces into Android launcher long-press
+        // shortcuts so the home-screen icon offers "Open <workspace>"
+        // entries. Self-observing — recomputes on every repo change.
+        workspaceShortcutManager.start()
 
         // MCP agent endpoint is OFF by default — it exposes state that
         // local processes (or an AI agent you've pointed at it) can

@@ -7,6 +7,7 @@ import android.provider.Settings
 import android.webkit.MimeTypeMap
 import com.jcraft.jsch.SftpProgressMonitor
 import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.runBlocking
 import kotlinx.coroutines.withContext
 import org.json.JSONArray
@@ -61,6 +62,8 @@ internal class McpTools(
     private val localSessionManager: LocalSessionManager,
     private val agentUiCommandBus: sh.haven.core.data.agent.AgentUiCommandBus,
     private val transportSelector: sh.haven.feature.sftp.transport.TransportSelector,
+    private val workspaceRepository: sh.haven.core.data.repository.WorkspaceRepository,
+    private val workspaceLauncher: sh.haven.app.workspace.WorkspaceLauncher,
 ) {
 
     /**
@@ -77,6 +80,16 @@ internal class McpTools(
         runBlocking {
             connectionRepository.getById(profileId)?.label
         } ?: profileId
+
+    /**
+     * Same shape as [profileLabel], for workspace ids. Used by the
+     * compose_workspace consent prompt so the user sees the workspace
+     * name rather than a UUID.
+     */
+    private fun workspaceLabel(workspaceId: String): String =
+        runBlocking {
+            workspaceRepository.getWorkspace(workspaceId)?.profile?.name
+        } ?: workspaceId
 
     /** Tool registry: name → handler. */
     private val tools: Map<String, ToolHandler> = linkedMapOf(
@@ -499,6 +512,31 @@ internal class McpTools(
                 "Transcode source → $container (video: $ve, audio: $ae)?"
             },
         ) { args -> convertFile(args) },
+
+        "list_workspaces" to ToolHandler(
+            description = "List the user's saved workspace profiles — named bundles of terminal sessions, file-browser tabs, remote desktops, and Wayland that compose_workspace can reopen in one shot. Each entry has id, name, and itemCount. The kinds of items inside come from the same Kind enum the UI uses (TERMINAL / FILE_BROWSER / DESKTOP / WAYLAND).",
+            inputSchema = emptyObjectSchema(),
+        ) { _ -> listWorkspaces() },
+
+        "compose_workspace" to ToolHandler(
+            description = "Launch every item of a saved workspace through the same WorkspaceLauncher the user's tap goes through — terminal sessions, file-browser tabs, remote desktops, and the Wayland tab open in dependency-friendly order (TERMINAL first so tunneled DESKTOPs attach to live SSH sessions). Returns the workspace id and item count; progress is surfaced live in the Connections screen banner.",
+            inputSchema = JSONObject().apply {
+                put("type", "object")
+                put("properties", JSONObject().apply {
+                    put("workspaceId", JSONObject().apply {
+                        put("type", "string")
+                        put("description", "Workspace id from list_workspaces.")
+                    })
+                })
+                put("required", JSONArray().put("workspaceId"))
+            },
+            consentLevel = ConsentLevel.ONCE_PER_SESSION,
+            summarise = { args ->
+                val id = args.optString("workspaceId")
+                val name = workspaceLabel(id)
+                "Open workspace \"$name\"?"
+            },
+        ) { args -> composeWorkspace(args) },
     )
 
     /** Return the list of tool definitions for MCP `tools/list`. */
@@ -1524,6 +1562,57 @@ internal class McpTools(
             }
         } catch (e: Exception) {
             throw McpError(-32603, "Failed to list $remote:$path : ${e.message}")
+        }
+    }
+
+    // --- Workspace tools -------------------------------------------------
+
+    private suspend fun listWorkspaces(): JSONObject {
+        val profiles = workspaceRepository.observeAll().first()
+        val arr = JSONArray()
+        for (profile in profiles) {
+            val items = workspaceRepository.observeItems(profile.id).first()
+            val kindCounts = items.groupingBy { it.kind.name }.eachCount()
+            arr.put(JSONObject().apply {
+                put("id", profile.id)
+                put("name", profile.name)
+                put("itemCount", items.size)
+                put("kinds", JSONObject().apply {
+                    for ((kind, n) in kindCounts) put(kind, n)
+                })
+                put("createdAt", profile.createdAt)
+                put("updatedAt", profile.updatedAt)
+            })
+        }
+        return JSONObject().apply {
+            put("count", profiles.size)
+            put("workspaces", arr)
+        }
+    }
+
+    /**
+     * Dispatch [workspaceLauncher] for the supplied workspace id.
+     * The launcher walks items via [agentUiCommandBus] tryEmit calls,
+     * which are non-blocking — the actual session/tab opening happens
+     * in the corresponding feature ViewModels' collectors. So this
+     * returns once every item has been dispatched (fast), with the
+     * launcher state machine settled at Completed/Cancelled/Failed.
+     * Live progress also shows up in the Connections-screen banner
+     * via the same StateFlow the user's tap drives.
+     */
+    private suspend fun composeWorkspace(args: JSONObject): JSONObject {
+        val workspaceId = args.optString("workspaceId").ifEmpty {
+            throw McpError(-32602, "Missing required argument: workspaceId")
+        }
+        val workspace = workspaceRepository.getWorkspace(workspaceId)
+            ?: throw McpError(-32602, "No workspace with id $workspaceId")
+        workspaceLauncher.launch(workspaceId)
+        val finalState = workspaceLauncher.state.value
+        return JSONObject().apply {
+            put("workspaceId", workspaceId)
+            put("workspaceName", workspace.profile.name)
+            put("itemCount", workspace.items.size)
+            put("outcome", finalState::class.simpleName ?: "Unknown")
         }
     }
 }

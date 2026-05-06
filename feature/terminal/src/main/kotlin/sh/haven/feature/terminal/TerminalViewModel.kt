@@ -270,14 +270,41 @@ class TerminalViewModel @Inject constructor(
 ) : ViewModel() {
 
     init {
-        // Cross-tab agent verbs: when an MCP `focus_terminal_session`
-        // call posts here, find the matching tab and bring it to the
-        // front. The matching pager switch happens in HavenNavHost.
+        // Cross-tab agent verbs: focus an existing tab (focus_terminal_session)
+        // or open a new one for a profile (workspace launcher's
+        // OpenTerminalSession). The matching pager switch happens in
+        // HavenNavHost.
         viewModelScope.launch {
             agentUiCommandBus.commands.collect { command ->
-                if (command is sh.haven.core.data.agent.AgentUiCommand.FocusTerminalSession) {
-                    val index = _tabs.value.indexOfFirst { it.sessionId == command.sessionId }
-                    if (index >= 0) selectTab(index)
+                when (command) {
+                    is sh.haven.core.data.agent.AgentUiCommand.FocusTerminalSession -> {
+                        val index = _tabs.value.indexOfFirst { it.sessionId == command.sessionId }
+                        if (index >= 0) selectTab(index)
+                    }
+                    is sh.haven.core.data.agent.AgentUiCommand.OpenTerminalSession -> {
+                        val profile = connectionRepository.getById(command.profileId)
+                        if (profile == null) {
+                            Log.w(TAG, "OpenTerminalSession: profile ${command.profileId} not found")
+                        } else {
+                            when {
+                                profile.isLocal ->
+                                    addLocalTabForProfile(profile.id, profile.label)
+                                profile.isSsh ->
+                                    // Connects from-scratch only when an SSH
+                                    // session for the profile is already up;
+                                    // surfaces a toast and no-ops otherwise.
+                                    // Workspace launcher v1 limitation —
+                                    // tracked under the deferred connect_profile
+                                    // verb in VISION.md §1a.
+                                    addSshTabForProfile(profile.id)
+                                else -> {
+                                    _newTabMessage.value =
+                                        "${profile.label}: ${profile.connectionType} doesn't support new tabs from a workspace yet"
+                                }
+                            }
+                        }
+                    }
+                    else -> { /* handled by other collectors */ }
                 }
             }
         }
@@ -1376,22 +1403,35 @@ class TerminalViewModel @Inject constructor(
         addSshTabForProfile(activeTab.profileId)
     }
 
-    private fun addLocalTab(activeTab: TerminalTab) {
+    private fun addLocalTab(activeTab: TerminalTab) =
+        addLocalTabForProfile(activeTab.profileId, activeTab.label)
+
+    /**
+     * Open a local shell tab for [profileId] from scratch, picking the
+     * `useAndroidShell` flag from any existing local session for the same
+     * profile (so the workspace launcher matches what the user picked
+     * when they last set up the profile manually). [label] defaults to
+     * the profile's display name when called from outside the
+     * clone-current-tab path.
+     */
+    fun addLocalTabForProfile(profileId: String, label: String? = null) {
         viewModelScope.launch {
             _newTabLoading.value = true
             try {
-                val label = activeTab.label
                 val existingSession = localSessionManager.sessions.value.values
-                    .find { it.profileId == activeTab.profileId }
+                    .find { it.profileId == profileId }
+                val resolvedLabel = label
+                    ?: connectionRepository.getById(profileId)?.label
+                    ?: profileId.take(8)
                 val sessionId = localSessionManager.registerSession(
-                    activeTab.profileId, label,
+                    profileId, resolvedLabel,
                     useAndroidShell = existingSession?.useAndroidShell ?: false,
                 )
                 localSessionManager.connectSession(sessionId)
                 syncSessions()
                 selectTabBySessionId(sessionId)
             } catch (e: Exception) {
-                Log.e(TAG, "addLocalTab failed: ${e.message}", e)
+                Log.e(TAG, "addLocalTabForProfile failed: ${e.message}", e)
                 _newTabMessage.value = appContext.getString(
                     R.string.terminal_new_tab_connection_failed,
                     e.message ?: e.javaClass.simpleName,

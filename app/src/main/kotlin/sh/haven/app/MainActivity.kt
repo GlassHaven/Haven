@@ -20,6 +20,8 @@ import androidx.lifecycle.Lifecycle
 import androidx.lifecycle.LifecycleEventObserver
 import androidx.lifecycle.compose.LocalLifecycleOwner
 import dagger.hilt.android.AndroidEntryPoint
+import kotlinx.coroutines.MainScope
+import kotlinx.coroutines.launch
 import sh.haven.app.agent.ConsentHost
 import sh.haven.core.data.agent.AgentConsentManager
 import sh.haven.app.navigation.HavenNavHost
@@ -55,6 +57,10 @@ class MainActivity : AppCompatActivity() {
     // BiometricPrompt, and posts the decision back. Foreground tracking
     // mirrors AgentConsentManager (fail-closed when backgrounded).
     @Inject lateinit var biometricGate: sh.haven.core.data.keystore.BiometricGate
+    // Workspace launcher (singleton) — invoked when a launcher
+    // long-press shortcut routes the workspace id through onCreate /
+    // onNewIntent.
+    @Inject lateinit var workspaceLauncher: sh.haven.app.workspace.WorkspaceLauncher
 
     private fun exitIfDisconnected() {
         if (SshConnectionService.disconnectedAll) {
@@ -81,7 +87,27 @@ class MainActivity : AppCompatActivity() {
 
     override fun onNewIntent(intent: Intent) {
         super.onNewIntent(intent)
+        setIntent(intent)
         exitIfDisconnected()
+        handleWorkspaceShortcut(intent)
+    }
+
+    /**
+     * If [intent] carries a workspace launch action (long-press shortcut
+     * tap, or a `compose_workspace` MCP call routed through here in a
+     * future patch), kick off the launcher. Idempotent — extras are
+     * cleared once consumed so a configuration change doesn't replay.
+     */
+    private fun handleWorkspaceShortcut(intent: Intent?) {
+        if (intent?.action != sh.haven.app.workspace.WorkspaceShortcutManager.ACTION_LAUNCH_WORKSPACE) return
+        val workspaceId = intent.getStringExtra(
+            sh.haven.app.workspace.WorkspaceShortcutManager.EXTRA_WORKSPACE_ID,
+        ) ?: return
+        intent.removeExtra(sh.haven.app.workspace.WorkspaceShortcutManager.EXTRA_WORKSPACE_ID)
+        Log.d("MainActivity", "launching workspace $workspaceId from shortcut")
+        MainScope().launch {
+            workspaceLauncher.launch(workspaceId)
+        }
     }
 
     override fun dispatchKeyEvent(event: KeyEvent): Boolean {
@@ -94,6 +120,7 @@ class MainActivity : AppCompatActivity() {
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
         enableEdgeToEdge()
+        handleWorkspaceShortcut(intent)
         setContent {
             // Prevent screenshots/screen recording when enabled
             val screenSecurity by preferencesRepository.screenSecurity

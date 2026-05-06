@@ -50,7 +50,88 @@ class DesktopViewModel @Inject constructor(
     private val connectionLogRepository: ConnectionLogRepository,
     private val preferencesRepository: UserPreferencesRepository,
     private val connectionRepository: ConnectionRepository,
+    private val agentUiCommandBus: sh.haven.core.data.agent.AgentUiCommandBus,
 ) : ViewModel() {
+
+    init {
+        // Workspace launcher posts here when a DESKTOP / WAYLAND item
+        // fires. The matching pager switch happens in HavenNavHost.
+        // DesktopViewModel is hoisted to nav scope so emissions always
+        // land regardless of which tab the user is currently viewing.
+        viewModelScope.launch {
+            agentUiCommandBus.commands.collect { command ->
+                when (command) {
+                    is sh.haven.core.data.agent.AgentUiCommand.OpenRemoteDesktop ->
+                        openRemoteDesktopForProfile(command.profileId)
+                    is sh.haven.core.data.agent.AgentUiCommand.OpenWaylandDesktop ->
+                        addWaylandTab()
+                    else -> { /* handled by other collectors */ }
+                }
+            }
+        }
+    }
+
+    /**
+     * Resolve [profileId] to a VNC or RDP profile and dispatch to the
+     * matching `add*Session`. Used by the workspace launcher; for
+     * tunneled profiles, picks the first connected SSH session for the
+     * tunnel profile and lets `addVncSession` / `addRdpSession` throw
+     * the existing "SSH session not found" error if none is up.
+     */
+    private fun openRemoteDesktopForProfile(profileId: String) {
+        viewModelScope.launch {
+            val profile = connectionRepository.getById(profileId)
+            if (profile == null) {
+                Log.w(TAG, "OpenRemoteDesktop: profile $profileId not found")
+                return@launch
+            }
+            when {
+                profile.isVnc -> {
+                    val sshSessionId =
+                        if (profile.vncSshForward && profile.vncSshProfileId != null) {
+                            sshSessionManager.getSessionsForProfile(profile.vncSshProfileId!!)
+                                .firstOrNull { it.status.name == "CONNECTED" }
+                                ?.sessionId
+                        } else null
+                    addVncSession(
+                        host = profile.host,
+                        port = profile.vncPort ?: 5900,
+                        password = profile.vncPassword,
+                        username = profile.vncUsername,
+                        sshForward = profile.vncSshForward,
+                        sshSessionId = sshSessionId,
+                        profileId = profile.id,
+                        colorDepth = profile.vncColorDepth,
+                    )
+                }
+                profile.isRdp -> {
+                    val sshSessionId =
+                        if (profile.rdpSshForward && profile.rdpSshProfileId != null) {
+                            sshSessionManager.getSessionsForProfile(profile.rdpSshProfileId!!)
+                                .firstOrNull { it.status.name == "CONNECTED" }
+                                ?.sessionId
+                        } else null
+                    addRdpSession(
+                        host = profile.host,
+                        port = profile.rdpPort,
+                        username = profile.rdpUsername.orEmpty(),
+                        password = profile.rdpPassword.orEmpty(),
+                        domain = profile.rdpDomain.orEmpty(),
+                        sshForward = profile.rdpSshForward,
+                        sshSessionId = sshSessionId,
+                        sshProfileId = profile.rdpSshProfileId,
+                        profileId = profile.id,
+                        useNla = profile.rdpUseNla,
+                        colorDepth = profile.rdpColorDepth,
+                    )
+                }
+                else -> Log.w(
+                    TAG,
+                    "OpenRemoteDesktop: ${profile.label} is ${profile.connectionType}, not VNC/RDP",
+                )
+            }
+        }
+    }
 
     private val _tabs = MutableStateFlow<List<DesktopTab>>(emptyList())
     val tabs: StateFlow<List<DesktopTab>> = _tabs.asStateFlow()

@@ -13,6 +13,8 @@ import sh.haven.core.data.db.entities.PasteQueueEntry
 import sh.haven.core.data.db.entities.PortForwardRule
 import sh.haven.core.data.db.entities.SshKey
 import sh.haven.core.data.db.entities.TunnelConfig
+import sh.haven.core.data.db.entities.WorkspaceItem
+import sh.haven.core.data.db.entities.WorkspaceProfile
 
 @Database(
     entities = [
@@ -25,8 +27,10 @@ import sh.haven.core.data.db.entities.TunnelConfig
         AgentAuditEvent::class,
         TunnelConfig::class,
         PasteQueueEntry::class,
+        WorkspaceProfile::class,
+        WorkspaceItem::class,
     ],
-    version = 45,
+    version = 46,
     exportSchema = true,
 )
 abstract class HavenDatabase : RoomDatabase() {
@@ -39,6 +43,7 @@ abstract class HavenDatabase : RoomDatabase() {
     abstract fun agentAuditEventDao(): AgentAuditEventDao
     abstract fun tunnelConfigDao(): TunnelConfigDao
     abstract fun pasteQueueDao(): PasteQueueDao
+    abstract fun workspaceDao(): WorkspaceDao
 
     companion object {
         val MIGRATION_1_2 = object : Migration(1, 2) {
@@ -596,6 +601,54 @@ abstract class HavenDatabase : RoomDatabase() {
                 """.trimIndent())
                 db.execSQL("DROP TABLE connection_profiles")
                 db.execSQL("ALTER TABLE connection_profiles_new RENAME TO connection_profiles")
+            }
+        }
+
+        /**
+         * Workspace profiles: a named, ordered composition of launchable
+         * items (terminal sessions, file-browser tabs, remote desktops,
+         * Wayland) the user can fire in one tap. `workspace_item.kind`
+         * is a TEXT enum; `connectionProfileId` is `SET NULL` on profile
+         * delete so the workspace stays intact and the launcher reports
+         * the broken item rather than silently dropping it.
+         */
+        val MIGRATION_45_46 = object : Migration(45, 46) {
+            override fun migrate(db: SupportSQLiteDatabase) {
+                db.execSQL(
+                    """
+                    CREATE TABLE IF NOT EXISTS `workspace_profile` (
+                        `id` TEXT NOT NULL,
+                        `name` TEXT NOT NULL,
+                        `sortOrder` INTEGER NOT NULL,
+                        `createdAt` INTEGER NOT NULL,
+                        `updatedAt` INTEGER NOT NULL,
+                        PRIMARY KEY(`id`)
+                    )
+                    """.trimIndent(),
+                )
+                db.execSQL(
+                    """
+                    CREATE TABLE IF NOT EXISTS `workspace_item` (
+                        `id` TEXT NOT NULL,
+                        `workspaceId` TEXT NOT NULL,
+                        `kind` TEXT NOT NULL,
+                        `connectionProfileId` TEXT,
+                        `path` TEXT,
+                        `sortOrder` INTEGER NOT NULL,
+                        PRIMARY KEY(`id`),
+                        FOREIGN KEY(`workspaceId`) REFERENCES `workspace_profile`(`id`) ON UPDATE NO ACTION ON DELETE CASCADE,
+                        FOREIGN KEY(`connectionProfileId`) REFERENCES `connection_profiles`(`id`) ON UPDATE NO ACTION ON DELETE SET NULL
+                    )
+                    """.trimIndent(),
+                )
+                db.execSQL(
+                    "CREATE INDEX IF NOT EXISTS `index_workspace_item_workspaceId` " +
+                        "ON `workspace_item` (`workspaceId`)",
+                )
+                db.execSQL(
+                    "CREATE INDEX IF NOT EXISTS `index_workspace_item_connectionProfileId` " +
+                        "ON `workspace_item` (`connectionProfileId`)",
+                )
             }
         }
     }

@@ -1,0 +1,12 @@
+FIDO2 SSH key over NFC: the touch prompt now shows transport-aware
+copy. NFC users see "Hold your security key — keep it against the
+back of the device for two seconds while it signs. Moving it away
+early aborts the exchange and you'll need to tap it again." USB
+users still get the existing "press the button" text.
+
+Reported by @t3rr0rz0n3 in #15: SoloKey-via-NFC users were pulling
+the key away as soon as the on-key LED indicated "ready", which
+interrupted the 1–2s CTAP2 GetAssertion exchange and surfaced as
+TagLostException → JSch's opaque "Auth fail for methods 'publickey'"
+disconnect. The CTAP exchange itself is unchanged — this is the UX
+fix that explains what to do.

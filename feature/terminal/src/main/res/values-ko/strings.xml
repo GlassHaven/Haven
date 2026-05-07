@@ -1,0 +1,77 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <!-- Common -->
+    <string name="common_cancel">취소</string>
+    <string name="common_save">저장</string>
+    <string name="common_done">완료</string>
+    <string name="common_close">닫기</string>
+    <string name="common_ok">확인</string>
+    <string name="common_delete">삭제</string>
+    <string name="common_edit">편집</string>
+    <string name="common_rename">이름 변경</string>
+    <string name="common_create">생성</string>
+    <string name="common_connect">연결</string>
+    <string name="common_disconnect">연결 해제</string>
+    <string name="common_copy">복사</string>
+    <string name="common_paste">붙여넣기</string>
+    <string name="common_label">라벨</string>
+    <string name="common_password">비밀번호</string>
+    <string name="common_port">포트</string>
+    <string name="common_host">호스트</string>
+    <string name="common_username">사용자 이름</string>
+    <string name="common_install">설치</string>
+    <string name="common_reset">재설정</string>
+    <string name="common_allow">허용</string>
+    <string name="common_not_now">나중에</string>
+    <string name="common_import">가져오기</string>
+    <string name="common_add">추가</string>
+    <string name="common_download">다운로드</string>
+    <string name="common_unlock">잠금 해제</string>
+
+    <!-- Tab bar -->
+    <string name="terminal_reconnecting">다시 연결 중</string>
+    <string name="terminal_disconnect_countdown">연결 끊김 — %1$d초 후 닫힘</string>
+    <string name="terminal_disconnect_now">연결 끊김 — 닫는 중</string>
+    <string name="terminal_sessions">세션</string>
+    <string name="terminal_move_left">왼쪽으로 이동</string>
+    <string name="terminal_move_right">오른쪽으로 이동</string>
+    <string name="terminal_close">닫기</string>
+    <string name="terminal_copy_last_output">마지막 출력 복사</string>
+    <string name="terminal_copied_output">출력 복사됨(%d자)</string>
+    <string name="terminal_no_command_output">명령 출력이 없습니다(셸 통합 필요)</string>
+    <string name="terminal_search">검색</string>
+
+    <!-- New tab errors -->
+    <string name="terminal_new_tab_no_active">복제할 활성 세션이 없습니다</string>
+    <string name="terminal_new_tab_no_config">연결 설정을 찾을 수 없습니다 — 먼저 다시 연결해 보세요</string>
+    <string name="terminal_new_tab_host_key_changed">%s의 호스트 키가 변경됨 — 보안을 위해 연결이 거부되었습니다</string>
+    <string name="terminal_new_tab_connection_failed">연결할 수 없음: %s</string>
+    <string name="terminal_new_tab_shell_failed">셸을 열지 못함: %s</string>
+    <string name="terminal_new_tab_reticulum_no_session">복제할 활성 Reticulum 세션이 없습니다</string>
+    <string name="terminal_new_tab_connecting">연결 중…</string>
+
+    <!-- EmptyTerminalState -->
+    <string name="terminal_connect_prompt">세션을 시작하려면 서버에 연결하세요.</string>
+
+    <!-- NewTabSessionPickerDialog -->
+    <string name="terminal_sessions_title">%s 세션</string>
+    <string name="terminal_rename_session">세션 이름 변경</string>
+    <string name="terminal_kill_session">세션 종료</string>
+    <string name="terminal_new_session_create">생성</string>
+
+    <!-- VncSettingsDialog -->
+    <string name="terminal_vnc_desktop">VNC 데스크톱</string>
+    <string name="terminal_connect_to_host">%s에 연결</string>
+    <string name="terminal_port">포트</string>
+    <string name="terminal_password">비밀번호</string>
+    <string name="terminal_tunnel_through_ssh">SSH를 통해 터널링</string>
+    <string name="terminal_save_for_connection">이 연결에 저장</string>
+    <string name="terminal_connect">연결</string>
+
+    <!-- RenameSessionDialog -->
+    <string name="terminal_rename_session_title">세션 이름 변경</string>
+    <string name="terminal_name">이름</string>
+    <string name="terminal_rename">이름 변경</string>
+    <string name="terminal_enter_fullscreen">전체 화면 시작</string>
+    <string name="terminal_exit_fullscreen">전체 화면 종료</string>
+</resources>

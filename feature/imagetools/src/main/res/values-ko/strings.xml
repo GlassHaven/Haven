@@ -1,0 +1,18 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string name="imagetools_title">이미지 도구</string>
+    <string name="imagetools_perspective">원근 보정</string>
+    <string name="imagetools_crop">자르기</string>
+    <string name="imagetools_rotate">회전</string>
+    <string name="imagetools_apply">적용</string>
+    <string name="imagetools_save">저장</string>
+    <string name="imagetools_reset">재설정</string>
+    <string name="imagetools_original">원본</string>
+    <string name="imagetools_result">결과</string>
+    <string name="imagetools_processing">처리 중…</string>
+    <string name="imagetools_failed">실패: %s</string>
+    <string name="imagetools_saved">%s 저장됨</string>
+    <string name="imagetools_open">이미지 도구</string>
+    <string name="imagetools_view">보기</string>
+    <string name="imagetools_loading">이미지를 불러오는 중…</string>
+</resources>

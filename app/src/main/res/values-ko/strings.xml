@@ -1,0 +1,69 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string name="app_name">Haven</string>
+
+    <!-- Navigation labels live in :core:ui strings.xml so all locales
+         share one source. The previous `nav_connections = "Connections"`
+         override here shadowed :core:ui's shorter "Connect" and wrapped
+         to two lines in the bottom nav on narrower devices (#78). -->
+
+    <!-- Common strings shared across modules -->
+    <string name="common_cancel">취소</string>
+    <string name="common_save">저장</string>
+    <string name="common_done">완료</string>
+    <string name="common_close">닫기</string>
+    <string name="common_ok">확인</string>
+    <string name="common_delete">삭제</string>
+    <string name="common_edit">편집</string>
+    <string name="common_rename">이름 변경</string>
+    <string name="common_create">생성</string>
+    <string name="common_connect">연결</string>
+    <string name="common_disconnect">연결 해제</string>
+    <string name="common_copy">복사</string>
+    <string name="common_paste">붙여넣기</string>
+    <string name="common_label">라벨</string>
+    <string name="common_password">비밀번호</string>
+    <string name="common_port">포트</string>
+    <string name="common_host">호스트</string>
+    <string name="common_username">사용자 이름</string>
+    <string name="common_install">설치</string>
+    <string name="common_reset">재설정</string>
+    <string name="common_allow">허용</string>
+    <string name="common_not_now">나중에</string>
+    <string name="common_import">가져오기</string>
+    <string name="common_add">추가</string>
+    <string name="common_download">다운로드</string>
+    <string name="common_github">GitHub</string>
+    <string name="common_support">지원</string>
+    <string name="common_unlock">잠금 해제</string>
+
+    <!-- Battery optimization -->
+    <string name="battery_title">연결을 계속 유지할까요?</string>
+    <string name="battery_message">Android는 배터리 절약을 위해 백그라운드 SSH 연결을 종료할 수 있습니다. Haven의 배터리 최적화를 해제하면 이를 방지할 수 있습니다.</string>
+
+    <!-- Workspace profiles -->
+    <string name="workspace_section_title">작업 공간</string>
+    <string name="workspace_save_current">현재 상태 저장…</string>
+    <string name="workspace_empty_hint">함께 묶을 세션을 연 다음 현재 상태 저장을 누르세요. 다음에 한 번의 탭으로 모두 다시 열 수 있습니다.</string>
+    <string name="workspace_save_dialog_title">작업 공간으로 저장</string>
+    <string name="workspace_save_dialog_name_label">이름</string>
+    <string name="workspace_save_dialog_items_label">포함할 항목</string>
+    <string name="workspace_save_dialog_no_items">저장할 항목이 없습니다. 먼저 세션에 연결하거나 Wayland를 열거나 공유를 탐색하세요.</string>
+    <string name="workspace_save_action">저장</string>
+    <string name="workspace_card_kind_terminal">터미널</string>
+    <string name="workspace_card_kind_file_browser">파일</string>
+    <string name="workspace_card_kind_desktop">데스크톱</string>
+    <string name="workspace_card_kind_wayland">Wayland</string>
+    <string name="workspace_card_kind_count">%1$s × %2$d</string>
+    <string name="workspace_card_no_items">비어 있음</string>
+    <string name="workspace_long_press_delete">삭제</string>
+    <string name="workspace_delete_confirm_title">작업 공간을 삭제할까요?</string>
+    <string name="workspace_delete_confirm_message">\"%1$s\"이(가) 제거됩니다. 참조된 연결은 유지됩니다.</string>
+    <string name="workspace_launch_progress">%1$s 여는 중 — %2$d / %3$d</string>
+    <string name="workspace_launch_completed">%1$s 열림</string>
+    <string name="workspace_launch_partial">%1$s — %3$d개 중 %2$d개 항목 열림</string>
+    <string name="workspace_launch_cancelled">%1$s 취소됨</string>
+    <string name="workspace_launch_failed">실패: %1$s</string>
+    <string name="workspace_launch_cancel">취소</string>
+    <string name="workspace_launch_dismiss">닫기</string>
+</resources>

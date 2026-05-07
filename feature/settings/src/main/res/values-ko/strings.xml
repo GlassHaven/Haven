@@ -1,0 +1,226 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <!-- Common -->
+    <string name="common_cancel">취소</string>
+    <string name="common_save">저장</string>
+    <string name="common_done">완료</string>
+    <string name="common_close">닫기</string>
+    <string name="common_ok">확인</string>
+    <string name="common_delete">삭제</string>
+    <string name="common_edit">편집</string>
+    <string name="common_rename">이름 변경</string>
+    <string name="common_create">생성</string>
+    <string name="common_connect">연결</string>
+    <string name="common_disconnect">연결 해제</string>
+    <string name="common_copy">복사</string>
+    <string name="common_paste">붙여넣기</string>
+    <string name="common_label">라벨</string>
+    <string name="common_password">비밀번호</string>
+    <string name="common_port">포트</string>
+    <string name="common_host">호스트</string>
+    <string name="common_username">사용자 이름</string>
+    <string name="common_install">설치</string>
+    <string name="common_reset">재설정</string>
+    <string name="common_allow">허용</string>
+    <string name="common_not_now">나중에</string>
+    <string name="common_import">가져오기</string>
+    <string name="common_add">추가</string>
+    <string name="common_download">다운로드</string>
+    <string name="common_unlock">잠금 해제</string>
+
+    <!-- Top-level screen -->
+    <string name="settings_title">설정</string>
+
+    <!-- Security section -->
+    <string name="settings_biometric_title">화면 잠금</string>
+    <string name="settings_biometric_subtitle">Haven을 열 때 인증 요구</string>
+    <string name="settings_lock_timeout_title">잠금 제한 시간</string>
+    <string name="settings_prevent_screenshots_title">스크린샷 방지</string>
+    <string name="settings_prevent_screenshots_subtitle">화면 캡처와 작업 전환기 미리보기를 차단합니다</string>
+    <string name="settings_show_desktops_title">데스크톱 카드 표시</string>
+    <string name="settings_show_desktops_subtitle">연결 화면에 데스크톱 환경 관리자를 표시합니다</string>
+    <string name="settings_show_linux_vm_title">Linux VM 카드 표시</string>
+    <string name="settings_show_linux_vm_subtitle">연결 화면에 Android Linux VM 설정을 표시합니다</string>
+
+    <!-- Logging section -->
+    <string name="settings_connection_logging_title">연결 로깅</string>
+    <string name="settings_connection_logging_subtitle">연결 이벤트(연결, 연결 해제, 오류)를 기록합니다. 로컬에 저장되며 기기 암호화로 보호됩니다</string>
+    <string name="settings_view_connection_log_title">연결 로그 보기</string>
+    <string name="settings_view_connection_log_subtitle">연결 기록 및 이벤트</string>
+    <string name="settings_verbose_logging_title">자세한 연결 로깅</string>
+    <string name="settings_verbose_logging_subtitle">SSH, Mosh, ET 연결의 프로토콜 세부 정보를 캡처합니다. 호스트 이름과 사용자 이름이 포함될 수 있습니다</string>
+
+    <!-- Terminal section -->
+    <string name="settings_session_persistence_title">세션 지속성</string>
+    <string name="settings_session_persistence_none">없음</string>
+    <string name="settings_font_size_title">터미널 글꼴 크기</string>
+    <string name="settings_font_size_subtitle">%1$dsp</string>
+    <string name="settings_color_scheme_title">터미널 색상 테마</string>
+    <string name="settings_toolbar_title">키보드 도구 모음</string>
+    <string name="settings_toolbar_subtitle">도구 모음 키와 레이아웃 구성</string>
+    <string name="settings_search_button_title">검색 버튼</string>
+    <string name="settings_search_button_subtitle">탭 표시줄에 검색 아이콘 표시 — 세션 관리자의 기본 검색 키(tmux/zellij/screen) 또는 셸 Ctrl+R을 보냅니다</string>
+    <string name="settings_copy_output_title">마지막 출력 복사</string>
+    <string name="settings_copy_output_subtitle">탭 표시줄에 복사 아이콘 표시 — 마지막 명령의 출력을 복사합니다. 셸 통합이 필요합니다(탭하여 설정)</string>
+    <string name="settings_keep_screen_on_title">터미널에서 화면 켜짐 유지</string>
+    <string name="settings_keep_screen_on_subtitle">터미널 탭이 열려 있는 동안 화면이 꺼지지 않습니다. 배터리를 소모하므로 장시간 실행 출력을 볼 때만 켜는 것이 좋습니다</string>
+    <string name="settings_mouse_input_title">TUI 앱의 마우스 입력</string>
+    <string name="settings_mouse_input_subtitle">htop, mc, vim 같은 앱에서 마우스 추적을 활성화하면 탭은 클릭으로, 길게 누르기는 우클릭으로 전달합니다</string>
+    <string name="settings_right_click_title">길게 누르면 우클릭 전송</string>
+    <string name="settings_right_click_subtitle">텍스트 선택을 시작하는 대신 터미널에 우클릭을 보냅니다. tmux 컨텍스트 메뉴에 유용합니다</string>
+    <string name="settings_standard_keyboard_title">음성 입력 및 자동 완성</string>
+    <string name="settings_standard_keyboard_subtitle">보안 키보드 플래그(비밀번호 모드, 추천 없음)를 비활성화합니다. 음성 입력, 스와이프 입력, 단어 예측을 활성화하지만 IME가 입력한 비밀번호를 학습할 수 있습니다</string>
+
+    <!-- Appearance section -->
+    <string name="settings_theme_title">테마</string>
+    <string name="settings_language_title">언어</string>
+    <string name="settings_screen_order_title">화면 순서</string>
+    <string name="settings_screen_order_subtitle">하단 탐색 탭 순서 변경</string>
+
+    <!-- Wayland section -->
+    <string name="settings_wayland_shell_title">Wayland 데스크톱 셸</string>
+    <string name="settings_shizuku_title">Shizuku 통합</string>
+    <string name="settings_shizuku_enabled">활성화됨 — 자동 배터리 예외, Wayland 소켓 공유</string>
+    <string name="settings_shizuku_available">Shizuku 실행 중 — 탭하여 권한 부여</string>
+    <string name="settings_shizuku_not_running">Shizuku가 설치되어 있지만 실행 중이 아님 — 탭하여 열고 무선 디버깅으로 시작</string>
+    <string name="settings_shizuku_not_installed">배터리 예외와 앱 간 Wayland 액세스를 위해 Shizuku 설치</string>
+
+    <!-- Media streaming -->
+    <string name="settings_media_extensions_title">미디어 파일 확장자</string>
+    <string name="settings_media_extensions_description">파일 브라우저에서 스트리밍 가능한 미디어로 취급할 파일 확장자를 공백으로 구분해 입력하세요.</string>
+    <string name="settings_media_extensions_label">확장자</string>
+
+    <!-- Backup section -->
+    <string name="settings_export_backup_title">백업 내보내기</string>
+    <string name="settings_export_backup_subtitle">키, 연결 및 설정</string>
+    <string name="settings_restore_backup_title">백업 복원</string>
+    <string name="settings_restore_backup_subtitle">백업 파일에서 가져오기</string>
+    <string name="settings_backup_working">작업 중…</string>
+
+    <!-- About section -->
+    <string name="settings_about_title">Haven 정보</string>
+    <string name="settings_support_title">Haven 지원</string>
+    <string name="settings_support_subtitle">개발자에게 커피 후원</string>
+    <string name="settings_version_unknown">알 수 없음</string>
+
+    <!-- Wayland shell dialog -->
+    <string name="settings_wayland_dialog_title">Wayland 데스크톱 셸</string>
+    <string name="settings_wayland_dialog_description">Wayland 데스크톱 foot 터미널 안에서 실행할 셸 명령입니다. 추가 셸은 apk로 설치하세요(예: apk add bash).</string>
+    <string name="settings_wayland_shell_command_label">셸 명령</string>
+
+    <!-- Lock timeout dialog -->
+    <string name="settings_lock_timeout_dialog_title">잠금 제한 시간</string>
+
+    <!-- OSC 133 shell integration dialog -->
+    <string name="settings_osc133_dialog_title">셸 통합 설정</string>
+    <string name="settings_osc133_description">마지막 출력 복사는 셸이 OSC 133 마커를 내보내야 합니다. 다음 스니펫 중 하나를 셸 설정에 추가하세요:</string>
+    <string name="settings_osc133_bash">Bash</string>
+    <string name="settings_osc133_zsh">Zsh</string>
+    <string name="settings_osc133_copied_bash">bash 스니펫 복사됨</string>
+    <string name="settings_osc133_copied_zsh">zsh 스니펫 복사됨</string>
+    <string name="settings_osc133_footer">스니펫을 탭하여 복사하세요. 많은 도구(iTerm2, VS Code, WezTerm)는 기본적으로 이 마커를 포함합니다.</string>
+    <string name="settings_osc133_learn_more">자세히 알아보기</string>
+
+    <!-- Backup password dialog -->
+    <string name="settings_backup_export_dialog_title">백업 내보내기</string>
+    <string name="settings_backup_restore_dialog_title">백업 복원</string>
+    <string name="settings_backup_password_min_length">최소 6자</string>
+    <string name="settings_backup_passwords_mismatch">비밀번호가 일치하지 않습니다</string>
+    <string name="settings_backup_export_description">비밀번호로 백업을 암호화하세요. SSH 키와 연결 데이터를 보호합니다.</string>
+    <string name="settings_backup_restore_description">백업을 만들 때 사용한 비밀번호를 입력하세요.</string>
+    <string name="settings_backup_password_label">비밀번호</string>
+    <string name="settings_backup_confirm_password_label">비밀번호 확인</string>
+    <string name="settings_backup_export_button">내보내기</string>
+    <string name="settings_backup_restore_button">복원</string>
+
+    <!-- About dialog -->
+    <string name="settings_about_dialog_title">Haven 정보</string>
+    <string name="settings_about_app_name">Haven</string>
+    <string name="settings_about_description">Android용 오픈 소스 SSH, VNC, RDP 및 클라우드 스토리지 클라이언트</string>
+    <string name="settings_about_version">버전 %1$s(빌드 %2$d)</string>
+    <string name="settings_about_android">Android %1$s(API %2$d)</string>
+    <string name="settings_about_libraries_title">오픈 소스 라이브러리</string>
+
+    <!-- Screen order dialog -->
+    <string name="settings_screen_order_dialog_title">화면 순서</string>
+    <string name="settings_screen_order_drag_description">드래그하여 순서 변경</string>
+
+    <!-- Theme dialog -->
+    <string name="settings_theme_dialog_title">테마</string>
+
+    <!-- Color scheme dialog -->
+    <string name="settings_color_scheme_dialog_title">터미널 색상 테마</string>
+
+    <!-- Session manager dialog -->
+    <string name="settings_session_dialog_title">세션 지속성</string>
+    <string name="settings_session_no_scrollback">터치 스크롤백 없음</string>
+    <string name="settings_session_custom_command_label">사용자 지정 명령</string>
+    <string name="settings_session_custom_command_hint">세션 이름에는 {name}을 사용하세요. 기본값을 사용하려면 비워 두세요.</string>
+    <string name="settings_session_save_command">명령 저장</string>
+
+    <!-- Font size dialog -->
+    <string name="settings_font_size_dialog_title">터미널 글꼴 크기</string>
+    <string name="settings_font_size_sample">샘플 텍스트</string>
+    <string name="settings_font_size_value">%1$dsp</string>
+
+    <!-- Toolbar config dialog -->
+    <string name="settings_toolbar_dialog_title">키보드 도구 모음</string>
+    <string name="settings_toolbar_assign_hint">각 키를 1행, 2행 또는 끄기에 할당하세요</string>
+    <string name="settings_toolbar_arrow_keys">화살표 키 레이아웃</string>
+    <string name="settings_toolbar_function_keys">기능 키</string>
+    <string name="settings_toolbar_symbols">기호</string>
+    <string name="settings_toolbar_custom_keys">사용자 지정 키</string>
+    <string name="settings_toolbar_add_custom_key">사용자 지정 키 추가</string>
+    <string name="settings_toolbar_edit_json">JSON 편집</string>
+    <string name="settings_toolbar_row1">1행</string>
+    <string name="settings_toolbar_row2">2행</string>
+    <string name="settings_toolbar_off">끄기</string>
+    <string name="settings_toolbar_paste_clipboard">클립보드 붙여넣기</string>
+
+    <!-- Custom key dialog -->
+    <string name="settings_custom_key_edit_title">사용자 지정 키 편집</string>
+    <string name="settings_custom_key_add_title">사용자 지정 키 추가</string>
+    <string name="settings_custom_key_presets">프리셋</string>
+    <string name="settings_custom_key_label">라벨</string>
+    <string name="settings_custom_key_label_placeholder">예: ^C, Paste</string>
+    <string name="settings_custom_key_sequence_label">시퀀스</string>
+    <string name="settings_custom_key_sequence_placeholder">예: \\u0003</string>
+    <string name="settings_custom_key_escape_hint">Escape에는 \\u001b, Ctrl+C에는 \\u0003, Enter에는 \\n을 사용하세요</string>
+
+    <!-- JSON editor dialog -->
+    <string name="settings_json_editor_title">도구 모음 JSON 편집</string>
+    <string name="settings_json_editor_format_hint">문자열 = 내장 키 ID, 객체 = 사용자 지정 키 {"label": "…", "send": "…"}</string>
+    <string name="settings_json_editor_builtin_ids">내장 ID: keyboard, esc, tab, shift, ctrl, alt, arrow_left, arrow_up, arrow_down, arrow_right, home, end, pgup, pgdn, insert, delete, sym_pipe, sym_tilde, sym_slash, sym_dash, sym_underscore, sym_equals, sym_plus, sym_backslash, sym_squote, sym_dquote, sym_semicolon, sym_colon, sym_bang, sym_question, sym_at, sym_hash, sym_dollar, sym_percent, sym_caret, sym_amp, sym_star, sym_lparen, sym_rparen, sym_lbracket, sym_rbracket, sym_lbrace, sym_rbrace, sym_lt, sym_gt, sym_backtick</string>
+
+    <!-- Common strings -->
+    <string name="common_support">지원</string>
+    <string name="common_github">GitHub</string>
+    <string name="common_simple">간단</string>
+    <string name="settings_section_security_privacy">보안 및 개인정보</string>
+    <string name="settings_section_appearance">모양</string>
+    <string name="settings_section_keyboard_input">키보드 및 입력</string>
+    <string name="settings_section_terminal">터미널</string>
+    <string name="settings_section_desktop">데스크톱(VNC 및 RDP)</string>
+    <string name="settings_section_connections_screen">연결 화면</string>
+    <string name="settings_section_diagnostics">진단</string>
+    <string name="settings_section_advanced">고급</string>
+    <string name="settings_section_backup">백업</string>
+    <string name="settings_section_about">정보</string>
+    <string name="settings_drag_select_title">TUI 마우스 모드에서 드래그 선택</string>
+    <string name="settings_drag_select_subtitle">원격 자체 스크롤백을 통해 선택이 뷰포트 전체로 확장되도록 press+motion+release를 tmux/zellij에 전달합니다. 끄면 드래그가 원격을 스크롤합니다(레거시 동작).</string>
+    <string name="settings_show_terminal_tab_bar_title">터미널 탭 표시줄 표시</string>
+    <string name="settings_show_terminal_tab_bar_subtitle">터미널 위에 세션 탭을 표시합니다</string>
+    <string name="settings_touchpad_input_title">터치패드 입력</string>
+    <string name="settings_touchpad_input_direct_subtitle">직접 터치 — 손가락 위치가 포인터입니다. 트랙패드 방식 입력을 사용하려면 켜세요.</string>
+    <string name="settings_touchpad_input_touchpad_subtitle">드래그하면 원격 커서가 움직이고, 탭하면 커서 위치를 클릭합니다. 확대 시 뷰포트가 커서를 따라갑니다.</string>
+    <string name="settings_bandwidth_suggest_title">느린 VNC 연결에서 256색 제안</string>
+    <string name="settings_bandwidth_suggest_subtitle">몇 초 후 처리량이 약 1 Mbps 미만이면 감지하여 256색으로 한 번에 다시 연결하도록 제안합니다. 끄면 프롬프트가 표시되지 않습니다.</string>
+
+    <!-- #135 dialog titles previously hardcoded -->
+    <string name="settings_keyboard_mode_title">키보드 모드</string>
+    <string name="settings_dev_install_title">개발 설치</string>
+    <string name="settings_dev_install_apk_url">APK URL</string>
+    <string name="settings_mcp_tunnel_title">어떤 프로필로 MCP를 터널링할까요?</string>
+    <string name="settings_font_install_title">URL에서 글꼴 설치</string>
+    <string name="settings_ime_flags_title">IME 플래그</string>
+</resources>

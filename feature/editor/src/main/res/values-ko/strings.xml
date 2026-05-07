@@ -1,0 +1,22 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string name="editor_title">편집기</string>
+    <string name="editor_loading">파일을 불러오는 중…</string>
+    <string name="editor_failed">불러오지 못함: %s</string>
+    <string name="editor_line">%1$d행, %2$d열</string>
+    <string name="editor_word_wrap">자동 줄 바꿈</string>
+    <string name="editor_open_in_editor">편집기에서 열기</string>
+    <string name="editor_save">저장</string>
+    <string name="editor_saved">%s 저장됨</string>
+    <string name="editor_save_failed">저장 실패: %s</string>
+    <string name="editor_undo">실행 취소</string>
+    <string name="editor_redo">다시 실행</string>
+    <string name="editor_find">찾기</string>
+    <string name="editor_find_prev">이전 일치 항목</string>
+    <string name="editor_find_next">다음 일치 항목</string>
+    <string name="editor_close_search">검색 닫기</string>
+    <string name="editor_regex">Regex</string>
+    <string name="editor_replace">바꾸기</string>
+    <string name="editor_replace_one">바꾸기</string>
+    <string name="editor_replace_all">모두</string>
+</resources>

@@ -956,6 +956,7 @@ fun SettingsScreen(
             "fr" to "Français",
             "hi" to "हिन्दी",
             "ja" to "日本語",
+            "ko" to "한국어",
             "pt" to "Português",
             "ru" to "Русский",
             "zh" to "中文",

@@ -1,0 +1,81 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <!-- Common -->
+    <string name="common_cancel">취소</string>
+    <string name="common_save">저장</string>
+    <string name="common_done">완료</string>
+    <string name="common_close">닫기</string>
+    <string name="common_ok">확인</string>
+    <string name="common_delete">삭제</string>
+    <string name="common_edit">편집</string>
+    <string name="common_rename">이름 변경</string>
+    <string name="common_create">생성</string>
+    <string name="common_connect">연결</string>
+    <string name="common_disconnect">연결 해제</string>
+    <string name="common_copy">복사</string>
+    <string name="common_paste">붙여넣기</string>
+    <string name="common_label">라벨</string>
+    <string name="common_password">비밀번호</string>
+    <string name="common_port">포트</string>
+    <string name="common_host">호스트</string>
+    <string name="common_username">사용자 이름</string>
+    <string name="common_install">설치</string>
+    <string name="common_reset">재설정</string>
+    <string name="common_allow">허용</string>
+    <string name="common_not_now">나중에</string>
+    <string name="common_import">가져오기</string>
+    <string name="common_add">추가</string>
+    <string name="common_download">다운로드</string>
+    <string name="common_unlock">잠금 해제</string>
+
+    <!-- KeysScreen -->
+    <string name="keys_add_key">키 추가</string>
+    <string name="keys_no_ssh_keys">SSH 키 없음</string>
+    <string name="keys_tap_to_add">+를 눌러 키를 생성하거나 가져오세요</string>
+    <string name="keys_copy_public_key">공개 키 복사</string>
+    <string name="keys_export_private_key">개인 키 내보내기</string>
+
+    <!-- AddKeyChooser -->
+    <string name="keys_add_ssh_key">SSH 키 추가</string>
+    <string name="keys_generate_new_key">새 키 생성</string>
+    <string name="keys_generate_key_types">Ed25519, RSA 또는 ECDSA</string>
+    <string name="keys_import_from_file">파일에서 가져오기</string>
+    <string name="keys_import_file_formats">PEM, OpenSSH 또는 Dropbear 형식</string>
+    <string name="keys_paste_from_clipboard">클립보드에서 붙여넣기</string>
+    <string name="keys_paste_clipboard_hint">텍스트 키만 지원합니다(PEM/OpenSSH). 바이너리 Dropbear 키는 파일 가져오기를 사용하세요.</string>
+    <string name="keys_clipboard_empty">클립보드가 비어 있습니다</string>
+    <string name="keys_clipboard_not_text_key">클립보드에 텍스트 SSH 키가 없습니다. 바이너리 키(예: Dropbear)는 파일에서 가져와야 합니다.</string>
+
+    <!-- GenerateKeyDialog -->
+    <string name="keys_generate_ssh_key">SSH 키 생성</string>
+    <string name="keys_label_placeholder">예: my-server</string>
+    <string name="keys_key_type">키 유형</string>
+    <string name="keys_generate">생성</string>
+
+    <!-- PassphraseDialog -->
+    <string name="keys_encrypted_key">암호화된 키</string>
+    <string name="keys_passphrase_prompt">이 키는 암호문으로 보호되어 있습니다.</string>
+    <string name="keys_passphrase">암호문</string>
+    <string name="keys_unlock">잠금 해제</string>
+
+    <!-- ImportLabelDialog -->
+    <string name="keys_import_ssh_key">SSH 키 가져오기</string>
+    <string name="keys_import">가져오기</string>
+
+    <!-- copyPublicKey -->
+    <string name="keys_ssh_public_key_clip_label">SSH 공개 키</string>
+    <string name="keys_section_ssh">SSH 키(%1$d)</string>
+    <string name="keys_section_passwords">저장된 비밀번호(%1$d)</string>
+    <string name="keys_chip_hardware_backed">하드웨어 지원</string>
+    <string name="keys_chip_passphrase">암호문</string>
+    <string name="keys_chip_user_presence">사용자 존재 확인</string>
+    <string name="keys_chip_user_verification">사용자 인증</string>
+    <string name="keys_chip_biometric">생체 인증 필요</string>
+    <string name="keys_require_biometric">사용 시 생체 인증 필요</string>
+    <string name="keys_clear_password_title">%1$s을(를) 지울까요?</string>
+    <string name="keys_clear_password_body">지우면 이 프로필에 저장된 비밀번호가 삭제됩니다. 프로필 자체는 유지되며 다음 연결 시 다시 요청됩니다.</string>
+    <string name="keys_wipe_content_description">%1$s 지우기</string>
+    <string name="keys_attach_certificate">인증서 첨부</string>
+    <string name="keys_remove_certificate">인증서 제거</string>
+    <string name="keys_chip_certificate">인증서 첨부됨</string>
+</resources>

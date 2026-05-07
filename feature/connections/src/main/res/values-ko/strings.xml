@@ -1,0 +1,212 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <!-- Common -->
+    <string name="common_cancel">취소</string>
+    <string name="common_save">저장</string>
+    <string name="common_done">완료</string>
+    <string name="common_close">닫기</string>
+    <string name="common_ok">확인</string>
+    <string name="common_delete">삭제</string>
+    <string name="common_edit">편집</string>
+    <string name="common_rename">이름 변경</string>
+    <string name="common_create">생성</string>
+    <string name="common_connect">연결</string>
+    <string name="common_disconnect">연결 해제</string>
+    <string name="common_copy">복사</string>
+    <string name="common_paste">붙여넣기</string>
+    <string name="common_label">라벨</string>
+    <string name="common_password">비밀번호</string>
+    <string name="common_port">포트</string>
+    <string name="common_host">호스트</string>
+    <string name="common_username">사용자 이름</string>
+    <string name="common_install">설치</string>
+    <string name="common_reset">재설정</string>
+    <string name="common_allow">허용</string>
+    <string name="common_not_now">나중에</string>
+    <string name="common_import">가져오기</string>
+    <string name="common_add">추가</string>
+    <string name="common_download">다운로드</string>
+    <string name="common_unlock">잠금 해제</string>
+
+    <!-- Common strings (shared across features) -->
+
+    <!-- Connections screen -->
+    <string name="connections_title">연결</string>
+    <string name="connections_add">연결 추가</string>
+    <string name="connections_quick_connect_placeholder">user@host 또는 host:port</string>
+    <string name="connections_quick_connect_button">연결</string>
+    <string name="connections_quick_connect_error">형식 사용: user@host 또는 user@host:port</string>
+    <string name="connections_filter_placeholder">연결 필터…</string>
+    <string name="connections_filter_clear">필터 지우기</string>
+    <string name="connections_reorder">순서 변경</string>
+
+    <!-- Empty state -->
+    <string name="connections_empty_title">아직 연결이 없습니다</string>
+    <string name="connections_empty_subtitle">+를 눌러 서버를 추가하거나 위에 user@host를 입력하세요</string>
+
+    <!-- Connection status -->
+    <string name="connections_status_connected">연결됨</string>
+    <string name="connections_status_error">오류</string>
+    <string name="connections_status_disconnected">연결 끊김</string>
+
+    <!-- Connection tree item -->
+    <string name="connections_proot_label">PRoot Alpine Linux</string>
+    <string name="connections_launch_desktop">데스크톱 실행</string>
+    <string name="connections_setup_desktop">데스크톱 설정</string>
+
+    <!-- Connection context menu -->
+    <string name="connections_menu_port_forwards">포트 포워딩</string>
+    <string name="connections_menu_connect_with_password">비밀번호로 연결</string>
+    <string name="connections_menu_sessions">세션</string>
+    <string name="connections_menu_duplicate">복제</string>
+    <string name="connections_use_android_shell">기본 Android 셸 사용</string>
+    <string name="connections_menu_disconnect">연결 해제</string>
+    <string name="connections_menu_deploy_ssh_key">SSH 키 배포</string>
+
+    <!-- Delete confirmation dialog -->
+    <string name="connections_delete_title">연결을 삭제할까요?</string>
+    <string name="connections_delete_message">\"%1$s\"을(를) 삭제할까요? 이 작업은 되돌릴 수 없습니다.</string>
+
+    <!-- Deploy key snackbar -->
+    <string name="connections_key_deployed">SSH 키가 성공적으로 배포되었습니다</string>
+
+    <!-- Battery optimization dialog -->
+    <string name="connections_battery_title">연결을 계속 유지할까요?</string>
+    <string name="connections_battery_message">Android는 배터리 절약을 위해 백그라운드 SSH 연결을 종료할 수 있습니다. Haven의 배터리 최적화를 해제하면 이를 방지할 수 있습니다.</string>
+
+    <!-- Mosh setup guide dialog -->
+    <string name="connections_mosh_not_found_title">서버에서 Mosh를 찾을 수 없음</string>
+    <string name="connections_mosh_not_found_message">원격 호스트에 mosh-server가 설치되어 있지 않습니다. Mosh(Mobile Shell)는 네트워크 변경과 높은 지연 시간에서도 세션을 유지합니다.</string>
+    <string name="connections_mosh_install_prompt">서버에 설치하세요:</string>
+    <string name="connections_mosh_install_commands">\u0020 Ubuntu/Debian:  sudo apt install mosh\n\u0020 Fedora/RHEL:    sudo dnf install mosh\n\u0020 Arch:           sudo pacman -S mosh\n\u0020 macOS:          brew install mosh</string>
+    <string name="connections_mosh_firewall_note">서버 방화벽에서 UDP 포트 60001이 열려 있어야 합니다.</string>
+    <string name="connections_mosh_github">GitHub의 Mosh</string>
+
+    <!-- Mosh client missing dialog -->
+    <string name="connections_mosh_client_missing_title">Mosh 클라이언트가 빌드되지 않음</string>
+    <string name="connections_mosh_client_missing_message">이 빌드에는 mosh-client 바이너리가 포함되어 있지 않습니다. Android NDK로 크로스 컴파일해야 합니다.</string>
+    <string name="connections_mosh_client_build_instructions">Android NDK r27+로 tools/build-mosh.sh를 실행해 mosh-client 바이너리를 빌드한 다음 앱을 다시 빌드하세요.</string>
+
+    <!-- Session picker dialog -->
+    <string name="connections_sessions_title">%1$s 세션</string>
+    <string name="connections_restore_previous_sessions">이전 세션 %1$d개 복원</string>
+    <string name="connections_rename_session">세션 이름 변경</string>
+    <string name="connections_kill_session">세션 종료</string>
+    <string name="connections_new_session_create">생성</string>
+
+    <!-- Rename dialog -->
+    <string name="connections_rename_title">연결 이름 변경</string>
+
+    <!-- Linux VM card -->
+    <string name="connections_linux_vm">Linux VM</string>
+    <string name="connections_vm_tap_to_setup">탭하여 설정</string>
+    <string name="connections_vm_status_active">활성</string>
+    <string name="connections_vm_refresh">VM 상태 새로고침</string>
+
+    <!-- Desktop Manager -->
+    <string name="connections_desktops_title">데스크톱</string>
+    <string name="connections_desktop_start">시작</string>
+    <string name="connections_desktop_stop">중지</string>
+    <string name="connections_desktop_native_running">네이티브 컴포지터</string>
+    <string name="connections_desktop_uninstall_title">데스크톱을 제거할까요?</string>
+    <string name="connections_desktop_uninstall_message">%1$s을(를) 제거할까요? 패키지가 PRoot 환경에서 제거됩니다.</string>
+
+    <!-- Desktop setup dialog -->
+    <string name="connections_desktop_setup_title">데스크톱 설치</string>
+    <string name="connections_desktop_wayland_description">PRoot 환경에 Wayland 컴포지터를 설치합니다. 실험적 기능이며 소프트웨어 렌더링을 사용합니다.</string>
+    <string name="connections_desktop_openbox_description">PRoot 환경에 데스크톱 환경과 VNC 서버를 설치합니다. Openbox는 최소 구성입니다. 데스크톱을 우클릭하면 앱 메뉴가 열립니다.</string>
+    <string name="connections_desktop_vnc_description">PRoot 환경에 데스크톱 환경과 VNC 서버를 설치합니다.</string>
+    <string name="connections_desktop_vnc_password">VNC 비밀번호</string>
+    <string name="connections_desktop_shell">셸</string>
+    <string name="connections_desktop_addons_header">데스크톱 기능(선택 사항)</string>
+    <string name="connections_desktop_installed">데스크톱이 설치되었습니다. VNC에 연결 중…</string>
+    <string name="connections_desktop_setup_failed">설정 실패: %1$s</string>
+
+    <!-- New group dialog -->
+    <string name="connections_new_group_title">새 그룹</string>
+    <string name="connections_group_name">그룹 이름</string>
+
+    <!-- Group header -->
+    <string name="connections_launch_group">그룹 실행</string>
+    <string name="connections_expand">펼치기</string>
+    <string name="connections_collapse">접기</string>
+    <string name="connections_menu_launch_all">모두 실행</string>
+    <string name="connections_menu_delete_group">그룹 삭제</string>
+    <string name="connections_new_group_action">새 그룹</string>
+    <string name="connections_dialog_new">새 연결</string>
+    <string name="connections_dialog_edit">연결 편집</string>
+    <string name="connections_field_transport">전송 방식</string>
+    <string name="connections_field_label">라벨</string>
+    <string name="connections_field_color">색상</string>
+    <string name="connections_field_host">호스트</string>
+    <string name="connections_field_port">포트</string>
+    <string name="connections_field_username">사용자 이름</string>
+    <string name="connections_field_jump_host">점프 호스트(-J)</string>
+    <string name="connections_field_route_through">다음을 통해 라우팅</string>
+    <string name="connections_field_session_manager">세션 관리자</string>
+    <string name="connections_field_ssh_options">SSH 옵션</string>
+    <string name="connections_helper_ssh_options">ssh_config 형식: 키 값(한 줄에 하나)</string>
+    <string name="connections_field_post_login">로그인 후 명령</string>
+    <string name="connections_helper_post_login">로그인 후 전송됩니다.</string>
+    <string name="connections_dropdown_none_direct">없음(직접)</string>
+    <string name="connections_dropdown_default_none">기본값(없음)</string>
+    <string name="connections_dropdown_none">없음</string>
+    <string name="connections_section_file_transport">파일 전송</string>
+    <string name="connections_helper_file_transport">파일 탭이 이 서버와 데이터를 주고받는 방식입니다.</string>
+    <string name="connections_file_transport_auto">자동</string>
+    <string name="connections_scan_network">네트워크 스캔</string>
+    <string name="connections_scanning">스캔 중</string>
+    <string name="connections_field_group">그룹</string>
+    <string name="connections_field_provider">제공자</string>
+    <string name="connections_field_tunnel_through_ssh">SSH를 통해 터널링</string>
+    <string name="connections_field_ssh_connection">SSH 연결</string>
+    <string name="connections_field_username_vnc">사용자 이름(선택 사항 — VeNCrypt 전용)</string>
+    <string name="connections_field_password_optional">비밀번호(선택 사항)</string>
+    <string name="connections_field_domain_optional">도메인(선택 사항)</string>
+    <string name="connections_field_share_name">공유 이름</string>
+    <string name="connections_field_colour_depth">색상 깊이</string>
+    <string name="connections_field_proxy_host">프록시 호스트</string>
+    <string name="connections_field_et_port">ET 포트</string>
+    <string name="connections_field_mosh_server_command">mosh-server 명령</string>
+    <string name="connections_helper_mosh_server">기본값을 사용하려면 비워 두세요. 1024 미만 포트에는 authbind를 사용하세요.</string>
+    <string name="connections_username_placeholder_ask">연결할 때 묻도록 비워 두세요</string>
+    <string name="connections_file_transport_auto_desc">SFTP를 시도하고 sftp-server 서브시스템을 사용할 수 없으면 SCP로 대체합니다.</string>
+    <string name="connections_file_transport_sftp_label">SFTP만</string>
+    <string name="connections_file_transport_sftp_desc">최신 SFTP 서브시스템을 강제로 사용합니다. 서버에서 비활성화되어 있으면 실패합니다.</string>
+    <string name="connections_file_transport_scp_label">SCP(레거시)</string>
+    <string name="connections_file_transport_scp_desc">레거시 scp -t/-f와 셸 ls를 강제로 사용합니다. 강화된 서버나 임베디드 서버에서 사용하세요.</string>
+    <string name="connection_address_family_label">주소 패밀리</string>
+    <string name="connection_address_family_auto">자동</string>
+    <string name="connection_address_family_ipv4_only">IPv4만</string>
+    <string name="connection_address_family_ipv6_only">IPv6만</string>
+    <string name="connection_address_family_ipv4_hint">AAAA 레코드를 건너뛰고 IPv4로 연결합니다. DNS가 IPv6를 반환하지만 네트워크에서 라우팅할 수 없을 때 유용합니다.</string>
+    <string name="connection_address_family_ipv6_hint">A 레코드를 건너뛰고 IPv6로 연결합니다. IPv4 NAT가 깨진 IPv6 전용 네트워크에서 유용합니다.</string>
+
+    <!-- #135 follow-up: hardcoded English strings replaced with resources
+         for zh-CN and the other 9 locales. Same audit pass that v5.24.83
+         and v5.24.89 did for SettingsScreen and the bulk of
+         ConnectionEditDialog — these are the ones the previous round missed. -->
+    <string name="connections_field_vnc_host_via_ssh">VNC 호스트(SSH 서버)</string>
+    <string name="connections_field_rdp_host_via_ssh">RDP 호스트(SSH 서버)</string>
+    <string name="connections_toggle_run_before_session_manager">세션 관리자 전에 실행</string>
+    <string name="connections_toggle_disable_alt_screen">대체 화면 비활성화</string>
+    <string name="connections_helper_disable_alt_screen">screen/vim에서 스크롤백이 작동합니다. 프로그램 종료 시 출력이 스크롤백에 남습니다.</string>
+    <string name="connections_toggle_forward_agent">SSH 에이전트 전달</string>
+    <string name="connections_helper_forward_agent">암호화되지 않은 저장 SSH 키를 원격 호스트에 노출합니다(git push 등). 암호화된 키는 건너뜁니다.</string>
+    <string name="connections_field_ssh_key">SSH 키</string>
+    <string name="connections_ssh_key_any">아무거나(모든 키 시도)</string>
+    <string name="connections_field_vnc_port">VNC 포트</string>
+    <string name="connections_field_vnc_password">VNC 비밀번호</string>
+    <string name="connections_field_vnc_color_depth">VNC 색상 깊이</string>
+    <string name="connections_action_clear_vnc">저장된 VNC 설정 지우기</string>
+    <string name="connections_toggle_local_sideband">로컬 사이드밴드</string>
+    <string name="connections_field_gateway_host">게이트웨이 호스트</string>
+    <string name="connections_field_network_name">네트워크 이름</string>
+    <string name="connections_helper_network_name">IFAC 네트워크 이름(선택 사항)</string>
+    <string name="connections_action_scan_rnsh">rnsh 노드 스캔</string>
+    <string name="connections_field_destination_hash">대상 해시</string>
+    <string name="connections_helper_destination_hash">32자 16진수</string>
+    <string name="connections_field_color_scheme">터미널 색상 테마</string>
+    <string name="connections_color_scheme_inherit">기본값 사용(전역 설정)</string>
+    <string name="connections_tunnel_dropdown_label">터널: %1$s</string>
+</resources>

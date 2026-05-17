@@ -151,6 +151,9 @@ fun SettingsScreen(
     val theme by viewModel.theme.collectAsState()
     val sessionManager by viewModel.sessionManager.collectAsState()
     val colorScheme by viewModel.terminalColorScheme.collectAsState()
+    val autoSwitchColorScheme by viewModel.terminalAutoSwitchScheme.collectAsState()
+    val lightColorScheme by viewModel.terminalLightColorScheme.collectAsState()
+    val darkColorScheme by viewModel.terminalDarkColorScheme.collectAsState()
     val toolbarLayout by viewModel.toolbarLayout.collectAsState()
     val toolbarLayoutJson by viewModel.toolbarLayoutJson.collectAsState()
     val navBlockMode by viewModel.navBlockMode.collectAsState()
@@ -196,6 +199,8 @@ fun SettingsScreen(
     var showSessionManagerDialog by remember { mutableStateOf(false) }
     var showThemeDialog by remember { mutableStateOf(false) }
     var showColorSchemeDialog by remember { mutableStateOf(false) }
+    var showLightColorSchemeDialog by remember { mutableStateOf(false) }
+    var showDarkColorSchemeDialog by remember { mutableStateOf(false) }
     var showAboutDialog by remember { mutableStateOf(false) }
     var showToolbarConfigDialog by remember { mutableStateOf(false) }
     var showKeyboardModeDialog by remember { mutableStateOf(false) }
@@ -354,12 +359,34 @@ fun SettingsScreen(
             subtitle = theme.label,
             onClick = { showThemeDialog = true },
         )
-        SettingsItem(
+        SettingsToggleItem(
             icon = Icons.Filled.Palette,
-            title = stringResource(R.string.settings_color_scheme_title),
-            subtitle = colorScheme.label,
-            onClick = { showColorSchemeDialog = true },
+            title = stringResource(R.string.settings_color_scheme_auto_switch_title),
+            subtitle = stringResource(R.string.settings_color_scheme_auto_switch_subtitle),
+            checked = autoSwitchColorScheme,
+            onCheckedChange = viewModel::setTerminalAutoSwitchScheme,
         )
+        if (autoSwitchColorScheme) {
+            SettingsItem(
+                icon = Icons.Filled.Palette,
+                title = stringResource(R.string.settings_color_scheme_light_title),
+                subtitle = lightColorScheme.label,
+                onClick = { showLightColorSchemeDialog = true },
+            )
+            SettingsItem(
+                icon = Icons.Filled.Palette,
+                title = stringResource(R.string.settings_color_scheme_dark_title),
+                subtitle = darkColorScheme.label,
+                onClick = { showDarkColorSchemeDialog = true },
+            )
+        } else {
+            SettingsItem(
+                icon = Icons.Filled.Palette,
+                title = stringResource(R.string.settings_color_scheme_title),
+                subtitle = colorScheme.label,
+                onClick = { showColorSchemeDialog = true },
+            )
+        }
         SettingsItem(
             icon = Icons.Filled.TextFields,
             title = stringResource(R.string.settings_font_size_title),
@@ -1150,6 +1177,30 @@ fun SettingsScreen(
         )
     }
 
+    if (showLightColorSchemeDialog) {
+        ColorSchemeDialog(
+            currentScheme = lightColorScheme,
+            titleRes = R.string.settings_color_scheme_light_dialog_title,
+            onDismiss = { showLightColorSchemeDialog = false },
+            onSelect = { selected ->
+                viewModel.setTerminalLightColorScheme(selected)
+                showLightColorSchemeDialog = false
+            },
+        )
+    }
+
+    if (showDarkColorSchemeDialog) {
+        ColorSchemeDialog(
+            currentScheme = darkColorScheme,
+            titleRes = R.string.settings_color_scheme_dark_dialog_title,
+            onDismiss = { showDarkColorSchemeDialog = false },
+            onSelect = { selected ->
+                viewModel.setTerminalDarkColorScheme(selected)
+                showDarkColorSchemeDialog = false
+            },
+        )
+    }
+
     if (showLockTimeoutDialog) {
         AlertDialog(
             onDismissRequest = { showLockTimeoutDialog = false },
@@ -1645,10 +1696,11 @@ private fun ColorSchemeDialog(
     currentScheme: UserPreferencesRepository.TerminalColorScheme,
     onDismiss: () -> Unit,
     onSelect: (UserPreferencesRepository.TerminalColorScheme) -> Unit,
+    titleRes: Int = R.string.settings_color_scheme_dialog_title,
 ) {
     AlertDialog(
         onDismissRequest = onDismiss,
-        title = { Text(stringResource(R.string.settings_color_scheme_dialog_title)) },
+        title = { Text(stringResource(titleRes)) },
         text = {
             Column(modifier = Modifier.verticalScroll(rememberScrollState())) {
                 UserPreferencesRepository.TerminalColorScheme.entries.forEach { scheme ->

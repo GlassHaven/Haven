@@ -288,6 +288,26 @@ class SettingsViewModel @Inject constructor(
                 UserPreferencesRepository.TerminalColorScheme.HAVEN,
             )
 
+    val terminalAutoSwitchScheme: StateFlow<Boolean> =
+        preferencesRepository.terminalAutoSwitchScheme
+            .stateIn(viewModelScope, SharingStarted.WhileSubscribed(5000), false)
+
+    val terminalLightColorScheme: StateFlow<UserPreferencesRepository.TerminalColorScheme> =
+        preferencesRepository.terminalLightColorScheme
+            .stateIn(
+                viewModelScope,
+                SharingStarted.WhileSubscribed(5000),
+                UserPreferencesRepository.TerminalColorScheme.LIGHT,
+            )
+
+    val terminalDarkColorScheme: StateFlow<UserPreferencesRepository.TerminalColorScheme> =
+        preferencesRepository.terminalDarkColorScheme
+            .stateIn(
+                viewModelScope,
+                SharingStarted.WhileSubscribed(5000),
+                UserPreferencesRepository.TerminalColorScheme.HAVEN,
+            )
+
     val toolbarLayout: StateFlow<ToolbarLayout> = preferencesRepository.toolbarLayout
         .stateIn(
             viewModelScope,
@@ -522,6 +542,24 @@ class SettingsViewModel @Inject constructor(
     fun setTerminalColorScheme(scheme: UserPreferencesRepository.TerminalColorScheme) {
         viewModelScope.launch {
             preferencesRepository.setTerminalColorScheme(scheme)
+        }
+    }
+
+    fun setTerminalAutoSwitchScheme(enabled: Boolean) {
+        viewModelScope.launch {
+            preferencesRepository.setTerminalAutoSwitchScheme(enabled)
+        }
+    }
+
+    fun setTerminalLightColorScheme(scheme: UserPreferencesRepository.TerminalColorScheme) {
+        viewModelScope.launch {
+            preferencesRepository.setTerminalLightColorScheme(scheme)
+        }
+    }
+
+    fun setTerminalDarkColorScheme(scheme: UserPreferencesRepository.TerminalColorScheme) {
+        viewModelScope.launch {
+            preferencesRepository.setTerminalDarkColorScheme(scheme)
         }
     }
 

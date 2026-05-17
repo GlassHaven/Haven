@@ -629,7 +629,7 @@ class SftpViewModel @Inject constructor(
 
     /** Effective terminal colour scheme, respecting auto-switch. */
     val terminalColorScheme: StateFlow<UserPreferencesRepository.TerminalColorScheme> =
-        kotlinx.coroutines.flow.combine(
+        combine(
             preferencesRepository.terminalColorScheme,
             preferencesRepository.terminalAutoSwitchScheme,
             preferencesRepository.terminalLightColorScheme,

@@ -493,7 +493,7 @@ class TerminalViewModel @Inject constructor(
      * [UserPreferencesRepository.terminalColorScheme] pref.
      */
     val terminalColorScheme: StateFlow<UserPreferencesRepository.TerminalColorScheme> =
-        kotlinx.coroutines.flow.combine(
+        combine(
             preferencesRepository.terminalColorScheme,
             preferencesRepository.terminalAutoSwitchScheme,
             preferencesRepository.terminalLightColorScheme,

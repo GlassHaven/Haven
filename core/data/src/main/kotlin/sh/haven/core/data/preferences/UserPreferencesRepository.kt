@@ -29,6 +29,9 @@ class UserPreferencesRepository @Inject constructor(
     private val reticulumHostKey = stringPreferencesKey("reticulum_host")
     private val reticulumPortKey = intPreferencesKey("reticulum_port")
     private val terminalColorSchemeKey = stringPreferencesKey("terminal_color_scheme")
+    private val terminalAutoSwitchSchemeKey = booleanPreferencesKey("terminal_auto_switch_scheme")
+    private val terminalLightColorSchemeKey = stringPreferencesKey("terminal_light_color_scheme")
+    private val terminalDarkColorSchemeKey = stringPreferencesKey("terminal_dark_color_scheme")
     private val toolbarRowsKey = intPreferencesKey("toolbar_rows") // legacy
     private val toolbarRow1Key = stringPreferencesKey("toolbar_row1") // legacy
     private val toolbarRow2Key = stringPreferencesKey("toolbar_row2") // legacy
@@ -777,6 +780,45 @@ class UserPreferencesRepository @Inject constructor(
     suspend fun setTerminalColorScheme(scheme: TerminalColorScheme) {
         dataStore.edit { prefs ->
             prefs[terminalColorSchemeKey] = scheme.name
+        }
+    }
+
+    /**
+     * When true, the active terminal scheme follows the system light/dark
+     * mode — [terminalLightColorScheme] in light, [terminalDarkColorScheme]
+     * in dark. The plain [terminalColorScheme] pref is used otherwise.
+     */
+    val terminalAutoSwitchScheme: Flow<Boolean> = dataStore.data.map { prefs ->
+        prefs[terminalAutoSwitchSchemeKey] ?: false
+    }
+
+    suspend fun setTerminalAutoSwitchScheme(enabled: Boolean) {
+        dataStore.edit { prefs ->
+            prefs[terminalAutoSwitchSchemeKey] = enabled
+        }
+    }
+
+    val terminalLightColorScheme: Flow<TerminalColorScheme> = dataStore.data.map { prefs ->
+        prefs[terminalLightColorSchemeKey]?.let { name ->
+            TerminalColorScheme.entries.find { it.name == name }
+        } ?: TerminalColorScheme.LIGHT
+    }
+
+    suspend fun setTerminalLightColorScheme(scheme: TerminalColorScheme) {
+        dataStore.edit { prefs ->
+            prefs[terminalLightColorSchemeKey] = scheme.name
+        }
+    }
+
+    val terminalDarkColorScheme: Flow<TerminalColorScheme> = dataStore.data.map { prefs ->
+        prefs[terminalDarkColorSchemeKey]?.let { name ->
+            TerminalColorScheme.entries.find { it.name == name }
+        } ?: TerminalColorScheme.HAVEN
+    }
+
+    suspend fun setTerminalDarkColorScheme(scheme: TerminalColorScheme) {
+        dataStore.edit { prefs ->
+            prefs[terminalDarkColorSchemeKey] = scheme.name
         }
     }
 

@@ -615,9 +615,29 @@ class SftpViewModel @Inject constructor(
     private val _editorSaving = MutableStateFlow(false)
     val editorSaving: StateFlow<Boolean> = _editorSaving.asStateFlow()
 
+    /**
+     * Pushed down by [SftpScreen] every time `isSystemInDarkTheme()`
+     * recomposes — the ViewModel can't read Compose state itself, but
+     * needs the value so [terminalColorScheme] resolves correctly when
+     * auto-switch is enabled.
+     */
+    private val systemIsDark = MutableStateFlow(true)
+
+    fun setSystemIsDark(isDark: Boolean) {
+        systemIsDark.value = isDark
+    }
+
+    /** Effective terminal colour scheme, respecting auto-switch. */
     val terminalColorScheme: StateFlow<UserPreferencesRepository.TerminalColorScheme> =
-        preferencesRepository.terminalColorScheme
-            .stateIn(viewModelScope, SharingStarted.Eagerly, UserPreferencesRepository.TerminalColorScheme.HAVEN)
+        kotlinx.coroutines.flow.combine(
+            preferencesRepository.terminalColorScheme,
+            preferencesRepository.terminalAutoSwitchScheme,
+            preferencesRepository.terminalLightColorScheme,
+            preferencesRepository.terminalDarkColorScheme,
+            systemIsDark,
+        ) { manual, autoSwitch, light, dark, isDark ->
+            if (autoSwitch) (if (isDark) dark else light) else manual
+        }.stateIn(viewModelScope, SharingStarted.Eagerly, UserPreferencesRepository.TerminalColorScheme.HAVEN)
 
     private var editorEntry: SftpEntry? = null
 

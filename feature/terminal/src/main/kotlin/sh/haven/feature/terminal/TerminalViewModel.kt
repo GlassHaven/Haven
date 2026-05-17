@@ -245,11 +245,12 @@ data class TerminalTab(
     val resize: (Int, Int) -> Unit,
     val close: () -> Unit,
     /** Effective terminal colour scheme for this tab — the profile's
-     *  override (#144) or the user's global preference at the time the
-     *  tab was created. The screen reads this for the surrounding
-     *  surface so it matches the emulator's bg/fg. */
-    val colorScheme: UserPreferencesRepository.TerminalColorScheme =
-        UserPreferencesRepository.TerminalColorScheme.HAVEN,
+     *  override (#144) when set, or null to follow the live global
+     *  preference. The screen resolves null tabs to the global scheme
+     *  (which itself respects the system-driven auto-switch toggle) so
+     *  that flipping the system between light and dark mode repaints
+     *  every tab that doesn't have an explicit override. */
+    val colorScheme: UserPreferencesRepository.TerminalColorScheme? = null,
 )
 
 /** VNC connection info for the active terminal's host. */
@@ -472,13 +473,39 @@ class TerminalViewModel @Inject constructor(
         return recorder
     }
 
+    /**
+     * Pushed down by [TerminalScreen] every time `isSystemInDarkTheme()`
+     * recomposes — the ViewModel can't read Compose state itself, but
+     * needs the value so [effectiveGlobalScheme] resolves correctly when
+     * auto-switch is enabled.
+     */
+    private val systemIsDark = MutableStateFlow(true)
+
+    /** Called from the screen on every recomposition that observes the system theme. */
+    fun setSystemIsDark(isDark: Boolean) {
+        systemIsDark.value = isDark
+    }
+
+    /**
+     * Live global terminal colour scheme — respects the auto-switch toggle:
+     * when enabled, follows the system light/dark mode (via [systemIsDark])
+     * by picking the light or dark pref; otherwise returns the manual
+     * [UserPreferencesRepository.terminalColorScheme] pref.
+     */
     val terminalColorScheme: StateFlow<UserPreferencesRepository.TerminalColorScheme> =
-        preferencesRepository.terminalColorScheme
-            .stateIn(
-                viewModelScope,
-                SharingStarted.WhileSubscribed(5000),
-                UserPreferencesRepository.TerminalColorScheme.HAVEN,
-            )
+        kotlinx.coroutines.flow.combine(
+            preferencesRepository.terminalColorScheme,
+            preferencesRepository.terminalAutoSwitchScheme,
+            preferencesRepository.terminalLightColorScheme,
+            preferencesRepository.terminalDarkColorScheme,
+            systemIsDark,
+        ) { manual, autoSwitch, light, dark, isDark ->
+            if (autoSwitch) (if (isDark) dark else light) else manual
+        }.stateIn(
+            viewModelScope,
+            SharingStarted.WhileSubscribed(5000),
+            UserPreferencesRepository.TerminalColorScheme.HAVEN,
+        )
 
     /**
      * Scrollback ring size for newly created emulators (#151). Read at
@@ -494,20 +521,32 @@ class TerminalViewModel @Inject constructor(
             )
 
     /**
-     * Resolve the effective colour scheme for a tab built off [profile].
-     * Per-profile override (#144) wins; a missing profile, null override
-     * or unrecognised name all fall through to the global preference.
+     * Resolve the per-tab colour scheme for a tab built off [profile].
+     * Returns the profile's override (#144) when set, or null to mean
+     * "use the live global scheme" — the screen resolves null at
+     * render time so auto-switch and manual changes both propagate
+     * without us having to mutate existing tabs.
      */
     private fun effectiveColorScheme(
         profile: sh.haven.core.data.db.entities.ConnectionProfile?,
-    ): UserPreferencesRepository.TerminalColorScheme {
-        val override = profile?.terminalColorScheme?.let { name ->
+    ): UserPreferencesRepository.TerminalColorScheme? {
+        return profile?.terminalColorScheme?.let { name ->
             runCatching {
                 UserPreferencesRepository.TerminalColorScheme.valueOf(name)
             }.getOrNull()
         }
-        return override ?: terminalColorScheme.value
     }
+
+    /**
+     * Pick the scheme used to seed a brand-new emulator's default fg/bg.
+     * Override wins; otherwise the current effective global is used so
+     * the very first frame matches the surrounding chrome. The screen
+     * replaces this via [TerminalEmulator.setDefaultColors] on the next
+     * recomposition anyway, so any drift after construction is benign.
+     */
+    private fun initialEmulatorScheme(
+        override: UserPreferencesRepository.TerminalColorScheme?,
+    ): UserPreferencesRepository.TerminalColorScheme = override ?: terminalColorScheme.value
 
     private val _tabs = MutableStateFlow<List<TerminalTab>>(emptyList())
     val tabs: StateFlow<List<TerminalTab>> = _tabs.asStateFlow()
@@ -954,11 +993,12 @@ class TerminalViewModel @Inject constructor(
             val coalescer = InputCoalescer { data -> termSession.sendToSsh(data) }
             val sshProfile = runBlocking(Dispatchers.IO) { connectionRepository.getById(session.profileId) }
             val scheme = effectiveColorScheme(sshProfile)
+            val initialScheme = initialEmulatorScheme(scheme)
             emulator = TerminalEmulatorFactory.create(
                 initialRows = 24,
                 initialCols = 80,
-                defaultForeground = Color(scheme.foreground),
-                defaultBackground = Color(scheme.background),
+                defaultForeground = Color(initialScheme.foreground),
+                defaultBackground = Color(initialScheme.background),
                 enableAltScreen = sshProfile?.disableAltScreen != true && sshProfile?.sessionManager != "screen",
                 onKeyboardInput = { data -> coalescer.send(applyModifiers(data)) },
                 onResize = { dims ->
@@ -1046,11 +1086,12 @@ class TerminalViewModel @Inject constructor(
             val rnsCoalescer = InputCoalescer { data -> rnsSession.sendInput(data) }
             val rnsProfile = runBlocking(Dispatchers.IO) { connectionRepository.getById(session.profileId) }
             val rnsScheme = effectiveColorScheme(rnsProfile)
+            val rnsInitialScheme = initialEmulatorScheme(rnsScheme)
             emulator = TerminalEmulatorFactory.create(
                 initialRows = 24,
                 initialCols = 80,
-                defaultForeground = Color(rnsScheme.foreground),
-                defaultBackground = Color(rnsScheme.background),
+                defaultForeground = Color(rnsInitialScheme.foreground),
+                defaultBackground = Color(rnsInitialScheme.background),
                 enableAltScreen = rnsProfile?.disableAltScreen != true && rnsProfile?.sessionManager != "screen",
                 onKeyboardInput = { data -> rnsCoalescer.send(applyModifiers(data)) },
                 onResize = { dims ->
@@ -1149,12 +1190,13 @@ class TerminalViewModel @Inject constructor(
 
             val moshCoalescer = InputCoalescer { data -> moshSession.sendInput(data) }
             val moshScheme = effectiveColorScheme(moshProfile)
+            val moshInitialScheme = initialEmulatorScheme(moshScheme)
             emulator = TerminalEmulatorFactory.create(
                 initialRows = 24,
                 initialCols = 80,
-                defaultForeground = Color(moshScheme.foreground),
+                defaultForeground = Color(moshInitialScheme.foreground),
                 enableAltScreen = moshProfile?.disableAltScreen != true && moshProfile?.sessionManager != "screen",
-                defaultBackground = Color(moshScheme.background),
+                defaultBackground = Color(moshInitialScheme.background),
                 onKeyboardInput = { data -> moshCoalescer.send(applyModifiers(data)) },
                 onResize = { dims ->
                     Log.d(TAG, "MOSH onResize: ${dims.columns}x${dims.rows}")
@@ -1251,11 +1293,12 @@ class TerminalViewModel @Inject constructor(
 
             val etCoalescer = InputCoalescer { data -> etSession.sendInput(data) }
             val etScheme = effectiveColorScheme(etProfile)
+            val etInitialScheme = initialEmulatorScheme(etScheme)
             emulator = TerminalEmulatorFactory.create(
                 initialRows = 24,
                 initialCols = 80,
-                defaultForeground = Color(etScheme.foreground),
-                defaultBackground = Color(etScheme.background),
+                defaultForeground = Color(etInitialScheme.foreground),
+                defaultBackground = Color(etInitialScheme.background),
                 enableAltScreen = etProfile?.disableAltScreen != true && etProfile?.sessionManager != "screen",
                 onKeyboardInput = { data -> etCoalescer.send(applyModifiers(data)) },
                 onResize = { dims ->
@@ -1398,11 +1441,12 @@ class TerminalViewModel @Inject constructor(
             val localCoalescer = InputCoalescer { data -> localSession.sendInput(data) }
             val localProfile = runBlocking(Dispatchers.IO) { connectionRepository.getById(session.profileId) }
             val localScheme = effectiveColorScheme(localProfile)
+            val localInitialScheme = initialEmulatorScheme(localScheme)
             emulator = TerminalEmulatorFactory.create(
                 initialRows = 24,
                 initialCols = 80,
-                defaultForeground = Color(localScheme.foreground),
-                defaultBackground = Color(localScheme.background),
+                defaultForeground = Color(localInitialScheme.foreground),
+                defaultBackground = Color(localInitialScheme.background),
                 enableAltScreen = localProfile?.disableAltScreen != true && localProfile?.sessionManager != "screen",
                 onKeyboardInput = { data -> localCoalescer.send(applyModifiers(data)) },
                 onResize = { dims ->

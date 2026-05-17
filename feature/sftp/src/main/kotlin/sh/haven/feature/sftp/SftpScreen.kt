@@ -10,6 +10,7 @@ import androidx.compose.foundation.Image
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.combinedClickable
 import androidx.compose.foundation.background
+import androidx.compose.foundation.isSystemInDarkTheme
 import androidx.compose.foundation.text.BasicTextField
 import androidx.compose.foundation.text.selection.SelectionContainer
 import androidx.compose.ui.text.font.FontFamily
@@ -199,6 +200,9 @@ fun SftpScreen(
     val previewIsRemote by viewModel.previewIsRemote.collectAsState()
     val editorFile by viewModel.editorFile.collectAsState()
     val editorSaving by viewModel.editorSaving.collectAsState()
+    // Push system light/dark to the VM so the auto-switch pref resolves correctly.
+    val systemIsDark = isSystemInDarkTheme()
+    LaunchedEffect(systemIsDark) { viewModel.setSystemIsDark(systemIsDark) }
     val termColorScheme by viewModel.terminalColorScheme.collectAsState()
     val editorOpen = editorFile !is SftpViewModel.EditorFileState.Closed
     LaunchedEffect(editorOpen) { onEditorOpenChanged(editorOpen) }

@@ -826,6 +826,14 @@ class UserPreferencesRepository @Inject constructor(
         val label: String,
         val background: Long,
         val foreground: Long,
+        /**
+         * 16-entry ANSI palette in libvterm order:
+         *   0..7  = normal  black, red, green, yellow, blue, magenta, cyan, white
+         *   8..15 = bright  black, red, green, yellow, blue, magenta, cyan, white
+         * Passed to the emulator via `applyColorScheme` so SGR-coloured text
+         * (most prompts) tracks the scheme, not libvterm's stock palette.
+         */
+        val ansi: LongArray,
     ) {
         /**
          * Sentinel scheme — actual fg/bg come from the live
@@ -835,25 +843,152 @@ class UserPreferencesRepository @Inject constructor(
          * `TerminalViewModel`); the Compose layer overrides immediately
          * via `setDefaultColors`. Call sites that *can* reach the
          * theme should check [isDynamic] and use the live colours.
+         *
+         * The palette is a static neutral fallback (Catppuccin Mocha); a
+         * future improvement could derive it from the live Material 3
+         * tonal palettes.
          */
-        MATERIAL_YOU("Material You", 0xFF1A1A1A, 0xFFE0E0E0),
-        HAVEN("Haven", 0xFF1A1A2E, 0xFF00E676),
-        CLASSIC_GREEN("Classic Green", 0xFF000000, 0xFF00FF00),
-        LIGHT("Light", 0xFFFFFFFF, 0xFF1A1A1A),
-        SOLARIZED_DARK("Solarized Dark", 0xFF002B36, 0xFF839496),
-        DRACULA("Dracula", 0xFF282A36, 0xFFF8F8F2),
-        MONOKAI("Monokai", 0xFF272822, 0xFFF8F8F2),
-        NORD("Nord", 0xFF2E3440, 0xFFD8DEE9),
-        GRUVBOX("Gruvbox", 0xFF282828, 0xFFEBDBB2),
-        TOKYO_NIGHT("Tokyo Night", 0xFF1A1B26, 0xFFA9B1D6),
-        QBASIC("QBasic", 0xFF0000AA, 0xFFAAAAAA),
-        AMBER("Amber", 0xFF1A1000, 0xFFFFB000),
-        PINK("Pink", 0xFF2D001E, 0xFFFF9EC6),
-        LAVENDER("Lavender", 0xFF1E1629, 0xFFCDB4DB),
-        OCEAN("Ocean", 0xFF0A192F, 0xFF64FFDA);
+        MATERIAL_YOU(
+            "Material You", 0xFF1A1A1A, 0xFFE0E0E0,
+            longArrayOf(
+                0xFF45475A, 0xFFF38BA8, 0xFFA6E3A1, 0xFFF9E2AF,
+                0xFF89B4FA, 0xFFF5C2E7, 0xFF94E2D5, 0xFFBAC2DE,
+                0xFF585B70, 0xFFEBA0AC, 0xFFB1E3AB, 0xFFFCEAB5,
+                0xFF96BDFD, 0xFFF7CEEC, 0xFF9EE9DC, 0xFFA6ADC8,
+            ),
+        ),
+        HAVEN(
+            "Haven", 0xFF1A1A2E, 0xFF00E676,
+            longArrayOf(
+                0xFF1A1A2E, 0xFFFF5C8A, 0xFF00E676, 0xFFFFD54F,
+                0xFF4FC3F7, 0xFFCE93D8, 0xFF80DEEA, 0xFFB0BEC5,
+                0xFF424242, 0xFFFF8A80, 0xFF69F0AE, 0xFFFFE082,
+                0xFF82B1FF, 0xFFE1BEE7, 0xFFA7FFEB, 0xFFECEFF1,
+            ),
+        ),
+        CLASSIC_GREEN(
+            "Classic Green", 0xFF000000, 0xFF00FF00,
+            longArrayOf(
+                0xFF000000, 0xFF008800, 0xFF00BB00, 0xFF00CC00,
+                0xFF005500, 0xFF007733, 0xFF009966, 0xFF00BB00,
+                0xFF004400, 0xFF00CC00, 0xFF00FF00, 0xFF55FF55,
+                0xFF007722, 0xFF00CC66, 0xFF00FFAA, 0xFF66FF66,
+            ),
+        ),
+        LIGHT(
+            "Light", 0xFFFFFFFF, 0xFF1A1A1A,
+            longArrayOf(
+                0xFF073642, 0xFFDC322F, 0xFF859900, 0xFFB58900,
+                0xFF268BD2, 0xFFD33682, 0xFF2AA198, 0xFFEEE8D5,
+                0xFF002B36, 0xFFCB4B16, 0xFF586E75, 0xFF657B83,
+                0xFF839496, 0xFF6C71C4, 0xFF93A1A1, 0xFFFDF6E3,
+            ),
+        ),
+        SOLARIZED_DARK(
+            "Solarized Dark", 0xFF002B36, 0xFF839496,
+            longArrayOf(
+                0xFF073642, 0xFFDC322F, 0xFF859900, 0xFFB58900,
+                0xFF268BD2, 0xFFD33682, 0xFF2AA198, 0xFFEEE8D5,
+                0xFF002B36, 0xFFCB4B16, 0xFF586E75, 0xFF657B83,
+                0xFF839496, 0xFF6C71C4, 0xFF93A1A1, 0xFFFDF6E3,
+            ),
+        ),
+        DRACULA(
+            "Dracula", 0xFF282A36, 0xFFF8F8F2,
+            longArrayOf(
+                0xFF21222C, 0xFFFF5555, 0xFF50FA7B, 0xFFF1FA8C,
+                0xFFBD93F9, 0xFFFF79C6, 0xFF8BE9FD, 0xFFF8F8F2,
+                0xFF6272A4, 0xFFFF6E6E, 0xFF69FF94, 0xFFFFFFA5,
+                0xFFD6ACFF, 0xFFFF92DF, 0xFFA4FFFF, 0xFFFFFFFF,
+            ),
+        ),
+        MONOKAI(
+            "Monokai", 0xFF272822, 0xFFF8F8F2,
+            longArrayOf(
+                0xFF272822, 0xFFF92672, 0xFFA6E22E, 0xFFF4BF75,
+                0xFF66D9EF, 0xFFAE81FF, 0xFFA1EFE4, 0xFFF8F8F2,
+                0xFF75715E, 0xFFF92672, 0xFFA6E22E, 0xFFE6DB74,
+                0xFF66D9EF, 0xFFAE81FF, 0xFFA1EFE4, 0xFFF9F8F5,
+            ),
+        ),
+        NORD(
+            "Nord", 0xFF2E3440, 0xFFD8DEE9,
+            longArrayOf(
+                0xFF3B4252, 0xFFBF616A, 0xFFA3BE8C, 0xFFEBCB8B,
+                0xFF81A1C1, 0xFFB48EAD, 0xFF88C0D0, 0xFFE5E9F0,
+                0xFF4C566A, 0xFFBF616A, 0xFFA3BE8C, 0xFFEBCB8B,
+                0xFF81A1C1, 0xFFB48EAD, 0xFF8FBCBB, 0xFFECEFF4,
+            ),
+        ),
+        GRUVBOX(
+            "Gruvbox", 0xFF282828, 0xFFEBDBB2,
+            longArrayOf(
+                0xFF282828, 0xFFCC241D, 0xFF98971A, 0xFFD79921,
+                0xFF458588, 0xFFB16286, 0xFF689D6A, 0xFFA89984,
+                0xFF928374, 0xFFFB4934, 0xFFB8BB26, 0xFFFABD2F,
+                0xFF83A598, 0xFFD3869B, 0xFF8EC07C, 0xFFEBDBB2,
+            ),
+        ),
+        TOKYO_NIGHT(
+            "Tokyo Night", 0xFF1A1B26, 0xFFA9B1D6,
+            longArrayOf(
+                0xFF15161E, 0xFFF7768E, 0xFF9ECE6A, 0xFFE0AF68,
+                0xFF7AA2F7, 0xFFBB9AF7, 0xFF7DCFFF, 0xFFA9B1D6,
+                0xFF414868, 0xFFF7768E, 0xFF9ECE6A, 0xFFE0AF68,
+                0xFF7AA2F7, 0xFFBB9AF7, 0xFF7DCFFF, 0xFFC0CAF5,
+            ),
+        ),
+        QBASIC(
+            "QBasic", 0xFF0000AA, 0xFFAAAAAA,
+            longArrayOf(
+                0xFF000000, 0xFFAA0000, 0xFF00AA00, 0xFFAA5500,
+                0xFF0000AA, 0xFFAA00AA, 0xFF00AAAA, 0xFFAAAAAA,
+                0xFF555555, 0xFFFF5555, 0xFF55FF55, 0xFFFFFF55,
+                0xFF5555FF, 0xFFFF55FF, 0xFF55FFFF, 0xFFFFFFFF,
+            ),
+        ),
+        AMBER(
+            "Amber", 0xFF1A1000, 0xFFFFB000,
+            longArrayOf(
+                0xFF1A1000, 0xFF884400, 0xFFAA6600, 0xFFCC7700,
+                0xFF553300, 0xFF884422, 0xFFAA5511, 0xFFCC8833,
+                0xFF443300, 0xFFCC6600, 0xFFDD8822, 0xFFFFB000,
+                0xFF775500, 0xFFCC7733, 0xFFDD9944, 0xFFFFCC66,
+            ),
+        ),
+        PINK(
+            "Pink", 0xFF2D001E, 0xFFFF9EC6,
+            longArrayOf(
+                0xFF2D001E, 0xFFFF4081, 0xFFFFAB91, 0xFFFFD180,
+                0xFFCE93D8, 0xFFFF80AB, 0xFFFFB2DD, 0xFFFFCCDD,
+                0xFF550022, 0xFFFF80AB, 0xFFFFCCBC, 0xFFFFE0B2,
+                0xFFE1BEE7, 0xFFFFB6C1, 0xFFFFD8E8, 0xFFFFE6F0,
+            ),
+        ),
+        LAVENDER(
+            "Lavender", 0xFF1E1629, 0xFFCDB4DB,
+            longArrayOf(
+                0xFF1E1629, 0xFFE57373, 0xFFB39DDB, 0xFFFFCC80,
+                0xFF9575CD, 0xFFCE93D8, 0xFFB0BEC5, 0xFFCDB4DB,
+                0xFF4A3F61, 0xFFFF8A80, 0xFFD1C4E9, 0xFFFFE082,
+                0xFFB39DDB, 0xFFE1BEE7, 0xFFCFD8DC, 0xFFEDE7F6,
+            ),
+        ),
+        OCEAN(
+            "Ocean", 0xFF0A192F, 0xFF64FFDA,
+            longArrayOf(
+                0xFF0A192F, 0xFFFF6E6E, 0xFF64FFDA, 0xFFFFD180,
+                0xFF82B1FF, 0xFF80D8FF, 0xFF18FFFF, 0xFFCFD8DC,
+                0xFF1F3A5F, 0xFFFF8A80, 0xFFA7FFEB, 0xFFFFE082,
+                0xFF8C9EFF, 0xFFB388FF, 0xFF84FFFF, 0xFFECEFF1,
+            ),
+        );
 
         /** True when fg/bg should be sourced from the live system theme rather than the enum's static longs. */
         val isDynamic: Boolean get() = this == MATERIAL_YOU
+
+        /** Snapshot of [ansi] as a 16-entry ARGB IntArray, ready for `applyColorScheme`. */
+        fun ansiPaletteArgb(): IntArray = IntArray(16) { ansi[it].toInt() }
 
         companion object {
             fun fromString(value: String?): TerminalColorScheme =

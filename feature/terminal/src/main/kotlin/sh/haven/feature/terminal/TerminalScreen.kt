@@ -925,10 +925,16 @@ fun TerminalScreen(
                         // MATERIAL_YOU: pulled from MaterialTheme above and
                         // re-applied whenever the system theme shifts (light /
                         // dark / wallpaper change), so the terminal repaints.
+                        // Pushing the 16-colour ANSI palette alongside the
+                        // defaults is what makes SGR-coloured prompts (the
+                        // dominant text on most screens) actually track the
+                        // scheme — defaults alone only cover unstyled cells.
                         val terminalFgArgb = terminalFg.toArgb()
                         val terminalBgArgb = terminalBg.toArgb()
-                        LaunchedEffect(terminalFgArgb, terminalBgArgb, activeTab.emulator) {
-                            activeTab.emulator?.setDefaultColors(
+                        val ansiPalette = remember(activeTabScheme) { activeTabScheme.ansiPaletteArgb() }
+                        LaunchedEffect(terminalFgArgb, terminalBgArgb, ansiPalette, activeTab.emulator) {
+                            activeTab.emulator?.applyColorScheme(
+                                ansiPalette,
                                 terminalFgArgb,
                                 terminalBgArgb,
                             )
@@ -936,7 +942,8 @@ fun TerminalScreen(
 
                         // Force terminal redraw on resume from background
                         androidx.lifecycle.compose.LifecycleResumeEffect(activeTab.emulator) {
-                            activeTab.emulator?.setDefaultColors(
+                            activeTab.emulator?.applyColorScheme(
+                                ansiPalette,
                                 terminalFgArgb,
                                 terminalBgArgb,
                             )

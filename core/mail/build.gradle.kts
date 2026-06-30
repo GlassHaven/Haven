@@ -40,8 +40,8 @@ dependencies {
     // with classpath-exception — the exception is what permits linking from an
     // AGPL app. ImapMailClient registers providers explicitly via Properties
     // (mail.imap.class/…) because Android strips META-INF/javamail.* files.
-    implementation("com.sun.mail:android-mail:1.6.7")
-    implementation("com.sun.mail:android-activation:1.6.7")
+    implementation("com.sun.mail:android-mail:1.6.8")
+    implementation("com.sun.mail:android-activation:1.6.8")
 
     testImplementation(libs.junit)
 }

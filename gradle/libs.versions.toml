@@ -125,7 +125,7 @@ mockk = { group = "io.mockk", name = "mockk", version = "1.13.16" }
 coroutines-test = { group = "org.jetbrains.kotlinx", name = "kotlinx-coroutines-test", version.ref = "coroutines" }
 turbine = { group = "app.cash.turbine", name = "turbine", version = "1.2.1" }
 robolectric = { group = "org.robolectric", name = "robolectric", version = "4.14.1" }
-androidx-test-core = { group = "androidx.test", name = "core-ktx", version = "1.6.1" }
+androidx-test-core = { group = "androidx.test", name = "core-ktx", version = "1.7.0" }
 compose-ui-test = { group = "androidx.compose.ui", name = "ui-test-junit4" }
 compose-ui-test-manifest = { group = "androidx.compose.ui", name = "ui-test-manifest" }
 # Embedded SSH server for SshClient unit tests (Apache MINA sshd, host JVM only)

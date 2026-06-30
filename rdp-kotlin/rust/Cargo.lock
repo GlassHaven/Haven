@@ -1358,14 +1358,14 @@ dependencies = [
 
 [[package]]
 name = "ironrdp-cliprdr"
-version = "0.5.0"
+version = "0.6.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "7c9b4286b677b65b57bb1d5c4453ef46c1cf3858f30515b2016465978b4b1e2b"
+checksum = "d6aa0a35408ce5100b0aabb1bb596379d4f730f23a032122c19e93ff3bbc4f5f"
 dependencies = [
  "bitflags 2.11.0",
- "ironrdp-core 0.1.5",
- "ironrdp-pdu 0.7.0",
- "ironrdp-svc 0.6.0",
+ "ironrdp-core 0.2.0",
+ "ironrdp-pdu 0.8.0",
+ "ironrdp-svc 0.7.0",
  "tracing",
 ]
 

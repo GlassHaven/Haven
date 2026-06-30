@@ -12,7 +12,7 @@ ironrdp-blocking = "0.8"
 ironrdp-connector = "0.8"
 ironrdp-session = "0.8"
 ironrdp-input = "0.5"
-ironrdp-cliprdr = "0.5"
+ironrdp-cliprdr = "0.6"
 ironrdp-graphics = "0.7"
 ironrdp-tls = { version = "0.2", features = ["rustls"] }
 ironrdp-pdu = "0.7"

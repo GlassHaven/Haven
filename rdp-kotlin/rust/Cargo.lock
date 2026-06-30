@@ -1461,12 +1461,12 @@ dependencies = [
 
 [[package]]
 name = "ironrdp-input"
-version = "0.5.0"
+version = "0.6.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "78ee6904346f1bf61689b86ad0ba27bbf6254015d3b7b4c2f328a1c8c7b77775"
+checksum = "22fbf4b6d8e2a30623093b41ead29ac99d96f80d0bf5bf9b3797a5a04117c163"
 dependencies = [
  "bitvec",
- "ironrdp-pdu 0.7.0",
+ "ironrdp-pdu 0.8.0",
  "smallvec",
 ]
 

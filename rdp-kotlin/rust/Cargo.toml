@@ -23,7 +23,7 @@ x509-cert = { version = "0.2", default-features = false }
 smallvec = "1"
 log = "0.4"
 android_logger = "0.15"
-uniffi = { version = "0.28", features = ["cli"] }
+uniffi = { version = "0.32", features = ["cli"] }
 rustls = { version = "0.23", default-features = false, features = ["ring", "logging", "std", "tls12"] }
 
 [[bin]]
@@ -60,7 +60,7 @@ version = "0.11"
 optional = true
 
 [build-dependencies]
-uniffi = { version = "0.28", features = ["build"] }
+uniffi = { version = "0.32", features = ["build"] }
 
 # Local fork of ironrdp-connector with one Haven-specific patch:
 # advertise SUPPORT_DYN_VC_GFX_PROTOCOL (0x0100) in the Client Core Data so

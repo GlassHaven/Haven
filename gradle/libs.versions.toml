@@ -121,7 +121,7 @@ coroutines-android = { group = "org.jetbrains.kotlinx", name = "kotlinx-coroutin
 
 # Testing
 junit = { group = "junit", name = "junit", version = "4.13.2" }
-mockk = { group = "io.mockk", name = "mockk", version = "1.13.16" }
+mockk = { group = "io.mockk", name = "mockk", version = "1.14.11" }
 coroutines-test = { group = "org.jetbrains.kotlinx", name = "kotlinx-coroutines-test", version.ref = "coroutines" }
 turbine = { group = "app.cash.turbine", name = "turbine", version = "1.2.1" }
 robolectric = { group = "org.robolectric", name = "robolectric", version = "4.16.1" }

@@ -50,7 +50,7 @@ compose-material-icons = { group = "androidx.compose.material", name = "material
 
 # AndroidX
 core-ktx = { group = "androidx.core", name = "core-ktx", version.ref = "core-ktx" }
-appcompat = { group = "androidx.appcompat", name = "appcompat", version = "1.7.0" }
+appcompat = { group = "androidx.appcompat", name = "appcompat", version = "1.7.1" }
 activity-compose = { group = "androidx.activity", name = "activity-compose", version.ref = "activity-compose" }
 shizuku-api = { group = "dev.rikka.shizuku", name = "api", version.ref = "shizuku-api" }
 shizuku-provider = { group = "dev.rikka.shizuku", name = "provider", version.ref = "shizuku-api" }

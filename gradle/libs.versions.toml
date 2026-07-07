@@ -23,7 +23,7 @@ ksp = "2.3.6"
 androidx-browser = "1.8.0"
 androidx-work = "2.9.0"
 androidx-hilt-work = "1.2.0"
-okhttp = "4.12.0"
+okhttp = "5.4.0"
 # QR / barcode + on-device OCR for the terminal's Scan/Recognize attach options.
 # ZXing core is pure Java (Apache 2.0). Tesseract4Android is the adaptech-cz
 # maintained fork that wraps Tesseract 5.x via JNI (Apache 2.0).

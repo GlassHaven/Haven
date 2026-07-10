@@ -177,6 +177,14 @@ class MoshSessionManager @Inject constructor(
                 Log.d(TAG, "Mosh session $sessionId disconnected — " +
                     "clean=$cleanExit, server=${session.serverIp}:${session.moshPort}")
                 updateStatus(sessionId, SessionState.Status.DISCONNECTED)
+                // Null out old MoshSession reference so reconnectTerminalSession
+                // doesn't leak the old transport. The transport already called
+                // close() on itself before invoking this callback.
+                session.moshSession?.close()
+                _sessions.update { map ->
+                    val existing = map[sessionId] ?: return@update map
+                    map + (sessionId to existing.copy(moshSession = null))
+                }
             },
             verboseBuffer = session.verboseBuffer,
             socketProvider = session.socketProvider

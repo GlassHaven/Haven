@@ -3704,8 +3704,25 @@ class ConnectionsViewModel @Inject constructor(
         verboseLogger: SshVerboseLogger? = null,
     ) {
         val moshConnect = withContext(Dispatchers.IO) {
-            val customMoshCmd = repository.getById(profileId)?.moshServerCommand?.takeIf { it.isNotBlank() }
+            val profile = repository.getById(profileId)
+            val customMoshCmd = profile?.moshServerCommand?.takeIf { it.isNotBlank() }
             val moshCmd = customMoshCmd ?: "mosh-server new -s -c 256 -l LANG=en_US.UTF-8"
+
+            // If the user chose "new session on reconnect", kill orphaned
+            // mosh-server processes before starting a fresh one. This
+            // prevents zombie accumulation when roaming across networks
+            // and not reattaching to the old session.
+            if (profile?.moshReconnectToExisting == false) {
+                try {
+                    val killResult = client.execCommand(
+                        "pkill -U \$(id -u) mosh-server 2>/dev/null; echo done"
+                    )
+                    Log.d(TAG, "Killed old mosh-server(s): ${killResult.stdout.trim()}")
+                } catch (e: Exception) {
+                    Log.w(TAG, "Failed to kill old mosh-server (non-fatal): ${e.message}")
+                }
+            }
+
             Log.d(TAG, "Running mosh-server bootstrap: $moshCmd")
             val result = client.execCommand(moshCmd)
 
@@ -3775,6 +3792,12 @@ class ConnectionsViewModel @Inject constructor(
             }
         }
 
+        // Resolve per-profile session-dead timeout
+        val profile = repository.getById(profileId)
+        val sessionDeadMs: Long? = profile?.moshSessionTimeoutSec?.let { sec ->
+            if (sec > 0) sec * 1000L else null
+        }
+
         withContext(Dispatchers.IO) {
             moshSessionManager.connectSession(
                 sessionId = sessionId,
@@ -3786,6 +3809,7 @@ class ConnectionsViewModel @Inject constructor(
                 sshClient = client,
                 verboseBuffer = transportLogBuffer,
                 socketProvider = socketProvider,
+                sessionDeadMs = sessionDeadMs,
             )
         }
 

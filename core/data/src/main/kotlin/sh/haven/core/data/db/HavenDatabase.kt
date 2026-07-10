@@ -54,7 +54,7 @@ import sh.haven.core.data.db.entities.WorkspaceProfile
         AgeIdentityEntity::class,
         SshIdentity::class,
     ],
-    version = 76,
+    version = 77,
     exportSchema = true,
 )
 abstract class HavenDatabase : RoomDatabase() {
@@ -1237,6 +1237,14 @@ abstract class HavenDatabase : RoomDatabase() {
         val MIGRATION_75_76 = object : Migration(75, 76) {
             override fun migrate(db: SupportSQLiteDatabase) {
                 addColumnIfMissing(db, "workspace_item", "sessionName", "TEXT")
+            }
+        }
+
+        val MIGRATION_76_77 = object : Migration(76, 77) {
+            override fun migrate(db: SupportSQLiteDatabase) {
+                addColumnIfMissing(db, "connection_profiles", "moshSessionTimeoutSec", "INTEGER NOT NULL DEFAULT 120")
+                addColumnIfMissing(db, "connection_profiles", "moshReconnectToExisting", "INTEGER NOT NULL DEFAULT 1")
+                addColumnIfMissing(db, "connection_profiles", "moshShowTimeoutSlider", "INTEGER NOT NULL DEFAULT 0")
             }
         }
 

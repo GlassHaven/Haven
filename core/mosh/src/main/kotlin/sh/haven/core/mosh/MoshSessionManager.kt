@@ -50,6 +50,12 @@ class MoshSessionManager @Inject constructor(
          * per #164. null = direct UDP (pre-#164 behaviour).
          */
         val socketProvider: UdpSocketProvider? = null,
+        /**
+         * Per-profile session-dead timeout in milliseconds. Null = use
+         * the SSP transport hardcoded default (120s). Set from
+         * ConnectionProfile.moshSessionTimeoutSec × 1000.
+         */
+        val sessionDeadMs: Long? = null,
     ) {
         enum class Status { CONNECTING, CONNECTED, DISCONNECTED, ERROR }
     }
@@ -98,6 +104,7 @@ class MoshSessionManager @Inject constructor(
         sshClient: Closeable? = null,
         verboseBuffer: ConcurrentLinkedQueue<String>? = null,
         socketProvider: UdpSocketProvider? = null,
+        sessionDeadMs: Long? = null,
     ) {
         _sessions.value[sessionId]
             ?: throw IllegalStateException("Session $sessionId not found")
@@ -119,6 +126,7 @@ class MoshSessionManager @Inject constructor(
                 sshClient = sshClient,
                 verboseBuffer = verboseBuffer,
                 socketProvider = socketProvider,
+                sessionDeadMs = sessionDeadMs,
             ))
         }
     }
@@ -173,6 +181,7 @@ class MoshSessionManager @Inject constructor(
             verboseBuffer = session.verboseBuffer,
             socketProvider = session.socketProvider
                 ?: UdpSocketProvider { sh.haven.mosh.network.AndroidUdpAdapter() },
+            sessionDeadMs = session.sessionDeadMs,
         )
 
         _sessions.update { map ->
@@ -247,6 +256,7 @@ class MoshSessionManager @Inject constructor(
             },
             socketProvider = session.socketProvider
                 ?: UdpSocketProvider { sh.haven.mosh.network.AndroidUdpAdapter() },
+            sessionDeadMs = session.sessionDeadMs,
         )
 
         _sessions.update { map ->

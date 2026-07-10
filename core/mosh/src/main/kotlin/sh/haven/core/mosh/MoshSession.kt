@@ -46,6 +46,12 @@ class MoshSession(
      */
     private val socketProvider: UdpSocketProvider =
         UdpSocketProvider { AndroidUdpAdapter() },
+    /**
+     * Per-profile session-dead timeout in milliseconds. Null = use the
+     * SSP transport hardcoded default (120s). Set from
+     * ConnectionProfile.moshSessionTimeoutSec × 1000.
+     */
+    private val sessionDeadMs: Long? = null,
 ) : Closeable {
 
     @Volatile
@@ -113,6 +119,7 @@ class MoshSession(
             initialCols = initialCols,
             initialRows = initialRows,
             socketProvider = socketProvider,
+            sessionDeadMs = sessionDeadMs,
         )
         transport = t
         t.start(scope)

@@ -341,6 +341,30 @@ data class ConnectionProfile(
      * `ConnectionPreflight`.
      */
     val usbDriveSerial: String? = null,
+    /**
+     * Mosh session timeout in seconds before the client considers the
+     * session dead and disconnects. Maps to MoshTransport.SESSION_DEAD_MS.
+     * Default 120 (2 minutes) — safe for Wi-Fi→LTE handover.
+     * Set to 0 to keep the hardcoded library default.
+     * Range: 0, or 30–3600 (30s to 1 hour).
+     */
+    val moshSessionTimeoutSec: Int = 120,
+    /**
+     * When true and a mosh session disconnects (UDP timeout), Haven
+     * attempts to reconnect to the SAME mosh-server process using the
+     * saved key (mosh attach). When false, Haven kills the old
+     * mosh-server and starts a fresh session.
+     * Default true — preserves the session across network changes.
+     */
+    val moshReconnectToExisting: Boolean = true,
+    /**
+     * Whether to show the per-profile mosh timeout slider in the
+     * connection settings UI. When true, the user can override
+     * moshSessionTimeoutSec from the edit-profile screen.
+     * Default false — the timeout is set once, not a per-toggle UI.
+     * (UI-only flag — does not affect transport behaviour.)
+     */
+    val moshShowTimeoutSlider: Boolean = false,
 ) {
     enum class AuthType {
         PASSWORD,

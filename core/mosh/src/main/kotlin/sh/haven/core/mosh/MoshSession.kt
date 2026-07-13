@@ -76,6 +76,18 @@ class MoshSession(
     val stallSeconds: StateFlow<Int?> = _stallSeconds.asStateFlow()
 
     /**
+     * True once the transport has delivered at least one byte from the
+     * server this session — the liveness signal for a saved-key re-attach
+     * (#371). A fresh transport has no framebuffer state, so a reachable
+     * server always responds with a full screen repaint within the probe
+     * window; a dead or rebooted one never flips this. The synthetic
+     * [DECCKM_ON] push at [start] bypasses this flag deliberately — only
+     * genuine server output counts.
+     */
+    private val _serverContacted = MutableStateFlow(false)
+    val serverContacted: StateFlow<Boolean> = _serverContacted.asStateFlow()
+
+    /**
      * Start the mosh transport: opens UDP socket, begins send/receive loops.
      *
      * Before wiring up the transport we also push one synthetic byte
@@ -105,6 +117,7 @@ class MoshSession(
             key = moshKey,
             onOutput = { data, offset, len ->
                 if (!closed) {
+                    _serverContacted.value = true
                     onDataReceived(data, offset, len)
                 }
             },

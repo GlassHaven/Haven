@@ -29,6 +29,7 @@ class ConnectionRepository @Inject constructor(
                     profile.rdpPassword, profile.smbPassword,
                     profile.proxyPassword, profile.reticulumPassphrase,
                     profile.emailPassword, profile.emailMailboxPassword,
+                    profile.savedMoshKey,
                 ).any { !CredentialEncryption.isEncrypted(it) }
                 if (hasPlaintext) {
                     connectionDao.upsert(encryptPasswords(decryptPasswords(profile)))
@@ -93,6 +94,9 @@ class ConnectionRepository @Inject constructor(
         reticulumPassphrase = profile.reticulumPassphrase?.let { CredentialEncryption.encrypt(context, it) },
         emailPassword = profile.emailPassword?.let { CredentialEncryption.encrypt(context, it) },
         emailMailboxPassword = profile.emailMailboxPassword?.let { CredentialEncryption.encrypt(context, it) },
+        // The saved mosh session key is a live credential — whoever holds it
+        // owns the terminal session for as long as the server process lives.
+        savedMoshKey = profile.savedMoshKey?.let { CredentialEncryption.encrypt(context, it) },
     )
 
     private fun decryptPasswords(profile: ConnectionProfile): ConnectionProfile = profile.copy(
@@ -106,5 +110,6 @@ class ConnectionRepository @Inject constructor(
         reticulumPassphrase = profile.reticulumPassphrase?.let { CredentialEncryption.decrypt(context, it) },
         emailPassword = profile.emailPassword?.let { CredentialEncryption.decrypt(context, it) },
         emailMailboxPassword = profile.emailMailboxPassword?.let { CredentialEncryption.decrypt(context, it) },
+        savedMoshKey = profile.savedMoshKey?.let { CredentialEncryption.decrypt(context, it) },
     )
 }

@@ -315,6 +315,8 @@
     <string name="connections_field_et_port">ET-Port</string>
     <string name="connections_field_mosh_server_command">mosh-server-Befehl</string>
     <string name="connections_helper_mosh_server">Leer lassen für Standard. Verwenden Sie authbind für Ports unter 1024.</string>
+    <string name="connections_field_mosh_reattach">Vorherige Sitzung wieder anhängen</string>
+    <string name="connections_helper_mosh_reattach">Nach einem App-Neustart wieder mit dem laufenden mosh-server verbinden, statt eine neue Sitzung zu starten. Antwortet die alte Sitzung nicht mehr, wird automatisch eine neue gestartet.</string>
     <string name="connections_username_placeholder_ask">Leer lassen, um beim Verbinden zu fragen</string>
     <string name="connections_file_transport_auto_desc">SFTP versuchen, auf SCP zurückfallen, wenn das sftp-server-Subsystem nicht verfügbar ist.</string>
     <string name="connections_file_transport_sftp_label">Nur SFTP</string>

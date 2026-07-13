@@ -341,6 +341,32 @@ data class ConnectionProfile(
      * `ConnectionPreflight`.
      */
     val usbDriveSerial: String? = null,
+    /**
+     * When true (default), a Mosh connect first tries to re-attach to the
+     * mosh-server from the last bootstrap via the saved
+     * [savedMoshKey]/[savedMoshPort]/[savedMoshServerIp] tuple — no SSH
+     * round-trip, and the session survives an app restart or device
+     * reboot (#371). When false, every connect runs the full SSH
+     * bootstrap and starts a fresh mosh-server.
+     */
+    @ColumnInfo(defaultValue = "1")
+    val moshReconnectToExisting: Boolean = true,
+    /**
+     * Mosh session key from the last successful bootstrap
+     * (`MOSH CONNECT` line). Encrypted at rest by ConnectionRepository
+     * like every other stored credential — it controls the terminal
+     * session for as long as the server process lives. One tuple per
+     * profile: concurrent tabs race on the save and the last bootstrap
+     * wins, so an app restart re-attaches only the most recent session.
+     * Wiped when the server exits cleanly or a re-attach liveness probe
+     * fails; a mosh-server has NO idle timeout, so without the wipe a
+     * stale tuple would linger forever.
+     */
+    val savedMoshKey: String? = null,
+    /** UDP port of the saved mosh-server session. */
+    val savedMoshPort: Int? = null,
+    /** Server IP the saved mosh-server session was reached at. */
+    val savedMoshServerIp: String? = null,
 ) {
     enum class AuthType {
         PASSWORD,

@@ -177,6 +177,8 @@
     <string name="connections_field_et_port">ET 端口</string>
     <string name="connections_field_mosh_server_command">mosh-server 命令</string>
     <string name="connections_helper_mosh_server">留空使用默认值。低于 1024 的端口请使用 authbind。</string>
+    <string name="connections_field_mosh_reattach">重新连接上一个会话</string>
+    <string name="connections_helper_mosh_reattach">应用重启后重新连接到正在运行的 mosh-server，而不是开始新会话。旧会话无响应时会自动开始新会话。</string>
     <string name="connections_username_placeholder_ask">留空以在连接时询问</string>
     <string name="connections_file_transport_auto_desc">尝试 SFTP，若服务器禁用了 sftp-server 子系统则回退到 SCP。</string>
     <string name="connections_file_transport_sftp_label">仅 SFTP</string>

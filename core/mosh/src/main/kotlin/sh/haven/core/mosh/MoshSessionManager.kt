@@ -53,6 +53,15 @@ class MoshSessionManager @Inject constructor(
          * per #164. null = direct UDP (pre-#164 behaviour).
          */
         val socketProvider: UdpSocketProvider? = null,
+        /**
+         * How the session reached DISCONNECTED: true when the server
+         * announced shutdown (shell exited — the mosh-server is gone, so
+         * any saved re-attach tuple for the profile is now useless and
+         * gets wiped, #371); false for a fatal local transport error
+         * (the server may still be alive, so the tuple is kept for a
+         * later re-attach). Meaningless while the session is live.
+         */
+        val cleanExit: Boolean = false,
     ) {
         enum class Status { CONNECTING, CONNECTED, DISCONNECTED, ERROR }
     }
@@ -169,7 +178,13 @@ class MoshSessionManager @Inject constructor(
                 // the tab.
                 Log.d(TAG, "Mosh session $sessionId disconnected — " +
                     "clean=$cleanExit, server=${session.serverIp}:${session.moshPort}")
-                updateStatus(sessionId, SessionState.Status.DISCONNECTED)
+                _sessions.update { map ->
+                    val existing = map[sessionId] ?: return@update map
+                    map + (sessionId to existing.copy(
+                        status = SessionState.Status.DISCONNECTED,
+                        cleanExit = cleanExit,
+                    ))
+                }
             },
             verboseBuffer = session.verboseBuffer,
             socketProvider = session.socketProvider

@@ -54,7 +54,7 @@ import sh.haven.core.data.db.entities.WorkspaceProfile
         AgeIdentityEntity::class,
         SshIdentity::class,
     ],
-    version = 76,
+    version = 77,
     exportSchema = true,
 )
 abstract class HavenDatabase : RoomDatabase() {
@@ -1237,6 +1237,19 @@ abstract class HavenDatabase : RoomDatabase() {
         val MIGRATION_75_76 = object : Migration(75, 76) {
             override fun migrate(db: SupportSQLiteDatabase) {
                 addColumnIfMissing(db, "workspace_item", "sessionName", "TEXT")
+            }
+        }
+
+        // Mosh session persistence (#371): the (ip, port, key) tuple from the
+        // last successful mosh-server bootstrap, so a connect after an app
+        // restart can re-attach to the still-running server without an SSH
+        // round-trip, plus the per-profile opt-out toggle.
+        val MIGRATION_76_77 = object : Migration(76, 77) {
+            override fun migrate(db: SupportSQLiteDatabase) {
+                addColumnIfMissing(db, "connection_profiles", "moshReconnectToExisting", "INTEGER NOT NULL DEFAULT 1")
+                addColumnIfMissing(db, "connection_profiles", "savedMoshKey", "TEXT")
+                addColumnIfMissing(db, "connection_profiles", "savedMoshPort", "INTEGER")
+                addColumnIfMissing(db, "connection_profiles", "savedMoshServerIp", "TEXT")
             }
         }
 

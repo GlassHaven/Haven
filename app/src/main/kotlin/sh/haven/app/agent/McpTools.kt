@@ -1481,6 +1481,7 @@ internal class McpTools(
                 string("keyId", "SSH only: id of a saved key (list_ssh_keys). Empty string clears.")
                 boolean("ignoreSavedKeys", "SSH-family only: force password-only auth, never offer saved keystore keys (#121).")
                 boolean("useMosh", "SSH only: use Mosh on top of the SSH bootstrap.")
+                boolean("moshReconnectToExisting", "Mosh only: re-attach to the still-running mosh-server from the last bootstrap on connect (survives app restarts). Default true; false forces a fresh session every connect (#371).")
                 boolean("forwardAgent", "SSH only: enable SSH agent forwarding. Keys with a stored passphrase (or none) are exposed to the remote's ssh-agent socket (#377).")
                 boolean("vncSshForward", "VNC only: tunnel through a saved SSH profile (set vncSshProfileId).")
                 string("vncSshProfileId", "VNC only: SSH profile id to tunnel through. Empty string clears.")
@@ -5543,6 +5544,7 @@ internal class McpTools(
             keyId = newKeyId,
             ignoreSavedKeys = bool("ignoreSavedKeys", existing.ignoreSavedKeys),
             useMosh = bool("useMosh", existing.useMosh),
+            moshReconnectToExisting = bool("moshReconnectToExisting", existing.moshReconnectToExisting),
             forwardAgent = bool("forwardAgent", existing.forwardAgent),
             vncSshForward = bool("vncSshForward", existing.vncSshForward),
             vncSshProfileId = str("vncSshProfileId", existing.vncSshProfileId),

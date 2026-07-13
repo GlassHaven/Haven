@@ -178,6 +178,8 @@
     <string name="connections_field_et_port">ET 포트</string>
     <string name="connections_field_mosh_server_command">mosh-server 명령</string>
     <string name="connections_helper_mosh_server">기본값을 사용하려면 비워 두세요. 1024 미만 포트에는 authbind를 사용하세요.</string>
+    <string name="connections_field_mosh_reattach">이전 세션에 다시 연결</string>
+    <string name="connections_helper_mosh_reattach">앱을 다시 시작한 후 새 세션을 시작하는 대신 실행 중인 mosh-server에 다시 연결합니다. 이전 세션이 응답하지 않으면 새 세션을 시작합니다.</string>
     <string name="connections_username_placeholder_ask">연결할 때 묻도록 비워 두세요</string>
     <string name="connections_file_transport_auto_desc">SFTP를 시도하고 sftp-server 서브시스템을 사용할 수 없으면 SCP로 대체합니다.</string>
     <string name="connections_file_transport_sftp_label">SFTP만</string>

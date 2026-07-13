@@ -315,6 +315,8 @@
     <string name="connections_field_et_port">ETポート</string>
     <string name="connections_field_mosh_server_command">mosh-serverコマンド</string>
     <string name="connections_helper_mosh_server">既定値の場合は空欄のまま。1024未満のポートにはauthbindを使用してください。</string>
+    <string name="connections_field_mosh_reattach">前回のセッションに再接続</string>
+    <string name="connections_helper_mosh_reattach">アプリ再起動後、新しいセッションを開始する代わりに実行中の mosh-server に再接続します。古いセッションが応答しない場合は新しいセッションを開始します。</string>
     <string name="connections_username_placeholder_ask">接続時に尋ねるには空欄のままにします</string>
     <string name="connections_file_transport_auto_desc">SFTPを試し、sftp-serverサブシステムが利用できない場合はSCPにフォールバックします。</string>
     <string name="connections_file_transport_sftp_label">SFTPのみ</string>

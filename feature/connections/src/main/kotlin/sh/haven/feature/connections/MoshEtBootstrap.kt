@@ -57,6 +57,27 @@ internal fun moshEtBootstrapConfig(
     reconnectPolicy = reconnectPolicy,
 )
 
+/** A complete saved mosh re-attach tuple from the last bootstrap (#371). */
+internal data class SavedMoshSession(val serverIp: String, val port: Int, val key: String)
+
+/**
+ * The saved mosh re-attach tuple for [profile], or null when the re-attach
+ * fast path must not run: the user disabled it, the tuple is incomplete,
+ * or [hasLiveSession] — a second transport on the same key would fight the
+ * live tab for the server (mosh treats the newest source address as the
+ * roamed client, so both would stall).
+ */
+internal fun savedMoshSession(
+    profile: ConnectionProfile,
+    hasLiveSession: Boolean,
+): SavedMoshSession? {
+    if (!profile.moshReconnectToExisting || hasLiveSession) return null
+    val key = profile.savedMoshKey?.takeIf { it.isNotEmpty() } ?: return null
+    val port = profile.savedMoshPort?.takeIf { it > 0 } ?: return null
+    val ip = profile.savedMoshServerIp?.takeIf { it.isNotEmpty() } ?: return null
+    return SavedMoshSession(ip, port, key)
+}
+
 /**
  * Best-effort listing of existing multiplexer sessions on the remote: a
  * manager without a list command, a non-zero exit, or an exec failure all

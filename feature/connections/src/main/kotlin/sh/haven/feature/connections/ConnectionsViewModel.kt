@@ -12,6 +12,7 @@ import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.flow.combine
 import kotlinx.coroutines.flow.debounce
+import kotlinx.coroutines.flow.filterNotNull
 import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.flow.map
 import kotlinx.coroutines.flow.stateIn
@@ -121,6 +122,15 @@ internal fun jumpConnectPassword(
  * log output — reproduced live via a USB-drive-VM profile hanging 5+ minutes.
  */
 private const val HOST_KEY_PROMPT_TIMEOUT_MS = 90_000L
+
+/**
+ * Saved-key mosh re-attach (#371): how long to wait for the terminal to
+ * attach (and start the transport) before giving up on probing, and how
+ * long after transport start the server has to send its first bytes
+ * before the saved tuple is declared dead.
+ */
+private const val MOSH_REATTACH_ATTACH_WINDOW_MS = 30_000L
+private const val MOSH_REATTACH_PROBE_MS = 10_000L
 
 /**
  * Port the MCP server binds (first free in 8730..8739). The reverse-tunnel
@@ -3091,6 +3101,12 @@ class ConnectionsViewModel @Inject constructor(
         password: String,
         keyOnly: Boolean,
         usernameOverride: String? = null,
+        /**
+         * Skip the saved-key re-attach fast path and run the full SSH
+         * bootstrap. Set internally after a re-attach probe found the
+         * saved tuple dead — never exposed to callers.
+         */
+        skipReattach: Boolean = false,
     ) {
         val effectiveUsername = usernameOverride?.takeIf { it.isNotBlank() } ?: profile.username
         viewModelScope.launch {
@@ -3104,6 +3120,46 @@ class ConnectionsViewModel @Inject constructor(
 
             val verboseEnabled = preferencesRepository.verboseLoggingEnabled.first()
             val verboseLogger = if (verboseEnabled) SshVerboseLogger() else null
+
+            // --- Saved-session re-attach (#371) ---
+            // A previous bootstrap left a mosh-server running (they have no
+            // idle timeout); skip the SSH round-trip and re-key the UDP
+            // transport straight at it — SSP re-syncs the screen. mosh has
+            // no liveness RPC, so the only proof the tuple still points at
+            // a live process is the first server bytes: probe for them and
+            // fall back to a fresh bootstrap (wiping the tuple) on silence.
+            if (!skipReattach) {
+                val saved = savedMoshSession(
+                    profile,
+                    hasLiveSession = moshSessionManager.getSessionsForProfile(profile.id).any {
+                        it.status == MoshSessionManager.SessionState.Status.CONNECTED ||
+                            it.status == MoshSessionManager.SessionState.Status.CONNECTING
+                    },
+                )
+                if (saved != null) {
+                    var probed = false
+                    val alive = try {
+                        finishMoshReconnect(sessionId, profile.id, saved, verboseLogger)
+                        probed = true
+                        awaitMoshServerContact(sessionId)
+                    } catch (e: Exception) {
+                        Log.w(TAG, "Mosh re-attach setup failed for ${profile.label}: ${e.message}", e)
+                        false
+                    }
+                    if (alive) {
+                        _connectingProfileId.value = null
+                        return@launch
+                    }
+                    // Dead tuple (server exited/rebooted, IP moved) — but only
+                    // forget it when the probe actually ran; a local setup
+                    // failure says nothing about the server.
+                    Log.w(TAG, "Saved mosh session for ${profile.label} did not respond — starting a fresh one")
+                    if (probed) wipeSavedMoshSession(profile.id)
+                    moshSessionManager.removeSession(sessionId)
+                    connectMosh(profile, password, keyOnly, usernameOverride, skipReattach = true)
+                    return@launch
+                }
+            }
 
             var isFidoAuth = false
             try {
@@ -3821,6 +3877,20 @@ class ConnectionsViewModel @Inject constructor(
         val (serverIp, moshPort, moshKey) = moshConnect
         Log.d(TAG, "MOSH CONNECT parsed: $serverIp:$moshPort")
 
+        // Persist the tuple so a connect after an app restart can re-attach
+        // to this still-running mosh-server without an SSH round-trip (#371).
+        // Encrypted at rest by the repository; last bootstrap wins when
+        // several tabs share the profile.
+        withContext(Dispatchers.IO) {
+            repository.getById(profileId)?.let { p ->
+                repository.save(p.copy(
+                    savedMoshKey = moshKey,
+                    savedMoshPort = moshPort,
+                    savedMoshServerIp = serverIp,
+                ))
+            }
+        }
+
         // Build session manager command with chosen or default session name
         val smCmd = manager.command
         var effectiveSessionName: String? = null
@@ -3873,6 +3943,79 @@ class ConnectionsViewModel @Inject constructor(
         startForegroundServiceIfNeeded()
         if (!silent) {
             _navigateToTerminal.value = profileId
+        }
+    }
+
+    /**
+     * Re-attach to a still-running mosh-server using the profile's saved
+     * (ip, port, key) tuple — no SSH round-trip (#371). Mirrors the tail of
+     * [finishMoshConnect] minus everything bootstrap-specific: no
+     * initialCommand (the server-side shell is exactly where the user left
+     * it — typing a multiplexer attach into it would corrupt whatever is
+     * running), no SSH client kept for SFTP, but the same tunneled-UDP
+     * resolution so #164 profiles don't silently fall back to raw sockets.
+     */
+    private suspend fun finishMoshReconnect(
+        sessionId: String,
+        profileId: String,
+        saved: SavedMoshSession,
+        verboseLogger: SshVerboseLogger?,
+    ) {
+        Log.d(TAG, "Re-attaching mosh session for $profileId at ${saved.serverIp}:${saved.port}")
+        val transportLogBuffer = if (verboseLogger != null) java.util.concurrent.ConcurrentLinkedQueue<String>() else null
+        val socketProvider: sh.haven.mosh.network.UdpSocketProvider? = run {
+            val profile = repository.getById(profileId) ?: return@run null
+            val supplier = tunnelResolver.udpSocketSupplier(profile) ?: return@run null
+            sh.haven.mosh.network.UdpSocketProvider {
+                sh.haven.feature.connections.mosh.TunneledUdpAdapter(supplier())
+            }
+        }
+        withContext(Dispatchers.IO) {
+            moshSessionManager.connectSession(
+                sessionId = sessionId,
+                serverIp = saved.serverIp,
+                moshPort = saved.port,
+                moshKey = saved.key,
+                cols = 80,
+                rows = 24,
+                sshClient = null,
+                verboseBuffer = transportLogBuffer,
+                socketProvider = socketProvider,
+            )
+        }
+        repository.markConnected(profileId)
+        connectionLogRepository.logEvent(profileId, ConnectionLog.Status.CONNECTED, details = "mosh re-attach", verboseLog = verboseLogger?.drain())
+        startForegroundServiceIfNeeded()
+        _navigateToTerminal.value = profileId
+    }
+
+    /**
+     * Wait for the re-attached transport to prove the saved tuple alive.
+     * Three outcomes: the terminal attached and the server answered (true);
+     * it attached and stayed silent past the probe window (false — the
+     * tuple is dead); or no terminal ever attached within the window, e.g.
+     * the user backgrounded before the screen composed (true — nothing was
+     * probed, so the session and tuple are left alone; a dead transport
+     * then surfaces as the tab's usual no-server-contact counter).
+     */
+    private suspend fun awaitMoshServerContact(sessionId: String): Boolean {
+        val mosh = kotlinx.coroutines.withTimeoutOrNull(MOSH_REATTACH_ATTACH_WINDOW_MS) {
+            moshSessionManager.sessions
+                .map { it[sessionId]?.moshSession }
+                .filterNotNull()
+                .first()
+        } ?: return true
+        return kotlinx.coroutines.withTimeoutOrNull(MOSH_REATTACH_PROBE_MS) {
+            mosh.serverContacted.first { it }
+        } != null
+    }
+
+    /** Forget the saved re-attach tuple — the server it points at is gone. */
+    private suspend fun wipeSavedMoshSession(profileId: String) {
+        withContext(Dispatchers.IO) {
+            repository.getById(profileId)?.takeIf { it.savedMoshKey != null }?.let {
+                repository.save(it.copy(savedMoshKey = null, savedMoshPort = null, savedMoshServerIp = null))
+            }
         }
     }
 

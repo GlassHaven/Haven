@@ -917,6 +917,9 @@ class TerminalViewModel @Inject constructor(
 
     private val trackedSessionIds = mutableSetOf<String>()
 
+    /** Mosh sessions whose clean exit already wiped the saved re-attach tuple (#371). */
+    private val moshCleanExitWiped = mutableSetOf<String>()
+
     init {
         // React to session state changes (e.g., "Disconnect All" from notification)
         // even when the TerminalScreen isn't actively composing.
@@ -987,6 +990,29 @@ class TerminalViewModel @Inject constructor(
             }
             .map { it.sessionId }
             .toSet()
+
+        // A clean mosh exit means the server-side process is gone — forget
+        // the profile's saved re-attach tuple so the next connect doesn't
+        // probe a dead port (#371). Keyed by session id because DISCONNECTED
+        // entries linger in the manager until the tab sync removes them, and
+        // matched against the session's own key so an old tab exiting can't
+        // wipe the tuple a newer bootstrap just saved.
+        for ((sessionId, mosh) in moshSessions) {
+            if (mosh.status == MoshSessionManager.SessionState.Status.DISCONNECTED &&
+                mosh.cleanExit && moshCleanExitWiped.add(sessionId)
+            ) {
+                viewModelScope.launch(Dispatchers.IO) {
+                    connectionRepository.getById(mosh.profileId)
+                        ?.takeIf { it.savedMoshKey == mosh.moshKey }
+                        ?.let {
+                            connectionRepository.save(
+                                it.copy(savedMoshKey = null, savedMoshPort = null, savedMoshServerIp = null),
+                            )
+                            Log.d(TAG, "Mosh clean exit — wiped saved re-attach tuple for ${mosh.profileId}")
+                        }
+                }
+            }
+        }
 
         // Find ET sessions that are connected
         val activeEtIds = etSessions.values

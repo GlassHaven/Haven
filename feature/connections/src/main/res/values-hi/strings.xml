@@ -315,6 +315,8 @@
     <string name="connections_field_et_port">ET पोर्ट</string>
     <string name="connections_field_mosh_server_command">mosh-server कमांड</string>
     <string name="connections_helper_mosh_server">डिफ़ॉल्ट के लिए खाली छोड़ें। 1024 से नीचे के पोर्ट के लिए authbind का उपयोग करें।</string>
+    <string name="connections_field_mosh_reattach">पिछले सत्र से फिर जुड़ें</string>
+    <string name="connections_helper_mosh_reattach">ऐप के पुनरारंभ के बाद नया सत्र शुरू करने के बजाय चल रहे mosh-server से फिर से जुड़ता है। पुराना सत्र जवाब न दे तो नया सत्र शुरू होता है।</string>
     <string name="connections_username_placeholder_ask">कनेक्ट करते समय पूछने के लिए खाली छोड़ें</string>
     <string name="connections_file_transport_auto_desc">SFTP आज़माएँ, यदि sftp-server सबसिस्टम अनुपलब्ध हो तो SCP पर वापस जाएँ।</string>
     <string name="connections_file_transport_sftp_label">केवल SFTP</string>

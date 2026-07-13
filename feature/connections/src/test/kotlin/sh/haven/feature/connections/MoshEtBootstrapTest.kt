@@ -77,4 +77,36 @@ class MoshEtBootstrapTest {
         assertTrue(names.isEmpty())
         assertTrue(!called)
     }
+
+    // --- saved mosh re-attach eligibility (#371) ---
+
+    private val savedProfile = profile.copy(
+        savedMoshKey = "sessionkey==",
+        savedMoshPort = 60001,
+        savedMoshServerIp = "10.0.0.7",
+    )
+
+    @Test fun completeTupleIsEligible() {
+        assertEquals(
+            SavedMoshSession("10.0.0.7", 60001, "sessionkey=="),
+            savedMoshSession(savedProfile, hasLiveSession = false),
+        )
+    }
+
+    @Test fun optOutDisablesReattach() {
+        assertEquals(null, savedMoshSession(savedProfile.copy(moshReconnectToExisting = false), hasLiveSession = false))
+    }
+
+    @Test fun liveSessionBlocksReattach() {
+        // A second transport on the same key would fight the live tab.
+        assertEquals(null, savedMoshSession(savedProfile, hasLiveSession = true))
+    }
+
+    @Test fun incompleteTupleIsIneligible() {
+        assertEquals(null, savedMoshSession(savedProfile.copy(savedMoshKey = null), hasLiveSession = false))
+        assertEquals(null, savedMoshSession(savedProfile.copy(savedMoshKey = ""), hasLiveSession = false))
+        assertEquals(null, savedMoshSession(savedProfile.copy(savedMoshPort = null), hasLiveSession = false))
+        assertEquals(null, savedMoshSession(savedProfile.copy(savedMoshPort = 0), hasLiveSession = false))
+        assertEquals(null, savedMoshSession(savedProfile.copy(savedMoshServerIp = null), hasLiveSession = false))
+    }
 }

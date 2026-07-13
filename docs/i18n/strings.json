@@ -9113,6 +9113,44 @@
      }
     },
     {
+     "name": "connections_field_mosh_reattach",
+     "en": "Reattach to previous session",
+     "comment": "Group header",
+     "args": [],
+     "t": {
+      "ar": "إعادة الالتحاق بالجلسة السابقة",
+      "bn": "আগের সেশনে পুনরায় যুক্ত হন",
+      "de": "Vorherige Sitzung wieder anhängen",
+      "es": "Volver a adjuntar la sesión anterior",
+      "fr": "Se rattacher à la session précédente",
+      "hi": "पिछले सत्र से फिर जुड़ें",
+      "ja": "前回のセッションに再接続",
+      "ko": "이전 세션에 다시 연결",
+      "pt": "Reanexar à sessão anterior",
+      "ru": "Переподключаться к прежней сессии",
+      "zh": "重新连接上一个会话"
+     }
+    },
+    {
+     "name": "connections_helper_mosh_reattach",
+     "en": "Reconnect to the running mosh-server after an app restart instead of starting a new session. Falls back to a fresh session when the old one no longer responds.",
+     "comment": "Group header",
+     "args": [],
+     "t": {
+      "ar": "بعد إعادة تشغيل التطبيق، يُعاد الاتصال بخادم mosh قيد التشغيل بدلاً من بدء جلسة جديدة. إذا لم تعد الجلسة القديمة تستجيب، تبدأ جلسة جديدة.",
+      "bn": "অ্যাপ পুনরায় চালু হওয়ার পরে নতুন সেশন শুরু না করে চলমান mosh-server-এ পুনরায় সংযোগ করে। পুরানো সেশন সাড়া না দিলে নতুন সেশন শুরু হয়।",
+      "de": "Nach einem App-Neustart wieder mit dem laufenden mosh-server verbinden, statt eine neue Sitzung zu starten. Antwortet die alte Sitzung nicht mehr, wird automatisch eine neue gestartet.",
+      "es": "Tras reiniciar la app, se reconecta con el mosh-server en ejecución en lugar de iniciar una sesión nueva. Si la sesión antigua ya no responde, se inicia una nueva.",
+      "fr": "Après un redémarrage de l\\'application, se reconnecte au mosh-server en cours au lieu de démarrer une nouvelle session. Si l\\'ancienne session ne répond plus, une nouvelle est démarrée.",
+      "hi": "ऐप के पुनरारंभ के बाद नया सत्र शुरू करने के बजाय चल रहे mosh-server से फिर से जुड़ता है। पुराना सत्र जवाब न दे तो नया सत्र शुरू होता है।",
+      "ja": "アプリ再起動後、新しいセッションを開始する代わりに実行中の mosh-server に再接続します。古いセッションが応答しない場合は新しいセッションを開始します。",
+      "ko": "앱을 다시 시작한 후 새 세션을 시작하는 대신 실행 중인 mosh-server에 다시 연결합니다. 이전 세션이 응답하지 않으면 새 세션을 시작합니다.",
+      "pt": "Após reiniciar o app, reconecta ao mosh-server em execução em vez de iniciar uma nova sessão. Se a sessão antiga não responder, uma nova é iniciada.",
+      "ru": "После перезапуска приложения переподключается к работающему mosh-server вместо запуска новой сессии. Если старая сессия не отвечает, запускается новая.",
+      "zh": "应用重启后重新连接到正在运行的 mosh-server，而不是开始新会话。旧会话无响应时会自动开始新会话。"
+     }
+    },
+    {
      "name": "connections_username_placeholder_ask",
      "en": "Leave empty to ask at connect time",
      "comment": "Group header",

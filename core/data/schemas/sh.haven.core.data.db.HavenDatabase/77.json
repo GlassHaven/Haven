@@ -1,0 +1,2137 @@
+{
+  "formatVersion": 1,
+  "database": {
+    "version": 77,
+    "identityHash": "dc2335c3bb8735fce3f4e40fe2c1cedf",
+    "entities": [
+      {
+        "tableName": "connection_profiles",
+        "createSql": "CREATE TABLE IF NOT EXISTS `${TABLE_NAME}` (`id` TEXT NOT NULL, `label` TEXT NOT NULL, `host` TEXT NOT NULL, `port` INTEGER NOT NULL, `username` TEXT NOT NULL, `sshPassword` TEXT, `authType` TEXT NOT NULL, `keyId` TEXT, `authMethods` TEXT NOT NULL DEFAULT '', `totpConfirmBeforeSend` INTEGER NOT NULL DEFAULT 0, `ignoreSavedKeys` INTEGER NOT NULL DEFAULT 0, `colorTag` INTEGER NOT NULL, `lastConnected` INTEGER, `sortOrder` INTEGER NOT NULL, `connectionType` TEXT NOT NULL, `destinationHash` TEXT, `reticulumHost` TEXT NOT NULL, `reticulumPort` INTEGER NOT NULL, `jumpProfileId` TEXT, `sshOptions` TEXT, `vncPort` INTEGER, `vncUsername` TEXT, `vncPassword` TEXT, `vncSshForward` INTEGER NOT NULL, `vncSshProfileId` TEXT, `vncColorDepth` TEXT NOT NULL, `sessionManager` TEXT, `useMosh` INTEGER NOT NULL, `useEternalTerminal` INTEGER NOT NULL, `etPort` INTEGER NOT NULL, `rdpPort` INTEGER NOT NULL, `rdpUsername` TEXT, `rdpDomain` TEXT, `rdpPassword` TEXT, `rdpSshForward` INTEGER NOT NULL, `rdpSshProfileId` TEXT, `rdpUseNla` INTEGER NOT NULL, `rdpColorDepth` INTEGER NOT NULL, `spicePort` INTEGER, `spicePassword` TEXT, `spiceSshForward` INTEGER NOT NULL, `spiceSshProfileId` TEXT, `smbPort` INTEGER NOT NULL, `smbShare` TEXT, `smbDomain` TEXT, `smbPassword` TEXT, `smbSshForward` INTEGER NOT NULL, `smbSshProfileId` TEXT, `proxyType` TEXT, `proxyHost` TEXT, `proxyPort` INTEGER NOT NULL, `proxyUser` TEXT, `proxyPassword` TEXT, `groupId` TEXT, `identityId` TEXT, `lastSessionName` TEXT, `disableAltScreen` INTEGER NOT NULL, `rcloneRemoteName` TEXT, `rcloneProvider` TEXT, `emailProvider` TEXT, `emailServer` TEXT, `emailSmtpServer` TEXT, `emailPort` INTEGER NOT NULL, `emailSmtpPort` INTEGER NOT NULL, `emailTls` INTEGER NOT NULL, `emailUsername` TEXT, `emailPassword` TEXT, `emailMailboxPassword` TEXT, `emailAuthMethods` TEXT NOT NULL DEFAULT '', `useAndroidShell` INTEGER NOT NULL, `prootDistroId` TEXT, `moshServerCommand` TEXT, `forwardAgent` INTEGER NOT NULL, `addressFamily` TEXT NOT NULL, `reticulumNetworkName` TEXT, `reticulumPassphrase` TEXT, `postLoginCommand` TEXT, `postLoginBeforeSessionManager` INTEGER NOT NULL, `usbForwardVidPid` TEXT, `fileTransport` TEXT NOT NULL, `tunnelConfigId` TEXT, `terminalColorScheme` TEXT, `terminalBackgroundOpacity` REAL, `autoReconnect` INTEGER NOT NULL, `reconnectMaxAttempts` INTEGER NOT NULL, `reconnectOnNetworkChange` INTEGER NOT NULL, `tunnelOnly` INTEGER NOT NULL, `mcpEnabled` INTEGER NOT NULL, `portKnockSequence` TEXT, `portKnockDelayMs` INTEGER NOT NULL, `spaKey` TEXT, `spaKeyBase64` INTEGER NOT NULL, `spaHmacKey` TEXT, `spaHmacKeyBase64` INTEGER NOT NULL, `spaAccessSpec` TEXT, `spaAllowMode` TEXT NOT NULL, `spaExplicitIp` TEXT, `spaPort` INTEGER NOT NULL, `usbDriveSerial` TEXT, `moshReconnectToExisting` INTEGER NOT NULL DEFAULT 1, `savedMoshKey` TEXT, `savedMoshPort` INTEGER, `savedMoshServerIp` TEXT, PRIMARY KEY(`id`))",
+        "fields": [
+          {
+            "fieldPath": "id",
+            "columnName": "id",
+            "affinity": "TEXT",
+            "notNull": true
+          },
+          {
+            "fieldPath": "label",
+            "columnName": "label",
+            "affinity": "TEXT",
+            "notNull": true
+          },
+          {
+            "fieldPath": "host",
+            "columnName": "host",
+            "affinity": "TEXT",
+            "notNull": true
+          },
+          {
+            "fieldPath": "port",
+            "columnName": "port",
+            "affinity": "INTEGER",
+            "notNull": true
+          },
+          {
+            "fieldPath": "username",
+            "columnName": "username",
+            "affinity": "TEXT",
+            "notNull": true
+          },
+          {
+            "fieldPath": "sshPassword",
+            "columnName": "sshPassword",
+            "affinity": "TEXT"
+          },
+          {
+            "fieldPath": "authType",
+            "columnName": "authType",
+            "affinity": "TEXT",
+            "notNull": true
+          },
+          {
+            "fieldPath": "keyId",
+            "columnName": "keyId",
+            "affinity": "TEXT"
+          },
+          {
+            "fieldPath": "authMethods",
+            "columnName": "authMethods",
+            "affinity": "TEXT",
+            "notNull": true,
+            "defaultValue": "''"
+          },
+          {
+            "fieldPath": "totpConfirmBeforeSend",
+            "columnName": "totpConfirmBeforeSend",
+            "affinity": "INTEGER",
+            "notNull": true,
+            "defaultValue": "0"
+          },
+          {
+            "fieldPath": "ignoreSavedKeys",
+            "columnName": "ignoreSavedKeys",
+            "affinity": "INTEGER",
+            "notNull": true,
+            "defaultValue": "0"
+          },
+          {
+            "fieldPath": "colorTag",
+            "columnName": "colorTag",
+            "affinity": "INTEGER",
+            "notNull": true
+          },
+          {
+            "fieldPath": "lastConnected",
+            "columnName": "lastConnected",
+            "affinity": "INTEGER"
+          },
+          {
+            "fieldPath": "sortOrder",
+            "columnName": "sortOrder",
+            "affinity": "INTEGER",
+            "notNull": true
+          },
+          {
+            "fieldPath": "connectionType",
+            "columnName": "connectionType",
+            "affinity": "TEXT",
+            "notNull": true
+          },
+          {
+            "fieldPath": "destinationHash",
+            "columnName": "destinationHash",
+            "affinity": "TEXT"
+          },
+          {
+            "fieldPath": "reticulumHost",
+            "columnName": "reticulumHost",
+            "affinity": "TEXT",
+            "notNull": true
+          },
+          {
+            "fieldPath": "reticulumPort",
+            "columnName": "reticulumPort",
+            "affinity": "INTEGER",
+            "notNull": true
+          },
+          {
+            "fieldPath": "jumpProfileId",
+            "columnName": "jumpProfileId",
+            "affinity": "TEXT"
+          },
+          {
+            "fieldPath": "sshOptions",
+            "columnName": "sshOptions",
+            "affinity": "TEXT"
+          },
+          {
+            "fieldPath": "vncPort",
+            "columnName": "vncPort",
+            "affinity": "INTEGER"
+          },
+          {
+            "fieldPath": "vncUsername",
+            "columnName": "vncUsername",
+            "affinity": "TEXT"
+          },
+          {
+            "fieldPath": "vncPassword",
+            "columnName": "vncPassword",
+            "affinity": "TEXT"
+          },
+          {
+            "fieldPath": "vncSshForward",
+            "columnName": "vncSshForward",
+            "affinity": "INTEGER",
+            "notNull": true
+          },
+          {
+            "fieldPath": "vncSshProfileId",
+            "columnName": "vncSshProfileId",
+            "affinity": "TEXT"
+          },
+          {
+            "fieldPath": "vncColorDepth",
+            "columnName": "vncColorDepth",
+            "affinity": "TEXT",
+            "notNull": true
+          },
+          {
+            "fieldPath": "sessionManager",
+            "columnName": "sessionManager",
+            "affinity": "TEXT"
+          },
+          {
+            "fieldPath": "useMosh",
+            "columnName": "useMosh",
+            "affinity": "INTEGER",
+            "notNull": true
+          },
+          {
+            "fieldPath": "useEternalTerminal",
+            "columnName": "useEternalTerminal",
+            "affinity": "INTEGER",
+            "notNull": true
+          },
+          {
+            "fieldPath": "etPort",
+            "columnName": "etPort",
+            "affinity": "INTEGER",
+            "notNull": true
+          },
+          {
+            "fieldPath": "rdpPort",
+            "columnName": "rdpPort",
+            "affinity": "INTEGER",
+            "notNull": true
+          },
+          {
+            "fieldPath": "rdpUsername",
+            "columnName": "rdpUsername",
+            "affinity": "TEXT"
+          },
+          {
+            "fieldPath": "rdpDomain",
+            "columnName": "rdpDomain",
+            "affinity": "TEXT"
+          },
+          {
+            "fieldPath": "rdpPassword",
+            "columnName": "rdpPassword",
+            "affinity": "TEXT"
+          },
+          {
+            "fieldPath": "rdpSshForward",
+            "columnName": "rdpSshForward",
+            "affinity": "INTEGER",
+            "notNull": true
+          },
+          {
+            "fieldPath": "rdpSshProfileId",
+            "columnName": "rdpSshProfileId",
+            "affinity": "TEXT"
+          },
+          {
+            "fieldPath": "rdpUseNla",
+            "columnName": "rdpUseNla",
+            "affinity": "INTEGER",
+            "notNull": true
+          },
+          {
+            "fieldPath": "rdpColorDepth",
+            "columnName": "rdpColorDepth",
+            "affinity": "INTEGER",
+            "notNull": true
+          },
+          {
+            "fieldPath": "spicePort",
+            "columnName": "spicePort",
+            "affinity": "INTEGER"
+          },
+          {
+            "fieldPath": "spicePassword",
+            "columnName": "spicePassword",
+            "affinity": "TEXT"
+          },
+          {
+            "fieldPath": "spiceSshForward",
+            "columnName": "spiceSshForward",
+            "affinity": "INTEGER",
+            "notNull": true
+          },
+          {
+            "fieldPath": "spiceSshProfileId",
+            "columnName": "spiceSshProfileId",
+            "affinity": "TEXT"
+          },
+          {
+            "fieldPath": "smbPort",
+            "columnName": "smbPort",
+            "affinity": "INTEGER",
+            "notNull": true
+          },
+          {
+            "fieldPath": "smbShare",
+            "columnName": "smbShare",
+            "affinity": "TEXT"
+          },
+          {
+            "fieldPath": "smbDomain",
+            "columnName": "smbDomain",
+            "affinity": "TEXT"
+          },
+          {
+            "fieldPath": "smbPassword",
+            "columnName": "smbPassword",
+            "affinity": "TEXT"
+          },
+          {
+            "fieldPath": "smbSshForward",
+            "columnName": "smbSshForward",
+            "affinity": "INTEGER",
+            "notNull": true
+          },
+          {
+            "fieldPath": "smbSshProfileId",
+            "columnName": "smbSshProfileId",
+            "affinity": "TEXT"
+          },
+          {
+            "fieldPath": "proxyType",
+            "columnName": "proxyType",
+            "affinity": "TEXT"
+          },
+          {
+            "fieldPath": "proxyHost",
+            "columnName": "proxyHost",
+            "affinity": "TEXT"
+          },
+          {
+            "fieldPath": "proxyPort",
+            "columnName": "proxyPort",
+            "affinity": "INTEGER",
+            "notNull": true
+          },
+          {
+            "fieldPath": "proxyUser",
+            "columnName": "proxyUser",
+            "affinity": "TEXT"
+          },
+          {
+            "fieldPath": "proxyPassword",
+            "columnName": "proxyPassword",
+            "affinity": "TEXT"
+          },
+          {
+            "fieldPath": "groupId",
+            "columnName": "groupId",
+            "affinity": "TEXT"
+          },
+          {
+            "fieldPath": "identityId",
+            "columnName": "identityId",
+            "affinity": "TEXT"
+          },
+          {
+            "fieldPath": "lastSessionName",
+            "columnName": "lastSessionName",
+            "affinity": "TEXT"
+          },
+          {
+            "fieldPath": "disableAltScreen",
+            "columnName": "disableAltScreen",
+            "affinity": "INTEGER",
+            "notNull": true
+          },
+          {
+            "fieldPath": "rcloneRemoteName",
+            "columnName": "rcloneRemoteName",
+            "affinity": "TEXT"
+          },
+          {
+            "fieldPath": "rcloneProvider",
+            "columnName": "rcloneProvider",
+            "affinity": "TEXT"
+          },
+          {
+            "fieldPath": "emailProvider",
+            "columnName": "emailProvider",
+            "affinity": "TEXT"
+          },
+          {
+            "fieldPath": "emailServer",
+            "columnName": "emailServer",
+            "affinity": "TEXT"
+          },
+          {
+            "fieldPath": "emailSmtpServer",
+            "columnName": "emailSmtpServer",
+            "affinity": "TEXT"
+          },
+          {
+            "fieldPath": "emailPort",
+            "columnName": "emailPort",
+            "affinity": "INTEGER",
+            "notNull": true
+          },
+          {
+            "fieldPath": "emailSmtpPort",
+            "columnName": "emailSmtpPort",
+            "affinity": "INTEGER",
+            "notNull": true
+          },
+          {
+            "fieldPath": "emailTls",
+            "columnName": "emailTls",
+            "affinity": "INTEGER",
+            "notNull": true
+          },
+          {
+            "fieldPath": "emailUsername",
+            "columnName": "emailUsername",
+            "affinity": "TEXT"
+          },
+          {
+            "fieldPath": "emailPassword",
+            "columnName": "emailPassword",
+            "affinity": "TEXT"
+          },
+          {
+            "fieldPath": "emailMailboxPassword",
+            "columnName": "emailMailboxPassword",
+            "affinity": "TEXT"
+          },
+          {
+            "fieldPath": "emailAuthMethods",
+            "columnName": "emailAuthMethods",
+            "affinity": "TEXT",
+            "notNull": true,
+            "defaultValue": "''"
+          },
+          {
+            "fieldPath": "useAndroidShell",
+            "columnName": "useAndroidShell",
+            "affinity": "INTEGER",
+            "notNull": true
+          },
+          {
+            "fieldPath": "prootDistroId",
+            "columnName": "prootDistroId",
+            "affinity": "TEXT"
+          },
+          {
+            "fieldPath": "moshServerCommand",
+            "columnName": "moshServerCommand",
+            "affinity": "TEXT"
+          },
+          {
+            "fieldPath": "forwardAgent",
+            "columnName": "forwardAgent",
+            "affinity": "INTEGER",
+            "notNull": true
+          },
+          {
+            "fieldPath": "addressFamily",
+            "columnName": "addressFamily",
+            "affinity": "TEXT",
+            "notNull": true
+          },
+          {
+            "fieldPath": "reticulumNetworkName",
+            "columnName": "reticulumNetworkName",
+            "affinity": "TEXT"
+          },
+          {
+            "fieldPath": "reticulumPassphrase",
+            "columnName": "reticulumPassphrase",
+            "affinity": "TEXT"
+          },
+          {
+            "fieldPath": "postLoginCommand",
+            "columnName": "postLoginCommand",
+            "affinity": "TEXT"
+          },
+          {
+            "fieldPath": "postLoginBeforeSessionManager",
+            "columnName": "postLoginBeforeSessionManager",
+            "affinity": "INTEGER",
+            "notNull": true
+          },
+          {
+            "fieldPath": "usbForwardVidPid",
+            "columnName": "usbForwardVidPid",
+            "affinity": "TEXT"
+          },
+          {
+            "fieldPath": "fileTransport",
+            "columnName": "fileTransport",
+            "affinity": "TEXT",
+            "notNull": true
+          },
+          {
+            "fieldPath": "tunnelConfigId",
+            "columnName": "tunnelConfigId",
+            "affinity": "TEXT"
+          },
+          {
+            "fieldPath": "terminalColorScheme",
+            "columnName": "terminalColorScheme",
+            "affinity": "TEXT"
+          },
+          {
+            "fieldPath": "terminalBackgroundOpacity",
+            "columnName": "terminalBackgroundOpacity",
+            "affinity": "REAL"
+          },
+          {
+            "fieldPath": "autoReconnect",
+            "columnName": "autoReconnect",
+            "affinity": "INTEGER",
+            "notNull": true
+          },
+          {
+            "fieldPath": "reconnectMaxAttempts",
+            "columnName": "reconnectMaxAttempts",
+            "affinity": "INTEGER",
+            "notNull": true
+          },
+          {
+            "fieldPath": "reconnectOnNetworkChange",
+            "columnName": "reconnectOnNetworkChange",
+            "affinity": "INTEGER",
+            "notNull": true
+          },
+          {
+            "fieldPath": "tunnelOnly",
+            "columnName": "tunnelOnly",
+            "affinity": "INTEGER",
+            "notNull": true
+          },
+          {
+            "fieldPath": "mcpEnabled",
+            "columnName": "mcpEnabled",
+            "affinity": "INTEGER",
+            "notNull": true
+          },
+          {
+            "fieldPath": "portKnockSequence",
+            "columnName": "portKnockSequence",
+            "affinity": "TEXT"
+          },
+          {
+            "fieldPath": "portKnockDelayMs",
+            "columnName": "portKnockDelayMs",
+            "affinity": "INTEGER",
+            "notNull": true
+          },
+          {
+            "fieldPath": "spaKey",
+            "columnName": "spaKey",
+            "affinity": "TEXT"
+          },
+          {
+            "fieldPath": "spaKeyBase64",
+            "columnName": "spaKeyBase64",
+            "affinity": "INTEGER",
+            "notNull": true
+          },
+          {
+            "fieldPath": "spaHmacKey",
+            "columnName": "spaHmacKey",
+            "affinity": "TEXT"
+          },
+          {
+            "fieldPath": "spaHmacKeyBase64",
+            "columnName": "spaHmacKeyBase64",
+            "affinity": "INTEGER",
+            "notNull": true
+          },
+          {
+            "fieldPath": "spaAccessSpec",
+            "columnName": "spaAccessSpec",
+            "affinity": "TEXT"
+          },
+          {
+            "fieldPath": "spaAllowMode",
+            "columnName": "spaAllowMode",
+            "affinity": "TEXT",
+            "notNull": true
+          },
+          {
+            "fieldPath": "spaExplicitIp",
+            "columnName": "spaExplicitIp",
+            "affinity": "TEXT"
+          },
+          {
+            "fieldPath": "spaPort",
+            "columnName": "spaPort",
+            "affinity": "INTEGER",
+            "notNull": true
+          },
+          {
+            "fieldPath": "usbDriveSerial",
+            "columnName": "usbDriveSerial",
+            "affinity": "TEXT"
+          },
+          {
+            "fieldPath": "moshReconnectToExisting",
+            "columnName": "moshReconnectToExisting",
+            "affinity": "INTEGER",
+            "notNull": true,
+            "defaultValue": "1"
+          },
+          {
+            "fieldPath": "savedMoshKey",
+            "columnName": "savedMoshKey",
+            "affinity": "TEXT"
+          },
+          {
+            "fieldPath": "savedMoshPort",
+            "columnName": "savedMoshPort",
+            "affinity": "INTEGER"
+          },
+          {
+            "fieldPath": "savedMoshServerIp",
+            "columnName": "savedMoshServerIp",
+            "affinity": "TEXT"
+          }
+        ],
+        "primaryKey": {
+          "autoGenerate": false,
+          "columnNames": [
+            "id"
+          ]
+        }
+      },
+      {
+        "tableName": "connection_groups",
+        "createSql": "CREATE TABLE IF NOT EXISTS `${TABLE_NAME}` (`id` TEXT NOT NULL, `label` TEXT NOT NULL, `colorTag` INTEGER NOT NULL, `sortOrder` INTEGER NOT NULL, `collapsed` INTEGER NOT NULL, `identityId` TEXT, PRIMARY KEY(`id`))",
+        "fields": [
+          {
+            "fieldPath": "id",
+            "columnName": "id",
+            "affinity": "TEXT",
+            "notNull": true
+          },
+          {
+            "fieldPath": "label",
+            "columnName": "label",
+            "affinity": "TEXT",
+            "notNull": true
+          },
+          {
+            "fieldPath": "colorTag",
+            "columnName": "colorTag",
+            "affinity": "INTEGER",
+            "notNull": true
+          },
+          {
+            "fieldPath": "sortOrder",
+            "columnName": "sortOrder",
+            "affinity": "INTEGER",
+            "notNull": true
+          },
+          {
+            "fieldPath": "collapsed",
+            "columnName": "collapsed",
+            "affinity": "INTEGER",
+            "notNull": true
+          },
+          {
+            "fieldPath": "identityId",
+            "columnName": "identityId",
+            "affinity": "TEXT"
+          }
+        ],
+        "primaryKey": {
+          "autoGenerate": false,
+          "columnNames": [
+            "id"
+          ]
+        }
+      },
+      {
+        "tableName": "known_hosts",
+        "createSql": "CREATE TABLE IF NOT EXISTS `${TABLE_NAME}` (`id` INTEGER PRIMARY KEY AUTOINCREMENT NOT NULL, `hostname` TEXT NOT NULL, `port` INTEGER NOT NULL, `keyType` TEXT NOT NULL, `publicKeyBase64` TEXT NOT NULL, `fingerprint` TEXT NOT NULL, `firstSeen` INTEGER NOT NULL)",
+        "fields": [
+          {
+            "fieldPath": "id",
+            "columnName": "id",
+            "affinity": "INTEGER",
+            "notNull": true
+          },
+          {
+            "fieldPath": "hostname",
+            "columnName": "hostname",
+            "affinity": "TEXT",
+            "notNull": true
+          },
+          {
+            "fieldPath": "port",
+            "columnName": "port",
+            "affinity": "INTEGER",
+            "notNull": true
+          },
+          {
+            "fieldPath": "keyType",
+            "columnName": "keyType",
+            "affinity": "TEXT",
+            "notNull": true
+          },
+          {
+            "fieldPath": "publicKeyBase64",
+            "columnName": "publicKeyBase64",
+            "affinity": "TEXT",
+            "notNull": true
+          },
+          {
+            "fieldPath": "fingerprint",
+            "columnName": "fingerprint",
+            "affinity": "TEXT",
+            "notNull": true
+          },
+          {
+            "fieldPath": "firstSeen",
+            "columnName": "firstSeen",
+            "affinity": "INTEGER",
+            "notNull": true
+          }
+        ],
+        "primaryKey": {
+          "autoGenerate": true,
+          "columnNames": [
+            "id"
+          ]
+        }
+      },
+      {
+        "tableName": "known_tls_certs",
+        "createSql": "CREATE TABLE IF NOT EXISTS `${TABLE_NAME}` (`id` INTEGER PRIMARY KEY AUTOINCREMENT NOT NULL, `hostname` TEXT NOT NULL, `port` INTEGER NOT NULL, `sha256` TEXT NOT NULL, `firstSeen` INTEGER NOT NULL)",
+        "fields": [
+          {
+            "fieldPath": "id",
+            "columnName": "id",
+            "affinity": "INTEGER",
+            "notNull": true
+          },
+          {
+            "fieldPath": "hostname",
+            "columnName": "hostname",
+            "affinity": "TEXT",
+            "notNull": true
+          },
+          {
+            "fieldPath": "port",
+            "columnName": "port",
+            "affinity": "INTEGER",
+            "notNull": true
+          },
+          {
+            "fieldPath": "sha256",
+            "columnName": "sha256",
+            "affinity": "TEXT",
+            "notNull": true
+          },
+          {
+            "fieldPath": "firstSeen",
+            "columnName": "firstSeen",
+            "affinity": "INTEGER",
+            "notNull": true
+          }
+        ],
+        "primaryKey": {
+          "autoGenerate": true,
+          "columnNames": [
+            "id"
+          ]
+        }
+      },
+      {
+        "tableName": "connection_logs",
+        "createSql": "CREATE TABLE IF NOT EXISTS `${TABLE_NAME}` (`id` INTEGER PRIMARY KEY AUTOINCREMENT NOT NULL, `profileId` TEXT NOT NULL, `timestamp` INTEGER NOT NULL, `durationMs` INTEGER NOT NULL, `status` TEXT NOT NULL, `details` TEXT, `verboseLog` TEXT, FOREIGN KEY(`profileId`) REFERENCES `connection_profiles`(`id`) ON UPDATE NO ACTION ON DELETE CASCADE )",
+        "fields": [
+          {
+            "fieldPath": "id",
+            "columnName": "id",
+            "affinity": "INTEGER",
+            "notNull": true
+          },
+          {
+            "fieldPath": "profileId",
+            "columnName": "profileId",
+            "affinity": "TEXT",
+            "notNull": true
+          },
+          {
+            "fieldPath": "timestamp",
+            "columnName": "timestamp",
+            "affinity": "INTEGER",
+            "notNull": true
+          },
+          {
+            "fieldPath": "durationMs",
+            "columnName": "durationMs",
+            "affinity": "INTEGER",
+            "notNull": true
+          },
+          {
+            "fieldPath": "status",
+            "columnName": "status",
+            "affinity": "TEXT",
+            "notNull": true
+          },
+          {
+            "fieldPath": "details",
+            "columnName": "details",
+            "affinity": "TEXT"
+          },
+          {
+            "fieldPath": "verboseLog",
+            "columnName": "verboseLog",
+            "affinity": "TEXT"
+          }
+        ],
+        "primaryKey": {
+          "autoGenerate": true,
+          "columnNames": [
+            "id"
+          ]
+        },
+        "indices": [
+          {
+            "name": "index_connection_logs_profileId",
+            "unique": false,
+            "columnNames": [
+              "profileId"
+            ],
+            "orders": [],
+            "createSql": "CREATE INDEX IF NOT EXISTS `index_connection_logs_profileId` ON `${TABLE_NAME}` (`profileId`)"
+          }
+        ],
+        "foreignKeys": [
+          {
+            "table": "connection_profiles",
+            "onDelete": "CASCADE",
+            "onUpdate": "NO ACTION",
+            "columns": [
+              "profileId"
+            ],
+            "referencedColumns": [
+              "id"
+            ]
+          }
+        ]
+      },
+      {
+        "tableName": "ssh_keys",
+        "createSql": "CREATE TABLE IF NOT EXISTS `${TABLE_NAME}` (`id` TEXT NOT NULL, `label` TEXT NOT NULL, `keyType` TEXT NOT NULL, `privateKeyBytes` BLOB NOT NULL, `publicKeyOpenSsh` TEXT NOT NULL, `fingerprintSha256` TEXT NOT NULL, `createdAt` INTEGER NOT NULL, `isEncrypted` INTEGER NOT NULL, `biometricProtected` INTEGER NOT NULL, `certificateBytes` BLOB, `caConfigId` TEXT, `certIssuedAt` INTEGER, `enabledForAuth` INTEGER NOT NULL, `passphraseEncrypted` TEXT, PRIMARY KEY(`id`))",
+        "fields": [
+          {
+            "fieldPath": "id",
+            "columnName": "id",
+            "affinity": "TEXT",
+            "notNull": true
+          },
+          {
+            "fieldPath": "label",
+            "columnName": "label",
+            "affinity": "TEXT",
+            "notNull": true
+          },
+          {
+            "fieldPath": "keyType",
+            "columnName": "keyType",
+            "affinity": "TEXT",
+            "notNull": true
+          },
+          {
+            "fieldPath": "privateKeyBytes",
+            "columnName": "privateKeyBytes",
+            "affinity": "BLOB",
+            "notNull": true
+          },
+          {
+            "fieldPath": "publicKeyOpenSsh",
+            "columnName": "publicKeyOpenSsh",
+            "affinity": "TEXT",
+            "notNull": true
+          },
+          {
+            "fieldPath": "fingerprintSha256",
+            "columnName": "fingerprintSha256",
+            "affinity": "TEXT",
+            "notNull": true
+          },
+          {
+            "fieldPath": "createdAt",
+            "columnName": "createdAt",
+            "affinity": "INTEGER",
+            "notNull": true
+          },
+          {
+            "fieldPath": "isEncrypted",
+            "columnName": "isEncrypted",
+            "affinity": "INTEGER",
+            "notNull": true
+          },
+          {
+            "fieldPath": "biometricProtected",
+            "columnName": "biometricProtected",
+            "affinity": "INTEGER",
+            "notNull": true
+          },
+          {
+            "fieldPath": "certificateBytes",
+            "columnName": "certificateBytes",
+            "affinity": "BLOB"
+          },
+          {
+            "fieldPath": "caConfigId",
+            "columnName": "caConfigId",
+            "affinity": "TEXT"
+          },
+          {
+            "fieldPath": "certIssuedAt",
+            "columnName": "certIssuedAt",
+            "affinity": "INTEGER"
+          },
+          {
+            "fieldPath": "enabledForAuth",
+            "columnName": "enabledForAuth",
+            "affinity": "INTEGER",
+            "notNull": true
+          },
+          {
+            "fieldPath": "passphraseEncrypted",
+            "columnName": "passphraseEncrypted",
+            "affinity": "TEXT"
+          }
+        ],
+        "primaryKey": {
+          "autoGenerate": false,
+          "columnNames": [
+            "id"
+          ]
+        }
+      },
+      {
+        "tableName": "port_forward_rules",
+        "createSql": "CREATE TABLE IF NOT EXISTS `${TABLE_NAME}` (`id` TEXT NOT NULL, `profileId` TEXT NOT NULL, `type` TEXT NOT NULL, `bindAddress` TEXT NOT NULL, `bindPort` INTEGER NOT NULL, `targetHost` TEXT NOT NULL, `targetPort` INTEGER NOT NULL, `enabled` INTEGER NOT NULL, PRIMARY KEY(`id`), FOREIGN KEY(`profileId`) REFERENCES `connection_profiles`(`id`) ON UPDATE NO ACTION ON DELETE CASCADE )",
+        "fields": [
+          {
+            "fieldPath": "id",
+            "columnName": "id",
+            "affinity": "TEXT",
+            "notNull": true
+          },
+          {
+            "fieldPath": "profileId",
+            "columnName": "profileId",
+            "affinity": "TEXT",
+            "notNull": true
+          },
+          {
+            "fieldPath": "type",
+            "columnName": "type",
+            "affinity": "TEXT",
+            "notNull": true
+          },
+          {
+            "fieldPath": "bindAddress",
+            "columnName": "bindAddress",
+            "affinity": "TEXT",
+            "notNull": true
+          },
+          {
+            "fieldPath": "bindPort",
+            "columnName": "bindPort",
+            "affinity": "INTEGER",
+            "notNull": true
+          },
+          {
+            "fieldPath": "targetHost",
+            "columnName": "targetHost",
+            "affinity": "TEXT",
+            "notNull": true
+          },
+          {
+            "fieldPath": "targetPort",
+            "columnName": "targetPort",
+            "affinity": "INTEGER",
+            "notNull": true
+          },
+          {
+            "fieldPath": "enabled",
+            "columnName": "enabled",
+            "affinity": "INTEGER",
+            "notNull": true
+          }
+        ],
+        "primaryKey": {
+          "autoGenerate": false,
+          "columnNames": [
+            "id"
+          ]
+        },
+        "indices": [
+          {
+            "name": "index_port_forward_rules_profileId",
+            "unique": false,
+            "columnNames": [
+              "profileId"
+            ],
+            "orders": [],
+            "createSql": "CREATE INDEX IF NOT EXISTS `index_port_forward_rules_profileId` ON `${TABLE_NAME}` (`profileId`)"
+          }
+        ],
+        "foreignKeys": [
+          {
+            "table": "connection_profiles",
+            "onDelete": "CASCADE",
+            "onUpdate": "NO ACTION",
+            "columns": [
+              "profileId"
+            ],
+            "referencedColumns": [
+              "id"
+            ]
+          }
+        ]
+      },
+      {
+        "tableName": "agent_audit_events",
+        "createSql": "CREATE TABLE IF NOT EXISTS `${TABLE_NAME}` (`id` INTEGER PRIMARY KEY AUTOINCREMENT NOT NULL, `timestamp` INTEGER NOT NULL, `clientHint` TEXT, `method` TEXT NOT NULL, `toolName` TEXT, `argsJson` TEXT, `resultSummary` TEXT, `durationMs` INTEGER NOT NULL, `outcome` TEXT NOT NULL, `errorMessage` TEXT)",
+        "fields": [
+          {
+            "fieldPath": "id",
+            "columnName": "id",
+            "affinity": "INTEGER",
+            "notNull": true
+          },
+          {
+            "fieldPath": "timestamp",
+            "columnName": "timestamp",
+            "affinity": "INTEGER",
+            "notNull": true
+          },
+          {
+            "fieldPath": "clientHint",
+            "columnName": "clientHint",
+            "affinity": "TEXT"
+          },
+          {
+            "fieldPath": "method",
+            "columnName": "method",
+            "affinity": "TEXT",
+            "notNull": true
+          },
+          {
+            "fieldPath": "toolName",
+            "columnName": "toolName",
+            "affinity": "TEXT"
+          },
+          {
+            "fieldPath": "argsJson",
+            "columnName": "argsJson",
+            "affinity": "TEXT"
+          },
+          {
+            "fieldPath": "resultSummary",
+            "columnName": "resultSummary",
+            "affinity": "TEXT"
+          },
+          {
+            "fieldPath": "durationMs",
+            "columnName": "durationMs",
+            "affinity": "INTEGER",
+            "notNull": true
+          },
+          {
+            "fieldPath": "outcome",
+            "columnName": "outcome",
+            "affinity": "TEXT",
+            "notNull": true
+          },
+          {
+            "fieldPath": "errorMessage",
+            "columnName": "errorMessage",
+            "affinity": "TEXT"
+          }
+        ],
+        "primaryKey": {
+          "autoGenerate": true,
+          "columnNames": [
+            "id"
+          ]
+        },
+        "indices": [
+          {
+            "name": "index_agent_audit_events_timestamp",
+            "unique": false,
+            "columnNames": [
+              "timestamp"
+            ],
+            "orders": [],
+            "createSql": "CREATE INDEX IF NOT EXISTS `index_agent_audit_events_timestamp` ON `${TABLE_NAME}` (`timestamp`)"
+          }
+        ]
+      },
+      {
+        "tableName": "tunnel_configs",
+        "createSql": "CREATE TABLE IF NOT EXISTS `${TABLE_NAME}` (`id` TEXT NOT NULL, `label` TEXT NOT NULL, `type` TEXT NOT NULL, `configText` BLOB NOT NULL, `createdAt` INTEGER NOT NULL, `ownerProfileId` TEXT, PRIMARY KEY(`id`))",
+        "fields": [
+          {
+            "fieldPath": "id",
+            "columnName": "id",
+            "affinity": "TEXT",
+            "notNull": true
+          },
+          {
+            "fieldPath": "label",
+            "columnName": "label",
+            "affinity": "TEXT",
+            "notNull": true
+          },
+          {
+            "fieldPath": "type",
+            "columnName": "type",
+            "affinity": "TEXT",
+            "notNull": true
+          },
+          {
+            "fieldPath": "configText",
+            "columnName": "configText",
+            "affinity": "BLOB",
+            "notNull": true
+          },
+          {
+            "fieldPath": "createdAt",
+            "columnName": "createdAt",
+            "affinity": "INTEGER",
+            "notNull": true
+          },
+          {
+            "fieldPath": "ownerProfileId",
+            "columnName": "ownerProfileId",
+            "affinity": "TEXT"
+          }
+        ],
+        "primaryKey": {
+          "autoGenerate": false,
+          "columnNames": [
+            "id"
+          ]
+        }
+      },
+      {
+        "tableName": "paste_queue_entries",
+        "createSql": "CREATE TABLE IF NOT EXISTS `${TABLE_NAME}` (`id` INTEGER PRIMARY KEY AUTOINCREMENT NOT NULL, `indexInBatch` INTEGER NOT NULL, `sourceBackendType` TEXT NOT NULL, `sourceProfileId` TEXT NOT NULL, `sourceRemoteName` TEXT, `sourcePath` TEXT NOT NULL, `sourceName` TEXT NOT NULL, `sourceSize` INTEGER NOT NULL, `sourceIsDirectory` INTEGER NOT NULL, `destBackendType` TEXT NOT NULL, `destProfileId` TEXT NOT NULL, `destRemote` TEXT, `destPath` TEXT NOT NULL, `isCut` INTEGER NOT NULL, `conflictAction` TEXT NOT NULL, `bytesTransferred` INTEGER NOT NULL, `status` TEXT NOT NULL, `lastError` TEXT, `createdAt` INTEGER NOT NULL, `updatedAt` INTEGER NOT NULL)",
+        "fields": [
+          {
+            "fieldPath": "id",
+            "columnName": "id",
+            "affinity": "INTEGER",
+            "notNull": true
+          },
+          {
+            "fieldPath": "indexInBatch",
+            "columnName": "indexInBatch",
+            "affinity": "INTEGER",
+            "notNull": true
+          },
+          {
+            "fieldPath": "sourceBackendType",
+            "columnName": "sourceBackendType",
+            "affinity": "TEXT",
+            "notNull": true
+          },
+          {
+            "fieldPath": "sourceProfileId",
+            "columnName": "sourceProfileId",
+            "affinity": "TEXT",
+            "notNull": true
+          },
+          {
+            "fieldPath": "sourceRemoteName",
+            "columnName": "sourceRemoteName",
+            "affinity": "TEXT"
+          },
+          {
+            "fieldPath": "sourcePath",
+            "columnName": "sourcePath",
+            "affinity": "TEXT",
+            "notNull": true
+          },
+          {
+            "fieldPath": "sourceName",
+            "columnName": "sourceName",
+            "affinity": "TEXT",
+            "notNull": true
+          },
+          {
+            "fieldPath": "sourceSize",
+            "columnName": "sourceSize",
+            "affinity": "INTEGER",
+            "notNull": true
+          },
+          {
+            "fieldPath": "sourceIsDirectory",
+            "columnName": "sourceIsDirectory",
+            "affinity": "INTEGER",
+            "notNull": true
+          },
+          {
+            "fieldPath": "destBackendType",
+            "columnName": "destBackendType",
+            "affinity": "TEXT",
+            "notNull": true
+          },
+          {
+            "fieldPath": "destProfileId",
+            "columnName": "destProfileId",
+            "affinity": "TEXT",
+            "notNull": true
+          },
+          {
+            "fieldPath": "destRemote",
+            "columnName": "destRemote",
+            "affinity": "TEXT"
+          },
+          {
+            "fieldPath": "destPath",
+            "columnName": "destPath",
+            "affinity": "TEXT",
+            "notNull": true
+          },
+          {
+            "fieldPath": "isCut",
+            "columnName": "isCut",
+            "affinity": "INTEGER",
+            "notNull": true
+          },
+          {
+            "fieldPath": "conflictAction",
+            "columnName": "conflictAction",
+            "affinity": "TEXT",
+            "notNull": true
+          },
+          {
+            "fieldPath": "bytesTransferred",
+            "columnName": "bytesTransferred",
+            "affinity": "INTEGER",
+            "notNull": true
+          },
+          {
+            "fieldPath": "status",
+            "columnName": "status",
+            "affinity": "TEXT",
+            "notNull": true
+          },
+          {
+            "fieldPath": "lastError",
+            "columnName": "lastError",
+            "affinity": "TEXT"
+          },
+          {
+            "fieldPath": "createdAt",
+            "columnName": "createdAt",
+            "affinity": "INTEGER",
+            "notNull": true
+          },
+          {
+            "fieldPath": "updatedAt",
+            "columnName": "updatedAt",
+            "affinity": "INTEGER",
+            "notNull": true
+          }
+        ],
+        "primaryKey": {
+          "autoGenerate": true,
+          "columnNames": [
+            "id"
+          ]
+        },
+        "indices": [
+          {
+            "name": "index_paste_queue_entries_status",
+            "unique": false,
+            "columnNames": [
+              "status"
+            ],
+            "orders": [],
+            "createSql": "CREATE INDEX IF NOT EXISTS `index_paste_queue_entries_status` ON `${TABLE_NAME}` (`status`)"
+          }
+        ]
+      },
+      {
+        "tableName": "workspace_profile",
+        "createSql": "CREATE TABLE IF NOT EXISTS `${TABLE_NAME}` (`id` TEXT NOT NULL, `name` TEXT NOT NULL, `sortOrder` INTEGER NOT NULL, `createdAt` INTEGER NOT NULL, `updatedAt` INTEGER NOT NULL, PRIMARY KEY(`id`))",
+        "fields": [
+          {
+            "fieldPath": "id",
+            "columnName": "id",
+            "affinity": "TEXT",
+            "notNull": true
+          },
+          {
+            "fieldPath": "name",
+            "columnName": "name",
+            "affinity": "TEXT",
+            "notNull": true
+          },
+          {
+            "fieldPath": "sortOrder",
+            "columnName": "sortOrder",
+            "affinity": "INTEGER",
+            "notNull": true
+          },
+          {
+            "fieldPath": "createdAt",
+            "columnName": "createdAt",
+            "affinity": "INTEGER",
+            "notNull": true
+          },
+          {
+            "fieldPath": "updatedAt",
+            "columnName": "updatedAt",
+            "affinity": "INTEGER",
+            "notNull": true
+          }
+        ],
+        "primaryKey": {
+          "autoGenerate": false,
+          "columnNames": [
+            "id"
+          ]
+        }
+      },
+      {
+        "tableName": "workspace_item",
+        "createSql": "CREATE TABLE IF NOT EXISTS `${TABLE_NAME}` (`id` TEXT NOT NULL, `workspaceId` TEXT NOT NULL, `kind` TEXT NOT NULL, `connectionProfileId` TEXT, `path` TEXT, `sessionName` TEXT, `sortOrder` INTEGER NOT NULL, PRIMARY KEY(`id`), FOREIGN KEY(`workspaceId`) REFERENCES `workspace_profile`(`id`) ON UPDATE NO ACTION ON DELETE CASCADE , FOREIGN KEY(`connectionProfileId`) REFERENCES `connection_profiles`(`id`) ON UPDATE NO ACTION ON DELETE SET NULL )",
+        "fields": [
+          {
+            "fieldPath": "id",
+            "columnName": "id",
+            "affinity": "TEXT",
+            "notNull": true
+          },
+          {
+            "fieldPath": "workspaceId",
+            "columnName": "workspaceId",
+            "affinity": "TEXT",
+            "notNull": true
+          },
+          {
+            "fieldPath": "kind",
+            "columnName": "kind",
+            "affinity": "TEXT",
+            "notNull": true
+          },
+          {
+            "fieldPath": "connectionProfileId",
+            "columnName": "connectionProfileId",
+            "affinity": "TEXT"
+          },
+          {
+            "fieldPath": "path",
+            "columnName": "path",
+            "affinity": "TEXT"
+          },
+          {
+            "fieldPath": "sessionName",
+            "columnName": "sessionName",
+            "affinity": "TEXT"
+          },
+          {
+            "fieldPath": "sortOrder",
+            "columnName": "sortOrder",
+            "affinity": "INTEGER",
+            "notNull": true
+          }
+        ],
+        "primaryKey": {
+          "autoGenerate": false,
+          "columnNames": [
+            "id"
+          ]
+        },
+        "indices": [
+          {
+            "name": "index_workspace_item_workspaceId",
+            "unique": false,
+            "columnNames": [
+              "workspaceId"
+            ],
+            "orders": [],
+            "createSql": "CREATE INDEX IF NOT EXISTS `index_workspace_item_workspaceId` ON `${TABLE_NAME}` (`workspaceId`)"
+          },
+          {
+            "name": "index_workspace_item_connectionProfileId",
+            "unique": false,
+            "columnNames": [
+              "connectionProfileId"
+            ],
+            "orders": [],
+            "createSql": "CREATE INDEX IF NOT EXISTS `index_workspace_item_connectionProfileId` ON `${TABLE_NAME}` (`connectionProfileId`)"
+          }
+        ],
+        "foreignKeys": [
+          {
+            "table": "workspace_profile",
+            "onDelete": "CASCADE",
+            "onUpdate": "NO ACTION",
+            "columns": [
+              "workspaceId"
+            ],
+            "referencedColumns": [
+              "id"
+            ]
+          },
+          {
+            "table": "connection_profiles",
+            "onDelete": "SET NULL",
+            "onUpdate": "NO ACTION",
+            "columns": [
+              "connectionProfileId"
+            ],
+            "referencedColumns": [
+              "id"
+            ]
+          }
+        ]
+      },
+      {
+        "tableName": "step_ca_configs",
+        "createSql": "CREATE TABLE IF NOT EXISTS `${TABLE_NAME}` (`id` TEXT NOT NULL, `name` TEXT NOT NULL, `caUrl` TEXT NOT NULL, `oidcIssuer` TEXT NOT NULL, `oidcAuthUrl` TEXT NOT NULL, `oidcTokenUrl` TEXT NOT NULL, `oidcClientId` TEXT NOT NULL, `oidcClientSecret` TEXT, `provisioner` TEXT NOT NULL, `defaultPrincipals` TEXT NOT NULL, `rootCertPem` TEXT NOT NULL, `sshHostCaPublicKey` TEXT, `createdAt` INTEGER NOT NULL, PRIMARY KEY(`id`))",
+        "fields": [
+          {
+            "fieldPath": "id",
+            "columnName": "id",
+            "affinity": "TEXT",
+            "notNull": true
+          },
+          {
+            "fieldPath": "name",
+            "columnName": "name",
+            "affinity": "TEXT",
+            "notNull": true
+          },
+          {
+            "fieldPath": "caUrl",
+            "columnName": "caUrl",
+            "affinity": "TEXT",
+            "notNull": true
+          },
+          {
+            "fieldPath": "oidcIssuer",
+            "columnName": "oidcIssuer",
+            "affinity": "TEXT",
+            "notNull": true
+          },
+          {
+            "fieldPath": "oidcAuthUrl",
+            "columnName": "oidcAuthUrl",
+            "affinity": "TEXT",
+            "notNull": true
+          },
+          {
+            "fieldPath": "oidcTokenUrl",
+            "columnName": "oidcTokenUrl",
+            "affinity": "TEXT",
+            "notNull": true
+          },
+          {
+            "fieldPath": "oidcClientId",
+            "columnName": "oidcClientId",
+            "affinity": "TEXT",
+            "notNull": true
+          },
+          {
+            "fieldPath": "oidcClientSecret",
+            "columnName": "oidcClientSecret",
+            "affinity": "TEXT"
+          },
+          {
+            "fieldPath": "provisioner",
+            "columnName": "provisioner",
+            "affinity": "TEXT",
+            "notNull": true
+          },
+          {
+            "fieldPath": "defaultPrincipals",
+            "columnName": "defaultPrincipals",
+            "affinity": "TEXT",
+            "notNull": true
+          },
+          {
+            "fieldPath": "rootCertPem",
+            "columnName": "rootCertPem",
+            "affinity": "TEXT",
+            "notNull": true
+          },
+          {
+            "fieldPath": "sshHostCaPublicKey",
+            "columnName": "sshHostCaPublicKey",
+            "affinity": "TEXT"
+          },
+          {
+            "fieldPath": "createdAt",
+            "columnName": "createdAt",
+            "affinity": "INTEGER",
+            "notNull": true
+          }
+        ],
+        "primaryKey": {
+          "autoGenerate": false,
+          "columnNames": [
+            "id"
+          ]
+        }
+      },
+      {
+        "tableName": "sync_profiles",
+        "createSql": "CREATE TABLE IF NOT EXISTS `${TABLE_NAME}` (`id` TEXT NOT NULL, `name` TEXT NOT NULL, `srcFs` TEXT NOT NULL, `dstFs` TEXT NOT NULL, `mode` TEXT NOT NULL, `includePatterns` TEXT NOT NULL, `excludePatterns` TEXT NOT NULL, `minSize` TEXT, `maxSize` TEXT, `bandwidthLimit` TEXT, `createdAt` INTEGER NOT NULL, `lastRunAt` INTEGER, PRIMARY KEY(`id`))",
+        "fields": [
+          {
+            "fieldPath": "id",
+            "columnName": "id",
+            "affinity": "TEXT",
+            "notNull": true
+          },
+          {
+            "fieldPath": "name",
+            "columnName": "name",
+            "affinity": "TEXT",
+            "notNull": true
+          },
+          {
+            "fieldPath": "srcFs",
+            "columnName": "srcFs",
+            "affinity": "TEXT",
+            "notNull": true
+          },
+          {
+            "fieldPath": "dstFs",
+            "columnName": "dstFs",
+            "affinity": "TEXT",
+            "notNull": true
+          },
+          {
+            "fieldPath": "mode",
+            "columnName": "mode",
+            "affinity": "TEXT",
+            "notNull": true
+          },
+          {
+            "fieldPath": "includePatterns",
+            "columnName": "includePatterns",
+            "affinity": "TEXT",
+            "notNull": true
+          },
+          {
+            "fieldPath": "excludePatterns",
+            "columnName": "excludePatterns",
+            "affinity": "TEXT",
+            "notNull": true
+          },
+          {
+            "fieldPath": "minSize",
+            "columnName": "minSize",
+            "affinity": "TEXT"
+          },
+          {
+            "fieldPath": "maxSize",
+            "columnName": "maxSize",
+            "affinity": "TEXT"
+          },
+          {
+            "fieldPath": "bandwidthLimit",
+            "columnName": "bandwidthLimit",
+            "affinity": "TEXT"
+          },
+          {
+            "fieldPath": "createdAt",
+            "columnName": "createdAt",
+            "affinity": "INTEGER",
+            "notNull": true
+          },
+          {
+            "fieldPath": "lastRunAt",
+            "columnName": "lastRunAt",
+            "affinity": "INTEGER"
+          }
+        ],
+        "primaryKey": {
+          "autoGenerate": false,
+          "columnNames": [
+            "id"
+          ]
+        }
+      },
+      {
+        "tableName": "proot_install_log",
+        "createSql": "CREATE TABLE IF NOT EXISTS `${TABLE_NAME}` (`id` INTEGER PRIMARY KEY AUTOINCREMENT NOT NULL, `distroId` TEXT NOT NULL, `timestamp` INTEGER NOT NULL, `phase` TEXT NOT NULL, `deId` TEXT, `exit` INTEGER, `ok` INTEGER NOT NULL, `message` TEXT, `logTail` TEXT)",
+        "fields": [
+          {
+            "fieldPath": "id",
+            "columnName": "id",
+            "affinity": "INTEGER",
+            "notNull": true
+          },
+          {
+            "fieldPath": "distroId",
+            "columnName": "distroId",
+            "affinity": "TEXT",
+            "notNull": true
+          },
+          {
+            "fieldPath": "timestamp",
+            "columnName": "timestamp",
+            "affinity": "INTEGER",
+            "notNull": true
+          },
+          {
+            "fieldPath": "phase",
+            "columnName": "phase",
+            "affinity": "TEXT",
+            "notNull": true
+          },
+          {
+            "fieldPath": "deId",
+            "columnName": "deId",
+            "affinity": "TEXT"
+          },
+          {
+            "fieldPath": "exit",
+            "columnName": "exit",
+            "affinity": "INTEGER"
+          },
+          {
+            "fieldPath": "ok",
+            "columnName": "ok",
+            "affinity": "INTEGER",
+            "notNull": true
+          },
+          {
+            "fieldPath": "message",
+            "columnName": "message",
+            "affinity": "TEXT"
+          },
+          {
+            "fieldPath": "logTail",
+            "columnName": "logTail",
+            "affinity": "TEXT"
+          }
+        ],
+        "primaryKey": {
+          "autoGenerate": true,
+          "columnNames": [
+            "id"
+          ]
+        },
+        "indices": [
+          {
+            "name": "index_proot_install_log_distroId",
+            "unique": false,
+            "columnNames": [
+              "distroId"
+            ],
+            "orders": [],
+            "createSql": "CREATE INDEX IF NOT EXISTS `index_proot_install_log_distroId` ON `${TABLE_NAME}` (`distroId`)"
+          }
+        ]
+      },
+      {
+        "tableName": "totp_secrets",
+        "createSql": "CREATE TABLE IF NOT EXISTS `${TABLE_NAME}` (`id` TEXT NOT NULL, `label` TEXT NOT NULL, `secret` TEXT NOT NULL, `issuer` TEXT, `accountName` TEXT, `algorithm` TEXT NOT NULL DEFAULT 'SHA1', `digits` INTEGER NOT NULL DEFAULT 6, `periodSeconds` INTEGER NOT NULL DEFAULT 30, `createdAt` INTEGER NOT NULL, PRIMARY KEY(`id`))",
+        "fields": [
+          {
+            "fieldPath": "id",
+            "columnName": "id",
+            "affinity": "TEXT",
+            "notNull": true
+          },
+          {
+            "fieldPath": "label",
+            "columnName": "label",
+            "affinity": "TEXT",
+            "notNull": true
+          },
+          {
+            "fieldPath": "secret",
+            "columnName": "secret",
+            "affinity": "TEXT",
+            "notNull": true
+          },
+          {
+            "fieldPath": "issuer",
+            "columnName": "issuer",
+            "affinity": "TEXT"
+          },
+          {
+            "fieldPath": "accountName",
+            "columnName": "accountName",
+            "affinity": "TEXT"
+          },
+          {
+            "fieldPath": "algorithm",
+            "columnName": "algorithm",
+            "affinity": "TEXT",
+            "notNull": true,
+            "defaultValue": "'SHA1'"
+          },
+          {
+            "fieldPath": "digits",
+            "columnName": "digits",
+            "affinity": "INTEGER",
+            "notNull": true,
+            "defaultValue": "6"
+          },
+          {
+            "fieldPath": "periodSeconds",
+            "columnName": "periodSeconds",
+            "affinity": "INTEGER",
+            "notNull": true,
+            "defaultValue": "30"
+          },
+          {
+            "fieldPath": "createdAt",
+            "columnName": "createdAt",
+            "affinity": "INTEGER",
+            "notNull": true
+          }
+        ],
+        "primaryKey": {
+          "autoGenerate": false,
+          "columnNames": [
+            "id"
+          ]
+        }
+      },
+      {
+        "tableName": "mail_rules",
+        "createSql": "CREATE TABLE IF NOT EXISTS `${TABLE_NAME}` (`id` TEXT NOT NULL, `name` TEXT NOT NULL, `enabled` INTEGER NOT NULL, `orderIndex` INTEGER NOT NULL, `accountProfileId` TEXT, `folderId` TEXT NOT NULL, `criteriaJson` TEXT NOT NULL, `actionsJson` TEXT NOT NULL, `stopOnMatch` INTEGER NOT NULL, `notifyOnFire` INTEGER NOT NULL, `createdAt` INTEGER NOT NULL, `lastFiredAt` INTEGER, PRIMARY KEY(`id`))",
+        "fields": [
+          {
+            "fieldPath": "id",
+            "columnName": "id",
+            "affinity": "TEXT",
+            "notNull": true
+          },
+          {
+            "fieldPath": "name",
+            "columnName": "name",
+            "affinity": "TEXT",
+            "notNull": true
+          },
+          {
+            "fieldPath": "enabled",
+            "columnName": "enabled",
+            "affinity": "INTEGER",
+            "notNull": true
+          },
+          {
+            "fieldPath": "orderIndex",
+            "columnName": "orderIndex",
+            "affinity": "INTEGER",
+            "notNull": true
+          },
+          {
+            "fieldPath": "accountProfileId",
+            "columnName": "accountProfileId",
+            "affinity": "TEXT"
+          },
+          {
+            "fieldPath": "folderId",
+            "columnName": "folderId",
+            "affinity": "TEXT",
+            "notNull": true
+          },
+          {
+            "fieldPath": "criteriaJson",
+            "columnName": "criteriaJson",
+            "affinity": "TEXT",
+            "notNull": true
+          },
+          {
+            "fieldPath": "actionsJson",
+            "columnName": "actionsJson",
+            "affinity": "TEXT",
+            "notNull": true
+          },
+          {
+            "fieldPath": "stopOnMatch",
+            "columnName": "stopOnMatch",
+            "affinity": "INTEGER",
+            "notNull": true
+          },
+          {
+            "fieldPath": "notifyOnFire",
+            "columnName": "notifyOnFire",
+            "affinity": "INTEGER",
+            "notNull": true
+          },
+          {
+            "fieldPath": "createdAt",
+            "columnName": "createdAt",
+            "affinity": "INTEGER",
+            "notNull": true
+          },
+          {
+            "fieldPath": "lastFiredAt",
+            "columnName": "lastFiredAt",
+            "affinity": "INTEGER"
+          }
+        ],
+        "primaryKey": {
+          "autoGenerate": false,
+          "columnNames": [
+            "id"
+          ]
+        }
+      },
+      {
+        "tableName": "mail_watermarks",
+        "createSql": "CREATE TABLE IF NOT EXISTS `${TABLE_NAME}` (`profileId` TEXT NOT NULL, `folderId` TEXT NOT NULL, `uidValidity` INTEGER NOT NULL, `lastSeenUid` INTEGER NOT NULL, `uidNext` INTEGER, `lastPolledAt` INTEGER NOT NULL, PRIMARY KEY(`profileId`, `folderId`))",
+        "fields": [
+          {
+            "fieldPath": "profileId",
+            "columnName": "profileId",
+            "affinity": "TEXT",
+            "notNull": true
+          },
+          {
+            "fieldPath": "folderId",
+            "columnName": "folderId",
+            "affinity": "TEXT",
+            "notNull": true
+          },
+          {
+            "fieldPath": "uidValidity",
+            "columnName": "uidValidity",
+            "affinity": "INTEGER",
+            "notNull": true
+          },
+          {
+            "fieldPath": "lastSeenUid",
+            "columnName": "lastSeenUid",
+            "affinity": "INTEGER",
+            "notNull": true
+          },
+          {
+            "fieldPath": "uidNext",
+            "columnName": "uidNext",
+            "affinity": "INTEGER"
+          },
+          {
+            "fieldPath": "lastPolledAt",
+            "columnName": "lastPolledAt",
+            "affinity": "INTEGER",
+            "notNull": true
+          }
+        ],
+        "primaryKey": {
+          "autoGenerate": false,
+          "columnNames": [
+            "profileId",
+            "folderId"
+          ]
+        }
+      },
+      {
+        "tableName": "mail_rule_firings",
+        "createSql": "CREATE TABLE IF NOT EXISTS `${TABLE_NAME}` (`id` INTEGER PRIMARY KEY AUTOINCREMENT NOT NULL, `ruleId` TEXT, `profileId` TEXT NOT NULL, `folderId` TEXT NOT NULL, `uid` INTEGER NOT NULL, `messageSubject` TEXT, `firedAt` INTEGER NOT NULL, `kind` TEXT NOT NULL, `actionsCompletedMask` INTEGER NOT NULL, `outcomeSummary` TEXT)",
+        "fields": [
+          {
+            "fieldPath": "id",
+            "columnName": "id",
+            "affinity": "INTEGER",
+            "notNull": true
+          },
+          {
+            "fieldPath": "ruleId",
+            "columnName": "ruleId",
+            "affinity": "TEXT"
+          },
+          {
+            "fieldPath": "profileId",
+            "columnName": "profileId",
+            "affinity": "TEXT",
+            "notNull": true
+          },
+          {
+            "fieldPath": "folderId",
+            "columnName": "folderId",
+            "affinity": "TEXT",
+            "notNull": true
+          },
+          {
+            "fieldPath": "uid",
+            "columnName": "uid",
+            "affinity": "INTEGER",
+            "notNull": true
+          },
+          {
+            "fieldPath": "messageSubject",
+            "columnName": "messageSubject",
+            "affinity": "TEXT"
+          },
+          {
+            "fieldPath": "firedAt",
+            "columnName": "firedAt",
+            "affinity": "INTEGER",
+            "notNull": true
+          },
+          {
+            "fieldPath": "kind",
+            "columnName": "kind",
+            "affinity": "TEXT",
+            "notNull": true
+          },
+          {
+            "fieldPath": "actionsCompletedMask",
+            "columnName": "actionsCompletedMask",
+            "affinity": "INTEGER",
+            "notNull": true
+          },
+          {
+            "fieldPath": "outcomeSummary",
+            "columnName": "outcomeSummary",
+            "affinity": "TEXT"
+          }
+        ],
+        "primaryKey": {
+          "autoGenerate": true,
+          "columnNames": [
+            "id"
+          ]
+        },
+        "indices": [
+          {
+            "name": "index_mail_rule_firings_profileId_folderId_uid",
+            "unique": false,
+            "columnNames": [
+              "profileId",
+              "folderId",
+              "uid"
+            ],
+            "orders": [],
+            "createSql": "CREATE INDEX IF NOT EXISTS `index_mail_rule_firings_profileId_folderId_uid` ON `${TABLE_NAME}` (`profileId`, `folderId`, `uid`)"
+          },
+          {
+            "name": "index_mail_rule_firings_ruleId",
+            "unique": false,
+            "columnNames": [
+              "ruleId"
+            ],
+            "orders": [],
+            "createSql": "CREATE INDEX IF NOT EXISTS `index_mail_rule_firings_ruleId` ON `${TABLE_NAME}` (`ruleId`)"
+          }
+        ]
+      },
+      {
+        "tableName": "mail_rule_pending_actions",
+        "createSql": "CREATE TABLE IF NOT EXISTS `${TABLE_NAME}` (`id` TEXT NOT NULL, `ruleId` TEXT NOT NULL, `profileId` TEXT NOT NULL, `folderId` TEXT NOT NULL, `uid` INTEGER NOT NULL, `messageId` TEXT NOT NULL, `messageSubject` TEXT, `actionJson` TEXT NOT NULL, `queuedAt` INTEGER NOT NULL, PRIMARY KEY(`id`))",
+        "fields": [
+          {
+            "fieldPath": "id",
+            "columnName": "id",
+            "affinity": "TEXT",
+            "notNull": true
+          },
+          {
+            "fieldPath": "ruleId",
+            "columnName": "ruleId",
+            "affinity": "TEXT",
+            "notNull": true
+          },
+          {
+            "fieldPath": "profileId",
+            "columnName": "profileId",
+            "affinity": "TEXT",
+            "notNull": true
+          },
+          {
+            "fieldPath": "folderId",
+            "columnName": "folderId",
+            "affinity": "TEXT",
+            "notNull": true
+          },
+          {
+            "fieldPath": "uid",
+            "columnName": "uid",
+            "affinity": "INTEGER",
+            "notNull": true
+          },
+          {
+            "fieldPath": "messageId",
+            "columnName": "messageId",
+            "affinity": "TEXT",
+            "notNull": true
+          },
+          {
+            "fieldPath": "messageSubject",
+            "columnName": "messageSubject",
+            "affinity": "TEXT"
+          },
+          {
+            "fieldPath": "actionJson",
+            "columnName": "actionJson",
+            "affinity": "TEXT",
+            "notNull": true
+          },
+          {
+            "fieldPath": "queuedAt",
+            "columnName": "queuedAt",
+            "affinity": "INTEGER",
+            "notNull": true
+          }
+        ],
+        "primaryKey": {
+          "autoGenerate": false,
+          "columnNames": [
+            "id"
+          ]
+        }
+      },
+      {
+        "tableName": "standing_policies",
+        "createSql": "CREATE TABLE IF NOT EXISTS `${TABLE_NAME}` (`id` TEXT NOT NULL, `clientHint` TEXT NOT NULL, `description` TEXT NOT NULL, `toolNamesJson` TEXT NOT NULL, `argConstraintsJson` TEXT, `maxCallsPerMinute` INTEGER NOT NULL, `expiresAt` INTEGER NOT NULL, `createdAt` INTEGER NOT NULL, `enabled` INTEGER NOT NULL, PRIMARY KEY(`id`))",
+        "fields": [
+          {
+            "fieldPath": "id",
+            "columnName": "id",
+            "affinity": "TEXT",
+            "notNull": true
+          },
+          {
+            "fieldPath": "clientHint",
+            "columnName": "clientHint",
+            "affinity": "TEXT",
+            "notNull": true
+          },
+          {
+            "fieldPath": "description",
+            "columnName": "description",
+            "affinity": "TEXT",
+            "notNull": true
+          },
+          {
+            "fieldPath": "toolNamesJson",
+            "columnName": "toolNamesJson",
+            "affinity": "TEXT",
+            "notNull": true
+          },
+          {
+            "fieldPath": "argConstraintsJson",
+            "columnName": "argConstraintsJson",
+            "affinity": "TEXT"
+          },
+          {
+            "fieldPath": "maxCallsPerMinute",
+            "columnName": "maxCallsPerMinute",
+            "affinity": "INTEGER",
+            "notNull": true
+          },
+          {
+            "fieldPath": "expiresAt",
+            "columnName": "expiresAt",
+            "affinity": "INTEGER",
+            "notNull": true
+          },
+          {
+            "fieldPath": "createdAt",
+            "columnName": "createdAt",
+            "affinity": "INTEGER",
+            "notNull": true
+          },
+          {
+            "fieldPath": "enabled",
+            "columnName": "enabled",
+            "affinity": "INTEGER",
+            "notNull": true
+          }
+        ],
+        "primaryKey": {
+          "autoGenerate": false,
+          "columnNames": [
+            "id"
+          ]
+        }
+      },
+      {
+        "tableName": "age_identities",
+        "createSql": "CREATE TABLE IF NOT EXISTS `${TABLE_NAME}` (`id` TEXT NOT NULL, `label` TEXT NOT NULL, `recipient` TEXT NOT NULL, `secret` TEXT NOT NULL, `createdAt` INTEGER NOT NULL, PRIMARY KEY(`id`))",
+        "fields": [
+          {
+            "fieldPath": "id",
+            "columnName": "id",
+            "affinity": "TEXT",
+            "notNull": true
+          },
+          {
+            "fieldPath": "label",
+            "columnName": "label",
+            "affinity": "TEXT",
+            "notNull": true
+          },
+          {
+            "fieldPath": "recipient",
+            "columnName": "recipient",
+            "affinity": "TEXT",
+            "notNull": true
+          },
+          {
+            "fieldPath": "secret",
+            "columnName": "secret",
+            "affinity": "TEXT",
+            "notNull": true
+          },
+          {
+            "fieldPath": "createdAt",
+            "columnName": "createdAt",
+            "affinity": "INTEGER",
+            "notNull": true
+          }
+        ],
+        "primaryKey": {
+          "autoGenerate": false,
+          "columnNames": [
+            "id"
+          ]
+        }
+      },
+      {
+        "tableName": "ssh_identities",
+        "createSql": "CREATE TABLE IF NOT EXISTS `${TABLE_NAME}` (`id` TEXT NOT NULL, `name` TEXT NOT NULL, `username` TEXT NOT NULL, `password` TEXT, `keyId` TEXT, `createdAt` INTEGER NOT NULL, PRIMARY KEY(`id`))",
+        "fields": [
+          {
+            "fieldPath": "id",
+            "columnName": "id",
+            "affinity": "TEXT",
+            "notNull": true
+          },
+          {
+            "fieldPath": "name",
+            "columnName": "name",
+            "affinity": "TEXT",
+            "notNull": true
+          },
+          {
+            "fieldPath": "username",
+            "columnName": "username",
+            "affinity": "TEXT",
+            "notNull": true
+          },
+          {
+            "fieldPath": "password",
+            "columnName": "password",
+            "affinity": "TEXT"
+          },
+          {
+            "fieldPath": "keyId",
+            "columnName": "keyId",
+            "affinity": "TEXT"
+          },
+          {
+            "fieldPath": "createdAt",
+            "columnName": "createdAt",
+            "affinity": "INTEGER",
+            "notNull": true
+          }
+        ],
+        "primaryKey": {
+          "autoGenerate": false,
+          "columnNames": [
+            "id"
+          ]
+        }
+      }
+    ],
+    "setupQueries": [
+      "CREATE TABLE IF NOT EXISTS room_master_table (id INTEGER PRIMARY KEY,identity_hash TEXT)",
+      "INSERT OR REPLACE INTO room_master_table (id,identity_hash) VALUES(42, 'dc2335c3bb8735fce3f4e40fe2c1cedf')"
+    ]
+  }
+}

@@ -315,6 +315,8 @@
     <string name="connections_field_et_port">منفذ ET</string>
     <string name="connections_field_mosh_server_command">أمر mosh-server</string>
     <string name="connections_helper_mosh_server">اتركه فارغًا للقيمة الافتراضية. استخدم authbind للمنافذ الأقل من 1024.</string>
+    <string name="connections_field_mosh_reattach">إعادة الالتحاق بالجلسة السابقة</string>
+    <string name="connections_helper_mosh_reattach">بعد إعادة تشغيل التطبيق، يُعاد الاتصال بخادم mosh قيد التشغيل بدلاً من بدء جلسة جديدة. إذا لم تعد الجلسة القديمة تستجيب، تبدأ جلسة جديدة.</string>
     <string name="connections_username_placeholder_ask">اتركه فارغًا ليُسأل عند الاتصال</string>
     <string name="connections_file_transport_auto_desc">يحاول SFTP، ويعود إلى SCP إذا كان نظام sftp-server الفرعي غير متاح.</string>
     <string name="connections_file_transport_sftp_label">SFTP فقط</string>

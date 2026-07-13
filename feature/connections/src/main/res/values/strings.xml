@@ -192,6 +192,8 @@
     <string name="connections_field_et_port">ET Port</string>
     <string name="connections_field_mosh_server_command">mosh-server command</string>
     <string name="connections_helper_mosh_server">Leave blank for default. Use authbind for ports below 1024.</string>
+    <string name="connections_field_mosh_reattach">Reattach to previous session</string>
+    <string name="connections_helper_mosh_reattach">Reconnect to the running mosh-server after an app restart instead of starting a new session. Falls back to a fresh session when the old one no longer responds.</string>
     <string name="connections_username_placeholder_ask">Leave empty to ask at connect time</string>
     <string name="connections_file_transport_auto_desc">Try SFTP, fall back to SCP if the sftp-server subsystem is unavailable.</string>
     <string name="connections_file_transport_sftp_label">SFTP only</string>

@@ -326,6 +326,7 @@ fun ConnectionEditDialog(
     }
     var sshOptions by rememberSaveable { mutableStateOf(existing?.sshOptions ?: "") }
     var moshServerCommand by rememberSaveable { mutableStateOf(existing?.moshServerCommand ?: "") }
+    var moshReconnectToExisting by rememberSaveable { mutableStateOf(existing?.moshReconnectToExisting ?: true) }
     var postLoginCommand by rememberSaveable { mutableStateOf(existing?.postLoginCommand ?: "") }
     var postLoginBeforeSessionManager by rememberSaveable { mutableStateOf(existing?.postLoginBeforeSessionManager ?: true) }
     // USB/IP auto-forward: VID:PID of a phone device to export on connect (null = off).
@@ -2371,6 +2372,17 @@ fun ConnectionEditDialog(
                             maxLines = 3,
                             modifier = Modifier.fillMaxWidth(),
                         )
+                        Spacer(Modifier.height(4.dp))
+                        BooleanToggleRow(
+                            label = stringResource(R.string.connections_field_mosh_reattach),
+                            checked = moshReconnectToExisting,
+                            onCheckedChange = { moshReconnectToExisting = it },
+                        )
+                        Text(
+                            stringResource(R.string.connections_helper_mosh_reattach),
+                            style = MaterialTheme.typography.bodySmall,
+                            color = MaterialTheme.colorScheme.onSurfaceVariant,
+                        )
                     }
                     if (selectedTransport == "ET") {
                         Spacer(Modifier.height(4.dp))
@@ -3412,6 +3424,7 @@ fun ConnectionEditDialog(
                             tunnelConfigId = if (useCloudflareTunnel) null else tunnelConfigId,
                             sshOptions = sshOptions.ifBlank { null },
                             moshServerCommand = moshServerCommand.ifBlank { null },
+                            moshReconnectToExisting = moshReconnectToExisting,
                             postLoginCommand = postLoginCommand.ifBlank { null },
                             postLoginBeforeSessionManager = postLoginBeforeSessionManager,
                             usbForwardVidPid = usbForwardVidPid,

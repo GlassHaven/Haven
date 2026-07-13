@@ -315,6 +315,8 @@
     <string name="connections_field_et_port">Порт ET</string>
     <string name="connections_field_mosh_server_command">Команда mosh-server</string>
     <string name="connections_helper_mosh_server">Оставьте пустым для значения по умолчанию. Используйте authbind для портов ниже 1024.</string>
+    <string name="connections_field_mosh_reattach">Переподключаться к прежней сессии</string>
+    <string name="connections_helper_mosh_reattach">После перезапуска приложения переподключается к работающему mosh-server вместо запуска новой сессии. Если старая сессия не отвечает, запускается новая.</string>
     <string name="connections_username_placeholder_ask">Оставьте пустым, чтобы спросить при подключении</string>
     <string name="connections_file_transport_auto_desc">Пробует SFTP, переходит на SCP, если подсистема sftp-server недоступна.</string>
     <string name="connections_file_transport_sftp_label">Только SFTP</string>

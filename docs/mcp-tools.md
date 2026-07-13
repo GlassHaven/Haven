@@ -177,6 +177,7 @@ Edit fields on an existing connection profile (load → change → save). Pass p
 - `ignoreSavedKeys` (boolean) — SSH-family only: force password-only auth, never offer saved keystore keys (#121).
 - `keyId` (string) — SSH only: id of a saved key (list_ssh_keys). Empty string clears.
 - `label` (string) — New user-facing label.
+- `moshReconnectToExisting` (boolean) — Mosh only: re-attach to the still-running mosh-server from the last bootstrap on connect (survives app restarts). Default true; false forces a fresh session every connect (#371).
 - `password` (string) — New password (stored encrypted). Mapped to the profile's transport (SSH/VNC/RDP/SMB). Pass an empty string to clear it.
 - `port` (integer) — New TCP port.
 - `rdpSshForward` (boolean) — RDP only: tunnel through a saved SSH profile (set rdpSshProfileId).

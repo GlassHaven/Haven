@@ -8,7 +8,7 @@ version = "0.1.0"
 dependencies {
     testImplementation("sh.haven:et-transport")
     testImplementation("sh.haven:ssp-transport")
-    testImplementation("com.github.mwiede:jsch:2.28.2")
+    testImplementation("com.github.mwiede:jsch:2.28.4")
     testImplementation("com.google.protobuf:protobuf-javalite:4.29.3")
     testImplementation("org.jetbrains.kotlinx:kotlinx-coroutines-core:1.10.1")
     testImplementation("org.jetbrains.kotlinx:kotlinx-coroutines-test:1.10.1")

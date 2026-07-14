@@ -129,7 +129,7 @@ androidx-test-core = { group = "androidx.test", name = "core-ktx", version = "1.
 compose-ui-test = { group = "androidx.compose.ui", name = "ui-test-junit4" }
 compose-ui-test-manifest = { group = "androidx.compose.ui", name = "ui-test-manifest" }
 # Embedded SSH server for SshClient unit tests (Apache MINA sshd, host JVM only)
-sshd-core = { group = "org.apache.sshd", name = "sshd-core", version = "2.13.2" }
+sshd-core = { group = "org.apache.sshd", name = "sshd-core", version = "2.19.0" }
 slf4j-simple = { group = "org.slf4j", name = "slf4j-simple", version = "2.0.9" }
 
 [plugins]

@@ -27,7 +27,7 @@ okhttp = "5.4.0"
 # QR / barcode + on-device OCR for the terminal's Scan/Recognize attach options.
 # ZXing core is pure Java (Apache 2.0). Tesseract4Android is the adaptech-cz
 # maintained fork that wraps Tesseract 5.x via JNI (Apache 2.0).
-zxing = "3.5.3"
+zxing = "3.5.4"
 # adaptech-cz Tesseract4Android is shipped via JitPack (no Maven Central
 # artifact). 4.8.0 wraps Tesseract 5.x + leptonica, JitPack build "ok".
 # Check https://jitpack.io/#adaptech-cz/Tesseract4Android before bumping —

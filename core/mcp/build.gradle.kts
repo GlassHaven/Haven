@@ -20,7 +20,7 @@ dependencies {
     testImplementation(libs.junit)
     // Real org.json for unit tests (android.jar's is stubbed under
     // the default unit-test configuration).
-    testImplementation("org.json:json:20240303")
+    testImplementation("org.json:json:20260522")
 }
 
 kotlin {

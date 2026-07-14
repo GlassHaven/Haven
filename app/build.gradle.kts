@@ -205,7 +205,7 @@ dependencies {
     testImplementation(libs.junit)
     testImplementation(libs.mockk)
     testImplementation(libs.coroutines.test)
-    testImplementation("org.json:json:20240303")
+    testImplementation("org.json:json:20260522")
     androidTestImplementation(platform(libs.compose.bom))
     androidTestImplementation(libs.compose.ui.test)
 }

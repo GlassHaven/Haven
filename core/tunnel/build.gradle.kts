@@ -50,7 +50,7 @@ dependencies {
     // (returns defaults), so add the real JSON lib for tests that
     // exercise TailscaleConfigBlob's JSON envelope. Same package, same
     // class — JVM resolves to the real impl when both are on the path.
-    testImplementation("org.json:json:20240303")
+    testImplementation("org.json:json:20260522")
 }
 
 kotlin {

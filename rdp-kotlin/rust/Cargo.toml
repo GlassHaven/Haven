@@ -21,7 +21,7 @@ ironrdp-displaycontrol = "0.7"
 ironrdp-svc = "0.7"
 ironrdp-core = "0.2"
 ironrdp-egfx = "0.2"
-x509-cert = { version = "0.2", default-features = false }
+x509-cert = { version = "0.3", default-features = false }
 smallvec = "1"
 log = "0.4"
 android_logger = "0.15"

@@ -5,7 +5,7 @@ go 1.26.4
 require (
 	github.com/ProtonMail/gopenpgp/v2 v2.10.0
 	github.com/rclone/go-proton-api v1.0.2
-	github.com/rclone/rclone v1.74.3
+	github.com/rclone/rclone v1.74.4
 	golang.org/x/crypto v0.53.0
 	golang.zx2c4.com/wireguard v0.0.0-20250521234502-f333402bd9cb
 	tailscale.com v1.100.0
@@ -79,7 +79,7 @@ require (
 	github.com/clipperhouse/uax29/v2 v2.7.0 // indirect
 	github.com/cloudflare/circl v1.6.3 // indirect
 	github.com/cloudinary/cloudinary-go/v2 v2.15.0 // indirect
-	github.com/cloudsoda/go-smb2 v0.0.0-20250228001242-d4c70e6251cc // indirect
+	github.com/cloudsoda/go-smb2 v0.0.0-20260701064823-d8c5600d73b8 // indirect
 	github.com/cloudsoda/sddl v0.0.0-20250224235906-926454e91efc // indirect
 	github.com/coder/websocket v1.8.12 // indirect
 	github.com/colinmarc/hdfs/v2 v2.4.0 // indirect
@@ -205,7 +205,7 @@ require (
 	github.com/spf13/cobra v1.10.2 // indirect
 	github.com/spf13/pflag v1.0.10 // indirect
 	github.com/stretchr/testify v1.11.1 // indirect
-	github.com/t3rm1n4l/go-mega v0.0.0-20251120131202-6845944c051c // indirect
+	github.com/t3rm1n4l/go-mega v0.0.0-20260630094356-4de2f127f34a // indirect
 	github.com/tailscale/certstore v0.1.1-0.20260409135935-3638fb84b77d // indirect
 	github.com/tailscale/go-winio v0.0.0-20231025203758-c4f33415bf55 // indirect
 	github.com/tailscale/hujson v0.0.0-20260302212456-ecc657c15afd // indirect
@@ -237,7 +237,7 @@ require (
 	go4.org/mem v0.0.0-20240501181205-ae6ca9944745 // indirect
 	go4.org/netipx v0.0.0-20231129151722-fdeea329fbba // indirect
 	golang.org/x/exp v0.0.0-20260410095643-746e56fc9e2f // indirect
-	golang.org/x/image v0.41.0 // indirect
+	golang.org/x/image v0.43.0 // indirect
 	golang.org/x/net v0.55.0 // indirect
 	golang.org/x/oauth2 v0.36.0 // indirect
 	golang.org/x/sync v0.21.0 // indirect

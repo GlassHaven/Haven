@@ -34,8 +34,8 @@ dependencies {
 
     // RFC822/MIME parsing of the decrypted message blob the bridge returns.
     // Apache-2.0, F-Droid-friendly, no javax.activation pull.
-    implementation("org.apache.james:apache-mime4j-core:0.8.11")
-    implementation("org.apache.james:apache-mime4j-dom:0.8.11")
+    implementation("org.apache.james:apache-mime4j-core:0.8.14")
+    implementation("org.apache.james:apache-mime4j-dom:0.8.14")
 
     implementation(libs.activity.compose)
     implementation(libs.hilt.android)

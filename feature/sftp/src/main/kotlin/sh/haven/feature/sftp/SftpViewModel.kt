@@ -4622,6 +4622,20 @@ class SftpViewModel @Inject constructor(
                 val results = transport.list(landing)
                 _allEntries.value = sortEntries(results, _sortMode.value)
                 applyFilter()
+            } catch (e: SshIoException) {
+                Log.w(TAG, "SFTP open failed; resetting channel and retrying", e)
+                resetSftpChannel()
+                try {
+                    val transport = currentSshTransport()
+                        ?: throw IllegalStateException("Session not connected after reset")
+                    val landing = _currentPath.value
+                    val results = transport.list(landing)
+                    _allEntries.value = sortEntries(results, _sortMode.value)
+                    applyFilter()
+                } catch (e2: Exception) {
+                    Log.e(TAG, "SFTP open failed after retry", e2)
+                    _error.value = "SFTP connection lost — please try again"
+                }
             } catch (e: Exception) {
                 Log.e(TAG, "SFTP open failed", e)
                 _error.value = "File browser failed: ${e.message}"
@@ -4710,6 +4724,23 @@ class SftpViewModel @Inject constructor(
                     Log.w(TAG, "SFTP channel corrupt at path='$path'; resetting", e)
                     resetSftpChannel()
                     _error.value = "SFTP channel error — please try again"
+                } catch (e: SshIoException) {
+                    // JSch's ChannelSftp.fill() throws IOException("inputstream is closed")
+                    // when the underlying stream read returns <= 0 — a transient
+                    // connection glitch or a slow server (mwiede/jsch#858). Reset the
+                    // channel and retry once before surfacing the error to the user.
+                    Log.w(TAG, "SFTP list failed at path='$path'; resetting and retrying", e)
+                    resetSftpChannel()
+                    try {
+                        val backend = currentFileBackend()
+                            ?: throw IllegalStateException("Not connected after reset")
+                        val results = backend.list(path)
+                        _allEntries.value = sortEntries(results, _sortMode.value)
+                        applyFilter()
+                    } catch (e2: Exception) {
+                        Log.e(TAG, "List directory failed after retry: path='$path'", e2)
+                        _error.value = "SFTP connection lost — please try again"
+                    }
                 } catch (e: Exception) {
                     Log.e(TAG, "List directory failed: path='$path'", e)
                     _error.value = "Failed to list: ${e.message}"

@@ -1440,7 +1440,11 @@ class SftpViewModel @Inject constructor(
                 isReticulum -> { /* backend resolved on demand via TransportSelector */ }
                 else -> {
                     viewModelScope.launch(Dispatchers.IO) {
-                        sftpSession = sessionManager.openSftpSession(profileId)
+                        try {
+                            sftpSession = sessionManager.openSftpSession(profileId)
+                        } catch (e: Exception) {
+                            Log.w(TAG, "Failed to pre-warm SFTP session for $profileId", e)
+                        }
                     }
                 }
             }

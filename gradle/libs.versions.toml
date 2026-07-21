@@ -1,7 +1,7 @@
 [versions]
 kotlin = "2.4.10"
 agp = "9.2.1"
-compose-bom = "2026.06.00"
+compose-bom = "2026.06.01"
 hilt = "2.60.1"
 room = "2.7.1"
 datastore = "1.2.1"

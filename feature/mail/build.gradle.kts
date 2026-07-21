@@ -47,7 +47,7 @@ dependencies {
     testImplementation(libs.coroutines.test)
     // Real org.json for unit tests (MailRuleJson round-trips); the android.jar stub
     // returns null from put(). Same artifact app/core:data already verify.
-    testImplementation("org.json:json:20260522")
+    testImplementation("org.json:json:20260719")
 }
 
 kotlin {

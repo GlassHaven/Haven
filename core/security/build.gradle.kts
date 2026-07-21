@@ -36,7 +36,7 @@ dependencies {
     // Android's android.jar stubs out org.json.JSONObject in unit tests
     // (returns defaults). Add the real impl so JwtPayloadTest can parse
     // base64-decoded JWT claims.
-    testImplementation("org.json:json:20260522")
+    testImplementation("org.json:json:20260719")
 }
 
 kotlin {

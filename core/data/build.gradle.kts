@@ -48,7 +48,7 @@ dependencies {
     testImplementation(libs.coroutines.test)
     // Real org.json for unit tests (android.jar's is stubbed under
     // isReturnDefaultValues), so MailRuleJson round-trips can be asserted.
-    testImplementation("org.json:json:20260522")
+    testImplementation("org.json:json:20260719")
 }
 
 kotlin {

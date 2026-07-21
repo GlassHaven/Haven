@@ -36,7 +36,7 @@ tesseract4android = "4.8.0"
 # USB serial driver library (mik3y). MIT-licensed, no transitive deps — pure
 # Android USB host API. Drives CDC-ACM + CH34x/FTDI/CP21xx/Prolific adapters
 # for the USB-serial terminal connection type. JitPack, like jsch/tesseract.
-usbSerial = "3.10.0"
+usbSerial = "3.11.0"
 # Pure-Java XZ decoder, BSD-licensed. Needed to extract tar.xz rootfs
 # tarballs (Debian / Ubuntu / Arch from proot-distro). Tiny (~110KB).
 xz = "1.12"

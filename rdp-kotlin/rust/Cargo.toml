@@ -10,7 +10,7 @@ name = "rdp_transport"
 [dependencies]
 ironrdp-blocking = "0.9"
 ironrdp-connector = "0.9"
-ironrdp-session = "0.10"
+ironrdp-session = "0.11"
 ironrdp-input = "0.6"
 ironrdp-cliprdr = "0.6"
 ironrdp-graphics = "0.8"

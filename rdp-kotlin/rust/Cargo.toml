@@ -20,7 +20,7 @@ ironrdp-dvc = "0.7"
 ironrdp-displaycontrol = "0.7"
 ironrdp-svc = "0.7"
 ironrdp-core = "0.2"
-ironrdp-egfx = "0.2"
+ironrdp-egfx = "0.3"
 x509-cert = { version = "0.3", default-features = false }
 smallvec = "1"
 log = "0.4"

@@ -17,7 +17,7 @@ ironrdp-graphics = "0.8"
 ironrdp-tls = { version = "0.2", features = ["rustls"] }
 ironrdp-pdu = "0.8"
 ironrdp-dvc = "0.7"
-ironrdp-displaycontrol = "0.7"
+ironrdp-displaycontrol = "0.8"
 ironrdp-svc = "0.7"
 ironrdp-core = "0.2"
 ironrdp-egfx = "0.2"

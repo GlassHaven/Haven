@@ -840,14 +840,16 @@ class SshSessionManager @Inject constructor(
      *    owns those via its own watchdog and probing here would race its reconnect,
      *  - sessions whose profile policy disables autoReconnect.
      */
-    suspend fun probeAndReconnectStale(probeTimeoutMs: Long = 5_000L) {
+    suspend fun probeAndReconnectStale(probeTimeoutMs: Long = 5_000L, profileId: String? = null) {
         val candidates = _sessions.value.values.filter {
             it.status == SessionState.Status.CONNECTED &&
                 !it.headless &&
-                it.connectionConfig?.reconnectPolicy?.autoReconnect == true
+                it.connectionConfig?.reconnectPolicy?.autoReconnect == true &&
+                (profileId == null || it.profileId == profileId)
         }
         if (candidates.isEmpty()) return
-        Log.d(TAG, "probeAndReconnectStale: probing ${candidates.size} live session(s)")
+        Log.d(TAG, "probeAndReconnectStale: probing ${candidates.size} live session(s)" +
+            (profileId?.let { " for profile $it" } ?: ""))
         coroutineScope {
             candidates.map { session ->
                 async {

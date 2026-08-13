@@ -28,6 +28,7 @@ import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.flow.stateIn
 import kotlinx.coroutines.flow.map
 import kotlinx.coroutines.CompletableDeferred
+import kotlinx.coroutines.withTimeoutOrNull
 import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.sync.Mutex
 import kotlinx.coroutines.sync.withLock
@@ -4771,6 +4772,45 @@ class SftpViewModel @Inject constructor(
         viewModelScope.launch {
             try {
                 if (!pasteInProgress.get()) _loading.value = true
+
+                // Probe active sessions and reconnect if stale/dead — a
+                // socket can die silently while the app stays foregrounded
+                // (NAT/carrier timeout with no lifecycle transition to
+                // trigger the return-to-foreground probe in
+                // SshConnectionService), and reusing it here throws
+                // "session is down" while the empty-state text still reads
+                // "Empty directory". Probe first so this is transparent.
+                sessionManager.probeAndReconnectStale(profileId = profileId)
+
+                // A profile whose SSH/Mosh/ET session just opened for the
+                // first time can still be CONNECTING when this runs (e.g.
+                // right after tapping the connection card) — wait briefly
+                // for the handshake to resolve on whichever transport the
+                // profile actually uses, instead of racing it and landing
+                // on an empty/home fallback.
+                val profile = repository.getById(profileId)
+                withTimeoutOrNull(5_000) {
+                    when {
+                        profile?.isMosh == true -> {
+                            moshSessionManager.sessions.first { sessions ->
+                                sessions.values.filter { it.profileId == profileId }
+                                    .let { forProfile -> forProfile.isEmpty() || forProfile.any { it.status != MoshSessionManager.SessionState.Status.CONNECTING } }
+                            }
+                        }
+                        profile?.isEternalTerminal == true -> {
+                            etSessionManager.sessions.first { sessions ->
+                                sessions.values.filter { it.profileId == profileId }
+                                    .let { forProfile -> forProfile.isEmpty() || forProfile.any { it.status != EtSessionManager.SessionState.Status.CONNECTING } }
+                            }
+                        }
+                        else -> {
+                            sessionManager.sessions.first { sessions ->
+                                sessions.values.filter { it.profileId == profileId }
+                                    .let { forProfile -> forProfile.isEmpty() || forProfile.any { it.status != SessionState.Status.CONNECTING } }
+                            }
+                        }
+                    }
+                }
 
                 // SSH/SFTP calls below open or write to channels over the
                 // network, so they must run off the Main dispatcher.

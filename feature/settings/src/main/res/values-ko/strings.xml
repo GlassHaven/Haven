@@ -50,7 +50,7 @@
     <string name="settings_view_connection_log_title">연결 로그 보기</string>
     <string name="settings_view_connection_log_subtitle">연결 기록 및 이벤트</string>
     <string name="settings_verbose_logging_title">자세한 연결 로깅</string>
-    <string name="settings_verbose_logging_subtitle">SSH, Mosh, ET 연결의 프로토콜 세부 정보를 캡처합니다. 호스트 이름과 사용자 이름이 포함될 수 있습니다</string>
+    <string name="settings_verbose_logging_subtitle">SSH, Mosh, ET, RDP 연결의 프로토콜 세부 정보를 캡처합니다 — 느린 원격 데스크톱 진단에 필요한 RDP 프레임 타이밍 포함. 호스트 이름과 사용자 이름이 포함될 수 있습니다</string>
 
     <!-- Terminal section -->
     <string name="settings_session_persistence_title">세션 지속성</string>
@@ -399,7 +399,7 @@
     <string name="settings_paired_clients_bypass_off">파괴적 호출은 여전히 동의를 요청합니다(기본값).</string>
     <string name="settings_paired_clients_cd_unpair">클라이언트 페어링 해제</string>
     <string name="settings_paired_clients_unpair_title">\'%1$s\' 페어링을 해제하시겠습니까?</string>
-    <string name="settings_paired_clients_unpair_message">다음에 연결할 때 다시 승인해야 하며, 자동 승인은 취소됩니다.</string>
+    <string name="settings_paired_clients_unpair_message">다음에 연결할 때 다시 승인해야 하며 기존 자동 승인은 해제됩니다.</string>
     <string name="settings_paired_clients_unpair_confirm">페어링 해제</string>
     <string name="settings_paired_clients_unpaired_toast">\'%1$s\' 페어링을 해제했습니다</string>
 

@@ -1943,28 +1943,13 @@ fn run_rdp_session(
             if !events.is_empty() {
                 use ironrdp_pdu::input::InputEventPdu;
                 use ironrdp_pdu::rdp::headers::ShareDataPdu;
-                // #504: keyboard events are typing-rate, so log every one. A
-                // "modifier stuck in the guest" report can only blame or
-                // exonerate the wire if the full press/release stream is
-                // visible in a single logcat (the INPUT-WIRE dump below stops
-                // after 3 PDUs, which is what left #504 undecidable).
-                for ev in &events {
-                    match ev {
-                        ironrdp_pdu::input::InputEvent::ScanCode(sc) => {
-                            use ironrdp_pdu::input::scan_code::KeyboardFlags as Kf;
-                            info!(
-                                "KEY-WIRE sc=0x{:02x}{} {}",
-                                sc.key_code,
-                                if sc.flags.contains(Kf::EXTENDED) { " ext" } else { "" },
-                                if sc.flags.contains(Kf::RELEASE) { "release" } else { "press" },
-                            );
-                        }
-                        ironrdp_pdu::input::InputEvent::Sync(s) => {
-                            info!("KEY-WIRE sync flags={:?}", s.flags);
-                        }
-                        _ => {}
-                    }
-                }
+                // The #504 KEY-WIRE per-keystroke dump lived here. It served
+                // its purpose — the reporter's 2026-08-18 log showed every
+                // RShift+RAlt+letter combo leaving the wire with correct
+                // ordering and balanced releases, exonerating this path —
+                // and logging every keystroke is a keylogger by another name
+                // on a production session (the reporter asked for its
+                // removal), so it is gone rather than gated.
                 let mut buf = ironrdp_core::WriteBuf::new();
                 match active_stage.encode_static(&mut buf, ShareDataPdu::Input(InputEventPdu(events))) {
                     Ok(_) => {

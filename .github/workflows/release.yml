@@ -140,12 +140,27 @@ jobs:
       # native payload for a ~20 MB smaller download (#510). The AAB stays
       # full-only — it exists for store distribution, which the stripped
       # flavour is not part of.
+      # The MEMSAMPLE loop prints host memory every 30s alongside the Gradle
+      # output. The v5.87.36 release attempts died five times in a row with
+      # "runner has received a shutdown signal" 26-31 min in (mid-minify) and
+      # nothing in the log to attribute it; this puts the ground truth in the
+      # log up to the moment of death, since evicted runners upload nothing
+      # afterwards.
       - name: Build signed APK + AAB (${{ matrix.abi }})
-        run: >-
-          ./gradlew :app:assemble${{ matrix.variant }}FullRelease
-          :app:assemble${{ matrix.variant }}TerminalRelease
-          :app:bundle${{ matrix.variant }}FullRelease
-          -PtargetAbi=${{ matrix.abi }}
+        run: |
+          ( while true; do
+              echo "MEMSAMPLE $(date -u +%H:%M:%S) $(free -m | awk '/^Mem:/{print "used="$3"M avail="$7"M"}')"
+              sleep 30
+            done ) &
+          MEMSAMPLER=$!
+          set +e
+          ./gradlew :app:assemble${{ matrix.variant }}FullRelease \
+            :app:assemble${{ matrix.variant }}TerminalRelease \
+            :app:bundle${{ matrix.variant }}FullRelease \
+            -PtargetAbi=${{ matrix.abi }}
+          rc=$?
+          kill "$MEMSAMPLER" 2>/dev/null
+          exit "$rc"
         env:
           KEYSTORE_PASSWORD: ${{ secrets.KEYSTORE_PASSWORD }}
           KEY_ALIAS: ${{ secrets.KEY_ALIAS }}

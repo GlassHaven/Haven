@@ -372,7 +372,7 @@ class SshClient : SshConnection {
         // #519: phase timing, so a slow connect names its own cause rather
         // than arriving as an unattributed "took 1.2s".
         val timing = ConnectTiming()
-        val resolvedIp = if (proxy != null) config.host else resolveHost(config.host, family = config.addressFamily)
+        val resolvedIp = if (proxy != null) config.host else resolveHost(config.host, family = config.addressFamily, port = config.port)
         timing.mark("resolve")
         connectedViaProxy = proxy != null
         val sess = jsch.getSession(config.username, resolvedIp, config.port)
@@ -631,7 +631,7 @@ class SshClient : SshConnection {
         // #519: phase timing, so a slow connect names its own cause rather
         // than arriving as an unattributed "took 1.2s".
         val timing = ConnectTiming()
-        val resolvedIp = if (proxy != null) config.host else resolveHost(config.host, family = config.addressFamily)
+        val resolvedIp = if (proxy != null) config.host else resolveHost(config.host, family = config.addressFamily, port = config.port)
         timing.mark("resolve")
         connectedViaProxy = proxy != null
         val sess = jsch.getSession(config.username, resolvedIp, config.port)
@@ -1067,6 +1067,7 @@ class SshClient : SshConnection {
         fun resolveHost(
             hostname: String,
             family: ConnectionConfig.AddressFamily = ConnectionConfig.AddressFamily.AUTO,
+            port: Int = 0,
         ): String {
             // IPv4 literal — skip resolution. With family=IPV6_ONLY this is a
             // user choice to override their own preference; pass it through
@@ -1077,9 +1078,9 @@ class SshClient : SshConnection {
             if (hostname.endsWith(".onion")) return hostname
 
             val ip = if (hostname.endsWith(".local") || hostname.endsWith(".local.")) {
-                resolveMdns(hostname) ?: resolveSystem(hostname, family)
+                resolveMdns(hostname) ?: resolveSystem(hostname, family, port)
             } else {
-                resolveSystem(hostname, family)
+                resolveSystem(hostname, family, port)
             }
 
             if (ip != null) return ip
@@ -1097,33 +1098,78 @@ class SshClient : SshConnection {
         private fun resolveSystem(
             hostname: String,
             family: ConnectionConfig.AddressFamily = ConnectionConfig.AddressFamily.AUTO,
+            port: Int = 0,
         ): String? {
-            return try {
-                // InetAddress.getByName/getAllByName has no timeout — run it in a thread with a deadline
+            val addresses = try {
+                // InetAddress.getAllByName has no timeout — run it in a thread with a
+                // deadline. Only the DNS lookup runs under the deadline; the AUTO
+                // reachability probes below run outside it (they have their own
+                // per-address budget and would otherwise eat the DNS allowance).
                 val future = java.util.concurrent.CompletableFuture.supplyAsync {
-                    when (family) {
-                        ConnectionConfig.AddressFamily.AUTO ->
-                            InetAddress.getByName(hostname).hostAddress
-                        ConnectionConfig.AddressFamily.IPV4_ONLY ->
-                            InetAddress.getAllByName(hostname)
-                                .firstOrNull { it is java.net.Inet4Address }
-                                ?.hostAddress
-                        ConnectionConfig.AddressFamily.IPV6_ONLY ->
-                            InetAddress.getAllByName(hostname)
-                                .firstOrNull { it is java.net.Inet6Address }
-                                ?.hostAddress
-                    }
+                    InetAddress.getAllByName(hostname).toList()
                 }
                 future.get(5, java.util.concurrent.TimeUnit.SECONDS)
             } catch (e: java.util.concurrent.TimeoutException) {
                 Log.w(TAG, "DNS resolve timed out for ${LogRedact.of(hostname)}")
-                null
+                return null
             } catch (e: Exception) {
                 val cause = if (e is java.util.concurrent.ExecutionException) e.cause ?: e else e
                 Log.w(TAG, "System DNS resolve failed for ${LogRedact.of(hostname)}", cause)
-                null
+                return null
+            }
+            return when (family) {
+                ConnectionConfig.AddressFamily.IPV4_ONLY ->
+                    addresses.firstOrNull { it is java.net.Inet4Address }?.hostAddress
+                ConnectionConfig.AddressFamily.IPV6_ONLY ->
+                    addresses.firstOrNull { it is java.net.Inet6Address }?.hostAddress
+                ConnectionConfig.AddressFamily.AUTO ->
+                    selectAutoAddress(addresses) { addr -> probeTcp(addr, port) }?.hostAddress
             }
         }
+
+        /**
+         * Pick the address to hand to the SSH engine when the family is AUTO (#566).
+         *
+         * The resolver's answer can hold several addresses; historically only the
+         * first was used, so a dead AAAA record on a dual-stack network (or a stale
+         * entry in a round-robin A set) timed out the whole connection even though a
+         * working address sat in the same answer. Serial fallback in resolver order
+         * (the platform already sorts per RFC 6724): the first address that answers
+         * a TCP handshake wins. A single-address answer is returned without probing,
+         * and if nothing answers the first address is returned so the SSH engine
+         * produces its natural connect error instead of a misleading DNS one.
+         */
+        internal fun selectAutoAddress(
+            candidates: List<InetAddress>,
+            probe: (InetAddress) -> Boolean,
+        ): InetAddress? {
+            if (candidates.size <= 1) return candidates.firstOrNull()
+            candidates.take(MAX_PROBED_ADDRESSES).forEach { addr ->
+                if (probe(addr)) return addr
+            }
+            Log.w(TAG, "No address answered a connect probe; falling back to the first")
+            return candidates.first()
+        }
+
+        /** Can this address complete a TCP handshake on [port] within the budget? */
+        internal fun probeTcp(
+            addr: InetAddress,
+            port: Int,
+            timeoutMs: Int = PROBE_TIMEOUT_MS,
+        ): Boolean {
+            if (port !in 1..65535) return true // no port to probe with — accept as-is
+            return try {
+                java.net.Socket().use {
+                    it.connect(java.net.InetSocketAddress(addr, port), timeoutMs)
+                    true
+                }
+            } catch (e: Exception) {
+                false
+            }
+        }
+
+        private const val MAX_PROBED_ADDRESSES = 4
+        private const val PROBE_TIMEOUT_MS = 1500
 
         /**
          * Direct mDNS query for .local hostnames.

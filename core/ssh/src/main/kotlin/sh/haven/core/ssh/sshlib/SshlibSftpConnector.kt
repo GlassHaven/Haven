@@ -109,7 +109,7 @@ internal object SshlibSftpConnector {
         // A proxied dial must NOT resolve the target locally: the name is
         // resolved at the far end of the tunnel (and for .onion cannot be
         // resolved here at all) — the same rule the JSch engine follows.
-        val host = if (proxy != null) config.host else SshClient.resolveHost(config.host, config.addressFamily)
+        val host = if (proxy != null) config.host else SshClient.resolveHost(config.host, config.addressFamily, config.port)
         val client = SshlibClient(
             org.connectbot.sshlib.SshClientConfig {
                 this.host = host

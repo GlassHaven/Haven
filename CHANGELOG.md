@@ -5,6 +5,18 @@ the corresponding GitHub Release; a release can't ship without its section
 (enforced by `scripts/check-changelog.sh` in CI). The GitHub "Full Changelog"
 compare link is appended automatically — don't add it here.
 
+## v5.87.36
+
+- RDP no longer logs every keystroke to logcat (#504 — thanks pawlosck for calling it out)
+- Per-profile SSH keepalive settings now actually take effect (#537 — thanks kanazawahere)
+- Korean translations polished and missing content restored (#561 — thanks Nergis0318)
+
+- **RDP no longer logs every keystroke** (#504 — thanks pawlosck, who rightly called it out). The per-key wire logging was added as a diagnostic for the stuck-modifier investigation, and it did its job: the log it produced exonerated Haven's input path conclusively, with every modifier combination leaving the wire correctly ordered and every press paired with its release. A diagnostic that logs each key you type is a keylogger the moment the investigation ends, so it is removed outright rather than hidden behind a setting.
+- **Per-profile SSH keepalive settings now actually take effect** (#537 — thanks kanazawahere for the find). Setting `ServerAliveInterval` or `ServerAliveCountMax` in a profile's SSH options has been silently inert since the option parser was added: the values were forwarded into JSch's config map, which JSch never consults for those two — they live as session fields behind setters. The overrides now reach the real setters with OpenSSH semantics: the interval is in seconds, 0 disables keepalive, and a value that does not parse leaves the default untouched.
+- **Korean translations polished** (#561 — thanks Nergis0318): more natural phrasing throughout, and missing content restored, with key and placeholder parity verified against the English source.
+
+🔑 **A diagnostic earns its keep once, then becomes a liability.** The keystroke log existed to answer exactly one question, and the first complete capture answered it. Everything it could record after that point is cost without return — and this kind of cost lands on users who never saw the issue it was for.
+
 ## v5.87.35
 
 - Returning to zellij or tmux no longer repaints the whole screen when the keyboard was open (#554 — thanks paour)

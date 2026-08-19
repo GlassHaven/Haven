@@ -1,0 +1,3 @@
+- RDP no longer logs every keystroke to logcat (#504 — thanks pawlosck for calling it out)
+- Per-profile SSH keepalive settings now actually take effect (#537 — thanks kanazawahere)
+- Korean translations polished and missing content restored (#561 — thanks Nergis0318)

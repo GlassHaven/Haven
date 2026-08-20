@@ -201,18 +201,32 @@ class SpiceSession(
 
     // --- Input forwarding ---
 
+    // #549: input events sampled into the verbose log. The reporter's "no
+    // detailed log for this entry" left the pointer investigation blind on
+    // the user side — whether the touch layer even called sendMouseMove was
+    // unknowable from their reports. Moves are throttled (first 10, then
+    // every 100th) because they arrive at drag rate; buttons/keys are rare
+    // enough to log every one.
+    private var mouseMoveCount = 0L
+
     fun sendKey(scancode: Int, pressed: Boolean) {
         if (closed) return
+        log("D", "input: key 0x${scancode.toString(16)} ${if (pressed) "down" else "up"}")
         client?.sendKey(scancode.toUInt(), pressed)
     }
 
     fun sendMouseMove(x: Int, y: Int) {
         if (closed) return
+        val n = ++mouseMoveCount
+        if (n <= 10 || n % 100 == 0L) {
+            log("D", "input: mouse move #$n -> ($x,$y)")
+        }
         client?.sendMouseMove(x, y)
     }
 
     fun sendMouseButton(button: MouseButton, pressed: Boolean) {
         if (closed) return
+        log("D", "input: mouse $button ${if (pressed) "down" else "up"} (after $mouseMoveCount moves)")
         client?.sendMouseButton(button, pressed)
     }
 

@@ -5,6 +5,14 @@ the corresponding GitHub Release; a release can't ship without its section
 (enforced by `scripts/check-changelog.sh` in CI). The GitHub "Full Changelog"
 compare link is appended automatically — don't add it here.
 
+## v5.87.38
+
+- YubiKey ECDSA SSH keys (sk-ecdsa-sha2-nistp256) now authenticate instead of failing after the touch (#531 — thanks pixel4696)
+
+- **Security-key ECDSA SSH auth fixed** (#531 — thanks pixel4696, whose "touch works, then publickey fails" report pointed straight at the signature leaving the phone malformed). The two FIDO key types hand back their signatures in different shapes: an ed25519 assertion is already the raw 64 bytes SSH wants, but an ECDSA assertion arrives as a DER structure that OpenSSH expects re-encoded as two SSH mpints. Haven passed the DER through untouched, so every sk-ecdsa signature failed server-side verification while sk-ed25519 sailed through the identical code path. The conversion now happens (and rejects malformed input outright), with the padding edge cases pinned by unit tests. The live round trip against a real server with a hardware key is the reporter's retest.
+
+🔐 **Two key types, one code path, one silent divergence.** The ed25519 flow working made the shared path look proven, but "shared" only covered the framing; the signature payload inside it had a per-algorithm shape nobody was converting. A path is only as tested as its least-tested branch.
+
 ## v5.87.37
 
 - SSH "Address family: Auto" now falls back across all resolved addresses instead of gambling on the first (#566)

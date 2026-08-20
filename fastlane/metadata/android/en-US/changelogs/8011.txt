@@ -1,0 +1,1 @@
+- YubiKey ECDSA SSH keys (sk-ecdsa-sha2-nistp256) now authenticate instead of failing after the touch (#531 — thanks pixel4696)

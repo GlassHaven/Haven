@@ -1,0 +1,2 @@
+- The SPICE mouse fix, round three — now verified against a live PS/2-only QEMU guest down to the guest's mouse device (#549)
+- SPICE sessions now record input events in the connection log, closing the "No detailed log for this entry" gap (#549)

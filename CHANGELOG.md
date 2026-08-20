@@ -5,6 +5,15 @@ the corresponding GitHub Release; a release can't ship without its section
 (enforced by `scripts/check-changelog.sh` in CI). The GitHub "Full Changelog"
 compare link is appended automatically — don't add it here.
 
+## v5.87.40
+
+- The SPICE mouse fix, round three — now verified against a live PS/2-only QEMU guest down to the guest's mouse device (#549)
+- SPICE sessions now record input events in the connection log, closing the "No detailed log for this entry" gap (#549)
+
+- **The SPICE relative mouse now works, verified end to end** (#549). v5.87.39's parse fix was correct but repaired a message QEMU never sends at connect: the server delivers the initial mouse mode *inside* its INIT message and no separate announcement follows, so the corrected parser sat waiting for bytes that never came — the reporter's immediate "no changes" was accurate, and this time the investigation ran against a live QEMU with a PS/2-only guest instead of stopping at unit tests. Two layers were wrong: the init-carried mode was parsed and dropped, and even stored it would have been lost, because init is handled before the input path wires up its view of the mode. The mode is now cached and replayed when the input path attaches. Verification went to the bottom: the client's relative motion messages were captured hitting QEMU's PS/2 device byte-identically to QEMU's own native input injection. A one-command probe now reproduces that whole check against any PS/2-only QEMU, so this path can never again ship untested against the thing it talks to.
+
+🪞 **The second fix failing the same way as the first would have been unforgivable; the difference is where verification stopped.** Round one verified mode plumbing against a hand-fed mode. Round two verified parsing against hand-fed bytes. Round three put a real server on the wire and read the guest's device driver — and only that level found both remaining defects. The probe stays in the tree because the lesson has now been paid for twice.
+
 ## v5.87.39
 
 - The mouse now works over SPICE on PS/2-only guests, for real this time (#549 — thanks empanadablues for the three-device retest that proved the last fix never worked)

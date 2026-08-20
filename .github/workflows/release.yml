@@ -153,12 +153,22 @@ jobs:
               sleep 30
             done ) &
           MEMSAMPLER=$!
+          # The two flavours run as SEQUENTIAL Gradle invocations, not one.
+          # With both in a single invocation, the terminal flavour's R8 ran
+          # concurrently with the full flavour's bundling/signing, and that
+          # overlap is where both armv7 host-OOM deaths sat (MEMSAMPLE showed
+          # 15.2G used of ~16G, 625M available at the kill). One R8/bundle
+          # peak at a time keeps the host inside its memory.
           set +e
           ./gradlew :app:assemble${{ matrix.variant }}FullRelease \
-            :app:assemble${{ matrix.variant }}TerminalRelease \
             :app:bundle${{ matrix.variant }}FullRelease \
             -PtargetAbi=${{ matrix.abi }}
           rc=$?
+          if [ "$rc" = "0" ]; then
+            ./gradlew :app:assemble${{ matrix.variant }}TerminalRelease \
+              -PtargetAbi=${{ matrix.abi }}
+            rc=$?
+          fi
           kill "$MEMSAMPLER" 2>/dev/null
           exit "$rc"
         env:

@@ -48,6 +48,9 @@ import androidx.compose.material3.HorizontalDivider
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
+import androidx.compose.material3.ModalBottomSheet
+import androidx.compose.material3.rememberModalBottomSheetState
+import androidx.compose.ui.platform.LocalConfiguration
 import androidx.compose.material3.LocalTextStyle
 import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.Surface
@@ -571,7 +574,18 @@ private fun SystemVmSection(
  *
  * Stateless by design: the draft lives in the ViewModel so a rotation can't
  * quietly reset it (see DesktopViewModel.showSystemVmImport).
+ *
+ * Two containers (#558): a dialog on ordinary screens, a bottom sheet when the
+ * window is height-compact (landscape phones). The dialog WINDOW caps its own
+ * height at ~85% of a short screen no matter what modifier goes on the content
+ * — six attempts are catalogued on the issue — so the arch chips clipped in
+ * landscape and no in-dialog change could recover the space. The sheet is the
+ * app's existing pattern for content that owns the short axis
+ * (AttachOptionsSheet, MediaActions) and scrolls instead of clipping. Portrait
+ * keeps the dialog, which renders correctly there and matches every other
+ * dialog on this screen.
  */
+@OptIn(ExperimentalMaterial3Api::class)
 @Composable
 private fun SystemVmImportDialog(
     label: String,
@@ -583,63 +597,109 @@ private fun SystemVmImportDialog(
     onImport: () -> Unit,
     onDismiss: () -> Unit,
 ) {
-    AlertDialog(
-        onDismissRequest = onDismiss,
-        title = { Text(stringResource(AppR.string.app_system_vm_import_title)) },
-        text = {
-            // Scrollable: M3 doesn't scroll the text slot for you, and the arch
-            // row pushed this past what a small portrait phone shows at a large
-            // font scale.
-            Column(modifier = Modifier.verticalScroll(rememberScrollState())) {
-                OutlinedTextField(
-                    value = label,
-                    onValueChange = onLabelChange,
-                    label = { Text(stringResource(AppR.string.app_system_vm_import_label)) },
-                    singleLine = true,
-                    modifier = Modifier.fillMaxWidth(),
-                )
-                Spacer(Modifier.height(8.dp))
-                OutlinedTextField(
-                    value = source,
-                    onValueChange = onSourceChange,
-                    label = { Text(stringResource(AppR.string.app_system_vm_import_source)) },
-                    singleLine = true,
-                    modifier = Modifier.fillMaxWidth(),
+    val heightCompact = LocalConfiguration.current.screenHeightDp < 480
+    if (heightCompact) {
+        ModalBottomSheet(
+            onDismissRequest = onDismiss,
+            sheetState = rememberModalBottomSheetState(skipPartiallyExpanded = true),
+        ) {
+            Column(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .verticalScroll(rememberScrollState())
+                    .padding(horizontal = 24.dp)
+                    .padding(bottom = 16.dp),
+            ) {
+                Text(
+                    stringResource(AppR.string.app_system_vm_import_title),
+                    style = MaterialTheme.typography.titleMedium,
                 )
                 Spacer(Modifier.height(12.dp))
-                Text(
-                    stringResource(AppR.string.app_system_vm_import_arch),
-                    style = MaterialTheme.typography.titleSmall,
-                )
-                Spacer(Modifier.height(4.dp))
-                FlowRow(horizontalArrangement = Arrangement.spacedBy(6.dp)) {
-                    VmArch.entries.forEach { candidate ->
-                        FilterChip(
-                            selected = arch == candidate,
-                            onClick = { onArchChange(candidate) },
-                            label = { Text(candidate.id) },
-                        )
+                SystemVmImportFields(label, source, arch, onLabelChange, onSourceChange, onArchChange)
+                Spacer(Modifier.height(8.dp))
+                Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.End) {
+                    TextButton(onClick = onDismiss) { Text(stringResource(R.string.common_cancel)) }
+                    TextButton(
+                        onClick = onImport,
+                        enabled = label.isNotBlank() && source.isNotBlank(),
+                    ) {
+                        Text(stringResource(AppR.string.app_system_vm_import))
                     }
                 }
-                Spacer(Modifier.height(4.dp))
-                Text(
-                    stringResource(AppR.string.app_system_vm_import_arch_hint),
-                    style = MaterialTheme.typography.bodySmall,
-                    color = MaterialTheme.colorScheme.onSurfaceVariant,
-                )
             }
-        },
-        confirmButton = {
-            TextButton(
-                onClick = onImport,
-                enabled = label.isNotBlank() && source.isNotBlank(),
-            ) {
-                Text(stringResource(AppR.string.app_system_vm_import))
-            }
-        },
-        dismissButton = {
-            TextButton(onClick = onDismiss) { Text(stringResource(R.string.common_cancel)) }
-        },
+        }
+    } else {
+        AlertDialog(
+            onDismissRequest = onDismiss,
+            title = { Text(stringResource(AppR.string.app_system_vm_import_title)) },
+            text = {
+                // Scrollable: M3 doesn't scroll the text slot for you, and the arch
+                // row pushed this past what a small portrait phone shows at a large
+                // font scale.
+                Column(modifier = Modifier.verticalScroll(rememberScrollState())) {
+                    SystemVmImportFields(label, source, arch, onLabelChange, onSourceChange, onArchChange)
+                }
+            },
+            confirmButton = {
+                TextButton(
+                    onClick = onImport,
+                    enabled = label.isNotBlank() && source.isNotBlank(),
+                ) {
+                    Text(stringResource(AppR.string.app_system_vm_import))
+                }
+            },
+            dismissButton = {
+                TextButton(onClick = onDismiss) { Text(stringResource(R.string.common_cancel)) }
+            },
+        )
+    }
+}
+
+/** The import form body, shared by the dialog and bottom-sheet containers. */
+@Composable
+private fun SystemVmImportFields(
+    label: String,
+    source: String,
+    arch: VmArch,
+    onLabelChange: (String) -> Unit,
+    onSourceChange: (String) -> Unit,
+    onArchChange: (VmArch) -> Unit,
+) {
+    OutlinedTextField(
+        value = label,
+        onValueChange = onLabelChange,
+        label = { Text(stringResource(AppR.string.app_system_vm_import_label)) },
+        singleLine = true,
+        modifier = Modifier.fillMaxWidth(),
+    )
+    Spacer(Modifier.height(8.dp))
+    OutlinedTextField(
+        value = source,
+        onValueChange = onSourceChange,
+        label = { Text(stringResource(AppR.string.app_system_vm_import_source)) },
+        singleLine = true,
+        modifier = Modifier.fillMaxWidth(),
+    )
+    Spacer(Modifier.height(12.dp))
+    Text(
+        stringResource(AppR.string.app_system_vm_import_arch),
+        style = MaterialTheme.typography.titleSmall,
+    )
+    Spacer(Modifier.height(4.dp))
+    FlowRow(horizontalArrangement = Arrangement.spacedBy(6.dp)) {
+        VmArch.entries.forEach { candidate ->
+            FilterChip(
+                selected = arch == candidate,
+                onClick = { onArchChange(candidate) },
+                label = { Text(candidate.id) },
+            )
+        }
+    }
+    Spacer(Modifier.height(4.dp))
+    Text(
+        stringResource(AppR.string.app_system_vm_import_arch_hint),
+        style = MaterialTheme.typography.bodySmall,
+        color = MaterialTheme.colorScheme.onSurfaceVariant,
     )
 }
 

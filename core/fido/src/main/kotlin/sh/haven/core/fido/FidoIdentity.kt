@@ -110,8 +110,16 @@ class FidoIdentity(
         // string algorithm_name
         writeString(out, algName.toByteArray())
 
-        // string raw_signature
-        writeString(out, rawSignature)
+        // string signature — but the two sk algorithms want different content
+        // here (#531). sk-ssh-ed25519 takes the authenticator's raw 64-byte
+        // signature as-is. sk-ecdsa-sha2-nistp256 must NOT: a CTAP2 ES256
+        // assertion returns an ASN.1 DER SEQUENCE{r,s}, while the SSH field
+        // wants the same inner encoding as plain ecdsa-sha2-nistp256 — the two
+        // values as SSH mpints, concatenated (OpenSSH PROTOCOL.u2f). Passing
+        // DER through is why every ECDSA sk auth failed server-side after a
+        // successful touch while ed25519 sk worked.
+        val sigField = if (algName.contains("ecdsa")) derEcdsaToSshBlob(rawSignature) else rawSignature
+        writeString(out, sigField)
 
         // byte flags
         out.write(flags.toInt() and 0xFF)
@@ -132,4 +140,56 @@ class FidoIdentity(
         out.write(lenBuf.array())
         out.write(data)
     }
+}
+
+/**
+ * Convert an ASN.1 DER ECDSA signature (SEQUENCE { INTEGER r, INTEGER s }) to
+ * the SSH ECDSA signature blob: mpint r followed by mpint s, each as an SSH
+ * string of the integer's minimal two's-complement bytes. Rejects anything
+ * that is not exactly a two-integer sequence.
+ */
+internal fun derEcdsaToSshBlob(der: ByteArray): ByteArray {
+    var pos = 0
+    fun readByte(): Int {
+        require(pos < der.size) { "truncated DER signature" }
+        return der[pos++].toInt() and 0xFF
+    }
+    fun readLength(): Int {
+        val first = readByte()
+        if (first < 0x80) return first
+        val numBytes = first and 0x7F
+        require(numBytes in 1..2) { "unsupported DER length form" }
+        var len = 0
+        repeat(numBytes) { len = (len shl 8) or readByte() }
+        return len
+    }
+    fun readInteger(): java.math.BigInteger {
+        require(readByte() == 0x02) { "expected DER INTEGER" }
+        val len = readLength()
+        require(len > 0 && pos + len <= der.size) { "bad DER INTEGER length" }
+        val bytes = der.copyOfRange(pos, pos + len)
+        pos += len
+        return java.math.BigInteger(bytes)
+    }
+
+    require(readByte() == 0x30) { "expected DER SEQUENCE" }
+    val seqLen = readLength()
+    require(pos + seqLen == der.size) { "DER SEQUENCE length mismatch" }
+    val r = readInteger()
+    val s = readInteger()
+    require(pos == der.size) { "trailing bytes after DER signature" }
+    require(r.signum() > 0 && s.signum() > 0) { "non-positive ECDSA parameter" }
+
+    val out = ByteArrayOutputStream()
+    for (v in listOf(r, s)) {
+        // BigInteger.toByteArray() is minimal two's-complement with a leading
+        // 0x00 when the top bit is set — exactly the mpint content encoding.
+        val b = v.toByteArray()
+        val lenBuf = ByteBuffer.allocate(4)
+        lenBuf.order(ByteOrder.BIG_ENDIAN)
+        lenBuf.putInt(b.size)
+        out.write(lenBuf.array())
+        out.write(b)
+    }
+    return out.toByteArray()
 }

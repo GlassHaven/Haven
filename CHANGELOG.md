@@ -5,6 +5,16 @@ the corresponding GitHub Release; a release can't ship without its section
 (enforced by `scripts/check-changelog.sh` in CI). The GitHub "Full Changelog"
 compare link is appended automatically — don't add it here.
 
+## v5.87.39
+
+- The mouse now works over SPICE on PS/2-only guests, for real this time (#549 — thanks empanadablues for the three-device retest that proved the last fix never worked)
+- SFTP checks the connection before listing a directory, so a dead link reconnects instead of hanging the browser (#537 — thanks kanazawahere)
+
+- **The SPICE mouse-mode fix now actually reaches the wire** (#549 — thanks empanadablues, whose retest across three devices was the evidence that v5.87.33 had changed nothing). That release taught the client to honour the pointer mode the server announces, and the plumbing was correct — but the announcement itself was being misread. The protocol sends two 16-bit numbers, the modes the server supports and the mode in effect; the client read them as one 32-bit number, fusing a Windows 98 VM's announcement into a value that matched no mode at all. The mode check fell through to absolute positions, which a PS/2 guest silently discards, on every device and every setting the reporter tried. The parse is corrected and a regression test pins the exact bytes that VM produces.
+- **SFTP probes the connection before listing** (#537 — thanks kanazawahere, whose PR this is, from diagnosis to the profile-scoped final shape). Opening a directory on a connection that had silently died — a NAT mapping expired while the phone slept, say — hung the file browser until a long timeout instead of reconnecting. The browser now probes the profile's own session first and reconnects a dead one before listing, and the probe is scoped to the profile being opened rather than every connected session, so one unhealthy connection cannot slow the others' listings. This lands alongside the earlier half of the same PR: per-profile keepalive overrides reaching JSch's real setters instead of the config map it never reads.
+
+🔬 **A fix that changes nothing observable was never tested against the thing it fixed.** The v5.87.33 change was verified to select the right message type for a given mode value — but not that the mode value itself was ever right. The reporter's patience bought the second look; the lesson is that "honours the announced mode" needed a test that started from the announcement's bytes, not from a mode already in hand.
+
 ## v5.87.38
 
 - YubiKey ECDSA SSH keys (sk-ecdsa-sha2-nistp256) now authenticate instead of failing after the touch (#531 — thanks pixel4696)

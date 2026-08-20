@@ -1,0 +1,2 @@
+- The mouse now works over SPICE on PS/2-only guests, for real this time (#549 — thanks empanadablues for the three-device retest that proved the last fix never worked)
+- SFTP checks the connection before listing a directory, so a dead link reconnects instead of hanging the browser (#537 — thanks kanazawahere)

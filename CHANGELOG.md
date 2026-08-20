@@ -5,6 +5,16 @@ the corresponding GitHub Release; a release can't ship without its section
 (enforced by `scripts/check-changelog.sh` in CI). The GitHub "Full Changelog"
 compare link is appended automatically — don't add it here.
 
+## v5.87.37
+
+- SSH "Address family: Auto" now falls back across all resolved addresses instead of gambling on the first (#566)
+- The System VM import form no longer clips its architecture chips in landscape (#558)
+
+- **SSH now tries every address a hostname resolves to** (#566). Auto mode used to take whichever address the resolver listed first and hand it to the SSH engine — so a dead AAAA record on a dual-stack mobile network, or one stale entry in a round-robin A set, produced a connect timeout while a working address sat unused in the same DNS answer. Auto now probes each resolved address in order with a short TCP handshake budget and connects to the first one that answers; a single-address answer is passed straight through, the explicit IPv4-only/IPv6-only settings keep their exact old meaning, and if nothing answers the probe the engine still gets the first address so you see its normal connection error, not a fake resolution failure. Both SSH engines share the path.
+- **The System VM import form fits landscape now** (#558). A Material dialog window caps its own height on a short screen no matter what the content asks for — six different in-dialog layout attempts are catalogued on the issue, all rendering identically — so the guest-architecture chips clipped in half. On height-compact windows (landscape phones) the form now opens as a bottom sheet, the app's existing pattern for content that owns the short axis; portrait keeps the dialog it always had.
+
+🧭 **When six modifiers change nothing, the constraint is outside the box they modify.** The dialog's height ceiling belonged to its window, not its content — no amount of arranging furniture recovers space the room doesn't have. The fix was never a seventh modifier; it was a different room.
+
 ## v5.87.36
 
 - RDP no longer logs every keystroke to logcat (#504 — thanks pawlosck for calling it out)

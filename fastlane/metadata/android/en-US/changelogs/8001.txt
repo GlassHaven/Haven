@@ -1,0 +1,2 @@
+- SSH "Address family: Auto" now falls back across all resolved addresses instead of gambling on the first (#566)
+- The System VM import form no longer clips its architecture chips in landscape (#558)

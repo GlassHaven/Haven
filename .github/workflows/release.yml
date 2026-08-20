@@ -165,6 +165,17 @@ jobs:
             -PtargetAbi=${{ matrix.abi }}
           rc=$?
           if [ "$rc" = "0" ]; then
+            # Restart the daemons between the flavours. A Gradle daemon never
+            # returns grown heap to the OS, so after the full flavour the host
+            # sat at ~14.6G used and the terminal flavour's R8/lintVital spike
+            # (15.65G used, 335M available, samples logging late = thrashing)
+            # killed the arm64 and armv7 runners even with the flavours
+            # serialized. A fresh daemon starts small and the terminal flavour
+            # compiles mostly from cache. The Kotlin daemon outlives --stop on
+            # its own idle timer, so it is killed explicitly.
+            ./gradlew --stop
+            pkill -f KotlinCompileDaemon || true
+            sleep 5
             ./gradlew :app:assemble${{ matrix.variant }}TerminalRelease \
               -PtargetAbi=${{ matrix.abi }}
             rc=$?

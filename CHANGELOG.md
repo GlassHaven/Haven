@@ -5,6 +5,12 @@ the corresponding GitHub Release; a release can't ship without its section
 (enforced by `scripts/check-changelog.sh` in CI). The GitHub "Full Changelog"
 compare link is appended automatically — don't add it here.
 
+## v5.87.43
+
+- Fixed a black patch flashing under the incoming screen when swiping away from a terminal with a dark colour scheme and a light app theme (#574 — thanks a8645322)
+
+- **Swiping off the terminal no longer flashes the terminal's background** (#574). To let a dark terminal scheme reach behind the status bar, the app paints the whole window container with the terminal's background while the terminal screen shows. During a swipe that container was still visible under the incoming screen until the transition settled, which with a light app theme read as a black block for the length of the swipe. Non-terminal screens now paint their own app-theme background so nothing shows through mid-transition; the wallpaper see-through setting keeps its translucent pages.
+
 ## v5.87.42
 
 - New setting: hide Haven's bottom tab bar on the terminal screen, leaving the Android status and navigation bars visible (#521 — thanks a8645322)

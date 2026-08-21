@@ -1,0 +1,1 @@
+- Fixed a black patch flashing under the incoming screen when swiping away from a terminal with a dark colour scheme and a light app theme (#574 — thanks a8645322)

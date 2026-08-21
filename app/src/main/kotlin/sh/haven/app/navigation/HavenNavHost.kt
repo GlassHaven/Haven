@@ -11,6 +11,8 @@ import androidx.compose.foundation.layout.imePadding
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.fillMaxHeight
+import androidx.compose.foundation.background
+import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.ui.Alignment
@@ -614,6 +616,20 @@ fun HavenNavHost(
                 selectedScreen != Screen.Terminal && selectedScreen != Screen.Sftp,
             modifier = modifier.nestedScroll(consumeHorizontalNestedScroll),
         ) { page ->
+            // While the Terminal pane is showing, the root Scaffold paints the
+            // TERMINAL scheme's background (#523), so during a swipe away from
+            // the terminal the incoming page sat on the terminal's colour — a
+            // black flash under a light app theme (#574). Give every
+            // non-terminal page its own app-theme background so it never
+            // depends on the root layer mid-transition. Skip it when the
+            // wallpaper see-through preference wants translucent pages.
+            val pageBackground =
+                if (screens[page] != Screen.Terminal && appBackgroundOpacity >= 1f) {
+                    Modifier.background(MaterialTheme.colorScheme.background)
+                } else {
+                    Modifier
+                }
+            Box(modifier = Modifier.fillMaxSize().then(pageBackground)) {
             when (screens[page]) {
                 Screen.Connections -> ConnectionsScreen(
                     onNavigateToTerminal = { profileId ->
@@ -881,6 +897,7 @@ fun HavenNavHost(
                         onToolbarConfigConsumed = { openToolbarConfig = false },
                     )
                 }
+            }
             }
         }
     }

@@ -1,0 +1,1 @@
+- SPICE mouse motion is paced against the server's acknowledgements, fixing the lag and intermittent stalls left after v5.87.40 made the pointer work (#572 — thanks empanadablues)

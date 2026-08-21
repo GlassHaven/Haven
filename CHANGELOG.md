@@ -5,6 +5,12 @@ the corresponding GitHub Release; a release can't ship without its section
 (enforced by `scripts/check-changelog.sh` in CI). The GitHub "Full Changelog"
 compare link is appended automatically — don't add it here.
 
+## v5.87.41
+
+- SPICE mouse motion is paced against the server's acknowledgements, fixing the lag and intermittent stalls left after v5.87.40 made the pointer work (#572 — thanks empanadablues)
+
+- **SPICE pointer messages are now flow-controlled** (#572). The moment v5.87.40 made the relative mouse work, the reporter found the next layer: lag, and stalls that only extra movement cleared. The client had been sending pointer messages as fast as the finger moved and discarding the server's acknowledgements as unknown messages — an unpaced stream into QEMU's tiny PS/2 packet queue that the guest replays late, then chokes on. Sends now claim a slot in an eight-message window; when it fills, the newest position is parked and the acknowledgement handler flushes it, so a drag's final position always lands. Verified against a live PS/2-only QEMU: the server acknowledges every fourth motion and the client now consumes and paces on those acknowledgements.
+
 ## v5.87.40
 
 - The SPICE mouse fix, round three — now verified against a live PS/2-only QEMU guest down to the guest's mouse device (#549)

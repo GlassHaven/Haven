@@ -5,6 +5,19 @@ the corresponding GitHub Release; a release can't ship without its section
 (enforced by `scripts/check-changelog.sh` in CI). The GitHub "Full Changelog"
 compare link is appended automatically — don't add it here.
 
+## v5.87.44
+
+- Terminal crash on HyperOS/Android 16 warm return, round two. The v5.86.8 fix relied on a 100ms assumption that a Xiaomi Mi 17 does not honour (thanks Maksimus).
+- The file editor now carries the same Compose interop-teardown guard, on the same code path.
+
+- **The HyperOS warm-return crash fix now holds, regardless of how late the device performs the teardown** (thanks Maksimus, whose second line-by-line trace of the disposal path was as precise as the first). v5.86.8 stopped the terminal's hidden input view from holding focus while the app was away. It handed focus back 100ms after the return, which was intended to be past the frame where Compose flushes its deferred composition teardown. On a Xiaomi Mi 17, that flush arrives later than 100ms. Consequently, the view took focus back before the flush landed, and the crash remained unchanged. Compose runs an `onReset` callback on the same stack frame as the view removal that triggers the fault. The guard now sits there and depends on no timing at all.
+
+  Investigating the report revealed a second defect underneath. The flag used by the July fix to relinquish focus is not safe to touch during a teardown. Android's `View.setFlags` surrenders focus by calling the public `clearFocus()` method. This starts a focus search from the root of the window. This is precisely the call that re-enters the half-disposed Compose hierarchy and throws an exception. The guard now uses the one primitive that does not search. It removes the view from its parents' record of who holds focus and leaves the view's own focus flag alone. Android then re-establishes the chain by itself when Compose puts the view back.
+
+- **The file editor received the same guard.** It is a page of the same pager. Its editor view holds focus for the entire time the app is backgrounded. It had no protection at all. Nobody has reported a crash there. This is the same mechanism on the same code path, fixed before it is reported.
+
+🧿 **Neither defect was found by reading the code.** The timing hole came from a reporter who traced the disposal path line by line on the failing device. The unsafe flag came from a regression test that failed for a reason the fix had not anticipated. Both guards are pinned by tests that fail when the guard is removed. However, those tests do not include a Compose hierarchy. Therefore, they establish that no focus search runs during teardown, not the absence of the exception on a Mi 17. The final step is the reporter's retest.
+
 ## v5.87.43
 
 - Fixed a black patch flashing under the incoming screen when swiping away from a terminal with a dark colour scheme and a light app theme (#574 — thanks a8645322)

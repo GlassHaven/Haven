@@ -1,0 +1,2 @@
+- Terminal crash on HyperOS/Android 16 warm return, round two. The July fix relied on a 100ms assumption that a Xiaomi Mi 17 does not honour. Therefore, the guard moved into Compose's own teardown callback, where timing cannot matter (thanks Maksimus).
+- The file editor now carries the same guard, on the same code path.

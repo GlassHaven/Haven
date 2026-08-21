@@ -473,4 +473,6 @@
         <item quantity="one">%1$d Minute</item>
         <item quantity="other">%1$d Minuten</item>
     </plurals>
+    <string name="settings_hide_nav_bar_in_terminal_title">App-Tableiste im Terminal ausblenden</string>
+    <string name="settings_hide_nav_bar_in_terminal_subtitle">Blendet Havens untere Tableiste auf dem Terminal-Bildschirm aus. Status- und Navigationsleiste von Android bleiben sichtbar.</string>
 </resources>

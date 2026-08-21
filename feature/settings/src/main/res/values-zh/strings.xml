@@ -471,4 +471,6 @@
     <plurals name="settings_proot_idle_minutes">
         <item quantity="other">%1$d 分钟</item>
     </plurals>
+    <string name="settings_hide_nav_bar_in_terminal_title">在终端中隐藏应用标签栏</string>
+    <string name="settings_hide_nav_bar_in_terminal_subtitle">在终端屏幕上隐藏 Haven 的底部标签栏。Android 状态栏和导航栏保持可见。</string>
 </resources>

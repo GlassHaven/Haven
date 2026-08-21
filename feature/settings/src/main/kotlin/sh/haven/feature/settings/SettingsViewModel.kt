@@ -363,6 +363,9 @@ class SettingsViewModel @Inject constructor(
     val keepScreenOnInTerminal: StateFlow<Boolean> = preferencesRepository.keepScreenOnInTerminal
         .stateIn(viewModelScope, SharingStarted.WhileSubscribed(5000), false)
 
+    val hideNavBarInTerminal: StateFlow<Boolean> = preferencesRepository.hideNavBarInTerminal
+        .stateIn(viewModelScope, SharingStarted.WhileSubscribed(5000), false)
+
     val connectionLoggingEnabled: StateFlow<Boolean> = preferencesRepository.connectionLoggingEnabled
         .stateIn(viewModelScope, SharingStarted.WhileSubscribed(5000), false)
 
@@ -712,6 +715,12 @@ class SettingsViewModel @Inject constructor(
     fun setKeepScreenOnInTerminal(enabled: Boolean) {
         viewModelScope.launch {
             preferencesRepository.setKeepScreenOnInTerminal(enabled)
+        }
+    }
+
+    fun setHideNavBarInTerminal(enabled: Boolean) {
+        viewModelScope.launch {
+            preferencesRepository.setHideNavBarInTerminal(enabled)
         }
     }
 

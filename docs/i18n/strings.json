@@ -29093,6 +29093,44 @@
      }
     },
     {
+     "name": "settings_hide_nav_bar_in_terminal_title",
+     "en": "Hide app tab bar in terminal",
+     "comment": "Common strings",
+     "args": [],
+     "t": {
+      "ar": "إخفاء شريط علامات تبويب التطبيق في الطرفية",
+      "bn": "টার্মিনালে অ্যাপ ট্যাব বার লুকান",
+      "de": "App-Tableiste im Terminal ausblenden",
+      "es": "Ocultar la barra de pestañas de la app en el terminal",
+      "fr": "Masquer la barre d\\'onglets de l\\'appli dans le terminal",
+      "hi": "टर्मिनल में ऐप टैब बार छिपाएँ",
+      "ja": "ターミナルでアプリのタブバーを非表示",
+      "ko": "터미널에서 앱 탭 바 숨기기",
+      "pt": "Ocultar a barra de abas do app no terminal",
+      "ru": "Скрывать панель вкладок приложения в терминале",
+      "zh": "在终端中隐藏应用标签栏"
+     }
+    },
+    {
+     "name": "settings_hide_nav_bar_in_terminal_subtitle",
+     "en": "Hide Haven\\'s bottom tab bar on the terminal screen. The Android status and navigation bars stay visible.",
+     "comment": "Common strings",
+     "args": [],
+     "t": {
+      "ar": "يخفي شريط علامات التبويب السفلي لـ Haven في شاشة الطرفية. يبقى شريطا الحالة والتنقل في Android ظاهرين.",
+      "bn": "টার্মিনাল স্ক্রিনে Haven-এর নিচের ট্যাব বার লুকায়। Android-এর স্ট্যাটাস ও নেভিগেশন বার দৃশ্যমান থাকে।",
+      "de": "Blendet Havens untere Tableiste auf dem Terminal-Bildschirm aus. Status- und Navigationsleiste von Android bleiben sichtbar.",
+      "es": "Oculta la barra de pestañas inferior de Haven en la pantalla del terminal. Las barras de estado y navegación de Android permanecen visibles.",
+      "fr": "Masque la barre d\\'onglets inférieure de Haven sur l\\'écran du terminal. Les barres d\\'état et de navigation d\\'Android restent visibles.",
+      "hi": "टर्मिनल स्क्रीन पर Haven की निचली टैब बार छिपाता है। Android की स्थिति और नेविगेशन बार दिखाई देती रहती हैं।",
+      "ja": "ターミナル画面で Haven の下部タブバーを非表示にします。Android のステータスバーとナビゲーションバーは表示されたままです。",
+      "ko": "터미널 화면에서 Haven의 하단 탭 바를 숨깁니다. Android 상태 표시줄과 내비게이션 바는 계속 표시됩니다.",
+      "pt": "Oculta a barra de abas inferior do Haven na tela do terminal. As barras de status e navegação do Android continuam visíveis.",
+      "ru": "Скрывает нижнюю панель вкладок Haven на экране терминала. Строка состояния и панель навигации Android остаются видимыми.",
+      "zh": "在终端屏幕上隐藏 Haven 的底部标签栏。Android 状态栏和导航栏保持可见。"
+     }
+    },
+    {
      "name": "settings_reflow_on_keyboard_title",
      "en": "Resize terminal for keyboard",
      "comment": "Common strings",

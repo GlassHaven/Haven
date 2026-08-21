@@ -293,6 +293,8 @@
     <string name="settings_section_about">About</string>
     <string name="settings_show_terminal_tab_bar_title">Show terminal tab bar</string>
     <string name="settings_show_terminal_tab_bar_subtitle">Show session tabs above the terminal</string>
+    <string name="settings_hide_nav_bar_in_terminal_title">Hide app tab bar in terminal</string>
+    <string name="settings_hide_nav_bar_in_terminal_subtitle">Hide Haven\'s bottom tab bar on the terminal screen. The Android status and navigation bars stay visible.</string>
     <string name="settings_reflow_on_keyboard_title">Resize terminal for keyboard</string>
     <string name="settings_reflow_on_keyboard_subtitle">When the keyboard opens, resize the terminal to fit above it instead of scrolling the view up. Helps full-screen apps that show a status line at the top; leave off for plain shells.</string>
     <string name="settings_gpu_venus_title">Experimental GPU stack (venus + zink)</string>

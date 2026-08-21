@@ -473,4 +473,6 @@
         <item quantity="one">%1$d মিনিট</item>
         <item quantity="other">%1$d মিনিট</item>
     </plurals>
+    <string name="settings_hide_nav_bar_in_terminal_title">টার্মিনালে অ্যাপ ট্যাব বার লুকান</string>
+    <string name="settings_hide_nav_bar_in_terminal_subtitle">টার্মিনাল স্ক্রিনে Haven-এর নিচের ট্যাব বার লুকায়। Android-এর স্ট্যাটাস ও নেভিগেশন বার দৃশ্যমান থাকে।</string>
 </resources>

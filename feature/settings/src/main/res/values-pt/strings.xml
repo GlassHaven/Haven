@@ -473,4 +473,6 @@
         <item quantity="one">%1$d minuto</item>
         <item quantity="other">%1$d minutos</item>
     </plurals>
+    <string name="settings_hide_nav_bar_in_terminal_title">Ocultar a barra de abas do app no terminal</string>
+    <string name="settings_hide_nav_bar_in_terminal_subtitle">Oculta a barra de abas inferior do Haven na tela do terminal. As barras de status e navegação do Android continuam visíveis.</string>
 </resources>

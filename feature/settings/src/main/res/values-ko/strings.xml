@@ -472,4 +472,6 @@
     <plurals name="settings_proot_idle_minutes">
         <item quantity="other">%1$d분</item>
     </plurals>
+    <string name="settings_hide_nav_bar_in_terminal_title">터미널에서 앱 탭 바 숨기기</string>
+    <string name="settings_hide_nav_bar_in_terminal_subtitle">터미널 화면에서 Haven의 하단 탭 바를 숨깁니다. Android 상태 표시줄과 내비게이션 바는 계속 표시됩니다.</string>
 </resources>

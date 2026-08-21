@@ -475,4 +475,6 @@
         <item quantity="many">%1$d минут</item>
         <item quantity="other">%1$d минуты</item>
     </plurals>
+    <string name="settings_hide_nav_bar_in_terminal_title">Скрывать панель вкладок приложения в терминале</string>
+    <string name="settings_hide_nav_bar_in_terminal_subtitle">Скрывает нижнюю панель вкладок Haven на экране терминала. Строка состояния и панель навигации Android остаются видимыми.</string>
 </resources>

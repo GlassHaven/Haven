@@ -473,4 +473,6 @@
         <item quantity="one">%1$d minuto</item>
         <item quantity="other">%1$d minutos</item>
     </plurals>
+    <string name="settings_hide_nav_bar_in_terminal_title">Ocultar la barra de pestañas de la app en el terminal</string>
+    <string name="settings_hide_nav_bar_in_terminal_subtitle">Oculta la barra de pestañas inferior de Haven en la pantalla del terminal. Las barras de estado y navegación de Android permanecen visibles.</string>
 </resources>

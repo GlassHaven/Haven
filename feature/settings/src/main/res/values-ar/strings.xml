@@ -477,4 +477,6 @@
         <item quantity="many">%1$d دقيقة</item>
         <item quantity="other">%1$d دقيقة</item>
     </plurals>
+    <string name="settings_hide_nav_bar_in_terminal_title">إخفاء شريط علامات تبويب التطبيق في الطرفية</string>
+    <string name="settings_hide_nav_bar_in_terminal_subtitle">يخفي شريط علامات التبويب السفلي لـ Haven في شاشة الطرفية. يبقى شريطا الحالة والتنقل في Android ظاهرين.</string>
 </resources>

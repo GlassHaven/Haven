@@ -189,6 +189,7 @@ fun SettingsScreen(
     val showSearchButton by viewModel.showSearchButton.collectAsState()
     val showCopyOutputButton by viewModel.showCopyOutputButton.collectAsState()
     val keepScreenOnInTerminal by viewModel.keepScreenOnInTerminal.collectAsState()
+    val hideNavBarInTerminal by viewModel.hideNavBarInTerminal.collectAsState()
     val connectionLoggingEnabled by viewModel.connectionLoggingEnabled.collectAsState()
     val excludeFromRecents by viewModel.excludeFromRecents.collectAsState()
     val verboseLoggingEnabled by viewModel.verboseLoggingEnabled.collectAsState()
@@ -714,6 +715,13 @@ fun SettingsScreen(
             subtitle = stringResource(R.string.settings_show_terminal_tab_bar_subtitle),
             checked = showTerminalTabBar,
             onCheckedChange = viewModel::setShowTerminalTabBar,
+        )
+        SettingsToggleItem(
+            icon = Icons.Filled.ListAlt,
+            title = stringResource(R.string.settings_hide_nav_bar_in_terminal_title),
+            subtitle = stringResource(R.string.settings_hide_nav_bar_in_terminal_subtitle),
+            checked = hideNavBarInTerminal,
+            onCheckedChange = viewModel::setHideNavBarInTerminal,
         )
         SettingsToggleItem(
             icon = Icons.Filled.Keyboard,

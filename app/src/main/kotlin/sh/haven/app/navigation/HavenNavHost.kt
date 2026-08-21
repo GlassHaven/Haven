@@ -452,6 +452,8 @@ fun HavenNavHost(
         .collectAsState(initial = false)
     val keepScreenOnInTerminal by preferencesRepository.keepScreenOnInTerminal
         .collectAsState(initial = false)
+    val hideNavBarInTerminal by preferencesRepository.hideNavBarInTerminal
+        .collectAsState(initial = false)
     val mouseInputEnabled by preferencesRepository.mouseInputEnabled
         .collectAsState(initial = true)
     val terminalRightClick by preferencesRepository.terminalRightClick
@@ -922,7 +924,12 @@ fun HavenNavHost(
         contentWindowInsets = ScaffoldDefaults.contentWindowInsets.exclude(WindowInsets.ime),
         snackbarHost = { SnackbarHost(globalSnackbarHostState) },
         bottomBar = {
-            if (!desktopFullscreen && !terminalFullscreen && !useSideNavigation) {
+            // hideNavBarInTerminal (#521) hides only Haven's own tab bar while
+            // the Terminal screen is selected; system bars are untouched. The
+            // pager override gestures still switch screens, and the bar returns
+            // as soon as the pager settles anywhere else.
+            val hideForTerminalPref = hideNavBarInTerminal && selectedScreen == Screen.Terminal
+            if (!desktopFullscreen && !terminalFullscreen && !useSideNavigation && !hideForTerminalPref) {
                 NavigationBar {
                     navScreens.forEachIndexed { index, screen ->
                         val isDragged = index == navDragIndex

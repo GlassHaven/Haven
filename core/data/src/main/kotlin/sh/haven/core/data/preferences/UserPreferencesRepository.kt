@@ -78,6 +78,7 @@ class UserPreferencesRepository @Inject constructor(
     private val showSearchButtonKey = booleanPreferencesKey("show_search_button")
     private val showCopyOutputButtonKey = booleanPreferencesKey("show_copy_output_button")
     private val keepScreenOnInTerminalKey = booleanPreferencesKey("keep_screen_on_in_terminal")
+    private val hideNavBarInTerminalKey = booleanPreferencesKey("hide_nav_bar_in_terminal")
     private val connectionLoggingEnabledKey = booleanPreferencesKey("connection_logging_enabled")
     private val excludeFromRecentsKey = booleanPreferencesKey("exclude_from_recents")
     private val backupSyncProfileIdKey = stringPreferencesKey("backup_sync_profile_id")
@@ -289,6 +290,22 @@ class UserPreferencesRepository @Inject constructor(
     suspend fun setKeepScreenOnInTerminal(enabled: Boolean) {
         dataStore.edit { prefs ->
             prefs[keepScreenOnInTerminalKey] = enabled
+        }
+    }
+
+    /**
+     * Hide the app's own bottom tab bar while the Terminal screen is selected
+     * (#521). Only Haven's chrome: the system status and navigation bars stay
+     * exactly as they are, unlike the fullscreen toggle which hides both.
+     * Off by default.
+     */
+    val hideNavBarInTerminal: Flow<Boolean> = dataStore.data.map { prefs ->
+        prefs[hideNavBarInTerminalKey] ?: false
+    }
+
+    suspend fun setHideNavBarInTerminal(enabled: Boolean) {
+        dataStore.edit { prefs ->
+            prefs[hideNavBarInTerminalKey] = enabled
         }
     }
 

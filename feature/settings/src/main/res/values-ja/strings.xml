@@ -472,4 +472,6 @@
     <plurals name="settings_proot_idle_minutes">
         <item quantity="other">%1$d 分</item>
     </plurals>
+    <string name="settings_hide_nav_bar_in_terminal_title">ターミナルでアプリのタブバーを非表示</string>
+    <string name="settings_hide_nav_bar_in_terminal_subtitle">ターミナル画面で Haven の下部タブバーを非表示にします。Android のステータスバーとナビゲーションバーは表示されたままです。</string>
 </resources>

@@ -54,8 +54,7 @@ import androidx.compose.ui.text.input.ImeAction
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.viewinterop.AndroidView
-import io.github.rosemoe.sora.event.ContentChangeEvent
-import io.github.rosemoe.sora.event.SelectionChangeEvent
+import sh.haven.core.ui.InteropFocusGuard
 import io.github.rosemoe.sora.widget.CodeEditor
 import io.github.rosemoe.sora.widget.EditorSearcher
 import io.github.rosemoe.sora.widget.schemes.EditorColorScheme
@@ -372,6 +371,11 @@ private fun EditorContent(
 
     var editorRef by remember { mutableStateOf<CodeEditor?>(null) }
 
+    // Compose tears the interop view down while this screen is a backgrounded
+    // page of the app's pager; a focused editor at that moment is the
+    // HyperOS/Android 16 warm-return crash. See [InteropFocusGuard].
+    val focusGuard = remember { InteropFocusGuard() }
+
     LaunchedEffect(wordWrap) {
         editorRef?.setWordwrap(wordWrap)
     }
@@ -385,7 +389,7 @@ private fun EditorContent(
         factory = { ctx ->
             TextMateSupport.init(ctx)
 
-            CodeEditor(ctx).apply {
+            HavenCodeEditor(ctx).apply {
                 layoutParams = ViewGroup.LayoutParams(
                     ViewGroup.LayoutParams.MATCH_PARENT,
                     ViewGroup.LayoutParams.MATCH_PARENT,
@@ -405,26 +409,35 @@ private fun EditorContent(
 
                 TextMateSupport.applyLanguage(this, fileName)
 
-                subscribeEvent(SelectionChangeEvent::class.java) { event, _ ->
-                    val cursor = event.editor.cursor
-                    onCursorChange(cursor.leftLine + 1, cursor.leftColumn + 1)
-                }
-
-                subscribeEvent(ContentChangeEvent::class.java) { event, _ ->
-                    if (event.action != ContentChangeEvent.ACTION_SET_NEW_TEXT) {
-                        onContentChanged()
-                    }
-                }
-
                 editorRef = this
                 onEditorCreated(this)
             }
         },
+        // Compose calls this immediately before
+        // AndroidViewHolder.removeAllViewsInLayout() — same stack frame — so
+        // it is the one point where the editor is guaranteed to be out of the
+        // focus chain at removal time, whatever the device's frame timing.
+        onReset = { editor -> focusGuard.onReset(editor) },
+        onRelease = { editor -> focusGuard.onReset(editor) },
         update = { editor ->
+            // Refreshed rather than captured in the factory: supplying onReset
+            // makes this a reusable node, and a reused node does not re-run
+            // the factory.
+            editor.onCursorChange = onCursorChange
+            editor.onContentChanged = onContentChanged
+            if (editorRef !== editor) {
+                // The factory did not run for this composition — the node was
+                // reused. Re-establish what it would have set.
+                editorRef = editor
+                editor.isEditable = editable
+                editor.setWordwrap(wordWrap)
+                onEditorCreated(editor)
+            }
             val currentText = editor.text.toString()
             if (currentText != content) {
                 editor.setText(content)
             }
+            focusGuard.onUpdate(editor)
         },
     )
 }

@@ -20,6 +20,10 @@ android {
     buildFeatures {
         compose = true
     }
+
+    testOptions {
+        unitTests.isIncludeAndroidResources = true
+    }
 }
 
 dependencies {
@@ -29,6 +33,9 @@ dependencies {
     api(libs.compose.material.icons)
     api(libs.compose.ui.tooling.preview)
     debugApi(libs.compose.ui.tooling)
+
+    testImplementation(libs.junit)
+    testImplementation(libs.robolectric)
 }
 
 kotlin {

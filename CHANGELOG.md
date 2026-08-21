@@ -5,6 +5,12 @@ the corresponding GitHub Release; a release can't ship without its section
 (enforced by `scripts/check-changelog.sh` in CI). The GitHub "Full Changelog"
 compare link is appended automatically — don't add it here.
 
+## v5.87.42
+
+- New setting: hide Haven's bottom tab bar on the terminal screen, leaving the Android status and navigation bars visible (#521 — thanks a8645322)
+
+- **The terminal screen can now shed the app's own tab bar** (#521). The existing fullscreen toggle bundled two decisions — hide Haven's chrome and hide Android's chrome — that have no business being the same switch: wanting the clock and notifications while working in a terminal is entirely reasonable. The new toggle (Settings → Terminal → "Hide app tab bar in terminal", off by default) hides only Haven's bottom tab bar while the terminal screen is selected. The swipe gestures that switch screens keep working, the bar returns as soon as the pager settles anywhere else, and the ≥600dp side rail is unaffected. Translated into all 11 shipped locales. Not yet exercised on a device; the reporter's retest is the closing verification.
+
 ## v5.87.41
 
 - SPICE mouse motion is paced against the server's acknowledgements, fixing the lag and intermittent stalls left after v5.87.40 made the pointer work (#572 — thanks empanadablues)

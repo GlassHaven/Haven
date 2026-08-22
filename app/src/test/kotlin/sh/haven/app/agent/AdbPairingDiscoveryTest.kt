@@ -141,3 +141,41 @@ class AdbPairingDiscoveryTest {
         assertNull(deferred.await())
     }
 }
+
+/**
+ * `overlayShown: false` on its own is a dead end — the caller cannot tell "you
+ * did not ask for it" from "one tap would fix this". These pin the mapping that
+ * makes the difference actionable.
+ */
+class AdbPairingOverlayReasonTest {
+
+    @Test
+    fun `no reason when the box actually showed`() {
+        assertNull(AdbPairingOverlay.skipReason(wantOverlay = true, canDraw = true, added = true))
+    }
+
+    @Test
+    fun `missing permission is reported as the fixable case`() {
+        assertEquals(
+            AdbPairingOverlay.REASON_PERMISSION,
+            AdbPairingOverlay.skipReason(wantOverlay = true, canDraw = false, added = false),
+        )
+    }
+
+    @Test
+    fun `caller opting out is not reported as a permission problem`() {
+        assertEquals(
+            AdbPairingOverlay.REASON_DISABLED,
+            AdbPairingOverlay.skipReason(wantOverlay = false, canDraw = false, added = false),
+        )
+    }
+
+    /** Permission held but the window still refused — a different bug entirely. */
+    @Test
+    fun `add failure is distinguished from a permission problem`() {
+        assertEquals(
+            AdbPairingOverlay.REASON_ADD_FAILED,
+            AdbPairingOverlay.skipReason(wantOverlay = true, canDraw = true, added = false),
+        )
+    }
+}

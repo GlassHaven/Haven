@@ -526,10 +526,12 @@ class McpToolsConsentTest {
             // Priority 1 (ahead of Linux guest) so usb_attach_to_guest files
             // here by its usb_ prefix, not under "guest".
             Section("usb", "USB & host-device brokers", 1,
-                "USB devices and drives, USB/IP export, and the adb-over-VPN bridge.",
+                "USB devices and drives, USB/IP export, the adb-over-VPN bridge, and adb pairing.",
                 // "list_bridges" (not "bridges") so the serial↔TCP bridge tools
-                // file under Networking, not here.
-                listOf("usb", "adb", "list_bridges")),
+                // file under Networking, not here. "overlay_permission" files
+                // the pairing code box's grant alongside the adb tools it
+                // exists for, rather than leaving it sectionless (#575).
+                listOf("usb", "adb", "list_bridges", "overlay_permission")),
             Section("security", "Security — SSH keys, host keys, TOTP & age", 6,
                 "The SSH key store, pinned host keys (TOFU), trusted host CAs, TOTP secrets, and age encryption identities.",
                 listOf("ssh_key", "known_host", "forget_known_host", "trusted_host_ca", "totp", "age_identit")),

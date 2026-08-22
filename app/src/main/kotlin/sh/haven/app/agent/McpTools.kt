@@ -1000,6 +1000,14 @@ internal class McpTools(
             consentLevel = ConsentLevel.NEVER,
         ) { args -> awaitAdbPairingCode(args) },
 
+        "request_overlay_permission" to ToolHandler(
+            description = "Check whether Haven can draw over other apps, and open the grant screen (deep-linked to Haven's own row) when it cannot (#575). The adb pairing code box is a floating overlay because the six digits live on Android's system dialog and both must be on screen at once; without this permission start_adb_pairing still works but returns overlaySkippedReason=\"permission-missing\" and you pair from the workstation instead. Call this BEFORE start_adb_pairing, never during: the grant screen is full-screen and would push the pairing dialog — and its code and ephemeral port — away. Returns { granted, screenOpened }.",
+            inputSchema = objectSchema {
+                boolean("open", "Open the grant screen when not already granted. Default true; pass false to check silently.")
+            },
+            consentLevel = ConsentLevel.NEVER,
+        ) { args -> requestOverlayPermission(args) },
+
         "read_logcat" to ToolHandler(
             description = "Read recent Android system log lines via Shizuku, so the agent can observe foreign-app behaviour (network calls, crashes, lifecycle) during F-Droid tester reviews. Requires Shizuku running + granted (no separate READ_LOGS grant on Haven — logcat is read as Shizuku's shell uid, which already has the permission). Optional `packageName` resolves to a `--uid` filter via `pm list packages -U`; combine with `filter` for tag-level narrowing. Returns the raw logcat block; the agent parses it. `lines` is capped at 5000 and the response payload is capped at 256 KiB (truncated:true when either limit hits). Use this whenever an MR review needs log-level observation of a non-Haven app — the Haven local shell's Alpine proot can't reach /system/bin/logcat.",
             inputSchema = objectSchema {
@@ -5231,9 +5239,19 @@ internal class McpTools(
             .coerceIn(1_000L, 120_000L)
         val wantOverlay = args.optBoolean("showOverlay", true)
 
-        // Wireless debugging off means no pairing listener at all, so this has
-        // to come first even though it needs Shizuku.
-        runShizukuOrThrow("cmd settings put global adb_wifi_enabled 1", "settings put")
+        // Best effort, NOT a precondition. Wireless debugging must be on for a
+        // pairing listener to exist, but flipping it is the only privileged
+        // step in this flow — mDNS discovery and the overlay need nothing. When
+        // it is already on (the common case, and the case where the user most
+        // wants this), demanding Shizuku would block the whole flow for no
+        // reason. Found by running it: a reinstall drops Haven's Shizuku grant,
+        // and the verb refused even though wireless debugging was already
+        // advertising. If it really is off, discovery finds nothing and the
+        // error below says so, carrying this failure as the likely cause.
+        val flagResult = runCatching {
+            runShizukuOrThrow("cmd settings put global adb_wifi_enabled 1", "settings put")
+        }
+        val wirelessDebuggingSet = flagResult.isSuccess
 
         val discovery = AdbPairingDiscovery(context)
         coroutineScope {
@@ -5247,9 +5265,21 @@ internal class McpTools(
         val endpoint = pending.await()
             ?: throw McpError(
                 -32603,
-                "No pairing service appeared within ${timeoutMs}ms. Open Settings → Developer options → " +
-                    "Wireless debugging → \"Pair device with pairing code\" — the listener only exists " +
-                    "while that dialog is on screen.",
+                buildString {
+                    append("No pairing service appeared within ${timeoutMs}ms. ")
+                    if (!wirelessDebuggingSet) {
+                        append(
+                            "Wireless debugging could not be turned on from here (" +
+                                "${flagResult.exceptionOrNull()?.message ?: "Shizuku unavailable"}), " +
+                                "so it may simply be off. ",
+                        )
+                    }
+                    append(
+                        "Open Settings → Developer options → Wireless debugging → " +
+                            "\"Pair device with pairing code\" — the listener only exists while that " +
+                            "dialog is on screen.",
+                    )
+                },
             )
 
         // Fresh latch per attempt: a code typed for a previous, expired dialog
@@ -5259,9 +5289,11 @@ internal class McpTools(
         pendingPairingEndpoint = endpoint
 
         var overlayShown = false
+        var canDrawOverlay = false
         if (wantOverlay) {
             val overlay = AdbPairingOverlay(context)
-            if (overlay.canDraw()) {
+            canDrawOverlay = overlay.canDraw()
+            if (canDrawOverlay) {
                 withContext(Dispatchers.Main) {
                     overlayShown = overlay.show(
                         endpoint,
@@ -5271,6 +5303,8 @@ internal class McpTools(
                 }
             }
         }
+        val overlaySkipped =
+            AdbPairingOverlay.skipReason(wantOverlay, canDrawOverlay, overlayShown)
 
         JSONObject().apply {
             put("host", endpoint.host)
@@ -5278,7 +5312,19 @@ internal class McpTools(
             put("pairCommand", "adb pair ${endpoint.host}:${endpoint.port} <code>")
             put("codeSource", "system-dialog")
             put("dialogOpened", dialogOpened)
+            put("wirelessDebuggingSet", wirelessDebuggingSet)
             put("overlayShown", overlayShown)
+            // Never report a bare false: without the reason the caller cannot
+            // tell "you never asked for it" from "one tap would fix this".
+            put("overlaySkippedReason", overlaySkipped ?: JSONObject.NULL)
+            if (overlaySkipped == AdbPairingOverlay.REASON_PERMISSION) {
+                put(
+                    "overlayFix",
+                    "Haven lacks \"Display over other apps\". Call request_overlay_permission, " +
+                        "grant it, then run start_adb_pairing again — the grant screen is full-screen " +
+                        "and would push this pairing dialog (and its code) away if opened now.",
+                )
+            }
             put(
                 "note",
                 "The 6-digit code is on the device's pairing dialog; it is generated and drawn by the " +
@@ -5323,6 +5369,36 @@ internal class McpTools(
                 put("port", endpoint.port)
                 put("pairCommand", "adb pair ${endpoint.host}:${endpoint.port} $code")
             }
+        }
+    }
+
+    /**
+     * Report and, when missing, offer the "Display over other apps" grant that
+     * the pairing code box needs (#575).
+     *
+     * Kept separate from [startAdbPairing] on purpose: the grant screen is a
+     * full-screen settings activity, so opening it mid-pairing would background
+     * Android's pairing dialog and expire the ephemeral port along with it.
+     */
+    private fun requestOverlayPermission(args: JSONObject): JSONObject {
+        val granted = AdbPairingOverlay(context).canDraw()
+        var dispatched = false
+        if (!granted && args.optBoolean("open", true)) {
+            dispatched = runCatching {
+                context.startActivity(AdbPairingOverlay.grantIntent(context))
+            }.isSuccess
+        }
+        return JSONObject().apply {
+            put("granted", granted)
+            put("screenOpened", dispatched)
+            put(
+                "note",
+                if (granted) {
+                    "Already granted — start_adb_pairing will float the code box over the dialog."
+                } else {
+                    "Grant \"Display over other apps\" for Haven, then call start_adb_pairing."
+                },
+            )
         }
     }
 

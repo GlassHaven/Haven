@@ -43,7 +43,7 @@ consent level:
 
 - **asks every call** — side-effectful or sensitive; a consent sheet describing the specific action on every call (70 tools).
 - **asks once per session** — reversible actions and screen-reading; prompts the first time each session, then proceeds (50 tools).
-- **no per-call prompt** — read-only queries and tap-equivalent UI actions; still behind the endpoint being enabled and the client paired (87 tools).
+- **no per-call prompt** — read-only queries and tap-equivalent UI actions; still behind the endpoint being enabled and the client paired (88 tools).
 
 ## Sections
 
@@ -54,7 +54,7 @@ consent level:
 - [**Email**](#sec-email) — 15 tools
 - [**Linux guest (proot) & desktops**](#sec-linux) — 46 tools
 - [**Networking — tunnels & port forwarding**](#sec-networking) — 14 tools
-- [**USB & host-device brokers**](#sec-usb) — 19 tools
+- [**USB & host-device brokers**](#sec-usb) — 20 tools
 - [**Security — SSH keys, host keys, TOTP & age**](#sec-security) — 15 tools
 - [**Agent ↔ you (attention & self-drive)**](#sec-agent-you) — 12 tools
 - [**Agent endpoint, device & diagnostics**](#sec-agent-endpoint) — 16 tools
@@ -1648,9 +1648,9 @@ Build and send one fwknop SPA packet to a host without committing a profile or c
 
 <a id="sec-usb"></a>
 
-## USB & host-device brokers (19)
+## USB & host-device brokers (20)
 
-USB devices and drives, USB/IP export, and the adb-over-VPN bridge.
+USB devices and drives, USB/IP export, the adb-over-VPN bridge, and adb pairing.
 
 <details markdown="1">
 <summary><code>await_adb_pairing_code</code> · no per-call prompt</summary>
@@ -1728,6 +1728,15 @@ Open a phone-attached USB drive (mass storage — flash drive, SSD, SD reader) i
 
 - `deviceName` (string) — deviceName from list_usb_devices / list_usb_drives; optional if exactly one USB drive is attached.
 - `writable` (boolean) — Mount read-write instead of the default read-only. An interrupted write (VM killed, app backgrounded under memory pressure) can corrupt the drive's filesystem — only set this when the caller genuinely needs to write.
+
+</details>
+
+<details markdown="1">
+<summary><code>request_overlay_permission</code> · no per-call prompt</summary>
+
+Check whether Haven can draw over other apps, and open the grant screen (deep-linked to Haven's own row) when it cannot (#575). The adb pairing code box is a floating overlay because the six digits live on Android's system dialog and both must be on screen at once; without this permission start_adb_pairing still works but returns overlaySkippedReason="permission-missing" and you pair from the workstation instead. Call this BEFORE start_adb_pairing, never during: the grant screen is full-screen and would push the pairing dialog — and its code and ephemeral port — away. Returns { granted, screenOpened }.
+
+- `open` (boolean) — Open the grant screen when not already granted. Default true; pass false to check silently.
 
 </details>
 

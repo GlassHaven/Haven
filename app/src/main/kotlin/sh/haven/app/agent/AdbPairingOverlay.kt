@@ -2,6 +2,7 @@ package sh.haven.app.agent
 
 import android.annotation.SuppressLint
 import android.content.Context
+import android.content.Intent
 import android.graphics.Color
 import android.graphics.drawable.GradientDrawable
 import android.os.Build
@@ -170,8 +171,37 @@ internal class AdbPairingOverlay(private val context: Context) {
         const val TAG = "AdbPairingOverlay"
         const val CODE_LENGTH = 6
 
-        /** Intent action for the "Display over other apps" grant screen. */
-        const val OVERLAY_PERMISSION_ACTION =
-            Settings.ACTION_MANAGE_OVERLAY_PERMISSION
+        /** Why the code box did not appear — reported so the caller can act. */
+        const val REASON_DISABLED = "disabled-by-caller"
+        const val REASON_PERMISSION = "permission-missing"
+        const val REASON_ADD_FAILED = "add-view-failed"
+
+        /**
+         * Map an attempt to a machine-readable reason. Pure so the mapping is
+         * testable without a window manager: an `overlayShown: false` with no
+         * explanation is a dead end for the caller, which is the whole point.
+         */
+        fun skipReason(wantOverlay: Boolean, canDraw: Boolean, added: Boolean): String? = when {
+            !wantOverlay -> REASON_DISABLED
+            !canDraw -> REASON_PERMISSION
+            !added -> REASON_ADD_FAILED
+            else -> null
+        }
+
+        /**
+         * Deep-link to Haven's own row in "Display over other apps" rather than
+         * the top of the list — the settings screen is a per-app list and
+         * landing on it unfiltered means hunting.
+         *
+         * Deliberately NOT launched from inside the pairing flow: it is a
+         * full-screen settings activity, and opening it would send Android's
+         * pairing dialog to the background, taking the code with it and
+         * expiring the ephemeral port. Grant first, then pair.
+         */
+        fun grantIntent(context: Context): Intent =
+            Intent(
+                Settings.ACTION_MANAGE_OVERLAY_PERMISSION,
+                android.net.Uri.parse("package:${context.packageName}"),
+            ).addFlags(Intent.FLAG_ACTIVITY_NEW_TASK)
     }
 }

@@ -207,22 +207,49 @@ internal class AdbPairingOverlay(private val context: Context) {
          */
         fun grantState(context: Context): String {
             if (Settings.canDrawOverlays(context)) return STATE_GRANTED
-            if (Build.VERSION.SDK_INT < Build.VERSION_CODES.Q) return STATE_DENIED
-            val ops = context.getSystemService(android.app.AppOpsManager::class.java)
-                ?: return STATE_DENIED
-            val mode = runCatching {
-                ops.unsafeCheckOpNoThrow(
-                    android.app.AppOpsManager.OPSTR_SYSTEM_ALERT_WINDOW,
-                    android.os.Process.myUid(),
-                    context.packageName,
-                )
-            }.getOrNull()
-            return if (mode == android.app.AppOpsManager.MODE_ERRORED) {
+            // MODE_ERRORED on system_alert_window was my first guess at the
+            // restricted-settings signal and it is WRONG — measured on a device
+            // sitting in the blocked state, it reported plain denial while the
+            // toggle was inert. The op below is the one Android actually names
+            // for this ("Allow restricted settings" flips it), but it is hidden
+            // API reached by string, so treat it as unconfirmed until
+            // [opModes] has been read off a device in each state.
+            val restricted = opMode(context, OP_ACCESS_RESTRICTED_SETTINGS)
+            return if (restricted != null && restricted != android.app.AppOpsManager.MODE_ALLOWED) {
                 STATE_RESTRICTED
             } else {
                 STATE_DENIED
             }
         }
+
+        /** `android:access_restricted_settings` — hidden, so referenced by name. */
+        const val OP_ACCESS_RESTRICTED_SETTINGS = "android:access_restricted_settings"
+
+        private fun opMode(context: Context, op: String): Int? {
+            if (Build.VERSION.SDK_INT < Build.VERSION_CODES.Q) return null
+            val ops = context.getSystemService(android.app.AppOpsManager::class.java) ?: return null
+            // Throws IllegalArgumentException for an op this Android build does
+            // not know — a null reading is "cannot tell", never "not restricted".
+            return runCatching {
+                ops.unsafeCheckOpNoThrow(op, android.os.Process.myUid(), context.packageName)
+            }.getOrNull()
+        }
+
+        /**
+         * Raw AppOps modes for the two candidate signals, so one round trip on a
+         * real device settles which one tracks the restricted-settings block
+         * instead of another build-install-restart per guess. Reported as
+         * diagnostics; nothing branches on it.
+         *
+         * AppOps modes: 0=ALLOWED 1=IGNORED 2=ERRORED 3=DEFAULT 4=FOREGROUND.
+         */
+        fun opModes(context: Context): Map<String, Int?> = mapOf(
+            "system_alert_window" to opMode(
+                context,
+                android.app.AppOpsManager.OPSTR_SYSTEM_ALERT_WINDOW,
+            ),
+            "access_restricted_settings" to opMode(context, OP_ACCESS_RESTRICTED_SETTINGS),
+        )
 
         /**
          * Where to send the user for a given state. Pure so the routing is

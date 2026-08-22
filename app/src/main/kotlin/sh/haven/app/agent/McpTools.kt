@@ -1013,10 +1013,21 @@ internal class McpTools(
             // check (open=false) is harmless, but the consent level is per-tool
             // and the visible case is the one that has to be right.
             consentLevel = ConsentLevel.EVERY_CALL,
-            summarise = { _ ->
-                "Open the permission screen so Haven can draw the adb pairing code box over " +
-                    "Android's pairing dialog? Both must be on screen at once — the system draws " +
-                    "the code and Haven cannot read it."
+            // The prompt must describe THIS call, not the tool in general. A
+            // static summary that promised to open a screen was shown for a
+            // silent open=false check, so the user was asked to approve
+            // something that would not happen — and reasonably refused. A
+            // consent prompt that misdescribes its own effect is worse than
+            // none: it spends the user's trust on a false statement.
+            summarise = { args ->
+                if (args.optBoolean("open", true)) {
+                    "Open the permission screen so Haven can draw the adb pairing code box over " +
+                        "Android's pairing dialog? Both must be on screen at once — the system " +
+                        "draws the code and Haven cannot read it."
+                } else {
+                    "Check whether Haven is allowed to draw over other apps? Nothing opens and " +
+                        "nothing changes — this only reads the current permission state."
+                }
             },
         ) { args -> requestOverlayPermission(args) },
 
@@ -5412,6 +5423,18 @@ internal class McpTools(
             put("state", state)
             put("screenOpened", dispatched)
             put("screenAction", AdbPairingOverlay.routeFor(state) ?: JSONObject.NULL)
+            // Diagnostics, not logic: the first restricted-settings signal I
+            // picked was wrong, so report both candidates' raw AppOps modes and
+            // let one device round trip decide rather than another guess.
+            // 0=ALLOWED 1=IGNORED 2=ERRORED 3=DEFAULT 4=FOREGROUND, null=unknown op.
+            put(
+                "opModes",
+                JSONObject().apply {
+                    AdbPairingOverlay.opModes(context).forEach { (k, v) ->
+                        put(k, v ?: JSONObject.NULL)
+                    }
+                },
+            )
             put(
                 "note",
                 when (state) {
@@ -5424,7 +5447,11 @@ internal class McpTools(
                             "on the App info page just opened, use the ⋮ menu → \"Allow restricted " +
                             "settings\", then call this again."
                     else ->
-                        "Grant \"Display over other apps\" for Haven, then call start_adb_pairing."
+                        "Grant \"Display over other apps\" for Haven, then call start_adb_pairing. " +
+                            "If that toggle refuses with \"App was denied access\", Android is " +
+                            "blocking it because Haven was sideloaded: App info → ⋮ → \"Allow " +
+                            "restricted settings\" first. (Which of those two you are in is not yet " +
+                            "reliably detectable here — see opModes.)"
                 },
             )
         }

@@ -15,6 +15,8 @@ import androidx.core.app.NotificationCompat
 import androidx.core.app.NotificationManagerCompat
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.async
+import kotlinx.coroutines.coroutineScope
 import kotlinx.coroutines.SupervisorJob
 import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.delay
@@ -976,6 +978,27 @@ internal class McpTools(
             consentLevel = ConsentLevel.EVERY_CALL,
             summarise = { _ -> "Enable Wireless debugging on this device?" },
         ) { _ -> enableWirelessAdb() },
+
+        "start_adb_pairing" to ToolHandler(
+            description = "Pair a NEW workstation with this device's adb, without the user hunting for a port (#575). Turns wireless debugging on, opens Android's system pairing dialog, and discovers the pairing listener over mDNS (`_adb-tls-pairing._tcp`) — that service exists ONLY while the dialog is open and gets a fresh ephemeral port every time, which is why a port noted once is always stale and why `adb connect`'s port is the wrong one to pair against. Returns { host, port, pairCommand, codeSource, overlayShown }. The 6-digit code is NOT returned and cannot be: the system generates and draws it, and no shell-uid API exposes it — read it off the dialog. When Haven has the \"display over other apps\" permission it also floats a code box over the dialog so the code can be typed on-device; otherwise pair from the workstation with the returned command. Requires Shizuku for the wireless-debugging flag.",
+            inputSchema = objectSchema {
+                integer("timeoutMs", "How long to wait for the pairing service to appear, 1000-120000. Default 30000. The clock starts before the dialog opens, since the service can appear immediately.")
+                boolean("showOverlay", "Also float the on-device code box over the system dialog when permission allows. Default true.")
+            },
+            // Opens a system dialog and turns on a debugging transport — the
+            // user must see this coming, and it is a once-per-workstation
+            // action so a prompt is not friction the way terminal input is.
+            consentLevel = ConsentLevel.EVERY_CALL,
+            summarise = { _ -> "Start adb pairing (opens the system pairing dialog)?" },
+        ) { args -> startAdbPairing(args) },
+
+        "await_adb_pairing_code" to ToolHandler(
+            description = "Block until the user types the 6-digit code into Haven's on-device pairing overlay, then return it together with a ready-to-run `adb pair <host>:<port> <code>` (#575). Pair this with start_adb_pairing: that verb opens the dialog and finds the ephemeral pairing port, this one collects the code the system drew on screen, and the agent runs the resulting command from the workstation that wants adb — Haven cannot run it itself. Returns { code, host, port, pairCommand }. Errors if no pairing is in progress, or if the box was cancelled or the wait elapsed; the port dies with the dialog, so restart the flow rather than retrying with a stale one.",
+            inputSchema = objectSchema {
+                integer("timeoutMs", "How long to wait for the code, 1000-300000. Default 120000 — this is a human typing.")
+            },
+            consentLevel = ConsentLevel.NEVER,
+        ) { args -> awaitAdbPairingCode(args) },
 
         "read_logcat" to ToolHandler(
             description = "Read recent Android system log lines via Shizuku, so the agent can observe foreign-app behaviour (network calls, crashes, lifecycle) during F-Droid tester reviews. Requires Shizuku running + granted (no separate READ_LOGS grant on Haven — logcat is read as Shizuku's shell uid, which already has the permission). Optional `packageName` resolves to a `--uid` filter via `pm list packages -U`; combine with `filter` for tag-level narrowing. Returns the raw logcat block; the agent parses it. `lines` is capped at 5000 and the response payload is capped at 256 KiB (truncated:true when either limit hits). Use this whenever an MR review needs log-level observation of a non-Haven app — the Haven local shell's Alpine proot can't reach /system/bin/logcat.",
@@ -5191,6 +5214,142 @@ internal class McpTools(
                 else "Open Settings → Developer Options → Wireless debugging on the device to read the pairing port if you need to pair a new host.",
             )
         }
+    }
+
+    /**
+     * #575 v1: make pairing a Haven flow instead of a hunt through Settings.
+     *
+     * Ordering matters and is the whole trick. `_adb-tls-pairing._tcp` is
+     * advertised only while the system dialog is open, so discovery is armed
+     * BEFORE the dialog is launched — arming afterwards races a fast device and
+     * misses the announcement. The connect port (`_adb-tls-connect._tcp`, what
+     * `adb mdns services` shows in the steady state) is a different port and
+     * pairing against it always fails.
+     */
+    private suspend fun startAdbPairing(args: JSONObject): JSONObject = withContext(Dispatchers.IO) {
+        val timeoutMs = args.optLong("timeoutMs", AdbPairingDiscovery.DEFAULT_TIMEOUT_MS)
+            .coerceIn(1_000L, 120_000L)
+        val wantOverlay = args.optBoolean("showOverlay", true)
+
+        // Wireless debugging off means no pairing listener at all, so this has
+        // to come first even though it needs Shizuku.
+        runShizukuOrThrow("cmd settings put global adb_wifi_enabled 1", "settings put")
+
+        val discovery = AdbPairingDiscovery(context)
+        coroutineScope {
+        val pending = async { discovery.awaitPairingEndpoint(timeoutMs) }
+
+        // Best effort: the pairing dialog's component is not a public intent and
+        // OEMs move it, so fall back to Developer Options and let the user take
+        // the last step. Either way the discovery above is already listening.
+        val dialogOpened = openPairingDialog()
+
+        val endpoint = pending.await()
+            ?: throw McpError(
+                -32603,
+                "No pairing service appeared within ${timeoutMs}ms. Open Settings → Developer options → " +
+                    "Wireless debugging → \"Pair device with pairing code\" — the listener only exists " +
+                    "while that dialog is on screen.",
+            )
+
+        // Fresh latch per attempt: a code typed for a previous, expired dialog
+        // must never satisfy this one.
+        val codeLatch = kotlinx.coroutines.CompletableDeferred<String>()
+        pendingPairingCode = codeLatch
+        pendingPairingEndpoint = endpoint
+
+        var overlayShown = false
+        if (wantOverlay) {
+            val overlay = AdbPairingOverlay(context)
+            if (overlay.canDraw()) {
+                withContext(Dispatchers.Main) {
+                    overlayShown = overlay.show(
+                        endpoint,
+                        onSubmit = { code -> codeLatch.complete(code) },
+                        onCancel = { codeLatch.cancel() },
+                    )
+                }
+            }
+        }
+
+        JSONObject().apply {
+            put("host", endpoint.host)
+            put("port", endpoint.port)
+            put("pairCommand", "adb pair ${endpoint.host}:${endpoint.port} <code>")
+            put("codeSource", "system-dialog")
+            put("dialogOpened", dialogOpened)
+            put("overlayShown", overlayShown)
+            put(
+                "note",
+                "The 6-digit code is on the device's pairing dialog; it is generated and drawn by the " +
+                    "system and no API exposes it. This port is valid only while that dialog stays open.",
+            )
+        }
+        }
+    }
+
+    /**
+     * Set by [startAdbPairing], completed by the on-device overlay, consumed by
+     * `await_adb_pairing_code`. This is the whole v1 relay: Haven cannot run
+     * `adb pair` itself (that needs SPAKE2-EE over TLS-PSK, see #575 v2), so the
+     * code the user types on the device is handed to the agent, which runs the
+     * pair command from the workstation that actually wants access.
+     */
+    @Volatile
+    private var pendingPairingCode: kotlinx.coroutines.CompletableDeferred<String>? = null
+
+    @Volatile
+    private var pendingPairingEndpoint: AdbPairingDiscovery.Endpoint? = null
+
+    /** Await the code typed into the on-device overlay (#575). */
+    private suspend fun awaitAdbPairingCode(args: JSONObject): JSONObject {
+        val latch = pendingPairingCode
+            ?: throw McpError(-32603, "No pairing in progress — call start_adb_pairing first.")
+        val timeoutMs = args.optLong("timeoutMs", 120_000L).coerceIn(1_000L, 300_000L)
+        val code = kotlinx.coroutines.withTimeoutOrNull(timeoutMs) {
+            runCatching { latch.await() }.getOrNull()
+        } ?: throw McpError(
+            -32603,
+            "No code was entered within ${timeoutMs}ms (or the box was cancelled). The pairing port " +
+                "expires with the dialog, so start_adb_pairing again for a fresh one.",
+        )
+        val endpoint = pendingPairingEndpoint
+        pendingPairingCode = null
+        pendingPairingEndpoint = null
+        return JSONObject().apply {
+            put("code", code)
+            if (endpoint != null) {
+                put("host", endpoint.host)
+                put("port", endpoint.port)
+                put("pairCommand", "adb pair ${endpoint.host}:${endpoint.port} $code")
+            }
+        }
+    }
+
+    /**
+     * Launch Android's pairing dialog. There is no public intent for it, so try
+     * the AOSP component first and fall back to Developer Options.
+     */
+    private fun openPairingDialog(): Boolean {
+        val candidates = listOf(
+            android.content.ComponentName(
+                "com.android.settings",
+                "com.android.settings.Settings\$WirelessDebuggingActivity",
+            ),
+        )
+        for (component in candidates) {
+            val intent = Intent().apply {
+                setComponent(component)
+                addFlags(Intent.FLAG_ACTIVITY_NEW_TASK)
+            }
+            if (runCatching { context.startActivity(intent) }.isSuccess) return true
+        }
+        return runCatching {
+            context.startActivity(
+                Intent(Settings.ACTION_APPLICATION_DEVELOPMENT_SETTINGS)
+                    .addFlags(Intent.FLAG_ACTIVITY_NEW_TASK),
+            )
+        }.isSuccess
     }
 
     /**

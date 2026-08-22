@@ -1,5 +1,9 @@
 package sh.haven.app.agent
 
+import android.app.Activity
+import android.content.Context
+import android.content.ContextWrapper
+import android.util.Log
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
@@ -20,6 +24,7 @@ import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.ModalBottomSheet
 import androidx.compose.material3.OutlinedButton
 import androidx.compose.material3.Text
+import androidx.compose.ui.platform.LocalContext
 import androidx.compose.material3.rememberModalBottomSheetState
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
@@ -146,8 +151,26 @@ internal fun ConsentHost(viewModel: ConsentHostViewModel = hiltViewModel()) {
         // composition removal is what left the stuck input scrim behind.
     }
 
+    // A rotation is not an answer. The host Activity is recreated on a
+    // configuration change, which tears this sheet down and fires
+    // onDismissRequest — and treating that as a Deny answered on the user's
+    // behalf, from a sheet they were still reading. Observed live: rotating
+    // the device while an install prompt was up denied the install, three
+    // times, with no input from the user.
+    //
+    // Fail-closed still holds for every real dismissal (swipe, scrim tap,
+    // back). isChangingConfigurations distinguishes the one case that is the
+    // system rebuilding the window rather than a person walking away: the
+    // request stays pending and the recreated host re-shows it.
+    val activity = LocalContext.current.findActivity()
     ModalBottomSheet(
-        onDismissRequest = { resolve(ConsentDecision.DENY) },
+        onDismissRequest = {
+            if (activity?.isChangingConfigurations == true) {
+                Log.d(TAG, "sheet torn down by a configuration change — leaving request pending")
+            } else {
+                resolve(ConsentDecision.DENY)
+            }
+        },
         sheetState = sheetState,
         // Lock the sheet open against accidental tap-outs. The user has
         // to make an explicit choice.
@@ -333,4 +356,13 @@ internal fun OverlayUiRegistration(bridge: HavenUiBridge, label: String) {
         bridge.registerOverlay(label, view)
         onDispose { bridge.unregisterOverlay(view) }
     }
+}
+
+private const val TAG = "ConsentHost"
+
+/** Unwrap the ContextWrapper chain to the hosting Activity, or null. */
+private tailrec fun Context.findActivity(): Activity? = when (this) {
+    is Activity -> this
+    is ContextWrapper -> baseContext.findActivity()
+    else -> null
 }

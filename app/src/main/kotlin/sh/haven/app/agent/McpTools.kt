@@ -989,7 +989,16 @@ internal class McpTools(
             // user must see this coming, and it is a once-per-workstation
             // action so a prompt is not friction the way terminal input is.
             consentLevel = ConsentLevel.EVERY_CALL,
-            summarise = { _ -> "Start adb pairing (opens the system pairing dialog)?" },
+            // Name the tap before the screen appears. What opens is Android's
+            // Wireless debugging SCREEN; the pairing port does not exist until
+            // "Pair device with pairing code" is tapped on it, so a prompt that
+            // only says "opens the pairing dialog" leaves the user on a screen
+            // with no idea which control matters.
+            summarise = { _ ->
+                "Open Wireless debugging so a computer can pair with adb? On the screen that " +
+                    "appears, tap \"Pair device with pairing code\" — Haven watches for the port " +
+                    "that only exists while that dialog is open."
+            },
         ) { args -> startAdbPairing(args) },
 
         "await_adb_pairing_code" to ToolHandler(
@@ -1021,9 +1030,9 @@ internal class McpTools(
             // none: it spends the user's trust on a false statement.
             summarise = { args ->
                 if (args.optBoolean("open", true)) {
-                    "Open the permission screen so Haven can draw the adb pairing code box over " +
-                        "Android's pairing dialog? Both must be on screen at once — the system " +
-                        "draws the code and Haven cannot read it."
+                    "Open Haven's App info so it can draw the pairing code box over Android's " +
+                        "dialog? You will need two taps there: ⋮ → \"Allow restricted settings\", " +
+                        "then Permissions → \"Display over other apps\"."
                 } else {
                     "Check whether Haven is allowed to draw over other apps? Nothing opens and " +
                         "nothing changes — this only reads the current permission state."
@@ -5283,7 +5292,11 @@ internal class McpTools(
         // Best effort: the pairing dialog's component is not a public intent and
         // OEMs move it, so fall back to Developer Options and let the user take
         // the last step. Either way the discovery above is already listening.
-        val dialogOpened = openPairingDialog()
+        val screenOpened = openPairingDialog()
+        // The screen is not the dialog. Say which control makes the port exist,
+        // on the device, because the MCP reply below never reaches the person
+        // holding it.
+        if (screenOpened) postPairingSteps()
 
         val endpoint = pending.await()
             ?: throw McpError(
@@ -5334,7 +5347,10 @@ internal class McpTools(
             put("port", endpoint.port)
             put("pairCommand", "adb pair ${endpoint.host}:${endpoint.port} <code>")
             put("codeSource", "system-dialog")
-            put("dialogOpened", dialogOpened)
+            // Names what actually opened: the Wireless debugging screen. The
+            // pairing dialog — and the port — appear only when the user taps
+            // "Pair device with pairing code" on it.
+            put("wirelessDebuggingScreenOpened", screenOpened)
             put("wirelessDebuggingSet", wirelessDebuggingSet)
             put("overlayShown", overlayShown)
             // Never report a bare false: without the reason the caller cannot
@@ -5459,6 +5475,27 @@ internal class McpTools(
                 },
             )
         }
+    }
+
+    /** On-device instruction for the pairing screen (#575). */
+    private fun postPairingSteps() {
+        runCatching {
+            ensureAgentNotificationChannel()
+            val body = "Tap \"Pair device with pairing code\" on this screen.\n\n" +
+                "Haven is watching for the pairing port, which only exists while that dialog " +
+                "is open. Read the 6-digit code off it — the system generates it and Haven " +
+                "cannot see it."
+            val notification = NotificationCompat.Builder(context, AGENT_NOTIFICATION_CHANNEL_ID)
+                .setSmallIcon(android.R.drawable.ic_dialog_info)
+                .setContentTitle("Pairing a computer with adb")
+                .setContentText(body)
+                .setStyle(NotificationCompat.BigTextStyle().bigText(body))
+                .setPriority(NotificationCompat.PRIORITY_HIGH)
+                .setAutoCancel(true)
+                .build()
+            NotificationManagerCompat.from(context)
+                .notify(PAIRING_STEPS_NOTIFICATION_ID, notification)
+        }.onFailure { android.util.Log.d("McpTools", "pairing steps not posted: ${it.message}") }
     }
 
     /**
@@ -8331,6 +8368,9 @@ private const val AGENT_NOTIFICATION_CHANNEL_ID = "agent.test.notifications"
  * a second identical notification (#575).
  */
 private const val OVERLAY_GRANT_NOTIFICATION_ID = 0x0575
+
+/** Fixed id, so re-running the pairing flow replaces its steps. */
+private const val PAIRING_STEPS_NOTIFICATION_ID = 0x0576
 private const val INSTALL_NOTIFICATION_CHANNEL_ID = "agent.install"
 
 /** Upper bound on lines requested from logcat in a single read_logcat call. */

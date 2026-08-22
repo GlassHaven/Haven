@@ -360,8 +360,11 @@ class AgentConsentManager @Inject constructor() {
         // orphaned in `_pending`, the consent sheet is never dismissed, and its
         // buttons resolve a dead deferred (the "UI frozen after a consent
         // timeout" bug). Hence finally + NonCancellable.
-        val decision = try {
-            withTimeoutOrNull(timeoutMs) { deferred.await() } ?: ConsentDecision.DENY
+        // `raw` is null only when the wait elapsed. Keeping it separate from
+        // `decision` is what lets the log below say WHICH kind of deny this was
+        // — see the logging note there.
+        val raw = try {
+            withTimeoutOrNull(timeoutMs) { deferred.await() }
         } finally {
             withContext(NonCancellable) {
                 mutex.withLock {
@@ -370,6 +373,23 @@ class AgentConsentManager @Inject constructor() {
                 }
             }
         }
+        val decision = raw ?: ConsentDecision.DENY
+
+        // Every outcome is logged, not just the ones with a special path.
+        //
+        // #556 ("first prompt after app restart auto-denies without being
+        // shown") went days as unreproducible partly because the ordinary deny
+        // was silent: an answered deny, a timeout, and a sheet that never
+        // rendered all surfaced to the caller as the same "User denied", and
+        // left nothing behind on the device. A denial the user did not make is
+        // exactly the case that has to be legible after the fact, so the reason
+        // is recorded even though — especially though — it is the boring path.
+        val reason = when {
+            raw == null -> "no answer within ${timeoutMs}ms (sheet shown? foreground=${foregroundState.value})"
+            raw == ConsentDecision.ALLOW -> "user allowed"
+            else -> "user denied"
+        }
+        Log.i(LOG_TAG, "requestConsent('$toolName') id=$id -> $decision: $reason")
 
         if (decision == ConsentDecision.ALLOW) {
             when (level) {

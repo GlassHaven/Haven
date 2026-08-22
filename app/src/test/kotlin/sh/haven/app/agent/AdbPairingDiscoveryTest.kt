@@ -181,23 +181,28 @@ class AdbPairingOverlayReasonTest {
 }
 
 /**
- * Under Android's restricted-settings block the overlay toggle cannot move, so
- * routing there is a dead end that looks like an action. These pin that the
- * blocked case goes to the App info page instead — that is where the ⋮ "Allow
- * restricted settings" item lives.
+ * Every ungranted case routes to App info, never to the overlay toggle.
+ *
+ * Measured on a blocked device: the toggle cannot move while Android's
+ * sideload restriction is in force, and the app cannot detect that state —
+ * system_alert_window reads MODE_DEFAULT (3), and the op that would say,
+ * access_restricted_settings, throws when an app asks for it (adb can read it;
+ * the app cannot). So there is no signal to branch on, and App info is the
+ * destination that is correct either way: the ⋮ "Allow restricted settings"
+ * item and the permission entry are both reachable from it.
  */
 class AdbPairingGrantRouteTest {
 
     @Test
-    fun `a plain denial routes to the overlay toggle`() {
+    fun `a denial routes to App info, not the toggle that may be inert`() {
         assertEquals(
-            android.provider.Settings.ACTION_MANAGE_OVERLAY_PERMISSION,
+            android.provider.Settings.ACTION_APPLICATION_DETAILS_SETTINGS,
             AdbPairingOverlay.routeFor(AdbPairingOverlay.STATE_DENIED),
         )
     }
 
     @Test
-    fun `a restricted-settings block routes to App info, not the inert toggle`() {
+    fun `a restricted block routes to the same place`() {
         assertEquals(
             android.provider.Settings.ACTION_APPLICATION_DETAILS_SETTINGS,
             AdbPairingOverlay.routeFor(AdbPairingOverlay.STATE_RESTRICTED),
@@ -207,5 +212,24 @@ class AdbPairingGrantRouteTest {
     @Test
     fun `nothing to open once it is granted`() {
         assertNull(AdbPairingOverlay.routeFor(AdbPairingOverlay.STATE_GRANTED))
+    }
+
+    /**
+     * The overlay-toggle deep link is the one destination that is a dead end
+     * under the restriction, so nothing may route there.
+     */
+    @Test
+    fun `no state routes to the overlay toggle`() {
+        listOf(
+            AdbPairingOverlay.STATE_DENIED,
+            AdbPairingOverlay.STATE_RESTRICTED,
+            AdbPairingOverlay.STATE_GRANTED,
+        ).forEach { state ->
+            assertTrue(
+                "state $state must not route to the overlay toggle",
+                AdbPairingOverlay.routeFor(state) !=
+                    android.provider.Settings.ACTION_MANAGE_OVERLAY_PERMISSION,
+            )
+        }
     }
 }

@@ -5411,11 +5411,7 @@ internal class McpTools(
             // Route by state, not blindly to the toggle: under a restricted
             // -settings block that toggle cannot move, and sending the user
             // there is a dead end that looks like an action.
-            val intent = if (state == AdbPairingOverlay.STATE_RESTRICTED) {
-                AdbPairingOverlay.appInfoIntent(context)
-            } else {
-                AdbPairingOverlay.grantIntent(context)
-            }
+            val intent = AdbPairingOverlay.appInfoIntent(context)
             dispatched = runCatching { context.startActivity(intent) }.isSuccess
         }
         return JSONObject().apply {
@@ -5447,11 +5443,13 @@ internal class McpTools(
                             "on the App info page just opened, use the ⋮ menu → \"Allow restricted " +
                             "settings\", then call this again."
                     else ->
-                        "Grant \"Display over other apps\" for Haven, then call start_adb_pairing. " +
-                            "If that toggle refuses with \"App was denied access\", Android is " +
-                            "blocking it because Haven was sideloaded: App info → ⋮ → \"Allow " +
-                            "restricted settings\" first. (Which of those two you are in is not yet " +
-                            "reliably detectable here — see opModes.)"
+                        "On the App info page just opened: if the ⋮ menu offers \"Allow restricted " +
+                            "settings\", tap that first — Android blocks this permission for " +
+                            "sideloaded apps and the toggle will not move until you do. Then " +
+                            "Permissions → Display over other apps → allow, and call " +
+                            "start_adb_pairing. Haven cannot tell which of those two states it is " +
+                            "in — the op that would say is not readable from inside the app — so " +
+                            "both steps are listed and the harmless one is a no-op."
                 },
             )
         }

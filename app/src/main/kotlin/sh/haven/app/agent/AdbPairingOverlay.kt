@@ -205,22 +205,28 @@ internal class AdbPairingOverlay(private val context: Context) {
          * move. AppOps reports the restricted op as MODE_ERRORED rather than
          * MODE_IGNORED, which is the only signal available to tell them apart.
          */
-        fun grantState(context: Context): String {
-            if (Settings.canDrawOverlays(context)) return STATE_GRANTED
-            // MODE_ERRORED on system_alert_window was my first guess at the
-            // restricted-settings signal and it is WRONG — measured on a device
-            // sitting in the blocked state, it reported plain denial while the
-            // toggle was inert. The op below is the one Android actually names
-            // for this ("Allow restricted settings" flips it), but it is hidden
-            // API reached by string, so treat it as unconfirmed until
-            // [opModes] has been read off a device in each state.
-            val restricted = opMode(context, OP_ACCESS_RESTRICTED_SETTINGS)
-            return if (restricted != null && restricted != android.app.AppOpsManager.MODE_ALLOWED) {
-                STATE_RESTRICTED
-            } else {
-                STATE_DENIED
-            }
-        }
+        /**
+         * Granted, or not. There is deliberately no third "restricted" state.
+         *
+         * Two attempts at detecting Android's restricted-settings block from
+         * inside the app both failed, measured on a blocked device:
+         *   - system_alert_window sits at MODE_DEFAULT (3), not MODE_ERRORED —
+         *     so testing for ERRORED reported plain denial while the toggle was
+         *     inert.
+         *   - access_restricted_settings cannot be read at all: passing that op
+         *     name to unsafeCheckOpNoThrow throws, so the check returns null.
+         *     `adb shell appops get` can read it (it reports `ignore`), because
+         *     that goes through a system API the app does not have.
+         *
+         * So the app cannot tell "not granted yet" from "cannot be granted
+         * yet". Rather than branch on a signal that does not exist, [routeFor]
+         * sends every ungranted case to the App info page, which is a superset:
+         * both the ⋮ "Allow restricted settings" item and the permission entry
+         * are reachable from there, whereas the overlay-toggle deep link is a
+         * dead end whenever the block is in force.
+         */
+        fun grantState(context: Context): String =
+            if (Settings.canDrawOverlays(context)) STATE_GRANTED else STATE_DENIED
 
         /** `android:access_restricted_settings` — hidden, so referenced by name. */
         const val OP_ACCESS_RESTRICTED_SETTINGS = "android:access_restricted_settings"
@@ -257,8 +263,13 @@ internal class AdbPairingOverlay(private val context: Context) {
          * is on the App info page is the failure this exists to prevent.
          */
         fun routeFor(state: String): String? = when (state) {
-            STATE_RESTRICTED -> Settings.ACTION_APPLICATION_DETAILS_SETTINGS
-            STATE_DENIED -> Settings.ACTION_MANAGE_OVERLAY_PERMISSION
+            // App info, never the overlay toggle: the toggle cannot move while
+            // Android's sideload restriction is in force, and the app has no
+            // way to know whether it is. App info reaches both the ⋮ "Allow
+            // restricted settings" item and the permission itself, so it is
+            // correct in both cases instead of right in one and a dead end in
+            // the other.
+            STATE_RESTRICTED, STATE_DENIED -> Settings.ACTION_APPLICATION_DETAILS_SETTINGS
             else -> null
         }
 

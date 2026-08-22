@@ -3,8 +3,13 @@ package sh.haven.feature.terminal
 import io.mockk.every
 import io.mockk.mockk
 import io.mockk.verify
+import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.runBlocking
+import kotlinx.coroutines.test.StandardTestDispatcher
+import kotlinx.coroutines.test.resetMain
+import kotlinx.coroutines.test.setMain
+import org.junit.After
 import org.junit.Assert.assertEquals
 import org.junit.Before
 import org.junit.Test
@@ -16,6 +21,13 @@ import sh.haven.core.ssh.SshClient
 import sh.haven.core.ssh.SshSessionManager
 
 class TerminalViewModelTest {
+
+    // The ViewModel's init launches eight `sessions.collect { syncSessions() }`
+    // collectors. Without a pinned Main dispatcher viewModelScope falls back
+    // to EmptyCoroutineContext and they run on Dispatchers.Default — real
+    // threads, parallel with the test body — where a reconcile to zero tabs
+    // calls resetModifiers() and drops the Ctrl/Alt locks a test just set.
+    private val testDispatcher = StandardTestDispatcher()
 
     private lateinit var sessionManager: SshSessionManager
     private lateinit var reticulumSessionManager: ReticulumSessionManager
@@ -32,6 +44,7 @@ class TerminalViewModelTest {
 
     @Before
     fun setUp() {
+        Dispatchers.setMain(testDispatcher)
         sessionManager = SshSessionManager(mockk(relaxed = true), mockk(relaxed = true))
         reticulumSessionManager = mockk<ReticulumSessionManager>(relaxed = true) {
             every { sessions } returns MutableStateFlow(emptyMap())
@@ -91,6 +104,11 @@ class TerminalViewModelTest {
             mockk(relaxed = true), // BarcodeDecoder
             mockk(relaxed = true), // TextRecognizer
         )
+    }
+
+    @After
+    fun tearDown() {
+        Dispatchers.resetMain()
     }
 
     @Test
@@ -257,6 +275,33 @@ class TerminalViewModelTest {
         assertEquals(false, viewModel.altLocked.value)
         assertEquals(false, viewModel.altActive.value)
         assertEquals(0, viewModel.toolbarModifierMask())
+    }
+
+    /**
+     * Pins the mechanism behind the modifier-lock flake (five CI sightings, a
+     * different family member each time).
+     *
+     * The ViewModel's init starts eight `sessions.collect { syncSessions() }`
+     * collectors and every mocked flow replays `emptyMap()`, so construction
+     * queues eight reconciles to zero tabs — each of which calls
+     * resetModifiers() and drops the locks. Pinned to the test dispatcher they
+     * are inert; running them on purpose here shows exactly what used to land
+     * at a random moment on a loaded runner and fail the assertion at the top
+     * of the family.
+     */
+    @Test
+    fun `a queued init reconcile is what used to wipe a lock mid-test`() {
+        viewModel.toggleCtrl()
+        viewModel.toggleCtrl()
+        assertEquals("locked before the stray reconcile", true, viewModel.ctrlLocked.value)
+
+        testDispatcher.scheduler.runCurrent()
+
+        assertEquals(
+            "the init collectors reconcile to zero tabs and clear the lock",
+            false,
+            viewModel.ctrlLocked.value,
+        )
     }
 
     @Test

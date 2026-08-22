@@ -5307,6 +5307,16 @@ internal class McpTools(
             withContext(Dispatchers.Main) {
                 promptShown = prompt.show(endpoint) { code -> codeLatch.complete(code) }
             }
+            // The "tap Pair device with pairing code" steps were for getting to
+            // this point; leaving them beside the reply prompt puts two Haven
+            // notifications on screen, one of them stale advice, and invites the
+            // user to act on the wrong one. Clear it the moment the prompt that
+            // supersedes it is up.
+            if (promptShown) {
+                runCatching {
+                    NotificationManagerCompat.from(context).cancel(PAIRING_STEPS_NOTIFICATION_ID)
+                }
+            }
         }
 
         JSONObject().apply {

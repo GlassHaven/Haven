@@ -59,13 +59,6 @@ internal class AdbPairingPrompt(private val context: Context) {
                 val code = RemoteInput.getResultsFromIntent(intent)
                     ?.getCharSequence(KEY_CODE)?.toString()?.trim().orEmpty()
                 unregister()
-                // A bare cancel() does NOT reliably dismiss a notification that
-                // is mid-reply: after the user sends, the system holds it in a
-                // "sending" state showing a spinner, and it expects the app to
-                // REPLACE the notification to signal the reply landed. Cancel
-                // alone left the entry box on screen with the code already
-                // delivered — reported from a device. Re-posting on the same id
-                // without the RemoteInput action is what clears it.
                 // Two steps, and both are needed. Replacing the notification
                 // takes the reply action away; cancelling removes it entirely.
                 // A cancel issued straight from onReceive is swallowed — the
@@ -112,7 +105,12 @@ internal class AdbPairingPrompt(private val context: Context) {
             .setAllowGeneratedReplies(false)
             .build()
 
-        val body = "Type the 6-digit code from the pairing dialog.\n${endpoint.host}:${endpoint.port}"
+        // Name the button. With direct-reply the text field is not visible until
+        // the action is tapped, so a body that says "type the code" describes a
+        // box that is not on screen yet — reported as "the text entry box was
+        // missing".
+        val body = "Tap \"Enter code\" below, then type the 6 digits shown on the " +
+            "pairing dialog.\n${endpoint.host}:${endpoint.port}"
         val notification = NotificationCompat.Builder(context, CHANNEL_ID)
             .setSmallIcon(android.R.drawable.ic_dialog_info)
             .setContentTitle("Pair a computer with adb")

@@ -1,0 +1,1 @@
+- Haven can now pair a computer for wireless adb debugging on its own. It finds the pairing port and asks for the six digits in a notification, so the system's pairing dialog stays on screen while you read them (#575).

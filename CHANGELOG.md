@@ -5,6 +5,18 @@ the corresponding GitHub Release; a release can't ship without its section
 (enforced by `scripts/check-changelog.sh` in CI). The GitHub "Full Changelog"
 compare link is appended automatically — don't add it here.
 
+## v5.87.46
+
+- Haven can now pair a computer for wireless adb debugging on its own. It finds the pairing port and asks for the six digits in a notification. This keeps the system's pairing dialog on screen while you read them (#575).
+
+- **Pairing a computer over wireless debugging no longer means hunting for a port** (#575). Android advertises its pairing listener only while the pairing dialog is open. It uses a fresh port every time. This is why a port written down once never works twice. Haven now discovers it live over mDNS while it opens the dialog for you. It asks for the six digits in a notification reply field rather than in a window of its own.
+
+  That reply field matters more than it sounds. The first version of this drew an overlay over the pairing dialog. That approach cannot work. Android's Settings windows set an anti-tapjacking flag that hides every third-party overlay while they are in front. The overlay sat in the window list the whole time and was simply never drawn. Hiding it is precisely what the flag exists to do. This means there was no workaround worth looking for. A notification reply field is drawn by the system instead. The flag does not apply to it. It needs no "display over other apps" permission. It arrives at the top of the screen above the dialog without taking focus away from it.
+
+  What this does not do yet: Haven hands the code to the agent, which runs the pairing command from the computer. Completing the pairing on the device itself needs a key exchange Haven has no implementation of. That is a separate piece of work.
+
+🧭 **The overlay design was ruled out by a single command, and that command should have been the first one run.** Establishing that a permission can be granted is not the same as establishing that the platform permits the thing the permission enables. The first question was asked for days. The second took one line and ended the design immediately.
+
 ## v5.87.45
 
 - The terminal keyboard could stop reaching the session after a reconnect, until you disconnected and reconnected by hand. This was a regression from v5.87.43.

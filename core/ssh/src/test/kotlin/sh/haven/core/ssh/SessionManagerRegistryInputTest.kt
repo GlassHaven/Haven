@@ -117,6 +117,36 @@ class SessionManagerRegistryInputTest {
     }
 
     /**
+     * #555: `send_terminal_input` acked `delivered: true` into a local shell
+     * that never saw the bytes, and the ack said nothing about where they
+     * went. The registry knows — it returns the accepting transport's name so
+     * the ack can carry it, and a reproduction distinguishes "the local
+     * manager took them and lost them" from "another transport claimed the id".
+     */
+    @Test
+    fun `names the transport that accepted the write`() {
+        val ssh = Disowning(Transport.SSH, "SSH")
+        val local = Owning(Transport.LOCAL, "local")
+
+        val accepted = registry(ssh, local).sendTerminalInput("s1", "ls\n")
+
+        assertEquals("local", accepted)
+        assertEquals("s1" to "ls\n", local.received)
+    }
+
+    /** The first accepting transport wins, and is the one reported. */
+    @Test
+    fun `reports the first acceptor, not the last`() {
+        val ssh = Owning(Transport.SSH, "SSH")
+        val local = Owning(Transport.LOCAL, "local")
+
+        val accepted = registry(local, ssh).sendTerminalInput("s1", "x")
+
+        assertEquals("SSH", accepted)
+        assertEquals(null, local.received)
+    }
+
+    /**
      * A transport with no [TransportSessionManager.inputName] is never offered
      * the id at all — RDP and SMB have no PTY to write to, and asking them
      * would put a bogus "No null session" in the error the user sees.

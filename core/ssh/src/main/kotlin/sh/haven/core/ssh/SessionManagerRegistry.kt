@@ -43,15 +43,21 @@ class SessionManagerRegistry @Inject constructor(
      * again — agent input tried SSH+local only, so mosh/ET/Reticulum
      * sessions answered "No local session" while snapshot reads worked.
      *
+     * Returns the [TransportSessionManager.inputName] of the transport that
+     * accepted the write. Callers surface it so a delivery ack says WHERE the
+     * bytes went: #555 reported `delivered: true` from a local shell that
+     * never saw them, and the ack carried nothing to tell "the local transport
+     * took it and lost it" apart from "a different transport claimed the id".
+     *
      * @throws IllegalStateException when no transport delivers.
      */
-    fun sendTerminalInput(sessionId: String, text: String) {
+    fun sendTerminalInput(sessionId: String, text: String): String {
         val writable = ordered.filter { it.inputName != null }
         val errors = mutableListOf<String>()
         for (transport in writable) {
             try {
                 transport.sendInput(sessionId, text)
-                return
+                return transport.inputName!!
             } catch (e: IllegalStateException) {
                 errors += e.message ?: e.javaClass.simpleName
             }

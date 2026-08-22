@@ -736,7 +736,7 @@ internal class McpTools(
         ) { args -> deleteSftpFile(args) },
 
         "send_terminal_input" to ToolHandler(
-            description = "Send input to an active terminal session as if the user typed it. Provide `text` (UTF-8) and/or named `keys` — real control bytes (Enter/Esc/Ctrl-C/arrows) that `text` can't express (a \"\\r\" in text arrives as literal chars; a raw-mode REPL reads \"\\n\" as newline-insert, not submit). `text` is sent first, then `keys`, so a submit key lands after the body. Set `bracketedPaste` to wrap `text` in bracketed-paste markers so a raw-mode REPL (Claude Code, readline, vim) treats multi-line input as one paste instead of interleaved keystrokes that fight submit. Set `returnSnapshot` to get the resulting screen back without a follow-up read_terminal_snapshot. Hard cap 4096 bytes total.",
+            description = "Send input to an active terminal session as if the user typed it. Provide `text` (UTF-8) and/or named `keys` — real control bytes (Enter/Esc/Ctrl-C/arrows) that `text` can't express (a \"\\r\" in text arrives as literal chars; a raw-mode REPL reads \"\\n\" as newline-insert, not submit). `text` is sent first, then `keys`, so a submit key lands after the body. Set `bracketedPaste` to wrap `text` in bracketed-paste markers so a raw-mode REPL (Claude Code, readline, vim) treats multi-line input as one paste instead of interleaved keystrokes that fight submit. Set `returnSnapshot` to get the resulting screen back without a follow-up read_terminal_snapshot. Hard cap 4096 bytes total. Returns { sessionId, delivered, transport, bytesSent }, where `transport` names which transport accepted the write — `delivered` means accepted, not echoed back.",
             inputSchema = objectSchema {
                 string("sessionId", "Active session ID (from list_sessions). Optional — defaults to the sole open terminal session; required only when several are open. Must have an attached terminal.")
                 string("text", "UTF-8 text to send (before keys). To submit into a raw-mode REPL, prefer keys:[\"enter\"] over a trailing \\n.")
@@ -760,7 +760,7 @@ internal class McpTools(
         ) { args -> sendTerminalInput(args) },
 
         "send_to_agent" to ToolHandler(
-            description = "Deliver one message to another agent's REPL (or any raw-mode prompt) as a single submitted turn: paste the text (bracketed-paste when the target has enabled it, plain otherwise), settle, then Enter — and return the resulting screen (last ~50 lines by default, captured after a short render delay). A convenience wrapper over send_terminal_input tuned for agent↔agent / REPL conversation, so you don't hand-assemble the body-then-Enter sequence. Use list_sessions (chosenSessionName + isAgentRepl) to pick the target; pair with await_turn + read_last_turn for the full send → wait → read loop. Returns { sessionId, delivered, bytesSent, snapshot }.",
+            description = "Deliver one message to another agent's REPL (or any raw-mode prompt) as a single submitted turn: paste the text (bracketed-paste when the target has enabled it, plain otherwise), settle, then Enter — and return the resulting screen (last ~50 lines by default, captured after a short render delay). A convenience wrapper over send_terminal_input tuned for agent↔agent / REPL conversation, so you don't hand-assemble the body-then-Enter sequence. Use list_sessions (chosenSessionName + isAgentRepl) to pick the target; pair with await_turn + read_last_turn for the full send → wait → read loop. Returns { sessionId, delivered, transport, bytesSent, snapshot }.",
             inputSchema = objectSchema {
                 string("sessionId", "Active session ID (from list_sessions). Optional — defaults to the sole open terminal session.")
                 string("message", "The message to deliver as one submitted prompt.", required = true)
@@ -4163,7 +4163,8 @@ internal class McpTools(
         // as a discrete keypress, not folded into the text burst by a raw-mode
         // REPL's input batching (verified on Claude Code: text+\r in one burst
         // stages without submitting; a separate \r submits). #14
-        if (body.isNotEmpty()) sendRawInput(sessionId, body)
+        var transport: String? = null
+        if (body.isNotEmpty()) transport = sendRawInput(sessionId, body)
         if (body.isNotEmpty() && keyBytes.isNotEmpty()) {
             try {
                 Thread.sleep(SUBMIT_SETTLE_MS)
@@ -4171,11 +4172,17 @@ internal class McpTools(
                 Thread.currentThread().interrupt()
             }
         }
-        if (keyBytes.isNotEmpty()) sendRawInput(sessionId, keyBytes.toString())
+        if (keyBytes.isNotEmpty()) transport = sendRawInput(sessionId, keyBytes.toString())
 
         return JSONObject().apply {
             put("sessionId", sessionId)
+            // `delivered` only ever means "a transport accepted the write
+            // without throwing" — it is not an echo check, and #555 is exactly
+            // the case where that is not enough. `transport` names who took the
+            // bytes, so the next reproduction distinguishes "the local manager
+            // accepted and lost them" from "another transport claimed the id".
             put("delivered", true)
+            put("transport", transport)
             put("bytesSent", totalBytes)
             if (returnSnapshot) {
                 // Give the target a beat to render the just-submitted input so
@@ -4201,9 +4208,10 @@ internal class McpTools(
      * tried, so agent input to a mosh session failed "No local session"
      * while snapshot reads resolved it fine).
      */
-    private fun sendRawInput(sessionId: String, s: String) {
+    /** @return the transport that accepted the write (see #555). */
+    private fun sendRawInput(sessionId: String, s: String): String {
         try {
-            sessionManagerRegistry.sendTerminalInput(sessionId, s)
+            return sessionManagerRegistry.sendTerminalInput(sessionId, s)
         } catch (e: IllegalStateException) {
             throw McpError(-32603, e.message ?: "No terminal session: $sessionId")
         }

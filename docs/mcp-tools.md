@@ -41,7 +41,7 @@ Tools are grouped into sections by what they touch, and each tool is collapsed �
 expand one for its description and arguments. The tag after each name is its
 consent level:
 
-- **asks every call** — side-effectful or sensitive; a consent sheet describing the specific action on every call (71 tools).
+- **asks every call** — side-effectful or sensitive; a consent sheet describing the specific action on every call (70 tools).
 - **asks once per session** — reversible actions and screen-reading; prompts the first time each session, then proceeds (50 tools).
 - **no per-call prompt** — read-only queries and tap-equivalent UI actions; still behind the endpoint being enabled and the client paired (87 tools).
 
@@ -54,7 +54,7 @@ consent level:
 - [**Email**](#sec-email) — 15 tools
 - [**Linux guest (proot) & desktops**](#sec-linux) — 46 tools
 - [**Networking — tunnels & port forwarding**](#sec-networking) — 14 tools
-- [**USB & host-device brokers**](#sec-usb) — 20 tools
+- [**USB & host-device brokers**](#sec-usb) — 19 tools
 - [**Security — SSH keys, host keys, TOTP & age**](#sec-security) — 15 tools
 - [**Agent ↔ you (attention & self-drive)**](#sec-agent-you) — 12 tools
 - [**Agent endpoint, device & diagnostics**](#sec-agent-endpoint) — 16 tools
@@ -1648,14 +1648,14 @@ Build and send one fwknop SPA packet to a host without committing a profile or c
 
 <a id="sec-usb"></a>
 
-## USB & host-device brokers (20)
+## USB & host-device brokers (19)
 
 USB devices and drives, USB/IP export, the adb-over-VPN bridge, and adb pairing.
 
 <details markdown="1">
 <summary><code>await_adb_pairing_code</code> · no per-call prompt</summary>
 
-Block until the user types the 6-digit code into Haven's on-device pairing overlay, then return it together with a ready-to-run `adb pair <host>:<port> <code>` (#575). Pair this with start_adb_pairing: that verb opens the dialog and finds the ephemeral pairing port, this one collects the code the system drew on screen, and the agent runs the resulting command from the workstation that wants adb — Haven cannot run it itself. Returns { code, host, port, pairCommand }. Errors if no pairing is in progress, or if the box was cancelled or the wait elapsed; the port dies with the dialog, so restart the flow rather than retrying with a stale one.
+Block until the user sends the 6-digit code from Haven's direct-reply pairing notification, then return it with a ready-to-run `adb pair <host>:<port> <code>` (#575). Pair this with start_adb_pairing: that verb opens the dialog, finds the ephemeral pairing port and posts the prompt; this one collects the reply, and the agent runs the resulting command from the workstation that wants adb — Haven cannot run it itself (that needs SPAKE2-EE over TLS-PSK). Returns { code, host, port, pairCommand }. Errors if no pairing is in progress or the wait elapsed; the port dies with the dialog, so restart the flow rather than retrying a stale one.
 
 - `timeoutMs` (integer) — How long to wait for the code, 1000-300000. Default 120000 — this is a human typing.
 
@@ -1732,15 +1732,6 @@ Open a phone-attached USB drive (mass storage — flash drive, SSD, SD reader) i
 </details>
 
 <details markdown="1">
-<summary><code>request_overlay_permission</code> · asks every call</summary>
-
-Check whether Haven can draw over other apps, and open the grant screen (deep-linked to Haven's own row) when it cannot (#575). The adb pairing code box is a floating overlay because the six digits live on Android's system dialog and both must be on screen at once; without this permission start_adb_pairing still works but returns overlaySkippedReason="permission-missing" and you pair from the workstation instead. Call this BEFORE start_adb_pairing, never during: the grant screen is full-screen and would push the pairing dialog — and its code and ephemeral port — away. Returns { granted, screenOpened }.
-
-- `open` (boolean) — Open the grant screen when not already granted. Default true; pass false to check silently.
-
-</details>
-
-<details markdown="1">
 <summary><code>request_usb_permission</code> · asks once per session</summary>
 
 Request the Android runtime USB permission for a device (pops the system grant dialog) and open it, caching the connection for usb_control_transfer / usb_bulk_transfer. Idempotent: a no-op if permission is already held and the device is open. Returns the device info with hasPermission/isOpen reflecting the result.
@@ -1752,9 +1743,9 @@ Request the Android runtime USB permission for a device (pops the system grant d
 <details markdown="1">
 <summary><code>start_adb_pairing</code> · asks every call</summary>
 
-Pair a NEW workstation with this device's adb, without the user hunting for a port (#575). Turns wireless debugging on, opens Android's system pairing dialog, and discovers the pairing listener over mDNS (`_adb-tls-pairing._tcp`) — that service exists ONLY while the dialog is open and gets a fresh ephemeral port every time, which is why a port noted once is always stale and why `adb connect`'s port is the wrong one to pair against. Returns { host, port, pairCommand, codeSource, overlayShown }. The 6-digit code is NOT returned and cannot be: the system generates and draws it, and no shell-uid API exposes it — read it off the dialog. When Haven has the "display over other apps" permission it also floats a code box over the dialog so the code can be typed on-device; otherwise pair from the workstation with the returned command. Requires Shizuku for the wireless-debugging flag.
+Pair a NEW workstation with this device's adb, without the user hunting for a port (#575). Turns wireless debugging on, opens Android's system pairing dialog, and discovers the pairing listener over mDNS (`_adb-tls-pairing._tcp`) — that service exists ONLY while the dialog is open and gets a fresh ephemeral port every time, which is why a port noted once is always stale and why `adb connect`'s port is the wrong one to pair against. Returns { host, port, pairCommand, wirelessDebuggingScreenOpened, codePromptShown }. The 6-digit code is NOT returned and cannot be: the system generates and draws it, and no API exposes it to an app — read it off the dialog. Haven posts a direct-reply notification so the code can be typed on-device without leaving the dialog; collect it with await_adb_pairing_code, or ignore it and pair from the workstation with the returned command. A notification rather than a floating window because Settings sets HIDE_NON_SYSTEM_OVERLAY_WINDOWS, which hides any app overlay drawn over it — the reply field is system-drawn, so it is unaffected and needs no permission beyond notifications. Shizuku only helps with the wireless-debugging flag and is optional.
 
-- `showOverlay` (boolean) — Also float the on-device code box over the system dialog when permission allows. Default true.
+- `showPrompt` (boolean) — Post the direct-reply notification so the code can be typed on-device. Default true; pass false to pair from the workstation instead.
 - `timeoutMs` (integer) — How long to wait for the pairing service to appear, 1000-120000. Default 30000. The clock starts before the dialog opens, since the service can appear immediately.
 
 </details>

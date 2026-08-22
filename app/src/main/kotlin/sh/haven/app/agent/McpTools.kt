@@ -980,10 +980,10 @@ internal class McpTools(
         ) { _ -> enableWirelessAdb() },
 
         "start_adb_pairing" to ToolHandler(
-            description = "Pair a NEW workstation with this device's adb, without the user hunting for a port (#575). Turns wireless debugging on, opens Android's system pairing dialog, and discovers the pairing listener over mDNS (`_adb-tls-pairing._tcp`) — that service exists ONLY while the dialog is open and gets a fresh ephemeral port every time, which is why a port noted once is always stale and why `adb connect`'s port is the wrong one to pair against. Returns { host, port, pairCommand, codeSource, overlayShown }. The 6-digit code is NOT returned and cannot be: the system generates and draws it, and no shell-uid API exposes it — read it off the dialog. When Haven has the \"display over other apps\" permission it also floats a code box over the dialog so the code can be typed on-device; otherwise pair from the workstation with the returned command. Requires Shizuku for the wireless-debugging flag.",
+            description = "Pair a NEW workstation with this device's adb, without the user hunting for a port (#575). Turns wireless debugging on, opens Android's system pairing dialog, and discovers the pairing listener over mDNS (`_adb-tls-pairing._tcp`) — that service exists ONLY while the dialog is open and gets a fresh ephemeral port every time, which is why a port noted once is always stale and why `adb connect`'s port is the wrong one to pair against. Returns { host, port, pairCommand, wirelessDebuggingScreenOpened, codePromptShown }. The 6-digit code is NOT returned and cannot be: the system generates and draws it, and no API exposes it to an app — read it off the dialog. Haven posts a direct-reply notification so the code can be typed on-device without leaving the dialog; collect it with await_adb_pairing_code, or ignore it and pair from the workstation with the returned command. A notification rather than a floating window because Settings sets HIDE_NON_SYSTEM_OVERLAY_WINDOWS, which hides any app overlay drawn over it — the reply field is system-drawn, so it is unaffected and needs no permission beyond notifications. Shizuku only helps with the wireless-debugging flag and is optional.",
             inputSchema = objectSchema {
                 integer("timeoutMs", "How long to wait for the pairing service to appear, 1000-120000. Default 30000. The clock starts before the dialog opens, since the service can appear immediately.")
-                boolean("showOverlay", "Also float the on-device code box over the system dialog when permission allows. Default true.")
+                boolean("showPrompt", "Post the direct-reply notification so the code can be typed on-device. Default true; pass false to pair from the workstation instead.")
             },
             // Opens a system dialog and turns on a debugging transport — the
             // user must see this coming, and it is a once-per-workstation
@@ -1002,43 +1002,13 @@ internal class McpTools(
         ) { args -> startAdbPairing(args) },
 
         "await_adb_pairing_code" to ToolHandler(
-            description = "Block until the user types the 6-digit code into Haven's on-device pairing overlay, then return it together with a ready-to-run `adb pair <host>:<port> <code>` (#575). Pair this with start_adb_pairing: that verb opens the dialog and finds the ephemeral pairing port, this one collects the code the system drew on screen, and the agent runs the resulting command from the workstation that wants adb — Haven cannot run it itself. Returns { code, host, port, pairCommand }. Errors if no pairing is in progress, or if the box was cancelled or the wait elapsed; the port dies with the dialog, so restart the flow rather than retrying with a stale one.",
+            description = "Block until the user sends the 6-digit code from Haven's direct-reply pairing notification, then return it with a ready-to-run `adb pair <host>:<port> <code>` (#575). Pair this with start_adb_pairing: that verb opens the dialog, finds the ephemeral pairing port and posts the prompt; this one collects the reply, and the agent runs the resulting command from the workstation that wants adb — Haven cannot run it itself (that needs SPAKE2-EE over TLS-PSK). Returns { code, host, port, pairCommand }. Errors if no pairing is in progress or the wait elapsed; the port dies with the dialog, so restart the flow rather than retrying a stale one.",
             inputSchema = objectSchema {
                 integer("timeoutMs", "How long to wait for the code, 1000-300000. Default 120000 — this is a human typing.")
             },
             consentLevel = ConsentLevel.NEVER,
         ) { args -> awaitAdbPairingCode(args) },
 
-        "request_overlay_permission" to ToolHandler(
-            description = "Check whether Haven can draw over other apps, and open the grant screen (deep-linked to Haven's own row) when it cannot (#575). The adb pairing code box is a floating overlay because the six digits live on Android's system dialog and both must be on screen at once; without this permission start_adb_pairing still works but returns overlaySkippedReason=\"permission-missing\" and you pair from the workstation instead. Call this BEFORE start_adb_pairing, never during: the grant screen is full-screen and would push the pairing dialog — and its code and ephemeral port — away. Returns { granted, screenOpened }.",
-            inputSchema = objectSchema {
-                boolean("open", "Open the grant screen when not already granted. Default true; pass false to check silently.")
-            },
-            // NOT NEVER. This yanks the user into a system settings screen that
-            // warns about risk to personal and financial info, and asks them to
-            // grant a permission — arriving with no explanation of who asked or
-            // why is alarming and unanswerable. The prompt below is the only
-            // place Haven gets to say what it wants and what for. A silent
-            // check (open=false) is harmless, but the consent level is per-tool
-            // and the visible case is the one that has to be right.
-            consentLevel = ConsentLevel.EVERY_CALL,
-            // The prompt must describe THIS call, not the tool in general. A
-            // static summary that promised to open a screen was shown for a
-            // silent open=false check, so the user was asked to approve
-            // something that would not happen — and reasonably refused. A
-            // consent prompt that misdescribes its own effect is worse than
-            // none: it spends the user's trust on a false statement.
-            summarise = { args ->
-                if (args.optBoolean("open", true)) {
-                    "Open Haven's App info so it can draw the pairing code box over Android's " +
-                        "dialog? You will need two taps there: ⋮ → \"Allow restricted settings\", " +
-                        "then Permissions → \"Display over other apps\"."
-                } else {
-                    "Check whether Haven is allowed to draw over other apps? Nothing opens and " +
-                        "nothing changes — this only reads the current permission state."
-                }
-            },
-        ) { args -> requestOverlayPermission(args) },
 
         "read_logcat" to ToolHandler(
             description = "Read recent Android system log lines via Shizuku, so the agent can observe foreign-app behaviour (network calls, crashes, lifecycle) during F-Droid tester reviews. Requires Shizuku running + granted (no separate READ_LOGS grant on Haven — logcat is read as Shizuku's shell uid, which already has the permission). Optional `packageName` resolves to a `--uid` filter via `pm list packages -U`; combine with `filter` for tag-level narrowing. Returns the raw logcat block; the agent parses it. `lines` is capped at 5000 and the response payload is capped at 256 KiB (truncated:true when either limit hits). Use this whenever an MR review needs log-level observation of a non-Haven app — the Haven local shell's Alpine proot can't reach /system/bin/logcat.",
@@ -5269,7 +5239,7 @@ internal class McpTools(
     private suspend fun startAdbPairing(args: JSONObject): JSONObject = withContext(Dispatchers.IO) {
         val timeoutMs = args.optLong("timeoutMs", AdbPairingDiscovery.DEFAULT_TIMEOUT_MS)
             .coerceIn(1_000L, 120_000L)
-        val wantOverlay = args.optBoolean("showOverlay", true)
+        val wantPrompt = args.optBoolean("showPrompt", args.optBoolean("showOverlay", true))
 
         // Best effort, NOT a precondition. Wireless debugging must be on for a
         // pairing listener to exist, but flipping it is the only privileged
@@ -5324,23 +5294,20 @@ internal class McpTools(
         pendingPairingCode = codeLatch
         pendingPairingEndpoint = endpoint
 
-        var overlayShown = false
-        var canDrawOverlay = false
-        if (wantOverlay) {
-            val overlay = AdbPairingOverlay(context)
-            canDrawOverlay = overlay.canDraw()
-            if (canDrawOverlay) {
-                withContext(Dispatchers.Main) {
-                    overlayShown = overlay.show(
-                        endpoint,
-                        onSubmit = { code -> codeLatch.complete(code) },
-                        onCancel = { codeLatch.cancel() },
-                    )
-                }
+        // A direct-reply notification, NOT an overlay. Settings windows set
+        // HIDE_NON_SYSTEM_OVERLAY_WINDOWS (captured on-device), so the platform
+        // hides any TYPE_APPLICATION_OVERLAY while the pairing dialog is up —
+        // the overlay was drawn and never displayed. A notification's reply
+        // field is rendered by system UI, so it is unaffected, needs no
+        // SYSTEM_ALERT_WINDOW, and lands as a heads-up above the dialog.
+        var promptShown = false
+        if (wantPrompt) {
+            val prompt = AdbPairingPrompt(context)
+            pendingPairingPrompt = prompt
+            withContext(Dispatchers.Main) {
+                promptShown = prompt.show(endpoint) { code -> codeLatch.complete(code) }
             }
         }
-        val overlaySkipped =
-            AdbPairingOverlay.skipReason(wantOverlay, canDrawOverlay, overlayShown)
 
         JSONObject().apply {
             put("host", endpoint.host)
@@ -5352,16 +5319,13 @@ internal class McpTools(
             // "Pair device with pairing code" on it.
             put("wirelessDebuggingScreenOpened", screenOpened)
             put("wirelessDebuggingSet", wirelessDebuggingSet)
-            put("overlayShown", overlayShown)
-            // Never report a bare false: without the reason the caller cannot
-            // tell "you never asked for it" from "one tap would fix this".
-            put("overlaySkippedReason", overlaySkipped ?: JSONObject.NULL)
-            if (overlaySkipped == AdbPairingOverlay.REASON_PERMISSION) {
+            put("codePromptShown", promptShown)
+            if (wantPrompt && !promptShown) {
                 put(
-                    "overlayFix",
-                    "Haven lacks \"Display over other apps\". Call request_overlay_permission, " +
-                        "grant it, then run start_adb_pairing again — the grant screen is full-screen " +
-                        "and would push this pairing dialog (and its code) away if opened now.",
+                    "codePromptFix",
+                    "The code prompt could not be posted — Haven has no notification permission. " +
+                        "Grant notifications, or read the 6-digit code off the dialog and pair " +
+                        "from the workstation with pairCommand.",
                 )
             }
             put(
@@ -5386,6 +5350,10 @@ internal class McpTools(
     @Volatile
     private var pendingPairingEndpoint: AdbPairingDiscovery.Endpoint? = null
 
+    /** Held so a completed or abandoned pairing tears its notification down. */
+    @Volatile
+    private var pendingPairingPrompt: AdbPairingPrompt? = null
+
     /** Await the code typed into the on-device overlay (#575). */
     private suspend fun awaitAdbPairingCode(args: JSONObject): JSONObject {
         val latch = pendingPairingCode
@@ -5393,14 +5361,21 @@ internal class McpTools(
         val timeoutMs = args.optLong("timeoutMs", 120_000L).coerceIn(1_000L, 300_000L)
         val code = kotlinx.coroutines.withTimeoutOrNull(timeoutMs) {
             runCatching { latch.await() }.getOrNull()
-        } ?: throw McpError(
-            -32603,
-            "No code was entered within ${timeoutMs}ms (or the box was cancelled). The pairing port " +
-                "expires with the dialog, so start_adb_pairing again for a fresh one.",
-        )
+        } ?: run {
+            // A reply box for a dead port is worse than none.
+            pendingPairingPrompt?.let { it.unregister(); it.cancel() }
+            pendingPairingPrompt = null
+            throw McpError(
+                -32603,
+                "No code was entered within ${timeoutMs}ms. The pairing port expires with the " +
+                    "dialog, so start_adb_pairing again for a fresh one.",
+            )
+        }
         val endpoint = pendingPairingEndpoint
         pendingPairingCode = null
         pendingPairingEndpoint = null
+        pendingPairingPrompt?.let { it.unregister(); it.cancel() }
+        pendingPairingPrompt = null
         return JSONObject().apply {
             put("code", code)
             if (endpoint != null) {
@@ -5419,64 +5394,6 @@ internal class McpTools(
      * full-screen settings activity, so opening it mid-pairing would background
      * Android's pairing dialog and expire the ephemeral port along with it.
      */
-    private fun requestOverlayPermission(args: JSONObject): JSONObject {
-        val state = AdbPairingOverlay.grantState(context)
-        val granted = state == AdbPairingOverlay.STATE_GRANTED
-        var dispatched = false
-        if (!granted && args.optBoolean("open", true)) {
-            // Route by state, not blindly to the toggle: under a restricted
-            // -settings block that toggle cannot move, and sending the user
-            // there is a dead end that looks like an action.
-            val intent = AdbPairingOverlay.appInfoIntent(context)
-            dispatched = runCatching { context.startActivity(intent) }.isSuccess
-            // Opening the page is only half of taking someone there. The `note`
-            // below is returned to the AGENT — the person is standing at the
-            // phone looking at a Settings screen with no instruction on it, and
-            // the step that matters is hidden behind an overflow menu. Put the
-            // steps on the device, where the hands are.
-            if (dispatched) postOverlayGrantSteps()
-        }
-        return JSONObject().apply {
-            put("granted", granted)
-            put("state", state)
-            put("screenOpened", dispatched)
-            put("screenAction", AdbPairingOverlay.routeFor(state) ?: JSONObject.NULL)
-            // Diagnostics, not logic: the first restricted-settings signal I
-            // picked was wrong, so report both candidates' raw AppOps modes and
-            // let one device round trip decide rather than another guess.
-            // 0=ALLOWED 1=IGNORED 2=ERRORED 3=DEFAULT 4=FOREGROUND, null=unknown op.
-            put(
-                "opModes",
-                JSONObject().apply {
-                    AdbPairingOverlay.opModes(context).forEach { (k, v) ->
-                        put(k, v ?: JSONObject.NULL)
-                    }
-                },
-            )
-            put(
-                "note",
-                when (state) {
-                    AdbPairingOverlay.STATE_GRANTED ->
-                        "Already granted — start_adb_pairing will float the code box over the dialog."
-                    AdbPairingOverlay.STATE_RESTRICTED ->
-                        "Android is blocking this permission because Haven was installed from an " +
-                            "unknown source (sideloaded APK, or F-Droid without the privileged " +
-                            "extension). The overlay toggle will not move until the block is lifted: " +
-                            "on the App info page just opened, use the ⋮ menu → \"Allow restricted " +
-                            "settings\", then call this again."
-                    else ->
-                        "On the App info page just opened: if the ⋮ menu offers \"Allow restricted " +
-                            "settings\", tap that first — Android blocks this permission for " +
-                            "sideloaded apps and the toggle will not move until you do. Then " +
-                            "Permissions → Display over other apps → allow, and call " +
-                            "start_adb_pairing. Haven cannot tell which of those two states it is " +
-                            "in — the op that would say is not readable from inside the app — so " +
-                            "both steps are listed and the harmless one is a no-op."
-                },
-            )
-        }
-    }
-
     /** On-device instruction for the pairing screen (#575). */
     private fun postPairingSteps() {
         runCatching {
@@ -5496,41 +5413,6 @@ internal class McpTools(
             NotificationManagerCompat.from(context)
                 .notify(PAIRING_STEPS_NOTIFICATION_ID, notification)
         }.onFailure { android.util.Log.d("McpTools", "pairing steps not posted: ${it.message}") }
-    }
-
-    /**
-     * On-device instructions for the overlay grant, posted alongside the
-     * Settings page (#575).
-     *
-     * The ⋮ "Allow restricted settings" step is the one nobody finds unaided:
-     * Android hides it in an overflow menu, and until it is tapped the
-     * permission toggle simply refuses with "App was denied access", which
-     * reads as a dead end rather than a prerequisite. Haven cannot lift the
-     * block itself — the app-ops call is refused for shell uid on at least
-     * some OEM builds, and there is no route for an unprivileged app at all —
-     * so guiding the two taps accurately is the whole of what it can do.
-     *
-     * Best effort: a missing POST_NOTIFICATIONS grant must not fail the
-     * permission flow it is only annotating.
-     */
-    private fun postOverlayGrantSteps() {
-        runCatching {
-            ensureAgentNotificationChannel()
-            val body = "1. Tap ⋮ (top right) → \"Allow restricted settings\"\n" +
-                "2. Permissions → \"Display over other apps\" → allow\n\n" +
-                "Step 1 is only shown for apps installed outside an app store, and the " +
-                "toggle in step 2 will not move until it is done."
-            val notification = NotificationCompat.Builder(context, AGENT_NOTIFICATION_CHANNEL_ID)
-                .setSmallIcon(android.R.drawable.ic_dialog_info)
-                .setContentTitle("Allow Haven to draw over other apps")
-                .setContentText(body)
-                .setStyle(NotificationCompat.BigTextStyle().bigText(body))
-                .setPriority(NotificationCompat.PRIORITY_HIGH)
-                .setAutoCancel(true)
-                .build()
-            NotificationManagerCompat.from(context)
-                .notify(OVERLAY_GRANT_NOTIFICATION_ID, notification)
-        }.onFailure { android.util.Log.d("McpTools", "overlay grant steps not posted: ${it.message}") }
     }
 
     /**
@@ -8367,8 +8249,6 @@ private const val AGENT_NOTIFICATION_CHANNEL_ID = "agent.test.notifications"
  * Fixed id so re-running the grant flow replaces the steps rather than stacking
  * a second identical notification (#575).
  */
-private const val OVERLAY_GRANT_NOTIFICATION_ID = 0x0575
-
 /** Fixed id, so re-running the pairing flow replaces its steps. */
 private const val PAIRING_STEPS_NOTIFICATION_ID = 0x0576
 private const val INSTALL_NOTIFICATION_CHANNEL_ID = "agent.install"

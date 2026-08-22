@@ -5,6 +5,21 @@ the corresponding GitHub Release; a release can't ship without its section
 (enforced by `scripts/check-changelog.sh` in CI). The GitHub "Full Changelog"
 compare link is appended automatically — don't add it here.
 
+## v5.87.45
+
+- The terminal keyboard could stop reaching the session after a reconnect, until you disconnected and reconnected by hand. This was a regression from v5.87.43.
+- A screen rotation while an agent permission prompt was open counted as a refusal (#576).
+
+- **The terminal keyboard no longer goes deaf after a reconnect.** This is a regression from v5.87.43's HyperOS crash fix, reported the same day, and it is the reason for this release. That fix deliberately takes the hidden input view out of its parents' focus record during Compose's teardown. It relies on the view being re-added, or on the next recomposition, to put it back. When a teardown did neither, the result was silent and self-sustaining. The view believed it held focus, so nothing re-requested it. The parent chain did not record it, so the keyboard delivered to nobody. Rebuilding the session was the only way out, which is exactly the workaround the reporter had found. The view now repairs that disagreement itself, on window-visible and when the keyboard is asked for. The repair is targeted at its own parent rather than a search from the top of the window. This ensures it cannot re-enter the disposing hierarchy that v5.87.43 exists to protect.
+
+  Stated plainly: the sequence that produces the broken state has not been reproduced on a device. This closes the state rather than the path into it, and logs the repair so the next occurrence names its own cause.
+
+- **A rotation is no longer an answer** (#576). Rotating the device while an agent was asking permission denied the request, and the sheet vanished mid-read. Every dismissal was treated as a refusal. This is right for a swipe or a tap outside, but wrong for a configuration change. Android recreates the screen and the sheet goes with it, through the same code path. Worse than the interruption, that phantom refusal was recorded as a deliberate one. This armed the cooldown that suppresses repeated prompts. Consequently, a decision nobody made could silence the retry that followed. Genuine dismissals still refuse.
+
+- **Agent permission prompts now say who asked and why**, and the adb pairing flow can find its own pairing port instead of sending you to hunt for one (#575). This is groundwork. The on-device code box still needs a permission Android withholds from sideloaded apps, and the release notes will say so when it lands.
+
+🪞 **Every defect fixed here was found by someone using the app, not by the tests that shipped alongside it.** The focus regression, the rotation denial, and four more in the pairing work were all reported from a device within hours of shipping. None were logic errors. They were assumptions about the environment and about what the person on the other end is told. The tests pinned the behaviour that was imagined. The device supplied the behaviour that was real.
+
 ## v5.87.44
 
 - Terminal crash on HyperOS/Android 16 warm return, round two. The v5.86.8 fix relied on a 100ms assumption that a Xiaomi Mi 17 does not honour (thanks Maksimus).

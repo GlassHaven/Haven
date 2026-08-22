@@ -1,0 +1,2 @@
+- The terminal keyboard could stop reaching the session after a reconnect, until you disconnected and reconnected by hand. This was a regression from v5.87.43, and it is the reason for this release.
+- A screen rotation while an agent permission prompt was open counted as a refusal (#576).

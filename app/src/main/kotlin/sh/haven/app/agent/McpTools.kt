@@ -5413,6 +5413,12 @@ internal class McpTools(
             // there is a dead end that looks like an action.
             val intent = AdbPairingOverlay.appInfoIntent(context)
             dispatched = runCatching { context.startActivity(intent) }.isSuccess
+            // Opening the page is only half of taking someone there. The `note`
+            // below is returned to the AGENT — the person is standing at the
+            // phone looking at a Settings screen with no instruction on it, and
+            // the step that matters is hidden behind an overflow menu. Put the
+            // steps on the device, where the hands are.
+            if (dispatched) postOverlayGrantSteps()
         }
         return JSONObject().apply {
             put("granted", granted)
@@ -5453,6 +5459,41 @@ internal class McpTools(
                 },
             )
         }
+    }
+
+    /**
+     * On-device instructions for the overlay grant, posted alongside the
+     * Settings page (#575).
+     *
+     * The ⋮ "Allow restricted settings" step is the one nobody finds unaided:
+     * Android hides it in an overflow menu, and until it is tapped the
+     * permission toggle simply refuses with "App was denied access", which
+     * reads as a dead end rather than a prerequisite. Haven cannot lift the
+     * block itself — the app-ops call is refused for shell uid on at least
+     * some OEM builds, and there is no route for an unprivileged app at all —
+     * so guiding the two taps accurately is the whole of what it can do.
+     *
+     * Best effort: a missing POST_NOTIFICATIONS grant must not fail the
+     * permission flow it is only annotating.
+     */
+    private fun postOverlayGrantSteps() {
+        runCatching {
+            ensureAgentNotificationChannel()
+            val body = "1. Tap ⋮ (top right) → \"Allow restricted settings\"\n" +
+                "2. Permissions → \"Display over other apps\" → allow\n\n" +
+                "Step 1 is only shown for apps installed outside an app store, and the " +
+                "toggle in step 2 will not move until it is done."
+            val notification = NotificationCompat.Builder(context, AGENT_NOTIFICATION_CHANNEL_ID)
+                .setSmallIcon(android.R.drawable.ic_dialog_info)
+                .setContentTitle("Allow Haven to draw over other apps")
+                .setContentText(body)
+                .setStyle(NotificationCompat.BigTextStyle().bigText(body))
+                .setPriority(NotificationCompat.PRIORITY_HIGH)
+                .setAutoCancel(true)
+                .build()
+            NotificationManagerCompat.from(context)
+                .notify(OVERLAY_GRANT_NOTIFICATION_ID, notification)
+        }.onFailure { android.util.Log.d("McpTools", "overlay grant steps not posted: ${it.message}") }
     }
 
     /**
@@ -8284,6 +8325,12 @@ internal fun emptyObjectSchema(): JSONObject = JSONObject().apply {
  * silencing real Haven notifications.
  */
 private const val AGENT_NOTIFICATION_CHANNEL_ID = "agent.test.notifications"
+
+/**
+ * Fixed id so re-running the grant flow replaces the steps rather than stacking
+ * a second identical notification (#575).
+ */
+private const val OVERLAY_GRANT_NOTIFICATION_ID = 0x0575
 private const val INSTALL_NOTIFICATION_CHANNEL_ID = "agent.install"
 
 /** Upper bound on lines requested from logcat in a single read_logcat call. */

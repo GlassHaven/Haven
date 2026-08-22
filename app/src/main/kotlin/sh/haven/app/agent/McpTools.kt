@@ -1005,7 +1005,19 @@ internal class McpTools(
             inputSchema = objectSchema {
                 boolean("open", "Open the grant screen when not already granted. Default true; pass false to check silently.")
             },
-            consentLevel = ConsentLevel.NEVER,
+            // NOT NEVER. This yanks the user into a system settings screen that
+            // warns about risk to personal and financial info, and asks them to
+            // grant a permission — arriving with no explanation of who asked or
+            // why is alarming and unanswerable. The prompt below is the only
+            // place Haven gets to say what it wants and what for. A silent
+            // check (open=false) is harmless, but the consent level is per-tool
+            // and the visible case is the one that has to be right.
+            consentLevel = ConsentLevel.EVERY_CALL,
+            summarise = { _ ->
+                "Open the permission screen so Haven can draw the adb pairing code box over " +
+                    "Android's pairing dialog? Both must be on screen at once — the system draws " +
+                    "the code and Haven cannot read it."
+            },
         ) { args -> requestOverlayPermission(args) },
 
         "read_logcat" to ToolHandler(
@@ -5381,22 +5393,38 @@ internal class McpTools(
      * Android's pairing dialog and expire the ephemeral port along with it.
      */
     private fun requestOverlayPermission(args: JSONObject): JSONObject {
-        val granted = AdbPairingOverlay(context).canDraw()
+        val state = AdbPairingOverlay.grantState(context)
+        val granted = state == AdbPairingOverlay.STATE_GRANTED
         var dispatched = false
         if (!granted && args.optBoolean("open", true)) {
-            dispatched = runCatching {
-                context.startActivity(AdbPairingOverlay.grantIntent(context))
-            }.isSuccess
+            // Route by state, not blindly to the toggle: under a restricted
+            // -settings block that toggle cannot move, and sending the user
+            // there is a dead end that looks like an action.
+            val intent = if (state == AdbPairingOverlay.STATE_RESTRICTED) {
+                AdbPairingOverlay.appInfoIntent(context)
+            } else {
+                AdbPairingOverlay.grantIntent(context)
+            }
+            dispatched = runCatching { context.startActivity(intent) }.isSuccess
         }
         return JSONObject().apply {
             put("granted", granted)
+            put("state", state)
             put("screenOpened", dispatched)
+            put("screenAction", AdbPairingOverlay.routeFor(state) ?: JSONObject.NULL)
             put(
                 "note",
-                if (granted) {
-                    "Already granted — start_adb_pairing will float the code box over the dialog."
-                } else {
-                    "Grant \"Display over other apps\" for Haven, then call start_adb_pairing."
+                when (state) {
+                    AdbPairingOverlay.STATE_GRANTED ->
+                        "Already granted — start_adb_pairing will float the code box over the dialog."
+                    AdbPairingOverlay.STATE_RESTRICTED ->
+                        "Android is blocking this permission because Haven was installed from an " +
+                            "unknown source (sideloaded APK, or F-Droid without the privileged " +
+                            "extension). The overlay toggle will not move until the block is lifted: " +
+                            "on the App info page just opened, use the ⋮ menu → \"Allow restricted " +
+                            "settings\", then call this again."
+                    else ->
+                        "Grant \"Display over other apps\" for Haven, then call start_adb_pairing."
                 },
             )
         }

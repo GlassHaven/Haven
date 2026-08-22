@@ -188,6 +188,60 @@ internal class AdbPairingOverlay(private val context: Context) {
             else -> null
         }
 
+        /** Overlay permission cannot be granted at all until the user lifts it. */
+        const val STATE_RESTRICTED = "restricted-settings-block"
+        const val STATE_GRANTED = "granted"
+        const val STATE_DENIED = "denied"
+
+        /**
+         * Distinguish "not granted yet" from "cannot be granted yet".
+         *
+         * Android 13+ blocks SYSTEM_ALERT_WINDOW for apps installed from an
+         * unknown source until the user picks "Allow restricted settings" on
+         * the App info page. Haven is sideloaded for most users (GitHub APK,
+         * and F-Droid without the privileged extension), so this is the common
+         * case, not the exotic one — and `canDrawOverlays` returns false
+         * identically either way, which sends the user to a toggle that cannot
+         * move. AppOps reports the restricted op as MODE_ERRORED rather than
+         * MODE_IGNORED, which is the only signal available to tell them apart.
+         */
+        fun grantState(context: Context): String {
+            if (Settings.canDrawOverlays(context)) return STATE_GRANTED
+            if (Build.VERSION.SDK_INT < Build.VERSION_CODES.Q) return STATE_DENIED
+            val ops = context.getSystemService(android.app.AppOpsManager::class.java)
+                ?: return STATE_DENIED
+            val mode = runCatching {
+                ops.unsafeCheckOpNoThrow(
+                    android.app.AppOpsManager.OPSTR_SYSTEM_ALERT_WINDOW,
+                    android.os.Process.myUid(),
+                    context.packageName,
+                )
+            }.getOrNull()
+            return if (mode == android.app.AppOpsManager.MODE_ERRORED) {
+                STATE_RESTRICTED
+            } else {
+                STATE_DENIED
+            }
+        }
+
+        /**
+         * Where to send the user for a given state. Pure so the routing is
+         * testable: sending someone to the overlay toggle when the real block
+         * is on the App info page is the failure this exists to prevent.
+         */
+        fun routeFor(state: String): String? = when (state) {
+            STATE_RESTRICTED -> Settings.ACTION_APPLICATION_DETAILS_SETTINGS
+            STATE_DENIED -> Settings.ACTION_MANAGE_OVERLAY_PERMISSION
+            else -> null
+        }
+
+        /** App info page — where the ⋮ "Allow restricted settings" item lives. */
+        fun appInfoIntent(context: Context): Intent =
+            Intent(
+                Settings.ACTION_APPLICATION_DETAILS_SETTINGS,
+                android.net.Uri.parse("package:${context.packageName}"),
+            ).addFlags(Intent.FLAG_ACTIVITY_NEW_TASK)
+
         /**
          * Deep-link to Haven's own row in "Display over other apps" rather than
          * the top of the list — the settings screen is a per-app list and

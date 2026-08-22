@@ -179,3 +179,33 @@ class AdbPairingOverlayReasonTest {
         )
     }
 }
+
+/**
+ * Under Android's restricted-settings block the overlay toggle cannot move, so
+ * routing there is a dead end that looks like an action. These pin that the
+ * blocked case goes to the App info page instead — that is where the ⋮ "Allow
+ * restricted settings" item lives.
+ */
+class AdbPairingGrantRouteTest {
+
+    @Test
+    fun `a plain denial routes to the overlay toggle`() {
+        assertEquals(
+            android.provider.Settings.ACTION_MANAGE_OVERLAY_PERMISSION,
+            AdbPairingOverlay.routeFor(AdbPairingOverlay.STATE_DENIED),
+        )
+    }
+
+    @Test
+    fun `a restricted-settings block routes to App info, not the inert toggle`() {
+        assertEquals(
+            android.provider.Settings.ACTION_APPLICATION_DETAILS_SETTINGS,
+            AdbPairingOverlay.routeFor(AdbPairingOverlay.STATE_RESTRICTED),
+        )
+    }
+
+    @Test
+    fun `nothing to open once it is granted`() {
+        assertNull(AdbPairingOverlay.routeFor(AdbPairingOverlay.STATE_GRANTED))
+    }
+}

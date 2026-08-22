@@ -41,9 +41,9 @@ Tools are grouped into sections by what they touch, and each tool is collapsed �
 expand one for its description and arguments. The tag after each name is its
 consent level:
 
-- **asks every call** — side-effectful or sensitive; a consent sheet describing the specific action on every call (70 tools).
+- **asks every call** — side-effectful or sensitive; a consent sheet describing the specific action on every call (71 tools).
 - **asks once per session** — reversible actions and screen-reading; prompts the first time each session, then proceeds (50 tools).
-- **no per-call prompt** — read-only queries and tap-equivalent UI actions; still behind the endpoint being enabled and the client paired (88 tools).
+- **no per-call prompt** — read-only queries and tap-equivalent UI actions; still behind the endpoint being enabled and the client paired (87 tools).
 
 ## Sections
 
@@ -1732,7 +1732,7 @@ Open a phone-attached USB drive (mass storage — flash drive, SSD, SD reader) i
 </details>
 
 <details markdown="1">
-<summary><code>request_overlay_permission</code> · no per-call prompt</summary>
+<summary><code>request_overlay_permission</code> · asks every call</summary>
 
 Check whether Haven can draw over other apps, and open the grant screen (deep-linked to Haven's own row) when it cannot (#575). The adb pairing code box is a floating overlay because the six digits live on Android's system dialog and both must be on screen at once; without this permission start_adb_pairing still works but returns overlaySkippedReason="permission-missing" and you pair from the workstation instead. Call this BEFORE start_adb_pairing, never during: the grant screen is full-screen and would push the pairing dialog — and its code and ephemeral port — away. Returns { granted, screenOpened }.
 

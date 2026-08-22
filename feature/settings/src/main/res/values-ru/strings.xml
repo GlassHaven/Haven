@@ -46,7 +46,7 @@
     <string name="settings_view_connection_log_title">Просмотр журнала подключений</string>
     <string name="settings_view_connection_log_subtitle">История подключений и события</string>
     <string name="settings_verbose_logging_title">Подробный журнал подключений</string>
-    <string name="settings_verbose_logging_subtitle">Захват деталей протокола для SSH, Mosh и ET. Может включать имена хостов и пользователей</string>
+    <string name="settings_verbose_logging_subtitle">Захват деталей протокола для подключений SSH, Mosh, ET, RDP и SPICE — включая тайминги кадров RDP и события ввода SPICE, которые нужны при медленном или неотвечающем удалённом рабочем столе. Включите до подключения. Может включать имена хостов и пользователей</string>
 
     <!-- Terminal section -->
     <string name="settings_session_persistence_title">Сохранение сессий</string>

@@ -46,7 +46,7 @@
     <string name="settings_view_connection_log_title">Voir le journal des connexions</string>
     <string name="settings_view_connection_log_subtitle">Historique et événements de connexion</string>
     <string name="settings_verbose_logging_title">Journal détaillé des connexions</string>
-    <string name="settings_verbose_logging_subtitle">Capturer les détails du protocole pour SSH, Mosh et ET. Peut inclure des noms d\'hôtes et d\'utilisateurs</string>
+    <string name="settings_verbose_logging_subtitle">Capturer les détails du protocole pour les connexions SSH, Mosh, ET, RDP et SPICE — y compris les temps d\'image RDP et les événements d\'entrée SPICE, nécessaires pour un bureau à distance lent ou qui ne répond pas. Activez-le avant de vous connecter. Peut inclure des noms d\'hôtes et d\'utilisateurs</string>
 
     <!-- Terminal section -->
     <string name="settings_session_persistence_title">Persistance des sessions</string>

@@ -46,7 +46,7 @@
     <string name="settings_view_connection_log_title">Ver registro de conexões</string>
     <string name="settings_view_connection_log_subtitle">Histórico e eventos de conexão</string>
     <string name="settings_verbose_logging_title">Registro detalhado de conexões</string>
-    <string name="settings_verbose_logging_subtitle">Capturar detalhes de protocolo para conexões SSH, Mosh e ET. Pode incluir nomes de host e usuários</string>
+    <string name="settings_verbose_logging_subtitle">Capturar detalhes de protocolo para conexões SSH, Mosh, ET, RDP e SPICE — incluindo tempos de quadro do RDP e eventos de entrada do SPICE, que são o que um desktop remoto lento ou sem resposta exige. Ative antes de conectar. Pode incluir nomes de host e usuários</string>
 
     <!-- Terminal section -->
     <string name="settings_session_persistence_title">Persistência de sessão</string>

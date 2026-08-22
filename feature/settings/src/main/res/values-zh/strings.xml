@@ -46,7 +46,7 @@
     <string name="settings_view_connection_log_title">查看连接日志</string>
     <string name="settings_view_connection_log_subtitle">连接历史和事件</string>
     <string name="settings_verbose_logging_title">详细连接日志</string>
-    <string name="settings_verbose_logging_subtitle">捕获 SSH、Mosh 和 ET 连接的协议详情。可能包含主机名和用户名</string>
+    <string name="settings_verbose_logging_subtitle">捕获 SSH、Mosh、ET、RDP 和 SPICE 连接的协议详情 — 包括诊断缓慢或无响应远程桌面所需的 RDP 帧时序和 SPICE 输入事件。请在连接前开启。可能包含主机名和用户名</string>
 
     <!-- Terminal section -->
     <string name="settings_session_persistence_title">会话持久化</string>

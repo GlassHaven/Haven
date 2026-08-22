@@ -46,7 +46,7 @@
     <string name="settings_view_connection_log_title">عرض سجل الاتصالات</string>
     <string name="settings_view_connection_log_subtitle">سجل الاتصالات والأحداث</string>
     <string name="settings_verbose_logging_title">تسجيل تفصيلي للاتصالات</string>
-    <string name="settings_verbose_logging_subtitle">التقاط تفاصيل البروتوكول لاتصالات SSH و Mosh و ET. قد يتضمن أسماء المضيفين والمستخدمين</string>
+    <string name="settings_verbose_logging_subtitle">التقاط تفاصيل البروتوكول لاتصالات SSH و Mosh و ET و RDP و SPICE — بما في ذلك توقيتات إطارات RDP وأحداث إدخال SPICE، وهي ما يحتاجه سطح المكتب البعيد البطيء أو غير المستجيب. فعّله قبل الاتصال. قد يتضمن أسماء المضيفين والمستخدمين</string>
 
     <!-- Terminal section -->
     <string name="settings_session_persistence_title">استمرار الجلسة</string>

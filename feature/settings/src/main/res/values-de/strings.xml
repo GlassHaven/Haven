@@ -46,7 +46,7 @@
     <string name="settings_view_connection_log_title">Verbindungsprotokoll anzeigen</string>
     <string name="settings_view_connection_log_subtitle">Verbindungsverlauf und Ereignisse</string>
     <string name="settings_verbose_logging_title">Ausführliches Verbindungsprotokoll</string>
-    <string name="settings_verbose_logging_subtitle">Protokolldetails für SSH, Mosh und ET erfassen. Kann Hostnamen und Benutzernamen enthalten</string>
+    <string name="settings_verbose_logging_subtitle">Protokolldetails für SSH-, Mosh-, ET-, RDP- und SPICE-Verbindungen erfassen — einschließlich RDP-Frame-Timings und SPICE-Eingabeereignissen, die ein langsamer oder nicht reagierender Remote-Desktop benötigt. Vor dem Verbinden einschalten. Kann Hostnamen und Benutzernamen enthalten</string>
 
     <!-- Terminal section -->
     <string name="settings_session_persistence_title">Sitzungspersistenz</string>

@@ -50,7 +50,7 @@
     <string name="settings_view_connection_log_title">연결 로그 보기</string>
     <string name="settings_view_connection_log_subtitle">연결 기록 및 이벤트</string>
     <string name="settings_verbose_logging_title">자세한 연결 로깅</string>
-    <string name="settings_verbose_logging_subtitle">SSH, Mosh, ET, RDP 연결의 프로토콜 세부 정보를 캡처합니다 — 느린 원격 데스크톱 진단에 필요한 RDP 프레임 타이밍 포함. 호스트 이름과 사용자 이름이 포함될 수 있습니다</string>
+    <string name="settings_verbose_logging_subtitle">SSH, Mosh, ET, RDP, SPICE 연결의 프로토콜 세부 정보를 캡처합니다 — 느리거나 응답하지 않는 원격 데스크톱 진단에 필요한 RDP 프레임 타이밍과 SPICE 입력 이벤트 포함. 연결하기 전에 켜십시오. 호스트 이름과 사용자 이름이 포함될 수 있습니다</string>
 
     <!-- Terminal section -->
     <string name="settings_session_persistence_title">세션 지속성</string>

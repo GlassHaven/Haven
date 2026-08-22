@@ -46,7 +46,7 @@
     <string name="settings_view_connection_log_title">接続ログを表示</string>
     <string name="settings_view_connection_log_subtitle">接続履歴とイベント</string>
     <string name="settings_verbose_logging_title">詳細な接続ログ</string>
-    <string name="settings_verbose_logging_subtitle">SSH、Mosh、ET接続のプロトコル詳細をキャプチャ。ホスト名やユーザー名を含む場合があります</string>
+    <string name="settings_verbose_logging_subtitle">SSH、Mosh、ET、RDP、SPICE接続のプロトコル詳細をキャプチャ — 動作の遅い、または応答しないリモートデスクトップの診断に必要なRDPフレームタイミングとSPICE入力イベントを含みます。接続する前にオンにしてください。ホスト名やユーザー名を含む場合があります</string>
 
     <!-- Terminal section -->
     <string name="settings_session_persistence_title">セッション保持</string>

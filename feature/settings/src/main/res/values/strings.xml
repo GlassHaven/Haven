@@ -53,7 +53,7 @@
     <string name="settings_view_connection_log_title">View connection log</string>
     <string name="settings_view_connection_log_subtitle">Connection history and events</string>
     <string name="settings_verbose_logging_title">Verbose connection logging</string>
-    <string name="settings_verbose_logging_subtitle">Capture protocol details for SSH, Mosh, ET, and RDP connections — including RDP frame timings, which are what a slow remote desktop needs. May include hostnames and usernames</string>
+    <string name="settings_verbose_logging_subtitle">Capture protocol details for SSH, Mosh, ET, RDP, and SPICE connections — including RDP frame timings and SPICE input events, which are what a slow or unresponsive remote desktop needs. Turn it on before you connect. May include hostnames and usernames</string>
     <string name="settings_rdp_progressive_upgrade_title">RDP: decode progressive refinement tiles</string>
     <string name="settings_rdp_progressive_upgrade_subtitle">On by default. Windows sends each part of the picture roughly first and then sharpens it; without this those areas stay coarse, which looks like haloing around text. Turn it off only to compare (#496)</string>
     <string name="settings_rdp_avc_title">RDP: H.264/AVC420 decoding</string>

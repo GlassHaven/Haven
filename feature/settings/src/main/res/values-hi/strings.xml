@@ -46,7 +46,7 @@
     <string name="settings_view_connection_log_title">कनेक्शन लॉग देखें</string>
     <string name="settings_view_connection_log_subtitle">कनेक्शन इतिहास और इवेंट</string>
     <string name="settings_verbose_logging_title">विस्तृत कनेक्शन लॉगिंग</string>
-    <string name="settings_verbose_logging_subtitle">SSH, Mosh और ET कनेक्शन के प्रोटोकॉल विवरण कैप्चर करें। होस्टनाम और उपयोगकर्ता नाम शामिल हो सकते हैं</string>
+    <string name="settings_verbose_logging_subtitle">SSH, Mosh, ET, RDP और SPICE कनेक्शन के प्रोटोकॉल विवरण कैप्चर करें — इसमें RDP फ़्रेम टाइमिंग और SPICE इनपुट इवेंट शामिल हैं, जो धीमे या अनुत्तरदायी रिमोट डेस्कटॉप के लिए आवश्यक हैं। कनेक्ट करने से पहले इसे चालू करें। होस्टनाम और उपयोगकर्ता नाम शामिल हो सकते हैं</string>
 
     <!-- Terminal section -->
     <string name="settings_session_persistence_title">सत्र स्थायित्व</string>

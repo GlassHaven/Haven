@@ -25427,21 +25427,21 @@
     },
     {
      "name": "settings_verbose_logging_subtitle",
-     "en": "Capture protocol details for SSH, Mosh, ET, and RDP connections — including RDP frame timings, which are what a slow remote desktop needs. May include hostnames and usernames",
+     "en": "Capture protocol details for SSH, Mosh, ET, RDP, and SPICE connections — including RDP frame timings and SPICE input events, which are what a slow or unresponsive remote desktop needs. Turn it on before you connect. May include hostnames and usernames",
      "comment": "Logging section",
      "args": [],
      "t": {
-      "ar": "التقاط تفاصيل البروتوكول لاتصالات SSH و Mosh و ET. قد يتضمن أسماء المضيفين والمستخدمين",
-      "bn": "SSH, Mosh ও ET সংযোগের প্রোটোকল বিবরণ ক্যাপচার করুন। হোস্টনেম ও ব্যবহারকারীর নাম অন্তর্ভুক্ত হতে পারে",
-      "de": "Protokolldetails für SSH, Mosh und ET erfassen. Kann Hostnamen und Benutzernamen enthalten",
-      "es": "Capturar detalles de protocolo para conexiones SSH, Mosh y ET. Puede incluir nombres de host y usuarios",
-      "fr": "Capturer les détails du protocole pour SSH, Mosh et ET. Peut inclure des noms d\\'hôtes et d\\'utilisateurs",
-      "hi": "SSH, Mosh और ET कनेक्शन के प्रोटोकॉल विवरण कैप्चर करें। होस्टनाम और उपयोगकर्ता नाम शामिल हो सकते हैं",
-      "ja": "SSH、Mosh、ET接続のプロトコル詳細をキャプチャ。ホスト名やユーザー名を含む場合があります",
-      "ko": "SSH, Mosh, ET, RDP 연결의 프로토콜 세부 정보를 캡처합니다 — 느린 원격 데스크톱 진단에 필요한 RDP 프레임 타이밍 포함. 호스트 이름과 사용자 이름이 포함될 수 있습니다",
-      "pt": "Capturar detalhes de protocolo para conexões SSH, Mosh e ET. Pode incluir nomes de host e usuários",
-      "ru": "Захват деталей протокола для SSH, Mosh и ET. Может включать имена хостов и пользователей",
-      "zh": "捕获 SSH、Mosh 和 ET 连接的协议详情。可能包含主机名和用户名"
+      "ar": "التقاط تفاصيل البروتوكول لاتصالات SSH و Mosh و ET و RDP و SPICE — بما في ذلك توقيتات إطارات RDP وأحداث إدخال SPICE، وهي ما يحتاجه سطح المكتب البعيد البطيء أو غير المستجيب. فعّله قبل الاتصال. قد يتضمن أسماء المضيفين والمستخدمين",
+      "bn": "SSH, Mosh, ET, RDP ও SPICE সংযোগের প্রোটোকল বিবরণ ক্যাপচার করুন — RDP ফ্রেম টাইমিং ও SPICE ইনপুট ইভেন্ট সহ, যা ধীর বা প্রতিক্রিয়াহীন রিমোট ডেস্কটপের জন্য প্রয়োজন। সংযোগ করার আগে চালু করুন। হোস্টনেম ও ব্যবহারকারীর নাম অন্তর্ভুক্ত হতে পারে",
+      "de": "Protokolldetails für SSH-, Mosh-, ET-, RDP- und SPICE-Verbindungen erfassen — einschließlich RDP-Frame-Timings und SPICE-Eingabeereignissen, die ein langsamer oder nicht reagierender Remote-Desktop benötigt. Vor dem Verbinden einschalten. Kann Hostnamen und Benutzernamen enthalten",
+      "es": "Capturar detalles de protocolo para conexiones SSH, Mosh, ET, RDP y SPICE — incluidos los tiempos de fotograma de RDP y los eventos de entrada de SPICE, que son los que necesita un escritorio remoto lento o que no responde. Actívalo antes de conectar. Puede incluir nombres de host y usuarios",
+      "fr": "Capturer les détails du protocole pour les connexions SSH, Mosh, ET, RDP et SPICE — y compris les temps d\\'image RDP et les événements d\\'entrée SPICE, nécessaires pour un bureau à distance lent ou qui ne répond pas. Activez-le avant de vous connecter. Peut inclure des noms d\\'hôtes et d\\'utilisateurs",
+      "hi": "SSH, Mosh, ET, RDP और SPICE कनेक्शन के प्रोटोकॉल विवरण कैप्चर करें — इसमें RDP फ़्रेम टाइमिंग और SPICE इनपुट इवेंट शामिल हैं, जो धीमे या अनुत्तरदायी रिमोट डेस्कटॉप के लिए आवश्यक हैं। कनेक्ट करने से पहले इसे चालू करें। होस्टनाम और उपयोगकर्ता नाम शामिल हो सकते हैं",
+      "ja": "SSH、Mosh、ET、RDP、SPICE接続のプロトコル詳細をキャプチャ — 動作の遅い、または応答しないリモートデスクトップの診断に必要なRDPフレームタイミングとSPICE入力イベントを含みます。接続する前にオンにしてください。ホスト名やユーザー名を含む場合があります",
+      "ko": "SSH, Mosh, ET, RDP, SPICE 연결의 프로토콜 세부 정보를 캡처합니다 — 느리거나 응답하지 않는 원격 데스크톱 진단에 필요한 RDP 프레임 타이밍과 SPICE 입력 이벤트 포함. 연결하기 전에 켜십시오. 호스트 이름과 사용자 이름이 포함될 수 있습니다",
+      "pt": "Capturar detalhes de protocolo para conexões SSH, Mosh, ET, RDP e SPICE — incluindo tempos de quadro do RDP e eventos de entrada do SPICE, que são o que um desktop remoto lento ou sem resposta exige. Ative antes de conectar. Pode incluir nomes de host e usuários",
+      "ru": "Захват деталей протокола для подключений SSH, Mosh, ET, RDP и SPICE — включая тайминги кадров RDP и события ввода SPICE, которые нужны при медленном или неотвечающем удалённом рабочем столе. Включите до подключения. Может включать имена хостов и пользователей",
+      "zh": "捕获 SSH、Mosh、ET、RDP 和 SPICE 连接的协议详情 — 包括诊断缓慢或无响应远程桌面所需的 RDP 帧时序和 SPICE 输入事件。请在连接前开启。可能包含主机名和用户名"
      }
     },
     {

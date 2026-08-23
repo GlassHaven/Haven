@@ -1,0 +1,1 @@
+- Fixed a crash when saving a password or passphrase on devices whose secure keystore had lost Haven's credential key. Saving now reports the problem instead of closing the app, and Settings offers to repair the keystore when that has happened (#579, thanks Slayerx96).

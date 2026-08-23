@@ -5,6 +5,22 @@ the corresponding GitHub Release; a release can't ship without its section
 (enforced by `scripts/check-changelog.sh` in CI). The GitHub "Full Changelog"
 compare link is appended automatically — don't add it here.
 
+## v5.87.48
+
+- Fixed a crash that occurred when saving a password or passphrase on devices where the secure keystore had lost Haven's credential key. The app now reports the problem instead of closing, and Settings offers to repair the keystore when this has happened (#579, thanks Slayerx96).
+
+- **Saving a credential no longer closes the app when the device keystore has failed** (#579, thanks Slayerx96). Haven encrypts every stored password against a key held in the device's secure keystore. On some devices, that key becomes unusable. Previously, the failure had no error handling, so typing a passphrase and pressing save caused the app to crash. The app now displays a message stating that the keystore would not unlock and that nothing was saved. This is accurate because encryption happens before any data is written.
+
+  The issue was reported on a Reticulum IFAC passphrase, but it was not specific to that field. The same key protects every password Haven stores, so that field was simply where the error was encountered first. Leaving the field empty avoided the crash only because there was nothing to encrypt.
+
+- **There is now a recovery option.** An error message instead of a crash still leaves the app unable to save passwords. Therefore, when the key is permanently gone, Settings → Security & privacy offers to rebuild it.
+
+  All previously stored credentials must be entered again after the repair. This is less severe than it appears because the key that protected those values is gone, making them unreadable already. The repair restores the app's ability to store data rather than losing data that was still accessible.
+
+  This option appears only when it is the correct solution. Some keystore failures are temporary, such as a locked device. In those cases, the credentials are fine and will be readable once the phone is unlocked. Rebuilding the key in that scenario would destroy the existing data, so the repair is offered only for permanent loss.
+
+🔐 **The distinction between "gone" and "locked" is the core of the fix.** Android reports both conditions through the same type of error, but they require opposite responses. One requires the key to be rebuilt, while the other requires waiting until the phone is unlocked. Treating the second case as the first would have turned a lock screen into permanent data loss.
+
 ## v5.87.47
 
 - The network scan on a connection can now scan through that connection's jump host. This allows it to find machines on the far side rather than the ones next to your phone.

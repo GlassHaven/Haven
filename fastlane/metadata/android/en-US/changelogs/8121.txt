@@ -1,0 +1,2 @@
+- Copying a selection dragged down and to the left no longer copies more text than was highlighted.
+- The RDP desktop size now accepts 800x600 and 640x480; anything shorter than 640 was silently rounded up (#572).

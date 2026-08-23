@@ -5,6 +5,17 @@ the corresponding GitHub Release; a release can't ship without its section
 (enforced by `scripts/check-changelog.sh` in CI). The GitHub "Full Changelog"
 compare link is appended automatically — don't add it here.
 
+## v5.87.49
+
+- Copying a selection that was dragged down and to the left no longer copies more text than was highlighted.
+- The RDP desktop size now accepts 800x600 and 640x480. Anything shorter than 640 was silently rounded up (#572).
+
+- **Copy now returns what you highlighted.** Selecting across several rows and finishing to the left of where you started copied more than the highlight showed. This included up to a row's worth of extra characters at each end, while the screen kept showing the smaller region. The two halves disagreed. The code that draws the highlight followed the anchors you dragged between, and the code that built the clipboard text took the leftmost and rightmost columns instead. Those agree only when a selection happens to run down and to the right. Both now read the same bounds from one place. The fix is also open as a pull request against upstream termlib, since the bug is theirs as much as ours.
+
+- **An RDP desktop shorter than 640 pixels is no longer rounded up** (#572). Asking for 800x600 stored 800x640, silently, and 640x480 could not be set at all. This was awkward for a protocol whose classic mode is 640x480, and a real obstacle if the machine at the other end only runs at one size. The floor exists to reject a nonsense request and was simply set far too high.
+
+🔍 **Neither of these was reported as itself.** The copy bug was found while investigating a different copy complaint that turned out to have another cause entirely. The RDP floor turned up while checking a claim I had made about an unrelated SPICE problem, a claim that was wrong. Chasing a wrong answer honestly is a reasonable way to find the thing next to it.
+
 ## v5.87.48
 
 - Fixed a crash that occurred when saving a password or passphrase on devices where the secure keystore had lost Haven's credential key. The app now reports the problem instead of closing, and Settings offers to repair the keystore when this has happened (#579, thanks Slayerx96).

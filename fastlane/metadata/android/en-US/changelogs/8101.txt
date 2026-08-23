@@ -1,0 +1,1 @@
+- The network scan on a connection can now scan through that connection's jump host, so it finds machines on the far side rather than the ones next to your phone. The jump host needs to be connected first.

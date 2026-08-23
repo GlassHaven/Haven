@@ -5,6 +5,20 @@ the corresponding GitHub Release; a release can't ship without its section
 (enforced by `scripts/check-changelog.sh` in CI). The GitHub "Full Changelog"
 compare link is appended automatically — don't add it here.
 
+## v5.87.47
+
+- The network scan on a connection can now scan through that connection's jump host. This allows it to find machines on the far side rather than the ones next to your phone.
+
+- **The host scan works through a jump host**. When a connection has one selected, a second button appears next to "Scan Network". This button sweeps the jump host's own network instead of yours. This feature is most useful in the case where the local scan is least useful, such as on a VPN or anywhere the machines you want are not on the network your phone is currently connected to.
+
+  The system asks the jump host which networks it is on and sweeps the one carrying its default route. This detail is more important than it may seem. A developer machine is routinely on four networks at once, including a docker bridge, a libvirt bridge, a compose network, and the real LAN. Sweeping all of them would turn one 254-address scan into over a thousand probes across three networks that were not requested.
+
+  Results are addresses only, by design. Resolving names would ask your phone's resolver about a network it cannot see. A confidently wrong hostname is worse than no hostname at all.
+
+  The jump host needs to be connected first. Dialling it from inside the edit dialog would cause host-key prompts and passphrases to appear on top of whatever you were typing. Therefore, the system asks you to connect it rather than attempting to do so poorly.
+
+🛰️ **The scan probes with an ordinary TCP connect, which is why this was a small change.** Pointing that probe at a SOCKS proxy moves where it originates without altering what it does. Haven already spoke SOCKS over SSH on both of its engines. The work was not in the tunnel. It was in asking the right machine which network to sweep and in not hiding the answers behind a filter meant for something else.
+
 ## v5.87.46
 
 - Haven can now pair a computer for wireless adb debugging on its own. It finds the pairing port and asks for the six digits in a notification. This keeps the system's pairing dialog on screen while you read them (#575).

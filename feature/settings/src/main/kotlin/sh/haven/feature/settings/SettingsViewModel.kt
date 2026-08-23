@@ -5,7 +5,9 @@ import android.net.Uri
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import dagger.hilt.android.lifecycle.HiltViewModel
+import android.util.Log
 import dagger.hilt.android.qualifiers.ApplicationContext
+import sh.haven.core.security.CredentialEncryption
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.SharingStarted
 import kotlinx.coroutines.flow.StateFlow
@@ -46,6 +48,47 @@ class SettingsViewModel @Inject constructor(
     private val biometricGate: sh.haven.core.data.keystore.BiometricGate,
     private val agentUiCommandBus: sh.haven.core.data.agent.AgentUiCommandBus,
 ) : ViewModel() {
+    // --- Credential storage health + recovery (#579) ---
+
+    private val KEYSTORE_TAG = "SettingsKeystore"
+
+    /**
+     * Whether the device Keystore can still serve Haven's credential master
+     * key. Drives a recovery affordance that only appears when it is the
+     * answer — a control that wipes every saved password has no business
+     * sitting in Settings on a healthy device.
+     */
+    private val _credentialKeystore =
+        MutableStateFlow(CredentialEncryption.Failure.NONE)
+    val credentialKeystore: StateFlow<CredentialEncryption.Failure> =
+        _credentialKeystore.asStateFlow()
+
+    fun refreshCredentialKeystore() {
+        viewModelScope.launch(Dispatchers.IO) {
+            _credentialKeystore.value = CredentialEncryption.probe(appContext)
+        }
+    }
+
+    /**
+     * Drop the unusable master key so credentials can be stored again.
+     *
+     * Guarded on PERMANENT: on a transient failure the credentials are still
+     * recoverable once the device is unlocked, and this would be the thing
+     * that loses them. The UI does not offer the button in that state either,
+     * so this is the second of two locks on the same door.
+     */
+    fun resetCredentialStorage() {
+        viewModelScope.launch(Dispatchers.IO) {
+            if (_credentialKeystore.value != CredentialEncryption.Failure.PERMANENT) {
+                Log.w(KEYSTORE_TAG, "reset refused: keystore is ${_credentialKeystore.value}, not PERMANENT")
+                return@launch
+            }
+            CredentialEncryption.resetCredentialStorage(appContext)
+            _credentialKeystore.value = CredentialEncryption.probe(appContext)
+            Log.i(KEYSTORE_TAG, "credential storage reset; keystore now ${_credentialKeystore.value}")
+        }
+    }
+
 
     val openBackupPasswordDialogEvent = kotlinx.coroutines.flow.MutableSharedFlow<Unit>(replay = 0)
 

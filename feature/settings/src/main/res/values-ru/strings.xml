@@ -477,4 +477,10 @@
     </plurals>
     <string name="settings_hide_nav_bar_in_terminal_title">Скрывать панель вкладок приложения в терминале</string>
     <string name="settings_hide_nav_bar_in_terminal_subtitle">Скрывает нижнюю панель вкладок Haven на экране терминала. Строка состояния и панель навигации Android остаются видимыми.</string>
+    <string name="settings_credential_keystore_broken_title">Хранилище учётных данных недоступно</string>
+    <string name="settings_credential_keystore_broken_subtitle">Хранилище ключей этого устройства потеряло ключ учётных данных Haven. Сохранённые пароли нельзя прочитать, а новые — сохранить. Нажмите, чтобы восстановить.</string>
+    <string name="settings_credential_reset_title">Восстановить хранилище учётных данных?</string>
+    <string name="settings_credential_reset_body">Будет создан новый ключ, чтобы пароли снова можно было сохранять.\n\nВсе пароли, парольные фразы и секреты, уже сохранённые в Haven, придётся ввести заново. Они и так нечитаемы — защищавший их ключ утрачен, — поэтому это восстанавливает приложение, а не теряет что-то ещё.</string>
+    <string name="settings_credential_reset_confirm">Восстановить</string>
+    <string name="settings_credential_reset_cancel">Отмена</string>
 </resources>

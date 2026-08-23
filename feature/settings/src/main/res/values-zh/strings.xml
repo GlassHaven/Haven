@@ -473,4 +473,10 @@
     </plurals>
     <string name="settings_hide_nav_bar_in_terminal_title">在终端中隐藏应用标签栏</string>
     <string name="settings_hide_nav_bar_in_terminal_subtitle">在终端屏幕上隐藏 Haven 的底部标签栏。Android 状态栏和导航栏保持可见。</string>
+    <string name="settings_credential_keystore_broken_title">凭据存储不可用</string>
+    <string name="settings_credential_keystore_broken_subtitle">此设备的密钥库丢失了 Haven 的凭据密钥。已保存的密码无法读取,也无法保存新密码。点按以修复。</string>
+    <string name="settings_credential_reset_title">修复凭据存储?</string>
+    <string name="settings_credential_reset_body">这会创建新的凭据密钥,以便重新保存密码。\n\n已保存在 Haven 中的所有密码、口令和密钥都需要重新输入。它们已经无法读取(保护它们的密钥已丢失),因此这是在恢复应用,而不是又丢失了什么。</string>
+    <string name="settings_credential_reset_confirm">修复</string>
+    <string name="settings_credential_reset_cancel">取消</string>
 </resources>

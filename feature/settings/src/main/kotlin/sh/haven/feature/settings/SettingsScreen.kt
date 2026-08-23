@@ -103,6 +103,7 @@ import androidx.compose.material3.TopAppBar
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.collectAsState
+import sh.haven.core.security.CredentialEncryption
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableFloatStateOf
 import androidx.compose.runtime.mutableIntStateOf
@@ -164,6 +165,10 @@ fun SettingsScreen(
     viewModel: SettingsViewModel = hiltViewModel(),
 ) {
     val biometricEnabled by viewModel.biometricEnabled.collectAsState()
+    val credentialKeystore by viewModel.credentialKeystore.collectAsState()
+    // Probed on entry rather than continuously: the answer only changes
+    // when the device's Keystore state does, which is not a per-frame event.
+    LaunchedEffect(Unit) { viewModel.refreshCredentialKeystore() }
     val screenSecurity by viewModel.screenSecurity.collectAsState()
     val showLinuxVmCard by viewModel.showLinuxVmCard.collectAsState()
     val showDesktopsCard by viewModel.showDesktopsCard.collectAsState()
@@ -262,6 +267,7 @@ fun SettingsScreen(
     var showBackupPasswordDialog by remember { mutableStateOf<BackupAction?>(null) }
     var showBackupSyncDialog by remember { mutableStateOf(false) }
     var showLockTimeoutDialog by remember { mutableStateOf(false) }
+    var showCredentialResetDialog by remember { mutableStateOf(false) }
     var showOsc133SetupDialog by remember { mutableStateOf(false) }
     LaunchedEffect(Unit) {
         viewModel.openBackupPasswordDialogEvent.collect {
@@ -466,6 +472,19 @@ fun SettingsScreen(
             checked = remoteClipboardToLocal,
             onCheckedChange = viewModel::setRemoteClipboardToLocalEnabled,
         )
+        // #579: only rendered when the Keystore has permanently lost Haven's
+        // credential master key. A control that wipes every saved password is
+        // not something to leave lying about in Settings on a healthy device,
+        // and on a TRANSIENT failure the credentials are still recoverable —
+        // offering the button then would be the thing that loses them.
+        if (credentialKeystore == CredentialEncryption.Failure.PERMANENT) {
+            SettingsItem(
+                icon = Icons.Filled.Warning,
+                title = stringResource(R.string.settings_credential_keystore_broken_title),
+                subtitle = stringResource(R.string.settings_credential_keystore_broken_subtitle),
+                onClick = { showCredentialResetDialog = true },
+            )
+        }
         }
         CollapsibleSettingsSection(stringResource(R.string.settings_section_appearance), settingsExpanded[1], { settingsExpanded[1] = !settingsExpanded[1] }) {
         SettingsItem(
@@ -1727,6 +1746,28 @@ fun SettingsScreen(
             onConfirm = { selected ->
                 viewModel.setTerminalBackgroundOpacity(selected)
                 showBackgroundOpacityDialog = false
+            },
+        )
+    }
+
+    if (showCredentialResetDialog) {
+        AlertDialog(
+            onDismissRequest = { showCredentialResetDialog = false },
+            icon = { Icon(Icons.Filled.Warning, contentDescription = null) },
+            title = { Text(stringResource(R.string.settings_credential_reset_title)) },
+            text = { Text(stringResource(R.string.settings_credential_reset_body)) },
+            confirmButton = {
+                TextButton(onClick = {
+                    showCredentialResetDialog = false
+                    viewModel.resetCredentialStorage()
+                }) {
+                    Text(stringResource(R.string.settings_credential_reset_confirm))
+                }
+            },
+            dismissButton = {
+                TextButton(onClick = { showCredentialResetDialog = false }) {
+                    Text(stringResource(R.string.settings_credential_reset_cancel))
+                }
             },
         )
     }

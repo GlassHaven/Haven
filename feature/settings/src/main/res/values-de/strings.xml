@@ -475,4 +475,10 @@
     </plurals>
     <string name="settings_hide_nav_bar_in_terminal_title">App-Tableiste im Terminal ausblenden</string>
     <string name="settings_hide_nav_bar_in_terminal_subtitle">Blendet Havens untere Tableiste auf dem Terminal-Bildschirm aus. Status- und Navigationsleiste von Android bleiben sichtbar.</string>
+    <string name="settings_credential_keystore_broken_title">Anmeldedaten-Speicher nicht verfügbar</string>
+    <string name="settings_credential_keystore_broken_subtitle">Der Schlüsselspeicher dieses Geräts hat Havens Anmeldeschlüssel verloren. Gespeicherte Passwörter können nicht gelesen und neue nicht gespeichert werden. Zum Reparieren tippen.</string>
+    <string name="settings_credential_reset_title">Anmeldedaten-Speicher reparieren?</string>
+    <string name="settings_credential_reset_body">Dies erzeugt einen neuen Anmeldeschlüssel, damit Passwörter wieder gespeichert werden können.\n\nJedes bereits in Haven gespeicherte Passwort, jede Passphrase und jedes Geheimnis muss erneut eingegeben werden. Sie sind bereits unlesbar — der Schlüssel, der sie schützte, ist weg — dies stellt also die App wieder her, statt weiteres zu verlieren.</string>
+    <string name="settings_credential_reset_confirm">Reparieren</string>
+    <string name="settings_credential_reset_cancel">Abbrechen</string>
 </resources>

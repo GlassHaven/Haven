@@ -475,4 +475,10 @@
     </plurals>
     <string name="settings_hide_nav_bar_in_terminal_title">Masquer la barre d\'onglets de l\'appli dans le terminal</string>
     <string name="settings_hide_nav_bar_in_terminal_subtitle">Masque la barre d\'onglets inférieure de Haven sur l\'écran du terminal. Les barres d\'état et de navigation d\'Android restent visibles.</string>
+    <string name="settings_credential_keystore_broken_title">Stockage des identifiants indisponible</string>
+    <string name="settings_credential_keystore_broken_subtitle">Le magasin de clés de cet appareil a perdu la clé d\'identifiants de Haven. Les mots de passe enregistrés sont illisibles et aucun nouveau ne peut être enregistré. Touchez pour réparer.</string>
+    <string name="settings_credential_reset_title">Réparer le stockage des identifiants ?</string>
+    <string name="settings_credential_reset_body">Cela crée une nouvelle clé d\'identifiants afin de pouvoir enregistrer à nouveau des mots de passe.\n\nTous les mots de passe, phrases secrètes et secrets déjà enregistrés dans Haven devront être saisis à nouveau. Ils sont déjà illisibles — la clé qui les protégeait a disparu — cela restaure donc l\'application au lieu de perdre autre chose.</string>
+    <string name="settings_credential_reset_confirm">Réparer</string>
+    <string name="settings_credential_reset_cancel">Annuler</string>
 </resources>

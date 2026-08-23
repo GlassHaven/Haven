@@ -474,4 +474,10 @@
     </plurals>
     <string name="settings_hide_nav_bar_in_terminal_title">터미널에서 앱 탭 바 숨기기</string>
     <string name="settings_hide_nav_bar_in_terminal_subtitle">터미널 화면에서 Haven의 하단 탭 바를 숨깁니다. Android 상태 표시줄과 내비게이션 바는 계속 표시됩니다.</string>
+    <string name="settings_credential_keystore_broken_title">자격 증명 저장소를 사용할 수 없음</string>
+    <string name="settings_credential_keystore_broken_subtitle">이 기기의 키스토어가 Haven의 자격 증명 키를 잃었습니다. 저장된 비밀번호를 읽을 수 없고 새로 저장할 수도 없습니다. 복구하려면 탭하세요.</string>
+    <string name="settings_credential_reset_title">자격 증명 저장소를 복구할까요?</string>
+    <string name="settings_credential_reset_body">새 자격 증명 키를 만들어 비밀번호를 다시 저장할 수 있게 합니다.\n\nHaven에 이미 저장된 모든 비밀번호, 암호 구문, 비밀은 다시 입력해야 합니다. 이미 읽을 수 없는 상태이며(보호하던 키가 사라졌습니다), 따라서 이 작업은 무언가를 더 잃는 것이 아니라 앱을 복구하는 것입니다.</string>
+    <string name="settings_credential_reset_confirm">복구</string>
+    <string name="settings_credential_reset_cancel">취소</string>
 </resources>

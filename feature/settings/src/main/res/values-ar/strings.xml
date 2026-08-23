@@ -479,4 +479,10 @@
     </plurals>
     <string name="settings_hide_nav_bar_in_terminal_title">إخفاء شريط علامات تبويب التطبيق في الطرفية</string>
     <string name="settings_hide_nav_bar_in_terminal_subtitle">يخفي شريط علامات التبويب السفلي لـ Haven في شاشة الطرفية. يبقى شريطا الحالة والتنقل في Android ظاهرين.</string>
+    <string name="settings_credential_keystore_broken_title">تخزين بيانات الاعتماد غير متاح</string>
+    <string name="settings_credential_keystore_broken_subtitle">فقد مخزن المفاتيح في هذا الجهاز مفتاح بيانات الاعتماد الخاص بـ Haven. لا يمكن قراءة كلمات المرور المحفوظة ولا حفظ كلمات جديدة. اضغط للإصلاح.</string>
+    <string name="settings_credential_reset_title">إصلاح تخزين بيانات الاعتماد؟</string>
+    <string name="settings_credential_reset_body">سيؤدي هذا إلى إنشاء مفتاح جديد لبيانات الاعتماد حتى يمكن حفظ كلمات المرور مرة أخرى.\n\nستحتاج إلى إعادة إدخال كل كلمات المرور والعبارات والأسرار المحفوظة في Haven. هي غير قابلة للقراءة أصلاً — فقد ضاع المفتاح الذي كان يحميها — لذا فهذا يستعيد التطبيق بدل أن يفقد شيئًا إضافيًا.</string>
+    <string name="settings_credential_reset_confirm">إصلاح</string>
+    <string name="settings_credential_reset_cancel">إلغاء</string>
 </resources>

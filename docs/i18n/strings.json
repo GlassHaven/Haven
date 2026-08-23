@@ -32527,6 +32527,120 @@
       "ru": "Сопряжение с \\'%1$s\\' разорвано",
       "zh": "已取消配对 \\'%1$s\\'"
      }
+    },
+    {
+     "name": "settings_credential_keystore_broken_title",
+     "en": "Credential storage unavailable",
+     "comment": "#579: shown only when the Keystore has permanently lost the credential master key. Repair regenerates it; already-stored secrets are gone either way.",
+     "args": [],
+     "t": {
+      "ar": "تخزين بيانات الاعتماد غير متاح",
+      "bn": "ক্রেডেনশিয়াল স্টোরেজ অনুপলব্ধ",
+      "de": "Anmeldedaten-Speicher nicht verfügbar",
+      "es": "Almacenamiento de credenciales no disponible",
+      "fr": "Stockage des identifiants indisponible",
+      "hi": "क्रेडेंशियल स्टोरेज उपलब्ध नहीं",
+      "ja": "認証情報ストレージを利用できません",
+      "ko": "자격 증명 저장소를 사용할 수 없음",
+      "pt": "Armazenamento de credenciais indisponível",
+      "ru": "Хранилище учётных данных недоступно",
+      "zh": "凭据存储不可用"
+     }
+    },
+    {
+     "name": "settings_credential_keystore_broken_subtitle",
+     "en": "This device\\'s keystore lost Haven\\'s credential key. Saved passwords cannot be read and new ones cannot be saved. Tap to repair.",
+     "comment": "#579: shown only when the Keystore has permanently lost the credential master key. Repair regenerates it; already-stored secrets are gone either way.",
+     "args": [],
+     "t": {
+      "ar": "فقد مخزن المفاتيح في هذا الجهاز مفتاح بيانات الاعتماد الخاص بـ Haven. لا يمكن قراءة كلمات المرور المحفوظة ولا حفظ كلمات جديدة. اضغط للإصلاح.",
+      "bn": "এই ডিভাইসের কীস্টোর Haven-এর ক্রেডেনশিয়াল কী হারিয়েছে। সংরক্ষিত পাসওয়ার্ড পড়া যাবে না এবং নতুন সংরক্ষণ করা যাবে না। মেরামত করতে ট্যাপ করুন।",
+      "de": "Der Schlüsselspeicher dieses Geräts hat Havens Anmeldeschlüssel verloren. Gespeicherte Passwörter können nicht gelesen und neue nicht gespeichert werden. Zum Reparieren tippen.",
+      "es": "El almacén de claves de este dispositivo perdió la clave de credenciales de Haven. Las contraseñas guardadas no se pueden leer ni se pueden guardar nuevas. Toca para reparar.",
+      "fr": "Le magasin de clés de cet appareil a perdu la clé d\\'identifiants de Haven. Les mots de passe enregistrés sont illisibles et aucun nouveau ne peut être enregistré. Touchez pour réparer.",
+      "hi": "इस डिवाइस के कीस्टोर ने Haven की क्रेडेंशियल कुंजी खो दी। सहेजे गए पासवर्ड पढ़े नहीं जा सकते और नए सहेजे नहीं जा सकते। मरम्मत के लिए टैप करें।",
+      "ja": "この端末のキーストアが Haven の認証情報キーを失いました。保存済みのパスワードは読み取れず、新しいパスワードも保存できません。タップして修復してください。",
+      "ko": "이 기기의 키스토어가 Haven의 자격 증명 키를 잃었습니다. 저장된 비밀번호를 읽을 수 없고 새로 저장할 수도 없습니다. 복구하려면 탭하세요.",
+      "pt": "O armazenamento de chaves deste dispositivo perdeu a chave de credenciais do Haven. As senhas salvas não podem ser lidas e novas não podem ser salvas. Toque para reparar.",
+      "ru": "Хранилище ключей этого устройства потеряло ключ учётных данных Haven. Сохранённые пароли нельзя прочитать, а новые — сохранить. Нажмите, чтобы восстановить.",
+      "zh": "此设备的密钥库丢失了 Haven 的凭据密钥。已保存的密码无法读取,也无法保存新密码。点按以修复。"
+     }
+    },
+    {
+     "name": "settings_credential_reset_title",
+     "en": "Repair credential storage?",
+     "comment": "#579: shown only when the Keystore has permanently lost the credential master key. Repair regenerates it; already-stored secrets are gone either way.",
+     "args": [],
+     "t": {
+      "ar": "إصلاح تخزين بيانات الاعتماد؟",
+      "bn": "ক্রেডেনশিয়াল স্টোরেজ মেরামত করবেন?",
+      "de": "Anmeldedaten-Speicher reparieren?",
+      "es": "¿Reparar el almacenamiento de credenciales?",
+      "fr": "Réparer le stockage des identifiants ?",
+      "hi": "क्रेडेंशियल स्टोरेज ठीक करें?",
+      "ja": "認証情報ストレージを修復しますか?",
+      "ko": "자격 증명 저장소를 복구할까요?",
+      "pt": "Reparar o armazenamento de credenciais?",
+      "ru": "Восстановить хранилище учётных данных?",
+      "zh": "修复凭据存储?"
+     }
+    },
+    {
+     "name": "settings_credential_reset_body",
+     "en": "This creates a new credential key so passwords can be saved again.\n\nEvery password, passphrase and secret already stored in Haven will need to be entered again. They are already unreadable — the key that protected them is gone — so this recovers the app rather than losing anything further.",
+     "comment": "#579: shown only when the Keystore has permanently lost the credential master key. Repair regenerates it; already-stored secrets are gone either way.",
+     "args": [],
+     "t": {
+      "ar": "سيؤدي هذا إلى إنشاء مفتاح جديد لبيانات الاعتماد حتى يمكن حفظ كلمات المرور مرة أخرى.\\n\\nستحتاج إلى إعادة إدخال كل كلمات المرور والعبارات والأسرار المحفوظة في Haven. هي غير قابلة للقراءة أصلاً — فقد ضاع المفتاح الذي كان يحميها — لذا فهذا يستعيد التطبيق بدل أن يفقد شيئًا إضافيًا.",
+      "bn": "এটি একটি নতুন ক্রেডেনশিয়াল কী তৈরি করে যাতে পাসওয়ার্ড আবার সংরক্ষণ করা যায়।\\n\\nHaven-এ ইতিমধ্যে সংরক্ষিত সব পাসওয়ার্ড, পাসফ্রেজ ও সিক্রেট আবার লিখতে হবে। সেগুলি এমনিতেই অপঠনীয় — যে কী সেগুলি রক্ষা করত তা হারিয়ে গেছে — তাই এটি অ্যাপ পুনরুদ্ধার করে, বাড়তি কিছু হারায় না।",
+      "de": "Dies erzeugt einen neuen Anmeldeschlüssel, damit Passwörter wieder gespeichert werden können.\\n\\nJedes bereits in Haven gespeicherte Passwort, jede Passphrase und jedes Geheimnis muss erneut eingegeben werden. Sie sind bereits unlesbar — der Schlüssel, der sie schützte, ist weg — dies stellt also die App wieder her, statt weiteres zu verlieren.",
+      "es": "Esto crea una nueva clave de credenciales para poder guardar contraseñas de nuevo.\\n\\nHabrá que volver a introducir todas las contraseñas, frases de contraseña y secretos ya guardados en Haven. Ya son ilegibles — la clave que los protegía se perdió — así que esto recupera la aplicación en lugar de perder algo más.",
+      "fr": "Cela crée une nouvelle clé d\\'identifiants afin de pouvoir enregistrer à nouveau des mots de passe.\\n\\nTous les mots de passe, phrases secrètes et secrets déjà enregistrés dans Haven devront être saisis à nouveau. Ils sont déjà illisibles — la clé qui les protégeait a disparu — cela restaure donc l\\'application au lieu de perdre autre chose.",
+      "hi": "यह एक नई क्रेडेंशियल कुंजी बनाता है ताकि पासवर्ड फिर से सहेजे जा सकें।\\n\\nHaven में पहले से सहेजे गए सभी पासवर्ड, पासफ़्रेज़ और सीक्रेट दोबारा दर्ज करने होंगे। वे पहले से ही अपठनीय हैं — उनकी रक्षा करने वाली कुंजी जा चुकी है — इसलिए यह ऐप को बहाल करता है, कुछ और खोता नहीं।",
+      "ja": "新しい認証情報キーを作成し、再びパスワードを保存できるようにします。\\n\\nHaven に保存済みのパスワード、パスフレーズ、シークレットはすべて入力し直す必要があります。それらは既に読み取れません(保護していたキーが失われたため)。したがってこれは、さらに何かを失うのではなくアプリを復旧する操作です。",
+      "ko": "새 자격 증명 키를 만들어 비밀번호를 다시 저장할 수 있게 합니다.\\n\\nHaven에 이미 저장된 모든 비밀번호, 암호 구문, 비밀은 다시 입력해야 합니다. 이미 읽을 수 없는 상태이며(보호하던 키가 사라졌습니다), 따라서 이 작업은 무언가를 더 잃는 것이 아니라 앱을 복구하는 것입니다.",
+      "pt": "Isso cria uma nova chave de credenciais para que as senhas possam ser salvas novamente.\\n\\nTodas as senhas, frases secretas e segredos já armazenados no Haven precisarão ser inseridos de novo. Eles já estão ilegíveis — a chave que os protegia se perdeu — então isso recupera o app em vez de perder mais alguma coisa.",
+      "ru": "Будет создан новый ключ, чтобы пароли снова можно было сохранять.\\n\\nВсе пароли, парольные фразы и секреты, уже сохранённые в Haven, придётся ввести заново. Они и так нечитаемы — защищавший их ключ утрачен, — поэтому это восстанавливает приложение, а не теряет что-то ещё.",
+      "zh": "这会创建新的凭据密钥,以便重新保存密码。\\n\\n已保存在 Haven 中的所有密码、口令和密钥都需要重新输入。它们已经无法读取(保护它们的密钥已丢失),因此这是在恢复应用,而不是又丢失了什么。"
+     }
+    },
+    {
+     "name": "settings_credential_reset_confirm",
+     "en": "Repair",
+     "comment": "#579: shown only when the Keystore has permanently lost the credential master key. Repair regenerates it; already-stored secrets are gone either way.",
+     "args": [],
+     "t": {
+      "ar": "إصلاح",
+      "bn": "মেরামত",
+      "de": "Reparieren",
+      "es": "Reparar",
+      "fr": "Réparer",
+      "hi": "ठीक करें",
+      "ja": "修復",
+      "ko": "복구",
+      "pt": "Reparar",
+      "ru": "Восстановить",
+      "zh": "修复"
+     }
+    },
+    {
+     "name": "settings_credential_reset_cancel",
+     "en": "Cancel",
+     "comment": "#579: shown only when the Keystore has permanently lost the credential master key. Repair regenerates it; already-stored secrets are gone either way.",
+     "args": [],
+     "t": {
+      "ar": "إلغاء",
+      "bn": "বাতিল",
+      "de": "Abbrechen",
+      "es": "Cancelar",
+      "fr": "Annuler",
+      "hi": "रद्द करें",
+      "ja": "キャンセル",
+      "ko": "취소",
+      "pt": "Cancelar",
+      "ru": "Отмена",
+      "zh": "取消"
+     }
     }
    ]
   },

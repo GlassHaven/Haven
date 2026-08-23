@@ -475,4 +475,10 @@
     </plurals>
     <string name="settings_hide_nav_bar_in_terminal_title">टर्मिनल में ऐप टैब बार छिपाएँ</string>
     <string name="settings_hide_nav_bar_in_terminal_subtitle">टर्मिनल स्क्रीन पर Haven की निचली टैब बार छिपाता है। Android की स्थिति और नेविगेशन बार दिखाई देती रहती हैं।</string>
+    <string name="settings_credential_keystore_broken_title">क्रेडेंशियल स्टोरेज उपलब्ध नहीं</string>
+    <string name="settings_credential_keystore_broken_subtitle">इस डिवाइस के कीस्टोर ने Haven की क्रेडेंशियल कुंजी खो दी। सहेजे गए पासवर्ड पढ़े नहीं जा सकते और नए सहेजे नहीं जा सकते। मरम्मत के लिए टैप करें।</string>
+    <string name="settings_credential_reset_title">क्रेडेंशियल स्टोरेज ठीक करें?</string>
+    <string name="settings_credential_reset_body">यह एक नई क्रेडेंशियल कुंजी बनाता है ताकि पासवर्ड फिर से सहेजे जा सकें।\n\nHaven में पहले से सहेजे गए सभी पासवर्ड, पासफ़्रेज़ और सीक्रेट दोबारा दर्ज करने होंगे। वे पहले से ही अपठनीय हैं — उनकी रक्षा करने वाली कुंजी जा चुकी है — इसलिए यह ऐप को बहाल करता है, कुछ और खोता नहीं।</string>
+    <string name="settings_credential_reset_confirm">ठीक करें</string>
+    <string name="settings_credential_reset_cancel">रद्द करें</string>
 </resources>

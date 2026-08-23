@@ -511,4 +511,15 @@
         <item quantity="one">%1$d minute</item>
         <item quantity="other">%1$d minutes</item>
     </plurals>
+
+    <!-- #579: shown only when the Keystore has permanently lost the credential
+         master key. Repair regenerates it; already-stored secrets are gone either way. -->
+    <string name="settings_credential_keystore_broken_title">Credential storage unavailable</string>
+    <string name="settings_credential_keystore_broken_subtitle">This device\'s keystore lost Haven\'s credential key. Saved passwords cannot be read and new ones cannot be saved. Tap to repair.</string>
+    <string name="settings_credential_reset_title">Repair credential storage?</string>
+    <string name="settings_credential_reset_body">This creates a new credential key so passwords can be saved again.
+
+Every password, passphrase and secret already stored in Haven will need to be entered again. They are already unreadable — the key that protected them is gone — so this recovers the app rather than losing anything further.</string>
+    <string name="settings_credential_reset_confirm">Repair</string>
+    <string name="settings_credential_reset_cancel">Cancel</string>
 </resources>

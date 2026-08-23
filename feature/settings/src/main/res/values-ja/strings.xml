@@ -474,4 +474,10 @@
     </plurals>
     <string name="settings_hide_nav_bar_in_terminal_title">ターミナルでアプリのタブバーを非表示</string>
     <string name="settings_hide_nav_bar_in_terminal_subtitle">ターミナル画面で Haven の下部タブバーを非表示にします。Android のステータスバーとナビゲーションバーは表示されたままです。</string>
+    <string name="settings_credential_keystore_broken_title">認証情報ストレージを利用できません</string>
+    <string name="settings_credential_keystore_broken_subtitle">この端末のキーストアが Haven の認証情報キーを失いました。保存済みのパスワードは読み取れず、新しいパスワードも保存できません。タップして修復してください。</string>
+    <string name="settings_credential_reset_title">認証情報ストレージを修復しますか?</string>
+    <string name="settings_credential_reset_body">新しい認証情報キーを作成し、再びパスワードを保存できるようにします。\n\nHaven に保存済みのパスワード、パスフレーズ、シークレットはすべて入力し直す必要があります。それらは既に読み取れません(保護していたキーが失われたため)。したがってこれは、さらに何かを失うのではなくアプリを復旧する操作です。</string>
+    <string name="settings_credential_reset_confirm">修復</string>
+    <string name="settings_credential_reset_cancel">キャンセル</string>
 </resources>

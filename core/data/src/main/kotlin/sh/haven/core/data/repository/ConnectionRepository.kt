@@ -95,16 +95,25 @@ class ConnectionRepository @Inject constructor(
         emailMailboxPassword = profile.emailMailboxPassword?.let { CredentialEncryption.encrypt(context, it) },
     )
 
+    /**
+     * Decrypt every credential field for display/use.
+     *
+     * Uses [CredentialEncryption.decryptOrNull] so a permanently unreadable
+     * value reads as "no credential" rather than taking the process down when
+     * the connection list loads (#579). A transient Keystore failure still
+     * throws — nulling it would let the next save overwrite ciphertext that is
+     * about to become readable again.
+     */
     private fun decryptPasswords(profile: ConnectionProfile): ConnectionProfile = profile.copy(
-        sshPassword = profile.sshPassword?.let { CredentialEncryption.decrypt(context, it) },
-        vncPassword = profile.vncPassword?.let { CredentialEncryption.decrypt(context, it) },
-        rdpPassword = profile.rdpPassword?.let { CredentialEncryption.decrypt(context, it) },
-        smbPassword = profile.smbPassword?.let { CredentialEncryption.decrypt(context, it) },
-        proxyPassword = profile.proxyPassword?.let { CredentialEncryption.decrypt(context, it) },
-        spaKey = profile.spaKey?.let { CredentialEncryption.decrypt(context, it) },
-        spaHmacKey = profile.spaHmacKey?.let { CredentialEncryption.decrypt(context, it) },
-        reticulumPassphrase = profile.reticulumPassphrase?.let { CredentialEncryption.decrypt(context, it) },
-        emailPassword = profile.emailPassword?.let { CredentialEncryption.decrypt(context, it) },
-        emailMailboxPassword = profile.emailMailboxPassword?.let { CredentialEncryption.decrypt(context, it) },
+        sshPassword = profile.sshPassword?.let { CredentialEncryption.decryptOrNull(context, it) },
+        vncPassword = profile.vncPassword?.let { CredentialEncryption.decryptOrNull(context, it) },
+        rdpPassword = profile.rdpPassword?.let { CredentialEncryption.decryptOrNull(context, it) },
+        smbPassword = profile.smbPassword?.let { CredentialEncryption.decryptOrNull(context, it) },
+        proxyPassword = profile.proxyPassword?.let { CredentialEncryption.decryptOrNull(context, it) },
+        spaKey = profile.spaKey?.let { CredentialEncryption.decryptOrNull(context, it) },
+        spaHmacKey = profile.spaHmacKey?.let { CredentialEncryption.decryptOrNull(context, it) },
+        reticulumPassphrase = profile.reticulumPassphrase?.let { CredentialEncryption.decryptOrNull(context, it) },
+        emailPassword = profile.emailPassword?.let { CredentialEncryption.decryptOrNull(context, it) },
+        emailMailboxPassword = profile.emailMailboxPassword?.let { CredentialEncryption.decryptOrNull(context, it) },
     )
 }

@@ -475,4 +475,10 @@
     </plurals>
     <string name="settings_hide_nav_bar_in_terminal_title">Ocultar la barra de pestañas de la app en el terminal</string>
     <string name="settings_hide_nav_bar_in_terminal_subtitle">Oculta la barra de pestañas inferior de Haven en la pantalla del terminal. Las barras de estado y navegación de Android permanecen visibles.</string>
+    <string name="settings_credential_keystore_broken_title">Almacenamiento de credenciales no disponible</string>
+    <string name="settings_credential_keystore_broken_subtitle">El almacén de claves de este dispositivo perdió la clave de credenciales de Haven. Las contraseñas guardadas no se pueden leer ni se pueden guardar nuevas. Toca para reparar.</string>
+    <string name="settings_credential_reset_title">¿Reparar el almacenamiento de credenciales?</string>
+    <string name="settings_credential_reset_body">Esto crea una nueva clave de credenciales para poder guardar contraseñas de nuevo.\n\nHabrá que volver a introducir todas las contraseñas, frases de contraseña y secretos ya guardados en Haven. Ya son ilegibles — la clave que los protegía se perdió — así que esto recupera la aplicación en lugar de perder algo más.</string>
+    <string name="settings_credential_reset_confirm">Reparar</string>
+    <string name="settings_credential_reset_cancel">Cancelar</string>
 </resources>

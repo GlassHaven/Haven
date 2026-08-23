@@ -233,6 +233,47 @@ object CredentialEncryption {
         return ENCRYPTED_PREFIX + Base64.encodeToString(ciphertext, Base64.NO_WRAP)
     }
 
+    /**
+     * Is credential storage usable right now?
+     *
+     * [Failure.NONE] when the master key loads. Anything else is the reason it
+     * does not, and [Failure.PERMANENT] is the only state in which
+     * [resetCredentialStorage] is the answer.
+     */
+    fun probe(context: Context): Failure =
+        try {
+            getAead(context)
+            Failure.NONE
+        } catch (e: KeystoreUnavailableException) {
+            if (e.permanent) Failure.PERMANENT else Failure.TRANSIENT
+        } catch (t: Throwable) {
+            classifyFailure(t)
+        }
+
+    /**
+     * Decrypt, returning null when the value can never be read again.
+     *
+     * Null means *permanently* unreadable — the master key that wrapped this
+     * ciphertext is gone, so no amount of retrying brings it back and the
+     * credential has to be re-entered. Callers can safely treat that as "no
+     * credential stored".
+     *
+     * A TRANSIENT failure throws instead, and that asymmetry is the whole
+     * point. Returning null for a locked device would let the next save write
+     * that null over ciphertext which was about to become readable again —
+     * turning a lock screen into permanent data loss.
+     */
+    fun decryptOrNull(context: Context, stored: String): String? =
+        try {
+            decrypt(context, stored)
+        } catch (e: KeystoreUnavailableException) {
+            if (e.permanent) null else throw e
+        } catch (_: Exception) {
+            // Corrupt ciphertext, bad Base64, an unparseable restored keyset:
+            // all mean this particular value is not coming back.
+            null
+        }
+
     /** Decrypt a password string. Handles both encrypted ("ENC:...") and legacy plaintext. */
     fun decrypt(context: Context, stored: String): String {
         if (!stored.startsWith(ENCRYPTED_PREFIX)) return stored // legacy plaintext

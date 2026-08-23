@@ -77,6 +77,7 @@ import sh.haven.core.knock.KnockSequence
 import sh.haven.core.knock.PortKnocker
 import sh.haven.core.spa.SpaConfig
 import sh.haven.core.spa.SpaResult
+import sh.haven.core.security.CredentialEncryption
 import sh.haven.feature.connections.R
 import sh.haven.core.smb.SmbSessionManager
 import sh.haven.core.stepca.CertRenewalGate
@@ -1538,7 +1539,21 @@ class ConnectionsViewModel @Inject constructor(
 
     fun saveConnection(profile: ConnectionProfile) {
         viewModelScope.launch {
-            repository.save(profile)
+            try {
+                repository.save(profile)
+            } catch (e: CredentialEncryption.KeystoreUnavailableException) {
+                // #579: the save encrypts every credential field on the profile,
+                // and a Keystore that will not serve the master key used to take
+                // the process down from here — an uncaught throw on the main
+                // thread the moment anyone typed a passphrase. Nothing is
+                // written when this happens, so the stored profile is untouched
+                // and the user is told rather than dropped back to a dead app.
+                Log.e(TAG, "save failed: credential Keystore unavailable", e)
+                _error.value = appContext.getString(R.string.connections_error_keystore_unavailable)
+            } catch (e: Exception) {
+                Log.e(TAG, "save failed", e)
+                _error.value = e.message ?: "Could not save the connection"
+            }
         }
     }
 

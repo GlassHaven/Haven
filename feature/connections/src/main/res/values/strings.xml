@@ -158,6 +158,9 @@
     <string name="connections_field_port">Port</string>
     <string name="connections_field_username">Username</string>
     <string name="connections_field_jump_host">Jump Host (-J)</string>
+    <!-- #579: the device Keystore will not serve the credential master key, so
+         the passphrase cannot be encrypted. Nothing is saved when this happens. -->
+    <string name="connections_error_keystore_unavailable">This device\'s secure keystore would not unlock, so the credential could not be encrypted. Nothing was saved.</string>
     <!-- Scan the network behind a jump host, from the jump host's own network. -->
     <string name="connections_jump_scan_button">Scan via jump host</string>
     <string name="connections_jump_scanning">Scanning via jump host…</string>

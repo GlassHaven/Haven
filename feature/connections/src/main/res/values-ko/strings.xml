@@ -150,6 +150,7 @@
     <string name="connections_field_port">포트</string>
     <string name="connections_field_username">사용자 이름</string>
     <string name="connections_field_jump_host">점프 호스트(-J)</string>
+    <string name="connections_error_keystore_unavailable">이 기기의 보안 키스토어가 잠금 해제되지 않아 자격 증명을 암호화할 수 없었습니다. 아무것도 저장되지 않았습니다.</string>
     <string name="connections_jump_scan_button">점프 호스트로 검색</string>
     <string name="connections_jump_scanning">점프 호스트로 검색 중…</string>
     <string name="connections_jump_scan_not_connected">먼저 점프 호스트에 연결한 뒤 검색하세요.</string>

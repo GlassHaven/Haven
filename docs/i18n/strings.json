@@ -9207,6 +9207,25 @@
      }
     },
     {
+     "name": "connections_error_keystore_unavailable",
+     "en": "This device\\'s secure keystore would not unlock, so the credential could not be encrypted. Nothing was saved.",
+     "comment": "#579: the device Keystore will not serve the credential master key, so the passphrase cannot be encrypted. Nothing is saved when this happens.",
+     "args": [],
+     "t": {
+      "ar": "تعذّر فتح مخزن المفاتيح الآمن على هذا الجهاز، لذا تعذّر تشفير بيانات الاعتماد. لم يتم حفظ أي شيء.",
+      "bn": "এই ডিভাইসের নিরাপদ কীস্টোর আনলক করা যায়নি, তাই ক্রেডেনশিয়াল এনক্রিপ্ট করা যায়নি। কিছুই সংরক্ষণ করা হয়নি।",
+      "de": "Der sichere Schlüsselspeicher dieses Geräts ließ sich nicht entsperren, daher konnte die Anmeldeinformation nicht verschlüsselt werden. Es wurde nichts gespeichert.",
+      "es": "El almacén de claves seguro de este dispositivo no se pudo desbloquear, así que la credencial no se pudo cifrar. No se guardó nada.",
+      "fr": "Le magasin de clés sécurisé de cet appareil n\\'a pas pu être déverrouillé, donc l\\'identifiant n\\'a pas pu être chiffré. Rien n\\'a été enregistré.",
+      "hi": "इस डिवाइस का सुरक्षित कीस्टोर अनलॉक नहीं हो सका, इसलिए क्रेडेंशियल एन्क्रिप्ट नहीं किया जा सका। कुछ भी सेव नहीं हुआ।",
+      "ja": "この端末の安全なキーストアがロック解除できなかったため、認証情報を暗号化できませんでした。何も保存されていません。",
+      "ko": "이 기기의 보안 키스토어가 잠금 해제되지 않아 자격 증명을 암호화할 수 없었습니다. 아무것도 저장되지 않았습니다.",
+      "pt": "O armazenamento seguro de chaves deste dispositivo não desbloqueou, então a credencial não pôde ser criptografada. Nada foi salvo.",
+      "ru": "Защищённое хранилище ключей этого устройства не разблокировалось, поэтому учётные данные не удалось зашифровать. Ничего не сохранено.",
+      "zh": "此设备的安全密钥库无法解锁,因此无法加密该凭据。未保存任何内容。"
+     }
+    },
+    {
      "name": "connections_jump_scan_button",
      "en": "Scan via jump host",
      "comment": "Scan the network behind a jump host, from the jump host's own network.",

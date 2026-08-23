@@ -149,6 +149,7 @@
     <string name="connections_field_port">端口</string>
     <string name="connections_field_username">用户名</string>
     <string name="connections_field_jump_host">跳板机（-J）</string>
+    <string name="connections_error_keystore_unavailable">此设备的安全密钥库无法解锁,因此无法加密该凭据。未保存任何内容。</string>
     <string name="connections_jump_scan_button">通过跳板机扫描</string>
     <string name="connections_jump_scanning">正在通过跳板机扫描…</string>
     <string name="connections_jump_scan_not_connected">请先连接跳板机,然后再扫描。</string>

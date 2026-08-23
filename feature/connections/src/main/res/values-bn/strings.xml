@@ -286,6 +286,7 @@
     <string name="connections_field_port">পোর্ট</string>
     <string name="connections_field_username">ব্যবহারকারীর নাম</string>
     <string name="connections_field_jump_host">জাম্প হোস্ট (-J)</string>
+    <string name="connections_error_keystore_unavailable">এই ডিভাইসের নিরাপদ কীস্টোর আনলক করা যায়নি, তাই ক্রেডেনশিয়াল এনক্রিপ্ট করা যায়নি। কিছুই সংরক্ষণ করা হয়নি।</string>
     <string name="connections_jump_scan_button">জাম্প হোস্ট দিয়ে স্ক্যান</string>
     <string name="connections_jump_scanning">জাম্প হোস্ট দিয়ে স্ক্যান হচ্ছে…</string>
     <string name="connections_jump_scan_not_connected">আগে জাম্প হোস্টে সংযোগ করুন, তারপর স্ক্যান করুন।</string>

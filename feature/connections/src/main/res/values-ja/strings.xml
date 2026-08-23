@@ -286,6 +286,7 @@
     <string name="connections_field_port">ポート</string>
     <string name="connections_field_username">ユーザー名</string>
     <string name="connections_field_jump_host">ジャンプホスト (-J)</string>
+    <string name="connections_error_keystore_unavailable">この端末の安全なキーストアがロック解除できなかったため、認証情報を暗号化できませんでした。何も保存されていません。</string>
     <string name="connections_jump_scan_button">ジャンプホスト経由でスキャン</string>
     <string name="connections_jump_scanning">ジャンプホスト経由でスキャン中…</string>
     <string name="connections_jump_scan_not_connected">先にジャンプホストに接続してからスキャンしてください。</string>

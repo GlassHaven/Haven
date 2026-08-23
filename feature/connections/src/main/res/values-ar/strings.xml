@@ -286,6 +286,11 @@
     <string name="connections_field_port">المنفذ</string>
     <string name="connections_field_username">اسم المستخدم</string>
     <string name="connections_field_jump_host">مضيف القفز (-J)</string>
+    <string name="connections_jump_scan_button">فحص عبر مضيف الانتقال</string>
+    <string name="connections_jump_scanning">جارٍ الفحص عبر مضيف الانتقال…</string>
+    <string name="connections_jump_scan_not_connected">اتصل بمضيف الانتقال أولاً، ثم ابدأ الفحص.</string>
+    <string name="connections_jump_scan_no_subnet">تعذّر تحديد الشبكة التي ينتمي إليها مضيف الانتقال.</string>
+    <string name="connections_jump_scan_failed">فشل الفحص عبر مضيف الانتقال: %1$s</string>
     <string name="connections_field_route_through">التوجيه عبر</string>
     <string name="connections_field_session_manager">مدير الجلسات</string>
     <string name="connections_field_ssh_options">خيارات SSH</string>

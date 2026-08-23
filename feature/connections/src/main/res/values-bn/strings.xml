@@ -286,6 +286,11 @@
     <string name="connections_field_port">পোর্ট</string>
     <string name="connections_field_username">ব্যবহারকারীর নাম</string>
     <string name="connections_field_jump_host">জাম্প হোস্ট (-J)</string>
+    <string name="connections_jump_scan_button">জাম্প হোস্ট দিয়ে স্ক্যান</string>
+    <string name="connections_jump_scanning">জাম্প হোস্ট দিয়ে স্ক্যান হচ্ছে…</string>
+    <string name="connections_jump_scan_not_connected">আগে জাম্প হোস্টে সংযোগ করুন, তারপর স্ক্যান করুন।</string>
+    <string name="connections_jump_scan_no_subnet">জাম্প হোস্ট কোন নেটওয়ার্কে আছে তা নির্ধারণ করা যায়নি।</string>
+    <string name="connections_jump_scan_failed">জাম্প হোস্ট দিয়ে স্ক্যান ব্যর্থ: %1$s</string>
     <string name="connections_field_route_through">এর মাধ্যমে রুট করুন</string>
     <string name="connections_field_session_manager">সেশন ম্যানেজার</string>
     <string name="connections_field_ssh_options">SSH অপশন</string>

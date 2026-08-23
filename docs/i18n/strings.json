@@ -9207,6 +9207,103 @@
      }
     },
     {
+     "name": "connections_jump_scan_button",
+     "en": "Scan via jump host",
+     "comment": "Scan the network behind a jump host, from the jump host's own network.",
+     "args": [],
+     "t": {
+      "ar": "فحص عبر مضيف الانتقال",
+      "bn": "জাম্প হোস্ট দিয়ে স্ক্যান",
+      "de": "Über Jump-Host scannen",
+      "es": "Escanear vía jump host",
+      "fr": "Analyser via l\\'hôte de rebond",
+      "hi": "जंप होस्ट से स्कैन करें",
+      "ja": "ジャンプホスト経由でスキャン",
+      "ko": "점프 호스트로 검색",
+      "pt": "Escanear pelo jump host",
+      "ru": "Сканировать через узел",
+      "zh": "通过跳板机扫描"
+     }
+    },
+    {
+     "name": "connections_jump_scanning",
+     "en": "Scanning via jump host…",
+     "comment": "Scan the network behind a jump host, from the jump host's own network.",
+     "args": [],
+     "t": {
+      "ar": "جارٍ الفحص عبر مضيف الانتقال…",
+      "bn": "জাম্প হোস্ট দিয়ে স্ক্যান হচ্ছে…",
+      "de": "Scannen über Jump-Host…",
+      "es": "Escaneando vía jump host…",
+      "fr": "Analyse via l\\'hôte de rebond…",
+      "hi": "जंप होस्ट से स्कैन हो रहा है…",
+      "ja": "ジャンプホスト経由でスキャン中…",
+      "ko": "점프 호스트로 검색 중…",
+      "pt": "Escaneando pelo jump host…",
+      "ru": "Сканирование через узел…",
+      "zh": "正在通过跳板机扫描…"
+     }
+    },
+    {
+     "name": "connections_jump_scan_not_connected",
+     "en": "Connect the jump host first, then scan.",
+     "comment": "Scan the network behind a jump host, from the jump host's own network.",
+     "args": [],
+     "t": {
+      "ar": "اتصل بمضيف الانتقال أولاً، ثم ابدأ الفحص.",
+      "bn": "আগে জাম্প হোস্টে সংযোগ করুন, তারপর স্ক্যান করুন।",
+      "de": "Zuerst den Jump-Host verbinden, dann scannen.",
+      "es": "Conecta primero el jump host y luego escanea.",
+      "fr": "Connectez d\\'abord l\\'hôte de rebond, puis lancez l\\'analyse.",
+      "hi": "पहले जंप होस्ट से कनेक्ट करें, फिर स्कैन करें।",
+      "ja": "先にジャンプホストに接続してからスキャンしてください。",
+      "ko": "먼저 점프 호스트에 연결한 뒤 검색하세요.",
+      "pt": "Conecte primeiro o jump host e depois escaneie.",
+      "ru": "Сначала подключитесь к промежуточному узлу, затем сканируйте.",
+      "zh": "请先连接跳板机,然后再扫描。"
+     }
+    },
+    {
+     "name": "connections_jump_scan_no_subnet",
+     "en": "Could not tell which network the jump host is on.",
+     "comment": "Scan the network behind a jump host, from the jump host's own network.",
+     "args": [],
+     "t": {
+      "ar": "تعذّر تحديد الشبكة التي ينتمي إليها مضيف الانتقال.",
+      "bn": "জাম্প হোস্ট কোন নেটওয়ার্কে আছে তা নির্ধারণ করা যায়নি।",
+      "de": "Das Netzwerk des Jump-Hosts konnte nicht ermittelt werden.",
+      "es": "No se pudo determinar en qué red está el jump host.",
+      "fr": "Impossible de déterminer le réseau de l\\'hôte de rebond.",
+      "hi": "यह पता नहीं चल सका कि जंप होस्ट किस नेटवर्क पर है।",
+      "ja": "ジャンプホストが属するネットワークを特定できませんでした。",
+      "ko": "점프 호스트가 속한 네트워크를 확인할 수 없습니다.",
+      "pt": "Não foi possível determinar em qual rede o jump host está.",
+      "ru": "Не удалось определить сеть промежуточного узла.",
+      "zh": "无法确定跳板机所在的网络。"
+     }
+    },
+    {
+     "name": "connections_jump_scan_failed",
+     "en": "Scan via jump host failed: %1$s",
+     "comment": "Scan the network behind a jump host, from the jump host's own network.",
+     "args": [
+      "%1$s"
+     ],
+     "t": {
+      "ar": "فشل الفحص عبر مضيف الانتقال: %1$s",
+      "bn": "জাম্প হোস্ট দিয়ে স্ক্যান ব্যর্থ: %1$s",
+      "de": "Scan über Jump-Host fehlgeschlagen: %1$s",
+      "es": "Error al escanear vía jump host: %1$s",
+      "fr": "Échec de l\\'analyse via l\\'hôte de rebond : %1$s",
+      "hi": "जंप होस्ट से स्कैन विफल: %1$s",
+      "ja": "ジャンプホスト経由のスキャンに失敗しました: %1$s",
+      "ko": "점프 호스트를 통한 검색 실패: %1$s",
+      "pt": "Falha ao escanear pelo jump host: %1$s",
+      "ru": "Не удалось выполнить сканирование через узел: %1$s",
+      "zh": "通过跳板机扫描失败:%1$s"
+     }
+    },
+    {
      "name": "connections_field_route_through",
      "en": "Route through",
      "comment": "Group header",

@@ -286,6 +286,11 @@
     <string name="connections_field_port">Porta</string>
     <string name="connections_field_username">Usuário</string>
     <string name="connections_field_jump_host">Host de salto (-J)</string>
+    <string name="connections_jump_scan_button">Escanear pelo jump host</string>
+    <string name="connections_jump_scanning">Escaneando pelo jump host…</string>
+    <string name="connections_jump_scan_not_connected">Conecte primeiro o jump host e depois escaneie.</string>
+    <string name="connections_jump_scan_no_subnet">Não foi possível determinar em qual rede o jump host está.</string>
+    <string name="connections_jump_scan_failed">Falha ao escanear pelo jump host: %1$s</string>
     <string name="connections_field_route_through">Rotear através de</string>
     <string name="connections_field_session_manager">Gerenciador de sessões</string>
     <string name="connections_field_ssh_options">Opções de SSH</string>

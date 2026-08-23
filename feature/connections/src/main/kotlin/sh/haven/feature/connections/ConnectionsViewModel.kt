@@ -1399,6 +1399,94 @@ class ConnectionsViewModel @Inject constructor(
         }
     }
 
+
+    // --- Scan the network behind a jump host (opt-in) ---
+
+    private val _jumpScanning = MutableStateFlow(false)
+    val jumpScanning: StateFlow<Boolean> = _jumpScanning.asStateFlow()
+
+    /** Non-null when the last jump scan could not run, for the dialog to show. */
+    private val _jumpScanError = MutableStateFlow<String?>(null)
+    val jumpScanError: StateFlow<String?> = _jumpScanError.asStateFlow()
+
+    fun clearJumpScanError() { _jumpScanError.value = null }
+
+    /**
+     * Sweep the jump host's own /24 for SSH, using its dynamic (SOCKS) forward
+     * so the probes originate there instead of here.
+     *
+     * v1 requires the jump host to be connected already. Dialling it here would
+     * mean driving the full connect path — host-key prompts, passphrases, MFA —
+     * from inside the edit dialog, on top of whatever the user was typing. That
+     * is a worse experience than asking them to connect it first, so this says
+     * so plainly rather than doing it badly.
+     */
+    fun scanSubnetViaJump(jumpProfileId: String) {
+        viewModelScope.launch {
+            _jumpScanError.value = null
+            val client = sshSessionManager.getSshClientForProfile(jumpProfileId)
+            if (client == null) {
+                _jumpScanError.value = appContext.getString(R.string.connections_jump_scan_not_connected)
+                return@launch
+            }
+
+            _jumpScanning.value = true
+            var socksPort = -1
+            try {
+                withContext(Dispatchers.IO) {
+                    // Ephemeral port: nothing else needs to find this proxy, and
+                    // a fixed one would collide with a user's own -D forward.
+                    socksPort = client.setPortForwardingDynamic("127.0.0.1", 0)
+
+                    val bases = discoverJumpSubnets(client)
+                    if (bases.isEmpty()) {
+                        _jumpScanError.value =
+                            appContext.getString(R.string.connections_jump_scan_no_subnet)
+                        return@withContext
+                    }
+
+                    val proxy = java.net.Proxy(
+                        java.net.Proxy.Type.SOCKS,
+                        java.net.InetSocketAddress("127.0.0.1", socksPort),
+                    )
+                    networkDiscovery.clearJumpHosts()
+                    // Usually one; a multi-homed jump host is swept in turn.
+                    bases.forEach { base -> networkDiscovery.scanSubnetVia(proxy, base) }
+                }
+            } catch (e: Exception) {
+                Log.w(TAG, "Jump-host scan failed", e)
+                _jumpScanError.value =
+                    appContext.getString(R.string.connections_jump_scan_failed, e.message ?: "")
+            } finally {
+                if (socksPort > 0) {
+                    runCatching { client.delPortForwardingDynamic("127.0.0.1", socksPort) }
+                        .onFailure { Log.d(TAG, "SOCKS teardown: ${it.message}") }
+                }
+                _jumpScanning.value = false
+            }
+        }
+    }
+
+    /**
+     * Ask the jump host which networks it is on. `ip -o -4 addr` is the only
+     * thing consulted — the address Haven dials the jump host on is a poor
+     * guess, because that is frequently a WAN address with no relationship to
+     * the LAN behind it.
+     */
+    private suspend fun discoverJumpSubnets(client: sh.haven.core.ssh.SshConnection): List<String> {
+        val addrs = runCatching {
+            client.execCommand("ip -o -4 addr show scope global", timeoutMs = 8_000)
+        }.getOrNull() ?: return emptyList()
+        // The default route decides WHICH of those networks the host is really
+        // on. Without it a developer box offers up docker0, virbr0 and a
+        // compose bridge alongside the LAN, and the sweep quadruples into
+        // networks nobody asked about.
+        val route = runCatching {
+            client.execCommand("ip -o -4 route show default", timeoutMs = 8_000)
+        }.getOrNull()
+        return NetworkDiscovery.parseSubnetBases(addrs.stdout, route?.stdout)
+    }
+
     private val _smbSubnetScanning = MutableStateFlow(false)
     val smbSubnetScanning: StateFlow<Boolean> = _smbSubnetScanning.asStateFlow()
 

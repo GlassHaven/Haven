@@ -149,6 +149,11 @@
     <string name="connections_field_port">端口</string>
     <string name="connections_field_username">用户名</string>
     <string name="connections_field_jump_host">跳板机（-J）</string>
+    <string name="connections_jump_scan_button">通过跳板机扫描</string>
+    <string name="connections_jump_scanning">正在通过跳板机扫描…</string>
+    <string name="connections_jump_scan_not_connected">请先连接跳板机,然后再扫描。</string>
+    <string name="connections_jump_scan_no_subnet">无法确定跳板机所在的网络。</string>
+    <string name="connections_jump_scan_failed">通过跳板机扫描失败:%1$s</string>
     <string name="connections_field_route_through">路由经过</string>
     <string name="connections_field_session_manager">会话管理器</string>
     <string name="connections_field_ssh_options">SSH 选项</string>

@@ -150,6 +150,11 @@
     <string name="connections_field_port">포트</string>
     <string name="connections_field_username">사용자 이름</string>
     <string name="connections_field_jump_host">점프 호스트(-J)</string>
+    <string name="connections_jump_scan_button">점프 호스트로 검색</string>
+    <string name="connections_jump_scanning">점프 호스트로 검색 중…</string>
+    <string name="connections_jump_scan_not_connected">먼저 점프 호스트에 연결한 뒤 검색하세요.</string>
+    <string name="connections_jump_scan_no_subnet">점프 호스트가 속한 네트워크를 확인할 수 없습니다.</string>
+    <string name="connections_jump_scan_failed">점프 호스트를 통한 검색 실패: %1$s</string>
     <string name="connections_field_route_through">다음을 통해 라우팅</string>
     <string name="connections_field_session_manager">세션 관리자</string>
     <string name="connections_field_ssh_options">SSH 옵션</string>

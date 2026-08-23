@@ -241,6 +241,8 @@ fun ConnectionsScreen(
     val globalSessionManagerLabel by viewModel.globalSessionManagerLabel.collectAsState()
     val newSessionProfileId by viewModel.newSessionProfileId.collectAsState()
     val subnetScanning by viewModel.subnetScanning.collectAsState()
+    val jumpScanning by viewModel.jumpScanning.collectAsState()
+    val jumpScanError by viewModel.jumpScanError.collectAsState()
     val reticulumScanning by viewModel.reticulumScanning.collectAsState()
     val discoveredSmbHosts by viewModel.discoveredSmbHosts.collectAsState()
     val smbSubnetScanning by viewModel.smbSubnetScanning.collectAsState()
@@ -518,6 +520,9 @@ fun ConnectionsScreen(
             reticulumScanning = reticulumScanning,
             onScanSubnet = { viewModel.scanSubnet() },
             onScanSubnetSmb = { viewModel.scanSubnetSmb() },
+            jumpScanning = jumpScanning,
+            jumpScanError = jumpScanError,
+            onScanSubnetViaJump = { jumpId -> viewModel.scanSubnetViaJump(jumpId) },
             onScanReticulum = { host, port, netName, passphrase ->
                 viewModel.scanReticulumDestinations(host, port, netName, passphrase)
             },
@@ -693,6 +698,9 @@ fun ConnectionsScreen(
             reticulumScanning = reticulumScanning,
             onScanSubnet = { viewModel.scanSubnet() },
             onScanSubnetSmb = { viewModel.scanSubnetSmb() },
+            jumpScanning = jumpScanning,
+            jumpScanError = jumpScanError,
+            onScanSubnetViaJump = { jumpId -> viewModel.scanSubnetViaJump(jumpId) },
             onScanReticulum = { host, port, netName, passphrase ->
                 viewModel.scanReticulumDestinations(host, port, netName, passphrase)
             },

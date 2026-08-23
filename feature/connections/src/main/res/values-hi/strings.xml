@@ -286,6 +286,11 @@
     <string name="connections_field_port">पोर्ट</string>
     <string name="connections_field_username">उपयोगकर्ता नाम</string>
     <string name="connections_field_jump_host">जंप होस्ट (-J)</string>
+    <string name="connections_jump_scan_button">जंप होस्ट से स्कैन करें</string>
+    <string name="connections_jump_scanning">जंप होस्ट से स्कैन हो रहा है…</string>
+    <string name="connections_jump_scan_not_connected">पहले जंप होस्ट से कनेक्ट करें, फिर स्कैन करें।</string>
+    <string name="connections_jump_scan_no_subnet">यह पता नहीं चल सका कि जंप होस्ट किस नेटवर्क पर है।</string>
+    <string name="connections_jump_scan_failed">जंप होस्ट से स्कैन विफल: %1$s</string>
     <string name="connections_field_route_through">इसके माध्यम से रूट करें</string>
     <string name="connections_field_session_manager">सत्र प्रबंधक</string>
     <string name="connections_field_ssh_options">SSH विकल्प</string>

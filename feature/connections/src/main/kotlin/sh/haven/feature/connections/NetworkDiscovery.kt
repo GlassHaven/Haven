@@ -18,12 +18,16 @@ import kotlinx.coroutines.withContext
 import kotlinx.coroutines.Job
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.launch
+import kotlinx.coroutines.sync.Semaphore
+import kotlinx.coroutines.sync.withPermit
+import java.util.concurrent.atomic.AtomicInteger
 import org.json.JSONObject
 import java.io.BufferedReader
 import java.io.FileReader
 import java.net.HttpURLConnection
 import java.net.Inet4Address
 import java.net.InetSocketAddress
+import java.net.Proxy
 import java.net.Socket
 import java.net.URL
 import sh.haven.core.redact.LogRedact
@@ -34,7 +38,7 @@ data class DiscoveredHost(
     val address: String,
     val hostname: String?,
     val port: Int = 22,
-    val source: String, // "mDNS", "scan", or "localhost"
+    val source: String, // "mDNS", "scan", "jump", "tailscale", or "localhost"
 )
 
 data class LocalVmStatus(
@@ -68,6 +72,7 @@ class NetworkDiscovery(private val context: Context) {
     private val arpHosts = mutableSetOf<DiscoveredHost>()
     private val tailscaleHosts = mutableSetOf<DiscoveredHost>()
     private val smbScanHosts = mutableSetOf<DiscoveredHost>()
+    private val jumpHosts = mutableSetOf<DiscoveredHost>()
     private var vmPollingJob: Job? = null
 
     fun start() {
@@ -79,6 +84,7 @@ class NetworkDiscovery(private val context: Context) {
         stopMdns()
         mdnsHosts.clear()
         arpHosts.clear()
+        synchronized(jumpHosts) { jumpHosts.clear() }
         tailscaleHosts.clear()
         smbScanHosts.clear()
         _hosts.value = emptyList()
@@ -348,6 +354,68 @@ class NetworkDiscovery(private val context: Context) {
     }
 
     /**
+     * Scan a /24 for SSH through a SOCKS5 proxy, so the probes originate at the
+     * proxy rather than at this device. Haven points that proxy at a jump
+     * host's own dynamic forward, which is how "scan the network behind my jump
+     * host" works with nothing installed on the far side.
+     *
+     * Deliberately unlike [scanSubnet] in two ways:
+     *  - **Concurrency is bounded.** The local scan fires all 254 probes at
+     *    once because they are bare sockets. Every probe here costs an SSH
+     *    direct-tcpip channel and two relay threads inside the SOCKS server,
+     *    so the same fan-out would be several hundred threads on the phone.
+     *  - **No reverse DNS.** [resolveHostname] would ask *this* device's
+     *    resolver about an address on a network it cannot see, and would
+     *    either fail or answer about the wrong host. A confidently wrong name
+     *    is worse than no name, so these results carry addresses only.
+     *
+     * Returns the number of hosts found.
+     */
+    suspend fun scanSubnetVia(
+        proxy: Proxy,
+        subnetBase: String,
+        timeoutMs: Int = JUMP_PROBE_TIMEOUT_MS,
+        concurrency: Int = JUMP_SCAN_CONCURRENCY,
+    ): Int = withContext(Dispatchers.IO) {
+        val gate = Semaphore(concurrency)
+        val found = AtomicInteger(0)
+        Log.d(TAG, "Scanning $subnetBase.1-254 for SSH via jump host")
+        try {
+            coroutineScope {
+                (1..254).map { i ->
+                    async(Dispatchers.IO) {
+                        val ip = "$subnetBase.$i"
+                        gate.withPermit {
+                            if (probePort(ip, 22, timeoutMs, proxy)) {
+                                val host = DiscoveredHost(
+                                    address = ip,
+                                    hostname = null,
+                                    port = 22,
+                                    source = "jump",
+                                )
+                                synchronized(jumpHosts) { jumpHosts.add(host) }
+                                mergeAndEmit()
+                                found.incrementAndGet()
+                                Log.d(TAG, "SSH via jump: ${LogRedact.of(ip)}")
+                            }
+                        }
+                    }
+                }.awaitAll()
+            }
+        } catch (e: Exception) {
+            Log.e(TAG, "Jump-host scan failed", e)
+        }
+        Log.d(TAG, "Jump scan complete: ${found.get()} host(s) on $subnetBase.0/24")
+        found.get()
+    }
+
+    /** Drop results from a previous jump-host scan. */
+    fun clearJumpHosts() {
+        synchronized(jumpHosts) { jumpHosts.clear() }
+        mergeAndEmit()
+    }
+
+    /**
      * Scan the local /24 subnet for hosts with SMB on port 445.
      */
     suspend fun scanSubnetSmb() {
@@ -486,7 +554,11 @@ class NetworkDiscovery(private val context: Context) {
     }
 
     private fun mergeAndEmit() {
-        val all = (mdnsHosts + arpHosts + tailscaleHosts)
+        // Snapshot under the same lock the scan writes with: the jump scan
+        // adds from 16 concurrent probes, and iterating a LinkedHashSet
+        // mid-insert throws rather than merely reading stale data.
+        val jumpSnapshot = synchronized(jumpHosts) { jumpHosts.toList() }
+        val all = (mdnsHosts + arpHosts + tailscaleHosts + jumpSnapshot)
             .distinctBy { it.address }
             .sortedWith(compareBy(
                 { it.port != 22 },                                    // port 22 first
@@ -497,10 +569,14 @@ class NetworkDiscovery(private val context: Context) {
         _hosts.value = all
     }
 
-    private fun probePort(host: String, port: Int, timeoutMs: Int): Boolean {
+    private fun probePort(host: String, port: Int, timeoutMs: Int, proxy: Proxy? = null): Boolean {
         return try {
-            Socket().use { socket ->
-                socket.connect(InetSocketAddress(host, port), timeoutMs)
+            // A SOCKS-proxied Socket makes the connect happen at the proxy's
+            // end, which is the whole trick behind scanning via a jump host:
+            // the probe is unchanged, only where it originates moves.
+            val socket = if (proxy != null) Socket(proxy) else Socket()
+            socket.use {
+                it.connect(InetSocketAddress(host, port), timeoutMs)
                 true
             }
         } catch (_: Exception) {
@@ -517,4 +593,71 @@ class NetworkDiscovery(private val context: Context) {
             null
         }
     }
+
+    companion object {
+        /**
+         * Longer than the 400ms local probe: every probe now pays the round
+         * trip to the jump host plus the direct-tcpip channel open.
+         */
+        const val JUMP_PROBE_TIMEOUT_MS = 1_500
+
+        /**
+         * Each in-flight probe holds an SSH channel and two relay threads in
+         * the SOCKS server, so this is a thread budget as much as a politeness
+         * limit. A dead /24 takes roughly 254 / 16 * timeout to sweep.
+         */
+        const val JUMP_SCAN_CONCURRENCY = 16
+
+        private val INET_RE =
+            Regex("^\\s*\\d+:\\s+(\\S+)\\s+inet\\s+(\\d{1,3})\\.(\\d{1,3})\\.(\\d{1,3})\\.(\\d{1,3})/(\\d{1,2})")
+        private val DEFAULT_DEV_RE = Regex("\\bdev\\s+(\\S+)")
+
+        /**
+         * Pull the /24 bases out of `ip -o -4 addr` output.
+         *
+         * Always the /24 containing the interface address, never the declared
+         * prefix: a /16 would be 65,536 probes through one SSH connection,
+         * which is not a scan anyone wants started by accident.
+         *
+         * When [defaultRouteOutput] (`ip -o -4 route show default`) names an
+         * interface, only that interface is swept. A developer machine is
+         * routinely on four networks — `docker0`, `virbr0` and a compose bridge
+         * alongside the real LAN — and sweeping all of them turned one 254-host
+         * scan into 1016 probes across three networks nobody wanted, none of
+         * which is the network the user meant. The default route is the one
+         * that answers "which network is this host actually on".
+         *
+         * Loopback and link-local are dropped — neither is reachable network
+         * worth sweeping.
+         */
+        fun parseSubnetBases(
+            ipAddrOutput: String,
+            defaultRouteOutput: String? = null,
+        ): List<String> {
+            val preferredDev = defaultRouteOutput
+                ?.lineSequence()
+                ?.firstNotNullOfOrNull { DEFAULT_DEV_RE.find(it)?.groupValues?.get(1) }
+
+            val all = mutableListOf<Pair<String, String>>() // iface to base
+            for (line in ipAddrOutput.lineSequence()) {
+                val m = INET_RE.find(line) ?: continue
+                val iface = m.groupValues[1]
+                val o1 = m.groupValues[2].toIntOrNull() ?: continue
+                val o2 = m.groupValues[3].toIntOrNull() ?: continue
+                val o3 = m.groupValues[4].toIntOrNull() ?: continue
+                if (o1 > 255 || o2 > 255 || o3 > 255) continue
+                if (o1 == 127) continue
+                if (o1 == 169 && o2 == 254) continue
+                all += iface to "$o1.$o2.$o3"
+            }
+
+            val chosen = if (preferredDev != null && all.any { it.first == preferredDev }) {
+                all.filter { it.first == preferredDev }
+            } else {
+                all
+            }
+            return chosen.map { it.second }.distinct()
+        }
+    }
 }
+

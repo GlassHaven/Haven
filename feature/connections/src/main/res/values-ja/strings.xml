@@ -286,6 +286,11 @@
     <string name="connections_field_port">ポート</string>
     <string name="connections_field_username">ユーザー名</string>
     <string name="connections_field_jump_host">ジャンプホスト (-J)</string>
+    <string name="connections_jump_scan_button">ジャンプホスト経由でスキャン</string>
+    <string name="connections_jump_scanning">ジャンプホスト経由でスキャン中…</string>
+    <string name="connections_jump_scan_not_connected">先にジャンプホストに接続してからスキャンしてください。</string>
+    <string name="connections_jump_scan_no_subnet">ジャンプホストが属するネットワークを特定できませんでした。</string>
+    <string name="connections_jump_scan_failed">ジャンプホスト経由のスキャンに失敗しました: %1$s</string>
     <string name="connections_field_route_through">経由する</string>
     <string name="connections_field_session_manager">セッションマネージャー</string>
     <string name="connections_field_ssh_options">SSHオプション</string>

@@ -171,6 +171,10 @@ fun ConnectionEditDialog(
     reticulumScanning: Boolean = false,
     onScanSubnet: () -> Unit = {},
     onScanSubnetSmb: () -> Unit = {},
+    /** Scanning the network behind the selected jump host (#NNN). Opt-in. */
+    jumpScanning: Boolean = false,
+    jumpScanError: String? = null,
+    onScanSubnetViaJump: (jumpProfileId: String) -> Unit = {},
     onScanReticulum: (host: String, port: Int, networkName: String?, passphrase: String?) -> Unit = { _, _, _, _ -> },
     /** Optional callback wired by the screen to fire a test knock and
      *  return `(ok, message)`. When null the "Test knock" button is
@@ -2157,30 +2161,42 @@ fun ConnectionEditDialog(
                     // Discovered hosts — filter by typed prefix
                     val filteredHosts = remember(discoveredHosts, host) {
                         val prefix = host.lowercase()
-                        discoveredHosts
-                            .filter {
+                        // Ambient discovery (mDNS, local scan) narrows as you type.
+                        // A jump-host scan does not: it answers a button the user
+                        // just pressed, and it runs on an EXISTING profile whose
+                        // host field is already filled in — prefix-matching against
+                        // that field hid every result on the jump host's network,
+                        // which is the entire point of scanning through it.
+                        val (explicit, ambient) = discoveredHosts.partition { it.source == "jump" }
+                        (
+                            explicit + ambient.filter {
                                 prefix.isEmpty() ||
                                     it.address.startsWith(prefix) ||
                                     it.hostname?.lowercase()?.contains(prefix) == true
                             }
-                            .take(8)
+                            ).take(8)
                     }
 
-                    // Scan network button
-                    Row(
-                        verticalAlignment = androidx.compose.ui.Alignment.CenterVertically,
+                    // Scan buttons. The jump-host scan sits beside the local one
+                    // rather than behind an opt-in switch: pressing it is itself
+                    // the deliberate act, so a separate toggle only added a step.
+                    val jumpForScan = sshProfiles.firstOrNull {
+                        it.id == jumpProfileId && it.id != existing?.id && it.isSsh
+                    }
+                    if (filteredHosts.isNotEmpty()) {
+                        Text(
+                            stringResource(R.string.connections_discovered_count, filteredHosts.size),
+                            style = MaterialTheme.typography.labelMedium,
+                            color = MaterialTheme.colorScheme.onSurfaceVariant,
+                        )
+                    }
+                    // FlowRow so a long translated pair — de: "Scannen" +
+                    // "Über Jump-Host scannen" — wraps instead of overflowing a
+                    // narrow phone.
+                    FlowRow(
                         modifier = Modifier.fillMaxWidth(),
+                        horizontalArrangement = Arrangement.End,
                     ) {
-                        if (filteredHosts.isNotEmpty()) {
-                            Text(
-                                stringResource(R.string.connections_discovered_count, filteredHosts.size),
-                                style = MaterialTheme.typography.labelMedium,
-                                color = MaterialTheme.colorScheme.onSurfaceVariant,
-                                modifier = Modifier.weight(1f),
-                            )
-                        } else {
-                            Spacer(Modifier.weight(1f))
-                        }
                         TextButton(
                             onClick = onScanSubnet,
                             enabled = !subnetScanning,
@@ -2195,6 +2211,35 @@ fun ConnectionEditDialog(
                                 Text(stringResource(R.string.connections_scan_network), style = MaterialTheme.typography.labelSmall)
                             }
                         }
+                        if (jumpForScan != null) {
+                            TextButton(
+                                onClick = { onScanSubnetViaJump(jumpForScan.id) },
+                                enabled = !jumpScanning,
+                            ) {
+                                if (jumpScanning) {
+                                    CircularProgressIndicator(modifier = Modifier.size(14.dp), strokeWidth = 2.dp)
+                                    Spacer(Modifier.width(4.dp))
+                                    Text(
+                                        stringResource(R.string.connections_jump_scanning),
+                                        style = MaterialTheme.typography.labelSmall,
+                                    )
+                                } else {
+                                    Icon(Icons.Filled.Radar, contentDescription = null, modifier = Modifier.size(16.dp))
+                                    Spacer(Modifier.width(4.dp))
+                                    Text(
+                                        stringResource(R.string.connections_jump_scan_button),
+                                        style = MaterialTheme.typography.labelSmall,
+                                    )
+                                }
+                            }
+                        }
+                    }
+                    jumpScanError?.let { err ->
+                        Text(
+                            err,
+                            style = MaterialTheme.typography.bodySmall,
+                            color = MaterialTheme.colorScheme.error,
+                        )
                     }
 
                     // Use dropdown when there are many discovered hosts (decision
@@ -2384,6 +2429,7 @@ fun ConnectionEditDialog(
                                 Icon(Icons.Filled.Storage, null, Modifier.size(16.dp), tint = MaterialTheme.colorScheme.onSurfaceVariant)
                             }
                         }
+
                     }
 
 

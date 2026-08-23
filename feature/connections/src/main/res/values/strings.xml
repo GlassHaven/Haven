@@ -158,6 +158,13 @@
     <string name="connections_field_port">Port</string>
     <string name="connections_field_username">Username</string>
     <string name="connections_field_jump_host">Jump Host (-J)</string>
+    <!-- Scan the network behind a jump host, from the jump host's own network. -->
+    <string name="connections_jump_scan_button">Scan via jump host</string>
+    <string name="connections_jump_scanning">Scanning via jump host…</string>
+    <string name="connections_jump_scan_not_connected">Connect the jump host first, then scan.</string>
+    <string name="connections_jump_scan_no_subnet">Could not tell which network the jump host is on.</string>
+    <string name="connections_jump_scan_failed">Scan via jump host failed: %1$s</string>
+    <!-- Group header -->
     <string name="connections_field_route_through">Route through</string>
     <string name="connections_field_session_manager">Session Manager</string>
     <string name="connections_field_ssh_options">SSH Options</string>

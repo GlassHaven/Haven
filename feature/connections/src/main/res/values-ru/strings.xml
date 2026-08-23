@@ -286,6 +286,11 @@
     <string name="connections_field_port">Порт</string>
     <string name="connections_field_username">Имя пользователя</string>
     <string name="connections_field_jump_host">Прыжковый хост (-J)</string>
+    <string name="connections_jump_scan_button">Сканировать через узел</string>
+    <string name="connections_jump_scanning">Сканирование через узел…</string>
+    <string name="connections_jump_scan_not_connected">Сначала подключитесь к промежуточному узлу, затем сканируйте.</string>
+    <string name="connections_jump_scan_no_subnet">Не удалось определить сеть промежуточного узла.</string>
+    <string name="connections_jump_scan_failed">Не удалось выполнить сканирование через узел: %1$s</string>
     <string name="connections_field_route_through">Маршрут через</string>
     <string name="connections_field_session_manager">Менеджер сессий</string>
     <string name="connections_field_ssh_options">Параметры SSH</string>

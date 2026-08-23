@@ -2141,8 +2141,20 @@ class UserPreferencesRepository @Inject constructor(
         const val DEFAULT_RDP_WIDTH = 1920
         const val DEFAULT_RDP_HEIGHT = 1080
 
-        /** RDP carries the desktop size as a u16, and a 1x1 desktop is not useful. */
-        const val MIN_RDP_DIMENSION = 640
+        /**
+         * Floor for a requested RDP desktop dimension.
+         *
+         * RDP carries the desktop size as a u16, so the protocol's own limit is
+         * far below anything usable and this exists only to reject a degenerate
+         * request. It applies to WIDTH AND HEIGHT, which is why it used to be
+         * wrong: at 640 it refused every mode shorter than that, including
+         * 640x480 and 800x600 — 800x600 silently became 800x640, reported by a
+         * user driving a guest that only runs at 800x600 (#572).
+         *
+         * 200 keeps the "not degenerate" guard the original comment describes
+         * without ruling out standard modes.
+         */
+        const val MIN_RDP_DIMENSION = 200
         const val MAX_RDP_DIMENSION = 8192
 
         const val DEFAULT_SCROLLBACK_ROWS = 1000

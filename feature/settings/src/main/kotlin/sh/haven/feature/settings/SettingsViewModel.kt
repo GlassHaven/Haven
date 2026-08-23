@@ -65,7 +65,16 @@ class SettingsViewModel @Inject constructor(
 
     fun refreshCredentialKeystore() {
         viewModelScope.launch(Dispatchers.IO) {
-            _credentialKeystore.value = CredentialEncryption.probe(appContext)
+            val result = CredentialEncryption.probe(appContext)
+            _credentialKeystore.value = result
+            // Logged on every outcome, NONE included. A healthy device is the
+            // control: without a positive "probe -> NONE" line there is no way
+            // to tell "the keystore is fine" from "the probe never ran", and on
+            // a device that IS broken (#579) this is the one line that says how
+            // Haven classified it — which is what decides whether the repair is
+            // offered at all. A reporter can read it back to us; we cannot
+            // reach their Keystore any other way.
+            Log.i(KEYSTORE_TAG, "credential keystore probe -> $result")
         }
     }
 

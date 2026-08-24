@@ -5,6 +5,14 @@ the corresponding GitHub Release; a release can't ship without its section
 (enforced by `scripts/check-changelog.sh` in CI). The GitHub "Full Changelog"
 compare link is appended automatically — don't add it here.
 
+## v5.87.52
+
+- The update check is now drivable by an AI agent: a `check_for_update` tool and the `update_check_enabled` preference (#578).
+
+- **The agent endpoint can now see the update check** (#578). Verifying the feature that shipped in v5.87.51 meant tapping through Settings by hand and reading the device log, because the one switch the whole flow hangs off was not in the MCP preference whitelist and there was no verb to run a check. Both are now there.
+
+  `check_for_update` reports the channel, the installed version and the verdict in one call, and it reports the channel even when the answer is that no update is offered — so an agent can see *why* nothing was offered rather than only that nothing was. It asks for consent before running, because it makes a request to GitHub and the whole point of this feature is that the request is something you opt into.
+
 ## v5.87.51
 
 - Settings can now check GitHub for a newer Haven. Off by default, and only offered to copies installed from a GitHub release (#578).

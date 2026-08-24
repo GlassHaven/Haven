@@ -30,6 +30,9 @@ import sh.haven.core.redact.LogRedact
 
 private const val TAG = "NativeReticulumTransport"
 
+/** Filename of the persisted rnsh client identity inside the Reticulum config dir (#585). */
+private const val CLIENT_IDENTITY_FILE = "haven_client_identity"
+
 /**
  * Native Kotlin implementation of [ReticulumTransport] backed by
  * reticulum-kt + rnsh-kt.
@@ -131,7 +134,7 @@ class NativeReticulumTransport @Inject constructor() : ReticulumTransport {
             }
         }
 
-        clientIdentity = Identity.create()
+        clientIdentity = loadOrCreateClientIdentity(configDir)
 
         // Register rnsh announce handler for destination discovery
         Transport.registerAnnounceHandler(
@@ -144,6 +147,32 @@ class NativeReticulumTransport @Inject constructor() : ReticulumTransport {
         val hexHash = clientIdentity?.hexHash ?: ""
         Log.d(TAG, "init complete, identity=$hexHash")
         hexHash
+    }
+
+    /**
+     * The identity an rnsh server sees, loaded from disk if we have one.
+     *
+     * This used to be a bare `Identity.create()` on every init, so the hash
+     * changed on every process start and a server-side whitelist entry stopped
+     * matching as soon as Haven was force-stopped (#585). The transport
+     * identity was already persisted; this one — the one that actually
+     * identifies the client — was not.
+     */
+    private fun loadOrCreateClientIdentity(configDir: String): Identity {
+        val resolved = resolveClientIdentity(File(configDir))
+        when (resolved.origin) {
+            ClientIdentityOrigin.LOADED ->
+                Log.d(TAG, "loaded client identity ${resolved.identity.hexHash}")
+            ClientIdentityOrigin.CREATED ->
+                Log.d(TAG, "created client identity ${resolved.identity.hexHash}")
+            ClientIdentityOrigin.REPLACED_UNREADABLE ->
+                // Say so rather than silently minting a new one — from the
+                // user's side that is the whitelist breaking for no reason.
+                Log.w(TAG, "client identity file was unreadable; created ${resolved.identity.hexHash}")
+            ClientIdentityOrigin.CREATED_UNSAVED ->
+                Log.e(TAG, "could not persist client identity — it will change again on the next launch")
+        }
+        return resolved.identity
     }
 
     override suspend fun openSession(
@@ -289,4 +318,70 @@ private class NativeExecSession(
     override suspend fun writeStdin(data: ByteArray) = exec.writeStdin(data)
     override suspend fun closeStdin() = exec.closeStdin()
     override fun close() = exec.close()
+}
+
+/** How [resolveClientIdentity] arrived at the identity it returned. */
+internal enum class ClientIdentityOrigin {
+    /** Read back from disk — the hash is unchanged from last launch. */
+    LOADED,
+
+    /** No file existed; a new identity was created and written. */
+    CREATED,
+
+    /** A file existed but could not be parsed; a new identity replaced it. */
+    REPLACED_UNREADABLE,
+
+    /** Created, but writing it failed — the hash WILL change again. */
+    CREATED_UNSAVED,
+}
+
+internal data class ResolvedClientIdentity(
+    val identity: Identity,
+    val origin: ClientIdentityOrigin,
+)
+
+/**
+ * Load the persisted rnsh client identity from [dir], or create and save one.
+ *
+ * Kept free of Android APIs so it can be tested directly: the bug in #585 was
+ * that this step did not exist, and the regression test that matters is simply
+ * "call it twice, get the same hash". Logging is the caller's job precisely so
+ * this stays testable.
+ *
+ * The write goes to a temp file and is renamed into place. A half-written key
+ * is the failure mode that would hurt most: [Identity.fromFile] returns null
+ * for a truncated read, a fresh identity would be minted, and #585 would come
+ * back intermittently looking like an unrelated fault.
+ */
+internal fun resolveClientIdentity(dir: File): ResolvedClientIdentity {
+    val file = File(dir, CLIENT_IDENTITY_FILE)
+
+    Identity.fromFile(file.absolutePath)?.let { existing ->
+        return ResolvedClientIdentity(existing, ClientIdentityOrigin.LOADED)
+    }
+    val hadUnreadableFile = file.exists()
+
+    val created = Identity.create()
+    val tmp = File(dir, "$CLIENT_IDENTITY_FILE.tmp")
+    val saved = runCatching {
+        dir.mkdirs()
+        check(created.toFile(tmp.absolutePath)) { "toFile reported failure" }
+        check(tmp.renameTo(file)) { "rename into place failed" }
+        // Owner-only: this is a private key sitting in app storage.
+        file.setReadable(false, false)
+        file.setReadable(true, true)
+        file.setWritable(false, false)
+        file.setWritable(true, true)
+        true
+    }.getOrElse {
+        tmp.delete()
+        false
+    }
+
+    val origin = when {
+        !saved -> ClientIdentityOrigin.CREATED_UNSAVED
+        hadUnreadableFile -> ClientIdentityOrigin.REPLACED_UNREADABLE
+        else -> ClientIdentityOrigin.CREATED
+    }
+    return ResolvedClientIdentity(created, origin)
 }

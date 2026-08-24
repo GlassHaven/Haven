@@ -148,4 +148,5 @@
     <string name="terminal_details_copy">Kopieren</string>
     <string name="terminal_details_copied">Standort kopiert</string>
     <string name="terminal_details_unavailable">Verbindungsdetails für diesen Tab konnten nicht gelesen werden.</string>
+    <string name="terminal_mouse_requested_but_disabled">Diese App fragt nach der Maus. Aktiviere „Mauseingabe in TUI-Apps“ unter Einstellungen → Terminal, um sie zu nutzen.</string>
 </resources>

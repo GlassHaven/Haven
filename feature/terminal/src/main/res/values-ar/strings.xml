@@ -148,4 +148,5 @@
     <string name="terminal_details_copy">نسخ</string>
     <string name="terminal_details_copied">تم نسخ الموقع</string>
     <string name="terminal_details_unavailable">تعذّرت قراءة تفاصيل الاتصال لهذا التبويب.</string>
+    <string name="terminal_mouse_requested_but_disabled">يطلب هذا التطبيق الماوس. فعّل “إدخال الماوس في تطبيقات TUI” من الإعدادات ← الطرفية.</string>
 </resources>

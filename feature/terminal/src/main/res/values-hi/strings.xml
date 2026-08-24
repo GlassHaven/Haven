@@ -148,4 +148,5 @@
     <string name="terminal_details_copy">कॉपी करें</string>
     <string name="terminal_details_copied">स्थान कॉपी किया गया</string>
     <string name="terminal_details_unavailable">इस टैब के कनेक्शन विवरण नहीं पढ़े जा सके।</string>
+    <string name="terminal_mouse_requested_but_disabled">यह ऐप माउस माँग रहा है। इसे इस्तेमाल करने के लिए Settings → Terminal में “TUI ऐप्स में माउस इनपुट” चालू करें।</string>
 </resources>

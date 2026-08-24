@@ -148,4 +148,5 @@
     <string name="terminal_details_copy">Copiar</string>
     <string name="terminal_details_copied">Localização copiada</string>
     <string name="terminal_details_unavailable">Não foi possível ler os detalhes de conexão desta aba.</string>
+    <string name="terminal_mouse_requested_but_disabled">Este app está pedindo o mouse. Ative “Entrada de mouse em apps TUI” em Configurações → Terminal para usá-lo.</string>
 </resources>

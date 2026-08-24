@@ -40575,6 +40575,25 @@
       "ru": "256 цветов (минимальный трафик)",
       "zh": "256 色（最低带宽）"
      }
+    },
+    {
+     "name": "terminal_mouse_requested_but_disabled",
+     "en": "This app is asking for the mouse. Turn on “Mouse input in TUI apps” in Settings → Terminal to use it.",
+     "comment": "VncSettingsDialog colour depth options",
+     "args": [],
+     "t": {
+      "ar": "يطلب هذا التطبيق الماوس. فعّل “إدخال الماوس في تطبيقات TUI” من الإعدادات ← الطرفية.",
+      "bn": "এই অ্যাপটি মাউস চাইছে। ব্যবহার করতে Settings → Terminal-এ “TUI অ্যাপে মাউস ইনপুট” চালু করুন।",
+      "de": "Diese App fragt nach der Maus. Aktiviere „Mauseingabe in TUI-Apps“ unter Einstellungen → Terminal, um sie zu nutzen.",
+      "es": "Esta app pide el ratón. Activa “Entrada de ratón en apps TUI” en Ajustes → Terminal para usarlo.",
+      "fr": "Cette appli demande la souris. Activez « Souris dans les applis TUI » dans Réglages → Terminal pour l’utiliser.",
+      "hi": "यह ऐप माउस माँग रहा है। इसे इस्तेमाल करने के लिए Settings → Terminal में “TUI ऐप्स में माउस इनपुट” चालू करें।",
+      "ja": "このアプリがマウスを要求しています。使うには設定 → ターミナルで「TUIアプリでのマウス入力」をオンにしてください。",
+      "ko": "이 앱이 마우스를 요청합니다. 사용하려면 설정 → 터미널에서 “TUI 앱의 마우스 입력”을 켜세요.",
+      "pt": "Este app está pedindo o mouse. Ative “Entrada de mouse em apps TUI” em Configurações → Terminal para usá-lo.",
+      "ru": "Это приложение запрашивает мышь. Включите «Мышь в TUI-приложениях» в Настройках → Терминал.",
+      "zh": "此应用正在请求鼠标。请在设置 → 终端中开启“TUI 应用中的鼠标输入”。"
+     }
     }
    ]
   },

@@ -148,4 +148,5 @@
     <string name="terminal_details_copy">Копировать</string>
     <string name="terminal_details_copied">Местоположение скопировано</string>
     <string name="terminal_details_unavailable">Не удалось прочитать сведения о подключении для этой вкладки.</string>
+    <string name="terminal_mouse_requested_but_disabled">Это приложение запрашивает мышь. Включите «Мышь в TUI-приложениях» в Настройках → Терминал.</string>
 </resources>

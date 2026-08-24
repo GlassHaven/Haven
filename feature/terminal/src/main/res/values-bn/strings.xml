@@ -148,4 +148,5 @@
     <string name="terminal_details_copy">কপি করুন</string>
     <string name="terminal_details_copied">অবস্থান কপি হয়েছে</string>
     <string name="terminal_details_unavailable">এই ট্যাবের সংযোগ বিবরণ পড়া যায়নি।</string>
+    <string name="terminal_mouse_requested_but_disabled">এই অ্যাপটি মাউস চাইছে। ব্যবহার করতে Settings → Terminal-এ “TUI অ্যাপে মাউস ইনপুট” চালু করুন।</string>
 </resources>

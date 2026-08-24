@@ -174,6 +174,33 @@ private val TAB_GROUP_COLORS = listOf(
     Color(0xFF8D6E63), // brown
 )
 
+/**
+ * Whether the "an app wants the mouse but the preference is off" hint has been
+ * shown since this process started (#586).
+ *
+ * Deliberately process-scoped rather than remembered per composable: the point
+ * is one notice per session, and a `remember` would fire again on every tab
+ * switch or configuration change. Not persisted either — a user who turns the
+ * app off and comes back a week later has earned the reminder.
+ */
+private var mouseHintShownThisSession = false
+
+/**
+ * Whether to tell the user that a TUI app asked for the mouse while the
+ * preference is off (#586).
+ *
+ * Pure so the three rules are actually assertable: say nothing unless an app
+ * genuinely asked, say nothing when the preference is already on, and say it
+ * at most once. A silent no-op here is what made #580 look like broken touch
+ * input for two days, and an over-eager version that nagged on every tab
+ * switch would be worse than the silence it replaces.
+ */
+internal fun shouldShowMouseHint(
+    appRequestedMouse: Boolean,
+    preferenceEnabled: Boolean,
+    alreadyShown: Boolean,
+): Boolean = appRequestedMouse && !preferenceEnabled && !alreadyShown
+
 @OptIn(androidx.compose.foundation.layout.ExperimentalLayoutApi::class, ExperimentalFoundationApi::class)
 @Composable
 fun TerminalScreen(
@@ -1346,6 +1373,26 @@ fun TerminalScreen(
                             "mouseModeState tracker=$isMouseMode pref=$mouseInputEnabled " +
                                 "effective=${isMouseMode && mouseInputEnabled}",
                         )
+                        // #586: the app asked for the mouse and the preference is
+                        // off, so every tap will be swallowed and nothing will say
+                        // why. That silence is indistinguishable from broken touch
+                        // input — it cost the #580 reporter a minimal reproducer,
+                        // adb captures and two days before the answer turned out to
+                        // be a switch. Say it once and then stay quiet: repeating it
+                        // on every tab switch would be worse than saying nothing.
+                        if (shouldShowMouseHint(
+                                appRequestedMouse = isMouseMode,
+                                preferenceEnabled = mouseInputEnabled,
+                                alreadyShown = mouseHintShownThisSession,
+                            )
+                        ) {
+                            mouseHintShownThisSession = true
+                            android.widget.Toast.makeText(
+                                context,
+                                context.getString(R.string.terminal_mouse_requested_but_disabled),
+                                android.widget.Toast.LENGTH_LONG,
+                            ).show()
+                        }
                     }
 
                     // Build gesture callback when mouse mode is active. Gesture

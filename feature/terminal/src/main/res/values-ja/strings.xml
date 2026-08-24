@@ -148,4 +148,5 @@
     <string name="terminal_details_copy">コピー</string>
     <string name="terminal_details_copied">現在地をコピーしました</string>
     <string name="terminal_details_unavailable">このタブの接続詳細を読み取れませんでした。</string>
+    <string name="terminal_mouse_requested_but_disabled">このアプリがマウスを要求しています。使うには設定 → ターミナルで「TUIアプリでのマウス入力」をオンにしてください。</string>
 </resources>

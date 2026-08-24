@@ -160,4 +160,5 @@
     <string name="terminal_vnc_depth_24bit">24-bit colour (best quality)</string>
     <string name="terminal_vnc_depth_16bit">16-bit colour (faster)</string>
     <string name="terminal_vnc_depth_256">256 colours (lowest bandwidth)</string>
+    <string name="terminal_mouse_requested_but_disabled">This app is asking for the mouse. Turn on “Mouse input in TUI apps” in Settings → Terminal to use it.</string>
 </resources>

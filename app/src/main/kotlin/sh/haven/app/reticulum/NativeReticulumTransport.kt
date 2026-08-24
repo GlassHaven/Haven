@@ -45,10 +45,19 @@ private const val CLIENT_IDENTITY_FILE = "haven_client_identity"
 @Singleton
 class NativeReticulumTransport @Inject constructor() : ReticulumTransport {
 
+    /**
+     * What the process-wide Reticulum stack currently holds, or null before
+     * the first successful init.
+     *
+     * This replaces a bare `initialised` boolean. That boolean ignored the
+     * host and port it was asked for, so the first profile to connect decided
+     * what the rest of the process could reach and every later connect
+     * returned early having done nothing (#588).
+     */
     @Volatile
-    private var initialised = false
+    private var stackState: StackState? = null
 
-    override val isInitialised: Boolean get() = initialised
+    override val isInitialised: Boolean get() = stackState != null
 
     private val _discovered = MutableStateFlow<List<DiscoveredDestination>>(emptyList())
     override val discoveredDestinations: StateFlow<List<DiscoveredDestination>> =
@@ -90,68 +99,38 @@ class NativeReticulumTransport @Inject constructor() : ReticulumTransport {
         ifacNetkey: String?,
         socketDialer: ((String, Int, Int) -> java.net.Socket)?,
     ): String = withContext(Dispatchers.IO) {
-        if (initialised) {
-            return@withContext clientIdentity?.hexHash ?: "already-initialised"
-        }
+        val request = classifyStackRequest(host, port, ifacNetname)
+        val current = stackState
 
-        Log.d(TAG, "init: configDir=$configDir, host=${LogRedact.of(host)}, port=$port")
-        File(configDir).mkdirs()
+        val pending: StackState = when (val action = planStackAction(current, request)) {
+            StackAction.AlreadySatisfied ->
+                return@withContext clientIdentity?.hexHash ?: "already-initialised"
 
-        val isSideband = host in listOf("127.0.0.1", "localhost", "::1") && port == 37428
+            is StackAction.Reject -> throw IllegalStateException(action.reason)
 
-        if (isSideband) {
-            // Sideband shared-instance client mode
-            Reticulum.setLocalClientFactory { p, h ->
-                LocalClientInterface("Sideband", tcpPort = p, tcpHost = h)
+            is StackAction.AddGateway -> {
+                // The stack is already up. A second profile adds its own
+                // interface rather than being silently dropped, which is what
+                // used to happen to every connect after the first (#588).
+                Log.d(TAG, "adding gateway interface ${LogRedact.host(host, port)} to the running stack")
+                addGatewayInterface(action.spec, ifacNetkey, socketDialer)
+                stackState = requireNotNull(current).let { it.copy(gateways = it.gateways + action.spec) }
+                return@withContext clientIdentity?.hexHash ?: "already-initialised"
             }
-            Reticulum.setInterfaceRegistrar(sharedInstanceInterfaceRegistrar)
-            Reticulum.start(
-                configDir = configDir,
-                connectToSharedInstance = true,
-                sharedInstancePort = port,
-            )
-            // The library falls back to a standalone stack with no interfaces
-            // when nothing answers on the port, and reports nothing. Left
-            // unchecked that latched `initialised` on a transport that could
-            // not reach anything, so every later connect returned early and
-            // the interface count stayed at zero for the life of the process
-            // (#588).
-            if (!Reticulum.getInstance().isConnectedToSharedInstance) {
-                // Reticulum.start() latches on an AtomicBoolean and returns the
-                // existing instance for every later call, so a failed attempt
-                // would otherwise poison the process: starting the shared
-                // instance and trying again gets the same dead instance back
-                // and can never succeed until the app is force-stopped.
-                // Observed on-device before this line existed (#588).
-                runCatching { Reticulum.stop() }
-                throw IllegalStateException(
-                    "No Reticulum shared instance answered on port $port. " +
-                        "Start Sideband or another shared instance, or use a gateway host instead.",
-                )
-            }
-        } else {
-            // Direct TCP gateway mode
-            Reticulum.start(configDir = configDir)
 
-            val tcpClient = TCPClientInterface(
-                name = "Gateway $host:$port",
-                targetHost = host,
-                targetPort = port,
-                ifacNetname = ifacNetname,
-                ifacNetkey = ifacNetkey,
-                socketDialer = socketDialer,
-            )
-            Reticulum.getInstance().addInterface(tcpClient)
-            Transport.registerInterface(tcpClient.toRef())
-            tcpClient.start()
-
-            // Wait for TCP connection
-            val deadline = System.currentTimeMillis() + 10_000
-            while (!tcpClient.online.get() && System.currentTimeMillis() < deadline) {
-                Thread.sleep(100)
+            StackAction.StartShared -> {
+                Log.d(TAG, "init: configDir=$configDir, shared instance on port $port")
+                File(configDir).mkdirs()
+                startSharedInstance(configDir, port)
+                StackState(StackMode.SHARED_INSTANCE)
             }
-            if (!tcpClient.online.get()) {
-                Log.w(TAG, "TCP connection to ${LogRedact.host(host, port)} not established within 10s")
+
+            is StackAction.StartGateway -> {
+                Log.d(TAG, "init: configDir=$configDir, host=${LogRedact.of(host)}, port=$port")
+                File(configDir).mkdirs()
+                Reticulum.start(configDir = configDir)
+                addGatewayInterface(action.spec, ifacNetkey, socketDialer)
+                StackState(StackMode.GATEWAY, setOf(action.spec))
             }
         }
 
@@ -164,10 +143,74 @@ class NativeReticulumTransport @Inject constructor() : ReticulumTransport {
         )
         Log.d(TAG, "Registered rnsh announce handler")
 
-        initialised = true
+        stackState = pending
         val hexHash = clientIdentity?.hexHash ?: ""
         Log.d(TAG, "init complete, identity=$hexHash")
         hexHash
+    }
+
+    /**
+     * Connect to a local shared instance (Sideband, Columba, rnsd), or throw.
+     */
+    private fun startSharedInstance(configDir: String, port: Int) {
+        Reticulum.setLocalClientFactory { p, h ->
+            LocalClientInterface("Sideband", tcpPort = p, tcpHost = h)
+        }
+        Reticulum.setInterfaceRegistrar(sharedInstanceInterfaceRegistrar)
+        Reticulum.start(
+            configDir = configDir,
+            connectToSharedInstance = true,
+            sharedInstancePort = port,
+        )
+        // The library falls back to a standalone stack with no interfaces
+        // when nothing answers on the port, and reports nothing. Left
+        // unchecked that latched the transport on something that could not
+        // reach anything, so every later connect returned early and the
+        // interface count stayed at zero for the life of the process (#588).
+        if (!Reticulum.getInstance().isConnectedToSharedInstance) {
+            // Reticulum.start() latches on an AtomicBoolean and returns the
+            // existing instance for every later call, so a failed attempt
+            // would otherwise poison the process: starting the shared
+            // instance and trying again gets the same dead instance back
+            // and can never succeed until the app is force-stopped.
+            // Observed on-device before this line existed (#588).
+            runCatching { Reticulum.stop() }
+            throw IllegalStateException(
+                "No Reticulum shared instance answered on port $port. " +
+                    "Start Sideband or another shared instance, or use a gateway host instead.",
+            )
+        }
+    }
+
+    /**
+     * Build a TCP interface for [spec], register it with Transport and wait
+     * briefly for it to come up.
+     */
+    private fun addGatewayInterface(
+        spec: GatewaySpec,
+        ifacNetkey: String?,
+        socketDialer: ((String, Int, Int) -> java.net.Socket)?,
+    ) {
+        val tcpClient = TCPClientInterface(
+            name = "Gateway ${spec.host}:${spec.port}",
+            targetHost = spec.host,
+            targetPort = spec.port,
+            ifacNetname = spec.ifacNetname,
+            ifacNetkey = ifacNetkey,
+            socketDialer = socketDialer,
+        )
+        Reticulum.getInstance().addInterface(tcpClient)
+        Transport.registerInterface(tcpClient.toRef())
+        tcpClient.start()
+
+        // Wait for TCP connection
+        val deadline = System.currentTimeMillis() + 10_000
+        while (!tcpClient.online.get() && System.currentTimeMillis() < deadline) {
+            Thread.sleep(100)
+        }
+        if (!tcpClient.online.get()) {
+            Log.w(TAG, "TCP connection to ${LogRedact.host(spec.host, spec.port)} not established within 10s")
+        }
     }
 
     /**
@@ -201,7 +244,7 @@ class NativeReticulumTransport @Inject constructor() : ReticulumTransport {
         rows: Int,
         cols: Int,
     ): RnshShellSession = withContext(Dispatchers.IO) {
-        check(initialised) { "Reticulum not initialised" }
+        check(isInitialised) { "Reticulum not initialised" }
 
         val destHash = awaitPath(destinationHash)
 
@@ -224,7 +267,7 @@ class NativeReticulumTransport @Inject constructor() : ReticulumTransport {
         destinationHash: String,
         command: List<String>,
     ): ReticulumExecSession = withContext(Dispatchers.IO) {
-        check(initialised) { "Reticulum not initialised" }
+        check(isInitialised) { "Reticulum not initialised" }
 
         val destHash = awaitPath(destinationHash)
 
@@ -264,7 +307,7 @@ class NativeReticulumTransport @Inject constructor() : ReticulumTransport {
 
     override suspend fun requestPath(destinationHashHex: String): Boolean =
         withContext(Dispatchers.IO) {
-            if (!initialised) return@withContext false
+            if (!isInitialised) return@withContext false
             val destHash = hexToBytes(destinationHashHex)
             if (Transport.hasPath(destHash)) {
                 true
@@ -290,7 +333,7 @@ class NativeReticulumTransport @Inject constructor() : ReticulumTransport {
         } catch (e: Exception) {
             Log.e(TAG, "closeAll failed", e)
         }
-        initialised = false
+        stackState = null
     }
 
     private fun hexToBytes(hex: String): ByteArray =
@@ -339,6 +382,121 @@ private class NativeExecSession(
     override suspend fun writeStdin(data: ByteArray) = exec.writeStdin(data)
     override suspend fun closeStdin() = exec.closeStdin()
     override fun close() = exec.close()
+}
+
+/**
+ * Identity of a gateway interface.
+ *
+ * Two profiles pointing at the same host, port and IFAC network share one
+ * interface; anything else needs a second one. IFAC is part of the key
+ * because the same address on a different named network is a different peer
+ * as far as Reticulum is concerned. The passphrase is not: it is a secret,
+ * and two profiles disagreeing about it is a configuration error rather than
+ * a reason to open a second socket.
+ */
+internal data class GatewaySpec(
+    val host: String,
+    val port: Int,
+    val ifacNetname: String?,
+)
+
+/** What a connection profile asks the process-wide Reticulum stack for. */
+internal sealed interface StackRequest {
+    /** A local shared instance — Sideband, Columba, rnsd — owns the interfaces. */
+    data object SharedInstance : StackRequest
+
+    /** This profile contributes one TCP interface to the stack. */
+    data class Gateway(val spec: GatewaySpec) : StackRequest
+}
+
+/** Which of the two mutually exclusive modes the stack is running in. */
+internal enum class StackMode {
+    /** Proxying through another app's Reticulum instance. */
+    SHARED_INSTANCE,
+
+    /** Running our own transport, with our own interfaces. */
+    GATEWAY,
+}
+
+/** What the process-wide stack currently holds. */
+internal data class StackState(
+    val mode: StackMode,
+    val gateways: Set<GatewaySpec> = emptySet(),
+)
+
+/** What [NativeReticulumTransport.init] should do about a request. */
+internal sealed interface StackAction {
+    /** Nothing is running yet; connect to the shared instance. */
+    data object StartShared : StackAction
+
+    /** Nothing is running yet; start our own transport and add [spec]. */
+    data class StartGateway(val spec: GatewaySpec) : StackAction
+
+    /** The stack is up; add [spec] as one more interface on it. */
+    data class AddGateway(val spec: GatewaySpec) : StackAction
+
+    /** The stack already carries what this profile needs. */
+    data object AlreadySatisfied : StackAction
+
+    /** The stack as it stands cannot serve this profile. [reason] is shown to the user. */
+    data class Reject(val reason: String) : StackAction
+}
+
+private val SHARED_INSTANCE_HOSTS = setOf("127.0.0.1", "localhost", "::1")
+private const val SHARED_INSTANCE_PORT = 37428
+
+/** Read a profile's host and port as a request against the shared stack. */
+internal fun classifyStackRequest(host: String, port: Int, ifacNetname: String?): StackRequest =
+    if (host in SHARED_INSTANCE_HOSTS && port == SHARED_INSTANCE_PORT) {
+        StackRequest.SharedInstance
+    } else {
+        StackRequest.Gateway(GatewaySpec(host, port, ifacNetname))
+    }
+
+/**
+ * Decide what a profile's connect attempt should do to the stack.
+ *
+ * Reticulum keeps one process-wide set of interfaces and resolves paths
+ * across all of them, but Haven treats host and port as a property of a
+ * connection profile. Reconciling those is what this function is for: a
+ * profile contributes an interface where it can, and where it genuinely
+ * cannot it says so rather than reporting success and reaching nothing.
+ *
+ * Kept pure and free of Android and Reticulum APIs so the decision is
+ * testable on its own — the fault in #588 was in this decision, not in the
+ * networking underneath it.
+ */
+internal fun planStackAction(current: StackState?, request: StackRequest): StackAction {
+    if (current == null) {
+        return when (request) {
+            StackRequest.SharedInstance -> StackAction.StartShared
+            is StackRequest.Gateway -> StackAction.StartGateway(request.spec)
+        }
+    }
+    return when (request) {
+        StackRequest.SharedInstance ->
+            if (current.mode == StackMode.SHARED_INSTANCE) {
+                StackAction.AlreadySatisfied
+            } else {
+                StackAction.Reject(
+                    "Reticulum is already connected to a gateway in this session. Joining a " +
+                        "shared instance replaces the whole stack rather than adding to it, so " +
+                        "the two cannot run side by side. Disconnect the gateway session first.",
+                )
+            }
+
+        is StackRequest.Gateway -> when {
+            current.mode == StackMode.SHARED_INSTANCE -> StackAction.Reject(
+                "Reticulum is connected to a shared instance, which owns the network " +
+                    "interfaces on behalf of every app using it. Add this gateway in Sideband " +
+                    "or whichever app is running the shared instance, or disconnect from it first.",
+            )
+
+            request.spec in current.gateways -> StackAction.AlreadySatisfied
+
+            else -> StackAction.AddGateway(request.spec)
+        }
+    }
 }
 
 /**

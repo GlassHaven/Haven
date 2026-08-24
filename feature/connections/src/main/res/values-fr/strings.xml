@@ -287,6 +287,7 @@
     <string name="connections_field_username">Nom d\'utilisateur</string>
     <string name="connections_field_jump_host">Hôte de rebond (-J)</string>
     <string name="connections_error_keystore_unavailable">Le magasin de clés sécurisé de cet appareil n\'a pas pu être déverrouillé, donc l\'identifiant n\'a pas pu être chiffré. Rien n\'a été enregistré.</string>
+    <string name="connections_error_credential_not_saved">Connecté, mais le mot de passe n\'a pas pu être enregistré sur cet appareil.</string>
     <string name="connections_jump_scan_button">Analyser via l\'hôte de rebond</string>
     <string name="connections_jump_scanning">Analyse via l\'hôte de rebond…</string>
     <string name="connections_jump_scan_not_connected">Connectez d\'abord l\'hôte de rebond, puis lancez l\'analyse.</string>

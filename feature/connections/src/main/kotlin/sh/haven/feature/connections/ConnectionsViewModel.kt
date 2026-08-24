@@ -3322,7 +3322,33 @@ class ConnectionsViewModel @Inject constructor(
      * direct connect path and the session-picker path (#290), since the latter
      * returns before the inline save block would otherwise run.
      */
-    private suspend fun persistRememberedPassword(
+    // internal for unit test (#582: a failed credential save must not escape
+    // and cancel a session the server has already authenticated).
+    internal suspend fun persistRememberedPassword(
+        profile: ConnectionProfile,
+        password: String,
+        rememberPassword: Boolean?,
+        multiUserProfile: Boolean,
+    ) {
+        try {
+            persistRememberedPasswordOrThrow(profile, password, rememberPassword, multiUserProfile)
+        } catch (e: Exception) {
+            // #582: this runs AFTER the server has authenticated us and the
+            // session channel is open. Letting it throw unwound connectSsh,
+            // which reported a failed connection and disconnected a session the
+            // server had already recorded as opened — the user saw a failure
+            // and no terminal, and the server was left holding an orphan.
+            //
+            // Remembering a password is a convenience. It cannot be allowed to
+            // cancel a login that already worked, whatever the reason it fails
+            // (a Keystore that will not serve its key is only the reported one).
+            Log.e(TAG, "could not persist the remembered credential; keeping the session", e)
+            _error.value = appContext.getString(R.string.connections_error_credential_not_saved)
+        }
+    }
+
+    /** The actual persistence. Throws; [persistRememberedPassword] is the guard. */
+    private suspend fun persistRememberedPasswordOrThrow(
         profile: ConnectionProfile,
         password: String,
         rememberPassword: Boolean?,

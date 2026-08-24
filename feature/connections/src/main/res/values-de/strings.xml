@@ -287,6 +287,7 @@
     <string name="connections_field_username">Benutzername</string>
     <string name="connections_field_jump_host">Jump-Host (-J)</string>
     <string name="connections_error_keystore_unavailable">Der sichere Schlüsselspeicher dieses Geräts ließ sich nicht entsperren, daher konnte die Anmeldeinformation nicht verschlüsselt werden. Es wurde nichts gespeichert.</string>
+    <string name="connections_error_credential_not_saved">Verbunden, aber das Passwort konnte auf diesem Gerät nicht gespeichert werden.</string>
     <string name="connections_jump_scan_button">Über Jump-Host scannen</string>
     <string name="connections_jump_scanning">Scannen über Jump-Host…</string>
     <string name="connections_jump_scan_not_connected">Zuerst den Jump-Host verbinden, dann scannen.</string>

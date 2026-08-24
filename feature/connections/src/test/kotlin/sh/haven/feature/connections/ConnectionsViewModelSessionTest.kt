@@ -652,4 +652,32 @@ class ConnectionsViewModelSessionTest {
         assertNull(viewModel.passwordFallback.value)
         assertNull(viewModel.pendingTunnelDependent.value)
     }
+
+    /**
+     * #582: the remembered-password save runs AFTER the server has authenticated
+     * and the session channel is open. When it threw, the exception unwound
+     * connectSsh, which reported a failed connection and disconnected a session
+     * the server had already recorded as `session opened` — the user saw a
+     * failure and got no terminal, and the server was left holding an orphan.
+     *
+     * Remembering a password is a convenience and must not be able to cancel a
+     * login that already worked.
+     */
+    @Test
+    fun `a failing credential save does not escape and cancel the session`() = runTest {
+        val profile = keyProfile(null)
+        coEvery { repository.save(any()) } throws
+            IllegalStateException("Keystore cannot load the key with ID: haven_credential_master")
+
+        // Must not throw. Before the fix this propagated out of connectSsh.
+        viewModel.persistRememberedPassword(
+            profile = profile,
+            password = "hunter2",
+            rememberPassword = true,
+            multiUserProfile = false,
+        )
+
+        // And the user is told, rather than the failure passing silently.
+        assertNotNull("the failure must surface", viewModel.error.value)
+    }
 }

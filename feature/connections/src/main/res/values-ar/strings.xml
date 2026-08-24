@@ -287,6 +287,7 @@
     <string name="connections_field_username">اسم المستخدم</string>
     <string name="connections_field_jump_host">مضيف القفز (-J)</string>
     <string name="connections_error_keystore_unavailable">تعذّر فتح مخزن المفاتيح الآمن على هذا الجهاز، لذا تعذّر تشفير بيانات الاعتماد. لم يتم حفظ أي شيء.</string>
+    <string name="connections_error_credential_not_saved">تم الاتصال، لكن تعذّر حفظ كلمة المرور على هذا الجهاز.</string>
     <string name="connections_jump_scan_button">فحص عبر مضيف الانتقال</string>
     <string name="connections_jump_scanning">جارٍ الفحص عبر مضيف الانتقال…</string>
     <string name="connections_jump_scan_not_connected">اتصل بمضيف الانتقال أولاً، ثم ابدأ الفحص.</string>

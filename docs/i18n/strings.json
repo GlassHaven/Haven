@@ -9226,6 +9226,25 @@
      }
     },
     {
+     "name": "connections_error_credential_not_saved",
+     "en": "Connected, but the password could not be saved on this device.",
+     "comment": "#582: the credential save runs after the server has already authenticated us, so a failure here must not cancel the session.",
+     "args": [],
+     "t": {
+      "ar": "تم الاتصال، لكن تعذّر حفظ كلمة المرور على هذا الجهاز.",
+      "bn": "সংযুক্ত হয়েছে, তবে এই ডিভাইসে পাসওয়ার্ড সংরক্ষণ করা যায়নি।",
+      "de": "Verbunden, aber das Passwort konnte auf diesem Gerät nicht gespeichert werden.",
+      "es": "Conectado, pero no se pudo guardar la contraseña en este dispositivo.",
+      "fr": "Connecté, mais le mot de passe n\\'a pas pu être enregistré sur cet appareil.",
+      "hi": "कनेक्ट हो गया, लेकिन इस डिवाइस पर पासवर्ड सहेजा नहीं जा सका।",
+      "ja": "接続しましたが、この端末にパスワードを保存できませんでした。",
+      "ko": "연결되었지만 이 기기에 비밀번호를 저장할 수 없었습니다.",
+      "pt": "Conectado, mas não foi possível salvar a senha neste dispositivo.",
+      "ru": "Подключено, но пароль не удалось сохранить на этом устройстве.",
+      "zh": "已连接,但无法在此设备上保存密码。"
+     }
+    },
+    {
      "name": "connections_jump_scan_button",
      "en": "Scan via jump host",
      "comment": "Scan the network behind a jump host, from the jump host's own network.",

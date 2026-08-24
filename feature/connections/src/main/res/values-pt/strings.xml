@@ -287,6 +287,7 @@
     <string name="connections_field_username">Usuário</string>
     <string name="connections_field_jump_host">Host de salto (-J)</string>
     <string name="connections_error_keystore_unavailable">O armazenamento seguro de chaves deste dispositivo não desbloqueou, então a credencial não pôde ser criptografada. Nada foi salvo.</string>
+    <string name="connections_error_credential_not_saved">Conectado, mas não foi possível salvar a senha neste dispositivo.</string>
     <string name="connections_jump_scan_button">Escanear pelo jump host</string>
     <string name="connections_jump_scanning">Escaneando pelo jump host…</string>
     <string name="connections_jump_scan_not_connected">Conecte primeiro o jump host e depois escaneie.</string>

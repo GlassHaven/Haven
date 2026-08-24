@@ -5,6 +5,16 @@ the corresponding GitHub Release; a release can't ship without its section
 (enforced by `scripts/check-changelog.sh` in CI). The GitHub "Full Changelog"
 compare link is appended automatically — don't add it here.
 
+## v5.87.51
+
+- Settings can now check GitHub for a newer Haven. Off by default, and only offered to copies installed from a GitHub release (#578).
+
+- **Haven can tell you when there is a newer version** (#578). If you install the APK from a GitHub release, nothing has ever told you a new one exists; checking the repository by hand was the only way. Settings → About now has a switch for it, and a "Check now" row next to it that answers immediately.
+
+  It is off until you turn it on. Haven is used by people who care what their software talks to, and a request to a code-hosting site on every launch is not a thing to start doing to everybody unasked. With it on, Haven looks once a day at most, and tells you about a given version once rather than on every launch.
+
+🔑 **It only offers you an update that will actually install.** F-Droid does not distribute our APK; it builds Haven from source and signs the result with its own key, and Android refuses to replace an installed app with a package signed differently. So a checker that pointed everyone at the latest GitHub release would hand every F-Droid user a download that cannot install — which reads as a broken app rather than a mismatch of channels. Haven reads its own signing certificate to work out where it came from. A copy that did not come from a GitHub release is told so plainly and makes no network request at all.
+
 ## v5.87.50
 
 - Saving a password after connecting can no longer cancel the connection. If the password cannot be stored, Haven says so and keeps the session (#582).

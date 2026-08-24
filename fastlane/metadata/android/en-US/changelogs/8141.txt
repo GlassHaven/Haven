@@ -1,0 +1,1 @@
+- Settings can now check GitHub for a newer Haven. Off by default, and only offered to copies installed from a GitHub release (#578).

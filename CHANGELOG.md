@@ -5,6 +5,18 @@ the corresponding GitHub Release; a release can't ship without its section
 (enforced by `scripts/check-changelog.sh` in CI). The GitHub "Full Changelog"
 compare link is appended automatically — don't add it here.
 
+## v5.87.55
+
+- SPICE servers that ask for a password can now be connected to at all (#584).
+
+- **A password that was collected and never sent** (#584). Haven's SPICE profile has a ticket field. The value was saved, carried down through the session layer, handed to the native client — and then dropped one step short of the code that puts it on the wire. Only the WebSocket build of that client ever read the password back; the path Haven actually uses had no password argument on any of its channel connections, so it authenticated with an empty string and the server refused it. Anyone with a password on their SPICE server saw the connection fail and had no way to tell it was not their own configuration.
+
+  Servers without a password were never affected, which is why this went unnoticed for so long — it is invisible unless you set one.
+
+  All four of the connections a SPICE session opens have to authenticate separately, so fixing only the first would have moved the failure along to the next one. Verified against a password-protected QEMU server: the right password connects and the picture arrives, while a wrong password and a missing password are both still refused, which is the part that shows the password is genuinely being checked rather than skipped.
+
+- Agent-facing: the update check's daily throttle and its already-notified marker can now be read and cleared over MCP (#578), so the launch-time check can be exercised on a device instead of only in tests.
+
 ## v5.87.54
 
 - SPICE sessions now show the whole guest screen instead of a 1024x768 crop of its top-left corner (#572).

@@ -1,0 +1,1 @@
+- SPICE servers that ask for a password can now be connected to at all (#584).

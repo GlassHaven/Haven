@@ -5,6 +5,26 @@ the corresponding GitHub Release; a release can't ship without its section
 (enforced by `scripts/check-changelog.sh` in CI). The GitHub "Full Changelog"
 compare link is appended automatically — don't add it here.
 
+## v5.87.58
+
+- Reticulum connections through a Sideband or Columba shared instance work again (#588, reported by @Slayerx96).
+
+- A telltale that an app wants the mouse while the setting is off (#586).
+
+- **Connected to the shared instance, sending to nobody** (#588, reported by @Slayerx96). Pointing a Reticulum connection at a Sideband or Columba shared instance on the phone appeared to work and then reached nothing. Every connection after it failed too, including ones to a remote gateway, until the app was force-stopped.
+
+  reticulum-kt builds the shared instance's network interface itself and hands it back through a callback. Haven never supplied one, so the interface was created, started, and then never registered. The connection reported itself as up while there was nothing to send or receive over. On a phone, the log read `Broadcasting to ... on 0 interfaces: []`. Connections to a remote gateway were never affected, because that path registers its own interface.
+
+  Two further faults kept it from recovering on its own. When nothing answered on the port, Haven quietly settled for a network stack with no interfaces at all instead of saying so. And once any attempt had been made, the Reticulum layer held on to that first attempt for the life of the process, so starting the shared instance and trying again handed back the same dead stack. Both are fixed: a shared instance that does not answer now says which port it was looking on, and a retry starts over properly.
+
+  What remains is the shape of the thing rather than a bug. A connection profile still decides the whole network stack rather than adding an interface to it, so two different gateways in one session cannot both work. @Slayerx96 suggested declaring interfaces up front, the way a Reticulum config file does, and that is the right fix. It is not done yet.
+
+- **When an app asks for the mouse and the setting says no** (#586). Terminal programs that use the mouse — editors, file managers, anything with clickable panes — switch it on themselves when they start. If Haven's mouse setting was off, nothing happened and nothing was said. Taps kept behaving as taps and there was no way to tell whether the program had asked, whether Haven had heard, or where to go about it.
+
+  Haven now says so once per session, naming the setting. The setting is not changed for you; it is off by default deliberately, and the bug was that the choice was invisible at the point where it mattered.
+
+- An agent driving Haven over MCP can create Reticulum connection profiles, which previously had to be made by hand in the app.
+
 ## v5.87.57
 
 - Vietnamese and other composing keyboards no longer duplicate characters in the terminal (#587).

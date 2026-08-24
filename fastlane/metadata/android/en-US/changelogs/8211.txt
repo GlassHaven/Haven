@@ -1,0 +1,1 @@
+- Reticulum connections through a Sideband or Columba shared instance work again (#588, reported by @Slayerx96).

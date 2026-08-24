@@ -157,27 +157,23 @@ class UpdateChecker @Inject constructor(
      * [Result.Available] is the caller's cue to notify.
      */
     suspend fun checkOnLaunch(nowMs: Long): Result.Available? {
-        if (!preferences.updateCheckEnabled.first()) return null
-        if (channel() != Channel.GITHUB_RELEASE) return null
-
+        val enabled = preferences.updateCheckEnabled.first()
         val lastRun = preferences.updateCheckLastRunMs.first()
-        // A clock moved backwards would otherwise wedge the throttle shut.
-        val elapsed = nowMs - lastRun
-        if (lastRun != 0L && elapsed in 0 until LAUNCH_CHECK_INTERVAL_MS) {
-            Log.d(TAG, "launch check throttled (${elapsed}ms since last)")
+        shouldQuery(enabled, { channel() }, lastRun, nowMs)?.let { skip ->
+            Log.d(TAG, "launch check skipped: $skip")
             return null
         }
         preferences.setUpdateCheckLastRunMs(nowMs)
 
         val result = check()
-        if (result !is Result.Available) return null
-
-        if (preferences.updateCheckLastNotifiedVersion.first() == result.version) {
-            Log.i(TAG, "already notified about ${result.version}; staying quiet")
+        val lastNotified = preferences.updateCheckLastNotifiedVersion.first()
+        shouldNotify(result, lastNotified)?.let { skip ->
+            Log.i(TAG, "launch check found nothing to say: $skip")
             return null
         }
-        preferences.setUpdateCheckLastNotifiedVersion(result.version)
-        return result
+        val available = result as Result.Available
+        preferences.setUpdateCheckLastNotifiedVersion(available.version)
+        return available
     }
 
     private fun fetchLatestRelease(): String {
@@ -238,7 +234,57 @@ class UpdateChecker @Inject constructor(
         }
     }
 
+    /**
+     * Why a launch check stayed quiet. Named rather than a bare null so a test
+     * can assert WHICH gate stopped it — "no notification appeared" on its own
+     * is compatible with the preference being off, the wrong signing key, the
+     * throttle, a network failure and an outright bug, which makes it nearly
+     * worthless as evidence.
+     */
+    internal enum class LaunchSkip {
+        DISABLED,
+        WRONG_CHANNEL,
+        THROTTLED,
+        NOT_NEWER,
+        ALREADY_NOTIFIED,
+    }
+
     internal companion object {
+        /**
+         * Gate one: may we make the request at all? Returns null to proceed.
+         *
+         * [channelOf] is a lambda rather than a value because the order matters:
+         * a disabled check must not read the signing certificate, and neither
+         * case may touch the network. The throttle is evaluated last, so a
+         * disabled or wrongly-signed copy is never even throttle-tested.
+         */
+        fun shouldQuery(
+            enabled: Boolean,
+            channelOf: () -> Channel,
+            lastRunMs: Long,
+            nowMs: Long,
+        ): LaunchSkip? {
+            if (!enabled) return LaunchSkip.DISABLED
+            if (channelOf() != Channel.GITHUB_RELEASE) return LaunchSkip.WRONG_CHANNEL
+            if (lastRunMs == 0L) return null // never run — always allowed
+            val elapsed = nowMs - lastRunMs
+            // A clock moved backwards would otherwise wedge the throttle shut
+            // until it caught up, so only a forward-and-recent gap throttles.
+            if (elapsed in 0 until LAUNCH_CHECK_INTERVAL_MS) return LaunchSkip.THROTTLED
+            return null
+        }
+
+        /**
+         * Gate two: having asked, is there anything to tell the user? Returns
+         * null to notify. [LaunchSkip.ALREADY_NOTIFIED] is the one that stops a
+         * user who chose not to update being told again on every launch.
+         */
+        fun shouldNotify(result: Result, lastNotifiedVersion: String): LaunchSkip? {
+            if (result !is Result.Available) return LaunchSkip.NOT_NEWER
+            if (lastNotifiedVersion == result.version) return LaunchSkip.ALREADY_NOTIFIED
+            return null
+        }
+
         /** `v5.87.50` and `5.87.50` are the same version. */
         fun normaliseVersion(tag: String): String = tag.trim().removePrefix("v")
 

@@ -1329,6 +1329,25 @@ fun TerminalScreen(
                     val isBracketPaste by activeTab.bracketPasteMode.collectAsState()
                     val isAltScreen by activeTab.altScreen.collectAsState()
 
+                    // #580. The per-gesture line reports the EFFECTIVE flag, which
+                    // is `isMouseMode && mouseInputEnabled` — so "mouseMode=false"
+                    // means either the app never asked for the mouse (DECSET
+                    // ?1000/?1002/?1003 not seen) or the user has "Mouse input in
+                    // TUI apps" switched off, and the two are indistinguishable.
+                    // A reporter lost a round trip to exactly that ambiguity: they
+                    // proved with a minimal program that the taps arrived and the
+                    // app had enabled mouse tracking, which rules out one cause but
+                    // cannot confirm the other. Same "HavenGesture" tag on purpose,
+                    // so `adb logcat -s HavenGesture` picks it up alongside the
+                    // gesture lines with no second capture to ask for.
+                    LaunchedEffect(activeTab, isMouseMode, mouseInputEnabled) {
+                        android.util.Log.i(
+                            "HavenGesture",
+                            "mouseModeState tracker=$isMouseMode pref=$mouseInputEnabled " +
+                                "effective=${isMouseMode && mouseInputEnabled}",
+                        )
+                    }
+
                     // Build gesture callback when mouse mode is active. Gesture
                     // routing follows the mode (#186):
                     //  • one-finger swipe → onScroll → wheel → scrolls the pane

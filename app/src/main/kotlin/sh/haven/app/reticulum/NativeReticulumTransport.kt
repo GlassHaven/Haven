@@ -10,6 +10,7 @@ import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.withContext
 import network.reticulum.Reticulum
 import network.reticulum.identity.Identity
+import network.reticulum.interfaces.Interface as RnsInterface
 import network.reticulum.interfaces.local.LocalClientInterface
 import network.reticulum.interfaces.tcp.TCPClientInterface
 import network.reticulum.interfaces.toRef
@@ -103,11 +104,22 @@ class NativeReticulumTransport @Inject constructor() : ReticulumTransport {
             Reticulum.setLocalClientFactory { p, h ->
                 LocalClientInterface("Sideband", tcpPort = p, tcpHost = h)
             }
+            Reticulum.setInterfaceRegistrar(sharedInstanceInterfaceRegistrar)
             Reticulum.start(
                 configDir = configDir,
                 connectToSharedInstance = true,
                 sharedInstancePort = port,
             )
+            // The library falls back to a standalone stack with no interfaces
+            // when nothing answers on the port, and reports nothing. Left
+            // unchecked that latched `initialised` on a transport that could
+            // not reach anything, so every later connect returned early and
+            // the interface count stayed at zero for the life of the process
+            // (#588).
+            check(Reticulum.getInstance().isConnectedToSharedInstance) {
+                "No Reticulum shared instance answered on port $port. " +
+                    "Start Sideband or another shared instance, or use a gateway host instead."
+            }
         } else {
             // Direct TCP gateway mode
             Reticulum.start(configDir = configDir)
@@ -318,6 +330,26 @@ private class NativeExecSession(
     override suspend fun writeStdin(data: ByteArray) = exec.writeStdin(data)
     override suspend fun closeStdin() = exec.closeStdin()
     override fun close() = exec.close()
+}
+
+/**
+ * Adds an interface that reticulum-kt built for us to [Transport].
+ *
+ * The gateway path constructs its own [TCPClientInterface] and registers it
+ * directly, but the shared-instance path builds its client interface inside
+ * the library and hands it back through this callback. Haven never set one,
+ * so on that path the interface was created and started and then never
+ * registered: Transport had nothing to send or receive on, the connection
+ * still reported as up, and the interface count stayed at zero (#588). The
+ * library says so in its own log and carries on regardless, which is why it
+ * looked like nothing was wrong.
+ */
+internal val sharedInstanceInterfaceRegistrar: (Any) -> Unit = { iface ->
+    if (iface is RnsInterface) {
+        Transport.registerInterface(iface.toRef())
+    } else {
+        Log.e(TAG, "cannot register ${iface.javaClass.name}: not a Reticulum interface")
+    }
 }
 
 /** How [resolveClientIdentity] arrived at the identity it returned. */

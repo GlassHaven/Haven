@@ -49,6 +49,7 @@ class HavenApp : Application(), Configuration.Provider {
     @Inject lateinit var backupAutoSyncScheduler: sh.haven.app.backup.BackupAutoSyncScheduler
     @Inject lateinit var backupAutoPullScheduler: sh.haven.app.backup.BackupAutoPullScheduler
     @Inject lateinit var sshTerminalEmulatorOwner: sh.haven.feature.terminal.SshTerminalEmulatorOwner
+    @Inject lateinit var updateNotifier: sh.haven.app.update.UpdateNotifier
 
     private val appScope = CoroutineScope(SupervisorJob() + Dispatchers.IO)
 
@@ -277,6 +278,11 @@ class HavenApp : Application(), Configuration.Provider {
         // enables auto-sync in Settings → Backup → Sync to a remote.
         backupAutoSyncScheduler.start(appScope)
         backupAutoPullScheduler.start(appScope)
+
+        // Opt-in update check (#578). Same pattern again: returns without a
+        // network request unless the switch is on, the copy was signed with the
+        // GitHub-release key, and a day has passed since the last look.
+        updateNotifier.start(appScope)
 
         // Extend the shell-prompt terminator set used for command-on-attach
         // detection with the user's custom prompt characters (#280). Replays

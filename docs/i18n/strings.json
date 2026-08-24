@@ -5619,6 +5619,65 @@
       "ru": "Пароль не сохранён. Открывается Haven…",
       "zh": "未保存密码。正在打开 Haven…"
      }
+    },
+    {
+     "name": "update_notification_channel",
+     "en": "App updates",
+     "comment": "Backup pull worker: notification, Toast and channel text (#458). Counts are phrased as \"label: N\" rather than \"N items\" so no language needs plurals.",
+     "args": [],
+     "t": {
+      "ar": "تحديثات التطبيق",
+      "bn": "অ্যাপ আপডেট",
+      "de": "App-Updates",
+      "es": "Actualizaciones de la aplicación",
+      "fr": "Mises à jour de l\\'application",
+      "hi": "ऐप अपडेट",
+      "ja": "アプリの更新",
+      "ko": "앱 업데이트",
+      "pt": "Atualizações do aplicativo",
+      "ru": "Обновления приложения",
+      "zh": "应用更新"
+     }
+    },
+    {
+     "name": "update_notification_title",
+     "en": "Haven %1$s is available",
+     "comment": "Backup pull worker: notification, Toast and channel text (#458). Counts are phrased as \"label: N\" rather than \"N items\" so no language needs plurals.",
+     "args": [
+      "%1$s"
+     ],
+     "t": {
+      "ar": "Haven %1$s متاح",
+      "bn": "Haven %1$s পাওয়া যাচ্ছে",
+      "de": "Haven %1$s ist verfügbar",
+      "es": "Haven %1$s está disponible",
+      "fr": "Haven %1$s est disponible",
+      "hi": "Haven %1$s उपलब्ध है",
+      "ja": "Haven %1$s が利用できます",
+      "ko": "Haven %1$s 사용 가능",
+      "pt": "Haven %1$s está disponível",
+      "ru": "Доступна версия Haven %1$s",
+      "zh": "Haven %1$s 可用"
+     }
+    },
+    {
+     "name": "update_notification_text",
+     "en": "Tap to open the release page.",
+     "comment": "Backup pull worker: notification, Toast and channel text (#458). Counts are phrased as \"label: N\" rather than \"N items\" so no language needs plurals.",
+     "args": [],
+     "t": {
+      "ar": "اضغط لفتح صفحة الإصدار.",
+      "bn": "রিলিজ পেজ খুলতে ট্যাপ করুন।",
+      "de": "Zum Öffnen der Release-Seite tippen.",
+      "es": "Toca para abrir la página de la versión.",
+      "fr": "Appuyez pour ouvrir la page de la version.",
+      "hi": "रिलीज़ पेज खोलने के लिए टैप करें।",
+      "ja": "タップしてリリースページを開きます。",
+      "ko": "릴리스 페이지를 열려면 누르세요.",
+      "pt": "Toque para abrir a página da versão.",
+      "ru": "Нажмите, чтобы открыть страницу выпуска.",
+      "zh": "点按打开发行版页面。"
+     }
     }
    ]
   },
@@ -27370,6 +27429,202 @@
       "pt": "Pague um café para o desenvolvedor",
       "ru": "Угостить разработчика кофе",
       "zh": "请开发者喝杯咖啡"
+     }
+    },
+    {
+     "name": "settings_update_check_title",
+     "en": "Check for updates",
+     "comment": "About section",
+     "args": [],
+     "t": {
+      "ar": "التحقق من التحديثات",
+      "bn": "আপডেট দেখুন",
+      "de": "Nach Updates suchen",
+      "es": "Buscar actualizaciones",
+      "fr": "Rechercher des mises à jour",
+      "hi": "अपडेट जाँचें",
+      "ja": "アップデートを確認",
+      "ko": "업데이트 확인",
+      "pt": "Procurar atualizações",
+      "ru": "Проверять обновления",
+      "zh": "检查更新"
+     }
+    },
+    {
+     "name": "settings_update_check_subtitle",
+     "en": "Look for a newer release when Haven starts, at most once a day. Off by default.",
+     "comment": "About section",
+     "args": [],
+     "t": {
+      "ar": "البحث عن إصدار أحدث عند بدء Haven، مرة واحدة يوميًا على الأكثر. مُعطَّل افتراضيًا.",
+      "bn": "Haven চালু হলে নতুন রিলিজ খোঁজে, দিনে সর্বোচ্চ একবার। ডিফল্টে বন্ধ।",
+      "de": "Beim Start von Haven nach einer neueren Version suchen, höchstens einmal täglich. Standardmäßig aus.",
+      "es": "Busca una versión más reciente al iniciar Haven, como máximo una vez al día. Desactivado por defecto.",
+      "fr": "Cherche une version plus récente au démarrage de Haven, une fois par jour au maximum. Désactivé par défaut.",
+      "hi": "Haven शुरू होने पर नया रिलीज़ खोजें, दिन में अधिकतम एक बार। डिफ़ॉल्ट रूप से बंद।",
+      "ja": "Haven の起動時に新しいリリースを探します（1 日 1 回まで）。既定ではオフ。",
+      "ko": "Haven 시작 시 새 릴리스를 확인합니다. 하루 한 번까지. 기본값은 꺼짐.",
+      "pt": "Procura uma versão mais recente ao iniciar o Haven, no máximo uma vez por dia. Desativado por padrão.",
+      "ru": "Искать новый выпуск при запуске Haven, не чаще раза в сутки. По умолчанию выключено.",
+      "zh": "Haven 启动时查找新版本，每天最多一次。默认关闭。"
+     }
+    },
+    {
+     "name": "settings_update_check_now_title",
+     "en": "Check now",
+     "comment": "About section",
+     "args": [],
+     "t": {
+      "ar": "تحقّق الآن",
+      "bn": "এখনই দেখুন",
+      "de": "Jetzt prüfen",
+      "es": "Buscar ahora",
+      "fr": "Vérifier maintenant",
+      "hi": "अभी जाँचें",
+      "ja": "今すぐ確認",
+      "ko": "지금 확인",
+      "pt": "Procurar agora",
+      "ru": "Проверить сейчас",
+      "zh": "立即检查"
+     }
+    },
+    {
+     "name": "settings_update_check_now_subtitle",
+     "en": "Ask GitHub for the newest release",
+     "comment": "About section",
+     "args": [],
+     "t": {
+      "ar": "اسأل GitHub عن أحدث إصدار",
+      "bn": "GitHub-এ সর্বশেষ রিলিজ জিজ্ঞাসা করুন",
+      "de": "GitHub nach der neuesten Version fragen",
+      "es": "Consultar la última versión en GitHub",
+      "fr": "Demander la dernière version à GitHub",
+      "hi": "GitHub से नवीनतम रिलीज़ पूछें",
+      "ja": "最新のリリースを GitHub に問い合わせます",
+      "ko": "GitHub에 최신 릴리스를 요청합니다",
+      "pt": "Consultar a versão mais recente no GitHub",
+      "ru": "Запросить у GitHub последний выпуск",
+      "zh": "向 GitHub 查询最新发行版"
+     }
+    },
+    {
+     "name": "settings_update_checking",
+     "en": "Checking\\u2026",
+     "comment": "About section",
+     "args": [],
+     "t": {
+      "ar": "جارٍ التحقق…",
+      "bn": "দেখা হচ্ছে…",
+      "de": "Wird geprüft…",
+      "es": "Comprobando…",
+      "fr": "Vérification…",
+      "hi": "जाँच हो रही है…",
+      "ja": "確認中…",
+      "ko": "확인 중…",
+      "pt": "Verificando…",
+      "ru": "Проверка…",
+      "zh": "正在检查…"
+     }
+    },
+    {
+     "name": "settings_update_open_release",
+     "en": "Version %1$s is available",
+     "comment": "About section",
+     "args": [
+      "%1$s"
+     ],
+     "t": {
+      "ar": "الإصدار %1$s متاح",
+      "bn": "সংস্করণ %1$s পাওয়া যাচ্ছে",
+      "de": "Version %1$s ist verfügbar",
+      "es": "La versión %1$s está disponible",
+      "fr": "La version %1$s est disponible",
+      "hi": "संस्करण %1$s उपलब्ध है",
+      "ja": "バージョン %1$s が利用できます",
+      "ko": "버전 %1$s 사용 가능",
+      "pt": "A versão %1$s está disponível",
+      "ru": "Доступна версия %1$s",
+      "zh": "有新版本 %1$s"
+     }
+    },
+    {
+     "name": "settings_update_check_available",
+     "en": "Tap to open the release page",
+     "comment": "About section",
+     "args": [],
+     "t": {
+      "ar": "اضغط لفتح صفحة الإصدار",
+      "bn": "রিলিজ পেজ খুলতে ট্যাপ করুন",
+      "de": "Zum Öffnen der Release-Seite tippen",
+      "es": "Toca para abrir la página de la versión",
+      "fr": "Appuyez pour ouvrir la page de la version",
+      "hi": "रिलीज़ पेज खोलने के लिए टैप करें",
+      "ja": "タップしてリリースページを開く",
+      "ko": "릴리스 페이지를 열려면 누르세요",
+      "pt": "Toque para abrir a página da versão",
+      "ru": "Нажмите, чтобы открыть страницу выпуска",
+      "zh": "点按打开发行版页面"
+     }
+    },
+    {
+     "name": "settings_update_check_up_to_date",
+     "en": "Up to date at %1$s",
+     "comment": "About section",
+     "args": [
+      "%1$s"
+     ],
+     "t": {
+      "ar": "مُحدَّث على %1$s",
+      "bn": "%1$s-এ হালনাগাদ",
+      "de": "Aktuell auf %1$s",
+      "es": "Actualizado a %1$s",
+      "fr": "À jour en %1$s",
+      "hi": "%1$s पर अद्यतित",
+      "ja": "最新です（%1$s）",
+      "ko": "최신 버전입니다 (%1$s)",
+      "pt": "Atualizado na %1$s",
+      "ru": "Установлена последняя версия %1$s",
+      "zh": "已是最新版本 %1$s"
+     }
+    },
+    {
+     "name": "settings_update_check_failed",
+     "en": "Check failed: %1$s",
+     "comment": "About section",
+     "args": [
+      "%1$s"
+     ],
+     "t": {
+      "ar": "فشل التحقق: %1$s",
+      "bn": "যাচাই ব্যর্থ: %1$s",
+      "de": "Prüfung fehlgeschlagen: %1$s",
+      "es": "Error al comprobar: %1$s",
+      "fr": "Échec de la vérification : %1$s",
+      "hi": "जाँच विफल: %1$s",
+      "ja": "確認に失敗しました: %1$s",
+      "ko": "확인 실패: %1$s",
+      "pt": "Falha na verificação: %1$s",
+      "ru": "Не удалось проверить: %1$s",
+      "zh": "检查失败：%1$s"
+     }
+    },
+    {
+     "name": "settings_update_check_other_channel",
+     "en": "This copy was not installed from a GitHub release, so a release download cannot replace it. Update through wherever you installed Haven.",
+     "comment": "About section",
+     "args": [],
+     "t": {
+      "ar": "لم تُثبَّت هذه النسخة من إصدار GitHub، لذا لا يمكن لتنزيل الإصدار أن يحل محلها. حدِّث من حيث ثبَّتَ Haven.",
+      "bn": "এই কপিটি GitHub রিলিজ থেকে ইনস্টল হয়নি, তাই রিলিজ ডাউনলোড এটি প্রতিস্থাপন করতে পারবে না। যেখান থেকে Haven ইনস্টল করেছিলেন সেখান থেকেই আপডেট করুন।",
+      "de": "Diese Kopie wurde nicht aus einem GitHub-Release installiert, daher kann ein Release-Download sie nicht ersetzen. Aktualisiere dort, wo du Haven installiert hast.",
+      "es": "Esta copia no se instaló desde una versión de GitHub, así que una descarga de GitHub no puede reemplazarla. Actualiza desde donde instalaste Haven.",
+      "fr": "Cette copie n\\'a pas été installée depuis une version GitHub ; un téléchargement depuis GitHub ne peut donc pas la remplacer. Mettez à jour là où vous avez installé Haven.",
+      "hi": "यह प्रति GitHub रिलीज़ से इंस्टॉल नहीं हुई थी, इसलिए रिलीज़ डाउनलोड इसे बदल नहीं सकता। जहाँ से Haven इंस्टॉल किया था वहीं से अपडेट करें।",
+      "ja": "このコピーは GitHub リリースからインストールされていないため、リリースをダウンロードしても上書きインストールできません。Haven を入手した場所から更新してください。",
+      "ko": "이 사본은 GitHub 릴리스에서 설치된 것이 아니므로 릴리스 다운로드로 대체할 수 없습니다. Haven을 설치한 곳에서 업데이트하세요.",
+      "pt": "Esta cópia não foi instalada a partir de uma versão do GitHub, então baixar a versão não pode substituí-la. Atualize por onde você instalou o Haven.",
+      "ru": "Эта копия установлена не из выпуска на GitHub, поэтому загрузка с GitHub её не заменит. Обновляйтесь там, где вы установили Haven.",
+      "zh": "这个副本不是从 GitHub 发行版安装的，发行版的下载无法覆盖安装它。请通过你安装 Haven 的渠道更新。"
      }
     },
     {

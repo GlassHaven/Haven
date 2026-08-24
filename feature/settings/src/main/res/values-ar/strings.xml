@@ -485,4 +485,14 @@
     <string name="settings_credential_reset_body">سيؤدي هذا إلى إنشاء مفتاح جديد لبيانات الاعتماد حتى يمكن حفظ كلمات المرور مرة أخرى.\n\nستحتاج إلى إعادة إدخال كل كلمات المرور والعبارات والأسرار المحفوظة في Haven. هي غير قابلة للقراءة أصلاً — فقد ضاع المفتاح الذي كان يحميها — لذا فهذا يستعيد التطبيق بدل أن يفقد شيئًا إضافيًا.</string>
     <string name="settings_credential_reset_confirm">إصلاح</string>
     <string name="settings_credential_reset_cancel">إلغاء</string>
+    <string name="settings_update_check_title">التحقق من التحديثات</string>
+    <string name="settings_update_check_subtitle">البحث عن إصدار أحدث عند بدء Haven، مرة واحدة يوميًا على الأكثر. مُعطَّل افتراضيًا.</string>
+    <string name="settings_update_check_now_title">تحقّق الآن</string>
+    <string name="settings_update_check_now_subtitle">اسأل GitHub عن أحدث إصدار</string>
+    <string name="settings_update_checking">جارٍ التحقق…</string>
+    <string name="settings_update_open_release">الإصدار %1$s متاح</string>
+    <string name="settings_update_check_available">اضغط لفتح صفحة الإصدار</string>
+    <string name="settings_update_check_up_to_date">مُحدَّث على %1$s</string>
+    <string name="settings_update_check_failed">فشل التحقق: %1$s</string>
+    <string name="settings_update_check_other_channel">لم تُثبَّت هذه النسخة من إصدار GitHub، لذا لا يمكن لتنزيل الإصدار أن يحل محلها. حدِّث من حيث ثبَّتَ Haven.</string>
 </resources>

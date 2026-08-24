@@ -322,4 +322,7 @@
         <item quantity="one">%1$d रिमोट</item>
         <item quantity="other">%1$d रिमोट</item>
     </plurals>
+    <string name="update_notification_channel">ऐप अपडेट</string>
+    <string name="update_notification_title">Haven %1$s उपलब्ध है</string>
+    <string name="update_notification_text">रिलीज़ पेज खोलने के लिए टैप करें।</string>
 </resources>

@@ -481,4 +481,14 @@
     <string name="settings_credential_reset_body">Dies erzeugt einen neuen Anmeldeschlüssel, damit Passwörter wieder gespeichert werden können.\n\nJedes bereits in Haven gespeicherte Passwort, jede Passphrase und jedes Geheimnis muss erneut eingegeben werden. Sie sind bereits unlesbar — der Schlüssel, der sie schützte, ist weg — dies stellt also die App wieder her, statt weiteres zu verlieren.</string>
     <string name="settings_credential_reset_confirm">Reparieren</string>
     <string name="settings_credential_reset_cancel">Abbrechen</string>
+    <string name="settings_update_check_title">Nach Updates suchen</string>
+    <string name="settings_update_check_subtitle">Beim Start von Haven nach einer neueren Version suchen, höchstens einmal täglich. Standardmäßig aus.</string>
+    <string name="settings_update_check_now_title">Jetzt prüfen</string>
+    <string name="settings_update_check_now_subtitle">GitHub nach der neuesten Version fragen</string>
+    <string name="settings_update_checking">Wird geprüft…</string>
+    <string name="settings_update_open_release">Version %1$s ist verfügbar</string>
+    <string name="settings_update_check_available">Zum Öffnen der Release-Seite tippen</string>
+    <string name="settings_update_check_up_to_date">Aktuell auf %1$s</string>
+    <string name="settings_update_check_failed">Prüfung fehlgeschlagen: %1$s</string>
+    <string name="settings_update_check_other_channel">Diese Kopie wurde nicht aus einem GitHub-Release installiert, daher kann ein Release-Download sie nicht ersetzen. Aktualisiere dort, wo du Haven installiert hast.</string>
 </resources>

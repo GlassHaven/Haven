@@ -30,6 +30,7 @@ import sh.haven.core.data.preferences.ToolbarItem
 import sh.haven.core.data.preferences.ToolbarLayout
 import sh.haven.core.data.preferences.UserPreferencesRepository
 import sh.haven.core.data.repository.ConnectionRepository
+import sh.haven.core.data.update.UpdateChecker
 import sh.haven.core.security.BiometricAuthenticator
 import javax.inject.Inject
 
@@ -47,6 +48,7 @@ class SettingsViewModel @Inject constructor(
     private val mcpStatusHolder: sh.haven.core.data.agent.McpStatusHolder,
     private val biometricGate: sh.haven.core.data.keystore.BiometricGate,
     private val agentUiCommandBus: sh.haven.core.data.agent.AgentUiCommandBus,
+    private val updateChecker: UpdateChecker,
 ) : ViewModel() {
     // --- Credential storage health + recovery (#579) ---
 
@@ -95,6 +97,50 @@ class SettingsViewModel @Inject constructor(
             CredentialEncryption.resetCredentialStorage(appContext)
             _credentialKeystore.value = CredentialEncryption.probe(appContext)
             Log.i(KEYSTORE_TAG, "credential storage reset; keystore now ${_credentialKeystore.value}")
+        }
+    }
+
+    // --- Opt-in update check (#578) ---
+
+    /**
+     * Which distribution the running copy was signed for. Decides whether the
+     * update-check row is offered at all: on an F-Droid or self-built copy the
+     * GitHub release cannot install over it, so there is nothing honest to
+     * offer and the row says so instead of pretending.
+     */
+    val updateChannel: UpdateChecker.Channel by lazy { updateChecker.channel() }
+
+    val updateCheckEnabled: StateFlow<Boolean> = preferencesRepository.updateCheckEnabled
+        .stateIn(viewModelScope, SharingStarted.Eagerly, false)
+
+    private val _updateCheckResult = MutableStateFlow<UpdateChecker.Result?>(null)
+
+    /** Last "check now" outcome, or null if none has been run this session. */
+    val updateCheckResult: StateFlow<UpdateChecker.Result?> = _updateCheckResult.asStateFlow()
+
+    private val _updateCheckRunning = MutableStateFlow(false)
+    val updateCheckRunning: StateFlow<Boolean> = _updateCheckRunning.asStateFlow()
+
+    fun setUpdateCheckEnabled(enabled: Boolean) {
+        viewModelScope.launch {
+            preferencesRepository.setUpdateCheckEnabled(enabled)
+        }
+    }
+
+    /**
+     * Check on the user's explicit request. Deliberately not gated on the
+     * preference — that switch governs the unattended launch check, and asking
+     * for an answer now is a different act from agreeing to be asked daily.
+     */
+    fun checkForUpdateNow() {
+        if (_updateCheckRunning.value) return
+        viewModelScope.launch {
+            _updateCheckRunning.value = true
+            try {
+                _updateCheckResult.value = updateChecker.check()
+            } finally {
+                _updateCheckRunning.value = false
+            }
         }
     }
 

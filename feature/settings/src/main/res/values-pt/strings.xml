@@ -481,4 +481,14 @@
     <string name="settings_credential_reset_body">Isso cria uma nova chave de credenciais para que as senhas possam ser salvas novamente.\n\nTodas as senhas, frases secretas e segredos já armazenados no Haven precisarão ser inseridos de novo. Eles já estão ilegíveis — a chave que os protegia se perdeu — então isso recupera o app em vez de perder mais alguma coisa.</string>
     <string name="settings_credential_reset_confirm">Reparar</string>
     <string name="settings_credential_reset_cancel">Cancelar</string>
+    <string name="settings_update_check_title">Procurar atualizações</string>
+    <string name="settings_update_check_subtitle">Procura uma versão mais recente ao iniciar o Haven, no máximo uma vez por dia. Desativado por padrão.</string>
+    <string name="settings_update_check_now_title">Procurar agora</string>
+    <string name="settings_update_check_now_subtitle">Consultar a versão mais recente no GitHub</string>
+    <string name="settings_update_checking">Verificando…</string>
+    <string name="settings_update_open_release">A versão %1$s está disponível</string>
+    <string name="settings_update_check_available">Toque para abrir a página da versão</string>
+    <string name="settings_update_check_up_to_date">Atualizado na %1$s</string>
+    <string name="settings_update_check_failed">Falha na verificação: %1$s</string>
+    <string name="settings_update_check_other_channel">Esta cópia não foi instalada a partir de uma versão do GitHub, então baixar a versão não pode substituí-la. Atualize por onde você instalou o Haven.</string>
 </resources>

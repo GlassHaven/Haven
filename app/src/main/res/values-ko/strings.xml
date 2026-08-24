@@ -328,4 +328,7 @@
     <plurals name="agent_summary_remotes">
         <item quantity="other">리모트 %1$d개</item>
     </plurals>
+    <string name="update_notification_channel">앱 업데이트</string>
+    <string name="update_notification_title">Haven %1$s 사용 가능</string>
+    <string name="update_notification_text">릴리스 페이지를 열려면 누르세요.</string>
 </resources>

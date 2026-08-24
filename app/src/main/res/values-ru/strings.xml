@@ -336,4 +336,7 @@
         <item quantity="many">%1$d удалённых хранилищ</item>
         <item quantity="other">%1$d удалённых хранилища</item>
     </plurals>
+    <string name="update_notification_channel">Обновления приложения</string>
+    <string name="update_notification_title">Доступна версия Haven %1$s</string>
+    <string name="update_notification_text">Нажмите, чтобы открыть страницу выпуска.</string>
 </resources>

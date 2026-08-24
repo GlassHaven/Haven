@@ -481,4 +481,14 @@
     <string name="settings_credential_reset_body">यह एक नई क्रेडेंशियल कुंजी बनाता है ताकि पासवर्ड फिर से सहेजे जा सकें।\n\nHaven में पहले से सहेजे गए सभी पासवर्ड, पासफ़्रेज़ और सीक्रेट दोबारा दर्ज करने होंगे। वे पहले से ही अपठनीय हैं — उनकी रक्षा करने वाली कुंजी जा चुकी है — इसलिए यह ऐप को बहाल करता है, कुछ और खोता नहीं।</string>
     <string name="settings_credential_reset_confirm">ठीक करें</string>
     <string name="settings_credential_reset_cancel">रद्द करें</string>
+    <string name="settings_update_check_title">अपडेट जाँचें</string>
+    <string name="settings_update_check_subtitle">Haven शुरू होने पर नया रिलीज़ खोजें, दिन में अधिकतम एक बार। डिफ़ॉल्ट रूप से बंद।</string>
+    <string name="settings_update_check_now_title">अभी जाँचें</string>
+    <string name="settings_update_check_now_subtitle">GitHub से नवीनतम रिलीज़ पूछें</string>
+    <string name="settings_update_checking">जाँच हो रही है…</string>
+    <string name="settings_update_open_release">संस्करण %1$s उपलब्ध है</string>
+    <string name="settings_update_check_available">रिलीज़ पेज खोलने के लिए टैप करें</string>
+    <string name="settings_update_check_up_to_date">%1$s पर अद्यतित</string>
+    <string name="settings_update_check_failed">जाँच विफल: %1$s</string>
+    <string name="settings_update_check_other_channel">यह प्रति GitHub रिलीज़ से इंस्टॉल नहीं हुई थी, इसलिए रिलीज़ डाउनलोड इसे बदल नहीं सकता। जहाँ से Haven इंस्टॉल किया था वहीं से अपडेट करें।</string>
 </resources>

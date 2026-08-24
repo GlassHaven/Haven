@@ -322,4 +322,7 @@
         <item quantity="one">%1$dটি রিমোট</item>
         <item quantity="other">%1$dটি রিমোট</item>
     </plurals>
+    <string name="update_notification_channel">অ্যাপ আপডেট</string>
+    <string name="update_notification_title">Haven %1$s পাওয়া যাচ্ছে</string>
+    <string name="update_notification_text">রিলিজ পেজ খুলতে ট্যাপ করুন।</string>
 </resources>

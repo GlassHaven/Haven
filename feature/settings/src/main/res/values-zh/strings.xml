@@ -479,4 +479,14 @@
     <string name="settings_credential_reset_body">这会创建新的凭据密钥,以便重新保存密码。\n\n已保存在 Haven 中的所有密码、口令和密钥都需要重新输入。它们已经无法读取(保护它们的密钥已丢失),因此这是在恢复应用,而不是又丢失了什么。</string>
     <string name="settings_credential_reset_confirm">修复</string>
     <string name="settings_credential_reset_cancel">取消</string>
+    <string name="settings_update_check_title">检查更新</string>
+    <string name="settings_update_check_subtitle">Haven 启动时查找新版本，每天最多一次。默认关闭。</string>
+    <string name="settings_update_check_now_title">立即检查</string>
+    <string name="settings_update_check_now_subtitle">向 GitHub 查询最新发行版</string>
+    <string name="settings_update_checking">正在检查…</string>
+    <string name="settings_update_open_release">有新版本 %1$s</string>
+    <string name="settings_update_check_available">点按打开发行版页面</string>
+    <string name="settings_update_check_up_to_date">已是最新版本 %1$s</string>
+    <string name="settings_update_check_failed">检查失败：%1$s</string>
+    <string name="settings_update_check_other_channel">这个副本不是从 GitHub 发行版安装的，发行版的下载无法覆盖安装它。请通过你安装 Haven 的渠道更新。</string>
 </resources>

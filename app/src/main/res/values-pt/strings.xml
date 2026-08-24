@@ -322,4 +322,7 @@
         <item quantity="one">%1$d remoto</item>
         <item quantity="other">%1$d remotos</item>
     </plurals>
+    <string name="update_notification_channel">Atualizações do aplicativo</string>
+    <string name="update_notification_title">Haven %1$s está disponível</string>
+    <string name="update_notification_text">Toque para abrir a página da versão.</string>
 </resources>

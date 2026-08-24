@@ -481,4 +481,14 @@
     <string name="settings_credential_reset_body">এটি একটি নতুন ক্রেডেনশিয়াল কী তৈরি করে যাতে পাসওয়ার্ড আবার সংরক্ষণ করা যায়।\n\nHaven-এ ইতিমধ্যে সংরক্ষিত সব পাসওয়ার্ড, পাসফ্রেজ ও সিক্রেট আবার লিখতে হবে। সেগুলি এমনিতেই অপঠনীয় — যে কী সেগুলি রক্ষা করত তা হারিয়ে গেছে — তাই এটি অ্যাপ পুনরুদ্ধার করে, বাড়তি কিছু হারায় না।</string>
     <string name="settings_credential_reset_confirm">মেরামত</string>
     <string name="settings_credential_reset_cancel">বাতিল</string>
+    <string name="settings_update_check_title">আপডেট দেখুন</string>
+    <string name="settings_update_check_subtitle">Haven চালু হলে নতুন রিলিজ খোঁজে, দিনে সর্বোচ্চ একবার। ডিফল্টে বন্ধ।</string>
+    <string name="settings_update_check_now_title">এখনই দেখুন</string>
+    <string name="settings_update_check_now_subtitle">GitHub-এ সর্বশেষ রিলিজ জিজ্ঞাসা করুন</string>
+    <string name="settings_update_checking">দেখা হচ্ছে…</string>
+    <string name="settings_update_open_release">সংস্করণ %1$s পাওয়া যাচ্ছে</string>
+    <string name="settings_update_check_available">রিলিজ পেজ খুলতে ট্যাপ করুন</string>
+    <string name="settings_update_check_up_to_date">%1$s-এ হালনাগাদ</string>
+    <string name="settings_update_check_failed">যাচাই ব্যর্থ: %1$s</string>
+    <string name="settings_update_check_other_channel">এই কপিটি GitHub রিলিজ থেকে ইনস্টল হয়নি, তাই রিলিজ ডাউনলোড এটি প্রতিস্থাপন করতে পারবে না। যেখান থেকে Haven ইনস্টল করেছিলেন সেখান থেকেই আপডেট করুন।</string>
 </resources>

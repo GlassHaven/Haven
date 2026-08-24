@@ -164,6 +164,16 @@
     <string name="settings_about_title">About Haven</string>
     <string name="settings_support_title">Support Haven</string>
     <string name="settings_support_subtitle">Buy the developer a coffee</string>
+    <string name="settings_update_check_title">Check for updates</string>
+    <string name="settings_update_check_subtitle">Look for a newer release when Haven starts, at most once a day. Off by default.</string>
+    <string name="settings_update_check_now_title">Check now</string>
+    <string name="settings_update_check_now_subtitle">Ask GitHub for the newest release</string>
+    <string name="settings_update_checking">Checking\u2026</string>
+    <string name="settings_update_open_release">Version %1$s is available</string>
+    <string name="settings_update_check_available">Tap to open the release page</string>
+    <string name="settings_update_check_up_to_date">Up to date at %1$s</string>
+    <string name="settings_update_check_failed">Check failed: %1$s</string>
+    <string name="settings_update_check_other_channel">This copy was not installed from a GitHub release, so a release download cannot replace it. Update through wherever you installed Haven.</string>
     <string name="settings_version_unknown">unknown</string>
 
     <!-- Wayland shell dialog -->

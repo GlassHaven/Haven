@@ -338,4 +338,7 @@
         <item quantity="many">%1$d موقعًا بعيدًا</item>
         <item quantity="other">%1$d موقع بعيد</item>
     </plurals>
+    <string name="update_notification_channel">تحديثات التطبيق</string>
+    <string name="update_notification_title">Haven %1$s متاح</string>
+    <string name="update_notification_text">اضغط لفتح صفحة الإصدار.</string>
 </resources>

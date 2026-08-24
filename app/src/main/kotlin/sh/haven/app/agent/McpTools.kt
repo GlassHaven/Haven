@@ -5420,8 +5420,13 @@ internal class McpTools(
                 .setPriority(NotificationCompat.PRIORITY_HIGH)
                 .setAutoCancel(true)
                 .build()
-            NotificationManagerCompat.from(context)
-                .notify(PAIRING_STEPS_NOTIFICATION_ID, notification)
+            try {
+                NotificationManagerCompat.from(context)
+                    .notify(PAIRING_STEPS_NOTIFICATION_ID, notification)
+            } catch (e: SecurityException) {
+                // POST_NOTIFICATIONS revoked between the channel setup and here.
+                android.util.Log.d("McpTools", "pairing steps not posted: ${e.message}")
+            }
         }.onFailure { android.util.Log.d("McpTools", "pairing steps not posted: ${it.message}") }
     }
 

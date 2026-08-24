@@ -483,4 +483,14 @@
     <string name="settings_credential_reset_body">Будет создан новый ключ, чтобы пароли снова можно было сохранять.\n\nВсе пароли, парольные фразы и секреты, уже сохранённые в Haven, придётся ввести заново. Они и так нечитаемы — защищавший их ключ утрачен, — поэтому это восстанавливает приложение, а не теряет что-то ещё.</string>
     <string name="settings_credential_reset_confirm">Восстановить</string>
     <string name="settings_credential_reset_cancel">Отмена</string>
+    <string name="settings_update_check_title">Проверять обновления</string>
+    <string name="settings_update_check_subtitle">Искать новый выпуск при запуске Haven, не чаще раза в сутки. По умолчанию выключено.</string>
+    <string name="settings_update_check_now_title">Проверить сейчас</string>
+    <string name="settings_update_check_now_subtitle">Запросить у GitHub последний выпуск</string>
+    <string name="settings_update_checking">Проверка…</string>
+    <string name="settings_update_open_release">Доступна версия %1$s</string>
+    <string name="settings_update_check_available">Нажмите, чтобы открыть страницу выпуска</string>
+    <string name="settings_update_check_up_to_date">Установлена последняя версия %1$s</string>
+    <string name="settings_update_check_failed">Не удалось проверить: %1$s</string>
+    <string name="settings_update_check_other_channel">Эта копия установлена не из выпуска на GitHub, поэтому загрузка с GitHub её не заменит. Обновляйтесь там, где вы установили Haven.</string>
 </resources>

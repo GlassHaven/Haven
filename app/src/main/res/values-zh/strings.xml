@@ -318,4 +318,7 @@
     <plurals name="agent_summary_remotes">
         <item quantity="other">%1$d 个远程存储</item>
     </plurals>
+    <string name="update_notification_channel">应用更新</string>
+    <string name="update_notification_title">Haven %1$s 可用</string>
+    <string name="update_notification_text">点按打开发行版页面。</string>
 </resources>

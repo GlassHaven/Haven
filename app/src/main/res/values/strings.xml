@@ -354,4 +354,7 @@
         <item quantity="one">%1$d remote</item>
         <item quantity="other">%1$d remotes</item>
     </plurals>
+    <string name="update_notification_channel">App updates</string>
+    <string name="update_notification_title">Haven %1$s is available</string>
+    <string name="update_notification_text">Tap to open the release page.</string>
 </resources>

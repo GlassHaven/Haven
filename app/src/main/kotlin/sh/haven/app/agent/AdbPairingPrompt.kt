@@ -153,7 +153,12 @@ internal class AdbPairingPrompt(private val context: Context) {
                 .setTimeoutAfter(ACK_TIMEOUT_MS)
                 .setAutoCancel(true)
                 .build()
-            NotificationManagerCompat.from(context).notify(NOTIFICATION_ID, done)
+            try {
+                NotificationManagerCompat.from(context).notify(NOTIFICATION_ID, done)
+            } catch (e: SecurityException) {
+                // POST_NOTIFICATIONS revoked since the prompt was posted.
+                Log.d(TAG, "ack not posted: ${e.message}")
+            }
         }.onFailure { Log.d(TAG, "ack not posted: ${it.message}") }
     }
 

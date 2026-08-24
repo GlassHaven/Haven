@@ -480,4 +480,14 @@
     <string name="settings_credential_reset_body">新しい認証情報キーを作成し、再びパスワードを保存できるようにします。\n\nHaven に保存済みのパスワード、パスフレーズ、シークレットはすべて入力し直す必要があります。それらは既に読み取れません(保護していたキーが失われたため)。したがってこれは、さらに何かを失うのではなくアプリを復旧する操作です。</string>
     <string name="settings_credential_reset_confirm">修復</string>
     <string name="settings_credential_reset_cancel">キャンセル</string>
+    <string name="settings_update_check_title">アップデートを確認</string>
+    <string name="settings_update_check_subtitle">Haven の起動時に新しいリリースを探します（1 日 1 回まで）。既定ではオフ。</string>
+    <string name="settings_update_check_now_title">今すぐ確認</string>
+    <string name="settings_update_check_now_subtitle">最新のリリースを GitHub に問い合わせます</string>
+    <string name="settings_update_checking">確認中…</string>
+    <string name="settings_update_open_release">バージョン %1$s が利用できます</string>
+    <string name="settings_update_check_available">タップしてリリースページを開く</string>
+    <string name="settings_update_check_up_to_date">最新です（%1$s）</string>
+    <string name="settings_update_check_failed">確認に失敗しました: %1$s</string>
+    <string name="settings_update_check_other_channel">このコピーは GitHub リリースからインストールされていないため、リリースをダウンロードしても上書きインストールできません。Haven を入手した場所から更新してください。</string>
 </resources>

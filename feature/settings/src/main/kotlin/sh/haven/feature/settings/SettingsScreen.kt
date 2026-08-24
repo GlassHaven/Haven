@@ -78,6 +78,9 @@ import androidx.compose.material.icons.filled.Tune
 import androidx.compose.material.icons.filled.Terminal
 import androidx.compose.material.icons.filled.FontDownload
 import androidx.compose.material.icons.filled.RestartAlt
+import androidx.compose.material.icons.filled.Refresh
+import androidx.compose.material.icons.filled.Download
+import androidx.compose.material.icons.filled.SystemUpdate
 import androidx.compose.material.icons.filled.TextFields
 import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.Checkbox
@@ -155,6 +158,7 @@ import sh.haven.core.data.preferences.ToolbarItem
 import sh.haven.core.data.preferences.ToolbarKey
 import sh.haven.core.data.preferences.ToolbarLayout
 import sh.haven.core.data.preferences.UserPreferencesRepository
+import sh.haven.core.data.update.UpdateChecker
 import kotlinx.coroutines.launch
 
 @OptIn(ExperimentalMaterial3Api::class)
@@ -170,6 +174,9 @@ fun SettingsScreen(
     // when the device's Keystore state does, which is not a per-frame event.
     LaunchedEffect(Unit) { viewModel.refreshCredentialKeystore() }
     val screenSecurity by viewModel.screenSecurity.collectAsState()
+    val updateCheckEnabled by viewModel.updateCheckEnabled.collectAsState()
+    val updateCheckResult by viewModel.updateCheckResult.collectAsState()
+    val updateCheckRunning by viewModel.updateCheckRunning.collectAsState()
     val showLinuxVmCard by viewModel.showLinuxVmCard.collectAsState()
     val showDesktopsCard by viewModel.showDesktopsCard.collectAsState()
     val lockTimeout by viewModel.lockTimeout.collectAsState()
@@ -1369,6 +1376,58 @@ fun SettingsScreen(
             subtitle = "v${packageInfo.versionName}",
             onClick = { showAboutDialog = true },
         )
+        // #578. Only a copy signed with the GitHub-release key can install a
+        // GitHub release over itself, so on any other channel the honest thing
+        // is to say where updates come from rather than offer a download that
+        // Android will refuse.
+        if (viewModel.updateChannel == UpdateChecker.Channel.GITHUB_RELEASE) {
+            SettingsToggleItem(
+                icon = Icons.Filled.SystemUpdate,
+                title = stringResource(R.string.settings_update_check_title),
+                subtitle = stringResource(R.string.settings_update_check_subtitle),
+                checked = updateCheckEnabled,
+                onCheckedChange = viewModel::setUpdateCheckEnabled,
+            )
+            val updateSubtitle = when (val r = updateCheckResult) {
+                null -> stringResource(R.string.settings_update_check_now_subtitle)
+                is UpdateChecker.Result.Available ->
+                    stringResource(R.string.settings_update_check_available)
+                is UpdateChecker.Result.UpToDate ->
+                    stringResource(R.string.settings_update_check_up_to_date, r.installedVersion)
+                is UpdateChecker.Result.Failed ->
+                    stringResource(R.string.settings_update_check_failed, r.message)
+                UpdateChecker.Result.WrongChannel ->
+                    stringResource(R.string.settings_update_check_other_channel)
+            }
+            val available = updateCheckResult as? UpdateChecker.Result.Available
+            SettingsItem(
+                icon = if (available != null) Icons.Filled.Download else Icons.Filled.Refresh,
+                title = if (updateCheckRunning) {
+                    stringResource(R.string.settings_update_checking)
+                } else if (available != null) {
+                    stringResource(R.string.settings_update_open_release, available.version)
+                } else {
+                    stringResource(R.string.settings_update_check_now_title)
+                },
+                subtitle = updateSubtitle,
+                onClick = {
+                    if (available != null) {
+                        context.startActivity(
+                            Intent(Intent.ACTION_VIEW, Uri.parse(available.releaseUrl)),
+                        )
+                    } else if (!updateCheckRunning) {
+                        viewModel.checkForUpdateNow()
+                    }
+                },
+            )
+        } else {
+            SettingsItem(
+                icon = Icons.Filled.SystemUpdate,
+                title = stringResource(R.string.settings_update_check_title),
+                subtitle = stringResource(R.string.settings_update_check_other_channel),
+                onClick = {},
+            )
+        }
         SettingsItem(
             icon = Icons.Filled.Favorite,
             title = stringResource(R.string.settings_support_title),

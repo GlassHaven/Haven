@@ -138,6 +138,14 @@ class UserPreferencesRepository @Inject constructor(
     // desktop launch scripts source /etc/profile.d/pulse.sh so apps get
     // PULSE_SERVER. Off (default) = no audio, no behaviour change.
     private val audioBridgeEnabledKey = booleanPreferencesKey("audio_bridge_enabled")
+    // Opt-in update check (#578). Off by default: Haven is used by people who
+    // care what their software talks to, and a request to a code-hosting site
+    // on every launch is not a thing to start doing to everyone unasked. Only
+    // ever consulted when the running copy was signed with the GitHub-release
+    // key — see UpdateChecker.
+    private val updateCheckEnabledKey = booleanPreferencesKey("update_check_enabled")
+    private val updateCheckLastRunKey = longPreferencesKey("update_check_last_run_ms")
+    private val updateCheckLastNotifiedKey = stringPreferencesKey("update_check_last_notified_version")
     private val bandwidthAutoSuggestKey = booleanPreferencesKey("bandwidth_auto_suggest")
     private val lastMediaServerPortKey = intPreferencesKey("last_media_server_port")
     private val mcpAgentEndpointEnabledKey = booleanPreferencesKey("mcp_agent_endpoint_enabled")
@@ -776,6 +784,42 @@ class UserPreferencesRepository @Inject constructor(
     suspend fun setAudioBridgeEnabled(enabled: Boolean) {
         dataStore.edit { prefs ->
             prefs[audioBridgeEnabledKey] = enabled
+        }
+    }
+
+    /** Opt-in launch-time update check (#578). Default off. */
+    val updateCheckEnabled: Flow<Boolean> = dataStore.data.map { prefs ->
+        prefs[updateCheckEnabledKey] ?: false
+    }
+
+    suspend fun setUpdateCheckEnabled(enabled: Boolean) {
+        dataStore.edit { prefs ->
+            prefs[updateCheckEnabledKey] = enabled
+        }
+    }
+
+    /** Wall-clock ms of the last launch-time check; 0 = never. Throttle input. */
+    val updateCheckLastRunMs: Flow<Long> = dataStore.data.map { prefs ->
+        prefs[updateCheckLastRunKey] ?: 0L
+    }
+
+    suspend fun setUpdateCheckLastRunMs(atMs: Long) {
+        dataStore.edit { prefs ->
+            prefs[updateCheckLastRunKey] = atMs
+        }
+    }
+
+    /**
+     * Version already notified about, so a user who chose not to update now
+     * is not told again on every launch. Empty = nothing notified yet.
+     */
+    val updateCheckLastNotifiedVersion: Flow<String> = dataStore.data.map { prefs ->
+        prefs[updateCheckLastNotifiedKey] ?: ""
+    }
+
+    suspend fun setUpdateCheckLastNotifiedVersion(version: String) {
+        dataStore.edit { prefs ->
+            prefs[updateCheckLastNotifiedKey] = version
         }
     }
 

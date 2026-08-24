@@ -318,4 +318,7 @@
     <plurals name="agent_summary_remotes">
         <item quantity="other">%1$d 件のリモート</item>
     </plurals>
+    <string name="update_notification_channel">アプリの更新</string>
+    <string name="update_notification_title">Haven %1$s が利用できます</string>
+    <string name="update_notification_text">タップしてリリースページを開きます。</string>
 </resources>

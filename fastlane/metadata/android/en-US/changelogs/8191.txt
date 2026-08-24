@@ -1,0 +1,1 @@
+- Your Reticulum identity now survives restarting Haven, so an identity whitelist keeps working (#585).

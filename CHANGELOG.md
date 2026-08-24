@@ -5,6 +5,18 @@ the corresponding GitHub Release; a release can't ship without its section
 (enforced by `scripts/check-changelog.sh` in CI). The GitHub "Full Changelog"
 compare link is appended automatically — don't add it here.
 
+## v5.87.56
+
+- Your Reticulum identity now survives restarting Haven, so an identity whitelist keeps working (#585).
+
+- **An identity that was never saved** (#585). Haven built the Reticulum client identity fresh every time it started and never wrote it down, so the hash changed whenever the app was force-closed. Anyone who had whitelisted that identity on the far side found access stopped working for no visible reason, and there was nothing they could do about it from this side.
+
+  A different Reticulum identity was already being saved correctly, which is likely why this looked erratic rather than simply broken — the saved one is not the one that identifies you to an rnsh server.
+
+  The identity is now written to storage and read back on the next start. It is saved by writing to a temporary file and renaming it into place, because a half-written key reads back as unusable and would have produced a fresh identity anyway — the same problem returning occasionally and looking like something unrelated. If the stored file ever cannot be read, Haven now says so rather than quietly replacing it.
+
+  Loading an identity from a file you supply, so it can be moved between devices, is not part of this and is still open.
+
 ## v5.87.55
 
 - SPICE servers that ask for a password can now be connected to at all (#584).

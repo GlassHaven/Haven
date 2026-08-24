@@ -1,0 +1,1 @@
+- Haven's touch log now says *why* mouse input is off in a TUI app, rather than only that it is (#580).

@@ -5,6 +5,22 @@ the corresponding GitHub Release; a release can't ship without its section
 (enforced by `scripts/check-changelog.sh` in CI). The GitHub "Full Changelog"
 compare link is appended automatically — don't add it here.
 
+## v5.87.53
+
+- Haven's touch log now says *why* mouse input is off in a TUI app, rather than only that it is (#580).
+
+- **A diagnostic that could not tell two problems apart** (#580). When a terminal app asks for the mouse and taps do not reach it, Haven's gesture log reported `mouseMode=false`. That single value was really two: whether the app had asked for the mouse, and whether "Mouse input in TUI apps" is switched on in Settings. Either being off produced the same line, and the two need completely different fixes.
+
+  A reporter found this the hard way. They wrote a minimal terminal program that turns mouse tracking on, proved with `adb` that every tap was reaching Haven, and still saw `mouseMode=false` with no mouse event arriving. That work ruled out one cause and could say nothing about the other, which is the position a diagnostic should never leave someone in.
+
+  The two parts are now logged separately, on the same tag, so an existing capture picks it up:
+
+  ```
+  HavenGesture: mouseModeState tracker=true pref=false effective=false
+  ```
+
+🔍 **Nothing about mouse handling itself changed here.** This release makes the next report answerable in one step instead of two. The underlying question on #580 is still open.
+
 ## v5.87.52
 
 - The update check is now drivable by an AI agent: a `check_for_update` tool and the `update_check_enabled` preference (#578).

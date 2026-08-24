@@ -1,0 +1,1 @@
+- SPICE sessions now show the whole guest screen instead of a 1024x768 crop of its top-left corner (#572).

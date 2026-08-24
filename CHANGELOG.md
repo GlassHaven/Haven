@@ -5,6 +5,16 @@ the corresponding GitHub Release; a release can't ship without its section
 (enforced by `scripts/check-changelog.sh` in CI). The GitHub "Full Changelog"
 compare link is appended automatically — don't add it here.
 
+## v5.87.54
+
+- SPICE sessions now show the whole guest screen instead of a 1024x768 crop of its top-left corner (#572).
+
+- **A resolution Haven invented for itself** (#572). Every SPICE session was cut down to a 1024x768 box in the upper-left of the guest, whatever resolution the guest was really running. Haven's SPICE client creates a placeholder 1024x768 screen when the display connection opens and waits for the server to announce the real one. That announcement was arriving on every connection and being thrown away: it is message 314 on the wire, Haven had it recorded as 318, and the wrong number put it inside the range reserved for drawing commands, where it was quietly discarded. The placeholder then stood for the whole session, and because the painting code trims to the screen it has been given, everything outside the box was dropped before it could be displayed. Reported against KVM guests at 1920x1080; it would affect any guest larger than 1024x768.
+
+  Checked against a real server rather than reasoned about: a QEMU guest whose own screen capture measures 720x400 was reported by Haven as 1024x768 before this change and 720x400 after.
+
+  This also means the screen size Haven used for pointer arithmetic was fiction, which is where the pointer pinning at y=767 on an 800x600 guest came from — 767 is the edge of the placeholder, not of anyone's desktop. The separate problem of relative mouse movement stalling on that issue is not fixed here.
+
 ## v5.87.53
 
 - Haven's touch log now says *why* mouse input is off in a TUI app, rather than only that it is (#580).

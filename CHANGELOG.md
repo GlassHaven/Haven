@@ -5,6 +5,18 @@ the corresponding GitHub Release; a release can't ship without its section
 (enforced by `scripts/check-changelog.sh` in CI). The GitHub "Full Changelog"
 compare link is appended automatically — don't add it here.
 
+## v5.87.57
+
+- Vietnamese and other composing keyboards no longer duplicate characters in the terminal (#587).
+
+- **Two deletes arrived, one was thrown away** (#587, contributed by @binhdnguyen). Typing Vietnamese with Gboard over SSH produced doubled characters — `độc lập` came out as `đôộc lâập`. Gboard composes by replacing what you already typed, so it asked for two characters to be deleted and then sent the replacement. Haven generated both deletes correctly, and then discarded one of them.
+
+  The cause was a workaround for a different problem. Android keyboards often report the same keystroke twice, so Haven collapsed any pair of identical bytes arriving together into one. That rule could not tell a keyboard stuttering from a keyboard genuinely asking for two deletions, so it removed one character instead of two and the old text was left behind for the replacement to pile onto.
+
+  The workaround now applies only to ordinary printable characters. Repeated control input — delete, tab, return, escape, Ctrl-C — is passed through untouched.
+
+  Found and fixed by @binhdnguyen, who traced it byte by byte through the input path after the keyboard layer had already been cleared of suspicion.
+
 ## v5.87.56
 
 - Your Reticulum identity now survives restarting Haven, so an identity whitelist keeps working (#585).

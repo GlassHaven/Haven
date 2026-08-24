@@ -1,0 +1,1 @@
+- Vietnamese and other composing keyboards no longer duplicate characters in the terminal (#587).

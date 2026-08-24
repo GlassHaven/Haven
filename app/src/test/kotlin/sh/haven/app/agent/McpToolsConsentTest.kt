@@ -540,7 +540,7 @@ class McpToolsConsentTest {
                 listOf("present_", "haven_ui", "raise_notification", "self_message", "send_to_agent", "await_turn", "read_last_turn")),
             Section("agent-endpoint", "Agent endpoint, device & diagnostics", 11,
                 "Pairing, standing policies, app info/update, preferences, and device diagnostics.",
-                listOf("standing_polic", "pair", "consent", "install_apk", "restart_app", "app_info", "preference", "developer_settings", "logcat", "native_crash", "process_exit", "notification")),
+                listOf("standing_polic", "pair", "consent", "install_apk", "restart_app", "app_info", "check_for_update", "preference", "developer_settings", "logcat", "native_crash", "process_exit", "notification")),
         )
         val byPriority = sections.sortedBy { it.priority }
         fun sectionOf(name: String): Section? =

@@ -116,9 +116,18 @@ class NativeReticulumTransport @Inject constructor() : ReticulumTransport {
             // not reach anything, so every later connect returned early and
             // the interface count stayed at zero for the life of the process
             // (#588).
-            check(Reticulum.getInstance().isConnectedToSharedInstance) {
-                "No Reticulum shared instance answered on port $port. " +
-                    "Start Sideband or another shared instance, or use a gateway host instead."
+            if (!Reticulum.getInstance().isConnectedToSharedInstance) {
+                // Reticulum.start() latches on an AtomicBoolean and returns the
+                // existing instance for every later call, so a failed attempt
+                // would otherwise poison the process: starting the shared
+                // instance and trying again gets the same dead instance back
+                // and can never succeed until the app is force-stopped.
+                // Observed on-device before this line existed (#588).
+                runCatching { Reticulum.stop() }
+                throw IllegalStateException(
+                    "No Reticulum shared instance answered on port $port. " +
+                        "Start Sideband or another shared instance, or use a gateway host instead.",
+                )
             }
         } else {
             // Direct TCP gateway mode

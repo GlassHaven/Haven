@@ -5,6 +5,16 @@ the corresponding GitHub Release; a release can't ship without its section
 (enforced by `scripts/check-changelog.sh` in CI). The GitHub "Full Changelog"
 compare link is appended automatically — don't add it here.
 
+## v5.87.50
+
+- Saving a password after connecting can no longer cancel the connection. If the password cannot be stored, Haven says so and keeps the session (#582).
+
+- **A connection that worked no longer reports failure because a password could not be saved** (#582). Haven offers to remember a password after the server has already accepted it. When storing it failed, the error travelled back through the connect and took the session with it: you were told the connection failed, no terminal appeared, and the server was left holding a session it had already logged as open. Haven now keeps the connection and tells you the password was not saved.
+
+  It was found by a reporter whose device keystore had lost its key, but that was only how they reached it. Storing a credential encrypts it, and any failure at all did this.
+
+🔑 **The first word of the new message is the point.** It reads "Connected, but the password could not be saved on this device" — because the previous behaviour taught people that this situation means the connection died, when in fact it had already succeeded.
+
 ## v5.87.49
 
 - Copying a selection that was dragged down and to the left no longer copies more text than was highlighted.

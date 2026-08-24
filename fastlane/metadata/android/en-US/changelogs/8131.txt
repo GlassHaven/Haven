@@ -1,0 +1,1 @@
+- Saving a password after connecting can no longer cancel the connection. If the password cannot be stored, Haven says so and keeps the session (#582).

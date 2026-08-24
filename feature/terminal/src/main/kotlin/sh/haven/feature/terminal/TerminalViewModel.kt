@@ -169,18 +169,42 @@ internal class EmulatorWriteBuffer(
 }
 
 /**
- * Coalesces rapid single-byte inputs into a batch, then deduplicates only
- * the exact IME double-fire pattern (buffer == [X, X]).
+ * Applies the historical IME double-fire workaround to a batch of
+ * single-byte terminal input.
  *
- * Android IMEs often fire both commitText and sendKeyEvent for the same
+ * Only duplicate printable ASCII bytes are eligible for deduplication.
+ * Control bytes must be preserved because repeated control characters
+ * can be intentional terminal input. In particular, Vietnamese Gboard
+ * replacement can legitimately emit two consecutive DEL (0x7F) bytes.
+ */
+internal fun normalizeCoalescedInput(buffer: List<Byte>): ByteArray {
+    val isImeDedupCandidate =
+        buffer.size == 2 &&
+            buffer[0] == buffer[1] &&
+            (buffer[0].toInt() and 0xFF) in 0x20..0x7E
+
+    return if (isImeDedupCandidate) {
+        byteArrayOf(buffer[0])
+    } else {
+        buffer.toByteArray()
+    }
+}
+
+/**
+ * Coalesces rapid single-byte inputs into a batch and applies the historical
+ * IME double-fire workaround to exactly two identical printable ASCII bytes.
+ *
+ * Android IMEs may fire both commitText and sendKeyEvent for the same
  * keystroke, causing onKeyboardInput to be called twice with the same byte.
  * Both calls happen within a single Handler message, so a posted Runnable
  * flushes after all input from the current message is processed.
  *
- * The IME double-fire signature: exactly 2 identical bytes in the buffer.
- * Paste "aa" also matches this, but that's a rare edge case compared to
- * the constant double-fire on every keystroke. Longer paste sequences
- * (e.g., "aab", "43339") are preserved correctly.
+ * Repeated control bytes are intentionally preserved. They can represent
+ * legitimate terminal input; for example, Vietnamese Gboard replacement may
+ * emit two consecutive DEL (0x7F) bytes before sending replacement text.
+ *
+ * Paste "aa" still matches the printable-ASCII heuristic, while longer input
+ * sequences such as "aab" and "43339" are preserved.
  *
  * Multi-byte inputs (toolbar, escape sequences) bypass coalescing.
  */
@@ -214,12 +238,7 @@ private class InputCoalescer(private val sink: (ByteArray) -> Unit) {
         val bytes: ByteArray
         synchronized(buffer) {
             if (buffer.isEmpty()) return
-            // IME double-fire signature: exactly 2 identical bytes
-            if (buffer.size == 2 && buffer[0] == buffer[1]) {
-                bytes = byteArrayOf(buffer[0])
-            } else {
-                bytes = buffer.toByteArray()
-            }
+            bytes = normalizeCoalescedInput(buffer)
             buffer.clear()
         }
         sink(bytes)

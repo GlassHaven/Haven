@@ -1367,6 +1367,12 @@ fun TerminalScreen(
                     // cannot confirm the other. Same "HavenGesture" tag on purpose,
                     // so `adb logcat -s HavenGesture` picks it up alongside the
                     // gesture lines with no second capture to ask for.
+                    // Read in composable scope, not inside the effect: resolving
+                    // it from LocalContext at fire time is not configuration-aware
+                    // and lint rejects it (LocalContextGetResourceValueCall).
+                    val mouseDisabledHint =
+                        stringResource(R.string.terminal_mouse_requested_but_disabled)
+
                     LaunchedEffect(activeTab, isMouseMode, mouseInputEnabled) {
                         android.util.Log.i(
                             "HavenGesture",
@@ -1389,7 +1395,7 @@ fun TerminalScreen(
                             mouseHintShownThisSession = true
                             android.widget.Toast.makeText(
                                 context,
-                                context.getString(R.string.terminal_mouse_requested_but_disabled),
+                                mouseDisabledHint,
                                 android.widget.Toast.LENGTH_LONG,
                             ).show()
                         }

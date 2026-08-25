@@ -5,6 +5,22 @@ the corresponding GitHub Release; a release can't ship without its section
 (enforced by `scripts/check-changelog.sh` in CI). The GitHub "Full Changelog"
 compare link is appended automatically — don't add it here.
 
+## v5.87.61
+
+- RDP sessions that use H.264 video, which is every KRDP session, no longer lose about 80ms per frame to moving the decoded frame between the decoder and the renderer (#466, reported by @ysalmon).
+
+- **The decoded frame was being handed back the expensive way** (#466, reported by @ysalmon). Haven decodes H.264 with the phone's hardware decoder and then has to get the picture from the Android side to the Rust side that draws it. It did that by returning the frame as a buffer for the bridge between the two languages to carry across. That crossing cost about 47ms for a single 1080p frame.
+
+  It is not the copying. The same 3MB copied inside Rust takes 0.06ms, and every individual step of the bridge's own conversion runs at tens of gigabytes per second. The cost is in the crossing itself, it is proportional to the number of bytes, and it works out at about 62 MB/s — roughly 725 times slower than moving the same bytes any other way.
+
+  The decoder now writes the frame straight into the buffer the renderer already owns, so nothing is carried across. Same picture, same decoder, same packing code and the same tests over it; only the handoff changed.
+
+  Measured with a stand-in decoder that does no decoding at all, so the number is the crossing and nothing else: **47.4ms to 0.30ms for a 1080p frame.** There is a rig for this in the repository, because the measurement needs no RDP server, no H.264 and no phone, and the next person to touch this boundary should be able to check it in a minute.
+
+  What this does not fix, from the same reporter's measurements: the hardware decode itself at 9-25ms per frame, and packing the decoder's output at 6-29ms. Those remain, and the second one is now the largest thing left.
+
+  Not verified end to end on a device. The only H.264 server available here needs a Wayland session that this machine cannot give it, so the boundary is measured directly and the pixel path is covered by unit tests rather than by a real KRDP session. The reporter has captured logs through six releases; this one changes what those logs should say.
+
 ## v5.87.60
 
 - A Reticulum session one hop behind a shared instance now completes its handshake (#588, reported by @Slayerx96).

@@ -1,0 +1,1 @@
+- RDP sessions that use H.264 video, which is every KRDP session, no longer lose about 80ms per frame to moving the decoded frame between the decoder and the renderer (#466, reported by @ysalmon).

@@ -393,6 +393,17 @@ fun ConnectionsScreen(
 
     // Request POST_NOTIFICATIONS permission on Android 13+ so the foreground
     // service notification is visible and "Disconnect All" action works.
+    val reticulumIdentityHash by viewModel.reticulumIdentityHash.collectAsState()
+
+    // #585: the identity a server whitelists is a private key, so it can only
+    // arrive as a file. Any MIME — Reticulum identity files have no registered
+    // type and pickers hide what they cannot name.
+    val reticulumIdentityPicker = rememberLauncherForActivityResult(
+        ActivityResultContracts.OpenDocument(),
+    ) { uri -> uri?.let { viewModel.importReticulumIdentity(it) } }
+
+    LaunchedEffect(Unit) { viewModel.refreshReticulumIdentity() }
+
     val permissionLauncher = rememberLauncherForActivityResult(
         ActivityResultContracts.RequestPermission(),
     ) { /* granted or denied — either way, foreground service still works */ }
@@ -518,6 +529,8 @@ fun ConnectionsScreen(
             subnetScanning = subnetScanning,
             smbSubnetScanning = smbSubnetScanning,
             reticulumScanning = reticulumScanning,
+            reticulumIdentityHash = reticulumIdentityHash,
+            onImportReticulumIdentity = { reticulumIdentityPicker.launch(arrayOf("*/*")) },
             onScanSubnet = { viewModel.scanSubnet() },
             onScanSubnetSmb = { viewModel.scanSubnetSmb() },
             jumpScanning = jumpScanning,
@@ -696,6 +709,8 @@ fun ConnectionsScreen(
             subnetScanning = subnetScanning,
             smbSubnetScanning = smbSubnetScanning,
             reticulumScanning = reticulumScanning,
+            reticulumIdentityHash = reticulumIdentityHash,
+            onImportReticulumIdentity = { reticulumIdentityPicker.launch(arrayOf("*/*")) },
             onScanSubnet = { viewModel.scanSubnet() },
             onScanSubnetSmb = { viewModel.scanSubnetSmb() },
             jumpScanning = jumpScanning,

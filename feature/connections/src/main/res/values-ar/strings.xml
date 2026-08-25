@@ -576,4 +576,13 @@
     <string name="connections_ssh_engine_jsch_desc">المحرك المُجرَّب. جميع الميزات.</string>
     <string name="connections_ssh_engine_sshlib_label">sshlib (تجريبي)</string>
     <string name="connections_ssh_engine_sshlib_desc">محرك Kotlin: الطرفية وSFTP وإعادة توجيه المنافذ على اتصال واحد. يتطلب اتصالًا مباشرًا — دون مضيف وسيط أو وكيل أو مفتاح أجهزة أو شهادة أو تسجيل دخول متعدد العوامل.</string>
+    <string name="connections_identity_label">هوية هذا الجهاز</string>
+    <string name="connections_identity_none">لا توجد بعد — سيتم إنشاؤها عند أول اتصال</string>
+    <string name="connections_identity_help">مشتركة بين جميع اتصالات Reticulum. الخادم الذي يسمح لك يعتمد على هذه البصمة.</string>
+    <string name="connections_identity_import">استيراد ملف الهوية…</string>
+    <string name="connections_identity_imported">تم استيراد الهوية: %1$s</string>
+    <string name="connections_identity_imported_restart">تم استيراد الهوية: %1$s. أعد تشغيل Haven لكي تستخدمها الاتصالات.</string>
+    <string name="connections_identity_not_an_identity">هذا الملف ليس هوية Reticulum. لم يتم تغيير أي شيء.</string>
+    <string name="connections_identity_install_failed">تعذّر تثبيت الهوية: %1$s. الهوية السابقة ما زالت في مكانها.</string>
+    <string name="connections_identity_unreadable">تعذّرت قراءة هذا الملف.</string>
 </resources>

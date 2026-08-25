@@ -2,6 +2,7 @@ package sh.haven.feature.connections
 
 import android.content.Context
 import android.content.Intent
+import android.net.Uri
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import dagger.hilt.android.lifecycle.HiltViewModel
@@ -71,6 +72,7 @@ import sh.haven.core.mail.MailSessionManager
 import sh.haven.core.security.Totp
 import sh.haven.core.reticulum.DiscoveredDestination
 import sh.haven.core.reticulum.ReticulumSessionManager
+import sh.haven.core.reticulum.ReticulumIdentityImport
 import sh.haven.core.reticulum.ReticulumTransport
 import sh.haven.core.knock.KnockResult
 import sh.haven.core.knock.KnockSequence
@@ -1302,6 +1304,82 @@ class ConnectionsViewModel @Inject constructor(
 
     private val _reticulumScanning = MutableStateFlow(false)
     val reticulumScanning: StateFlow<Boolean> = _reticulumScanning.asStateFlow()
+
+    private val _reticulumIdentityHash = MutableStateFlow<String?>(null)
+
+    /**
+     * The identity hash this device presents to rnsh servers, or null if none
+     * has been created yet (#585).
+     *
+     * Read rather than derived, because it changes underneath the UI: an import
+     * replaces it, and the first connection of a fresh install creates it.
+     */
+    val reticulumIdentityHash: StateFlow<String?> = _reticulumIdentityHash.asStateFlow()
+
+    /** The Reticulum config dir — one place, since three call sites want it. */
+    private fun reticulumConfigDir(): File =
+        File(appContext.filesDir, "reticulum").apply { mkdirs() }
+
+    fun refreshReticulumIdentity() {
+        viewModelScope.launch(Dispatchers.IO) {
+            _reticulumIdentityHash.value = runCatching {
+                reticulumTransport.clientIdentityHash(reticulumConfigDir().absolutePath)
+            }.getOrNull()
+        }
+    }
+
+    /**
+     * Adopt a Reticulum identity the user picked from storage (#585).
+     *
+     * The file is copied into the cache first because the transport works on
+     * files and a SAF pick is a stream, then deleted again — it is a private
+     * key, and leaving a second copy of it in the cache would be the kind of
+     * quiet mistake that is hard to notice later.
+     */
+    fun importReticulumIdentity(source: Uri) {
+        viewModelScope.launch(Dispatchers.IO) {
+            val staged = File(appContext.cacheDir, "reticulum-identity-import")
+            try {
+                val copied = runCatching {
+                    appContext.contentResolver.openInputStream(source)?.use { input ->
+                        staged.outputStream().use { output -> input.copyTo(output) }
+                    } != null
+                }.getOrDefault(false)
+                if (!copied) {
+                    _error.value = appContext.getString(R.string.connections_identity_unreadable)
+                    return@launch
+                }
+
+                when (
+                    val result = reticulumTransport.importClientIdentity(
+                        reticulumConfigDir().absolutePath,
+                        staged,
+                    )
+                ) {
+                    is ReticulumIdentityImport.Installed -> {
+                        _reticulumIdentityHash.value = result.hexHash
+                        _warning.value = if (result.takesEffectAfterRestart) {
+                            appContext.getString(
+                                R.string.connections_identity_imported_restart,
+                                result.hexHash,
+                            )
+                        } else {
+                            appContext.getString(R.string.connections_identity_imported, result.hexHash)
+                        }
+                    }
+                    is ReticulumIdentityImport.NotAnIdentity ->
+                        _error.value = appContext.getString(R.string.connections_identity_not_an_identity)
+                    is ReticulumIdentityImport.InstallFailed ->
+                        _error.value = appContext.getString(
+                            R.string.connections_identity_install_failed,
+                            result.reason,
+                        )
+                }
+            } finally {
+                staged.delete()
+            }
+        }
+    }
 
     /**
      * Scan for rnsh nodes by initialising Reticulum with the given gateway

@@ -10,6 +10,7 @@ import org.junit.Assert.assertTrue
 import org.junit.Test
 import sh.haven.core.reticulum.DiscoveredDestination
 import sh.haven.core.reticulum.ReticulumExecSession
+import sh.haven.core.reticulum.ReticulumIdentityImport
 import sh.haven.core.reticulum.ReticulumTransport
 import sh.haven.core.reticulum.RnshShellSession
 import kotlinx.coroutines.flow.MutableStateFlow
@@ -55,6 +56,15 @@ class ReticulumFileBackendTest {
         override val discoveredDestinations: StateFlow<List<DiscoveredDestination>> = MutableStateFlow(emptyList())
         override suspend fun requestPath(destinationHashHex: String): Boolean = true
         override suspend fun probeSideband(configDir: String): Boolean = false
+        override suspend fun clientIdentityHash(configDir: String): String? =
+            throw NotImplementedError("identity storage is not part of this test")
+
+        override suspend fun importClientIdentity(
+            configDir: String,
+            source: java.io.File,
+        ): ReticulumIdentityImport =
+            throw NotImplementedError("identity storage is not part of this test")
+
         override suspend fun closeAll() {}
     }
 

@@ -576,4 +576,13 @@
     <string name="connections_ssh_engine_jsch_desc">実績あるエンジン。全機能対応。</string>
     <string name="connections_ssh_engine_sshlib_label">sshlib（実験的）</string>
     <string name="connections_ssh_engine_sshlib_desc">Kotlin エンジン：1 つの接続でターミナル、SFTP、ポート転送。直接接続が必要 — 踏み台ホスト、プロキシ、ハードウェアキー、証明書、多要素ログインには非対応。</string>
+    <string name="connections_identity_label">この端末のアイデンティティ</string>
+    <string name="connections_identity_none">まだありません — 一度接続すると作成されます</string>
+    <string name="connections_identity_help">すべての Reticulum 接続で共有されます。許可リストに登録するサーバーはこのハッシュを見ます。</string>
+    <string name="connections_identity_import">アイデンティティファイルを読み込む…</string>
+    <string name="connections_identity_imported">アイデンティティを読み込みました: %1$s</string>
+    <string name="connections_identity_imported_restart">アイデンティティを読み込みました: %1$s。接続で使うには Haven を再起動してください。</string>
+    <string name="connections_identity_not_an_identity">このファイルは Reticulum のアイデンティティではありません。変更はありません。</string>
+    <string name="connections_identity_install_failed">アイデンティティを設定できませんでした: %1$s。以前のものがそのまま残っています。</string>
+    <string name="connections_identity_unreadable">このファイルを読み込めませんでした。</string>
 </resources>

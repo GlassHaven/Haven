@@ -576,4 +576,13 @@
     <string name="connections_ssh_engine_jsch_desc">Проверенный движок. Все функции.</string>
     <string name="connections_ssh_engine_sshlib_label">sshlib (экспериментальный)</string>
     <string name="connections_ssh_engine_sshlib_desc">Движок на Kotlin: терминал, SFTP и проброс портов в одном подключении. Нужно прямое подключение — без jump-хоста, прокси, аппаратного ключа, сертификата и многофакторного входа.</string>
+    <string name="connections_identity_label">Идентичность этого устройства</string>
+    <string name="connections_identity_none">Пока нет — она создастся при первом подключении</string>
+    <string name="connections_identity_help">Общая для всех подключений Reticulum. Сервер, добавляющий вас в белый список, опирается на этот хеш.</string>
+    <string name="connections_identity_import">Импортировать файл идентичности…</string>
+    <string name="connections_identity_imported">Идентичность импортирована: %1$s</string>
+    <string name="connections_identity_imported_restart">Идентичность импортирована: %1$s. Перезапустите Haven, чтобы подключения её использовали.</string>
+    <string name="connections_identity_not_an_identity">Этот файл не является идентичностью Reticulum. Ничего не изменено.</string>
+    <string name="connections_identity_install_failed">Не удалось установить идентичность: %1$s. Прежняя осталась на месте.</string>
+    <string name="connections_identity_unreadable">Не удалось прочитать этот файл.</string>
 </resources>

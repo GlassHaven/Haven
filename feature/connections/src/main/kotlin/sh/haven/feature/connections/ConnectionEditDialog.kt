@@ -169,6 +169,10 @@ fun ConnectionEditDialog(
     subnetScanning: Boolean = false,
     smbSubnetScanning: Boolean = false,
     reticulumScanning: Boolean = false,
+    /** This device's rnsh identity hash, or null if none exists yet (#585). */
+    reticulumIdentityHash: String? = null,
+    /** Open the picker for a Reticulum identity file the user supplies (#585). */
+    onImportReticulumIdentity: () -> Unit = {},
     onScanSubnet: () -> Unit = {},
     onScanSubnetSmb: () -> Unit = {},
     /** Scanning the network behind the selected jump host (#NNN). Opt-in. */
@@ -3291,6 +3295,37 @@ fun ConnectionEditDialog(
                         maxLines = 3,
                         modifier = Modifier.fillMaxWidth(),
                     )
+
+                    // 5. This device's identity (#585). Deliberately shown in a
+                    // per-profile form even though it is global: this is where
+                    // the user is standing when a server refuses them for not
+                    // being on its whitelist, and the help text says it is
+                    // shared so the placement cannot be read as per-profile.
+                    Spacer(Modifier.height(12.dp))
+                    Text(
+                        text = stringResource(R.string.connections_identity_label),
+                        style = MaterialTheme.typography.labelMedium,
+                        color = MaterialTheme.colorScheme.onSurfaceVariant,
+                    )
+                    Text(
+                        text = reticulumIdentityHash
+                            ?: stringResource(R.string.connections_identity_none),
+                        style = MaterialTheme.typography.bodySmall,
+                        fontFamily = if (reticulumIdentityHash != null) FontFamily.Monospace else null,
+                    )
+                    Spacer(Modifier.height(2.dp))
+                    Text(
+                        text = stringResource(R.string.connections_identity_help),
+                        style = MaterialTheme.typography.labelSmall,
+                        color = MaterialTheme.colorScheme.onSurfaceVariant,
+                    )
+                    Spacer(Modifier.height(4.dp))
+                    OutlinedButton(
+                        onClick = onImportReticulumIdentity,
+                        modifier = Modifier.fillMaxWidth(),
+                    ) {
+                        Text(stringResource(R.string.connections_identity_import))
+                    }
                 }
 
                 // Port knocking. Visible for any profile with a remote

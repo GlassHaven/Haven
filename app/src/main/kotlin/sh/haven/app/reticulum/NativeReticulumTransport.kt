@@ -18,6 +18,7 @@ import network.reticulum.transport.RichAnnounceHandler
 import network.reticulum.transport.Transport
 import sh.haven.core.reticulum.DiscoveredDestination
 import sh.haven.core.reticulum.ReticulumExecSession
+import sh.haven.core.reticulum.ReticulumIdentityImport
 import sh.haven.core.reticulum.ReticulumTransport
 import sh.haven.core.reticulum.RnshShellSession
 import tech.torlando.rnsh.session.ExecSession
@@ -33,6 +34,7 @@ private const val TAG = "NativeReticulumTransport"
 
 /** Filename of the persisted rnsh client identity inside the Reticulum config dir (#585). */
 private const val CLIENT_IDENTITY_FILE = "haven_client_identity"
+private const val CLIENT_IDENTITY_BACKUP_FILE = "haven_client_identity.previous"
 
 /**
  * Native Kotlin implementation of [ReticulumTransport] backed by
@@ -327,6 +329,40 @@ class NativeReticulumTransport @Inject constructor() : ReticulumTransport {
             }
         }
 
+    override suspend fun clientIdentityHash(configDir: String): String? =
+        withContext(Dispatchers.IO) { storedClientIdentityHash(File(configDir)) }
+
+    override suspend fun importClientIdentity(
+        configDir: String,
+        source: File,
+    ): ReticulumIdentityImport = withContext(Dispatchers.IO) {
+        // Whether the running stack has already read an identity decides what
+        // the user is told, so it has to be sampled before the file changes.
+        val alreadyRunning = stackState != null
+        when (val result = importClientIdentity(File(configDir), source)) {
+            is IdentityImport.Installed -> {
+                Log.i(
+                    TAG,
+                    "client identity imported: ${result.hexHash.take(8)}… " +
+                        "(replaced ${result.replacedHexHash?.take(8) ?: "nothing"})",
+                )
+                ReticulumIdentityImport.Installed(
+                    hexHash = result.hexHash,
+                    replacedHexHash = result.replacedHexHash,
+                    takesEffectAfterRestart = alreadyRunning,
+                )
+            }
+            is IdentityImport.NotAnIdentity -> {
+                Log.w(TAG, "client identity import refused: ${result.reason}")
+                ReticulumIdentityImport.NotAnIdentity(result.reason)
+            }
+            is IdentityImport.InstallFailed -> {
+                Log.e(TAG, "client identity import failed: ${result.reason}")
+                ReticulumIdentityImport.InstallFailed(result.reason)
+            }
+        }
+    }
+
     override suspend fun closeAll() = withContext(Dispatchers.IO) {
         try {
             Reticulum.stop()
@@ -552,6 +588,97 @@ internal data class ResolvedClientIdentity(
  * for a truncated read, a fresh identity would be minted, and #585 would come
  * back intermittently looking like an unrelated fault.
  */
+/**
+ * The stored client identity's hash, or null if there is no usable key in [dir].
+ *
+ * Separate from [resolveClientIdentity] because reading must not have the side
+ * effect of minting one: this answers "what does this device present today" for
+ * a screen the user may open before ever connecting, and creating an identity
+ * there would be a surprise.
+ */
+internal fun storedClientIdentityHash(dir: File): String? =
+    runCatching { Identity.fromFile(File(dir, CLIENT_IDENTITY_FILE).absolutePath) }
+        .getOrNull()
+        ?.hexHash
+
+/** Outcome of importing a user-supplied Reticulum identity file (#585). */
+internal sealed interface IdentityImport {
+    /**
+     * The file parsed and is now the client identity. [replacedHexHash] is the
+     * hash that was in use before, or null if there was none, so the caller can
+     * tell the user what they just stopped being.
+     */
+    data class Installed(val hexHash: String, val replacedHexHash: String?) : IdentityImport
+
+    /** The source is missing, unreadable, or not a Reticulum identity. */
+    data class NotAnIdentity(val reason: String) : IdentityImport
+
+    /** The source parsed but could not be installed. The old identity is intact. */
+    data class InstallFailed(val reason: String) : IdentityImport
+}
+
+/**
+ * Install a user-supplied Reticulum identity from [source] as the client
+ * identity in [dir] — the second half of #585, after persistence.
+ *
+ * The rule that matters is that a bad import must not cost the user the
+ * identity they already have. A whitelist entry on the far side is keyed to
+ * that hash, so silently replacing it with a fresh one is the same damage #585
+ * was reported for. Nothing is touched until [source] has been parsed, the
+ * previous key is set aside rather than overwritten, and a failure part-way
+ * through puts it back.
+ *
+ * Note for callers: an identity cannot be reconstructed from its hash. The
+ * request in #585 mentions "set the identity hash or load an identity file";
+ * only the file can work, because the hash is a fingerprint of a private key
+ * rather than the key itself.
+ *
+ * Android-free so the rules above are directly testable, same as
+ * [resolveClientIdentity].
+ */
+internal fun importClientIdentity(dir: File, source: File): IdentityImport {
+    val imported = runCatching { Identity.fromFile(source.absolutePath) }.getOrNull()
+        ?: return IdentityImport.NotAnIdentity(
+            if (!source.exists()) {
+                "no file at ${source.absolutePath}"
+            } else {
+                "${source.name} is not a Reticulum identity"
+            },
+        )
+
+    val file = File(dir, CLIENT_IDENTITY_FILE)
+    val backup = File(dir, CLIENT_IDENTITY_BACKUP_FILE)
+    val replaced = Identity.fromFile(file.absolutePath)?.hexHash
+    val tmp = File(dir, "$CLIENT_IDENTITY_FILE.import")
+
+    var setAside = false
+    return runCatching {
+        dir.mkdirs()
+        check(imported.toFile(tmp.absolutePath)) { "writing the imported identity failed" }
+        if (file.exists()) {
+            backup.delete()
+            check(file.renameTo(backup)) { "could not set the current identity aside" }
+            setAside = true
+        }
+        check(tmp.renameTo(file)) { "rename into place failed" }
+        restrictToOwner(file)
+        IdentityImport.Installed(imported.hexHash, replaced)
+    }.getOrElse { failure ->
+        tmp.delete()
+        // Put the old identity back rather than leaving the user with none.
+        if (setAside && !file.exists()) backup.renameTo(file)
+        IdentityImport.InstallFailed(failure.message ?: failure.javaClass.simpleName)
+    }
+}
+
+/** Owner-only permissions: these files are private keys sitting in app storage. */
+private fun restrictToOwner(file: File) {
+    file.setReadable(false, false)
+    file.setReadable(true, true)
+    file.setWritable(false, false)
+    file.setWritable(true, true)
+}
+
 internal fun resolveClientIdentity(dir: File): ResolvedClientIdentity {
     val file = File(dir, CLIENT_IDENTITY_FILE)
 
@@ -566,11 +693,7 @@ internal fun resolveClientIdentity(dir: File): ResolvedClientIdentity {
         dir.mkdirs()
         check(created.toFile(tmp.absolutePath)) { "toFile reported failure" }
         check(tmp.renameTo(file)) { "rename into place failed" }
-        // Owner-only: this is a private key sitting in app storage.
-        file.setReadable(false, false)
-        file.setReadable(true, true)
-        file.setWritable(false, false)
-        file.setWritable(true, true)
+        restrictToOwner(file)
         true
     }.getOrElse {
         tmp.delete()

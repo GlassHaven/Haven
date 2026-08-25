@@ -576,4 +576,13 @@
     <string name="connections_ssh_engine_jsch_desc">Die bewährte Engine. Alle Funktionen.</string>
     <string name="connections_ssh_engine_sshlib_label">sshlib (experimentell)</string>
     <string name="connections_ssh_engine_sshlib_desc">Kotlin-Engine: Terminal, SFTP und Portweiterleitung über eine Verbindung. Benötigt eine direkte Verbindung — kein Jump-Host, Proxy, Hardware-Schlüssel, Zertifikat oder Multi-Faktor-Anmeldung.</string>
+    <string name="connections_identity_label">Identität dieses Geräts</string>
+    <string name="connections_identity_none">Noch keine — beim ersten Verbinden wird eine erstellt</string>
+    <string name="connections_identity_help">Von allen Reticulum-Verbindungen gemeinsam genutzt. Ein Server, der dich freischaltet, geht nach diesem Hash.</string>
+    <string name="connections_identity_import">Identitätsdatei importieren…</string>
+    <string name="connections_identity_imported">Identität importiert: %1$s</string>
+    <string name="connections_identity_imported_restart">Identität importiert: %1$s. Starte Haven neu, damit Verbindungen sie verwenden.</string>
+    <string name="connections_identity_not_an_identity">Diese Datei ist keine Reticulum-Identität. Es wurde nichts geändert.</string>
+    <string name="connections_identity_install_failed">Identität konnte nicht installiert werden: %1$s. Die vorherige bleibt bestehen.</string>
+    <string name="connections_identity_unreadable">Diese Datei konnte nicht gelesen werden.</string>
 </resources>

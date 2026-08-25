@@ -576,4 +576,13 @@
     <string name="connections_ssh_engine_jsch_desc">প্রমাণিত ইঞ্জিন। সব বৈশিষ্ট্য।</string>
     <string name="connections_ssh_engine_sshlib_label">sshlib (পরীক্ষামূলক)</string>
     <string name="connections_ssh_engine_sshlib_desc">Kotlin ইঞ্জিন: একটি সংযোগে টার্মিনাল, SFTP এবং পোর্ট ফরওয়ার্ডিং। সরাসরি সংযোগ প্রয়োজন — জাম্প হোস্ট, প্রক্সি, হার্ডওয়্যার কী, সার্টিফিকেট বা বহু-স্তর লগইন নয়।</string>
+    <string name="connections_identity_label">এই ডিভাইসের পরিচয়</string>
+    <string name="connections_identity_none">এখনও নেই — একবার সংযোগ করলে তৈরি হবে</string>
+    <string name="connections_identity_help">সব Reticulum সংযোগ এটি ভাগ করে নেয়। যে সার্ভার আপনাকে অনুমোদন করে সে এই হ্যাশ দেখে।</string>
+    <string name="connections_identity_import">পরিচয় ফাইল আমদানি করুন…</string>
+    <string name="connections_identity_imported">পরিচয় আমদানি হয়েছে: %1$s</string>
+    <string name="connections_identity_imported_restart">পরিচয় আমদানি হয়েছে: %1$s। সংযোগে ব্যবহার করতে Haven পুনরায় চালু করুন।</string>
+    <string name="connections_identity_not_an_identity">এই ফাইলটি Reticulum পরিচয় নয়। কিছুই পরিবর্তন হয়নি।</string>
+    <string name="connections_identity_install_failed">পরিচয় ইনস্টল করা যায়নি: %1$s। আগেরটি বহাল আছে।</string>
+    <string name="connections_identity_unreadable">এই ফাইলটি পড়া যায়নি।</string>
 </resources>

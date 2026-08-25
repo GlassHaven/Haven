@@ -612,4 +612,13 @@
     <string name="connections_deeplink_confirm_message">A link wants to connect to %1$s.</string>
     <string name="connections_deeplink_confirm_session">A link wants to connect to %1$s and attach session “%2$s”.</string>
     <string name="connections_deeplink_confirm_connect">Connect</string>
+    <string name="connections_identity_label">This device\'s identity</string>
+    <string name="connections_identity_none">None yet — connecting once creates one</string>
+    <string name="connections_identity_help">Shared by every Reticulum connection. A server that whitelists you keys on this hash.</string>
+    <string name="connections_identity_import">Import identity file…</string>
+    <string name="connections_identity_imported">Identity imported: %1$s</string>
+    <string name="connections_identity_imported_restart">Identity imported: %1$s. Restart Haven for connections to use it.</string>
+    <string name="connections_identity_not_an_identity">That file is not a Reticulum identity. Nothing was changed.</string>
+    <string name="connections_identity_install_failed">Could not install the identity: %1$s. The previous one is still in place.</string>
+    <string name="connections_identity_unreadable">Could not read that file.</string>
 </resources>

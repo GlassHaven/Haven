@@ -90,8 +90,53 @@ interface ReticulumTransport {
     /** Probe for Sideband's shared instance. Safe to call repeatedly. */
     suspend fun probeSideband(configDir: String): Boolean
 
+    /**
+     * The rnsh client identity hash this device presents, or null if none has
+     * been created yet.
+     *
+     * Reads the stored key; it does not start the stack, so it is safe to call
+     * from a settings or connection screen before anything is connected.
+     */
+    suspend fun clientIdentityHash(configDir: String): String?
+
+    /**
+     * Install a Reticulum identity the user supplies as this device's client
+     * identity (#585).
+     *
+     * The identity a server whitelists is a private key, so it can only be
+     * moved as a file — there is no way to adopt one from its hash, which is a
+     * fingerprint of the key rather than the key itself.
+     *
+     * Nothing is replaced unless [source] parses, and the key being replaced is
+     * kept so a mistaken import can be undone.
+     */
+    suspend fun importClientIdentity(configDir: String, source: java.io.File): ReticulumIdentityImport
+
     /** Close all sessions and shut down. */
     suspend fun closeAll()
+}
+
+/** Outcome of [ReticulumTransport.importClientIdentity] (#585). */
+sealed interface ReticulumIdentityImport {
+    /**
+     * The file parsed and is now the stored client identity.
+     *
+     * [replacedHexHash] is the hash that was in use before, or null if there was
+     * none. [takesEffectAfterRestart] is true when Reticulum is already running:
+     * the stack reads the identity once at start-up, so live sessions and any
+     * link opened before a restart still present the old one.
+     */
+    data class Installed(
+        val hexHash: String,
+        val replacedHexHash: String?,
+        val takesEffectAfterRestart: Boolean,
+    ) : ReticulumIdentityImport
+
+    /** The source is missing, unreadable, or not a Reticulum identity. */
+    data class NotAnIdentity(val reason: String) : ReticulumIdentityImport
+
+    /** The source parsed but could not be installed. The old identity is intact. */
+    data class InstallFailed(val reason: String) : ReticulumIdentityImport
 }
 
 /**

@@ -574,4 +574,13 @@
     <string name="connections_ssh_engine_jsch_desc">成熟稳定的引擎。支持全部功能。</string>
     <string name="connections_ssh_engine_sshlib_label">sshlib（实验性）</string>
     <string name="connections_ssh_engine_sshlib_desc">Kotlin 引擎：在同一连接上提供终端、SFTP 和端口转发。需要直接连接 — 不支持跳板机、代理、硬件密钥、证书或多因素登录。</string>
+    <string name="connections_identity_label">本设备的身份</string>
+    <string name="connections_identity_none">尚未创建 — 首次连接时会自动创建</string>
+    <string name="connections_identity_help">所有 Reticulum 连接共用。将你加入白名单的服务器以此哈希为准。</string>
+    <string name="connections_identity_import">导入身份文件…</string>
+    <string name="connections_identity_imported">已导入身份：%1$s</string>
+    <string name="connections_identity_imported_restart">已导入身份：%1$s。重启 Haven 后连接才会使用它。</string>
+    <string name="connections_identity_not_an_identity">该文件不是 Reticulum 身份。未做任何更改。</string>
+    <string name="connections_identity_install_failed">无法安装该身份：%1$s。原有身份仍然保留。</string>
+    <string name="connections_identity_unreadable">无法读取该文件。</string>
 </resources>

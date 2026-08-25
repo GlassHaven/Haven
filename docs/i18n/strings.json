@@ -16828,6 +16828,183 @@
       "ru": "Подключиться",
       "zh": "连接"
      }
+    },
+    {
+     "name": "connections_identity_label",
+     "en": "This device\\'s identity",
+     "comment": "#210 i18n sweep: VM-setup copy toasts and code-block copy action.",
+     "args": [],
+     "t": {
+      "ar": "هوية هذا الجهاز",
+      "bn": "এই ডিভাইসের পরিচয়",
+      "de": "Identität dieses Geräts",
+      "es": "Identidad de este dispositivo",
+      "fr": "Identité de cet appareil",
+      "hi": "इस डिवाइस की पहचान",
+      "ja": "この端末のアイデンティティ",
+      "ko": "이 기기의 아이덴티티",
+      "pt": "Identidade deste dispositivo",
+      "ru": "Идентичность этого устройства",
+      "zh": "本设备的身份"
+     }
+    },
+    {
+     "name": "connections_identity_none",
+     "en": "None yet — connecting once creates one",
+     "comment": "#210 i18n sweep: VM-setup copy toasts and code-block copy action.",
+     "args": [],
+     "t": {
+      "ar": "لا توجد بعد — سيتم إنشاؤها عند أول اتصال",
+      "bn": "এখনও নেই — একবার সংযোগ করলে তৈরি হবে",
+      "de": "Noch keine — beim ersten Verbinden wird eine erstellt",
+      "es": "Aún no hay ninguna: se creará al conectar por primera vez",
+      "fr": "Aucune pour le moment — une première connexion en créera une",
+      "hi": "अभी कोई नहीं — एक बार कनेक्ट करने पर बन जाएगी",
+      "ja": "まだありません — 一度接続すると作成されます",
+      "ko": "아직 없음 — 한 번 연결하면 만들어집니다",
+      "pt": "Ainda nenhuma — conectar uma vez cria uma",
+      "ru": "Пока нет — она создастся при первом подключении",
+      "zh": "尚未创建 — 首次连接时会自动创建"
+     }
+    },
+    {
+     "name": "connections_identity_help",
+     "en": "Shared by every Reticulum connection. A server that whitelists you keys on this hash.",
+     "comment": "#210 i18n sweep: VM-setup copy toasts and code-block copy action.",
+     "args": [],
+     "t": {
+      "ar": "مشتركة بين جميع اتصالات Reticulum. الخادم الذي يسمح لك يعتمد على هذه البصمة.",
+      "bn": "সব Reticulum সংযোগ এটি ভাগ করে নেয়। যে সার্ভার আপনাকে অনুমোদন করে সে এই হ্যাশ দেখে।",
+      "de": "Von allen Reticulum-Verbindungen gemeinsam genutzt. Ein Server, der dich freischaltet, geht nach diesem Hash.",
+      "es": "Compartida por todas las conexiones Reticulum. Un servidor que te autoriza se guía por este hash.",
+      "fr": "Partagée par toutes les connexions Reticulum. Un serveur qui vous autorise se fonde sur cette empreinte.",
+      "hi": "सभी Reticulum कनेक्शन इसे साझा करते हैं। आपको अनुमति देने वाला सर्वर इसी हैश को देखता है।",
+      "ja": "すべての Reticulum 接続で共有されます。許可リストに登録するサーバーはこのハッシュを見ます。",
+      "ko": "모든 Reticulum 연결이 공유합니다. 허용 목록에 등록하는 서버는 이 해시를 기준으로 삼습니다.",
+      "pt": "Compartilhada por todas as conexões Reticulum. Um servidor que te autoriza se baseia neste hash.",
+      "ru": "Общая для всех подключений Reticulum. Сервер, добавляющий вас в белый список, опирается на этот хеш.",
+      "zh": "所有 Reticulum 连接共用。将你加入白名单的服务器以此哈希为准。"
+     }
+    },
+    {
+     "name": "connections_identity_import",
+     "en": "Import identity file…",
+     "comment": "#210 i18n sweep: VM-setup copy toasts and code-block copy action.",
+     "args": [],
+     "t": {
+      "ar": "استيراد ملف الهوية…",
+      "bn": "পরিচয় ফাইল আমদানি করুন…",
+      "de": "Identitätsdatei importieren…",
+      "es": "Importar archivo de identidad…",
+      "fr": "Importer un fichier d\\'identité…",
+      "hi": "पहचान फ़ाइल आयात करें…",
+      "ja": "アイデンティティファイルを読み込む…",
+      "ko": "아이덴티티 파일 가져오기…",
+      "pt": "Importar arquivo de identidade…",
+      "ru": "Импортировать файл идентичности…",
+      "zh": "导入身份文件…"
+     }
+    },
+    {
+     "name": "connections_identity_imported",
+     "en": "Identity imported: %1$s",
+     "comment": "#210 i18n sweep: VM-setup copy toasts and code-block copy action.",
+     "args": [
+      "%1$s"
+     ],
+     "t": {
+      "ar": "تم استيراد الهوية: %1$s",
+      "bn": "পরিচয় আমদানি হয়েছে: %1$s",
+      "de": "Identität importiert: %1$s",
+      "es": "Identidad importada: %1$s",
+      "fr": "Identité importée : %1$s",
+      "hi": "पहचान आयात की गई: %1$s",
+      "ja": "アイデンティティを読み込みました: %1$s",
+      "ko": "아이덴티티를 가져왔습니다: %1$s",
+      "pt": "Identidade importada: %1$s",
+      "ru": "Идентичность импортирована: %1$s",
+      "zh": "已导入身份：%1$s"
+     }
+    },
+    {
+     "name": "connections_identity_imported_restart",
+     "en": "Identity imported: %1$s. Restart Haven for connections to use it.",
+     "comment": "#210 i18n sweep: VM-setup copy toasts and code-block copy action.",
+     "args": [
+      "%1$s"
+     ],
+     "t": {
+      "ar": "تم استيراد الهوية: %1$s. أعد تشغيل Haven لكي تستخدمها الاتصالات.",
+      "bn": "পরিচয় আমদানি হয়েছে: %1$s। সংযোগে ব্যবহার করতে Haven পুনরায় চালু করুন।",
+      "de": "Identität importiert: %1$s. Starte Haven neu, damit Verbindungen sie verwenden.",
+      "es": "Identidad importada: %1$s. Reinicia Haven para que las conexiones la usen.",
+      "fr": "Identité importée : %1$s. Redémarrez Haven pour que les connexions l\\'utilisent.",
+      "hi": "पहचान आयात की गई: %1$s। कनेक्शन में इसका उपयोग करने के लिए Haven को पुनः आरंभ करें।",
+      "ja": "アイデンティティを読み込みました: %1$s。接続で使うには Haven を再起動してください。",
+      "ko": "아이덴티티를 가져왔습니다: %1$s. 연결에 적용하려면 Haven을 다시 시작하세요.",
+      "pt": "Identidade importada: %1$s. Reinicie o Haven para que as conexões a usem.",
+      "ru": "Идентичность импортирована: %1$s. Перезапустите Haven, чтобы подключения её использовали.",
+      "zh": "已导入身份：%1$s。重启 Haven 后连接才会使用它。"
+     }
+    },
+    {
+     "name": "connections_identity_not_an_identity",
+     "en": "That file is not a Reticulum identity. Nothing was changed.",
+     "comment": "#210 i18n sweep: VM-setup copy toasts and code-block copy action.",
+     "args": [],
+     "t": {
+      "ar": "هذا الملف ليس هوية Reticulum. لم يتم تغيير أي شيء.",
+      "bn": "এই ফাইলটি Reticulum পরিচয় নয়। কিছুই পরিবর্তন হয়নি।",
+      "de": "Diese Datei ist keine Reticulum-Identität. Es wurde nichts geändert.",
+      "es": "Ese archivo no es una identidad de Reticulum. No se cambió nada.",
+      "fr": "Ce fichier n\\'est pas une identité Reticulum. Rien n\\'a été modifié.",
+      "hi": "यह फ़ाइल Reticulum पहचान नहीं है। कुछ भी नहीं बदला गया।",
+      "ja": "このファイルは Reticulum のアイデンティティではありません。変更はありません。",
+      "ko": "이 파일은 Reticulum 아이덴티티가 아닙니다. 아무것도 변경되지 않았습니다.",
+      "pt": "Esse arquivo não é uma identidade Reticulum. Nada foi alterado.",
+      "ru": "Этот файл не является идентичностью Reticulum. Ничего не изменено.",
+      "zh": "该文件不是 Reticulum 身份。未做任何更改。"
+     }
+    },
+    {
+     "name": "connections_identity_install_failed",
+     "en": "Could not install the identity: %1$s. The previous one is still in place.",
+     "comment": "#210 i18n sweep: VM-setup copy toasts and code-block copy action.",
+     "args": [
+      "%1$s"
+     ],
+     "t": {
+      "ar": "تعذّر تثبيت الهوية: %1$s. الهوية السابقة ما زالت في مكانها.",
+      "bn": "পরিচয় ইনস্টল করা যায়নি: %1$s। আগেরটি বহাল আছে।",
+      "de": "Identität konnte nicht installiert werden: %1$s. Die vorherige bleibt bestehen.",
+      "es": "No se pudo instalar la identidad: %1$s. La anterior sigue en su lugar.",
+      "fr": "Impossible d\\'installer l\\'identité : %1$s. La précédente est toujours en place.",
+      "hi": "पहचान इंस्टॉल नहीं की जा सकी: %1$s। पिछली पहचान यथावत है।",
+      "ja": "アイデンティティを設定できませんでした: %1$s。以前のものがそのまま残っています。",
+      "ko": "아이덴티티를 설치하지 못했습니다: %1$s. 이전 것이 그대로 유지됩니다.",
+      "pt": "Não foi possível instalar a identidade: %1$s. A anterior continua no lugar.",
+      "ru": "Не удалось установить идентичность: %1$s. Прежняя осталась на месте.",
+      "zh": "无法安装该身份：%1$s。原有身份仍然保留。"
+     }
+    },
+    {
+     "name": "connections_identity_unreadable",
+     "en": "Could not read that file.",
+     "comment": "#210 i18n sweep: VM-setup copy toasts and code-block copy action.",
+     "args": [],
+     "t": {
+      "ar": "تعذّرت قراءة هذا الملف.",
+      "bn": "এই ফাইলটি পড়া যায়নি।",
+      "de": "Diese Datei konnte nicht gelesen werden.",
+      "es": "No se pudo leer ese archivo.",
+      "fr": "Impossible de lire ce fichier.",
+      "hi": "यह फ़ाइल पढ़ी नहीं जा सकी।",
+      "ja": "このファイルを読み込めませんでした。",
+      "ko": "이 파일을 읽을 수 없습니다.",
+      "pt": "Não foi possível ler esse arquivo.",
+      "ru": "Не удалось прочитать этот файл.",
+      "zh": "无法读取该文件。"
+     }
     }
    ]
   },

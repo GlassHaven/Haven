@@ -576,4 +576,13 @@
     <string name="connections_ssh_engine_jsch_desc">आज़माया हुआ इंजन। सभी सुविधाएँ।</string>
     <string name="connections_ssh_engine_sshlib_label">sshlib (प्रायोगिक)</string>
     <string name="connections_ssh_engine_sshlib_desc">Kotlin इंजन: एक ही कनेक्शन पर टर्मिनल, SFTP और पोर्ट फ़ॉरवर्डिंग। सीधा कनेक्शन आवश्यक — जंप होस्ट, प्रॉक्सी, हार्डवेयर कुंजी, प्रमाणपत्र या बहु-कारक लॉगिन नहीं।</string>
+    <string name="connections_identity_label">इस डिवाइस की पहचान</string>
+    <string name="connections_identity_none">अभी कोई नहीं — एक बार कनेक्ट करने पर बन जाएगी</string>
+    <string name="connections_identity_help">सभी Reticulum कनेक्शन इसे साझा करते हैं। आपको अनुमति देने वाला सर्वर इसी हैश को देखता है।</string>
+    <string name="connections_identity_import">पहचान फ़ाइल आयात करें…</string>
+    <string name="connections_identity_imported">पहचान आयात की गई: %1$s</string>
+    <string name="connections_identity_imported_restart">पहचान आयात की गई: %1$s। कनेक्शन में इसका उपयोग करने के लिए Haven को पुनः आरंभ करें।</string>
+    <string name="connections_identity_not_an_identity">यह फ़ाइल Reticulum पहचान नहीं है। कुछ भी नहीं बदला गया।</string>
+    <string name="connections_identity_install_failed">पहचान इंस्टॉल नहीं की जा सकी: %1$s। पिछली पहचान यथावत है।</string>
+    <string name="connections_identity_unreadable">यह फ़ाइल पढ़ी नहीं जा सकी।</string>
 </resources>

@@ -568,4 +568,13 @@
     <string name="connections_ssh_engine_jsch_desc">검증된 엔진. 모든 기능 지원.</string>
     <string name="connections_ssh_engine_sshlib_label">sshlib (실험적)</string>
     <string name="connections_ssh_engine_sshlib_desc">Kotlin 엔진: 하나의 연결에서 터미널, SFTP, 포트 포워딩. 직접 연결이 필요합니다 — 점프 호스트, 프록시, 하드웨어 키, 인증서, 다단계 로그인은 지원하지 않습니다.</string>
+    <string name="connections_identity_label">이 기기의 아이덴티티</string>
+    <string name="connections_identity_none">아직 없음 — 한 번 연결하면 만들어집니다</string>
+    <string name="connections_identity_help">모든 Reticulum 연결이 공유합니다. 허용 목록에 등록하는 서버는 이 해시를 기준으로 삼습니다.</string>
+    <string name="connections_identity_import">아이덴티티 파일 가져오기…</string>
+    <string name="connections_identity_imported">아이덴티티를 가져왔습니다: %1$s</string>
+    <string name="connections_identity_imported_restart">아이덴티티를 가져왔습니다: %1$s. 연결에 적용하려면 Haven을 다시 시작하세요.</string>
+    <string name="connections_identity_not_an_identity">이 파일은 Reticulum 아이덴티티가 아닙니다. 아무것도 변경되지 않았습니다.</string>
+    <string name="connections_identity_install_failed">아이덴티티를 설치하지 못했습니다: %1$s. 이전 것이 그대로 유지됩니다.</string>
+    <string name="connections_identity_unreadable">이 파일을 읽을 수 없습니다.</string>
 </resources>

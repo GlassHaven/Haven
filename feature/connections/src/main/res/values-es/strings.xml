@@ -576,4 +576,13 @@
     <string name="connections_ssh_engine_jsch_desc">El motor probado. Todas las funciones.</string>
     <string name="connections_ssh_engine_sshlib_label">sshlib (experimental)</string>
     <string name="connections_ssh_engine_sshlib_desc">Motor Kotlin: terminal, SFTP y reenvío de puertos en una sola conexión. Requiere conexión directa — sin salto, proxy, llave física, certificado ni inicio de sesión multifactor.</string>
+    <string name="connections_identity_label">Identidad de este dispositivo</string>
+    <string name="connections_identity_none">Aún no hay ninguna: se creará al conectar por primera vez</string>
+    <string name="connections_identity_help">Compartida por todas las conexiones Reticulum. Un servidor que te autoriza se guía por este hash.</string>
+    <string name="connections_identity_import">Importar archivo de identidad…</string>
+    <string name="connections_identity_imported">Identidad importada: %1$s</string>
+    <string name="connections_identity_imported_restart">Identidad importada: %1$s. Reinicia Haven para que las conexiones la usen.</string>
+    <string name="connections_identity_not_an_identity">Ese archivo no es una identidad de Reticulum. No se cambió nada.</string>
+    <string name="connections_identity_install_failed">No se pudo instalar la identidad: %1$s. La anterior sigue en su lugar.</string>
+    <string name="connections_identity_unreadable">No se pudo leer ese archivo.</string>
 </resources>

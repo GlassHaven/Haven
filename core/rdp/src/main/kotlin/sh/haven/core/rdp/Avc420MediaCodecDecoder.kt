@@ -58,23 +58,59 @@ class Avc420MediaCodecDecoder : Avc420Decoder, Closeable {
     // Reused I420 scratch, grown as needed to avoid a per-frame allocation.
     private var i420 = ByteArray(0)
 
-    override fun decodeToI420(annexB: ByteArray, width: UShort, height: UShort): ByteArray {
+    /**
+     * Decode one access unit straight into the caller's buffer (#466).
+     *
+     * This used to return the frame as a `ByteArray` for UniFFI to marshal
+     * back. That crossing cost 47 ms per 1080p frame with a decoder that did
+     * no decoding at all — linear in payload at about 62 MB/s, against 45 GB/s
+     * for the same copy inside Rust — and was the ~80 ms per frame neither
+     * side could account for. Writing into the caller's buffer measured
+     * 0.24 ms for the same 3037 KB.
+     *
+     * The packing itself is unchanged: [yuvImageToI420] still fills the reused
+     * scratch, and one bulk copy hands it over. Keeping that split means
+     * [packPlane] and its tests carry on covering the pixel work, and only the
+     * handoff is new.
+     *
+     * SAFETY: [dstAddr] is valid for [dstLen] bytes only for the duration of
+     * this call. Never retain it, and never write past [dstLen].
+     */
+    override fun decodeInto(
+        annexB: ByteArray,
+        width: UShort,
+        height: UShort,
+        dstAddr: ULong,
+        dstLen: ULong,
+    ): UInt {
         val w = width.toInt()
         val h = height.toInt()
-        if (failed || w <= 0 || h <= 0 || annexB.isEmpty()) return ByteArray(0)
+        if (failed || w <= 0 || h <= 0 || annexB.isEmpty()) return 0u
         val mc = try {
             ensureCodec(annexB, w, h)
         } catch (e: Exception) {
             Log.e(TAG, "MediaCodec init failed (${w}x${h}): ${e.message}")
             failed = true
             releaseCodec()
-            return ByteArray(0)
-        } ?: return ByteArray(0)
+            return 0u
+        } ?: return 0u
 
         return try {
             val t0 = System.nanoTime()
             queueInput(mc, annexB)
             val out = drainToI420(mc, w, h) ?: ByteArray(0)
+            val written = if (out.isEmpty()) {
+                0
+            } else {
+                val n = minOf(out.size.toLong(), dstLen.toLong()).toInt()
+                // One bulk copy into the caller's memory. `getByteBuffer` hands
+                // back a direct buffer over that address, so this is a memcpy
+                // rather than the marshalling it replaces.
+                com.sun.jna.Pointer(dstAddr.toLong())
+                    .getByteBuffer(0, n.toLong())
+                    .put(out, 0, n)
+                n
+            }
             pFrames++
             pCodecNs += System.nanoTime() - t0 - lastConvertNs
             pConvertNs += lastConvertNs
@@ -86,12 +122,12 @@ class Avc420MediaCodecDecoder : Avc420Decoder, Closeable {
                 perfSink?.invoke(line)
                 pFrames = 0; pCodecNs = 0; pConvertNs = 0; pPolls = 0
             }
-            out
+            written.toUInt()
         } catch (e: Exception) {
             Log.e(TAG, "AVC420 decode failed: ${e.message}")
             failed = true
             releaseCodec()
-            ByteArray(0)
+            0u
         }
     }
 
@@ -229,18 +265,17 @@ class Avc420MediaCodecDecoder : Avc420Decoder, Closeable {
     }
 
     /**
-     * The exactly-[need]-byte array UniFFI's `Vec<u8>` wants, without copying
-     * when the scratch buffer is already that size (#477).
+     * Exactly [need] bytes, without copying when the scratch buffer is already
+     * that size (#477).
      *
-     * The generated binding marshals the return value inside the callback
-     * body — `uniffiOutReturn.setValue(FfiConverterByteArray.lower(value))` —
-     * and `lower` copies into native memory synchronously, before control
-     * returns to the loop that would overwrite the scratch. Nothing retains
-     * the Kotlin array, so handing over the scratch buffer is safe.
+     * Handing back the scratch buffer itself is safe because the caller copies
+     * it into the Rust-owned frame buffer synchronously, before control
+     * returns to the loop that would overwrite it, and nothing retains it
+     * afterwards.
      *
-     * ★ That safety argument rests on the marshalling being synchronous. If
-     * the decoder callback ever becomes asynchronous, or a caller starts
-     * holding the returned array across frames, restore a defensive copy.
+     * ★ That rests on the copy being synchronous. If decoding ever becomes
+     * asynchronous, or something starts holding this array across frames,
+     * restore a defensive copy.
      */
     internal fun exactly(out: ByteArray, need: Int): ByteArray =
         if (out.size == need) out else out.copyOf(need)

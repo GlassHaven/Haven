@@ -176,6 +176,12 @@ pub struct EgfxProcessor {
     /// because allocating 8.29MB per frame at 1080p is the churn this whole
     /// change exists to remove.
     avc_rgba: Vec<u8>,
+    /// Reused I420 target the host decoder writes into. Held across frames for
+    /// the same reason as [`Self::avc_rgba`], and additionally because its
+    /// address is handed to foreign code for the duration of each call — a
+    /// buffer reallocated per frame would be a fresh address every time and
+    /// give the contract on `decode_into` nothing stable to rest on.
+    avc_i420: Vec<u8>,
 }
 
 impl EgfxProcessor {
@@ -198,6 +204,7 @@ impl EgfxProcessor {
             planar_decoder: ironrdp_graphics::rdp6::BitmapStreamDecoder::default(),
             avc_enabled,
             avc_rgba: Vec::new(),
+            avc_i420: Vec::new(),
         }
     }
 }
@@ -803,9 +810,44 @@ impl EgfxProcessor {
                 // to the destination. ponytail: multi-region partial blits
                 // (Windows/AVC444) collapse to a full-dest repaint here — still
                 // correct pixels, just not minimal; refine in slice 3.
+                // The host writes straight into this buffer rather than
+                // returning one (#466). Returning a Vec<u8> cost 47ms per
+                // 1080p frame in the crossing alone — measured with a decoder
+                // that did no decoding — against 0.24ms for this shape. The
+                // buffer is reused across frames and never published, so the
+                // address handed over is valid only for the duration of the
+                // call, which is the contract on `decode_into`.
+                let Some(need) = crate::yuv::i420_len(w as usize, h as usize) else {
+                    warn!("EGFX[{n}]: AVC420 implausible frame size {w}x{h} — dropping");
+                    return;
+                };
+                let mut i420 = std::mem::take(&mut self.avc_i420);
+                if i420.len() != need {
+                    i420.resize(need, 0);
+                }
                 let t_avc = std::time::Instant::now();
-                let i420 = decoder.decode_to_i420(stream.data.to_vec(), w as u16, h as u16);
+                let written = decoder.decode_into(
+                    stream.data.to_vec(),
+                    w as u16,
+                    h as u16,
+                    i420.as_mut_ptr() as u64,
+                    i420.len() as u64,
+                ) as usize;
                 self.perf.avc_call_us += t_avc.elapsed().as_micros() as u64;
+                // A short write is a decoder bug, not a crop: the host
+                // edge-replicates to w/h, so the length is a pure function of
+                // the arguments. Refuse to convert a partially-filled buffer,
+                // which would paint the previous frame's tail.
+                if written != need {
+                    if written != 0 {
+                        warn!(
+                            "EGFX[{n}]: AVC420 decoder wrote {written} bytes, need {need} for \
+                             {w}x{h} I420 — dropping",
+                        );
+                    }
+                    self.avc_i420 = i420;
+                    return;
+                }
                 if self.perf.memcpy_us == 0 && !i420.is_empty() {
                     let t = std::time::Instant::now();
                     let mut probe = vec![0u8; i420.len()];
@@ -823,12 +865,9 @@ impl EgfxProcessor {
                 let mut rgba = std::mem::take(&mut self.avc_rgba);
                 let converted = crate::yuv::i420_to_rgba(&i420, w as usize, h as usize, &mut rgba);
                 self.perf.yuv_us += t_yuv.elapsed().as_micros() as u64;
+                self.avc_i420 = i420;
                 if !converted {
-                    warn!(
-                        "EGFX[{n}]: AVC420 decoder returned {} bytes, need {:?} for {w}x{h} I420 — dropping",
-                        i420.len(),
-                        crate::yuv::i420_len(w as usize, h as usize),
-                    );
+                    warn!("EGFX[{n}]: AVC420 conversion refused {need} bytes for {w}x{h} — dropping");
                     self.avc_rgba = rgba;
                     return;
                 }
@@ -1253,11 +1292,26 @@ mod tests {
             delay: std::time::Duration,
         }
         impl crate::Avc420Decoder for SlowDecoder {
-            fn decode_to_i420(&self, _annex_b: Vec<u8>, w: u16, h: u16) -> Vec<u8> {
+            fn decode_into(
+                &self,
+                _annex_b: Vec<u8>,
+                w: u16,
+                h: u16,
+                dst_addr: u64,
+                dst_len: u64,
+            ) -> u32 {
                 std::thread::sleep(self.delay);
-                // A mid-grey I420 frame: luma 128, chroma neutral.
+                // A mid-grey I420 frame: luma 128, chroma neutral. Written
+                // through the address exactly as the host does, so the test
+                // exercises the real contract rather than a friendlier one.
                 let len = crate::yuv::i420_len(usize::from(w), usize::from(h)).unwrap();
-                vec![128u8; len]
+                assert!(len as u64 <= dst_len, "caller must size the buffer");
+                // SAFETY: the caller guarantees `dst_len` writable bytes at
+                // `dst_addr` for the duration of this call.
+                unsafe {
+                    std::ptr::write_bytes(dst_addr as *mut u8, 128u8, len);
+                }
+                len as u32
             }
         }
 

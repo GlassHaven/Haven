@@ -291,21 +291,121 @@ pub trait ClipboardCallback: Send + Sync {
 /// `video/avc` instance.
 #[uniffi::export(with_foreign)]
 pub trait Avc420Decoder: Send + Sync {
-    /// Decode one access unit and return the frame as **tightly-packed I420**
-    /// — `width*height` luma, then two `((width+1)/2)*((height+1)/2)` chroma
-    /// planes — or an empty vector if the frame could not be produced.
+    /// Decode one access unit **into a buffer this side already owns**, and
+    /// return how many bytes were written — 0 if the frame could not be
+    /// produced.
     ///
-    /// I420 rather than the finished RGBA, which is what this used to return.
-    /// Colour conversion moved to [`crate::yuv`] for two reasons that both
-    /// showed up in one reporter's measurements (#466): the conversion itself
-    /// cost 27-109 ms per frame in Kotlin against 9-25 ms for the hardware
-    /// decode, and the crossing back into Rust cost a further 87-112 ms
-    /// carrying 8.29 MB of RGBA. I420 is 3.11 MB for the same 1080p frame.
+    /// `dst_addr` is the address of `dst_len` writable bytes. The host wraps
+    /// it as a direct byte buffer and writes **tightly-packed I420**:
+    /// `width*height` luma, then two `((width+1)/2)*((height+1)/2)` chroma
+    /// planes. It is expected to edge-replicate to `width`/`height` when its
+    /// own output is smaller, so the written length is a pure function of the
+    /// arguments and a short write is a bug rather than a crop.
     ///
-    /// The host is expected to edge-replicate to `width`/`height` if the
-    /// decoder's own output is smaller, so the buffer size is a pure function
-    /// of the arguments and a short one is a bug rather than a crop.
-    fn decode_to_i420(&self, annex_b: Vec<u8>, width: u16, height: u16) -> Vec<u8>;
+    /// **Why not return a `Vec<u8>`, which is what this used to do.** That
+    /// shape cost 47 ms per 1080p frame in a decoder that did no decoding at
+    /// all — measured by `benchmark_avc_boundary`, linear in payload at about
+    /// 62 MB/s, against 45 GB/s for the same copy inside Rust. Writing into
+    /// place instead measured 0.24 ms for the same 3037 KB, a 194x
+    /// difference, and it is the whole of the ~80 ms per frame that neither
+    /// side could account for in #466.
+    ///
+    /// # Safety contract
+    ///
+    /// The host must write at most `dst_len` bytes and must not retain
+    /// `dst_addr` past the call. This side guarantees the buffer stays alive
+    /// and unmoved for the duration of the call, and never publishes the
+    /// address anywhere else. The returned length is validated against the
+    /// expected frame size before any of it is read.
+    fn decode_into(
+        &self,
+        annex_b: Vec<u8>,
+        width: u16,
+        height: u16,
+        dst_addr: u64,
+        dst_len: u64,
+    ) -> u32;
+}
+
+/// Timings from [`benchmark_avc_boundary`], in microseconds, totalled over the
+/// requested iteration count.
+#[derive(Debug, Clone, uniffi::Record)]
+pub struct AvcBoundaryTiming {
+    /// Iterations actually run.
+    pub iterations: u32,
+    /// Total time inside `decode_to_i420`, measured exactly where the EGFX
+    /// path measures its `avc round trip`.
+    pub call_us: u64,
+    /// Total time the host reported spending in its own body, summed from the
+    /// value the stand-in decoder encodes in the first 8 bytes it returns.
+    /// Zero when the stand-in does not report one.
+    pub host_us: u64,
+    /// Control: the same number of Rust-side allocate-and-copy operations of
+    /// the same buffer size, with no boundary crossing at all. This is the
+    /// yardstick the reporter's field logs carry, run under the same clock.
+    pub memcpy_us: u64,
+    /// Bytes each iteration carried back across the boundary.
+    pub payload_bytes: u64,
+}
+
+/// Drive the [`Avc420Decoder`] boundary with no decoding, to separate the cost
+/// of *crossing* from the cost of the work on the far side (#466).
+///
+/// This is how the write-into-place shape was chosen. The previous shape —
+/// the host returning a `Vec<u8>` — measured 47 ms per 1080p frame here with
+/// a stand-in decoder that did nothing, linear in payload at ~62 MB/s. This
+/// one measured 0.24 ms for the same 3037 KB. Keep it: it is the regression
+/// guard for the boundary that fix rests on, and it needs no RDP server, no
+/// H.264 and no device. See `rdp-kotlin/bench/`.
+///
+/// Pass a stand-in decoder that does as little as possible. Whatever
+/// `call_us` exceeds `host_us + memcpy_us` by is the crossing itself.
+#[uniffi::export]
+pub fn benchmark_avc_boundary(
+    decoder: Arc<dyn Avc420Decoder>,
+    width: u16,
+    height: u16,
+    iterations: u32,
+) -> AvcBoundaryTiming {
+    // A plausible compressed access unit. Size only matters for the argument
+    // direction, which is small next to the returned frame either way.
+    let annex_b = vec![0u8; 8 * 1024];
+    let expected = crate::yuv::i420_len(width as usize, height as usize).unwrap_or(0);
+    let mut dst = vec![0u8; expected];
+    let addr = dst.as_mut_ptr() as u64;
+    let len = dst.len() as u64;
+
+    // Warm the far side up before timing: the first call through a foreign
+    // trait pays one-off costs (JIT, class init, thread attach) that would
+    // otherwise be smeared across a short run and read as per-frame cost.
+    let _ = decoder.decode_into(annex_b.clone(), width, height, addr, len);
+
+    let mut call_us = 0u64;
+    let mut host_us = 0u64;
+    let mut written = 0u64;
+    for _ in 0..iterations {
+        let t = std::time::Instant::now();
+        let n = decoder.decode_into(annex_b.clone(), width, height, addr, len);
+        call_us += t.elapsed().as_micros() as u64;
+        written = n as u64;
+        if dst.len() >= 8 {
+            host_us += u64::from_le_bytes(dst[..8].try_into().unwrap_or([0; 8]));
+        }
+    }
+
+    // The control, run identically: allocate a buffer of the same size and
+    // copy into it, in Rust, no boundary involved.
+    let src = vec![0u8; expected];
+    let mut memcpy_us = 0u64;
+    for _ in 0..iterations {
+        let t = std::time::Instant::now();
+        let mut probe = vec![0u8; src.len()];
+        probe.copy_from_slice(&src);
+        std::hint::black_box(&probe);
+        memcpy_us += t.elapsed().as_micros() as u64;
+    }
+
+    AvcBoundaryTiming { iterations, call_us, host_us, memcpy_us, payload_bytes: written }
 }
 
 /// Server-side pointer (cursor) updates. RDP servers send the cursor shape and

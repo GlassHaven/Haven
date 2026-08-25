@@ -34,7 +34,16 @@ body="$(scripts/check-changelog.sh extract "v$vname")"
 # the summary added in v5.86.52 — that list alone is the blurb, and the prose
 # stays on the Changelog page where there's room for it. Sections without one
 # fall back to the whole body, as before.
-tldr="$(printf '%s\n' "$body" | sed -n '/^- /!q;p')"
+# Blank lines between the summary bullets are ordinary markdown and must not end
+# the scan — a `sed -n '/^- /!q;p'` here silently kept only the first bullet, so
+# v5.87.57 and v5.87.58 shipped a one-line blurb with the rest dropped. The scan
+# ends at the first detailed entry (`- **Title**`) or at any prose.
+tldr="$(printf '%s\n' "$body" | awk '
+  /^- \*\*/        { exit }
+  /^- /            { print; found = 1; next }
+  /^[[:space:]]*$/ { if (found) next; exit }
+                   { exit }
+')"
 if [ -n "$tldr" ]; then
   body="$tldr"
   echo "  using the leading summary bullets for the F-Droid blurb"

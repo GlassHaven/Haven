@@ -24,7 +24,7 @@ class InputCoalescerTest {
     }
 
     @Test
-    fun `historical duplicate printable ASCII workaround is preserved`() {
+    fun `genuine repeated printable ASCII is preserved`() {
         val input = listOf(
             'a'.code.toByte(),
             'a'.code.toByte(),
@@ -33,7 +33,10 @@ class InputCoalescerTest {
         val output = normalizeCoalescedInput(input)
 
         assertArrayEquals(
-            byteArrayOf('a'.code.toByte()),
+            byteArrayOf(
+                'a'.code.toByte(),
+                'a'.code.toByte(),
+            ),
             output,
         )
     }

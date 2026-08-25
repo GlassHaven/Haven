@@ -169,42 +169,27 @@ internal class EmulatorWriteBuffer(
 }
 
 /**
- * Applies the historical IME double-fire workaround to a batch of
- * single-byte terminal input.
+ * Flushes a coalesced single-byte input batch.
  *
- * Only duplicate printable ASCII bytes are eligible for deduplication.
- * Control bytes must be preserved because repeated control characters
- * can be intentional terminal input. In particular, Vietnamese Gboard
- * replacement can legitimately emit two consecutive DEL (0x7F) bytes.
+ * IME double-fire (commitText plus a raw view key) is suppressed in
+ * ImeInputView, not here. This function must not drop repeated printable
+ * ASCII or repeated control bytes: genuine "aa", paste of "aa", and
+ * Vietnamese Gboard replacement DELs (0x7F 0x7F) are all intentional.
  */
 internal fun normalizeCoalescedInput(buffer: List<Byte>): ByteArray {
-    val isImeDedupCandidate =
-        buffer.size == 2 &&
-            buffer[0] == buffer[1] &&
-            (buffer[0].toInt() and 0xFF) in 0x20..0x7E
-
-    return if (isImeDedupCandidate) {
-        byteArrayOf(buffer[0])
-    } else {
-        buffer.toByteArray()
-    }
+    return buffer.toByteArray()
 }
 
 /**
- * Coalesces rapid single-byte inputs into a batch and applies the historical
- * IME double-fire workaround to exactly two identical printable ASCII bytes.
+ * Coalesces rapid single-byte inputs into one SSH write.
  *
- * Android IMEs may fire both commitText and sendKeyEvent for the same
- * keystroke, causing onKeyboardInput to be called twice with the same byte.
- * Both calls happen within a single Handler message, so a posted Runnable
- * flushes after all input from the current message is processed.
+ * A posted Runnable flushes after the current Handler message, so a
+ * burst of 1-byte onKeyboardInput callbacks (IME paste iteration,
+ * per-codepoint dispatch) becomes a single sink() call.
  *
- * Repeated control bytes are intentionally preserved. They can represent
- * legitimate terminal input; for example, Vietnamese Gboard replacement may
- * emit two consecutive DEL (0x7F) bytes before sending replacement text.
- *
- * Paste "aa" still matches the printable-ASCII heuristic, while longer input
- * sequences such as "aab" and "43339" are preserved.
+ * Duplicate printable input is no longer guessed here. Gboard's
+ * commitText+raw-key echo is dropped in ImeInputView where the
+ * callback identity still exists.
  *
  * Multi-byte inputs (toolbar, escape sequences) bypass coalescing.
  */
@@ -226,9 +211,8 @@ private class InputCoalescer(private val sink: (ByteArray) -> Unit) {
             buffer.add(data[0])
         }
 
-        // Post flush to run after the current message completes.
-        // Both IME double-fire calls and paste iteration happen within
-        // one message, so the flush sees the complete batch.
+        // Post flush after the current message so a burst of 1-byte
+        // callbacks is written as one sink() call.
         handler.removeCallbacks(flushRunnable)
         handler.post(flushRunnable)
     }

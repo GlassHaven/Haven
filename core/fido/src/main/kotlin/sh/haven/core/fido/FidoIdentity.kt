@@ -86,6 +86,16 @@ class FidoIdentity(
         Log.d(TAG, "FIDO2 assertion received: sig=${result.signature.size}b, " +
             "flags=0x${"%02x".format(result.flags)}, counter=${result.counter}")
 
+        // Assert the ceremony we promised actually ran. Shipping a signature
+        // with the user-verified bit clear when the key is marked
+        // verify-required turns into "Permission denied (publickey)" at the
+        // server, which is indistinguishable from offering the wrong key
+        // (#531).
+        skAssertionUvMismatch(requireUv, result.flags)?.let { reason ->
+            Log.e(TAG, reason)
+            throw java.io.IOException(reason)
+        }
+
         // Assemble SSH SK signature wire format
         val sigBlob = assembleSshSkSignature(alg, result.signature, result.flags, result.counter)
         Log.d(TAG, "Assembled SSH SK signature: ${sigBlob.size} bytes")

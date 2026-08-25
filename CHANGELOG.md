@@ -5,6 +5,26 @@ the corresponding GitHub Release; a release can't ship without its section
 (enforced by `scripts/check-changelog.sh` in CI). The GitHub "Full Changelog"
 compare link is appended automatically — don't add it here.
 
+## v5.87.59
+
+- A stray tap no longer refuses an MCP consent prompt you never read (#556, #576).
+
+- A second Reticulum gateway in one session now gets its own interface (#588, reported by @Slayerx96).
+
+- **A tap outside the sheet counted as an answer** (#556, #576). Consent prompts are meant to be non-skippable, and the code said so in a comment: tapping outside the sheet does not dismiss it, the user must tap Allow or Deny. Nothing implemented that, so the default applied. The tap closed the sheet and was recorded as a deliberate refusal, with no sheet left on screen to show what had been refused. The first tap of a reconnect could refuse a request nobody had read, and because a refusal counts as considered, it also armed the cooldown that suppresses repeats.
+
+  Any dismissal that is not a button press now puts the sheet back. A request that should go away still does, through the existing timeout, which is the outcome that fails closed rather than open.
+
+  Measured on the phone. With the fix, a tap near the top of the screen puts the sheet back 0.13s later and the request is still pending afterwards, then answers normally. On v5.87.57 the same tap produced a refusal that was never shown.
+
+  #576 was filed as rotation denying an open prompt. Rotation was measured not to dismiss the sheet at all, so that reading was wrong and the guard shipped for it in v5.87.45 never ran. A stray tap fits the symptom, which is why both numbers are here, but the original denials in that report stay unexplained.
+
+- **A connection profile adds an interface instead of replacing the stack** (#588, reported by @Slayerx96). The first Reticulum connection of a session decided the whole network stack and every later one was ignored, so a second gateway reached nothing and looked connected while doing it.
+
+  A profile now contributes an interface. A second gateway adds a second interface, reconnecting to one that is already up does not duplicate it, and a shared instance mixed with a gateway in the same session is refused with a reason, because the shared instance owns the interfaces and Haven has no business adding its own alongside.
+
+  The planning is covered by tests, checked to fail against the old behaviour. Only the shared-instance path is verified on hardware; two real gateways in one session have not been run. Declaring all interfaces up front, independent of any profile, is still not done.
+
 ## v5.87.58
 
 - Reticulum connections through a Sideband or Columba shared instance work again (#588, reported by @Slayerx96).

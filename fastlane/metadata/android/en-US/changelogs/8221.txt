@@ -1,0 +1,2 @@
+- A stray tap no longer refuses an MCP consent prompt you never read (#556, #576).
+- A second Reticulum gateway in one session now gets its own interface (#588, reported by @Slayerx96).

@@ -182,6 +182,20 @@ class NativeReticulumTransport @Inject constructor() : ReticulumTransport {
                     "Start Sideband or another shared instance, or use a gateway host instead.",
             )
         }
+        // The gateway path already waits for its TCP interface; this one did
+        // not, and the caller sends a link request within milliseconds.
+        val iface = lastRegisteredSharedInterface
+        if (iface == null) {
+            Log.w(TAG, "shared instance connected but no interface was registered")
+        } else if (!awaitOnline(
+                timeoutMs = 5_000,
+                nowMs = System::currentTimeMillis,
+                sleep = Thread::sleep,
+                isOnline = { iface.online.get() },
+            )
+        ) {
+            Log.w(TAG, "shared-instance interface not online within 5s; the first packet may be dropped")
+        }
     }
 
     /**
@@ -550,9 +564,45 @@ internal fun planStackAction(current: StackState?, request: StackRequest): Stack
 internal val sharedInstanceInterfaceRegistrar: (Any) -> Unit = { iface ->
     if (iface is RnsInterface) {
         Transport.registerInterface(iface.toRef())
+        // Kept so start-up can wait for it to come online. Registering an
+        // interface is not the same as it being usable, and the first packet
+        // out is sent immediately after (see startSharedInstance).
+        lastRegisteredSharedInterface = iface
     } else {
         Log.e(TAG, "cannot register ${iface.javaClass.name}: not a Reticulum interface")
     }
+}
+
+/** Set by [sharedInstanceInterfaceRegistrar]; read only by startSharedInstance. */
+@Volatile
+internal var lastRegisteredSharedInterface: RnsInterface? = null
+
+/**
+ * Block until [isOnline] reports true, or [timeoutMs] elapses.
+ *
+ * The shared-instance interface is registered from inside the library before
+ * its read loop has connected, and Haven opens the rnsh link within
+ * milliseconds of `init` returning. Without this wait the first link request
+ * hits `processOutgoing called but interface not online` and is dropped —
+ * and because a link request is not retried, the session then sits for the
+ * full 30s establishment timeout and fails with nothing having been sent.
+ * Device-observed on 2026-08-25, twice in a row, once releasing the stack on
+ * the last disconnect made every connect re-initialise from cold.
+ *
+ * @return true if it came online within the timeout
+ */
+internal fun awaitOnline(
+    timeoutMs: Long,
+    nowMs: () -> Long,
+    sleep: (Long) -> Unit,
+    isOnline: () -> Boolean,
+): Boolean {
+    val deadline = nowMs() + timeoutMs
+    while (!isOnline()) {
+        if (nowMs() >= deadline) return false
+        sleep(50)
+    }
+    return true
 }
 
 /** How [resolveClientIdentity] arrived at the identity it returned. */

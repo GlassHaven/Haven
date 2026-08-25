@@ -44,6 +44,31 @@ jobs:
             echo "::error::Unpinned external action ref(s) above — pin to a 40-char SHA (# vX.Y.Z)."
             exit 1
           fi
+      # A submodule here is not vendored data. settings.gradle.kts pulls
+      # several in with includeBuild(), so their own build.gradle.kts files are
+      # EXECUTED on this runner — the URL in .gitmodules decides whose build
+      # logic runs with CI's privileges.
+      #
+      # Not hypothetical: PR #589 repointed termlib at a contributor's fork so
+      # CI could fetch a review SHA, and every job went green while building
+      # it. The checkmarks vouching for that PR were produced by executing the
+      # unreviewed code they were vouching for. Pinning the SHA keeps the
+      # content honest — git is content-addressed, so nobody can swap what is
+      # at a given commit — but it does not make the source ours.
+      #
+      # The registration is also sticky: `git submodule init` will not
+      # overwrite a URL a checkout already has, so a repoint outlives the
+      # commit that introduced it. That is how #525 froze F-Droid's build
+      # channel for a day while every build of ours stayed green.
+      - name: Assert submodules point at first-party repos
+        run: |
+          foreign=$(git config -f .gitmodules --get-regexp '\.url$' \
+            | grep -vE ' https://github\.com/GlassOnTin/' || true)
+          if [ -n "$foreign" ]; then
+            echo "$foreign"
+            echo "::error::Submodule URL(s) above are not under github.com/GlassOnTin. A submodule's build scripts execute on this runner; merge the commit into our fork and point at that SHA instead."
+            exit 1
+          fi
       # Validate the gradle-wrapper.jar that CI actually executes against
       # Gradle's published checksums (wrapper-attack class). Submodule wrappers
       # aren't executed by CI, so the root jar is the one that matters.

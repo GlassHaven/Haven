@@ -189,6 +189,7 @@ class ReticulumSessionManager @Inject constructor(
             } catch (e: Exception) {
                 Log.e(TAG, "tearDown failed for $sessionId", e)
             }
+            shutdownStackIfIdle()
         }
     }
 
@@ -214,6 +215,7 @@ class ReticulumSessionManager @Inject constructor(
                     Log.e(TAG, "tearDown failed for ${session.sessionId}", e)
                 }
             }
+            shutdownStackIfIdle()
         }
     }
 
@@ -231,6 +233,33 @@ class ReticulumSessionManager @Inject constructor(
                     Log.e(TAG, "tearDown failed for ${session.sessionId}", e)
                 }
             }
+            shutdownStackIfIdle()
+        }
+    }
+
+    /**
+     * Drop the process-wide Reticulum stack once nothing is using it.
+     *
+     * The stack is a process singleton whose mode is fixed at start-up: a
+     * shared instance owns the interfaces on behalf of every app using it, so
+     * a gateway profile cannot add to one (#588). Nothing used to release it,
+     * so that choice outlived the session that made it and the next connect
+     * was refused until the app was force-stopped. Reported against v5.87.59:
+     * "the banner keeps appearing even after disconnecting the session and
+     * just closing Haven makes possible to choose again".
+     *
+     * Re-reading [_sessions] here rather than trusting the caller's snapshot
+     * narrows, but does not close, the race with a connect that starts while
+     * this is in flight; both run on [scope]'s IO dispatcher with no lock
+     * between them.
+     */
+    private suspend fun shutdownStackIfIdle() {
+        if (_sessions.value.isNotEmpty()) return
+        try {
+            transport.closeAll()
+            Log.d(TAG, "last session gone: Reticulum stack shut down")
+        } catch (e: Exception) {
+            Log.e(TAG, "stack shutdown failed", e)
         }
     }
 

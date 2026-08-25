@@ -1,6 +1,6 @@
 [submodule "termlib"]
 	path = termlib
-	url = https://github.com/GlassOnTin/termlib.git
+	url = https://github.com/binhdnguyen/termlib.git
 	branch = main
 [submodule "mosh-kotlin"]
 	path = mosh-kotlin

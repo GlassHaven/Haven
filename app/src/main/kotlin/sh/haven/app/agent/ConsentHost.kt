@@ -1,8 +1,5 @@
 package sh.haven.app.agent
 
-import android.app.Activity
-import android.content.Context
-import android.content.ContextWrapper
 import android.util.Log
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
@@ -24,13 +21,13 @@ import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.ModalBottomSheet
 import androidx.compose.material3.OutlinedButton
 import androidx.compose.material3.Text
-import androidx.compose.ui.platform.LocalContext
 import androidx.compose.material3.rememberModalBottomSheetState
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
+import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
@@ -91,11 +88,21 @@ internal class ConsentHostViewModel @Inject constructor(
  * composable just keeps showing the first; the second slides into view
  * once the first is answered.
  *
- * The sheet is intentionally non-skippable: tapping outside the sheet
- * does *not* dismiss it. The user must explicitly tap Allow or Deny so
- * we never accidentally swallow a destructive request as "denied by
- * default" via a stray tap. Pressing the system back button maps to
- * Deny, which is the safe direction.
+ * The sheet is non-skippable: only an explicit Allow or Deny answers the
+ * request. Every other way a sheet can go away — a tap on the scrim, a
+ * swipe, a back press, the window being rebuilt — re-shows it instead of
+ * answering on the user's behalf. A request nobody answers still expires
+ * on [AgentConsentManager]'s own timeout, so failing closed is preserved
+ * where it belongs: in the timeout, not in a stray touch.
+ *
+ * This used to be a comment rather than a behaviour. Nothing suppressed
+ * the scrim tap, so Material3's default dismissal ran straight into
+ * `onDismissRequest` and recorded a deliberate refusal. Measured on
+ * v5.87.57: a request left pending for eight seconds, then tapped at the
+ * top of the screen well clear of the sheet, logged `-> DENY: user
+ * denied` (#556). That is the first tap of a reconnect silently refusing
+ * a prompt the user never registered was there — and it arms the #337
+ * cooldown as though the refusal were considered.
  */
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -140,10 +147,15 @@ internal fun ConsentHost(viewModel: ConsentHostViewModel = hiltViewModel()) {
     val canOfferBypass = !isPairing && clientHint != null
     var bypassChecked by remember(current.id) { mutableStateOf(false) }
 
-    // Treat any dismissal that isn't an explicit Allow as a Deny so the
-    // wheel-stays-with-the-user invariant holds even on edge cases.
+    // Marks the request the user has actually answered. Needed because
+    // resolving clears `pending`, which animates the sheet out, which fires
+    // onDismissRequest for our own teardown — indistinguishable from a stray
+    // dismissal without this.
+    var answeredId by remember { mutableStateOf<Long?>(null) }
+
     fun resolve(decision: ConsentDecision, allowForMinutes: Int? = null) {
         val bypass = canOfferBypass && bypassChecked && decision == ConsentDecision.ALLOW
+        answeredId = current.id
         viewModel.respond(current.id, decision, bypass, allowForMinutes)
         // respond() clears the request from `pending`; the sync LaunchedEffect
         // above then animates the sheet out and tears its window down cleanly.
@@ -151,24 +163,16 @@ internal fun ConsentHost(viewModel: ConsentHostViewModel = hiltViewModel()) {
         // composition removal is what left the stuck input scrim behind.
     }
 
-    // A rotation is not an answer. The host Activity is recreated on a
-    // configuration change, which tears this sheet down and fires
-    // onDismissRequest — and treating that as a Deny answered on the user's
-    // behalf, from a sheet they were still reading. Observed live: rotating
-    // the device while an install prompt was up denied the install, three
-    // times, with no input from the user.
-    //
-    // Fail-closed still holds for every real dismissal (swipe, scrim tap,
-    // back). isChangingConfigurations distinguishes the one case that is the
-    // system rebuilding the window rather than a person walking away: the
-    // request stays pending and the recreated host re-shows it.
-    val activity = LocalContext.current.findActivity()
+    // Nothing that isn't a button press gets to answer for the user. If the
+    // request is still pending and they haven't tapped Allow or Deny, put the
+    // sheet back up: whatever removed it — scrim tap, swipe, back press, a
+    // window rebuild — was not an answer to the question asked.
+    val scope = rememberCoroutineScope()
     ModalBottomSheet(
         onDismissRequest = {
-            if (activity?.isChangingConfigurations == true) {
-                Log.d(TAG, "sheet torn down by a configuration change — leaving request pending")
-            } else {
-                resolve(ConsentDecision.DENY)
+            if (shouldReshowOnDismiss(current.id, pending.map { it.id }, answeredId)) {
+                Log.d(TAG, "consent sheet dismissed without an answer — re-showing id=${current.id}")
+                scope.launch { runCatching { sheetState.show() } }
             }
         },
         sheetState = sheetState,
@@ -360,9 +364,22 @@ internal fun OverlayUiRegistration(bridge: HavenUiBridge, label: String) {
 
 private const val TAG = "ConsentHost"
 
-/** Unwrap the ContextWrapper chain to the hosting Activity, or null. */
-private tailrec fun Context.findActivity(): Activity? = when (this) {
-    is Activity -> this
-    is ContextWrapper -> baseContext.findActivity()
-    else -> null
-}
+/**
+ * Whether a sheet dismissal should put the sheet back rather than resolve the
+ * request.
+ *
+ * True when the request is still pending and the user has not tapped Allow or
+ * Deny — the dismissal came from somewhere that is not an answer. False once
+ * they have answered (the resulting hide animation fires the same callback)
+ * and false when the request has already left [AgentConsentManager.pending],
+ * which is a resolve or a timeout that has nothing left to re-show.
+ *
+ * Pure so the decision can be tested without a device: the fault in #556 was
+ * that a stray touch counted as a refusal, and that is a decision, not a
+ * rendering problem.
+ */
+internal fun shouldReshowOnDismiss(
+    currentId: Long,
+    pendingIds: List<Long>,
+    answeredId: Long?,
+): Boolean = currentId in pendingIds && answeredId != currentId

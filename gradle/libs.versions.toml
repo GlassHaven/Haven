@@ -7,7 +7,7 @@ room = "2.7.1"
 datastore = "1.2.1"
 tink = "1.23.0"
 biometric = "1.4.0-alpha07"
-jsch = "2.28.6"
+jsch = "2.28.7"
 # ssh-proto (ConnectBot sshlib) — the second SSH engine (#58). Kotlin
 # coroutines SSH client; Haven contributed exec/subsystem/SFTP/SK upstream.
 sshlib = "0.4.2"

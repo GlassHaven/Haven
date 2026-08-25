@@ -5,6 +5,38 @@ the corresponding GitHub Release; a release can't ship without its section
 (enforced by `scripts/check-changelog.sh` in CI). The GitHub "Full Changelog"
 compare link is appended automatically — don't add it here.
 
+## v5.87.60
+
+- A Reticulum session one hop behind a shared instance now completes its handshake (#588, reported by @Slayerx96).
+
+- Reconnecting after a Reticulum disconnect works, and the gateway refusal now clears without force-stopping Haven (#588).
+
+- A security key that signs without the PIN you asked for is now refused with a reason, not an unexplained "Permission denied" (#531, reported by @pixel4696).
+
+- A Reticulum connection can import an identity file you already have (#585, reported by @Slayerx96).
+
+- **A link was being addressed as though it were a node** (#588, reported by @Slayerx96). Every established Reticulum link is filed in the path table, and outgoing packets were then routed against it. One hop away behind a shared instance that meant wrapping the packet in a transport header addressed to the link id itself. No transport node carries that address, so the shared instance dropped it, and the session died of silence 15 seconds later reporting a version handshake timeout. Two hops took a different branch and worked, which is why the same setup could reach a shell through one app and not another.
+
+  A link id names a link, not a node, so it is never routed now. The decision is a pure function with 12 tests; removing the link exclusion fails three of the four link cases.
+
+  Verified on a OnePlus 13 against a real shared instance one hop from an rnsh server. Before: `Sending to <link> via path (1 hops)`, and the server log stops at "link request accepted". After: `Broadcasting to <link> on 1 interfaces`, link established at 14ms round trip, identity sent, session connected, and the server logs the incoming session. This also changes how link proofs are sent, which is wider than the reported symptom.
+
+- **The Reticulum stack outlived the session that started it** (#588, reported by @Slayerx96). The stack is a process singleton and nothing released it, so the mode chosen by the first connection stood until Haven was force-stopped. The v5.87.59 message explaining that a gateway cannot be added to a shared instance was correct, and then would not go away after disconnecting.
+
+  The stack is now dropped once the last session ends. Doing that turned every connect into a cold start and exposed two further faults, both fixed here and both only found by testing on hardware: the shared-instance interface was being used before its read loop had connected, so the first packet met an interface that was not up and a link request is not retried; and stopping Reticulum left its detached interfaces registered, so the next session could transmit onto a dead one.
+
+  The passing device run above is a reconnect, so it covers these. Still not fixed: a link request logs as sent even when the transmit errored.
+
+- **A signature that skipped the verification you asked for** (#531, reported by @pixel4696). A key marked "Require PIN at sign-in" makes Haven run the CTAP2 PIN exchange, and the authenticator is then supposed to mark the assertion as verified. Haven never checked that it had. It assembled the signature from whatever came back and sent it, and a server that requires verification answered "Permission denied (publickey)" — the same thing it says for a key it has never seen. The two cases were indistinguishable from the phone.
+
+  Haven now refuses to send such a signature and names the flags byte in the failure. This does not yet explain #531; it makes the difference visible on screen rather than only in logcat. Worth naming as a behaviour change: a setup with "Require PIN" on, a token that returns no verification, and a server that does not insist on it authenticates today and will now be refused.
+
+- **Importing a Reticulum identity you already have** (#585, reported by @Slayerx96). A Reticulum server whitelists a client by identity hash. Haven minted its own and kept it, but there was no way to arrive with one, so the whitelist entry had to be built around whatever Haven generated.
+
+  The connection form now shows the hash this device presents and offers to import an identity file. Only a file can work — the hash is a fingerprint of a private key, not the key itself. Nothing is touched until the source parses, the key being replaced is moved aside rather than overwritten, and a failure part way through puts it back. Reading the stored hash deliberately does not create one, so a connection screen on a fresh install reads "none yet" instead of minting a key as a side effect of being looked at.
+
+  Six tests on the file rules, checked to fail against the mistakes they describe. Not verified: the picker and the import have not been run on a device, and no identity from another Reticulum install has been imported yet.
+
 ## v5.87.59
 
 - A stray tap no longer refuses an MCP consent prompt you never read (#556, #576).

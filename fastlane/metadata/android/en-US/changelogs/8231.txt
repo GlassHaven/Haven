@@ -1,0 +1,4 @@
+- A Reticulum session one hop behind a shared instance now completes its handshake (#588, reported by @Slayerx96).
+- Reconnecting after a Reticulum disconnect works, and the gateway refusal now clears without force-stopping Haven (#588).
+- A security key that signs without the PIN you asked for is now refused with a reason, not an unexplained "Permission denied" (#531, reported by @pixel4696).
+- A Reticulum connection can import an identity file you already have (#585, reported by @Slayerx96).

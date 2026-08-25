@@ -838,5 +838,5 @@ storj.io/picobuf v0.0.4 h1:qswHDla+YZ2TovGtMnU4astjvrADSIz84FXRn0qgP6o=
 storj.io/picobuf v0.0.4/go.mod h1:hSMxmZc58MS/2qSLy1I0idovlO7+6K47wIGUyRZa6mg=
 storj.io/uplink v1.14.3 h1:b89nziD1JgiF6oya+kDSBsqWp9Dzp5ADCUdhA2e2zvs=
 storj.io/uplink v1.14.3/go.mod h1:jAe47qR+gRnHW2+3THe4cWJBAj8ARZv4P9mguJRo7C4=
-tailscale.com v1.102.2 h1:K0TJMOFv0F9aJDSjM/C2uVtrwnLn+ek22c42x61FXeA=
-tailscale.com v1.102.2/go.mod h1:ynxKzc9hDxwGLHORQE0qrTH1b8NBRrIsXcnfnug/3dg=
+tailscale.com v1.102.3 h1:M1czCAtMuIcg+2Z+FBPbJyAk3ZEQGEFKnvHthtE1c6M=
+tailscale.com v1.102.3/go.mod h1:47bv91Xbg4K1p5wti7F1dmKvUVWV5BXF78d9EWJ+d6c=

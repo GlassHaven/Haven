@@ -245,6 +245,10 @@ fun HavenNavHost(
     val navStateViewModel: NavStateViewModel = hiltViewModel()
     val selectedScreen by navStateViewModel.selectedScreen.collectAsState()
     fun requestScreen(screen: Screen) { navStateViewModel.select(screen) }
+    // The fresh pager starts at page zero when the host re-enters composition.
+    // Do not let that initial settled page overwrite the retained selection
+    // before the render effect below has restored it.
+    var restoreDone by remember { mutableStateOf(false) }
     // True while a manual page-swipe (pagerSwipeOverride, on the Terminal/SFTP
     // pages) owns the pager. While set, the settledPage→selection sync below is
     // suppressed: the override adopts the settled page explicitly on release, so
@@ -279,6 +283,7 @@ fun HavenNavHost(
         if (idx >= 0 && idx != pagerState.currentPage) {
             pagerState.scrollToPage(idx)
         }
+        restoreDone = true
     }
     // Manual swipes feed the source of truth: when the pager *settles* on a
     // page, adopt that screen as the selection. Keyed on settledPage only
@@ -289,7 +294,7 @@ fun HavenNavHost(
         // the settled page (it calls requestScreen on release); skip here so a
         // transient settledPage can't flip the selection mid-gesture. The
         // built-in-pager pages never set this flag, so they still sync here.
-        if (isUserSwiping) return@LaunchedEffect
+        if (!restoreDone || isUserSwiping) return@LaunchedEffect
         screens.getOrNull(pagerState.settledPage)?.let { settled ->
             if (settled != selectedScreen) {
                 requestScreen(settled)

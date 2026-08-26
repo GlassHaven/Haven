@@ -727,7 +727,10 @@ private fun RdpViewer(
                                         // graphicsLayer's TransformOrigin is the view
                                         // centre, so pivot at (cx, cy); use the actual
                                         // (clamp-aware) scale so we don't over-pan at a limit.
-                                        val newZoom = (zoom * (span / prevSpan)).coerceIn(0.5f, 5f)
+                                        // Floor at 1×: drawRemoteFrame letterboxes the
+                                        // full screen at zoom 1, so zooming out further
+                                        // only enlarges the bars (Refs #600).
+                                        val newZoom = (zoom * (span / prevSpan)).coerceIn(1f, 5f)
                                         val actualScale = if (zoom > 0f) newZoom / zoom else 1f
                                         val cx = viewSize.width / 2f
                                         val cy = viewSize.height / 2f

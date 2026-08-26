@@ -1,0 +1,1 @@
+- A Reticulum shell session whose link dies now disconnects cleanly and drops the tab, instead of freezing with a dead input line (#599, split out of #588).

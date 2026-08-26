@@ -5,6 +5,16 @@ the corresponding GitHub Release; a release can't ship without its section
 (enforced by `scripts/check-changelog.sh` in CI). The GitHub "Full Changelog"
 compare link is appended automatically — don't add it here.
 
+## v5.87.63
+
+- A Reticulum shell session whose link dies now disconnects cleanly and drops the tab, instead of freezing with a dead input line (#599, split out of #588).
+
+- **A dead Reticulum link left the shell frozen** (#599, split out of #588). When the link under an open rnsh shell went away, the session's exit code never completed. The disconnect watcher was waiting on it, so it never ran and the tab stayed frozen: every keystroke failed and nothing reconnected. The shell path now fails the session's exit code when the link closes, the same wiring the command path already had. A dead link now runs the normal disconnect: the session is dropped and you can reconnect.
+
+  This does not reconnect the shell on its own. The remote PTY dies with the link, so a reconnect would land in a fresh shell; reconnecting in place is a separate follow-up.
+
+  Verified on a host loopback rig against a live link, with a new regression test on the dead-link path (mutation-checked). The reporter's exact repro, restarting rnsh on the server, has not yet been retested on a device.
+
 ## v5.87.62
 
 - The "check for a newer Haven at launch" prompt now shows up for people who keep the app resident in memory (#597, reported by @a8645322).

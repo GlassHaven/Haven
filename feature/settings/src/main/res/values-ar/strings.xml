@@ -486,7 +486,7 @@
     <string name="settings_credential_reset_confirm">إصلاح</string>
     <string name="settings_credential_reset_cancel">إلغاء</string>
     <string name="settings_update_check_title">التحقق من التحديثات</string>
-    <string name="settings_update_check_subtitle">البحث عن إصدار أحدث عند بدء Haven، مرة واحدة يوميًا على الأكثر. مُعطَّل افتراضيًا.</string>
+    <string name="settings_update_check_subtitle">البحث عن إصدار أحدث عند بدء Haven، مرة واحدة كل ساعة على الأكثر. مُعطَّل افتراضيًا.</string>
     <string name="settings_update_check_now_title">تحقّق الآن</string>
     <string name="settings_update_check_now_subtitle">اسأل GitHub عن أحدث إصدار</string>
     <string name="settings_update_checking">جارٍ التحقق…</string>

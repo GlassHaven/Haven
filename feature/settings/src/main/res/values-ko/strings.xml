@@ -481,7 +481,7 @@
     <string name="settings_credential_reset_confirm">복구</string>
     <string name="settings_credential_reset_cancel">취소</string>
     <string name="settings_update_check_title">업데이트 확인</string>
-    <string name="settings_update_check_subtitle">Haven 시작 시 새 릴리스를 확인합니다. 하루 한 번까지. 기본값은 꺼짐.</string>
+    <string name="settings_update_check_subtitle">Haven 시작 시 새 릴리스를 확인합니다. 시간에 한 번까지. 기본값은 꺼짐.</string>
     <string name="settings_update_check_now_title">지금 확인</string>
     <string name="settings_update_check_now_subtitle">GitHub에 최신 릴리스를 요청합니다</string>
     <string name="settings_update_checking">확인 중…</string>

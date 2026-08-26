@@ -482,7 +482,7 @@
     <string name="settings_credential_reset_confirm">Reparieren</string>
     <string name="settings_credential_reset_cancel">Abbrechen</string>
     <string name="settings_update_check_title">Nach Updates suchen</string>
-    <string name="settings_update_check_subtitle">Beim Start von Haven nach einer neueren Version suchen, höchstens einmal täglich. Standardmäßig aus.</string>
+    <string name="settings_update_check_subtitle">Beim Start von Haven nach einer neueren Version suchen, höchstens einmal pro Stunde. Standardmäßig aus.</string>
     <string name="settings_update_check_now_title">Jetzt prüfen</string>
     <string name="settings_update_check_now_subtitle">GitHub nach der neuesten Version fragen</string>
     <string name="settings_update_checking">Wird geprüft…</string>

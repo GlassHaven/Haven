@@ -482,7 +482,7 @@
     <string name="settings_credential_reset_confirm">মেরামত</string>
     <string name="settings_credential_reset_cancel">বাতিল</string>
     <string name="settings_update_check_title">আপডেট দেখুন</string>
-    <string name="settings_update_check_subtitle">Haven চালু হলে নতুন রিলিজ খোঁজে, দিনে সর্বোচ্চ একবার। ডিফল্টে বন্ধ।</string>
+    <string name="settings_update_check_subtitle">Haven চালু হলে নতুন রিলিজ খোঁজে, ঘণ্টায় সর্বোচ্চ একবার। ডিফল্টে বন্ধ।</string>
     <string name="settings_update_check_now_title">এখনই দেখুন</string>
     <string name="settings_update_check_now_subtitle">GitHub-এ সর্বশেষ রিলিজ জিজ্ঞাসা করুন</string>
     <string name="settings_update_checking">দেখা হচ্ছে…</string>

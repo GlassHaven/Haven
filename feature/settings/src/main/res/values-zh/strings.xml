@@ -480,7 +480,7 @@
     <string name="settings_credential_reset_confirm">修复</string>
     <string name="settings_credential_reset_cancel">取消</string>
     <string name="settings_update_check_title">检查更新</string>
-    <string name="settings_update_check_subtitle">Haven 启动时查找新版本，每天最多一次。默认关闭。</string>
+    <string name="settings_update_check_subtitle">Haven 启动时查找新版本，每小时最多一次。默认关闭。</string>
     <string name="settings_update_check_now_title">立即检查</string>
     <string name="settings_update_check_now_subtitle">向 GitHub 查询最新发行版</string>
     <string name="settings_update_checking">正在检查…</string>

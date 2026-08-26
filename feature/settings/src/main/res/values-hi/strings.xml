@@ -482,7 +482,7 @@
     <string name="settings_credential_reset_confirm">ठीक करें</string>
     <string name="settings_credential_reset_cancel">रद्द करें</string>
     <string name="settings_update_check_title">अपडेट जाँचें</string>
-    <string name="settings_update_check_subtitle">Haven शुरू होने पर नया रिलीज़ खोजें, दिन में अधिकतम एक बार। डिफ़ॉल्ट रूप से बंद।</string>
+    <string name="settings_update_check_subtitle">Haven शुरू होने पर नया रिलीज़ खोजें, घंटे में अधिकतम एक बार। डिफ़ॉल्ट रूप से बंद।</string>
     <string name="settings_update_check_now_title">अभी जाँचें</string>
     <string name="settings_update_check_now_subtitle">GitHub से नवीनतम रिलीज़ पूछें</string>
     <string name="settings_update_checking">जाँच हो रही है…</string>

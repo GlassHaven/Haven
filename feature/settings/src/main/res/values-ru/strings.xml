@@ -484,7 +484,7 @@
     <string name="settings_credential_reset_confirm">Восстановить</string>
     <string name="settings_credential_reset_cancel">Отмена</string>
     <string name="settings_update_check_title">Проверять обновления</string>
-    <string name="settings_update_check_subtitle">Искать новый выпуск при запуске Haven, не чаще раза в сутки. По умолчанию выключено.</string>
+    <string name="settings_update_check_subtitle">Искать новый выпуск при запуске Haven, не чаще раза в час. По умолчанию выключено.</string>
     <string name="settings_update_check_now_title">Проверить сейчас</string>
     <string name="settings_update_check_now_subtitle">Запросить у GitHub последний выпуск</string>
     <string name="settings_update_checking">Проверка…</string>

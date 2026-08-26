@@ -59,16 +59,16 @@ class UpdateLaunchGateTest {
     // --- Gate 3: the throttle --------------------------------------------
 
     @Test
-    fun `a check within the last day is throttled`() {
-        val anHourAgo = now - 60 * 60 * 1000
+    fun `a check within the last hour is throttled`() {
+        val halfAnHourAgo = now - 30 * 60 * 1000
         assertEquals(
             UpdateChecker.LaunchSkip.THROTTLED,
-            UpdateChecker.shouldQuery(enabled = true, channelOf = github, lastRunMs = anHourAgo, nowMs = now),
+            UpdateChecker.shouldQuery(enabled = true, channelOf = github, lastRunMs = halfAnHourAgo, nowMs = now),
         )
     }
 
     @Test
-    fun `a check older than a day is allowed`() {
+    fun `a check older than the interval is allowed`() {
         val justOver = now - LAUNCH_CHECK_INTERVAL_MS - 1
         assertNull(UpdateChecker.shouldQuery(enabled = true, channelOf = github, lastRunMs = justOver, nowMs = now))
     }
@@ -117,7 +117,7 @@ class UpdateLaunchGateTest {
     @Test
     fun `with the throttle cleared the dedup is the only thing keeping it quiet`() {
         // This is the case the device cannot show. Clear the throttle — set the
-        // last run to two days ago — so gate 3 provably passes, and the phone
+        // last run to two intervals ago — so gate 3 provably passes, and the phone
         // would go on to query. What stops the notification now can only be the
         // dedup, and swapping ONE value flips the outcome.
         val twoDaysAgo = now - 2 * LAUNCH_CHECK_INTERVAL_MS

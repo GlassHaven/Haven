@@ -36,8 +36,18 @@ private const val MAX_RESPONSE_BYTES = 512 * 1024
 private const val CONNECT_TIMEOUT_MS = 10_000
 private const val READ_TIMEOUT_MS = 15_000
 
-/** Launch checks no oftener than this, however many times Haven is opened. */
-internal const val LAUNCH_CHECK_INTERVAL_MS = 24L * 60 * 60 * 1000
+/**
+ * Launch checks no oftener than this, however many times Haven is opened.
+ *
+ * #597: the trigger is every foreground (UpdateNotifier), so this is the only
+ * thing keeping "check on launch" from making a request on every open. One
+ * small GET per hour is a fraction of GitHub's unauthenticated 60/hour per-IP
+ * limit, and the per-version dedup already stops repeat notifications, so the
+ * interval only paces the query. 24h here meant an update released just after
+ * a check could stay invisible for a full day on a phone that opens Haven
+ * daily.
+ */
+internal const val LAUNCH_CHECK_INTERVAL_MS = 60L * 60 * 1000
 
 private const val TAG = "UpdateChecker"
 

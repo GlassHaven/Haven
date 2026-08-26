@@ -165,7 +165,7 @@
     <string name="settings_support_title">Support Haven</string>
     <string name="settings_support_subtitle">Buy the developer a coffee</string>
     <string name="settings_update_check_title">Check for updates</string>
-    <string name="settings_update_check_subtitle">Look for a newer release when Haven starts, at most once a day. Off by default.</string>
+    <string name="settings_update_check_subtitle">Look for a newer release when Haven opens, at most once an hour. Off by default.</string>
     <string name="settings_update_check_now_title">Check now</string>
     <string name="settings_update_check_now_subtitle">Ask GitHub for the newest release</string>
     <string name="settings_update_checking">Checking\u2026</string>

@@ -482,7 +482,7 @@
     <string name="settings_credential_reset_confirm">Réparer</string>
     <string name="settings_credential_reset_cancel">Annuler</string>
     <string name="settings_update_check_title">Rechercher des mises à jour</string>
-    <string name="settings_update_check_subtitle">Cherche une version plus récente au démarrage de Haven, une fois par jour au maximum. Désactivé par défaut.</string>
+    <string name="settings_update_check_subtitle">Cherche une version plus récente au démarrage de Haven, une fois par heure au maximum. Désactivé par défaut.</string>
     <string name="settings_update_check_now_title">Vérifier maintenant</string>
     <string name="settings_update_check_now_subtitle">Demander la dernière version à GitHub</string>
     <string name="settings_update_checking">Vérification…</string>

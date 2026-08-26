@@ -481,7 +481,7 @@
     <string name="settings_credential_reset_confirm">修復</string>
     <string name="settings_credential_reset_cancel">キャンセル</string>
     <string name="settings_update_check_title">アップデートを確認</string>
-    <string name="settings_update_check_subtitle">Haven の起動時に新しいリリースを探します（1 日 1 回まで）。既定ではオフ。</string>
+    <string name="settings_update_check_subtitle">Haven の起動時に新しいリリースを探します（1 時間 1 回まで）。既定ではオフ。</string>
     <string name="settings_update_check_now_title">今すぐ確認</string>
     <string name="settings_update_check_now_subtitle">最新のリリースを GitHub に問い合わせます</string>
     <string name="settings_update_checking">確認中…</string>

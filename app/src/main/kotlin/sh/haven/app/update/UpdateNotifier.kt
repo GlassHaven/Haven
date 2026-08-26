@@ -9,6 +9,9 @@ import androidx.core.net.toUri
 import android.util.Log
 import androidx.core.app.NotificationCompat
 import androidx.core.app.NotificationManagerCompat
+import androidx.lifecycle.DefaultLifecycleObserver
+import androidx.lifecycle.LifecycleOwner
+import androidx.lifecycle.ProcessLifecycleOwner
 import dagger.hilt.android.qualifiers.ApplicationContext
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.launch
@@ -28,9 +31,15 @@ private const val TAG = "UpdateNotifier"
  *
  * Every decision about whether to look at all lives in
  * [UpdateChecker.checkOnLaunch] — preference off, wrong signing key, checked
- * within the last day, or a version the user has already been told about all
+ * within the last hour, or a version the user has already been told about all
  * return null there, and this class posts nothing. So the common case is one
  * suspend call that makes no network request and touches no UI.
+ *
+ * The trigger is app foreground, not process start (#597): on a phone where
+ * Haven's process survives for days, an `Application.onCreate`-only trigger
+ * ran the check once per process lifetime, so the once-a-day throttle read as
+ * "the prompt never comes". `ProcessLifecycleOwner` fires on every open; the
+ * throttle inside `checkOnLaunch` is what paces the actual requests.
  *
  * A notification rather than a dialog: the check finishes some seconds after
  * launch, and stealing focus from whatever the user opened Haven to do is not
@@ -41,17 +50,24 @@ class UpdateNotifier @Inject constructor(
     @ApplicationContext private val context: Context,
     private val updateChecker: UpdateChecker,
 ) {
-    private val started = AtomicBoolean(false)
+    private val registered = AtomicBoolean(false)
 
     /** Idempotent; safe to call from `Application.onCreate`. */
-    fun start(scope: CoroutineScope, nowMs: Long = System.currentTimeMillis()) {
-        if (!started.compareAndSet(false, true)) return
-        scope.launch {
-            val available = runCatching { updateChecker.checkOnLaunch(nowMs) }
-                .onFailure { Log.w(TAG, "launch update check failed", it) }
-                .getOrNull() ?: return@launch
-            notify(available)
-        }
+    fun start(scope: CoroutineScope) {
+        if (!registered.compareAndSet(false, true)) return
+        ProcessLifecycleOwner.get().lifecycle.addObserver(
+            object : DefaultLifecycleObserver {
+                override fun onStart(owner: LifecycleOwner) {
+                    scope.launch {
+                        val available =
+                            runCatching { updateChecker.checkOnLaunch(System.currentTimeMillis()) }
+                                .onFailure { Log.w(TAG, "launch update check failed", it) }
+                                .getOrNull() ?: return@launch
+                        notify(available)
+                    }
+                }
+            },
+        )
     }
 
     private fun notify(available: UpdateChecker.Result.Available) {

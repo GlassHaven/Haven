@@ -280,6 +280,7 @@ dependencies {
     implementation(libs.appcompat)
     implementation(libs.activity.compose)
     implementation(libs.lifecycle.runtime)
+    implementation(libs.lifecycle.process)
     implementation(libs.biometric)
     implementation(libs.navigation.compose)
 

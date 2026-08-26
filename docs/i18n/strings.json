@@ -27629,21 +27629,21 @@
     },
     {
      "name": "settings_update_check_subtitle",
-     "en": "Look for a newer release when Haven starts, at most once a day. Off by default.",
+     "en": "Look for a newer release when Haven opens, at most once an hour. Off by default.",
      "comment": "About section",
      "args": [],
      "t": {
-      "ar": "البحث عن إصدار أحدث عند بدء Haven، مرة واحدة يوميًا على الأكثر. مُعطَّل افتراضيًا.",
-      "bn": "Haven চালু হলে নতুন রিলিজ খোঁজে, দিনে সর্বোচ্চ একবার। ডিফল্টে বন্ধ।",
-      "de": "Beim Start von Haven nach einer neueren Version suchen, höchstens einmal täglich. Standardmäßig aus.",
-      "es": "Busca una versión más reciente al iniciar Haven, como máximo una vez al día. Desactivado por defecto.",
-      "fr": "Cherche une version plus récente au démarrage de Haven, une fois par jour au maximum. Désactivé par défaut.",
-      "hi": "Haven शुरू होने पर नया रिलीज़ खोजें, दिन में अधिकतम एक बार। डिफ़ॉल्ट रूप से बंद।",
-      "ja": "Haven の起動時に新しいリリースを探します（1 日 1 回まで）。既定ではオフ。",
-      "ko": "Haven 시작 시 새 릴리스를 확인합니다. 하루 한 번까지. 기본값은 꺼짐.",
-      "pt": "Procura uma versão mais recente ao iniciar o Haven, no máximo uma vez por dia. Desativado por padrão.",
-      "ru": "Искать новый выпуск при запуске Haven, не чаще раза в сутки. По умолчанию выключено.",
-      "zh": "Haven 启动时查找新版本，每天最多一次。默认关闭。"
+      "ar": "البحث عن إصدار أحدث عند بدء Haven، مرة واحدة كل ساعة على الأكثر. مُعطَّل افتراضيًا.",
+      "bn": "Haven চালু হলে নতুন রিলিজ খোঁজে, ঘণ্টায় সর্বোচ্চ একবার। ডিফল্টে বন্ধ।",
+      "de": "Beim Start von Haven nach einer neueren Version suchen, höchstens einmal pro Stunde. Standardmäßig aus.",
+      "es": "Busca una versión más reciente al iniciar Haven, como máximo una vez por hora. Desactivado por defecto.",
+      "fr": "Cherche une version plus récente au démarrage de Haven, une fois par heure au maximum. Désactivé par défaut.",
+      "hi": "Haven शुरू होने पर नया रिलीज़ खोजें, घंटे में अधिकतम एक बार। डिफ़ॉल्ट रूप से बंद।",
+      "ja": "Haven の起動時に新しいリリースを探します（1 時間 1 回まで）。既定ではオフ。",
+      "ko": "Haven 시작 시 새 릴리스를 확인합니다. 시간에 한 번까지. 기본값은 꺼짐.",
+      "pt": "Procura uma versão mais recente ao iniciar o Haven, no máximo uma vez por hora. Desativado por padrão.",
+      "ru": "Искать новый выпуск при запуске Haven, не чаще раза в час. По умолчанию выключено.",
+      "zh": "Haven 启动时查找新版本，每小时最多一次。默认关闭。"
      }
     },
     {

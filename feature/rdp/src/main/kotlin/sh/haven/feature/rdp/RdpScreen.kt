@@ -87,7 +87,12 @@ import androidx.compose.ui.geometry.Offset
 import androidx.compose.ui.layout.boundsInParent
 import androidx.compose.ui.layout.onGloballyPositioned
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.graphics.Path
 import androidx.compose.ui.graphics.asImageBitmap
+import androidx.compose.ui.graphics.drawscope.Fill
+import androidx.compose.ui.graphics.drawscope.Stroke
+import androidx.compose.ui.graphics.drawscope.scale
+import androidx.compose.ui.graphics.drawscope.translate
 import androidx.compose.ui.graphics.drawscope.DrawScope
 import androidx.compose.ui.graphics.graphicsLayer
 import androidx.compose.ui.input.key.Key
@@ -548,6 +553,21 @@ private fun RdpViewer(
     // Touchpad-mode virtual cursor — composable scope so it survives lifts.
     var virtualCursor by remember(inputMode) { mutableStateOf(pointerPos) }
 
+    // #598: the server only sends a cursor SHAPE when the guest first moves its
+    // own cursor, so a freshly connected session has input but nothing to draw
+    // (the guest's current shape is not replayed on channel init). Until a
+    // shape arrives, draw a built-in arrow once the user has pointed somewhere.
+    // RdpViewer is torn down on disconnect, so both `remember`s reset per
+    // session. `hasReceivedCursorShape` is what bounds the fallback to the
+    // connect window: once ANY shape has been delivered, a null cursor means
+    // the guest deliberately hid it and must not be papered over with the
+    // fallback arrow.
+    var pointerActive by remember { mutableStateOf(false) }
+    var hasReceivedCursorShape by remember { mutableStateOf(false) }
+    LaunchedEffect(cursor) {
+        if (cursor != null) hasReceivedCursorShape = true
+    }
+
     // Tap-then-drag state — see VncScreen for the full rationale. RDP
     // has no long-press right-click branch, so we only need the
     // follow-up window for triggering button-1 drag.
@@ -669,6 +689,7 @@ private fun RdpViewer(
                             pass = PointerEventPass.Initial,
                         )
                         firstDown.consume()
+                        pointerActive = true
                         // #507: a canvas tap re-claims hardware-key focus from
                         // whatever took it (drawer, toolbar button) — but not
                         // while the soft keyboard is up, where moving focus
@@ -866,8 +887,8 @@ private fun RdpViewer(
                 // Server cursor overlay (#212). Draw at the touchpad-tracked
                 // virtual cursor in TOUCHPAD mode (the position the user is
                 // steering), else at the server-reported pointer position.
+                val (px, py) = if (inputMode == "TOUCHPAD") virtualCursor else pointerPos
                 if (cursorImage != null && cursor != null) {
-                    val (px, py) = if (inputMode == "TOUCHPAD") virtualCursor else pointerPos
                     drawRdpCursor(
                         cursor = cursorImage,
                         cursorW = cursor.bitmap.width,
@@ -879,6 +900,10 @@ private fun RdpViewer(
                         fbWidth = frame.width,
                         fbHeight = frame.height,
                     )
+                } else if (pointerActive && !hasReceivedCursorShape) {
+                    // #598: the server has not pushed a shape yet — draw the
+                    // built-in arrow at the tracked position instead.
+                    drawFallbackCursor(px, py, frame.width, frame.height)
                 }
             }
         }
@@ -1269,6 +1294,45 @@ private fun DrawScope.drawRdpCursor(
         dstOffset = androidx.compose.ui.unit.IntOffset(cx.toInt(), cy.toInt()),
         dstSize = androidx.compose.ui.unit.IntSize(dstW.toInt().coerceAtLeast(1), dstH.toInt().coerceAtLeast(1)),
     )
+}
+
+/**
+ * #598 fallback pointer. The guest's current cursor shape is not replayed on
+ * channel init — the first CURSOR_SET only arrives on the guest's NEXT cursor
+ * update — so a freshly connected session has working input but no glyph to
+ * draw. Until the server pushes a shape, draw a built-in arrow at the tracked
+ * position. Uses the same fit-scale/centre space as [drawRdpCursor]; the
+ * enclosing Canvas's graphicsLayer applies zoom/pan uniformly.
+ */
+private fun DrawScope.drawFallbackCursor(
+    pointerX: Int,
+    pointerY: Int,
+    fbWidth: Int,
+    fbHeight: Int,
+) {
+    val viewW = size.width
+    val viewH = size.height
+    val scale = minOf(viewW / fbWidth, viewH / fbHeight)
+    val originX = (viewW - fbWidth * scale) / 2f + pointerX * scale
+    val originY = (viewH - fbHeight * scale) / 2f + pointerY * scale
+
+    // Classic arrow in a 24x24 remote-pixel box, tip (hotspot) at (0, 0).
+    val path = Path().apply {
+        moveTo(0f, 0f)
+        lineTo(0f, 16f)
+        lineTo(4.5f, 12.5f)
+        lineTo(7.5f, 19.5f)
+        lineTo(10.5f, 18f)
+        lineTo(7.5f, 11f)
+        lineTo(13f, 11f)
+        close()
+    }
+    translate(originX, originY) {
+        scale(scale, scale) {
+            drawPath(path, Color.White, style = Fill)
+            drawPath(path, Color.Black, style = Stroke(width = 1.5f / scale))
+        }
+    }
 }
 
 /**

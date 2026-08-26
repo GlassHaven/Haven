@@ -1,0 +1,1 @@
+- The "check for a newer Haven at launch" prompt now shows up for people who keep the app resident in memory (#597, reported by @a8645322).

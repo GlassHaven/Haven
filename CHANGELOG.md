@@ -5,6 +5,16 @@ the corresponding GitHub Release; a release can't ship without its section
 (enforced by `scripts/check-changelog.sh` in CI). The GitHub "Full Changelog"
 compare link is appended automatically — don't add it here.
 
+## v5.87.62
+
+- The "check for a newer Haven at launch" prompt now shows up for people who keep the app resident in memory (#597, reported by @a8645322).
+
+- **The check was armed once per process, not once per open** (#597, reported by @a8645322). Android keeps Haven's process alive for days, and the launch check ran from the one hook that fires only when a brand-new process starts. So a process that booted right after an install ran the check once, got "up to date", and never looked again for as long as it lived. On a phone where the app rarely truly restarts, that read as "the prompt never comes".
+
+  The check now runs every time the app comes to the foreground, and the throttle that paces the actual requests went from once a day to once an hour. That is at most one small GitHub request per hour; the per-version dedup is unchanged, so you are still told about a given release only once. In practice a new release now reaches you within an hour of the next time you open the app. The toggle and the manual check work exactly as before.
+
+  Unit-tested (the throttle tests re-pinned to the new interval) and compiling. The foreground trigger itself has not yet been watched fire on a device; this is the build where you would actually see the prompt behave differently.
+
 ## v5.87.61
 
 - RDP sessions that use H.264 video, which is every KRDP session, no longer lose about 80ms per frame to moving the decoded frame between the decoder and the renderer (#466, reported by @ysalmon).

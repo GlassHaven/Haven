@@ -180,7 +180,7 @@ the agenda, and quality-checking.
 
 A small recurring amount comes in via [Ko-fi](https://ko-fi.com/glassontin)
 and [Liberapay](https://liberapay.com/GlassOnTin). It helps offset the
-Anthropic bills for the Claude Code usage above, and it's a clear
+electricity costs of running the work above, and it's a clear
 signal that the work is useful to people. The project continues
 regardless of donations.
 

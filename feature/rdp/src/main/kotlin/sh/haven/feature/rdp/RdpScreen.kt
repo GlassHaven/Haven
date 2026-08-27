@@ -81,6 +81,7 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.focus.FocusRequester
 import androidx.compose.ui.focus.focusRequester
+import androidx.compose.ui.focus.onFocusChanged
 import androidx.compose.foundation.gestures.detectDragGesturesAfterLongPress
 import androidx.compose.foundation.layout.offset
 import androidx.compose.ui.geometry.Offset
@@ -623,6 +624,26 @@ private fun RdpViewer(
     }
     LaunchedEffect(Unit) { hardwareKeyFocus.requestFocus() }
 
+    // The system re-shows the IME across a configuration change (rotation)
+    // even when the user dismissed it: this activity handles orientation in
+    // configChanges, so `keyboardVisible` survives the rotation, but the
+    // framework's re-show doesn't consult it. Enforce the invariant — the IME
+    // is up only when we asked for it — which covers all three toggle sites
+    // (key toolbar, bottom toolbar, fullscreen overlay) at once. Scoped to
+    // this screen's own focus holders: `isImeVisible` is window-global, and
+    // this content stays composed behind the other tabs, so without the scope
+    // the terminal tab's keyboard would be hidden (and its focus stolen) by
+    // this effect.
+    var canvasFocused by remember { mutableStateOf(false) }
+    var fieldFocused by remember { mutableStateOf(false) }
+    val imeVisible = WindowInsets.isImeVisible
+    LaunchedEffect(imeVisible, keyboardVisible, canvasFocused, fieldFocused) {
+        if (!keyboardVisible && imeVisible && (canvasFocused || fieldFocused)) {
+            keyboardController?.hide()
+            hardwareKeyFocus.requestFocus()
+        }
+    }
+
     // Modifier state for key toolbar
     var ctrlActive by remember { mutableStateOf(false) }
     var altActive by remember { mutableStateOf(false) }
@@ -680,6 +701,7 @@ private fun RdpViewer(
                 .background(Color.Black)
                 .focusRequester(hardwareKeyFocus)
                 .focusable()
+                .onFocusChanged { canvasFocused = it.isFocused }
                 .onSizeChanged { viewSize = it }
                 .pointerInput(frame.width, frame.height, viewSize, inputMode) {
                     val touchSlopPx = viewConfiguration.touchSlop
@@ -935,13 +957,13 @@ private fun RdpViewer(
             // whether focus sits here (soft keyboard) or on the canvas.
             modifier = Modifier
                 .size(1.dp)
-                .focusRequester(focusRequester),
+                .focusRequester(focusRequester)
+                .onFocusChanged { fieldFocused = it.isFocused },
         )
 
         // RDP key toolbar — hidden in fullscreen, and also hidden when the
         // soft keyboard isn't visible (keyboard-extension rows shouldn't eat
         // screen space when there's no keyboard to extend).
-        val imeVisible = WindowInsets.isImeVisible
         if (!fullscreen && imeVisible) {
             RdpKeyToolbar(
                 layout = toolbarLayout,

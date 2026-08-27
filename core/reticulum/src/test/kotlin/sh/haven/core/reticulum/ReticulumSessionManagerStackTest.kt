@@ -2,6 +2,7 @@ package sh.haven.core.reticulum
 
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
+import kotlinx.coroutines.runBlocking
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertFalse
 import org.junit.Assert.assertTrue
@@ -85,6 +86,29 @@ class ReticulumSessionManagerStackTest {
         assertEquals(1, transport.closeCount)
     }
 
+    @Test
+    fun `a failed connect leaves the session in ERROR, not a CONNECTING ghost`() {
+        val transport = LatchTransport()
+        val manager = manager(transport)
+        val id = manager.registerSession("profile-a", "a", "aa".repeat(16))
+
+        val thrown = runCatching {
+            runBlocking { manager.connectSession(id, "", "bad.host", 1) }
+        }.exceptionOrNull()
+
+        // The exact type is not the contract; any throw must leave ERROR behind.
+        // In a JVM unit test the `android.util.Log.w` at the top of the try
+        // throws "not mocked" before transport.init is reached, which exercises
+        // the same catch-and-mark path a real transport failure would.
+        assertTrue("connect should have thrown", thrown != null)
+        assertEquals(
+            "a failed connect must surface as ERROR so the tab shows dead and " +
+                "activeSessions stops counting it (#601)",
+            ReticulumSessionManager.SessionState.Status.ERROR,
+            manager.sessions.value[id]?.status,
+        )
+    }
+
     /** Records [closeAll] so the test can wait for work done on the IO dispatcher. */
     private class LatchTransport : ReticulumTransport {
         val closed = CountDownLatch(1)
@@ -98,7 +122,10 @@ class ReticulumSessionManagerStackTest {
             closed.countDown()
         }
 
-        override suspend fun init(configDir: String, host: String, port: Int, ifacNetname: String?, ifacNetkey: String?, socketDialer: ((String, Int, Int) -> java.net.Socket)?): String = ""
+        // Throws: connectSession must translate this into an ERROR status
+        // rather than leaving the entry CONNECTING (#601).
+        override suspend fun init(configDir: String, host: String, port: Int, ifacNetname: String?, ifacNetkey: String?, socketDialer: ((String, Int, Int) -> java.net.Socket)?): String =
+            throw IllegalStateException("no stack in this test")
         override val isInitialised: Boolean = false
         override suspend fun openSession(destinationHash: String, rows: Int, cols: Int): RnshShellSession = throw NotImplementedError()
         override suspend fun execCommand(destinationHash: String, command: List<String>): ReticulumExecSession = throw NotImplementedError()

@@ -88,16 +88,32 @@ class ReticulumSessionManager @Inject constructor(
         val session = _sessions.value[sessionId]
             ?: throw IllegalStateException("Session $sessionId not found")
 
-        // Init Reticulum (idempotent — safe to call multiple times)
-        Log.w(TAG, "initReticulum: host=${LogRedact.of(host)} port=$port ifac=${ifacNetname != null} tunnel=${socketDialer != null}")
-        val identityHash = transport.init(configDir, host, port, ifacNetname, ifacNetkey, socketDialer)
-        Log.w(TAG, "initReticulum OK, identity=$identityHash")
+        // A failure here must be visible in the sessions StateFlow, not only
+        // in the thrown exception. `registerSession` marks the entry CONNECTING
+        // and `activeSessions` counts CONNECTING, so a session whose connect
+        // throws without updating status stays a permanent ghost: it is
+        // rendered as a live tab and keeps the stack-shutdown idle check from
+        // firing (#601, where a failed duplicate-tab connect "is still counted
+        // as active"). The catch rethrows so callers keep their current
+        // handling; ConnectionsViewModel's removeSession-on-error then also
+        // finds the session in ERROR rather than CONNECTING.
+        val identityHash: String
+        val shellSession: RnshShellSession
+        try {
+            Log.w(TAG, "initReticulum: host=${LogRedact.of(host)} port=$port ifac=${ifacNetname != null} tunnel=${socketDialer != null}")
+            // Init Reticulum (idempotent — safe to call multiple times)
+            identityHash = transport.init(configDir, host, port, ifacNetname, ifacNetkey, socketDialer)
+            Log.w(TAG, "initReticulum OK, identity=$identityHash")
 
-        // Open shell session (resolves destination + Link + handshake)
-        Log.w(TAG, "Opening session to ${session.destinationHash}...")
-        val shellSession = transport.openSession(
-            destinationHash = session.destinationHash,
-        )
+            // Open shell session (resolves destination + Link + handshake)
+            Log.w(TAG, "Opening session to ${session.destinationHash}...")
+            shellSession = transport.openSession(
+                destinationHash = session.destinationHash,
+            )
+        } catch (e: Exception) {
+            updateStatus(sessionId, SessionState.Status.ERROR)
+            throw e
+        }
 
         // Store the shell session reference for terminal wiring
         _sessions.update { map ->

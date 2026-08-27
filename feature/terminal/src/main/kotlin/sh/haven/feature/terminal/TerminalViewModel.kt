@@ -2778,24 +2778,46 @@ class TerminalViewModel @Inject constructor(
         val label = activeTab.label
         viewModelScope.launch {
             _newTabLoading.value = true
+            var sessionId: String? = null
             try {
-                val sessionId = reticulumSessionManager.registerSession(
+                // Re-issue the profile's own stack parameters, not blanks.
+                // The stack is already up, so a blank host:0 is classified as
+                // a gateway request: against a shared-instance stack that is
+                // rejected outright (IllegalStateException), and against a
+                // gateway stack it registers a bogus "<blank>:0" interface
+                // instead of reusing the live one (#601). connectSession
+                // matches the running stack by host/port, so the profile's
+                // values return AlreadySatisfied and only a genuinely new
+                // gateway gets an interface added.
+                val profile = connectionRepository.getById(profileId)
+                val configDir = java.io.File(
+                    appContext.filesDir, "reticulum",
+                ).apply { mkdirs() }.absolutePath
+                sessionId = reticulumSessionManager.registerSession(
                     profileId = profileId,
                     label = label,
                     destinationHash = rnsSession.destinationHash,
                 )
                 withContext(Dispatchers.IO) {
                     reticulumSessionManager.connectSession(
-                        sessionId = sessionId,
-                        configDir = "", // Already initialised
-                        host = "",
-                        port = 0,
+                        sessionId = sessionId!!,
+                        configDir = configDir,
+                        host = profile?.reticulumHost ?: "",
+                        port = profile?.reticulumPort ?: 0,
+                        ifacNetname = profile?.reticulumNetworkName,
+                        ifacNetkey = profile?.reticulumPassphrase,
+                        socketDialer = profile?.let { tunnelResolver.socketDialer(it) },
                     )
                 }
                 syncSessions()
                 selectTabBySessionId(sessionId)
             } catch (e: Exception) {
                 Log.e(TAG, "addReticulumTab failed", e)
+                // Drop the registered entry so a failed duplicate doesn't sit
+                // in the sessions map as a dead tab (the ERROR status added in
+                // connectSession also stops it counting as active, but the
+                // tab should not be there at all).
+                sessionId?.let { reticulumSessionManager.removeSession(it) }
                 _newTabMessage.value = appContext.getString(
                     R.string.terminal_new_tab_connection_failed,
                     e.message ?: e.javaClass.simpleName,

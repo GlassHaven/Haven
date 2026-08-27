@@ -5,6 +5,21 @@ the corresponding GitHub Release; a release can't ship without its section
 (enforced by `scripts/check-changelog.sh` in CI). The GitHub "Full Changelog"
 compare link is appended automatically — don't add it here.
 
+## v5.87.64
+
+- RDP pinch-zoom no longer shrinks the remote screen below full size (#600, reported by @ysalmon).
+- A fresh SPICE session now shows a mouse pointer from the first frame instead of an invisible cursor until you move it (#598).
+- Opening a Reticulum session to a destination that is already open no longer fails; the duplicate reuses the running stack (#601, reported by @Slayerx96).
+- Dismissing the on-screen keyboard on the RDP screen now survives rotation.
+
+- **RDP zoom-out shrank the screen into the letterbox** (#600, reported by @ysalmon). Below 1x the extra zoom only grows the black bars around the remote frame; it never reveals more of the screen. The pinch clamp now floors at 1x, the same floor the VNC viewer uses in cover mode.
+
+- **SPICE showed no cursor until the guest moved the mouse** (#598). The QXL/SPICE server does not replay the guest's current cursor to a newly connected client; the first cursor shape arrives on the guest's next update. Input worked the whole time, there was just no glyph to draw. The client now draws a built-in arrow at the tracked position until the server delivers a shape; once any shape has arrived the server is authoritative and a hidden cursor stays hidden.
+
+- **A second Reticulum tab was rejected instead of reusing the stack** (#601, reported by @Slayerx96). The duplicate connect passed blank host and port into the stack planner, which reads that as a request for a new gateway: refused outright against a shared instance, and against a gateway it would have added a bogus `<blank>:0` interface. The duplicate now issues the profile's own host, port, network and dialer, so the planner matches the running stack. A failed connect also stops leaving a dead tab counted as active: the session is marked errored and dropped.
+
+- **A dismissed on-screen keyboard came back after rotation** in the RDP viewer. Android re-shows the IME on a configuration change even when the user had hidden it. The viewer now re-hides it when the rotation restores the keyboard without anyone asking for it, scoped to the RDP screen's own focus holders so it never touches the terminal tab's keyboard.
+
 ## v5.87.63
 
 - A Reticulum shell session whose link dies now disconnects cleanly and drops the tab, instead of freezing with a dead input line (#599, split out of #588).

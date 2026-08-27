@@ -1,0 +1,4 @@
+- RDP pinch-zoom no longer shrinks the remote screen below full size (#600, reported by @ysalmon).
+- A fresh SPICE session now shows a mouse pointer from the first frame instead of an invisible cursor until you move it (#598).
+- Opening a Reticulum session to a destination that is already open no longer fails; the duplicate reuses the running stack (#601, reported by @Slayerx96).
+- Dismissing the on-screen keyboard on the RDP screen now survives rotation.

@@ -173,7 +173,7 @@ lifting was done long before this repo existed.
 
 Most of the direction Haven has taken has come from the user base, not
 from a roadmap: bug reports, screenshots of edge cases, "have you
-tried…" comments on long issue threads. Claude Code Opus writes most
+tried…” comments on long issue threads. Qwen3.8-Flash writes most
 of the actual code; the maintainer's role is closer to that of a
 messenger between the user group and the model — listening, setting
 the agenda, and quality-checking.

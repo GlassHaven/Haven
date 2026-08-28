@@ -144,6 +144,10 @@ Output: `app/build/outputs/apk/debug/haven-*-debug.apk`
 - [Backup file format](docs/backup-format.md) — wire format, the
   PBKDF2/AES-GCM envelope, and a Python recipe for manual decryption
   if the in-app importer fails.
+- [Maintainer Protocol](.claude/skills/maintain/SKILL.md) — the `/maintain`
+  skill driving Haven's maintenance loop (CI triage, release readiness, issue
+  response, and dependency tracking) run by Qwen3.8-Flash running locally, with
+  daily supervisory audit passes performed by Gemini 3.7 Flash.
 - [Release process](RELEASE.md) — versioning, tagging, and F-Droid steps.
 - [Privacy policy](PRIVACY_POLICY.md).
 - [Vision](VISION.md).

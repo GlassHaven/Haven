@@ -37550,7 +37550,7 @@
       "bn": "সম্পাদিকায় খোলার জন্য ফাইলটি অনেক বড় (%1$s)। সীমা 20 এমবি।",
       "de": "Die Datei ist zu groß für den Editor (%1$s). Das Limit beträgt 20 MB.",
       "es": "El archivo es demasiado grande para abrirlo en el editor (%1$s). El límite es 20 MB.",
-      "fr": "Fichier trop volumineux pour l'éditeur (%1$s). La limite est de 20 Mo.",
+      "fr": "Fichier trop volumineux pour l\\'éditeur (%1$s). La limite est de 20 Mo.",
       "hi": "संपादक में खोलने के लिए फ़ाइल बहुत बड़ी है (%1$s)। सीमा 20 MB है।",
       "ja": "ファイルが大きすぎてエディターで開けません (%1$s)。上限は 20 MB です。",
       "ko": "파일이 너무 커서 편집기에 열 수 없습니다 (%1$s). 제한은 20MB입니다.",

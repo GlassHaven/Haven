@@ -37,7 +37,10 @@ build-ffmpeg/spike/build/
 build-ffmpeg/spike/src/main/jniLibs/
 build-ffmpeg/build.log
 build-ffmpeg/dep-*.log
-.claude/
+.claude/*
+!.claude/skills/
+.agents/plugins/
+.agents/**/mcp_config.json
 
 # Personal dev notes — never committed
 DEV.local.md

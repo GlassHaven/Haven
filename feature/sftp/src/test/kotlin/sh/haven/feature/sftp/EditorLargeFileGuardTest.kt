@@ -116,6 +116,22 @@ class EditorLargeFileGuardTest {
     }
 
     @Test
+    fun `agent-opened partial entry is stat'd and refused`() = runTest(dispatcher) {
+        coEvery { fakeBackend.stat(any()) } returns entry(58L * 1024 * 1024)
+        val vm = newViewModel()
+        advanceUntilIdle()
+
+        // AgentUiCommand.OpenInEditor builds the entry with size=0.
+        vm.openInEditor(entry(0L))
+        advanceUntilIdle()
+
+        val state = vm.editorFile.value
+        assertTrue("expected Error, got $state", state is SftpViewModel.EditorFileState.Error)
+        assertEquals("TOO_LARGE", (state as SftpViewModel.EditorFileState.Error).message)
+        coVerify(exactly = 0) { fakeBackend.readBytes(any()) }
+    }
+
+    @Test
     fun `formatSizeForMessage renders compact sizes`() {
         assertEquals("58 MB", SftpViewModel.formatSizeForMessage(58L * 1024 * 1024))
         assertEquals("1.5 KB", SftpViewModel.formatSizeForMessage(1536L))

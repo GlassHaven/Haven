@@ -809,6 +809,19 @@ class SftpViewModel @Inject constructor(
         viewModelScope.launch {
             try {
                 val backend = currentFileBackend() ?: throw IllegalStateException("Not connected")
+                // Callers without a directory listing (the agent OpenInEditor
+                // command) build a partial entry with size=0, which would
+                // sail past the check above into the same whole-file read
+                // that crashed v5.87.63. Stat when the size is unknown so
+                // the cap always sees the real value.
+                val size = if (entry.size > 0L) entry.size else backend.stat(entry.path).size
+                if (size > EDITOR_MAX_FILE_BYTES) {
+                    editorEntry = null
+                    _editorFile.value = EditorFileState.Error(
+                        appContext.getString(R.string.sftp_file_too_large_for_editor, formatSizeForMessage(size)),
+                    )
+                    return@launch
+                }
                 val content = backend.readBytes(entry.path).toString(Charsets.UTF_8)
                 _editorFile.value = EditorFileState.Open(entry.name, entry.path, content)
             } catch (e: Exception) {

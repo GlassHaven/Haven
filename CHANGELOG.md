@@ -5,6 +5,11 @@ the corresponding GitHub Release; a release can't ship without its section
 (enforced by `scripts/check-changelog.sh` in CI). The GitHub "Full Changelog"
 compare link is appended automatically — don't add it here.
 
+## v5.87.69
+
+- **SuperSpeed flash drives now work over OTG** (#506). A USB 3 flash drive exported to the Linux workspace was announced at the wrong speed, so the guest rejected it ("Invalid ep0 maxpacket: 9") and the drive never appeared. Haven now detects the drive's real speed from its descriptors and imports it at SuperSpeed.
+- **Copying terminal text is no longer cut at pipe characters** (#581). Lines of ordinary output (file listings, paths, tables) that happened to line their | characters up in a column were mistaken for a panel border, so the copy silently stopped at those columns. Only Unicode box-drawing characters count as borders now.
+
 ## v5.87.68
 
 - **Opening a large file from the Files tab no longer crashes Haven** (user-reported). Opening a file over 20 MB in the editor read the whole file into memory and killed the app (reproduced with a 58 MB JSON export). Oversized files are now refused before any data is read, with a message naming the file size and the limit, including when the file is opened by an agent over MCP.

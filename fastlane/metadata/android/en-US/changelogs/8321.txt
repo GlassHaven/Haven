@@ -1,0 +1,2 @@
+- SuperSpeed flash drives now work over OTG (#506). A USB 3 drive was announced at the wrong speed when exported to the Linux workspace, so the guest rejected it and the drive never appeared.
+- Copying terminal text is no longer cut at pipe characters (#581). Ordinary output with | characters in a column was mistaken for a panel border; only Unicode box-drawing characters count as borders now.

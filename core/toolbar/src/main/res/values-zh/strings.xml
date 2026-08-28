@@ -29,4 +29,5 @@
     <string name="toolbar_presets_label">预设</string>
     <string name="toolbar_custom_key_label_placeholder">例如 ^C、Paste</string>
     <string name="toolbar_text_input_desc">打开悬浮文本输入</string>
+    <string name="toolbar_dictate_desc">听写：开始语音输入</string>
 </resources>

@@ -150,4 +150,5 @@
     <string name="terminal_details_copied">위치를 복사했습니다</string>
     <string name="terminal_details_unavailable">이 탭의 연결 정보를 읽을 수 없습니다.</string>
     <string name="terminal_mouse_requested_but_disabled">이 앱이 마우스를 요청합니다. 사용하려면 설정 → 터미널에서 “TUI 앱의 마우스 입력”을 켜세요.</string>
+    <string name="terminal_dictate_unavailable">이 기기에는 사용할 수 있는 음성 입력 앱이 없습니다</string>
 </resources>

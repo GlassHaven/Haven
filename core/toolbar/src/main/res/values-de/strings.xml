@@ -32,4 +32,5 @@
     <string name="toolbar_presets_label">Vorlagen</string>
     <string name="toolbar_custom_key_label_placeholder">z. B. ^C, Einfügen</string>
     <string name="toolbar_text_input_desc">Schwebende Texteingabe öffnen</string>
+    <string name="toolbar_dictate_desc">Diktat: Spracheingabe starten</string>
 </resources>

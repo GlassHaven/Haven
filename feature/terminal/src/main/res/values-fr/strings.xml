@@ -149,4 +149,5 @@
     <string name="terminal_details_copied">Emplacement copié</string>
     <string name="terminal_details_unavailable">Impossible de lire les détails de connexion de cet onglet.</string>
     <string name="terminal_mouse_requested_but_disabled">Cette appli demande la souris. Activez « Souris dans les applis TUI » dans Réglages → Terminal pour l’utiliser.</string>
+    <string name="terminal_dictate_unavailable">Aucune application de saisie vocale n'est disponible sur cet appareil</string>
 </resources>

@@ -33,6 +33,7 @@ import androidx.compose.material.icons.filled.Keyboard
 import androidx.compose.material.icons.filled.LastPage
 import androidx.compose.material.icons.filled.Lock
 import androidx.compose.material.icons.filled.LockOpen
+import androidx.compose.material.icons.filled.Mic
 import androidx.compose.material3.ButtonDefaults
 import androidx.compose.material3.FilledTonalButton
 import androidx.compose.material3.Icon
@@ -215,6 +216,13 @@ data class ToolbarCallbacks(
      * with the normal IME and sent to the session in one shot.
      */
     val onOpenTextInput: () -> Unit = {},
+    /**
+     * Tap on the Dictate (microphone) key (#604). Launches the system speech
+     * recognizer directly — unlike the Voice lock toggle, this does not depend
+     * on the active IME having a mic, so it works on devices that force their
+     * own keyboard (Supernote + Futo, etc.).
+     */
+    val onDictateTap: () -> Unit = {},
 )
 
 val LocalToolbarCallbacks = compositionLocalOf<ToolbarCallbacks> {
@@ -290,6 +298,7 @@ fun KeyboardToolbar(
     onToggleSwipeArrows: () -> Unit = {},
     onAttachTap: () -> Unit = {},
     onOpenTextInput: () -> Unit = {},
+    onDictateTap: () -> Unit = {},
     modifier: Modifier = Modifier,
 ) {
     var shiftActive by remember { mutableStateOf(false) }
@@ -366,6 +375,7 @@ fun KeyboardToolbar(
         },
         onAttachTap = onAttachTap,
         onOpenTextInput = onOpenTextInput,
+        onDictateTap = onDictateTap,
     )
 
     CompositionLocalProvider(
@@ -1099,6 +1109,11 @@ private fun BuiltInKey(
             description = stringResource(R.string.toolbar_text_input_desc),
             onClick = cb.onOpenTextInput,
         )
+        ToolbarKey.VOICE_INPUT -> ToolbarIconButton(
+            icon = Icons.Filled.Mic,
+            description = stringResource(R.string.toolbar_dictate_desc),
+            onClick = cb.onDictateTap,
+        )
         ToolbarKey.SHIFT -> ToolbarToggleButton("Shift", shiftActive, onClick = cb.onToggleShift)
         ToolbarKey.CTRL -> ToolbarToggleButton(
             "Ctrl",
@@ -1413,6 +1428,7 @@ private fun keyIcon(key: ToolbarKey): ImageVector? = when (key) {
     ToolbarKey.ATTACH -> Icons.Filled.AttachFile
     ToolbarKey.TEXT_INPUT -> Icons.Filled.EditNote
     ToolbarKey.VOICE_KEYBOARD -> Icons.Filled.Lock
+    ToolbarKey.VOICE_INPUT -> Icons.Filled.Mic
     ToolbarKey.HOME -> Icons.Filled.FirstPage
     ToolbarKey.END -> Icons.Filled.LastPage
     else -> null
@@ -1440,6 +1456,7 @@ private fun toolbarKeyVisual(item: ToolbarItem): KeyVisual = when (item) {
         ToolbarKey.ATTACH -> KeyVisual.IconV(Icons.Filled.AttachFile, null)
         ToolbarKey.TEXT_INPUT -> KeyVisual.IconV(Icons.Filled.EditNote, null)
         ToolbarKey.VOICE_KEYBOARD -> KeyVisual.IconV(Icons.Filled.Lock, null)
+        ToolbarKey.VOICE_INPUT -> KeyVisual.IconV(Icons.Filled.Mic, null)
         ToolbarKey.COMPOSE -> KeyVisual.TextV("中", glyph = true)
         ToolbarKey.HOME -> KeyVisual.IconV(Icons.Filled.FirstPage, "Home")
         ToolbarKey.END -> KeyVisual.IconV(Icons.Filled.LastPage, "End")

@@ -28,6 +28,10 @@
         <intent>
             <action android:name="android.virtualization.VM_TERMINAL" />
         </intent>
+        <!-- #604: Dictate key — resolve a speech recognizer to launch. -->
+        <intent>
+            <action android:name="android.speech.action.RECOGNIZE_SPEECH" />
+        </intent>
     </queries>
 
     <application

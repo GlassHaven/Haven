@@ -15,6 +15,11 @@ enum class ToolbarKey(val id: String, val label: String, val isModifier: Boolean
     SNIPPETS("snippets", "Snippets", isAction = true),
     ATTACH("attach", "Attach", isAction = true),
     VOICE_KEYBOARD("voice_kb", "Voice", isAction = true),
+    // #604: starts the system speech recognizer directly instead of flipping
+    // IME flags, so dictation works on devices whose forced keyboard has no
+    // mic (Supernote + Futo). Distinct key, distinct id — the Voice lock
+    // toggle keeps its old behaviour for Gboard users.
+    VOICE_INPUT("voice_input", "Dictate", isAction = true),
     RAW_KEYBOARD("raw_kb", "Raw", isAction = true),
     COMPOSE("compose_kb", "Compose", isAction = true),
     SHIFT("shift", "Shift", isModifier = true),

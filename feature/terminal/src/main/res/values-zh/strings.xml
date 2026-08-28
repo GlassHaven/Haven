@@ -149,4 +149,5 @@
     <string name="terminal_details_copied">已复制位置信息</string>
     <string name="terminal_details_unavailable">无法读取此标签页的连接详情。</string>
     <string name="terminal_mouse_requested_but_disabled">此应用正在请求鼠标。请在设置 → 终端中开启“TUI 应用中的鼠标输入”。</string>
+    <string name="terminal_dictate_unavailable">此设备上没有可用的语音输入应用</string>
 </resources>

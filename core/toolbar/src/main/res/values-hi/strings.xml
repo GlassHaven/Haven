@@ -32,4 +32,5 @@
     <string name="toolbar_presets_label">Presets</string>
     <string name="toolbar_custom_key_label_placeholder">उदा. ^C, Paste</string>
     <string name="toolbar_text_input_desc">फ़्लोटिंग टेक्स्ट इनपुट खोलें</string>
+    <string name="toolbar_dictate_desc">बोलकर लिखें: वॉइस इनपुट शुरू करें</string>
 </resources>

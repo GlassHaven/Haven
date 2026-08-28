@@ -377,6 +377,29 @@ fun TerminalScreen(
         )
     }
 
+    // #604: Dictate key. Launches the system speech recognizer directly
+    // (RecognizerIntent) instead of flipping IME flags, so dictation works on
+    // devices that force a keyboard with no mic of their own (Supernote +
+    // Futo). The recognition service owns the microphone and its own
+    // RECORD_AUDIO grant; Haven only receives the transcript and sends it to
+    // the active tab. Empty result = user cancelled or silence — stay quiet.
+    val dictateLauncher = androidx.activity.compose.rememberLauncherForActivityResult(
+        androidx.activity.result.contract.ActivityResultContracts.StartActivityForResult()
+    ) { result ->
+        val spoken = if (result.resultCode == Activity.RESULT_OK) {
+            result.data
+                ?.getStringArrayListExtra(android.speech.RecognizerIntent.EXTRA_RESULTS)
+                ?.firstOrNull()
+        } else null
+        if (!spoken.isNullOrEmpty()) {
+            val tab = viewModel.tabs.value.getOrNull(viewModel.activeTabIndex.value)
+            if (tab != null) {
+                tab.sendInput(bracketPasteWrap(spoken, tab.bracketPasteMode.value).toByteArray())
+            }
+        }
+    }
+    val dictateUnavailableMessage = stringResource(R.string.terminal_dictate_unavailable)
+
     // Paperclip → bottom sheet → camera / gallery → recognise → paste.
     //
     // The bottom sheet hosts the SAF "send file" entry alongside four
@@ -1875,6 +1898,33 @@ fun TerminalScreen(
                         onToggleComposeMode = { composeController?.toggleComposeMode() },
                         onAttachTap = { attachSheetVisible = true },
                         onOpenTextInput = { textInputDialogVisible = true },
+                        onDictateTap = {
+                            // #604: resolve a speech recognizer explicitly
+                            // rather than startActivity(ACTION_RECOGNIZE_SPEECH)
+                            // blind — some devices (Supernote) ship none, and
+                            // the intent resolver also lets the user pick one
+                            // if several are installed.
+                            val recognize = android.content.Intent(
+                                android.speech.RecognizerIntent.ACTION_RECOGNIZE_SPEECH,
+                            ).apply {
+                                putExtra(
+                                    android.speech.RecognizerIntent.EXTRA_LANGUAGE_MODEL,
+                                    android.speech.RecognizerIntent.LANGUAGE_MODEL_FREE_FORM,
+                                )
+                            }
+                            val chooser = recognize.resolveActivity(context.packageManager)?.let {
+                                android.content.Intent.createChooser(recognize, null)
+                            }
+                            if (chooser != null) {
+                                dictateLauncher.launch(chooser)
+                            } else {
+                                android.widget.Toast.makeText(
+                                    context,
+                                    dictateUnavailableMessage,
+                                    android.widget.Toast.LENGTH_LONG,
+                                ).show()
+                            }
+                        },
                         selectionContent = selectionController?.let { ctrl -> {
                             SelectionToolbarContent(
                                 controller = ctrl,

@@ -149,4 +149,5 @@
     <string name="terminal_details_copied">Ubicación copiada</string>
     <string name="terminal_details_unavailable">No se pudieron leer los detalles de conexión de esta pestaña.</string>
     <string name="terminal_mouse_requested_but_disabled">Esta app pide el ratón. Activa “Entrada de ratón en apps TUI” en Ajustes → Terminal para usarlo.</string>
+    <string name="terminal_dictate_unavailable">No hay ninguna app de entrada de voz disponible en este dispositivo</string>
 </resources>

@@ -6142,6 +6142,25 @@
      }
     },
     {
+     "name": "toolbar_dictate_desc",
+     "en": "Dictate: start voice input",
+     "comment": "Strings added for issue #210 localisation",
+     "args": [],
+     "t": {
+      "ar": "إملاء: بدء الإدخال الصوتي",
+      "bn": "ডিক্টেশন: ভয়েস ইনপুট চালু করুন",
+      "de": "Diktat: Spracheingabe starten",
+      "es": "Dictar: iniciar entrada de voz",
+      "fr": "Dictée : lancer la saisie vocale",
+      "hi": "बोलकर लिखें: वॉइस इनपुट शुरू करें",
+      "ja": "音声入力: ディクテーション開始",
+      "ko": "구두 입력: 음성 입력 시작",
+      "pt": "Ditar: iniciar entrada de voz",
+      "ru": "Диктовка: начать голосовой ввод",
+      "zh": "听写：开始语音输入"
+     }
+    },
+    {
      "name": "toolbar_text_input_desc",
      "en": "Open floating text input",
      "comment": "Strings added for issue #210 localisation",
@@ -38537,6 +38556,25 @@
       "pt": "Host",
       "ru": "Хост",
       "zh": "主机"
+     }
+    },
+    {
+     "name": "terminal_dictate_unavailable",
+     "en": "No voice input app is available on this device",
+     "comment": "Common",
+     "args": [],
+     "t": {
+      "ar": "لا يتوفر أي تطبيق للإدخال الصوتي على هذا الجهاز",
+      "bn": "এই ডিভাইসে কোনো ভয়েস ইনপুট অ্যাপ নেই",
+      "de": "Auf diesem Gerät ist keine App für Spracheingabe verfügbar",
+      "es": "No hay ninguna app de entrada de voz disponible en este dispositivo",
+      "fr": "Aucune application de saisie vocale n'est disponible sur cet appareil",
+      "hi": "इस डिवाइस पर कोई वॉइस इनपुट ऐप उपलब्ध नहीं है",
+      "ja": "このデバイスでは音声入力アプリを利用できません",
+      "ko": "이 기기에는 사용할 수 있는 음성 입력 앱이 없습니다",
+      "pt": "Nenhum app de entrada de voz está disponível neste dispositivo",
+      "ru": "На этом устройстве нет доступного приложения для голосового ввода",
+      "zh": "此设备上没有可用的语音输入应用"
      }
     },
     {

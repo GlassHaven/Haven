@@ -27,4 +27,5 @@
     <string name="toolbar_presets_label">프리셋</string>
     <string name="toolbar_custom_key_label_placeholder">예: ^C, Paste</string>
     <string name="toolbar_text_input_desc">플로팅 텍스트 입력 열기</string>
+    <string name="toolbar_dictate_desc">구두 입력: 음성 입력 시작</string>
 </resources>

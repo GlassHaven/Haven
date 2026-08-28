@@ -32,4 +32,5 @@
     <string name="toolbar_presets_label">Шаблоны</string>
     <string name="toolbar_custom_key_label_placeholder">напр. ^C, Paste</string>
     <string name="toolbar_text_input_desc">Открыть плавающее поле ввода</string>
+    <string name="toolbar_dictate_desc">Диктовка: начать голосовой ввод</string>
 </resources>

@@ -18,6 +18,7 @@
     <string name="common_password">Password</string>
     <string name="common_port">Port</string>
     <string name="common_host">Host</string>
+    <string name="terminal_dictate_unavailable">No voice input app is available on this device</string>
     <string name="common_username">Username</string>
     <string name="common_install">Install</string>
     <string name="common_reset">Reset</string>

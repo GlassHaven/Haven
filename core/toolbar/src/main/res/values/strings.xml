@@ -28,6 +28,7 @@
     <string name="toolbar_keyboard_standard_desc">Standard keyboard (voice, suggestions, autocorrect on)</string>
     <string name="toolbar_keyboard_secure_desc">Secure keyboard (no suggestions, no autocorrect)</string>
     <string name="toolbar_attach_desc">Attach file to send to remote</string>
+    <string name="toolbar_dictate_desc">Dictate: start voice input</string>
     <string name="toolbar_text_input_desc">Open floating text input</string>
     <string name="toolbar_presets_label">Presets</string>
     <string name="toolbar_custom_key_label_placeholder">e.g. ^C, Paste</string>

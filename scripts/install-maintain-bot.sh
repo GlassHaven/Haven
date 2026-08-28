@@ -196,6 +196,8 @@ set -e
 
 export HOME="/home/haven-bot"
 export CLAUDE_PROJECT_DIR="/home/haven-bot/Code/Haven"
+export TMPDIR="/home/haven-bot/tmp"
+export XDG_CACHE_HOME="/home/haven-bot/.cache"
 
 # Toolchains
 export ANDROID_HOME="/home/ian/Android/Sdk"

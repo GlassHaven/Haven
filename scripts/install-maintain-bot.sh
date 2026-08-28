@@ -203,8 +203,13 @@ bot_config_path = '${BOT_HOME}/.claude.json'
 if os.path.exists(ian_config_path):
     with open(ian_config_path, 'r') as f:
         cfg = json.load(f)
-    # Strip heavy MCP servers to prevent prompt schema bloat
-    cfg['mcpServers'] = {}
+    # Configure Haven device MCP server (strip other external MCP servers to prevent prompt schema bloat)
+    cfg['mcpServers'] = {
+        "haven": {
+            "type": "http",
+            "url": "http://127.0.0.1:8788/mcp"
+        }
+    }
     cfg['hasCompletedOnboarding'] = True
     with open(bot_config_path, 'w') as f:
         json.dump(cfg, f, indent=2)

@@ -87,20 +87,41 @@ class SmartCopyTest {
 
     @Test
     fun `TUI border columns restrict copied text to the selected panel`() {
-        // Three rows, each with a vertical-bar border at column 6, and the
-        // selection anchored on the left panel ("left  "). The right panel
+        // Three rows, each with a Unicode box-drawing border at column 6, and
+        // the selection anchored on the left panel ("left  "). The right panel
         // ("right", "data", "more") must NOT appear in the copied text.
         val out = smartCopy(
             controller(SelectionRange(startRow = 0, startCol = 0, endRow = 2, endCol = 5)),
             emulator(
                 listOf(
-                    "left  | right",
-                    "line2 | data ",
-                    "line3 | more ",
+                    "left  │ right",
+                    "line2 │ data ",
+                    "line3 │ more ",
                 ),
             ),
         )
         assertEquals("left\nline2\nline3", out)
+    }
+
+    @Test
+    fun `ascii pipe columns do not trigger panel stripping (#581)`() {
+        // Reporter's shape: a block of content lines whose column of '|' is
+        // consistent (ls output, paths, tables). The old border check accepted
+        // ASCII '|', so copying this pasted fragments cut at the pipe column.
+        // The whole selection must now come through verbatim.
+        val lines = listOf(
+            "1705 | /usr/bin/gcc       | 2024-01-02 | 1.2M",
+            "1706 | /usr/bin/g++       | 2024-01-02 | 1.2M",
+            "1707 | /usr/bin/ld        | 2024-01-02 | 900K",
+        )
+        val out = smartCopy(
+            controller(
+                SelectionRange(startRow = 0, startCol = 0, endRow = 2, endCol = 44),
+                selectedText = lines.joinToString("\n"),
+            ),
+            emulator(lines),
+        )
+        assertEquals(lines.joinToString("\n"), out)
     }
 
     @Test
@@ -161,9 +182,9 @@ class SmartCopyTest {
             ),
             emulator(
                 listOf(
-                    "left  | right",
-                    "line2 | data ",
-                    "line3 | more ",
+                    "left  │ right",
+                    "line2 │ data ",
+                    "line3 │ more ",
                 ),
             ),
         )

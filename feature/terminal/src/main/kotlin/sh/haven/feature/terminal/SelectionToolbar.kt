@@ -286,9 +286,16 @@ private fun getSnapshotLines(
     }
 }
 
-/** True if the character is a vertical box-drawing border. */
+/**
+ * True if the character is a vertical box-drawing border.
+ *
+ * The plain ASCII pipe is deliberately NOT a border (#581): TUI panels draw
+ * with Unicode box-drawing characters, while '|' in ordinary content (paths,
+ * command output) at a consistent column used to trigger panel stripping and
+ * silently cut the copied text at those columns.
+ */
 private fun isVerticalBorder(ch: Char): Boolean {
-    return ch == '│' || ch == '┃' || ch == '║' || ch == '|' ||
+    return ch == '│' || ch == '┃' || ch == '║' ||
         ch == '┆' || ch == '┇' || ch == '┊' || ch == '┋'
 }
 

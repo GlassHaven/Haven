@@ -5,6 +5,12 @@ the corresponding GitHub Release; a release can't ship without its section
 (enforced by `scripts/check-changelog.sh` in CI). The GitHub "Full Changelog"
 compare link is appended automatically — don't add it here.
 
+## v5.87.70
+
+- **Security keys (sk-) now work through agent forwarding** (#602). A server whose authorized_keys entry is an sk-* FIDO2 key could not be reached with "Forward authentication agent" on: the agent refused the key types it didn't recognise. Forwarded requests for security-key identities are now answered by the same on-device FIDO logic as direct connections, including the per-sign touch prompt, and an unsupported request fails cleanly instead of wedging the session.
+- **A second Reticulum tab no longer ends up as a live session with no terminal** (#601). The duplicate connect succeeded but the terminal could miss its shell and never attach, leaving the notification counting a session the screen didn't show. The shell is now published before the session is marked connected, and any attach that still skips says why in the logs.
+- **USB-drive VM failures now name the failed stage** (#506). "sshd never answered on 127.0.0.1:<port>" left no way to tell whether the VM's network or its SSH server was at fault. The VM retries its internal address until it has one, and the error now says "no network inside the VM", "SSH server did not start", or "port forward did not relay" instead.
+
 ## v5.87.69
 
 - **SuperSpeed flash drives now work over OTG** (#506). A USB 3 flash drive exported to the Linux workspace was announced at the wrong speed, so the guest rejected it ("Invalid ep0 maxpacket: 9") and the drive never appeared. Haven now detects the drive's real speed from its descriptors and imports it at SuperSpeed.

@@ -1,0 +1,3 @@
+- Security keys (sk-) work through agent forwarding (#602). Forwarded requests for security-key identities are answered by the on-device FIDO logic, touch prompt included.
+- A second Reticulum tab no longer ends up as a live session with no terminal (#601).
+- USB-drive VM failures name the failed stage instead of just a port (#506).

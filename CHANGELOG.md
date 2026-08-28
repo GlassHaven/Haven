@@ -5,6 +5,10 @@ the corresponding GitHub Release; a release can't ship without its section
 (enforced by `scripts/check-changelog.sh` in CI). The GitHub "Full Changelog"
 compare link is appended automatically — don't add it here.
 
+## v5.87.66
+
+- **Importing the same security key twice no longer creates duplicate rows** (#531). A repeated import of the same physical FIDO2 key used to mint a second saved-key entry with an identical fingerprint, so "Require PIN at sign-in" could land on the row the connection never uses and appear to do nothing. Duplicate imports are now refused, and toggling the setting on a key whose fingerprint is shared by other saved rows warns that the extra copies may be the wrong target.
+
 ## v5.87.65
 
 - 🖱️ **SPICE relative mouse no longer lags or stalls** (#572). A fast drag produced mouse-movement deltas larger than the PS/2 protocol can carry in one packet (±127 px per axis); the excess was silently dropped, so the pointer fell behind and the motion-ack flow control stalled waiting for reports the guest never saw. Large deltas are now split into consecutive 127-px packets, the same way a physical PS/2 mouse reports one big movement.

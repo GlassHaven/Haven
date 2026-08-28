@@ -1,0 +1,1 @@
+- **The FIDO PIN prompt clears when a wrong PIN is retried** (#531). After the security key rejected a PIN, the dialog reopened prefilled with the rejected value, so tapping OK again just burned another attempt. Each fresh prompt now starts with an empty field.

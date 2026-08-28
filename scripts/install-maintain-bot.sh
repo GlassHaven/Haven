@@ -95,9 +95,55 @@ fi
 # 5. GitHub Fine-Grained Token & Scratch State Sync
 # -----------------------------------------------------------------------------
 echo "--> 5. Syncing GitHub auth environment and state files..."
-if [ -f "${IAN_HOME}/.haven-agent.env" ]; then
-  cp "${IAN_HOME}/.haven-agent.env" "${BOT_HOME}/.env"
-  cp "${IAN_HOME}/.haven-agent.env" "${BOT_REPO}/.env"
+ENV_FILE="${IAN_HOME}/.haven-agent.env"
+
+if [ ! -f "${ENV_FILE}" ] || ! grep -q 'GH_TOKEN="github_pat_' "${ENV_FILE}" 2>/dev/null; then
+  cat << 'PAT_GUIDE'
+
+================================================================================
+ [GITHUB AUTH SETUP] Fine-Grained Personal Access Token (PAT) Required
+================================================================================
+ To isolate the maintainer bot with least-privilege permissions:
+
+ 1. Open in your browser:
+    https://github.com/settings/personal-access-tokens/new
+
+ 2. Configure Token Settings:
+    - Token name:        Haven Maintainer Agent
+    - Expiration:        e.g. 90 days (or custom)
+    - Resource owner:    GlassHaven (select organization)
+    - Repository access: Only select repositories -> Haven
+
+ 3. Set Permissions (under Repository permissions):
+    - Issues:           Read and write   (triage, label, reply, close)
+    - Discussions:      Read and write   (triage and reply to discussions)
+    - Contents:         Read and write   (commit & push to main, release assets)
+    - Actions:          Read and write   (query status, rerun jobs, approve deployment gate)
+    - Pull requests:    Read-only        (review diffs)
+    - All others:       No access        (Administration, Secrets, Webhooks, Keys)
+
+ 4. Generate the token, copy the 'github_pat_...' string, and paste into:
+    ~/.haven-agent.env
+================================================================================
+
+PAT_GUIDE
+
+  if [ ! -f "${ENV_FILE}" ]; then
+    cat << 'ENV_TEMPLATE' > "${ENV_FILE}"
+# Haven Dedicated Agent Authentication Environment
+export GH_CONFIG_DIR="$HOME/.config/haven-agent-gh"
+export GH_TOKEN=""
+export GITHUB_TOKEN="$GH_TOKEN"
+export HAVEN_BOT_USER="GlassOnTin"
+ENV_TEMPLATE
+    chown "${IAN_USER}:${IAN_USER}" "${ENV_FILE}"
+    chmod 600 "${ENV_FILE}"
+  fi
+fi
+
+if [ -f "${ENV_FILE}" ]; then
+  cp "${ENV_FILE}" "${BOT_HOME}/.env"
+  cp "${ENV_FILE}" "${BOT_REPO}/.env"
   chown "${BOT_USER}:${BOT_USER}" "${BOT_HOME}/.env" "${BOT_REPO}/.env"
   chmod 600 "${BOT_HOME}/.env" "${BOT_REPO}/.env"
   echo "    Copied scoped GitHub auth .env."

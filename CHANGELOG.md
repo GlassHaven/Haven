@@ -5,6 +5,10 @@ the corresponding GitHub Release; a release can't ship without its section
 (enforced by `scripts/check-changelog.sh` in CI). The GitHub "Full Changelog"
 compare link is appended automatically — don't add it here.
 
+## v5.87.68
+
+- **Opening a large file from the Files tab no longer crashes Haven** (user-reported). Opening a file over 20 MB in the editor read the whole file into memory and killed the app (reproduced with a 58 MB JSON export). Oversized files are now refused before any data is read, with a message naming the file size and the limit, including when the file is opened by an agent over MCP.
+
 ## v5.87.67
 
 - **The FIDO PIN prompt clears when a wrong PIN is retried** (#531). After the security key rejected a PIN, the dialog reopened prefilled with the rejected value, so tapping OK again just burned another attempt. Each fresh prompt now starts with an empty field.

@@ -1,0 +1,1 @@
+- **Opening a large file from the Files tab no longer crashes Haven** (user-reported). Opening a file over 20 MB in the editor read the whole file into memory and killed the app (reproduced with a 58 MB JSON export). Oversized files are now refused before any data is read, with a message naming the file size and the limit, including when the file is opened by an agent over MCP.

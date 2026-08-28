@@ -15,6 +15,7 @@ import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
@@ -111,6 +112,11 @@ private fun TouchDialog(prompt: FidoTouchPrompt, onCancel: () -> Unit) {
 @Composable
 private fun PinEntryDialog(prompt: FidoTouchPrompt.EnterPin) {
     var pin by remember { mutableStateOf("") }
+    // A wrong PIN re-opens this dialog as a fresh EnterPin prompt (the retry
+    // carries a new retriesRemaining). Without this reset the remembered text
+    // stays prefilled, so re-tapping OK resubmits the rejected PIN and burns
+    // another attempt (#531). Keyed on the prompt instance, not position.
+    LaunchedEffect(prompt) { pin = "" }
 
     val retriesNote = prompt.retriesRemaining?.let {
         stringResource(R.string.connections_fido_pin_wrong, it)

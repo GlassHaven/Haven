@@ -251,15 +251,30 @@ class QemuManager @Inject constructor(
         onStage("Setting up the VM…")
         val setupMarker = instance.sendAndAwaitRegex(
             vmBootstrapScript(firstPubKey, busidComment = firstBusid),
-            "HAVEN_BOOTSTRAP_OK|HAVEN_BOOTSTRAP_FAIL",
+            BOOTSTRAP_MARKER_REGEX,
             SETUP_TIMEOUT_MS,
         )
-        if (setupMarker == null || setupMarker == "HAVEN_BOOTSTRAP_FAIL") {
+        if (setupMarker == null || setupMarker != "HAVEN_BOOTSTRAP_OK") {
+            // #506: say which stage failed. The script now checks the lease and
+            // sshd itself, so a named FAIL is the guest's own diagnosis; a
+            // null (timeout) still gets the serial tail.
+            val reason = setupMarker?.removePrefix("HAVEN_BOOTSTRAP_FAIL:").orEmpty()
+            if (reason.isNotEmpty()) fail(bootstrapFailureMessage(reason))
             fail(instance.describeWaitFailure("VM setup (network/sshd) did not finish"))
         }
 
         onStage("Almost ready — connecting…")
-        if (!awaitSshBanner(port, SSH_TIMEOUT_MS)) fail("sshd never answered on 127.0.0.1:$port")
+        // sshd is confirmed listening inside the guest by the bootstrap gate,
+        // so a failure here is the host<->guest port forward not relaying —
+        // say that, not just the port (#506: "sshd never answered on
+        // 127.0.0.1:<random port>" gave the reader nothing to act on).
+        if (!awaitSshBanner(port, SSH_TIMEOUT_MS)) {
+            fail(
+                "The VM's SSH server is running but its port forward on the phone did not relay " +
+                    "to it within ${SSH_TIMEOUT_MS / 1000}s. Try again; if it keeps happening, a reboot " +
+                    "of the phone clears stale virtual-network state.",
+            )
+        }
 
         return SharedVm(instance, port)
     }
@@ -925,8 +940,21 @@ private const val ENUM_WAIT_S = 180
 /** Marker content is the provisioned package-set version; pre-LUKS markers ("ok\n") parse as 0 → mismatch → upgrade. */
 internal fun markerVersion(marker: File): Int = marker.takeIf { it.exists() }?.readText()?.trim()?.toIntOrNull() ?: 0
 
-/** `ip link ... ; udhcpc ...` — shared by provisionScript/vmBootstrapScript/the appliance-upgrade script (previously three independently-drifting copies; one had a missing `2>/dev/null`). */
-private fun networkUpFragment(): String = "ip link set eth0 up; udhcpc -i eth0 -q -n 2>/dev/null; "
+/**
+ * `ip link ... ; udhcpc ...` — shared by provisionScript/vmBootstrapScript/the appliance-upgrade script (previously three independently-drifting copies; one had a missing `2>/dev/null`).
+ *
+ * Retries until an address actually exists (#506): a single `-q -n` attempt
+ * misses occasionally on a first boot under TCG, and nothing checked — the
+ * failure surfaced 30s later as "sshd never answered", which named a port,
+ * not the network.
+ */
+private fun networkUpFragment(): String =
+    "ip link set eth0 up; " +
+        "for i in 1 2 3 4 5; do " +
+        "udhcpc -i eth0 -q -n 2>/dev/null; " +
+        "ip -4 addr show dev eth0 2>/dev/null | grep -q 'inet ' && break; " +
+        "sleep 2; " +
+        "done; "
 
 /**
  * Runs once, the first time the shared VM boots for a session (not per
@@ -957,7 +985,38 @@ internal fun vmBootstrapScript(pubKey: String, busidComment: String?): String {
         // /proc/filesystems — it doesn't modprobe — so load the common ones
         // up front or an ext4 stick mounts as an empty dir.
         "for m in ext4 vfat exfat ntfs3; do modprobe \$m 2>/dev/null; done; " +
-        "echo HAVEN_BOOTSTRAP_OK"
+        // Gate BOOT_OK on the two facts the next step depends on (#506). The
+        // script used to echo BOOT_OK unconditionally, so "setup finished"
+        // proved nothing: the failure surfaced 30s later as "sshd never
+        // answered on 127.0.0.1:<port>", which named a port but not whether
+        // the guest got no address or sshd simply didn't come up. Check the
+        // address first: the hostfwd goes through QEMU's userspace network,
+        // which needs the guest's IP to relay to, so a leaseless guest fails
+        // the banner probe even with sshd listening.
+        // busybox `nc` lacks -z; netstat -tln is in the base image and shows
+        // the LISTEN line once sshd has bound (sshd forks a moment after the
+        // rc-service call returns, hence the bounded wait).
+        "listening=0; for i in 1 2 3 4 5 6 7 8 9 10; do netstat -tln 2>/dev/null | grep -q ':22 ' && { listening=1; break; }; sleep 1; done; " +
+        "if ! ip -4 addr show dev eth0 2>/dev/null | grep -q 'inet '; then echo HAVEN_BOOTSTRAP_FAIL:no-network; " +
+        "elif [ \"\$listening\" = 1 ]; then echo HAVEN_BOOTSTRAP_OK; " +
+        "else echo HAVEN_BOOTSTRAP_FAIL:sshd-not-listening; fi"
+}
+
+/**
+ * Marker wait for [vmBootstrapScript]'s output. A shared constant so the
+ * script's emitted markers and the caller's wait can't drift apart; the
+ * `:\\S*` captures the failure reason the script names.
+ */
+internal const val BOOTSTRAP_MARKER_REGEX = "HAVEN_BOOTSTRAP_OK|HAVEN_BOOTSTRAP_FAIL:\\S*"
+
+/** User-facing text for the reasons [vmBootstrapScript] can report. */
+internal fun bootstrapFailureMessage(reason: String): String = when (reason) {
+    "no-network" ->
+        "The VM could not get an address on its virtual network, even after retrying. " +
+            "This is the VM's own internal network, not your Wi-Fi."
+    "sshd-not-listening" ->
+        "The VM booted and got its network, but its SSH server did not come up inside the VM."
+    else -> "VM setup (network/sshd) failed" + if (reason.isNotEmpty()) ": $reason" else "."
 }
 
 /**

@@ -143,6 +143,65 @@ class QemuManagerScriptTest {
         assertTrue(script.contains("ssh-ed25519 AAAAtestkey user@host haven-usb:1-2"))
     }
 
+    // #506: a reporter's boot stopped at "sshd never answered on 127.0.0.1:<port>" —
+    // the bootstrap script used to echo BOOT_OK unconditionally after a single
+    // DHCP attempt, so the error named a port and nothing else. These pin the
+    // gate: BOOT_OK only fires when the lease and the sshd listener are both
+    // verified, and every failure path names itself.
+
+    @Test
+    fun `bootstrap gates BOOT_OK on a verified lease and a listening sshd`() {
+        val script = vmBootstrapScript(pubKey = "ssh-ed25519 AAAAtestkey user@host", busidComment = null)
+        assertTrue("must check the guest actually holds an IPv4 address", script.contains("ip -4 addr show dev eth0"))
+        assertTrue("must check sshd bound port 22", script.contains("netstat -tln"))
+        // BOOT_OK must be inside the success branch, not an unconditional tail echo.
+        assertTrue(
+            "BOOT_OK must only echo when both checks pass",
+            Regex("if .*then echo HAVEN_BOOTSTRAP_OK").containsMatchIn(script),
+        )
+        assertFalse(
+            "the last echo must be the if/else chain, not a bare trailing BOOT_OK",
+            script.trimEnd().endsWith("echo HAVEN_BOOTSTRAP_OK"),
+        )
+    }
+
+    @Test
+    fun `bootstrap failure paths name themselves`() {
+        val script = vmBootstrapScript(pubKey = "ssh-ed25519 AAAAtestkey user@host", busidComment = null)
+        assertTrue(script.contains("echo HAVEN_BOOTSTRAP_FAIL:no-network"))
+        assertTrue(script.contains("echo HAVEN_BOOTSTRAP_FAIL:sshd-not-listening"))
+    }
+
+    @Test
+    fun `bootstrap marker regex matches every marker the script can emit`() {
+        val script = vmBootstrapScript(pubKey = "ssh-ed25519 AAAAtestkey user@host", busidComment = null)
+        val re = Regex(BOOTSTRAP_MARKER_REGEX)
+        for (marker in listOf("HAVEN_BOOTSTRAP_OK", "HAVEN_BOOTSTRAP_FAIL:no-network", "HAVEN_BOOTSTRAP_FAIL:sshd-not-listening")) {
+            assertTrue("script emits $marker", script.contains(marker))
+            assertTrue("wait regex must match $marker", re.containsMatchIn("echo noise\n$marker\n"))
+        }
+        // And the alternation must pick the FAIL branch out of a stream that
+        // contains a stale echo of the script text (the echo problem bootSharedVm
+        // stty -echo's around — the regex still has to resolve correctly).
+        assertEquals("HAVEN_BOOTSTRAP_FAIL:no-network", re.find("HAVEN_BOOTSTRAP_FAIL:no-network")?.value)
+    }
+
+    @Test
+    fun `network up retries udhcpc until the lease exists`() {
+        val script = vmBootstrapScript(pubKey = "ssh-ed25519 AAAAtestkey user@host", busidComment = null)
+        assertTrue(
+            "a single udhcpc -q -n miss used to go unnoticed until the banner probe timed out; " +
+                "must retry and only break once an address exists",
+            Regex("for i in [0-9 ]+; do udhcpc -i eth0 -q -n[^;]*; ip -4 addr show dev eth0[^;]*grep -q 'inet '[^;]*&& break").containsMatchIn(script),
+        )
+    }
+
+    @Test
+    fun `bootstrap failure messages name the stage in user terms`() {
+        assertTrue(bootstrapFailureMessage("no-network").contains("address"))
+        assertTrue(bootstrapFailureMessage("sshd-not-listening").contains("SSH server"))
+    }
+
     @Test
     fun `markerVersion parses a numeric marker`() {
         val dir = Files.createTempDirectory("qemu-marker-test").toFile()

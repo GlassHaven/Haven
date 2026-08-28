@@ -294,6 +294,7 @@
     <string name="sftp_saved_file_to">Saved %1$s to %2$s</string>
     <string name="sftp_downloaded_file">Downloaded %1$s</string>
     <string name="sftp_location_downloads">Downloads</string>
+    <string name="sftp_file_too_large_for_editor">File is too large to open in the editor (%1$s). The limit is 20 MB.</string>
 
     <!-- Image processing labels (used in Processing state label) -->
     <string name="sftp_processing_perspective">Applying perspective…</string>

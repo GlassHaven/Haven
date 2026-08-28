@@ -4,6 +4,7 @@ import android.content.Context
 import android.content.Intent
 import android.net.Uri
 import android.provider.DocumentsContract
+import androidx.annotation.VisibleForTesting
 import androidx.documentfile.provider.DocumentFile
 import android.util.Log
 import kotlinx.coroutines.currentCoroutineContext
@@ -785,8 +786,24 @@ class SftpViewModel @Inject constructor(
 
     private var editorEntry: SftpEntry? = null
 
+    // Internal: test seam around the currentFileBackend() lookup so the
+    // large-file guard in openInEditor can be unit-tested.
+    @VisibleForTesting
+    internal var backendOverride: (() -> FileBackend?)? = null
+
     fun openInEditor(entry: SftpEntry) {
         if (entry.isDirectory) return
+        // The editor materialises the whole file as a UTF-16 String and
+        // sora-editor + TextMate re-allocate it on language apply — a 58 MB
+        // file OOM-kills the process inside the Choreographer frame on a
+        // 256 MB heap. Refuse anything over the cap before reading a byte.
+        if (entry.size > EDITOR_MAX_FILE_BYTES) {
+            editorEntry = null
+            _editorFile.value = EditorFileState.Error(
+                appContext.getString(R.string.sftp_file_too_large_for_editor, formatSizeForMessage(entry.size)),
+            )
+            return
+        }
         editorEntry = entry
         _editorFile.value = EditorFileState.Loading
         viewModelScope.launch {
@@ -4900,6 +4917,7 @@ class SftpViewModel @Inject constructor(
      * mkdir, rename, delete, chmod and chown (issue #126 stages 2+).
      */
     private suspend fun currentFileBackend(): sh.haven.feature.sftp.transport.FileBackend? {
+        backendOverride?.invoke()?.let { return it }
         val profileId = _activeProfileId.value ?: return null
         val resolution = withContext(Dispatchers.IO) {
             transportSelector.resolveFileBackend(profileId)
@@ -5553,6 +5571,28 @@ class SftpViewModel @Inject constructor(
 
     companion object {
         private val MEDIA_MIME_PREFIXES = listOf("audio/", "video/")
+
+        /**
+         * Largest file [openInEditor] will load. Reading the whole file
+         * materialises it as a UTF-16 String, and sora-editor's setText +
+         * TextMate language apply re-allocate it: a 58 MB file requested
+         * ~122 MB in one frame against a 256 MB heap and OOM-killed the
+         * process (v5.87.63 crash trace). Editing files past a few MB is
+         * impractical anyway; refuse before reading a byte.
+         */
+        const val EDITOR_MAX_FILE_BYTES = 20L * 1024 * 1024
+
+        /** Compact human-readable size for user-facing messages ("58 MB"). */
+        internal fun formatSizeForMessage(bytes: Long): String {
+            val (value, unit) = when {
+                bytes >= 1L shl 30 -> bytes.toDouble() / (1L shl 30) to "GB"
+                bytes >= 1L shl 20 -> bytes.toDouble() / (1L shl 20) to "MB"
+                bytes >= 1L shl 10 -> bytes.toDouble() / (1L shl 10) to "KB"
+                else -> return "$bytes B"
+            }
+            val s = String.format("%.1f", value)
+            return (if (s.endsWith(".0")) s.dropLast(2) else s) + " " + unit
+        }
 
         // Kotlin has no octal literal syntax, so POSIX mode bits are
         // declared as hex with their octal meaning in the name.

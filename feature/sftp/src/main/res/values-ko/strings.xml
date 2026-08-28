@@ -290,6 +290,7 @@
     <string name="sftp_saved_file_to">%1$s을(를) %2$s에 저장됨</string>
     <string name="sftp_downloaded_file">%1$s 다운로드됨</string>
     <string name="sftp_location_downloads">다운로드</string>
+    <string name="sftp_file_too_large_for_editor">파일이 너무 커서 편집기에 열 수 없습니다 (%1$s). 제한은 20MB입니다.</string>
     <string name="sftp_processing_perspective">원근 적용 중…</string>
     <string name="sftp_processing_crop">자르는 중…</string>
     <string name="sftp_processing_rotate">회전 중…</string>

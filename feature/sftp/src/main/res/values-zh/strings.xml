@@ -276,6 +276,7 @@
     <string name="sftp_saved_file_to">已将 %1$s 保存到 %2$s</string>
     <string name="sftp_downloaded_file">已下载 %1$s</string>
     <string name="sftp_location_downloads">下载</string>
+    <string name="sftp_file_too_large_for_editor">文件太大，无法在编辑器中打开 (%1$s)。上限为 20 MB。</string>
     <string name="sftp_processing_perspective">正在应用透视…</string>
     <string name="sftp_processing_crop">正在裁剪…</string>
     <string name="sftp_processing_rotate">正在旋转…</string>

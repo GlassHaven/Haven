@@ -276,6 +276,7 @@
     <string name="sftp_saved_file_to">%1$s को %2$s में सहेजा गया</string>
     <string name="sftp_downloaded_file">%1$s download हुई</string>
     <string name="sftp_location_downloads">Downloads</string>
+    <string name="sftp_file_too_large_for_editor">संपादक में खोलने के लिए फ़ाइल बहुत बड़ी है (%1$s)। सीमा 20 MB है।</string>
     <string name="sftp_processing_perspective">Perspective लागू हो रहा है…</string>
     <string name="sftp_processing_crop">Crop हो रहा है…</string>
     <string name="sftp_processing_rotate">Rotate हो रहा है…</string>

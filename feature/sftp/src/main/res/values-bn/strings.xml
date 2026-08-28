@@ -276,6 +276,7 @@
     <string name="sftp_saved_file_to">%1$s সংরক্ষিত হয়েছে %2$s-এ</string>
     <string name="sftp_downloaded_file">%1$s ডাউনলোড হয়েছে</string>
     <string name="sftp_location_downloads">Downloads</string>
+    <string name="sftp_file_too_large_for_editor">সম্পাদিকায় খোলার জন্য ফাইলটি অনেক বড় (%1$s)। সীমা 20 এমবি।</string>
     <string name="sftp_processing_perspective">Perspective প্রয়োগ হচ্ছে…</string>
     <string name="sftp_processing_crop">ক্রপ হচ্ছে…</string>
     <string name="sftp_processing_rotate">ঘোরানো হচ্ছে…</string>

@@ -276,6 +276,7 @@
     <string name="sftp_saved_file_to">%1$s salvo em %2$s</string>
     <string name="sftp_downloaded_file">%1$s baixado</string>
     <string name="sftp_location_downloads">Downloads</string>
+    <string name="sftp_file_too_large_for_editor">O arquivo é grande demais para abrir no editor (%1$s). O limite é 20 MB.</string>
     <string name="sftp_processing_perspective">Aplicando perspectiva…</string>
     <string name="sftp_processing_crop">Recortando…</string>
     <string name="sftp_processing_rotate">Rotacionando…</string>

@@ -276,6 +276,7 @@
     <string name="sftp_saved_file_to">تم حفظ %1$s في %2$s</string>
     <string name="sftp_downloaded_file">تم تنزيل %1$s</string>
     <string name="sftp_location_downloads">التنزيلات</string>
+    <string name="sftp_file_too_large_for_editor">الملف كبير جدًا لفتحه في المحرر (%1$s). الحد 20 ميجابايت.</string>
     <string name="sftp_processing_perspective">جارٍ تطبيق المنظور…</string>
     <string name="sftp_processing_crop">جارٍ الاقتصاص…</string>
     <string name="sftp_processing_rotate">جارٍ التدوير…</string>

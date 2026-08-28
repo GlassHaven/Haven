@@ -37539,6 +37539,27 @@
      }
     },
     {
+     "name": "sftp_file_too_large_for_editor",
+     "en": "File is too large to open in the editor (%1$s). The limit is 20 MB.",
+     "comment": "ViewModel snackbar messages",
+     "args": [
+      "%1$s"
+     ],
+     "t": {
+      "ar": "الملف كبير جدًا لفتحه في المحرر (%1$s). الحد 20 ميجابايت.",
+      "bn": "সম্পাদিকায় খোলার জন্য ফাইলটি অনেক বড় (%1$s)। সীমা 20 এমবি।",
+      "de": "Die Datei ist zu groß für den Editor (%1$s). Das Limit beträgt 20 MB.",
+      "es": "El archivo es demasiado grande para abrirlo en el editor (%1$s). El límite es 20 MB.",
+      "fr": "Fichier trop volumineux pour l'éditeur (%1$s). La limite est de 20 Mo.",
+      "hi": "संपादक में खोलने के लिए फ़ाइल बहुत बड़ी है (%1$s)। सीमा 20 MB है।",
+      "ja": "ファイルが大きすぎてエディターで開けません (%1$s)。上限は 20 MB です。",
+      "ko": "파일이 너무 커서 편집기에 열 수 없습니다 (%1$s). 제한은 20MB입니다.",
+      "pt": "O arquivo é grande demais para abrir no editor (%1$s). O limite é 20 MB.",
+      "ru": "Файл слишком велик для открытия в редакторе (%1$s). Ограничение — 20 МБ.",
+      "zh": "文件太大，无法在编辑器中打开 (%1$s)。上限为 20 MB。"
+     }
+    },
+    {
      "name": "sftp_processing_perspective",
      "en": "Applying perspective…",
      "comment": "Image processing labels (used in Processing state label)",

@@ -170,7 +170,7 @@ class UpdateChecker @Inject constructor(
         val enabled = preferences.updateCheckEnabled.first()
         val lastRun = preferences.updateCheckLastRunMs.first()
         shouldQuery(enabled, { channel() }, lastRun, nowMs)?.let { skip ->
-            Log.d(TAG, "launch check skipped: $skip")
+            Log.i(TAG, "launch check skipped: $skip")
             return null
         }
         preferences.setUpdateCheckLastRunMs(nowMs)

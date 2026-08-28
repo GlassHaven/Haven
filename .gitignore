@@ -39,8 +39,7 @@ build-ffmpeg/build.log
 build-ffmpeg/dep-*.log
 .claude/*
 !.claude/skills/
-.agents/plugins/
-.agents/**/mcp_config.json
+.agents/
 
 # Personal dev notes — never committed
 DEV.local.md

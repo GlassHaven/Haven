@@ -273,7 +273,7 @@ class UsbIpServer @Inject constructor(
             // 512-byte bulk endpoints) imported as full-speed makes the guest's
             // vhci_hcd mis-enumerate it — the drive never appears (#287 empty
             // mount). Detect from the endpoint packet sizes.
-            speed = detectSpeed(config),
+            speed = detectSpeed(config, u8(7)),
             idVendor = u16le(8),
             idProduct = u16le(10),
             bcdDevice = u16le(12),
@@ -290,36 +290,44 @@ class UsbIpServer @Inject constructor(
         )
     }
 
-    /**
-     * Infer the device's USB speed from its endpoint descriptors. High-speed
-     * bulk endpoints carry wMaxPacketSize 512; full-speed bulk/interrupt cap at
-     * 64. So any endpoint needing ≥512 bytes ⇒ high-speed (mass storage, hubs),
-     * otherwise full-speed (FIDO keys, HID). Walks the config descriptor
-     * (interface + endpoint records that follow the device descriptor).
-     */
-    private fun detectSpeed(config: ByteArray): Int {
-        var i = 0
-        var maxPkt = 0
-        while (i + 1 < config.size) {
-            val len = config[i].toInt() and 0xFF
-            if (len < 2) break
-            val type = config[i + 1].toInt() and 0xFF
-            if (type == 0x05 && i + 5 < config.size) { // ENDPOINT descriptor
-                val mps = ((config[i + 4].toInt() and 0xFF) or
-                    ((config[i + 5].toInt() and 0xFF) shl 8)) and 0x7FF // bits 0-10 = size
-                if (mps > maxPkt) maxPkt = mps
-            }
-            i += len
-        }
-        return if (maxPkt >= 512) USB_SPEED_HIGH else USB_SPEED_FULL
-    }
-
     companion object {
+        /**
+         * Infer the device's USB speed from its endpoint descriptors. Full-speed
+         * bulk/interrupt endpoints cap at 64; high-speed bulk carries 512; a
+         * SuperSpeed bulk carries 1024. So max endpoint size picks HIGH vs FULL,
+         * and a SuperSpeed-only signal promotes to SUPER:
+         *  - bulk wMaxPacketSize ≥ 1024 (only legal at SuperSpeed), or
+         *  - the device descriptor's bMaxPacketSize0 == 9, which is the encoded
+         *    512-byte SuperSpeed ep0 size (a kernel accepts 9 only on an SS port).
+         * Reporting an SS drive as high-speed makes the guest's vhci_hcd reject
+         * ep0 maxpacket 9 and fail enumeration — "unable to enumerate USB
+         * device" — so the drive never appears (#506).
+         * [ep0MaxPacket] is bMaxPacketSize0 from the 18-byte device descriptor.
+         */
+        internal fun detectSpeed(config: ByteArray, ep0MaxPacket: Int): Int {
+            var i = 0
+            var maxPkt = 0
+            while (i + 1 < config.size) {
+                val len = config[i].toInt() and 0xFF
+                if (len < 2) break
+                val type = config[i + 1].toInt() and 0xFF
+                if (type == 0x05 && i + 5 < config.size) { // ENDPOINT descriptor
+                    val mps = ((config[i + 4].toInt() and 0xFF) or
+                        ((config[i + 5].toInt() and 0xFF) shl 8)) and 0x7FF // bits 0-10 = size
+                    if (mps > maxPkt) maxPkt = mps
+                }
+                i += len
+            }
+            if (maxPkt >= 1024 || ep0MaxPacket == 9) return USB_SPEED_SUPER
+            return if (maxPkt >= 512) USB_SPEED_HIGH else USB_SPEED_FULL
+        }
+
         private const val TAG = "UsbIpServer"
         const val USBIP_PORT = 3240
         private const val BACKLOG = 4
         private const val USB_SPEED_FULL = 2
         private const val USB_SPEED_HIGH = 3
+        internal const val USB_SPEED_SUPER = 4
         /** Upper bound for a single OUT/control transfer; real ones complete in ms. */
         private const val TRANSFER_TIMEOUT_MS = 5_000
         /** Slice for polling an interrupt/bulk IN so an idle read never wedges its lane. */

@@ -169,4 +169,39 @@ class UsbIpServerTest {
         assertEquals(0, actualLength)
         assertEquals(48, reply.size)
     }
+
+    // #506: a SuperSpeed flash drive imported as high-speed fails guest
+    // enumeration ("Invalid ep0 maxpacket: 9"). Speed detection must report SUPER.
+    private fun configWithBulk(mps: Int): ByteArray {
+        fun bytes(vararg v: Int) = ByteArray(v.size) { v[it].toByte() }
+        val iface = bytes(9, 0x04, 0, 0, 2, 8, 6, 50, 0) +            // mass-storage interface
+            bytes(7, 0x05, 0x81, 0x02, mps and 0xFF, (mps shr 8) and 0xFF, 0) +
+            bytes(7, 0x05, 0x02, 0x02, mps and 0xFF, (mps shr 8) and 0xFF, 0)
+        val header = bytes(9, 0x02, 0, 0, 1, 1, 0, 0x80, 50)
+        header[2] = ((header.size + iface.size) and 0xFF).toByte()
+        header[3] = (((header.size + iface.size) shr 8) and 0xFF).toByte()
+        return header + iface
+    }
+
+    @Test
+    fun `detectSpeed full-speed bulk 64 reports FULL`() {
+        assertEquals(2, UsbIpServer.detectSpeed(configWithBulk(64), ep0MaxPacket = 64))
+    }
+
+    @Test
+    fun `detectSpeed high-speed bulk 512 reports HIGH`() {
+        assertEquals(3, UsbIpServer.detectSpeed(configWithBulk(512), ep0MaxPacket = 64))
+    }
+
+    @Test
+    fun `detectSpeed super-speed bulk 1024 reports SUPER`() {
+        assertEquals(4, UsbIpServer.detectSpeed(configWithBulk(1024), ep0MaxPacket = 9))
+    }
+
+    @Test
+    fun `detectSpeed ep0 maxpacket 9 promotes to SUPER even at bulk 512`() {
+        // SS device whose config only shows 512-byte endpoints; the encoded
+        // ep0 size 9 (512 @ SuperSpeed) is the decisive signal.
+        assertEquals(4, UsbIpServer.detectSpeed(configWithBulk(512), ep0MaxPacket = 9))
+    }
 }

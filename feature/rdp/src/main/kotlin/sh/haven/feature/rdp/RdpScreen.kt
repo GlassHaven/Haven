@@ -568,6 +568,21 @@ private fun RdpViewer(
     LaunchedEffect(cursor) {
         if (cursor != null) hasReceivedCursorShape = true
     }
+    // #572: guests with software cursors (W98, plain VNC-style) draw their
+    // pointer into the framebuffer and never send a CURSOR_SET, so
+    // `hasReceivedCursorShape` stays false and the fallback arrow rides on
+    // top of the guest's own — two pointers. The fallback is for the connect
+    // window only, so stand it down after a few seconds of motion whether or
+    // not a shape ever arrives: if the server was going to replay one, the
+    // guest's next cursor update (which any interaction triggers) will have
+    // arrived by then; if none did, the guest is drawing its own.
+    var fallbackExpired by remember { mutableStateOf(false) }
+    LaunchedEffect(pointerActive) {
+        if (pointerActive && !hasReceivedCursorShape) {
+            delay(6000)
+            fallbackExpired = true
+        }
+    }
 
     // Tap-then-drag state — see VncScreen for the full rationale. RDP
     // has no long-press right-click branch, so we only need the
@@ -922,7 +937,7 @@ private fun RdpViewer(
                         fbWidth = frame.width,
                         fbHeight = frame.height,
                     )
-                } else if (pointerActive && !hasReceivedCursorShape) {
+                } else if (pointerActive && !hasReceivedCursorShape && !fallbackExpired) {
                     // #598: the server has not pushed a shape yet — draw the
                     // built-in arrow at the tracked position instead.
                     drawFallbackCursor(px, py, frame.width, frame.height)

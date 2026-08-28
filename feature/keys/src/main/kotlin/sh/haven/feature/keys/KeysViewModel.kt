@@ -581,7 +581,10 @@ class KeysViewModel @Inject constructor(
         viewModelScope.launch {
             try {
                 val skData = SkKeyParser.parse(fileBytes)
-                saveSkKey(skData)
+                if (saveSkKey(skData) != null) {
+                    _message.value = "That security key is already saved"
+                    return@launch
+                }
                 _message.value = "FIDO2 security key imported"
                 Log.d("KeysViewModel", "SK key imported: ${skData.algorithmName}, app=${skData.application}")
             } catch (e: Exception) {
@@ -612,11 +615,17 @@ class KeysViewModel @Inject constructor(
     fun addProviderKey(providerPackage: String) {
         viewModelScope.launch {
             try {
-                val added = withContext(Dispatchers.IO) {
+                // Pair(added, duplicateSeen) — null/null means the user
+                // backed out of the chooser, which stays silent (#487).
+                val (added, duplicate) = withContext(Dispatchers.IO) {
                     val client = OpenKeychainClient(appContext, providerPackage)
                     try {
-                        val selection = client.selectKey() ?: return@withContext null
+                        val selection = client.selectKey() ?: return@withContext null to false
                         val publicKey = client.fetchPublicKey(selection.keyId)
+                        val fingerprint = SkKeyParser.fingerprintSha256(publicKey.blob)
+                        if (findDuplicateByKeyType(repository.getAll(), fingerprint, OpenKeychainKeyData.KEY_TYPE) != null) {
+                            return@withContext null to true
+                        }
                         val data = OpenKeychainKeyData(
                             providerPackage = providerPackage,
                             keyId = selection.keyId,
@@ -631,10 +640,10 @@ class KeysViewModel @Inject constructor(
                                 privateKeyBytes = OpenKeychainKeyData.serialize(data),
                                 publicKeyOpenSsh = "${publicKey.algorithm} " +
                                     java.util.Base64.getEncoder().encodeToString(publicKey.blob),
-                                fingerprintSha256 = SkKeyParser.fingerprintSha256(publicKey.blob),
+                                fingerprintSha256 = fingerprint,
                             ),
                         )
-                        data
+                        data to false
                     } finally {
                         client.close()
                     }
@@ -642,6 +651,8 @@ class KeysViewModel @Inject constructor(
                 if (added != null) {
                     _message.value = "Added ${added.algorithm} key from the provider"
                     Log.d("KeysViewModel", "Provider key added: ${added.algorithm} via $providerPackage")
+                } else if (duplicate) {
+                    _message.value = "That provider key is already saved"
                 }
             } catch (e: Exception) {
                 Log.e("KeysViewModel", "Provider key import failed", e)
@@ -650,15 +661,26 @@ class KeysViewModel @Inject constructor(
         }
     }
 
-    private suspend fun saveSkKey(skData: SkKeyData, label: String = "FIDO2: ${skData.application}") {
+    /**
+     * Save an SK key, refusing a duplicate (#531): the primary key is a
+     * fresh UUID and upsert conflicts only on id, so importing the same
+     * security key twice used to mint two rows sharing one fingerprint —
+     * and the verify-required toggle could then land on the row the
+     * connect never signs with. Returns the existing row when the import
+     * was skipped, null when saved.
+     */
+    private suspend fun saveSkKey(skData: SkKeyData, label: String = "FIDO2: ${skData.application}"): SshKey? {
+        val fingerprint = SkKeyParser.fingerprintSha256(skData.publicKeyBlob)
+        findDuplicateByKeyType(repository.getAll(), fingerprint, skData.algorithmName)?.let { return it }
         val entity = SshKey(
             label = label,
             keyType = skData.algorithmName,
             privateKeyBytes = SkKeyData.serialize(skData),
             publicKeyOpenSsh = SkKeyParser.formatPublicKeyLine(skData),
-            fingerprintSha256 = SkKeyParser.fingerprintSha256(skData.publicKeyBlob),
+            fingerprintSha256 = fingerprint,
         )
         repository.save(entity)
+        return null
     }
 
     /**
@@ -734,12 +756,21 @@ class KeysViewModel @Inject constructor(
                 }
                 val sk = SkKeyData.deserialize(plain)
                 val newFlags: Byte = if (required) 0x05 else 0x01
+                // #531: if other rows share this fingerprint, the toggle may
+                // be landing on a duplicate the connect never uses. Warn on
+                // both the flip and the already-set early return.
+                val ambiguity = verifyRequiredAmbiguityWarning(
+                    key,
+                    repository.getAll().filter { it.id != keyId },
+                )
                 if (sk.flags == newFlags) {
-                    _message.value = if (required) "Key already requires a PIN" else "Key is already touch-only"
+                    _message.value = (if (required) "Key already requires a PIN" else "Key is already touch-only")
+                        .plusAmbiguity(ambiguity)
                     return@launch
                 }
                 repository.save(key.copy(privateKeyBytes = SkKeyData.serialize(sk.copy(flags = newFlags))))
-                _message.value = if (required) "Key now requires a PIN at sign-in" else "Key is now touch-only"
+                _message.value = (if (required) "Key now requires a PIN at sign-in" else "Key is now touch-only")
+                    .plusAmbiguity(ambiguity)
                 Log.d("KeysViewModel", "SK verify-required set to $required for ${LogRedact.of(key.label)}")
             } catch (e: Exception) {
                 Log.e("KeysViewModel", "setSkVerifyRequired failed", e)
@@ -827,20 +858,21 @@ class KeysViewModel @Inject constructor(
         if (selected.isEmpty()) return
         viewModelScope.launch {
             var ok = 0
+            var skipped = 0
             for (cred in selected) {
                 try {
                     val label = labels[cred.id]?.trim()?.ifBlank { null }
                         ?: cred.defaultLabel
-                    saveSkKey(cred.data, label)
-                    ok++
+                    if (saveSkKey(cred.data, label) != null) skipped++ else ok++
                 } catch (e: Exception) {
                     Log.e("KeysViewModel", "Save of discovered ${cred.rpId} failed", e)
                 }
             }
-            _message.value = if (ok == selected.size) {
-                "Imported $ok resident SSH key${if (ok == 1) "" else "s"}"
-            } else {
-                "Imported $ok of ${selected.size} keys; check log for failures"
+            _message.value = when {
+                ok == selected.size -> "Imported $ok resident SSH key${if (ok == 1) "" else "s"}"
+                skipped > 0 && ok == 0 -> "Already saved: $skipped key${if (skipped == 1) "" else "s"}"
+                skipped > 0 -> "Imported $ok, already saved $skipped, failed ${selected.size - ok - skipped}"
+                else -> "Imported $ok of ${selected.size} keys; check log for failures"
             }
         }
     }
@@ -880,8 +912,11 @@ class KeysViewModel @Inject constructor(
                     pin = pin,
                     keyLabel = trimmed,
                 )
-                saveSkKey(sk, trimmed)
-                _message.value = "Registered \"$trimmed\" on the security key"
+                if (saveSkKey(sk, trimmed) != null) {
+                    _message.value = "A key with this fingerprint is already saved"
+                } else {
+                    _message.value = "Registered \"$trimmed\" on the security key"
+                }
                 Log.d("KeysViewModel", "Registered SK key: ${sk.algorithmName}, verifyRequired=$verifyRequired")
             } catch (e: Exception) {
                 Log.e("KeysViewModel", "registerOnSecurityKey failed", e)

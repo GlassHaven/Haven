@@ -115,16 +115,21 @@ class ReticulumSessionManager @Inject constructor(
             throw e
         }
 
-        // Store the shell session reference for terminal wiring
+        // Stash the shell session BEFORE publishing CONNECTED. The sessions
+        // StateFlow drives TerminalViewModel.syncSessions, whose RNS branch
+        // calls createTerminalSession exactly once per emission and `continue`s
+        // on null — so an observer that sees CONNECTED must already be able to
+        // find the shell, or the tab is never created and the session lingers
+        // CONNECTED with no terminal (the #601 "no tab, but counted as active"
+        // ghost). Updating after the stash makes "CONNECTED ⇒ shell available"
+        // hold for every observer.
+        shellSessions[sessionId] = shellSession
         _sessions.update { map ->
             val existing = map[sessionId] ?: return@update map
             map + (sessionId to existing.copy(
                 status = SessionState.Status.CONNECTED,
             ))
         }
-
-        // Stash the shell session so createTerminalSession can use it
-        shellSessions[sessionId] = shellSession
         Log.w(TAG, "Session $sessionId connected")
     }
 
@@ -140,10 +145,24 @@ class ReticulumSessionManager @Inject constructor(
         onDataReceived: (ByteArray, Int, Int) -> Unit,
     ): ReticulumSession? {
         val session = _sessions.value[sessionId] ?: return null
-        if (session.status != SessionState.Status.CONNECTED) return null
-        if (session.reticulumSession != null) return null
+        if (session.status != SessionState.Status.CONNECTED) {
+            Log.w(TAG, "createTerminalSession($sessionId): not attached, status=${session.status}")
+            return null
+        }
+        if (session.reticulumSession != null) {
+            Log.w(TAG, "createTerminalSession($sessionId): not attached, terminal already present")
+            return null
+        }
 
-        val shellSession = shellSessions.remove(sessionId) ?: return null
+        val shellSession = shellSessions.remove(sessionId)
+        if (shellSession == null) {
+            // #601: the CONNECTED-with-no-tab ghost lands here. Log.w (not d)
+            // so the reason survives the release build's log stripping — the
+            // reporter's log showed a fully-connected duplicate and nothing
+            // explaining the missing tab.
+            Log.w(TAG, "createTerminalSession($sessionId): not attached, no stashed shell session")
+            return null
+        }
 
         val reticulumSession = ReticulumSession(
             sessionId = sessionId,

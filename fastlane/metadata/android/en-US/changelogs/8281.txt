@@ -1,0 +1,3 @@
+- SPICE relative mouse no longer lags or stalls during fast drags (#572).
+
+A fast drag produced mouse deltas larger than the PS/2 protocol can carry in one packet (±127 px per axis); the excess was dropped and the motion-ack flow control stalled. Large deltas are now split into consecutive 127-px packets, as a physical PS/2 mouse reports them.

@@ -5,6 +5,10 @@ the corresponding GitHub Release; a release can't ship without its section
 (enforced by `scripts/check-changelog.sh` in CI). The GitHub "Full Changelog"
 compare link is appended automatically — don't add it here.
 
+## v5.87.65
+
+- 🖱️ **SPICE relative mouse no longer lags or stalls** (#572). A fast drag produced mouse-movement deltas larger than the PS/2 protocol can carry in one packet (±127 px per axis); the excess was silently dropped, so the pointer fell behind and the motion-ack flow control stalled waiting for reports the guest never saw. Large deltas are now split into consecutive 127-px packets, the same way a physical PS/2 mouse reports one big movement.
+
 ## v5.87.64
 
 - RDP pinch-zoom no longer shrinks the remote screen below full size (#600, reported by @ysalmon).

@@ -4,6 +4,7 @@ import android.util.Log
 import com.jcraft.jsch.ChannelExec
 import com.jcraft.jsch.ChannelSftp
 import com.jcraft.jsch.JSch
+import com.jcraft.jsch.Identity
 import com.jcraft.jsch.JSchException
 import com.jcraft.jsch.Proxy
 import com.jcraft.jsch.Session
@@ -758,6 +759,35 @@ class SshClient : SshConnection {
         var skipped = 0
         config.agentIdentities.forEachIndexed { i, identity ->
             try {
+                if (identity.skKeyData != null) {
+                    // #602: a FIDO2/SK key. Its bytes are a credential handle,
+                    // not key material, so they never go to addIdentity — a
+                    // hardware-backed identity signs each forwarded request,
+                    // which is also the per-signature presence prompt the
+                    // remote cannot bypass.
+                    val skData = SkKeyData.deserialize(identity.skKeyData)
+                    val authenticator = fidoAuthenticator ?: throw IllegalStateException(
+                        "forwarded SK key '${identity.label}' has no FidoAuthenticator " +
+                            "configured on this SshClient",
+                    )
+                    var fido: Identity = FidoIdentity(skData, authenticator, identity.label)
+                    if (identity.certBytes != null) {
+                        val certKeyType = SshCertificateParser.getCertKeyType(skData.algorithmName)
+                        fido = CertificateWrappedIdentity(fido, identity.certBytes, certKeyType)
+                    }
+                    // Must be the outermost wrapper: the delegate throws on a
+                    // declined/failed ceremony, and an exception escaping
+                    // ChannelAgentForwarding.run() kills the session, not just
+                    // the request. Null = SSH_AGENT_FAILURE.
+                    jsch.addIdentity(AgentSafeIdentity(fido), null)
+                    registered++
+                    diag(
+                        "Registered agent identity #$i '${identity.label}' " +
+                            "(FIDO2 SK key ${skData.algorithmName}, touch prompts on sign" +
+                            (if (identity.certBytes != null) ", cert-wrapped" else "") + ")",
+                    )
+                    return@forEachIndexed
+                }
                 // Passing the passphrase makes JSch decrypt the key AT ADD
                 // TIME — required for forwarding, because
                 // ChannelAgentForwarding silently skips identities still

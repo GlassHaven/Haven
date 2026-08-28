@@ -5311,8 +5311,22 @@ class ConnectionsViewModel @Inject constructor(
             )
         }
         val allKeys = sshKeyRepository.getAllDecrypted()
-        val candidates = allKeys.filter { holdsLoadablePrivateKey(it.keyType) && it.enabledForAuth }
+        val enabled = allKeys.filter { it.enabledForAuth }
         val keys = mutableListOf<ConnectionConfig.AgentIdentity>()
+        // #602: FIDO2/SK keys are forwardable through a hardware-backed
+        // identity (AgentSafeIdentity over FidoIdentity): each signature from
+        // the remote runs a CTAP assertion, so presence is proven per use
+        // rather than delegated to a stored secret. Their privateKeyBytes are
+        // a credential handle, so they carry skKeyData and skip the PEM path.
+        for (key in enabled.filter { it.keyType.startsWith("sk-") }) {
+            keys += ConnectionConfig.AgentIdentity(
+                label = key.label,
+                keyBytes = key.privateKeyBytes,
+                skKeyData = key.privateKeyBytes,
+                certBytes = key.certificateBytes,
+            )
+        }
+        val candidates = enabled.filter { holdsLoadablePrivateKey(it.keyType) }
         var skippedLocked = 0
         for (key in candidates) {
             if (!key.isEncrypted) {
@@ -5356,7 +5370,8 @@ class ConnectionsViewModel @Inject constructor(
      * Passphrase-protected keys are forwarded when their passphrase is stored
      * on the key (#290 opt-in) — JSch decrypts at add time. Without a stored
      * passphrase they are skipped: ChannelAgentForwarding has no hook for
-     * prompting at sign-request time. (#377)
+     * prompting at sign-request time. (#377) FIDO2/SK keys ARE forwarded
+     * (#602): the per-signature CTAP touch IS the sign-time prompt.
      */
     private suspend fun agentIdentitiesFor(profile: ConnectionProfile): List<ConnectionConfig.AgentIdentity> {
         val result = computeAgentIdentities(profile)

@@ -57,19 +57,33 @@ data class ConnectionConfig(
         val label: String,
         val keyBytes: ByteArray,
         val passphrase: ByteArray? = null,
+        /**
+         * #602: serialized SkKeyData handle for a FIDO2/SK key (the value
+         * `SshKey.privateKeyBytes` holds for `sk-*` key types). Non-null means
+         * [keyBytes] is NOT key material — the agent registers a hardware-
+         * backed FidoIdentity instead of handing raw bytes to JSch, and each
+         * signature from the remote prompts for a touch on the phone.
+         */
+        val skKeyData: ByteArray? = null,
+        /** Optional CA certificate pairing the SK key (#133-style cert path). */
+        val certBytes: ByteArray? = null,
     ) {
         override fun equals(other: Any?): Boolean {
             if (this === other) return true
             if (other !is AgentIdentity) return false
             return label == other.label &&
                 keyBytes.contentEquals(other.keyBytes) &&
-                (passphrase ?: ByteArray(0)).contentEquals(other.passphrase ?: ByteArray(0))
+                (passphrase ?: ByteArray(0)).contentEquals(other.passphrase ?: ByteArray(0)) &&
+                (skKeyData ?: ByteArray(0)).contentEquals(other.skKeyData ?: ByteArray(0)) &&
+                (certBytes ?: ByteArray(0)).contentEquals(other.certBytes ?: ByteArray(0))
         }
 
         override fun hashCode(): Int {
             var result = label.hashCode()
             result = 31 * result + keyBytes.contentHashCode()
             result = 31 * result + (passphrase?.contentHashCode() ?: 0)
+            result = 31 * result + (skKeyData?.contentHashCode() ?: 0)
+            result = 31 * result + (certBytes?.contentHashCode() ?: 0)
             return result
         }
     }

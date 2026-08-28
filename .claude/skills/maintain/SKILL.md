@@ -30,10 +30,10 @@ queued is idle time.
    - **Open issue scan**: `gh issue list --state open --limit 200 --json number,title,comments
      --jq '.[] | "\(.number) \(.title) | last: \(.comments[-1].author.login //
      \"author\")"'`. `--limit` matters — the default of 30 silently truncates.
-     Any open issue whose LAST commenter is not GlassOnTin is awaiting the
-     maintainer. The author is not the last commenter (a self-filed issue can
-     have two reporter comments hiding under your own); "author" = zero
-     comments = never answered, also actionable.
+     Any open issue whose LAST commenter is neither GlassOnTin nor the bot account
+     (e.g. `GlassHavenBot`) is awaiting the maintainer. The author is not the last
+     commenter (a self-filed issue can have two reporter comments hiding under your
+     own); "author" = zero comments = never answered, also actionable.
    - **Incremental issue sweep**: `gh issue list --search "updated:>LAST_PASS"` (LAST_PASS from the state
      file) catches edits/labels the first check misses. Anything noted but not
      actioned MUST be carried in the state file — the timestamp filter hides it
@@ -41,10 +41,10 @@ queued is idle time.
    - **Closed issue sweep**: `gh issue list --state closed --search "updated:>LAST_PASS"
      --limit 50 ...` with the same jq. Comments land on closed issues too
      ("actually, still broken"); without this they are invisible forever. Last
-     commenter not GlassOnTin → read it, reply, reopen if the fix did not hold.
+     commenter neither GlassOnTin nor bot → read it, reply, reopen if the fix did not hold.
    - **GitHub Discussions sweep**: Query active discussions via GraphQL:
      `gh api graphql -f query='query { repository(owner:"GlassHaven", name:"Haven") { discussions(first:20, orderBy:{field:UPDATED_AT, direction:DESC}) { nodes { number title comments(last:1) { nodes { author { login } } } } } } }'`.
-     Any discussion with 0 comments or whose last commenter is not GlassOnTin
+     Any discussion with 0 comments or whose last commenter is neither GlassOnTin nor bot
      is actionable (answer questions, clarify, or convert reproducible bugs to issues).
    - **Private Security Advisories**: Check `gh api repos/GlassHaven/Haven/security-advisories --jq '.[] | "\(.ghsa_id) \(.summary) (state: \(.state))"'`
      to catch private vulnerability disclosures (GHSA) that bypass public issues.

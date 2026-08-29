@@ -218,11 +218,14 @@ runs:
     # and restore-keys falls back to the newest prior one — so it accumulates.
     # Restored after (and so wins over) the frozen copy inside the dep cache.
     - name: Cache Gradle build cache (task outputs)
-      uses: actions/cache@27d5ce7f107fe9357f9df03efb73ab90386fccae  # v5.0.5
+      uses: actions/cache@27d5ce7f107fe9357f93df03efb73ab90386fccae  # v5.0.5
       with:
         path: ~/.gradle/caches/build-cache-1
-        key: gradle-buildcache-${{ runner.os }}-${{ github.run_id }}
-        restore-keys: gradle-buildcache-${{ runner.os }}-
+        # v2 prefix bumped 2026-08-29: a corrupted task-output entry (mangled
+        # values-fr intermediate -> aapt2 "Invalid unicode escape sequence")
+        # was being restored by the old prefix on every run.
+        key: gradle-buildcache-v2-${{ runner.os }}-${{ github.run_id }}
+        restore-keys: gradle-buildcache-v2-${{ runner.os }}-
 
     - name: Cache Cargo registry + rdp-kotlin target
       uses: actions/cache@27d5ce7f107fe9357f9df03efb73ab90386fccae  # v5.0.5

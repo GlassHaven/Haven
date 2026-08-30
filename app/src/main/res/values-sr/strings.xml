@@ -1,6 +1,6 @@
 <?xml version="1.0" encoding="utf-8"?>
 <resources>
-    <string name="app_name">Лука</string>
+    <string name="app_name">Haven</string>
     <string name="common_cancel">Откажи</string>
     <string name="common_save">Сачувај</string>
     <string name="common_done">Готово</string>

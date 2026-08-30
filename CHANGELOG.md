@@ -5,6 +5,13 @@ the corresponding GitHub Release; a release can't ship without its section
 (enforced by `scripts/check-changelog.sh` in CI). The GitHub "Full Changelog"
 compare link is appended automatically — don't add it here.
 
+## v5.87.71
+
+- **Swiping between tabs works again after exiting the last terminal** (#609). With the Swipe key latched, pressing Ctrl+D to exit the final session left the latch holding the horizontal gesture on the empty Terminal page, so left/right swipes did nothing and you were stuck. The latch now owns the gesture only while a terminal tab is open; the empty page releases it to the tab switcher, and the latch stays armed for your next terminal.
+- **A Dictate key that works without a mic on the keyboard** (#604). On devices whose keyboard has no dictation of its own (an e-ink reader forcing its own keyboard, or a voice IME that isn't the active one), the old Voice key could start nothing. The new key launches the system speech recognizer and sends the transcript to the active tab regardless of keyboard; the recognition service owns the microphone, so no recording permission is added to the app. The Voice lock toggle keeps its old behaviour for Gboard users.
+- **The mouse cursor shows before the first move on SPICE** (#598). A SPICE guest that hadn't pushed a cursor shape yet left no pointer on screen until the first interaction, even though clicks already worked. A built-in arrow is now drawn at the tracked position until the guest's own shape arrives.
+- **Serbian (sr) localization**.
+
 ## v5.87.70
 
 - **Security keys (sk-) now work through agent forwarding** (#602). A server whose authorized_keys entry is an sk-* FIDO2 key could not be reached with "Forward authentication agent" on: the agent refused the key types it didn't recognise. Forwarded requests for security-key identities are now answered by the same on-device FIDO logic as direct connections, including the per-sign touch prompt, and an unsupported request fails cleanly instead of wedging the session.

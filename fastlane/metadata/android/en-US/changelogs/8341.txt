@@ -1,0 +1,4 @@
+- Tab swiping works again after exiting the last terminal with the Swipe key latched (#609).
+- New Dictate key starts speech recognition without a keyboard mic (#604).
+- The mouse cursor shows before the first move on SPICE (#598).
+- Serbian (sr) localization.

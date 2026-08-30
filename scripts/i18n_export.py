@@ -19,8 +19,10 @@ from pathlib import Path
 REPO = Path(__file__).resolve().parent.parent
 OUT = REPO / "docs" / "i18n" / "strings.json"
 
-# The 11 shipped translation locales (English ``values/`` is the source).
-LOCALES = ["ar", "bn", "de", "es", "fr", "hi", "ja", "ko", "pt", "ru", "zh"]
+# The shipped translation locales (English ``values/`` is the source). ``sr``
+# is in progress — partial coverage is fine here (missing keys just stay out
+# of ``t``); it joins check-i18n-coverage.py's list once it reaches 100%.
+LOCALES = ["ar", "bn", "de", "es", "fr", "hi", "ja", "ko", "pt", "ru", "sr", "zh"]
 
 STRING_RE = re.compile(r'<string\s+name="([^"]+)"[^>]*>(.*?)</string>', re.DOTALL)
 # Comments and strings interleaved, in document order, so we can attach the

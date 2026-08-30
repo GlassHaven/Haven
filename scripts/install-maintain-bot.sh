@@ -280,7 +280,7 @@ if [ -f "$HOME/.env" ]; then
   source "$HOME/.env"
 fi
 
-exec /home/ian/.local/bin/claude --allow-dangerously-skip-permissions --disallowed-tools Artifact --model qwen3.8-flash-next "$@"
+exec /home/ian/.local/bin/claude --allow-dangerously-skip-permissions --disallowed-tools Artifact WebSearch Todo --model qwen3.8-flash-next "$@"
 RUNNER_EOF
 
 chown "${BOT_USER}:${BOT_USER}" "${BOT_HOME}/run-agent.sh"

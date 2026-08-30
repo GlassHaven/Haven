@@ -625,16 +625,42 @@ private fun RdpViewer(
     // pass for every descendant — the text field included — so one handler
     // covers both focus holders.
     val hardwareKeyFocus = remember { FocusRequester() }
+    // Declared before the key handler because the #606 guard below reads
+    // `fieldFocused` to tell soft-keyboard echoes from physical keys.
+    var canvasFocused by remember { mutableStateOf(false) }
+    var fieldFocused by remember { mutableStateOf(false) }
     val handleHardwareKey: (androidx.compose.ui.input.key.KeyEvent) -> Boolean = { event ->
-        val scancode = androidKeyToScancode(event.key)
-        if (scancode != null) {
-            when (event.type) {
-                KeyEventType.KeyDown -> onKeyDown(scancode)
-                KeyEventType.KeyUp -> onKeyUp(scancode)
-            }
+        // #606: while the soft keyboard is attached to the hidden text field,
+        // the commit path (onValueChange → onTypeChar) is the single sender for
+        // printable characters. Some IMEs (AOSP's Spanish layout among them)
+        // ALSO fire a synthetic hardware key event for the same press, which
+        // this preview handler sees — the guest gets the character twice (the
+        // `!!@@` flip), and when the IME repeats the event on its flush
+        // cadence, a stream of keystrokes. Drop printable events while the
+        // field holds focus; non-printable keys (arrows, F-keys, Enter, Tab,
+        // modifiers) have no commit-path equivalent and still pass through.
+        // termlib's terminal input path guards the same race with a
+        // commit-then-suppress queue (ImeInputView.dispatchKeyEvent).
+        val native = event.nativeKeyEvent
+        val committed = native.getUnicodeChar(native.metaState)
+        // Enter and Tab are excluded: the soft keyboard delivers them as
+        // editor actions, not text commits, so onValueChange never sees them
+        // and the scancode path below is their only sender.
+        if (fieldFocused && committed > 0 &&
+            committed != '\r'.code && committed != '\n'.code && committed != '\t'.code
+        ) {
             true
         } else {
-            false
+            val scancode = androidKeyToScancode(event.key)
+            if (scancode != null) {
+                when (event.type) {
+                    KeyEventType.KeyDown -> onKeyDown(scancode)
+                    KeyEventType.KeyUp -> onKeyUp(scancode)
+                }
+                true
+            } else {
+                false
+            }
         }
     }
     LaunchedEffect(Unit) { hardwareKeyFocus.requestFocus() }
@@ -649,8 +675,6 @@ private fun RdpViewer(
     // this content stays composed behind the other tabs, so without the scope
     // the terminal tab's keyboard would be hidden (and its focus stolen) by
     // this effect.
-    var canvasFocused by remember { mutableStateOf(false) }
-    var fieldFocused by remember { mutableStateOf(false) }
     val imeVisible = WindowInsets.isImeVisible
     LaunchedEffect(imeVisible, keyboardVisible, canvasFocused, fieldFocused) {
         if (!keyboardVisible && imeVisible && (canvasFocused || fieldFocused)) {

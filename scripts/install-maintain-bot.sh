@@ -271,6 +271,7 @@ export ANTHROPIC_DEFAULT_HAIKU_MODEL="qwen3.8-flash-next"
 
 # Context & Behavior Flags (Exact match to ian bash_module.sh)
 export CLAUDE_CODE_DISABLE_NONESSENTIAL_TRAFFIC=1
+export CLAUDE_CODE_DISABLE_ARTIFACT=1
 export CLAUDE_CODE_MAX_CONTEXT_TOKENS=220000
 
 cd "$CLAUDE_PROJECT_DIR"
@@ -279,7 +280,7 @@ if [ -f "$HOME/.env" ]; then
   source "$HOME/.env"
 fi
 
-exec /home/ian/.local/bin/claude --allow-dangerously-skip-permissions --model qwen3.8-flash-next "$@"
+exec /home/ian/.local/bin/claude --allow-dangerously-skip-permissions --disallowed-tools Artifact --model qwen3.8-flash-next "$@"
 RUNNER_EOF
 
 chown "${BOT_USER}:${BOT_USER}" "${BOT_HOME}/run-agent.sh"

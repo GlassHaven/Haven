@@ -1225,8 +1225,16 @@ class TerminalViewModel @Inject constructor(
 
         // Create tabs for new Reticulum sessions
         for (sessionId in activeRnsIds) {
-            if (sessionId in trackedSessionIds) continue
-            if (!reticulumSessionManager.isReadyForTerminal(sessionId)) continue
+            if (sessionId in trackedSessionIds) {
+                if (currentTabs.none { it.sessionId == sessionId }) {
+                    Log.w(TAG, "syncSessions RNS $sessionId: tracked but no tab — ghost session, will not re-create")
+                }
+                continue
+            }
+            if (!reticulumSessionManager.isReadyForTerminal(sessionId)) {
+                Log.w(TAG, "syncSessions RNS $sessionId: CONNECTED but not ready for terminal")
+                continue
+            }
 
             val session = rnsSessions[sessionId] ?: continue
             val tabLabel = generateTabLabel(session.label, session.profileId, currentTabs)

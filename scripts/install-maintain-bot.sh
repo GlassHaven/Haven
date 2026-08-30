@@ -271,7 +271,7 @@ export ANTHROPIC_DEFAULT_HAIKU_MODEL="qwen3.8-flash-next"
 
 # Context & Behavior Flags (Exact match to ian bash_module.sh)
 export CLAUDE_CODE_DISABLE_NONESSENTIAL_TRAFFIC=1
-export CLAUDE_CODE_MAX_CONTEXT_TOKENS=160000
+export CLAUDE_CODE_MAX_CONTEXT_TOKENS=220000
 
 cd "$CLAUDE_PROJECT_DIR"
 

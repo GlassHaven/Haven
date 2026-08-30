@@ -53,4 +53,13 @@ class SwipeArrowsTest {
     fun `hold cadence arms before it repeats`() {
         assertTrue(SWIPE_HOLD_INITIAL_DELAY_MS > SWIPE_HOLD_REPEAT_MS)
     }
+
+    /** #609: the latch owns the pager gesture only while a tab exists. */
+    @Test
+    fun `latch owns pager swipe only while a tab exists`() {
+        assertTrue(pagerSwipeOwnedByArrows(latchedSwipeArrows = true, hasTab = true))
+        assertFalse(pagerSwipeOwnedByArrows(latchedSwipeArrows = true, hasTab = false))
+        assertFalse(pagerSwipeOwnedByArrows(latchedSwipeArrows = false, hasTab = true))
+        assertFalse(pagerSwipeOwnedByArrows(latchedSwipeArrows = false, hasTab = false))
+    }
 }

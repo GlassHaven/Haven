@@ -329,7 +329,15 @@ fun TerminalScreen(
     val ctrlLocked by viewModel.ctrlLocked.collectAsState()
     val altLocked by viewModel.altLocked.collectAsState()
     val swipeArrowsMode by viewModel.swipeArrowsMode.collectAsState()
-    LaunchedEffect(swipeArrowsMode) { onSwipeArrowsActiveChanged(swipeArrowsMode) }
+    // The latch may own the horizontal pager gesture only while a tab is
+    // mounted (#609). The latch persists in DataStore after the last session
+    // exits (Ctrl+D), and the empty Terminal page is swipeable solely through
+    // the host's pager override — reporting the raw latch there suppresses the
+    // override and strands the user on the empty page with no way to swipe to
+    // another tab.
+    LaunchedEffect(swipeArrowsMode, tabs.isEmpty()) {
+        onSwipeArrowsActiveChanged(pagerSwipeOwnedByArrows(swipeArrowsMode, tabs.isNotEmpty()))
+    }
     // Push the live system light/dark mode to the ViewModel so its
     // [terminalColorScheme] flow can resolve the auto-switch pref correctly.
     // Must run before collecting the flow so the first emission reflects
@@ -2222,6 +2230,17 @@ internal const val SWIPE_HOLD_REPEAT_MS = 90L
  */
 internal fun swipeArrowIsUp(scrollUp: Boolean, latchedSwipeArrows: Boolean): Boolean =
     if (latchedSwipeArrows) !scrollUp else scrollUp
+
+/**
+ * #609: the latched Swipe key may suppress the tab-switch pager gesture only
+ * while a terminal tab is mounted. The latch persists in DataStore after the
+ * last session exits (Ctrl+D), and the empty Terminal page is swipeable solely
+ * through the host's pager override — reporting the raw latch there suppresses
+ * the override and strands the user on the empty page with no way to swipe to
+ * another tab.
+ */
+internal fun pagerSwipeOwnedByArrows(latchedSwipeArrows: Boolean, hasTab: Boolean): Boolean =
+    latchedSwipeArrows && hasTab
 
 /**
  * Swipe-arrows quantum: each arrow takes 4x the content-scroll travel

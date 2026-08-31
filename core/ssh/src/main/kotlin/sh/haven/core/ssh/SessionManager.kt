@@ -1,5 +1,7 @@
 package sh.haven.core.ssh
 
+import org.json.JSONObject
+
 /**
  * Session manager options for wrapping SSH shells in persistent sessions.
  * @param label Display name for logging.
@@ -40,7 +42,7 @@ enum class SessionManager(
         { name -> "sh -c 'byobu kill-session -t $name'" },
         { old, new -> "sh -c 'byobu rename-session -t $old $new'" },
     ),
-    HERDR("Herdr",
+    HERDR("herdr",
         { name -> "exec sh -c 'if ! command -v herdr >/dev/null 2>&1; then echo \"Haven: Herdr not found. See https://herdr.dev or change session manager in connection settings.\"; else exec herdr --session $name; fi'" },
         "sh -c 'herdr session list --json 2>/dev/null'",
         { name -> "sh -c 'herdr session stop $name --json >/dev/null 2>&1 || true; herdr session delete $name --json >/dev/null 2>&1'" },
@@ -59,13 +61,6 @@ enum class SessionManager(
         /** Strip ANSI escape sequences (colors, bold, etc.) from a string. */
         private val ANSI_REGEX = Regex("\\x1B\\[[0-9;]*[a-zA-Z]")
         private fun stripAnsi(s: String): String = s.replace(ANSI_REGEX, "")
-
-        private val HERDR_SESSION_LIST_REGEX = Regex(
-            "^\\s*\\{.*\"sessions\"\\s*:\\s*\\[(.*)]\\s*}\\s*$",
-            RegexOption.DOT_MATCHES_ALL,
-        )
-        private val HERDR_SESSION_NAME_REGEX =
-            Regex("\"name\"\\s*:\\s*\"([A-Za-z0-9._-]{1,64})\"")
 
         /**
          * Parse session list output into session names.
@@ -91,11 +86,27 @@ enum class SessionManager(
                         if (dotIdx >= 0) firstPart.substring(dotIdx + 1) else null
                     }
                 HERDR -> {
-                    val sessions = HERDR_SESSION_LIST_REGEX.find(clean)?.groupValues?.get(1)
-                        ?: return emptyList()
-                    HERDR_SESSION_NAME_REGEX.findAll(sessions)
-                        .map { it.groupValues[1] }
-                        .toList()
+                    // `herdr session list --json` prints {"sessions":[{"name":…,
+                    // "default":…,"running":…,"socket_path":…,"session_dir":…}]}
+                    // (herdrdev/herdr src/cli.rs session_list). Parse it as JSON —
+                    // a regex over the whole document would also match "name"
+                    // fields if the shape ever nests workspaces/tabs/panes.
+                    val sessions = try {
+                        JSONObject(clean).getJSONArray("sessions")
+                    } catch (_: Exception) {
+                        return emptyList()
+                    }
+                    buildList {
+                        for (i in 0 until sessions.length()) {
+                            val name = sessions.optJSONObject(i)?.optString("name") ?: continue
+                            // Mirror Herdr's validate_name: ASCII alnum . _ -, max 64.
+                            if (name.isNotEmpty() && name.length <= 64 &&
+                                name.all { it in 'A'..'Z' || it in 'a'..'z' || it in '0'..'9' || it in "._-" }
+                            ) {
+                                add(name)
+                            }
+                        }
+                    }
                 }
             }
         }

@@ -69,6 +69,9 @@ dependencies {
     testImplementation(libs.junit)
     testImplementation(libs.mockk)
     testImplementation(libs.coroutines.test)
+    // Real org.json for unit tests (android.jar's is stubbed under
+    // unitTests.isReturnDefaultValues) — same recipe as core:mcp.
+    testImplementation("org.json:json:20260814")
     // Embedded SSH server used to reproduce the v4.51.0 TOFU bypass bug (#75 follow-up)
     testImplementation(libs.sshd.core)
     testImplementation(libs.sshd.sftp)

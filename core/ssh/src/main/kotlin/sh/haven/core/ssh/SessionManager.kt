@@ -39,6 +39,11 @@ enum class SessionManager(
         "sh -c 'byobu ls -F \"#{session_name}\" 2>/dev/null'",
         { name -> "sh -c 'byobu kill-session -t $name'" },
         { old, new -> "sh -c 'byobu rename-session -t $old $new'" },
+    ),
+    HERDR("Herdr",
+        { name -> "exec sh -c 'if ! command -v herdr >/dev/null 2>&1; then echo \"Haven: Herdr not found. See https://herdr.dev or change session manager in connection settings.\"; else exec herdr --session $name; fi'" },
+        "sh -c 'herdr session list --json 2>/dev/null'",
+        { name -> "sh -c 'herdr session stop $name --json >/dev/null 2>&1 || true; herdr session delete $name --json >/dev/null 2>&1'" },
     );
 
     companion object {
@@ -54,6 +59,13 @@ enum class SessionManager(
         /** Strip ANSI escape sequences (colors, bold, etc.) from a string. */
         private val ANSI_REGEX = Regex("\\x1B\\[[0-9;]*[a-zA-Z]")
         private fun stripAnsi(s: String): String = s.replace(ANSI_REGEX, "")
+
+        private val HERDR_SESSION_LIST_REGEX = Regex(
+            "^\\s*\\{.*\"sessions\"\\s*:\\s*\\[(.*)]\\s*}\\s*$",
+            RegexOption.DOT_MATCHES_ALL,
+        )
+        private val HERDR_SESSION_NAME_REGEX =
+            Regex("\"name\"\\s*:\\s*\"([A-Za-z0-9._-]{1,64})\"")
 
         /**
          * Parse session list output into session names.
@@ -78,6 +90,13 @@ enum class SessionManager(
                         val dotIdx = firstPart.indexOf('.')
                         if (dotIdx >= 0) firstPart.substring(dotIdx + 1) else null
                     }
+                HERDR -> {
+                    val sessions = HERDR_SESSION_LIST_REGEX.find(clean)?.groupValues?.get(1)
+                        ?: return emptyList()
+                    HERDR_SESSION_NAME_REGEX.findAll(sessions)
+                        .map { it.groupValues[1] }
+                        .toList()
+                }
             }
         }
     }

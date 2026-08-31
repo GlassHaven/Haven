@@ -5,6 +5,10 @@ the corresponding GitHub Release; a release can't ship without its section
 (enforced by `scripts/check-changelog.sh` in CI). The GitHub "Full Changelog"
 compare link is appended automatically — don't add it here.
 
+## v5.87.72
+
+- **Typed characters no longer double up in RDP sessions** (#606). Some soft keyboards (AOSP's Spanish layout among them) fire a synthetic hardware-key event alongside the text commit for the same press, so the guest received the character twice — doubled glyphs and, on the IME's flush cadence, a stream of repeats. While the soft keyboard holds focus, printable keys now go through the commit path only; arrows, F-keys, Enter, Tab and modifiers still pass through the hardware path as before.
+
 ## v5.87.71
 
 - **Swiping between tabs works again after exiting the last terminal** (#609). With the Swipe key latched, pressing Ctrl+D to exit the final session left the latch holding the horizontal gesture on the empty Terminal page, so left/right swipes did nothing and you were stuck. The latch now owns the gesture only while a terminal tab is open; the empty page releases it to the tab switcher, and the latch stays armed for your next terminal.

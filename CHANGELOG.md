@@ -5,6 +5,10 @@ the corresponding GitHub Release; a release can't ship without its section
 (enforced by `scripts/check-changelog.sh` in CI). The GitHub "Full Changelog"
 compare link is appended automatically — don't add it here.
 
+## v5.87.73
+
+- **The suggestion strip is gone from password fields on Samsung keyboards** (#614). Honeyboard kept drawing its autocorrect/suggestion bar over secure fields, where it has no business appearing. The field type now carries the signal Samsung actually honours — "this holds a free-form token, don't rewrite it" — so the strip stays away, on the secure fields and on the ones that gate autocorrect for the commit path.
+
 ## v5.87.72
 
 - **Typed characters no longer double up in RDP sessions** (#606). Some soft keyboards (AOSP's Spanish layout among them) fire a synthetic hardware-key event alongside the text commit for the same press, so the guest received the character twice — doubled glyphs and, on the IME's flush cadence, a stream of repeats. While the soft keyboard holds focus, printable keys now go through the commit path only; arrows, F-keys, Enter, Tab and modifiers still pass through the hardware path as before.

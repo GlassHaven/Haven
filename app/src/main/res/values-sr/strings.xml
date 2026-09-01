@@ -248,7 +248,7 @@
     <string name="agent_summary_uploaded_bytes">отпремљено је %1$d бајтова</string>
     <string name="agent_summary_served_bytes">сервирано је %1$d бајтова од %2$s</string>
     <string name="agent_summary_deleted">обрисано</string>
-    <string name="agent_summary_uploaded_bytes_via">отпремљено је %1$d бајтова преко %2$</string>
+    <string name="agent_summary_uploaded_bytes_via">отпремљено је %1$d бајтова преко %2$s</string>
     <string name="agent_summary_deleted_via">обрисано преко %1$s</string>
     <string name="agent_summary_bytes_typed">откуцано је %1$d бајтова</string>
     <string name="agent_summary_converted">%1$d KiB у %2$d ms</string>

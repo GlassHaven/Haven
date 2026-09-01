@@ -1,0 +1,31 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+  <string name="toolbar_add_custom_key">Додај произвољни тастер</string>
+  <string name="toolbar_toggle_keyboard">Укљ./искљ. тастатуру</string>
+  <string name="toolbar_reorder_keys">Промени редослед тастера алатне линије</string>
+  <string name="toolbar_done_reordering">Промена редоследа је завршена</string>
+  <string name="toolbar_vnc_desktop">VNC декстоп</string>
+  <string name="toolbar_settings">Подешавања алатне линије</string>
+  <string name="toolbar_custom_key_dialog_title">Додавање произвољног тастера</string>
+  <string name="toolbar_custom_key_label">Ознака</string>
+  <string name="toolbar_custom_key_sequence">Низ тастера</string>
+  <string name="toolbar_custom_key_add">Додај</string>
+  <string name="toolbar_custom_key_cancel">Откажи</string>
+  <string name="toolbar_snippet_add">Додај одломак</string>
+  <string name="toolbar_snippet_search">Претражи одломке…</string>
+  <string name="toolbar_snippet_delete">Обриши</string>
+  <string name="toolbar_snippet_dialog_title">Додавање одломка</string>
+  <string name="toolbar_snippet_label">Ознака</string>
+  <string name="toolbar_snippet_command">Команда</string>
+  <string name="toolbar_snippet_title">Одломци</string>
+  <string name="toolbar_snippet_empty">Још увек нема ниједног одломка. Додајте произвољне тастере на алатну линију, или тапните на + изнад.</string>
+  <string name="toolbar_snippet_empty_filtered">Ниједан одломак се не подудара.</string>
+  <string name="toolbar_snippet_label_placeholder">нпр. Постави, Поново покрени</string>
+  <string name="toolbar_keyboard_standard_desc">Стандардна тастатуреа (глас, предлози, укљ. аутоисправљање)</string>
+  <string name="toolbar_keyboard_secure_desc">Безбедна тастатура (нема предлога, нема аутоисправљања)</string>
+  <string name="toolbar_attach_desc">Прикачите фајл који се шаље удаљеном</string>
+  <string name="toolbar_dictate_desc">Диктирање: започиње унос гласом</string>
+  <string name="toolbar_text_input_desc">Отвара плутајући унос текста</string>
+  <string name="toolbar_presets_label">Сачувана подешавања</string>
+  <string name="toolbar_custom_key_label_placeholder">нпр. ^C, Налепи</string>
+</resources>

@@ -147,7 +147,7 @@ Output: `app/build/outputs/apk/debug/haven-*-debug.apk`
 - [Maintainer Protocol](.claude/skills/maintain/SKILL.md) — the `/maintain`
   skill driving Haven's maintenance loop (CI triage, release readiness, issue
   response, and dependency tracking) run by [Qwen3.8-Flash running locally via llama-claude](https://github.com/GlassOnTin/llama-claude), with
-  daily supervisory audit passes performed by Gemini 3.7 Flash.
+  daily security audit passes performed by GLM5.3-flash.
 - [Release process](RELEASE.md) — versioning, tagging, and F-Droid steps.
 - [Privacy policy](PRIVACY_POLICY.md).
 - [Vision](VISION.md).

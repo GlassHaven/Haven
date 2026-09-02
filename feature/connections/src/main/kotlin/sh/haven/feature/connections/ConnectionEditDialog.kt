@@ -2455,6 +2455,7 @@ fun ConnectionEditDialog(
                         "ZELLIJ" to "zellij",
                         "SCREEN" to "screen",
                         "BYOBU" to "byobu",
+                        "HERDR" to "herdr",
                     )
                     var smExpanded by remember { mutableStateOf(false) }
                     ExposedDropdownMenuBox(

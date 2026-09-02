@@ -45,6 +45,7 @@ object SaveConnectionFromSession {
             SessionManager.ZELLIJ -> "zellij attach $name --create"
             SessionManager.SCREEN -> "screen -dRR $name"
             SessionManager.BYOBU -> "byobu new-session -A -s $name"
+            SessionManager.HERDR -> "herdr --session $name"
         }
     }
 

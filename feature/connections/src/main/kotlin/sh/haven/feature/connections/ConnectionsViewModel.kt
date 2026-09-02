@@ -5822,6 +5822,7 @@ class ConnectionsViewModel @Inject constructor(
             UserPreferencesRepository.SessionManager.ZELLIJ -> SessionManager.ZELLIJ
             UserPreferencesRepository.SessionManager.SCREEN -> SessionManager.SCREEN
             UserPreferencesRepository.SessionManager.BYOBU -> SessionManager.BYOBU
+            UserPreferencesRepository.SessionManager.HERDR -> SessionManager.HERDR
         }
 
     private suspend fun resolveSessionManager(profile: ConnectionProfile?): SessionManager {

@@ -2303,6 +2303,7 @@ class TerminalViewModel @Inject constructor(
         "TMUX", "BYOBU" -> byteArrayOf(0x02, 'd'.code.toByte()) // Ctrl+B d
         "ZELLIJ" -> byteArrayOf(0x0F, 'd'.code.toByte())        // Ctrl+O d
         "SCREEN" -> byteArrayOf(0x01, 'd'.code.toByte())        // Ctrl+A d
+        "HERDR" -> byteArrayOf(0x02, 'q'.code.toByte())         // Ctrl+B q (herdr default prefix+detach)
         else -> null
     }
 

@@ -1,5 +1,7 @@
 package sh.haven.core.ssh
 
+import org.json.JSONObject
+
 /**
  * Session manager options for wrapping SSH shells in persistent sessions.
  * @param label Display name for logging.
@@ -39,6 +41,11 @@ enum class SessionManager(
         "sh -c 'byobu ls -F \"#{session_name}\" 2>/dev/null'",
         { name -> "sh -c 'byobu kill-session -t $name'" },
         { old, new -> "sh -c 'byobu rename-session -t $old $new'" },
+    ),
+    HERDR("herdr",
+        { name -> "exec sh -c 'if ! command -v herdr >/dev/null 2>&1; then echo \"Haven: Herdr not found. See https://herdr.dev or change session manager in connection settings.\"; else exec herdr --session $name; fi'" },
+        "sh -c 'herdr session list --json 2>/dev/null'",
+        { name -> "sh -c 'herdr session stop $name --json >/dev/null 2>&1 || true; herdr session delete $name --json >/dev/null 2>&1'" },
     );
 
     companion object {
@@ -78,6 +85,29 @@ enum class SessionManager(
                         val dotIdx = firstPart.indexOf('.')
                         if (dotIdx >= 0) firstPart.substring(dotIdx + 1) else null
                     }
+                HERDR -> {
+                    // `herdr session list --json` prints {"sessions":[{"name":…,
+                    // "default":…,"running":…,"socket_path":…,"session_dir":…}]}
+                    // (herdrdev/herdr src/cli.rs session_list). Parse it as JSON —
+                    // a regex over the whole document would also match "name"
+                    // fields if the shape ever nests workspaces/tabs/panes.
+                    val sessions = try {
+                        JSONObject(clean).getJSONArray("sessions")
+                    } catch (_: Exception) {
+                        return emptyList()
+                    }
+                    buildList {
+                        for (i in 0 until sessions.length()) {
+                            val name = sessions.optJSONObject(i)?.optString("name") ?: continue
+                            // Mirror Herdr's validate_name: ASCII alnum . _ -, max 64.
+                            if (name.isNotEmpty() && name.length <= 64 &&
+                                name.all { it in 'A'..'Z' || it in 'a'..'z' || it in '0'..'9' || it in "._-" }
+                            ) {
+                                add(name)
+                            }
+                        }
+                    }
+                }
             }
         }
     }

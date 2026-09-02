@@ -15,6 +15,14 @@
     <uses-permission android:name="android.permission.CHANGE_WIFI_MULTICAST_STATE" />
     <uses-permission android:name="android.permission.READ_EXTERNAL_STORAGE" android:maxSdkVersion="32" />
     <uses-permission android:name="android.permission.MANAGE_EXTERNAL_STORAGE" />
+    <!-- Senses tools (get_location / capture_camera_frame): declared so
+         Shizuku `pm grant` can grant them silently; motion/environment
+         sensors need no runtime permission. -->
+    <uses-permission android:name="android.permission.ACCESS_COARSE_LOCATION" />
+    <uses-permission android:name="android.permission.ACCESS_FINE_LOCATION" />
+    <uses-permission android:name="android.permission.CAMERA" />
+    <uses-feature android:name="android.hardware.camera" android:required="false" />
+    <uses-feature android:name="android.hardware.location.gps" android:required="false" />
     <uses-feature android:name="android.hardware.usb.host" android:required="false" />
     <uses-feature android:name="android.hardware.nfc" android:required="false" />
 
@@ -154,6 +162,19 @@
             <property
                 android:name="android.app.PROPERTY_SPECIAL_USE_FGS_SUBTYPE"
                 android:value="Long-lived SSH/Mosh/VNC/RDP/SFTP sessions and the MCP reverse tunnel they carry; user-initiated and kept alive while the connection notification is showing. dataSync was killed by Android 16 within ~10s." />
+        </service>
+
+        <!-- Inbound presence (list_notifications): mirrors the shade into a
+             bounded in-memory ring the MCP agent reads behind per-call
+             consent. BIND_NOTIFICATION_LISTENER_SERVICE is a special grant
+             the user flips in Settings (or the tool enables via Shizuku). -->
+        <service
+            android:name="sh.haven.app.agent.NotificationMirrorService"
+            android:exported="false"
+            android:permission="android.permission.BIND_NOTIFICATION_LISTENER_SERVICE">
+            <intent-filter>
+                <action android:name="android.service.notification.NotificationListenerService" />
+            </intent-filter>
         </service>
 
         <provider

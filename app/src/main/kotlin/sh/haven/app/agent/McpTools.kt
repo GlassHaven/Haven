@@ -299,6 +299,59 @@ internal class McpTools(
         bleSerial = bleSerialSessionManager,
         usbSerial = usbSerialSessionManager,
     )
+    // Device-senses point verbs (battery/sensors/location/camera). The
+    // Shizuku grant lambda maps through [runShizukuOrThrow] so the
+    // Shizuku-missing hint stays defined in one place; a null return means
+    // the grant succeeded, a string is the failure message.
+    private val sensesProvider = SensesToolProvider(
+        context = context,
+        shizukuGrant = { permission ->
+            try {
+                runShizukuOrThrow(permission, "pm grant")
+                null
+            } catch (e: McpError) {
+                e.message
+            }
+        },
+    )
+    // Inbound presence: the notification-listener ring. Null-on-failure
+    // exec so the tool falls back to the Settings-path message when
+    // Shizuku isn't there.
+    private val notificationProvider = NotificationToolProvider(
+        context = context,
+        shizukuExec = { cmd ->
+            try {
+                runShizukuOrThrow(cmd, "cmd", requireSuccess = false)
+            } catch (e: McpError) {
+                null
+            }
+        },
+    )
+    // Reflexes: scrollback search + background directory watches. Watches
+    // launch on the shared backgroundScope so one failing poller doesn't
+    // touch sibling installs.
+    private val reflexProvider = ReflexToolProvider(
+        context = context,
+        sshSessionManager = sshSessionManager,
+        localSessionManager = localSessionManager,
+        transportSelector = transportSelector,
+        ctx = toolContext,
+    )
+    // Cross-protocol verbs: workspace snapshot + cross-backend directory
+    // mirror. Shares the workspaceRepository / transportSelector already
+    // held for list_workspaces and the file tools.
+    private val crossProtocolProvider = CrossProtocolToolProvider(
+        sessionManagerRegistry = sessionManagerRegistry,
+        workspaceRepository = workspaceRepository,
+        transportSelector = transportSelector,
+    )
+    // Credentials: keygen into the keystore + authorized_keys deploy. The
+    // nullable headlessSshExec mirrors run_command's "unavailable in this
+    // build" path (unit-test construction passes null).
+    private val credentialProvider = CredentialToolProvider(
+        sshKeyRepository = sshKeyRepository,
+        headlessSshExec = headlessSshExec,
+    )
 
     /** Tool registry: name → handler. */
     // The not-yet-extracted tools are split across several builder methods
@@ -310,7 +363,9 @@ internal class McpTools(
         toolsPart1() + toolsPart2() + toolsPart3() + toolsPart4() +
             keyStoreProvider.tools() + tunnelProvider.tools() + sshKeyProvider.tools() +
             hostKeyProvider.tools() + stepCaProvider.tools() + rcloneProvider.tools() + usbProvider.tools() +
-            desktopProvider.tools() + mailProvider.tools() + serialBridgeProvider.tools()
+            desktopProvider.tools() + mailProvider.tools() + serialBridgeProvider.tools() +
+            sensesProvider.tools() + notificationProvider.tools() + reflexProvider.tools() +
+            crossProtocolProvider.tools() + credentialProvider.tools()
 
     private fun toolsPart1(): Map<String, ToolHandler> = linkedMapOf(
         "get_app_info" to ToolHandler(

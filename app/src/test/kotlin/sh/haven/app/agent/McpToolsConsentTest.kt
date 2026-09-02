@@ -122,6 +122,12 @@ class McpToolsConsentTest {
             "list_rclone_directory",
             "list_sftp_directory",
             "read_terminal_scrollback",
+            // Same class of read over the same scrollback ring, just
+            // filtered — pattern search adds no exposure.
+            "search_terminal",
+            // Reading what an already-granted watch observed; the consented
+            // act was starting the watch.
+            "read_watch",
             // Navigation + dialog-staging: open a screen at a path or
             // stage a dialog with prefilled args. The destructive action
             // (transcode, in the convert case) still requires the user
@@ -148,6 +154,9 @@ class McpToolsConsentTest {
             "get_pending_consent",
             // Enumerating active serial↔TCP bridges is read-only.
             "list_serial_bridges",
+            // Battery/memory/storage/network/thermal snapshot — the same
+            // class of read as get_app_info, no Android permission needed.
+            "get_device_state",
         )) {
             val c = tools.consentFor(name)
                 ?: error("$name not registered")
@@ -189,6 +198,17 @@ class McpToolsConsentTest {
             // stop tears it down. Session-scoped like add/remove_port_forward.
             "bridge_serial_to_tcp",
             "stop_serial_bridge",
+            // One-shot motion/environment sensor read: environment data is
+            // privacy-adjacent (light reveals room occupancy; magnetometer
+            // hints at movement) but not identity-bearing, so a session
+            // grant matches read_logcat rather than per-call.
+            "read_sensors",
+            // watch_directory starts a background poller that raises device
+            // notifications; start and stop are lifecycle verbs gated once
+            // per (client, tool) like compose_workspace. read_watch (reading
+            // what a granted watch saw) is a plain read → NEVER.
+            "watch_directory",
+            "stop_watch_directory",
         )) {
             val c = tools.consentFor(name)
                 ?: error("$name not registered")
@@ -223,6 +243,26 @@ class McpToolsConsentTest {
             // Arbitrary remote exec on a saved SSH profile (#367) — the
             // per-call prompt is what a standing policy scopes away.
             "run_command",
+            // One location fix per call — location is the most
+            // identifying sense the phone has, so no session grant.
+            "get_location",
+            // One camera frame per call — capture_camera_frame may see
+            // whatever the lens sees, including people and screens.
+            "capture_camera_frame",
+            // Reading the shade exposes the user's messages and OTP codes —
+            // always an explicit, per-call decision, never a session grant.
+            "list_notifications",
+            // Writes a file tree onto a destination backend (and can create
+            // directories) — a bulk write, per-call like upload_file.
+            "mirror_directory_with_fallback",
+            // Writes to the Room workspace table — a local mutation, but a
+            // write; matches save_sync_profile's per-call gate.
+            "save_workspace",
+            // Key generation creates a credential (matches import_ssh_key);
+            // deploy_key changes who can log in to a remote host (matches
+            // run_command).
+            "generate_ssh_key",
+            "deploy_key",
         )) {
             val c = tools.consentFor(name)
                 ?: error("$name not registered")
@@ -502,6 +542,11 @@ class McpToolsConsentTest {
             val blurb: String, val keywords: List<String>,
         )
         val sections = listOf(
+            Section("senses", "Device senses (battery, sensors, location, camera)", 0,
+                "One-shot reads of the phone itself: device state, motion/environment sensors, a single location fix, and a single camera frame.",
+                // "device_state" (not "device") so agent-endpoint's
+                // diagnostics tools keep filing where they were.
+                listOf("device_state", "read_sensors", "get_location", "capture_camera_frame")),
             Section("connections", "Connections & profiles", 9,
                 "The saved SSH/SFTP/RDP/VNC/… connection profiles and their live connect/disconnect state.",
                 listOf("connection", "connect_profile", "disconnect_profile", "run_command", "bluetooth")),
@@ -510,7 +555,7 @@ class McpToolsConsentTest {
                 listOf("terminal", "selection", "snippet", "list_sessions", "auth_prompt", "session_picker", "workspace", "compose", "open_local_shell", "exited_session")),
             Section("files", "Files, media & clipboard", 10,
                 "The unified file browser (local and SFTP), format conversion, media playback/streaming, encryption, and the clipboard.",
-                listOf("file", "directory", "sftp", "convert", "play_", "stream", "editor", "serve_", "encrypt", "decrypt", "clipboard", "view_file")),
+                listOf("file", "directory", "watch", "sftp", "convert", "play_", "stream", "editor", "serve_", "encrypt", "decrypt", "clipboard", "view_file")),
             Section("rclone", "Cloud storage (rclone)", 4,
                 "rclone remotes and the saved sync jobs that run between them.",
                 listOf("rclone", "sync_profile")),
@@ -534,10 +579,10 @@ class McpToolsConsentTest {
                 listOf("usb", "adb", "list_bridges", "overlay_permission")),
             Section("security", "Security — SSH keys, host keys, TOTP & age", 6,
                 "The SSH key store, pinned host keys (TOFU), trusted host CAs, TOTP secrets, and age encryption identities.",
-                listOf("ssh_key", "known_host", "forget_known_host", "trusted_host_ca", "totp", "age_identit")),
+                listOf("ssh_key", "known_host", "forget_known_host", "trusted_host_ca", "totp", "age_identit", "deploy_key")),
             Section("agent-you", "Agent ↔ you (attention & self-drive)", 7,
                 "How an agent reaches your attention (present_*, notifications, the agent-to-agent turn tools) and drives Haven's own UI.",
-                listOf("present_", "haven_ui", "raise_notification", "self_message", "send_to_agent", "await_turn", "read_last_turn")),
+                listOf("present_", "haven_ui", "raise_notification", "list_notifications", "self_message", "send_to_agent", "await_turn", "read_last_turn")),
             Section("agent-endpoint", "Agent endpoint, device & diagnostics", 11,
                 "Pairing, standing policies, app info/update, preferences, and device diagnostics.",
                 listOf("standing_polic", "pair", "consent", "install_apk", "restart_app", "app_info", "check_for_update", "preference", "developer_settings", "logcat", "native_crash", "process_exit", "notification")),

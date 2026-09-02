@@ -41,23 +41,67 @@ Tools are grouped into sections by what they touch, and each tool is collapsed �
 expand one for its description and arguments. The tag after each name is its
 consent level:
 
-- **asks every call** — side-effectful or sensitive; a consent sheet describing the specific action on every call (70 tools).
-- **asks once per session** — reversible actions and screen-reading; prompts the first time each session, then proceeds (51 tools).
-- **no per-call prompt** — read-only queries and tap-equivalent UI actions; still behind the endpoint being enabled and the client paired (87 tools).
+- **asks every call** — side-effectful or sensitive; a consent sheet describing the specific action on every call (77 tools).
+- **asks once per session** — reversible actions and screen-reading; prompts the first time each session, then proceeds (54 tools).
+- **no per-call prompt** — read-only queries and tap-equivalent UI actions; still behind the endpoint being enabled and the client paired (90 tools).
 
 ## Sections
 
+- [**Device senses (battery, sensors, location, camera)**](#sec-senses) — 4 tools
 - [**Connections & profiles**](#sec-connections) — 9 tools
-- [**Terminal, selection & sessions**](#sec-terminal) — 27 tools
-- [**Files, media & clipboard**](#sec-files) — 19 tools
+- [**Terminal, selection & sessions**](#sec-terminal) — 29 tools
+- [**Files, media & clipboard**](#sec-files) — 23 tools
 - [**Cloud storage (rclone)**](#sec-rclone) — 15 tools
 - [**Email**](#sec-email) — 15 tools
 - [**Linux guest (proot) & desktops**](#sec-linux) — 46 tools
 - [**Networking — tunnels & port forwarding**](#sec-networking) — 14 tools
 - [**USB & host-device brokers**](#sec-usb) — 19 tools
-- [**Security — SSH keys, host keys, TOTP & age**](#sec-security) — 15 tools
-- [**Agent ↔ you (attention & self-drive)**](#sec-agent-you) — 12 tools
+- [**Security — SSH keys, host keys, TOTP & age**](#sec-security) — 17 tools
+- [**Agent ↔ you (attention & self-drive)**](#sec-agent-you) — 13 tools
 - [**Agent endpoint, device & diagnostics**](#sec-agent-endpoint) — 17 tools
+
+<a id="sec-senses"></a>
+
+## Device senses (battery, sensors, location, camera) (4)
+
+One-shot reads of the phone itself: device state, motion/environment sensors, a single location fix, and a single camera frame.
+
+<details markdown="1">
+<summary><code>capture_camera_frame</code> · asks every call</summary>
+
+Capture a single still frame from the phone's camera and return it inline as an image (like capture_haven_ui) — the agent's eyes for a QR code, a machine display, a wiring diagram, or 'what does the camera see right now'. Opens Camera2, grabs one JPEG, and closes the camera immediately: one frame per call, no stream. Choose `lensFacing` (back/front/external, default back); the frame is downscaled to `maxWidth` for the transport. Requires the CAMERA permission — if Haven doesn't hold it and Shizuku is running, the call grants it silently (this consent sheet is the gate); otherwise the error names the Settings path. Haven's foreground service satisfies Android's background camera restriction, so this works while the screen is off.
+
+- `lensFacing` (string) — Which camera: "back" (default), "front", or "external".
+- `maxWidth` (integer) — Downscale the returned image to at most this many pixels wide (160–4096, default 1024) — the same knob capture_haven_ui exposes.
+- `timeoutMs` (integer) — Max wait for the camera to open and deliver a frame (1000–15000, default 4000).
+
+</details>
+
+<details markdown="1">
+<summary><code>get_device_state</code> · no per-call prompt</summary>
+
+One-shot snapshot of the phone's own state: battery (percent, charging, plugged source, temperature, voltage), thermal status, memory (total/available/low-memory), storage (internal data partition total/free, plus the user-visible external dir when mounted), active network (transports, validated, metered), and device identity (model, Android version, uptime). Read-only, no Android permission needed. The natural first call when diagnosing 'the phone is slow / hot / about to die' before digging into sessions or logs.
+
+</details>
+
+<details markdown="1">
+<summary><code>get_location</code> · asks every call</summary>
+
+Take one location fix: latitude, longitude, accuracy, altitude/speed/bearing when available, the providing fix source (gps/network), and the fix age. Tries a fresh fix (GPS preferred) for up to `timeoutMs`, and always reports the best last-known fix as `lastKnown` with its `ageMs` so a stale-but-present fix is usable context rather than a hard failure; `found` is false when neither exists. Requires location permission — if Haven doesn't hold it and Shizuku is running, the call grants it silently (this consent sheet is the gate); otherwise the error names the Settings path. Background location throttling still applies to fresh fixes when Haven is backgrounded — lastKnown usually still answers.
+
+- `timeoutMs` (integer) — How long to wait for a fresh GPS/network fix (1000–30000, default 8000). The call waits this long only when no fix arrives sooner.
+
+</details>
+
+<details markdown="1">
+<summary><code>read_sensors</code> · asks once per session</summary>
+
+One-shot read of the phone's motion and environment sensors — accelerometer (m/s²), gyroscope (rad/s), magnetometer (µT), pressure (hPa), light (lux), ambient temperature (°C), relative humidity (%), proximity (cm). Registers a short sampling window (default 300 ms) and returns the latest value plus the sample count for each sensor present; sensors the device lacks are simply absent from the result. Needs no Android permission (normal-rate sampling, not high-rate). A single sample is NOT an orientation solution — no fusion/rotation vector is computed here; request sensors explicitly when you only need one. Gated once per session like read_logcat.
+
+- `sensors` (string[]) — Optional filter: read only these sensors (names: accelerometer, gyroscope, magnetometer, pressure, light, ambient_temperature, relative_humidity, proximity). Omit to read every sensor the device has.
+- `windowMs` (integer) — Sampling window in milliseconds (50–2000, default 300). More window = more samples for a steadier 'latest' value, at the cost of the call's wall time.
+
+</details>
 
 <a id="sec-connections"></a>
 
@@ -220,7 +264,7 @@ Edit fields on an existing connection profile (load → change → save). Pass p
 
 <a id="sec-terminal"></a>
 
-## Terminal, selection & sessions (27)
+## Terminal, selection & sessions (29)
 
 Reading and driving terminal sessions: input, scrollback, text selection, snippets, and workspace layouts.
 
@@ -417,12 +461,37 @@ Return a structured snapshot of an active terminal session: dimensions, cursor r
 </details>
 
 <details markdown="1">
+<summary><code>save_workspace</code> · asks every call</summary>
+
+Snapshot every currently-connected transport session (terminals, file browsers, desktops) plus a running Wayland compositor into a named workspace that list_workspaces/compose_workspace can relaunch. Connects nothing and launches nothing — it records what is live right now, the same capture the Connections screen's save dialog performs. Fails when nothing is connected; returns saved:false + existingWorkspaceId when the name is taken and overwrite is not set.
+
+- `name` (string, required) — Workspace name (trimmed; blank is rejected).
+- `overwrite` (boolean) — If a workspace with this name already exists, replace its items instead of returning saved:false. Default false.
+
+</details>
+
+<details markdown="1">
 <summary><code>scroll_terminal</code> · asks once per session</summary>
 
 Scroll an active terminal session's viewport by N lines. Positive lines = back into scrollback (older content); negative lines = toward the live screen. Clamps at 0 (live) and scrollback.size. Returns { scrollbackPosition } — the new position after clamping.
 
 - `lines` (integer, required) — Lines to scroll. Positive = into scrollback, negative = toward live.
 - `sessionId` (string, required) — Active session ID with an attached terminal tab.
+
+</details>
+
+<details markdown="1">
+<summary><code>search_terminal</code> · no per-call prompt</summary>
+
+Search a live terminal session's scrollback for a pattern and return the matching lines with line numbers and optional surrounding context — the middle ground between read_terminal_scrollback (raw dump) and read_terminal_snapshot (visible screen). Matches RAW scrollback text (ANSI escapes may be present, as with read_terminal_scrollback); searches the same 256 KiB ring, so anything that scrolled out of the buffer is unfindable — run the search while the text is still on screen or use a pattern that matches recent output.
+
+- `pattern` (string, required) — The text or regex to search for.
+- `sessionId` (string, required) — The session to search (from list_sessions).
+- `contextLines` (integer) — Lines of context before/after each match (0–3, default 0).
+- `ignoreCase` (boolean) — Case-insensitive matching. Default true.
+- `maxBytes` (integer) — How much scrollback tail to search, in bytes (default and cap 256 KiB).
+- `maxMatches` (integer) — Stop after this many matches (1–100, default 20).
+- `regex` (boolean) — Interpret pattern as a regular expression instead of a plain substring. Default false.
 
 </details>
 
@@ -496,7 +565,7 @@ Simulate a tap inside an active terminal session at (row, col). When the user ha
 
 <a id="sec-files"></a>
 
-## Files, media & clipboard (19)
+## Files, media & clipboard (23)
 
 The unified file browser (local and SFTP), format conversion, media playback/streaming, encryption, and the clipboard.
 
@@ -575,6 +644,22 @@ DEPRECATED: prefer list_directory(profileId=..., path=...). List files at a path
 </details>
 
 <details markdown="1">
+<summary><code>mirror_directory_with_fallback</code> · asks every call</summary>
+
+Copy a directory tree from one file backend to another (profileIds from list_connections — SSH, SMB, rclone, Reticulum, or "local"), creating missing destination directories. If the primary destination backend cannot be resolved, the copy is retried against fallbackProfileId/fallbackPath. Files already present in the destination with the same size are skipped (so a re-run resumes); files above maxFileMb (default 16, cap 64) are skipped and reported because the copy uses the small-file byte-array surface. Returns copied/skipped/failed counts plus per-failure reasons — verify the counts before declaring success.
+
+- `dstPath` (string, required) — Destination directory (created if missing).
+- `dstProfileId` (string, required) — Primary backend to copy into.
+- `srcPath` (string, required) — Directory to copy (backend-relative).
+- `srcProfileId` (string, required) — Backend to copy from.
+- `fallbackPath` (string) — Destination directory on the fallback backend.
+- `fallbackProfileId` (string) — Fallback backend used only when the primary destination cannot be resolved.
+- `maxFileMb` (integer) — Skip files larger than this (MiB). Default 16, cap 64.
+- `pattern` (string) — Only copy files whose name contains this substring (case-insensitive). Directories are still recursed.
+
+</details>
+
+<details markdown="1">
 <summary><code>navigate_sftp_browser</code> · no per-call prompt</summary>
 
 Switch to the Files tab and open the file browser at the given path on the given profile. Tap-equivalent — same effect as the user tapping into the SFTP screen and entering the path. The path is interpreted by whichever backend the profile resolves to (POSIX absolute for SSH/Local, share-relative for SMB, remote-relative for rclone).
@@ -625,6 +710,15 @@ Return the system clipboard's primary plain-text content. Returns { text } where
 </details>
 
 <details markdown="1">
+<summary><code>read_watch</code> · no per-call prompt</summary>
+
+Read a directory watch's state and events (from watch_directory): new entries since the last read_watch call for this watch, plus lifetime counters and liveness. Read-only, no prompt.
+
+- `watchId` (string, required) — The watch to read (from watch_directory).
+
+</details>
+
+<details markdown="1">
 <summary><code>serve_file</code> · asks every call</summary>
 
 *Extra capability switch — off by default: agent file read is disabled — enable in Settings → Agent endpoint.*
@@ -640,6 +734,15 @@ Publish a single file from any connected backend (local, SFTP, SMB, rclone) as a
 <summary><code>stop_stream</code> · no per-call prompt</summary>
 
 Stop any currently running HLS stream started by stream_sftp_file or the UI.
+
+</details>
+
+<details markdown="1">
+<summary><code>stop_watch_directory</code> · asks once per session</summary>
+
+Stop a directory watch started by watch_directory, cancelling its poller. The event ring is discarded. Session-gated like the start.
+
+- `watchId` (string, required) — The watch to stop.
 
 </details>
 
@@ -684,6 +787,18 @@ Render a file from the ACTIVE proot guest to an INLINE image the agent can see d
 - `format` (string) — "png" (default, lossless) or "jpeg" (smaller over the tunnel).
 - `maxWidth` (integer) — Downscale so the image is at most this many pixels wide. Default 1024 (clamped 160–4096).
 - `page` (integer) — For multi-page PDFs, the 1-based page to render. Default 1.
+
+</details>
+
+<details markdown="1">
+<summary><code>watch_directory</code> · asks once per session</summary>
+
+Start a background watch on a directory of any connected file backend (profileId from list_connections, "local" for the device filesystem) and return a watchId immediately: every `intervalSec` (floor 5 s) the directory is listed, new entries are recorded and raised as a Haven notification so a change reaches the user between tool calls. Deletions/renames are noted in the event log via read_watch; entries present at start are NOT events — only what appears afterwards. In-memory: the watch (and its event ring, last 100) lives until stop_watch_directory or Haven restarts. Use read_watch to poll the events without waiting for notifications.
+
+- `path` (string, required) — Directory path to watch (backend-relative, as list_directory takes it).
+- `profileId` (string, required) — The connection profile whose backend to watch ("local" = the device filesystem).
+- `intervalSec` (integer) — Poll interval in seconds (5–600, default 30). Lower = faster detection but more load on the remote; 5 s is the floor by design.
+- `pattern` (string) — Only raise events for new entries whose name contains this substring (case-insensitive). Omit for any new entry.
 
 </details>
 
@@ -1832,7 +1947,7 @@ Perform a USB endpoint-0 control transfer on an opened device. Args: deviceName,
 
 <a id="sec-security"></a>
 
-## Security — SSH keys, host keys, TOTP & age (15)
+## Security — SSH keys, host keys, TOTP & age (17)
 
 The SSH key store, pinned host keys (TOFU), trusted host CAs, TOTP secrets, and age encryption identities.
 
@@ -1894,12 +2009,33 @@ Remove a trusted SSH host CA by id (from list_trusted_host_cas). Servers signed 
 </details>
 
 <details markdown="1">
+<summary><code>deploy_key</code> · asks every call</summary>
+
+Append a stored public key to the target host's ~/.ssh/authorized_keys over an SSH session on that profile (reuse path: an exec channel over the live session; headless path: fail-closed TOFU — connect the profile interactively once first for FIDO2/encrypted-key hosts). Idempotent: the key is only appended if not already present (exact-line grep). Creates ~/.ssh with 700 and authorized_keys with 600 if missing. Run deploy only over a profile whose host you are authorised to modify — this changes who can log in to it.
+
+- `keyId` (string, required) — Key id from list_ssh_keys whose public half is appended.
+- `profileId` (string, required) — SSH profile to deploy to (from list_connections).
+- `timeoutMs` (integer) — Exec timeout, ms (1000–300000, default 30000).
+
+</details>
+
+<details markdown="1">
 <summary><code>forget_known_host</code> · asks every call</summary>
 
 Forget a pinned SSH host key by hostname + port, so the next connect re-pins on first-use trust (TOFU). Use when a server has legitimately rotated its host key, or to clear a stale pin. `hostname` and `port` are required (from list_known_hosts). No-op if none matches; returns removed=true/false.
 
 - `hostname` (string, required) — Host of the pinned key (from list_known_hosts).
 - `port` (integer, required) — Port of the pinned key (SSH default 22).
+
+</details>
+
+<details markdown="1">
+<summary><code>generate_ssh_key</code> · asks every call</summary>
+
+Generate a new SSH keypair and store it in Haven's key store (the Keys screen). Returns the key id, type, OpenSSH public line, and SHA-256 fingerprint — the private key bytes are never returned and never leave the device. Generated keys are unencrypted at rest (matching the UI's generate flow); set a passphrase later via the UI or set_ssh_key_option. Pairs with deploy_key.
+
+- `label` (string, required) — Key label (used as the public-key comment too).
+- `keyType` (string) — One of: ed25519 (default), rsa4096, ecdsa384.
 
 </details>
 
@@ -1972,7 +2108,7 @@ Set per-key options on a saved SSH key (the toggles on the Keys screen). `keyId`
 
 <a id="sec-agent-you"></a>
 
-## Agent ↔ you (attention & self-drive) (12)
+## Agent ↔ you (attention & self-drive) (13)
 
 How an agent reaches your attention (present_*, notifications, the agent-to-agent turn tools) and drives Haven's own UI.
 
@@ -2001,6 +2137,18 @@ Capture HAVEN'S OWN rendered screen — the app UI the user is looking at right 
 <summary><code>dump_haven_ui</code> · asks once per session</summary>
 
 Dump Haven's OWN foreground UI as a structured element list — the in-app equivalent of `uiautomator dump`, so you get EXACT control bounds instead of estimating them off a capture_haven_ui image. Returns { width, height, count, nodes:[{text, contentDescription, editableText, role, clickable, disabled, bounds:[left,top,right,bottom], centerX, centerY, window?}] } in the SAME window-pixel space tap_haven_ui / swipe_haven_ui use — read a control's centerX/centerY and tap it directly. Nodes from the activity window have no `window` field; nodes from an overlay that renders in its OWN window (e.g. the consent sheet, `window: consent-sheet`) are labelled with it (#355) — those bounds are that window's own pixel space. capture_haven_ui still photographs the activity window only, and tap_haven_ui refuses entirely while a consent prompt is pending, so an overlay can be observed but never tapped by an agent. Returns `windowsEnumerable`: when false, the platform refused the window-list lookup and only the activity window (plus self-registered overlays) could be walked — a dialog or dropdown may be on screen and missing from `nodes`, so an empty result does NOT mean nothing is open, and tapping blind will hit whatever is behind it. FLAG_SECURE blocks it. Read-only.
+
+</details>
+
+<details markdown="1">
+<summary><code>list_notifications</code> · asks every call</summary>
+
+Read recent Android notifications — the phone's inbound attention: app, title, body text, post time, ongoing/clearable flags. Backed by a notification-listener ring (last 300, memory only, no history across Haven restarts); removed notifications stay visible with `removed: true` so polling reads dismissals as facts. Optional filters: `app` (package-name substring, e.g. "whatsapp"), `text` (substring in title or body), `sinceMs`, `limit`. Requires Notification-listener access — a special Android grant, not a runtime permission: if not yet granted, the call attempts it via Shizuku (this consent sheet is the gate) or errors with the Settings path; after a first grant the listener binds asynchronously, so the first call may return {connected:true, count:0} and a re-call is needed.
+
+- `app` (string) — Only notifications whose package name contains this substring (case-insensitive).
+- `limit` (integer) — Max notifications returned, newest first (1–200, default 50).
+- `sinceMs` (integer) — Only notifications posted at/after this Unix-ms timestamp.
+- `text` (string) — Only notifications whose title or body contains this substring (case-insensitive).
 
 </details>
 

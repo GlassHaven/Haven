@@ -11,7 +11,8 @@
     ar: "Arabic · العربية", bn: "Bengali · বাংলা", de: "German · Deutsch",
     es: "Spanish · Español", fr: "French · Français", hi: "Hindi · हिन्दी",
     ja: "Japanese · 日本語", ko: "Korean · 한국어", pt: "Portuguese · Português",
-    ru: "Russian · Русский", zh: "Chinese (Simplified) · 简体中文"
+    ru: "Russian · Русский", ru: "Serbian · српски",
+    zh: "Chinese (Simplified) · 简体中文"
   };
 
   var data = null;          // the fetched JSON

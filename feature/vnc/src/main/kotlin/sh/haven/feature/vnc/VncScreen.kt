@@ -14,6 +14,7 @@ import androidx.compose.animation.animateContentSize
 import androidx.compose.animation.fadeIn
 import androidx.compose.animation.fadeOut
 import androidx.compose.foundation.clickable
+import androidx.compose.foundation.focusable
 import androidx.compose.foundation.interaction.MutableInteractionSource
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
@@ -87,6 +88,7 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.focus.FocusRequester
 import androidx.compose.ui.focus.focusRequester
+import androidx.compose.ui.focus.onFocusChanged
 import androidx.compose.ui.geometry.Offset
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.asImageBitmap
@@ -632,6 +634,52 @@ private fun VncViewer(
     val keyboardController = LocalSoftwareKeyboardController.current
     var keyboardVisible by remember { mutableStateOf(false) }
 
+    // #511(b): physical-keyboard support. The hidden text field was the only
+    // focusable thing on this screen, and it was focused only when the soft
+    // keyboard toggle was tapped — so with the soft keyboard closed nothing
+    // held focus, and hardware keys went nowhere (sae13: keys reach the remote
+    // only when the on-screen keyboard is open). The canvas is focusable so the
+    // screen can hold focus WITHOUT summoning the IME, and the key handler
+    // lives on the root Box, whose preview pass fires for every descendant —
+    // the text field included. When the field holds focus (soft keyboard up)
+    // the root handler defers to it so the commit path stays the single
+    // sender for printable characters; otherwise the root handler is the
+    // sender. Same shape as the RDP viewer's #507 fix.
+    val hardwareKeyFocus = remember { FocusRequester() }
+    var canvasFocused by remember { mutableStateOf(false) }
+    var fieldFocused by remember { mutableStateOf(false) }
+    val handleHardwareKey: (androidx.compose.ui.input.key.KeyEvent) -> Boolean = { event ->
+        if (fieldFocused) {
+            // Soft keyboard attached: the field's own onPreviewKeyEvent /
+            // onValueChange commit path handles input. Defer.
+            false
+        } else {
+            val keySym = androidKeyToKeySym(event.key)
+            if (keySym != null) {
+                when (event.type) {
+                    KeyEventType.KeyDown -> onKeyDown(keySym)
+                    KeyEventType.KeyUp -> onKeyUp(keySym)
+                }
+                true
+            } else {
+                false
+            }
+        }
+    }
+    LaunchedEffect(Unit) { hardwareKeyFocus.requestFocus() }
+
+    // The system re-shows the IME across a configuration change even when the
+    // user dismissed it; enforce the invariant that the IME is up only when we
+    // asked for it. Scoped to this screen's own focus holders so the terminal
+    // tab's keyboard isn't hidden by this effect (isImeVisible is window-global).
+    val imeVisible = WindowInsets.isImeVisible
+    LaunchedEffect(imeVisible, keyboardVisible, canvasFocused, fieldFocused) {
+        if (!keyboardVisible && imeVisible && (canvasFocused || fieldFocused)) {
+            keyboardController?.hide()
+            hardwareKeyFocus.requestFocus()
+        }
+    }
+
     // Modifier state for VNC key toolbar
     var ctrlActive by remember { mutableStateOf(false) }
     var altActive by remember { mutableStateOf(false) }
@@ -713,7 +761,12 @@ private fun VncViewer(
         mutableStateOf(TextFieldValue(sentinel, TextRange(sentinel.length)))
     }
 
-    Box(modifier = Modifier.fillMaxSize().onSizeChanged { rootBoxSize = it }) {
+    Box(
+        modifier = Modifier
+            .fillMaxSize()
+            .onPreviewKeyEvent(handleHardwareKey)
+            .onSizeChanged { rootBoxSize = it },
+    ) {
     Column(modifier = Modifier.fillMaxSize()) {
         // Security banner: the server's identity is unverified (anonymous TLS
         // or security type None). Non-blocking; the connection still works but
@@ -769,6 +822,9 @@ private fun VncViewer(
                 .weight(1f)
                 .fillMaxWidth()
                 .background(Color.Black)
+                .focusRequester(hardwareKeyFocus)
+                .focusable()
+                .onFocusChanged { canvasFocused = it.isFocused }
                 .onSizeChanged { viewSize = it }
                 // All touch handling: tap, drag, pinch-to-zoom, two-finger pan/scroll.
                 // Uses Initial pass and consumes all events so the pager can't steal them.
@@ -1125,6 +1181,7 @@ private fun VncViewer(
             modifier = Modifier
                 .size(1.dp)
                 .focusRequester(focusRequester)
+                .onFocusChanged { fieldFocused = it.isFocused }
                 .onPreviewKeyEvent { event ->
                     val keySym = androidKeyToKeySym(event.key)
                     if (keySym != null) {
@@ -1149,7 +1206,6 @@ private fun VncViewer(
         // hidden by default so the rows don't eat screen space unsummoned;
         // allowed in fullscreen too, since the immersive desktop is exactly
         // where the compositor keybinds (Super+D / Super+Return) are needed.
-        val imeVisible = WindowInsets.isImeVisible
         if (keyboardVisible || imeVisible) {
             VncKeyToolbar(
                 layout = toolbarLayout,
@@ -1189,6 +1245,7 @@ private fun VncViewer(
                         keyboardController?.show()
                     } else {
                         keyboardController?.hide()
+                        hardwareKeyFocus.requestFocus()
                     }
                 },
             )
@@ -1232,6 +1289,7 @@ private fun VncViewer(
                         keyboardController?.show()
                     } else {
                         keyboardController?.hide()
+                        hardwareKeyFocus.requestFocus()
                     }
                 }) {
                     Icon(
@@ -1390,6 +1448,7 @@ private fun VncViewer(
                             keyboardController?.show()
                         } else {
                             keyboardController?.hide()
+                            hardwareKeyFocus.requestFocus()
                         }
                     }) {
                         Icon(

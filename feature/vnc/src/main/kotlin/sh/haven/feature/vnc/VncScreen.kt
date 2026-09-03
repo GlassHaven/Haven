@@ -108,6 +108,8 @@ import androidx.compose.ui.input.pointer.pointerInteropFilter
 import androidx.compose.ui.input.pointer.positionChange
 import androidx.compose.ui.layout.onSizeChanged
 import androidx.compose.ui.platform.LocalClipboardManager
+import androidx.compose.ui.platform.LocalConfiguration
+import androidx.compose.ui.platform.LocalFocusManager
 import androidx.compose.ui.platform.LocalSoftwareKeyboardController
 import androidx.compose.ui.text.TextRange
 import androidx.compose.ui.text.input.TextFieldValue
@@ -630,9 +632,26 @@ private fun VncViewer(
     // the value passed in.)
 
     // Keyboard
+    // #511: where a real keyboard is attached and usable, the keyboard icon
+    // must not raise the IME — it enables hardware-key passthrough instead.
+    // The soft keyboard over a desktop is an obstruction, not the input
+    // method. hardKeyboardHidden is part of the test on purpose: a
+    // docked/folded device reports KEYBOARD_QWERTY with the keys physically
+    // inaccessible, and there the soft keyboard is the only way to type.
+    // Same predicate the terminal tab uses for #511 (TerminalScreen).
+    val screenConfiguration = LocalConfiguration.current
+    val physicalKeyboardAttached =
+        screenConfiguration.keyboard != android.content.res.Configuration.KEYBOARD_NOKEYS &&
+            screenConfiguration.hardKeyboardHidden ==
+            android.content.res.Configuration.HARDKEYBOARDHIDDEN_NO
+    val focusManager = LocalFocusManager.current
     val focusRequester = remember { FocusRequester() }
     val keyboardController = LocalSoftwareKeyboardController.current
-    var keyboardVisible by remember { mutableStateOf(false) }
+    // With a hardware keyboard attached the screen starts in passthrough-on
+    // (AVNC parity: click inside the desktop and type immediately); without
+    // one it starts with the IME down, as before. Keyed on the predicate so a
+    // mid-session hotplug resets the bit to the new mode's default.
+    var keyboardVisible by remember(physicalKeyboardAttached) { mutableStateOf(physicalKeyboardAttached) }
 
     // #511(b): physical-keyboard support. The hidden text field was the only
     // focusable thing on this screen, and it was focused only when the soft
@@ -667,6 +686,31 @@ private fun VncViewer(
         }
     }
     LaunchedEffect(Unit) { hardwareKeyFocus.requestFocus() }
+
+    // The keyboard icon's meaning is context-dependent (#511). With a
+    // hardware keyboard attached it toggles passthrough: on = the canvas
+    // holds focus and keys go straight to the remote (the IME is never
+    // raised); off = focus is released so keys stop reaching the session.
+    // Without a hardware keyboard it is the soft-keyboard show/hide toggle
+    // it has always been. keyboardVisible doubles as the on/off bit for
+    // both modes; the IME-invariant effect below only acts while the IME
+    // is actually up, so reusing it here is safe.
+    val toggleKeyboard: () -> Unit = {
+        keyboardVisible = !keyboardVisible
+        if (physicalKeyboardAttached) {
+            if (keyboardVisible) {
+                hardwareKeyFocus.requestFocus()
+            } else {
+                focusManager.clearFocus(force = true)
+            }
+        } else if (keyboardVisible) {
+            focusRequester.requestFocus()
+            keyboardController?.show()
+        } else {
+            keyboardController?.hide()
+            hardwareKeyFocus.requestFocus()
+        }
+    }
 
     // The system re-shows the IME across a configuration change even when the
     // user dismissed it; enforce the invariant that the IME is up only when we
@@ -842,9 +886,13 @@ private fun VncViewer(
                         // composition is the only one, and by the time the user
                         // taps in, focus has left the canvas subtree, so hardware
                         // keys never reach this screen's preview handler. Mirrors
-                        // the RDP #507 fix; not while the soft keyboard is up,
-                        // where moving focus off the text field would dismiss it.
-                        if (!keyboardVisible) hardwareKeyFocus.requestFocus()
+                        // the RDP #507 fix. Reclaim whenever passthrough should
+                        // hold focus: hardware mode with the toggle on, soft mode
+                        // with the IME down (reclaiming while the IME is up would
+                        // dismiss it). keyboardVisible == physicalKeyboardAttached
+                        // is exactly that condition, and it also respects a
+                        // deliberate hardware-mode toggle-off (no re-grab).
+                        if (keyboardVisible == physicalKeyboardAttached) hardwareKeyFocus.requestFocus()
                         var totalFingers = 1
                         var prevCentroid = firstDown.position
                         var prevSpan = 0f
@@ -1247,16 +1295,7 @@ private fun VncViewer(
                     if (shiftActive) { onKeyUp(XK_SHIFT_L); shiftActive = false }
                     if (superActive) { onKeyUp(XK_SUPER_L); superActive = false }
                 },
-                onToggleKeyboard = {
-                    keyboardVisible = !keyboardVisible
-                    if (keyboardVisible) {
-                        focusRequester.requestFocus()
-                        keyboardController?.show()
-                    } else {
-                        keyboardController?.hide()
-                        hardwareKeyFocus.requestFocus()
-                    }
-                },
+                onToggleKeyboard = toggleKeyboard,
             )
         }
 
@@ -1291,16 +1330,7 @@ private fun VncViewer(
                 }
 
                 // Keyboard toggle
-                IconButton(onClick = {
-                    keyboardVisible = !keyboardVisible
-                    if (keyboardVisible) {
-                        focusRequester.requestFocus()
-                        keyboardController?.show()
-                    } else {
-                        keyboardController?.hide()
-                        hardwareKeyFocus.requestFocus()
-                    }
-                }) {
+                IconButton(onClick = toggleKeyboard) {
                     Icon(
                         if (keyboardVisible) Icons.Default.KeyboardHide
                         else Icons.Default.Keyboard,
@@ -1450,16 +1480,7 @@ private fun VncViewer(
                     }) {
                         Icon(Icons.Default.Close, contentDescription = stringResource(R.string.vnc_cd_disconnect))
                     }
-                    IconButton(onClick = {
-                        keyboardVisible = !keyboardVisible
-                        if (keyboardVisible) {
-                            focusRequester.requestFocus()
-                            keyboardController?.show()
-                        } else {
-                            keyboardController?.hide()
-                            hardwareKeyFocus.requestFocus()
-                        }
-                    }) {
+                    IconButton(onClick = toggleKeyboard) {
                         Icon(
                             if (keyboardVisible) Icons.Default.KeyboardHide
                             else Icons.Default.Keyboard,

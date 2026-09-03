@@ -5,6 +5,22 @@ the corresponding GitHub Release; a release can't ship without its section
 (enforced by `scripts/check-changelog.sh` in CI). The GitHub "Full Changelog"
 compare link is appended automatically — don't add it here.
 
+## v5.87.74
+
+- Herdr joins tmux, Zellij, Screen and Byobu as an SSH session manager (#615).
+
+- Adding a distro asks before it downloads (#620).
+
+- Physical keyboards reach VNC guests (#511).
+
+- **Herdr is now a session manager for SSH connections** (#615, contributed by @w3lld1). Attach through Herdr the way you attach through tmux or Zellij: pick it in the profile editor and Haven lists, attaches to, and creates named Herdr sessions. Detach is prefix+q, Herdr's default prefix being ctrl+b.
+
+- **Adding a distro now asks before it downloads** (#620). Tapping "+ Ubuntu (~400 MB)" used to start the download straight away. It confirms first, so a mis-tap on a metered connection costs nothing.
+
+- **Physical keyboards work in VNC sessions** (#511). Keys typed on a hardware keyboard now reach the VNC guest instead of only the on-screen keyboard. The session view takes key events at the window level, mirroring the fix that landed for RDP.
+
+- Serbian (sr) translation refresh.
+
 ## v5.87.73
 
 - **The suggestion strip is gone from password fields on Samsung keyboards** (#614). Honeyboard kept drawing its autocorrect/suggestion bar over secure fields, where it has no business appearing. The field type now carries the signal Samsung actually honours — "this holds a free-form token, don't rewrite it" — so the strip stays away, on the secure fields and on the ones that gate autocorrect for the commit path.

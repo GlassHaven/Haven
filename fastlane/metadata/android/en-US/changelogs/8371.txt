@@ -1,0 +1,3 @@
+- Herdr joins tmux, Zellij, Screen and Byobu as an SSH session manager (#615).
+- Adding a distro asks before it downloads (#620).
+- Physical keyboards reach VNC guests (#511).

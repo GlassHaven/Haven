@@ -1,0 +1,19 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string name="imagetools_title">Алати за слике</string>
+    <string name="imagetools_perspective">Перспектива</string>
+    <string name="imagetools_crop">Опсецање</string>
+    <string name="imagetools_rotate">Ротирање</string>
+    <string name="imagetools_apply">Примени</string>
+    <string name="imagetools_save">Сачувај</string>
+    <string name="imagetools_reset">Ресетуј</string>
+    <string name="imagetools_original">Оригинал</string>
+    <string name="imagetools_result">Резултат</string>
+    <string name="imagetools_processing">Обрађује се…</string>
+    <string name="imagetools_failed">Није успело: %s</string>
+    <string name="imagetools_saved">Сачуван је %s</string>
+    <string name="imagetools_open">Алати за слике</string>
+    <string name="imagetools_view">Приказ</string>
+    <string name="imagetools_loading">Слика се учитава…</string>
+</resources>
+

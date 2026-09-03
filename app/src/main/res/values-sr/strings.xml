@@ -47,7 +47,7 @@
     <string name="workspace_card_no_items">празан</string>
     <string name="workspace_long_press_delete">Обриши</string>
     <string name="workspace_delete_confirm_title">Желите ли да обришете радни простор?</string>
-    <string name="workspace_delete_confirm_message">Уклониће се „%1$s\". Везе на које указује ће остати.</string>
+    <string name="workspace_delete_confirm_message">Уклониће се „%1$s“. Везе на које указује ће остати.</string>
     <string name="workspace_launch_progress">Отвара се %1$s — %2$d / %3$d</string>
     <string name="workspace_launch_completed">%1$s је отворен</string>
     <string name="workspace_launch_partial">%1$s — отворено је %2$d од %3$d ставки</string>
@@ -69,7 +69,7 @@
     <string name="app_biometric_no_hardware_body">Овај уређај не може да провери идентитет (нема биометријски хардвер и нема овлашћење уређаја). Поставите PIN или лозинку за откључавање у Подешавањима.</string>
     <string name="app_desktop_manager_title">Локални Линукс</string>
     <string name="app_desktop_compositor_title">Композитор</string>
-    <string name="app_desktop_manager_description">Покрећите комплетан Линукс декстоп унутар апликације Haven. Изаберите дистрибуцију, инсталирајте десктоп окружење (Xfce4, Openbox, or Sway), па Покрени — није потребан посебан сервер или повезивање.</string>
+    <string name="app_desktop_manager_description">Покрећите комплетан Линукс десктоп унутар апликације Haven. Изаберите дистрибуцију, инсталирајте десктоп окружење (Xfce4, Openbox, or Sway), па Покрени — није потребан посебан сервер или повезивање.</string>
     <string name="app_desktop_mirror_title">Извор пакета</string>
     <string name="app_desktop_mirror_description">Место са којег се преузимају пакети. За бржа, поузданија инсталирања, изаберите регион у вашој близини. Подразумевани користи сопствени CDN сваке дистрибуције.</string>
     <string name="app_desktop_mirror_default">Подразумевани (CDN)</string>
@@ -121,7 +121,7 @@
     <string name="app_desktop_cancel">Откажи</string>
     <string name="app_desktop_save">Сачувај</string>
     <string name="app_desktop_app_windows_title">Прозори апликације</string>
-    <string name="app_desktop_app_windows_description">Покреће појединачну апликаију у плутајућем прозору преко текућег екрана. Апликације се извршавају у активној Линукс дистрибуцији и тамо морају бити инсталиране.</string>
+    <string name="app_desktop_app_windows_description">Покреће појединачну апликацију у плутајућем прозору преко текућег екрана. Апликације се извршавају у активној Линукс дистрибуцији и тамо морају бити инсталиране.</string>
     <string name="app_desktop_app_windows_empty">Још увек нема ниједног прозора апликације. Додајте један ако желите да покренете апликацију у плутајућем прозору.</string>
     <string name="app_desktop_app_window_launch_cd">Покрени %1$s</string>
     <string name="app_desktop_app_window_edit_cd">Уреди %1$s</string>
@@ -195,7 +195,7 @@
     <string name="app_desktop_custom_cmd_unset">Постави команду сесије за покретање</string>
     <string name="app_desktop_custom_cmd_edit">Уреди команду сесије</string>
     <string name="app_desktop_custom_cmd_title">Произвољна команда сесије</string>
-    <string name="app_desktop_custom_cmd_description">Извршава се у односу на X сервер апликације Haven унутар активне дистрибуције — termux-x11 шаблон, нпр. dbus-launch startxfce4. Најпре инсталирајте пакете декстопа у дистрибуцију. X11 десктопи се исцртавају софтверски: неће се покренути десктопи који захтевају GL композитор (GNOME Shell, KWin).</string>
+    <string name="app_desktop_custom_cmd_description">Извршава се у односу на X сервер апликације Haven унутар активне дистрибуције — termux-x11 шаблон, нпр. dbus-launch startxfce4. Најпре инсталирајте пакете десктопа у дистрибуцију. X11 десктопи се исцртавају софтверски: неће се покренути десктопи који захтевају GL композитор (GNOME Shell, KWin).</string>
     <string name="app_desktop_custom_cmd_label">Команда сесије</string>
     <string name="app_desktop_custom_cmd_save_start">Сачувај &amp; покрени</string>
     <string name="app_desktop_de_with_size">%1$s (%2$s)</string>

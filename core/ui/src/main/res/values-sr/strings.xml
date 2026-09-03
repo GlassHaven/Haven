@@ -2,13 +2,13 @@
 <resources>
     <string name="nav_connections">Повежи</string>
     <string name="nav_terminal">Терминал</string>
-    <string name="nav_desktop">Декстоп</string>
+    <string name="nav_desktop">Десктоп</string>
     <string name="nav_keys">Тастери</string>
     <string name="nav_sftp">Фајлови</string>
     <string name="nav_mail">Мејл</string>
     <string name="nav_settings">Подешавања</string>
     <string name="common_cancel">Откажи</string>
-    <string name="common_save">Саувај</string>
+    <string name="common_save">Сачувај</string>
     <string name="common_done">Готово</string>
     <string name="common_close">Затвори</string>
     <string name="common_ok">ОК</string>
@@ -40,5 +40,5 @@
     <string name="wayland_cd_exit_fullscreen">Напусти пуни екран</string>
     <string name="wayland_cd_toggle_keyboard">Укљ./искљ. тастатуру</string>
     <string name="wayland_cd_fullscreen">Пуни екран</string>
-    <string name="wayland_cd_desktop_resolution">Резолуција декстопа</string>
+    <string name="wayland_cd_desktop_resolution">Резолуција десктопа</string>
 </resources>

@@ -88,6 +88,9 @@
     <string name="app_desktop_delete_distro_confirm_body">يؤدي هذا إلى محو نظام الملفات الجذري (rootfs) واسترجاع مساحته على القرص. ستفقد الحزم التي ثبّتها والملفات الموجودة في هذه التوزيعة. ستتم إعادة تهيئتها في المرة التالية التي تفتحها فيها.</string>
     <string name="app_desktop_add_distro">+ %1$s  (~%2$d MB)</string>
     <string name="app_desktop_add_foreign_distro">+ %1$s %2$s — عبر المحاكاة، أبطأ  (~%3$d MB)</string>
+    <string name="app_desktop_add_distro_confirm_title">تنزيل %1$s؟</string>
+    <string name="app_desktop_add_distro_confirm_body">يؤدي هذا إلى تنزيل واستخراج نظام الجذر rootfs، حوالي %1$d ميغابايت. قد يستغرق بعض الوقت على اتصال بطيء.</string>
+    <string name="app_desktop_add_foreign_distro_confirm_body">يؤدي هذا إلى تنزيل واستخراج نظام الجذر rootfs لـ %1$s للاستخدام المحاكى، حوالي %2$d ميغابايت. قد يستغرق بعض الوقت على اتصال بطيء.</string>
     <string name="app_desktop_usb_drive_picker_title">أي محرك أقراص USB تريد فتحه؟</string>
     <string name="app_desktop_rootfs_downloading">جارٍ تنزيل rootfs… %1$d%%</string>
     <string name="app_desktop_rootfs_extracting">جارٍ فك ضغط rootfs…</string>

@@ -3588,6 +3588,70 @@
      }
     },
     {
+     "name": "app_desktop_add_distro_confirm_title",
+     "en": "Download %1$s?",
+     "comment": "Desktop manager: distro / rootfs",
+     "args": [
+      "%1$s"
+     ],
+     "t": {
+      "ar": "تنزيل %1$s؟",
+      "bn": "%1$s ডাউনলোড করবেন?",
+      "de": "%1$s herunterladen?",
+      "es": "¿Descargar %1$s?",
+      "fr": "Télécharger %1$s ?",
+      "hi": "%1$s डाउनलोड करें?",
+      "ja": "%1$s をダウンロードしますか？",
+      "ko": "%1$s을(를) 다운로드할까요?",
+      "pt": "Baixar %1$s?",
+      "ru": "Скачать %1$s?",
+      "zh": "下载 %1$s？"
+     }
+    },
+    {
+     "name": "app_desktop_add_distro_confirm_body",
+     "en": "This downloads and extracts the rootfs, about %1$d MB. It can take a while on a slow connection.",
+     "comment": "Desktop manager: distro / rootfs",
+     "args": [
+      "%1$d"
+     ],
+     "t": {
+      "ar": "يؤدي هذا إلى تنزيل واستخراج نظام الجذر rootfs، حوالي %1$d ميغابايت. قد يستغرق بعض الوقت على اتصال بطيء.",
+      "bn": "এটি rootfs ডাউনলোড ও এক্সট্র্যাক্ট করবে, প্রায় %1$d এমবি। ধীর সংযোগে কিছু সময় লাগতে পারে।",
+      "de": "Dadurch wird das rootfs heruntergeladen und entpackt, etwa %1$d MB. Bei einer langsamen Verbindung kann es eine Weile dauern.",
+      "es": "Esto descarga y extrae el rootfs, unos %1$d MB. Puede tardar un poco con una conexión lenta.",
+      "fr": "Cela télécharge et extrait le rootfs, environ %1$d Mo. Cela peut prendre un moment sur une connexion lente.",
+      "hi": "यह rootfs डाउनलोड और निकालेगा, लगभग %1$d MB। धीमे कनेक्शन पर कुछ समय लग सकता है।",
+      "ja": "rootfs をダウンロードして展開します。約 %1$d MB です。遅い接続では時間がかかることがあります。",
+      "ko": "rootfs를 다운로드하고 압축을 해제합니다. 약 %1$d MB입니다. 느린 연결에서는 시간이 걸릴 수 있습니다.",
+      "pt": "Isso baixa e extrai o rootfs, cerca de %1$d MB. Pode demorar um pouco em uma conexão lenta.",
+      "ru": "Это скачает и распакует rootfs, около %1$d МБ. На медленном соединении это может занять время.",
+      "zh": "这将下载并解压 rootfs，约 %1$d MB。在慢速连接上可能需要一段时间。"
+     }
+    },
+    {
+     "name": "app_desktop_add_foreign_distro_confirm_body",
+     "en": "This downloads and extracts the %1$s rootfs for emulated use, about %2$d MB. It can take a while on a slow connection.",
+     "comment": "Desktop manager: distro / rootfs",
+     "args": [
+      "%1$s",
+      "%2$d"
+     ],
+     "t": {
+      "ar": "يؤدي هذا إلى تنزيل واستخراج نظام الجذر rootfs لـ %1$s للاستخدام المحاكى، حوالي %2$d ميغابايت. قد يستغرق بعض الوقت على اتصال بطيء.",
+      "bn": "এটি emulated ব্যবহারের জন্য %1$s rootfs ডাউনলোড ও এক্সট্র্যাক্ট করবে, প্রায় %2$d এমবি। ধীর সংযোগে কিছু সময় লাগতে পারে।",
+      "de": "Dadurch wird das %1$s-rootfs für emulierte Nutzung heruntergeladen und entpackt, etwa %2$d MB. Bei einer langsamen Verbindung kann es eine Weile dauern.",
+      "es": "Esto descarga y extrae el rootfs %1$s para uso emulado, unos %2$d MB. Puede tardar un poco con una conexión lenta.",
+      "fr": "Cela télécharge et extrait le rootfs %1$s pour une utilisation émulée, environ %2$d Mo. Cela peut prendre un moment sur une connexion lente.",
+      "hi": "यह emulated उपयोग के लिए %1$s rootfs डाउनलोड और निकालेगा, लगभग %2$d MB। धीमे कनेक्शन पर कुछ समय लग सकता है।",
+      "ja": "エミュレート使用のために %1$s の rootfs をダウンロードして展開します。約 %2$d MB です。遅い接続では時間がかかることがあります。",
+      "ko": "에뮬레이트 사용을 위해 %1$s rootfs를 다운로드하고 압축을 해제합니다. 약 %2$d MB입니다. 느린 연결에서는 시간이 걸릴 수 있습니다.",
+      "pt": "Isso baixa e extrai o rootfs %1$s para uso emulado, cerca de %2$d MB. Pode demorar um pouco em uma conexão lenta.",
+      "ru": "Это скачает и распакует rootfs %1$s для эмулируемого использования, около %2$d МБ. На медленном соединении это может занять время.",
+      "zh": "这将下载并解压用于模拟运行的 %1$s rootfs，约 %2$d MB。在慢速连接上可能需要一段时间。"
+     }
+    },
+    {
      "name": "app_desktop_usb_drive_picker_title",
      "en": "Open which USB drive?",
      "comment": "Desktop manager: distro / rootfs",

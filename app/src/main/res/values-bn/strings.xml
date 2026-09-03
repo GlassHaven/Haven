@@ -88,6 +88,9 @@
     <string name="app_desktop_delete_distro_confirm_body">এটি rootfs মুছে ফেলে এবং তার ডিস্কের জায়গা ফিরিয়ে আনে। আপনার ইনস্টল করা প্যাকেজ ও এই ডিস্ট্রোর ফাইল হারিয়ে যাবে। পরের বার খুললে এটি আবার সেট আপ হবে।</string>
     <string name="app_desktop_add_distro">+ %1$s  (~%2$d MB)</string>
     <string name="app_desktop_add_foreign_distro">+ %1$s %2$s — এমুলেটেড, ধীর  (~%3$d MB)</string>
+    <string name="app_desktop_add_distro_confirm_title">%1$s ডাউনলোড করবেন?</string>
+    <string name="app_desktop_add_distro_confirm_body">এটি rootfs ডাউনলোড ও এক্সট্র্যাক্ট করবে, প্রায় %1$d এমবি। ধীর সংযোগে কিছু সময় লাগতে পারে।</string>
+    <string name="app_desktop_add_foreign_distro_confirm_body">এটি emulated ব্যবহারের জন্য %1$s rootfs ডাউনলোড ও এক্সট্র্যাক্ট করবে, প্রায় %2$d এমবি। ধীর সংযোগে কিছু সময় লাগতে পারে।</string>
     <string name="app_desktop_usb_drive_picker_title">কোন USB ড্রাইভ খুলবেন?</string>
     <string name="app_desktop_rootfs_downloading">rootfs ডাউনলোড হচ্ছে… %1$d%%</string>
     <string name="app_desktop_rootfs_extracting">rootfs বের করা হচ্ছে…</string>

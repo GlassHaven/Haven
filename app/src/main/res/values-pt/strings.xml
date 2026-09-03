@@ -88,6 +88,9 @@
     <string name="app_desktop_delete_distro_confirm_body">Isto apaga o rootfs e recupera o espaço em disco. Os pacotes que você instalou e os arquivos desta distro serão perdidos. Ela será reprovisionada na próxima vez que você a abrir.</string>
     <string name="app_desktop_add_distro">+ %1$s  (~%2$d MB)</string>
     <string name="app_desktop_add_foreign_distro">+ %1$s %2$s — emulado, mais lento  (~%3$d MB)</string>
+    <string name="app_desktop_add_distro_confirm_title">Baixar %1$s?</string>
+    <string name="app_desktop_add_distro_confirm_body">Isso baixa e extrai o rootfs, cerca de %1$d MB. Pode demorar um pouco em uma conexão lenta.</string>
+    <string name="app_desktop_add_foreign_distro_confirm_body">Isso baixa e extrai o rootfs %1$s para uso emulado, cerca de %2$d MB. Pode demorar um pouco em uma conexão lenta.</string>
     <string name="app_desktop_usb_drive_picker_title">Abrir qual unidade USB?</string>
     <string name="app_desktop_rootfs_downloading">Baixando rootfs… %1$d%%</string>
     <string name="app_desktop_rootfs_extracting">Extraindo rootfs…</string>

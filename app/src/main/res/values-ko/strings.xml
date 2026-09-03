@@ -94,6 +94,9 @@
     <string name="app_desktop_delete_distro_confirm_body">이 작업은 rootfs를 지우고 디스크 공간을 회수합니다. 설치한 패키지와 이 배포판의 파일이 사라집니다. 다음에 열 때 다시 준비됩니다.</string>
     <string name="app_desktop_add_distro">+ %1$s  (~%2$d MB)</string>
     <string name="app_desktop_add_foreign_distro">+ %1$s %2$s — 에뮬레이션 실행, 느림  (~%3$d MB)</string>
+    <string name="app_desktop_add_distro_confirm_title">%1$s을(를) 다운로드할까요?</string>
+    <string name="app_desktop_add_distro_confirm_body">rootfs를 다운로드하고 압축을 해제합니다. 약 %1$d MB입니다. 느린 연결에서는 시간이 걸릴 수 있습니다.</string>
+    <string name="app_desktop_add_foreign_distro_confirm_body">에뮬레이트 사용을 위해 %1$s rootfs를 다운로드하고 압축을 해제합니다. 약 %2$d MB입니다. 느린 연결에서는 시간이 걸릴 수 있습니다.</string>
     <string name="app_desktop_usb_drive_picker_title">어떤 USB 드라이브를 열까요?</string>
     <string name="app_desktop_rootfs_downloading">rootfs 다운로드 중… %1$d%%</string>
     <string name="app_desktop_rootfs_extracting">rootfs 압축 해제 중…</string>

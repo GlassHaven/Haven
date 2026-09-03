@@ -1139,6 +1139,37 @@ class DesktopViewModel @Inject constructor(
 
     fun setDistroPendingDelete(distro: sh.haven.core.local.proot.Distro?) { _distroPendingDelete.value = distro }
 
+    /**
+     * A distro add the confirm dialog is currently asking about (#620). Tapping
+     * "+ <name> (~MB)" in the distro dropdown downloads a few hundred MB, so it
+     * goes through a confirm first, mirroring [distroPendingDelete]. Holds the
+     * target (and the arch for emulated foreign adds) so the dialog can act on it.
+     */
+    sealed interface PendingAdd {
+        data class Native(val distro: Distro) : PendingAdd
+        data class Foreign(val distro: Distro, val arch: sh.haven.core.local.proot.Arch) : PendingAdd
+    }
+
+    private val _distroPendingAdd = MutableStateFlow<PendingAdd?>(null)
+    val distroPendingAdd: StateFlow<PendingAdd?> = _distroPendingAdd.asStateFlow()
+
+    fun requestAddDistro(distro: Distro) { _distroPendingAdd.value = PendingAdd.Native(distro) }
+
+    fun requestAddForeignDistro(distro: Distro, arch: sh.haven.core.local.proot.Arch) {
+        _distroPendingAdd.value = PendingAdd.Foreign(distro, arch)
+    }
+
+    fun dismissDistroPendingAdd() { _distroPendingAdd.value = null }
+
+    fun confirmDistroPendingAdd() {
+        when (val pending = _distroPendingAdd.value) {
+            is PendingAdd.Native -> addDistro(pending.distro)
+            is PendingAdd.Foreign -> addForeignDistro(pending.distro, pending.arch)
+            null -> {}
+        }
+        _distroPendingAdd.value = null
+    }
+
     fun openSystemVmImport() { _showSystemVmImport.value = true }
 
     fun setSystemVmImportLabel(value: String) { _systemVmImportLabel.value = value }

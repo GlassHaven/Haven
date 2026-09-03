@@ -26,6 +26,7 @@ import androidx.compose.material.icons.filled.Usb
 import androidx.compose.material.icons.filled.Circle
 import androidx.compose.material.icons.filled.Delete
 import androidx.compose.material.icons.filled.DesktopWindows
+import androidx.compose.material.icons.filled.Download
 import androidx.compose.material.icons.filled.Edit
 import androidx.compose.material.icons.filled.ExpandLess
 import androidx.compose.material.icons.filled.ExpandMore
@@ -1190,6 +1191,10 @@ private fun DesktopManagerSection(
     // The delete IconButton sits one tap away from Open-shell, so guard the
     // destructive rootfs wipe behind a confirm dialog.
     val distroPendingDelete by viewModel.distroPendingDelete.collectAsState()
+    // #620: which distro add is awaiting confirmation (null = none). The
+    // "+ <name>" rows start a few-hundred-MB download on tap, so guard them
+    // behind a confirm the same way the delete row is guarded above.
+    val distroPendingAdd by viewModel.distroPendingAdd.collectAsState()
     // Which locked partition's unlock dialog is open (null = none) — the
     // owning session's busid + the mount-dir name (e.g. "sdb2").
     var unlockingPartition by remember { mutableStateOf<Pair<String, String>?>(null) }
@@ -1314,7 +1319,7 @@ private fun DesktopManagerSection(
                                     Text(stringResource(AppR.string.app_desktop_add_distro, distro.label, distro.sizeEstimateMb))
                                 },
                                 onClick = {
-                                    onAddDistro(distro)
+                                    viewModel.requestAddDistro(distro)
                                     distroMenuOpen = false
                                 },
                             )
@@ -1328,7 +1333,7 @@ private fun DesktopManagerSection(
                                     Text(stringResource(AppR.string.app_desktop_add_foreign_distro, distro.label, arch.slug, distro.sizeEstimateMb))
                                 },
                                 onClick = {
-                                    onAddForeignDistro(distro, arch)
+                                    viewModel.requestAddForeignDistro(distro, arch)
                                     distroMenuOpen = false
                                 },
                             )
@@ -1750,6 +1755,38 @@ private fun DesktopManagerSection(
             },
             dismissButton = {
                 TextButton(onClick = { viewModel.setDistroPendingDelete(null) }) { Text(stringResource(R.string.common_cancel)) }
+            },
+        )
+    }
+    distroPendingAdd?.let { pending ->
+        val (distro, foreignArch) = when (pending) {
+            is DesktopViewModel.PendingAdd.Native -> pending.distro to null
+            is DesktopViewModel.PendingAdd.Foreign -> pending.distro to pending.arch
+        }
+        AlertDialog(
+            onDismissRequest = { viewModel.dismissDistroPendingAdd() },
+            icon = { Icon(Icons.Filled.Download, contentDescription = null) },
+            title = { Text(stringResource(AppR.string.app_desktop_add_distro_confirm_title, distro.label)) },
+            text = {
+                Text(
+                    if (foreignArch != null) {
+                        stringResource(AppR.string.app_desktop_add_foreign_distro_confirm_body, foreignArch.slug, distro.sizeEstimateMb)
+                    } else {
+                        stringResource(AppR.string.app_desktop_add_distro_confirm_body, distro.sizeEstimateMb)
+                    },
+                )
+            },
+            confirmButton = {
+                TextButton(onClick = {
+                    when (pending) {
+                        is DesktopViewModel.PendingAdd.Native -> onAddDistro(pending.distro)
+                        is DesktopViewModel.PendingAdd.Foreign -> onAddForeignDistro(pending.distro, pending.arch)
+                    }
+                    viewModel.dismissDistroPendingAdd()
+                }) { Text(stringResource(R.string.common_download)) }
+            },
+            dismissButton = {
+                TextButton(onClick = { viewModel.dismissDistroPendingAdd() }) { Text(stringResource(R.string.common_cancel)) }
             },
         )
     }

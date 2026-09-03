@@ -88,6 +88,9 @@
     <string name="app_desktop_delete_distro_confirm_body">Dies löscht das rootfs und gibt seinen Speicherplatz frei. Von Ihnen installierte Pakete und Dateien in dieser Distribution gehen verloren. Sie wird beim nächsten Öffnen neu eingerichtet.</string>
     <string name="app_desktop_add_distro">+ %1$s  (~%2$d MB)</string>
     <string name="app_desktop_add_foreign_distro">+ %1$s %2$s — emuliert, langsamer  (~%3$d MB)</string>
+    <string name="app_desktop_add_distro_confirm_title">%1$s herunterladen?</string>
+    <string name="app_desktop_add_distro_confirm_body">Dadurch wird das rootfs heruntergeladen und entpackt, etwa %1$d MB. Bei einer langsamen Verbindung kann es eine Weile dauern.</string>
+    <string name="app_desktop_add_foreign_distro_confirm_body">Dadurch wird das %1$s-rootfs für emulierte Nutzung heruntergeladen und entpackt, etwa %2$d MB. Bei einer langsamen Verbindung kann es eine Weile dauern.</string>
     <string name="app_desktop_usb_drive_picker_title">Welches USB-Laufwerk öffnen?</string>
     <string name="app_desktop_rootfs_downloading">Rootfs wird heruntergeladen… %1$d%%</string>
     <string name="app_desktop_rootfs_extracting">Rootfs wird entpackt…</string>

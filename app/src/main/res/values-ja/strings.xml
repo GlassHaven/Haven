@@ -88,6 +88,9 @@
     <string name="app_desktop_delete_distro_confirm_body">これは rootfs を消去し、ディスク領域を解放します。インストールしたパッケージやこのディストリビューション内のファイルは失われます。次に開いたときに再作成されます。</string>
     <string name="app_desktop_add_distro">+ %1$s  (~%2$d MB)</string>
     <string name="app_desktop_add_foreign_distro">+ %1$s %2$s — エミュレーション実行、低速  (~%3$d MB)</string>
+    <string name="app_desktop_add_distro_confirm_title">%1$s をダウンロードしますか？</string>
+    <string name="app_desktop_add_distro_confirm_body">rootfs をダウンロードして展開します。約 %1$d MB です。遅い接続では時間がかかることがあります。</string>
+    <string name="app_desktop_add_foreign_distro_confirm_body">エミュレート使用のために %1$s の rootfs をダウンロードして展開します。約 %2$d MB です。遅い接続では時間がかかることがあります。</string>
     <string name="app_desktop_usb_drive_picker_title">どのUSBドライブを開きますか？</string>
     <string name="app_desktop_rootfs_downloading">rootfs をダウンロード中… %1$d%%</string>
     <string name="app_desktop_rootfs_extracting">rootfs を展開中…</string>

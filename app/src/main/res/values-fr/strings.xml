@@ -88,6 +88,9 @@
     <string name="app_desktop_delete_distro_confirm_body">Ceci efface le rootfs et récupère son espace disque. Les paquets que vous avez installés et les fichiers de cette distribution seront perdus. Elle sera reconfigurée à la prochaine ouverture.</string>
     <string name="app_desktop_add_distro">+ %1$s  (~%2$d Mo)</string>
     <string name="app_desktop_add_foreign_distro">+ %1$s %2$s — émulé, plus lent  (~%3$d Mo)</string>
+    <string name="app_desktop_add_distro_confirm_title">Télécharger %1$s ?</string>
+    <string name="app_desktop_add_distro_confirm_body">Cela télécharge et extrait le rootfs, environ %1$d Mo. Cela peut prendre un moment sur une connexion lente.</string>
+    <string name="app_desktop_add_foreign_distro_confirm_body">Cela télécharge et extrait le rootfs %1$s pour une utilisation émulée, environ %2$d Mo. Cela peut prendre un moment sur une connexion lente.</string>
     <string name="app_desktop_usb_drive_picker_title">Quel disque USB ouvrir ?</string>
     <string name="app_desktop_rootfs_downloading">Téléchargement du rootfs… %1$d%%</string>
     <string name="app_desktop_rootfs_extracting">Extraction du rootfs…</string>

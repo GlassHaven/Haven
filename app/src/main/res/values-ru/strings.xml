@@ -90,6 +90,9 @@
     <string name="app_desktop_delete_distro_confirm_body">Это удалит rootfs и освободит занятое им место на диске. Установленные вами пакеты и файлы в этом дистрибутиве будут потеряны. При следующем открытии он будет создан заново.</string>
     <string name="app_desktop_add_distro">+ %1$s  (~%2$d МБ)</string>
     <string name="app_desktop_add_foreign_distro">+ %1$s %2$s — эмуляция, медленнее  (~%3$d МБ)</string>
+    <string name="app_desktop_add_distro_confirm_title">Скачать %1$s?</string>
+    <string name="app_desktop_add_distro_confirm_body">Это скачает и распакует rootfs, около %1$d МБ. На медленном соединении это может занять время.</string>
+    <string name="app_desktop_add_foreign_distro_confirm_body">Это скачает и распакует rootfs %1$s для эмулируемого использования, около %2$d МБ. На медленном соединении это может занять время.</string>
     <string name="app_desktop_usb_drive_picker_title">Какой USB-накопитель открыть?</string>
     <string name="app_desktop_rootfs_downloading">Загрузка rootfs… %1$d%%</string>
     <string name="app_desktop_rootfs_extracting">Распаковка rootfs…</string>

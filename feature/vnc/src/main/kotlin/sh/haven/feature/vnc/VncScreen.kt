@@ -836,6 +836,15 @@ private fun VncViewer(
                             pass = PointerEventPass.Initial,
                         )
                         firstDown.consume()
+                        // #511: a canvas tap re-claims hardware-key focus from
+                        // whatever took it (the pager, a toolbar button, another
+                        // tab) — without this the initial requestFocus at
+                        // composition is the only one, and by the time the user
+                        // taps in, focus has left the canvas subtree, so hardware
+                        // keys never reach this screen's preview handler. Mirrors
+                        // the RDP #507 fix; not while the soft keyboard is up,
+                        // where moving focus off the text field would dismiss it.
+                        if (!keyboardVisible) hardwareKeyFocus.requestFocus()
                         var totalFingers = 1
                         var prevCentroid = firstDown.position
                         var prevSpan = 0f

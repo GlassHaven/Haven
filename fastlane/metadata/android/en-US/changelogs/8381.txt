@@ -1,0 +1,2 @@
+- FIDO2 keys over NFC work with the Nitrokey 3A (#623).
+- Keyboard-icon behavior in VNC and RDP sessions refined (#511).

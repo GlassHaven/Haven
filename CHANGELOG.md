@@ -5,6 +5,16 @@ the corresponding GitHub Release; a release can't ship without its section
 (enforced by `scripts/check-changelog.sh` in CI). The GitHub "Full Changelog"
 compare link is appended automatically — don't add it here.
 
+## v5.87.75
+
+- FIDO2 keys over NFC work with the Nitrokey 3A (#623).
+
+- Keyboard-icon behavior in VNC and RDP sessions refined (#511).
+
+- **FIDO2-over-NFC key import now works with the Nitrokey 3A** (#623). The Nitrokey answers the applet SELECT with status word 6106 ("more data available") instead of 9000, expecting the reader to fetch the rest with GET RESPONSE. Haven treated that as a failure. SELECT now drains the chained response before deciding, so the key imports.
+
+- **The keyboard icon in VNC and RDP sessions now enables the hardware keyboard** (#511). Follow-up to the physical-keyboard support in 5.87.74: when a physical keyboard is attached, tapping the keyboard icon routes hardware keystrokes to the guest instead of opening the on-screen IME; with no hardware keyboard it still shows the IME. Tapping the session canvas re-claims hardware-key focus.
+
 ## v5.87.74
 
 - Herdr joins tmux, Zellij, Screen and Byobu as an SSH session manager (#615).

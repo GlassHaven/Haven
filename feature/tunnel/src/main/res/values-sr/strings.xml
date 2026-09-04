@@ -1,0 +1,43 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string name="tunnel_add">Додај тунел</string>
+    <string name="tunnel_empty_title">Још увек није подешен ниједан тунел</string>
+    <string name="tunnel_empty_subtitle">Додаје WireGuard кофигурацију да се кроз њега рутирају поједини профили везе — није потребан VPN на нивоу система.</string>
+    <string name="tunnel_row_subtitle">%1$s · додат %2$s</string>
+    <string name="tunnel_type_unknown">непознато</string>
+    <string name="tunnel_cf_sign_in_again">Пријавите се поново</string>
+    <string name="tunnel_delete_content_desc">Обриши тунел</string>
+    <string name="tunnel_delete_title">Желите ли да обришете тунел?</string>
+    <string name="tunnel_delete_message">Уклања се „%1$s“. Профили који указују на овај тунел неће моћи да успоставе везу све док не изаберете неки други тунел.</string>
+    <string name="tunnel_delete_confirm">Обриши</string>
+    <string name="tunnel_cancel">Откажи</string>
+    <string name="tunnel_label">Ознака</string>
+    <string name="tunnel_save">Сачувај</string>
+    <string name="tunnel_wireguard_help">Налепите конфигурацију у wg-quick стилу или учитајте .conf фајл. Читају се само [Interface] и [Peer] поља; непознати кључеви (PostUp, Table, MTU) се игноришу. Крајње тачке имена хоста и DNS имена се разрешавају приликом покретања тунела.</string>
+    <string name="tunnel_load_from_file">Учитај из фајла…</string>
+    <string name="tunnel_wireguard_config">WireGuard конфигурација</string>
+    <string name="tunnel_tailscale_help">Генеришите authkey у Tailscale админ конзоли (Подешавања → Кључеви), или у свом Headscale CLI (`headscale preauthkeys create`). Haven приликом прве употребе приступа вашем tailnet-у и поново искоришћава стање чвора након тога, тако да је једнократни кључ у реду. Кључеви који могу поново да се употребљавају вам омогућавају да након реинсталације поново успоставите везу.</string>
+    <string name="tunnel_tailscale_authkey_label">Auth кључ (tskey-auth-…)</string>
+    <string name="tunnel_tailscale_control_url_label">URL контролне равни (није обавезно)</string>
+    <string name="tunnel_tailscale_control_url_help">Оставите празно ако желите да се користи Tailscale хостована контролна раван. Поставите на Headscale URL ако користите лично хостовани сервер за координацију.</string>
+    <string name="cf_experimental_banner">Експериментално — Haven имплементира исти WebSocket жични протокол као и `cloudflared access ssh`. Тестирано на малом скупу станара; молимо вас да нерегуларности пријавите на GitHub проблем #154.</string>
+    <string name="cf_intro_blurb">Рутира SSH име хоста коју објављује Cloudflare Tunnel — унутар-апликације еквивалент од `cloudflared access ssh --hostname &lt;хост&gt;`. Рутама јавног тунела је потребно само име хоста. Руте са заштићеним притупом додатно захтевају JWT — тапните Пријави се да ухватите једну посредством IdP вашег тима.</string>
+    <string name="cf_field_hostname">Име хоста (нпр. ssh.example.com)</string>
+    <string name="cf_jwt_none">Без JWT — функционише само за незаштићене Тунел руте </string>
+    <string name="cf_jwt_expired">JWT је истекао — пријавите се поново</string>
+    <string name="cf_jwt_expires_hours">Пријављено · истиче за ~%1$dч</string>
+    <string name="cf_jwt_expires_soon">Пријављено · истиче за &lt;1ч</string>
+    <string name="cf_jwt_signed_in">Пријављено</string>
+    <string name="cf_test_running">Тестира се…</string>
+    <string name="cf_test_connection">Тестирај везу</string>
+    <string name="cf_advanced_hide">Сакриј напредно</string>
+    <string name="cf_advanced_show">Напредно (Ауторизација приступа, бастиона, налепљивање JWT)</string>
+    <string name="cf_sign_in">Пријава кроз Cloudflare Access</string>
+    <string name="cf_reauthenticate">Поново потврди идентитет</string>
+    <string name="cf_field_team_domain">Домен тима (није обавезно)</string>
+    <string name="cf_team_domain_help">Потребно је само за руте са заштићеним приступом; омогућава вам да ухватите team-domain колачић, као случај крајње нуде када недостаје колачић посебан за сваку апликацију.</string>
+    <string name="cf_field_jump_destination">Одредиште скока (није обавезно)</string>
+    <string name="cf_jump_destination_help">Вишециљни тунели бастион-режима: прослеђују се као `Cf-Access-Jump-Destination`. Оставите празно за руте са једним циљем.</string>
+    <string name="cf_jwt_paste_help">За конфигурације без визуелног излаза: извршите `cloudflared access token --app https://&lt;имехоста&gt;` на другој машини и овде налепите JWT. Време истека се аутоматски парсира из жетона.</string>
+    <string name="cf_field_jwt">Cloudflare Access JWT (није обавезно)</string>
+</resources>

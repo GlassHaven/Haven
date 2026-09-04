@@ -1,0 +1,30 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string name="vnc_placeholder_title">VNC</string>
+    <string name="vnc_placeholder_hint">Додаје везу на картицу Везе</string>
+    <string name="vnc_action_close">Затвори</string>
+    <string name="vnc_action_retry">Покушај поново</string>
+    <string name="vnc_bandwidth_suggestion">Спора веза — да пређем на 256 боја због употребљивости?</string>
+    <string name="vnc_action_switch">Пређи</string>
+    <string name="vnc_action_dismiss">Одбаци</string>
+    <string name="vnc_cd_disconnect">Раскини везу</string>
+    <string name="vnc_cd_toggle_keyboard">Укљ./искљ. тастатуру</string>
+    <string name="vnc_cd_background_to_edge">Позадина до ивице икона</string>
+    <string name="vnc_cd_picture_in_picture">Слика-у-слици</string>
+    <string name="vnc_cd_reset_zoom">Ресетуј зумирање</string>
+    <string name="vnc_cd_fullscreen">Пун екран</string>
+    <string name="vnc_cd_session_menu">Мени сесије</string>
+    <string name="vnc_cd_exit_fullscreen">Напусти пун екран</string>
+    <string name="vnc_cd_input_mode_trackpad_on">Укључен је режим трекпеда (тап за директни додир)</string>
+    <string name="vnc_cd_input_mode_direct">Режим директног додира (тап за трекпед)</string>
+    <string name="vnc_cd_two_finger_viewport">Два прста померају приказ (тап за скроловање удаљеног)</string>
+    <string name="vnc_cd_two_finger_scroll_on">Два прста скролују удаљени (тап за померање приказа)</string>
+    <string name="vnc_orientation_landscape_desc">Закључано положено (тап за прелаз на усправно)</string>
+    <string name="vnc_orientation_portrait_desc">Закључано усправно (тап за прелаз на ауто)</string>
+    <string name="vnc_orientation_auto_desc">Ауто ротација (тап за прелаз на положено)</string>
+    <string name="vnc_cd_gesture_help">Гестикулације додиром</string>
+    <string name="vnc_cd_save_default">Сачувај текућу величину као подразумевано за ову апликацију</string>
+    <string name="vnc_gesture_help_title">Гестикулације додиром</string>
+    <string name="vnc_gesture_help_two_finger">Превуците са два прста да скролујете; уштините за зумирање. Један прст помера миша.</string>
+    <string name="vnc_gesture_help_three_finger">Уштините са три прста за промените величину апликације док остајете у пуном екрану.</string>
+</resources>

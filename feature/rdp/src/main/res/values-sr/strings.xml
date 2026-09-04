@@ -1,0 +1,42 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string name="rdp_status_connecting">Повезивање…</string>
+    <string name="rdp_status_connecting_hint">У току је успостављање везе. Ако се ово заблокира, да бисте видели шта је узрок, укључите детаљно вођење дневника повезивања у Подешавањима и покушајте поново.</string>
+    <string name="rdp_status_waiting_for_frame">Повезано — чека се на први кадар…</string>
+    <string name="rdp_status_connection_failed">Повезивање није успело</string>
+    <string name="rdp_action_close">Затвори</string>
+    <string name="rdp_action_cancel">Откажи</string>
+    <string name="rdp_action_retry">Покушај поново</string>
+    <string name="rdp_cd_disconnect">Раскини везу</string>
+    <string name="rdp_cd_toggle_keyboard">Укљ./искљ. тастатуру</string>
+    <string name="rdp_cd_reset_zoom">Ресетуј зумирање</string>
+    <string name="rdp_cd_fullscreen">Пун екран</string>
+    <string name="rdp_cd_session_menu">Мени сесије</string>
+    <string name="rdp_cd_exit_fullscreen">Напусти пун екран</string>
+    <string name="rdp_cd_input_mode_trackpad_on">Укључен је режим трекпеда (тап за директни додир)</string>
+    <string name="rdp_cd_input_mode_direct">Режим директног додира (тап за трекпед)</string>
+    <string name="rdp_cd_two_finger_viewport">Два прста померају приказ (тапните да скролујете удаљени)</string>
+    <string name="rdp_cd_two_finger_scroll_on">Два прста скролују удаљени (тапните да померате приказ)</string>
+    <string name="rdp_orientation_landscape_desc">Закључај положено (тап да пређете на усправно)</string>
+    <string name="rdp_orientation_portrait_desc">Закључај усправно (тап да пређете на ауто)</string>
+    <string name="rdp_orientation_auto_desc">Ауто ротација (тап да пређете на положено)</string>
+    <string name="rdp_hint_legacy_rdp_title">Сервер користи застарели нешифровани RDP</string>
+    <string name="rdp_hint_legacy_rdp_body">Haven подржава само TLS-шифровани RDP. Ваш сервер (обично xrdp на Линуксу) је испреговарао застарели STANDARD_RDP_SECURITY протокол — најчешће зато што недостаје или не може да се прочита серверов TLS сертификат. Поново генеришите /etc/xrdp/cert.pem и /etc/xrdp/key.pem на серверу, па поново покрените xrdp.</string>
+    <string name="rdp_hint_legacy_rdp_link">Упутства за исправку на страни сервера</string>
+    <string name="rdp_hint_nla_internal_error_title">Сервер је током NLA одбио TLS сесију</string>
+    <string name="rdp_hint_nla_internal_error_body">Ово је био симптом Haven бага исправљеног у v5.24.37 — ако користите новију изградњу и још увек видите ово, могуће је да сервер уопште не прича CredSSP. Пробајте да одштиклирате Network Level Authentication на профилу везе и поново успоставите везу.</string>
+    <string name="rdp_hint_logon_failure_title">Погрешно корисничко име или лозинка</string>
+    <string name="rdp_hint_logon_failure_body">Сервер је чисто довршио CredSSP и одбио ваше информације за пријаву. Проверите корисничко име (покушајте са ДОМЕН\\\\Корисник ако је налог део домена) и лозинку.</string>
+    <string name="rdp_hint_pubkey_hash_title">Сервер је одбио хеш CredSSP јавног кључа</string>
+    <string name="rdp_hint_pubkey_hash_body">Линукс gnome-remote-desktop и одређене xrdp изградње израчунавају CredSSP pub_key_auth хеш на другачији начин у односу на Haven-ов ironrdp/sspi-rs — TLS руковање успева, али NLA не успева на једном слоју изнад. Привремено решење: уредите профил ове везе и одштиклирајте „Network Level Authentication (NLA)“. RDP ће након подешавања канала прећи на проверу идентитета, што не иде кроз хеш који се не подудара.</string>
+    <string name="rdp_hint_pubkey_hash_link">Пратилац проблема</string>
+    <string name="rdp_hint_time_skew_title">Часовник уређаја се разликује од серверовог часовника</string>
+    <string name="rdp_hint_time_skew_body">CredSSP одбија сесију када се време часовника уређаја разликује за више од некоилико минута од серверовог часовника. Проверите Подешавања → Датум &amp; време → Подеси аутоматски и поново се повежите.</string>
+    <string name="rdp_hint_tls_ciphers_title">Сервер захтева TLS шифре које Haven не подржава</string>
+    <string name="rdp_hint_tls_ciphers_body">Haven користи rustls/ring TLS стек који има мању покривеност метода шифрирања у односу на Microsoft-ов RDP клијент (SChannel) или OpenSSL. Најкомпатибилније подешавање на серверској страни је ECDHE-RSA + AES-GCM преко TLS 1.2 или 1.3.</string>
+    <string name="rdp_hint_nla_required_title">Сервер захтева Network Level Authentication</string>
+    <string name="rdp_hint_nla_required_body">Сервер је подешен тако да прихвата само клијенте који потврђују идентитет са NLA, а за овај профил везе NLA није штиклирано. Или у профилу штиклирајте „Network Level Authentication (NLA)“, или смањите захтев на рачунару: Подешавања → Систем → Удаљена радна површина → Напредна подешавања → одштиклирајте „Захтевати од уређаја да користе аутентификацију на мрежном нивоу за повезивање (препоручено)“.</string>
+    <string name="rdp_hint_mixed_username_title">NLA не може да користи овај облик корисничког имена</string>
+    <string name="rdp_hint_mixed_username_body">NLA одбија корисничко име које комбинује префикс домена са и-мејл адресом (као MicrosoftAccount\\\\ви@пример.com), и за прости и-мејл одсеца све након @ — узводно ограничење у sspi библиотеци за Microsoft налоге. У случају рачунара са Microsoft налогом: одштиклирајте „Network Level Authentication (NLA)“ за овај профил, дозволите на рачунару не-NLA везе (Удаљена радна површина → Напредна подешавања), и као корисничко име користите MicrosoftAccount\\\\ви@пример.com или само ви@пример.com.</string>
+    <string name="rdp_hint_mixed_username_link">Пратилац проблема</string>
+</resources>

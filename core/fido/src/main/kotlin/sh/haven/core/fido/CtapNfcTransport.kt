@@ -42,16 +42,7 @@ class CtapNfcTransport(
      * @throws IOException if the applet is not present on this tag.
      */
     fun select() {
-        // SELECT APDU: CLA=00 INS=A4 P1=04 P2=00 Lc=08 Data=AID
-        val apdu = byteArrayOf(
-            0x00, INS_SELECT, 0x04, 0x00,
-            FIDO_AID.size.toByte(),
-        ) + FIDO_AID
-        val response = isoDep.transceive(apdu)
-        val sw = extractSw(response)
-        if (sw != 0x9000) {
-            throw IOException("FIDO applet SELECT failed: SW=${"%04x".format(sw)}")
-        }
+        selectApplet { isoDep.transceive(it) }
         Log.d(TAG, "FIDO applet selected")
     }
 
@@ -111,9 +102,51 @@ class CtapNfcTransport(
         } catch (_: Exception) {}
     }
 
-    private fun extractSw(response: ByteArray): Int {
-        require(response.size >= 2) { "NFC response too short: ${response.size}" }
-        return ((response[response.size - 2].toInt() and 0xFF) shl 8) or
-            (response[response.size - 1].toInt() and 0xFF)
+    private fun extractSw(response: ByteArray): Int = extractSwStatic(response)
+
+    companion object {
+        /**
+         * SELECT the FIDO applet over an arbitrary APDU transport, draining
+         * ISO 7816-4 "more data available" (SW=61xx) chaining via GET RESPONSE.
+         *
+         * A SELECT can answer 61xx instead of 9000: the applet returns its FCI
+         * template in chunks and expects GET RESPONSE to drain them. Some keys
+         * — e.g. Nitrokey 3A — do exactly this (#623); treating 61xx as fatal
+         * broke FIDO2-over-NFC key import for them. Only a genuine error status
+         * word is fatal; completion (9000) after draining is success.
+         *
+         * Parameterised on the transceive call so it is unit-testable without
+         * an IsoDep (no Robolectric in this module).
+         *
+         * @throws IOException if the applet is not present (error SW).
+         */
+        internal fun selectApplet(transceive: (ByteArray) -> ByteArray) {
+            // SELECT APDU: CLA=00 INS=A4 P1=04 P2=00 Lc=08 Data=AID
+            val apdu = byteArrayOf(
+                0x00, INS_SELECT, 0x04, 0x00,
+                FIDO_AID.size.toByte(),
+            ) + FIDO_AID
+            var response = transceive(apdu)
+            var sw = extractSwStatic(response)
+            // Drain any "more data available" (SW=61xx) chained response data.
+            while (sw shr 8 == 0x61) {
+                val remaining = sw and 0xFF
+                val getResponse = byteArrayOf(
+                    0x00, INS_GET_RESPONSE, 0x00, 0x00,
+                    remaining.toByte(),
+                )
+                response = transceive(getResponse)
+                sw = extractSwStatic(response)
+            }
+            if (sw != 0x9000) {
+                throw IOException("FIDO applet SELECT failed: SW=${"%04x".format(sw)}")
+            }
+        }
+
+        internal fun extractSwStatic(response: ByteArray): Int {
+            require(response.size >= 2) { "NFC response too short: ${response.size}" }
+            return ((response[response.size - 2].toInt() and 0xFF) shl 8) or
+                (response[response.size - 1].toInt() and 0xFF)
+        }
     }
 }

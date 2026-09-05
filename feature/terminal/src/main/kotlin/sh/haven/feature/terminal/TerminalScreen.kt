@@ -110,6 +110,7 @@ import androidx.compose.ui.text.font.FontFamily
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import kotlinx.coroutines.flow.map
 import kotlinx.coroutines.launch
 import androidx.core.content.res.ResourcesCompat
 import androidx.core.view.WindowCompat
@@ -963,6 +964,13 @@ fun TerminalScreen(
                     ) {
                         tabs.forEachIndexed { index, tab ->
                             val reconnecting by tab.isReconnecting.collectAsState()
+                            // OSC 0/2 title from the running program (#625). Falls
+                            // back to the session label when the program has not
+                            // set one; a user rename is overridden while a title
+                            // is live, matching Termux's session-drawer behaviour.
+                            val tabTitle by remember(tab.sessionId) {
+                                tab.emulator.terminalTitle.map { it.ifBlank { null } }
+                            }.collectAsState(initial = null)
                             val selected = activeTabIndex == index
                             val showTabMenu = tabMenuFor == tab.sessionId
                             var renameDialogFor by remember { mutableStateOf<String?>(null) }
@@ -1031,7 +1039,7 @@ fun TerminalScreen(
                                             )
                                         }
                                         Text(
-                                            tab.label,
+                                            tabTitle ?: tab.label,
                                             maxLines = 1,
                                             // A stretched tab has a fixed width, so a long
                                             // label must give way to the close button

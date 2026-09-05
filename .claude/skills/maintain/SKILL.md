@@ -79,9 +79,10 @@ queued is idle time.
      merge inert.
 
 4. **F-Droid watch & Downstream Diagnostics** — check any open watch item. Judge ONLY by the index
-   moving (site page; the API 404s). A missing build log is not a failure.
+   moving on the web page: `https://f-droid.org/en/packages/sh.haven.app/` (note the package ID is strictly
+   `sh.haven.app`, NOT `sh.haven`). The F-Droid data API 404s. A missing build log is not a failure.
    - **Overdue watch diagnostics**: If an index watch exceeds ~7 days post-release,
-     diagnose upstream: inspect the GitLab `fdroiddata` repository or F-Droid build monitor
+     diagnose upstream: inspect the GitLab `fdroiddata` repository (`metadata/sh.haven.app.yml`) or F-Droid build monitor
      logs for Haven build failures (submodule clone timeouts, recipe drift, or lint errors)
      rather than waiting indefinitely.
 
@@ -178,7 +179,9 @@ Rules:
 - **Triage starvation protection**: Cap issue responses to ≤3 per pass so external activity cannot monopolize local compute or starve release cycles.
 
 **Operational notes & common traps:**
-- `gh` CLI flags: `gh issue close` has no `--comment-file` (use `gh issue comment -F <file>` then `gh issue close <num>`); `gh ... --json` requires camelCase fields (`headSha`, not `head_sha`); `gh issue comment` has no `--json` flag; `gh pr list` uses `--app dependabot`.
+- `gh` CLI flags: `gh issue close` has no `--comment-file` (use `gh issue comment -F <file>` then `gh issue close <num>`); `gh ... --json` requires camelCase fields (`headSha`, not `head_sha`; workflow runs and releases use `databaseId`, not `id`); `gh issue comment` has no `--json` flag; `gh pr list` uses `--app dependabot`.
+- `gh release download`: Releases contain 10 assets; use `-D <dir> --clobber` instead of `--output <file>` to avoid multi-asset download errors.
+- F-Droid package ID: Haven's package ID is strictly `sh.haven.app` (`https://f-droid.org/en/packages/sh.haven.app/` and GitLab `metadata/sh.haven.app.yml`). Probing `sh.haven` will return 404.
 - Avoid inline bash here-docs: Chaining multiline `cat <<'EOF'` inside tool commands frequently breaks quote/newline escaping. Create draft files with dedicated file-writing tools instead.
 - Fastlane character limit: Fastlane changelog files (`<versionCode>.txt`) have a strict 500-character cap. Verify with `wc -m` before committing (do not rely on un-truncated generator output).
 - Dynamic ADB ports: Android wireless ADB ports randomize on reconnect. If `device not found`, re-scan the active port rather than retrying stale cached port numbers.

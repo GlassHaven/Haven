@@ -1,0 +1,2 @@
+- The terminal title a program sets shows on its session tab (#625).
+- Five new MCP tool groups for the agent endpoint.

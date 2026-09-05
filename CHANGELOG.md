@@ -5,6 +5,15 @@ the corresponding GitHub Release; a release can't ship without its section
 (enforced by `scripts/check-changelog.sh` in CI). The GitHub "Full Changelog"
 compare link is appended automatically — don't add it here.
 
+## v5.87.76
+
+- The terminal title a program sets shows on its session tab (#625).
+
+- Five new MCP tool groups for the agent endpoint.
+
+- **The terminal title a program sets now shows on its session tab** (#625). Shells and CLI agents that set the window title (OSC 0/2) drive the tab label; tabs whose program never sets one keep the session label. Fixes two layers: the emulator never captured the title at all (it matched prop 7; `VTERM_PROP_TITLE` is 4), and nothing in the tab strip read it. SSH and local tabs both pick it up; long titles ellipsize.
+
+- **The agent endpoint gains five MCP tool groups** (senses, notifications, reflexes, cross-protocol verbs, credentials). One-shot device reads (state, sensors, location, camera frames), a notification listener ring for inbound presence, terminal scrollback search plus directory watches, workspace save/compose, and credential/age-identity/TOTP listing.
 ## v5.87.75
 
 - FIDO2 keys over NFC work with the Nitrokey 3A (#623).

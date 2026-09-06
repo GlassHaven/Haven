@@ -411,6 +411,8 @@
     <!-- Terminal reflow, GPU stack, standing policies (#250) -->
     <string name="settings_reflow_on_keyboard_title">为键盘调整终端大小</string>
     <string name="settings_reflow_on_keyboard_subtitle">键盘打开时，调整终端大小以适应其上方空间，而非向上滚动视图。对在顶部显示状态行的全屏应用有帮助；普通 shell 可保持关闭。</string>
+    <string name="settings_tab_titles_follow_session_title">标签页标题优先使用会话名</string>
+    <string name="settings_tab_titles_follow_session_subtitle">连接到 tmux/zellij/screen 的标签页保持会话名称，而不显示运行中的程序设置的标题。</string>
     <string name="settings_gpu_venus_title">实验性 GPU 栈（venus + zink）</string>
     <string name="settings_gpu_venus_subtitle">在加速桌面上使用 venus（直通 GPU 的 Vulkan）+ zink 以支持现代 OpenGL（约 3.2 core），替代 virgl（GL 2.1）。原生 Vulkan 应用可显示；OpenGL 呈现目前较慢。需要在 guest 中安装 mesa-vulkan-drivers。关闭则默认使用 virgl。</string>
     <string name="settings_standing_policies_header">常驻策略——这些工具无需询问即可运行</string>

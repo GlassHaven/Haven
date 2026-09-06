@@ -307,6 +307,8 @@
     <string name="settings_hide_nav_bar_in_terminal_subtitle">Hide Haven\'s bottom tab bar on the terminal screen. The Android status and navigation bars stay visible.</string>
     <string name="settings_reflow_on_keyboard_title">Resize terminal for keyboard</string>
     <string name="settings_reflow_on_keyboard_subtitle">When the keyboard opens, resize the terminal to fit above it instead of scrolling the view up. Helps full-screen apps that show a status line at the top; leave off for plain shells.</string>
+    <string name="settings_tab_titles_follow_session_title">Prefer session names in tab titles</string>
+    <string name="settings_tab_titles_follow_session_subtitle">Tabs attached to tmux/zellij/screen keep their session name instead of titles set by running programs.</string>
     <string name="settings_gpu_venus_title">Experimental GPU stack (venus + zink)</string>
     <string name="settings_gpu_venus_subtitle">Use venus (Vulkan to the GPU) + zink for modern OpenGL (~3.2 core) on accelerated desktops, instead of virgl (GL 2.1). Native Vulkan apps display; OpenGL present is currently slow. Needs mesa-vulkan-drivers installed in the guest. Off = virgl default.</string>
     <!-- RDP desktop size (#422): Haven asked every server for 1920x1080 with no

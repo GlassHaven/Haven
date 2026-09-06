@@ -412,6 +412,8 @@
     <!-- Terminal reflow, GPU stack, standing policies (#250) -->
     <string name="settings_reflow_on_keyboard_title">키보드에 맞춰 터미널 크기 조정</string>
     <string name="settings_reflow_on_keyboard_subtitle">키보드가 열리면 화면을 위로 스크롤하는 대신 터미널을 그 위에 맞게 크기를 조정합니다. 상단에 상태 표시줄이 있는 전체 화면 앱에 유용합니다. 일반 셸에서는 꺼 두세요.</string>
+    <string name="settings_tab_titles_follow_session_title">탭 제목에서 세션 이름 우선</string>
+    <string name="settings_tab_titles_follow_session_subtitle">tmux/zellij/screen에 연결된 탭은 실행 중인 프로그램이 설정한 제목 대신 세션 이름을 유지합니다.</string>
     <string name="settings_gpu_venus_title">실험적 GPU 스택 (venus + zink)</string>
     <string name="settings_gpu_venus_subtitle">가속 데스크톱에서 virgl(GL 2.1) 대신 venus(GPU로의 Vulkan) + zink를 사용해 최신 OpenGL(약 3.2 core)을 지원합니다. 네이티브 Vulkan 앱은 표시되지만 OpenGL 표시는 현재 느립니다. 게스트에 mesa-vulkan-drivers가 필요합니다. 끄면 virgl(기본값)을 사용합니다.</string>
     <string name="settings_standing_policies_header">상시 정책 — 이 도구들은 확인 없이 실행됩니다</string>

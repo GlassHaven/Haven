@@ -347,6 +347,7 @@ fun TerminalScreen(
     LaunchedEffect(systemIsDark) { viewModel.setSystemIsDark(systemIsDark) }
     val colorScheme by viewModel.terminalColorScheme.collectAsState()
     val applySchemePalette by viewModel.terminalApplySchemePalette.collectAsState()
+    val tabTitlesFollowSession by viewModel.tabTitlesFollowSession.collectAsState()
     val navigateToConnections by viewModel.navigateToConnections.collectAsState()
     val newTabSessionPicker by viewModel.newTabSessionPicker.collectAsState()
     val newTabLoading by viewModel.newTabLoading.collectAsState()
@@ -968,6 +969,10 @@ fun TerminalScreen(
                             // back to the session label when the program has not
                             // set one; a user rename is overridden while a title
                             // is live, matching Termux's session-drawer behaviour.
+                            // With "prefer session names" on, tabs attached to a
+                            // session manager keep their session name instead
+                            // (resolveTabTitle). Collection continues while the
+                            // preference is on so a flipped pref repaints instantly.
                             val tabTitle by remember(tab.sessionId) {
                                 tab.emulator.terminalTitle.map { it.ifBlank { null } }
                             }.collectAsState(initial = null)
@@ -1039,7 +1044,12 @@ fun TerminalScreen(
                                             )
                                         }
                                         Text(
-                                            tabTitle ?: tab.label,
+                                            resolveTabTitle(
+                                                programTitle = tabTitle,
+                                                label = tab.label,
+                                                multiplexerName = tab.multiplexerName,
+                                                followSession = tabTitlesFollowSession,
+                                            ),
                                             maxLines = 1,
                                             // A stretched tab has a fixed width, so a long
                                             // label must give way to the close button

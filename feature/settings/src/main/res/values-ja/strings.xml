@@ -412,6 +412,8 @@
     <!-- Terminal reflow, GPU stack, standing policies (#250) -->
     <string name="settings_reflow_on_keyboard_title">キーボードに合わせて端末をリサイズ</string>
     <string name="settings_reflow_on_keyboard_subtitle">キーボードが開いたとき、画面を上にスクロールする代わりに端末をその上に収まるようリサイズします。上部にステータス行を表示する全画面アプリに役立ちます。通常のシェルではオフのままにしてください。</string>
+    <string name="settings_tab_titles_follow_session_title">タブ名はセッション名を優先</string>
+    <string name="settings_tab_titles_follow_session_subtitle">tmux/zellij/screen に接続したタブは、プログラムが設定するタイトルではなくセッション名を表示し続けます。</string>
     <string name="settings_gpu_venus_title">実験的な GPU スタック（venus + zink）</string>
     <string name="settings_gpu_venus_subtitle">アクセラレーションされたデスクトップで、virgl（GL 2.1）の代わりに venus（GPU への Vulkan）+ zink を使って最新の OpenGL（約 3.2 core）を利用します。ネイティブの Vulkan アプリは表示されますが、OpenGL の描画は現在低速です。ゲストに mesa-vulkan-drivers が必要です。オフ = virgl（デフォルト）。</string>
     <string name="settings_standing_policies_header">常設ポリシー — これらのツールは確認なしで実行されます</string>

@@ -31221,6 +31221,44 @@
      }
     },
     {
+     "name": "settings_tab_titles_follow_session_title",
+     "en": "Prefer session names in tab titles",
+     "comment": "Common strings",
+     "args": [],
+     "t": {
+      "ar": "تفضيل أسماء الجلسات في عناوين التبويبات",
+      "bn": "ট্যাব শীর্ষকে সেশনের নাম পছন্দ করুন",
+      "de": "Sitzungsnamen in Tab-Titeln bevorzugen",
+      "es": "Preferir nombres de sesión en las pestañas",
+      "fr": "Privilégier les noms de session dans les onglets",
+      "hi": "टैब शीर्षकों में सत्र नाम पसंद करें",
+      "ja": "タブ名はセッション名を優先",
+      "ko": "탭 제목에서 세션 이름 우선",
+      "pt": "Preferir nomes de sessão nos títulos das guias",
+      "ru": "Предпочитать имена сеансов в заголовках вкладок",
+      "zh": "标签页标题优先使用会话名"
+     }
+    },
+    {
+     "name": "settings_tab_titles_follow_session_subtitle",
+     "en": "Tabs attached to tmux/zellij/screen keep their session name instead of titles set by running programs.",
+     "comment": "Common strings",
+     "args": [],
+     "t": {
+      "ar": "تحافظ التبويبات المتصلة بـ tmux/zellij/screen على اسم الجلسة بدلًا من العناوين التي تعينها البرامج.",
+      "bn": "tmux/zellij/screen-এ সংযুক্ত ট্যাবগুলি চলমান প্রোগ্রাম নির্ধারিত শীর্ষকের বদলে সেশনের নাম ধরে রাখে।",
+      "de": "An tmux/zellij/screen angebundene Tabs behalten ihren Sitzungsnamen, statt Titel laufender Programme anzuzeigen.",
+      "es": "Las pestañas conectadas a tmux/zellij/screen mantienen el nombre de la sesión en lugar de los títulos que establecen los programas en ejecución.",
+      "fr": "Les onglets attachés à tmux/zellij/screen conservent le nom de la session au lieu des titres définis par les programmes en cours.",
+      "hi": "tmux/zellij/screen से जुड़े टैब चालू प्रोग्रामों द्वारा सेट शीर्षकों के बजाय सत्र का नाम रखते हैं।",
+      "ja": "tmux/zellij/screen に接続したタブは、プログラムが設定するタイトルではなくセッション名を表示し続けます。",
+      "ko": "tmux/zellij/screen에 연결된 탭은 실행 중인 프로그램이 설정한 제목 대신 세션 이름을 유지합니다.",
+      "pt": "As guias ligadas ao tmux/zellij/screen mantêm o nome da sessão em vez dos títulos definidos pelos programas em execução.",
+      "ru": "Вкладки, подключённые к tmux/zellij/screen, сохраняют имя сеанса вместо заголовков, задаваемых запущенными программами.",
+      "zh": "连接到 tmux/zellij/screen 的标签页保持会话名称，而不显示运行中的程序设置的标题。"
+     }
+    },
+    {
      "name": "settings_gpu_venus_title",
      "en": "Experimental GPU stack (venus + zink)",
      "comment": "Common strings",

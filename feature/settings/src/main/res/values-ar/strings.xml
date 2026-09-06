@@ -412,6 +412,8 @@
     <!-- Terminal reflow, GPU stack, standing policies (#250) -->
     <string name="settings_reflow_on_keyboard_title">ملاءمة الطرفية للوحة المفاتيح</string>
     <string name="settings_reflow_on_keyboard_subtitle">عند فتح لوحة المفاتيح، يتم تغيير حجم الطرفية لتلائم المساحة فوقها بدلاً من تمرير العرض للأعلى. يساعد التطبيقات التي تعمل بملء الشاشة وتعرض شريط حالة في الأعلى؛ اتركه معطّلاً للأصداف العادية.</string>
+    <string name="settings_tab_titles_follow_session_title">تفضيل أسماء الجلسات في عناوين التبويبات</string>
+    <string name="settings_tab_titles_follow_session_subtitle">تحافظ التبويبات المتصلة بـ tmux/zellij/screen على اسم الجلسة بدلًا من العناوين التي تعينها البرامج.</string>
     <string name="settings_gpu_venus_title">حزمة GPU تجريبية (venus + zink)</string>
     <string name="settings_gpu_venus_subtitle">يستخدم venus (Vulkan إلى GPU) + zink لـ OpenGL الحديث (نحو 3.2 core) على أسطح المكتب المسرّعة، بدلاً من virgl (GL 2.1). تظهر تطبيقات Vulkan الأصلية؛ لكن عرض OpenGL بطيء حالياً. يتطلب تثبيت mesa-vulkan-drivers في النظام الضيف. معطّل = virgl الافتراضي.</string>
     <string name="settings_standing_policies_header">السياسات الدائمة — تعمل هذه الأدوات دون طلب تأكيد</string>

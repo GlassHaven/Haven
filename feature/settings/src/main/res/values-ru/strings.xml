@@ -412,6 +412,8 @@
     <!-- Terminal reflow, GPU stack, standing policies (#250) -->
     <string name="settings_reflow_on_keyboard_title">Подгонять терминал под клавиатуру</string>
     <string name="settings_reflow_on_keyboard_subtitle">Когда открывается клавиатура, терминал уменьшается, чтобы поместиться над ней, вместо прокрутки экрана вверх. Помогает полноэкранным приложениям со строкой состояния вверху; для обычных оболочек оставьте выключенным.</string>
+    <string name="settings_tab_titles_follow_session_title">Предпочитать имена сеансов в заголовках вкладок</string>
+    <string name="settings_tab_titles_follow_session_subtitle">Вкладки, подключённые к tmux/zellij/screen, сохраняют имя сеанса вместо заголовков, задаваемых запущенными программами.</string>
     <string name="settings_gpu_venus_title">Экспериментальный стек GPU (venus + zink)</string>
     <string name="settings_gpu_venus_subtitle">Использует venus (Vulkan к GPU) + zink для современного OpenGL (~3.2 core) на ускоренных рабочих столах вместо virgl (GL 2.1). Нативные приложения Vulkan отображаются; вывод OpenGL пока медленный. Требуется mesa-vulkan-drivers в гостевой системе. Выключено = virgl по умолчанию.</string>
     <string name="settings_standing_policies_header">Постоянные политики — эти инструменты выполняются без запроса</string>

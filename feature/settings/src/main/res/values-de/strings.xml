@@ -412,6 +412,8 @@
     <!-- Terminal reflow, GPU stack, standing policies (#250) -->
     <string name="settings_reflow_on_keyboard_title">Terminal an Tastatur anpassen</string>
     <string name="settings_reflow_on_keyboard_subtitle">Wenn die Tastatur erscheint, wird das Terminal so verkleinert, dass es darüber passt, anstatt die Ansicht nach oben zu schieben. Hilft Vollbild-Apps, die oben eine Statuszeile anzeigen; für einfache Shells deaktiviert lassen.</string>
+    <string name="settings_tab_titles_follow_session_title">Sitzungsnamen in Tab-Titeln bevorzugen</string>
+    <string name="settings_tab_titles_follow_session_subtitle">An tmux/zellij/screen angebundene Tabs behalten ihren Sitzungsnamen, statt Titel laufender Programme anzuzeigen.</string>
     <string name="settings_gpu_venus_title">Experimenteller GPU-Stack (venus + zink)</string>
     <string name="settings_gpu_venus_subtitle">Verwendet venus (Vulkan zur GPU) + zink für modernes OpenGL (~3.2 core) auf beschleunigten Desktops statt virgl (GL 2.1). Native Vulkan-Apps werden angezeigt; die OpenGL-Darstellung ist derzeit langsam. Erfordert installierte mesa-vulkan-drivers im Gast. Aus = virgl-Standard.</string>
     <string name="settings_standing_policies_header">Dauerhafte Richtlinien — diese Werkzeuge laufen ohne Nachfrage</string>

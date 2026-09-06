@@ -412,6 +412,8 @@
     <!-- Terminal reflow, GPU stack, standing policies (#250) -->
     <string name="settings_reflow_on_keyboard_title">कीबोर्ड के अनुसार टर्मिनल का आकार बदलें</string>
     <string name="settings_reflow_on_keyboard_subtitle">कीबोर्ड खुलने पर, व्यू को ऊपर स्क्रॉल करने के बजाय टर्मिनल का आकार उसके ऊपर फ़िट होने के लिए बदला जाता है। ऊपर स्टेटस लाइन दिखाने वाले फ़ुलस्क्रीन ऐप्स के लिए उपयोगी; सामान्य शेल के लिए बंद रहने दें।</string>
+    <string name="settings_tab_titles_follow_session_title">टैब शीर्षकों में सत्र नाम पसंद करें</string>
+    <string name="settings_tab_titles_follow_session_subtitle">tmux/zellij/screen से जुड़े टैब चालू प्रोग्रामों द्वारा सेट शीर्षकों के बजाय सत्र का नाम रखते हैं।</string>
     <string name="settings_gpu_venus_title">प्रायोगिक GPU स्टैक (venus + zink)</string>
     <string name="settings_gpu_venus_subtitle">एक्सेलेरेटेड डेस्कटॉप पर virgl (GL 2.1) के बजाय venus (GPU के लिए Vulkan) + zink का उपयोग करके आधुनिक OpenGL (लगभग 3.2 core) चलाता है। नेटिव Vulkan ऐप्स दिखते हैं; लेकिन OpenGL प्रदर्शन फ़िलहाल धीमा है। गेस्ट में mesa-vulkan-drivers इंस्टॉल होना आवश्यक है। बंद = virgl (डिफ़ॉल्ट)।</string>
     <string name="settings_standing_policies_header">स्थायी नीतियाँ — ये टूल बिना पूछे चलते हैं</string>

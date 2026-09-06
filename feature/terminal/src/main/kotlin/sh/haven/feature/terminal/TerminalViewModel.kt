@@ -270,6 +270,11 @@ data class TerminalTab(
      *  the live global preference. The screen resolves null at render time so
      *  changing the global slider repaints tabs without an explicit override. */
     val backgroundOpacity: Float? = null,
+    /** The session-manager (tmux/zellij/screen/byobu/herdr) name this session
+     *  is attached under, when wrapped in one — null for plain shells. The
+     *  tab strip uses it to let the user's multiplexer labelling win over
+     *  program-set OSC titles when that preference is on. */
+    val multiplexerName: String? = null,
 )
 
 /** VNC connection info for the active terminal's host. */
@@ -595,6 +600,16 @@ class TerminalViewModel @Inject constructor(
      */
     val terminalApplySchemePalette: StateFlow<Boolean> =
         preferencesRepository.terminalApplySchemePalette
+            .stateIn(viewModelScope, SharingStarted.WhileSubscribed(5000), false)
+
+    /**
+     * Whether tab titles prefer the session-manager (tmux/zellij/screen)
+     * name over titles set by running programs. Only affects sessions that
+     * actually carry a multiplexer name — see
+     * [UserPreferencesRepository.terminalTabTitlesFollowSession].
+     */
+    val tabTitlesFollowSession: StateFlow<Boolean> =
+        preferencesRepository.terminalTabTitlesFollowSession
             .stateIn(viewModelScope, SharingStarted.WhileSubscribed(5000), false)
 
     /** Live global terminal background opacity (0.0–1.0). 1.0 = opaque. */
@@ -1218,6 +1233,7 @@ class TerminalViewModel @Inject constructor(
                     close = { b.session?.close() },
                     colorScheme = effectiveColorScheme(sshProfile),
                     backgroundOpacity = effectiveOpacity(sshProfile),
+                    multiplexerName = session.chosenSessionName,
                 )
             )
             trackedSessionIds.add(sessionId)
@@ -2015,14 +2031,15 @@ class TerminalViewModel @Inject constructor(
 
         // Refresh SSH tab labels when the underlying session's chosenSessionName changes
         // (e.g. after a remote rename). Only updates label-shaped tabs; leaves bespoke
-        // labels alone.
+        // labels alone. multiplexerName tracks the same value so the tab strip can tell
+        // multiplexer-wrapped sessions from plain shells even when the name is absent.
         for (i in currentTabs.indices) {
             val tab = currentTabs[i]
             if (tab.transportType != "SSH") continue
             val name = sshSessions[tab.sessionId]?.chosenSessionName
-            if (!name.isNullOrBlank() && tab.label != name) {
-                currentTabs[i] = tab.copy(label = name)
-            }
+            if (name == tab.multiplexerName) continue
+            currentTabs[i] = if (!name.isNullOrBlank()) tab.copy(label = name, multiplexerName = name)
+            else tab.copy(multiplexerName = null)
         }
 
         // Tabs that just disappeared: their session is gone, so nothing will

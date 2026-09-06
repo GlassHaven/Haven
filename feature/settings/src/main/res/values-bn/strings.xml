@@ -412,6 +412,8 @@
     <!-- Terminal reflow, GPU stack, standing policies (#250) -->
     <string name="settings_reflow_on_keyboard_title">কীবোর্ডের সাথে টার্মিনালের আকার মানানসই করুন</string>
     <string name="settings_reflow_on_keyboard_subtitle">কীবোর্ড খুললে, ভিউ উপরে স্ক্রোল করার বদলে টার্মিনালের আকার তার উপরে মানানসই করা হয়। উপরে স্ট্যাটাস লাইন দেখায় এমন ফুলস্ক্রিন অ্যাপের জন্য সহায়ক; সাধারণ শেলের জন্য বন্ধ রাখুন।</string>
+    <string name="settings_tab_titles_follow_session_title">ট্যাব শীর্ষকে সেশনের নাম পছন্দ করুন</string>
+    <string name="settings_tab_titles_follow_session_subtitle">tmux/zellij/screen-এ সংযুক্ত ট্যাবগুলি চলমান প্রোগ্রাম নির্ধারিত শীর্ষকের বদলে সেশনের নাম ধরে রাখে।</string>
     <string name="settings_gpu_venus_title">পরীক্ষামূলক GPU স্ট্যাক (venus + zink)</string>
     <string name="settings_gpu_venus_subtitle">অ্যাক্সিলারেটেড ডেস্কটপে virgl (GL 2.1)-এর বদলে venus (GPU-তে Vulkan) + zink ব্যবহার করে আধুনিক OpenGL (প্রায় 3.2 core) চালায়। নেটিভ Vulkan অ্যাপ দেখায়; তবে OpenGL প্রদর্শন এখন ধীর। গেস্টে mesa-vulkan-drivers ইনস্টল থাকা প্রয়োজন। বন্ধ = virgl (ডিফল্ট)।</string>
     <string name="settings_standing_policies_header">স্থায়ী নীতি — এই টুলগুলি জিজ্ঞাসা ছাড়াই চলে</string>

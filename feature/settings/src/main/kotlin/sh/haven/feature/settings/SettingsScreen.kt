@@ -62,6 +62,7 @@ import androidx.compose.material.icons.filled.Usb
 import androidx.compose.material.icons.filled.VolumeUp
 import androidx.compose.material.icons.filled.ViewModule
 import androidx.compose.material.icons.filled.ListAlt
+import androidx.compose.material.icons.filled.Label
 import androidx.compose.material.icons.filled.LightMode
 import androidx.compose.material.icons.filled.ScreenLockPortrait
 import androidx.compose.material.icons.filled.Timer
@@ -223,6 +224,7 @@ fun SettingsScreen(
     val keyboardCustomMode by viewModel.keyboardCustomMode.collectAsState()
     val interceptCtrlShiftV by viewModel.interceptCtrlShiftV.collectAsState()
     val reflowTerminalOnKeyboard by viewModel.reflowTerminalOnKeyboard.collectAsState()
+    val terminalTabTitlesFollowSession by viewModel.terminalTabTitlesFollowSession.collectAsState()
     val showTerminalTabBar by viewModel.showTerminalTabBar.collectAsState()
     val backupStatus by viewModel.backupStatus.collectAsState()
     val waylandShellCommand by viewModel.waylandShellCommand.collectAsState()
@@ -755,6 +757,13 @@ fun SettingsScreen(
             subtitle = stringResource(R.string.settings_reflow_on_keyboard_subtitle),
             checked = reflowTerminalOnKeyboard,
             onCheckedChange = viewModel::setReflowTerminalOnKeyboard,
+        )
+        SettingsToggleItem(
+            icon = Icons.Filled.Label,
+            title = stringResource(R.string.settings_tab_titles_follow_session_title),
+            subtitle = stringResource(R.string.settings_tab_titles_follow_session_subtitle),
+            checked = terminalTabTitlesFollowSession,
+            onCheckedChange = viewModel::setTerminalTabTitlesFollowSession,
         )
 
         }

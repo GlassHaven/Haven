@@ -113,6 +113,7 @@ class UserPreferencesRepository @Inject constructor(
     private val imeFlagNoPersonalizedLearningKey = booleanPreferencesKey("ime_flag_no_personalized_learning")
     private val interceptCtrlShiftVKey = booleanPreferencesKey("intercept_ctrl_shift_v")
     private val reflowTerminalOnKeyboardKey = booleanPreferencesKey("reflow_terminal_on_keyboard")
+    private val terminalTabTitlesFollowSessionKey = booleanPreferencesKey("terminal_tab_titles_follow_session")
     private val showTerminalTabBarKey = booleanPreferencesKey("show_terminal_tab_bar")
     private val reorderHintShownKey = booleanPreferencesKey("reorder_hint_shown")
     private val screenOrderKey = stringPreferencesKey("screen_order")
@@ -764,6 +765,23 @@ class UserPreferencesRepository @Inject constructor(
     suspend fun setReflowTerminalOnKeyboard(enabled: Boolean) {
         dataStore.edit { prefs ->
             prefs[reflowTerminalOnKeyboardKey] = enabled
+        }
+    }
+
+    /**
+     * When on, a tab attached to a session manager (tmux/zellij/screen/…)
+     * keeps the session's own name in the tab strip instead of titles set by
+     * running programs (OSC 0/2, e.g. a shell integration publishing the
+     * cwd). Tabs without a multiplexer name are unaffected. Off by default —
+     * the #625 program-title behaviour stays.
+     */
+    val terminalTabTitlesFollowSession: Flow<Boolean> = dataStore.data.map { prefs ->
+        prefs[terminalTabTitlesFollowSessionKey] ?: false
+    }
+
+    suspend fun setTerminalTabTitlesFollowSession(enabled: Boolean) {
+        dataStore.edit { prefs ->
+            prefs[terminalTabTitlesFollowSessionKey] = enabled
         }
     }
 

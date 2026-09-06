@@ -1,0 +1,2 @@
+- A USB drive Android can mount opens in the Files tab instead of booting a VM (#603).
+- A preference keeps session names on tabs when a multiplexer sets its own title (#625).

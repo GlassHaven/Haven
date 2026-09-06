@@ -94,6 +94,11 @@
     <string name="app_desktop_add_distro_confirm_body">Esto descarga y extrae el rootfs, unos %1$d MB. Puede tardar un poco con una conexión lenta.</string>
     <string name="app_desktop_add_foreign_distro_confirm_body">Esto descarga y extrae el rootfs %1$s para uso emulado, unos %2$d MB. Puede tardar un poco con una conexión lenta.</string>
     <string name="app_desktop_usb_drive_picker_title">¿Qué unidad USB abrir?</string>
+    <string name="app_desktop_usb_route_title">¿Cómo abrir %1$s?</string>
+    <string name="app_desktop_usb_route_body">Android montó esta unidad como «%1$s». Explórala directamente (rápido) o ábrela en una pequeña máquina virtual de Linux: arranca más lento, pero lee sistemas de archivos que Android no puede, como particiones ext4/GPT y LUKS.</string>
+    <string name="app_desktop_usb_route_browse">Explorar directamente</string>
+    <string name="app_desktop_usb_route_vm">Abrir en VM de Linux</string>
+    <string name="app_desktop_usb_route_readonly_hint">La exploración directa es de solo lectura hasta que se conceda el acceso a todos los archivos en Ajustes.</string>
     <string name="app_desktop_rootfs_downloading">Descargando rootfs… %1$d%%</string>
     <string name="app_desktop_rootfs_extracting">Extrayendo rootfs…</string>
     <string name="app_desktop_rootfs_initializing">Configurando rootfs… (%1$s)</string>

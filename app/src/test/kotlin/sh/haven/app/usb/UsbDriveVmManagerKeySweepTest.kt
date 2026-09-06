@@ -29,6 +29,7 @@ class UsbDriveVmManagerKeySweepTest {
         sshKeyRepository = sshKeyRepository,
         agentUiCommandBus = mockk(relaxed = true),
         sshSessionManager = mockk(relaxed = true),
+        usbMountCorrelator = mockk(relaxed = true),
     )
 
     private fun key(id: String, label: String, enabledForAuth: Boolean) = SshKey(

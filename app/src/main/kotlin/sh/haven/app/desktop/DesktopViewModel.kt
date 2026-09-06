@@ -906,7 +906,53 @@ class DesktopViewModel @Inject constructor(
         _usbDrivePicker.value = null
     }
 
-    /** Boot a VM that mounts the attached USB drive; its files appear as a connection. */
+    /**
+     * Non-null while the user must choose a mount route for a drive Android
+     * has mounted itself (#603): browse it directly through the Files tab
+     * (no VM), or commit to the Linux-VM boot. Shown every time — correlation
+     * is a heuristic, so the choice isn't remembered.
+     */
+    data class UsbRouteChoice(
+        val deviceName: String,
+        val productName: String?,
+        val match: sh.haven.app.usb.UsbMountMatch,
+        val writable: Boolean,
+    )
+    private val _usbRouteChoice = MutableStateFlow<UsbRouteChoice?>(null)
+    val usbRouteChoice: StateFlow<UsbRouteChoice?> = _usbRouteChoice.asStateFlow()
+
+    fun dismissUsbRouteChoice() {
+        _usbRouteChoice.value = null
+    }
+
+    /** Commit to the Linux-VM boot (the pre-#603 open path, unchanged). */
+    fun openUsbDriveVm(deviceName: String?, writable: Boolean = false) {
+        viewModelScope.launch {
+            try {
+                usbDriveVmManager.open(deviceName, writable)
+                _userMessages.emit("Opening the USB drive in a Linux VM — this can take a few minutes; progress is shown below.")
+            } catch (e: sh.haven.app.usb.UsbDriveVmManager.UsbVmException) {
+                _userMessages.emit(e.message ?: "Couldn't open USB drive")
+            }
+        }
+    }
+
+    /** Open the Android-mounted volume directly in the Files tab — no VM boot. */
+    fun openUsbDriveDirectly(choice: UsbRouteChoice) {
+        _usbRouteChoice.value = null
+        agentUiCommandBus.emit(
+            sh.haven.core.data.agent.AgentUiCommand.NavigateToSftpPath("local", choice.match.volume.path),
+        )
+        val where = choice.match.volume.description ?: choice.match.volume.path
+        _userMessages.tryEmit("Browsing $where directly — no VM needed.")
+    }
+
+    /**
+     * Boot a VM that mounts the attached USB drive; its files appear as a
+     * connection. When Android has already mounted the drive (#603), a route
+     * choice is offered first; without a mount the VM path runs as before,
+     * with a one-line why (ext4/GPT/LUKS are only readable through the VM).
+     */
     fun openUsbDrive(deviceName: String? = null, writable: Boolean = false) {
         if (deviceName == null) {
             val drives = usbDriveVmManager.massStorageDevices()
@@ -917,11 +963,20 @@ class DesktopViewModel @Inject constructor(
         }
         _usbDrivePicker.value = null
         viewModelScope.launch {
-            try {
-                usbDriveVmManager.open(deviceName, writable)
-                _userMessages.emit("Opening the USB drive in a Linux VM — this can take a few minutes; progress is shown below.")
+            val match = try {
+                usbDriveVmManager.androidMount(deviceName)
             } catch (e: sh.haven.app.usb.UsbDriveVmManager.UsbVmException) {
                 _userMessages.emit(e.message ?: "Couldn't open USB drive")
+                return@launch
+            }
+            if (match != null) {
+                val info = usbDriveVmManager.massStorageDevices().firstOrNull { it.deviceName == match.deviceName }
+                _usbRouteChoice.value = UsbRouteChoice(match.deviceName, info?.productName, match, writable)
+            } else {
+                _userMessages.emit(
+                    "Android hasn't mounted this drive — opening it in the Linux VM (the only way to read ext4/GPT/LUKS filesystems).",
+                )
+                openUsbDriveVm(deviceName, writable)
             }
         }
     }

@@ -92,6 +92,11 @@
     <string name="app_desktop_add_distro_confirm_body">Dadurch wird das rootfs heruntergeladen und entpackt, etwa %1$d MB. Bei einer langsamen Verbindung kann es eine Weile dauern.</string>
     <string name="app_desktop_add_foreign_distro_confirm_body">Dadurch wird das %1$s-rootfs für emulierte Nutzung heruntergeladen und entpackt, etwa %2$d MB. Bei einer langsamen Verbindung kann es eine Weile dauern.</string>
     <string name="app_desktop_usb_drive_picker_title">Welches USB-Laufwerk öffnen?</string>
+    <string name="app_desktop_usb_route_title">Wie soll %1$s geöffnet werden?</string>
+    <string name="app_desktop_usb_route_body">Android hat dieses Laufwerk als „%1$s“ eingebunden. Direkt durchsuchen (schnell) oder in einer kleinen Linux-VM öffnen — der Start ist langsamer, aber sie liest Dateisysteme, die Android nicht kann, wie ext4-/GPT-Partitionen und LUKS.</string>
+    <string name="app_desktop_usb_route_browse">Direkt durchsuchen</string>
+    <string name="app_desktop_usb_route_vm">In Linux-VM öffnen</string>
+    <string name="app_desktop_usb_route_readonly_hint">Direktes Durchsuchen ist schreibgeschützt, bis in den Einstellungen Zugriff auf alle Dateien gewährt wird.</string>
     <string name="app_desktop_rootfs_downloading">Rootfs wird heruntergeladen… %1$d%%</string>
     <string name="app_desktop_rootfs_extracting">Rootfs wird entpackt…</string>
     <string name="app_desktop_rootfs_initializing">Rootfs wird eingerichtet… (%1$s)</string>

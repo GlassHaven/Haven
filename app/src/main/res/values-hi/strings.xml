@@ -92,6 +92,11 @@
     <string name="app_desktop_add_distro_confirm_body">यह rootfs डाउनलोड और निकालेगा, लगभग %1$d MB। धीमे कनेक्शन पर कुछ समय लग सकता है।</string>
     <string name="app_desktop_add_foreign_distro_confirm_body">यह emulated उपयोग के लिए %1$s rootfs डाउनलोड और निकालेगा, लगभग %2$d MB। धीमे कनेक्शन पर कुछ समय लग सकता है।</string>
     <string name="app_desktop_usb_drive_picker_title">कौन-सी USB ड्राइव खोलें?</string>
+    <string name="app_desktop_usb_route_title">%1$s कैसे खोलें?</string>
+    <string name="app_desktop_usb_route_body">Android ने यह ड्राइव “%1$s” के रूप में माउंट की है। इसे सीधे ब्राउज़ करें (तेज़), या एक छोटी Linux VM में खोलें — चालू होने में धीमी, पर वह उन फ़ाइल सिस्टम को पढ़ सकती है जिन्हें Android नहीं पढ़ सकता, जैसे ext4/GPT पार्टीशन और LUKS।</string>
+    <string name="app_desktop_usb_route_browse">सीधे ब्राउज़ करें</string>
+    <string name="app_desktop_usb_route_vm">Linux VM में खोलें</string>
+    <string name="app_desktop_usb_route_readonly_hint">सेटिंग्स में सभी फ़ाइलों की अनुमति मिलने तक सीधा ब्राउज़िंग केवल-पढ़ने के लिए है।</string>
     <string name="app_desktop_rootfs_downloading">rootfs डाउनलोड हो रहा है… %1$d%%</string>
     <string name="app_desktop_rootfs_extracting">rootfs निकाला जा रहा है…</string>
     <string name="app_desktop_rootfs_initializing">rootfs सेटअप हो रहा है… (%1$s)</string>

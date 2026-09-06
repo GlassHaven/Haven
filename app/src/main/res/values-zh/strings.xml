@@ -92,6 +92,11 @@
     <string name="app_desktop_add_distro_confirm_body">这将下载并解压 rootfs，约 %1$d MB。在慢速连接上可能需要一段时间。</string>
     <string name="app_desktop_add_foreign_distro_confirm_body">这将下载并解压用于模拟运行的 %1$s rootfs，约 %2$d MB。在慢速连接上可能需要一段时间。</string>
     <string name="app_desktop_usb_drive_picker_title">打开哪个 USB 驱动器？</string>
+    <string name="app_desktop_usb_route_title">如何打开 %1$s？</string>
+    <string name="app_desktop_usb_route_body">Android 已将该驱动器挂载为“%1$s”。可直接浏览（更快），或在小型 Linux 虚拟机中打开——启动较慢，但能读取 Android 无法识别的文件系统，如 ext4/GPT 分区和 LUKS。</string>
+    <string name="app_desktop_usb_route_browse">直接浏览</string>
+    <string name="app_desktop_usb_route_vm">在 Linux 虚拟机中打开</string>
+    <string name="app_desktop_usb_route_readonly_hint">在设置中授予“所有文件访问权限”之前，直接浏览为只读。</string>
     <string name="app_desktop_rootfs_downloading">正在下载 rootfs… %1$d%%</string>
     <string name="app_desktop_rootfs_extracting">正在解压 rootfs…</string>
     <string name="app_desktop_rootfs_initializing">正在初始化 rootfs… (%1$s)</string>

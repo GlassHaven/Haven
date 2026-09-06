@@ -92,6 +92,11 @@
     <string name="app_desktop_add_distro_confirm_body">يؤدي هذا إلى تنزيل واستخراج نظام الجذر rootfs، حوالي %1$d ميغابايت. قد يستغرق بعض الوقت على اتصال بطيء.</string>
     <string name="app_desktop_add_foreign_distro_confirm_body">يؤدي هذا إلى تنزيل واستخراج نظام الجذر rootfs لـ %1$s للاستخدام المحاكى، حوالي %2$d ميغابايت. قد يستغرق بعض الوقت على اتصال بطيء.</string>
     <string name="app_desktop_usb_drive_picker_title">أي محرك أقراص USB تريد فتحه؟</string>
+    <string name="app_desktop_usb_route_title">كيف تريد فتح %1$s؟</string>
+    <string name="app_desktop_usb_route_body">ركّب أندرويد هذا القرص باسم “%1$s”. تصفحه مباشرة (أسرع)، أو افتحه داخل آلة لينكس افتراضية صغيرة — أبطأ في الإقلاع، لكنها تقرأ أنظمة ملفات لا يستطيع أندرويد قراءتها، مثل أقسام ext4/GPT وLUKS.</string>
+    <string name="app_desktop_usb_route_browse">تصفح مباشرة</string>
+    <string name="app_desktop_usb_route_vm">فتح في آلة لينكس الافتراضية</string>
+    <string name="app_desktop_usb_route_readonly_hint">التصفح المباشر للقراءة فقط حتى يُمنح إذن الوصول إلى كل الملفات من الإعدادات.</string>
     <string name="app_desktop_rootfs_downloading">جارٍ تنزيل rootfs… %1$d%%</string>
     <string name="app_desktop_rootfs_extracting">جارٍ فك ضغط rootfs…</string>
     <string name="app_desktop_rootfs_initializing">جارٍ إعداد rootfs… (%1$s)</string>

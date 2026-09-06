@@ -126,16 +126,23 @@ internal class UsbToolProvider(
         ) { _ -> listUsbExports() },
 
         "open_usb_drive" to ToolHandler(
-            description = "Open a phone-attached USB drive (mass storage — flash drive, SSD, SD reader) inside an on-device QEMU Linux VM and surface its files as an ordinary connection (#287). Unlike usb_attach_to_guest (which gives the proot guest a char device), this gives the drive a REAL kernel, so ext4 / GPT / block partitions mount and their files are browseable. Flow: exports the drive over USB/IP, boots (or reuses, if another drive is already open) a small Alpine VM that imports it, mounts every partition (read-only unless `writable`), and runs sshd — then returns a loopback SSH/SFTP `profileId` you browse with list_directory / serve_file (and a terminal tab into the VM). A LUKS-encrypted partition mounts locked (reported in list_usb_drives' vm.locked) — call unlock_usb_drive_partition with its passphrase to mount it. The VM boot is slow (TCG, no KVM unrooted) + the first run installs packages, so this returns {status:\"starting\"} immediately — poll list_usb_drives until phase=ready (profileId set) or error. Consent-gated per session (mounting the user's disk is sensitive). Up to a phone-resource limit of concurrent drives (they share one VM, so this is a vhci-port/practical cap, not RAM); isochronous (webcam/audio) still can't pass.",
+            description = "Open a phone-attached USB drive (mass storage — flash drive, SSD, SD reader) and surface its files as an ordinary connection. Two routes (#603): `route:\"vm\"` (default — boot the on-device QEMU Linux VM) gives the drive a REAL kernel, so ext4 / GPT / block partitions mount and their files are browseable: exports the drive over USB/IP, boots (or reuses, if another drive is already open) a small Alpine VM that imports it, mounts every partition (read-only unless `writable`), and runs sshd — then returns a loopback SSH/SFTP `profileId` you browse with list_directory / serve_file (and a terminal tab into the VM). A LUKS-encrypted partition mounts locked (reported in list_usb_drives' vm.locked) — call unlock_usb_drive_partition with its passphrase to mount it. The VM boot is slow (TCG, no KVM unrooted) + the first run installs packages, so this returns {status:\"starting\"} immediately — poll list_usb_drives until phase=ready (profileId set) or error. `route:\"android\"` skips the VM when Android itself has already mounted the drive (vfat/exFAT): returns {status:\"ready\", profileId:\"local\", volumePath, …} SYNCHRONOUSLY — do not poll list_usb_drives in that case; browse with list_directory(profileId=\"local\", path=volumePath). `route:\"auto\"` picks android when a mounted volume matches, else vm. See list_usb_drives' drives[].androidMounted to decide without booting. Consent-gated per session (mounting the user's disk is sensitive). Up to a phone-resource limit of concurrent VM drives (they share one VM, so this is a vhci-port/practical cap, not RAM); isochronous (webcam/audio) still can't pass.",
             inputSchema = objectSchema {
                 string("deviceName", "deviceName from list_usb_devices / list_usb_drives; optional if exactly one USB drive is attached.")
-                boolean("writable", "Mount read-write instead of the default read-only. An interrupted write (VM killed, app backgrounded under memory pressure) can corrupt the drive's filesystem — only set this when the caller genuinely needs to write.")
+                boolean("writable", "VM route only: mount read-write instead of the default read-only. An interrupted write (VM killed, app backgrounded under memory pressure) can corrupt the drive's filesystem — only set this when the caller genuinely needs to write. The android route's writability is governed by the All-files access grant (androidWritable in the response).")
+                string(
+                    "route",
+                    "\"vm\" (default — boot the Linux VM), \"android\" (browse the drive Android already mounted, no VM; errors with -32602 if it isn't mounted), or \"auto\" (android when a mounted volume matches, else vm).",
+                )
             },
             consentLevel = ConsentLevel.ONCE_PER_SESSION,
             summarise = { args ->
                 val n = args.optString("deviceName").ifBlank { "the attached USB drive" }
                 val label = if (n.startsWith("/dev")) usbLabel(n) else n
-                if (args.optBoolean("writable", false)) {
+                val route = args.optString("route").ifBlank { "vm" }
+                if (route == "android") {
+                    "Open $label directly (Android-mounted, no VM)?"
+                } else if (args.optBoolean("writable", false)) {
                     "Open $label in a Linux VM READ-WRITE? An interrupted write can corrupt the drive."
                 } else {
                     "Open $label in a Linux VM and mount its files?"
@@ -144,7 +151,7 @@ internal class UsbToolProvider(
         ) { args -> openUsbDrive(args) },
 
         "list_usb_drives" to ToolHandler(
-            description = "List phone-attached USB mass-storage drives (the candidates for open_usb_drive) and every currently-open USB-drive VM in `vms` (up to a phone-resource concurrency limit): busid, phase (idle/opening/ready/error), the loopback SSH `profileId`, whether it's mounted read-only, any locked (LUKS) partitions awaiting unlock_usb_drive_partition, and the mounted paths once ready. Read-only — poll this after open_usb_drive until the matching vms[] entry has phase=ready.",
+            description = "List phone-attached USB mass-storage drives (the candidates for open_usb_drive) and every currently-open USB-drive VM in `vms` (up to a phone-resource concurrency limit): busid, phase (idle/opening/ready/error), the loopback SSH `profileId`, whether it's mounted read-only, any locked (LUKS) partitions awaiting unlock_usb_drive_partition, and the mounted paths once ready. Each drives[] entry also carries an `androidMount` object (#603): androidMounted + volumePath/volumeDescription/volumeReadOnly/androidWritable/routeConfidence when Android itself has mounted the drive — a cheaper open_usb_drive route:\"android\" exists for that drive. Read-only — poll this after open_usb_drive until the matching vms[] entry has phase=ready.",
             inputSchema = emptyObjectSchema(),
             consentLevel = ConsentLevel.NEVER,
         ) { _ -> listUsbDrives() },
@@ -491,6 +498,52 @@ internal class UsbToolProvider(
     private suspend fun openUsbDrive(args: JSONObject): JSONObject = withContext(Dispatchers.IO) {
         val requested = args.optString("deviceName").takeIf { it.isNotBlank() }
         val writable = args.optBoolean("writable", false)
+        val route = args.optString("route").ifBlank { "vm" }
+        if (route !in setOf("vm", "android", "auto")) {
+            throw McpError(-32602, "route must be \"vm\", \"android\" or \"auto\" (got \"$route\")")
+        }
+        // #603: the android route skips the VM when Android itself has mounted
+        // the drive (vold's volume correlated with the device). "auto" falls
+        // back to the VM silently; explicit "android" errors instead.
+        if (route == "android" || route == "auto") {
+            val match = try {
+                // Short await rides vold's ~0.5–2s post-attach mount race
+                // without making a wrong "not mounted" verdict likely.
+                usbDriveVmManager.androidMount(requested, timeoutMs = 2_000)
+            } catch (e: sh.haven.app.usb.UsbDriveVmManager.UsbVmException) {
+                throw McpError(-32602, e.message ?: "Failed to resolve USB drive")
+            }
+            if (match != null) {
+                val json = JSONObject().apply {
+                    put("status", "ready")
+                    put("route", route)
+                    put("deviceName", match.deviceName)
+                    put("profileId", "local")
+                    put("volumePath", match.volume.path)
+                    put("volumeDescription", match.volume.description ?: JSONObject.NULL)
+                    put("readOnly", match.volume.readOnly)
+                    put("androidWritable", match.writable)
+                    put(
+                        "routeConfidence",
+                        if (match.confidence == sh.haven.app.usb.UsbMountConfidence.ATTACH_DIFF) "attach-diff" else "unclaimed-volume",
+                    )
+                    put(
+                        "note",
+                        "Android mounted this drive; browse it with list_directory(profileId=\"local\", path=\"${match.volume.path}\"). " +
+                            "No VM was booted. Writes need All-files access (MANAGE_EXTERNAL_STORAGE); a read-only volume or a missing grant makes this read-only. " +
+                            "Use route=\"vm\" for ext4/GPT/LUKS or anything Android couldn't mount.",
+                    )
+                }
+                if (route == "android") return@withContext json
+                return@withContext json.put("route", "auto")
+            }
+            if (route == "android") {
+                throw McpError(
+                    -32602,
+                    "Android has not mounted this drive (vfat/exFAT are mounted by Android; ext4/LUKS are not). Use route=\"vm\".",
+                )
+            }
+        }
         val deviceName = try {
             usbDriveVmManager.open(requested, writable)
         } catch (e: sh.haven.app.usb.UsbDriveVmManager.UsbVmException) {
@@ -498,8 +551,10 @@ internal class UsbToolProvider(
         }
         JSONObject().apply {
             put("status", "starting")
+            put("route", "vm")
             put("deviceName", deviceName)
             put("readOnly", !writable)
+            if (route == "auto") put("autoNote", "Android hadn't mounted this drive, so the Linux VM route was taken.")
             put(
                 "note",
                 "Booting a Linux VM and mounting the drive (slow under TCG; the first run installs packages). " +
@@ -531,11 +586,37 @@ internal class UsbToolProvider(
         }
     }
 
+    /** The #603 Android-mount correlation fields for one drive (absent when nothing matched). */
+    private fun androidMountJson(d: sh.haven.core.usb.UsbDeviceInfo): JSONObject = JSONObject().apply {
+        val match = usbDriveVmManager.androidMountSnapshot(d.deviceName)
+        put("androidMounted", match != null)
+        if (match != null) {
+            put("volumePath", match.volume.path)
+            put("volumeDescription", match.volume.description ?: JSONObject.NULL)
+            put("volumeReadOnly", match.volume.readOnly)
+            put("androidWritable", match.writable)
+            put(
+                "routeConfidence",
+                if (match.confidence == sh.haven.app.usb.UsbMountConfidence.ATTACH_DIFF) "attach-diff" else "unclaimed-volume",
+            )
+        }
+    }
+
     private suspend fun listUsbDrives(): JSONObject = withContext(Dispatchers.IO) {
         val drives = usbDriveVmManager.massStorageDevices()
         val sessions = usbDriveVmManager.sessions.value
         JSONObject().apply {
-            put("drives", JSONArray().apply { drives.forEach { put(usbDeviceJson(it)) } })
+            put("drives", JSONArray().apply {
+                drives.forEach { d ->
+                    put(usbDeviceJson(d).apply {
+                        // route:"android" candidates for open_usb_drive (see that
+                        // tool's description). Claim bookkeeping inside the
+                        // correlator is idempotent per device, so polling here
+                        // doesn't disturb matching.
+                        put("androidMount", androidMountJson(d))
+                    })
+                }
+            })
             put("vms", JSONArray().apply {
                 sessions.forEach { (busid, st) ->
                     put(

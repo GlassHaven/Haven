@@ -92,6 +92,11 @@
     <string name="app_desktop_add_distro_confirm_body">rootfs をダウンロードして展開します。約 %1$d MB です。遅い接続では時間がかかることがあります。</string>
     <string name="app_desktop_add_foreign_distro_confirm_body">エミュレート使用のために %1$s の rootfs をダウンロードして展開します。約 %2$d MB です。遅い接続では時間がかかることがあります。</string>
     <string name="app_desktop_usb_drive_picker_title">どのUSBドライブを開きますか？</string>
+    <string name="app_desktop_usb_route_title">%1$s をどう開きますか？</string>
+    <string name="app_desktop_usb_route_body">Android がこのドライブを「%1$s」としてマウントしました。直接ブラウズする（高速）か、小さな Linux VM で開くかを選べます。VM は起動に時間がかかりますが、ext4/GPT パーティションや LUKS など Android が読めないファイルシステムを読めます。</string>
+    <string name="app_desktop_usb_route_browse">直接ブラウズ</string>
+    <string name="app_desktop_usb_route_vm">Linux VM で開く</string>
+    <string name="app_desktop_usb_route_readonly_hint">「すべてのファイルへのアクセス」を許可するまで、直接ブラウズは読み取り専用です。</string>
     <string name="app_desktop_rootfs_downloading">rootfs をダウンロード中… %1$d%%</string>
     <string name="app_desktop_rootfs_extracting">rootfs を展開中…</string>
     <string name="app_desktop_rootfs_initializing">rootfs をセットアップ中… (%1$s)</string>

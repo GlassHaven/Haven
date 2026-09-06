@@ -117,6 +117,7 @@ fun DesktopManagerScreen(viewModel: DesktopViewModel = hiltViewModel()) {
     val availableDistros = viewModel.availableDistros
     val availableForeignDistros = viewModel.availableForeignDistros
     val usbDrivePicker by viewModel.usbDrivePicker.collectAsState()
+    val usbRouteChoice by viewModel.usbRouteChoice.collectAsState()
     val isRootfsReady = rootfsSetupState is ProotManager.SetupState.Ready
     val mirrorRegion by viewModel.mirrorRegion.collectAsState()
     val dnsMode by viewModel.dnsMode.collectAsState()
@@ -277,6 +278,52 @@ fun DesktopManagerScreen(viewModel: DesktopViewModel = hiltViewModel()) {
             dismissButton = {
                 TextButton(onClick = { viewModel.dismissUsbDrivePicker() }) {
                     Text(stringResource(R.string.common_cancel))
+                }
+            },
+        )
+    }
+
+    // #603: Android mounted this drive itself — choose the cheap route (browse
+    // the mounted volume in Files) or commit to the Linux-VM boot.
+    usbRouteChoice?.let { choice ->
+        AlertDialog(
+            onDismissRequest = { viewModel.dismissUsbRouteChoice() },
+            title = {
+                Text(
+                    stringResource(
+                        AppR.string.app_desktop_usb_route_title,
+                        listOfNotNull(
+                            choice.productName?.takeIf { it.isNotBlank() },
+                            choice.deviceName,
+                        ).joinToString("  ·  "),
+                    ),
+                )
+            },
+            text = {
+                Column {
+                    Text(
+                        stringResource(
+                            AppR.string.app_desktop_usb_route_body,
+                            choice.match.volume.description ?: choice.match.volume.path,
+                        ),
+                    )
+                    if (!choice.match.writable) {
+                        Text(
+                            stringResource(AppR.string.app_desktop_usb_route_readonly_hint),
+                            style = MaterialTheme.typography.bodySmall,
+                            color = MaterialTheme.colorScheme.onSurfaceVariant,
+                        )
+                    }
+                }
+            },
+            confirmButton = {
+                TextButton(onClick = { viewModel.openUsbDriveDirectly(choice) }) {
+                    Text(stringResource(AppR.string.app_desktop_usb_route_browse))
+                }
+            },
+            dismissButton = {
+                TextButton(onClick = { viewModel.dismissUsbRouteChoice(); viewModel.openUsbDriveVm(choice.deviceName, choice.writable) }) {
+                    Text(stringResource(AppR.string.app_desktop_usb_route_vm))
                 }
             },
         )

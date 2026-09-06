@@ -50,6 +50,7 @@ class HavenApp : Application(), Configuration.Provider {
     @Inject lateinit var backupAutoPullScheduler: sh.haven.app.backup.BackupAutoPullScheduler
     @Inject lateinit var sshTerminalEmulatorOwner: sh.haven.feature.terminal.SshTerminalEmulatorOwner
     @Inject lateinit var updateNotifier: sh.haven.app.update.UpdateNotifier
+    @Inject lateinit var usbMountCorrelator: sh.haven.app.usb.UsbMountCorrelator
 
     private val appScope = CoroutineScope(SupervisorJob() + Dispatchers.IO)
 
@@ -321,6 +322,11 @@ class HavenApp : Application(), Configuration.Provider {
         // while the app process is alive, so the notification tap always lands
         // on a live UI. The open itself is still a deliberate tap, never automatic.
         registerUsbDriveAttachReceiver()
+
+        // #603: seed the USB mount correlator's "preexisting volumes" set so
+        // the weak (no-attach-baseline) match can never claim a volume that
+        // was already mounted before this process started (e.g. a microSD).
+        appScope.launch { usbMountCorrelator.onAppStarted() }
     }
 
     private val usbDriveAttachReceiver = object : android.content.BroadcastReceiver() {
@@ -341,7 +347,14 @@ class HavenApp : Application(), Configuration.Provider {
             // USB metadata and the NotificationManager binder, which a stalled
             // USB stack can make block — never on the broadcast thread.
             appScope.launch {
-                if (isMassStorageDevice(device)) postUsbDriveDetectedNotification(device)
+                if (isMassStorageDevice(device)) {
+                    // Record the pre-mount volume set for the #603 route
+                    // correlation BEFORE vold's mount can land (it follows the
+                    // attach by ~0.5–2s). Must stay before the notification so
+                    // a slow snapshot never runs after the mount appears.
+                    usbMountCorrelator.onDeviceAttached(device.deviceName)
+                    postUsbDriveDetectedNotification(device)
+                }
             }
         }
     }

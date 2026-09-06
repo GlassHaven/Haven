@@ -3675,6 +3675,110 @@
      }
     },
     {
+     "name": "app_desktop_usb_route_title",
+     "en": "Open %1$s how?",
+     "comment": "Desktop manager: distro / rootfs",
+     "args": [
+      "%1$s"
+     ],
+     "t": {
+      "ar": "كيف تريد فتح %1$s؟",
+      "bn": "%1$s কীভাবে খুলবেন?",
+      "de": "Wie soll %1$s geöffnet werden?",
+      "es": "¿Cómo abrir %1$s?",
+      "fr": "Comment ouvrir %1$s ?",
+      "hi": "%1$s कैसे खोलें?",
+      "ja": "%1$s をどう開きますか？",
+      "ko": "%1$s을(를) 어떻게 열까요?",
+      "pt": "Como abrir %1$s?",
+      "ru": "Как открыть %1$s?",
+      "sr": "Како отворити %1$s?",
+      "zh": "如何打开 %1$s？"
+     }
+    },
+    {
+     "name": "app_desktop_usb_route_body",
+     "en": "Android mounted this drive as “%1$s”. Browse it directly (fast), or open it in a small Linux VM — slower to start, but it reads filesystems Android can\\'t, like ext4/GPT partitions and LUKS.",
+     "comment": "Desktop manager: distro / rootfs",
+     "args": [
+      "%1$s"
+     ],
+     "t": {
+      "ar": "ركّب أندرويد هذا القرص باسم “%1$s”. تصفحه مباشرة (أسرع)، أو افتحه داخل آلة لينكس افتراضية صغيرة — أبطأ في الإقلاع، لكنها تقرأ أنظمة ملفات لا يستطيع أندرويد قراءتها، مثل أقسام ext4/GPT وLUKS.",
+      "bn": "অ্যান্ড্রয়েড এই ড্রাইভটি “%1$s” নামে মাউন্ট করেছে। সরাসরি ব্রাউজ করুন (দ্রুত), অথবা একটি ছোট লিনাক্স ভার্চুয়াল মেশিনে খুলুন — চালু হতে ধীর, কিন্তু এটি অ্যান্ড্রয়েড যে ফাইল সিস্টেম পড়তে পারে না সেগুলি পড়তে পারে, যেমন ext4/GPT পার্টিশন এবং LUKS।",
+      "de": "Android hat dieses Laufwerk als „%1$s“ eingebunden. Direkt durchsuchen (schnell) oder in einer kleinen Linux-VM öffnen — der Start ist langsamer, aber sie liest Dateisysteme, die Android nicht kann, wie ext4-/GPT-Partitionen und LUKS.",
+      "es": "Android montó esta unidad como «%1$s». Explórala directamente (rápido) o ábrela en una pequeña máquina virtual de Linux: arranca más lento, pero lee sistemas de archivos que Android no puede, como particiones ext4/GPT y LUKS.",
+      "fr": "Android a monté ce disque sous « %1$s ». Parcourez-le directement (rapide) ou ouvrez-le dans une petite VM Linux — démarrage plus lent, mais elle lit les systèmes de fichiers qu\\'Android ne sait pas lire, comme les partitions ext4/GPT et LUKS.",
+      "hi": "Android ने यह ड्राइव “%1$s” के रूप में माउंट की है। इसे सीधे ब्राउज़ करें (तेज़), या एक छोटी Linux VM में खोलें — चालू होने में धीमी, पर वह उन फ़ाइल सिस्टम को पढ़ सकती है जिन्हें Android नहीं पढ़ सकता, जैसे ext4/GPT पार्टीशन और LUKS।",
+      "ja": "Android がこのドライブを「%1$s」としてマウントしました。直接ブラウズする（高速）か、小さな Linux VM で開くかを選べます。VM は起動に時間がかかりますが、ext4/GPT パーティションや LUKS など Android が読めないファイルシステムを読めます。",
+      "ko": "Android가 이 드라이브를 “%1$s”로 마운트했습니다. 직접 탐색하거나(빠름) 작은 Linux VM에서 열 수 있습니다. VM은 시작이 느리지만 Android가 읽지 못하는 ext4/GPT 파티션, LUKS 같은 파일 시스템을 읽을 수 있습니다.",
+      "pt": "O Android montou esta unidade como “%1$s”. Navegue por ela diretamente (rápido) ou abra-a numa pequena VM Linux — o arranque é mais lento, mas ela lê sistemas de ficheiros que o Android não consegue, como partições ext4/GPT e LUKS.",
+      "ru": "Android смонтировал этот диск как «%1$s». Просмотрите его напрямую (быстро) или откройте в небольшой виртуальной машине Linux — она запускается медленнее, но читает файловые системы, недоступные Android: разделы ext4/GPT и LUKS.",
+      "sr": "Android је монтирао овај диск као „%1$s“. Прегледајте га директно (брже) или га отворите у малој Linux виртуалној машини — спорије се покреће, али чита системе датотека које Android не уме, као што су ext4/GPT партиције и LUKS.",
+      "zh": "Android 已将该驱动器挂载为“%1$s”。可直接浏览（更快），或在小型 Linux 虚拟机中打开——启动较慢，但能读取 Android 无法识别的文件系统，如 ext4/GPT 分区和 LUKS。"
+     }
+    },
+    {
+     "name": "app_desktop_usb_route_browse",
+     "en": "Browse directly",
+     "comment": "Desktop manager: distro / rootfs",
+     "args": [],
+     "t": {
+      "ar": "تصفح مباشرة",
+      "bn": "সরাসরি ব্রাউজ করুন",
+      "de": "Direkt durchsuchen",
+      "es": "Explorar directamente",
+      "fr": "Parcourir directement",
+      "hi": "सीधे ब्राउज़ करें",
+      "ja": "直接ブラウズ",
+      "ko": "직접 탐색",
+      "pt": "Navegar diretamente",
+      "ru": "Просмотреть напрямую",
+      "sr": "Директно прегледај",
+      "zh": "直接浏览"
+     }
+    },
+    {
+     "name": "app_desktop_usb_route_vm",
+     "en": "Open in Linux VM",
+     "comment": "Desktop manager: distro / rootfs",
+     "args": [],
+     "t": {
+      "ar": "فتح في آلة لينكس الافتراضية",
+      "bn": "লিনাক্স ভার্চুয়াল মেশিনে খুলুন",
+      "de": "In Linux-VM öffnen",
+      "es": "Abrir en VM de Linux",
+      "fr": "Ouvrir dans une VM Linux",
+      "hi": "Linux VM में खोलें",
+      "ja": "Linux VM で開く",
+      "ko": "Linux VM에서 열기",
+      "pt": "Abrir na VM Linux",
+      "ru": "Открыть в ВМ Linux",
+      "sr": "Отвори у Linux ВМ",
+      "zh": "在 Linux 虚拟机中打开"
+     }
+    },
+    {
+     "name": "app_desktop_usb_route_readonly_hint",
+     "en": "Direct browsing is read-only until All-files access is granted in Settings.",
+     "comment": "Desktop manager: distro / rootfs",
+     "args": [],
+     "t": {
+      "ar": "التصفح المباشر للقراءة فقط حتى يُمنح إذن الوصول إلى كل الملفات من الإعدادات.",
+      "bn": "সেটিংসে সব-ফাইল অ্যাক্সেস মঞ্জুর না হওয়া পর্যন্ত সরাসরি ব্রাউজিং শুধু পড়ার জন্য।",
+      "de": "Direktes Durchsuchen ist schreibgeschützt, bis in den Einstellungen Zugriff auf alle Dateien gewährt wird.",
+      "es": "La exploración directa es de solo lectura hasta que se conceda el acceso a todos los archivos en Ajustes.",
+      "fr": "Le parcours direct est en lecture seule tant que l\\'accès à tous les fichiers n\\'est pas accordé dans les paramètres.",
+      "hi": "सेटिंग्स में सभी फ़ाइलों की अनुमति मिलने तक सीधा ब्राउज़िंग केवल-पढ़ने के लिए है।",
+      "ja": "「すべてのファイルへのアクセス」を許可するまで、直接ブラウズは読み取り専用です。",
+      "ko": "설정에서 모든 파일 액세스를 허용하기 전까지 직접 탐색은 읽기 전용입니다.",
+      "pt": "A navegação direta é só de leitura até ser concedido o acesso a todos os ficheiros nas definições.",
+      "ru": "Прямой просмотр доступен только для чтения, пока в настройках не выдан доступ ко всем файлам.",
+      "sr": "Директно прегледање је само за читање док се у подешавањима не одобри приступ свим датотекама.",
+      "zh": "在设置中授予“所有文件访问权限”之前，直接浏览为只读。"
+     }
+    },
+    {
      "name": "app_desktop_rootfs_downloading",
      "en": "Downloading rootfs… %1$d%%",
      "comment": "Desktop manager: distro / rootfs",

@@ -61,6 +61,7 @@ class UsbDriveVmManager @Inject constructor(
     private val sshKeyRepository: SshKeyRepository,
     private val agentUiCommandBus: sh.haven.core.data.agent.AgentUiCommandBus,
     private val sshSessionManager: sh.haven.core.ssh.SshSessionManager,
+    private val usbMountCorrelator: UsbMountCorrelator,
 ) {
     enum class Phase { IDLE, OPENING, READY, ERROR }
 
@@ -98,6 +99,9 @@ class UsbDriveVmManager @Inject constructor(
         // never-opened device is harmless.
         scope.launch {
             usbBroker.detached.collect { deviceName ->
+                // Release the #603 mount claim/baseline so a replug (new
+                // /dev/bus/usb name) or another drive can claim the volume.
+                runCatching { usbMountCorrelator.onDeviceDetached(deviceName) }
                 runCatching { close(busidOf(deviceName)) }
             }
         }
@@ -477,6 +481,25 @@ class UsbDriveVmManager @Inject constructor(
     /** Attached mass-storage device whose serial matches [serial], if any (bookmark re-open lookup). */
     fun findAttachedBySerial(serial: String): UsbDeviceInfo? =
         massStorageDevices().firstOrNull { it.serialNumber == serial }
+
+    /**
+     * The Android-side (vold) mount for [deviceName], if one can be correlated
+     * with it — the pre-boot knowledge the #603 mount-route picker needs.
+     * Enumeration only: [resolveDrive] never opens the USB device or prompts
+     * for permission (vold mounts the drive with or without our permission).
+     * Returns null when Android hasn't mounted it (ext4/GPT/LUKS, or no
+     * matchable volume) — the caller then has no cheaper route than the VM.
+     */
+    suspend fun androidMount(deviceName: String?, timeoutMs: Long = 3_000): UsbMountMatch? {
+        val target = resolveDrive(deviceName)
+        return usbMountCorrelator.awaitMatch(target, massStorageDevices().size, timeoutMs)
+    }
+
+    /** No-wait [androidMount] variant for MCP snapshots (null, not a throw, when the target is ambiguous). */
+    fun androidMountSnapshot(deviceName: String?): UsbMountMatch? {
+        val target = if (!deviceName.isNullOrBlank()) deviceName else massStorageDevices().singleOrNull()?.deviceName ?: return null
+        return usbMountCorrelator.currentMatch(target, massStorageDevices().size)
+    }
 
     /** The session (if any) currently tied to [profileId] — used by [UsbDriveConnectionPreflight]. */
     fun sessionForProfile(profileId: String): Status? = _sessions.value.values.firstOrNull { it.profileId == profileId }

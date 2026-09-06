@@ -179,6 +179,11 @@
     <string name="app_desktop_add_foreign_distro">+ %1$s %2$s — емулирано, спорије (~%3$d MB)</string>
     <string name="app_desktop_add_foreign_distro_confirm_body">Ово преузима и издваја %1$s rootfs за емулирану употребу, отприлике %2$d MB. Преко споре везе може да потраје.</string>
     <string name="app_desktop_usb_drive_picker_title">Који USB драјв треба да се отвори?</string>
+    <string name="app_desktop_usb_route_title">Како отворити %1$s?</string>
+    <string name="app_desktop_usb_route_body">Android је монтирао овај диск као „%1$s“. Прегледајте га директно (брже) или га отворите у малој Linux виртуалној машини — спорије се покреће, али чита системе датотека које Android не уме, као што су ext4/GPT партиције и LUKS.</string>
+    <string name="app_desktop_usb_route_browse">Директно прегледај</string>
+    <string name="app_desktop_usb_route_vm">Отвори у Linux ВМ</string>
+    <string name="app_desktop_usb_route_readonly_hint">Директно прегледање је само за читање док се у подешавањима не одобри приступ свим датотекама.</string>
     <string name="app_desktop_rootfs_downloading">Преузима се rootfs… %1$d%%</string>
     <string name="app_desktop_rootfs_extracting">Издваја се rootfs…</string>
     <string name="app_desktop_rootfs_initializing">Подешава се rootfs… (%1$s)</string>

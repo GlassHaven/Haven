@@ -13,7 +13,7 @@ compare link is appended automatically — don't add it here.
 
 - **USB drives now offer a mount route before the VM boots** (#603). Opening a USB drive used to commit to a minutes-long QEMU boot before anything was known about the drive. Android mounts vfat/exFAT sticks itself, so there is often nothing to boot: when Haven recognises the Android mount for the drive, a picker offers Browse directly (Files tab, no VM) or Open in Linux VM (for ext4/GPT/LUKS and anything Android can't mount). Drives Android can't claim keep the VM-only flow, with a note on why the VM exists. `open_usb_drive` gains `route=vm|android|auto` (`vm` stays the default, so existing automation is unchanged) and `list_usb_drives` reports the Android mount per drive.
 
-- **A new preference, "Follow session titles", controls whether program titles override session names on tabs** (#625). Tabs attached to tmux/zellij/screen/byobu can now keep their session name in the tab strip instead of letting a program's OSC 0/2 title paint over a Rename. Off by default; tabs without a multiplexer name (plain SSH, local shells) keep the v5.87.76 behaviour either way.
+- **A new preference, "Prefer session names in tab titles", controls whether program titles override session names on tabs** (#625). Tabs attached to tmux/zellij/screen/byobu keep their session name in the tab strip instead of letting a program's OSC 0/2 title paint over a Rename. On by default — it only ever bites on multiplexer tabs; tabs without a multiplexer name (plain SSH, local shells) keep the v5.87.76 behaviour either way.
 ## v5.87.76
 
 - The terminal title a program sets shows on its session tab (#625).

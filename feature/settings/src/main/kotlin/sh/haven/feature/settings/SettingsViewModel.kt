@@ -612,7 +612,7 @@ class SettingsViewModel @Inject constructor(
 
     val terminalTabTitlesFollowSession: StateFlow<Boolean> =
         preferencesRepository.terminalTabTitlesFollowSession
-            .stateIn(viewModelScope, SharingStarted.WhileSubscribed(5000), false)
+            .stateIn(viewModelScope, SharingStarted.WhileSubscribed(5000), true)
 
     val showTerminalTabBar: StateFlow<Boolean> = preferencesRepository.showTerminalTabBar
         .stateIn(viewModelScope, SharingStarted.WhileSubscribed(5000), true)

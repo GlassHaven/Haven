@@ -610,7 +610,7 @@ class TerminalViewModel @Inject constructor(
      */
     val tabTitlesFollowSession: StateFlow<Boolean> =
         preferencesRepository.terminalTabTitlesFollowSession
-            .stateIn(viewModelScope, SharingStarted.WhileSubscribed(5000), false)
+            .stateIn(viewModelScope, SharingStarted.WhileSubscribed(5000), true)
 
     /** Live global terminal background opacity (0.0–1.0). 1.0 = opaque. */
     val terminalBackgroundOpacity: StateFlow<Float> =

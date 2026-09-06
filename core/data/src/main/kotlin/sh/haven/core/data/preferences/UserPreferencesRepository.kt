@@ -772,11 +772,12 @@ class UserPreferencesRepository @Inject constructor(
      * When on, a tab attached to a session manager (tmux/zellij/screen/…)
      * keeps the session's own name in the tab strip instead of titles set by
      * running programs (OSC 0/2, e.g. a shell integration publishing the
-     * cwd). Tabs without a multiplexer name are unaffected. Off by default —
-     * the #625 program-title behaviour stays.
+     * cwd). Tabs without a multiplexer name are unaffected. On by default:
+     * the preference only ever bites on multiplexer tabs, where the session
+     * name is the label the user chose.
      */
     val terminalTabTitlesFollowSession: Flow<Boolean> = dataStore.data.map { prefs ->
-        prefs[terminalTabTitlesFollowSessionKey] ?: false
+        prefs[terminalTabTitlesFollowSessionKey] ?: true
     }
 
     suspend fun setTerminalTabTitlesFollowSession(enabled: Boolean) {

@@ -1999,6 +1999,60 @@ class UserPreferencesRepository @Inject constructor(
                 0xFF839496, 0xFF6C71C4, 0xFF93A1A1, 0xFFFDF6E3,
             ),
         ),
+        SOLARIZED_LIGHT(
+            "Solarized Light", 0xFFFDF6E3, 0xFF586E75,
+            longArrayOf(
+                0xFFFDF6E3, 0xFFDC322F, 0xFF859900, 0xFFB58900,
+                0xFF268BD2, 0xFFD33682, 0xFF2AA198, 0xFF073642,
+                0xFF002B36, 0xFFCB4B16, 0xFF586E75, 0xFF657B83,
+                0xFF839496, 0xFF6C71C4, 0xFF93A1A1, 0xFF073642,
+            ),
+        ),
+        CATPPUCCIN_MOCHA(
+            "Catppuccin Mocha", 0xFF1E1E2E, 0xFFCDD6F4,
+            longArrayOf(
+                0xFF45475A, 0xFFF38BA8, 0xFFA6E3A1, 0xFFF9E2AF,
+                0xFF89B4FA, 0xFFCBA6F7, 0xFF94E2D5, 0xFFBAC2DE,
+                0xFF585B70, 0xFFF5C2E7, 0xFF94E2D5, 0xFFFAB387,
+                0xFFB4BEFE, 0xFFF5C2E7, 0xFF94E2D5, 0xFFA6ADC8,
+            ),
+        ),
+        CATPPUCCIN_LATTE(
+            "Catppuccin Latte", 0xFFEFF1F5, 0xFF4C4F69,
+            longArrayOf(
+                0xFF5C5F77, 0xFFD20F39, 0xFF40A02B, 0xFFDF8E1D,
+                0xFF1E66F5, 0xFF8839EF, 0xFF179299, 0xFF6C6F85,
+                0xFF8C8FA1, 0xFFD20F39, 0xFF40A02B, 0xFFDF8E1D,
+                0xFF1E66F5, 0xFF8839EF, 0xFF179299, 0xFF4C4F69,
+            ),
+        ),
+        ONE_DARK(
+            "One Dark", 0xFF282C34, 0xFFABB2BF,
+            longArrayOf(
+                0xFF3F4451, 0xFFE06C75, 0xFF98C379, 0xFFE5C07B,
+                0xFF61AFEF, 0xFFC678DD, 0xFF56B6C2, 0xFFABB2BF,
+                0xFF4F5666, 0xFFE06C75, 0xFF98C379, 0xFFE5C07B,
+                0xFF61AFEF, 0xFFC678DD, 0xFF56B6C2, 0xFFD7DEE8,
+            ),
+        ),
+        ONE_LIGHT(
+            "One Light", 0xFFF8F8F8, 0xFF383A42,
+            longArrayOf(
+                0xFF383A42, 0xFFE45649, 0xFF50A14F, 0xFFC18401,
+                0xFF0184BC, 0xFFA626A4, 0xFF0997B3, 0xFF737983,
+                0xFF5B626F, 0xFFE45649, 0xFF50A14F, 0xFFC18401,
+                0xFF0184BC, 0xFFA626A4, 0xFF0997B3, 0xFF383A42,
+            ),
+        ),
+        MATERIAL_DARK(
+            "Material Dark", 0xFF202124, 0xFFE8EAED,
+            longArrayOf(
+                0xFF3C4043, 0xFFFF6E6E, 0xFF81C995, 0xFFE9DBCA,
+                0xFF75A5C9, 0xFFDDB4DB, 0xFF6ECCB8, 0xFFC4C7C5,
+                0xFF5F6368, 0xFFFF6E6E, 0xFF81C995, 0xFFE9DBCA,
+                0xFF75A5C9, 0xFFDDB4DB, 0xFF6ECCB8, 0xFFC4C7C5,
+            ),
+        ),
         DRACULA(
             "Dracula", 0xFF282A36, 0xFFF8F8F2,
             longArrayOf(

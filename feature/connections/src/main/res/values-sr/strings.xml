@@ -382,7 +382,7 @@
     <string name="rclone_import_no_type">нема типа</string>
     <string name="rclone_import_select_count">Увози се %1$d удаљени(х)</string>
     <string name="rclone_import_done">Увезено је %1$d, прескочено %2$d, није успело %3$d.</string>
-    <string name="rclone_import_menu">Увози се rclone конфигурација…</string>
+    <string name="rclone_import_menu">Увоз rclone конфигурације…</string>
     <string name="connections_section_vnc">VNC подешавања</string>
     <string name="connections_section_rdp">RDP подешавања</string>
     <string name="connections_section_spice">SPICE подешавања</string>
@@ -508,7 +508,7 @@
     <string name="connections_mcp_active">Агент оперише кроз ову везу — тапните да искључите MCP за њу</string>
     <string name="connections_mcp_disabled">MCP је искључен за ову везу — тапните да га укључите</string>
     <string name="connections_toggle_mcp_enabled">Дозволите да агент контролише ову везу</string>
-    <string name="connections_helper_mcp_enabled">Долазно:; када је искључено, алати AI-агента (MCP) не могу да читају или да управљају овом везом. Она за вас још увек нормално ради.</string>
+    <string name="connections_helper_mcp_enabled">Долазно: када је искључено, алати AI-агента (MCP) не могу да читају или да управљају овом везом. Она за вас још увек нормално ради.</string>
     <string name="connections_deeplink_confirm_title">Желите ли да се повеже?</string>
     <string name="connections_deeplink_confirm_message">Линк жели да се повеже на %1$s.</string>
     <string name="connections_deeplink_confirm_session">Линк жели да се повеже на %1$s и да прикачи сесију „%2$s“.</string>

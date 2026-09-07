@@ -161,10 +161,10 @@
     <string name="keys_totp_scan_qr_hint">Изаберите слику са otpauth:// QR кодом</string>
     <string name="keys_totp_paste">Додај аутентификатор из оставе (TOTP)</string>
     <string name="keys_totp_paste_hint">Налепи otpauth:// URI или base32 тајну</string>
-    <string name="keys_age_section_header">Идентитети шифровања (старост) · %1$d</string>
-    <string name="keys_generate_age">Генериши идентитет старости</string>
-    <string name="keys_generate_age_hint">X25519 пар кључева за шифровање фајлова (старост)</string>
-    <string name="keys_generate_age_title">Нови идентитет старости</string>
+    <string name="keys_age_section_header">Идентитети шифровања (age) · %1$d</string>
+    <string name="keys_generate_age">Генериши age идентитет</string>
+    <string name="keys_generate_age_hint">X25519 пар кључева за шифровање фајлова (age)</string>
+    <string name="keys_generate_age_title">Нов age идентитет</string>
     <string name="keys_age_label_hint">Ознака</string>
     <string name="keys_age_recipient_copied">Копиран је прималац</string>
     <string name="keys_totp_code_copied">Копиран је кôд</string>

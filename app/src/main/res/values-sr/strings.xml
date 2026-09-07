@@ -11,7 +11,7 @@
     <string name="common_rename">Преименуј</string>
     <string name="common_create">Креирај</string>
     <string name="common_connect">Повежи</string>
-    <string name="common_disconnect">Раскини</string>
+    <string name="common_disconnect">Прекини везу</string>
     <string name="common_copy">Копирај</string>
     <string name="common_paste">Налепи</string>
     <string name="common_label">Ознака</string>
@@ -69,7 +69,7 @@
     <string name="app_biometric_no_hardware_body">Овај уређај не може да провери идентитет (нема биометријски хардвер и нема овлашћење уређаја). Поставите PIN или лозинку за откључавање у Подешавањима.</string>
     <string name="app_desktop_manager_title">Локални Линукс</string>
     <string name="app_desktop_compositor_title">Композитор</string>
-    <string name="app_desktop_manager_description">Покрећите комплетан Линукс десктоп унутар апликације Haven. Изаберите дистрибуцију, инсталирајте десктоп окружење (Xfce4, Openbox, or Sway), па Покрени — није потребан посебан сервер или повезивање.</string>
+    <string name="app_desktop_manager_description">Покрећите комплетан Линукс десктоп унутар апликације Haven. Изаберите дистрибуцију, инсталирајте десктоп окружење (Xfce4, Openbox, или Sway), па Покрени — није потребан посебан сервер или повезивање.</string>
     <string name="app_desktop_mirror_title">Извор пакета</string>
     <string name="app_desktop_mirror_description">Место са којег се преузимају пакети. За бржа, поузданија инсталирања, изаберите регион у вашој близини. Подразумевани користи сопствени CDN сваке дистрибуције.</string>
     <string name="app_desktop_mirror_default">Подразумевани (CDN)</string>
@@ -155,7 +155,7 @@
     <string name="app_desktop_res_custom">Произвољно</string>
     <string name="app_desktop_res_custom_hint">Ширина×висина, нпр. 1024x600</string>
     <string name="app_desktop_app_window_defaults">Подразумевани приказ (сви прозори апликација)</string>
-    <string name="app_system_vm_title">Системска VM</string>
+    <string name="app_system_vm_title">Системска ВМ</string>
     <string name="app_system_vm_description">Подиже комплетну x86_64/arm64 Линукс ВМ (QEMU у активној дистрибуцији) и приказује је преко VNC. Истовремено једна и емулирано — тако да је споро. Потребан је VNC-способан QEMU (Дебијани га имају; Алпине не).</string>
     <string name="app_system_vm_empty">Још увек нема слика. Да бисте почели, увезите слику диска која може да се подигне (.qcow2, .img, .iso).</string>
     <string name="app_system_vm_import">Увези слику…</string>
@@ -164,7 +164,7 @@
     <string name="app_system_vm_stop">Заустави</string>
     <string name="app_system_vm_start_cd">Покрени %1$s</string>
     <string name="app_system_vm_delete_cd">Обриши %1$s</string>
-    <string name="app_system_vm_import_title">Увоз слике системске VM</string>
+    <string name="app_system_vm_import_title">Увоз слике системске ВМ</string>
     <string name="app_system_vm_import_label">Име</string>
     <string name="app_system_vm_import_source">URL слике или путања на уређају</string>
     <string name="app_system_vm_import_arch">Архитектура госта</string>
@@ -217,7 +217,7 @@
     <string name="app_desktop_addon_with_size">%1$s (%2$s)</string>
     <string name="app_desktop_sessions_cd">Сесије</string>
     <string name="app_desktop_manage_cd">Управљај десктопима</string>
-    <string name="app_desktop_empty_hint">Повежите се преко VNC или RDP из картице Везе</string>
+    <string name="app_desktop_empty_hint">Повежите се преко VNC или RDP из картице Повезивање</string>
     <string name="app_desktop_tab_label">%1$s %2$s</string>
     <string name="app_desktop_move_tab_left_cd">Помери улево</string>
     <string name="app_desktop_move_tab_right_cd">Помери удесно</string>

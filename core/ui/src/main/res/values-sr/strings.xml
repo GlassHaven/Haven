@@ -1,11 +1,11 @@
 <?xml version="1.0" encoding="utf-8"?>
 <resources>
-    <string name="nav_connections">Повежи</string>
+    <string name="nav_connections">Повезивање</string>
     <string name="nav_terminal">Терминал</string>
-    <string name="nav_desktop">Десктоп</string>
-    <string name="nav_keys">Тастери</string>
+    <string name="nav_desktop">Десктопи</string>
+    <string name="nav_keys">Кључеви</string>
     <string name="nav_sftp">Фајлови</string>
-    <string name="nav_mail">Мејл</string>
+    <string name="nav_mail">Пошта</string>
     <string name="nav_settings">Подешавања</string>
     <string name="common_cancel">Откажи</string>
     <string name="common_save">Сачувај</string>

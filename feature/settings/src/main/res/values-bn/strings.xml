@@ -69,8 +69,8 @@
 
     <!-- Appearance section -->
     <string name="settings_theme_title">থিম</string>
-    <string name="settings_screen_order_title">স্ক্রিন ক্রম</string>
-    <string name="settings_screen_order_subtitle">নিচের নেভিগেশন ট্যাব পুনর্বিন্যাস করুন</string>
+    <string name="settings_navigation_tabs_title">নেভিগেশন ট্যাব</string>
+    <string name="settings_navigation_tabs_subtitle">ট্যাবগুলো পুনর্বিন্যাস করুন এবং দেখানোর জন্য কোনগুলো বাছাই করুন</string>
 
     <!-- Wayland section -->
     <string name="settings_wayland_shell_title">Wayland ডেস্কটপ শেল</string>
@@ -151,10 +151,6 @@
     <string name="settings_about_version">সংস্করণ %1$s (বিল্ড %2$d)</string>
     <string name="settings_about_android">Android %1$s (API %2$d)</string>
     <string name="settings_about_libraries_title">ওপেন সোর্স লাইব্রেরি</string>
-
-    <!-- Screen order dialog -->
-    <string name="settings_screen_order_dialog_title">স্ক্রিন ক্রম</string>
-    <string name="settings_screen_order_drag_description">পুনর্বিন্যাসের জন্য টেনে আনুন</string>
 
     <!-- Theme dialog -->
     <string name="settings_theme_dialog_title">থিম</string>
@@ -300,8 +296,14 @@
     <string name="settings_ime_flags_subtitle">টার্মিনাল কোন EditorInfo বিট সেট করে তা বেছে নিন</string>
     <string name="settings_ctrl_shift_v_title">Ctrl+Shift+V পেস্ট করে</string>
     <string name="settings_ctrl_shift_v_subtitle">হার্ডওয়্যার কীবোর্ড Ctrl+Shift+V Android ক্লিপবোর্ড থেকে পেস্ট করে। বন্ধ থাকলে কী রিমোট শেলে পাঠায়।</string>
-    <string name="settings_always_show_all_tabs_title">সব ট্যাব সব সময় দেখান</string>
-    <string name="settings_always_show_all_tabs_subtitle">বিভাগ খালি হলেও প্রতিটি নিচের নেভিগেশন ট্যাব দেখান</string>
+
+    <!-- Navigation Tabs dialog -->
+
+    <string name="settings_nav_tab_visibility_auto_title">স্বয়ংক্রিয়</string>
+    <string name="settings_nav_tab_visibility_show_title">দেখান</string>
+    <string name="settings_nav_tab_visibility_hide_title">লুকান</string>
+    <string name="settings_nav_tab_visibility_always_hint">সর্বদা দৃশ্যমান</string>
+
     <string name="settings_usb_guest_title">USB ডিভাইস Linux গেস্টে প্রকাশ করুন</string>
     <string name="settings_usb_guest_subtitle">সংযুক্ত USB ডিভাইসগুলি haven-usb shim-এর মাধ্যমে গেস্ট অ্যাপে পৌঁছাতে দিন। প্রতিটি সংযুক্তিতে সম্মতি চাওয়া হয়।</string>
     <string name="settings_proot_install_log_title">PRoot ইনস্টল লগ দেখুন</string>

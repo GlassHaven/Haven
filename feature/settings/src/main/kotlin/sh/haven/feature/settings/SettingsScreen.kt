@@ -49,9 +49,9 @@ import androidx.compose.material.icons.filled.Language
 import androidx.compose.material.icons.filled.Fingerprint
 import androidx.compose.material.icons.filled.VpnLock
 import androidx.compose.material.icons.filled.Devices
-import androidx.compose.material.icons.filled.DragHandle
 import androidx.compose.material.icons.filled.History
 import androidx.compose.material.icons.filled.VisibilityOff
+import androidx.compose.material.icons.filled.Visibility
 import androidx.compose.material.icons.filled.Hub
 import androidx.compose.material.icons.filled.Warning
 import androidx.compose.material.icons.filled.Wifi
@@ -60,7 +60,6 @@ import androidx.compose.material.icons.filled.SwapVert
 import androidx.compose.material.icons.filled.Reorder
 import androidx.compose.material.icons.filled.Usb
 import androidx.compose.material.icons.filled.VolumeUp
-import androidx.compose.material.icons.filled.ViewModule
 import androidx.compose.material.icons.filled.ListAlt
 import androidx.compose.material.icons.filled.Label
 import androidx.compose.material.icons.filled.LightMode
@@ -154,6 +153,7 @@ import sh.haven.core.data.preferences.DesktopKeyPlacement
 import sh.haven.core.data.preferences.EditModeControlsPlacement
 import sh.haven.core.data.preferences.MACRO_PRESETS
 import sh.haven.core.data.preferences.NavBlockMode
+import sh.haven.core.data.preferences.TabVisibility
 import sh.haven.core.data.preferences.ToolbarEditorOps
 import sh.haven.core.data.preferences.ToolbarItem
 import sh.haven.core.data.preferences.ToolbarKey
@@ -285,6 +285,7 @@ fun SettingsScreen(
     }
     var showScreenOrderDialog by remember { mutableStateOf(false) }
     val screenOrder by viewModel.screenOrder.collectAsState()
+    val tabVisibility by viewModel.tabVisibility.collectAsState()
 
     val context = LocalContext.current
 
@@ -504,8 +505,8 @@ fun SettingsScreen(
         )
         SettingsItem(
             icon = Icons.Filled.Reorder,
-            title = stringResource(R.string.settings_screen_order_title),
-            subtitle = stringResource(R.string.settings_screen_order_subtitle),
+            title = stringResource(R.string.settings_navigation_tabs_title),
+            subtitle = stringResource(R.string.settings_navigation_tabs_subtitle),
             onClick = { showScreenOrderDialog = true },
         )
         SettingsToggleItem(
@@ -839,19 +840,6 @@ fun SettingsScreen(
             checked = showLinuxVmCard,
             onCheckedChange = viewModel::setShowLinuxVmCard,
         )
-        // Issue #160 — by default the bottom-nav hides tabs whose
-        // backing resource (terminal profiles, SSH keys, desktops) is
-        // empty. Power users with single-purpose installs can pin all
-        // tabs by turning this on.
-        val alwaysShowAllTabs by viewModel.alwaysShowAllTabs.collectAsState()
-        SettingsToggleItem(
-            icon = Icons.Filled.ViewModule,
-            title = stringResource(R.string.settings_always_show_all_tabs_title),
-            subtitle = stringResource(R.string.settings_always_show_all_tabs_subtitle),
-            checked = alwaysShowAllTabs,
-            onCheckedChange = viewModel::setAlwaysShowAllTabs,
-        )
-
         // USB-to-guest is a privileged capability: once on, any app in the
         // Linux guest can reach a USB device the agent attaches. Off by
         // default; each attach still asks for consent on top of this.
@@ -1615,11 +1603,12 @@ fun SettingsScreen(
     }
 
     if (showScreenOrderDialog) {
-        ScreenOrderDialog(
+        NavigationTabsDialog(
             currentOrder = screenOrder,
+            tabVisibility = tabVisibility,
             onDismiss = { showScreenOrderDialog = false },
-            onSave = { newOrder ->
-                viewModel.setScreenOrder(newOrder.map { it.route })
+            onSave = { newOrder, vis ->
+                viewModel.setNavigationTabs(newOrder.map { it.route }, vis)
                 showScreenOrderDialog = false
             },
         )
@@ -2484,10 +2473,11 @@ private fun AboutDialog(
 }
 
 @Composable
-private fun ScreenOrderDialog(
+private fun NavigationTabsDialog(
     currentOrder: List<String>,
+    tabVisibility: Map<String, TabVisibility>,
     onDismiss: () -> Unit,
-    onSave: (List<Screen>) -> Unit,
+    onSave: (List<Screen>, Map<String, TabVisibility>) -> Unit,
 ) {
     val allScreens = Screen.entries.toList()
     val initial = if (currentOrder.isNotEmpty()) {
@@ -2500,6 +2490,11 @@ private fun ScreenOrderDialog(
         allScreens
     }
     val order = remember { mutableStateListOf(*initial.toTypedArray()) }
+    // Draft of the per-tab visibility; committed atomically with the order on
+    // Save. Writing to DataStore per-tap instead would change the nav page
+    // count while the dialog is open, which disposes the Settings page (a
+    // pager child) and closes this dialog.
+    val visibility = remember { mutableStateMapOf(*tabVisibility.map { it.toPair() }.toTypedArray()) }
     var draggedIndex by remember { mutableIntStateOf(-1) }
     var dragOffset by remember { mutableFloatStateOf(0f) }
     val itemTops = remember { mutableStateMapOf<Int, Float>() }
@@ -2508,9 +2503,13 @@ private fun ScreenOrderDialog(
 
     AlertDialog(
         onDismissRequest = onDismiss,
-        title = { Text(stringResource(R.string.settings_screen_order_dialog_title)) },
+        title = { Text(stringResource(R.string.settings_navigation_tabs_title)) },
         text = {
-            Column {
+            Column(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .verticalScroll(rememberScrollState()),
+            ) {
                 order.forEachIndexed { index, screen ->
                     val isDragged = index == draggedIndex
                     ListItem(
@@ -2523,11 +2522,26 @@ private fun ScreenOrderDialog(
                             )
                         },
                         trailingContent = {
-                            Icon(
-                                Icons.Filled.DragHandle,
-                                contentDescription = stringResource(R.string.settings_screen_order_drag_description),
-                                tint = MaterialTheme.colorScheme.onSurfaceVariant,
-                            )
+                            if (screen.isAlwaysVisible) {
+                                Icon(
+                                    Icons.Filled.LockReset,
+                                    contentDescription = stringResource(
+                                        R.string.settings_nav_tab_visibility_always_hint
+                                    ),
+                                    tint = MaterialTheme.colorScheme.onSurfaceVariant,
+                                )
+                            } else {
+                                VisibilityIconPicker(
+                                    selected = visibility[screen.route] ?: TabVisibility.AUTO,
+                                    onSelect = { option ->
+                                        if (option == TabVisibility.AUTO) {
+                                            visibility.remove(screen.route)
+                                        } else {
+                                            visibility[screen.route] = option
+                                        }
+                                    },
+                                )
+                            }
                         },
                         modifier = Modifier
                             .onGloballyPositioned { coords ->
@@ -2606,7 +2620,7 @@ private fun ScreenOrderDialog(
             }
         },
         confirmButton = {
-            TextButton(onClick = { onSave(order.toList()) }) {
+            TextButton(onClick = { onSave(order.toList(), visibility.toMap()) }) {
                 Text(stringResource(R.string.common_save))
             }
         },
@@ -2616,6 +2630,53 @@ private fun ScreenOrderDialog(
             }
         },
     )
+}
+
+/**
+ * The trailing Auto / Show / Hide picker for a configurable tab. Three icon
+ * buttons (no words — the trailing slot is narrow on small screens). Updates
+ * only the dialog's draft; nothing is committed until Save.
+ */
+@Composable
+private fun VisibilityIconPicker(
+    selected: TabVisibility,
+    onSelect: (TabVisibility) -> Unit,
+) {
+    val options = listOf(
+        TabVisibility.AUTO to Icons.Filled.Sync,
+        TabVisibility.SHOW to Icons.Filled.Visibility,
+        TabVisibility.HIDE to Icons.Filled.VisibilityOff,
+    )
+    Row(
+        verticalAlignment = Alignment.CenterVertically,
+        horizontalArrangement = Arrangement.spacedBy(2.dp),
+    ) {
+        options.forEach { (option, icon) ->
+            val isSelected = option == selected
+            IconButton(
+                onClick = { onSelect(option) },
+                modifier = Modifier.size(32.dp),
+            ) {
+                Icon(
+                    icon,
+                    contentDescription = stringResource(labelResFor(option)),
+                    tint = if (isSelected) {
+                        MaterialTheme.colorScheme.primary
+                    } else {
+                        MaterialTheme.colorScheme.onSurfaceVariant
+                    },
+                    modifier = Modifier.size(18.dp),
+                )
+            }
+        }
+    }
+}
+
+/** Maps a [TabVisibility] to its user-facing label string resource. */
+private fun labelResFor(v: TabVisibility): Int = when (v) {
+    TabVisibility.AUTO -> R.string.settings_nav_tab_visibility_auto_title
+    TabVisibility.SHOW -> R.string.settings_nav_tab_visibility_show_title
+    TabVisibility.HIDE -> R.string.settings_nav_tab_visibility_hide_title
 }
 
 @Composable
@@ -3077,6 +3138,8 @@ private fun SettingsToggleItem(
             .padding(horizontal = 8.dp),
     )
 }
+
+@OptIn(ExperimentalMaterial3Api::class)
 
 @Composable
 private fun SettingsItem(

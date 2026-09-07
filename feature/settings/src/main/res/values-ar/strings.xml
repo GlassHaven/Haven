@@ -69,8 +69,8 @@
 
     <!-- Appearance section -->
     <string name="settings_theme_title">المظهر</string>
-    <string name="settings_screen_order_title">ترتيب الشاشات</string>
-    <string name="settings_screen_order_subtitle">إعادة ترتيب تبويبات التنقل السفلية</string>
+    <string name="settings_navigation_tabs_title">عناصر التنقل</string>
+    <string name="settings_navigation_tabs_subtitle">أعدّ ترتيب عناصر التنقّل واختر ما يُعرض منها</string>
 
     <!-- Wayland section -->
     <string name="settings_wayland_shell_title">Shell سطح مكتب Wayland</string>
@@ -151,10 +151,6 @@
     <string name="settings_about_version">الإصدار %1$s (بناء %2$d)</string>
     <string name="settings_about_android">Android %1$s (API %2$d)</string>
     <string name="settings_about_libraries_title">مكتبات مفتوحة المصدر</string>
-
-    <!-- Screen order dialog -->
-    <string name="settings_screen_order_dialog_title">ترتيب الشاشات</string>
-    <string name="settings_screen_order_drag_description">اسحب لإعادة الترتيب</string>
 
     <!-- Theme dialog -->
     <string name="settings_theme_dialog_title">المظهر</string>
@@ -300,8 +296,14 @@
     <string name="settings_ime_flags_subtitle">اختر بتات EditorInfo التي تضبطها الطرفية</string>
     <string name="settings_ctrl_shift_v_title">Ctrl+Shift+V للصق</string>
     <string name="settings_ctrl_shift_v_subtitle">Ctrl+Shift+V على لوحة المفاتيح الفيزيائية يلصق من حافظة Android. إيقافه يرسل المفاتيح إلى الصدفة البعيدة.</string>
-    <string name="settings_always_show_all_tabs_title">إظهار جميع التبويبات دائمًا</string>
-    <string name="settings_always_show_all_tabs_subtitle">إظهار كل تبويبات التنقل السفلية حتى لو كانت فئتها فارغة</string>
+
+    <!-- Navigation Tabs dialog -->
+
+    <string name="settings_nav_tab_visibility_auto_title">تلقائي</string>
+    <string name="settings_nav_tab_visibility_show_title">إظهار</string>
+    <string name="settings_nav_tab_visibility_hide_title">إخفاء</string>
+    <string name="settings_nav_tab_visibility_always_hint">ظاهر دائماً</string>
+
     <string name="settings_usb_guest_title">إتاحة أجهزة USB لضيف Linux</string>
     <string name="settings_usb_guest_subtitle">السماح لأجهزة USB المتصلة بالوصول إلى تطبيقات الضيف عبر الوصلة haven-usb. كل إرفاق يطلب الموافقة.</string>
     <string name="settings_proot_install_log_title">عرض سجل تثبيت PRoot</string>

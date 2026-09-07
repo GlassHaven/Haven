@@ -69,8 +69,8 @@
 
     <!-- Appearance section -->
     <string name="settings_theme_title">Тема</string>
-    <string name="settings_screen_order_title">Порядок экранов</string>
-    <string name="settings_screen_order_subtitle">Изменить порядок вкладок навигации</string>
+    <string name="settings_navigation_tabs_title">Вкладки навигации</string>
+    <string name="settings_navigation_tabs_subtitle">Измените порядок вкладок и выберите, какие из них показывать</string>
 
     <!-- Wayland section -->
     <string name="settings_wayland_shell_title">Оболочка рабочего стола Wayland</string>
@@ -151,10 +151,6 @@
     <string name="settings_about_version">Версия %1$s (сборка %2$d)</string>
     <string name="settings_about_android">Android %1$s (API %2$d)</string>
     <string name="settings_about_libraries_title">Библиотеки с открытым кодом</string>
-
-    <!-- Screen order dialog -->
-    <string name="settings_screen_order_dialog_title">Порядок экранов</string>
-    <string name="settings_screen_order_drag_description">Перетащите для изменения порядка</string>
 
     <!-- Theme dialog -->
     <string name="settings_theme_dialog_title">Тема</string>
@@ -300,8 +296,14 @@
     <string name="settings_ime_flags_subtitle">Выберите, какие биты EditorInfo устанавливает терминал</string>
     <string name="settings_ctrl_shift_v_title">Ctrl+Shift+V вставляет</string>
     <string name="settings_ctrl_shift_v_subtitle">Ctrl+Shift+V на физической клавиатуре вставляет из буфера обмена Android. В выключенном состоянии клавиши передаются в удалённую оболочку.</string>
-    <string name="settings_always_show_all_tabs_title">Всегда показывать все вкладки</string>
-    <string name="settings_always_show_all_tabs_subtitle">Показывать все вкладки нижней навигации, даже если категория пуста</string>
+
+    <!-- Navigation Tabs dialog -->
+
+    <string name="settings_nav_tab_visibility_auto_title">Авто</string>
+    <string name="settings_nav_tab_visibility_show_title">Показывать</string>
+    <string name="settings_nav_tab_visibility_hide_title">Скрывать</string>
+    <string name="settings_nav_tab_visibility_always_hint">Всегда виден</string>
+
     <string name="settings_usb_guest_title">Открыть USB-устройства для Linux-гостя</string>
     <string name="settings_usb_guest_subtitle">Разрешить подключённым USB-устройствам работать с гостевыми приложениями через шим haven-usb. Каждое подключение запрашивает согласие.</string>
     <string name="settings_proot_install_log_title">Просмотр журнала установки PRoot</string>

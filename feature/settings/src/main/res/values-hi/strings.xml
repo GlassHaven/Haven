@@ -69,8 +69,8 @@
 
     <!-- Appearance section -->
     <string name="settings_theme_title">थीम</string>
-    <string name="settings_screen_order_title">स्क्रीन क्रम</string>
-    <string name="settings_screen_order_subtitle">नीचे के नेविगेशन टैब पुनर्व्यवस्थित करें</string>
+    <string name="settings_navigation_tabs_title">नेविगेशन टैब</string>
+    <string name="settings_navigation_tabs_subtitle">टैब को फिर से क्रमबद्ध करें और चुनें कि कौन से दिखें</string>
 
     <!-- Wayland section -->
     <string name="settings_wayland_shell_title">Wayland डेस्कटॉप Shell</string>
@@ -151,10 +151,6 @@
     <string name="settings_about_version">संस्करण %1$s (बिल्ड %2$d)</string>
     <string name="settings_about_android">Android %1$s (API %2$d)</string>
     <string name="settings_about_libraries_title">ओपन सोर्स लाइब्रेरीज़</string>
-
-    <!-- Screen order dialog -->
-    <string name="settings_screen_order_dialog_title">स्क्रीन क्रम</string>
-    <string name="settings_screen_order_drag_description">पुनर्व्यवस्थित करने के लिए खींचें</string>
 
     <!-- Theme dialog -->
     <string name="settings_theme_dialog_title">थीम</string>
@@ -300,8 +296,14 @@
     <string name="settings_ime_flags_subtitle">Terminal कौन से EditorInfo bits सेट करे यह चुनें</string>
     <string name="settings_ctrl_shift_v_title">Ctrl+Shift+V से paste</string>
     <string name="settings_ctrl_shift_v_subtitle">Hardware keyboard Ctrl+Shift+V से Android clipboard paste होता है। बंद रहने पर keys रिमोट shell को भेजी जाती हैं।</string>
-    <string name="settings_always_show_all_tabs_title">सभी tabs हमेशा दिखाएँ</string>
-    <string name="settings_always_show_all_tabs_subtitle">खाली होने पर भी हर bottom-nav tab दिखाएँ</string>
+
+    <!-- Navigation Tabs dialog -->
+
+    <string name="settings_nav_tab_visibility_auto_title">ऑटो</string>
+    <string name="settings_nav_tab_visibility_show_title">दिखाएँ</string>
+    <string name="settings_nav_tab_visibility_hide_title">छिपाएँ</string>
+    <string name="settings_nav_tab_visibility_always_hint">हमेशा दिखाई देता है</string>
+
     <string name="settings_usb_guest_title">Linux guest को USB devices expose करें</string>
     <string name="settings_usb_guest_subtitle">haven-usb shim के माध्यम से guest apps को संलग्न USB devices तक पहुँचने दें। प्रत्येक attach पर consent माँगी जाती है।</string>
     <string name="settings_proot_install_log_title">PRoot install log देखें</string>

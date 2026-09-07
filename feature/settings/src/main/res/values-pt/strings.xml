@@ -69,8 +69,8 @@
 
     <!-- Appearance section -->
     <string name="settings_theme_title">Tema</string>
-    <string name="settings_screen_order_title">Ordem das telas</string>
-    <string name="settings_screen_order_subtitle">Reordenar abas de navegação inferior</string>
+    <string name="settings_navigation_tabs_title">Abas de navegação</string>
+    <string name="settings_navigation_tabs_subtitle">Reordene as abas e escolha quais exibir</string>
 
     <!-- Wayland section -->
     <string name="settings_wayland_shell_title">Shell desktop Wayland</string>
@@ -151,10 +151,6 @@
     <string name="settings_about_version">Versão %1$s (build %2$d)</string>
     <string name="settings_about_android">Android %1$s (API %2$d)</string>
     <string name="settings_about_libraries_title">Bibliotecas de código aberto</string>
-
-    <!-- Screen order dialog -->
-    <string name="settings_screen_order_dialog_title">Ordem das telas</string>
-    <string name="settings_screen_order_drag_description">Arraste para reordenar</string>
 
     <!-- Theme dialog -->
     <string name="settings_theme_dialog_title">Tema</string>
@@ -300,8 +296,14 @@
     <string name="settings_ime_flags_subtitle">Escolha quais bits EditorInfo o terminal define</string>
     <string name="settings_ctrl_shift_v_title">Ctrl+Shift+V cola</string>
     <string name="settings_ctrl_shift_v_subtitle">Ctrl+Shift+V no teclado físico cola da área de transferência do Android. Desativado encaminha as teclas para o shell remoto.</string>
-    <string name="settings_always_show_all_tabs_title">Mostrar sempre todas as abas</string>
-    <string name="settings_always_show_all_tabs_subtitle">Exibir todas as abas de navegação inferior mesmo quando a categoria estiver vazia</string>
+
+    <!-- Navigation Tabs dialog -->
+
+    <string name="settings_nav_tab_visibility_auto_title">Auto</string>
+    <string name="settings_nav_tab_visibility_show_title">Mostrar</string>
+    <string name="settings_nav_tab_visibility_hide_title">Ocultar</string>
+    <string name="settings_nav_tab_visibility_always_hint">Sempre visível</string>
+
     <string name="settings_usb_guest_title">Expor dispositivos USB ao convidado Linux</string>
     <string name="settings_usb_guest_subtitle">Permite que dispositivos USB conectados sejam acessados por apps convidados via shim haven-usb. Cada conexão ainda solicita consentimento.</string>
     <string name="settings_proot_install_log_title">Ver registro de instalação do PRoot</string>

@@ -69,8 +69,8 @@
 
     <!-- Appearance section -->
     <string name="settings_theme_title">Tema</string>
-    <string name="settings_screen_order_title">Orden de pantallas</string>
-    <string name="settings_screen_order_subtitle">Reordenar pestañas de navegación inferior</string>
+    <string name="settings_navigation_tabs_title">Pestañas de navegación</string>
+    <string name="settings_navigation_tabs_subtitle">Reordena las pestañas y elige cuáles se muestran</string>
 
     <!-- Wayland section -->
     <string name="settings_wayland_shell_title">Shell de escritorio Wayland</string>
@@ -151,10 +151,6 @@
     <string name="settings_about_version">Versión %1$s (compilación %2$d)</string>
     <string name="settings_about_android">Android %1$s (API %2$d)</string>
     <string name="settings_about_libraries_title">Bibliotecas de código abierto</string>
-
-    <!-- Screen order dialog -->
-    <string name="settings_screen_order_dialog_title">Orden de pantallas</string>
-    <string name="settings_screen_order_drag_description">Arrastra para reordenar</string>
 
     <!-- Theme dialog -->
     <string name="settings_theme_dialog_title">Tema</string>
@@ -300,8 +296,14 @@
     <string name="settings_ime_flags_subtitle">Elige qué bits de EditorInfo establece el terminal</string>
     <string name="settings_ctrl_shift_v_title">Ctrl+Shift+V pega</string>
     <string name="settings_ctrl_shift_v_subtitle">El teclado físico Ctrl+Shift+V pega desde el portapapeles de Android. Desactivado reenvía las teclas al shell remoto.</string>
-    <string name="settings_always_show_all_tabs_title">Mostrar siempre todas las pestañas</string>
-    <string name="settings_always_show_all_tabs_subtitle">Mostrar cada pestaña de navegación inferior aunque su categoría esté vacía</string>
+
+    <!-- Navigation Tabs dialog -->
+
+    <string name="settings_nav_tab_visibility_auto_title">Auto</string>
+    <string name="settings_nav_tab_visibility_show_title">Mostrar</string>
+    <string name="settings_nav_tab_visibility_hide_title">Ocultar</string>
+    <string name="settings_nav_tab_visibility_always_hint">Siempre visible</string>
+
     <string name="settings_usb_guest_title">Exponer dispositivos USB al invitado Linux</string>
     <string name="settings_usb_guest_subtitle">Permite que los dispositivos USB conectados lleguen a las apps del invitado mediante el shim haven-usb. Cada conexión sigue solicitando consentimiento.</string>
     <string name="settings_proot_install_log_title">Ver registro de instalación de PRoot</string>

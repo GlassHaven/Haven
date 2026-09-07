@@ -73,6 +73,7 @@ import androidx.compose.ui.zIndex
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.flow.onSubscription
 import kotlinx.coroutines.launch
+import sh.haven.core.data.preferences.TabVisibility
 import sh.haven.core.data.preferences.UserPreferencesRepository
 import sh.haven.core.data.repository.ConnectionRepository
 import androidx.activity.compose.LocalActivity
@@ -133,17 +134,16 @@ fun HavenNavHost(
         }
     }
 
-    // Auto-hide tabs for protocols with no configured connections.
-    // Predicates layer on the always-shown Connections + Settings tabs:
-    // each per-screen flag short-circuits to true when alwaysShowAllTabs
-    // is on, which is the safety net for power users with single-purpose
-    // installs that empty repositories.
+    // Tab visibility (#navbar-visibility): each nav tab has a per-tab
+    // preference (AUTO / SHOW / HIDE). AUTO defers to the built-in usage rule
+    // computed below; SHOW/HIDE override it. The connections list backs the
+    // "has terminal profiles" usage predicate.
     val connections by connectionRepository.observeAll()
         .collectAsState(initial = emptyList())
     val sshKeys by sshKeyRepository.observeAll()
         .collectAsState(initial = emptyList())
-    val alwaysShowAllTabs by preferencesRepository.alwaysShowAllTabs
-        .collectAsState(initial = false)
+    val tabVisibility by preferencesRepository.tabVisibility
+        .collectAsState(initial = emptyMap())
 
     // App-wide background opacity (reuses the terminal background-opacity
     // setting). Below 1.0 the device wallpaper shows through every screen's
@@ -168,49 +168,14 @@ fun HavenNavHost(
         screenOrderPref,
         hasTerminalProfiles,
         hasOpenEmailSession,
-        alwaysShowAllTabs,
+        tabVisibility,
     ) {
-        val ordered = if (screenOrderPref.isNotEmpty()) {
-            val byRoute = screenOrderPref.mapNotNull { route ->
-                Screen.entries.find { it.route == route }
-            }
-            val missing = Screen.entries.filter { it !in byRoute }
-            byRoute + missing
-        } else {
-            Screen.entries.toList()
-        }
-        ordered.filter { screen ->
-            if (alwaysShowAllTabs) return@filter true
-            when (screen) {
-                // Always shown — Connections is the master list, Settings
-                // hosts the Always-show-all-tabs toggle (discoverability).
-                Screen.Connections, Screen.Settings -> true
-                // Always shown: the Desktop tab is the sole entry point to
-                // the local-desktop install hub (DesktopManagerScreen), which
-                // is useful with no connection at all — same rationale as Sftp
-                // below. Hiding it until a desktop connection existed made the
-                // local-desktop feature undiscoverable on a fresh install: the
-                // installer was reachable only via "Always show all tabs" or
-                // after blindly creating a Local Shell first (#215).
-                Screen.Desktop -> true
-                // SFTP file browser is useful even with no remote storage
-                // (local file paths work), so it stays visible.
-                Screen.Sftp -> true
-                // Mail shows only while an email connection is open (a live
-                // CONNECTED session) and hides again on disconnect.
-                Screen.Mail -> hasOpenEmailSession
-                // Terminal hides until there's any SSH/Mosh/ET/Reticulum
-                // profile (ConnectionProfile.isTerminal covers them all).
-                Screen.Terminal -> hasTerminalProfiles
-                // Keys/identity management is always shown — like Desktop and
-                // Sftp above, it's useful before any connection exists (adding
-                // keys or identities first is a normal first step). Hiding it
-                // until a key/CA/SSH host existed left it only in Settings on a
-                // fresh install, which was undiscoverable for a keys-first user
-                // (#360).
-                Screen.Keys -> true
-            }
-        }
+        visibleScreens(
+            screenOrder = screenOrderPref,
+            tabVisibility = tabVisibility,
+            hasTerminalProfiles = hasTerminalProfiles,
+            hasOpenEmailSession = hasOpenEmailSession,
+        )
     }
     // Separate mutable list for nav bar visual order during drag (pager untouched)
     val navScreens = remember { mutableStateListOf<Screen>() }
@@ -1116,6 +1081,62 @@ fun HavenNavHost(
         sh.haven.feature.settings.AgentActivityScreen(
             onBack = { showAgentActivityOverlay = false },
         )
+    }
+}
+
+/**
+ * Pure, testable bottom-nav tab computation (#navbar-visibility). Returns the
+ * screens in the user's order (falling back to the default order), filtered by
+ * each tab's [TabVisibility] preference: SHOW forces visible, HIDE forces
+ * hidden, AUTO (or an unset tab) defers to the built-in usage rule. Always-
+ * visible tabs ([Screen.isAlwaysVisible] — Connections and Settings) ignore a
+ * HIDE request, so the visibility control can never hide itself even if a raw
+ * DataStore edit sets it.
+ */
+internal fun visibleScreens(
+    screenOrder: List<String>,
+    tabVisibility: Map<String, TabVisibility>,
+    hasTerminalProfiles: Boolean,
+    hasOpenEmailSession: Boolean,
+): List<Screen> {
+    val ordered = if (screenOrder.isNotEmpty()) {
+        val byRoute = screenOrder.mapNotNull { route ->
+            Screen.entries.find { it.route == route }
+        }
+        byRoute + Screen.entries.filter { it !in byRoute }
+    } else {
+        Screen.entries.toList()
+    }
+    return ordered.filter { screen ->
+        when (tabVisibility[screen.route]) {
+            TabVisibility.SHOW -> true
+            // Honor a hide request, but never for an always-visible tab — the
+            // guard that keeps the visibility control reachable. (SHOW is a
+            // no-op for an already-always-visible tab, so only HIDE is guarded.)
+            TabVisibility.HIDE -> screen.isAlwaysVisible
+            TabVisibility.AUTO, null ->
+                when (screen) {
+                    // Always shown — Connections is the master list, Settings
+                    // hosts the tab-visibility controls (discoverability).
+                    Screen.Connections, Screen.Settings -> true
+                    // Always shown: the Desktop tab is the sole entry point to
+                    // the local-desktop install hub (useful with no connection,
+                    // #215).
+                    Screen.Desktop -> true
+                    // SFTP file browser is useful even with no remote storage
+                    // (local file paths work).
+                    Screen.Sftp -> true
+                    // Mail shows only while an email connection is open (a live
+                    // CONNECTED session) and hides again on disconnect.
+                    Screen.Mail -> hasOpenEmailSession
+                    // Terminal hides until there's any SSH/Mosh/ET/Reticulum
+                    // profile (ConnectionProfile.isTerminal covers them all).
+                    Screen.Terminal -> hasTerminalProfiles
+                    // Keys/identity management is always shown — useful before
+                    // any connection exists (#360).
+                    Screen.Keys -> true
+                }
+        }
     }
 }
 

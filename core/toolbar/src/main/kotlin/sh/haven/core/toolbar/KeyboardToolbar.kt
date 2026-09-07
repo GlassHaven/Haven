@@ -532,26 +532,19 @@ private fun AlignedToolbarContent(
     val (row1Left, row1Right) = splitAroundNav(layout.row1)
     val (row2Left, row2Right) = splitAroundNav(layout.row2)
 
-    // Pin the leading icon keys to a fixed 2-column grid so the Attach
-    // (row 1) and Voice/secure-keyboard (row 2) icons always stack at
-    // column 2 — col 1 holds the keyboard toggle (row 1) / VNC-desktop
-    // (row 2), col 2 holds Attach / Voice. Placeholders keep the columns
-    // aligned even when one leading icon is absent (e.g. no VNC on a
-    // plain SSH profile), which previously slid Voice under column 1.
+    // The keyboard toggle key is a normal layout item: it flows into the paired
+    // rest columns at whatever position the user saved it in, so it is freely
+    // movable and no longer leaves a dead cell under it when the Desktop key is
+    // hidden. Only Attach (row 1) / Voice (row 2) keep their leading-column pin
+    // (#245).
     fun ToolbarItem.isKey(k: ToolbarKey) = this is ToolbarItem.BuiltIn && this.key == k
-    val r1Keyboard = row1Left.firstOrNull { it.isKey(ToolbarKey.KEYBOARD) }
     val r1Attach = row1Left.firstOrNull { it.isKey(ToolbarKey.ATTACH) }
     val r2Voice = row2Left.firstOrNull { it.isKey(ToolbarKey.VOICE_KEYBOARD) }
-    // Pin Attach (row 1) over Voice (row 2) into the fixed leading column ONLY
-    // when both are present. If one is disabled, the survivor reflows into its
-    // row's normal keys instead of being stranded in a paired column with an
-    // empty cell next to it; when both are off the column isn't drawn at all.
-    // So turning a key off actually gives its space back rather than leaving a
-    // dead box (#245).
+    // Pin Attach over Voice into the fixed leading column ONLY when both are
+    // present; a lone survivor reflows into the rest columns instead of being
+    // stranded in a paired column with an empty cell next to it (#245).
     val pinAttachVoice = r1Attach != null && r2Voice != null
-    val r1Rest = row1Left.filterNot {
-        it.isKey(ToolbarKey.KEYBOARD) || (pinAttachVoice && it.isKey(ToolbarKey.ATTACH))
-    }
+    val r1Rest = row1Left.filterNot { pinAttachVoice && it.isKey(ToolbarKey.ATTACH) }
     val r2Rest = row2Left.filterNot { pinAttachVoice && it.isKey(ToolbarKey.VOICE_KEYBOARD) }
 
     // Collect which nav keys are present across all rows
@@ -607,8 +600,10 @@ private fun AlignedToolbarContent(
             }
         }
 
-        // The auto-shown desktop (VNC/RDP) key. Placed on the leading edge (LEFT,
-        // under the keyboard toggle), the trailing edge (RIGHT), or hidden (#245).
+        // The auto-shown desktop (VNC/RDP) key. In LEFT placement it takes the
+        // column slot beside the (now freely-movable) keyboard key, in the same
+        // row; if the keyboard key is off the toolbar it falls back to the
+        // trailing edge, as does RIGHT placement. HIDDEN removes it (#245).
         val showDesktop = onVncTap != null &&
             desktopKeyPlacement != sh.haven.core.data.preferences.DesktopKeyPlacement.HIDDEN
         val desktopRenderer: (@Composable () -> Unit)? = if (showDesktop) {
@@ -630,23 +625,42 @@ private fun AlignedToolbarContent(
         } else {
             null
         }
-        val desktopOnLeft = desktopRenderer
-            ?.takeIf { desktopKeyPlacement == sh.haven.core.data.preferences.DesktopKeyPlacement.LEFT }
+        // Where a LEFT-placed desktop key lands: it takes the column slot
+        // directly after the (freely-movable) keyboard key in the same row — the
+        // same ordering the flat ToolbarRow fallback uses (desktop right after
+        // the keyboard key). If the keyboard key is off the toolbar it falls
+        // back to the trailing edge.
+        val kbRestR1 = r1Rest.indexOfFirst { it.isKey(ToolbarKey.KEYBOARD) }
+        val kbRestR2 = r2Rest.indexOfFirst { it.isKey(ToolbarKey.KEYBOARD) }
+        val desktopTopIdx = if (desktopRenderer != null &&
+            desktopKeyPlacement == sh.haven.core.data.preferences.DesktopKeyPlacement.LEFT &&
+            kbRestR1 >= 0
+        ) kbRestR1 + 1 else -1
+        val desktopBotIdx = if (desktopRenderer != null &&
+            desktopKeyPlacement == sh.haven.core.data.preferences.DesktopKeyPlacement.LEFT &&
+            kbRestR1 < 0 && kbRestR2 >= 0
+        ) kbRestR2 + 1 else -1
+        val desktopTrail = desktopRenderer != null && (
+            desktopKeyPlacement == sh.haven.core.data.preferences.DesktopKeyPlacement.RIGHT ||
+            (desktopKeyPlacement == sh.haven.core.data.preferences.DesktopKeyPlacement.LEFT &&
+                kbRestR1 < 0 && kbRestR2 < 0)
+        )
 
-        // Col 0: keyboard toggle (top) / desktop icon (bottom, when LEFT). Skip the
-        // whole column when neither is present so it leaves no empty box (#245).
-        if (r1Keyboard != null || desktopOnLeft != null) {
-            KeyColumn(top = itemRenderer(r1Keyboard), bottom = desktopOnLeft)
-        }
-        // Col 1: Attach (top) / Voice toggle (bottom) — only when both are
-        // present; a lone survivor reflows into the rest columns below (#245).
+        // Pinned Attach (top) / Voice (bottom) leading column — only when both
+        // are present; a lone survivor reflows into the rest columns (#245).
         if (pinAttachVoice) {
             KeyColumn(top = itemRenderer(r1Attach), bottom = itemRenderer(r2Voice))
         }
-        // Remaining columns: row-1 key over row-2 key, paired by position.
-        val restColumns = maxOf(r1Rest.size, r2Rest.size)
+        // Rest columns: row-1 key over row-2 key, paired by position. The
+        // keyboard toggle is NOT extracted — it flows here at its saved
+        // position, and the LEFT-placed desktop key is inserted beside it.
+        val topCols = r1Rest.map { itemRenderer(it) }.toMutableList()
+        val botCols = r2Rest.map { itemRenderer(it) }.toMutableList()
+        if (desktopTopIdx >= 0) topCols.add(desktopTopIdx, desktopRenderer)
+        if (desktopBotIdx >= 0) botCols.add(desktopBotIdx, desktopRenderer)
+        val restColumns = maxOf(topCols.size, botCols.size)
         for (i in 0 until restColumns) {
-            KeyColumn(top = itemRenderer(r1Rest.getOrNull(i)), bottom = itemRenderer(r2Rest.getOrNull(i)))
+            KeyColumn(top = topCols.getOrNull(i), bottom = botCols.getOrNull(i))
         }
 
         // Nav (cursor) block — same KeyColumn grid as the keys above, so the two
@@ -664,11 +678,10 @@ private fun AlignedToolbarContent(
         for (i in 0 until rightColumns) {
             KeyColumn(top = itemRenderer(row1Right.getOrNull(i)), bottom = itemRenderer(row2Right.getOrNull(i)))
         }
-        // Desktop key on the trailing edge (RIGHT placement) — bottom row, lined
-        // up with the other row-2 keys, just before the fixed controls (#245).
-        if (desktopRenderer != null &&
-            desktopKeyPlacement == sh.haven.core.data.preferences.DesktopKeyPlacement.RIGHT
-        ) {
+        // Desktop key on the trailing edge (RIGHT placement, or LEFT with the
+        // keyboard key off the toolbar) — bottom row, lined up with the other
+        // row-2 keys, just before the fixed controls (#245).
+        if (desktopTrail) {
             KeyColumn(top = null, bottom = desktopRenderer)
         }
         Column(modifier = Modifier.align(Alignment.Bottom)) {
@@ -1682,13 +1695,13 @@ private fun ReorderToolbarContent(
     placement: EditModeControlsPlacement = EditModeControlsPlacement.LEFT,
 ) {
     val rows = remember(layout) {
-        // Pin the leading icon keys to match the live render's fixed 2-column
-        // grid (col 1 = keyboard / VNC, col 2 = Attach / Voice). In edit mode the
-        // done-✓ button replaces KEYBOARD *in place* and the VNC icon is prepended
-        // to row 2 outside the data, so the data order must be:
-        //   row 1: [KEYBOARD, ATTACH, …]  -> [done, attach, …]
-        //   row 2: [VOICE,    …]          -> [VNC,  voice,  …]
-        // so Attach (row 1) and Voice (row 2) both land at column 2 and align.
+        // Pin Attach (row 1) and Voice (row 2) to index 0 of their segments so
+        // the pair stacks in the first column right of the fixed done-✓/desktop
+        // column, mirroring the live render's leading Attach/Voice column. The
+        // keyboard key is no longer pinned — it stays where the user dragged it
+        // and is itself a normal draggable item; the ✓ Done button sits in the
+        // fixed-control column (or the front of row 0 in the flat no-nav
+        // fallback), never in the keyboard key's slot.
         fun MutableList<ToolbarItem>.pinToFront(key: ToolbarKey, target: Int) {
             val idx = indexOfFirst { it is ToolbarItem.BuiltIn && it.key == key }
             if (idx >= 0 && idx != target) add(target.coerceAtMost(size), removeAt(idx))
@@ -1696,10 +1709,9 @@ private fun ReorderToolbarContent(
         layout.rows.mapIndexed { i, row ->
             val list = row.toMutableList()
             when (i) {
-                0 -> {
-                    list.pinToFront(ToolbarKey.KEYBOARD, 0)
-                    list.pinToFront(ToolbarKey.ATTACH, 1)
-                }
+                // The keyboard key is a normal, draggable item (no longer pinned
+                // to col 0), so it is left in place; only Attach keeps its pin.
+                0 -> list.pinToFront(ToolbarKey.ATTACH, 0)
                 1 -> list.pinToFront(ToolbarKey.VOICE_KEYBOARD, 0)
             }
             list.toMutableStateList()
@@ -1732,11 +1744,10 @@ private fun ReorderToolbarContent(
     val nav1 = navBounds(row1)
     val nav2 = if (row2 != null) navBounds(row2) else null
 
-    // KEYBOARD is pinned to row1[0] and rendered as the fixed done-✓ cell (col 0),
-    // so the draggable row-1 left segment starts just after it; row-2's left
-    // segment starts at 0 (Voice). This makes the two segments pair column-for-column.
-    val r1HasKeyboard = (row1.getOrNull(0) as? ToolbarItem.BuiltIn)?.key == ToolbarKey.KEYBOARD
-    val r1LeftStart = if (r1HasKeyboard) 1 else 0
+    // The keyboard key is no longer pinned, so both left segments start at
+    // index 0 and the nav block follows; the ✓ done button lives in the fixed
+    // control block, not in a key's slot.
+    val r1LeftStart = 0
     // Per-column max-width oracles shared between row 1 and row 2 within each block.
     val leftColWidths = remember(layout) { mutableStateMapOf<Int, Float>() }
     val rightColWidths = remember(layout) { mutableStateMapOf<Int, Float>() }
@@ -1745,12 +1756,25 @@ private fun ReorderToolbarContent(
     if (nav1 == null && nav2 == null || row2 == null) {
         Column {
             rows.forEachIndexed { i, items ->
-                DraggableSegment(
-                    items = items,
-                    range = 0 until items.size,
-                    showDoneButton = i == 0,
-                    onDone = ::saveAndExit,
-                )
+                Row(verticalAlignment = Alignment.CenterVertically) {
+                    // The ✓ sits at the front of row 0 (the keyboard key is no
+                    // longer its host), matching the fixed-control placement in
+                    // the aligned layout.
+                    if (i == 0) {
+                        IconButton(onClick = ::saveAndExit, modifier = Modifier.size(32.dp)) {
+                            Icon(
+                                Icons.Filled.Check,
+                                contentDescription = stringResource(R.string.toolbar_done_reordering),
+                                modifier = Modifier.size(18.dp),
+                                tint = MaterialTheme.colorScheme.primary,
+                            )
+                        }
+                    }
+                    DraggableSegment(
+                        items = items,
+                        range = 0 until items.size,
+                    )
+                }
             }
         }
         return
@@ -1931,8 +1955,6 @@ private fun ReorderToolbarContent(
 private fun DraggableSegment(
     items: MutableList<ToolbarItem>,
     range: IntRange,
-    showDoneButton: Boolean = false,
-    onDone: () -> Unit = {},
     onTransferRight: ((Int) -> Unit)? = null,
     onTransferLeft: ((Int) -> Unit)? = null,
     onTransferToOtherRow: ((Int) -> Unit)? = null,
@@ -2029,14 +2051,9 @@ private fun DraggableSegment(
                             offset.x >= l && offset.x < l + w
                         } ?: -1
                         if (hit >= 0) {
-                            val item = items[hit]
-                            val skip = item is ToolbarItem.BuiltIn &&
-                                item.key == ToolbarKey.KEYBOARD
-                            if (!skip) {
-                                draggedIndex = hit
-                                dragOffset = 0f
-                                view.performHapticFeedback(HapticFeedbackConstants.LONG_PRESS)
-                            }
+                            draggedIndex = hit
+                            dragOffset = 0f
+                            view.performHapticFeedback(HapticFeedbackConstants.LONG_PRESS)
                         }
                     },
                     onDrag = { change, amount ->
@@ -2055,55 +2072,34 @@ private fun DraggableSegment(
     ) {
         for (idx in range) {
             val item = items[idx]
-            val isDoneBtn = showDoneButton &&
-                item is ToolbarItem.BuiltIn && item.key == ToolbarKey.KEYBOARD
-            if (isDoneBtn) {
-                IconButton(
-                    onClick = onDone,
-                    modifier = Modifier
-                        .size(32.dp)
-                        .onGloballyPositioned { c ->
-                            itemWidths[idx] = c.size.width.toFloat()
-                            itemLeftEdges[idx] = c.positionInParent().x
-                        },
-                ) {
-                    Icon(
-                        Icons.Filled.Check,
-                        contentDescription = stringResource(R.string.toolbar_done_reordering),
-                        modifier = Modifier.size(18.dp),
-                        tint = MaterialTheme.colorScheme.primary,
-                    )
-                }
-            } else {
-                val col = idx - range.first
-                val colMin = columnWidths?.get(col)?.let { with(density) { it.toDp() } } ?: 0.dp
-                Box(
-                    modifier = Modifier
-                        .widthIn(min = colMin)
-                        .onGloballyPositioned { c ->
-                            val w = c.size.width.toFloat()
-                            itemWidths[idx] = w
-                            itemLeftEdges[idx] = c.positionInParent().x
-                            if (columnWidths != null) {
-                                val prev = columnWidths[col]
-                                if (prev == null || w > prev) columnWidths[col] = w
-                            }
+            val col = idx - range.first
+            val colMin = columnWidths?.get(col)?.let { with(density) { it.toDp() } } ?: 0.dp
+            Box(
+                modifier = Modifier
+                    .widthIn(min = colMin)
+                    .onGloballyPositioned { c ->
+                        val w = c.size.width.toFloat()
+                        itemWidths[idx] = w
+                        itemLeftEdges[idx] = c.positionInParent().x
+                        if (columnWidths != null) {
+                            val prev = columnWidths[col]
+                            if (prev == null || w > prev) columnWidths[col] = w
                         }
-                        .then(
-                            if (idx == draggedIndex) {
-                                Modifier
-                                    .offset { IntOffset(dragOffset.roundToInt(), 0) }
-                                    .zIndex(1f)
-                                    .graphicsLayer {
-                                        scaleX = 1.05f
-                                        scaleY = 1.05f
-                                    }
-                            } else Modifier
-                        ),
-                    propagateMinConstraints = true,
-                ) {
-                    ReorderModeKey(item)
-                }
+                    }
+                    .then(
+                        if (idx == draggedIndex) {
+                            Modifier
+                                .offset { IntOffset(dragOffset.roundToInt(), 0) }
+                                .zIndex(1f)
+                                .graphicsLayer {
+                                    scaleX = 1.05f
+                                    scaleY = 1.05f
+                                }
+                        } else Modifier
+                    ),
+                propagateMinConstraints = true,
+            ) {
+                ReorderModeKey(item)
             }
         }
     }

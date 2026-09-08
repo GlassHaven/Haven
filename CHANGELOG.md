@@ -5,6 +5,19 @@ the corresponding GitHub Release; a release can't ship without its section
 (enforced by `scripts/check-changelog.sh` in CI). The GitHub "Full Changelog"
 compare link is appended automatically — don't add it here.
 
+## v5.87.78
+
+- Six new terminal color schemes (#627).
+
+- The keyboard toolbar no longer leaves a dead cell where the Desktop key was hidden (#628).
+
+- Navigation-bar tabs are configurable per tab: reorder them and choose Auto, Show or Hide (#629).
+
+- **Six new terminal color schemes** (#627). The terminal color picker gains six schemes; persistence is by name, so saved selections survive the addition unchanged.
+
+- **The keyboard toolbar's fixed keys are unpinned** (#628). The keyboard toggle and the auto-shown Desktop (VNC/RDP) key were pinned to a fixed column: hiding the Desktop key left an empty dead cell under the keyboard toggle, and the keyboard key could not be moved. Both are now ordinary toolbar items, and a Desktop key placed on the left now sits beside the keyboard in the top row instead of at the bottom of the first column.
+
+- **Navigation-bar tabs are configurable per tab** (#629). The bottom navigation bar was already reorderable; each tab now also has an Auto / Show / Hide choice, replacing the single show-all-tabs switch. Auto keeps the default behaviour, Show pins a tab on even when empty, Hide removes it. An existing show-all-tabs preference carries over as Show on every tab.
 ## v5.87.77
 
 - A USB drive Android can mount opens in the Files tab instead of booting a VM (#603).

@@ -1,0 +1,3 @@
+- Six new terminal color schemes (#627).
+- The keyboard toolbar no longer leaves a dead cell where the Desktop key was hidden (#628).
+- Navigation-bar tabs are configurable per tab: reorder them and choose Auto, Show or Hide (#629).

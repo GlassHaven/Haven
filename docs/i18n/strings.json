@@ -29090,6 +29090,7 @@
       "ko": "백업 내보내기",
       "pt": "Exportar backup",
       "ru": "Экспорт резервной копии",
+      "sr": "Извоз резервне копије",
       "zh": "导出备份"
      }
     },
@@ -29109,6 +29110,7 @@
       "ko": "키, 연결 및 설정",
       "pt": "Chaves, conexões e configurações",
       "ru": "Ключи, подключения и настройки",
+      "sr": "Кључеви, везе и подешавања",
       "zh": "密钥、连接和设置"
      }
     },
@@ -29128,6 +29130,7 @@
       "ko": "백업 복원",
       "pt": "Restaurar backup",
       "ru": "Восстановление из копии",
+      "sr": "Враћање резервне копије",
       "zh": "恢复备份"
      }
     },
@@ -29147,6 +29150,7 @@
       "ko": "백업 파일에서 가져오기",
       "pt": "Importar de um arquivo de backup",
       "ru": "Импорт из файла резервной копии",
+      "sr": "Увоз из фајла резервне копије",
       "zh": "从备份文件导入"
      }
     },
@@ -29166,6 +29170,7 @@
       "ko": "작업 중…",
       "pt": "Processando…",
       "ru": "Обработка…",
+      "sr": "Ради се…",
       "zh": "处理中…"
      }
     },
@@ -29185,6 +29190,7 @@
       "ko": "Haven 정보",
       "pt": "Sobre o Haven",
       "ru": "О Haven",
+      "sr": "О апликацији Haven",
       "zh": "关于 Haven"
      }
     },
@@ -29204,6 +29210,7 @@
       "ko": "Haven 지원",
       "pt": "Apoiar o Haven",
       "ru": "Поддержать Haven",
+      "sr": "Подржите Haven",
       "zh": "支持 Haven"
      }
     },
@@ -29223,6 +29230,7 @@
       "ko": "개발자에게 커피 후원",
       "pt": "Pague um café para o desenvolvedor",
       "ru": "Угостить разработчика кофе",
+      "sr": "Купите кафу програмеру",
       "zh": "请开发者喝杯咖啡"
      }
     },
@@ -29242,6 +29250,7 @@
       "ko": "업데이트 확인",
       "pt": "Procurar atualizações",
       "ru": "Проверять обновления",
+      "sr": "Провера ажурирања",
       "zh": "检查更新"
      }
     },
@@ -29261,6 +29270,7 @@
       "ko": "Haven 시작 시 새 릴리스를 확인합니다. 시간에 한 번까지. 기본값은 꺼짐.",
       "pt": "Procura uma versão mais recente ao iniciar o Haven, no máximo uma vez por hora. Desativado por padrão.",
       "ru": "Искать новый выпуск при запуске Haven, не чаще раза в час. По умолчанию выключено.",
+      "sr": "Проверава постојање новијег издања када се Haven отвара, највише једном у сату. Подразумевано је искључено.",
       "zh": "Haven 启动时查找新版本，每小时最多一次。默认关闭。"
      }
     },
@@ -29280,6 +29290,7 @@
       "ko": "지금 확인",
       "pt": "Procurar agora",
       "ru": "Проверить сейчас",
+      "sr": "Провери сада",
       "zh": "立即检查"
      }
     },
@@ -29299,6 +29310,7 @@
       "ko": "GitHub에 최신 릴리스를 요청합니다",
       "pt": "Consultar a versão mais recente no GitHub",
       "ru": "Запросить у GitHub последний выпуск",
+      "sr": "Проверава на GitHub постојање најновијег издања",
       "zh": "向 GitHub 查询最新发行版"
      }
     },
@@ -29318,6 +29330,7 @@
       "ko": "확인 중…",
       "pt": "Verificando…",
       "ru": "Проверка…",
+      "sr": "Проверава се…",
       "zh": "正在检查…"
      }
     },
@@ -29339,6 +29352,7 @@
       "ko": "버전 %1$s 사용 가능",
       "pt": "A versão %1$s está disponível",
       "ru": "Доступна версия %1$s",
+      "sr": "Доступна је верзија %1$s",
       "zh": "有新版本 %1$s"
      }
     },
@@ -29358,6 +29372,7 @@
       "ko": "릴리스 페이지를 열려면 누르세요",
       "pt": "Toque para abrir a página da versão",
       "ru": "Нажмите, чтобы открыть страницу выпуска",
+      "sr": "Тапните да се отвори страница издања",
       "zh": "点按打开发行版页面"
      }
     },
@@ -29379,6 +29394,7 @@
       "ko": "최신 버전입니다 (%1$s)",
       "pt": "Atualizado na %1$s",
       "ru": "Установлена последняя версия %1$s",
+      "sr": "Ажурно је на %1$s",
       "zh": "已是最新版本 %1$s"
      }
     },
@@ -29400,6 +29416,7 @@
       "ko": "확인 실패: %1$s",
       "pt": "Falha na verificação: %1$s",
       "ru": "Не удалось проверить: %1$s",
+      "sr": "Није успела провера: %1$s",
       "zh": "检查失败：%1$s"
      }
     },
@@ -29419,6 +29436,7 @@
       "ko": "이 사본은 GitHub 릴리스에서 설치된 것이 아니므로 릴리스 다운로드로 대체할 수 없습니다. Haven을 설치한 곳에서 업데이트하세요.",
       "pt": "Esta cópia não foi instalada a partir de uma versão do GitHub, então baixar a versão não pode substituí-la. Atualize por onde você instalou o Haven.",
       "ru": "Эта копия установлена не из выпуска на GitHub, поэтому загрузка с GitHub её не заменит. Обновляйтесь там, где вы установили Haven.",
+      "sr": "Ова копија није инсталирана из GitHub издања, тако да преузимање издања не може да је замени. Ажурирајте кроз извор који се користили да инсталирате апликацију Haven.",
       "zh": "这个副本不是从 GitHub 发行版安装的，发行版的下载无法覆盖安装它。请通过你安装 Haven 的渠道更新。"
      }
     },
@@ -29438,6 +29456,7 @@
       "ko": "알 수 없음",
       "pt": "desconhecido",
       "ru": "неизвестно",
+      "sr": "непознато",
       "zh": "未知"
      }
     },
@@ -29457,6 +29476,7 @@
       "ko": "Wayland 데스크톱 셸",
       "pt": "Shell desktop Wayland",
       "ru": "Оболочка рабочего стола Wayland",
+      "sr": "Wayland десктоп љуска",
       "zh": "Wayland 桌面 Shell"
      }
     },
@@ -29476,6 +29496,7 @@
       "ko": "Wayland 데스크톱 foot 터미널 안에서 실행할 셸 명령입니다. 추가 셸은 apk로 설치하세요(예: apk add bash).",
       "pt": "Comando shell para executar dentro do terminal foot do desktop Wayland. Instale shells adicionais com apk (ex. apk add bash).",
       "ru": "Команда оболочки для терминала foot в Wayland-рабочем столе. Дополнительные оболочки можно установить через apk (напр. apk add bash).",
+      "sr": "Команда љуске која се извршава унутар foot терминала Wayland десктопа. Инсталирајте додатне љуске са apk (нпр. apk add bash).",
       "zh": "在 Wayland 桌面 foot 终端内运行的 Shell 命令。使用 apk 安装其他 Shell（例如 apk add bash）。"
      }
     },
@@ -29495,6 +29516,7 @@
       "ko": "셸 명령",
       "pt": "Comando shell",
       "ru": "Команда оболочки",
+      "sr": "Команда љуске",
       "zh": "Shell 命令"
      }
     },
@@ -29514,6 +29536,7 @@
       "ko": "잠금 제한 시간",
       "pt": "Tempo de bloqueio",
       "ru": "Время блокировки",
+      "sr": "Тајмаут закључавања",
       "zh": "锁定超时"
      }
     },
@@ -29533,6 +29556,7 @@
       "ko": "셸 통합 설정",
       "pt": "Configuração de integração do shell",
       "ru": "Настройка интеграции оболочки",
+      "sr": "Поставка интеграције љуске",
       "zh": "Shell 集成设置"
      }
     },
@@ -29552,6 +29576,7 @@
       "ko": "마지막 출력 복사는 셸이 OSC 133 마커를 내보내야 합니다. 다음 스니펫 중 하나를 셸 설정에 추가하세요:",
       "pt": "Copiar última saída requer que seu shell emita marcadores OSC 133. Adicione um destes trechos à configuração do seu shell:",
       "ru": "Для копирования последнего вывода оболочка должна отправлять маркеры OSC 133. Добавьте один из этих фрагментов в конфиг оболочки:",
+      "sr": "Копирање последњег излаза захтева да ваша љуска емитује OSC 133 маркере. Додајте један од следећих одломака у конфигурацију љуске:",
       "zh": "复制上次输出需要 Shell 发出 OSC 133 标记。将以下代码片段添加到 Shell 配置中："
      }
     },
@@ -29571,6 +29596,7 @@
       "ko": "Bash",
       "pt": "Bash",
       "ru": "Bash",
+      "sr": "Bash",
       "zh": "Bash"
      }
     },
@@ -29590,6 +29616,7 @@
       "ko": "Zsh",
       "pt": "Zsh",
       "ru": "Zsh",
+      "sr": "Zsh",
       "zh": "Zsh"
      }
     },
@@ -29609,6 +29636,7 @@
       "ko": "bash 스니펫 복사됨",
       "pt": "Trecho bash copiado",
       "ru": "Фрагмент для bash скопирован",
+      "sr": "Копиран је bash одломак",
       "zh": "已复制 Bash 代码片段"
      }
     },
@@ -29628,6 +29656,7 @@
       "ko": "zsh 스니펫 복사됨",
       "pt": "Trecho zsh copiado",
       "ru": "Фрагмент для zsh скопирован",
+      "sr": "Копиран је zsh одломак",
       "zh": "已复制 Zsh 代码片段"
      }
     },
@@ -29647,6 +29676,7 @@
       "ko": "스니펫을 탭하여 복사하세요. 많은 도구(iTerm2, VS Code, WezTerm)는 기본적으로 이 마커를 포함합니다.",
       "pt": "Toque em um trecho para copiar. Muitas ferramentas (iTerm2, VS Code, WezTerm) incluem esses marcadores por padrão.",
       "ru": "Нажмите на фрагмент для копирования. Многие инструменты (iTerm2, VS Code, WezTerm) включают эти маркеры по умолчанию.",
+      "sr": "Тапните на одломак да га копирате. Многи алати (iTerm2, VS Code, WezTerm) подразумевано укључују ове маркере.",
       "zh": "点击代码片段以复制。许多工具（iTerm2、VS Code、WezTerm）默认包含这些标记。"
      }
     },
@@ -29666,6 +29696,7 @@
       "ko": "자세히 알아보기",
       "pt": "Saiba mais",
       "ru": "Подробнее",
+      "sr": "Сазнајте више",
       "zh": "了解更多"
      }
     },
@@ -29685,6 +29716,7 @@
       "ko": "백업 내보내기",
       "pt": "Exportar backup",
       "ru": "Экспорт резервной копии",
+      "sr": "Извоз резервне копије",
       "zh": "导出备份"
      }
     },
@@ -29704,6 +29736,7 @@
       "ko": "백업 복원",
       "pt": "Restaurar backup",
       "ru": "Восстановление из копии",
+      "sr": "Враћање резервне копије",
       "zh": "恢复备份"
      }
     },
@@ -29723,6 +29756,7 @@
       "ko": "최소 6자",
       "pt": "Pelo menos 6 caracteres",
       "ru": "Минимум 6 символов",
+      "sr": "Барем 6 карактера",
       "zh": "至少 6 个字符"
      }
     },
@@ -29742,6 +29776,7 @@
       "ko": "비밀번호가 일치하지 않습니다",
       "pt": "As senhas não coincidem",
       "ru": "Пароли не совпадают",
+      "sr": "Лозинке се не подударају",
       "zh": "密码不匹配"
      }
     },
@@ -29761,6 +29796,7 @@
       "ko": "비밀번호로 백업을 암호화하세요. SSH 키와 연결 데이터를 보호합니다.",
       "pt": "Criptografe seu backup com uma senha. Isso protege suas chaves SSH e dados de conexão.",
       "ru": "Зашифруйте резервную копию паролем. Это защитит ваши SSH-ключи и данные подключений.",
+      "sr": "Шифрује вашу резервну копију лозинком. То штити ваше SSH кључеве и податке о вези.",
       "zh": "使用密码加密备份。这将保护您的 SSH 密钥和连接数据。"
      }
     },
@@ -29780,6 +29816,7 @@
       "ko": "백업을 만들 때 사용한 비밀번호를 입력하세요.",
       "pt": "Digite a senha usada ao criar o backup.",
       "ru": "Введите пароль, использованный при создании резервной копии.",
+      "sr": "Унесите лозинку која је употребљена када је креирана резервна копија.",
       "zh": "输入创建备份时使用的密码。"
      }
     },
@@ -29799,6 +29836,7 @@
       "ko": "비밀번호",
       "pt": "Senha",
       "ru": "Пароль",
+      "sr": "Лозинка",
       "zh": "密码"
      }
     },
@@ -29818,6 +29856,7 @@
       "ko": "비밀번호 확인",
       "pt": "Confirmar senha",
       "ru": "Подтвердите пароль",
+      "sr": "Потврдите лозинку",
       "zh": "确认密码"
      }
     },
@@ -29837,6 +29876,7 @@
       "ko": "내보내기",
       "pt": "Exportar",
       "ru": "Экспорт",
+      "sr": "Извези",
       "zh": "导出"
      }
     },
@@ -29856,6 +29896,7 @@
       "ko": "복원",
       "pt": "Restaurar",
       "ru": "Восстановить",
+      "sr": "Врати",
       "zh": "恢复"
      }
     },
@@ -29875,6 +29916,7 @@
       "ko": "Haven 정보",
       "pt": "Sobre o Haven",
       "ru": "О Haven",
+      "sr": "О апликацији Haven",
       "zh": "关于 Haven"
      }
     },
@@ -29894,6 +29936,7 @@
       "ko": "Haven",
       "pt": "Haven",
       "ru": "Haven",
+      "sr": "Haven",
       "zh": "Haven"
      }
     },
@@ -29913,6 +29956,7 @@
       "ko": "Android용 오픈 소스 SSH, VNC, RDP 및 클라우드 스토리지 클라이언트",
       "pt": "Cliente de código aberto de SSH, VNC, RDP e armazenamento em nuvem para Android",
       "ru": "Клиент SSH, VNC, RDP и облачного хранилища с открытым кодом для Android",
+      "sr": "Андроид клијент за SSH, VNC, RDP &amp; складиште у облаку отвореног кода",
       "zh": "Android 开源 SSH、VNC、RDP 和云存储客户端"
      }
     },
@@ -29935,6 +29979,7 @@
       "ko": "버전 %1$s(빌드 %2$d)",
       "pt": "Versão %1$s (build %2$d)",
       "ru": "Версия %1$s (сборка %2$d)",
+      "sr": "Верзија %1$s (изградња %2$d)",
       "zh": "版本 %1$s（构建 %2$d）"
      }
     },
@@ -29957,6 +30002,7 @@
       "ko": "Android %1$s(API %2$d)",
       "pt": "Android %1$s (API %2$d)",
       "ru": "Android %1$s (API %2$d)",
+      "sr": "Андроид %1$s (API %2$d)",
       "zh": "Android %1$s (API %2$d)"
      }
     },
@@ -29976,6 +30022,7 @@
       "ko": "오픈 소스 라이브러리",
       "pt": "Bibliotecas de código aberto",
       "ru": "Библиотеки с открытым кодом",
+      "sr": "Библиотеке отвореног кода",
       "zh": "开源库"
      }
     },
@@ -29995,6 +30042,7 @@
       "ko": "테마",
       "pt": "Tema",
       "ru": "Тема",
+      "sr": "Тема",
       "zh": "主题"
      }
     },
@@ -30014,6 +30062,7 @@
       "ko": "터미널 색상 테마",
       "pt": "Esquema de cores do terminal",
       "ru": "Цветовая схема терминала",
+      "sr": "Шема боја терминала",
       "zh": "终端配色方案"
      }
     },
@@ -30033,6 +30082,7 @@
       "ko": "세션 지속성",
       "pt": "Persistência de sessão",
       "ru": "Сохранение сессий",
+      "sr": "Постојаност сесије",
       "zh": "会话持久化"
      }
     },
@@ -30052,6 +30102,7 @@
       "ko": "터치 스크롤백 없음",
       "pt": "Sem rolagem por toque",
       "ru": "Без сенсорной прокрутки",
+      "sr": "Без скроловања уназад додиром",
       "zh": "无触摸滚动"
      }
     },
@@ -30071,6 +30122,7 @@
       "ko": "사용자 지정 명령",
       "pt": "Comando personalizado",
       "ru": "Пользовательская команда",
+      "sr": "Произвољна команда",
       "zh": "自定义命令"
      }
     },
@@ -30090,6 +30142,7 @@
       "ko": "세션 이름에는 {name}을 사용하세요. 기본값을 사용하려면 비워 두세요.",
       "pt": "Use {name} para o nome da sessão. Deixe vazio para o padrão.",
       "ru": "Используйте {name} для имени сессии. Оставьте пустым для значения по умолчанию.",
+      "sr": "Користите {име} за име сесија. Оставите празно за подразумевану вредност.",
       "zh": "使用 {name} 作为会话名称。留空使用默认值。"
      }
     },
@@ -30109,6 +30162,7 @@
       "ko": "명령 저장",
       "pt": "Salvar comando",
       "ru": "Сохранить команду",
+      "sr": "Команда за чување",
       "zh": "保存命令"
      }
     },
@@ -30128,6 +30182,7 @@
       "ko": "터미널 글꼴 크기",
       "pt": "Tamanho da fonte do terminal",
       "ru": "Размер шрифта терминала",
+      "sr": "Величина фонта терминала",
       "zh": "终端字体大小"
      }
     },
@@ -30147,6 +30202,7 @@
       "ko": "샘플 텍스트",
       "pt": "Texto de exemplo",
       "ru": "Пример текста",
+      "sr": "Пробни текст",
       "zh": "示例文本"
      }
     },
@@ -30168,6 +30224,7 @@
       "ko": "%1$dsp",
       "pt": "%1$dsp",
       "ru": "%1$dsp",
+      "sr": "%1$dsp",
       "zh": "%1$dsp"
      }
     },
@@ -30187,6 +30244,7 @@
       "ko": "배경 불투명도",
       "pt": "Opacidade do fundo",
       "ru": "Непрозрачность фона",
+      "sr": "Непрозирност позадине",
       "zh": "背景不透明度"
      }
     },
@@ -30208,6 +30266,7 @@
       "ko": "%1$d%%",
       "pt": "%1$d%%",
       "ru": "%1$d%%",
+      "sr": "%1$d%%",
       "zh": "%1$d%%"
      }
     },
@@ -30227,6 +30286,7 @@
       "ko": "100% 미만이면 Haven이 반투명해지고 모든 화면(터미널, 목록, 설정) 뒤로 기기 배경화면이 표시됩니다. 연결별 재정의는 해당 터미널에만 적용됩니다.",
       "pt": "Abaixo de 100% o Haven fica translúcido e mostra o papel de parede do dispositivo atrás de todas as telas (terminal, listas, configurações). Uma substituição por conexão se aplica apenas àquele terminal.",
       "ru": "Ниже 100% Haven становится полупрозрачным и показывает обои устройства за каждым экраном (терминал, списки, настройки). Переопределение для отдельного подключения действует только на его терминал.",
+      "sr": "Испод 100% Haven постаје полупрозиран и приказује тапет уређаја иза сваког екрана (терминал, листе, подешавања). Преиначавање за сваку везу се примењује само за тај терминал.",
       "zh": "低于 100% 时，Haven 将变为半透明，在所有界面（终端、列表、设置）后面显示设备壁纸。按连接的覆盖设置仅作用于该终端。"
      }
     },
@@ -30246,6 +30306,7 @@
       "ko": "탭당 스크롤백 행 수",
       "pt": "Linhas de histórico por aba",
       "ru": "Строк истории на вкладку",
+      "sr": "Број редова за скроловање уназад по картици",
       "zh": "每个标签的回滚行数"
      }
     },
@@ -30265,6 +30326,7 @@
       "ko": "스크롤백이 크면 메모리를 더 많이 사용합니다. 일반적인 열 너비에서 행당 약 2 KB이며 열린 탭 수에 비례합니다.",
       "pt": "Histórico maior usa mais memória. Aproximadamente 2 KB por linha em larguras de coluna típicas, multiplicado pelo número de abas abertas.",
       "ru": "Больший размер истории использует больше памяти. Около 2 КБ на строку при обычной ширине столбцов, умноженное на количество открытых вкладок.",
+      "sr": "Веће вредности скроловања уназад значе већу употребу меморије. Оквирно 2 KB по линији при типичним ширинама колоне, помножено са бројем отворених картица.",
       "zh": "更大的回滚会占用更多内存。典型列宽下每行约 2 KB，乘以打开的标签数。"
      }
     },
@@ -30284,6 +30346,7 @@
       "ko": "%1$,d 행",
       "pt": "%1$,d linhas",
       "ru": "%1$,d строк",
+      "sr": "%1$,d линија",
       "zh": "%1$,d 行"
      }
     },
@@ -30303,6 +30366,7 @@
       "ko": "키보드 도구 모음",
       "pt": "Barra de ferramentas",
       "ru": "Панель клавиатуры",
+      "sr": "Алатна линија тастатуре",
       "zh": "键盘工具栏"
      }
     },
@@ -30322,6 +30386,7 @@
       "ko": "각 키를 1행, 2행 또는 끄기에 할당하세요",
       "pt": "Atribua cada tecla à Linha 1, Linha 2 ou Desligado",
       "ru": "Назначьте каждую клавишу: Ряд 1, Ряд 2 или Выкл",
+      "sr": "Доделите сваки тастер у Ред 1, Ред 2, или Искљ.",
       "zh": "将每个按键分配到第 1 行、第 2 行或关闭"
      }
     },
@@ -30341,6 +30406,7 @@
       "ko": "화살표 키 레이아웃",
       "pt": "Layout das setas",
       "ru": "Расположение стрелок",
+      "sr": "Распоред курсорских тастера",
       "zh": "方向键布局"
      }
     },
@@ -30360,6 +30426,7 @@
       "ko": "편집 모드 컨트롤",
       "pt": "Controles do modo de edição",
       "ru": "Элементы режима редактирования",
+      "sr": "Контроле режима уређивања",
       "zh": "编辑模式控件"
      }
     },
@@ -30379,6 +30446,7 @@
       "ko": "분할",
       "pt": "Dividir",
       "ru": "Раздельно",
+      "sr": "Подела",
       "zh": "分开"
      }
     },
@@ -30398,6 +30466,7 @@
       "ko": "왼쪽",
       "pt": "Esquerda",
       "ru": "Слева",
+      "sr": "Лево",
       "zh": "左侧"
      }
     },
@@ -30417,6 +30486,7 @@
       "ko": "오른쪽",
       "pt": "Direita",
       "ru": "Справа",
+      "sr": "Десно",
       "zh": "右侧"
      }
     },
@@ -30436,6 +30506,7 @@
       "ko": "데스크톱 키",
       "pt": "Tecla de área de trabalho",
       "ru": "Кнопка рабочего стола",
+      "sr": "Тастер десктопа",
       "zh": "桌面键"
      }
     },
@@ -30455,6 +30526,7 @@
       "ko": "왼쪽",
       "pt": "Esquerda",
       "ru": "Слева",
+      "sr": "Лево",
       "zh": "左侧"
      }
     },
@@ -30474,6 +30546,7 @@
       "ko": "오른쪽",
       "pt": "Direita",
       "ru": "Справа",
+      "sr": "Десно",
       "zh": "右侧"
      }
     },
@@ -30493,6 +30566,7 @@
       "ko": "숨김",
       "pt": "Oculta",
       "ru": "Скрыта",
+      "sr": "Скривен",
       "zh": "隐藏"
      }
     },
@@ -30514,6 +30588,7 @@
       "ko": "최소 키 너비: %1$d dp",
       "pt": "Largura mínima de tecla: %1$d dp",
       "ru": "Минимальная ширина клавиши: %1$d dp",
+      "sr": "Минимална ширина тастера: %1$d dp",
       "zh": "最小按键宽度：%1$d dp"
      }
     },
@@ -30533,6 +30608,7 @@
       "ko": "균일한 키 그리드",
       "pt": "Grade uniforme de teclas",
       "ru": "Единая сетка клавиш",
+      "sr": "Уједначена мрежа тастера",
       "zh": "统一按键网格"
      }
     },
@@ -30552,6 +30628,7 @@
       "ko": "Termux처럼 모든 키가 같은 너비의 칸을 차지하며 긴 라벨은 줄바꿈됩니다. 가로 스크롤 없음.",
       "pt": "Cada tecla ocupa uma célula de largura igual, no estilo Termux; rótulos longos quebram linha. Sem rolagem lateral.",
       "ru": "Каждая клавиша занимает ячейку одинаковой ширины, как в Termux; длинные подписи переносятся. Без бокового скролла.",
+      "sr": "Сваки тастер заузима ћелију једнаке ширине, у Termux стилу; дугачке ознаке се обавијају. Нема скроловања у страну.",
       "zh": "每个按键占用等宽格子（类似 Termux），过长的标签在格内换行，无需左右滑动。"
      }
     },
@@ -30571,6 +30648,7 @@
       "ko": "기능 키",
       "pt": "Teclas de função",
       "ru": "Функциональные клавиши",
+      "sr": "Функцијски тастери",
       "zh": "功能键"
      }
     },
@@ -30590,6 +30668,7 @@
       "ko": "기호",
       "pt": "Símbolos",
       "ru": "Символы",
+      "sr": "Симболи",
       "zh": "符号"
      }
     },
@@ -30609,6 +30688,7 @@
       "ko": "사용자 지정 키",
       "pt": "Teclas personalizadas",
       "ru": "Пользовательские клавиши",
+      "sr": "Произвољни тастери",
       "zh": "自定义按键"
      }
     },
@@ -30628,6 +30708,7 @@
       "ko": "사용자 지정 키 추가",
       "pt": "Adicionar tecla personalizada",
       "ru": "Добавить клавишу",
+      "sr": "Додај произвољни тастер",
       "zh": "添加自定义按键"
      }
     },
@@ -30647,6 +30728,7 @@
       "ko": "JSON 편집",
       "pt": "Editar JSON",
       "ru": "Редактировать JSON",
+      "sr": "Уреди JSON",
       "zh": "编辑 JSON"
      }
     },
@@ -30666,6 +30748,7 @@
       "ko": "1행",
       "pt": "L1",
       "ru": "R1",
+      "sr": "Р1",
       "zh": "行1"
      }
     },
@@ -30685,6 +30768,7 @@
       "ko": "2행",
       "pt": "L2",
       "ru": "R2",
+      "sr": "Р2",
       "zh": "行2"
      }
     },
@@ -30704,6 +30788,7 @@
       "ko": "끄기",
       "pt": "Des",
       "ru": "Выкл",
+      "sr": "Искљ",
       "zh": "关"
      }
     },
@@ -30723,6 +30808,7 @@
       "ko": "클립보드 붙여넣기",
       "pt": "Colar área de transferência",
       "ru": "Вставить из буфера",
+      "sr": "Налепи оставу",
       "zh": "粘贴剪贴板"
      }
     },
@@ -30742,6 +30828,7 @@
       "ko": "사용자 지정 키 편집",
       "pt": "Editar tecla personalizada",
       "ru": "Редактировать клавишу",
+      "sr": "Уређивање произвољног тастера",
       "zh": "编辑自定义按键"
      }
     },
@@ -30761,6 +30848,7 @@
       "ko": "사용자 지정 키 추가",
       "pt": "Adicionar tecla personalizada",
       "ru": "Добавить клавишу",
+      "sr": "Додавање произвољног тастера",
       "zh": "添加自定义按键"
      }
     },
@@ -30780,6 +30868,7 @@
       "ko": "프리셋",
       "pt": "Predefinições",
       "ru": "Шаблоны",
+      "sr": "Уграђена подешавања",
       "zh": "预设"
      }
     },
@@ -30799,6 +30888,7 @@
       "ko": "라벨",
       "pt": "Rótulo",
       "ru": "Метка",
+      "sr": "Ознака",
       "zh": "标签"
      }
     },
@@ -30818,6 +30908,7 @@
       "ko": "예: ^C, Paste",
       "pt": "ex. ^C, Paste",
       "ru": "напр. ^C, Paste",
+      "sr": "нпр. ^C, Налепи",
       "zh": "例如 ^C、Paste"
      }
     },
@@ -30837,6 +30928,7 @@
       "ko": "시퀀스",
       "pt": "Sequência",
       "ru": "Последовательность",
+      "sr": "Низ",
       "zh": "序列"
      }
     },
@@ -30856,6 +30948,7 @@
       "ko": "예: \\\\u0003",
       "pt": "ex. \\\\u0003",
       "ru": "напр. \\\\u0003",
+      "sr": "нпр. \\\\u0003",
       "zh": "例如 \\\\u0003"
      }
     },
@@ -30875,6 +30968,7 @@
       "ko": "Escape에는 \\\\u001b, Ctrl+C에는 \\\\u0003, Enter에는 \\\\n을 사용하세요",
       "pt": "Use \\\\u001b para Escape, \\\\u0003 para Ctrl+C, \\\\n para Enter",
       "ru": "\\\\u001b для Escape, \\\\u0003 для Ctrl+C, \\\\n для Enter",
+      "sr": "Користите \\\\u001b за Escape, \\\\u0003 за Ctrl+C, \\ за Ентер",
       "zh": "使用 \\\\u001b 表示 Escape，\\\\u0003 表示 Ctrl+C，\\\\n 表示 Enter"
      }
     },
@@ -30894,6 +30988,7 @@
       "ko": "도구 모음 JSON 편집",
       "pt": "Editar JSON da barra",
       "ru": "Редактировать JSON панели",
+      "sr": "Уређивање JSON алатне линије",
       "zh": "编辑工具栏 JSON"
      }
     },
@@ -30913,6 +31008,7 @@
       "ko": "문자열 = 내장 키 ID, 객체 = 사용자 지정 키 {\"label\": \"…\", \"send\": \"…\"}",
       "pt": "String = ID de tecla integrada, Objeto = tecla personalizada {\\\"label\\\": \\\"…\\\", \\\"send\\\": \\\"…\\\"}",
       "ru": "String = встроенный ID, Object = пользовательская клавиша {\\\"label\\\": \\\"…\\\", \\\"send\\\": \\\"…\\\"}",
+      "sr": "Стринг = ID уграђеног кључа, Објекат = произвољни тастер {\\\"label\\\": \\\"…\\\", \\\"send\\\": \\\"…\\\"}",
       "zh": "字符串 = 内置按键 ID，对象 = 自定义按键 {\\\"label\\\": \\\"…\\\", \\\"send\\\": \\\"…\\\"}"
      }
     },
@@ -30932,6 +31028,7 @@
       "ko": "내장 ID: keyboard, esc, tab, shift, ctrl, alt, arrow_left, arrow_up, arrow_down, arrow_right, home, end, pgup, pgdn, insert, delete, sym_pipe, sym_tilde, sym_slash, sym_dash, sym_underscore, sym_equals, sym_plus, sym_backslash, sym_squote, sym_dquote, sym_semicolon, sym_colon, sym_bang, sym_question, sym_at, sym_hash, sym_dollar, sym_percent, sym_caret, sym_amp, sym_star, sym_lparen, sym_rparen, sym_lbracket, sym_rbracket, sym_lbrace, sym_rbrace, sym_lt, sym_gt, sym_backtick",
       "pt": "IDs integrados: keyboard, esc, tab, shift, ctrl, alt, arrow_left, arrow_up, arrow_down, arrow_right, home, end, pgup, pgdn, sym_pipe, sym_tilde, sym_slash, sym_dash, sym_underscore, sym_equals, sym_plus, sym_backslash, sym_squote, sym_dquote, sym_semicolon, sym_colon, sym_bang, sym_question, sym_at, sym_hash, sym_dollar, sym_percent, sym_caret, sym_amp, sym_star, sym_lparen, sym_rparen, sym_lbracket, sym_rbracket, sym_lbrace, sym_rbrace, sym_lt, sym_gt, sym_backtick",
       "ru": "Built-in IDs: keyboard, esc, tab, shift, ctrl, alt, arrow_left, arrow_up, arrow_down, arrow_right, home, end, pgup, pgdn, sym_pipe, sym_tilde, sym_slash, sym_dash, sym_underscore, sym_equals, sym_plus, sym_backslash, sym_squote, sym_dquote, sym_semicolon, sym_colon, sym_bang, sym_question, sym_at, sym_hash, sym_dollar, sym_percent, sym_caret, sym_amp, sym_star, sym_lparen, sym_rparen, sym_lbracket, sym_rbracket, sym_lbrace, sym_rbrace, sym_lt, sym_gt, sym_backtick",
+      "sr": "Уграђене ID вредности: keyboard, esc, tab, shift, ctrl, alt, arrow_left, arrow_up, arrow_down, arrow_right, home, end, pgup, pgdn, insert, delete, sym_pipe, sym_tilde, sym_slash, sym_dash, sym_underscore, sym_equals, sym_plus, sym_backslash, sym_squote, sym_dquote, sym_semicolon, sym_colon, sym_bang, sym_question, sym_at, sym_hash, sym_dollar, sym_percent, sym_caret, sym_amp, sym_star, sym_lparen, sym_rparen, sym_lbracket, sym_rbracket, sym_lbrace, sym_rbrace, sym_lt, sym_gt, sym_backtick",
       "zh": "内置 ID：keyboard, esc, tab, shift, ctrl, alt, arrow_left, arrow_up, arrow_down, arrow_right, home, end, pgup, pgdn, sym_pipe, sym_tilde, sym_slash, sym_dash, sym_underscore, sym_equals, sym_plus, sym_backslash, sym_squote, sym_dquote, sym_semicolon, sym_colon, sym_bang, sym_question, sym_at, sym_hash, sym_dollar, sym_percent, sym_caret, sym_amp, sym_star, sym_lparen, sym_rparen, sym_lbracket, sym_rbracket, sym_lbrace, sym_rbrace, sym_lt, sym_gt, sym_backtick"
      }
     },
@@ -30951,6 +31048,7 @@
       "ko": "지원",
       "pt": "Suporte",
       "ru": "Поддержка",
+      "sr": "Подршка",
       "zh": "支持"
      }
     },
@@ -30970,6 +31068,7 @@
       "ko": "GitHub",
       "pt": "GitHub",
       "ru": "GitHub",
+      "sr": "GitHub",
       "zh": "GitHub"
      }
     },
@@ -30989,6 +31088,7 @@
       "ko": "간단",
       "pt": "Simples",
       "ru": "Простой",
+      "sr": "Просто",
       "zh": "简单"
      }
     },
@@ -31008,6 +31108,7 @@
       "ko": "보안 및 개인정보",
       "pt": "Segurança e privacidade",
       "ru": "Безопасность и конфиденциальность",
+      "sr": "Безбедност &amp; приватност",
       "zh": "安全与隐私"
      }
     },
@@ -31027,6 +31128,7 @@
       "ko": "모양",
       "pt": "Aparência",
       "ru": "Оформление",
+      "sr": "Изглед",
       "zh": "外观"
      }
     },
@@ -31046,6 +31148,7 @@
       "ko": "키보드 및 입력",
       "pt": "Teclado e entrada",
       "ru": "Клавиатура и ввод",
+      "sr": "Тастатура &amp; унос",
       "zh": "键盘与输入"
      }
     },
@@ -31065,6 +31168,7 @@
       "ko": "터미널",
       "pt": "Terminal",
       "ru": "Терминал",
+      "sr": "Терминал",
       "zh": "终端"
      }
     },
@@ -31084,6 +31188,7 @@
       "ko": "데스크톱(VNC 및 RDP)",
       "pt": "Área de trabalho (VNC e RDP)",
       "ru": "Рабочий стол (VNC &amp; RDP)",
+      "sr": "Десктоп (VNC &amp; RDP)",
       "zh": "桌面（VNC &amp; RDP）"
      }
     },
@@ -31103,6 +31208,7 @@
       "ko": "연결 화면",
       "pt": "Tela de conexões",
       "ru": "Экран подключений",
+      "sr": "Екран веза",
       "zh": "连接屏幕"
      }
     },
@@ -31122,6 +31228,7 @@
       "ko": "진단",
       "pt": "Diagnóstico",
       "ru": "Диагностика",
+      "sr": "Дијагностика",
       "zh": "诊断"
      }
     },
@@ -31141,6 +31248,7 @@
       "ko": "고급",
       "pt": "Avançado",
       "ru": "Дополнительно",
+      "sr": "Напредно",
       "zh": "高级"
      }
     },
@@ -31160,6 +31268,7 @@
       "ko": "AI 에이전트 (MCP)",
       "pt": "Agente de IA (MCP)",
       "ru": "ИИ-агент (MCP)",
+      "sr": "AI агент (MCP)",
       "zh": "AI 代理（MCP）"
      }
     },
@@ -31179,6 +31288,7 @@
       "ko": "백업",
       "pt": "Backup",
       "ru": "Резервное копирование",
+      "sr": "Резервна копија",
       "zh": "备份"
      }
     },
@@ -31198,6 +31308,7 @@
       "ko": "정보",
       "pt": "Sobre",
       "ru": "О приложении",
+      "sr": "О",
       "zh": "关于"
      }
     },
@@ -31217,6 +31328,7 @@
       "ko": "터미널 탭 표시줄 표시",
       "pt": "Mostrar barra de abas do terminal",
       "ru": "Показывать панель вкладок терминала",
+      "sr": "Прикажи линију картица терминала",
       "zh": "显示终端标签栏"
      }
     },
@@ -31236,6 +31348,7 @@
       "ko": "터미널 위에 세션 탭을 표시합니다",
       "pt": "Mostrar abas de sessão acima do terminal",
       "ru": "Показывать вкладки сеансов над терминалом",
+      "sr": "Изнад терминала се приказују картице сесије",
       "zh": "在终端上方显示会话标签"
      }
     },
@@ -31255,6 +31368,7 @@
       "ko": "터미널에서 앱 탭 바 숨기기",
       "pt": "Ocultar a barra de abas do app no terminal",
       "ru": "Скрывать панель вкладок приложения в терминале",
+      "sr": "Сакриј линију картица апликације у терминалу",
       "zh": "在终端中隐藏应用标签栏"
      }
     },
@@ -31274,6 +31388,7 @@
       "ko": "터미널 화면에서 Haven의 하단 탭 바를 숨깁니다. Android 상태 표시줄과 내비게이션 바는 계속 표시됩니다.",
       "pt": "Oculta a barra de abas inferior do Haven na tela do terminal. As barras de status e navegação do Android continuam visíveis.",
       "ru": "Скрывает нижнюю панель вкладок Haven на экране терминала. Строка состояния и панель навигации Android остаются видимыми.",
+      "sr": "Скрива доњу линију картица апликације Haven на екрану терминала. Андроидова статусна линија и линија навигације остају видљиве.",
       "zh": "在终端屏幕上隐藏 Haven 的底部标签栏。Android 状态栏和导航栏保持可见。"
      }
     },
@@ -31293,6 +31408,7 @@
       "ko": "키보드에 맞춰 터미널 크기 조정",
       "pt": "Ajustar o terminal ao teclado",
       "ru": "Подгонять терминал под клавиатуру",
+      "sr": "Промени величину терминала за тастатуру",
       "zh": "为键盘调整终端大小"
      }
     },
@@ -31312,6 +31428,7 @@
       "ko": "키보드가 열리면 화면을 위로 스크롤하는 대신 터미널을 그 위에 맞게 크기를 조정합니다. 상단에 상태 표시줄이 있는 전체 화면 앱에 유용합니다. 일반 셸에서는 꺼 두세요.",
       "pt": "Quando o teclado abre, redimensiona o terminal para caber acima dele em vez de rolar a tela para cima. Ajuda apps em tela cheia que mostram uma linha de status no topo; deixe desativado para shells simples.",
       "ru": "Когда открывается клавиатура, терминал уменьшается, чтобы поместиться над ней, вместо прокрутки экрана вверх. Помогает полноэкранным приложениям со строкой состояния вверху; для обычных оболочек оставьте выключенным.",
+      "sr": "Када се отвори тастатура, терминал мења величину тако да стане изнад ње, уместо да се приказ скролује навише. Помаже апликацијама пуног екрана које на врху приказују статусну линију; оставите искључено за просте љуске.",
       "zh": "键盘打开时，调整终端大小以适应其上方空间，而非向上滚动视图。对在顶部显示状态行的全屏应用有帮助；普通 shell 可保持关闭。"
      }
     },
@@ -31331,6 +31448,7 @@
       "ko": "탭 제목에서 세션 이름 우선",
       "pt": "Preferir nomes de sessão nos títulos das guias",
       "ru": "Предпочитать имена сеансов в заголовках вкладок",
+      "sr": "Приказуј имена сесије у насловима картица",
       "zh": "标签页标题优先使用会话名"
      }
     },
@@ -31350,6 +31468,7 @@
       "ko": "tmux/zellij/screen에 연결된 탭은 실행 중인 프로그램이 설정한 제목 대신 세션 이름을 유지합니다.",
       "pt": "As guias ligadas ao tmux/zellij/screen mantêm o nome da sessão em vez dos títulos definidos pelos programas em execução.",
       "ru": "Вкладки, подключённые к tmux/zellij/screen, сохраняют имя сеанса вместо заголовков, задаваемых запущенными программами.",
+      "sr": "Картице прикачене на tmux/zellij/screen задржавају име своје сесије уместо да приказују наслов који поставља програм који се извршава.",
       "zh": "连接到 tmux/zellij/screen 的标签页保持会话名称，而不显示运行中的程序设置的标题。"
      }
     },
@@ -31369,6 +31488,7 @@
       "ko": "실험적 GPU 스택 (venus + zink)",
       "pt": "Pilha de GPU experimental (venus + zink)",
       "ru": "Экспериментальный стек GPU (venus + zink)",
+      "sr": "Експериментални GPU стек (venus + zink)",
       "zh": "实验性 GPU 栈（venus + zink）"
      }
     },
@@ -31388,6 +31508,7 @@
       "ko": "가속 데스크톱에서 virgl(GL 2.1) 대신 venus(GPU로의 Vulkan) + zink를 사용해 최신 OpenGL(약 3.2 core)을 지원합니다. 네이티브 Vulkan 앱은 표시되지만 OpenGL 표시는 현재 느립니다. 게스트에 mesa-vulkan-drivers가 필요합니다. 끄면 virgl(기본값)을 사용합니다.",
       "pt": "Usa o venus (Vulkan para a GPU) + zink para OpenGL moderno (~3.2 core) em desktops acelerados, em vez do virgl (GL 2.1). Apps Vulkan nativos são exibidos; a apresentação OpenGL está lenta no momento. Requer o mesa-vulkan-drivers instalado no guest. Desativado = virgl padrão.",
       "ru": "Использует venus (Vulkan к GPU) + zink для современного OpenGL (~3.2 core) на ускоренных рабочих столах вместо virgl (GL 2.1). Нативные приложения Vulkan отображаются; вывод OpenGL пока медленный. Требуется mesa-vulkan-drivers в гостевой системе. Выключено = virgl по умолчанию.",
+      "sr": "Користи venus (Vulkan до GPU) + zink за модерни OpenGL (~3.2 core) на убрзаним десктопима, уместо virgl (GL 2.1). Својствени приказ Vulkan апликација; Постојећи OpenGL је тренутно спор. Потребно је да у госту буду инсталирани mesa-vulkan-драјвери. Искључено = virgl подразумевано.",
       "zh": "在加速桌面上使用 venus（直通 GPU 的 Vulkan）+ zink 以支持现代 OpenGL（约 3.2 core），替代 virgl（GL 2.1）。原生 Vulkan 应用可显示；OpenGL 呈现目前较慢。需要在 guest 中安装 mesa-vulkan-drivers。关闭则默认使用 virgl。"
      }
     },
@@ -31407,6 +31528,7 @@
       "ko": "RDP 데스크톱 크기",
       "pt": "Tamanho da área de trabalho RDP",
       "ru": "Размер рабочего стола RDP",
+      "sr": "RDP величина десктопа",
       "zh": "RDP 桌面尺寸"
      }
     },
@@ -31429,6 +31551,7 @@
       "ko": "%1$d × %2$d — 서버와 맞추세요. 이 영역 밖의 업데이트는 버려집니다",
       "pt": "%1$d × %2$d — corresponda ao seu servidor, ou as atualizações fora desta área serão descartadas",
       "ru": "%1$d × %2$d — задайте как на сервере, иначе его обновления вне этой области отбрасываются",
+      "sr": "%1$d × %2$d — поставите као на вашем серверу, или ће се његова ажурирања ван ове области одбацивати",
       "zh": "%1$d × %2$d — 与服务器保持一致，否则该区域外的更新会被丢弃"
      }
     },
@@ -31448,6 +31571,7 @@
       "ko": "원격 컴퓨터가 실제로 사용하는 해상도로 설정하세요. VirtualBox 기본값은 2560 × 1600입니다.",
       "pt": "Defina isto para a resolução que a máquina remota realmente usa. O padrão do VirtualBox é 2560 × 1600.",
       "ru": "Укажите разрешение, которое действительно использует удалённая машина. По умолчанию в VirtualBox — 2560 × 1600.",
+      "sr": "Поставите ово на резолуцију које удаљена машина заиста користи. Подразумевана вредност за VirtualBox је 2560 × 1600.",
       "zh": "请设为远程计算机实际使用的分辨率。VirtualBox 默认为 2560 × 1600。"
      }
     },
@@ -31467,6 +31591,7 @@
       "ko": "너비",
       "pt": "Largura",
       "ru": "Ширина",
+      "sr": "Ширина",
       "zh": "宽度"
      }
     },
@@ -31486,6 +31611,7 @@
       "ko": "높이",
       "pt": "Altura",
       "ru": "Высота",
+      "sr": "Висина",
       "zh": "高度"
      }
     },
@@ -31505,6 +31631,7 @@
       "ko": "터치패드 입력",
       "pt": "Entrada de touchpad",
       "ru": "Ввод с тачпада",
+      "sr": "Унос тачпедом",
       "zh": "触控板输入"
      }
     },
@@ -31524,6 +31651,7 @@
       "ko": "직접 터치 — 손가락 위치가 포인터입니다. 트랙패드 방식 입력을 사용하려면 켜세요.",
       "pt": "Toque direto — a posição do dedo é o ponteiro. Ative para entrada estilo trackpad.",
       "ru": "Прямое касание — положение пальца является указателем. Включите для ввода в стиле трекпада.",
+      "sr": "Директни додир — позиција прста је показивач. Укључите за унос у стилу трекпеда.",
       "zh": "直接触摸 — 手指位置即指针。开启可切换为触控板风格输入。"
      }
     },
@@ -31543,6 +31671,7 @@
       "ko": "드래그하면 원격 커서가 움직이고, 탭하면 커서 위치를 클릭합니다. 확대 시 뷰포트가 커서를 따라갑니다.",
       "pt": "Arrastar move o cursor remoto; tocar clica na posição do cursor. A área visível segue o cursor ao ampliar.",
       "ru": "Перетаскивание перемещает удалённый курсор; касание выполняет щелчок в позиции курсора. При увеличении область просмотра следует за курсором.",
+      "sr": "Превлачење помера удаљени курсор; тап кликће на позицију курсора. Прозор приказа следи курсор када је зумирано.",
       "zh": "拖动移动远程光标；点击在光标处单击。缩放时视口跟随光标。"
      }
     },
@@ -31562,6 +31691,7 @@
       "ko": "느린 VNC 연결에서 256색 제안",
       "pt": "Sugerir 256 cores em conexões VNC lentas",
       "ru": "Предлагать 256 цветов на медленных VNC-соединениях",
+      "sr": "Предложи 256 боја на спорим VNC везама",
       "zh": "慢速 VNC 链接上建议 256 色"
      }
     },
@@ -31581,6 +31711,7 @@
       "ko": "몇 초 후 처리량이 약 1 Mbps 미만이면 감지하여 256색으로 한 번에 다시 연결하도록 제안합니다. 끄면 프롬프트가 표시되지 않습니다.",
       "pt": "Detecta taxa de transferência abaixo de ~1 Mbps após alguns segundos e oferece reconexão com 256 cores com um toque. Desativado silencia o aviso.",
       "ru": "Обнаруживает пропускную способность ниже ~1 Мбит/с через несколько секунд и предлагает переподключение с 256 цветами одним касанием. Выключено — подсказка не показывается.",
+      "sr": "Открива пропусни опсег испод ~1 Mbps након неколико секунди и нуди поновно успостављање везе једним тапом на 256 боја. Искључено пригушује питање.",
       "zh": "数秒后检测到吞吐量低于约 1 Mbps，并提供一键以 256 色重连。关闭以隐藏此提示。"
      }
     },
@@ -31600,6 +31731,7 @@
       "ko": "키보드 모드",
       "pt": "Keyboard mode",
       "ru": "Режим клавиатуры",
+      "sr": "Режим тастатуре",
       "zh": "键盘模式"
      }
     },
@@ -31619,6 +31751,7 @@
       "ko": "개발 설치",
       "pt": "Dev Install",
       "ru": "Установка для разработки",
+      "sr": "Dev инсталација",
       "zh": "开发者安装"
      }
     },
@@ -31638,6 +31771,7 @@
       "ko": "APK URL",
       "pt": "APK URL",
       "ru": "URL APK",
+      "sr": "APK URL",
       "zh": "APK 地址"
      }
     },
@@ -31657,6 +31791,7 @@
       "ko": "URL에서 글꼴 설치",
       "pt": "Instalar fonte a partir de um URL",
       "ru": "Установить шрифт по URL",
+      "sr": "Инсталирање фонта са URL",
       "zh": "从 URL 安装字体"
      }
     },
@@ -31676,6 +31811,7 @@
       "ko": "IME 플래그",
       "pt": "IME flags",
       "ru": "Флаги IME",
+      "sr": "IME заставице",
       "zh": "输入法标志"
      }
     },
@@ -31695,6 +31831,7 @@
       "ko": "터미널 글꼴",
       "pt": "Fonte do terminal",
       "ru": "Шрифт терминала",
+      "sr": "Фонт терминала",
       "zh": "终端字体"
      }
     },
@@ -31714,6 +31851,7 @@
       "ko": "Hack Nerd Font Mono (기본값)",
       "pt": "Hack Nerd Font Mono (padrão)",
       "ru": "Hack Nerd Font Mono (по умолчанию)",
+      "sr": "Hack Nerd Font Mono (подразумевани)",
       "zh": "Hack Nerd Font Mono（默认）"
      }
     },
@@ -31735,6 +31873,7 @@
       "ko": "사용자 지정: %1$s",
       "pt": "Personalizada: %1$s",
       "ru": "Пользовательский: %1$s",
+      "sr": "Произвољни: %1$s",
       "zh": "自定义：%1$s"
      }
     },
@@ -31756,6 +31895,7 @@
       "ko": "%1$s — TTF/OTF를 선택하려면 탭 (Nerd Fonts 호환)",
       "pt": "%1$s — toque para escolher um TTF/OTF (Nerd Fonts funcionam)",
       "ru": "%1$s — нажмите, чтобы выбрать TTF/OTF (Nerd Fonts поддерживаются)",
+      "sr": "%1$s — тапните да изаберете TTF/OTF (функционишу Nerd Фонтови)",
       "zh": "%1$s — 点击选取 TTF/OTF（支持 Nerd Fonts）"
      }
     },
@@ -31775,6 +31915,7 @@
       "ko": "추천 글꼴",
       "pt": "Fontes recomendadas",
       "ru": "Рекомендуемые шрифты",
+      "sr": "Препоручени фонтови",
       "zh": "推荐字体"
      }
     },
@@ -31794,6 +31935,7 @@
       "ko": "한 번에 설치: Source Code Pro, JetBrains Mono, Hack, Inconsolata",
       "pt": "Instalação com um toque: Source Code Pro, JetBrains Mono, Hack, Inconsolata",
       "ru": "Установка одним касанием: Source Code Pro, JetBrains Mono, Hack, Inconsolata",
+      "sr": "Инсталирање једним тапом: Source Code Pro, JetBrains Mono, Hack, Inconsolata",
       "zh": "一键安装：Source Code Pro、JetBrains Mono、Hack、Inconsolata"
      }
     },
@@ -31813,6 +31955,7 @@
       "ko": "URL에서 글꼴 설치…",
       "pt": "Instalar fonte por URL…",
       "ru": "Установить шрифт по URL…",
+      "sr": "Инсталирање фонта са URL…",
       "zh": "从 URL 安装字体…"
      }
     },
@@ -31832,6 +31975,7 @@
       "ko": ".ttf/.otf 또는 .zip 파일을 가져옵니다 (에이전트의 set_terminal_font_from_url 도구와 동일)",
       "pt": "Baixa um .ttf/.otf ou um .zip com eles (equivale à ferramenta set_terminal_font_from_url do agente)",
       "ru": "Загрузить .ttf/.otf или .zip с ними (аналог инструмента агента set_terminal_font_from_url)",
+      "sr": "Преузима .ttf/.otf, или .zip фонтова (опонаша агентов set_terminal_font_from_url алат)",
       "zh": "获取 .ttf/.otf 或其 .zip 压缩包（对应代理的 set_terminal_font_from_url 工具）"
      }
     },
@@ -31851,6 +31995,7 @@
       "ko": "터미널 글꼴 초기화",
       "pt": "Redefinir fonte do terminal",
       "ru": "Сбросить шрифт терминала",
+      "sr": "Ресетуј фонт терминала",
       "zh": "重置终端字体"
      }
     },
@@ -31870,6 +32015,7 @@
       "ko": "기본 Hack Nerd Font Mono로 되돌립니다",
       "pt": "Voltar para a Hack Nerd Font Mono padrão",
       "ru": "Вернуться к встроенному Hack Nerd Font Mono",
+      "sr": "Враћа назад на испоручени Hack Nerd Font Mono",
       "zh": "恢复内置 Hack Nerd Font Mono"
      }
     },
@@ -31889,6 +32035,7 @@
       "ko": "터미널 글꼴이 초기화되었습니다",
       "pt": "Fonte do terminal redefinida",
       "ru": "Шрифт терминала сброшен",
+      "sr": "Ресет фонта терминала",
       "zh": "终端字体已重置"
      }
     },
@@ -31910,6 +32057,7 @@
       "ko": "터미널 글꼴이 %1$s(으)로 설정되었습니다",
       "pt": "Fonte do terminal definida como %1$s",
       "ru": "Шрифт терминала установлен: %1$s",
+      "sr": "Фонт терминала је постављен на %1$s",
       "zh": "终端字体已设置为 %1$s"
      }
     },
@@ -31929,6 +32077,7 @@
       "ko": "해당 글꼴을 로드할 수 없습니다 — Android가 서체로 디코딩하지 못했습니다",
       "pt": "Não foi possível carregar a fonte — o Android não conseguiu decodificá-la como typeface",
       "ru": "Не удалось загрузить шрифт — Android не смог декодировать его как гарнитуру",
+      "sr": "Тај фонт није могао да се учита — Андроид није могао да га декодује као словни лик",
       "zh": "无法加载该字体——Android 无法将其解码为字型"
      }
     },
@@ -31950,6 +32099,7 @@
       "ko": "설치됨 (%1$d KiB)",
       "pt": "Instalada (%1$d KiB)",
       "ru": "Установлен (%1$d КиБ)",
+      "sr": "Инсталирано (%1$d KiB)",
       "zh": "已安装（%1$d KiB）"
      }
     },
@@ -31971,6 +32121,7 @@
       "ko": "%1$s 설치 중…",
       "pt": "Instalando %1$s…",
       "ru": "Установка %1$s…",
+      "sr": "Инсталира се %1$s…",
       "zh": "正在安装 %1$s…"
      }
     },
@@ -31993,6 +32144,7 @@
       "ko": "%1$s 설치됨 (%2$d KiB)",
       "pt": "%1$s instalada (%2$d KiB)",
       "ru": "%1$s установлен (%2$d КиБ)",
+      "sr": "Инсталиран је %1$s (%2$d KiB)",
       "zh": "%1$s 已安装（%2$d KiB）"
      }
     },
@@ -32012,6 +32164,7 @@
       "ko": "시스템 기본값",
       "pt": "Padrão do sistema",
       "ru": "По умолчанию системы",
+      "sr": "Подразумеван на систему",
       "zh": "系统默认"
      }
     },
@@ -32031,6 +32184,7 @@
       "ko": "Raw — 물리 키보드 전용",
       "pt": "Raw — apenas teclado físico",
       "ru": "Raw — только физическая клавиатура",
+      "sr": "Сирови — само физичка тастатура",
       "zh": "Raw — 仅物理键盘"
      }
     },
@@ -32050,6 +32204,7 @@
       "ko": "Standard — 전체 Gboard 기능",
       "pt": "Standard — recursos completos do Gboard",
       "ru": "Standard — все возможности Gboard",
+      "sr": "Стандардни — комплетна Gboard функционалност",
       "zh": "Standard — 完整 Gboard 功能"
      }
     },
@@ -32069,6 +32224,7 @@
       "ko": "Custom — 사용자 선택 EditorInfo 플래그",
       "pt": "Custom — flags EditorInfo escolhidas pelo usuário",
       "ru": "Custom — выбранные пользователем флаги EditorInfo",
+      "sr": "Произвољно — кориснички изабране EditorInfo заставице",
       "zh": "Custom — 用户自选 EditorInfo 标志"
      }
     },
@@ -32088,6 +32244,7 @@
       "ko": "Secure — 기본값, 자동 교정 억제",
       "pt": "Secure — padrão, suprime autocorreção",
       "ru": "Secure — по умолчанию, подавляет автокоррекцию",
+      "sr": "Безбедни — подразумевано, потискује аутоисправљање",
       "zh": "Secure — 默认，禁止自动纠正"
      }
     },
@@ -32107,6 +32264,7 @@
       "ko": "Secure (기본값)",
       "pt": "Secure (padrão)",
       "ru": "Защищённый (по умолчанию)",
+      "sr": "Безбедни (подразумевано)",
       "zh": "安全（默认）"
      }
     },
@@ -32126,6 +32284,7 @@
       "ko": "개인정보 플래그가 설정된 실제 소프트웨어 키보드: Gboard 마이크, 자동 교정, 스와이프 입력, 쓰기 보조가 억제됩니다. 비밀번호 입력에 적합하며 블루투스 키보드에서도 작동합니다.",
       "pt": "Teclado virtual real com flags de privacidade: microfone do Gboard, autocorreção, digitação por deslizamento e assistência de escrita suprimidos. Ideal para senhas; funciona com teclados Bluetooth também.",
       "ru": "Настоящая экранная клавиатура с флагами конфиденциальности: микрофон Gboard, автокоррекция, свайп-набор и помощник набора отключены. Лучший выбор для ввода паролей; работает и с Bluetooth-клавиатурами.",
+      "sr": "Права софтверска тастатура са постављеним заставицама приватности: потиснути су Gboard микрофон, аутоисправљање, куцање превлачењем и помоћ при писању",
       "zh": "真实软键盘并设置隐私标志：Gboard 麦克风、自动纠正、滑动输入和写作辅助均被禁止。最适合输入密码；蓝牙键盘同样适用。"
      }
     },
@@ -32145,6 +32304,7 @@
       "ko": "Standard",
       "pt": "Standard",
       "ru": "Стандартный",
+      "sr": "Стандардни",
       "zh": "标准"
      }
     },
@@ -32164,6 +32324,7 @@
       "ko": "전체 Gboard 기능 — 음성 입력, 스와이프 입력, 자동 교정, 단어 예측. Secure 모드에서 키보드가 작동하지 않거나 자동 교정이 필요할 때 선택하세요.",
       "pt": "Recursos completos do Gboard — entrada de voz, deslizamento, autocorreção, previsão de palavras. Use se o teclado virtual não funcionar no modo Secure ou se quiser autocorreção.",
       "ru": "Все возможности Gboard — голосовой ввод, свайп-набор, автокоррекция, предсказание слов. Выберите, если клавиатура не работает в защищённом режиме или нужна автокоррекция.",
+      "sr": "Све Gboard функционалности — унос гласом, куцање превлачењем, аутоисправљање, предвиђање речи. Изаберите ово ако ваша софтверска тастатура не функционише у Безбедном режиму, или ако вам је потребно аутоисправљање.",
       "zh": "完整 Gboard 功能——语音输入、滑动输入、自动纠正、词语预测。若软键盘在安全模式下无法使用，或需要自动纠正，请选此项。"
      }
     },
@@ -32183,6 +32344,7 @@
       "ko": "Raw — 블루투스/USB 전용",
       "pt": "Raw — apenas Bluetooth/USB",
       "ru": "Raw — только Bluetooth/USB",
+      "sr": "Сирови — само Bluetooth/USB",
       "zh": "Raw — 仅蓝牙/USB"
      }
     },
@@ -32202,6 +32364,7 @@
       "ko": "소프트웨어 키보드 없음. 물리 키보드(블루투스 또는 USB)만 터미널에 입력됩니다. 가장 강력한 개인정보 보호; 터미널을 탭해도 소프트웨어 키보드가 나타나지 않습니다.",
       "pt": "Sem teclado virtual. Apenas teclas físicas (Bluetooth ou USB) chegam ao terminal. Maior privacidade; o teclado na tela não aparece ao tocar o terminal.",
       "ru": "Без экранной клавиатуры. В терминал поступают только физические клавиши (Bluetooth или USB). Максимальная приватность; экранная клавиатура не появляется при нажатии на терминал.",
+      "sr": "Уопште нема софтверске тастатуре. До терминала долазе само физички тастери (Bluetooth or USB). Најбоља приватност; када тапнете терминал, на екрану се неће појавити тастатура.",
       "zh": "完全不使用软键盘。只有物理按键（蓝牙或 USB）才能到达终端。隐私性最强；点击终端时屏幕键盘不会弹出。"
      }
     },
@@ -32221,6 +32384,7 @@
       "ko": "Custom — 직접 플래그 선택",
       "pt": "Custom — escolha seus próprios flags",
       "ru": "Пользовательский — выберите флаги",
+      "sr": "Произвољни — изаберите своје заставице",
       "zh": "自定义 — 自选标志"
      }
     },
@@ -32240,6 +32404,7 @@
       "ko": "고급. EditorInfo 비트를 직접 선택하여 IME 특성에 맞게 조합할 수 있습니다(예: 자동 교정 없이 Gboard 음성 입력). 선택 후 설정 → \\\"IME 플래그\\\"에서 구성하세요.",
       "pt": "Avançado. Escolha quais bits EditorInfo o terminal define para combinar como quiser com as peculiaridades do seu IME (ex. entrada de voz no Gboard sem autocorreção). Configure em Configurações → \\\"Flags do IME\\\" após selecionar.",
       "ru": "Расширенный режим. Выберите, какие биты EditorInfo устанавливает терминал, чтобы подобрать сочетание под особенности вашего IME (напр. голосовой ввод Gboard без автокоррекции). Настраивается в Настройках → «IME-флаги» после выбора.",
+      "sr": "Напредно. Изаберите EditorInfo битове које терминал поставља, тако да можете направити мешавину која решава особености вашег IME (нпр. унос гласом на Gboard без аутоисправљања). Подесите у Подешавања → „IME заставице“ након што изаберете.",
       "zh": "高级。选择终端设置的 EditorInfo 位，以便根据输入法的特性自由组合（如 Gboard 语音输入但关闭自动纠正）。选中后在设置 → \"输入法标志\"下配置。"
      }
     },
@@ -32259,6 +32424,7 @@
       "ko": "터미널이 설정할 EditorInfo 비트 선택",
       "pt": "Escolha quais bits EditorInfo o terminal define",
       "ru": "Выберите, какие биты EditorInfo устанавливает терминал",
+      "sr": "Изаберите EditorInfo битове које поставља терминал",
       "zh": "选择终端设置的 EditorInfo 位"
      }
     },
@@ -32278,6 +32444,7 @@
       "ko": "Ctrl+Shift+V로 붙여넣기",
       "pt": "Ctrl+Shift+V cola",
       "ru": "Ctrl+Shift+V вставляет",
+      "sr": "Ctrl+Shift+V налепљује",
       "zh": "Ctrl+Shift+V 粘贴"
      }
     },
@@ -32297,6 +32464,7 @@
       "ko": "하드웨어 키보드 Ctrl+Shift+V로 Android 클립보드에서 붙여넣습니다. 끄면 키가 원격 셸로 전달됩니다.",
       "pt": "Ctrl+Shift+V no teclado físico cola da área de transferência do Android. Desativado encaminha as teclas para o shell remoto.",
       "ru": "Ctrl+Shift+V на физической клавиатуре вставляет из буфера обмена Android. В выключенном состоянии клавиши передаются в удалённую оболочку.",
+      "sr": "Ctrl+Shift+V на хардверској тастатури налепљује из Андроид оставе. Искључено прослеђује тастере удаљеној љусци.",
       "zh": "硬件键盘 Ctrl+Shift+V 从 Android 剪贴板粘贴。关闭则将按键转发到远程 shell。"
      }
     },
@@ -32396,6 +32564,7 @@
       "ko": "USB 장치를 Linux 게스트에 노출",
       "pt": "Expor dispositivos USB ao convidado Linux",
       "ru": "Открыть USB-устройства для Linux-гостя",
+      "sr": "Изложи USB уређаје Линукс госту",
       "zh": "将 USB 设备暴露给 Linux 客机"
      }
     },
@@ -32415,6 +32584,7 @@
       "ko": "haven-usb 심을 통해 연결된 USB 장치를 게스트 앱에서 사용할 수 있습니다. 각 연결 시 동의가 필요합니다.",
       "pt": "Permite que dispositivos USB conectados sejam acessados por apps convidados via shim haven-usb. Cada conexão ainda solicita consentimento.",
       "ru": "Разрешить подключённым USB-устройствам работать с гостевыми приложениями через шим haven-usb. Каждое подключение запрашивает согласие.",
+      "sr": "Омогућава да апликације у госту дођу до привезаних USB уређаја преко haven-usb шима. Свако привезивање још увек пита за пристанак.",
       "zh": "通过 haven-usb 垫片让已连接的 USB 设备被客机应用访问。每次连接仍需确认。"
      }
     },
@@ -32434,6 +32604,7 @@
       "ko": "Proot 오디오 (실험적)",
       "pt": "Áudio do proot (experimental)",
       "ru": "Звук proot (экспериментально)",
+      "sr": "Proot аудио (експериментално)",
       "zh": "Proot 音频（实验性）"
      }
     },
@@ -32453,6 +32624,7 @@
       "ko": "게스트 내 PulseAudio 브리지를 통해 Linux 앱의 소리를 기기 스피커로 재생합니다. 출력 전용. 켜져 있는 동안 계속 스트리밍되므로 사용하지 않을 때는 끄세요.",
       "pt": "Reproduz o som de apps Linux no alto-falante do dispositivo por uma ponte PulseAudio dentro do convidado. Apenas saída. Transmite continuamente enquanto ativado — desative quando não estiver em uso.",
       "ru": "Воспроизводит звук из приложений Linux через динамик устройства с помощью моста PulseAudio в гостевой системе. Только вывод. Поток идёт непрерывно, пока включено — выключайте, когда не используется.",
+      "sr": "Пушта звук из Линукс апликација кроз звучник уређаја преко PulseAudio моста унутар госта. Само излаз. Непрекидно стримује док је укључено — искључите када се не користи.",
       "zh": "通过客机内的 PulseAudio 桥接，将 Linux 应用的声音经设备扬声器播放。仅支持输出。开启期间会持续传输——不用时请关闭。"
      }
     },
@@ -32472,6 +32644,7 @@
       "ko": "PRoot 설치 로그 보기",
       "pt": "Ver registro de instalação do PRoot",
       "ru": "Просмотр журнала установки PRoot",
+      "sr": "Прикажи дневник PRoot инсталације",
       "zh": "查看 PRoot 安装日志"
      }
     },
@@ -32491,6 +32664,7 @@
       "ko": "Linux 배포판 설치 중 단계별 이벤트 (이슈 #162)",
       "pt": "Eventos por fase de instalações de distros Linux (issue #162)",
       "ru": "Пофазные события установки дистрибутивов Linux (задача #162)",
+      "sr": "Догађаји по фазама из инсталација Линукс дистрибуције (проблем #162)",
       "zh": "Linux 发行版安装的各阶段事件（问题 #162）"
      }
     },
@@ -32510,6 +32684,7 @@
       "ko": "Logcat 캡처",
       "pt": "Captura do Logcat",
       "ru": "Захват Logcat",
+      "sr": "Logcat хватање",
       "zh": "Logcat 捕获"
      }
     },
@@ -32529,6 +32704,7 @@
       "ko": "/sdcard/Download/haven-logcat.txt에 기록 중",
       "pt": "Gravando em /sdcard/Download/haven-logcat.txt",
       "ru": "Запись в /sdcard/Download/haven-logcat.txt",
+      "sr": "Снимање на /sdcard/Download/haven-logcat.txt",
       "zh": "正在录制到 /sdcard/Download/haven-logcat.txt"
      }
     },
@@ -32548,6 +32724,7 @@
       "ko": "원격 디버깅을 위해 logcat 캡처",
       "pt": "Capturar logcat para depuração remota",
       "ru": "Захват logcat для удалённой отладки",
+      "sr": "Хвата logcat за удаљено отклањање грешака",
       "zh": "捕获 logcat 用于远程调试"
      }
     },
@@ -32567,6 +32744,7 @@
       "ko": "Logcat 저장됨",
       "pt": "Logcat salvo",
       "ru": "Logcat сохранён",
+      "sr": "Logcat је сачуван",
       "zh": "Logcat 已保存"
      }
     },
@@ -32586,6 +32764,7 @@
       "ko": "Logcat 캡처 시작됨",
       "pt": "Captura do logcat iniciada",
       "ru": "Захват logcat запущен",
+      "sr": "Започето је хватање logcat",
       "zh": "Logcat 捕获已开始"
      }
     },
@@ -32605,6 +32784,7 @@
       "ko": "캡처 시작 실패",
       "pt": "Falha ao iniciar a captura",
       "ru": "Не удалось запустить захват",
+      "sr": "Није успело покретање хватања",
       "zh": "启动捕获失败"
      }
     },
@@ -32624,6 +32804,7 @@
       "ko": "에이전트 엔드포인트 (MCP)",
       "pt": "Endpoint do agente (MCP)",
       "ru": "Конечная точка агента (MCP)",
+      "sr": "Крајња тачка агента (MCP)",
       "zh": "代理端点（MCP）"
      }
     },
@@ -32643,6 +32824,7 @@
       "ko": "활성화됨 — 루프백의 로컬 MCP 서버. 쓰기 도구는 동의를 요청합니다.",
       "pt": "Ativado — servidor MCP local no loopback. Ferramentas de escrita solicitam consentimento.",
       "ru": "Включено — локальный MCP-сервер на loopback. Инструменты записи запрашивают согласие.",
+      "sr": "Укључена — локални MCP сервер на повратној петљи. Алати који уписују питају за сагласност.",
       "zh": "已启用——本地 MCP 服务器在回环地址上运行。写入工具需要确认。"
      }
     },
@@ -32662,6 +32844,7 @@
       "ko": "비활성화됨 — 켜면 로컬 AI 에이전트가 상태를 읽고 (동의 하에) 동작할 수 있습니다",
       "pt": "Desativado — ative para permitir que agentes de IA locais leiam o estado e (com consentimento) ajam sobre ele",
       "ru": "Отключено — включите, чтобы локальные AI-агенты могли читать состояние и (с согласия) действовать",
+      "sr": "Искључена — укључите да дозволите локалним AI агентима да читају стање и (уз сагласност) делују на њега",
       "zh": "已禁用——开启后允许本地 AI 代理读取状态并（经确认）执行操作"
      }
     },
@@ -32681,6 +32864,7 @@
       "ko": "에이전트의 파일 내용 읽기 허용",
       "pt": "Permitir que agentes leiam conteúdo de arquivos",
       "ru": "Разрешить агентам читать содержимое файлов",
+      "sr": "Дозволи да агенти читају садржаје фајлова",
       "zh": "允许代理读取文件内容"
      }
     },
@@ -32700,6 +32884,7 @@
       "ko": "활성화됨 — `serve_file`은 호출별 동의 후 일회용 다운로드 URL을 반환합니다",
       "pt": "Ativado — `serve_file` retorna URL de download de uso único após consentimento por chamada",
       "ru": "Включено — `serve_file` возвращает одноразовый URL для скачивания после согласия на каждый вызов",
+      "sr": "Укључено — `serve_file` враћа једнократни URL преузимања након пристанка за сваки позив посебно",
       "zh": "已启用——`serve_file` 在每次调用确认后返回单次下载 URL"
      }
     },
@@ -32719,6 +32904,7 @@
       "ko": "비활성화됨 — `serve_file` 요청이 즉시 실패하며 프롬프트 없음",
       "pt": "Desativado — solicitações `serve_file` falham imediatamente, sem prompt",
       "ru": "Отключено — запросы `serve_file` сразу завершаются ошибкой без запроса",
+      "sr": "Искључено — `serve_file` захтеви се тренутно одбијају, без питања",
       "zh": "已禁用——`serve_file` 请求立即失败，无提示"
      }
     },
@@ -32738,6 +32924,7 @@
       "ko": "에이전트의 터미널 입력 허용",
       "pt": "Permitir que agentes enfilerem entrada no terminal",
       "ru": "Разрешить агентам ставить ввод в очередь терминала",
+      "sr": "Дозволи да агенти стављају улаз терминала у ред",
       "zh": "允许代理排队终端输入"
      }
     },
@@ -32757,6 +32944,7 @@
       "ko": "활성화됨 — `queue_terminal_input`이 SSH 세션 출력을 감시하고 다음 프롬프트에서 대기 중인 텍스트를 입력합니다 (호출별 동의)",
       "pt": "Ativado — `queue_terminal_input` monitora a saída da sessão SSH e digita o texto enfileirado no próximo prompt (consentimento por chamada)",
       "ru": "Включено — `queue_terminal_input` следит за выводом SSH-сессии и вводит текст при следующем приглашении (согласие на каждый вызов)",
+      "sr": "Укључено — `queue_terminal_input` прати излаз SSH сесије и куца  текст из реда приликом наредног одзива љуске (пристанак за сваки позив посебно)",
       "zh": "已启用——`queue_terminal_input` 监视 SSH 会话输出，在下次提示符时键入排队文本（每次调用需确认）"
      }
     },
@@ -32776,6 +32964,7 @@
       "ko": "비활성화됨 — `queue_terminal_input` 요청이 즉시 실패하며 프롬프트 없음",
       "pt": "Desativado — solicitações `queue_terminal_input` falham imediatamente, sem prompt",
       "ru": "Отключено — запросы `queue_terminal_input` сразу завершаются ошибкой без запроса",
+      "sr": "Искључено — `queue_terminal_input` захтеви се тренутно одбијају, без питања",
       "zh": "已禁用——`queue_terminal_input` 请求立即失败，无提示"
      }
     },
@@ -32795,6 +32984,7 @@
       "ko": "상시 연결 MCP 연결",
       "pt": "Conexão MCP sempre ativa",
       "ru": "Постоянное MCP-подключение",
+      "sr": "Профил за MCP преко SSH",
       "zh": "常驻 MCP 连接"
      }
     },
@@ -32816,6 +33006,7 @@
       "ko": "\\\"%1$s\\\"로 터널링됨 — WiFi 변경 및 앱 재시작 후에도 유지됩니다",
       "pt": "Tunelado para \\\"%1$s\\\" — sobrevive a mudanças de Wi-Fi e reinicializações do app",
       "ru": "Туннель к \\\"%1$s\\\" — сохраняется при смене Wi-Fi и перезапуске приложения",
+      "sr": "Води вашу везу до „%1$s“ — отворите је да приступите MCP ван уређаја",
       "zh": "已通过隧道连接到\"%1$s\"——WiFi 切换和应用重启后仍有效"
      }
     },
@@ -32835,6 +33026,7 @@
       "ko": "설정되지 않음 — 엔드포인트가 기기에서만 접근 가능합니다",
       "pt": "Não configurado — endpoint acessível somente no dispositivo",
       "ru": "Не задана — конечная точка доступна только на устройстве",
+      "sr": "Није постављено — крајњој тачки може да се приступи само са уређаја (или кроз WireGuard)",
       "zh": "未设置——端点仅在设备本地可访问"
      }
     },
@@ -32854,6 +33046,7 @@
       "ko": "없음 (기기 전용)",
       "pt": "Nenhum (somente no dispositivo)",
       "ru": "Нет (только на устройстве)",
+      "sr": "Ништа (само на уређају)",
       "zh": "无（仅设备本地）"
      }
     },
@@ -32875,6 +33068,7 @@
       "ko": "Near (SSH): %1$s 경유 — 연결됨",
       "pt": "Near (SSH): usando %1$s — conectado",
       "ru": "Near (SSH): через %1$s — подключено",
+      "sr": "У близини (SSH): води се %1$s — повезано",
       "zh": "Near（SSH）：经由 %1$s — 已连接"
      }
     },
@@ -32896,6 +33090,7 @@
       "ko": "Near (SSH): 연결 안 됨 — 사용하려면 %1$s을(를) 여세요",
       "pt": "Near (SSH): não conectado — abra %1$s para ativar",
       "ru": "Near (SSH): не подключено — откройте %1$s, чтобы включить",
+      "sr": "У близини (SSH): није повезано — отворите %1$s да укључите",
       "zh": "Near（SSH）：未连接 — 打开 %1$s 以启用"
      }
     },
@@ -32915,6 +33110,7 @@
       "ko": "WireGuard 터널에 노출",
       "pt": "Expor no túnel WireGuard",
       "ru": "Открыть через туннель WireGuard",
+      "sr": "Изложи на WireGuard тунелу",
       "zh": "在 WireGuard 隧道上暴露"
      }
     },
@@ -32934,6 +33130,7 @@
       "ko": "활성화됨 — 활성 WireGuard 터널의 &lt;wg-ip&gt;:8730에서도 접근 가능",
       "pt": "Ativado — também acessível em &lt;wg-ip&gt;:8730 no túnel WireGuard ativo",
       "ru": "Включено — также доступно по адресу &lt;wg-ip&gt;:8730 в активном туннеле WireGuard",
+      "sr": "Укључено — такође је доступно на &lt;wg-ip&gt;:8730 на активном WireGuard тунелу",
       "zh": "已启用——也可通过活动 WireGuard 隧道的 &lt;wg-ip&gt;:8730 访问"
      }
     },
@@ -32953,6 +33150,7 @@
       "ko": "비활성화됨 — 켜면 활성 WireGuard 터널을 통해 엔드포인트에 접근할 수 있습니다",
       "pt": "Desativado — ative para acessar o endpoint por um túnel WireGuard ativo",
       "ru": "Отключено — включите для доступа к конечной точке через активный туннель WireGuard",
+      "sr": "Искључено — укључите да приступите крајњој тачки преко активног WireGuard тунела",
       "zh": "已禁用——开启后可通过活动 WireGuard 隧道访问端点"
      }
     },
@@ -32975,6 +33173,7 @@
       "ko": "다른 VPN(%1$s)이 %2$s을(를) 사용 중입니다 — 이 엔드포인트가 바인딩하는 주소와 같아서 가려져 피어에서 접근할 수 없습니다. 해당 VPN을 중지하거나, MCP 클라이언트를 루프백(127.0.0.1) 엔드포인트로 지정하세요.",
       "pt": "Outra VPN (%1$s) está usando %2$s — o mesmo endereço a que este endpoint se vincula, então ele fica oculto e inacessível pelos peers. Pare essa VPN ou aponte seu cliente MCP para o endpoint de loopback (127.0.0.1).",
       "ru": "Другой VPN (%1$s) использует %2$s — тот же адрес, к которому привязана эта конечная точка, поэтому она перекрыта и недоступна для пиров. Остановите этот VPN или укажите MCP-клиенту конечную точку loopback (127.0.0.1).",
+      "sr": "Неки други VPN (%1$s) користи %2$s — исту адресу за коју се везује ова крајња тачка, тако да је она заклоњена и равноправни чланови не могу да дођу до ње. Зауставите тај VPN, или уместо тога, управите свој MCP клијент на крајњу тачку повратне петље (127.0.0.1).",
       "zh": "另一个 VPN（%1$s）正在使用 %2$s——与此端点绑定的地址相同，因此被遮蔽，对端无法访问。请停止该 VPN，或改将 MCP 客户端指向回环（127.0.0.1）端点。"
      }
     },
@@ -32994,6 +33193,7 @@
       "ko": "Wi-Fi/LAN에 노출",
       "pt": "Expor no Wi-Fi/LAN",
       "ru": "Открыть через Wi-Fi/LAN",
+      "sr": "Изложи на Wi-Fi/LAN",
       "zh": "在 Wi-Fi/LAN 上暴露"
      }
     },
@@ -33013,6 +33213,7 @@
       "ko": "활성화됨 — 로컬 네트워크의 &lt;device-lan-ip&gt;:8730에서도 접근 가능",
       "pt": "Ativado — também acessível em &lt;device-lan-ip&gt;:8730 na rede local",
       "ru": "Включено — также доступно по адресу &lt;device-lan-ip&gt;:8730 в локальной сети",
+      "sr": "Укључено — такође је доступно на &lt;device-lan-ip&gt;:8730 на локалној мрежи",
       "zh": "已启用——也可通过本地网络的 &lt;device-lan-ip&gt;:8730 访问"
      }
     },
@@ -33032,6 +33233,7 @@
       "ko": "비활성화됨 — 켜면 같은 Wi-Fi/LAN의 기기에서 직접 접근할 수 있습니다",
       "pt": "Desativado — ative para acesso direto de um dispositivo no mesmo Wi-Fi/LAN",
       "ru": "Отключено — включите для прямого доступа с устройства в той же Wi-Fi/LAN-сети",
+      "sr": "Искључено — укључите за директну доступност са уређаја на истој Wi-Fi/LAN",
       "zh": "已禁用——开启后可从同一 Wi-Fi/LAN 上的设备直接访问"
      }
     },
@@ -33051,6 +33253,7 @@
       "ko": "로컬 클라이언트 신뢰",
       "pt": "Confiar em clientes locais",
       "ru": "Доверять локальным клиентам",
+      "sr": "Веруј локалним клијентима",
       "zh": "信任本地客户端"
      }
     },
@@ -33070,6 +33273,7 @@
       "ko": "활성화됨 — 로컬 클라이언트(127.0.0.1)는 페어링이나 승인 프롬프트 없이 연결됩니다. Wi-Fi/LAN 및 WireGuard 클라이언트는 여전히 프롬프트를 표시합니다.",
       "pt": "Ativado — clientes locais (127.0.0.1) conectam sem emparelhamento nem avisos de aprovação. Clientes Wi-Fi/LAN e WireGuard ainda solicitam.",
       "ru": "Включено — локальные клиенты (127.0.0.1) подключаются без сопряжения и запросов подтверждения. Клиенты по Wi-Fi/LAN и WireGuard по-прежнему запрашивают подтверждение.",
+      "sr": "Укључено — локални клијенти (127.0.0.1) се повезују без упаривања или питања за одобрење. Wi-Fi/LAN и WireGuard клијенти ће се и даље питати.",
       "zh": "已启用——本地客户端（127.0.0.1）无需配对或批准提示即可连接。Wi-Fi/LAN 和 WireGuard 客户端仍会提示。"
      }
     },
@@ -33089,6 +33293,7 @@
       "ko": "비활성화됨 — 로컬 클라이언트도 페어링하고 각 요청을 승인해야 합니다",
       "pt": "Desativado — mesmo clientes locais precisam ser emparelhados e aprovar cada solicitação",
       "ru": "Отключено — даже локальные клиенты должны быть сопряжены и подтверждать каждый запрос",
+      "sr": "Искључено — чак и локални клијенти морају да се упаре и да одобре сваки захтев",
       "zh": "已禁用——即使本地客户端也必须配对并逐次批准请求"
      }
     },
@@ -33108,6 +33313,7 @@
       "ko": "에이전트 엔드포인트 URL 복사",
       "pt": "Copiar URL do endpoint do agente",
       "ru": "Скопировать URL конечной точки агента",
+      "sr": "Копирај URL крајње тачке агента",
       "zh": "复制代理端点 URL"
      }
     },
@@ -33127,6 +33333,7 @@
       "ko": "엔드포인트 복사됨",
       "pt": "Endpoint copiado",
       "ru": "Конечная точка скопирована",
+      "sr": "Крајња тачка је копирана",
       "zh": "端点已复制"
      }
     },
@@ -33146,6 +33353,7 @@
       "ko": "MCP 클라이언트 설정 복사",
       "pt": "Copiar configuração do cliente MCP",
       "ru": "Скопировать конфигурацию MCP-клиента",
+      "sr": "Копирај конфиг MCP клијента",
       "zh": "复制 MCP 客户端配置"
      }
     },
@@ -33165,6 +33373,7 @@
       "ko": "모든 MCP 클라이언트에 붙여넣을 수 있는 표준 JSON 스니펫",
       "pt": "Trecho JSON padrão para colar em qualquer cliente MCP",
       "ru": "Стандартный JSON-фрагмент для вставки в любой MCP-клиент",
+      "sr": "Стандардни JSON одломак који се налепљује у било који MCP клијент",
       "zh": "可粘贴到任意 MCP 客户端的标准 JSON 片段"
      }
     },
@@ -33184,6 +33393,7 @@
       "ko": "설정 복사됨",
       "pt": "Configuração copiada",
       "ru": "Конфигурация скопирована",
+      "sr": "Конфигурација је копирана",
       "zh": "配置已复制"
      }
     },
@@ -33203,6 +33413,7 @@
       "ko": "PRoot에서도 사용 가능",
       "pt": "Disponível também no PRoot",
       "ru": "Также доступно в PRoot",
+      "sr": "Такође доступно и у PRoot",
       "zh": "也可在 PRoot 中使用"
      }
     },
@@ -33222,6 +33433,7 @@
       "ko": "에이전트 활동 보기",
       "pt": "Ver atividade do agente",
       "ru": "Просмотр активности агента",
+      "sr": "Приказ активности агента",
       "zh": "查看代理活动"
      }
     },
@@ -33241,6 +33453,7 @@
       "ko": "인수가 삭제된 모든 MCP 호출 기록",
       "pt": "Cada chamada MCP registrada com argumentos ocultos",
       "ru": "Все вызовы MCP записываются с замаскированными аргументами",
+      "sr": "Сваки MCP позив забележен са редигованим аргументима",
       "zh": "每次 MCP 调用均记录（参数已脱敏）"
      }
     },
@@ -33260,6 +33473,7 @@
       "ko": "파괴적 에이전트 작업 확인",
       "pt": "Confirmar ações destrutivas do agente",
       "ru": "Подтверждать деструктивные действия агента",
+      "sr": "Потврди деструктивне акције агента",
       "zh": "确认代理破坏性操作"
      }
     },
@@ -33279,6 +33493,7 @@
       "ko": "쓰기, 삭제, 업로드 또는 연결 해제하는 에이전트 호출 전에 프롬프트를 표시합니다. 읽기 전용 호출은 프롬프트 없음.",
       "pt": "Solicitar confirmação antes de qualquer chamada do agente que escreva, exclua, envie ou desconecte. Chamadas somente-leitura nunca solicitam.",
       "ru": "Запрашивать подтверждение перед вызовами агента, которые записывают, удаляют, загружают или отключают. Вызовы только для чтения не запрашивают.",
+      "sr": "Поставља се питање пре било ког агентског позива који уписује, брише, отпрема, или прекида везу. Позиви само-за-читање никада не постављају питање.",
       "zh": "在任何写入、删除、上传或断开的代理调用前提示。只读调用不提示。"
      }
     },
@@ -33298,6 +33513,7 @@
       "ko": "저장된 허용 목록 초기화",
       "pt": "Esquecer permissões lembradas",
       "ru": "Забыть запомненные разрешения",
+      "sr": "Заборави упамћена одобрења",
       "zh": "忘记已记忆的允许"
      }
     },
@@ -33317,6 +33533,7 @@
       "ko": "세션당 한 번 승인된 모든 도구에 대해 다시 프롬프트를 표시합니다.",
       "pt": "Solicitar novamente para cada ferramenta que recebeu aprovação por sessão anteriormente.",
       "ru": "Запрашивать заново для каждого инструмента, ранее получившего одноразовое одобрение.",
+      "sr": "Поново поставља питање за сваки алат који је раније добио једном-по-сесији одобрење.",
       "zh": "对之前获得单次会话批准的每个工具重新提示。"
      }
     },
@@ -33336,6 +33553,7 @@
       "ko": "저장된 허용 목록이 초기화되었습니다",
       "pt": "Permissões lembradas apagadas",
       "ru": "Запомненные разрешения очищены",
+      "sr": "Упамћена одобрења су обрисана",
       "zh": "已记忆的允许已清除"
      }
     },
@@ -33355,6 +33573,7 @@
       "ko": "TTF 또는 OTF 글꼴 파일의 직접 링크를 붙여넣으세요. 일반적인 Nerd Fonts의 GitHub 원시 TTF 주소: github.com/ryanoasis/nerd-fonts/raw/master/patched-fonts/&lt;Name&gt;/Regular/&lt;Name&gt;NerdFont-Regular.ttf",
       "pt": "Cole um link direto para um arquivo de fonte TTF ou OTF. Nerd Fonts populares têm TTFs brutos no GitHub em github.com/ryanoasis/nerd-fonts/raw/master/patched-fonts/&lt;Name&gt;/Regular/&lt;Name&gt;NerdFont-Regular.ttf — copie essa URL aqui.",
       "ru": "Вставьте прямую ссылку на файл шрифта TTF или OTF. Популярные Nerd Fonts имеют TTF-файлы на GitHub: github.com/ryanoasis/nerd-fonts/raw/master/patched-fonts/&lt;Name&gt;/Regular/&lt;Name&gt;NerdFont-Regular.ttf — скопируйте этот URL сюда.",
+      "sr": "Налепите директни линк до фајла TTF или OTF фонта. Сирови TTF фајлови уобичајених Nerd фонтова се налазе на GitHub адреси github.com/ryanoasis/nerd-fonts/raw/master/patched-fonts/&lt;Име&gt;/Regular/&lt;Име&gt;NerdFont-Regular.ttf — налепите овде ту URL адресу.",
       "zh": "粘贴指向 TTF 或 OTF 字体文件的直链。常见 Nerd Fonts 的原始 TTF 位于 GitHub：github.com/ryanoasis/nerd-fonts/raw/master/patched-fonts/&lt;Name&gt;/Regular/&lt;Name&gt;NerdFont-Regular.ttf — 复制该 URL 粘贴到此处。"
      }
     },
@@ -33374,6 +33593,7 @@
       "ko": "https://…/font.ttf",
       "pt": "https://…/font.ttf",
       "ru": "https://…/font.ttf",
+      "sr": "https://…/font.ttf",
       "zh": "https://…/font.ttf"
      }
     },
@@ -33393,6 +33613,7 @@
       "ko": "탭하여 인기 있는 고정폭 코딩 글꼴을 다운로드하고 적용합니다.",
       "pt": "Toque para baixar e aplicar uma fonte monospace popular para programação.",
       "ru": "Нажмите для загрузки и применения популярного моноширинного шрифта для программирования.",
+      "sr": "Тапните да се преузме и примени популарни програмерски фонт фиксне ширине.",
       "zh": "点击下载并应用流行的等宽编程字体。"
      }
     },
@@ -33412,6 +33633,7 @@
       "ko": "각 토글이 EditorInfo 비트 하나를 제어합니다. IME마다 다른 조합을 지원하므로 터미널이 그대로 입력되면서 필요한 IME 기능을 사용할 수 있을 때까지 조정하세요.",
       "pt": "Cada opção controla um bit do EditorInfo. IMEs diferentes respeitam combinações diferentes; ajuste até o terminal digitar fielmente enquanto permite as funcionalidades do IME que você precisa.",
       "ru": "Каждый переключатель управляет одним битом EditorInfo. Разные IME учитывают разные комбинации; подбирайте до тех пор, пока терминал не будет вводить точно, но пропускать нужные функции IME.",
+      "sr": "Сваки преклопник контролише један EditorInfo бит. Различити IME-и поштују различите комбинације; подешавајте све док ваш терминал откуцава дословно, а још увек пропушта и IME функционалности које су вам потребне.",
       "zh": "每个开关控制一个 EditorInfo 位。不同输入法支持不同组合；调整直到终端能按原样输入，同时保留所需的输入法功能。"
      }
     },
@@ -33431,6 +33653,7 @@
       "ko": "뒤로",
       "pt": "Voltar",
       "ru": "Назад",
+      "sr": "Назад",
       "zh": "返回"
      }
     },
@@ -33450,6 +33673,7 @@
       "ko": "전체",
       "pt": "Todos",
       "ru": "Все",
+      "sr": "Све",
       "zh": "全部"
      }
     },
@@ -33469,6 +33693,7 @@
       "ko": "지우기",
       "pt": "Limpar",
       "ru": "Очистить",
+      "sr": "Обриши",
       "zh": "清除"
      }
     },
@@ -33488,6 +33713,7 @@
       "ko": "이 작업은 취소할 수 없습니다.",
       "pt": "Isso não pode ser desfeito.",
       "ru": "Это действие нельзя отменить.",
+      "sr": "Ово не може да се поништи.",
       "zh": "此操作无法撤销。"
      }
     },
@@ -33507,6 +33733,7 @@
       "ko": "접기",
       "pt": "Recolher",
       "ru": "Свернуть",
+      "sr": "Сажми",
       "zh": "折叠"
      }
     },
@@ -33526,6 +33753,7 @@
       "ko": "펼치기",
       "pt": "Expandir",
       "ru": "Развернуть",
+      "sr": "Развиј",
       "zh": "展开"
      }
     },
@@ -33545,6 +33773,7 @@
       "ko": "실패",
       "pt": "Falhou",
       "ru": "Сбой",
+      "sr": "Није успело",
       "zh": "失败"
      }
     },
@@ -33564,6 +33793,7 @@
       "ko": "연결 로그",
       "pt": "Registro de conexões",
       "ru": "Журнал подключений",
+      "sr": "Дневник везе",
       "zh": "连接日志"
      }
     },
@@ -33583,6 +33813,7 @@
       "ko": "로그 지우기",
       "pt": "Limpar registros",
       "ru": "Очистить журналы",
+      "sr": "Обриши дневник",
       "zh": "清除日志"
      }
     },
@@ -33602,6 +33833,7 @@
       "ko": "세부 정보 토글",
       "pt": "Alternar detalhes",
       "ru": "Показать/скрыть подробности",
+      "sr": "Укљ./искљ. детаље",
       "zh": "切换详情"
      }
     },
@@ -33621,6 +33853,7 @@
       "ko": "로그 복사",
       "pt": "Copiar registro",
       "ru": "Скопировать журнал",
+      "sr": "Копирај дневник",
       "zh": "复制日志"
      }
     },
@@ -33640,6 +33873,7 @@
       "ko": "로그 공유",
       "pt": "Compartilhar registro",
       "ru": "Поделиться журналом",
+      "sr": "Подели дневник",
       "zh": "分享日志"
      }
     },
@@ -33659,6 +33893,7 @@
       "ko": "기록된 연결 이벤트가 없습니다",
       "pt": "Nenhum evento de conexão registrado",
       "ru": "Событий подключений не записано",
+      "sr": "Није забележен ниједан догађај повезивања",
       "zh": "暂无连接事件记录"
      }
     },
@@ -33678,6 +33913,7 @@
       "ko": "모든 로그를 지울까요?",
       "pt": "Limpar todos os registros?",
       "ru": "Очистить все журналы?",
+      "sr": "Желите ли да обришете све дневнике?",
       "zh": "清除所有日志？"
      }
     },
@@ -33697,6 +33933,7 @@
       "ko": "이 항목에 대한 자세한 로그가 없습니다",
       "pt": "Nenhum registro detalhado para esta entrada",
       "ru": "Подробного журнала для этой записи нет",
+      "sr": "За ову ставку није вођен детаљни дневник",
       "zh": "此条目无详细日志"
      }
     },
@@ -33716,6 +33953,7 @@
       "ko": "로그 공유",
       "pt": "Compartilhar registro",
       "ru": "Поделиться журналом",
+      "sr": "Подели дневник",
       "zh": "分享日志"
      }
     },
@@ -33735,6 +33973,7 @@
       "ko": "앱 비정상 종료",
       "pt": "Falhas do app",
       "ru": "Сбои приложения",
+      "sr": "Апликација се срушила",
       "zh": "应用崩溃"
      }
     },
@@ -33754,6 +33993,7 @@
       "ko": "Haven이 예기치 않게 종료되었습니다. 아래 보고서에 발생 위치가 있습니다 — 버그 신고에 첨부해 주세요.",
       "pt": "O Haven fechou inesperadamente. O relatório abaixo indica onde — anexe-o a um relatório de bug.",
       "ru": "Haven неожиданно закрылся. Отчёт ниже показывает, где именно — приложите его к сообщению об ошибке.",
+      "sr": "Haven се неочекивано затворио. Извештај испод указује место на којем се то десило — молимо вас да га прикачите уз извештај о багу.",
       "zh": "Haven 意外关闭。下面的报告指出了发生位置——请将其附到错误报告中。"
      }
     },
@@ -33773,6 +34013,7 @@
       "ko": "Haven이 예기치 않게 종료되었습니다. 이런 경우 Android가 상세 보고서를 남기지 않아 시각과 시그널만 알 수 있습니다 — 시그널만으로도 원인을 좁힐 수 있으니 버그 신고에 함께 첨부해 주세요.",
       "pt": "O Haven fechou inesperadamente. O Android não guardou um relatório detalhado destes, então só se sabem o horário e o sinal — anexe-os mesmo assim a um relatório de bug, pois o sinal ajuda a restringir a causa.",
       "ru": "Haven неожиданно закрылся. Android не сохранил подробный отчёт для таких случаев, известны только время и сигнал — всё равно приложите их к сообщению об ошибке: сигнал сужает круг причин.",
+      "sr": "Haven се неочекивано затворио. Андроид није водио детаљни извештај за ово, тако да је познато само време и сигнал — молимо вас да их прикачите уз извештај о багу, јер их сигнал прецизније одређује.",
       "zh": "Haven 意外关闭。Android 未对此类崩溃保留详细报告，因此只知道时间和信号——请仍将它们附到错误报告中，信号有助于缩小排查范围。"
      }
     },
@@ -33792,6 +34033,7 @@
       "ko": "이 비정상 종료에 대한 상세 보고서가 없습니다.",
       "pt": "Nenhum relatório detalhado foi guardado para esta falha.",
       "ru": "Подробный отчёт для этого сбоя не сохранён.",
+      "sr": "За ово рушење није вођен детаљни извештај.",
       "zh": "此次崩溃没有保留详细报告。"
      }
     },
@@ -33811,6 +34053,7 @@
       "ko": "보고서 복사",
       "pt": "Copiar relatório",
       "ru": "Скопировать отчёт",
+      "sr": "Копирај извештај",
       "zh": "复制报告"
      }
     },
@@ -33830,6 +34073,7 @@
       "ko": "비정상 종료 보고서가 복사됨",
       "pt": "Relatório de falha copiado",
       "ru": "Отчёт о сбое скопирован",
+      "sr": "Копиран је извештај о рушењу",
       "zh": "已复制崩溃报告"
      }
     },
@@ -33849,6 +34093,7 @@
       "ko": "닫기",
       "pt": "Dispensar",
       "ru": "Скрыть",
+      "sr": "Одбаци",
       "zh": "忽略"
      }
     },
@@ -33868,6 +34113,7 @@
       "ko": "동기화",
       "pt": "Sync",
       "ru": "Синхронизация",
+      "sr": "Синхро",
       "zh": "同步"
      }
     },
@@ -33887,6 +34133,7 @@
       "ko": "동기화 실패",
       "pt": "Sync falhou",
       "ru": "Ошибка синхронизации",
+      "sr": "Синхро није успела",
       "zh": "同步失败"
      }
     },
@@ -33906,6 +34153,7 @@
       "ko": "에이전트 활동",
       "pt": "Atividade do agente",
       "ru": "Активность агента",
+      "sr": "Активност агента",
       "zh": "代理活动"
      }
     },
@@ -33925,6 +34173,7 @@
       "ko": "기록 지우기",
       "pt": "Limpar histórico",
       "ru": "Очистить историю",
+      "sr": "Обриши историју",
       "zh": "清除历史"
      }
     },
@@ -33944,6 +34193,7 @@
       "ko": "에이전트 활동이 없습니다.\\n\\nMCP 클라이언트가 도구를 호출하면 인수가 삭제되고 결과가 요약된 상태로 여기에 표시됩니다.",
       "pt": "Nenhuma atividade do agente ainda.\\n\\nQuando um cliente MCP chamar uma ferramenta, a chamada aparecerá aqui com os argumentos ocultos e o resultado resumido.",
       "ru": "Активности агента пока нет.\\n\\nКогда MCP-клиент вызывает инструмент, вызов появится здесь с замаскированными аргументами и кратким результатом.",
+      "sr": "Још увек нема активности агента. Када MCP клијент позове алат, овде ће појавити позив са редигованим аргументима и сумаризованим резултатом.",
       "zh": "暂无代理活动。\\n\\n当 MCP 客户端调用工具时，调用记录将显示在此处，参数已脱敏，结果已摘要。"
      }
     },
@@ -33963,6 +34213,7 @@
       "ko": "에이전트 활동을 지울까요?",
       "pt": "Limpar atividade do agente?",
       "ru": "Очистить активность агента?",
+      "sr": "Желите ли да обришете активност агента?",
       "zh": "清除代理活动？"
      }
     },
@@ -33982,6 +34233,7 @@
       "ko": "이 기기에서 기록된 모든 MCP 호출이 삭제됩니다. 이 작업은 취소할 수 없습니다.",
       "pt": "Todas as chamadas MCP registradas serão excluídas deste dispositivo. Isso não pode ser desfeito.",
       "ru": "Все записанные вызовы MCP будут удалены с этого устройства. Это действие нельзя отменить.",
+      "sr": "Са овог уређаја ће се обрисати сви MCP позиви. Ово не може да се поништи.",
       "zh": "所有已记录的 MCP 调用将从本设备删除。此操作无法撤销。"
      }
     },
@@ -34001,6 +34253,7 @@
       "ko": "알 수 없는 클라이언트",
       "pt": "cliente desconhecido",
       "ru": "неизвестный клиент",
+      "sr": "непознати клијент",
       "zh": "未知客户端"
      }
     },
@@ -34020,6 +34273,7 @@
       "ko": "인수 (삭제됨)",
       "pt": "args (ocultos)",
       "ru": "аргументы (скрыты)",
+      "sr": "арг (редиговани)",
       "zh": "参数（已脱敏）"
      }
     },
@@ -34039,6 +34293,7 @@
       "ko": "상시 정책 — 이 도구들은 확인 없이 실행됩니다",
       "pt": "Políticas permanentes — estas ferramentas são executadas sem perguntar",
       "ru": "Постоянные политики — эти инструменты выполняются без запроса",
+      "sr": "Трајне полисе — ови алати се покрећу без питања",
       "zh": "常驻策略——这些工具无需询问即可运行"
      }
     },
@@ -34062,6 +34317,7 @@
       "ko": "%1$s · 분당 최대 %2$d회 · %3$s에 만료",
       "pt": "%1$s · até %2$d chamadas/min · expira %3$s",
       "ru": "%1$s · до %2$d вызовов/мин · истекает %3$s",
+      "sr": "%1$s · све до %2$d позива/мин · истиче %3$s",
       "zh": "%1$s · 每分钟最多 %2$d 次调用 · %3$s 过期"
      }
     },
@@ -34081,6 +34337,7 @@
       "ko": "철회",
       "pt": "Revogar",
       "ru": "Отозвать",
+      "sr": "Опозови",
       "zh": "撤销"
      }
     },
@@ -34100,6 +34357,7 @@
       "ko": "PRoot 설치 로그",
       "pt": "Registro de instalação do PRoot",
       "ru": "Журнал установки PRoot",
+      "sr": "Дневник PRoot инсталације",
       "zh": "PRoot 安装日志"
      }
     },
@@ -34119,6 +34377,7 @@
       "ko": "로그 지우기",
       "pt": "Limpar registro",
       "ru": "Очистить журнал",
+      "sr": "Обриши дневник",
       "zh": "清除日志"
      }
     },
@@ -34138,6 +34397,7 @@
       "ko": "아직 기록된 설치 이벤트가 없습니다. 연결 → 데스크톱에서 배포판을 설치하면 이 로그가 채워집니다.",
       "pt": "Nenhum evento de instalação registrado ainda. Instale uma distro em Conexões → Desktops para preencher este registro.",
       "ru": "Событий установки пока не записано. Установите дистрибутив через «Подключения → Рабочие столы», чтобы заполнить журнал.",
+      "sr": "Још увек није забележен ниједан догађај инсталације. Инсталирајте дистрибуцију из Повезивање → Десктопи да би се попунио овај дневник.",
       "zh": "暂无安装事件记录。通过连接 → 桌面安装发行版以填充此日志。"
      }
     },
@@ -34157,6 +34417,7 @@
       "ko": "설치 로그를 지울까요?",
       "pt": "Limpar registro de instalação?",
       "ru": "Очистить журнал установки?",
+      "sr": "Желите ли да обришете дневник инсталације?",
       "zh": "清除安装日志？"
      }
     },
@@ -34176,6 +34437,7 @@
       "ko": "기록된 모든 설치 이벤트가 삭제됩니다.",
       "pt": "Todos os eventos de instalação registrados serão removidos.",
       "ru": "Все записанные события установки будут удалены.",
+      "sr": "Уклониће се сви забележени догађаји инсталације.",
       "zh": "所有已记录的安装事件将被移除。"
      }
     },
@@ -34195,6 +34457,7 @@
       "ko": "추천 표시줄 숨기기",
       "pt": "Ocultar barra de sugestões",
       "ru": "Скрыть панель подсказок",
+      "sr": "Сакриј траку предлога",
       "zh": "隐藏建议栏"
      }
     },
@@ -34214,6 +34477,7 @@
       "ko": "TYPE_TEXT_FLAG_NO_SUGGESTIONS — 모든 IME에서 공통으로 지원",
       "pt": "TYPE_TEXT_FLAG_NO_SUGGESTIONS — universalmente respeitado",
       "ru": "TYPE_TEXT_FLAG_NO_SUGGESTIONS — поддерживается повсеместно",
+      "sr": "TYPE_TEXT_FLAG_NO_SUGGESTIONS — поштује се универзално",
       "zh": "TYPE_TEXT_FLAG_NO_SUGGESTIONS — 普遍支持"
      }
     },
@@ -34233,6 +34497,7 @@
       "ko": "자동 교정 / 자동 대문자 / 자동 공백 억제",
       "pt": "Suprimir autocorreção / maiúsculas automáticas / espaço automático",
       "ru": "Отключить автокоррекцию / автозаглавные / автопробел",
+      "sr": "Потисни аутоисправљање / ауто велика слова / ауто размак",
       "zh": "禁止自动纠正/自动大写/自动空格"
      }
     },
@@ -34252,6 +34517,7 @@
       "ko": "TYPE_TEXT_VARIATION_VISIBLE_PASSWORD — 가장 강력한 힌트; Gboard가 지원합니다. 대부분의 IME에서 전체 편집기와 상호 배타적입니다(스와이프/음성 없음).",
       "pt": "TYPE_TEXT_VARIATION_VISIBLE_PASSWORD — dica mais forte; respeitada pelo Gboard. Mutuamente exclusiva com editor completo na maioria dos IMEs (sem deslizamento / voz).",
       "ru": "TYPE_TEXT_VARIATION_VISIBLE_PASSWORD — сильнейшая подсказка; Gboard учитывает. Несовместима с полным редактором на большинстве IME (нет свайпа / голоса).",
+      "sr": "TYPE_TEXT_VARIATION_VISIBLE_PASSWORD — најјачи савет; Gboard га поштује. Узајамно искључиво са комплетним едитором на већини IME-а (нема превлачења / гласа).",
       "zh": "TYPE_TEXT_VARIATION_VISIBLE_PASSWORD — 最强提示；Gboard 支持。与大多数输入法的完整编辑器互斥（无滑动/语音）。"
      }
     },
@@ -34271,6 +34537,7 @@
       "ko": "자동 교정 프로토콜 활성화",
       "pt": "Ativar protocolo de autocorreção",
       "ru": "Включить протокол автокоррекции",
+      "sr": "Укључи протокол аутоисправљања",
       "zh": "启用自动纠正协议"
      }
     },
@@ -34290,6 +34557,7 @@
       "ko": "TYPE_TEXT_FLAG_AUTO_CORRECT — Samsung Honeyboard의 commit-text 게이트에 필요합니다 (#110); Gboard에서 자동 교정을 명시적으로 활성화합니다.",
       "pt": "TYPE_TEXT_FLAG_AUTO_CORRECT — exigido pelo gate commit-text do Samsung Honeyboard (#110); ativa explicitamente a autocorreção no Gboard.",
       "ru": "TYPE_TEXT_FLAG_AUTO_CORRECT — требуется шлюзом commit-text у Samsung Honeyboard (#110); явно включает автокоррекцию в Gboard.",
+      "sr": "TYPE_TEXT_FLAG_AUTO_CORRECT — захтева га гејт за комитовање текста у Samsung Honeyboard (#110); експлицитно укључује аутоисправљање у Gboard.",
       "zh": "TYPE_TEXT_FLAG_AUTO_CORRECT — Samsung Honeyboard 提交文本关卡（#110）所需；在 Gboard 上显式启用自动纠正。"
      }
     },
@@ -34309,6 +34577,7 @@
       "ko": "음성 및 스와이프 (전체 편집기)",
       "pt": "Voz e deslizamento (editor completo)",
       "ru": "Голос и свайп (полный редактор)",
+      "sr": "Глас &amp; превлачење (комплетан едитор)",
       "zh": "语音与滑动输入（完整编辑器）"
      }
     },
@@ -34328,6 +34597,7 @@
       "ko": "IME에 실제 Editable을 제공합니다. 음성 입력, 스와이프 입력, CJK 조합에 필요합니다. 위의 자동 교정 억제 힌트와 충돌합니다.",
       "pt": "Fornece ao IME um Editable real. Necessário para entrada de voz, digitação por deslizamento e composição CJK. Conflita com a dica de supressão de autocorreção acima.",
       "ru": "Предоставляет IME настоящий Editable. Нужен для голосового ввода, свайп-набора и CJK-композиции. Конфликтует с подсказкой отключения автокоррекции выше.",
+      "sr": "Одобрава IME стварно Editable право. Потребна је за унос гласом, куцање превлачењем, и CJK композицију. У конфликту је са саветом за потискивање аутоисправљања изнад.",
       "zh": "为输入法提供真实的 Editable。语音输入、滑动输入和 CJK 组合输入所需。与上方自动纠正抑制提示冲突。"
      }
     },
@@ -34347,6 +34617,7 @@
       "ko": "전체 화면 IME 억제",
       "pt": "Suprimir IME em tela cheia",
       "ru": "Подавить полноэкранный IME",
+      "sr": "Потисни IME у пуном екрану",
       "zh": "禁止全屏输入法"
      }
     },
@@ -34366,6 +34637,7 @@
       "ko": "IME_FLAG_NO_EXTRACT_UI — 가로 모드의 전체 화면 IME UI가 표시되지 않습니다.",
       "pt": "IME_FLAG_NO_EXTRACT_UI — impede a exibição do IME em tela cheia no modo paisagem.",
       "ru": "IME_FLAG_NO_EXTRACT_UI — предотвращает показ полноэкранного IME в альбомной ориентации.",
+      "sr": "IME_FLAG_NO_EXTRACT_UI — спречава приказивање IME КИ у положеном пуном екрану.",
       "zh": "IME_FLAG_NO_EXTRACT_UI — 阻止横屏时全屏输入法 UI 显示。"
      }
     },
@@ -34385,6 +34657,7 @@
       "ko": "IME 학습 차단",
       "pt": "Bloquear aprendizado do IME",
       "ru": "Запретить IME обучаться",
+      "sr": "Спречи да IME учи",
       "zh": "阻止输入法学习"
      }
     },
@@ -34404,6 +34677,7 @@
       "ko": "IME_FLAG_NO_PERSONALIZED_LEARNING — 개인정보 보호: IME 단어 저장소가 입력된 텍스트를 무시합니다. Gboard에서 마이크도 숨길 만큼 강력합니다.",
       "pt": "IME_FLAG_NO_PERSONALIZED_LEARNING — privacidade: o banco de palavras do IME ignora o texto digitado. Forte o suficiente no Gboard para também ocultar o microfone.",
       "ru": "IME_FLAG_NO_PERSONALIZED_LEARNING — конфиденциальность: словарь IME игнорирует введённый текст. Достаточно сильно, чтобы скрыть микрофон в Gboard.",
+      "sr": "IME_FLAG_NO_PERSONALIZED_LEARNING — приватност: IME-ова банка речи игнорише откуцани текст. Довољне је јачине на Gboard тако да сакрива и микрофон.",
       "zh": "IME_FLAG_NO_PERSONALIZED_LEARNING — 隐私：输入法词库忽略输入文本。对 Gboard 效果足够强，同时也会隐藏麦克风。"
      }
     },
@@ -34423,6 +34697,7 @@
       "ko": "페어링된 MCP 클라이언트",
       "pt": "Clientes MCP pareados",
       "ru": "Сопряжённые клиенты MCP",
+      "sr": "Упарени MCP клијенти",
       "zh": "已配对的 MCP 客户端"
      }
     },
@@ -34442,6 +34717,7 @@
       "ko": "페어링된 클라이언트 검토, 클라이언트별 확인 건너뛰기 또는 페어링 해제",
       "pt": "Revise os clientes pareados, ignore solicitações por cliente ou desfaça o pareamento",
       "ru": "Просмотр сопряжённых клиентов, пропуск запросов по клиенту или разрыв сопряжения",
+      "sr": "Прегледајте упарене клијенте, прескочите упите по клијентима, или обришите упаривање",
       "zh": "查看已配对的客户端，按客户端跳过提示，或取消配对"
      }
     },
@@ -34461,6 +34737,7 @@
       "ko": "페어링된 MCP 클라이언트",
       "pt": "Clientes MCP pareados",
       "ru": "Сопряжённые клиенты MCP",
+      "sr": "Упарени MCP клијенти",
       "zh": "已配对的 MCP 客户端"
      }
     },
@@ -34480,6 +34757,7 @@
       "ko": "아직 페어링된 MCP 클라이언트가 없습니다. 클라이언트의 연결 요청을 승인하면 여기에 표시됩니다.",
       "pt": "Nenhum cliente MCP pareado ainda. Um cliente aparece aqui depois que você aprova a solicitação de conexão dele.",
       "ru": "Пока нет сопряжённых клиентов MCP. Клиент появится здесь после того, как вы одобрите его запрос на подключение.",
+      "sr": "Још увек нема упарених MCP клијената. Клијент се овде појављује када одобрите његов упит за повезивање.",
       "zh": "尚未配对任何 MCP 客户端。当你批准某个客户端的连接提示后，它会显示在这里。"
      }
     },
@@ -34499,6 +34777,7 @@
       "ko": "승인 요청 건너뛰기",
       "pt": "Ignorar solicitações de aprovação",
       "ru": "Пропускать запросы подтверждения",
+      "sr": "Прескакање упита за одобрење",
       "zh": "跳过批准提示"
      }
     },
@@ -34518,6 +34797,7 @@
       "ko": "이 클라이언트의 모든 호출을 자동 승인합니다(파괴적 작업 포함).",
       "pt": "Aprova automaticamente todas as chamadas deste cliente, incluindo as destrutivas.",
       "ru": "Автоматически одобряет каждый вызов этого клиента, включая разрушительные.",
+      "sr": "Аутоматски одобрава сваки позив са овог клијента, укључујући и деструктивне.",
       "zh": "自动批准该客户端的每次调用，包括破坏性操作。"
      }
     },
@@ -34537,6 +34817,7 @@
       "ko": "파괴적 호출은 여전히 동의를 요청합니다(기본값).",
       "pt": "Cada chamada destrutiva ainda pede consentimento (padrão).",
       "ru": "Каждый разрушительный вызов по-прежнему запрашивает согласие (по умолчанию).",
+      "sr": "Сваки деструктивни позив још увек пита за пристанак (подразумевано).",
       "zh": "每次破坏性调用仍会请求同意（默认）。"
      }
     },
@@ -34556,6 +34837,7 @@
       "ko": "클라이언트 페어링 해제",
       "pt": "Desparear cliente",
       "ru": "Разорвать сопряжение клиента",
+      "sr": "Обриши упаривање клијента",
       "zh": "取消配对客户端"
      }
     },
@@ -34577,6 +34859,7 @@
       "ko": "\\'%1$s\\' 페어링을 해제하시겠습니까?",
       "pt": "Desparear \\'%1$s\\'?",
       "ru": "Разорвать сопряжение с \\'%1$s\\'?",
+      "sr": "Желите ли да обришете упаривање са ‘%1$s’?",
       "zh": "取消配对 \\'%1$s\\'？"
      }
     },
@@ -34596,6 +34879,7 @@
       "ko": "다음에 연결할 때 다시 승인해야 하며 기존 자동 승인은 해제됩니다.",
       "pt": "Ele precisará ser aprovado novamente na próxima vez que se conectar, e qualquer aprovação automática é revogada.",
       "ru": "При следующем подключении его потребуется одобрить заново, а любое автоодобрение отменяется.",
+      "sr": "Када се наредни пут повеже, мораће да се одобри, и опозваће се свако ауто-одобравање.",
       "zh": "下次连接时它需要重新获得批准，并且任何自动批准都会被撤销。"
      }
     },
@@ -34615,6 +34899,7 @@
       "ko": "페어링 해제",
       "pt": "Desparear",
       "ru": "Разорвать",
+      "sr": "Обриши упаривање",
       "zh": "取消配对"
      }
     },
@@ -34636,6 +34921,7 @@
       "ko": "\\'%1$s\\' 페어링을 해제했습니다",
       "pt": "\\'%1$s\\' despareado",
       "ru": "Сопряжение с \\'%1$s\\' разорвано",
+      "sr": "Обрисано је упаривање са ‘%1$s’",
       "zh": "已取消配对 \\'%1$s\\'"
      }
     },
@@ -34655,6 +34941,7 @@
       "ko": "자격 증명 저장소를 사용할 수 없음",
       "pt": "Armazenamento de credenciais indisponível",
       "ru": "Хранилище учётных данных недоступно",
+      "sr": "Складиште акредитива није доступно",
       "zh": "凭据存储不可用"
      }
     },
@@ -34674,6 +34961,7 @@
       "ko": "이 기기의 키스토어가 Haven의 자격 증명 키를 잃었습니다. 저장된 비밀번호를 읽을 수 없고 새로 저장할 수도 없습니다. 복구하려면 탭하세요.",
       "pt": "O armazenamento de chaves deste dispositivo perdeu a chave de credenciais do Haven. As senhas salvas não podem ser lidas e novas não podem ser salvas. Toque para reparar.",
       "ru": "Хранилище ключей этого устройства потеряло ключ учётных данных Haven. Сохранённые пароли нельзя прочитать, а новые — сохранить. Нажмите, чтобы восстановить.",
+      "sr": "Складиште кључева овог уређаја је изгубило кључ акредитива апликације Haven. Сачуване лозинке не могу да се прочитају и нове не могу да се сачувају. Тапните за поправак.",
       "zh": "此设备的密钥库丢失了 Haven 的凭据密钥。已保存的密码无法读取,也无法保存新密码。点按以修复。"
      }
     },
@@ -34693,6 +34981,7 @@
       "ko": "자격 증명 저장소를 복구할까요?",
       "pt": "Reparar o armazenamento de credenciais?",
       "ru": "Восстановить хранилище учётных данных?",
+      "sr": "Желите ли да поправите складиште акредитива?",
       "zh": "修复凭据存储?"
      }
     },
@@ -34712,6 +35001,7 @@
       "ko": "새 자격 증명 키를 만들어 비밀번호를 다시 저장할 수 있게 합니다.\\n\\nHaven에 이미 저장된 모든 비밀번호, 암호 구문, 비밀은 다시 입력해야 합니다. 이미 읽을 수 없는 상태이며(보호하던 키가 사라졌습니다), 따라서 이 작업은 무언가를 더 잃는 것이 아니라 앱을 복구하는 것입니다.",
       "pt": "Isso cria uma nova chave de credenciais para que as senhas possam ser salvas novamente.\\n\\nTodas as senhas, frases secretas e segredos já armazenados no Haven precisarão ser inseridos de novo. Eles já estão ilegíveis — a chave que os protegia se perdeu — então isso recupera o app em vez de perder mais alguma coisa.",
       "ru": "Будет создан новый ключ, чтобы пароли снова можно было сохранять.\\n\\nВсе пароли, парольные фразы и секреты, уже сохранённые в Haven, придётся ввести заново. Они и так нечитаемы — защищавший их ключ утрачен, — поэтому это восстанавливает приложение, а не теряет что-то ещё.",
+      "sr": "Ово креира нови кључ акредитива тако да лозинке поново могу да се сачувају. Свака лозинка, приступна реченица и тајна која је већ сачувана у апликацији Haven ће морати поново да се унесе. Оне већ не могу да се прочитају — кључ који их је штитио је нестао — тако да ово опоравља апликацију, а не спречава неки даљи губитак.",
       "zh": "这会创建新的凭据密钥,以便重新保存密码。\\n\\n已保存在 Haven 中的所有密码、口令和密钥都需要重新输入。它们已经无法读取(保护它们的密钥已丢失),因此这是在恢复应用,而不是又丢失了什么。"
      }
     },
@@ -34731,6 +35021,7 @@
       "ko": "복구",
       "pt": "Reparar",
       "ru": "Восстановить",
+      "sr": "Поправи",
       "zh": "修复"
      }
     },
@@ -34750,6 +35041,7 @@
       "ko": "취소",
       "pt": "Cancelar",
       "ru": "Отмена",
+      "sr": "Откажи",
       "zh": "取消"
      }
     }

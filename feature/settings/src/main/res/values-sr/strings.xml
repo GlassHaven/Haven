@@ -184,8 +184,6 @@
     <string name="settings_about_version">Верзија %1$s (изградња %2$d)</string>
     <string name="settings_about_android">Андроид %1$s (API %2$d)</string>
     <string name="settings_about_libraries_title">Библиотеке отвореног кода</string>
-    <string name="settings_screen_order_dialog_title">Редослед екрана</string>
-    <string name="settings_screen_order_drag_description">Превуците да промените редослед</string>
     <string name="settings_theme_dialog_title">Тема</string>
     <string name="settings_color_scheme_dialog_title">Шема боја терминала</string>
     <string name="settings_session_dialog_title">Постојаност сесије</string>
@@ -307,8 +305,6 @@
     <string name="settings_ime_flags_subtitle">Изаберите EditorInfo битове које поставља терминал</string>
     <string name="settings_ctrl_shift_v_title">Ctrl+Shift+V налепљује</string>
     <string name="settings_ctrl_shift_v_subtitle">Ctrl+Shift+V на хардверској тастатури налепљује из Андроид оставе. Искључено прослеђује тастере удаљеној љусци.</string>
-    <string name="settings_always_show_all_tabs_title">Увек прикажи све картице</string>
-    <string name="settings_always_show_all_tabs_subtitle">Приказује сваку картицу навигације на дну чак и када је њена категорија празна</string>
     <string name="settings_usb_guest_title">Изложи USB уређаје Линукс госту</string>
     <string name="settings_usb_guest_subtitle">Омогућава да апликације у госту дођу до привезаних USB уређаја преко haven-usb шима. Свако привезивање још увек пита за пристанак.</string>
     <string name="settings_audio_bridge_title">Proot аудио (експериментално)</string>

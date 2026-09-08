@@ -198,7 +198,7 @@
     <string name="settings_font_size_value">%1$dsp</string>
     <string name="settings_terminal_opacity_title">Непрозирност позадине</string>
     <string name="settings_terminal_opacity_value">%1$d%%</string>
-    <string name="settings_terminal_opacity_hint">Испод 100% Haven постаје полупрозиран и приказује тапет уређаја иза сваког екрана (терминал, листе, подешавања). Преиначавање за сваку везу се примењује само за тај терминал.</string>
+    <string name="settings_terminal_opacity_hint" formatted="false">Испод 100% Haven постаје полупрозиран и приказује тапет уређаја иза сваког екрана (терминал, листе, подешавања). Преиначавање за сваку везу се примењује само за тај терминал.</string>
     <string name="settings_scrollback_rows_dialog_title">Број редова за скроловање уназад по картици</string>
     <string name="settings_scrollback_rows_dialog_body">Веће вредности скроловања уназад значе већу употребу меморије. Оквирно 2 KB по линији при типичним ширинама колоне, помножено са бројем отворених картица.</string>
     <string name="settings_scrollback_rows_value">%1$,d линија</string>

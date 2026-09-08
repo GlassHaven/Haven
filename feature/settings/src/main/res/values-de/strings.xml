@@ -69,8 +69,8 @@
 
     <!-- Appearance section -->
     <string name="settings_theme_title">Design</string>
-    <string name="settings_screen_order_title">Bildschirmreihenfolge</string>
-    <string name="settings_screen_order_subtitle">Navigations-Tabs neu anordnen</string>
+    <string name="settings_navigation_tabs_title">Navigation-Tabs</string>
+    <string name="settings_navigation_tabs_subtitle">Reihenfolge der Tabs ändern und auswählen, welche angezeigt werden</string>
 
     <!-- Wayland section -->
     <string name="settings_wayland_shell_title">Wayland-Desktop-Shell</string>
@@ -151,10 +151,6 @@
     <string name="settings_about_version">Version %1$s (Build %2$d)</string>
     <string name="settings_about_android">Android %1$s (API %2$d)</string>
     <string name="settings_about_libraries_title">Open-Source-Bibliotheken</string>
-
-    <!-- Screen order dialog -->
-    <string name="settings_screen_order_dialog_title">Bildschirmreihenfolge</string>
-    <string name="settings_screen_order_drag_description">Ziehen zum Neuordnen</string>
 
     <!-- Theme dialog -->
     <string name="settings_theme_dialog_title">Design</string>
@@ -300,8 +296,14 @@
     <string name="settings_ime_flags_subtitle">Wähle, welche EditorInfo-Bits das Terminal setzt</string>
     <string name="settings_ctrl_shift_v_title">Strg+Umschalt+V fügt ein</string>
     <string name="settings_ctrl_shift_v_subtitle">Hardware-Tastatur Strg+Umschalt+V fügt aus der Android-Zwischenablage ein. Aus leitet die Tasten an die Remote-Shell weiter.</string>
-    <string name="settings_always_show_all_tabs_title">Immer alle Tabs anzeigen</string>
-    <string name="settings_always_show_all_tabs_subtitle">Jeden Navigations-Tab auch dann anzeigen, wenn seine Kategorie leer ist</string>
+
+    <!-- Navigation Tabs dialog -->
+
+    <string name="settings_nav_tab_visibility_auto_title">Auto</string>
+    <string name="settings_nav_tab_visibility_show_title">Anzeigen</string>
+    <string name="settings_nav_tab_visibility_hide_title">Ausblenden</string>
+    <string name="settings_nav_tab_visibility_always_hint">Immer sichtbar</string>
+
     <string name="settings_usb_guest_title">USB-Geräte dem Linux-Gast bereitstellen</string>
     <string name="settings_usb_guest_subtitle">Angeschlossene USB-Geräte über den haven-usb-Shim für Gast-Apps zugänglich machen. Jede Verbindung erfordert weiterhin Zustimmung.</string>
     <string name="settings_proot_install_log_title">PRoot-Installationsprotokoll anzeigen</string>

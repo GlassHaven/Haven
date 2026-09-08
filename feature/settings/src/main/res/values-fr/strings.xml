@@ -69,8 +69,8 @@
 
     <!-- Appearance section -->
     <string name="settings_theme_title">Thème</string>
-    <string name="settings_screen_order_title">Ordre des écrans</string>
-    <string name="settings_screen_order_subtitle">Réorganiser les onglets de navigation</string>
+    <string name="settings_navigation_tabs_title">Onglets de navigation</string>
+    <string name="settings_navigation_tabs_subtitle">Réorganisez les onglets et choisissez ceux qui sont affichés</string>
 
     <!-- Wayland section -->
     <string name="settings_wayland_shell_title">Shell bureau Wayland</string>
@@ -151,10 +151,6 @@
     <string name="settings_about_version">Version %1$s (build %2$d)</string>
     <string name="settings_about_android">Android %1$s (API %2$d)</string>
     <string name="settings_about_libraries_title">Bibliothèques open source</string>
-
-    <!-- Screen order dialog -->
-    <string name="settings_screen_order_dialog_title">Ordre des écrans</string>
-    <string name="settings_screen_order_drag_description">Glissez pour réorganiser</string>
 
     <!-- Theme dialog -->
     <string name="settings_theme_dialog_title">Thème</string>
@@ -300,8 +296,14 @@
     <string name="settings_ime_flags_subtitle">Choisir les bits EditorInfo que le terminal définit</string>
     <string name="settings_ctrl_shift_v_title">Ctrl+Maj+V colle</string>
     <string name="settings_ctrl_shift_v_subtitle">Ctrl+Maj+V sur clavier matériel colle depuis le presse-papiers Android. Désactivé, les touches sont transmises au shell distant.</string>
-    <string name="settings_always_show_all_tabs_title">Toujours afficher tous les onglets</string>
-    <string name="settings_always_show_all_tabs_subtitle">Afficher chaque onglet de navigation même si sa catégorie est vide</string>
+
+    <!-- Navigation Tabs dialog -->
+
+    <string name="settings_nav_tab_visibility_auto_title">Auto</string>
+    <string name="settings_nav_tab_visibility_show_title">Afficher</string>
+    <string name="settings_nav_tab_visibility_hide_title">Masquer</string>
+    <string name="settings_nav_tab_visibility_always_hint">Toujours visible</string>
+
     <string name="settings_usb_guest_title">Exposer les périphériques USB au guest Linux</string>
     <string name="settings_usb_guest_subtitle">Permettre aux périphériques USB connectés d\'atteindre les apps du guest via le shim haven-usb. Chaque connexion demande confirmation.</string>
     <string name="settings_proot_install_log_title">Voir le journal d\'installation PRoot</string>

@@ -69,8 +69,8 @@
 
     <!-- Appearance section -->
     <string name="settings_theme_title">テーマ</string>
-    <string name="settings_screen_order_title">画面の順序</string>
-    <string name="settings_screen_order_subtitle">下部ナビゲーションタブを並び替え</string>
+    <string name="settings_navigation_tabs_title">ナビゲーションタブ</string>
+    <string name="settings_navigation_tabs_subtitle">タブの順番を並べ替え、表示するタブを選びます</string>
 
     <!-- Wayland section -->
     <string name="settings_wayland_shell_title">Waylandデスクトップシェル</string>
@@ -151,10 +151,6 @@
     <string name="settings_about_version">バージョン %1$s（ビルド %2$d）</string>
     <string name="settings_about_android">Android %1$s（API %2$d）</string>
     <string name="settings_about_libraries_title">オープンソースライブラリ</string>
-
-    <!-- Screen order dialog -->
-    <string name="settings_screen_order_dialog_title">画面の順序</string>
-    <string name="settings_screen_order_drag_description">ドラッグして並び替え</string>
 
     <!-- Theme dialog -->
     <string name="settings_theme_dialog_title">テーマ</string>
@@ -300,8 +296,14 @@
     <string name="settings_ime_flags_subtitle">ターミナルが設定する EditorInfo ビットを選択</string>
     <string name="settings_ctrl_shift_v_title">Ctrl+Shift+V で貼り付け</string>
     <string name="settings_ctrl_shift_v_subtitle">ハードウェアキーボードの Ctrl+Shift+V で Android クリップボードから貼り付け。オフにするとキーをリモートシェルに転送します。</string>
-    <string name="settings_always_show_all_tabs_title">常にすべてのタブを表示</string>
-    <string name="settings_always_show_all_tabs_subtitle">カテゴリが空でもすべての下部ナビゲーションタブを表示</string>
+
+    <!-- Navigation Tabs dialog -->
+
+    <string name="settings_nav_tab_visibility_auto_title">自動</string>
+    <string name="settings_nav_tab_visibility_show_title">表示</string>
+    <string name="settings_nav_tab_visibility_hide_title">非表示</string>
+    <string name="settings_nav_tab_visibility_always_hint">常に表示</string>
+
     <string name="settings_usb_guest_title">USB デバイスを Linux ゲストに公開</string>
     <string name="settings_usb_guest_subtitle">接続した USB デバイスを haven-usb シム経由でゲストアプリから使用できるようにします。各接続には同意が必要です。</string>
     <string name="settings_proot_install_log_title">PRoot インストールログを表示</string>

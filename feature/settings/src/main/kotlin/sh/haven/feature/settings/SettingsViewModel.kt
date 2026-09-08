@@ -27,6 +27,7 @@ import sh.haven.core.data.preferences.DesktopKeyPlacement
 import sh.haven.core.data.preferences.EditModeControlsPlacement
 import sh.haven.core.data.preferences.NavBlockMode
 import sh.haven.core.data.preferences.ToolbarItem
+import sh.haven.core.data.preferences.TabVisibility
 import sh.haven.core.data.preferences.ToolbarLayout
 import sh.haven.core.data.preferences.UserPreferencesRepository
 import sh.haven.core.data.repository.ConnectionRepository
@@ -470,8 +471,8 @@ class SettingsViewModel @Inject constructor(
     val excludeFromRecents: StateFlow<Boolean> = preferencesRepository.excludeFromRecents
         .stateIn(viewModelScope, SharingStarted.WhileSubscribed(5000), false)
 
-    val alwaysShowAllTabs: StateFlow<Boolean> = preferencesRepository.alwaysShowAllTabs
-        .stateIn(viewModelScope, SharingStarted.WhileSubscribed(5000), false)
+    val tabVisibility: StateFlow<Map<String, TabVisibility>> = preferencesRepository.tabVisibility
+        .stateIn(viewModelScope, SharingStarted.WhileSubscribed(5000), emptyMap())
 
     val usbGuestExposureEnabled: StateFlow<Boolean> = preferencesRepository.usbGuestExposureEnabled
         .stateIn(viewModelScope, SharingStarted.WhileSubscribed(5000), false)
@@ -856,12 +857,6 @@ class SettingsViewModel @Inject constructor(
         }
     }
 
-    fun setAlwaysShowAllTabs(enabled: Boolean) {
-        viewModelScope.launch {
-            preferencesRepository.setAlwaysShowAllTabs(enabled)
-        }
-    }
-
     fun setVerboseLoggingEnabled(enabled: Boolean) {
         viewModelScope.launch {
             preferencesRepository.setVerboseLoggingEnabled(enabled)
@@ -1120,9 +1115,10 @@ class SettingsViewModel @Inject constructor(
         }
     }
 
-    fun setScreenOrder(routes: List<String>) {
+    /** Atomic commit of the Navigation Tabs dialog draft (order + visibility). */
+    fun setNavigationTabs(order: List<String>, visibility: Map<String, TabVisibility>) {
         viewModelScope.launch {
-            preferencesRepository.setScreenOrder(routes)
+            preferencesRepository.setNavigationTabs(order, visibility)
         }
     }
 

@@ -84,8 +84,8 @@
     <string name="settings_standard_keyboard_subtitle">Искључује заставице безбедности тастатуре (режим лозинке, без предлога). Укључује унос гласом, куцање превлачењем и предвиђања речи — али IME може да научи откуцане лозинке</string>
     <string name="settings_theme_title">Тема</string>
     <string name="settings_language_title">Језик</string>
-    <string name="settings_screen_order_title">Редослед на екрану</string>
-    <string name="settings_screen_order_subtitle">Мењање редоследа картица за навигацију на дну</string>
+    <string name="settings_navigation_tabs_title">Редослед на екрану</string>
+    <string name="settings_navigation_tabs_subtitle">Мењање редоследа картица за навигацију на дну</string>
     <string name="settings_wayland_shell_title">Љуска за Wayland десктоп</string>
     <string name="settings_proot_idle_title">Аутоматско заустављање Линукс госта</string>
     <string name="settings_proot_idle_off">Искључено — Линукс гост се извршава све док га ви не зауставите</string>

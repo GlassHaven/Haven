@@ -69,8 +69,8 @@
 
     <!-- Appearance section -->
     <string name="settings_theme_title">主题</string>
-    <string name="settings_screen_order_title">屏幕顺序</string>
-    <string name="settings_screen_order_subtitle">重新排列底部导航标签</string>
+    <string name="settings_navigation_tabs_title">导航标签</string>
+    <string name="settings_navigation_tabs_subtitle">重新排列导航标签，并选择显示哪些</string>
 
     <!-- Wayland section -->
     <string name="settings_wayland_shell_title">Wayland 桌面 Shell</string>
@@ -151,10 +151,6 @@
     <string name="settings_about_version">版本 %1$s（构建 %2$d）</string>
     <string name="settings_about_android">Android %1$s (API %2$d)</string>
     <string name="settings_about_libraries_title">开源库</string>
-
-    <!-- Screen order dialog -->
-    <string name="settings_screen_order_dialog_title">屏幕顺序</string>
-    <string name="settings_screen_order_drag_description">拖动以重新排序</string>
 
     <!-- Theme dialog -->
     <string name="settings_theme_dialog_title">主题</string>
@@ -299,8 +295,14 @@
     <string name="settings_ime_flags_subtitle">选择终端设置的 EditorInfo 位</string>
     <string name="settings_ctrl_shift_v_title">Ctrl+Shift+V 粘贴</string>
     <string name="settings_ctrl_shift_v_subtitle">硬件键盘 Ctrl+Shift+V 从 Android 剪贴板粘贴。关闭则将按键转发到远程 shell。</string>
-    <string name="settings_always_show_all_tabs_title">始终显示所有标签</string>
-    <string name="settings_always_show_all_tabs_subtitle">即使该类别为空，也显示所有底部导航标签</string>
+
+    <!-- Navigation Tabs dialog -->
+
+    <string name="settings_nav_tab_visibility_auto_title">自动</string>
+    <string name="settings_nav_tab_visibility_show_title">显示</string>
+    <string name="settings_nav_tab_visibility_hide_title">隐藏</string>
+    <string name="settings_nav_tab_visibility_always_hint">始终显示</string>
+
     <string name="settings_usb_guest_title">将 USB 设备暴露给 Linux 客机</string>
     <string name="settings_usb_guest_subtitle">通过 haven-usb 垫片让已连接的 USB 设备被客机应用访问。每次连接仍需确认。</string>
     <string name="settings_proot_install_log_title">查看 PRoot 安装日志</string>

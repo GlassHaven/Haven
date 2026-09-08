@@ -28090,43 +28090,43 @@
      }
     },
     {
-     "name": "settings_screen_order_title",
-     "en": "Screen order",
+     "name": "settings_navigation_tabs_title",
+     "en": "Navigation Tabs",
      "comment": "Appearance section",
      "args": [],
      "t": {
-      "ar": "ترتيب الشاشات",
-      "bn": "স্ক্রিন ক্রম",
-      "de": "Bildschirmreihenfolge",
-      "es": "Orden de pantallas",
-      "fr": "Ordre des écrans",
-      "hi": "स्क्रीन क्रम",
-      "ja": "画面の順序",
-      "ko": "화면 순서",
-      "pt": "Ordem das telas",
-      "ru": "Порядок экранов",
+      "ar": "عناصر التنقل",
+      "bn": "নেভিগেশন ট্যাব",
+      "de": "Navigation-Tabs",
+      "es": "Pestañas de navegación",
+      "fr": "Onglets de navigation",
+      "hi": "नेविगेशन टैब",
+      "ja": "ナビゲーションタブ",
+      "ko": "탐색 탭",
+      "pt": "Abas de navegação",
+      "ru": "Вкладки навигации",
       "sr": "Редослед на екрану",
-      "zh": "屏幕顺序"
+      "zh": "导航标签"
      }
     },
     {
-     "name": "settings_screen_order_subtitle",
-     "en": "Reorder bottom navigation tabs",
+     "name": "settings_navigation_tabs_subtitle",
+     "en": "Reorder tabs and choose which are shown",
      "comment": "Appearance section",
      "args": [],
      "t": {
-      "ar": "إعادة ترتيب تبويبات التنقل السفلية",
-      "bn": "নিচের নেভিগেশন ট্যাব পুনর্বিন্যাস করুন",
-      "de": "Navigations-Tabs neu anordnen",
-      "es": "Reordenar pestañas de navegación inferior",
-      "fr": "Réorganiser les onglets de navigation",
-      "hi": "नीचे के नेविगेशन टैब पुनर्व्यवस्थित करें",
-      "ja": "下部ナビゲーションタブを並び替え",
-      "ko": "하단 탐색 탭 순서 변경",
-      "pt": "Reordenar abas de navegação inferior",
-      "ru": "Изменить порядок вкладок навигации",
+      "ar": "أعدّ ترتيب عناصر التنقّل واختر ما يُعرض منها",
+      "bn": "ট্যাবগুলো পুনর্বিন্যাস করুন এবং দেখানোর জন্য কোনগুলো বাছাই করুন",
+      "de": "Reihenfolge der Tabs ändern und auswählen, welche angezeigt werden",
+      "es": "Reordena las pestañas y elige cuáles se muestran",
+      "fr": "Réorganisez les onglets et choisissez ceux qui sont affichés",
+      "hi": "टैब को फिर से क्रमबद्ध करें और चुनें कि कौन से दिखें",
+      "ja": "タブの順番を並べ替え、表示するタブを選びます",
+      "ko": "탭 순서를 다시 정하고 표시할 탭을 선택하세요",
+      "pt": "Reordene as abas e escolha quais exibir",
+      "ru": "Измените порядок вкладок и выберите, какие из них показывать",
       "sr": "Мењање редоследа картица за навигацију на дну",
-      "zh": "重新排列底部导航标签"
+      "zh": "重新排列导航标签，并选择显示哪些"
      }
     },
     {
@@ -29977,44 +29977,6 @@
       "pt": "Bibliotecas de código aberto",
       "ru": "Библиотеки с открытым кодом",
       "zh": "开源库"
-     }
-    },
-    {
-     "name": "settings_screen_order_dialog_title",
-     "en": "Screen order",
-     "comment": "Screen order dialog",
-     "args": [],
-     "t": {
-      "ar": "ترتيب الشاشات",
-      "bn": "স্ক্রিন ক্রম",
-      "de": "Bildschirmreihenfolge",
-      "es": "Orden de pantallas",
-      "fr": "Ordre des écrans",
-      "hi": "स्क्रीन क्रम",
-      "ja": "画面の順序",
-      "ko": "화면 순서",
-      "pt": "Ordem das telas",
-      "ru": "Порядок экранов",
-      "zh": "屏幕顺序"
-     }
-    },
-    {
-     "name": "settings_screen_order_drag_description",
-     "en": "Drag to reorder",
-     "comment": "Screen order dialog",
-     "args": [],
-     "t": {
-      "ar": "اسحب لإعادة الترتيب",
-      "bn": "পুনর্বিন্যাসের জন্য টেনে আনুন",
-      "de": "Ziehen zum Neuordnen",
-      "es": "Arrastra para reordenar",
-      "fr": "Glissez pour réorganiser",
-      "hi": "पुनर्व्यवस्थित करने के लिए खींचें",
-      "ja": "ドラッグして並び替え",
-      "ko": "드래그하여 순서 변경",
-      "pt": "Arraste para reordenar",
-      "ru": "Перетащите для изменения порядка",
-      "zh": "拖动以重新排序"
      }
     },
     {
@@ -32339,41 +32301,79 @@
      }
     },
     {
-     "name": "settings_always_show_all_tabs_title",
-     "en": "Always show all tabs",
-     "comment": "Connections screen: always show all tabs",
+     "name": "settings_nav_tab_visibility_auto_title",
+     "en": "Auto",
+     "comment": "Navigation Tabs dialog",
      "args": [],
      "t": {
-      "ar": "إظهار جميع التبويبات دائمًا",
-      "bn": "সব ট্যাব সব সময় দেখান",
-      "de": "Immer alle Tabs anzeigen",
-      "es": "Mostrar siempre todas las pestañas",
-      "fr": "Toujours afficher tous les onglets",
-      "hi": "सभी tabs हमेशा दिखाएँ",
-      "ja": "常にすべてのタブを表示",
-      "ko": "항상 모든 탭 표시",
-      "pt": "Mostrar sempre todas as abas",
-      "ru": "Всегда показывать все вкладки",
-      "zh": "始终显示所有标签"
+      "ar": "تلقائي",
+      "bn": "স্বয়ংক্রিয়",
+      "de": "Auto",
+      "es": "Auto",
+      "fr": "Auto",
+      "hi": "ऑटो",
+      "ja": "自動",
+      "ko": "자동",
+      "pt": "Auto",
+      "ru": "Авто",
+      "zh": "自动"
      }
     },
     {
-     "name": "settings_always_show_all_tabs_subtitle",
-     "en": "Show every bottom-nav tab even when its category is empty",
-     "comment": "Connections screen: always show all tabs",
+     "name": "settings_nav_tab_visibility_show_title",
+     "en": "Show",
+     "comment": "Navigation Tabs dialog",
      "args": [],
      "t": {
-      "ar": "إظهار كل تبويبات التنقل السفلية حتى لو كانت فئتها فارغة",
-      "bn": "বিভাগ খালি হলেও প্রতিটি নিচের নেভিগেশন ট্যাব দেখান",
-      "de": "Jeden Navigations-Tab auch dann anzeigen, wenn seine Kategorie leer ist",
-      "es": "Mostrar cada pestaña de navegación inferior aunque su categoría esté vacía",
-      "fr": "Afficher chaque onglet de navigation même si sa catégorie est vide",
-      "hi": "खाली होने पर भी हर bottom-nav tab दिखाएँ",
-      "ja": "カテゴリが空でもすべての下部ナビゲーションタブを表示",
-      "ko": "해당 카테고리가 비어 있어도 하단 탐색 탭을 모두 표시합니다",
-      "pt": "Exibir todas as abas de navegação inferior mesmo quando a categoria estiver vazia",
-      "ru": "Показывать все вкладки нижней навигации, даже если категория пуста",
-      "zh": "即使该类别为空，也显示所有底部导航标签"
+      "ar": "إظهار",
+      "bn": "দেখান",
+      "de": "Anzeigen",
+      "es": "Mostrar",
+      "fr": "Afficher",
+      "hi": "दिखाएँ",
+      "ja": "表示",
+      "ko": "표시",
+      "pt": "Mostrar",
+      "ru": "Показывать",
+      "zh": "显示"
+     }
+    },
+    {
+     "name": "settings_nav_tab_visibility_hide_title",
+     "en": "Hide",
+     "comment": "Navigation Tabs dialog",
+     "args": [],
+     "t": {
+      "ar": "إخفاء",
+      "bn": "লুকান",
+      "de": "Ausblenden",
+      "es": "Ocultar",
+      "fr": "Masquer",
+      "hi": "छिपाएँ",
+      "ja": "非表示",
+      "ko": "숨김",
+      "pt": "Ocultar",
+      "ru": "Скрывать",
+      "zh": "隐藏"
+     }
+    },
+    {
+     "name": "settings_nav_tab_visibility_always_hint",
+     "en": "Always visible",
+     "comment": "Navigation Tabs dialog",
+     "args": [],
+     "t": {
+      "ar": "ظاهر دائماً",
+      "bn": "সর্বদা দৃশ্যমান",
+      "de": "Immer sichtbar",
+      "es": "Siempre visible",
+      "fr": "Toujours visible",
+      "hi": "हमेशा दिखाई देता है",
+      "ja": "常に表示",
+      "ko": "항상 표시됨",
+      "pt": "Sempre visível",
+      "ru": "Всегда виден",
+      "zh": "始终显示"
      }
     },
     {

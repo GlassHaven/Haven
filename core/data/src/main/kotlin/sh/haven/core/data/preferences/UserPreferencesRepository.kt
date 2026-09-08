@@ -92,6 +92,9 @@ class UserPreferencesRepository @Inject constructor(
     private val customDesktopCommandKey = stringPreferencesKey("custom_desktop_command")
     private val mailAutomationEnabledKey = booleanPreferencesKey("mail_automation_enabled")
     private val mailDeleteToBinKey = booleanPreferencesKey("mail_delete_to_bin")
+    private val tabVisibilityKey = stringPreferencesKey("tab_visibility")
+    // Legacy master toggle (#160), now superseded by per-tab [tabVisibilityKey].
+    // Kept only for a read-time migration fallback; never written.
     private val alwaysShowAllTabsKey = booleanPreferencesKey("always_show_all_tabs")
     private val usbGuestExposureEnabledKey = booleanPreferencesKey("usb_guest_exposure_enabled")
     private val remoteClipboardToLocalKey = booleanPreferencesKey("remote_clipboard_to_local")
@@ -520,22 +523,51 @@ class UserPreferencesRepository @Inject constructor(
     }
 
     /**
-     * Show every bottom-nav tab regardless of whether the corresponding
-     * resource type has any data (issue #160 follow-up). Off by default:
-     * fresh installs see Connections + Settings only, and the other tabs
-     * fade in as the relevant profiles / keys / sessions appear. Power
-     * users with single-purpose installs can pin all tabs by turning
-     * this on.
+     * Per-tab bottom-nav visibility (#navbar-visibility): a map of screen
+     * route -> [TabVisibility], holding only non-[TabVisibility.AUTO] entries.
+     * [TabVisibility.AUTO] (the default for any absent route) lets the built-in
+     * usage rule decide; [TabVisibility.SHOW] forces the tab visible and
+     * [TabVisibility.HIDE] removes it from the nav bar and the pager.
+     *
+     * Migration fallback: the retired master "always show all tabs" toggle
+     * ([alwaysShowAllTabsKey]) forced every tab on. For a user who had it on
+     * and has not yet chosen per-tab settings, fall back to SHOW for every
+     * screen that does not default to always-visible (Connections and
+     * Settings always are), preserving their previous experience. The moment
+     * they save any per-tab setting ([setNavigationTabs]) the map is written and
+     * this fallback no longer applies. Stateless: the legacy key is read but
+     * never written or cleared.
      */
-    val alwaysShowAllTabs: Flow<Boolean> = dataStore.data.map { prefs ->
-        prefs[alwaysShowAllTabsKey] ?: false
-    }
-
-    suspend fun setAlwaysShowAllTabs(enabled: Boolean) {
-        dataStore.edit { prefs ->
-            prefs[alwaysShowAllTabsKey] = enabled
+    val tabVisibility: Flow<Map<String, TabVisibility>> = dataStore.data.map { prefs ->
+        val raw = prefs[tabVisibilityKey]
+        if (raw == null) {
+            if (prefs[alwaysShowAllTabsKey] == true) {
+                // Preserve the old master-toggle experience: pin every tab that
+                // used to depend on it to SHOW (Connections/Settings are already
+                // always visible and have nothing to migrate).
+                screenRoutesForcedVisibleByLegacy().associateWith { TabVisibility.SHOW }
+            } else {
+                emptyMap()
+            }
+        } else {
+            raw.split(",").mapNotNull { pair ->
+                val parts = pair.split("=")
+                if (parts.size != 2) return@mapNotNull null
+                val v = TabVisibility.fromName(parts[1])
+                if (v == TabVisibility.AUTO) return@mapNotNull null
+                parts[0].trim() to v
+            }.toMap()
         }
     }
+
+    /**
+     * Screen routes whose *default* (AUTO) visibility is not always-on — i.e. the
+     * ones the legacy master toggle used to affect. Hard-coded rather than
+     * referencing [sh.haven.core.ui.navigation.Screen] because core/data has no
+     * dependency on core/ui.
+     */
+    private fun screenRoutesForcedVisibleByLegacy(): List<String> =
+        listOf("terminal", "desktop", "keys", "sftp", "mail")
 
     /**
      * Master opt-in for exposing the phone's USB devices to the proot Linux
@@ -871,6 +903,21 @@ class UserPreferencesRepository @Inject constructor(
     suspend fun setScreenOrder(routes: List<String>) {
         dataStore.edit { prefs ->
             prefs[screenOrderKey] = routes.joinToString(",")
+        }
+    }
+
+    /**
+     * Commit the Navigation Tabs dialog's draft — screen order **and** the
+     * per-tab visibility map — in a single DataStore edit. One edit means one
+     * [dataStore.data] emission, so the nav host recomputes its screens and the
+     * pager re-renders exactly once on Save (two separate writes would make the
+     * whole screen jump twice).
+     */
+    suspend fun setNavigationTabs(order: List<String>, visibility: Map<String, TabVisibility>) {
+        dataStore.edit { prefs ->
+            prefs[screenOrderKey] = order.joinToString(",")
+            val current = visibility.filterValues { it != TabVisibility.AUTO }
+            prefs[tabVisibilityKey] = current.entries.joinToString(",") { "${it.key}=${it.value.name}" }
         }
     }
 

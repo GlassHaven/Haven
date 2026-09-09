@@ -625,21 +625,23 @@ private fun AlignedToolbarContent(
         } else {
             null
         }
-        // Where a LEFT-placed desktop key lands: it takes the column slot
-        // directly after the (freely-movable) keyboard key in the same row — the
-        // same ordering the flat ToolbarRow fallback uses (desktop right after
-        // the keyboard key). If the keyboard key is off the toolbar it falls
-        // back to the trailing edge.
+        // Where a LEFT-placed desktop key lands: the same column as the
+        // (freely-movable) keyboard key, in the opposite row — below a row-1
+        // keyboard key, above a row-2 one. Inserting it BESIDE the keyboard in
+        // the same row grew that row by a column, which left unpaired empty
+        // cells under the row tail whenever the rows were unequal — the gap
+        // that reappeared under row 2 after #628. If the keyboard key is off
+        // the toolbar it falls back to the trailing edge.
         val kbRestR1 = r1Rest.indexOfFirst { it.isKey(ToolbarKey.KEYBOARD) }
         val kbRestR2 = r2Rest.indexOfFirst { it.isKey(ToolbarKey.KEYBOARD) }
-        val desktopTopIdx = if (desktopRenderer != null &&
-            desktopKeyPlacement == sh.haven.core.data.preferences.DesktopKeyPlacement.LEFT &&
-            kbRestR1 >= 0
-        ) kbRestR1 + 1 else -1
         val desktopBotIdx = if (desktopRenderer != null &&
             desktopKeyPlacement == sh.haven.core.data.preferences.DesktopKeyPlacement.LEFT &&
+            kbRestR1 >= 0
+        ) minOf(kbRestR1, r2Rest.size) else -1
+        val desktopTopIdx = if (desktopRenderer != null &&
+            desktopKeyPlacement == sh.haven.core.data.preferences.DesktopKeyPlacement.LEFT &&
             kbRestR1 < 0 && kbRestR2 >= 0
-        ) kbRestR2 + 1 else -1
+        ) minOf(kbRestR2, r1Rest.size) else -1
         val desktopTrail = desktopRenderer != null && (
             desktopKeyPlacement == sh.haven.core.data.preferences.DesktopKeyPlacement.RIGHT ||
             (desktopKeyPlacement == sh.haven.core.data.preferences.DesktopKeyPlacement.LEFT &&
@@ -653,7 +655,8 @@ private fun AlignedToolbarContent(
         }
         // Rest columns: row-1 key over row-2 key, paired by position. The
         // keyboard toggle is NOT extracted — it flows here at its saved
-        // position, and the LEFT-placed desktop key is inserted beside it.
+        // position, and the LEFT-placed desktop key shares its column
+        // (opposite row) so it consumes no extra cell.
         val topCols = r1Rest.map { itemRenderer(it) }.toMutableList()
         val botCols = r2Rest.map { itemRenderer(it) }.toMutableList()
         if (desktopTopIdx >= 0) topCols.add(desktopTopIdx, desktopRenderer)

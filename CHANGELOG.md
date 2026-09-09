@@ -5,6 +5,16 @@ the corresponding GitHub Release; a release can't ship without its section
 (enforced by `scripts/check-changelog.sh` in CI). The GitHub "Full Changelog"
 compare link is appended automatically — don't add it here.
 
+## v5.87.79
+
+- A connection can pin its outgoing SSH socket to a local address, like ssh -b (#636).
+
+- Fixed a gap in the extended keyboard toolbar's second row (#628).
+
+- **Connections can bind the outgoing SSH socket to a local address** (#636). The SSH edit dialog gains an optional "Bind address" field: set it and Haven dials the server from that local interface or IP instead of letting the OS choose, the same role ssh -b plays on the command line. Useful on multi-homed hosts and with source-address firewalls. A bind address and a jump site are mutually exclusive — the dialog keeps them apart.
+
+- **Fixed a gap in the extended keyboard toolbar's second row** (#628). The v5.87.78 unpinning of the toolbar placed a left-side Desktop key beside the keyboard toggle, which grew that row by a column and left empty cells under the second row whenever the rows held unequal numbers of keys. The Desktop key now shares the keyboard toggle's column in the opposite row and takes no extra cell, so both rows stay paired.
+
 ## v5.87.78
 
 - Six new terminal color schemes (#627).

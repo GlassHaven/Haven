@@ -1,0 +1,2 @@
+- A connection can pin its outgoing SSH socket to a local address, like ssh -b (#636).
+- Fixed a gap in the extended keyboard toolbar's second row (#628).

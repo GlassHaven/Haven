@@ -207,6 +207,8 @@
     <string name="connection_address_family_ipv6_only">仅 IPv6</string>
     <string name="connection_address_family_ipv4_hint">跳过 AAAA 记录，仅通过 IPv4 连接。适用于 DNS 返回 IPv6 但网络无法路由的情况。</string>
     <string name="connection_address_family_ipv6_hint">跳过 A 记录，仅通过 IPv6 连接。适用于 IPv4 NAT 损坏的纯 IPv6 网络。</string>
+    <string name="connections_field_bind_address">本地绑定地址</string>
+    <string name="connections_helper_bind_address">将出站连接绑定到此本地地址（ssh -b）。仅限直连。</string>
 
     <!-- #135 -->
     <string name="connections_field_vnc_host_via_ssh">VNC 主机（在 SSH 服务器上）</string>

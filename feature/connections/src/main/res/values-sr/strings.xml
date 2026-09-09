@@ -189,6 +189,8 @@
     <string name="connection_address_family_ipv6_only">Само IPv6</string>
     <string name="connection_address_family_ipv4_hint">Прескаче AAAA записе и повезује се преко IPv4. Корисно је када DNS враћа IPv6, али мрежа не може да га рутира.</string>
     <string name="connection_address_family_ipv6_hint">Прескаче A записе и повезује се преко IPv6. Корисно је на само-IPv6 мрежама где је неисправан IPv4 NAT.</string>
+    <string name="connections_field_bind_address">Локална адреса везивања</string>
+    <string name="connections_helper_bind_address">Повежи одлазну везу на ову локалну адресу (ssh -b). Само директне везе.</string>
     <string name="connections_field_vnc_host_via_ssh">VNC хост (на SSH серверу)</string>
     <string name="connections_field_rdp_host_via_ssh">RDP хост (на SSH серверу)</string>
     <string name="connections_toggle_run_before_session_manager">Покрени пре менаџера сесије</string>

@@ -11342,6 +11342,46 @@
      }
     },
     {
+     "name": "connections_field_bind_address",
+     "en": "Bind local address",
+     "comment": "Group header",
+     "args": [],
+     "t": {
+      "ar": "عنوان الربط المحلي",
+      "bn": "লোকাল বাইন্ড ঠিকানা",
+      "de": "Lokale Bindungsadresse",
+      "es": "Dirección local de enlace",
+      "fr": "Adresse locale de liaison",
+      "hi": "लोकल बाइंड पता",
+      "ja": "ローカルバインドアドレス",
+      "ko": "로컬 바인드 주소",
+      "pt": "Endereço local de ligação",
+      "ru": "Локальный адрес привязки",
+      "sr": "Локална адреса везивања",
+      "zh": "本地绑定地址"
+     }
+    },
+    {
+     "name": "connections_helper_bind_address",
+     "en": "Pin the outgoing connection to this local address (ssh -b). Direct connections only.",
+     "comment": "Group header",
+     "args": [],
+     "t": {
+      "ar": "اربط الاتصال الصادر بهذا العنوان المحلي (ssh -b). الاتصالات المباشرة فقط.",
+      "bn": "আউটগোয়িং সংযোগ এই লোকাল ঠিকানায় বাইন্ড করুন (ssh -b)। শুধু সরাসরি সংযোগ।",
+      "de": "Verbindung an diese lokale Adresse binden (ssh -b). Nur direkte Verbindungen.",
+      "es": "Vincular la conexión saliente a esta dirección local (ssh -b). Solo conexiones directas.",
+      "fr": "Lier la connexion sortante à cette adresse locale (ssh -b). Connexions directes uniquement.",
+      "hi": "आउटगोइंग कनेक्शन को इस लोकल पते पर बाइंड करें (ssh -b)। केवल सीधे कनेक्शन।",
+      "ja": "送信接続をこのローカルアドレスにバインドします（ssh -b）。直接接続のみ。",
+      "ko": "발신 연결을 이 로컬 주소에 바인드합니다(ssh -b). 직접 연결만 지원합니다.",
+      "pt": "Vincular a ligação de saída a este endereço local (ssh -b). Apenas ligações diretas.",
+      "ru": "Привязать исходящее соединение к этому локальному адресу (ssh -b). Только прямые подключения.",
+      "sr": "Повежи одлазну везу на ову локалну адресу (ssh -b). Само директне везе.",
+      "zh": "将出站连接绑定到此本地地址（ssh -b）。仅限直连。"
+     }
+    },
+    {
      "name": "connections_field_vnc_host_via_ssh",
      "en": "VNC host (on SSH server)",
      "comment": "#135 follow-up: hardcoded English strings replaced with resources for zh-CN and the other 9 locales. Same audit pass that v5.24.83 and v5.24.89 did for SettingsScreen and the bulk of ConnectionEditDialog — these are the ones the previous round missed.",

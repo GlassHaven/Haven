@@ -94,6 +94,7 @@ class HeadlessSshExec @Inject constructor(
             authMethod = auth,
             sshOptions = ConnectionConfig.parseSshOptions(profile.sshOptions),
             addressFamily = ConnectionConfig.AddressFamily.valueOf(profile.addressFamilyEnum.name),
+            bindAddress = profile.bindAddress,
             reconnectPolicy = ConnectionConfig.ReconnectPolicy(autoReconnect = false),
         )
         val client = clientFactory()

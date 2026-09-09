@@ -402,6 +402,7 @@ class McpTunnelManager @Inject constructor(
             authMethod = auth,
             sshOptions = ConnectionConfig.parseSshOptions(profile.sshOptions),
             addressFamily = ConnectionConfig.AddressFamily.valueOf(profile.addressFamilyEnum.name),
+            bindAddress = profile.bindAddress,
             // Unlimited self-healing: a headless tunnel that holds the MCP
             // forward should never give up while the endpoint is enabled.
             reconnectPolicy = ConnectionConfig.ReconnectPolicy(

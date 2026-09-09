@@ -211,6 +211,13 @@ data class ConnectionProfile(
      * both real cases (pannal, #137 thread).
      */
     val addressFamily: String = "AUTO",
+    /**
+     * Local address to bind the outgoing SSH socket to — ssh -b (#636).
+     * Literal IP preferred; a hostname is resolved first. Direct
+     * connections only — with a proxy or jump host the engines refuse the
+     * connect rather than binding the wrong hop. Null lets the system pick.
+     */
+    val bindAddress: String? = null,
     /** IFAC network name for Reticulum gateway isolation (maps to ifacNetname). */
     val reticulumNetworkName: String? = null,
     /** IFAC passphrase for Reticulum gateway isolation (maps to ifacNetkey). */

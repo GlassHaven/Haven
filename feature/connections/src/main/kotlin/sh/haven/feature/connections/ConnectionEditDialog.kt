@@ -384,6 +384,7 @@ fun ConnectionEditDialog(
     }
     var forwardAgent by rememberSaveable { mutableStateOf(existing?.forwardAgent ?: false) }
     var addressFamily by rememberSaveable { mutableStateOf(existing?.addressFamily ?: "AUTO") }
+    var bindAddress by rememberSaveable { mutableStateOf(existing?.bindAddress ?: "") }
     var selectedSessionManager by rememberSaveable { mutableStateOf(seed?.sessionManager) }
     var etPort by rememberSaveable { mutableStateOf(existing?.etPort?.toString() ?: "2022") }
     var localSideband by rememberSaveable {
@@ -2942,6 +2943,21 @@ fun ConnectionEditDialog(
                         )
                     }
 
+                    // Local bind address (#636, ssh -b) — pin multi-homed
+                    // hosts to one interface. Direct connections only: with a
+                    // proxy or jump host the connect is refused, since the far
+                    // end would be doing the dialing.
+                    Spacer(Modifier.height(8.dp))
+                    OutlinedTextField(
+                        value = bindAddress,
+                        onValueChange = { bindAddress = it },
+                        label = { Text(stringResource(R.string.connections_field_bind_address)) },
+                        placeholder = { Text("192.168.0.10") },
+                        supportingText = { Text(stringResource(R.string.connections_helper_bind_address)) },
+                        singleLine = true,
+                        modifier = Modifier.fillMaxWidth(),
+                    )
+
                     // Ordered auth methods (#166): attempt these in order in a
                     // single connect, so a server requiring publickey+password
                     // (or PAM chains) is satisfied. A single method behaves
@@ -3744,6 +3760,7 @@ fun ConnectionEditDialog(
                             prootDistroId = if (useAndroidShell) null else prootDistroId,
                             forwardAgent = forwardAgent,
                             addressFamily = addressFamily,
+                            bindAddress = bindAddress.ifBlank { null },
                             autoReconnect = autoReconnect,
                             reconnectMaxAttempts = reconnectMaxAttempts.toIntOrNull()?.coerceAtLeast(0) ?: 5,
                             reconnectOnNetworkChange = reconnectOnNetworkChange,

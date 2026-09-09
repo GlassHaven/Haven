@@ -345,6 +345,8 @@
     <string name="connection_address_family_ipv6_only">IPv6 uniquement</string>
     <string name="connection_address_family_ipv4_hint">Ignore les enregistrements AAAA et se connecte en IPv4. Utile lorsque le DNS renvoie de l\'IPv6 mais que le réseau ne peut pas l\'acheminer.</string>
     <string name="connection_address_family_ipv6_hint">Ignore les enregistrements A et se connecte en IPv6. Utile sur les réseaux uniquement IPv6 où le NAT IPv4 est défaillant.</string>
+    <string name="connections_field_bind_address">Adresse locale de liaison</string>
+    <string name="connections_helper_bind_address">Lier la connexion sortante à cette adresse locale (ssh -b). Connexions directes uniquement.</string>
     <string name="connections_section_general">Général</string>
     <string name="connections_section_local_shell">Shell local</string>
     <string name="connections_section_cloud_storage">Stockage cloud</string>

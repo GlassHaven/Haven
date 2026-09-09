@@ -345,6 +345,8 @@
     <string name="connection_address_family_ipv6_only">Только IPv6</string>
     <string name="connection_address_family_ipv4_hint">Пропускает записи AAAA и подключается по IPv4. Полезно, когда DNS возвращает IPv6, но сеть не может его маршрутизировать.</string>
     <string name="connection_address_family_ipv6_hint">Пропускает записи A и подключается по IPv6. Полезно в сетях только с IPv6, где IPv4-NAT не работает.</string>
+    <string name="connections_field_bind_address">Локальный адрес привязки</string>
+    <string name="connections_helper_bind_address">Привязать исходящее соединение к этому локальному адресу (ssh -b). Только прямые подключения.</string>
     <string name="connections_section_general">Общие</string>
     <string name="connections_section_local_shell">Локальная оболочка</string>
     <string name="connections_section_cloud_storage">Облачное хранилище</string>

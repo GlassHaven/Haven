@@ -54,7 +54,7 @@ import sh.haven.core.data.db.entities.WorkspaceProfile
         AgeIdentityEntity::class,
         SshIdentity::class,
     ],
-    version = 80,
+    version = 81,
     exportSchema = true,
 )
 abstract class HavenDatabase : RoomDatabase() {
@@ -1289,6 +1289,17 @@ abstract class HavenDatabase : RoomDatabase() {
             override fun migrate(db: SupportSQLiteDatabase) {
                 addColumnIfMissing(db, "connection_profiles", "remoteCommand", "TEXT DEFAULT NULL")
                 addColumnIfMissing(db, "connection_profiles", "requestPty", "INTEGER NOT NULL DEFAULT 1")
+            }
+        }
+
+        /**
+         * ssh -b on a connection profile (#636): the local address the
+         * outgoing SSH socket binds to. Null for every existing profile —
+         * the system picks the source address as before.
+         */
+        val MIGRATION_80_81 = object : Migration(80, 81) {
+            override fun migrate(db: SupportSQLiteDatabase) {
+                addColumnIfMissing(db, "connection_profiles", "bindAddress", "TEXT DEFAULT NULL")
             }
         }
 

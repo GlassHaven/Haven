@@ -345,6 +345,8 @@
     <string name="connection_address_family_ipv6_only">শুধু IPv6</string>
     <string name="connection_address_family_ipv4_hint">AAAA রেকর্ড এড়িয়ে IPv4-এ সংযোগ করে। DNS IPv6 ফেরত দিলে কিন্তু নেটওয়ার্ক তা রুট করতে না পারলে উপযোগী।</string>
     <string name="connection_address_family_ipv6_hint">A রেকর্ড এড়িয়ে IPv6-এ সংযোগ করে। শুধু-IPv6 নেটওয়ার্কে উপযোগী যেখানে IPv4 NAT কাজ করে না।</string>
+    <string name="connections_field_bind_address">লোকাল বাইন্ড ঠিকানা</string>
+    <string name="connections_helper_bind_address">আউটগোয়িং সংযোগ এই লোকাল ঠিকানায় বাইন্ড করুন (ssh -b)। শুধু সরাসরি সংযোগ।</string>
     <string name="connections_section_general">সাধারণ</string>
     <string name="connections_section_local_shell">স্থানীয় শেল</string>
     <string name="connections_section_cloud_storage">ক্লাউড স্টোরেজ</string>

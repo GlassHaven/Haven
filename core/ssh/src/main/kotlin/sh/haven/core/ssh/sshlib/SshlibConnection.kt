@@ -117,6 +117,16 @@ internal class SshlibConnection : SshConnection {
         disconnect()
         // Jump and proxy dials are supported now: both arrive as a HavenProxy
         // and ride a JschProxyTransportFactory, so neither is passed here.
+        // sshlib 0.4.2 has no local-bind API on its transport (KtorTcpTransport
+        // takes host+ipVersion only), so a bound profile is refused up front
+        // rather than silently unbound (#636).
+        if (!config.bindAddress.isNullOrBlank()) {
+            throw SshIoException(
+                "sshlib engine (experimental) does not support binding the " +
+                    "outgoing socket to a local address (ssh -b) — " +
+                    "set this profile's SSH engine back to JSch",
+            )
+        }
         SshlibSftpConnector.unsupportedReason(config)?.let { reason ->
             throw SshIoException(
                 "sshlib engine (experimental) does not support $reason — " +

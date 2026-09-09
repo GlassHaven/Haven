@@ -234,6 +234,8 @@
     <string name="connection_address_family_ipv6_only">IPv6 only</string>
     <string name="connection_address_family_ipv4_hint">Skip AAAA records and connect over IPv4. Useful when DNS returns IPv6 but the network can\'t route it.</string>
     <string name="connection_address_family_ipv6_hint">Skip A records and connect over IPv6. Useful on IPv6-only networks where IPv4 NAT is broken.</string>
+    <string name="connections_field_bind_address">Bind local address</string>
+    <string name="connections_helper_bind_address">Pin the outgoing connection to this local address (ssh -b). Direct connections only.</string>
 
     <!-- #135 follow-up: hardcoded English strings replaced with resources
          for zh-CN and the other 9 locales. Same audit pass that v5.24.83

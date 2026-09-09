@@ -3567,6 +3567,7 @@ class ConnectionsViewModel @Inject constructor(
                             remoteCommand = profile.remoteCommand,
                             requestPty = profile.requestPty,
                             addressFamily = profile.addressFamilyForSsh,
+                            bindAddress = profile.bindAddress,
                             agentIdentities = agentIdentitiesFor(profile),
                             reconnectPolicy = profile.reconnectPolicy,
                         )
@@ -5950,6 +5951,7 @@ class ConnectionsViewModel @Inject constructor(
                     remoteCommand = profile.remoteCommand,
                     requestPty = profile.requestPty,
                     addressFamily = profile.addressFamilyForSsh,
+                    bindAddress = profile.bindAddress,
                     agentIdentities = agentIdentitiesFor(profile),
                 )
                 val proxy = if (jumpSessionId != null) {

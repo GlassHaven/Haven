@@ -20,6 +20,14 @@ data class ConnectionConfig(
      */
     val addressFamily: AddressFamily = AddressFamily.AUTO,
     /**
+     * Local address to bind the outgoing socket to — ssh -b (#636). A literal
+     * IP pins multi-homed hosts to one interface; a hostname is resolved
+     * first. Direct connections only: with a proxy or jump host, the far end
+     * dials the target, so the engines refuse instead of binding the wrong
+     * hop. Null keeps the system-chosen source address.
+     */
+    val bindAddress: String? = null,
+    /**
      * Keys to expose via the forwarded agent channel. Only consulted when
      * [forwardAgent] is true. JSch's ChannelAgentForwarding silently skips
      * identities whose `isEncrypted()` returns true, so a passphrase-protected

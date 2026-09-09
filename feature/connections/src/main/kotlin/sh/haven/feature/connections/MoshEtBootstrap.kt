@@ -55,6 +55,7 @@ internal fun moshEtBootstrapConfig(
     remoteCommand = profile.remoteCommand,
     requestPty = profile.requestPty,
     addressFamily = profile.addressFamilyForSsh,
+    bindAddress = profile.bindAddress,
     agentIdentities = agentIdentities,
     reconnectPolicy = reconnectPolicy,
 )

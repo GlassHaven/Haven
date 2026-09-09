@@ -345,6 +345,8 @@
     <string name="connection_address_family_ipv6_only">केवल IPv6</string>
     <string name="connection_address_family_ipv4_hint">AAAA रिकॉर्ड छोड़ें और IPv4 पर कनेक्ट करें। तब उपयोगी जब DNS IPv6 लौटाता है पर नेटवर्क उसे रूट नहीं कर सकता।</string>
     <string name="connection_address_family_ipv6_hint">A रिकॉर्ड छोड़ें और IPv6 पर कनेक्ट करें। केवल-IPv6 नेटवर्क पर उपयोगी जहाँ IPv4 NAT टूटा हुआ है।</string>
+    <string name="connections_field_bind_address">लोकल बाइंड पता</string>
+    <string name="connections_helper_bind_address">आउटगोइंग कनेक्शन को इस लोकल पते पर बाइंड करें (ssh -b)। केवल सीधे कनेक्शन।</string>
     <string name="connections_section_general">सामान्य</string>
     <string name="connections_section_local_shell">स्थानीय शेल</string>
     <string name="connections_section_cloud_storage">क्लाउड स्टोरेज</string>

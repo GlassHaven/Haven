@@ -345,6 +345,8 @@
     <string name="connection_address_family_ipv6_only">Nur IPv6</string>
     <string name="connection_address_family_ipv4_hint">AAAA-Einträge überspringen und über IPv4 verbinden. Nützlich, wenn DNS IPv6 zurückgibt, das Netzwerk es aber nicht routen kann.</string>
     <string name="connection_address_family_ipv6_hint">A-Einträge überspringen und über IPv6 verbinden. Nützlich in reinen IPv6-Netzwerken, in denen IPv4-NAT defekt ist.</string>
+    <string name="connections_field_bind_address">Lokale Bindungsadresse</string>
+    <string name="connections_helper_bind_address">Verbindung an diese lokale Adresse binden (ssh -b). Nur direkte Verbindungen.</string>
     <string name="connections_section_general">Allgemein</string>
     <string name="connections_section_local_shell">Lokale Shell</string>
     <string name="connections_section_cloud_storage">Cloud-Speicher</string>

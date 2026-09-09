@@ -345,6 +345,8 @@
     <string name="connection_address_family_ipv6_only">IPv6 فقط</string>
     <string name="connection_address_family_ipv4_hint">يتخطى سجلات AAAA ويتصل عبر IPv4. مفيد عندما يُرجع DNS عنوان IPv6 لكن الشبكة لا تستطيع توجيهه.</string>
     <string name="connection_address_family_ipv6_hint">يتخطى سجلات A ويتصل عبر IPv6. مفيد على الشبكات التي تدعم IPv6 فقط حيث يكون NAT الخاص بـ IPv4 معطّلًا.</string>
+    <string name="connections_field_bind_address">عنوان الربط المحلي</string>
+    <string name="connections_helper_bind_address">اربط الاتصال الصادر بهذا العنوان المحلي (ssh -b). الاتصالات المباشرة فقط.</string>
     <string name="connections_section_general">عام</string>
     <string name="connections_section_local_shell">الصدفة المحلية</string>
     <string name="connections_section_cloud_storage">التخزين السحابي</string>

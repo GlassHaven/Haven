@@ -373,11 +373,46 @@ class SshClient : SshConnection {
         // #519: phase timing, so a slow connect names its own cause rather
         // than arriving as an unattributed "took 1.2s".
         val timing = ConnectTiming()
-        val resolvedIp = if (proxy != null) config.host else resolveHost(config.host, family = config.addressFamily, port = config.port)
+        // #636: a bound socket cannot reach addresses of the other family —
+        // an IPv4-bound dial to an AAAA candidate fails at connect() with a
+        // bind-mismatch error nobody can act on. Pin resolution to the bound
+        // address's family so the probe/filter never proposes one.
+        val bindAddress = config.bindAddress?.takeIf { it.isNotBlank() }
+        val resolveFamily = when {
+            bindAddress == null -> config.addressFamily
+            bindAddress.contains(":") -> ConnectionConfig.AddressFamily.IPV6_ONLY
+            else -> ConnectionConfig.AddressFamily.IPV4_ONLY
+        }
+        val resolvedIp = if (proxy != null) {
+            config.host
+        } else {
+            resolveHost(
+                config.host,
+                family = resolveFamily,
+                port = config.port,
+                // resolveHost's "IPv4-only enabled" wording would point at the
+                // wrong setting here — the family is pinned by the bind, not
+                // by a preference.
+                familyNote = if (bindAddress == null) null else
+                    " (no address of the family required by the bound local address " +
+                    "($bindAddress) was found)",
+            )
+        }
         timing.mark("resolve")
         connectedViaProxy = proxy != null
         val sess = jsch.getSession(config.username, resolvedIp, config.port)
         if (proxy != null) sess.setProxy(requireJschProxy(proxy))
+        bindAddress?.let {
+            // ssh -b is a direct-connection feature: with a proxy or jump host
+            // the far end dials the target, so binding the local socket would
+            // pin the wrong hop — and Haven's jump Proxy ignores the factory
+            // anyway. Refuse rather than silently ignoring the setting (#636).
+            if (proxy != null) throw JSchException(
+                "Bind address is only supported for direct connections — " +
+                    "remove the proxy / jump host, or the bind address",
+            )
+            sess.setSocketFactory(BoundSocketFactory(it, connectTimeoutMs))
+        }
         // Accept any key at the JSch level; we verify post-connect ourselves (TOFU)
         sess.setConfig("StrictHostKeyChecking", "no")
         // #133: trusted host-CA keys activate JSch's native OpenSSH host-
@@ -632,11 +667,46 @@ class SshClient : SshConnection {
         // #519: phase timing, so a slow connect names its own cause rather
         // than arriving as an unattributed "took 1.2s".
         val timing = ConnectTiming()
-        val resolvedIp = if (proxy != null) config.host else resolveHost(config.host, family = config.addressFamily, port = config.port)
+        // #636: a bound socket cannot reach addresses of the other family —
+        // an IPv4-bound dial to an AAAA candidate fails at connect() with a
+        // bind-mismatch error nobody can act on. Pin resolution to the bound
+        // address's family so the probe/filter never proposes one.
+        val bindAddress = config.bindAddress?.takeIf { it.isNotBlank() }
+        val resolveFamily = when {
+            bindAddress == null -> config.addressFamily
+            bindAddress.contains(":") -> ConnectionConfig.AddressFamily.IPV6_ONLY
+            else -> ConnectionConfig.AddressFamily.IPV4_ONLY
+        }
+        val resolvedIp = if (proxy != null) {
+            config.host
+        } else {
+            resolveHost(
+                config.host,
+                family = resolveFamily,
+                port = config.port,
+                // resolveHost's "IPv4-only enabled" wording would point at the
+                // wrong setting here — the family is pinned by the bind, not
+                // by a preference.
+                familyNote = if (bindAddress == null) null else
+                    " (no address of the family required by the bound local address " +
+                    "($bindAddress) was found)",
+            )
+        }
         timing.mark("resolve")
         connectedViaProxy = proxy != null
         val sess = jsch.getSession(config.username, resolvedIp, config.port)
         if (proxy != null) sess.setProxy(requireJschProxy(proxy))
+        bindAddress?.let {
+            // ssh -b is a direct-connection feature: with a proxy or jump host
+            // the far end dials the target, so binding the local socket would
+            // pin the wrong hop — and Haven's jump Proxy ignores the factory
+            // anyway. Refuse rather than silently ignoring the setting (#636).
+            if (proxy != null) throw JSchException(
+                "Bind address is only supported for direct connections — " +
+                    "remove the proxy / jump host, or the bind address",
+            )
+            sess.setSocketFactory(BoundSocketFactory(it, connectTimeoutMs))
+        }
         sess.setConfig("StrictHostKeyChecking", "no")
         val caRepo = installHostCaRepository(sess, trustedHostCaKeys)
         sess.setConfig("PreferredAuthentications", "publickey,keyboard-interactive,password")
@@ -1098,6 +1168,7 @@ class SshClient : SshConnection {
             hostname: String,
             family: ConnectionConfig.AddressFamily = ConnectionConfig.AddressFamily.AUTO,
             port: Int = 0,
+            familyNote: String? = null,
         ): String {
             // IPv4 literal — skip resolution. With family=IPV6_ONLY this is a
             // user choice to override their own preference; pass it through
@@ -1115,7 +1186,7 @@ class SshClient : SshConnection {
 
             if (ip != null) return ip
 
-            val why = when (family) {
+            val why = familyNote ?: when (family) {
                 ConnectionConfig.AddressFamily.IPV4_ONLY ->
                     " (no A record / IPv4 address found, IPv4-only enabled)"
                 ConnectionConfig.AddressFamily.IPV6_ONLY ->

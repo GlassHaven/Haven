@@ -18,9 +18,11 @@
 # (and F-Droid, via -PskipUml) simply lack the guest transport; the
 # NativeFeatures.uml probe hides the UI.
 #
-# Version-pinned release assets with sha256s. The kernel is GPL-2.0; its
-# source (branch um-arm64 of zalexdev/linux-um-arm64 plus
-# stub-execve-fallback.patch) is published, which satisfies the
+# Version-pinned release assets with sha256s (github.com/GlassOnTin/
+# uml-transport, tag uml-guest-1). The kernel is GPL-2.0; its source
+# (branch um-arm64 of zalexdev/linux-um-arm64 at 8897487c5 plus the
+# stub-execve-fallback and android-app-compat patches, both published
+# there with the build recipes) is published, which satisfies the
 # distribution terms. When the pin is retired, the fetch fails LOUDLY —
 # bump UML_RELEASE and the sha256s together. Skip with
 # ./gradlew -PskipUml or SKIP_UML=1 (F-Droid).

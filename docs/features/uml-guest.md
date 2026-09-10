@@ -91,7 +91,7 @@ guest. Files you created stay on the image for next time.
 
 ## How it works
 
-- **Kernel**: a bionic-static UML kernel built from the [Linux UML tree](https://github.com/zalexdev/linux-um-arm64) (branch `um-arm64`) with the `stub-execve-fallback.patch` on top, so the kernel runs as an ordinary Android app process — no root, no `/dev/kvm`, no privileged setup.
+- **Kernel**: a bionic-static UML kernel built from the [Linux UML tree](https://github.com/zalexdev/linux-um-arm64) (branch `um-arm64`) with the `stub-execve-fallback.patch` and `android-app-compat.patch` on top, so the kernel runs as an ordinary Android app process — no root, no `/dev/kvm`, no privileged setup.
 - **Network**: [passt](https://passt.top) runs as a sibling of the kernel, connected over a `SOCK_SEQPACKET` socketpair; the kernel's UML vector transport (`vec0`) uses that pair as its NIC, and passt forwards to the app's own network context. DNS is set to 1.1.1.1 by default. No VPN permission is needed because everything stays inside the app.
 - **Console**: the guest's stdio console is the terminal tab's pty, so the boot messages and shell appear as they happen.
 - **Boot time**: the rootfs is a ~536 MB ext4 image (a minimal aarch64 rootfs with an init, busybox, and a network bring-up). The kernel prints its first boot messages within a couple of seconds; the shell prompt appears once the inittab's `ifup -a` finishes its DHCP round on `vec0`, which adds a few more seconds on top (measured ~10–20 s total on an OPPO CPH2655, MCP round-trips included).
@@ -108,10 +108,12 @@ variants.
 
 ## Source availability
 
-The guest kernel is GPL-2.0. Its complete corresponding source is published at
-the [linux-um-arm64 repository](https://github.com/zalexdev/linux-um-arm64)
-(branch `um-arm64`) plus the `stub-execve-fallback.patch` applied by the
-build. The pinned binaries and their sha256 checksums are in
+The guest kernel and passt are GPL-2.0 (passt under its upstream
+GPL-2.0-or-later identifier). Their complete corresponding source, the two
+kernel patches, the passt patch and the build recipes are published in the
+[uml-transport repository](https://github.com/GlassOnTin/uml-transport);
+the binaries Haven ships are the pinned `uml-guest-1` release of that
+project. The pinned binaries and their sha256 checksums are in
 [`core/local/fetch-uml.sh`](https://github.com/GlassOnTin/haven/blob/master/core/local/fetch-uml.sh);
 the fetch fails the build loudly if a pinned artifact disappears, and each
 artifact's checksum is verified before it is placed in the APK.

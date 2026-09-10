@@ -14510,6 +14510,46 @@
      }
     },
     {
+     "name": "connections_section_guest",
+     "en": "Linux guest",
+     "comment": "Section headings in the connection edit dialog.",
+     "args": [],
+     "t": {
+      "ar": "ضيف لينكس",
+      "bn": "লিনাক্স গেস্ট",
+      "de": "Linux-Gast",
+      "es": "Invitado Linux",
+      "fr": "Invité Linux",
+      "hi": "लिनक्स गेस्ट",
+      "ja": "Linux ゲスト",
+      "ko": "Linux 게스트",
+      "pt": "Convidado Linux",
+      "ru": "Гостевая Linux",
+      "sr": "Linux гост",
+      "zh": "Linux 虚拟机"
+     }
+    },
+    {
+     "name": "connections_guest_desc",
+     "en": "Boots a real Linux kernel on this device, with its own root filesystem and network. The rootfs is unpacked (~512 MB) on first use. No host or credentials needed.",
+     "comment": "Section headings in the connection edit dialog.",
+     "args": [],
+     "t": {
+      "ar": "يُقلِع نواة لينكس حقيقية على هذا الجهاز، بنظام ملفات خاص وشبكة مستقلة. يُفكّ نظام الملفات (~512 ميغابايت) عند أول استخدام. لا حاجة لمضيف أو بيانات دخول.",
+      "bn": "এই ডিভাইসে আসল লিনাক্স কার্নেল চালু করে, নিজস্ব রুট ফাইলসিস্টেম ও নেটওয়ার্ক সহ. প্রথম ব্যবহারে রুটফস আনপ্যাক হয় (~৫১২ মেগাবাইট). কোনো হোস্ট বা লগইন দরকার নেই.",
+      "de": "Startet einen echten Linux-Kernel auf diesem Gerät, mit eigenem Wurzeldateisystem und eigener Netzwerkverbindung. Das Rootfs wird beim ersten Benutzen entpackt (~512 MB). Kein Host und keine Zugangsdaten nötig.",
+      "es": "Arranca un núcleo Linux real en este dispositivo, con su propio sistema de archivos raíz y red. El rootfs se desempaqueta (~512 MB) al primer uso. No hace falta host ni credenciales.",
+      "fr": "Démarre un vrai noyau Linux sur cet appareil, avec son propre système de fichiers racine et son réseau. Le rootfs est décompressé (~512 Mo) à la première utilisation. Aucun hôte ni identifiants requis.",
+      "hi": "इस डिवाइस पर असली लिनक्स कर्नेल चलाता है, अपनी रूट फ़ाइलसिस्टम और नेटवर्क के साथ. पहली बार उपयोग पर रूटफ़्स (~512 MB) अनपैक होता है. किसी होस्ट या लॉगिन की ज़रूरत नहीं.",
+      "ja": "この端末上で実際の Linux カーネルを起動します。独自のルートファイルシステムとネットワークを持ちます。初回使用時にルートファイルシステム (~512 MB) を展開します。ホストや資格情報は不要です。",
+      "ko": "이 기기에서 실제 Linux 커널을 부팅합니다. 자체 루트 파일시스템과 네트워크를 갖습니다. 첫 사용 시 루트파일시스템(~512 MB)을 압축 해제합니다. 호스트나 자격증명이 필요 없습니다.",
+      "pt": "Arranca um núcleo Linux real neste dispositivo, com o seu próprio sistema de ficheiros raiz e rede. O rootfs é descomprimido (~512 MB) na primeira utilização. Não precisa de host nem credenciais.",
+      "ru": "Запускает настоящее ядро Linux на этом устройстве, со своей корневой файловой системой и сетью. Корневая ФС распаковывается (~512 МБ) при первом использовании. Хост и учётные данные не нужны.",
+      "sr": "Покреће право Линукс језгро на овом уређају, са сопственим кореним фајл системом и мрежом. Рут фајл систем се распакује (~512 MB) при првој употреби. Није потребан хост ни акредитиви.",
+      "zh": "在此设备上引导真实的 Linux 内核，拥有独立的根文件系统和网络。首次使用时解压根文件系统（约 512 MB）。无需主机或登录凭据。"
+     }
+    },
+    {
      "name": "connections_section_btserial",
      "en": "Bluetooth serial",
      "comment": "Bluetooth serial (#406)",

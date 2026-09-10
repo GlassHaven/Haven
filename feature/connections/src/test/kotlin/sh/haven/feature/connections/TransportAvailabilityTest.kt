@@ -16,6 +16,7 @@ class TransportAvailabilityTest {
         "SSH" to "SSH",
         "MOSH" to "Mosh",
         "LOCAL" to "Local Shell (PRoot)",
+        "GUEST" to "Linux Guest (UML)",
         "VNC" to "VNC (Desktop)",
         "RDP" to "RDP (Desktop)",
         "SPICE" to "SPICE (Desktop)",
@@ -23,8 +24,12 @@ class TransportAvailabilityTest {
         "RCLONE" to "Cloud Storage (rclone)",
     )
 
-    private fun values(rdp: Boolean, spice: Boolean, rclone: Boolean = true) =
-        TransportAvailability.offered(all, rdp, spice, rclone).map { it.first }
+    private fun values(
+        rdp: Boolean,
+        spice: Boolean,
+        rclone: Boolean = true,
+        uml: Boolean = true,
+    ) = TransportAvailability.offered(all, rdp, spice, rclone, uml).map { it.first }
 
     @Test
     fun `a full build offers everything`() {
@@ -49,7 +54,10 @@ class TransportAvailabilityTest {
     fun `nothing else is affected, VNC included`() {
         val offered = values(rdp = false, spice = false)
 
-        assertEquals(listOf("SSH", "MOSH", "LOCAL", "VNC", "SMB", "RCLONE"), offered)
+        assertEquals(
+            listOf("SSH", "MOSH", "LOCAL", "GUEST", "VNC", "SMB", "RCLONE"),
+            offered,
+        )
         assertTrue("VNC must survive", "VNC" in offered)
     }
 
@@ -65,9 +73,22 @@ class TransportAvailabilityTest {
     @Test
     fun `order is preserved`() {
         assertEquals(
-            listOf("SSH", "MOSH", "LOCAL", "VNC", "RDP", "SPICE", "SMB", "RCLONE"),
+            listOf("SSH", "MOSH", "LOCAL", "GUEST", "VNC", "RDP", "SPICE", "SMB", "RCLONE"),
             values(rdp = true, spice = true),
         )
+    }
+
+    /**
+     * Like RDP/SPICE, the guest is gated on a missing file (libvmlinux.so) —
+     * the terminal flavour drops the kernel and F-Droid builds skip the fetch.
+     */
+    @Test
+    fun `a build without the UML payload drops the guest transport`() {
+        val offered = values(rdp = true, spice = true, uml = false)
+
+        assertFalse("GUEST", "GUEST" in offered)
+        assertTrue("LOCAL should survive", "LOCAL" in offered)
+        assertTrue("SSH should survive", "SSH" in offered)
     }
 
     /**

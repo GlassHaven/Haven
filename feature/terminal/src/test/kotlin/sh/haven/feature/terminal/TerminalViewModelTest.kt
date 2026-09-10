@@ -34,6 +34,7 @@ class TerminalViewModelTest {
     private lateinit var moshSessionManager: MoshSessionManager
     private lateinit var etSessionManager: EtSessionManager
     private lateinit var localSessionManager: LocalSessionManager
+    private lateinit var umlGuestManager: sh.haven.core.local.uml.UmlGuestManager
     private lateinit var btSerialSessionManager: sh.haven.core.btserial.BtSerialSessionManager
     private lateinit var bleSerialSessionManager: sh.haven.core.bleserial.BleSerialSessionManager
     private lateinit var bleSerialSessions:
@@ -56,6 +57,9 @@ class TerminalViewModelTest {
             every { sessions } returns MutableStateFlow(emptyMap())
         }
         localSessionManager = mockk<LocalSessionManager>(relaxed = true) {
+            every { sessions } returns MutableStateFlow(emptyMap())
+        }
+        umlGuestManager = mockk<sh.haven.core.local.uml.UmlGuestManager>(relaxed = true) {
             every { sessions } returns MutableStateFlow(emptyMap())
         }
         btSerialSessionManager = mockk(relaxed = true) {
@@ -91,6 +95,7 @@ class TerminalViewModelTest {
             usbSerialSessionManager,
             mockk<sh.haven.core.usb.UsbBroker>(relaxed = true),
             localSessionManager,
+            umlGuestManager,
             mockk(relaxed = true), // HostKeyVerifier
             mockk(relaxed = true), // FidoAuthenticator
             mockk(relaxed = true), // UserPreferencesRepository

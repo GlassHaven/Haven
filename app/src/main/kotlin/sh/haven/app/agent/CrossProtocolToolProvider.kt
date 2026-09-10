@@ -129,7 +129,7 @@ internal class CrossProtocolToolProvider(
 
     /** Same per-transport Kind mapping as WorkspaceViewModel. */
     internal fun workspaceKind(transport: Transport): WorkspaceItem.Kind? = when (transport) {
-        Transport.SSH, Transport.MOSH, Transport.ET, Transport.RETICULUM, Transport.LOCAL,
+        Transport.SSH, Transport.MOSH, Transport.ET, Transport.RETICULUM, Transport.LOCAL, Transport.GUEST,
         Transport.BTSERIAL, Transport.BLESERIAL, Transport.USBSERIAL,
         -> WorkspaceItem.Kind.TERMINAL
         Transport.SMB -> WorkspaceItem.Kind.FILE_BROWSER

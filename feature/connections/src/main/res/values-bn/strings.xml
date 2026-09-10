@@ -349,6 +349,8 @@
     <string name="connections_helper_bind_address">আউটগোয়িং সংযোগ এই লোকাল ঠিকানায় বাইন্ড করুন (ssh -b)। শুধু সরাসরি সংযোগ।</string>
     <string name="connections_section_general">সাধারণ</string>
     <string name="connections_section_local_shell">স্থানীয় শেল</string>
+    <string name="connections_section_guest">লিনাক্স গেস্ট</string>
+    <string name="connections_guest_desc">এই ডিভাইসে আসল লিনাক্স কার্নেল চালু করে, নিজস্ব রুট ফাইলসিস্টেম ও নেটওয়ার্ক সহ. প্রথম ব্যবহারে রুটফস আনপ্যাক হয় (~৫১২ মেগাবাইট). কোনো হোস্ট বা লগইন দরকার নেই.</string>
     <string name="connections_section_cloud_storage">ক্লাউড স্টোরেজ</string>
     <string name="connections_section_vnc">VNC সেটিংস</string>
     <string name="connections_section_rdp">RDP সেটিংস</string>

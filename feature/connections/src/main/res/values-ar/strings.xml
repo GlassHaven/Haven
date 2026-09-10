@@ -349,6 +349,8 @@
     <string name="connections_helper_bind_address">اربط الاتصال الصادر بهذا العنوان المحلي (ssh -b). الاتصالات المباشرة فقط.</string>
     <string name="connections_section_general">عام</string>
     <string name="connections_section_local_shell">الصدفة المحلية</string>
+    <string name="connections_section_guest">ضيف لينكس</string>
+    <string name="connections_guest_desc">يُقلِع نواة لينكس حقيقية على هذا الجهاز، بنظام ملفات خاص وشبكة مستقلة. يُفكّ نظام الملفات (~512 ميغابايت) عند أول استخدام. لا حاجة لمضيف أو بيانات دخول.</string>
     <string name="connections_section_cloud_storage">التخزين السحابي</string>
     <string name="connections_section_vnc">إعدادات VNC</string>
     <string name="connections_section_rdp">إعدادات RDP</string>

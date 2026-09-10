@@ -492,6 +492,12 @@ data class ConnectionProfile(
     val isSpice: Boolean get() = connectionType == "SPICE"
     val isSmb: Boolean get() = connectionType == "SMB"
     val isLocal: Boolean get() = connectionType == "LOCAL"
+
+    // UML guest (#uml): a whole Linux kernel running as the app's own process.
+    // Fields are unused (the kernel args are fixed in UmlGuestManager), so no
+    // Room columns are involved; [isTerminal] above already covers it.
+    val isGuest: Boolean get() = connectionType == "GUEST"
+
     val isRclone: Boolean get() = connectionType == "RCLONE"
     val isEmail: Boolean get() = connectionType == "EMAIL"
 

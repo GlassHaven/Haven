@@ -213,6 +213,9 @@ class ConnectionsViewModelSessionTest {
             rcloneClient = mockk(relaxed = true),
             fidoAuthenticator = mockk(relaxed = true),
             localSessionManager = localSessionManager,
+            umlGuestManager = mockk(relaxed = true) {
+                every { sessions } returns kotlinx.coroutines.flow.MutableStateFlow(emptyMap())
+            },
             mailSessionManager = mailSessionManager,
             sessionManagerRegistry = sessionManagerRegistry,
             sshKeyRepository = sshKeyRepository,

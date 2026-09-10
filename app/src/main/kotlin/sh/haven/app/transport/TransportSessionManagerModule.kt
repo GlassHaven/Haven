@@ -18,6 +18,7 @@ import sh.haven.core.ssh.SessionManager
 import sh.haven.core.ssh.SshSessionManager
 import sh.haven.core.ssh.Transport
 import sh.haven.core.ssh.TransportSessionManager
+import sh.haven.core.local.uml.UmlGuestManager
 import sh.haven.core.usbserial.UsbSerialSessionManager
 
 /**
@@ -143,6 +144,19 @@ object TransportSessionManagerModule {
         override val sessions
             get() = m.sessions.value.values.map {
                 UnifiedSession(it.sessionId, it.profileId, it.label, mapStatus(it.status.name), Transport.LOCAL)
+            }
+    }
+
+    @Provides @IntoSet
+    fun guest(m: UmlGuestManager): TransportSessionManager = object : TransportSessionManager {
+        override val transport = Transport.GUEST
+        override val inputName = "guest"
+        override fun removeAllSessionsForProfile(profileId: String) = m.removeAllSessionsForProfile(profileId)
+        override fun sendInput(sessionId: String, text: String) = m.sendInput(sessionId, text)
+        override val activeSessionCount get() = m.activeSessions.size
+        override val sessions
+            get() = m.sessions.value.values.map {
+                UnifiedSession(it.sessionId, it.profileId, it.label, mapStatus(it.status.name), Transport.GUEST)
             }
     }
 

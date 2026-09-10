@@ -349,6 +349,8 @@
     <string name="connections_helper_bind_address">Verbindung an diese lokale Adresse binden (ssh -b). Nur direkte Verbindungen.</string>
     <string name="connections_section_general">Allgemein</string>
     <string name="connections_section_local_shell">Lokale Shell</string>
+    <string name="connections_section_guest">Linux-Gast</string>
+    <string name="connections_guest_desc">Startet einen echten Linux-Kernel auf diesem Gerät, mit eigenem Wurzeldateisystem und eigener Netzwerkverbindung. Das Rootfs wird beim ersten Benutzen entpackt (~512 MB). Kein Host und keine Zugangsdaten nötig.</string>
     <string name="connections_section_cloud_storage">Cloud-Speicher</string>
     <string name="connections_section_vnc">VNC-Einstellungen</string>
     <string name="connections_section_rdp">RDP-Einstellungen</string>

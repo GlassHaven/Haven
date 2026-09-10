@@ -349,6 +349,8 @@
     <string name="connections_helper_bind_address">आउटगोइंग कनेक्शन को इस लोकल पते पर बाइंड करें (ssh -b)। केवल सीधे कनेक्शन।</string>
     <string name="connections_section_general">सामान्य</string>
     <string name="connections_section_local_shell">स्थानीय शेल</string>
+    <string name="connections_section_guest">लिनक्स गेस्ट</string>
+    <string name="connections_guest_desc">इस डिवाइस पर असली लिनक्स कर्नेल चलाता है, अपनी रूट फ़ाइलसिस्टम और नेटवर्क के साथ. पहली बार उपयोग पर रूटफ़्स (~512 MB) अनपैक होता है. किसी होस्ट या लॉगिन की ज़रूरत नहीं.</string>
     <string name="connections_section_cloud_storage">क्लाउड स्टोरेज</string>
     <string name="connections_section_vnc">VNC सेटिंग्स</string>
     <string name="connections_section_rdp">RDP सेटिंग्स</string>

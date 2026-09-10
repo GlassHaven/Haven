@@ -424,6 +424,8 @@
     <!-- Section headings in the connection edit dialog. -->
     <string name="connections_section_general">General</string>
     <string name="connections_section_local_shell">Local shell</string>
+    <string name="connections_section_guest">Linux guest</string>
+    <string name="connections_guest_desc">Boots a real Linux kernel on this device, with its own root filesystem and network. The rootfs is unpacked (~512 MB) on first use. No host or credentials needed.</string>
     <!-- Bluetooth serial (#406) -->
     <string name="connections_section_btserial">Bluetooth serial</string>
     <string name="connections_btserial_desc">Connect to a paired Bluetooth-to-serial adapter (e.g. a switch or router console port).</string>

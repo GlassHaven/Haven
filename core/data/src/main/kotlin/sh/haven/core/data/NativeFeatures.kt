@@ -68,4 +68,19 @@ class NativeFeatures(private val context: Context) {
 
     /** True when this build ships any remote-desktop or compositor payload. */
     val anyDesktop: Boolean get() = rdp || spice
+
+    /**
+     * The UML guest transport. All four pieces are required: the kernel and
+     * passt/stub executables (fetched at build time, skipped on F-Droid and
+     * offline builds — see core/local/fetch-uml.sh) and the launcher
+     * (CMake-built in every variant). The guest rootfs asset is NOT part of
+     * this check; it is staged on first use by UmlGuestManager.
+     */
+    val uml: Boolean get() =
+        has(
+            "libvmlinux.so",
+            "libuml-stub.so",
+            "libuml-passt.so",
+            "libuml-net.so",
+        )
 }

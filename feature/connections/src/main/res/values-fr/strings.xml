@@ -349,6 +349,8 @@
     <string name="connections_helper_bind_address">Lier la connexion sortante à cette adresse locale (ssh -b). Connexions directes uniquement.</string>
     <string name="connections_section_general">Général</string>
     <string name="connections_section_local_shell">Shell local</string>
+    <string name="connections_section_guest">Invité Linux</string>
+    <string name="connections_guest_desc">Démarre un vrai noyau Linux sur cet appareil, avec son propre système de fichiers racine et son réseau. Le rootfs est décompressé (~512 Mo) à la première utilisation. Aucun hôte ni identifiants requis.</string>
     <string name="connections_section_cloud_storage">Stockage cloud</string>
     <string name="connections_section_vnc">Paramètres VNC</string>
     <string name="connections_section_rdp">Paramètres RDP</string>

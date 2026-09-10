@@ -7,7 +7,8 @@ title: Local Linux on-device
 
 Run a real Linux userland directly on the phone, no root required — a shell, a
 package manager, and (via the [Desktops](desktops.md) manager) full desktop
-environments, all side-by-side.
+environments, all side-by-side. A newer alternative runs an actual kernel:
+see [Linux Guest (UML)](uml-guest.md).
 
 ## Local Shell (PRoot)
 

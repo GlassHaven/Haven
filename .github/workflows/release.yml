@@ -160,6 +160,8 @@ jobs:
           # 15.2G used of ~16G, 625M available at the kill). One R8/bundle
           # peak at a time keeps the host inside its memory.
           set +e
+          # No -PskipUml here: the full flavour ships the UML guest, so this
+          # job is where the pinned fetch (core/local/fetch-uml.sh) is proven.
           ./gradlew :app:assemble${{ matrix.variant }}FullRelease \
             :app:bundle${{ matrix.variant }}FullRelease \
             -PtargetAbi=${{ matrix.abi }}
@@ -177,7 +179,7 @@ jobs:
             pkill -f KotlinCompileDaemon || true
             sleep 5
             ./gradlew :app:assemble${{ matrix.variant }}TerminalRelease \
-              -PtargetAbi=${{ matrix.abi }}
+              -PtargetAbi=${{ matrix.abi }} -PskipUml=true
             rc=$?
           fi
           kill "$MEMSAMPLER" 2>/dev/null

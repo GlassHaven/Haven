@@ -349,6 +349,8 @@
     <string name="connections_helper_bind_address">Привязать исходящее соединение к этому локальному адресу (ssh -b). Только прямые подключения.</string>
     <string name="connections_section_general">Общие</string>
     <string name="connections_section_local_shell">Локальная оболочка</string>
+    <string name="connections_section_guest">Гостевая Linux</string>
+    <string name="connections_guest_desc">Запускает настоящее ядро Linux на этом устройстве, со своей корневой файловой системой и сетью. Корневая ФС распаковывается (~512 МБ) при первом использовании. Хост и учётные данные не нужны.</string>
     <string name="connections_section_cloud_storage">Облачное хранилище</string>
     <string name="connections_section_vnc">Настройки VNC</string>
     <string name="connections_section_rdp">Настройки RDP</string>

@@ -206,6 +206,7 @@ fun ConnectionEditDialog(
     // Transport dropdown maps to: connectionType + useMosh + useEternalTerminal
     val initialTransport = when {
         seed?.isLocal == true -> "LOCAL"
+        seed?.isGuest == true -> "GUEST"
         seed?.isBtSerial == true -> "BTSERIAL"
         seed?.isBleSerial == true -> "BLESERIAL"
         seed?.isUsbSerial == true -> "USBSERIAL"
@@ -224,6 +225,7 @@ fun ConnectionEditDialog(
     // Derived connectionType for field visibility
     val connectionType = when (selectedTransport) {
         "LOCAL" -> "LOCAL"
+        "GUEST" -> "GUEST"
         "BTSERIAL" -> "BTSERIAL"
         "BLESERIAL" -> "BLESERIAL"
         "USBSERIAL" -> "USBSERIAL"
@@ -1036,6 +1038,7 @@ fun ConnectionEditDialog(
                     "MOSH" to "Mosh",
                     "ET" to "Eternal Terminal",
                     "LOCAL" to "Local Shell (PRoot)",
+                    "GUEST" to "Linux Guest (UML)",
                     "BTSERIAL" to "Bluetooth Serial",
                     "BLESERIAL" to "Bluetooth LE Serial",
                     "USBSERIAL" to "USB Serial",
@@ -1068,6 +1071,10 @@ fun ConnectionEditDialog(
                         // every build, but the terminal flavour's copy is
                         // built without rclone.
                         rclone = sh.haven.rclone.bridge.RcloneBridge.available,
+                        // Same missing-file gate as rdp/spice: the terminal
+                        // flavour drops the UML libraries, F-Droid skips the
+                        // fetch.
+                        uml = native.uml,
                     )
                 }
                 var transportExpanded by remember { mutableStateOf(false) }
@@ -1126,6 +1133,7 @@ fun ConnectionEditDialog(
                         Text(
                             when (connectionType) {
                                 "LOCAL" -> "Local Shell"
+                                "GUEST" -> "Linux Guest"
                                 "VNC" -> "My VNC Desktop"
                                 "RDP" -> "My RDP Desktop"
                                 "SPICE" -> "My SPICE Desktop"
@@ -1242,6 +1250,14 @@ fun ConnectionEditDialog(
                     Spacer(Modifier.height(4.dp))
                 }
 
+                if (connectionType == "GUEST") {
+                    ConnectionSection(stringResource(R.string.connections_section_guest))
+                    Text(
+                        stringResource(R.string.connections_guest_desc),
+                        style = MaterialTheme.typography.bodySmall,
+                        color = MaterialTheme.colorScheme.onSurfaceVariant,
+                    )
+                }
                 if (connectionType == "LOCAL") {
                     ConnectionSection(stringResource(R.string.connections_section_local_shell))
                     Text(
@@ -3378,6 +3394,7 @@ fun ConnectionEditDialog(
             ).isSuccess
             val canSave = knockOk && when (connectionType) {
                 "LOCAL" -> true // No host/auth needed
+                "GUEST" -> true // No fields — the rootfs and kernel args are fixed
                 "BTSERIAL" -> btDevice.isNotBlank() // a paired device must be picked
                 "BLESERIAL" -> bleDevice.isNotBlank() // a scanned device must be picked
                 "USBSERIAL" -> usbDevice.isNotBlank() && (usbBaud.toIntOrNull() ?: 0) > 0
@@ -3410,6 +3427,21 @@ fun ConnectionEditDialog(
                             connectionType = "LOCAL",
                             useAndroidShell = useAndroidShell,
                             prootDistroId = if (useAndroidShell) null else prootDistroId,
+                            colorTag = colorTag,
+                            groupId = groupId,
+                            identityId = identityId,
+                        )
+                    } else if (connectionType == "GUEST") {
+                        (existing ?: ConnectionProfile(
+                            label = label,
+                            host = "localhost",
+                            username = "",
+                        )).copy(
+                            label = label.ifBlank { "Linux Guest" },
+                            host = "localhost",
+                            port = 0,
+                            username = "",
+                            connectionType = "GUEST",
                             colorTag = colorTag,
                             groupId = groupId,
                             identityId = identityId,

@@ -345,6 +345,8 @@
     <string name="connections_spa_failed">Није успело након %1$d ms: %2$s</string>
     <string name="connections_section_general">Опште</string>
     <string name="connections_section_local_shell">Локална љуска</string>
+    <string name="connections_section_guest">Linux гост</string>
+    <string name="connections_guest_desc">Покреће право Линукс језгро на овом уређају, са сопственим кореним фајл системом и мрежом. Рут фајл систем се распакује (~512 MB) при првој употреби. Није потребан хост ни акредитиви.</string>
     <string name="connections_section_btserial">Bluetooth серијски</string>
     <string name="connections_btserial_desc">Повезивање са упареним Bluetooth-у-серијски адаптер (нпр. конзолни порт свича или рутера).</string>
     <string name="connections_btserial_device">Упарени уређај</string>

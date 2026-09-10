@@ -7,9 +7,13 @@ compare link is appended automatically — don't add it here.
 
 ## v5.87.79
 
+- A new GUEST connection type boots a real Linux kernel on the device (UML, arm64 full flavour).
+
 - A connection can pin its outgoing SSH socket to a local address, like ssh -b (#636).
 
 - Fixed a gap in the extended keyboard toolbar's second row (#628).
+
+- **The Linux guest transport** (#uml). A GUEST connection runs a whole Linux kernel as one of Haven's own processes — user-mode Linux — with its own root filesystem and network. The connection editor needs nothing but a name; the kernel args are fixed. The rootfs image (~512 MB unpacked) is staged to app storage on first connect, with a free-space check. Networking goes through passt in app context, so no root or VPN permission is involved. Closing the tab sends `poweroff` and waits up to 5 s before killing, so the ext4 image gets a clean unmount. arm64 full-flavour builds only: the payload is four native files (~13 MB in the APK after the kernel's debug-symbol strip) and the picker drops GUEST when any of them is missing.
 
 - **Connections can bind the outgoing SSH socket to a local address** (#636). The SSH edit dialog gains an optional "Bind address" field: set it and Haven dials the server from that local interface or IP instead of letting the OS choose, the same role ssh -b plays on the command line. Useful on multi-homed hosts and with source-address firewalls. A bind address and a jump site are mutually exclusive — the dialog keeps them apart.
 

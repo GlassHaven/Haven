@@ -239,6 +239,7 @@ class ConnectionsViewModel @Inject constructor(
     private val mailSessionManager: MailSessionManager,
     private val fidoAuthenticator: FidoAuthenticator,
     private val localSessionManager: LocalSessionManager,
+    private val umlGuestManager: sh.haven.core.local.uml.UmlGuestManager,
     private val sessionManagerRegistry: SessionManagerRegistry,
     private val sshKeyRepository: SshKeyRepository,
     private val totpSecretRepository: sh.haven.core.data.repository.TotpSecretRepository,
@@ -469,6 +470,7 @@ class ConnectionsViewModel @Inject constructor(
                 moshSessionManager.sessions,
                 etSessionManager.sessions,
                 localSessionManager.sessions,
+                umlGuestManager.sessions,
             ) { flows -> flows }
                 .debounce(500L)
                 .collect { updateServiceNotification() }
@@ -624,7 +626,8 @@ class ConnectionsViewModel @Inject constructor(
                 smbSessionManager.sessions,
                 localSessionManager.sessions,
                 rcloneSessionManager.sessions,
-            ) { smb, local, rclone -> arrayOf(smb, local, rclone) },
+                umlGuestManager.sessions,
+            ) { smb, local, rclone, guest -> arrayOf(smb, local, rclone, guest) },
             desktopSessionRegistry.statuses,
         ) { base, extra, deskMap ->
             @Suppress("UNCHECKED_CAST")
@@ -641,6 +644,8 @@ class ConnectionsViewModel @Inject constructor(
             val localMap = extra[1] as Map<String, LocalSessionManager.SessionState>
             @Suppress("UNCHECKED_CAST")
             val rcloneMap = extra[2] as Map<String, RcloneSessionManager.SessionState>
+            @Suppress("UNCHECKED_CAST")
+            val guestMap = extra[3] as Map<String, sh.haven.core.local.uml.UmlGuestManager.SessionState>
             val result = mutableMapOf<String, ProfileStatus>()
 
             // Track which profiles have transport-specific sessions (Mosh/ET/RNS/Local).
@@ -738,6 +743,22 @@ class ConnectionsViewModel @Inject constructor(
                 val existing = result[profileId]
                 if (existing == null || rcloneStatus.ordinal < existing.ordinal) {
                     result[profileId] = rcloneStatus
+                }
+            }
+
+            // Guest statuses (merge — a GUEST profile shares no infrastructure
+            // session, so like SMB/Local this only ever fills an empty slot)
+            guestMap.values.groupBy { it.profileId }.forEach { (profileId, states) ->
+                val statuses = states.map { it.status }
+                val guestStatus = when {
+                    sh.haven.core.local.uml.UmlGuestManager.SessionState.Status.CONNECTED in statuses -> ProfileStatus.CONNECTED
+                    sh.haven.core.local.uml.UmlGuestManager.SessionState.Status.CONNECTING in statuses -> ProfileStatus.CONNECTING
+                    sh.haven.core.local.uml.UmlGuestManager.SessionState.Status.ERROR in statuses -> ProfileStatus.ERROR
+                    else -> ProfileStatus.DISCONNECTED
+                }
+                val existing = result[profileId]
+                if (existing == null || guestStatus.ordinal < existing.ordinal) {
+                    result[profileId] = guestStatus
                 }
             }
 
@@ -2329,6 +2350,10 @@ class ConnectionsViewModel @Inject constructor(
             connectLocal(profile)
             return
         }
+        if (profile.isGuest) {
+            connectGuest(profile)
+            return
+        }
         if (profile.isSaf) {
             // SAF "local folder" locations (#415) have no connection to open — they're
             // browsed straight from the Files tab. No-op so a connect-by-id path (MCP
@@ -3160,6 +3185,54 @@ class ConnectionsViewModel @Inject constructor(
                 localSessionManager.updateStatus(sessionId, LocalSessionManager.SessionState.Status.ERROR)
                 localSessionManager.removeSession(sessionId)
                 _error.value = e.message ?: "Local terminal failed"
+            } finally {
+                _connectingProfileId.value = null
+            }
+        }
+    }
+
+    /**
+     * Connect a UML guest profile: stage the rootfs on first use, register the
+     * session, and navigate — the kernel itself boots when the terminal tab
+     * calls [sh.haven.core.local.uml.UmlGuestManager.createTerminalSession],
+     * mirroring how connectLocal's shell only execs on tab attach.
+     */
+    private fun connectGuest(profile: ConnectionProfile) {
+        viewModelScope.launch {
+            val existing = umlGuestManager.getSessionsForProfile(profile.id)
+            if (existing.any { it.status == sh.haven.core.local.uml.UmlGuestManager.SessionState.Status.CONNECTED }) {
+                _navigateToTerminal.value = profile.id
+                return@launch
+            }
+            _connectingProfileId.value = profile.id
+            _error.value = null
+            try {
+                if (!umlGuestManager.isAvailable()) {
+                    throw IllegalStateException(
+                        "This build does not include the Linux guest payload")
+                }
+                umlGuestManager.ensureRootfs()
+            } catch (e: Exception) {
+                Log.e(TAG, "connectGuest setup failed: ${e.message}", e)
+                connectionLogRepository.logEvent(
+                    profile.id, ConnectionLog.Status.FAILED, details = e.message)
+                _error.value = e.message ?: "Guest rootfs staging failed"
+                _connectingProfileId.value = null
+                return@launch
+            }
+            val sessionId = umlGuestManager.registerSession(profile.id, profile.label)
+            try {
+                umlGuestManager.connectSession(sessionId)
+                repository.markConnected(profile.id)
+                connectionLogRepository.logEvent(profile.id, ConnectionLog.Status.CONNECTED)
+                startForegroundServiceIfNeeded()
+                _navigateToTerminal.value = profile.id
+            } catch (e: Exception) {
+                Log.e(TAG, "connectGuest failed: ${e.message}", e)
+                connectionLogRepository.logEvent(profile.id, ConnectionLog.Status.FAILED, details = e.message)
+                umlGuestManager.updateStatus(sessionId, sh.haven.core.local.uml.UmlGuestManager.SessionState.Status.ERROR)
+                umlGuestManager.removeSession(sessionId)
+                _error.value = e.message ?: "Guest failed to start"
             } finally {
                 _connectingProfileId.value = null
             }

@@ -303,6 +303,7 @@ class TerminalViewModel @Inject constructor(
     private val usbSerialSessionManager: sh.haven.core.usbserial.UsbSerialSessionManager,
     private val usbBroker: sh.haven.core.usb.UsbBroker,
     private val localSessionManager: sh.haven.core.local.LocalSessionManager,
+    private val umlGuestManager: sh.haven.core.local.uml.UmlGuestManager,
     private val hostKeyVerifier: HostKeyVerifier,
     /**
      * Security-key (FIDO2/SK) authenticator, wired onto the SshClients built
@@ -542,6 +543,13 @@ class TerminalViewModel @Inject constructor(
                     // staying alive. read_terminal_scrollback (the agent ring) is
                     // unaffected; only the grid snapshot is briefly unavailable
                     // until the UI rebuilds, which is correct (the old grid is stale).
+                    terminalSessionRegistry.unregister(tab.sessionId)
+                }
+                "GUEST" -> {
+                    umlGuestManager.detachTerminalSession(tab.sessionId)
+                    // Same reasoning as LOCAL: drop the stale emulator so the
+                    // recreated ViewModel reattaches with a fresh emulator and a
+                    // scrollback replay instead of adopting the dead grid.
                     terminalSessionRegistry.unregister(tab.sessionId)
                 }
             }
@@ -1050,6 +1058,315 @@ class TerminalViewModel @Inject constructor(
         viewModelScope.launch {
             localSessionManager.sessions.collect { syncSessions() }
         }
+        viewModelScope.launch {
+            umlGuestManager.sessions.collect { syncSessions() }
+        }
+    }
+
+    /** The per-transport facts the shared LOCAL/GUEST tab loop needs. */
+    private class PtyTabSource(
+        val transportType: String,
+        val activeIds: Set<String>,
+        val sessionOf: (String) -> PtyTabSession?,
+        val getActive: (String) -> sh.haven.core.local.LocalSession?,
+        val isReady: (String) -> Boolean,
+        /** `plain` is only meaningful for LOCAL; GUEST has no plain-shell mode. */
+        val create: (String, (ByteArray, Int, Int) -> Unit, Boolean) -> sh.haven.core.local.LocalSession?,
+        val reattach: (String, (ByteArray, Int, Int) -> Unit) -> sh.haven.core.local.LocalSession?,
+        val snapshot: (String) -> ByteArray?,
+    )
+
+    private class PtyTabSession(
+        val sessionId: String,
+        val profileId: String,
+        val label: String,
+    )
+
+    private fun buildPtyTabSources(
+        localStates: Map<String, sh.haven.core.local.LocalSessionManager.SessionState>,
+        guestStates: Map<String, sh.haven.core.local.uml.UmlGuestManager.SessionState>,
+        activeLocalIds: Set<String>,
+        activeGuestIds: Set<String>,
+    ): List<PtyTabSource> = listOf(
+        PtyTabSource(
+            transportType = "LOCAL",
+            activeIds = activeLocalIds,
+            sessionOf = { id -> localStates[id]?.let { PtyTabSession(it.sessionId, it.profileId, it.label) } },
+            getActive = { localSessionManager.getActiveSession(it) },
+            isReady = { localSessionManager.isReadyForTerminal(it) },
+            create = { id, onData, plain ->
+                localSessionManager.createTerminalSession(id, onData, plain = plain)
+            },
+            reattach = { id, onData -> localSessionManager.reattachTerminalSession(id, onData) },
+            snapshot = { localSessionManager.snapshotScrollback(it) },
+        ),
+        PtyTabSource(
+            transportType = "GUEST",
+            activeIds = activeGuestIds,
+            sessionOf = { id -> guestStates[id]?.let { PtyTabSession(it.sessionId, it.profileId, it.label) } },
+            getActive = { umlGuestManager.getActiveSession(it) },
+            isReady = { umlGuestManager.isReadyForTerminal(it) },
+            create = { id, onData, _ -> umlGuestManager.createTerminalSession(id, onData) },
+            reattach = { id, onData -> umlGuestManager.reattachTerminalSession(id, onData) },
+            snapshot = { umlGuestManager.snapshotScrollback(it) },
+        ),
+    )
+
+    /**
+     * The shared tab builder for the two PTY-backed transports (LOCAL and GUEST).
+     * One loop, three attach branches (agent adoption, UI reattach, fresh),
+     * driven entirely by the [PtyTabSource] adapter.
+     */
+    private fun buildPtyTabs(
+        source: PtyTabSource,
+        currentTabs: MutableList<TerminalTab>,
+        trackedSessionIds: MutableSet<String>,
+        profilesById: Map<String, ConnectionProfile?>,
+    ) {
+        for (sessionId in source.activeIds) {
+            if (sessionId in trackedSessionIds) continue
+            // Adoption path: the MCP agent's `open_local_shell` may already
+            // have started a headless LocalSession and registered its
+            // TerminalEmulator with [terminalSessionRegistry]. In that case
+            // [isReadyForTerminal] is false (a PTY is attached) and we
+            // can't legally re-create the session. Reuse the existing
+            // emulator + LocalSession so the UI tab presents the same byte
+            // stream the agent sees, and so this tab's HavenTerminal mounts
+            // the SelectionController / ScrollController the agent transport
+            // needs for `start_selection` / `drag_selection_to` to operate.
+            //
+            // OSC 7 / OSC 8 tracking is not retroactively wired — the
+            // LocalSession's onDataReceived callback was set when the agent
+            // started it headlessly and can't be teed into additional
+            // handlers here. Mouse / bracketed-paste modes ARE live: the
+            // agent's own MouseModeTracker sits on the PTY tee (#336) and
+            // its flows are reused below. libvterm's native OSC 133 dispatch
+            // still works because that runs inside the adopted emulator.
+            val existingHeadless = source.getActive(sessionId)
+            val agentRegistryEntry = if (existingHeadless != null) terminalSessionRegistry.get(sessionId) else null
+            if (existingHeadless != null && agentRegistryEntry != null) {
+                val session = source.sessionOf(sessionId) ?: continue
+                val tabLabel = generateTabLabel(session.label, session.profileId, currentTabs)
+                val localProfile = profilesById[session.profileId]
+                val localScheme = effectiveColorScheme(localProfile)
+                // The adopted headless session's real onDataReceived belongs
+                // to the agent transport and can't be teed here, so OSC /
+                // mouse tracking aren't wired to the live stream. These
+                // handlers exist only so the agent's feed_terminal_output
+                // test tool still has a working pipeline on this tab.
+                val adoptedOscHandler = OscHandler()
+                val adoptedWriteBuffer = EmulatorWriteBuffer({ agentRegistryEntry.emulator })
+                val adoptedFeedOutput: (ByteArray, Int, Int) -> Unit = { data, offset, length ->
+                    synchronized(adoptedOscHandler) {
+                        adoptedOscHandler.process(data, offset, length)
+                        val len = adoptedOscHandler.outputLen
+                        if (len > 0) {
+                            adoptedWriteBuffer.append(adoptedOscHandler.outputBuf, 0, len)
+                        }
+                    }
+                }
+                currentTabs.add(
+                    TerminalTab(
+                        sessionId = session.sessionId,
+                        profileId = session.profileId,
+                        colorTag = localProfile?.colorTag ?: 0,
+                        label = tabLabel,
+                        transportType = source.transportType,
+                        emulator = agentRegistryEntry.emulator,
+                        // The agent's headless shell runs its own MouseModeTracker
+                        // on the PTY tee (#336) — reuse those flows so the tab's
+                        // paste-wrapping / mouse routing track the live stream.
+                        // Dead stubs only when the entry predates mode tracking.
+                        mouseMode = agentRegistryEntry.mouseMode ?: MutableStateFlow(false),
+                        activeMouseMode = agentRegistryEntry.activeMouseMode ?: MutableStateFlow<Int?>(null),
+                        bracketPasteMode = agentRegistryEntry.bracketPasteMode ?: MutableStateFlow(false),
+                        altScreen = MutableStateFlow(false),
+                        cursorKeyAppMode = MutableStateFlow(false),
+                        oscHandler = adoptedOscHandler,
+                        feedOutput = adoptedFeedOutput,
+                        cwd = MutableStateFlow(null),
+                        hyperlinkUri = MutableStateFlow(null),
+                        isReconnecting = MutableStateFlow(false),
+                        stallSeconds = NEVER_STALLS,
+                        sendInput = { data -> existingHeadless.sendInput(data) },
+                        resize = { cols, rows -> existingHeadless.resize(cols, rows) },
+                        close = { existingHeadless.close() },
+                        colorScheme = localScheme,
+                        backgroundOpacity = effectiveOpacity(localProfile),
+                    )
+                )
+                trackedSessionIds.add(sessionId)
+                continue
+            }
+
+            // UI reattach: the proot PTY survived a ViewModel teardown (Activity
+            // destroyed while the process stayed alive). The shell is still
+            // running but its old emulator died with the previous ViewModel.
+            // Build a fresh emulator, replay the buffered output so the screen +
+            // scrollback are restored, and rewire the live stream to it — instead
+            // of killing the shell and starting a blank one (#272). Detected by a
+            // live LocalSession with no agent-registry entry (handled above) and
+            // isReadyForTerminal == false (a PTY is still attached).
+            if (source.getActive(sessionId) != null &&
+                !source.isReady(sessionId)
+            ) {
+                val session = source.sessionOf(sessionId) ?: continue
+                val tabLabel = generateTabLabel(session.label, session.profileId, currentTabs)
+
+                lateinit var reEmulator: TerminalEmulator
+                val reWriteBuffer = EmulatorWriteBuffer({ reEmulator }, createRecorderIfEnabled(sessionId))
+                val reMouseTracker = MouseModeTracker()
+                val reOscHandler = OscHandler()
+                val reCwdFlow = MutableStateFlow<String?>(null)
+                val reHyperlinkFlow = MutableStateFlow<String?>(null)
+                reOscHandler.onCwdChanged = { reCwdFlow.value = it }
+                reOscHandler.onHyperlink = { uri -> reHyperlinkFlow.value = uri }
+                val reFeedOutput: (ByteArray, Int, Int) -> Unit = { data, offset, length ->
+                    synchronized(reOscHandler) {
+                        reOscHandler.process(data, offset, length)
+                        reMouseTracker.process(reOscHandler.outputBuf, 0, reOscHandler.outputLen)
+                        val len = reOscHandler.outputLen
+                        if (len > 0) reWriteBuffer.append(reOscHandler.outputBuf, 0, len)
+                    }
+                }
+                val localProfile = profilesById[session.profileId]
+                val localScheme = effectiveColorScheme(localProfile)
+                val reInitialScheme = initialEmulatorScheme(localScheme)
+                val reCoalescer = InputCoalescer { data -> source.getActive(sessionId)?.sendInput(data) }
+                reEmulator = TerminalEmulatorFactory.create(
+                    autoDetectUrls = true,
+                    initialRows = 24,
+                    initialCols = 80,
+                    defaultForeground = Color(reInitialScheme.foreground),
+                    defaultBackground = Color(reInitialScheme.background),
+                    enableAltScreen = localProfile?.disableAltScreen != true && localProfile?.sessionManager != "screen",
+                    onKeyboardInput = { data -> reCoalescer.send(applyModifiers(data)) },
+                    onResize = { dims ->
+                        for (tab in _tabs.value) tab.resize(dims.columns, dims.rows)
+                        source.getActive(sessionId)?.resize(dims.columns, dims.rows)
+                    },
+                    maxScrollbackLines = terminalScrollbackRows.value,
+                )
+                // Replay buffered output into the fresh emulator BEFORE wiring the
+                // live stream, so the restore and new output don't interleave.
+                source.snapshot(sessionId)?.let { buffered ->
+                    reFeedOutput(buffered, 0, buffered.size)
+                }
+                val reattached = source.reattach(sessionId) { data, offset, length ->
+                    reFeedOutput(data, offset, length)
+                } ?: continue
+                currentTabs.add(
+                    TerminalTab(
+                        sessionId = session.sessionId,
+                        profileId = session.profileId,
+                        colorTag = localProfile?.colorTag ?: 0,
+                        label = tabLabel,
+                        transportType = source.transportType,
+                        emulator = reEmulator,
+                        mouseMode = reMouseTracker.mouseMode,
+                        activeMouseMode = reMouseTracker.activeMouseMode,
+                        bracketPasteMode = reMouseTracker.bracketPasteMode,
+                        altScreen = reMouseTracker.altScreen,
+                        cursorKeyAppMode = reMouseTracker.cursorKeyAppMode,
+                        oscHandler = reOscHandler,
+                        feedOutput = reFeedOutput,
+                        cwd = reCwdFlow,
+                        hyperlinkUri = reHyperlinkFlow,
+                        isReconnecting = MutableStateFlow(false),
+                        stallSeconds = NEVER_STALLS,
+                        sendInput = { data -> reattached.sendInput(data) },
+                        resize = { cols, rows -> reattached.resize(cols, rows) },
+                        close = { reattached.close() },
+                        colorScheme = localScheme,
+                        backgroundOpacity = effectiveOpacity(localProfile),
+                    )
+                )
+                Log.d(TAG, "Reattached to existing local session $sessionId")
+                trackedSessionIds.add(session.sessionId)
+                continue
+            }
+
+            if (!source.isReady(sessionId)) continue
+
+            val session = source.sessionOf(sessionId) ?: continue
+            val tabLabel = generateTabLabel(session.label, session.profileId, currentTabs)
+
+            lateinit var emulator: TerminalEmulator
+            val localWriteBuffer = EmulatorWriteBuffer({ emulator }, createRecorderIfEnabled(sessionId))
+            val localMouseTracker = MouseModeTracker()
+            val localOscHandler = OscHandler()
+            val localCwdFlow = MutableStateFlow<String?>(null)
+            val localHyperlinkFlow = MutableStateFlow<String?>(null)
+            localOscHandler.onCwdChanged = { localCwdFlow.value = it }
+            localOscHandler.onHyperlink = { uri -> localHyperlinkFlow.value = uri }
+            val localFeedOutput: (ByteArray, Int, Int) -> Unit = { data, offset, length ->
+                synchronized(localOscHandler) {
+                    localOscHandler.process(data, offset, length)
+                    localMouseTracker.process(localOscHandler.outputBuf, 0, localOscHandler.outputLen)
+                    val len = localOscHandler.outputLen
+                    if (len > 0) {
+                        localWriteBuffer.append(localOscHandler.outputBuf, 0, len)
+                    }
+                }
+            }
+            val localSession = source.create(
+                sessionId,
+                { data, offset, length -> localFeedOutput(data, offset, length) },
+                plainSessionIds.remove(sessionId),
+            ) ?: continue
+
+            val localCoalescer = InputCoalescer { data -> localSession.sendInput(data) }
+            val localProfile = profilesById[session.profileId]
+            val localScheme = effectiveColorScheme(localProfile)
+            val localInitialScheme = initialEmulatorScheme(localScheme)
+            emulator = TerminalEmulatorFactory.create(
+                autoDetectUrls = true,
+                initialRows = 24,
+                initialCols = 80,
+                defaultForeground = Color(localInitialScheme.foreground),
+                defaultBackground = Color(localInitialScheme.background),
+                enableAltScreen = localProfile?.disableAltScreen != true && localProfile?.sessionManager != "screen",
+                onKeyboardInput = { data -> localCoalescer.send(applyModifiers(data)) },
+                onResize = { dims ->
+                    Log.d(TAG, "LOCAL onResize: ${dims.columns}x${dims.rows}")
+                    for (tab in _tabs.value) {
+                        tab.resize(dims.columns, dims.rows)
+                    }
+                    localSession.resize(dims.columns, dims.rows)
+                },
+                maxScrollbackLines = terminalScrollbackRows.value,
+            )
+
+            localSession.start()
+
+            currentTabs.add(
+                TerminalTab(
+                    sessionId = session.sessionId,
+                    profileId = session.profileId,
+                    colorTag = localProfile?.colorTag ?: 0,
+                    label = tabLabel,
+                    transportType = source.transportType,
+                    emulator = emulator,
+                    mouseMode = localMouseTracker.mouseMode,
+                    activeMouseMode = localMouseTracker.activeMouseMode,
+                    bracketPasteMode = localMouseTracker.bracketPasteMode,
+                    altScreen = localMouseTracker.altScreen,
+                    cursorKeyAppMode = localMouseTracker.cursorKeyAppMode,
+                    oscHandler = localOscHandler,
+                    feedOutput = localFeedOutput,
+                    cwd = localCwdFlow,
+                    hyperlinkUri = localHyperlinkFlow,
+                    isReconnecting = MutableStateFlow(false),
+                    stallSeconds = NEVER_STALLS,
+                    sendInput = { data -> localSession.sendInput(data) },
+                    resize = { cols, rows -> localSession.resize(cols, rows) },
+                    close = { localSession.close() },
+                    colorScheme = localScheme,
+                    backgroundOpacity = effectiveOpacity(localProfile),
+                )
+            )
+            trackedSessionIds.add(session.sessionId)
+        }
     }
 
     /**
@@ -1065,6 +1382,7 @@ class TerminalViewModel @Inject constructor(
         val bleSerialSessions = bleSerialSessionManager.sessions.value
         val usbSerialSessions = usbSerialSessionManager.sessions.value
         val localSessions = localSessionManager.sessions.value
+        val guestSessions = umlGuestManager.sessions.value
 
         // Resolve the display config (color scheme, alt-screen, color tag) for
         // every active session's profile in one off-main batch. The per-branch
@@ -1081,6 +1399,7 @@ class TerminalViewModel @Inject constructor(
                 bleSerialSessions.values.forEach { add(it.profileId) }
                 usbSerialSessions.values.forEach { add(it.profileId) }
                 localSessions.values.forEach { add(it.profileId) }
+                guestSessions.values.forEach { add(it.profileId) }
             }.associateWith { connectionRepository.getById(it) }
         }
 
@@ -1148,7 +1467,15 @@ class TerminalViewModel @Inject constructor(
             .map { it.sessionId }
             .toSet()
 
-        val allActiveIds = activeSshIds + activeRnsIds + activeMoshIds + activeEtIds + activeBtIds + activeBleIds + activeUsbIds + activeLocalIds
+        // Find UML guest sessions that are connected
+        val activeGuestIds = guestSessions.values
+            .filter {
+                it.status == sh.haven.core.local.uml.UmlGuestManager.SessionState.Status.CONNECTED
+            }
+            .map { it.sessionId }
+            .toSet()
+
+        val allActiveIds = activeSshIds + activeRnsIds + activeMoshIds + activeEtIds + activeBtIds + activeBleIds + activeUsbIds + activeLocalIds + activeGuestIds
 
         val currentTabs = _tabs.value.toMutableList()
 
@@ -1165,6 +1492,8 @@ class TerminalViewModel @Inject constructor(
                     etSessions[tab.sessionId]?.etSession == null
                 "LOCAL" -> tab.sessionId !in activeLocalIds ||
                     localSessions[tab.sessionId]?.localSession == null
+                "GUEST" -> tab.sessionId !in activeGuestIds ||
+                    guestSessions[tab.sessionId]?.localSession == null
                 "BTSERIAL" -> tab.sessionId !in activeBtIds ||
                     btSerialSessions[tab.sessionId]?.session == null
                 "BLESERIAL" -> tab.sessionId !in activeBleIds ||
@@ -1780,253 +2109,12 @@ class TerminalViewModel @Inject constructor(
             trackedSessionIds.add(session.sessionId)
         }
 
-        // Create tabs for new Local sessions
-        for (sessionId in activeLocalIds) {
-            if (sessionId in trackedSessionIds) continue
-
-            // Adoption path: the MCP agent's `open_local_shell` may already
-            // have started a headless LocalSession and registered its
-            // TerminalEmulator with [terminalSessionRegistry]. In that case
-            // [isReadyForTerminal] is false (a PTY is attached) and we
-            // can't legally re-create the session. Reuse the existing
-            // emulator + LocalSession so the UI tab presents the same byte
-            // stream the agent sees, and so this tab's HavenTerminal mounts
-            // the SelectionController / ScrollController the agent transport
-            // needs for `start_selection` / `drag_selection_to` to operate.
-            //
-            // OSC 7 / OSC 8 tracking is not retroactively wired — the
-            // LocalSession's onDataReceived callback was set when the agent
-            // started it headlessly and can't be teed into additional
-            // handlers here. Mouse / bracketed-paste modes ARE live: the
-            // agent's own MouseModeTracker sits on the PTY tee (#336) and
-            // its flows are reused below. libvterm's native OSC 133 dispatch
-            // still works because that runs inside the adopted emulator.
-            val existingHeadless = localSessionManager.getActiveSession(sessionId)
-            val agentRegistryEntry = if (existingHeadless != null) terminalSessionRegistry.get(sessionId) else null
-            if (existingHeadless != null && agentRegistryEntry != null) {
-                val session = localSessions[sessionId] ?: continue
-                val tabLabel = generateTabLabel(session.label, session.profileId, currentTabs)
-                val localProfile = profilesById[session.profileId]
-                val localScheme = effectiveColorScheme(localProfile)
-                // The adopted headless session's real onDataReceived belongs
-                // to the agent transport and can't be teed here, so OSC /
-                // mouse tracking aren't wired to the live stream. These
-                // handlers exist only so the agent's feed_terminal_output
-                // test tool still has a working pipeline on this tab.
-                val adoptedOscHandler = OscHandler()
-                val adoptedWriteBuffer = EmulatorWriteBuffer({ agentRegistryEntry.emulator })
-                val adoptedFeedOutput: (ByteArray, Int, Int) -> Unit = { data, offset, length ->
-                    synchronized(adoptedOscHandler) {
-                        adoptedOscHandler.process(data, offset, length)
-                        val len = adoptedOscHandler.outputLen
-                        if (len > 0) {
-                            adoptedWriteBuffer.append(adoptedOscHandler.outputBuf, 0, len)
-                        }
-                    }
-                }
-                currentTabs.add(
-                    TerminalTab(
-                        sessionId = session.sessionId,
-                        profileId = session.profileId,
-                        colorTag = localProfile?.colorTag ?: 0,
-                        label = tabLabel,
-                        transportType = "LOCAL",
-                        emulator = agentRegistryEntry.emulator,
-                        // The agent's headless shell runs its own MouseModeTracker
-                        // on the PTY tee (#336) — reuse those flows so the tab's
-                        // paste-wrapping / mouse routing track the live stream.
-                        // Dead stubs only when the entry predates mode tracking.
-                        mouseMode = agentRegistryEntry.mouseMode ?: MutableStateFlow(false),
-                        activeMouseMode = agentRegistryEntry.activeMouseMode ?: MutableStateFlow<Int?>(null),
-                        bracketPasteMode = agentRegistryEntry.bracketPasteMode ?: MutableStateFlow(false),
-                        altScreen = MutableStateFlow(false),
-                        cursorKeyAppMode = MutableStateFlow(false),
-                        oscHandler = adoptedOscHandler,
-                        feedOutput = adoptedFeedOutput,
-                        cwd = MutableStateFlow(null),
-                        hyperlinkUri = MutableStateFlow(null),
-                        isReconnecting = MutableStateFlow(false),
-                        stallSeconds = NEVER_STALLS,
-                        sendInput = { data -> existingHeadless.sendInput(data) },
-                        resize = { cols, rows -> existingHeadless.resize(cols, rows) },
-                        close = { existingHeadless.close() },
-                        colorScheme = localScheme,
-                        backgroundOpacity = effectiveOpacity(localProfile),
-                    )
-                )
-                trackedSessionIds.add(sessionId)
-                continue
-            }
-
-            // UI reattach: the proot PTY survived a ViewModel teardown (Activity
-            // destroyed while the process stayed alive). The shell is still
-            // running but its old emulator died with the previous ViewModel.
-            // Build a fresh emulator, replay the buffered output so the screen +
-            // scrollback are restored, and rewire the live stream to it — instead
-            // of killing the shell and starting a blank one (#272). Detected by a
-            // live LocalSession with no agent-registry entry (handled above) and
-            // isReadyForTerminal == false (a PTY is still attached).
-            if (localSessionManager.getActiveSession(sessionId) != null &&
-                !localSessionManager.isReadyForTerminal(sessionId)
-            ) {
-                val session = localSessions[sessionId] ?: continue
-                val tabLabel = generateTabLabel(session.label, session.profileId, currentTabs)
-
-                lateinit var reEmulator: TerminalEmulator
-                val reWriteBuffer = EmulatorWriteBuffer({ reEmulator }, createRecorderIfEnabled(sessionId))
-                val reMouseTracker = MouseModeTracker()
-                val reOscHandler = OscHandler()
-                val reCwdFlow = MutableStateFlow<String?>(null)
-                val reHyperlinkFlow = MutableStateFlow<String?>(null)
-                reOscHandler.onCwdChanged = { reCwdFlow.value = it }
-                reOscHandler.onHyperlink = { uri -> reHyperlinkFlow.value = uri }
-                val reFeedOutput: (ByteArray, Int, Int) -> Unit = { data, offset, length ->
-                    synchronized(reOscHandler) {
-                        reOscHandler.process(data, offset, length)
-                        reMouseTracker.process(reOscHandler.outputBuf, 0, reOscHandler.outputLen)
-                        val len = reOscHandler.outputLen
-                        if (len > 0) reWriteBuffer.append(reOscHandler.outputBuf, 0, len)
-                    }
-                }
-                val localProfile = profilesById[session.profileId]
-                val localScheme = effectiveColorScheme(localProfile)
-                val reInitialScheme = initialEmulatorScheme(localScheme)
-                val reCoalescer = InputCoalescer { data -> localSessionManager.getActiveSession(sessionId)?.sendInput(data) }
-                reEmulator = TerminalEmulatorFactory.create(
-                    autoDetectUrls = true,
-                    initialRows = 24,
-                    initialCols = 80,
-                    defaultForeground = Color(reInitialScheme.foreground),
-                    defaultBackground = Color(reInitialScheme.background),
-                    enableAltScreen = localProfile?.disableAltScreen != true && localProfile?.sessionManager != "screen",
-                    onKeyboardInput = { data -> reCoalescer.send(applyModifiers(data)) },
-                    onResize = { dims ->
-                        for (tab in _tabs.value) tab.resize(dims.columns, dims.rows)
-                        localSessionManager.getActiveSession(sessionId)?.resize(dims.columns, dims.rows)
-                    },
-                    maxScrollbackLines = terminalScrollbackRows.value,
-                )
-                // Replay buffered output into the fresh emulator BEFORE wiring the
-                // live stream, so the restore and new output don't interleave.
-                localSessionManager.snapshotScrollback(sessionId)?.let { buffered ->
-                    reFeedOutput(buffered, 0, buffered.size)
-                }
-                val reattached = localSessionManager.reattachTerminalSession(sessionId) { data, offset, length ->
-                    reFeedOutput(data, offset, length)
-                } ?: continue
-                currentTabs.add(
-                    TerminalTab(
-                        sessionId = session.sessionId,
-                        profileId = session.profileId,
-                        colorTag = localProfile?.colorTag ?: 0,
-                        label = tabLabel,
-                        transportType = "LOCAL",
-                        emulator = reEmulator,
-                        mouseMode = reMouseTracker.mouseMode,
-                        activeMouseMode = reMouseTracker.activeMouseMode,
-                        bracketPasteMode = reMouseTracker.bracketPasteMode,
-                        altScreen = reMouseTracker.altScreen,
-                        cursorKeyAppMode = reMouseTracker.cursorKeyAppMode,
-                        oscHandler = reOscHandler,
-                        feedOutput = reFeedOutput,
-                        cwd = reCwdFlow,
-                        hyperlinkUri = reHyperlinkFlow,
-                        isReconnecting = MutableStateFlow(false),
-                        stallSeconds = NEVER_STALLS,
-                        sendInput = { data -> reattached.sendInput(data) },
-                        resize = { cols, rows -> reattached.resize(cols, rows) },
-                        close = { reattached.close() },
-                        colorScheme = localScheme,
-                        backgroundOpacity = effectiveOpacity(localProfile),
-                    )
-                )
-                Log.d(TAG, "Reattached to existing local session $sessionId")
-                trackedSessionIds.add(session.sessionId)
-                continue
-            }
-
-            if (!localSessionManager.isReadyForTerminal(sessionId)) continue
-
-            val session = localSessions[sessionId] ?: continue
-            val tabLabel = generateTabLabel(session.label, session.profileId, currentTabs)
-
-            lateinit var emulator: TerminalEmulator
-            val localWriteBuffer = EmulatorWriteBuffer({ emulator }, createRecorderIfEnabled(sessionId))
-            val localMouseTracker = MouseModeTracker()
-            val localOscHandler = OscHandler()
-            val localCwdFlow = MutableStateFlow<String?>(null)
-            val localHyperlinkFlow = MutableStateFlow<String?>(null)
-            localOscHandler.onCwdChanged = { localCwdFlow.value = it }
-            localOscHandler.onHyperlink = { uri -> localHyperlinkFlow.value = uri }
-            val localFeedOutput: (ByteArray, Int, Int) -> Unit = { data, offset, length ->
-                synchronized(localOscHandler) {
-                    localOscHandler.process(data, offset, length)
-                    localMouseTracker.process(localOscHandler.outputBuf, 0, localOscHandler.outputLen)
-                    val len = localOscHandler.outputLen
-                    if (len > 0) {
-                        localWriteBuffer.append(localOscHandler.outputBuf, 0, len)
-                    }
-                }
-            }
-            val localSession = localSessionManager.createTerminalSession(
-                sessionId = sessionId,
-                onDataReceived = { data, offset, length ->
-                    localFeedOutput(data, offset, length)
-                },
-                plain = plainSessionIds.remove(sessionId),
-            ) ?: continue
-
-            val localCoalescer = InputCoalescer { data -> localSession.sendInput(data) }
-            val localProfile = profilesById[session.profileId]
-            val localScheme = effectiveColorScheme(localProfile)
-            val localInitialScheme = initialEmulatorScheme(localScheme)
-            emulator = TerminalEmulatorFactory.create(
-                autoDetectUrls = true,
-                initialRows = 24,
-                initialCols = 80,
-                defaultForeground = Color(localInitialScheme.foreground),
-                defaultBackground = Color(localInitialScheme.background),
-                enableAltScreen = localProfile?.disableAltScreen != true && localProfile?.sessionManager != "screen",
-                onKeyboardInput = { data -> localCoalescer.send(applyModifiers(data)) },
-                onResize = { dims ->
-                    Log.d(TAG, "LOCAL onResize: ${dims.columns}x${dims.rows}")
-                    for (tab in _tabs.value) {
-                        tab.resize(dims.columns, dims.rows)
-                    }
-                    localSession.resize(dims.columns, dims.rows)
-                },
-                maxScrollbackLines = terminalScrollbackRows.value,
-            )
-
-            localSession.start()
-
-            currentTabs.add(
-                TerminalTab(
-                    sessionId = session.sessionId,
-                    profileId = session.profileId,
-                    colorTag = localProfile?.colorTag ?: 0,
-                    label = tabLabel,
-                    transportType = "LOCAL",
-                    emulator = emulator,
-                    mouseMode = localMouseTracker.mouseMode,
-                    activeMouseMode = localMouseTracker.activeMouseMode,
-                    bracketPasteMode = localMouseTracker.bracketPasteMode,
-                    altScreen = localMouseTracker.altScreen,
-                    cursorKeyAppMode = localMouseTracker.cursorKeyAppMode,
-                    oscHandler = localOscHandler,
-                    feedOutput = localFeedOutput,
-                    cwd = localCwdFlow,
-                    hyperlinkUri = localHyperlinkFlow,
-                    isReconnecting = MutableStateFlow(false),
-                    stallSeconds = NEVER_STALLS,
-                    sendInput = { data -> localSession.sendInput(data) },
-                    resize = { cols, rows -> localSession.resize(cols, rows) },
-                    close = { localSession.close() },
-                    colorScheme = localScheme,
-                    backgroundOpacity = effectiveOpacity(localProfile),
-                )
-            )
-            trackedSessionIds.add(session.sessionId)
+        // Create tabs for new Local + UML-guest sessions. Both transports run
+        // a LocalSession-backed PTY (a real pty owned by PtyBridge), so one
+        // loop serves both through a per-transport [PtyTabSource]; only the
+        // manager behind the adapter and the tab's transportType differ.
+        for (source in buildPtyTabSources(localSessions, guestSessions, activeLocalIds, activeGuestIds)) {
+            buildPtyTabs(source, currentTabs, trackedSessionIds, profilesById)
         }
 
         // Refresh SSH tab labels when the underlying session's chosenSessionName changes
@@ -2101,6 +2189,8 @@ class TerminalViewModel @Inject constructor(
                     )
                     if (tab.transportType == "LOCAL") {
                         localSessionManager.clearAgentTee(tab.sessionId)
+                    } else if (tab.transportType == "GUEST") {
+                        umlGuestManager.clearAgentTee(tab.sessionId)
                     }
                 }
                 existing.oscHandler == null -> {
@@ -2127,7 +2217,8 @@ class TerminalViewModel @Inject constructor(
         // tab presence alone tore those out immediately and broke
         // every snapshot-style MCP tool against agent-owned shells.
         val knownSessionIds = sshSessions.keys + rnsSessions.keys +
-            moshSessions.keys + etSessions.keys + btSerialSessions.keys + bleSerialSessions.keys + usbSerialSessions.keys + localSessions.keys
+            moshSessions.keys + etSessions.keys + btSerialSessions.keys + bleSerialSessions.keys + usbSerialSessions.keys +
+            localSessions.keys + guestSessions.keys
         for (id in terminalSessionRegistry.sessions.value.keys.toList()) {
             if (id !in knownSessionIds) terminalSessionRegistry.unregister(id)
         }
@@ -2253,6 +2344,14 @@ class TerminalViewModel @Inject constructor(
             bleSerialSessionManager.removeSession(sessionId)
         } else if (usbSerialSessionManager.sessions.value.containsKey(sessionId)) {
             usbSerialSessionManager.removeSession(sessionId)
+        } else if (umlGuestManager.sessions.value.containsKey(sessionId)) {
+            // Graceful poweroff can take up to 5 s in closeGuest; keep it off
+            // the main thread. The manager still marks the session DISCONNECTED
+            // before the tab reconciliation runs (the collector fires
+            // syncSessions), so this only affects when the process exits.
+            viewModelScope.launch(kotlinx.coroutines.Dispatchers.IO) {
+                umlGuestManager.closeGuest(sessionId)
+            }
         } else {
             reticulumSessionManager.removeSession(sessionId)
         }
@@ -2283,6 +2382,7 @@ class TerminalViewModel @Inject constructor(
         btSerialSessionManager.removeAllSessionsForProfile(profileId)
         bleSerialSessionManager.removeAllSessionsForProfile(profileId)
         usbSerialSessionManager.removeAllSessionsForProfile(profileId)
+        umlGuestManager.removeAllSessionsForProfile(profileId)
         trackedSessionIds.removeAll(
             _tabs.value.filter { it.profileId == profileId }.map { it.sessionId }.toSet()
         )
@@ -2403,6 +2503,11 @@ class TerminalViewModel @Inject constructor(
             return
         }
 
+        if (activeTab.transportType == "GUEST") {
+            addGuestTabForProfile(activeTab.profileId, activeTab.label)
+            return
+        }
+
         addSshTabForProfile(activeTab.profileId)
     }
 
@@ -2490,6 +2595,36 @@ class TerminalViewModel @Inject constructor(
                 selectTabBySessionId(sessionId)
             } catch (e: Exception) {
                 Log.e(TAG, "addLocalTabForProfile failed: ${e.message}", e)
+                _newTabMessage.value = appContext.getString(
+                    R.string.terminal_new_tab_connection_failed,
+                    e.message ?: e.javaClass.simpleName,
+                )
+            } finally {
+                _newTabLoading.value = false
+            }
+        }
+    }
+
+    /**
+     * Open a UML-guest terminal for a GUEST profile: register + connect a
+     * session, then let [syncSessions] build the tab (the kernel boots when
+     * the tab's PTY is created). Mirrors [addLocalTabForProfile] minus the
+     * desktop/plain options a guest doesn't have.
+     */
+    fun addGuestTabForProfile(profileId: String, label: String? = null) {
+        viewModelScope.launch {
+            _newTabLoading.value = true
+            try {
+                val profile = connectionRepository.getById(profileId)
+                val resolvedLabel = label
+                    ?: profile?.label
+                    ?: profileId.take(8)
+                val sessionId = umlGuestManager.registerSession(profileId, resolvedLabel)
+                umlGuestManager.connectSession(sessionId)
+                syncSessions()
+                selectTabBySessionId(sessionId)
+            } catch (e: Exception) {
+                Log.e(TAG, "addGuestTabForProfile failed: ${e.message}", e)
                 _newTabMessage.value = appContext.getString(
                     R.string.terminal_new_tab_connection_failed,
                     e.message ?: e.javaClass.simpleName,
@@ -3299,6 +3434,7 @@ class TerminalViewModel @Inject constructor(
     ): String = when (transportType) {
         "ET" -> "Eternal Terminal"
         "MOSH" -> "Mosh"
+        "GUEST" -> "Linux Guest"
         "SSH" -> when {
             profile.useEternalTerminal -> "Eternal Terminal"
             profile.useMosh -> "Mosh"

@@ -1593,7 +1593,7 @@ internal class McpTools(
             description = "Create a saved connection profile. Supports connectionType=SSH, SMB, VNC, RDP, SPICE, EMAIL, RETICULUM. SSH-family fields: username (required), password (optional, stored), keyId (optional — references list_ssh_keys), ignoreSavedKeys (force password-only auth, never offer saved keys), useMosh (turn an SSH profile into a Mosh profile), sessionManager (optional: TMUX | ZELLIJ | SCREEN | BYOBU | HERDR — attach through that multiplexer; omit for a plain shell), remoteCommand (run a command via an SSH exec request instead of a login shell — e.g. 'tmux new -A -s work' to attach-or-create that session before shell startup files run) + requestPty (PTY for it, default true), bindAddress (local address the outgoing SSH socket binds to, ssh -b — direct connections only). SMB: smbShare (required), username + password, smbDomain. VNC: vncUsername, vncPassword, vncPort, and vncSshForward + vncSshProfileId to tunnel VNC through a saved SSH profile. RDP: rdpUsername (required), rdpPassword, rdpDomain, rdpPort. SPICE: spicePassword (optional ticket — no username/domain), spicePort (default 5900), and spiceSshForward + spiceSshProfileId to tunnel SPICE through a saved SSH profile. EMAIL: emailProvider (\"imap\" default, or \"proton\"); username = the email address; password = the account/app-password; for IMAP set emailServer (required) + emailPort (993) + emailSmtpPort (465) + emailTls (true), plus emailSmtpServer when the SMTP host differs (e.g. smtp.gmail.com); for Proton add emailMailboxPassword if two-password mode. EMAIL host is optional (the tunnel-ingress/bastion SPA/knock guards), not the mail server. BTSERIAL (Bluetooth-serial console, #406): host = the paired device's Bluetooth MAC (from list_bluetooth_devices); no other fields. The device must already be paired in Android Settings. BLESERIAL (Bluetooth-LE-serial console — Nordic UART Service / HM-10): host = the BLE peripheral's MAC; no other fields. It needn't be paired — scan-and-pick in the editor; the GATT service/characteristics are auto-detected (NUS 6E400001…, then HM-10 FFE0/FFE1). USBSERIAL (USB-serial console, #408 — Arduino / Duet3D G-code / ESP32 / USB-TTL): host = the device's vendorId:productId hex, e.g. 1a86:7523, from list_usb_devices; usbBaudRate = baud (default 115200); usbDataBits/usbParity/usbStopBits/usbFlowControl set the rest of the line format (default 8N1, no flow control). Plug the adapter in first; connect_profile pops the Android USB-permission prompt. Chipsets: CDC-ACM, CH34x, FTDI, CP21xx, Prolific. RETICULUM: destinationHash (required, 32 hex chars) is the address; reticulumHost + reticulumPort are only how this phone reaches the mesh, defaulting to 127.0.0.1:37428 which is a Sideband or Columba shared instance on this device — any other host is a TCP gateway. reticulumNetworkName + reticulumPassphrase set IFAC on an authenticated gateway. The new profile id is returned for follow-up calls (set_profile_routing, connect_profile). For rclone / local create the profile in the UI — those need an OAuth flow the agent can't drive.",
             inputSchema = objectSchema {
                 string("label", "User-facing label.", required = true)
-                string("connectionType", "SSH | SMB | VNC | RDP | SPICE | EMAIL | BTSERIAL | USBSERIAL | RETICULUM.", required = true)
+                string("connectionType", "SSH | SMB | VNC | RDP | SPICE | EMAIL | BTSERIAL | BLESERIAL | USBSERIAL | RETICULUM | GUEST.", required = true)
                 string("host", "Target hostname or IP. For EMAIL this is the optional tunnel ingress/bastion (SPA/knock target), NOT the mail server — leave blank for a direct IMAP connection.", required = true)
                 integer("port", "TCP port. Defaults: SSH 22, SMB 445, VNC 5900, RDP 3389, SPICE 5900. Type-specific vncPort/rdpPort/spicePort override this.")
                 string("username", "Username for SSH/SMB.")
@@ -1647,7 +1647,11 @@ internal class McpTools(
             summarise = { args ->
                 val type = args.optString("connectionType")
                 val label = args.optString("label", "(unnamed)")
-                val host = args.optString("host", "?")
+                // GUEST has no host field (rootfs is staged locally, kernel
+                // args fixed) — an empty host here would render as a blank
+                // target in the consent sheet.
+                val host = if (type == "GUEST") "on-device UML guest"
+                    else args.optString("host", "?")
                 val tunnelTag = if (args.optBoolean("tunnelOnly", false)) " [tunnel-only]" else ""
                 val knockTag = args.optString("portKnockSequence").let {
                     if (it.isNotBlank()) " [knock: $it]" else ""
@@ -2161,6 +2165,7 @@ internal class McpTools(
             if (native.spice) put("spice")
             if (sh.haven.core.wayland.WaylandBridge.available) put("wayland")
             if (native.ffmpeg) put("ffmpeg")
+            if (native.uml) put("uml")
         })
         // #469: when the labwc lib failed to load, surface WHY over MCP —
         // the logcat line rotates out long before anyone asks, and reading
@@ -6321,16 +6326,18 @@ internal class McpTools(
         val type = args.optString("connectionType").uppercase().ifBlank {
             throw IllegalArgumentException("connectionType required")
         }
-        if (type !in setOf("SSH", "SMB", "VNC", "RDP", "SPICE", "EMAIL", "BTSERIAL", "BLESERIAL", "USBSERIAL", "RETICULUM")) {
-            throw IllegalArgumentException("connectionType must be SSH, SMB, VNC, RDP, SPICE, EMAIL, BTSERIAL, BLESERIAL, USBSERIAL, or RETICULUM (use the UI for LOCAL / RCLONE)")
+        if (type !in setOf("SSH", "SMB", "VNC", "RDP", "SPICE", "EMAIL", "BTSERIAL", "BLESERIAL", "USBSERIAL", "RETICULUM", "GUEST")) {
+            throw IllegalArgumentException("connectionType must be SSH, SMB, VNC, RDP, SPICE, EMAIL, BTSERIAL, BLESERIAL, USBSERIAL, or RETICULUM (use the UI for LOCAL / RCLONE / GUEST)")
         }
         // EMAIL's host is the optional tunnel-ingress/bastion (SPA/knock target),
         // not the mail server — so it may be blank; every other type requires it.
         // RETICULUM addresses a destination hash, not a host: the gateway or
         // shared instance it reaches the mesh through is `reticulumHost`, and
         // it has a working default, so `host` may be blank here too.
+        // GUEST has no fields at all — kernel args are fixed, the rootfs is
+        // staged locally — so its host is blank as well.
         val host = args.optString("host")
-        if (type !in setOf("EMAIL", "RETICULUM") && host.isBlank()) {
+        if (type !in setOf("EMAIL", "RETICULUM", "GUEST") && host.isBlank()) {
             throw IllegalArgumentException("host required")
         }
         val username = args.optString("username")
@@ -6402,6 +6409,15 @@ internal class McpTools(
         val knockSequence = if (parsedKnock != null) rawKnock.trim() else null
 
         val profile = when (type) {
+            // No fields to read: the kernel args are fixed and the rootfs is
+            // staged locally on first connect.
+            "GUEST" -> ConnectionProfile(
+                label = label,
+                host = "",
+                port = 0,
+                username = "",
+                connectionType = "GUEST",
+            )
             "SSH" -> ConnectionProfile(
                 label = label,
                 host = host,

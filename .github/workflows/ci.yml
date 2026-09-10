@@ -219,6 +219,7 @@ jobs:
           -PexcludeSshlibContractTests=true
           -PskipWaylandNatives=true
           -PskipFfmpegNatives=true
+          -PskipUml=true
       - name: Run sshlib contract tests (non-gating, connectbot/cbssh#245)
         # Reported, never silent: a failure here is visible in the job summary
         # and the uploaded results, it just does not fail the build. If these
@@ -232,7 +233,7 @@ jobs:
         # "failed three times in a row" rather than "flaked once". The signal
         # is now worth acting on instead of squinting at.
         continue-on-error: true
-        run: ./gradlew :core:ssh:testDebugUnitTest --tests 'sh.haven.core.ssh.sshlib.*' -PskipWaylandNatives=true -PskipFfmpegNatives=true
+        run: ./gradlew :core:ssh:testDebugUnitTest --tests 'sh.haven.core.ssh.sshlib.*' -PskipWaylandNatives=true -PskipFfmpegNatives=true -PskipUml=true
       - name: Upload test results
         if: always()
         uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a  # v7.0.1
@@ -303,7 +304,7 @@ jobs:
         # inside clang++). A job killed by a timeout reports `cancelled`, which
         # reads as "superseded" — so the nightly lint gate stopped producing a
         # verdict and nothing said so.
-        run: ./gradlew lintDebug -PskipWaylandNatives=true -PskipFfmpegNatives=true
+        run: ./gradlew lintDebug -PskipWaylandNatives=true -PskipFfmpegNatives=true -PskipUml=true
       - name: Upload lint results
         if: always()
         uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a  # v7.0.1
@@ -331,7 +332,9 @@ jobs:
         # -PtargetAbi drives core/wayland's buildWaylandNatives, which builds the
         # five arm64-only wayland binaries from the submodule instead of shipping
         # committed copies. This job is what proves they still compile (#493).
-        run: ./gradlew :app:assembleArm64FullDebug -PtargetAbi=arm64
+        run: ./gradlew :app:assembleArm64FullDebug -PtargetAbi=arm64 -PskipUml=true
+        # -PskipUml: the UML guest binaries are 79 MB release-asset fetches;
+        # the release workflow proves the fetch, CI doesn't need it per push.
       # Runs here rather than in `checks` because it reads the built binaries,
       # and nothing builds them there. #469 was a wayland library linked without
       # gen-stubs.sh's weak stubs: 51 undefined symbols, dlopen refused it, and
@@ -369,7 +372,7 @@ jobs:
       - uses: ./.github/actions/init-submodules-with-retry
       - uses: ./.github/actions/setup-toolchain
       - name: Build ${{ matrix.abi }} debug APK
-        run: ./gradlew :app:assemble${{ matrix.variant }}FullDebug -PtargetAbi=${{ matrix.abi }}
+        run: ./gradlew :app:assemble${{ matrix.variant }}FullDebug -PtargetAbi=${{ matrix.abi }} -PskipUml=true
 
   # Debug builds don't run R8, so an R8 rename of a reflectively-loaded class
   # can ship a feature 100% broken in release while every debug check stays
@@ -399,6 +402,6 @@ jobs:
         # native builds anyway. This job hit its 30-minute timeout on the same
         # three nights, so the R8-keep assertion below has not actually run
         # since the from-source work landed.
-        run: ./gradlew :app:minifyArm64FullReleaseWithR8 -PskipWaylandNatives=true -PskipFfmpegNatives=true
+        run: ./gradlew :app:minifyArm64FullReleaseWithR8 -PskipWaylandNatives=true -PskipFfmpegNatives=true -PskipUml=true
       - name: Assert reflectively-loaded classes survived R8
         run: ./scripts/check-r8-kept-classes.sh

@@ -134,8 +134,29 @@ val fetchQemuLoaders by tasks.registering(Exec::class) {
     commandLine("bash", "fetch-qemu-loaders.sh")
 }
 
+// Fetch the UML guest transport binaries (PROTOTYPE.md) into jniLibs.
+// arm64-v8a only — the bionic UML kernel has no other-ABI build. Skippable
+// for offline/F-Droid builds (-PskipUml / SKIP_UML=1); the APK then simply
+// lacks the guest transport and NativeFeatures.uml hides the UI. See
+// fetch-uml.sh for the GPL source-offer note.
+val fetchUml by tasks.registering(Exec::class) {
+    val script = file("fetch-uml.sh")
+    inputs.file(script)
+    outputs.files(
+        file("src/main/jniLibs/arm64-v8a/libvmlinux.so"),
+        file("src/main/jniLibs/arm64-v8a/libuml-stub.so"),
+        file("src/main/jniLibs/arm64-v8a/libuml-passt.so"),
+    )
+    onlyIf { !project.hasProperty("skipUml") }
+
+    workingDir = projectDir
+    commandLine("bash", script.absolutePath)
+    if (project.hasProperty("skipUml"))
+        environment("SKIP_UML", "1")
+}
+
 tasks.named("preBuild") {
-    dependsOn(buildProot, buildWayvncShim, buildHavenUsb, fetchQemuLoaders)
+    dependsOn(buildProot, buildWayvncShim, buildHavenUsb, fetchQemuLoaders, fetchUml)
 }
 
 kotlin {

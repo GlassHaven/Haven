@@ -347,6 +347,8 @@
     <string name="connections_dropdown_cloudflare_tunnel">Cloudflare Tunnel</string>
     <string name="connections_section_general">常规</string>
     <string name="connections_section_local_shell">本地 Shell</string>
+    <string name="connections_section_guest">Linux 虚拟机</string>
+    <string name="connections_guest_desc">在此设备上引导真实的 Linux 内核，拥有独立的根文件系统和网络。首次使用时解压根文件系统（约 512 MB）。无需主机或登录凭据。</string>
     <string name="connections_section_cloud_storage">云存储</string>
     <string name="connections_section_vnc">VNC 设置</string>
     <string name="connections_section_rdp">RDP 设置</string>

@@ -2365,6 +2365,11 @@ Builds:
         libc6-dev-armhf-cross
     gradle:
       - arm64
+    # The UML guest binaries are prebuilt release assets fetched at build
+    # time (core/local/fetch-uml.sh); F-Droid builds from source without
+    # them, and scandelete removes the fetched jniLibs anyway.
+    gradleprops:
+      - skipUml
     prebuild: sdkmanager "cmake;3.31.6" "platforms;android-26"
     scandelete:
       - core/ffmpeg/src/main/jniLibs

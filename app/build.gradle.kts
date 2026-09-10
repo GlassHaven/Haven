@@ -192,6 +192,13 @@ androidComponents {
             "**/libavutil.so",
             "**/libswresample.so",
             "**/libswscale.so",
+            // UML guest transport (kernel is 79 MB; NativeFeatures.uml gates
+            // the UI — see core/local/fetch-uml.sh). libuml-net.so is
+            // CMake-built in every variant, so it must be excluded too.
+            "**/libvmlinux.so",
+            "**/libuml-stub.so",
+            "**/libuml-passt.so",
+            "**/libuml-net.so",
         )
     }
 

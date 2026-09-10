@@ -349,6 +349,8 @@
     <string name="connections_helper_bind_address">Vincular a ligação de saída a este endereço local (ssh -b). Apenas ligações diretas.</string>
     <string name="connections_section_general">Geral</string>
     <string name="connections_section_local_shell">Shell local</string>
+    <string name="connections_section_guest">Convidado Linux</string>
+    <string name="connections_guest_desc">Arranca um núcleo Linux real neste dispositivo, com o seu próprio sistema de ficheiros raiz e rede. O rootfs é descomprimido (~512 MB) na primeira utilização. Não precisa de host nem credenciais.</string>
     <string name="connections_section_cloud_storage">Armazenamento na nuvem</string>
     <string name="connections_section_vnc">Configurações de VNC</string>
     <string name="connections_section_rdp">Configurações de RDP</string>

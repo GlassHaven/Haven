@@ -24,12 +24,12 @@ cd "$(dirname "$0")"
 
 OUT="${QEMU_LOADER_OUTPUT:-src/main/jniLibs}"
 MIRROR="${QEMU_DEB_MIRROR:-https://deb.debian.org/debian}"
-VERSION="10.0.11+ds-0+deb13u1+b1"
+VERSION="10.0.13+ds-0+deb13u1"
 
 # abi | deb arch | qemu target | deb sha256
 LOADERS=(
-  "arm64-v8a|arm64|x86_64|6c9483063bf60f37fe181ead911251deabe40c893ea5829bc34b0b7b88913b6a"
-  "x86_64|amd64|aarch64|a52540a6b5e5af82555393d14c7c6f029c5f6c3b21c038138c0e7e64dc755e28"
+  "arm64-v8a|arm64|x86_64|c73711af02b97cd5e2667e735d9c06890c57165517110ca4e646c95a7083158d"
+  "x86_64|amd64|aarch64|ca6ede739327a20ae5a3498230c8a3a9a072c586e131bc6bcc1201eb1725e336"
 )
 
 if [ "${SKIP_QEMU_LOADERS:-0}" = "1" ]; then

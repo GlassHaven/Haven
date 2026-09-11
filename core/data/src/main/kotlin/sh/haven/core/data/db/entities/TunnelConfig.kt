@@ -24,7 +24,8 @@ data class TunnelConfig(
     /** Encrypted-at-rest payload. For [TunnelConfigType.WIREGUARD] this is
      *  the raw `.conf` text; for [TunnelConfigType.TAILSCALE] it's the
      *  tsnet authkey + control-URL JSON; for [TunnelConfigType.CLOUDFLARE_ACCESS]
-     *  it's the Access hostname + cached IdP JWT JSON. */
+     *  it's the Access hostname + cached IdP JWT JSON; for
+     *  [TunnelConfigType.NETBIRD] it's the setup key + management URL JSON. */
     val configText: ByteArray,
     val createdAt: Long = System.currentTimeMillis(),
     /**
@@ -56,6 +57,12 @@ enum class TunnelConfigType {
      *  `carrier/websocket.go` rather than guessed. Surfaced in the UI
      *  as "Cloudflare Tunnel". See GH #154. */
     CLOUDFLARE_ACCESS,
+
+    /** NetBird via its client/embed userspace netstack, gomobile-bound as
+     *  nbbridge. Setup-key auth, optional self-hosted management URL;
+     *  per-config peer identity in filesDir/netbird-<id>. No VpnService
+     *  and no second app. See GH #492. */
+    NETBIRD,
     ;
 
     companion object {

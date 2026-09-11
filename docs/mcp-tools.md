@@ -1633,16 +1633,18 @@ Expose a live serial terminal session (BTSERIAL / BLESERIAL / USBSERIAL — sess
 <details markdown="1">
 <summary><code>create_tunnel</code> · asks every call</summary>
 
-Add a new WireGuard, Tailscale, or Cloudflare Tunnel config. WIREGUARD: pass `configText` (wg-quick INI body). TAILSCALE: pass `tailscaleAuthKey` (and optional `tailscaleControlUrl` for Headscale). CLOUDFLARE_ACCESS: pass `accessHostname`; for Access-protected routes also pass `accessJwt` (from `cloudflared access token --app https://<host>`); optional `accessJumpDestination` for bastion-mode multi-target tunnels. Returns the new tunnel id, which can then be passed to set_profile_routing.
+Add a new WireGuard, Tailscale, NetBird, or Cloudflare Tunnel config. WIREGUARD: pass `configText` (wg-quick INI body). TAILSCALE: pass `tailscaleAuthKey` (and optional `tailscaleControlUrl` for Headscale). NETBIRD: pass `netbirdSetupKey` (and optional `netbirdManagementUrl` for a self-hosted management server). CLOUDFLARE_ACCESS: pass `accessHostname`; for Access-protected routes also pass `accessJwt` (from `cloudflared access token --app https://<host>`); optional `accessJumpDestination` for bastion-mode multi-target tunnels. Returns the new tunnel id, which can then be passed to set_profile_routing.
 
-- `label` (string, required) — User-facing label (also used to derive the Tailscale hostname).
-- `type` (string, required) — WIREGUARD, TAILSCALE, or CLOUDFLARE_ACCESS.
+- `label` (string, required) — User-facing label (also used to derive the tunnel hostname).
+- `type` (string, required) — WIREGUARD, TAILSCALE, NETBIRD, or CLOUDFLARE_ACCESS.
 - `accessExpiresAt` (integer) — Optional explicit JWT expiry (Unix epoch seconds). Defaults to parsing the `exp` claim out of accessJwt.
 - `accessHostname` (string) — Cloudflare Tunnel published hostname (e.g. ssh.example.com). Required when type=CLOUDFLARE_ACCESS.
 - `accessJumpDestination` (string) — Optional `Cf-Access-Jump-Destination` value for bastion-mode multi-target tunnels (e.g. internal-host:22).
 - `accessJwt` (string) — Cloudflare Access JWT (`CF_Authorization` value). Optional — only needed when the Tunnel route is Access-protected.
 - `accessTeamDomain` (string) — Cloudflare Access team domain (myteam.cloudflareaccess.com). Optional; only meaningful for Access-protected routes.
 - `configText` (string) — WireGuard wg-quick INI body. Required when type=WIREGUARD.
+- `netbirdManagementUrl` (string) — Self-hosted NetBird management URL (https://...). Optional — empty defaults to the hosted management.
+- `netbirdSetupKey` (string) — NetBird setup key from the NetBird dashboard. Required when type=NETBIRD.
 - `tailscaleAuthKey` (string) — Tailscale single-use authkey (tskey-auth-...). Required when type=TAILSCALE.
 - `tailscaleControlUrl` (string) — Self-hosted Headscale coordination URL. Optional — empty defaults to controlplane.tailscale.com.
 

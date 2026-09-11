@@ -27,6 +27,10 @@
     <string name="tunnel_tailscale_authkey_label">認証キー (tskey-auth-…)</string>
     <string name="tunnel_tailscale_control_url_label">コントロールプレーン URL（任意）</string>
     <string name="tunnel_tailscale_control_url_help">Tailscale のホスト型コントロールプレーンを使う場合は空欄にしてください。セルフホストの調整サーバーを使う場合は Headscale の URL を設定してください。</string>
+    <string name="tunnel_netbird_help">NetBird ダッシュボードでセットアップキーを発行してください（Setup Keys → Add setup key）。Haven は初回利用時にネットワークへ参加し、以降はピア状態を再利用するため、1 回限りのキーで問題ありません。再利用可能なキーなら再インストール後の再接続も可能です。</string>
+    <string name="tunnel_netbird_setup_key_label">セットアップキー</string>
+    <string name="tunnel_netbird_management_url_label">管理 URL（省略可）</string>
+    <string name="tunnel_netbird_management_url_help">NetBird のホスト型管理サービスを使う場合は空欄にしてください。セルフホストの管理サーバーを使う場合はその URL を設定してください。</string>
 
     <!-- Cloudflare Access SSH tunnel (#154) -->
     <string name="cf_experimental_banner">実験的機能 — Haven は `cloudflared access ssh` と同じ WebSocket ワイヤープロトコルを実装しています。少数のテナントでのみ検証済みです。不一致があれば GitHub #154 で報告してください。</string>

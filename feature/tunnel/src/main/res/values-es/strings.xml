@@ -20,6 +20,10 @@
     <string name="tunnel_tailscale_authkey_label">Clave de autenticación (tskey-auth-…)</string>
     <string name="tunnel_tailscale_control_url_label">URL del plano de control (opcional)</string>
     <string name="tunnel_tailscale_control_url_help">Déjalo en blanco para el controlplane alojado de Tailscale. Indica una URL de Headscale para un servidor de coordinación autoalojado.</string>
+    <string name="tunnel_netbird_help">Genera una setup key en el panel de NetBird (Setup Keys → Añadir setup key). Haven se une a tu red en el primer uso y reutiliza el estado del nodo después, así que basta una clave de un solo uso. Las claves reutilizables permiten reconectar tras reinstalar.</string>
+    <string name="tunnel_netbird_setup_key_label">Clave de configuración (setup key)</string>
+    <string name="tunnel_netbird_management_url_label">URL de gestión (opcional)</string>
+    <string name="tunnel_netbird_management_url_help">Déjalo en blanco para la gestión alojada de NetBird. Indica la URL de tu servidor para un servicio de gestión autoalojado.</string>
     <string name="cf_experimental_banner">Experimental — Haven implementa el mismo protocolo WebSocket de transporte que `cloudflared access ssh`. Probado con un pequeño conjunto de tenants; informa de incompatibilidades en GitHub #154.</string>
     <string name="cf_intro_blurb">Enruta SSH a través de un nombre de host publicado de Cloudflare Tunnel — el equivalente en la app de `cloudflared access ssh --hostname &lt;host&gt;`. Las rutas de Tunnel públicas solo necesitan un nombre de host. Las rutas protegidas con Access requieren además un JWT — toca Iniciar sesión para capturar uno mediante el IdP de tu equipo.</string>
     <string name="cf_field_hostname">Nombre de host (p. ej. ssh.example.com)</string>

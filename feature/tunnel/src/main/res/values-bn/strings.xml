@@ -20,6 +20,10 @@
     <string name="tunnel_tailscale_authkey_label">Auth কী (tskey-auth-…)</string>
     <string name="tunnel_tailscale_control_url_label">কন্ট্রোল প্লেন URL (ঐচ্ছিক)</string>
     <string name="tunnel_tailscale_control_url_help">Tailscale-এর হোস্ট করা controlplane-এর জন্য খালি রাখুন। একটি স্ব-হোস্ট করা সমন্বয় সার্ভারের জন্য একটি Headscale URL সেট করুন।</string>
+    <string name="tunnel_netbird_help">NetBird ড্যাশবোর্ডে একটি সেটআপ কী তৈরি করুন (Setup Keys → Add setup key)। প্রথম ব্যবহারে Haven আপনার নেটওয়ার্কে যোগ দেয় এবং এরপর পিয়ার অবস্থা পুনরায় ব্যবহার করে, তাই একবার ব্যবহারযোগ্য কী-ই যথেষ্ট। পুনরায় ব্যবহারযোগ্য কী পুনরায় ইনস্টলের পরে পুনরায় সংযোগ করতে দেয়।</string>
+    <string name="tunnel_netbird_setup_key_label">সেটআপ কী</string>
+    <string name="tunnel_netbird_management_url_label">ম্যানেজমেন্ট URL (ঐচ্ছিক)</string>
+    <string name="tunnel_netbird_management_url_help">NetBird-এর হোস্ট করা ম্যানেজমেন্টের জন্য খালি রাখুন। স্ব-হোস্ট করা ম্যানেজমেন্ট পরিষেবার জন্য আপনার সার্ভারের URL সেট করুন।</string>
     <string name="cf_experimental_banner">পরীক্ষামূলক — Haven `cloudflared access ssh`-এর মতো একই WebSocket ওয়্যার প্রোটোকল প্রয়োগ করে। অল্প কিছু টেন্যান্টের বিপরীতে পরীক্ষিত; অমিল থাকলে GitHub #154-এর মাধ্যমে জানান।</string>
     <string name="cf_intro_blurb">একটি Cloudflare Tunnel প্রকাশিত হোস্টনেমের মাধ্যমে SSH রুট করুন — অ্যাপের ভেতরে `cloudflared access ssh --hostname &lt;host&gt;`-এর সমতুল্য। পাবলিক Tunnel রুটে শুধু একটি হোস্টনেম দরকার। Access-সুরক্ষিত রুটে অতিরিক্তভাবে একটি JWT দরকার — আপনার টিমের IdP-এর মাধ্যমে একটি ধরতে সাইন ইন ট্যাপ করুন।</string>
     <string name="cf_field_hostname">হোস্টনেম (যেমন ssh.example.com)</string>

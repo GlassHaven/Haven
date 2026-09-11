@@ -27,6 +27,10 @@
     <string name="tunnel_tailscale_authkey_label">Auth key (tskey-auth-…)</string>
     <string name="tunnel_tailscale_control_url_label">Control plane URL (optional)</string>
     <string name="tunnel_tailscale_control_url_help">Leave blank for Tailscale\'s hosted controlplane. Set to a Headscale URL for a self-hosted coordination server.</string>
+    <string name="tunnel_netbird_help">Generate a setup key in the NetBird dashboard (Setup Keys → Add setup key). Haven joins your network on first use and reuses the peer state after that, so a one-time key is fine. Reusable keys let you reconnect after reinstall.</string>
+    <string name="tunnel_netbird_setup_key_label">Setup key</string>
+    <string name="tunnel_netbird_management_url_label">Management URL (optional)</string>
+    <string name="tunnel_netbird_management_url_help">Leave blank for NetBird\'s hosted management. Set to your server\'s URL for a self-hosted management service.</string>
 
     <!-- Cloudflare Access inline fields (SSH-over-Cloudflare-Tunnel transport) -->
     <string name="cf_experimental_banner">Experimental — Haven implements the same WebSocket wire protocol as `cloudflared access ssh`. Tested against a small set of tenants; please report mismatches via GitHub #154.</string>

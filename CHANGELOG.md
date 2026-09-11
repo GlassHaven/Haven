@@ -13,11 +13,15 @@ compare link is appended automatically — don't add it here.
 
 - Fixed a gap in the extended keyboard toolbar's second row (#628).
 
+- NetBird is a new tunnel type, added with a setup key like Tailscale's auth key (#492).
+
 - **The Linux guest transport** (#uml). A GUEST connection runs a whole Linux kernel as one of Haven's own processes — user-mode Linux — with its own root filesystem and network. The connection editor needs nothing but a name; the kernel args are fixed. The rootfs image (~512 MB unpacked) is staged to app storage on first connect, with a free-space check. Networking goes through passt in app context, so no root or VPN permission is involved. Closing the tab sends `poweroff` and waits up to 5 s before killing, so the ext4 image gets a clean unmount. arm64 full-flavour builds only: the payload is four native files (~13 MB in the APK after the kernel's debug-symbol strip) and the picker drops GUEST when any of them is missing.
 
 - **Connections can bind the outgoing SSH socket to a local address** (#636). The SSH edit dialog gains an optional "Bind address" field: set it and Haven dials the server from that local interface or IP instead of letting the OS choose, the same role ssh -b plays on the command line. Useful on multi-homed hosts and with source-address firewalls. A bind address and a jump site are mutually exclusive — the dialog keeps them apart.
 
 - **Fixed a gap in the extended keyboard toolbar's second row** (#628). The v5.87.78 unpinning of the toolbar placed a left-side Desktop key beside the keyboard toggle, which grew that row by a column and left empty cells under the second row whenever the rows held unequal numbers of keys. The Desktop key now shares the keyboard toggle's column in the opposite row and takes no extra cell, so both rows stay paired.
+
+- **NetBird tunnels** (#492). The tunnels screen gains NetBird as a third standalone backend, next to WireGuard and Tailscale. Add one with a setup key from the NetBird dashboard; an optional management URL selects a self-hosted management service instead of the hosted one. The netstack runs in Haven's own process (the same gomobile bridge that carries WireGuard and tsnet), so no VPN permission and no second app is involved. Connection profiles route through it like any other tunnel.
 
 ## v5.87.78
 

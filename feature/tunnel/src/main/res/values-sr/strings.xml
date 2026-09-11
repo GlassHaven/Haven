@@ -20,6 +20,10 @@
     <string name="tunnel_tailscale_authkey_label">Auth кључ (tskey-auth-…)</string>
     <string name="tunnel_tailscale_control_url_label">URL контролне равни (није обавезно)</string>
     <string name="tunnel_tailscale_control_url_help">Оставите празно ако желите да се користи Tailscale хостована контролна раван. Поставите на Headscale URL ако користите лично хостовани сервер за координацију.</string>
+    <string name="tunnel_netbird_help">Направите кључ за подешавање у NetBird контролној табли (Setup Keys → Add setup key). Haven се придружава мрежи при првом коришћењу и после тога користи сачувано стање чвора, тако да је довољан кључ за једнократну употребу. Вишекратни кључ омогућава поновно повезивање после поновне инсталације.</string>
+    <string name="tunnel_netbird_setup_key_label">Кључ за подешавање</string>
+    <string name="tunnel_netbird_management_url_label">URL управљања (опционо)</string>
+    <string name="tunnel_netbird_management_url_help">Оставите празно за NetBird хостовану услугу управљања. Поставите на URL вашег сервера ако користите лично хостовану услугу управљања.</string>
     <string name="cf_experimental_banner">Експериментално — Haven имплементира исти WebSocket жични протокол као и `cloudflared access ssh`. Тестирано на малом скупу станара; молимо вас да нерегуларности пријавите на GitHub проблем #154.</string>
     <string name="cf_intro_blurb">Рутира SSH име хоста коју објављује Cloudflare Tunnel — унутар-апликације еквивалент од `cloudflared access ssh --hostname &lt;хост&gt;`. Рутама јавног тунела је потребно само име хоста. Руте са заштићеним притупом додатно захтевају JWT — тапните Пријави се да ухватите једну посредством IdP вашег тима.</string>
     <string name="cf_field_hostname">Име хоста (нпр. ssh.example.com)</string>

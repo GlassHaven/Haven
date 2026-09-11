@@ -20,6 +20,10 @@
     <string name="tunnel_tailscale_authkey_label">مفتاح المصادقة (tskey-auth-…)</string>
     <string name="tunnel_tailscale_control_url_label">رابط مستوى التحكم (اختياري)</string>
     <string name="tunnel_tailscale_control_url_help">اتركه فارغًا لمستوى التحكم المستضاف من Tailscale. اضبطه على رابط Headscale لخادم تنسيق ذاتي الاستضافة.</string>
+    <string name="tunnel_netbird_help">أنشئ مفتاح إعداد في لوحة NetBird (Setup Keys → Add setup key). ينضم Haven إلى شبكتك عند أول استخدام ويعيد استخدام حالة العقدة بعد ذلك، لذا يكفي مفتاح للاستخدام مرة واحدة. المفاتيح القابلة لإعادة الاستخدام تتيح لك إعادة الاتصال بعد إعادة التثبيت.</string>
+    <string name="tunnel_netbird_setup_key_label">مفتاح الإعداد</string>
+    <string name="tunnel_netbird_management_url_label">رابط الإدارة (اختياري)</string>
+    <string name="tunnel_netbird_management_url_help">اتركه فارغًا للإدارة المستضافة من NetBird. اضبطه على رابط الخادم لخدمة إدارة ذاتية الاستضافة.</string>
 
     <!-- Cloudflare Access SSH tunnel (#154) -->
     <string name="cf_experimental_banner">تجريبي — ينفّذ Haven بروتوكول WebSocket السلكي نفسه الذي يستخدمه `cloudflared access ssh`. اختُبر مع مجموعة صغيرة من المستأجرين؛ يُرجى الإبلاغ عن أي تباين عبر GitHub #154.</string>

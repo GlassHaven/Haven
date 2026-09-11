@@ -20,6 +20,10 @@
     <string name="tunnel_tailscale_authkey_label">认证密钥（tskey-auth-…）</string>
     <string name="tunnel_tailscale_control_url_label">控制平面 URL（可选）</string>
     <string name="tunnel_tailscale_control_url_help">留空则使用 Tailscale 托管的控制平面。设为 Headscale URL 可使用自托管的协调服务器。</string>
+    <string name="tunnel_netbird_help">在 NetBird 控制台中生成 setup key（Setup Keys → Add setup key）。Haven 在首次使用时加入你的网络，之后复用节点状态，因此一次性密钥即可。可重复使用的密钥便于重装后重新连接。</string>
+    <string name="tunnel_netbird_setup_key_label">Setup key（设置密钥）</string>
+    <string name="tunnel_netbird_management_url_label">管理 URL（可选）</string>
+    <string name="tunnel_netbird_management_url_help">留空则使用 NetBird 托管的管理服务。使用自托管管理服务器时，设为该服务器的 URL。</string>
 
     <!-- Cloudflare Access SSH tunnel (#154) -->
     <string name="cf_experimental_banner">实验性功能——Haven 实现了与 `cloudflared access ssh` 相同的 WebSocket 线路协议。已针对少量租户测试；如遇不匹配请通过 GitHub #154 反馈。</string>

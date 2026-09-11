@@ -11,6 +11,7 @@ import sh.haven.core.data.db.entities.TunnelConfigType
 import sh.haven.core.data.db.entities.typeEnum
 import sh.haven.core.data.repository.TunnelConfigRepository
 import java.io.File
+import java.io.IOException
 import javax.inject.Inject
 import javax.inject.Singleton
 
@@ -219,12 +220,26 @@ class DefaultTunnelFactory @Inject constructor(
                 httpClient = httpClient,
             )
         }
+        TunnelConfigType.NETBIRD -> {
+            val parsed = NetbirdConfigBlob.parse(config.configText)
+                ?: throw IOException(
+                    "NetBird tunnel '${config.label}' has no setup key — re-add the tunnel",
+                )
+            NetbirdTunnel(
+                setupKey = parsed.setupKey,
+                stateDir = File(context.filesDir, "netbird-${config.id}").also { it.mkdirs() },
+                hostname = deriveHostname(config.label),
+                managementURL = parsed.managementURL,
+            )
+        }
     }
 
     /**
-     * Tailscale nodes appear in the tailnet admin console by hostname.
-     * Derive from the config label so users can tell their entries apart;
-     * sanitise to DNS-compatible characters because Tailscale enforces that.
+     * Tailscale nodes appear in the tailnet admin console by hostname
+     * (NetBird peers likewise), so derive from the config label to let
+     * users tell entries apart; sanitise to DNS-compatible characters
+     * because Tailscale enforces that and it is a sensible default
+     * everywhere else.
      */
     private fun deriveHostname(label: String): String {
         val safe = label.lowercase()

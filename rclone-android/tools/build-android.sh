@@ -25,7 +25,13 @@ export PATH="/usr/local/go/bin:${GOPATH:-$HOME/go}/bin:${PATH}"
 # with "error obtaining VCS status: exit status 128" — the whole bind aborts on
 # a checkout that is otherwise fine. The stamp is of no use to us and embedding
 # git state in a shipped binary works against reproducible builds anyway (#493).
-export GOFLAGS="${GOFLAGS:+$GOFLAGS }-mod=mod -buildvcs=false"
+# -ldflags=-checklinkname=0: netbird's interface-enumeration dependency
+# (wlynxg/anet, also under tailscale) does //go:linkname into Go's net
+# package internals (net.zoneCache), which Go 1.23+ refuses to link by
+# default; without this the libgojni link dies with "invalid reference to
+# net.zoneCache". anet is maintained with upstream Go's cooperation, so the
+# check is release-valved rather than a real hazard.
+export GOFLAGS="${GOFLAGS:+$GOFLAGS }-mod=mod -buildvcs=false -ldflags=-checklinkname=0"
 
 # Detect Android SDK/NDK from environment
 ANDROID_HOME="${ANDROID_HOME:-${ANDROID_SDK_ROOT:-}}"
@@ -71,7 +77,7 @@ gomobile bind \
     -javapkg=sh.haven.rclone.binding \
     -androidapi=26 \
     -o "$AAR_DIR/rcbridge.aar" \
-    . ./wgbridge ./tsbridge ./mailbridge
+    . ./wgbridge ./tsbridge ./mailbridge ./nbbridge
 
 # Second bind WITHOUT the root package (`.` == rcbridge == rclone), for the
 # terminal build flavour (#510). rclone is the overwhelming bulk of this
@@ -88,7 +94,7 @@ gomobile bind \
     -javapkg=sh.haven.rclone.binding \
     -androidapi=26 \
     -o "$AAR_DIR/rcbridge-terminal.aar" \
-    ./wgbridge ./tsbridge ./mailbridge
+    ./wgbridge ./tsbridge ./mailbridge ./nbbridge
 
 echo ">>> Extracting native libraries from AAR"
 mkdir -p "$JNI_DIR"

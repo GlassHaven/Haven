@@ -598,15 +598,15 @@ fun ConnectionEditDialog(
                                 }
                             }
                             if (onManageTunnels != null) {
-                                // Quick-add for WireGuard (the only standalone
-                                // backend with a usable add path right now)
-                                // plus a manage-everything link. Cloudflare
-                                // Tunnel used to live here too but is now an
-                                // inline transport on the SSH profile itself
-                                // (GH #154) — picking it from the route-through
-                                // list above is the new path. Tailscale's add
-                                // path is disabled in the Tunnels screen
-                                // pending the tsnet bridge.
+                                // Quick-add for the standalone backends with
+                                // usable add paths, plus a manage-everything
+                                // link. Cloudflare Tunnel used to live here
+                                // too but is now an inline transport on the
+                                // SSH profile itself (GH #154) — picking it
+                                // from the route-through list above is the
+                                // new path. Tailscale's add path is disabled
+                                // in the Tunnels screen pending the tsnet
+                                // bridge; NetBird and WireGuard are live.
                                 HorizontalDivider()
                                 DropdownMenuItem(
                                     text = {
@@ -618,6 +618,18 @@ fun ConnectionEditDialog(
                                     onClick = {
                                         proxyExpanded = false
                                         onManageTunnels(sh.haven.core.data.db.entities.TunnelConfigType.WIREGUARD)
+                                    },
+                                )
+                                DropdownMenuItem(
+                                    text = {
+                                        Text(
+                                            "+ New NetBird tunnel",
+                                            color = MaterialTheme.colorScheme.primary,
+                                        )
+                                    },
+                                    onClick = {
+                                        proxyExpanded = false
+                                        onManageTunnels(sh.haven.core.data.db.entities.TunnelConfigType.NETBIRD)
                                     },
                                 )
                                 DropdownMenuItem(
@@ -4055,6 +4067,7 @@ private fun friendlyTunnelTypeLabel(t: sh.haven.core.data.db.entities.TunnelConf
         sh.haven.core.data.db.entities.TunnelConfigType.WIREGUARD -> "WireGuard"
         sh.haven.core.data.db.entities.TunnelConfigType.TAILSCALE -> "Tailscale"
         sh.haven.core.data.db.entities.TunnelConfigType.CLOUDFLARE_ACCESS -> "Cloudflare Tunnel"
+        sh.haven.core.data.db.entities.TunnelConfigType.NETBIRD -> "NetBird"
     }
 
 /**

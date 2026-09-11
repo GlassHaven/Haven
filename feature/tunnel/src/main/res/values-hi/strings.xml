@@ -27,6 +27,10 @@
     <string name="tunnel_tailscale_authkey_label">Auth key (tskey-auth-…)</string>
     <string name="tunnel_tailscale_control_url_label">Control plane URL (वैकल्पिक)</string>
     <string name="tunnel_tailscale_control_url_help">Tailscale के होस्टेड controlplane के लिए खाली छोड़ें। स्व-होस्टेड coordination सर्वर के लिए Headscale URL पर सेट करें।</string>
+    <string name="tunnel_netbird_help">NetBird डैशबोर्ड में एक setup key बनाएं (Setup Keys → Add setup key)। Haven पहली बार उपयोग पर आपके नेटवर्क से जुड़ता है और उसके बाद peer state का पुनः उपयोग करता है, इसलिए एक बार उपयोग होने वाली key ही काफी है। पुनः उपयोग योग्य key से पुनर्स्थापना के बाद दोबारा कनेक्ट हुआ जा सकता है।</string>
+    <string name="tunnel_netbird_setup_key_label">Setup key</string>
+    <string name="tunnel_netbird_management_url_label">Management URL (वैकल्पिक)</string>
+    <string name="tunnel_netbird_management_url_help">NetBird के होस्टेड management के लिए खाली छोड़ें। स्व-होस्टेड management सेवा के लिए अपने सर्वर के URL पर सेट करें।</string>
 
     <!-- Cloudflare Access SSH tunnel -->
     <string name="cf_experimental_banner">प्रयोगात्मक — Haven वही WebSocket वायर प्रोटोकॉल लागू करता है जो `cloudflared access ssh` करता है। कुछ tenants के एक छोटे सेट पर परखा गया; कृपया बेमेल की रिपोर्ट GitHub #154 के माध्यम से करें।</string>

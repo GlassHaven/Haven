@@ -20,6 +20,10 @@
     <string name="tunnel_tailscale_authkey_label">Auth 키 (tskey-auth-…)</string>
     <string name="tunnel_tailscale_control_url_label">제어 평면 URL (선택 사항)</string>
     <string name="tunnel_tailscale_control_url_help">Tailscale의 호스팅 제어 평면을 사용하려면 비워 두세요. 자체 호스팅 조정 서버를 사용하려면 Headscale URL을 입력하세요.</string>
+    <string name="tunnel_netbird_help">NetBird 대시보드에서 설정 키를 생성하세요 (Setup Keys → Add setup key). Haven은 처음 사용할 때 네트워크에 참여하고 이후에는 피어 상태를 재사용하므로 일회용 키로 충분합니다. 재사용 가능한 키를 사용하면 재설치 후 다시 연결할 수 있습니다.</string>
+    <string name="tunnel_netbird_setup_key_label">설정 키</string>
+    <string name="tunnel_netbird_management_url_label">관리 URL (선택 사항)</string>
+    <string name="tunnel_netbird_management_url_help">NetBird의 호스팅 관리 서비스를 사용하려면 비워 두세요. 자체 호스팅 관리 서버를 사용하려면 해당 URL을 입력하세요.</string>
     <string name="cf_experimental_banner">실험적 기능 — Haven은 `cloudflared access ssh`와 동일한 WebSocket 와이어 프로토콜을 구현합니다. 소수의 테넌트에 대해 테스트되었습니다. 일치하지 않는 경우 GitHub #154로 보고해 주세요.</string>
     <string name="cf_intro_blurb">Cloudflare Tunnel에 게시된 호스트 이름을 통해 SSH를 라우팅합니다 — 앱 내에서 `cloudflared access ssh --hostname &lt;host&gt;`에 해당합니다. 공개 Tunnel 경로에는 호스트 이름만 있으면 됩니다. Access로 보호된 경로에는 JWT가 추가로 필요합니다 — 로그인을 눌러 팀의 IdP를 통해 JWT를 받으세요.</string>
     <string name="cf_field_hostname">호스트 이름 (예: ssh.example.com)</string>

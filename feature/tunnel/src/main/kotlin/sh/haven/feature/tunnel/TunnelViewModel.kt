@@ -253,6 +253,41 @@ class TunnelViewModel @Inject constructor(
         save(label, TunnelConfigType.TAILSCALE, blob.encode())
     }
 
+    /**
+     * Create a NetBird tunnel config. The setup key joins the network on
+     * first use; the client embed persists peer state under a per-config
+     * dir so subsequent starts don't re-consume it.
+     *
+     * [managementURL] points at a self-hosted NetBird management server,
+     * e.g. "https://netbird.example.com". Leave blank for NetBird's
+     * hosted default (#492).
+     */
+    fun addNetbirdConfig(label: String, setupKey: String, managementURL: String = "") {
+        if (label.isBlank()) {
+            _error.value = "Label is required"
+            return
+        }
+        if (setupKey.isBlank()) {
+            _error.value = "Setup key is required"
+            return
+        }
+        val trimmedUrl = managementURL.trim()
+        if (trimmedUrl.isNotEmpty() &&
+            !trimmedUrl.startsWith("https://") &&
+            !trimmedUrl.startsWith("http://")
+        ) {
+            _error.value = "Management URL must start with https:// (or http:// for local testing)"
+            return
+        }
+        // Strip any leading/trailing whitespace paste artifacts — setup keys
+        // are a single token with no internal spaces. Management URL likewise.
+        val blob = sh.haven.core.tunnel.NetbirdConfigBlob(
+            setupKey = setupKey.trim(),
+            managementURL = trimmedUrl,
+        )
+        save(label, TunnelConfigType.NETBIRD, blob.encode())
+    }
+
     private fun save(label: String, type: TunnelConfigType, bytes: ByteArray) {
         viewModelScope.launch {
             try {

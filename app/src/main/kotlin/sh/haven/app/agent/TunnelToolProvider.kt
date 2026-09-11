@@ -36,13 +36,15 @@ internal class TunnelToolProvider(
         ) { _ -> listLiveTunnels() },
 
         "create_tunnel" to ToolHandler(
-            description = "Add a new WireGuard, Tailscale, or Cloudflare Tunnel config. WIREGUARD: pass `configText` (wg-quick INI body). TAILSCALE: pass `tailscaleAuthKey` (and optional `tailscaleControlUrl` for Headscale). CLOUDFLARE_ACCESS: pass `accessHostname`; for Access-protected routes also pass `accessJwt` (from `cloudflared access token --app https://<host>`); optional `accessJumpDestination` for bastion-mode multi-target tunnels. Returns the new tunnel id, which can then be passed to set_profile_routing.",
+            description = "Add a new WireGuard, Tailscale, NetBird, or Cloudflare Tunnel config. WIREGUARD: pass `configText` (wg-quick INI body). TAILSCALE: pass `tailscaleAuthKey` (and optional `tailscaleControlUrl` for Headscale). NETBIRD: pass `netbirdSetupKey` (and optional `netbirdManagementUrl` for a self-hosted management server). CLOUDFLARE_ACCESS: pass `accessHostname`; for Access-protected routes also pass `accessJwt` (from `cloudflared access token --app https://<host>`); optional `accessJumpDestination` for bastion-mode multi-target tunnels. Returns the new tunnel id, which can then be passed to set_profile_routing.",
             inputSchema = objectSchema {
-                string("label", "User-facing label (also used to derive the Tailscale hostname).", required = true)
-                string("type", "WIREGUARD, TAILSCALE, or CLOUDFLARE_ACCESS.", required = true)
+                string("label", "User-facing label (also used to derive the tunnel hostname).", required = true)
+                string("type", "WIREGUARD, TAILSCALE, NETBIRD, or CLOUDFLARE_ACCESS.", required = true)
                 string("configText", "WireGuard wg-quick INI body. Required when type=WIREGUARD.")
                 string("tailscaleAuthKey", "Tailscale single-use authkey (tskey-auth-...). Required when type=TAILSCALE.")
                 string("tailscaleControlUrl", "Self-hosted Headscale coordination URL. Optional — empty defaults to controlplane.tailscale.com.")
+                string("netbirdSetupKey", "NetBird setup key from the NetBird dashboard. Required when type=NETBIRD.")
+                string("netbirdManagementUrl", "Self-hosted NetBird management URL (https://...). Optional — empty defaults to the hosted management.")
                 string("accessHostname", "Cloudflare Tunnel published hostname (e.g. ssh.example.com). Required when type=CLOUDFLARE_ACCESS.")
                 string("accessJwt", "Cloudflare Access JWT (`CF_Authorization` value). Optional — only needed when the Tunnel route is Access-protected.")
                 string("accessTeamDomain", "Cloudflare Access team domain (myteam.cloudflareaccess.com). Optional; only meaningful for Access-protected routes.")
@@ -108,9 +110,10 @@ internal class TunnelToolProvider(
         val type = when (typeRaw) {
             "WIREGUARD" -> TunnelConfigType.WIREGUARD
             "TAILSCALE" -> TunnelConfigType.TAILSCALE
+            "NETBIRD" -> TunnelConfigType.NETBIRD
             "CLOUDFLARE_ACCESS" -> TunnelConfigType.CLOUDFLARE_ACCESS
             else -> throw IllegalArgumentException(
-                "type must be WIREGUARD, TAILSCALE, or CLOUDFLARE_ACCESS"
+                "type must be WIREGUARD, TAILSCALE, NETBIRD, or CLOUDFLARE_ACCESS"
             )
         }
         val configBytes: ByteArray = when (type) {
@@ -159,6 +162,14 @@ internal class TunnelToolProvider(
                 }
                 val controlUrl = args.optString("tailscaleControlUrl")
                 sh.haven.core.tunnel.TailscaleConfigBlob(authKey, controlUrl).encode()
+            }
+            TunnelConfigType.NETBIRD -> {
+                val setupKey = args.optString("netbirdSetupKey")
+                if (setupKey.isBlank()) {
+                    throw IllegalArgumentException("netbirdSetupKey required for NETBIRD type")
+                }
+                val managementUrl = args.optString("netbirdManagementUrl")
+                sh.haven.core.tunnel.NetbirdConfigBlob(setupKey, managementUrl).encode()
             }
         }
         val config = TunnelConfig(

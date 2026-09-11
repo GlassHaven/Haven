@@ -3,17 +3,21 @@ package sh.haven.core.tunnel
 import io.mockk.coEvery
 import io.mockk.mockk
 import kotlinx.coroutines.test.runTest
+import okhttp3.OkHttpClient
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertFalse
 import org.junit.Assert.assertNotNull
 import org.junit.Assert.assertNotSame
 import org.junit.Assert.assertNull
 import org.junit.Assert.assertSame
+import org.junit.Assert.assertThrows
 import org.junit.Assert.assertTrue
 import org.junit.Test
 import sh.haven.core.data.db.entities.TunnelConfig
 import sh.haven.core.data.db.entities.TunnelConfigType
+import sh.haven.core.data.db.entities.typeEnum
 import sh.haven.core.data.repository.TunnelConfigRepository
+import java.io.IOException
 
 /**
  * Unit tests for the manager's caching and refcount behaviour. Real
@@ -147,11 +151,58 @@ class TunnelManagerTest {
         assertEquals(1, manager.dependentCount("cfg-B"))
     }
 
+    @Test
+    fun netbirdConfigReachesFactoryThroughManager() = runTest {
+        // NETBIRD flows through the same acquire/cache/refcount path as the
+        // older types; the factory decides the backend, so this stays off
+        // libgojni.
+        val repo = mockk<TunnelConfigRepository>()
+        coEvery { repo.getById("cfg-nb") } returns nbConfig("cfg-nb")
+        val factory = CountingFactory()
+        val manager = TunnelManager(repo, factory)
+
+        val tunnel = manager.acquire("cfg-nb", "p1")
+        val again = manager.acquire("cfg-nb", "p2")
+
+        assertNotNull(tunnel)
+        assertSame(tunnel, again)
+        assertEquals(1, factory.createCount)
+        assertEquals(TunnelConfigType.NETBIRD, factory.lastConfig?.typeEnum)
+        assertEquals(2, manager.dependentCount("cfg-nb"))
+    }
+
+    @Test
+    fun defaultFactoryRejectsNetbirdConfigWithoutSetupKey() {
+        // The parse guard in DefaultTunnelFactory runs before the native
+        // start, so a config saved without a usable setup key fails fast
+        // with an actionable message rather than a 60 s native failure.
+        // The guard fires before Context use, so a mock Context is enough.
+        val factory = DefaultTunnelFactory(mockk(), OkHttpClient())
+        val ex = assertThrows(IOException::class.java) {
+            factory.create(
+                TunnelConfig(
+                    id = "nb-broken",
+                    label = "nb",
+                    type = TunnelConfigType.NETBIRD.name,
+                    configText = "garbage".toByteArray(),
+                ),
+            )
+        }
+        assertTrue(ex.message!!.contains("setup key"))
+    }
+
     private fun wgConfig(id: String) = TunnelConfig(
         id = id,
         label = "test",
         type = TunnelConfigType.WIREGUARD.name,
         configText = "[Interface]".toByteArray(),
+    )
+
+    private fun nbConfig(id: String) = TunnelConfig(
+        id = id,
+        label = "netbird test",
+        type = TunnelConfigType.NETBIRD.name,
+        configText = """{"setupKey":"NBSETUPKEY-123"}""".toByteArray(),
     )
 
     private class FakeTunnel : Tunnel {
@@ -164,8 +215,10 @@ class TunnelManagerTest {
 
     private class CountingFactory : TunnelFactory {
         var createCount = 0
+        var lastConfig: TunnelConfig? = null
         override fun create(config: TunnelConfig): Tunnel {
             createCount++
+            lastConfig = config
             return FakeTunnel()
         }
     }

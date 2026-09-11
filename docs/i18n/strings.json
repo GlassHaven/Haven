@@ -43657,6 +43657,86 @@
      }
     },
     {
+     "name": "tunnel_netbird_help",
+     "en": "Generate a setup key in the NetBird dashboard (Setup Keys → Add setup key). Haven joins your network on first use and reuses the peer state after that, so a one-time key is fine. Reusable keys let you reconnect after reinstall.",
+     "comment": "Add tunnel dialog",
+     "args": [],
+     "t": {
+      "ar": "أنشئ مفتاح إعداد في لوحة NetBird (Setup Keys → Add setup key). ينضم Haven إلى شبكتك عند أول استخدام ويعيد استخدام حالة العقدة بعد ذلك، لذا يكفي مفتاح للاستخدام مرة واحدة. المفاتيح القابلة لإعادة الاستخدام تتيح لك إعادة الاتصال بعد إعادة التثبيت.",
+      "bn": "NetBird ড্যাশবোর্ডে একটি সেটআপ কী তৈরি করুন (Setup Keys → Add setup key)। প্রথম ব্যবহারে Haven আপনার নেটওয়ার্কে যোগ দেয় এবং এরপর পিয়ার অবস্থা পুনরায় ব্যবহার করে, তাই একবার ব্যবহারযোগ্য কী-ই যথেষ্ট। পুনরায় ব্যবহারযোগ্য কী পুনরায় ইনস্টলের পরে পুনরায় সংযোগ করতে দেয়।",
+      "de": "Erzeuge einen Setup-Key im NetBird-Dashboard (Setup Keys → Add setup key). Haven tritt deinem Netz beim ersten Einsatz bei und übernimmt danach den Peer-Zustand, daher reicht ein einmal verwendbarer Key. Wiederverwendbare Keys erlauben die erneute Verbindung nach einer Neuinstallation.",
+      "es": "Genera una setup key en el panel de NetBird (Setup Keys → Añadir setup key). Haven se une a tu red en el primer uso y reutiliza el estado del nodo después, así que basta una clave de un solo uso. Las claves reutilizables permiten reconectar tras reinstalar.",
+      "fr": "Générez une clé de configuration dans le tableau de bord NetBird (Setup Keys → Ajouter une clé). Haven rejoint votre réseau à la première utilisation puis réutilise l\\'état du pair ; une clé à usage unique suffit donc. Les clés réutilisables permettent de se reconnecter après une réinstallation.",
+      "hi": "NetBird डैशबोर्ड में एक setup key बनाएं (Setup Keys → Add setup key)। Haven पहली बार उपयोग पर आपके नेटवर्क से जुड़ता है और उसके बाद peer state का पुनः उपयोग करता है, इसलिए एक बार उपयोग होने वाली key ही काफी है। पुनः उपयोग योग्य key से पुनर्स्थापना के बाद दोबारा कनेक्ट हुआ जा सकता है।",
+      "ja": "NetBird ダッシュボードでセットアップキーを発行してください（Setup Keys → Add setup key）。Haven は初回利用時にネットワークへ参加し、以降はピア状態を再利用するため、1 回限りのキーで問題ありません。再利用可能なキーなら再インストール後の再接続も可能です。",
+      "ko": "NetBird 대시보드에서 설정 키를 생성하세요 (Setup Keys → Add setup key). Haven은 처음 사용할 때 네트워크에 참여하고 이후에는 피어 상태를 재사용하므로 일회용 키로 충분합니다. 재사용 가능한 키를 사용하면 재설치 후 다시 연결할 수 있습니다.",
+      "pt": "Gere uma setup key no painel do NetBird (Setup Keys → Adicionar setup key). O Haven entra na sua rede no primeiro uso e reutiliza o estado do par depois disso, então uma chave de uso único serve. Chaves reutilizáveis permitem reconectar após reinstalar.",
+      "ru": "Создайте ключ настройки в панели NetBird (Setup Keys → Add setup key). Haven присоединяется к вашей сети при первом использовании и затем переиспользует состояние узла, поэтому достаточно одноразового ключа. Многоразовые ключи позволяют переподключиться после переустановки.",
+      "sr": "Направите кључ за подешавање у NetBird контролној табли (Setup Keys → Add setup key). Haven се придружава мрежи при првом коришћењу и после тога користи сачувано стање чвора, тако да је довољан кључ за једнократну употребу. Вишекратни кључ омогућава поновно повезивање после поновне инсталације.",
+      "zh": "在 NetBird 控制台中生成 setup key（Setup Keys → Add setup key）。Haven 在首次使用时加入你的网络，之后复用节点状态，因此一次性密钥即可。可重复使用的密钥便于重装后重新连接。"
+     }
+    },
+    {
+     "name": "tunnel_netbird_setup_key_label",
+     "en": "Setup key",
+     "comment": "Add tunnel dialog",
+     "args": [],
+     "t": {
+      "ar": "مفتاح الإعداد",
+      "bn": "সেটআপ কী",
+      "de": "Setup-Key",
+      "es": "Clave de configuración (setup key)",
+      "fr": "Clé de configuration (setup key)",
+      "hi": "Setup key",
+      "ja": "セットアップキー",
+      "ko": "설정 키",
+      "pt": "Chave de configuração (setup key)",
+      "ru": "Ключ настройки",
+      "sr": "Кључ за подешавање",
+      "zh": "Setup key（设置密钥）"
+     }
+    },
+    {
+     "name": "tunnel_netbird_management_url_label",
+     "en": "Management URL (optional)",
+     "comment": "Add tunnel dialog",
+     "args": [],
+     "t": {
+      "ar": "رابط الإدارة (اختياري)",
+      "bn": "ম্যানেজমেন্ট URL (ঐচ্ছিক)",
+      "de": "Management-URL (optional)",
+      "es": "URL de gestión (opcional)",
+      "fr": "URL de gestion (facultatif)",
+      "hi": "Management URL (वैकल्पिक)",
+      "ja": "管理 URL（省略可）",
+      "ko": "관리 URL (선택 사항)",
+      "pt": "URL de gerenciamento (opcional)",
+      "ru": "URL управления (необязательно)",
+      "sr": "URL управљања (опционо)",
+      "zh": "管理 URL（可选）"
+     }
+    },
+    {
+     "name": "tunnel_netbird_management_url_help",
+     "en": "Leave blank for NetBird\\'s hosted management. Set to your server\\'s URL for a self-hosted management service.",
+     "comment": "Add tunnel dialog",
+     "args": [],
+     "t": {
+      "ar": "اتركه فارغًا للإدارة المستضافة من NetBird. اضبطه على رابط الخادم لخدمة إدارة ذاتية الاستضافة.",
+      "bn": "NetBird-এর হোস্ট করা ম্যানেজমেন্টের জন্য খালি রাখুন। স্ব-হোস্ট করা ম্যানেজমেন্ট পরিষেবার জন্য আপনার সার্ভারের URL সেট করুন।",
+      "de": "Leer lassen für NetBirds gehostetes Management. Für ein selbst gehostetes Management auf die URL deines Servers setzen.",
+      "es": "Déjalo en blanco para la gestión alojada de NetBird. Indica la URL de tu servidor para un servicio de gestión autoalojado.",
+      "fr": "Laissez vide pour la gestion hébergée de NetBird. Indiquez l\\'URL de votre serveur pour un service de gestion auto-hébergé.",
+      "hi": "NetBird के होस्टेड management के लिए खाली छोड़ें। स्व-होस्टेड management सेवा के लिए अपने सर्वर के URL पर सेट करें।",
+      "ja": "NetBird のホスト型管理サービスを使う場合は空欄にしてください。セルフホストの管理サーバーを使う場合はその URL を設定してください。",
+      "ko": "NetBird의 호스팅 관리 서비스를 사용하려면 비워 두세요. 자체 호스팅 관리 서버를 사용하려면 해당 URL을 입력하세요.",
+      "pt": "Deixe em branco para o gerenciamento hospedado do NetBird. Defina a URL do seu servidor para um serviço de gerenciamento auto-hospedado.",
+      "ru": "Оставьте пустым для размещённого управления NetBird. Укажите URL вашего сервера для самостоятельно размещённой службы управления.",
+      "sr": "Оставите празно за NetBird хостовану услугу управљања. Поставите на URL вашег сервера ако користите лично хостовану услугу управљања.",
+      "zh": "留空则使用 NetBird 托管的管理服务。使用自托管管理服务器时，设为该服务器的 URL。"
+     }
+    },
+    {
      "name": "cf_experimental_banner",
      "en": "Experimental — Haven implements the same WebSocket wire protocol as `cloudflared access ssh`. Tested against a small set of tenants; please report mismatches via GitHub #154.",
      "comment": "Cloudflare Access inline fields (SSH-over-Cloudflare-Tunnel transport)",

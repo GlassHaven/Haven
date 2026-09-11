@@ -32,6 +32,13 @@ android {
         sourceCompatibility = JavaVersion.VERSION_17
         targetCompatibility = JavaVersion.VERSION_17
     }
+
+    testOptions {
+        // extractTarball's happy path calls Log.d/Log.i; plain-JVM tests
+        // drive it (rootfs importer regressions) so the android.jar stubs
+        // must no-op instead of throwing.
+        unitTests.isReturnDefaultValues = true
+    }
 }
 
 dependencies {

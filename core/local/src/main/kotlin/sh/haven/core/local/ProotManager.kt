@@ -1820,7 +1820,8 @@ class ProotManager @Inject constructor(
      * for tarballs that wrap the rootfs in a top-level directory
      * (e.g. proot-distro's `debian-bookworm-aarch64/`).
      */
-    private fun extractTarball(tarball: File, destDir: File, source: RootfsSource) {
+    // internal for the #546 importer regression test (same module).
+    internal fun extractTarball(tarball: File, destDir: File, source: RootfsSource) {
         destDir.mkdirs()
         var fileCount = 0
         var symlinkCount = 0
@@ -1890,13 +1891,21 @@ class ProotManager @Inject constructor(
                 }
                 pendingLongName = null
 
+                // Some producers write directory entries as `dir/.` (and
+                // even regular-file entries that can only be directories).
+                // Writing through such a name resolves to the existing
+                // directory and dies with EISDIR mid-import (#546) —
+                // collapse the trailing `/` or `/.` here, before
+                // strip-components or anything touches the path.
+                val (collapsedName, nameMarksDir) = TarEntryNames.normalize(rawEntryName)
+
                 // Apply tar --strip-components=N: drop the first N
                 // path components. If the entry has fewer than N
                 // components left after stripping it's a no-op (the
                 // wrapper-dir itself becomes the empty string, which
                 // we skip).
                 val entryName = if (source.stripComponents > 0) {
-                    val parts = rawEntryName.trimEnd('/').split('/').drop(source.stripComponents)
+                    val parts = collapsedName.trimEnd('/').split('/').drop(source.stripComponents)
                     if (parts.isEmpty()) {
                         // Wrapper directory itself — skip header data
                         if (size > 0) skipToBlock(gzIn, size)
@@ -1904,7 +1913,7 @@ class ProotManager @Inject constructor(
                     }
                     parts.joinToString("/")
                 } else {
-                    rawEntryName
+                    collapsedName
                 }
                 if (entryName.isEmpty()) {
                     if (size > 0) skipToBlock(gzIn, size)
@@ -1921,16 +1930,23 @@ class ProotManager @Inject constructor(
                     if (size > 0) skipToBlock(gzIn, size)
                     continue
                 }
-                clearPathIfWrongType(outFile, entryIsDir = typeFlag == '5'.code.toByte())
+                val entryIsDir = typeFlag == '5'.code.toByte() || nameMarksDir
+                clearPathIfWrongType(outFile, entryIsDir = entryIsDir)
 
-                when (typeFlag) {
-                    '5'.code.toByte() -> {
+                when {
+                    entryIsDir -> {
+                        // A trailing `/` or `/.` marks a directory even when
+                        // the typeflag says regular file (#546). Consume the
+                        // entry data: normally 0, but a producer that sets a
+                        // size on a dir entry would otherwise leave it to be
+                        // misread as the next header.
                         outFile.mkdirs()
                         modeStr.trim().toIntOrNull(8)?.let {
                             deferredDirModes.add(outFile to (it and 0xFFF))
                         }
+                        if (size > 0) skipToBlock(gzIn, size)
                     }
-                    '2'.code.toByte() -> {
+                    typeFlag == '2'.code.toByte() -> {
                         // Symlink
                         outFile.parentFile?.mkdirs()
                         try {
@@ -1944,7 +1960,7 @@ class ProotManager @Inject constructor(
                             Log.w(TAG, "Symlink failed: $entryName -> $linkTarget: ${e.message}")
                         }
                     }
-                    '1'.code.toByte() -> {
+                    typeFlag == '1'.code.toByte() -> {
                         // Hard link — copy the target file. The tar's link target
                         // is an unstripped archive path, so apply the same
                         // --strip-components as entry names; without this every
@@ -1975,7 +1991,7 @@ class ProotManager @Inject constructor(
                             Log.w(TAG, "Hard link failed: $entryName -> $linkTarget: ${e.message}")
                         }
                     }
-                    '0'.code.toByte(), 0.toByte() -> {
+                    typeFlag == '0'.code.toByte() || typeFlag == 0.toByte() -> {
                         // Regular file
                         outFile.parentFile?.mkdirs()
                         FileOutputStream(outFile).use { fos ->
@@ -2016,14 +2032,6 @@ class ProotManager @Inject constructor(
                             }
                             skipToBlock(gzIn, size)
                         }
-                    }
-                }
-
-                // Also handle directory entries without explicit type flag
-                if (typeFlag != '5'.code.toByte() && entryName.endsWith("/")) {
-                    outFile.mkdirs()
-                    modeStr.trim().toIntOrNull(8)?.let {
-                        deferredDirModes.add(outFile to (it and 0xFFF))
                     }
                 }
             }

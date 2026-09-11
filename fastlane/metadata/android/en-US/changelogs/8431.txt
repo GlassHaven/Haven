@@ -1,0 +1,3 @@
+- A new GUEST connection type boots a real Linux kernel on the device (UML, arm64 full flavour).
+- NetBird is a new tunnel type, added with a setup key like Tailscale's auth key (#492).
+- Fixed a rootfs import that aborted when the tarball names directories like `dir/.` (#546).

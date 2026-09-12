@@ -32,6 +32,7 @@ import (
 	"fmt"
 	"io"
 	"net"
+	"os"
 	"strconv"
 	"sync"
 	"time"
@@ -40,6 +41,21 @@ import (
 
 	"sh.haven/rcbridge/socks5"
 )
+
+// NetBird's client/iface/bind package registers an Android socket-protection
+// control (ControlProtectSocket) in an init() that runs as soon as the client
+// is linked, and the wireguard-go fork it uses applies every registered
+// control at each UDP bind. The protection callback expects VpnService to
+// protect the socket; an embedded client has no VpnService, so every bind —
+// NetBird's own and any other wireguard-go tunnel in the same process, which
+// is how #637 surfaced — fails with "socket protection function not set".
+// NB_USE_NETSTACK_MODE makes the control a no-op and routes NetBird's
+// dialers/listeners through the plain net package, which is what an
+// embedded userspace client wants anyway. Verified on-device: the bind
+// fails without the variable and succeeds with it.
+func init() {
+	os.Setenv("NB_USE_NETSTACK_MODE", "true")
+}
 
 // TunnelHandle is a running NetBird client. Mirrors tsbridge.TunnelHandle.
 type TunnelHandle struct {

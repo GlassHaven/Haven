@@ -1,0 +1,1 @@
+- Fixed NetBird tunnels failing to start with `socket protection function not set` (#637). 5.87.81 fixed the WireGuard half of this; the NetBird tunnel type hit the same error from its own socket-protection hook, and an embedded NetBird client has no VpnService to satisfy it. NetBird now runs in netstack mode, which makes that hook unnecessary.

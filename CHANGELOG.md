@@ -5,6 +5,10 @@ the corresponding GitHub Release; a release can't ship without its section
 (enforced by `scripts/check-changelog.sh` in CI). The GitHub "Full Changelog"
 compare link is appended automatically — don't add it here.
 
+## v5.87.82
+
+- Fixed NetBird tunnels failing to start with `socket protection function not set` (#637). 5.87.81 fixed the WireGuard half of this; the NetBird tunnel type introduced in 5.87.80 hit the same error from its own socket-protection hook, and an embedded NetBird client has no VpnService to satisfy it. NetBird now runs in netstack mode, which makes that hook unnecessary.
+
 ## v5.87.81
 
 - Fixed WireGuard tunnels failing to start in v5.87.80 with `socket protection function not set` (#637). The NetBird integration registers an Android socket-protection hook that was also applied to the WireGuard tunnel's UDP binds, and no protect function exists for Haven's userspace tunnels; the WireGuard tunnel start now clears the shared hook list before binding.

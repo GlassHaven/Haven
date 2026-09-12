@@ -1,0 +1,1 @@
+- Fixed WireGuard tunnels failing to start with `socket protection function not set` in v5.87.80 (#637).

@@ -5,6 +5,10 @@ the corresponding GitHub Release; a release can't ship without its section
 (enforced by `scripts/check-changelog.sh` in CI). The GitHub "Full Changelog"
 compare link is appended automatically — don't add it here.
 
+## v5.87.81
+
+- Fixed WireGuard tunnels failing to start in v5.87.80 with `socket protection function not set` (#637). The NetBird integration registers an Android socket-protection hook that was also applied to the WireGuard tunnel's UDP binds, and no protect function exists for Haven's userspace tunnels; the WireGuard tunnel start now clears the shared hook list before binding.
+
 ## v5.87.80
 
 - A new GUEST connection type boots a real Linux kernel on the device (UML, arm64 full flavour).

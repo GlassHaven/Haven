@@ -1,9 +1,13 @@
 package wgbridge
 
 import (
+	"errors"
 	"fmt"
 	"strings"
+	"syscall"
 	"testing"
+
+	"golang.zx2c4.com/wireguard/conn"
 )
 
 const validConfig = `
@@ -276,4 +280,24 @@ AllowedIPs = 10.1.0.0/24
 		!strings.Contains(p.uapi, "endpoint=203.0.113.11:51820") {
 		t.Errorf("uapi missing one of the peer endpoints: %s", p.uapi)
 	}
+}
+
+// TestStartTunnelStripsInjectedControlFns reproduces #637: netbird's
+// client/iface/bind init() appends its Android socket-protection control
+// to the wireguard-go fork's shared conn.ControlFns, and that control
+// fails every UDP bind with "socket protection function not set" unless
+// a VpnService-style protect function was registered. StartTunnel must
+// bring a tunnel up anyway, because its sockets are pure netstack.
+func TestStartTunnelStripsInjectedControlFns(t *testing.T) {
+	*conn.ControlFns = append(*conn.ControlFns,
+		func(network, address string, c syscall.RawConn) error {
+			return errors.New("socket protection function not set")
+		})
+	t.Cleanup(func() { *conn.ControlFns = nil })
+
+	h, err := StartTunnel(validConfig)
+	if err != nil {
+		t.Fatalf("expected tunnel up despite injected control fn, got %v", err)
+	}
+	defer h.Close()
 }

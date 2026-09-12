@@ -103,6 +103,20 @@ func StartTunnel(configText string) (*TunnelHandle, error) {
 		return nil, fmt.Errorf("create netstack TUN: %w", err)
 	}
 
+	// The netbirdio fork of wireguard-go exports conn.ControlFns so other
+	// packages in the same binary can append socket control functions
+	// (conn/export.go: "export controlFns for Android to use"), and
+	// netbird's client/iface/bind init() does exactly that with its
+	// Android ControlProtectSocket. That control demands a VpnService-style
+	// protect function, which we never register — so with netbird linked
+	// into libgojni, every UDP bind here fails with "listen udp4 :0:
+	// socket protection function not set" (#637). Our sockets are pure
+	// netstack and need no fd protection, so start each tunnel from a
+	// clean control list. Package inits have all run by the time this is
+	// called, and netbird's own binds apply their control via its wrapped
+	// conn, not this list.
+	*conn.ControlFns = nil
+
 	dev := device.NewDevice(tun, conn.NewDefaultBind(), device.NewLogger(
 		device.LogLevelError,
 		"haven-wg: ",

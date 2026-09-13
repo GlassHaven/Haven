@@ -335,7 +335,11 @@ private fun extractPanelContent(
     startCol: Int,
 ): String {
     val sortedBorders = borderCols.sorted()
-    val leftBorder = sortedBorders.lastOrNull { it < startCol } ?: -1
+    // A border column at or under [startCol] bounds the panel from the left;
+    // content starts after it. Using `<=` (not `<`) keeps the border
+    // character itself out of the copy when the selection begins on the
+    // border column, which full-screen TUIs put at the pane edge (#639).
+    val leftBorder = sortedBorders.lastOrNull { it <= startCol } ?: -1
     val rightBorder = sortedBorders.firstOrNull { it > startCol }
         ?: (lines.maxOfOrNull { it.length } ?: 0)
 
@@ -374,7 +378,17 @@ internal fun smartCopy(
 
     val borderCols = findConsistentBorderColumns(fullTexts)
 
-    if (borderCols.isNotEmpty()) {
+    // Only strip panels when the selection itself spans a border column
+    // (#639). A full-screen TUI like zellij draws │ pane borders at the same
+    // columns of every row, so any multi-row selection inside one pane
+    // matched the heuristic, and the copy came back as whole rows between
+    // the borders — including rows and columns the user never highlighted —
+    // instead of the selected text. A selection with no border column
+    // between its own ends stays inside one panel, where the verbatim path
+    // below is exactly the highlighted text.
+    val selStartCol = minOf(sel.startCol, sel.endCol)
+    val selEndCol = maxOf(sel.startCol, sel.endCol)
+    if (borderCols.any { it > selStartCol && it < selEndCol }) {
         // Border-strip path bypasses soft-wrap rejoin: the panel content is
         // bounded by vertical box-drawing characters, so we keep one line
         // per row regardless of wrap state.

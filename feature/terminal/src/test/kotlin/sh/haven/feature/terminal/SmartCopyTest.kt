@@ -86,12 +86,17 @@ class SmartCopyTest {
     }
 
     @Test
-    fun `TUI border columns restrict copied text to the selected panel`() {
+    fun `TUI selection inside one panel copies the highlighted text verbatim (#639)`() {
         // Three rows, each with a Unicode box-drawing border at column 6, and
-        // the selection anchored on the left panel ("left  "). The right panel
-        // ("right", "data", "more") must NOT appear in the copied text.
+        // the selection anchored on the left panel ("left  "). The selection
+        // does not cross the border column, so it is an ordinary selection:
+        // the controller's verbatim text is copied, full rows and adjacent
+        // panels are not substituted (#639).
         val out = smartCopy(
-            controller(SelectionRange(startRow = 0, startCol = 0, endRow = 2, endCol = 5)),
+            controller(
+                SelectionRange(startRow = 0, startCol = 0, endRow = 2, endCol = 5),
+                selectedText = "left\nline2\nline3",
+            ),
             emulator(
                 listOf(
                     "left  │ right",
@@ -101,6 +106,49 @@ class SmartCopyTest {
             ),
         )
         assertEquals("left\nline2\nline3", out)
+    }
+
+    @Test
+    fun `selection crossing a border column strips to the starting panel`() {
+        // The selection runs from the left edge of the left panel across the
+        // border column into the right panel. Border stripping applies: the
+        // copied text is bounded by the border columns and the border
+        // character itself is excluded even though the selection starts on
+        // the border column (startCol 0 with a border at col 0, zellij's
+        // pane-edge shape).
+        val out = smartCopy(
+            controller(SelectionRange(startRow = 0, startCol = 0, endRow = 2, endCol = 12)),
+            emulator(
+                listOf(
+                    "│left  │ right",
+                    "│line2 │ data ",
+                    "│line3 │ more ",
+                ),
+            ),
+        )
+        assertEquals("left\nline2\nline3", out)
+    }
+
+    @Test
+    fun `zellij pane selection between borders copies verbatim (#639)`() {
+        // The #639 shape: zellij draws a pane frame, so every row carries │
+        // at columns 0 and 29. Any multi-row selection inside the pane used
+        // to trip the border heuristic and copy whole rows between the
+        // borders instead of the selected text. The selection's own columns
+        // (1..10) contain no border column, so the copy is verbatim.
+        val lines = listOf(
+            "│ian@msi-z790:~$ echo AAAA-  │",
+            "│AAAA-BBBB-CCCC-DDDD-EEEE    │",
+            "│ian@msi-z790:~$             │",
+        )
+        val out = smartCopy(
+            controller(
+                SelectionRange(startRow = 0, startCol = 1, endRow = 2, endCol = 10),
+                selectedText = "ian@msi-z\nAAAA-BBBB-\nian@msi-z",
+            ),
+            emulator(lines),
+        )
+        assertEquals("ian@msi-z\nAAAA-BBBB-\nian@msi-z", out)
     }
 
     @Test
@@ -170,14 +218,16 @@ class SmartCopyTest {
 
     @Test
     fun `border-strip path bypasses controller getSelectedText`() {
-        // When TUI borders are detected, the panel-extract path takes over
-        // regardless of what the controller would have returned — the
-        // border strip operates on full row text, not the logical
-        // selection. Pass a deliberately wrong getSelectedText() to prove
-        // it isn't consulted on this branch.
+        // When the selection crosses a TUI border column, the panel-extract
+        // path takes over regardless of what the controller would have
+        // returned — the border strip operates on full row text, not the
+        // logical selection. The selection here spans cols 0..12, crossing
+        // the border at col 6 into the right panel. Pass a deliberately
+        // wrong getSelectedText() to prove it isn't consulted on this
+        // branch.
         val out = smartCopy(
             controller(
-                range = SelectionRange(startRow = 0, startCol = 0, endRow = 2, endCol = 5),
+                range = SelectionRange(startRow = 0, startCol = 0, endRow = 2, endCol = 12),
                 selectedText = "WRONG_VALUE_FROM_CONTROLLER",
             ),
             emulator(

@@ -180,7 +180,7 @@ class AudioBridge @Inject constructor(
         val minBuf = AudioTrack.getMinBufferSize(
             sampleRate, AudioFormat.CHANNEL_OUT_STEREO, AudioFormat.ENCODING_PCM_16BIT,
         ).coerceAtLeast(8192)
-        val trackBuf = (minBuf * 4).coerceAtLeast(64 * 1024)
+        val trackBuf = trackBufferSizeBytes(minBuf)
         var track: AudioTrack? = null
         var sock: Socket? = null
         try {
@@ -219,7 +219,8 @@ class AudioBridge @Inject constructor(
             // latency, and the honest answer was that nobody had measured where
             // the latency is. These two numbers are most of the answer on their
             // own: the render buffer is a latency floor that no change of
-            // transport can get under.
+            // transport can get under. The underrun count during real audio is
+            // how we check the headroom factor is still enough.
             Log.i(
                 TAG,
                 "[audio] AudioTrack buffer ${trackBuf}B = ${pcmBufferMillis(trackBuf, sampleRate)}ms " +
@@ -251,7 +252,8 @@ class AudioBridge @Inject constructor(
                         Log.i(
                             TAG,
                             "[audio] over ${"%.1f".format(secs)}s of audio: " +
-                                "socket read ${readUs / 1000}ms, AudioTrack write ${writeUs / 1000}ms",
+                                "socket read ${readUs / 1000}ms, AudioTrack write ${writeUs / 1000}ms, " +
+                                "underruns ${track.underrunCount}",
                         )
                         readUs = 0; writeUs = 0; windowBytes = 0
                     }
@@ -327,3 +329,22 @@ internal fun pcmBufferMillis(
     if (bytesPerSecond <= 0L) return 0L
     return bytes.toLong() * 1000L / bytesPerSecond
 }
+
+/**
+ * AudioTrack buffer for the bridge's render side: the device minimum with
+ * headroom for scheduling jitter, never below [TRACK_BUF_FLOOR_BYTES] —
+ * 85 ms of 48 kHz stereo s16le.
+ *
+ * Measured on CPH2655 (2026-09-13): getMinBufferSize is 23064 B = 120 ms,
+ * so any byte floor below 23 KB is dead code there and the headroom factor
+ * is the whole answer. The old ×4 put the render buffer at 480 ms; the
+ * on-device remeasure with real audio (60 s of sample playback, underrun
+ * counter) showed ×2 = 240 ms underruns twice per minute and ×4 = 480 ms
+ * zero underruns — the headroom is protecting against PulseAudio's own
+ * pipeline fill, not just scheduling jitter. ×3 = 360 ms is the compromise
+ * being measured now.
+ */
+internal const val TRACK_BUF_FLOOR_BYTES = 16 * 1024
+
+internal fun trackBufferSizeBytes(minBuf: Int): Int =
+    (minBuf * 3).coerceAtLeast(TRACK_BUF_FLOOR_BYTES)

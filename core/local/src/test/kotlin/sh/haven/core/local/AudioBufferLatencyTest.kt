@@ -38,3 +38,24 @@ class AudioBufferLatencyTest {
         assertEquals(0L, pcmBufferMillis(64 * 1024, 0))
     }
 }
+
+class TrackBufferSizeTest {
+    @Test
+    fun `floor is 16 KB - 85 ms, a quarter of the old 64 KB floor`() {
+        assertEquals(16 * 1024, TRACK_BUF_FLOOR_BYTES)
+        assertEquals(85L, pcmBufferMillis(TRACK_BUF_FLOOR_BYTES, 48000))
+    }
+
+    @Test
+    fun `device minimum gets three times headroom above the floor`() {
+        assertEquals(16 * 1024, trackBufferSizeBytes(4 * 1024))
+        assertEquals(24 * 1024, trackBufferSizeBytes(8 * 1024))
+        assertEquals(30 * 1024, trackBufferSizeBytes(10 * 1024))
+    }
+
+    @Test
+    fun `measured CPH2655 minimum lands at 360 ms`() {
+        assertEquals(69192, trackBufferSizeBytes(23064))
+        assertEquals(360L, pcmBufferMillis(69192, 48000))
+    }
+}

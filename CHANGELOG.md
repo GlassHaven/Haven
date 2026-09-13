@@ -5,6 +5,10 @@ the corresponding GitHub Release; a release can't ship without its section
 (enforced by `scripts/check-changelog.sh` in CI). The GitHub "Full Changelog"
 compare link is appended automatically — don't add it here.
 
+## v5.87.84
+
+- Fixed terminal Copy producing text the user never selected when the viewport was scrolled back into scrollback (#639). The smart-copy heuristics read only the visible screen while the selection resolved against scrollback rows, so a scrolled-back selection could pick up border stripping or URL rebuilding from lines it did not cover. A scrolled-back selection now uses its exact text.
+
 ## v5.87.83
 
 - Fixed terminal Copy replacing the selection with surrounding TUI content (#639). The smart-copy panel detection matched any multi-row selection inside a full-screen TUI such as zellij, whose pane borders sit at the same column of every row, and copied whole rows between the borders instead of the highlighted text. Border stripping now applies only when the selection itself crosses a border column, and the border character is excluded when the selection starts on one.

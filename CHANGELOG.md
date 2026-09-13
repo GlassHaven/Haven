@@ -5,6 +5,12 @@ the corresponding GitHub Release; a release can't ship without its section
 (enforced by `scripts/check-changelog.sh` in CI). The GitHub "Full Changelog"
 compare link is appended automatically — don't add it here.
 
+## v5.87.83
+
+- Fixed terminal Copy replacing the selection with surrounding TUI content (#639). The smart-copy panel detection matched any multi-row selection inside a full-screen TUI such as zellij, whose pane borders sit at the same column of every row, and copied whole rows between the borders instead of the highlighted text. Border stripping now applies only when the selection itself crosses a border column, and the border character is excluded when the selection starts on one.
+
+- Fixed the terminal Copy button overwriting the clipboard with an empty clip when the selected rows had scrolled out of the snapshot between the long-press and the tap.
+
 ## v5.87.82
 
 - Fixed NetBird tunnels failing to start with `socket protection function not set` (#637). 5.87.81 fixed the WireGuard half of this; the NetBird tunnel type introduced in 5.87.80 hit the same error from its own socket-protection hook, and an embedded NetBird client has no VpnService to satisfy it. NetBird now runs in netstack mode, which makes that hook unnecessary.

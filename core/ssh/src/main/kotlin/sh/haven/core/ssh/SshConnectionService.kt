@@ -105,12 +105,31 @@ class SshConnectionService : Service() {
          */
         const val EXTRA_OPEN_AGENT_LOG = "sh.haven.extra.OPEN_AGENT_LOG"
 
+        /**
+         * Boolean extra the service puts on the launch intent it fires after
+         * Disconnect All, so MainActivity can tell its own auto-launch from a
+         * launcher open carrying the same category/action (#640).
+         */
+        const val EXTRA_EXIT_AFTER_DISCONNECT_ALL = "sh.haven.extra.EXIT_AFTER_DISCONNECT_ALL"
+
         /** Set when "Disconnect All" is tapped; cleared after the activity finishes. */
         @Volatile
         var disconnectedAll = false
             private set
 
         fun clearDisconnectedAll() { disconnectedAll = false }
+
+        /**
+         * True when an activity resume should finish the app: the Disconnect
+         * All flag is set and the resume's intent is the service's own
+         * auto-launch, which carries [EXTRA_EXIT_AFTER_DISCONNECT_ALL]. A
+         * plain launcher open must clear the flag without finishing (#640):
+         * when the auto-launch is blocked by background-activity-launch
+         * restrictions the flag would otherwise survive to the next manual
+         * open, which then bounced straight back to the launcher.
+         */
+        fun shouldFinishOnResume(disconnectedAll: Boolean, hasExitExtra: Boolean): Boolean =
+            disconnectedAll && hasExitExtra
     }
 
     @OptIn(kotlinx.coroutines.FlowPreview::class)
@@ -164,6 +183,7 @@ class SshConnectionService : Service() {
             // Bring the activity to the foreground so it can finish itself
             packageManager.getLaunchIntentForPackage(packageName)?.let { launchIntent ->
                 launchIntent.addFlags(Intent.FLAG_ACTIVITY_NEW_TASK or Intent.FLAG_ACTIVITY_SINGLE_TOP)
+                launchIntent.putExtra(EXTRA_EXIT_AFTER_DISCONNECT_ALL, true)
                 startActivity(launchIntent)
             }
             return START_NOT_STICKY

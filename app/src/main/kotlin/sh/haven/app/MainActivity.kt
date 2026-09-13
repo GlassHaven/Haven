@@ -128,10 +128,21 @@ class MainActivity : AppCompatActivity() {
     private val pendingTaskerRun = androidx.compose.runtime.mutableStateOf<Pair<String, String>?>(null)
 
     private fun exitIfDisconnected() {
-        if (SshConnectionService.disconnectedAll) {
+        // Only the service's own auto-launch (it carries
+        // EXTRA_EXIT_AFTER_DISCONNECT_ALL) may finish the activity. When that
+        // launch is blocked by background-activity-launch restrictions the
+        // flag would otherwise survive to the next manual open from the
+        // launcher, which then bounced straight back out (#640) — clear the
+        // flag on a plain open instead of finishing.
+        val exitExtra = intent?.getBooleanExtra(
+            SshConnectionService.EXTRA_EXIT_AFTER_DISCONNECT_ALL, false) ?: false
+        if (SshConnectionService.shouldFinishOnResume(
+                SshConnectionService.disconnectedAll, exitExtra)) {
             Log.d("MainActivity", "Disconnect All detected — exiting")
             SshConnectionService.clearDisconnectedAll()
             finishAndRemoveTask()
+        } else if (SshConnectionService.disconnectedAll) {
+            SshConnectionService.clearDisconnectedAll()
         }
     }
 

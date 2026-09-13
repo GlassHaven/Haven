@@ -152,6 +152,32 @@ class SmartCopyTest {
     }
 
     @Test
+    fun `scrolled-back selection skips screen-line heuristics (#639 follow-up)`() {
+        // Viewport scrolled 5 lines up: the selection's rows resolve against
+        // scrollback, but getSnapshotLineTexts() returns only the visible
+        // screen. Any heuristic reading the screen list (border strip, URL
+        // rebuild) would match lines that are not the selection's rows.
+        // smartCopy must fall through to the controller's scrollback-aware
+        // text even though the visible screen shows a border column the
+        // selection's column span would cross.
+        val out = smartCopy(
+            controller(
+                SelectionRange(startRow = 0, startCol = 0, endRow = 2, endCol = 12),
+                selectedText = "real\nselection\ntext",
+            ),
+            emulator(
+                listOf(
+                    "left  │ right",
+                    "line2 │ data ",
+                    "line3 │ more ",
+                ),
+            ),
+            scrollbackPosition = 5,
+        )
+        assertEquals("real\nselection\ntext", out)
+    }
+
+    @Test
     fun `ascii pipe columns do not trigger panel stripping (#581)`() {
         // Reporter's shape: a block of content lines whose column of '|' is
         // consistent (ls output, paths, tables). The old border check accepted
@@ -289,12 +315,14 @@ class SmartCopyTest {
         lines: List<String>,
         columns: Int = 80,
         selectedText: String = "",
+        scrollbackPosition: Int = 0,
     ): Pair<SmartTerminalClipboard, androidx.compose.ui.platform.ClipboardManager> {
         val delegate = mockk<androidx.compose.ui.platform.ClipboardManager>(relaxed = true)
         val smart = SmartTerminalClipboard(
             delegate = delegate,
             getEmulator = { emulator(lines, columns = columns) },
             getController = { controller(controllerRange, selectedText = selectedText) },
+            getScrollbackPosition = { scrollbackPosition },
         )
         return smart to delegate
     }
@@ -314,6 +342,33 @@ class SmartCopyTest {
         val captured = slot<AnnotatedString>()
         verify { delegate.setText(capture(captured)) }
         assertEquals("world", captured.captured.text)
+    }
+
+    @Test
+    fun `setText with a scrolled-back selection keeps the verbatim controller text`() {
+        // The iSpindle wrapped-URL fixture, but the viewport is scrolled 5
+        // lines up, so the screen rows are not the selection's rows. The
+        // URL-rebuild path must not fire on screen lines the user never
+        // selected; the controller's scrollback-aware text (newline kept)
+        // is written instead.
+        val (smart, delegate) = clipboard(
+            controllerRange = SelectionRange(0, 0, 1, 9),
+            lines = listOf(
+                "https://github.com/GlassOnTin/iSpindlePlotter.gi",
+                "     t",
+            ),
+            columns = 61,
+            selectedText = "https://github.com/GlassOnTin/iSpindlePlotter.gi\n     t",
+            scrollbackPosition = 5,
+        )
+        smart.setText(AnnotatedString("caller"))
+
+        val captured = slot<AnnotatedString>()
+        verify { delegate.setText(capture(captured)) }
+        assertEquals(
+            "https://github.com/GlassOnTin/iSpindlePlotter.gi\n     t",
+            captured.captured.text,
+        )
     }
 
     @Test

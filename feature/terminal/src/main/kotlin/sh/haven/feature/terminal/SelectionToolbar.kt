@@ -368,7 +368,19 @@ private fun extractPanelContent(
 internal fun smartCopy(
     controller: SelectionController,
     emulator: org.connectbot.terminal.TerminalEmulator,
+    scrollbackPosition: Int = 0,
 ): String? {
+    // When the viewport is scrolled into scrollback, the selection's rows
+    // resolve against scrollback (getSelectedText is scrollback-aware) while
+    // getSnapshotLineTexts() below returns only the visible screen — the two
+    // coordinate spaces diverge, and the heuristics would match borders or
+    // URL shapes on lines the user never selected. Fall through to the
+    // controller's text. Cost: a hanging-indent wrapped URL read from
+    // scrollback keeps its newline; correct-but-unpolished beats wrong.
+    if (scrollbackPosition > 0) {
+        return controller.getSelectedText().ifEmpty { null }
+    }
+
     val sel = controller.getSelectionRange() ?: return null
     val snapshotLines = getSnapshotLines(emulator) ?: return null
 
@@ -419,13 +431,14 @@ class SmartTerminalClipboard(
     private val delegate: androidx.compose.ui.platform.ClipboardManager,
     private val getEmulator: () -> org.connectbot.terminal.TerminalEmulator,
     private val getController: () -> SelectionController?,
+    private val getScrollbackPosition: () -> Int = { 0 },
 ) : androidx.compose.ui.platform.ClipboardManager by delegate {
 
     override fun setText(annotatedString: AnnotatedString) {
         val controller = getController()
         val emulator = getEmulator()
         if (controller != null) {
-            val processed = smartCopy(controller, emulator)
+            val processed = smartCopy(controller, emulator, getScrollbackPosition())
             // Only substitute when smartCopy produced real content. Emptiness
             // means the emulator snapshot has drifted past the selection rows
             // (e.g. new output arrived between long-press and Copy tap) —

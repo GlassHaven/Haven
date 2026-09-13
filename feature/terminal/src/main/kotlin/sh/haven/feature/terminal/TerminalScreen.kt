@@ -1592,6 +1592,12 @@ fun TerminalScreen(
                             delegate = realClipboard,
                             getEmulator = { activeTab.emulator },
                             getController = { selectionController },
+                            // Read live at copy time: when the viewport is
+                            // scrolled into scrollback, selection rows and
+                            // screen lines are different coordinate spaces.
+                            getScrollbackPosition = {
+                                selectionController?.scrollbackPosition ?: 0
+                            },
                         )
                     }
 

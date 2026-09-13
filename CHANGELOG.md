@@ -5,6 +5,10 @@ the corresponding GitHub Release; a release can't ship without its section
 (enforced by `scripts/check-changelog.sh` in CI). The GitHub "Full Changelog"
 compare link is appended automatically — don't add it here.
 
+## v5.87.85
+
+- Fixed the app closing when opened from the launcher right after using Disconnect All in the connection notification (#640). Disconnect All is meant to close Haven itself at disconnect time, but on devices that silently block the service's background launch the pending exit flag survived, and the next launcher open was finished immediately. Only the service's own launch can exit the app now; a plain open clears the flag instead.
+
 ## v5.87.84
 
 - Fixed terminal Copy producing text the user never selected when the viewport was scrolled back into scrollback (#639). The smart-copy heuristics read only the visible screen while the selection resolved against scrollback rows, so a scrolled-back selection could pick up border stripping or URL rebuilding from lines it did not cover. A scrolled-back selection now uses its exact text.

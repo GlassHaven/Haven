@@ -318,3 +318,26 @@ kotlin {
         jvmTarget.set(org.jetbrains.kotlin.gradle.dsl.JvmTarget.JVM_17)
     }
 }
+
+// The UML guest's recovery rootfs (Alpine minirootfs + ddrescue/nbd/mtools,
+// docs/features/usb-recovery-live.md) is fetched at build time the same way
+// the transport binaries are in :core:local. It cannot be committed:
+// fdroidserver's source scan hard-errors on gzip files in the tree, which is
+// how every F-Droid build from versionCode 8431 on failed. Files produced
+// during the build are not scanned. Skippable with -PskipUml; a file already
+// in place is left alone, so offline builds work via UML_RELEASE_MIRROR=file://.
+val fetchUmlRootfs by tasks.registering(Exec::class) {
+    val script = file("fetch-uml-rootfs.sh")
+    inputs.file(script)
+    outputs.file(file("src/full/assets/uml/rootfs-aarch64.ext4.gz"))
+    onlyIf { !project.hasProperty("skipUml") }
+
+    workingDir = projectDir
+    commandLine("bash", script.absolutePath)
+    if (project.hasProperty("skipUml"))
+        environment("SKIP_UML", "1")
+}
+
+tasks.named("preBuild") {
+    dependsOn(fetchUmlRootfs)
+}

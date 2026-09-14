@@ -155,6 +155,9 @@ class McpToolsConsentTest {
             "get_pending_consent",
             // Enumerating active serial↔TCP bridges is read-only.
             "list_serial_bridges",
+            // GPS log catalog: file metadata (ids, sizes, active flag) —
+            // reading the records themselves is the gated act.
+            "list_gps_logs",
             // Battery/memory/storage/network/thermal snapshot — the same
             // class of read as get_app_info, no Android permission needed.
             "get_device_state",
@@ -210,6 +213,19 @@ class McpToolsConsentTest {
             // what a granted watch saw) is a plain read → NEVER.
             "watch_directory",
             "stop_watch_directory",
+            // GPS lifecycle: starting a log turns on a location FGS and
+            // records a movement track — one session grant matches
+            // read_logcat; stop is its teardown. get_gps_status reads the
+            // current fix + satellite metadata, privacy-adjacent like
+            // read_sensors. read_gps_log reads a recorded track of where
+            // the phone was — metadata listing stays free, the track
+            // itself is gated. NTP start/stop are lifecycle verbs.
+            "get_gps_status",
+            "start_gps_log",
+            "stop_gps_log",
+            "read_gps_log",
+            "start_ntp_service",
+            "stop_ntp_service",
         )) {
             val c = tools.consentFor(name)
                 ?: error("$name not registered")
@@ -247,6 +263,9 @@ class McpToolsConsentTest {
             // One location fix per call — location is the most
             // identifying sense the phone has, so no session grant.
             "get_location",
+            // The precise variant collects a window of fixes — same
+            // per-call gate, it is still a location read.
+            "get_location_precise",
             // One camera frame per call — capture_camera_frame may see
             // whatever the lens sees, including people and screens.
             "capture_camera_frame",
@@ -548,6 +567,13 @@ class McpToolsConsentTest {
                 // "device_state" (not "device") so agent-endpoint's
                 // diagnostics tools keep filing where they were.
                 listOf("device_state", "read_sensors", "get_location", "capture_camera_frame")),
+            // Priority 1 (before usb) so the GNSS verbs file under their
+            // own domain instead of wherever a generic keyword lands;
+            // get_location_precise stays under senses by its get_location
+            // prefix (checked first, lower priority number wins).
+            Section("gps", "GPS — precise fixes, logging & NTP service", 1,
+                "The phone's GNSS as a continuous capability: precise fix collection, foreground-service GPS logging, and the GPS-disciplined NTP service.",
+                listOf("gps", "ntp")),
             Section("connections", "Connections & profiles", 9,
                 "The saved SSH/SFTP/RDP/VNC/… connection profiles and their live connect/disconnect state.",
                 listOf("connection", "connect_profile", "disconnect_profile", "run_command", "bluetooth")),

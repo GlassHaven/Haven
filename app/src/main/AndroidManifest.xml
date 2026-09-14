@@ -18,8 +18,19 @@
     <!-- Senses tools (get_location / capture_camera_frame): declared so
          Shizuku `pm grant` can grant them silently; motion/environment
          sensors need no runtime permission. -->
+    <!-- GPS broker (SensesToolProvider get_location_precise / start_gps_log /
+         start_ntp_service): fine location is the runtime grant; the
+         location-type foreground service keeps updates flowing with Haven
+         backgrounded. ACCESS_BACKGROUND_LOCATION is deliberately absent —
+         the FGS started while the app is foreground covers continuous
+         logging, and skipping it keeps the consent surface smaller. -->
     <uses-permission android:name="android.permission.ACCESS_COARSE_LOCATION" />
-    <uses-permission android:name="android.permission.ACCESS_FINE_LOCATION" />
+    <!-- tools:node="replace": core/bleserial declares FINE capped at
+         maxSdkVersion=30 for its legacy BLE-scan path; the merger applies
+         that cap app-wide, which would strip FINE on modern devices and
+         break the GPS broker entirely. -->
+    <uses-permission android:name="android.permission.ACCESS_FINE_LOCATION" tools:node="replace" />
+    <uses-permission android:name="android.permission.FOREGROUND_SERVICE_LOCATION" />
     <uses-permission android:name="android.permission.CAMERA" />
     <uses-feature android:name="android.hardware.camera" android:required="false" />
     <uses-feature android:name="android.hardware.location.gps" android:required="false" />
@@ -163,6 +174,14 @@
                 android:name="android.app.PROPERTY_SPECIAL_USE_FGS_SUBTYPE"
                 android:value="Long-lived SSH/Mosh/VNC/RDP/SFTP sessions and the MCP reverse tunnel they carry; user-initiated and kept alive while the connection notification is showing. dataSync was killed by Android 16 within ~10s." />
         </service>
+
+        <!-- GPS broker foreground service: keeps GNSS updates flowing for
+             start_gps_log / start_ntp_service while Haven is backgrounded.
+             GpsBroker owns all state; this only paints the notification. -->
+        <service
+            android:name="sh.haven.app.agent.GpsLogService"
+            android:exported="false"
+            android:foregroundServiceType="location" />
 
         <!-- Inbound presence (list_notifications): mirrors the shade into a
              bounded in-memory ring the MCP agent reads behind per-call

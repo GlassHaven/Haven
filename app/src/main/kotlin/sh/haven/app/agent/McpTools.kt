@@ -316,6 +316,19 @@ internal class McpTools(
             }
         },
     )
+    // GPS broker tools: precise fixes, continuous logging, GPS-disciplined
+    // NTP. Shares the same Shizuku grant lambda as the senses provider.
+    private val gpsProvider = GpsToolProvider(
+        context = context,
+        shizukuGrant = { permission ->
+            try {
+                runShizukuOrThrow(permission, "pm grant")
+                null
+            } catch (e: McpError) {
+                e.message
+            }
+        },
+    )
     // Inbound presence: the notification-listener ring. Null-on-failure
     // exec so the tool falls back to the Settings-path message when
     // Shizuku isn't there.
@@ -366,7 +379,7 @@ internal class McpTools(
             keyStoreProvider.tools() + tunnelProvider.tools() + sshKeyProvider.tools() +
             hostKeyProvider.tools() + stepCaProvider.tools() + rcloneProvider.tools() + usbProvider.tools() +
             desktopProvider.tools() + mailProvider.tools() + serialBridgeProvider.tools() +
-            sensesProvider.tools() + notificationProvider.tools() + reflexProvider.tools() +
+            sensesProvider.tools() + gpsProvider.tools() + notificationProvider.tools() + reflexProvider.tools() +
             crossProtocolProvider.tools() + credentialProvider.tools()
 
     private fun toolsPart1(): Map<String, ToolHandler> = linkedMapOf(
@@ -5780,6 +5793,28 @@ internal class McpTools(
         val adbPort = preferencesRepository.mcpAdbExposedPort.first()
         if (adbPort != null) {
             add("adb", "adb", "workstation", "reverse-tunnel", "active") { put("port", adbPort) }
+        }
+
+        // GPS broker (bridges.md GPS row): the continuous log feeds the
+        // agent; the GPS-disciplined NTP service feeds the LAN.
+        if (GpsBroker.isLogging || GpsBroker.isNtpRunning) {
+            val gps = GpsBroker.statusJson()
+            if (GpsBroker.isLogging) {
+                add("GPS", "gps", "agent", "gps-log-jsonl", "active") {
+                    gps.optJSONObject("logging")?.let { l ->
+                        put("id", l.optString("id"))
+                        put("file", l.optString("file"))
+                        put("fixes", l.optLong("fixes"))
+                    }
+                }
+            }
+            gps.optJSONObject("ntp")?.let { n ->
+                add("GPS time", "gps", "lan", "sntp", "active") {
+                    put("port", n.optInt("port"))
+                    if (!n.isNull("lanBind")) put("lanBind", n.optString("lanBind"))
+                    put("requests", n.optLong("requests"))
+                }
+            }
         }
 
         JSONObject().apply {

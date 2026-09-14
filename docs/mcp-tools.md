@@ -41,13 +41,14 @@ Tools are grouped into sections by what they touch, and each tool is collapsed �
 expand one for its description and arguments. The tag after each name is its
 consent level:
 
-- **asks every call** — side-effectful or sensitive; a consent sheet describing the specific action on every call (77 tools).
-- **asks once per session** — reversible actions and screen-reading; prompts the first time each session, then proceeds (54 tools).
-- **no per-call prompt** — read-only queries and tap-equivalent UI actions; still behind the endpoint being enabled and the client paired (90 tools).
+- **asks every call** — side-effectful or sensitive; a consent sheet describing the specific action on every call (78 tools).
+- **asks once per session** — reversible actions and screen-reading; prompts the first time each session, then proceeds (60 tools).
+- **no per-call prompt** — read-only queries and tap-equivalent UI actions; still behind the endpoint being enabled and the client paired (91 tools).
 
 ## Sections
 
-- [**Device senses (battery, sensors, location, camera)**](#sec-senses) — 4 tools
+- [**Device senses (battery, sensors, location, camera)**](#sec-senses) — 5 tools
+- [**GPS — precise fixes, logging & NTP service**](#sec-gps) — 7 tools
 - [**Connections & profiles**](#sec-connections) — 9 tools
 - [**Terminal, selection & sessions**](#sec-terminal) — 29 tools
 - [**Files, media & clipboard**](#sec-files) — 23 tools
@@ -62,7 +63,7 @@ consent level:
 
 <a id="sec-senses"></a>
 
-## Device senses (battery, sensors, location, camera) (4)
+## Device senses (battery, sensors, location, camera) (5)
 
 One-shot reads of the phone itself: device state, motion/environment sensors, a single location fix, and a single camera frame.
 
@@ -94,12 +95,88 @@ Take one location fix: latitude, longitude, accuracy, altitude/speed/bearing whe
 </details>
 
 <details markdown="1">
+<summary><code>get_location_precise</code> · asks every call</summary>
+
+One high-quality GPS-only fix: waits up to timeoutMs while a short GPS session collects fixes, then reports the best (lowest accuracy radius) — or with averageWindowMs, the position average over that window, which beats any single phone fix for precision (reported accuracy shrinks ~√n over the fixes seen, floored at 3 m because averaging beats noise, not systematic error). Adds what get_location doesn't: vertical accuracy, speed/bearing, satellites used in fix, HDOP, and the GNSS time-disciplined UTC. Requires location permission — if Haven doesn't hold it and Shizuku is running, the call grants it silently (this consent sheet is the gate); otherwise the error names the Settings path. Background throttling applies as with get_location.
+
+- `averageWindowMs` (integer) — Average every fix seen in this trailing window instead of picking the best single fix (1000–60000). Position averaging is the phone-GPS precision trick: fewer metres of scatter, honest √n confidence. Default off.
+- `timeoutMs` (integer) — How long to keep collecting fixes before returning the best (1000–60000, default 10000). A fix that reaches ≤15 m accuracy after ~2 s ends the wait early.
+
+</details>
+
+<details markdown="1">
 <summary><code>read_sensors</code> · asks once per session</summary>
 
 One-shot read of the phone's motion and environment sensors — accelerometer (m/s²), gyroscope (rad/s), magnetometer (µT), pressure (hPa), light (lux), ambient temperature (°C), relative humidity (%), proximity (cm). Registers a short sampling window (default 300 ms) and returns the latest value plus the sample count for each sensor present; sensors the device lacks are simply absent from the result. Needs no Android permission (normal-rate sampling, not high-rate). A single sample is NOT an orientation solution — no fusion/rotation vector is computed here; request sensors explicitly when you only need one. Gated once per session like read_logcat.
 
 - `sensors` (string[]) — Optional filter: read only these sensors (names: accelerometer, gyroscope, magnetometer, pressure, light, ambient_temperature, relative_humidity, proximity). Omit to read every sensor the device has.
 - `windowMs` (integer) — Sampling window in milliseconds (50–2000, default 300). More window = more samples for a steadier 'latest' value, at the cost of the call's wall time.
+
+</details>
+
+<a id="sec-gps"></a>
+
+## GPS — precise fixes, logging & NTP service (7)
+
+The phone's GNSS as a continuous capability: precise fix collection, foreground-service GPS logging, and the GPS-disciplined NTP service.
+
+<details markdown="1">
+<summary><code>get_gps_status</code> · asks once per session</summary>
+
+Full GNSS status: the current fix (lat/lon/accuracy/altitude/speed/bearing with the fix's age), satellite detail from GnssStatus (in view / used in fix, per-constellation counts, mean C/N0 of used satellites, top C/N0 values), HDOP from the GGA sentence, the GPS time discipline (source gnss_clock|nmea, jitter, uncertainty, holdover — the model the NTP service serves), and the state of gps logging and the NTP service. When no GPS session is running, satellites/discipline are absent and only the last-known fix appears — start one via get_location_precise, start_gps_log, or start_ntp_service to wake the engine. Read of device metadata and the current fix; gated once per session like read_sensors.
+
+</details>
+
+<details markdown="1">
+<summary><code>list_gps_logs</code> · no per-call prompt</summary>
+
+List GPS logs written by start_gps_log: id, path, size, record count, and which one is active. Metadata only — read_gps_log pulls records. Read-only.
+
+</details>
+
+<details markdown="1">
+<summary><code>read_gps_log</code> · asks once per session</summary>
+
+Read the last N records of a GPS log file (id from list_gps_logs): fix records with position/accuracy/satellite counts, plus optional nmea/raw records. A tail read, not a stream — the whole file's history is on disk at the returned path. Reading a log is reading a track of where the phone was, so it's gated once per session rather than free like list_gps_logs.
+
+- `id` (string, required) — Log id from list_gps_logs (the file name without .jsonl).
+- `lines` (integer) — How many trailing records to return (1–500, default 50).
+
+</details>
+
+<details markdown="1">
+<summary><code>start_gps_log</code> · asks once per session</summary>
+
+Start continuous GPS logging in a location-type foreground service: every fix is appended as a JSONL record to gps-logs/<id>.jsonl under Haven's external files dir (readable by the agent via read_gps_log and by the guest's hostfs share). Each fix record: t, lat, lon, acc, alt, vAcc, spd, brg, satsFix, satsView, cn0Mean, hdop, gpsUtcMs (disciplined GPS time when available); optional `nmea` records the raw sentences, `raw` records GnssClock+measurements per second (large — minutes of raw logging is hundreds of MB). Pass `capBytes` (default 128 MiB) to bound it; the log stops with stoppedReason when the cap hits rather than rotating silently. The foreground-service notification shows live counters; stop with stop_gps_log. Requires location permission (Shizuku self-grant path as usual) — and the consent sheet tap that approves this call is what keeps the foreground-service start legal on Android 12+.
+
+- `capBytes` (integer) — Stop at this file size (bytes). Default 134217728 (128 MiB).
+- `intervalMs` (integer) — Fix interval in ms (1000–60000, default 1000). 1 Hz is the battery-friendly default; the raw-measurement stream is independent of this.
+- `nmea` (boolean) — Also record every NMEA sentence (default false).
+- `raw` (boolean) — Also record GnssMeasurements (clock + per-satellite raw) — large, for post-processing (default false).
+
+</details>
+
+<details markdown="1">
+<summary><code>start_ntp_service</code> · asks once per session</summary>
+
+Start an NTP service on this phone, disciplined by GPS time: an SNTP responder (NTPv4 header) that answers client polls with stratum-1 time built from the phone's GNSS clock (GnssMeasurements' GnssClock when the chipset reports it, else NMEA RMC UTC) — never from Android's network-synced wall clock. Clients point at this phone like any NTP server, e.g. chrony: `server <phone-lan-ip> port <port> iburst`. UDP port 123 is privileged on Android, so the port defaults to 10123 and must be ≥1024 — name it explicitly in the client. bind "loopback" (default) serves 127.0.0.1 only; "lan" also binds the Wi-Fi/Ethernet site-local address so other devices on the network (or through Haven's tunnels) can use it. While GPS samples are flowing the answer is stratum 1 / refid GPS / rootDispersion = the measured uncertainty; after 30 s without a fix the answer flips to LI=3 (unsynchronised) so clients disqualify the source honestly rather than trusting a stale model. Needs a GPS session (started here) and location permission (Shizuku self-grant path as usual).
+
+- `bind` (string) — "loopback" (default) or "lan" — the latter also binds the device's Wi-Fi/Ethernet IPv4 so LAN peers can query the service.
+- `port` (integer) — UDP port to serve on (1024–65535, default 10123). 123 needs root on Android — not offered.
+
+</details>
+
+<details markdown="1">
+<summary><code>stop_gps_log</code> · asks once per session</summary>
+
+Stop the active GPS log (started with start_gps_log), closing its file and (when nothing else needs GPS) the foreground service and engine. Returns the id, file path, and the fix count written.
+
+</details>
+
+<details markdown="1">
+<summary><code>stop_ntp_service</code> · asks once per session</summary>
+
+Stop the NTP service and release its GPS session (unless logging still needs it).
 
 </details>
 

@@ -29,6 +29,19 @@ import javax.inject.Singleton
 private const val TAG = "UmlGuestManager"
 
 /**
+ * Version marker for the staged rootfs image; 1 when absent (staged before
+ * the marker existed, i.e. v1) or unparseable. Reads [markerFile] only after
+ * an existence check — useLines on a missing file throws, which crashed app
+ * start at DI time for every install with a staged v1 rootfs.
+ */
+internal fun stagedVersionAt(markerFile: File): Int {
+    if (!markerFile.exists()) return 1
+    return markerFile.useLines { lines ->
+        lines.firstOrNull()?.trim()?.toIntOrNull()
+    } ?: 1
+}
+
+/**
  * Manages UML guest sessions — a real Linux kernel running as a user process
  * in Haven's own sandbox (PROTOTYPE.md). Sessions follow the LOCAL pattern:
  * the guest boots with its console on a pty forked by PtyBridge.nativeForkPty,
@@ -68,15 +81,8 @@ class UmlGuestManager @Inject constructor(
             stagedVersion() == ROOTFS_VERSION
 
     /** Version marker for the staged image; empty when absent (v1 staged). */
-    private fun stagedVersion(): Int {
-        val marker = File(context.filesDir, "uml/rootfs.version")
-        // No marker = staged before the marker existed (v1). useLines would
-        // throw FileNotFoundException here, crashing app start at DI time.
-        if (!marker.exists()) return 1
-        return marker.useLines { lines ->
-            lines.firstOrNull()?.trim()?.toIntOrNull()
-        } ?: 1
-    }
+    private fun stagedVersion(): Int =
+        stagedVersionAt(File(context.filesDir, "uml/rootfs.version"))
 
     /**
      * True when this build actually ships the guest payload. The terminal

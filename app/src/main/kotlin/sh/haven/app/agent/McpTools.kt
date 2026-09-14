@@ -111,6 +111,7 @@ internal class McpTools(
     private val usbBroker: sh.haven.core.usb.UsbBroker,
     private val usbIpServer: sh.haven.core.usb.UsbIpServer,
     private val usbDriveVmManager: sh.haven.app.usb.UsbDriveVmManager,
+    private val umlRecoveryManager: sh.haven.app.usb.UmlRecoveryManager,
     private val presentationManager: sh.haven.core.data.agent.AgentPresentationManager,
     // Capture + drive Haven's OWN rendered UI for the self-hosting loop (§1a).
     private val havenUiBridge: HavenUiBridge,
@@ -262,6 +263,7 @@ internal class McpTools(
         usbBroker = usbBroker,
         usbIpServer = usbIpServer,
         usbDriveVmManager = usbDriveVmManager,
+        umlRecoveryManager = umlRecoveryManager,
         usbProxyServer = usbProxyServer,
         preferencesRepository = preferencesRepository,
         localSessionManager = localSessionManager,

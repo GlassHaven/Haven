@@ -263,6 +263,12 @@
     <string name="app_desktop_open_usb_drive_writable_confirm_title">التركيب للقراءة والكتابة؟</string>
     <string name="app_desktop_open_usb_drive_writable_confirm_body">هذا يركّب القرص للقراءة والكتابة. إذا فقدت الـ VM الطاقة أثناء الكتابة (إنهاء، انهيار، نزع البطارية) فقد يتلف نظام الملفات. القراءة فقط هي الخيار الافتراضي الأكثر أمانًا.</string>
     <string name="app_desktop_eject_usb_drive">إخراج قرص USB</string>
+    <string name="app_desktop_open_usb_live">فتح بطاقة USB مباشرةً (كونسول الإنقاذ)…</string>
+    <string name="app_desktop_open_usb_live_writable">فتح بطاقة USB مباشرةً (للكتابة)…</string>
+    <string name="app_desktop_usb_live_ready">تم توصيل البطاقة الخام في ضيف الإنقاذ — افتح اتصال "%1$s"</string>
+    <string name="app_desktop_usb_live_readonly_note">بطاقة خام عبر NBD · للقراءة فقط · %1$s</string>
+    <string name="app_desktop_usb_live_writable_note">بطاقة خام عبر NBD · للكتابة · %1$s</string>
+    <string name="app_desktop_usb_live_close">إنهاء الجلسة المباشرة</string>
     <string name="app_desktop_delete_usb_appliance">حذف نظام Linux المساعد لـ USB</string>
     <string name="app_desktop_usb_drive_progress">قرص USB: %1$s</string>
     <string name="app_desktop_usb_drive_locked">%1$s مقفل (LUKS)</string>

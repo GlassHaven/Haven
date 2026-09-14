@@ -269,6 +269,12 @@
     <string name="app_desktop_open_usb_drive_writable_confirm_title">¿Montar en lectura y escritura?</string>
     <string name="app_desktop_open_usb_drive_writable_confirm_body">Esto monta la unidad en lectura y escritura. Si la VM pierde la alimentación en mitad de una escritura (cierre forzado, fallo, batería retirada), el sistema de archivos puede corromperse. Solo lectura es el valor predeterminado más seguro.</string>
     <string name="app_desktop_eject_usb_drive">Expulsar unidad USB</string>
+    <string name="app_desktop_open_usb_live">Abrir tarjeta USB directamente (consola de rescate)…</string>
+    <string name="app_desktop_open_usb_live_writable">Abrir tarjeta USB directamente (con escritura)…</string>
+    <string name="app_desktop_usb_live_ready">Tarjeta cruda conectada en el invitado de rescate — abre la conexión «%1$s»</string>
+    <string name="app_desktop_usb_live_readonly_note">Tarjeta cruda por NBD · solo lectura · %1$s</string>
+    <string name="app_desktop_usb_live_writable_note">Tarjeta cruda por NBD · ESCRITURA · %1$s</string>
+    <string name="app_desktop_usb_live_close">Cerrar sesión en vivo</string>
     <string name="app_desktop_delete_usb_appliance">Eliminar el Linux auxiliar de USB</string>
     <string name="app_desktop_usb_drive_progress">Unidad USB: %1$s</string>
     <string name="app_desktop_usb_drive_locked">%1$s está bloqueado (LUKS)</string>

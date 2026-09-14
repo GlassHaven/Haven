@@ -1788,9 +1788,10 @@ Block until the user sends the 6-digit code from Haven's direct-reply pairing no
 <details markdown="1">
 <summary><code>close_usb_drive</code> · no per-call prompt</summary>
 
-Close a USB-drive VM opened by open_usb_drive: power off the VM, stop its USB/IP export, and remove the transient SSH profile + ephemeral key. Idempotent.
+Close a USB drive session opened by open_usb_drive. kind:"vm" (default) powers off the VM, stops its USB/IP export, and removes the transient SSH profile + ephemeral key; kind:"live" shuts the recovery guest down and stops its raw NBD export (the transient guest profile is kept). Idempotent.
 
-- `busid` (string) — Which open drive to close (see list_usb_drives' vms[].busid); optional if exactly one is open.
+- `busid` (string) — Which open drive to close (see list_usb_drives' vms[]/live[].busid); optional if exactly one is open for the chosen kind.
+- `kind` (string) — "vm" (default — a route:"vm" drive) or "live" (a route:"guest" raw session).
 
 </details>
 
@@ -1834,7 +1835,7 @@ List USB devices attached to the phone (host/OTG). Each entry has deviceName (th
 <details markdown="1">
 <summary><code>list_usb_drives</code> · no per-call prompt</summary>
 
-List phone-attached USB mass-storage drives (the candidates for open_usb_drive) and every currently-open USB-drive VM in `vms` (up to a phone-resource concurrency limit): busid, phase (idle/opening/ready/error), the loopback SSH `profileId`, whether it's mounted read-only, any locked (LUKS) partitions awaiting unlock_usb_drive_partition, and the mounted paths once ready. Each drives[] entry also carries an `androidMount` object (#603): androidMounted + volumePath/volumeDescription/volumeReadOnly/androidWritable/routeConfidence when Android itself has mounted the drive — a cheaper open_usb_drive route:"android" exists for that drive. Read-only — poll this after open_usb_drive until the matching vms[] entry has phase=ready.
+List phone-attached USB mass-storage drives (the candidates for open_usb_drive) and every currently-open session: `vms` (route:"vm" boot results) with busid, phase (idle/opening/ready/error), the loopback SSH `profileId`, whether it's mounted read-only, any locked (LUKS) partitions awaiting unlock_usb_drive_partition, and the mounted paths once ready; and `live` (route:"guest" raw sessions) with busid, phase, the NBD export port, read-only flag, and capacity. Each drives[] entry also carries an `androidMount` object (#603): androidMounted + volumePath/volumeDescription/volumeReadOnly/androidWritable/routeConfidence when Android itself has mounted the drive — a cheaper open_usb_drive route:"android" exists for that drive. Read-only — poll this after open_usb_drive until the matching entry has phase=ready.
 
 </details>
 
@@ -1851,8 +1852,8 @@ List active USB exports of phone-attached devices: the USB/IP server (start_usbi
 Open a phone-attached USB drive (mass storage — flash drive, SSD, SD reader) and surface its files as an ordinary connection. Two routes (#603): `route:"vm"` (default — boot the on-device QEMU Linux VM) gives the drive a REAL kernel, so ext4 / GPT / block partitions mount and their files are browseable: exports the drive over USB/IP, boots (or reuses, if another drive is already open) a small Alpine VM that imports it, mounts every partition (read-only unless `writable`), and runs sshd — then returns a loopback SSH/SFTP `profileId` you browse with list_directory / serve_file (and a terminal tab into the VM). A LUKS-encrypted partition mounts locked (reported in list_usb_drives' vm.locked) — call unlock_usb_drive_partition with its passphrase to mount it. The VM boot is slow (TCG, no KVM unrooted) + the first run installs packages, so this returns {status:"starting"} immediately — poll list_usb_drives until phase=ready (profileId set) or error. `route:"android"` skips the VM when Android itself has already mounted the drive (vfat/exFAT): returns {status:"ready", profileId:"local", volumePath, …} SYNCHRONOUSLY — do not poll list_usb_drives in that case; browse with list_directory(profileId="local", path=volumePath). `route:"auto"` picks android when a mounted volume matches, else vm. See list_usb_drives' drives[].androidMounted to decide without booting. Consent-gated per session (mounting the user's disk is sensitive). Up to a phone-resource limit of concurrent VM drives (they share one VM, so this is a vhci-port/practical cap, not RAM); isochronous (webcam/audio) still can't pass.
 
 - `deviceName` (string) — deviceName from list_usb_devices / list_usb_drives; optional if exactly one USB drive is attached.
-- `route` (string) — "vm" (default — boot the Linux VM), "android" (browse the drive Android already mounted, no VM; errors with -32602 if it isn't mounted), or "auto" (android when a mounted volume matches, else vm).
-- `writable` (boolean) — VM route only: mount read-write instead of the default read-only. An interrupted write (VM killed, app backgrounded under memory pressure) can corrupt the drive's filesystem — only set this when the caller genuinely needs to write. The android route's writability is governed by the All-files access grant (androidWritable in the response).
+- `route` (string) — "vm" (default — boot the Linux VM), "guest" (fast: export the RAW card to the UML guest over NBD — ddrescue on /dev/nbd0, seconds not minutes; no filesystem mounting), "android" (browse the drive Android already mounted, no VM; errors with -32602 if it isn't mounted), or "auto" (android when a mounted volume matches, else vm).
+- `writable` (boolean) — VM and guest routes: open read-write instead of the default read-only. An interrupted write (VM killed, app backgrounded under memory pressure) can corrupt the drive's filesystem — only set this when the caller genuinely needs to write. The android route's writability is governed by the All-files access grant (androidWritable in the response).
 
 </details>
 

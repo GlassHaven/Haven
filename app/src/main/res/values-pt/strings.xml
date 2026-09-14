@@ -263,6 +263,12 @@
     <string name="app_desktop_open_usb_drive_writable_confirm_title">Montar como leitura e gravação?</string>
     <string name="app_desktop_open_usb_drive_writable_confirm_body">Isso monta a unidade em modo de leitura e gravação. Se a VM perder energia no meio de uma gravação (encerrada, travamento, bateria removida), o sistema de arquivos pode ser corrompido. Somente leitura é o padrão mais seguro.</string>
     <string name="app_desktop_eject_usb_drive">Ejetar unidade USB</string>
+    <string name="app_desktop_open_usb_live">Abrir cartão USB diretamente (console de resgate)…</string>
+    <string name="app_desktop_open_usb_live_writable">Abrir cartão USB diretamente (com escrita)…</string>
+    <string name="app_desktop_usb_live_ready">Cartão bruto anexado no convidado de resgate — abra a conexão “%1$s”</string>
+    <string name="app_desktop_usb_live_readonly_note">Cartão bruto via NBD · somente leitura · %1$s</string>
+    <string name="app_desktop_usb_live_writable_note">Cartão bruto via NBD · ESCRITA · %1$s</string>
+    <string name="app_desktop_usb_live_close">Fechar sessão ao vivo</string>
     <string name="app_desktop_delete_usb_appliance">Excluir o Linux auxiliar de USB</string>
     <string name="app_desktop_usb_drive_progress">Unidade USB: %1$s</string>
     <string name="app_desktop_usb_drive_locked">%1$s está bloqueada (LUKS)</string>

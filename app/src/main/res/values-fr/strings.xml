@@ -263,6 +263,12 @@
     <string name="app_desktop_open_usb_drive_writable_confirm_title">Monter en lecture-écriture ?</string>
     <string name="app_desktop_open_usb_drive_writable_confirm_body">Ceci monte le lecteur en lecture-écriture. Si la VM perd l\'alimentation en pleine écriture (arrêt forcé, plantage, batterie retirée), le système de fichiers peut être corrompu. La lecture seule est la valeur par défaut la plus sûre.</string>
     <string name="app_desktop_eject_usb_drive">Éjecter le lecteur USB</string>
+    <string name="app_desktop_open_usb_live">Ouvrir la carte USB directement (console de secours)…</string>
+    <string name="app_desktop_open_usb_live_writable">Ouvrir la carte USB directement (en écriture)…</string>
+    <string name="app_desktop_usb_live_ready">Carte brute attachée dans l\'invité de secours — ouvrez la connexion « %1$s »</string>
+    <string name="app_desktop_usb_live_readonly_note">Carte brute via NBD · lecture seule · %1$s</string>
+    <string name="app_desktop_usb_live_writable_note">Carte brute via NBD · ÉCRITURE · %1$s</string>
+    <string name="app_desktop_usb_live_close">Fermer la session en direct</string>
     <string name="app_desktop_delete_usb_appliance">Supprimer le Linux auxiliaire USB</string>
     <string name="app_desktop_usb_drive_progress">Lecteur USB : %1$s</string>
     <string name="app_desktop_usb_drive_locked">%1$s est verrouillé (LUKS)</string>

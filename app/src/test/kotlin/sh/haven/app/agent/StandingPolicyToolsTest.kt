@@ -73,6 +73,7 @@ class StandingPolicyToolsTest {
         usbBroker = mockk<sh.haven.core.usb.UsbBroker>(relaxed = true),
         usbIpServer = mockk<sh.haven.core.usb.UsbIpServer>(relaxed = true),
             usbDriveVmManager = mockk<sh.haven.app.usb.UsbDriveVmManager>(relaxed = true),
+            umlRecoveryManager = mockk<sh.haven.app.usb.UmlRecoveryManager>(relaxed = true),
         presentationManager = sh.haven.core.data.agent.AgentPresentationManager(),
         havenUiBridge = mockk(relaxed = true),
         standingPolicyRepository = repo,

@@ -263,6 +263,12 @@
     <string name="app_desktop_open_usb_drive_writable_confirm_title">以读写方式挂载？</string>
     <string name="app_desktop_open_usb_drive_writable_confirm_body">这会以读写方式挂载该驱动器。如果 VM 在写入过程中断电（被终止、崩溃、拔出电池），文件系统可能损坏。只读是更安全的默认选择。</string>
     <string name="app_desktop_eject_usb_drive">弹出 USB 驱动器</string>
+    <string name="app_desktop_open_usb_live">直接打开 USB 卡（救援控制台）…</string>
+    <string name="app_desktop_open_usb_live_writable">直接打开 USB 卡（可写）…</string>
+    <string name="app_desktop_usb_live_ready">原始卡已挂载到救援客户机 — 打开"%1$s"连接</string>
+    <string name="app_desktop_usb_live_readonly_note">通过 NBD 的原始卡 · 只读 · %1$s</string>
+    <string name="app_desktop_usb_live_writable_note">通过 NBD 的原始卡 · 可写 · %1$s</string>
+    <string name="app_desktop_usb_live_close">关闭实时会话</string>
     <string name="app_desktop_delete_usb_appliance">删除 USB 辅助 Linux</string>
     <string name="app_desktop_usb_drive_progress">USB 驱动器：%1$s</string>
     <string name="app_desktop_usb_drive_locked">%1$s 已锁定（LUKS）</string>

@@ -263,6 +263,12 @@
     <string name="app_desktop_open_usb_drive_writable_confirm_title">Mit Schreibzugriff einbinden?</string>
     <string name="app_desktop_open_usb_drive_writable_confirm_body">Dies bindet das Laufwerk mit Schreibzugriff ein. Verliert die VM mitten im Schreibvorgang den Strom (beendet, Absturz, Akku entfernt), kann das Dateisystem beschädigt werden. Nur-Lesen ist der sicherere Standard.</string>
     <string name="app_desktop_eject_usb_drive">USB-Laufwerk auswerfen</string>
+    <string name="app_desktop_open_usb_live">USB-Karte direkt öffnen (Rettungskonsole)…</string>
+    <string name="app_desktop_open_usb_live_writable">USB-Karte direkt öffnen (schreibbar)…</string>
+    <string name="app_desktop_usb_live_ready">Rohkarte im Rettungsgast angehängt — Verbindung „%1$s“ öffnen</string>
+    <string name="app_desktop_usb_live_readonly_note">Rohkarte über NBD · schreibgeschützt · %1$s</string>
+    <string name="app_desktop_usb_live_writable_note">Rohkarte über NBD · SCHREIBBAR · %1$s</string>
+    <string name="app_desktop_usb_live_close">Live-Sitzung beenden</string>
     <string name="app_desktop_delete_usb_appliance">USB-Hilfs-Linux löschen</string>
     <string name="app_desktop_usb_drive_progress">USB-Laufwerk: %1$s</string>
     <string name="app_desktop_usb_drive_locked">%1$s ist gesperrt (LUKS)</string>

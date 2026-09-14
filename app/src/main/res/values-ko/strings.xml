@@ -273,6 +273,12 @@
     <string name="app_desktop_open_usb_drive_writable_confirm_title">읽기-쓰기로 마운트할까요?</string>
     <string name="app_desktop_open_usb_drive_writable_confirm_body">드라이브를 읽기-쓰기로 마운트합니다. 쓰기 도중 VM 전원이 끊기면(강제 종료, 충돌, 배터리 분리) 파일 시스템이 손상될 수 있습니다. 읽기 전용이 더 안전한 기본값입니다.</string>
     <string name="app_desktop_eject_usb_drive">USB 드라이브 꺼내기</string>
+    <string name="app_desktop_open_usb_live">USB 카드 직접 열기(복구 콘솔)…</string>
+    <string name="app_desktop_open_usb_live_writable">USB 카드 직접 열기(쓰기 가능)…</string>
+    <string name="app_desktop_usb_live_ready">복구 게스트에 raw 카드가 연결됨 — "%1$s" 연결을 여세요</string>
+    <string name="app_desktop_usb_live_readonly_note">NBD로 연결된 raw 카드 · 읽기 전용 · %1$s</string>
+    <string name="app_desktop_usb_live_writable_note">NBD로 연결된 raw 카드 · 쓰기 가능 · %1$s</string>
+    <string name="app_desktop_usb_live_close">라이브 세션 닫기</string>
     <string name="app_desktop_delete_usb_appliance">USB 도우미 Linux 삭제</string>
     <string name="app_desktop_usb_drive_progress">USB 드라이브: %1$s</string>
     <string name="app_desktop_usb_drive_locked">%1$s이(가) 잠겨 있습니다 (LUKS)</string>

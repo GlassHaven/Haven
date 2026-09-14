@@ -2142,9 +2142,129 @@
      }
     },
     {
+     "name": "app_desktop_open_usb_live",
+     "en": "Open USB card directly (rescue console)…",
+     "comment": "Live USB card route: the raw card is served to the fast UML recovery guest over NBD (ddrescue work), not mounted by a helper VM.",
+     "args": [],
+     "t": {
+      "ar": "فتح بطاقة USB مباشرةً (كونسول الإنقاذ)…",
+      "bn": "সরাসরি USB কার্ড খুলুন (রেসকিউ কনসোল)…",
+      "de": "USB-Karte direkt öffnen (Rettungskonsole)…",
+      "es": "Abrir tarjeta USB directamente (consola de rescate)…",
+      "fr": "Ouvrir la carte USB directement (console de secours)…",
+      "hi": "USB कार्ड सीधे खोलें (रेस्क्यू कंसोल)…",
+      "ja": "USB カードを直接開く（レスキューコンソール）…",
+      "ko": "USB 카드 직접 열기(복구 콘솔)…",
+      "pt": "Abrir cartão USB diretamente (console de resgate)…",
+      "ru": "Открыть USB-карту напрямую (консоль восстановления)…",
+      "zh": "直接打开 USB 卡（救援控制台）…"
+     }
+    },
+    {
+     "name": "app_desktop_open_usb_live_writable",
+     "en": "Open USB card directly (writable)…",
+     "comment": "Live USB card route: the raw card is served to the fast UML recovery guest over NBD (ddrescue work), not mounted by a helper VM.",
+     "args": [],
+     "t": {
+      "ar": "فتح بطاقة USB مباشرةً (للكتابة)…",
+      "bn": "সরাসরি USB কার্ড খুলুন (লেখার জন্য)…",
+      "de": "USB-Karte direkt öffnen (schreibbar)…",
+      "es": "Abrir tarjeta USB directamente (con escritura)…",
+      "fr": "Ouvrir la carte USB directement (en écriture)…",
+      "hi": "USB कार्ड सीधे खोलें (लिखने योग्य)…",
+      "ja": "USB カードを直接開く（書き込み可能）…",
+      "ko": "USB 카드 직접 열기(쓰기 가능)…",
+      "pt": "Abrir cartão USB diretamente (com escrita)…",
+      "ru": "Открыть USB-карту напрямую (с записью)…",
+      "zh": "直接打开 USB 卡（可写）…"
+     }
+    },
+    {
+     "name": "app_desktop_usb_live_ready",
+     "en": "Raw card attached in the rescue guest — open the “%1$s” connection",
+     "comment": "Live USB card route: the raw card is served to the fast UML recovery guest over NBD (ddrescue work), not mounted by a helper VM.",
+     "args": [
+      "%1$s"
+     ],
+     "t": {
+      "ar": "تم توصيل البطاقة الخام في ضيف الإنقاذ — افتح اتصال \"%1$s\"",
+      "bn": "রেসকিউ গেস্টে কাঁচা কার্ড সংযুক্ত হয়েছে — \"%1$s\" সংযোগটি খুলুন",
+      "de": "Rohkarte im Rettungsgast angehängt — Verbindung „%1$s“ öffnen",
+      "es": "Tarjeta cruda conectada en el invitado de rescate — abre la conexión «%1$s»",
+      "fr": "Carte brute attachée dans l'invité de secours — ouvrez la connexion « %1$s »",
+      "hi": "रेस्क्यू गेस्ट में रॉ कार्ड जुड़ गया — \"%1$s\" कनेक्शन खोलें",
+      "ja": "レスキューゲストに raw カードが接続されました — 「%1$s」接続を開いてください",
+      "ko": "복구 게스트에 raw 카드가 연결됨 — \"%1$s\" 연결을 여세요",
+      "pt": "Cartão bruto anexado no convidado de resgate — abra a conexão “%1$s”",
+      "ru": "Raw-карта подключена в госте восстановления — откройте подключение «%1$s»",
+      "zh": "原始卡已挂载到救援客户机 — 打开\"%1$s\"连接"
+     }
+    },
+    {
+     "name": "app_desktop_usb_live_readonly_note",
+     "en": "Raw card over NBD · read-only · %1$s",
+     "comment": "Live USB card route: the raw card is served to the fast UML recovery guest over NBD (ddrescue work), not mounted by a helper VM.",
+     "args": [
+      "%1$s"
+     ],
+     "t": {
+      "ar": "بطاقة خام عبر NBD · للقراءة فقط · %1$s",
+      "bn": "NBD-এর মাধ্যমে কাঁচা কার্ড · শুধু পড়ার জন্য · %1$s",
+      "de": "Rohkarte über NBD · schreibgeschützt · %1$s",
+      "es": "Tarjeta cruda por NBD · solo lectura · %1$s",
+      "fr": "Carte brute via NBD · lecture seule · %1$s",
+      "hi": "NBD पर रॉ कार्ड · केवल पढ़ने योग्य · %1$s",
+      "ja": "NBD 経由の raw カード · 読み取り専用 · %1$s",
+      "ko": "NBD로 연결된 raw 카드 · 읽기 전용 · %1$s",
+      "pt": "Cartão bruto via NBD · somente leitura · %1$s",
+      "ru": "Raw-карта через NBD · только чтение · %1$s",
+      "zh": "通过 NBD 的原始卡 · 只读 · %1$s"
+     }
+    },
+    {
+     "name": "app_desktop_usb_live_writable_note",
+     "en": "Raw card over NBD · WRITABLE · %1$s",
+     "comment": "Live USB card route: the raw card is served to the fast UML recovery guest over NBD (ddrescue work), not mounted by a helper VM.",
+     "args": [
+      "%1$s"
+     ],
+     "t": {
+      "ar": "بطاقة خام عبر NBD · للكتابة · %1$s",
+      "bn": "NBD-এর মাধ্যমে কাঁচা কার্ড · লেখার জন্য · %1$s",
+      "de": "Rohkarte über NBD · SCHREIBBAR · %1$s",
+      "es": "Tarjeta cruda por NBD · ESCRITURA · %1$s",
+      "fr": "Carte brute via NBD · ÉCRITURE · %1$s",
+      "hi": "NBD पर रॉ कार्ड · लिखने योग्य · %1$s",
+      "ja": "NBD 経由の raw カード · 書き込み可 · %1$s",
+      "ko": "NBD로 연결된 raw 카드 · 쓰기 가능 · %1$s",
+      "pt": "Cartão bruto via NBD · ESCRITA · %1$s",
+      "ru": "Raw-карта через NBD · ЗАПИСЬ · %1$s",
+      "zh": "通过 NBD 的原始卡 · 可写 · %1$s"
+     }
+    },
+    {
+     "name": "app_desktop_usb_live_close",
+     "en": "Close live session",
+     "comment": "Live USB card route: the raw card is served to the fast UML recovery guest over NBD (ddrescue work), not mounted by a helper VM.",
+     "args": [],
+     "t": {
+      "ar": "إنهاء الجلسة المباشرة",
+      "bn": "লাইভ সেশন বন্ধ করুন",
+      "de": "Live-Sitzung beenden",
+      "es": "Cerrar sesión en vivo",
+      "fr": "Fermer la session en direct",
+      "hi": "लाइव सेशन बंद करें",
+      "ja": "ライブセッションを閉じる",
+      "ko": "라이브 세션 닫기",
+      "pt": "Fechar sessão ao vivo",
+      "ru": "Закрыть прямой сеанс",
+      "zh": "关闭实时会话"
+     }
+    },
+    {
      "name": "app_desktop_delete_usb_appliance",
      "en": "Delete USB helper Linux",
-     "comment": "Desktop manager: import custom rootfs (#284)",
+     "comment": "Live USB card route: the raw card is served to the fast UML recovery guest over NBD (ddrescue work), not mounted by a helper VM.",
      "args": [],
      "t": {
       "ar": "حذف نظام Linux المساعد لـ USB",
@@ -2164,7 +2284,7 @@
     {
      "name": "app_desktop_usb_drive_progress",
      "en": "USB drive: %1$s",
-     "comment": "Desktop manager: import custom rootfs (#284)",
+     "comment": "Live USB card route: the raw card is served to the fast UML recovery guest over NBD (ddrescue work), not mounted by a helper VM.",
      "args": [
       "%1$s"
      ],
@@ -2186,7 +2306,7 @@
     {
      "name": "app_desktop_usb_drive_locked",
      "en": "%1$s is locked (LUKS)",
-     "comment": "Desktop manager: import custom rootfs (#284)",
+     "comment": "Live USB card route: the raw card is served to the fast UML recovery guest over NBD (ddrescue work), not mounted by a helper VM.",
      "args": [
       "%1$s"
      ],
@@ -2208,7 +2328,7 @@
     {
      "name": "app_desktop_usb_drive_unlock",
      "en": "Unlock…",
-     "comment": "Desktop manager: import custom rootfs (#284)",
+     "comment": "Live USB card route: the raw card is served to the fast UML recovery guest over NBD (ddrescue work), not mounted by a helper VM.",
      "args": [],
      "t": {
       "ar": "فتح القفل…",
@@ -2228,7 +2348,7 @@
     {
      "name": "app_desktop_usb_drive_unlock_title",
      "en": "Unlock %1$s",
-     "comment": "Desktop manager: import custom rootfs (#284)",
+     "comment": "Live USB card route: the raw card is served to the fast UML recovery guest over NBD (ddrescue work), not mounted by a helper VM.",
      "args": [
       "%1$s"
      ],
@@ -2250,7 +2370,7 @@
     {
      "name": "app_desktop_usb_drive_unlock_passphrase",
      "en": "Passphrase",
-     "comment": "Desktop manager: import custom rootfs (#284)",
+     "comment": "Live USB card route: the raw card is served to the fast UML recovery guest over NBD (ddrescue work), not mounted by a helper VM.",
      "args": [],
      "t": {
       "ar": "عبارة المرور",
@@ -2270,7 +2390,7 @@
     {
      "name": "app_desktop_import_dialog_title",
      "en": "Import a rootfs",
-     "comment": "Desktop manager: import custom rootfs (#284)",
+     "comment": "Live USB card route: the raw card is served to the fast UML recovery guest over NBD (ddrescue work), not mounted by a helper VM.",
      "args": [],
      "t": {
       "ar": "استيراد rootfs",
@@ -2290,7 +2410,7 @@
     {
      "name": "app_desktop_import_description",
      "en": "Bring your own rootfs tarball (.tar.gz or .tar.xz) — a proot-distro image, a Docker export, or a second copy of a distro you already have. It is used as-is (no packages installed).",
-     "comment": "Desktop manager: import custom rootfs (#284)",
+     "comment": "Live USB card route: the raw card is served to the fast UML recovery guest over NBD (ddrescue work), not mounted by a helper VM.",
      "args": [],
      "t": {
       "ar": "أحضر ملف tarball لـ rootfs خاص بك (.tar.gz أو .tar.xz) — صورة proot-distro أو تصديرًا من Docker أو نسخة ثانية من توزيعة لديك بالفعل. يُستخدم كما هو (دون تثبيت حزم).",
@@ -2310,7 +2430,7 @@
     {
      "name": "app_desktop_import_id_hint",
      "en": "Distro id (slug, e.g. ubuntu-test)",
-     "comment": "Desktop manager: import custom rootfs (#284)",
+     "comment": "Live USB card route: the raw card is served to the fast UML recovery guest over NBD (ddrescue work), not mounted by a helper VM.",
      "args": [],
      "t": {
       "ar": "معرّف التوزيعة (slug، مثل ubuntu-test)",
@@ -2330,7 +2450,7 @@
     {
      "name": "app_desktop_import_label_hint",
      "en": "Label (e.g. Ubuntu 26.04 imported)",
-     "comment": "Desktop manager: import custom rootfs (#284)",
+     "comment": "Live USB card route: the raw card is served to the fast UML recovery guest over NBD (ddrescue work), not mounted by a helper VM.",
      "args": [],
      "t": {
       "ar": "التسمية (مثل Ubuntu 26.04 مستورد)",
@@ -2350,7 +2470,7 @@
     {
      "name": "app_desktop_import_source_hint",
      "en": "Tarball URL (https://…)",
-     "comment": "Desktop manager: import custom rootfs (#284)",
+     "comment": "Live USB card route: the raw card is served to the fast UML recovery guest over NBD (ddrescue work), not mounted by a helper VM.",
      "args": [],
      "t": {
       "ar": "عنوان URL للـ tarball ‏(https://…)",
@@ -2370,7 +2490,7 @@
     {
      "name": "app_desktop_import_family",
      "en": "Package family",
-     "comment": "Desktop manager: import custom rootfs (#284)",
+     "comment": "Live USB card route: the raw card is served to the fast UML recovery guest over NBD (ddrescue work), not mounted by a helper VM.",
      "args": [],
      "t": {
       "ar": "عائلة الحزم",
@@ -2390,7 +2510,7 @@
     {
      "name": "app_desktop_import_confirm",
      "en": "Import",
-     "comment": "Desktop manager: import custom rootfs (#284)",
+     "comment": "Live USB card route: the raw card is served to the fast UML recovery guest over NBD (ddrescue work), not mounted by a helper VM.",
      "args": [],
      "t": {
       "ar": "استيراد",
@@ -2410,7 +2530,7 @@
     {
      "name": "app_desktop_cancel",
      "en": "Cancel",
-     "comment": "Desktop manager: import custom rootfs (#284)",
+     "comment": "Live USB card route: the raw card is served to the fast UML recovery guest over NBD (ddrescue work), not mounted by a helper VM.",
      "args": [],
      "t": {
       "ar": "إلغاء",
@@ -2430,7 +2550,7 @@
     {
      "name": "app_desktop_save",
      "en": "Save",
-     "comment": "Desktop manager: import custom rootfs (#284)",
+     "comment": "Live USB card route: the raw card is served to the fast UML recovery guest over NBD (ddrescue work), not mounted by a helper VM.",
      "args": [],
      "t": {
       "ar": "حفظ",

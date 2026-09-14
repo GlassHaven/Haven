@@ -53,10 +53,13 @@ guest. Files you created stay on the image for next time.
 - **Fixed resources**: 384 MB of RAM and a ~536 MB ext4 disk (which shares the
   space `apk add` fills up). There is no snapshotting and no way to enlarge
   either from the UI.
-- **No shared folders.** The phone's files are invisible to the guest and the
-  guest's files are invisible to the phone's file browser; move data over the
-  network (the guest has full outbound connectivity) or treat it as a
-  self-contained box.
+- **One shared folder, one direction.** The guest can mount Haven's private
+  `uml/share` folder at `/host` (`mount -t hostfs none /host`). That is the
+  only phone path the guest can see — the kernel confines every hostfs mount
+  to it — and it exists so the guest has somewhere to write output files (the
+  [USB card rescue console](usb-recovery-live.md) puts rescued images there).
+  Nothing is shared into the guest automatically; the phone's other files
+  stay invisible.
 - **Memory adds up.** Each running guest occupies its 384 MB for as long as
   its tab is open, and you can have several open at once. Close guest tabs
   you aren't using.
@@ -95,6 +98,10 @@ guest. Files you created stay on the image for next time.
 - **Network**: [passt](https://passt.top) runs as a sibling of the kernel, connected over a `SOCK_SEQPACKET` socketpair; the kernel's UML vector transport (`vec0`) uses that pair as its NIC, and passt forwards to the app's own network context. DNS is set to 1.1.1.1 by default. No VPN permission is needed because everything stays inside the app.
 - **Console**: the guest's stdio console is the terminal tab's pty, so the boot messages and shell appear as they happen.
 - **Boot time**: the rootfs is a ~536 MB ext4 image (a minimal aarch64 rootfs with an init, busybox, and a network bring-up). The kernel prints its first boot messages within a couple of seconds; the shell prompt appears once the inittab's `ifup -a` finishes its DHCP round on `vec0`, which adds a few more seconds on top (measured ~10–20 s total on an OPPO CPH2655, MCP round-trips included).
+- **Rootfs image versions**: the staged image carries a version marker
+  (`uml/rootfs.version`). When a Haven update changes the image contents, the
+  next connect re-unpacks it once — anything stored inside the guest image is
+  replaced, so keep anything you care about in `/host` or over the network.
 
 ## Closing
 
@@ -117,6 +124,16 @@ project. The pinned binaries and their sha256 checksums are in
 [`core/local/fetch-uml.sh`](https://github.com/GlassOnTin/haven/blob/master/core/local/fetch-uml.sh);
 the fetch fails the build loudly if a pinned artifact disappears, and each
 artifact's checksum is verified before it is placed in the APK.
+
+The rootfs image ships GPL binaries too. It is Alpine 3.22.5 (aarch64) with
+these packages baked in, all fetched from the official Alpine 3.22 repositories
+with their sources: busybox 1.37.0-r20, apk-tools 2.14.10-r0, e2fsprogs
+1.47.2-r2, util-linux 2.41.6-r1, ddrescue (GNU ddrescue) 1.29-r0, nbd 3.26.1-r0,
+mtools 4.0.47-r0, and the Alpine base packages. Each package's source is its
+upstream project (via Alpine's [aports](https://gitlab.alpinelinux.org/alpine/aports)
+recipes). The one custom file in the image, the `haven-recover` init hook, is
+a plain shell script shipped in source form inside the image itself
+(`/sbin/haven-recover`).
 
 ---
 

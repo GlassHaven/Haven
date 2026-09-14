@@ -86,6 +86,7 @@ class DesktopViewModel @Inject constructor(
     private val appWindowLauncher: AppWindowLauncher,
     private val appWindowShortcutManager: AppWindowShortcutManager,
     private val usbDriveVmManager: sh.haven.app.usb.UsbDriveVmManager,
+    private val umlRecoveryManager: sh.haven.app.usb.UmlRecoveryManager,
     private val systemVmManager: sh.haven.core.local.SystemVmManager,
 ) : ViewModel() {
 
@@ -898,6 +899,8 @@ class DesktopViewModel @Inject constructor(
     data class UsbDrivePicker(
         val drives: List<sh.haven.core.usb.UsbDeviceInfo>,
         val writable: Boolean,
+        /** true → the picker's taps open the live (route:"guest") session instead of the VM. */
+        val live: Boolean = false,
     )
     private val _usbDrivePicker = MutableStateFlow<UsbDrivePicker?>(null)
     val usbDrivePicker: StateFlow<UsbDrivePicker?> = _usbDrivePicker.asStateFlow()
@@ -985,6 +988,38 @@ class DesktopViewModel @Inject constructor(
         viewModelScope.launch {
             usbDriveVmManager.close(busid)
             _userMessages.emit("USB drive VM closed.")
+        }
+    }
+
+    // --- Live USB card via the UML guest (fast route) -----------------------
+    // Same drive set as the VM route, but the card is served raw over NBD to a
+    // UML guest that boots in seconds — ddrescue work, no filesystem mounting.
+
+    val usbLiveSessions: StateFlow<Map<String, sh.haven.app.usb.UmlRecoveryManager.Status>> = umlRecoveryManager.sessions
+
+    fun openUsbDriveLive(deviceName: String? = null, writable: Boolean = false) {
+        if (deviceName == null) {
+            val drives = umlRecoveryManager.massStorageDevices()
+            if (drives.size > 1) {
+                _usbDrivePicker.value = UsbDrivePicker(drives, writable, live = true)
+                return
+            }
+        }
+        _usbDrivePicker.value = null
+        viewModelScope.launch {
+            try {
+                umlRecoveryManager.open(deviceName, writable)
+                _userMessages.emit("Attaching the card live — open the \"USB: … (live)\" connection for the rescue console.")
+            } catch (e: sh.haven.app.usb.UmlRecoveryManager.UmlRecoveryException) {
+                _userMessages.emit(e.message ?: "Couldn't open the card live")
+            }
+        }
+    }
+
+    fun closeUsbLive(busid: String) {
+        viewModelScope.launch {
+            umlRecoveryManager.close(busid)
+            _userMessages.emit("Live card session closed.")
         }
     }
 

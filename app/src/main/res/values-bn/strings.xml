@@ -263,6 +263,12 @@
     <string name="app_desktop_open_usb_drive_writable_confirm_title">রিড-রাইট মাউন্ট করবেন?</string>
     <string name="app_desktop_open_usb_drive_writable_confirm_body">এটি ড্রাইভকে রিড-রাইট মাউন্ট করে। লেখার মাঝে VM-এর পাওয়ার চলে গেলে (বন্ধ করা, ক্র্যাশ, ব্যাটারি খোলা), ফাইল সিস্টেম নষ্ট হতে পারে। রিড-ওনলি নিরাপদ ডিফল্ট।</string>
     <string name="app_desktop_eject_usb_drive">USB ড্রাইভ ইজেক্ট করুন</string>
+    <string name="app_desktop_open_usb_live">সরাসরি USB কার্ড খুলুন (রেসকিউ কনসোল)…</string>
+    <string name="app_desktop_open_usb_live_writable">সরাসরি USB কার্ড খুলুন (লেখার জন্য)…</string>
+    <string name="app_desktop_usb_live_ready">রেসকিউ গেস্টে কাঁচা কার্ড সংযুক্ত হয়েছে — "%1$s" সংযোগটি খুলুন</string>
+    <string name="app_desktop_usb_live_readonly_note">NBD-এর মাধ্যমে কাঁচা কার্ড · শুধু পড়ার জন্য · %1$s</string>
+    <string name="app_desktop_usb_live_writable_note">NBD-এর মাধ্যমে কাঁচা কার্ড · লেখার জন্য · %1$s</string>
+    <string name="app_desktop_usb_live_close">লাইভ সেশন বন্ধ করুন</string>
     <string name="app_desktop_delete_usb_appliance">USB সহায়ক Linux মুছুন</string>
     <string name="app_desktop_usb_drive_progress">USB ড্রাইভ: %1$s</string>
     <string name="app_desktop_usb_drive_locked">%1$s লক করা (LUKS)</string>

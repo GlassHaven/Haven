@@ -263,6 +263,12 @@
     <string name="app_desktop_open_usb_drive_writable_confirm_title">読み書き可能でマウントしますか？</string>
     <string name="app_desktop_open_usb_drive_writable_confirm_body">ドライブを読み書き可能でマウントします。書き込み中に VM の電源が失われると（強制終了、クラッシュ、バッテリー切れ）、ファイルシステムが破損する可能性があります。読み取り専用の方が安全なデフォルトです。</string>
     <string name="app_desktop_eject_usb_drive">USB ドライブを取り外す</string>
+    <string name="app_desktop_open_usb_live">USB カードを直接開く（レスキューコンソール）…</string>
+    <string name="app_desktop_open_usb_live_writable">USB カードを直接開く（書き込み可能）…</string>
+    <string name="app_desktop_usb_live_ready">レスキューゲストに raw カードが接続されました — 「%1$s」接続を開いてください</string>
+    <string name="app_desktop_usb_live_readonly_note">NBD 経由の raw カード · 読み取り専用 · %1$s</string>
+    <string name="app_desktop_usb_live_writable_note">NBD 経由の raw カード · 書き込み可 · %1$s</string>
+    <string name="app_desktop_usb_live_close">ライブセッションを閉じる</string>
     <string name="app_desktop_delete_usb_appliance">USB ヘルパー Linux を削除</string>
     <string name="app_desktop_usb_drive_progress">USB ドライブ: %1$s</string>
     <string name="app_desktop_usb_drive_locked">%1$s はロックされています (LUKS)</string>

@@ -125,6 +125,14 @@
     <string name="app_desktop_open_usb_drive_writable_confirm_title">Mount read-write?</string>
     <string name="app_desktop_open_usb_drive_writable_confirm_body">This mounts the drive read-write. If the VM loses power mid-write (killed, crash, battery pull), the filesystem can be corrupted. Read-only is the safer default.</string>
     <string name="app_desktop_eject_usb_drive">Eject USB drive</string>
+    <!-- Live USB card route: the raw card is served to the fast UML recovery
+         guest over NBD (ddrescue work), not mounted by a helper VM. -->
+    <string name="app_desktop_open_usb_live">Open USB card directly (rescue console)…</string>
+    <string name="app_desktop_open_usb_live_writable">Open USB card directly (writable)…</string>
+    <string name="app_desktop_usb_live_ready">Raw card attached in the rescue guest — open the “%1$s” connection</string>
+    <string name="app_desktop_usb_live_readonly_note">Raw card over NBD · read-only · %1$s</string>
+    <string name="app_desktop_usb_live_writable_note">Raw card over NBD · WRITABLE · %1$s</string>
+    <string name="app_desktop_usb_live_close">Close live session</string>
     <string name="app_desktop_delete_usb_appliance">Delete USB helper Linux</string>
     <string name="app_desktop_usb_drive_progress">USB drive: %1$s</string>
     <string name="app_desktop_usb_drive_locked">%1$s is locked (LUKS)</string>

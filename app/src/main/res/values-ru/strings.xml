@@ -269,6 +269,12 @@
     <string name="app_desktop_open_usb_drive_writable_confirm_title">Смонтировать для чтения и записи?</string>
     <string name="app_desktop_open_usb_drive_writable_confirm_body">Накопитель будет смонтирован для чтения и записи. Если VM потеряет питание во время записи (завершение, сбой, извлечение батареи), файловая система может быть повреждена. Только чтение — более безопасный вариант по умолчанию.</string>
     <string name="app_desktop_eject_usb_drive">Извлечь USB-накопитель</string>
+    <string name="app_desktop_open_usb_live">Открыть USB-карту напрямую (консоль восстановления)…</string>
+    <string name="app_desktop_open_usb_live_writable">Открыть USB-карту напрямую (с записью)…</string>
+    <string name="app_desktop_usb_live_ready">Raw-карта подключена в госте восстановления — откройте подключение «%1$s»</string>
+    <string name="app_desktop_usb_live_readonly_note">Raw-карта через NBD · только чтение · %1$s</string>
+    <string name="app_desktop_usb_live_writable_note">Raw-карта через NBD · ЗАПИСЬ · %1$s</string>
+    <string name="app_desktop_usb_live_close">Закрыть прямой сеанс</string>
     <string name="app_desktop_delete_usb_appliance">Удалить вспомогательный Linux для USB</string>
     <string name="app_desktop_usb_drive_progress">USB-накопитель: %1$s</string>
     <string name="app_desktop_usb_drive_locked">%1$s заблокирован (LUKS)</string>

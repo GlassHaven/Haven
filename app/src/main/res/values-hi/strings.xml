@@ -263,6 +263,12 @@
     <string name="app_desktop_open_usb_drive_writable_confirm_title">रीड-राइट माउंट करें?</string>
     <string name="app_desktop_open_usb_drive_writable_confirm_body">यह ड्राइव को रीड-राइट माउंट करता है। यदि लिखते समय VM की पावर चली जाए (बंद किया गया, क्रैश, बैटरी निकली), तो फ़ाइल सिस्टम खराब हो सकता है। रीड-ओनली अधिक सुरक्षित डिफ़ॉल्ट है।</string>
     <string name="app_desktop_eject_usb_drive">USB ड्राइव निकालें</string>
+    <string name="app_desktop_open_usb_live">USB कार्ड सीधे खोलें (रेस्क्यू कंसोल)…</string>
+    <string name="app_desktop_open_usb_live_writable">USB कार्ड सीधे खोलें (लिखने योग्य)…</string>
+    <string name="app_desktop_usb_live_ready">रेस्क्यू गेस्ट में रॉ कार्ड जुड़ गया — "%1$s" कनेक्शन खोलें</string>
+    <string name="app_desktop_usb_live_readonly_note">NBD पर रॉ कार्ड · केवल पढ़ने योग्य · %1$s</string>
+    <string name="app_desktop_usb_live_writable_note">NBD पर रॉ कार्ड · लिखने योग्य · %1$s</string>
+    <string name="app_desktop_usb_live_close">लाइव सेशन बंद करें</string>
     <string name="app_desktop_delete_usb_appliance">USB सहायक Linux हटाएँ</string>
     <string name="app_desktop_usb_drive_progress">USB ड्राइव: %1$s</string>
     <string name="app_desktop_usb_drive_locked">%1$s लॉक है (LUKS)</string>

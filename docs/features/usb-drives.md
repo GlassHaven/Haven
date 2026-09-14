@@ -44,6 +44,12 @@ browse, copy things off, or open a terminal into it.
 Nothing is written to your drive (it's mounted **read-only** by default), nothing
 leaves your phone, and the little Linux is deleted as soon as you eject the drive.
 
+> **In a hurry, or the drive is failing?** Haven also has a fast route that
+> skips the VM and puts the *raw card* in a Linux console within seconds —
+> that's what you want for a `ddrescue` rescue of a dying SD card. It can't
+> browse files (no filesystem drivers), it's for rescue work. See
+> [USB card rescue console](usb-recovery-live.md).
+
 > You don't need to know anything about virtual machines to use this — that's the
 > whole point. The word "QEMU" you might see elsewhere is just the engine doing
 > the work behind the scenes.
@@ -187,4 +193,5 @@ Originally requested in
 ---
 
 [← All features](../FEATURES.md) · [USB device forwarding](usb.md) ·
+[USB card rescue console](usb-recovery-live.md) ·
 [Local Linux on-device](local-linux.md)

@@ -127,6 +127,7 @@ fun DesktopManagerScreen(viewModel: DesktopViewModel = hiltViewModel()) {
     val bindAndroidSystem by viewModel.bindAndroidSystem.collectAsState()
     val customBindsRev by viewModel.customBindsRev.collectAsState()
     val usbDriveSessions by viewModel.usbDriveSessions.collectAsState()
+    val usbLiveSessions by viewModel.usbLiveSessions.collectAsState()
     val applianceProvisioned by viewModel.applianceProvisioned.collectAsState()
     val customDesktopCommand by viewModel.customDesktopCommand.collectAsState()
 
@@ -191,6 +192,10 @@ fun DesktopManagerScreen(viewModel: DesktopViewModel = hiltViewModel()) {
             onOpenUsbDrive = { viewModel.openUsbDrive() },
             onOpenUsbDriveWritable = { viewModel.openUsbDrive(writable = true) },
             onCloseUsbDrive = { busid -> viewModel.closeUsbDrive(busid) },
+            usbLiveSessions = usbLiveSessions,
+            onOpenUsbLive = { viewModel.openUsbDriveLive() },
+            onOpenUsbLiveWritable = { viewModel.openUsbDriveLive(writable = true) },
+            onCloseUsbLive = { busid -> viewModel.closeUsbLive(busid) },
             onUnlockUsbDrivePartition = { busid, devicePath, passphrase -> viewModel.unlockUsbDrivePartition(busid, devicePath, passphrase) },
             applianceProvisioned = applianceProvisioned,
             onDeleteUsbAppliance = { viewModel.deleteUsbAppliance() },
@@ -266,7 +271,13 @@ fun DesktopManagerScreen(viewModel: DesktopViewModel = hiltViewModel()) {
                             drive.deviceName,
                         ).joinToString("  ·  ")
                         TextButton(
-                            onClick = { viewModel.openUsbDrive(drive.deviceName, picker.writable) },
+                            onClick = {
+                                if (picker.live) {
+                                    viewModel.openUsbDriveLive(drive.deviceName, picker.writable)
+                                } else {
+                                    viewModel.openUsbDrive(drive.deviceName, picker.writable)
+                                }
+                            },
                             modifier = Modifier.fillMaxWidth(),
                         ) {
                             Text(line)
@@ -1204,6 +1215,10 @@ private fun DesktopManagerSection(
     onOpenUsbDrive: () -> Unit,
     onOpenUsbDriveWritable: () -> Unit,
     onCloseUsbDrive: (busid: String) -> Unit,
+    usbLiveSessions: Map<String, sh.haven.app.usb.UmlRecoveryManager.Status>,
+    onOpenUsbLive: () -> Unit,
+    onOpenUsbLiveWritable: () -> Unit,
+    onCloseUsbLive: (busid: String) -> Unit,
     onUnlockUsbDrivePartition: (busid: String, devicePath: String, passphrase: String) -> Unit,
     applianceProvisioned: Boolean,
     onDeleteUsbAppliance: () -> Unit,
@@ -1418,6 +1433,18 @@ private fun DesktopManagerSection(
                                     viewModel.setShowUsbWritableConfirm(true)
                                 },
                             )
+                            // The fast route: the raw card goes straight to the
+                            // UML recovery guest over NBD (ddrescue work) —
+                            // seconds, not the VM's minutes. Read-only only in
+                            // the UI; MCP's route:"guest" takes writable.
+                            DropdownMenuItem(
+                                text = { Text(stringResource(AppR.string.app_desktop_open_usb_live)) },
+                                leadingIcon = { Icon(Icons.Filled.Usb, contentDescription = null, modifier = Modifier.size(20.dp)) },
+                                onClick = {
+                                    distroMenuOpen = false
+                                    onOpenUsbLive()
+                                },
+                            )
                         }
                         // The helper Linux is provisioned once + kept; offer to
                         // delete it (reclaims ~280 MB, re-provisions next open).
@@ -1484,6 +1511,48 @@ private fun DesktopManagerSection(
                             TextButton(onClick = { unlockingPartition = busid to name }) {
                                 Text(stringResource(AppR.string.app_desktop_usb_drive_unlock))
                             }
+                        }
+                    }
+                }
+                // Live (fast route) sessions: the raw card exported over NBD to
+                // the recovery guest. The rescue console is the transient
+                // "USB: … (live)" connection's terminal tab.
+                usbLiveSessions.entries.sortedBy { it.key }.forEach { (busid, s) ->
+                    Spacer(Modifier.height(8.dp))
+                    Row(verticalAlignment = Alignment.CenterVertically) {
+                        Column(modifier = Modifier.weight(1f)) {
+                            Text(
+                                (s.productName ?: s.deviceName ?: busid) + " (live)",
+                                style = MaterialTheme.typography.bodyMedium,
+                            )
+                            when (s.phase) {
+                                sh.haven.app.usb.UmlRecoveryManager.Phase.OPENING -> Row(verticalAlignment = Alignment.CenterVertically) {
+                                    CircularProgressIndicator(modifier = Modifier.size(16.dp), strokeWidth = 2.dp)
+                                    Spacer(Modifier.width(8.dp))
+                                    Text(
+                                        stringResource(AppR.string.app_desktop_usb_drive_progress, s.stage),
+                                        style = MaterialTheme.typography.bodySmall,
+                                    )
+                                }
+                                sh.haven.app.usb.UmlRecoveryManager.Phase.READY -> Text(
+                                    stringResource(
+                                        if (s.readOnly) AppR.string.app_desktop_usb_live_readonly_note
+                                        else AppR.string.app_desktop_usb_live_writable_note,
+                                        s.capacity,
+                                    ),
+                                    style = MaterialTheme.typography.bodySmall,
+                                    color = MaterialTheme.colorScheme.onSurfaceVariant,
+                                )
+                                sh.haven.app.usb.UmlRecoveryManager.Phase.ERROR -> Text(
+                                    s.error ?: "Failed",
+                                    style = MaterialTheme.typography.bodySmall,
+                                    color = MaterialTheme.colorScheme.error,
+                                )
+                                sh.haven.app.usb.UmlRecoveryManager.Phase.IDLE -> {}
+                            }
+                        }
+                        TextButton(onClick = { onCloseUsbLive(busid) }) {
+                            Text(stringResource(AppR.string.app_desktop_usb_live_close))
                         }
                     }
                 }

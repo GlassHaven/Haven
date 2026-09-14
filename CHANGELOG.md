@@ -5,6 +5,10 @@ the corresponding GitHub Release; a release can't ship without its section
 (enforced by `scripts/check-changelog.sh` in CI). The GitHub "Full Changelog"
 compare link is appended automatically — don't add it here.
 
+## v5.87.86
+
+- **USB card rescue console (live route)**. A failing SD card can now be rescued in seconds instead of minutes: Desktop tab → Manage → "Open USB card directly (rescue console)". The card's raw sectors are served over NBD to the Linux guest, which attaches it as `/dev/nbd0` and prints the `ddrescue`/`mdir` command lines — the VM route stays for file browsing. Read-only by default; rescued images are written to Haven's `uml/share` app folder via the guest's new hostfs share. The guest rootfs image gains ddrescue, nbd-client, mtools, e2fsprogs and util-linux (same 512 MB image, one re-unpack on update, tracked by a version marker). MCP: `open_usb_drive` gains `route:"guest"`, `list_usb_drives` reports `live[]`, `close_usb_drive` takes `kind`.
+
 ## v5.87.85
 
 - Fixed the app closing when opened from the launcher right after using Disconnect All in the connection notification (#640). Disconnect All is meant to close Haven itself at disconnect time, but on devices that silently block the service's background launch the pending exit flag survived, and the next launcher open was finished immediately. Only the service's own launch can exit the app now; a plain open clears the flag instead.

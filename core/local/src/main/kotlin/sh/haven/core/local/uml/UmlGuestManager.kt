@@ -64,7 +64,19 @@ class UmlGuestManager @Inject constructor(
         get() = File(context.filesDir, "uml/rootfs.ext4")
 
     private val rootfsReady: Boolean
-        get() = rootfsFile.length() == ROOTFS_SIZE_BYTES
+        get() = rootfsFile.length() == ROOTFS_SIZE_BYTES &&
+            stagedVersion() == ROOTFS_VERSION
+
+    /** Version marker for the staged image; empty when absent (v1 staged). */
+    private fun stagedVersion(): Int {
+        val marker = File(context.filesDir, "uml/rootfs.version")
+        // No marker = staged before the marker existed (v1). useLines would
+        // throw FileNotFoundException here, crashing app start at DI time.
+        if (!marker.exists()) return 1
+        return marker.useLines { lines ->
+            lines.firstOrNull()?.trim()?.toIntOrNull()
+        } ?: 1
+    }
 
     /**
      * True when this build actually ships the guest payload. The terminal
@@ -76,8 +88,9 @@ class UmlGuestManager @Inject constructor(
 
     /**
      * Stage the rootfs from the APK asset on first use. Idempotent: an intact
-     * staged image (exact size) is reused and never re-unpacked, so user data
-     * survives Haven updates. A partial write from an interrupted unpack is the
+     * staged image (exact size, matching [ROOTFS_VERSION]) is reused and never
+     * re-unpacked, so user data survives Haven updates. A partial write from an
+     * interrupted unpack, or a staged image from an older asset version, is the
      * one thing re-staged. Throws when storage is short or the unpack fails.
      */
     suspend fun ensureRootfs() {
@@ -127,6 +140,10 @@ class UmlGuestManager @Inject constructor(
                     tmp.delete()
                     throw IllegalStateException("Could not move the staged rootfs into place")
                 }
+                // Written only after the rename so a crash mid-unpack leaves no
+                // version marker and the next ensureRootfs() re-stages.
+                File(context.filesDir, "uml/rootfs.version")
+                    .writeText(ROOTFS_VERSION.toString())
                 _state.value = SetupState.Ready
             } catch (e: Exception) {
                 File(context.filesDir, "uml/rootfs.ext4.unpack").delete()
@@ -146,6 +163,7 @@ class UmlGuestManager @Inject constructor(
      */
     fun deleteRootfs() {
         rootfsFile.delete()
+        File(context.filesDir, "uml/rootfs.version").delete()
         _state.value = SetupState.NotStaged
     }
 
@@ -155,6 +173,9 @@ class UmlGuestManager @Inject constructor(
         val label: String,
         val status: Status,
         val localSession: LocalSession? = null,
+        /** Appended verbatim to the kernel command line (recovery sessions pass
+         *  haven_nbd_host/haven_nbd_port). */
+        val extraKernelArgs: List<String> = emptyList(),
     ) {
         enum class Status { CONNECTING, CONNECTED, DISCONNECTED, ERROR }
     }
@@ -172,7 +193,11 @@ class UmlGuestManager @Inject constructor(
                 it.status == SessionState.Status.CONNECTING
         }
 
-    fun registerSession(profileId: String, label: String): String {
+    fun registerSession(
+        profileId: String,
+        label: String,
+        extraKernelArgs: List<String> = emptyList(),
+    ): String {
         reapDeadSessionsForProfile(profileId)
         val sessionId = UUID.randomUUID().toString()
         _sessions.update { map ->
@@ -181,6 +206,7 @@ class UmlGuestManager @Inject constructor(
                 profileId = profileId,
                 label = label,
                 status = SessionState.Status.CONNECTING,
+                extraKernelArgs = extraKernelArgs,
             ))
         }
         return sessionId
@@ -223,6 +249,11 @@ class UmlGuestManager @Inject constructor(
         val cacheDir = context.cacheDir.absolutePath
         val nat = { lib: String -> File(natDir, lib).absolutePath }
         val cmd = nat("libuml-net.so")
+        // hostfs is confined to this directory by the kernel's hostfs= setup
+        // hook (fs/hostfs/hostfs_kern.c): the only app-storage path the guest
+        // can see, used as the output channel for recovery images.
+        val shareDir = File(context.filesDir, "uml/share").apply { mkdirs() }
+        val extra = _sessions.value[sessionId]?.extraKernelArgs.orEmpty()
         val args = arrayOf(
             cmd,
             nat("libuml-passt.so"),
@@ -233,6 +264,8 @@ class UmlGuestManager @Inject constructor(
             "root=/dev/ubda",
             "rw",
             "stub_exe=${nat("libuml-stub.so")}",
+            "hostfs=${shareDir.absolutePath}",
+            *extra.toTypedArray(),
         )
         val env = arrayOf(
             "TMPDIR=$cacheDir",
@@ -484,6 +517,14 @@ class UmlGuestManager @Inject constructor(
 
         /** mkfs'd image size — the staging idempotency check. */
         const val ROOTFS_SIZE_BYTES = 536_870_912L
+
+        /**
+         * Bump when the shipped asset changes in a way the size check cannot
+         * see (v2 added the recovery tools — same 512 MiB image, so existing
+         * installs re-stage once on update; contents are tooling, not user
+         * data, and recovery output goes through hostfs outside the image).
+         */
+        const val ROOTFS_VERSION = 2
 
         /** Space check before unpacking: image + headroom for writes. */
         const val ROOTFS_FREE_SPACE_BYTES = 600L * 1024 * 1024

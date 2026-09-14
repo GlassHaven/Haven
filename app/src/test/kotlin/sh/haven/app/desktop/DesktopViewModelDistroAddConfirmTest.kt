@@ -97,6 +97,7 @@ class DesktopViewModelDistroAddConfirmTest {
             appWindowLauncher = mockk(relaxed = true),
             appWindowShortcutManager = mockk(relaxed = true),
             usbDriveVmManager = usbDriveVmManager,
+            umlRecoveryManager = mockk<sh.haven.app.usb.UmlRecoveryManager>(relaxed = true),
             systemVmManager = mockk<SystemVmManager>(relaxed = true),
         )
     }

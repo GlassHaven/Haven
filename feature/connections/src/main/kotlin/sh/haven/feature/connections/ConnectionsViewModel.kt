@@ -1198,6 +1198,20 @@ class ConnectionsViewModel @Inject constructor(
         // survived (MOSH_RECONNECT_RESET_MS), which is what distinguishes a
         // one-off stall from a server that is simply gone.
         moshSessionManager.onSessionDied = { profileId, sessionId ->
+            // Drain the dead session's transport trace into the connection log
+            // before dropping it (#421). The #421 escalation discards the
+            // in-memory trace otherwise, so a log captured after auto-recovery
+            // only ever shows the fresh replacement session — the freeze window
+            // we actually need is lost.
+            moshSessionManager.sessions.value[sessionId]?.moshSession?.drainTransportLog()?.let { trace ->
+                viewModelScope.launch {
+                    connectionLogRepository.logEvent(
+                        profileId,
+                        ConnectionLog.Status.DISCONNECTED,
+                        verboseLog = trace,
+                    )
+                }
+            }
             // Drop the dead session rather than leaving it behind: every
             // reconnect used to add a tab while the corpse lingered, so a few
             // cycles left a pile of DISCONNECTED entries for one profile.

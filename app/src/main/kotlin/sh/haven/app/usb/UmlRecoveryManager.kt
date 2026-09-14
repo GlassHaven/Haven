@@ -109,6 +109,15 @@ class UmlRecoveryManager @Inject constructor(
         if (!umlGuestManager.isAvailable()) {
             throw UmlRecoveryException("This build does not include the Linux guest payload")
         }
+        // The recovery path never goes through connectGuest, which is the only
+        // other caller: without this, a device carrying a staged rootfs from an
+        // older asset version (ROOTFS_VERSION bump, no marker match) boots the
+        // recovery guest on the STALE image — no haven-recover in it, so the
+        // card never attaches and open() times out at 120 s. Found live: the
+        // first on-device run of this route hit exactly that. ensureRootfs()
+        // re-stages from the APK asset when the version marker mismatches and
+        // is a no-op otherwise.
+        umlGuestManager.ensureRootfs()
         val target = resolveDrive(deviceName)
         val info = try {
             usbBroker.openDevice(target)

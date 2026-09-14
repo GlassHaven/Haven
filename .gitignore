@@ -75,4 +75,10 @@ core/wayland/src/main/jniLibs/*/*.so
 # buildFfmpegNatives task (#493). 172 MB of committed blobs that nothing
 # rebuilt; F-Droid always built them from source, our releases never did.
 core/ffmpeg/src/main/jniLibs/*/*.so
+
+# UML recovery rootfs — fetched (pinned + sha256-verified) at build time by
+# app/fetch-uml-rootfs.sh from the uml-guest-1 release. A committed gzip
+# fails fdroidserver's source scan, which is how every F-Droid build from
+# versionCode 8431 on failed; nothing may put it back in the tree.
+app/src/full/assets/uml/rootfs-aarch64.ext4.gz
 .grepai/

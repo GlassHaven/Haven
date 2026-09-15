@@ -2,17 +2,19 @@ package sh.haven.app.agent
 
 import android.content.Context
 import android.content.pm.PackageManager
+import kotlinx.coroutines.flow.first
 import org.json.JSONObject
 import sh.haven.core.data.agent.ConsentLevel
+import sh.haven.core.data.preferences.UserPreferencesRepository
+import sh.haven.core.local.LocalSessionManager
 import sh.haven.core.mcp.McpError
 
 /**
- * GPS tools: precise fixes, continuous logging, and the GPS-disciplined NTP
- * service — the continuous layer over [SensesToolProvider]'s one-shot
- * `get_location`, per bridges.md's GPS row (⚠️ feasible-unbuilt → shipped
- * to the agent sink). All the Android plumbing lives in [GpsBroker]; this
- * file is the tool surface: argument validation, the permission gate, and
- * JSON shaping.
+ * GPS tools: precise fixes, continuous logging, the GPS-disciplined NTP
+ * service, and the guest device bridge — the continuous layer over
+ * [SensesToolProvider]'s one-shot `get_location`, per bridges.md's GPS row.
+ * All the Android plumbing lives in [GpsBroker]; this file is the tool
+ * surface: argument validation, the permission gate, and JSON shaping.
  *
  * Permission strategy is the same as the senses provider: the manifest
  * declares ACCESS_FINE_LOCATION, [ensurePermissions] grants via Shizuku
@@ -23,6 +25,9 @@ internal class GpsToolProvider(
     private val context: Context,
     /** Shizuku `pm grant` mapper from [McpTools.runShizukuOrThrow]. */
     private val shizukuGrant: (permission: String) -> String?,
+    private val preferencesRepository: UserPreferencesRepository,
+    /** Proot access for staging the guest-side helper on attach. */
+    private val localSessionManager: LocalSessionManager,
 ) : ToolProvider {
 
     override fun tools(): Map<String, ToolHandler> = linkedMapOf(
@@ -100,6 +105,19 @@ internal class GpsToolProvider(
             consentLevel = ConsentLevel.ONCE_PER_SESSION,
             summarise = { _ -> "Stop the NTP service?" },
         ) { _ -> stopNtp() },
+
+        "attach_gps_to_guest" to ToolHandler(
+            description = "Expose this phone's GPS to the Haven Linux guest as a real NMEA device: an abstract-namespace socket (\\0haven-gps) streams the chipset's raw NMEA sentences (GGA/RMC/GSV/…) into the guest, and the staged `haven-gps` helper materialises them as a PTY at /run/haven/gps0 — gpsd, gpspipe, chrony, or any character-device consumer \"just sees a GPS\". The socket is abstract-namespace, not TCP loopback: only processes sharing Haven's network namespace (the proot guest) can reach it. Attaching starts a 1 Hz GPS session for the bridge; it keeps running (even screen-off, via the same session contract as start_gps_log) until detach_gps_from_guest. Returns socketName, the in-guest helperPath, a helperCommand to start the PTY, and a verifyCommand to confirm NMEA is flowing. Requires the master opt-in first: Settings → \"Expose GPS to the Linux guest\" (or the gps_guest_exposure_enabled preference) — once exposed, any process in the guest can read the phone's position, so the switch is deliberately separate from per-call consent.",
+            inputSchema = emptyObjectSchema(),
+            consentLevel = ConsentLevel.ONCE_PER_SESSION,
+            summarise = { _ -> "Expose the phone's GPS to the Linux guest as an NMEA device?" },
+        ) { _ -> attachGuestBridge() },
+
+        "detach_gps_from_guest" to ToolHandler(
+            description = "Stop the GPS→guest bridge started by attach_gps_to_guest: the \\0haven-gps socket closes, /run/haven/gps0 goes dead in the guest, and the bridge's GPS session is released (unless logging or NTP still needs one). Reports the sentences served and readers that connected. The teardown counterpart to attach_gps_to_guest.",
+            inputSchema = emptyObjectSchema(),
+            consentLevel = ConsentLevel.NEVER,
+        ) { _ -> detachGuestBridge() },
     )
 
     // --- handlers ---
@@ -153,6 +171,50 @@ internal class GpsToolProvider(
     }
 
     private fun stopNtp(): JSONObject = GpsBroker.stopNtp()
+
+    // --- guest device bridge (mirrors UsbToolProvider.attach/detach) ---
+
+    private suspend fun attachGuestBridge(): JSONObject {
+        // Master opt-in gate (Settings → "Expose GPS to the Linux guest").
+        // Off by default — once exposed, any guest process can read the
+        // phone's position, so it needs a deliberate user switch on top of
+        // the per-call consent sheet.
+        if (!preferencesRepository.gpsGuestExposureEnabled.first()) {
+            throw McpError(
+                -32603,
+                "GPS-to-guest is disabled. Enable Settings → \"Expose GPS to the Linux guest\" " +
+                    "(or set the gps_guest_exposure_enabled preference) first.",
+            )
+        }
+        ensureFinePermission()
+        val result = GpsBroker.startGuestBridge(context)
+        // Re-stage on every attach so an app update refreshes the helper
+        // (the stageHavenUsbArtifacts idiom). null when there is no active
+        // proot rootfs — the bridge still runs; nothing is staged.
+        val helperPath = localSessionManager.prootManager.stageHavenGpsArtifacts()
+        result.put("socketNamespace", "abstract")
+        result.put("helperPath", helperPath ?: JSONObject.NULL)
+        if (helperPath != null) {
+            result.put("helperCommand", "haven-gps")
+            result.put(
+                "verifyCommand",
+                "timeout 3 head -c 120 /run/haven/gps0",
+            )
+            result.put(
+                "note",
+                "Bridge live on abstract socket \\0${GpsGuestServer.SOCKET_NAME}. Run `haven-gps` " +
+                    "via run_in_proot(background:true) to materialise the PTY at /run/haven/gps0 " +
+                    "(needs socat in the guest), then verify with verifyCommand — expect raw NMEA " +
+                    "(GGA/GSV/…) whose lat/lon matches get_gps_status. Silent output means no sky view — " +
+                    "or Haven is not in the foreground: Android's while-in-use rule suspends the engine " +
+                    "when Haven is backgrounded without its GPS-log foreground service (bring Haven " +
+                    "forward, or start_gps_log alongside, then re-check get_gps_status).",
+            )
+        }
+        return result
+    }
+
+    private fun detachGuestBridge(): JSONObject = GpsBroker.stopGuestBridge()
 
     // --- permission gate (same shape as SensesToolProvider) ---
 

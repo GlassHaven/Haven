@@ -1,0 +1,34 @@
+#!/bin/sh
+# haven-gps — Haven GPS device bridge, guest side.
+#
+# Materialises the phone's NMEA stream (hosted on the abstract-namespace
+# socket \0haven-gps by Haven's GPS broker) as a real character device in
+# the guest: /run/haven/gps0. Any Linux consumer — gpsd, gpspipe, chrony,
+# plain `cat` — just sees a GPS.
+#
+# Usage: haven-gps            (foreground; a PTY appears at /run/haven/gps0)
+#
+# The socket is abstract-namespace, reachable only from processes sharing
+# Haven's network namespace, so no guest can see it that Haven didn't share
+# with. Needs socat (the only dependency): apt-get install socat.
+
+set -e
+
+RUN_DIR=/run/haven
+PTY=$RUN_DIR/gps0
+SOCK=haven-gps
+
+mkdir -p "$RUN_DIR"
+
+if ! command -v socat >/dev/null 2>&1; then
+    echo "haven-gps: socat is not installed." >&2
+    echo "  Install it with: apt-get install socat   (then re-run haven-gps)" >&2
+    exit 1
+fi
+
+# ABSTRACT-CONNECT joins the host's abstract socket named $SOCK; PTY,link=
+# presents it as a device file. `rawer` keeps socat from doing termios
+# mangling on the raw NMEA byte stream. (socat 1.8 removed the old `binary`
+# alias; rawer alone passes bytes through unmodified.)
+echo "haven-gps: bridging abstract socket '$SOCK' -> $PTY (NMEA). Ctrl-C to stop." >&2
+exec socat ABSTRACT-CONNECT:"$SOCK" PTY,link="$PTY",rawer

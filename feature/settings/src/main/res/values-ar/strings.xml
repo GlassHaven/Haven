@@ -306,6 +306,8 @@
 
     <string name="settings_usb_guest_title">إتاحة أجهزة USB لضيف Linux</string>
     <string name="settings_usb_guest_subtitle">السماح لأجهزة USB المتصلة بالوصول إلى تطبيقات الضيف عبر الوصلة haven-usb. كل إرفاق يطلب الموافقة.</string>
+    <string name="settings_gps_guest_title">إتاحة GPS لضيف Linux</string>
+    <string name="settings_gps_guest_subtitle">بث موقع GPS للهاتف إلى الضيف كجهاز NMEA (haven-gps). بعد التشغيل يمكن لأي عملية في الضيف قراءة الموقع. كل إرفاق يطلب الموافقة.</string>
     <string name="settings_proot_install_log_title">عرض سجل تثبيت PRoot</string>
     <string name="settings_proot_install_log_subtitle">أحداث كل مرحلة من تثبيتات توزيعات Linux (المشكلة #162)</string>
     <string name="settings_logcat_capture_title">التقاط Logcat</string>

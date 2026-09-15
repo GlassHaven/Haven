@@ -90,7 +90,7 @@ cover all capabilities. (✅ shipped · ⚠️ feasible, unbuilt · 🔬 researc
 | Camera (phone's own, Camera2) | ✅ capture | 🔬 v4l2 shim | 🔬 v4l2→USB/IP | 🔬 |
 | Microphone | ⚠️ | ⚠️ PA source | ⚠️ | ⚠️ |
 | Speaker / audio out | ✅ | ✅ **PulseAudio (#257)** | ✅ | ⚠️ |
-| GPS / location | ⚠️ | ⚠️ **gpsd/NMEA** | ⚠️ | ⚠️ |
+| GPS / location | ⚠️ | ✅ **gpsd/NMEA (`haven-gps`)** | ⚠️ | ⚠️ |
 | Motion/environment sensors | ⚠️ | 🔬 iio/evdev shim | 🔬 | 🔬 |
 | GPU | — | ✅ **virgl/venus** | 🔬 | — |
 | Display / screen | ✅ capture | n/a | n/a | ⚠️ |
@@ -178,7 +178,10 @@ become **thin façades** over `create_bridge`, kept for ergonomics.
 
 **Phase 2 — first new source: sensors.**
 - **GPS → `gpsd`/NMEA** into the guest/VM — Linux mapping & nav apps "just see" a
-  GPS. Highest value, cleanest shim.
+  GPS. Highest value, cleanest shim. *(Guest leg shipped: the `\0haven-gps`
+  abstract socket streams the chipset's NMEA into the guest, where the staged
+  `haven-gps` helper (socat) materialises it as a PTY at `/run/haven/gps0`.
+  Master opt-in + ONCE_PER_SESSION attach, mirroring the USB pair.)*
 - Motion/environment sensors via an **iio or evdev** userspace shim (same
   `LD_PRELOAD`-+-socket trick as `haven-usb`).
 - `(sensor, agent)` over MCP — the agent can read the phone's real-world state.

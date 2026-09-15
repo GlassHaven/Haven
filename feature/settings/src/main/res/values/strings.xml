@@ -381,6 +381,9 @@
     <!-- USB exposure -->
     <string name="settings_usb_guest_title">Expose USB devices to the Linux guest</string>
     <string name="settings_usb_guest_subtitle">Let attached USB devices reach guest apps via the haven-usb shim. Each attach still asks for consent.</string>
+    <!-- GPS exposure -->
+    <string name="settings_gps_guest_title">Expose GPS to the Linux guest</string>
+    <string name="settings_gps_guest_subtitle">Stream the phone’s GPS position into the guest as an NMEA device (haven-gps). Once on, any guest process can read the position. Each attach still asks for consent.</string>
     <string name="settings_audio_bridge_title">Proot audio (experimental)</string>
     <string name="settings_audio_bridge_subtitle">Play sound from Linux apps through the device speaker via an in-guest PulseAudio bridge. Output only. Streams continuously while on — turn off when not in use.</string>
 

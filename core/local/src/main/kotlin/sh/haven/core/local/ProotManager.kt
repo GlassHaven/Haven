@@ -3061,6 +3061,39 @@ chmod +x /root/.vnc/xstartup""")
     /** Absolute in-guest path of the CDC-ACM serial<->PTY bridge staged by [stageHavenUsbArtifacts]. */
     val havenUsbSerialGuestPath: String get() = "/usr/local/bin/haven-usb-serial"
 
+    /**
+     * Stage the GPS guest helper into the active rootfs at
+     * /usr/local/bin/haven-gps. Text asset, ABI-independent; re-copied on
+     * every attach (the stageHavenUsbArtifacts idiom) so an app update
+     * refreshes it. Returns the in-guest path, or null if there is no active
+     * rootfs — the bridge itself doesn't depend on staging.
+     */
+    fun stageHavenGpsArtifacts(): String? {
+        // Only stage into a rootfs that exists; activeRootfsDir is computed
+        // and may point at an uninstalled distro's (not-yet-created) dir.
+        if (!activeRootfsDir.isDirectory) {
+            Log.w(TAG, "[haven-gps] no active rootfs; helper not staged")
+            return null
+        }
+        val target = File(activeRootfsDir, "usr/local/bin/haven-gps")
+        return try {
+            target.parentFile?.mkdirs()
+            context.assets.open("haven-gps/haven-gps").use { input ->
+                target.outputStream().use { output -> input.copyTo(output) }
+            }
+            target.setReadable(true, false)
+            target.setExecutable(true, false)
+            Log.d(TAG, "[haven-gps] staged haven-gps (${target.length()} bytes)")
+            "/usr/local/bin/haven-gps"
+        } catch (e: Exception) {
+            Log.w(TAG, "[haven-gps] failed to stage haven-gps: ${e.message}")
+            null
+        }
+    }
+
+    /** Absolute in-guest path of the NMEA→PTY helper staged by [stageHavenGpsArtifacts]. */
+    val havenGpsHelperGuestPath: String get() = "/usr/local/bin/haven-gps"
+
     fun migrateDesktopConfigs(de: DesktopEnvironment) {
         // Refresh the shim on every start so an app update's newer shim
         // replaces a stale one in an existing rootfs (#162).

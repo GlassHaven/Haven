@@ -97,6 +97,7 @@ class UserPreferencesRepository @Inject constructor(
     // Kept only for a read-time migration fallback; never written.
     private val alwaysShowAllTabsKey = booleanPreferencesKey("always_show_all_tabs")
     private val usbGuestExposureEnabledKey = booleanPreferencesKey("usb_guest_exposure_enabled")
+    private val gpsGuestExposureEnabledKey = booleanPreferencesKey("gps_guest_exposure_enabled")
     private val remoteClipboardToLocalKey = booleanPreferencesKey("remote_clipboard_to_local")
     private val verboseLoggingEnabledKey = booleanPreferencesKey("verbose_logging_enabled")
     private val mouseInputEnabledKey = booleanPreferencesKey("mouse_input_enabled")
@@ -585,6 +586,25 @@ class UserPreferencesRepository @Inject constructor(
     suspend fun setUsbGuestExposureEnabled(enabled: Boolean) {
         dataStore.edit { prefs ->
             prefs[usbGuestExposureEnabledKey] = enabled
+        }
+    }
+
+    /**
+     * Master opt-in for exposing the phone's GPS to the proot Linux guest
+     * (the \0haven-gps NMEA bridge + `haven-gps` helper). Default OFF: the
+     * attach consent sheet still gates each attach, but this gives the user
+     * a single deliberate switch for the whole capability — a guest-exposed
+     * GPS lets *any* guest process read the phone's position, so it stays
+     * off until explicitly enabled. Does NOT affect the direct agent GPS
+     * tools (status/fix/log), which are consent-gated on their own.
+     */
+    val gpsGuestExposureEnabled: Flow<Boolean> = dataStore.data.map { prefs ->
+        prefs[gpsGuestExposureEnabledKey] ?: false
+    }
+
+    suspend fun setGpsGuestExposureEnabled(enabled: Boolean) {
+        dataStore.edit { prefs ->
+            prefs[gpsGuestExposureEnabledKey] = enabled
         }
     }
 

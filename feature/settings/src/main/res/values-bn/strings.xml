@@ -306,6 +306,8 @@
 
     <string name="settings_usb_guest_title">USB ডিভাইস Linux গেস্টে প্রকাশ করুন</string>
     <string name="settings_usb_guest_subtitle">সংযুক্ত USB ডিভাইসগুলি haven-usb shim-এর মাধ্যমে গেস্ট অ্যাপে পৌঁছাতে দিন। প্রতিটি সংযুক্তিতে সম্মতি চাওয়া হয়।</string>
+    <string name="settings_gps_guest_title">Linux গেস্টে GPS প্রকাশ করুন</string>
+    <string name="settings_gps_guest_subtitle">ফোনের GPS অবস্থান NMEA ডিভাইস হিসেবে গেস্টে স্ট্রিম করুন (haven-gps)। চালু থাকলে গেস্টের যেকোনো প্রসেস অবস্থান পড়তে পারে। প্রতিটি সংযুক্তিতে সম্মতি চাওয়া হয়।</string>
     <string name="settings_proot_install_log_title">PRoot ইনস্টল লগ দেখুন</string>
     <string name="settings_proot_install_log_subtitle">Linux ডিস্ট্রো ইনস্টল থেকে প্রতি-ধাপের ইভেন্ট (issue #162)</string>
     <string name="settings_logcat_capture_title">Logcat ক্যাপচার</string>

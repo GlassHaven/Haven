@@ -305,6 +305,8 @@
 
     <string name="settings_usb_guest_title">将 USB 设备暴露给 Linux 客机</string>
     <string name="settings_usb_guest_subtitle">通过 haven-usb 垫片让已连接的 USB 设备被客机应用访问。每次连接仍需确认。</string>
+    <string name="settings_gps_guest_title">将 GPS 暴露给 Linux 客机</string>
+    <string name="settings_gps_guest_subtitle">将手机的 GPS 位置以 NMEA 设备（haven-gps）形式流式传入客机。开启后客机内任何进程都可读取位置。每次连接仍需确认。</string>
     <string name="settings_proot_install_log_title">查看 PRoot 安装日志</string>
     <string name="settings_proot_install_log_subtitle">Linux 发行版安装的各阶段事件（问题 #162）</string>
     <string name="settings_logcat_capture_title">Logcat 捕获</string>

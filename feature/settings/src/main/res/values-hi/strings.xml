@@ -306,6 +306,8 @@
 
     <string name="settings_usb_guest_title">Linux guest को USB devices expose करें</string>
     <string name="settings_usb_guest_subtitle">haven-usb shim के माध्यम से guest apps को संलग्न USB devices तक पहुँचने दें। प्रत्येक attach पर consent माँगी जाती है।</string>
+    <string name="settings_gps_guest_title">Linux guest को GPS expose करें</string>
+    <string name="settings_gps_guest_subtitle">फ़ोन की GPS location को NMEA device (haven-gps) के रूप में guest में stream करें। चालू होने पर guest की कोई भी process location पढ़ सकती है। प्रत्येक attach पर consent माँगी जाती है।</string>
     <string name="settings_proot_install_log_title">PRoot install log देखें</string>
     <string name="settings_proot_install_log_subtitle">Linux distro installs के चरण-वार events (issue #162)</string>
     <string name="settings_logcat_capture_title">Logcat Capture</string>

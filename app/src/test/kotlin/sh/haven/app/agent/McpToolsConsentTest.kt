@@ -161,6 +161,9 @@ class McpToolsConsentTest {
             // Battery/memory/storage/network/thermal snapshot — the same
             // class of read as get_app_info, no Android permission needed.
             "get_device_state",
+            // Teardown verbs: stopping the GPS→guest bridge (and the USB
+            // proxy's detach_from_guest) only reduces exposure — no consent.
+            "detach_gps_from_guest",
         )) {
             val c = tools.consentFor(name)
                 ?: error("$name not registered")
@@ -226,6 +229,11 @@ class McpToolsConsentTest {
             "read_gps_log",
             "start_ntp_service",
             "stop_ntp_service",
+            // GPS→guest bridge: attach exposes the phone's position to the
+            // guest behind the gps_guest_exposure_enabled master toggle —
+            // one session grant on top, like the USB pair. Detach is the
+            // teardown → NEVER.
+            "attach_gps_to_guest",
         )) {
             val c = tools.consentFor(name)
                 ?: error("$name not registered")

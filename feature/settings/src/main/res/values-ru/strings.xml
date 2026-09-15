@@ -306,6 +306,8 @@
 
     <string name="settings_usb_guest_title">Открыть USB-устройства для Linux-гостя</string>
     <string name="settings_usb_guest_subtitle">Разрешить подключённым USB-устройствам работать с гостевыми приложениями через шим haven-usb. Каждое подключение запрашивает согласие.</string>
+    <string name="settings_gps_guest_title">Открыть GPS для Linux-гостя</string>
+    <string name="settings_gps_guest_subtitle">Передавать GPS-позицию телефона в гостя как NMEA-устройство (haven-gps). После включения любой гостевой процесс может читать позицию. Каждое подключение запрашивает согласие.</string>
     <string name="settings_proot_install_log_title">Просмотр журнала установки PRoot</string>
     <string name="settings_proot_install_log_subtitle">Пофазные события установки дистрибутивов Linux (задача #162)</string>
     <string name="settings_logcat_capture_title">Захват Logcat</string>

@@ -306,6 +306,8 @@
 
     <string name="settings_usb_guest_title">Exposer les périphériques USB au guest Linux</string>
     <string name="settings_usb_guest_subtitle">Permettre aux périphériques USB connectés d\'atteindre les apps du guest via le shim haven-usb. Chaque connexion demande confirmation.</string>
+    <string name="settings_gps_guest_title">Exposer le GPS au guest Linux</string>
+    <string name="settings_gps_guest_subtitle">Diffuser la position GPS du téléphone dans le guest en tant que périphérique NMEA (haven-gps). Une fois activé, tout processus du guest peut lire la position. Chaque connexion demande confirmation.</string>
     <string name="settings_proot_install_log_title">Voir le journal d\'installation PRoot</string>
     <string name="settings_proot_install_log_subtitle">Événements par phase des installations de distros Linux (issue #162)</string>
     <string name="settings_logcat_capture_title">Capture Logcat</string>

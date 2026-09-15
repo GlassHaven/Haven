@@ -306,6 +306,8 @@
 
     <string name="settings_usb_guest_title">USB デバイスを Linux ゲストに公開</string>
     <string name="settings_usb_guest_subtitle">接続した USB デバイスを haven-usb シム経由でゲストアプリから使用できるようにします。各接続には同意が必要です。</string>
+    <string name="settings_gps_guest_title">GPS を Linux ゲストに公開</string>
+    <string name="settings_gps_guest_subtitle">端末の GPS 位置情報を NMEA デバイス (haven-gps) としてゲストへストリームします。有効にするとゲスト内のどのプロセスでも位置情報を読めます。各接続には同意が必要です。</string>
     <string name="settings_proot_install_log_title">PRoot インストールログを表示</string>
     <string name="settings_proot_install_log_subtitle">Linux ディストリビューションインストールのフェーズごとのイベント（issue #162）</string>
     <string name="settings_logcat_capture_title">Logcat キャプチャ</string>

@@ -477,6 +477,9 @@ class SettingsViewModel @Inject constructor(
     val usbGuestExposureEnabled: StateFlow<Boolean> = preferencesRepository.usbGuestExposureEnabled
         .stateIn(viewModelScope, SharingStarted.WhileSubscribed(5000), false)
 
+    val gpsGuestExposureEnabled: StateFlow<Boolean> = preferencesRepository.gpsGuestExposureEnabled
+        .stateIn(viewModelScope, SharingStarted.WhileSubscribed(5000), false)
+
     val remoteClipboardToLocalEnabled: StateFlow<Boolean> = preferencesRepository.remoteClipboardToLocalEnabled
         .stateIn(viewModelScope, SharingStarted.WhileSubscribed(5000), false)
 
@@ -842,6 +845,12 @@ class SettingsViewModel @Inject constructor(
     fun setUsbGuestExposureEnabled(enabled: Boolean) {
         viewModelScope.launch {
             preferencesRepository.setUsbGuestExposureEnabled(enabled)
+        }
+    }
+
+    fun setGpsGuestExposureEnabled(enabled: Boolean) {
+        viewModelScope.launch {
+            preferencesRepository.setGpsGuestExposureEnabled(enabled)
         }
     }
 

@@ -32789,9 +32789,47 @@
      }
     },
     {
+     "name": "settings_gps_guest_title",
+     "en": "Expose GPS to the Linux guest",
+     "comment": "GPS exposure",
+     "args": [],
+     "t": {
+      "ar": "إتاحة GPS لضيف Linux",
+      "bn": "Linux গেস্টে GPS প্রকাশ করুন",
+      "de": "GPS dem Linux-Gast bereitstellen",
+      "es": "Exponer el GPS al invitado Linux",
+      "fr": "Exposer le GPS au guest Linux",
+      "hi": "Linux guest को GPS expose करें",
+      "ja": "GPS を Linux ゲストに公開",
+      "ko": "GPS를 Linux 게스트에 노출",
+      "pt": "Expor o GPS ao convidado Linux",
+      "ru": "Открыть GPS для Linux-гостя",
+      "zh": "将 GPS 暴露给 Linux 客机"
+     }
+    },
+    {
+     "name": "settings_gps_guest_subtitle",
+     "en": "Stream the phone’s GPS position into the guest as an NMEA device (haven-gps). Once on, any guest process can read the position. Each attach still asks for consent.",
+     "comment": "GPS exposure",
+     "args": [],
+     "t": {
+      "ar": "بث موقع GPS للهاتف إلى الضيف كجهاز NMEA (haven-gps). بعد التشغيل يمكن لأي عملية في الضيف قراءة الموقع. كل إرفاق يطلب الموافقة.",
+      "bn": "ফোনের GPS অবস্থান NMEA ডিভাইস হিসেবে গেস্টে স্ট্রিম করুন (haven-gps)। চালু থাকলে গেস্টের যেকোনো প্রসেস অবস্থান পড়তে পারে। প্রতিটি সংযুক্তিতে সম্মতি চাওয়া হয়।",
+      "de": "Die GPS-Position des Telefons als NMEA-Gerät in den Gast streamen (haven-gps). Einmal aktiv kann jeder Gast-Prozess die Position lesen. Jede Verbindung erfordert weiterhin Zustimmung.",
+      "es": "Transmite la posición GPS del teléfono al invitado como dispositivo NMEA (haven-gps). Una vez activado, cualquier proceso del invitado puede leer la posición. Cada conexión sigue solicitando consentimiento.",
+      "fr": "Diffuser la position GPS du téléphone dans le guest en tant que périphérique NMEA (haven-gps). Une fois activé, tout processus du guest peut lire la position. Chaque connexion demande confirmation.",
+      "hi": "फ़ोन की GPS location को NMEA device (haven-gps) के रूप में guest में stream करें। चालू होने पर guest की कोई भी process location पढ़ सकती है। प्रत्येक attach पर consent माँगी जाती है।",
+      "ja": "端末の GPS 位置情報を NMEA デバイス (haven-gps) としてゲストへストリームします。有効にするとゲスト内のどのプロセスでも位置情報を読めます。各接続には同意が必要です。",
+      "ko": "휴대폰의 GPS 위치를 NMEA 장치(haven-gps)로 게스트에 스트리밍합니다. 켜면 게스트의 모든 프로세스가 위치를 읽을 수 있습니다. 각 연결 시 동의가 필요합니다.",
+      "pt": "Transmite a posição GPS do telefone para o convidado como dispositivo NMEA (haven-gps). Uma vez ativado, qualquer processo convidado pode ler a posição. Cada conexão ainda solicita consentimento.",
+      "ru": "Передавать GPS-позицию телефона в гостя как NMEA-устройство (haven-gps). После включения любой гостевой процесс может читать позицию. Каждое подключение запрашивает согласие.",
+      "zh": "将手机的 GPS 位置以 NMEA 设备（haven-gps）形式流式传入客机。开启后客机内任何进程都可读取位置。每次连接仍需确认。"
+     }
+    },
+    {
      "name": "settings_audio_bridge_title",
      "en": "Proot audio (experimental)",
-     "comment": "USB exposure",
+     "comment": "GPS exposure",
      "args": [],
      "t": {
       "ar": "صوت proot (تجريبي)",
@@ -32811,7 +32849,7 @@
     {
      "name": "settings_audio_bridge_subtitle",
      "en": "Play sound from Linux apps through the device speaker via an in-guest PulseAudio bridge. Output only. Streams continuously while on — turn off when not in use.",
-     "comment": "USB exposure",
+     "comment": "GPS exposure",
      "args": [],
      "t": {
       "ar": "تشغيل الصوت من تطبيقات Linux عبر مكبّر صوت الجهاز من خلال جسر PulseAudio داخل الضيف. إخراج فقط. يبث باستمرار أثناء تفعيله — أوقفه عند عدم الاستخدام.",

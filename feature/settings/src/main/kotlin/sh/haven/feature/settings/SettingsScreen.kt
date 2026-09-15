@@ -59,6 +59,7 @@ import androidx.compose.material.icons.filled.LockReset
 import androidx.compose.material.icons.filled.SwapVert
 import androidx.compose.material.icons.filled.Reorder
 import androidx.compose.material.icons.filled.Usb
+import androidx.compose.material.icons.filled.LocationOn
 import androidx.compose.material.icons.filled.VolumeUp
 import androidx.compose.material.icons.filled.ListAlt
 import androidx.compose.material.icons.filled.Label
@@ -850,6 +851,17 @@ fun SettingsScreen(
             subtitle = stringResource(R.string.settings_usb_guest_subtitle),
             checked = usbGuestExposure,
             onCheckedChange = viewModel::setUsbGuestExposureEnabled,
+        )
+        // GPS-to-guest mirrors the USB toggle: once on, any process in the
+        // Linux guest can read the phone's GPS position via the NMEA bridge.
+        // Off by default; each attach still asks for consent on top of this.
+        val gpsGuestExposure by viewModel.gpsGuestExposureEnabled.collectAsState()
+        SettingsToggleItem(
+            icon = Icons.Filled.LocationOn,
+            title = stringResource(R.string.settings_gps_guest_title),
+            subtitle = stringResource(R.string.settings_gps_guest_subtitle),
+            checked = gpsGuestExposure,
+            onCheckedChange = viewModel::setGpsGuestExposureEnabled,
         )
 
         // Audio bridge (#257): play Linux app sound through the speaker via an

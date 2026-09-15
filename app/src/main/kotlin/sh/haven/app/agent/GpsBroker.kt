@@ -54,7 +54,7 @@ internal object GpsBroker {
 
     private const val TAG = "HavenGps"
 
-    enum class Consumer { PRECISE, LOG, NTP }
+    enum class Consumer { PRECISE, LOG, NTP, GUEST }
 
     private var appContext: Context? = null
     private var lm: LocationManager? = null
@@ -107,10 +107,14 @@ internal object GpsBroker {
     // --- ntp state ---
     private var ntpServer: SntpServer? = null
 
+    // --- guest bridge state ---
+    private var guestServer: GpsGuestServer? = null
+
     // --- thread-safe state probes ---
 
     val isLogging: Boolean get() = logWriter != null
     val isNtpRunning: Boolean get() = ntpServer != null
+    val isGuestBridgeRunning: Boolean get() = guestServer != null
     val isSessionActive: Boolean get() = consumers.isNotEmpty()
     val loggingId: String? get() = logId
 
@@ -158,6 +162,7 @@ internal object GpsBroker {
             })
         }
         ntpServer?.let { out.put("ntp", ntpJson(it)) }
+        guestServer?.let { out.put("guestBridge", guestBridgeJson(it)) }
         return out
     }
 
@@ -323,6 +328,9 @@ internal object GpsBroker {
             val utcMs = GpsDiscipliner.parseRmcUtcMs(sentence)
             if (utcMs > 0) discipliner.onNmeaUtc(utcMs, SystemClock.elapsedRealtimeNanos())
         }
+        // Guest bridge: every sentence streams to connected readers. publish
+        // is non-blocking (drop-on-full), safe on this GNSS HandlerThread.
+        guestServer?.publish(sentence)
     }
 
     private fun onMeasurements(event: GnssMeasurementsEvent) {
@@ -645,6 +653,39 @@ internal object GpsBroker {
         s.lastClient?.let { put("lastClient", it) }
     }
 
+    // --- guest device bridge ---
+
+    fun startGuestBridge(context: Context): JSONObject = synchronized(lock) {
+        guestServer?.let { existing ->
+            return JSONObject().put("alreadyRunning", true).merge(guestBridgeJson(existing))
+        }
+        ensureEngine(context)
+        val server = GpsGuestServer()
+        server.start()
+        // The bridge needs an NMEA session; without a fix in view the stream
+        // is silent, which is what the reader sees (a GPS with no sky view).
+        acquire(context, Consumer.GUEST, GpsGuestServer.GUEST_SESSION_INTERVAL_MS)
+        guestServer = server
+        JSONObject().put("attached", true).merge(guestBridgeJson(server))
+    }
+
+    fun stopGuestBridge(): JSONObject = synchronized(lock) {
+        val s = guestServer
+        if (s == null) return JSONObject().put("detached", false).put("reason", "not running")
+        s.stop()
+        guestServer = null
+        release(Consumer.GUEST)
+        JSONObject().put("detached", true).put("sentences", s.sentencesTotal.get())
+    }
+
+    private fun guestBridgeJson(s: GpsGuestServer): JSONObject = JSONObject().apply {
+        put("socketName", GpsGuestServer.SOCKET_NAME)
+        put("socketNamespace", "abstract")
+        put("readers", s.clientCount)
+        put("sentences", s.sentencesTotal.get())
+        put("dropped", s.droppedTotal)
+    }
+
     // --- foreground service bridge (called by GpsLogService) ---
 
     /** [GpsLogService.onStartCommand]: paint the FGS notification. */
@@ -660,6 +701,7 @@ internal object GpsBroker {
         val parts = mutableListOf<String>()
         if (isLogging) parts += "${logFixes} fixes logged"
         ntpServer?.let { parts += "NTP :${it.port}" }
+        guestServer?.let { parts += "GPS→guest (${it.clientCount} readers)" }
         discipliner.now()?.let { parts += "±${round(it.uncertaintyMs, 1)} ms GPS time" }
         return parts.joinToString("; ").ifEmpty { "starting…" }
     }

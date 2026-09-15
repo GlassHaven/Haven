@@ -6,7 +6,7 @@ require (
 	github.com/ProtonMail/gopenpgp/v3 v3.4.1
 	github.com/rclone/go-proton-api v1.0.4
 	github.com/rclone/rclone v1.75.1
-	golang.org/x/crypto v0.56.0
+	golang.org/x/crypto v0.57.0
 	golang.zx2c4.com/wireguard v0.0.0-20260522210424-ecfc5a8d5446
 	tailscale.com v1.102.3
 )
@@ -69,9 +69,8 @@ require (
 	github.com/zcalusic/sysinfo v1.1.3 // indirect
 	go.uber.org/multierr v1.11.0 // indirect
 	go.uber.org/zap v1.27.0 // indirect
-	golang.org/x/mobile v0.0.0-20260709172247-6129f5bee9d5 // indirect
-	golang.org/x/mod v0.38.0 // indirect
-	golang.org/x/tools v0.48.0 // indirect
+	golang.org/x/mod v0.41.0 // indirect
+	golang.org/x/tools v0.49.0 // indirect
 	golang.zx2c4.com/wireguard/wgctrl v0.0.0-20241231184526-a9ab2273dd10 // indirect
 	google.golang.org/genproto/googleapis/api v0.0.0-20260706201446-f0a921348800 // indirect
 	howett.net/plist v1.0.2-0.20250314012144-ee69052608d9 // indirect
@@ -304,12 +303,12 @@ require (
 	go4.org/netipx v0.0.0-20231129151722-fdeea329fbba // indirect
 	golang.org/x/exp v0.0.0-20260709172345-9ea1abe57597 // indirect
 	golang.org/x/image v0.45.0 // indirect
-	golang.org/x/net v0.57.0 // indirect
+	golang.org/x/net v0.58.0 // indirect
 	golang.org/x/oauth2 v0.36.0 // indirect
-	golang.org/x/sync v0.22.0 // indirect
-	golang.org/x/sys v0.47.0 // indirect
-	golang.org/x/term v0.45.0 // indirect
-	golang.org/x/text v0.41.0 // indirect
+	golang.org/x/sync v0.23.0 // indirect
+	golang.org/x/sys v0.48.0 // indirect
+	golang.org/x/term v0.46.0 // indirect
+	golang.org/x/text v0.42.0 // indirect
 	golang.org/x/time v0.15.0 // indirect
 	golang.zx2c4.com/wintun v0.0.0-20230126152724-0fa3db229ce2 // indirect
 	golang.zx2c4.com/wireguard/windows v0.5.3 // indirect

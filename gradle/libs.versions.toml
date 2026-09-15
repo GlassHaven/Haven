@@ -1,5 +1,5 @@
 [versions]
-kotlin = "2.4.10"
+kotlin = "2.4.20"
 agp = "9.2.1"
 compose-bom = "2026.08.00"
 hilt = "2.60.1"

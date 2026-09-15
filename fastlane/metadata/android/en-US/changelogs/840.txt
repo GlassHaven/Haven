@@ -1,5 +1,0 @@
-v3.0.1
-- Desktop environment picker: Xfce4 (full) or Openbox (minimal, ~10MB)
-- Fix pinch-to-zoom dropping VNC session mid-gesture
-- Smooth two-finger pan when zoomed in
-- Disable tab swiping while VNC/RDP is connected

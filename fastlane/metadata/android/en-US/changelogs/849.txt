@@ -1,2 +1,0 @@
-- New: USB card rescue console. Open a failing SD card directly from Desktop > Manage > "Open USB card directly (rescue console)". The raw card is served over NBD to the Linux guest, which attaches it as /dev/nbd0 and prints the ddrescue/mdir command lines. Read-only by default; rescued images are written to Haven's uml/share app folder.
-- Mosh sessions that die on their own now write their transport trace into the connection log (#421). Previously the trace was only captured on a manual disconnect, so after an auto-recovery the freeze window was lost.

@@ -1,4 +1,0 @@
-v3.0.2
-- Long-press on VNC desktop sends right-click (opens Openbox menu)
-- Drop tint2 panel from Openbox (incompatible with PRoot)
-- Openbox description notes right-click for app menu

@@ -172,9 +172,13 @@ fun SettingsScreen(
 ) {
     val biometricEnabled by viewModel.biometricEnabled.collectAsState()
     val credentialKeystore by viewModel.credentialKeystore.collectAsState()
+    val sshKeyKeystore by viewModel.sshKeyKeystore.collectAsState()
     // Probed on entry rather than continuously: the answer only changes
     // when the device's Keystore state does, which is not a per-frame event.
-    LaunchedEffect(Unit) { viewModel.refreshCredentialKeystore() }
+    LaunchedEffect(Unit) {
+        viewModel.refreshCredentialKeystore()
+        viewModel.refreshSshKeyKeystore()
+    }
     val screenSecurity by viewModel.screenSecurity.collectAsState()
     val updateCheckEnabled by viewModel.updateCheckEnabled.collectAsState()
     val updateCheckResult by viewModel.updateCheckResult.collectAsState()
@@ -278,6 +282,7 @@ fun SettingsScreen(
     var showBackupSyncDialog by remember { mutableStateOf(false) }
     var showLockTimeoutDialog by remember { mutableStateOf(false) }
     var showCredentialResetDialog by remember { mutableStateOf(false) }
+    var showSshKeyResetDialog by remember { mutableStateOf(false) }
     var showOsc133SetupDialog by remember { mutableStateOf(false) }
     LaunchedEffect(Unit) {
         viewModel.openBackupPasswordDialogEvent.collect {
@@ -488,6 +493,14 @@ fun SettingsScreen(
         // not something to leave lying about in Settings on a healthy device,
         // and on a TRANSIENT failure the credentials are still recoverable —
         // offering the button then would be the thing that loses them.
+        if (sshKeyKeystore == CredentialEncryption.Failure.PERMANENT) {
+            SettingsItem(
+                icon = Icons.Filled.Warning,
+                title = stringResource(R.string.settings_sshkey_keystore_broken_title),
+                subtitle = stringResource(R.string.settings_sshkey_keystore_broken_subtitle),
+                onClick = { showSshKeyResetDialog = true },
+            )
+        }
         if (credentialKeystore == CredentialEncryption.Failure.PERMANENT) {
             SettingsItem(
                 icon = Icons.Filled.Warning,
@@ -1835,6 +1848,28 @@ fun SettingsScreen(
             },
             dismissButton = {
                 TextButton(onClick = { showCredentialResetDialog = false }) {
+                    Text(stringResource(R.string.settings_credential_reset_cancel))
+                }
+            },
+        )
+    }
+
+    if (showSshKeyResetDialog) {
+        AlertDialog(
+            onDismissRequest = { showSshKeyResetDialog = false },
+            icon = { Icon(Icons.Filled.Warning, contentDescription = null) },
+            title = { Text(stringResource(R.string.settings_sshkey_reset_title)) },
+            text = { Text(stringResource(R.string.settings_sshkey_reset_body)) },
+            confirmButton = {
+                TextButton(onClick = {
+                    showSshKeyResetDialog = false
+                    viewModel.resetSshKeyStorage()
+                }) {
+                    Text(stringResource(R.string.settings_sshkey_reset_confirm))
+                }
+            },
+            dismissButton = {
+                TextButton(onClick = { showSshKeyResetDialog = false }) {
                     Text(stringResource(R.string.settings_credential_reset_cancel))
                 }
             },

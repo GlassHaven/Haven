@@ -8,6 +8,7 @@ import dagger.hilt.android.lifecycle.HiltViewModel
 import android.util.Log
 import dagger.hilt.android.qualifiers.ApplicationContext
 import sh.haven.core.security.CredentialEncryption
+import sh.haven.core.security.KeyEncryption
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.SharingStarted
 import kotlinx.coroutines.flow.StateFlow
@@ -89,6 +90,48 @@ class SettingsViewModel @Inject constructor(
      * that loses them. The UI does not offer the button in that state either,
      * so this is the second of two locks on the same door.
      */
+    /**
+     * Whether the Keystore can still serve Haven's SSH-key master key (#655).
+     *
+     * Separate from [credentialKeystore] because it is a separate keyset: a
+     * channel switch (F-Droid to a GitHub release, or the reverse) discards the
+     * Keystore entries under the old signature, and the two keys can land on
+     * different sides of that depending on when each was created. Losing the
+     * stored keys is Android's doing and unrecoverable; what must not follow is
+     * that generating a *new* key also fails — it writes through the same dead
+     * AEAD — so this drives the repair that clears the keyset.
+     */
+    private val _sshKeyKeystore =
+        MutableStateFlow(CredentialEncryption.Failure.NONE)
+    val sshKeyKeystore: StateFlow<CredentialEncryption.Failure> =
+        _sshKeyKeystore.asStateFlow()
+
+    fun refreshSshKeyKeystore() {
+        viewModelScope.launch(Dispatchers.IO) {
+            val result = KeyEncryption.probe(appContext)
+            _sshKeyKeystore.value = result
+            Log.i(KEYSTORE_TAG, "ssh-key keystore probe -> $result")
+        }
+    }
+
+    /**
+     * Drop the unusable SSH-key master key so new keys can be generated (#655).
+     * Guarded on PERMANENT for the same reason as [resetCredentialStorage]: on a
+     * transient failure the keys are still recoverable once the device is
+     * unlocked, and wiping then would be the thing that loses them.
+     */
+    fun resetSshKeyStorage() {
+        viewModelScope.launch(Dispatchers.IO) {
+            if (_sshKeyKeystore.value != CredentialEncryption.Failure.PERMANENT) {
+                Log.w(KEYSTORE_TAG, "ssh-key reset refused: keystore is ${_sshKeyKeystore.value}, not PERMANENT")
+                return@launch
+            }
+            KeyEncryption.resetSshKeyStorage(appContext)
+            _sshKeyKeystore.value = KeyEncryption.probe(appContext)
+            Log.i(KEYSTORE_TAG, "ssh-key storage reset; keystore now ${_sshKeyKeystore.value}")
+        }
+    }
+
     fun resetCredentialStorage() {
         viewModelScope.launch(Dispatchers.IO) {
             if (_credentialKeystore.value != CredentialEncryption.Failure.PERMANENT) {

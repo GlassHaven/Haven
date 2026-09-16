@@ -52,6 +52,53 @@ object KeyEncryption {
     }
 
     /**
+     * Is the SSH-key master key usable right now? (#655)
+     *
+     * This keyset is separate from [CredentialEncryption]'s, so it fails
+     * separately: switching install channels (F-Droid to a GitHub release, or
+     * the reverse) replaces the APK signature, and Android discards the Keystore
+     * entries belonging to the old signature. The master key
+     * `haven_ssh_key_master` goes with it while the keyset prefs survive, so
+     * every stored private key becomes undecryptable and — the part that reads
+     * as a bug — generating a new key fails too, because generation writes
+     * through the same broken AEAD. [resetSshKeyStorage] is the way back.
+     */
+    fun probe(context: Context): CredentialEncryption.Failure =
+        CredentialEncryption.probeFailure { getAead(context) }
+
+    /**
+     * Drop the SSH-key master key and its keyset so the next call regenerates
+     * both (#655).
+     *
+     * **This makes every stored private key permanently unreadable** — they were
+     * already unreadable, which is what got us here — and unblocks key
+     * generation, which is the point. Mirrors
+     * [CredentialEncryption.resetCredentialStorage] including the ordering:
+     * keyset first, so a crash between the two leaves the state we know how to
+     * recover from rather than a fresh master key over an old keyset.
+     *
+     * Not called automatically. It destroys the user's keys, so it is their
+     * decision, and it is only offered on a PERMANENT failure — on a transient
+     * one (locked device) the keys are still recoverable.
+     */
+    fun resetSshKeyStorage(context: Context) {
+        synchronized(this) {
+            aead = null
+            runCatching {
+                context.getSharedPreferences(PREFERENCE_FILE, Context.MODE_PRIVATE)
+                    .edit()
+                    .remove(KEYSET_NAME)
+                    .commit()
+            }
+            runCatching {
+                val ks = java.security.KeyStore.getInstance("AndroidKeyStore")
+                ks.load(null)
+                if (ks.containsAlias("haven_ssh_key_master")) ks.deleteEntry("haven_ssh_key_master")
+            }
+        }
+    }
+
+    /**
      * Check if bytes look like they're already encrypted (Tink ciphertext).
      * Tink AEAD ciphertext starts with a version byte (0x01) followed by a 4-byte key ID.
      * Plain PEM/OpenSSH keys start with '-' (0x2D) or raw DER starts with 0x30.

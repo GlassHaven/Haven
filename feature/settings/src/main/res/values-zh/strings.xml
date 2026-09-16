@@ -495,4 +495,11 @@
     <string name="settings_update_check_up_to_date">已是最新版本 %1$s</string>
     <string name="settings_update_check_failed">检查失败：%1$s</string>
     <string name="settings_update_check_other_channel">这个副本不是从 GitHub 发行版安装的，发行版的下载无法覆盖安装它。请通过你安装 Haven 的渠道更新。</string>
+    <string name="settings_sshkey_keystore_broken_title">SSH 密钥存储不可用</string>
+    <string name="settings_sshkey_keystore_broken_subtitle">此设备的密钥库丢失了 Haven 的 SSH 密钥。已存储的私钥无法读取，也无法生成新密钥。轻按以修复。</string>
+    <string name="settings_sshkey_reset_title">修复 SSH 密钥存储？</string>
+    <string name="settings_sshkey_reset_body">这会创建一个新密钥，以便再次生成 SSH 密钥。
+
+Haven 中已存储的每一个私钥都需要重新导入或生成。它们已经无法读取 — 保护它们的密钥已丢失，通常是因为应用程序从不同来源重新安装过 — 因此这是恢复应用程序，而不会再丢失更多。</string>
+    <string name="settings_sshkey_reset_confirm">修复</string>
 </resources>

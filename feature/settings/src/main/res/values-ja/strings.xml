@@ -496,4 +496,11 @@
     <string name="settings_update_check_up_to_date">最新です（%1$s）</string>
     <string name="settings_update_check_failed">確認に失敗しました: %1$s</string>
     <string name="settings_update_check_other_channel">このコピーは GitHub リリースからインストールされていないため、リリースをダウンロードしても上書きインストールできません。Haven を入手した場所から更新してください。</string>
+    <string name="settings_sshkey_keystore_broken_title">SSHキーの保存が利用できません</string>
+    <string name="settings_sshkey_keystore_broken_subtitle">このデバイスのキーストアが Haven の SSH キーを失いました。保存された秘密鍶は読み込めず、新しいものも生成できません。タップして修復します。</string>
+    <string name="settings_sshkey_reset_title">SSHキーの保存を修復しますか?</string>
+    <string name="settings_sshkey_reset_body">これにより新しいキーが作成され、SSHキーを再び生成できるようになります。
+
+Haven にすでに保存されているすべての秘密鍶は、再びインポートまたは生成し直す必要があります。それらはすでに読み取れません — それらを保護していたキーは失われており、通常はアプリを別のソースから再インストールしたためです — したがって、これはこれ以上何かを失うのではなくアプリを回復します。</string>
+    <string name="settings_sshkey_reset_confirm">修復</string>
 </resources>

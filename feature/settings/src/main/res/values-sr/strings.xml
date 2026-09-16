@@ -429,4 +429,11 @@
     <string name="settings_credential_reset_body">Ово креира нови кључ акредитива тако да лозинке поново могу да се сачувају. Свака лозинка, приступна реченица и тајна која је већ сачувана у апликацији Haven ће морати поново да се унесе. Оне већ не могу да се прочитају — кључ који их је штитио је нестао — тако да ово опоравља апликацију, а не спречава неки даљи губитак.</string>
     <string name="settings_credential_reset_confirm">Поправи</string>
     <string name="settings_credential_reset_cancel">Откажи</string>
+    <string name="settings_sshkey_keystore_broken_title">Складиште SSH кључева недоступно</string>
+    <string name="settings_sshkey_keystore_broken_subtitle">Кејстор овог уређаја је изгубио Haven-ов SSH кључ. Сачувани приватни кључеви се не могу прочитати, а нови се не могу генерисати. Додирните за поправку.</string>
+    <string name="settings_sshkey_reset_title">Поправити складиште SSH кључева?</string>
+    <string name="settings_sshkey_reset_body">Ово прави нови кључ како би SSH кључеви поново могли да се генеришу.
+
+Сваки приватни кључ већ сачуван у Haven-у мораће поново да се увезе или генерише. Већ су нечитљиви — кључ који их је штитио је изгубљен, обично зато што је апликација поново инсталирана из другог извора — дакле ово враћа апликацију уместо да изгуби било шта даље.</string>
+    <string name="settings_sshkey_reset_confirm">Поправи</string>
 </resources>

@@ -497,4 +497,11 @@
     <string name="settings_update_check_up_to_date">%1$s-এ হালনাগাদ</string>
     <string name="settings_update_check_failed">যাচাই ব্যর্থ: %1$s</string>
     <string name="settings_update_check_other_channel">এই কপিটি GitHub রিলিজ থেকে ইনস্টল হয়নি, তাই রিলিজ ডাউনলোড এটি প্রতিস্থাপন করতে পারবে না। যেখান থেকে Haven ইনস্টল করেছিলেন সেখান থেকেই আপডেট করুন।</string>
+    <string name="settings_sshkey_keystore_broken_title">SSH কী সংরক্ষণ অুপলব্য নয়</string>
+    <string name="settings_sshkey_keystore_broken_subtitle">এই ডিভাইসের কিস্টোর Haven-এর SSH কী হারিয়েছে। সংরক্ষিত ব্যক্তিগত কীসমূহ পড়া জায় না এবং নতুন তৈরি করা যায় না। মারামতে ট্যাপ করুন।</string>
+    <string name="settings_sshkey_reset_title">SSH কী সংরক্ষণ মারামত করবেন?</string>
+    <string name="settings_sshkey_reset_body">এটি একটি নতুন কী তৈরি করে যাতে SSH কীসমূহ আবার তৈরি করা যায়।
+
+Haven-এ ইম্মদ্য সংরক্ষিত প্রত্যেক ব্যক্তিগত কী আবার আমদানি করা বা তৈরি করতে হবে। এগুলো ইম্মদ্য পড়া যাচ্ছে — যে কী তাদের রক্ষা করত তা হারিয়েছে, সাধারণত কারণ অ্যাটি অন্য উৎস থেকে পুনরায় ইনস্টোল করা হয়েছিল — তাই এটি আরও কিছু হারানোর পরিবর্তে অ্যাটি পুনরুদ্ধার করে।</string>
+    <string name="settings_sshkey_reset_confirm">মারামত</string>
 </resources>

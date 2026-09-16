@@ -497,4 +497,11 @@
     <string name="settings_update_check_up_to_date">À jour en %1$s</string>
     <string name="settings_update_check_failed">Échec de la vérification : %1$s</string>
     <string name="settings_update_check_other_channel">Cette copie n\'a pas été installée depuis une version GitHub ; un téléchargement depuis GitHub ne peut donc pas la remplacer. Mettez à jour là où vous avez installé Haven.</string>
+    <string name="settings_sshkey_keystore_broken_title">Stockage des clés SSH indisponible</string>
+    <string name="settings_sshkey_keystore_broken_subtitle">Le trousseau de cet appareil a perdu la clé SSH de Haven. Les clés privées stockées ne peuvent pas être lues et de nouvelles ne peuvent pas être générées. Touchez pour réparer.</string>
+    <string name="settings_sshkey_reset_title">Réparer le stockage des clés SSH  ?</string>
+    <string name="settings_sshkey_reset_body">Cela crée une nouvelle clé afin que des clés SSH puissent être générées à nouveau.
+
+Chaque clé privée déjà stockée dans Haven devra être importée ou générée à nouveau. Elles sont déjà illisibles — la clé qui les protégeait est perdue, généralement parce que l’application a été réinstallée depuis une source différente — cela répare donc l’application au lieu de perdre davantage.</string>
+    <string name="settings_sshkey_reset_confirm">Réparer</string>
 </resources>

@@ -499,4 +499,11 @@
     <string name="settings_update_check_up_to_date">Установлена последняя версия %1$s</string>
     <string name="settings_update_check_failed">Не удалось проверить: %1$s</string>
     <string name="settings_update_check_other_channel">Эта копия установлена не из выпуска на GitHub, поэтому загрузка с GitHub её не заменит. Обновляйтесь там, где вы установили Haven.</string>
+    <string name="settings_sshkey_keystore_broken_title">Хранилище SSH-ключей недоступно</string>
+    <string name="settings_sshkey_keystore_broken_subtitle">Хранилище ключей этого устройства потеряло SSH-ключ Haven. Сохранённые закрытые ключи нельзя прочитать, а новые нельзя создать. Нажмите, чтобы восстановить.</string>
+    <string name="settings_sshkey_reset_title">Восстановить хранилище SSH-ключей?</string>
+    <string name="settings_sshkey_reset_body">Это создаст новый ключ, чтобы SSH-ключи можно было создавать снова.
+
+Каждый закрытый ключ, уже сохранённый в Haven, потребуется импортировать или создать заново. Они уже нечитаемы — ключ, который их защищал, утерян, обычно потому что приложение было переустановлено из другого источника — поэтому это восстанавливает приложение, а не приводит к новым потерям.</string>
+    <string name="settings_sshkey_reset_confirm">Восстановить</string>
 </resources>

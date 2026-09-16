@@ -536,4 +536,14 @@
 Every password, passphrase and secret already stored in Haven will need to be entered again. They are already unreadable — the key that protected them is gone — so this recovers the app rather than losing anything further.</string>
     <string name="settings_credential_reset_confirm">Repair</string>
     <string name="settings_credential_reset_cancel">Cancel</string>
+    <!-- #655: shown only when the Keystore has permanently lost Haven's SSH-key
+         master key (typically after switching install channels). The stored keys
+         are already unreadable; repair clears the keyset so new ones can be made. -->
+    <string name="settings_sshkey_keystore_broken_title">SSH key storage unavailable</string>
+    <string name="settings_sshkey_keystore_broken_subtitle">This device\'s keystore lost Haven\'s SSH key. Stored private keys cannot be read and new ones cannot be generated. Tap to repair.</string>
+    <string name="settings_sshkey_reset_title">Repair SSH key storage?</string>
+    <string name="settings_sshkey_reset_body">This creates a new key so SSH keys can be generated again.
+
+Every private key already stored in Haven will need to be imported or generated again. They are already unreadable — the key that protected them is gone, usually because the app was reinstalled from a different source — so this recovers the app rather than losing anything further.</string>
+    <string name="settings_sshkey_reset_confirm">Repair</string>
 </resources>

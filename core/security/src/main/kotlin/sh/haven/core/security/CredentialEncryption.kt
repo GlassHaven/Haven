@@ -241,8 +241,16 @@ object CredentialEncryption {
      * [resetCredentialStorage] is the answer.
      */
     fun probe(context: Context): Failure =
+        probeFailure { getAead(context) }
+
+    /**
+     * Map the outcome of touching a Keystore-backed primitive onto a [Failure].
+     * Shared with [KeyEncryption], which keeps its own master key and needs the
+     * same reading of the same exceptions (#655).
+     */
+    internal fun <T> probeFailure(load: () -> T): Failure =
         try {
-            getAead(context)
+            load()
             Failure.NONE
         } catch (e: KeystoreUnavailableException) {
             if (e.permanent) Failure.PERMANENT else Failure.TRANSIENT

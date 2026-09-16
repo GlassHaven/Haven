@@ -497,4 +497,11 @@
     <string name="settings_update_check_up_to_date">%1$s पर अद्यतित</string>
     <string name="settings_update_check_failed">जाँच विफल: %1$s</string>
     <string name="settings_update_check_other_channel">यह प्रति GitHub रिलीज़ से इंस्टॉल नहीं हुई थी, इसलिए रिलीज़ डाउनलोड इसे बदल नहीं सकता। जहाँ से Haven इंस्टॉल किया था वहीं से अपडेट करें।</string>
+    <string name="settings_sshkey_keystore_broken_title">SSH कुंजी भंडारण अनुपलब्ध</string>
+    <string name="settings_sshkey_keystore_broken_subtitle">इस डिवाइस के कीस्टोर ने Haven की SSH कुंजी खो दी। संग्रहीत निजी कुंजियाँ पढ़ी नहीं जा सकतीं और नई नहीं बनाई जा सकतीं। मरममत के लिए टैप करें।</string>
+    <string name="settings_sshkey_reset_title">SSH कुंजी भंडारण मरममत करें?</string>
+    <string name="settings_sshkey_reset_body">यह एक नई कुंजी बनाता है ताकि SSH कुंजियाँ फिर से बनाई जा सकें।
+
+Haven में पहले से संग्रहीत प्रत्येक निजी कुंजी को फिर से आयात या उत्पन्न करना होगा। वे पहले से अपठनीय हैं — उन्हें सुरक्षित रखने वाली कुंजी खो गई है, आमतः तब जब ऐप को किसी स्रोत से पुनः इंस्टॉल किया गया था — इसलिए यह आगे से कुछ भी खोने के बजाय आप को पुनर्प्राप्त करता है।</string>
+    <string name="settings_sshkey_reset_confirm">मरममत करें</string>
 </resources>

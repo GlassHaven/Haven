@@ -497,4 +497,11 @@
     <string name="settings_update_check_up_to_date">Atualizado na %1$s</string>
     <string name="settings_update_check_failed">Falha na verificação: %1$s</string>
     <string name="settings_update_check_other_channel">Esta cópia não foi instalada a partir de uma versão do GitHub, então baixar a versão não pode substituí-la. Atualize por onde você instalou o Haven.</string>
+    <string name="settings_sshkey_keystore_broken_title">Armazenamento de chaves SSH indisponível</string>
+    <string name="settings_sshkey_keystore_broken_subtitle">O chaveiro deste dispositivo perdeu a chave SSH do Haven. As chaves privadas armazenadas não podem ser lidas e novas não podem ser geradas. Toque para reparar.</string>
+    <string name="settings_sshkey_reset_title">Reparar o armazenamento de chaves SSH?</string>
+    <string name="settings_sshkey_reset_body">Isto cria uma nova chave para que chaves SSH possam ser geradas novamente.
+
+Cada chave privada já armazenada no Haven precisará ser importada ou gerada novamente. Elas já estão ilegíveis — a chave que as protegia foi perdida, geralmente porque o aplicativo foi reinstalado de uma fonte diferente — portanto isto recupera o aplicativo em vez de perder mais alguma coisa.</string>
+    <string name="settings_sshkey_reset_confirm">Reparar</string>
 </resources>

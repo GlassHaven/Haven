@@ -36192,6 +36192,106 @@
       "sr": "Откажи",
       "zh": "取消"
      }
+    },
+    {
+     "name": "settings_sshkey_keystore_broken_title",
+     "en": "SSH key storage unavailable",
+     "comment": "#655: shown only when the Keystore has permanently lost Haven's SSH-key master key (typically after switching install channels). The stored keys are already unreadable; repair clears the keyset so new ones can be made.",
+     "args": [],
+     "t": {
+      "ar": "تخزين مفاتيح SSH غير متاح",
+      "bn": "SSH কী সংরক্ষণ অুপলব্য নয়",
+      "de": "SSH-Key-Speicher nicht verfügbar",
+      "es": "Almacenamiento de claves SSH no disponible",
+      "fr": "Stockage des clés SSH indisponible",
+      "hi": "SSH कुंजी भंडारण अनुपलब्ध",
+      "ja": "SSHキーの保存が利用できません",
+      "ko": "SSH 키 저장소를 사용할 수 없음",
+      "pt": "Armazenamento de chaves SSH indisponível",
+      "ru": "Хранилище SSH-ключей недоступно",
+      "sr": "Складиште SSH кључева недоступно",
+      "zh": "SSH 密钥存储不可用"
+     }
+    },
+    {
+     "name": "settings_sshkey_keystore_broken_subtitle",
+     "en": "This device\\'s keystore lost Haven\\'s SSH key. Stored private keys cannot be read and new ones cannot be generated. Tap to repair.",
+     "comment": "#655: shown only when the Keystore has permanently lost Haven's SSH-key master key (typically after switching install channels). The stored keys are already unreadable; repair clears the keyset so new ones can be made.",
+     "args": [],
+     "t": {
+      "ar": "فقد مخزن المفاتيح في هذا الجهاز مفتاح SSH الخاص ب‎Haven. لا يمكن قراءة المفاتيح الخاصة المخزّنة ولا يمكن إنشاء مفاتيح جديدة. المس للإصلاح.",
+      "bn": "এই ডিভাইসের কিস্টোর Haven-এর SSH কী হারিয়েছে। সংরক্ষিত ব্যক্তিগত কীসমূহ পড়া জায় না এবং নতুন তৈরি করা যায় না। মারামতে ট্যাপ করুন।",
+      "de": "Der Schlüsselbund dieses Geräts hat Havens SSH-Schlüssel verloren. Gespeicherte private Schlüssel können nicht gelesen und keine neuen erzeugt werden. Zum Reparieren tippen.",
+      "es": "El llavero de este dispositivo perdió la clave SSH de Haven. Las claves privadas almacenadas no se pueden leer y no se pueden generar nuevas. Toque para reparar.",
+      "fr": "Le trousseau de cet appareil a perdu la clé SSH de Haven. Les clés privées stockées ne peuvent pas être lues et de nouvelles ne peuvent pas être générées. Touchez pour réparer.",
+      "hi": "इस डिवाइस के कीस्टोर ने Haven की SSH कुंजी खो दी। संग्रहीत निजी कुंजियाँ पढ़ी नहीं जा सकतीं और नई नहीं बनाई जा सकतीं। मरममत के लिए टैप करें।",
+      "ja": "このデバイスのキーストアが Haven の SSH キーを失いました。保存された秘密鍶は読み込めず、新しいものも生成できません。タップして修復します。",
+      "ko": "이 기기의 키스토어가 Haven의 SSH 키를 잃어버렸습니다. 저장된 개인 키를 읽을 수 없으며 새 키도 생성할 수 없습니다. 탭하여 복구합니다.",
+      "pt": "O chaveiro deste dispositivo perdeu a chave SSH do Haven. As chaves privadas armazenadas não podem ser lidas e novas não podem ser geradas. Toque para reparar.",
+      "ru": "Хранилище ключей этого устройства потеряло SSH-ключ Haven. Сохранённые закрытые ключи нельзя прочитать, а новые нельзя создать. Нажмите, чтобы восстановить.",
+      "sr": "Кејстор овог уређаја је изгубио Haven-ов SSH кључ. Сачувани приватни кључеви се не могу прочитати, а нови се не могу генерисати. Додирните за поправку.",
+      "zh": "此设备的密钥库丢失了 Haven 的 SSH 密钥。已存储的私钥无法读取，也无法生成新密钥。轻按以修复。"
+     }
+    },
+    {
+     "name": "settings_sshkey_reset_title",
+     "en": "Repair SSH key storage?",
+     "comment": "#655: shown only when the Keystore has permanently lost Haven's SSH-key master key (typically after switching install channels). The stored keys are already unreadable; repair clears the keyset so new ones can be made.",
+     "args": [],
+     "t": {
+      "ar": "هل تريد إصلاح تخزين مفاتيح SSH؟",
+      "bn": "SSH কী সংরক্ষণ মারামত করবেন?",
+      "de": "SSH-Key-Speicher reparieren?",
+      "es": "¿Reparar el almacenamiento de claves SSH?",
+      "fr": "Réparer le stockage des clés SSH  ?",
+      "hi": "SSH कुंजी भंडारण मरममत करें?",
+      "ja": "SSHキーの保存を修復しますか?",
+      "ko": "SSH 키 저장소를 복구할까요?",
+      "pt": "Reparar o armazenamento de chaves SSH?",
+      "ru": "Восстановить хранилище SSH-ключей?",
+      "sr": "Поправити складиште SSH кључева?",
+      "zh": "修复 SSH 密钥存储？"
+     }
+    },
+    {
+     "name": "settings_sshkey_reset_body",
+     "en": "This creates a new key so SSH keys can be generated again.\n\nEvery private key already stored in Haven will need to be imported or generated again. They are already unreadable — the key that protected them is gone, usually because the app was reinstalled from a different source — so this recovers the app rather than losing anything further.",
+     "comment": "#655: shown only when the Keystore has permanently lost Haven's SSH-key master key (typically after switching install channels). The stored keys are already unreadable; repair clears the keyset so new ones can be made.",
+     "args": [],
+     "t": {
+      "ar": "ينشئ هذا مفتاحًا جديدًا حتى يمكن إنشاء مفاتيح SSH مرة أخرى.\n\nسيتطلب استيراد أو إنشاء كل مفتاح خاص مخزّن بالفعل في Haven من جديد. إنها غير مقروءة بالفعل — فقد ضاع المفتاح الذي كان يحميها، عادةً لأن التطبيق أعيد تثبيته من مصدر مختلف — لذلك يسترجع التطبيق بدلاً من أن يفقد مزيدًا.",
+      "bn": "এটি একটি নতুন কী তৈরি করে যাতে SSH কীসমূহ আবার তৈরি করা যায়।\n\nHaven-এ ইম্মদ্য সংরক্ষিত প্রত্যেক ব্যক্তিগত কী আবার আমদানি করা বা তৈরি করতে হবে। এগুলো ইম্মদ্য পড়া যাচ্ছে — যে কী তাদের রক্ষা করত তা হারিয়েছে, সাধারণত কারণ অ্যাটি অন্য উৎস থেকে পুনরায় ইনস্টোল করা হয়েছিল — তাই এটি আরও কিছু হারানোর পরিবর্তে অ্যাটি পুনরুদ্ধার করে।",
+      "de": "Dies erzeugt einen neuen Schlüssel, damit SSH-Schlüssel wieder erzeugt werden können.\n\nJeder bereits in Haven gespeicherte private Schlüssel muss erneut importiert oder erzeugt werden. Sie sind bereits unlesbar — der Schlüssel, der sie schützte, ist weg, meist weil die App aus einer anderen Quelle neu installiert wurde — dies stellt also die App wieder her, statt weiteres zu verlieren.",
+      "es": "Esto crea una nueva clave para que se puedan generar claves SSH de nuevo.\n\nCada clave privada ya almacenada en Haven deberá importarse o generarse de nuevo. Ya son ilegibles — la clave que las protegía se ha perdido, normalmente porque la aplicación se reinstaló desde una fuente distinta — así que esto recupera la aplicación en lugar de perder nada más.",
+      "fr": "Cela crée une nouvelle clé afin que des clés SSH puissent être générées à nouveau.\n\nChaque clé privée déjà stockée dans Haven devra être importée ou générée à nouveau. Elles sont déjà illisibles — la clé qui les protégeait est perdue, généralement parce que l’application a été réinstallée depuis une source différente — cela répare donc l’application au lieu de perdre davantage.",
+      "hi": "यह एक नई कुंजी बनाता है ताकि SSH कुंजियाँ फिर से बनाई जा सकें।\n\nHaven में पहले से संग्रहीत प्रत्येक निजी कुंजी को फिर से आयात या उत्पन्न करना होगा। वे पहले से अपठनीय हैं — उन्हें सुरक्षित रखने वाली कुंजी खो गई है, आमतः तब जब ऐप को किसी स्रोत से पुनः इंस्टॉल किया गया था — इसलिए यह आगे से कुछ भी खोने के बजाय आप को पुनर्प्राप्त करता है।",
+      "ja": "これにより新しいキーが作成され、SSHキーを再び生成できるようになります。\n\nHaven にすでに保存されているすべての秘密鍶は、再びインポートまたは生成し直す必要があります。それらはすでに読み取れません — それらを保護していたキーは失われており、通常はアプリを別のソースから再インストールしたためです — したがって、これはこれ以上何かを失うのではなくアプリを回復します。",
+      "ko": "이렇게 하면 새 키가 생성되어 SSH 키를 다시 생성할 수 있습니다.\n\nHaven에 이미 저장된 모든 개인 키는 다시 가져오거나 생성해야 합니다. 이미 읽을 수 없는 상태입니다 — 이들을 보호하던 키가 사라졌으며, 보통 앱을 다른 소스에서 다시 설치했기 때문입니다 — 따라서 이것은 추가로 무엇가를 잃는 것이 아니라 앱을 복구합니다.",
+      "pt": "Isto cria uma nova chave para que chaves SSH possam ser geradas novamente.\n\nCada chave privada já armazenada no Haven precisará ser importada ou gerada novamente. Elas já estão ilegíveis — a chave que as protegia foi perdida, geralmente porque o aplicativo foi reinstalado de uma fonte diferente — portanto isto recupera o aplicativo em vez de perder mais alguma coisa.",
+      "ru": "Это создаст новый ключ, чтобы SSH-ключи можно было создавать снова.\n\nКаждый закрытый ключ, уже сохранённый в Haven, потребуется импортировать или создать заново. Они уже нечитаемы — ключ, который их защищал, утерян, обычно потому что приложение было переустановлено из другого источника — поэтому это восстанавливает приложение, а не приводит к новым потерям.",
+      "sr": "Ово прави нови кључ како би SSH кључеви поново могли да се генеришу.\n\nСваки приватни кључ већ сачуван у Haven-у мораће поново да се увезе или генерише. Већ су нечитљиви — кључ који их је штитио је изгубљен, обично зато што је апликација поново инсталирана из другог извора — дакле ово враћа апликацију уместо да изгуби било шта даље.",
+      "zh": "这会创建一个新密钥，以便再次生成 SSH 密钥。\n\nHaven 中已存储的每一个私钥都需要重新导入或生成。它们已经无法读取 — 保护它们的密钥已丢失，通常是因为应用程序从不同来源重新安装过 — 因此这是恢复应用程序，而不会再丢失更多。"
+     }
+    },
+    {
+     "name": "settings_sshkey_reset_confirm",
+     "en": "Repair",
+     "comment": "#655: shown only when the Keystore has permanently lost Haven's SSH-key master key (typically after switching install channels). The stored keys are already unreadable; repair clears the keyset so new ones can be made.",
+     "args": [],
+     "t": {
+      "ar": "إصلاح",
+      "bn": "মারামত",
+      "de": "Reparieren",
+      "es": "Reparar",
+      "fr": "Réparer",
+      "hi": "मरममत करें",
+      "ja": "修復",
+      "ko": "복구",
+      "pt": "Reparar",
+      "ru": "Восстановить",
+      "sr": "Поправи",
+      "zh": "修复"
+     }
     }
    ]
   },

@@ -496,4 +496,11 @@
     <string name="settings_update_check_up_to_date">최신 버전입니다 (%1$s)</string>
     <string name="settings_update_check_failed">확인 실패: %1$s</string>
     <string name="settings_update_check_other_channel">이 사본은 GitHub 릴리스에서 설치된 것이 아니므로 릴리스 다운로드로 대체할 수 없습니다. Haven을 설치한 곳에서 업데이트하세요.</string>
+    <string name="settings_sshkey_keystore_broken_title">SSH 키 저장소를 사용할 수 없음</string>
+    <string name="settings_sshkey_keystore_broken_subtitle">이 기기의 키스토어가 Haven의 SSH 키를 잃어버렸습니다. 저장된 개인 키를 읽을 수 없으며 새 키도 생성할 수 없습니다. 탭하여 복구합니다.</string>
+    <string name="settings_sshkey_reset_title">SSH 키 저장소를 복구할까요?</string>
+    <string name="settings_sshkey_reset_body">이렇게 하면 새 키가 생성되어 SSH 키를 다시 생성할 수 있습니다.
+
+Haven에 이미 저장된 모든 개인 키는 다시 가져오거나 생성해야 합니다. 이미 읽을 수 없는 상태입니다 — 이들을 보호하던 키가 사라졌으며, 보통 앱을 다른 소스에서 다시 설치했기 때문입니다 — 따라서 이것은 추가로 무엇가를 잃는 것이 아니라 앱을 복구합니다.</string>
+    <string name="settings_sshkey_reset_confirm">복구</string>
 </resources>

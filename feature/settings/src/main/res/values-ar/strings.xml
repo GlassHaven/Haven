@@ -501,4 +501,11 @@
     <string name="settings_update_check_up_to_date">مُحدَّث على %1$s</string>
     <string name="settings_update_check_failed">فشل التحقق: %1$s</string>
     <string name="settings_update_check_other_channel">لم تُثبَّت هذه النسخة من إصدار GitHub، لذا لا يمكن لتنزيل الإصدار أن يحل محلها. حدِّث من حيث ثبَّتَ Haven.</string>
+    <string name="settings_sshkey_keystore_broken_title">تخزين مفاتيح SSH غير متاح</string>
+    <string name="settings_sshkey_keystore_broken_subtitle">فقد مخزن المفاتيح في هذا الجهاز مفتاح SSH الخاص ب‎Haven. لا يمكن قراءة المفاتيح الخاصة المخزّنة ولا يمكن إنشاء مفاتيح جديدة. المس للإصلاح.</string>
+    <string name="settings_sshkey_reset_title">هل تريد إصلاح تخزين مفاتيح SSH؟</string>
+    <string name="settings_sshkey_reset_body">ينشئ هذا مفتاحًا جديدًا حتى يمكن إنشاء مفاتيح SSH مرة أخرى.
+
+سيتطلب استيراد أو إنشاء كل مفتاح خاص مخزّن بالفعل في Haven من جديد. إنها غير مقروءة بالفعل — فقد ضاع المفتاح الذي كان يحميها، عادةً لأن التطبيق أعيد تثبيته من مصدر مختلف — لذلك يسترجع التطبيق بدلاً من أن يفقد مزيدًا.</string>
+    <string name="settings_sshkey_reset_confirm">إصلاح</string>
 </resources>

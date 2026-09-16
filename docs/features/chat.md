@@ -5,7 +5,7 @@ title: AI chat
 
 # AI chat
 
-Chat with models you host yourself or have API access to: llama-server, vLLM, Ollama, CLIProxyAPI, or the Anthropic and Gemini APIs. The endpoint is a connection profile like any other transport, so it rides the same per-profile routing every other connection gets — WireGuard, Tailscale, SOCKS, or an SSH `-L` tunnel — and the transcript is a chat screen, not a terminal.
+Chat with models you host yourself or have API access to: llama-server, vLLM, Ollama, CLIProxyAPI, or the Anthropic and Gemini APIs. The endpoint is a connection profile like any other transport, so it rides the same per-profile routing every other connection gets — WireGuard, NetBird, Tailscale, or Cloudflare Access tunnels, a SOCKS4/SOCKS5/HTTP proxy, plus port knocking and SPA — and the transcript is a chat screen, not a terminal.
 
 ## Endpoints
 

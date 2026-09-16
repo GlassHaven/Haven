@@ -156,7 +156,9 @@ class CloudflareAccessLoginActivity : ComponentActivity() {
             val fallback = "https://$hostname${CloudflareAccessLogin.ACCESS_LOGIN_PATH}/$hostname"
             val url = CloudflareAccessLogin.resolveLoginUrl(location, hostname) ?: fallback
             if (url == fallback && location != null) {
-                Log.d(TAG, "login Location unusable (${location.take(80)}); using constructed URL")
+                // Length only — the Location carries the kid/meta pair, so it
+                // is identity, not something to put in a log line (#518).
+                Log.d(TAG, "login Location unusable (${location.length} chars); using constructed URL")
             }
             if (!resolved) webView.loadUrl(url)
         }

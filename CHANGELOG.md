@@ -5,6 +5,14 @@ the corresponding GitHub Release; a release can't ship without its section
 (enforced by `scripts/check-changelog.sh` in CI). The GitHub "Full Changelog"
 compare link is appended automatically — don't add it here.
 
+## v5.89.2
+
+- **Cloudflare Access sign-in now works with self-hosted applications (#643).** Haven asked the Access edge for a login page it constructed itself, but the pair of values naming *which* Access application protects a hostname exists only in the redirect the edge hands back, so self-hosted apps answered "Unable to find your Access application" while the same hostname loaded fine in a browser. Sign-in now requests the protected hostname directly, redirects off, and loads the redirect target the edge returns — the way a browser does. A redirect that has already bounced to the identity provider, or anything not an http(s) login URL, is refused rather than handed to a WebView holding your cookies; anything unusable falls back to the old constructed URL.
+
+- **SSH keys can be generated again after an install-channel switch (#655).** Switching between F-Droid and a GitHub release changes the APK signature, and Android throws away the Keystore entries belonging to the old one. Stored SSH keys become undecryptable, which is expected and unrecoverable — but generating a *new* key failed too, because generation writes through the same dead master key. Settings now detects the dead keyset and offers a repair (only on a permanent failure — a transient one, like a locked device, still means your keys are recoverable). The repair dialog says plainly that stored keys must be imported or generated again.
+
+- Dependency updates: Kotlin 2.4.20, Compose BOM 2026.09.00, navigation-compose 2.10.1, Go `x/crypto` 0.57.0, Tailscale 1.102.4, and rustls 0.23.44 / smallvec 1.16.1 / uniffi 0.32.1 in the RDP native build.
+
 ## v5.89.1
 
 - Fixed attaching from a local shell tab. Take photo or Send file from a local tab dead-ended: the Files tab pre-selected the device's own filesystem as the destination, which can't accept uploads, so no destination was offered and no path was pasted. The pick banner now lands on the first connected remote instead, and the upload rides the active protocol as usual — SFTP for a connected SSH host.

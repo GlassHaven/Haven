@@ -1,0 +1,2 @@
+- Cloudflare Access sign-in now works with self-hosted applications (#643): sign-in follows the redirect the Access edge returns, the way a browser does, instead of a login URL Haven constructed itself.
+- SSH keys can be generated again after an install-channel switch (#655): Settings detects the dead keystore and offers a repair.

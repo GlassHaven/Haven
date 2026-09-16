@@ -14,6 +14,8 @@
     <string name="chat_attach_gallery_desc">اختر صورة موجودة ليراها النموذج</string>
     <string name="chat_attach_camera">الكاميرا</string>
     <string name="chat_attach_camera_desc">التقط صورة ليراها النموذج</string>
+    <string name="chat_attach_files">الملفات</string>
+    <string name="chat_attach_files_desc">اختر ملفًا من تبويب الملفات لإرفاقه</string>
     <string name="chat_remove_image">إزالة الصورة</string>
     <string name="chat_image">صورة مرفقة</string>
     <string name="chat_attach_failed">تعذر قراءة هذه الصورة</string>

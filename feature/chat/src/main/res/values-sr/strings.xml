@@ -14,6 +14,8 @@
     <string name="chat_attach_gallery_desc">Изабери постојећу слику за модел</string>
     <string name="chat_attach_camera">Камера</string>
     <string name="chat_attach_camera_desc">Сликај фотографију за модел</string>
+    <string name="chat_attach_files">Фајлови</string>
+    <string name="chat_attach_files_desc">Изаберите фајл из картице Фајлови да бисте га прикачили</string>
     <string name="chat_remove_image">Уклони слику</string>
     <string name="chat_image">Приложена слика</string>
     <string name="chat_attach_failed">Читање те слике није успело</string>

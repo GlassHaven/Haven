@@ -14,6 +14,8 @@
     <string name="chat_attach_gallery_desc">モデルに見せる既存の画像を選択します</string>
     <string name="chat_attach_camera">カメラ</string>
     <string name="chat_attach_camera_desc">モデルに見せる写真を撮影します</string>
+    <string name="chat_attach_files">ファイル</string>
+    <string name="chat_attach_files_desc">ファイルタブから添付するファイルを選びます</string>
     <string name="chat_remove_image">画像を削除</string>
     <string name="chat_image">添付画像</string>
     <string name="chat_attach_failed">その画像を読み込めませんでした</string>

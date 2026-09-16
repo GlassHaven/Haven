@@ -14,6 +14,8 @@
     <string name="chat_attach_gallery_desc">Choisir une image existante à montrer au modèle</string>
     <string name="chat_attach_camera">Appareil photo</string>
     <string name="chat_attach_camera_desc">Prendre une photo à montrer au modèle</string>
+    <string name="chat_attach_files">Fichiers</string>
+    <string name="chat_attach_files_desc">Choisissez un fichier dans l’onglet Fichiers pour le joindre</string>
     <string name="chat_remove_image">Retirer l\'image</string>
     <string name="chat_image">Image jointe</string>
     <string name="chat_attach_failed">Impossible de lire cette image</string>

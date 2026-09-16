@@ -257,6 +257,8 @@
     <string name="sftp_attach_pick_profile">Pick a connected profile to use</string>
     <string name="sftp_attach_local_no_upload">Pick a remote profile — local can\'t accept uploads</string>
     <string name="sftp_attach_will_upload_into">Will upload into: %1$s</string>
+    <string name="sftp_chat_attach_pick_file">Attach a file to chat</string>
+    <string name="sftp_chat_attach_will_pick_from">Pick from: %1$s</string>
     <string name="sftp_attach_sending">Sending %1$s…</string>
 
     <!-- Storage permission banner -->

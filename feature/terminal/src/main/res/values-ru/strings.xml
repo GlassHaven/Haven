@@ -86,6 +86,8 @@
     <string name="terminal_attach_title">Прикрепить</string>
     <string name="terminal_attach_send_file">Отправить файл</string>
     <string name="terminal_attach_send_file_desc">Загрузить на удалённый сервер и вставить путь</string>
+    <string name="terminal_attach_take_photo">Сделать фото</string>
+    <string name="terminal_attach_take_photo_desc">Сделайте снимок и отправьте его как файл</string>
     <string name="terminal_attach_scan_camera">Сканировать код (Камера)</string>
     <string name="terminal_attach_scan_camera_desc">Сфотографировать QR-код или штрих-код и вставить его содержимое</string>
     <string name="terminal_attach_scan_gallery">Сканировать код (Галерея)</string>

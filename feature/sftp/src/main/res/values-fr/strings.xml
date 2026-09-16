@@ -255,6 +255,8 @@
     <string name="sftp_attach_pick_profile">Choisir un profil connecté</string>
     <string name="sftp_attach_local_no_upload">Choisissez un profil distant — le local ne peut pas recevoir de téléversements</string>
     <string name="sftp_attach_will_upload_into">Sera téléversé dans : %1$s</string>
+    <string name="sftp_chat_attach_pick_file">Joindre un fichier au chat</string>
+    <string name="sftp_chat_attach_will_pick_from">À choisir dans : %1$s</string>
     <string name="sftp_attach_sending">Envoi de %1$s…</string>
     <string name="sftp_storage_permission_title">Accès au stockage requis</string>
     <string name="sftp_storage_permission_body">Appuyez pour autoriser l\'accès aux fichiers locaux — les fonctionnalités médias, la navigation et les transferts nécessitent cette permission.</string>

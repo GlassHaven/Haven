@@ -86,6 +86,8 @@
     <string name="terminal_attach_title">Adjuntar</string>
     <string name="terminal_attach_send_file">Enviar un archivo</string>
     <string name="terminal_attach_send_file_desc">Sube al remoto y pega su ruta</string>
+    <string name="terminal_attach_take_photo">Tomar foto</string>
+    <string name="terminal_attach_take_photo_desc">Captura una foto y envíala como un archivo</string>
     <string name="terminal_attach_scan_camera">Escanear código (Cámara)</string>
     <string name="terminal_attach_scan_camera_desc">Fotografía un QR o código de barras y pega su contenido</string>
     <string name="terminal_attach_scan_gallery">Escanear código (Fotos)</string>

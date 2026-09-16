@@ -5,6 +5,7 @@ import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
 import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.filled.Folder
 import androidx.compose.material.icons.filled.PhotoCamera
 import androidx.compose.material.icons.filled.PhotoLibrary
 import androidx.compose.material3.ExperimentalMaterial3Api
@@ -26,7 +27,7 @@ import androidx.compose.ui.unit.dp
  * terminal attach sheet's enum pattern so the screen's `when` stays
  * exhaustive.
  */
-enum class ChatAttachOption { GALLERY, CAMERA }
+enum class ChatAttachOption { GALLERY, CAMERA, FILES }
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -56,6 +57,12 @@ fun ChatAttachSheet(
                 label = R.string.chat_attach_camera,
                 description = R.string.chat_attach_camera_desc,
                 onClick = { onSelect(ChatAttachOption.CAMERA) },
+            )
+            SheetRow(
+                icon = Icons.Filled.Folder,
+                label = R.string.chat_attach_files,
+                description = R.string.chat_attach_files_desc,
+                onClick = { onSelect(ChatAttachOption.FILES) },
             )
         }
     }

@@ -14,6 +14,8 @@
     <string name="chat_attach_gallery_desc">选择现有图片让模型查看</string>
     <string name="chat_attach_camera">相机</string>
     <string name="chat_attach_camera_desc">拍摄照片让模型查看</string>
+    <string name="chat_attach_files">文件</string>
+    <string name="chat_attach_files_desc">从“文件”标签页中选取要附加的文件</string>
     <string name="chat_remove_image">移除图片</string>
     <string name="chat_image">附件图片</string>
     <string name="chat_attach_failed">无法读取该图片</string>

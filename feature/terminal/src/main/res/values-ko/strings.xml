@@ -87,6 +87,8 @@
     <string name="terminal_attach_title">첨부</string>
     <string name="terminal_attach_send_file">파일 보내기</string>
     <string name="terminal_attach_send_file_desc">원격으로 업로드하고 경로를 붙여넣습니다</string>
+    <string name="terminal_attach_take_photo">사진 촬영</string>
+    <string name="terminal_attach_take_photo_desc">사진을 찍어 파일처럼 보냅니다</string>
     <string name="terminal_attach_scan_camera">코드 스캔 (카메라)</string>
     <string name="terminal_attach_scan_camera_desc">QR 코드나 바코드를 촬영하여 내용을 붙여넣습니다</string>
     <string name="terminal_attach_scan_gallery">코드 스캔 (사진)</string>

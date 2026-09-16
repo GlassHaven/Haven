@@ -86,6 +86,8 @@
     <string name="terminal_attach_title">Attach</string>
     <string name="terminal_attach_send_file">फ़ाइल भेजें</string>
     <string name="terminal_attach_send_file_desc">रिमोट पर upload करें और उसका path paste करें</string>
+    <string name="terminal_attach_take_photo">फ़ोटो लें</string>
+    <string name="terminal_attach_take_photo_desc">एक फ़ोटो लें और उसे फ़ाइल की तरह भेजें</string>
     <string name="terminal_attach_scan_camera">Code स्कैन करें (Camera)</string>
     <string name="terminal_attach_scan_camera_desc">QR या barcode की तस्वीर लें और उसकी सामग्री paste करें</string>
     <string name="terminal_attach_scan_gallery">Code स्कैन करें (Photos)</string>

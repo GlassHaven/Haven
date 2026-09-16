@@ -255,6 +255,8 @@
     <string name="sftp_attach_pick_profile">Выберите подключённый профиль</string>
     <string name="sftp_attach_local_no_upload">Выберите удалённый профиль — локальный не принимает загрузки</string>
     <string name="sftp_attach_will_upload_into">Будет загружено в: %1$s</string>
+    <string name="sftp_chat_attach_pick_file">Прикрепить файл к чату</string>
+    <string name="sftp_chat_attach_will_pick_from">Выбрать из: %1$s</string>
     <string name="sftp_attach_sending">Отправка %1$s…</string>
     <string name="sftp_storage_permission_title">Требуется доступ к хранилищу</string>
     <string name="sftp_storage_permission_body">Нажмите для предоставления доступа к локальным файлам — для медиафункций, просмотра и передачи нужно это разрешение.</string>

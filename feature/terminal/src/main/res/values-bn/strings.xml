@@ -86,6 +86,8 @@
     <string name="terminal_attach_title">সংযুক্ত করুন</string>
     <string name="terminal_attach_send_file">একটি ফাইল পাঠান</string>
     <string name="terminal_attach_send_file_desc">রিমোটে আপলোড করুন এবং এর path পেস্ট করুন</string>
+    <string name="terminal_attach_take_photo">ছবি তুলুন</string>
+    <string name="terminal_attach_take_photo_desc">একটি ছবি তুলে ফাইলের মতো পাঠান</string>
     <string name="terminal_attach_scan_camera">কোড স্ক্যান (ক্যামেরা)</string>
     <string name="terminal_attach_scan_camera_desc">একটি QR বা barcode ছবি তুলুন এবং এর বিষয়বস্তু পেস্ট করুন</string>
     <string name="terminal_attach_scan_gallery">কোড স্ক্যান (Photos)</string>

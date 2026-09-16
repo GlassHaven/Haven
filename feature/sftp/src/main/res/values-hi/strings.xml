@@ -255,6 +255,8 @@
     <string name="sftp_attach_pick_profile">उपयोग के लिए कनेक्टेड profile चुनें</string>
     <string name="sftp_attach_local_no_upload">रिमोट profile चुनें — local uploads नहीं ले सकता</string>
     <string name="sftp_attach_will_upload_into">इसमें upload होगा: %1$s</string>
+    <string name="sftp_chat_attach_pick_file">चैट में फ़ाइल संलग्न करें</string>
+    <string name="sftp_chat_attach_will_pick_from">इनमें से चुनें: %1$s</string>
     <string name="sftp_attach_sending">%1$s भेजा जा रहा है…</string>
     <string name="sftp_storage_permission_title">Storage access आवश्यक</string>
     <string name="sftp_storage_permission_body">Local files तक पहुँच देने के लिए टैप करें — media features, browsing, और transfers के लिए यह अनुमति ज़रूरी है।</string>

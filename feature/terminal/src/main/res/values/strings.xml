@@ -116,6 +116,8 @@
     <string name="terminal_attach_title">Attach</string>
     <string name="terminal_attach_send_file">Send a file</string>
     <string name="terminal_attach_send_file_desc">Upload to the remote and paste its path</string>
+    <string name="terminal_attach_take_photo">Take photo</string>
+    <string name="terminal_attach_take_photo_desc">Capture a photo and send it like a file</string>
     <string name="terminal_attach_scan_camera">Scan code (Camera)</string>
     <string name="terminal_attach_scan_camera_desc">Photograph a QR or barcode and paste its contents</string>
     <string name="terminal_attach_scan_gallery">Scan code (Photos)</string>

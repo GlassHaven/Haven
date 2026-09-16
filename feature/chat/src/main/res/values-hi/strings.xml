@@ -14,6 +14,8 @@
     <string name="chat_attach_gallery_desc">मॉडल के लिए कोई मौजूदा तस्वीर चुनें</string>
     <string name="chat_attach_camera">कैमरा</string>
     <string name="chat_attach_camera_desc">मॉडल के लिए कोई तस्वीर लें</string>
+    <string name="chat_attach_files">फ़ाइलें</string>
+    <string name="chat_attach_files_desc">संलग्न करने के लिए फ़ाइल टैब से कोई फ़ाइल चुनें</string>
     <string name="chat_remove_image">छवि हटाएँ</string>
     <string name="chat_image">संलग्न छवि</string>
     <string name="chat_attach_failed">वह छवि पढ़ी नहीं जा सकी</string>

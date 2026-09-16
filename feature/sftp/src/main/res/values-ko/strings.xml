@@ -269,6 +269,8 @@
     <string name="sftp_attach_pick_profile">사용할 연결된 프로필 선택</string>
     <string name="sftp_attach_local_no_upload">원격 프로필을 선택하세요 — 로컬은 업로드를 받을 수 없습니다</string>
     <string name="sftp_attach_will_upload_into">업로드 위치: %1$s</string>
+    <string name="sftp_chat_attach_pick_file">채팅에 파일 첨부</string>
+    <string name="sftp_chat_attach_will_pick_from">선택 위치: %1$s</string>
     <string name="sftp_attach_sending">%1$s 전송 중…</string>
     <string name="sftp_storage_permission_title">저장소 접근 권한 필요</string>
     <string name="sftp_storage_permission_body">탭하여 로컬 파일 접근 권한 부여 — 미디어 기능, 파일 탐색 및 전송에 이 권한이 필요합니다.</string>

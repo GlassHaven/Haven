@@ -68,14 +68,48 @@ object ChatImagePrep {
             android.util.Log.w("ChatImagePrep", "full decode failed for $uri", it)
         }
         val decoded = fullOpen.getOrNull() ?: return@withContext null
+        return@withContext encodePrepared(decoded, bounds.outMimeType, maxDim, quality)
+    }
+
+    /**
+     * Same pipeline over an already-read byte payload — the chat attach
+     * from-Files flow reads a remote file into memory and then prepares it
+     * exactly like a picked/captured one.
+     */
+    suspend fun prepare(
+        bytes: ByteArray,
+        maxDim: Int = MAX_DIMENSION,
+        quality: Int = JPEG_QUALITY,
+    ): PreparedImage? = withContext(Dispatchers.IO) {
+        val bounds = BitmapFactory.Options().apply { inJustDecodeBounds = true }
+        BitmapFactory.decodeByteArray(bytes, 0, bytes.size, bounds)
+        if (bounds.outWidth <= 0 || bounds.outHeight <= 0) return@withContext null
+        var sample = 1
+        while (bounds.outWidth / (sample * 2) >= maxDim && bounds.outHeight / (sample * 2) >= maxDim) {
+            sample *= 2
+        }
+        val decoded = BitmapFactory.decodeByteArray(
+            bytes, 0, bytes.size,
+            BitmapFactory.Options().apply { inSampleSize = sample },
+        ) ?: return@withContext null
+        encodePrepared(decoded, bounds.outMimeType, maxDim, quality)
+    }
+
+    /** Scale + encode tail shared by both [prepare] overloads. */
+    private fun encodePrepared(
+        decoded: Bitmap,
+        boundsMimeType: String?,
+        maxDim: Int,
+        quality: Int,
+    ): PreparedImage {
         val scaled = scaleDown(decoded, maxDim)
-        val png = decoded !== scaled && bounds.outMimeType?.contains("png") == true && hasAlpha(scaled)
+        val png = decoded !== scaled && boundsMimeType?.contains("png") == true && hasAlpha(scaled)
         val format = if (png) Bitmap.CompressFormat.PNG else Bitmap.CompressFormat.JPEG
         val bytes = ByteArrayOutputStream().use { out ->
             scaled.compress(format, if (png) 100 else quality, out)
             out.toByteArray()
         }
-        PreparedImage(
+        return PreparedImage(
             mimeType = if (png) "image/png" else "image/jpeg",
             base64 = Base64.encodeToString(bytes, Base64.NO_WRAP),
         )

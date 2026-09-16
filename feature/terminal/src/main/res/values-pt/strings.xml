@@ -86,6 +86,8 @@
     <string name="terminal_attach_title">Anexar</string>
     <string name="terminal_attach_send_file">Enviar um arquivo</string>
     <string name="terminal_attach_send_file_desc">Faz upload para o remoto e cola o caminho</string>
+    <string name="terminal_attach_take_photo">Tirar foto</string>
+    <string name="terminal_attach_take_photo_desc">Capture uma foto e envie-a como um arquivo</string>
     <string name="terminal_attach_scan_camera">Escanear código (Câmera)</string>
     <string name="terminal_attach_scan_camera_desc">Fotografe um QR ou código de barras e cole o conteúdo</string>
     <string name="terminal_attach_scan_gallery">Escanear código (Fotos)</string>

@@ -87,6 +87,8 @@ import sh.haven.core.data.images.ChatImagePrep
 fun ChatScreen(
     pendingProfileId: String?,
     modifier: Modifier = Modifier,
+    /** Switch to the Files tab — the FILES attach option arms the pick and jumps. */
+    onOpenFilesTab: () -> Unit = {},
     viewModel: ChatViewModel = hiltViewModel(),
 ) {
     LaunchedEffect(pendingProfileId) {
@@ -134,6 +136,12 @@ fun ChatScreen(
                 } catch (_: android.content.ActivityNotFoundException) {
                     cameraOutputUri = null
                 }
+            }
+            ChatAttachOption.FILES -> {
+                // Arms the broker pick (stageRemoteImage) and jumps to the
+                // Files tab; the pick banner there routes the file tap back.
+                viewModel.stageRemoteImage()
+                onOpenFilesTab()
             }
         }
     }

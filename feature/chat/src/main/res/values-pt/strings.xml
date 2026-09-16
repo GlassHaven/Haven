@@ -14,6 +14,8 @@
     <string name="chat_attach_gallery_desc">Escolha uma imagem existente para o modelo ver</string>
     <string name="chat_attach_camera">Câmera</string>
     <string name="chat_attach_camera_desc">Tire uma foto para o modelo ver</string>
+    <string name="chat_attach_files">Arquivos</string>
+    <string name="chat_attach_files_desc">Escolha um arquivo na aba Arquivos para anexar</string>
     <string name="chat_remove_image">Remover imagem</string>
     <string name="chat_image">Imagem anexada</string>
     <string name="chat_attach_failed">Não foi possível ler essa imagem</string>

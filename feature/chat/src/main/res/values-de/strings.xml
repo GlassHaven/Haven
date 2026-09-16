@@ -14,6 +14,8 @@
     <string name="chat_attach_gallery_desc">Ein vorhandenes Bild auswählen, das das Modell sehen soll</string>
     <string name="chat_attach_camera">Kamera</string>
     <string name="chat_attach_camera_desc">Ein Foto aufnehmen, das das Modell sehen soll</string>
+    <string name="chat_attach_files">Dateien</string>
+    <string name="chat_attach_files_desc">Wähle über den Dateien-Tab eine Datei zum Anhängen aus</string>
     <string name="chat_remove_image">Bild entfernen</string>
     <string name="chat_image">Angehängtes Bild</string>
     <string name="chat_attach_failed">Dieses Bild konnte nicht gelesen werden</string>

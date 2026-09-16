@@ -86,6 +86,8 @@
     <string name="terminal_attach_title">Joindre</string>
     <string name="terminal_attach_send_file">Envoyer un fichier</string>
     <string name="terminal_attach_send_file_desc">Téléverser sur le serveur distant et coller son chemin</string>
+    <string name="terminal_attach_take_photo">Prendre une photo</string>
+    <string name="terminal_attach_take_photo_desc">Capturez une photo et envoyez-la comme un fichier</string>
     <string name="terminal_attach_scan_camera">Scanner un code (Appareil photo)</string>
     <string name="terminal_attach_scan_camera_desc">Photographier un QR ou code-barres et coller son contenu</string>
     <string name="terminal_attach_scan_gallery">Scanner un code (Photos)</string>

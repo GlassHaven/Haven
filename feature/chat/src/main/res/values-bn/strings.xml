@@ -14,6 +14,8 @@
     <string name="chat_attach_gallery_desc">মডেলের জন্য একটি বিদ্যমান ছবি বেছে নিন</string>
     <string name="chat_attach_camera">ক্যামেরা</string>
     <string name="chat_attach_camera_desc">মডেলের জন্য একটি ছবি তুলুন</string>
+    <string name="chat_attach_files">ফাইল</string>
+    <string name="chat_attach_files_desc">সংযুক্ত করতে ফাইল ট্যাব থেকে একটি ফাইল বাছুন</string>
     <string name="chat_remove_image">ছবি সরান</string>
     <string name="chat_image">সংযুক্ত ছবি</string>
     <string name="chat_attach_failed">ছবিটি পড়া যায়নি</string>

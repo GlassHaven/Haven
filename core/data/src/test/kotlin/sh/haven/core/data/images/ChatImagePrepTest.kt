@@ -11,6 +11,7 @@ import org.junit.Test
 import org.junit.runner.RunWith
 import org.robolectric.RobolectricTestRunner
 import org.robolectric.RuntimeEnvironment
+import org.robolectric.annotation.GraphicsMode
 import java.io.File
 
 /**
@@ -66,6 +67,73 @@ class ChatImagePrepTest {
         val preview = ChatImagePrep.decodePreview(prepared.base64)
         assertNotNull(preview)
         assertTrue(maxOf(preview!!.width, preview.height) <= 256)
+    }
+
+    // ---- prepare(bytes): the chat attach from-Files pipeline ----
+    // NATIVE graphics: the legacy shadow fabricates placeholder bitmaps for
+    // every byte stream, which makes the bytes pipeline's real contract
+    // (real decode, mime detection, garbage rejection) unobservable.
+
+    @Test
+    @GraphicsMode(GraphicsMode.Mode.NATIVE)
+    fun `bytes overload round-trips like the uri overload`() = runBlocking {
+        val bmp = Bitmap.createBitmap(400, 300, Bitmap.Config.ARGB_8888)
+        bmp.eraseColor(0xFF3366CC.toInt())
+        val bytes = java.io.ByteArrayOutputStream().use { out ->
+            bmp.compress(Bitmap.CompressFormat.JPEG, 90, out)
+            out.toByteArray()
+        }
+        val prepared = ChatImagePrep.prepare(bytes)
+        assertNotNull(prepared)
+        assertEquals("image/jpeg", prepared!!.mimeType)
+        val raw = android.util.Base64.decode(prepared.base64, android.util.Base64.DEFAULT)
+        val decoded = BitmapFactory.decodeByteArray(raw, 0, raw.size)
+        assertEquals(400, decoded.width)
+        assertEquals(300, decoded.height)
+    }
+
+    @Test
+    @GraphicsMode(GraphicsMode.Mode.NATIVE)
+    fun `bytes overload downscales large images to the cap`() = runBlocking {
+        val bmp = Bitmap.createBitmap(3200, 2400, Bitmap.Config.ARGB_8888)
+        bmp.eraseColor(0xFF3366CC.toInt())
+        val bytes = java.io.ByteArrayOutputStream().use { out ->
+            bmp.compress(Bitmap.CompressFormat.JPEG, 90, out)
+            out.toByteArray()
+        }
+        val prepared = ChatImagePrep.prepare(bytes)
+        assertNotNull(prepared)
+        val raw = android.util.Base64.decode(prepared!!.base64, android.util.Base64.DEFAULT)
+        val decoded = BitmapFactory.decodeByteArray(raw, 0, raw.size)
+        assertTrue(
+            "long edge ${maxOf(decoded.width, decoded.height)} must be <= 1280",
+            maxOf(decoded.width, decoded.height) <= 1280,
+        )
+    }
+
+    @Test
+    @GraphicsMode(GraphicsMode.Mode.NATIVE)
+    fun `bytes overload keeps png alpha when scaling re-encodes`() = runBlocking {
+        // Alpha only survives when the pipeline re-encodes to PNG — i.e. the
+        // image is large enough to be scaled (an unscaled passthrough stays
+        // JPEG by design, matching the uri overload).
+        val bmp = Bitmap.createBitmap(2000, 1500, Bitmap.Config.ARGB_8888)
+        bmp.eraseColor(0x803366CC.toInt())
+        val bytes = java.io.ByteArrayOutputStream().use { out ->
+            bmp.compress(Bitmap.CompressFormat.PNG, 100, out)
+            out.toByteArray()
+        }
+        val prepared = ChatImagePrep.prepare(bytes)
+        assertNotNull(prepared)
+        assertEquals("image/png", prepared!!.mimeType)
+    }
+
+    @Test
+    @GraphicsMode(GraphicsMode.Mode.NATIVE)
+    fun `bytes overload rejects non-image payload`() = runBlocking {
+        // Testable only under NATIVE graphics — the legacy shadow decodes
+        // any byte stream into a placeholder bitmap (see the note above).
+        assertEquals(null, ChatImagePrep.prepare("not an image at all".toByteArray()))
     }
 
     // ---- decodeToCache (clipboard copy-out) ----

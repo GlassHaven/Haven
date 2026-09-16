@@ -255,6 +255,8 @@
     <string name="sftp_attach_pick_profile">选取要使用的已连接配置文件</string>
     <string name="sftp_attach_local_no_upload">请选取远程配置文件——本地不支持上传</string>
     <string name="sftp_attach_will_upload_into">将上传到：%1$s</string>
+    <string name="sftp_chat_attach_pick_file">向聊天附加文件</string>
+    <string name="sftp_chat_attach_will_pick_from">选择位置：%1$s</string>
     <string name="sftp_attach_sending">正在发送 %1$s…</string>
     <string name="sftp_storage_permission_title">需要存储访问权限</string>
     <string name="sftp_storage_permission_body">点击授予本地文件访问权限——媒体功能、浏览和传输均需此权限。</string>

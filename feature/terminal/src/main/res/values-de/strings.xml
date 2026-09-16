@@ -86,6 +86,8 @@
     <string name="terminal_attach_title">Anhängen</string>
     <string name="terminal_attach_send_file">Datei senden</string>
     <string name="terminal_attach_send_file_desc">Auf Remote hochladen und Pfad einfügen</string>
+    <string name="terminal_attach_take_photo">Foto aufnehmen</string>
+    <string name="terminal_attach_take_photo_desc">Ein Foto aufnehmen und es wie eine Datei senden</string>
     <string name="terminal_attach_scan_camera">Code scannen (Kamera)</string>
     <string name="terminal_attach_scan_camera_desc">QR- oder Barcode fotografieren und Inhalt einfügen</string>
     <string name="terminal_attach_scan_gallery">Code scannen (Fotos)</string>

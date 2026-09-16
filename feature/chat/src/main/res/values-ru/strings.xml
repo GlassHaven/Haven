@@ -14,6 +14,8 @@
     <string name="chat_attach_gallery_desc">Выберите существующее изображение для модели</string>
     <string name="chat_attach_camera">Камера</string>
     <string name="chat_attach_camera_desc">Сфотографируйте для модели</string>
+    <string name="chat_attach_files">Файлы</string>
+    <string name="chat_attach_files_desc">Выберите файл во вкладке «Файлы», чтобы прикрепить его</string>
     <string name="chat_remove_image">Убрать изображение</string>
     <string name="chat_image">Прикреплённое изображение</string>
     <string name="chat_attach_failed">Не удалось прочитать изображение</string>

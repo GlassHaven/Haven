@@ -6,6 +6,7 @@ import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.AttachFile
+import androidx.compose.material.icons.filled.Photo
 import androidx.compose.material.icons.filled.PhotoCamera
 import androidx.compose.material.icons.filled.PhotoLibrary
 import androidx.compose.material.icons.filled.QrCodeScanner
@@ -34,6 +35,7 @@ import sh.haven.feature.terminal.R
  */
 enum class AttachOption {
     SEND_FILE,
+    TAKE_PHOTO,
     SCAN_CAMERA,
     SCAN_GALLERY,
     OCR_CAMERA,
@@ -62,6 +64,12 @@ fun AttachOptionsSheet(
                 label = R.string.terminal_attach_send_file,
                 description = R.string.terminal_attach_send_file_desc,
                 onClick = { onSelect(AttachOption.SEND_FILE) },
+            )
+            SheetRow(
+                icon = Icons.Filled.Photo,
+                label = R.string.terminal_attach_take_photo,
+                description = R.string.terminal_attach_take_photo_desc,
+                onClick = { onSelect(AttachOption.TAKE_PHOTO) },
             )
             SheetRow(
                 icon = Icons.Filled.QrCodeScanner,

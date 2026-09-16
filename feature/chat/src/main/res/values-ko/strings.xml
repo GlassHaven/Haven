@@ -14,6 +14,8 @@
     <string name="chat_attach_gallery_desc">모델이 볼 기존 사진을 선택합니다</string>
     <string name="chat_attach_camera">카메라</string>
     <string name="chat_attach_camera_desc">모델이 볼 사진을 촬영합니다</string>
+    <string name="chat_attach_files">파일</string>
+    <string name="chat_attach_files_desc">첨부할 파일을 파일 탭에서 선택합니다</string>
     <string name="chat_remove_image">이미지 제거</string>
     <string name="chat_image">첨부된 이미지</string>
     <string name="chat_attach_failed">이미지를 읽을 수 없습니다</string>

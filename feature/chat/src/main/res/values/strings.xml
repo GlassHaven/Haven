@@ -14,6 +14,8 @@
     <string name="chat_attach_gallery_desc">Pick an existing picture for the model to see</string>
     <string name="chat_attach_camera">Camera</string>
     <string name="chat_attach_camera_desc">Take a photo for the model to see</string>
+    <string name="chat_attach_files">Files</string>
+    <string name="chat_attach_files_desc">Pick a file from the Files tab to attach</string>
     <string name="chat_remove_image">Remove image</string>
     <string name="chat_image">Attached image</string>
     <string name="chat_attach_failed">Couldn\'t read that image</string>

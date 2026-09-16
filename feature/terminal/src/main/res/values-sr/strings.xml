@@ -97,6 +97,8 @@
     <string name="terminal_attach_title">Прикачи</string>
     <string name="terminal_attach_send_file">Пошаљи фајл</string>
     <string name="terminal_attach_send_file_desc">Отпрема на удаљени и налепљује његову путању</string>
+    <string name="terminal_attach_take_photo">Снимај фотографију</string>
+    <string name="terminal_attach_take_photo_desc">Снимајте фотографију и пошаљите је као фајл</string>
     <string name="terminal_attach_scan_camera">Скенирај кôд (камера)</string>
     <string name="terminal_attach_scan_camera_desc">Фотографише QR или баркод и налепљује његов садржај</string>
     <string name="terminal_attach_scan_gallery">Скенирај кôд (фотографије)</string>

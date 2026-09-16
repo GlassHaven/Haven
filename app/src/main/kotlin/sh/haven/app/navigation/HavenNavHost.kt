@@ -852,6 +852,13 @@ fun HavenNavHost(
                                 requestScreen(Screen.Terminal)
                             }
                         },
+                        onChatAttachFinished = {
+                            // Once the chat pick resolves, land back on the
+                            // Chat page where the staged image is waiting.
+                            coroutineScope.launch {
+                                requestScreen(Screen.Chat)
+                            }
+                        },
                         onOpenUsbDrive = { desktopViewModel.openUsbDrive() },
                         viewModel = sftpViewModel,
                     )
@@ -882,6 +889,11 @@ fun HavenNavHost(
                 Screen.Chat -> {
                     ChatScreen(
                         pendingProfileId = pendingChatProfileId,
+                        onOpenFilesTab = {
+                            coroutineScope.launch {
+                                requestScreen(Screen.Sftp)
+                            }
+                        },
                         modifier = Modifier.fillMaxSize(),
                     )
                     LaunchedEffect(pendingChatProfileId) {

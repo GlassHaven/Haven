@@ -255,6 +255,8 @@
     <string name="sftp_attach_pick_profile">اختر ملف شخصي متصل للاستخدام</string>
     <string name="sftp_attach_local_no_upload">اختر ملفًا شخصيًا بعيدًا — المحلي لا يقبل الرفع</string>
     <string name="sftp_attach_will_upload_into">سيُرفع إلى: %1$s</string>
+    <string name="sftp_chat_attach_pick_file">إرفاق ملف بالدردشة</string>
+    <string name="sftp_chat_attach_will_pick_from">الاختيار من: %1$s</string>
     <string name="sftp_attach_sending">جارٍ إرسال %1$s…</string>
     <string name="sftp_storage_permission_title">مطلوب الوصول إلى التخزين</string>
     <string name="sftp_storage_permission_body">اضغط لمنح الوصول إلى الملفات المحلية — تحتاج ميزات الوسائط والتصفح والنقل إلى هذا الإذن.</string>

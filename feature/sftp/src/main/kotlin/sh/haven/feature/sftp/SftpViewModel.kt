@@ -230,6 +230,7 @@ class SftpViewModel @Inject constructor(
     private val pasteQueueDao: sh.haven.core.data.db.PasteQueueDao,
     private val agentUiCommandBus: sh.haven.core.data.agent.AgentUiCommandBus,
     private val attachCoordinator: sh.haven.feature.sftp.attach.TerminalAttachCoordinator,
+    private val chatAttachBroker: sh.haven.core.data.attach.ChatAttachBroker,
     private val servedFileTracker: sh.haven.core.data.agent.ServedFileTracker,
     @ApplicationContext private val appContext: Context,
 ) : ViewModel() {
@@ -263,6 +264,23 @@ class SftpViewModel @Inject constructor(
     /** Cancel the pending attach request — completes the deferred with null. */
     fun cancelAttach() {
         attachCoordinator.cancel()
+    }
+
+    /**
+     * Re-exposes [ChatAttachBroker.pending] so the screen can show the
+     * chat-pick banner while the chat composer awaits a file.
+     */
+    val chatAttachPending: StateFlow<Boolean> = chatAttachBroker.pending
+
+    /** The tapped file confirms the chat pick; only files (not folders) get here. */
+    fun confirmChatAttach(entry: SftpEntry) {
+        val profileId = _activeProfileId.value ?: return
+        chatAttachBroker.confirmPick(profileId, entry.path, entry.name, entry.size)
+    }
+
+    /** Cancel the pending chat pick — completes the chat's awaitPick with null. */
+    fun cancelChatAttach() {
+        chatAttachBroker.cancelPick()
     }
 
     init {

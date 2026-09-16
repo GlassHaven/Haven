@@ -7963,6 +7963,46 @@
      }
     },
     {
+     "name": "chat_attach_files",
+     "en": "Files",
+     "comment": "",
+     "args": [],
+     "t": {
+      "ar": "الملفات",
+      "bn": "ফাইল",
+      "de": "Dateien",
+      "es": "Archivos",
+      "fr": "Fichiers",
+      "hi": "फ़ाइलें",
+      "ja": "ファイル",
+      "ko": "파일",
+      "pt": "Arquivos",
+      "ru": "Файлы",
+      "sr": "Фајлови",
+      "zh": "文件"
+     }
+    },
+    {
+     "name": "chat_attach_files_desc",
+     "en": "Pick a file from the Files tab to attach",
+     "comment": "",
+     "args": [],
+     "t": {
+      "ar": "اختر ملفًا من تبويب الملفات لإرفاقه",
+      "bn": "সংযুক্ত করতে ফাইল ট্যাব থেকে একটি ফাইল বাছুন",
+      "de": "Wähle über den Dateien-Tab eine Datei zum Anhängen aus",
+      "es": "Elige un archivo de la pestaña Archivos para adjuntarlo",
+      "fr": "Choisissez un fichier dans l’onglet Fichiers pour le joindre",
+      "hi": "संलग्न करने के लिए फ़ाइल टैब से कोई फ़ाइल चुनें",
+      "ja": "ファイルタブから添付するファイルを選びます",
+      "ko": "첨부할 파일을 파일 탭에서 선택합니다",
+      "pt": "Escolha um arquivo na aba Arquivos para anexar",
+      "ru": "Выберите файл во вкладке «Файлы», чтобы прикрепить его",
+      "sr": "Изаберите фајл из картице Фајлови да бисте га прикачили",
+      "zh": "从“文件”标签页中选取要附加的文件"
+     }
+    },
+    {
      "name": "chat_remove_image",
      "en": "Remove image",
      "comment": "",
@@ -40401,6 +40441,48 @@
      }
     },
     {
+     "name": "sftp_chat_attach_pick_file",
+     "en": "Attach a file to chat",
+     "comment": "Attach folder picker banner",
+     "args": [],
+     "t": {
+      "ar": "إرفاق ملف بالدردشة",
+      "bn": "চ্যাটে একটি ফাইল সংযুক্ত করুন",
+      "de": "Datei an den Chat anhängen",
+      "es": "Adjuntar un archivo al chat",
+      "fr": "Joindre un fichier au chat",
+      "hi": "चैट में फ़ाइल संलग्न करें",
+      "ja": "チャットにファイルを添付",
+      "ko": "채팅에 파일 첨부",
+      "pt": "Anexar um arquivo ao chat",
+      "ru": "Прикрепить файл к чату",
+      "sr": "Прикачи фајл у ћаскање",
+      "zh": "向聊天附加文件"
+     }
+    },
+    {
+     "name": "sftp_chat_attach_will_pick_from",
+     "en": "Pick from: %1$s",
+     "comment": "Attach folder picker banner",
+     "args": [
+      "%1$s"
+     ],
+     "t": {
+      "ar": "الاختيار من: %1$s",
+      "bn": "থেকে বাছবেন: %1$s",
+      "de": "Auswählen aus: %1$s",
+      "es": "Elegir de: %1$s",
+      "fr": "À choisir dans : %1$s",
+      "hi": "इनमें से चुनें: %1$s",
+      "ja": "選択元: %1$s",
+      "ko": "선택 위치: %1$s",
+      "pt": "Escolher em: %1$s",
+      "ru": "Выбрать из: %1$s",
+      "sr": "Избор из: %1$s",
+      "zh": "选择位置：%1$s"
+     }
+    },
+    {
      "name": "sftp_attach_sending",
      "en": "Sending %1$s…",
      "comment": "Attach folder picker banner",
@@ -43509,6 +43591,46 @@
       "ru": "Загрузить на удалённый сервер и вставить путь",
       "sr": "Отпрема на удаљени и налепљује његову путању",
       "zh": "上传到远程并粘贴其路径"
+     }
+    },
+    {
+     "name": "terminal_attach_take_photo",
+     "en": "Take photo",
+     "comment": "AttachOptionsSheet — paperclip key on the keyboard toolbar",
+     "args": [],
+     "t": {
+      "ar": "التقط صورة",
+      "bn": "ছবি তুলুন",
+      "de": "Foto aufnehmen",
+      "es": "Tomar foto",
+      "fr": "Prendre une photo",
+      "hi": "फ़ोटो लें",
+      "ja": "写真を撮る",
+      "ko": "사진 촬영",
+      "pt": "Tirar foto",
+      "ru": "Сделать фото",
+      "sr": "Снимај фотографију",
+      "zh": "拍摄照片"
+     }
+    },
+    {
+     "name": "terminal_attach_take_photo_desc",
+     "en": "Capture a photo and send it like a file",
+     "comment": "AttachOptionsSheet — paperclip key on the keyboard toolbar",
+     "args": [],
+     "t": {
+      "ar": "التقط صورة وأرسلها كأنها ملف",
+      "bn": "একটি ছবি তুলে ফাইলের মতো পাঠান",
+      "de": "Ein Foto aufnehmen und es wie eine Datei senden",
+      "es": "Captura una foto y envíala como un archivo",
+      "fr": "Capturez une photo et envoyez-la comme un fichier",
+      "hi": "एक फ़ोटो लें और उसे फ़ाइल की तरह भेजें",
+      "ja": "撮影した写真をファイルとして送信します",
+      "ko": "사진을 찍어 파일처럼 보냅니다",
+      "pt": "Capture uma foto e envie-a como um arquivo",
+      "ru": "Сделайте снимок и отправьте его как файл",
+      "sr": "Снимајте фотографију и пошаљите је као фајл",
+      "zh": "拍摄一张照片并像文件一样发送"
      }
     },
     {

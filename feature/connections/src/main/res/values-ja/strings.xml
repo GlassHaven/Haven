@@ -478,6 +478,16 @@
     <string name="connections_local_distro_label">OSで開く</string>
     <string name="connections_local_distro_active_default">アクティブなディストロ（デフォルト）</string>
 
+    <string name="connections_section_openai">AIエンドポイント</string>
+    <string name="connections_field_openai_host">サーバーアドレス</string>
+    <string name="connections_field_openai_host_hint">IP、ホスト名、または完全な http:// URL</string>
+    <string name="connections_field_openai_api_key">APIキー（任意）</string>
+    <string name="connections_field_openai_api_key_hint">Bearerトークンとして送信されます。キー不要のサーバーでは空欄にしてください。</string>
+    <string name="connections_field_openai_path_prefix">パスプレフィックス（任意）</string>
+    <string name="connections_field_openai_path_prefix_hint">/v1 の前に挿入 — 例: /api</string>    <string name="connections_field_openai_protocol">プロトコル</string>
+    <string name="connections_field_openai_protocol_hint">既定は OpenAI 互換。Ollama・Anthropic・Gemini はパスと認証が変わります。</string>
+
+    <string name="connections_openai_url_preview">エンドポイントURL: %1$s</string>
     <!-- Email accounts -->
     <string name="connections_section_email">メールアカウント</string>
     <string name="connections_auth_method_proton_srp">ProtonMail SRP</string>

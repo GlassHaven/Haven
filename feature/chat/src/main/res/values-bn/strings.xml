@@ -1,0 +1,28 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string name="chat_title">চ্যাট</string>
+    <string name="chat_save_conversation">কথোপকথন সংরক্ষণ</string>
+    <string name="chat_stop_saving">সংরক্ষণ বন্ধ করুন</string>
+    <string name="chat_no_connection">কোনো AI এন্ডপয়েন্ট সংযুক্ত নয় — প্রথমে একটি OpenAI প্রোফাইল সংযোগ করুন।</string>
+    <string name="chat_no_model">কোনো মডেল নেই</string>
+    <string name="chat_message_hint">বার্তা</string>
+    <string name="chat_send">পাঠান</string>
+    <string name="chat_stop">থামান</string>
+    <string name="chat_error_dismiss">%1$s — বাতিল করতে ট্যাপ করুন</string>
+    <string name="chat_attach_title">ছবি যোগ করুন</string>
+    <string name="chat_attach_gallery">ফটো লাইব্রেরি</string>
+    <string name="chat_attach_gallery_desc">মডেলের জন্য একটি বিদ্যমান ছবি বেছে নিন</string>
+    <string name="chat_attach_camera">ক্যামেরা</string>
+    <string name="chat_attach_camera_desc">মডেলের জন্য একটি ছবি তুলুন</string>
+    <string name="chat_remove_image">ছবি সরান</string>
+    <string name="chat_image">সংযুক্ত ছবি</string>
+    <string name="chat_attach_failed">ছবিটি পড়া যায়নি</string>
+    <string name="chat_copy_text">টেক্সট কপি করুন</string>
+    <string name="chat_copy_image">ছবি কপি করুন</string>
+    <string name="chat_copied_text">টেক্সট কপি হয়েছে</string>
+    <string name="chat_copied_image">ছবি কপি হয়েছে</string>
+    <string name="chat_copy_last_reply">শেষ উত্তর কপি করুন</string>
+    <string name="chat_paste_image">ছবি পেস্ট করুন</string>
+    <string name="chat_copy_image_failed">ছবিটি কপি করা যায়নি</string>
+    <string name="chat_paste_image_unavailable">ক্লিপবোর্ডে কোনো ছবি নেই</string>
+</resources>

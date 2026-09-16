@@ -7,6 +7,7 @@
     <string name="nav_sftp">ملفات</string>
     <string name="nav_settings">إعدادات</string>
     <string name="nav_mail">البريد</string>
+    <string name="nav_chat">محادثة</string>
     <string name="common_cancel">إلغاء</string>
     <string name="common_save">حفظ</string>
     <string name="common_done">تم</string>

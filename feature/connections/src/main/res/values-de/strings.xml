@@ -478,6 +478,16 @@
     <string name="connections_local_distro_label">In Betriebssystem öffnen</string>
     <string name="connections_local_distro_active_default">Aktive Distribution (Standard)</string>
 
+    <string name="connections_section_openai">KI-Endpunkt</string>
+    <string name="connections_field_openai_host">Serveradresse</string>
+    <string name="connections_field_openai_host_hint">IP, Hostname oder vollständige http://-URL</string>
+    <string name="connections_field_openai_api_key">API-Schlüssel (optional)</string>
+    <string name="connections_field_openai_api_key_hint">Wird als Bearer-Token gesendet. Für Endpunkte ohne Schlüssel leer lassen.</string>
+    <string name="connections_field_openai_path_prefix">Pfad-Präfix (optional)</string>
+    <string name="connections_field_openai_path_prefix_hint">Wird vor /v1 eingefügt — z. B. /api</string>    <string name="connections_field_openai_protocol">Protokoll</string>
+    <string name="connections_field_openai_protocol_hint">Standard: OpenAI-kompatibel; Ollama, Anthropic und Gemini ändern Pfade und Authentifizierung.</string>
+
+    <string name="connections_openai_url_preview">Endpunkt-URL: %1$s</string>
     <!-- Email accounts (Proton / IMAP+SMTP) -->
     <string name="connections_section_email">E-Mail-Konto</string>
     <string name="connections_auth_method_proton_srp">ProtonMail SRP</string>

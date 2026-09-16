@@ -1,0 +1,28 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string name="chat_title">채팅</string>
+    <string name="chat_save_conversation">대화 저장</string>
+    <string name="chat_stop_saving">저장 중지</string>
+    <string name="chat_no_connection">연결된 AI 엔드포인트가 없습니다 — 먼저 OpenAI 프로필을 연결하세요.</string>
+    <string name="chat_no_model">모델 없음</string>
+    <string name="chat_message_hint">메시지</string>
+    <string name="chat_send">보내기</string>
+    <string name="chat_stop">중지</string>
+    <string name="chat_error_dismiss">%1$s — 탭하여 닫기</string>
+    <string name="chat_attach_title">이미지 추가</string>
+    <string name="chat_attach_gallery">사진 보관함</string>
+    <string name="chat_attach_gallery_desc">모델이 볼 기존 사진을 선택합니다</string>
+    <string name="chat_attach_camera">카메라</string>
+    <string name="chat_attach_camera_desc">모델이 볼 사진을 촬영합니다</string>
+    <string name="chat_remove_image">이미지 제거</string>
+    <string name="chat_image">첨부된 이미지</string>
+    <string name="chat_attach_failed">이미지를 읽을 수 없습니다</string>
+    <string name="chat_copy_text">텍스트 복사</string>
+    <string name="chat_copy_image">이미지 복사</string>
+    <string name="chat_copied_text">텍스트 복사됨</string>
+    <string name="chat_copied_image">이미지 복사됨</string>
+    <string name="chat_copy_last_reply">마지막 답변 복사</string>
+    <string name="chat_paste_image">이미지 붙여넣기</string>
+    <string name="chat_copy_image_failed">해당 이미지를 복사할 수 없습니다</string>
+    <string name="chat_paste_image_unavailable">클립보드에 이미지가 없습니다</string>
+</resources>

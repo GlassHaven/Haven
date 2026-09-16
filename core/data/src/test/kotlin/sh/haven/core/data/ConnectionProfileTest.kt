@@ -1,6 +1,7 @@
 package sh.haven.core.data
 
 import org.junit.Assert.assertEquals
+import org.junit.Assert.assertFalse
 import org.junit.Assert.assertNotEquals
 import org.junit.Assert.assertNotNull
 import org.junit.Assert.assertNull
@@ -218,6 +219,45 @@ class ConnectionProfileTest {
         assertEquals("", p.emailAuthMethods)
         assertNull(p.emailPassword)
         assertNull(p.emailMailboxPassword)
+    }
+
+    // --- OPENAI connection type ---
+
+    @Test
+    fun `isOpenai returns true when connectionType is OPENAI`() {
+        val p = ConnectionProfile(
+            label = "llama", host = "msi-z790", username = "u",
+            connectionType = "OPENAI",
+        )
+        assert(p.isOpenai) { "Expected isOpenai == true for connectionType=OPENAI" }
+        assert(!p.isEmail) { "OPENAI must not be confused with EMAIL" }
+    }
+
+    @Test
+    fun `OPENAI is not a terminal or desktop connection`() {
+        val p = ConnectionProfile(
+            label = "llama", host = "h", username = "u", connectionType = "OPENAI",
+        )
+        assert(!p.isTerminal) { "Expected isTerminal == false for OPENAI" }
+        assert(!p.isDesktop) { "Expected isDesktop == false for OPENAI" }
+    }
+
+    @Test
+    fun `OPENAI field defaults`() {
+        val p = ConnectionProfile(label = "t", host = "h", username = "u")
+        assertNull(p.openaiPathPrefix)
+        assertNull(p.openaiApiKey)
+        assertNull(p.aiProtocol)
+        assertFalse(p.isOpenai)
+    }
+
+    @Test
+    fun `aiProtocol is stored as the raw string`() {
+        val p = ConnectionProfile(label = "t", host = "h", username = "u", aiProtocol = "ANTHROPIC")
+        assertEquals("ANTHROPIC", p.aiProtocol)
+        // No entity-level normalisation — null/blank stays as written and is
+        // treated as OPENAI at the AiProtocol.fromStored boundary.
+        assertNull(ConnectionProfile(label = "t", host = "h", username = "u").aiProtocol)
     }
 
     @Test

@@ -1,0 +1,28 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string name="chat_title">Chat</string>
+    <string name="chat_save_conversation">Save conversation</string>
+    <string name="chat_stop_saving">Stop saving conversation</string>
+    <string name="chat_no_connection">No AI endpoint connected — connect an OpenAI profile first.</string>
+    <string name="chat_no_model">No model</string>
+    <string name="chat_message_hint">Message</string>
+    <string name="chat_send">Send</string>
+    <string name="chat_stop">Stop</string>
+    <string name="chat_error_dismiss">%1$s — tap to dismiss</string>
+    <string name="chat_attach_title">Add image</string>
+    <string name="chat_attach_gallery">Photo library</string>
+    <string name="chat_attach_gallery_desc">Pick an existing picture for the model to see</string>
+    <string name="chat_attach_camera">Camera</string>
+    <string name="chat_attach_camera_desc">Take a photo for the model to see</string>
+    <string name="chat_remove_image">Remove image</string>
+    <string name="chat_image">Attached image</string>
+    <string name="chat_attach_failed">Couldn\'t read that image</string>
+    <string name="chat_copy_text">Copy text</string>
+    <string name="chat_copy_image">Copy image</string>
+    <string name="chat_copied_text">Text copied</string>
+    <string name="chat_copied_image">Image copied</string>
+    <string name="chat_copy_last_reply">Copy last reply</string>
+    <string name="chat_paste_image">Paste image</string>
+    <string name="chat_copy_image_failed">Couldn\'t copy that image</string>
+    <string name="chat_paste_image_unavailable">No image on the clipboard</string>
+</resources>

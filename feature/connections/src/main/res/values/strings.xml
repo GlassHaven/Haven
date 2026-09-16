@@ -471,6 +471,16 @@
     <string name="connections_section_vnc">VNC settings</string>
     <string name="connections_section_rdp">RDP settings</string>
     <string name="connections_section_spice">SPICE settings</string>
+    <string name="connections_section_openai">AI endpoint</string>
+    <string name="connections_field_openai_host">Server address</string>
+    <string name="connections_field_openai_host_hint">IP, hostname, or a full http:// URL</string>
+    <string name="connections_field_openai_api_key">API key (optional)</string>
+    <string name="connections_field_openai_api_key_hint">Sent as a Bearer token. Leave blank for keyless endpoints.</string>
+    <string name="connections_field_openai_path_prefix">Path prefix (optional)</string>
+    <string name="connections_field_openai_path_prefix_hint">Inserts before /v1 — e.g. /api</string>    <string name="connections_field_openai_protocol">Wire protocol</string>
+    <string name="connections_field_openai_protocol_hint">OpenAI-compatible by default; Ollama, Anthropic and Gemini change paths and auth.</string>
+
+    <string name="connections_openai_url_preview">Endpoint URL: %1$s</string>
     <string name="connections_section_smb">SMB settings</string>
     <string name="connections_section_email">Email account</string>
     <string name="connections_auth_method_proton_srp">ProtonMail SRP</string>

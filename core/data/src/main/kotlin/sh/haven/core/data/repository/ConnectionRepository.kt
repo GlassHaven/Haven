@@ -18,6 +18,7 @@ import javax.inject.Singleton
 class ConnectionRepository @Inject constructor(
     private val connectionDao: ConnectionDao,
     private val tunnelConfigDao: TunnelConfigDao,
+    private val chatRepository: ChatRepository,
     @ApplicationContext private val context: Context,
 ) {
     init {
@@ -29,6 +30,7 @@ class ConnectionRepository @Inject constructor(
                     profile.rdpPassword, profile.smbPassword,
                     profile.proxyPassword, profile.reticulumPassphrase,
                     profile.emailPassword, profile.emailMailboxPassword,
+                    profile.openaiApiKey,
                 ).any { !CredentialEncryption.isEncrypted(it) }
                 if (hasPlaintext) {
                     connectionDao.upsert(encryptPasswords(decryptPasswords(profile)))
@@ -51,6 +53,8 @@ class ConnectionRepository @Inject constructor(
 
     suspend fun delete(id: String) {
         tunnelConfigDao.deleteByOwner(id)
+        // Saved chats must not dangle with a dead profileId.
+        chatRepository.deleteByProfileId(id)
         connectionDao.deleteById(id)
     }
 
@@ -93,6 +97,7 @@ class ConnectionRepository @Inject constructor(
         reticulumPassphrase = profile.reticulumPassphrase?.let { CredentialEncryption.encrypt(context, it) },
         emailPassword = profile.emailPassword?.let { CredentialEncryption.encrypt(context, it) },
         emailMailboxPassword = profile.emailMailboxPassword?.let { CredentialEncryption.encrypt(context, it) },
+        openaiApiKey = profile.openaiApiKey?.let { CredentialEncryption.encrypt(context, it) },
     )
 
     /**
@@ -115,5 +120,6 @@ class ConnectionRepository @Inject constructor(
         reticulumPassphrase = profile.reticulumPassphrase?.let { CredentialEncryption.decryptOrNull(context, it) },
         emailPassword = profile.emailPassword?.let { CredentialEncryption.decryptOrNull(context, it) },
         emailMailboxPassword = profile.emailMailboxPassword?.let { CredentialEncryption.decryptOrNull(context, it) },
+        openaiApiKey = profile.openaiApiKey?.let { CredentialEncryption.decryptOrNull(context, it) },
     )
 }

@@ -69,6 +69,8 @@ import sh.haven.core.mail.MailConnectParams
 import sh.haven.core.mail.MailEngine
 import sh.haven.core.mail.MailException
 import sh.haven.core.mail.MailSessionManager
+import sh.haven.core.openai.OpenAiConnectParams
+import sh.haven.core.openai.OpenAiSessionManager
 import sh.haven.core.security.Totp
 import sh.haven.core.reticulum.DiscoveredDestination
 import sh.haven.core.reticulum.ReticulumSessionManager
@@ -237,6 +239,7 @@ class ConnectionsViewModel @Inject constructor(
     private val rcloneSessionManager: RcloneSessionManager,
     private val rcloneClient: RcloneClient,
     private val mailSessionManager: MailSessionManager,
+    private val openAiSessionManager: OpenAiSessionManager,
     private val fidoAuthenticator: FidoAuthenticator,
     private val localSessionManager: LocalSessionManager,
     private val umlGuestManager: sh.haven.core.local.uml.UmlGuestManager,
@@ -1098,6 +1101,8 @@ class ConnectionsViewModel @Inject constructor(
     /** Emitted to navigate to the Mail tab for an EMAIL connection. */
     private val _navigateToEmail = MutableStateFlow<String?>(null)
     val navigateToEmail: StateFlow<String?> = _navigateToEmail.asStateFlow()
+    private val _navigateToChat = MutableStateFlow<String?>(null)
+    val navigateToChat: StateFlow<String?> = _navigateToChat.asStateFlow()
 
     /** Emitted to open a new session (new tab) on an already-connected profile. */
     private val _newSessionProfileId = MutableStateFlow<String?>(null)
@@ -1311,6 +1316,7 @@ class ConnectionsViewModel @Inject constructor(
         _navigateToSmb.value = null
         _navigateToRclone.value = null
         _navigateToEmail.value = null
+        _navigateToChat.value = null
         _navigateToConnections.value = false
         _newSessionProfileId.value = null
     }
@@ -2410,6 +2416,10 @@ class ConnectionsViewModel @Inject constructor(
             connectEmail(profile)
             return
         }
+        if (profile.isOpenai) {
+            connectOpenAI(profile)
+            return
+        }
         if (profile.isReticulum) {
             connectReticulum(profile)
             return
@@ -2862,6 +2872,66 @@ class ConnectionsViewModel @Inject constructor(
                 _connectingProfileId.value = null
             }
         }
+    }
+
+    /**
+     * Connect an OPENAI profile: tunnel resolve (fail closed, R7) → register
+     * session → `GET /v1/models` verify (populates the model list) → navigate
+     * to the chat screen. No credential prompt: the API key lives on the
+     * profile, and a keyless endpoint (llama-server) is legitimate.
+     */
+    private fun connectOpenAI(profile: ConnectionProfile) {
+        viewModelScope.launch {
+            _connectingProfileId.value = profile.id
+            val startedAt = System.currentTimeMillis()
+            try {
+                repository.markConnected(profile.id)
+                val params = buildOpenAiParams(profile)
+                val sessionId = openAiSessionManager.registerSession(profile.id, profile.label)
+                openAiSessionManager.connectSession(sessionId, params)
+                _navigateToChat.value = profile.id
+                connectionLogRepository.logEvent(
+                    profileId = profile.id,
+                    status = ConnectionLog.Status.CONNECTED,
+                    durationMs = System.currentTimeMillis() - startedAt,
+                    details = "OpenAI endpoint connected (${openAiSessionManager.modelsForProfile(profile.id).size} models)",
+                )
+            } catch (e: Exception) {
+                Log.e(TAG, "Failed to connect OpenAI endpoint", e)
+                _error.value = "AI endpoint: ${e.message}"
+                connectionLogRepository.logEvent(
+                    profileId = profile.id,
+                    status = ConnectionLog.Status.FAILED,
+                    durationMs = System.currentTimeMillis() - startedAt,
+                    details = e.message,
+                )
+            } finally {
+                _connectingProfileId.value = null
+            }
+        }
+    }
+
+    /**
+     * AI-endpoint transport: route HTTP through the per-profile tunnel via a
+     * JVM [javax.net.SocketFactory]. Fail closed (R7) when a tunnel is
+     * configured but yields no factory; a null factory with no tunnel is a
+     * normal direct connection.
+     */
+    private suspend fun buildOpenAiParams(profile: ConnectionProfile): OpenAiConnectParams {
+        val factory = tunnelResolver.socketFactory(profile)
+        if (profile.tunnelConfigId != null && factory == null) {
+            throw IllegalStateException(
+                "Tunnel configured but provides no socket factory — refusing to connect OpenAI directly.",
+            )
+        }
+        return OpenAiConnectParams(
+            baseUrl = profile.openaiBaseUrl,
+            pathPrefix = profile.openaiPathPrefix?.trim()?.ifBlank { null },
+            apiKey = profile.openaiApiKey?.ifBlank { null },
+            protocol = sh.haven.core.openai.AiProtocol.fromStored(profile.aiProtocol),
+            socketFactory = factory,
+            tunnelConfigured = profile.tunnelConfigId != null,
+        )
     }
 
     /**

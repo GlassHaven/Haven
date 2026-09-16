@@ -218,6 +218,11 @@ class McpServer @Inject constructor(
     private val btSerialSessionManager: sh.haven.core.btserial.BtSerialSessionManager,
     private val bleSerialSessionManager: sh.haven.core.bleserial.BleSerialSessionManager,
     private val usbSerialSessionManager: sh.haven.core.usbserial.UsbSerialSessionManager,
+    // OpenAI endpoint (openai_* tools): the session manager holding connect-time
+    // model caches, plus the tunnel resolver so an MCP chat on a tunnel-routed
+    // profile dials through the tunnel (fail closed) like the connect path does.
+    private val openAiSessionManager: sh.haven.core.openai.OpenAiSessionManager,
+    private val tunnelResolver: sh.haven.core.tunnel.TunnelResolver,
     // Capture + drive Haven's OWN rendered UI (self-hosting loop, §1a).
     // Registered with the foreground activity by MainActivity.onResume.
     private val havenUiBridge: HavenUiBridge,
@@ -485,6 +490,8 @@ class McpServer @Inject constructor(
         btSerialSessionManager = btSerialSessionManager,
         bleSerialSessionManager = bleSerialSessionManager,
         usbSerialSessionManager = usbSerialSessionManager,
+        openAiSessionManager = openAiSessionManager,
+        tunnelResolver = tunnelResolver,
         headlessSshExec = headlessSshExec,
         pendingAuthPromptHolder = pendingAuthPromptHolder,
         sessionSelectionHolder = sessionSelectionHolder,

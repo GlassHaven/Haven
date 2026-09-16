@@ -1,0 +1,28 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string name="chat_title">Chat</string>
+    <string name="chat_save_conversation">Unterhaltung speichern</string>
+    <string name="chat_stop_saving">Speichern beenden</string>
+    <string name="chat_no_connection">Kein KI-Endpunkt verbunden — zuerst ein OpenAI-Profil verbinden.</string>
+    <string name="chat_no_model">Kein Modell</string>
+    <string name="chat_message_hint">Nachricht</string>
+    <string name="chat_send">Senden</string>
+    <string name="chat_stop">Stopp</string>
+    <string name="chat_error_dismiss">%1$s — zum Ausblenden tippen</string>
+    <string name="chat_attach_title">Bild hinzufügen</string>
+    <string name="chat_attach_gallery">Fotomediathek</string>
+    <string name="chat_attach_gallery_desc">Ein vorhandenes Bild auswählen, das das Modell sehen soll</string>
+    <string name="chat_attach_camera">Kamera</string>
+    <string name="chat_attach_camera_desc">Ein Foto aufnehmen, das das Modell sehen soll</string>
+    <string name="chat_remove_image">Bild entfernen</string>
+    <string name="chat_image">Angehängtes Bild</string>
+    <string name="chat_attach_failed">Dieses Bild konnte nicht gelesen werden</string>
+    <string name="chat_copy_text">Text kopieren</string>
+    <string name="chat_copy_image">Bild kopieren</string>
+    <string name="chat_copied_text">Text kopiert</string>
+    <string name="chat_copied_image">Bild kopiert</string>
+    <string name="chat_copy_last_reply">Letzte Antwort kopieren</string>
+    <string name="chat_paste_image">Bild einfügen</string>
+    <string name="chat_copy_image_failed">Dieses Bild konnte nicht kopiert werden</string>
+    <string name="chat_paste_image_unavailable">Kein Bild in der Zwischenablage</string>
+</resources>

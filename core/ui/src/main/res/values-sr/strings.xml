@@ -6,6 +6,7 @@
     <string name="nav_keys">Кључеви</string>
     <string name="nav_sftp">Фајлови</string>
     <string name="nav_mail">Пошта</string>
+    <string name="nav_chat">Ћаскање</string>
     <string name="nav_settings">Подешавања</string>
     <string name="common_cancel">Откажи</string>
     <string name="common_save">Сачувај</string>

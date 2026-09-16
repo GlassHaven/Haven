@@ -1,0 +1,28 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string name="chat_title">محادثة</string>
+    <string name="chat_save_conversation">حفظ المحادثة</string>
+    <string name="chat_stop_saving">إيقاف حفظ المحادثة</string>
+    <string name="chat_no_connection">لا يوجد نقطة ذكاء اصطناعي متصلة — قم بتوصيل ملف OpenAI أولاً.</string>
+    <string name="chat_no_model">لا يوجد نموذج</string>
+    <string name="chat_message_hint">رسالة</string>
+    <string name="chat_send">إرسال</string>
+    <string name="chat_stop">إيقاف</string>
+    <string name="chat_error_dismiss">%1$s — انقر للإخفاء</string>
+    <string name="chat_attach_title">إضافة صورة</string>
+    <string name="chat_attach_gallery">مكتبة الصور</string>
+    <string name="chat_attach_gallery_desc">اختر صورة موجودة ليراها النموذج</string>
+    <string name="chat_attach_camera">الكاميرا</string>
+    <string name="chat_attach_camera_desc">التقط صورة ليراها النموذج</string>
+    <string name="chat_remove_image">إزالة الصورة</string>
+    <string name="chat_image">صورة مرفقة</string>
+    <string name="chat_attach_failed">تعذر قراءة هذه الصورة</string>
+    <string name="chat_copy_text">نسخ النص</string>
+    <string name="chat_copy_image">نسخ الصورة</string>
+    <string name="chat_copied_text">تم نسخ النص</string>
+    <string name="chat_copied_image">تم نسخ الصورة</string>
+    <string name="chat_copy_last_reply">نسخ آخر رد</string>
+    <string name="chat_paste_image">لصق صورة</string>
+    <string name="chat_copy_image_failed">تعذّر نسخ هذه الصورة</string>
+    <string name="chat_paste_image_unavailable">لا توجد صورة في الحافظة</string>
+</resources>

@@ -120,6 +120,8 @@ class McpWorkspaceToolsTest {
             reticulumForwardServer = mockk(relaxed = true),
             mailRuleRepository = mockk(relaxed = true),
             mailWatchManager = mockk(relaxed = true),
+            openAiSessionManager = mockk<sh.haven.core.openai.OpenAiSessionManager>(relaxed = true),
+            tunnelResolver = mockk<sh.haven.core.tunnel.TunnelResolver>(relaxed = true),
             agentActivityHolder = mockk(relaxed = true),
         )
         // #337 mechanism 3: an unanswered consent HOLDS for the wait

@@ -187,6 +187,26 @@ data class ConnectionProfile(
      */
     @ColumnInfo(defaultValue = "")
     val emailAuthMethods: String = "",
+    /**
+     * OPENAI (`connectionType == "OPENAI"`): optional path prefix prepended
+     * before the versioned paths, e.g. `/api` for a server that serves
+     * `<prefix>/v1/models` rather than bare `/v1/models`. Null/empty = no
+     * prefix. The base URL itself reuses the [host]/[port] columns.
+     */
+    val openaiPathPrefix: String? = null,
+    /**
+     * OPENAI: API key sent as the `Authorization: Bearer` header. Null/empty
+     * for keyless local servers (e.g. llama-server). Encrypted at rest.
+     */
+    val openaiApiKey: String? = null,
+    /**
+     * OPENAI: which wire protocol the endpoint speaks. Null/empty = OPENAI
+     * (OpenAI-compatible `/v1/chat/completions`). Other values: OLLAMA
+     * (Ollama's native /api), ANTHROPIC (Messages API), GEMINI
+     * (generativelanguage). See `AiProtocol` in :core:openai — kept as a raw
+     * string here because :core:data does not depend on that module.
+     */
+    val aiProtocol: String? = null,
     /** Use native Android shell instead of PRoot for local connections. */
     val useAndroidShell: Boolean = false,
     /**
@@ -501,6 +521,30 @@ data class ConnectionProfile(
     val isRclone: Boolean get() = connectionType == "RCLONE"
     val isEmail: Boolean get() = connectionType == "EMAIL"
 
+    /**
+     * OpenAI-compatible API endpoint (chat / models over HTTP). The base URL's
+     * host and port are stored in [host]/[port]; the API key in
+     * [openaiApiKey] and the optional versioned-path prefix in
+     * [openaiPathPrefix]. Reachable directly or through [tunnelConfigId]
+     * routing — an SSH session's LOCAL port forwards are already reachable
+     * at their loopback bind.
+     */
+    val isOpenai: Boolean get() = connectionType == "OPENAI"
+    /**
+     * Full base URL for an [isOpenai] profile, e.g. `http://127.0.0.1:8317`.
+     * [host] is either a bare host (composed with [port], scheme `http`) or a
+     * full base URL with scheme (e.g. `https://api.example.com:8443`), in
+     * which case [port] is ignored. [openaiPathPrefix] is appended, given a
+     * leading `/` if missing.
+     */
+    val openaiBaseUrl: String
+        get() {
+            val base = if (host.contains("://")) host.trimEnd('/')
+            else "http://$host:${if (port > 0) port else 80}".trimEnd('/')
+            val prefix = openaiPathPrefix.orEmpty()
+            return if (prefix.isEmpty()) base else base + (if (prefix.startsWith("/")) prefix else "/$prefix")
+        }
+
     /** SAF-backed "local folder" file location (#415) — browses a persisted [safTreeUri] tree. */
     val isSaf: Boolean get() = connectionType == "SAF"
 
@@ -536,5 +580,5 @@ data class ConnectionProfile(
     val usbSerialConfig: String? get() = sshOptions
 
     val isDesktop: Boolean get() = isVnc || isRdp || isSpice
-    val isTerminal: Boolean get() = !isDesktop && !isSmb && !isRclone && !isEmail && !isSaf
+    val isTerminal: Boolean get() = !isDesktop && !isSmb && !isRclone && !isEmail && !isSaf && !isOpenai
 }

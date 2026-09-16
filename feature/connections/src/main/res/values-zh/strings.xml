@@ -476,6 +476,16 @@
     <string name="connections_local_distro_label">在系统中打开</string>
     <string name="connections_local_distro_active_default">活动发行版（默认）</string>
 
+    <string name="connections_section_openai">AI 端点</string>
+    <string name="connections_field_openai_host">服务器地址</string>
+    <string name="connections_field_openai_host_hint">IP、主机名或完整的 http:// URL</string>
+    <string name="connections_field_openai_api_key">API 密钥（可选）</string>
+    <string name="connections_field_openai_api_key_hint">以 Bearer 令牌发送。无需密钥的服务器请留空。</string>
+    <string name="connections_field_openai_path_prefix">路径前缀（可选）</string>
+    <string name="connections_field_openai_path_prefix_hint">插入在 /v1 之前 — 例如 /api</string>    <string name="connections_field_openai_protocol">协议</string>
+    <string name="connections_field_openai_protocol_hint">默认兼容 OpenAI；Ollama、Anthropic 和 Gemini 会改变路径与鉴权方式。</string>
+
+    <string name="connections_openai_url_preview">端点 URL：%1$s</string>
     <!-- Email account (embedded mail) -->
     <string name="connections_section_email">电子邮件账户</string>
     <string name="connections_auth_method_proton_srp">ProtonMail SRP</string>

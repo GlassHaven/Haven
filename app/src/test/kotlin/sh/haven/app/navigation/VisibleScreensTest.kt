@@ -186,4 +186,33 @@ class VisibleScreensTest {
             routes,
         )
     }
+
+    // ---- Chat: same usage rule as Mail, driven by an open OPENAI session ----
+
+    @Test
+    fun `auto chat appears only while an openai session is connected`() {
+        val none = visibleScreens(emptyList(), emptyMap(), hasTerminalProfiles = false, false)
+        assertEquals(false, Screen.Chat.route in names(none))
+        val some = visibleScreens(
+            emptyList(), emptyMap(),
+            hasTerminalProfiles = false, false, hasOpenChatSession = true,
+        )
+        assertEquals(true, Screen.Chat.route in names(some))
+    }
+
+    @Test
+    fun `chat preference overrides the session rule both ways`() {
+        val shown = visibleScreens(
+            emptyList(),
+            mapOf(Screen.Chat.route to TabVisibility.SHOW),
+            hasTerminalProfiles = false, false, hasOpenChatSession = false,
+        )
+        assertEquals(true, Screen.Chat.route in names(shown))
+        val hidden = visibleScreens(
+            emptyList(),
+            mapOf(Screen.Chat.route to TabVisibility.HIDE),
+            hasTerminalProfiles = false, false, hasOpenChatSession = true,
+        )
+        assertEquals(false, Screen.Chat.route in names(hidden))
+    }
 }

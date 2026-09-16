@@ -70,6 +70,7 @@ class MainActivity : AppCompatActivity() {
     @Inject lateinit var sshKeyRepository: sh.haven.core.data.repository.SshKeyRepository
     // Drives the Mail tab's visibility (shown only while a mail session is open).
     @Inject lateinit var mailSessionManager: sh.haven.core.mail.MailSessionManager
+    @Inject lateinit var openAiSessionManager: sh.haven.core.openai.OpenAiSessionManager
     // Published to FidoAuthenticator in onResume so NFC reader mode can
     // be enabled during FIDO2 SSH assertions. Without this, Nitrokey /
     // SoloKey / YubiKey-over-NFC flows never saw a Tag (#15).
@@ -604,6 +605,7 @@ class MainActivity : AppCompatActivity() {
                         agentUiCommandBus = agentUiCommandBus,
                         userMessageBus = userMessageBus,
                         mailSessionManager = mailSessionManager,
+                        openAiSessionManager = openAiSessionManager,
                         mcpStatusHolder = mcpStatusHolder,
                     )
                     // Floats above whatever screen is active so an

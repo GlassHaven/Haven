@@ -478,6 +478,16 @@
     <string name="connections_local_distro_label">Abrir no SO</string>
     <string name="connections_local_distro_active_default">Distro ativa (padrão)</string>
 
+    <string name="connections_section_openai">Endpoint de IA</string>
+    <string name="connections_field_openai_host">Endereço do servidor</string>
+    <string name="connections_field_openai_host_hint">IP, nome de host ou URL http:// completa</string>
+    <string name="connections_field_openai_api_key">Chave de API (opcional)</string>
+    <string name="connections_field_openai_api_key_hint">Enviada como token Bearer. Deixe em branco para servidores sem chave.</string>
+    <string name="connections_field_openai_path_prefix">Prefixo de caminho (opcional)</string>
+    <string name="connections_field_openai_path_prefix_hint">Inserido antes de /v1 — ex.: /api</string>    <string name="connections_field_openai_protocol">Protocolo</string>
+    <string name="connections_field_openai_protocol_hint">Compatível com OpenAI por padrão; Ollama, Anthropic e Gemini alteram caminhos e autenticação.</string>
+
+    <string name="connections_openai_url_preview">URL do endpoint: %1$s</string>
     <!-- Email account -->
     <string name="connections_section_email">Conta de e-mail</string>
     <string name="connections_auth_method_proton_srp">ProtonMail SRP</string>

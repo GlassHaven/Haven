@@ -470,6 +470,16 @@
     <string name="connections_local_distro_label">OS에서 열기</string>
     <string name="connections_local_distro_active_default">활성 배포판 (기본값)</string>
 
+    <string name="connections_section_openai">AI 엔드포인트</string>
+    <string name="connections_field_openai_host">서버 주소</string>
+    <string name="connections_field_openai_host_hint">IP, 호스트 이름 또는 전체 http:// URL</string>
+    <string name="connections_field_openai_api_key">API 키 (선택 사항)</string>
+    <string name="connections_field_openai_api_key_hint">Bearer 토큰으로 전송됩니다. 키가 없는 서버는 비워 두세요.</string>
+    <string name="connections_field_openai_path_prefix">경로 접두사 (선택 사항)</string>
+    <string name="connections_field_openai_path_prefix_hint">/v1 앞에 추가 — 예: /api</string>    <string name="connections_field_openai_protocol">프로토콜</string>
+    <string name="connections_field_openai_protocol_hint">기본값은 OpenAI 호환; Ollama, Anthropic, Gemini는 경로와 인증이 다릅니다.</string>
+
+    <string name="connections_openai_url_preview">엔드포인트 URL: %1$s</string>
     <!-- Email account (embedded mail) -->
     <string name="connections_section_email">이메일 계정</string>
     <string name="connections_auth_method_proton_srp">ProtonMail SRP</string>

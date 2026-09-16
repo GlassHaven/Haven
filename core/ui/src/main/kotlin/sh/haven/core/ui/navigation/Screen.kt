@@ -5,6 +5,7 @@ import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Cable
 import androidx.compose.material.icons.filled.DesktopWindows
 import androidx.compose.material.icons.filled.Folder
+import androidx.compose.material.icons.filled.Forum
 import androidx.compose.material.icons.filled.Mail
 import androidx.compose.material.icons.filled.Settings
 import androidx.compose.material.icons.filled.Terminal
@@ -30,5 +31,9 @@ enum class Screen(
     Keys("keys", R.string.nav_keys, Icons.Filled.VpnKey, isAlwaysVisible = false),
     Sftp("sftp", R.string.nav_sftp, Icons.Filled.Folder, isAlwaysVisible = false),
     Mail("mail", R.string.nav_mail, Icons.Filled.Mail, isAlwaysVisible = false),
+    // OpenAI-endpoint chat. Opened by tapping a CONNECTED OPENAI profile —
+    // not reachable from the Connections list until one exists, so it may
+    // hide like the other non-master tabs.
+    Chat("chat", R.string.nav_chat, Icons.Filled.Forum, isAlwaysVisible = false),
     Settings("settings", R.string.nav_settings, Icons.Filled.Settings, isAlwaysVisible = true),
 }

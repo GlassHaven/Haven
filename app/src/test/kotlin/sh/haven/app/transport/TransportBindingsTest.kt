@@ -40,6 +40,7 @@ class TransportBindingsTest {
             smb(manager()),
             mail(manager()),
             rclone(manager()),
+            openai(manager()),
         )
     }
 

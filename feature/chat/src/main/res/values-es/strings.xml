@@ -1,0 +1,28 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string name="chat_title">Chat</string>
+    <string name="chat_save_conversation">Guardar conversación</string>
+    <string name="chat_stop_saving">Dejar de guardar</string>
+    <string name="chat_no_connection">Sin punto de IA conectado — conecta primero un perfil OpenAI.</string>
+    <string name="chat_no_model">Sin modelo</string>
+    <string name="chat_message_hint">Mensaje</string>
+    <string name="chat_send">Enviar</string>
+    <string name="chat_stop">Detener</string>
+    <string name="chat_error_dismiss">%1$s — toca para descartar</string>
+    <string name="chat_attach_title">Añadir imagen</string>
+    <string name="chat_attach_gallery">Biblioteca de fotos</string>
+    <string name="chat_attach_gallery_desc">Elige una imagen existente para que la vea el modelo</string>
+    <string name="chat_attach_camera">Cámara</string>
+    <string name="chat_attach_camera_desc">Toma una foto para que la vea el modelo</string>
+    <string name="chat_remove_image">Quitar imagen</string>
+    <string name="chat_image">Imagen adjunta</string>
+    <string name="chat_attach_failed">No se pudo leer esa imagen</string>
+    <string name="chat_copy_text">Copiar texto</string>
+    <string name="chat_copy_image">Copiar imagen</string>
+    <string name="chat_copied_text">Texto copiado</string>
+    <string name="chat_copied_image">Imagen copiada</string>
+    <string name="chat_copy_last_reply">Copiar la última respuesta</string>
+    <string name="chat_paste_image">Pegar imagen</string>
+    <string name="chat_copy_image_failed">No se pudo copiar esa imagen</string>
+    <string name="chat_paste_image_unavailable">No hay ninguna imagen en el portapapeles</string>
+</resources>

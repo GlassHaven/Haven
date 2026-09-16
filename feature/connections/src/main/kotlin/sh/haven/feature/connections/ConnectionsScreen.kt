@@ -162,6 +162,7 @@ fun ConnectionsScreen(
     onNavigateToSmb: (profileId: String) -> Unit = {},
     onNavigateToRclone: (profileId: String) -> Unit = {},
     onNavigateToEmail: (profileId: String) -> Unit = {},
+    onNavigateToChat: (profileId: String) -> Unit = {},
     onNavigateToWayland: () -> Unit = {},
     onNavigateToConnections: () -> Unit = {},
     onNavigateToAgentActivity: () -> Unit = {},
@@ -229,6 +230,7 @@ fun ConnectionsScreen(
     val navigateToSmb by viewModel.navigateToSmb.collectAsState()
     val navigateToRclone by viewModel.navigateToRclone.collectAsState()
     val navigateToEmail by viewModel.navigateToEmail.collectAsState()
+    val navigateToChat by viewModel.navigateToChat.collectAsState()
     val navigateToWayland by viewModel.navigateToWayland.collectAsState()
     val navigateBackToConnections by viewModel.navigateToConnections.collectAsState()
     val deploySuccess by viewModel.deploySuccess.collectAsState()
@@ -285,6 +287,13 @@ fun ConnectionsScreen(
     LaunchedEffect(navigateToEmail) {
         navigateToEmail?.let { profileId ->
             onNavigateToEmail(profileId)
+            viewModel.onNavigated()
+        }
+    }
+
+    LaunchedEffect(navigateToChat) {
+        navigateToChat?.let { profileId ->
+            onNavigateToChat(profileId)
             viewModel.onNavigated()
         }
     }
@@ -1397,7 +1406,7 @@ fun ConnectionsScreen(
                                         onTapProfile(
                                             profile, profileStatuses[profile.id], sshKeys,
                                             id != null && (id.keyId != null || id.password != null),
-                                            viewModel, onNavigateToSmb, onNavigateToRclone, onNavigateToEmail,
+                                            viewModel, onNavigateToSmb, onNavigateToRclone, onNavigateToEmail, onNavigateToChat,
                                         ) { connectingProfile = profile }
                                     },
                                     onRename = { newLabel -> viewModel.saveConnection(profile.copy(label = newLabel)) },
@@ -1518,7 +1527,7 @@ fun ConnectionsScreen(
                                             onTapProfile(
                                                 dep, profileStatuses[dep.id], sshKeys,
                                                 id != null && (id.keyId != null || id.password != null),
-                                                viewModel, onNavigateToSmb, onNavigateToRclone, onNavigateToEmail,
+                                                viewModel, onNavigateToSmb, onNavigateToRclone, onNavigateToEmail, onNavigateToChat,
                                             ) { connectingProfile = dep }
                                         },
                                         onRename = { newLabel -> viewModel.saveConnection(dep.copy(label = newLabel)) },
@@ -1607,12 +1616,15 @@ private fun onTapProfile(
     onNavigateToSmb: (String) -> Unit,
     onNavigateToRclone: (String) -> Unit,
     onNavigateToEmail: (String) -> Unit,
+    onNavigateToChat: (String) -> Unit,
     showPasswordDialog: () -> Unit,
 ) {
     if (profile.isLocal) {
         viewModel.connect(profile, "")
     } else if (profileStatus == ProfileStatus.CONNECTED && profile.isEmail) {
         onNavigateToEmail(profile.id)
+    } else if (profileStatus == ProfileStatus.CONNECTED && profile.isOpenai) {
+        onNavigateToChat(profile.id)
     } else if (profileStatus == ProfileStatus.CONNECTED && profile.isRclone) {
         onNavigateToRclone(profile.id)
     } else if (profileStatus == ProfileStatus.CONNECTED && profile.isSmb) {
@@ -1652,6 +1664,10 @@ private fun onTapProfile(
         // EMAIL profiles carry their own credentials (stored password / mailbox
         // password / linked TOTP) — connectEmail handles SRP + unlock, so route
         // straight through connect() like rclone rather than the password dialog.
+        viewModel.connect(profile, "")
+    } else if (profile.isOpenai) {
+        // OPENAI profiles carry their own (optional) API key on the profile —
+        // connectOpenAI verifies via /v1/models, so no password dialog.
         viewModel.connect(profile, "")
     } else if (profile.isRclone) {
         // Rclone profiles don't take a Haven-side password — credentials

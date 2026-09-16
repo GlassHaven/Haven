@@ -478,6 +478,16 @@
     <string name="connections_local_distro_label">Открыть в ОС</string>
     <string name="connections_local_distro_active_default">Активный дистрибутив (по умолчанию)</string>
 
+    <string name="connections_section_openai">AI-эндпоинт</string>
+    <string name="connections_field_openai_host">Адрес сервера</string>
+    <string name="connections_field_openai_host_hint">IP, имя хоста или полный URL http://</string>
+    <string name="connections_field_openai_api_key">Ключ API (необязательно)</string>
+    <string name="connections_field_openai_api_key_hint">Отправляется как Bearer-токен. Для серверов без ключа оставьте пустым.</string>
+    <string name="connections_field_openai_path_prefix">Префикс пути (необязательно)</string>
+    <string name="connections_field_openai_path_prefix_hint">Вставляется перед /v1 — например /api</string>    <string name="connections_field_openai_protocol">Протокол</string>
+    <string name="connections_field_openai_protocol_hint">По умолчанию совместим с OpenAI; Ollama, Anthropic и Gemini меняют пути и авторизацию.</string>
+
+    <string name="connections_openai_url_preview">URL эндпоинта: %1$s</string>
     <!-- Email accounts (Proton / IMAP-SMTP) -->
     <string name="connections_section_email">Учётная запись email</string>
     <string name="connections_auth_method_proton_srp">ProtonMail SRP</string>

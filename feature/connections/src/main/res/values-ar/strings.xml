@@ -478,6 +478,16 @@
     <string name="connections_local_distro_label">فتح في نظام التشغيل</string>
     <string name="connections_local_distro_active_default">التوزيعة النشطة (افتراضي)</string>
 
+    <string name="connections_section_openai">نقطة نهاية الذكاء الاصطناعي</string>
+    <string name="connections_field_openai_host">عنوان الخادم</string>
+    <string name="connections_field_openai_host_hint">عنوان IP أو اسم مضيف أو رابط http:// كامل</string>
+    <string name="connections_field_openai_api_key">مفتاح API (اختياري)</string>
+    <string name="connections_field_openai_api_key_hint">يُرسَل كرمز Bearer. اتركه فارغًا للخوادم بدون مفتاح.</string>
+    <string name="connections_field_openai_path_prefix">بادئة المسار (اختيارية)</string>
+    <string name="connections_field_openai_path_prefix_hint">تُدرَج قبل /v1 — مثل /api</string>    <string name="connections_field_openai_protocol">بروتوكول الاتصال</string>
+    <string name="connections_field_openai_protocol_hint">متوافق مع OpenAI افتراضيًا؛ Ollama وAnthropic وGemini تغيّر المسارات والمصادقة.</string>
+
+    <string name="connections_openai_url_preview">عنوان نقطة النهاية: %1$s</string>
     <!-- Email account -->
     <string name="connections_section_email">حساب البريد الإلكتروني</string>
     <string name="connections_auth_method_proton_srp">ProtonMail SRP</string>

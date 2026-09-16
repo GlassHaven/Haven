@@ -7,6 +7,7 @@
     <string name="nav_sftp">Archivos</string>
     <string name="nav_settings">Ajustes</string>
     <string name="nav_mail">Correo</string>
+    <string name="nav_chat">Chat</string>
     <string name="common_cancel">Cancelar</string>
     <string name="common_save">Guardar</string>
     <string name="common_done">Listo</string>

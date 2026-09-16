@@ -1,0 +1,28 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string name="chat_title">Ћаскање</string>
+    <string name="chat_save_conversation">Сачувај разговор</string>
+    <string name="chat_stop_saving">Прекини чување</string>
+    <string name="chat_no_connection">Ниједан АИ крајњи тачка није повезан — прво повежите ОпенАИ профил.</string>
+    <string name="chat_no_model">Нема модела</string>
+    <string name="chat_message_hint">Порука</string>
+    <string name="chat_send">Пошаљи</string>
+    <string name="chat_stop">Заустави</string>
+    <string name="chat_error_dismiss">%1$s — додирните да сакријете</string>
+    <string name="chat_attach_title">Додај слику</string>
+    <string name="chat_attach_gallery">Галерија</string>
+    <string name="chat_attach_gallery_desc">Изабери постојећу слику за модел</string>
+    <string name="chat_attach_camera">Камера</string>
+    <string name="chat_attach_camera_desc">Сликај фотографију за модел</string>
+    <string name="chat_remove_image">Уклони слику</string>
+    <string name="chat_image">Приложена слика</string>
+    <string name="chat_attach_failed">Читање те слике није успело</string>
+    <string name="chat_copy_text">Копирај текст</string>
+    <string name="chat_copy_image">Копирај слику</string>
+    <string name="chat_copied_text">Текст је копиран</string>
+    <string name="chat_copied_image">Слика је копирана</string>
+    <string name="chat_copy_last_reply">Копирај последњи одговор</string>
+    <string name="chat_paste_image">Налепи слику</string>
+    <string name="chat_copy_image_failed">Није могло да се копира та слика</string>
+    <string name="chat_paste_image_unavailable">Нема слике у остави</string>
+</resources>

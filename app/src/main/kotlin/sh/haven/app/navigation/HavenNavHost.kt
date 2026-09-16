@@ -81,6 +81,7 @@ import androidx.hilt.navigation.compose.hiltViewModel
 import sh.haven.app.desktop.DesktopViewModel
 import sh.haven.feature.connections.ConnectionsScreen
 import sh.haven.feature.connections.ConnectionsViewModel
+import sh.haven.feature.chat.ChatScreen
 import sh.haven.feature.keys.KeysScreen
 import sh.haven.feature.mail.MailScreen
 import sh.haven.feature.settings.SettingsScreen
@@ -101,6 +102,7 @@ fun HavenNavHost(
     agentUiCommandBus: sh.haven.core.data.agent.AgentUiCommandBus,
     userMessageBus: sh.haven.core.data.message.UserMessageBus,
     mailSessionManager: sh.haven.core.mail.MailSessionManager,
+    openAiSessionManager: sh.haven.core.openai.OpenAiSessionManager,
     mcpStatusHolder: sh.haven.core.data.agent.McpStatusHolder,
 ) {
     // Desktop multi-session ViewModel — hoisted to nav scope so it survives tab switches
@@ -162,12 +164,20 @@ fun HavenNavHost(
         it.status == sh.haven.core.mail.MailSessionManager.SessionState.Status.CONNECTED
     }
 
+    // Same live-session tracking for the Chat tab: appears while an OpenAI
+    // endpoint connection is open, hides on disconnect.
+    val openAiSessions by openAiSessionManager.sessions.collectAsState()
+    val hasOpenChatSession = openAiSessions.values.any {
+        it.status == sh.haven.core.openai.OpenAiSessionManager.SessionState.Status.CONNECTED
+    }
+
     val screenOrderPref by preferencesRepository.screenOrder
         .collectAsState(initial = emptyList())
     val screens = remember(
         screenOrderPref,
         hasTerminalProfiles,
         hasOpenEmailSession,
+        hasOpenChatSession,
         tabVisibility,
     ) {
         visibleScreens(
@@ -175,6 +185,7 @@ fun HavenNavHost(
             tabVisibility = tabVisibility,
             hasTerminalProfiles = hasTerminalProfiles,
             hasOpenEmailSession = hasOpenEmailSession,
+            hasOpenChatSession = hasOpenChatSession,
         )
     }
     // Separate mutable list for nav bar visual order during drag (pager untouched)
@@ -493,6 +504,8 @@ fun HavenNavHost(
 
     // Email (Mail) auto-open params
     var pendingEmailProfileId by rememberSaveable { mutableStateOf<String?>(null) }
+    // Profile id an OPENAI connect landed on; consumed by the Chat screen on first show.
+    var pendingChatProfileId by rememberSaveable { mutableStateOf<String?>(null) }
 
     // Local-shell open requests from the Desktop → Manage shell button (#168).
     // Always-composed HavenNavHost collects them, sets the pending profile,
@@ -633,6 +646,12 @@ fun HavenNavHost(
                         pendingEmailProfileId = profileId
                         coroutineScope.launch {
                             requestScreen(Screen.Mail)
+                        }
+                    },
+                    onNavigateToChat = { profileId ->
+                        pendingChatProfileId = profileId
+                        coroutineScope.launch {
+                            requestScreen(Screen.Chat)
                         }
                     },
                     onNavigateToWayland = {
@@ -857,6 +876,17 @@ fun HavenNavHost(
                     LaunchedEffect(pendingEmailProfileId) {
                         if (pendingEmailProfileId != null) {
                             pendingEmailProfileId = null
+                        }
+                    }
+                }
+                Screen.Chat -> {
+                    ChatScreen(
+                        pendingProfileId = pendingChatProfileId,
+                        modifier = Modifier.fillMaxSize(),
+                    )
+                    LaunchedEffect(pendingChatProfileId) {
+                        if (pendingChatProfileId != null) {
+                            pendingChatProfileId = null
                         }
                     }
                 }
@@ -1098,6 +1128,9 @@ internal fun visibleScreens(
     tabVisibility: Map<String, TabVisibility>,
     hasTerminalProfiles: Boolean,
     hasOpenEmailSession: Boolean,
+    // Defaulted so the existing positional test constructions keep compiling;
+    // the production caller passes the live chat-session check.
+    hasOpenChatSession: Boolean = false,
 ): List<Screen> {
     val ordered = if (screenOrder.isNotEmpty()) {
         val byRoute = screenOrder.mapNotNull { route ->
@@ -1129,6 +1162,9 @@ internal fun visibleScreens(
                     // Mail shows only while an email connection is open (a live
                     // CONNECTED session) and hides again on disconnect.
                     Screen.Mail -> hasOpenEmailSession
+                    // Chat shows only while an OpenAI endpoint connection is
+                    // open, mirroring Mail's live-session rule.
+                    Screen.Chat -> hasOpenChatSession
                     // Terminal hides until there's any SSH/Mosh/ET/Reticulum
                     // profile (ConnectionProfile.isTerminal covers them all).
                     Screen.Terminal -> hasTerminalProfiles

@@ -7,6 +7,7 @@
     <string name="nav_sftp">ファイル</string>
     <string name="nav_settings">設定</string>
     <string name="nav_mail">メール</string>
+    <string name="nav_chat">チャット</string>
     <string name="common_cancel">キャンセル</string>
     <string name="common_save">保存</string>
     <string name="common_done">完了</string>

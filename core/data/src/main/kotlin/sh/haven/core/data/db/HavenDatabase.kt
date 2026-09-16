@@ -9,6 +9,8 @@ import sh.haven.core.data.db.entities.SshIdentity
 import sh.haven.core.data.db.entities.AgentAuditEvent
 import sh.haven.core.data.db.entities.ConnectionGroup
 import sh.haven.core.data.db.entities.ConnectionLog
+import sh.haven.core.data.db.entities.ChatConversation
+import sh.haven.core.data.db.entities.ChatMessage
 import sh.haven.core.data.db.entities.ConnectionProfile
 import sh.haven.core.data.db.entities.KnownHost
 import sh.haven.core.data.db.entities.KnownTlsCert
@@ -53,8 +55,10 @@ import sh.haven.core.data.db.entities.WorkspaceProfile
         StandingPolicy::class,
         AgeIdentityEntity::class,
         SshIdentity::class,
+        ChatConversation::class,
+        ChatMessage::class,
     ],
-    version = 81,
+    version = 84,
     exportSchema = true,
 )
 abstract class HavenDatabase : RoomDatabase() {
@@ -80,6 +84,8 @@ abstract class HavenDatabase : RoomDatabase() {
     abstract fun standingPolicyDao(): StandingPolicyDao
     abstract fun ageIdentityDao(): AgeIdentityDao
     abstract fun sshIdentityDao(): SshIdentityDao
+    abstract fun chatConversationDao(): ChatConversationDao
+    abstract fun chatMessageDao(): ChatMessageDao
 
     companion object {
         val MIGRATION_1_2 = object : Migration(1, 2) {
@@ -1300,6 +1306,64 @@ abstract class HavenDatabase : RoomDatabase() {
         val MIGRATION_80_81 = object : Migration(80, 81) {
             override fun migrate(db: SupportSQLiteDatabase) {
                 addColumnIfMissing(db, "connection_profiles", "bindAddress", "TEXT DEFAULT NULL")
+            }
+        }
+
+        /**
+         * OPENAI connection type: the optional versioned-path prefix and the
+         * Bearer API key (encrypted at rest) on `connection_profiles`, plus
+         * the opt-in-saved chat conversation/message tables. Ephemeral
+         * conversations never touch the new tables; message `content` is
+         * `ENC:`-encrypted by `ChatRepository` at the repository boundary.
+         */
+        val MIGRATION_81_82 = object : Migration(81, 82) {
+            override fun migrate(db: SupportSQLiteDatabase) {
+                addColumnIfMissing(db, "connection_profiles", "openaiPathPrefix", "TEXT DEFAULT NULL")
+                addColumnIfMissing(db, "connection_profiles", "openaiApiKey", "TEXT DEFAULT NULL")
+                db.execSQL("""
+                    CREATE TABLE IF NOT EXISTS `chat_conversations` (
+                        `id` TEXT NOT NULL,
+                        `profileId` TEXT NOT NULL,
+                        `title` TEXT NOT NULL,
+                        `createdAt` INTEGER NOT NULL,
+                        `savedAt` INTEGER NOT NULL,
+                        `updatedAt` INTEGER NOT NULL,
+                        PRIMARY KEY(`id`)
+                    )
+                """.trimIndent())
+                db.execSQL("""
+                    CREATE TABLE IF NOT EXISTS `chat_messages` (
+                        `id` TEXT NOT NULL,
+                        `conversationId` TEXT NOT NULL,
+                        `role` TEXT NOT NULL,
+                        `content` TEXT NOT NULL,
+                        `model` TEXT DEFAULT NULL,
+                        `createdAt` INTEGER NOT NULL,
+                        PRIMARY KEY(`id`)
+                    )
+                """.trimIndent())
+                db.execSQL(
+                    "CREATE INDEX IF NOT EXISTS `index_chat_messages_conversationId` " +
+                        "ON `chat_messages` (`conversationId`)"
+                )
+            }
+        }
+
+        /**
+         * Wire-protocol variants on OPENAI profiles: null/empty stays
+         * OPENAI (existing profiles unchanged); OLLAMA / ANTHROPIC / GEMINI
+         * switch the client's paths, auth headers and payload shapes.
+         */
+        val MIGRATION_82_83 = object : Migration(82, 83) {
+            override fun migrate(db: SupportSQLiteDatabase) {
+                addColumnIfMissing(db, "connection_profiles", "aiProtocol", "TEXT DEFAULT NULL")
+            }
+        }
+
+        /** Vision: attached images (JSON `[{mimeType, base64}]`) on chat messages, `ENC:`-encrypted like content. */
+        val MIGRATION_83_84 = object : Migration(83, 84) {
+            override fun migrate(db: SupportSQLiteDatabase) {
+                addColumnIfMissing(db, "chat_messages", "attachments", "TEXT DEFAULT NULL")
             }
         }
 

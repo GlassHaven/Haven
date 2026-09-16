@@ -35,6 +35,7 @@
     <string name="common_support">Suporte</string>
     <string name="common_unlock">Desbloquear</string>
     <string name="nav_mail">E-mail</string>
+    <string name="nav_chat">Conversa</string>
     <string name="wayland_cd_session_menu">Menu da sessão</string>
     <string name="wayland_cd_reset_zoom">Redefinir zoom</string>
     <string name="wayland_cd_exit_fullscreen">Sair da tela cheia</string>

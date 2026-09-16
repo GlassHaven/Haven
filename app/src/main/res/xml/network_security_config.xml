@@ -1,17 +1,13 @@
 <?xml version="1.0" encoding="utf-8"?>
 <network-security-config>
-    <!-- Default: refuse cleartext for everything outside loopback. -->
-    <base-config cleartextTrafficPermitted="false" />
-    <!-- Loopback (127.0.0.1) cannot be MITM'd, and Haven's own
-         architecture leans on loopback HTTP servers (rclone serve,
-         HLS, the MCP transport, and any port forward that resolves
-         to phone-side 127.0.0.1 — e.g. an SSH `-L` rule that tunnels
-         a workstation HTTP server back to the device). Allowing
-         cleartext only here keeps the safe default for the wider
-         internet while letting in-process HTTP clients reach those
-         servers. -->
-    <domain-config cleartextTrafficPermitted="true">
-        <domain includeSubdomains="false">127.0.0.1</domain>
-        <domain includeSubdomains="false">localhost</domain>
-    </domain-config>
+    <!-- Haven connects to user-configured endpoints (thin-client model):
+         plain-HTTP hosts are an explicit choice the user makes when they
+         enter the URL, the way an SSH profile is an explicit choice. TLS
+         still applies when the server speaks it; this only lifts the
+         platform default ban on http:// so LAN AI endpoints
+         (llama-server, Ollama, …) are reachable directly. Loopback
+         (127.0.0.1) remains the backbone: Haven's own HTTP servers
+         (rclone serve, HLS, the MCP transport) and SSH `-L` rules that
+         return a workstation server to the device all resolve there. -->
+    <base-config cleartextTrafficPermitted="true" />
 </network-security-config>

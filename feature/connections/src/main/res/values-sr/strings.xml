@@ -390,6 +390,16 @@
     <string name="connections_section_vnc">VNC подешавања</string>
     <string name="connections_section_rdp">RDP подешавања</string>
     <string name="connections_section_spice">SPICE подешавања</string>
+    <string name="connections_section_openai">AI крајња тачка</string>
+    <string name="connections_field_openai_host">Адреса сервера</string>
+    <string name="connections_field_openai_host_hint">IP, име хоста или пун http:// URL</string>
+    <string name="connections_field_openai_api_key">API кључ (опционо)</string>
+    <string name="connections_field_openai_api_key_hint">Шаље се као Bearer токен. Оставите празно за сервере без кључа.</string>
+    <string name="connections_field_openai_path_prefix">Префикс путање (опционо)</string>
+    <string name="connections_field_openai_path_prefix_hint">Убаци се пре /v1 — нпр. /api</string>    <string name="connections_field_openai_protocol">Протокол</string>
+    <string name="connections_field_openai_protocol_hint">Подразумевано OpenAI-компатибилно; Ollama, Anthropic и Gemini мењају путање и аутентификацију.</string>
+
+    <string name="connections_openai_url_preview">URL крајње тачке: %1$s</string>
     <string name="connections_section_smb">SMB подешавања</string>
     <string name="connections_section_email">И-мејл налог</string>
     <string name="connections_auth_method_proton_srp">ProtonMail SRP</string>

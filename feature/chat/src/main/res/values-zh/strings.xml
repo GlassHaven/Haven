@@ -1,0 +1,28 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string name="chat_title">聊天</string>
+    <string name="chat_save_conversation">保存对话</string>
+    <string name="chat_stop_saving">停止保存</string>
+    <string name="chat_no_connection">未连接 AI 端点——请先连接 OpenAI 配置。</string>
+    <string name="chat_no_model">无模型</string>
+    <string name="chat_message_hint">消息</string>
+    <string name="chat_send">发送</string>
+    <string name="chat_stop">停止</string>
+    <string name="chat_error_dismiss">%1$s——点按以关闭</string>
+    <string name="chat_attach_title">添加图片</string>
+    <string name="chat_attach_gallery">相册</string>
+    <string name="chat_attach_gallery_desc">选择现有图片让模型查看</string>
+    <string name="chat_attach_camera">相机</string>
+    <string name="chat_attach_camera_desc">拍摄照片让模型查看</string>
+    <string name="chat_remove_image">移除图片</string>
+    <string name="chat_image">附件图片</string>
+    <string name="chat_attach_failed">无法读取该图片</string>
+    <string name="chat_copy_text">复制文本</string>
+    <string name="chat_copy_image">复制图片</string>
+    <string name="chat_copied_text">文本已复制</string>
+    <string name="chat_copied_image">图片已复制</string>
+    <string name="chat_copy_last_reply">复制最后一条回复</string>
+    <string name="chat_paste_image">粘贴图片</string>
+    <string name="chat_copy_image_failed">无法复制该图片</string>
+    <string name="chat_paste_image_unavailable">剪贴板中没有图片</string>
+</resources>

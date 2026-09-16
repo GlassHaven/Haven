@@ -6955,6 +6955,26 @@
      }
     },
     {
+     "name": "nav_chat",
+     "en": "Chat",
+     "comment": "Navigation tabs",
+     "args": [],
+     "t": {
+      "ar": "محادثة",
+      "bn": "চ্যাট",
+      "de": "Chat",
+      "es": "Chat",
+      "fr": "Chat",
+      "hi": "चैट",
+      "ja": "チャット",
+      "ko": "채팅",
+      "pt": "Conversa",
+      "ru": "Чат",
+      "sr": "Ћаскање",
+      "zh": "聊天"
+     }
+    },
+    {
      "name": "nav_settings",
      "en": "Settings",
      "comment": "Navigation tabs",
@@ -7652,6 +7672,514 @@
       "ru": "Разрешение рабочего стола",
       "sr": "Резолуција десктопа",
       "zh": "桌面分辨率"
+     }
+    }
+   ]
+  },
+  {
+   "module": "feature/chat",
+   "path": "feature/chat/src/main/res/values/strings.xml",
+   "strings": [
+    {
+     "name": "chat_title",
+     "en": "Chat",
+     "comment": "",
+     "args": [],
+     "t": {
+      "ar": "محادثة",
+      "bn": "চ্যাট",
+      "de": "Chat",
+      "es": "Chat",
+      "fr": "Chat",
+      "hi": "चैट",
+      "ja": "チャット",
+      "ko": "채팅",
+      "pt": "Conversa",
+      "ru": "Чат",
+      "sr": "Ћаскање",
+      "zh": "聊天"
+     }
+    },
+    {
+     "name": "chat_save_conversation",
+     "en": "Save conversation",
+     "comment": "",
+     "args": [],
+     "t": {
+      "ar": "حفظ المحادثة",
+      "bn": "কথোপকথন সংরক্ষণ",
+      "de": "Unterhaltung speichern",
+      "es": "Guardar conversación",
+      "fr": "Enregistrer la conversation",
+      "hi": "बातचीत सहेजें",
+      "ja": "会話を保存",
+      "ko": "대화 저장",
+      "pt": "Salvar conversa",
+      "ru": "Сохранить диалог",
+      "sr": "Сачувај разговор",
+      "zh": "保存对话"
+     }
+    },
+    {
+     "name": "chat_stop_saving",
+     "en": "Stop saving conversation",
+     "comment": "",
+     "args": [],
+     "t": {
+      "ar": "إيقاف حفظ المحادثة",
+      "bn": "সংরক্ষণ বন্ধ করুন",
+      "de": "Speichern beenden",
+      "es": "Dejar de guardar",
+      "fr": "Arrêter d\\'enregistrer",
+      "hi": "सहेजना बंद करें",
+      "ja": "保存を停止",
+      "ko": "저장 중지",
+      "pt": "Parar de salvar",
+      "ru": "Прекратить сохранение",
+      "sr": "Прекини чување",
+      "zh": "停止保存"
+     }
+    },
+    {
+     "name": "chat_no_connection",
+     "en": "No AI endpoint connected — connect an OpenAI profile first.",
+     "comment": "",
+     "args": [],
+     "t": {
+      "ar": "لا يوجد نقطة ذكاء اصطناعي متصلة — قم بتوصيل ملف OpenAI أولاً.",
+      "bn": "কোনো AI এন্ডপয়েন্ট সংযুক্ত নয় — প্রথমে একটি OpenAI প্রোফাইল সংযোগ করুন।",
+      "de": "Kein KI-Endpunkt verbunden — zuerst ein OpenAI-Profil verbinden.",
+      "es": "Sin punto de IA conectado — conecta primero un perfil OpenAI.",
+      "fr": "Aucun point d\\'accès IA connecté — connectez d\\'abord un profil OpenAI.",
+      "hi": "कोई AI एंडपॉइंट कनेक्ट नहीं है — पहले एक OpenAI प्रोफ़ाइल कनेक्ट करें।",
+      "ja": "AIエンドポイントが未接続です — 先にOpenAIプロファイルを接続してください。",
+      "ko": "연결된 AI 엔드포인트가 없습니다 — 먼저 OpenAI 프로필을 연결하세요.",
+      "pt": "Nenhum ponto de IA conectado — conecte primeiro um perfil OpenAI.",
+      "ru": "Нет подключённой AI-точки — сначала подключите профиль OpenAI.",
+      "sr": "Ниједан АИ крајњи тачка није повезан — прво повежите ОпенАИ профил.",
+      "zh": "未连接 AI 端点——请先连接 OpenAI 配置。"
+     }
+    },
+    {
+     "name": "chat_no_model",
+     "en": "No model",
+     "comment": "",
+     "args": [],
+     "t": {
+      "ar": "لا يوجد نموذج",
+      "bn": "কোনো মডেল নেই",
+      "de": "Kein Modell",
+      "es": "Sin modelo",
+      "fr": "Aucun modèle",
+      "hi": "कोई मॉडल नहीं",
+      "ja": "モデルなし",
+      "ko": "모델 없음",
+      "pt": "Nenhum modelo",
+      "ru": "Нет модели",
+      "sr": "Нема модела",
+      "zh": "无模型"
+     }
+    },
+    {
+     "name": "chat_message_hint",
+     "en": "Message",
+     "comment": "",
+     "args": [],
+     "t": {
+      "ar": "رسالة",
+      "bn": "বার্তা",
+      "de": "Nachricht",
+      "es": "Mensaje",
+      "fr": "Message",
+      "hi": "संदेश",
+      "ja": "メッセージ",
+      "ko": "메시지",
+      "pt": "Mensagem",
+      "ru": "Сообщение",
+      "sr": "Порука",
+      "zh": "消息"
+     }
+    },
+    {
+     "name": "chat_send",
+     "en": "Send",
+     "comment": "",
+     "args": [],
+     "t": {
+      "ar": "إرسال",
+      "bn": "পাঠান",
+      "de": "Senden",
+      "es": "Enviar",
+      "fr": "Envoyer",
+      "hi": "भेजें",
+      "ja": "送信",
+      "ko": "보내기",
+      "pt": "Enviar",
+      "ru": "Отправить",
+      "sr": "Пошаљи",
+      "zh": "发送"
+     }
+    },
+    {
+     "name": "chat_stop",
+     "en": "Stop",
+     "comment": "",
+     "args": [],
+     "t": {
+      "ar": "إيقاف",
+      "bn": "থামান",
+      "de": "Stopp",
+      "es": "Detener",
+      "fr": "Arrêter",
+      "hi": "रोकें",
+      "ja": "停止",
+      "ko": "중지",
+      "pt": "Parar",
+      "ru": "Стоп",
+      "sr": "Заустави",
+      "zh": "停止"
+     }
+    },
+    {
+     "name": "chat_error_dismiss",
+     "en": "%1$s — tap to dismiss",
+     "comment": "",
+     "args": [
+      "%1$s"
+     ],
+     "t": {
+      "ar": "%1$s — انقر للإخفاء",
+      "bn": "%1$s — বাতিল করতে ট্যাপ করুন",
+      "de": "%1$s — zum Ausblenden tippen",
+      "es": "%1$s — toca para descartar",
+      "fr": "%1$s — toucher pour masquer",
+      "hi": "%1$s — हटाने के लिए टैप करें",
+      "ja": "%1$s — タップで閉じる",
+      "ko": "%1$s — 탭하여 닫기",
+      "pt": "%1$s — toque para dispensar",
+      "ru": "%1$s — нажмите, чтобы скрыть",
+      "sr": "%1$s — додирните да сакријете",
+      "zh": "%1$s——点按以关闭"
+     }
+    },
+    {
+     "name": "chat_attach_title",
+     "en": "Add image",
+     "comment": "",
+     "args": [],
+     "t": {
+      "ar": "إضافة صورة",
+      "bn": "ছবি যোগ করুন",
+      "de": "Bild hinzufügen",
+      "es": "Añadir imagen",
+      "fr": "Ajouter une image",
+      "hi": "छवि जोड़ें",
+      "ja": "画像を追加",
+      "ko": "이미지 추가",
+      "pt": "Adicionar imagem",
+      "ru": "Добавить изображение",
+      "sr": "Додај слику",
+      "zh": "添加图片"
+     }
+    },
+    {
+     "name": "chat_attach_gallery",
+     "en": "Photo library",
+     "comment": "",
+     "args": [],
+     "t": {
+      "ar": "مكتبة الصور",
+      "bn": "ফটো লাইব্রেরি",
+      "de": "Fotomediathek",
+      "es": "Biblioteca de fotos",
+      "fr": "Photothèque",
+      "hi": "फ़ोटो लाइब्रेरी",
+      "ja": "フォトライブラリ",
+      "ko": "사진 보관함",
+      "pt": "Galeria de fotos",
+      "ru": "Галерея",
+      "sr": "Галерија",
+      "zh": "相册"
+     }
+    },
+    {
+     "name": "chat_attach_gallery_desc",
+     "en": "Pick an existing picture for the model to see",
+     "comment": "",
+     "args": [],
+     "t": {
+      "ar": "اختر صورة موجودة ليراها النموذج",
+      "bn": "মডেলের জন্য একটি বিদ্যমান ছবি বেছে নিন",
+      "de": "Ein vorhandenes Bild auswählen, das das Modell sehen soll",
+      "es": "Elige una imagen existente para que la vea el modelo",
+      "fr": "Choisir une image existante à montrer au modèle",
+      "hi": "मॉडल के लिए कोई मौजूदा तस्वीर चुनें",
+      "ja": "モデルに見せる既存の画像を選択します",
+      "ko": "모델이 볼 기존 사진을 선택합니다",
+      "pt": "Escolha uma imagem existente para o modelo ver",
+      "ru": "Выберите существующее изображение для модели",
+      "sr": "Изабери постојећу слику за модел",
+      "zh": "选择现有图片让模型查看"
+     }
+    },
+    {
+     "name": "chat_attach_camera",
+     "en": "Camera",
+     "comment": "",
+     "args": [],
+     "t": {
+      "ar": "الكاميرا",
+      "bn": "ক্যামেরা",
+      "de": "Kamera",
+      "es": "Cámara",
+      "fr": "Appareil photo",
+      "hi": "कैमरा",
+      "ja": "カメラ",
+      "ko": "카메라",
+      "pt": "Câmera",
+      "ru": "Камера",
+      "sr": "Камера",
+      "zh": "相机"
+     }
+    },
+    {
+     "name": "chat_attach_camera_desc",
+     "en": "Take a photo for the model to see",
+     "comment": "",
+     "args": [],
+     "t": {
+      "ar": "التقط صورة ليراها النموذج",
+      "bn": "মডেলের জন্য একটি ছবি তুলুন",
+      "de": "Ein Foto aufnehmen, das das Modell sehen soll",
+      "es": "Toma una foto para que la vea el modelo",
+      "fr": "Prendre une photo à montrer au modèle",
+      "hi": "मॉडल के लिए कोई तस्वीर लें",
+      "ja": "モデルに見せる写真を撮影します",
+      "ko": "모델이 볼 사진을 촬영합니다",
+      "pt": "Tire uma foto para o modelo ver",
+      "ru": "Сфотографируйте для модели",
+      "sr": "Сликај фотографију за модел",
+      "zh": "拍摄照片让模型查看"
+     }
+    },
+    {
+     "name": "chat_remove_image",
+     "en": "Remove image",
+     "comment": "",
+     "args": [],
+     "t": {
+      "ar": "إزالة الصورة",
+      "bn": "ছবি সরান",
+      "de": "Bild entfernen",
+      "es": "Quitar imagen",
+      "fr": "Retirer l\\'image",
+      "hi": "छवि हटाएँ",
+      "ja": "画像を削除",
+      "ko": "이미지 제거",
+      "pt": "Remover imagem",
+      "ru": "Убрать изображение",
+      "sr": "Уклони слику",
+      "zh": "移除图片"
+     }
+    },
+    {
+     "name": "chat_image",
+     "en": "Attached image",
+     "comment": "",
+     "args": [],
+     "t": {
+      "ar": "صورة مرفقة",
+      "bn": "সংযুক্ত ছবি",
+      "de": "Angehängtes Bild",
+      "es": "Imagen adjunta",
+      "fr": "Image jointe",
+      "hi": "संलग्न छवि",
+      "ja": "添付画像",
+      "ko": "첨부된 이미지",
+      "pt": "Imagem anexada",
+      "ru": "Прикреплённое изображение",
+      "sr": "Приложена слика",
+      "zh": "附件图片"
+     }
+    },
+    {
+     "name": "chat_attach_failed",
+     "en": "Couldn\\'t read that image",
+     "comment": "",
+     "args": [],
+     "t": {
+      "ar": "تعذر قراءة هذه الصورة",
+      "bn": "ছবিটি পড়া যায়নি",
+      "de": "Dieses Bild konnte nicht gelesen werden",
+      "es": "No se pudo leer esa imagen",
+      "fr": "Impossible de lire cette image",
+      "hi": "वह छवि पढ़ी नहीं जा सकी",
+      "ja": "その画像を読み込めませんでした",
+      "ko": "이미지를 읽을 수 없습니다",
+      "pt": "Não foi possível ler essa imagem",
+      "ru": "Не удалось прочитать изображение",
+      "sr": "Читање те слике није успело",
+      "zh": "无法读取该图片"
+     }
+    },
+    {
+     "name": "chat_copy_text",
+     "en": "Copy text",
+     "comment": "",
+     "args": [],
+     "t": {
+      "ar": "نسخ النص",
+      "bn": "টেক্সট কপি করুন",
+      "de": "Text kopieren",
+      "es": "Copiar texto",
+      "fr": "Copier le texte",
+      "hi": "टेक्स्ट कॉपी करें",
+      "ja": "テキストをコピー",
+      "ko": "텍스트 복사",
+      "pt": "Copiar texto",
+      "ru": "Копировать текст",
+      "sr": "Копирај текст",
+      "zh": "复制文本"
+     }
+    },
+    {
+     "name": "chat_copy_image",
+     "en": "Copy image",
+     "comment": "",
+     "args": [],
+     "t": {
+      "ar": "نسخ الصورة",
+      "bn": "ছবি কপি করুন",
+      "de": "Bild kopieren",
+      "es": "Copiar imagen",
+      "fr": "Copier l\\'image",
+      "hi": "इमेज कॉपी करें",
+      "ja": "画像をコピー",
+      "ko": "이미지 복사",
+      "pt": "Copiar imagem",
+      "ru": "Копировать изображение",
+      "sr": "Копирај слику",
+      "zh": "复制图片"
+     }
+    },
+    {
+     "name": "chat_copied_text",
+     "en": "Text copied",
+     "comment": "",
+     "args": [],
+     "t": {
+      "ar": "تم نسخ النص",
+      "bn": "টেক্সট কপি হয়েছে",
+      "de": "Text kopiert",
+      "es": "Texto copiado",
+      "fr": "Texte copié",
+      "hi": "टेक्स्ट कॉपी हो गया",
+      "ja": "テキストをコピーしました",
+      "ko": "텍스트 복사됨",
+      "pt": "Texto copiado",
+      "ru": "Текст скопирован",
+      "sr": "Текст је копиран",
+      "zh": "文本已复制"
+     }
+    },
+    {
+     "name": "chat_copied_image",
+     "en": "Image copied",
+     "comment": "",
+     "args": [],
+     "t": {
+      "ar": "تم نسخ الصورة",
+      "bn": "ছবি কপি হয়েছে",
+      "de": "Bild kopiert",
+      "es": "Imagen copiada",
+      "fr": "Image copiée",
+      "hi": "इमेज कॉपी हो गई",
+      "ja": "画像をコピーしました",
+      "ko": "이미지 복사됨",
+      "pt": "Imagem copiada",
+      "ru": "Изображение скопировано",
+      "sr": "Слика је копирана",
+      "zh": "图片已复制"
+     }
+    },
+    {
+     "name": "chat_copy_last_reply",
+     "en": "Copy last reply",
+     "comment": "",
+     "args": [],
+     "t": {
+      "ar": "نسخ آخر رد",
+      "bn": "শেষ উত্তর কপি করুন",
+      "de": "Letzte Antwort kopieren",
+      "es": "Copiar la última respuesta",
+      "fr": "Copier la dernière réponse",
+      "hi": "अंतिम उत्तर कॉपी करें",
+      "ja": "最後の返信をコピー",
+      "ko": "마지막 답변 복사",
+      "pt": "Copiar a última resposta",
+      "ru": "Копировать последний ответ",
+      "sr": "Копирај последњи одговор",
+      "zh": "复制最后一条回复"
+     }
+    },
+    {
+     "name": "chat_paste_image",
+     "en": "Paste image",
+     "comment": "",
+     "args": [],
+     "t": {
+      "ar": "لصق صورة",
+      "bn": "ছবি পেস্ট করুন",
+      "de": "Bild einfügen",
+      "es": "Pegar imagen",
+      "fr": "Coller l\\'image",
+      "hi": "इमेज पेस्ट करें",
+      "ja": "画像を貼り付け",
+      "ko": "이미지 붙여넣기",
+      "pt": "Colar imagem",
+      "ru": "Вставить изображение",
+      "sr": "Налепи слику",
+      "zh": "粘贴图片"
+     }
+    },
+    {
+     "name": "chat_copy_image_failed",
+     "en": "Couldn\\'t copy that image",
+     "comment": "",
+     "args": [],
+     "t": {
+      "ar": "تعذّر نسخ هذه الصورة",
+      "bn": "ছবিটি কপি করা যায়নি",
+      "de": "Dieses Bild konnte nicht kopiert werden",
+      "es": "No se pudo copiar esa imagen",
+      "fr": "Impossible de copier cette image",
+      "hi": "वह इमेज कॉपी नहीं हो सकी",
+      "ja": "その画像をコピーできませんでした",
+      "ko": "해당 이미지를 복사할 수 없습니다",
+      "pt": "Não foi possível copiar essa imagem",
+      "ru": "Не удалось скопировать изображение",
+      "sr": "Није могло да се копира та слика",
+      "zh": "无法复制该图片"
+     }
+    },
+    {
+     "name": "chat_paste_image_unavailable",
+     "en": "No image on the clipboard",
+     "comment": "",
+     "args": [],
+     "t": {
+      "ar": "لا توجد صورة في الحافظة",
+      "bn": "ক্লিপবোর্ডে কোনো ছবি নেই",
+      "de": "Kein Bild in der Zwischenablage",
+      "es": "No hay ninguna imagen en el portapapeles",
+      "fr": "Aucune image dans le presse-papiers",
+      "hi": "क्लिपबोर्ड पर कोई इमेज नहीं है",
+      "ja": "クリップボードに画像がありません",
+      "ko": "클립보드에 이미지가 없습니다",
+      "pt": "Nenhuma imagem na área de transferência",
+      "ru": "В буфере обмена нет изображения",
+      "sr": "Нема слике у остави",
+      "zh": "剪贴板中没有图片"
      }
     }
    ]
@@ -15533,6 +16061,208 @@
       "ru": "Настройки SPICE",
       "sr": "SPICE подешавања",
       "zh": "SPICE 设置"
+     }
+    },
+    {
+     "name": "connections_section_openai",
+     "en": "AI endpoint",
+     "comment": "Import rclone.conf (#251)",
+     "args": [],
+     "t": {
+      "ar": "نقطة نهاية الذكاء الاصطناعي",
+      "bn": "AI এন্ডপয়েন্ট",
+      "de": "KI-Endpunkt",
+      "es": "Punto de conexión de IA",
+      "fr": "Point de terminaison IA",
+      "hi": "AI एंडपॉइंट",
+      "ja": "AIエンドポイント",
+      "ko": "AI 엔드포인트",
+      "pt": "Endpoint de IA",
+      "ru": "AI-эндпоинт",
+      "sr": "AI крајња тачка",
+      "zh": "AI 端点"
+     }
+    },
+    {
+     "name": "connections_field_openai_host",
+     "en": "Server address",
+     "comment": "Import rclone.conf (#251)",
+     "args": [],
+     "t": {
+      "ar": "عنوان الخادم",
+      "bn": "সার্ভার ঠিকানা",
+      "de": "Serveradresse",
+      "es": "Dirección del servidor",
+      "fr": "Adresse du serveur",
+      "hi": "सर्वर पता",
+      "ja": "サーバーアドレス",
+      "ko": "서버 주소",
+      "pt": "Endereço do servidor",
+      "ru": "Адрес сервера",
+      "sr": "Адреса сервера",
+      "zh": "服务器地址"
+     }
+    },
+    {
+     "name": "connections_field_openai_host_hint",
+     "en": "IP, hostname, or a full http:// URL",
+     "comment": "Import rclone.conf (#251)",
+     "args": [],
+     "t": {
+      "ar": "عنوان IP أو اسم مضيف أو رابط http:// كامل",
+      "bn": "IP, হোস্টনাম, বা সম্পূর্ণ http:// URL",
+      "de": "IP, Hostname oder vollständige http://-URL",
+      "es": "IP, nombre de host o URL http:// completa",
+      "fr": "IP, nom d\\'hôte ou URL http:// complète",
+      "hi": "IP, होस्टनाम, या पूर्ण http:// URL",
+      "ja": "IP、ホスト名、または完全な http:// URL",
+      "ko": "IP, 호스트 이름 또는 전체 http:// URL",
+      "pt": "IP, nome de host ou URL http:// completa",
+      "ru": "IP, имя хоста или полный URL http://",
+      "sr": "IP, име хоста или пун http:// URL",
+      "zh": "IP、主机名或完整的 http:// URL"
+     }
+    },
+    {
+     "name": "connections_field_openai_api_key",
+     "en": "API key (optional)",
+     "comment": "Import rclone.conf (#251)",
+     "args": [],
+     "t": {
+      "ar": "مفتاح API (اختياري)",
+      "bn": "API কী (ঐচ্ছিক)",
+      "de": "API-Schlüssel (optional)",
+      "es": "Clave API (opcional)",
+      "fr": "Clé API (facultatif)",
+      "hi": "API कुंजी (वैकल्पिक)",
+      "ja": "APIキー（任意）",
+      "ko": "API 키 (선택 사항)",
+      "pt": "Chave de API (opcional)",
+      "ru": "Ключ API (необязательно)",
+      "sr": "API кључ (опционо)",
+      "zh": "API 密钥（可选）"
+     }
+    },
+    {
+     "name": "connections_field_openai_api_key_hint",
+     "en": "Sent as a Bearer token. Leave blank for keyless endpoints.",
+     "comment": "Import rclone.conf (#251)",
+     "args": [],
+     "t": {
+      "ar": "يُرسَل كرمز Bearer. اتركه فارغًا للخوادم بدون مفتاح.",
+      "bn": "Bearer টোকেন হিসেবে পাঠানো হয়। কী-বিহীন সার্ভারে ফাঁকা রাখুন।",
+      "de": "Wird als Bearer-Token gesendet. Für Endpunkte ohne Schlüssel leer lassen.",
+      "es": "Se envía como token Bearer. Déjala en blanco para servidores sin clave.",
+      "fr": "Envoyée comme jeton Bearer. Laissez vide pour les serveurs sans clé.",
+      "hi": "Bearer टोकन के रूप में भेजा जाता है। बिना कुंजी वाले सर्वर के लिए खाली छोड़ें।",
+      "ja": "Bearerトークンとして送信されます。キー不要のサーバーでは空欄にしてください。",
+      "ko": "Bearer 토큰으로 전송됩니다. 키가 없는 서버는 비워 두세요.",
+      "pt": "Enviada como token Bearer. Deixe em branco para servidores sem chave.",
+      "ru": "Отправляется как Bearer-токен. Для серверов без ключа оставьте пустым.",
+      "sr": "Шаље се као Bearer токен. Оставите празно за сервере без кључа.",
+      "zh": "以 Bearer 令牌发送。无需密钥的服务器请留空。"
+     }
+    },
+    {
+     "name": "connections_field_openai_path_prefix",
+     "en": "Path prefix (optional)",
+     "comment": "Import rclone.conf (#251)",
+     "args": [],
+     "t": {
+      "ar": "بادئة المسار (اختيارية)",
+      "bn": "পাথ প্রিফিক্স (ঐচ্ছিক)",
+      "de": "Pfad-Präfix (optional)",
+      "es": "Prefijo de ruta (opcional)",
+      "fr": "Préfixe de chemin (facultatif)",
+      "hi": "पाथ प्रीफ़िक्स (वैकल्पिक)",
+      "ja": "パスプレフィックス（任意）",
+      "ko": "경로 접두사 (선택 사항)",
+      "pt": "Prefixo de caminho (opcional)",
+      "ru": "Префикс пути (необязательно)",
+      "sr": "Префикс путање (опционо)",
+      "zh": "路径前缀（可选）"
+     }
+    },
+    {
+     "name": "connections_field_openai_path_prefix_hint",
+     "en": "Inserts before /v1 — e.g. /api",
+     "comment": "Import rclone.conf (#251)",
+     "args": [],
+     "t": {
+      "ar": "تُدرَج قبل /v1 — مثل /api",
+      "bn": "/v1-এর আগে যোগ হয় — যেমন /api",
+      "de": "Wird vor /v1 eingefügt — z. B. /api",
+      "es": "Se inserta antes de /v1 — p. ej. /api",
+      "fr": "Inséré avant /v1 — ex. /api",
+      "hi": "/v1 से पहले जोड़ा जाता है — जैसे /api",
+      "ja": "/v1 の前に挿入 — 例: /api",
+      "ko": "/v1 앞에 추가 — 예: /api",
+      "pt": "Inserido antes de /v1 — ex.: /api",
+      "ru": "Вставляется перед /v1 — например /api",
+      "sr": "Убаци се пре /v1 — нпр. /api",
+      "zh": "插入在 /v1 之前 — 例如 /api"
+     }
+    },
+    {
+     "name": "connections_field_openai_protocol",
+     "en": "Wire protocol",
+     "comment": "Import rclone.conf (#251)",
+     "args": [],
+     "t": {
+      "ar": "بروتوكول الاتصال",
+      "bn": "ওয়্যার প্রোটোকল",
+      "de": "Protokoll",
+      "es": "Protocolo",
+      "fr": "Protocole",
+      "hi": "वायर प्रोटोकॉल",
+      "ja": "プロトコル",
+      "ko": "프로토콜",
+      "pt": "Protocolo",
+      "ru": "Протокол",
+      "sr": "Протокол",
+      "zh": "协议"
+     }
+    },
+    {
+     "name": "connections_field_openai_protocol_hint",
+     "en": "OpenAI-compatible by default; Ollama, Anthropic and Gemini change paths and auth.",
+     "comment": "Import rclone.conf (#251)",
+     "args": [],
+     "t": {
+      "ar": "متوافق مع OpenAI افتراضيًا؛ Ollama وAnthropic وGemini تغيّر المسارات والمصادقة.",
+      "bn": "ডিফল্টে OpenAI-সামঞ্জস্যপূর্ণ; Ollama, Anthropic ও Gemini পথ ও প্রমাণীকরণ বদলায়।",
+      "de": "Standard: OpenAI-kompatibel; Ollama, Anthropic und Gemini ändern Pfade und Authentifizierung.",
+      "es": "Compatible con OpenAI por defecto; Ollama, Anthropic y Gemini cambian rutas y autenticación.",
+      "fr": "Compatible OpenAI par défaut ; Ollama, Anthropic et Gemini changent les chemins et l\\'authentification.",
+      "hi": "डिफ़ॉल्ट रूप से OpenAI-संगत; Ollama, Anthropic और Gemini पथ व प्रमाणीकरण बदलते हैं।",
+      "ja": "既定は OpenAI 互換。Ollama・Anthropic・Gemini はパスと認証が変わります。",
+      "ko": "기본값은 OpenAI 호환; Ollama, Anthropic, Gemini는 경로와 인증이 다릅니다.",
+      "pt": "Compatível com OpenAI por padrão; Ollama, Anthropic e Gemini alteram caminhos e autenticação.",
+      "ru": "По умолчанию совместим с OpenAI; Ollama, Anthropic и Gemini меняют пути и авторизацию.",
+      "sr": "Подразумевано OpenAI-компатибилно; Ollama, Anthropic и Gemini мењају путање и аутентификацију.",
+      "zh": "默认兼容 OpenAI；Ollama、Anthropic 和 Gemini 会改变路径与鉴权方式。"
+     }
+    },
+    {
+     "name": "connections_openai_url_preview",
+     "en": "Endpoint URL: %1$s",
+     "comment": "Import rclone.conf (#251)",
+     "args": [
+      "%1$s"
+     ],
+     "t": {
+      "ar": "عنوان نقطة النهاية: %1$s",
+      "bn": "এন্ডপয়েন্ট URL: %1$s",
+      "de": "Endpunkt-URL: %1$s",
+      "es": "URL del punto de conexión: %1$s",
+      "fr": "URL du point de terminaison : %1$s",
+      "hi": "एंडपॉइंट URL: %1$s",
+      "ja": "エンドポイントURL: %1$s",
+      "ko": "엔드포인트 URL: %1$s",
+      "pt": "URL do endpoint: %1$s",
+      "ru": "URL эндпоинта: %1$s",
+      "sr": "URL крајње тачке: %1$s",
+      "zh": "端点 URL：%1$s"
      }
     },
     {

@@ -7,6 +7,7 @@
     <string name="nav_sftp">ফাইল</string>
     <string name="nav_settings">সেটিংস</string>
     <string name="nav_mail">মেইল</string>
+    <string name="nav_chat">চ্যাট</string>
     <string name="common_cancel">বাতিল</string>
     <string name="common_save">সংরক্ষণ</string>
     <string name="common_done">সম্পন্ন</string>

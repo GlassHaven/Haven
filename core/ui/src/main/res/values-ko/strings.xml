@@ -7,6 +7,7 @@
     <string name="nav_keys">키</string>
     <string name="nav_sftp">파일</string>
     <string name="nav_mail">메일</string>
+    <string name="nav_chat">채팅</string>
     <string name="nav_settings">설정</string>
 
     <!-- Common strings shared across all feature modules -->

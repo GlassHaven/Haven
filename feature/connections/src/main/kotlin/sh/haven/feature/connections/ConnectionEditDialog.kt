@@ -216,6 +216,7 @@ fun ConnectionEditDialog(
         seed?.isSmb == true -> "SMB"
         seed?.isRclone == true -> "RCLONE"
         seed?.isEmail == true -> "EMAIL"
+        seed?.isOpenai == true -> "OPENAI"
         seed?.isEternalTerminal == true -> "ET"
         seed?.isMosh == true -> "MOSH"
         seed?.isReticulum == true -> "RETICULUM"
@@ -236,6 +237,7 @@ fun ConnectionEditDialog(
         "SMB" -> "SMB"
         "RCLONE" -> "RCLONE"
         "EMAIL" -> "EMAIL"
+        "OPENAI" -> "OPENAI"
         else -> "SSH"
     }
     var label by rememberSaveable { mutableStateOf(existing?.label ?: "") }
@@ -421,6 +423,15 @@ fun ConnectionEditDialog(
     var emailPort by rememberSaveable { mutableStateOf(existing?.emailPort?.toString() ?: "993") }
     var emailSmtpPort by rememberSaveable { mutableStateOf(existing?.emailSmtpPort?.toString() ?: "465") }
     var emailTls by rememberSaveable { mutableStateOf(existing?.emailTls ?: true) }
+    // OPENAI endpoint fields: host/port carry the base URL (a full
+    // http:// URL is allowed and wins over host+port), the rest are
+    // type-prefixed columns on the profile.
+    var openaiApiKey by rememberSaveable { mutableStateOf(existing?.openaiApiKey ?: "") }
+    var openaiPathPrefix by rememberSaveable { mutableStateOf(existing?.openaiPathPrefix ?: "") }
+    var openaiProtocol by rememberSaveable {
+        mutableStateOf(existing?.aiProtocol?.takeIf { it.isNotBlank() } ?: "OPENAI")
+    }
+    var openaiProtocolExpanded by rememberSaveable { mutableStateOf(false) }
     // IMAP provider preset (UI-only prefill; not persisted). Re-derived from the
     // stored IMAP host so re-opening a Gmail profile re-selects "Gmail".
     var emailPreset by rememberSaveable {
@@ -1060,6 +1071,7 @@ fun ConnectionEditDialog(
                     "SMB" to "SMB (File Share)",
                     "RCLONE" to "Cloud Storage (rclone)",
                     "EMAIL" to "Email (IMAP / Proton)",
+                    "OPENAI" to "AI Endpoint (OpenAI-compatible)",
                     "RETICULUM" to "Reticulum",
                 )
                 // #510: the terminal build ships no RDP or SPICE client, so
@@ -1124,6 +1136,7 @@ fun ConnectionEditDialog(
                                         "RDP" -> "3389"
                                         "SPICE" -> "5900"
                                         "SMB" -> "445"
+                                        "OPENAI" -> "80"
                                         "ET" -> "22"
                                         else -> "22"
                                     }
@@ -1152,6 +1165,7 @@ fun ConnectionEditDialog(
                                 "SMB" -> "My File Share"
                                 "RCLONE" -> "My Google Drive"
                                 "EMAIL" -> "My Mail"
+                                "OPENAI" -> "My AI Endpoint"
                                 "RETICULUM" -> "My Node"
                                 else -> "My Server"
                             }
@@ -1714,6 +1728,109 @@ fun ConnectionEditDialog(
                             modifier = Modifier.padding(top = 4.dp),
                         )
                     }
+                } else if (connectionType == "OPENAI") {
+                    ConnectionSection(stringResource(R.string.connections_section_openai))
+                    // Base URL = host (+ optional full http:// URL, which wins
+                    // over host+port) + optional path prefix before /v1 —
+                    // mirrors ConnectionProfile.openaiBaseUrl.
+                    OutlinedTextField(
+                        value = host,
+                        onValueChange = { host = it },
+                        label = { Text(stringResource(R.string.connections_field_openai_host)) },
+                        placeholder = { Text("192.168.1.20") },
+                        singleLine = true,
+                        supportingText = {
+                            Text(stringResource(R.string.connections_field_openai_host_hint))
+                        },
+                        modifier = Modifier.fillMaxWidth(),
+                    )
+                    Spacer(Modifier.height(4.dp))
+                    OutlinedTextField(
+                        value = port,
+                        onValueChange = { port = it.filter { c -> c.isDigit() } },
+                        label = { Text(stringResource(R.string.connections_field_port)) },
+                        placeholder = { Text("8090") },
+                        singleLine = true,
+                        keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Number),
+                        modifier = Modifier.width(120.dp),
+                    )
+                    Spacer(Modifier.height(4.dp))
+                    sh.haven.core.ui.PasswordField(
+                        value = openaiApiKey,
+                        onValueChange = { openaiApiKey = it },
+                        label = stringResource(R.string.connections_field_openai_api_key),
+                        modifier = Modifier.fillMaxWidth(),
+                        onRevealRequest = onRevealSavedSecret,
+                    )
+                    Text(
+                        stringResource(R.string.connections_field_openai_api_key_hint),
+                        style = MaterialTheme.typography.bodySmall,
+                        color = MaterialTheme.colorScheme.onSurfaceVariant,
+                        modifier = Modifier.padding(top = 2.dp),
+                    )
+                    Spacer(Modifier.height(4.dp))
+                    OutlinedTextField(
+                        value = openaiPathPrefix,
+                        onValueChange = { openaiPathPrefix = it },
+                        label = { Text(stringResource(R.string.connections_field_openai_path_prefix)) },
+                        placeholder = { Text("/api") },
+                        singleLine = true,
+                        supportingText = {
+                            Text(stringResource(R.string.connections_field_openai_path_prefix_hint))
+                        },
+                        modifier = Modifier.fillMaxWidth(),
+                    )
+                    Spacer(Modifier.height(4.dp))
+                    // Wire protocol: OpenAI-compatible by default; Ollama,
+                    // Anthropic and Gemini change paths, auth headers and
+                    // payload/stream shapes in the client.
+                    ExposedDropdownMenuBox(
+                        expanded = openaiProtocolExpanded,
+                        onExpandedChange = { openaiProtocolExpanded = it },
+                    ) {
+                        OutlinedTextField(
+                            value = openaiProtocol,
+                            onValueChange = {},
+                            readOnly = true,
+                            label = { Text(stringResource(R.string.connections_field_openai_protocol)) },
+                            supportingText = {
+                                Text(stringResource(R.string.connections_field_openai_protocol_hint))
+                            },
+                            trailingIcon = {
+                                ExposedDropdownMenuDefaults.TrailingIcon(expanded = openaiProtocolExpanded)
+                            },
+                            modifier = Modifier
+                                .fillMaxWidth()
+                                .menuAnchor(MenuAnchorType.PrimaryNotEditable),
+                        )
+                        ExposedDropdownMenu(
+                            expanded = openaiProtocolExpanded,
+                            onDismissRequest = { openaiProtocolExpanded = false },
+                        ) {
+                            listOf("OPENAI", "OLLAMA", "ANTHROPIC", "GEMINI").forEach { p ->
+                                DropdownMenuItem(
+                                    text = { Text(p) },
+                                    onClick = {
+                                        openaiProtocol = p
+                                        openaiProtocolExpanded = false
+                                    },
+                                )
+                            }
+                        }
+                    }
+                    val openaiPreview = run {
+                        val base = if (host.contains("://")) host.trimEnd('/')
+                        else "http://$host:${if ((port.toIntOrNull() ?: 0) > 0) port else "80"}".trimEnd('/')
+                        val prefix = openaiPathPrefix.trim()
+                        if (prefix.isEmpty()) base
+                        else base + (if (prefix.startsWith("/")) prefix else "/$prefix")
+                    }
+                    Text(
+                        stringResource(R.string.connections_openai_url_preview, openaiPreview),
+                        style = MaterialTheme.typography.bodySmall,
+                        color = MaterialTheme.colorScheme.onSurfaceVariant,
+                        modifier = Modifier.padding(top = 4.dp),
+                    )
                 } else if (connectionType == "VNC") {
                     ConnectionSection(stringResource(R.string.connections_section_vnc))
                     // VNC: tunnel toggle first (it changes what Host means),
@@ -3376,11 +3493,11 @@ fun ConnectionEditDialog(
                 // Port knocking. Visible for any profile with a remote
                 // TCP host — skipped for LOCAL (no host), RCLONE (its own
                 // protocol), and RETICULUM (mesh, not TCP).
-                if (connectionType in setOf("VNC", "RDP", "SPICE", "SMB", "EMAIL")) {
+                if (connectionType in setOf("VNC", "RDP", "SPICE", "SMB", "EMAIL", "OPENAI")) {
                     ConnectionSection(stringResource(R.string.connections_section_routing))
                     routingBody()
                 }
-                if (connectionType in setOf("VNC", "RDP", "SPICE", "SMB", "EMAIL")) {
+                if (connectionType in setOf("VNC", "RDP", "SPICE", "SMB", "EMAIL", "OPENAI")) {
                     ConnectionSection(stringResource(R.string.connections_section_port_knock))
                     portKnockBody()
                     ConnectionSection(stringResource(R.string.connections_section_spa))
@@ -3421,6 +3538,7 @@ fun ConnectionEditDialog(
                     (rcloneProvider in sh.haven.core.rclone.RCLONE_OAUTH_PROVIDERS || rcloneConfigured)
                 "EMAIL" -> emailUsername.isNotBlank() && emailPassword.isNotBlank() &&
                     (!emailProvider.equals("imap", ignoreCase = true) || emailServer.isNotBlank())
+                "OPENAI" -> host.isNotBlank()
                 else -> destinationHash.length == 32 && (localSideband || rnsHost.isNotBlank())
             }
             TextButton(
@@ -3682,6 +3800,37 @@ fun ConnectionEditDialog(
                             emailPort = emailPort.toIntOrNull()?.takeIf { it in 1..65535 } ?: 993,
                             emailSmtpPort = emailSmtpPort.toIntOrNull()?.takeIf { it in 1..65535 } ?: 465,
                             emailTls = emailTls,
+                            colorTag = colorTag,
+                            groupId = groupId,
+                            identityId = identityId,
+                            tunnelConfigId = tunnelConfigId,
+                            portKnockSequence = portKnockSequence.ifBlank { null },
+                            portKnockDelayMs = portKnockDelayMs.toIntOrNull()
+                                ?.coerceAtLeast(0) ?: KnockSequence.DEFAULT_DELAY_MS,
+                            spaKey = spaKey.ifBlank { null },
+                            spaKeyBase64 = spaKeyBase64,
+                            spaHmacKey = spaHmacKey.ifBlank { null },
+                            spaHmacKeyBase64 = spaHmacKeyBase64,
+                            spaAccessSpec = spaAccessSpec.ifBlank { null },
+                            spaAllowMode = spaAllowMode,
+                            spaExplicitIp = spaExplicitIp.ifBlank { null },
+                            spaPort = spaPort.toIntOrNull()?.takeIf { it in 1..65535 }
+                                ?: SpaConfig.DEFAULT_SPA_PORT,
+                        )
+                    } else if (connectionType == "OPENAI") {
+                        (existing ?: ConnectionProfile(
+                            label = label,
+                            host = host,
+                            username = "",
+                        )).copy(
+                            label = label.ifBlank { "AI Endpoint" },
+                            host = host,
+                            port = port.toIntOrNull()?.takeIf { it in 1..65535 } ?: 0,
+                            username = "",
+                            connectionType = "OPENAI",
+                            openaiApiKey = openaiApiKey.ifBlank { null },
+                            openaiPathPrefix = openaiPathPrefix.trim().ifBlank { null },
+                            aiProtocol = openaiProtocol.takeIf { it != "OPENAI" },
                             colorTag = colorTag,
                             groupId = groupId,
                             identityId = identityId,

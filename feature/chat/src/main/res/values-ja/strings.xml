@@ -1,0 +1,28 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string name="chat_title">チャット</string>
+    <string name="chat_save_conversation">会話を保存</string>
+    <string name="chat_stop_saving">保存を停止</string>
+    <string name="chat_no_connection">AIエンドポイントが未接続です — 先にOpenAIプロファイルを接続してください。</string>
+    <string name="chat_no_model">モデルなし</string>
+    <string name="chat_message_hint">メッセージ</string>
+    <string name="chat_send">送信</string>
+    <string name="chat_stop">停止</string>
+    <string name="chat_error_dismiss">%1$s — タップで閉じる</string>
+    <string name="chat_attach_title">画像を追加</string>
+    <string name="chat_attach_gallery">フォトライブラリ</string>
+    <string name="chat_attach_gallery_desc">モデルに見せる既存の画像を選択します</string>
+    <string name="chat_attach_camera">カメラ</string>
+    <string name="chat_attach_camera_desc">モデルに見せる写真を撮影します</string>
+    <string name="chat_remove_image">画像を削除</string>
+    <string name="chat_image">添付画像</string>
+    <string name="chat_attach_failed">その画像を読み込めませんでした</string>
+    <string name="chat_copy_text">テキストをコピー</string>
+    <string name="chat_copy_image">画像をコピー</string>
+    <string name="chat_copied_text">テキストをコピーしました</string>
+    <string name="chat_copied_image">画像をコピーしました</string>
+    <string name="chat_copy_last_reply">最後の返信をコピー</string>
+    <string name="chat_paste_image">画像を貼り付け</string>
+    <string name="chat_copy_image_failed">その画像をコピーできませんでした</string>
+    <string name="chat_paste_image_unavailable">クリップボードに画像がありません</string>
+</resources>

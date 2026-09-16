@@ -1,0 +1,28 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string name="chat_title">चैट</string>
+    <string name="chat_save_conversation">बातचीत सहेजें</string>
+    <string name="chat_stop_saving">सहेजना बंद करें</string>
+    <string name="chat_no_connection">कोई AI एंडपॉइंट कनेक्ट नहीं है — पहले एक OpenAI प्रोफ़ाइल कनेक्ट करें।</string>
+    <string name="chat_no_model">कोई मॉडल नहीं</string>
+    <string name="chat_message_hint">संदेश</string>
+    <string name="chat_send">भेजें</string>
+    <string name="chat_stop">रोकें</string>
+    <string name="chat_error_dismiss">%1$s — हटाने के लिए टैप करें</string>
+    <string name="chat_attach_title">छवि जोड़ें</string>
+    <string name="chat_attach_gallery">फ़ोटो लाइब्रेरी</string>
+    <string name="chat_attach_gallery_desc">मॉडल के लिए कोई मौजूदा तस्वीर चुनें</string>
+    <string name="chat_attach_camera">कैमरा</string>
+    <string name="chat_attach_camera_desc">मॉडल के लिए कोई तस्वीर लें</string>
+    <string name="chat_remove_image">छवि हटाएँ</string>
+    <string name="chat_image">संलग्न छवि</string>
+    <string name="chat_attach_failed">वह छवि पढ़ी नहीं जा सकी</string>
+    <string name="chat_copy_text">टेक्स्ट कॉपी करें</string>
+    <string name="chat_copy_image">इमेज कॉपी करें</string>
+    <string name="chat_copied_text">टेक्स्ट कॉपी हो गया</string>
+    <string name="chat_copied_image">इमेज कॉपी हो गई</string>
+    <string name="chat_copy_last_reply">अंतिम उत्तर कॉपी करें</string>
+    <string name="chat_paste_image">इमेज पेस्ट करें</string>
+    <string name="chat_copy_image_failed">वह इमेज कॉपी नहीं हो सकी</string>
+    <string name="chat_paste_image_unavailable">क्लिपबोर्ड पर कोई इमेज नहीं है</string>
+</resources>

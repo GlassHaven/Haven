@@ -478,6 +478,16 @@
     <string name="connections_local_distro_label">OS में खोलें</string>
     <string name="connections_local_distro_active_default">सक्रिय डिस्ट्रो (डिफ़ॉल्ट)</string>
 
+    <string name="connections_section_openai">AI एंडपॉइंट</string>
+    <string name="connections_field_openai_host">सर्वर पता</string>
+    <string name="connections_field_openai_host_hint">IP, होस्टनाम, या पूर्ण http:// URL</string>
+    <string name="connections_field_openai_api_key">API कुंजी (वैकल्पिक)</string>
+    <string name="connections_field_openai_api_key_hint">Bearer टोकन के रूप में भेजा जाता है। बिना कुंजी वाले सर्वर के लिए खाली छोड़ें।</string>
+    <string name="connections_field_openai_path_prefix">पाथ प्रीफ़िक्स (वैकल्पिक)</string>
+    <string name="connections_field_openai_path_prefix_hint">/v1 से पहले जोड़ा जाता है — जैसे /api</string>    <string name="connections_field_openai_protocol">वायर प्रोटोकॉल</string>
+    <string name="connections_field_openai_protocol_hint">डिफ़ॉल्ट रूप से OpenAI-संगत; Ollama, Anthropic और Gemini पथ व प्रमाणीकरण बदलते हैं।</string>
+
+    <string name="connections_openai_url_preview">एंडपॉइंट URL: %1$s</string>
     <!-- Email account -->
     <string name="connections_section_email">ईमेल खाता</string>
     <string name="connections_auth_method_proton_srp">ProtonMail SRP</string>

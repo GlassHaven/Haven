@@ -35,6 +35,7 @@
     <string name="common_support">Поддержка</string>
     <string name="common_unlock">Разблокировать</string>
     <string name="nav_mail">Почта</string>
+    <string name="nav_chat">Чат</string>
     <string name="wayland_cd_session_menu">Меню сеанса</string>
     <string name="wayland_cd_reset_zoom">Сбросить масштаб</string>
     <string name="wayland_cd_exit_fullscreen">Выйти из полноэкранного режима</string>

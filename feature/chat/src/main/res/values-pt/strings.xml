@@ -1,0 +1,28 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string name="chat_title">Conversa</string>
+    <string name="chat_save_conversation">Salvar conversa</string>
+    <string name="chat_stop_saving">Parar de salvar</string>
+    <string name="chat_no_connection">Nenhum ponto de IA conectado — conecte primeiro um perfil OpenAI.</string>
+    <string name="chat_no_model">Nenhum modelo</string>
+    <string name="chat_message_hint">Mensagem</string>
+    <string name="chat_send">Enviar</string>
+    <string name="chat_stop">Parar</string>
+    <string name="chat_error_dismiss">%1$s — toque para dispensar</string>
+    <string name="chat_attach_title">Adicionar imagem</string>
+    <string name="chat_attach_gallery">Galeria de fotos</string>
+    <string name="chat_attach_gallery_desc">Escolha uma imagem existente para o modelo ver</string>
+    <string name="chat_attach_camera">Câmera</string>
+    <string name="chat_attach_camera_desc">Tire uma foto para o modelo ver</string>
+    <string name="chat_remove_image">Remover imagem</string>
+    <string name="chat_image">Imagem anexada</string>
+    <string name="chat_attach_failed">Não foi possível ler essa imagem</string>
+    <string name="chat_copy_text">Copiar texto</string>
+    <string name="chat_copy_image">Copiar imagem</string>
+    <string name="chat_copied_text">Texto copiado</string>
+    <string name="chat_copied_image">Imagem copiada</string>
+    <string name="chat_copy_last_reply">Copiar a última resposta</string>
+    <string name="chat_paste_image">Colar imagem</string>
+    <string name="chat_copy_image_failed">Não foi possível copiar essa imagem</string>
+    <string name="chat_paste_image_unavailable">Nenhuma imagem na área de transferência</string>
+</resources>

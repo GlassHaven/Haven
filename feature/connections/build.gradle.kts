@@ -47,6 +47,7 @@ dependencies {
     implementation(project(":core:smb"))
     implementation(project(":core:rclone"))
     implementation(project(":core:mail"))
+    implementation(project(":core:openai"))
     implementation(project(":core:fido"))
     implementation(project(":core:local"))
     implementation(project(":core:usb"))

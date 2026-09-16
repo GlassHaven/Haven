@@ -1,0 +1,28 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string name="chat_title">Chat</string>
+    <string name="chat_save_conversation">Enregistrer la conversation</string>
+    <string name="chat_stop_saving">Arrêter d\'enregistrer</string>
+    <string name="chat_no_connection">Aucun point d\'accès IA connecté — connectez d\'abord un profil OpenAI.</string>
+    <string name="chat_no_model">Aucun modèle</string>
+    <string name="chat_message_hint">Message</string>
+    <string name="chat_send">Envoyer</string>
+    <string name="chat_stop">Arrêter</string>
+    <string name="chat_error_dismiss">%1$s — toucher pour masquer</string>
+    <string name="chat_attach_title">Ajouter une image</string>
+    <string name="chat_attach_gallery">Photothèque</string>
+    <string name="chat_attach_gallery_desc">Choisir une image existante à montrer au modèle</string>
+    <string name="chat_attach_camera">Appareil photo</string>
+    <string name="chat_attach_camera_desc">Prendre une photo à montrer au modèle</string>
+    <string name="chat_remove_image">Retirer l\'image</string>
+    <string name="chat_image">Image jointe</string>
+    <string name="chat_attach_failed">Impossible de lire cette image</string>
+    <string name="chat_copy_text">Copier le texte</string>
+    <string name="chat_copy_image">Copier l\'image</string>
+    <string name="chat_copied_text">Texte copié</string>
+    <string name="chat_copied_image">Image copiée</string>
+    <string name="chat_copy_last_reply">Copier la dernière réponse</string>
+    <string name="chat_paste_image">Coller l\'image</string>
+    <string name="chat_copy_image_failed">Impossible de copier cette image</string>
+    <string name="chat_paste_image_unavailable">Aucune image dans le presse-papiers</string>
+</resources>

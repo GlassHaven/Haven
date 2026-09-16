@@ -478,6 +478,16 @@
     <string name="connections_local_distro_label">ওএস-এ খুলুন</string>
     <string name="connections_local_distro_active_default">সক্রিয় ডিস্ট্রো (ডিফল্ট)</string>
 
+    <string name="connections_section_openai">AI এন্ডপয়েন্ট</string>
+    <string name="connections_field_openai_host">সার্ভার ঠিকানা</string>
+    <string name="connections_field_openai_host_hint">IP, হোস্টনাম, বা সম্পূর্ণ http:// URL</string>
+    <string name="connections_field_openai_api_key">API কী (ঐচ্ছিক)</string>
+    <string name="connections_field_openai_api_key_hint">Bearer টোকেন হিসেবে পাঠানো হয়। কী-বিহীন সার্ভারে ফাঁকা রাখুন।</string>
+    <string name="connections_field_openai_path_prefix">পাথ প্রিফিক্স (ঐচ্ছিক)</string>
+    <string name="connections_field_openai_path_prefix_hint">/v1-এর আগে যোগ হয় — যেমন /api</string>    <string name="connections_field_openai_protocol">ওয়্যার প্রোটোকল</string>
+    <string name="connections_field_openai_protocol_hint">ডিফল্টে OpenAI-সামঞ্জস্যপূর্ণ; Ollama, Anthropic ও Gemini পথ ও প্রমাণীকরণ বদলায়।</string>
+
+    <string name="connections_openai_url_preview">এন্ডপয়েন্ট URL: %1$s</string>
     <!-- Email account -->
     <string name="connections_section_email">ইমেইল অ্যাকাউন্ট</string>
     <string name="connections_auth_method_proton_srp">ProtonMail SRP</string>

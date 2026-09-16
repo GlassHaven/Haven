@@ -107,6 +107,8 @@ class McpLoopbackTrustTest {
             reticulumForwardServer = mockk(relaxed = true),
             mailRuleRepository = mockk(relaxed = true),
             mailWatchManager = mockk(relaxed = true),
+            openAiSessionManager = mockk<sh.haven.core.openai.OpenAiSessionManager>(relaxed = true),
+            tunnelResolver = mockk<sh.haven.core.tunnel.TunnelResolver>(relaxed = true),
             agentActivityHolder = mockk(relaxed = true),
         )
     }

@@ -466,11 +466,30 @@ fun SftpScreen(
     // subsequent attach with the same initialProfileId re-triggers; manual
     // profile switches mid-pick aren't fought because the key doesn't
     // change while one request is active.
-    LaunchedEffect(attachRequest) {
+    // Keyed on activeProfileId too: when the pick request arrives the tab's
+    // own profile sync may still be mid-flight (activeProfileId null, only
+    // settling on "local" a frame later), and a request-only key would miss
+    // that. Manual profile switches mid-pick aren't fought: switching between
+    // remotes leaves the condition false, and "local" is never a valid pick
+    // destination, so snapping off it is the banner's own rule.
+    LaunchedEffect(attachRequest, activeProfileId) {
         val req = attachRequest ?: return@LaunchedEffect
-        val initialId = req.initialProfileId ?: return@LaunchedEffect
-        if (activeProfileId != initialId) {
-            viewModel.selectProfile(initialId)
+        val initialId = req.initialProfileId
+        if (initialId != null) {
+            if (activeProfileId != initialId) {
+                viewModel.selectProfile(initialId)
+            }
+        } else if (activeProfileId == null || activeProfileId == "local") {
+            // No carrier profile (e.g. attach from a local shell tab — the
+            // terminal strips local profiles because the banner can't confirm
+            // a local destination) and the tab is parked on no profile or the
+            // synthetic Local one: land on the first connected remote instead,
+            // which is usually the SSH host the upload will ride. With nothing
+            // remote connected the tab stays put and the banner's
+            // pick-a-profile state is the only honest offer.
+            viewModel.connectedProfiles.value
+                .firstOrNull { it.id != "local" && !it.isSaf }
+                ?.let { viewModel.selectProfile(it.id) }
         }
     }
 

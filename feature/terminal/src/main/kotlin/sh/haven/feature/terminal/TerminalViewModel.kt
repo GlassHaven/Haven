@@ -353,11 +353,21 @@ class TerminalViewModel @Inject constructor(
         initialProfileId: String?,
     ) {
         viewModelScope.launch {
+            // A local shell has no remote filesystem to upload into, and the
+            // Files tab's pick banner refuses local destinations — so passing
+            // the local tab's profile here would pre-select a destination the
+            // banner can never confirm and the flow would dead-end. Strip it
+            // and let the banner offer remote destinations as it does for
+            // every other attach origin: the user picks their SSH host and
+            // the upload rides the active protocol (SFTP for a connected
+            // carrier).
+            val carrier = initialProfileId
+                ?.takeIf { connectionRepository.getById(it)?.isLocal != true }
             val payload = attachCoordinator.attach(
                 sourceUri = sourceUri,
                 fileName = fileName,
                 fileSize = fileSize,
-                initialProfileId = initialProfileId,
+                initialProfileId = carrier,
             ) ?: return@launch
             _pendingAttachInjection.value = payload
         }

@@ -1,13 +1,18 @@
 package sh.haven.feature.terminal
 
+import io.mockk.coEvery
+import io.mockk.coVerify
 import io.mockk.every
 import io.mockk.mockk
+
 import io.mockk.verify
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.runBlocking
 import kotlinx.coroutines.test.StandardTestDispatcher
+import kotlinx.coroutines.test.advanceUntilIdle
 import kotlinx.coroutines.test.resetMain
+import kotlinx.coroutines.test.runTest
 import kotlinx.coroutines.test.setMain
 import org.junit.After
 import org.junit.Assert.assertEquals
@@ -41,6 +46,8 @@ class TerminalViewModelTest {
         MutableStateFlow<Map<String, sh.haven.core.bleserial.BleSerialSessionManager.SessionState>>
     private lateinit var usbSerialSessionManager: sh.haven.core.usbserial.UsbSerialSessionManager
     private lateinit var sshEmulatorOwner: SshTerminalEmulatorOwner
+    private lateinit var connectionRepository: sh.haven.core.data.repository.ConnectionRepository
+    private lateinit var attachCoordinator: sh.haven.feature.sftp.attach.TerminalAttachCoordinator
     private lateinit var viewModel: TerminalViewModel
 
     @Before
@@ -83,6 +90,8 @@ class TerminalViewModelTest {
         sshEmulatorOwner = mockk(relaxed = true) {
             every { bundleFor(any()) } returns null
         }
+        connectionRepository = mockk(relaxed = true)
+        attachCoordinator = mockk(relaxed = true)
         viewModel = TerminalViewModel(
             mockk(relaxed = true),
             sessionManager,
@@ -99,11 +108,11 @@ class TerminalViewModelTest {
             mockk(relaxed = true), // HostKeyVerifier
             mockk(relaxed = true), // FidoAuthenticator
             mockk(relaxed = true), // UserPreferencesRepository
-            mockk(relaxed = true), // ConnectionRepository
+            connectionRepository,
             mockk(relaxed = true), // TunnelResolver
             sh.haven.core.data.agent.AgentUiCommandBus(),
             sh.haven.core.data.message.UserMessageBus(),
-            mockk(relaxed = true),
+            attachCoordinator,
             sh.haven.feature.terminal.agent.TerminalSessionRegistry(),
             sshEmulatorOwner,
             mockk(relaxed = true), // BarcodeDecoder
@@ -120,6 +129,52 @@ class TerminalViewModelTest {
     fun `initially has no tabs`() {
         assertEquals(0, viewModel.tabs.value.size)
         assertEquals(0, viewModel.activeTabIndex.value)
+    }
+
+    // v5.89.0 bug, user-reported: Take photo / Send file from a LOCAL shell
+    // tab passed the local tab's DB profile id as the attach carrier, so the
+    // Files tab pre-selected a local destination the pick banner can never
+    // confirm (there is no upload protocol to a local destination) and the
+    // flow dead-ended with nothing offered. The local profile must be
+    // stripped before the request is published so the banner offers remote
+    // destinations, exactly as it does for the other attach origins.
+    private fun kotlinx.coroutines.test.TestScope.runAttach(profileId: String?) {
+        coEvery { attachCoordinator.attach(any(), any(), any(), any()) } returns null
+        // Uri.parse is stubbed to null under unit tests (returnDefaultValues),
+        // and the flow only forwards the uri — a mock does the same job.
+        viewModel.runAttachFlow(
+            sourceUri = mockk<android.net.Uri>(relaxed = true),
+            fileName = "photo.jpg",
+            fileSize = 1234L,
+            initialProfileId = profileId,
+        )
+        advanceUntilIdle()
+    }
+
+    @Test
+    fun `attach from a local tab strips the local carrier profile`() = runTest(testDispatcher) {
+        coEvery { connectionRepository.getById("profile-under-test") } returns
+            sh.haven.core.data.db.entities.ConnectionProfile(
+                label = "Local Shell", host = "", username = "", connectionType = "LOCAL",
+            )
+
+        runAttach("profile-under-test")
+
+        coVerify(exactly = 1) { attachCoordinator.attach(any(), any(), any(), null) }
+    }
+
+    @Test
+    fun `attach from a remote tab keeps the carrier profile`() = runTest(testDispatcher) {
+        coEvery { connectionRepository.getById("profile-under-test") } returns
+            sh.haven.core.data.db.entities.ConnectionProfile(
+                label = "Server", host = "server.example.com", username = "ian",
+            )
+
+        runAttach("profile-under-test")
+
+        coVerify(exactly = 1) {
+            attachCoordinator.attach(any(), any(), any(), "profile-under-test")
+        }
     }
 
     @Test

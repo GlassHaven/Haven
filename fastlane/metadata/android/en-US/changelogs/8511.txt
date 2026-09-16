@@ -1,0 +1,5 @@
+- **AI chat routes through SSH and Reticulum.** An OPENAI profile gains an AI-route setting: Direct, Via SSH, or Via Reticulum. Via SSH opens a local port forward through a connected SSH carrier profile (jump-host support included); Via Reticulum forwards over a connected Reticulum carrier. A route and tunnel/proxy routing are mutually exclusive, and the route is torn down on every disconnect path — a carrier dying fails the endpoint's sessions rather than silently bypassing the route.
+
+- **Chat images from the Files tab.** The chat attach sheet gains a Files option: pick a file from any Files-tab backend, capped at 20 MiB, with Cancel in the pick banner.
+
+- **Take photo from the terminal attach sheet.** The paperclip sheet gains a Take photo option; the capture rides the existing send-file upload path.

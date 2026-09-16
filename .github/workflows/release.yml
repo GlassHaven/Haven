@@ -162,24 +162,47 @@ jobs:
           set +e
           # No -PskipUml here: the full flavour ships the UML guest, so this
           # job is where the pinned fetch (core/local/fetch-uml.sh) is proven.
+          # -Pkotlin.compiler.execution.strategy=in-process removes the
+          # separate Kotlin daemon JVM (~3.5G committed at idle): its compile
+          # memory lives inside the 8G-capped Gradle daemon instead, which
+          # frees it before R8 allocates. v5.89.0's runners were evicted
+          # mid-R8 at 15.6G used / 373M available with the idle Kotlin daemon
+          # and a concurrent lintVitalAnalyze both sitting in that peak.
           ./gradlew :app:assemble${{ matrix.variant }}FullRelease \
-            :app:bundle${{ matrix.variant }}FullRelease \
-            -PtargetAbi=${{ matrix.abi }}
+            -PtargetAbi=${{ matrix.abi }} \
+            -PnoLintVital \
+            -Pkotlin.compiler.execution.strategy=in-process
           rc=$?
           if [ "$rc" = "0" ]; then
-            # Restart the daemons between the flavours. A Gradle daemon never
-            # returns grown heap to the OS, so after the full flavour the host
-            # sat at ~14.6G used and the terminal flavour's R8/lintVital spike
-            # (15.65G used, 335M available, samples logging late = thrashing)
-            # killed the arm64 and armv7 runners even with the flavours
-            # serialized. A fresh daemon starts small and the terminal flavour
-            # compiles mostly from cache. The Kotlin daemon outlives --stop on
-            # its own idle timer, so it is killed explicitly.
+            # Restart the daemons before the bundle. A Gradle daemon never
+            # returns grown heap to the OS, so after assemble the host sat at
+            # ~15.5G used and the full flavour's packageBundle ran on top of
+            # it (v5.88.0: 15.5G used, 502M available — a success that only
+            # just fit). A fresh daemon starts small and the bundle work is
+            # up-to-date-checked against assemble's outputs, so minify does
+            # not re-run. The Kotlin daemon outlives --stop on its own idle
+            # timer, so it is killed explicitly.
+            ./gradlew --stop
+            pkill -f KotlinCompileDaemon || true
+            sleep 5
+            ./gradlew :app:bundle${{ matrix.variant }}FullRelease \
+              -PtargetAbi=${{ matrix.abi }} -PnoLintVital
+            rc=$?
+          fi
+          if [ "$rc" = "0" ]; then
+            # Same daemon restart between the flavours: after the full
+            # flavour the host sat at ~14.6G used and the terminal flavour's
+            # R8/lintVital spike (15.65G used, 335M available, samples
+            # logging late = thrashing) killed the arm64 and armv7 runners
+            # even with the flavours serialized. A fresh daemon starts small
+            # and the terminal flavour compiles mostly from cache. The
+            # Kotlin daemon outlives --stop on its own idle timer, so it is
+            # killed explicitly.
             ./gradlew --stop
             pkill -f KotlinCompileDaemon || true
             sleep 5
             ./gradlew :app:assemble${{ matrix.variant }}TerminalRelease \
-              -PtargetAbi=${{ matrix.abi }} -PskipUml=true
+              -PtargetAbi=${{ matrix.abi }} -PskipUml=true -PnoLintVital
             rc=$?
           fi
           kill "$MEMSAMPLER" 2>/dev/null

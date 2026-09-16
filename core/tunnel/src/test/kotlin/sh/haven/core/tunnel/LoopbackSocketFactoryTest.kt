@@ -106,6 +106,37 @@ class LoopbackSocketFactoryTest {
         server.close()
     }
 
+    @Test
+    fun `socket options set before connect are accepted not fatal`() {
+        // OkHttp 5 (ConnectPlan.connectSocket) sets soTimeout on the raw
+        // socket BEFORE calling connect(); the option must not throw then.
+        // It is dropped (no kernel socket yet) — the post-connect getter must
+        // still round-trip, and the dial must still go to the bind port.
+        val server = echoServer()
+        val dialled = mutableListOf<Int>()
+        val factory = LoopbackSocketFactory(
+            port = server.localPort,
+            dial = { p ->
+                dialled += p
+                Socket().apply { connect(InetSocketAddress("127.0.0.1", p)) }
+            },
+        )
+        val socket = factory.createSocket()
+        socket.soTimeout = 1234 // pre-connect: OkHttp 5's order, was IOException
+        socket.tcpNoDelay = true
+        assertEquals(0, socket.soTimeout) // dropped — nothing to apply it to
+        socket.connect(InetSocketAddress("real-endpoint.example.com", 8443), 5000)
+        socket.soTimeout = 4321 // post-connect: reaches the kernel socket
+        assertEquals(4321, socket.soTimeout)
+        socket.getOutputStream().write("ping".toByteArray())
+        val buf = ByteArray(4)
+        assertEquals(4, socket.getInputStream().read(buf))
+        assertEquals("ping", String(buf))
+        assertEquals(listOf(server.localPort), dialled)
+        socket.close()
+        server.close()
+    }
+
     @Test(expected = IllegalArgumentException::class)
     fun `non-positive bind port is rejected`() {
         LoopbackSocketFactory(port = 0)

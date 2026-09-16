@@ -39,7 +39,10 @@ class LoopbackSocketFactory(
     private val dialTimeoutMs: Int = 30_000,
     private val dial: (port: Int) -> Socket = { p ->
         Socket().apply {
-            connect(InetSocketAddress(InetAddress.getLoopbackAddress(), p), dialTimeoutMs)
+            // IPv4 loopback by literal — on Android getLoopbackAddress() can
+            // return ::1, and the carrier's forward binds 127.0.0.1 (JSch
+            // LOCAL forwards bind IPv4), so an ::1 dial is refused.
+            connect(InetSocketAddress(InetAddress.getByAddress(byteArrayOf(127, 0, 0, 1)), p), dialTimeoutMs)
         }
     },
 ) : SocketFactory() {
@@ -98,12 +101,12 @@ class LoopbackSocketFactory(
         override fun getInputStream(): InputStream = conn().getInputStream()
         override fun getOutputStream(): OutputStream = conn().getOutputStream()
 
-        override fun getInetAddress(): InetAddress? = conn().inetAddress
+        override fun getInetAddress(): InetAddress? = socket?.inetAddress
         // Qualified: the unqualified name would resolve to the inherited
         // Socket.getPort() synthetic property (infinite recursion).
         override fun getPort(): Int = this@LoopbackSocketFactory.port
         override fun getLocalAddress(): InetAddress = InetAddress.getLoopbackAddress()
-        override fun getLocalPort(): Int = conn().localPort
+        override fun getLocalPort(): Int = socket?.localPort ?: -1
 
         override fun isConnected(): Boolean = socket != null && !closed
         override fun isBound(): Boolean = socket != null
@@ -125,30 +128,38 @@ class LoopbackSocketFactory(
             // No-op — the loopback bind belongs to the carrier's forward.
         }
 
-        override fun shutdownInput() { conn().shutdownInput() }
-        override fun shutdownOutput() { conn().shutdownOutput() }
+        override fun shutdownInput() { socket?.shutdownInput() }
+        override fun shutdownOutput() { socket?.shutdownOutput() }
 
-        // Socket options — forward to the real socket; OkHttp sets these
-        // after connect (soTimeout, TcpNoDelay in particular).
-        override fun setTcpNoDelay(on: Boolean) { conn().tcpNoDelay = on }
-        override fun setKeepAlive(on: Boolean) { conn().keepAlive = on }
-        override fun setSoTimeout(timeout: Int) { conn().soTimeout = timeout }
-        override fun setSoLinger(on: Boolean, linger: Int) { conn().setSoLinger(on, linger) }
-        override fun setReuseAddress(on: Boolean) { conn().reuseAddress = on }
-        override fun setOOBInline(on: Boolean) { conn().oobInline = on }
-        override fun setReceiveBufferSize(size: Int) { conn().receiveBufferSize = size }
-        override fun setSendBufferSize(size: Int) { conn().sendBufferSize = size }
-        override fun setTrafficClass(tc: Int) { conn().trafficClass = tc }
+        // Socket options — OkHttp 5 (ConnectPlan.connectSocket) sets soTimeout
+        // on the raw socket BEFORE connect(), and callers like reticulum-kt's
+        // TCPClientInterface set them unconditionally on every dial (same
+        // reason [DeferredTunneledSocket] accepts-and-ignores). Options set
+        // before the deferred dial are dropped; ones set after it
+        // (TcpNoDelay in particular) still reach the kernel socket.
+        private fun apply(block: (Socket) -> Unit) {
+            if (!closed) socket?.let(block)
+        }
 
-        override fun getTcpNoDelay(): Boolean = conn().tcpNoDelay
-        override fun getKeepAlive(): Boolean = conn().keepAlive
-        override fun getSoTimeout(): Int = conn().soTimeout
-        override fun getSoLinger(): Int = conn().soLinger
-        override fun getReuseAddress(): Boolean = conn().reuseAddress
-        override fun getOOBInline(): Boolean = conn().oobInline
-        override fun getReceiveBufferSize(): Int = conn().receiveBufferSize
-        override fun getSendBufferSize(): Int = conn().sendBufferSize
-        override fun getTrafficClass(): Int = conn().trafficClass
+        override fun setTcpNoDelay(on: Boolean) = apply { it.tcpNoDelay = on }
+        override fun setKeepAlive(on: Boolean) = apply { it.keepAlive = on }
+        override fun setSoTimeout(timeout: Int) = apply { it.soTimeout = timeout }
+        override fun setSoLinger(on: Boolean, linger: Int) = apply { it.setSoLinger(on, linger) }
+        override fun setReuseAddress(on: Boolean) = apply { it.reuseAddress = on }
+        override fun setOOBInline(on: Boolean) = apply { it.oobInline = on }
+        override fun setReceiveBufferSize(size: Int) = apply { it.receiveBufferSize = size }
+        override fun setSendBufferSize(size: Int) = apply { it.sendBufferSize = size }
+        override fun setTrafficClass(tc: Int) = apply { it.trafficClass = tc }
+
+        override fun getTcpNoDelay(): Boolean = socket?.tcpNoDelay ?: false
+        override fun getKeepAlive(): Boolean = socket?.keepAlive ?: false
+        override fun getSoTimeout(): Int = socket?.soTimeout ?: 0
+        override fun getSoLinger(): Int = socket?.soLinger ?: -1
+        override fun getReuseAddress(): Boolean = socket?.reuseAddress ?: false
+        override fun getOOBInline(): Boolean = socket?.oobInline ?: false
+        override fun getReceiveBufferSize(): Int = socket?.receiveBufferSize ?: 0
+        override fun getSendBufferSize(): Int = socket?.sendBufferSize ?: 0
+        override fun getTrafficClass(): Int = socket?.trafficClass ?: 0
 
         override fun getRemoteSocketAddress(): SocketAddress? =
             socket?.remoteSocketAddress

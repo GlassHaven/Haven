@@ -5,6 +5,10 @@ the corresponding GitHub Release; a release can't ship without its section
 (enforced by `scripts/check-changelog.sh` in CI). The GitHub "Full Changelog"
 compare link is appended automatically — don't add it here.
 
+## v5.89.1
+
+- Fixed attaching from a local shell tab. Take photo or Send file from a local tab dead-ended: the Files tab pre-selected the device's own filesystem as the destination, which can't accept uploads, so no destination was offered and no path was pasted. The pick banner now lands on the first connected remote instead, and the upload rides the active protocol as usual — SFTP for a connected SSH host.
+
 ## v5.89.0
 
 - **AI chat routes through SSH and Reticulum.** An OPENAI profile gains an AI-route setting next to its endpoint: Direct (default), Via SSH, or Via Reticulum. Via SSH opens a local port forward through a connected SSH carrier profile — jump-host auth and prompts included — and the chat's HTTP dials the loopback forward while URL rewriting stays off, so TLS hostname verification still runs against the real endpoint name. Via Reticulum forwards over a connected Reticulum carrier the same way; the carrier must already be connected (a forward-only consumer can't keep the RNS stack alive by itself). A route and tunnel/proxy routing are mutually exclusive — setting one clears the other. The route is torn down on every disconnect path: disconnecting the endpoint closes its forward, and a carrier dying fails the endpoint's sessions and drops the forward, so the next send refuses until a fresh connect rather than silently bypassing the route.

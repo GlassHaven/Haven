@@ -74,6 +74,7 @@ class McpDispatchErrorContainmentTest {
             totpSecretRepository = mockk<sh.haven.core.data.repository.TotpSecretRepository>(relaxed = true),
             ageIdentityRepository = mockk<sh.haven.core.data.repository.AgeIdentityRepository>(relaxed = true),
             desktopSessionRegistry = mockk<sh.haven.core.data.desktop.DesktopSessionRegistry>(relaxed = true),
+            aiRouteRegistry = sh.haven.core.openai.AiRouteRegistry(),
             usbBroker = mockk<sh.haven.core.usb.UsbBroker>(relaxed = true),
             usbIpServer = mockk<sh.haven.core.usb.UsbIpServer>(relaxed = true),
             usbDriveVmManager = mockk<sh.haven.app.usb.UsbDriveVmManager>(relaxed = true),

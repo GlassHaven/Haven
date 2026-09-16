@@ -241,6 +241,7 @@ class ConnectionsViewModel @Inject constructor(
     private val rcloneClient: RcloneClient,
     private val mailSessionManager: MailSessionManager,
     private val openAiSessionManager: OpenAiSessionManager,
+    private val aiRouteRegistry: sh.haven.core.openai.AiRouteRegistry,
     private val fidoAuthenticator: FidoAuthenticator,
     private val localSessionManager: LocalSessionManager,
     private val umlGuestManager: sh.haven.core.local.uml.UmlGuestManager,
@@ -2931,16 +2932,6 @@ class ConnectionsViewModel @Inject constructor(
     }
 
     /** One live AI route carrier per routed OPENAI profile (in-memory). */
-    private data class AiRouteHandle(
-        val routeType: String,
-        val carrierProfileId: String,
-        val boundPort: Int,
-        /** SSH carrier only: removes the forward and cascades on carrier death. */
-        val sshLease: SshSessionManager.TunnelLease?,
-    )
-
-    private val aiRouteHandles = java.util.concurrent.ConcurrentHashMap<String, AiRouteHandle>()
-
     private sealed interface AiRouteSetup {
         /** Unrouted profile — dial per-profile tunnel or direct as usual. */
         data object Direct : AiRouteSetup
@@ -2976,7 +2967,7 @@ class ConnectionsViewModel @Inject constructor(
         // A retry (password replay, or a second connect without a
         // disconnect in between) must not mint a second forward — the old
         // one would leak until the carrier goes away.
-        releaseAiRoute(profile.id)
+        aiRouteRegistry.release(profile.id)
         val carrier = repository.getById(carrierId ?: return AiRouteSetup.Direct)
             ?: throw IllegalStateException("AI route carrier profile not found")
         val (targetHost, targetPort) = sh.haven.core.openai.AiRoute
@@ -3024,19 +3015,26 @@ class ConnectionsViewModel @Inject constructor(
             tunnelPort,
             onParentGone = {
                 // Carrier session gone (user disconnect, network death,
-                // jump cascade): the routed endpoint is unreachable — fail
-                // its sessions rather than leaving a green dot over a dead
-                // forward. Runs on the removeSession caller thread.
-                viewModelScope.launch {
-                    aiRouteHandles.remove(profile.id)
+                // jump cascade): every route the carrier carried is dead —
+                // release them and fail their sessions rather than leaving
+                // a green dot over a dead forward. Runs on the removeSession
+                // caller thread.
+                viewModelScope.launch { aiRouteRegistry.carrierGone(carrier.id) }
+            },
+        )
+        aiRouteRegistry.register(
+            sh.haven.core.openai.AiRouteRegistry.Handle(
+                ownerProfileId = profile.id,
+                carrierProfileId = carrier.id,
+                release = { lease.close() },
+                onUnreachable = {
                     openAiSessionManager.failSessionsForProfile(
                         profile.id,
                         "AI route SSH carrier session ended — the routed endpoint is unreachable.",
                     )
-                }
-            },
+                },
+            ),
         )
-        aiRouteHandles[profile.id] = AiRouteHandle("SSH", carrier.id, tunnelPort, lease)
         Log.d(TAG, "AI route (SSH): 127.0.0.1:$tunnelPort -> ${LogRedact.host(targetHost, targetPort)} via ${LogRedact.of(carrier.label)}")
         return AiRouteSetup.Routed("SSH", sh.haven.core.tunnel.LoopbackSocketFactory(tunnelPort))
     }
@@ -3062,25 +3060,25 @@ class ConnectionsViewModel @Inject constructor(
         val bound = reticulumForwardServer.startLocalForward(
             carrier.id, connected.destinationHash, "127.0.0.1", 0, targetHost, targetPort,
         )
-        aiRouteHandles[profile.id] = AiRouteHandle("RETICULUM", carrier.id, bound, null)
+        aiRouteRegistry.register(
+            sh.haven.core.openai.AiRouteRegistry.Handle(
+                ownerProfileId = profile.id,
+                carrierProfileId = carrier.id,
+                release = { reticulumForwardServer.stopForward(carrier.id, bound) },
+                onUnreachable = {
+                    openAiSessionManager.failSessionsForProfile(
+                        profile.id,
+                        "AI route Reticulum carrier session ended — the routed endpoint is unreachable.",
+                    )
+                },
+            ),
+        )
         Log.d(TAG, "AI route (Reticulum): 127.0.0.1:$bound -> ${LogRedact.host(targetHost, targetPort)} via ${LogRedact.of(carrier.label)}")
         return AiRouteSetup.Routed("RETICULUM", sh.haven.core.tunnel.LoopbackSocketFactory(bound))
     }
 
     /** Tear down the AI route carrier [profileId] owns, if any. Idempotent. */
-    private fun releaseAiRoute(profileId: String) {
-        val handle = aiRouteHandles.remove(profileId) ?: return
-        try {
-            handle.sshLease?.close()
-        } catch (e: Exception) {
-            Log.w(TAG, "AI route SSH lease release failed", e)
-        }
-        if (handle.routeType == "RETICULUM") {
-            runCatching {
-                reticulumForwardServer.stopForward(handle.carrierProfileId, handle.boundPort)
-            }.onFailure { Log.w(TAG, "AI route Reticulum forward stop failed", it) }
-        }
-    }
+    private fun releaseAiRoute(profileId: String) = aiRouteRegistry.release(profileId)
 
     /**
      * AI route teardown from the disconnect path: release the routes
@@ -3089,17 +3087,7 @@ class ConnectionsViewModel @Inject constructor(
      * over a dead forward).
      */
     private fun teardownAiRoutesFor(profileId: String) {
-        releaseAiRoute(profileId)
-        aiRouteHandles.entries
-            .filter { it.value.carrierProfileId == profileId }
-            .map { it.key }
-            .forEach { owner ->
-                aiRouteHandles.remove(owner)
-                openAiSessionManager.failSessionsForProfile(
-                    owner,
-                    "AI route carrier disconnected — the routed endpoint is unreachable.",
-                )
-            }
+        aiRouteRegistry.teardownFor(profileId)
     }
 
     /**

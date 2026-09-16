@@ -108,6 +108,7 @@ internal class McpTools(
     private val totpSecretRepository: sh.haven.core.data.repository.TotpSecretRepository,
     private val ageIdentityRepository: sh.haven.core.data.repository.AgeIdentityRepository,
     private val desktopSessionRegistry: sh.haven.core.data.desktop.DesktopSessionRegistry,
+    private val aiRouteRegistry: sh.haven.core.openai.AiRouteRegistry,
     private val usbBroker: sh.haven.core.usb.UsbBroker,
     private val usbIpServer: sh.haven.core.usb.UsbIpServer,
     private val usbDriveVmManager: sh.haven.app.usb.UsbDriveVmManager,
@@ -3454,6 +3455,13 @@ internal class McpTools(
         val profileId = args.optString("profileId").ifEmpty {
             throw McpError(-32602, "Missing required argument: profileId")
         }
+        // AI route teardown FIRST, matching ConnectionsViewModel.disconnect's
+        // order: release the routes this profile owns (it's the endpoint) and
+        // cascade the ones it carries (it's the carrier) while the carrier's
+        // SSH client is still alive to remove the LOCAL forward from. Coming
+        // after the registry disconnect would leave the forward LISTENing on
+        // a session that survives (#observed on the routed-chat verification).
+        aiRouteRegistry.teardownFor(profileId)
         // Cross-transport hammer; the registry already knows which
         // transports have sessions for this profile and only acts where
         // there's something to do, so it's safe to call unconditionally.

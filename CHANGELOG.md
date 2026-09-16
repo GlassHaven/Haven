@@ -5,6 +5,10 @@ the corresponding GitHub Release; a release can't ship without its section
 (enforced by `scripts/check-changelog.sh` in CI). The GitHub "Full Changelog"
 compare link is appended automatically — don't add it here.
 
+## v5.87.87
+
+- **AI chat.** New chat screen for AI models, over OpenAI-compatible endpoints (llama-server, vLLM, CLIProxyAPI), Ollama's native API, the Anthropic Messages API, or Gemini — selected per profile and verified against the server's model list on connect. Endpoints ride the same per-profile tunnel routing (WireGuard, Tailscale, SSH `-L`, SOCKS) as every other transport; API keys are stored encrypted at rest; plain-HTTP `http://` LAN endpoints are now reachable by explicit choice. Attach up to 4 images per message from gallery or camera for vision models; long-press a message to copy its text or image to the system clipboard, one-tap copy of the newest assistant reply, and a composer paste button when the clipboard holds an image. Transcripts are ephemeral by default; a save toggle persists the conversation (including attachments) to the app database encrypted at rest, and turning it off deletes the rows. MCP: `create_connection`/`update_connection` gain `connectionType=OPENAI` with a `protocol` field and `openaiPathPrefix`, and new `openai_list_models` / `openai_chat` tools run completions without the screen.
+
 ## v5.87.86
 
 - **USB card rescue console (live route)**. A failing SD card can now be rescued in seconds instead of minutes: Desktop tab → Manage → "Open USB card directly (rescue console)". The card's raw sectors are served over NBD to the Linux guest, which attaches it as `/dev/nbd0` and prints the `ddrescue`/`mdir` command lines — the VM route stays for file browsing. Read-only by default; rescued images are written to Haven's `uml/share` app folder via the guest's new hostfs share. The guest rootfs image gains ddrescue, nbd-client, mtools, e2fsprogs and util-linux (same 512 MB image, one re-unpack on update, tracked by a version marker). MCP: `open_usb_drive` gains `route:"guest"`, `list_usb_drives` reports `live[]`, `close_usb_drive` takes `kind`.

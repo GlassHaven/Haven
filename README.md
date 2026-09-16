@@ -61,6 +61,7 @@
 - **[Files & cloud](docs/features/files-and-cloud.md)** — unified browser for SFTP/SCP, SMB, and 60+ cloud providers; cross-filesystem copy/move, editor and image tools; plus on-device FFmpeg transcode, HLS streaming, and DLNA.
 - **[Connections](docs/features/connections.md)** — port forwarding (-L/-R/-D/-J), SOCKS/HTTP/Tor proxies, per-app WireGuard & Tailscale tunnels, port knocking and fwknop SPA, and SSH keys (incl. FIDO2/SK).
 - **[Email](docs/features/email.md)** — ProtonMail (bridge protocol) and any IMAP/SMTP mailbox; compose / reply / forward, multi-account, attachments; plus **Mail Rules** inbound automation.
+- **[AI chat](docs/features/chat.md)** — chat with self-hosted or API models (OpenAI-compatible, Ollama, Anthropic, Gemini) over per-profile tunnel routing; image attach for vision models, clipboard copy/paste both ways, opt-in encrypted saved transcripts.
 - **[Local Linux](docs/features/local-linux.md)** — a Linux userland via PRoot (no root, any Android 8+ device): Alpine, Debian, Arch, or Void, side-by-side.
 - **[USB forwarding](docs/features/usb.md)** — broker an attached USB device through Android and re-expose it to the agent, into the Linux guest, or over USB/IP to a **remote host** (e.g. a phone-hosted YubiKey, touch on the phone).
 - **[Reticulum](docs/features/reticulum.md)** — rnsh shell, file transfer, and `-L`/`-D` port forwarding over Reticulum mesh, pure Kotlin. The one transport that keeps working with no internet at all.

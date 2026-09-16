@@ -379,7 +379,7 @@
     <string name="connections_field_ai_route_carrier">Connexion porteuse</string>
     <string name="connections_dropdown_select_carrier">Sélectionner une connexion</string>
     <string name="connections_helper_ai_route">Achemine le point de terminaison via un porteur : SSH ouvre un transfert local par la session du porteur, Reticulum établit un pont sur le maillage. Le porteur doit être connecté pour les routes Reticulum.</string>
-    <string name="connections_helper_add_reticulum_first">Ajoutez d'abord une connexion Reticulum</string>
+    <string name="connections_helper_add_reticulum_first">Ajoutez d\'abord une connexion Reticulum</string>
     <string name="connections_toggle_rdp_nla">Authentification au niveau réseau (NLA)</string>
     <string name="connections_helper_mosh_required">Nécessite mosh-server sur l\'hôte distant</string>
     <string name="connections_helper_et_required">Nécessite etserver sur l\'hôte distant (port %1$s)</string>

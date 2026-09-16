@@ -326,7 +326,7 @@ private class WebSocketTunneledConnection(
         const val BODY_PEEK_BYTES = 1024L
         const val BODY_EXCERPT_CHARS = 256
         /** cloudflared's signal that a route is Access-protected (carrier.go:120). */
-        const val ACCESS_LOGIN_PATH = "/cdn-cgi/access/login"
+        const val ACCESS_LOGIN_PATH = CloudflareAccessLogin.ACCESS_LOGIN_PATH
     }
 
     override fun close() {

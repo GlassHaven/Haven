@@ -12,7 +12,13 @@ import android.widget.FrameLayout
 import android.widget.LinearLayout
 import android.widget.TextView
 import androidx.activity.ComponentActivity
+import androidx.lifecycle.lifecycleScope
+import dagger.hilt.android.AndroidEntryPoint
+import kotlinx.coroutines.launch
+import okhttp3.OkHttpClient
 import sh.haven.core.security.JwtPayload
+import sh.haven.core.tunnel.CloudflareAccessLogin
+import javax.inject.Inject
 
 /**
  * Hosts a [WebView] that drives the Cloudflare Access IdP login flow
@@ -20,7 +26,13 @@ import sh.haven.core.security.JwtPayload
  * cookie once auth completes.
  *
  * Cloudflare Access flow:
- *   1. We load `https://<hostname>/cdn-cgi/access/login/<hostname>`.
+ *   1. We request the protected hostname with redirects disabled and load
+ *      the 302's `Location` — the login URL Cloudflare built for *this*
+ *      request, carrying the `kid`/`meta` pair that names the Access
+ *      application (#643). If the probe yields nothing usable we fall back
+ *      to constructing `https://<hostname>/cdn-cgi/access/login/<hostname>`
+ *      ourselves, which self-hosted applications reject with "Unable to find
+ *      your Access application".
  *   2. CF redirects to the team's configured IdP (Okta / GitHub /
  *      Google / etc.) and back through `*.cloudflareaccess.com`.
  *   3. After successful auth, CF sets `CF_Authorization=<jwt>` as a
@@ -39,6 +51,7 @@ import sh.haven.core.security.JwtPayload
  * app's process — keeping the registration in `app/.../AndroidManifest.xml`
  * matches how other feature activities are exposed.
  */
+@AndroidEntryPoint
 class CloudflareAccessLoginActivity : ComponentActivity() {
 
     companion object {
@@ -55,6 +68,8 @@ class CloudflareAccessLoginActivity : ComponentActivity() {
         const val COOKIE_SOURCE_APP = "app"
         const val COOKIE_SOURCE_TEAM = "team"
     }
+
+    @Inject lateinit var httpClient: OkHttpClient
 
     private lateinit var webView: WebView
     private lateinit var hostname: String
@@ -131,7 +146,20 @@ class CloudflareAccessLoginActivity : ComponentActivity() {
         val frame = FrameLayout(this).apply { addView(container) }
         setContentView(frame)
 
-        webView.loadUrl("https://$hostname/cdn-cgi/access/login/$hostname")
+        // Ask the edge for its own login URL rather than guessing it (#643):
+        // the kid/meta pair that selects the Access application only exists in
+        // the 302 this request provokes. Off the main thread, and a probe that
+        // fails or answers with something other than an Access redirect falls
+        // back to the constructed path — the pre-#643 behaviour.
+        lifecycleScope.launch {
+            val location = CloudflareAccessLogin.fetchLoginLocation(httpClient, hostname)
+            val fallback = "https://$hostname${CloudflareAccessLogin.ACCESS_LOGIN_PATH}/$hostname"
+            val url = CloudflareAccessLogin.resolveLoginUrl(location, hostname) ?: fallback
+            if (url == fallback && location != null) {
+                Log.d(TAG, "login Location unusable (${location.take(80)}); using constructed URL")
+            }
+            if (!resolved) webView.loadUrl(url)
+        }
     }
 
     private fun tryCaptureJwt() {

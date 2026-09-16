@@ -181,15 +181,29 @@ class ChatViewModel @Inject constructor(
                 fail("Profile disappeared")
                 return@launch
             }
-            // Same fail-closed tunnel contract as connect: a profile with a
-            // configured tunnel must resolve a socket factory or the chat
-            // dial is refused (it would otherwise leak a direct connection).
-            val factory = tunnelResolver.socketFactory(profile)
-            if (profile.tunnelConfigId != null && factory == null) {
-                fail("Tunnel configured but provides no socket factory — refusing to chat directly.")
-                return@launch
+            // Same fail-closed route contract as connect (AiRoute serves all
+            // three dial sites): a routed profile reuses the loopback factory
+            // the carrier's forward was established with, never re-resolving
+            // — and a configured route that isn't there refuses the dial
+            // rather than leaking a direct connection.
+            val routed = sh.haven.core.openai.AiRoute.isRouted(
+                profile.aiRouteType, profile.aiRouteProfileId,
+            )
+            val session = openAiSessionManager.getSessionsForProfile(profileId)
+                .firstOrNull { it.status == OpenAiSessionManager.SessionState.Status.CONNECTED }
+            val dial = sh.haven.core.openai.AiRoute.dialFactory(
+                routed = routed,
+                routeFactory = session?.routeSocketFactory,
+                tunnelFactory = if (routed) null else tunnelResolver.socketFactory(profile),
+                tunnelConfigured = if (routed) false else profile.tunnelConfigId != null,
+            )
+            val client = when (val d = dial) {
+                is sh.haven.core.openai.AiRoute.Dial.Refused -> {
+                    fail(d.reason)
+                    return@launch
+                }
+                is sh.haven.core.openai.AiRoute.Dial.Via -> openAiClient.buildClient(d.factory)
             }
-            val client = openAiClient.buildClient(factory)
             try {
                 openAiClient.chatCompletionStream(
                     client,

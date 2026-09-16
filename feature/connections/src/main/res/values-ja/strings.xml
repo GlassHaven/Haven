@@ -373,6 +373,13 @@
     <string name="connections_rclone_configured_ok">リモートを設定し、確認しました。</string>
     <string name="connections_dropdown_select_ssh">SSH接続を選択</string>
     <string name="connections_helper_add_ssh_first">先にSSH接続を追加してください</string>
+    <string name="connections_ai_route_section">AIルート経由接続</string>
+    <string name="connections_ai_route_via_ssh">SSH 経由</string>
+    <string name="connections_ai_route_via_reticulum">Reticulum 経由</string>
+    <string name="connections_field_ai_route_carrier">経由接続先</string>
+    <string name="connections_dropdown_select_carrier">接続を選択</string>
+    <string name="connections_helper_ai_route">中継接続を経由してエンドポイントへ接続します: SSH は中継セッション経由でローカル転送を開き、Reticulum はメッシュ越しにブリッジします。Reticulum ルートには中継接続先が接続中である必要があります。</string>
+    <string name="connections_helper_add_reticulum_first">先に Reticulum 接続を追加してください</string>
     <string name="connections_toggle_rdp_nla">ネットワークレベル認証 (NLA)</string>
     <string name="connections_helper_mosh_required">リモートホストにmosh-serverが必要です</string>
     <string name="connections_helper_et_required">リモートホストにetserverが必要です（ポート %1$s）</string>

@@ -373,6 +373,13 @@
     <string name="connections_rclone_configured_ok">रिमोट कॉन्फ़िगर और सत्यापित किया गया।</string>
     <string name="connections_dropdown_select_ssh">SSH कनेक्शन चुनें</string>
     <string name="connections_helper_add_ssh_first">पहले एक SSH कनेक्शन जोड़ें</string>
+    <string name="connections_ai_route_section">AI रूट कैरियर</string>
+    <string name="connections_ai_route_via_ssh">SSH के ज़रिए</string>
+    <string name="connections_ai_route_via_reticulum">Reticulum के ज़रिए</string>
+    <string name="connections_field_ai_route_carrier">कैरियर कनेक्शन</string>
+    <string name="connections_dropdown_select_carrier">कनेक्शन चुनें</string>
+    <string name="connections_helper_ai_route">एंडपॉइंट को कैरियर के ज़रिए रूट करें: SSH कैरियर सेशन के ज़रिए लोकल फ़ॉरवर्ड खोलता है, Reticulum मेश पर सेतु बनाता है। Reticulum रूट के लिए कैरियर का कनेक्टेड होना ज़रूरी है।</string>
+    <string name="connections_helper_add_reticulum_first">पहले एक Reticulum कनेक्शन जोड़ें</string>
     <string name="connections_toggle_rdp_nla">नेटवर्क स्तर प्रमाणीकरण (NLA)</string>
     <string name="connections_helper_mosh_required">रिमोट होस्ट पर mosh-server आवश्यक है</string>
     <string name="connections_helper_et_required">रिमोट होस्ट पर etserver आवश्यक है (पोर्ट %1$s)</string>

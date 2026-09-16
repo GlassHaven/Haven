@@ -371,6 +371,13 @@
     <string name="connections_rclone_configured_ok">远程已配置并验证。</string>
     <string name="connections_dropdown_select_ssh">选择 SSH 连接</string>
     <string name="connections_helper_add_ssh_first">请先添加一个 SSH 连接</string>
+    <string name="connections_ai_route_section">AI 路由载体</string>
+    <string name="connections_ai_route_via_ssh">经 SSH</string>
+    <string name="connections_ai_route_via_reticulum">经 Reticulum</string>
+    <string name="connections_field_ai_route_carrier">载体连接</string>
+    <string name="connections_dropdown_select_carrier">选择连接</string>
+    <string name="connections_helper_ai_route">通过载体路由端点：SSH 经载体会话打开本地转发，Reticulum 经网格搭建桥梁。Reticulum 路由要求载体已连接。</string>
+    <string name="connections_helper_add_reticulum_first">请先添加一个 Reticulum 连接</string>
     <string name="connections_toggle_rdp_nla">网络级身份验证 (NLA)</string>
     <string name="connections_helper_mosh_required">需要远程主机上的 mosh-server</string>
     <string name="connections_helper_et_required">需要远程主机上的 etserver（端口 %1$s）</string>

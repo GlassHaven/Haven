@@ -208,6 +208,7 @@ class ConnectionsViewModelSessionTest {
             reticulumTransport = mockk(relaxed = true) {
                 every { discoveredDestinations } returns kotlinx.coroutines.flow.MutableStateFlow(emptyList())
             },
+            reticulumForwardServer = mockk(relaxed = true),
             smbSessionManager = smbSessionManager,
             rcloneSessionManager = rcloneSessionManager,
             rcloneClient = mockk(relaxed = true),

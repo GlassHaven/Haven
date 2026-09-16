@@ -528,6 +528,13 @@
     <string name="connections_rclone_configure_first">Tap “Configure &amp; verify” to save this remote before you can Save the connection.</string>
     <string name="connections_dropdown_select_ssh">Select SSH connection</string>
     <string name="connections_helper_add_ssh_first">Add an SSH connection first</string>
+    <string name="connections_ai_route_section">AI route carrier</string>
+    <string name="connections_ai_route_via_ssh">Via SSH</string>
+    <string name="connections_ai_route_via_reticulum">Via Reticulum</string>
+    <string name="connections_field_ai_route_carrier">Carrier connection</string>
+    <string name="connections_dropdown_select_carrier">Select connection</string>
+    <string name="connections_helper_ai_route">Route the endpoint through a carrier: SSH opens a local forward through the carrier session, Reticulum bridges over the mesh. The carrier must be connected for Reticulum routes.</string>
+    <string name="connections_helper_add_reticulum_first">Add a Reticulum connection first</string>
     <string name="connections_toggle_rdp_nla">Network Level Authentication (NLA)</string>
     <string name="connections_helper_mosh_required">Requires mosh-server on remote host</string>
     <string name="connections_helper_et_required">Requires etserver on remote host (port %1$s)</string>

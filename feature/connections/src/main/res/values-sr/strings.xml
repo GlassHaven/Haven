@@ -443,6 +443,13 @@
     <string name="connections_rclone_configure_first">Тапните „Конфигуриши &amp; потврди“ да сачувате овај удаљени пре него што будете могли да Сачувате везу.</string>
     <string name="connections_dropdown_select_ssh">Изаберите SSH везу</string>
     <string name="connections_helper_add_ssh_first">Најпре додајте SSH везу</string>
+    <string name="connections_ai_route_section">Носач ИИ руте</string>
+    <string name="connections_ai_route_via_ssh">Преко SSH</string>
+    <string name="connections_ai_route_via_reticulum">Преко Reticulum</string>
+    <string name="connections_field_ai_route_carrier">Носећа веза</string>
+    <string name="connections_dropdown_select_carrier">Изабери везу</string>
+    <string name="connections_helper_ai_route">Руторира крајњу тачку преко носиоца: SSH отвара локално прослеђивање кроз сесију носиоца, Reticulum прави мост преко мреже. Носилац мора бити повезан за Reticulum руте.</string>
+    <string name="connections_helper_add_reticulum_first">Прво додајте Reticulum везу</string>
     <string name="connections_toggle_rdp_nla">Network Level Authentication (NLA)</string>
     <string name="connections_helper_mosh_required">На удаљеном хосту је потребан mosh-server</string>
     <string name="connections_helper_et_required">На удаљеном хосту је потребан etserver (порт %1$s)</string>

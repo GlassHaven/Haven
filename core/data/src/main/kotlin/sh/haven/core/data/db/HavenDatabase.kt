@@ -58,7 +58,7 @@ import sh.haven.core.data.db.entities.WorkspaceProfile
         ChatConversation::class,
         ChatMessage::class,
     ],
-    version = 84,
+    version = 85,
     exportSchema = true,
 )
 abstract class HavenDatabase : RoomDatabase() {
@@ -1364,6 +1364,14 @@ abstract class HavenDatabase : RoomDatabase() {
         val MIGRATION_83_84 = object : Migration(83, 84) {
             override fun migrate(db: SupportSQLiteDatabase) {
                 addColumnIfMissing(db, "chat_messages", "attachments", "TEXT DEFAULT NULL")
+            }
+        }
+
+        /** AI route carriers: SSH bastion forward or Reticulum mesh bridge for OPENAI profiles. */
+        val MIGRATION_84_85 = object : Migration(84, 85) {
+            override fun migrate(db: SupportSQLiteDatabase) {
+                addColumnIfMissing(db, "connection_profiles", "aiRouteType", "TEXT DEFAULT NULL")
+                addColumnIfMissing(db, "connection_profiles", "aiRouteProfileId", "TEXT DEFAULT NULL")
             }
         }
 

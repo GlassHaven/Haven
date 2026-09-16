@@ -373,6 +373,13 @@
     <string name="connections_rclone_configured_ok">Remoto configurado e verificado.</string>
     <string name="connections_dropdown_select_ssh">Selecionar conexão SSH</string>
     <string name="connections_helper_add_ssh_first">Adicione primeiro uma conexão SSH</string>
+    <string name="connections_ai_route_section">Portador de rota de IA</string>
+    <string name="connections_ai_route_via_ssh">Via SSH</string>
+    <string name="connections_ai_route_via_reticulum">Via Reticulum</string>
+    <string name="connections_field_ai_route_carrier">Conexão portadora</string>
+    <string name="connections_dropdown_select_carrier">Selecionar conexão</string>
+    <string name="connections_helper_ai_route">Encaminha o ponto de extremidade por um portador: o SSH abre um encaminhamento local pela sessão do portador, o Reticulum faz a ponte pela malha. O portador deve estar conectado para rotas Reticulum.</string>
+    <string name="connections_helper_add_reticulum_first">Adicione primeiro uma conexão Reticulum</string>
     <string name="connections_toggle_rdp_nla">Autenticação em nível de rede (NLA)</string>
     <string name="connections_helper_mosh_required">Requer mosh-server no host remoto</string>
     <string name="connections_helper_et_required">Requer etserver no host remoto (porta %1$s)</string>

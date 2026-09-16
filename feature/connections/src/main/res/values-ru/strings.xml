@@ -373,6 +373,13 @@
     <string name="connections_rclone_configured_ok">Удалённое хранилище настроено и проверено.</string>
     <string name="connections_dropdown_select_ssh">Выберите SSH-подключение</string>
     <string name="connections_helper_add_ssh_first">Сначала добавьте SSH-подключение</string>
+    <string name="connections_ai_route_section">Носитель маршрута ИИ</string>
+    <string name="connections_ai_route_via_ssh">Через SSH</string>
+    <string name="connections_ai_route_via_reticulum">Через Reticulum</string>
+    <string name="connections_field_ai_route_carrier">Соединение-носитель</string>
+    <string name="connections_dropdown_select_carrier">Выберите соединение</string>
+    <string name="connections_helper_ai_route">Маршрутизирует конечную точку через носитель: SSH открывает локальную переадресацию через сеанс носителя, Reticulum наводит мост по ячеистой сети. Для маршрутов Reticulum носитель должен быть подключён.</string>
+    <string name="connections_helper_add_reticulum_first">Сначала добавьте соединение Reticulum</string>
     <string name="connections_toggle_rdp_nla">Аутентификация на уровне сети (NLA)</string>
     <string name="connections_helper_mosh_required">Требуется mosh-server на удалённом хосте</string>
     <string name="connections_helper_et_required">Требуется etserver на удалённом хосте (порт %1$s)</string>

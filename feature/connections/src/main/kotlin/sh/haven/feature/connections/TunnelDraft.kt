@@ -47,6 +47,38 @@ internal fun tunnelCarrierForSave(enabled: Boolean, carrierId: String?): String?
     if (enabled) carrierId else null
 
 /**
+ * AI-endpoint route carrier, the OPENAI counterpart of the four desktop
+ * rows above. The editor speaks in display modes ("NONE" / "SSH" /
+ * "RETICULUM"); the profile stores a single (type, carrier) pair, which is
+ * self-exclusive — a saved profile can never carry two carriers, unlike
+ * the desktop flag+id pairs that need [strictTunnelInitialEnabled] to
+ * police staleness.
+ */
+
+/** Map the editor's mode to the stored columns; NONE means unrouted. */
+internal fun aiRouteTypeForSave(mode: String): String? =
+    if (mode == "NONE") null else mode
+
+/**
+ * Strict initial mode, mirroring [strictTunnelInitialEnabled]'s stale-row
+ * guard: the stored pair counts only when both halves are present — a
+ * type without a carrier (or the reverse) reads as Direct and the stale
+ * half is dropped on the next save.
+ */
+internal fun aiRouteInitialMode(storedType: String?, carrierId: String?): String =
+    if (storedType == "SSH" || storedType == "RETICULUM") {
+        if (carrierId != null) storedType else "NONE"
+    } else "NONE"
+
+/** Save is blocked while a mode is picked but no carrier is. */
+internal fun aiRouteComplete(mode: String, carrierId: String?): Boolean =
+    mode == "NONE" || carrierId != null
+
+/** Persist the carrier only while a route mode is set. */
+internal fun aiRouteCarrierForSave(mode: String, carrierId: String?): String? =
+    if (mode == "NONE") null else carrierId
+
+/**
  * Apply the shared Route-through picker's state onto a profile being
  * saved. The picker (WireGuard/Tailscale tunnel or SOCKS/HTTP proxy,
  * mutually exclusive) is rendered for VNC / RDP / SPICE / SMB as well as

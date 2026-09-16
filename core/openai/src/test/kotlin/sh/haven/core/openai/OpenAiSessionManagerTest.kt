@@ -134,4 +134,87 @@ class OpenAiSessionManagerTest {
         assertNull(manager.sessions.value[s2])
         assertTrue(manager.sessions.value.isEmpty())
     }
+
+    // --- AI route carrier recording (SessionState.routeSocketFactory) ---
+
+    private val routeFactory: javax.net.SocketFactory =
+        javax.net.SocketFactory.getDefault()
+
+    @Test
+    fun `routed connect records routeType and routeSocketFactory on the session`() = runTest {
+        server.enqueue(MockResponse().setBody("""{"data":[{"id":"qwen3"}]}"""))
+        val sessionId = manager.registerSession("p1", "Llama")
+
+        manager.connectSession(
+            sessionId,
+            OpenAiConnectParams(
+                baseUrl = baseUrl(),
+                socketFactory = routeFactory,
+                routeType = "SSH",
+            ),
+        )
+
+        val state = manager.sessions.value[sessionId]!!
+        assertEquals(OpenAiSessionManager.SessionState.Status.CONNECTED, state.status)
+        assertEquals("SSH", state.routeType)
+        assertEquals(routeFactory, state.routeSocketFactory)
+    }
+
+    @Test
+    fun `routed connect without a factory refuses direct dial`() = runTest {
+        val sessionId = manager.registerSession("p1", "Llama")
+
+        val thrown = runCatching {
+            manager.connectSession(
+                sessionId,
+                OpenAiConnectParams(baseUrl = baseUrl(), routeType = "SSH"),
+            )
+        }
+
+        assertTrue(thrown.exceptionOrNull() is IllegalStateException)
+        assertEquals(OpenAiSessionManager.SessionState.Status.ERROR, manager.sessions.value[sessionId]!!.status)
+        assertTrue(manager.sessions.value[sessionId]!!.errorMessage!!.contains("AI route carrier"))
+        assertEquals(0, server.requestCount)
+    }
+
+    @Test
+    fun `unrouted connect leaves route fields null`() = runTest {
+        server.enqueue(MockResponse().setBody("""{"data":[{"id":"qwen3"}]}"""))
+        val (sessionId, params) = connectedSession()
+        manager.connectSession(sessionId, params)
+        val state = manager.sessions.value[sessionId]!!
+        assertNull(state.routeType)
+        assertNull(state.routeSocketFactory)
+    }
+
+    @Test
+    fun `failSessionsForProfile marks sessions ERROR and clears the route factory`() = runTest {
+        server.enqueue(MockResponse().setBody("""{"data":[{"id":"a"}]}"""))
+        server.enqueue(MockResponse().setBody("""{"data":[{"id":"b"}]}"""))
+        val s1 = manager.registerSession("p1", "one")
+        val s2 = manager.registerSession("p1", "two")
+        manager.connectSession(s1, OpenAiConnectParams(baseUrl = baseUrl(), socketFactory = routeFactory, routeType = "SSH"))
+        manager.connectSession(s2, OpenAiConnectParams(baseUrl = baseUrl()))
+
+        manager.failSessionsForProfile("p1", "carrier gone")
+
+        val first = manager.sessions.value[s1]!!
+        val second = manager.sessions.value[s2]!!
+        assertEquals(OpenAiSessionManager.SessionState.Status.ERROR, first.status)
+        assertEquals("carrier gone", first.errorMessage)
+        assertNull(first.routeSocketFactory)
+        assertEquals(OpenAiSessionManager.SessionState.Status.ERROR, second.status)
+        assertFalse(manager.isProfileConnected("p1"))
+    }
+
+    @Test
+    fun `failSessionsForProfile leaves other profiles alone`() = runTest {
+        server.enqueue(MockResponse().setBody("""{"data":[{"id":"a"}]}"""))
+        val s1 = manager.registerSession("p1", "one")
+        manager.connectSession(s1, OpenAiConnectParams(baseUrl = baseUrl()))
+
+        manager.failSessionsForProfile("p-other", "carrier gone")
+
+        assertEquals(OpenAiSessionManager.SessionState.Status.CONNECTED, manager.sessions.value[s1]!!.status)
+    }
 }

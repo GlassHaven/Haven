@@ -373,6 +373,13 @@
     <string name="connections_rclone_configured_ok">রিমোট কনফিগার ও যাচাই করা হয়েছে।</string>
     <string name="connections_dropdown_select_ssh">SSH সংযোগ নির্বাচন করুন</string>
     <string name="connections_helper_add_ssh_first">প্রথমে একটি SSH সংযোগ যোগ করুন</string>
+    <string name="connections_ai_route_section">AI রুট ক্যারিয়ার</string>
+    <string name="connections_ai_route_via_ssh">SSH-এর মাধ্যমে</string>
+    <string name="connections_ai_route_via_reticulum">Reticulum-এর মাধ্যমে</string>
+    <string name="connections_field_ai_route_carrier">ক্যারিয়ার সংযোগ</string>
+    <string name="connections_dropdown_select_carrier">সংযোগ নির্বাচন করুন</string>
+    <string name="connections_helper_ai_route">একটি ক্যারিয়ারের মাধ্যমে এন্ডপয়েন্ট রাউট করুন: SSH ক্যারিয়ার সেশনের মাধ্যমে একটি লোকাল ফরওয়ার্ড খোলে, Reticulum মেশের উপর দিয়ে সেতু তৈরি করে। Reticulum রুটের জন্য ক্যারিয়ারটি সংযুক্ত থাকতে হবে।</string>
+    <string name="connections_helper_add_reticulum_first">প্রথমে একটি Reticulum সংযোগ যোগ করুন</string>
     <string name="connections_toggle_rdp_nla">নেটওয়ার্ক লেভেল প্রমাণীকরণ (NLA)</string>
     <string name="connections_helper_mosh_required">রিমোট হোস্টে mosh-server প্রয়োজন</string>
     <string name="connections_helper_et_required">রিমোট হোস্টে etserver প্রয়োজন (পোর্ট %1$s)</string>

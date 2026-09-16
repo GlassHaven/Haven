@@ -432,6 +432,15 @@ fun ConnectionEditDialog(
         mutableStateOf(existing?.aiProtocol?.takeIf { it.isNotBlank() } ?: "OPENAI")
     }
     var openaiProtocolExpanded by rememberSaveable { mutableStateOf(false) }
+    // AI route carrier: the OPENAI counterpart of the desktops' flag+carrier
+    // rows. Editor mode ("NONE"/"SSH"/"RETICULUM") + the carrier profile id;
+    // a stale stored pair reads Direct via [aiRouteInitialMode]'s guard.
+    var aiRouteMode by rememberSaveable {
+        mutableStateOf(aiRouteInitialMode(existing?.aiRouteType, existing?.aiRouteProfileId))
+    }
+    var aiRouteCarrierId by rememberSaveable {
+        mutableStateOf(existing?.aiRouteProfileId ?: "")
+    }
     // IMAP provider preset (UI-only prefill; not persisted). Re-derived from the
     // stored IMAP host so re-opening a Gmail profile re-selects "Gmail".
     var emailPreset by rememberSaveable {
@@ -544,6 +553,7 @@ fun ConnectionEditDialog(
                                     proxyHost = ""
                                     tunnelConfigId = null
                                     useCloudflareTunnel = false
+                                    aiRouteMode = "NONE"
                                     proxyExpanded = false
                                 },
                             )
@@ -571,6 +581,10 @@ fun ConnectionEditDialog(
                                         proxyType = kind
                                         tunnelConfigId = null
                                         useCloudflareTunnel = false
+                                        // The Route-through proxy and the AI
+                                        // route carrier are mutually
+                                        // exclusive transports.
+                                        aiRouteMode = "NONE"
                                         if (kind == "HTTP" && proxyPort == "1080") {
                                             proxyPort = "8080"
                                         } else if (kind != "HTTP" && proxyPort == "8080") {
@@ -603,6 +617,9 @@ fun ConnectionEditDialog(
                                             proxyType = null
                                             proxyHost = ""
                                             useCloudflareTunnel = false
+                                            // Same exclusivity for the
+                                            // WireGuard / Tailscale tunnels.
+                                            aiRouteMode = "NONE"
                                             proxyExpanded = false
                                         },
                                     )
@@ -1830,6 +1847,26 @@ fun ConnectionEditDialog(
                         style = MaterialTheme.typography.bodySmall,
                         color = MaterialTheme.colorScheme.onSurfaceVariant,
                         modifier = Modifier.padding(top = 4.dp),
+                    )
+                    // AI route carrier: route the endpoint's HTTP through an
+                    // SSH forward or a Reticulum bridge, like the desktops'
+                    // Tunnel-through-SSH rows. Picking a carrier here clears
+                    // the Route-through tunnel below (the carrier IS the
+                    // transport — stacking both is a double-hop).
+                    Spacer(Modifier.height(4.dp))
+                    AiRouteBlock(
+                        mode = aiRouteMode,
+                        carrierId = aiRouteCarrierId,
+                        profiles = sshProfiles,
+                        onModeChange = { mode ->
+                            aiRouteMode = mode
+                            if (mode != "NONE") {
+                                tunnelConfigId = null
+                                proxyType = null
+                                proxyHost = ""
+                            }
+                        },
+                        onCarrierChange = { aiRouteCarrierId = it },
                     )
                 } else if (connectionType == "VNC") {
                     ConnectionSection(stringResource(R.string.connections_section_vnc))
@@ -3538,7 +3575,7 @@ fun ConnectionEditDialog(
                     (rcloneProvider in sh.haven.core.rclone.RCLONE_OAUTH_PROVIDERS || rcloneConfigured)
                 "EMAIL" -> emailUsername.isNotBlank() && emailPassword.isNotBlank() &&
                     (!emailProvider.equals("imap", ignoreCase = true) || emailServer.isNotBlank())
-                "OPENAI" -> host.isNotBlank()
+                "OPENAI" -> host.isNotBlank() && aiRouteComplete(aiRouteMode, aiRouteCarrierId)
                 else -> destinationHash.length == 32 && (localSideband || rnsHost.isNotBlank())
             }
             TextButton(
@@ -3847,6 +3884,18 @@ fun ConnectionEditDialog(
                             spaExplicitIp = spaExplicitIp.ifBlank { null },
                             spaPort = spaPort.toIntOrNull()?.takeIf { it in 1..65535 }
                                 ?: SpaConfig.DEFAULT_SPA_PORT,
+                        ).withRoutingSelection(
+                            proxyType = if (aiRouteMode == "NONE") proxyType else null,
+                            proxyHost = proxyHost,
+                            proxyPort = proxyPort,
+                            proxyUser = proxyUser,
+                            proxyPassword = proxyPassword,
+                            tunnelConfigId = if (aiRouteMode == "NONE") tunnelConfigId else null,
+                        ).copy(
+                            // One (type, carrier) pair, self-exclusive: a
+                            // saved profile can never carry two carriers.
+                            aiRouteType = aiRouteTypeForSave(aiRouteMode),
+                            aiRouteProfileId = aiRouteCarrierForSave(aiRouteMode, aiRouteCarrierId),
                         )
                     } else if (connectionType == "SMB") {
                         val smbPortInt = port.toIntOrNull() ?: 445
@@ -4230,6 +4279,40 @@ private fun friendlyTunnelTypeLabel(t: sh.haven.core.data.db.entities.TunnelConf
  * switch thumb; an optional [description] line renders directly below
  * the label when the toggle is on.
  */
+@Composable
+private fun BooleanToggleRow(
+    label: String,
+    checked: Boolean,
+    onCheckedChange: (Boolean) -> Unit,
+    description: String? = null,
+    enabled: Boolean = true,
+) {
+    androidx.compose.foundation.layout.Column(modifier = Modifier.fillMaxWidth()) {
+        Row(
+            verticalAlignment = androidx.compose.ui.Alignment.CenterVertically,
+            modifier = Modifier
+                .fillMaxWidth()
+                .then(if (enabled) Modifier.clickable { onCheckedChange(!checked) } else Modifier)
+                .padding(vertical = 4.dp),
+        ) {
+            Text(
+                label,
+                modifier = Modifier.weight(1f),
+                color = if (enabled) androidx.compose.ui.graphics.Color.Unspecified
+                else MaterialTheme.colorScheme.onSurface.copy(alpha = 0.38f),
+            )
+            Switch(checked = checked, onCheckedChange = onCheckedChange, enabled = enabled)
+        }
+        if (checked && description != null) {
+            Text(
+                description,
+                style = MaterialTheme.typography.bodySmall,
+                color = MaterialTheme.colorScheme.onSurfaceVariant,
+            )
+        }
+    }
+}
+
 /**
  * The shared "Tunnel through SSH" editor block: toggle row plus the SSH
  * carrier dropdown (or an "add an SSH connection first" error when no SSH
@@ -4248,12 +4331,15 @@ private fun SshTunnelBlock(
     sshProfiles: List<ConnectionProfile>,
     onEnabledChange: (Boolean) -> Unit,
     onCarrierChange: (String) -> Unit,
+    showToggle: Boolean = true,
 ) {
-    BooleanToggleRow(
-        label = stringResource(R.string.connections_field_tunnel_through_ssh),
-        checked = enabled,
-        onCheckedChange = onEnabledChange,
-    )
+    if (showToggle) {
+        BooleanToggleRow(
+            label = stringResource(R.string.connections_field_tunnel_through_ssh),
+            checked = enabled,
+            onCheckedChange = onEnabledChange,
+        )
+    }
     if (!enabled) return
     val sshCandidates = sshProfiles.filter { it.isSsh }
     if (sshCandidates.isNotEmpty()) {
@@ -4299,6 +4385,118 @@ private fun SshTunnelBlock(
 }
 
 /**
+ * AI route carrier picker: the OPENAI counterpart of [SshTunnelBlock].
+ * Three-way mode (Direct / Via SSH / Via Reticulum), then the carrier
+ * dropdown for the chosen kind. Save is gated by [aiRouteComplete] — a
+ * picked mode without a carrier can't be saved.
+ */
+@OptIn(ExperimentalMaterial3Api::class)
+@Composable
+private fun AiRouteBlock(
+    mode: String,
+    carrierId: String?,
+    profiles: List<ConnectionProfile>,
+    onModeChange: (String) -> Unit,
+    onCarrierChange: (String) -> Unit,
+) {
+    var modeExpanded by remember { mutableStateOf(false) }
+    val modeOptions = listOf(
+        "NONE" to stringResource(R.string.connections_dropdown_none_direct),
+        "SSH" to stringResource(R.string.connections_ai_route_via_ssh),
+        "RETICULUM" to stringResource(R.string.connections_ai_route_via_reticulum),
+    )
+    ExposedDropdownMenuBox(
+        expanded = modeExpanded,
+        onExpandedChange = { modeExpanded = it },
+    ) {
+        OutlinedTextField(
+            value = modeOptions.firstOrNull { it.first == mode }?.second
+                ?: stringResource(R.string.connections_dropdown_none_direct),
+            onValueChange = {},
+            readOnly = true,
+            label = { Text(stringResource(R.string.connections_ai_route_section)) },
+            supportingText = { Text(stringResource(R.string.connections_helper_ai_route)) },
+            trailingIcon = {
+                ExposedDropdownMenuDefaults.TrailingIcon(expanded = modeExpanded)
+            },
+            modifier = Modifier
+                .fillMaxWidth()
+                .menuAnchor(MenuAnchorType.PrimaryNotEditable),
+        )
+        ExposedDropdownMenu(
+            expanded = modeExpanded,
+            onDismissRequest = { modeExpanded = false },
+        ) {
+            modeOptions.forEach { (value, label) ->
+                DropdownMenuItem(
+                    text = { Text(label) },
+                    onClick = {
+                        onModeChange(value)
+                        modeExpanded = false
+                    },
+                )
+            }
+        }
+    }
+    when (mode) {
+        "SSH" -> SshTunnelBlock(
+            enabled = true,
+            carrierId = carrierId,
+            sshProfiles = profiles,
+            onEnabledChange = { /* always on inside the AI route block */ },
+            onCarrierChange = onCarrierChange,
+            showToggle = false,
+        )
+        "RETICULUM" -> {
+            val candidates = profiles.filter { it.isReticulum }
+            if (candidates.isNotEmpty()) {
+                Spacer(Modifier.height(4.dp))
+                var reticulumExpanded by remember { mutableStateOf(false) }
+                val selected = candidates.firstOrNull { it.id == carrierId }
+                ExposedDropdownMenuBox(
+                    expanded = reticulumExpanded,
+                    onExpandedChange = { reticulumExpanded = it },
+                ) {
+                    OutlinedTextField(
+                        value = selected?.label
+                            ?: stringResource(R.string.connections_dropdown_select_carrier),
+                        onValueChange = {},
+                        readOnly = true,
+                        label = { Text(stringResource(R.string.connections_field_ai_route_carrier)) },
+                        trailingIcon = {
+                            ExposedDropdownMenuDefaults.TrailingIcon(reticulumExpanded)
+                        },
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .menuAnchor(MenuAnchorType.PrimaryNotEditable),
+                    )
+                    ExposedDropdownMenu(
+                        expanded = reticulumExpanded,
+                        onDismissRequest = { reticulumExpanded = false },
+                    ) {
+                        candidates.forEach { candidate ->
+                            DropdownMenuItem(
+                                text = { Text(candidate.label) },
+                                onClick = {
+                                    onCarrierChange(candidate.id)
+                                    reticulumExpanded = false
+                                },
+                            )
+                        }
+                    }
+                }
+            } else {
+                Text(
+                    stringResource(R.string.connections_helper_add_reticulum_first),
+                    style = MaterialTheme.typography.bodySmall,
+                    color = MaterialTheme.colorScheme.error,
+                )
+            }
+        }
+    }
+}
+
+/**
  * Read the SSH-engine choice out of the sshOptions text (#58): "SSHLIB" when
  * a `HavenSshEngine sshlib` line is present, "JSCH" otherwise. Mirrors
  * `ConnectionConfig.sshEngine`'s safe-fallback parse.
@@ -4330,39 +4528,6 @@ internal fun setSshEngineInOptions(options: String, engine: String): String {
     }
 }
 
-@Composable
-private fun BooleanToggleRow(
-    label: String,
-    checked: Boolean,
-    onCheckedChange: (Boolean) -> Unit,
-    description: String? = null,
-    enabled: Boolean = true,
-) {
-    androidx.compose.foundation.layout.Column(modifier = Modifier.fillMaxWidth()) {
-        Row(
-            verticalAlignment = androidx.compose.ui.Alignment.CenterVertically,
-            modifier = Modifier
-                .fillMaxWidth()
-                .then(if (enabled) Modifier.clickable { onCheckedChange(!checked) } else Modifier)
-                .padding(vertical = 4.dp),
-        ) {
-            Text(
-                label,
-                modifier = Modifier.weight(1f),
-                color = if (enabled) androidx.compose.ui.graphics.Color.Unspecified
-                else MaterialTheme.colorScheme.onSurface.copy(alpha = 0.38f),
-            )
-            Switch(checked = checked, onCheckedChange = onCheckedChange, enabled = enabled)
-        }
-        if (checked && description != null) {
-            Text(
-                description,
-                style = MaterialTheme.typography.bodySmall,
-                color = MaterialTheme.colorScheme.onSurfaceVariant,
-            )
-        }
-    }
-}
 
 /**
  * Ordered editor for a profile's auth methods (#166). Operates on the

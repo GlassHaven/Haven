@@ -373,6 +373,13 @@
     <string name="connections_rclone_configured_ok">تمت تهيئة السجل البعيد والتحقق منه.</string>
     <string name="connections_dropdown_select_ssh">اختر اتصال SSH</string>
     <string name="connections_helper_add_ssh_first">أضِف اتصال SSH أولًا</string>
+    <string name="connections_ai_route_section">ناقل مسار الذكاء الاصطناعي</string>
+    <string name="connections_ai_route_via_ssh">عبر SSH</string>
+    <string name="connections_ai_route_via_reticulum">عبر Reticulum</string>
+    <string name="connections_field_ai_route_carrier">الوصلة الناقلة</string>
+    <string name="connections_dropdown_select_carrier">اختر وصلة</string>
+    <string name="connections_helper_ai_route">وجّه نقطة النهاية عبر ناقل: يفتح SSH تحويلاً محلياً من خلال جلسة الناقل، ويجسر Reticulum عبر الشبكة. يجب أن يكون الناقل متصلاً لمسارات Reticulum.</string>
+    <string name="connections_helper_add_reticulum_first">أضف وصلة Reticulum أولاً</string>
     <string name="connections_toggle_rdp_nla">مصادقة على مستوى الشبكة (NLA)</string>
     <string name="connections_helper_mosh_required">يتطلب mosh-server على المضيف البعيد</string>
     <string name="connections_helper_et_required">يتطلب etserver على المضيف البعيد (المنفذ %1$s)</string>

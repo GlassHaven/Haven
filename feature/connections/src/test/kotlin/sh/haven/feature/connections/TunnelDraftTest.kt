@@ -137,4 +137,37 @@ class TunnelDraftTest {
             ).proxyPort,
         )
     }
+
+    // AI route carrier (OPENAI counterpart of the desktop tunnel rows).
+
+    @Test fun aiRouteTypeSaveNoneMeansUnrouted() {
+        assertNull(aiRouteTypeForSave("NONE"))
+        assertEquals("SSH", aiRouteTypeForSave("SSH"))
+        assertEquals("RETICULUM", aiRouteTypeForSave("RETICULUM"))
+    }
+
+    @Test fun aiRouteInitialModeReadsCoherentPair() {
+        assertEquals("SSH", aiRouteInitialMode("SSH", "carrier"))
+        assertEquals("RETICULUM", aiRouteInitialMode("RETICULUM", "carrier"))
+    }
+
+    @Test fun aiRouteInitialModeDropsStaleRows() {
+        // Type without a carrier — reads Direct, stale half dropped on save.
+        assertEquals("NONE", aiRouteInitialMode("SSH", null))
+        // Carrier without a recognised type — same.
+        assertEquals("NONE", aiRouteInitialMode(null, "carrier"))
+        assertEquals("NONE", aiRouteInitialMode("BOGUS", "carrier"))
+    }
+
+    @Test fun aiRouteCompleteBlocksModeWithoutCarrier() {
+        assertTrue(aiRouteComplete("NONE", null))
+        assertTrue(aiRouteComplete("SSH", "carrier"))
+        assertFalse(aiRouteComplete("SSH", null))
+        assertFalse(aiRouteComplete("RETICULUM", null))
+    }
+
+    @Test fun aiRouteCarrierForSaveDropsCarrierOnNone() {
+        assertNull(aiRouteCarrierForSave("NONE", "carrier"))
+        assertEquals("carrier", aiRouteCarrierForSave("SSH", "carrier"))
+    }
 }

@@ -207,6 +207,17 @@ data class ConnectionProfile(
      * string here because :core:data does not depend on that module.
      */
     val aiProtocol: String? = null,
+    /**
+     * OPENAI: which carrier a routed endpoint's HTTP rides. "SSH" = local
+     * forward through the carrier's live SSH session, "RETICULUM" = mesh
+     * bridge to the endpoint host:port. Null = direct dial (the common
+     * case). One (type, carrier) pair, so a profile can never store two
+     * carriers — the mutual exclusion the Route-through picker and the
+     * desktop flag+id pairs get from the editor.
+     */
+    val aiRouteType: String? = null,
+    /** Carrier profile id for [aiRouteType]; null when unrouted. */
+    val aiRouteProfileId: String? = null,
     /** Use native Android shell instead of PRoot for local connections. */
     val useAndroidShell: Boolean = false,
     /**

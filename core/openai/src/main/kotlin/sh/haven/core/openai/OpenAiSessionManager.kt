@@ -28,6 +28,13 @@ data class OpenAiConnectParams(
      */
     val socketFactory: javax.net.SocketFactory? = null,
     val tunnelConfigured: Boolean = false,
+    /**
+     * AI route carrier kind ("SSH" / "RETICULUM") when the endpoint's HTTP
+     * rides a live carrier. Non-null requires [socketFactory] to be the
+     * carrier's loopback factory — refused otherwise, same fail-closed
+     * shape as the tunnel check below.
+     */
+    val routeType: String? = null,
 )
 
 /**
@@ -55,6 +62,15 @@ class OpenAiSessionManager @Inject constructor(
         val baseUrl: String = "",
         val protocol: AiProtocol = AiProtocol.OPENAI,
         val errorMessage: String? = null,
+        /**
+         * AI route carrier kind recorded at connect, and the loopback
+         * [SocketFactory] it minted. In-memory, same lifetime as [baseUrl]:
+         * a later chat dial reuses the factory the forward was established
+         * with instead of re-resolving (re-resolution would race the
+         * carrier's state and could leak a direct dial). Null = unrouted.
+         */
+        val routeType: String? = null,
+        val routeSocketFactory: javax.net.SocketFactory? = null,
     ) {
         enum class Status { CONNECTING, CONNECTED, DISCONNECTED, ERROR }
     }
@@ -94,6 +110,11 @@ class OpenAiSessionManager @Inject constructor(
             failSession(sessionId, message)
             throw IllegalStateException(message)
         }
+        if (params.routeType != null && params.socketFactory == null) {
+            val message = "AI route carrier configured but provides no socket factory — refusing to connect OpenAI directly."
+            failSession(sessionId, message)
+            throw IllegalStateException(message)
+        }
         try {
             val http = client.buildClient(params.socketFactory)
             when (val result = client.verify(http, params.baseUrl, params.pathPrefix, params.apiKey, params.protocol)) {
@@ -102,6 +123,8 @@ class OpenAiSessionManager @Inject constructor(
                     params.baseUrl,
                     result.models,
                     params.protocol,
+                    params.routeType,
+                    params.socketFactory,
                 )
                 is VerifyResult.Failure -> throw result.error
             }
@@ -112,7 +135,14 @@ class OpenAiSessionManager @Inject constructor(
         }
     }
 
-    private fun markConnected(sessionId: String, baseUrl: String, models: List<ModelInfo>, protocol: AiProtocol) {
+    private fun markConnected(
+        sessionId: String,
+        baseUrl: String,
+        models: List<ModelInfo>,
+        protocol: AiProtocol,
+        routeType: String?,
+        routeSocketFactory: javax.net.SocketFactory?,
+    ) {
         _sessions.update { map ->
             val existing = map[sessionId] ?: return@update map
             map + (sessionId to existing.copy(
@@ -120,6 +150,8 @@ class OpenAiSessionManager @Inject constructor(
                 baseUrl = baseUrl,
                 models = models,
                 protocol = protocol,
+                routeType = routeType,
+                routeSocketFactory = routeSocketFactory,
                 errorMessage = null,
             ))
         }
@@ -132,6 +164,26 @@ class OpenAiSessionManager @Inject constructor(
                 status = SessionState.Status.ERROR,
                 errorMessage = message,
             ))
+        }
+    }
+
+    /**
+     * Mark every session of [profileId] ERROR with [message]. The AI route
+     * carrier-death cascade calls this — when the SSH forward's host session
+     * or the Reticulum bridge's carrier dies, the routed endpoint can no
+     * longer be reached and the session must not sit green over a dead
+     * carrier. Subsequent dials refuse (no silent fallback to direct).
+     */
+    fun failSessionsForProfile(profileId: String, message: String) {
+        _sessions.update { map ->
+            map.mapValues { (_, session) ->
+                if (session.profileId != profileId) session
+                else session.copy(
+                    status = SessionState.Status.ERROR,
+                    errorMessage = message,
+                    routeSocketFactory = null,
+                )
+            }
         }
     }
 

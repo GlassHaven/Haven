@@ -8,6 +8,7 @@ import sh.haven.core.data.repository.ConnectionRepository
 import sh.haven.core.data.agent.ConsentLevel
 import sh.haven.core.mcp.McpError
 import sh.haven.core.openai.AiProtocol
+import sh.haven.core.openai.AiRoute
 import sh.haven.core.openai.ChatImage
 import sh.haven.core.openai.OpenAiClient
 import sh.haven.core.tunnel.TunnelResolver
@@ -103,13 +104,21 @@ internal class OpenAiToolProvider(
             ?: throw McpError(-32603, "Profile $profileId is not a connected OpenAI endpoint — call connect_profile first.")
         val profile = connectionRepository.getById(profileId)
             ?: throw McpError(-32603, "Profile $profileId not found")
-        // Same tunnel routing the connect path uses: dial through the profile's
-        // tunnel when one is configured, fail closed (R7) when it yields no
-        // socket factory. Without this, an MCP chat on a tunnel-routed profile
-        // would leak a direct dial to the URL's host:port.
-        val factory = tunnelResolver.socketFactory(profile)
-        if (profile.tunnelConfigId != null && factory == null) {
-            throw McpError(-32603, "Tunnel configured but provides no socket factory — refusing a direct OpenAI call.")
+        // Same route policy the connect path and the chat stream use
+        // (AiRoute): a routed profile dials through its session's loopback
+        // factory, a tunnel-configured profile through its tunnel, and a
+        // configured-but-missing route refuses the dial rather than leaking
+        // a direct call to the URL's host:port.
+        val routed = AiRoute.isRouted(profile.aiRouteType, profile.aiRouteProfileId)
+        val dial = AiRoute.dialFactory(
+            routed = routed,
+            routeFactory = session.routeSocketFactory,
+            tunnelFactory = if (routed) null else tunnelResolver.socketFactory(profile),
+            tunnelConfigured = if (routed) false else profile.tunnelConfigId != null,
+        )
+        val factory = when (dial) {
+            is AiRoute.Dial.Refused -> throw McpError(-32603, dial.reason)
+            is AiRoute.Dial.Via -> dial.factory
         }
 
         val messages = buildMessages(args)

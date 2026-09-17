@@ -1,0 +1,2 @@
+- Fixed Play in Browser for files that would not stream: a stream that ended early (seeking a non-faststart MP4 to its trailing moov atom) left dead state on the shared SFTP channel, so every later request returned zero bytes. Each stream now runs on its own channel.
+- Failed HLS transcodes are now written to the connection log, and SFTP stream failures name the exception class.

@@ -1,5 +1,7 @@
 package sh.haven.core.tunnel
 
+import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.withContext
 import okhttp3.OkHttpClient
 import okhttp3.Request
 
@@ -54,22 +56,37 @@ object CloudflareAccessLogin {
      * Never throws: a failure here means "fall back to the constructed URL",
      * which is the behaviour before this existed, so a broken probe must not
      * take sign-in down with it.
+     *
+     * Suspend and pinned to [Dispatchers.IO]: the caller is the login
+     * activity's main-thread scope, and this does real network I/O — run it
+     * there directly and StrictMode kills it with
+     * NetworkOnMainThreadException, which `runCatching` below would then
+     * swallow and every probe would silently "fail" (#643, 5.89.2/5.89.3).
      */
-    fun fetchLoginLocation(client: OkHttpClient, hostname: String): String? {
-        val noRedirect = client.newBuilder()
-            .followRedirects(false)
-            .followSslRedirects(false)
-            .build()
-        val request = Request.Builder()
-            .url("https://$hostname/")
-            .header("Accept", "text/html")
-            .build()
-        return runCatching {
-            noRedirect.newCall(request).execute().use { response ->
-                loginLocationFromResponse(response.code, response.header("Location"))
-            }
-        }.getOrNull()
-    }
+    suspend fun fetchLoginLocation(client: OkHttpClient, hostname: String): String? =
+        fetchLoginLocationFrom(client, "https://$hostname/")
+
+    /**
+     * The network half of [fetchLoginLocation], parameterized on the request
+     * URL so tests can point it at a loopback server. Not part of the
+     * public surface.
+     */
+    internal suspend fun fetchLoginLocationFrom(client: OkHttpClient, url: String): String? =
+        withContext(Dispatchers.IO) {
+            val noRedirect = client.newBuilder()
+                .followRedirects(false)
+                .followSslRedirects(false)
+                .build()
+            val request = Request.Builder()
+                .url(url)
+                .header("Accept", "text/html")
+                .build()
+            runCatching {
+                noRedirect.newCall(request).execute().use { response ->
+                    loginLocationFromResponse(response.code, response.header("Location"))
+                }
+            }.getOrNull()
+        }
 
     /**
      * The decision [fetchLoginLocation] makes about a response, split out so it

@@ -1,10 +1,27 @@
 package sh.haven.core.tunnel
 
+import kotlinx.coroutines.test.runTest
+import okhttp3.OkHttpClient
+import okhttp3.mockwebserver.MockResponse
+import okhttp3.mockwebserver.MockWebServer
+import org.junit.After
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertNull
+import org.junit.Before
 import org.junit.Test
 
 class CloudflareAccessLoginTest {
+
+    private lateinit var server: MockWebServer
+
+    @Before fun setUp() {
+        server = MockWebServer()
+        server.start()
+    }
+
+    @After fun tearDown() {
+        server.shutdown()
+    }
 
     @Test fun `absolute login Location is used verbatim`() {
         val loc = "https://ssh.example.com/cdn-cgi/access/login/ssh.example.com?kid=abc123&meta=%7B%22gateway_id%22%3A%22xyz%22%7D&redirect_url=%2F"
@@ -51,5 +68,37 @@ class CloudflareAccessLoginTest {
         assertNull(CloudflareAccessLogin.loginLocationFromResponse(302, null))
         // 401/403/5xx are not login redirects.
         assertNull(CloudflareAccessLogin.loginLocationFromResponse(403, "/cdn-cgi/access/login/host"))
+    }
+
+    // --- fetchLoginLocation against a real (loopback) HTTP surface ---
+
+    @Test fun `a 302 to the login path yields its Location`() = runTest {
+        val location = "https://team.cloudflareaccess.com/cdn-cgi/access/login/ssh.example.com?kid=k1&meta=m1"
+        server.enqueue(MockResponse().setResponseCode(302).setHeader("Location", location))
+        val client = OkHttpClient.Builder().build()
+        val probeUrl = server.url("/").toString()
+        assertEquals(location, CloudflareAccessLogin.fetchLoginLocationFrom(client, probeUrl))
+    }
+
+    @Test fun `a non-redirect answer yields nothing to load`() = runTest {
+        // 200 = not Access-protected (or already signed in).
+        server.enqueue(MockResponse().setResponseCode(200).setBody("<html>origin</html>"))
+        val client = OkHttpClient.Builder().build()
+        assertNull(CloudflareAccessLogin.fetchLoginLocationFrom(client, server.url("/").toString()))
+    }
+
+    @Test fun `an unreachable origin falls back rather than throwing`() = runTest {
+        // The activity treats any probe failure as "use the constructed
+        // login URL" — the call itself must never propagate.
+        val client = OkHttpClient.Builder()
+            .callTimeout(java.time.Duration.ofMillis(500))
+            .build()
+        assertNull(
+            CloudflareAccessLogin.fetchLoginLocationFrom(
+                client,
+                // Nothing listens here; connects fail fast.
+                "http://127.0.0.1:1/",
+            ),
+        )
     }
 }

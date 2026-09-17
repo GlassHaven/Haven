@@ -159,6 +159,11 @@ class CloudflareAccessLoginActivity : ComponentActivity() {
                 // Length only — the Location carries the kid/meta pair, so it
                 // is identity, not something to put in a log line (#518).
                 Log.d(TAG, "login Location unusable (${location.length} chars); using constructed URL")
+            } else if (url == fallback) {
+                // Probe found nothing at all (offline, timeout, not
+                // Access-protected). Log it — this is exactly the silent
+                // failure that made the 5.89.2 fix look like it didn't work.
+                Log.d(TAG, "probe found no Access login redirect; using constructed URL")
             }
             if (!resolved) webView.loadUrl(url)
         }

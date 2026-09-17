@@ -5,6 +5,10 @@ the corresponding GitHub Release; a release can't ship without its section
 (enforced by `scripts/check-changelog.sh` in CI). The GitHub "Full Changelog"
 compare link is appended automatically — don't add it here.
 
+## v5.89.4
+
+- **Cloudflare Access sign-in: the v5.89.2 fix for self-hosted applications never actually ran.** The probe that fetches the login redirect from the Access edge does blocking network I/O, and it was called from the sign-in screen's main-thread scope — Android killed it and the code swallowed the failure, so sign-in silently fell back to the constructed login URL and self-hosted apps kept showing "Unable to find your Access application" (#643). The probe now runs on a worker thread, and a probe that finds nothing is logged instead of swallowed.
+
 ## v5.89.3
 
 - The Connections screen's peer-discovery scan no longer probes Tailscale's LocalAPI (`100.100.100.100`) when the Tailscale app isn't installed. That address only exists on the app's own TUN interface, so without it installed every scan fired a doomed connect attempt that firewall apps reported as Haven phoning out (#654). With Tailscale installed, discovery works exactly as before.

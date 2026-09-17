@@ -1,0 +1,1 @@
+- The Connections screen's peer-discovery scan no longer probes Tailscale's LocalAPI (100.100.100.100) when the Tailscale app isn't installed (#654). With Tailscale installed, discovery works as before.

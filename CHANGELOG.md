@@ -5,6 +5,10 @@ the corresponding GitHub Release; a release can't ship without its section
 (enforced by `scripts/check-changelog.sh` in CI). The GitHub "Full Changelog"
 compare link is appended automatically — don't add it here.
 
+## v5.89.3
+
+- The Connections screen's peer-discovery scan no longer probes Tailscale's LocalAPI (`100.100.100.100`) when the Tailscale app isn't installed. That address only exists on the app's own TUN interface, so without it installed every scan fired a doomed connect attempt that firewall apps reported as Haven phoning out (#654). With Tailscale installed, discovery works exactly as before.
+
 ## v5.89.2
 
 - **Cloudflare Access sign-in now works with self-hosted applications (#643).** Haven asked the Access edge for a login page it constructed itself, but the pair of values naming *which* Access application protects a hostname exists only in the redirect the edge hands back, so self-hosted apps answered "Unable to find your Access application" while the same hostname loaded fine in a browser. Sign-in now requests the protected hostname directly, redirects off, and loads the redirect target the edge returns — the way a browser does. A redirect that has already bounced to the identity provider, or anything not an http(s) login URL, is refused rather than handed to a WebView holding your cookies; anything unusable falls back to the old constructed URL.

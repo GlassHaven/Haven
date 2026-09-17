@@ -249,12 +249,28 @@ class NetworkDiscovery(private val context: Context) {
         }
     }
 
+    private fun isTailscaleAppInstalled(): Boolean {
+        return try {
+            context.packageManager.getPackageInfo("com.tailscale.ipn", 0)
+            true
+        } catch (_: Exception) {
+            false
+        }
+    }
+
     /**
      * Discover Tailscale peers via the local API (100.100.100.100).
-     * Silently returns if Tailscale is not running.
+     * Silently returns if Tailscale is not running. The probe is skipped
+     * entirely when the official Tailscale app is not installed: the
+     * quad-100 LocalAPI only exists on the app's own TUN interface, so
+     * without it the attempt is a doomed connect that firewalls see
+     * (#654).
      */
     suspend fun discoverTailscale() {
         withContext(Dispatchers.IO) {
+            if (!isTailscaleAppInstalled()) {
+                return@withContext
+            }
             try {
                 val url = URL("http://100.100.100.100/localapi/v0/status")
                 val conn = url.openConnection() as HttpURLConnection

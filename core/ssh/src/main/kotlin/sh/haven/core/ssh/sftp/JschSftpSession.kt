@@ -19,7 +19,9 @@ import java.util.concurrent.atomic.AtomicReference
  *
  * The JSch channel is owned externally (by [sh.haven.core.ssh.SshSessionManager])
  * — this class does not connect or disconnect it. [isConnected] reflects the
- * channel's live state.
+ * channel's live state. Exception: [openInputStream] opens its own per-stream
+ * "sftp" channel on the same SSH session and owns (disconnects) it, because an
+ * aborted stream transfer poisons the channel it ran on (see there).
  *
  * Translates `com.jcraft.jsch.JSchException` and `com.jcraft.jsch.SftpException`
  * to [SshIoException] so callers do not need to import JSch types.
@@ -114,28 +116,50 @@ internal class JschSftpSession(private val channel: ChannelSftp) : SftpSession {
             // honours `skip` when mode == RESUME (with OVERWRITE it silently reads
             // from 0 — caught by the #58 SftpSessionContractTest), so pick the
             // mode from the offset; offset 0 = whole file (install / serve_file).
+            //
+            // The get runs on its OWN channel, not the shared one: when a consumer
+            // closes the stream mid-body (a Range client seeking, e.g. ffmpeg
+            // probing an MP4 with a trailing moov), the get aborts without
+            // draining its in-flight READ responses, which then queue up in the
+            // channel, and the producer thread's death breaks io_in's pipe read
+            // side. A later get() on the shared channel fails instantly with an
+            // empty-message SftpException(SSH_FX_FAILURE) or "Pipe closed"
+            // (reproduced against OpenSSH with jsch 2.28.7). Discarding the
+            // stream's channel on close retires the poison with it.
+            val streamChannel = openStreamChannel()
             val pipeIn = PipedInputStream(PIPE_BUFFER_BYTES)
             val pipeOut = PipedOutputStream(pipeIn)
             val failure = AtomicReference<Throwable?>(null)
-            Thread({
+            val producer = Thread({
                 try {
                     translatingJschErrors {
                         val mode = if (offset > 0) ChannelSftp.RESUME else ChannelSftp.OVERWRITE
-                        channel.get(path, pipeOut, null, mode, offset)
+                        streamChannel.get(path, pipeOut, null, mode, offset)
                     }
                 } catch (t: Throwable) {
                     failure.set(t)
                 } finally {
                     try { pipeOut.close() } catch (_: Throwable) { /* best effort */ }
                 }
-            }, "sftp-get").apply { isDaemon = true }.start()
+            }, "sftp-get").apply { isDaemon = true }
+            producer.start()
             // Re-raise a producer-side failure at EOF rather than truncating silently.
             object : InputStream() {
                 override fun read(): Int = pipeIn.read().also { if (it < 0) raiseIfFailed() }
                 override fun read(b: ByteArray, off: Int, len: Int): Int =
                     pipeIn.read(b, off, len).also { if (it < 0) raiseIfFailed() }
                 override fun available(): Int = pipeIn.available()
-                override fun close() = pipeIn.close()
+                override fun close() {
+                    try { pipeIn.close() } catch (_: IOException) { /* already closed */ }
+                    // The producer must not touch the channel after we retire it.
+                    producer.join(STREAM_TEARDOWN_JOIN_MS)
+                    if (producer.isAlive) {
+                        // Get stuck on the network: disconnecting makes it fail.
+                        try { streamChannel.disconnect() } catch (_: Exception) { /* best effort */ }
+                        producer.join(STREAM_TEARDOWN_JOIN_MS)
+                    }
+                    try { streamChannel.disconnect() } catch (_: Exception) { /* best effort */ }
+                }
                 private fun raiseIfFailed() {
                     failure.get()?.let { throw SshIoException("SFTP read failed: ${it.message}", it) }
                 }
@@ -195,6 +219,13 @@ internal class JschSftpSession(private val channel: ChannelSftp) : SftpSession {
         }
     }
 
+    /** Extra "sftp" channel on the SSH session, owned by one [openInputStream] stream. */
+    private fun openStreamChannel(): ChannelSftp = try {
+        (channel.session.openChannel("sftp") as ChannelSftp).apply { connect() }
+    } catch (e: Exception) {
+        throw SshIoException("SFTP stream channel: ${e.message}", e)
+    }
+
     private inline fun <T> translatingJschErrors(block: () -> T): T = try {
         block()
     } catch (e: SftpException) {
@@ -208,5 +239,8 @@ internal class JschSftpSession(private val channel: ChannelSftp) : SftpSession {
     private companion object {
         /** Pipe capacity for the streamed SFTP download (back-pressures the producer). */
         const val PIPE_BUFFER_BYTES = 1 shl 20 // 1 MiB
+
+        /** How long [close] waits for the stream's get thread before force-closing its channel. */
+        const val STREAM_TEARDOWN_JOIN_MS = 5000L
     }
 }

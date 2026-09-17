@@ -161,7 +161,14 @@ internal class JschSftpSession(private val channel: ChannelSftp) : SftpSession {
                     try { streamChannel.disconnect() } catch (_: Exception) { /* best effort */ }
                 }
                 private fun raiseIfFailed() {
-                    failure.get()?.let { throw SshIoException("SFTP read failed: ${it.message}", it) }
+                    // Include the class: jsch throws SftpException(SSH_FX_FAILURE, "")
+                    // for a desynced channel — message alone reads as nothing.
+                    failure.get()?.let {
+                        throw SshIoException(
+                            "SFTP read failed: ${it.javaClass.simpleName}: ${it.message}",
+                            it,
+                        )
+                    }
                 }
             }
         }

@@ -2698,6 +2698,24 @@ internal class McpTools(
             },
         )
         val sourceUrl = "http://127.0.0.1:$streamPort$urlPath"
+        // Audit-log the transcode outcome like the Files→Stream flow does;
+        // previously an MCP-triggered stream that failed left nothing to read.
+        hlsStreamServer.onExit = { exitCode, stderr ->
+            val status = if (exitCode == 0)
+                sh.haven.core.data.db.entities.ConnectionLog.Status.CONNECTED
+            else
+                sh.haven.core.data.db.entities.ConnectionLog.Status.FAILED
+            runCatching {
+                backgroundScope.launch {
+                    connectionLogRepository.logEvent(
+                        profileId,
+                        status,
+                        details = "▶ stream: ${path.substringAfterLast('/')} — ffmpeg exit $exitCode",
+                        verboseLog = stderr.takeLast(2000),
+                    )
+                }
+            }
+        }
         val hlsPort = hlsStreamServer.startFile(sourceUrl)
         JSONObject().apply {
             put("profileId", profileId)

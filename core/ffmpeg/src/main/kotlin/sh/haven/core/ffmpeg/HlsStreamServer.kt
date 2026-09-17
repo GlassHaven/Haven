@@ -64,6 +64,15 @@ class HlsStreamServer @Inject constructor(
     var onStderr: ((String) -> Unit)? = null
 
     /**
+     * Optional observer for the ffmpeg process exiting. Fires once per
+     * started ffmpeg with its exit code and collected stderr, on the monitor
+     * thread — lets callers record the transcoder outcome in their own
+     * audit log even when nothing was observing [onStderr] while it ran.
+     */
+    @Volatile
+    var onExit: ((exitCode: Int, stderr: String) -> Unit)? = null
+
+    /**
      * Start streaming a media file.
      *
      * @param inputPath Absolute path to the input file
@@ -206,6 +215,11 @@ class HlsStreamServer @Inject constructor(
         Thread({
             val result = job.await()
             Log.w(TAG, "ffmpeg exited: code=${result.exitCode} stderr=${result.stderr.take(500)}")
+            try {
+                onExit?.invoke(result.exitCode, result.stderr)
+            } catch (e: Exception) {
+                Log.w(TAG, "onExit observer failed", e)
+            }
         }, "hls-ffmpeg-monitor").apply { isDaemon = true }.start()
     }
 

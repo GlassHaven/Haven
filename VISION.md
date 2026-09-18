@@ -8,7 +8,7 @@ The last decade convinced us that "desktop" and "files" are local nouns. The nex
 
 ## Identity
 
-The strongest identity Haven has is: **the open-source, privacy-first mobile workspace.** JuiceSSH was unpublished from Google Play in December 2025 after five years without an update. Termius went proprietary. ConnectBot is unmaintained. Haven is the only active GPL-licensed terminal app with modern Compose UI, hardware key support, a local Linux environment, a unified cloud file browser, a real media toolchain, and a native GPU-accelerated Wayland desktop — in one APK, no accounts, no telemetry.
+The strongest identity Haven has is: **the open-source, privacy-first mobile workspace.** Haven is the only active GPL-licensed terminal app with modern Compose UI, hardware key support, a local Linux environment, a unified cloud file browser, a real media toolchain, and a native GPU-accelerated Wayland desktop — in one APK, no accounts, no telemetry.
 
 The GPL/privacy audience chooses Haven *because* it's open source. Every security choice — encrypted credentials, biometric lock, TOFU host keys, FIDO2 support, local storage only — reinforces this identity. That is the moat and the brand.
 

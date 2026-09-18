@@ -5,6 +5,11 @@ the corresponding GitHub Release; a release can't ship without its section
 (enforced by `scripts/check-changelog.sh` in CI). The GitHub "Full Changelog"
 compare link is appended automatically — don't add it here.
 
+## v5.89.6
+
+- **Editing a saved Cloudflare-routed connection no longer strips its Cloudflare settings.** The edit dialog pre-populated its fields once, at a moment when the saved tunnel config hadn't loaded yet, so a saved profile came back as a plain SSH profile — and saving it deleted the embedded tunnel and the captured JWT. Opening Edit and saving without re-doing the sign-in was the one-way trip to a broken profile. The fields now apply the saved tunnel when its load completes (#643).
+- **Cloudflare sign-in starts from a clean session.** Each sign-in now clears every cookie the WebView holds for both the app hostname and the team domain, not just the app domain's `CF_Authorization` — stale team-domain sessions were surfacing Cloudflare's "Invalid login session" interstitial on repeat sign-ins and made users tap through a recovery link (#643).
+
 ## v5.89.5
 
 - **Play in Browser: fixed files that would not stream.** A stream that ends early — seeking a non-faststart MP4 to its trailing moov atom does exactly this — left its queued SFTP responses and a dead read-side thread on the shared control channel, so every later request on that channel returned zero bytes and the player gave up with "moov not found". Each openInputStream stream now runs on its own SFTP channel, retired on close.

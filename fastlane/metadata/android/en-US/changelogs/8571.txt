@@ -1,0 +1,2 @@
+- Fixed editing a saved Cloudflare-routed connection stripping its Cloudflare settings (the edit dialog never loaded the saved tunnel config, so saving wiped it). #643
+- Cloudflare sign-in now clears stale session cookies on both the app and team domains before starting, ending the "Invalid login session" recovery-link detour on repeat sign-ins. #643

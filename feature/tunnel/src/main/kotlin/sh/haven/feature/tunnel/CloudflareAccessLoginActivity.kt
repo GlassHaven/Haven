@@ -96,10 +96,12 @@ class CloudflareAccessLoginActivity : ComponentActivity() {
             return
         }
 
-        // Reset any leftover cookie from a prior attempt against the
-        // same hostname so the IdP re-prompts. Without this, a previous
-        // expired JWT lingers and we'd capture it again on first load.
-        clearAccessCookie()
+        // Reset any leftover state from a prior attempt so the IdP starts
+        // a clean session. Without this, stale team-domain session cookies
+        // from an earlier attempt surface Cloudflare's "Invalid login
+        // session" interstitial and the user has to tap through a recovery
+        // link (#643).
+        clearAccessCookies()
 
         val container = LinearLayout(this).apply {
             orientation = LinearLayout.VERTICAL
@@ -230,13 +232,33 @@ class CloudflareAccessLoginActivity : ComponentActivity() {
         return null
     }
 
-    private fun clearAccessCookie() {
+    /**
+     * Clear every cookie the WebView holds for the app hostname and the
+     * team domain, so each sign-in starts from a clean session. CookieManager
+     * has no delete-one API — the documented way is to overwrite each cookie
+     * with an expired Max-Age — and the stale state that breaks a repeat
+     * sign-in lives on the TEAM domain too (its session cookie, not the app
+     * domain's [COOKIE_NAME]), so both origins get wiped and every cookie
+     * name each origin currently exposes gets cleared by name.
+     */
+    private fun clearAccessCookies() {
         val cm = CookieManager.getInstance()
-        val url = "https://$hostname"
-        // Setting the cookie with an expired Max-Age is the documented
-        // way to delete a single cookie via CookieManager (which has no
-        // delete-one API).
-        cm.setCookie(url, "$COOKIE_NAME=; Max-Age=0; Path=/")
+        for (url in buildList {
+            add("https://$hostname")
+            if (teamDomain.isNotBlank() && !teamDomain.equals(hostname, ignoreCase = true)) {
+                add("https://$teamDomain")
+            }
+        }) {
+            cm.getCookie(url)?.let { header ->
+                for (raw in header.split(';')) {
+                    val name = raw.trim().substringBefore('=')
+                    if (name.isNotEmpty()) cm.setCookie(url, "$name=; Max-Age=0; Path=/")
+                }
+            }
+            // Belt and braces for the token itself in case its attributes
+            // kept it out of the getCookie listing above.
+            cm.setCookie(url, "$COOKIE_NAME=; Max-Age=0; Path=/")
+        }
         cm.flush()
     }
 

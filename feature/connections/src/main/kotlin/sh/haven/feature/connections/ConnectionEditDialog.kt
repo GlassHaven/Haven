@@ -361,6 +361,27 @@ fun ConnectionEditDialog(
             ),
         )
     }
+    // The embedded blob loads asynchronously after the dialog composes
+    // (ConnectionsScreen's produceState), and the rememberSaveable
+    // initialisers above never re-run when it arrives — opening Edit on a
+    // saved Cloudflare profile would show non-Cloudflare defaults, and
+    // saving would then wipe the embedded tunnel (#643). Apply the blob's
+    // values on first non-null load. In the ms race where the user already
+    // typed into a field before the load landed, the saved values win.
+    var cfStateRestored by rememberSaveable { mutableStateOf(false) }
+    LaunchedEffect(initialCfBlob) {
+        val blob = initialCfBlob ?: return@LaunchedEffect
+        if (cfStateRestored) return@LaunchedEffect
+        cfStateRestored = true
+        useCloudflareTunnel = true
+        cfTeamDomain = blob.teamDomain
+        cfJwt = blob.jwt
+        cfExpiresAt = blob.jwtExpiresAt
+        cfJumpDestination = blob.jumpDestination
+        cfAdvancedOpen = blob.teamDomain.isNotBlank() ||
+            blob.jwt.isNotBlank() ||
+            blob.jumpDestination.isNotBlank()
+    }
     var sshOptions by rememberSaveable { mutableStateOf(existing?.sshOptions ?: "") }
     var moshServerCommand by rememberSaveable { mutableStateOf(existing?.moshServerCommand ?: "") }
     var postLoginCommand by rememberSaveable { mutableStateOf(existing?.postLoginCommand ?: "") }

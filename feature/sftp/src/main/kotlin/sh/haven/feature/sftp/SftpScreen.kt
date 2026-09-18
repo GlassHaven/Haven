@@ -1318,6 +1318,11 @@ fun SftpScreen(
                                         // the long-press "Open in editor". Local files are handled
                                         // above (system app); this covers SAF/SFTP/SMB/rclone.
                                         viewModel.openInEditor(entry)
+                                    } else {
+                                        // No known handler for this extension: default the tap
+                                        // to the long-press "Open with…" chooser instead of doing
+                                        // nothing — the user picks the app (or cancels) there.
+                                        viewModel.openWithExternalApp(entry)
                                     }
                                 },
                                 onDownload = {

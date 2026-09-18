@@ -535,17 +535,14 @@ private fun AlignedToolbarContent(
     // The keyboard toggle key is a normal layout item: it flows into the paired
     // rest columns at whatever position the user saved it in, so it is freely
     // movable and no longer leaves a dead cell under it when the Desktop key is
-    // hidden. Only Attach (row 1) / Voice (row 2) keep their leading-column pin
-    // (#245).
+    // hidden. Attach (row 1) / Voice (row 2) also follow the saved layout now:
+    // the #245 leading-column pin overrode any user arrangement that put the
+    // keyboard toggle first, and the editor would re-pin it on every save, so
+    // the two could never be swapped. The default layout still stacks them
+    // (SNIPPETS, KEYBOARD, ATTACH / SHIFT, CTRL, VOICE_KEYBOARD) when untouched.
     fun ToolbarItem.isKey(k: ToolbarKey) = this is ToolbarItem.BuiltIn && this.key == k
-    val r1Attach = row1Left.firstOrNull { it.isKey(ToolbarKey.ATTACH) }
-    val r2Voice = row2Left.firstOrNull { it.isKey(ToolbarKey.VOICE_KEYBOARD) }
-    // Pin Attach over Voice into the fixed leading column ONLY when both are
-    // present; a lone survivor reflows into the rest columns instead of being
-    // stranded in a paired column with an empty cell next to it (#245).
-    val pinAttachVoice = r1Attach != null && r2Voice != null
-    val r1Rest = row1Left.filterNot { pinAttachVoice && it.isKey(ToolbarKey.ATTACH) }
-    val r2Rest = row2Left.filterNot { pinAttachVoice && it.isKey(ToolbarKey.VOICE_KEYBOARD) }
+    val r1Rest = row1Left
+    val r2Rest = row2Left
 
     // Collect which nav keys are present across all rows
     val presentNavKeys = layout.rows.flatten()
@@ -648,11 +645,6 @@ private fun AlignedToolbarContent(
                 kbRestR1 < 0 && kbRestR2 < 0)
         )
 
-        // Pinned Attach (top) / Voice (bottom) leading column — only when both
-        // are present; a lone survivor reflows into the rest columns (#245).
-        if (pinAttachVoice) {
-            KeyColumn(top = itemRenderer(r1Attach), bottom = itemRenderer(r2Voice))
-        }
         // Rest columns: row-1 key over row-2 key, paired by position. The
         // keyboard toggle is NOT extracted — it flows here at its saved
         // position, and the LEFT-placed desktop key shares its column
@@ -1698,27 +1690,12 @@ private fun ReorderToolbarContent(
     placement: EditModeControlsPlacement = EditModeControlsPlacement.LEFT,
 ) {
     val rows = remember(layout) {
-        // Pin Attach (row 1) and Voice (row 2) to index 0 of their segments so
-        // the pair stacks in the first column right of the fixed done-✓/desktop
-        // column, mirroring the live render's leading Attach/Voice column. The
-        // keyboard key is no longer pinned — it stays where the user dragged it
-        // and is itself a normal draggable item; the ✓ Done button sits in the
-        // fixed-control column (or the front of row 0 in the flat no-nav
-        // fallback), never in the keyboard key's slot.
-        fun MutableList<ToolbarItem>.pinToFront(key: ToolbarKey, target: Int) {
-            val idx = indexOfFirst { it is ToolbarItem.BuiltIn && it.key == key }
-            if (idx >= 0 && idx != target) add(target.coerceAtMost(size), removeAt(idx))
-        }
-        layout.rows.mapIndexed { i, row ->
-            val list = row.toMutableList()
-            when (i) {
-                // The keyboard key is a normal, draggable item (no longer pinned
-                // to col 0), so it is left in place; only Attach keeps its pin.
-                0 -> list.pinToFront(ToolbarKey.ATTACH, 0)
-                1 -> list.pinToFront(ToolbarKey.VOICE_KEYBOARD, 0)
-            }
-            list.toMutableStateList()
-        }
+        // Every key is an ordinary draggable item — the saved layout is
+        // honoured as-is. Attach/Voice used to be pinned back to the leading
+        // column here and in the live render (#245), which overrode any user
+        // arrangement that put the keyboard toggle first and re-pinned on
+        // every editor save, so the two could never be swapped.
+        layout.rows.map { row -> row.toMutableStateList() }
     }
 
     fun saveAndExit() {

@@ -122,7 +122,8 @@ int main(int argc, char **argv)
 	 * holding the rootfs disk. */
 	prctl(PR_SET_PDEATHSIG, SIGKILL, 0, 0, 0);
 
-	char **kargv = calloc((size_t)(argc - 2), sizeof(char *));
+	/* argv entries + NULL terminator: argc-2 entries are filled in. */
+	char **kargv = calloc((size_t)(argc - 1), sizeof(char *));
 	if (!kargv)
 		return 1;
 	kargv[0] = argv[3];

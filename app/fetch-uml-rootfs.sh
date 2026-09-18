@@ -25,10 +25,10 @@ cd "$(dirname "$0")"
 
 OUT="src/full/assets/uml"
 DEST="$OUT/rootfs-aarch64.ext4.gz"
-BASE="${UML_RELEASE_MIRROR:-https://github.com/GlassOnTin/uml-transport/releases/download/uml-guest-2}"
+BASE="${UML_RELEASE_MIRROR:-https://github.com/GlassOnTin/uml-transport/releases/download/uml-guest-3}"
 
 NAME="rootfs-aarch64.ext4.gz"
-SHA="6a1a539ad4001b9910c084f4267495daba2ef4c5607ee2e6da2a090965399703"
+SHA="c4acb30d0b53421775de080dcbd498a7d94bedf628d0dba77f7fb744f3792e47"
 
 if [ "${SKIP_UML:-0}" = "1" ]; then
     echo "fetch-uml-rootfs: SKIP_UML=1 — APK will lack the recovery rootfs"

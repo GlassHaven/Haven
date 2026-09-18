@@ -530,7 +530,7 @@ class UmlGuestManager @Inject constructor(
          * installs re-stage once on update; contents are tooling, not user
          * data, and recovery output goes through hostfs outside the image).
          */
-        const val ROOTFS_VERSION = 2
+        const val ROOTFS_VERSION = 3
 
         /** Space check before unpacking: image + headroom for writes. */
         const val ROOTFS_FREE_SPACE_BYTES = 600L * 1024 * 1024

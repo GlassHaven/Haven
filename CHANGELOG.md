@@ -5,6 +5,11 @@ the corresponding GitHub Release; a release can't ship without its section
 (enforced by `scripts/check-changelog.sh` in CI). The GitHub "Full Changelog"
 compare link is appended automatically — don't add it here.
 
+## v5.89.7
+
+- **Linux guests come up with a working network on every boot.** The guest rootfs configured its `vec0` interface with a single `ifup -a` whose errors were silenced, and on some boots its DHCP lost the race against the passthrough helper not yet accepting on the socket — the guest booted with no interface and nothing on the console saying why. A `haven-net` sysinit step now retries DHCP a few times and prints a visible warning if the interface never comes up.
+- **Guest TCP no longer stalls under sustained agent load.** passt's raw-Ethernet input path could overwrite frames still queued in its packet pool; each datagram now drains into its own slot (uml-transport `uml-guest-3`). Upgrading re-stages the guest rootfs, which clears guest user data.
+
 ## v5.89.6
 
 - **Editing a saved Cloudflare-routed connection no longer strips its Cloudflare settings.** The edit dialog pre-populated its fields once, at a moment when the saved tunnel config hadn't loaded yet, so a saved profile came back as a plain SSH profile — and saving it deleted the embedded tunnel and the captured JWT. Opening Edit and saving without re-doing the sign-in was the one-way trip to a broken profile. The fields now apply the saved tunnel when its load completes (#643).

@@ -35,14 +35,14 @@ set -euo pipefail
 cd "$(dirname "$0")"
 
 OUT="${UML_OUTPUT:-src/main/jniLibs}"
-BASE="${UML_RELEASE_MIRROR:-https://github.com/GlassOnTin/uml-transport/releases/download/uml-guest-2}"
+BASE="${UML_RELEASE_MIRROR:-https://github.com/GlassOnTin/uml-transport/releases/download/uml-guest-3}"
 
 # file | sha256
 # Sizes: libvmlinux.so 79307152, libuml-stub.so 1920, libuml-passt.so 608472
 FILES=(
   "libvmlinux.so|35b5a379f6994ffa4886757d98e6f0f1b2c6c1f14a92b29c8fb108bcff3e0f9b"
   "libuml-stub.so|83f51f7c45133daa135b595562b09c5e2829f1d0f1e00b7fce2a7695370781fc"
-  "libuml-passt.so|e78fa0a504994f94423085f2b7ddfc891ab27b21a2e9150ec264ed59441c1c44"
+  "libuml-passt.so|17703eb787afcfc57475921f186bec6eae479db00cf60e1763c1a8459c055b36"
 )
 
 if [ "${SKIP_UML:-0}" = "1" ]; then

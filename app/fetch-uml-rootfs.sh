@@ -10,7 +10,7 @@
 # are not scanned, so the downloaded copy never trips it.
 #
 # Version-pinned release asset with sha256 (github.com/GlassOnTin/
-# uml-transport, release uml-guest-1). The rootfs carries GPL binaries built
+# uml-transport, release uml-guest-2). The rootfs carries GPL binaries built
 # from published Alpine packages, and haven-recover ships inside the image as
 # script source. When the pin is retired the fetch fails LOUDLY — bump
 # UML_ROOTFS_RELEASE and the sha256 together. Skip with ./gradlew -PskipUml
@@ -25,7 +25,7 @@ cd "$(dirname "$0")"
 
 OUT="src/full/assets/uml"
 DEST="$OUT/rootfs-aarch64.ext4.gz"
-BASE="${UML_RELEASE_MIRROR:-https://github.com/GlassOnTin/uml-transport/releases/download/uml-guest-1}"
+BASE="${UML_RELEASE_MIRROR:-https://github.com/GlassOnTin/uml-transport/releases/download/uml-guest-2}"
 
 NAME="rootfs-aarch64.ext4.gz"
 SHA="6a1a539ad4001b9910c084f4267495daba2ef4c5607ee2e6da2a090965399703"

@@ -25,8 +25,9 @@
 # there with the build recipes) is published, which satisfies the
 # distribution terms. The kernel link output is additionally neutered
 # for the syscalls Android's zygote seccomp filter force-kills
-# (set_robust_list, rseq) — see tools/um-arm64/harness/check-app-seccomp.sh
-# in that repo, the regression gate for it. When the pin is retired,
+# (set_robust_list, rseq) — the gate and the patch live in this repo's
+# releases repo, GlassOnTin/uml-transport, under tools/um-arm64/harness/.
+# When the pin is retired,
 # the fetch fails LOUDLY — bump UML_RELEASE and the sha256s together.
 # Skip with ./gradlew -PskipUml or SKIP_UML=1 (F-Droid).
 #

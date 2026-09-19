@@ -5,6 +5,10 @@ the corresponding GitHub Release; a release can't ship without its section
 (enforced by `scripts/check-changelog.sh` in CI). The GitHub "Full Changelog"
 compare link is appended automatically — don't add it here.
 
+## v5.89.8
+
+- **Linux guests boot again.** v5.89.7 relinked the guest kernel for the TCP stall fix and dropped a post-link step the previous kernel had: Android's app sandbox force-kills two syscalls the guest's libc issues at startup (`set_robust_list`, `rseq`), so the guest process died with signal 31 about 100 ms after launch — no console output, no network log, nothing to debug from. The shipped kernel binary is now neutered for those calls (uml-transport `uml-guest-4`), a scan gate fails any kernel that ships without the step, and a fresh guest boots on device.
+
 ## v5.89.7
 
 - **Linux guests come up with a working network on every boot.** The guest rootfs configured its `vec0` interface with a single `ifup -a` whose errors were silenced, and on some boots its DHCP lost the race against the passthrough helper not yet accepting on the socket — the guest booted with no interface and nothing on the console saying why. A `haven-net` sysinit step now retries DHCP a few times and prints a visible warning if the interface never comes up.

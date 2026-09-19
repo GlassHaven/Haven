@@ -265,7 +265,11 @@ class UmlGuestManager @Inject constructor(
             nat("libuml-passt.so"),
             File(context.cacheDir, "uml/passt-$sessionId.log").absolutePath,
             nat("libvmlinux.so"),
-            "mem=384M",
+            // UML only touches pages the guest actually uses, so the cap costs
+            // nothing idle. 384M was enough for shells but the in-guest coding
+            // agent (opencode) OOMs the guest above ~512M — it needs the full
+            // gig to start its TUI.
+            "mem=1024M",
             "ubd0=${rootfsFile.absolutePath}",
             "root=/dev/ubda",
             "rw",
@@ -528,9 +532,10 @@ class UmlGuestManager @Inject constructor(
          * Bump when the shipped asset changes in a way the size check cannot
          * see (v2 added the recovery tools — same 512 MiB image, so existing
          * installs re-stage once on update; contents are tooling, not user
-         * data, and recovery output goes through hostfs outside the image).
+         * data, and recovery output goes through hostfs outside the image.
+         * v4 preinstalls the agent launcher and opencode).
          */
-        const val ROOTFS_VERSION = 3
+        const val ROOTFS_VERSION = 4
 
         /** Space check before unpacking: image + headroom for writes. */
         const val ROOTFS_FREE_SPACE_BYTES = 600L * 1024 * 1024

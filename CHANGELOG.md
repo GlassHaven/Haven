@@ -5,6 +5,11 @@ the corresponding GitHub Release; a release can't ship without its section
 (enforced by `scripts/check-changelog.sh` in CI). The GitHub "Full Changelog"
 compare link is appended automatically — don't add it here.
 
+## v5.89.9
+
+- **The guest terminal opens onto a coding agent.** UML guest profiles now boot straight into the opencode TUI instead of a bare shell. The guest rootfs ships opencode preinstalled (uml-transport `uml-guest-5`); on first run it asks once for your AI endpoint — base URL, API key and model id — on the console. The key is read with echo off and stored only in the guest's `/root/endpoint.env` (chmod 600), and handed to the agent through an environment-variable indirection, so no config file ever holds it. Quitting the TUI drops to a shell; logging out respawns the agent. `touch /root/no-agent` in the guest to skip it and get a plain login shell.
+- **Guests get enough memory to run the agent.** The guest memory cap was 384 MB, fine for a shell but an out-of-memory death for any coding agent TUI (opencode needs over 512 MB to start). The cap is now 1 GB — UML only touches pages the guest actually uses, so an idle guest costs the same as before.
+
 ## v5.89.8
 
 - **Linux guests boot again.** v5.89.7 relinked the guest kernel for the TCP stall fix and dropped a post-link step the previous kernel had: Android's app sandbox force-kills two syscalls the guest's libc issues at startup (`set_robust_list`, `rseq`), so the guest process died with signal 31 about 100 ms after launch — no console output, no network log, nothing to debug from. The shipped kernel binary is now neutered for those calls (uml-transport `uml-guest-4`), a scan gate fails any kernel that ships without the step, and a fresh guest boots on device.

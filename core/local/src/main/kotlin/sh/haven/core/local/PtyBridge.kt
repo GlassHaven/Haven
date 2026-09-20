@@ -12,6 +12,10 @@ object PtyBridge {
 
     /**
      * Fork a child process with a pseudoterminal.
+     * @param raw raw-mode pty (cfmakeraw) instead of the default cooked
+     *   termios — used by the UML guest console, which implements its own
+     *   tty semantics inside the guest (a cooked host pty turns \r into \n
+     *   and ctrl-c into a SIGINT to the UML kernel itself)
      * @return int[2]: [masterFd, childPid] on success, [-1, errno] on failure
      */
     external fun nativeForkPty(
@@ -20,6 +24,7 @@ object PtyBridge {
         env: Array<String>,
         rows: Int,
         cols: Int,
+        raw: Boolean,
     ): IntArray
 
     /**

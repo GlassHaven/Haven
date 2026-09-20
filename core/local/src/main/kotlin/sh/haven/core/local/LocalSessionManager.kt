@@ -15,9 +15,7 @@ import kotlinx.coroutines.launch
 import sh.haven.core.data.db.entities.ConnectionLog
 import sh.haven.core.data.preferences.UserPreferencesRepository
 import sh.haven.core.data.repository.ConnectionLogRepository
-import sh.haven.core.data.terminal.ScrollbackRing
 import java.util.UUID
-import java.util.concurrent.ConcurrentHashMap
 import java.util.concurrent.Executors
 import javax.inject.Inject
 import javax.inject.Singleton
@@ -197,7 +195,7 @@ class LocalSessionManager @Inject constructor(
             .map { it.sessionId }
         if (deadIds.isEmpty()) return
         _sessions.update { map -> map - deadIds.toSet() }
-        deadIds.forEach { agentScrollback.remove(it) }
+        deadIds.forEach { agentMirror.remove(it) }
     }
 
     /**
@@ -434,15 +432,6 @@ class LocalSessionManager @Inject constructor(
         // permanent onMirror tee). Previously only startHeadlessShell created
         // the ring, so a shell the user opened by tapping Terminal had no ring
         // and the agent saw "No scrollback available".
-        val ring = agentScrollback.computeIfAbsent(sessionId) {
-            ScrollbackRing(agentScrollbackBytes)
-        }
-        val mirroredOnData: (ByteArray, Int, Int) -> Unit = { data, off, len ->
-            ring.append(data, off, len)
-            agentTee[sessionId]?.invoke(data, off, len)
-            onDataReceived(data, off, len)
-        }
-
         val localSession = LocalSession(
             sessionId = sessionId,
             profileId = session.profileId,
@@ -450,13 +439,13 @@ class LocalSessionManager @Inject constructor(
             command = cmd,
             args = args,
             env = env,
-            onDataReceived = mirroredOnData,
+            onDataReceived = agentMirror.mirror(sessionId, onDataReceived),
             onExited = { exitCode ->
                 Log.d(TAG, "Session $sessionId process exited: $exitCode")
                 // Mark DISCONNECTED and drop the dead LocalSession in one
                 // update so sendInput / getActiveSession stop routing to a
                 // closed fd (which would swallow writes and report a false
-                // success). The agentScrollback ring is left intact so the
+                // success). The agent ring is left intact so the
                 // final output stays readable after the process exits.
                 _sessions.update { map ->
                     val existing = map[sessionId] ?: return@update map
@@ -472,11 +461,7 @@ class LocalSessionManager @Inject constructor(
                 // log, not just a release-stripped Log.d. The scrollback tail
                 // usually carries the actual reason (a tmux/zellij error, a
                 // "command not found", a broken profile script).
-                val tail = runCatching {
-                    val snap = ring.snapshot()
-                    val from = maxOf(0, snap.size - 2048)
-                    String(snap, from, snap.size - from, Charsets.UTF_8)
-                }.getOrNull()?.takeIf { it.isNotBlank() }
+                val tail = agentMirror.tail(sessionId)
                 prefScope.launch {
                     connectionLog.logEvent(
                         profileId = session.profileId,
@@ -551,12 +536,7 @@ class LocalSessionManager @Inject constructor(
         onDataReceived: (ByteArray, Int, Int) -> Unit,
     ): LocalSession? {
         val live = _sessions.value[sessionId]?.localSession ?: return null
-        val ring = agentScrollback.computeIfAbsent(sessionId) { ScrollbackRing(agentScrollbackBytes) }
-        live.replaceDataCallback { data, off, len ->
-            ring.append(data, off, len)
-            agentTee[sessionId]?.invoke(data, off, len)
-            onDataReceived(data, off, len)
-        }
+        live.replaceDataCallback(agentMirror.mirror(sessionId, onDataReceived))
         return live
     }
 
@@ -565,7 +545,7 @@ class LocalSessionManager @Inject constructor(
      * null if empty — replayed into a fresh emulator on reattach (#272).
      */
     fun snapshotScrollback(sessionId: String): ByteArray? =
-        agentScrollback[sessionId]?.snapshot()?.takeIf { it.isNotEmpty() }
+        agentMirror.snapshot(sessionId)
 
     fun updateStatus(sessionId: String, status: SessionState.Status) {
         _sessions.update { map ->
@@ -577,8 +557,7 @@ class LocalSessionManager @Inject constructor(
     fun removeSession(sessionId: String) {
         val session = _sessions.value[sessionId] ?: return
         _sessions.update { it - sessionId }
-        agentScrollback.remove(sessionId)
-        agentTee.remove(sessionId)
+        agentMirror.remove(sessionId)
         ioExecutor.execute {
             try {
                 session.localSession?.close()
@@ -597,27 +576,14 @@ class LocalSessionManager @Inject constructor(
     // each piece is intentionally narrow so a future first-class "shell
     // session that renders nowhere" mode can subsume them cleanly.
 
-    private val agentScrollback = ConcurrentHashMap<String, ScrollbackRing>()
-
-    /**
-     * Permanent agent-emulator tee, keyed like [agentScrollback] and invoked
-     * from the SAME mirrors (create + reattach). It must NOT live inside the
-     * replaceable data callback: reattachTerminalSession (#272) swaps that
-     * callback for the new UI tab's pipeline, which silently disconnected the
-     * headless emulator the MCP snapshot tools read (found testing #226).
-     */
-    private val agentTee = ConcurrentHashMap<String, (ByteArray, Int, Int) -> Unit>()
-
-    /**
-     * Soft cap on the agent-scope mirror of recent stdout for headless
-     * local shells. Matches [SshSessionManager]'s cap so behaviour is
-     * uniform across transports.
-     */
-    private val agentScrollbackBytes = 256 * 1024
+    // The ring + tee maps and their byte cap live in [AgentSessionMirror],
+    // shared with UmlGuestManager so console-side UI features land once for
+    // both PTY transports instead of being rediscovered per transport.
+    private val agentMirror = AgentSessionMirror()
 
     /**
      * Spin up the PTY for [sessionId] without an attached UI surface,
-     * mirroring stdout into [agentScrollback] so
+     * mirroring stdout into [AgentSessionMirror] so
      * [readAgentScrollback] can return what the agent would see.
      * Idempotent — if a [LocalSession] already exists for [sessionId]
      * (e.g. the user opened a terminal tab for it), this is a no-op.
@@ -634,13 +600,14 @@ class LocalSessionManager @Inject constructor(
         plain: Boolean = false,
     ) {
         val session = _sessions.value[sessionId] ?: return
-        // The agent-emulator tee is registered in [agentTee] so it survives
+        // The agent-emulator tee is registered in [AgentSessionMirror] so it
+        // survives
         // reattachTerminalSession's callback swap; the create/reattach mirrors
         // invoke it alongside the scrollback ring. Registered even when a UI
         // tab already owns the LocalSession (the early return below) — the
         // mirrors look it up dynamically, so the agent emulator starts
         // receiving from here on (blank until then; no replay).
-        extraOnData?.let { agentTee[sessionId] = it }
+        extraOnData?.let { agentMirror.setTee(sessionId, it) }
         if (session.localSession != null) return
         val ls = createTerminalSession(
             sessionId,
@@ -660,7 +627,7 @@ class LocalSessionManager @Inject constructor(
      * emulator nothing reads for the rest of the session's life.
      */
     fun clearAgentTee(sessionId: String) {
-        agentTee.remove(sessionId)
+        agentMirror.clearTee(sessionId)
     }
 
     /**
@@ -693,7 +660,7 @@ class LocalSessionManager @Inject constructor(
      */
     suspend fun awaitFirstOutput(sessionId: String, timeoutMs: Long = 1500L): Boolean {
         val deadline = System.currentTimeMillis() + timeoutMs
-        fun hasOutput() = (agentScrollback[sessionId]?.totalBytesAppended ?: 0L) > 0L
+        fun hasOutput() = agentMirror.hasOutput(sessionId)
         while (System.currentTimeMillis() < deadline) {
             if (hasOutput()) return true
             // A shell that exits instantly (e.g. a broken env) never prints a
@@ -710,12 +677,8 @@ class LocalSessionManager @Inject constructor(
      * ring for [sessionId], or null if no ring exists yet (no headless
      * or UI tab has run on this session).
      */
-    fun readAgentScrollback(sessionId: String, maxBytes: Int): ByteArray? {
-        val ring = agentScrollback[sessionId] ?: return null
-        val full = ring.snapshot()
-        return if (full.size <= maxBytes) full
-        else full.copyOfRange(full.size - maxBytes, full.size)
-    }
+    fun readAgentScrollback(sessionId: String, maxBytes: Int): ByteArray? =
+        agentMirror.read(sessionId, maxBytes)
 
     fun removeAllSessionsForProfile(profileId: String) {
         val toRemove = _sessions.value.values.filter { it.profileId == profileId }

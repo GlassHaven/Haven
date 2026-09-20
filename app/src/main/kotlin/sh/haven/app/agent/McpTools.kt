@@ -6051,6 +6051,8 @@ internal class McpTools(
                     mouseMode = modeTracker.mouseMode,
                     activeMouseMode = modeTracker.activeMouseMode,
                     bracketPasteMode = modeTracker.bracketPasteMode,
+                    altScreen = modeTracker.altScreen,
+                    cursorKeyAppMode = modeTracker.cursorKeyAppMode,
                 )
             ) {
                 agentFeed = feed

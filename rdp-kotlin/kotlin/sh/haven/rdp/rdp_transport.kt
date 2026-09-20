@@ -1133,103 +1133,103 @@ private fun uniffiCheckContractApiVersion(lib: IntegrityCheckingUniffiLib) {
 }
 @Suppress("UNUSED_PARAMETER")
 private fun uniffiCheckApiChecksums(lib: IntegrityCheckingUniffiLib) {
-    if (lib.uniffi_rdp_transport_checksum_func_benchmark_avc_boundary() != 6278) {
+    if ((lib.uniffi_rdp_transport_checksum_func_benchmark_avc_boundary() and 0xFFFF) != 6278) {
         throw RuntimeException("UniFFI API checksum mismatch: try cleaning and rebuilding your project")
     }
-    if (lib.uniffi_rdp_transport_checksum_method_avc420decoder_decode_into() != 19396) {
+    if ((lib.uniffi_rdp_transport_checksum_method_avc420decoder_decode_into() and 0xFFFF) != 19396) {
         throw RuntimeException("UniFFI API checksum mismatch: try cleaning and rebuilding your project")
     }
-    if (lib.uniffi_rdp_transport_checksum_method_clipboardcallback_on_remote_clipboard() != 26900) {
+    if ((lib.uniffi_rdp_transport_checksum_method_clipboardcallback_on_remote_clipboard() and 0xFFFF) != 26900) {
         throw RuntimeException("UniFFI API checksum mismatch: try cleaning and rebuilding your project")
     }
-    if (lib.uniffi_rdp_transport_checksum_method_framecallback_on_frame_update() != 22386) {
+    if ((lib.uniffi_rdp_transport_checksum_method_framecallback_on_frame_update() and 0xFFFF) != 22386) {
         throw RuntimeException("UniFFI API checksum mismatch: try cleaning and rebuilding your project")
     }
-    if (lib.uniffi_rdp_transport_checksum_method_framecallback_on_resize() != 62021) {
+    if ((lib.uniffi_rdp_transport_checksum_method_framecallback_on_resize() and 0xFFFF) != 62021) {
         throw RuntimeException("UniFFI API checksum mismatch: try cleaning and rebuilding your project")
     }
-    if (lib.uniffi_rdp_transport_checksum_method_pointercallback_on_pointer_bitmap() != 28142) {
+    if ((lib.uniffi_rdp_transport_checksum_method_pointercallback_on_pointer_bitmap() and 0xFFFF) != 28142) {
         throw RuntimeException("UniFFI API checksum mismatch: try cleaning and rebuilding your project")
     }
-    if (lib.uniffi_rdp_transport_checksum_method_pointercallback_on_pointer_hidden() != 41643) {
+    if ((lib.uniffi_rdp_transport_checksum_method_pointercallback_on_pointer_hidden() and 0xFFFF) != 41643) {
         throw RuntimeException("UniFFI API checksum mismatch: try cleaning and rebuilding your project")
     }
-    if (lib.uniffi_rdp_transport_checksum_method_pointercallback_on_pointer_default() != 58241) {
+    if ((lib.uniffi_rdp_transport_checksum_method_pointercallback_on_pointer_default() and 0xFFFF) != 58241) {
         throw RuntimeException("UniFFI API checksum mismatch: try cleaning and rebuilding your project")
     }
-    if (lib.uniffi_rdp_transport_checksum_method_pointercallback_on_pointer_position() != 11369) {
+    if ((lib.uniffi_rdp_transport_checksum_method_pointercallback_on_pointer_position() and 0xFFFF) != 11369) {
         throw RuntimeException("UniFFI API checksum mismatch: try cleaning and rebuilding your project")
     }
-    if (lib.uniffi_rdp_transport_checksum_method_rdpclient_bitmap_bridge_id() != 60513) {
+    if ((lib.uniffi_rdp_transport_checksum_method_rdpclient_bitmap_bridge_id() and 0xFFFF) != 60513) {
         throw RuntimeException("UniFFI API checksum mismatch: try cleaning and rebuilding your project")
     }
-    if (lib.uniffi_rdp_transport_checksum_method_rdpclient_connect() != 62634) {
+    if ((lib.uniffi_rdp_transport_checksum_method_rdpclient_connect() and 0xFFFF) != 62634) {
         throw RuntimeException("UniFFI API checksum mismatch: try cleaning and rebuilding your project")
     }
-    if (lib.uniffi_rdp_transport_checksum_method_rdpclient_disconnect() != 17462) {
+    if ((lib.uniffi_rdp_transport_checksum_method_rdpclient_disconnect() and 0xFFFF) != 17462) {
         throw RuntimeException("UniFFI API checksum mismatch: try cleaning and rebuilding your project")
     }
-    if (lib.uniffi_rdp_transport_checksum_method_rdpclient_get_dirty_rects() != 64020) {
+    if ((lib.uniffi_rdp_transport_checksum_method_rdpclient_get_dirty_rects() and 0xFFFF) != 64020) {
         throw RuntimeException("UniFFI API checksum mismatch: try cleaning and rebuilding your project")
     }
-    if (lib.uniffi_rdp_transport_checksum_method_rdpclient_get_framebuffer() != 63545) {
+    if ((lib.uniffi_rdp_transport_checksum_method_rdpclient_get_framebuffer() and 0xFFFF) != 63545) {
         throw RuntimeException("UniFFI API checksum mismatch: try cleaning and rebuilding your project")
     }
-    if (lib.uniffi_rdp_transport_checksum_method_rdpclient_get_framebuffer_region() != 57500) {
+    if ((lib.uniffi_rdp_transport_checksum_method_rdpclient_get_framebuffer_region() and 0xFFFF) != 57500) {
         throw RuntimeException("UniFFI API checksum mismatch: try cleaning and rebuilding your project")
     }
-    if (lib.uniffi_rdp_transport_checksum_method_rdpclient_is_connected() != 48249) {
+    if ((lib.uniffi_rdp_transport_checksum_method_rdpclient_is_connected() and 0xFFFF) != 48249) {
         throw RuntimeException("UniFFI API checksum mismatch: try cleaning and rebuilding your project")
     }
-    if (lib.uniffi_rdp_transport_checksum_method_rdpclient_send_clipboard_text() != 1301) {
+    if ((lib.uniffi_rdp_transport_checksum_method_rdpclient_send_clipboard_text() and 0xFFFF) != 1301) {
         throw RuntimeException("UniFFI API checksum mismatch: try cleaning and rebuilding your project")
     }
-    if (lib.uniffi_rdp_transport_checksum_method_rdpclient_send_key() != 18692) {
+    if ((lib.uniffi_rdp_transport_checksum_method_rdpclient_send_key() and 0xFFFF) != 18692) {
         throw RuntimeException("UniFFI API checksum mismatch: try cleaning and rebuilding your project")
     }
-    if (lib.uniffi_rdp_transport_checksum_method_rdpclient_send_mouse_button() != 8391) {
+    if ((lib.uniffi_rdp_transport_checksum_method_rdpclient_send_mouse_button() and 0xFFFF) != 8391) {
         throw RuntimeException("UniFFI API checksum mismatch: try cleaning and rebuilding your project")
     }
-    if (lib.uniffi_rdp_transport_checksum_method_rdpclient_send_mouse_move() != 41946) {
+    if ((lib.uniffi_rdp_transport_checksum_method_rdpclient_send_mouse_move() and 0xFFFF) != 41946) {
         throw RuntimeException("UniFFI API checksum mismatch: try cleaning and rebuilding your project")
     }
-    if (lib.uniffi_rdp_transport_checksum_method_rdpclient_send_mouse_wheel() != 44938) {
+    if ((lib.uniffi_rdp_transport_checksum_method_rdpclient_send_mouse_wheel() and 0xFFFF) != 44938) {
         throw RuntimeException("UniFFI API checksum mismatch: try cleaning and rebuilding your project")
     }
-    if (lib.uniffi_rdp_transport_checksum_method_rdpclient_send_unicode_key() != 63832) {
+    if ((lib.uniffi_rdp_transport_checksum_method_rdpclient_send_unicode_key() and 0xFFFF) != 63832) {
         throw RuntimeException("UniFFI API checksum mismatch: try cleaning and rebuilding your project")
     }
-    if (lib.uniffi_rdp_transport_checksum_method_rdpclient_set_avc_decoder() != 17028) {
+    if ((lib.uniffi_rdp_transport_checksum_method_rdpclient_set_avc_decoder() and 0xFFFF) != 17028) {
         throw RuntimeException("UniFFI API checksum mismatch: try cleaning and rebuilding your project")
     }
-    if (lib.uniffi_rdp_transport_checksum_method_rdpclient_set_clipboard_callback() != 53381) {
+    if ((lib.uniffi_rdp_transport_checksum_method_rdpclient_set_clipboard_callback() and 0xFFFF) != 53381) {
         throw RuntimeException("UniFFI API checksum mismatch: try cleaning and rebuilding your project")
     }
-    if (lib.uniffi_rdp_transport_checksum_method_rdpclient_set_frame_callback() != 19537) {
+    if ((lib.uniffi_rdp_transport_checksum_method_rdpclient_set_frame_callback() and 0xFFFF) != 19537) {
         throw RuntimeException("UniFFI API checksum mismatch: try cleaning and rebuilding your project")
     }
-    if (lib.uniffi_rdp_transport_checksum_method_rdpclient_set_pointer_callback() != 45574) {
+    if ((lib.uniffi_rdp_transport_checksum_method_rdpclient_set_pointer_callback() and 0xFFFF) != 45574) {
         throw RuntimeException("UniFFI API checksum mismatch: try cleaning and rebuilding your project")
     }
-    if (lib.uniffi_rdp_transport_checksum_method_rdpclient_set_session_callback() != 53109) {
+    if ((lib.uniffi_rdp_transport_checksum_method_rdpclient_set_session_callback() and 0xFFFF) != 53109) {
         throw RuntimeException("UniFFI API checksum mismatch: try cleaning and rebuilding your project")
     }
-    if (lib.uniffi_rdp_transport_checksum_method_rdpclient_take_perf_log() != 28309) {
+    if ((lib.uniffi_rdp_transport_checksum_method_rdpclient_take_perf_log() and 0xFFFF) != 28309) {
         throw RuntimeException("UniFFI API checksum mismatch: try cleaning and rebuilding your project")
     }
-    if (lib.uniffi_rdp_transport_checksum_method_sessioncallback_on_connected() != 30846) {
+    if ((lib.uniffi_rdp_transport_checksum_method_sessioncallback_on_connected() and 0xFFFF) != 30846) {
         throw RuntimeException("UniFFI API checksum mismatch: try cleaning and rebuilding your project")
     }
-    if (lib.uniffi_rdp_transport_checksum_method_sessioncallback_on_error() != 13402) {
+    if ((lib.uniffi_rdp_transport_checksum_method_sessioncallback_on_error() and 0xFFFF) != 13402) {
         throw RuntimeException("UniFFI API checksum mismatch: try cleaning and rebuilding your project")
     }
-    if (lib.uniffi_rdp_transport_checksum_method_sessioncallback_on_disconnected() != 33844) {
+    if ((lib.uniffi_rdp_transport_checksum_method_sessioncallback_on_disconnected() and 0xFFFF) != 33844) {
         throw RuntimeException("UniFFI API checksum mismatch: try cleaning and rebuilding your project")
     }
-    if (lib.uniffi_rdp_transport_checksum_method_sessioncallback_on_server_cert() != 36446) {
+    if ((lib.uniffi_rdp_transport_checksum_method_sessioncallback_on_server_cert() and 0xFFFF) != 36446) {
         throw RuntimeException("UniFFI API checksum mismatch: try cleaning and rebuilding your project")
     }
-    if (lib.uniffi_rdp_transport_checksum_constructor_rdpclient_new() != 19675) {
+    if ((lib.uniffi_rdp_transport_checksum_constructor_rdpclient_new() and 0xFFFF) != 19675) {
         throw RuntimeException("UniFFI API checksum mismatch: try cleaning and rebuilding your project")
     }
 }

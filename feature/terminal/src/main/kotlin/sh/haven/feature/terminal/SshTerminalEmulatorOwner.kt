@@ -208,6 +208,8 @@ class SshTerminalEmulatorOwner @Inject constructor(
             mouseTracker.mouseMode,
             mouseTracker.activeMouseMode,
             mouseTracker.bracketPasteMode,
+            mouseTracker.altScreen,
+            mouseTracker.cursorKeyAppMode,
             oscHandler,
             feedOutput,
         )

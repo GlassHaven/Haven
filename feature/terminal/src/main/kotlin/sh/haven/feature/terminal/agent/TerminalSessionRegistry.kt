@@ -44,6 +44,11 @@ class TerminalSessionRegistry @Inject constructor() {
      *        mode (1000/1002/1003) active.
      * @param activeMouseMode the highest active mouse mode number, or null.
      * @param bracketPasteMode true while bracketed-paste mode (2004) is on.
+     * @param altScreen true while the remote app is on the alternate
+     *        screen buffer (vim/less/…); null for entries that predate
+     *        alt-screen tracking — adopters must fall back to a stub.
+     * @param cursorKeyAppMode true while DECCKM (application cursor keys)
+     *        is set, so alt-screen swipe arrows are SS3-encoded.
      * @param oscHandler the per-tab OSC scanner; exposes last-seen OSC
      *        events for test assertions.
      * @param feedOutput injects raw bytes through the tab's real output
@@ -60,6 +65,8 @@ class TerminalSessionRegistry @Inject constructor() {
         val mouseMode: StateFlow<Boolean>? = null,
         val activeMouseMode: StateFlow<Int?>? = null,
         val bracketPasteMode: StateFlow<Boolean>? = null,
+        val altScreen: StateFlow<Boolean>? = null,
+        val cursorKeyAppMode: StateFlow<Boolean>? = null,
         val oscHandler: OscHandler? = null,
         val feedOutput: ((ByteArray, Int, Int) -> Unit)? = null,
         val gestureInjector: GestureInjector? = null,
@@ -92,6 +99,8 @@ class TerminalSessionRegistry @Inject constructor() {
         mouseMode: StateFlow<Boolean>,
         activeMouseMode: StateFlow<Int?>,
         bracketPasteMode: StateFlow<Boolean>,
+        altScreen: StateFlow<Boolean>,
+        cursorKeyAppMode: StateFlow<Boolean>,
     ): Boolean {
         var claimed = false
         _sessions.update { map ->
@@ -106,6 +115,8 @@ class TerminalSessionRegistry @Inject constructor() {
                         mouseMode = mouseMode,
                         activeMouseMode = activeMouseMode,
                         bracketPasteMode = bracketPasteMode,
+                        altScreen = altScreen,
+                        cursorKeyAppMode = cursorKeyAppMode,
                         feedOutput = feedOutput,
                     )
                     )
@@ -129,6 +140,8 @@ class TerminalSessionRegistry @Inject constructor() {
         mouseMode: StateFlow<Boolean>,
         activeMouseMode: StateFlow<Int?>,
         bracketPasteMode: StateFlow<Boolean>,
+        altScreen: StateFlow<Boolean>,
+        cursorKeyAppMode: StateFlow<Boolean>,
         oscHandler: OscHandler,
         feedOutput: (ByteArray, Int, Int) -> Unit,
     ) {
@@ -140,6 +153,8 @@ class TerminalSessionRegistry @Inject constructor() {
                     mouseMode = mouseMode,
                     activeMouseMode = activeMouseMode,
                     bracketPasteMode = bracketPasteMode,
+                    altScreen = altScreen,
+                    cursorKeyAppMode = cursorKeyAppMode,
                     oscHandler = oscHandler,
                     feedOutput = feedOutput,
                 )
@@ -193,6 +208,8 @@ class TerminalSessionRegistry @Inject constructor() {
         mouseMode: StateFlow<Boolean>,
         activeMouseMode: StateFlow<Int?>,
         bracketPasteMode: StateFlow<Boolean>,
+        altScreen: StateFlow<Boolean>,
+        cursorKeyAppMode: StateFlow<Boolean>,
         oscHandler: OscHandler,
         feedOutput: (ByteArray, Int, Int) -> Unit,
     ) {
@@ -203,6 +220,8 @@ class TerminalSessionRegistry @Inject constructor() {
                     mouseMode = mouseMode,
                     activeMouseMode = activeMouseMode,
                     bracketPasteMode = bracketPasteMode,
+                    altScreen = altScreen,
+                    cursorKeyAppMode = cursorKeyAppMode,
                     oscHandler = oscHandler,
                     feedOutput = feedOutput,
                 )

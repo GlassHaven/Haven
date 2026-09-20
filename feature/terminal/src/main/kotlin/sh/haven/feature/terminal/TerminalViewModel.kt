@@ -1190,8 +1190,8 @@ class TerminalViewModel @Inject constructor(
                         mouseMode = agentRegistryEntry.mouseMode ?: MutableStateFlow(false),
                         activeMouseMode = agentRegistryEntry.activeMouseMode ?: MutableStateFlow<Int?>(null),
                         bracketPasteMode = agentRegistryEntry.bracketPasteMode ?: MutableStateFlow(false),
-                        altScreen = MutableStateFlow(false),
-                        cursorKeyAppMode = MutableStateFlow(false),
+                        altScreen = agentRegistryEntry.altScreen ?: MutableStateFlow(false),
+                        cursorKeyAppMode = agentRegistryEntry.cursorKeyAppMode ?: MutableStateFlow(false),
                         oscHandler = adoptedOscHandler,
                         feedOutput = adoptedFeedOutput,
                         cwd = MutableStateFlow(null),
@@ -2175,6 +2175,8 @@ class TerminalViewModel @Inject constructor(
                         tab.mouseMode,
                         tab.activeMouseMode,
                         tab.bracketPasteMode,
+                        tab.altScreen,
+                        tab.cursorKeyAppMode,
                         tab.oscHandler,
                         tab.feedOutput,
                     )
@@ -2194,6 +2196,8 @@ class TerminalViewModel @Inject constructor(
                         tab.mouseMode,
                         tab.activeMouseMode,
                         tab.bracketPasteMode,
+                        tab.altScreen,
+                        tab.cursorKeyAppMode,
                         tab.oscHandler,
                         tab.feedOutput,
                     )
@@ -2214,6 +2218,8 @@ class TerminalViewModel @Inject constructor(
                         existing.mouseMode ?: tab.mouseMode,
                         existing.activeMouseMode ?: tab.activeMouseMode,
                         existing.bracketPasteMode ?: tab.bracketPasteMode,
+                        existing.altScreen ?: tab.altScreen,
+                        existing.cursorKeyAppMode ?: tab.cursorKeyAppMode,
                         tab.oscHandler,
                         existing.feedOutput ?: tab.feedOutput,
                     )

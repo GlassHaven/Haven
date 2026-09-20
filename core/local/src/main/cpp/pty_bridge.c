@@ -6,6 +6,7 @@
 #include <sys/ioctl.h>
 #include <sys/wait.h>
 #include <errno.h>
+#include <termios.h>
 #include <android/log.h>
 
 #define TAG "PtyBridge"
@@ -14,13 +15,20 @@
 /*
  * Fork a child process with a pseudoterminal.
  *
+ * raw != 0 puts the pty in raw mode (cfmakeraw) instead of the default
+ * cooked termios. The UML console needs this: the guest kernel implements
+ * its own tty semantics, so a cooked host pty double-processes input —
+ * ICRNL turns Haven's \r into \n (Enter never submits inside the agent
+ * TUI) and ISIG turns ctrl-c into a SIGINT to the UML kernel process
+ * itself, killing the whole guest.
+ *
  * Returns int[2]: [masterFd, childPid] on success, [-1, errno] on failure.
  */
 JNIEXPORT jintArray JNICALL
 Java_sh_haven_core_local_PtyBridge_nativeForkPty(
     JNIEnv *env, jclass cls,
     jstring jCmd, jobjectArray jArgs, jobjectArray jEnvVars,
-    jint rows, jint cols)
+    jint rows, jint cols, jboolean jRaw)
 {
     jintArray result = (*env)->NewIntArray(env, 2);
     jint buf[2];
@@ -57,7 +65,11 @@ Java_sh_haven_core_local_PtyBridge_nativeForkPty(
     ws.ws_col = cols;
 
     int masterFd;
-    pid_t pid = forkpty(&masterFd, NULL, NULL, &ws);
+    struct termios rawTio;
+    if (jRaw) {
+        cfmakeraw(&rawTio);
+    }
+    pid_t pid = forkpty(&masterFd, NULL, jRaw ? &rawTio : NULL, &ws);
 
     if (pid < 0) {
         LOGE("forkpty failed: %s", strerror(errno));

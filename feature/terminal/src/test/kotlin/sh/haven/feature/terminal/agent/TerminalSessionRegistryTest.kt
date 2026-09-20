@@ -37,6 +37,8 @@ class TerminalSessionRegistryTest {
         mouseMode = MutableStateFlow(false),
         activeMouseMode = MutableStateFlow<Int?>(null),
         bracketPasteMode = MutableStateFlow(false),
+        altScreen = MutableStateFlow(false),
+        cursorKeyAppMode = MutableStateFlow(false),
     )
 
     @Test
@@ -78,6 +80,8 @@ class TerminalSessionRegistryTest {
             mouseMode = MutableStateFlow(true),
             activeMouseMode = MutableStateFlow<Int?>(1002),
             bracketPasteMode = MutableStateFlow(true),
+            altScreen = MutableStateFlow(true),
+            cursorKeyAppMode = MutableStateFlow(false),
             oscHandler = tabOsc,
             feedOutput = feedB,
         )
@@ -88,6 +92,8 @@ class TerminalSessionRegistryTest {
         assertSame(tabOsc, entry.oscHandler)
         assertTrue(entry.mouseMode!!.value)
         assertEquals(1002, entry.activeMouseMode!!.value)
+        assertTrue(entry.altScreen!!.value)
+        assertFalse(entry.cursorKeyAppMode!!.value)
     }
 
     @Test
@@ -106,6 +112,8 @@ class TerminalSessionRegistryTest {
             mouseMode = MutableStateFlow(false),
             activeMouseMode = MutableStateFlow<Int?>(null),
             bracketPasteMode = MutableStateFlow(false),
+            altScreen = MutableStateFlow(false),
+            cursorKeyAppMode = MutableStateFlow(false),
             oscHandler = OscHandler(),
             feedOutput = feedB,
         )
@@ -124,6 +132,8 @@ class TerminalSessionRegistryTest {
             mouseMode = MutableStateFlow(false),
             activeMouseMode = MutableStateFlow<Int?>(null),
             bracketPasteMode = MutableStateFlow(false),
+            altScreen = MutableStateFlow(false),
+            cursorKeyAppMode = MutableStateFlow(false),
             oscHandler = OscHandler(),
             feedOutput = feedA,
         )

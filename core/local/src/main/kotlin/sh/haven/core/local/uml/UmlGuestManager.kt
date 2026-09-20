@@ -16,12 +16,11 @@ import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
 import sh.haven.core.data.db.entities.ConnectionLog
 import sh.haven.core.data.repository.ConnectionLogRepository
-import sh.haven.core.data.terminal.ScrollbackRing
+import sh.haven.core.local.AgentSessionMirror
 import sh.haven.core.local.LocalSession
 import java.io.File
 import java.io.FileOutputStream
 import java.util.UUID
-import java.util.concurrent.ConcurrentHashMap
 import java.util.concurrent.Executors
 import javax.inject.Inject
 import javax.inject.Singleton
@@ -72,7 +71,7 @@ class UmlGuestManager @Inject constructor(
         _state.value = if (rootfsReady) SetupState.Ready else SetupState.NotStaged
     }
 
-    /** The staged rootfs image; 512 MiB, the mkfs'd size of the asset. */
+    /** The staged rootfs image; 1 GiB, the mkfs'd size of the asset. */
     val rootfsFile: File
         get() = File(context.filesDir, "uml/rootfs.ext4")
 
@@ -121,7 +120,7 @@ class UmlGuestManager @Inject constructor(
                     // The APK asset is the raw ext4, not the repo's .gz file:
                     // AGP's mergeAssets decompresses .gz assets during the
                     // merge (verified on 9.2.1 — the packaged entry is the
-                    // plain 512 MB image, DEFLATE'd by the zip layer). So the
+                    // plain 1 GiB image, DEFLATE'd by the zip layer). So the
                     // unpack is a straight copy; the gzip step only ever
                     // existed to keep the 512 MB image out of git.
                     FileOutputStream(tmp).use { out ->
@@ -224,10 +223,7 @@ class UmlGuestManager @Inject constructor(
             .map { it.sessionId }
         if (deadIds.isEmpty()) return
         _sessions.update { map -> map - deadIds.toSet() }
-        deadIds.forEach {
-            agentScrollback.remove(it)
-            agentTee.remove(it)
-        }
+        deadIds.forEach { agentMirror.remove(it) }
     }
 
     /** Mark a session ready to boot; the kernel starts in [createTerminalSession]. */
@@ -266,10 +262,10 @@ class UmlGuestManager @Inject constructor(
             File(context.cacheDir, "uml/passt-$sessionId.log").absolutePath,
             nat("libvmlinux.so"),
             // UML only touches pages the guest actually uses, so the cap costs
-            // nothing idle. 384M was enough for shells but the in-guest coding
-            // agent (opencode) OOMs the guest above ~512M — it needs the full
-            // gig to start its TUI.
-            "mem=1024M",
+            // nothing idle. 384M was enough for shells and 1G got the in-guest
+            // coding agent's TUI up, but a session mid-task still grew past
+            // the cap and the kernel OOM-killed opencode (device, 2026-09-20).
+            "mem=2048M",
             "ubd0=${rootfsFile.absolutePath}",
             "root=/dev/ubda",
             "rw",
@@ -301,17 +297,6 @@ class UmlGuestManager @Inject constructor(
         // passt's log dir; uml_net.c only creates the file.
         File(context.cacheDir, "uml").mkdirs()
 
-        // Agent-scope mirror of the console, identical to the LOCAL wiring so
-        // read_terminal_scrollback works on guest sessions the user opened.
-        val ring = agentScrollback.computeIfAbsent(sessionId) {
-            ScrollbackRing(agentScrollbackBytes)
-        }
-        val mirroredOnData: (ByteArray, Int, Int) -> Unit = { data, off, len ->
-            ring.append(data, off, len)
-            agentTee[sessionId]?.invoke(data, off, len)
-            onDataReceived(data, off, len)
-        }
-
         val localSession = LocalSession(
             sessionId = sessionId,
             profileId = session.profileId,
@@ -319,7 +304,11 @@ class UmlGuestManager @Inject constructor(
             command = cmd,
             args = args,
             env = env,
-            onDataReceived = mirroredOnData,
+            onDataReceived = agentMirror.mirror(sessionId, onDataReceived),
+            // The guest kernel implements its own tty semantics; a cooked host
+            // pty double-processes input (ICRNL eats \r so Enter never submits
+            // in the agent TUI, ISIG makes ctrl-c SIGINT the UML kernel itself).
+            rawTermios = true,
             onExited = { exitCode ->
                 Log.d(TAG, "Guest $sessionId process exited: $exitCode")
                 _sessions.update { map ->
@@ -333,11 +322,7 @@ class UmlGuestManager @Inject constructor(
                 // Same diagnosis channel as LOCAL: the scrollback tail usually
                 // carries the kernel panic or the passt error that killed the
                 // guest.
-                val tail = runCatching {
-                    val snap = ring.snapshot()
-                    val from = maxOf(0, snap.size - 2048)
-                    String(snap, from, snap.size - from, Charsets.UTF_8)
-                }.getOrNull()?.takeIf { it.isNotBlank() }
+                val tail = agentMirror.tail(sessionId)
                 prefScope.launch {
                     connectionLog.logEvent(
                         profileId = session.profileId,
@@ -374,17 +359,12 @@ class UmlGuestManager @Inject constructor(
         onDataReceived: (ByteArray, Int, Int) -> Unit,
     ): LocalSession? {
         val live = _sessions.value[sessionId]?.localSession ?: return null
-        val ring = agentScrollback.computeIfAbsent(sessionId) { ScrollbackRing(agentScrollbackBytes) }
-        live.replaceDataCallback { data, off, len ->
-            ring.append(data, off, len)
-            agentTee[sessionId]?.invoke(data, off, len)
-            onDataReceived(data, off, len)
-        }
+        live.replaceDataCallback(agentMirror.mirror(sessionId, onDataReceived))
         return live
     }
 
     fun snapshotScrollback(sessionId: String): ByteArray? =
-        agentScrollback[sessionId]?.snapshot()?.takeIf { it.isNotEmpty() }
+        agentMirror.snapshot(sessionId)
 
     fun updateStatus(sessionId: String, status: SessionState.Status) {
         _sessions.update { map ->
@@ -398,11 +378,11 @@ class UmlGuestManager @Inject constructor(
 
     // --- Agent transport entry points (mirror LocalSessionManager) ---------
 
-    private val agentScrollback = ConcurrentHashMap<String, ScrollbackRing>()
-
-    private val agentTee = ConcurrentHashMap<String, (ByteArray, Int, Int) -> Unit>()
-
-    private val agentScrollbackBytes = 256 * 1024
+    // The ring + tee maps and their byte cap live in [AgentSessionMirror],
+    // shared with LocalSessionManager — identical to the LOCAL wiring so
+    // read_terminal_scrollback works on guest sessions the user opened, and
+    // so console-side UI features land once for both PTY transports.
+    private val agentMirror = AgentSessionMirror()
 
     /**
      * Start the guest's PTY without a UI tab. Idempotent — a guest the user
@@ -413,14 +393,14 @@ class UmlGuestManager @Inject constructor(
         extraOnData: ((ByteArray, Int, Int) -> Unit)? = null,
     ) {
         val session = _sessions.value[sessionId] ?: return
-        extraOnData?.let { agentTee[sessionId] = it }
+        extraOnData?.let { agentMirror.setTee(sessionId, it) }
         if (session.localSession != null) return
         val ls = createTerminalSession(sessionId, onDataReceived = { _, _, _ -> }) ?: return
         ls.start(rows = 24, cols = 80)
     }
 
     fun clearAgentTee(sessionId: String) {
-        agentTee.remove(sessionId)
+        agentMirror.clearTee(sessionId)
     }
 
     fun sendInput(sessionId: String, text: String) {
@@ -438,7 +418,7 @@ class UmlGuestManager @Inject constructor(
 
     suspend fun awaitFirstOutput(sessionId: String, timeoutMs: Long = 4000L): Boolean {
         val deadline = System.currentTimeMillis() + timeoutMs
-        fun hasOutput() = (agentScrollback[sessionId]?.totalBytesAppended ?: 0L) > 0L
+        fun hasOutput() = agentMirror.hasOutput(sessionId)
         while (System.currentTimeMillis() < deadline) {
             if (hasOutput()) return true
             val status = _sessions.value[sessionId]?.status
@@ -448,12 +428,8 @@ class UmlGuestManager @Inject constructor(
         return hasOutput()
     }
 
-    fun readAgentScrollback(sessionId: String, maxBytes: Int): ByteArray? {
-        val ring = agentScrollback[sessionId] ?: return null
-        val full = ring.snapshot()
-        return if (full.size <= maxBytes) full
-        else full.copyOfRange(full.size - maxBytes, full.size)
-    }
+    fun readAgentScrollback(sessionId: String, maxBytes: Int): ByteArray? =
+        agentMirror.read(sessionId, maxBytes)
 
     /**
      * Close a guest: ask init to power off, give the kernel up to five seconds
@@ -488,8 +464,7 @@ class UmlGuestManager @Inject constructor(
     fun removeSession(sessionId: String) {
         val session = _sessions.value[sessionId] ?: return
         _sessions.update { it - sessionId }
-        agentScrollback.remove(sessionId)
-        agentTee.remove(sessionId)
+        agentMirror.remove(sessionId)
         ioExecutor.execute {
             try {
                 session.localSession?.close()
@@ -526,19 +501,28 @@ class UmlGuestManager @Inject constructor(
         private const val ASSET_PATH = "uml/rootfs-aarch64.ext4"
 
         /** mkfs'd image size — the staging idempotency check. */
-        const val ROOTFS_SIZE_BYTES = 536_870_912L
+        const val ROOTFS_SIZE_BYTES = 1_073_741_824L
 
         /**
          * Bump when the shipped asset changes in a way the size check cannot
          * see (v2 added the recovery tools — same 512 MiB image, so existing
          * installs re-stage once on update; contents are tooling, not user
          * data, and recovery output goes through hostfs outside the image.
-         * v4 preinstalls the agent launcher and opencode).
+         * v4 preinstalls the agent launcher and opencode.
+         * v5 ships the launcher quoting fix (uml-guest-6): the one-time
+         * endpoint prompt saves single-quoted values and a malformed
+         * endpoint.env re-prompts instead of crash-looping.
+         * v9 ships uml-guest-7: 1 GiB image (512 MiB filled up and broke the
+         * TUI's libopentui load) with that library preplaced as a real file,
+         * /sbin/haven-net restored at sysinit (the guest-5/6 rebase lost it,
+         * so guests booted with no route), and the launcher's raw-tty /
+         * endpoint-share-backup / agent-shell-hatch fixes. Existing installs
+         * re-stage once; endpoint.env survives via the share backup.
          */
-        const val ROOTFS_VERSION = 4
+        const val ROOTFS_VERSION = 10
 
         /** Space check before unpacking: image + headroom for writes. */
-        const val ROOTFS_FREE_SPACE_BYTES = 600L * 1024 * 1024
+        const val ROOTFS_FREE_SPACE_BYTES = 1_600L * 1024 * 1024
 
         private const val UNPACK_BUFFER_SIZE = 1 shl 16
     }

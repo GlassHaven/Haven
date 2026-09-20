@@ -25,6 +25,9 @@ class LocalSession(
     private val env: Array<String>,
     onDataReceived: (ByteArray, Int, Int) -> Unit,
     private val onExited: ((exitCode: Int) -> Unit)? = null,
+    /** Raw pty termios — for UML guest consoles, which implement their own
+     * tty semantics in the guest (a cooked host pty mangles \r and ctrl-c). */
+    private val rawTermios: Boolean = false,
 ) : Closeable {
 
     // Swappable so the PTY can outlive the emulator: when the Activity (and its
@@ -71,7 +74,7 @@ class LocalSession(
     fun start(rows: Int = 24, cols: Int = 80) {
         if (closed) return
 
-        val result = PtyBridge.nativeForkPty(command, args, env, rows, cols)
+        val result = PtyBridge.nativeForkPty(command, args, env, rows, cols, rawTermios)
         // On failure the native contract returns [-1, errno]; commit childPid
         // only after the success check so a later close() can't feed errno to
         // android.os.Process.killProcess(). (#208 finding 8)

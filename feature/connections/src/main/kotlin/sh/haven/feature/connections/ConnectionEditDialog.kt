@@ -2660,6 +2660,7 @@ fun ConnectionEditDialog(
                         "SCREEN" to "screen",
                         "BYOBU" to "byobu",
                         "HERDR" to "herdr",
+                        "PSMUX" to "psmux",
                     )
                     var smExpanded by remember { mutableStateOf(false) }
                     ExposedDropdownMenuBox(

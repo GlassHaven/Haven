@@ -230,6 +230,88 @@ MSG
     fi
 fi
 
+# ---------------------------------------------------------------------------
+# core/tunnel/jniLibs-openvpn3 — built from openvpn3-core/build-android.sh
+# (see that script and openvpn3-core/CMakeLists.txt). Unlike RDP/PRNS these
+# are static archives (.a), not shared libraries (.so), so the symbol check
+# uses `nm` rather than `readelf --dyn-syms` (which only applies to a
+# dynamic symbol table a static archive doesn't have). Same two assertions
+# as RDP/PRNS otherwise: right ELF machine per ABI directory, and the
+# contract entry point actually present (a library built from the wrong
+# source tree, or missing the mbedtls/lz4 merge step, would still produce a
+# file here but fail to link against downstream).
+
+OPENVPN3_DIR="$REPO_ROOT/core/tunnel/jniLibs-openvpn3"
+# start_session is one of adapter.cpp's own extern "C" functions (see
+# rclone-android/go/ovpnbridge/openvpn3/bridge/library.h) -- unlike a raw
+# OpenVPN3 Core C++ method name (which nm shows mangled without -C/demangle,
+# so a literal match would always miss), this is guaranteed unmangled and
+# additionally proves the adapter layer itself built and linked in, not
+# just upstream OpenVPN3 Core.
+OPENVPN3_ENTRY_POINT='start_session'
+
+# ABI directory -> the suffix openvpn3-core/build-android.sh (and
+# session.go's cgo LDFLAGS) use for the archive's file name.
+openvpn3_expected_suffix() {
+    case "$1" in
+        arm64-v8a) echo 'arm64' ;;
+        armeabi-v7a) echo 'armeabi-v7a' ;;
+        x86) echo 'x86' ;;
+        x86_64) echo 'amd64' ;;
+        *) echo '' ;;
+    esac
+}
+
+openvpn3_status=0
+openvpn3_checked=0
+
+if [ -d "$OPENVPN3_DIR" ]; then
+    for abi_dir in "$OPENVPN3_DIR"/*/; do
+        [ -d "$abi_dir" ] || continue
+        abi="$(basename "$abi_dir")"
+        suffix="$(openvpn3_expected_suffix "$abi")"
+        if [ -z "$suffix" ]; then
+            echo "FAIL: core/tunnel/jniLibs-openvpn3/$abi is not a recognised ABI"
+            openvpn3_status=1
+            continue
+        fi
+        a="$abi_dir/libopenvpn3_android_${suffix}.a"
+
+        if [ ! -f "$a" ]; then
+            echo "FAIL: core/tunnel/jniLibs-openvpn3/$abi has no libopenvpn3_android_${suffix}.a"
+            openvpn3_status=1
+            continue
+        fi
+        openvpn3_checked=$((openvpn3_checked + 1))
+
+        want="$(rdp_expected_machine "$abi")"
+        got="$(readelf -h "$a" 2>/dev/null | sed -n 's/^[[:space:]]*Machine:[[:space:]]*//p' | head -1)"
+        if [ -n "$want" ] && [ "$got" != "$want" ]; then
+            echo "FAIL: core/tunnel/jniLibs-openvpn3/$abi/libopenvpn3_android_${suffix}.a is a '$got' binary, expected '$want'"
+            openvpn3_status=1
+        fi
+
+        # nm's per-archive-member header lines shift the symbol-name column,
+        # so match on the last field ($NF) rather than a fixed index.
+        if ! nm --defined-only "$a" 2>/dev/null \
+            | awk -v want="$OPENVPN3_ENTRY_POINT" '{ if ($NF == want) found = 1 } END { exit !found }'; then
+            echo "FAIL: core/tunnel/jniLibs-openvpn3/$abi/libopenvpn3_android_${suffix}.a does not export $OPENVPN3_ENTRY_POINT"
+            openvpn3_status=1
+        fi
+    done
+
+    if [ "$openvpn3_status" -ne 0 ]; then
+        cat >&2 <<'MSG'
+
+Rebuild from source:
+    cd openvpn3-core && OPENVPN3_OUTPUT=../core/tunnel/jniLibs-openvpn3 ./build-android.sh
+MSG
+        exit 1
+    elif [ "$openvpn3_checked" -gt 0 ]; then
+        echo "✓ $openvpn3_checked openvpn3 native libraries match their ABI and export the contract entry point."
+    fi
+fi
+
 # The point of this block: for every run after #493 untracked the binaries, this
 # script printed "nothing to check" and exited 0. A gate that passes because it
 # found nothing to inspect is indistinguishable, in CI, from one that inspected

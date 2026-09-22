@@ -2169,11 +2169,16 @@ fun TerminalScreen(
                         onAttachTap = { attachSheetVisible = true },
                         onOpenTextInput = { textInputDialogVisible = true },
                         onDictateTap = {
-                            // #604: resolve a speech recognizer explicitly
-                            // rather than startActivity(ACTION_RECOGNIZE_SPEECH)
-                            // blind — some devices (Supernote) ship none, and
-                            // the intent resolver also lets the user pick one
-                            // if several are installed.
+                            // #604: resolve a speech recognizer explicitly rather
+                            // than startActivity(ACTION_RECOGNIZE_SPEECH) blind —
+                            // some devices (Supernote) ship none. Launching the
+                            // plain implicit intent (rather than wrapping it in
+                            // Intent.createChooser) lets Android's normal
+                            // default-app resolution apply: with one recognizer
+                            // installed it launches directly, and with several
+                            // installed the OS picker's "Just once / Always"
+                            // choice is remembered, so Dictate stops asking after
+                            // the first pick instead of prompting on every tap.
                             val recognize = android.content.Intent(
                                 android.speech.RecognizerIntent.ACTION_RECOGNIZE_SPEECH,
                             ).apply {
@@ -2182,11 +2187,8 @@ fun TerminalScreen(
                                     android.speech.RecognizerIntent.LANGUAGE_MODEL_FREE_FORM,
                                 )
                             }
-                            val chooser = recognize.resolveActivity(context.packageManager)?.let {
-                                android.content.Intent.createChooser(recognize, null)
-                            }
-                            if (chooser != null) {
-                                dictateLauncher.launch(chooser)
+                            if (recognize.resolveActivity(context.packageManager) != null) {
+                                dictateLauncher.launch(recognize)
                             } else {
                                 android.widget.Toast.makeText(
                                     context,

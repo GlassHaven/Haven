@@ -25,6 +25,10 @@
     <string name="tunnel_netbird_setup_key_label">Clave de configuración (setup key)</string>
     <string name="tunnel_netbird_management_url_label">URL de gestión (opcional)</string>
     <string name="tunnel_netbird_management_url_help">Déjalo en blanco para la gestión alojada de NetBird. Indica la URL de tu servidor para un servicio de gestión autoalojado.</string>
+    <string name="tunnel_openvpn_help">Pega un perfil .ovpn o carga un archivo. Si el perfil usa auth-user-pass sin un archivo de credenciales incluido, introduce un nombre de usuario y una contraseña a continuación.</string>
+    <string name="tunnel_openvpn_config_label">Perfil de OpenVPN (.ovpn)</string>
+    <string name="tunnel_openvpn_username_label">Usuario (opcional)</string>
+    <string name="tunnel_openvpn_password_label">Contraseña (opcional)</string>
     <string name="cf_experimental_banner">Experimental — Haven implementa el mismo protocolo WebSocket de transporte que `cloudflared access ssh`. Probado con un pequeño conjunto de tenants; informa de incompatibilidades en GitHub #154.</string>
     <string name="cf_intro_blurb">Enruta SSH a través de un nombre de host publicado de Cloudflare Tunnel — el equivalente en la app de `cloudflared access ssh --hostname &lt;host&gt;`. Las rutas de Tunnel públicas solo necesitan un nombre de host. Las rutas protegidas con Access requieren además un JWT — toca Iniciar sesión para capturar uno mediante el IdP de tu equipo.</string>
     <string name="cf_field_hostname">Nombre de host (p. ej. ssh.example.com)</string>

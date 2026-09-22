@@ -1,0 +1,2 @@
+- The cursor stays on the cell the running program expects after a rows-only terminal resize; cursor-tracking TUIs (opencode) repaint correctly instead of stranding a stale frame block.
+- Guest console: rows-only grows anchor at the top instead of backfilling from scrollback, which left stray blocks under opencode's line-diff repaint.

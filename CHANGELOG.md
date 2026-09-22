@@ -5,6 +5,11 @@ the corresponding GitHub Release; a release can't ship without its section
 (enforced by `scripts/check-changelog.sh` in CI). The GitHub "Full Changelog"
 compare link is appended automatically — don't add it here.
 
+## v5.89.11
+
+- **The cursor stays where the program put it when the terminal grows.** A rows-only resize that popped scrollback lines back onto the screen walked the cursor down with the restored history, so a cursor-tracking TUI (opencode) repainted rows away from where its model held the cursor and stranded a stale frame block mid-screen. The cursor now ends on the cell the program believes it is on, with or without scrollback.
+- **Keyboard toggles on the guest console repaint cleanly.** A rows-only grow no longer backfills from scrollback on the guest console: opencode's line-diff renderer skips lines the backfill reflows under it, so popped history showed up as stray blocks. The grow anchors at the top and the app's own resize repaint fills the blank rows.
+
 ## v5.89.10
 
 - **Enter works in the guest agent TUI, and ctrl-c no longer kills the guest.** The guest console's host-side pty ran in cooked mode, so the terminal's carriage return was translated into a newline before the TUI ever saw it (Enter inserted a line break instead of submitting), and ctrl-c was delivered as SIGINT to the guest kernel process itself, killing the guest. The guest console pty is now raw (local shells keep their cooked mode) and the launcher sets raw tty on the guest side too. Guest rootfs bumped to uml-transport `uml-guest-8`.

@@ -2302,7 +2302,8 @@ class UserPreferencesRepository @Inject constructor(
         ZELLIJ("zellij", "https://zellij.dev", { name -> "zellij attach $name --create" }),
         SCREEN("screen", "https://www.gnu.org/software/screen/", { name -> "screen -dRR $name" }, supportsScrollback = false),
         BYOBU("byobu", "https://www.byobu.org", { name -> "byobu new-session -A -s $name \\; set -gq mouse on" }),
-        HERDR("herdr", "https://herdr.dev", { name -> "herdr --session $name" });
+        HERDR("herdr", "https://herdr.dev", { name -> "herdr --session $name" }),
+        PSMUX("psmux", "https://github.com/psmux/psmux", { name -> "psmux new-session -A -s $name" });
 
         companion object {
             fun fromString(value: String?): SessionManager =

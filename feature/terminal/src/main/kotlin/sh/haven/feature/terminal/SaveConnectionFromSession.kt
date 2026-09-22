@@ -46,6 +46,7 @@ object SaveConnectionFromSession {
             SessionManager.SCREEN -> "screen -dRR $name"
             SessionManager.BYOBU -> "byobu new-session -A -s $name"
             SessionManager.HERDR -> "herdr --session $name"
+            SessionManager.PSMUX -> "psmux attach -t $name || psmux new-session -s $name"
         }
     }
 

@@ -46,6 +46,14 @@ enum class SessionManager(
         { name -> "exec sh -c 'if ! command -v herdr >/dev/null 2>&1; then echo \"Haven: Herdr not found. See https://herdr.dev or change session manager in connection settings.\"; else exec herdr --session $name; fi'" },
         "sh -c 'herdr session list --json 2>/dev/null'",
         { name -> "sh -c 'herdr session stop $name --json >/dev/null 2>&1 || true; herdr session delete $name --json >/dev/null 2>&1'" },
+    ),
+    // psmux's CLI differs from tmux twice: `ls` prints "NAME: N windows
+    // (created ...)" unless asked for -F, and `rename-session` takes only the
+    // new name and acts on the current session, so no target-based rename.
+    PSMUX("psmux",
+        { name -> "exec sh -c 'if ! command -v psmux >/dev/null 2>&1; then echo \"Haven: psmux not found. See https://github.com/psmux/psmux or change session manager in connection settings.\"; else exec psmux attach -t $name || exec psmux new-session -s $name; fi'" },
+        "sh -c 'psmux ls -F \"#{session_name}\" 2>/dev/null'",
+        { name -> "sh -c 'psmux kill-session -t $name'" },
     );
 
     companion object {
@@ -71,7 +79,7 @@ enum class SessionManager(
             if (clean.isBlank()) return emptyList()
             return when (manager) {
                 NONE -> emptyList()
-                TMUX, BYOBU -> clean.lines().filter { it.isNotBlank() }
+                TMUX, BYOBU, PSMUX -> clean.lines().filter { it.isNotBlank() }
                 ZELLIJ -> clean.lines()
                     .filter { it.isNotBlank() && !it.contains("EXITED") }
                     .map { it.trim().split(Regex("\\s+")).first() }

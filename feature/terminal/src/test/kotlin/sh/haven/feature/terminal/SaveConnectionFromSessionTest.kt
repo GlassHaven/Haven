@@ -36,6 +36,14 @@ class SaveConnectionFromSessionTest {
     }
 
     @Test
+    fun pinRemoteCommand_psmux() {
+        assertEquals(
+            "psmux attach -t work || psmux new-session -s work",
+            SaveConnectionFromSession.pinRemoteCommand(SessionManager.PSMUX, "work"),
+        )
+    }
+
+    @Test
     fun pinRemoteCommand_sanitizesDots() {
         assertEquals("tmux new -A -s user-10-0-0-5", SaveConnectionFromSession.pinRemoteCommand(SessionManager.TMUX, "user@10.0.0.5"))
     }

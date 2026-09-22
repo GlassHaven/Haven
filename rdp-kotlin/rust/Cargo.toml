@@ -91,9 +91,11 @@ uniffi = { version = "0.32", features = ["build"] }
 # 2026-08-02) and there is no release carrying it. Waiting for one means
 # shipping a known app-killing crash.
 #
-# Pinned to an immutable tag, not a branch: `haven-pin-20260805c` marks
-# 59f1b354 = upstream e9e0bb49 + the #1237 patch + tolerating the under-declared
-# Share Data totalLength that VirtualBox's VRDP sends (#422, upstream PR #1541).
+# Pinned to an immutable tag, not a branch: `haven-pin-20260805d` marks
+# 6261ef91 = upstream e9e0bb49 + the #1237 patch + tolerating the under-declared
+# Share Data totalLength that VirtualBox's VRDP sends (#422, upstream PR #1541)
+# + sspi 0.22 (upstream sspi-rs#719: accept '@' in down-level account names,
+# the #461 MSA+NLA fix; picky pin moved to =7.0.0-rc.26 with it).
 # The `b` revision narrows that relaxation: upstream review caught that the
 # first cut also accepted a *zero* totalLength on a non-output Data PDU, which
 # an existing regression test forbids. The tag exists precisely so
@@ -108,19 +110,19 @@ uniffi = { version = "0.32", features = ["build"] }
 # To drop it entirely: once #1237 merges and a connector release carries it,
 # delete this block and set support_dyn_vc_gfx_protocol on ConnectorConfig.
 [patch.crates-io]
-ironrdp-blocking = { git = "https://github.com/GlassOnTin/IronRDP", tag = "haven-pin-20260805c" }
-ironrdp-cliprdr = { git = "https://github.com/GlassOnTin/IronRDP", tag = "haven-pin-20260805c" }
-ironrdp-connector = { git = "https://github.com/GlassOnTin/IronRDP", tag = "haven-pin-20260805c" }
-ironrdp-core = { git = "https://github.com/GlassOnTin/IronRDP", tag = "haven-pin-20260805c" }
-ironrdp-displaycontrol = { git = "https://github.com/GlassOnTin/IronRDP", tag = "haven-pin-20260805c" }
-ironrdp-dvc = { git = "https://github.com/GlassOnTin/IronRDP", tag = "haven-pin-20260805c" }
-ironrdp-egfx = { git = "https://github.com/GlassOnTin/IronRDP", tag = "haven-pin-20260805c" }
-ironrdp-graphics = { git = "https://github.com/GlassOnTin/IronRDP", tag = "haven-pin-20260805c" }
-ironrdp-input = { git = "https://github.com/GlassOnTin/IronRDP", tag = "haven-pin-20260805c" }
-ironrdp-pdu = { git = "https://github.com/GlassOnTin/IronRDP", tag = "haven-pin-20260805c" }
-ironrdp-session = { git = "https://github.com/GlassOnTin/IronRDP", tag = "haven-pin-20260805c" }
-ironrdp-svc = { git = "https://github.com/GlassOnTin/IronRDP", tag = "haven-pin-20260805c" }
-ironrdp-tls = { git = "https://github.com/GlassOnTin/IronRDP", tag = "haven-pin-20260805c" }
+ironrdp-blocking = { git = "https://github.com/GlassOnTin/IronRDP", tag = "haven-pin-20260805d" }
+ironrdp-cliprdr = { git = "https://github.com/GlassOnTin/IronRDP", tag = "haven-pin-20260805d" }
+ironrdp-connector = { git = "https://github.com/GlassOnTin/IronRDP", tag = "haven-pin-20260805d" }
+ironrdp-core = { git = "https://github.com/GlassOnTin/IronRDP", tag = "haven-pin-20260805d" }
+ironrdp-displaycontrol = { git = "https://github.com/GlassOnTin/IronRDP", tag = "haven-pin-20260805d" }
+ironrdp-dvc = { git = "https://github.com/GlassOnTin/IronRDP", tag = "haven-pin-20260805d" }
+ironrdp-egfx = { git = "https://github.com/GlassOnTin/IronRDP", tag = "haven-pin-20260805d" }
+ironrdp-graphics = { git = "https://github.com/GlassOnTin/IronRDP", tag = "haven-pin-20260805d" }
+ironrdp-input = { git = "https://github.com/GlassOnTin/IronRDP", tag = "haven-pin-20260805d" }
+ironrdp-pdu = { git = "https://github.com/GlassOnTin/IronRDP", tag = "haven-pin-20260805d" }
+ironrdp-session = { git = "https://github.com/GlassOnTin/IronRDP", tag = "haven-pin-20260805d" }
+ironrdp-svc = { git = "https://github.com/GlassOnTin/IronRDP", tag = "haven-pin-20260805d" }
+ironrdp-tls = { git = "https://github.com/GlassOnTin/IronRDP", tag = "haven-pin-20260805d" }
 
 [profile.release]
 opt-level = "z"

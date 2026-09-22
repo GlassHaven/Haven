@@ -5,6 +5,10 @@ the corresponding GitHub Release; a release can't ship without its section
 (enforced by `scripts/check-changelog.sh` in CI). The GitHub "Full Changelog"
 compare link is appended automatically — don't add it here.
 
+## v5.90.0
+
+- **OpenVPN joins WireGuard, Tailscale, and NetBird as a per-app tunnel.** Paste or load an `.ovpn` profile (optionally with `auth-user-pass` credentials) and Haven brings up a real OpenVPN3 Core session — TLS handshake, NCP cipher negotiation, tls-auth/tls-crypt — bridged into the same userspace gVisor netstack the other tunnel types use. No Android VpnService, no system-wide routes, no second app: OpenVPN3 Core's tun-device callback hands back one end of a socketpair instead of a kernel tun fd, and the other end is pumped straight into the netstack. Available from the Tunnels screen and the `create_tunnel` MCP tool.
+
 ## v5.89.29
 
 - **Tunnels to hosts on a Tailscale console nameserver connect.** A Tailscale connection to a hostname served by a global or split nameserver configured in the Tailscale admin console failed with "no such host" before dialling — the console's nameserver is only reachable through the tailnet, but the dial path looked the name up with the phone's own DNS. Hostnames are now resolved through the tailnet's resolver first, falling back to the previous lookup for anything it doesn't serve, so MagicDNS names, IP addresses and public hosts are unchanged (#691).

@@ -5,6 +5,11 @@ the corresponding GitHub Release; a release can't ship without its section
 (enforced by `scripts/check-changelog.sh` in CI). The GitHub "Full Changelog"
 compare link is appended automatically — don't add it here.
 
+## v5.89.12
+
+- **Paste suggestions in the keyboard reach the terminal.** IMEs that offer paste through the input connection's context-menu actions (GBoard's paste suggestion strip) had those actions silently dropped. Paste and paste-as-plain-text now run the same paste handler the terminal's context menu uses.
+- **psmux joins the session managers.** Saved psmux connections get the same auto-attach, session list, kill and rename handling as tmux/screen/Herdr (#658, thanks @Bearmancer). The feature docs list which session managers are covered and note that on a stock Windows OpenSSH host the default shell is cmd or PowerShell, so POSIX-shell session managers only apply where a POSIX sh is the configured login shell.
+
 ## v5.89.11
 
 - **The cursor stays where the program put it when the terminal grows.** A rows-only resize that popped scrollback lines back onto the screen walked the cursor down with the restored history, so a cursor-tracking TUI (opencode) repainted rows away from where its model held the cursor and stranded a stale frame block mid-screen. The cursor now ends on the cell the program believes it is on, with or without scrollback.

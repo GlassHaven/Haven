@@ -1,0 +1,2 @@
+- Paste suggestions in the keyboard reach the terminal: IMEs offering paste through context-menu actions (GBoard's paste suggestion) were silently dropped; they now run the same paste handler as the terminal's context menu.
+- psmux joins the session managers (#658): auto-attach, session list, kill and rename, like tmux/screen/Herdr. For hosts where a POSIX sh is the login shell.

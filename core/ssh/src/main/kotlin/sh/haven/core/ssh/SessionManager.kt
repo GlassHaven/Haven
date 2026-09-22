@@ -47,11 +47,13 @@ enum class SessionManager(
         "sh -c 'herdr session list --json 2>/dev/null'",
         { name -> "sh -c 'herdr session stop $name --json >/dev/null 2>&1 || true; herdr session delete $name --json >/dev/null 2>&1'" },
     ),
+    // psmux's CLI differs from tmux twice: `ls` prints "NAME: N windows
+    // (created ...)" unless asked for -F, and `rename-session` takes only the
+    // new name and acts on the current session, so no target-based rename.
     PSMUX("psmux",
         { name -> "exec sh -c 'if ! command -v psmux >/dev/null 2>&1; then echo \"Haven: psmux not found. See https://github.com/psmux/psmux or change session manager in connection settings.\"; else exec psmux attach -t $name || exec psmux new-session -s $name; fi'" },
-        "sh -c 'psmux ls 2>/dev/null'",
+        "sh -c 'psmux ls -F \"#{session_name}\" 2>/dev/null'",
         { name -> "sh -c 'psmux kill-session -t $name'" },
-        { old, new -> "sh -c 'psmux rename-session -t $old $new'" },
     );
 
     companion object {

@@ -1,6 +1,7 @@
 package sh.haven.core.ssh
 
 import org.junit.Assert.assertEquals
+import org.junit.Assert.assertNull
 import org.junit.Assert.assertTrue
 import org.junit.Test
 
@@ -16,8 +17,11 @@ class SessionManagerPsmuxTest {
     }
 
     @Test
-    fun `session list uses psmux ls`() {
-        assertTrue(SessionManager.PSMUX.listCommand!!.contains("psmux ls"))
+    fun `session list asks for bare names so the tmux-style default never reaches the parser`() {
+        val listCommand = SessionManager.PSMUX.listCommand!!
+
+        assertTrue(listCommand.contains("psmux ls -F"))
+        assertTrue(listCommand.contains("#{session_name}"))
     }
 
     @Test
@@ -28,10 +32,8 @@ class SessionManagerPsmuxTest {
     }
 
     @Test
-    fun `rename moves the psmux session to the new name`() {
-        val command = SessionManager.PSMUX.renameCommand!!("old", "new")
-
-        assertTrue(command.contains("psmux rename-session -t old new"))
+    fun `rename is not advertised because psmux has no target-based rename`() {
+        assertNull(SessionManager.PSMUX.renameCommand)
     }
 
     @Test

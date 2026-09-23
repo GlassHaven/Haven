@@ -74,12 +74,22 @@ type ovpnEvents struct {
 }
 
 func (e *ovpnEvents) OnEvent(ev openvpn3.Event) {
+	// Logged unconditionally, not just fatal/error ones -- the normal
+	// progression (RESOLVE, WAIT, CONNECTING, GET_CONFIG, ASSIGN_IP,
+	// ADD_ROUTES, CONNECTED) is exactly what you need on-device to tell
+	// "handshake never started", "TLS failed", and "handshake succeeded
+	// but the data channel isn't passing traffic" apart -- symptoms that
+	// otherwise all look identical from the Kotlin side (StartTunnel
+	// either returns a handle or it doesn't).
+	androidLog("ovpn3-event", fmt.Sprintf("%s (error=%v fatal=%v): %s", ev.Name, ev.Error, ev.Fatal, ev.Info))
 	if ev.Fatal || ev.Error {
 		e.setup.notifyReady(nil, netip.Addr{}, fmt.Errorf("openvpn event %s: %s", ev.Name, ev.Info))
 	}
 }
 
-func (e *ovpnEvents) Log(string) {}
+func (e *ovpnEvents) Log(text string) {
+	androidLog("ovpn3", text)
+}
 
 func (e *ovpnEvents) OnStats(openvpn3.Statistics) {}
 

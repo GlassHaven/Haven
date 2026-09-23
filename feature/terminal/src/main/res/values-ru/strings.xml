@@ -34,6 +34,7 @@
     <string name="terminal_move_left">Переместить влево</string>
     <string name="terminal_move_right">Переместить вправо</string>
     <string name="terminal_close">Закрыть</string>
+    <string name="terminal_switch_tab">Переключить вкладку</string>
     <string name="terminal_copy_last_output">Копировать последний вывод</string>
     <string name="terminal_copied_output">Вывод скопирован (%d символов)</string>
     <string name="terminal_no_command_output">Вывод команды не найден (нужна интеграция с оболочкой)</string>

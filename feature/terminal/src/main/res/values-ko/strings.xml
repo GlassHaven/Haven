@@ -35,6 +35,7 @@
     <string name="terminal_move_left">왼쪽으로 이동</string>
     <string name="terminal_move_right">오른쪽으로 이동</string>
     <string name="terminal_close">닫기</string>
+    <string name="terminal_switch_tab">탭 전환</string>
     <string name="terminal_copy_last_output">마지막 출력 복사</string>
     <string name="terminal_copied_output">출력 복사됨(%d자)</string>
     <string name="terminal_no_command_output">명령 출력이 없습니다(셸 통합 필요)</string>

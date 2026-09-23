@@ -34,6 +34,7 @@
     <string name="terminal_move_left">Mover a la izquierda</string>
     <string name="terminal_move_right">Mover a la derecha</string>
     <string name="terminal_close">Cerrar</string>
+    <string name="terminal_switch_tab">Cambiar de pestaña</string>
     <string name="terminal_copy_last_output">Copiar última salida</string>
     <string name="terminal_copied_output">Salida copiada (%d caracteres)</string>
     <string name="terminal_no_command_output">No se encontró salida del comando (requiere integración del shell)</string>

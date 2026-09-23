@@ -35,6 +35,7 @@ import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.ArrowBack
 import androidx.compose.material.icons.automirrored.filled.ArrowForward
 import androidx.compose.material.icons.filled.Add
+import androidx.compose.material.icons.filled.ArrowDropDown
 import androidx.compose.material.icons.filled.Cable
 import androidx.compose.material.icons.filled.Autorenew
 import androidx.compose.material.icons.filled.Close
@@ -65,7 +66,6 @@ import androidx.compose.material3.ListItem
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.ui.graphics.toArgb
 import androidx.compose.material3.OutlinedTextField
-import androidx.compose.foundation.horizontalScroll
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.ui.graphics.luminance
 import androidx.compose.material3.ButtonDefaults
@@ -107,6 +107,7 @@ import androidx.compose.ui.platform.LocalClipboardManager
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.platform.LocalView
 import androidx.compose.ui.text.font.FontFamily
+import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
@@ -126,15 +127,16 @@ import sh.haven.core.data.preferences.ToolbarItem
 import sh.haven.core.data.preferences.ToolbarLayout
 import sh.haven.core.data.preferences.UserPreferencesRepository
 
-/** Horizontal padding on the tab strip, subtracted when deciding if tabs can be justified. */
+/** Horizontal padding on the tab strip. */
 private val TAB_STRIP_PADDING = 4.dp
 
 /**
- * Below this a stretched tab is no wider than a content-hugging one, so there is
- * nothing to gain — past that many tabs the strip goes back to scrolling instead
- * of shaving every tab down to a sliver.
+ * Tabs shown in the justified strip. Past this, evenly stretched tabs shrink to
+ * slivers — and a scrolling strip hides tabs behind a swipe with no affordance
+ * showing they exist — so the strip becomes a switcher: one chip for the active
+ * tab, a dropdown listing them all.
  */
-private val MIN_JUSTIFIED_TAB_WIDTH = 96.dp
+private const val MAX_JUSTIFIED_TABS = 3
 
 /** Distinct colors for grouping tabs by connection profile. */
 /**
@@ -201,6 +203,211 @@ internal fun shouldShowMouseHint(
     preferenceEnabled: Boolean,
     alreadyShown: Boolean,
 ): Boolean = appRequestedMouse && !preferenceEnabled && !alreadyShown
+
+/** Content color for a tab chip: black or white by the chip color's effective luminance. */
+@Composable
+private fun tabContentColor(tabColor: Color?, selected: Boolean): Color {
+    val bg = tabColor ?: return if (selected) {
+        MaterialTheme.colorScheme.onSecondaryContainer
+    } else {
+        MaterialTheme.colorScheme.onSurfaceVariant
+    }
+    val alpha = if (selected) 0.55f else 0.25f
+    // Blend tab color over surface to get effective luminance
+    val surfaceLum = MaterialTheme.colorScheme.surface.luminance()
+    val effectiveLum = surfaceLum * (1 - alpha) + bg.luminance() * alpha
+    return if (effectiveLum > 0.5f) Color.Black else Color.White
+}
+
+/**
+ * The long-press tab menu: new tab, move, close, details/rename/save-connection,
+ * plus connected-without-tab and remote (tmux/zellij) sessions. Shared by the
+ * justified strip (anchored to the long-pressed tab) and the switcher chip
+ * (anchored to it for the active tab), so both modes expose the same actions.
+ */
+@Composable
+private fun TabActionsMenu(
+    viewModel: TerminalViewModel,
+    tab: TerminalTab,
+    index: Int,
+    tabs: List<TerminalTab>,
+    expanded: Boolean,
+    onDismiss: () -> Unit,
+    requestRename: (sessionId: String, currentLabel: String) -> Unit,
+    newTabLoading: Boolean,
+) {
+    // Refresh remote sessions when popup opens
+    LaunchedEffect(expanded) {
+        if (expanded) viewModel.refreshRemoteSessions()
+    }
+    DropdownMenu(
+        expanded = expanded,
+        onDismissRequest = onDismiss,
+        modifier = Modifier.fillMaxWidth(),
+    ) {
+        Row(
+            modifier = Modifier
+                .fillMaxWidth()
+                .padding(horizontal = 4.dp),
+            horizontalArrangement = Arrangement.SpaceBetween,
+            verticalAlignment = Alignment.CenterVertically,
+        ) {
+            TextButton(
+                onClick = {
+                    onDismiss()
+                    viewModel.addTab()
+                },
+                enabled = !newTabLoading,
+            ) {
+                if (newTabLoading) {
+                    CircularProgressIndicator(
+                        modifier = Modifier.size(18.dp),
+                        strokeWidth = 2.dp,
+                    )
+                } else {
+                    Icon(Icons.Filled.Add, null, modifier = Modifier.size(18.dp))
+                }
+                Spacer(Modifier.width(4.dp))
+                Text(
+                    if (newTabLoading) stringResource(R.string.terminal_new_tab_connecting)
+                    else stringResource(R.string.terminal_sessions),
+                )
+            }
+            Row {
+                IconButton(
+                    onClick = { viewModel.moveTab(index, -1) },
+                    enabled = index > 0,
+                    modifier = Modifier.size(36.dp),
+                ) {
+                    Icon(Icons.AutoMirrored.Filled.ArrowBack, stringResource(R.string.terminal_move_left), modifier = Modifier.size(18.dp))
+                }
+                IconButton(
+                    onClick = { viewModel.moveTab(index, 1) },
+                    enabled = index < tabs.size - 1,
+                    modifier = Modifier.size(36.dp),
+                ) {
+                    Icon(Icons.AutoMirrored.Filled.ArrowForward, stringResource(R.string.terminal_move_right), modifier = Modifier.size(18.dp))
+                }
+            }
+            TextButton(
+                onClick = {
+                    onDismiss()
+                    viewModel.closeTab(tab.sessionId)
+                },
+                colors = ButtonDefaults.textButtonColors(
+                    contentColor = MaterialTheme.colorScheme.error,
+                ),
+            ) {
+                Text(stringResource(R.string.terminal_close))
+                Spacer(Modifier.width(4.dp))
+                Icon(Icons.Filled.Close, null, modifier = Modifier.size(18.dp))
+            }
+        }
+        // Details (door/path/room) + Rename + Save connection
+        val renameableName = viewModel.renameableSessionName(tab.sessionId)
+        val canSaveConnection = viewModel.canSaveConnection(tab.sessionId)
+        val canShowDetails = viewModel.canShowDetails(tab.sessionId)
+        if (renameableName != null || canSaveConnection || canShowDetails ||
+            viewModel.canOpenPlainShell(tab.sessionId)
+        ) {
+            HorizontalDivider(modifier = Modifier.padding(vertical = 4.dp))
+        }
+        if (canShowDetails) {
+            DropdownMenuItem(
+                text = { Text(stringResource(R.string.terminal_details)) },
+                leadingIcon = {
+                    Icon(
+                        Icons.Filled.Info,
+                        null,
+                        modifier = Modifier.size(16.dp),
+                    )
+                },
+                onClick = {
+                    onDismiss()
+                    viewModel.beginShowDetails(tab.sessionId)
+                },
+            )
+        }
+        if (renameableName != null) {
+            DropdownMenuItem(
+                text = { Text(stringResource(R.string.common_rename)) },
+                leadingIcon = {
+                    Icon(
+                        Icons.Filled.DriveFileRenameOutline,
+                        null,
+                        modifier = Modifier.size(16.dp),
+                    )
+                },
+                onClick = {
+                    onDismiss()
+                    requestRename(tab.sessionId, renameableName)
+                },
+            )
+        }
+        if (viewModel.canOpenPlainShell(tab.sessionId)) {
+            DropdownMenuItem(
+                text = { Text(stringResource(R.string.terminal_open_plain_shell)) },
+                leadingIcon = {
+                    Icon(
+                        Icons.Filled.Terminal,
+                        null,
+                        modifier = Modifier.size(16.dp),
+                    )
+                },
+                onClick = {
+                    onDismiss()
+                    viewModel.addPlainShellTab(tab.sessionId)
+                },
+            )
+        }
+        if (canSaveConnection) {
+            DropdownMenuItem(
+                text = { Text(stringResource(R.string.terminal_save_connection)) },
+                leadingIcon = {
+                    Icon(
+                        Icons.Filled.Save,
+                        null,
+                        modifier = Modifier.size(16.dp),
+                    )
+                },
+                onClick = {
+                    onDismiss()
+                    viewModel.beginSaveConnection(tab.sessionId)
+                },
+            )
+        }
+        // Show connected sessions without tabs + remote sessions (tmux/zellij)
+        val untabbed by viewModel.untabbedSessions.collectAsState()
+        val remoteSessions by viewModel.remoteSessionNames.collectAsState()
+        val tabbedRemoteSessions = tabs.map { it.label }.toSet()
+        val untabbedRemote = remoteSessions.filter { it !in tabbedRemoteSessions }
+        if (untabbed.isNotEmpty() || untabbedRemote.isNotEmpty()) {
+            HorizontalDivider(modifier = Modifier.padding(vertical = 4.dp))
+            // Remote sessions (tmux/zellij/screen) on current connection
+            untabbedRemote.forEach { name ->
+                DropdownMenuItem(
+                    text = { Text(name, style = MaterialTheme.typography.bodySmall) },
+                    leadingIcon = { Icon(Icons.Filled.Add, null, modifier = Modifier.size(16.dp)) },
+                    onClick = {
+                        onDismiss()
+                        viewModel.openRemoteSession(tab.profileId, name)
+                    },
+                )
+            }
+            // Other SSH connections without tabs
+            untabbed.forEach { session ->
+                DropdownMenuItem(
+                    text = { Text(session.label, style = MaterialTheme.typography.bodySmall) },
+                    leadingIcon = { Icon(Icons.Filled.Cable, null, modifier = Modifier.size(16.dp)) },
+                    onClick = {
+                        onDismiss()
+                        viewModel.selectTabByProfileId(session.profileId)
+                    },
+                )
+            }
+        }
+    }
+}
 
 @OptIn(androidx.compose.foundation.layout.ExperimentalLayoutApi::class, ExperimentalFoundationApi::class)
 @Composable
@@ -982,89 +1189,60 @@ fun TerminalScreen(
             val indicatorColor = profileColors[tabs.getOrNull(clampedIndex)?.profileId]
 
             if (showTabBar && !fullscreen) {
-                // Tabs used to hug their label, so a short name like "cctv" gave a
-                // tap target barely wider than the four characters — easy to miss
-                // on a phone. Share the strip out evenly instead, while the tabs
-                // still get a comfortable width; past that many tabs, fall back to
-                // the scrolling strip rather than shaving them down to slivers.
-                val stripWidth = LocalConfiguration.current.screenWidthDp.dp - TAB_STRIP_PADDING * 2
-                val justified = tabs.isNotEmpty() &&
-                    stripWidth / tabs.size >= MIN_JUSTIFIED_TAB_WIDTH
+                // Up to MAX_JUSTIFIED_TABS the strip shares the width out evenly, so
+                // a short name like "cctv" still gives a tap target wider than the
+                // four characters. Past that the tabs would shrink to slivers — and
+                // the scrolling strip they used to fall back to was worse: a tab
+                // with a long title filled the whole row and the rest vanished with
+                // no affordance showing they existed. So the strip becomes a
+                // switcher: one chip for the active tab, a dropdown listing all.
+                val comboMode = tabs.size > MAX_JUSTIFIED_TABS
                 // A menu bound to the loop position would follow the SLOT, not the
                 // tab: reordering slides a different tab underneath it and the next
                 // press moves the wrong one. Keyed by session id so it tracks the
                 // tab across moves, which is what lets it stay open for several.
                 var tabMenuFor by remember { mutableStateOf<String?>(null) }
+                // One rename dialog for both strip modes, carrying the session id
+                // with the label: it is modal, and the tab that asked for it can
+                // drop out of composition (mode flip) while it is open.
+                var renameTarget by remember { mutableStateOf<Pair<String, String>?>(null) }
+                renameTarget?.let { (sessionId, label) ->
+                    RenameSessionDialog(
+                        currentLabel = label,
+                        onDismiss = { renameTarget = null },
+                        onRename = { newName ->
+                            viewModel.renameAttachedSession(sessionId, newName)
+                            renameTarget = null
+                        },
+                    )
+                }
                 Surface(tonalElevation = 2.dp) {
                     Row(
                         modifier = Modifier
                             .fillMaxWidth()
-                            .then(
-                                if (justified) Modifier
-                                else Modifier.horizontalScroll(rememberScrollState()),
-                            )
                             .padding(horizontal = TAB_STRIP_PADDING, vertical = 2.dp),
                         verticalAlignment = Alignment.CenterVertically,
                     ) {
-                        tabs.forEachIndexed { index, tab ->
-                            val reconnecting by tab.isReconnecting.collectAsState()
-                            // OSC 0/2 title from the running program (#625). Falls
-                            // back to the session label when the program has not
-                            // set one; a user rename is overridden while a title
-                            // is live, matching Termux's session-drawer behaviour.
-                            // With "prefer session names" on, tabs attached to a
-                            // session manager keep their session name instead
-                            // (resolveTabTitle). Collection continues while the
-                            // preference is on so a flipped pref repaints instantly.
-                            val tabTitle by remember(tab.sessionId) {
-                                tab.emulator.terminalTitle.map { it.ifBlank { null } }
+                        if (comboMode) {
+                            val comboTab = tabs[clampedIndex]
+                            val comboTitle by remember(comboTab.sessionId) {
+                                comboTab.emulator.terminalTitle.map { it.ifBlank { null } }
                             }.collectAsState(initial = null)
-                            val selected = activeTabIndex == index
-                            val showTabMenu = tabMenuFor == tab.sessionId
-                            var renameDialogFor by remember { mutableStateOf<String?>(null) }
-                            val tabColor = profileColors[tab.profileId]
-
-                            renameDialogFor?.let { name ->
-                                RenameSessionDialog(
-                                    currentLabel = name,
-                                    onDismiss = { renameDialogFor = null },
-                                    onRename = { newName ->
-                                        viewModel.renameAttachedSession(tab.sessionId, newName)
-                                        renameDialogFor = null
-                                    },
-                                )
-                            }
-
-                            Box(modifier = if (justified) Modifier.weight(1f) else Modifier) {
+                            var comboOpen by remember { mutableStateOf(false) }
+                            val comboColor = profileColors[comboTab.profileId]
+                            Box(modifier = Modifier.weight(1f)) {
                                 Surface(
                                     modifier = Modifier
-                                        .then(if (justified) Modifier.fillMaxWidth() else Modifier)
-                                        .padding(horizontal = 2.dp)
+                                        .fillMaxWidth()
                                         .combinedClickable(
-                                            onClick = { viewModel.selectTab(index) },
-                                            onLongClick = { tabMenuFor = tab.sessionId },
+                                            onClick = { comboOpen = true },
+                                            onLongClick = { tabMenuFor = comboTab.sessionId },
                                         ),
                                     shape = MaterialTheme.shapes.small,
-                                    color = if (selected) {
-                                        tabColor?.copy(alpha = 0.55f)
-                                            ?: MaterialTheme.colorScheme.secondaryContainer
-                                    } else {
-                                        tabColor?.copy(alpha = 0.25f)
-                                            ?: MaterialTheme.colorScheme.surface
-                                    },
-                                    contentColor = run {
-                                        val bg = tabColor ?: return@run if (selected) {
-                                            MaterialTheme.colorScheme.onSecondaryContainer
-                                        } else {
-                                            MaterialTheme.colorScheme.onSurfaceVariant
-                                        }
-                                        val alpha = if (selected) 0.55f else 0.25f
-                                        // Blend tab color over surface to get effective luminance
-                                        val surfaceLum = MaterialTheme.colorScheme.surface.luminance()
-                                        val effectiveLum = surfaceLum * (1 - alpha) + bg.luminance() * alpha
-                                        if (effectiveLum > 0.5f) Color.Black else Color.White
-                                    },
-                                    tonalElevation = if (selected) 4.dp else 0.dp,
+                                    color = comboColor?.copy(alpha = 0.55f)
+                                        ?: MaterialTheme.colorScheme.secondaryContainer,
+                                    contentColor = tabContentColor(comboColor, selected = true),
+                                    tonalElevation = 4.dp,
                                 ) {
                                     Row(
                                         modifier = Modifier.padding(
@@ -1072,241 +1250,227 @@ fun TerminalScreen(
                                             vertical = 8.dp,
                                         ),
                                         verticalAlignment = Alignment.CenterVertically,
-                                        // Left-aligned text in a tab that now spans a
-                                        // third of the screen reads as misplaced; centre
-                                        // it only when the tab is actually stretched.
-                                        horizontalArrangement =
-                                            if (justified) Arrangement.Center else Arrangement.Start,
                                     ) {
-                                        if (reconnecting) {
-                                            Icon(
-                                                Icons.Filled.Autorenew,
-                                                contentDescription = stringResource(R.string.terminal_reconnecting),
-                                                modifier = Modifier.size(14.dp),
-                                                tint = MaterialTheme.colorScheme.error,
-                                            )
-                                        }
                                         Text(
                                             resolveTabTitle(
-                                                programTitle = tabTitle,
-                                                label = tab.label,
-                                                multiplexerName = tab.multiplexerName,
+                                                programTitle = comboTitle,
+                                                label = comboTab.label,
+                                                multiplexerName = comboTab.multiplexerName,
                                                 followSession = tabTitlesFollowSession,
                                             ),
                                             maxLines = 1,
-                                            // A stretched tab has a fixed width, so a long
-                                            // label must give way to the close button
-                                            // rather than push it off the edge.
                                             overflow = TextOverflow.Ellipsis,
-                                            // weight ONLY when justified. In the scrolling
-                                            // fallback this Row sits inside horizontalScroll,
-                                            // where the width constraint is infinite — and a
-                                            // weighted child of an unbounded Row measures to
-                                            // ZERO. That blanked the label entirely and
-                                            // collapsed the tab onto its close button, which
-                                            // is what enough tabs to disable justification
-                                            // looked like in practice.
-                                            modifier = if (justified) {
-                                                Modifier.weight(1f, fill = false)
-                                            } else {
-                                                Modifier
-                                            },
+                                            modifier = Modifier.weight(1f, fill = false),
                                             style = MaterialTheme.typography.labelLarge,
                                         )
-                                        // #306: a one-tap close on the active tab so
-                                        // ending a session no longer needs the
-                                        // long-press menu. Only on the selected tab to
-                                        // keep the strip compact in portrait.
-                                        if (selected) {
-                                            Spacer(Modifier.width(4.dp))
-                                            Box(
-                                                modifier = Modifier
-                                                    .size(24.dp)
-                                                    .clickable { viewModel.closeTab(tab.sessionId) },
-                                                contentAlignment = Alignment.Center,
-                                            ) {
-                                                Icon(
-                                                    Icons.Filled.Close,
-                                                    contentDescription = stringResource(R.string.terminal_close),
-                                                    modifier = Modifier.size(16.dp),
-                                                )
-                                            }
-                                        }
+                                        Icon(
+                                            Icons.Filled.ArrowDropDown,
+                                            contentDescription =
+                                                stringResource(R.string.terminal_switch_tab),
+                                        )
                                     }
                                 }
-                                // Refresh remote sessions when popup opens
-                                LaunchedEffect(showTabMenu) {
-                                    if (showTabMenu) viewModel.refreshRemoteSessions()
-                                }
-                                // Long-press action bar
+                                // Every tab, active one marked and closable; tap a row
+                                // to switch to it.
                                 DropdownMenu(
-                                    expanded = showTabMenu,
-                                    onDismissRequest = { tabMenuFor = null },
+                                    expanded = comboOpen,
+                                    onDismissRequest = { comboOpen = false },
                                     modifier = Modifier.fillMaxWidth(),
                                 ) {
-                                    Row(
-                                        modifier = Modifier
-                                            .fillMaxWidth()
-                                            .padding(horizontal = 4.dp),
-                                        horizontalArrangement = Arrangement.SpaceBetween,
-                                        verticalAlignment = Alignment.CenterVertically,
-                                    ) {
-                                        TextButton(
-                                            onClick = {
-                                                tabMenuFor = null
-                                                viewModel.addTab()
-                                            },
-                                            enabled = !newTabLoading,
-                                        ) {
-                                            if (newTabLoading) {
-                                                CircularProgressIndicator(
-                                                    modifier = Modifier.size(18.dp),
-                                                    strokeWidth = 2.dp,
-                                                )
-                                            } else {
-                                                Icon(Icons.Filled.Add, null, modifier = Modifier.size(18.dp))
-                                            }
-                                            Spacer(Modifier.width(4.dp))
-                                            Text(
-                                                if (newTabLoading) stringResource(R.string.terminal_new_tab_connecting)
-                                                else stringResource(R.string.terminal_sessions),
-                                            )
-                                        }
-                                        Row {
-                                            IconButton(
-                                                onClick = { viewModel.moveTab(index, -1) },
-                                                enabled = index > 0,
-                                                modifier = Modifier.size(36.dp),
-                                            ) {
-                                                Icon(Icons.AutoMirrored.Filled.ArrowBack, stringResource(R.string.terminal_move_left), modifier = Modifier.size(18.dp))
-                                            }
-                                            IconButton(
-                                                onClick = { viewModel.moveTab(index, 1) },
-                                                enabled = index < tabs.size - 1,
-                                                modifier = Modifier.size(36.dp),
-                                            ) {
-                                                Icon(Icons.AutoMirrored.Filled.ArrowForward, stringResource(R.string.terminal_move_right), modifier = Modifier.size(18.dp))
-                                            }
-                                        }
-                                        TextButton(
-                                            onClick = {
-                                                tabMenuFor = null
-                                                viewModel.closeTab(tab.sessionId)
-                                            },
-                                            colors = ButtonDefaults.textButtonColors(
-                                                contentColor = MaterialTheme.colorScheme.error,
-                                            ),
-                                        ) {
-                                            Text(stringResource(R.string.terminal_close))
-                                            Spacer(Modifier.width(4.dp))
-                                            Icon(Icons.Filled.Close, null, modifier = Modifier.size(18.dp))
-                                        }
-                                    }
-                                    // Details (door/path/room) + Rename + Save connection
-                                    val renameableName = viewModel.renameableSessionName(tab.sessionId)
-                                    val canSaveConnection = viewModel.canSaveConnection(tab.sessionId)
-                                    val canShowDetails = viewModel.canShowDetails(tab.sessionId)
-                                    if (renameableName != null || canSaveConnection || canShowDetails ||
-                                        viewModel.canOpenPlainShell(tab.sessionId)
-                                    ) {
-                                        HorizontalDivider(modifier = Modifier.padding(vertical = 4.dp))
-                                    }
-                                    if (canShowDetails) {
+                                    tabs.forEachIndexed { listIndex, listTab ->
+                                        val listTitle by remember(listTab.sessionId) {
+                                            listTab.emulator.terminalTitle.map { it.ifBlank { null } }
+                                        }.collectAsState(initial = null)
+                                        val listReconnecting by listTab.isReconnecting.collectAsState()
+                                        val listColor = profileColors[listTab.profileId]
                                         DropdownMenuItem(
-                                            text = { Text(stringResource(R.string.terminal_details)) },
-                                            leadingIcon = {
-                                                Icon(
-                                                    Icons.Filled.Info,
-                                                    null,
-                                                    modifier = Modifier.size(16.dp),
-                                                )
+                                            text = {
+                                                Row(verticalAlignment = Alignment.CenterVertically) {
+                                                    listColor?.let { color ->
+                                                        Box(
+                                                            modifier = Modifier
+                                                                .padding(end = 8.dp)
+                                                                .size(8.dp)
+                                                                .background(color, CircleShape),
+                                                        )
+                                                    }
+                                                    Text(
+                                                        resolveTabTitle(
+                                                            programTitle = listTitle,
+                                                            label = listTab.label,
+                                                            multiplexerName = listTab.multiplexerName,
+                                                            followSession = tabTitlesFollowSession,
+                                                        ),
+                                                        maxLines = 1,
+                                                        overflow = TextOverflow.Ellipsis,
+                                                        // The active row is marked by weight, not a
+                                                        // check glyph — the trailing icons are
+                                                        // actions (close), mixing a state indicator
+                                                        // in with them reads as a second button.
+                                                        fontWeight = if (listIndex == clampedIndex) {
+                                                            FontWeight.Bold
+                                                        } else {
+                                                            null
+                                                        },
+                                                    )
+                                                }
+                                            },
+                                            trailingIcon = {
+                                                if (listIndex == clampedIndex) {
+                                                    Row(verticalAlignment = Alignment.CenterVertically) {
+                                                        if (listReconnecting) {
+                                                            Icon(
+                                                                Icons.Filled.Autorenew,
+                                                                contentDescription = stringResource(R.string.terminal_reconnecting),
+                                                                modifier = Modifier.size(14.dp),
+                                                                tint = MaterialTheme.colorScheme.error,
+                                                            )
+                                                        }
+                                                        Spacer(Modifier.width(4.dp))
+                                                        Box(
+                                                            modifier = Modifier
+                                                                .size(24.dp)
+                                                                .clickable {
+                                                                    viewModel.closeTab(listTab.sessionId)
+                                                                },
+                                                            contentAlignment = Alignment.Center,
+                                                        ) {
+                                                            Icon(
+                                                                Icons.Filled.Close,
+                                                                contentDescription = stringResource(R.string.terminal_close),
+                                                                modifier = Modifier.size(16.dp),
+                                                            )
+                                                        }
+                                                    }
+                                                }
                                             },
                                             onClick = {
-                                                tabMenuFor = null
-                                                viewModel.beginShowDetails(tab.sessionId)
+                                                comboOpen = false
+                                                viewModel.selectTab(listIndex)
                                             },
                                         )
-                                    }
-                                    if (renameableName != null) {
-                                        DropdownMenuItem(
-                                            text = { Text(stringResource(R.string.common_rename)) },
-                                            leadingIcon = {
-                                                Icon(
-                                                    Icons.Filled.DriveFileRenameOutline,
-                                                    null,
-                                                    modifier = Modifier.size(16.dp),
-                                                )
-                                            },
-                                            onClick = {
-                                                tabMenuFor = null
-                                                renameDialogFor = renameableName
-                                            },
-                                        )
-                                    }
-                                    if (viewModel.canOpenPlainShell(tab.sessionId)) {
-                                        DropdownMenuItem(
-                                            text = { Text(stringResource(R.string.terminal_open_plain_shell)) },
-                                            leadingIcon = {
-                                                Icon(
-                                                    Icons.Filled.Terminal,
-                                                    null,
-                                                    modifier = Modifier.size(16.dp),
-                                                )
-                                            },
-                                            onClick = {
-                                                tabMenuFor = null
-                                                viewModel.addPlainShellTab(tab.sessionId)
-                                            },
-                                        )
-                                    }
-                                    if (canSaveConnection) {
-                                        DropdownMenuItem(
-                                            text = { Text(stringResource(R.string.terminal_save_connection)) },
-                                            leadingIcon = {
-                                                Icon(
-                                                    Icons.Filled.Save,
-                                                    null,
-                                                    modifier = Modifier.size(16.dp),
-                                                )
-                                            },
-                                            onClick = {
-                                                tabMenuFor = null
-                                                viewModel.beginSaveConnection(tab.sessionId)
-                                            },
-                                        )
-                                    }
-                                    // Show connected sessions without tabs + remote sessions (tmux/zellij)
-                                    val untabbed by viewModel.untabbedSessions.collectAsState()
-                                    val remoteSessions by viewModel.remoteSessionNames.collectAsState()
-                                    val tabbedRemoteSessions = tabs.map { it.label }.toSet()
-                                    val untabbedRemote = remoteSessions.filter { it !in tabbedRemoteSessions }
-                                    if (untabbed.isNotEmpty() || untabbedRemote.isNotEmpty()) {
-                                        HorizontalDivider(modifier = Modifier.padding(vertical = 4.dp))
-                                        // Remote sessions (tmux/zellij/screen) on current connection
-                                        untabbedRemote.forEach { name ->
-                                            DropdownMenuItem(
-                                                text = { Text(name, style = MaterialTheme.typography.bodySmall) },
-                                                leadingIcon = { Icon(Icons.Filled.Add, null, modifier = Modifier.size(16.dp)) },
-                                                onClick = {
-                                                    tabMenuFor = null
-                                                    viewModel.openRemoteSession(tab.profileId, name)
-                                                },
-                                            )
-                                        }
-                                        // Other SSH connections without tabs
-                                        untabbed.forEach { session ->
-                                            DropdownMenuItem(
-                                                text = { Text(session.label, style = MaterialTheme.typography.bodySmall) },
-                                                leadingIcon = { Icon(Icons.Filled.Cable, null, modifier = Modifier.size(16.dp)) },
-                                                onClick = {
-                                                    tabMenuFor = null
-                                                    viewModel.selectTabByProfileId(session.profileId)
-                                                },
-                                            )
-                                        }
                                     }
                                 }
+                                TabActionsMenu(
+                                    viewModel = viewModel,
+                                    tab = comboTab,
+                                    index = clampedIndex,
+                                    tabs = tabs,
+                                    expanded = tabMenuFor == comboTab.sessionId,
+                                    onDismiss = { tabMenuFor = null },
+                                    requestRename = { sessionId, label ->
+                                        tabMenuFor = null
+                                        renameTarget = sessionId to label
+                                    },
+                                    newTabLoading = newTabLoading,
+                                )
                             }
+                        } else {
+                            tabs.forEachIndexed { index, tab ->
+                                val reconnecting by tab.isReconnecting.collectAsState()
+                                // OSC 0/2 title from the running program (#625). Falls
+                                // back to the session label when the program has not
+                                // set one; a user rename is overridden while a title
+                                // is live, matching Termux's session-drawer behaviour.
+                                // With "prefer session names" on, tabs attached to a
+                                // session manager keep their session name instead
+                                // (resolveTabTitle). Collection continues while the
+                                // preference is on so a flipped pref repaints instantly.
+                                val tabTitle by remember(tab.sessionId) {
+                                    tab.emulator.terminalTitle.map { it.ifBlank { null } }
+                                }.collectAsState(initial = null)
+                                val selected = activeTabIndex == index
+                                val tabColor = profileColors[tab.profileId]
+    
+                                Box(modifier = Modifier.weight(1f)) {
+                                    Surface(
+                                        modifier = Modifier
+                                            .fillMaxWidth()
+                                            .padding(horizontal = 2.dp)
+                                            .combinedClickable(
+                                                onClick = { viewModel.selectTab(index) },
+                                                onLongClick = { tabMenuFor = tab.sessionId },
+                                            ),
+                                        shape = MaterialTheme.shapes.small,
+                                        color = if (selected) {
+                                            tabColor?.copy(alpha = 0.55f)
+                                                ?: MaterialTheme.colorScheme.secondaryContainer
+                                        } else {
+                                            tabColor?.copy(alpha = 0.25f)
+                                                ?: MaterialTheme.colorScheme.surface
+                                        },
+                                        contentColor = tabContentColor(tabColor, selected),
+                                        tonalElevation = if (selected) 4.dp else 0.dp,
+                                    ) {
+                                        Row(
+                                            modifier = Modifier.padding(
+                                                horizontal = 12.dp,
+                                                vertical = 8.dp,
+                                            ),
+                                            verticalAlignment = Alignment.CenterVertically,
+                                            // Left-aligned text in a tab that now spans a
+                                            // third of the screen reads as misplaced.
+                                            horizontalArrangement = Arrangement.Center,
+                                        ) {
+                                            if (reconnecting) {
+                                                Icon(
+                                                    Icons.Filled.Autorenew,
+                                                    contentDescription = stringResource(R.string.terminal_reconnecting),
+                                                    modifier = Modifier.size(14.dp),
+                                                    tint = MaterialTheme.colorScheme.error,
+                                                )
+                                            }
+                                            Text(
+                                                resolveTabTitle(
+                                                    programTitle = tabTitle,
+                                                    label = tab.label,
+                                                    multiplexerName = tab.multiplexerName,
+                                                    followSession = tabTitlesFollowSession,
+                                                ),
+                                                maxLines = 1,
+                                                // A stretched tab has a fixed width, so a long
+                                                // label must give way to the close button
+                                                // rather than push it off the edge.
+                                                overflow = TextOverflow.Ellipsis,
+                                                modifier = Modifier.weight(1f, fill = false),
+                                                style = MaterialTheme.typography.labelLarge,
+                                            )
+                                            // #306: a one-tap close on the active tab so
+                                            // ending a session no longer needs the
+                                            // long-press menu. Only on the selected tab to
+                                            // keep the strip compact in portrait.
+                                            if (selected) {
+                                                Spacer(Modifier.width(4.dp))
+                                                Box(
+                                                    modifier = Modifier
+                                                        .size(24.dp)
+                                                        .clickable { viewModel.closeTab(tab.sessionId) },
+                                                    contentAlignment = Alignment.Center,
+                                                ) {
+                                                    Icon(
+                                                        Icons.Filled.Close,
+                                                        contentDescription = stringResource(R.string.terminal_close),
+                                                        modifier = Modifier.size(16.dp),
+                                                    )
+                                                }
+                                            }
+                                        }
+                                    }
+                                    TabActionsMenu(
+                                        viewModel = viewModel,
+                                        tab = tab,
+                                        index = index,
+                                        tabs = tabs,
+                                        expanded = tabMenuFor == tab.sessionId,
+                                        onDismiss = { tabMenuFor = null },
+                                        requestRename = { sessionId, label ->
+                                            tabMenuFor = null
+                                            renameTarget = sessionId to label
+                                        },
+                                        newTabLoading = newTabLoading,
+                                    )
+                                }
+                        }
                         }
                         // Action buttons after tabs
                         if (showCopyOutputButton) {

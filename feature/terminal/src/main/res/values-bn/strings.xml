@@ -34,6 +34,7 @@
     <string name="terminal_move_left">বামে সরান</string>
     <string name="terminal_move_right">ডানে সরান</string>
     <string name="terminal_close">বন্ধ</string>
+    <string name="terminal_switch_tab">ট্যাব পরিবর্তন</string>
     <string name="terminal_copy_last_output">শেষ আউটপুট কপি</string>
     <string name="terminal_copied_output">আউটপুট কপি হয়েছে (%d অক্ষর)</string>
     <string name="terminal_no_command_output">কমান্ড আউটপুট পাওয়া যায়নি (শেল ইন্টিগ্রেশন দরকার)</string>

@@ -36,6 +36,7 @@
     <string name="terminal_move_left">Move left</string>
     <string name="terminal_move_right">Move right</string>
     <string name="terminal_close">Close</string>
+    <string name="terminal_switch_tab">Switch tab</string>
     <string name="terminal_copy_last_output">Copy last output</string>
     <string name="terminal_copied_output">Copied output (%d chars)</string>
     <string name="terminal_no_command_output">No command output found (needs shell integration)</string>

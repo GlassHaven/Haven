@@ -34,6 +34,7 @@
     <string name="terminal_move_left">左移</string>
     <string name="terminal_move_right">右移</string>
     <string name="terminal_close">关闭</string>
+    <string name="terminal_switch_tab">切换标签页</string>
     <string name="terminal_copy_last_output">复制上次输出</string>
     <string name="terminal_copied_output">已复制输出（%d 字符）</string>
     <string name="terminal_no_command_output">未找到命令输出（需要 Shell 集成）</string>

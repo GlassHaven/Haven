@@ -34,6 +34,7 @@
     <string name="terminal_move_left">बाएँ ले जाएँ</string>
     <string name="terminal_move_right">दाएँ ले जाएँ</string>
     <string name="terminal_close">बंद करें</string>
+    <string name="terminal_switch_tab">टैब बदलें</string>
     <string name="terminal_copy_last_output">पिछला आउटपुट कॉपी करें</string>
     <string name="terminal_copied_output">आउटपुट कॉपी हुआ (%d अक्षर)</string>
     <string name="terminal_no_command_output">कमांड आउटपुट नहीं मिला (Shell इंटीग्रेशन आवश्यक)</string>

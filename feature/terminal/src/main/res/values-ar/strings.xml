@@ -34,6 +34,7 @@
     <string name="terminal_move_left">نقل لليسار</string>
     <string name="terminal_move_right">نقل لليمين</string>
     <string name="terminal_close">إغلاق</string>
+    <string name="terminal_switch_tab">تبديل علامة التبويب</string>
     <string name="terminal_copy_last_output">نسخ آخر مخرجات</string>
     <string name="terminal_copied_output">تم نسخ المخرجات (%d حرف)</string>
     <string name="terminal_no_command_output">لم يتم العثور على مخرجات الأمر (يتطلب تكامل Shell)</string>

@@ -5,6 +5,10 @@ the corresponding GitHub Release; a release can't ship without its section
 (enforced by `scripts/check-changelog.sh` in CI). The GitHub "Full Changelog"
 compare link is appended automatically — don't add it here.
 
+## v5.89.13
+
+- **The tab bar works past three tabs.** On a narrow screen, a fourth tab collapsed the strip into a horizontal scroller where one long title could fill the whole bar and nothing scrolled to the selected tab — closing a tab made the others reappear. Past three tabs the strip is now a single chip for the active tab that opens a dropdown listing every tab; the active row is set in bold and carries a close button, and long-pressing the chip still opens the per-tab actions menu.
+
 ## v5.89.12
 
 - **Paste suggestions in the keyboard reach the terminal.** IMEs that offer paste through the input connection's context-menu actions (GBoard's paste suggestion strip) had those actions silently dropped. Paste and paste-as-plain-text now run the same paste handler the terminal's context menu uses.

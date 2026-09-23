@@ -1,0 +1,1 @@
+- The tab bar works past three tabs: a fourth tab collapsed the strip into a scroller where one long title could fill the bar. Past three tabs the strip is a chip for the active tab that opens a dropdown of every tab; the active row is bold and carries a close button. Long-press still opens the per-tab actions.

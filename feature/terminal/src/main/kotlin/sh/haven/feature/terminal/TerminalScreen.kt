@@ -2165,11 +2165,26 @@ fun TerminalScreen(
                             }
                         },
                         selectionContent = selectionController?.let { ctrl -> {
+                            // The long-press menu's macros section lists the
+                            // same set the toolbar's scissors sheet does —
+                            // toolbar-pinned snippets plus the off-toolbar
+                            // library — so the two stay in sync (#661).
+                            val macros = remember(toolbarLayout, snippetLibrary) {
+                                sh.haven.core.data.preferences.SnippetOps.allSnippets(
+                                    toolbarLayout,
+                                    snippetLibrary,
+                                )
+                            }
                             SelectionToolbarContent(
                                 controller = ctrl,
                                 hyperlinkUri = currentHyperlinkUri,
                                 bracketPasteMode = isBracketPaste,
                                 onPaste = { text -> activeTab.sendInput(text.toByteArray()) },
+                                snippets = macros,
+                                onSendSnippet = { snippet ->
+                                    // Same path as a toolbar snippet tap.
+                                    activeTab.sendInput(snippet.send.toByteArray())
+                                },
                             )
                         } },
                         modifier = Modifier.fillMaxWidth(),

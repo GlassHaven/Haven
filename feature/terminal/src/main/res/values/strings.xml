@@ -150,6 +150,7 @@
     <string name="terminal_selection_copy">Copy</string>
     <string name="terminal_selection_paste">Paste</string>
     <string name="terminal_selection_open">Open</string>
+    <string name="terminal_selection_macros">Macros</string>
     <string name="terminal_selection_copied">Copied</string>
     <string name="terminal_selection_no_url">No URL detected</string>
     <string name="terminal_selection_anchor_start">Start</string>

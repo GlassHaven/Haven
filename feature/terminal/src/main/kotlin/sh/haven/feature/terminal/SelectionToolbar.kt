@@ -16,11 +16,14 @@ import androidx.compose.material.icons.automirrored.filled.KeyboardArrowLeft
 import androidx.compose.material.icons.automirrored.filled.KeyboardArrowRight
 import androidx.compose.material.icons.filled.Close
 import androidx.compose.material.icons.filled.ContentCopy
+import androidx.compose.material.icons.filled.ContentCut
 import androidx.compose.material.icons.filled.ContentPaste
 import androidx.compose.material.icons.filled.KeyboardArrowDown
 import androidx.compose.material.icons.filled.KeyboardArrowUp
 import androidx.compose.material.icons.automirrored.filled.OpenInNew
 import androidx.compose.material3.ButtonDefaults
+import androidx.compose.material3.DropdownMenu
+import androidx.compose.material3.DropdownMenuItem
 import androidx.compose.material3.FilledTonalButton
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
@@ -39,9 +42,11 @@ import androidx.compose.ui.platform.LocalClipboardManager
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.AnnotatedString
+import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import org.connectbot.terminal.SelectionController
+import sh.haven.core.data.preferences.ToolbarItem
 
 private const val TAG = "SelectionToolbar"
 
@@ -462,6 +467,8 @@ fun SelectionToolbar(
     hyperlinkUri: String? = null,
     bracketPasteMode: Boolean = false,
     onPaste: (String) -> Unit = {},
+    snippets: List<ToolbarItem.Custom> = emptyList(),
+    onSendSnippet: (ToolbarItem.Custom) -> Unit = {},
     modifier: Modifier = Modifier,
 ) {
     Surface(
@@ -473,6 +480,8 @@ fun SelectionToolbar(
             hyperlinkUri = hyperlinkUri,
             bracketPasteMode = bracketPasteMode,
             onPaste = onPaste,
+            snippets = snippets,
+            onSendSnippet = onSendSnippet,
         )
     }
 }
@@ -488,6 +497,8 @@ fun SelectionToolbarContent(
     hyperlinkUri: String? = null,
     bracketPasteMode: Boolean = false,
     onPaste: (String) -> Unit = {},
+    snippets: List<ToolbarItem.Custom> = emptyList(),
+    onSendSnippet: (ToolbarItem.Custom) -> Unit = {},
 ) {
     val clipboardManager = LocalClipboardManager.current
     val context = LocalContext.current
@@ -549,6 +560,46 @@ fun SelectionToolbarContent(
                 controller.clearSelection()
             } else {
                 Toast.makeText(context, noUrlMsg, Toast.LENGTH_SHORT).show()
+            }
+        }
+
+        // Macros — the snippet library (#661): the same list the toolbar's
+        // scissors sheet offers, sent through the same path a toolbar snippet
+        // tap uses. Hidden with an empty library so there's no dead control;
+        // the PASTE sentinel is filtered out because this row already has a
+        // paste button, which would make the entry a duplicate of it.
+        val macros = snippets.filter { it.send != "PASTE" }
+        if (macros.isNotEmpty()) {
+            val macrosLabel = stringResource(R.string.terminal_selection_macros)
+            var macrosOpen by remember { mutableStateOf(false) }
+
+            SelectionIconButton(Icons.Filled.ContentCut, macrosLabel) {
+                macrosOpen = true
+            }
+            DropdownMenu(
+                expanded = macrosOpen,
+                onDismissRequest = { macrosOpen = false },
+            ) {
+                macros.forEach { snippet ->
+                    DropdownMenuItem(
+                        text = {
+                            Text(
+                                snippet.label,
+                                maxLines = 1,
+                                overflow = TextOverflow.Ellipsis,
+                            )
+                        },
+                        onClick = {
+                            macrosOpen = false
+                            // Clear the selection like Copy/Paste do: while a
+                            // selection is live this row replaces a keyboard
+                            // row, and the macro is meant to run against a
+                            // prompt the user can now type into again.
+                            controller.clearSelection()
+                            onSendSnippet(snippet)
+                        },
+                    )
+                }
             }
         }
 

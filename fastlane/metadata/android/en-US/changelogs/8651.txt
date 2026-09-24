@@ -1,0 +1,1 @@
+- **Terminal macros in the long-press selection menu.** Selecting text by long-press now shows a Macros button next to Copy, Paste and Open (#661). It opens the snippet library the keyboard toolbar edits and sends the tapped snippet to the session as keystrokes — snippets with a trailing Enter execute, the rest land at the prompt unexecuted.

@@ -5,6 +5,10 @@ the corresponding GitHub Release; a release can't ship without its section
 (enforced by `scripts/check-changelog.sh` in CI). The GitHub "Full Changelog"
 compare link is appended automatically — don't add it here.
 
+## v5.89.14
+
+- **Terminal macros in the long-press selection menu.** Selecting text by long-press now shows a Macros button next to Copy, Paste and Open (#661). It opens the snippet library the keyboard toolbar edits and sends the tapped snippet to the session as keystrokes — snippets with a trailing Enter execute, the rest land at the prompt unexecuted.
+
 ## v5.89.13
 
 - **The tab bar works past three tabs.** On a narrow screen, a fourth tab collapsed the strip into a horizontal scroller where one long title could fill the whole bar and nothing scrolled to the selected tab — closing a tab made the others reappear. Past three tabs the strip is now a single chip for the active tab that opens a dropdown listing every tab; the active row is set in bold and carries a close button, and long-pressing the chip still opens the per-tab actions menu.

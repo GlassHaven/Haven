@@ -104,6 +104,7 @@
     <string name="terminal_selection_copy">Копировать</string>
     <string name="terminal_selection_paste">Вставить</string>
     <string name="terminal_selection_open">Открыть</string>
+    <string name="terminal_selection_macros">Макросы</string>
     <string name="terminal_selection_copied">Скопировано</string>
     <string name="terminal_selection_no_url">URL не обнаружен</string>
     <string name="terminal_selection_anchor_start">Начало</string>

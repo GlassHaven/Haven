@@ -104,6 +104,7 @@
     <string name="terminal_selection_copy">कॉपी करें</string>
     <string name="terminal_selection_paste">पेस्ट करें</string>
     <string name="terminal_selection_open">खोलें</string>
+    <string name="terminal_selection_macros">मैक्रोज़</string>
     <string name="terminal_selection_copied">कॉपी हुआ</string>
     <string name="terminal_selection_no_url">कोई URL नहीं मिला</string>
     <string name="terminal_selection_anchor_start">शुरू</string>

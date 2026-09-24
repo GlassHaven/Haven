@@ -104,6 +104,7 @@
     <string name="terminal_selection_copy">Copiar</string>
     <string name="terminal_selection_paste">Colar</string>
     <string name="terminal_selection_open">Abrir</string>
+    <string name="terminal_selection_macros">Macros</string>
     <string name="terminal_selection_copied">Copiado</string>
     <string name="terminal_selection_no_url">Nenhuma URL detectada</string>
     <string name="terminal_selection_anchor_start">Início</string>

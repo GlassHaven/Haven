@@ -44255,6 +44255,26 @@
      }
     },
     {
+     "name": "terminal_selection_macros",
+     "en": "Macros",
+     "comment": "SelectionToolbar button labels and toasts",
+     "args": [],
+     "t": {
+      "ar": "ماكروات",
+      "bn": "ম্যাক্রো",
+      "de": "Makros",
+      "es": "Macros",
+      "fr": "Macros",
+      "hi": "मैक्रोज़",
+      "ja": "マクロ",
+      "ko": "매크로",
+      "pt": "Macros",
+      "ru": "Макросы",
+      "sr": "Макрои",
+      "zh": "宏"
+     }
+    },
+    {
      "name": "terminal_selection_copied",
      "en": "Copied",
      "comment": "SelectionToolbar button labels and toasts",

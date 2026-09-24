@@ -124,6 +124,7 @@
     <string name="terminal_selection_copy">Копирај</string>
     <string name="terminal_selection_paste">Налепи</string>
     <string name="terminal_selection_open">Отвори</string>
+    <string name="terminal_selection_macros">Макрои</string>
     <string name="terminal_selection_copied">Копирано</string>
     <string name="terminal_selection_no_url">Није детектован URL</string>
     <string name="terminal_selection_anchor_start">Почетак</string>

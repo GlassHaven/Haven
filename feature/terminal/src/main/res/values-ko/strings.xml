@@ -105,6 +105,7 @@
     <string name="terminal_selection_copy">복사</string>
     <string name="terminal_selection_paste">붙여넣기</string>
     <string name="terminal_selection_open">열기</string>
+    <string name="terminal_selection_macros">매크로</string>
     <string name="terminal_selection_copied">복사됨</string>
     <string name="terminal_selection_no_url">URL이 감지되지 않았습니다</string>
     <string name="terminal_selection_anchor_start">시작</string>

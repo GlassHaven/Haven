@@ -42387,6 +42387,25 @@
      }
     },
     {
+     "name": "terminal_switch_tab",
+     "en": "Switch tab",
+     "comment": "Tab bar",
+     "args": [],
+     "t": {
+      "ar": "تبديل علامة التبويب",
+      "bn": "ট্যাব পরিবর্তন",
+      "de": "Tab wechseln",
+      "es": "Cambiar de pestaña",
+      "fr": "Changer d\\'onglet",
+      "hi": "टैब बदलें",
+      "ja": "タブを切り替え",
+      "ko": "탭 전환",
+      "pt": "Alternar aba",
+      "ru": "Переключить вкладку",
+      "zh": "切换标签页"
+     }
+    },
+    {
      "name": "terminal_copy_last_output",
      "en": "Copy last output",
      "comment": "Tab bar",

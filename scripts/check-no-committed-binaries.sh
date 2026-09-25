@@ -49,8 +49,8 @@ ALLOWLIST=(
 #       --gradle-distribution-sha256-sum <sha of gradle-<v>-bin.zip>
 # then set both values here from
 #   https://services.gradle.org/distributions/gradle-<v>-wrapper.jar.sha256
-WRAPPER_VERSION="9.4.1"
-WRAPPER_JAR_SHA256="55243ef57851f12b070ad14f7f5bb8302daceeebc5bce5ece5fa6edb23e1145c"
+WRAPPER_VERSION="9.7.1"
+WRAPPER_JAR_SHA256="7a9ce74cff467ca1bf60a4fcd9f05185acceda4d0f382434d393e17864262c5d"
 
 # Assert the allowed jar is the jar for the distribution we actually declare.
 check_gradle_wrapper() {

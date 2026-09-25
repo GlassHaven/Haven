@@ -621,16 +621,6 @@ class LocalSessionManager @Inject constructor(
     }
 
     /**
-     * Drop the agent-emulator tee for [sessionId]. Called when a UI tab wins
-     * the open-vs-tab-attach race (#378) and the registry is repointed at the
-     * tab's emulator — the tee would otherwise keep double-feeding a headless
-     * emulator nothing reads for the rest of the session's life.
-     */
-    fun clearAgentTee(sessionId: String) {
-        agentMirror.clearTee(sessionId)
-    }
-
-    /**
      * Send [text] as UTF-8 to the PTY for [sessionId]. Throws when no
      * session exists or no [LocalSession] is attached — the agent
      * transport surfaces those as JSON-RPC errors.

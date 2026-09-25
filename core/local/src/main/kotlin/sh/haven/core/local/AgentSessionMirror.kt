@@ -52,20 +52,14 @@ class AgentSessionMirror(private val scrollbackBytes: Int = 256 * 1024) {
      * Register the agent-emulator tee for [sessionId], surviving later
      * callback swaps. Registered even when a UI tab already owns the session —
      * the mirrors look it up dynamically, so the agent emulator starts
-     * receiving from here on (blank until then; no replay).
+     * receiving from here on (blank until then; no replay). Never cleared for
+     * the session's life: a UI tab adopting the session still leaves the
+     * agent shell consuming PTY output behind it, which is what keeps the
+     * emulator current when the tab's ViewModel teardown hands the registry
+     * entry back to the shell (#555).
      */
     fun setTee(sessionId: String, sink: (ByteArray, Int, Int) -> Unit) {
         tees[sessionId] = sink
-    }
-
-    /**
-     * Drop the agent-emulator tee for [sessionId]. Called when a UI tab wins
-     * the open-vs-tab-attach race (#378) and the registry is repointed at the
-     * tab's emulator — the tee would otherwise keep double-feeding a headless
-     * emulator nothing reads for the rest of the session's life.
-     */
-    fun clearTee(sessionId: String) {
-        tees.remove(sessionId)
     }
 
     /**

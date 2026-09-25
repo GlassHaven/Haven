@@ -57,6 +57,11 @@ class TerminalSessionRegistry @Inject constructor() {
      * @param gestureInjector drives synthetic touch gestures through the
      *        terminal's real pointer pipeline; null until the tab's
      *        Composable mounts (set via [setGestureInjector]).
+     * @param agentHandles the headless agent shell's own handles, retained
+     *        across UI-tab adoption so [restoreAgentHandles] can repoint the
+     *        entry back at them on ViewModel teardown (#555). Null for
+     *        sessions the UI opened first — there is no agent shell behind
+     *        them to hand back to.
      */
     data class Entry(
         val emulator: TerminalEmulator,
@@ -71,6 +76,24 @@ class TerminalSessionRegistry @Inject constructor() {
         val feedOutput: ((ByteArray, Int, Int) -> Unit)? = null,
         val gestureInjector: GestureInjector? = null,
         val composeController: ComposeController? = null,
+        val agentHandles: AgentHandles? = null,
+    )
+
+    /**
+     * One headless agent shell's complete handle set — the emulator the MCP
+     * tools read, the feed that fills it, and the private-mode flows from the
+     * tracker on the same stream. Created by `open_local_shell`'s
+     * [registerHeadless] and kept inside the [Entry] through tab adoption so
+     * the shell stays addressable after the tab goes away (#555).
+     */
+    data class AgentHandles(
+        val emulator: TerminalEmulator,
+        val mouseMode: StateFlow<Boolean>,
+        val activeMouseMode: StateFlow<Int?>,
+        val bracketPasteMode: StateFlow<Boolean>,
+        val altScreen: StateFlow<Boolean>,
+        val cursorKeyAppMode: StateFlow<Boolean>,
+        val feedOutput: (ByteArray, Int, Int) -> Unit,
     )
 
     private val _sessions = MutableStateFlow<Map<String, Entry>>(emptyMap())
@@ -86,11 +109,12 @@ class TerminalSessionRegistry @Inject constructor() {
 
     /**
      * Atomically claim the registry slot for a headless agent shell — entry
-     * complete with output injection + private-mode flows in one write.
-     * Returns false (leaving the existing entry untouched) if the slot is
-     * already taken, i.e. a UI tab won the race and its emulator is the one
-     * on screen (#378). oscHandler stays null so a later UI-tab adoption
-     * still attaches the full tab handles (#336).
+     * complete with output injection + private-mode flows in one write, and
+     * the same handle set retained as [AgentHandles] so teardown can restore
+     * them (#555). Returns false (leaving the existing entry untouched) if
+     * the slot is already taken, i.e. a UI tab won the race and its emulator
+     * is the one on screen (#378). oscHandler stays null so a later UI-tab
+     * adoption still attaches the full tab handles (#336).
      */
     fun registerHeadless(
         sessionId: String,
@@ -109,15 +133,25 @@ class TerminalSessionRegistry @Inject constructor() {
                 map
             } else {
                 claimed = true
+                val agent = AgentHandles(
+                    emulator = emulator,
+                    mouseMode = mouseMode,
+                    activeMouseMode = activeMouseMode,
+                    bracketPasteMode = bracketPasteMode,
+                    altScreen = altScreen,
+                    cursorKeyAppMode = cursorKeyAppMode,
+                    feedOutput = feedOutput,
+                )
                 map + (
                     sessionId to Entry(
-                        emulator = emulator,
-                        mouseMode = mouseMode,
-                        activeMouseMode = activeMouseMode,
-                        bracketPasteMode = bracketPasteMode,
-                        altScreen = altScreen,
-                        cursorKeyAppMode = cursorKeyAppMode,
-                        feedOutput = feedOutput,
+                        emulator = agent.emulator,
+                        mouseMode = agent.mouseMode,
+                        activeMouseMode = agent.activeMouseMode,
+                        bracketPasteMode = agent.bracketPasteMode,
+                        altScreen = agent.altScreen,
+                        cursorKeyAppMode = agent.cursorKeyAppMode,
+                        feedOutput = agent.feedOutput,
+                        agentHandles = agent,
                     )
                     )
             }
@@ -133,6 +167,10 @@ class TerminalSessionRegistry @Inject constructor() {
      * must be what feed_terminal_output / read_terminal_snapshot resolve.
      * Selection/scroll/gesture/compose controllers are preserved: they were
      * set by the visible tab's Composition and remain valid.
+     *
+     * The headless agent shell's own handles are retained ([Entry.agentHandles]
+     * survives the copy) — the shell stays behind the tab, and [restoreAgentHandles]
+     * hands the entry back to it when the tab's ViewModel is torn down (#555).
      */
     fun adoptTabHandles(
         sessionId: String,
@@ -160,6 +198,46 @@ class TerminalSessionRegistry @Inject constructor() {
                 )
                 )
         }
+    }
+
+    /**
+     * Hand a session's entry back to the headless agent shell whose tab just
+     * went away (#555): repoint the live handles at the retained
+     * [AgentHandles] and drop the dead tab's Composition-scoped controllers
+     * and OSC handler. The session stays registered, so the structured agent
+     * tools keep working while no UI exists — the LOCAL/GUEST counterpart of
+     * what the SSH branch does with `resetSinks` on teardown.
+     *
+     * The agent shell keeps consuming PTY output through its mirror tee, so
+     * the restored emulator is current, not replayed. Returns false when the
+     * session is unknown or was never agent-claimed (no [AgentHandles]) —
+     * the caller then unregisters as before so a recreated ViewModel
+     * reattaches with a fresh emulator (#272).
+     */
+    fun restoreAgentHandles(sessionId: String): Boolean {
+        var restored = false
+        _sessions.update { map ->
+            val current = map[sessionId] ?: return@update map
+            val agent = current.agentHandles ?: return@update map
+            restored = true
+            map + (
+                sessionId to current.copy(
+                    emulator = agent.emulator,
+                    mouseMode = agent.mouseMode,
+                    activeMouseMode = agent.activeMouseMode,
+                    bracketPasteMode = agent.bracketPasteMode,
+                    altScreen = agent.altScreen,
+                    cursorKeyAppMode = agent.cursorKeyAppMode,
+                    oscHandler = null,
+                    feedOutput = agent.feedOutput,
+                    selectionController = null,
+                    scrollController = null,
+                    gestureInjector = null,
+                    composeController = null,
+                )
+                )
+        }
+        return restored
     }
 
     fun setSelectionController(sessionId: String, controller: SelectionController?) {

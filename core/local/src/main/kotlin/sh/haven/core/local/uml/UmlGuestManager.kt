@@ -399,10 +399,6 @@ class UmlGuestManager @Inject constructor(
         ls.start(rows = 24, cols = 80)
     }
 
-    fun clearAgentTee(sessionId: String) {
-        agentMirror.clearTee(sessionId)
-    }
-
     fun sendInput(sessionId: String, text: String) {
         val session = _sessions.value[sessionId]
             ?: throw IllegalStateException("No guest session: $sessionId")

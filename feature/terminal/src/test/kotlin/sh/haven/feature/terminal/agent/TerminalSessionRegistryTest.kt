@@ -7,6 +7,7 @@ import org.connectbot.terminal.ScrollController
 import org.connectbot.terminal.SelectionController
 import org.connectbot.terminal.TerminalEmulator
 import org.junit.Assert.assertEquals
+import org.junit.Assert.assertNotNull
 import org.junit.Assert.assertFalse
 import org.junit.Assert.assertNull
 import org.junit.Assert.assertSame
@@ -138,6 +139,124 @@ class TerminalSessionRegistryTest {
             feedOutput = feedA,
         )
         assertNull(registry.get("ghost"))
+    }
+
+    // ------------------------------------------------------------------
+    // Restore-on-teardown (#555): an adopted tab's ViewModel teardown must
+    // hand the registry entry back to the headless agent shell instead of
+    // unregistering it, so the structured tools keep working while no UI
+    // exists — the LOCAL/GUEST counterpart of the SSH resetSinks branch.
+    // ------------------------------------------------------------------
+
+    @Test
+    fun `restoreAgentHandles repoints the entry back at the retained headless handles`() {
+        val headless = mockk<TerminalEmulator>()
+        val mouseMode = MutableStateFlow(false)
+        val activeMouseMode = MutableStateFlow<Int?>(null)
+        val bracketPaste = MutableStateFlow(true)
+        val altScreen = MutableStateFlow(false)
+        val cursorApp = MutableStateFlow(true)
+        registry.registerHeadless(
+            "s1", headless, feedA,
+            mouseMode = mouseMode,
+            activeMouseMode = activeMouseMode,
+            bracketPasteMode = bracketPaste,
+            altScreen = altScreen,
+            cursorKeyAppMode = cursorApp,
+        )
+        registry.setSelectionController("s1", mockk<SelectionController>())
+        registry.adoptTabHandles(
+            "s1", mockk<TerminalEmulator>(),
+            mouseMode = MutableStateFlow(true),
+            activeMouseMode = MutableStateFlow<Int?>(1002),
+            bracketPasteMode = MutableStateFlow(false),
+            altScreen = MutableStateFlow(true),
+            cursorKeyAppMode = MutableStateFlow(false),
+            oscHandler = OscHandler(),
+            feedOutput = feedB,
+        )
+
+        assertTrue(registry.restoreAgentHandles("s1"))
+
+        val entry = registry.get("s1")!!
+        assertSame(headless, entry.emulator)
+        assertSame(feedA, entry.feedOutput)
+        assertSame(mouseMode, entry.mouseMode)
+        assertSame(activeMouseMode, entry.activeMouseMode)
+        assertSame(bracketPaste, entry.bracketPasteMode)
+        assertSame(altScreen, entry.altScreen)
+        assertSame(cursorApp, entry.cursorKeyAppMode)
+        // The dead tab's Composition-scoped handles go with the tab.
+        assertNull(entry.oscHandler)
+        assertNull(entry.selectionController)
+    }
+
+    /** The #555 error state: "No registered terminal tab" after activity teardown. */
+    @Test
+    fun `restoreAgentHandles keeps the session registered`() {
+        registerHeadless("s1", mockk<TerminalEmulator>())
+        registry.adoptTabHandles(
+            "s1", mockk<TerminalEmulator>(),
+            mouseMode = MutableStateFlow(false),
+            activeMouseMode = MutableStateFlow<Int?>(null),
+            bracketPasteMode = MutableStateFlow(false),
+            altScreen = MutableStateFlow(false),
+            cursorKeyAppMode = MutableStateFlow(false),
+            oscHandler = OscHandler(),
+            feedOutput = feedB,
+        )
+
+        registry.restoreAgentHandles("s1")
+
+        assertNotNull("agent shell must stay addressable with no UI", registry.get("s1"))
+    }
+
+    /** A UI-opened session has no agent shell to hand back to — the caller unregisters. */
+    @Test
+    fun `restoreAgentHandles refuses a UI-opened entry and leaves it untouched`() {
+        val tabEmulator = mockk<TerminalEmulator>()
+        registry.register("s1", tabEmulator)
+
+        assertFalse(registry.restoreAgentHandles("s1"))
+
+        assertSame(tabEmulator, registry.get("s1")!!.emulator)
+    }
+
+    @Test
+    fun `restoreAgentHandles is false for an unknown session`() {
+        assertFalse(registry.restoreAgentHandles("ghost"))
+    }
+
+    /** Teardown → re-adopt by the recreated ViewModel → teardown again. */
+    @Test
+    fun `retained agent handles survive a second adoption`() {
+        val headless = mockk<TerminalEmulator>()
+        registerHeadless("s1", headless, feedA)
+        registry.adoptTabHandles(
+            "s1", mockk<TerminalEmulator>(),
+            mouseMode = MutableStateFlow(false),
+            activeMouseMode = MutableStateFlow<Int?>(null),
+            bracketPasteMode = MutableStateFlow(false),
+            altScreen = MutableStateFlow(false),
+            cursorKeyAppMode = MutableStateFlow(false),
+            oscHandler = OscHandler(),
+            feedOutput = feedB,
+        )
+        registry.restoreAgentHandles("s1")
+        registry.adoptTabHandles(
+            "s1", mockk<TerminalEmulator>(),
+            mouseMode = MutableStateFlow(false),
+            activeMouseMode = MutableStateFlow<Int?>(null),
+            bracketPasteMode = MutableStateFlow(false),
+            altScreen = MutableStateFlow(false),
+            cursorKeyAppMode = MutableStateFlow(false),
+            oscHandler = OscHandler(),
+            feedOutput = feedB,
+        )
+
+        assertTrue(registry.restoreAgentHandles("s1"))
+        assertSame(headless, registry.get("s1")!!.emulator)
+        assertSame(feedA, registry.get("s1")!!.feedOutput)
     }
 
     // ------------------------------------------------------------------

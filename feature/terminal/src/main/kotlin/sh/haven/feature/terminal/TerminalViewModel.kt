@@ -543,24 +543,34 @@ class TerminalViewModel @Inject constructor(
                 "USBSERIAL" -> usbSerialSessionManager.detachTerminalSession(tab.sessionId)
                 "LOCAL" -> {
                     localSessionManager.detachTerminalSession(tab.sessionId)
-                    // Drop the now-stale emulator from the singleton registry so a
-                    // recreated ViewModel reattaches (fresh emulator + scrollback
-                    // replay + live rewire) instead of re-adopting this torn-down
-                    // emulator (#272). Because the registry is @Singleton and every
-                    // tab registers into it, the adoption path always found an entry
-                    // and short-circuited the reattach path — leaving the proot
-                    // terminal blank on return-from-background despite the shell
-                    // staying alive. read_terminal_scrollback (the agent ring) is
-                    // unaffected; only the grid snapshot is briefly unavailable
-                    // until the UI rebuilds, which is correct (the old grid is stale).
-                    terminalSessionRegistry.unregister(tab.sessionId)
+                    // Two teardown shapes (#555): a tab the agent opened
+                    // headless hands the registry entry back to its retained
+                    // agent shell — the session stays registered, so the
+                    // structured tools keep working while no UI exists, the
+                    // LOCAL/GUEST counterpart of the SSH resetSinks branch.
+                    // A UI-opened session has no agent shell behind it; drop
+                    // the stale emulator so a recreated ViewModel reattaches
+                    // (fresh emulator + scrollback replay + live rewire)
+                    // instead of re-adopting this torn-down emulator (#272).
+                    // Because the registry is @Singleton and every tab
+                    // registers into it, the adoption path always found an
+                    // entry and short-circuited the reattach path — leaving
+                    // the proot terminal blank on return-from-background
+                    // despite the shell staying alive.
+                    if (!terminalSessionRegistry.restoreAgentHandles(tab.sessionId)) {
+                        terminalSessionRegistry.unregister(tab.sessionId)
+                    }
                 }
                 "GUEST" -> {
                     umlGuestManager.detachTerminalSession(tab.sessionId)
-                    // Same reasoning as LOCAL: drop the stale emulator so the
-                    // recreated ViewModel reattaches with a fresh emulator and a
-                    // scrollback replay instead of adopting the dead grid.
-                    terminalSessionRegistry.unregister(tab.sessionId)
+                    // Same reasoning as LOCAL: restore the agent shell if one
+                    // is behind this tab, otherwise drop the stale emulator
+                    // so the recreated ViewModel reattaches with a fresh
+                    // emulator and a scrollback replay instead of adopting
+                    // the dead grid.
+                    if (!terminalSessionRegistry.restoreAgentHandles(tab.sessionId)) {
+                        terminalSessionRegistry.unregister(tab.sessionId)
+                    }
                 }
             }
         }
@@ -2201,9 +2211,12 @@ class TerminalViewModel @Inject constructor(
                     // tab was being built (fresh-app-start race, #378). The tab's
                     // emulator is on screen, resized, and fed by its own pipeline;
                     // repoint the agent handles at it so feed_terminal_output /
-                    // read_terminal_snapshot see what the user sees. Also drop the
-                    // now-orphaned agent tee so PTY output stops double-feeding a
-                    // headless emulator nothing reads.
+                    // read_terminal_snapshot see what the user sees. The agent
+                    // tee deliberately stays armed: the retained agent shell
+                    // keeps consuming PTY output behind the tab, so its
+                    // emulator is current when this tab's ViewModel teardown
+                    // hands the entry back to it (#555). The double-feed it
+                    // costs is one bounded-emulator write per PTY chunk.
                     terminalSessionRegistry.adoptTabHandles(
                         tab.sessionId,
                         tab.emulator,
@@ -2215,11 +2228,6 @@ class TerminalViewModel @Inject constructor(
                         tab.oscHandler,
                         tab.feedOutput,
                     )
-                    if (tab.transportType == "LOCAL") {
-                        localSessionManager.clearAgentTee(tab.sessionId)
-                    } else if (tab.transportType == "GUEST") {
-                        umlGuestManager.clearAgentTee(tab.sessionId)
-                    }
                 }
                 existing.oscHandler == null -> {
                     // Agent-headless entry adopted by a UI tab sharing the SAME

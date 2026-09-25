@@ -485,7 +485,18 @@ class McpToolsConsentTest {
                 }
             }
             for (key in properties.keys()) {
-                val items = properties.getJSONObject(key).optJSONObject("items")
+                val prop = properties.getJSONObject(key)
+                // An array property without "items" is schema-valid but
+                // strict providers (Groq, #664) reject the whole toolset
+                // over it.
+                assertTrue(
+                    "$where.$key: array without \"items\"",
+                    prop.optString("type") != "array" || prop.has("items"),
+                )
+                if (prop.optString("type") == "object" && prop.has("properties")) {
+                    checkObjectSchema("$where.$key", prop)
+                }
+                val items = prop.optJSONObject("items")
                 if (items != null && items.optString("type") == "object" && items.has("properties")) {
                     checkObjectSchema("$where.$key.items", items)
                 }

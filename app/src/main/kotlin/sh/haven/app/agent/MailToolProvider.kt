@@ -58,11 +58,11 @@ internal class MailToolProvider(
                     JSONObject().put("type", "object").put("description", "{combinator, conditions:[…]} — see the tool description."),
                     required = true,
                 )
-                property(
+                objectArray(
                     "actions",
-                    JSONObject().put("type", "array").put("description", "Ordered actions — see the tool description."),
+                    "Ordered actions — see the tool description.",
                     required = true,
-                )
+                ) { string("type", "Action kind — see the tool description.", required = true) }
                 boolean("enabled", "Default true.")
                 integer("orderIndex", "Evaluation order; lower runs first.")
                 boolean("stopOnMatch", "Stop evaluating later rules when this one matches.")

@@ -49,13 +49,13 @@ internal class OpenAiToolProvider(
             inputSchema = objectSchema {
                 string("profileId", "OPENAI connection profile id (from list_connections).", required = true)
                 string("message", "Single user turn; mutually exclusive with messages.")
-                property(
+                objectArray(
                     "messages",
-                    JSONObject().put("type", "array").put(
-                        "description",
-                        "Full transcript as {role, content} objects (role: user|assistant|system). Mutually exclusive with message.",
-                    ),
-                )
+                    "Full transcript as {role, content} objects (role: user|assistant|system). Mutually exclusive with message.",
+                ) {
+                    string("role", "user | assistant | system; defaults to user.")
+                    string("content")
+                }
                 string("imageBase64", "Optional raw base64 image (no data: prefix) attached to the single user turn for vision models. Max 5 MB encoded; jpeg, png, gif or webp. Only with `message`, not `messages`.")
                 string("imageMimeType", "MIME type of imageBase64; default image/jpeg.")
                 string("model", "Model id (from openai_list_models); defaults to the first advertised model.")

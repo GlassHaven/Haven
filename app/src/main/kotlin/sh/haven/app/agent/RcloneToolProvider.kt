@@ -76,10 +76,7 @@ internal class RcloneToolProvider(
             description = "Import remotes from a Linux rclone.conf (the headless equivalent of the in-app Import rclone config dialog, #269). Pass configText (the file contents). Each chosen remote becomes an rclone remote (token/creds copied verbatim, non-interactively — OAuth remotes don't block on the browser flow) plus a matching RCLONE connection profile; a half-created remote is rolled back on failure so a failed import leaves no ghost. Skips typeless sections and names already configured. Optional `names` limits the import to those remote names. Returns { created, skipped, failed }. Returns an error if the config is password-encrypted.",
             inputSchema = objectSchema {
                 string("configText", "Contents of an rclone.conf to import.", required = true)
-                property(
-                    "names",
-                    JSONObject().put("type", "array").put("description", "Optional: only import remotes with these names. Omit to import all importable remotes."),
-                )
+                stringArray("names", "Optional: only import remotes with these names. Omit to import all importable remotes.")
             },
             consentLevel = ConsentLevel.EVERY_CALL,
             summarise = { _ -> "Import rclone remotes from a pasted rclone.conf?" },

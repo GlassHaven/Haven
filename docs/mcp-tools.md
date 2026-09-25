@@ -974,7 +974,7 @@ Poll the status of an async rclone job started by start_rclone_sync. Returns fin
 Import remotes from a Linux rclone.conf (the headless equivalent of the in-app Import rclone config dialog, #269). Pass configText (the file contents). Each chosen remote becomes an rclone remote (token/creds copied verbatim, non-interactively — OAuth remotes don't block on the browser flow) plus a matching RCLONE connection profile; a half-created remote is rolled back on failure so a failed import leaves no ghost. Skips typeless sections and names already configured. Optional `names` limits the import to those remote names. Returns { created, skipped, failed }. Returns an error if the config is password-encrypted.
 
 - `configText` (string, required) — Contents of an rclone.conf to import.
-- `names` (array) — Optional: only import remotes with these names. Omit to import all importable remotes.
+- `names` (string[]) — Optional: only import remotes with these names. Omit to import all importable remotes.
 
 </details>
 
@@ -1084,7 +1084,7 @@ Create a new folder/label on a connected EMAIL profile (IMAP CREATE; on Gmail th
 
 Create an inbound-email automation rule: when a message in folderId (default INBOX) of accountProfileId (omit = any connected email account) matches `criteria`, run the ordered `actions`. criteria = {combinator:"ALL"|"ANY", conditions:[{type, op, value}]} where type is from|to|subject|is_unread|body|has_attachment|attachment_name|attachment_mime|header and op is CONTAINS|EQUALS|REGEX|GLOB. actions = an ordered array of {type, …}: save_attachments{destProfileId,destDir,nameGlob?,mimeGlob?} | run_command{template,background?} | send_to_agent{messageTemplate,targetSessionId?} | notify{titleTemplate,bodyTemplate} | imap_filter{op: MARK_READ|MARK_UNREAD|SET_FLAGGED|UNSET_FLAGGED|MOVE|DELETE, destFolderId?} | forward{to[],template?} | invoke_mcp_tool{toolName,argsTemplateJson}. Templates may use {from} {fromName} {subject} {to} {uid}. Creating + enabling a rule is your standing authorization for its actions (they fire without a per-call prompt); destructive actions (move/delete/forward/run-command, or a non-NEVER MCP tool) are queued for foreground approval when Haven is backgrounded. Turn the master switch on with set_preference mail_automation_enabled=true.
 
-- `actions` (array, required) — Ordered actions — see the tool description.
+- `actions` (object[], required) — Ordered actions — see the tool description.
 - `criteria` (object, required) — {combinator, conditions:[…]} — see the tool description.
 - `name` (string, required) — Human label for the rule.
 - `accountProfileId` (string) — EMAIL profile id to watch; omit for any connected email account.

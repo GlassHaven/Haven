@@ -12,9 +12,16 @@
 # app/proguard-rules.pro is missing or broke.
 #
 # Usage: scripts/check-r8-kept-classes.sh [path/to/mapping.txt]
-#   With no argument it auto-locates the arm64Release mapping. The standalone
-#   :app:minifyArm64FullReleaseWithR8 task (what CI runs) writes to the intermediates
-#   path; a full assemble also copies one to outputs/. Prefer the freshest.
+#   With no argument it auto-locates the arm64FullRelease mapping. Which path
+#   exists depends on AGP and on how much of the pipeline ran:
+#   - AGP <=9.2: the standalone :app:minifyArm64FullReleaseWithR8 task writes
+#     intermediates/mapping/<variant>/minify<Variant>WithR8/mapping.txt.
+#   - AGP 9.4 (coreLibraryDesugaring): the minify task writes only unmerged
+#     .dat partitions; :app:l8DexDesugarLib<Variant> merges them into
+#     intermediates/mapping/<variant>/l8DexDesugarLib<Variant>/mapping.txt.
+#   - a full assemble also copies the final one to outputs/mapping/<variant>/.
+#   Prefer the freshest; fall back to scanning app/build so a future AGP
+#   layout change degrades to a search instead of a hard failure.
 set -euo pipefail
 cd "$(dirname "$0")/.."
 
@@ -23,20 +30,25 @@ if [ $# -ge 1 ]; then
 else
   MAP=""
   for cand in \
-    app/build/intermediates/mapping/arm64FullRelease/minifyArm64FullReleaseWithR8/mapping.txt \
-    app/build/outputs/mapping/arm64FullRelease/mapping.txt; do
+    app/build/intermediates/mapping/arm64FullRelease/l8DexDesugarLibArm64FullRelease/mapping.txt \
+    app/build/outputs/mapping/arm64FullRelease/mapping.txt \
+    app/build/intermediates/mapping/arm64FullRelease/minifyArm64FullReleaseWithR8/mapping.txt; do
     if [ -f "$cand" ]; then
       if [ -z "$MAP" ] || [ "$cand" -nt "$MAP" ]; then MAP="$cand"; fi
     fi
   done
-  [ -n "$MAP" ] || MAP="app/build/intermediates/mapping/arm64FullRelease/minifyArm64FullReleaseWithR8/mapping.txt"
+  if [ -z "$MAP" ]; then
+    MAP=$(find app/build -name 'mapping.txt' -path '*arm64FullRelease*' -printf '%T@ %p\n' 2>/dev/null \
+            | sort -rn | head -1 | cut -d' ' -f2- || true)
+  fi
+  [ -n "$MAP" ] || MAP="app/build/intermediates/mapping/arm64FullRelease/l8DexDesugarLibArm64FullRelease/mapping.txt"
 fi
 LIST="scripts/r8-must-keep-classes.txt"
 IMAP_CLIENT="core/mail/src/main/kotlin/sh/haven/core/mail/ImapMailClient.kt"
 
 if [ ! -f "$MAP" ]; then
-  echo "✖ mapping.txt not found at: $MAP" >&2
-  echo "  Run ./gradlew :app:minifyArm64FullReleaseWithR8 first." >&2
+  echo "✖ mapping.txt not found (searched known paths + app/build)." >&2
+  echo "  Run ./gradlew :app:minifyArm64FullReleaseWithR8 :app:l8DexDesugarLibArm64FullRelease first." >&2
   exit 2
 fi
 

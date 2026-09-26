@@ -402,6 +402,10 @@ jobs:
         # native builds anyway. This job hit its 30-minute timeout on the same
         # three nights, so the R8-keep assertion below has not actually run
         # since the from-source work landed.
-        run: ./gradlew :app:minifyArm64FullReleaseWithR8 -PskipWaylandNatives=true -PskipFfmpegNatives=true -PskipUml=true
+        # AGP 9.4 (with coreLibraryDesugaring) leaves the minify task holding
+        # only unmerged .dat mapping partitions; the l8 task merges them into
+        # the real mapping.txt the assertion reads. Verified locally: the
+        # standalone minify produces no mapping.txt under AGP 9.4.1.
+        run: ./gradlew :app:minifyArm64FullReleaseWithR8 :app:l8DexDesugarLibArm64FullRelease -PskipWaylandNatives=true -PskipFfmpegNatives=true -PskipUml=true
       - name: Assert reflectively-loaded classes survived R8
         run: ./scripts/check-r8-kept-classes.sh

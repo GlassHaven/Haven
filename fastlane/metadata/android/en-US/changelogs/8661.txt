@@ -1,0 +1,5 @@
+- Shift+arrows and other shifted toolbar keys now work (#665).
+- Mosh rebind no longer throws recvfrom failed: EBADF (#421).
+- Agent terminal shells survive tab teardown (#555).
+- Tool schemas accepted by strict OpenAI-compatible providers (#664).
+- Selection holds up under finger wobble; selection pill stays inside the viewport (#661).

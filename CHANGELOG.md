@@ -5,6 +5,14 @@ the corresponding GitHub Release; a release can't ship without its section
 (enforced by `scripts/check-changelog.sh` in CI). The GitHub "Full Changelog"
 compare link is appended automatically — don't add it here.
 
+## v5.89.15
+
+- **Shift+arrows and the other shifted toolbar keys work.** The keyboard toolbar's Shift only reached Tab: the arrows, Home/End, PgUp/PgDn and the rest went out with their modifier bits zeroed, so Shift+Left sent a plain left arrow and apps like Codex ran their own shortcut instead (#665). Every key the toolbar dispatches now carries Shift, which stays on until you tap it off again, the way the letter keys behave.
+- **Mosh rebinds no longer throw "recvfrom failed: EBADF"** (#421). The rebind's old socket is retired instead of being closed under an in-flight receive; it closes at the next receive instruction, when the receive side is provably out of it.
+- **Agent terminal shells survive tab teardown** (#555). A teardown that left the process alive now re-adopts the shell cleanly instead of failing with "No registered terminal tab" while the PTY, input path and scrollback were all still there.
+- **Tool schemas are accepted by strict OpenAI-compatible providers** (#664). Three array parameters declared no element type, and providers that reject the whole toolset on that (Groq) made every Haven tool unusable; they now declare their items.
+- **Text selection holds up under finger wobble and stays inside the viewport.** Upstream's wobble and edge-handling selection fixes are in, and the selection pill row clamps by its full width and vertically within the screen (#661).
+
 ## v5.89.14
 
 - **Terminal macros in the long-press selection menu.** Selecting text by long-press now shows a Macros button next to Copy, Paste and Open (#661). It opens the snippet library the keyboard toolbar edits and sends the tapped snippet to the session as keystrokes — snippets with a trailing Enter execute, the rest land at the prompt unexecuted.

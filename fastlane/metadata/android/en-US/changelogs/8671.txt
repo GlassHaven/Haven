@@ -1,0 +1,3 @@
+- Saved tunnel configs are editable: rows carry an Edit affordance with the stored fields prefilled; type is locked, saving overwrites the row in place (#666).
+- An unanswered consent prompt reports "denied" (-32000) with its DENIED audit row again, instead of the internal "timed out" error racing the manager's timeout.
+- Direct SSH connections run on Apache MINA sshd 2.20.0 (contract suites re-run).

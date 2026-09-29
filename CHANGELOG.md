@@ -5,6 +5,12 @@ the corresponding GitHub Release; a release can't ship without its section
 (enforced by `scripts/check-changelog.sh` in CI). The GitHub "Full Changelog"
 compare link is appended automatically — don't add it here.
 
+## v5.89.16
+
+- **Saved tunnel configs are editable.** Until now the Tunnels screen could only add or delete a row (#666). Rows now carry an Edit affordance that reopens the add dialog with the stored fields filled in — the tunnel type is locked once set, and saving overwrites the row in place, keeping its id, type and creation date.
+- **An unanswered consent prompt reports "denied" again.** A race between the consent manager's own timeout and the transport wrapper below it could report the internal "timed out" error (-32012) and skip the DENIED audit row when the system was slow to schedule the manager's timer. The manager now owns the whole wait budget, so an unanswered prompt always returns -32000 with its audit row, and the on-device prompt window is back to the full 55s instead of 49.5s.
+- **Direct SSH connections run on sshd 2.20.0.** Dependency update; the exec, port-forward, shell and SFTP contract suites were re-run against it.
+
 ## v5.89.15
 
 - **Shift+arrows and the other shifted toolbar keys work.** The keyboard toolbar's Shift only reached Tab: the arrows, Home/End, PgUp/PgDn and the rest went out with their modifier bits zeroed, so Shift+Left sent a plain left arrow and apps like Codex ran their own shortcut instead (#665). Every key the toolbar dispatches now carries Shift, which stays on until you tap it off again, the way the letter keys behave.

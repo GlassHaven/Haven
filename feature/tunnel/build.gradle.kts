@@ -41,6 +41,9 @@ dependencies {
     testImplementation(libs.junit)
     testImplementation(libs.mockk)
     testImplementation(libs.coroutines.test)
+    // Android's android.jar stubs out org.json.JSONObject in unit tests 
+    // (blob encode/decode runs in the edit-path tests) — same as core:tunnel.
+    testImplementation("org.json:json:20260814")
 }
 
 kotlin {

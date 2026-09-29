@@ -13,6 +13,7 @@
     <string name="tunnel_cancel">Откажи</string>
     <string name="tunnel_label">Ознака</string>
     <string name="tunnel_save">Сачувај</string>
+    <string name="tunnel_edit">Измени тунел</string>
     <string name="tunnel_wireguard_help">Налепите конфигурацију у wg-quick стилу или учитајте .conf фајл. Читају се само [Interface] и [Peer] поља; непознати кључеви (PostUp, Table, MTU) се игноришу. Крајње тачке имена хоста и DNS имена се разрешавају приликом покретања тунела.</string>
     <string name="tunnel_load_from_file">Учитај из фајла…</string>
     <string name="tunnel_wireguard_config">WireGuard конфигурација</string>

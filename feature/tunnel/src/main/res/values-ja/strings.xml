@@ -20,6 +20,7 @@
     <!-- Add tunnel dialog -->
     <string name="tunnel_label">ラベル</string>
     <string name="tunnel_save">保存</string>
+    <string name="tunnel_edit">トンネルを編集</string>
     <string name="tunnel_wireguard_help">wg-quick 形式の設定を貼り付けるか、.conf ファイルを読み込んでください。[Interface] と [Peer] のフィールドのみが読み取られ、不明なキー（PostUp、Table、MTU）は無視されます。ホスト名のエンドポイントや DNS 名はトンネル開始時に解決されます。</string>
     <string name="tunnel_load_from_file">ファイルから読み込む…</string>
     <string name="tunnel_wireguard_config">WireGuard 設定</string>

@@ -13,6 +13,7 @@
     <string name="tunnel_cancel">বাতিল</string>
     <string name="tunnel_label">লেবেল</string>
     <string name="tunnel_save">সংরক্ষণ</string>
+    <string name="tunnel_edit">টানেল সম্পাদনা করুন</string>
     <string name="tunnel_wireguard_help">একটি wg-quick স্টাইল কনফিগ পেস্ট করুন বা একটি .conf ফাইল লোড করুন। শুধু [Interface] ও [Peer] ফিল্ড পড়া হয়; অজানা কী (PostUp, Table, MTU) উপেক্ষা করা হয়। হোস্টনেম endpoint ও DNS নাম টানেল শুরুর সময় নির্ণয় করা হয়।</string>
     <string name="tunnel_load_from_file">ফাইল থেকে লোড করুন…</string>
     <string name="tunnel_wireguard_config">WireGuard কনফিগ</string>

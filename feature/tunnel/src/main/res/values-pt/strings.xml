@@ -13,6 +13,7 @@
     <string name="tunnel_cancel">Cancelar</string>
     <string name="tunnel_label">Rótulo</string>
     <string name="tunnel_save">Salvar</string>
+    <string name="tunnel_edit">Editar túnel</string>
     <string name="tunnel_wireguard_help">Cole uma configuração no estilo wg-quick ou carregue um arquivo .conf. Apenas os campos [Interface] e [Peer] são lidos; chaves desconhecidas (PostUp, Table, MTU) são ignoradas. Endpoints de nome de host e nomes DNS são resolvidos ao iniciar o túnel.</string>
     <string name="tunnel_load_from_file">Carregar do arquivo…</string>
     <string name="tunnel_wireguard_config">Configuração WireGuard</string>

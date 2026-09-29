@@ -20,6 +20,7 @@
     <!-- Add tunnel dialog -->
     <string name="tunnel_label">Метка</string>
     <string name="tunnel_save">Сохранить</string>
+    <string name="tunnel_edit">Изменить туннель</string>
     <string name="tunnel_wireguard_help">Вставьте конфигурацию в стиле wg-quick или загрузите файл .conf. Читаются только поля [Interface] и [Peer]; неизвестные ключи (PostUp, Table, MTU) игнорируются. Конечные точки по имени хоста и DNS-имена разрешаются при запуске туннеля.</string>
     <string name="tunnel_load_from_file">Загрузить из файла…</string>
     <string name="tunnel_wireguard_config">Конфигурация WireGuard</string>

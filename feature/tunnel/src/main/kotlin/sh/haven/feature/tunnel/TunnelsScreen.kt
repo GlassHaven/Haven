@@ -17,6 +17,7 @@ import androidx.compose.foundation.lazy.items
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Add
 import androidx.compose.material.icons.filled.Delete
+import androidx.compose.material.icons.filled.Edit
 import androidx.compose.material.icons.filled.FileOpen
 import androidx.compose.material.icons.filled.VpnLock
 import androidx.compose.material3.AlertDialog
@@ -55,6 +56,8 @@ import androidx.hilt.navigation.compose.hiltViewModel
 import sh.haven.core.data.db.entities.TunnelConfig
 import sh.haven.core.data.db.entities.TunnelConfigType
 import sh.haven.core.data.db.entities.typeEnum
+import sh.haven.core.tunnel.NetbirdConfigBlob
+import sh.haven.core.tunnel.TailscaleConfigBlob
 import java.text.SimpleDateFormat
 import java.util.Date
 import java.util.Locale
@@ -89,6 +92,19 @@ fun TunnelsScreen(
 
     var showAddDialog by remember { mutableStateOf(false) }
     var pendingDeleteId by remember { mutableStateOf<String?>(null) }
+    // #666: edit affordance. Rows in the list flow carry the encrypted blob,
+    // so the tap records the id and a LaunchedEffect fetches the decrypted
+    // copy the dialog prefills from.
+    var pendingEditId by remember { mutableStateOf<String?>(null) }
+    var editTarget by remember { mutableStateOf<TunnelConfig?>(null) }
+    LaunchedEffect(pendingEditId) {
+        val id = pendingEditId ?: return@LaunchedEffect
+        editTarget = viewModel.getDecryptedTunnel(id)
+        // Row vanished between the list render and the fetch (concurrent
+        // delete) — clear the pending key so a later tap on a fresh row
+        // can retrigger this effect; the dialog simply never opens.
+        if (editTarget == null) pendingEditId = null
+    }
 
     // Auto-open the Add dialog if the caller pre-selected a type. The
     // key parameter scopes this to the first composition for a given
@@ -134,6 +150,15 @@ fun TunnelsScreen(
                     items(tunnels, key = { it.id }) { tunnel ->
                         TunnelRow(
                             tunnel = tunnel,
+                            // Legacy standalone Cloudflare rows (pre-#154) have
+                            // no editor for their payload — delete/recreate is
+                            // the only path for those; the chip row can't even
+                            // represent the type (see AddTunnelDialog).
+                            onEdit = if (tunnel.typeEnum == TunnelConfigType.CLOUDFLARE_ACCESS) {
+                                null
+                            } else {
+                                { pendingEditId = tunnel.id }
+                            },
                             onDelete = { pendingDeleteId = tunnel.id },
                         )
                     }
@@ -142,13 +167,13 @@ fun TunnelsScreen(
         }
     }
 
+    // Cloudflare Tunnel is no longer a standalone type (GH #154 — it's
+    // now an SSH-profile transport). Fall back to WireGuard if a caller
+    // pre-selects the retired chip.
+    val effectiveInitialType = initialAddType
+        ?.takeIf { it != TunnelConfigType.CLOUDFLARE_ACCESS }
+        ?: TunnelConfigType.WIREGUARD
     if (showAddDialog) {
-        // Cloudflare Tunnel is no longer a standalone type (GH #154 — it's
-        // now an SSH-profile transport). Fall back to WireGuard if a caller
-        // pre-selects the retired chip.
-        val effectiveInitialType = initialAddType
-            ?.takeIf { it != TunnelConfigType.CLOUDFLARE_ACCESS }
-            ?: TunnelConfigType.WIREGUARD
         AddTunnelDialog(
             initialType = effectiveInitialType,
             onDismiss = { showAddDialog = false },
@@ -165,6 +190,26 @@ fun TunnelsScreen(
                 showAddDialog = false
             },
         )
+    } else {
+        editTarget?.let { existing ->
+            AddTunnelDialog(
+                initialType = existing.typeEnum,
+                existing = existing,
+                onDismiss = { editTarget = null; pendingEditId = null },
+                onSubmitWireguard = { label, configText ->
+                    viewModel.updateWireguardConfig(existing.id, label, configText)
+                    editTarget = null; pendingEditId = null
+                },
+                onSubmitTailscale = { label, authKey, controlUrl ->
+                    viewModel.updateTailscaleConfig(existing.id, label, authKey, controlUrl)
+                    editTarget = null; pendingEditId = null
+                },
+                onSubmitNetbird = { label, setupKey, managementUrl ->
+                    viewModel.updateNetbirdConfig(existing.id, label, setupKey, managementUrl)
+                    editTarget = null; pendingEditId = null
+                },
+            )
+        }
     }
 
     pendingDeleteId?.let { id ->
@@ -216,6 +261,7 @@ private fun EmptyState(modifier: Modifier = Modifier) {
 @Composable
 private fun TunnelRow(
     tunnel: TunnelConfig,
+    onEdit: (() -> Unit)?,
     onDelete: () -> Unit,
 ) {
     val formatter = remember { SimpleDateFormat(android.text.format.DateFormat.getBestDateTimePattern(Locale.getDefault(), "yMd"), Locale.getDefault()) }
@@ -269,32 +315,81 @@ private fun TunnelRow(
             Icon(Icons.Filled.VpnLock, contentDescription = null)
         },
         trailingContent = {
-            IconButton(onClick = onDelete) {
-                Icon(
-                    Icons.Filled.Delete,
-                    contentDescription = stringResource(R.string.tunnel_delete_content_desc),
-                    tint = MaterialTheme.colorScheme.error,
-                )
+            Row {
+                if (onEdit != null) {
+                    IconButton(onClick = onEdit) {
+                        Icon(
+                            Icons.Filled.Edit,
+                            contentDescription = stringResource(R.string.tunnel_edit),
+                        )
+                    }
+                }
+                IconButton(onClick = onDelete) {
+                    Icon(
+                        Icons.Filled.Delete,
+                        contentDescription = stringResource(R.string.tunnel_delete_content_desc),
+                        tint = MaterialTheme.colorScheme.error,
+                    )
+                }
             }
         },
     )
 }
 
+/**
+ * Add-or-edit dialog (#666). With [existing] null it creates a new config;
+ * with it set the type is locked (legacy standalone Cloudflare rows can't
+ * be represented by the chip row and are never routed here — the list gives
+ * them delete only) and each field prefills from the decrypted row.
+ */
 @Composable
 private fun AddTunnelDialog(
     initialType: TunnelConfigType,
+    existing: TunnelConfig? = null,
     onDismiss: () -> Unit,
     onSubmitWireguard: (label: String, configText: String) -> Unit,
     onSubmitTailscale: (label: String, authKey: String, controlUrl: String) -> Unit,
     onSubmitNetbird: (label: String, setupKey: String, managementUrl: String) -> Unit,
 ) {
     var type by remember { mutableStateOf(initialType) }
-    var label by remember { mutableStateOf("") }
-    var configText by remember { mutableStateOf("") }
-    var authKey by remember { mutableStateOf("") }
-    var controlUrl by remember { mutableStateOf("") }
-    var setupKey by remember { mutableStateOf("") }
-    var managementUrl by remember { mutableStateOf("") }
+    var label by remember { mutableStateOf(existing?.label ?: "") }
+    // Prefill decodes the saved blob per type. A blob that no longer parses
+    // (hand-edited, format drift) leaves the field blank rather than
+    // crashing the dialog — the user retypes it.
+    var configText by remember {
+        mutableStateOf(
+            existing?.takeIf { it.typeEnum == TunnelConfigType.WIREGUARD }
+                ?.let { String(it.configText, Charsets.UTF_8) } ?: "",
+        )
+    }
+    var authKey by remember {
+        mutableStateOf(
+            existing?.takeIf { it.typeEnum == TunnelConfigType.TAILSCALE }
+                ?.let { runCatching { TailscaleConfigBlob.parse(it.configText) }.getOrNull()?.authKey }
+                .orEmpty(),
+        )
+    }
+    var controlUrl by remember {
+        mutableStateOf(
+            existing?.takeIf { it.typeEnum == TunnelConfigType.TAILSCALE }
+                ?.let { runCatching { TailscaleConfigBlob.parse(it.configText) }.getOrNull()?.controlURL }
+                .orEmpty(),
+        )
+    }
+    var setupKey by remember {
+        mutableStateOf(
+            existing?.takeIf { it.typeEnum == TunnelConfigType.NETBIRD }
+                ?.let { NetbirdConfigBlob.parse(it.configText)?.setupKey }
+                .orEmpty(),
+        )
+    }
+    var managementUrl by remember {
+        mutableStateOf(
+            existing?.takeIf { it.typeEnum == TunnelConfigType.NETBIRD }
+                ?.let { NetbirdConfigBlob.parse(it.configText)?.managementURL }
+                .orEmpty(),
+        )
+    }
     val context = LocalContext.current
 
     // Use OpenDocument (SAF) rather than GetContent so the user can pick
@@ -341,7 +436,7 @@ private fun AddTunnelDialog(
                 verticalArrangement = Arrangement.spacedBy(12.dp),
             ) {
             Text(
-                stringResource(R.string.tunnel_add),
+                stringResource(if (existing == null) R.string.tunnel_add else R.string.tunnel_edit),
                 style = MaterialTheme.typography.headlineSmall,
             )
 
@@ -349,12 +444,15 @@ private fun AddTunnelDialog(
             // toggles the fields below; label persists across flips.
             // Cloudflare Tunnel is omitted here on purpose: it lives as
             // an SSH-profile transport (GH #154), not a standalone tunnel.
+            // In edit mode the row's type IS its identity (the payload
+            // blob and key fields are typed) — chips lock.
             Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
                 TunnelConfigType.entries
                     .filter { it != TunnelConfigType.CLOUDFLARE_ACCESS }
                     .forEach { t ->
                         androidx.compose.material3.FilterChip(
                             selected = type == t,
+                            enabled = existing == null,
                             onClick = { type = t },
                             label = { Text(tunnelTypeLabel(t)) },
                         )

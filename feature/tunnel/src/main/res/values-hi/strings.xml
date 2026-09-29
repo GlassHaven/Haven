@@ -20,6 +20,7 @@
     <!-- Add tunnel dialog -->
     <string name="tunnel_label">लेबल</string>
     <string name="tunnel_save">सहेजें</string>
+    <string name="tunnel_edit">टनल संपादित करें</string>
     <string name="tunnel_wireguard_help">wg-quick शैली का config पेस्ट करें या .conf फ़ाइल लोड करें। केवल [Interface] और [Peer] फ़ील्ड पढ़े जाते हैं; अज्ञात कुंजियाँ (PostUp, Table, MTU) अनदेखी की जाती हैं। होस्टनाम endpoints और DNS नाम टनल शुरू होने पर हल किए जाते हैं।</string>
     <string name="tunnel_load_from_file">फ़ाइल से लोड करें…</string>
     <string name="tunnel_wireguard_config">WireGuard config</string>

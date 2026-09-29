@@ -44806,6 +44806,26 @@
      }
     },
     {
+     "name": "tunnel_edit",
+     "en": "Edit tunnel",
+     "comment": "Add tunnel dialog",
+     "args": [],
+     "t": {
+      "ar": "تعديل النفق",
+      "bn": "টানেল সম্পাদনা করুন",
+      "de": "Tunnel bearbeiten",
+      "es": "Editar túnel",
+      "fr": "Modifier le tunnel",
+      "hi": "टनल संपादित करें",
+      "ja": "トンネルを編集",
+      "ko": "터널 편집",
+      "pt": "Editar túnel",
+      "ru": "Изменить туннель",
+      "sr": "Измени тунел",
+      "zh": "编辑隧道"
+     }
+    },
+    {
      "name": "tunnel_wireguard_help",
      "en": "Paste a wg-quick style config or load a .conf file. Only [Interface] and [Peer] fields are read; unknown keys (PostUp, Table, MTU) are ignored. Hostname endpoints and DNS names are resolved at tunnel start.",
      "comment": "Add tunnel dialog",

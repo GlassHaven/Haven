@@ -22,9 +22,9 @@ import java.util.concurrent.TimeUnit
 import javax.inject.Inject
 
 /**
- * Backs the "Tunnels" management screen. List/add/delete tunnel configs
- * (WireGuard for now; Tailscale wiring follows in a second pass once the
- * tsnet bridge is in place).
+ * Backs the "Tunnels" management screen. List/add/edit/delete tunnel
+ * configs (WireGuard for now; Tailscale wiring follows in a second pass once
+ * the tsnet bridge is in place).
  */
 @HiltViewModel
 class TunnelViewModel @Inject constructor(
@@ -296,6 +296,110 @@ class TunnelViewModel @Inject constructor(
                         label = label.trim(),
                         type = type.name,
                         configText = bytes,
+                    ),
+                )
+                _message.value = "Tunnel \"${label.trim()}\" saved"
+            } catch (e: Exception) {
+                _error.value = "Save failed: ${e.message}"
+            }
+        }
+    }
+
+    /**
+     * Decrypted row for the edit dialog's prefill. Null when the row is
+     * gone (deleted concurrently between the list render and the tap).
+     */
+    suspend fun getDecryptedTunnel(id: String): TunnelConfig? = repository.getById(id)
+
+    /**
+     * Overwrite an existing WireGuard tunnel in place (#666), keeping the
+     * row's id, type, createdAt and owner so the encrypted-at-rest row stays
+     * addressable and the list keeps its created ordering.
+     */
+    fun updateWireguardConfig(id: String, label: String, configText: String) {
+        if (label.isBlank()) {
+            _error.value = "Label is required"
+            return
+        }
+        if (configText.isBlank()) {
+            _error.value = "Config text is required"
+            return
+        }
+        update(id, label, configText.toByteArray())
+    }
+
+    /** Edit an existing Tailscale tunnel's label / authkey / control plane (#666). */
+    fun updateTailscaleConfig(id: String, label: String, authKey: String, controlURL: String = "") {
+        if (label.isBlank()) {
+            _error.value = "Label is required"
+            return
+        }
+        if (authKey.isBlank()) {
+            _error.value = "Auth key is required"
+            return
+        }
+        val trimmedUrl = controlURL.trim()
+        if (trimmedUrl.isNotEmpty() &&
+            !trimmedUrl.startsWith("https://") &&
+            !trimmedUrl.startsWith("http://")
+        ) {
+            _error.value = "Control plane URL must start with https:// (or http:// for local testing)"
+            return
+        }
+        val blob = sh.haven.core.tunnel.TailscaleConfigBlob(
+            authKey = authKey.trim(),
+            controlURL = trimmedUrl,
+        )
+        update(id, label, blob.encode())
+    }
+
+    /** Overwrite an existing NetBird tunnel's label / setup key / management URL (#666). */
+    fun updateNetbirdConfig(id: String, label: String, setupKey: String, managementURL: String = "") {
+        if (label.isBlank()) {
+            _error.value = "Label is required"
+            return
+        }
+        if (setupKey.isBlank()) {
+            _error.value = "Setup key is required"
+            return
+        }
+        val trimmedUrl = managementURL.trim()
+        if (trimmedUrl.isNotEmpty() &&
+            !trimmedUrl.startsWith("https://") &&
+            !trimmedUrl.startsWith("http://")
+        ) {
+            _error.value = "Management URL must start with https:// (or http:// for local testing)"
+            return
+        }
+        val blob = sh.haven.core.tunnel.NetbirdConfigBlob(
+            setupKey = setupKey.trim(),
+            managementURL = trimmedUrl,
+        )
+        update(id, label, blob.encode())
+    }
+
+    /**
+     * Shared overwrite path. Id/key fields all come from the CURRENT row (a
+     * re-fetched [TunnelConfig]), not from the caller — the dialog locks the
+     * type in edit mode, so the payload never changes meaning under an
+     * existing key.
+     */
+    private fun update(id: String, label: String, bytes: ByteArray) {
+        viewModelScope.launch {
+            try {
+                val existing = repository.getById(id)
+                if (existing == null) {
+                    _error.value = "Tunnel no longer exists"
+                    return@launch
+                }
+                repository.save(
+                    TunnelConfig(
+                        id = existing.id,
+                        label = label.trim(),
+                        type = existing.type,
+                        configText = bytes,
+                        createdAt = existing.createdAt,
+                        ownerProfileId = existing.ownerProfileId,
                     ),
                 )
                 _message.value = "Tunnel \"${label.trim()}\" saved"

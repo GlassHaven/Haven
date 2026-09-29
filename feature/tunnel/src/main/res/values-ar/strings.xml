@@ -13,6 +13,7 @@
     <string name="tunnel_cancel">إلغاء</string>
     <string name="tunnel_label">التسمية</string>
     <string name="tunnel_save">حفظ</string>
+    <string name="tunnel_edit">تعديل النفق</string>
     <string name="tunnel_wireguard_help">الصق إعدادًا بنمط wg-quick أو حمّل ملف ‎.conf. تُقرأ حقول [Interface] و[Peer] فقط؛ تُتجاهل المفاتيح غير المعروفة (PostUp وTable وMTU). تُحلَّل نقاط النهاية باسم المضيف وأسماء DNS عند بدء النفق.</string>
     <string name="tunnel_load_from_file">تحميل من ملف…</string>
     <string name="tunnel_wireguard_config">إعداد WireGuard</string>

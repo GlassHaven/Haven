@@ -71,6 +71,14 @@ private const val TAG = "McpServer"
  *  clears the orphaned prompt in a finally block so the sheet never sticks. */
 private const val CONSENT_WAIT_MS: Long = 55_000L
 
+/** Fixed tail after [CONSENT_WAIT_MS] given to the outer consent wrapper
+ *  (McpServer's withTimeoutOrNull over requestConsent). The manager's own
+ *  timeout is passed the full budget, so its deny fires first; the wrapper
+ *  exists only to cap a manager wedged past its own timeout, and the tail
+ *  keeps that cap (65s) below the 70s socket read timeout so even the
+ *  wedged path returns a JSON-RPC error instead of a dropped connection. */
+private const val CONSENT_TIMEOUT_GRACE_MS: Long = 10_000L
+
 /**
  * Maximum concurrently-open MCP connections across the kernel-socket binders
  * (#mcp-backbone Stage 4). Keep-alive means a connection can now hold its
@@ -247,12 +255,16 @@ class McpServer @Inject constructor(
 
     /**
      * Transport-level budget for a consent prompt. The manager's own
-     * requestConsent timeout is derived from this (90%, so it always fires
-     * first): since #337 mechanism 3 a backgrounded call HOLDS inside
-     * requestConsent, and without the margin the outer wrapper would win
-     * every unanswered wait and report -32012 "timed out" where the contract
-     * is -32000 "denied" with a DENIED audit row. Internal var (not const) so
-     * unit tests can shrink the real-time wait.
+     * requestConsent timeout is passed 1:1: since #337 mechanism 3 a
+     * backgrounded call HOLDS inside requestConsent and denies at its own
+     * timeout, which must land before the outer wrapper so an unanswered
+     * wait reports -32000 "denied" with a DENIED audit row. Deriving the
+     * manager's timeout as 90% of this raced the wrapper under a loaded
+     * test JVM (manager denied at 1.8s, wrapper won at 2.0s → -32012 and
+     * no DENIED audit), so the wrapper now keeps only a fixed tail
+     * ([CONSENT_TIMEOUT_GRACE_MS]) as a wedged-manager cap; the 70s socket
+     * timeout stays outermost. Internal var (not const) so unit tests can
+     * shrink the real-time wait.
      */
     internal var consentWaitMs: Long = CONSENT_WAIT_MS
 
@@ -1553,13 +1565,13 @@ class McpServer @Inject constructor(
         }
         if (!trusted && !policyAllowed) {
             val decision = runBlocking {
-                withTimeoutOrNull(consentWaitMs) {
+                withTimeoutOrNull(consentWaitMs + CONSENT_TIMEOUT_GRACE_MS) {
                     consentManager.requestConsent(
                         toolName = "capture_haven_ui",
                         clientHint = lastClientHint,
                         summary = "Let the agent see Haven's own screen",
                         level = ConsentLevel.ONCE_PER_SESSION,
-                        timeoutMs = consentWaitMs * 9 / 10,
+                        timeoutMs = consentWaitMs,
                     )
                 }
             }
@@ -1643,14 +1655,14 @@ class McpServer @Inject constructor(
                     .joinToString("") { k -> "$k=${arguments.opt(k)}" }
             }.getOrDefault(arguments.toString())
             val decision = runBlocking {
-                withTimeoutOrNull(consentWaitMs) {
+                withTimeoutOrNull(consentWaitMs + CONSENT_TIMEOUT_GRACE_MS) {
                     consentManager.requestConsent(
                         toolName = name,
                         clientHint = lastClientHint,
                         summary = summary,
                         level = consent.level,
                         operationKey = operationKey,
-                        timeoutMs = consentWaitMs * 9 / 10,
+                        timeoutMs = consentWaitMs,
                     )
                 }
             }

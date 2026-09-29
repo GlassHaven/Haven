@@ -8,7 +8,7 @@ require (
 	github.com/rclone/rclone v1.75.1
 	golang.org/x/crypto v0.57.0
 	golang.zx2c4.com/wireguard v0.0.0-20260522210424-ecfc5a8d5446
-	tailscale.com v1.102.4
+	tailscale.com v1.102.5
 )
 
 require (

@@ -584,14 +584,14 @@ private fun AlignedToolbarContent(
             return {
                 val cb = LocalToolbarCallbacks.current
                 when (key) {
-                    ToolbarKey.ARROW_LEFT -> ToolbarArrowButton("←") { cb.onDispatchKey(0, VTERM_KEY_LEFT) }
-                    ToolbarKey.ARROW_UP -> ToolbarArrowButton("↑") { cb.onDispatchKey(0, VTERM_KEY_UP) }
-                    ToolbarKey.ARROW_DOWN -> ToolbarArrowButton("↓") { cb.onDispatchKey(0, VTERM_KEY_DOWN) }
-                    ToolbarKey.ARROW_RIGHT -> ToolbarArrowButton("→") { cb.onDispatchKey(0, VTERM_KEY_RIGHT) }
-                    ToolbarKey.HOME -> ToolbarIconNavButton(Icons.Filled.FirstPage, "Home") { cb.onDispatchKey(0, VTERM_KEY_HOME) }
-                    ToolbarKey.END -> ToolbarIconNavButton(Icons.Filled.LastPage, "End") { cb.onDispatchKey(0, VTERM_KEY_END) }
-                    ToolbarKey.PGUP -> ToolbarTextButton("PgUp") { cb.onDispatchKey(0, VTERM_KEY_PAGEUP) }
-                    ToolbarKey.PGDN -> ToolbarTextButton("PgDn") { cb.onDispatchKey(0, VTERM_KEY_PAGEDOWN) }
+                    ToolbarKey.ARROW_LEFT -> ToolbarArrowButton("←") { cb.onDispatchKey(shiftMods(shiftActive), VTERM_KEY_LEFT) }
+                    ToolbarKey.ARROW_UP -> ToolbarArrowButton("↑") { cb.onDispatchKey(shiftMods(shiftActive), VTERM_KEY_UP) }
+                    ToolbarKey.ARROW_DOWN -> ToolbarArrowButton("↓") { cb.onDispatchKey(shiftMods(shiftActive), VTERM_KEY_DOWN) }
+                    ToolbarKey.ARROW_RIGHT -> ToolbarArrowButton("→") { cb.onDispatchKey(shiftMods(shiftActive), VTERM_KEY_RIGHT) }
+                    ToolbarKey.HOME -> ToolbarIconNavButton(Icons.Filled.FirstPage, "Home") { cb.onDispatchKey(shiftMods(shiftActive), VTERM_KEY_HOME) }
+                    ToolbarKey.END -> ToolbarIconNavButton(Icons.Filled.LastPage, "End") { cb.onDispatchKey(shiftMods(shiftActive), VTERM_KEY_END) }
+                    ToolbarKey.PGUP -> ToolbarTextButton("PgUp") { cb.onDispatchKey(shiftMods(shiftActive), VTERM_KEY_PAGEUP) }
+                    ToolbarKey.PGDN -> ToolbarTextButton("PgDn") { cb.onDispatchKey(shiftMods(shiftActive), VTERM_KEY_PAGEDOWN) }
                     else -> {}
                 }
             }
@@ -720,14 +720,14 @@ private fun NavBuiltInKey(
     // Arrow and nav keys go through dispatchKey so libvterm applies
     // DECCKM (application cursor mode) — needed for Mutt, vim, etc.
     when (key) {
-        ToolbarKey.ARROW_LEFT -> ToolbarArrowButton("\u2190") { cb.onDispatchKey(0, VTERM_KEY_LEFT) }
-        ToolbarKey.ARROW_UP -> ToolbarArrowButton("\u2191") { cb.onDispatchKey(0, VTERM_KEY_UP) }
-        ToolbarKey.ARROW_DOWN -> ToolbarArrowButton("\u2193") { cb.onDispatchKey(0, VTERM_KEY_DOWN) }
-        ToolbarKey.ARROW_RIGHT -> ToolbarArrowButton("\u2192") { cb.onDispatchKey(0, VTERM_KEY_RIGHT) }
-        ToolbarKey.HOME -> ToolbarIconNavButton(Icons.Filled.FirstPage, "Home") { cb.onDispatchKey(0, VTERM_KEY_HOME) }
-        ToolbarKey.END -> ToolbarIconNavButton(Icons.Filled.LastPage, "End") { cb.onDispatchKey(0, VTERM_KEY_END) }
-        ToolbarKey.PGUP -> ToolbarTextButton("PgUp") { cb.onDispatchKey(0, VTERM_KEY_PAGEUP) }
-        ToolbarKey.PGDN -> ToolbarTextButton("PgDn") { cb.onDispatchKey(0, VTERM_KEY_PAGEDOWN) }
+        ToolbarKey.ARROW_LEFT -> ToolbarArrowButton("\u2190") { cb.onDispatchKey(shiftMods(shiftActive), VTERM_KEY_LEFT) }
+        ToolbarKey.ARROW_UP -> ToolbarArrowButton("\u2191") { cb.onDispatchKey(shiftMods(shiftActive), VTERM_KEY_UP) }
+        ToolbarKey.ARROW_DOWN -> ToolbarArrowButton("\u2193") { cb.onDispatchKey(shiftMods(shiftActive), VTERM_KEY_DOWN) }
+        ToolbarKey.ARROW_RIGHT -> ToolbarArrowButton("\u2192") { cb.onDispatchKey(shiftMods(shiftActive), VTERM_KEY_RIGHT) }
+        ToolbarKey.HOME -> ToolbarIconNavButton(Icons.Filled.FirstPage, "Home") { cb.onDispatchKey(shiftMods(shiftActive), VTERM_KEY_HOME) }
+        ToolbarKey.END -> ToolbarIconNavButton(Icons.Filled.LastPage, "End") { cb.onDispatchKey(shiftMods(shiftActive), VTERM_KEY_END) }
+        ToolbarKey.PGUP -> ToolbarTextButton("PgUp") { cb.onDispatchKey(shiftMods(shiftActive), VTERM_KEY_PAGEUP) }
+        ToolbarKey.PGDN -> ToolbarTextButton("PgDn") { cb.onDispatchKey(shiftMods(shiftActive), VTERM_KEY_PAGEDOWN) }
         else -> Spacer(Modifier.width(NAV_CELL_WIDTH))
     }
 }
@@ -744,6 +744,15 @@ private const val VTERM_KEY_END = 12
 private const val VTERM_KEY_PAGEUP = 13
 private const val VTERM_KEY_PAGEDOWN = 14
 private const val VTERM_KEY_FUNCTION_0 = 256
+
+/**
+ * Modifier bits for toolbar-dispatched keys (TerminalNative: 1=Shift, 2=Alt,
+ * 4=Ctrl). The toolbar calls dispatchKey directly, so this is the only place
+ * the sticky Shift state can reach libvterm. Without it, Shift+Left collapses
+ * to a bare left arrow (#665). Ctrl/Alt are folded separately in
+ * TerminalScreen's callback wrapper.
+ */
+internal fun shiftMods(shiftActive: Boolean): Int = if (shiftActive) 1 else 0
 
 /** Render any toolbar item (non-nav keys in the left/right sections). */
 @Composable
@@ -1153,29 +1162,29 @@ private fun BuiltInKey(
             }
         }
         // Nav keys — routed through dispatchKey for DECCKM support
-        ToolbarKey.ARROW_LEFT -> ToolbarArrowButton("\u2190") { cb.onDispatchKey(0, VTERM_KEY_LEFT) }
-        ToolbarKey.ARROW_UP -> ToolbarArrowButton("\u2191") { cb.onDispatchKey(0, VTERM_KEY_UP) }
-        ToolbarKey.ARROW_DOWN -> ToolbarArrowButton("\u2193") { cb.onDispatchKey(0, VTERM_KEY_DOWN) }
-        ToolbarKey.ARROW_RIGHT -> ToolbarArrowButton("\u2192") { cb.onDispatchKey(0, VTERM_KEY_RIGHT) }
-        ToolbarKey.HOME -> ToolbarIconNavButton(Icons.Filled.FirstPage, "Home") { cb.onDispatchKey(0, VTERM_KEY_HOME) }
-        ToolbarKey.END -> ToolbarIconNavButton(Icons.Filled.LastPage, "End") { cb.onDispatchKey(0, VTERM_KEY_END) }
-        ToolbarKey.PGUP -> ToolbarTextButton("PgUp") { cb.onDispatchKey(0, VTERM_KEY_PAGEUP) }
-        ToolbarKey.PGDN -> ToolbarTextButton("PgDn") { cb.onDispatchKey(0, VTERM_KEY_PAGEDOWN) }
-        ToolbarKey.INSERT -> ToolbarTextButton("Ins") { cb.onDispatchKey(0, VTERM_KEY_INS) }
-        ToolbarKey.DELETE -> ToolbarTextButton("Del") { cb.onDispatchKey(0, VTERM_KEY_DEL) }
+        ToolbarKey.ARROW_LEFT -> ToolbarArrowButton("\u2190") { cb.onDispatchKey(shiftMods(shiftActive), VTERM_KEY_LEFT) }
+        ToolbarKey.ARROW_UP -> ToolbarArrowButton("\u2191") { cb.onDispatchKey(shiftMods(shiftActive), VTERM_KEY_UP) }
+        ToolbarKey.ARROW_DOWN -> ToolbarArrowButton("\u2193") { cb.onDispatchKey(shiftMods(shiftActive), VTERM_KEY_DOWN) }
+        ToolbarKey.ARROW_RIGHT -> ToolbarArrowButton("\u2192") { cb.onDispatchKey(shiftMods(shiftActive), VTERM_KEY_RIGHT) }
+        ToolbarKey.HOME -> ToolbarIconNavButton(Icons.Filled.FirstPage, "Home") { cb.onDispatchKey(shiftMods(shiftActive), VTERM_KEY_HOME) }
+        ToolbarKey.END -> ToolbarIconNavButton(Icons.Filled.LastPage, "End") { cb.onDispatchKey(shiftMods(shiftActive), VTERM_KEY_END) }
+        ToolbarKey.PGUP -> ToolbarTextButton("PgUp") { cb.onDispatchKey(shiftMods(shiftActive), VTERM_KEY_PAGEUP) }
+        ToolbarKey.PGDN -> ToolbarTextButton("PgDn") { cb.onDispatchKey(shiftMods(shiftActive), VTERM_KEY_PAGEDOWN) }
+        ToolbarKey.INSERT -> ToolbarTextButton("Ins") { cb.onDispatchKey(shiftMods(shiftActive), VTERM_KEY_INS) }
+        ToolbarKey.DELETE -> ToolbarTextButton("Del") { cb.onDispatchKey(shiftMods(shiftActive), VTERM_KEY_DEL) }
         // F-keys — routed through dispatchKey so libvterm generates correct sequences
-        ToolbarKey.F1 -> ToolbarTextButton("F1") { cb.onDispatchKey(0, VTERM_KEY_FUNCTION_0 + 1) }
-        ToolbarKey.F2 -> ToolbarTextButton("F2") { cb.onDispatchKey(0, VTERM_KEY_FUNCTION_0 + 2) }
-        ToolbarKey.F3 -> ToolbarTextButton("F3") { cb.onDispatchKey(0, VTERM_KEY_FUNCTION_0 + 3) }
-        ToolbarKey.F4 -> ToolbarTextButton("F4") { cb.onDispatchKey(0, VTERM_KEY_FUNCTION_0 + 4) }
-        ToolbarKey.F5 -> ToolbarTextButton("F5") { cb.onDispatchKey(0, VTERM_KEY_FUNCTION_0 + 5) }
-        ToolbarKey.F6 -> ToolbarTextButton("F6") { cb.onDispatchKey(0, VTERM_KEY_FUNCTION_0 + 6) }
-        ToolbarKey.F7 -> ToolbarTextButton("F7") { cb.onDispatchKey(0, VTERM_KEY_FUNCTION_0 + 7) }
-        ToolbarKey.F8 -> ToolbarTextButton("F8") { cb.onDispatchKey(0, VTERM_KEY_FUNCTION_0 + 8) }
-        ToolbarKey.F9 -> ToolbarTextButton("F9") { cb.onDispatchKey(0, VTERM_KEY_FUNCTION_0 + 9) }
-        ToolbarKey.F10 -> ToolbarTextButton("F10") { cb.onDispatchKey(0, VTERM_KEY_FUNCTION_0 + 10) }
-        ToolbarKey.F11 -> ToolbarTextButton("F11") { cb.onDispatchKey(0, VTERM_KEY_FUNCTION_0 + 11) }
-        ToolbarKey.F12 -> ToolbarTextButton("F12") { cb.onDispatchKey(0, VTERM_KEY_FUNCTION_0 + 12) }
+        ToolbarKey.F1 -> ToolbarTextButton("F1") { cb.onDispatchKey(shiftMods(shiftActive), VTERM_KEY_FUNCTION_0 + 1) }
+        ToolbarKey.F2 -> ToolbarTextButton("F2") { cb.onDispatchKey(shiftMods(shiftActive), VTERM_KEY_FUNCTION_0 + 2) }
+        ToolbarKey.F3 -> ToolbarTextButton("F3") { cb.onDispatchKey(shiftMods(shiftActive), VTERM_KEY_FUNCTION_0 + 3) }
+        ToolbarKey.F4 -> ToolbarTextButton("F4") { cb.onDispatchKey(shiftMods(shiftActive), VTERM_KEY_FUNCTION_0 + 4) }
+        ToolbarKey.F5 -> ToolbarTextButton("F5") { cb.onDispatchKey(shiftMods(shiftActive), VTERM_KEY_FUNCTION_0 + 5) }
+        ToolbarKey.F6 -> ToolbarTextButton("F6") { cb.onDispatchKey(shiftMods(shiftActive), VTERM_KEY_FUNCTION_0 + 6) }
+        ToolbarKey.F7 -> ToolbarTextButton("F7") { cb.onDispatchKey(shiftMods(shiftActive), VTERM_KEY_FUNCTION_0 + 7) }
+        ToolbarKey.F8 -> ToolbarTextButton("F8") { cb.onDispatchKey(shiftMods(shiftActive), VTERM_KEY_FUNCTION_0 + 8) }
+        ToolbarKey.F9 -> ToolbarTextButton("F9") { cb.onDispatchKey(shiftMods(shiftActive), VTERM_KEY_FUNCTION_0 + 9) }
+        ToolbarKey.F10 -> ToolbarTextButton("F10") { cb.onDispatchKey(shiftMods(shiftActive), VTERM_KEY_FUNCTION_0 + 10) }
+        ToolbarKey.F11 -> ToolbarTextButton("F11") { cb.onDispatchKey(shiftMods(shiftActive), VTERM_KEY_FUNCTION_0 + 11) }
+        ToolbarKey.F12 -> ToolbarTextButton("F12") { cb.onDispatchKey(shiftMods(shiftActive), VTERM_KEY_FUNCTION_0 + 12) }
         else -> {
             val ch = key.char ?: return
             SymbolButton(key.label) {

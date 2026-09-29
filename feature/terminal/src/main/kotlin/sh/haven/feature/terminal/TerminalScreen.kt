@@ -2054,11 +2054,11 @@ fun TerminalScreen(
                     // needed while typing. Fullscreen still hides the system + tab bars.
                     KeyboardToolbar(
                         onSendBytes = { bytes -> activeTab.sendInput(bytes) },
-                        // The toolbar's own keys dispatch with mods = 0, so a tapped
-                        // Ctrl/Alt never reached them — Ctrl+End sent a bare End. Fold
-                        // the active modifiers in here (bit 1 = Alt, bit 2 = Ctrl, per
-                        // Terminal.cpp's dispatchKey) and let libvterm build the
-                        // sequence: Ctrl+End becomes ESC[1;5F.
+                        // The toolbar folds its own sticky Shift into the mods it
+                        // passes (#665); this wrapper folds the tapped Ctrl/Alt the
+                        // toolbar can't see — bits 1 = Alt, 2 = Ctrl, per
+                        // Terminal.cpp's dispatchKey. libvterm builds the sequence:
+                        // Ctrl+End becomes ESC[1;5F, Shift+Left ESC[1;2D.
                         onDispatchKey = { mods, key ->
                             val tapped = viewModel.toolbarModifierMask()
                             activeTab.emulator?.dispatchKey(mods or tapped, key)

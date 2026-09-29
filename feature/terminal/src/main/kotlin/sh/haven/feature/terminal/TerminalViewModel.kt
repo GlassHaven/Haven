@@ -835,8 +835,9 @@ class TerminalViewModel @Inject constructor(
      * The active modifiers as libvterm's dispatchKey mask — bit 0 Shift, bit 1
      * Alt, bit 2 Ctrl (`Terminal.cpp`). The toolbar's own keys dispatch a key
      * code rather than bytes, so this is what carries a tapped Ctrl to them;
-     * without it Ctrl+End left as a bare End. Shift is the toolbar's own state
-     * and is not folded in here.
+     * without it Ctrl+End left as a bare End. Shift never needs folding here —
+     * the toolbar owns that state and adds bit 0 itself when dispatching
+     * (#665), so what arrives at dispatchKey already carries it.
      */
     fun toolbarModifierMask(): Int =
         (if (_altActive.value) 2 else 0) or (if (_ctrlActive.value) 4 else 0)

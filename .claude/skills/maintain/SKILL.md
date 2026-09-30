@@ -38,6 +38,13 @@ queued is idle time.
      file) catches edits/labels the first check misses. Anything noted but not
      actioned MUST be carried in the state file — the timestamp filter hides it
      next pass.
+   - **Carried threads read by number**: the sweeps are search-based and both
+     lossy — the search index lags fresh comments, and each pass's `updated:>`
+     lower bound slides past anything older, so a comment missed in its window
+     never resurfaces (a closed issue took three passes to see this way). Every
+     thread the state file carries as awaiting-someone is read by number via
+     REST each pass: `gh api repos/GlassHaven/Haven/issues/<n>` — index-free,
+     authoritative. Treat the sweeps as best-effort with known lag.
    - **Closed issue sweep**: `gh issue list --state closed --search "updated:>LAST_PASS"
      --limit 50 ...` with the same jq. Comments land on closed issues too
      ("actually, still broken"); without this they are invisible forever. Last

@@ -30,6 +30,13 @@ Haven is an Android application with a multi-module Gradle architecture using Ko
   python3 scripts/check-i18n-coverage.py
   ```
 
+## Submodule Checkout Discipline
+The `termlib` submodule working tree drifts whenever a session checks out a PR or upstream branch (device tests, upstreaming). This has caused two silent build breakages: left on `resize-grow-cursor` (09-22), its AGP failed the parent's dependency verification so every gradle invocation died at configuration; left on `main` while parent sources referenced PR-only APIs (09-24), compile failed with `No parameter with name ... found` and the failure was masked by piped output.
+- **Before any gradle invocation:** `git submodule status`. A leading `+` or `U` means the checkout does not match the parent gitlink — resolve before building.
+- **When parent sources carry deliberate temporary edits** (e.g. device-test flag builds): confirm the submodule checkout is the commit those edits expect (`git -C termlib log -1`), and note both in `scratch/maintain-state.md`.
+- **Before ending any session** that checked out a non-gitlink commit or left the submodule dirty: restore with `git submodule update <path>` (and `git -C <sub> checkout -- .` if dirty), rebuild once, and record the restore.
+- **Never pipe build output to `tail`/`grep` alone** — the pipe's exit code masks gradle's failure. Write to a file, echo `GRADLE_EXIT=$?`, then grep for `BUILD (SUCCESSFUL|FAILED)`.
+
 ## Gradle & Compiler Invariants
 - **Kotlin Classes:** Unit test Kotlin classes compile into `<module>/build/intermediates/built_in_kotlinc/debugUnitTest/` and `<module>/build/tmp/kotlin-classes/debugUnitTest/` (not javac).
 - **Test Results:** XML test output is located at `<module>/build/test-results/testDebugUnitTest/` and HTML reports at `<module>/build/reports/tests/testDebugUnitTest/index.html`.

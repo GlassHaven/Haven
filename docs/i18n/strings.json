@@ -36292,6 +36292,106 @@
       "sr": "Поправи",
       "zh": "修复"
      }
+    },
+    {
+     "name": "settings_inline_images_title",
+     "en": "Inline images",
+     "comment": "Inline-image consent (#583)",
+     "args": [],
+     "t": {
+      "ar": "صور مضمّنة",
+      "bn": "ইনলাইন ছবি",
+      "de": "Eingebettete Bilder",
+      "es": "Imágenes integradas",
+      "fr": "Images intégrées",
+      "hi": "इनलाइन छवियाँ",
+      "ja": "インライン画像",
+      "ko": "인라인 이미지",
+      "pt": "Imagens embutidas",
+      "ru": "Встроенные изображения",
+      "sr": "Уграћене слике",
+      "zh": "内嵌图像"
+     }
+    },
+    {
+     "name": "settings_inline_images_subtitle",
+     "en": "Images that SSH programs send into the terminal (Kitty graphics, iTerm2).",
+     "comment": "Inline-image consent (#583)",
+     "args": [],
+     "t": {
+      "ar": "الصور التي ترسلها البرامج إلى الجهاز الطرفي (رسوميات Kitty و iTerm2).",
+      "bn": "প্রোগ্রাম যে ছবিগুলি টার্মিনালে পাঠায় (Kitty গ্রাফিক্স, iTerm2)।",
+      "de": "Bilder, die Programme im Terminal darstellen (Kitty-Grafik, iTerm2).",
+      "es": "Imágenes que los programas muestran en el terminal (gráficos Kitty, iTerm2).",
+      "fr": "Images que les programmes affichent dans le terminal (graphiques Kitty, iTerm2).",
+      "hi": "प्रोग्राम जो टर्मिनल में छवियाँ भेजते हैं (Kitty ग्राफ़िक्स, iTerm2)।",
+      "ja": "プログラムが端末に送る画像（Kitty グラフィック、iTerm2）。",
+      "ko": "프로그램이 터미널에 보내는 이미지(Kitty 그래픽, iTerm2).",
+      "pt": "Imagens que programas enviam ao terminal (gráficos Kitty, iTerm2).",
+      "ru": "Изображения, которые программы показывают в терминале (графика Kitty, iTerm2).",
+      "sr": "Слике које програми шаљу у терминал (Kitty графика, iTerm2).",
+      "zh": "SSH 程序发送到终端的图像（Kitty 图形协议、iTerm2）。"
+     }
+    },
+    {
+     "name": "settings_inline_images_off",
+     "en": "Off",
+     "comment": "Inline-image consent (#583)",
+     "args": [],
+     "t": {
+      "ar": "إيقاف",
+      "bn": "বন্ধ",
+      "de": "Aus",
+      "es": "Desactivado",
+      "fr": "Désactivé",
+      "hi": "बंद",
+      "ja": "オフ",
+      "ko": "끔",
+      "pt": "Desligado",
+      "ru": "Выкл",
+      "sr": "Искључено",
+      "zh": "关闭"
+     }
+    },
+    {
+     "name": "settings_inline_images_ask",
+     "en": "Ask",
+     "comment": "Inline-image consent (#583)",
+     "args": [],
+     "t": {
+      "ar": "اسأل",
+      "bn": "জিজ্ঞাসা করুন",
+      "de": "Nachfragen",
+      "es": "Preguntar",
+      "fr": "Demander",
+      "hi": "पूछें",
+      "ja": "確認",
+      "ko": "물어보기",
+      "pt": "Perguntar",
+      "ru": "Спрашивать",
+      "sr": "Питај",
+      "zh": "询问"
+     }
+    },
+    {
+     "name": "settings_inline_images_always",
+     "en": "Always",
+     "comment": "Inline-image consent (#583)",
+     "args": [],
+     "t": {
+      "ar": "دائمًا",
+      "bn": "সবসময়",
+      "de": "Immer",
+      "es": "Siempre",
+      "fr": "Toujours",
+      "hi": "हमेशा",
+      "ja": "常に",
+      "ko": "항상",
+      "pt": "Sempre",
+      "ru": "Всегда",
+      "sr": "Увек",
+      "zh": "总是"
+     }
     }
    ]
   },
@@ -44532,6 +44632,171 @@
       "ru": "Это приложение запрашивает мышь. Включите «Мышь в TUI-приложениях» в Настройках → Терминал.",
       "sr": "Ова апликација тражи приступ мишу. Да бисте је користили, укључите „Унос мишем у TUI апликацијама” у Подешавања → Терминал",
       "zh": "此应用正在请求鼠标。请在设置 → 终端中开启“TUI 应用中的鼠标输入”。"
+     }
+    },
+    {
+     "name": "terminal_inline_image_title",
+     "en": "Inline image",
+     "comment": "Inline-image consent (#583)",
+     "args": [],
+     "t": {
+      "ar": "صورة مضمّنة",
+      "bn": "ইনলাইন ছবি",
+      "de": "Eingebettetes Bild",
+      "es": "Imagen integrada",
+      "fr": "Image intégrée",
+      "hi": "इनलाइन छवि",
+      "ja": "インライン画像",
+      "ko": "인라인 이미지",
+      "pt": "Imagem embutida",
+      "ru": "Встроенное изображение",
+      "sr": "Уграћена слика",
+      "zh": "内嵌图像"
+     }
+    },
+    {
+     "name": "terminal_inline_image_question",
+     "en": "This terminal wants to display an image inline.",
+     "comment": "Inline-image consent (#583)",
+     "args": [],
+     "t": {
+      "ar": "يريد هذا الجهاز الطرفي عرض صورة مضمّنة.",
+      "bn": "এই টার্মিনালটি ইনলাইনে একটি ছবি দেখাতে চায়।",
+      "de": "Dieses Terminal möchte ein Bild direkt im Text anzeigen.",
+      "es": "Este terminal quiere mostrar una imagen en línea.",
+      "fr": "Ce terminal veut afficher une image directement dans le texte.",
+      "hi": "यह टर्मिनल एक छवि इनलाइन दिखाना चाहता है।",
+      "ja": "ターミナルがインラインで画像を表示しようとしています。",
+      "ko": "이 터미널이 인라인 이미지를 표시하려고 합니다.",
+      "pt": "Este terminal quer exibir uma imagem embutida no texto.",
+      "ru": "Терминал хочет показать изображение прямо в тексте.",
+      "sr": "Овај терминал жели да прикаже слику у тексту.",
+      "zh": "此终端想要内嵌显示一张图像。"
+     }
+    },
+    {
+     "name": "terminal_inline_image_protocol_kitty",
+     "en": "Kitty graphics protocol",
+     "comment": "Inline-image consent (#583)",
+     "args": [],
+     "t": {
+      "ar": "بروتوكول الرسوميات Kitty",
+      "bn": "Kitty গ্রাফিক্স প্রোটোকল",
+      "de": "Kitty-Grafikprotokoll",
+      "es": "Protocolo de gráficos Kitty",
+      "fr": "Protocole graphique Kitty",
+      "hi": "Kitty ग्राफ़िक्स प्रोटोकॉल",
+      "ja": "Kitty グラフィックプロトコル",
+      "ko": "Kitty 그래픽 프로토콜",
+      "pt": "Protocolo gráfico Kitty",
+      "ru": "Графический протокол Kitty",
+      "sr": "Kitty графички протокол",
+      "zh": "Kitty 图形协议"
+     }
+    },
+    {
+     "name": "terminal_inline_image_protocol_iterm2",
+     "en": "iTerm2 protocol",
+     "comment": "Inline-image consent (#583)",
+     "args": [],
+     "t": {
+      "ar": "بروتوكول iTerm2",
+      "bn": "iTerm2 প্রোটোকল",
+      "de": "iTerm2-Protokoll",
+      "es": "Protocolo iTerm2",
+      "fr": "Protocole iTerm2",
+      "hi": "iTerm2 प्रोटोकॉल",
+      "ja": "iTerm2 プロトコル",
+      "ko": "iTerm2 프로토콜",
+      "pt": "Protocolo iTerm2",
+      "ru": "Протокол iTerm2",
+      "sr": "iTerm2 протокол",
+      "zh": "iTerm2 协议"
+     }
+    },
+    {
+     "name": "terminal_inline_image_name",
+     "en": "File: %1$s",
+     "comment": "Inline-image consent (#583)",
+     "args": [
+      "%1$s"
+     ],
+     "t": {
+      "ar": "الملف: %1$s",
+      "bn": "ফাইল: %1$s",
+      "de": "Datei: %1$s",
+      "es": "Archivo: %1$s",
+      "fr": "Fichier : %1$s",
+      "hi": "फ़ाइल: %1$s",
+      "ja": "ファイル: %1$s",
+      "ko": "파일: %1$s",
+      "pt": "Arquivo: %1$s",
+      "ru": "Файл: %1$s",
+      "sr": "Датотека: %1$s",
+      "zh": "文件：%1$s"
+     }
+    },
+    {
+     "name": "terminal_inline_image_dimensions",
+     "en": "Size: %1$d × %2$d px",
+     "comment": "Inline-image consent (#583)",
+     "args": [
+      "%1$d",
+      "%2$d"
+     ],
+     "t": {
+      "ar": "الأبعاد: %1$d × %2$d بكسل",
+      "bn": "আকার: %1$d × %2$d পিক্সেল",
+      "de": "Größe: %1$d × %2$d px",
+      "es": "Tamaño: %1$d × %2$d px",
+      "fr": "Taille : %1$d × %2$d px",
+      "hi": "आकार: %1$d × %2$d px",
+      "ja": "サイズ: %1$d × %2$d px",
+      "ko": "크기: %1$d × %2$d px",
+      "pt": "Tamanho: %1$d × %2$d px",
+      "ru": "Размер: %1$d × %2$d px",
+      "sr": "Величина: %1$d × %2$d px",
+      "zh": "尺寸：%1$d × %2$d px"
+     }
+    },
+    {
+     "name": "terminal_inline_image_deny",
+     "en": "Deny",
+     "comment": "Inline-image consent (#583)",
+     "args": [],
+     "t": {
+      "ar": "رفض",
+      "bn": "প্রত্যাখ্যান",
+      "de": "Ablehnen",
+      "es": "Denegar",
+      "fr": "Refuser",
+      "hi": "अस्वीकार करें",
+      "ja": "拒否",
+      "ko": "거부",
+      "pt": "Negar",
+      "ru": "Отклонить",
+      "sr": "Одбиј",
+      "zh": "拒绝"
+     }
+    },
+    {
+     "name": "terminal_inline_image_always_tab",
+     "en": "Always in this tab",
+     "comment": "Inline-image consent (#583)",
+     "args": [],
+     "t": {
+      "ar": "دائمًا في هذا التبويب",
+      "bn": "এই ট্যাবে সবসময়",
+      "de": "Immer in diesem Tab",
+      "es": "Siempre en esta pestaña",
+      "fr": "Toujours dans cet onglet",
+      "hi": "इस टैब में हमेशा",
+      "ja": "このタブでは常に許可",
+      "ko": "이 탭에서 항상 허용",
+      "pt": "Sempre nesta aba",
+      "ru": "Всегда в этой вкладке",
+      "sr": "Увек у овој картици",
+      "zh": "此标签页内总是允许"
      }
     }
    ]

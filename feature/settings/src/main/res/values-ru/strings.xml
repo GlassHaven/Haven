@@ -506,4 +506,11 @@
 
 Каждый закрытый ключ, уже сохранённый в Haven, потребуется импортировать или создать заново. Они уже нечитаемы — ключ, который их защищал, утерян, обычно потому что приложение было переустановлено из другого источника — поэтому это восстанавливает приложение, а не приводит к новым потерям.</string>
     <string name="settings_sshkey_reset_confirm">Восстановить</string>
+
+    <!-- Inline-image consent (#583) -->
+    <string name="settings_inline_images_title">Встроенные изображения</string>
+    <string name="settings_inline_images_subtitle">Изображения, которые программы показывают в терминале (графика Kitty, iTerm2).</string>
+    <string name="settings_inline_images_off">Выкл</string>
+    <string name="settings_inline_images_ask">Спрашивать</string>
+    <string name="settings_inline_images_always">Всегда</string>
 </resources>

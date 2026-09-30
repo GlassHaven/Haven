@@ -154,4 +154,14 @@
     <string name="terminal_details_unavailable">Impossible de lire les détails de connexion de cet onglet.</string>
     <string name="terminal_mouse_requested_but_disabled">Cette appli demande la souris. Activez « Souris dans les applis TUI » dans Réglages → Terminal pour l’utiliser.</string>
     <string name="terminal_dictate_unavailable">Aucune application de saisie vocale n\'est disponible sur cet appareil</string>
+
+    <!-- Inline-image consent (#583) -->
+    <string name="terminal_inline_image_title">Image intégrée</string>
+    <string name="terminal_inline_image_question">Ce terminal veut afficher une image directement dans le texte.</string>
+    <string name="terminal_inline_image_protocol_kitty">Protocole graphique Kitty</string>
+    <string name="terminal_inline_image_protocol_iterm2">Protocole iTerm2</string>
+    <string name="terminal_inline_image_name">Fichier : %1$s</string>
+    <string name="terminal_inline_image_dimensions">Taille : %1$d × %2$d px</string>
+    <string name="terminal_inline_image_deny">Refuser</string>
+    <string name="terminal_inline_image_always_tab">Toujours dans cet onglet</string>
 </resources>

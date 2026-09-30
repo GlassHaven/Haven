@@ -154,4 +154,14 @@
     <string name="terminal_details_unavailable">Verbindungsdetails für diesen Tab konnten nicht gelesen werden.</string>
     <string name="terminal_mouse_requested_but_disabled">Diese App fragt nach der Maus. Aktiviere „Mauseingabe in TUI-Apps“ unter Einstellungen → Terminal, um sie zu nutzen.</string>
     <string name="terminal_dictate_unavailable">Auf diesem Gerät ist keine App für Spracheingabe verfügbar</string>
+
+    <!-- Inline-image consent (#583) -->
+    <string name="terminal_inline_image_title">Eingebettetes Bild</string>
+    <string name="terminal_inline_image_question">Dieses Terminal möchte ein Bild direkt im Text anzeigen.</string>
+    <string name="terminal_inline_image_protocol_kitty">Kitty-Grafikprotokoll</string>
+    <string name="terminal_inline_image_protocol_iterm2">iTerm2-Protokoll</string>
+    <string name="terminal_inline_image_name">Datei: %1$s</string>
+    <string name="terminal_inline_image_dimensions">Größe: %1$d × %2$d px</string>
+    <string name="terminal_inline_image_deny">Ablehnen</string>
+    <string name="terminal_inline_image_always_tab">Immer in diesem Tab</string>
 </resources>

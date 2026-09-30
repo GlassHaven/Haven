@@ -62,6 +62,7 @@ import androidx.compose.material.icons.filled.Usb
 import androidx.compose.material.icons.filled.LocationOn
 import androidx.compose.material.icons.filled.VolumeUp
 import androidx.compose.material.icons.filled.ListAlt
+import androidx.compose.material.icons.filled.Image
 import androidx.compose.material.icons.filled.Label
 import androidx.compose.material.icons.filled.LightMode
 import androidx.compose.material.icons.filled.ScreenLockPortrait
@@ -230,6 +231,7 @@ fun SettingsScreen(
     val interceptCtrlShiftV by viewModel.interceptCtrlShiftV.collectAsState()
     val reflowTerminalOnKeyboard by viewModel.reflowTerminalOnKeyboard.collectAsState()
     val terminalTabTitlesFollowSession by viewModel.terminalTabTitlesFollowSession.collectAsState()
+    val terminalInlineImages by viewModel.terminalInlineImages.collectAsState()
     val showTerminalTabBar by viewModel.showTerminalTabBar.collectAsState()
     val backupStatus by viewModel.backupStatus.collectAsState()
     val waylandShellCommand by viewModel.waylandShellCommand.collectAsState()
@@ -779,6 +781,17 @@ fun SettingsScreen(
             subtitle = stringResource(R.string.settings_tab_titles_follow_session_subtitle),
             checked = terminalTabTitlesFollowSession,
             onCheckedChange = viewModel::setTerminalTabTitlesFollowSession,
+        )
+        // Inline images from SSH programs (Kitty graphics / iTerm2, #583) —
+        // the consent policy: never render, ask per image, or always render.
+        SettingsChipsItem(
+            icon = Icons.Filled.Image,
+            title = stringResource(R.string.settings_inline_images_title),
+            subtitle = stringResource(R.string.settings_inline_images_subtitle),
+            options = UserPreferencesRepository.TerminalInlineImages.entries,
+            selected = terminalInlineImages,
+            label = { mode -> stringResource(terminalInlineImagesLabel(mode)) },
+            onChange = viewModel::setTerminalInlineImages,
         )
 
         }
@@ -3205,6 +3218,46 @@ private fun SettingsItem(
             .clickable(onClick = onClick)
             .padding(horizontal = 8.dp),
     )
+}
+
+/** Generic settings row whose value is a chip choice (enum prefs). */
+@Composable
+private fun <T> SettingsChipsItem(
+    icon: ImageVector,
+    title: String,
+    subtitle: String,
+    options: List<T>,
+    selected: T,
+    label: @Composable (T) -> String,
+    onChange: (T) -> Unit,
+) {
+    ListItem(
+        headlineContent = { Text(title) },
+        supportingContent = { Text(subtitle) },
+        leadingContent = {
+            Icon(icon, contentDescription = null, tint = MaterialTheme.colorScheme.primary)
+        },
+    )
+    Row(modifier = Modifier.padding(start = 24.dp, bottom = 8.dp)) {
+        options.forEach { option ->
+            FilterChip(
+                selected = option == selected,
+                onClick = { onChange(option) },
+                label = {
+                    Text(label(option), fontSize = 11.sp)
+                },
+                modifier = Modifier.padding(horizontal = 2.dp),
+            )
+        }
+    }
+}
+
+/** String resource for a [UserPreferencesRepository.TerminalInlineImages] chip label. */
+@androidx.annotation.StringRes
+private fun terminalInlineImagesLabel(mode: UserPreferencesRepository.TerminalInlineImages): Int = when (mode) {
+    UserPreferencesRepository.TerminalInlineImages.OFF -> R.string.settings_inline_images_off
+    UserPreferencesRepository.TerminalInlineImages.ASK -> R.string.settings_inline_images_ask
+    UserPreferencesRepository.TerminalInlineImages.ALWAYS -> R.string.settings_inline_images_always
 }
 
 /** Assignment for a key in the toolbar config dialog. */

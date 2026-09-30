@@ -504,4 +504,11 @@
 
 Haven-এ ইম্মদ্য সংরক্ষিত প্রত্যেক ব্যক্তিগত কী আবার আমদানি করা বা তৈরি করতে হবে। এগুলো ইম্মদ্য পড়া যাচ্ছে — যে কী তাদের রক্ষা করত তা হারিয়েছে, সাধারণত কারণ অ্যাটি অন্য উৎস থেকে পুনরায় ইনস্টোল করা হয়েছিল — তাই এটি আরও কিছু হারানোর পরিবর্তে অ্যাটি পুনরুদ্ধার করে।</string>
     <string name="settings_sshkey_reset_confirm">মারামত</string>
+
+    <!-- Inline-image consent (#583) -->
+    <string name="settings_inline_images_title">ইনলাইন ছবি</string>
+    <string name="settings_inline_images_subtitle">প্রোগ্রাম যে ছবিগুলি টার্মিনালে পাঠায় (Kitty গ্রাফিক্স, iTerm2)।</string>
+    <string name="settings_inline_images_off">বন্ধ</string>
+    <string name="settings_inline_images_ask">জিজ্ঞাসা করুন</string>
+    <string name="settings_inline_images_always">সবসময়</string>
 </resources>

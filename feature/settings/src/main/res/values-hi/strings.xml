@@ -504,4 +504,11 @@
 
 Haven में पहले से संग्रहीत प्रत्येक निजी कुंजी को फिर से आयात या उत्पन्न करना होगा। वे पहले से अपठनीय हैं — उन्हें सुरक्षित रखने वाली कुंजी खो गई है, आमतः तब जब ऐप को किसी स्रोत से पुनः इंस्टॉल किया गया था — इसलिए यह आगे से कुछ भी खोने के बजाय आप को पुनर्प्राप्त करता है।</string>
     <string name="settings_sshkey_reset_confirm">मरममत करें</string>
+
+    <!-- Inline-image consent (#583) -->
+    <string name="settings_inline_images_title">इनलाइन छवियाँ</string>
+    <string name="settings_inline_images_subtitle">प्रोग्राम जो टर्मिनल में छवियाँ भेजते हैं (Kitty ग्राफ़िक्स, iTerm2)।</string>
+    <string name="settings_inline_images_off">बंद</string>
+    <string name="settings_inline_images_ask">पूछें</string>
+    <string name="settings_inline_images_always">हमेशा</string>
 </resources>

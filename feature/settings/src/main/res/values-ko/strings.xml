@@ -503,4 +503,11 @@
 
 Haven에 이미 저장된 모든 개인 키는 다시 가져오거나 생성해야 합니다. 이미 읽을 수 없는 상태입니다 — 이들을 보호하던 키가 사라졌으며, 보통 앱을 다른 소스에서 다시 설치했기 때문입니다 — 따라서 이것은 추가로 무엇가를 잃는 것이 아니라 앱을 복구합니다.</string>
     <string name="settings_sshkey_reset_confirm">복구</string>
+
+    <!-- Inline-image consent (#583) -->
+    <string name="settings_inline_images_title">인라인 이미지</string>
+    <string name="settings_inline_images_subtitle">프로그램이 터미널에 보내는 이미지(Kitty 그래픽, iTerm2).</string>
+    <string name="settings_inline_images_off">끔</string>
+    <string name="settings_inline_images_ask">물어보기</string>
+    <string name="settings_inline_images_always">항상</string>
 </resources>

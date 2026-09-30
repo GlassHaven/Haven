@@ -9,6 +9,7 @@ import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.SupervisorJob
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.launch
+import org.connectbot.terminal.InlineImages
 import org.connectbot.terminal.TerminalDimensions
 import org.connectbot.terminal.TerminalEmulator
 import org.connectbot.terminal.TerminalEmulatorFactory
@@ -62,6 +63,7 @@ class SshTerminalEmulatorOwner @Inject constructor(
     @ApplicationContext private val appContext: Context,
     private val preferencesRepository: UserPreferencesRepository,
     private val registry: TerminalSessionRegistry,
+    private val inlineImageConsent: InlineImageConsentRegistry,
 ) {
     /** Per-session emulator + output pipeline, owned here across ViewModel cycles. */
     class Bundle(
@@ -94,12 +96,13 @@ class SshTerminalEmulatorOwner @Inject constructor(
             background: Color,
             enableAltScreen: Boolean,
             maxScrollbackLines: Int,
+            inlineImages: InlineImages,
             onKeyboardInput: (ByteArray) -> Unit,
             onResize: (TerminalDimensions) -> Unit,
         ): TerminalEmulator
     }
 
-    internal var emulatorFactory: EmulatorFactory = EmulatorFactory { fg, bg, alt, scrollback, oki, ors ->
+    internal var emulatorFactory: EmulatorFactory = EmulatorFactory { fg, bg, alt, scrollback, inlineImages, oki, ors ->
         TerminalEmulatorFactory.create(
             autoDetectUrls = true,
             initialRows = 24,
@@ -110,6 +113,7 @@ class SshTerminalEmulatorOwner @Inject constructor(
             onKeyboardInput = oki,
             onResize = ors,
             maxScrollbackLines = scrollback,
+            inlineImages = inlineImages,
         )
     }
 
@@ -124,6 +128,7 @@ class SshTerminalEmulatorOwner @Inject constructor(
     @Volatile private var verboseLogging = false
     @Volatile private var scrollbackRows = UserPreferencesRepository.DEFAULT_SCROLLBACK_ROWS
     @Volatile private var globalScheme = UserPreferencesRepository.TerminalColorScheme.HAVEN
+    @Volatile private var inlineImagesMode = UserPreferencesRepository.TerminalInlineImages.ASK
 
     /** Register the provider + start the caches. Call once from `HavenApp.onCreate`. */
     fun start() {
@@ -133,6 +138,18 @@ class SshTerminalEmulatorOwner @Inject constructor(
         scope.launch { preferencesRepository.verboseLoggingEnabled.collect { verboseLogging = it } }
         scope.launch { preferencesRepository.terminalScrollbackRows.collect { scrollbackRows = it } }
         scope.launch { preferencesRepository.terminalColorScheme.collect { globalScheme = it } }
+        scope.launch {
+            preferencesRepository.terminalInlineImages.collect { mode ->
+                inlineImagesMode = mode
+                // Re-police every owned emulator — tabbed or not; the ViewModel's
+                // own re-police only covers the tabs it mounted. Deny a pending
+                // prompt first: its parked confirm belongs to the old gate.
+                for (id in bundles.keys) {
+                    inlineImageConsent.answer(id, false, false)
+                    bundles[id]?.emulatorOrNull()?.setInlineImages(inlineImagesPolicy(mode, inlineImageConsent.state(id)))
+                }
+            }
+        }
         // Dispose a bundle only when its session is fully removed from the map
         // (the removeSession teardown). RECONNECTING / clean-exit-still-present
         // keep the same TerminalSession, so the bundle must survive them.
@@ -194,6 +211,7 @@ class SshTerminalEmulatorOwner @Inject constructor(
             // alt-screen off for `screen` (no alt-screen) and profile opt-out.
             enableAltScreen = profile?.disableAltScreen != true && profile?.sessionManager != "screen",
             maxScrollbackLines = scrollbackRows,
+            inlineImages = inlineImagesPolicy(inlineImagesMode, inlineImageConsent.state(sessionId)),
             onKeyboardInput = { data -> bundle.inputSink(data) },
             onResize = { dims -> bundle.resizeSink(dims) },
         )
@@ -248,6 +266,9 @@ class SshTerminalEmulatorOwner @Inject constructor(
         val b = bundles.remove(sessionId) ?: return
         b.recorder?.close()
         registry.unregister(sessionId, b.profileId, b.label)
+        // Deny + free the consent state: a prompt parked on this emulator's
+        // gate must not outlive it (#583).
+        inlineImageConsent.drop(sessionId)
         // Frees the native terminal now rather than whenever the collector next
         // runs (#509). Unregistering first matters: it is what stops the MCP
         // agent handing out this emulator, so nothing new can arrive between

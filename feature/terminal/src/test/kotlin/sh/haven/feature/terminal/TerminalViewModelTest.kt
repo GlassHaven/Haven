@@ -108,6 +108,7 @@ class TerminalViewModelTest {
             mockk(relaxed = true), // HostKeyVerifier
             mockk(relaxed = true), // FidoAuthenticator
             mockk(relaxed = true), // UserPreferencesRepository
+            InlineImageConsentRegistry(),
             connectionRepository,
             mockk(relaxed = true), // TunnelResolver
             sh.haven.core.data.agent.AgentUiCommandBus(),

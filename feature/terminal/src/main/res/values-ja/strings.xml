@@ -154,4 +154,14 @@
     <string name="terminal_details_unavailable">このタブの接続詳細を読み取れませんでした。</string>
     <string name="terminal_mouse_requested_but_disabled">このアプリがマウスを要求しています。使うには設定 → ターミナルで「TUIアプリでのマウス入力」をオンにしてください。</string>
     <string name="terminal_dictate_unavailable">このデバイスでは音声入力アプリを利用できません</string>
+
+    <!-- Inline-image consent (#583) -->
+    <string name="terminal_inline_image_title">インライン画像</string>
+    <string name="terminal_inline_image_question">ターミナルがインラインで画像を表示しようとしています。</string>
+    <string name="terminal_inline_image_protocol_kitty">Kitty グラフィックプロトコル</string>
+    <string name="terminal_inline_image_protocol_iterm2">iTerm2 プロトコル</string>
+    <string name="terminal_inline_image_name">ファイル: %1$s</string>
+    <string name="terminal_inline_image_dimensions">サイズ: %1$d × %2$d px</string>
+    <string name="terminal_inline_image_deny">拒否</string>
+    <string name="terminal_inline_image_always_tab">このタブでは常に許可</string>
 </resources>

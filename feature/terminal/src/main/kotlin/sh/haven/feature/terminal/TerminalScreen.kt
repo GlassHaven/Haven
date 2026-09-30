@@ -119,6 +119,7 @@ import androidx.compose.foundation.layout.WindowInsets
 import androidx.compose.foundation.layout.isImeVisible
 import androidx.core.view.WindowInsetsCompat
 import androidx.hilt.navigation.compose.hiltViewModel
+import org.connectbot.terminal.InlineImageProtocolType
 import org.connectbot.terminal.ModifierManager
 import org.connectbot.terminal.TerminalEmulator
 import sh.haven.core.terminal.HavenKeyboardMode
@@ -1529,6 +1530,20 @@ fun TerminalScreen(
                         showTerminalNotification(context, title, body, activeTab.label)
                     }
 
+                    // Inline-image consent (#583): the ASK policy parks the
+                    // request on the per-session registry; answer it here.
+                    val inlineImagePrompt by viewModel
+                        .inlineImagePromptFor(activeTab.sessionId)
+                        .collectAsState()
+                    inlineImagePrompt?.let { prompt ->
+                        InlineImageConsentDialog(
+                            prompt = prompt,
+                            onAnswer = { allowed, alwaysInTab ->
+                                viewModel.answerInlineImage(activeTab.sessionId, allowed, alwaysInTab)
+                            },
+                        )
+                    }
+
                     val focusRequester = remember { FocusRequester() }
 
                     // Keyed on isActive, not Unit: the HorizontalPager keeps
@@ -2665,6 +2680,68 @@ private fun StallBanner(
             }
         }
     }
+}
+
+/**
+ * Inline-image consent dialog (#583): what the terminal wants to display,
+ * with Deny / Allow plus "always in this tab". Dismiss denies — nothing
+ * renders without an answer.
+ */
+@Composable
+private fun InlineImageConsentDialog(
+    prompt: InlineImagePrompt,
+    onAnswer: (allowed: Boolean, alwaysInTab: Boolean) -> Unit,
+) {
+    val request = prompt.request
+    AlertDialog(
+        onDismissRequest = { onAnswer(false, false) },
+        title = { Text(stringResource(R.string.terminal_inline_image_title)) },
+        text = {
+            Column {
+                Text(stringResource(R.string.terminal_inline_image_question))
+                Spacer(Modifier.height(8.dp))
+                Text(
+                    text = when (request.protocol) {
+                        InlineImageProtocolType.KITTY ->
+                            stringResource(R.string.terminal_inline_image_protocol_kitty)
+                        InlineImageProtocolType.ITERM2 ->
+                            stringResource(R.string.terminal_inline_image_protocol_iterm2)
+                    },
+                    style = MaterialTheme.typography.bodySmall,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant,
+                )
+                request.name?.let {
+                    Text(
+                        text = stringResource(R.string.terminal_inline_image_name, it),
+                        style = MaterialTheme.typography.bodySmall,
+                        color = MaterialTheme.colorScheme.onSurfaceVariant,
+                    )
+                }
+                val w = request.pixelWidth
+                val h = request.pixelHeight
+                if (w != null && h != null) {
+                    Text(
+                        text = stringResource(R.string.terminal_inline_image_dimensions, w, h),
+                        style = MaterialTheme.typography.bodySmall,
+                        color = MaterialTheme.colorScheme.onSurfaceVariant,
+                    )
+                }
+            }
+        },
+        confirmButton = {
+            Row {
+                TextButton(onClick = { onAnswer(false, false) }) {
+                    Text(stringResource(R.string.terminal_inline_image_deny))
+                }
+                TextButton(onClick = { onAnswer(true, true) }) {
+                    Text(stringResource(R.string.terminal_inline_image_always_tab))
+                }
+                TextButton(onClick = { onAnswer(true, false) }) {
+                    Text(stringResource(R.string.common_allow))
+                }
+            }
+        },
+    )
 }
 
 @Composable

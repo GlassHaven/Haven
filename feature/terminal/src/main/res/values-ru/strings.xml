@@ -154,4 +154,14 @@
     <string name="terminal_details_unavailable">Не удалось прочитать сведения о подключении для этой вкладки.</string>
     <string name="terminal_mouse_requested_but_disabled">Это приложение запрашивает мышь. Включите «Мышь в TUI-приложениях» в Настройках → Терминал.</string>
     <string name="terminal_dictate_unavailable">На этом устройстве нет доступного приложения для голосового ввода</string>
+
+    <!-- Inline-image consent (#583) -->
+    <string name="terminal_inline_image_title">Встроенное изображение</string>
+    <string name="terminal_inline_image_question">Терминал хочет показать изображение прямо в тексте.</string>
+    <string name="terminal_inline_image_protocol_kitty">Графический протокол Kitty</string>
+    <string name="terminal_inline_image_protocol_iterm2">Протокол iTerm2</string>
+    <string name="terminal_inline_image_name">Файл: %1$s</string>
+    <string name="terminal_inline_image_dimensions">Размер: %1$d × %2$d px</string>
+    <string name="terminal_inline_image_deny">Отклонить</string>
+    <string name="terminal_inline_image_always_tab">Всегда в этой вкладке</string>
 </resources>

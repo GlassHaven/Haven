@@ -154,4 +154,14 @@
     <string name="terminal_details_unavailable">Não foi possível ler os detalhes de conexão desta aba.</string>
     <string name="terminal_mouse_requested_but_disabled">Este app está pedindo o mouse. Ative “Entrada de mouse em apps TUI” em Configurações → Terminal para usá-lo.</string>
     <string name="terminal_dictate_unavailable">Nenhum app de entrada de voz está disponível neste dispositivo</string>
+
+    <!-- Inline-image consent (#583) -->
+    <string name="terminal_inline_image_title">Imagem embutida</string>
+    <string name="terminal_inline_image_question">Este terminal quer exibir uma imagem embutida no texto.</string>
+    <string name="terminal_inline_image_protocol_kitty">Protocolo gráfico Kitty</string>
+    <string name="terminal_inline_image_protocol_iterm2">Protocolo iTerm2</string>
+    <string name="terminal_inline_image_name">Arquivo: %1$s</string>
+    <string name="terminal_inline_image_dimensions">Tamanho: %1$d × %2$d px</string>
+    <string name="terminal_inline_image_deny">Negar</string>
+    <string name="terminal_inline_image_always_tab">Sempre nesta aba</string>
 </resources>

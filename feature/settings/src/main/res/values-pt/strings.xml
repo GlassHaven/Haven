@@ -504,4 +504,11 @@
 
 Cada chave privada já armazenada no Haven precisará ser importada ou gerada novamente. Elas já estão ilegíveis — a chave que as protegia foi perdida, geralmente porque o aplicativo foi reinstalado de uma fonte diferente — portanto isto recupera o aplicativo em vez de perder mais alguma coisa.</string>
     <string name="settings_sshkey_reset_confirm">Reparar</string>
+
+    <!-- Inline-image consent (#583) -->
+    <string name="settings_inline_images_title">Imagens embutidas</string>
+    <string name="settings_inline_images_subtitle">Imagens que programas enviam ao terminal (gráficos Kitty, iTerm2).</string>
+    <string name="settings_inline_images_off">Desligado</string>
+    <string name="settings_inline_images_ask">Perguntar</string>
+    <string name="settings_inline_images_always">Sempre</string>
 </resources>

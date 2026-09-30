@@ -56,6 +56,7 @@ class UserPreferencesRepository @Inject constructor(
     private val terminalDarkColorSchemeKey = stringPreferencesKey("terminal_dark_color_scheme")
     private val terminalApplySchemePaletteKey = booleanPreferencesKey("terminal_apply_scheme_palette")
     private val terminalBackgroundOpacityKey = floatPreferencesKey("terminal_background_opacity")
+    private val terminalInlineImagesKey = stringPreferencesKey("terminal_inline_images")
     private val toolbarRowsKey = intPreferencesKey("toolbar_rows") // legacy
     private val toolbarRow1Key = stringPreferencesKey("toolbar_row1") // legacy
     private val toolbarRow2Key = stringPreferencesKey("toolbar_row2") // legacy
@@ -1922,6 +1923,17 @@ class UserPreferencesRepository @Inject constructor(
         }
     }
 
+    /** Inline-image consent policy (#583): OFF / ASK (default) / ALWAYS. */
+    val terminalInlineImages: Flow<TerminalInlineImages> = dataStore.data.map { prefs ->
+        TerminalInlineImages.fromString(prefs[terminalInlineImagesKey])
+    }
+
+    suspend fun setTerminalInlineImages(mode: TerminalInlineImages) {
+        dataStore.edit { prefs ->
+            prefs[terminalInlineImagesKey] = mode.name
+        }
+    }
+
     /**
      * When true, the active terminal scheme follows the system light/dark
      * mode — [terminalLightColorScheme] in light, [terminalDarkColorScheme]
@@ -2308,6 +2320,18 @@ class UserPreferencesRepository @Inject constructor(
         companion object {
             fun fromString(value: String?): SessionManager =
                 entries.find { it.name == value } ?: NONE
+        }
+    }
+
+    /** Inline-image consent policy for the terminal (#583). */
+    enum class TerminalInlineImages {
+        OFF,
+        ASK,
+        ALWAYS;
+
+        companion object {
+            fun fromString(value: String?): TerminalInlineImages =
+                entries.find { it.name == value } ?: ASK
         }
     }
 

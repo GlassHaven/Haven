@@ -546,4 +546,11 @@ Every password, passphrase and secret already stored in Haven will need to be en
 
 Every private key already stored in Haven will need to be imported or generated again. They are already unreadable — the key that protected them is gone, usually because the app was reinstalled from a different source — so this recovers the app rather than losing anything further.</string>
     <string name="settings_sshkey_reset_confirm">Repair</string>
+
+    <!-- Inline-image consent (#583) -->
+    <string name="settings_inline_images_title">Inline images</string>
+    <string name="settings_inline_images_subtitle">Images that SSH programs send into the terminal (Kitty graphics, iTerm2).</string>
+    <string name="settings_inline_images_off">Off</string>
+    <string name="settings_inline_images_ask">Ask</string>
+    <string name="settings_inline_images_always">Always</string>
 </resources>

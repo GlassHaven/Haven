@@ -503,4 +503,11 @@
 
 Haven にすでに保存されているすべての秘密鍶は、再びインポートまたは生成し直す必要があります。それらはすでに読み取れません — それらを保護していたキーは失われており、通常はアプリを別のソースから再インストールしたためです — したがって、これはこれ以上何かを失うのではなくアプリを回復します。</string>
     <string name="settings_sshkey_reset_confirm">修復</string>
+
+    <!-- Inline-image consent (#583) -->
+    <string name="settings_inline_images_title">インライン画像</string>
+    <string name="settings_inline_images_subtitle">プログラムが端末に送る画像（Kitty グラフィック、iTerm2）。</string>
+    <string name="settings_inline_images_off">オフ</string>
+    <string name="settings_inline_images_ask">確認</string>
+    <string name="settings_inline_images_always">常に</string>
 </resources>

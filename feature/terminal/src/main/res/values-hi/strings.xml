@@ -154,4 +154,14 @@
     <string name="terminal_details_unavailable">इस टैब के कनेक्शन विवरण नहीं पढ़े जा सके।</string>
     <string name="terminal_mouse_requested_but_disabled">यह ऐप माउस माँग रहा है। इसे इस्तेमाल करने के लिए Settings → Terminal में “TUI ऐप्स में माउस इनपुट” चालू करें।</string>
     <string name="terminal_dictate_unavailable">इस डिवाइस पर कोई वॉइस इनपुट ऐप उपलब्ध नहीं है</string>
+
+    <!-- Inline-image consent (#583) -->
+    <string name="terminal_inline_image_title">इनलाइन छवि</string>
+    <string name="terminal_inline_image_question">यह टर्मिनल एक छवि इनलाइन दिखाना चाहता है।</string>
+    <string name="terminal_inline_image_protocol_kitty">Kitty ग्राफ़िक्स प्रोटोकॉल</string>
+    <string name="terminal_inline_image_protocol_iterm2">iTerm2 प्रोटोकॉल</string>
+    <string name="terminal_inline_image_name">फ़ाइल: %1$s</string>
+    <string name="terminal_inline_image_dimensions">आकार: %1$d × %2$d px</string>
+    <string name="terminal_inline_image_deny">अस्वीकार करें</string>
+    <string name="terminal_inline_image_always_tab">इस टैब में हमेशा</string>
 </resources>

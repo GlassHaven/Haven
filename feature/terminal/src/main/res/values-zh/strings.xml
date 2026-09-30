@@ -154,4 +154,14 @@
     <string name="terminal_details_unavailable">无法读取此标签页的连接详情。</string>
     <string name="terminal_mouse_requested_but_disabled">此应用正在请求鼠标。请在设置 → 终端中开启“TUI 应用中的鼠标输入”。</string>
     <string name="terminal_dictate_unavailable">此设备上没有可用的语音输入应用</string>
+
+    <!-- Inline-image consent (#583) -->
+    <string name="terminal_inline_image_title">内嵌图像</string>
+    <string name="terminal_inline_image_question">此终端想要内嵌显示一张图像。</string>
+    <string name="terminal_inline_image_protocol_kitty">Kitty 图形协议</string>
+    <string name="terminal_inline_image_protocol_iterm2">iTerm2 协议</string>
+    <string name="terminal_inline_image_name">文件：%1$s</string>
+    <string name="terminal_inline_image_dimensions">尺寸：%1$d × %2$d px</string>
+    <string name="terminal_inline_image_deny">拒绝</string>
+    <string name="terminal_inline_image_always_tab">此标签页内总是允许</string>
 </resources>

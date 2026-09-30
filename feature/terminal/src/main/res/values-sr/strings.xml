@@ -138,4 +138,14 @@
     <string name="terminal_vnc_depth_16bit">16-битна боја (брже)</string>
     <string name="terminal_vnc_depth_256">256 боја (најмањи пропусни опсег)</string>
     <string name="terminal_mouse_requested_but_disabled">Ова апликација тражи приступ мишу. Да бисте је користили, укључите „Унос мишем у TUI апликацијама” у Подешавања → Терминал</string>
+
+    <!-- Inline-image consent (#583) -->
+    <string name="terminal_inline_image_title">Уграћена слика</string>
+    <string name="terminal_inline_image_question">Овај терминал жели да прикаже слику у тексту.</string>
+    <string name="terminal_inline_image_protocol_kitty">Kitty графички протокол</string>
+    <string name="terminal_inline_image_protocol_iterm2">iTerm2 протокол</string>
+    <string name="terminal_inline_image_name">Датотека: %1$s</string>
+    <string name="terminal_inline_image_dimensions">Величина: %1$d × %2$d px</string>
+    <string name="terminal_inline_image_deny">Одбиј</string>
+    <string name="terminal_inline_image_always_tab">Увек у овој картици</string>
 </resources>

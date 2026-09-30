@@ -166,4 +166,14 @@
     <string name="terminal_vnc_depth_16bit">16-bit colour (faster)</string>
     <string name="terminal_vnc_depth_256">256 colours (lowest bandwidth)</string>
     <string name="terminal_mouse_requested_but_disabled">This app is asking for the mouse. Turn on “Mouse input in TUI apps” in Settings → Terminal to use it.</string>
+
+    <!-- Inline-image consent (#583) -->
+    <string name="terminal_inline_image_title">Inline image</string>
+    <string name="terminal_inline_image_question">This terminal wants to display an image inline.</string>
+    <string name="terminal_inline_image_protocol_kitty">Kitty graphics protocol</string>
+    <string name="terminal_inline_image_protocol_iterm2">iTerm2 protocol</string>
+    <string name="terminal_inline_image_name">File: %1$s</string>
+    <string name="terminal_inline_image_dimensions">Size: %1$d × %2$d px</string>
+    <string name="terminal_inline_image_deny">Deny</string>
+    <string name="terminal_inline_image_always_tab">Always in this tab</string>
 </resources>

@@ -502,4 +502,11 @@
 
 Haven 中已存储的每一个私钥都需要重新导入或生成。它们已经无法读取 — 保护它们的密钥已丢失，通常是因为应用程序从不同来源重新安装过 — 因此这是恢复应用程序，而不会再丢失更多。</string>
     <string name="settings_sshkey_reset_confirm">修复</string>
+
+    <!-- Inline-image consent (#583) -->
+    <string name="settings_inline_images_title">内嵌图像</string>
+    <string name="settings_inline_images_subtitle">SSH 程序发送到终端的图像（Kitty 图形协议、iTerm2）。</string>
+    <string name="settings_inline_images_off">关闭</string>
+    <string name="settings_inline_images_ask">询问</string>
+    <string name="settings_inline_images_always">总是</string>
 </resources>

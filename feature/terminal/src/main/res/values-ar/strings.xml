@@ -154,4 +154,14 @@
     <string name="terminal_details_unavailable">تعذّرت قراءة تفاصيل الاتصال لهذا التبويب.</string>
     <string name="terminal_mouse_requested_but_disabled">يطلب هذا التطبيق الماوس. فعّل “إدخال الماوس في تطبيقات TUI” من الإعدادات ← الطرفية.</string>
     <string name="terminal_dictate_unavailable">لا يتوفر أي تطبيق للإدخال الصوتي على هذا الجهاز</string>
+
+    <!-- Inline-image consent (#583) -->
+    <string name="terminal_inline_image_title">صورة مضمّنة</string>
+    <string name="terminal_inline_image_question">يريد هذا الجهاز الطرفي عرض صورة مضمّنة.</string>
+    <string name="terminal_inline_image_protocol_kitty">بروتوكول الرسوميات Kitty</string>
+    <string name="terminal_inline_image_protocol_iterm2">بروتوكول iTerm2</string>
+    <string name="terminal_inline_image_name">الملف: %1$s</string>
+    <string name="terminal_inline_image_dimensions">الأبعاد: %1$d × %2$d بكسل</string>
+    <string name="terminal_inline_image_deny">رفض</string>
+    <string name="terminal_inline_image_always_tab">دائمًا في هذا التبويب</string>
 </resources>

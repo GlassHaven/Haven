@@ -803,6 +803,15 @@ class SettingsViewModel @Inject constructor(
                 DesktopKeyPlacement.LEFT,
             )
 
+    /** Inline-image consent policy for terminal sessions (#583). */
+    val terminalInlineImages: StateFlow<UserPreferencesRepository.TerminalInlineImages> =
+        preferencesRepository.terminalInlineImages
+            .stateIn(
+                viewModelScope,
+                SharingStarted.WhileSubscribed(5000),
+                UserPreferencesRepository.TerminalInlineImages.ASK,
+            )
+
     val toolbarMinButtonWidth: StateFlow<Int> = preferencesRepository.toolbarMinButtonWidth
         .stateIn(
             viewModelScope,
@@ -1158,6 +1167,12 @@ class SettingsViewModel @Inject constructor(
     fun setDesktopKeyPlacement(placement: DesktopKeyPlacement) {
         viewModelScope.launch {
             preferencesRepository.setDesktopKeyPlacement(placement)
+        }
+    }
+
+    fun setTerminalInlineImages(mode: UserPreferencesRepository.TerminalInlineImages) {
+        viewModelScope.launch {
+            preferencesRepository.setTerminalInlineImages(mode)
         }
     }
 

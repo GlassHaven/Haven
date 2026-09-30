@@ -436,4 +436,11 @@
 
 Сваки приватни кључ већ сачуван у Haven-у мораће поново да се увезе или генерише. Већ су нечитљиви — кључ који их је штитио је изгубљен, обично зато што је апликација поново инсталирана из другог извора — дакле ово враћа апликацију уместо да изгуби било шта даље.</string>
     <string name="settings_sshkey_reset_confirm">Поправи</string>
+
+    <!-- Inline-image consent (#583) -->
+    <string name="settings_inline_images_title">Уграћене слике</string>
+    <string name="settings_inline_images_subtitle">Слике које програми шаљу у терминал (Kitty графика, iTerm2).</string>
+    <string name="settings_inline_images_off">Искључено</string>
+    <string name="settings_inline_images_ask">Питај</string>
+    <string name="settings_inline_images_always">Увек</string>
 </resources>

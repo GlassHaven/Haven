@@ -508,4 +508,11 @@
 
 سيتطلب استيراد أو إنشاء كل مفتاح خاص مخزّن بالفعل في Haven من جديد. إنها غير مقروءة بالفعل — فقد ضاع المفتاح الذي كان يحميها، عادةً لأن التطبيق أعيد تثبيته من مصدر مختلف — لذلك يسترجع التطبيق بدلاً من أن يفقد مزيدًا.</string>
     <string name="settings_sshkey_reset_confirm">إصلاح</string>
+
+    <!-- Inline-image consent (#583) -->
+    <string name="settings_inline_images_title">صور مضمّنة</string>
+    <string name="settings_inline_images_subtitle">الصور التي ترسلها البرامج إلى الجهاز الطرفي (رسوميات Kitty و iTerm2).</string>
+    <string name="settings_inline_images_off">إيقاف</string>
+    <string name="settings_inline_images_ask">اسأل</string>
+    <string name="settings_inline_images_always">دائمًا</string>
 </resources>

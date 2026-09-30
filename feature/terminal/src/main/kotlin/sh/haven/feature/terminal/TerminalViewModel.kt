@@ -313,6 +313,7 @@ class TerminalViewModel @Inject constructor(
      */
     private val fidoAuthenticator: sh.haven.core.fido.FidoAuthenticator,
     private val preferencesRepository: UserPreferencesRepository,
+    private val inlineImageConsent: InlineImageConsentRegistry,
     private val connectionRepository: sh.haven.core.data.repository.ConnectionRepository,
     private val tunnelResolver: sh.haven.core.tunnel.TunnelResolver,
     private val agentUiCommandBus: sh.haven.core.data.agent.AgentUiCommandBus,
@@ -656,6 +657,15 @@ class TerminalViewModel @Inject constructor(
                 viewModelScope,
                 SharingStarted.Eagerly,
                 UserPreferencesRepository.DEFAULT_SCROLLBACK_ROWS,
+            )
+
+    /** Inline-image consent policy (#583). Re-policed on live tabs when it changes. */
+    private val terminalInlineImages: StateFlow<UserPreferencesRepository.TerminalInlineImages> =
+        preferencesRepository.terminalInlineImages
+            .stateIn(
+                viewModelScope,
+                SharingStarted.Eagerly,
+                UserPreferencesRepository.TerminalInlineImages.ASK,
             )
 
     /**
@@ -1076,6 +1086,15 @@ class TerminalViewModel @Inject constructor(
         viewModelScope.launch {
             usbSerialSessionManager.sessions.collect { syncSessions() }
         }
+        // Inline-image policy (#583): re-police live tabs when the consent
+        // preference changes; new emulators read the current value at create.
+        viewModelScope.launch {
+            terminalInlineImages.collect { mode ->
+                for (tab in _tabs.value) {
+                    tab.emulator.setInlineImages(inlineImagesPolicy(mode, inlineImageConsent.state(tab.sessionId)))
+                }
+            }
+        }
         viewModelScope.launch {
             localSessionManager.sessions.collect { syncSessions() }
         }
@@ -1267,6 +1286,7 @@ class TerminalViewModel @Inject constructor(
                         source.getActive(sessionId)?.resize(dims.columns, dims.rows)
                     },
                     maxScrollbackLines = terminalScrollbackRows.value,
+                inlineImages = inlineImagesPolicy(terminalInlineImages.value, inlineImageConsent.state(sessionId)),
                 )
                 // The guest console runs opencode, whose Ink renderer diffs
                 // line-by-line against its own model; a backfilling grow
@@ -1365,6 +1385,7 @@ class TerminalViewModel @Inject constructor(
                     localSession.resize(dims.columns, dims.rows)
                 },
                 maxScrollbackLines = terminalScrollbackRows.value,
+                inlineImages = inlineImagesPolicy(terminalInlineImages.value, inlineImageConsent.state(sessionId)),
             )
             // Guest console: disable grow backfill — Ink's line-diff repaint
             // strands popped scrollback in skipped rows (GrowBackfillDiffRenderTest).
@@ -1539,6 +1560,9 @@ class TerminalViewModel @Inject constructor(
             }
         }
         if (removed) {
+            for (gone in _tabs.value.map { it.sessionId }.toSet() - currentTabs.map { it.sessionId }.toSet()) {
+                inlineImageConsent.drop(gone)
+            }
             trackedSessionIds.retainAll(currentTabs.map { it.sessionId }.toSet())
         }
 
@@ -1664,6 +1688,7 @@ class TerminalViewModel @Inject constructor(
                     rnsSession.resize(dims.columns, dims.rows)
                 },
                 maxScrollbackLines = terminalScrollbackRows.value,
+                inlineImages = inlineImagesPolicy(terminalInlineImages.value, inlineImageConsent.state(sessionId)),
             )
 
             rnsSession.start()
@@ -1744,6 +1769,7 @@ class TerminalViewModel @Inject constructor(
                 onKeyboardInput = { data -> btCoalescer.send(applyModifiers(data)) },
                 onResize = { /* raw serial: no resize channel */ },
                 maxScrollbackLines = terminalScrollbackRows.value,
+                inlineImages = inlineImagesPolicy(terminalInlineImages.value, inlineImageConsent.state(sessionId)),
             )
 
             currentTabs.add(
@@ -1821,6 +1847,7 @@ class TerminalViewModel @Inject constructor(
                 onKeyboardInput = { data -> bleCoalescer.send(applyModifiers(data)) },
                 onResize = { /* raw serial: no resize channel */ },
                 maxScrollbackLines = terminalScrollbackRows.value,
+                inlineImages = inlineImagesPolicy(terminalInlineImages.value, inlineImageConsent.state(sessionId)),
             )
 
             currentTabs.add(
@@ -1898,6 +1925,7 @@ class TerminalViewModel @Inject constructor(
                 onKeyboardInput = { data -> usbCoalescer.send(applyModifiers(data)) },
                 onResize = { /* raw serial: no resize channel */ },
                 maxScrollbackLines = terminalScrollbackRows.value,
+                inlineImages = inlineImagesPolicy(terminalInlineImages.value, inlineImageConsent.state(sessionId)),
             )
 
             currentTabs.add(
@@ -2004,6 +2032,7 @@ class TerminalViewModel @Inject constructor(
                     moshSession.resize(dims.columns, dims.rows)
                 },
                 maxScrollbackLines = terminalScrollbackRows.value,
+                inlineImages = inlineImagesPolicy(terminalInlineImages.value, inlineImageConsent.state(sessionId)),
             )
 
             moshSession.start()
@@ -2111,6 +2140,7 @@ class TerminalViewModel @Inject constructor(
                     etSession.resize(dims.columns, dims.rows)
                 },
                 maxScrollbackLines = terminalScrollbackRows.value,
+                inlineImages = inlineImagesPolicy(terminalInlineImages.value, inlineImageConsent.state(sessionId)),
             )
 
             etSession.start()
@@ -2292,6 +2322,19 @@ class TerminalViewModel @Inject constructor(
             // a NONE profile and the stale tmux list lingers).
             refreshRemoteSessions()
         }
+    }
+
+    /**
+     * Pending inline-image consent dialog for a tab (#583), or null when none.
+     * Keyed by sessionId so it also reaches sessions whose emulator the SSH
+     * owner created before this ViewModel existed.
+     */
+    fun inlineImagePromptFor(sessionId: String): StateFlow<InlineImagePrompt?> =
+        inlineImageConsent.state(sessionId).prompt
+
+    /** Answer the tab's pending inline-image consent dialog (#583). */
+    fun answerInlineImage(sessionId: String, allowed: Boolean, alwaysInTab: Boolean) {
+        inlineImageConsent.answer(sessionId, allowed, alwaysInTab)
     }
 
     fun moveTab(fromIndex: Int, direction: Int) {

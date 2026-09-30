@@ -37,10 +37,11 @@ class SshTerminalEmulatorOwnerTest {
             every { verboseLoggingEnabled } returns flowOf(false)
             every { terminalScrollbackRows } returns flowOf(UserPreferencesRepository.DEFAULT_SCROLLBACK_ROWS)
             every { terminalColorScheme } returns flowOf(UserPreferencesRepository.TerminalColorScheme.HAVEN)
+            every { terminalInlineImages } returns flowOf(UserPreferencesRepository.TerminalInlineImages.ASK)
         }
-        val owner = SshTerminalEmulatorOwner(ssh, repo, mockk(relaxed = true), prefs, registry)
+        val owner = SshTerminalEmulatorOwner(ssh, repo, mockk(relaxed = true), prefs, registry, InlineImageConsentRegistry())
         // No JNI in unit tests — stand in a mock emulator.
-        owner.emulatorFactory = SshTerminalEmulatorOwner.EmulatorFactory { _, _, _, _, _, _ -> mockk(relaxed = true) }
+        owner.emulatorFactory = SshTerminalEmulatorOwner.EmulatorFactory { _, _, _, _, _, _, _ -> mockk(relaxed = true) }
         return owner to registry
     }
 

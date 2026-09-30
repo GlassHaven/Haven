@@ -154,4 +154,14 @@
     <string name="terminal_details_unavailable">No se pudieron leer los detalles de conexión de esta pestaña.</string>
     <string name="terminal_mouse_requested_but_disabled">Esta app pide el ratón. Activa “Entrada de ratón en apps TUI” en Ajustes → Terminal para usarlo.</string>
     <string name="terminal_dictate_unavailable">No hay ninguna app de entrada de voz disponible en este dispositivo</string>
+
+    <!-- Inline-image consent (#583) -->
+    <string name="terminal_inline_image_title">Imagen integrada</string>
+    <string name="terminal_inline_image_question">Este terminal quiere mostrar una imagen en línea.</string>
+    <string name="terminal_inline_image_protocol_kitty">Protocolo de gráficos Kitty</string>
+    <string name="terminal_inline_image_protocol_iterm2">Protocolo iTerm2</string>
+    <string name="terminal_inline_image_name">Archivo: %1$s</string>
+    <string name="terminal_inline_image_dimensions">Tamaño: %1$d × %2$d px</string>
+    <string name="terminal_inline_image_deny">Denegar</string>
+    <string name="terminal_inline_image_always_tab">Siempre en esta pestaña</string>
 </resources>

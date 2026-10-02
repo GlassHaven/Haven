@@ -5,6 +5,11 @@ the corresponding GitHub Release; a release can't ship without its section
 (enforced by `scripts/check-changelog.sh` in CI). The GitHub "Full Changelog"
 compare link is appended automatically — don't add it here.
 
+## v5.89.17
+
+- **Inline images in the terminal.** SSH programs that speak the Kitty or iTerm2 graphics protocol — image viewers, chart tools, preview generators — can now display raster images inline where the cursor is. Each image asks first: a consent dialog with Deny, Allow, and an always-allow latch for the session. Terminal settings carry the policy (Off / Ask / Always, Ask by default), and it is readable and writable over MCP as `terminal_inline_images`. (#583)
+- **Dependency updates.** Tailscale 1.102.5 in the rclone bridge; uniffi 0.32.2 and smallvec 1.16.2 in the RDP native code.
+
 ## v5.89.16
 
 - **Saved tunnel configs are editable.** Until now the Tunnels screen could only add or delete a row (#666). Rows now carry an Edit affordance that reopens the add dialog with the stored fields filled in — the tunnel type is locked once set, and saving overwrites the row in place, keeping its id, type and creation date.

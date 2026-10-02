@@ -1,0 +1,2 @@
+- Inline images in the terminal: Kitty/iTerm2 graphics protocol support with per-image consent (Off / Ask / Always, Ask by default) and an always-allow latch per session (#583).
+- Dependency updates: Tailscale 1.102.5, uniffi 0.32.2, smallvec 1.16.2.

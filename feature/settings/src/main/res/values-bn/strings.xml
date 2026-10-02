@@ -296,6 +296,8 @@
     <string name="settings_ime_flags_subtitle">টার্মিনাল কোন EditorInfo বিট সেট করে তা বেছে নিন</string>
     <string name="settings_ctrl_shift_v_title">Ctrl+Shift+V পেস্ট করে</string>
     <string name="settings_ctrl_shift_v_subtitle">হার্ডওয়্যার কীবোর্ড Ctrl+Shift+V Android ক্লিপবোর্ড থেকে পেস্ট করে। বন্ধ থাকলে কী রিমোট শেলে পাঠায়।</string>
+    <string name="settings_auto_show_keyboard_title">টার্মিনাল খোলার সময় কীবোর্ড দেখান</string>
+    <string name="settings_auto_show_keyboard_subtitle">একটি টার্মিনাল সেশন খুললে বা বদলালে সফট কীবোর্ড স্বয়ংক্রিয়ভাবে ওঠে। শুধু-পড়ার সেশনে এটি নিচে রাখতে অফ করুন; টুলবারের কীবোর্ড কী ও ডাবল-ট্যাপ দিয়ে যেকোনো সময় তোলা যায়</string>
 
     <!-- Navigation Tabs dialog -->
 

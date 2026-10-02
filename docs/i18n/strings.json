@@ -33579,6 +33579,44 @@
      }
     },
     {
+     "name": "settings_auto_show_keyboard_title",
+     "en": "Show keyboard when a terminal opens",
+     "comment": "Ctrl+Shift+V paste",
+     "args": [],
+     "t": {
+      "ar": "إظهار لوحة المفاتيح عند فتح الطرفية",
+      "bn": "টার্মিনাল খোলার সময় কীবোর্ড দেখান",
+      "de": "Tastatur beim Öffnen eines Terminals anzeigen",
+      "es": "Mostrar el teclado al abrir un terminal",
+      "fr": "Afficher le clavier à l'ouverture d'un terminal",
+      "hi": "टर्मिनल खुलने पर कीबोर्ड दिखाएँ",
+      "ja": "ターミナル開時にキーボードを表示",
+      "ko": "터미널 열 때 키보드 표시",
+      "pt": "Mostrar o teclado ao abrir um terminal",
+      "ru": "Показывать клавиатуру при открытии терминала",
+      "zh": "打开终端时显示键盘"
+     }
+    },
+    {
+     "name": "settings_auto_show_keyboard_subtitle",
+     "en": "The soft keyboard rises automatically when you open or switch to a terminal session. Turn off to keep it down for read-only sessions; the toolbar keyboard key and a double-tap still bring it up",
+     "comment": "Ctrl+Shift+V paste",
+     "args": [],
+     "t": {
+      "ar": "تظهر لوحة مفاتيح النظام تلقائيًا عند فتح جلسة طرفية أو التبديل إليها. أوقفها لإبقائها مخفية في جلسات القراءة فقط؛ لا يزال مفتاح لوحة المفاتيح في شريط الأدوات والنقر المزدوج يظهرانها",
+      "bn": "একটি টার্মিনাল সেশন খুললে বা বদলালে সফট কীবোর্ড স্বয়ংক্রিয়ভাবে ওঠে। শুধু-পড়ার সেশনে এটি নিচে রাখতে অফ করুন; টুলবারের কীবোর্ড কী ও ডাবল-ট্যাপ দিয়ে যেকোনো সময় তোলা যায়",
+      "de": "Die Soft-Tastatur erscheint automatisch beim Öffnen oder Wechseln zu einer Terminal-Sitzung. Für schreibgeschützte Sitzungen deaktivieren; die Tastatur-Taste der Symbolleiste und ein Doppeltipp holen sie weiterhin hervor",
+      "es": "El teclado virtual aparece automáticamente al abrir o cambiar a una sesión de terminal. Desactívalo para mantenerlo oculto en sesiones de solo lectura; la tecla de teclado de la barra de herramientas y un doble toque lo siguen mostrando",
+      "fr": "Le clavier virtuel apparaît automatiquement à l'ouverture ou au changement d'une session de terminal. Désactivez pour le garder masqué en lecture seule ; la touche clavier de la barre d'outils et un double-tap le font toujours apparaître",
+      "hi": "टर्मिनल सत्र खोलने या बदलने पर सॉफ्ट कीबोर्ड अपने आप उभरता है। केवल-पढ़ने वाले सत्रों के लिए इसे बंद रखें; टूलबार का कीबोर्ड बटन और डबल-टैप इसे कभी भी दिखा देते हैं",
+      "ja": "ターミナルセッションを開く、または切り替えたとき、ソフトウェアキーボードが自動的に現れます。閲覧専用のセッションではオフにしてください。ツールバーのキーボードキーやダブルタップでいつでも出せます",
+      "ko": "터미널 세션을 열거나 전환하면 소프트웨어 키보드가 자동으로 올라옵니다. 읽기 전용 세션에서는 내려두세요. 도구모음의 키보드 키와 더블 탭으로 언제든 올릴 수 있습니다",
+      "pt": "O teclado virtual aparece automaticamente ao abrir ou mudar para uma sessão de terminal. Desative para mantê-lo oculto em sessões somente leitura; a tecla de teclado da barra de ferramentas e um toque duplo ainda o exibem",
+      "ru": "Программная клавиатура появляется автоматически при открытии или переключении терминальной сессии. Отключите, чтобы скрывать её в сессиях только для чтения; клавиша клавиатуры на панели инструментов и двойное нажатие по-прежнему вызывают её",
+      "zh": "打开或切换到终端会话时自动弹出软键盘。只读会话可关闭；工具栏键盘键和双击仍可随时唤出"
+     }
+    },
+    {
      "name": "settings_nav_tab_visibility_auto_title",
      "en": "Auto",
      "comment": "Navigation Tabs dialog",

@@ -208,6 +208,7 @@ fun SettingsScreen(
     val showSearchButton by viewModel.showSearchButton.collectAsState()
     val showCopyOutputButton by viewModel.showCopyOutputButton.collectAsState()
     val keepScreenOnInTerminal by viewModel.keepScreenOnInTerminal.collectAsState()
+    val autoShowKeyboardInTerminal by viewModel.autoShowKeyboardInTerminal.collectAsState()
     val hideNavBarInTerminal by viewModel.hideNavBarInTerminal.collectAsState()
     val connectionLoggingEnabled by viewModel.connectionLoggingEnabled.collectAsState()
     val excludeFromRecents by viewModel.excludeFromRecents.collectAsState()
@@ -679,6 +680,13 @@ fun SettingsScreen(
             subtitle = stringResource(R.string.settings_ctrl_shift_v_subtitle),
             checked = interceptCtrlShiftV,
             onCheckedChange = viewModel::setInterceptCtrlShiftV,
+        )
+        SettingsToggleItem(
+            icon = Icons.Filled.Keyboard,
+            title = stringResource(R.string.settings_auto_show_keyboard_title),
+            subtitle = stringResource(R.string.settings_auto_show_keyboard_subtitle),
+            checked = autoShowKeyboardInTerminal,
+            onCheckedChange = viewModel::setAutoShowKeyboardInTerminal,
         )
 
         }

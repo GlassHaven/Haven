@@ -296,6 +296,8 @@
     <string name="settings_ime_flags_subtitle">Escolha quais bits EditorInfo o terminal define</string>
     <string name="settings_ctrl_shift_v_title">Ctrl+Shift+V cola</string>
     <string name="settings_ctrl_shift_v_subtitle">Ctrl+Shift+V no teclado físico cola da área de transferência do Android. Desativado encaminha as teclas para o shell remoto.</string>
+    <string name="settings_auto_show_keyboard_title">Mostrar o teclado ao abrir um terminal</string>
+    <string name="settings_auto_show_keyboard_subtitle">O teclado virtual aparece automaticamente ao abrir ou mudar para uma sessão de terminal. Desative para mantê-lo oculto em sessões somente leitura; a tecla de teclado da barra de ferramentas e um toque duplo ainda o exibem</string>
 
     <!-- Navigation Tabs dialog -->
 

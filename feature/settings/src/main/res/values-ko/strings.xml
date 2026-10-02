@@ -296,6 +296,8 @@
     <string name="settings_ime_flags_subtitle">터미널이 설정할 EditorInfo 비트 선택</string>
     <string name="settings_ctrl_shift_v_title">Ctrl+Shift+V로 붙여넣기</string>
     <string name="settings_ctrl_shift_v_subtitle">하드웨어 키보드 Ctrl+Shift+V로 Android 클립보드에서 붙여넣습니다. 끄면 키가 원격 셸로 전달됩니다.</string>
+    <string name="settings_auto_show_keyboard_title">터미널 열 때 키보드 표시</string>
+    <string name="settings_auto_show_keyboard_subtitle">터미널 세션을 열거나 전환하면 소프트웨어 키보드가 자동으로 올라옵니다. 읽기 전용 세션에서는 내려두세요. 도구모음의 키보드 키와 더블 탭으로 언제든 올릴 수 있습니다</string>
 
     <!-- Navigation Tabs dialog -->
 

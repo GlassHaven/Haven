@@ -295,6 +295,8 @@
     <string name="settings_ime_flags_subtitle">选择终端设置的 EditorInfo 位</string>
     <string name="settings_ctrl_shift_v_title">Ctrl+Shift+V 粘贴</string>
     <string name="settings_ctrl_shift_v_subtitle">硬件键盘 Ctrl+Shift+V 从 Android 剪贴板粘贴。关闭则将按键转发到远程 shell。</string>
+    <string name="settings_auto_show_keyboard_title">打开终端时显示键盘</string>
+    <string name="settings_auto_show_keyboard_subtitle">打开或切换到终端会话时自动弹出软键盘。只读会话可关闭；工具栏键盘键和双击仍可随时唤出</string>
 
     <!-- Navigation Tabs dialog -->
 

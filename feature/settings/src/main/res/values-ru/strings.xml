@@ -296,6 +296,8 @@
     <string name="settings_ime_flags_subtitle">Выберите, какие биты EditorInfo устанавливает терминал</string>
     <string name="settings_ctrl_shift_v_title">Ctrl+Shift+V вставляет</string>
     <string name="settings_ctrl_shift_v_subtitle">Ctrl+Shift+V на физической клавиатуре вставляет из буфера обмена Android. В выключенном состоянии клавиши передаются в удалённую оболочку.</string>
+    <string name="settings_auto_show_keyboard_title">Показывать клавиатуру при открытии терминала</string>
+    <string name="settings_auto_show_keyboard_subtitle">Программная клавиатура появляется автоматически при открытии или переключении терминальной сессии. Отключите, чтобы скрывать её в сессиях только для чтения; клавиша клавиатуры на панели инструментов и двойное нажатие по-прежнему вызывают её</string>
 
     <!-- Navigation Tabs dialog -->
 

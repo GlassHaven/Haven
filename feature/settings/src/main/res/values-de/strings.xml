@@ -296,6 +296,8 @@
     <string name="settings_ime_flags_subtitle">Wähle, welche EditorInfo-Bits das Terminal setzt</string>
     <string name="settings_ctrl_shift_v_title">Strg+Umschalt+V fügt ein</string>
     <string name="settings_ctrl_shift_v_subtitle">Hardware-Tastatur Strg+Umschalt+V fügt aus der Android-Zwischenablage ein. Aus leitet die Tasten an die Remote-Shell weiter.</string>
+    <string name="settings_auto_show_keyboard_title">Tastatur beim Öffnen eines Terminals anzeigen</string>
+    <string name="settings_auto_show_keyboard_subtitle">Die Soft-Tastatur erscheint automatisch beim Öffnen oder Wechseln zu einer Terminal-Sitzung. Für schreibgeschützte Sitzungen deaktivieren; die Tastatur-Taste der Symbolleiste und ein Doppeltipp holen sie weiterhin hervor</string>
 
     <!-- Navigation Tabs dialog -->
 

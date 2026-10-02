@@ -296,6 +296,8 @@
     <string name="settings_ime_flags_subtitle">Elige qué bits de EditorInfo establece el terminal</string>
     <string name="settings_ctrl_shift_v_title">Ctrl+Shift+V pega</string>
     <string name="settings_ctrl_shift_v_subtitle">El teclado físico Ctrl+Shift+V pega desde el portapapeles de Android. Desactivado reenvía las teclas al shell remoto.</string>
+    <string name="settings_auto_show_keyboard_title">Mostrar el teclado al abrir un terminal</string>
+    <string name="settings_auto_show_keyboard_subtitle">El teclado virtual aparece automáticamente al abrir o cambiar a una sesión de terminal. Desactívalo para mantenerlo oculto en sesiones de solo lectura; la tecla de teclado de la barra de herramientas y un doble toque lo siguen mostrando</string>
 
     <!-- Navigation Tabs dialog -->
 

@@ -296,6 +296,8 @@
     <string name="settings_ime_flags_subtitle">اختر بتات EditorInfo التي تضبطها الطرفية</string>
     <string name="settings_ctrl_shift_v_title">Ctrl+Shift+V للصق</string>
     <string name="settings_ctrl_shift_v_subtitle">Ctrl+Shift+V على لوحة المفاتيح الفيزيائية يلصق من حافظة Android. إيقافه يرسل المفاتيح إلى الصدفة البعيدة.</string>
+    <string name="settings_auto_show_keyboard_title">إظهار لوحة المفاتيح عند فتح الطرفية</string>
+    <string name="settings_auto_show_keyboard_subtitle">تظهر لوحة مفاتيح النظام تلقائيًا عند فتح جلسة طرفية أو التبديل إليها. أوقفها لإبقائها مخفية في جلسات القراءة فقط؛ لا يزال مفتاح لوحة المفاتيح في شريط الأدوات والنقر المزدوج يظهرانها</string>
 
     <!-- Navigation Tabs dialog -->
 

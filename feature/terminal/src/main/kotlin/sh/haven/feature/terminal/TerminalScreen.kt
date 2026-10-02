@@ -438,6 +438,7 @@ fun TerminalScreen(
     showSearchButton: Boolean = false,
     showCopyOutputButton: Boolean = false,
     keepScreenOnInTerminal: Boolean = false,
+    autoShowKeyboardInTerminal: Boolean = true,
     mouseInputEnabled: Boolean = true,
     terminalRightClick: Boolean = false,
     tapToPositionCursorOnPrompt: Boolean = false,
@@ -875,11 +876,15 @@ fun TerminalScreen(
             screenConfiguration.hardKeyboardHidden ==
             android.content.res.Configuration.HARDKEYBOARDHIDDEN_NO
 
-    LaunchedEffect(isActive, physicalKeyboardAttached) {
+    LaunchedEffect(isActive, physicalKeyboardAttached, autoShowKeyboardInTerminal) {
         val window = (view.context as? Activity)?.window ?: return@LaunchedEffect
         val controller = WindowCompat.getInsetsController(window, view)
         if (isActive && tabs.isNotEmpty()) {
-            if (!physicalKeyboardAttached) {
+            // #675: with the setting off the keyboard stays down when a session
+            // opens or a tab is switched to, for read-only viewing (logs, btop).
+            // The toolbar's keyboard key and the double-tap gesture still raise
+            // it deliberately, so typing is never blocked — only the surprise.
+            if (!physicalKeyboardAttached && autoShowKeyboardInTerminal) {
                 controller.show(WindowInsetsCompat.Type.ime())
             }
         } else if (!isActive) {

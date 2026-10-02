@@ -296,6 +296,8 @@
     <string name="settings_ime_flags_subtitle">ターミナルが設定する EditorInfo ビットを選択</string>
     <string name="settings_ctrl_shift_v_title">Ctrl+Shift+V で貼り付け</string>
     <string name="settings_ctrl_shift_v_subtitle">ハードウェアキーボードの Ctrl+Shift+V で Android クリップボードから貼り付け。オフにするとキーをリモートシェルに転送します。</string>
+    <string name="settings_auto_show_keyboard_title">ターミナル開時にキーボードを表示</string>
+    <string name="settings_auto_show_keyboard_subtitle">ターミナルセッションを開く、または切り替えたとき、ソフトウェアキーボードが自動的に現れます。閲覧専用のセッションではオフにしてください。ツールバーのキーボードキーやダブルタップでいつでも出せます</string>
 
     <!-- Navigation Tabs dialog -->
 

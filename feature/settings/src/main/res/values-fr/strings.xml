@@ -296,6 +296,8 @@
     <string name="settings_ime_flags_subtitle">Choisir les bits EditorInfo que le terminal définit</string>
     <string name="settings_ctrl_shift_v_title">Ctrl+Maj+V colle</string>
     <string name="settings_ctrl_shift_v_subtitle">Ctrl+Maj+V sur clavier matériel colle depuis le presse-papiers Android. Désactivé, les touches sont transmises au shell distant.</string>
+    <string name="settings_auto_show_keyboard_title">Afficher le clavier à l'ouverture d'un terminal</string>
+    <string name="settings_auto_show_keyboard_subtitle">Le clavier virtuel apparaît automatiquement à l'ouverture ou au changement d'une session de terminal. Désactivez pour le garder masqué en lecture seule ; la touche clavier de la barre d'outils et un double-tap le font toujours apparaître</string>
 
     <!-- Navigation Tabs dialog -->
 

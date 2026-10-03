@@ -1,0 +1,1 @@
+- **A setting to keep the soft keyboard down when a terminal opens.** By default a terminal still raises the keyboard as soon as it opens; turning the new setting off leaves it hidden until you tap the input area or the keyboard key. (#675)

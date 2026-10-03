@@ -5,6 +5,10 @@ the corresponding GitHub Release; a release can't ship without its section
 (enforced by `scripts/check-changelog.sh` in CI). The GitHub "Full Changelog"
 compare link is appended automatically — don't add it here.
 
+## v5.89.18
+
+- **A setting to keep the soft keyboard down when a terminal opens.** By default a terminal still raises the keyboard as soon as it opens; turning the new setting off leaves it hidden until you tap the input area or the keyboard key. (#675)
+
 ## v5.89.17
 
 - **Inline images in the terminal.** SSH programs that speak the Kitty or iTerm2 graphics protocol — image viewers, chart tools, preview generators — can now display raster images inline where the cursor is. Each image asks first: a consent dialog with Deny, Allow, and an always-allow latch for the session. Terminal settings carry the policy (Off / Ask / Always, Ask by default), and it is readable and writable over MCP as `terminal_inline_images`. (#583)

@@ -15,6 +15,7 @@ import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.ExperimentalCoroutinesApi
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.flowOf
+import kotlinx.coroutines.launch
 import kotlinx.coroutines.test.StandardTestDispatcher
 import kotlinx.coroutines.test.resetMain
 import kotlinx.coroutines.test.runTest
@@ -86,6 +87,8 @@ class ConnectionsViewModelSessionTest {
     private lateinit var rdpSessionManager: RdpSessionManager
     private lateinit var mailSessionManager: MailSessionManager
     private lateinit var rcloneSessionManager: sh.haven.core.rclone.RcloneSessionManager
+    private lateinit var openAiSessionManager: sh.haven.core.openai.OpenAiSessionManager
+    private val openAiSessions = MutableStateFlow<Map<String, sh.haven.core.openai.OpenAiSessionManager.SessionState>>(emptyMap())
     private lateinit var prootManager: ProotManager
     private lateinit var desktopManager: DesktopManager
     private lateinit var sessionManagerRegistry: SessionManagerRegistry
@@ -141,6 +144,10 @@ class ConnectionsViewModelSessionTest {
         rcloneSessionManager = mockk(relaxed = true) {
             every { sessions } returns MutableStateFlow(emptyMap())
         }
+        openAiSessionManager = mockk(relaxed = true) {
+            every { sessions } returns openAiSessions
+            every { activeSessions } returns emptyList()
+        }
         // Since #510 the registry takes contributed transports rather than
         // naming each manager, so the bindings that :app provides in
         // TransportSessionManagerModule are stood up here as thin fakes that
@@ -157,6 +164,9 @@ class ConnectionsViewModelSessionTest {
                 disconnectable(Transport.RDP) { rdpSessionManager.removeAllSessionsForProfile(it) },
                 disconnectable(Transport.MAIL) { mailSessionManager.removeAllSessionsForProfile(it) },
                 disconnectable(Transport.RCLONE) { rcloneSessionManager.removeAllSessionsForProfile(it) },
+                // OPENAI was missing from this set, so disconnect left the chat
+                // session CONNECTED forever (the same #363 shape as rclone).
+                disconnectable(Transport.OPENAI) { openAiSessionManager.removeAllSessionsForProfile(it) },
                 // The three serial transports were anonymous mocks here before
                 // and nothing asserts them; they stay no-ops.
                 disconnectable(Transport.BTSERIAL) {},
@@ -261,7 +271,7 @@ class ConnectionsViewModelSessionTest {
             biometricGate = mockk(relaxed = true),
             pendingAuthPromptHolder = mockk(relaxed = true),
             sessionSelectionHolder = mockk(relaxed = true),
-            openAiSessionManager = mockk(relaxed = true),
+            openAiSessionManager = openAiSessionManager,
             aiRouteRegistry = sh.haven.core.openai.AiRouteRegistry(),
             connectionPreflight = mockk(relaxed = true) {
                 coEvery { beforeConnect(any()) } answers {
@@ -310,6 +320,29 @@ class ConnectionsViewModelSessionTest {
         verify { smbSessionManager.removeAllSessionsForProfile("profile1") }
         verify { localSessionManager.removeAllSessionsForProfile("profile1") }
         verify { rcloneSessionManager.removeAllSessionsForProfile("profile1") }
+        verify { openAiSessionManager.removeAllSessionsForProfile("profile1") }
+    }
+
+    // A connected OPENAI/chat profile must surface CONNECTED in profileStatuses,
+    // otherwise the connections-list row shows no status dot and tapping it falls
+    // through to the SSH password prompt instead of opening the chat.
+    @Test
+    fun `connected openai session surfaces CONNECTED profile status`() = runTest {
+        openAiSessions.value = mapOf(
+            "s1" to sh.haven.core.openai.OpenAiSessionManager.SessionState(
+                sessionId = "s1",
+                profileId = "openai1",
+                label = "local model",
+                status = sh.haven.core.openai.OpenAiSessionManager.SessionState.Status.CONNECTED,
+            ),
+        )
+        backgroundScope.launch { viewModel.profileStatuses.collect { } }
+        testDispatcher.scheduler.advanceUntilIdle()
+
+        org.junit.Assert.assertEquals(
+            sh.haven.feature.connections.ProfileStatus.CONNECTED,
+            viewModel.profileStatuses.value["openai1"],
+        )
     }
 
     @Test

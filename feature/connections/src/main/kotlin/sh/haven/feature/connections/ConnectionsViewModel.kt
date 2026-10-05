@@ -634,7 +634,8 @@ class ConnectionsViewModel @Inject constructor(
                 umlGuestManager.sessions,
             ) { smb, local, rclone, guest -> arrayOf(smb, local, rclone, guest) },
             desktopSessionRegistry.statuses,
-        ) { base, extra, deskMap ->
+            openAiSessionManager.sessions,
+        ) { base, extra, deskMap, openaiMap0 ->
             @Suppress("UNCHECKED_CAST")
             val sshMap = base[0] as Map<String, SshSessionManager.SessionState>
             @Suppress("UNCHECKED_CAST")
@@ -651,6 +652,8 @@ class ConnectionsViewModel @Inject constructor(
             val rcloneMap = extra[2] as Map<String, RcloneSessionManager.SessionState>
             @Suppress("UNCHECKED_CAST")
             val guestMap = extra[3] as Map<String, sh.haven.core.local.uml.UmlGuestManager.SessionState>
+            @Suppress("UNCHECKED_CAST")
+            val openaiMap = openaiMap0 as Map<String, sh.haven.core.openai.OpenAiSessionManager.SessionState>
             val result = mutableMapOf<String, ProfileStatus>()
 
             // Track which profiles have transport-specific sessions (Mosh/ET/RNS/Local).
@@ -764,6 +767,25 @@ class ConnectionsViewModel @Inject constructor(
                 val existing = result[profileId]
                 if (existing == null || guestStatus.ordinal < existing.ordinal) {
                     result[profileId] = guestStatus
+                }
+            }
+
+            // OpenAI/chat statuses (merge — an OPENAI profile has no transport
+            // session of its own, so like SMB/Local this only fills an empty
+            // slot). Without this an OPENAI profile never reaches CONNECTED, so
+            // its row shows no status dot and tapping it falls through to the
+            // SSH password prompt instead of opening the chat.
+            openaiMap.values.groupBy { it.profileId }.forEach { (profileId, states) ->
+                val statuses = states.map { it.status }
+                val openaiStatus = when {
+                    sh.haven.core.openai.OpenAiSessionManager.SessionState.Status.CONNECTED in statuses -> ProfileStatus.CONNECTED
+                    sh.haven.core.openai.OpenAiSessionManager.SessionState.Status.CONNECTING in statuses -> ProfileStatus.CONNECTING
+                    sh.haven.core.openai.OpenAiSessionManager.SessionState.Status.ERROR in statuses -> ProfileStatus.ERROR
+                    else -> ProfileStatus.DISCONNECTED
+                }
+                val existing = result[profileId]
+                if (existing == null || openaiStatus.ordinal < existing.ordinal) {
+                    result[profileId] = openaiStatus
                 }
             }
 

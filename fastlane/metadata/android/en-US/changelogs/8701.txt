@@ -1,0 +1,5 @@
+- Connected state for chat/model profiles: an OpenAI-compatible profile's row shows status, tapping it opens the chat, Disconnect appears.
+- A queued post-login command submits on Windows (LF wasn't Enter there; sent as CR now) (#680).
+- The terminal answers XTVERSION with Haven's version, so tmux can name-match it.
+- Alt chords on non-ASCII layouts sent as one write, not split Escape + character.
+- Dependency updates: sshlib 0.5.0, Tailscale 1.104.0, wrapper-validation 6.4.0.

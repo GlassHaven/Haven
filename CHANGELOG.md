@@ -5,6 +5,14 @@ the corresponding GitHub Release; a release can't ship without its section
 (enforced by `scripts/check-changelog.sh` in CI). The GitHub "Full Changelog"
 compare link is appended automatically — don't add it here.
 
+## v5.89.19
+
+- **Chat and model profiles report their connection state.** A profile for an OpenAI-compatible server never showed as connected: no status dot, tapping the row dropped you at the password prompt instead of the chat, and Disconnect never appeared. Their sessions now count like any other transport, so the row shows status and Disconnect while a chat is open.
+- **A queued post-login command submits on Windows.** The command was sent with LF, which a Windows console pty doesn't take as Enter — it sat unsubmitted until you pressed Enter yourself. It now sends CR, the byte a real Enter press produces; POSIX shells fold it back to a newline, so they behave as before. (#680)
+- **The terminal identifies itself to programs that ask.** The terminal now answers the XTVERSION query with Haven's version (for example Haven(5.89.19)), so tmux and similar programs can name-match the outer terminal.
+- **Terminal fix.** An Alt chord on a non-ASCII keyboard layout was written as two separate chunks, which let a program at the other end see a lone Escape followed by the character; the chord is now delivered in one write.
+- **Dependency updates.** sshlib 0.5.0; Tailscale 1.104.0 in the rclone bridge; wrapper-validation action 6.4.0.
+
 ## v5.89.18
 
 - **A setting to keep the soft keyboard down when a terminal opens.** By default a terminal still raises the keyboard as soon as it opens; turning the new setting off leaves it hidden until you tap the input area or the keyboard key. (#675)

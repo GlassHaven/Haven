@@ -387,6 +387,43 @@ class TerminalSessionTest {
     }
 
     @Test
+    fun `pending command submits with CR, the byte a terminal Enter sends (#680)`() {
+        val out = ByteArrayOutputStream()
+        val pipeOut = PipedOutputStream()
+        val pipeIn = PipedInputStream(pipeOut)
+        val channel = mockk<ChannelShell>(relaxed = true) {
+            every { inputStream } returns pipeIn
+            every { getOutputStream() } returns out
+            every { isConnected } returns true
+        }
+        val client = mockk<SshClient>(relaxed = true)
+
+        val session = TerminalSession(
+            sessionId = "test-session",
+            profileId = "test",
+            label = "near@host",
+            shell = shellOf(channel),
+            client = client,
+            onDataReceived = { _, _, _ -> },
+            pendingCommands = listOf("herdr"),
+        )
+        try {
+            session.start()
+
+            // A default-terminator prompt ($) fires the queued command. The
+            // submit byte must be CR: Windows cmd.exe ignores a bare LF (#680),
+            // and POSIX line discipline (ICRNL) folds CR back to NL, so behavior
+            // on POSIX shells is unchanged.
+            pipeOut.write("near@host:~$ ".toByteArray())
+            pipeOut.flush()
+            Thread.sleep(300)
+            assertEquals("herdr\r", String(out.toByteArray()))
+        } finally {
+            session.close()
+        }
+    }
+
+    @Test
     fun `pending command fires on a custom prompt char only once it is configured`() {
         val out = ByteArrayOutputStream()
         val pipeOut = PipedOutputStream()

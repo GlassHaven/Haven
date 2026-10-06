@@ -375,7 +375,12 @@ class TerminalSession(
     private fun sendNextPendingCommand(trigger: String) {
         if (closed) return
         val cmd = synchronized(_pendingCommands) { _pendingCommands.removeFirstOrNull() } ?: return
-        sendToSsh((cmd + "\n").toByteArray())
+        // Submit with CR — the byte a terminal's Enter key sends into a pty.
+        // Windows cmd.exe over OpenSSH ignores a bare LF, so a queued post-login
+        // command sat unsubmitted until the user pressed Enter themselves (#680);
+        // POSIX line discipline (ICRNL) folds CR back to NL, so POSIX shells
+        // accept it exactly as before.
+        sendToSsh((cmd + "\r").toByteArray())
         onBreadcrumb?.invoke("pending/reattach sent on $trigger: ${cmd.take(48)}")
         // Last pending command sent on a reconnect: the session manager is
         // reattached now, so force a repaint (see [redrawAfterPendingDrain]).

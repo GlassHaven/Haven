@@ -1287,6 +1287,7 @@ class TerminalViewModel @Inject constructor(
                     },
                     maxScrollbackLines = terminalScrollbackRows.value,
                 inlineImages = inlineImagesPolicy(terminalInlineImages.value, inlineImageConsent.state(sessionId)),
+                xtversion = XtversionIdentity.of(appContext),
                 )
                 // The guest console runs opencode, whose Ink renderer diffs
                 // line-by-line against its own model; a backfilling grow

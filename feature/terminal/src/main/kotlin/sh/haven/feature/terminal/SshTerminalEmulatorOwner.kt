@@ -33,7 +33,7 @@ private const val TAG = "SshTermEmulatorOwner"
  * it across [TerminalViewModel] lifecycles (#290 issue #2).
  *
  * The bug: tmux's attach-time capability probes (DA2 `ESC[>0;100;0c`, XTVERSION
- * `ESC P>|libvterm(0.3)`) were answered *late* — the emulator used to be created
+ * `ESC P>|Haven(<version>)[ST]`) were answered *late* — the emulator used to be created
  * only when the nav-scoped ViewModel mounted the Terminal tab and replayed the
  * #289 connect-window backlog into it. By then tmux's probe window had closed,
  * so it forwarded the late responses to the inner shell, which echoed them as
@@ -114,6 +114,7 @@ class SshTerminalEmulatorOwner @Inject constructor(
             onResize = ors,
             maxScrollbackLines = scrollback,
             inlineImages = inlineImages,
+            xtversion = XtversionIdentity.of(appContext),
         )
     }
 

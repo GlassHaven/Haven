@@ -6036,6 +6036,7 @@ internal class McpTools(
                     localSessionManager.getActiveSession(sessionId)?.resize(dims.columns, dims.rows)
                 },
                 maxScrollbackLines = scrollbackRows,
+                xtversion = sh.haven.feature.terminal.XtversionIdentity.of(context),
             )
             // writeInput must happen on the main looper — libvterm's
             // OSC dispatch is wired against the same thread that

@@ -62,6 +62,7 @@
     <string name="terminal_rename_session_title">セッション名を変更</string>
     <string name="terminal_name">名前</string>
     <string name="terminal_rename">名前変更</string>
+    <string name="terminal_rename_exists">\"%1$s\" という名前のセッションがこのサーバーに既に存在します</string>
     <string name="terminal_new_tab_no_active">複製できるアクティブなセッションがありません</string>
     <string name="terminal_new_tab_no_config">接続設定が見つかりません — 先に再接続してください</string>
     <string name="terminal_new_tab_host_key_changed">%s のホスト鍵が変更されました — セキュリティのため接続を拒否しました</string>

@@ -79,6 +79,7 @@
     <string name="terminal_rename_session_title">Rename Session</string>
     <string name="terminal_name">Name</string>
     <string name="terminal_rename">Rename</string>
+    <string name="terminal_rename_exists">A session named \"%1$s\" already exists on this server</string>
 
     <!-- Save connection (pin live session onto a profile for one-tap reconnect) -->
     <string name="terminal_save_connection">Save connection</string>

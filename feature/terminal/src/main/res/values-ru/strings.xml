@@ -62,6 +62,7 @@
     <string name="terminal_rename_session_title">Переименовать сессию</string>
     <string name="terminal_name">Имя</string>
     <string name="terminal_rename">Переименовать</string>
+    <string name="terminal_rename_exists">Сессия с именем \"%1$s\" уже существует на этом сервере</string>
     <string name="terminal_new_tab_no_active">Нет активного сеанса для клонирования</string>
     <string name="terminal_new_tab_no_config">Конфигурация подключения не найдена — сначала переподключитесь</string>
     <string name="terminal_new_tab_host_key_changed">Ключ хоста для %s изменился — подключение отклонено из соображений безопасности</string>

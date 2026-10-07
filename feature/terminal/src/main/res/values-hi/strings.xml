@@ -62,6 +62,7 @@
     <string name="terminal_rename_session_title">सत्र का नाम बदलें</string>
     <string name="terminal_name">नाम</string>
     <string name="terminal_rename">नाम बदलें</string>
+    <string name="terminal_rename_exists">इस सर्वर पर \"%1$s\" नाम का सत्र पहले से मौजूद है</string>
     <string name="terminal_new_tab_no_active">क्लोन करने के लिए कोई सक्रिय सत्र नहीं</string>
     <string name="terminal_new_tab_no_config">कनेक्शन कॉन्फ़िग नहीं मिला — पहले फिर से कनेक्ट करें</string>
     <string name="terminal_new_tab_host_key_changed">%s के लिए होस्ट कुंजी बदल गई — सुरक्षा कारणों से कनेक्शन अस्वीकृत</string>

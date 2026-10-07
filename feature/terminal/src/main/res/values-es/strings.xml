@@ -62,6 +62,7 @@
     <string name="terminal_rename_session_title">Renombrar sesión</string>
     <string name="terminal_name">Nombre</string>
     <string name="terminal_rename">Renombrar</string>
+    <string name="terminal_rename_exists">Ya existe una sesión llamada \"%1$s\" en este servidor</string>
     <string name="terminal_new_tab_no_active">No hay sesión activa que clonar</string>
     <string name="terminal_new_tab_no_config">No se encontró la configuración de la conexión: vuelve a conectar primero</string>
     <string name="terminal_new_tab_host_key_changed">La clave de host de %s cambió: conexión rechazada por seguridad</string>

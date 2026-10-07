@@ -62,6 +62,7 @@
     <string name="terminal_rename_session_title">সেশনের নাম পরিবর্তন</string>
     <string name="terminal_name">নাম</string>
     <string name="terminal_rename">নাম পরিবর্তন</string>
+    <string name="terminal_rename_exists">এই সার্ভারে \"%1$s\" নামের একটি সেশন আগেই আছে</string>
     <string name="terminal_new_tab_no_active">ক্লোন করার মতো সক্রিয় সেশন নেই</string>
     <string name="terminal_new_tab_no_config">সংযোগ কনফিগ পাওয়া যায়নি — আগে আবার সংযোগ করুন</string>
     <string name="terminal_new_tab_host_key_changed">%s এর হোস্ট কী পরিবর্তিত হয়েছে — নিরাপত্তার কারণে সংযোগ প্রত্যাখ্যাত</string>

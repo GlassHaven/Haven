@@ -62,6 +62,7 @@
     <string name="terminal_rename_session_title">إعادة تسمية الجلسة</string>
     <string name="terminal_name">الاسم</string>
     <string name="terminal_rename">إعادة تسمية</string>
+    <string name="terminal_rename_exists">توجد جلسة بالاسم \"%1$s\" على هذا الخادم بالفعل</string>
     <string name="terminal_new_tab_no_active">لا توجد جلسة نشطة لاستنساخها</string>
     <string name="terminal_new_tab_no_config">لم يُعثر على إعدادات الاتصال — أعد الاتصال أولًا</string>
     <string name="terminal_new_tab_host_key_changed">تغيّر مفتاح المضيف لـ %s — رُفض الاتصال لأسباب أمنية</string>

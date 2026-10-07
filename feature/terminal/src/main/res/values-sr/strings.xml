@@ -65,6 +65,7 @@
     <string name="terminal_rename_session_title">Преименовање сесије</string>
     <string name="terminal_name">Име</string>
     <string name="terminal_rename">Преименуј</string>
+    <string name="terminal_rename_exists">Сесија под називом \"%1$s\" већ постоји на овом серверу</string>
     <string name="terminal_save_connection">Сачувај везу</string>
     <string name="terminal_save_connection_title">Чување везе</string>
     <string name="terminal_save_connection_id">ИД профила</string>

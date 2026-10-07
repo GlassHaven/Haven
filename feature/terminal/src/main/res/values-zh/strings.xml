@@ -62,6 +62,7 @@
     <string name="terminal_rename_session_title">重命名会话</string>
     <string name="terminal_name">名称</string>
     <string name="terminal_rename">重命名</string>
+    <string name="terminal_rename_exists">此服务器上已存在名为 \"%1$s\" 的会话</string>
     <string name="terminal_new_tab_no_active">没有可克隆的活动会话</string>
     <string name="terminal_new_tab_no_config">未找到连接配置 — 请先尝试重新连接</string>
     <string name="terminal_new_tab_host_key_changed">%s 的主机密钥已更改 — 出于安全考虑拒绝连接</string>

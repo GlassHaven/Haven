@@ -73,6 +73,7 @@
     <string name="terminal_rename_session_title">세션 이름 변경</string>
     <string name="terminal_name">이름</string>
     <string name="terminal_rename">이름 변경</string>
+    <string name="terminal_rename_exists">이 서버에 \"%1$s\"이라는 세션이 이미 있습니다</string>
     <string name="terminal_enter_fullscreen">전체 화면 시작</string>
     <string name="terminal_exit_fullscreen">전체 화면 종료</string>
     <string name="terminal_open_plain_shell">기본 셸 열기</string>

@@ -62,6 +62,7 @@
     <string name="terminal_rename_session_title">Renommer la session</string>
     <string name="terminal_name">Nom</string>
     <string name="terminal_rename">Renommer</string>
+    <string name="terminal_rename_exists">Une session nommée \"%1$s\" existe déjà sur ce serveur</string>
     <string name="terminal_new_tab_no_active">Aucune session active à cloner</string>
     <string name="terminal_new_tab_no_config">Configuration de connexion introuvable — reconnectez-vous d’abord</string>
     <string name="terminal_new_tab_host_key_changed">La clé d’hôte de %s a changé — connexion refusée par sécurité</string>

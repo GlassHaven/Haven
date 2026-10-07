@@ -43198,6 +43198,28 @@
      }
     },
     {
+     "name": "terminal_rename_exists",
+     "en": "A session named \\\"%1$s\\\" already exists on this server",
+     "comment": "RenameSessionDialog",
+     "args": [
+      "%1$s"
+     ],
+     "t": {
+      "ar": "توجد جلسة بالاسم \\\"%1$s\\\" على هذا الخادم بالفعل",
+      "bn": "এই সার্ভারে \\\"%1$s\\\" নামের একটি সেশন আগেই আছে",
+      "de": "Auf diesem Server gibt es bereits eine Sitzung mit dem Namen \\\"%1$s\\\"",
+      "es": "Ya existe una sesión llamada \\\"%1$s\\\" en este servidor",
+      "fr": "Une session nommée \\\"%1$s\\\" existe déjà sur ce serveur",
+      "hi": "इस सर्वर पर \\\"%1$s\\\" नाम का सत्र पहले से मौजूद है",
+      "ja": "\\\"%1$s\\\" という名前のセッションがこのサーバーに既に存在します",
+      "ko": "이 서버에 \\\"%1$s\\\"이라는 세션이 이미 있습니다",
+      "pt": "Já existe uma sessão chamada \\\"%1$s\\\" neste servidor",
+      "ru": "Сессия с именем \\\"%1$s\\\" уже существует на этом сервере",
+      "sr": "Сесија под називом \\\"%1$s\\\" већ постоји на овом серверу",
+      "zh": "此服务器上已存在名为 \\\"%1$s\\\" 的会话"
+     }
+    },
+    {
      "name": "terminal_save_connection",
      "en": "Save connection",
      "comment": "Save connection (pin live session onto a profile for one-tap reconnect)",

@@ -8,6 +8,7 @@ compare link is appended automatically — don't add it here.
 ## v5.89.22
 
 - **Reticulum TCP reconnect stays live.** A dropped TCP session reconnected on the app's retry loop, but the reconnected interface came online without its read loop: the session looked connected, no inbound data arrived, and nothing said why — it stayed deaf until the interface was re-added by hand. The upstream reticulum-kt fix is merged with the fork's backoff kept: the read loop is started with the reconnected interface, and leaked interface resources are reaped as interfaces churn. Device-tested with a real server kill: the app reconnected on its own, made a fresh session link, and a shell round trip worked over the new socket.
+- **GPS logging no longer crashes on Android 8/9.** The GNSS measurement recording path called GnssClock.getElapsedRealtimeNanos, an API 29 call, behind a guard the OS doesn't check — an Android 8 or 9 device taking GPS logs threw in the measurement callback. The call is now properly version-gated and falls back to the system clock.
 
 ## v5.89.21
 

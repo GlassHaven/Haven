@@ -3717,8 +3717,8 @@ internal class McpTools(
     /**
      * Resolve which terminal session a terminal-driving tool should act on.
      *
-     * An explicit `sessionId` is used verbatim (a stale id then surfaces the
-     * registry's own "no registered terminal tab" error downstream). When the
+     * An explicit `sessionId` is used verbatim (requireRegistryEntry then
+     * tells a live session with no tab from a stale one). When the
      * caller omits it, default to the sole open terminal session. With none
      * open, throw an **actionable** error telling the agent to connect a
      * profile first — rather than the opaque "missing sessionId" result that
@@ -3747,7 +3747,20 @@ internal class McpTools(
     private fun requireRegistryEntry(sessionId: String): sh.haven.feature.terminal.agent.TerminalSessionRegistry.Entry {
         if (sessionId.isEmpty()) throw McpError(-32602, "Missing required argument: sessionId")
         return terminalSessionRegistry.get(sessionId)
-            ?: throw McpError(-32603, "No registered terminal tab for session $sessionId — open a terminal tab on this session first")
+            ?: if (sshSessionManager.getSession(sessionId) == null &&
+                localSessionManager.getActiveSession(sessionId) == null
+            ) {
+                // Mirrors readTerminalScrollback: a stale id would otherwise
+                // read as "open a tab", sending an agent in circles after the
+                // id churned under it.
+                throw McpError(
+                    -32602,
+                    "No live session '$sessionId' — it likely disconnected or its id " +
+                        "churned on reconnect; get current session ids from list_sessions",
+                )
+            } else {
+                throw McpError(-32603, "No registered terminal tab for session $sessionId — open a terminal tab on this session first")
+            }
     }
 
     private fun readExitedSession(args: JSONObject): JSONObject {

@@ -23,6 +23,7 @@ import sh.haven.core.data.repository.PortForwardRepository
 import sh.haven.core.ffmpeg.FfmpegExecutor
 import sh.haven.core.ffmpeg.HlsStreamServer
 import sh.haven.core.local.LocalSessionManager
+import sh.haven.core.mcp.McpError
 import sh.haven.core.rclone.RcloneClient
 import sh.haven.core.ssh.SessionManagerRegistry
 import sh.haven.core.ssh.SshSessionManager
@@ -44,6 +45,8 @@ class McpToolsConsentTest {
 
     private fun newTools(
         preferencesRepository: UserPreferencesRepository = mockk(relaxed = true),
+        sshSessionManager: SshSessionManager = mockk(relaxed = true),
+        localSessionManager: LocalSessionManager = mockk(relaxed = true),
     ): McpTools {
         val connectionRepository = mockk<ConnectionRepository>(relaxed = true)
         // profileLabel(...) hits this; return a stable label so the
@@ -59,7 +62,7 @@ class McpToolsConsentTest {
             context = mockk<Context>(relaxed = true),
             connectionRepository = connectionRepository,
             portForwardRepository = mockk<PortForwardRepository>(relaxed = true),
-            sshSessionManager = mockk<SshSessionManager>(relaxed = true),
+            sshSessionManager = sshSessionManager,
             sessionManagerRegistry = mockk<SessionManagerRegistry>(relaxed = true),
             rcloneClient = mockk<RcloneClient>(relaxed = true),
             mailSessionManager = mockk<sh.haven.core.mail.MailSessionManager>(relaxed = true),
@@ -68,7 +71,7 @@ class McpToolsConsentTest {
             ffmpegExecutor = mockk<FfmpegExecutor>(relaxed = true),
             preferencesRepository = preferencesRepository,
             terminalFontInstaller = mockk<TerminalFontInstaller>(relaxed = true),
-            localSessionManager = mockk<LocalSessionManager>(relaxed = true),
+            localSessionManager = localSessionManager,
             agentUiCommandBus = sh.haven.core.data.agent.AgentUiCommandBus(),
             transportSelector = mockk<sh.haven.feature.sftp.transport.TransportSelector>(relaxed = true),
             workspaceRepository = mockk<sh.haven.core.data.repository.WorkspaceRepository>(relaxed = true),
@@ -1039,5 +1042,32 @@ class McpToolsConsentTest {
             "waylandLoadError must carry the loadLibrary failure reason",
             out.getString("waylandLoadError").isNotBlank(),
         )
+    }
+
+    /** Error-quality companion to #213: an explicit stale sessionId (ids
+     *  churn on reconnect) is invalid-params pointing at list_sessions, not
+     *  "open a terminal tab on this session" — the latter sends the agent in
+     *  circles opening tabs under a dead id. Covers requireRegistryEntry for
+     *  every terminal-driving tool it guards. */
+    @Test
+    fun `stale terminal sessionId is invalid-params pointing at list_sessions`() {
+        val sshSessionManager = mockk<SshSessionManager>(relaxed = true)
+        every { sshSessionManager.getSession(any()) } returns null
+        val localSessionManager = mockk<LocalSessionManager>(relaxed = true)
+        every { localSessionManager.getActiveSession(any()) } returns null
+        val tools = newTools(
+            sshSessionManager = sshSessionManager,
+            localSessionManager = localSessionManager,
+        )
+        val err = runCatching {
+            runBlocking {
+                tools.call(
+                    "start_selection",
+                    JSONObject().put("sessionId", "dead-session").put("row", 0).put("col", 0),
+                )
+            }
+        }.exceptionOrNull() as McpError
+        assertEquals(-32602, err.code)
+        assertTrue(err.message!!.contains("list_sessions"))
     }
 }

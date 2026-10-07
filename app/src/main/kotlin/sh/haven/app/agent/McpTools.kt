@@ -3444,10 +3444,22 @@ internal class McpTools(
         val sshBytes = sshSessionManager.readAgentScrollback(sessionId, capped)
         val bytes = sshBytes
             ?: localSessionManager.readAgentScrollback(sessionId, capped)
-            ?: throw McpError(
-                -32603,
-                "No scrollback available for session $sessionId — open a terminal tab on this session first",
-            )
+            ?: if (sshSessionManager.getSession(sessionId) == null &&
+                localSessionManager.getActiveSession(sessionId) == null
+            ) {
+                // A stale id reads as "no scrollback" otherwise, which sends an
+                // agent opening a tab on a session that no longer exists.
+                throw McpError(
+                    -32602,
+                    "No live session '$sessionId' — it likely disconnected or its id " +
+                        "churned on reconnect; get current session ids from list_sessions",
+                )
+            } else {
+                throw McpError(
+                    -32603,
+                    "No scrollback available for session $sessionId — open a terminal tab on this session first",
+                )
+            }
         // Whether the underlying session has ended. Without this an agent
         // can't tell a quiet shell from a dead one — the ring keeps returning
         // the last output (e.g. frozen at the login banner) with no signal.

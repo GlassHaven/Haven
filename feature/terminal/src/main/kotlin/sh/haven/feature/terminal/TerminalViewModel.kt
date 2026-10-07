@@ -2672,6 +2672,7 @@ class TerminalViewModel @Inject constructor(
                     useAndroidShell = existingSession?.useAndroidShell ?: profile?.useAndroidShell ?: false,
                     prootDistroId = existingSession?.prootDistroId ?: profile?.prootDistroId,
                     desktopEnv = desktopEnv,
+                    isTermux = profile?.isTermux ?: false,
                 )
                 if (plain) plainSessionIds.add(sessionId)
                 localSessionManager.connectSession(sessionId)

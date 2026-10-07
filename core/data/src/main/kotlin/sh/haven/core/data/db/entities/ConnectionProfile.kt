@@ -522,7 +522,8 @@ data class ConnectionProfile(
     val isRdp: Boolean get() = connectionType == "RDP"
     val isSpice: Boolean get() = connectionType == "SPICE"
     val isSmb: Boolean get() = connectionType == "SMB"
-    val isLocal: Boolean get() = connectionType == "LOCAL"
+    val isLocal: Boolean get() = connectionType == "LOCAL" || connectionType == "TERMUX"
+    val isTermux: Boolean get() = connectionType == "TERMUX"
 
     // UML guest (#uml): a whole Linux kernel running as the app's own process.
     // Fields are unused (the kernel args are fixed in UmlGuestManager), so no

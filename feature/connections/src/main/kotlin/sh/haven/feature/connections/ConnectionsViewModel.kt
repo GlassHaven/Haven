@@ -3467,7 +3467,7 @@ class ConnectionsViewModel @Inject constructor(
 
             // If proot binary is available but rootfs isn't installed, download it first
             val prootManager = localSessionManager.prootManager
-            if (prootManager.prootBinary != null && !prootManager.isRootfsInstalled) {
+            if (!profile.isTermux && prootManager.prootBinary != null && !prootManager.isRootfsInstalled) {
                 Log.d(TAG, "PRoot available but rootfs not installed — downloading...")
                 prootManager.installRootfs()
                 if (prootManager.state.value is sh.haven.core.local.ProotManager.SetupState.Error) {
@@ -3476,7 +3476,13 @@ class ConnectionsViewModel @Inject constructor(
                 }
             }
 
-            val sessionId = localSessionManager.registerSession(profile.id, profile.label, profile.useAndroidShell, profile.prootDistroId)
+            val sessionId = localSessionManager.registerSession(
+                profile.id,
+                profile.label,
+                profile.useAndroidShell,
+                profile.prootDistroId,
+                isTermux = profile.isTermux,
+            )
             try {
                 localSessionManager.connectSession(sessionId)
                 repository.markConnected(profile.id)
@@ -6246,11 +6252,15 @@ class ConnectionsViewModel @Inject constructor(
         }
 
         val prootManager = localSessionManager.prootManager
-        if (prootManager.prootBinary != null && !prootManager.isRootfsInstalled) {
+        if (!profile.isTermux && prootManager.prootBinary != null && !prootManager.isRootfsInstalled) {
             prootManager.installRootfs()
         }
 
-        val sessionId = localSessionManager.registerSession(profile.id, profile.label)
+        val sessionId = localSessionManager.registerSession(
+            profile.id,
+            profile.label,
+            isTermux = profile.isTermux,
+        )
         try {
             localSessionManager.connectSession(sessionId)
             repository.markConnected(profile.id)

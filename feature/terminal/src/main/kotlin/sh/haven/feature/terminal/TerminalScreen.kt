@@ -7,6 +7,7 @@ import android.content.ClipboardManager
 import android.content.Context
 import android.content.Intent
 import android.net.Uri
+import android.os.Build
 import androidx.activity.compose.BackHandler
 import androidx.compose.material.icons.filled.Fullscreen
 import androidx.compose.material.icons.filled.FullscreenExit
@@ -124,6 +125,7 @@ import org.connectbot.terminal.ModifierManager
 import org.connectbot.terminal.TerminalEmulator
 import sh.haven.core.terminal.HavenKeyboardMode
 import sh.haven.core.terminal.HavenTerminal
+import sh.haven.core.terminal.defaultKeyboardModeForDevice
 import sh.haven.core.data.preferences.ToolbarItem
 import sh.haven.core.data.preferences.ToolbarLayout
 import sh.haven.core.data.preferences.UserPreferencesRepository
@@ -1909,7 +1911,10 @@ fun TerminalScreen(
                             rawKeyboardMode -> HavenKeyboardMode.Raw
                             allowStandardKeyboard -> HavenKeyboardMode.Standard
                             customKeyboardFlags != null -> HavenKeyboardMode.Custom(customKeyboardFlags!!)
-                            else -> HavenKeyboardMode.Secure
+                            // #684: on some OEMs (Huawei confirmed) the Secure
+                            // recipe's password variation locks the IME to a
+                            // minimal system keypad, so the default adapts.
+                            else -> defaultKeyboardModeForDevice(Build.MANUFACTURER)
                         }
                         CompositionLocalProvider(LocalClipboardManager provides smartClipboard) {
                             HavenTerminal(

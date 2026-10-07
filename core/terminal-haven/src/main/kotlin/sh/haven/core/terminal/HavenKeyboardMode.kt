@@ -84,3 +84,32 @@ data class ImeFlagSet(
     /** `IME_FLAG_NO_PERSONALIZED_LEARNING` — privacy: IME doesn't learn input. */
     val noPersonalizedLearning: Boolean = true,
 )
+
+/**
+ * The default [HavenKeyboardMode] on this device — what Secure resolves to
+ * when the user has picked no explicit mode.
+ *
+ * Secure's recipe includes `TYPE_TEXT_VARIATION_VISIBLE_PASSWORD`, and some
+ * OEM builds answer that variation by replacing the IME outright with a
+ * locked minimal system keypad that offers no way to switch IMEs or compose
+ * CJK text (#684: Huawei, confirmed on a P60 Art on both the Android and
+ * HarmonyOS builds; the reporter's own tests showed Compose and a Custom
+ * set without the visible-password bit both keep the ordinary keyboard).
+ * There the default drops only the visible-password bit; every other part
+ * of the Secure recipe stays.
+ *
+ * The trade-off is real: the password variation was what kept silent
+ * autocorrect off on Gboard (#115), so a Huawei device running Gboard gets
+ * autocorrect back in the terminal. That is the irreducible choice between
+ * "system keypad, no CJK" and "normal IME, Gboard rewrites"; Raw and Custom
+ * modes remain as escape hatches in both directions.
+ *
+ * Deliberately narrow: only manufacturers with a confirmed report qualify.
+ * Extend on evidence, not guesswork — a false positive silently downgrades
+ * the default on an unrelated device. HONOR builds are not covered until
+ * someone reports them.
+ */
+fun defaultKeyboardModeForDevice(manufacturer: String): HavenKeyboardMode =
+    if (manufacturer.isNotBlank() && manufacturer.contains("HUAWEI", ignoreCase = true))
+        HavenKeyboardMode.Custom(ImeFlagSet(visiblePassword = false))
+    else HavenKeyboardMode.Secure

@@ -1891,7 +1891,7 @@ private fun ConnectionTreeItem(
                 headlineContent = { Text(profile.label) },
                 supportingContent = {
                     if (profile.isTermux) {
-                        Text("Termux Engine (Shizuku)")
+                        Text(stringResource(R.string.connections_termux_label))
                     } else if (profile.isLocal) {
                         Text(
                             stringResource(

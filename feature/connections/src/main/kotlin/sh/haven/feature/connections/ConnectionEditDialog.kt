@@ -1318,9 +1318,9 @@ fun ConnectionEditDialog(
                 }
 
                 if (connectionType == "TERMUX") {
-                    ConnectionSection("Termux Engine (Shizuku)")
+                    ConnectionSection(stringResource(R.string.connections_section_termux))
                     Text(
-                        "Direct PTY bridge to your Termux environment via Shizuku. Launches your native Termux login shell directly inside Haven.",
+                        stringResource(R.string.connections_termux_desc),
                         style = MaterialTheme.typography.bodySmall,
                         color = MaterialTheme.colorScheme.onSurfaceVariant,
                     )

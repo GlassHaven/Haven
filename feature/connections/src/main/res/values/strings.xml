@@ -52,6 +52,7 @@
     <!-- Connection tree item -->
     <string name="connections_proot_label">PRoot Alpine Linux</string>
     <string name="connections_android_shell_label">Native Android shell</string>
+    <string name="connections_termux_label">Termux Engine (Shizuku)</string>
     <string name="connections_launch_desktop">Launch Desktop</string>
     <string name="connections_setup_desktop">Setup Desktop</string>
 
@@ -423,6 +424,8 @@
 
     <!-- Section headings in the connection edit dialog. -->
     <string name="connections_section_general">General</string>
+    <string name="connections_section_termux">Termux Engine (Shizuku)</string>
+    <string name="connections_termux_desc">Direct PTY bridge to your Termux environment via Shizuku. Launches your native Termux login shell directly inside Haven.</string>
     <string name="connections_section_local_shell">Local shell</string>
     <string name="connections_section_guest">Linux guest</string>
     <string name="connections_guest_desc">Boots a real Linux kernel on this device, with its own root filesystem and network. The rootfs is unpacked (~512 MB) on first use. No host or credentials needed.</string>

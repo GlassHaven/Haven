@@ -9049,6 +9049,25 @@
      }
     },
     {
+     "name": "connections_termux_label",
+     "en": "Termux Engine (Shizuku)",
+     "comment": "Connection tree item",
+     "args": [],
+     "t": {
+      "ar": "محرك Termux (Shizuku)",
+      "bn": "Termux ইঞ্জিন (Shizuku)",
+      "de": "Termux-Engine (Shizuku)",
+      "es": "Motor Termux (Shizuku)",
+      "fr": "Moteur Termux (Shizuku)",
+      "hi": "Termux इंजन (Shizuku)",
+      "ja": "Termuxエンジン (Shizuku)",
+      "ko": "Termux 엔진 (Shizuku)",
+      "pt": "Motor Termux (Shizuku)",
+      "ru": "Termux (Shizuku)",
+      "zh": "Termux 引擎 (Shizuku)"
+     }
+    },
+    {
      "name": "connections_launch_desktop",
      "en": "Launch Desktop",
      "comment": "Connection tree item",
@@ -15175,6 +15194,44 @@
       "ru": "Общие",
       "sr": "Опште",
       "zh": "常规"
+     }
+    },
+    {
+     "name": "connections_section_termux",
+     "en": "Termux Engine (Shizuku)",
+     "comment": "Section headings in the connection edit dialog.",
+     "args": [],
+     "t": {
+      "ar": "محرك Termux (Shizuku)",
+      "bn": "Termux ইঞ্জিন (Shizuku)",
+      "de": "Termux-Engine (Shizuku)",
+      "es": "Motor Termux (Shizuku)",
+      "fr": "Moteur Termux (Shizuku)",
+      "hi": "Termux इंजन (Shizuku)",
+      "ja": "Termuxエンジン (Shizuku)",
+      "ko": "Termux 엔진 (Shizuku)",
+      "pt": "Motor Termux (Shizuku)",
+      "ru": "Движок Termux (Shizuku)",
+      "zh": "Termux 引擎 (Shizuku)"
+     }
+    },
+    {
+     "name": "connections_termux_desc",
+     "en": "Direct PTY bridge to your Termux environment via Shizuku. Launches your native Termux login shell directly inside Haven.",
+     "comment": "Section headings in the connection edit dialog.",
+     "args": [],
+     "t": {
+      "ar": "جسر PTY مباشر إلى بيئة Termux الخاصة بك عبر Shizuku. يطلق غلاف Termux الأصلي مباشرة داخل Haven.",
+      "bn": "Shizuku-এর মাধ্যমে আপনার Termux পরিবেশে সরাসরি PTY ব্রিজ। সরাসরি Haven-এর ভেতরে নেটিভ Termux শেল চালু করে।",
+      "de": "Direkte PTY-Brücke zu Ihrer Termux-Umgebung über Shizuku. Startet die native Termux-Login-Shell direkt in Haven.",
+      "es": "Puente PTY directo a su entorno Termux mediante Shizuku. Inicia el shell nativo de Termux directamente dentro de Haven.",
+      "fr": "Pont PTY direct vers votre environnement Termux via Shizuku. Lance le shell natif de Termux directement dans Haven.",
+      "hi": "Shizuku के ज़रिए आपके Termux परिवेश के लिए सीधा PTY ब्रिज। Haven के अंदर सीधे नेटिव Termux शेल लॉन्च करता है।",
+      "ja": "Shizuku経由でTermux環境への直接PTYブリッジ。Haven内でネイティブTermuxシェルを直接起動します。",
+      "ko": "Shizuku를 통해 Termux 환경으로 직접 연결하는 PTY 브리지입니다. Haven 내에서 네이티브 Termux 셸을 직접 실행합니다。",
+      "pt": "Ponte PTY direta para o seu ambiente Termux via Shizuku. Inicia o shell nativo do Termux diretamente no Haven.",
+      "ru": "Прямой PTY-мост в Termux через Shizuku. Запускает нативный Termux-шелл прямо внутри Haven.",
+      "zh": "通过 Shizuku 直接连接到 Termux 环境的 PTY 桥接。在 Haven 内直接启动原生 Termux 登录 Shell。"
      }
     },
     {

@@ -606,4 +606,8 @@
     <string name="connections_identity_not_an_identity">هذا الملف ليس هوية Reticulum. لم يتم تغيير أي شيء.</string>
     <string name="connections_identity_install_failed">تعذّر تثبيت الهوية: %1$s. الهوية السابقة ما زالت في مكانها.</string>
     <string name="connections_identity_unreadable">تعذّرت قراءة هذا الملف.</string>
+
+    <string name="connections_termux_label">محرك Termux (Shizuku)</string>
+    <string name="connections_section_termux">محرك Termux (Shizuku)</string>
+    <string name="connections_termux_desc">جسر PTY مباشر إلى بيئة Termux الخاصة بك عبر Shizuku. يطلق غلاف Termux الأصلي مباشرة داخل Haven.</string>
 </resources>

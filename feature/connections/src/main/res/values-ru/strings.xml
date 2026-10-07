@@ -606,4 +606,8 @@
     <string name="connections_identity_not_an_identity">Этот файл не является идентичностью Reticulum. Ничего не изменено.</string>
     <string name="connections_identity_install_failed">Не удалось установить идентичность: %1$s. Прежняя осталась на месте.</string>
     <string name="connections_identity_unreadable">Не удалось прочитать этот файл.</string>
+
+    <string name="connections_termux_label">Termux (Shizuku)</string>
+    <string name="connections_section_termux">Движок Termux (Shizuku)</string>
+    <string name="connections_termux_desc">Прямой PTY-мост в Termux через Shizuku. Запускает нативный Termux-шелл прямо внутри Haven.</string>
 </resources>

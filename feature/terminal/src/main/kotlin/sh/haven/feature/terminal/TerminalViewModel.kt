@@ -3651,12 +3651,29 @@ class TerminalViewModel @Inject constructor(
      * new name to the profile's lastSessionName + chosenSessionName + tab label.
      */
     fun renameAttachedSession(sessionId: String, newName: String) {
-        val s = sessionManager.getSession(sessionId) ?: return
-        val oldName = s.chosenSessionName?.takeIf { it.isNotBlank() } ?: return
+        // Every guard failure is surfaced: a silent return here reads as the dialog
+        // ignoring the rename, and leaves the user with nothing to act on.
+        val s = sessionManager.getSession(sessionId)
+        if (s == null) {
+            Log.w(TAG, "renameAttachedSession: no live session for $sessionId (disconnected or tab closed)")
+            _newTabMessage.value = "Can't rename: that session is no longer connected."
+            return
+        }
+        val oldName = s.chosenSessionName?.takeIf { it.isNotBlank() }
+        if (oldName == null) {
+            Log.w(TAG, "renameAttachedSession: chosenSessionName is unset for $sessionId")
+            _newTabMessage.value = "Can't rename: the remote session name was lost. Reconnect and try again."
+            return
+        }
         // Sanitize before the rename template; newName is free-form input. (#208 #5)
         val cmd = s.sessionManager.renameCommand?.invoke(
             sanitizeSessionName(oldName), sanitizeSessionName(newName),
-        ) ?: return
+        )
+        if (cmd == null) {
+            Log.w(TAG, "renameAttachedSession: no rename template for this session type (id=$sessionId)")
+            _newTabMessage.value = "Can't rename: this session type doesn't support renames."
+            return
+        }
         viewModelScope.launch {
             try {
                 val result = withContext(Dispatchers.IO) { s.client.execCommand(cmd) }

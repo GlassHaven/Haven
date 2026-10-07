@@ -76,6 +76,7 @@ class NativeReticulumTransport @Inject constructor() : ReticulumTransport {
             hops: Int,
             receivingInterfaceName: String?,
             matchedAspect: String?,
+            announcePacketHash: ByteArray?,
         ): Boolean {
             val hash = destinationHash.joinToString("") { "%02x".format(it) }
             Log.d(TAG, "rnsh announce: $hash (${hops} hops, via $receivingInterfaceName)")
@@ -191,7 +192,7 @@ class NativeReticulumTransport @Inject constructor() : ReticulumTransport {
                 timeoutMs = 5_000,
                 nowMs = System::currentTimeMillis,
                 sleep = Thread::sleep,
-                isOnline = { iface.online.get() },
+                isOnline = { iface.online.value },
             )
         ) {
             Log.w(TAG, "shared-instance interface not online within 5s; the first packet may be dropped")
@@ -221,10 +222,10 @@ class NativeReticulumTransport @Inject constructor() : ReticulumTransport {
 
         // Wait for TCP connection
         val deadline = System.currentTimeMillis() + 10_000
-        while (!tcpClient.online.get() && System.currentTimeMillis() < deadline) {
+        while (!tcpClient.online.value && System.currentTimeMillis() < deadline) {
             Thread.sleep(100)
         }
-        if (!tcpClient.online.get()) {
+        if (!tcpClient.online.value) {
             Log.w(TAG, "TCP connection to ${LogRedact.host(spec.host, spec.port)} not established within 10s")
         }
     }

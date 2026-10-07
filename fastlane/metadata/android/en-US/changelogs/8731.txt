@@ -1,0 +1,1 @@
+- Reticulum TCP reconnect stays live: the reconnected interface gets its read loop back. Previously the session looked connected but no inbound data arrived until the interface was re-added by hand.

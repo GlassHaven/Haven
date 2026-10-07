@@ -304,7 +304,13 @@ jobs:
         # inside clang++). A job killed by a timeout reports `cancelled`, which
         # reads as "superseded" — so the nightly lint gate stopped producing a
         # verdict and nothing said so.
-        run: ./gradlew lintDebug -PskipWaylandNatives=true -PskipFfmpegNatives=true -PskipUml=true
+        run: ./gradlew lintDebug :app:lintArm64FullDebug -PskipWaylandNatives=true -PskipFfmpegNatives=true -PskipUml=true
+        # Bare lintDebug only matches the modules whose debug variant is not
+        # flavor-split — the app module has ABI+features dimensions, so its
+        # tasks are lintArm64FullDebug etc and lintDebug silently skips it.
+        # Name the app variant explicitly or the one module where lint
+        # matters most never runs (found via a NewApi lint error that lived
+        # on main for weeks).
       - name: Upload lint results
         if: always()
         uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a  # v7.0.1

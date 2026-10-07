@@ -372,7 +372,7 @@ internal object GpsBroker {
                 // pairing the GPS time with delivery time bakes that latency
                 // into every sample. getElapsedRealtimeNanos exists for this.
                 receivedElapsedNs =
-                    if (clock.hasElapsedRealtimeNanos()) clock.elapsedRealtimeNanos
+                    if (Build.VERSION.SDK_INT >= 29 && clock.hasElapsedRealtimeNanos()) clock.elapsedRealtimeNanos
                     else SystemClock.elapsedRealtimeNanos(),
             )
         }

@@ -278,10 +278,10 @@ class LocalSessionManager @Inject constructor(
                     exec /data/local/tmp/termux_autorun "$@"
                 elif [ -x /data/local/tmp/rish ]; then
                     export RISH_APPLICATION_ID="com.termux"
-                    exec /data/local/tmp/rish -c 'run-as com.termux /system/bin/sh /data/data/com.termux/files/usr/bin/termux-login "$@"'
+                    exec /data/local/tmp/rish -c 'exec run-as com.termux /system/bin/sh /data/data/com.termux/files/usr/bin/termux-login "$@"' _ "$@"
                 elif [ -x /data/data/com.termux/files/usr/bin/rish ]; then
                     export RISH_APPLICATION_ID="com.termux"
-                    exec /data/data/com.termux/files/usr/bin/rish -c 'run-as com.termux /system/bin/sh /data/data/com.termux/files/usr/bin/termux-login "$@"'
+                    exec /data/data/com.termux/files/usr/bin/rish -c 'exec run-as com.termux /system/bin/sh /data/data/com.termux/files/usr/bin/termux-login "$@"' _ "$@"
                 else
                     echo "[Haven] Shizuku bridge not found."
                     echo "[Haven] Please start Shizuku or ensure /data/local/tmp/termux_autorun exists."

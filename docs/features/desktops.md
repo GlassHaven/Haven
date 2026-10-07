@@ -35,7 +35,7 @@ A single Linux GUI app can run in a **cage** (single-app kiosk compositor) with 
 
 ## Local Desktops (multi-distro manager)
 
-A **Desktop → Manage** view installs and runs full Linux desktops on-device via PRoot, with no root. Pick a distro — **Alpine** (APK), **Debian 12** (APT), **Arch Linux ARM** (PACMAN), or **Void** (XBPS) — and install them side-by-side; each carries its native package manager. For each installed distro you can install, start, and stop desktop environments, open a shell into it, and read a Room-backed install log that names the layer that broke if a package install fails.
+A **Desktop → Manage** view installs and runs full Linux desktops on-device via PRoot, with no root. Pick a distro — **Alpine** (APK), **Debian** (APT; 13 Trixie or 12 Bookworm), **Ubuntu 24.04 LTS** (APT), **Arch Linux** (PACMAN), or **Void** (XBPS) — and install them side-by-side; each carries its native package manager. For each installed distro you can install, start, and stop desktop environments, open a shell into it, and read a Room-backed install log that names the layer that broke if a package install fails.
 
 Desktop environments:
 

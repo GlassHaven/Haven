@@ -33,7 +33,7 @@ title: Haven
 <thead><tr><th>채널</th><th>참고</th></tr></thead>
 <tbody>
 <tr><td><a href="https://f-droid.org/en/packages/sh.haven.app"><b>F-Droid</b></a></td><td>소스에서 빌드되고 자동 업데이트되며, 대부분의 사용자에게 권장합니다.</td></tr>
-<tr><td><a href="https://github.com/GlassHaven/Haven/releases/latest"><b>GitHub Releases</b></a></td><td>서명된 APK(arm64 &amp; x86_64), 가장 먼저 출시되며 F-Droid와 동일한 기능을 제공합니다.</td></tr>
+<tr><td><a href="https://github.com/GlassHaven/Haven/releases/latest"><b>GitHub Releases</b></a></td><td>서명된 APK(arm64, armv7 &amp; x86_64), 가장 먼저 출시되며 F-Droid와 동일한 기능을 제공합니다.</td></tr>
 </tbody>
 </table>
 

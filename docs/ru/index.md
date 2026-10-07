@@ -33,7 +33,7 @@ title: Haven
 <thead><tr><th>Канал</th><th>Примечания</th></tr></thead>
 <tbody>
 <tr><td><a href="https://f-droid.org/en/packages/sh.haven.app"><b>F-Droid</b></a></td><td>Собирается из исходного кода, обновляется автоматически, рекомендуется для большинства пользователей.</td></tr>
-<tr><td><a href="https://github.com/GlassHaven/Haven/releases/latest"><b>Релизы GitHub</b></a></td><td>Подписанные APK (arm64 &amp; x86_64), выходят первыми, те же возможности, что и у F-Droid.</td></tr>
+<tr><td><a href="https://github.com/GlassHaven/Haven/releases/latest"><b>Релизы GitHub</b></a></td><td>Подписанные APK (arm64, armv7 &amp; x86_64), выходят первыми, те же возможности, что и у F-Droid.</td></tr>
 </tbody>
 </table>
 

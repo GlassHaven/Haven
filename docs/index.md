@@ -44,7 +44,7 @@ title: Haven
 <thead><tr><th>Channel</th><th>Notes</th></tr></thead>
 <tbody>
 <tr><td><a href="https://f-droid.org/en/packages/sh.haven.app"><b>F-Droid</b></a></td><td>Built from source, auto-updated, recommended for most users.</td></tr>
-<tr><td><a href="https://github.com/GlassHaven/Haven/releases/latest"><b>GitHub Releases</b></a></td><td>Signed APKs (arm64 &amp; x86_64), released first, same features as F-Droid.</td></tr>
+<tr><td><a href="https://github.com/GlassHaven/Haven/releases/latest"><b>GitHub Releases</b></a></td><td>Signed APKs (arm64, armv7 &amp; x86_64), released first, same features as F-Droid.</td></tr>
 </tbody>
 </table>
 
@@ -78,7 +78,7 @@ sideloads track the GitHub Releases key.
 - **[Local Linux](features/local-linux.md)** — Alpine / Debian / Arch / Void via PRoot, side-by-side, no root required.
 - **[USB forwarding](features/usb.md)** — broker a USB device to the agent, the Linux guest, or a remote host over USB/IP.
 - **[Reticulum](features/reticulum.md)** — rnsh shell, file transfer, and `-L`/`-D` forwarding over mesh. The one transport that keeps working with no internet at all.
-- **[Agent transport (MCP)](mcp-tools.md)** — ~130 consent-gated tools; the agent can even drive Haven's own UI.
+- **[Agent transport (MCP)](mcp-tools.md)** — ~230 consent-gated tools; the agent can even drive Haven's own UI.
 - **[Security](features/security.md)** — biometric lock, no telemetry, encrypted backup/restore (AES-256-GCM).
 
 Browse the [full feature index](FEATURES.md).
@@ -107,7 +107,7 @@ Available in 12 languages: English, Chinese (simplified), Spanish, Hindi, Arabic
 - **No telemetry, no ads, no account.** Nothing is phoned home. See the [privacy policy](privacy-policy.html).
 - **Per-app tunnels.** Route individual SSH profiles through WireGuard or Tailscale *without* taking Android's one VPN slot — other apps keep using the direct network.
 - **Native everything.** FFmpeg, labwc, IronRDP, rclone, and the Kotlin Reticulum transport are all compiled from source — no Python runtime, no Chaquopy.
-- **Ships often.** Releases reach F-Droid within 24 hours via an automated MR. See the [release history](https://github.com/GlassHaven/Haven/releases).
+- **Ships often.** Releases reach F-Droid via an automated MR. See the [release history](https://github.com/GlassHaven/Haven/releases).
 
 ## Build from source
 

@@ -1,10 +1,15 @@
 # Floating text-input dialog for terminal
 
-Status: planning — red-team reviewed 2026-07-22 (4 independent Fable-5 passes:
+Status: **shipped.** Red-team reviewed 2026-07-22 (4 independent Fable-5 passes:
 gesture/UX conflict, architecture-integration correctness, multi-tab/state
 risk, completeness/testing gaps). Corrections below are resolved decisions,
-not open questions, unless marked otherwise. Target: next minor after this
-revision is accepted.
+not open questions, unless marked otherwise. The plan was built as written:
+`FloatingTextInputDialog.kt` (landed in 29460c20a), kept in sync with the
+review decisions; it rides the ComposeController CJK compose wiring from
+12d41f533 and the selection toolbar shows by default there (ed6082111).
+
+<!-- Was "planning — target: the next minor after this revision is
+     accepted". Marked shipped 2026-10-07 after a docs drift pass. -->
 
 ## Corrections from red-team review (2026-07-22)
 

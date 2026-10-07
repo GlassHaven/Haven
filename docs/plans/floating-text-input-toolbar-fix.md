@@ -1,5 +1,10 @@
 # Plan — custom text-selection toolbar for the floating text input dialog
 
+Status: **resolved.** The shipped fix is ed6082111 (#444), landed 2026-07-23:
+the selection toolbar is shown by the floating text-input dialog itself, not
+by a Compose `TextToolbar` override, because the platform toolbar route
+described below could not be made to appear. Kept for the record.
+
 ## ⚠️ ROUND 2 (2026-07-23) — round-1 fix FAILED real-device test, new lead found
 
 The round-1 implementation (custom `TextToolbar` via `LocalTextToolbar`, committed as

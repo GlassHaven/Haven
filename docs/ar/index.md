@@ -38,7 +38,7 @@ title: Haven
 <thead><tr><th>القناة</th><th>ملاحظات</th></tr></thead>
 <tbody>
 <tr><td><a href="https://f-droid.org/en/packages/sh.haven.app"><b>F-Droid</b></a></td><td>مبني من المصدر، يُحدَّث تلقائيًا، ويُوصى به لمعظم المستخدمين.</td></tr>
-<tr><td><a href="https://github.com/GlassHaven/Haven/releases/latest"><b>GitHub Releases</b></a></td><td>حِزَم APK موقّعة (arm64 &amp; x86_64)، تصدر أولًا، بنفس مزايا F-Droid.</td></tr>
+<tr><td><a href="https://github.com/GlassHaven/Haven/releases/latest"><b>GitHub Releases</b></a></td><td>حِزَم APK موقّعة (arm64, armv7 &amp; x86_64)، تصدر أولًا، بنفس مزايا F-Droid.</td></tr>
 </tbody>
 </table>
 

@@ -33,7 +33,7 @@ title: Haven
 <thead><tr><th>渠道</th><th>说明</th></tr></thead>
 <tbody>
 <tr><td><a href="https://f-droid.org/en/packages/sh.haven.app"><b>F-Droid</b></a></td><td>从源码构建，自动更新，推荐给大多数用户。</td></tr>
-<tr><td><a href="https://github.com/GlassHaven/Haven/releases/latest"><b>GitHub Releases</b></a></td><td>已签名的 APK（arm64 &amp; x86_64），最先发布，功能与 F-Droid 相同。</td></tr>
+<tr><td><a href="https://github.com/GlassHaven/Haven/releases/latest"><b>GitHub Releases</b></a></td><td>已签名的 APK（arm64, armv7 &amp; x86_64），最先发布，功能与 F-Droid 相同。</td></tr>
 </tbody>
 </table>
 

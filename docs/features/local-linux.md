@@ -12,7 +12,7 @@ see [Linux Guest (UML)](uml-guest.md).
 
 ## Local Shell (PRoot)
 
-Run a real Linux terminal directly on your phone, no root required. Select "Local Shell (PRoot)" when creating a connection and Haven downloads a minimal [Alpine Linux](https://alpinelinux.org/) rootfs (~4 MB) on first use, giving you a full `apk` package manager — install Python, Node.js, git, build tools, or anything in Alpine's [package repository](https://pkgs.alpinelinux.org/packages). Beyond Alpine, the Desktop → Manage view can install **Debian 12** (`apt`), **Arch Linux ARM** (`pacman`), and **Void** (`xbps`) rootfs side-by-side, each with its own package manager and a one-tap shell.
+Run a real Linux terminal directly on your phone, no root required. Select "Local Shell (PRoot)" when creating a connection and Haven downloads a minimal [Alpine Linux](https://alpinelinux.org/) rootfs (~4 MB) on first use, giving you a full `apk` package manager — install Python, Node.js, git, build tools, or anything in Alpine's [package repository](https://pkgs.alpinelinux.org/packages). Beyond Alpine, the Desktop → Manage view can install **Debian** (`apt`; 13 Trixie or 12 Bookworm), **Ubuntu 24.04 LTS** (`apt`), **Arch Linux** (`pacman`), and **Void** (`xbps`) rootfs side-by-side, each with its own package manager and a one-tap shell.
 
 PRoot works by intercepting system calls in userspace (no kernel modifications), so it runs on **any unrooted Android device**. It does not require or use root access — the name "PRoot" stands for "ptrace-based root", meaning it *emulates* a root filesystem without actual superuser privileges. Think of it as a lightweight container that runs entirely within Haven's app sandbox.
 

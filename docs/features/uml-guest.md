@@ -119,7 +119,7 @@ The guest kernel and passt are GPL-2.0 (passt under its upstream
 GPL-2.0-or-later identifier). Their complete corresponding source, the two
 kernel patches, the passt patch and the build recipes are published in the
 [uml-transport repository](https://github.com/GlassOnTin/uml-transport);
-the binaries Haven ships are the pinned `uml-guest-1` release of that
+the binaries Haven ships are the pinned `uml-guest-4` release of that
 project. The pinned binaries and their sha256 checksums are in
 [`core/local/fetch-uml.sh`](https://github.com/GlassOnTin/haven/blob/master/core/local/fetch-uml.sh);
 the fetch fails the build loudly if a pinned artifact disappears, and each

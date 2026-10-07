@@ -1,6 +1,8 @@
 # VNC-as-child-of-SSH refactor
 
-Status: planning. Target: v5.25.0.
+Status: planning. The v5.25.0 target has lapsed and it is not started —
+the dual `vncSshProfileId`/SSH-embedded-VNC model described below is still
+what ships. Kept because the shape remains the right target.
 
 ## Goal
 

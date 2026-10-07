@@ -5,6 +5,11 @@ the corresponding GitHub Release; a release can't ship without its section
 (enforced by `scripts/check-changelog.sh` in CI). The GitHub "Full Changelog"
 compare link is appended automatically — don't add it here.
 
+## v5.89.21
+
+- **Huawei devices keep the normal keyboard in the terminal.** The default keyboard recipe includes the visible-password input hint, and Huawei's system IME (both the Android and HarmonyOS builds) answers that hint by forcing its locked minimal keypad, with no IME switch and no CJK input (#684). On Huawei devices the default now drops only that hint, so the ordinary keyboard comes back. One trade-off: Gboard's silent autocorrect can apply again there; Raw mode and Custom mode remain ways to steer this per device.
+- **Terminal tools over MCP tell a stale session id from a dead tab.** When a session reconnects its ids churn, and tools reading scrollback or driving the terminal used to answer "open a terminal tab on this session", sending the agent in circles under a dead id. They now say the id is gone and point at list_sessions for fresh ids.
+
 ## v5.89.20
 
 - **Renaming an attached session explains itself.** Long-press rename on an attached tmux session used to return silently when the session record was gone, its cached name was unset, or the profile had no rename template; the dialog appeared to do nothing. Each guard now reports what failed.

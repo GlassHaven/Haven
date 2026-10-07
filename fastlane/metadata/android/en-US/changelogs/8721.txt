@@ -1,0 +1,2 @@
+- Huawei devices: the default terminal keyboard no longer locks to the system keypad; IME switching and CJK input work again (#684).
+- MCP terminal tools now name a stale session id instead of asking for a terminal tab on a dead session.

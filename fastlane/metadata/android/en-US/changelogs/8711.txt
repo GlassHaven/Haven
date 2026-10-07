@@ -1,0 +1,2 @@
+- Attached-session rename no longer fails silently: each guard now reports why.
+- The rename dialog refuses a name that sanitizes to an existing tmux session ("my.session" would arrive as "my-session") and says so.

@@ -5,6 +5,11 @@ the corresponding GitHub Release; a release can't ship without its section
 (enforced by `scripts/check-changelog.sh` in CI). The GitHub "Full Changelog"
 compare link is appended automatically — don't add it here.
 
+## v5.89.20
+
+- **Renaming an attached session explains itself.** Long-press rename on an attached tmux session used to return silently when the session record was gone, its cached name was unset, or the profile had no rename template; the dialog appeared to do nothing. Each guard now reports what failed.
+- **The rename dialog refuses a name tmux already has.** The label is sanitized before it reaches tmux, so a name like "my.session" arrives as "my-session" and can collide with an existing session. The dialog checks the sanitized name against the server's session list and blocks the rename instead of letting tmux reject it.
+
 ## v5.89.19
 
 - **Chat and model profiles report their connection state.** A profile for an OpenAI-compatible server never showed as connected: no status dot, tapping the row dropped you at the password prompt instead of the chat, and Disconnect never appeared. Their sessions now count like any other transport, so the row shows status and Disconnect while a chat is open.

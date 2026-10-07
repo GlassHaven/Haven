@@ -5,6 +5,10 @@ the corresponding GitHub Release; a release can't ship without its section
 (enforced by `scripts/check-changelog.sh` in CI). The GitHub "Full Changelog"
 compare link is appended automatically — don't add it here.
 
+## v5.89.22
+
+- **Reticulum TCP reconnect stays live.** A dropped TCP session reconnected on the app's retry loop, but the reconnected interface came online without its read loop: the session looked connected, no inbound data arrived, and nothing said why — it stayed deaf until the interface was re-added by hand. The upstream reticulum-kt fix is merged with the fork's backoff kept: the read loop is started with the reconnected interface, and leaked interface resources are reaped as interfaces churn. Device-tested with a real server kill: the app reconnected on its own, made a fresh session link, and a shell round trip worked over the new socket.
+
 ## v5.89.21
 
 - **Huawei devices keep the normal keyboard in the terminal.** The default keyboard recipe includes the visible-password input hint, and Huawei's system IME (both the Android and HarmonyOS builds) answers that hint by forcing its locked minimal keypad, with no IME switch and no CJK input (#684). On Huawei devices the default now drops only that hint, so the ordinary keyboard comes back. One trade-off: Gboard's silent autocorrect can apply again there; Raw mode and Custom mode remain ways to steer this per device.

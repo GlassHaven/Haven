@@ -185,10 +185,7 @@ class UmlDesktopManager @Inject constructor(
                 val console = startConsole(sessionId)
                     ?: throw IllegalStateException("guest console didn't come up")
                 awaitConsolePrompt(console, sessionId, timeoutMs = 45_000)
-                guestManager.sendInput(
-                    sessionId,
-                    "sh /host/haven-desktop.sh start ${kind.id} $port\r",
-                )
+                guestManager.sendInput(sessionId, recipeLine("start ${kind.id} $port"))
                 val marker = awaitAnyMarker(console, sessionId, "HDESKTOP:", timeoutMs = 120_000)
                 if (marker != "HDESKTOP:started") {
                     throw IllegalStateException(
@@ -218,7 +215,7 @@ class UmlDesktopManager @Inject constructor(
                 val console = startConsole(sessionId)
                     ?: throw IllegalStateException("guest console didn't come up")
                 awaitConsolePrompt(console, sessionId, timeoutMs = 45_000)
-                guestManager.sendInput(sessionId, "sh /host/haven-desktop.sh install ${kind.id}\r")
+                guestManager.sendInput(sessionId, recipeLine("install ${kind.id}"))
                 val marker = awaitAnyMarker(console, sessionId, "HDESKTOP:", timeoutMs = 600_000)
                 if (marker != "HDESKTOP:done" || !markerFor(kind).exists()) {
                     fail(
@@ -449,6 +446,24 @@ class UmlDesktopManager @Inject constructor(
         /** Name under [UmlGuestManager.guestShareDir]; the guest runs /host/filename. */
         private const val RECIPE_NAME = "haven-desktop.sh"
 
+        /**
+         * The console line that runs the recipe. The image's inittab mounts
+         * the share with `mount -t hostfs none /host || echo HOSTFSFAIL`,
+         * but busybox init splits an action line on whitespace and runs it
+         * without a shell — the `&&`/`||` chain never executes, which is the
+         * "hostfs mount failed silently on every boot" the uml-transport
+         * README records. Mount it here (idempotent: an already-mounted
+         * share makes the mount fail harmlessly), and echo a fail marker
+         * when the recipe still isn't visible rather than burning the whole
+         * marker budget on the shell's "No such file or directory" (device,
+         * 2026-10-08: the install reached the prompt, then could not open
+         * /host/haven-desktop.sh).
+         */
+        fun recipeLine(args: String): String =
+            "mount -t hostfs none /host 2>/dev/null; " +
+                "[ -f /host/$RECIPE_NAME ] || echo 'HDESKTOP:fail /host share not mounted'; " +
+                "sh /host/$RECIPE_NAME $args\r"
+
     /**
      * Written to the guest's /host share and run from the console. HDESKTOP:
      * markers are the app's completion signal; server logs land in
@@ -524,7 +539,7 @@ esac
     }
 
     /** Console ring for a headless session's tee. */
-    private class ConsoleLog {
+    internal class ConsoleLog {
         private val sb = StringBuilder()
 
         @Synchronized

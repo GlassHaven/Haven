@@ -88,6 +88,7 @@ class DesktopViewModel @Inject constructor(
     private val usbDriveVmManager: sh.haven.app.usb.UsbDriveVmManager,
     private val umlRecoveryManager: sh.haven.app.usb.UmlRecoveryManager,
     private val systemVmManager: sh.haven.core.local.SystemVmManager,
+    private val umlDesktopManager: sh.haven.core.local.uml.UmlDesktopManager,
 ) : ViewModel() {
 
     // --- Distro / DE management (issue #162 Phase 3c) ---
@@ -522,6 +523,68 @@ class DesktopViewModel @Inject constructor(
     fun stopDesktop(de: ProotManager.DesktopEnvironment) {
         viewModelScope.launch(Dispatchers.IO) {
             desktopManager.stopDesktop(de)
+        }
+    }
+
+    // --- UML guest desktops (docs/plans/uml-dm.md stage 2) -------------------
+    //
+    // The proot desktop section's mirror: recipe lives in the guest, the
+    // manager owns install/start/stop, and the VNC tab opens on the RUNNING
+    // transition. Availability is the NativeFeatures.uml probe — the same
+    // gate as the GUEST transport (TransportAvailability), so the section is
+    // hidden rather than broken on builds without the UML payload.
+
+    val umlDesktopState
+        : StateFlow<Map<sh.haven.core.local.uml.UmlDesktopManager.Kind,
+            sh.haven.core.local.uml.UmlDesktopManager.DesktopState>>
+        get() = umlDesktopManager.state
+
+    val umlAvailable: Boolean get() = umlDesktopManager.isAvailable
+
+    fun umlInstall(kind: sh.haven.core.local.uml.UmlDesktopManager.Kind) =
+        umlDesktopManager.installDesktop(kind)
+
+    fun umlStart(kind: sh.haven.core.local.uml.UmlDesktopManager.Kind) =
+        umlDesktopManager.startDesktop(kind)
+
+    fun umlStop(kind: sh.haven.core.local.uml.UmlDesktopManager.Kind) =
+        umlDesktopManager.stopDesktop(kind)
+
+    /**
+     * Open a tab for each RUNNING UML desktop, once per (kind, port) run;
+     * stopped runs remove their key so a restart with a different port opens
+     * again, and the same port doesn't (addVncSession dedupes too).
+     */
+    private val openedUmlRuns = java.util.Collections.synchronizedSet(mutableSetOf<String>())
+
+    init {
+        viewModelScope.launch {
+            umlDesktopManager.state.collect { map ->
+                map.forEach { (kind, st) ->
+                    val key = "${kind.id}:${st.port}"
+                    val running = st.status ==
+                        sh.haven.core.local.uml.UmlDesktopManager.DesktopState.Status.RUNNING
+                    val port = st.port
+                    if (running && port != null && port in 5901..5999) {
+                        if (openedUmlRuns.add(key)) {
+                            addVncSession(
+                                host = "127.0.0.1",
+                                port = port,
+                                password = null,
+                                username = null,
+                                sshForward = false,
+                                sshSessionId = null,
+                                profileId = null,
+                                colorDepth = "BPP_24_TRUE",
+                            )
+                        }
+                    } else if (st.status ==
+                        sh.haven.core.local.uml.UmlDesktopManager.DesktopState.Status.STOPPED
+                    ) {
+                        openedUmlRuns.remove(key)
+                    }
+                }
+            }
         }
     }
 

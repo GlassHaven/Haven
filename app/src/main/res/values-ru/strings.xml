@@ -210,6 +210,18 @@
     <string name="app_system_vm_import_source">URL образа или путь на устройстве</string>
     <string name="app_system_vm_import_arch">Архитектура гостя</string>
     <string name="app_system_vm_import_arch_hint">Должна совпадать с образом — при неверной цели ошибки не будет, просто не загрузится.</string>
+
+    <!-- Desktop manager: desktops inside the UML guest (docs/plans/uml-dm.md) -->
+    <string name="app_uml_desktop_title">Рабочий стол гостя UML</string>
+    <string name="app_uml_desktop_description">Рабочие столы, выполняемые в собственном ядре гостя UML, поверх VNC. Один за раз (каждый — целое ядро); установка пакетов занимает несколько минут.</string>
+    <string name="app_uml_desktop_install">Установить</string>
+    <string name="app_uml_desktop_installed">Установлен</string>
+    <string name="app_uml_desktop_not_installed">Не установлен</string>
+    <string name="app_uml_desktop_installing">Установка пакетов…</string>
+    <string name="app_uml_desktop_starting">Запуск на порту %1$d…</string>
+    <string name="app_uml_desktop_running">Работает · VNC 127.0.0.1:%1$d</string>
+    <string name="app_uml_desktop_failed">Сбой</string>
+    <string name="app_uml_desktop_start_cd">Запустить рабочий стол %1$s</string>
     <string name="app_window_scale_saved">Сохранено как размер по умолчанию для этого приложения</string>
 
     <!-- Agent Activity log — result summaries (#239) -->

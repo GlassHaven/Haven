@@ -204,6 +204,18 @@
     <string name="app_system_vm_import_source">イメージ URL またはデバイス上のパス</string>
     <string name="app_system_vm_import_arch">ゲストのアーキテクチャ</string>
     <string name="app_system_vm_import_arch_hint">イメージと一致させてください。ターゲットが違うとエラーは出ず、起動しないだけです。</string>
+
+    <!-- Desktop manager: desktops inside the UML guest (docs/plans/uml-dm.md) -->
+    <string name="app_uml_desktop_title">UML ゲストデスクトップ</string>
+    <string name="app_uml_desktop_description">UML ゲスト自身のカーネル内で動くデスクトップを VNC で表示します。一度に 1 つ（それぞれがカーネル全体）です。パッケージのインストールには数分かかります。</string>
+    <string name="app_uml_desktop_install">インストール</string>
+    <string name="app_uml_desktop_installed">インストール済み</string>
+    <string name="app_uml_desktop_not_installed">未インストール</string>
+    <string name="app_uml_desktop_installing">パッケージをインストール中…</string>
+    <string name="app_uml_desktop_starting">ポート %1$d で開始中…</string>
+    <string name="app_uml_desktop_running">実行中 · VNC 127.0.0.1:%1$d</string>
+    <string name="app_uml_desktop_failed">失敗</string>
+    <string name="app_uml_desktop_start_cd">%1$s デスクトップを開始</string>
     <string name="app_window_scale_saved">このアプリのデフォルトサイズとして保存しました</string>
 
     <!-- Agent Activity log — result summaries (#239) -->

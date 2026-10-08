@@ -3575,6 +3575,202 @@
      }
     },
     {
+     "name": "app_uml_desktop_title",
+     "en": "UML guest desktop",
+     "comment": "Desktop manager: desktops inside the UML guest (docs/plans/uml-dm.md)",
+     "args": [],
+     "t": {
+      "ar": "سطح مكتب ضيف UML",
+      "bn": "UML গেস্ট ডেস্কটপ",
+      "de": "UML-Gast-Desktop",
+      "es": "Escritorio de invitado UML",
+      "fr": "Bureau d\\'invité UML",
+      "hi": "UML गेस्ट डेस्कटॉप",
+      "ja": "UML ゲストデスクトップ",
+      "ko": "UML 게스트 데스크톱",
+      "pt": "Desktop de convidado UML",
+      "ru": "Рабочий стол гостя UML",
+      "zh": "UML 客机桌面"
+     }
+    },
+    {
+     "name": "app_uml_desktop_description",
+     "en": "Desktops running inside the UML guest\\'s own kernel, viewed over VNC. One at a time (each is a full kernel); installing packages takes a few minutes.",
+     "comment": "Desktop manager: desktops inside the UML guest (docs/plans/uml-dm.md)",
+     "args": [],
+     "t": {
+      "ar": "أسطح مكتب تعمل داخل نواة ضيف UML نفسها، تُعرض عبر VNC. واحدة في كل مرة (كل واحدة نواة كاملة)؛ تثبيت الحزم يستغرق دقائق قليلة.",
+      "bn": "UML গেস্টের নিজের কার্নেলের ভেতরে চলা ডেস্কটপ, VNC দিয়ে দেখা হয়। একবারে একটি (প্রতিটি পুরো কার্নেল); প্যাকেজ ইনস্টলে কয়েক মিনিট লাগে।",
+      "de": "Desktops, die im eigenen Kernel des UML-Gasts laufen und über VNC angezeigt werden. Einer zur Zeit (jeder ist ein eigener Kernel); das Installieren der Pakete dauert einige Minuten.",
+      "es": "Escritorios que se ejecutan dentro del núcleo propio del invitado UML, vistos por VNC. Uno a la vez (cada uno es un núcleo completo); instalar los paquetes tarda unos minutos.",
+      "fr": "Bureaux exécutés dans le noyau propre de l\\'invité UML, affichés via VNC. Un à la fois (chacun est un noyau complet) ; l\\'installation des paquets prend quelques minutes.",
+      "hi": "UML गेस्ट के अपने कर्नेल में चलने वाले डेस्कटॉप, VNC पर दिखाए जाते हैं। एक बार में एक (प्रत्येक एक पूरा कर्नेल); पैकेज इंस्टॉल में कुछ मिनट लगते हैं।",
+      "ja": "UML ゲスト自身のカーネル内で動くデスクトップを VNC で表示します。一度に 1 つ（それぞれがカーネル全体）です。パッケージのインストールには数分かかります。",
+      "ko": "UML 게스트의 고유 커널 안에서 실행되는 데스크톱을 VNC로 표시합니다. 한 번에 하나씩(각각 완전한 커널)입니다. 패키지 설치에는 몇 분이 걸립니다.",
+      "pt": "Desktops que rodam dentro do próprio kernel do convidado UML, vistos por VNC. Um por vez (cada um é um kernel completo); instalar os pacotes leva alguns minutos.",
+      "ru": "Рабочие столы, выполняемые в собственном ядре гостя UML, поверх VNC. Один за раз (каждый — целое ядро); установка пакетов занимает несколько минут.",
+      "zh": "运行在 UML 客机自身内核里的桌面，可通过 VNC 查看。同一时间只能运行一个（每个都是完整内核）；安装软件包需要几分钟。"
+     }
+    },
+    {
+     "name": "app_uml_desktop_install",
+     "en": "Install",
+     "comment": "Desktop manager: desktops inside the UML guest (docs/plans/uml-dm.md)",
+     "args": [],
+     "t": {
+      "ar": "تثبيت",
+      "bn": "ইনস্টল",
+      "de": "Installieren",
+      "es": "Instalar",
+      "fr": "Installer",
+      "hi": "इंस्टॉल",
+      "ja": "インストール",
+      "ko": "설치",
+      "pt": "Instalar",
+      "ru": "Установить",
+      "zh": "安装"
+     }
+    },
+    {
+     "name": "app_uml_desktop_installed",
+     "en": "Installed",
+     "comment": "Desktop manager: desktops inside the UML guest (docs/plans/uml-dm.md)",
+     "args": [],
+     "t": {
+      "ar": "مثبت",
+      "bn": "ইনস্টল করা আছে",
+      "de": "Installiert",
+      "es": "Instalado",
+      "fr": "Installé",
+      "hi": "इंस्टॉल है",
+      "ja": "インストール済み",
+      "ko": "설치됨",
+      "pt": "Instalado",
+      "ru": "Установлен",
+      "zh": "已安装"
+     }
+    },
+    {
+     "name": "app_uml_desktop_not_installed",
+     "en": "Not installed",
+     "comment": "Desktop manager: desktops inside the UML guest (docs/plans/uml-dm.md)",
+     "args": [],
+     "t": {
+      "ar": "غير مثبت",
+      "bn": "ইনস্টল করা নেই",
+      "de": "Nicht installiert",
+      "es": "No instalado",
+      "fr": "Non installé",
+      "hi": "इंस्टॉल नहीं है",
+      "ja": "未インストール",
+      "ko": "설치 안 됨",
+      "pt": "Não instalado",
+      "ru": "Не установлен",
+      "zh": "未安装"
+     }
+    },
+    {
+     "name": "app_uml_desktop_installing",
+     "en": "Installing packages…",
+     "comment": "Desktop manager: desktops inside the UML guest (docs/plans/uml-dm.md)",
+     "args": [],
+     "t": {
+      "ar": "جارٍ تثبيت الحزم…",
+      "bn": "প্যাকেজ ইনস্টল হচ্ছে…",
+      "de": "Pakete werden installiert…",
+      "es": "Instalando paquetes…",
+      "fr": "Installation des paquets…",
+      "hi": "पैकेज इंस्टॉल हो रहे हैं…",
+      "ja": "パッケージをインストール中…",
+      "ko": "패키지 설치 중…",
+      "pt": "Instalando pacotes…",
+      "ru": "Установка пакетов…",
+      "zh": "正在安装软件包…"
+     }
+    },
+    {
+     "name": "app_uml_desktop_starting",
+     "en": "Starting on port %1$d…",
+     "comment": "Desktop manager: desktops inside the UML guest (docs/plans/uml-dm.md)",
+     "args": [
+      "%1$d"
+     ],
+     "t": {
+      "ar": "بدء التشغيل على المنفذ %1$d…",
+      "bn": "পোর্ট %1$d-এ শুরু হচ্ছে…",
+      "de": "Start auf Port %1$d…",
+      "es": "Iniciando en el puerto %1$d…",
+      "fr": "Démarrage sur le port %1$d…",
+      "hi": "पोर्ट %1$d पर शुरू हो रहा है…",
+      "ja": "ポート %1$d で開始中…",
+      "ko": "포트 %1$d에서 시작 중…",
+      "pt": "Iniciando na porta %1$d…",
+      "ru": "Запуск на порту %1$d…",
+      "zh": "正在端口 %1$d 启动…"
+     }
+    },
+    {
+     "name": "app_uml_desktop_running",
+     "en": "Running · VNC 127.0.0.1:%1$d",
+     "comment": "Desktop manager: desktops inside the UML guest (docs/plans/uml-dm.md)",
+     "args": [
+      "%1$d"
+     ],
+     "t": {
+      "ar": "قيد التشغيل · VNC 127.0.0.1:%1$d",
+      "bn": "চলছে · VNC 127.0.0.1:%1$d",
+      "de": "Läuft · VNC 127.0.0.1:%1$d",
+      "es": "En ejecución · VNC 127.0.0.1:%1$d",
+      "fr": "En cours · VNC 127.0.0.1:%1$d",
+      "hi": "चल रहा है · VNC 127.0.0.1:%1$d",
+      "ja": "実行中 · VNC 127.0.0.1:%1$d",
+      "ko": "실행 중 · VNC 127.0.0.1:%1$d",
+      "pt": "Em execução · VNC 127.0.0.1:%1$d",
+      "ru": "Работает · VNC 127.0.0.1:%1$d",
+      "zh": "运行中 · VNC 127.0.0.1:%1$d"
+     }
+    },
+    {
+     "name": "app_uml_desktop_failed",
+     "en": "Failed",
+     "comment": "Desktop manager: desktops inside the UML guest (docs/plans/uml-dm.md)",
+     "args": [],
+     "t": {
+      "ar": "فشل",
+      "bn": "ব্যর্থ",
+      "de": "Fehlgeschlagen",
+      "es": "Falló",
+      "fr": "Échec",
+      "hi": "विफल",
+      "ja": "失敗",
+      "ko": "실패",
+      "pt": "Falhou",
+      "ru": "Сбой",
+      "zh": "失败"
+     }
+    },
+    {
+     "name": "app_uml_desktop_start_cd",
+     "en": "Start %1$s desktop",
+     "comment": "Desktop manager: desktops inside the UML guest (docs/plans/uml-dm.md)",
+     "args": [
+      "%1$s"
+     ],
+     "t": {
+      "ar": "بدء سطح مكتب %1$s",
+      "bn": "%1$s ডেস্কটপ শুরু করুন",
+      "de": "%1$s-Desktop starten",
+      "es": "Iniciar escritorio de %1$s",
+      "fr": "Démarrer le bureau %1$s",
+      "hi": "%1$s डेस्कटॉप शुरू करें",
+      "ja": "%1$s デスクトップを開始",
+      "ko": "%1$s 데스크톱 시작",
+      "pt": "Iniciar desktop de %1$s",
+      "ru": "Запустить рабочий стол %1$s",
+      "zh": "启动 %1$s 桌面"
+     }
+    },
+    {
      "name": "app_desktop_open_shell_cd",
      "en": "Open shell in %1$s",
      "comment": "Desktop manager: distro / rootfs",

@@ -84,10 +84,23 @@ class DesktopManager @Inject constructor(
     @Synchronized
     private fun allocateDisplay(): Int {
         var display = 1
-        while (display in usedDisplays) display++
+        while (display in usedDisplays || 5900 + display in allPinnedPorts()) display++
         usedDisplays.add(display)
         return display
     }
+
+    /**
+     * Ports pinned by ANY family in the shared pref store — proot decks
+     * (`<distro>_<de>`) and the UML guest's desktop pins (`uml_<kind>`,
+     * set by UmlDesktopManager) live in one space. Cross-family skips here
+     * are what keep a fresh proot install from landing on the port a UML
+     * desktop was pinned to.
+     */
+    private fun allPinnedPorts(excludeKey: String? = null): Set<Int> =
+        portPrefs.all.entries.asSequence()
+            .filter { it.key != excludeKey }
+            .mapNotNull { (it.value as? Int)?.takeIf { v -> v in 5901..5999 } }
+            .toSet()
 
     @Synchronized
     private fun releaseDisplay(display: Int) {
@@ -109,19 +122,18 @@ class DesktopManager @Inject constructor(
     }
 
     /**
-     * Suggest the next free VNC port for a new install on [distroId].
-     * Considers ports currently in use by running DEs and ports already
-     * pinned by other installed DEs' preferences. Returns the first
-     * unused 5900+N. Defaults to 5901 when nothing is in play.
+     * Suggest the next free VNC port for a new install. Considers ports
+     * currently in use by running DEs and ports already pinned by other
+     * installed DEs' preferences — across ALL pref keys, not just
+     * [distroId]'s: the UML guest desktops (UmlDesktopManager, keys
+     * `uml_<kind>`) and imported-distro DEs share this one loopback port
+     * space, so a suggestion blind to them collides. [distroId] param kept
+     * for call-site compatibility with the per-distro UI. Returns the first
+     * unused 5900+N; defaults to 5901 when nothing is in play.
      */
     fun suggestNextVncPort(distroId: String): Int {
         val takenByRunning = _desktops.value.values.map { it.vncPort }.toSet()
-        val takenByPrefs = portPrefs.all.entries
-            .asSequence()
-            .filter { it.key.startsWith("${distroId}_") }
-            .mapNotNull { (it.value as? Int)?.takeIf { v -> v > 0 } }
-            .toSet()
-        val taken = takenByRunning + takenByPrefs
+        val taken = takenByRunning + allPinnedPorts()
         var port = 5901
         while (port in taken) port++
         return port
@@ -202,7 +214,12 @@ class DesktopManager @Inject constructor(
         val port: Int
         if (preferredPort in 5901..5999) {
             val candidateDisplay = preferredPort - 5900
-            if (candidateDisplay !in usedDisplays) {
+            // Own pref excluded from the pinned scan (this IS the pref);
+            // another family's pin — e.g. a UML desktop — still blocks.
+            val pinnedElsewhere = allPinnedPorts(
+                excludeKey = "${prootManager.activeDistroId}_${de.spec.id}",
+            ) + usedDisplays.map { 5900 + it }
+            if (preferredPort !in pinnedElsewhere) {
                 display = candidateDisplay
                 port = preferredPort
                 usedDisplays.add(display)

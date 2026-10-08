@@ -214,6 +214,18 @@
     <string name="app_system_vm_import_source">이미지 URL 또는 기기 내 경로</string>
     <string name="app_system_vm_import_arch">게스트 아키텍처</string>
     <string name="app_system_vm_import_arch_hint">이미지와 일치해야 합니다. 대상이 틀리면 오류 없이 그냥 부팅되지 않습니다.</string>
+
+    <!-- Desktop manager: desktops inside the UML guest (docs/plans/uml-dm.md) -->
+    <string name="app_uml_desktop_title">UML 게스트 데스크톱</string>
+    <string name="app_uml_desktop_description">UML 게스트의 고유 커널 안에서 실행되는 데스크톱을 VNC로 표시합니다. 한 번에 하나씩(각각 완전한 커널)입니다. 패키지 설치에는 몇 분이 걸립니다.</string>
+    <string name="app_uml_desktop_install">설치</string>
+    <string name="app_uml_desktop_installed">설치됨</string>
+    <string name="app_uml_desktop_not_installed">설치 안 됨</string>
+    <string name="app_uml_desktop_installing">패키지 설치 중…</string>
+    <string name="app_uml_desktop_starting">포트 %1$d에서 시작 중…</string>
+    <string name="app_uml_desktop_running">실행 중 · VNC 127.0.0.1:%1$d</string>
+    <string name="app_uml_desktop_failed">실패</string>
+    <string name="app_uml_desktop_start_cd">%1$s 데스크톱 시작</string>
     <string name="app_window_scale_saved">이 앱의 기본 크기로 저장됨</string>
 
     <!-- Agent Activity log — result summaries (#239) -->

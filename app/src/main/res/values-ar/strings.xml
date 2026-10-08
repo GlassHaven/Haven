@@ -204,6 +204,18 @@
     <string name="app_system_vm_import_source">رابط الصورة أو مسار على الجهاز</string>
     <string name="app_system_vm_import_arch">معمارية النظام الضيف</string>
     <string name="app_system_vm_import_arch_hint">يجب أن تطابق الصورة — الهدف الخاطئ لا يُظهر خطأً، بل لا يُقلِع أبدًا.</string>
+
+    <!-- Desktop manager: desktops inside the UML guest (docs/plans/uml-dm.md) -->
+    <string name="app_uml_desktop_title">سطح مكتب ضيف UML</string>
+    <string name="app_uml_desktop_description">أسطح مكتب تعمل داخل نواة ضيف UML نفسها، تُعرض عبر VNC. واحدة في كل مرة (كل واحدة نواة كاملة)؛ تثبيت الحزم يستغرق دقائق قليلة.</string>
+    <string name="app_uml_desktop_install">تثبيت</string>
+    <string name="app_uml_desktop_installed">مثبت</string>
+    <string name="app_uml_desktop_not_installed">غير مثبت</string>
+    <string name="app_uml_desktop_installing">جارٍ تثبيت الحزم…</string>
+    <string name="app_uml_desktop_starting">بدء التشغيل على المنفذ %1$d…</string>
+    <string name="app_uml_desktop_running">قيد التشغيل · VNC 127.0.0.1:%1$d</string>
+    <string name="app_uml_desktop_failed">فشل</string>
+    <string name="app_uml_desktop_start_cd">بدء سطح مكتب %1$s</string>
     <string name="app_window_scale_saved">تم الحفظ كحجم افتراضي لهذا التطبيق</string>
 
     <!-- Agent Activity log — result summaries (#239) -->

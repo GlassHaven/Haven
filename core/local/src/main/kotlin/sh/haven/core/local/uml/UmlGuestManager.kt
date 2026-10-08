@@ -75,6 +75,15 @@ class UmlGuestManager @Inject constructor(
     val rootfsFile: File
         get() = File(context.filesDir, "uml/rootfs.ext4")
 
+    /**
+     * The directory mounted as the guest's /host. The only app-storage path
+     * the guest can see (kernel hostfs setup hook); consumers write recipe
+     * scripts here and read guest-written output (install markers,
+     * recovery images) from it.
+     */
+    val guestShareDir: File
+        get() = File(context.filesDir, "uml/share")
+
     private val rootfsReady: Boolean
         get() = rootfsFile.length() == ROOTFS_SIZE_BYTES &&
             stagedVersion() == ROOTFS_VERSION
@@ -259,10 +268,7 @@ class UmlGuestManager @Inject constructor(
         val cacheDir = context.cacheDir.absolutePath
         val nat = { lib: String -> File(natDir, lib).absolutePath }
         val cmd = nat("libuml-net.so")
-        // hostfs is confined to this directory by the kernel's hostfs= setup
-        // hook (fs/hostfs/hostfs_kern.c): the only app-storage path the guest
-        // can see, used as the output channel for recovery images.
-        val shareDir = File(context.filesDir, "uml/share").apply { mkdirs() }
+        val shareDir = guestShareDir.apply { mkdirs() }
         val extra = _sessions.value[sessionId]?.extraKernelArgs.orEmpty()
         val extraEnv = _sessions.value[sessionId]?.extraEnv.orEmpty()
         val args = arrayOf(

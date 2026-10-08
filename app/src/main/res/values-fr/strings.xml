@@ -204,6 +204,18 @@
     <string name="app_system_vm_import_source">URL de l\'image ou chemin sur l\'appareil</string>
     <string name="app_system_vm_import_arch">Architecture de l\'invité</string>
     <string name="app_system_vm_import_arch_hint">Doit correspondre à l\'image : une cible incorrecte ne signale pas d\'erreur, elle ne démarre jamais.</string>
+
+    <!-- Desktop manager: desktops inside the UML guest (docs/plans/uml-dm.md) -->
+    <string name="app_uml_desktop_title">Bureau d\'invité UML</string>
+    <string name="app_uml_desktop_description">Bureaux exécutés dans le noyau propre de l\'invité UML, affichés via VNC. Un à la fois (chacun est un noyau complet) ; l\'installation des paquets prend quelques minutes.</string>
+    <string name="app_uml_desktop_install">Installer</string>
+    <string name="app_uml_desktop_installed">Installé</string>
+    <string name="app_uml_desktop_not_installed">Non installé</string>
+    <string name="app_uml_desktop_installing">Installation des paquets…</string>
+    <string name="app_uml_desktop_starting">Démarrage sur le port %1$d…</string>
+    <string name="app_uml_desktop_running">En cours · VNC 127.0.0.1:%1$d</string>
+    <string name="app_uml_desktop_failed">Échec</string>
+    <string name="app_uml_desktop_start_cd">Démarrer le bureau %1$s</string>
     <string name="app_window_scale_saved">Enregistré comme taille par défaut de cette appli</string>
 
     <!-- Agent Activity log — result summaries (#239) -->

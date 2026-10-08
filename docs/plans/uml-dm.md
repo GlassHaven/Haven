@@ -192,6 +192,61 @@ file:line refs):
   GUEST terminal tabs (TerminalViewModel.kt:1102-1152,
   TransportSessionManagerModule.kt:151-162).
 
+## Stage-2 design (decided 2026-10-08, on the survey above)
+
+- **Recipes** (stage-1-verified commands, parameterised): `X11` = Xvnc on
+  `:N` (N = port − 5900) + openbox + xterm; `Wayland` = headless sway
+  (`WLR_BACKENDS=headless WLR_LIBINPUT_NO_DEVICES=1 WLR_RENDERER=pixman`,
+  `XDG_RUNTIME_DIR=/tmp/wr`) + `wayvnc 0.0.0.0:<port>` + foot. One desktop
+  at a time: a UML desktop runs inside its own kernel (2 GiB per session),
+  not as processes beside others.
+- **Port space: shared with `DesktopManager`.** UML stores port prefs in
+  the same `desktop-port-prefs` store under keys `uml_<kind>`. Two
+  `DesktopManager` edits close the cross-family gaps (the pref store
+  is shared today but `suggestNextVncPort` only scans its own distro's
+  keys, and `allocateDisplay` doesn't consult prefs at all):
+  `suggestNextVncPort` drops the distro-prefix filter (considers every
+  family's prefs), and `allocateDisplay` skips candidates whose
+  `5900+N` is pinned by another family's pref. `UmlDesktopManager` pins
+  `PASST_TFWD=<port>` before boot and leaves it sticky, exactly like a
+  proot install-time pin.
+- **Session plumbing**: new `UmlDesktopManager` (core/local/uml) drives
+  `UmlGuestManager`: `registerSession` under a synthetic profileId
+  (`uml-desktop-<kind>` — no ConnectionProfile row, so the session never
+  surfaces as a GUEST tab), `haven.desktop=1` kernel arg,
+  `PASST_TFWD=<port>` env, then a headless tee session
+  (`startHeadlessShell(sessionId, extraOnData)`). The recipe is written
+  by the app into the hostfs share (`files/uml/share/haven-desktop.sh`);
+  the console side of the recipe is ONE typed command (`sh
+  /host/haven-desktop.sh <verb> <kind> <port>`), everything else is
+  script. The recipe backgrounds its servers and exits — the console
+  returns to the login-shell prompt, where `poweroff` is meaningful
+  (guest ISIG is off: the stage-1 ^C-as-literal quirk makes an interrupt
+  path useless, so every stop path goes through init).
+- **Lifecycle actions**:
+  - *Install*: headless boot (no forward) → `apk add <pkgset>` → marker
+    `/host/haven-desktop-<kind>.ok` → poweroff. The Manage list reads the
+    markers from the share dir host-side; re-installing overwrites.
+  - *Start*: boot with the forward → run the recipe → Ready only on an
+    RFB-banner probe (`Socket` to 127.0.0.1:<port>, expect the "RFB "
+    prefix) — passt's listener accepts connects before the guest server
+    is up, so a bare connect (what the proot path polls) proves nothing
+    here. Timeout → ERROR with the console-log tail as the message
+    (error-quality rule: the log travels with the state). Xvnc is
+    started with `-SecurityTypes None` explicitly and wayvnc runs
+    unconfigured (no user/pass) — both loopback-only listeners behind
+    the passt forward.
+  - *Stop*: `poweroff` typed at the idle login-shell prompt; kernel exit
+    tears down passt and frees the listeners; hard-kill fallback via
+    `closeGuest` after 8 s.
+- **VNC tab**: `DesktopViewModel` opens it on the RUNNING transition with
+  the same `addVncSession(host="127.0.0.1", port, password=null,
+  colorDepth="BPP_24_TRUE")` shape proot's start uses (dedupe built into
+  addVncSession covers double-taps).
+- **No MCP endpoint for the three actions in v1**: the guest console
+  remains fully MCP-drivable (that is how stages 0–1 were verified), and
+  state is observable on the Manage screen. Noted, not hidden.
+
 ## Risks / open questions
 
 - Forwarded connections arrive from the passt gateway IP

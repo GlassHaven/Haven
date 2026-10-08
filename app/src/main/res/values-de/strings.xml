@@ -204,6 +204,18 @@
     <string name="app_system_vm_import_source">Image-URL oder Pfad auf dem Gerät</string>
     <string name="app_system_vm_import_arch">Gast-Architektur</string>
     <string name="app_system_vm_import_arch_hint">Muss zum Image passen – ein falsches Ziel meldet keinen Fehler, es bootet einfach nie.</string>
+
+    <!-- Desktop manager: desktops inside the UML guest (docs/plans/uml-dm.md) -->
+    <string name="app_uml_desktop_title">UML-Gast-Desktop</string>
+    <string name="app_uml_desktop_description">Desktops, die im eigenen Kernel des UML-Gasts laufen und über VNC angezeigt werden. Einer zur Zeit (jeder ist ein eigener Kernel); das Installieren der Pakete dauert einige Minuten.</string>
+    <string name="app_uml_desktop_install">Installieren</string>
+    <string name="app_uml_desktop_installed">Installiert</string>
+    <string name="app_uml_desktop_not_installed">Nicht installiert</string>
+    <string name="app_uml_desktop_installing">Pakete werden installiert…</string>
+    <string name="app_uml_desktop_starting">Start auf Port %1$d…</string>
+    <string name="app_uml_desktop_running">Läuft · VNC 127.0.0.1:%1$d</string>
+    <string name="app_uml_desktop_failed">Fehlgeschlagen</string>
+    <string name="app_uml_desktop_start_cd">%1$s-Desktop starten</string>
     <string name="app_window_scale_saved">Als Standardgröße dieser App gespeichert</string>
 
     <!-- Agent Activity log — result summaries (#239) -->

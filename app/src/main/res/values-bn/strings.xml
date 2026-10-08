@@ -204,6 +204,18 @@
     <string name="app_system_vm_import_source">ইমেজ URL বা ডিভাইসে পথ</string>
     <string name="app_system_vm_import_arch">গেস্ট আর্কিটেকচার</string>
     <string name="app_system_vm_import_arch_hint">ইমেজের সঙ্গে মিলতে হবে — ভুল টার্গেট কোনো ত্রুটি দেখায় না, শুধু কখনও বুট হয় না।</string>
+
+    <!-- Desktop manager: desktops inside the UML guest (docs/plans/uml-dm.md) -->
+    <string name="app_uml_desktop_title">UML গেস্ট ডেস্কটপ</string>
+    <string name="app_uml_desktop_description">UML গেস্টের নিজের কার্নেলের ভেতরে চলা ডেস্কটপ, VNC দিয়ে দেখা হয়। একবারে একটি (প্রতিটি পুরো কার্নেল); প্যাকেজ ইনস্টলে কয়েক মিনিট লাগে।</string>
+    <string name="app_uml_desktop_install">ইনস্টল</string>
+    <string name="app_uml_desktop_installed">ইনস্টল করা আছে</string>
+    <string name="app_uml_desktop_not_installed">ইনস্টল করা নেই</string>
+    <string name="app_uml_desktop_installing">প্যাকেজ ইনস্টল হচ্ছে…</string>
+    <string name="app_uml_desktop_starting">পোর্ট %1$d-এ শুরু হচ্ছে…</string>
+    <string name="app_uml_desktop_running">চলছে · VNC 127.0.0.1:%1$d</string>
+    <string name="app_uml_desktop_failed">ব্যর্থ</string>
+    <string name="app_uml_desktop_start_cd">%1$s ডেস্কটপ শুরু করুন</string>
     <string name="app_window_scale_saved">এই অ্যাপের ডিফল্ট আকার হিসেবে সংরক্ষিত</string>
 
     <!-- Agent Activity log — result summaries (#239) -->

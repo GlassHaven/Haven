@@ -210,6 +210,18 @@
     <string name="app_system_vm_import_source">URL de la imagen o ruta en el dispositivo</string>
     <string name="app_system_vm_import_arch">Arquitectura del invitado</string>
     <string name="app_system_vm_import_arch_hint">Debe coincidir con la imagen: un destino incorrecto no da error, simplemente nunca arranca.</string>
+
+    <!-- Desktop manager: desktops inside the UML guest (docs/plans/uml-dm.md) -->
+    <string name="app_uml_desktop_title">Escritorio de invitado UML</string>
+    <string name="app_uml_desktop_description">Escritorios que se ejecutan dentro del núcleo propio del invitado UML, vistos por VNC. Uno a la vez (cada uno es un núcleo completo); instalar los paquetes tarda unos minutos.</string>
+    <string name="app_uml_desktop_install">Instalar</string>
+    <string name="app_uml_desktop_installed">Instalado</string>
+    <string name="app_uml_desktop_not_installed">No instalado</string>
+    <string name="app_uml_desktop_installing">Instalando paquetes…</string>
+    <string name="app_uml_desktop_starting">Iniciando en el puerto %1$d…</string>
+    <string name="app_uml_desktop_running">En ejecución · VNC 127.0.0.1:%1$d</string>
+    <string name="app_uml_desktop_failed">Falló</string>
+    <string name="app_uml_desktop_start_cd">Iniciar escritorio de %1$s</string>
     <string name="app_window_scale_saved">Guardado como el tamaño predeterminado de esta app</string>
 
     <!-- Agent Activity log — result summaries (#239) -->

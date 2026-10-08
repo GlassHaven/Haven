@@ -207,6 +207,18 @@
     <string name="app_system_vm_import_arch">Guest architecture</string>
     <string name="app_system_vm_import_arch_hint">Must match the image — the wrong target doesn\'t error, it just never boots.</string>
 
+    <!-- Desktop manager: desktops inside the UML guest (docs/plans/uml-dm.md) -->
+    <string name="app_uml_desktop_title">UML guest desktop</string>
+    <string name="app_uml_desktop_description">Desktops running inside the UML guest\'s own kernel, viewed over VNC. One at a time (each is a full kernel); installing packages takes a few minutes.</string>
+    <string name="app_uml_desktop_install">Install</string>
+    <string name="app_uml_desktop_installed">Installed</string>
+    <string name="app_uml_desktop_not_installed">Not installed</string>
+    <string name="app_uml_desktop_installing">Installing packages…</string>
+    <string name="app_uml_desktop_starting">Starting on port %1$d…</string>
+    <string name="app_uml_desktop_running">Running · VNC 127.0.0.1:%1$d</string>
+    <string name="app_uml_desktop_failed">Failed</string>
+    <string name="app_uml_desktop_start_cd">Start %1$s desktop</string>
+
     <!-- Desktop manager: distro / rootfs -->
     <string name="app_desktop_open_shell_cd">Open shell in %1$s</string>
     <string name="app_desktop_delete_distro_cd">Delete %1$s</string>

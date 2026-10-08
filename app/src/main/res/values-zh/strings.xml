@@ -204,6 +204,18 @@
     <string name="app_system_vm_import_source">镜像 URL 或设备上的路径</string>
     <string name="app_system_vm_import_arch">客户机架构</string>
     <string name="app_system_vm_import_arch_hint">必须与镜像一致 — 目标不对不会报错，只是永远无法启动。</string>
+
+    <!-- Desktop manager: desktops inside the UML guest (docs/plans/uml-dm.md) -->
+    <string name="app_uml_desktop_title">UML 客机桌面</string>
+    <string name="app_uml_desktop_description">运行在 UML 客机自身内核里的桌面，可通过 VNC 查看。同一时间只能运行一个（每个都是完整内核）；安装软件包需要几分钟。</string>
+    <string name="app_uml_desktop_install">安装</string>
+    <string name="app_uml_desktop_installed">已安装</string>
+    <string name="app_uml_desktop_not_installed">未安装</string>
+    <string name="app_uml_desktop_installing">正在安装软件包…</string>
+    <string name="app_uml_desktop_starting">正在端口 %1$d 启动…</string>
+    <string name="app_uml_desktop_running">运行中 · VNC 127.0.0.1:%1$d</string>
+    <string name="app_uml_desktop_failed">失败</string>
+    <string name="app_uml_desktop_start_cd">启动 %1$s 桌面</string>
     <string name="app_window_scale_saved">已保存为此应用的默认尺寸</string>
 
     <!-- Agent Activity log — result summaries (#239) -->

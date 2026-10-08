@@ -282,7 +282,7 @@ class UmlDesktopManager @Inject constructor(
                 throw IllegalStateException("guest exited during boot:\n${console.tail(1_000)}")
             }
             val tail = console.tail(120)
-            if (tail.trimEnd().endsWith("#")) {
+            if (atPrompt(tail)) {
                 delay(700)
                 if (console.tail(120) == tail) return
             } else {
@@ -426,9 +426,22 @@ class UmlDesktopManager @Inject constructor(
             .writeText(RECIPE_SCRIPT)
     }
 
-    private companion object {
+    internal companion object {
         /** $ as a val: a raw Kotlin template can't carry a bare $. */
         private const val DS = "$"
+
+        /**
+         * CSI/OSC escape sequences as they appear in console output. The
+         * guest's shell trails its prompt with a DSR cursor query
+         * (`ESC [ 6 n`) that the headless pty never answers, so the raw
+         * tail ends in `6n` forever — device-verified on the first stage-2
+         * run. Strip them before looking for the prompt.
+         */
+        private val ANSI = Regex("\u001b\\[[0-9;?]*[ -/]*[@-~]|\u001b\\][^\u0007\u001b]*(\u0007|\u001b\\\\)")
+
+        /** True when the console tail ends at a root-shell prompt. */
+        fun atPrompt(tail: String): Boolean =
+            ANSI.replace(tail, "").trimEnd().endsWith("#")
 
         /** Kernel arg gating the agent launcher off (uml-guest-9 inittab hook). */
         private const val DESKTOP_KERNEL_ARG = "haven.desktop=1"

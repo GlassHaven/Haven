@@ -24,11 +24,18 @@ desktop in the guest, view and use it in Haven's normal VNC tab.
 ## Changes
 
 1. **Forward plumb** (`uml_net.c`): new env var `PASST_TFWD` (comma-separated
-   host TCP ports, e.g. `5951`) → append `-t <port>` to the passt execl;
-   `PASST_UFWD` → `-u` the same way. Host-side binds default to loopback
-   (`-a 127.0.0.1`) to match the MCP loopback-default posture; LAN exposure
-   is a later, explicit opt-in. Threaded from `UmlGuestManager` into the
-   session env; port chosen by the same allocator the proot X11Vnc launcher
+   host TCP ports, e.g. `5951`) → append one `-t 127.0.0.1/<p1>,<p2>` spec to
+   the passt argv; `PASST_UFWD` → `-u` the same way. The `127.0.0.1/` address
+   prefix inside the spec is what keeps the bind loopback-only — passt's `-a`
+   is the *guest* address option, not a bind restrictor, and a bare
+   ports-only spec binds all interfaces (`sock_l4_dualstack_any` binds `::`
+   with `IPV6_V6ONLY=0`). Verified against the pinned base (passt.top
+   3a890a6 + passt-uml.patch): the `-t`/`-u` specs parse after local-mode
+   setup sets `ifi4/ifi6 = -1` sentinels, `fwd_rule_init` treats the
+   sentinels as available (both FWD_CAP_* set), and `fwd_listen_init` opens
+   the listener sockets unconditionally in fd mode. LAN exposure is a later,
+   explicit opt-in. Threaded from `UmlGuestManager` into the session env;
+   port chosen by the same allocator the proot X11Vnc launcher
    uses (or a distinct UML range — decided in `DesktopManager`, must not
    collide with a simultaneously-running proot desktop).
 2. **In-guest recipe**: reuse the proot catalog's APK package list
@@ -51,11 +58,49 @@ From a UML guest: `xterm` visible and interactive, plus one Wayland app
 (wayvnc + a wlroots compositor) in Haven's VNC tab — verified on-device, as
 always.
 
+## Stage-0 device verification (2026-10-08, test build 8731)
+
+Device-verified on the OnePlus CPH2655 with the uncommitted stage-0 plumb
+(TEMP test hooks set `PASST_TFWD=5951,5952` on the GUEST session env):
+
+- passt accepted `-t 127.0.0.1/5951,5952` in `-F` fd mode and bound both
+  host-side listeners; Haven's local shell read `RFB 003.008` through
+  `127.0.0.1:5951` (Xvnc :51) and `127.0.0.1:5952` (wayvnc) — end-to-end,
+  banner-to-banner, no relay needed. The fallback socketpair↔TCP relay in
+  `libuml-net` is therefore not needed and is dropped from this plan.
+- From Haven's normal VNC tab: openbox + `xterm` fully interactive (the
+  openbox root menu responds to right-click), and on the second port a
+  headless sway (`WLR_BACKENDS=headless WLR_LIBINPUT_NO_DEVICES=1
+  WLR_RENDERER=pixman`, wayvnc bound `0.0.0.0:5952`) with two `foot`
+  terminals — clicking a title bar flips sway's focus. Mouse in both
+  directions, pixel-visible frame updates in the tab.
+- Display/port mapping: Xvnc display `:N` binds `5900+N`, so the forward
+  port is the display's port (5951 → :51). The stage-1 allocator should
+  pick ports and derive displays from them.
+
+In-guest prerequisites the stage-1 recipe must provide (found missing in
+uml-guest-4 and fixed by hand during this test):
+
+- `/dev/pts` (devpts) is not mounted — `xterm` fails with
+  `get_pty: not enough ptys` until it is.
+- `/dev/shm` (tmpfs, `mode=1777`) is not mounted — wlroots fails `shm_open`
+  ("Failed to allocate shm file for keymap", "Failed to allocate buffer"),
+  leaving sway running but rendering nothing; wayvnc shows a stale grey
+  frame. Both must land in the rootfs /etc/inittab-style boot hook next to
+  the existing hostfs mount.
+- The `agent-launcher` respawn in `/etc/inittab` conflicts with a desktop
+  session: it fills the shared console with opencode and refetches its
+  185 MB bundle if missing. The stage-1 release grows the rootfs image AND
+  gates the launcher (or the desktop hook suppresses the respawn when a
+  `haven.desktop=` kernel arg is present).
+
 ## Risks / open questions
 
-- passt's `-F` fd mode + forwarding combination is untested in the pinned
-  build (stage 0 answers it; fallback = a socketpair↔TCP relay in
-  `libuml-net`, which this plan then does not need).
+- The uml-guest-4 rootfs image is too small for the desktop recipe: 990 MB
+  ext4 ran at 96% with only tigervnc+openbox+xterm+mesa+wayvnc+sway+foot
+  (no fonts beyond the base, no swaybg). The stage-1 release ships a
+  bumped image (2 GB class) together with the `fetch-uml.sh` VERSION pin
+  bump.
 - Forwarded connections arrive from the passt gateway IP
   (169.254.2.2) — VNC auth is per-listener, so no auth implications; note it
   for any future app-level ACL.

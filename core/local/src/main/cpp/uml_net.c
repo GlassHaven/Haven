@@ -23,6 +23,10 @@
  *                       override the local-mode gateway off-subnet)
  *   PASST_DNS           optional, default 1.1.1.1
  *   PASST_DEBUG         set to run passt with -d
+ *   PASST_TFWD          comma-separated TCP ports (e.g. "5951,5952") to
+ *                       forward into the guest as one
+ *                       "-t 127.0.0.1/<ports>" spec
+ *   PASST_UFWD          same for UDP ("-u")
  *   TMPDIR              chdir'ed into before exec'ing the kernel (UML
  *                       wants a writable cwd for its .uml/<umid>/ dir)
  */
@@ -35,13 +39,68 @@
 #include <unistd.h>
 #include <signal.h>
 
-/* Exit only the current process; a failed exec must not take the
- * terminal session down with a JNI-level error. */
+/* Exit only the current process; errors here must not take the terminal
+ * session down with a JNI-level error. */
+
+#define FWD_HOST "127.0.0.1/"
+
+/* Build a passt -t/-u spec from a comma-separated port list ("5951,5952")
+ * in env_name. passt parses "[ADDR/]"PORTS per option and a bare
+ * ports-only spec binds all interfaces (sock_l4_dualstack_any binds ::
+ * with IPV6_V6ONLY=0), so the launcher always emits the explicit
+ * "127.0.0.1/" prefix — the loopback-default posture; LAN exposure would
+ * be a deliberate knob, not a missing prefix. Returns NULL when the env
+ * var is unset or empty (no forwarding), and exits loudly on anything
+ * malformed rather than silently starting a guest that hangs on its
+ * listeners. */
+static char *passt_fwd_spec(const char *env_name)
+{
+	const char *ports = getenv(env_name);
+	const char *p = ports;
+	char *out;
+	size_t n;
+
+	if (!ports || !*ports)
+		return NULL;
+
+	while (1) {
+		long port = 0;
+		if (*p < '0' || *p > '9')
+			goto bad;
+		while (*p >= '0' && *p <= '9') {
+			port = port * 10 + (*p - '0');
+			p++;
+		}
+		if (port < 1 || port > 65535)
+			goto bad;
+		if (*p == ',') {
+			p++;
+			continue;
+		}
+		break;
+	}
+
+	n = strlen(FWD_HOST) + strlen(ports) + 1;
+	out = malloc(n);
+	if (!out)
+		return NULL;
+	snprintf(out, n, FWD_HOST "%s", ports);
+	return out;
+
+bad:
+	fprintf(stderr,
+		"uml-net: %s: malformed port list "
+		"(comma-separated 1-65535, got \"%s\")\n", env_name, ports);
+	_exit(2);
+}
+
 static void child_exec_passt(const char *passt, const char *log_path,
 			     const char *fds)
 {
-	const char *gw = getenv("PASST_GW");
-	const char *dns_env = getenv("PASST_DNS");
+	/* Parsing must precede the log redirect so a malformed value reports
+	 * on the guest console, not only in the passt log file. */
+	char *tfwd = passt_fwd_spec("PASST_TFWD");
+	char *ufwd = passt_fwd_spec("PASST_UFWD");
 
 	/* passt's stderr (its log) to its own file so it does not
 	 * interleave with the UML console */
@@ -54,23 +113,41 @@ static void child_exec_passt(const char *passt, const char *log_path,
 	/* If Haven dies, passt must not outlive it. */
 	prctl(PR_SET_PDEATHSIG, SIGKILL, 0, 0, 0);
 	setenv("PASST_RAW_L2", "1", 1);
+
+	const char *gw = getenv("PASST_GW");
+	const char *dns_env = getenv("PASST_DNS");
 	if (!dns_env || !*dns_env)
 		dns_env = "1.1.1.1";
 
-	if (getenv("PASST_DEBUG")) {
-		if (gw)
-			execl(passt, "passt", "-d", "-f", "-F", fds, "-g", gw,
-			      "--dns", dns_env, (char *)NULL);
-		else
-			execl(passt, "passt", "-d", "-f", "-F", fds, "--dns",
-			      dns_env, (char *)NULL);
-	} else if (gw) {
-		execl(passt, "passt", "-f", "-F", fds, "-g", gw, "--dns",
-		      dns_env, (char *)NULL);
-	} else {
-		execl(passt, "passt", "-f", "-F", fds, "--dns", dns_env,
-		      (char *)NULL);
+	/* execl is variadic and the flags are becoming additive (fwd specs,
+	 * optional -d/-g), so the argv is assembled and execv'd instead of
+	 * 2^n execl spellings. */
+	char *av[14];
+	int i = 0;
+	av[i++] = "passt";
+	if (getenv("PASST_DEBUG"))
+		av[i++] = "-d";
+	av[i++] = "-f";
+	av[i++] = "-F";
+	av[i++] = (char *)fds;
+	if (gw) {
+		av[i++] = "-g";
+		av[i++] = (char *)gw;
 	}
+	av[i++] = "--dns";
+	av[i++] = (char *)dns_env;
+	if (tfwd) {
+		av[i++] = "-t";
+		av[i++] = tfwd;
+	}
+	if (ufwd) {
+		av[i++] = "-u";
+		av[i++] = ufwd;
+	}
+	av[i] = NULL;
+
+	execv(passt, av);
+	perror("execv passt");
 	_exit(127);
 }
 

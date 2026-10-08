@@ -181,6 +181,12 @@ class UmlGuestManager @Inject constructor(
         /** Appended verbatim to the kernel command line (recovery sessions pass
          *  haven_nbd_host/haven_nbd_port). */
         val extraKernelArgs: List<String> = emptyList(),
+        /** Env lines ("<VAR>=<value>") appended to the launcher environment.
+         *  The launcher (uml_net.c) reads passthrough forwarding targets from
+         *  PASST_TFWD/PASST_UFWD; a desktop session forwards its VNC port
+         *  through them. Plain guest boots leave empty — console sessions get
+         *  no forwarding. */
+        val extraEnv: List<String> = emptyList(),
     ) {
         enum class Status { CONNECTING, CONNECTED, DISCONNECTED, ERROR }
     }
@@ -202,6 +208,7 @@ class UmlGuestManager @Inject constructor(
         profileId: String,
         label: String,
         extraKernelArgs: List<String> = emptyList(),
+        extraEnv: List<String> = emptyList(),
     ): String {
         reapDeadSessionsForProfile(profileId)
         val sessionId = UUID.randomUUID().toString()
@@ -212,6 +219,7 @@ class UmlGuestManager @Inject constructor(
                 label = label,
                 status = SessionState.Status.CONNECTING,
                 extraKernelArgs = extraKernelArgs,
+                extraEnv = extraEnv,
             ))
         }
         return sessionId
@@ -256,6 +264,7 @@ class UmlGuestManager @Inject constructor(
         // can see, used as the output channel for recovery images.
         val shareDir = File(context.filesDir, "uml/share").apply { mkdirs() }
         val extra = _sessions.value[sessionId]?.extraKernelArgs.orEmpty()
+        val extraEnv = _sessions.value[sessionId]?.extraEnv.orEmpty()
         val args = arrayOf(
             cmd,
             nat("libuml-passt.so"),
@@ -279,6 +288,7 @@ class UmlGuestManager @Inject constructor(
             "PATH=/system/bin:/vendor/bin:$natDir",
             "TERM=xterm-256color",
             "PASST_NO_SANDBOX=1",
+            *extraEnv.toTypedArray(),
         )
         return Triple(cmd, args, env)
     }

@@ -71,7 +71,7 @@ class UmlGuestManager @Inject constructor(
         _state.value = if (rootfsReady) SetupState.Ready else SetupState.NotStaged
     }
 
-    /** The staged rootfs image; 1 GiB, the mkfs'd size of the asset. */
+    /** The staged rootfs image; 2 GiB, the mkfs'd size of the asset. */
     val rootfsFile: File
         get() = File(context.filesDir, "uml/rootfs.ext4")
 
@@ -507,7 +507,7 @@ class UmlGuestManager @Inject constructor(
         private const val ASSET_PATH = "uml/rootfs-aarch64.ext4"
 
         /** mkfs'd image size — the staging idempotency check. */
-        const val ROOTFS_SIZE_BYTES = 1_073_741_824L
+        const val ROOTFS_SIZE_BYTES = 2_147_483_648L
 
         /**
          * Bump when the shipped asset changes in a way the size check cannot
@@ -524,11 +524,17 @@ class UmlGuestManager @Inject constructor(
          * so guests booted with no route), and the launcher's raw-tty /
          * endpoint-share-backup / agent-shell-hatch fixes. Existing installs
          * re-stage once; endpoint.env survives via the share backup.
+         * v11 ships uml-guest-9: 2 GiB image (the desktop package set filled
+         * a 1 GiB image to 96%), /dev/pts and /dev/shm mounted at sysinit
+         * (xterm needs ptys, wlroots needs POSIX shm), and the agent TUI
+         * parked by a haven.desktop= kernel arg so the desktop recipe owns
+         * the console. Existing installs re-stage once; endpoint.env
+         * survives via the share backup.
          */
-        const val ROOTFS_VERSION = 10
+        const val ROOTFS_VERSION = 11
 
         /** Space check before unpacking: image + headroom for writes. */
-        const val ROOTFS_FREE_SPACE_BYTES = 1_600L * 1024 * 1024
+        const val ROOTFS_FREE_SPACE_BYTES = 2_600L * 1024 * 1024
 
         private const val UNPACK_BUFFER_SIZE = 1 shl 16
     }

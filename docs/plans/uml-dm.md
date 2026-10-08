@@ -42,10 +42,12 @@ desktop in the guest, view and use it in Haven's normal VNC tab.
    (`DesktopEnvironmentSpec.packagesPerFamily[APK]` — `tigervnc`, `openbox`,
    `xterm`, `font-noto`) installed with `apk` inside the running guest.
    The guest's `ext4` rootfs is its own disk, so installs persist. Start =
-   `Xvnc` + WM launched from the guest console (stage 0: by hand) or by a
-   rootfs-overlay script (stage 1: automatic, shipped in the next
-   `uml-guest-*` release with an `/etc/inittab` hook reading a kernel-arg
-   marker, e.g. `haven.desktop=openbox`).
+   `Xvnc` + WM launched from the guest console (stage 0: by hand). Stage
+   1 (shipped in `uml-guest-9`): `/etc/inittab` gains the devpts and shm
+   sysinit mounts, and `agent-launcher.sh` parks the agent TUI whenever
+   `/proc/cmdline` mentions `haven.desktop=` — the console then execs a
+   login shell, which the desktop recipe drives itself. No value is
+   parsed, only the marker's presence.
 3. **UI**: Desktop → Manage lists UML guest desktops alongside the proot
    entries; install/start/stop map to guest-console commands and UML session
    lifecycle (`UmlGuestManager`), not `ProotManager`. Availability stays
@@ -79,7 +81,8 @@ Device-verified on the OnePlus CPH2655 with the uncommitted stage-0 plumb
   pick ports and derive displays from them.
 
 In-guest prerequisites the stage-1 recipe must provide (found missing in
-uml-guest-4 and fixed by hand during this test):
+the staged rootfs — the uml-transport `uml-guest-8` asset — and fixed by
+hand during this test):
 
 - `/dev/pts` (devpts) is not mounted — `xterm` fails with
   `get_pty: not enough ptys` until it is.
@@ -94,15 +97,106 @@ uml-guest-4 and fixed by hand during this test):
   gates the launcher (or the desktop hook suppresses the respawn when a
   `haven.desktop=` kernel arg is present).
 
+## Stage-1 verification (2026-10-08, build 8731)
+
+Rootfs asset bumped to uml-guest-9 (sha256 `4bc520ea…`, 77,282,923 bytes gz,
+flat ext4 exactly 2,147,483,648 bytes; `UmlGuestManager` ROOTFS_VERSION 11),
+installed on the OnePlus CPH2655, then verified:
+
+- **Plain boot** (GUEST connect, no desktop args): staging gate saw 284 GB
+  free and re-staged (rootfs.ext4 exactly 2,147,483,648 bytes,
+  `rootfs.version` rewritten); boot clean, no `DEVPTSFAIL` / `SHMFAIL` /
+  `HOSTFSFAIL` markers — the inittab sysinit hooks are live; the launcher
+  ran and (missing endpoint.env after the re-stage, pre-existing guest-8
+  parity — the share still carries `nexos.env.bak` and the migration fell
+  through silently) stopped at the endpoint prompt as before.
+- **Connect-path find**: the MCP/connect-button session create is
+  `ConnectionsViewModel.kt:3527`, not `TerminalViewModel.addGuestTabForProfile`
+  — a temp hook on only the latter let the first desktop-boot attempt boot
+  without `haven.desktop=` (launcher showed the endpoint prompt). Both call
+  `UmlGuestManager.registerSession(pid, label)`; stage-2 must hook (or
+  parameterise) the ConnectionsViewModel one.
+- **Desktop boot** (drive the console over the GUEST session's serial, then
+  watch through Haven's VNC tab): the gate fired on a boot launched through
+  the Connections connect path — `/proc/cmdline` carries `haven.desktop=1`,
+  the console parks at a login shell (`uml:~#`). From the console: the
+  package set for the Alpine 3.22 rootfs is
+  `tigervnc openbox xterm font-noto mesa-gl sway wayvnc foot
+  font-misc-misc xsetroot xwininfo jq` — no `mesa-osmesa` in Alpine 3.22
+  (APK_EXIT=1), and the xorg tools are bare names
+  (`xorg-xsetroot`/`xorg-xwininfo` do not exist — a redirected `apk add`
+  fails silently on them). `font-misc-misc` must be installed BEFORE Xvnc
+  starts: Xvnc snapshots its font path at startup, and an xterm started
+  against a server booted without the bitmap fonts maps nothing
+  (`cannot load font "-misc-fixed-medium-r-semicondensed--13-120-75-75-c-60-iso10646-1"`).
+  Both stacks verified in Haven's VNC tab:
+  - **X11**: `Xvnc :51` (5951, port = 5900+display confirmed again) +
+    openbox + xterm; after the font fix and a clean client reconnect the tab
+    renders openbox-managed xterms, and clicking a title bar flips the
+    focus (mouse path Haven → passt → guest → openbox).
+  - **Wayland**: headless sway (`WLR_BACKENDS=headless
+    WLR_LIBINPUT_NO_DEVICES=1 WLR_RENDERER=pixman`,
+    `XDG_RUNTIME_DIR=/tmp/wr`) + `wayvnc 0.0.0.0:5952` + two `foot`s
+    tiled 640×668 each on the 1280×720 output. Interactivity proven at IPC
+    level — a tab click on the left/right half flips sway's focused
+    container (checked with `swaymsg -t get_tree`, jq) and re-paints the
+    focus colour. Notes: `swaymsg` 1.10.1 ignores the
+    XDG_RUNTIME_DIR/WAYLAND_DISPLAY pair here ("Unable to retrieve socket
+    path") and needs `SWAYSOCK=/tmp/wr/sway-ipc*.sock`; benign sway noise:
+    swaybg and Xwayland absent, no user bus.
+  - **Verify trap**: a desktop tab that went stale mid-test (frames frozen
+    on its last frame while the guest clock ran on) is Haven's backgrounded
+    viewer pausing, not wayvnc dropping — input injected via tap_desktop_tab
+    still reached sway while the picture was minutes old, and a clean
+    disconnect/connect_profile of the VNC profile restored live frames.
+    Prove Wayland interactivity at the IPC level and only then trust a
+    capture.
+
+## Stage-2 integration surface (code survey, 2026-10-08)
+
+Read-only survey of the desktop stack, to be built on (facts, with
+file:line refs):
+
+- The Manage screen's desktop list is the hardcoded
+  `ProotManager.DesktopEnvironment` enum filtered by
+  `spec.packagesPerFamily.containsKey(activeDistro.family)`
+  (DesktopManagerScreen.kt:1762-1776, Manifest.kt:637-1035); "installed"
+  is a marker-file scan of the proot rootfs (ProotManager.kt:1057-1086).
+  A UML recipe cannot ride that enum — it would drive ProotManager
+  setup. Precedent for a beside-section in the same screen:
+  `SystemVmSection` / `AppWindowsSection` (DesktopManagerScreen.kt:218-241).
+- The proot VNC viewer opens inside the start action:
+  `DesktopViewModel.startDesktop` (:436-520) polls
+  `Socket(127.0.0.1, port)` for ≤8 s, then
+  `addVncSession(host="localhost", port, profileId=null, password =
+  prootManager.storedVncPassword ?: a pre-existing isVnc && localhost
+  profile)` (DesktopViewModel.kt:505-518). This is the shape the UML
+  start action reuses; no stored VNC profile involved.
+- Port space: `DesktopManager` alone owns 5901..5999
+  (allocateDisplay :85, prefs :99-112, running set :118); its
+  `suggestNextVncPort` cannot see UML consumers. Uncoordinated
+  precedent: `SystemVmManager` grabs any free loopback port and derives
+  the display (SystemVmManager.kt:140-146). UML's channel is per-session
+  `extraEnv`/`PASST_TFWD` at `registerSession` time; the desktop boot
+  therefore picks the port first and passes it as env — and Manage-list
+  coordination (whether UML takes ports from the 5901..5999 allocator or
+  mirrors SystemVmManager) is the main open design decision.
+- `NativeFeatures.uml` exists (NativeFeatures.kt:79-85, all four UML
+  .so) and `TransportAvailability` already gates GUEST on it; the Manage
+  section gates on the same probe. `UmlGuestManager.ensureRootfs()` +
+  its `SetupState` flow (NotStaged/Unpacking/Ready/Error,
+  UmlGuestManager.kt:101-162) is the staging half; the guest-rootfs
+  `apk add` of the desktop packages is the install half (persists in the
+  guest's ext4).
+- DesktopTab has no UML member today; UML sessions surface only as
+  GUEST terminal tabs (TerminalViewModel.kt:1102-1152,
+  TransportSessionManagerModule.kt:151-162).
+
 ## Risks / open questions
 
-- The uml-guest-4 rootfs image is too small for the desktop recipe: 990 MB
-  ext4 ran at 96% with only tigervnc+openbox+xterm+mesa+wayvnc+sway+foot
-  (no fonts beyond the base, no swaybg). The stage-1 release ships a
-  bumped image (2 GB class) together with the `fetch-uml.sh` VERSION pin
-  bump.
 - Forwarded connections arrive from the passt gateway IP
   (169.254.2.2) — VNC auth is per-listener, so no auth implications; note it
   for any future app-level ACL.
-- The stage-1 release needs the uml-transport release + `fetch-uml.sh` pin
-  bump (VERSION + sha256s together).
+- `fetch-uml.sh`'s NAME-tag pins the kernel/binaries at `uml-guest-4`, a
+  different pin than the rootfs tag (`uml-guest-9`); keep the two separate
+  when bumping. Stage-1 shipped the rootfs bump only.

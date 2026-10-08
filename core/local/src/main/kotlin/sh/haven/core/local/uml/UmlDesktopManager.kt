@@ -475,7 +475,7 @@ class UmlDesktopManager @Inject constructor(
      * console line discipline has ISIG off (stage-1), so nothing typed at a
      * process-holding console can interrupt it.
      */
-    private val RECIPE_SCRIPT = """#!/bin/sh
+    internal val RECIPE_SCRIPT = """#!/bin/sh
 # Haven's UML desktop recipe, written by the app into the hostfs share.
 #   sh /host/haven-desktop.sh install x11|wayland
 #   sh /host/haven-desktop.sh start x11|wayland <port>
@@ -487,7 +487,7 @@ x11_pkgs() {
     # font-misc-misc must be installed BEFORE Xvnc starts: Xvnc snapshots
     # its font path at startup, and xterm maps a bitmap font from it
     # (stage-1: xterm rendered unmapped glyphs without it).
-    apk add --no-cache font-misc-misc tigervnc openbox xterm xsetroot xwininfo font-noto
+    apk add --no-cache font-misc-misc tigervnc openbox xterm xsetroot xwininfo xprop font-noto
 }
 wayland_pkgs() {
     apk add --no-cache sway wayvnc foot jq font-noto
@@ -510,6 +510,17 @@ start)
         Xvnc ":${DS}display" -geometry 1280x720 -depth 24 -SecurityTypes None >>"${DS}APPLOG" 2>&1 &
         sleep 2
         (DISPLAY=:${DS}display openbox >>"${DS}APPLOG" 2>&1) &
+        # xterm must map AFTER openbox has taken over the WM: mapped before
+        # the WM grabs it the window stays IsUnMapped forever (stage-2
+        # device run: black VNC screen with a live cursor, xterm alive but
+        # unmapped). openbox sets _NET_SUPPORTING_WM_CHECK on the root when
+        # it grabs; xprop prints "no such atom" until then. xprop ships in
+        # x11_pkgs for exactly this wait.
+        n=0
+        while [ ${DS}n -lt 15 ]; do
+            DISPLAY=:${DS}display xprop -root _NET_SUPPORTING_WM_CHECK 2>/dev/null | grep -q 'window id' && break
+            sleep 1; n=${DS}((n + 1))
+        done
         (DISPLAY=:${DS}display xterm >>"${DS}APPLOG" 2>&1) &
         ;;
     wayland)

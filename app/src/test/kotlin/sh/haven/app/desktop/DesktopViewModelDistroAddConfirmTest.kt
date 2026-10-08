@@ -54,6 +54,12 @@ class DesktopViewModelDistroAddConfirmTest {
     private val commandBus = sh.haven.core.data.agent.AgentUiCommandBus()
     private val usbSessions = kotlinx.coroutines.flow.MutableStateFlow<Map<String, UsbDriveVmManager.Status>>(emptyMap())
     private val usbDriveVmManager = mockk<UsbDriveVmManager>(relaxed = true)
+    private val umlDesktopState =
+        kotlinx.coroutines.flow.MutableStateFlow<Map<sh.haven.core.local.uml.UmlDesktopManager.Kind,
+            sh.haven.core.local.uml.UmlDesktopManager.DesktopState>>(emptyMap())
+    // Relaxed mocks can't fabricate the enum inside the manager's map, so the
+    // init collector gets a real empty StateFlow — same reason as usbSessions.
+    private val umlDesktopManager = mockk<sh.haven.core.local.uml.UmlDesktopManager>(relaxed = true)
 
     private val testDistro = Distro(
         id = "test-distro",
@@ -75,6 +81,7 @@ class DesktopViewModelDistroAddConfirmTest {
         every { localSessionManager.prootManager } returns prootManager
         every { prootManager.activeDistroId } returns "alpine-3.21"
         every { usbDriveVmManager.sessions } returns usbSessions
+        every { umlDesktopManager.state } returns umlDesktopState
         every { prootManager.state } returns MutableStateFlow(ProotManager.SetupState.Ready)
         coEvery { prootManager.installRootfs() } returns Unit
         coEvery { prootManager.importRootfs(any(), any(), any(), any(), any(), any(), any()) } returns Unit
@@ -99,7 +106,7 @@ class DesktopViewModelDistroAddConfirmTest {
             usbDriveVmManager = usbDriveVmManager,
             umlRecoveryManager = mockk<sh.haven.app.usb.UmlRecoveryManager>(relaxed = true),
             systemVmManager = mockk<SystemVmManager>(relaxed = true),
-            umlDesktopManager = mockk<sh.haven.core.local.uml.UmlDesktopManager>(relaxed = true),
+            umlDesktopManager = umlDesktopManager,
         )
     }
 

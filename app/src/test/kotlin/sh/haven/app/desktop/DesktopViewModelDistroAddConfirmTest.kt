@@ -99,6 +99,7 @@ class DesktopViewModelDistroAddConfirmTest {
             usbDriveVmManager = usbDriveVmManager,
             umlRecoveryManager = mockk<sh.haven.app.usb.UmlRecoveryManager>(relaxed = true),
             systemVmManager = mockk<SystemVmManager>(relaxed = true),
+            umlDesktopManager = mockk<sh.haven.core.local.uml.UmlDesktopManager>(relaxed = true),
         )
     }
 

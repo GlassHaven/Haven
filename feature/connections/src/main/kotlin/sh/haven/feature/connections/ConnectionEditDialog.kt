@@ -205,6 +205,7 @@ fun ConnectionEditDialog(
     val seed = existing ?: prefill
     // Transport dropdown maps to: connectionType + useMosh + useEternalTerminal
     val initialTransport = when {
+        seed?.isTermux == true -> "TERMUX"
         seed?.isLocal == true -> "LOCAL"
         seed?.isGuest == true -> "GUEST"
         seed?.isBtSerial == true -> "BTSERIAL"
@@ -225,6 +226,7 @@ fun ConnectionEditDialog(
     var selectedTransport by rememberSaveable { mutableStateOf(initialTransport) }
     // Derived connectionType for field visibility
     val connectionType = when (selectedTransport) {
+        "TERMUX" -> "TERMUX"
         "LOCAL" -> "LOCAL"
         "GUEST" -> "GUEST"
         "BTSERIAL" -> "BTSERIAL"
@@ -1095,6 +1097,7 @@ fun ConnectionEditDialog(
                 // transport, so this dropdown entry produces a visible,
                 // editable result again. (#114)
                 val allTransportOptions = listOf(
+                    "TERMUX" to "Termux (Shizuku)",
                     "SSH" to "SSH",
                     "MOSH" to "Mosh",
                     "ET" to "Eternal Terminal",
@@ -1312,6 +1315,15 @@ fun ConnectionEditDialog(
                         }
                     }
                     Spacer(Modifier.height(4.dp))
+                }
+
+                if (connectionType == "TERMUX") {
+                    ConnectionSection(stringResource(R.string.connections_section_termux))
+                    Text(
+                        stringResource(R.string.connections_termux_desc),
+                        style = MaterialTheme.typography.bodySmall,
+                        color = MaterialTheme.colorScheme.onSurfaceVariant,
+                    )
                 }
 
                 if (connectionType == "GUEST") {
@@ -3581,6 +3593,7 @@ fun ConnectionEditDialog(
                 portKnockDelayMs.toIntOrNull() ?: KnockSequence.DEFAULT_DELAY_MS,
             ).isSuccess
             val canSave = knockOk && when (connectionType) {
+                "TERMUX" -> true
                 "LOCAL" -> true // No host/auth needed
                 "GUEST" -> true // No fields — the rootfs and kernel args are fixed
                 "BTSERIAL" -> btDevice.isNotBlank() // a paired device must be picked
@@ -3603,7 +3616,22 @@ fun ConnectionEditDialog(
             TextButton(
                 onClick = {
                     val etPortInt = etPort.toIntOrNull() ?: 2022
-                    val profile = if (connectionType == "LOCAL") {
+                    val profile = if (connectionType == "TERMUX") {
+                        (existing ?: ConnectionProfile(
+                            label = label,
+                            host = "localhost",
+                            username = "",
+                        )).copy(
+                            label = label.ifBlank { "Termux" },
+                            host = "localhost",
+                            port = 0,
+                            username = "",
+                            connectionType = "TERMUX",
+                            colorTag = colorTag,
+                            groupId = groupId,
+                            identityId = identityId,
+                        )
+                    } else if (connectionType == "LOCAL") {
                         (existing ?: ConnectionProfile(
                             label = label,
                             host = "localhost",

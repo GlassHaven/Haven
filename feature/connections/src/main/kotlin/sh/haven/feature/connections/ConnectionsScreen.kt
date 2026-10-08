@@ -1890,7 +1890,9 @@ private fun ConnectionTreeItem(
             ListItem(
                 headlineContent = { Text(profile.label) },
                 supportingContent = {
-                    if (profile.isLocal) {
+                    if (profile.isTermux) {
+                        Text(stringResource(R.string.connections_termux_label))
+                    } else if (profile.isLocal) {
                         Text(
                             stringResource(
                                 if (profile.useAndroidShell) R.string.connections_android_shell_label

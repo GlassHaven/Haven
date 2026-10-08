@@ -606,4 +606,8 @@
     <string name="connections_identity_not_an_identity">यह फ़ाइल Reticulum पहचान नहीं है। कुछ भी नहीं बदला गया।</string>
     <string name="connections_identity_install_failed">पहचान इंस्टॉल नहीं की जा सकी: %1$s। पिछली पहचान यथावत है।</string>
     <string name="connections_identity_unreadable">यह फ़ाइल पढ़ी नहीं जा सकी।</string>
+
+    <string name="connections_termux_label">Termux इंजन (Shizuku)</string>
+    <string name="connections_section_termux">Termux इंजन (Shizuku)</string>
+    <string name="connections_termux_desc">Shizuku के ज़रिए आपके Termux परिवेश के लिए सीधा PTY ब्रिज। Haven के अंदर सीधे नेटिव Termux शेल लॉन्च करता है।</string>
 </resources>

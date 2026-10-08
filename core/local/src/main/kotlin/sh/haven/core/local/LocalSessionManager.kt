@@ -127,6 +127,7 @@ class LocalSessionManager @Inject constructor(
         val status: Status,
         val localSession: LocalSession? = null,
         val useAndroidShell: Boolean = false,
+        val isTermux: Boolean = false,
         /** Distro to open the proot shell in; null = the active distro. */
         val prootDistroId: String? = null,
         /**
@@ -159,6 +160,7 @@ class LocalSessionManager @Inject constructor(
         useAndroidShell: Boolean = false,
         prootDistroId: String? = null,
         desktopEnv: Map<String, String>? = null,
+        isTermux: Boolean = false,
     ): String {
         // Reap any superseded dead shells for this profile before minting a
         // fresh one. A local shell never reconnects, so a DISCONNECTED entry is
@@ -176,6 +178,7 @@ class LocalSessionManager @Inject constructor(
                 label = label,
                 status = SessionState.Status.CONNECTING,
                 useAndroidShell = useAndroidShell,
+                isTermux = isTermux,
                 prootDistroId = prootDistroId,
                 desktopEnv = desktopEnv,
             ))
@@ -266,7 +269,38 @@ class LocalSessionManager @Inject constructor(
         useAndroidShell: Boolean = false,
         plain: Boolean = false,
         distroId: String? = null,
+        isTermux: Boolean = false,
     ): Triple<String, Array<String>, Array<String>> {
+        if (isTermux) {
+            val cmd = "/system/bin/sh"
+            val termuxScript = """
+                if [ -f /data/local/tmp/termux_autorun ]; then
+                    exec /system/bin/sh /data/local/tmp/termux_autorun "$@"
+                elif [ -f /data/local/tmp/rish ]; then
+                    export RISH_APPLICATION_ID="com.termux"
+                    exec /system/bin/sh /data/local/tmp/rish -c 'exec run-as com.termux /system/bin/sh /data/data/com.termux/files/usr/bin/termux-login "$@"' _ "$@"
+                elif [ -f /data/data/com.termux/files/usr/bin/rish ]; then
+                    export RISH_APPLICATION_ID="com.termux"
+                    exec /system/bin/sh /data/data/com.termux/files/usr/bin/rish -c 'exec run-as com.termux /system/bin/sh /data/data/com.termux/files/usr/bin/termux-login "$@"' _ "$@"
+                else
+                    echo "[Haven] Shizuku bridge not found."
+                    echo "[Haven] Please start Shizuku or ensure /data/local/tmp/termux_autorun exists."
+                    echo "[Haven] Alternatively, connect to Termux via SSH on 127.0.0.1:2222."
+                    exec /system/bin/sh
+                fi
+            """.trimIndent()
+            val args = arrayOf(cmd, "-c", termuxScript)
+            val env = arrayOf(
+                "HOME=/data/data/com.termux/files/home",
+                "TERM=xterm-256color",
+                "LANG=$terminalLocale",
+                "LC_ALL=$terminalLocale",
+                "PATH=/data/data/com.termux/files/usr/bin:/system/bin:/vendor/bin",
+                "SHELL=/data/data/com.termux/files/usr/bin/bash",
+                "TMPDIR=${context.cacheDir.absolutePath}",
+            )
+            return Triple(cmd, args, env)
+        }
         val prootBinary = prootManager.prootBinary
         // A LOCAL profile may pin a specific distro; otherwise follow the
         // global active distro (the original behaviour). If the pinned
@@ -416,7 +450,12 @@ class LocalSessionManager @Inject constructor(
         if (session.status != SessionState.Status.CONNECTED) return null
         if (session.localSession != null) return null
 
-        val (cmd, args, baseEnv) = buildCommand(session.useAndroidShell, plain = plain, distroId = session.prootDistroId)
+        val (cmd, args, baseEnv) = buildCommand(
+            session.useAndroidShell,
+            plain = plain,
+            distroId = session.prootDistroId,
+            isTermux = session.isTermux,
+        )
         // Join a running desktop session (#285): override DISPLAY / WAYLAND_DISPLAY
         // / XDG_RUNTIME_DIR so the shell can drive the desktop's apps. The desktop's
         // sockets are in the shared cacheDir (bound at /tmp), so only the env needs

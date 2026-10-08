@@ -604,4 +604,8 @@
     <string name="connections_identity_not_an_identity">该文件不是 Reticulum 身份。未做任何更改。</string>
     <string name="connections_identity_install_failed">无法安装该身份：%1$s。原有身份仍然保留。</string>
     <string name="connections_identity_unreadable">无法读取该文件。</string>
+
+    <string name="connections_termux_label">Termux 引擎 (Shizuku)</string>
+    <string name="connections_section_termux">Termux 引擎 (Shizuku)</string>
+    <string name="connections_termux_desc">通过 Shizuku 直接连接到 Termux 环境的 PTY 桥接。在 Haven 内直接启动原生 Termux 登录 Shell。</string>
 </resources>

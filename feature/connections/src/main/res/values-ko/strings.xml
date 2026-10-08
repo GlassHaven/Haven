@@ -598,4 +598,8 @@
     <string name="connections_identity_not_an_identity">이 파일은 Reticulum 아이덴티티가 아닙니다. 아무것도 변경되지 않았습니다.</string>
     <string name="connections_identity_install_failed">아이덴티티를 설치하지 못했습니다: %1$s. 이전 것이 그대로 유지됩니다.</string>
     <string name="connections_identity_unreadable">이 파일을 읽을 수 없습니다.</string>
+
+    <string name="connections_termux_label">Termux 엔진 (Shizuku)</string>
+    <string name="connections_section_termux">Termux 엔진 (Shizuku)</string>
+    <string name="connections_termux_desc">Shizuku를 통해 Termux 환경으로 직접 연결하는 PTY 브리지입니다. Haven 내에서 네이티브 Termux 셸을 직접 실행합니다。</string>
 </resources>

@@ -606,4 +606,8 @@
     <string name="connections_identity_not_an_identity">このファイルは Reticulum のアイデンティティではありません。変更はありません。</string>
     <string name="connections_identity_install_failed">アイデンティティを設定できませんでした: %1$s。以前のものがそのまま残っています。</string>
     <string name="connections_identity_unreadable">このファイルを読み込めませんでした。</string>
+
+    <string name="connections_termux_label">Termuxエンジン (Shizuku)</string>
+    <string name="connections_section_termux">Termuxエンジン (Shizuku)</string>
+    <string name="connections_termux_desc">Shizuku経由でTermux環境への直接PTYブリッジ。Haven内でネイティブTermuxシェルを直接起動します。</string>
 </resources>

@@ -606,4 +606,8 @@
     <string name="connections_identity_not_an_identity">Ese archivo no es una identidad de Reticulum. No se cambió nada.</string>
     <string name="connections_identity_install_failed">No se pudo instalar la identidad: %1$s. La anterior sigue en su lugar.</string>
     <string name="connections_identity_unreadable">No se pudo leer ese archivo.</string>
+
+    <string name="connections_termux_label">Motor Termux (Shizuku)</string>
+    <string name="connections_section_termux">Motor Termux (Shizuku)</string>
+    <string name="connections_termux_desc">Puente PTY directo a su entorno Termux mediante Shizuku. Inicia el shell nativo de Termux directamente dentro de Haven.</string>
 </resources>

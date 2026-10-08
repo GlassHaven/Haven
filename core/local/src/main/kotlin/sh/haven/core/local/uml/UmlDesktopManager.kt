@@ -507,8 +507,28 @@ start)
     case "${DS}kind" in
     x11)
         command -v Xvnc >/dev/null 2>&1 || { echo "HDESKTOP:fail Xvnc not installed"; exit 1; }
+        # xprop joined the install set after the WM-ready wait; a guest
+        # installed before that carries the .ok marker, so Install never
+        # re-runs and the tool is missing. Self-heal here — without it the
+        # wait below spins its full bound and xterm maps unmanaged again.
+        command -v xprop >/dev/null 2>&1 || apk add --no-cache xprop >>"${DS}APPLOG" 2>&1
+        # A torn-down previous run leaves its X lock on the persistent
+        # rootfs; UML restarts PIDs from scratch each boot, so the stale
+        # lock's pid can look live and Xvnc refuses the display. Clear it
+        # before starting.
+        rm -f "/tmp/.X${DS}display-lock" "/tmp/.X11-unix/X${DS}display"
         Xvnc ":${DS}display" -geometry 1280x720 -depth 24 -SecurityTypes None >>"${DS}APPLOG" 2>&1 &
+        xvnc_pid=${DS}!
         sleep 2
+        # If Xvnc died on startup the app-side RFB wait just burns its 60s
+        # and the reason sits in the share log the console never shows.
+        # Fail fast with the log tail on the console instead (stage-2
+        # device run: "no VNC banner within 60s", cause unreadable).
+        kill -0 ${DS}xvnc_pid 2>/dev/null || {
+            echo "HDESKTOP:fail Xvnc died at startup"
+            tail -20 "${DS}APPLOG"
+            exit 1
+        }
         (DISPLAY=:${DS}display openbox >>"${DS}APPLOG" 2>&1) &
         # xterm must map AFTER openbox has taken over the WM: mapped before
         # the WM grabs it the window stays IsUnMapped forever (stage-2

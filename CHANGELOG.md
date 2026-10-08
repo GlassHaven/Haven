@@ -5,6 +5,10 @@ the corresponding GitHub Release; a release can't ship without its section
 (enforced by `scripts/check-changelog.sh` in CI). The GitHub "Full Changelog"
 compare link is appended automatically — don't add it here.
 
+## v5.89.23
+
+- **UML desktops on the Manage screen.** The UML guest mirrors the proot desktop stack: Desktop → Manage has a UML section with Install/Start rows for X11 and Wayland. Install boots the guest headlessly and installs its recipe (X11: Xvnc, openbox, xterm; Wayland: sway, wayvnc, foot); Start boots the guest with the display on a passthrough port and opens a normal VNC tab at 127.0.0.1:<port>; Stop powers the guest down. Ports are sticky per kind and come out of the same pool as the proot desktops', so they can't collide.
+
 ## v5.89.22
 
 - **Reticulum TCP reconnect stays live.** A dropped TCP session reconnected on the app's retry loop, but the reconnected interface came online without its read loop: the session looked connected, no inbound data arrived, and nothing said why — it stayed deaf until the interface was re-added by hand. The upstream reticulum-kt fix is merged with the fork's backoff kept: the read loop is started with the reconnected interface, and leaked interface resources are reaped as interfaces churn. Device-tested with a real server kill: the app reconnected on its own, made a fresh session link, and a shell round trip worked over the new socket.

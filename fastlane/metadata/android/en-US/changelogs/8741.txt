@@ -1,0 +1,1 @@
+- UML desktops: Desktop → Manage has a UML section with Install/Start rows for X11 and Wayland. Install packages the recipe headlessly; Start boots the guest with the display forwarded and opens a VNC tab with xterm or foot; Stop powers the guest down.

@@ -40,6 +40,20 @@ class UmlDesktopRecipeOrderTest {
     }
 
     @Test
+    fun xvncStartsWithTheBlacklistDisabled() {
+        // Device run: every connect answered "Too many security failures".
+        // TigerVNC blacklists a source IP after repeated failed handshakes,
+        // but with SecurityTypes None there is no credential to guess — the
+        // only client that can ever trip it is the legitimate one. Every
+        // host-side connection (Haven's VNC tab included) arrives through
+        // the passt tap as the single address 169.254.2.2, so one burst of
+        // aborted handshakes locks the user out of their own desktop until
+        // Xvnc restarts. The launch must disable the blacklist.
+        val xvnc = script.lineSequence().first { it.trimStart().startsWith("Xvnc ") }
+        assertTrue("Xvnc must disable the security-failure blacklist", xvnc.contains("-BlacklistTimeout 0"))
+    }
+
+    @Test
     fun xpropIsInstalledWithTheX11Set() {
         // The wait uses xprop; if it isn't in the install set the grep can
         // never match and xterm again maps unmanaged.

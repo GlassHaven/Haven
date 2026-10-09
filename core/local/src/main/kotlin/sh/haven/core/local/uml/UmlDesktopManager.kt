@@ -517,7 +517,15 @@ start)
         # lock's pid can look live and Xvnc refuses the display. Clear it
         # before starting.
         rm -f "/tmp/.X${DS}display-lock" "/tmp/.X11-unix/X${DS}display"
-        Xvnc ":${DS}display" -geometry 1280x720 -depth 24 -SecurityTypes None >>"${DS}APPLOG" 2>&1 &
+        # -BlacklistTimeout 0: with SecurityTypes None there is no credential
+        # to brute-force, so the security-failure blacklist only ever locks
+        # out the legitimate client. Every host-side connection — Haven's own
+        # VNC tab included — arrives through the passt tap as the single
+        # address 169.254.2.2, so one burst of aborted handshakes (a flaky
+        # reconnect, a half-open probe) blacklists the user's desktop until
+        # Xvnc restarts (device run: "Too many security failures" on every
+        # connect, self-inflicted and unrecoverable from the UI).
+        Xvnc ":${DS}display" -geometry 1280x720 -depth 24 -SecurityTypes None -BlacklistTimeout 0 >>"${DS}APPLOG" 2>&1 &
         xvnc_pid=${DS}!
         sleep 2
         # If Xvnc died on startup the app-side RFB wait just burns its 60s

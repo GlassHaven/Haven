@@ -554,16 +554,30 @@ start)
     wayland)
         command -v sway >/dev/null 2>&1 || { echo "HDESKTOP:fail sway not installed"; exit 1; }
         mkdir -p /tmp/wr
+        # sway's default config starts Xwayland, and the guest has no Xwayland
+        # binary (stage-2 device run: "Cannot find Xwayland binary
+        # /usr/bin/Xwayland" -> "Failed to start Xwayland" -> sway exits ->
+        # wayvnc "no compositor running"). foot is a native Wayland client, so
+        # a minimal config that turns Xwayland off is enough.
+        printf 'xwayland disable\noutput * bg #101418 solid_color\n' > /tmp/wr/sway.config
+        # /tmp lives on the persistent rootfs, so a previous boot's socket
+        # file can still be here. sway would then bind wayland-2 while
+        # wayvnc/foot default to wayland-1 and "fail to connect to wayland"
+        # against the dead socket (stage-2 device run). Clear it and pin the
+        # display name for all three.
+        rm -f /tmp/wr/wayland-* /tmp/wr/.X*-lock
         (WLR_BACKENDS=headless WLR_LIBINPUT_NO_DEVICES=1 WLR_RENDERER=pixman \
-            XDG_RUNTIME_DIR=/tmp/wr sway >>"${DS}APPLOG" 2>&1) &
+            XDG_RUNTIME_DIR=/tmp/wr WAYLAND_DISPLAY=wayland-1 \
+            sway --config /tmp/wr/sway.config >>"${DS}APPLOG" 2>&1) &
         # wayvnc dies instantly without a compositor socket; wait for one.
         n=0
-        while [ ${DS}n -lt 15 ] && ! ls /tmp/wr/wayland-* >/dev/null 2>&1; do
+        while [ ${DS}n -lt 15 ] && ! ls /tmp/wr/wayland-1 >/dev/null 2>&1; do
             sleep 1; n=${DS}((n + 1))
         done
-        (XDG_RUNTIME_DIR=/tmp/wr wayvnc 0.0.0.0:${DS}port >>"${DS}APPLOG" 2>&1) &
+        (XDG_RUNTIME_DIR=/tmp/wr WAYLAND_DISPLAY=wayland-1 \
+            wayvnc 0.0.0.0:${DS}port >>"${DS}APPLOG" 2>&1) &
         # the Wayland application the plan's done-when asks for
-        (XDG_RUNTIME_DIR=/tmp/wr foot >>"${DS}APPLOG" 2>&1) &
+        (XDG_RUNTIME_DIR=/tmp/wr WAYLAND_DISPLAY=wayland-1 foot >>"${DS}APPLOG" 2>&1) &
         ;;
     *)
         echo "HDESKTOP:fail unknown kind: ${DS}kind"; exit 1 ;;

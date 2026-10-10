@@ -298,12 +298,22 @@ class VncViewModel @Inject constructor(
         }
     }
 
+    /**
+     * Keyboard traffic runs on a single-permit dispatcher so commits
+     * execute in submission order. Each of these used to launch plain
+     * Dispatchers.IO, so two IME commits could reach the wire out of
+     * order (bug #5 — the capture rig saw doubled Shift_L downs from
+     * interleaved shift-pair sequences). [VncClient.keyboardLock] keeps
+     * each sequence atomic; this keeps the sequences themselves ordered.
+     */
+    private val keyboardDispatcher = Dispatchers.IO.limitedParallelism(1)
+
     fun sendKey(keySym: Int, pressed: Boolean) {
-        viewModelScope.launch(Dispatchers.IO) { client?.updateKey(keySym, pressed) }
+        viewModelScope.launch(keyboardDispatcher) { client?.updateKey(keySym, pressed) }
     }
 
     fun typeKey(keySym: Int) {
-        viewModelScope.launch(Dispatchers.IO) { client?.type(keySym) }
+        viewModelScope.launch(keyboardDispatcher) { client?.type(keySym) }
     }
 
     /**
@@ -312,7 +322,7 @@ class VncViewModel @Inject constructor(
      * for apps where Ctrl+V works better than synth-typed key events.
      */
     fun typeText(text: String) {
-        viewModelScope.launch(Dispatchers.IO) {
+        viewModelScope.launch(keyboardDispatcher) {
             client?.copyText(text)
             client?.typeText(text)
         }

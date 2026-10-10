@@ -12,6 +12,7 @@ import java.io.Closeable
 import java.io.InputStream
 import java.io.OutputStream
 import java.net.Socket
+import java.util.concurrent.locks.ReentrantLock
 
 private const val TAG = "VncClient"
 
@@ -25,6 +26,18 @@ class VncClient(private val config: VncConfig) : Closeable {
     private var session: VncSession? = null
     private var serverEventLoop: Thread? = null
     private var clientEventLoop: Thread? = null
+
+    /**
+     * Serializes all keyboard traffic. [VncSession] locks each individual
+     * message write, but a shifted character is a *sequence* of messages
+     * (Shift-down → key down/up → Shift-up) and a typed string is a
+     * sequence of those; the callers dispatch each commit from its own
+     * coroutine, so two commits could interleave mid-sequence and leave a
+     * dangling Shift_L on the wire (bug #5 — the capture rig saw doubled
+     * Shift_L downs). Holding this across the whole sequence keeps every
+     * commit atomic and in source order.
+     */
+    private val keyboardLock = ReentrantLock(true)
 
     @Volatile
     var running = false
@@ -92,13 +105,23 @@ class VncClient(private val config: VncConfig) : Closeable {
 
     /** Press or release a key by X11 KeySym. */
     fun updateKey(keySym: Int, pressed: Boolean) {
-        session?.sendKeyEvent(keySym, pressed)
+        keyboardLock.lock()
+        try {
+            session?.sendKeyEvent(keySym, pressed)
+        } finally {
+            keyboardLock.unlock()
+        }
     }
 
     /** Type (press + release) a key by X11 KeySym. */
     fun type(keySym: Int) {
-        updateKey(keySym, true)
-        updateKey(keySym, false)
+        keyboardLock.lock()
+        try {
+            session?.sendKeyEvent(keySym, true)
+            session?.sendKeyEvent(keySym, false)
+        } finally {
+            keyboardLock.unlock()
+        }
     }
 
     /**
@@ -132,20 +155,25 @@ class VncClient(private val config: VncConfig) : Closeable {
         // Pacing: 10 ms after shift-down so the modifier registers
         // before the key, 5 ms key down→up, 15 ms char→char. Bursts
         // faster than this drop chars against QEMU's VNC.
-        for (ch in text) {
-            val (keySym, needsShift) = charToKeyEvent(ch)
-            if (needsShift) {
-                session?.sendKeyEvent(SHIFT_L, true)
-                if (sleep(10)) return
-            }
-            session?.sendKeyEvent(keySym, true)
-            if (sleep(5)) return
-            session?.sendKeyEvent(keySym, false)
-            if (needsShift) {
+        keyboardLock.lock()
+        try {
+            for (ch in text) {
+                val (keySym, needsShift) = charToKeyEvent(ch)
+                if (needsShift) {
+                    session?.sendKeyEvent(SHIFT_L, true)
+                    if (sleep(10)) return
+                }
+                session?.sendKeyEvent(keySym, true)
                 if (sleep(5)) return
-                session?.sendKeyEvent(SHIFT_L, false)
+                session?.sendKeyEvent(keySym, false)
+                if (needsShift) {
+                    if (sleep(5)) return
+                    session?.sendKeyEvent(SHIFT_L, false)
+                }
+                if (sleep(15)) return
             }
-            if (sleep(15)) return
+        } finally {
+            keyboardLock.unlock()
         }
     }
 

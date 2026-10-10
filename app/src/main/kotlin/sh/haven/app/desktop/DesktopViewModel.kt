@@ -2362,14 +2362,23 @@ class DesktopViewModel @Inject constructor(
         }
     }
 
+    /**
+     * VNC keyboard traffic runs on a single-permit dispatcher so IME
+     * commits execute in submission order — plain Dispatchers.IO let two
+     * commits reach the wire out of order (bug #5). [VncClient.keyboardLock]
+     * keeps each shift-pair sequence atomic; this keeps the sequences
+     * ordered relative to each other.
+     */
+    private val vncKeyboardDispatcher = Dispatchers.IO.limitedParallelism(1)
+
     fun sendVncKey(keySym: Int, pressed: Boolean) {
-        viewModelScope.launch(Dispatchers.IO) {
+        viewModelScope.launch(vncKeyboardDispatcher) {
             (activeTab.value as? DesktopTab.Vnc)?.client?.updateKey(keySym, pressed)
         }
     }
 
     fun typeVncKey(keySym: Int) {
-        viewModelScope.launch(Dispatchers.IO) {
+        viewModelScope.launch(vncKeyboardDispatcher) {
             (activeTab.value as? DesktopTab.Vnc)?.client?.type(keySym)
         }
     }
@@ -2382,7 +2391,7 @@ class DesktopViewModel @Inject constructor(
      * regardless of synth-typing fidelity).
      */
     fun typeVncText(text: String) {
-        viewModelScope.launch(Dispatchers.IO) {
+        viewModelScope.launch(vncKeyboardDispatcher) {
             val client = (activeTab.value as? DesktopTab.Vnc)?.client ?: return@launch
             client.copyText(text)
             client.typeText(text)

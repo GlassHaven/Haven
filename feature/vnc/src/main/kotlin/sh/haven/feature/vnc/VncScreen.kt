@@ -799,10 +799,14 @@ private fun VncViewer(
         }
     }
 
-    // Sentinel for the hidden text field — keep a space so backspace has something to delete
-    val sentinel = " "
+    // Hidden text field state. The field mirrors whatever the IME reports
+    // and is never reset: resetting it to a sentinel desynced the IME's
+    // own buffer from the field value, so each commit diff sliced the
+    // wrong baseline and dropped/repeated characters (bug #5). Backspace
+    // at the empty field is handled by the onPreviewKeyEvent fallback
+    // below, since the IME has nothing to delete there.
     var textFieldValue by remember {
-        mutableStateOf(TextFieldValue(sentinel, TextRange(sentinel.length)))
+        mutableStateOf(TextFieldValue("", TextRange(0)))
     }
 
     Box(
@@ -1212,28 +1216,36 @@ private fun VncViewer(
         BasicTextField(
             value = textFieldValue,
             onValueChange = { newValue ->
-                val oldText = textFieldValue.text
-                val newText = newValue.text
+                // Diff against the previous field value — the text the IME
+                // holds — not a reset sentinel. The old sentinel reset made
+                // every commit slice the growing IME buffer at a fixed
+                // offset, dropping and repeating characters (bug #5).
+                val (added, deleted) = diffImeCommit(textFieldValue.text, newValue.text)
 
-                if (newText.length > oldText.length) {
-                    // Characters were typed (or pasted). Route through
-                    // onTypeText so multi-char input goes via the
-                    // serialized typeText path — the previous one-
-                    // launch-per-char model interleaved key events on
-                    // the wire and Windows VNC produced "half-capitals".
-                    val added = newText.substring(oldText.length)
-                    onTypeText(added)
-                } else if (newText.length < oldText.length) {
-                    // Backspace
-                    val deleted = oldText.length - newText.length
+                // Backspaces first: for a replacement (autocorrect swaps a
+                // word in one commit) the remote still holds the old text,
+                // so the removed run must be erased before the new run is
+                // typed. The VMs serialize keyboard traffic on a
+                // single-threaded dispatcher, so this submission order is
+                // the wire order.
+                if (deleted > 0) {
                     repeat(deleted) {
                         onKeyDown(XK_BACKSPACE)
                         onKeyUp(XK_BACKSPACE)
                     }
                 }
+                if (added != null) {
+                    // Characters were typed (or pasted). Route through
+                    // onTypeText so multi-char input goes via the
+                    // serialized typeText path — the previous one-
+                    // launch-per-char model interleaved key events on
+                    // the wire and Windows VNC produced "half-capitals".
+                    onTypeText(added)
+                }
 
-                // Reset to sentinel
-                textFieldValue = TextFieldValue(sentinel, TextRange(sentinel.length))
+                // Keep the field in sync with the IME: the next commit's
+                // baseline must be exactly what the IME thinks it sent.
+                textFieldValue = newValue
             },
             modifier = Modifier
                 .size(1.dp)
@@ -2120,6 +2132,38 @@ private const val XK_F9 = 0xffc6
 private const val XK_F10 = 0xffc7
 private const val XK_F11 = 0xffc8
 private const val XK_F12 = 0xffc9
+
+/**
+ * Diff one IME commit against the text the field held before it, returning
+ * the characters to type and the number of backspaces to send.
+ *
+ * The hidden VNC text field mirrors whatever the IME reports, so the delta
+ * between two consecutive values is exactly what changed — but only if the
+ * baseline is the previous value. The old code reset the field to a `" "`
+ * sentinel after every commit and diffed against that, so a growing IME
+ * buffer was sliced at a fixed offset: characters were dropped and earlier
+ * ones re-emitted (bug #5 — the capture rig saw `a, c, A, AB, C, C1, C12`
+ * for `abcABC123`).
+ *
+ * Trimming the common prefix and common suffix handles every commit shape:
+ * append (the tail), backspace (the removed run), autocorrect word
+ * replacement (delete the old interior, type the new one), and mid-string
+ * edits.
+ */
+internal fun diffImeCommit(oldText: String, newText: String): Pair<String?, Int> {
+    if (oldText == newText) return null to 0
+    var prefix = 0
+    while (prefix < oldText.length && prefix < newText.length && oldText[prefix] == newText[prefix]) prefix++
+    var suffix = 0
+    while (
+        suffix < oldText.length - prefix &&
+        suffix < newText.length - prefix &&
+        oldText[oldText.length - 1 - suffix] == newText[newText.length - 1 - suffix]
+    ) suffix++
+    val added = newText.substring(prefix, newText.length - suffix)
+    val deleted = oldText.length - prefix - suffix
+    return (added.ifEmpty { null }) to deleted
+}
 
 /** Convert a printable character to its X11 KeySym. */
 fun charToKeySym(ch: Char): Int = when (ch) {

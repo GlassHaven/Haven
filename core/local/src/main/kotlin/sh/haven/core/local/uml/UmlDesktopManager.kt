@@ -574,8 +574,14 @@ start)
         while [ ${DS}n -lt 15 ] && ! ls /tmp/wr/wayland-1 >/dev/null 2>&1; do
             sleep 1; n=${DS}((n + 1))
         done
+        # wayvnc takes address and port as separate positional args --
+        # "0.0.0.0:5902" as one arg makes it getaddrinfo the literal
+        # string and die with "Failed to get address info: Name does not
+        # resolve" (device run: sway came up, wayvnc connected to the
+        # compositor, then never bound; the 5902 listener the app probed
+        # was passt's tap-forward, not wayvnc).
         (XDG_RUNTIME_DIR=/tmp/wr WAYLAND_DISPLAY=wayland-1 \
-            wayvnc 0.0.0.0:${DS}port >>"${DS}APPLOG" 2>&1) &
+            wayvnc 0.0.0.0 ${DS}port >>"${DS}APPLOG" 2>&1) &
         # the Wayland application the plan's done-when asks for
         (XDG_RUNTIME_DIR=/tmp/wr WAYLAND_DISPLAY=wayland-1 foot >>"${DS}APPLOG" 2>&1) &
         ;;

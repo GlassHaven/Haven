@@ -70,7 +70,8 @@ func (c *Conn) RemoteAddrHost() string {
 // ...) — without it, StartTunnel would sit out the full establishTimeout
 // on a connection that already failed.
 type ovpnEvents struct {
-	setup *OvpnTunnelSetup
+	setup    *OvpnTunnelSetup
+	connect chan error
 }
 
 func (e *ovpnEvents) OnEvent(ev openvpn3.Event) {
@@ -83,7 +84,19 @@ func (e *ovpnEvents) OnEvent(ev openvpn3.Event) {
 	// either returns a handle or it doesn't).
 	androidLog("ovpn3-event", fmt.Sprintf("%s (error=%v fatal=%v): %s", ev.Name, ev.Error, ev.Fatal, ev.Info))
 	if ev.Fatal || ev.Error {
-		e.setup.notifyReady(nil, netip.Addr{}, fmt.Errorf("openvpn event %s: %s", ev.Name, ev.Info))
+		err := fmt.Errorf("openvpn event %s: %s", ev.Name, ev.Info)
+		e.setup.notifyReady(nil, netip.Addr{}, err)
+		select {
+		case e.connect <- err:
+		default:
+		}
+		return
+	}
+	if ev.Name == "CONNECTED" {
+		select {
+		case e.connect <- nil:
+		default:
+		}
 	}
 }
 
@@ -108,7 +121,7 @@ func StartTunnel(configText, username, password string) (*TunnelHandle, error) {
 
 	creds := openvpn3.UserCredentials{Username: username, Password: password}
 	setup := newOvpnTunnelSetup()
-	events := &ovpnEvents{setup: setup}
+	events := &ovpnEvents{setup: setup, connect: make(chan error, 1)}
 
 	session := openvpn3.NewMobileSession(config, creds, events, setup)
 	session.Start()
@@ -122,27 +135,51 @@ func StartTunnel(configText, username, password string) (*TunnelHandle, error) {
 	waitDone := make(chan error, 1)
 	go func() { waitDone <- session.Wait() }()
 
+	timer := time.NewTimer(establishTimeout)
+	defer timer.Stop()
+	var result establishResult
 	select {
-	case result := <-setup.ready:
+	case result = <-setup.ready:
 		if result.err != nil {
 			session.Stop()
 			return nil, fmt.Errorf("openvpn establish: %w", result.err)
 		}
-		return &TunnelHandle{
-			session:  session,
-			setup:    setup,
-			tnet:     result.tnet,
-			bindAddr: result.bindAddr,
-		}, nil
 	case err := <-waitDone:
 		if err == nil {
 			err = errors.New("session ended before establishing a tunnel")
 		}
 		return nil, fmt.Errorf("openvpn establish: %w", err)
-	case <-time.After(establishTimeout):
+	case <-timer.C:
 		session.Stop()
 		return nil, fmt.Errorf("openvpn establish: timed out after %s", establishTimeout)
 	}
+
+	// Establish() only means OpenVPN has created the virtual interface. Core
+	// still has to finish bringing up the data channel; dialing at this point
+	// can silently black-hole traffic until our caller's timeout expires.
+	// Wait until Core explicitly reports CONNECTED before exposing the handle.
+	select {
+	case err := <-events.connect:
+		if err != nil {
+			session.Stop()
+			return nil, fmt.Errorf("openvpn establish: %w", err)
+		}
+	case err := <-waitDone:
+		if err == nil {
+			err = errors.New("session ended before connecting")
+		}
+		return nil, fmt.Errorf("openvpn establish: %w", err)
+	case <-timer.C:
+		session.Stop()
+		return nil, fmt.Errorf("openvpn establish: timed out after %s waiting for CONNECTED", establishTimeout)
+	}
+
+	return &TunnelHandle{
+		session:  session,
+		setup:    setup,
+		tnet:     result.tnet,
+		bindAddr: result.bindAddr,
+	}, nil
 }
 
 // Dial opens a TCP connection through the tunnel. timeoutMs <= 0 uses a

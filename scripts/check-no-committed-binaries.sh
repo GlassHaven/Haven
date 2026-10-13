@@ -79,34 +79,9 @@ check_gradle_wrapper() {
     fi
 }
 
-# Binaries that predate this gate and are still being migrated to a build step.
-# This list may only ever SHRINK — the check below fails if an entry no longer
-# exists, so a completed migration forces its removal here and the list cannot
-# quietly become a second allowlist. New binaries are never added.
-#
-# core/ffmpeg: DONE (#493) — built from pinned source by core/ffmpeg's
-# buildFfmpegNatives task from preBuild, and gitignored. The "~an hour per
-# ABI" that had kept them committed was a guess; measured, a clean build of
-# the whole chain is 2m42s on a 12-core desktop.
-# core/wayland: DONE (#493) — all five are now built from source by
-# core/wayland's buildWaylandNatives task, which runs from preBuild in both our
-# CI and release workflows, and they are gitignored so they cannot come back.
-# rclone-android/build/rcbridge-bindings.jar: untracking this broke main.
-# It is consumed as `api(files("build/rcbridge-bindings.jar"))`, and a file
-# dependency is resolved when a CONSUMER resolves its runtime classpath —
-# :app:checkArm64DebugDuplicateClasses demanded the jar before any task had
-# produced it. compileKotlin's dependsOn is too late, and attaching builtBy to
-# the file collection did not propagate through the artifact transform either
-# (tried; same failure). The real fix is for rclone-android to publish it as a
-# proper project artifact rather than a raw file path. Tracked in #493.
-GRANDFATHERED=(
-    "rclone-android/build/rcbridge-bindings.jar"
-)
-
 is_allowed() {
     local f="$1"
     for a in "${ALLOWLIST[@]}"; do [ "$f" = "$a" ] && return 0; done
-    for g in "${GRANDFATHERED[@]}"; do [ "$f" = "$g" ] && return 0; done
     return 1
 }
 
@@ -140,21 +115,6 @@ for f in "${FILES[@]}"; do
     esac
 done
 
-# A grandfathered entry that no longer exists means its migration finished —
-# force it out of the list so the list can only shrink. Without this the list
-# rots into a permanent second allowlist, which is how the original problem
-# ("it was already like that") persisted in the first place.
-stale=()
-for g in "${GRANDFATHERED[@]}"; do
-    git ls-files --error-unmatch "$g" >/dev/null 2>&1 || stale+=("$g")
-done
-if [ ${#stale[@]} -gt 0 ]; then
-    echo "✗ GRANDFATHERED lists ${#stale[@]} file(s) that are no longer tracked:" >&2
-    printf '    %s\n' "${stale[@]}" >&2
-    echo "  Migration done — delete these from GRANDFATHERED in $0" >&2
-    exit 1
-fi
-
 if [ ${#violations[@]} -gt 0 ]; then
     echo "✗ ${#violations[@]} committed binary file(s) found:" >&2
     printf '    %s\n' "${violations[@]}" >&2
@@ -179,5 +139,5 @@ fi
 
 check_gradle_wrapper || exit 1
 
-echo "✓ no new committed binaries (${#FILES[@]} tracked files checked, ${#GRANDFATHERED[@]} grandfathered)"
+echo "✓ no committed binaries (${#FILES[@]} tracked files checked)"
 echo "✓ gradle-wrapper.jar is the Gradle $WRAPPER_VERSION wrapper jar"

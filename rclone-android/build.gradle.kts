@@ -64,10 +64,7 @@ val buildRcloneNative by tasks.registering(Exec::class) {
     inputs.dir(goDir)
     inputs.file(toolsDir.resolve("build-android.sh"))
     outputs.dir(jniDir)
-    // NOT `outputs.file(rcbridgeJar)` — yet. Declaring it makes Gradle delete a
-    // *tracked* file as a stale output on every build. It goes in at the same
-    // time as the untracking, once F-Droid's recipe stops scandelete-ing
-    // rclone-android/build (see #493).
+    outputs.file(rcbridgeJar)
 
     // Up-to-date checking is driven by Gradle's inputs/outputs above: the
     // expensive Go cross-compile is skipped when `go/` and build-android.sh are

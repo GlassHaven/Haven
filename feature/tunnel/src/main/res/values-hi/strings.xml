@@ -32,6 +32,10 @@
     <string name="tunnel_netbird_setup_key_label">Setup key</string>
     <string name="tunnel_netbird_management_url_label">Management URL (वैकल्पिक)</string>
     <string name="tunnel_netbird_management_url_help">NetBird के होस्टेड management के लिए खाली छोड़ें। स्व-होस्टेड management सेवा के लिए अपने सर्वर के URL पर सेट करें।</string>
+    <string name="tunnel_openvpn_help">एक .ovpn प्रोफ़ाइल पेस्ट करें या फ़ाइल लोड करें। यदि प्रोफ़ाइल बिना इनलाइन क्रेडेंशियल फ़ाइल के auth-user-pass का उपयोग करती है, तो नीचे एक username और password दर्ज करें।</string>
+    <string name="tunnel_openvpn_config_label">OpenVPN प्रोफ़ाइल (.ovpn)</string>
+    <string name="tunnel_openvpn_username_label">Username (वैकल्पिक)</string>
+    <string name="tunnel_openvpn_password_label">Password (वैकल्पिक)</string>
 
     <!-- Cloudflare Access SSH tunnel -->
     <string name="cf_experimental_banner">प्रयोगात्मक — Haven वही WebSocket वायर प्रोटोकॉल लागू करता है जो `cloudflared access ssh` करता है। कुछ tenants के एक छोटे सेट पर परखा गया; कृपया बेमेल की रिपोर्ट GitHub #154 के माध्यम से करें।</string>

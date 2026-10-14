@@ -36,15 +36,18 @@ internal class TunnelToolProvider(
         ) { _ -> listLiveTunnels() },
 
         "create_tunnel" to ToolHandler(
-            description = "Add a new WireGuard, Tailscale, NetBird, or Cloudflare Tunnel config. WIREGUARD: pass `configText` (wg-quick INI body). TAILSCALE: pass `tailscaleAuthKey` (and optional `tailscaleControlUrl` for Headscale). NETBIRD: pass `netbirdSetupKey` (and optional `netbirdManagementUrl` for a self-hosted management server). CLOUDFLARE_ACCESS: pass `accessHostname`; for Access-protected routes also pass `accessJwt` (from `cloudflared access token --app https://<host>`); optional `accessJumpDestination` for bastion-mode multi-target tunnels. Returns the new tunnel id, which can then be passed to set_profile_routing.",
+            description = "Add a new WireGuard, Tailscale, NetBird, OpenVPN, or Cloudflare Tunnel config. WIREGUARD: pass `configText` (wg-quick INI body). TAILSCALE: pass `tailscaleAuthKey` (and optional `tailscaleControlUrl` for Headscale). NETBIRD: pass `netbirdSetupKey` (and optional `netbirdManagementUrl` for a self-hosted management server). OPENVPN: pass `ovpnConfigText` (a full .ovpn profile); optional `ovpnUsername`/`ovpnPassword` when the profile uses auth-user-pass without inline credentials. CLOUDFLARE_ACCESS: pass `accessHostname`; for Access-protected routes also pass `accessJwt` (from `cloudflared access token --app https://<host>`); optional `accessJumpDestination` for bastion-mode multi-target tunnels. Returns the new tunnel id, which can then be passed to set_profile_routing.",
             inputSchema = objectSchema {
                 string("label", "User-facing label (also used to derive the tunnel hostname).", required = true)
-                string("type", "WIREGUARD, TAILSCALE, NETBIRD, or CLOUDFLARE_ACCESS.", required = true)
+                string("type", "WIREGUARD, TAILSCALE, NETBIRD, OPENVPN, or CLOUDFLARE_ACCESS.", required = true)
                 string("configText", "WireGuard wg-quick INI body. Required when type=WIREGUARD.")
                 string("tailscaleAuthKey", "Tailscale single-use authkey (tskey-auth-...). Required when type=TAILSCALE.")
                 string("tailscaleControlUrl", "Self-hosted Headscale coordination URL. Optional — empty defaults to controlplane.tailscale.com.")
                 string("netbirdSetupKey", "NetBird setup key from the NetBird dashboard. Required when type=NETBIRD.")
                 string("netbirdManagementUrl", "Self-hosted NetBird management URL (https://...). Optional — empty defaults to the hosted management.")
+                string("ovpnConfigText", "Full .ovpn profile text (client, dev tun, remote, inline ca/cert/key or tls-auth blocks, ...). Required when type=OPENVPN.")
+                string("ovpnUsername", "auth-user-pass username. Optional — only needed when the profile's server requires it without an inline credentials file.")
+                string("ovpnPassword", "auth-user-pass password. Optional, same condition as ovpnUsername.")
                 string("accessHostname", "Cloudflare Tunnel published hostname (e.g. ssh.example.com). Required when type=CLOUDFLARE_ACCESS.")
                 string("accessJwt", "Cloudflare Access JWT (`CF_Authorization` value). Optional — only needed when the Tunnel route is Access-protected.")
                 string("accessTeamDomain", "Cloudflare Access team domain (myteam.cloudflareaccess.com). Optional; only meaningful for Access-protected routes.")
@@ -111,9 +114,10 @@ internal class TunnelToolProvider(
             "WIREGUARD" -> TunnelConfigType.WIREGUARD
             "TAILSCALE" -> TunnelConfigType.TAILSCALE
             "NETBIRD" -> TunnelConfigType.NETBIRD
+            "OPENVPN" -> TunnelConfigType.OPENVPN
             "CLOUDFLARE_ACCESS" -> TunnelConfigType.CLOUDFLARE_ACCESS
             else -> throw IllegalArgumentException(
-                "type must be WIREGUARD, TAILSCALE, NETBIRD, or CLOUDFLARE_ACCESS"
+                "type must be WIREGUARD, TAILSCALE, NETBIRD, OPENVPN, or CLOUDFLARE_ACCESS"
             )
         }
         val configBytes: ByteArray = when (type) {
@@ -170,6 +174,15 @@ internal class TunnelToolProvider(
                 }
                 val managementUrl = args.optString("netbirdManagementUrl")
                 sh.haven.core.tunnel.NetbirdConfigBlob(setupKey, managementUrl).encode()
+            }
+            TunnelConfigType.OPENVPN -> {
+                val ovpnConfigText = args.optString("ovpnConfigText")
+                if (ovpnConfigText.isBlank()) {
+                    throw IllegalArgumentException("ovpnConfigText required for OPENVPN type")
+                }
+                val username = args.optString("ovpnUsername")
+                val password = args.optString("ovpnPassword")
+                sh.haven.core.tunnel.OpenVpnConfigBlob(ovpnConfigText, username, password).encode()
             }
         }
         val config = TunnelConfig(

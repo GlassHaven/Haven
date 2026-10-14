@@ -32,6 +32,10 @@
     <string name="tunnel_netbird_setup_key_label">セットアップキー</string>
     <string name="tunnel_netbird_management_url_label">管理 URL（省略可）</string>
     <string name="tunnel_netbird_management_url_help">NetBird のホスト型管理サービスを使う場合は空欄にしてください。セルフホストの管理サーバーを使う場合はその URL を設定してください。</string>
+    <string name="tunnel_openvpn_help">.ovpn プロファイルを貼り付けるか、ファイルを読み込んでください。プロファイルが認証情報を含まない auth-user-pass を使用している場合は、以下にユーザー名とパスワードを入力してください。</string>
+    <string name="tunnel_openvpn_config_label">OpenVPN プロファイル (.ovpn)</string>
+    <string name="tunnel_openvpn_username_label">ユーザー名（任意）</string>
+    <string name="tunnel_openvpn_password_label">パスワード（任意）</string>
 
     <!-- Cloudflare Access SSH tunnel (#154) -->
     <string name="cf_experimental_banner">実験的機能 — Haven は `cloudflared access ssh` と同じ WebSocket ワイヤープロトコルを実装しています。少数のテナントでのみ検証済みです。不一致があれば GitHub #154 で報告してください。</string>

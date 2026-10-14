@@ -25,7 +25,9 @@ data class TunnelConfig(
      *  the raw `.conf` text; for [TunnelConfigType.TAILSCALE] it's the
      *  tsnet authkey + control-URL JSON; for [TunnelConfigType.CLOUDFLARE_ACCESS]
      *  it's the Access hostname + cached IdP JWT JSON; for
-     *  [TunnelConfigType.NETBIRD] it's the setup key + management URL JSON. */
+     *  [TunnelConfigType.NETBIRD] it's the setup key + management URL JSON;
+     *  for [TunnelConfigType.OPENVPN] it's the `.ovpn` profile text +
+     *  optional auth-user-pass credentials JSON. */
     val configText: ByteArray,
     val createdAt: Long = System.currentTimeMillis(),
     /**
@@ -63,6 +65,13 @@ enum class TunnelConfigType {
      *  per-config peer identity in filesDir/netbird-<id>. No VpnService
      *  and no second app. See GH #492. */
     NETBIRD,
+
+    /** OpenVPN3 Core + gVisor netstack, gomobile-bound as ovpnbridge. A
+     *  pasted `.ovpn` profile plus optional auth-user-pass username/
+     *  password. Same no-VpnService, no-system-routes architecture as
+     *  [WIREGUARD] — a socketpair fd stands in for the tun device OpenVPN3
+     *  Core would otherwise expect, pumped into a userspace netstack. */
+    OPENVPN,
     ;
 
     companion object {

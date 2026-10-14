@@ -288,6 +288,53 @@ class TunnelViewModel @Inject constructor(
         save(label, TunnelConfigType.NETBIRD, blob.encode())
     }
 
+    /**
+     * Create an OpenVPN tunnel config from a pasted `.ovpn` profile.
+     * [username]/[password] are only needed when the profile's server uses
+     * `auth-user-pass` without an inline credentials file — most profiles
+     * carry a client certificate and need neither.
+     */
+    fun addOpenVpnConfig(label: String, ovpnConfigText: String, username: String = "", password: String = "") {
+        if (label.isBlank()) {
+            _error.value = "Label is required"
+            return
+        }
+        if (ovpnConfigText.isBlank()) {
+            _error.value = "OpenVPN profile text is required"
+            return
+        }
+        val blob = sh.haven.core.tunnel.OpenVpnConfigBlob(
+            ovpnConfigText = ovpnConfigText,
+            username = username.trim(),
+            password = password,
+        )
+        save(label, TunnelConfigType.OPENVPN, blob.encode())
+    }
+
+    /** Overwrite an existing OpenVPN tunnel's profile and credentials. */
+    fun updateOpenVpnConfig(
+        id: String,
+        label: String,
+        ovpnConfigText: String,
+        username: String = "",
+        password: String = "",
+    ) {
+        if (label.isBlank()) {
+            _error.value = "Label is required"
+            return
+        }
+        if (ovpnConfigText.isBlank()) {
+            _error.value = "OpenVPN profile text is required"
+            return
+        }
+        val blob = sh.haven.core.tunnel.OpenVpnConfigBlob(
+            ovpnConfigText = ovpnConfigText,
+            username = username.trim(),
+            password = password,
+        )
+        update(id, label, blob.encode())
+    }
+
     private fun save(label: String, type: TunnelConfigType, bytes: ByteArray) {
         viewModelScope.launch {
             try {

@@ -32,6 +32,10 @@
     <string name="tunnel_netbird_setup_key_label">Ключ настройки</string>
     <string name="tunnel_netbird_management_url_label">URL управления (необязательно)</string>
     <string name="tunnel_netbird_management_url_help">Оставьте пустым для размещённого управления NetBird. Укажите URL вашего сервера для самостоятельно размещённой службы управления.</string>
+    <string name="tunnel_openvpn_help">Вставьте профиль .ovpn или загрузите файл. Если профиль использует auth-user-pass без встроенного файла учётных данных, введите имя пользователя и пароль ниже.</string>
+    <string name="tunnel_openvpn_config_label">Профиль OpenVPN (.ovpn)</string>
+    <string name="tunnel_openvpn_username_label">Имя пользователя (необязательно)</string>
+    <string name="tunnel_openvpn_password_label">Пароль (необязательно)</string>
 
     <!-- Cloudflare Access SSH tunnel (#154) -->
     <string name="cf_experimental_banner">Экспериментально — Haven реализует тот же сетевой протокол WebSocket, что и `cloudflared access ssh`. Протестировано на небольшом наборе тенантов; сообщайте о несоответствиях через GitHub #154.</string>

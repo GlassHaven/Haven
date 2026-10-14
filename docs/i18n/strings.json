@@ -45761,6 +45761,82 @@
      }
     },
     {
+     "name": "tunnel_openvpn_help",
+     "en": "Paste an .ovpn profile or load a file. If the profile uses auth-user-pass without an inline credentials file, enter a username and password below.",
+     "comment": "Add tunnel dialog",
+     "args": [],
+     "t": {
+      "ar": "الصق ملف تعريف .ovpn أو قم بتحميل ملف. إذا كان الملف يستخدم auth-user-pass بدون ملف بيانات اعتماد مضمّن، أدخل اسم المستخدم وكلمة المرور أدناه.",
+      "bn": "একটি .ovpn প্রোফাইল পেস্ট করুন অথবা একটি ফাইল লোড করুন। প্রোফাইলে যদি ইনলাইন ক্রেডেনশিয়াল ফাইল ছাড়া auth-user-pass ব্যবহার করা হয়, তাহলে নিচে একটি ব্যবহারকারীর নাম এবং পাসওয়ার্ড লিখুন।",
+      "de": "Füge ein .ovpn-Profil ein oder lade eine Datei. Wenn das Profil auth-user-pass ohne eingebettete Zugangsdaten verwendet, gib unten einen Benutzernamen und ein Passwort ein.",
+      "es": "Pega un perfil .ovpn o carga un archivo. Si el perfil usa auth-user-pass sin un archivo de credenciales incluido, introduce un nombre de usuario y una contraseña a continuación.",
+      "fr": "Collez un profil .ovpn ou chargez un fichier. Si le profil utilise auth-user-pass sans fichier d\\'identifiants intégré, saisissez un nom d\\'utilisateur et un mot de passe ci-dessous.",
+      "hi": "एक .ovpn प्रोफ़ाइल पेस्ट करें या फ़ाइल लोड करें। यदि प्रोफ़ाइल बिना इनलाइन क्रेडेंशियल फ़ाइल के auth-user-pass का उपयोग करती है, तो नीचे एक username और password दर्ज करें।",
+      "ja": ".ovpn プロファイルを貼り付けるか、ファイルを読み込んでください。プロファイルが認証情報を含まない auth-user-pass を使用している場合は、以下にユーザー名とパスワードを入力してください。",
+      "ko": ".ovpn 프로필을 붙여넣거나 파일을 불러오세요. 프로필이 인라인 자격 증명 파일 없이 auth-user-pass를 사용하는 경우, 아래에 사용자 이름과 비밀번호를 입력하세요.",
+      "pt": "Cole um perfil .ovpn ou carregue um arquivo. Se o perfil usar auth-user-pass sem um arquivo de credenciais embutido, insira um nome de usuário e senha abaixo.",
+      "ru": "Вставьте профиль .ovpn или загрузите файл. Если профиль использует auth-user-pass без встроенного файла учётных данных, введите имя пользователя и пароль ниже.",
+      "zh": "粘贴 .ovpn 配置文件或加载文件。如果配置文件使用 auth-user-pass 且未内置凭据文件，请在下方输入用户名和密码。"
+     }
+    },
+    {
+     "name": "tunnel_openvpn_config_label",
+     "en": "OpenVPN profile (.ovpn)",
+     "comment": "Add tunnel dialog",
+     "args": [],
+     "t": {
+      "ar": "ملف تعريف OpenVPN (.ovpn)",
+      "bn": "OpenVPN প্রোফাইল (.ovpn)",
+      "de": "OpenVPN-Profil (.ovpn)",
+      "es": "Perfil de OpenVPN (.ovpn)",
+      "fr": "Profil OpenVPN (.ovpn)",
+      "hi": "OpenVPN प्रोफ़ाइल (.ovpn)",
+      "ja": "OpenVPN プロファイル (.ovpn)",
+      "ko": "OpenVPN 프로필 (.ovpn)",
+      "pt": "Perfil OpenVPN (.ovpn)",
+      "ru": "Профиль OpenVPN (.ovpn)",
+      "zh": "OpenVPN 配置文件 (.ovpn)"
+     }
+    },
+    {
+     "name": "tunnel_openvpn_username_label",
+     "en": "Username (optional)",
+     "comment": "Add tunnel dialog",
+     "args": [],
+     "t": {
+      "ar": "اسم المستخدم (اختياري)",
+      "bn": "ব্যবহারকারীর নাম (ঐচ্ছিক)",
+      "de": "Benutzername (optional)",
+      "es": "Usuario (opcional)",
+      "fr": "Nom d\\'utilisateur (optionnel)",
+      "hi": "Username (वैकल्पिक)",
+      "ja": "ユーザー名（任意）",
+      "ko": "사용자 이름(선택 사항)",
+      "pt": "Usuário (opcional)",
+      "ru": "Имя пользователя (необязательно)",
+      "zh": "用户名（可选）"
+     }
+    },
+    {
+     "name": "tunnel_openvpn_password_label",
+     "en": "Password (optional)",
+     "comment": "Add tunnel dialog",
+     "args": [],
+     "t": {
+      "ar": "كلمة المرور (اختياري)",
+      "bn": "পাসওয়ার্ড (ঐচ্ছিক)",
+      "de": "Passwort (optional)",
+      "es": "Contraseña (opcional)",
+      "fr": "Mot de passe (optionnel)",
+      "hi": "Password (वैकल्पिक)",
+      "ja": "パスワード（任意）",
+      "ko": "비밀번호(선택 사항)",
+      "pt": "Senha (opcional)",
+      "ru": "Пароль (необязательно)",
+      "zh": "密码（可选）"
+     }
+    },
+    {
      "name": "cf_experimental_banner",
      "en": "Experimental — Haven implements the same WebSocket wire protocol as `cloudflared access ssh`. Tested against a small set of tenants; please report mismatches via GitHub #154.",
      "comment": "Cloudflare Access inline fields (SSH-over-Cloudflare-Tunnel transport)",

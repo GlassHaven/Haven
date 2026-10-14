@@ -438,9 +438,13 @@
     <string name="settings_sshkey_reset_confirm">Поправи</string>
 
     <!-- Inline-image consent (#583) -->
-    <string name="settings_inline_images_title">Уграћене слике</string>
+    <string name="settings_inline_images_title">Уграђене слике</string>
     <string name="settings_inline_images_subtitle">Слике које програми шаљу у терминал (Kitty графика, iTerm2).</string>
     <string name="settings_inline_images_off">Искључено</string>
     <string name="settings_inline_images_ask">Питај</string>
     <string name="settings_inline_images_always">Увек</string>
+    <string name="settings_auto_show_keyboard_title">Прикажи тастатуру када се отвори терминал</string>
+    <string name="settings_auto_show_keyboard_subtitle">Софтверска тастатура се аутоматски подиже када отворите или пређете на сесију терминала. Искључите ако не желите да се прикаже за сесије које су само-за-читање; тастер тастатуре на алатној линији и двоструки тап и даље могу да је подигну</string>
+    <string name="settings_gps_guest_title">Изложи GPS Линукс госту</string>
+    <string name="settings_gps_guest_subtitle">Стримује GPS позицију телефона у госта као NMEA уређај (haven-gps). Када се укључи, било који процес у госту може да чита позицију. Свако привезивање још увек пита за пристанак.</string>
 </resources>

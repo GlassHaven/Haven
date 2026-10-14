@@ -121,7 +121,6 @@ import androidx.core.view.WindowCompat
 import androidx.core.view.WindowInsetsCompat
 import androidx.core.view.WindowInsetsControllerCompat
 import androidx.compose.ui.text.font.FontWeight
-import androidx.hilt.navigation.compose.hiltViewModel
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
@@ -267,99 +266,6 @@ fun RdpSessionContent(
             onRetry = onRetry,
         )
     }
-}
-
-/** Legacy RdpScreen with ViewModel — delegates to RdpSessionContent. */
-@Composable
-fun RdpScreen(
-    isActive: Boolean = true,
-    pendingHost: String? = null,
-    pendingPort: Int? = null,
-    pendingUsername: String? = null,
-    pendingPassword: String? = null,
-    pendingDomain: String? = null,
-    pendingSshForward: Boolean = false,
-    pendingSshSessionId: String? = null,
-    pendingSshProfileId: String? = null,
-    toolbarLayout: ToolbarLayout = ToolbarLayout.DEFAULT,
-    onPendingConsumed: () -> Unit = {},
-    onFullscreenChanged: (Boolean) -> Unit = {},
-    viewModel: RdpViewModel = hiltViewModel(),
-) {
-    LaunchedEffect(pendingHost, pendingSshSessionId) {
-        if (pendingHost != null && pendingPassword != null) {
-            if (pendingSshForward && pendingSshSessionId != null) {
-                viewModel.connectViaSsh(
-                    pendingSshSessionId,
-                    pendingHost,
-                    pendingPort ?: 3389,
-                    pendingUsername ?: "",
-                    pendingPassword,
-                    pendingDomain ?: "",
-                )
-            } else if (!pendingSshForward) {
-                viewModel.connect(
-                    pendingHost,
-                    pendingPort ?: 3389,
-                    pendingUsername ?: "",
-                    pendingPassword,
-                    pendingDomain ?: "",
-                )
-            }
-            onPendingConsumed()
-        } else if (pendingHost != null) {
-            onPendingConsumed()
-        }
-    }
-
-    // Standalone-path orientation state. Lives in RdpScreen (the
-    // outer composable) so it sits above any conditional siblings
-    // inside RdpSessionContent / RdpViewer that would otherwise tear
-    // down a `remember` on slot-position shifts. Apply to the
-    // Activity directly.
-    val activity = androidx.activity.compose.LocalActivity.current
-    var orientationValue by remember {
-        mutableStateOf(android.content.pm.ActivityInfo.SCREEN_ORIENTATION_LANDSCAPE)
-    }
-    LaunchedEffect(orientationValue, activity) {
-        activity?.requestedOrientation = orientationValue
-    }
-    DisposableEffect(activity) {
-        onDispose {
-            activity?.requestedOrientation =
-                android.content.pm.ActivityInfo.SCREEN_ORIENTATION_UNSPECIFIED
-        }
-    }
-
-    RdpSessionContent(
-        connected = viewModel.connected,
-        frame = viewModel.frame,
-        frameSeq = viewModel.frameSeq,
-        error = viewModel.error,
-        toolbarLayout = toolbarLayout,
-        onTap = { x, y -> viewModel.sendClick(x, y) },
-        onDragStart = { x, y ->
-            viewModel.sendPointer(x, y)
-            viewModel.pressButton()
-        },
-        onDrag = { x, y -> viewModel.sendPointer(x, y) },
-        onDragEnd = { viewModel.releaseButton() },
-        onScrollUp = { viewModel.scrollUp() },
-        onScrollDown = { viewModel.scrollDown() },
-        onTypeChar = { ch ->
-            typeRdpChar(
-                ch = ch,
-                sendKey = { sc, pressed -> viewModel.sendKey(sc, pressed) },
-                sendUnicode = { codepoint -> viewModel.typeUnicode(codepoint) },
-            )
-        },
-        onKeyDown = { scancode -> viewModel.sendKey(scancode, true) },
-        onKeyUp = { scancode -> viewModel.sendKey(scancode, false) },
-        onDisconnect = { viewModel.disconnect() },
-        onFullscreenChanged = onFullscreenChanged,
-        currentOrientation = orientationValue,
-        onCycleOrientation = { orientationValue = cycleRdpOrientation(orientationValue) },
-    )
 }
 
 internal enum class ProgressState { Connecting, WaitingForFrame, Error }
@@ -530,8 +436,7 @@ private fun RdpViewer(
 ) {
     // Map the activity-orientation constant to the local enum for
     // icon/description rendering. Source-of-truth for the value lives
-    // outside this composable (RdpScreen for the standalone path,
-    // DesktopViewModel for the multi-session Desktop view) so it
+    // outside this composable (DesktopViewModel) so it
     // survives recomposition cycles that would tear down a `remember`
     // here.
     val orientationMode = OrientationMode.fromActivityValue(currentOrientation)
@@ -1696,21 +1601,10 @@ private enum class OrientationMode(
         description = "Auto rotate (tap to switch to landscape)",
     );
 
-    fun next(): OrientationMode = entries[(ordinal + 1) % entries.size]
-
     companion object {
         fun fromActivityValue(value: Int): OrientationMode = entries.firstOrNull { it.activityValue == value } ?: Landscape
     }
 }
-
-/**
- * Cycle the activity-orientation constant `LANDSCAPE -> PORTRAIT ->
- * UNSPECIFIED -> LANDSCAPE`. Public so the Desktop multi-session
- * `DesktopViewModel.cycleDesktopOrientation` can share the same
- * cycle order as the standalone path's button.
- */
-fun cycleRdpOrientation(current: Int): Int =
-    OrientationMode.fromActivityValue(current).next().activityValue
 
 internal fun androidKeyToScancode(key: Key): Int? = when (key) {
     Key.Enter -> SC_RETURN

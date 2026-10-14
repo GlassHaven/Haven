@@ -54,7 +54,7 @@ import sh.haven.core.tunnel.TunneledSocket
 import sh.haven.core.vnc.ColorDepth
 import sh.haven.core.vnc.VncClient
 import sh.haven.core.vnc.VncConfig
-import sh.haven.feature.rdp.RdpViewModel
+import sh.haven.feature.rdp.describeRdpError
 import sh.haven.feature.vnc.VncViewModel
 import java.util.UUID
 import java.util.concurrent.ConcurrentLinkedQueue
@@ -2051,7 +2051,7 @@ class DesktopViewModel @Inject constructor(
                 session.onCursorPosition = { x, y -> pointerPos.value = x to y }
                 session.onError = { e ->
                     Log.e(TAG, "RDP error on tab $tabId", e)
-                    error.value = RdpViewModel.describeError(e, host, port)
+                    error.value = describeRdpError(e, host, port)
                     connected.value = false
                     desktopSessionRegistry.setStatus(profileId, DesktopStatus.ERROR)
                     if (profileId != null) {
@@ -2175,7 +2175,7 @@ class DesktopViewModel @Inject constructor(
                     label = label,
                     colorTag = colorTag,
                     session = RdpSession("err", host, port, username, password, domain),
-                    _error = MutableStateFlow(RdpViewModel.describeError(e, host, port)),
+                    _error = MutableStateFlow(describeRdpError(e, host, port)),
                     profileId = profileId,
                 )
                 val tabs = _tabs.value.toMutableList()
@@ -2367,12 +2367,6 @@ class DesktopViewModel @Inject constructor(
         }
     }
 
-    fun sendSpiceKey(scancode: Int, pressed: Boolean) {
-        viewModelScope.launch(Dispatchers.IO) {
-            (activeTab.value as? DesktopTab.Spice)?.session?.sendKey(scancode, pressed)
-        }
-    }
-
     // --- Wayland ---
 
     fun addWaylandTab() {
@@ -2402,7 +2396,16 @@ class DesktopViewModel @Inject constructor(
 
     // --- Input forwarding (operates on active tab) ---
 
-    fun sendPointer(x: Int, y: Int) {
+    /** Every remote-desktop input event goes through this, in order. See [RemoteInputLane]. */
+    private val inputLane = RemoteInputLane(viewModelScope)
+
+    /** Submit [event] for the active tab's session, resolved now rather than when it runs. */
+    private fun sendToActive(event: (RemoteDesktopSession) -> Unit) {
+        val session = activeTab.value?.remoteDesktop ?: return
+        inputLane.submit { event(session) }
+    }
+
+    private fun mirrorPointer(x: Int, y: Int) {
         // Mirror the latest pointer into per-tab state so the UI overlay
         // (cursor / virtual cursor seed) repaints immediately, without
         // waiting for the IO dispatch round-trip.
@@ -2412,83 +2415,74 @@ class DesktopViewModel @Inject constructor(
             is DesktopTab.Spice -> tab._pointerPos.value = x to y
             else -> {}
         }
-        viewModelScope.launch(Dispatchers.IO) {
-            activeTab.value?.remoteDesktop?.sendMouseMove(x, y)
-        }
+    }
+
+    fun sendPointer(x: Int, y: Int) {
+        mirrorPointer(x, y)
+        sendToActive { it.sendMouseMove(x, y) }
     }
 
     fun pressButton(button: Int = 1) {
-        viewModelScope.launch(Dispatchers.IO) {
-            activeTab.value?.remoteDesktop?.sendMouseButton(button, pressed = true)
-        }
+        sendToActive { it.sendMouseButton(button, pressed = true) }
     }
 
     fun releaseButton(button: Int = 1) {
-        viewModelScope.launch(Dispatchers.IO) {
-            activeTab.value?.remoteDesktop?.sendMouseButton(button, pressed = false)
-        }
+        sendToActive { it.sendMouseButton(button, pressed = false) }
     }
 
     fun sendClick(x: Int, y: Int, button: Int = 1) {
-        when (val tab = activeTab.value) {
-            is DesktopTab.Vnc -> tab._pointerPos.value = x to y
-            is DesktopTab.Rdp -> tab._pointerPos.value = x to y
-            is DesktopTab.Spice -> tab._pointerPos.value = x to y
-            else -> {}
-        }
-        viewModelScope.launch(Dispatchers.IO) {
-            activeTab.value?.remoteDesktop?.sendMouseClick(x, y, button)
-        }
+        mirrorPointer(x, y)
+        sendToActive { it.sendMouseClick(x, y, button) }
     }
 
-    /**
-     * VNC keyboard traffic runs on a single-permit dispatcher so IME
-     * commits execute in submission order — plain Dispatchers.IO let two
-     * commits reach the wire out of order (bug #5). [VncClient.keyboardLock]
-     * keeps each shift-pair sequence atomic; this keeps the sequences
-     * ordered relative to each other.
-     */
-    private val vncKeyboardDispatcher = Dispatchers.IO.limitedParallelism(1)
+    fun scrollUp() {
+        sendToActive { it.sendMouseWheel(deltaY = 1) }
+    }
+
+    fun scrollDown() {
+        sendToActive { it.sendMouseWheel(deltaY = -1) }
+    }
 
     fun sendVncKey(keySym: Int, pressed: Boolean) {
-        viewModelScope.launch(vncKeyboardDispatcher) {
-            (activeTab.value as? DesktopTab.Vnc)?.client?.updateKey(keySym, pressed)
-        }
+        val client = (activeTab.value as? DesktopTab.Vnc)?.client ?: return
+        inputLane.submit { client.updateKey(keySym, pressed) }
     }
 
     fun typeVncKey(keySym: Int) {
-        viewModelScope.launch(vncKeyboardDispatcher) {
-            (activeTab.value as? DesktopTab.Vnc)?.client?.type(keySym)
-        }
+        val client = (activeTab.value as? DesktopTab.Vnc)?.client ?: return
+        inputLane.submit { client.type(keySym) }
     }
 
     /**
-     * Type a string sequentially via the active VNC tab. Single coroutine
-     * so key down/up events stay in source order on the wire — see
+     * Type a string sequentially via the active VNC tab — see
      * [VncClient.typeText]. Also pushes the text to the remote VNC
      * clipboard as defence-in-depth (Ctrl+V on the remote then works
      * regardless of synth-typing fidelity).
      */
     fun typeVncText(text: String) {
-        viewModelScope.launch(vncKeyboardDispatcher) {
-            val client = (activeTab.value as? DesktopTab.Vnc)?.client ?: return@launch
+        val client = (activeTab.value as? DesktopTab.Vnc)?.client ?: return
+        inputLane.submit {
             client.copyText(text)
             client.typeText(text)
         }
     }
 
     fun sendRdpKey(scancode: Int, pressed: Boolean) {
-        viewModelScope.launch(Dispatchers.IO) {
-            (activeTab.value as? DesktopTab.Rdp)?.session?.sendKey(scancode, pressed)
-        }
+        val session = (activeTab.value as? DesktopTab.Rdp)?.session ?: return
+        inputLane.submit { session.sendKey(scancode, pressed) }
     }
 
     fun typeRdpUnicode(codepoint: Int) {
-        viewModelScope.launch(Dispatchers.IO) {
-            val s = (activeTab.value as? DesktopTab.Rdp)?.session ?: return@launch
-            s.sendUnicodeKey(codepoint, true)
-            s.sendUnicodeKey(codepoint, false)
+        val session = (activeTab.value as? DesktopTab.Rdp)?.session ?: return
+        inputLane.submit {
+            session.sendUnicodeKey(codepoint, true)
+            session.sendUnicodeKey(codepoint, false)
         }
+    }
+
+    fun sendSpiceKey(scancode: Int, pressed: Boolean) {
+        val session = (activeTab.value as? DesktopTab.Spice)?.session ?: return
+        inputLane.submit { session.sendKey(scancode, pressed) }
     }
 
     /**
@@ -2527,18 +2521,6 @@ class DesktopViewModel @Inject constructor(
                 android.content.pm.ActivityInfo.SCREEN_ORIENTATION_UNSPECIFIED
             else ->
                 android.content.pm.ActivityInfo.SCREEN_ORIENTATION_LANDSCAPE
-        }
-    }
-
-    fun scrollUp() {
-        viewModelScope.launch(Dispatchers.IO) {
-            activeTab.value?.remoteDesktop?.sendMouseWheel(deltaY = 1)
-        }
-    }
-
-    fun scrollDown() {
-        viewModelScope.launch(Dispatchers.IO) {
-            activeTab.value?.remoteDesktop?.sendMouseWheel(deltaY = -1)
         }
     }
 

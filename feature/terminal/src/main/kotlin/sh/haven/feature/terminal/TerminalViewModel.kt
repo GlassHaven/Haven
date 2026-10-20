@@ -694,6 +694,24 @@ class TerminalViewModel @Inject constructor(
                 UserPreferencesRepository.TerminalInlineImages.ASK,
             )
 
+    /** Ambiwidth mode for East Asian Ambiguous characters (#719). */
+    val terminalAmbiwidthMode: StateFlow<UserPreferencesRepository.TerminalAmbiwidthMode> =
+        preferencesRepository.terminalAmbiwidthMode
+            .stateIn(
+                viewModelScope,
+                SharingStarted.Eagerly,
+                UserPreferencesRepository.TerminalAmbiwidthMode.AUTO_NARROW,
+            )
+
+    private fun currentTermlibAmbiwidthMode(): org.connectbot.terminal.AmbiwidthMode {
+        return when (terminalAmbiwidthMode.value) {
+            UserPreferencesRepository.TerminalAmbiwidthMode.NARROW -> org.connectbot.terminal.AmbiwidthMode.NARROW
+            UserPreferencesRepository.TerminalAmbiwidthMode.AUTO_NARROW -> org.connectbot.terminal.AmbiwidthMode.AUTO_NARROW
+            UserPreferencesRepository.TerminalAmbiwidthMode.WIDE -> org.connectbot.terminal.AmbiwidthMode.WIDE
+            UserPreferencesRepository.TerminalAmbiwidthMode.AUTO_WIDE -> org.connectbot.terminal.AmbiwidthMode.AUTO_WIDE
+        }
+    }
+
     /**
      * Resolve the per-tab colour scheme for a tab built off [profile].
      * Returns the profile's override (#144) when set, or null to mean
@@ -1150,6 +1168,21 @@ class TerminalViewModel @Inject constructor(
                 }
             }
         }
+        // Ambiwidth mode (#719): re-police live tabs when the preference changes;
+        // new emulators read the current value at create.
+        viewModelScope.launch {
+            terminalAmbiwidthMode.collect { mode ->
+                val termlibMode = when (mode) {
+                    UserPreferencesRepository.TerminalAmbiwidthMode.NARROW -> org.connectbot.terminal.AmbiwidthMode.NARROW
+                    UserPreferencesRepository.TerminalAmbiwidthMode.AUTO_NARROW -> org.connectbot.terminal.AmbiwidthMode.AUTO_NARROW
+                    UserPreferencesRepository.TerminalAmbiwidthMode.WIDE -> org.connectbot.terminal.AmbiwidthMode.WIDE
+                    UserPreferencesRepository.TerminalAmbiwidthMode.AUTO_WIDE -> org.connectbot.terminal.AmbiwidthMode.AUTO_WIDE
+                }
+                for (tab in _tabs.value) {
+                    tab.emulator.setAmbiwidthMode(termlibMode)
+                }
+            }
+        }
         viewModelScope.launch {
             localSessionManager.sessions.collect { syncSessions() }
         }
@@ -1341,6 +1374,7 @@ class TerminalViewModel @Inject constructor(
                     },
                     maxScrollbackLines = terminalScrollbackRows.value,
                 inlineImages = inlineImagesPolicy(terminalInlineImages.value, inlineImageConsent.state(sessionId)),
+                ambiwidthMode = currentTermlibAmbiwidthMode(),
                 xtversion = XtversionIdentity.of(appContext),
                 )
                 // The guest console runs opencode, whose Ink renderer diffs
@@ -1438,6 +1472,7 @@ class TerminalViewModel @Inject constructor(
                 },
                 maxScrollbackLines = terminalScrollbackRows.value,
                 inlineImages = inlineImagesPolicy(terminalInlineImages.value, inlineImageConsent.state(sessionId)),
+                ambiwidthMode = currentTermlibAmbiwidthMode(),
             )
             // Guest console: disable grow backfill — Ink's line-diff repaint
             // strands popped scrollback in skipped rows (GrowBackfillDiffRenderTest).
@@ -1739,6 +1774,7 @@ class TerminalViewModel @Inject constructor(
                 },
                 maxScrollbackLines = terminalScrollbackRows.value,
                 inlineImages = inlineImagesPolicy(terminalInlineImages.value, inlineImageConsent.state(sessionId)),
+                ambiwidthMode = currentTermlibAmbiwidthMode(),
             )
 
             rnsSession.start()
@@ -1820,6 +1856,7 @@ class TerminalViewModel @Inject constructor(
                 onResize = { /* raw serial: no resize channel */ },
                 maxScrollbackLines = terminalScrollbackRows.value,
                 inlineImages = inlineImagesPolicy(terminalInlineImages.value, inlineImageConsent.state(sessionId)),
+                ambiwidthMode = currentTermlibAmbiwidthMode(),
             )
 
             currentTabs.add(
@@ -1898,6 +1935,7 @@ class TerminalViewModel @Inject constructor(
                 onResize = { /* raw serial: no resize channel */ },
                 maxScrollbackLines = terminalScrollbackRows.value,
                 inlineImages = inlineImagesPolicy(terminalInlineImages.value, inlineImageConsent.state(sessionId)),
+                ambiwidthMode = currentTermlibAmbiwidthMode(),
             )
 
             currentTabs.add(
@@ -1976,6 +2014,7 @@ class TerminalViewModel @Inject constructor(
                 onResize = { /* raw serial: no resize channel */ },
                 maxScrollbackLines = terminalScrollbackRows.value,
                 inlineImages = inlineImagesPolicy(terminalInlineImages.value, inlineImageConsent.state(sessionId)),
+                ambiwidthMode = currentTermlibAmbiwidthMode(),
             )
 
             currentTabs.add(
@@ -2080,6 +2119,7 @@ class TerminalViewModel @Inject constructor(
                 },
                 maxScrollbackLines = terminalScrollbackRows.value,
                 inlineImages = inlineImagesPolicy(terminalInlineImages.value, inlineImageConsent.state(sessionId)),
+                ambiwidthMode = currentTermlibAmbiwidthMode(),
             )
 
             moshSession.start()
@@ -2185,6 +2225,7 @@ class TerminalViewModel @Inject constructor(
                 },
                 maxScrollbackLines = terminalScrollbackRows.value,
                 inlineImages = inlineImagesPolicy(terminalInlineImages.value, inlineImageConsent.state(sessionId)),
+                ambiwidthMode = currentTermlibAmbiwidthMode(),
             )
 
             etSession.start()

@@ -264,6 +264,7 @@ fun SettingsScreen(
     var showPromptCharsDialog by remember { mutableStateOf(false) }
     var showLocaleDialog by remember { mutableStateOf(false) }
     var showFontSizeDialog by remember { mutableStateOf(false) }
+    var showAmbiwidthModeDialog by remember { mutableStateOf(false) }
     var showScrollbackRowsDialog by remember { mutableStateOf(false) }
     var showSessionManagerDialog by remember { mutableStateOf(false) }
     var showThemeDialog by remember { mutableStateOf(false) }
@@ -580,13 +581,21 @@ fun SettingsScreen(
             subtitle = stringResource(R.string.settings_font_size_subtitle, fontSize),
             onClick = { showFontSizeDialog = true },
         )
-        SettingsToggleItem(
-            icon = Icons.Filled.FormatSize,
-            title = stringResource(R.string.settings_ambiwidth_title),
-            subtitle = stringResource(R.string.settings_ambiwidth_subtitle),
-            checked = viewModel.ambiwidth.collectAsState().value,
-            onCheckedChange = viewModel::setAmbiwidth,
-        )
+        run {
+            val ambiwidthMode by viewModel.terminalAmbiwidthMode.collectAsState()
+            val ambiwidthModeLabel = when (ambiwidthMode) {
+                UserPreferencesRepository.TerminalAmbiwidthMode.NARROW -> stringResource(R.string.settings_ambiwidth_mode_narrow)
+                UserPreferencesRepository.TerminalAmbiwidthMode.AUTO_NARROW -> stringResource(R.string.settings_ambiwidth_mode_auto_narrow)
+                UserPreferencesRepository.TerminalAmbiwidthMode.WIDE -> stringResource(R.string.settings_ambiwidth_mode_wide)
+                UserPreferencesRepository.TerminalAmbiwidthMode.AUTO_WIDE -> stringResource(R.string.settings_ambiwidth_mode_auto_wide)
+            }
+            SettingsItem(
+                icon = Icons.Filled.FormatSize,
+                title = stringResource(R.string.settings_ambiwidth_title),
+                subtitle = ambiwidthModeLabel,
+                onClick = { showAmbiwidthModeDialog = true },
+            )
+        }
         SettingsItem(
             icon = Icons.Filled.History,
             title = stringResource(R.string.settings_scrollback_rows_title),
@@ -1994,6 +2003,17 @@ fun SettingsScreen(
         )
     }
 
+    if (showAmbiwidthModeDialog) {
+        AmbiwidthModeDialog(
+            currentMode = viewModel.terminalAmbiwidthMode.collectAsState().value,
+            onDismiss = { showAmbiwidthModeDialog = false },
+            onSelect = { newMode ->
+                viewModel.setTerminalAmbiwidthMode(newMode)
+                showAmbiwidthModeDialog = false
+            },
+        )
+    }
+
     if (showScrollbackRowsDialog) {
         ScrollbackRowsDialog(
             currentRows = scrollbackRows,
@@ -2806,6 +2826,56 @@ private fun ThemeDialog(
                         leadingContent = {
                             RadioButton(
                                 selected = mode == currentTheme,
+                                onClick = null,
+                            )
+                        },
+                        modifier = Modifier.clickable(role = Role.RadioButton) {
+                            onSelect(mode)
+                        },
+                    )
+                }
+            }
+        },
+        confirmButton = {
+            TextButton(onClick = onDismiss) {
+                Text(stringResource(R.string.common_cancel))
+            }
+        },
+    )
+}
+
+@Composable
+private fun AmbiwidthModeDialog(
+    currentMode: UserPreferencesRepository.TerminalAmbiwidthMode,
+    onDismiss: () -> Unit,
+    onSelect: (UserPreferencesRepository.TerminalAmbiwidthMode) -> Unit,
+) {
+    AlertDialog(
+        onDismissRequest = onDismiss,
+        title = { Text(stringResource(R.string.settings_ambiwidth_title)) },
+        text = {
+            Column {
+                UserPreferencesRepository.TerminalAmbiwidthMode.entries.forEach { mode ->
+                    val (title, subtitle) = when (mode) {
+                        UserPreferencesRepository.TerminalAmbiwidthMode.NARROW ->
+                            stringResource(R.string.settings_ambiwidth_mode_narrow) to
+                            stringResource(R.string.settings_ambiwidth_mode_narrow_desc)
+                        UserPreferencesRepository.TerminalAmbiwidthMode.AUTO_NARROW ->
+                            stringResource(R.string.settings_ambiwidth_mode_auto_narrow) to
+                            stringResource(R.string.settings_ambiwidth_mode_auto_narrow_desc)
+                        UserPreferencesRepository.TerminalAmbiwidthMode.WIDE ->
+                            stringResource(R.string.settings_ambiwidth_mode_wide) to
+                            stringResource(R.string.settings_ambiwidth_mode_wide_desc)
+                        UserPreferencesRepository.TerminalAmbiwidthMode.AUTO_WIDE ->
+                            stringResource(R.string.settings_ambiwidth_mode_auto_wide) to
+                            stringResource(R.string.settings_ambiwidth_mode_auto_wide_desc)
+                    }
+                    ListItem(
+                        headlineContent = { Text(title) },
+                        supportingContent = { Text(subtitle) },
+                        leadingContent = {
+                            RadioButton(
+                                selected = mode == currentMode,
                                 onClick = null,
                             )
                         },

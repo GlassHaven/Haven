@@ -40,6 +40,8 @@ class UserPreferencesRepository @Inject constructor(
     private val rdpAvcEnabledKey = booleanPreferencesKey("rdp_avc_enabled")
     // Absolute path to a user-chosen Nerd Font (or any TTF/OTF). #123.
     private val terminalFontPathKey = stringPreferencesKey("terminal_font_path")
+    private val terminalAmbiwidthModeKey = stringPreferencesKey("terminal_ambiwidth_mode")
+    private val ambiwidthKey = booleanPreferencesKey("ambiwidth")
     // Extra trailing prompt characters (beyond $ # % > ❯) for command-on-attach
     // detection — supports custom prompts ending in e.g. » or 尺 (#280).
     private val terminalPromptCharsKey = stringPreferencesKey("terminal_prompt_chars")
@@ -1474,12 +1476,29 @@ class UserPreferencesRepository @Inject constructor(
         prefs[terminalFontSizeKey] ?: DEFAULT_FONT_SIZE
     }
 
-    val ambiwidth: Flow<Boolean> = dataStore.data.map { prefs ->
-        prefs[booleanPreferencesKey("ambiwidth")] ?: false
+    val terminalAmbiwidthMode: Flow<TerminalAmbiwidthMode> = dataStore.data.map { prefs ->
+        val raw = prefs[terminalAmbiwidthModeKey]
+        if (raw != null) {
+            TerminalAmbiwidthMode.fromString(raw)
+        } else {
+            val legacy = prefs[ambiwidthKey]
+            if (legacy == true) TerminalAmbiwidthMode.WIDE else TerminalAmbiwidthMode.AUTO_NARROW
+        }
+    }
+
+    suspend fun setTerminalAmbiwidthMode(mode: TerminalAmbiwidthMode) {
+        dataStore.edit { prefs ->
+            prefs[terminalAmbiwidthModeKey] = mode.id
+            prefs[ambiwidthKey] = mode == TerminalAmbiwidthMode.WIDE || mode == TerminalAmbiwidthMode.AUTO_WIDE
+        }
+    }
+
+    val ambiwidth: Flow<Boolean> = terminalAmbiwidthMode.map {
+        it == TerminalAmbiwidthMode.WIDE || it == TerminalAmbiwidthMode.AUTO_WIDE
     }
 
     suspend fun setAmbiwidth(enabled: Boolean) {
-        dataStore.edit { prefs -> prefs[booleanPreferencesKey("ambiwidth")] = enabled }
+        setTerminalAmbiwidthMode(if (enabled) TerminalAmbiwidthMode.WIDE else TerminalAmbiwidthMode.NARROW)
     }
 
     /**
@@ -2448,6 +2467,19 @@ class UserPreferencesRepository @Inject constructor(
         companion object {
             fun fromString(value: String?): TerminalInlineImages =
                 entries.find { it.name == value } ?: ASK
+        }
+    }
+
+    /** East Asian Ambiguous width rendering policy (#719). */
+    enum class TerminalAmbiwidthMode(val id: String) {
+        NARROW("narrow"),
+        AUTO_NARROW("auto_narrow"),
+        WIDE("wide"),
+        AUTO_WIDE("auto_wide");
+
+        companion object {
+            fun fromString(value: String?): TerminalAmbiwidthMode =
+                entries.find { it.id.equals(value, ignoreCase = true) || it.name.equals(value, ignoreCase = true) } ?: AUTO_NARROW
         }
     }
 

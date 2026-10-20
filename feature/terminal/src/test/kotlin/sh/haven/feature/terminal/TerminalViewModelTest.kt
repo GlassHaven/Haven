@@ -344,7 +344,7 @@ class TerminalViewModelTest {
             io.mockk.mockkStatic(android.os.Looper::class)
             every { android.os.Looper.getMainLooper() } returns mockk(relaxed = true)
             io.mockk.mockkObject(org.connectbot.terminal.TerminalEmulatorFactory.Companion)
-            every { org.connectbot.terminal.TerminalEmulatorFactory.create(any(), any(), any(), any(), any(), any(), any(), any(), any(), any(), any(), any(), any(), any(), any(), any()) } returns
+            every { org.connectbot.terminal.TerminalEmulatorFactory.create(any(), any(), any(), any(), any(), any(), any(), any(), any(), any(), any(), any(), any(), any(), any(), any(), any(), any()) } returns
                 mockk<org.connectbot.terminal.TerminalEmulator>(relaxed = true)
             // The VM reads reticulumSessionManager.sessions.value on every
             // sync — delegate to the real manager's flow so the snapshot it
@@ -448,7 +448,7 @@ class TerminalViewModelTest {
         io.mockk.mockkStatic(android.os.Looper::class)
         every { android.os.Looper.getMainLooper() } returns mockk(relaxed = true)
         io.mockk.mockkObject(org.connectbot.terminal.TerminalEmulatorFactory.Companion)
-        every { org.connectbot.terminal.TerminalEmulatorFactory.create(any(), any(), any(), any(), any(), any(), any(), any(), any(), any(), any(), any(), any(), any(), any(), any()) } returns
+        every { org.connectbot.terminal.TerminalEmulatorFactory.create(any(), any(), any(), any(), any(), any(), any(), any(), any(), any(), any(), any(), any(), any(), any(), any(), any(), any()) } returns
             mockk<org.connectbot.terminal.TerminalEmulator>(relaxed = true)
         every { reticulumSessionManager.sessions } returns rnsManager.sessions
         every { reticulumSessionManager.isReadyForTerminal(any()) } answers {

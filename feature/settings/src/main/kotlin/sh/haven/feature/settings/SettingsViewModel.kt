@@ -697,6 +697,14 @@ class SettingsViewModel @Inject constructor(
             false,
         )
 
+    val terminalAmbiwidthMode: StateFlow<UserPreferencesRepository.TerminalAmbiwidthMode> =
+        preferencesRepository.terminalAmbiwidthMode
+            .stateIn(
+                viewModelScope,
+                SharingStarted.WhileSubscribed(5000),
+                UserPreferencesRepository.TerminalAmbiwidthMode.AUTO_NARROW,
+            )
+
     val terminalFontSize: StateFlow<Int> = preferencesRepository.terminalFontSize
         .stateIn(
             viewModelScope,
@@ -1126,6 +1134,12 @@ class SettingsViewModel @Inject constructor(
     fun setAmbiwidth(enabled: Boolean) {
         viewModelScope.launch {
             preferencesRepository.setAmbiwidth(enabled)
+        }
+    }
+
+    fun setTerminalAmbiwidthMode(mode: UserPreferencesRepository.TerminalAmbiwidthMode) {
+        viewModelScope.launch {
+            preferencesRepository.setTerminalAmbiwidthMode(mode)
         }
     }
 

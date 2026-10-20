@@ -114,6 +114,12 @@ class SshTerminalEmulatorOwner @Inject constructor(
             onResize = ors,
             maxScrollbackLines = scrollback,
             inlineImages = inlineImages,
+            ambiwidthMode = when (ambiwidthMode) {
+                UserPreferencesRepository.TerminalAmbiwidthMode.NARROW -> org.connectbot.terminal.AmbiwidthMode.NARROW
+                UserPreferencesRepository.TerminalAmbiwidthMode.AUTO_NARROW -> org.connectbot.terminal.AmbiwidthMode.AUTO_NARROW
+                UserPreferencesRepository.TerminalAmbiwidthMode.WIDE -> org.connectbot.terminal.AmbiwidthMode.WIDE
+                UserPreferencesRepository.TerminalAmbiwidthMode.AUTO_WIDE -> org.connectbot.terminal.AmbiwidthMode.AUTO_WIDE
+            },
             xtversion = XtversionIdentity.of(appContext),
         )
     }
@@ -130,6 +136,7 @@ class SshTerminalEmulatorOwner @Inject constructor(
     @Volatile private var scrollbackRows = UserPreferencesRepository.DEFAULT_SCROLLBACK_ROWS
     @Volatile private var globalScheme = UserPreferencesRepository.TerminalColorScheme.HAVEN
     @Volatile private var inlineImagesMode = UserPreferencesRepository.TerminalInlineImages.ASK
+    @Volatile private var ambiwidthMode = UserPreferencesRepository.TerminalAmbiwidthMode.AUTO_NARROW
 
     /** Register the provider + start the caches. Call once from `HavenApp.onCreate`. */
     fun start() {
@@ -152,9 +159,16 @@ class SshTerminalEmulatorOwner @Inject constructor(
             }
         }
         scope.launch {
-            preferencesRepository.ambiwidth.collect { enabled ->
+            preferencesRepository.terminalAmbiwidthMode.collect { mode ->
+                ambiwidthMode = mode
+                val termlibMode = when (mode) {
+                    UserPreferencesRepository.TerminalAmbiwidthMode.NARROW -> org.connectbot.terminal.AmbiwidthMode.NARROW
+                    UserPreferencesRepository.TerminalAmbiwidthMode.AUTO_NARROW -> org.connectbot.terminal.AmbiwidthMode.AUTO_NARROW
+                    UserPreferencesRepository.TerminalAmbiwidthMode.WIDE -> org.connectbot.terminal.AmbiwidthMode.WIDE
+                    UserPreferencesRepository.TerminalAmbiwidthMode.AUTO_WIDE -> org.connectbot.terminal.AmbiwidthMode.AUTO_WIDE
+                }
                 for (id in bundles.keys) {
-                    bundles[id]?.emulatorOrNull()?.setAmbiwidth(enabled)
+                    bundles[id]?.emulatorOrNull()?.setAmbiwidthMode(termlibMode)
                 }
             }
         }

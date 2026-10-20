@@ -32,6 +32,9 @@
     <!-- Tab bar -->
     <string name="terminal_reconnecting">Reconnecting</string>
     <string name="terminal_no_contact">No server contact for %1$ds — retrying</string>
+    <string name="terminal_attach_notice_unavailable">Session manager %1$s did not start — you are in a plain shell. Check it is installed on the host, or set a Session command in the connection editor (advanced).</string>
+    <string name="terminal_attach_notice_missing">%1$s session "%2$s" did not attach — you are in a plain shell. Check the start command, or set a Session command in the connection editor (advanced).</string>
+    <string name="terminal_attach_notice_dismiss">Dismiss</string>
     <string name="terminal_sessions">Sessions</string>
     <string name="terminal_move_left">Move left</string>
     <string name="terminal_move_right">Move right</string>

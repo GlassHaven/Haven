@@ -1,0 +1,1 @@
+• Launcher long-press now offers your saved connections next to the workspaces: the 5 most-recently-used, alternating with workspaces so neither displaces the other. A tap dials the profile straight away and lands on the Connections tab. OpenAI and email profiles are skipped.

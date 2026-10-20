@@ -58,7 +58,7 @@ import sh.haven.core.data.db.entities.WorkspaceProfile
         ChatConversation::class,
         ChatMessage::class,
     ],
-    version = 85,
+    version = 86,
     exportSchema = true,
 )
 abstract class HavenDatabase : RoomDatabase() {
@@ -1372,6 +1372,13 @@ abstract class HavenDatabase : RoomDatabase() {
             override fun migrate(db: SupportSQLiteDatabase) {
                 addColumnIfMissing(db, "connection_profiles", "aiRouteType", "TEXT DEFAULT NULL")
                 addColumnIfMissing(db, "connection_profiles", "aiRouteProfileId", "TEXT DEFAULT NULL")
+            }
+        }
+
+        /** Per-connection session-manager command (#731). */
+        val MIGRATION_85_86 = object : Migration(85, 86) {
+            override fun migrate(db: SupportSQLiteDatabase) {
+                addColumnIfMissing(db, "connection_profiles", "sessionCommandOverride", "TEXT DEFAULT NULL")
             }
         }
 

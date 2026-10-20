@@ -151,6 +151,13 @@ class SshTerminalEmulatorOwner @Inject constructor(
                 }
             }
         }
+        scope.launch {
+            preferencesRepository.ambiwidth.collect { enabled ->
+                for (id in bundles.keys) {
+                    bundles[id]?.emulatorOrNull()?.setAmbiwidth(enabled)
+                }
+            }
+        }
         // Dispose a bundle only when its session is fully removed from the map
         // (the removeSession teardown). RECONNECTING / clean-exit-still-present
         // keep the same TerminalSession, so the bundle must survive them.

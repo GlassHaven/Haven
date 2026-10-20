@@ -2,12 +2,14 @@ package sh.haven.feature.tunnel
 
 import io.mockk.coEvery
 import io.mockk.coVerify
+import io.mockk.every
 import io.mockk.mockk
 import io.mockk.just
 import io.mockk.runs
 import io.mockk.slot
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.ExperimentalCoroutinesApi
+import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.test.StandardTestDispatcher
 import kotlinx.coroutines.test.advanceUntilIdle
 import kotlinx.coroutines.test.resetMain
@@ -23,6 +25,9 @@ import sh.haven.core.data.db.entities.TunnelConfig
 import sh.haven.core.data.db.entities.TunnelConfigType
 import sh.haven.core.data.repository.ConnectionLogRepository
 import sh.haven.core.data.repository.TunnelConfigRepository
+import sh.haven.core.tunnel.AnyConnectConfigBlob
+import sh.haven.core.tunnel.AnyConnectSessionController
+import sh.haven.core.tunnel.TunnelManager
 import sh.haven.core.tunnel.NetbirdConfigBlob
 import sh.haven.core.tunnel.TailscaleConfigBlob
 
@@ -36,6 +41,7 @@ class TunnelViewModelTest {
 
     private val testDispatcher = StandardTestDispatcher()
     private lateinit var repository: TunnelConfigRepository
+    private lateinit var sessions: AnyConnectSessionController
     private lateinit var viewModel: TunnelViewModel
 
     @Before
@@ -43,10 +49,15 @@ class TunnelViewModelTest {
         Dispatchers.setMain(testDispatcher)
         repository = mockk(relaxed = true)
         val connectionLogRepository = mockk<ConnectionLogRepository>(relaxed = true)
+        sessions = mockk(relaxed = true)
+        val tunnelManager = mockk<TunnelManager>()
+        every { tunnelManager.live } returns MutableStateFlow(emptyMap())
         viewModel = TunnelViewModel(
             repository = repository,
             connectionLogRepository = connectionLogRepository,
             httpClient = OkHttpClient(),
+            tunnelManager = tunnelManager,
+            anyConnectSessions = sessions,
         )
     }
 
@@ -185,5 +196,126 @@ class TunnelViewModelTest {
         assertEquals("NBKEY-x", parsed!!.setupKey)
         assertEquals("https://netbird.example.com", parsed.managementURL)
         assertEquals("NETBIRD", saved.captured.type)
+    }
+
+    @Test
+    fun addAnyConnect_plainHttpServer_setsErrorAndSkipsSave() = runTest {
+        viewModel.addAnyConnectConfig("Corp", AnyConnectForm("http://vpn.example.com", "alice", "pw"))
+        advanceUntilIdle()
+        assertEquals(
+            "Server must use https:// (AnyConnect gateways never use plain http)",
+            viewModel.error.value,
+        )
+        coVerify(exactly = 0) { repository.save(any()) }
+    }
+
+    @Test
+    fun addAnyConnect_missingUsername_setsErrorAndSkipsSave() = runTest {
+        viewModel.addAnyConnectConfig("Corp", AnyConnectForm("vpn.example.com", " ", "pw"))
+        advanceUntilIdle()
+        assertEquals("Username is required", viewModel.error.value)
+        coVerify(exactly = 0) { repository.save(any()) }
+    }
+
+    @Test
+    fun addAnyConnect_badCertPin_setsErrorAndSkipsSave() = runTest {
+        viewModel.addAnyConnectConfig(
+            "Corp",
+            AnyConnectForm("vpn.example.com", "alice", "pw", serverCert = "not-a-pin"),
+        )
+        advanceUntilIdle()
+        assertEquals(
+            "Server certificate must look like pin-sha256:<base64>, sha256:<hex> or sha1:<hex>",
+            viewModel.error.value,
+        )
+        coVerify(exactly = 0) { repository.save(any()) }
+    }
+
+    @Test
+    fun updateAnyConnect_happyPath_normalisesAndKeepsIdentity() = runTest {
+        val existing = existingRow(TunnelConfigType.ANYCONNECT, ownerProfileId = "p9")
+        coEvery { repository.getById("t1") } returns existing
+        val saved = slot<TunnelConfig>()
+        coEvery { repository.save(capture(saved)) } just runs
+
+        viewModel.updateAnyConnectConfig(
+            "t1",
+            " Corp VPN ",
+            AnyConnectForm(
+                server = " https://vpn.example.com:8443/eng/ ",
+                username = " alice ",
+                password = " pw with spaces ",
+                authGroup = " Engineering ",
+                otpSecret = " JBSWY3DPEHPK3PXP ",
+                serverCert = "pin-sha256:S3KaYstbxN7utxyPDQBCHpRA6AlxqG8UgNVY3CQJnRA=",
+            ),
+        )
+        advanceUntilIdle()
+
+        val parsed = AnyConnectConfigBlob.parse(saved.captured.configText)!!
+        assertEquals("vpn.example.com:8443/eng", parsed.server)
+        assertEquals("alice", parsed.username)
+        assertEquals(" pw with spaces ", parsed.password)
+        assertEquals("Engineering", parsed.authGroup)
+        assertEquals("JBSWY3DPEHPK3PXP", parsed.otpSecret)
+        assertEquals("Corp VPN", saved.captured.label)
+        assertEquals("ANYCONNECT", saved.captured.type)
+        assertEquals("t1", saved.captured.id)
+        assertEquals(12345L, saved.captured.createdAt)
+        assertEquals("p9", saved.captured.ownerProfileId)
+    }
+
+    @Test
+    fun anyConnectForm_fromBlob_prefillsEveryField() {
+        val blob = AnyConnectConfigBlob("vpn", "u", "p", "g", "o", "x", "c")
+        assertEquals(
+            AnyConnectForm("vpn", "u", "p", "g", "o", "x", "c", stayConnected = true),
+            AnyConnectForm.from(blob),
+        )
+        assertEquals(AnyConnectForm("", "", ""), AnyConnectForm.from(null))
+    }
+
+    private fun anyConnectRow(blob: AnyConnectConfigBlob) = TunnelConfig(
+        id = "t1",
+        label = "Corp",
+        type = TunnelConfigType.ANYCONNECT.name,
+        configText = blob.encode(),
+        createdAt = 12345L,
+    )
+
+    @Test
+    fun updateAnyConnect_accountChange_signsOutOldSession() = runTest {
+        coEvery { repository.getById("t1") } returns anyConnectRow(AnyConnectConfigBlob("vpn.old.example", "alice", "pw"))
+        viewModel.updateAnyConnectConfig("t1", "Corp", AnyConnectForm("vpn.new.example", "alice", "pw"))
+        advanceUntilIdle()
+        coVerify(exactly = 1) { sessions.disconnect("t1", signOut = true) }
+    }
+
+    @Test
+    fun updateAnyConnect_passwordChange_disconnectsButKeepsSessionResumable() = runTest {
+        coEvery { repository.getById("t1") } returns anyConnectRow(AnyConnectConfigBlob("vpn.example", "alice", "old"))
+        viewModel.updateAnyConnectConfig("t1", "Corp", AnyConnectForm("vpn.example", "alice", "new"))
+        advanceUntilIdle()
+        coVerify(exactly = 1) { sessions.disconnect("t1", signOut = false) }
+    }
+
+    @Test
+    fun updateAnyConnect_labelOrStayConnectedOnly_leavesTunnelAlone() = runTest {
+        coEvery { repository.getById("t1") } returns anyConnectRow(AnyConnectConfigBlob("vpn.example", "alice", "pw"))
+        viewModel.updateAnyConnectConfig(
+            "t1", "Renamed",
+            AnyConnectForm("vpn.example", "alice", "pw", stayConnected = false),
+        )
+        advanceUntilIdle()
+        coVerify(exactly = 0) { sessions.disconnect(any(), any()) }
+    }
+
+    @Test
+    fun deleteAnyConnect_signsOutBeforeDeleting() = runTest {
+        coEvery { repository.getById("t1") } returns anyConnectRow(AnyConnectConfigBlob("vpn.example", "alice", "pw"))
+        viewModel.delete("t1")
+        advanceUntilIdle()
+        coVerify(exactly = 1) { sessions.disconnect("t1", signOut = true) }
+        coVerify(exactly = 1) { repository.delete("t1") }
     }
 }

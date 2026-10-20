@@ -1,0 +1,1 @@
+Fixed: SSH connects pinned to a FIDO2 key (YubiKey) failed on the Mosh/emergency, jump-host and headless (MCP) paths. Terminal selection now anchors where you first touched. Guest fixes: guest UDP programs reach mapped hosts, SysV shared memory works without /dev/ashmem, newer syscalls translated (proot).

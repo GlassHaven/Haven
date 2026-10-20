@@ -67,7 +67,7 @@ class DesktopViewModelDistroAddConfirmTest {
         family = PackageFamily.APT,
         rootfsSources = mapOf(
             Arch.X86_64 to RootfsSource(url = "https://example.test/test.tar.gz", sha256 = "abc"),
-            Arch.ARM to RootfsSource(url = "https://example.test/test.tar.gz", sha256 = "abc"),
+            Arch.ARM to RootfsSource(url = "https://example.test/test.tar.gz", sha256 = "abc", stripComponents = 1),
         ),
         baselinePackages = emptyList(),
         sizeEstimateMb = 42,
@@ -161,7 +161,7 @@ class DesktopViewModelDistroAddConfirmTest {
                 family = PackageFamily.APT,
                 source = "https://example.test/test.tar.gz",
                 format = any(),
-                stripComponents = any(),
+                stripComponents = 1,
                 expectedSha256 = "abc",
             )
         }

@@ -59,4 +59,23 @@
     <string name="cf_jump_destination_help">Bastion-मोड बहु-लक्ष्य टनल: `Cf-Access-Jump-Destination` के रूप में फ़ॉरवर्ड किया जाता है। एकल-लक्ष्य मार्गों के लिए खाली छोड़ें।</string>
     <string name="cf_jwt_paste_help">Headless सेटअप के लिए: किसी अन्य मशीन पर `cloudflared access token --app https://&lt;hostname&gt;` चलाएँ और JWT यहाँ पेस्ट करें। समाप्ति टोकन से स्वतः पार्स की जाती है।</string>
     <string name="cf_field_jwt">Cloudflare Access JWT (वैकल्पिक)</string>
+    <string name="tunnel_anyconnect_help">Cisco ऐप के बिना Cisco AnyConnect या ocserv (OpenConnect) VPN के ज़रिए कनेक्ट करें। केवल इस टनल से रूट होने वाली प्रोफ़ाइल इसका उपयोग करती हैं; फ़ोन का बाकी ट्रैफ़िक नहीं। उपयोगकर्ता नाम/पासवर्ड, ऑथ ग्रुप और TOTP या पुश दूसरा फ़ैक्टर समर्थित हैं; SAML/SSO और क्लाइंट प्रमाणपत्र नहीं।</string>
+    <string name="tunnel_anyconnect_server_label">सर्वर</string>
+    <string name="tunnel_anyconnect_server_help">गेटवे होस्ट जैसा आप Cisco ऐप में लिखते हैं, चाहें तो :पोर्ट या ग्रुप पाथ के साथ।</string>
+    <string name="tunnel_anyconnect_username_label">उपयोगकर्ता नाम</string>
+    <string name="tunnel_anyconnect_password_label">पासवर्ड</string>
+    <string name="tunnel_anyconnect_group_label">ऑथ ग्रुप (वैकल्पिक)</string>
+    <string name="tunnel_anyconnect_group_help">सर्वर की सूची से चुना जाने वाला ग्रुप या प्रोफ़ाइल। डिफ़ॉल्ट के लिए खाली छोड़ें।</string>
+    <string name="tunnel_anyconnect_otp_label">OTP सीक्रेट (वैकल्पिक)</string>
+    <string name="tunnel_anyconnect_otp_help">आपके ऑथेंटिकेटर सेटअप का Base32 सीक्रेट या otpauth:// लिंक। Haven कोड प्रॉम्प्ट का जवाब खुद देता है, जिससे टनल बिना आपकी मदद के फिर से कनेक्ट हो सकता है।</string>
+    <string name="tunnel_anyconnect_secondary_label">दूसरे फ़ैक्टर का उत्तर (वैकल्पिक)</string>
+    <string name="tunnel_anyconnect_secondary_help">दूसरे प्रॉम्प्ट का एक निश्चित उत्तर, जैसे Duo के लिए push। केवल तब उपयोग होता है जब OTP सीक्रेट सेट न हो।</string>
+    <string name="tunnel_anyconnect_cert_label">सर्वर प्रमाणपत्र (वैकल्पिक)</string>
+    <string name="tunnel_anyconnect_cert_help">केवल सेल्फ़-साइन्ड गेटवे के लिए: pin-sha256:… मान। प्रमाणपत्र भरोसेमंद न होने पर कनेक्शन त्रुटि यहाँ चिपकाने वाला मान दिखाती है।</string>
+    <string name="tunnel_status_connected">कनेक्टेड</string>
+    <string name="tunnel_sign_out">साइन आउट</string>
+    <string name="tunnel_anyconnect_password_help">साइन इन के समय पूछे जाने के लिए खाली छोड़ें।</string>
+    <string name="tunnel_anyconnect_prompt_help">SMS या ईमेल से भेजे गए कोड: OTP सीक्रेट और दूसरे फ़ैक्टर का उत्तर खाली छोड़ें, साइन इन के समय Haven कोड पूछेगा।</string>
+    <string name="tunnel_anyconnect_stay_connected_label">कनेक्टेड रहें</string>
+    <string name="tunnel_anyconnect_stay_connected_help">Cisco ऐप की तरह, आख़िरी कनेक्शन बंद होने के बाद भी VPN चालू रखें। बंद होने पर: VPN डिस्कनेक्ट हो जाता है, और जल्द दोबारा कनेक्ट करने पर सत्र बिना नए कोड के फिर शुरू होता है।</string>
 </resources>

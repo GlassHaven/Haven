@@ -17,6 +17,7 @@
     <string name="vnc_cd_exit_fullscreen">Salir de pantalla completa</string>
     <string name="vnc_cd_input_mode_trackpad_on">Modo trackpad activado (toca para toque directo)</string>
     <string name="vnc_cd_input_mode_direct">Modo de toque directo (toca para trackpad)</string>
+    <string name="vnc_cd_trackpad_sensitivity">Sensibilidad del trackpad</string>
     <string name="vnc_orientation_landscape_desc">Bloquear horizontal (toca para cambiar a vertical)</string>
     <string name="vnc_orientation_portrait_desc">Bloquear vertical (toca para cambiar a automático)</string>
     <string name="vnc_orientation_auto_desc">Rotación automática (toca para cambiar a horizontal)</string>
@@ -30,4 +31,5 @@
     <!-- Backfill 2026-07: strings added since the last i18n pass -->
     <string name="vnc_cd_two_finger_viewport">Dos dedos mueven la vista (toca para desplazar la pantalla remota)</string>
     <string name="vnc_cd_two_finger_scroll_on">Dos dedos desplazan la pantalla remota (toca para mover la vista)</string>
+    <string name="vnc_cd_paste">Pegar portapapeles</string>
 </resources>

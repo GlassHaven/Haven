@@ -233,6 +233,10 @@
     <string name="settings_scrollback_rows_value">%1$,d lignes</string>
     <string name="settings_tap_to_position_title">Toucher pour déplacer le curseur sur les invites prises en charge</string>
     <string name="settings_tap_to_position_subtitle">Toucher dans une invite shell pour déplacer le curseur à cette colonne. Nécessite les marqueurs OSC 133 (starship, fish 3.6+, configurations récentes bash/zsh avec intégration shell). Sans effet sur les shells qui ne les émettent pas</string>
+    <string name="settings_swipe_arrows_title">Glisser envoie les flèches</string>
+    <string name="settings_swipe_arrows_subtitle">Les glissements horizontaux dans le terminal envoient ← → (maintenir pour répéter) au lieu de changer d\'onglet. La touche Glisser de la barre active le même mode</string>
+    <string name="settings_swipe_arrows_exit_hint">Avec la barre d\'onglets de l\'application masquée et une session ouverte, les glissements continuent d\'envoyer des flèches jusqu\'à ce que la touche Glisser de la barre soit tapée. Ajoutez la touche Glisser à la barre pour l\'avoir toujours à portée</string>
+    <string name="settings_swipe_arrows_add_key">Ajouter la touche Glisser</string>
 
     <string name="settings_bandwidth_suggest_subtitle">Détecte un débit inférieur à ~1 Mbit/s après quelques secondes et propose une reconnexion en 256 couleurs en un geste. Désactivé masque l\'invite.</string>
     <string name="settings_bandwidth_suggest_title">Suggérer 256 couleurs sur les liens VNC lents</string>
@@ -262,6 +266,7 @@
     <string name="settings_color_scheme_apply_palette_title">Appliquer la palette ANSI du thème</string>
     <string name="settings_color_scheme_apply_palette_subtitle">Recolore les 16 couleurs ANSI selon le thème. Désactivé conserve les couleurs standard, pour que les applis plein écran comme mutt s\'affichent normalement.</string>
     <string name="settings_toolbar_min_key_width">Largeur minimale des touches : %1$d dp</string>
+    <string name="settings_toolbar_key_scale">Échelle des touches : %1$d%%</string>
     <string name="settings_toolbar_uniform_grid">Grille de touches uniforme</string>
     <string name="settings_toolbar_uniform_grid_desc">Chaque touche occupe une cellule de largeur égale, comme Termux ; les libellés longs passent à la ligne. Pas de défilement latéral.</string>
     <string name="settings_terminal_font_title">Police du terminal</string>
@@ -444,6 +449,8 @@
     <string name="settings_terminal_opacity_value">%1$d%%</string>
     <string name="settings_terminal_opacity_hint" formatted="false">En dessous de 100%, Haven devient translucide et affiche votre fond d\'écran derrière chaque écran (terminal, listes, paramètres). Un remplacement par connexion ne s\'applique qu\'à ce terminal.</string>
     <string name="settings_section_mcp">Agent IA (MCP)</string>
+    <string name="settings_tailscale_discovery_title">Découverte des pairs Tailscale</string>
+    <string name="settings_tailscale_discovery_subtitle">Rechercher les hôtes de votre réseau Tailscale via son API locale lors de l’analyse. Désactivez pour empêcher Haven de lire la liste des pairs ; Tailscale n’est pas affecté.</string>
     <string name="settings_audio_bridge_title">Audio proot (expérimental)</string>
     <string name="settings_audio_bridge_subtitle">Diffuse le son des applis Linux sur le haut-parleur de l\'appareil via un pont PulseAudio dans le guest. Sortie uniquement. Diffuse en continu tant que c\'est activé — désactivez quand vous ne l\'utilisez pas.</string>
     <string name="settings_reverse_tunnel_status_active">Near (SSH) : via %1$s — connecté</string>
@@ -513,4 +520,6 @@ Chaque clé privée déjà stockée dans Haven devra être importée ou génér�
     <string name="settings_inline_images_off">Désactivé</string>
     <string name="settings_inline_images_ask">Demander</string>
     <string name="settings_inline_images_always">Toujours</string>
+    <string name="settings_ambiwidth_title">Largeur ambiguë en double largeur</string>
+    <string name="settings_ambiwidth_subtitle">Afficher les caractères asiatiques ambigus sur 2 cellules</string>
 </resources>

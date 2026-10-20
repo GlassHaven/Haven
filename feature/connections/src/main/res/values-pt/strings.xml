@@ -300,6 +300,8 @@
     <string name="connections_field_post_login">Comando pós-login</string>
     <string name="connections_field_remote_command">Comando remoto (avançado)</string>
     <string name="connections_helper_remote_command">É executado como comando SSH em vez de abrir um shell de login. Deixe em branco para o shell normal.</string>
+    <string name="connections_field_session_command">Comando de sessão (avançado)</string>
+    <string name="connections_helper_session_command">Substitui o comando de início do gerenciador de sessões apenas para esta conexão. {name} vira o nome da sessão. Use quando o comando tmux/screen embutido não puder executar, por exemplo um host Windows: wsl -e sh -c "tmux new-session -A -s {name}". Em branco usa a configuração global.</string>
     <string name="connections_toggle_request_pty">Solicitar terminal (PTY)</string>
     <string name="connections_helper_post_login">Enviado após o login.</string>
     <string name="connections_dropdown_none_direct">Nenhum (direto)</string>

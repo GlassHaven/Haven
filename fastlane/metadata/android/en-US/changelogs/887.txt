@@ -1,0 +1,5 @@
+- Fix Debian 13 (Trixie) PAX extended header extraction so /usr/share/dpkg/cputable is not dropped (#721)
+- Fix PRoot fake_id0 32-bit getresuid/getresgid and NETLINK_AUDIT socket handling so apt, sudo, and su work in root and user modes (#721)
+- Generate en_US.UTF-8 locale on Debian/Ubuntu and fall back to C.UTF-8 until ready (#721)
+- Move toolbar Paste away from Tab and wire Paste in VNC key bar (#720)
+- Run single-app Cage windows in the warm UML guest and simplify Desktop Manage UI

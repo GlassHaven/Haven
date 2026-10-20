@@ -1,0 +1,2 @@
+• Toolbar keys can be scaled up (#641): the toolbar config dialog gains a 100%-200% key-scale slider; the wayland desktop toolbar follows the same setting.
+• Material You's ANSI palette follows the theme (#139): SGR colours derive from the wallpaper-driven scheme instead of a fixed fallback, keeping standard hues for diffs, mutt and git.

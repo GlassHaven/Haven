@@ -1413,6 +1413,7 @@
       "ko": "Linux 데스크톱",
       "pt": "Desktop Linux",
       "ru": "Рабочий стол Linux",
+      "sr": "Линукс десктоп",
       "zh": "Linux 桌面"
      }
     },
@@ -1432,6 +1433,7 @@
       "ko": "약 4초 만에 준비 · Alpine 앱 · 한 번에 하나",
       "pt": "Pronto em cerca de 4 segundos · apps Alpine · um desktop por vez",
       "ru": "Готов примерно за 4 секунды · приложения Alpine · один рабочий стол за раз",
+      "sr": "Спремно за отприлике 4 секунде · Алпајн апликације · један десктоп истовремено",
       "zh": "约 4 秒就绪 · Alpine 应用 · 同一时间一个桌面"
      }
     },
@@ -1451,6 +1453,7 @@
       "ko": "임의의 배포판 · 데스크톱 6개 · 다른 앱과 함께 실행",
       "pt": "Qualquer distro · 6 desktops · roda junto com seus outros apps",
       "ru": "Любой дистрибутив · 6 рабочих столов · работает вместе с другими приложениями",
+      "sr": "Било која дистрибуција · 6 десктопа · извршава се уз ваше остале апликације",
       "zh": "任意发行版 · 6 个桌面 · 与其他应用并行运行"
      }
     },
@@ -1470,6 +1473,7 @@
       "ko": "시작 · 빠른 (UML)",
       "pt": "Iniciar · Rápido (UML)",
       "ru": "Запустить · Быстрый (UML)",
+      "sr": "Старт · Брзи (UML)",
       "zh": "启动 · 快速 (UML)"
      }
     },
@@ -1489,6 +1493,7 @@
       "ko": "시작 · 전체 (proot)",
       "pt": "Iniciar · Completo (proot)",
       "ru": "Запустить · Полный (proot)",
+      "sr": "Старт · Комплетан (proot)",
       "zh": "启动 · 完整 (proot)"
      }
     },
@@ -1508,6 +1513,7 @@
       "ko": "대신 전체 Linux 사용",
       "pt": "Usar Linux completo em vez disso",
       "ru": "Вместо этого использовать полный Linux",
+      "sr": "Користи комплетан Линукс",
       "zh": "改用完整 Linux"
      }
     },
@@ -1527,6 +1533,7 @@
       "ko": "대신 빠른 데스크톱 사용",
       "pt": "Usar o desktop rápido em vez disso",
       "ru": "Вместо этого использовать быстрый рабочий стол",
+      "sr": "Користи брзи десктоп",
       "zh": "改用快速桌面"
      }
     },
@@ -1546,6 +1553,7 @@
       "ko": "실행 중",
       "pt": "Em execução",
       "ru": "Запущено",
+      "sr": "Извршава се",
       "zh": "正在运行"
      }
     },
@@ -1567,6 +1575,7 @@
       "ko": "빠름 · %1$s",
       "pt": "Rápido · %1$s",
       "ru": "Быстрый · %1$s",
+      "sr": "Брзо · %1$s",
       "zh": "快速 · %1$s"
      }
     },
@@ -1588,6 +1597,7 @@
       "ko": "전체 · %1$s",
       "pt": "Completo · %1$s",
       "ru": "Полный · %1$s",
+      "sr": "Комплетно · %1$s",
       "zh": "完整 · %1$s"
      }
     },
@@ -1972,6 +1982,82 @@
      }
     },
     {
+     "name": "app_desktop_guest_user_title",
+     "en": "Guest user",
+     "comment": "Guest DNS (#446): the hardcoded public resolvers failed silently on networks that only allow their own resolver.",
+     "args": [],
+     "t": {
+      "ar": "مستخدم الضيف",
+      "bn": "গেস্ট ব্যবহারকারী",
+      "de": "Gastbenutzer",
+      "es": "Usuario invitado",
+      "fr": "Utilisateur invité",
+      "hi": "अतिथि उपयोगकर्ता",
+      "ja": "ゲストユーザー",
+      "ko": "게스트 사용자",
+      "pt": "Utilizador convidado",
+      "ru": "Гостевой пользователь",
+      "zh": "访客用户"
+     }
+    },
+    {
+     "name": "app_desktop_guest_user_description",
+     "en": "Run shells and X11 desktops as a normal user (uid 1000) with passwordless sudo instead of root. Leave blank or set to root for root mode.",
+     "comment": "Guest DNS (#446): the hardcoded public resolvers failed silently on networks that only allow their own resolver.",
+     "args": [],
+     "t": {
+      "ar": "تشغيل الصدفات وأسطح مكتب X11 كمستخدم عادي (uid 1000) مع صلاحية sudo بدون كلمة مرور بدلاً من الجذر. اتركه فارغاً أو اضبطه على root لوضع الجذر.",
+      "bn": "রুটের পরিবর্তে পাসওয়ার্ডহীন sudo সহ সাধারণ ব্যবহারকারী (uid 1000) হিসেবে শেল এবং X11 ডেস্কটপ চালান। রুট মোডের জন্য ফাঁকা রাখুন বা root লিখুন।",
+      "de": "Shells und X11-Desktops als normaler Benutzer (UID 1000) mit passwortlosem sudo statt als root ausführen. Für den Root-Modus leer lassen oder auf root setzen.",
+      "es": "Ejecuta shells y escritorios X11 como un usuario normal (uid 1000) con sudo sin contraseña en lugar de root. Déjalo en blanco o escribe root para el modo root.",
+      "fr": "Exécuter les shells et les bureaux X11 en tant qu\\'utilisateur normal (uid 1000) avec sudo sans mot de passe au lieu de root. Laisser vide ou définir sur root pour le mode root.",
+      "hi": "रूट के बजाय बिना पासवर्ड वाले sudo के साथ सामान्य उपयोगकर्ता (uid 1000) के रूप में शेल और X11 डेस्कटॉप चलाएं। रूट मोड के लिए खाली छोड़ें या root सेट करें।",
+      "ja": "root の代わりにパスワードなし sudo を持つ一般ユーザー (uid 1000) としてシェルと X11 デスクトップを実行します。root モードにするには空欄にするか root を指定してください。",
+      "ko": "root 대신 비밀번호 없는 sudo 권한을 가진 일반 사용자(uid 1000)로 셸과 X11 데스크톱을 실행합니다. root 모드를 사용하려면 비워 두거나 root로 설정하세요.",
+      "pt": "Executar shells e ambientes gráficos X11 como um utilizador normal (uid 1000) com sudo sem palavra-passe em vez de root. Deixe em branco ou defina como root para o modo root.",
+      "ru": "Запускать оболочки и рабочие столы X11 от имени обычного пользователя (uid 1000) с sudo без пароля вместо root. Оставьте пустым или укажите root для режима суперпользователя.",
+      "zh": "以具有免密 sudo 权限的普通用户 (uid 1000) 而非 root 身份运行 shell 和 X11 桌面。留空或设为 root 则使用 root 模式。"
+     }
+    },
+    {
+     "name": "app_desktop_guest_user_label",
+     "en": "Username",
+     "comment": "Guest DNS (#446): the hardcoded public resolvers failed silently on networks that only allow their own resolver.",
+     "args": [],
+     "t": {
+      "ar": "اسم المستخدم",
+      "bn": "ব্যবহারকারীর নাম",
+      "de": "Benutzername",
+      "es": "Nombre de usuario",
+      "fr": "Nom d\\'utilisateur",
+      "hi": "उपयोगकर्ता नाम",
+      "ja": "ユーザー名",
+      "ko": "사용자 이름",
+      "pt": "Nome de utilizador",
+      "ru": "Имя пользователя",
+      "zh": "用户名"
+     }
+    },
+    {
+     "name": "app_desktop_guest_user_hint",
+     "en": "root (or e.g. user)",
+     "comment": "Guest DNS (#446): the hardcoded public resolvers failed silently on networks that only allow their own resolver.",
+     "args": [],
+     "t": {
+      "ar": "root (أو مثلاً user)",
+      "bn": "root (অথবা যেমন user)",
+      "de": "root (oder z. B. user)",
+      "es": "root (o p. ej. user)",
+      "fr": "root (ou p. ex. user)",
+      "hi": "root (या उदा. user)",
+      "ja": "root (または user など)",
+      "ko": "root (또는 예: user)",
+      "pt": "root (ou ex. user)",
+      "ru": "root (или, например, user)",
+      "zh": "root（或例如 user）"
+     }
+    },
+    {
      "name": "app_desktop_bind_android_system_title",
      "en": "Expose Android system to guest",
      "comment": "Guest DNS (#446): the hardcoded public resolvers failed silently on networks that only allow their own resolver.",
@@ -2351,6 +2437,7 @@
       "ko": "USB 카드 직접 열기(복구 콘솔)…",
       "pt": "Abrir cartão USB diretamente (console de resgate)…",
       "ru": "Открыть USB-карту напрямую (консоль восстановления)…",
+      "sr": "Отвори USB картицу директно (конзола за опоравак)…",
       "zh": "直接打开 USB 卡（救援控制台）…"
      }
     },
@@ -2370,6 +2457,7 @@
       "ko": "USB 카드 직접 열기(쓰기 가능)…",
       "pt": "Abrir cartão USB diretamente (com escrita)…",
       "ru": "Открыть USB-карту напрямую (с записью)…",
+      "sr": "Отвори USB картицу директно (са уписивањем)…",
       "zh": "直接打开 USB 卡（可写）…"
      }
     },
@@ -2391,6 +2479,7 @@
       "ko": "복구 게스트에 raw 카드가 연결됨 — \"%1$s\" 연결을 여세요",
       "pt": "Cartão bruto anexado no convidado de resgate — abra a conexão “%1$s”",
       "ru": "Raw-карта подключена в госте восстановления — откройте подключение «%1$s»",
+      "sr": "Сирова картица прикачена у госта за опоравак — отвори везу „%1$s“",
       "zh": "原始卡已挂载到救援客户机 — 打开\"%1$s\"连接"
      }
     },
@@ -2412,6 +2501,7 @@
       "ko": "NBD로 연결된 raw 카드 · 읽기 전용 · %1$s",
       "pt": "Cartão bruto via NBD · somente leitura · %1$s",
       "ru": "Raw-карта через NBD · только чтение · %1$s",
+      "sr": "Сирова картица преко NBD · само-за-читање · %1$s",
       "zh": "通过 NBD 的原始卡 · 只读 · %1$s"
      }
     },
@@ -2433,6 +2523,7 @@
       "ko": "NBD로 연결된 raw 카드 · 쓰기 가능 · %1$s",
       "pt": "Cartão bruto via NBD · ESCRITA · %1$s",
       "ru": "Raw-карта через NBD · ЗАПИСЬ · %1$s",
+      "sr": "Сирова картица преко NBD · СА УПИСИВАЊЕМ · %1$s",
       "zh": "通过 NBD 的原始卡 · 可写 · %1$s"
      }
     },
@@ -2452,6 +2543,7 @@
       "ko": "라이브 세션 닫기",
       "pt": "Fechar sessão ao vivo",
       "ru": "Закрыть прямой сеанс",
+      "sr": "Затвори сесију уживо",
       "zh": "关闭实时会话"
      }
     },
@@ -3784,6 +3876,7 @@
       "ko": "UML 게스트 데스크톱",
       "pt": "Desktop de convidado UML",
       "ru": "Рабочий стол гостя UML",
+      "sr": "UML десктоп гост",
       "zh": "UML 客机桌面"
      }
     },
@@ -3803,6 +3896,7 @@
       "ko": "UML 게스트의 고유 커널 안에서 실행되는 데스크톱을 VNC로 표시합니다. 한 번에 하나씩(각각 완전한 커널)입니다. 패키지 설치에는 몇 분이 걸립니다.",
       "pt": "Desktops que rodam dentro do próprio kernel do convidado UML, vistos por VNC. Um por vez (cada um é um kernel completo); instalar os pacotes leva alguns minutos.",
       "ru": "Рабочие столы, выполняемые в собственном ядре гостя UML, поверх VNC. Один за раз (каждый — целое ядро); установка пакетов занимает несколько минут.",
+      "sr": "Десктопи који се извршавају унутар UML гостовог сопственог кернела, приказани преко VNC. Један истовремено (сваки је комплетан кернел); инсталација пакета траје неколико минута.",
       "zh": "运行在 UML 客机自身内核里的桌面，可通过 VNC 查看。同一时间只能运行一个（每个都是完整内核）；安装软件包需要几分钟。"
      }
     },
@@ -3822,6 +3916,7 @@
       "ko": "설치",
       "pt": "Instalar",
       "ru": "Установить",
+      "sr": "Инсталирај",
       "zh": "安装"
      }
     },
@@ -3841,6 +3936,7 @@
       "ko": "설치됨",
       "pt": "Instalado",
       "ru": "Установлен",
+      "sr": "Инсталирано",
       "zh": "已安装"
      }
     },
@@ -3860,6 +3956,7 @@
       "ko": "설치 안 됨",
       "pt": "Não instalado",
       "ru": "Не установлен",
+      "sr": "Није инсталирано",
       "zh": "未安装"
      }
     },
@@ -3879,6 +3976,7 @@
       "ko": "패키지 설치 중…",
       "pt": "Instalando pacotes…",
       "ru": "Установка пакетов…",
+      "sr": "Инсталирају се пакети…",
       "zh": "正在安装软件包…"
      }
     },
@@ -3900,6 +3998,7 @@
       "ko": "포트 %1$d에서 시작 중…",
       "pt": "Iniciando na porta %1$d…",
       "ru": "Запуск на порту %1$d…",
+      "sr": "Покреће се на порту %1$d…",
       "zh": "正在端口 %1$d 启动…"
      }
     },
@@ -3921,6 +4020,7 @@
       "ko": "실행 중 · VNC 127.0.0.1:%1$d",
       "pt": "Em execução · VNC 127.0.0.1:%1$d",
       "ru": "Работает · VNC 127.0.0.1:%1$d",
+      "sr": "Извршава се · VNC 127.0.0.1:%1$d",
       "zh": "运行中 · VNC 127.0.0.1:%1$d"
      }
     },
@@ -3940,6 +4040,7 @@
       "ko": "실패",
       "pt": "Falhou",
       "ru": "Сбой",
+      "sr": "Није успело",
       "zh": "失败"
      }
     },
@@ -3961,6 +4062,7 @@
       "ko": "%1$s 데스크톱 시작",
       "pt": "Iniciar desktop de %1$s",
       "ru": "Запустить рабочий стол %1$s",
+      "sr": "Покрени %1$s десктоп",
       "zh": "启动 %1$s 桌面"
      }
     },
@@ -11313,6 +11415,46 @@
       "ru": "Выполняется как команда SSH вместо открытия входной оболочки. Оставьте пустым для обычной оболочки.",
       "sr": "Извршава се као SSH команда, без отварања љуске за пријаву. Оставите празно за обичну љуску.",
       "zh": "作为 SSH 命令运行，而不是打开登录 shell。留空则使用普通 shell。"
+     }
+    },
+    {
+     "name": "connections_field_session_command",
+     "en": "Session command (advanced)",
+     "comment": "Group header",
+     "args": [],
+     "t": {
+      "ar": "أمر الجلسة (متقدم)",
+      "bn": "সেশন কমান্ড (উন্নত)",
+      "de": "Sitzungsbefehl (erweitert)",
+      "es": "Comando de sesión (avanzado)",
+      "fr": "Commande de session (avancé)",
+      "hi": "सत्र कमांड (उन्नत)",
+      "ja": "セッションコマンド（詳細）",
+      "ko": "세션 명령(고급)",
+      "pt": "Comando de sessão (avançado)",
+      "ru": "Команда сессии (расширенно)",
+      "sr": "Команда сесије (напредно)",
+      "zh": "会话命令（高级）"
+     }
+    },
+    {
+     "name": "connections_helper_session_command",
+     "en": "Replaces the session-manager start command for this connection only. {name} becomes the session name. Use it when the built-in tmux/screen command cannot run, e.g. a Windows host: wsl -e sh -c \"tmux new-session -A -s {name}\". Blank uses the global setting.",
+     "comment": "Group header",
+     "args": [],
+     "t": {
+      "ar": "يستبدل أمر بدء مدير الجلسات لهذا الاتصال فقط. يصبح {name} اسم الجلسة. استخدمه عندما لا يمكن تنفيذ أمر tmux/screen المدمج، مثل مضيف Windows: wsl -e sh -c \"tmux new-session -A -s {name}\". تركه فارغًا يستخدم الإعداد العام.",
+      "bn": "শুধু এই সংযোগের জন্য সেশন ম্যানেজারের শুরুর কমান্ড প্রতিস্থাপন করে। {name} সেশনের নাম হয়ে যায়। বিল্ট-ইন tmux/screen কমান্ড চলতে না পারলে ব্যবহার করুন, যেমন Windows হোস্ট: wsl -e sh -c \"tmux new-session -A -s {name}\"। খালি রাখলে গ্লোবাল সেটিং ব্যবহৃত হয়।",
+      "de": "Ersetzt den Startbefehl des Sitzungsmanagers nur für diese Verbindung. {name} wird durch den Sitzungsnamen ersetzt. Nutzen, wenn der integrierte tmux/screen-Befehl nicht laufen kann, z. B. Windows-Host: wsl -e sh -c \"tmux new-session -A -s {name}\". Leer nutzt die globale Einstellung.",
+      "es": "Reemplaza el comando de inicio del gestor de sesiones solo para esta conexión. {name} pasa a ser el nombre de la sesión. Úsalo cuando el comando tmux/screen integrado no pueda ejecutarse, p. ej. un host Windows: wsl -e sh -c \"tmux new-session -A -s {name}\". En blanco usa la configuración global.",
+      "fr": "Remplace la commande de démarrage du gestionnaire de sessions pour cette connexion uniquement. {name} devient le nom de session. À utiliser quand la commande tmux/screen intégrée échoue, par ex. hôte Windows : wsl -e sh -c \"tmux new-session -A -s {name}\". Laisser vide utilise le réglage global.",
+      "hi": "केवल इस कनेक्शन के लिए सत्र प्रबंधक का प्रारंभ कमांड बदल देता है। {name} सत्र का नाम बन जाता है। जब अंतर्निहित tmux/screen कमांड नहीं चल सकता तब इसका उपयोग करें, जैसे Windows होस्ट: wsl -e sh -c \"tmux new-session -A -s {name}\"। खाली रखने पर वैश्विक सेटिंग लागू होती है।",
+      "ja": "この接続に限りセッションマネージャーの起動コマンドを置き換えます。{name} はセッション名になります。組み込みの tmux/screen コマンドが実行できない場合（Windows ホストなど）に使用: wsl -e sh -c \"tmux new-session -A -s {name}\"。空欄ならグローバル設定を使用します。",
+      "ko": "이 연결에 대해서만 세션 관리자 시작 명령을 대체합니다. {name}은 세션 이름이 됩니다. 내장 tmux/screen 명령을 실행할 수 없을 때 사용하세요(예: Windows 호스트): wsl -e sh -c \"tmux new-session -A -s {name}\". 비워 두면 전역 설정을 사용합니다.",
+      "pt": "Substitui o comando de início do gerenciador de sessões apenas para esta conexão. {name} vira o nome da sessão. Use quando o comando tmux/screen embutido não puder executar, por exemplo um host Windows: wsl -e sh -c \"tmux new-session -A -s {name}\". Em branco usa a configuração global.",
+      "ru": "Заменяет команду запуска менеджера сессий только для этого подключения. {name} становится именем сессии. Используйте, когда встроенная команда tmux/screen не может выполниться, например на Windows-хосте: wsl -e sh -c \"tmux new-session -A -s {name}\". Пусто — используется глобальная настройка.",
+      "sr": "Замењује команду за покретање менаџера сесија само за ову везу. {name} постаје име сесије. Користите када уграђена tmux/screen команда не може да се изврши, нпр. Windows домаћин: wsl -e sh -c \\\"tmux new-session -A -s {name}\\\". Ако је празно, користи се глобално подешавање.",
+      "zh": "仅对此连接替换会话管理器的启动命令。{name} 会替换为会话名。当内置的 tmux/screen 命令无法运行时使用，例如 Windows 主机：wsl -e sh -c \"tmux new-session -A -s {name}\"。留空则使用全局设置。"
      }
     },
     {
@@ -27422,6 +27564,26 @@
      }
     },
     {
+     "name": "rdp_cd_trackpad_sensitivity",
+     "en": "Trackpad sensitivity",
+     "comment": "",
+     "args": [],
+     "t": {
+      "ar": "حساسية لوحة التتبع",
+      "bn": "Trackpad সংবেদনশীলতা",
+      "de": "Trackpad-Empfindlichkeit",
+      "es": "Sensibilidad del trackpad",
+      "fr": "Sensibilité du pavé tactile",
+      "hi": "Trackpad संवेदनशीलता",
+      "ja": "トラックパッドの感度",
+      "ko": "트랙패드 감도",
+      "pt": "Sensibilidade do trackpad",
+      "ru": "Чувствительность трекпада",
+      "sr": "Осетљивост трекпеда",
+      "zh": "触控板灵敏度"
+     }
+    },
+    {
      "name": "rdp_cd_two_finger_viewport",
      "en": "Two-finger pans the view (tap to scroll the remote)",
      "comment": "",
@@ -29010,6 +29172,44 @@
      }
     },
     {
+     "name": "settings_ambiwidth_title",
+     "en": "Ambiguous width as double-width",
+     "comment": "Terminal section",
+     "args": [],
+     "t": {
+      "ar": "العرض الغامض كعرض مزدوج",
+      "bn": "অস্পষ্ট প্রস্থ দ্বি-প্রস্থ হিসেবে",
+      "de": "Ambigue Breite als Doppelbreite",
+      "es": "Ancho ambiguo como doble ancho",
+      "fr": "Largeur ambiguë en double largeur",
+      "hi": "अस्पष्ट चौड़ाई को द्वि-चौड़ाई के रूप में",
+      "ja": "曖昧幅文字を倍幅で表示",
+      "ko": "모호 폭 문자를 배폭으로 표시",
+      "pt": "Largura ambígua como largura dupla",
+      "ru": "Неоднозначная ширина как двойная",
+      "zh": "模糊宽度按双宽显示"
+     }
+    },
+    {
+     "name": "settings_ambiwidth_subtitle",
+     "en": "Render East Asian Ambiguous characters as 2 cells",
+     "comment": "Terminal section",
+     "args": [],
+     "t": {
+      "ar": "عرض أحرف شرق آسيا الغامضة كخليتين",
+      "bn": "পূর্ব এশীয় অস্পষ্ট অক্ষর ২টি সেল হিসেবে রেন্ডার করুন",
+      "de": "Ostasiatische Ambiguous-Zeichen als 2 Zellen darstellen",
+      "es": "Renderizar caracteres ambiguos de Asia oriental como 2 celdas",
+      "fr": "Afficher les caractères asiatiques ambigus sur 2 cellules",
+      "hi": "पूर्व एशियाई अस्पष्ट वर्णों को 2 सेल के रूप में रेंडर करें",
+      "ja": "東アジアの曖昧幅文字を2セルで描画",
+      "ko": "동아시아 모호 폭 문자를 2셀로 렌더링",
+      "pt": "Renderizar caracteres ambíguos do Leste Asiático como 2 células",
+      "ru": "Отображать неоднозначные восточноазиатские символы в 2 ячейки",
+      "zh": "将东亚模糊宽度字符渲染为 2 个单元格"
+     }
+    },
+    {
      "name": "settings_scrollback_rows_title",
      "en": "Scrollback rows",
      "comment": "Terminal section",
@@ -29087,6 +29287,86 @@
       "ru": "Нажмите внутри приглашения shell, чтобы переместить курсор в этот столбец. Требуются маркеры OSC 133 (starship, fish 3.6+, современные настройки интеграции оболочки bash/zsh). Не влияет на оболочки, которые их не выдают",
       "sr": "Тапните унутар одзива љуске да се курсор помери у ту колону. Захтева OSC 133 маркере одзива (starship, fish 3.6+, новија подешавања bash/zsh интеграције љуске). Нема ефекта у љускама која их не емитују",
       "zh": "点击 shell 提示符内将光标移到该列。需要 OSC 133 提示符标记（starship、fish 3.6+、近期的 bash/zsh 集成设置）。不会影响不发出标记的 shell"
+     }
+    },
+    {
+     "name": "settings_swipe_arrows_title",
+     "en": "Swipe sends arrow keys",
+     "comment": "Terminal section",
+     "args": [],
+     "t": {
+      "ar": "السحب يرسل الأسهم",
+      "bn": "সোয়াইপ তীর কী পাঠায়",
+      "de": "Wisch sendet Pfeiltasten",
+      "es": "Deslizar envía flechas",
+      "fr": "Glisser envoie les flèches",
+      "hi": "स्वाइप से ऐरो की भेजें",
+      "ja": "スワイプで矢印キー送信",
+      "ko": "스와이프로 화살표 전송",
+      "pt": "Deslizar envia setas",
+      "ru": "Свайп отправляет стрелки",
+      "sr": "Превлачење шаље стрелице",
+      "zh": "滑动发送方向键"
+     }
+    },
+    {
+     "name": "settings_swipe_arrows_subtitle",
+     "en": "Horizontal swipes in the terminal send ← → (hold to repeat) instead of switching tabs. The toolbar\\'s Swipe key toggles the same mode",
+     "comment": "Terminal section",
+     "args": [],
+     "t": {
+      "ar": "السحب الأفقي في الطرفية يرسل ← → (اضغط مطولاً للتكرار) بدل تبديل التبويبات. زر السحب في شريط الأدوات يبدّل النمط نفسه",
+      "bn": "টার্মিনালে অনুভূমিক সোয়াইপ ট্যাব বদলানোর বদলে ← → (ধরে রাখলে পুনরাবৃত্তি) পাঠায়। টুলবারের সোয়াইপ কী একই মোড টগল করে",
+      "de": "Horizontale Wischs im Terminal senden ← → (Gedrückthalten wiederholt) statt Tabs zu wechseln. Die Wisch-Taste der Leiste schaltet denselben Modus um",
+      "es": "Los deslizamientos horizontales en la terminal envían ← → (mantén para repetir) en lugar de cambiar de pestaña. La tecla Deslizar de la barra activa el mismo modo",
+      "fr": "Les glissements horizontaux dans le terminal envoient ← → (maintenir pour répéter) au lieu de changer d\\'onglet. La touche Glisser de la barre active le même mode",
+      "hi": "टर्मिनल में क्षैतिज स्वाइप टैब बदलने के बजाय ← → (दोहराने के लिए दबाए रखें) भेजता है। टूलबार की स्वाइप कुंजी वही मोड बदलती है",
+      "ja": "ターミナルでの横スワイプで、タブを切り替えず ← →（長押しで連続）を送ります。ツールバーのスワイプキーも同じモードを切り替えます",
+      "ko": "터미널에서 가로 스와이프 시 탭을 전환하는 대신 ← →(길게 누르면 반복)을 전송합니다. 도구 모음의 스와이프 키도 같은 모드를 전환합니다",
+      "pt": "Deslizamentos horizontais no terminal enviam ← → (segure para repetir) em vez de trocar de aba. A tecla Deslizar da barra alterna o mesmo modo",
+      "ru": "Горизонтальные свайпы в терминале отправляют ← → (удерживайте для повтора) вместо переключения вкладок. Клавиша свайпа на панели переключает тот же режим",
+      "sr": "Хоризонтално превлачење у терминалу шаље ← → (држите за понављање) уместо пребацивања картица. Тастер за превлачење на траци укључује исти режим",
+      "zh": "在终端中横向滑动发送 ← →（长按重复）而不是切换标签页。工具栏的滑动键切换同一模式"
+     }
+    },
+    {
+     "name": "settings_swipe_arrows_exit_hint",
+     "en": "With the app tab bar hidden and a session open, swipes keep sending arrows until the toolbar\\'s Swipe key is tapped. Add the Swipe key to the toolbar so it\\'s always there",
+     "comment": "Terminal section",
+     "args": [],
+     "t": {
+      "ar": "عند إخفاء شريط تبويبات التطبيق وتوفر جلسة مفتوحة، تستمر التمريرات في إرسال الأسهم حتى يُضغط زر السحب في شريط الأدوات. أضف زر السحب إلى الشريط ليكون متاحًا دائمًا",
+      "bn": "অ্যাপের ট্যাব বার লুকানো এবং সেশন খোলা থাকলে, টুলবারের সোয়াইপ কী না চাপা পর্যন্ত সোয়াইপ তীর চিহ্নই পাঠায়। কীটি সবসময় পাওয়ার জন্য টুলবারে সোয়াইপ কীটি যোগ করুন",
+      "de": "Ist die App-Tab-Leiste ausgeblendet und eine Sitzung offen, senden Wischs weiter Pfeiltasten, bis die Wisch-Taste der Leiste angetippt wird. Füge die Wisch-Taste der Leiste hinzu, damit sie immer da ist",
+      "es": "Con la barra de pestañas de la aplicación oculta y una sesión abierta, los deslizamientos siguen enviando flechas hasta tocar la tecla Deslizar de la barra. Añade la tecla Deslizar a la barra para tenerla siempre a mano",
+      "fr": "Avec la barre d\\'onglets de l\\'application masquée et une session ouverte, les glissements continuent d\\'envoyer des flèches jusqu\\'à ce que la touche Glisser de la barre soit tapée. Ajoutez la touche Glisser à la barre pour l\\'avoir toujours à portée",
+      "hi": "ऐप का टैब बार छिपा होने और सेशन खुले होने पर, टूलबार की स्वाइप कुंजी दबाने तक स्वाइप तीर ही भेजते रहते हैं। कुंजी हमेशा उपलब्ध रहे, इसके लिए टूलबार में स्वाइप कुंजी जोड़ें",
+      "ja": "アプリのタブバーを非表示にしてセッションを開いている間は、ツールバーのスワイプキーを押すまでスワイプが矢印キーを送り続けます。いつでも使えるようスワイプキーをツールバーに追加してください",
+      "ko": "앱 탭 표시줄이 숨겨져 있고 세션이 열려 있으면, 도구 모음의 스와이프 키를 누를 때까지 스와이프가 계속 화살표를 보냅니다. 언제든 쓸 수 있도록 스와이프 키를 도구 모음에 추가하세요",
+      "pt": "Com a barra de separadores da aplicação oculta e uma sessão aberta, os deslizes continuam a enviar setas até tocar na tecla Deslizar da barra. Adicione a tecla Deslizar à barra para tê-la sempre disponível",
+      "ru": "Если панель вкладок приложения скрыта и сеанс открыт, свайпы продолжают отправлять стрелки, пока не нажата клавиша свайпа на панели. Добавьте клавишу свайпа на панель, чтобы она всегда была под рукой",
+      "sr": "Када је трака језичака апликације скривена и сесија отворена, превлачења настављају да шаљу стрелице док се не додирне тастер за превлачење на траци. Додајте тастер за превлачење у траку како би увек био при руци",
+      "zh": "应用标签栏隐藏且会话打开时，滑动会持续发送方向键，直到点按工具栏的滑动键。将该键添加到工具栏以便随时可用"
+     }
+    },
+    {
+     "name": "settings_swipe_arrows_add_key",
+     "en": "Add Swipe key",
+     "comment": "Terminal section",
+     "args": [],
+     "t": {
+      "ar": "إضافة زر السحب",
+      "bn": "সোয়াইপ কী যোগ করুন",
+      "de": "Wisch-Taste hinzufügen",
+      "es": "Añadir tecla Deslizar",
+      "fr": "Ajouter la touche Glisser",
+      "hi": "स्वाइप कुंजी जोड़ें",
+      "ja": "スワイプキーを追加",
+      "ko": "스와이프 키 추가",
+      "pt": "Adicionar tecla Deslizar",
+      "ru": "Добавить клавишу свайпа",
+      "sr": "Додај тастер за превлачење",
+      "zh": "添加滑动键"
      }
     },
     {
@@ -32093,6 +32373,28 @@
      }
     },
     {
+     "name": "settings_toolbar_key_scale",
+     "en": "Toolbar key scale: %1$d%%",
+     "comment": "Toolbar config dialog",
+     "args": [
+      "%1$d"
+     ],
+     "t": {
+      "ar": "مقياس حجم المفتاح: %1$d%%",
+      "bn": "কী স্কেল: %1$d%%",
+      "de": "Tastenskalierung: %1$d%%",
+      "es": "Escala de teclas: %1$d%%",
+      "fr": "Échelle des touches : %1$d%%",
+      "hi": "key स्केल: %1$d%%",
+      "ja": "キースケール: %1$d%%",
+      "ko": "키 크기 배율: %1$d%%",
+      "pt": "Escala de teclas: %1$d%%",
+      "ru": "Масштаб клавиш: %1$d%%",
+      "sr": "Размера тастера: %1$d%%",
+      "zh": "按键缩放：%1$d%%"
+     }
+    },
+    {
      "name": "settings_toolbar_uniform_grid",
      "en": "Uniform key grid",
      "comment": "Toolbar config dialog",
@@ -33984,6 +34286,7 @@
       "ko": "터미널 열 때 키보드 표시",
       "pt": "Mostrar o teclado ao abrir um terminal",
       "ru": "Показывать клавиатуру при открытии терминала",
+      "sr": "Прикажи тастатуру када се отвори терминал",
       "zh": "打开终端时显示键盘"
      }
     },
@@ -34003,6 +34306,7 @@
       "ko": "터미널 세션을 열거나 전환하면 소프트웨어 키보드가 자동으로 올라옵니다. 읽기 전용 세션에서는 내려두세요. 도구모음의 키보드 키와 더블 탭으로 언제든 올릴 수 있습니다",
       "pt": "O teclado virtual aparece automaticamente ao abrir ou mudar para uma sessão de terminal. Desative para mantê-lo oculto em sessões somente leitura; a tecla de teclado da barra de ferramentas e um toque duplo ainda o exibem",
       "ru": "Программная клавиатура появляется автоматически при открытии или переключении терминальной сессии. Отключите, чтобы скрывать её в сессиях только для чтения; клавиша клавиатуры на панели инструментов и двойное нажатие по-прежнему вызывают её",
+      "sr": "Софтверска тастатура се аутоматски подиже када отворите или пређете на сесију терминала. Искључите ако не желите да се прикаже за сесије које су само-за-читање; тастер тастатуре на алатној линији и двоструки тап и даље могу да је подигну",
       "zh": "打开或切换到终端会话时自动弹出软键盘。只读会话可关闭；工具栏键盘键和双击仍可随时唤出"
      }
     },
@@ -34142,6 +34446,7 @@
       "ko": "GPS를 Linux 게스트에 노출",
       "pt": "Expor o GPS ao convidado Linux",
       "ru": "Открыть GPS для Linux-гостя",
+      "sr": "Изложи GPS Линукс госту",
       "zh": "将 GPS 暴露给 Linux 客机"
      }
     },
@@ -34161,7 +34466,46 @@
       "ko": "휴대폰의 GPS 위치를 NMEA 장치(haven-gps)로 게스트에 스트리밍합니다. 켜면 게스트의 모든 프로세스가 위치를 읽을 수 있습니다. 각 연결 시 동의가 필요합니다.",
       "pt": "Transmite a posição GPS do telefone para o convidado como dispositivo NMEA (haven-gps). Uma vez ativado, qualquer processo convidado pode ler a posição. Cada conexão ainda solicita consentimento.",
       "ru": "Передавать GPS-позицию телефона в гостя как NMEA-устройство (haven-gps). После включения любой гостевой процесс может читать позицию. Каждое подключение запрашивает согласие.",
+      "sr": "Стримује GPS позицију телефона у госта као NMEA уређај (haven-gps). Када се укључи, било који процес у госту може да чита позицију. Свако привезивање још увек пита за пристанак.",
       "zh": "将手机的 GPS 位置以 NMEA 设备（haven-gps）形式流式传入客机。开启后客机内任何进程都可读取位置。每次连接仍需确认。"
+     }
+    },
+    {
+     "name": "settings_tailscale_discovery_title",
+     "en": "Tailscale peer discovery",
+     "comment": "GPS exposure",
+     "args": [],
+     "t": {
+      "ar": "اكتشاف أقران Tailscale",
+      "bn": "Tailscale পিয়ার সনাক্তকরণ",
+      "de": "Tailscale-Peer-Erkennung",
+      "es": "Detección de pares de Tailscale",
+      "fr": "Découverte des pairs Tailscale",
+      "hi": "Tailscale पीयर खोज",
+      "ja": "Tailscale ピア検出",
+      "ko": "Tailscale 피어 검색",
+      "pt": "Descoberta de pares do Tailscale",
+      "ru": "Обнаружение узлов Tailscale",
+      "zh": "Tailscale 对等节点发现"
+     }
+    },
+    {
+     "name": "settings_tailscale_discovery_subtitle",
+     "en": "Look up hosts on your Tailscale network through its local API when scanning. Turn off to stop Haven from reading the peer list; Tailscale itself is unaffected.",
+     "comment": "GPS exposure",
+     "args": [],
+     "t": {
+      "ar": "البحث عن مضيفين في شبكة Tailscale عبر واجهة API المحلية أثناء الفحص. أوقفه لمنع Haven من قراءة قائمة الأقران؛ لن يتأثر Tailscale نفسه.",
+      "bn": "স্ক্যানের সময় স্থানীয় API-এর মাধ্যমে আপনার Tailscale নেটওয়ার্কের হোস্ট খুঁজুন। বন্ধ করলে Haven পিয়ার তালিকা পড়বে না; Tailscale প্রভাবিত হবে না।",
+      "de": "Hosts im Tailscale-Netzwerk über die lokale API beim Scannen ermitteln. Deaktivieren, damit Haven die Peer-Liste nicht mehr liest; Tailscale selbst bleibt unberührt.",
+      "es": "Buscar hosts de tu red Tailscale a través de su API local al escanear. Desactívalo para evitar que Haven lea la lista de pares; Tailscale no se ve afectado.",
+      "fr": "Rechercher les hôtes de votre réseau Tailscale via son API locale lors de l’analyse. Désactivez pour empêcher Haven de lire la liste des pairs ; Tailscale n’est pas affecté.",
+      "hi": "स्कैन करते समय स्थानीय API के ज़रिए आपके Tailscale नेटवर्क के होस्ट खोजें। बंद करें ताकि Haven पीयर सूची न पढ़े; Tailscale प्रभावित नहीं होता।",
+      "ja": "スキャン時にローカル API を介して Tailscale ネットワーク上のホストを検索します。オフにすると Haven はピアリストを読まなくなります。Tailscale 自体には影響ありません。",
+      "ko": "스캔 시 로컬 API를 통해 Tailscale 네트워크의 호스트를 찾습니다. 끄면 Haven이 피어 목록을 읽지 않습니다. Tailscale 자체에는 영향이 없습니다.",
+      "pt": "Procurar hosts da sua rede Tailscale pela API local durante a varredura. Desative para impedir que o Haven leia a lista de pares; o Tailscale não é afetado.",
+      "ru": "Искать хосты вашей сети Tailscale через локальный API при сканировании. Отключите, чтобы Haven не читал список узлов; на сам Tailscale это не влияет.",
+      "zh": "扫描时通过本地 API 查找您 Tailscale 网络中的主机。关闭后 Haven 不再读取对等节点列表；Tailscale 本身不受影响。"
      }
     },
     {
@@ -36737,7 +37081,7 @@
       "ko": "인라인 이미지",
       "pt": "Imagens embutidas",
       "ru": "Встроенные изображения",
-      "sr": "Уграћене слике",
+      "sr": "Уграђене слике",
       "zh": "内嵌图像"
      }
     },
@@ -42835,6 +43179,71 @@
      }
     },
     {
+     "name": "terminal_attach_notice_unavailable",
+     "en": "Session manager %1$s did not start — you are in a plain shell. Check it is installed on the host, or set a Session command in the connection editor (advanced).",
+     "comment": "Tab bar",
+     "args": [
+      "%1$s"
+     ],
+     "t": {
+      "ar": "لم يبدأ مدير الجلسات %1$s — أنت في صدفة عادية. تحقق من أنه مثبّت على المضيف، أو اضبط أمر الجلسة في محرر الاتصال (متقدم).",
+      "bn": "সেশন ম্যানেজার %1$s শুরু হয়নি — আপনি একটি সাধারণ শেলে আছেন। হোস্টে ইনস্টল আছে কিনা দেখুন, অথবা সংযোগ এডিটরে (উন্নত) সেশন কমান্ড সেট করুন।",
+      "de": "Sitzungsmanager %1$s wurde nicht gestartet — du befindest dich in einer normalen Shell. Prüfe, ob er auf dem Host installiert ist, oder setze einen Sitzungsbefehl im Verbindungseditor (erweitert).",
+      "es": "El gestor de sesiones %1$s no se inició — estás en un shell normal. Comprueba que está instalado en el host, o define un Comando de sesión en el editor de conexiones (avanzado).",
+      "fr": "Le gestionnaire de sessions %1$s n’a pas démarré — vous êtes dans un shell simple. Vérifiez qu’il est installé sur l’hôte, ou définissez une Commande de session dans l’éditeur de connexion (avancé).",
+      "hi": "सत्र प्रबंधक %1$s शुरू नहीं हुआ — आप एक साधारण शेल में हैं। जाँचें कि होस्ट पर यह इंस्टॉल है, या कनेक्शन संपादक (उन्नत) में सत्र कमांड सेट करें।",
+      "ja": "セッションマネージャー %1$s が起動しませんでした — 通常のシェルに表示されています。ホストにインストールされているか確認するか、接続エディタ（詳細）でセッションコマンドを設定してください。",
+      "ko": "세션 관리자 %1$s(이)가 시작되지 않았습니다 — 일반 셸에 있습니다. 호스트에 설치되어 있는지 확인하거나 연결 편집기(고급)에서 세션 명령을 설정하세요.",
+      "pt": "O gerenciador de sessões %1$s não iniciou — você está em um shell simples. Verifique se está instalado no host, ou defina um Comando de sessão no editor de conexões (avançado).",
+      "ru": "Менеджер сессий %1$s не запущен — вы в обычной оболочке. Проверьте, что он установлен на хосте, или задайте Команду сессии в редакторе подключения (расширенно).",
+      "sr": "Менаџер сесија %1$s није покренут — налазите се у обичној шкољци. Проверите да ли је инсталиран на домаћину, или поставите Команду сесије у уређивачу везе (напредно).",
+      "zh": "会话管理器 %1$s 未启动 — 当前位于普通 shell。请确认主机上已安装它，或在连接编辑器（高级）中设置会话命令。"
+     }
+    },
+    {
+     "name": "terminal_attach_notice_missing",
+     "en": "%1$s session \"%2$s\" did not attach — you are in a plain shell. Check the start command, or set a Session command in the connection editor (advanced).",
+     "comment": "Tab bar",
+     "args": [
+      "%1$s",
+      "%2$s"
+     ],
+     "t": {
+      "ar": "لم تُرفق جلسة %1$s \"%2$s\" — أنت في صدفة عادية. تحقق من أمر البدء، أو اضبط أمر الجلسة في محرر الاتصال (متقدم).",
+      "bn": "%1$s সেশন \"%2$s\" সংযুক্ত হয়নি — আপনি একটি সাধারণ শেলে আছেন। শুরুর কমান্ড দেখুন, অথবা সংযোগ এডিটরে (উন্নত) সেশন কমান্ড সেট করুন।",
+      "de": "Sitzung \"%2$s\" von %1$s wurde nicht angefügt — du befindest dich in einer normalen Shell. Prüfe den Startbefehl oder setze einen Sitzungsbefehl im Verbindungseditor (erweitert).",
+      "es": "La sesión \"%2$s\" de %1$s no se adjuntó — estás en un shell normal. Comprueba el comando de inicio, o define un Comando de sesión en el editor de conexiones (avanzado).",
+      "fr": "La session \"%2$s\" de %1$s ne s’est pas attachée — vous êtes dans un shell simple. Vérifiez la commande de démarrage, ou définissez une Commande de session dans l’éditeur de connexion (avancé).",
+      "hi": "%1$s सत्र \"%2$s\" attach नहीं हुआ — आप एक साधारण शेल में हैं। प्रारंभ कमांड जाँचें, या कनेक्शन संपादक (उन्नत) में सत्र कमांड सेट करें।",
+      "ja": "%1$s セッション \"%2$s\" にアタッチできませんでした — 通常のシェルに表示されています。起動コマンドを確認するか、接続エディタ（詳細）でセッションコマンドを設定してください。",
+      "ko": "%1$s 세션 \"%2$s\"에 연결되지 않았습니다 — 일반 셸에 있습니다. 시작 명령을 확인하거나 연결 편집기(고급)에서 세션 명령을 설정하세요.",
+      "pt": "A sessão \"%2$s\" de %1$s não anexou — você está em um shell simples. Verifique o comando de início, ou defina um Comando de sessão no editor de conexões (avançado).",
+      "ru": "Сессия \"%2$s\" менеджера %1$s не подключилась — вы в обычной оболочке. Проверьте команду запуска или задайте Команду сессии в редакторе подключения (расширенно).",
+      "sr": "Сесија \"%2$s\" менаџера %1$s није придружена — налазите се у обичној шкољци. Проверите команду покретања или поставите Команду сесије у уређивачу везе (напредно).",
+      "zh": "%1$s 会话 \"%2$s\" 未附加 — 当前位于普通 shell。请检查启动命令，或在连接编辑器（高级）中设置会话命令。"
+     }
+    },
+    {
+     "name": "terminal_attach_notice_dismiss",
+     "en": "Dismiss",
+     "comment": "Tab bar",
+     "args": [],
+     "t": {
+      "ar": "تجاهل",
+      "bn": "বাতিল করুন",
+      "de": "Schließen",
+      "es": "Descartar",
+      "fr": "Ignorer",
+      "hi": "खारिज करें",
+      "ja": "閉じる",
+      "ko": "닫기",
+      "pt": "Ignorar",
+      "ru": "Закрыть",
+      "sr": "Отбаци",
+      "zh": "忽略"
+     }
+    },
+    {
      "name": "terminal_sessions",
      "en": "Sessions",
      "comment": "Tab bar",
@@ -42930,6 +43339,7 @@
       "ko": "탭 전환",
       "pt": "Alternar aba",
       "ru": "Переключить вкладку",
+      "sr": "Пребаци картицу",
       "zh": "切换标签页"
      }
     },
@@ -45100,7 +45510,7 @@
       "ko": "인라인 이미지",
       "pt": "Imagem embutida",
       "ru": "Встроенное изображение",
-      "sr": "Уграћена слика",
+      "sr": "Уграђена слика",
       "zh": "内嵌图像"
      }
     },
@@ -45478,6 +45888,26 @@
       "ru": "Отмена",
       "sr": "Откажи",
       "zh": "取消"
+     }
+    },
+    {
+     "name": "tunnel_type_label",
+     "en": "Tunnel type",
+     "comment": "Add tunnel dialog",
+     "args": [],
+     "t": {
+      "ar": "نوع النفق",
+      "bn": "টানেলের ধরন",
+      "de": "Tunnel-Typ",
+      "es": "Tipo de túnel",
+      "fr": "Type de tunnel",
+      "hi": "टनल का प्रकार",
+      "ja": "トンネルの種類",
+      "ko": "터널 유형",
+      "pt": "Tipo de túnel",
+      "ru": "Тип туннеля",
+      "sr": "Тип тунела",
+      "zh": "隧道类型"
      }
     },
     {
@@ -46237,6 +46667,386 @@
       "sr": "Cloudflare Access JWT (није обавезно)",
       "zh": "Cloudflare Access JWT（可选）"
      }
+    },
+    {
+     "name": "tunnel_anyconnect_help",
+     "en": "Connect through a Cisco AnyConnect or ocserv (OpenConnect) VPN without the Cisco app. Only profiles that route through this tunnel use it; the rest of your phone does not. Username/password, auth groups and TOTP or push second factors are supported; SAML/SSO and client certificates are not.",
+     "comment": "%1$d = hours until the captured Access JWT expires",
+     "args": [],
+     "t": {
+      "ar": "اتصل عبر شبكة VPN من Cisco AnyConnect أو ocserv (OpenConnect) دون تطبيق Cisco. تستخدمها فقط الملفات الشخصية الموجّهة عبر هذا النفق، وليس بقية حركة الهاتف. يدعم اسم المستخدم/كلمة المرور ومجموعات المصادقة وعامل التحقق الثاني TOTP أو الإشعار؛ ولا يدعم SAML/SSO وشهادات العميل.",
+      "bn": "Cisco অ্যাপ ছাড়াই Cisco AnyConnect বা ocserv (OpenConnect) VPN-এর মাধ্যমে সংযোগ করুন। শুধু এই টানেল দিয়ে রুট হওয়া প্রোফাইলগুলো এটি ব্যবহার করে; ফোনের বাকি ট্রাফিক নয়। ব্যবহারকারীর নাম/পাসওয়ার্ড, অথ গ্রুপ এবং TOTP বা পুশ দ্বিতীয় ফ্যাক্টর সমর্থিত; SAML/SSO ও ক্লায়েন্ট সার্টিফিকেট নয়।",
+      "de": "Verbindung über ein Cisco-AnyConnect- oder ocserv-(OpenConnect-)VPN ohne die Cisco-App. Nur Profile, die über diesen Tunnel geleitet werden, nutzen ihn; der Rest deines Telefons nicht. Unterstützt werden Benutzername/Passwort, Authentifizierungsgruppen sowie TOTP- oder Push-Zweitfaktoren; SAML/SSO und Client-Zertifikate nicht.",
+      "es": "Conéctate a través de una VPN Cisco AnyConnect u ocserv (OpenConnect) sin la app de Cisco. Solo la usan los perfiles que pasan por este túnel; el resto del teléfono no. Se admiten usuario/contraseña, grupos de autenticación y segundo factor TOTP o push; SAML/SSO y certificados de cliente no.",
+      "fr": "Connexion via un VPN Cisco AnyConnect ou ocserv (OpenConnect) sans l\\'app Cisco. Seuls les profils qui passent par ce tunnel l\\'utilisent ; le reste du téléphone non. Identifiant/mot de passe, groupes d\\'authentification et second facteur TOTP ou push sont pris en charge ; SAML/SSO et certificats client ne le sont pas.",
+      "hi": "Cisco ऐप के बिना Cisco AnyConnect या ocserv (OpenConnect) VPN के ज़रिए कनेक्ट करें। केवल इस टनल से रूट होने वाली प्रोफ़ाइल इसका उपयोग करती हैं; फ़ोन का बाकी ट्रैफ़िक नहीं। उपयोगकर्ता नाम/पासवर्ड, ऑथ ग्रुप और TOTP या पुश दूसरा फ़ैक्टर समर्थित हैं; SAML/SSO और क्लाइंट प्रमाणपत्र नहीं।",
+      "ja": "Cisco アプリなしで Cisco AnyConnect または ocserv（OpenConnect）VPN 経由で接続します。このトンネルを経由するプロファイルだけが使用し、端末のその他の通信は使用しません。ユーザー名/パスワード、認証グループ、TOTP またはプッシュによる二要素認証に対応しています。SAML/SSO とクライアント証明書には対応していません。",
+      "ko": "Cisco 앱 없이 Cisco AnyConnect 또는 ocserv(OpenConnect) VPN으로 연결합니다. 이 터널을 거치는 프로필만 사용하며 휴대폰의 나머지 트래픽은 사용하지 않습니다. 사용자 이름/비밀번호, 인증 그룹, TOTP 또는 푸시 2단계 인증을 지원하며 SAML/SSO와 클라이언트 인증서는 지원하지 않습니다.",
+      "pt": "Conecte-se por uma VPN Cisco AnyConnect ou ocserv (OpenConnect) sem o app da Cisco. Só os perfis roteados por este túnel o usam; o resto do telefone não. São suportados usuário/senha, grupos de autenticação e segundo fator TOTP ou push; SAML/SSO e certificados de cliente não.",
+      "ru": "Подключение через VPN Cisco AnyConnect или ocserv (OpenConnect) без приложения Cisco. Его используют только профили, направленные через этот туннель; остальной трафик телефона — нет. Поддерживаются логин/пароль, группы аутентификации и второй фактор TOTP или push; SAML/SSO и клиентские сертификаты — нет.",
+      "sr": "Повежите се преко Cisco AnyConnect или ocserv (OpenConnect) VPN-а без Cisco апликације. Користе га само профили који се усмеравају кроз овај тунел; остатак телефона не. Подржани су корисничко име/лозинка, групе за аутентификацију и други фактор TOTP или push; SAML/SSO и клијентски сертификати нису.",
+      "zh": "无需 Cisco 应用即可通过 Cisco AnyConnect 或 ocserv（OpenConnect）VPN 连接。只有通过此隧道路由的配置会使用它，手机的其余流量不会。支持用户名/密码、认证组以及 TOTP 或推送二次验证；不支持 SAML/SSO 和客户端证书。"
+     }
+    },
+    {
+     "name": "tunnel_anyconnect_server_label",
+     "en": "Server",
+     "comment": "%1$d = hours until the captured Access JWT expires",
+     "args": [],
+     "t": {
+      "ar": "الخادم",
+      "bn": "সার্ভার",
+      "de": "Server",
+      "es": "Servidor",
+      "fr": "Serveur",
+      "hi": "सर्वर",
+      "ja": "サーバー",
+      "ko": "서버",
+      "pt": "Servidor",
+      "ru": "Сервер",
+      "sr": "Сервер",
+      "zh": "服务器"
+     }
+    },
+    {
+     "name": "tunnel_anyconnect_server_help",
+     "en": "Gateway host as you would type it into Cisco\\'s app, optionally with :port or a group path.",
+     "comment": "%1$d = hours until the captured Access JWT expires",
+     "args": [],
+     "t": {
+      "ar": "مضيف البوابة كما تكتبه في تطبيق Cisco، مع :المنفذ أو مسار مجموعة اختياريًا.",
+      "bn": "Cisco অ্যাপে যেভাবে লেখেন সেভাবে গেটওয়ে হোস্ট, চাইলে :পোর্ট বা গ্রুপ পাথসহ।",
+      "de": "Gateway-Host wie in der Cisco-App, optional mit :Port oder Gruppenpfad.",
+      "es": "Host del gateway tal como lo escribirías en la app de Cisco, opcionalmente con :puerto o una ruta de grupo.",
+      "fr": "Hôte de la passerelle tel que saisi dans l\\'app Cisco, éventuellement avec :port ou un chemin de groupe.",
+      "hi": "गेटवे होस्ट जैसा आप Cisco ऐप में लिखते हैं, चाहें तो :पोर्ट या ग्रुप पाथ के साथ।",
+      "ja": "Cisco アプリに入力するゲートウェイのホスト。必要に応じて :ポート やグループパスを付けます。",
+      "ko": "Cisco 앱에 입력하는 게이트웨이 호스트이며, 필요하면 :포트나 그룹 경로를 붙입니다.",
+      "pt": "Host do gateway como você digitaria no app da Cisco, opcionalmente com :porta ou um caminho de grupo.",
+      "ru": "Адрес шлюза, как в приложении Cisco, при необходимости с :портом или путём группы.",
+      "sr": "Адреса гејтвеја као у Cisco апликацији, по потреби са :портом или путањом групе.",
+      "zh": "与在 Cisco 应用中输入的网关地址相同，可附带 :端口 或组路径。"
+     }
+    },
+    {
+     "name": "tunnel_anyconnect_username_label",
+     "en": "Username",
+     "comment": "%1$d = hours until the captured Access JWT expires",
+     "args": [],
+     "t": {
+      "ar": "اسم المستخدم",
+      "bn": "ব্যবহারকারীর নাম",
+      "de": "Benutzername",
+      "es": "Usuario",
+      "fr": "Nom d\\'utilisateur",
+      "hi": "उपयोगकर्ता नाम",
+      "ja": "ユーザー名",
+      "ko": "사용자 이름",
+      "pt": "Usuário",
+      "ru": "Имя пользователя",
+      "sr": "Корисничко име",
+      "zh": "用户名"
+     }
+    },
+    {
+     "name": "tunnel_anyconnect_password_label",
+     "en": "Password",
+     "comment": "%1$d = hours until the captured Access JWT expires",
+     "args": [],
+     "t": {
+      "ar": "كلمة المرور",
+      "bn": "পাসওয়ার্ড",
+      "de": "Passwort",
+      "es": "Contraseña",
+      "fr": "Mot de passe",
+      "hi": "पासवर्ड",
+      "ja": "パスワード",
+      "ko": "비밀번호",
+      "pt": "Senha",
+      "ru": "Пароль",
+      "sr": "Лозинка",
+      "zh": "密码"
+     }
+    },
+    {
+     "name": "tunnel_anyconnect_group_label",
+     "en": "Auth group (optional)",
+     "comment": "%1$d = hours until the captured Access JWT expires",
+     "args": [],
+     "t": {
+      "ar": "مجموعة المصادقة (اختياري)",
+      "bn": "অথ গ্রুপ (ঐচ্ছিক)",
+      "de": "Authentifizierungsgruppe (optional)",
+      "es": "Grupo de autenticación (opcional)",
+      "fr": "Groupe d\\'authentification (facultatif)",
+      "hi": "ऑथ ग्रुप (वैकल्पिक)",
+      "ja": "認証グループ（任意）",
+      "ko": "인증 그룹(선택)",
+      "pt": "Grupo de autenticação (opcional)",
+      "ru": "Группа аутентификации (необязательно)",
+      "sr": "Група за аутентификацију (опционо)",
+      "zh": "认证组（可选）"
+     }
+    },
+    {
+     "name": "tunnel_anyconnect_group_help",
+     "en": "The group or profile to choose from the server\\'s list. Leave blank for the default.",
+     "comment": "%1$d = hours until the captured Access JWT expires",
+     "args": [],
+     "t": {
+      "ar": "المجموعة أو الملف الشخصي المطلوب اختياره من قائمة الخادم. اتركه فارغًا لاستخدام الافتراضي.",
+      "bn": "সার্ভারের তালিকা থেকে বেছে নেওয়ার গ্রুপ বা প্রোফাইল। ডিফল্টের জন্য খালি রাখুন।",
+      "de": "Die Gruppe bzw. das Profil aus der Liste des Servers. Leer lassen für die Standardgruppe.",
+      "es": "El grupo o perfil que elegir de la lista del servidor. Déjalo en blanco para usar el predeterminado.",
+      "fr": "Le groupe ou profil à choisir dans la liste du serveur. Laissez vide pour le groupe par défaut.",
+      "hi": "सर्वर की सूची से चुना जाने वाला ग्रुप या प्रोफ़ाइल। डिफ़ॉल्ट के लिए खाली छोड़ें।",
+      "ja": "サーバーの一覧から選ぶグループまたはプロファイル。空欄ならデフォルトを使用します。",
+      "ko": "서버 목록에서 선택할 그룹 또는 프로필입니다. 기본값을 쓰려면 비워 두세요.",
+      "pt": "O grupo ou perfil a escolher na lista do servidor. Deixe em branco para o padrão.",
+      "ru": "Группа или профиль из списка сервера. Оставьте пустым для группы по умолчанию.",
+      "sr": "Група или профил са листе сервера. Оставите празно за подразумевану.",
+      "zh": "从服务器列表中选择的组或配置文件。留空则使用默认组。"
+     }
+    },
+    {
+     "name": "tunnel_anyconnect_otp_label",
+     "en": "OTP secret (optional)",
+     "comment": "%1$d = hours until the captured Access JWT expires",
+     "args": [],
+     "t": {
+      "ar": "سر OTP (اختياري)",
+      "bn": "OTP সিক্রেট (ঐচ্ছিক)",
+      "de": "OTP-Geheimnis (optional)",
+      "es": "Secreto OTP (opcional)",
+      "fr": "Secret OTP (facultatif)",
+      "hi": "OTP सीक्रेट (वैकल्पिक)",
+      "ja": "OTP シークレット（任意）",
+      "ko": "OTP 비밀 키(선택)",
+      "pt": "Segredo OTP (opcional)",
+      "ru": "Секрет OTP (необязательно)",
+      "sr": "OTP тајна (опционо)",
+      "zh": "OTP 密钥（可选）"
+     }
+    },
+    {
+     "name": "tunnel_anyconnect_otp_help",
+     "en": "Base32 secret or otpauth:// link from your authenticator setup. Haven answers the code prompt itself, which lets the tunnel reconnect unattended.",
+     "comment": "%1$d = hours until the captured Access JWT expires",
+     "args": [],
+     "t": {
+      "ar": "سر Base32 أو رابط otpauth:// من إعداد تطبيق المصادقة. يجيب Haven عن طلب الرمز بنفسه، ما يسمح للنفق بإعادة الاتصال تلقائيًا.",
+      "bn": "আপনার অথেন্টিকেটর সেটআপের Base32 সিক্রেট বা otpauth:// লিংক। Haven নিজেই কোডের প্রম্পটের উত্তর দেয়, ফলে টানেল নিজে থেকেই পুনরায় সংযোগ করতে পারে।",
+      "de": "Base32-Geheimnis oder otpauth://-Link aus der Einrichtung deines Authenticators. Haven beantwortet die Code-Abfrage selbst, sodass sich der Tunnel unbeaufsichtigt neu verbinden kann.",
+      "es": "Secreto Base32 o enlace otpauth:// de la configuración de tu autenticador. Haven responde él mismo a la petición del código, lo que permite que el túnel se reconecte solo.",
+      "fr": "Secret Base32 ou lien otpauth:// issu de la configuration de votre authentificateur. Haven répond lui-même à la demande de code, ce qui permet au tunnel de se reconnecter sans intervention.",
+      "hi": "आपके ऑथेंटिकेटर सेटअप का Base32 सीक्रेट या otpauth:// लिंक। Haven कोड प्रॉम्प्ट का जवाब खुद देता है, जिससे टनल बिना आपकी मदद के फिर से कनेक्ट हो सकता है।",
+      "ja": "認証アプリ設定時の Base32 シークレットまたは otpauth:// リンク。Haven がコード入力に自動で応答するため、トンネルは無人で再接続できます。",
+      "ko": "인증 앱 설정 시 받은 Base32 비밀 키 또는 otpauth:// 링크입니다. Haven이 코드 요청에 직접 응답하므로 터널이 자동으로 다시 연결될 수 있습니다.",
+      "pt": "Segredo Base32 ou link otpauth:// da configuração do seu autenticador. O Haven responde ao pedido de código sozinho, o que permite ao túnel reconectar sem intervenção.",
+      "ru": "Секрет Base32 или ссылка otpauth:// из настройки аутентификатора. Haven сам отвечает на запрос кода, поэтому туннель может переподключаться без вашего участия.",
+      "sr": "Base32 тајна или otpauth:// веза из подешавања аутентификатора. Haven сам одговара на захтев за код, па се тунел може поново повезати без вас.",
+      "zh": "来自身份验证器设置的 Base32 密钥或 otpauth:// 链接。Haven 会自动回答验证码提示，使隧道可以无人值守地重新连接。"
+     }
+    },
+    {
+     "name": "tunnel_anyconnect_secondary_label",
+     "en": "Second-factor answer (optional)",
+     "comment": "%1$d = hours until the captured Access JWT expires",
+     "args": [],
+     "t": {
+      "ar": "إجابة العامل الثاني (اختياري)",
+      "bn": "দ্বিতীয় ফ্যাক্টরের উত্তর (ঐচ্ছিক)",
+      "de": "Antwort für den zweiten Faktor (optional)",
+      "es": "Respuesta del segundo factor (opcional)",
+      "fr": "Réponse du second facteur (facultatif)",
+      "hi": "दूसरे फ़ैक्टर का उत्तर (वैकल्पिक)",
+      "ja": "二要素の応答（任意）",
+      "ko": "2단계 응답(선택)",
+      "pt": "Resposta do segundo fator (opcional)",
+      "ru": "Ответ второго фактора (необязательно)",
+      "sr": "Одговор за други фактор (опционо)",
+      "zh": "二次验证应答（可选）"
+     }
+    },
+    {
+     "name": "tunnel_anyconnect_secondary_help",
+     "en": "A fixed answer to the second prompt, e.g. push for Duo. Used only when no OTP secret is set.",
+     "comment": "%1$d = hours until the captured Access JWT expires",
+     "args": [],
+     "t": {
+      "ar": "إجابة ثابتة عن الطلب الثاني، مثل push لـ Duo. تُستخدم فقط عند عدم تعيين سر OTP.",
+      "bn": "দ্বিতীয় প্রম্পটের একটি নির্দিষ্ট উত্তর, যেমন Duo-র জন্য push। শুধু OTP সিক্রেট না থাকলে ব্যবহৃত হয়।",
+      "de": "Eine feste Antwort auf die zweite Abfrage, z. B. push für Duo. Wird nur verwendet, wenn kein OTP-Geheimnis gesetzt ist.",
+      "es": "Una respuesta fija a la segunda petición, p. ej. push para Duo. Solo se usa si no hay secreto OTP.",
+      "fr": "Une réponse fixe à la seconde demande, par ex. push pour Duo. Utilisée uniquement sans secret OTP.",
+      "hi": "दूसरे प्रॉम्प्ट का एक निश्चित उत्तर, जैसे Duo के लिए push। केवल तब उपयोग होता है जब OTP सीक्रेट सेट न हो।",
+      "ja": "2 回目の入力に対する固定の応答（例: Duo の push）。OTP シークレット未設定時のみ使用します。",
+      "ko": "두 번째 요청에 대한 고정 응답입니다(예: Duo의 push). OTP 비밀 키가 없을 때만 사용됩니다.",
+      "pt": "Uma resposta fixa ao segundo pedido, ex.: push para Duo. Usada apenas quando não há segredo OTP.",
+      "ru": "Фиксированный ответ на второй запрос, например push для Duo. Используется, только если секрет OTP не задан.",
+      "sr": "Фиксни одговор на други захтев, нпр. push за Duo. Користи се само ако OTP тајна није постављена.",
+      "zh": "对第二个提示的固定应答，例如 Duo 的 push。仅在未设置 OTP 密钥时使用。"
+     }
+    },
+    {
+     "name": "tunnel_anyconnect_cert_label",
+     "en": "Server certificate (optional)",
+     "comment": "%1$d = hours until the captured Access JWT expires",
+     "args": [],
+     "t": {
+      "ar": "شهادة الخادم (اختياري)",
+      "bn": "সার্ভার সার্টিফিকেট (ঐচ্ছিক)",
+      "de": "Serverzertifikat (optional)",
+      "es": "Certificado del servidor (opcional)",
+      "fr": "Certificat du serveur (facultatif)",
+      "hi": "सर्वर प्रमाणपत्र (वैकल्पिक)",
+      "ja": "サーバー証明書（任意）",
+      "ko": "서버 인증서(선택)",
+      "pt": "Certificado do servidor (opcional)",
+      "ru": "Сертификат сервера (необязательно)",
+      "sr": "Сертификат сервера (опционо)",
+      "zh": "服务器证书（可选）"
+     }
+    },
+    {
+     "name": "tunnel_anyconnect_cert_help",
+     "en": "Only for self-signed gateways: a pin-sha256:… value. If the certificate is not trusted, the connection error shows the value to paste here.",
+     "comment": "%1$d = hours until the captured Access JWT expires",
+     "args": [],
+     "t": {
+      "ar": "للبوابات ذاتية التوقيع فقط: قيمة pin-sha256:…. إذا لم تكن الشهادة موثوقة، يعرض خطأ الاتصال القيمة التي يجب لصقها هنا.",
+      "bn": "শুধু সেলফ-সাইনড গেটওয়ের জন্য: একটি pin-sha256:… মান। সার্টিফিকেট বিশ্বস্ত না হলে সংযোগের ত্রুটিতে এখানে পেস্ট করার মানটি দেখানো হয়।",
+      "de": "Nur für selbstsignierte Gateways: ein pin-sha256:…-Wert. Ist das Zertifikat nicht vertrauenswürdig, zeigt die Verbindungsfehlermeldung den hier einzufügenden Wert.",
+      "es": "Solo para gateways autofirmados: un valor pin-sha256:…. Si el certificado no es de confianza, el error de conexión muestra el valor que debes pegar aquí.",
+      "fr": "Uniquement pour les passerelles auto-signées : une valeur pin-sha256:…. Si le certificat n\\'est pas approuvé, l\\'erreur de connexion affiche la valeur à coller ici.",
+      "hi": "केवल सेल्फ़-साइन्ड गेटवे के लिए: pin-sha256:… मान। प्रमाणपत्र भरोसेमंद न होने पर कनेक्शन त्रुटि यहाँ चिपकाने वाला मान दिखाती है।",
+      "ja": "自己署名ゲートウェイ専用: pin-sha256:… の値。証明書が信頼されていない場合、接続エラーにここへ貼り付ける値が表示されます。",
+      "ko": "자체 서명 게이트웨이 전용: pin-sha256:… 값입니다. 인증서를 신뢰할 수 없으면 연결 오류에 여기 붙여 넣을 값이 표시됩니다.",
+      "pt": "Apenas para gateways autoassinados: um valor pin-sha256:…. Se o certificado não for confiável, o erro de conexão mostra o valor a colar aqui.",
+      "ru": "Только для шлюзов с самоподписанным сертификатом: значение pin-sha256:…. Если сертификат не доверенный, ошибка подключения покажет значение, которое нужно вставить сюда.",
+      "sr": "Само за самопотписане гејтвеје: вредност pin-sha256:…. Ако сертификат није поуздан, грешка при повезивању приказује вредност коју треба налепити овде.",
+      "zh": "仅用于自签名网关：pin-sha256:… 值。如果证书不受信任，连接错误会显示应粘贴到此处的值。"
+     }
+    },
+    {
+     "name": "tunnel_status_connected",
+     "en": "Connected",
+     "comment": "%1$d = hours until the captured Access JWT expires",
+     "args": [],
+     "t": {
+      "ar": "متصل",
+      "bn": "সংযুক্ত",
+      "de": "Verbunden",
+      "es": "Conectado",
+      "fr": "Connecté",
+      "hi": "कनेक्टेड",
+      "ja": "接続中",
+      "ko": "연결됨",
+      "pt": "Conectado",
+      "ru": "Подключено",
+      "sr": "Повезано",
+      "zh": "已连接"
+     }
+    },
+    {
+     "name": "tunnel_sign_out",
+     "en": "Sign out",
+     "comment": "%1$d = hours until the captured Access JWT expires",
+     "args": [],
+     "t": {
+      "ar": "تسجيل الخروج",
+      "bn": "সাইন আউট",
+      "de": "Abmelden",
+      "es": "Cerrar sesión",
+      "fr": "Se déconnecter",
+      "hi": "साइन आउट",
+      "ja": "サインアウト",
+      "ko": "로그아웃",
+      "pt": "Sair",
+      "ru": "Выйти",
+      "sr": "Одјави се",
+      "zh": "退出登录"
+     }
+    },
+    {
+     "name": "tunnel_anyconnect_password_help",
+     "en": "Leave empty to be asked when signing in.",
+     "comment": "%1$d = hours until the captured Access JWT expires",
+     "args": [],
+     "t": {
+      "ar": "اتركه فارغًا ليُطلب عند تسجيل الدخول.",
+      "bn": "সাইন ইনের সময় জিজ্ঞেস করার জন্য খালি রাখুন।",
+      "de": "Leer lassen, um bei der Anmeldung gefragt zu werden.",
+      "es": "Déjalo vacío para que se te pida al iniciar sesión.",
+      "fr": "Laissez vide pour qu\\'il soit demandé à la connexion.",
+      "hi": "साइन इन के समय पूछे जाने के लिए खाली छोड़ें।",
+      "ja": "空欄にするとサインイン時に入力を求めます。",
+      "ko": "비워 두면 로그인할 때 묻습니다.",
+      "pt": "Deixe vazio para ser perguntado ao entrar.",
+      "ru": "Оставьте пустым, чтобы ввести при входе.",
+      "sr": "Оставите празно да бисте били питани при пријави.",
+      "zh": "留空则在登录时询问。"
+     }
+    },
+    {
+     "name": "tunnel_anyconnect_prompt_help",
+     "en": "Codes sent by SMS or e-mail: leave the OTP secret and second-factor answer empty, and Haven asks for the code when you sign in.",
+     "comment": "%1$d = hours until the captured Access JWT expires",
+     "args": [],
+     "t": {
+      "ar": "الرموز المرسلة عبر الرسائل القصيرة أو البريد: اترك سر OTP وإجابة العامل الثاني فارغين، وسيطلب Haven الرمز عند تسجيل الدخول.",
+      "bn": "SMS বা ইমেলে পাঠানো কোড: OTP সিক্রেট ও দ্বিতীয় ফ্যাক্টরের উত্তর খালি রাখুন, সাইন ইনের সময় Haven কোড জিজ্ঞেস করবে।",
+      "de": "Per SMS oder E-Mail gesendete Codes: OTP-Geheimnis und Antwort für den zweiten Faktor leer lassen, Haven fragt bei der Anmeldung nach dem Code.",
+      "es": "Códigos enviados por SMS o correo: deja vacíos el secreto OTP y la respuesta del segundo factor, y Haven te pedirá el código al iniciar sesión.",
+      "fr": "Codes envoyés par SMS ou e-mail : laissez vides le secret OTP et la réponse du second facteur, Haven demandera le code à la connexion.",
+      "hi": "SMS या ईमेल से भेजे गए कोड: OTP सीक्रेट और दूसरे फ़ैक्टर का उत्तर खाली छोड़ें, साइन इन के समय Haven कोड पूछेगा।",
+      "ja": "SMS やメールで届くコード: OTP シークレットと二要素の応答を空欄にすると、サインイン時に Haven がコードを尋ねます。",
+      "ko": "SMS나 이메일로 받는 코드: OTP 비밀 키와 2단계 응답을 비워 두면 로그인할 때 Haven이 코드를 묻습니다.",
+      "pt": "Códigos enviados por SMS ou e-mail: deixe vazios o segredo OTP e a resposta do segundo fator, e o Haven pede o código ao entrar.",
+      "ru": "Коды по SMS или e-mail: оставьте секрет OTP и ответ второго фактора пустыми, и Haven запросит код при входе.",
+      "sr": "Кодови послати SMS-ом или е-поштом: оставите OTP тајну и одговор за други фактор празне, и Haven ће тражити код при пријави.",
+      "zh": "通过短信或电子邮件发送的验证码：将 OTP 密钥和二次验证应答留空，Haven 会在登录时询问验证码。"
+     }
+    },
+    {
+     "name": "tunnel_anyconnect_stay_connected_label",
+     "en": "Stay connected",
+     "comment": "%1$d = hours until the captured Access JWT expires",
+     "args": [],
+     "t": {
+      "ar": "البقاء متصلاً",
+      "bn": "সংযুক্ত থাকুন",
+      "de": "Verbunden bleiben",
+      "es": "Mantener conectado",
+      "fr": "Rester connecté",
+      "hi": "कनेक्टेड रहें",
+      "ja": "接続を維持",
+      "ko": "연결 유지",
+      "pt": "Manter conectado",
+      "ru": "Оставаться подключённым",
+      "sr": "Остани повезан",
+      "zh": "保持连接"
+     }
+    },
+    {
+     "name": "tunnel_anyconnect_stay_connected_help",
+     "en": "Keep the VPN up after your last connection closes, like Cisco\\'s app. Off: it disconnects, and reconnecting soon after resumes the session without a new code.",
+     "comment": "%1$d = hours until the captured Access JWT expires",
+     "args": [],
+     "t": {
+      "ar": "إبقاء الـ VPN متصلاً بعد إغلاق آخر اتصال، مثل تطبيق Cisco. عند الإيقاف: يُقطع الاتصال، وإعادة الاتصال بعد وقت قصير تستأنف الجلسة دون رمز جديد.",
+      "bn": "Cisco অ্যাপের মতো শেষ সংযোগ বন্ধ হওয়ার পরও VPN চালু রাখুন। বন্ধ থাকলে: VPN বিচ্ছিন্ন হয়, এবং শীঘ্রই আবার সংযোগ করলে নতুন কোড ছাড়াই সেশন আবার শুরু হয়।",
+      "de": "VPN nach dem Schließen der letzten Verbindung aktiv halten, wie die Cisco-App. Aus: Es wird getrennt, und eine baldige Neuverbindung setzt die Sitzung ohne neuen Code fort.",
+      "es": "Mantén la VPN activa tras cerrar tu última conexión, como la app de Cisco. Desactivado: se desconecta, y si vuelves a conectar pronto la sesión se reanuda sin un código nuevo.",
+      "fr": "Garder le VPN actif après la fermeture de votre dernière connexion, comme l\\'app Cisco. Désactivé : il se déconnecte, et une reconnexion peu après reprend la session sans nouveau code.",
+      "hi": "Cisco ऐप की तरह, आख़िरी कनेक्शन बंद होने के बाद भी VPN चालू रखें। बंद होने पर: VPN डिस्कनेक्ट हो जाता है, और जल्द दोबारा कनेक्ट करने पर सत्र बिना नए कोड के फिर शुरू होता है।",
+      "ja": "Cisco アプリと同様に、最後の接続を閉じた後も VPN を維持します。オフの場合は切断されますが、すぐに再接続すれば新しいコードなしでセッションを再開できます。",
+      "ko": "Cisco 앱처럼 마지막 연결을 닫은 뒤에도 VPN을 유지합니다. 끄면 연결이 끊기지만, 곧 다시 연결하면 새 코드 없이 세션이 재개됩니다.",
+      "pt": "Mantém a VPN ativa após fechar sua última conexão, como o app da Cisco. Desligado: ela desconecta, e reconectar logo depois retoma a sessão sem um novo código.",
+      "ru": "Не отключать VPN после закрытия последнего подключения, как приложение Cisco. Если выключено: VPN отключится, а повторное подключение вскоре после этого продолжит сессию без нового кода.",
+      "sr": "Држи VPN укљученим после затварања последње везе, као Cisco апликација. Искључено: веза се прекида, а поновно повезивање убрзо затим наставља сесију без новог кода.",
+      "zh": "像 Cisco 应用一样，在最后一个连接关闭后仍保持 VPN 连接。关闭时：VPN 会断开，但不久后重新连接可恢复会话而无需新验证码。"
+     }
     }
    ]
   },
@@ -46425,6 +47235,25 @@
      }
     },
     {
+     "name": "vnc_cd_paste",
+     "en": "Paste clipboard",
+     "comment": "",
+     "args": [],
+     "t": {
+      "ar": "لصق الحافظة",
+      "bn": "ক্লিপবোর্ড পেস্ট করুন",
+      "de": "Zwischenablage einfügen",
+      "es": "Pegar portapapeles",
+      "fr": "Coller le presse-papiers",
+      "hi": "क्लिपबोर्ड पेस्ट करें",
+      "ja": "クリップボードを貼り付け",
+      "ko": "클립보드 붙여넣기",
+      "pt": "Colar área de transferência",
+      "ru": "Вставить из буфера обмена",
+      "zh": "粘贴剪贴板"
+     }
+    },
+    {
      "name": "vnc_cd_background_to_edge",
      "en": "Background to edge icon",
      "comment": "",
@@ -46582,6 +47411,26 @@
       "ru": "Режим прямого касания (нажмите для трекпада)",
       "sr": "Режим директног додира (тап за трекпед)",
       "zh": "直接触摸模式（点击切换为触控板）"
+     }
+    },
+    {
+     "name": "vnc_cd_trackpad_sensitivity",
+     "en": "Trackpad sensitivity",
+     "comment": "",
+     "args": [],
+     "t": {
+      "ar": "حساسية لوحة التتبع",
+      "bn": "Trackpad সংবেদনশীলতা",
+      "de": "Trackpad-Empfindlichkeit",
+      "es": "Sensibilidad del trackpad",
+      "fr": "Sensibilité du pavé tactile",
+      "hi": "Trackpad संवेदनशीलता",
+      "ja": "トラックパッドの感度",
+      "ko": "트랙패드 감도",
+      "pt": "Sensibilidade do trackpad",
+      "ru": "Чувствительность трекпада",
+      "sr": "Осетљивост трекпеда",
+      "zh": "触控板灵敏度"
      }
     },
     {

@@ -300,6 +300,8 @@
     <string name="connections_field_post_login">أمر ما بعد تسجيل الدخول</string>
     <string name="connections_field_remote_command">الأمر البعيد (متقدم)</string>
     <string name="connections_helper_remote_command">يعمل كأمر SSH بدلاً من فتح صدفة تسجيل دخول. اتركه فارغًا للصدفة العادية.</string>
+    <string name="connections_field_session_command">أمر الجلسة (متقدم)</string>
+    <string name="connections_helper_session_command">يستبدل أمر بدء مدير الجلسات لهذا الاتصال فقط. يصبح {name} اسم الجلسة. استخدمه عندما لا يمكن تنفيذ أمر tmux/screen المدمج، مثل مضيف Windows: wsl -e sh -c "tmux new-session -A -s {name}". تركه فارغًا يستخدم الإعداد العام.</string>
     <string name="connections_toggle_request_pty">طلب طرفية (PTY)</string>
     <string name="connections_helper_post_login">يُرسَل بعد تسجيل الدخول.</string>
     <string name="connections_dropdown_none_direct">بلا (مباشر)</string>

@@ -1,0 +1,2 @@
+- **Coloured prompts with Nerd Font icons no longer paint a stray character.** A prompt carrying an icon above U+FFFF could show one extra character after it; the run length is now counted in screen columns rather than UTF-16 code units, which also fixes double-width characters being under-counted (#693).
+- **Dictate uses your default speech app.** The Dictate key forced the app picker on every tap; it now launches the recognizer directly and respects the OS "Just once / Always" choice (#694).

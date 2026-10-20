@@ -70,13 +70,11 @@ class UmlDesktopFailureTeardownTest {
         val manager = UmlDesktopManager(guest, mockk<DesktopManager>(relaxed = true))
 
         manager.startDesktop(UmlDesktopManager.Kind.X11)
-        withTimeout(5_000) {
-            while (manager.state.value[UmlDesktopManager.Kind.X11]?.status !=
-                UmlDesktopManager.DesktopState.Status.STARTING
-            ) {
-                delay(25)
-            }
-        }
+        // STARTING is set synchronously by beginBusy, before the driver
+        // coroutine runs — waiting on it alone lets stopDesktop cancel the job
+        // before the guest boots (nothing to close), which is the CI flake.
+        // Wait for the boot itself so the cancel lands mid-flight.
+        withTimeout(5_000) { verify(timeout = 5_000) { guest.connectSession(sessionId) } }
         manager.stopDesktop(UmlDesktopManager.Kind.X11)
         verify(timeout = 3_000) { guest.closeGuest(sessionId) }
     }

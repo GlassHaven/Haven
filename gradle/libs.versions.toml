@@ -1,5 +1,5 @@
 [versions]
-kotlin = "2.4.20"
+kotlin = "2.4.21"
 agp = "9.4.1"
 compose-bom = "2026.09.00"
 hilt = "2.60.1"
@@ -7,10 +7,10 @@ room = "2.7.1"
 datastore = "1.2.1"
 tink = "1.23.0"
 biometric = "1.4.0-alpha07"
-jsch = "2.28.7"
+jsch = "2.28.8"
 # ssh-proto (ConnectBot sshlib) — the second SSH engine (#58). Kotlin
 # coroutines SSH client; Haven contributed exec/subsystem/SFTP/SK upstream.
-sshlib = "0.4.2"
+sshlib = "0.5.1"
 smbj = "0.15.0"
 termlib = "0.0.22"
 sora-editor = "0.23.6"

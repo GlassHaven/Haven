@@ -31,6 +31,9 @@
     <!-- Tab bar -->
     <string name="terminal_reconnecting">다시 연결 중</string>
     <string name="terminal_no_contact">서버 응답 없음(%1$d초) — 재시도 중</string>
+    <string name="terminal_attach_notice_unavailable">세션 관리자 %1$s(이)가 시작되지 않았습니다 — 일반 셸에 있습니다. 호스트에 설치되어 있는지 확인하거나 연결 편집기(고급)에서 세션 명령을 설정하세요.</string>
+    <string name="terminal_attach_notice_missing">%1$s 세션 "%2$s"에 연결되지 않았습니다 — 일반 셸에 있습니다. 시작 명령을 확인하거나 연결 편집기(고급)에서 세션 명령을 설정하세요.</string>
+    <string name="terminal_attach_notice_dismiss">닫기</string>
     <string name="terminal_sessions">세션</string>
     <string name="terminal_move_left">왼쪽으로 이동</string>
     <string name="terminal_move_right">오른쪽으로 이동</string>

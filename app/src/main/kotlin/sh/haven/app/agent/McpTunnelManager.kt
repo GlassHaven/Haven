@@ -22,6 +22,7 @@ import sh.haven.core.ssh.HostKeyVerifier
 import sh.haven.core.ssh.SessionManager
 import sh.haven.core.ssh.SshClient
 import sh.haven.core.ssh.SshSessionManager
+import sh.haven.core.fido.FidoAuthenticator
 import javax.inject.Inject
 import javax.inject.Singleton
 import sh.haven.core.redact.LogRedact
@@ -72,6 +73,9 @@ class McpTunnelManager @Inject constructor(
     private val hostKeyVerifier: HostKeyVerifier,
     private val connectionLogRepository: ConnectionLogRepository,
     private val guestServiceManager: GuestServiceManager,
+    // SK key on the tunnel profile's own auth must work on the headless
+    // tunnel path too (#732); default null keeps explicit constructions unchanged.
+    private val fidoAuthenticator: FidoAuthenticator? = null,
 ) {
     private val scope = CoroutineScope(SupervisorJob() + Dispatchers.IO)
     private val lock = Any()
@@ -412,7 +416,7 @@ class McpTunnelManager @Inject constructor(
             ),
         )
 
-        val client = SshClient()
+        val client = SshClient().apply { fidoAuthenticator = this@McpTunnelManager.fidoAuthenticator }
         val sid = sshSessionManager.registerSession(
             profileId = profile.id,
             label = "MCP tunnel: ${profile.label}",

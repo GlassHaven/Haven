@@ -59,4 +59,23 @@
     <string name="cf_jump_destination_help">Многоцелевые туннели в режиме бастиона: передаётся как `Cf-Access-Jump-Destination`. Оставьте пустым для одноцелевых маршрутов.</string>
     <string name="cf_jwt_paste_help">Для headless-настроек: запустите `cloudflared access token --app https://&lt;hostname&gt;` на другой машине и вставьте JWT сюда. Срок действия определяется из токена автоматически.</string>
     <string name="cf_field_jwt">Cloudflare Access JWT (необязательно)</string>
+    <string name="tunnel_anyconnect_help">Подключение через VPN Cisco AnyConnect или ocserv (OpenConnect) без приложения Cisco. Его используют только профили, направленные через этот туннель; остальной трафик телефона — нет. Поддерживаются логин/пароль, группы аутентификации и второй фактор TOTP или push; SAML/SSO и клиентские сертификаты — нет.</string>
+    <string name="tunnel_anyconnect_server_label">Сервер</string>
+    <string name="tunnel_anyconnect_server_help">Адрес шлюза, как в приложении Cisco, при необходимости с :портом или путём группы.</string>
+    <string name="tunnel_anyconnect_username_label">Имя пользователя</string>
+    <string name="tunnel_anyconnect_password_label">Пароль</string>
+    <string name="tunnel_anyconnect_group_label">Группа аутентификации (необязательно)</string>
+    <string name="tunnel_anyconnect_group_help">Группа или профиль из списка сервера. Оставьте пустым для группы по умолчанию.</string>
+    <string name="tunnel_anyconnect_otp_label">Секрет OTP (необязательно)</string>
+    <string name="tunnel_anyconnect_otp_help">Секрет Base32 или ссылка otpauth:// из настройки аутентификатора. Haven сам отвечает на запрос кода, поэтому туннель может переподключаться без вашего участия.</string>
+    <string name="tunnel_anyconnect_secondary_label">Ответ второго фактора (необязательно)</string>
+    <string name="tunnel_anyconnect_secondary_help">Фиксированный ответ на второй запрос, например push для Duo. Используется, только если секрет OTP не задан.</string>
+    <string name="tunnel_anyconnect_cert_label">Сертификат сервера (необязательно)</string>
+    <string name="tunnel_anyconnect_cert_help">Только для шлюзов с самоподписанным сертификатом: значение pin-sha256:…. Если сертификат не доверенный, ошибка подключения покажет значение, которое нужно вставить сюда.</string>
+    <string name="tunnel_status_connected">Подключено</string>
+    <string name="tunnel_sign_out">Выйти</string>
+    <string name="tunnel_anyconnect_password_help">Оставьте пустым, чтобы ввести при входе.</string>
+    <string name="tunnel_anyconnect_prompt_help">Коды по SMS или e-mail: оставьте секрет OTP и ответ второго фактора пустыми, и Haven запросит код при входе.</string>
+    <string name="tunnel_anyconnect_stay_connected_label">Оставаться подключённым</string>
+    <string name="tunnel_anyconnect_stay_connected_help">Не отключать VPN после закрытия последнего подключения, как приложение Cisco. Если выключено: VPN отключится, а повторное подключение вскоре после этого продолжит сессию без нового кода.</string>
 </resources>

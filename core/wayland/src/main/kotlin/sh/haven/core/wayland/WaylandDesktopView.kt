@@ -84,6 +84,8 @@ fun WaylandDesktopView(
     toolbarLayout: ToolbarLayout = ToolbarLayout.DEFAULT,
     navBlockMode: NavBlockMode = NavBlockMode.ALIGNED,
     uniformGrid: Boolean = false,
+    /** Key scale from the shared toolbar_key_scale pref (#641). */
+    keyScale: Float = 1f,
     onFullscreenChanged: (Boolean) -> Unit = {},
 ) {
     val context = LocalContext.current
@@ -490,6 +492,7 @@ fun WaylandDesktopView(
                 layout = toolbarLayout,
                 navBlockMode = navBlockMode,
                 uniformGrid = uniformGrid,
+                keyScale = keyScale,
                 modifier = Modifier.weight(1f),
             )
             Column {

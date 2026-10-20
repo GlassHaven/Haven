@@ -361,4 +361,8 @@
     <string name="update_notification_channel">ऐप अपडेट</string>
     <string name="update_notification_title">Haven %1$s उपलब्ध है</string>
     <string name="update_notification_text">रिलीज़ पेज खोलने के लिए टैप करें।</string>
+    <string name="app_desktop_guest_user_title">अतिथि उपयोगकर्ता</string>
+    <string name="app_desktop_guest_user_description">रूट के बजाय बिना पासवर्ड वाले sudo के साथ सामान्य उपयोगकर्ता (uid 1000) के रूप में शेल और X11 डेस्कटॉप चलाएं। रूट मोड के लिए खाली छोड़ें या root सेट करें।</string>
+    <string name="app_desktop_guest_user_label">उपयोगकर्ता नाम</string>
+    <string name="app_desktop_guest_user_hint">root (या उदा. user)</string>
 </resources>

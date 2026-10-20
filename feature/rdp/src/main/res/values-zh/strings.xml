@@ -16,6 +16,7 @@
     <string name="rdp_cd_exit_fullscreen">退出全屏</string>
     <string name="rdp_cd_input_mode_trackpad_on">触控板模式已开启（点击切换为直接触摸）</string>
     <string name="rdp_cd_input_mode_direct">直接触摸模式（点击切换为触控板）</string>
+    <string name="rdp_cd_trackpad_sensitivity">触控板灵敏度</string>
     <string name="rdp_orientation_landscape_desc">锁定横屏（点击切换为竖屏）</string>
     <string name="rdp_orientation_portrait_desc">锁定竖屏（点击切换为自动）</string>
     <string name="rdp_orientation_auto_desc">自动旋转（点击切换为横屏）</string>

@@ -21,6 +21,7 @@ import androidx.compose.foundation.layout.isImeVisible
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.widthIn
+import androidx.compose.ui.unit.Density
 import androidx.compose.ui.unit.Dp
 import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.rememberScrollState
@@ -55,6 +56,7 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.focus.FocusRequester
 import androidx.compose.ui.graphics.vector.ImageVector
+import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.platform.LocalView
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.unit.dp
@@ -266,6 +268,11 @@ fun KeyboardToolbar(
     altActive: Boolean = false,
     ctrlLocked: Boolean = false,
     altLocked: Boolean = false,
+    // Shift is hoisted like Ctrl/Alt so the swipe path can read it too
+    // (#736 lnav: Shift+swipe must modulate the step like Shift+arrow).
+    shiftActive: Boolean = false,
+    onToggleShift: () -> Unit = {},
+    onShiftUsed: () -> Unit = {},
     bracketPasteMode: Boolean = false,
     layout: ToolbarLayout = ToolbarLayout.DEFAULT,
     navBlockMode: sh.haven.core.data.preferences.NavBlockMode = sh.haven.core.data.preferences.NavBlockMode.ALIGNED,
@@ -273,6 +280,7 @@ fun KeyboardToolbar(
     editModeControlsPlacement: sh.haven.core.data.preferences.EditModeControlsPlacement = sh.haven.core.data.preferences.EditModeControlsPlacement.LEFT,
     desktopKeyPlacement: sh.haven.core.data.preferences.DesktopKeyPlacement = sh.haven.core.data.preferences.DesktopKeyPlacement.LEFT,
     minKeyWidth: Dp = DEFAULT_MIN_KEY_WIDTH,
+    keyScale: Float = 1f,
     onToggleCtrl: () -> Unit = {},
     onToggleAlt: () -> Unit = {},
     onVncTap: (() -> Unit)? = null,
@@ -301,7 +309,6 @@ fun KeyboardToolbar(
     onDictateTap: () -> Unit = {},
     modifier: Modifier = Modifier,
 ) {
-    var shiftActive by remember { mutableStateOf(false) }
     val view = LocalView.current
     val imeVisible = WindowInsets.isImeVisible
 
@@ -320,8 +327,8 @@ fun KeyboardToolbar(
         onDispatchKey = onDispatchKey,
         onToggleCtrl = onToggleCtrl,
         onToggleAlt = onToggleAlt,
-        onToggleShift = { shiftActive = !shiftActive },
-        onShiftUsed = { shiftActive = false },
+        onToggleShift = onToggleShift,
+        onShiftUsed = onShiftUsed,
         bracketPasteMode = bracketPasteMode,
         clipboardManager = clipboardManager,
         onPaste = onPaste,
@@ -382,6 +389,13 @@ fun KeyboardToolbar(
         LocalToolbarCallbacks provides callbacks,
         LocalToolbarMinKeyWidth provides minKeyWidth,
         LocalToolbarLockedModifiers provides LockedModifiers(ctrlLocked, altLocked),
+        // #641: the scale applies by resolving the toolbar's dp and sp against
+        // a multiplied density, so every hard-coded height, icon and spacing
+        // inside scales together with the glyph text.
+        LocalDensity provides Density(
+            LocalDensity.current.density * keyScale,
+            LocalDensity.current.fontScale * keyScale,
+        ),
     ) {
         Surface(
             tonalElevation = if (reorderMode) 4.dp else 2.dp,

@@ -1,0 +1,1 @@
+Shift+swipe now sends the modified arrow, like Shift+arrow (#736) — apps that react to Shift+arrow (e.g. lnav's smaller horizontal step) now honour Shift while swiping, including hold-to-repeat. The swipe step also scales with font size, so a large font no longer flashes through history faster per swipe than a small one; at the default size the feel is unchanged.

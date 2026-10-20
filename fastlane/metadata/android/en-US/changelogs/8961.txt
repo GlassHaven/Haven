@@ -1,0 +1,1 @@
+Per-connection Session command for hosts the built-in tmux/screen command can't run (e.g. Windows OpenSSH). The terminal now says why a session-manager attach fell back to a plain shell. A missing security key no longer hangs an agent-forwarded SSH session. Closing the last tab's session on its own returns you to Connect.

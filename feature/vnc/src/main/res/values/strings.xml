@@ -9,6 +9,7 @@
     <string name="vnc_action_dismiss">Dismiss</string>
     <string name="vnc_cd_disconnect">Disconnect</string>
     <string name="vnc_cd_toggle_keyboard">Toggle keyboard</string>
+    <string name="vnc_cd_paste">Paste clipboard</string>
     <string name="vnc_cd_background_to_edge">Background to edge icon</string>
     <string name="vnc_cd_picture_in_picture">Picture-in-picture</string>
     <string name="vnc_cd_reset_zoom">Reset zoom</string>
@@ -17,6 +18,7 @@
     <string name="vnc_cd_exit_fullscreen">Exit fullscreen</string>
     <string name="vnc_cd_input_mode_trackpad_on">Trackpad mode on (tap for direct touch)</string>
     <string name="vnc_cd_input_mode_direct">Direct touch mode (tap for trackpad)</string>
+    <string name="vnc_cd_trackpad_sensitivity">Trackpad sensitivity</string>
     <string name="vnc_cd_two_finger_viewport">Two-finger pans the view (tap to scroll the remote)</string>
     <string name="vnc_cd_two_finger_scroll_on">Two-finger scrolls the remote (tap to pan the view)</string>
     <string name="vnc_orientation_landscape_desc">Lock landscape (tap to switch to portrait)</string>

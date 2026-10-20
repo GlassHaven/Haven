@@ -1,0 +1,3 @@
+• Arch Linux x86_64 (emulated) desktops now run post-extract setup, keep Xfce4 panels alive (dbus-launch fallback + disabling glycin's bubblewrap sandbox in PRoot), and uninstall cleanly (#718).
+• VNC desktops support two-way clipboard sync (vncconfig bridge + Paste button in the VNC toolbar) (#718).
+• Optional non-root guest user (uid 1000 with passwordless sudo) for local shells and X11 desktops (#718).

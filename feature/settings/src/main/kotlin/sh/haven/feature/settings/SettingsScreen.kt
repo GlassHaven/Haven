@@ -79,6 +79,7 @@ import androidx.compose.material.icons.filled.Keyboard
 import androidx.compose.material.icons.filled.Tune
 import androidx.compose.material.icons.filled.Terminal
 import androidx.compose.material.icons.filled.FontDownload
+import androidx.compose.material.icons.filled.FormatSize
 import androidx.compose.material.icons.filled.RestartAlt
 import androidx.compose.material.icons.filled.Refresh
 import androidx.compose.material.icons.filled.Download
@@ -205,6 +206,7 @@ fun SettingsScreen(
     val editModeControlsPlacement by viewModel.editModeControlsPlacement.collectAsState()
     val desktopKeyPlacement by viewModel.desktopKeyPlacement.collectAsState()
     val toolbarMinButtonWidth by viewModel.toolbarMinButtonWidth.collectAsState()
+    val toolbarKeyScale by viewModel.toolbarKeyScale.collectAsState()
     val showSearchButton by viewModel.showSearchButton.collectAsState()
     val showCopyOutputButton by viewModel.showCopyOutputButton.collectAsState()
     val keepScreenOnInTerminal by viewModel.keepScreenOnInTerminal.collectAsState()
@@ -225,6 +227,8 @@ fun SettingsScreen(
     val gpuUseVenus by viewModel.gpuUseVenus.collectAsState()
     val bandwidthAutoSuggest by viewModel.bandwidthAutoSuggest.collectAsState()
     val terminalRightClick by viewModel.terminalRightClick.collectAsState()
+    val terminalSwipeArrows by viewModel.terminalSwipeArrows.collectAsState()
+    val swipeArrowsExitHintVisible by viewModel.swipeArrowsExitHintVisible.collectAsState()
     val tapToPositionCursorOnPrompt by viewModel.terminalTapToPositionCursor.collectAsState()
     val allowStandardKeyboard by viewModel.allowStandardKeyboard.collectAsState()
     val rawKeyboardMode by viewModel.rawKeyboardMode.collectAsState()
@@ -576,6 +580,13 @@ fun SettingsScreen(
             subtitle = stringResource(R.string.settings_font_size_subtitle, fontSize),
             onClick = { showFontSizeDialog = true },
         )
+        SettingsToggleItem(
+            icon = Icons.Filled.FormatSize,
+            title = stringResource(R.string.settings_ambiwidth_title),
+            subtitle = stringResource(R.string.settings_ambiwidth_subtitle),
+            checked = viewModel.ambiwidth.collectAsState().value,
+            onCheckedChange = viewModel::setAmbiwidth,
+        )
         SettingsItem(
             icon = Icons.Filled.History,
             title = stringResource(R.string.settings_scrollback_rows_title),
@@ -763,6 +774,23 @@ fun SettingsScreen(
             onCheckedChange = viewModel::setTerminalTapToPositionCursor,
         )
         SettingsToggleItem(
+            icon = Icons.Filled.Terminal,
+            title = stringResource(R.string.settings_swipe_arrows_title),
+            subtitle = stringResource(R.string.settings_swipe_arrows_subtitle),
+            checked = terminalSwipeArrows,
+            onCheckedChange = viewModel::setTerminalSwipeArrows,
+        )
+        if (swipeArrowsExitHintVisible) {
+            // #730: with the tab bar hidden, the toolbar's Swipe key is the
+            // only way out of latched swipe-arrows — surface the exit path
+            // right under the switch that causes it, and offer to add the key.
+            SettingsHintItem(
+                text = stringResource(R.string.settings_swipe_arrows_exit_hint),
+                actionLabel = stringResource(R.string.settings_swipe_arrows_add_key),
+                onAction = { viewModel.addSwipeKeyToToolbar() },
+            )
+        }
+        SettingsToggleItem(
             icon = Icons.Filled.ListAlt,
             title = stringResource(R.string.settings_show_terminal_tab_bar_title),
             subtitle = stringResource(R.string.settings_show_terminal_tab_bar_subtitle),
@@ -896,6 +924,18 @@ fun SettingsScreen(
             subtitle = stringResource(R.string.settings_gps_guest_subtitle),
             checked = gpsGuestExposure,
             onCheckedChange = viewModel::setGpsGuestExposureEnabled,
+        )
+
+        // Tailscale peer discovery (#654): off stops the quad-100 LocalAPI
+        // probe reading the peer list during scans; Tailscale itself is
+        // untouched. On by default to keep the scan behaviour unchanged.
+        val tailscaleDiscovery by viewModel.tailscaleDiscoveryEnabled.collectAsState()
+        SettingsToggleItem(
+            icon = Icons.Filled.VpnLock,
+            title = stringResource(R.string.settings_tailscale_discovery_title),
+            subtitle = stringResource(R.string.settings_tailscale_discovery_subtitle),
+            checked = tailscaleDiscovery,
+            onCheckedChange = viewModel::setTailscaleDiscoveryEnabled,
         )
 
         // Audio bridge (#257): play Linux app sound through the speaker via an
@@ -1987,6 +2027,8 @@ fun SettingsScreen(
             desktopKeyPlacement = desktopKeyPlacement,
             minButtonWidth = toolbarMinButtonWidth,
             onMinButtonWidthChange = { viewModel.setToolbarMinButtonWidth(it) },
+            keyScale = toolbarKeyScale,
+            onKeyScaleChange = { viewModel.setToolbarKeyScale(it) },
             onDismiss = { showToolbarConfigDialog = false },
             onSaveLayout = { layout ->
                 viewModel.setToolbarLayout(layout)
@@ -3228,6 +3270,31 @@ private fun SettingsItem(
     )
 }
 
+/** Explanatory row with a single inline action button (#730 swipe exit hint). */
+@Composable
+private fun SettingsHintItem(
+    text: String,
+    actionLabel: String,
+    onAction: () -> Unit,
+) {
+    ListItem(
+        headlineContent = {
+            Text(
+                text,
+                style = MaterialTheme.typography.bodySmall,
+                color = MaterialTheme.colorScheme.onSurfaceVariant,
+            )
+        },
+        leadingContent = {
+            Icon(Icons.Filled.Info, contentDescription = null, tint = MaterialTheme.colorScheme.primary)
+        },
+        trailingContent = {
+            TextButton(onClick = onAction) { Text(actionLabel) }
+        },
+        modifier = Modifier.padding(horizontal = 8.dp),
+    )
+}
+
 /** Generic settings row whose value is a chip choice (enum prefs). */
 @Composable
 private fun <T> SettingsChipsItem(
@@ -3297,7 +3364,9 @@ private fun ToolbarConfigDialog(
     editModeControlsPlacement: EditModeControlsPlacement,
     desktopKeyPlacement: DesktopKeyPlacement,
     minButtonWidth: Int,
+    keyScale: Float,
     onMinButtonWidthChange: (Int) -> Unit,
+    onKeyScaleChange: (Float) -> Unit,
     onDismiss: () -> Unit,
     onSaveLayout: (ToolbarLayout) -> Unit,
     onSaveLibrary: (List<ToolbarItem.Custom>) -> Unit,
@@ -3325,7 +3394,9 @@ private fun ToolbarConfigDialog(
             editModeControlsPlacement = editModeControlsPlacement,
             desktopKeyPlacement = desktopKeyPlacement,
             minButtonWidth = minButtonWidth,
+            keyScale = keyScale,
             onMinButtonWidthChange = onMinButtonWidthChange,
+            onKeyScaleChange = onKeyScaleChange,
             onDismiss = onDismiss,
             onSave = { newLayout, newLibrary ->
                 onSaveLayout(newLayout)
@@ -3354,7 +3425,9 @@ private fun ToolbarSimpleEditor(
     editModeControlsPlacement: EditModeControlsPlacement,
     desktopKeyPlacement: DesktopKeyPlacement,
     minButtonWidth: Int,
+    keyScale: Float,
     onMinButtonWidthChange: (Int) -> Unit,
+    onKeyScaleChange: (Float) -> Unit,
     onDismiss: () -> Unit,
     onSave: (ToolbarLayout, List<ToolbarItem.Custom>) -> Unit,
     onAdvancedMode: () -> Unit,
@@ -3527,6 +3600,26 @@ private fun ToolbarSimpleEditor(
                     onValueChange = { minWidthSlider = it },
                     onValueChangeFinished = { onMinButtonWidthChange(minWidthSlider.roundToInt()) },
                     valueRange = 0f..64f,
+                    modifier = Modifier.padding(bottom = 4.dp),
+                )
+
+                // Key scale (#641): grows the whole toolbar — heights, icons,
+                // spacing, glyph text — rather than stretching keys wider.
+                var scaleSlider by remember(keyScale) {
+                    mutableStateOf(keyScale)
+                }
+                Text(
+                    stringResource(R.string.settings_toolbar_key_scale, (scaleSlider * 100f).roundToInt()),
+                    style = MaterialTheme.typography.labelMedium,
+                    color = MaterialTheme.colorScheme.primary,
+                    modifier = Modifier.padding(top = 8.dp, bottom = 4.dp),
+                )
+                Slider(
+                    value = scaleSlider,
+                    onValueChange = { scaleSlider = it },
+                    onValueChangeFinished = { onKeyScaleChange(scaleSlider) },
+                    valueRange = 1f..2f,
+                    steps = 19,
                     modifier = Modifier.padding(bottom = 4.dp),
                 )
 

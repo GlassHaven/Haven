@@ -46,17 +46,21 @@ while read -r line; do
     esac
 
     # Only inspect initialised submodules (skip '-')
+    # git exports GIT_DIR when it runs this hook; a plain `git -C "$path"` would
+    # then keep talking to the parent repo and see every submodule as "dirty",
+    # failing every push that did nothing wrong. Strip it so the commands
+    # discover the submodule's own .git file.
     if [ -d "$path/.git" ] || [ -f "$path/.git" ]; then
         # --ignore-submodules=all: still catches real uncommitted SOURCE files
         # (the #94 footgun), but ignores benign nested-submodule pointer drift
         # (a submodule's own submodules, e.g. wayland-android's cairo/fontconfig/
         # glib) that CI doesn't build from and that otherwise forced a blanket
         # --no-verify — which skipped every check below, including preflight.
-        if ! git -C "$path" diff --quiet --ignore-submodules=all HEAD 2>/dev/null; then
+        if ! env -u GIT_DIR git -C "$path" diff --quiet --ignore-submodules=all HEAD 2>/dev/null; then
             warn "submodule '$path' has uncommitted changes — CI won't see them. The parent's pinned SHA is the only source of truth."
         fi
-        if upstream=$(git -C "$path" rev-parse --abbrev-ref --symbolic-full-name '@{u}' 2>/dev/null); then
-            if git -C "$path" log "$upstream..HEAD" --oneline -1 2>/dev/null | grep -q .; then
+        if upstream=$(env -u GIT_DIR git -C "$path" rev-parse --abbrev-ref --symbolic-full-name '@{u}' 2>/dev/null); then
+            if env -u GIT_DIR git -C "$path" log "$upstream..HEAD" --oneline -1 2>/dev/null | grep -q .; then
                 warn "submodule '$path' has commits ahead of $upstream — push the submodule first."
             fi
         fi

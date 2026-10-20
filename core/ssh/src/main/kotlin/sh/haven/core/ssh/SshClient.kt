@@ -840,7 +840,12 @@ class SshClient : SshConnection {
                         "forwarded SK key '${identity.label}' has no FidoAuthenticator " +
                             "configured on this SshClient",
                     )
-                    var fido: Identity = FidoIdentity(skData, authenticator, identity.label)
+                    // nonInteractive (#732): a forwarded request has no user
+                    // driving this connect, so an absent key fails the single
+                    // request fast instead of blocking the session on a
+                    // presentation nobody is positioned to make.
+                    var fido: Identity =
+                        FidoIdentity(skData, authenticator, identity.label, nonInteractive = true)
                     if (identity.certBytes != null) {
                         val certKeyType = SshCertificateParser.getCertKeyType(skData.algorithmName)
                         fido = CertificateWrappedIdentity(fido, identity.certBytes, certKeyType)

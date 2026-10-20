@@ -72,6 +72,9 @@
     <string name="terminal_new_tab_connecting">Подключение…</string>
     <!-- Backfilled translations (i18n drift fix) -->
     <string name="terminal_no_contact">Нет ответа от сервера %1$dс — повторная попытка</string>
+    <string name="terminal_attach_notice_unavailable">Менеджер сессий %1$s не запущен — вы в обычной оболочке. Проверьте, что он установлен на хосте, или задайте Команду сессии в редакторе подключения (расширенно).</string>
+    <string name="terminal_attach_notice_missing">Сессия "%2$s" менеджера %1$s не подключилась — вы в обычной оболочке. Проверьте команду запуска или задайте Команду сессии в редакторе подключения (расширенно).</string>
+    <string name="terminal_attach_notice_dismiss">Закрыть</string>
     <string name="terminal_new_session_create">Создать</string>
     <string name="terminal_vnc_username_label">Имя пользователя (необязательно — только VeNCrypt)</string>
     <string name="terminal_vnc_username_placeholder">Оставьте пустым для классического VncAuth</string>

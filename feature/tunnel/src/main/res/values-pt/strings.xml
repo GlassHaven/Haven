@@ -52,4 +52,23 @@
     <string name="cf_jump_destination_help">Túneis multi-destino em modo bastion: encaminhado como `Cf-Access-Jump-Destination`. Deixe em branco para rotas de destino único.</string>
     <string name="cf_jwt_paste_help">Para configurações headless: execute `cloudflared access token --app https://&lt;hostname&gt;` em outra máquina e cole o JWT aqui. A expiração é analisada automaticamente a partir do token.</string>
     <string name="cf_field_jwt">JWT do Cloudflare Access (opcional)</string>
+    <string name="tunnel_anyconnect_help">Conecte-se por uma VPN Cisco AnyConnect ou ocserv (OpenConnect) sem o app da Cisco. Só os perfis roteados por este túnel o usam; o resto do telefone não. São suportados usuário/senha, grupos de autenticação e segundo fator TOTP ou push; SAML/SSO e certificados de cliente não.</string>
+    <string name="tunnel_anyconnect_server_label">Servidor</string>
+    <string name="tunnel_anyconnect_server_help">Host do gateway como você digitaria no app da Cisco, opcionalmente com :porta ou um caminho de grupo.</string>
+    <string name="tunnel_anyconnect_username_label">Usuário</string>
+    <string name="tunnel_anyconnect_password_label">Senha</string>
+    <string name="tunnel_anyconnect_group_label">Grupo de autenticação (opcional)</string>
+    <string name="tunnel_anyconnect_group_help">O grupo ou perfil a escolher na lista do servidor. Deixe em branco para o padrão.</string>
+    <string name="tunnel_anyconnect_otp_label">Segredo OTP (opcional)</string>
+    <string name="tunnel_anyconnect_otp_help">Segredo Base32 ou link otpauth:// da configuração do seu autenticador. O Haven responde ao pedido de código sozinho, o que permite ao túnel reconectar sem intervenção.</string>
+    <string name="tunnel_anyconnect_secondary_label">Resposta do segundo fator (opcional)</string>
+    <string name="tunnel_anyconnect_secondary_help">Uma resposta fixa ao segundo pedido, ex.: push para Duo. Usada apenas quando não há segredo OTP.</string>
+    <string name="tunnel_anyconnect_cert_label">Certificado do servidor (opcional)</string>
+    <string name="tunnel_anyconnect_cert_help">Apenas para gateways autoassinados: um valor pin-sha256:…. Se o certificado não for confiável, o erro de conexão mostra o valor a colar aqui.</string>
+    <string name="tunnel_status_connected">Conectado</string>
+    <string name="tunnel_sign_out">Sair</string>
+    <string name="tunnel_anyconnect_password_help">Deixe vazio para ser perguntado ao entrar.</string>
+    <string name="tunnel_anyconnect_prompt_help">Códigos enviados por SMS ou e-mail: deixe vazios o segredo OTP e a resposta do segundo fator, e o Haven pede o código ao entrar.</string>
+    <string name="tunnel_anyconnect_stay_connected_label">Manter conectado</string>
+    <string name="tunnel_anyconnect_stay_connected_help">Mantém a VPN ativa após fechar sua última conexão, como o app da Cisco. Desligado: ela desconecta, e reconectar logo depois retoma a sessão sem um novo código.</string>
 </resources>

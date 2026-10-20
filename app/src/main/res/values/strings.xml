@@ -117,6 +117,10 @@
     <string name="app_desktop_dns_mode_custom">Custom</string>
     <string name="app_desktop_dns_custom_label">Name servers</string>
     <string name="app_desktop_dns_custom_hint">e.g. 10.0.0.53, 1.1.1.1</string>
+    <string name="app_desktop_guest_user_title">Guest user</string>
+    <string name="app_desktop_guest_user_description">Run shells and X11 desktops as a normal user (uid 1000) with passwordless sudo instead of root. Leave blank or set to root for root mode.</string>
+    <string name="app_desktop_guest_user_label">Username</string>
+    <string name="app_desktop_guest_user_hint">root (or e.g. user)</string>
     <string name="app_desktop_bind_android_system_title">Expose Android system to guest</string>
     <string name="app_desktop_bind_android_system_description">Mounts Android\'s read-only /system, /vendor, /apex and related partitions into the guest so it can run Android\'s own native binaries (e.g. getprop, toybox). Off by default: this exposes device and vendor internals to the local Linux environment.</string>
     <!-- Desktop manager: custom bind mounts (#301) -->

@@ -116,6 +116,10 @@ class AppWindowVncController {
         scope.launch { client?.typeText(s) }
     }
 
+    fun copyText(s: String) {
+        scope.launch { client?.copyText(s) }
+    }
+
     fun stop() {
         connected.value = false
         val c = client

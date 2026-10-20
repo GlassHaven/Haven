@@ -753,4 +753,127 @@ class ConnectionsViewModelSessionTest {
         // And the user is told, rather than the failure passing silently.
         assertNotNull("the failure must surface", viewModel.error.value)
     }
+
+    /**
+     * #729: when the JUMP leg of a terminal-SSH connect fails auth, the
+     * password dialog used to be raised against the TARGET profile, so the
+     * typed password (and the Remember tick) landed on the wrong profile —
+     * the jump kept asking on every connect while the target's saved
+     * credential was a password the jump never asked for.
+     *
+     * The fix routes the terminal path through the same replay the VNC/RDP/
+     * SMB tunnel paths use (#121a): the dialog is labelled for the jump, the
+     * remember tick saves there, and the target's already-typed password is
+     * queued so the replay re-drives it without asking again.
+     */
+    private fun terminalTarget() = ConnectionProfile(
+        id = "target", label = "target", host = "example.invalid", username = "u",
+        connectionType = "SSH", authMethods = "PASSWORD", jumpProfileId = "jump",
+    )
+
+    private fun failingJumpClient() = mockk<sh.haven.core.ssh.SshConnection>(relaxed = true).also {
+        coEvery {
+            it.connect(any(), any(), any(), any(), any(), any(), any(), any())
+        } throws com.jcraft.jsch.JSchException("Auth fail for methods 'password'")
+    }
+
+    /** Pump until the password fallback is (or stops being) raised. */
+    private fun awaitPasswordFallback(settled: Boolean) {
+        val deadline = System.currentTimeMillis() + 10_000
+        while ((viewModel.passwordFallback.value != null) != settled &&
+            System.currentTimeMillis() < deadline
+        ) {
+            testDispatcher.scheduler.advanceUntilIdle()
+            Thread.sleep(20)
+        }
+        testDispatcher.scheduler.advanceUntilIdle()
+    }
+
+    @Test
+    fun `terminal connect failing on the jump leg prompts for the JUMP profile`() = runTest {
+        every { sshSessionManager.getSessionsForProfile("jump") } returns emptyList()
+        val jump = jumpProfile("PASSWORD").copy(sshPassword = null)
+        coEvery { repository.getById("jump") } returns jump
+        coEvery { repository.getById("target") } returns terminalTarget()
+        coEvery { sshKeyRepository.getAllDecryptedDetailed() } returns
+            DecryptedKeys(keys = emptyList(), declined = emptyList())
+        every { sshSessionManager.registerSession("target", any(), any()) } returns "t-sess"
+        viewModel.jumpClientFactory = { failingJumpClient() }
+
+        val target = terminalTarget()
+        viewModel.connectSsh(target, password = "targetpw", keyOnly = false)
+        awaitPasswordFallback(settled = true)
+
+        // Before the fix: passwordFallback held the TARGET (the exception
+        // landed in connectSsh's generic catch), so the dialog was labelled
+        // for the target and its remember tick saved there.
+        assertSame("the dialog must be labelled for the jump profile", jump, viewModel.passwordFallback.value)
+        assertSame("the replay must re-drive the terminal connect", target, viewModel.pendingTunnelDependent.value)
+        // ... and it queues what the user already typed for the target, so the
+        // replay does not make the target prompt a second time.
+        assertEquals("targetpw", viewModel.pendingDependentPassword.value)
+        assertNull(viewModel.pendingDependentRememberPassword.value)
+        // No dead-end: with a recoverable credential path the raw JSch message
+        // turns into a prompt instead of an error.
+        assertNull(viewModel.error.value)
+    }
+
+    @Test
+    fun `remembering on the jump dialog saves the JUMP profile and keeps the queued target password on a repeat failure`() = runTest {
+        every { sshSessionManager.getSessionsForProfile("jump") } returns emptyList()
+        val jump = jumpProfile("PASSWORD").copy(sshPassword = null)
+        coEvery { repository.getById("jump") } returns jump
+        coEvery { repository.getById("target") } returns terminalTarget()
+        coEvery { sshKeyRepository.getAllDecryptedDetailed() } returns
+            DecryptedKeys(keys = emptyList(), declined = emptyList())
+        every { sshSessionManager.registerSession("target", any(), any()) } returns "t-sess"
+        val target = terminalTarget()
+        viewModel.jumpClientFactory = { failingJumpClient() }
+        viewModel.connectSsh(target, password = "targetpw", keyOnly = false)
+        awaitPasswordFallback(settled = true)
+        assertNotNull(viewModel.passwordFallback.value)
+
+        viewModel.answerPasswordFallback(password = "jumppw", username = null, rememberPassword = true)
+        // The replay leg re-dials the jump, which fails the wrong password
+        // again in this test — but the save must have gone to the JUMP, and
+        // the re-raised prompt must still be carrying the target's password.
+        awaitPasswordFallback(settled = true)
+
+        coVerify {
+            repository.save(match<ConnectionProfile> { it.id == "jump" && it.sshPassword == "jumppw" })
+        }
+        assertSame(jump, viewModel.passwordFallback.value)
+        assertSame(target, viewModel.pendingTunnelDependent.value)
+        assertEquals("targetpw", viewModel.pendingDependentPassword.value)
+    }
+
+    @Test
+    fun `a network failure on the jump leg still reports an error instead of prompting`() = runTest {
+        every { sshSessionManager.getSessionsForProfile("jump") } returns emptyList()
+        val jump = jumpProfile("PASSWORD").copy(sshPassword = null)
+        coEvery { repository.getById("jump") } returns jump
+        coEvery { repository.getById("target") } returns terminalTarget()
+        coEvery { sshKeyRepository.getAllDecryptedDetailed() } returns
+            DecryptedKeys(keys = emptyList(), declined = emptyList())
+        every { sshSessionManager.registerSession("target", any(), any()) } returns "t-sess"
+        val jumpClient = mockk<sh.haven.core.ssh.SshConnection>(relaxed = true)
+        coEvery {
+            jumpClient.connect(any(), any(), any(), any(), any(), any(), any(), any())
+        } throws com.jcraft.jsch.JSchException("failed to connect to /10.0.0.1 (port 2222) after 1000ms: ConnectException (No route to host)")
+
+        viewModel.jumpClientFactory = { jumpClient }
+        viewModel.connectSsh(terminalTarget(), password = "targetpw", keyOnly = false)
+        awaitError()
+
+        // The peer is unreachable — a password prompt cannot help. The half
+        // of #729's fix at risk if inverted: routing this class through the
+        // dialog would ask the user "who is connected?" questions for a box
+        // that is off.
+        assertNull(viewModel.passwordFallback.value)
+        assertNull(viewModel.pendingTunnelDependent.value)
+        assertTrue(
+            "error was: ${viewModel.error.value}",
+            viewModel.error.value.orEmpty().contains("jump", ignoreCase = true),
+        )
+    }
 }

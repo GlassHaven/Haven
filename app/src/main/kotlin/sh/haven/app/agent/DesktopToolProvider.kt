@@ -295,11 +295,12 @@ internal class DesktopToolProvider(
     }
 
     private suspend fun listGuestApps(): JSONObject {
-        if (!prootManager.isRootfsInstalled) {
+        val dm = localSessionManager.desktopManager
+        if (!dm.isUmlCageAvailable && !prootManager.isRootfsInstalled) {
             throw McpError(-32603, "Active distro '${prootManager.activeDistroId}' has no installed rootfs")
         }
         val result = withContext(Dispatchers.IO) {
-            sh.haven.core.local.GuestAppScanner(prootManager).scan()
+            dm.scanInstalledApps()
         }
         return JSONObject().apply {
             put("count", result.total)

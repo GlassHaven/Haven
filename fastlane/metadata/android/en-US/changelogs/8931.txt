@@ -1,0 +1,3 @@
+AnyConnect VPN: gateway sign-in prompts for SMS codes or empty passwords, a Stay connected option, and fast reconnect after a network change.
+Fixed: the SSH jump-host password prompt was labelled for the wrong host.
+Terminal: swipe-into-arrow-keys gets a Settings switch.

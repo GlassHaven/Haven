@@ -52,4 +52,23 @@
     <string name="cf_jump_destination_help">堡垒机模式的多目标隧道：作为 `Cf-Access-Jump-Destination` 转发。单目标路由请留空。</string>
     <string name="cf_jwt_paste_help">无界面场景：在另一台机器上运行 `cloudflared access token --app https://&lt;hostname&gt;`，并将 JWT 粘贴于此。过期时间会自动从令牌中解析。</string>
     <string name="cf_field_jwt">Cloudflare Access JWT（可选）</string>
+    <string name="tunnel_anyconnect_help">无需 Cisco 应用即可通过 Cisco AnyConnect 或 ocserv（OpenConnect）VPN 连接。只有通过此隧道路由的配置会使用它，手机的其余流量不会。支持用户名/密码、认证组以及 TOTP 或推送二次验证；不支持 SAML/SSO 和客户端证书。</string>
+    <string name="tunnel_anyconnect_server_label">服务器</string>
+    <string name="tunnel_anyconnect_server_help">与在 Cisco 应用中输入的网关地址相同，可附带 :端口 或组路径。</string>
+    <string name="tunnel_anyconnect_username_label">用户名</string>
+    <string name="tunnel_anyconnect_password_label">密码</string>
+    <string name="tunnel_anyconnect_group_label">认证组（可选）</string>
+    <string name="tunnel_anyconnect_group_help">从服务器列表中选择的组或配置文件。留空则使用默认组。</string>
+    <string name="tunnel_anyconnect_otp_label">OTP 密钥（可选）</string>
+    <string name="tunnel_anyconnect_otp_help">来自身份验证器设置的 Base32 密钥或 otpauth:// 链接。Haven 会自动回答验证码提示，使隧道可以无人值守地重新连接。</string>
+    <string name="tunnel_anyconnect_secondary_label">二次验证应答（可选）</string>
+    <string name="tunnel_anyconnect_secondary_help">对第二个提示的固定应答，例如 Duo 的 push。仅在未设置 OTP 密钥时使用。</string>
+    <string name="tunnel_anyconnect_cert_label">服务器证书（可选）</string>
+    <string name="tunnel_anyconnect_cert_help">仅用于自签名网关：pin-sha256:… 值。如果证书不受信任，连接错误会显示应粘贴到此处的值。</string>
+    <string name="tunnel_status_connected">已连接</string>
+    <string name="tunnel_sign_out">退出登录</string>
+    <string name="tunnel_anyconnect_password_help">留空则在登录时询问。</string>
+    <string name="tunnel_anyconnect_prompt_help">通过短信或电子邮件发送的验证码：将 OTP 密钥和二次验证应答留空，Haven 会在登录时询问验证码。</string>
+    <string name="tunnel_anyconnect_stay_connected_label">保持连接</string>
+    <string name="tunnel_anyconnect_stay_connected_help">像 Cisco 应用一样，在最后一个连接关闭后仍保持 VPN 连接。关闭时：VPN 会断开，但不久后重新连接可恢复会话而无需新验证码。</string>
 </resources>

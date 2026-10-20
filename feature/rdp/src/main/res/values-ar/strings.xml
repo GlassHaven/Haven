@@ -16,6 +16,7 @@
     <string name="rdp_cd_exit_fullscreen">الخروج من ملء الشاشة</string>
     <string name="rdp_cd_input_mode_trackpad_on">وضع لوحة التتبع مفعّل (اضغط للمس المباشر)</string>
     <string name="rdp_cd_input_mode_direct">وضع اللمس المباشر (اضغط للوحة التتبع)</string>
+    <string name="rdp_cd_trackpad_sensitivity">حساسية لوحة التتبع</string>
     <string name="rdp_orientation_landscape_desc">تثبيت أفقي (اضغط للتبديل إلى عمودي)</string>
     <string name="rdp_orientation_portrait_desc">تثبيت عمودي (اضغط للتبديل إلى تلقائي)</string>
     <string name="rdp_orientation_auto_desc">دوران تلقائي (اضغط للتبديل إلى أفقي)</string>

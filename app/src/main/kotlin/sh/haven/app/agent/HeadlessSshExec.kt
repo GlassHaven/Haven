@@ -14,6 +14,7 @@ import sh.haven.core.ssh.HostKeyVerifier
 import sh.haven.core.ssh.SshClient
 import sh.haven.core.ssh.SshKeyExporter
 import sh.haven.core.ssh.SshSessionManager
+import sh.haven.core.fido.FidoAuthenticator
 import javax.inject.Inject
 import javax.inject.Singleton
 import sh.haven.core.redact.LogRedact
@@ -50,9 +51,14 @@ class HeadlessSshExec @Inject constructor(
     private val sshIdentityRepository: SshIdentityRepository,
     private val hostKeyVerifier: HostKeyVerifier,
     private val hostRediscovery: sh.haven.feature.connections.HostRediscovery,
+    // SK key on the profile's own auth must work on the headless exec path too
+    // (#732); default null keeps explicit test constructions unchanged.
+    private val fidoAuthenticator: FidoAuthenticator? = null,
 ) {
     /** Test seam — unit tests swap this to avoid opening real sockets. */
-    internal var clientFactory: () -> SshClient = { SshClient() }
+    internal var clientFactory: () -> SshClient = {
+        SshClient().apply { fidoAuthenticator = this@HeadlessSshExec.fidoAuthenticator }
+    }
 
     data class Outcome(val exec: ExecResult, val reusedLiveConnection: Boolean)
 

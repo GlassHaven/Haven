@@ -317,14 +317,26 @@ class VncViewModel @Inject constructor(
     }
 
     /**
-     * Type a string sequentially in a single coroutine and also push it
-     * to the remote VNC clipboard. The clipboard sync is defence-in-depth
-     * for apps where Ctrl+V works better than synth-typed key events.
+     * Type a string sequentially in a single coroutine.
+     *
+     * Deliberately does NOT push [text] to the remote VNC clipboard (#700).
+     * This path carries whatever the IME commits, including partial
+     * composition deltas, so copying it stamped intermediate text onto the
+     * remote clipboard. The explicit clipboard action is the only route
+     * that writes the remote clipboard.
      */
     fun typeText(text: String) {
         viewModelScope.launch(keyboardDispatcher) {
-            client?.copyText(text)
             client?.typeText(text)
+        }
+    }
+
+    /**
+     * Push [text] to the remote VNC clipboard via RFB ClientCutText (#718).
+     */
+    fun sendClipboardText(text: String) {
+        viewModelScope.launch(keyboardDispatcher) {
+            client?.copyText(text)
         }
     }
 

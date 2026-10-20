@@ -71,6 +71,14 @@ interface Tunnel {
     fun localAddress(): String? = null
 
     /**
+     * Keep this tunnel up after its last dependent releases it, until it is
+     * closed explicitly ([TunnelManager.disconnect]). AnyConnect sets this
+     * when the user wants it to behave like Cisco's always-on client; for
+     * the other backends re-establishing is cheap and silent, so they don't.
+     */
+    val lingerAfterRelease: Boolean get() = false
+
+    /**
      * Tear down the tunnel. All outstanding connections are invalidated.
      * Idempotent.
      */

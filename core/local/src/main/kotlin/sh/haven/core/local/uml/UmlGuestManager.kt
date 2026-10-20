@@ -339,14 +339,16 @@ class UmlGuestManager @Inject constructor(
                 // carries the kernel panic or the passt error that killed the
                 // guest.
                 val tail = agentMirror.tail(sessionId)
-                prefScope.launch {
-                    connectionLog.logEvent(
-                        profileId = session.profileId,
-                        status = if (exitCode == 0) ConnectionLog.Status.DISCONNECTED
-                        else ConnectionLog.Status.FAILED,
-                        details = "Guest exited (exit code $exitCode)",
-                        verboseLog = tail,
-                    )
+                if (UmlDesktopManager.DESKTOP_KERNEL_ARG !in session.extraKernelArgs) {
+                    prefScope.launch {
+                        connectionLog.logEvent(
+                            profileId = session.profileId,
+                            status = if (exitCode == 0) ConnectionLog.Status.DISCONNECTED
+                            else ConnectionLog.Status.FAILED,
+                            details = "Guest exited (exit code $exitCode)",
+                            verboseLog = tail,
+                        )
+                    }
                 }
             },
         )

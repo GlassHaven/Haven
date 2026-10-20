@@ -15,6 +15,7 @@
     <string name="rdp_cd_exit_fullscreen">전체 화면 종료</string>
     <string name="rdp_cd_input_mode_trackpad_on">트랙패드 모드 켜짐 (직접 터치로 전환하려면 탭)</string>
     <string name="rdp_cd_input_mode_direct">직접 터치 모드 (트랙패드로 전환하려면 탭)</string>
+    <string name="rdp_cd_trackpad_sensitivity">트랙패드 감도</string>
     <string name="rdp_orientation_landscape_desc">가로 고정 (세로로 전환하려면 탭)</string>
     <string name="rdp_orientation_portrait_desc">세로 고정 (자동으로 전환하려면 탭)</string>
     <string name="rdp_orientation_auto_desc">자동 회전 (가로로 전환하려면 탭)</string>

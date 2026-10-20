@@ -377,4 +377,8 @@
     <string name="update_notification_channel">تحديثات التطبيق</string>
     <string name="update_notification_title">Haven %1$s متاح</string>
     <string name="update_notification_text">اضغط لفتح صفحة الإصدار.</string>
+    <string name="app_desktop_guest_user_title">مستخدم الضيف</string>
+    <string name="app_desktop_guest_user_description">تشغيل الصدفات وأسطح مكتب X11 كمستخدم عادي (uid 1000) مع صلاحية sudo بدون كلمة مرور بدلاً من الجذر. اتركه فارغاً أو اضبطه على root لوضع الجذر.</string>
+    <string name="app_desktop_guest_user_label">اسم المستخدم</string>
+    <string name="app_desktop_guest_user_hint">root (أو مثلاً user)</string>
 </resources>

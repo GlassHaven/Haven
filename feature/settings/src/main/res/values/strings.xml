@@ -64,10 +64,16 @@
     <string name="settings_session_persistence_none">None</string>
     <string name="settings_font_size_title">Terminal font size</string>
     <string name="settings_font_size_subtitle">%1$dsp</string>
+    <string name="settings_ambiwidth_title">Ambiguous width as double-width</string>
+    <string name="settings_ambiwidth_subtitle">Render East Asian Ambiguous characters as 2 cells</string>
     <string name="settings_scrollback_rows_title">Scrollback rows</string>
     <string name="settings_scrollback_rows_subtitle">%1$,d lines retained per tab — applies to new tabs</string>
     <string name="settings_tap_to_position_title">Tap to move cursor on supported prompts</string>
     <string name="settings_tap_to_position_subtitle">Tap inside a shell prompt to move the cursor to that column. Requires OSC 133 prompt markers (starship, fish 3.6+, recent bash/zsh shell-integration setups). No effect on shells that don\'t emit them</string>
+    <string name="settings_swipe_arrows_title">Swipe sends arrow keys</string>
+    <string name="settings_swipe_arrows_subtitle">Horizontal swipes in the terminal send ← → (hold to repeat) instead of switching tabs. The toolbar\'s Swipe key toggles the same mode</string>
+    <string name="settings_swipe_arrows_exit_hint">With the app tab bar hidden and a session open, swipes keep sending arrows until the toolbar\'s Swipe key is tapped. Add the Swipe key to the toolbar so it\'s always there</string>
+    <string name="settings_swipe_arrows_add_key">Add Swipe key</string>
     <string name="settings_color_scheme_title">Terminal color scheme</string>
     <string name="settings_color_scheme_auto_switch_title">Auto-switch with system theme</string>
     <string name="settings_color_scheme_auto_switch_subtitle">Use different terminal color schemes for light and dark mode</string>
@@ -255,6 +261,7 @@
     <string name="settings_desktop_key_right">Right</string>
     <string name="settings_desktop_key_hidden">Hidden</string>
     <string name="settings_toolbar_min_key_width">Minimum key width: %1$d dp</string>
+    <string name="settings_toolbar_key_scale">Toolbar key scale: %1$d%%</string>
     <string name="settings_toolbar_uniform_grid">Uniform key grid</string>
     <string name="settings_toolbar_uniform_grid_desc">Every key takes an equal-width cell, Termux-style; long labels wrap. No side-scrolling.</string>
     <string name="settings_toolbar_function_keys">Function keys</string>
@@ -386,6 +393,8 @@
     <!-- GPS exposure -->
     <string name="settings_gps_guest_title">Expose GPS to the Linux guest</string>
     <string name="settings_gps_guest_subtitle">Stream the phone’s GPS position into the guest as an NMEA device (haven-gps). Once on, any guest process can read the position. Each attach still asks for consent.</string>
+    <string name="settings_tailscale_discovery_title">Tailscale peer discovery</string>
+    <string name="settings_tailscale_discovery_subtitle">Look up hosts on your Tailscale network through its local API when scanning. Turn off to stop Haven from reading the peer list; Tailscale itself is unaffected.</string>
     <string name="settings_audio_bridge_title">Proot audio (experimental)</string>
     <string name="settings_audio_bridge_subtitle">Play sound from Linux apps through the device speaker via an in-guest PulseAudio bridge. Output only. Streams continuously while on — turn off when not in use.</string>
 

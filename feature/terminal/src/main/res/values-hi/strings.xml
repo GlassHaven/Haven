@@ -72,6 +72,9 @@
     <string name="terminal_new_tab_connecting">कनेक्ट हो रहा है…</string>
     <!-- Backfilled translations (i18n drift fix) -->
     <string name="terminal_no_contact">सर्वर से %1$d सेकंड से कोई प्रतिक्रिया नहीं — पुनः प्रयास जारी</string>
+    <string name="terminal_attach_notice_unavailable">सत्र प्रबंधक %1$s शुरू नहीं हुआ — आप एक साधारण शेल में हैं। जाँचें कि होस्ट पर यह इंस्टॉल है, या कनेक्शन संपादक (उन्नत) में सत्र कमांड सेट करें।</string>
+    <string name="terminal_attach_notice_missing">%1$s सत्र "%2$s" attach नहीं हुआ — आप एक साधारण शेल में हैं। प्रारंभ कमांड जाँचें, या कनेक्शन संपादक (उन्नत) में सत्र कमांड सेट करें।</string>
+    <string name="terminal_attach_notice_dismiss">खारिज करें</string>
     <string name="terminal_new_session_create">बनाएँ</string>
     <string name="terminal_vnc_username_label">उपयोगकर्ता नाम (वैकल्पिक — केवल VeNCrypt)</string>
     <string name="terminal_vnc_username_placeholder">क्लासिक VncAuth के लिए खाली छोड़ें</string>

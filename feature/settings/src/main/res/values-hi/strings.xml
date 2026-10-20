@@ -233,6 +233,10 @@
     <string name="settings_scrollback_rows_value">%1$,d पंक्तियाँ</string>
     <string name="settings_tap_to_position_title">समर्थित प्रॉम्प्ट पर कर्सर ले जाने के लिए टैप करें</string>
     <string name="settings_tap_to_position_subtitle">उस कॉलम में कर्सर ले जाने के लिए शेल प्रॉम्प्ट के अंदर टैप करें। OSC 133 प्रॉम्प्ट मार्कर आवश्यक (starship, fish 3.6+, हाल ही के bash/zsh शेल-इंटीग्रेशन सेटअप)। जो शेल इन्हें नहीं भेजते उन पर कोई प्रभाव नहीं</string>
+    <string name="settings_swipe_arrows_title">स्वाइप से ऐरो की भेजें</string>
+    <string name="settings_swipe_arrows_subtitle">टर्मिनल में क्षैतिज स्वाइप टैब बदलने के बजाय ← → (दोहराने के लिए दबाए रखें) भेजता है। टूलबार की स्वाइप कुंजी वही मोड बदलती है</string>
+    <string name="settings_swipe_arrows_exit_hint">ऐप का टैब बार छिपा होने और सेशन खुले होने पर, टूलबार की स्वाइप कुंजी दबाने तक स्वाइप तीर ही भेजते रहते हैं। कुंजी हमेशा उपलब्ध रहे, इसके लिए टूलबार में स्वाइप कुंजी जोड़ें</string>
+    <string name="settings_swipe_arrows_add_key">स्वाइप कुंजी जोड़ें</string>
 
     <string name="settings_bandwidth_suggest_subtitle">कुछ सेकंड बाद ~1 Mbps से कम थ्रूपुट का पता लगाता है और 256 रंगों पर एक-टैप पुनः कनेक्ट का सुझाव देता है। बंद करने पर संकेत नहीं दिखता।</string>
     <string name="settings_bandwidth_suggest_title">धीमे VNC लिंक पर 256 रंग सुझाएँ</string>
@@ -262,6 +266,7 @@
     <string name="settings_color_scheme_apply_palette_title">स्कीम का ANSI पैलेट लागू करें</string>
     <string name="settings_color_scheme_apply_palette_subtitle">स्कीम से मेल खाने के लिए 16 ANSI रंगों को फिर से रंगें। बंद रहने पर मानक रंग बने रहते हैं, ताकि mutt जैसे फ़ुल-स्क्रीन ऐप्स अपेक्षित रूप से दिखें।</string>
     <string name="settings_toolbar_min_key_width">न्यूनतम key चौड़ाई: %1$d dp</string>
+    <string name="settings_toolbar_key_scale">key स्केल: %1$d%%</string>
     <string name="settings_toolbar_uniform_grid">एकसमान कुंजी ग्रिड</string>
     <string name="settings_toolbar_uniform_grid_desc">हर कुंजी Termux की तरह बराबर चौड़ाई की सेल लेती है; लंबे लेबल लिपट जाते हैं। साइड स्क्रॉल नहीं।</string>
     <string name="settings_terminal_font_title">Terminal font</string>
@@ -444,6 +449,8 @@
     <string name="settings_terminal_opacity_value">%1$d%%</string>
     <string name="settings_terminal_opacity_hint" formatted="false">100% से नीचे Haven पारभासी हो जाता है और हर स्क्रीन (टर्मिनल, सूचियाँ, सेटिंग्स) के पीछे आपके डिवाइस का वॉलपेपर दिखाता है। प्रति-कनेक्शन ओवरराइड केवल उसी टर्मिनल पर लागू होता है।</string>
     <string name="settings_section_mcp">AI एजेंट (MCP)</string>
+    <string name="settings_tailscale_discovery_title">Tailscale पीयर खोज</string>
+    <string name="settings_tailscale_discovery_subtitle">स्कैन करते समय स्थानीय API के ज़रिए आपके Tailscale नेटवर्क के होस्ट खोजें। बंद करें ताकि Haven पीयर सूची न पढ़े; Tailscale प्रभावित नहीं होता।</string>
     <string name="settings_audio_bridge_title">Proot ऑडियो (प्रायोगिक)</string>
     <string name="settings_audio_bridge_subtitle">गेस्ट के अंदर PulseAudio ब्रिज के ज़रिये Linux ऐप्स की आवाज़ डिवाइस स्पीकर से चलाएँ। केवल आउटपुट। चालू रहने पर लगातार स्ट्रीम होता है — उपयोग में न हो तो बंद करें।</string>
     <string name="settings_reverse_tunnel_status_active">Near (SSH): %1$s के ज़रिये चल रहा है — कनेक्टेड</string>
@@ -513,4 +520,6 @@ Haven में पहले से संग्रहीत प्रत्य�
     <string name="settings_inline_images_off">बंद</string>
     <string name="settings_inline_images_ask">पूछें</string>
     <string name="settings_inline_images_always">हमेशा</string>
+    <string name="settings_ambiwidth_title">अस्पष्ट चौड़ाई को द्वि-चौड़ाई के रूप में</string>
+    <string name="settings_ambiwidth_subtitle">पूर्व एशियाई अस्पष्ट वर्णों को 2 सेल के रूप में रेंडर करें</string>
 </resources>

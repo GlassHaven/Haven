@@ -200,7 +200,7 @@ object Pacman : PackageOps {
         "$CLEAR_LOCK pacman -S --noconfirm --needed ${pkgs.joinToString(" ")}"
 
     override fun removeCmd(pkgs: List<String>): String =
-        "$CLEAR_LOCK pacman -R --noconfirm ${pkgs.joinToString(" ")}"
+        "$CLEAR_LOCK pacman -Rsu --noconfirm ${pkgs.joinToString(" ")}"
 
     override fun installSucceeded(output: String): Boolean =
         output.contains("Total Installed Size:") || output.contains("installing ")
@@ -210,11 +210,15 @@ object Pacman : PackageOps {
         // dependency 'libstdc++' required by spirv-tools" after
         // Arch renamed libstdc++ → gcc-libs in the live repos. Also
         // catches the equivalent for renamed pkgs and conflict
-        // chains the tarball's metadata can't see.
+        // chains the tarball's metadata can't see, including the
+        // gcc-libs → libgcc/libstdc++ split where `pacman -Sy && pacman -S`
+        // fails with `conflicting files` / `exists in filesystem (owned by ...)`.
         output.contains("unable to satisfy dependency") ||
             output.contains("target not found") ||
             output.contains("could not be found") ||
             output.contains("conflicting dependencies") ||
+            output.contains("conflicting files") ||
+            output.contains("exists in filesystem (owned by") ||
             // Mirror sync race: the mirror's DB references a
             // package version whose .pkg.tar.xz is no longer on
             // disk (typical when a new ffmpeg or similar high-

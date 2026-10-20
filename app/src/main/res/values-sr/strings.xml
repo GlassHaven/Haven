@@ -298,4 +298,31 @@
     <string name="update_notification_channel">Ажурирања апликације</string>
     <string name="update_notification_title">Доступан је Haven %1$s</string>
     <string name="update_notification_text">Тапните да се отвори страница издања.</string>
+    <string name="app_desktop_primary_title">Линукс десктоп</string>
+    <string name="app_desktop_primary_subline_quick">Спремно за отприлике 4 секунде · Алпајн апликације · један десктоп истовремено</string>
+    <string name="app_desktop_primary_subline_full">Било која дистрибуција · 6 десктопа · извршава се уз ваше остале апликације</string>
+    <string name="app_desktop_primary_start_quick">Старт · Брзи (UML)</string>
+    <string name="app_desktop_primary_start_full">Старт · Комплетан (proot)</string>
+    <string name="app_desktop_primary_switch_to_full">Користи комплетан Линукс</string>
+    <string name="app_desktop_primary_switch_to_quick">Користи брзи десктоп</string>
+    <string name="app_desktop_primary_running">Извршава се</string>
+    <string name="app_desktop_primary_chip_quick">Брзо · %1$s</string>
+    <string name="app_desktop_primary_chip_full">Комплетно · %1$s</string>
+    <string name="app_desktop_open_usb_live">Отвори USB картицу директно (конзола за опоравак)…</string>
+    <string name="app_desktop_open_usb_live_writable">Отвори USB картицу директно (са уписивањем)…</string>
+    <string name="app_desktop_usb_live_ready">Сирова картица прикачена у госта за опоравак — отвори везу „%1$s“</string>
+    <string name="app_desktop_usb_live_readonly_note">Сирова картица преко NBD · само-за-читање · %1$s</string>
+    <string name="app_desktop_usb_live_writable_note">Сирова картица преко NBD · СА УПИСИВАЊЕМ · %1$s</string>
+    <string name="app_desktop_usb_live_close">Затвори сесију уживо</string>
+    <string name="app_uml_desktop_title">UML десктоп гост</string>
+    <string name="app_uml_desktop_description">Десктопи који се извршавају унутар UML гостовог сопственог кернела, приказани преко VNC. Један истовремено (сваки је комплетан кернел); инсталација пакета траје неколико минута.</string>
+    <string name="app_uml_desktop_install">Инсталирај</string>
+    <string name="app_uml_desktop_installed">Инсталирано</string>
+    <string name="app_uml_desktop_not_installed">Није инсталирано</string>
+    <string name="app_uml_desktop_installing">Инсталирају се пакети…</string>
+    <string name="app_uml_desktop_starting">Покреће се на порту %1$d…</string>
+    <string name="app_uml_desktop_running">Извршава се · VNC 127.0.0.1:%1$d</string>
+    <string name="app_uml_desktop_failed">Није успело</string>
+    <string name="app_uml_desktop_start_cd">Покрени %1$s десктоп</string>
 </resources>
+

@@ -18,6 +18,7 @@
     <string name="vnc_cd_exit_fullscreen">الخروج من ملء الشاشة</string>
     <string name="vnc_cd_input_mode_trackpad_on">وضع لوحة التتبع مفعّل (اضغط للمس المباشر)</string>
     <string name="vnc_cd_input_mode_direct">وضع اللمس المباشر (اضغط للوحة التتبع)</string>
+    <string name="vnc_cd_trackpad_sensitivity">حساسية لوحة التتبع</string>
     <string name="vnc_orientation_landscape_desc">تثبيت أفقي (اضغط للتبديل إلى عمودي)</string>
     <string name="vnc_orientation_portrait_desc">تثبيت عمودي (اضغط للتبديل إلى تلقائي)</string>
     <string name="vnc_orientation_auto_desc">دوران تلقائي (اضغط للتبديل إلى أفقي)</string>
@@ -31,4 +32,5 @@
     <!-- Backfill 2026-07: strings added since the last i18n pass -->
     <string name="vnc_cd_two_finger_viewport">إصبعان يحرّكان العرض (اضغط لتمرير الشاشة البعيدة)</string>
     <string name="vnc_cd_two_finger_scroll_on">إصبعان يمرّران الشاشة البعيدة (اضغط لتحريك العرض)</string>
+    <string name="vnc_cd_paste">لصق الحافظة</string>
 </resources>

@@ -163,6 +163,8 @@
     <string name="connections_field_post_login">登录后命令</string>
     <string name="connections_field_remote_command">远程命令（高级）</string>
     <string name="connections_helper_remote_command">作为 SSH 命令运行，而不是打开登录 shell。留空则使用普通 shell。</string>
+    <string name="connections_field_session_command">会话命令（高级）</string>
+    <string name="connections_helper_session_command">仅对此连接替换会话管理器的启动命令。{name} 会替换为会话名。当内置的 tmux/screen 命令无法运行时使用，例如 Windows 主机：wsl -e sh -c "tmux new-session -A -s {name}"。留空则使用全局设置。</string>
     <string name="connections_toggle_request_pty">请求终端（PTY）</string>
     <string name="connections_helper_post_login">登录后发送。</string>
     <string name="connections_dropdown_none_direct">无（直连）</string>

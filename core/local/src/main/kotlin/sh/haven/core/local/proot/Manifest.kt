@@ -285,7 +285,14 @@ object DistroCatalog {
                 stripComponents = 1,
             ),
         ),
-        baselinePackages = listOf("bash", "curl", "ca-certificates", "openssh-client", "tmux"),
+        baselinePackages = listOf("bash", "curl", "ca-certificates", "openssh-client", "tmux", "sudo"),
+        postExtractHooks = listOf(
+            RootfsHook(
+                id = "locale-gen en_US.UTF-8",
+                command = "if [ -f /etc/locale.gen ] && command -v locale-gen >/dev/null 2>&1; then " +
+                    "sed -i -E 's/#[[:space:]]?(en_US.UTF-8[[:space:]]+UTF-8)/\\1/g' /etc/locale.gen && locale-gen; fi",
+            ),
+        ),
         sizeEstimateMb = 130,
     )
 
@@ -323,7 +330,14 @@ object DistroCatalog {
                 stripComponents = 1,
             ),
         ),
-        baselinePackages = listOf("bash", "curl", "ca-certificates", "openssh-client", "tmux"),
+        baselinePackages = listOf("bash", "curl", "ca-certificates", "openssh-client", "tmux", "sudo"),
+        postExtractHooks = listOf(
+            RootfsHook(
+                id = "locale-gen en_US.UTF-8",
+                command = "if [ -f /etc/locale.gen ] && command -v locale-gen >/dev/null 2>&1; then " +
+                    "sed -i -E 's/#[[:space:]]?(en_US.UTF-8[[:space:]]+UTF-8)/\\1/g' /etc/locale.gen && locale-gen; fi",
+            ),
+        ),
         sizeEstimateMb = 130,
     )
 
@@ -372,7 +386,14 @@ object DistroCatalog {
                 stripComponents = 1,
             ),
         ),
-        baselinePackages = listOf("bash", "curl", "ca-certificates", "openssh-client", "tmux"),
+        baselinePackages = listOf("bash", "curl", "ca-certificates", "openssh-client", "tmux", "sudo"),
+        postExtractHooks = listOf(
+            RootfsHook(
+                id = "locale-gen en_US.UTF-8",
+                command = "if [ -f /etc/locale.gen ] && command -v locale-gen >/dev/null 2>&1; then " +
+                    "sed -i -E 's/#[[:space:]]?(en_US.UTF-8[[:space:]]+UTF-8)/\\1/g' /etc/locale.gen && locale-gen; fi",
+            ),
+        ),
         sizeEstimateMb = 150,
     )
 
@@ -415,7 +436,7 @@ object DistroCatalog {
                 stripComponents = 1,
             ),
         ),
-        baselinePackages = listOf("bash", "curl", "ca-certificates", "openssh", "tmux"),
+        baselinePackages = listOf("bash", "curl", "ca-certificates", "openssh", "tmux", "sudo"),
         postExtractHooks = listOf(
             // Arch's proot-distro tarball is a snapshot of the rolling
             // repo at build time. By the time a user installs it, the
@@ -612,22 +633,38 @@ object DistroCatalog {
     fun isBuiltin(id: String): Boolean = builtins.any { it.id == id }
 
     /**
-     * A minimal [Distro] for a user-imported rootfs (#284): no download
-     * sources (the tarball is already on disk), no baseline packages or
-     * post-extract hooks (raw mode — the imported rootfs is used as-is).
-     * [family] still routes PackageOps so `apk`/`apt`/`pacman`/`xbps` work
-     * for later package installs and the capture-tool helpers.
+     * If [id] matches `<builtin.id>-<arch.slug>` (e.g. `"archlinux-x86_64"` or
+     * `"void-x86_64"`), returns the parent built-in [Distro] so foreign-arch
+     * catalog installs inherit its [Distro.baselinePackages] and
+     * [Distro.postExtractHooks] (#718). Returns `null` for user-imported
+     * custom rootfses.
      */
-    fun customDistro(id: String, label: String, family: PackageFamily, sizeMb: Int): Distro =
-        Distro(
+    fun builtinForForeignId(id: String): Distro? =
+        builtins.firstOrNull { builtin ->
+            Arch.entries.any { arch -> id == "${builtin.id}-${arch.slug}" }
+        }
+
+    /**
+     * A [Distro] entry for an imported or foreign-arch rootfs (#284, #718):
+     * no download sources (the tarball is already on disk). User-imported
+     * rootfses run in raw mode (empty baselinePackages and postExtractHooks),
+     * while foreign-arch variants of built-in catalog distros (`<builtin>-<arch>`)
+     * inherit their parent's [Distro.baselinePackages], [Distro.postExtractHooks],
+     * and [Distro.supportedDeIds].
+     */
+    fun customDistro(id: String, label: String, family: PackageFamily, sizeMb: Int): Distro {
+        val parent = builtinForForeignId(id)?.takeIf { it.family == family }
+        return Distro(
             id = id,
             label = label,
             family = family,
             rootfsSources = emptyMap(),
-            baselinePackages = emptyList(),
-            postExtractHooks = emptyList(),
+            baselinePackages = parent?.baselinePackages ?: emptyList(),
+            postExtractHooks = parent?.postExtractHooks ?: emptyList(),
             sizeEstimateMb = sizeMb,
+            supportedDeIds = parent?.supportedDeIds,
         )
+    }
 
     /** The Phase 1 default — also what legacy installs migrate to. */
     const val DEFAULT_ID: String = "alpine-3.21"

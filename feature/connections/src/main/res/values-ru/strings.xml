@@ -300,6 +300,8 @@
     <string name="connections_field_post_login">Команда после входа</string>
     <string name="connections_field_remote_command">Удаленная команда (расширенные)</string>
     <string name="connections_helper_remote_command">Выполняется как команда SSH вместо открытия входной оболочки. Оставьте пустым для обычной оболочки.</string>
+    <string name="connections_field_session_command">Команда сессии (расширенно)</string>
+    <string name="connections_helper_session_command">Заменяет команду запуска менеджера сессий только для этого подключения. {name} становится именем сессии. Используйте, когда встроенная команда tmux/screen не может выполниться, например на Windows-хосте: wsl -e sh -c "tmux new-session -A -s {name}". Пусто — используется глобальная настройка.</string>
     <string name="connections_toggle_request_pty">Запросить терминал (PTY)</string>
     <string name="connections_helper_post_login">Отправляется после входа.</string>
     <string name="connections_dropdown_none_direct">Нет (напрямую)</string>

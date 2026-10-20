@@ -27,7 +27,8 @@ data class TunnelConfig(
      *  it's the Access hostname + cached IdP JWT JSON; for
      *  [TunnelConfigType.NETBIRD] it's the setup key + management URL JSON;
      *  for [TunnelConfigType.OPENVPN] it's the `.ovpn` profile text +
-     *  optional auth-user-pass credentials JSON. */
+     *  optional auth-user-pass credentials JSON;
+     *  for [TunnelConfigType.ANYCONNECT] it's the gateway + credentials JSON. */
     val configText: ByteArray,
     val createdAt: Long = System.currentTimeMillis(),
     /**
@@ -65,6 +66,13 @@ enum class TunnelConfigType {
      *  per-config peer identity in filesDir/netbird-<id>. No VpnService
      *  and no second app. See GH #492. */
     NETBIRD,
+
+    /** Cisco AnyConnect / ocserv (OpenConnect server) via the gomobile-bound
+     *  ocbridge: aggregate XML auth + CSTP over TLS into a private gVisor
+     *  netstack. No VpnService, no Cisco app, only the profiles that pick
+     *  this tunnel are routed through it. Payload is
+     *  [sh.haven.core.tunnel.AnyConnectConfigBlob] JSON. */
+    ANYCONNECT,
 
     /** OpenVPN3 Core + gVisor netstack, gomobile-bound as ovpnbridge. A
      *  pasted `.ovpn` profile plus optional auth-user-pass username/

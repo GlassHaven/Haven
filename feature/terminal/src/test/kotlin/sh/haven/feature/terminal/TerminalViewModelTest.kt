@@ -429,6 +429,128 @@ class TerminalViewModelTest {
 
         }
 
+    // #728: the last tab emptying on its own (session exited / transport
+    // dropped) returns to Connect only when that session had actually been up
+    // for a moment — a connect that fails right away stays put so the error
+    // is visible (the #208 flicker). The real-RNS recipe from the #601 test
+    // gives a genuine tab whose openedAtMs the reconcile pass carries across.
+    private fun stubRealRnsManager(): sh.haven.core.reticulum.ReticulumSessionManager {
+        val transport = mockk<sh.haven.core.reticulum.ReticulumTransport>(relaxed = true)
+        val shell = mockk<sh.haven.core.reticulum.RnshShellSession>(relaxed = true)
+        // A relaxed mock's Flow completes on collect → DISCONNECTED; keep open.
+        every { shell.output } returns
+            kotlinx.coroutines.flow.MutableSharedFlow(extraBufferCapacity = 8)
+        every { shell.exitCode } returns kotlinx.coroutines.CompletableDeferred()
+        coEvery { transport.openSession(any(), any(), any()) } returns shell
+        val rnsManager = sh.haven.core.reticulum.ReticulumSessionManager(
+            transport, mockk(relaxed = true),
+        )
+        io.mockk.mockkStatic(android.os.Looper::class)
+        every { android.os.Looper.getMainLooper() } returns mockk(relaxed = true)
+        io.mockk.mockkObject(org.connectbot.terminal.TerminalEmulatorFactory.Companion)
+        every { org.connectbot.terminal.TerminalEmulatorFactory.create(any(), any(), any(), any(), any(), any(), any(), any(), any(), any(), any(), any(), any(), any(), any(), any()) } returns
+            mockk<org.connectbot.terminal.TerminalEmulator>(relaxed = true)
+        every { reticulumSessionManager.sessions } returns rnsManager.sessions
+        every { reticulumSessionManager.isReadyForTerminal(any()) } answers {
+            val s = rnsManager.sessions.value[firstArg<String>()]
+            s?.status == sh.haven.core.reticulum.ReticulumSessionManager.SessionState.Status.CONNECTED &&
+                s.reticulumSession == null
+        }
+        every { reticulumSessionManager.createTerminalSession(any(), any()) } answers {
+            rnsManager.createTerminalSession(firstArg(), secondArg())
+        }
+        // closeTab's removeSession must reach the real manager, or the
+        // session stays CONNECTED and the next reconcile rebuilds the tab.
+        every { reticulumSessionManager.removeSession(any()) } answers {
+            rnsManager.removeSession(firstArg())
+        }
+        return rnsManager
+    }
+
+    private fun awaitRnsTab() {
+        val deadline = System.currentTimeMillis() + 2_000
+        while (viewModel.tabs.value.none { it.transportType == "RETICULUM" } &&
+            System.currentTimeMillis() < deadline
+        ) {
+            testDispatcher.scheduler.advanceUntilIdle()
+            Thread.sleep(2)
+        }
+    }
+
+    @Test
+    fun `the last tab dying after being open returns to Connect`() = runTest(testDispatcher) {
+        viewModel.naturalEmptyBounceMinMs = 0L
+        val rnsManager = stubRealRnsManager()
+        val rnsId = rnsManager.registerSession("rns-p", "RNS", "deadbeef")
+        rnsManager.connectSession(rnsId, "/tmp", "127.0.0.1", 37428)
+        viewModel.syncSessions()
+        awaitRnsTab()
+        assertEquals(1, viewModel.tabs.value.size)
+        assertEquals(false, viewModel.navigateToConnections.value)
+
+        rnsManager.removeSession(rnsId)
+        viewModel.syncSessions()
+        advanceUntilIdle()
+
+        assertEquals(0, viewModel.tabs.value.size)
+        assertEquals(
+            "a session that was up and then died should bounce to Connect",
+            true, viewModel.navigateToConnections.value,
+        )
+    }
+
+    @Test
+    fun `the last tab dying right after connect does not bounce`() = runTest(testDispatcher) {
+        viewModel.naturalEmptyBounceMinMs = 60_000L
+        val rnsManager = stubRealRnsManager()
+        val rnsId = rnsManager.registerSession("rns-p", "RNS", "deadbeef")
+        rnsManager.connectSession(rnsId, "/tmp", "127.0.0.1", 37428)
+        viewModel.syncSessions()
+        awaitRnsTab()
+        assertEquals(1, viewModel.tabs.value.size)
+
+        rnsManager.removeSession(rnsId)
+        viewModel.syncSessions()
+        advanceUntilIdle()
+
+        assertEquals(0, viewModel.tabs.value.size)
+        assertEquals(
+            "a connect that failed right away must stay on Terminal (#208)",
+            false, viewModel.navigateToConnections.value,
+        )
+    }
+
+    @Test
+    fun `an explicit close of the last tab returns to Connect even when young`() =
+        runTest(testDispatcher) {
+            viewModel.naturalEmptyBounceMinMs = 60_000L
+            val rnsManager = stubRealRnsManager()
+            val rnsId = rnsManager.registerSession("rns-p", "RNS", "deadbeef")
+            rnsManager.connectSession(rnsId, "/tmp", "127.0.0.1", 37428)
+            viewModel.syncSessions()
+            awaitRnsTab()
+            assertEquals(1, viewModel.tabs.value.size)
+
+            viewModel.closeTab(rnsId)
+            // removeTabAndSync launches syncSessions, which hops to the real
+            // Dispatchers.IO for its profile batch — advanceUntilIdle alone
+            // can return before that resumes (same shape as the init-reconcile
+            // flake above), so pump until the bounce lands, bounded.
+            val deadline = System.currentTimeMillis() + 2_000
+            while (!viewModel.navigateToConnections.value &&
+                System.currentTimeMillis() < deadline
+            ) {
+                testDispatcher.scheduler.advanceUntilIdle()
+                Thread.sleep(10)
+            }
+
+            assertEquals(0, viewModel.tabs.value.size)
+            assertEquals(
+                "an explicit close bounces unconditionally",
+                true, viewModel.navigateToConnections.value,
+            )
+        }
+
     @Test
     fun `selectTabByProfileId with no matching tab is no-op`() {
         viewModel.selectTabByProfileId("nonexistent")
@@ -593,4 +715,70 @@ class TerminalViewModelTest {
         assertEquals("the locked Alt is not", true, viewModel.altActive.value)
         assertEquals(2, viewModel.toolbarModifierMask())
     }
+
+    // #713: When the active tab's TerminalEmulator resizes (e.g. active tab in
+    // alt-screen reflowing to keyboard height, or rotating), its onResize
+    // callback must NOT loop over _tabs.value and call tab.resize(cols, rows)
+    // on inactive tabs — because inactive tabs are not composed, their local
+    // TerminalEmulator stays at its old dimensions while the remote PTY is
+    // resized out from under it, desynchronizing remote vs local dimensions.
+    @Test
+    fun `resizing one tab does not resize another tab's remote transport out from under its emulator`() =
+        runTest(testDispatcher) {
+            val sshSession1 = mockk<sh.haven.core.ssh.TerminalSession>(relaxed = true)
+            val sshSession2 = mockk<sh.haven.core.ssh.TerminalSession>(relaxed = true)
+            val resizeSinks = mutableMapOf<String, (org.connectbot.terminal.TerminalDimensions) -> Unit>()
+
+            val s1 = sessionManager.registerSession("p1", "Server 1", mockk(relaxed = true))
+            sessionManager.updateStatus(s1, SshSessionManager.SessionState.Status.CONNECTED)
+            val s2 = sessionManager.registerSession("p2", "Server 2", mockk(relaxed = true))
+            sessionManager.updateStatus(s2, SshSessionManager.SessionState.Status.CONNECTED)
+
+            val bundle1 = SshTerminalEmulatorOwner.Bundle(
+                sessionId = s1,
+                profileId = "p1",
+                label = "Server 1",
+                oscHandler = OscHandler(),
+                cwdFlow = MutableStateFlow(null),
+                hyperlinkFlow = MutableStateFlow(null),
+                mouseTracker = MouseModeTracker(),
+                recorder = null,
+            ).apply {
+                emulator = mockk(relaxed = true)
+                feedOutput = { _, _, _ -> }
+                session = sshSession1
+            }
+            val bundle2 = SshTerminalEmulatorOwner.Bundle(
+                sessionId = s2,
+                profileId = "p2",
+                label = "Server 2",
+                oscHandler = OscHandler(),
+                cwdFlow = MutableStateFlow(null),
+                hyperlinkFlow = MutableStateFlow(null),
+                mouseTracker = MouseModeTracker(),
+                recorder = null,
+            ).apply {
+                emulator = mockk(relaxed = true)
+                feedOutput = { _, _, _ -> }
+                session = sshSession2
+            }
+
+            every { sshEmulatorOwner.bundleFor(s1) } returns bundle1
+            every { sshEmulatorOwner.bundleFor(s2) } returns bundle2
+            every { sshEmulatorOwner.setResizeSink(any(), any()) } answers {
+                resizeSinks[firstArg()] = secondArg()
+            }
+
+            viewModel.syncSessions()
+            assertEquals(2, viewModel.tabs.value.size)
+
+            // Active tab 1's emulator fires onResize(51 cols, 23 rows)
+            resizeSinks.getValue(s1).invoke(
+                org.connectbot.terminal.TerminalDimensions(rows = 23, columns = 51),
+            )
+
+            verify(exactly = 1) { sshSession1.resize(51, 23) }
+            verify(exactly = 0) { sshSession2.resize(any(), any()) }
+        }
 }
+

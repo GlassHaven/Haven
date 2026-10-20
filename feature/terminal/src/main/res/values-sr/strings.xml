@@ -29,6 +29,9 @@
     <string name="common_unlock">Откључај</string>
     <string name="terminal_reconnecting">Поновно повезивање</string>
     <string name="terminal_no_contact">Нема контакта са сервером већ %1$ds — покушава се поново</string>
+    <string name="terminal_attach_notice_unavailable">Менаџер сесија %1$s није покренут — налазите се у обичној шкољци. Проверите да ли је инсталиран на домаћину, или поставите Команду сесије у уређивачу везе (напредно).</string>
+    <string name="terminal_attach_notice_missing">Сесија "%2$s" менаџера %1$s није придружена — налазите се у обичној шкољци. Проверите команду покретања или поставите Команду сесије у уређивачу везе (напредно).</string>
+    <string name="terminal_attach_notice_dismiss">Отбаци</string>
     <string name="terminal_sessions">Сесије</string>
     <string name="terminal_move_left">Помери улево</string>
     <string name="terminal_move_right">Помери удесно</string>
@@ -141,7 +144,7 @@
     <string name="terminal_mouse_requested_but_disabled">Ова апликација тражи приступ мишу. Да бисте је користили, укључите „Унос мишем у TUI апликацијама” у Подешавања → Терминал</string>
 
     <!-- Inline-image consent (#583) -->
-    <string name="terminal_inline_image_title">Уграћена слика</string>
+    <string name="terminal_inline_image_title">Уграђена слика</string>
     <string name="terminal_inline_image_question">Овај терминал жели да прикаже слику у тексту.</string>
     <string name="terminal_inline_image_protocol_kitty">Kitty графички протокол</string>
     <string name="terminal_inline_image_protocol_iterm2">iTerm2 протокол</string>
@@ -149,4 +152,5 @@
     <string name="terminal_inline_image_dimensions">Величина: %1$d × %2$d px</string>
     <string name="terminal_inline_image_deny">Одбиј</string>
     <string name="terminal_inline_image_always_tab">Увек у овој картици</string>
+    <string name="terminal_switch_tab">Пребаци картицу</string>
 </resources>

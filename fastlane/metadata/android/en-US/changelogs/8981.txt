@@ -1,0 +1,1 @@
+Swiping inside full-screen apps (vim, htop, less) now follows the page instead of the finger when the Swipe key is latched: swipe up brings the next page. At a bare shell prompt it still walks history as before. Also fixes abandoned terminal sessions leaking native memory, so long-running sessions use less RAM.

@@ -28,6 +28,7 @@ import sh.haven.core.data.preferences.DesktopKeyPlacement
 import sh.haven.core.data.preferences.EditModeControlsPlacement
 import sh.haven.core.data.preferences.NavBlockMode
 import sh.haven.core.data.preferences.ToolbarItem
+import sh.haven.core.data.preferences.ToolbarKey
 import sh.haven.core.data.preferences.TabVisibility
 import sh.haven.core.data.preferences.ToolbarLayout
 import sh.haven.core.data.preferences.UserPreferencesRepository
@@ -526,6 +527,9 @@ class SettingsViewModel @Inject constructor(
     val gpsGuestExposureEnabled: StateFlow<Boolean> = preferencesRepository.gpsGuestExposureEnabled
         .stateIn(viewModelScope, SharingStarted.WhileSubscribed(5000), false)
 
+    val tailscaleDiscoveryEnabled: StateFlow<Boolean> = preferencesRepository.tailscaleDiscoveryEnabled
+        .stateIn(viewModelScope, SharingStarted.WhileSubscribed(5000), true)
+
     val remoteClipboardToLocalEnabled: StateFlow<Boolean> = preferencesRepository.remoteClipboardToLocalEnabled
         .stateIn(viewModelScope, SharingStarted.WhileSubscribed(5000), false)
 
@@ -648,6 +652,25 @@ class SettingsViewModel @Inject constructor(
     val terminalTapToPositionCursor: StateFlow<Boolean> = preferencesRepository.terminalTapToPositionCursor
         .stateIn(viewModelScope, SharingStarted.WhileSubscribed(5000), false)
 
+    val terminalSwipeArrows: StateFlow<Boolean> = preferencesRepository.swipeArrowsMode
+        .stateIn(viewModelScope, SharingStarted.WhileSubscribed(5000), false)
+
+    /**
+     * #730: with swipe-arrows latched and the app tab bar hidden, a session
+     * tab on screen means swipes no longer switch screens either — the
+     * toolbar's Swipe key is the only exit. Hint when that key isn't on the
+     * toolbar at all (it's absent from the default layout).
+     */
+    val swipeArrowsExitHintVisible: StateFlow<Boolean> = combine(
+        preferencesRepository.swipeArrowsMode,
+        preferencesRepository.hideNavBarInTerminal,
+        preferencesRepository.toolbarLayout,
+    ) { swipes, hidden, layout ->
+        swipes && hidden && layout.rows.flatten().none {
+            it is ToolbarItem.BuiltIn && it.key == ToolbarKey.SWIPE_ARROWS
+        }
+    }.stateIn(viewModelScope, SharingStarted.WhileSubscribed(5000), false)
+
     val allowStandardKeyboard: StateFlow<Boolean> = preferencesRepository.allowStandardKeyboard
         .stateIn(viewModelScope, SharingStarted.WhileSubscribed(5000), false)
 
@@ -666,6 +689,13 @@ class SettingsViewModel @Inject constructor(
 
     val showTerminalTabBar: StateFlow<Boolean> = preferencesRepository.showTerminalTabBar
         .stateIn(viewModelScope, SharingStarted.WhileSubscribed(5000), true)
+
+    val ambiwidth: StateFlow<Boolean> = preferencesRepository.ambiwidth
+        .stateIn(
+            viewModelScope,
+            SharingStarted.WhileSubscribed(5000),
+            false,
+        )
 
     val terminalFontSize: StateFlow<Int> = preferencesRepository.terminalFontSize
         .stateIn(
@@ -822,6 +852,13 @@ class SettingsViewModel @Inject constructor(
             UserPreferencesRepository.DEFAULT_TOOLBAR_MIN_BUTTON_WIDTH,
         )
 
+    val toolbarKeyScale: StateFlow<Float> = preferencesRepository.toolbarKeyScale
+        .stateIn(
+            viewModelScope,
+            SharingStarted.WhileSubscribed(5000),
+            UserPreferencesRepository.DEFAULT_TOOLBAR_KEY_SCALE,
+        )
+
     val screenOrder: StateFlow<List<String>> = preferencesRepository.screenOrder
         .stateIn(viewModelScope, SharingStarted.WhileSubscribed(5000), emptyList())
 
@@ -915,6 +952,12 @@ class SettingsViewModel @Inject constructor(
         }
     }
 
+    fun setTailscaleDiscoveryEnabled(enabled: Boolean) {
+        viewModelScope.launch {
+            preferencesRepository.setTailscaleDiscoveryEnabled(enabled)
+        }
+    }
+
     fun setRemoteClipboardToLocalEnabled(enabled: Boolean) {
         viewModelScope.launch {
             preferencesRepository.setRemoteClipboardToLocalEnabled(enabled)
@@ -972,6 +1015,12 @@ class SettingsViewModel @Inject constructor(
     fun setTerminalTapToPositionCursor(enabled: Boolean) {
         viewModelScope.launch {
             preferencesRepository.setTerminalTapToPositionCursor(enabled)
+        }
+    }
+
+    fun setTerminalSwipeArrows(enabled: Boolean) {
+        viewModelScope.launch {
+            preferencesRepository.setSwipeArrowsMode(enabled)
         }
     }
 
@@ -1074,6 +1123,12 @@ class SettingsViewModel @Inject constructor(
         }
     }
 
+    fun setAmbiwidth(enabled: Boolean) {
+        viewModelScope.launch {
+            preferencesRepository.setAmbiwidth(enabled)
+        }
+    }
+
     fun setTerminalScrollbackRows(rows: Int) {
         viewModelScope.launch {
             preferencesRepository.setTerminalScrollbackRows(rows)
@@ -1143,6 +1198,21 @@ class SettingsViewModel @Inject constructor(
         }
     }
 
+    /** #730: append the Swipe key to the toolbar's last row, when absent. */
+    fun addSwipeKeyToToolbar() {
+        viewModelScope.launch {
+            val layout = preferencesRepository.toolbarLayout.first()
+            val hasSwipe = layout.rows.flatten().any {
+                it is ToolbarItem.BuiltIn && it.key == ToolbarKey.SWIPE_ARROWS
+            }
+            if (!hasSwipe) {
+                val rows = layout.rows.ifEmpty { listOf(emptyList()) }.toMutableList()
+                rows[rows.size - 1] = rows[rows.size - 1] + ToolbarItem.BuiltIn(ToolbarKey.SWIPE_ARROWS)
+                preferencesRepository.setToolbarLayout(ToolbarLayout(rows))
+            }
+        }
+    }
+
     fun setToolbarLayoutJson(json: String) {
         viewModelScope.launch {
             preferencesRepository.setToolbarLayoutJson(json)
@@ -1188,6 +1258,12 @@ class SettingsViewModel @Inject constructor(
     fun setToolbarMinButtonWidth(dp: Int) {
         viewModelScope.launch {
             preferencesRepository.setToolbarMinButtonWidth(dp)
+        }
+    }
+
+    fun setToolbarKeyScale(scale: Float) {
+        viewModelScope.launch {
+            preferencesRepository.setToolbarKeyScale(scale)
         }
     }
 

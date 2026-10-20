@@ -233,6 +233,10 @@
     <string name="settings_scrollback_rows_value">%1$,d 行</string>
     <string name="settings_tap_to_position_title">対応プロンプトでタップしてカーソル移動</string>
     <string name="settings_tap_to_position_subtitle">シェルプロンプト内をタップしてその列にカーソルを移動。OSC 133プロンプトマーカーが必要です（starship、fish 3.6+、最近のbash/zshシェル統合設定）。これらを送信しないシェルでは効果なし</string>
+    <string name="settings_swipe_arrows_title">スワイプで矢印キー送信</string>
+    <string name="settings_swipe_arrows_subtitle">ターミナルでの横スワイプで、タブを切り替えず ← →（長押しで連続）を送ります。ツールバーのスワイプキーも同じモードを切り替えます</string>
+    <string name="settings_swipe_arrows_exit_hint">アプリのタブバーを非表示にしてセッションを開いている間は、ツールバーのスワイプキーを押すまでスワイプが矢印キーを送り続けます。いつでも使えるようスワイプキーをツールバーに追加してください</string>
+    <string name="settings_swipe_arrows_add_key">スワイプキーを追加</string>
 
     <string name="settings_bandwidth_suggest_subtitle">数秒後にスループットが約1 Mbps未満になると検出し、ワンタップで256色での再接続を提案します。オフにすると通知が表示されません。</string>
     <string name="settings_bandwidth_suggest_title">低速なVNC接続では256色を提案</string>
@@ -262,6 +266,7 @@
     <string name="settings_color_scheme_apply_palette_title">スキームのANSIパレットを適用</string>
     <string name="settings_color_scheme_apply_palette_subtitle">16色のANSIカラーをスキームに合わせて変更します。オフにすると標準色のままになり、muttのような全画面アプリが期待どおりに表示されます。</string>
     <string name="settings_toolbar_min_key_width">最小キー幅: %1$d dp</string>
+    <string name="settings_toolbar_key_scale">キースケール: %1$d%%</string>
     <string name="settings_toolbar_uniform_grid">キーを均等グリッドに</string>
     <string name="settings_toolbar_uniform_grid_desc">Termux のように各キーが同じ幅のセルを占めます。長いラベルは折り返し。横スクロールなし。</string>
     <string name="settings_terminal_font_title">ターミナルフォント</string>
@@ -444,6 +449,8 @@
     <string name="settings_terminal_opacity_value">%1$d%%</string>
     <string name="settings_terminal_opacity_hint" formatted="false">100% 未満にすると Haven が半透明になり、すべての画面（ターミナル、リスト、設定）の背後にデバイスの壁紙が表示されます。接続ごとの上書きはそのターミナルにのみ適用されます。</string>
     <string name="settings_section_mcp">AI エージェント (MCP)</string>
+    <string name="settings_tailscale_discovery_title">Tailscale ピア検出</string>
+    <string name="settings_tailscale_discovery_subtitle">スキャン時にローカル API を介して Tailscale ネットワーク上のホストを検索します。オフにすると Haven はピアリストを読まなくなります。Tailscale 自体には影響ありません。</string>
     <string name="settings_audio_bridge_title">Proot オーディオ（試験的）</string>
     <string name="settings_audio_bridge_subtitle">ゲスト内の PulseAudio ブリッジ経由で、Linux アプリの音をデバイスのスピーカーから再生します。出力のみ。オンの間は常時ストリーミングされるため、使わないときはオフにしてください。</string>
     <string name="settings_reverse_tunnel_status_active">Near (SSH): %1$s 経由 — 接続済み</string>
@@ -512,4 +519,6 @@ Haven にすでに保存されているすべての秘密鍶は、再びイン�
     <string name="settings_inline_images_off">オフ</string>
     <string name="settings_inline_images_ask">確認</string>
     <string name="settings_inline_images_always">常に</string>
+    <string name="settings_ambiwidth_title">曖昧幅文字を倍幅で表示</string>
+    <string name="settings_ambiwidth_subtitle">東アジアの曖昧幅文字を2セルで描画</string>
 </resources>

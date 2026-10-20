@@ -361,4 +361,8 @@
     <string name="update_notification_channel">App-Updates</string>
     <string name="update_notification_title">Haven %1$s ist verfügbar</string>
     <string name="update_notification_text">Zum Öffnen der Release-Seite tippen.</string>
+    <string name="app_desktop_guest_user_title">Gastbenutzer</string>
+    <string name="app_desktop_guest_user_description">Shells und X11-Desktops als normaler Benutzer (UID 1000) mit passwortlosem sudo statt als root ausführen. Für den Root-Modus leer lassen oder auf root setzen.</string>
+    <string name="app_desktop_guest_user_label">Benutzername</string>
+    <string name="app_desktop_guest_user_hint">root (oder z. B. user)</string>
 </resources>

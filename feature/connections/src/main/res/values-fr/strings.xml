@@ -300,6 +300,8 @@
     <string name="connections_field_post_login">Commande post-connexion</string>
     <string name="connections_field_remote_command">Commande distante (avancé)</string>
     <string name="connections_helper_remote_command">S’exécute comme commande SSH au lieu d’ouvrir un shell de connexion. Laissez vide pour le shell normal.</string>
+    <string name="connections_field_session_command">Commande de session (avancé)</string>
+    <string name="connections_helper_session_command">Remplace la commande de démarrage du gestionnaire de sessions pour cette connexion uniquement. {name} devient le nom de session. À utiliser quand la commande tmux/screen intégrée échoue, par ex. hôte Windows : wsl -e sh -c "tmux new-session -A -s {name}". Laisser vide utilise le réglage global.</string>
     <string name="connections_toggle_request_pty">Demander un terminal (PTY)</string>
     <string name="connections_helper_post_login">Envoyée après la connexion.</string>
     <string name="connections_dropdown_none_direct">Aucun (direct)</string>

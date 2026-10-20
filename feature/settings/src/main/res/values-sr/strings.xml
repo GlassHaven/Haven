@@ -59,6 +59,10 @@
     <string name="settings_scrollback_rows_subtitle">%1$,d линија се задржава по картици — примењује се на нове картице</string>
     <string name="settings_tap_to_position_title">Тап за померање курсора на подржаним одзивима</string>
     <string name="settings_tap_to_position_subtitle">Тапните унутар одзива љуске да се курсор помери у ту колону. Захтева OSC 133 маркере одзива (starship, fish 3.6+, новија подешавања bash/zsh интеграције љуске). Нема ефекта у љускама која их не емитују</string>
+    <string name="settings_swipe_arrows_title">Превлачење шаље стрелице</string>
+    <string name="settings_swipe_arrows_subtitle">Хоризонтално превлачење у терминалу шаље ← → (држите за понављање) уместо пребацивања картица. Тастер за превлачење на траци укључује исти режим</string>
+    <string name="settings_swipe_arrows_exit_hint">Када је трака језичака апликације скривена и сесија отворена, превлачења настављају да шаљу стрелице док се не додирне тастер за превлачење на траци. Додајте тастер за превлачење у траку како би увек био при руци</string>
+    <string name="settings_swipe_arrows_add_key">Додај тастер за превлачење</string>
     <string name="settings_color_scheme_title">Шема боја терминала</string>
     <string name="settings_color_scheme_auto_switch_title">Ауто пребацивање са системском темом</string>
     <string name="settings_color_scheme_auto_switch_subtitle">Користе се различите шеме боја за светли и тамни режим</string>
@@ -212,6 +216,7 @@
     <string name="settings_desktop_key_right">Десно</string>
     <string name="settings_desktop_key_hidden">Скривен</string>
     <string name="settings_toolbar_min_key_width">Минимална ширина тастера: %1$d dp</string>
+    <string name="settings_toolbar_key_scale">Размера тастера: %1$d%%</string>
     <string name="settings_toolbar_uniform_grid">Уједначена мрежа тастера</string>
     <string name="settings_toolbar_uniform_grid_desc">Сваки тастер заузима ћелију једнаке ширине, у Termux стилу; дугачке ознаке се обавијају. Нема скроловања у страну.</string>
     <string name="settings_toolbar_function_keys">Функцијски тастери</string>
@@ -438,9 +443,13 @@
     <string name="settings_sshkey_reset_confirm">Поправи</string>
 
     <!-- Inline-image consent (#583) -->
-    <string name="settings_inline_images_title">Уграћене слике</string>
+    <string name="settings_inline_images_title">Уграђене слике</string>
     <string name="settings_inline_images_subtitle">Слике које програми шаљу у терминал (Kitty графика, iTerm2).</string>
     <string name="settings_inline_images_off">Искључено</string>
     <string name="settings_inline_images_ask">Питај</string>
     <string name="settings_inline_images_always">Увек</string>
+    <string name="settings_auto_show_keyboard_title">Прикажи тастатуру када се отвори терминал</string>
+    <string name="settings_auto_show_keyboard_subtitle">Софтверска тастатура се аутоматски подиже када отворите или пређете на сесију терминала. Искључите ако не желите да се прикаже за сесије које су само-за-читање; тастер тастатуре на алатној линији и двоструки тап и даље могу да је подигну</string>
+    <string name="settings_gps_guest_title">Изложи GPS Линукс госту</string>
+    <string name="settings_gps_guest_subtitle">Стримује GPS позицију телефона у госта као NMEA уређај (haven-gps). Када се укључи, било који процес у госту може да чита позицију. Свако привезивање још увек пита за пристанак.</string>
 </resources>

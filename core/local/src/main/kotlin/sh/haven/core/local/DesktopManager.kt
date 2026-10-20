@@ -32,7 +32,14 @@ class DesktopManager @Inject constructor(
     @ApplicationContext private val context: Context,
     private val prootManager: ProotManager,
     private val userPreferencesRepository: UserPreferencesRepository,
+    private val umlDesktopProvider: javax.inject.Provider<sh.haven.core.local.uml.UmlDesktopManager>,
 ) {
+    private val umlDesktop: sh.haven.core.local.uml.UmlDesktopManager?
+        get() = runCatching { umlDesktopProvider.get() }.getOrNull()
+
+    /** True when the UML guest backend is available to host single-app cage windows. */
+    val isUmlCageAvailable: Boolean
+        get() = umlDesktop?.isAvailable == true
     enum class DesktopState { STOPPED, STARTING, RUNNING, ERROR }
 
     /** An exit this soon after launch is reported as a startup failure even
@@ -811,11 +818,15 @@ class DesktopManager @Inject constructor(
      * (ProotManager.runCommandInProot's `env -i`). Launch scripts re-export
      * their own DISPLAY/XDG_RUNTIME_DIR/etc. on top of this base.
      */
-    private fun cleanGuestEnv(): List<String> {
+    private fun cleanGuestEnv(
+        guestUser: ProotManager.GuestUserSpec = ProotManager.GuestUserSpec.ROOT,
+    ): List<String> {
         val locale = runBlocking { userPreferencesRepository.terminalLocale.first() }
         return listOf(
             "/usr/bin/env", "-i",
-            "HOME=/root",
+            "HOME=${guestUser.home}",
+            "USER=${guestUser.username}",
+            "LOGNAME=${guestUser.username}",
             "TERM=xterm-256color",
             "LANG=$locale",
             "LC_ALL=$locale",
@@ -823,10 +834,16 @@ class DesktopManager @Inject constructor(
             "SHELL=/bin/sh",
             "TMPDIR=/tmp",
             "XDG_RUNTIME_DIR=/tmp",
-            "XDG_DATA_HOME=/root/.local/share",
+            "XDG_DATA_HOME=${guestUser.home}/.local/share",
             "XDG_DATA_DIRS=/usr/local/share:/usr/share",
-            "XDG_CONFIG_HOME=/root/.config",
-            "XDG_CACHE_HOME=/root/.cache",
+            "XDG_CONFIG_HOME=${guestUser.home}/.config",
+            "XDG_CACHE_HOME=${guestUser.home}/.cache",
+            // #718: Arch's gdk-pixbuf2 (2.44+) delegates SVG icon loading to
+            // glycin (`libglycin-2.so.0`), which spawns `bwrap --unshare-all --seccomp`
+            // and aborts `xfce4-panel` and `xfdesktop` 3 seconds after launch inside
+            // PRoot. `GLYCIN_DISABLE_SANDBOX=i-know-the-risks` disables the bwrap
+            // sandbox so GTK/Xfce4 panels render their icons cleanly.
+            "GLYCIN_DISABLE_SANDBOX=i-know-the-risks",
         )
     }
 
@@ -842,6 +859,8 @@ class DesktopManager @Inject constructor(
         ).absolutePath
         val rootfsDir = prootManager.activeRootfsDir
         val rootHome = File(rootfsDir, "root").apply { mkdirs() }
+        val guestUser = prootManager.ensureGuestUser(rootfsDir)
+        val userHomeDir = File(rootfsDir, guestUser.home.trimStart('/')).apply { mkdirs() }
 
         val launch = de.spec.launch as LaunchSpec.X11Vnc
 
@@ -874,6 +893,10 @@ class DesktopManager @Inject constructor(
         File(context.cacheDir, ".X${display}-lock").delete()
         File(rootHome, ".ICEauthority").apply { if (!exists()) createNewFile() }
         File(rootHome, ".Xauthority").apply { if (!exists()) createNewFile() }
+        if (!guestUser.isRoot) {
+            File(userHomeDir, ".ICEauthority").apply { if (!exists()) createNewFile() }
+            File(userHomeDir, ".Xauthority").apply { if (!exists()) createNewFile() }
+        }
 
         val passwdFile = File(rootfsDir, "root/.vnc/passwd")
         val useAuth = passwdFile.exists() && passwdFile.length() >= 8
@@ -882,7 +905,10 @@ class DesktopManager @Inject constructor(
         } else {
             "-SecurityTypes None"
         }
-        Log.d(TAG, "Starting Xvnc :$display: useAuth=$useAuth")
+        // uid, not the username: the guest name is user-chosen (#718) and must not
+        // reach logcat (#518). uid says the same debugging thing — root vs the
+        // unprivileged identity Xvnc launches under — without the PII.
+        Log.d(TAG, "Starting Xvnc :$display: useAuth=$useAuth uid=${guestUser.uid}")
 
         val shellCmd =
             // `;` not `&&` before the backgrounded Xvnc: with `&&` the `&`
@@ -891,6 +917,7 @@ class DesktopManager @Inject constructor(
             // subshell, orphaned Xvnc, and proot (alive while any tracee
             // lives) never exited: the RUNNING-forever zombie of #550/#551.
             "rm -f /tmp/.X${display}-lock /tmp/.X11-unix/X${display} ; " +
+                "mkdir -p /tmp/.X11-unix ; chmod 1777 /tmp/.X11-unix 2>/dev/null || true ; " +
                 "Xvnc :${display} -geometry 1280x720 " +
                 "$securityArg " +
                 "-BlacklistThreshold 10000 " +
@@ -898,21 +925,27 @@ class DesktopManager @Inject constructor(
                 // The Custom-X11 tail kills this PID when the session command
                 // exits (#550/#551); catalog DEs never reference it.
                 "XVNC_PID=\$! ; " +
-                "sleep 3; " +
+                // #718: under qemu-user emulation (e.g. archlinux-x86_64 on ARM64),
+                // Xvnc can take > 3 s to bind `/tmp/.X11-unix/X<display>`. Poll up
+                // to 15 s (75 * 0.2 s) so xfwm4/xfce4-panel never race the X socket.
+                "i=0; while [ ! -S /tmp/.X11-unix/X${display} ] && [ \$i -lt 75 ]; do sleep 0.2; i=\$((i + 1)); done; " +
                 "export DISPLAY=:${display}; " +
-                "export HOME=/root; " +
-                // #370: establish a session dbus bus so desktop components that
-                // need one (Xfce4's settings/session daemons, and whatever the
-                // Custom-X11 command launches) find DBUS_SESSION_BUS_ADDRESS
-                // instead of failing to start. Best-effort: `command -v` guards
-                // desktops whose package set has no dbus-launch (e.g. Openbox,
-                // which doesn't need one), so this never breaks their launch.
-                // Mirrors the native-Wayland path's dbus-run-session; here the
-                // exports are inherited by the backgrounded WM/panel children.
-                // --exit-with-x11: the dbus-daemon dies when the X server does, so a
-                // force-stopped session (SIGKILL on proot bypasses
-                // --kill-on-exit) can't leak one dbus-daemon per stop (#551).
-                "{ command -v dbus-launch >/dev/null 2>&1 && eval \"\$(dbus-launch --sh-syntax --exit-with-x11)\"; } || true; " +
+                "export HOME=${guestUser.home}; " +
+                "export USER=${guestUser.username}; " +
+                "export LOGNAME=${guestUser.username}; " +
+                "export GLYCIN_DISABLE_SANDBOX=i-know-the-risks; " +
+                // #718: TigerVNC's Xvnc requires `vncconfig` running on the X
+                // display to bridge X11 CLIPBOARD/PRIMARY selections to RFB
+                // CutText messages for bidirectional copy/paste.
+                "{ command -v vncconfig >/dev/null 2>&1 && vncconfig -nowin & } 2>/dev/null || true; " +
+                // #370 / #718: establish a session dbus bus so desktop components
+                // (Xfce4's xfconfd/xfce4-panel/xfwm4) find DBUS_SESSION_BUS_ADDRESS.
+                // Arch Linux builds `dbus-launch` without X11 support, so
+                // `dbus-launch --sh-syntax --exit-with-x11` exits 1 ("Session
+                // lifetime based on X11 requested, but X11 support not compiled in");
+                // fall back to plain `dbus-launch --sh-syntax` when `--exit-with-x11`
+                // is unsupported (`--kill-on-exit` on proot still reaps the daemon).
+                "{ command -v dbus-launch >/dev/null 2>&1 && eval \"\$(dbus-launch --sh-syntax --exit-with-x11 2>/dev/null || dbus-launch --sh-syntax)\"; } || true; " +
                 "[ -f /etc/profile.d/pulse.sh ] && . /etc/profile.d/pulse.sh; " +
                 // NO virgl — software rendering for VNC desktops. Force the
                 // Mesa software rasteriser so GPU-less GL apps (KiCad/eeschema)
@@ -924,8 +957,13 @@ class DesktopManager @Inject constructor(
                 "$startCommands " +
                 "wait"
 
+        val identityArgs = if (guestUser.isRoot) {
+            listOf("-0")
+        } else {
+            listOf("-i", "${guestUser.uid}:${guestUser.gid}")
+        }
         val prootArgs = mutableListOf(
-            prootBin, "-0", "--link2symlink", "--sysvipc",
+            prootBin, *identityArgs.toTypedArray(), "--link2symlink", "--sysvipc",
             // #550/#551: when the launch script exits, kill every remaining
             // tracee. Without this, the dbus-daemon that `dbus-launch` forks
             // outlives the session, proot stays alive tracing it, the host
@@ -959,11 +997,12 @@ class DesktopManager @Inject constructor(
         prootArgs.addAll(prootManager.customBindShortArgs(prootManager.activeDistroId))
         // /bin/sh works on both Alpine (symlink to busybox) and Debian
         // (symlink to dash). See ProotManager.runCommandInProot.
-        prootArgs.addAll(listOf("-w", "/root") + cleanGuestEnv() + listOf("/bin/sh", "-c", shellCmd))
+        prootArgs.addAll(listOf("-w", guestUser.home) + cleanGuestEnv(guestUser) + listOf("/bin/sh", "-c", shellCmd))
 
         return ProcessBuilder(prootArgs).apply {
             environment().apply {
-                put("HOME", "/root")
+                put("HOME", guestUser.home)
+                put("USER", guestUser.username)
                 put("PATH", "/usr/local/sbin:/usr/local/bin:/usr/sbin:/usr/bin:/sbin:/bin")
                 // Pin TMPDIR to the cacheDir-backed /tmp bind; else the desktop
                 // session (and terminals opened from it) inherit the Android
@@ -1147,13 +1186,14 @@ class DesktopManager @Inject constructor(
             // uid-1000 passwd/group entry exists — idempotent (grep-guarded)
             // so it appends once and works for existing installs too. The
             // real Android app uid owns the rootfs, so the guest can write.
-            append("grep -q '^haven:' /etc/passwd 2>/dev/null || echo 'haven:x:1000:1000:Haven:/root:/bin/bash' >> /etc/passwd ; ")
-            append("grep -q '^haven:' /etc/group 2>/dev/null || echo 'haven:x:1000:' >> /etc/group ; ")
+            append("grep -q ':x:1000:' /etc/passwd 2>/dev/null || echo 'haven:x:1000:1000:Haven:/root:/bin/bash' >> /etc/passwd ; ")
+            append("grep -q ':x:1000:' /etc/group 2>/dev/null || echo 'haven:x:1000:' >> /etc/group ; ")
             append("mkdir -p $xdgInProot ; chmod 700 $xdgInProot ; ")
             append("export XDG_RUNTIME_DIR=$xdgInProot ; ")
             append("export HOME=/root ; ")
             append("[ -f /etc/profile.d/pulse.sh ] && . /etc/profile.d/pulse.sh ; ")
             append("export PATH=/usr/local/sbin:/usr/local/bin:/usr/sbin:/usr/bin:/sbin:/bin ; ")
+            append("export GLYCIN_DISABLE_SANDBOX=i-know-the-risks ; ")
             append("export WLR_BACKENDS=headless ; ")
             append("export WLR_HEADLESS_OUTPUTS=1 ; ")
             append("export WLR_LIBINPUT_NO_DEVICES=1 ; ")
@@ -1301,6 +1341,9 @@ class DesktopManager @Inject constructor(
 
     private val _appWindows = MutableStateFlow<Map<String, AppWindowSession>>(emptyMap())
     val appWindows: StateFlow<Map<String, AppWindowSession>> = _appWindows.asStateFlow()
+    private val _appWindowExits = kotlinx.coroutines.flow.MutableSharedFlow<String>(extraBufferCapacity = 16)
+    /** Emits the sessionId of an app window when its in-guest process exits on its own. */
+    val appWindowExits: kotlinx.coroutines.flow.SharedFlow<String> = _appWindowExits
     private val appWindowProcesses = java.util.concurrent.ConcurrentHashMap<String, Process>()
 
     /**
@@ -1314,6 +1357,7 @@ class DesktopManager @Inject constructor(
      * package `fakeroot` differently and aren't validated under proot yet.
      */
     suspend fun ensureRunAsRoot(): Boolean {
+        if (isUmlCageAvailable) return true
         val installCmd = when (prootManager.activeDistro.family) {
             PackageFamily.APT -> "DEBIAN_FRONTEND=noninteractive apt-get install -y fakeroot"
             else -> return false
@@ -1328,28 +1372,23 @@ class DesktopManager @Inject constructor(
     }
 
     /**
-     * True when the cage runtime (the Sway DE — `sway` + `wayvnc`) is installed
-     * in the active distro. A cheap file-existence check (no proot spawn), so
-     * callers can decide whether to surface "installing…" progress before the
-     * slow [ensureCageRuntime] install.
+     * True when the cage runtime (`sway` + `wayvnc`) is installed in the UML
+     * guest (when UML is available) or in the active proot distro.
      */
-    fun isCageRuntimeReady(): Boolean =
-        prootManager.isDesktopInstalled(ProotManager.DesktopEnvironment.SWAY)
+    fun isCageRuntimeReady(): Boolean {
+        val uml = umlDesktop
+        if (uml != null && uml.isAvailable) return uml.isCageRuntimeReady()
+        return prootManager.isDesktopInstalled(ProotManager.DesktopEnvironment.SWAY)
+    }
 
     /**
-     * Ensure the cage runtime is installed before [startAppWindow]. App windows
-     * run the app as a single-app sway kiosk, so without `sway`+`wayvnc` the
-     * kiosk exits with "sway: command not found". Mirrors [ensureRunAsRoot]: an
-     * on-demand install of the Sway DE for the active family — broader than
-     * [ensureRunAsRoot] (APT-only) because the Sway spec ships package lists for
-     * APK/APT/PACMAN/XBPS. Reuses [ProotManager.setupDesktop], which drives the
-     * `desktopState` progress flow the Desktop screen shows.
-     *
-     * Heavy and non-streaming (the Sway DE is ~60–200 MB) — call
-     * [isCageRuntimeReady] first and surface progress; don't hang a launch on it
-     * silently. Returns true if the runtime is present (already, or installed).
+     * Ensure the cage runtime is installed before [startAppWindow]. Uses the
+     * fast UML guest runtime when available (and keeps the booted guest warm
+     * for the upcoming launch), falling back to PRoot's Sway DE otherwise.
      */
     suspend fun ensureCageRuntime(): Boolean {
+        val uml = umlDesktop
+        if (uml != null && uml.isAvailable) return uml.ensureCageRuntime()
         if (isCageRuntimeReady()) return true
         prootManager.setupDesktop(vncPassword = "", de = ProotManager.DesktopEnvironment.SWAY)
         return isCageRuntimeReady()
@@ -1357,14 +1396,9 @@ class DesktopManager @Inject constructor(
 
     /**
      * Launch [command] as a single-app `cage` kiosk and expose it over
-     * wayvnc. Blocks (on the caller's IO thread) until the VNC port accepts
-     * connections — state RUNNING — or the launch fails / times out — state
-     * ERROR — then returns the session.
-     *
-     * Multiple windows run concurrently: each gets its own display (so its own
-     * per-display `XDG_RUNTIME_DIR`/wayland socket and `5900+display` VNC port)
-     * and is torn down independently by [stopAppWindow]. The UI keeps one
-     * focused in the overlay and the rest docked as edge icons.
+     * wayvnc. Uses the UML guest cage when available (~3s cold boot, <1s warm
+     * reuse), falling back to PRoot when UML is unavailable or when an app is
+     * only installed inside the active PRoot distro (e.g. APT-only packs).
      */
     fun startAppWindow(
         command: String,
@@ -1375,6 +1409,41 @@ class DesktopManager @Inject constructor(
         swayRules: List<String> = emptyList(),
         timeoutMs: Long = 15_000,
     ): AppWindowSession {
+        val dm = context.resources.displayMetrics
+        val (outW, outH) = resolveCageResolution(resolution, dm.widthPixels, dm.heightPixels)
+
+        val uml = umlDesktop
+        if (uml != null && uml.isAvailable) {
+            val umlSession = uml.startCageWindow(
+                command = command,
+                outW = outW,
+                outH = outH,
+                scale = scale,
+                multiWindow = multiWindow,
+                swayRules = swayRules,
+                timeoutMs = timeoutMs.coerceAtLeast(20_000L),
+                onSessionExit = { exitedId ->
+                    _appWindows.update { it - exitedId }
+                    _appWindowExits.tryEmit(exitedId)
+                },
+            )
+            if (umlSession.state == DesktopState.RUNNING) {
+                _appWindows.update { it + (umlSession.sessionId to umlSession) }
+                return umlSession
+            }
+            val missingInUml = umlSession.errorMessage?.contains("not found in UML guest") == true
+            if (!missingInUml || !prootManager.isRootfsInstalled) {
+                _appWindows.update { it + (umlSession.sessionId to umlSession) }
+                return umlSession
+            }
+            // App isn't in Alpine APK (e.g. an APT-only pack installed in PRoot) ->
+            // ensure PRoot's Sway runtime and fall through to the PRoot launcher.
+            if (!prootManager.isDesktopInstalled(ProotManager.DesktopEnvironment.SWAY)) {
+                runBlocking {
+                    prootManager.setupDesktop(vncPassword = "", de = ProotManager.DesktopEnvironment.SWAY)
+                }
+            }
+        }
 
         val sessionId = "appwin-${System.currentTimeMillis()}"
         // The cage runs the compositor as a non-root user (sway refuses to start
@@ -1385,29 +1454,7 @@ class DesktopManager @Inject constructor(
         val execCommand = if (runAsRoot) "fakeroot-tcp $command" else command
         val display = allocateDisplay()
         val port = 5900 + display
-        // Headless output geometry: matching the framebuffer to the device aspect
-        // makes the VNC viewer fill the screen (no letterbox); `scale` enlarges
-        // fonts/UI (wlroots HiDPI, honoured by foot/GTK). "auto" derives a portrait
-        // framebuffer at a ~720p budget so the pixman software renderer stays light.
-        val dm = context.resources.displayMetrics
-        val (outW, outH) = resolveCageResolution(resolution, dm.widthPixels, dm.heightPixels)
         val scaleStr = formatCageScale(scale)
-        // cage 0.1.4 (Debian Bookworm) does its own scan-out / back_buffer
-        // management that aborts on the headless backend (assert back_buffer
-        // != NULL when it direct-scans-out the single view; == NULL when it
-        // composites). sway drives the headless backend through wlr_scene,
-        // which manages buffers correctly — verified rendering here where cage
-        // crashes. Run sway as a single-app kiosk: a generated one-shot config
-        // runs the app fullscreen with no chrome and exits sway when the app
-        // closes, matching cage's lifecycle. sway also starts Xwayland, so X11
-        // GUIs work too. The config lives under cacheDir (bound to /tmp).
-        // The app + exit hook go through a launcher script, not inline in the
-        // config: sway's parser splits an `exec a; b` line at the ';' and
-        // rejected `swaymsg exit` as an unknown config command (#471) — the
-        // app half still ran, so nobody noticed that exit-on-app-close never
-        // registered and every self-closing app leaked its kiosk. A script
-        // also sidesteps quoting arbitrary commands. SWAYSOCK is inherited
-        // from sway, so swaymsg reaches the right compositor.
         val kioskRun = File(context.cacheDir, "haven-kiosk-$display.run")
         kioskRun.writeText("$execCommand\nswaymsg exit\n")
         val kioskConfig = File(context.cacheDir, "haven-kiosk-$display.config")
@@ -1422,11 +1469,6 @@ class DesktopManager @Inject constructor(
             |gaps inner 0
             |gaps outer 0
             |${
-                // Single-window apps get kiosk-style forced fullscreen. A
-                // multi-window app (qmmp's skinned main/EQ/playlist deck)
-                // must float instead: fullscreen-everything stacks its
-                // windows so only the last-raised one is visible, while
-                // floating honours the app's own placement (Winamp docking).
                 if (multiWindow) {
                     """for_window [app_id=".*"] floating enable
                       |for_window [class=".*"] floating enable""".trimMargin()
@@ -1436,11 +1478,6 @@ class DesktopManager @Inject constructor(
                 }
             }
             |${
-                // App-specific placement (pack/def-provided): sway centers
-                // every floating window, so a multi-window deck maps stacked;
-                // per-title `move position` rules place each window at map.
-                // Newlines are stripped per rule so a rule can't smuggle in
-                // extra config lines.
                 swayRules.joinToString("\n") { it.replace('\n', ' ') }
             }
             |exec sh /tmp/haven-kiosk-$display.run
@@ -1460,8 +1497,6 @@ class DesktopManager @Inject constructor(
         }
         appWindowProcesses[sessionId] = process
 
-        // Drain the launch process output to Logcat and notice an early exit
-        // (cage gone = app closed or never came up).
         Thread({
             try {
                 process.inputStream.bufferedReader().forEachLine { line ->
@@ -1472,20 +1507,22 @@ class DesktopManager @Inject constructor(
             Log.d(TAG, "$sessionId launch process exited: $code")
             appWindowProcesses.remove(sessionId)
             releaseDisplay(display)
+            var exitedRunning = false
             _appWindows.update { current ->
                 val s = current[sessionId] ?: return@update current
                 when (s.state) {
-                    // Crashed before the port came up → surface as ERROR.
                     DesktopState.STARTING -> current + (sessionId to s.copy(
                         state = DesktopState.ERROR,
                         errorMessage = "cage kiosk exited during startup (code $code)",
                     ))
-                    // App was running and then exited (kiosk closes with it)
-                    // → drop the session so the overlay can react.
-                    DesktopState.RUNNING -> current - sessionId
+                    DesktopState.RUNNING -> {
+                        exitedRunning = true
+                        current - sessionId
+                    }
                     else -> current
                 }
             }
+            if (exitedRunning) _appWindowExits.tryEmit(sessionId)
         }, "appwin-$sessionId").apply { isDaemon = true }.start()
 
         val deadline = System.currentTimeMillis() + timeoutMs
@@ -1507,16 +1544,16 @@ class DesktopManager @Inject constructor(
         return errored
     }
 
-    /** Stop an app-window kiosk and release its display. Idempotent. */
+    /** Stop an app-window kiosk and release its display/slot. Idempotent. */
     fun stopAppWindow(sessionId: String) {
+        if (sessionId.startsWith("uml-appwin-")) {
+            umlDesktop?.stopCageWindow(sessionId)
+            _appWindows.update { it - sessionId }
+            return
+        }
         val session = _appWindows.value[sessionId] ?: return
         appWindowProcesses[sessionId]?.destroyForcibly()
         appWindowProcesses.remove(sessionId)
-        // destroyForcibly only kills the proot launch shell (now wayvnc);
-        // cage + the app become orphans. Sweep them PER SESSION (not by name)
-        // so concurrent app windows — and a nested-Wayland desktop — survive:
-        // every process in this session's cage tree carries this session's
-        // unique XDG_RUNTIME_DIR (/tmp/xdg-runtime-<display>) in its environ.
         killAppWindowSession(session.displayNumber)
         releaseDisplay(session.displayNumber)
         _appWindows.update { it - sessionId }
@@ -1524,17 +1561,15 @@ class DesktopManager @Inject constructor(
 
     /**
      * Live-change a running app window's sway output scale (the 3-finger pinch
-     * gesture). Only the output *scale* changes — the headless `mode`
-     * (framebuffer pixel size) is unchanged, so wayvnc keeps the same size and
-     * the VNC view just re-renders the app bigger/smaller with no reconnect.
-     * No-op if the session isn't known.
-     *
-     * Stale `sway-ipc.*.sock` accumulate under the per-display XDG dir (display
-     * numbers are reused and the launch only cleans `wayland-*`), so the live
-     * socket is found by connect-testing each with `-t get_version`.
+     * gesture).
      */
     suspend fun setAppWindowScale(sessionId: String, scale: Float) {
         val session = _appWindows.value[sessionId] ?: return
+        if (sessionId.startsWith("uml-appwin-")) {
+            umlDesktop?.setCageScale(sessionId, scale)
+            _appWindows.update { it + (sessionId to session.copy(scale = scale)) }
+            return
+        }
         val xdg = "/tmp/xdg-runtime-${session.displayNumber}"
         val s = formatCageScale(scale)
         val cmd = buildString {
@@ -1549,15 +1584,14 @@ class DesktopManager @Inject constructor(
     }
 
     /**
-     * Refit a running app window to a screen area of [screenW]x[screenH] (the
-     * device's current usable/safe area) by re-moding its sway output to the
-     * aspect-matched [computeAutoResolution] — used on fullscreen-enter and on
-     * rotation. wayvnc resizes its framebuffer and the VNC client adapts
-     * (verified). No-op if unknown. Socket found the connect-test way as
-     * [setAppWindowScale].
+     * Refit a running app window to a screen area of [screenW]x[screenH].
      */
     suspend fun setAppWindowResolution(sessionId: String, screenW: Int, screenH: Int) {
         val session = _appWindows.value[sessionId] ?: return
+        if (sessionId.startsWith("uml-appwin-")) {
+            umlDesktop?.setCageResolution(sessionId, screenW, screenH)
+            return
+        }
         val (w, h) = computeAutoResolution(screenW, screenH)
         val xdg = "/tmp/xdg-runtime-${session.displayNumber}"
         val cmd = buildString {
@@ -1570,18 +1604,8 @@ class DesktopManager @Inject constructor(
         prootManager.runCommandInProot(cmd)
     }
 
-    /**
-     * Kill exactly the cage-kiosk process tree for one app window, identified
-     * by its per-session XDG_RUNTIME_DIR (/tmp/xdg-runtime-[display]). cage,
-     * the kiosk app, and wayvnc are all exec'd with that env var exported, so
-     * an exact match on it scopes the kill to this session and leaves other
-     * concurrent app windows (and any nested-Wayland desktop) untouched —
-     * unlike the name-based [killOrphanedNestedWayland].
-     */
     private fun killAppWindowSession(display: Int) {
         val xdg = "/tmp/xdg-runtime-$display"
-        // environ is NUL-separated; tr → newlines, then exact-line match on the
-        // full var so display 1 doesn't also match display 11.
         val scanScript = appWindowSessionScanScript(xdg)
         try {
             val proc = ProcessBuilder("sh", "-c", scanScript)
@@ -1605,27 +1629,56 @@ class DesktopManager @Inject constructor(
 
     /** Compositor log for an app-window session (grey-screen diagnostics). */
     fun appWindowCompositorLog(sessionId: String): String? {
+        if (sessionId.startsWith("uml-appwin-")) {
+            return umlDesktop?.cageCompositorLog(sessionId)
+        }
         val display = _appWindows.value[sessionId]?.displayNumber ?: return null
         val logFile = File(context.cacheDir, "xdg-runtime-$display/compositor.log")
         return if (logFile.exists()) logFile.readText() else null
     }
 
     /**
-     * Newest app-window compositor.log across all displays. The cage redirects
-     * BOTH the compositor and the app it runs (stdout+stderr merged) here, so
-     * this is the app's own output — the fallback for read_app_window_log when
-     * the session has already ended: a crashed/exited cage app drops its session
-     * (so [appWindowCompositorLog] can't resolve its display), but the log file
-     * survives under cacheDir. Returns (display, file) or null if none exists.
+     * Newest app-window compositor log across UML cage slots and PRoot displays.
      */
-    fun latestAppWindowLog(): Pair<Int, File>? =
-        context.cacheDir.listFiles { f -> f.isDirectory && f.name.startsWith("xdg-runtime-") }
+    fun latestAppWindowLog(): Pair<Int, File>? {
+        val umlLatest = umlDesktop?.latestCageLog()
+        val prootLatest = context.cacheDir.listFiles { f -> f.isDirectory && f.name.startsWith("xdg-runtime-") }
             ?.mapNotNull { dir ->
                 val log = File(dir, "compositor.log")
                 val display = dir.name.removePrefix("xdg-runtime-").toIntOrNull()
                 if (log.exists() && display != null) display to log else null
             }
             ?.maxByOrNull { it.second.lastModified() }
+        return listOfNotNull(umlLatest, prootLatest).maxByOrNull { it.second.lastModified() }
+    }
+
+    /**
+     * Scan installed GUI applications across the UML guest (when available)
+     * and the active PRoot rootfs (when installed), preferring PRoot entries
+     * on name collision so host-accessible icon paths are preserved.
+     */
+    suspend fun scanInstalledApps(): AppScanResult {
+        val uml = umlDesktop
+        val umlApps = if (uml != null && uml.isAvailable) {
+            runCatching { uml.scanInstalledApps().apps }.getOrDefault(emptyList())
+        } else {
+            emptyList()
+        }
+        val prootResult = if (prootManager.isRootfsInstalled) {
+            GuestAppScanner(prootManager).scan()
+        } else {
+            AppScanResult(emptyList(), 0, 0)
+        }
+        val byName = LinkedHashMap<String, InstalledApp>()
+        for (app in umlApps) byName[app.name.lowercase()] = app
+        for (app in prootResult.apps) byName[app.name.lowercase()] = app
+        val merged = byName.values.sortedBy { it.name.lowercase() }
+        return AppScanResult(
+            apps = merged,
+            iconsResolved = merged.count { it.iconPath != null },
+            total = merged.size,
+        )
+    }
 
     /** True when something accepts a TCP connection on 127.0.0.1:[port]. */
     private fun isPortListening(port: Int): Boolean = try {

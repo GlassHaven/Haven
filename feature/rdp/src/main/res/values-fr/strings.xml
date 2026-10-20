@@ -16,6 +16,7 @@
     <string name="rdp_cd_exit_fullscreen">Quitter le plein écran</string>
     <string name="rdp_cd_input_mode_trackpad_on">Mode pavé tactile activé (appuyer pour toucher direct)</string>
     <string name="rdp_cd_input_mode_direct">Mode toucher direct (appuyer pour pavé tactile)</string>
+    <string name="rdp_cd_trackpad_sensitivity">Sensibilité du pavé tactile</string>
     <string name="rdp_orientation_landscape_desc">Bloquer en paysage (appuyer pour passer en portrait)</string>
     <string name="rdp_orientation_portrait_desc">Bloquer en portrait (appuyer pour passer en automatique)</string>
     <string name="rdp_orientation_auto_desc">Rotation automatique (appuyer pour passer en paysage)</string>

@@ -51,6 +51,8 @@ sealed class DesktopTab {
         val _pointerPos: MutableStateFlow<Pair<Int, Int>> = MutableStateFlow(0 to 0),
         /** Suggested colour-depth downshift on slow connections (#107); null = none. */
         val _bandwidthSuggestion: MutableStateFlow<String?> = MutableStateFlow(null),
+        /** Latest remote clipboard text pushed via RFB ServerCutText (#718); consumed by UI. */
+        val _remoteClipboard: MutableStateFlow<String?> = MutableStateFlow(null),
         /** Lease tying this tab to its SSH tunnel; closing it releases the tunnel. */
         val tunnelLease: SshSessionManager.TunnelLease? = null,
         val profileId: String? = null,
@@ -73,6 +75,7 @@ sealed class DesktopTab {
         val cursor: StateFlow<CursorOverlay?> get() = _cursor
         val pointerPos: StateFlow<Pair<Int, Int>> get() = _pointerPos
         val bandwidthSuggestion: StateFlow<String?> get() = _bandwidthSuggestion
+        val remoteClipboard: StateFlow<String?> get() = _remoteClipboard
     }
 
     data class Rdp(

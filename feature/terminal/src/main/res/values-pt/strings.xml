@@ -72,6 +72,9 @@
     <string name="terminal_new_tab_connecting">Connecting…</string>
     <!-- Backfilled translations (i18n drift fix) -->
     <string name="terminal_no_contact">Sem resposta do servidor há %1$ds — tentando novamente</string>
+    <string name="terminal_attach_notice_unavailable">O gerenciador de sessões %1$s não iniciou — você está em um shell simples. Verifique se está instalado no host, ou defina um Comando de sessão no editor de conexões (avançado).</string>
+    <string name="terminal_attach_notice_missing">A sessão "%2$s" de %1$s não anexou — você está em um shell simples. Verifique o comando de início, ou defina um Comando de sessão no editor de conexões (avançado).</string>
+    <string name="terminal_attach_notice_dismiss">Ignorar</string>
     <string name="terminal_new_session_create">Criar</string>
     <string name="terminal_vnc_username_label">Nome de usuário (opcional — apenas VeNCrypt)</string>
     <string name="terminal_vnc_username_placeholder">Deixe em branco para o VncAuth clássico</string>

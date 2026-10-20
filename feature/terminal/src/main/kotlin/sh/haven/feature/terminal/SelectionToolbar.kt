@@ -77,7 +77,7 @@ private class AnchorMover(private val controller: SelectionController) {
  *
  * Uses the public SelectionController API for anchor manipulation.
  */
-internal fun expandSelectionToWord(
+fun expandSelectionToWord(
     controller: SelectionController,
     emulator: org.connectbot.terminal.TerminalEmulator,
 ) {
@@ -86,7 +86,12 @@ internal fun expandSelectionToWord(
         val row = range.startRow
         val col = range.startCol
 
-        val lines = getSnapshotLines(emulator) ?: return
+        val visibleLines = controller.getVisibleLineTexts()
+        val lines = when {
+            visibleLines.isNotEmpty() -> visibleLines
+            controller.scrollbackPosition == 0 -> getSnapshotLines(emulator) ?: return
+            else -> return
+        }
         if (row < 0 || row >= lines.size) return
         val text = lines[row]
         if (col < 0 || col >= text.length) return

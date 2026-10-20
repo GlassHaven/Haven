@@ -124,6 +124,7 @@ fun DesktopManagerScreen(viewModel: DesktopViewModel = hiltViewModel()) {
     val mirrorRegion by viewModel.mirrorRegion.collectAsState()
     val dnsMode by viewModel.dnsMode.collectAsState()
     val dnsServers by viewModel.dnsServers.collectAsState()
+    val guestUsername by viewModel.guestUsername.collectAsState()
     val remapLowPorts by viewModel.remapLowPorts.collectAsState()
     val shareStorageWithGuest by viewModel.shareStorageWithGuest.collectAsState()
     val bindAndroidSystem by viewModel.bindAndroidSystem.collectAsState()
@@ -159,6 +160,9 @@ fun DesktopManagerScreen(viewModel: DesktopViewModel = hiltViewModel()) {
     val importVmSource by viewModel.systemVmImportSource.collectAsState()
     val importVmArch by viewModel.systemVmImportArch.collectAsState()
 
+    val backendPref by viewModel.primaryDesktopBackendPref.collectAsState()
+    val quick = (backendPref.ifEmpty { if (viewModel.umlAvailable) "quick" else "full" }) == "quick"
+
     Column(
         modifier = Modifier
             .fillMaxSize()
@@ -170,67 +174,73 @@ fun DesktopManagerScreen(viewModel: DesktopViewModel = hiltViewModel()) {
             prootStates = desktopStates,
         )
 
-        DesktopManagerSection(
-            viewModel = viewModel,
-            installedDesktops = installedDesktops,
-            desktopStates = desktopStates,
-            desktopSetupState = desktopSetupState,
-            activeDistroId = activeDistroId,
-            installedDistros = installedDistros,
-            availableDistros = availableDistros,
-            availableForeignDistros = availableForeignDistros,
-            rootfsSetupState = rootfsSetupState,
-            isRootfsReady = isRootfsReady,
-            mirrorRegion = mirrorRegion,
-            onSetMirrorRegion = { viewModel.setMirrorRegion(it) },
-            dnsMode = dnsMode,
-            onSetDnsMode = { viewModel.setDnsMode(it) },
-            dnsServers = dnsServers,
-            onSetDnsServers = { viewModel.setDnsServers(it) },
-            remapLowPorts = remapLowPorts,
-            onSetRemapLowPorts = { viewModel.setRemapLowPorts(it) },
-            shareStorageWithGuest = shareStorageWithGuest,
-            onSetShareStorageWithGuest = { viewModel.setShareStorageWithGuest(it) },
-            bindAndroidSystem = bindAndroidSystem,
-            onSetBindAndroidSystem = { viewModel.setBindAndroidSystem(it) },
-            customBindsRev = customBindsRev,
-            customBindsFor = { viewModel.customBinds(it) },
-            onSetCustomBinds = { id, binds -> viewModel.setCustomBinds(id, binds) },
-            onImportRootfs = { id, label, family, source -> viewModel.importRootfs(id, label, family, source) },
-            usbDriveSessions = usbDriveSessions,
-            onOpenUsbDrive = { viewModel.openUsbDrive() },
-            onOpenUsbDriveWritable = { viewModel.openUsbDrive(writable = true) },
-            onCloseUsbDrive = { busid -> viewModel.closeUsbDrive(busid) },
-            usbLiveSessions = usbLiveSessions,
-            onOpenUsbLive = { viewModel.openUsbDriveLive() },
-            onOpenUsbLiveWritable = { viewModel.openUsbDriveLive(writable = true) },
-            onCloseUsbLive = { busid -> viewModel.closeUsbLive(busid) },
-            onUnlockUsbDrivePartition = { busid, devicePath, passphrase -> viewModel.unlockUsbDrivePartition(busid, devicePath, passphrase) },
-            applianceProvisioned = applianceProvisioned,
-            onDeleteUsbAppliance = { viewModel.deleteUsbAppliance() },
-            storedVncPortFor = { viewModel.storedVncPortFor(it) },
-            onSwitchDistro = { viewModel.switchActiveDistro(it) },
-            onOpenShellForDistro = { viewModel.openShellForDistro(it) },
-            onAddDistro = { viewModel.addDistro(it) },
-            onAddForeignDistro = { distro, arch -> viewModel.addForeignDistro(distro, arch) },
-            onDeleteDistro = { viewModel.deleteDistro(it.id) },
-            onInstall = { de -> viewModel.openDesktopSetup(de, viewModel.suggestVncPortFor(de)) },
-            onStart = { viewModel.startDesktop(it) },
-            onStop = { viewModel.stopDesktop(it) },
-            onOpenTerminalInDesktop = { viewModel.openTerminalInDesktop(it) },
-            onUninstall = { viewModel.uninstallDesktop(it) },
-            onRetryRootfs = { viewModel.retryRootfsInstall() },
-            customDesktopCommand = customDesktopCommand,
-            onSetCustomDesktopCommand = { cmd, thenStart -> viewModel.setCustomDesktopCommand(cmd, thenStart) },
-        )
-
-        UmlGuestSection(
-            available = viewModel.umlAvailable,
-            state = umlDesktopState,
-            onInstall = { viewModel.umlInstall(it) },
-            onStart = { viewModel.umlStart(it) },
-            onStop = { viewModel.umlStop(it) },
-        )
+        // Show only the selected backend's detailed controls so the Manage view
+        // does not duplicate Quick (UML) and Full Linux (proot) cards at once.
+        if (quick && viewModel.umlAvailable) {
+            UmlGuestSection(
+                available = viewModel.umlAvailable,
+                state = umlDesktopState,
+                onInstall = { viewModel.umlInstall(it) },
+                onStart = { viewModel.umlStart(it) },
+                onStop = { viewModel.umlStop(it) },
+            )
+        } else {
+            DesktopManagerSection(
+                viewModel = viewModel,
+                installedDesktops = installedDesktops,
+                desktopStates = desktopStates,
+                desktopSetupState = desktopSetupState,
+                activeDistroId = activeDistroId,
+                installedDistros = installedDistros,
+                availableDistros = availableDistros,
+                availableForeignDistros = availableForeignDistros,
+                rootfsSetupState = rootfsSetupState,
+                isRootfsReady = isRootfsReady,
+                mirrorRegion = mirrorRegion,
+                onSetMirrorRegion = { viewModel.setMirrorRegion(it) },
+                dnsMode = dnsMode,
+                onSetDnsMode = { viewModel.setDnsMode(it) },
+                dnsServers = dnsServers,
+                onSetDnsServers = { viewModel.setDnsServers(it) },
+                guestUsername = guestUsername,
+                onSetGuestUsername = { viewModel.setGuestUsername(it) },
+                remapLowPorts = remapLowPorts,
+                onSetRemapLowPorts = { viewModel.setRemapLowPorts(it) },
+                shareStorageWithGuest = shareStorageWithGuest,
+                onSetShareStorageWithGuest = { viewModel.setShareStorageWithGuest(it) },
+                bindAndroidSystem = bindAndroidSystem,
+                onSetBindAndroidSystem = { viewModel.setBindAndroidSystem(it) },
+                customBindsRev = customBindsRev,
+                customBindsFor = { viewModel.customBinds(it) },
+                onSetCustomBinds = { id, binds -> viewModel.setCustomBinds(id, binds) },
+                onImportRootfs = { id, label, family, source -> viewModel.importRootfs(id, label, family, source) },
+                usbDriveSessions = usbDriveSessions,
+                onOpenUsbDrive = { viewModel.openUsbDrive() },
+                onOpenUsbDriveWritable = { viewModel.openUsbDrive(writable = true) },
+                onCloseUsbDrive = { busid -> viewModel.closeUsbDrive(busid) },
+                usbLiveSessions = usbLiveSessions,
+                onOpenUsbLive = { viewModel.openUsbDriveLive() },
+                onOpenUsbLiveWritable = { viewModel.openUsbDriveLive(writable = true) },
+                onCloseUsbLive = { busid -> viewModel.closeUsbLive(busid) },
+                onUnlockUsbDrivePartition = { busid, devicePath, passphrase -> viewModel.unlockUsbDrivePartition(busid, devicePath, passphrase) },
+                applianceProvisioned = applianceProvisioned,
+                onDeleteUsbAppliance = { viewModel.deleteUsbAppliance() },
+                storedVncPortFor = { viewModel.storedVncPortFor(it) },
+                onSwitchDistro = { viewModel.switchActiveDistro(it) },
+                onOpenShellForDistro = { viewModel.openShellForDistro(it) },
+                onAddDistro = { viewModel.addDistro(it) },
+                onAddForeignDistro = { distro, arch -> viewModel.addForeignDistro(distro, arch) },
+                onDeleteDistro = { viewModel.deleteDistro(it.id) },
+                onInstall = { de -> viewModel.openDesktopSetup(de, viewModel.suggestVncPortFor(de)) },
+                onStart = { viewModel.startDesktop(it) },
+                onStop = { viewModel.stopDesktop(it) },
+                onOpenTerminalInDesktop = { viewModel.openTerminalInDesktop(it) },
+                onUninstall = { viewModel.uninstallDesktop(it) },
+                onRetryRootfs = { viewModel.retryRootfsInstall() },
+                customDesktopCommand = customDesktopCommand,
+                onSetCustomDesktopCommand = { cmd, thenStart -> viewModel.setCustomDesktopCommand(cmd, thenStart) },
+            )
+        }
 
         AppWindowsSection(
             defs = appWindowDefs,
@@ -548,95 +558,109 @@ private fun SystemVmSection(
     val starting = state?.status == SystemVmManager.Status.STARTING
     // Local copy: vncPort is a core:local property, which can't smart-cast across the module boundary.
     val vncPort = state?.vncPort
+    val collapsible = images.isEmpty() && !running && !starting && !busy
+
+    @Composable
+    fun Body() {
+        Text(
+            stringResource(AppR.string.app_system_vm_description),
+            style = MaterialTheme.typography.bodySmall,
+            color = MaterialTheme.colorScheme.onSurfaceVariant,
+        )
+        Spacer(Modifier.height(8.dp))
+
+        if (running || starting) {
+            Row(verticalAlignment = Alignment.CenterVertically) {
+                Text(
+                    if (running && vncPort != null) {
+                        stringResource(AppR.string.app_system_vm_running, vncPort)
+                    } else {
+                        stringResource(AppR.string.app_system_vm_starting)
+                    },
+                    style = MaterialTheme.typography.bodyMedium,
+                    color = MaterialTheme.colorScheme.primary,
+                    modifier = Modifier.weight(1f),
+                )
+                TextButton(onClick = onStop) {
+                    Icon(Icons.Filled.Stop, contentDescription = null)
+                    Spacer(Modifier.width(4.dp))
+                    Text(stringResource(AppR.string.app_system_vm_stop))
+                }
+            }
+            HorizontalDivider()
+        }
+
+        if (images.isEmpty()) {
+            Text(
+                stringResource(AppR.string.app_system_vm_empty),
+                style = MaterialTheme.typography.bodySmall,
+                color = MaterialTheme.colorScheme.onSurfaceVariant,
+            )
+        } else {
+            images.forEach { img ->
+                Row(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .height(56.dp),
+                    verticalAlignment = Alignment.CenterVertically,
+                ) {
+                    Column(modifier = Modifier.weight(1f)) {
+                        Text(img.label, style = MaterialTheme.typography.bodyLarge, maxLines = 1)
+                        // Arch alongside the size: it's chosen at import and
+                        // then invisible, which makes two similarly-named
+                        // images impossible to tell apart.
+                        Text(
+                            "%,d MB · %s".format(img.sizeBytes / (1024 * 1024), img.arch.id),
+                            style = MaterialTheme.typography.bodySmall,
+                            color = MaterialTheme.colorScheme.onSurfaceVariant,
+                        )
+                    }
+                    IconButton(
+                        onClick = { onStart(img) },
+                        enabled = !busy && !running && !starting,
+                    ) {
+                        Icon(
+                            Icons.Filled.PlayArrow,
+                            contentDescription = stringResource(AppR.string.app_system_vm_start_cd, img.label),
+                        )
+                    }
+                    IconButton(onClick = { onDelete(img) }, enabled = !busy) {
+                        Icon(
+                            Icons.Filled.Delete,
+                            contentDescription = stringResource(AppR.string.app_system_vm_delete_cd, img.label),
+                        )
+                    }
+                }
+                HorizontalDivider()
+            }
+        }
+        Spacer(Modifier.height(8.dp))
+        Row(verticalAlignment = Alignment.CenterVertically) {
+            TextButton(onClick = onImport, enabled = !busy) {
+                Text(stringResource(AppR.string.app_system_vm_import))
+            }
+            if (busy) {
+                Spacer(Modifier.width(8.dp))
+                CircularProgressIndicator(modifier = Modifier.size(20.dp))
+            }
+        }
+    }
+
     Card(
         modifier = Modifier
             .fillMaxWidth()
             .padding(horizontal = 16.dp, vertical = 8.dp),
     ) {
         Column(modifier = Modifier.padding(16.dp)) {
-            Text(stringResource(AppR.string.app_system_vm_title), style = MaterialTheme.typography.titleMedium)
-            Spacer(Modifier.height(4.dp))
-            Text(
-                stringResource(AppR.string.app_system_vm_description),
-                style = MaterialTheme.typography.bodySmall,
-                color = MaterialTheme.colorScheme.onSurfaceVariant,
-            )
-            Spacer(Modifier.height(8.dp))
-
-            if (running || starting) {
-                Row(verticalAlignment = Alignment.CenterVertically) {
-                    Text(
-                        if (running && vncPort != null) {
-                            stringResource(AppR.string.app_system_vm_running, vncPort)
-                        } else {
-                            stringResource(AppR.string.app_system_vm_starting)
-                        },
-                        style = MaterialTheme.typography.bodyMedium,
-                        color = MaterialTheme.colorScheme.primary,
-                        modifier = Modifier.weight(1f),
-                    )
-                    TextButton(onClick = onStop) {
-                        Icon(Icons.Filled.Stop, contentDescription = null)
-                        Spacer(Modifier.width(4.dp))
-                        Text(stringResource(AppR.string.app_system_vm_stop))
-                    }
+            if (collapsible) {
+                ExpandableSection(title = stringResource(AppR.string.app_system_vm_title)) {
+                    Spacer(Modifier.height(4.dp))
+                    Body()
                 }
-                HorizontalDivider()
-            }
-
-            if (images.isEmpty()) {
-                Text(
-                    stringResource(AppR.string.app_system_vm_empty),
-                    style = MaterialTheme.typography.bodySmall,
-                    color = MaterialTheme.colorScheme.onSurfaceVariant,
-                )
             } else {
-                images.forEach { img ->
-                    Row(
-                        modifier = Modifier
-                            .fillMaxWidth()
-                            .height(56.dp),
-                        verticalAlignment = Alignment.CenterVertically,
-                    ) {
-                        Column(modifier = Modifier.weight(1f)) {
-                            Text(img.label, style = MaterialTheme.typography.bodyLarge, maxLines = 1)
-                            // Arch alongside the size: it's chosen at import and
-                            // then invisible, which makes two similarly-named
-                            // images impossible to tell apart.
-                            Text(
-                                "%,d MB · %s".format(img.sizeBytes / (1024 * 1024), img.arch.id),
-                                style = MaterialTheme.typography.bodySmall,
-                                color = MaterialTheme.colorScheme.onSurfaceVariant,
-                            )
-                        }
-                        IconButton(
-                            onClick = { onStart(img) },
-                            enabled = !busy && !running && !starting,
-                        ) {
-                            Icon(
-                                Icons.Filled.PlayArrow,
-                                contentDescription = stringResource(AppR.string.app_system_vm_start_cd, img.label),
-                            )
-                        }
-                        IconButton(onClick = { onDelete(img) }, enabled = !busy) {
-                            Icon(
-                                Icons.Filled.Delete,
-                                contentDescription = stringResource(AppR.string.app_system_vm_delete_cd, img.label),
-                            )
-                        }
-                    }
-                    HorizontalDivider()
-                }
-            }
-            Spacer(Modifier.height(8.dp))
-            Row(verticalAlignment = Alignment.CenterVertically) {
-                TextButton(onClick = onImport, enabled = !busy) {
-                    Text(stringResource(AppR.string.app_system_vm_import))
-                }
-                if (busy) {
-                    Spacer(Modifier.width(8.dp))
-                    CircularProgressIndicator(modifier = Modifier.size(20.dp))
-                }
+                Text(stringResource(AppR.string.app_system_vm_title), style = MaterialTheme.typography.titleMedium)
+                Spacer(Modifier.height(4.dp))
+                Body()
             }
         }
     }
@@ -671,11 +695,10 @@ private fun PrimaryDesktopSection(
     val umlAvailable = viewModel.umlAvailable
     val quick = (backendPref.ifEmpty { if (umlAvailable) "quick" else "full" }) == "quick"
     val installedDesktops = viewModel.installedDesktops
-    // Quick can only start when the UML payload is present and at least one
-    // kind is installed; Full can only start when a proot DE is installed.
-    // The button reflects the *effective* target, so it never promises a
-    // start that the chosen backend can't deliver.
-    val quickReady = umlAvailable && umlState.values.any { it.installed }
+    // Quick is ready whenever the UML payload is present (startDesktop auto-installs
+    // the requested kind in the same guest boot on first run); Full can start
+    // when a proot DE is installed.
+    val quickReady = umlAvailable
     val fullReady = installedDesktops.isNotEmpty()
     val busy = umlState.values.any {
         it.status == UmlDesktopManager.DesktopState.Status.STARTING ||
@@ -724,11 +747,9 @@ private fun PrimaryDesktopSection(
                     CircularProgressIndicator(modifier = Modifier.size(20.dp))
                 }
             }
-            // Only offer the switch when the other backend is actually usable;
-            // switching to a backend with nothing installed would just move the
-            // dead-end. When UML is absent the choice is moot — there is one
-            // path — so no link is shown.
-            if (umlAvailable && (quick && fullReady || !quick && quickReady)) {
+            // Offer the switch whenever UML is available so the user can toggle
+            // between Quick (UML) and Full Linux (proot) controls below.
+            if (umlAvailable) {
                 TextButton(onClick = { viewModel.setPrimaryBackend(if (quick) "full" else "quick") }) {
                     Text(
                         stringResource(
@@ -854,11 +875,11 @@ private fun UmlGuestSection(
                             Text(stringResource(AppR.string.app_system_vm_stop))
                         }
                     } else {
-                        // Start works from a stop or an error state; the port
-                        // pref rides on, and the recipe re-applies itself.
+                        // Start works from a stop, error, or not-yet-installed state
+                        // (startDesktop auto-installs in the same guest boot on first run).
                         IconButton(
                             onClick = { onStart(kind) },
-                            enabled = st.installed && !busy && !anyRunning,
+                            enabled = !busy && !anyRunning,
                         ) {
                             Icon(
                                 Icons.Filled.PlayArrow,
@@ -1436,6 +1457,37 @@ private fun dnsModeLabel(mode: ProotDnsMode): String = when (mode) {
     ProotDnsMode.CUSTOM -> stringResource(AppR.string.app_desktop_dns_mode_custom)
 }
 
+/**
+ * Guest non-root user (#718). When non-blank and not "root", Haven provisions
+ * `/home/<user>` (uid 1000) with passwordless sudo in `/etc/sudoers.d/99-haven`
+ * and runs local shells and X11 desktops via PRoot `-i 1000:1000`.
+ */
+@Composable
+private fun GuestUserRow(
+    username: String,
+    onUsernameChange: (String) -> Unit,
+) {
+    Text(
+        stringResource(AppR.string.app_desktop_guest_user_title),
+        style = MaterialTheme.typography.titleSmall,
+    )
+    Spacer(Modifier.height(2.dp))
+    Text(
+        stringResource(AppR.string.app_desktop_guest_user_description),
+        style = MaterialTheme.typography.bodySmall,
+        color = MaterialTheme.colorScheme.onSurfaceVariant,
+    )
+    Spacer(Modifier.height(8.dp))
+    OutlinedTextField(
+        value = username,
+        onValueChange = onUsernameChange,
+        label = { Text(stringResource(AppR.string.app_desktop_guest_user_label)) },
+        placeholder = { Text(stringResource(AppR.string.app_desktop_guest_user_hint)) },
+        singleLine = true,
+        modifier = Modifier.fillMaxWidth(),
+    )
+}
+
 /** A title + description + Switch row, styled like [MirrorRegionRow]. */
 @Composable
 private fun BindingToggleRow(
@@ -1481,6 +1533,8 @@ private fun DesktopManagerSection(
     onSetDnsMode: (ProotDnsMode) -> Unit,
     dnsServers: String,
     onSetDnsServers: (String) -> Unit,
+    guestUsername: String,
+    onSetGuestUsername: (String) -> Unit,
     remapLowPorts: Boolean,
     onSetRemapLowPorts: (Boolean) -> Unit,
     shareStorageWithGuest: Boolean,
@@ -1920,91 +1974,17 @@ private fun DesktopManagerSection(
                 Spacer(Modifier.height(8.dp))
             }
 
-            // Local-Linux options collapsed into one expandable section so they
-            // don't push the distro picker + desktop list off the bottom of the
-            // screen: the package-mirror region (#263) and the proot launch
-            // toggles + custom mounts (#300 / #301). Collapsed by default.
-            if (installedDistros.isNotEmpty()) {
-                ExpandableSection(title = stringResource(AppR.string.app_desktop_options_section)) {
-                    if (installedDistros.any { MirrorCatalog.hasMirrors(it.id) }) {
-                        MirrorRegionRow(region = mirrorRegion, onSelect = onSetMirrorRegion)
-                        Spacer(Modifier.height(8.dp))
-                    }
-                    GuestDnsRow(
-                        mode = dnsMode,
-                        servers = dnsServers,
-                        onSelectMode = onSetDnsMode,
-                        onServersChange = onSetDnsServers,
-                    )
-                    Spacer(Modifier.height(8.dp))
-                    BindingToggleRow(
-                        title = stringResource(AppR.string.app_desktop_remap_ports_title),
-                        description = stringResource(AppR.string.app_desktop_remap_ports_description),
-                        checked = remapLowPorts,
-                        onCheckedChange = onSetRemapLowPorts,
-                    )
-                    Spacer(Modifier.height(8.dp))
-                    BindingToggleRow(
-                        title = stringResource(AppR.string.app_desktop_share_storage_title),
-                        description = stringResource(AppR.string.app_desktop_share_storage_description),
-                        checked = shareStorageWithGuest,
-                        onCheckedChange = onSetShareStorageWithGuest,
-                    )
-                    Spacer(Modifier.height(8.dp))
-                    BindingToggleRow(
-                        title = stringResource(AppR.string.app_desktop_bind_android_system_title),
-                        description = stringResource(AppR.string.app_desktop_bind_android_system_description),
-                        checked = bindAndroidSystem,
-                        onCheckedChange = onSetBindAndroidSystem,
-                    )
-                    Spacer(Modifier.height(8.dp))
-                    // Custom bind mounts for the active distro (#301). Count reads
-                    // through customBindsRev so it updates after the dialog saves.
-                    val customBindCount = remember(activeDistroId, customBindsRev) {
-                        customBindsFor(activeDistroId).size
-                    }
-                    Row(
-                        modifier = Modifier
-                            .fillMaxWidth()
-                            .clickable { viewModel.openCustomBinds(customBindsFor(activeDistroId)) }
-                            .padding(vertical = 8.dp),
-                        verticalAlignment = Alignment.CenterVertically,
-                    ) {
-                        Column(modifier = Modifier.weight(1f)) {
-                            Text(
-                                stringResource(AppR.string.app_desktop_custom_binds_title, customBindCount),
-                                style = MaterialTheme.typography.bodyLarge,
-                            )
-                            Text(
-                                stringResource(AppR.string.app_desktop_custom_binds_description),
-                                style = MaterialTheme.typography.bodySmall,
-                                color = MaterialTheme.colorScheme.onSurfaceVariant,
-                            )
-                        }
-                        Icon(Icons.Filled.ChevronRight, contentDescription = null)
-                    }
-                }
-                Spacer(Modifier.height(8.dp))
-            }
+            HorizontalDivider()
+            Spacer(Modifier.height(8.dp))
 
-        }
-    }
-
-    // Compositor — the local desktop environments (X11 Xfce4/Openbox, nested
-    // Wayland/Sway, the native compositor) that run inside the active distro.
-    // Its own card, separate from the distribution hub above, so each stays
-    // compact (like the Application windows card).
-    Card(
-        modifier = Modifier
-            .fillMaxWidth()
-            .padding(horizontal = 16.dp, vertical = 8.dp),
-    ) {
-        Column(modifier = Modifier.padding(16.dp)) {
+            // Compositor — the local desktop environments (X11 Xfce4/Openbox, nested
+            // Wayland/Sway, the native compositor) that run inside the active distro.
             Text(
                 stringResource(AppR.string.app_desktop_compositor_title),
-                style = MaterialTheme.typography.titleMedium,
+                style = MaterialTheme.typography.titleSmall,
+                color = MaterialTheme.colorScheme.onSurfaceVariant,
             )
-            Spacer(Modifier.height(8.dp))
+            Spacer(Modifier.height(4.dp))
 
             // In-progress desktop-install indicator. The DesktopSetupDialog
             // normally shows this, but its "which DE" state is screen-local
@@ -2079,6 +2059,79 @@ private fun DesktopManagerSection(
                     onOpenTerminal = { onOpenTerminalInDesktop(de) },
                     onUninstall = { onUninstall(de) },
                 )
+            }
+
+            // Local-Linux options collapsed into one expandable section so they
+            // don't push the distro picker + desktop list off the bottom of the
+            // screen: the package-mirror region (#263) and the proot launch
+            // toggles + custom mounts (#300 / #301). Collapsed by default.
+            if (installedDistros.isNotEmpty()) {
+                Spacer(Modifier.height(8.dp))
+                HorizontalDivider()
+                ExpandableSection(title = stringResource(AppR.string.app_desktop_options_section)) {
+                    if (installedDistros.any { MirrorCatalog.hasMirrors(it.id) }) {
+                        MirrorRegionRow(region = mirrorRegion, onSelect = onSetMirrorRegion)
+                        Spacer(Modifier.height(8.dp))
+                    }
+                    GuestDnsRow(
+                        mode = dnsMode,
+                        servers = dnsServers,
+                        onSelectMode = onSetDnsMode,
+                        onServersChange = onSetDnsServers,
+                    )
+                    Spacer(Modifier.height(8.dp))
+                    GuestUserRow(
+                        username = guestUsername,
+                        onUsernameChange = onSetGuestUsername,
+                    )
+                    Spacer(Modifier.height(8.dp))
+                    BindingToggleRow(
+                        title = stringResource(AppR.string.app_desktop_remap_ports_title),
+                        description = stringResource(AppR.string.app_desktop_remap_ports_description),
+                        checked = remapLowPorts,
+                        onCheckedChange = onSetRemapLowPorts,
+                    )
+                    Spacer(Modifier.height(8.dp))
+                    BindingToggleRow(
+                        title = stringResource(AppR.string.app_desktop_share_storage_title),
+                        description = stringResource(AppR.string.app_desktop_share_storage_description),
+                        checked = shareStorageWithGuest,
+                        onCheckedChange = onSetShareStorageWithGuest,
+                    )
+                    Spacer(Modifier.height(8.dp))
+                    BindingToggleRow(
+                        title = stringResource(AppR.string.app_desktop_bind_android_system_title),
+                        description = stringResource(AppR.string.app_desktop_bind_android_system_description),
+                        checked = bindAndroidSystem,
+                        onCheckedChange = onSetBindAndroidSystem,
+                    )
+                    Spacer(Modifier.height(8.dp))
+                    // Custom bind mounts for the active distro (#301). Count reads
+                    // through customBindsRev so it updates after the dialog saves.
+                    val customBindCount = remember(activeDistroId, customBindsRev) {
+                        customBindsFor(activeDistroId).size
+                    }
+                    Row(
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .clickable { viewModel.openCustomBinds(customBindsFor(activeDistroId)) }
+                            .padding(vertical = 8.dp),
+                        verticalAlignment = Alignment.CenterVertically,
+                    ) {
+                        Column(modifier = Modifier.weight(1f)) {
+                            Text(
+                                stringResource(AppR.string.app_desktop_custom_binds_title, customBindCount),
+                                style = MaterialTheme.typography.bodyLarge,
+                            )
+                            Text(
+                                stringResource(AppR.string.app_desktop_custom_binds_description),
+                                style = MaterialTheme.typography.bodySmall,
+                                color = MaterialTheme.colorScheme.onSurfaceVariant,
+                            )
+                        }
+                        Icon(Icons.Filled.ChevronRight, contentDescription = null)
+                    }
+                }
             }
         }
     }

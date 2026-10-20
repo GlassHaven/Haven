@@ -46,4 +46,23 @@
     <string name="cf_jump_destination_help">Вишециљни тунели бастион-режима: прослеђују се као `Cf-Access-Jump-Destination`. Оставите празно за руте са једним циљем.</string>
     <string name="cf_jwt_paste_help">За конфигурације без визуелног излаза: извршите `cloudflared access token --app https://&lt;имехоста&gt;` на другој машини и овде налепите JWT. Време истека се аутоматски парсира из жетона.</string>
     <string name="cf_field_jwt">Cloudflare Access JWT (није обавезно)</string>
+    <string name="tunnel_anyconnect_help">Повежите се преко Cisco AnyConnect или ocserv (OpenConnect) VPN-а без Cisco апликације. Користе га само профили који се усмеравају кроз овај тунел; остатак телефона не. Подржани су корисничко име/лозинка, групе за аутентификацију и други фактор TOTP или push; SAML/SSO и клијентски сертификати нису.</string>
+    <string name="tunnel_anyconnect_server_label">Сервер</string>
+    <string name="tunnel_anyconnect_server_help">Адреса гејтвеја као у Cisco апликацији, по потреби са :портом или путањом групе.</string>
+    <string name="tunnel_anyconnect_username_label">Корисничко име</string>
+    <string name="tunnel_anyconnect_password_label">Лозинка</string>
+    <string name="tunnel_anyconnect_group_label">Група за аутентификацију (опционо)</string>
+    <string name="tunnel_anyconnect_group_help">Група или профил са листе сервера. Оставите празно за подразумевану.</string>
+    <string name="tunnel_anyconnect_otp_label">OTP тајна (опционо)</string>
+    <string name="tunnel_anyconnect_otp_help">Base32 тајна или otpauth:// веза из подешавања аутентификатора. Haven сам одговара на захтев за код, па се тунел може поново повезати без вас.</string>
+    <string name="tunnel_anyconnect_secondary_label">Одговор за други фактор (опционо)</string>
+    <string name="tunnel_anyconnect_secondary_help">Фиксни одговор на други захтев, нпр. push за Duo. Користи се само ако OTP тајна није постављена.</string>
+    <string name="tunnel_anyconnect_cert_label">Сертификат сервера (опционо)</string>
+    <string name="tunnel_anyconnect_cert_help">Само за самопотписане гејтвеје: вредност pin-sha256:…. Ако сертификат није поуздан, грешка при повезивању приказује вредност коју треба налепити овде.</string>
+    <string name="tunnel_status_connected">Повезано</string>
+    <string name="tunnel_sign_out">Одјави се</string>
+    <string name="tunnel_anyconnect_password_help">Оставите празно да бисте били питани при пријави.</string>
+    <string name="tunnel_anyconnect_prompt_help">Кодови послати SMS-ом или е-поштом: оставите OTP тајну и одговор за други фактор празне, и Haven ће тражити код при пријави.</string>
+    <string name="tunnel_anyconnect_stay_connected_label">Остани повезан</string>
+    <string name="tunnel_anyconnect_stay_connected_help">Држи VPN укљученим после затварања последње везе, као Cisco апликација. Искључено: веза се прекида, а поновно повезивање убрзо затим наставља сесију без новог кода.</string>
 </resources>

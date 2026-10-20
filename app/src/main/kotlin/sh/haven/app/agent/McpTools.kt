@@ -3313,10 +3313,10 @@ internal class McpTools(
         val swayRules = args.optJSONArray("swayRules")?.let { arr ->
             (0 until arr.length()).mapNotNull { i -> arr.optString(i).ifEmpty { null } }
         } ?: emptyList()
-        if (!prootManager.isRootfsInstalled) {
+        val dm = localSessionManager.desktopManager
+        if (!dm.isUmlCageAvailable && !prootManager.isRootfsInstalled) {
             throw McpError(-32603, "Active distro '${prootManager.activeDistroId}' has no installed rootfs")
         }
-        val dm = localSessionManager.desktopManager
         val resolution = resolutionArg ?: preferencesRepository.appWindowDefaultResolution.first()
         val scale = scaleArg ?: preferencesRepository.appWindowDefaultScale.first()
         // The cage runs the app as a single-app sway kiosk; install sway+wayvnc
@@ -3809,6 +3809,15 @@ internal class McpTools(
             put("terminalTitle", snap.terminalTitle)
             put("scrollbackSize", snap.scrollbackSize)
             put("scrollbackPosition", scrollPos)
+            put("scrollbackEvictedCount", snap.scrollbackEvictedCount)
+            put("imageAssetCount", snap.imageAssetCount)
+            put("imagePlacementCount", snap.imagePlacementCount)
+            if (scrollPos > 0) {
+                val visible = entry.selectionController?.getVisibleLineTexts().orEmpty()
+                if (visible.isNotEmpty()) {
+                    put("visibleLines", JSONArray(visible))
+                }
+            }
             // Remote-driven terminal modes, scanned from the output stream
             // by MouseModeTracker. Null flows (headless agent shells) report
             // the inactive defaults.
@@ -3838,6 +3847,22 @@ internal class McpTools(
                     put(JSONObject().apply {
                         put("text", line.text)
                         put("softWrapped", line.softWrapped)
+                        if (line.images.isNotEmpty()) {
+                            put("images", JSONArray().apply {
+                                line.images.forEach { img ->
+                                    put(JSONObject().apply {
+                                        put("assetId", img.assetId)
+                                        put("left", img.left)
+                                        put("right", img.right)
+                                        put("sourceRow", img.sourceRow)
+                                        put("rows", img.rows)
+                                        put("sourceCol", img.sourceCol)
+                                        put("columns", img.columns)
+                                        put("z", img.z)
+                                    })
+                                }
+                            })
+                        }
                         if (includeSegs) {
                             put("semanticSegments", JSONArray().apply {
                                 line.semanticSegments.forEach { seg ->
@@ -3872,6 +3897,7 @@ internal class McpTools(
                 put("endRow", range.endRow)
                 put("endCol", range.endCol)
             })
+            put("text", controller.getSelectedText())
         }
     }
 
@@ -4274,6 +4300,13 @@ internal class McpTools(
         controller.startSelection(mode)
         controller.updateSelectionStart(row, col)
         controller.updateSelectionEnd(row, col)
+        when (mode) {
+            org.connectbot.terminal.SelectionMode.WORD ->
+                sh.haven.feature.terminal.expandSelectionToWord(controller, entry.emulator)
+            org.connectbot.terminal.SelectionMode.LINE ->
+                controller.setSelectionMode(mode)
+            else -> Unit
+        }
         val range = controller.getSelectionRange()
         return JSONObject().apply {
             put("sessionId", sessionId)
@@ -4284,6 +4317,7 @@ internal class McpTools(
                     put("endRow", it.endRow); put("endCol", it.endCol)
                 }
             } ?: JSONObject.NULL)
+            put("text", controller.getSelectedText())
         }
     }
 
@@ -4321,6 +4355,7 @@ internal class McpTools(
                     put("endRow", it.endRow); put("endCol", it.endCol)
                 }
             } ?: JSONObject.NULL)
+            put("text", controller.getSelectedText())
         }
     }
 

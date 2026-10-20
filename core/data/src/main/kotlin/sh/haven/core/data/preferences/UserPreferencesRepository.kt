@@ -63,6 +63,7 @@ class UserPreferencesRepository @Inject constructor(
     private val toolbarLayoutKey = stringPreferencesKey("toolbar_layout")
     private val snippetLibraryKey = stringPreferencesKey("snippet_library")
     private val toolbarMinButtonWidthKey = intPreferencesKey("toolbar_min_button_width")
+    private val toolbarKeyScaleKey = floatPreferencesKey("toolbar_key_scale")
     private val appWindowDefsKey = stringPreferencesKey("app_window_defs")
     private val appWindowDefaultResolutionKey = stringPreferencesKey("app_window_default_resolution")
     private val appWindowDefaultScaleKey = floatPreferencesKey("app_window_default_scale")
@@ -110,6 +111,7 @@ class UserPreferencesRepository @Inject constructor(
     private val alwaysShowAllTabsKey = booleanPreferencesKey("always_show_all_tabs")
     private val usbGuestExposureEnabledKey = booleanPreferencesKey("usb_guest_exposure_enabled")
     private val gpsGuestExposureEnabledKey = booleanPreferencesKey("gps_guest_exposure_enabled")
+    private val tailscaleDiscoveryEnabledKey = booleanPreferencesKey("tailscale_discovery_enabled")
     private val remoteClipboardToLocalKey = booleanPreferencesKey("remote_clipboard_to_local")
     private val verboseLoggingEnabledKey = booleanPreferencesKey("verbose_logging_enabled")
     private val mouseInputEnabledKey = booleanPreferencesKey("mouse_input_enabled")
@@ -144,6 +146,8 @@ class UserPreferencesRepository @Inject constructor(
     private val showDesktopsCardKey = booleanPreferencesKey("show_desktops_card")
     private val mediaExtensionsKey = stringPreferencesKey("media_extensions")
     private val desktopInputModeKey = stringPreferencesKey("desktop_input_mode")
+    // Trackpad-mode speed multiplier (#696). 1f = the 1:1 finger→cursor ratio.
+    private val desktopTouchpadSensitivityKey = floatPreferencesKey("desktop_touchpad_sensitivity")
     // Experimental GPU stack for accelerated Wayland/cage desktops. Off (default)
     // = virgl/virpipe (GL 2.1, present works on every path). On = venus
     // (Vulkan→Mali) + zink (modern GL, ~3.2 core) with the wl_shm CPU-copy WSI
@@ -667,6 +671,19 @@ class UserPreferencesRepository @Inject constructor(
     }
 
     /**
+     * Gate for Tailscale peer discovery (#654). On by default; off stops the
+     * quad-100 LocalAPI probe from reading the peer list at all, independent
+     * of whether the Tailscale app is installed.
+     */
+    val tailscaleDiscoveryEnabled: Flow<Boolean> = dataStore.data.map { prefs ->
+        prefs[tailscaleDiscoveryEnabledKey] ?: true
+    }
+
+    suspend fun setTailscaleDiscoveryEnabled(enabled: Boolean) {
+        dataStore.edit { prefs -> prefs[tailscaleDiscoveryEnabledKey] = enabled }
+    }
+
+    /**
      * Whether a remote desktop's clipboard is pushed to the device clipboard.
      * Off by default: an unattended remote can otherwise inject content into
      * the phone's clipboard (security-review #15).
@@ -707,6 +724,23 @@ class UserPreferencesRepository @Inject constructor(
     suspend fun setDesktopInputMode(mode: String) {
         dataStore.edit { prefs ->
             prefs[desktopInputModeKey] = mode
+        }
+    }
+
+    /**
+     * Relative-motion speed multiplier for desktop TOUCHPAD mode (#696).
+     * 1f (default) = the current 1:1 mapping of finger travel to remote
+     * cursor travel; above 1f the cursor travels further per finger
+     * distance, below 1f gives finer pointer control. Shared by the VNC
+     * and RDP touchpad paths so both behave the same.
+     */
+    val desktopTouchpadSensitivity: Flow<Float> = dataStore.data.map { prefs ->
+        prefs[desktopTouchpadSensitivityKey] ?: 1f
+    }
+
+    suspend fun setDesktopTouchpadSensitivity(value: Float) {
+        dataStore.edit { prefs ->
+            prefs[desktopTouchpadSensitivityKey] = value
         }
     }
 
@@ -1440,6 +1474,14 @@ class UserPreferencesRepository @Inject constructor(
         prefs[terminalFontSizeKey] ?: DEFAULT_FONT_SIZE
     }
 
+    val ambiwidth: Flow<Boolean> = dataStore.data.map { prefs ->
+        prefs[booleanPreferencesKey("ambiwidth")] ?: false
+    }
+
+    suspend fun setAmbiwidth(enabled: Boolean) {
+        dataStore.edit { prefs -> prefs[booleanPreferencesKey("ambiwidth")] = enabled }
+    }
+
     /**
      * Minimum width (dp) every terminal-toolbar key is stretched to. 0 = each
      * key hugs its content; larger values give bigger, more tappable keys at
@@ -1448,6 +1490,16 @@ class UserPreferencesRepository @Inject constructor(
      */
     val toolbarMinButtonWidth: Flow<Int> = dataStore.data.map { prefs ->
         prefs[toolbarMinButtonWidthKey] ?: DEFAULT_TOOLBAR_MIN_BUTTON_WIDTH
+    }
+
+    /**
+     * Multiplier on the terminal toolbar's size (#641). 1.0 is the un-scaled
+     * toolbar; above that the toolbar's own density is scaled, so key
+     * heights, icons, spacing and glyph text all grow together. Composes
+     * with [toolbarMinButtonWidth], which keeps operating in scaled dp.
+     */
+    val toolbarKeyScale: Flow<Float> = dataStore.data.map { prefs ->
+        prefs[toolbarKeyScaleKey] ?: DEFAULT_TOOLBAR_KEY_SCALE
     }
 
     /**
@@ -1635,6 +1687,13 @@ class UserPreferencesRepository @Inject constructor(
         dataStore.edit { prefs ->
             prefs[toolbarMinButtonWidthKey] =
                 dp.coerceIn(MIN_TOOLBAR_MIN_BUTTON_WIDTH, MAX_TOOLBAR_MIN_BUTTON_WIDTH)
+        }
+    }
+
+    suspend fun setToolbarKeyScale(scale: Float) {
+        dataStore.edit { prefs ->
+            prefs[toolbarKeyScaleKey] =
+                scale.coerceIn(MIN_TOOLBAR_KEY_SCALE, MAX_TOOLBAR_KEY_SCALE)
         }
     }
 
@@ -2086,9 +2145,9 @@ class UserPreferencesRepository @Inject constructor(
          * via `setDefaultColors`. Call sites that *can* reach the
          * theme should check [isDynamic] and use the live colours.
          *
-         * The palette is a static neutral fallback (Catppuccin Mocha); a
-         * future improvement could derive it from the live Material 3
-         * tonal palettes.
+         * The palette is a static neutral fallback for callers that can't
+         * reach Compose; call sites with the live theme derive the palette
+         * instead (see `materialYouAnsiPalette` in feature/terminal, #139).
          */
         MATERIAL_YOU(
             "Material You", 0xFF1A1A1A, 0xFFE0E0E0,
@@ -2404,6 +2463,10 @@ class UserPreferencesRepository @Inject constructor(
         const val DEFAULT_TOOLBAR_MIN_BUTTON_WIDTH = 0
         const val MIN_TOOLBAR_MIN_BUTTON_WIDTH = 0
         const val MAX_TOOLBAR_MIN_BUTTON_WIDTH = 64
+        // Terminal toolbar key scale (#641). 1.0 = the un-scaled toolbar.
+        const val DEFAULT_TOOLBAR_KEY_SCALE = 1.0f
+        const val MIN_TOOLBAR_KEY_SCALE = 1.0f
+        const val MAX_TOOLBAR_KEY_SCALE = 2.0f
         /** What Haven asked RDP servers for before it was configurable (#422). */
         const val DEFAULT_RDP_WIDTH = 1920
         const val DEFAULT_RDP_HEIGHT = 1080

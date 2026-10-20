@@ -18,6 +18,7 @@
     <string name="vnc_cd_exit_fullscreen">ফুলস্ক্রিন থেকে বেরিয়ে আসুন</string>
     <string name="vnc_cd_input_mode_trackpad_on">Trackpad মোড চালু (সরাসরি স্পর্শের জন্য ট্যাপ করুন)</string>
     <string name="vnc_cd_input_mode_direct">সরাসরি স্পর্শ মোড (trackpad-এর জন্য ট্যাপ করুন)</string>
+    <string name="vnc_cd_trackpad_sensitivity">Trackpad সংবেদনশীলতা</string>
     <string name="vnc_orientation_landscape_desc">Landscape লক (portrait-এ যেতে ট্যাপ করুন)</string>
     <string name="vnc_orientation_portrait_desc">Portrait লক (auto-তে যেতে ট্যাপ করুন)</string>
     <string name="vnc_orientation_auto_desc">স্বয়ংক্রিয় ঘোরানো (landscape-এ যেতে ট্যাপ করুন)</string>
@@ -31,4 +32,5 @@
     <!-- Backfill 2026-07: strings added since the last i18n pass -->
     <string name="vnc_cd_two_finger_viewport">দুই আঙুলে ভিউ প্যান হয় (রিমোট স্ক্রোল করতে ট্যাপ করুন)</string>
     <string name="vnc_cd_two_finger_scroll_on">দুই আঙুলে রিমোট স্ক্রোল হয় (ভিউ প্যান করতে ট্যাপ করুন)</string>
+    <string name="vnc_cd_paste">ক্লিপবোর্ড পেস্ট করুন</string>
 </resources>

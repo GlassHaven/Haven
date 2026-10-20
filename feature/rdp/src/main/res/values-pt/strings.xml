@@ -16,6 +16,7 @@
     <string name="rdp_cd_exit_fullscreen">Sair da tela cheia</string>
     <string name="rdp_cd_input_mode_trackpad_on">Modo trackpad ativado (toque para toque direto)</string>
     <string name="rdp_cd_input_mode_direct">Modo toque direto (toque para trackpad)</string>
+    <string name="rdp_cd_trackpad_sensitivity">Sensibilidade do trackpad</string>
     <string name="rdp_orientation_landscape_desc">Fixar paisagem (toque para retrato)</string>
     <string name="rdp_orientation_portrait_desc">Fixar retrato (toque para automático)</string>
     <string name="rdp_orientation_auto_desc">Rotação automática (toque para paisagem)</string>

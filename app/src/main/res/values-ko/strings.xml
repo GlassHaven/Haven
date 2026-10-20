@@ -367,4 +367,8 @@
     <string name="update_notification_channel">앱 업데이트</string>
     <string name="update_notification_title">Haven %1$s 사용 가능</string>
     <string name="update_notification_text">릴리스 페이지를 열려면 누르세요.</string>
+    <string name="app_desktop_guest_user_title">게스트 사용자</string>
+    <string name="app_desktop_guest_user_description">root 대신 비밀번호 없는 sudo 권한을 가진 일반 사용자(uid 1000)로 셸과 X11 데스크톱을 실행합니다. root 모드를 사용하려면 비워 두거나 root로 설정하세요.</string>
+    <string name="app_desktop_guest_user_label">사용자 이름</string>
+    <string name="app_desktop_guest_user_hint">root (또는 예: user)</string>
 </resources>

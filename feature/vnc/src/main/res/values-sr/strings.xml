@@ -17,6 +17,7 @@
     <string name="vnc_cd_exit_fullscreen">Напусти пун екран</string>
     <string name="vnc_cd_input_mode_trackpad_on">Укључен је режим трекпеда (тап за директни додир)</string>
     <string name="vnc_cd_input_mode_direct">Режим директног додира (тап за трекпед)</string>
+    <string name="vnc_cd_trackpad_sensitivity">Осетљивост трекпеда</string>
     <string name="vnc_cd_two_finger_viewport">Два прста померају приказ (тап за скроловање удаљеног)</string>
     <string name="vnc_cd_two_finger_scroll_on">Два прста скролују удаљени (тап за померање приказа)</string>
     <string name="vnc_orientation_landscape_desc">Закључано положено (тап за прелаз на усправно)</string>

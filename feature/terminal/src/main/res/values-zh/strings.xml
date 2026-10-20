@@ -72,6 +72,9 @@
     <string name="terminal_new_tab_connecting">连接中…</string>
     <!-- Backfilled translations (i18n drift fix) -->
     <string name="terminal_no_contact">服务器 %1$ds 无响应 — 正在重试</string>
+    <string name="terminal_attach_notice_unavailable">会话管理器 %1$s 未启动 — 当前位于普通 shell。请确认主机上已安装它，或在连接编辑器（高级）中设置会话命令。</string>
+    <string name="terminal_attach_notice_missing">%1$s 会话 "%2$s" 未附加 — 当前位于普通 shell。请检查启动命令，或在连接编辑器（高级）中设置会话命令。</string>
+    <string name="terminal_attach_notice_dismiss">忽略</string>
     <string name="terminal_new_session_create">创建</string>
     <string name="terminal_vnc_username_label">用户名（可选 — 仅 VeNCrypt）</string>
     <string name="terminal_vnc_username_placeholder">留空使用经典 VncAuth</string>

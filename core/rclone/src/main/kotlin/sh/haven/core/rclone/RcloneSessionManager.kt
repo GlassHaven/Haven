@@ -193,6 +193,20 @@ class RcloneSessionManager @Inject constructor(
         // success, timeout, cancel, exception — surface a useful
         // SessionState.errorMessage and audit-log the event.
         logOAuthEvent(sessionId, "OAuth started for '$remoteName' (provider=$provider)")
+        // Clear any auth server a previous cancelled/timed-out flow left
+        // bound to 127.0.0.1:53682 before starting ours, so this flow
+        // doesn't inherit a stale, already-authenticated server or hit a
+        // port conflict (#697).
+        if (client.stopOAuth()) {
+            Log.i(TAG, "Stopped a leftover OAuth flow before starting '$remoteName'")
+        }
+        // The stop unwinds asynchronously — the dying flow closes its
+        // listener on its own return path, after this RPC has already
+        // returned. Binding the port is the only proof it is free, so wait
+        // for that before createRemote tries to bind it itself (#697).
+        if (!client.awaitOAuthPortFree()) {
+            Log.w(TAG, "OAuth redirect port still busy before starting '$remoteName'")
+        }
         val future: Future<*> = oauthExecutor.submit {
             client.createRemote(remoteName, provider)
         }
@@ -207,6 +221,10 @@ class RcloneSessionManager @Inject constructor(
             } catch (_: TimeoutException) {
                 Log.w(TAG, "OAuth timed out after ${OAUTH_TIMEOUT_MS / 1000}s for '$remoteName'")
                 future.cancel(true)  // best-effort interrupt; gomobile may not honour
+                // The gomobile call keeps the auth server bound to
+                // 127.0.0.1:53682 after a timeout; cancel its context so
+                // it unwinds and frees the port for the next flow (#697).
+                client.stopOAuth()
                 val msg = "OAuth timed out after ${OAUTH_TIMEOUT_MS / 60_000} minutes — no callback received from the browser. Tap Re-authenticate to try again."
                 failSession(sessionId, msg)
                 logOAuthEvent(sessionId, "OAuth timed out for '$remoteName'", failed = true)
@@ -242,6 +260,20 @@ class RcloneSessionManager @Inject constructor(
         val future = oauthFutures[sessionId] ?: return
         Log.i(TAG, "User cancelled OAuth for session $sessionId")
         future.cancel(true)
+        // Cancelling the future does not interrupt the gomobile call, so
+        // the auth server stays bound to 127.0.0.1:53682 and poisons the
+        // next flow. Cancel the flow's context so rclone unwinds and
+        // closes the listener (#697). Dispatched: stopOAuth is a blocking
+        // RPC and this may be called from the UI thread.
+        oauthWatchExecutor.execute {
+            try {
+                if (client.stopOAuth()) {
+                    Log.i(TAG, "Stopped OAuth auth server for session $sessionId")
+                }
+            } catch (e: Exception) {
+                Log.w(TAG, "stopOAuth after cancel failed: ${e.message}")
+            }
+        }
     }
 
     /** Append an OAuth lifecycle event to the per-profile audit log. */

@@ -250,6 +250,10 @@
     <string name="settings_scrollback_rows_value">%1$,d 行</string>
     <string name="settings_tap_to_position_title">点击在受支持的提示符上移动光标</string>
     <string name="settings_tap_to_position_subtitle">点击 shell 提示符内将光标移到该列。需要 OSC 133 提示符标记（starship、fish 3.6+、近期的 bash/zsh 集成设置）。不会影响不发出标记的 shell</string>
+    <string name="settings_swipe_arrows_title">滑动发送方向键</string>
+    <string name="settings_swipe_arrows_subtitle">在终端中横向滑动发送 ← →（长按重复）而不是切换标签页。工具栏的滑动键切换同一模式</string>
+    <string name="settings_swipe_arrows_exit_hint">应用标签栏隐藏且会话打开时，滑动会持续发送方向键，直到点按工具栏的滑动键。将该键添加到工具栏以便随时可用</string>
+    <string name="settings_swipe_arrows_add_key">添加滑动键</string>
 
     <!-- i18n sweep #210 -->
     <string name="settings_color_scheme_auto_switch_title">随系统主题自动切换</string>
@@ -261,6 +265,7 @@
     <string name="settings_color_scheme_apply_palette_title">应用配色方案的 ANSI 调色板</string>
     <string name="settings_color_scheme_apply_palette_subtitle">将 16 种 ANSI 颜色重新着色以匹配配色方案。关闭时保留标准颜色，这样 mutt 等全屏应用会按预期显示。</string>
     <string name="settings_toolbar_min_key_width">最小按键宽度：%1$d dp</string>
+    <string name="settings_toolbar_key_scale">按键缩放：%1$d%%</string>
     <string name="settings_toolbar_uniform_grid">统一按键网格</string>
     <string name="settings_toolbar_uniform_grid_desc">每个按键占用等宽格子（类似 Termux），过长的标签在格内换行，无需左右滑动。</string>
     <string name="settings_terminal_font_title">终端字体</string>
@@ -443,6 +448,8 @@
     <string name="settings_terminal_opacity_value">%1$d%%</string>
     <string name="settings_terminal_opacity_hint" formatted="false">低于 100% 时，Haven 将变为半透明，在所有界面（终端、列表、设置）后面显示设备壁纸。按连接的覆盖设置仅作用于该终端。</string>
     <string name="settings_section_mcp">AI 代理（MCP）</string>
+    <string name="settings_tailscale_discovery_title">Tailscale 对等节点发现</string>
+    <string name="settings_tailscale_discovery_subtitle">扫描时通过本地 API 查找您 Tailscale 网络中的主机。关闭后 Haven 不再读取对等节点列表；Tailscale 本身不受影响。</string>
     <string name="settings_audio_bridge_title">Proot 音频（实验性）</string>
     <string name="settings_audio_bridge_subtitle">通过客机内的 PulseAudio 桥接，将 Linux 应用的声音经设备扬声器播放。仅支持输出。开启期间会持续传输——不用时请关闭。</string>
     <string name="settings_reverse_tunnel_status_active">Near（SSH）：经由 %1$s — 已连接</string>
@@ -511,4 +518,6 @@ Haven 中已存储的每一个私钥都需要重新导入或生成。它们已�
     <string name="settings_inline_images_off">关闭</string>
     <string name="settings_inline_images_ask">询问</string>
     <string name="settings_inline_images_always">总是</string>
+    <string name="settings_ambiwidth_title">模糊宽度按双宽显示</string>
+    <string name="settings_ambiwidth_subtitle">将东亚模糊宽度字符渲染为 2 个单元格</string>
 </resources>

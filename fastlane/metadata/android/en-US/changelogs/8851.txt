@@ -1,0 +1,5 @@
+• Cursor stays on the prompt when the keyboard hides/shows and pulls lines back from scrollback (#712).
+• Tab switching keeps the keyboard open, resizes only the active tab, and resets the height ceiling on rotation (#713, #714, #715).
+• Long-press word selection stays on the touched line and expands from the scrolled viewport (#716).
+• Scrolled-back viewports stay pinned once scrollback reaches its row limit (#717).
+• Kitty inline images place the cursor on the last image row.

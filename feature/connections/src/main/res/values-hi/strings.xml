@@ -300,6 +300,8 @@
     <string name="connections_field_post_login">लॉगिन-पश्चात कमांड</string>
     <string name="connections_field_remote_command">रिमोट कमांड (उन्नत)</string>
     <string name="connections_helper_remote_command">लॉगिन शेल खोलने के बजाय SSH कमांड के रूप में चलता है। सामान्य शेल के लिए खाली छोड़ें।</string>
+    <string name="connections_field_session_command">सत्र कमांड (उन्नत)</string>
+    <string name="connections_helper_session_command">केवल इस कनेक्शन के लिए सत्र प्रबंधक का प्रारंभ कमांड बदल देता है। {name} सत्र का नाम बन जाता है। जब अंतर्निहित tmux/screen कमांड नहीं चल सकता तब इसका उपयोग करें, जैसे Windows होस्ट: wsl -e sh -c "tmux new-session -A -s {name}"। खाली रखने पर वैश्विक सेटिंग लागू होती है।</string>
     <string name="connections_toggle_request_pty">टर्मिनल का अनुरोध करें (PTY)</string>
     <string name="connections_helper_post_login">लॉगिन के बाद भेजा गया।</string>
     <string name="connections_dropdown_none_direct">कोई नहीं (सीधा)</string>

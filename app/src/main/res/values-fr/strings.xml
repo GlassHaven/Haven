@@ -361,4 +361,8 @@
     <string name="update_notification_channel">Mises à jour de l\'application</string>
     <string name="update_notification_title">Haven %1$s est disponible</string>
     <string name="update_notification_text">Appuyez pour ouvrir la page de la version.</string>
+    <string name="app_desktop_guest_user_title">Utilisateur invité</string>
+    <string name="app_desktop_guest_user_description">Exécuter les shells et les bureaux X11 en tant qu\'utilisateur normal (uid 1000) avec sudo sans mot de passe au lieu de root. Laisser vide ou définir sur root pour le mode root.</string>
+    <string name="app_desktop_guest_user_label">Nom d\'utilisateur</string>
+    <string name="app_desktop_guest_user_hint">root (ou p. ex. user)</string>
 </resources>

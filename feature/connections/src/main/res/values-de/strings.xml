@@ -300,6 +300,8 @@
     <string name="connections_field_post_login">Befehl nach der Anmeldung</string>
     <string name="connections_field_remote_command">Remote-Befehl (erweitert)</string>
     <string name="connections_helper_remote_command">Wird als SSH-Befehl ausgeführt, statt eine Login-Shell zu öffnen. Für die normale Shell leer lassen.</string>
+    <string name="connections_field_session_command">Sitzungsbefehl (erweitert)</string>
+    <string name="connections_helper_session_command">Ersetzt den Startbefehl des Sitzungsmanagers nur für diese Verbindung. {name} wird durch den Sitzungsnamen ersetzt. Nutzen, wenn der integrierte tmux/screen-Befehl nicht laufen kann, z. B. Windows-Host: wsl -e sh -c "tmux new-session -A -s {name}". Leer nutzt die globale Einstellung.</string>
     <string name="connections_toggle_request_pty">Terminal anfordern (PTY)</string>
     <string name="connections_helper_post_login">Wird nach der Anmeldung gesendet.</string>
     <string name="connections_dropdown_none_direct">Keine (direkt)</string>

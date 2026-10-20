@@ -68,6 +68,18 @@ private const val MAX_MISMATCH_ATTEMPTS = 3
  */
 private const val WRONG_KEY_HOLD_MS = 1500L
 
+/**
+ * How long a key wait (USB plug-in / NFC tap) may run before the assertion
+ * fails with [FidoKeyNotPresentedException] (#732). Before this the wait was
+ * unbounded: with agent forwarding on, a forwarded SIGN_REQUEST for a key the
+ * user isn't carrying blocked the whole SSH session until the *server's* own
+ * deadline, which reads as a hang. A finite, generous window gives the user
+ * time to present the key on the interactive path, and lets the forwarded
+ * path fail the single request cleanly (AgentSafeIdentity turns it into
+ * SSH_AGENT_FAILURE) instead of stalling the connection.
+ */
+private const val KEY_PRESENTATION_TIMEOUT_MS = 60_000L
+
 data class FidoAssertionResult(
     val signature: ByteArray,
     val flags: Byte,
@@ -158,6 +170,16 @@ class FidoCancelledException(message: String = "Security key prompt cancelled") 
     java.io.IOException(message)
 
 /**
+ * No FIDO key was presented within [KEY_PRESENTATION_TIMEOUT_MS], or a
+ * non-interactive (agent-forwarded) sign request arrived while no key was
+ * already connected (#732). Distinct from a generic [java.io.IOException] so
+ * the assertion loop never swallows it into the wrong-key retry, and so
+ * AgentSafeIdentity can turn it into a clean SSH_AGENT_FAILURE for the single
+ * forwarded request instead of stalling the SSH session.
+ */
+class FidoKeyNotPresentedException(message: String) : java.io.IOException(message)
+
+/**
  * Map a CTAP2 GetAssertion response status byte to the exception it should
  * raise, or null when [status] is STATUS_OK. A wrong key answers
  * STATUS_NO_CREDENTIALS, which becomes a typed [FidoNoMatchingCredentialException]
@@ -209,6 +231,15 @@ class FidoAuthenticator @Inject constructor(
     }
 
     private var pendingDevice: CompletableDeferred<ConnectedDevice>? = null
+
+    /**
+     * Test seam for [KEY_PRESENTATION_TIMEOUT_MS]. Production code never
+     * touches it; unit tests shorten the key-presentation wait so the
+     * timeout path runs in milliseconds instead of a real minute (the wait
+     * lives inside withContext(Dispatchers.IO), where runTest's virtual
+     * clock does not apply).
+     */
+    @Volatile internal var keyPresentationTimeoutMs = KEY_PRESENTATION_TIMEOUT_MS
 
     /**
      * The transport of the in-flight assertion (USB CTAPHID or NFC ISO-DEP),
@@ -422,6 +453,10 @@ class FidoAuthenticator @Inject constructor(
         credentialId: ByteArray,
         requireUv: Boolean = false,
         keyLabel: String? = null,
+        /** Agent-forwarded sign request (#732): fail up front when the key is
+         *  provably absent instead of waiting for a user who isn't driving this
+         *  connect. See [withDiscoveredFidoDevice]. */
+        nonInteractive: Boolean = false,
     ): FidoAssertionResult = withContext(Dispatchers.IO) {
         lastAssertionError = null
         currentKeyLabel = keyLabel
@@ -481,6 +516,7 @@ class FidoAuthenticator @Inject constructor(
                     return@withContext withDiscoveredFidoDevice(
                         excludeUsbDeviceIds = failedUsbIds,
                         wrongKeyAttemptsLeft = if (attempt > 1) MAX_MISMATCH_ATTEMPTS - attempt + 1 else null,
+                        nonInteractive = nonInteractive,
                     ) { device ->
                         thisUsbId = (device as? ConnectedDevice.Usb)?.device?.deviceId
                         // Device just landed — for the non-UV path, switch the
@@ -544,6 +580,13 @@ class FidoAuthenticator @Inject constructor(
                 } catch (e: FidoCancelledException) {
                     // User cancelled the key wait — never swallow into the
                     // fall-through below; let the connect abort.
+                    throw e
+                } catch (e: FidoKeyNotPresentedException) {
+                    // The key wait timed out (#732). Retrying would just wait
+                    // another full window for a key that isn't there — and on
+                    // the agent-forwarded path the caller (AgentSafeIdentity)
+                    // wants this single request to fail cleanly, not loop.
+                    lastAssertionError = e.message
                     throw e
                 } catch (e: IOException) {
                     // A USB device was *selected* but couldn't be used as a key:
@@ -844,11 +887,9 @@ class FidoAuthenticator @Inject constructor(
     private suspend fun <R> withDiscoveredFidoDevice(
         excludeUsbDeviceIds: Set<Int> = emptySet(),
         wrongKeyAttemptsLeft: Int? = null,
+        nonInteractive: Boolean = false,
         perform: suspend (ConnectedDevice) -> R,
     ): R {
-        val deferred = CompletableDeferred<ConnectedDevice>()
-        pendingDevice = deferred
-
         // ----- USB: check already connected, else register attach receiver.
         // Skip a key that already failed with NO_CREDENTIALS this call so a
         // wrong, still-plugged key isn't re-selected instantly — wait for the
@@ -857,6 +898,31 @@ class FidoAuthenticator @Inject constructor(
         val alreadyConnectedUsb = usbManager.deviceList.values.firstOrNull {
             isFidoHidDevice(it) && it.deviceId !in excludeUsbDeviceIds
         }
+
+        // ----- NFC: if an activity is in the foreground, enable reader mode
+        val nfcActivity = activeActivity?.get()
+
+        // #732 fail-fast: an agent-forwarded sign request (nobody is driving
+        // this connect interactively) for a key that is provably absent — not
+        // plugged in, and no foreground activity that could answer an NFC tap
+        // — must not wait at all. Fail the single request before arming anything
+        // (no pendingDevice, no receiver, no NFC reader); AgentSafeIdentity turns
+        // it into SSH_AGENT_FAILURE and the SSH session continues with the next
+        // key instead of stalling until the server's deadline. When an activity
+        // IS foreground the user may be holding the phone with the key on its
+        // back, so the bounded wait below still gives NFC a chance.
+        if (nonInteractive && alreadyConnectedUsb == null && nfcActivity == null) {
+            val name = currentKeyLabel?.let { " \"$it\"" } ?: ""
+            throw FidoKeyNotPresentedException(
+                "No security key$name is connected and none can be tapped right now " +
+                    "(the sign request came from a remote host through agent forwarding). " +
+                    "Connect the key, or remove it from this connection's forwarded keys.",
+            )
+        }
+
+        val deferred = CompletableDeferred<ConnectedDevice>()
+        pendingDevice = deferred
+
         var usbReceiver: BroadcastReceiver? = null
         if (alreadyConnectedUsb != null) {
             Log.d(TAG, "FIDO key already plugged in: ${alreadyConnectedUsb.productName ?: "(unknown product)"}")
@@ -865,9 +931,6 @@ class FidoAuthenticator @Inject constructor(
             usbReceiver = registerUsbAttachReceiver(deferred, excludeUsbDeviceIds)
             Log.d(TAG, "Registered USB attach receiver; waiting for key to be plugged in")
         }
-
-        // ----- NFC: if an activity is in the foreground, enable reader mode
-        val nfcActivity = activeActivity?.get()
         var nfcEnabled = false
         if (nfcActivity != null && !deferred.isCompleted) {
             nfcEnabled = startNfcReaderModeOnMain(nfcActivity, deferred)
@@ -887,7 +950,15 @@ class FidoAuthenticator @Inject constructor(
 
         try {
             Log.d(TAG, "Waiting for security key (USB${if (nfcEnabled) " or NFC" else ""})...")
-            val device = deferred.await()
+            val device = withTimeoutOrNull(keyPresentationTimeoutMs) { deferred.await() }
+                ?: run {
+                    val name = currentKeyLabel?.let { " \"$it\"" } ?: ""
+                    throw FidoKeyNotPresentedException(
+                        "No security key$name was presented within " +
+                            "${keyPresentationTimeoutMs / 1000}s — connect the key, or remove it " +
+                            "from this connection's forwarded keys.",
+                    )
+                }
             return perform(device)
         } finally {
             pendingDevice = null

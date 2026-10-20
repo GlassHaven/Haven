@@ -72,6 +72,9 @@
     <string name="terminal_new_tab_connecting">接続中…</string>
     <!-- Backfilled translations (i18n drift fix) -->
     <string name="terminal_no_contact">サーバー応答なし（%1$d 秒）— 再試行中</string>
+    <string name="terminal_attach_notice_unavailable">セッションマネージャー %1$s が起動しませんでした — 通常のシェルに表示されています。ホストにインストールされているか確認するか、接続エディタ（詳細）でセッションコマンドを設定してください。</string>
+    <string name="terminal_attach_notice_missing">%1$s セッション "%2$s" にアタッチできませんでした — 通常のシェルに表示されています。起動コマンドを確認するか、接続エディタ（詳細）でセッションコマンドを設定してください。</string>
+    <string name="terminal_attach_notice_dismiss">閉じる</string>
     <string name="terminal_new_session_create">作成</string>
     <string name="terminal_vnc_username_label">ユーザー名 (任意 — VeNCrypt のみ)</string>
     <string name="terminal_vnc_username_placeholder">従来の VncAuth を使う場合は空欄のまま</string>

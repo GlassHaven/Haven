@@ -1,0 +1,6 @@
+• East Asian ambiguous-width characters can be drawn double-width to match CJK fonts (#719).
+• Cancelling a UML desktop start mid-boot releases the guest instead of wedging the next boot (#686).
+• rclone re-auth no longer races the sign-in port (#697).
+• Tailscale peer discovery can be turned off (#654).
+• Debian 13/12 apt, sudo, su and locale fixes (#721).
+• Toolbar Paste moved away from Tab and wired into VNC (#720).

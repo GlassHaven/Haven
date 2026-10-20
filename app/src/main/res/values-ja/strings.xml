@@ -357,4 +357,8 @@
     <string name="update_notification_channel">アプリの更新</string>
     <string name="update_notification_title">Haven %1$s が利用できます</string>
     <string name="update_notification_text">タップしてリリースページを開きます。</string>
+    <string name="app_desktop_guest_user_title">ゲストユーザー</string>
+    <string name="app_desktop_guest_user_description">root の代わりにパスワードなし sudo を持つ一般ユーザー (uid 1000) としてシェルと X11 デスクトップを実行します。root モードにするには空欄にするか root を指定してください。</string>
+    <string name="app_desktop_guest_user_label">ユーザー名</string>
+    <string name="app_desktop_guest_user_hint">root (または user など)</string>
 </resources>

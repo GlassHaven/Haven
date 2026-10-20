@@ -27,6 +27,7 @@ import sh.haven.core.ssh.HostKeyVerifier
 import sh.haven.core.ssh.SessionManager
 import sh.haven.core.ssh.SshClient
 import sh.haven.core.ssh.OpenKeychainClientFactory
+import sh.haven.core.ssh.SessionAttachNotice
 import sh.haven.core.ssh.SshSessionManager
 import sh.haven.core.ssh.SshSessionManager.SessionState
 import sh.haven.core.et.EtSessionManager
@@ -49,6 +50,9 @@ private const val SESSION_MANAGER_DETACH_DELAY_MS = 300L
 
 /** Sentinel for transports that don't report a stall countdown. */
 private val NEVER_STALLS: StateFlow<Int?> = MutableStateFlow(null)
+
+/** Sentinel for tabs with no session-manager attach to verify (#731). */
+private val NO_ATTACH_NOTICE: StateFlow<SessionAttachNotice?> = MutableStateFlow(null)
 
 /** Main-thread handler for posting emulator writes. */
 private val mainHandler = android.os.Handler(android.os.Looper.getMainLooper())
@@ -277,6 +281,18 @@ data class TerminalTab(
      *  tab strip uses it to let the user's multiplexer labelling win over
      *  program-set OSC titles when that preference is on. */
     val multiplexerName: String? = null,
+    /** Post-attach session-manager verification result (#731). Non-null when
+     *  the shell came up but the session manager didn't (not installed / the
+     *  start command failed), so the terminal can say why the user landed in
+     *  a plain prompt. Null for healthy attaches and non-SSH tabs. */
+    val attachNotice: StateFlow<SessionAttachNotice?> = NO_ATTACH_NOTICE,
+    /** Wall-clock ms when this tab was first created. Reconcile passes carry
+     *  existing tabs across by copy(), so this records the original open
+     *  time, not the last sync's. #728: a session's natural death (exit /
+     *  transport drop) bounces back to Connect only if it had been open
+     *  longer than [TerminalViewModel.naturalEmptyBounceMinMs] — a connect
+     *  that fails right away stays put (the #208 flicker). */
+    val openedAtMs: Long = System.currentTimeMillis(),
 )
 
 /** VNC connection info for the active terminal's host. */
@@ -604,6 +620,14 @@ class TerminalViewModel @Inject constructor(
         systemIsDark.value = isDark
     }
 
+    /** Toolbar key-scale multiplier (#641), applied by the toolbar composable. */
+    val toolbarKeyScale: StateFlow<Float> = preferencesRepository.toolbarKeyScale
+        .stateIn(
+            viewModelScope,
+            SharingStarted.WhileSubscribed(5000),
+            UserPreferencesRepository.DEFAULT_TOOLBAR_KEY_SCALE,
+        )
+
     /**
      * Live global terminal colour scheme — respects the auto-switch toggle:
      * when enabled, follows the system light/dark mode (via [systemIsDark])
@@ -797,6 +821,12 @@ class TerminalViewModel @Inject constructor(
             }
         }
     }
+
+    /** #728: how long a session must have been open before its natural death
+     *  (exit / transport drop) bounces the user back to Connect when it was
+     *  the last tab. Explicit closes bounce unconditionally at their own
+     *  call sites. Internal so tests can pin it deterministically. */
+    internal var naturalEmptyBounceMinMs = 5_000L
 
     /** Emitted once when a session closes and no tabs remain. */
     private val _navigateToConnections = MutableStateFlow(false)
@@ -1307,7 +1337,6 @@ class TerminalViewModel @Inject constructor(
                     enableAltScreen = localProfile?.disableAltScreen != true && localProfile?.sessionManager != "screen",
                     onKeyboardInput = { data -> reCoalescer.send(applyModifiers(data)) },
                     onResize = { dims ->
-                        for (tab in _tabs.value) tab.resize(dims.columns, dims.rows)
                         source.getActive(sessionId)?.resize(dims.columns, dims.rows)
                     },
                     maxScrollbackLines = terminalScrollbackRows.value,
@@ -1405,9 +1434,6 @@ class TerminalViewModel @Inject constructor(
                 onKeyboardInput = { data -> localCoalescer.send(applyModifiers(data)) },
                 onResize = { dims ->
                     Log.d(TAG, "LOCAL onResize: ${dims.columns}x${dims.rows}")
-                    for (tab in _tabs.value) {
-                        tab.resize(dims.columns, dims.rows)
-                    }
                     localSession.resize(dims.columns, dims.rows)
                 },
                 maxScrollbackLines = terminalScrollbackRows.value,
@@ -1551,10 +1577,13 @@ class TerminalViewModel @Inject constructor(
             .map { it.sessionId }
             .toSet()
 
-        // Find UML guest sessions that are connected
+        // Find UML guest sessions that are connected (excluding internal
+        // headless desktop/cage boots driven by UmlDesktopManager, which pass
+        // `haven.desktop=1` and have no ConnectionProfile row).
         val activeGuestIds = guestSessions.values
             .filter {
-                it.status == sh.haven.core.local.uml.UmlGuestManager.SessionState.Status.CONNECTED
+                it.status == sh.haven.core.local.uml.UmlGuestManager.SessionState.Status.CONNECTED &&
+                    sh.haven.core.local.uml.UmlDesktopManager.DESKTOP_KERNEL_ARG !in it.extraKernelArgs
             }
             .map { it.sessionId }
             .toSet()
@@ -1613,11 +1642,6 @@ class TerminalViewModel @Inject constructor(
             val coalescer = InputCoalescer { data -> b.session?.sendToSsh(data) }
             sshEmulatorOwner.setInputSink(sessionId) { data -> coalescer.send(applyModifiers(data)) }
             sshEmulatorOwner.setResizeSink(sessionId) { dims ->
-                // Only the active tab's Terminal composable fires onResize; resize
-                // ALL tabs so inactive ones don't keep a stale PTY size.
-                for (tab in _tabs.value) {
-                    tab.resize(dims.columns, dims.rows)
-                }
                 b.session?.resize(dims.columns, dims.rows)
             }
 
@@ -1650,6 +1674,7 @@ class TerminalViewModel @Inject constructor(
                     colorScheme = effectiveColorScheme(sshProfile),
                     backgroundOpacity = effectiveOpacity(sshProfile),
                     multiplexerName = session.chosenSessionName,
+                    attachNotice = sessionManager.attachNoticeFlow(sessionId),
                 )
             )
             trackedSessionIds.add(sessionId)
@@ -1710,9 +1735,6 @@ class TerminalViewModel @Inject constructor(
                 onKeyboardInput = { data -> rnsCoalescer.send(applyModifiers(data)) },
                 onResize = { dims ->
                     Log.d(TAG, "RNS onResize: ${dims.columns}x${dims.rows}")
-                    for (tab in _tabs.value) {
-                        tab.resize(dims.columns, dims.rows)
-                    }
                     rnsSession.resize(dims.columns, dims.rows)
                 },
                 maxScrollbackLines = terminalScrollbackRows.value,
@@ -2054,9 +2076,6 @@ class TerminalViewModel @Inject constructor(
                 onKeyboardInput = { data -> moshCoalescer.send(applyModifiers(data)) },
                 onResize = { dims ->
                     Log.d(TAG, "MOSH onResize: ${dims.columns}x${dims.rows}")
-                    for (tab in _tabs.value) {
-                        tab.resize(dims.columns, dims.rows)
-                    }
                     moshSession.resize(dims.columns, dims.rows)
                 },
                 maxScrollbackLines = terminalScrollbackRows.value,
@@ -2162,9 +2181,6 @@ class TerminalViewModel @Inject constructor(
                 onKeyboardInput = { data -> etCoalescer.send(applyModifiers(data)) },
                 onResize = { dims ->
                     Log.d(TAG, "ET onResize: ${dims.columns}x${dims.rows}")
-                    for (tab in _tabs.value) {
-                        tab.resize(dims.columns, dims.rows)
-                    }
                     etSession.resize(dims.columns, dims.rows)
                 },
                 maxScrollbackLines = terminalScrollbackRows.value,
@@ -2234,9 +2250,23 @@ class TerminalViewModel @Inject constructor(
             old.transportType != "SSH" && currentTabs.none { it.sessionId == old.sessionId }
         }
 
+        // #728: the last tab emptied on its own (session exited / transport
+        // dropped — explicit closes bounce at their own call sites, and this
+        // path deliberately excludes them). Return to Connect only when the
+        // dying tab had actually been up for a moment: a connect that fails
+        // right away stays on Terminal so the error is visible, matching the
+        // #208 flicker fix that removed the unconditional death-bounce. The
+        // dying tab is the most recently opened of the ones being removed.
+        val dyingTab = _tabs.value.maxByOrNull { it.openedAtMs }
+        val bouncedOnNaturalEmpty = currentTabs.isEmpty() &&
+            _tabs.value.isNotEmpty() &&
+            dyingTab != null &&
+            System.currentTimeMillis() - dyingTab.openedAtMs >= naturalEmptyBounceMinMs
+
         _tabs.value = currentTabs
 
         if (currentTabs.isEmpty()) resetModifiers()
+        if (bouncedOnNaturalEmpty) _navigateToConnections.value = true
 
         droppedTabs.forEach { tab ->
             runCatching { tab.emulator.close() }
@@ -2675,6 +2705,12 @@ class TerminalViewModel @Inject constructor(
         }
         val profileId = sessionManager.getSession(sessionId)?.profileId ?: return
         addSshTabForProfile(profileId, plain = true)
+    }
+
+    /** Clear a session-manager attach banner (#731 follow-up) — the notice has
+     *  no auto-dismiss and previously only cleared on re-attach or removal. */
+    fun dismissAttachNotice(sessionId: String) {
+        sessionManager.dismissAttachNotice(sessionId)
     }
 
     fun addLocalTabForProfile(

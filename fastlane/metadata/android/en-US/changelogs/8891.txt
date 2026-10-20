@@ -1,0 +1,2 @@
+• Terminals draw text again after 5.89.37: a width function left without a return statement measured every printable character as 0 cells, so all terminals, SSH included, stayed blank with a stuck cursor (#721).
+• The East Asian ambiguous width setting now actually consults its table; ambiguous characters such as → are 2 cells wide with it on.

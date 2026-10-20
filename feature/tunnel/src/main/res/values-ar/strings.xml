@@ -52,4 +52,23 @@
     <string name="cf_jump_destination_help">أنفاق متعددة الأهداف بوضع البوابة: تُمرَّر باسم `Cf-Access-Jump-Destination`. اتركها فارغة للمسارات أحادية الهدف.</string>
     <string name="cf_jwt_paste_help">للإعدادات بلا واجهة: شغّل `cloudflared access token --app https://&lt;hostname&gt;` على جهاز آخر والصق JWT هنا. يُحلَّل انتهاء الصلاحية من الرمز تلقائيًا.</string>
     <string name="cf_field_jwt">‏JWT الخاص بـ Cloudflare Access (اختياري)</string>
+    <string name="tunnel_anyconnect_help">اتصل عبر شبكة VPN من Cisco AnyConnect أو ocserv (OpenConnect) دون تطبيق Cisco. تستخدمها فقط الملفات الشخصية الموجّهة عبر هذا النفق، وليس بقية حركة الهاتف. يدعم اسم المستخدم/كلمة المرور ومجموعات المصادقة وعامل التحقق الثاني TOTP أو الإشعار؛ ولا يدعم SAML/SSO وشهادات العميل.</string>
+    <string name="tunnel_anyconnect_server_label">الخادم</string>
+    <string name="tunnel_anyconnect_server_help">مضيف البوابة كما تكتبه في تطبيق Cisco، مع :المنفذ أو مسار مجموعة اختياريًا.</string>
+    <string name="tunnel_anyconnect_username_label">اسم المستخدم</string>
+    <string name="tunnel_anyconnect_password_label">كلمة المرور</string>
+    <string name="tunnel_anyconnect_group_label">مجموعة المصادقة (اختياري)</string>
+    <string name="tunnel_anyconnect_group_help">المجموعة أو الملف الشخصي المطلوب اختياره من قائمة الخادم. اتركه فارغًا لاستخدام الافتراضي.</string>
+    <string name="tunnel_anyconnect_otp_label">سر OTP (اختياري)</string>
+    <string name="tunnel_anyconnect_otp_help">سر Base32 أو رابط otpauth:// من إعداد تطبيق المصادقة. يجيب Haven عن طلب الرمز بنفسه، ما يسمح للنفق بإعادة الاتصال تلقائيًا.</string>
+    <string name="tunnel_anyconnect_secondary_label">إجابة العامل الثاني (اختياري)</string>
+    <string name="tunnel_anyconnect_secondary_help">إجابة ثابتة عن الطلب الثاني، مثل push لـ Duo. تُستخدم فقط عند عدم تعيين سر OTP.</string>
+    <string name="tunnel_anyconnect_cert_label">شهادة الخادم (اختياري)</string>
+    <string name="tunnel_anyconnect_cert_help">للبوابات ذاتية التوقيع فقط: قيمة pin-sha256:…. إذا لم تكن الشهادة موثوقة، يعرض خطأ الاتصال القيمة التي يجب لصقها هنا.</string>
+    <string name="tunnel_status_connected">متصل</string>
+    <string name="tunnel_sign_out">تسجيل الخروج</string>
+    <string name="tunnel_anyconnect_password_help">اتركه فارغًا ليُطلب عند تسجيل الدخول.</string>
+    <string name="tunnel_anyconnect_prompt_help">الرموز المرسلة عبر الرسائل القصيرة أو البريد: اترك سر OTP وإجابة العامل الثاني فارغين، وسيطلب Haven الرمز عند تسجيل الدخول.</string>
+    <string name="tunnel_anyconnect_stay_connected_label">البقاء متصلاً</string>
+    <string name="tunnel_anyconnect_stay_connected_help">إبقاء الـ VPN متصلاً بعد إغلاق آخر اتصال، مثل تطبيق Cisco. عند الإيقاف: يُقطع الاتصال، وإعادة الاتصال بعد وقت قصير تستأنف الجلسة دون رمز جديد.</string>
 </resources>

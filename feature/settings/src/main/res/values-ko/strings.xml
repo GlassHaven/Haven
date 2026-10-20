@@ -251,6 +251,10 @@
     <string name="settings_scrollback_rows_value">%1$,d 행</string>
     <string name="settings_tap_to_position_title">지원되는 프롬프트에서 탭하여 커서 이동</string>
     <string name="settings_tap_to_position_subtitle">셸 프롬프트 내부를 탭하여 해당 열로 커서를 이동합니다. OSC 133 프롬프트 마커가 필요합니다(starship, fish 3.6+, 최신 bash/zsh 셸 통합). 이를 내보내지 않는 셸에는 영향 없음</string>
+    <string name="settings_swipe_arrows_title">스와이프로 화살표 전송</string>
+    <string name="settings_swipe_arrows_subtitle">터미널에서 가로 스와이프 시 탭을 전환하는 대신 ← →(길게 누르면 반복)을 전송합니다. 도구 모음의 스와이프 키도 같은 모드를 전환합니다</string>
+    <string name="settings_swipe_arrows_exit_hint">앱 탭 표시줄이 숨겨져 있고 세션이 열려 있으면, 도구 모음의 스와이프 키를 누를 때까지 스와이프가 계속 화살표를 보냅니다. 언제든 쓸 수 있도록 스와이프 키를 도구 모음에 추가하세요</string>
+    <string name="settings_swipe_arrows_add_key">스와이프 키 추가</string>
 
     <!-- #210 i18n sweep -->
     <string name="settings_color_scheme_auto_switch_title">시스템 테마에 따라 자동 전환</string>
@@ -262,6 +266,7 @@
     <string name="settings_color_scheme_apply_palette_title">구성표의 ANSI 팔레트 적용</string>
     <string name="settings_color_scheme_apply_palette_subtitle">16가지 ANSI 색상을 구성표에 맞게 다시 칠합니다. 끄면 표준 색상이 유지되어 mutt 같은 전체 화면 앱이 예상대로 보입니다.</string>
     <string name="settings_toolbar_min_key_width">최소 키 너비: %1$d dp</string>
+    <string name="settings_toolbar_key_scale">키 크기 배율: %1$d%%</string>
     <string name="settings_toolbar_uniform_grid">균일한 키 그리드</string>
     <string name="settings_toolbar_uniform_grid_desc">Termux처럼 모든 키가 같은 너비의 칸을 차지하며 긴 라벨은 줄바꿈됩니다. 가로 스크롤 없음.</string>
     <string name="settings_terminal_font_title">터미널 글꼴</string>
@@ -444,6 +449,8 @@
     <string name="settings_terminal_opacity_value">%1$d%%</string>
     <string name="settings_terminal_opacity_hint" formatted="false">100% 미만이면 Haven이 반투명해지고 모든 화면(터미널, 목록, 설정) 뒤로 기기 배경화면이 표시됩니다. 연결별 재정의는 해당 터미널에만 적용됩니다.</string>
     <string name="settings_section_mcp">AI 에이전트 (MCP)</string>
+    <string name="settings_tailscale_discovery_title">Tailscale 피어 검색</string>
+    <string name="settings_tailscale_discovery_subtitle">스캔 시 로컬 API를 통해 Tailscale 네트워크의 호스트를 찾습니다. 끄면 Haven이 피어 목록을 읽지 않습니다. Tailscale 자체에는 영향이 없습니다.</string>
     <string name="settings_audio_bridge_title">Proot 오디오 (실험적)</string>
     <string name="settings_audio_bridge_subtitle">게스트 내 PulseAudio 브리지를 통해 Linux 앱의 소리를 기기 스피커로 재생합니다. 출력 전용. 켜져 있는 동안 계속 스트리밍되므로 사용하지 않을 때는 끄세요.</string>
     <string name="settings_reverse_tunnel_status_active">Near (SSH): %1$s 경유 — 연결됨</string>
@@ -512,4 +519,6 @@ Haven에 이미 저장된 모든 개인 키는 다시 가져오거나 생성해�
     <string name="settings_inline_images_off">끔</string>
     <string name="settings_inline_images_ask">물어보기</string>
     <string name="settings_inline_images_always">항상</string>
+    <string name="settings_ambiwidth_title">모호 폭 문자를 배폭으로 표시</string>
+    <string name="settings_ambiwidth_subtitle">동아시아 모호 폭 문자를 2셀로 렌더링</string>
 </resources>

@@ -40,7 +40,7 @@ class HavenApp : Application(), Configuration.Provider {
     @Inject lateinit var mcpNearCarrier: sh.haven.app.agent.McpNearCarrier
     @Inject lateinit var preferencesRepository: UserPreferencesRepository
     @Inject lateinit var agentConsentManager: sh.haven.core.data.agent.AgentConsentManager
-    @Inject lateinit var workspaceShortcutManager: sh.haven.app.workspace.WorkspaceShortcutManager
+    @Inject lateinit var launcherShortcutManager: sh.haven.app.launcher.LauncherShortcutManager
     @Inject lateinit var workerFactory: HiltWorkerFactory
     @Inject lateinit var prootManager: sh.haven.core.local.ProotManager
     @Inject lateinit var guestServiceManager: sh.haven.core.local.GuestServiceManager
@@ -122,10 +122,11 @@ class HavenApp : Application(), Configuration.Provider {
             }
         }
 
-        // Mirror saved workspaces into Android launcher long-press
-        // shortcuts so the home-screen icon offers "Open <workspace>"
-        // entries. Self-observing — recomputes on every repo change.
-        workspaceShortcutManager.start()
+        // Mirror saved connections (#699) and workspaces into Android
+        // launcher long-press shortcuts — "Connect <profile>" and
+        // "Open <workspace>" entries from the home screen. Self-observing —
+        // recomputes on every repo change.
+        launcherShortcutManager.start()
 
         // MCP agent endpoint is OFF by default — it exposes state that
         // local processes (or an AI agent you've pointed at it) can

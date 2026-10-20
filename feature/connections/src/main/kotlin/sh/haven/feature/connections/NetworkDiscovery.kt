@@ -66,6 +66,15 @@ class NetworkDiscovery(private val context: Context) {
     private val _localVm = MutableStateFlow(LocalVmStatus())
     val localVm: StateFlow<LocalVmStatus> = _localVm.asStateFlow()
 
+    /**
+     * Master switch for the Tailscale LocalAPI probe (#654). Set from the
+     * user preference by ConnectionsViewModel; when false, discoverTailscale
+     * returns before touching 100.100.100.100 and any previously discovered
+     * peers are dropped.
+     */
+    @Volatile
+    var tailscaleDiscoveryEnabled: Boolean = true
+
     private var nsdManager: NsdManager? = null
     private var discoveryListener: NsdManager.DiscoveryListener? = null
     private val mdnsHosts = mutableSetOf<DiscoveredHost>()
@@ -268,6 +277,16 @@ class NetworkDiscovery(private val context: Context) {
      */
     suspend fun discoverTailscale() {
         withContext(Dispatchers.IO) {
+            if (!tailscaleDiscoveryEnabled) {
+                // User turned the probe off (#654): drop any peers a previous
+                // probe found so the list reflects the switch immediately.
+                val had = synchronized(tailscaleHosts) { tailscaleHosts.isNotEmpty() }
+                if (had) {
+                    synchronized(tailscaleHosts) { tailscaleHosts.clear() }
+                    mergeAndEmit()
+                }
+                return@withContext
+            }
             if (!isTailscaleAppInstalled()) {
                 return@withContext
             }

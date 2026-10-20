@@ -419,6 +419,8 @@ fun HavenNavHost(
         .collectAsState(initial = sh.haven.core.data.preferences.NavBlockMode.ALIGNED)
     val toolbarUniformGrid by preferencesRepository.toolbarUniformGrid
         .collectAsState(initial = false)
+    val toolbarKeyScale by preferencesRepository.toolbarKeyScale
+        .collectAsState(initial = 1f)
     val editModeControlsPlacement by preferencesRepository.editModeControlsPlacement
         .collectAsState(initial = sh.haven.core.data.preferences.EditModeControlsPlacement.LEFT)
     val desktopKeyPlacement by preferencesRepository.desktopKeyPlacement
@@ -484,6 +486,8 @@ fun HavenNavHost(
         .collectAsState(initial = true)
     val desktopInputMode by preferencesRepository.desktopInputMode
         .collectAsState(initial = "DIRECT")
+    val desktopTouchpadSensitivity by preferencesRepository.desktopTouchpadSensitivity
+        .collectAsState(initial = 1f)
 
     // Profile ID to focus when navigating to terminal
     var pendingTerminalProfileId by rememberSaveable { mutableStateOf<String?>(null) }
@@ -797,6 +801,7 @@ fun HavenNavHost(
                         toolbarLayout = toolbarLayout,
                         navBlockMode = navBlockMode,
                         toolbarUniformGrid = toolbarUniformGrid,
+                        toolbarKeyScale = toolbarKeyScale,
                         rdpChipAnchor = rdpChipAnchor,
                         onRdpChipAnchorChange = {
                             coroutineScope.launch { preferencesRepository.setRdpChipAnchor(it) }
@@ -804,6 +809,10 @@ fun HavenNavHost(
                         inputMode = desktopInputMode,
                         onSetInputMode = { mode ->
                             coroutineScope.launch { preferencesRepository.setDesktopInputMode(mode) }
+                        },
+                        touchpadSensitivity = desktopTouchpadSensitivity,
+                        onSetTouchpadSensitivity = { value ->
+                            coroutineScope.launch { preferencesRepository.setDesktopTouchpadSensitivity(value) }
                         },
                         isActive = pagerState.settledPage == pageOf(Screen.Desktop),
                         fullscreen = desktopFullscreen,

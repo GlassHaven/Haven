@@ -67,6 +67,20 @@ class LocalSession(
         Thread(r, "local-pty-write-$sessionId").apply { isDaemon = true }
     }
 
+    companion object {
+        // Linux PR_SET_PDEATHSIG (used by uml_net.c so libvmlinux.so and passt
+        // do not outlive Haven) fires when the *creating thread*
+        // (task->real_parent) exits, NOT when the thread group leader exits.
+        // If start() is called from a transient Dispatchers.IO or Ktor worker
+        // thread, that worker thread times out after 60 s of inactivity and the
+        // kernel sends SIGKILL (exit 137) to the child! Forking on a single
+        // immortal daemon thread guarantees task->real_parent lives for the
+        // lifetime of the app process.
+        private val forkExecutor = Executors.newSingleThreadExecutor { r ->
+            Thread(r, "local-pty-fork").apply { isDaemon = true }
+        }
+    }
+
     /**
      * Fork the child process and start reading PTY output.
      * @throws IllegalStateException if forkpty fails
@@ -74,7 +88,13 @@ class LocalSession(
     fun start(rows: Int = 24, cols: Int = 80) {
         if (closed) return
 
-        val result = PtyBridge.nativeForkPty(command, args, env, rows, cols, rawTermios)
+        val result = try {
+            forkExecutor.submit<IntArray> {
+                PtyBridge.nativeForkPty(command, args, env, rows, cols, rawTermios)
+            }.get()
+        } catch (e: java.util.concurrent.ExecutionException) {
+            throw (e.cause ?: e)
+        }
         // On failure the native contract returns [-1, errno]; commit childPid
         // only after the success check so a later close() can't feed errno to
         // android.os.Process.killProcess(). (#208 finding 8)

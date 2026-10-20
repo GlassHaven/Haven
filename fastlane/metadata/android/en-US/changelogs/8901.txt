@@ -1,0 +1,2 @@
+• Route a profile through a Cisco AnyConnect or ocserv VPN without the Cisco app: Haven logs into the gateway itself (XML auth, TOTP or push) and carries the tunnel per-app, so the system VPN slot stays free (#724).
+• Trackpad cursor speed is adjustable (#696): a speed button next to the input-mode toggle opens a 0.2x-3x slider for how far the cursor travels per finger distance.

@@ -129,6 +129,7 @@ import sh.haven.core.terminal.defaultKeyboardModeForDevice
 import sh.haven.core.data.preferences.ToolbarItem
 import sh.haven.core.data.preferences.ToolbarLayout
 import sh.haven.core.data.preferences.UserPreferencesRepository
+import sh.haven.core.ssh.SessionAttachNotice
 import sh.haven.core.ssh.SessionManager
 
 /** Horizontal padding on the tab strip. */
@@ -541,7 +542,12 @@ fun TerminalScreen(
     val altActive by viewModel.altActive.collectAsState()
     val ctrlLocked by viewModel.ctrlLocked.collectAsState()
     val altLocked by viewModel.altLocked.collectAsState()
+    val toolbarKeyScale by viewModel.toolbarKeyScale.collectAsState()
     val swipeArrowsMode by viewModel.swipeArrowsMode.collectAsState()
+    // Toolbar Shift, hoisted out of KeyboardToolbar (#736) so the swipe path
+    // can read it: Shift+swipe must modulate the step like Shift+arrow does
+    // (lnav). A latch — only Tab consumes it, swipes read without consuming.
+    var shiftActive by remember { mutableStateOf(false) }
     // The latch may own the horizontal pager gesture only while a tab is
     // mounted (#609). The latch persists in DataStore after the last session
     // exits (Ctrl+D), and the empty Terminal page is swipeable solely through
@@ -1104,6 +1110,8 @@ fun TerminalScreen(
         else Color(activeTabScheme.background)
     val terminalFg: Color = if (activeTabScheme.isDynamic) MaterialTheme.colorScheme.onSurface
         else Color(activeTabScheme.foreground)
+    // The live scheme MATERIAL_YOU's palette is derived from (see #139).
+    val themeCs = MaterialTheme.colorScheme
 
     // Terminal background opacity (see-through to wallpaper). The active
     // tab's per-profile override wins over the global pref, mirroring the
@@ -1175,6 +1183,13 @@ fun TerminalScreen(
                 // state shows the wallpaper too, instead of a solid block.
                 backgroundColor = terminalBg.copy(alpha = effectiveBgOpacity),
                 foregroundColor = terminalFg,
+                // #728: keep the explicit-close auto-return as-is (VM fires it
+                // when closing empties the tab list), but a session that dies
+                // while you're on the Terminal page (#208: only explicit close
+                // bounces) leaves this empty state up - its prompt told the
+                // user to connect without offering a way to get there. Tapping
+                // the prompt now goes to the Connect page.
+                onConnectPrompt = onNavigateToConnections,
                 // Carry the page-swipe override so the empty Terminal page can
                 // still be swiped to an adjacent tab. The pager's built-in
                 // scroll is disabled on the Terminal page (see HavenNavHost
@@ -1759,11 +1774,18 @@ fun TerminalScreen(
                                 if (!swipeArrowsMode && !activeTab.emulator.isAltScreenActive()) return false
                                 activeTab.sendInput(
                                     arrowKeyBytes(
-                                        // Latched mode maps the finger literally (swipe up
-                                        // = ↑); the automatic path keeps natural-scroll
-                                        // direction — see swipeArrowIsUp. (#524)
-                                        swipeArrowIsUp(scrollUp, swipeArrowsMode),
+                                        // Latched mode maps the finger literally at a
+                                        // shell prompt (swipe up = ↑); inside an
+                                        // alternate-screen app it follows the
+                                        // page-slide direction instead (#736
+                                        // auto-detect), and the automatic path keeps
+                                        // natural-scroll direction — see swipeArrowIsUp. (#524)
+                                        swipeArrowIsUp(scrollUp, swipeArrowsMode, isAltScreen),
                                         activeTab.cursorKeyAppMode.value,
+                                        // #736 lnav: carry the toolbar Shift latch so
+                                        // Shift+swipe sends the same ESC[1;2A the
+                                        // Shift+arrow button sends.
+                                        shift = shiftActive,
                                     ),
                                 )
                                 return true
@@ -1781,8 +1803,18 @@ fun TerminalScreen(
                             private var holdDirection: org.connectbot.terminal.SwipeHoldDirection? = null
                             private var holdJob: kotlinx.coroutines.Job? = null
 
+                            // #736: reads the Shift latch live, so holding a
+                            // direction with Shift repeats the modified arrow.
+                            // Auto-detect: inside an alternate-screen app the
+                            // vertical hold follows the page-slide direction
+                            // (hold up = next page = ↓) — see
+                            // swipeHoldArrowDirection.
                             private fun holdArrowBytes(dir: org.connectbot.terminal.SwipeHoldDirection) =
-                                arrowKeyBytesFor(dir, activeTab.cursorKeyAppMode.value)
+                                arrowKeyBytesFor(
+                                    swipeHoldArrowDirection(dir, swipeArrowsMode, isAltScreen),
+                                    activeTab.cursorKeyAppMode.value,
+                                    shift = shiftActive,
+                                )
 
                             override fun onSwipeHoldStart(
                                 col: Int,
@@ -1872,7 +1904,17 @@ fun TerminalScreen(
                         // palette, matching pre-#165 behaviour.
                         val terminalFgArgb = terminalFg.toArgb()
                         val terminalBgArgb = terminalBg.toArgb()
-                        val ansiPalette = remember(activeTabScheme) { activeTabScheme.ansiPaletteArgb() }
+                        // MATERIAL_YOU derives its palette from the live theme
+                        // (#139), so it re-derives on theme/wallpaper changes the
+                        // same way terminalFg/Bg do; static schemes use the
+                        // enum's fixed longs.
+                        val ansiPalette = remember(activeTabScheme, themeCs) {
+                            if (activeTabScheme.isDynamic) {
+                                materialYouAnsiPalette(themeCs)
+                            } else {
+                                activeTabScheme.ansiPaletteArgb()
+                            }
+                        }
                         val applyScheme: (TerminalEmulator) -> Unit = { emu ->
                             if (applySchemePalette) {
                                 emu.applyColorScheme(ansiPalette, terminalFgArgb, terminalBgArgb)
@@ -2011,7 +2053,7 @@ fun TerminalScreen(
                                 // mouse-tracking app keeps the fine wheel quantum
                                 // even with the latch on. (#524)
                                 scrollQuantumMultiplier =
-                                    if (swipeArrowsMode && !isMouseMode) SWIPE_ARROWS_SCROLL_QUANTUM else 1f,
+                                    if (swipeArrowsMode && !isMouseMode) swipeArrowsQuantumMultiplier(fontSize) else 1f,
                                 // The real DECSET mouse-tracking signal, not
                                 // "a gestureCallback exists" — one is installed
                                 // for alt-screen-only apps too, and those have
@@ -2022,10 +2064,20 @@ fun TerminalScreen(
                             )
                         }
 
-                        StallBanner(
-                            stallFlow = activeTab.stallSeconds,
+                        // Top-center banner stack: the stall countdown (Mosh)
+                        // and the session-manager attach notice (#731, SSH).
+                        // Mutually exclusive in practice (different transports)
+                        // but stacked in a Column so they never overlap.
+                        Column(
+                            horizontalAlignment = Alignment.CenterHorizontally,
                             modifier = Modifier.align(Alignment.TopCenter),
-                        )
+                        ) {
+                            StallBanner(stallFlow = activeTab.stallSeconds)
+                            AttachNoticeBanner(
+                                noticeFlow = activeTab.attachNotice,
+                                onDismiss = { viewModel.dismissAttachNotice(activeTab.sessionId) },
+                            )
+                        }
 
                         // Fullscreen toggle (#138). Small low-opacity overlay in
                         // a corner (default top-right; the TopCenter slot is the
@@ -2100,6 +2152,12 @@ fun TerminalScreen(
                         altActive = altActive,
                         ctrlLocked = ctrlLocked,
                         altLocked = altLocked,
+                        // #736: Shift lives here now (was internal to
+                        // KeyboardToolbar) so the swipe path above reads the
+                        // same latch the arrow buttons do.
+                        shiftActive = shiftActive,
+                        onToggleShift = { shiftActive = !shiftActive },
+                        onShiftUsed = { shiftActive = false },
                         bracketPasteMode = isBracketPaste,
                         layout = toolbarLayout,
                         navBlockMode = navBlockMode,
@@ -2107,6 +2165,7 @@ fun TerminalScreen(
                         editModeControlsPlacement = editModeControlsPlacement,
                         desktopKeyPlacement = desktopKeyPlacement,
                         minKeyWidth = toolbarMinKeyWidth.dp,
+                        keyScale = toolbarKeyScale,
                         onToggleCtrl = viewModel::toggleCtrl,
                         onToggleAlt = viewModel::toggleAlt,
                         onVncTap = if (activeTab.transportType == "SSH") {{
@@ -2169,11 +2228,16 @@ fun TerminalScreen(
                         onAttachTap = { attachSheetVisible = true },
                         onOpenTextInput = { textInputDialogVisible = true },
                         onDictateTap = {
-                            // #604: resolve a speech recognizer explicitly
-                            // rather than startActivity(ACTION_RECOGNIZE_SPEECH)
-                            // blind — some devices (Supernote) ship none, and
-                            // the intent resolver also lets the user pick one
-                            // if several are installed.
+                            // #604: resolve a speech recognizer explicitly rather
+                            // than startActivity(ACTION_RECOGNIZE_SPEECH) blind —
+                            // some devices (Supernote) ship none. Launching the
+                            // plain implicit intent (rather than wrapping it in
+                            // Intent.createChooser) lets Android's normal
+                            // default-app resolution apply: with one recognizer
+                            // installed it launches directly, and with several
+                            // installed the OS picker's "Just once / Always"
+                            // choice is remembered, so Dictate stops asking after
+                            // the first pick instead of prompting on every tap.
                             val recognize = android.content.Intent(
                                 android.speech.RecognizerIntent.ACTION_RECOGNIZE_SPEECH,
                             ).apply {
@@ -2182,11 +2246,8 @@ fun TerminalScreen(
                                     android.speech.RecognizerIntent.LANGUAGE_MODEL_FREE_FORM,
                                 )
                             }
-                            val chooser = recognize.resolveActivity(context.packageManager)?.let {
-                                android.content.Intent.createChooser(recognize, null)
-                            }
-                            if (chooser != null) {
-                                dictateLauncher.launch(chooser)
+                            if (recognize.resolveActivity(context.packageManager) != null) {
+                                dictateLauncher.launch(recognize)
                             } else {
                                 android.widget.Toast.makeText(
                                     context,
@@ -2277,13 +2338,17 @@ private fun EmptyTerminalState(
     backgroundColor: Color,
     foregroundColor: Color,
     swipeModifier: Modifier = Modifier,
+    onConnectPrompt: () -> Unit = {},
 ) {
     Box(
         modifier = Modifier
             .fillMaxSize()
             .then(swipeModifier)
             .background(backgroundColor)
-            .padding(16.dp),
+            .padding(16.dp)
+            .clickable(onClickLabel = stringResource(R.string.terminal_connect_prompt)) {
+                onConnectPrompt()
+            },
         contentAlignment = Alignment.Center,
     ) {
         Text(
@@ -2469,9 +2534,9 @@ private fun sgrMouseButton(button: Int, col: Int, row: Int, pressed: Boolean): B
  * under) wants the SS3 form ESC O A/B; otherwise the CSI form ESC [ A/B.
  * ncurses apps match terminfo kcuu1 exactly, so the mode matters.
  */
-internal fun arrowKeyBytes(up: Boolean, appMode: Boolean): ByteArray {
-    val prefix = if (appMode) "\u001bO" else "\u001b["
-    return (prefix + if (up) "A" else "B").toByteArray()
+internal fun arrowKeyBytes(up: Boolean, appMode: Boolean, shift: Boolean = false): ByteArray {
+    val letter = if (up) "A" else "B"
+    return arrowKeyBytesFor(letter, appMode, shift)
 }
 
 /**
@@ -2481,15 +2546,28 @@ internal fun arrowKeyBytes(up: Boolean, appMode: Boolean): ByteArray {
 internal fun arrowKeyBytesFor(
     direction: org.connectbot.terminal.SwipeHoldDirection,
     appMode: Boolean,
+    shift: Boolean = false,
 ): ByteArray {
-    val prefix = if (appMode) "\u001bO" else "\u001b["
     val letter = when (direction) {
         org.connectbot.terminal.SwipeHoldDirection.Up -> "A"
         org.connectbot.terminal.SwipeHoldDirection.Down -> "B"
         org.connectbot.terminal.SwipeHoldDirection.Right -> "C"
         org.connectbot.terminal.SwipeHoldDirection.Left -> "D"
     }
-    return (prefix + letter).toByteArray()
+    return arrowKeyBytesFor(letter, appMode, shift)
+}
+
+/**
+ * Shared arrow encoding (#736): with Shift held, libvterm's own encoder
+ * (keyboard.c case_SS3 → case_CSI) emits the modified CSI form ESC[1;2<letter>
+ * regardless of DECCKM — so the swipe path sends byte-for-byte what the
+ * toolbar's Shift+arrow buttons send. Without Shift the plain CSI/SS3 forms
+ * are unchanged.
+ */
+private fun arrowKeyBytesFor(letter: String, appMode: Boolean, shift: Boolean): ByteArray {
+    val body = if (shift) "1;2$letter" else letter
+    val prefix = if (appMode && !shift) "\u001bO" else "\u001b["
+    return (prefix + body).toByteArray()
 }
 
 /** Hold-to-repeat cadence (#524b): held-key feel — brief arm, then steady. */
@@ -2502,11 +2580,42 @@ internal const val SWIPE_HOLD_REPEAT_MS = 90L
  * arrives as scrollUp=true. The automatic alt-screen path (#255) keeps that
  * mapping: dragging content down in a pager sends ↑, exactly like touch
  * scrolling. The latched swipe-arrows mode (#524) is a different mental
- * model — the swipe IS the key press — so the finger direction maps
- * literally: swipe up = ↑ walks shell history back, swipe down = ↓.
+ * model — the swipe IS the key press — so at a bare shell prompt the finger
+ * direction maps literally: swipe up = ↑ walks shell history back, swipe
+ * down = ↓.
+ *
+ * #736 auto-detection: inside a full-screen app the key-press model flips
+ * back to the page-slide model — vim/htop/lnav switch to the alternate
+ * screen buffer, where the reporter's page-slide feel (swipe up = next page
+ * = ↓) matches the automatic mapping. So the latched mode maps literally
+ * only while [altScreen] is false; the Swipe key stays the manual override
+ * that forces arrows at the prompt, and #524's history-walking is unchanged.
  */
-internal fun swipeArrowIsUp(scrollUp: Boolean, latchedSwipeArrows: Boolean): Boolean =
-    if (latchedSwipeArrows) !scrollUp else scrollUp
+internal fun swipeArrowIsUp(
+    scrollUp: Boolean,
+    latchedSwipeArrows: Boolean,
+    altScreen: Boolean,
+): Boolean = if (latchedSwipeArrows && !altScreen) !scrollUp else scrollUp
+
+/**
+ * #736: held-swipe direction under auto-detection. The hold-to-repeat path
+ * (#524b) maps the finger literally; inside an alternate-screen app the
+ * page-slide model applies instead, so the vertical hold direction flips
+ * (hold up = next page = ↓). Horizontal holds are untouched — the pager
+ * question (#736 gap 2) is separate and undecided.
+ */
+internal fun swipeHoldArrowDirection(
+    direction: org.connectbot.terminal.SwipeHoldDirection,
+    latchedSwipeArrows: Boolean,
+    altScreen: Boolean,
+): org.connectbot.terminal.SwipeHoldDirection =
+    if (latchedSwipeArrows && altScreen) {
+        when (direction) {
+            org.connectbot.terminal.SwipeHoldDirection.Up -> org.connectbot.terminal.SwipeHoldDirection.Down
+            org.connectbot.terminal.SwipeHoldDirection.Down -> org.connectbot.terminal.SwipeHoldDirection.Up
+            else -> direction
+        }
+    } else direction
 
 /**
  * #609: the latched Swipe key may suppress the tab-switch pager gesture only
@@ -2525,6 +2634,18 @@ internal fun pagerSwipeOwnedByArrows(latchedSwipeArrows: Boolean, hasTab: Boolea
  * time instead of flashing through it (#524 reporter feedback).
  */
 internal const val SWIPE_ARROWS_SCROLL_QUANTUM = 4f
+
+/**
+ * #736 vim/htop: the arrow travel is a fixed dp distance, but the content it
+ * steps through scales with font size — at a large font the same finger
+ * travel fires far more arrows per screen of history. Scale the quantum with
+ * the font so one arrow is a constant fraction of a screenful; at the
+ * default size the shipped feel is unchanged. termlib clamps sub-1 values to
+ * the content-scroll default.
+ */
+internal fun swipeArrowsQuantumMultiplier(fontSizeSp: Int): Float =
+    (SWIPE_ARROWS_SCROLL_QUANTUM * fontSizeSp / UserPreferencesRepository.DEFAULT_FONT_SIZE)
+        .coerceAtLeast(1f)
 
 @OptIn(androidx.compose.material3.ExperimentalMaterial3Api::class)
 @Composable
@@ -2693,6 +2814,74 @@ private fun StallBanner(
                     text = stringResource(R.string.terminal_no_contact, s),
                     style = MaterialTheme.typography.labelMedium,
                 )
+            }
+        }
+    }
+}
+
+/**
+ * Top-aligned banner shown over an SSH terminal when the shell came up but
+ * the configured session manager didn't (#731): the start command we typed
+ * into the PTY failed silently (tmux/screen not installed, or a POSIX
+ * one-liner through cmd.exe on a Windows host) and the user landed in a
+ * plain login shell. Names the cause instead of leaving it unexplained.
+ * Hidden when the flow is null (healthy attach or non-SSH tab).
+ */
+@Composable
+private fun AttachNoticeBanner(
+    noticeFlow: kotlinx.coroutines.flow.StateFlow<SessionAttachNotice?>,
+    onDismiss: () -> Unit,
+    modifier: Modifier = Modifier,
+) {
+    val notice by noticeFlow.collectAsState()
+    AnimatedVisibility(
+        visible = notice != null,
+        enter = fadeIn() + slideInVertically { -it },
+        exit = fadeOut() + slideOutVertically { -it },
+        modifier = modifier,
+    ) {
+        val n = notice ?: return@AnimatedVisibility
+        val text = when (n) {
+            is SessionAttachNotice.ManagerUnavailable ->
+                stringResource(R.string.terminal_attach_notice_unavailable, n.manager.label)
+            is SessionAttachNotice.SessionMissing ->
+                stringResource(R.string.terminal_attach_notice_missing, n.manager.label, n.sessionName)
+        }
+        Surface(
+            color = MaterialTheme.colorScheme.errorContainer,
+            contentColor = MaterialTheme.colorScheme.onErrorContainer,
+            shape = MaterialTheme.shapes.small,
+            tonalElevation = 4.dp,
+            shadowElevation = 4.dp,
+            modifier = Modifier.padding(8.dp),
+        ) {
+            Row(
+                verticalAlignment = Alignment.CenterVertically,
+                modifier = Modifier.padding(horizontal = 12.dp, vertical = 6.dp),
+            ) {
+                Icon(
+                    Icons.Filled.Info,
+                    contentDescription = null,
+                    modifier = Modifier.size(16.dp),
+                )
+                Spacer(Modifier.width(8.dp))
+                Text(
+                    text = text,
+                    style = MaterialTheme.typography.labelMedium,
+                )
+                // The banner has no auto-dismiss; without this the notice only
+                // cleared on re-attach or session removal, so it could not be
+                // gotten rid of (#731 follow-up).
+                IconButton(
+                    onClick = onDismiss,
+                    modifier = Modifier.size(24.dp),
+                ) {
+                    Icon(
+                        Icons.Filled.Close,
+                        contentDescription = stringResource(R.string.terminal_attach_notice_dismiss),
+                        modifier = Modifier.size(16.dp),
+                    )
+                }
             }
         }
     }

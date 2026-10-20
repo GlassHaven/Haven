@@ -16,6 +16,7 @@
     <string name="rdp_cd_exit_fullscreen">ফুলস্ক্রিন থেকে বেরিয়ে আসুন</string>
     <string name="rdp_cd_input_mode_trackpad_on">Trackpad মোড চালু (সরাসরি স্পর্শের জন্য ট্যাপ করুন)</string>
     <string name="rdp_cd_input_mode_direct">সরাসরি স্পর্শ মোড (trackpad-এর জন্য ট্যাপ করুন)</string>
+    <string name="rdp_cd_trackpad_sensitivity">Trackpad সংবেদনশীলতা</string>
     <string name="rdp_orientation_landscape_desc">Landscape লক (portrait-এ যেতে ট্যাপ করুন)</string>
     <string name="rdp_orientation_portrait_desc">Portrait লক (auto-তে যেতে ট্যাপ করুন)</string>
     <string name="rdp_orientation_auto_desc">স্বয়ংক্রিয় ঘোরানো (landscape-এ যেতে ট্যাপ করুন)</string>

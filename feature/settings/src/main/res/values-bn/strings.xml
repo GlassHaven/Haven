@@ -233,6 +233,10 @@
     <string name="settings_scrollback_rows_value">%1$,d লাইন</string>
     <string name="settings_tap_to_position_title">সমর্থিত প্রম্পটে কার্সার সরাতে ট্যাপ করুন</string>
     <string name="settings_tap_to_position_subtitle">শেল প্রম্পটের ভিতরে ট্যাপ করে সেই কলামে কার্সার সরান। OSC 133 প্রম্পট মার্কার প্রয়োজন (starship, fish 3.6+, সাম্প্রতিক bash/zsh শেল-ইন্টিগ্রেশন সেটআপ)। যে শেলগুলি এগুলি প্রকাশ করে না তাদের উপর কোন প্রভাব নেই</string>
+    <string name="settings_swipe_arrows_title">সোয়াইপ তীর কী পাঠায়</string>
+    <string name="settings_swipe_arrows_subtitle">টার্মিনালে অনুভূমিক সোয়াইপ ট্যাব বদলানোর বদলে ← → (ধরে রাখলে পুনরাবৃত্তি) পাঠায়। টুলবারের সোয়াইপ কী একই মোড টগল করে</string>
+    <string name="settings_swipe_arrows_exit_hint">অ্যাপের ট্যাব বার লুকানো এবং সেশন খোলা থাকলে, টুলবারের সোয়াইপ কী না চাপা পর্যন্ত সোয়াইপ তীর চিহ্নই পাঠায়। কীটি সবসময় পাওয়ার জন্য টুলবারে সোয়াইপ কীটি যোগ করুন</string>
+    <string name="settings_swipe_arrows_add_key">সোয়াইপ কী যোগ করুন</string>
 
     <string name="settings_bandwidth_suggest_subtitle">কয়েক সেকেন্ড পরে ~1 Mbps-এর নিচে থ্রুপুট শনাক্ত করে এবং 256 রঙে এক-ট্যাপে পুনঃসংযোগের প্রস্তাব দেয়। বন্ধ করলে প্রম্পট দেখানো হয় না।</string>
     <string name="settings_bandwidth_suggest_title">ধীর VNC সংযোগে 256 রঙ প্রস্তাব করুন</string>
@@ -262,6 +266,7 @@
     <string name="settings_color_scheme_apply_palette_title">স্কিমের ANSI প্যালেট প্রয়োগ করুন</string>
     <string name="settings_color_scheme_apply_palette_subtitle">স্কিমের সাথে মেলাতে ১৬টি ANSI রঙ পুনরায় রঙ করুন। বন্ধ থাকলে মানক রং বজায় থাকে, তাই mutt-এর মতো ফুল-স্ক্রিন অ্যাপ প্রত্যাশিতভাবে দেখায়।</string>
     <string name="settings_toolbar_min_key_width">ন্যূনতম কী প্রস্থ: %1$d dp</string>
+    <string name="settings_toolbar_key_scale">কী স্কেল: %1$d%%</string>
     <string name="settings_toolbar_uniform_grid">অভিন্ন কী গ্রিড</string>
     <string name="settings_toolbar_uniform_grid_desc">প্রতিটি কী Termux-এর মতো সমান প্রস্থের ঘরে বসে; লম্বা লেবেল ভাঁজ হয়ে যায়। পাশে স্ক্রল নেই।</string>
     <string name="settings_terminal_font_title">টার্মিনাল ফন্ট</string>
@@ -444,6 +449,8 @@
     <string name="settings_terminal_opacity_value">%1$d%%</string>
     <string name="settings_terminal_opacity_hint" formatted="false">100%-এর নিচে Haven স্বচ্ছপ্রায় হয়ে যায় এবং প্রতিটি স্ক্রিনের (টার্মিনাল, তালিকা, সেটিংস) পিছনে আপনার ডিভাইসের ওয়ালপেপার দেখায়। প্রতি-সংযোগ ওভাররাইড কেবল সেই টার্মিনালে প্রযোজ্য।</string>
     <string name="settings_section_mcp">AI এজেন্ট (MCP)</string>
+    <string name="settings_tailscale_discovery_title">Tailscale পিয়ার সনাক্তকরণ</string>
+    <string name="settings_tailscale_discovery_subtitle">স্ক্যানের সময় স্থানীয় API-এর মাধ্যমে আপনার Tailscale নেটওয়ার্কের হোস্ট খুঁজুন। বন্ধ করলে Haven পিয়ার তালিকা পড়বে না; Tailscale প্রভাবিত হবে না।</string>
     <string name="settings_audio_bridge_title">Proot অডিও (পরীক্ষামূলক)</string>
     <string name="settings_audio_bridge_subtitle">গেস্টের ভিতরের PulseAudio ব্রিজের মাধ্যমে Linux অ্যাপের শব্দ ডিভাইসের স্পিকারে বাজান। শুধু আউটপুট। চালু থাকলে অবিরাম স্ট্রিম হয় — ব্যবহার না করলে বন্ধ করুন।</string>
     <string name="settings_reverse_tunnel_status_active">Near (SSH): %1$s-এর মাধ্যমে চলছে — সংযুক্ত</string>
@@ -513,4 +520,6 @@ Haven-এ ইম্মদ্য সংরক্ষিত প্রত্যে�
     <string name="settings_inline_images_off">বন্ধ</string>
     <string name="settings_inline_images_ask">জিজ্ঞাসা করুন</string>
     <string name="settings_inline_images_always">সবসময়</string>
+    <string name="settings_ambiwidth_title">অস্পষ্ট প্রস্থ দ্বি-প্রস্থ হিসেবে</string>
+    <string name="settings_ambiwidth_subtitle">পূর্ব এশীয় অস্পষ্ট অক্ষর ২টি সেল হিসেবে রেন্ডার করুন</string>
 </resources>

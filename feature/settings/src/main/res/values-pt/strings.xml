@@ -233,6 +233,10 @@
     <string name="settings_scrollback_rows_value">%1$,d linhas</string>
     <string name="settings_tap_to_position_title">Toque para mover cursor em prompts compatíveis</string>
     <string name="settings_tap_to_position_subtitle">Toque dentro de um prompt de shell para mover o cursor para aquela coluna. Requer marcadores OSC 133 (starship, fish 3.6+, configurações recentes de bash/zsh). Sem efeito em shells que não os emitem</string>
+    <string name="settings_swipe_arrows_title">Deslizar envia setas</string>
+    <string name="settings_swipe_arrows_subtitle">Deslizamentos horizontais no terminal enviam ← → (segure para repetir) em vez de trocar de aba. A tecla Deslizar da barra alterna o mesmo modo</string>
+    <string name="settings_swipe_arrows_exit_hint">Com a barra de separadores da aplicação oculta e uma sessão aberta, os deslizes continuam a enviar setas até tocar na tecla Deslizar da barra. Adicione a tecla Deslizar à barra para tê-la sempre disponível</string>
+    <string name="settings_swipe_arrows_add_key">Adicionar tecla Deslizar</string>
 
     <string name="settings_bandwidth_suggest_subtitle">Detecta taxa de transferência abaixo de ~1 Mbps após alguns segundos e oferece reconexão com 256 cores com um toque. Desativado silencia o aviso.</string>
     <string name="settings_bandwidth_suggest_title">Sugerir 256 cores em conexões VNC lentas</string>
@@ -262,6 +266,7 @@
     <string name="settings_color_scheme_apply_palette_title">Aplicar a paleta ANSI do esquema</string>
     <string name="settings_color_scheme_apply_palette_subtitle">Recolore as 16 cores ANSI para combinar com o esquema. Desativado mantém as cores padrão, para que apps de tela cheia como o mutt fiquem como esperado.</string>
     <string name="settings_toolbar_min_key_width">Largura mínima de tecla: %1$d dp</string>
+    <string name="settings_toolbar_key_scale">Escala de teclas: %1$d%%</string>
     <string name="settings_toolbar_uniform_grid">Grade uniforme de teclas</string>
     <string name="settings_toolbar_uniform_grid_desc">Cada tecla ocupa uma célula de largura igual, no estilo Termux; rótulos longos quebram linha. Sem rolagem lateral.</string>
     <string name="settings_terminal_font_title">Fonte do terminal</string>
@@ -444,6 +449,8 @@
     <string name="settings_terminal_opacity_value">%1$d%%</string>
     <string name="settings_terminal_opacity_hint" formatted="false">Abaixo de 100% o Haven fica translúcido e mostra o papel de parede do dispositivo atrás de todas as telas (terminal, listas, configurações). Uma substituição por conexão se aplica apenas àquele terminal.</string>
     <string name="settings_section_mcp">Agente de IA (MCP)</string>
+    <string name="settings_tailscale_discovery_title">Descoberta de pares do Tailscale</string>
+    <string name="settings_tailscale_discovery_subtitle">Procurar hosts da sua rede Tailscale pela API local durante a varredura. Desative para impedir que o Haven leia a lista de pares; o Tailscale não é afetado.</string>
     <string name="settings_audio_bridge_title">Áudio do proot (experimental)</string>
     <string name="settings_audio_bridge_subtitle">Reproduz o som de apps Linux no alto-falante do dispositivo por uma ponte PulseAudio dentro do convidado. Apenas saída. Transmite continuamente enquanto ativado — desative quando não estiver em uso.</string>
     <string name="settings_reverse_tunnel_status_active">Near (SSH): usando %1$s — conectado</string>
@@ -513,4 +520,6 @@ Cada chave privada já armazenada no Haven precisará ser importada ou gerada no
     <string name="settings_inline_images_off">Desligado</string>
     <string name="settings_inline_images_ask">Perguntar</string>
     <string name="settings_inline_images_always">Sempre</string>
+    <string name="settings_ambiwidth_title">Largura ambígua como largura dupla</string>
+    <string name="settings_ambiwidth_subtitle">Renderizar caracteres ambíguos do Leste Asiático como 2 células</string>
 </resources>

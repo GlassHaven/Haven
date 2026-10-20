@@ -233,6 +233,10 @@
     <string name="settings_scrollback_rows_value">%1$,d سطر</string>
     <string name="settings_tap_to_position_title">اضغط لتحريك المؤشر في الأوامر المدعومة</string>
     <string name="settings_tap_to_position_subtitle">اضغط داخل أمر shell لنقل المؤشر إلى ذلك العمود. يتطلب علامات OSC 133 (starship وfish 3.6+ وإعدادات bash/zsh حديثة). لا يؤثر على الأصداف التي لا تُصدرها</string>
+    <string name="settings_swipe_arrows_title">السحب يرسل الأسهم</string>
+    <string name="settings_swipe_arrows_subtitle">السحب الأفقي في الطرفية يرسل ← → (اضغط مطولاً للتكرار) بدل تبديل التبويبات. زر السحب في شريط الأدوات يبدّل النمط نفسه</string>
+    <string name="settings_swipe_arrows_exit_hint">عند إخفاء شريط تبويبات التطبيق وتوفر جلسة مفتوحة، تستمر التمريرات في إرسال الأسهم حتى يُضغط زر السحب في شريط الأدوات. أضف زر السحب إلى الشريط ليكون متاحًا دائمًا</string>
+    <string name="settings_swipe_arrows_add_key">إضافة زر السحب</string>
 
     <string name="settings_bandwidth_suggest_subtitle">يكتشف معدل نقل أقل من ~1 ميجابت/ثانية بعد بضع ثوانٍ ويعرض إعادة الاتصال بـ 256 لونًا بنقرة واحدة. إيقاف التشغيل يلغي الإشعار.</string>
     <string name="settings_bandwidth_suggest_title">اقتراح 256 لونًا على اتصالات VNC البطيئة</string>
@@ -262,6 +266,7 @@
     <string name="settings_color_scheme_apply_palette_title">تطبيق لوحة ANSI للنمط</string>
     <string name="settings_color_scheme_apply_palette_subtitle">أعد تلوين ألوان ANSI الـ16 لتطابق النمط. عند الإيقاف تبقى الألوان القياسية، فتظهر تطبيقات ملء الشاشة مثل mutt كما هو متوقع.</string>
     <string name="settings_toolbar_min_key_width">الحد الأدنى لعرض المفتاح: %1$d dp</string>
+    <string name="settings_toolbar_key_scale">مقياس حجم المفتاح: %1$d%%</string>
     <string name="settings_toolbar_uniform_grid">شبكة مفاتيح موحّدة</string>
     <string name="settings_toolbar_uniform_grid_desc">كل مفتاح يشغل خلية متساوية العرض على طريقة Termux؛ التسميات الطويلة تلتف. بدون تمرير جانبي.</string>
     <string name="settings_terminal_font_title">خط الطرفية</string>
@@ -444,6 +449,8 @@
     <string name="settings_terminal_opacity_value">%1$d%%</string>
     <string name="settings_terminal_opacity_hint" formatted="false">أقل من 100% يصبح Haven شبه شفاف ويعرض خلفية جهازك خلف كل شاشة (الطرفية، القوائم، الإعدادات). التجاوز الخاص بكل اتصال ينطبق على طرفيته فقط.</string>
     <string name="settings_section_mcp">وكيل الذكاء الاصطناعي (MCP)</string>
+    <string name="settings_tailscale_discovery_title">اكتشاف أقران Tailscale</string>
+    <string name="settings_tailscale_discovery_subtitle">البحث عن مضيفين في شبكة Tailscale عبر واجهة API المحلية أثناء الفحص. أوقفه لمنع Haven من قراءة قائمة الأقران؛ لن يتأثر Tailscale نفسه.</string>
     <string name="settings_audio_bridge_title">صوت proot (تجريبي)</string>
     <string name="settings_audio_bridge_subtitle">تشغيل الصوت من تطبيقات Linux عبر مكبّر صوت الجهاز من خلال جسر PulseAudio داخل الضيف. إخراج فقط. يبث باستمرار أثناء تفعيله — أوقفه عند عدم الاستخدام.</string>
     <string name="settings_reverse_tunnel_status_active">Near (SSH): عبر %1$s — متصل</string>
@@ -517,4 +524,6 @@
     <string name="settings_inline_images_off">إيقاف</string>
     <string name="settings_inline_images_ask">اسأل</string>
     <string name="settings_inline_images_always">دائمًا</string>
+    <string name="settings_ambiwidth_title">العرض الغامض كعرض مزدوج</string>
+    <string name="settings_ambiwidth_subtitle">عرض أحرف شرق آسيا الغامضة كخليتين</string>
 </resources>

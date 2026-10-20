@@ -300,6 +300,8 @@
     <string name="connections_field_post_login">ログイン後のコマンド</string>
     <string name="connections_field_remote_command">リモートコマンド（詳細）</string>
     <string name="connections_helper_remote_command">ログインシェルを開かず、SSHコマンドとして実行します。通常のシェルには空欄のままにします。</string>
+    <string name="connections_field_session_command">セッションコマンド（詳細）</string>
+    <string name="connections_helper_session_command">この接続に限りセッションマネージャーの起動コマンドを置き換えます。{name} はセッション名になります。組み込みの tmux/screen コマンドが実行できない場合（Windows ホストなど）に使用: wsl -e sh -c "tmux new-session -A -s {name}"。空欄ならグローバル設定を使用します。</string>
     <string name="connections_toggle_request_pty">端末を要求（PTY）</string>
     <string name="connections_helper_post_login">ログイン後に送信されます。</string>
     <string name="connections_dropdown_none_direct">なし（直接）</string>

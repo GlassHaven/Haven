@@ -1728,15 +1728,22 @@ Expose a live serial terminal session (BTSERIAL / BLESERIAL / USBSERIAL — sess
 <details markdown="1">
 <summary><code>create_tunnel</code> · asks every call</summary>
 
-Add a new WireGuard, Tailscale, NetBird, OpenVPN, or Cloudflare Tunnel config. WIREGUARD: pass `configText` (wg-quick INI body). TAILSCALE: pass `tailscaleAuthKey` (and optional `tailscaleControlUrl` for Headscale). NETBIRD: pass `netbirdSetupKey` (and optional `netbirdManagementUrl` for a self-hosted management server). OPENVPN: pass `ovpnConfigText` (a full .ovpn profile); optional `ovpnUsername`/`ovpnPassword` when the profile uses auth-user-pass without inline credentials. CLOUDFLARE_ACCESS: pass `accessHostname`; for Access-protected routes also pass `accessJwt` (from `cloudflared access token --app https://<host>`); optional `accessJumpDestination` for bastion-mode multi-target tunnels. Returns the new tunnel id, which can then be passed to set_profile_routing.
+Add a new WireGuard, Tailscale, NetBird, OpenVPN, AnyConnect, or Cloudflare Tunnel config. WIREGUARD: pass `configText` (wg-quick INI body). TAILSCALE: pass `tailscaleAuthKey` (and optional `tailscaleControlUrl` for Headscale). NETBIRD: pass `netbirdSetupKey` (and optional `netbirdManagementUrl` for a self-hosted management server). OPENVPN: pass `ovpnConfigText` (a full .ovpn profile); optional `ovpnUsername`/`ovpnPassword` when the profile uses auth-user-pass without inline credentials. ANYCONNECT (Cisco AnyConnect or ocserv): pass `anyconnectServer` and `anyconnectUsername`, usually `anyconnectPassword`; optional `anyconnectGroup`, a second factor via `anyconnectOtpSecret` (TOTP) or `anyconnectSecondaryPassword` (e.g. push), and `anyconnectServerCert` (pin-sha256:...) for self-signed gateways. CLOUDFLARE_ACCESS: pass `accessHostname`; for Access-protected routes also pass `accessJwt` (from `cloudflared access token --app https://<host>`); optional `accessJumpDestination` for bastion-mode multi-target tunnels. Returns the new tunnel id, which can then be passed to set_profile_routing.
 
 - `label` (string, required) — User-facing label (also used to derive the tunnel hostname).
-- `type` (string, required) — WIREGUARD, TAILSCALE, NETBIRD, OPENVPN, or CLOUDFLARE_ACCESS.
+- `type` (string, required) — WIREGUARD, TAILSCALE, NETBIRD, OPENVPN, ANYCONNECT, or CLOUDFLARE_ACCESS.
 - `accessExpiresAt` (integer) — Optional explicit JWT expiry (Unix epoch seconds). Defaults to parsing the `exp` claim out of accessJwt.
 - `accessHostname` (string) — Cloudflare Tunnel published hostname (e.g. ssh.example.com). Required when type=CLOUDFLARE_ACCESS.
 - `accessJumpDestination` (string) — Optional `Cf-Access-Jump-Destination` value for bastion-mode multi-target tunnels (e.g. internal-host:22).
 - `accessJwt` (string) — Cloudflare Access JWT (`CF_Authorization` value). Optional — only needed when the Tunnel route is Access-protected.
 - `accessTeamDomain` (string) — Cloudflare Access team domain (myteam.cloudflareaccess.com). Optional; only meaningful for Access-protected routes.
+- `anyconnectGroup` (string) — Auth group from the gateway's group list. Optional — empty keeps the server default.
+- `anyconnectOtpSecret` (string) — TOTP secret (base32 or otpauth:// URI) answering the gateway's second-factor prompt. Optional.
+- `anyconnectPassword` (string) — AnyConnect password.
+- `anyconnectSecondaryPassword` (string) — Fixed answer to the second-factor prompt (e.g. push for Duo). Optional; ignored when anyconnectOtpSecret is set.
+- `anyconnectServer` (string) — AnyConnect/ocserv gateway, e.g. vpn.example.com or vpn.example.com:8443/group. Required when type=ANYCONNECT.
+- `anyconnectServerCert` (string) — Certificate pin for self-signed gateways: pin-sha256:<base64>, sha256:<hex> or sha1:<hex>. Optional.
+- `anyconnectUsername` (string) — AnyConnect username. Required when type=ANYCONNECT.
 - `configText` (string) — WireGuard wg-quick INI body. Required when type=WIREGUARD.
 - `netbirdManagementUrl` (string) — Self-hosted NetBird management URL (https://...). Optional — empty defaults to the hosted management.
 - `netbirdSetupKey` (string) — NetBird setup key from the NetBird dashboard. Required when type=NETBIRD.

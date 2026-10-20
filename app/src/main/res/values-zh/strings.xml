@@ -357,4 +357,8 @@
     <string name="update_notification_channel">应用更新</string>
     <string name="update_notification_title">Haven %1$s 可用</string>
     <string name="update_notification_text">点按打开发行版页面。</string>
+    <string name="app_desktop_guest_user_title">访客用户</string>
+    <string name="app_desktop_guest_user_description">以具有免密 sudo 权限的普通用户 (uid 1000) 而非 root 身份运行 shell 和 X11 桌面。留空或设为 root 则使用 root 模式。</string>
+    <string name="app_desktop_guest_user_label">用户名</string>
+    <string name="app_desktop_guest_user_hint">root（或例如 user）</string>
 </resources>

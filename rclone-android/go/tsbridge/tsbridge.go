@@ -393,8 +393,20 @@ func (t *TunnelHandle) Dial(host string, port int, timeoutMs int) (*Conn, error)
 	// the resulting IP. On any miss (not a name, no tailnet resolver,
 	// NXDOMAIN, timeout) fall back to the plain dial so MagicDNS names,
 	// IPs and public hosts keep working exactly as before.
-	if target, ok := resolveViaTailnet(ctx, srv, host); ok {
-		host = target
+	if addrs, ok := resolveViaTailnet(ctx, srv, host); ok && len(addrs) > 0 {
+		// A nameserver can return several A records of which only some are
+		// reachable. Dial them in turn, each with a share of the remaining
+		// budget, so a black-holed address can't consume the whole timeout
+		// before a live one is reached — the behaviour Termux's SSH gets
+		// from Go's stdlib dialer (#691 follow-up). Resolution succeeded
+		// here, so on total failure we report it rather than falling back
+		// to the plain dial (which would re-resolve via the phone's DNS and
+		// fail with "no such host" for exactly the console-nameserver case).
+		conn, err := dialFirstReachable(ctx, addrs, port, srv.Dial)
+		if err != nil {
+			return nil, fmt.Errorf("dial %s:%d via tailnet (tried %d address(es)): %w", host, port, len(addrs), err)
+		}
+		return conn, nil
 	}
 
 	c, err := srv.Dial(ctx, "tcp", net.JoinHostPort(host, strconv.Itoa(port)))
@@ -404,39 +416,80 @@ func (t *TunnelHandle) Dial(host string, port int, timeoutMs int) (*Conn, error)
 	return &Conn{c: c}, nil
 }
 
+// minAttemptDialTimeout is the floor for a single address's dial attempt in
+// dialFirstReachable, so splitting the budget across many addresses can't
+// leave a live one too little time to complete a TCP handshake.
+const minAttemptDialTimeout = 2 * time.Second
+
+// dialFirstReachable dials each address in turn and returns the first
+// successful connection, or the last error when none connect. Each attempt
+// gets the remaining ctx budget divided by the addresses still to try,
+// floored at minAttemptDialTimeout, so an unreachable (black-holed) address
+// is given up on in time to reach a later one. dial is injected so the
+// ordering and budget logic is unit-testable without a live tailnet.
+func dialFirstReachable(ctx context.Context, addrs []string, port int, dial func(ctx context.Context, network, addr string) (net.Conn, error)) (*Conn, error) {
+	var lastErr error
+	for i, addr := range addrs {
+		attemptCtx := ctx
+		if deadline, ok := ctx.Deadline(); ok {
+			per := time.Until(deadline) / time.Duration(len(addrs)-i)
+			if per < minAttemptDialTimeout {
+				per = minAttemptDialTimeout
+			}
+			var cancel context.CancelFunc
+			attemptCtx, cancel = context.WithTimeout(ctx, per)
+			c, err := dial(attemptCtx, "tcp", net.JoinHostPort(addr, strconv.Itoa(port)))
+			cancel()
+			if err == nil {
+				return &Conn{c: c}, nil
+			}
+			lastErr = err
+		} else {
+			c, err := dial(ctx, "tcp", net.JoinHostPort(addr, strconv.Itoa(port)))
+			if err == nil {
+				return &Conn{c: c}, nil
+			}
+			lastErr = err
+		}
+	}
+	return nil, lastErr
+}
+
 // resolveViaTailnet resolves host through the tailnet's DNS resolver
-// (which honours the tailnet's global/split nameserver config) and
-// returns the first A-record answer as a bare IP string. ok is false —
-// meaning the caller should fall back to the plain dial — when host is
-// already an IP, the resolver is unavailable, the query fails, or no A
-// record comes back. MagicDNS names resolve here too (the resolver
-// consults the netmap), so this is a superset of the old behaviour.
-func resolveViaTailnet(ctx context.Context, srv *tsnet.Server, host string) (ip string, ok bool) {
+// (which honours the tailnet's global/split nameserver config) and returns
+// every A-record answer as bare IP strings, in the order the nameserver
+// returned them. ok is false — meaning the caller should fall back to the
+// plain dial — when host is already an IP, the resolver is unavailable, the
+// query fails, or no A record comes back. MagicDNS names resolve here too
+// (the resolver consults the netmap), so this is a superset of the old
+// behaviour. All answers are returned, not just the first, so the caller can
+// try each when only some are reachable (#691 follow-up).
+func resolveViaTailnet(ctx context.Context, srv *tsnet.Server, host string) (ips []string, ok bool) {
 	// This resolver path is less trodden than MagicDNS (which resolves via
 	// the netmap, not here), so treat any panic — a malformed name reaching
 	// MustNewName, a nil subsystem mid-teardown — as a miss and let the
 	// caller fall back to the plain dial rather than crash it.
 	defer func() {
 		if r := recover(); r != nil {
-			ip, ok = "", false
+			ips, ok = nil, false
 		}
 	}()
 	if net.ParseIP(host) != nil {
-		return "", false
+		return nil, false
 	}
 	res := srv.Sys().DNSManager.Get().Resolver()
 	if res == nil {
-		return "", false
+		return nil, false
 	}
 	qname := dns.MustNewName(host + ".")
 	b := dns.NewBuilder(nil, dns.Header{RecursionDesired: true})
 	b.StartQuestions()
 	if err := b.Question(dns.Question{Name: qname, Type: dns.TypeA, Class: dns.ClassINET}); err != nil {
-		return "", false
+		return nil, false
 	}
 	query, err := b.Finish()
 	if err != nil {
-		return "", false
+		return nil, false
 	}
 	// Give the resolver query its own short budget so a tailnet with no
 	// reachable nameserver for this name can't eat the whole dial timeout
@@ -448,36 +501,38 @@ func resolveViaTailnet(ctx context.Context, srv *tsnet.Server, host string) (ip 
 	from := netip.MustParseAddrPort("127.0.0.1:0")
 	resp, err := res.Query(qctx, query, "udp", from)
 	if err != nil {
-		return "", false
+		return nil, false
 	}
-	return parseFirstA(resp)
+	return parseAllA(resp)
 }
 
-// parseFirstA extracts the first A-record answer from a DNS response.
-// Returns ok=false on a parse failure or when the response carries no A
-// record, so the caller falls back to the plain dial.
-func parseFirstA(resp []byte) (string, bool) {
+// parseAllA extracts every A-record answer from a DNS response, in order.
+// Returns ok=false when the response carries no A record (or fails to
+// parse), so the caller falls back to the plain dial.
+func parseAllA(resp []byte) ([]string, bool) {
 	var p dns.Parser
 	if _, err := p.Start(resp); err != nil {
-		return "", false
+		return nil, false
 	}
 	if err := p.SkipAllQuestions(); err != nil {
-		return "", false
+		return nil, false
 	}
+	var ips []string
 	for {
 		h, err := p.AnswerHeader()
 		if err != nil {
-			return "", false // no more answers, or a parse error
+			break // no more answers, or a parse error — keep what we have
 		}
 		if h.Type != dns.TypeA {
 			continue
 		}
 		a, err := p.AResource()
 		if err != nil {
-			return "", false
+			break // stop at a parse error, keep the records parsed so far
 		}
-		return netip.AddrFrom4(a.A).String(), true
+		ips = append(ips, netip.AddrFrom4(a.A).String())
 	}
+	return ips, len(ips) > 0
 }
 
 // ListenUDP opens an unconnected UDP socket on the tailnet, bound to the

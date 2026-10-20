@@ -15,6 +15,7 @@
     <string name="rdp_cd_exit_fullscreen">Salir de pantalla completa</string>
     <string name="rdp_cd_input_mode_trackpad_on">Modo trackpad activado (toca para toque directo)</string>
     <string name="rdp_cd_input_mode_direct">Modo de toque directo (toca para trackpad)</string>
+    <string name="rdp_cd_trackpad_sensitivity">Sensibilidad del trackpad</string>
     <string name="rdp_orientation_landscape_desc">Bloquear horizontal (toca para cambiar a vertical)</string>
     <string name="rdp_orientation_portrait_desc">Bloquear vertical (toca para cambiar a automático)</string>
     <string name="rdp_orientation_auto_desc">Rotación automática (toca para cambiar a horizontal)</string>

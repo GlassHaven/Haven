@@ -255,6 +255,19 @@ data class ConnectionProfile(
     val reticulumPassphrase: String? = null,
     /** Command to send automatically after SSH login (e.g. "cd /app && clear"). */
     val postLoginCommand: String? = null,
+    /**
+     * Per-connection replacement for the session-manager command template (#731).
+     * The built-in tmux/zellij/screen templates are POSIX shell
+     * (`exec sh -c '...'`), which a Windows OpenSSH server (cmd/PowerShell)
+     * cannot parse — the line errors and the session silently drops to a plain
+     * login shell. This field carries a host-specific command (e.g.
+     * `wsl -e sh -c "tmux new-session -A -s {name}"`) for one profile while
+     * Linux profiles keep the built-in template. `{name}` is substituted with
+     * the sanitized session name. When set it wins over the global
+     * session-command override (Settings → Session persistence); null falls
+     * through to the global override, then the built-in template.
+     */
+    val sessionCommandOverride: String? = null,
     /** When true, post-login command runs before the session manager (default); when false, runs inside it. */
     val postLoginBeforeSessionManager: Boolean = true,
     /**

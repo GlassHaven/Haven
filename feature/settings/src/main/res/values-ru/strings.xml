@@ -233,6 +233,10 @@
     <string name="settings_scrollback_rows_value">%1$,d строк</string>
     <string name="settings_tap_to_position_title">Нажмите для перемещения курсора в поддерживаемых приглашениях</string>
     <string name="settings_tap_to_position_subtitle">Нажмите внутри приглашения shell, чтобы переместить курсор в этот столбец. Требуются маркеры OSC 133 (starship, fish 3.6+, современные настройки интеграции оболочки bash/zsh). Не влияет на оболочки, которые их не выдают</string>
+    <string name="settings_swipe_arrows_title">Свайп отправляет стрелки</string>
+    <string name="settings_swipe_arrows_subtitle">Горизонтальные свайпы в терминале отправляют ← → (удерживайте для повтора) вместо переключения вкладок. Клавиша свайпа на панели переключает тот же режим</string>
+    <string name="settings_swipe_arrows_exit_hint">Если панель вкладок приложения скрыта и сеанс открыт, свайпы продолжают отправлять стрелки, пока не нажата клавиша свайпа на панели. Добавьте клавишу свайпа на панель, чтобы она всегда была под рукой</string>
+    <string name="settings_swipe_arrows_add_key">Добавить клавишу свайпа</string>
 
     <string name="settings_bandwidth_suggest_subtitle">Обнаруживает пропускную способность ниже ~1 Мбит/с через несколько секунд и предлагает переподключение с 256 цветами одним касанием. Выключено — подсказка не показывается.</string>
     <string name="settings_bandwidth_suggest_title">Предлагать 256 цветов на медленных VNC-соединениях</string>
@@ -262,6 +266,7 @@
     <string name="settings_color_scheme_apply_palette_title">Применять палитру ANSI из схемы</string>
     <string name="settings_color_scheme_apply_palette_subtitle">Перекрасить 16 цветов ANSI под схему. При выключении сохраняются стандартные цвета, поэтому полноэкранные приложения вроде mutt выглядят как ожидается.</string>
     <string name="settings_toolbar_min_key_width">Минимальная ширина клавиши: %1$d dp</string>
+    <string name="settings_toolbar_key_scale">Масштаб клавиш: %1$d%%</string>
     <string name="settings_toolbar_uniform_grid">Единая сетка клавиш</string>
     <string name="settings_toolbar_uniform_grid_desc">Каждая клавиша занимает ячейку одинаковой ширины, как в Termux; длинные подписи переносятся. Без бокового скролла.</string>
     <string name="settings_terminal_font_title">Шрифт терминала</string>
@@ -444,6 +449,8 @@
     <string name="settings_terminal_opacity_value">%1$d%%</string>
     <string name="settings_terminal_opacity_hint" formatted="false">Ниже 100% Haven становится полупрозрачным и показывает обои устройства за каждым экраном (терминал, списки, настройки). Переопределение для отдельного подключения действует только на его терминал.</string>
     <string name="settings_section_mcp">ИИ-агент (MCP)</string>
+    <string name="settings_tailscale_discovery_title">Обнаружение узлов Tailscale</string>
+    <string name="settings_tailscale_discovery_subtitle">Искать хосты вашей сети Tailscale через локальный API при сканировании. Отключите, чтобы Haven не читал список узлов; на сам Tailscale это не влияет.</string>
     <string name="settings_audio_bridge_title">Звук proot (экспериментально)</string>
     <string name="settings_audio_bridge_subtitle">Воспроизводит звук из приложений Linux через динамик устройства с помощью моста PulseAudio в гостевой системе. Только вывод. Поток идёт непрерывно, пока включено — выключайте, когда не используется.</string>
     <string name="settings_reverse_tunnel_status_active">Near (SSH): через %1$s — подключено</string>
@@ -515,4 +522,6 @@
     <string name="settings_inline_images_off">Выкл</string>
     <string name="settings_inline_images_ask">Спрашивать</string>
     <string name="settings_inline_images_always">Всегда</string>
+    <string name="settings_ambiwidth_title">Неоднозначная ширина как двойная</string>
+    <string name="settings_ambiwidth_subtitle">Отображать неоднозначные восточноазиатские символы в 2 ячейки</string>
 </resources>

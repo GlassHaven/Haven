@@ -72,6 +72,9 @@
     <string name="terminal_new_tab_connecting">সংযোগ করা হচ্ছে…</string>
     <!-- Backfilled translations (i18n drift fix) -->
     <string name="terminal_no_contact">সার্ভার থেকে %1$d সেকেন্ড ধরে সাড়া নেই — পুনরায় চেষ্টা চলছে</string>
+    <string name="terminal_attach_notice_unavailable">সেশন ম্যানেজার %1$s শুরু হয়নি — আপনি একটি সাধারণ শেলে আছেন। হোস্টে ইনস্টল আছে কিনা দেখুন, অথবা সংযোগ এডিটরে (উন্নত) সেশন কমান্ড সেট করুন।</string>
+    <string name="terminal_attach_notice_missing">%1$s সেশন "%2$s" সংযুক্ত হয়নি — আপনি একটি সাধারণ শেলে আছেন। শুরুর কমান্ড দেখুন, অথবা সংযোগ এডিটরে (উন্নত) সেশন কমান্ড সেট করুন।</string>
+    <string name="terminal_attach_notice_dismiss">বাতিল করুন</string>
     <string name="terminal_new_session_create">তৈরি করুন</string>
     <string name="terminal_vnc_username_label">ইউজারনেম (ঐচ্ছিক — শুধু VeNCrypt)</string>
     <string name="terminal_vnc_username_placeholder">ক্লাসিক VncAuth এর জন্য ফাঁকা রাখুন</string>

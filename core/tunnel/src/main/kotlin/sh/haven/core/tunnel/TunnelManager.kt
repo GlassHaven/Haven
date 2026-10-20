@@ -3,6 +3,14 @@ package sh.haven.core.tunnel
 import android.content.Context
 import android.util.Log
 import dagger.hilt.android.qualifiers.ApplicationContext
+import kotlinx.coroutines.CoroutineScope
+import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.SupervisorJob
+import kotlinx.coroutines.flow.MutableStateFlow
+import kotlinx.coroutines.flow.StateFlow
+import kotlinx.coroutines.flow.asStateFlow
+import kotlinx.coroutines.launch
+import kotlinx.coroutines.withContext
 import kotlinx.coroutines.sync.Mutex
 import kotlinx.coroutines.sync.withLock
 import okhttp3.OkHttpClient
@@ -53,6 +61,8 @@ interface TunnelFactory {
  *  - [TunnelConfigType.WIREGUARD] → [WireguardTunnel] (wireguard-go +
  *    gVisor netstack, bundled into libgojni.so).
  *  - [TunnelConfigType.TAILSCALE] → [TailscaleTunnel] (tsnet, same .so).
+ *  - [TunnelConfigType.ANYCONNECT] → [AnyConnectTunnel] (ocbridge: Cisco
+ *    AnyConnect / ocserv over CSTP into a gVisor netstack, same .so).
  *
  * Tailscale needs a per-config writable state directory for node keys +
  * cert cache. Created under `<filesDir>/tailscale-<configId>/` the first
@@ -66,6 +76,23 @@ class TunnelManager @Inject constructor(
 ) {
     private val mutex = Mutex()
     private val liveTunnels = mutableMapOf<String, Tunnel>()
+
+    /**
+     * Read-only copy of the live tunnels (configId → tunnel), republished on
+     * every change. Lets non-suspending callers — the foreground-service
+     * keep-alive and notification, the Tunnels screen's "Connected" badge —
+     * see what's up without taking [mutex].
+     */
+    private val _live = MutableStateFlow<Map<String, Tunnel>>(emptyMap())
+    val live: StateFlow<Map<String, Tunnel>> = _live.asStateFlow()
+
+    /** For fire-and-forget work requested from non-suspending callers. */
+    private val scope = CoroutineScope(SupervisorJob() + Dispatchers.IO)
+
+    /** Caller must hold [mutex]. */
+    private fun publish() {
+        _live.value = liveTunnels.toMap()
+    }
     /** configId → set of profileIds currently depending on this tunnel. */
     private val dependents = mutableMapOf<String, MutableSet<String>>()
     /** profileId → the configId it last acquired. One tunnel per profile, mirroring the data model. */
@@ -85,21 +112,34 @@ class TunnelManager @Inject constructor(
      */
     suspend fun acquire(configId: String, profileId: String): Tunnel? {
         var staleToClose: Tunnel? = null
+        var staleDead: Tunnel? = null
         val acquired = mutex.withLock {
             val previous = acquiredBy[profileId]
             if (previous != null && previous != configId) {
                 Log.w(TAG, "Profile $profileId switching tunnel $previous → $configId without explicit release; auto-releasing prior")
                 staleToClose = internalRelease(previous, profileId)
             }
+            // A session that ended for good (sign-in refused or cancelled
+            // during a background re-login) is replaced rather than handed out.
+            liveTunnels[configId]?.takeIf { (it as? AnyConnectTunnel)?.isDead == true }?.let { dead ->
+                liveTunnels.remove(configId)
+                staleDead = dead
+            }
             val tunnel = liveTunnels[configId] ?: run {
                 val config = tunnelConfigRepository.getById(configId) ?: return@withLock null
-                tunnelFactory.create(config).also { liveTunnels[configId] = it }
+                // Off the caller's thread: starting a tunnel blocks (handshakes,
+                // and for AnyConnect possibly a user typing an SMS code into a
+                // dialog that the main thread has to be free to draw).
+                withContext(Dispatchers.IO) { tunnelFactory.create(config) }
+                    .also { liveTunnels[configId] = it }
             }
             dependents.getOrPut(configId) { mutableSetOf() }.add(profileId)
             acquiredBy[profileId] = configId
+            publish()
             tunnel
         }
         staleToClose?.close()
+        staleDead?.close()
         return acquired
     }
 
@@ -117,6 +157,7 @@ class TunnelManager @Inject constructor(
             val configId = acquiredBy[profileId] ?: return@withLock null
             internalRelease(configId, profileId)
         }
+        // (internalRelease publishes when it removes a tunnel.)
         toClose?.close()
     }
 
@@ -130,9 +171,46 @@ class TunnelManager @Inject constructor(
         deps.remove(profileId)
         if (deps.isEmpty()) {
             dependents.remove(configId)
-            return liveTunnels.remove(configId)
+            // A lingering tunnel (AnyConnect with "Stay connected") stays up
+            // with no dependents until disconnect(); the next acquire reuses it.
+            if (liveTunnels[configId]?.lingerAfterRelease == true) return null
+            return liveTunnels.remove(configId).also { publish() }
         }
         return null
+    }
+
+    /**
+     * Close the live tunnel for [configId] now, whoever is using it — the
+     * user's explicit "Disconnect" / "Sign out", or "Disconnect All". With
+     * [signOut] an AnyConnect session is also ended on the gateway (next use
+     * signs in afresh); without, it stays resumable. Profiles still holding
+     * the tunnel lose it: their connections drop and their next acquire
+     * starts a new one. Returns whether a tunnel was live.
+     */
+    suspend fun disconnect(configId: String, signOut: Boolean = false): Boolean {
+        val tunnel = mutex.withLock {
+            val t = liveTunnels.remove(configId) ?: return@withLock null
+            dependents.remove(configId)?.forEach { acquiredBy.remove(it) }
+            publish()
+            t
+        } ?: return false
+        if (signOut && tunnel is AnyConnectTunnel) tunnel.signOut() else tunnel.close()
+        return true
+    }
+
+    /** Non-suspending [disconnect] of every live AnyConnect tunnel (Disconnect All). */
+    fun disconnectAllAnyConnectAsync() {
+        val ids = _live.value.filterValues { it is AnyConnectTunnel }.keys
+        if (ids.isEmpty()) return
+        scope.launch { ids.forEach { disconnect(it) } }
+    }
+
+    /**
+     * Ask every live AnyConnect tunnel to check its connection now — called
+     * on network change and return to foreground. Non-blocking.
+     */
+    fun reviveAll() {
+        _live.value.values.forEach { (it as? AnyConnectTunnel)?.revive() }
     }
 
     /**
@@ -199,6 +277,7 @@ data class LiveTunnelEntry(
 class DefaultTunnelFactory @Inject constructor(
     @ApplicationContext private val context: Context,
     private val httpClient: OkHttpClient,
+    private val authBroker: TunnelAuthBroker,
 ) : TunnelFactory {
     override fun create(config: TunnelConfig): Tunnel = when (config.typeEnum) {
         TunnelConfigType.WIREGUARD -> WireguardTunnel(String(config.configText))
@@ -242,6 +321,13 @@ class DefaultTunnelFactory @Inject constructor(
                 username = parsed.username,
                 password = parsed.password,
             )
+        }
+        TunnelConfigType.ANYCONNECT -> {
+            val parsed = AnyConnectConfigBlob.parse(config.configText)
+                ?: throw IOException(
+                    "AnyConnect tunnel '${config.label}' is missing its server or username — edit the tunnel",
+                )
+            AnyConnectTunnel(parsed, label = config.label, authBroker = authBroker)
         }
     }
 

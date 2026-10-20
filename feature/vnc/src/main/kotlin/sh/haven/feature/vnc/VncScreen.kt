@@ -49,6 +49,7 @@ import androidx.compose.material.icons.filled.FullscreenExit
 import androidx.compose.material.icons.filled.Keyboard
 import androidx.compose.material.icons.filled.KeyboardHide
 import androidx.compose.material.icons.filled.Minimize
+import androidx.compose.material.icons.filled.Speed
 import androidx.compose.material.icons.filled.PictureInPictureAlt
 import androidx.compose.material.icons.filled.Menu
 import androidx.compose.material.icons.filled.OpenWith
@@ -69,6 +70,7 @@ import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.FilledTonalButton
 import androidx.compose.material3.OutlinedTextField
+import androidx.compose.material3.Slider
 import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
@@ -130,6 +132,7 @@ import kotlinx.coroutines.withTimeoutOrNull
 import sh.haven.core.data.preferences.ToolbarKey
 import sh.haven.core.data.preferences.ToolbarLayout
 import sh.haven.core.ui.CursorOverlay
+import sh.haven.core.ui.clampPanToCover
 import sh.haven.feature.vnc.R
 import androidx.compose.ui.res.stringResource
 import androidx.compose.foundation.layout.offset
@@ -162,6 +165,8 @@ fun VncSessionContent(
     onReleaseButton: (Int) -> Unit = {},
     onTypeChar: (Char) -> Unit,
     onTypeText: (String) -> Unit = { s -> s.forEach(onTypeChar) },
+    /** Push text to the remote VNC clipboard via RFB ClientCutText (#718). */
+    onSendClipboard: ((String) -> Unit)? = null,
     onKeyDown: (keySym: Int) -> Unit,
     onKeyUp: (keySym: Int) -> Unit,
     onDisconnect: () -> Unit,
@@ -171,6 +176,10 @@ fun VncSessionContent(
     inputMode: String = "DIRECT",
     /** Switch DIRECT/TOUCHPAD input mode from the toolbar (#183). */
     onSetInputMode: ((String) -> Unit)? = null,
+    /** TOUCHPAD-mode speed multiplier; gesture math scales deltas by it (#696). */
+    touchpadSensitivity: Float = 1f,
+    /** Persist trackpad sensitivity from the toolbar (#696). Null hides the control. */
+    onSetTouchpadSensitivity: ((Float) -> Unit)? = null,
     bandwidthSuggestion: StateFlow<String?>? = null,
     onAcceptBandwidthSuggestion: (() -> Unit)? = null,
     onDismissBandwidthSuggestion: (() -> Unit)? = null,
@@ -271,6 +280,7 @@ fun VncSessionContent(
             onReleaseButton = onReleaseButton,
             onTypeChar = onTypeChar,
             onTypeText = onTypeText,
+            onSendClipboard = onSendClipboard,
             onKeyDown = onKeyDown,
             onKeyUp = onKeyUp,
             onToggleFullscreen = {
@@ -282,6 +292,8 @@ fun VncSessionContent(
             pointerPos = pointerState,
             inputMode = inputMode,
             onSetInputMode = onSetInputMode,
+            touchpadSensitivity = touchpadSensitivity,
+            onSetTouchpadSensitivity = onSetTouchpadSensitivity,
             bandwidthSuggestion = bandwidthSuggestion?.collectAsState()?.value,
             onAcceptBandwidthSuggestion = onAcceptBandwidthSuggestion,
             onDismissBandwidthSuggestion = onDismissBandwidthSuggestion,
@@ -377,6 +389,7 @@ fun VncScreen(
         onReleaseButton = { btn -> viewModel.releaseButton(btn) },
         onTypeChar = { ch -> viewModel.typeKey(charToKeySym(ch)) },
         onTypeText = { text -> viewModel.typeText(text) },
+        onSendClipboard = { text -> viewModel.sendClipboardText(text) },
         onKeyDown = { keySym -> viewModel.sendKey(keySym, true) },
         onKeyUp = { keySym -> viewModel.sendKey(keySym, false) },
         onDisconnect = { viewModel.disconnect() },
@@ -406,19 +419,76 @@ fun VncScreen(
  * (highlighted) = trackpad mode.
  */
 @Composable
-private fun InputModeToggle(inputMode: String, onSetInputMode: (String) -> Unit) {
+private fun InputModeToggle(
+    inputMode: String,
+    onSetInputMode: ((String) -> Unit)?,
+    onSetTouchpadSensitivity: ((Float) -> Unit)?,
+    onOpenSensitivity: () -> Unit,
+) {
+    if (onSetInputMode == null) return
     val touchpad = inputMode == "TOUCHPAD"
-    FilledIconToggleButton(
-        checked = touchpad,
-        onCheckedChange = { onSetInputMode(if (touchpad) "DIRECT" else "TOUCHPAD") },
-        modifier = Modifier.size(40.dp),
-    ) {
-        Icon(
-            Icons.Default.TouchApp,
-            contentDescription = if (touchpad) stringResource(R.string.vnc_cd_input_mode_trackpad_on)
-                                 else stringResource(R.string.vnc_cd_input_mode_direct),
-        )
+    Row(verticalAlignment = Alignment.CenterVertically) {
+        FilledIconToggleButton(
+            checked = touchpad,
+            onCheckedChange = { onSetInputMode(if (touchpad) "DIRECT" else "TOUCHPAD") },
+            modifier = Modifier.size(40.dp),
+        ) {
+            Icon(
+                Icons.Default.TouchApp,
+                contentDescription = if (touchpad) stringResource(R.string.vnc_cd_input_mode_trackpad_on)
+                                     else stringResource(R.string.vnc_cd_input_mode_direct),
+            )
+        }
+        // Speed control (#696): only while trackpad mode is on — direct touch
+        // has no speed to tune. Opens the sensitivity dialog.
+        if (touchpad && onSetTouchpadSensitivity != null) {
+            val speedDesc = stringResource(R.string.vnc_cd_trackpad_sensitivity)
+            IconButton(onClick = onOpenSensitivity) {
+                Icon(Icons.Default.Speed, contentDescription = speedDesc)
+            }
+        }
     }
+}
+
+/**
+ * Trackpad sensitivity dialog (#696): a slider over the relative-motion
+ * multiplier the VNC and RDP touchpad paths share. Commits on release and on
+ * Close, so the value can be tuned live; leaving without a drag keeps the old
+ * value.
+ */
+@Composable
+private fun TrackpadSensitivityDialog(
+    sensitivity: Float,
+    onSetSensitivity: (Float) -> Unit,
+    onDismiss: () -> Unit,
+) {
+    var value by remember { mutableStateOf(sensitivity.coerceIn(TOUCHPAD_SENSITIVITY_MIN, TOUCHPAD_SENSITIVITY_MAX)) }
+    AlertDialog(
+        onDismissRequest = onDismiss,
+        confirmButton = {
+            TextButton(onClick = { onSetSensitivity(value); onDismiss() }) {
+                Text(stringResource(R.string.vnc_action_close))
+            }
+        },
+        icon = { Icon(Icons.Default.Speed, contentDescription = null) },
+        title = { Text(stringResource(R.string.vnc_cd_trackpad_sensitivity)) },
+        text = {
+            Column(verticalArrangement = Arrangement.spacedBy(12.dp)) {
+                Text(
+                    "%.1f×".format(value),
+                    style = MaterialTheme.typography.headlineSmall,
+                    modifier = Modifier.align(Alignment.CenterHorizontally),
+                )
+                Slider(
+                    value = value,
+                    onValueChange = { value = it },
+                    onValueChangeFinished = { onSetSensitivity(value) },
+                    valueRange = TOUCHPAD_SENSITIVITY_MIN..TOUCHPAD_SENSITIVITY_MAX,
+                    steps = 27,
+                )
+            }
+        },
+    )
 }
 
 /** Two-finger drag target: viewport pan (off) vs remote scroll-wheel (on). */
@@ -521,6 +591,7 @@ private fun VncViewer(
     onReleaseButton: (Int) -> Unit = {},
     onTypeChar: (Char) -> Unit,
     onTypeText: (String) -> Unit = { s -> s.forEach(onTypeChar) },
+    onSendClipboard: ((String) -> Unit)? = null,
     onKeyDown: (Int) -> Unit,
     onKeyUp: (Int) -> Unit,
     onToggleFullscreen: () -> Unit,
@@ -528,6 +599,10 @@ private fun VncViewer(
     cursor: CursorOverlay? = null,
     pointerPos: Pair<Int, Int> = 0 to 0,
     inputMode: String = "DIRECT",
+    /** TOUCHPAD-mode speed multiplier; gesture math scales deltas by it (#696). */
+    touchpadSensitivity: Float = 1f,
+    /** Persist trackpad sensitivity from the toolbar (#696). Null hides the control. */
+    onSetTouchpadSensitivity: ((Float) -> Unit)? = null,
     bandwidthSuggestion: String? = null,
     onAcceptBandwidthSuggestion: (() -> Unit)? = null,
     onDismissBandwidthSuggestion: (() -> Unit)? = null,
@@ -621,8 +696,19 @@ private fun VncViewer(
                 panX = panX,
                 panY = panY,
             )
-            if (newPanX != panX) panX = newPanX
-            if (newPanY != panY) panY = newPanY
+            // #738: the dead-zone snap can overshoot the cover bound near a
+            // content edge — clamp so the camera never exposes black.
+            val fit = if (coverFill) maxOf(
+                viewSize.width.toFloat() / frame.width,
+                viewSize.height.toFloat() / frame.height,
+            ) else minOf(
+                viewSize.width.toFloat() / frame.width,
+                viewSize.height.toFloat() / frame.height,
+            )
+            val clampedX = clampPanToCover(newPanX, frame.width * fit, viewSize.width.toFloat(), zoom)
+            val clampedY = clampPanToCover(newPanY, frame.height * fit, viewSize.height.toFloat(), zoom)
+            if (clampedX != panX) panX = clampedX
+            if (clampedY != panY) panY = clampedY
         }
     }
 
@@ -738,6 +824,9 @@ private fun VncViewer(
     // Fullscreen overlay toolbar
     var overlayVisible by remember { mutableStateOf(false) }
     var showGestureHelp by remember { mutableStateOf(false) }
+    // Trackpad sensitivity dialog (#696) — opened from the speed button next
+    // to the input-mode toggle while TOUCHPAD is active.
+    var showSensitivityDialog by remember { mutableStateOf(false) }
     // Draggable fullscreen menu button: offset from the top-right corner
     // (x grows left/negative, y grows down). Survives rotation/recompose.
     var menuOffX by rememberSaveable { mutableStateOf(0f) }
@@ -782,6 +871,13 @@ private fun VncViewer(
     // Reset when inputMode changes so re-entering touchpad picks up the
     // latest server-reported pointer.
     var virtualCursor by remember(inputMode) { mutableStateOf(pointerPos) }
+    // #696: float accumulator for the same cursor — per-event Int rounding
+    // would otherwise drop sub-pixel steps at low sensitivity (a slow drag
+    // would round to zero and never move). The Int pair above stays the
+    // emitted/consumed value.
+    var virtualCursorF by remember(inputMode) {
+        mutableStateOf(Offset(pointerPos.first.toFloat(), pointerPos.second.toFloat()))
+    }
 
     // Tap-then-drag state: the uptime at which the previous short-tap
     // ended. A touch-down within TAP_THEN_DRAG_WINDOW_MS of this
@@ -876,7 +972,9 @@ private fun VncViewer(
                 .onSizeChanged { viewSize = it }
                 // All touch handling: tap, drag, pinch-to-zoom, two-finger pan/scroll.
                 // Uses Initial pass and consumes all events so the pager can't steal them.
-                .pointerInput(frame.width, frame.height, viewSize, inputMode) {
+                // Sensitivity is a key so an in-flight drag does not carry the
+                // stale multiplier from capture time (#696).
+                .pointerInput(frame.width, frame.height, viewSize, inputMode, touchpadSensitivity) {
                     val touchSlopPx = viewConfiguration.touchSlop
                     awaitEachGesture {
                         val firstDown = awaitFirstDown(
@@ -1023,6 +1121,20 @@ private fun VncViewer(
                                             panX = (centroid.x - cx) * (1 - actualScale) + panX * actualScale
                                             panY = (centroid.y - cy) * (1 - actualScale) + panY * actualScale
                                             zoom = newZoom
+                                            // #738: clamp the residual off-centre pan
+                                            // so the scaled content keeps covering the
+                                            // viewport (fit honours coverFill here).
+                                            if (viewSize.width > 0 && viewSize.height > 0) {
+                                                val fit = if (coverFill) maxOf(
+                                                    viewSize.width.toFloat() / frame.width,
+                                                    viewSize.height.toFloat() / frame.height,
+                                                ) else minOf(
+                                                    viewSize.width.toFloat() / frame.width,
+                                                    viewSize.height.toFloat() / frame.height,
+                                                )
+                                                panX = clampPanToCover(panX, frame.width * fit, viewSize.width.toFloat(), newZoom)
+                                                panY = clampPanToCover(panY, frame.height * fit, viewSize.height.toFloat(), newZoom)
+                                            }
                                         } else if (twoFingerScroll || (twoFingerZoom && zoom <= 1.01f)) {
                                             // Remote wheel-scroll: desktop scroll-mode
                                             // toggle, or an app window not yet zoomed.
@@ -1039,7 +1151,10 @@ private fun VncViewer(
                                             // inside the viewport leaving empty space.
                                             panX += dx
                                             panY += dy
-                                            if (twoFingerZoom && viewSize.width > 0 && viewSize.height > 0) {
+                                            // #738: clamp on every pan, not only the
+                                            // app-window (twoFingerZoom) case — the
+                                            // same cover rule as the pinch path.
+                                            if (viewSize.width > 0 && viewSize.height > 0) {
                                                 val fit = if (coverFill) maxOf(
                                                     viewSize.width.toFloat() / frame.width,
                                                     viewSize.height.toFloat() / frame.height,
@@ -1047,10 +1162,8 @@ private fun VncViewer(
                                                     viewSize.width.toFloat() / frame.width,
                                                     viewSize.height.toFloat() / frame.height,
                                                 )
-                                                val maxPanX = maxOf(0f, (frame.width * fit * zoom - viewSize.width) / 2f)
-                                                val maxPanY = maxOf(0f, (frame.height * fit * zoom - viewSize.height) / 2f)
-                                                panX = panX.coerceIn(-maxPanX, maxPanX)
-                                                panY = panY.coerceIn(-maxPanY, maxPanY)
+                                                panX = clampPanToCover(panX, frame.width * fit, viewSize.width.toFloat(), zoom)
+                                                panY = clampPanToCover(panY, frame.height * fit, viewSize.height.toFloat(), zoom)
                                             }
                                         }
                                     }
@@ -1075,10 +1188,18 @@ private fun VncViewer(
                                     // touch slop we press button 1 (drag with
                                     // button), then continue normally.
                                     val scale = if (zoom > 0f) zoom else 1f
-                                    val nx = (virtualCursor.first + (deltaScreen.x / scale).toInt())
-                                        .coerceIn(0, frame.width - 1)
-                                    val ny = (virtualCursor.second + (deltaScreen.y / scale).toInt())
-                                        .coerceIn(0, frame.height - 1)
+                                    // #696: scale the finger delta by the trackpad
+                                    // sensitivity multiplier; keep the position in
+                                    // float space so per-event rounding can't drop
+                                    // sub-pixel steps at low sensitivity.
+                                    val fx = virtualCursorF.x + deltaScreen.x / scale * touchpadSensitivity
+                                    val fy = virtualCursorF.y + deltaScreen.y / scale * touchpadSensitivity
+                                    virtualCursorF = Offset(
+                                        fx.coerceIn(0f, (frame.width - 1).toFloat()),
+                                        fy.coerceIn(0f, (frame.height - 1).toFloat()),
+                                    )
+                                    val nx = fx.toInt().coerceIn(0, frame.width - 1)
+                                    val ny = fy.toInt().coerceIn(0, frame.height - 1)
                                     virtualCursor = nx to ny
                                     if (!longPressFired && totalMovement >= touchSlopPx) {
                                         when {
@@ -1275,6 +1396,15 @@ private fun VncViewer(
         // hidden by default so the rows don't eat screen space unsummoned;
         // allowed in fullscreen too, since the immersive desktop is exactly
         // where the compositor keybinds (Super+D / Super+Return) are needed.
+        val clipboardManager = LocalClipboardManager.current
+        val pasteClipboard: () -> Unit = {
+            val text = clipboardManager.getText()?.text
+            if (!text.isNullOrEmpty()) {
+                onSendClipboard?.invoke(text)
+                onTypeText(text)
+            }
+        }
+
         if (keyboardVisible || imeVisible) {
             VncKeyToolbar(
                 layout = toolbarLayout,
@@ -1308,6 +1438,7 @@ private fun VncViewer(
                     if (superActive) { onKeyUp(XK_SUPER_L); superActive = false }
                 },
                 onToggleKeyboard = toggleKeyboard,
+                onPaste = pasteClipboard,
             )
         }
 
@@ -1350,6 +1481,16 @@ private fun VncViewer(
                     )
                 }
 
+                // Paste from Android clipboard (#718): pushes text to remote RFB
+                // CutText (for Ctrl+V / middle-click paste via vncconfig) AND types
+                // it into the focused window.
+                IconButton(onClick = pasteClipboard) {
+                    Icon(
+                        Icons.Default.ContentPaste,
+                        contentDescription = stringResource(R.string.vnc_cd_paste),
+                    )
+                }
+
                 IconButton(onClick = onCycleOrientation) {
                     Icon(orientationMode.icon, contentDescription = orientationDesc)
                 }
@@ -1357,8 +1498,10 @@ private fun VncViewer(
                 // Explicit mouse-button hold toggles (L/M/R) — #183.
                 MouseButtonToggles(held = heldButton, onToggle = toggleHeldButton)
 
-                // Direct/trackpad input-mode toggle — #183.
-                onSetInputMode?.let { InputModeToggle(inputMode, it) }
+                // Direct/trackpad input-mode toggle + speed button — #183/#696.
+                InputModeToggle(inputMode, onSetInputMode, onSetTouchpadSensitivity) {
+                    showSensitivityDialog = true
+                }
                 // Desktop only: two-finger drag = viewport pan vs remote scroll — #286.
                 if (!twoFingerZoom) {
                     ScrollModeToggle(twoFingerScroll) { twoFingerScroll = !twoFingerScroll }
@@ -1482,6 +1625,7 @@ private fun VncViewer(
                 contentColor = MaterialTheme.colorScheme.onSurface,
                 shadowElevation = 8.dp,
             ) {
+                val clipboardManager = LocalClipboardManager.current
                 Column(
                     modifier = Modifier.padding(8.dp),
                     verticalArrangement = Arrangement.spacedBy(4.dp),
@@ -1499,13 +1643,28 @@ private fun VncViewer(
                             contentDescription = stringResource(R.string.vnc_cd_toggle_keyboard),
                         )
                     }
+                    IconButton(onClick = {
+                        overlayVisible = false
+                        val text = clipboardManager.getText()?.text
+                        if (!text.isNullOrEmpty()) {
+                            onSendClipboard?.invoke(text)
+                            onTypeText(text)
+                        }
+                    }) {
+                        Icon(
+                            Icons.Default.ContentPaste,
+                            contentDescription = stringResource(R.string.vnc_cd_paste),
+                        )
+                    }
                     IconButton(onClick = onCycleOrientation) {
                         Icon(orientationMode.icon, contentDescription = orientationDesc)
                     }
                     // Explicit mouse-button hold toggles (L/M/R) — #183.
                     MouseButtonToggles(held = heldButton, onToggle = toggleHeldButton)
-                    // Direct/trackpad input-mode toggle — #183.
-                    onSetInputMode?.let { InputModeToggle(inputMode, it) }
+                    // Direct/trackpad input-mode toggle + speed button — #183/#696.
+                    InputModeToggle(inputMode, onSetInputMode, onSetTouchpadSensitivity) {
+                        showSensitivityDialog = true
+                    }
                     // Desktop only: two-finger drag = viewport pan vs remote scroll — #286.
                     if (!twoFingerZoom) {
                         ScrollModeToggle(twoFingerScroll) { twoFingerScroll = !twoFingerScroll }
@@ -1569,6 +1728,14 @@ private fun VncViewer(
                         Text(stringResource(R.string.vnc_gesture_help_three_finger))
                     }
                 },
+            )
+        }
+
+        if (showSensitivityDialog) {
+            TrackpadSensitivityDialog(
+                sensitivity = touchpadSensitivity,
+                onSetSensitivity = { onSetTouchpadSensitivity?.invoke(it) },
+                onDismiss = { showSensitivityDialog = false },
             )
         }
     }
@@ -1782,6 +1949,7 @@ private fun VncKeyToolbar(
     onToggleSuper: () -> Unit,
     onVncKey: (keySym: Int) -> Unit,
     onToggleKeyboard: () -> Unit,
+    onPaste: () -> Unit,
 ) {
     val presentNavKeys = layout.rows.flatten()
         .filterIsInstance<sh.haven.core.data.preferences.ToolbarItem.BuiltIn>()
@@ -1810,12 +1978,12 @@ private fun VncKeyToolbar(
                     Row(Modifier.fillMaxWidth().padding(vertical = 1.dp), verticalAlignment = Alignment.CenterVertically) {
                         VncToggleButton("Super", superActive, onToggleSuper)
                         for (item in row1Left) {
-                            VncRenderItem(item, ctrlActive, altActive, shiftActive, onToggleCtrl, onToggleAlt, onToggleShift, onVncKey, onToggleKeyboard)
+                            VncRenderItem(item, ctrlActive, altActive, shiftActive, onToggleCtrl, onToggleAlt, onToggleShift, onVncKey, onToggleKeyboard, onPaste)
                         }
                     }
                     Row(Modifier.fillMaxWidth().padding(vertical = 1.dp), verticalAlignment = Alignment.CenterVertically) {
                         for (item in row2Left) {
-                            VncRenderItem(item, ctrlActive, altActive, shiftActive, onToggleCtrl, onToggleAlt, onToggleShift, onVncKey, onToggleKeyboard)
+                            VncRenderItem(item, ctrlActive, altActive, shiftActive, onToggleCtrl, onToggleAlt, onToggleShift, onVncKey, onToggleKeyboard, onPaste)
                         }
                     }
                 }
@@ -1850,7 +2018,7 @@ private fun VncKeyToolbar(
                         if (row1Right.isNotEmpty()) {
                             Row(Modifier.padding(vertical = 1.dp), verticalAlignment = Alignment.CenterVertically) {
                                 for (item in row1Right) {
-                                    VncRenderItem(item, ctrlActive, altActive, shiftActive, onToggleCtrl, onToggleAlt, onToggleShift, onVncKey, onToggleKeyboard)
+                                    VncRenderItem(item, ctrlActive, altActive, shiftActive, onToggleCtrl, onToggleAlt, onToggleShift, onVncKey, onToggleKeyboard, onPaste)
                                 }
                             }
                         } else {
@@ -1858,7 +2026,7 @@ private fun VncKeyToolbar(
                         }
                         Row(Modifier.padding(vertical = 1.dp), verticalAlignment = Alignment.CenterVertically) {
                             for (item in row2Right) {
-                                VncRenderItem(item, ctrlActive, altActive, shiftActive, onToggleCtrl, onToggleAlt, onToggleShift, onVncKey, onToggleKeyboard)
+                                VncRenderItem(item, ctrlActive, altActive, shiftActive, onToggleCtrl, onToggleAlt, onToggleShift, onVncKey, onToggleKeyboard, onPaste)
                             }
                         }
                     }
@@ -1883,7 +2051,7 @@ private fun VncKeyToolbar(
                             superPlaced = true
                         }
                         for (item in row) {
-                            VncRenderItem(item, ctrlActive, altActive, shiftActive, onToggleCtrl, onToggleAlt, onToggleShift, onVncKey, onToggleKeyboard)
+                            VncRenderItem(item, ctrlActive, altActive, shiftActive, onToggleCtrl, onToggleAlt, onToggleShift, onVncKey, onToggleKeyboard, onPaste)
                         }
                     }
                 }
@@ -1903,10 +2071,11 @@ private fun VncRenderItem(
     onToggleShift: () -> Unit,
     onVncKey: (keySym: Int) -> Unit,
     onToggleKeyboard: () -> Unit,
+    onPaste: () -> Unit,
 ) {
     when (item) {
         is sh.haven.core.data.preferences.ToolbarItem.BuiltIn -> {
-            VncBuiltInKey(item.key, ctrlActive, altActive, shiftActive, onToggleCtrl, onToggleAlt, onToggleShift, onVncKey, onToggleKeyboard)
+            VncBuiltInKey(item.key, ctrlActive, altActive, shiftActive, onToggleCtrl, onToggleAlt, onToggleShift, onVncKey, onToggleKeyboard, onPaste)
         }
         is sh.haven.core.data.preferences.ToolbarItem.Custom -> {
             VncSymbolButton(item.label) {
@@ -1919,6 +2088,11 @@ private fun VncRenderItem(
 /** Nav block button with fixed cell width for VNC toolbar. */
 private const val VNC_REPEAT_DELAY_MS = 400L
 private const val VNC_REPEAT_INTERVAL_MS = 80L
+
+// Trackpad sensitivity slider range (#696): 0.2 (very fine) up to 3 (fast);
+// slider steps are 0.1 granularity.
+private const val TOUCHPAD_SENSITIVITY_MIN = 0.2f
+private const val TOUCHPAD_SENSITIVITY_MAX = 3f
 
 @OptIn(ExperimentalComposeUiApi::class)
 @Composable
@@ -2013,6 +2187,7 @@ private fun VncBuiltInKey(
     onToggleShift: () -> Unit,
     onVncKey: (keySym: Int) -> Unit,
     onToggleKeyboard: () -> Unit,
+    onPaste: () -> Unit,
 ) {
     when (key) {
         ToolbarKey.KEYBOARD -> {
@@ -2023,6 +2198,7 @@ private fun VncBuiltInKey(
                 Icon(Icons.Default.Keyboard, contentDescription = stringResource(R.string.vnc_cd_toggle_keyboard), modifier = Modifier.size(18.dp))
             }
         }
+        ToolbarKey.PASTE -> VncTextButton(key.label, onPaste)
         ToolbarKey.CTRL -> VncToggleButton("Ctrl", ctrlActive, onToggleCtrl)
         ToolbarKey.ALT -> VncToggleButton("Alt", altActive, onToggleAlt)
         ToolbarKey.ALTGR -> {

@@ -53,6 +53,29 @@ class DistroCatalogCustomTest {
     }
 
     @Test
+    fun `customDistro for foreign-arch builtin inherits hooks and baselinePackages`() {
+        val archForeign = DistroCatalog.customDistro(
+            id = "archlinux-x86_64",
+            label = "Arch Linux (x86_64 · QEMU)",
+            family = PackageFamily.PACMAN,
+            sizeMb = 620,
+        )
+        assertEquals(DistroCatalog.ARCH_LINUX, DistroCatalog.builtinForForeignId("archlinux-x86_64"))
+        assertEquals(DistroCatalog.ARCH_LINUX.baselinePackages, archForeign.baselinePackages)
+        assertEquals(DistroCatalog.ARCH_LINUX.postExtractHooks, archForeign.postExtractHooks)
+        assertTrue("Expected sudo in Arch baselinePackages", archForeign.baselinePackages.contains("sudo"))
+
+        val voidForeign = DistroCatalog.customDistro(
+            id = "void-x86_64",
+            label = "Void Linux (x86_64 · QEMU)",
+            family = PackageFamily.XBPS,
+            sizeMb = 100,
+        )
+        assertEquals(DistroCatalog.VOID_LINUX, DistroCatalog.builtinForForeignId("void-x86_64"))
+        assertEquals(DistroCatalog.VOID_LINUX.postExtractHooks, voidForeign.postExtractHooks)
+    }
+
+    @Test
     fun `clearing the registry restores the builtins-only view`() {
         DistroCatalog.registerCustomDistros(listOf(DistroCatalog.customDistro("tmp", "Tmp", PackageFamily.APK, 1)))
         assertNotNull(DistroCatalog.lookup("tmp"))
@@ -62,3 +85,4 @@ class DistroCatalogCustomTest {
         assertEquals(DistroCatalog.builtins.size, DistroCatalog.all.size)
     }
 }
+

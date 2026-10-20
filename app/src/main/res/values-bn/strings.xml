@@ -361,4 +361,8 @@
     <string name="update_notification_channel">অ্যাপ আপডেট</string>
     <string name="update_notification_title">Haven %1$s পাওয়া যাচ্ছে</string>
     <string name="update_notification_text">রিলিজ পেজ খুলতে ট্যাপ করুন।</string>
+    <string name="app_desktop_guest_user_title">গেস্ট ব্যবহারকারী</string>
+    <string name="app_desktop_guest_user_description">রুটের পরিবর্তে পাসওয়ার্ডহীন sudo সহ সাধারণ ব্যবহারকারী (uid 1000) হিসেবে শেল এবং X11 ডেস্কটপ চালান। রুট মোডের জন্য ফাঁকা রাখুন বা root লিখুন।</string>
+    <string name="app_desktop_guest_user_label">ব্যবহারকারীর নাম</string>
+    <string name="app_desktop_guest_user_hint">root (অথবা যেমন user)</string>
 </resources>

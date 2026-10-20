@@ -18,6 +18,7 @@
     <string name="vnc_cd_exit_fullscreen">Vollbild beenden</string>
     <string name="vnc_cd_input_mode_trackpad_on">Trackpad-Modus aktiv (Tippen für direkte Berührung)</string>
     <string name="vnc_cd_input_mode_direct">Direktberührungs-Modus (Tippen für Trackpad)</string>
+    <string name="vnc_cd_trackpad_sensitivity">Trackpad-Empfindlichkeit</string>
     <string name="vnc_orientation_landscape_desc">Querformat sperren (Tippen zum Wechsel in Hochformat)</string>
     <string name="vnc_orientation_portrait_desc">Hochformat sperren (Tippen zum Wechsel in Automatik)</string>
     <string name="vnc_orientation_auto_desc">Automatisch drehen (Tippen zum Wechsel in Querformat)</string>
@@ -31,4 +32,5 @@
     <!-- Backfill 2026-07: strings added since the last i18n pass -->
     <string name="vnc_cd_two_finger_viewport">Zwei Finger verschieben die Ansicht (tippen, um den entfernten Bildschirm zu scrollen)</string>
     <string name="vnc_cd_two_finger_scroll_on">Zwei Finger scrollen den entfernten Bildschirm (tippen, um die Ansicht zu verschieben)</string>
+    <string name="vnc_cd_paste">Zwischenablage einfügen</string>
 </resources>

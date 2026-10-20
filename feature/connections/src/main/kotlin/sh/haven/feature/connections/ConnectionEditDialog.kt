@@ -388,6 +388,7 @@ fun ConnectionEditDialog(
     var postLoginBeforeSessionManager by rememberSaveable { mutableStateOf(existing?.postLoginBeforeSessionManager ?: true) }
     var remoteCommand by rememberSaveable { mutableStateOf(existing?.remoteCommand ?: "") }
     var requestPty by rememberSaveable { mutableStateOf(existing?.requestPty ?: true) }
+    var sessionCommandOverride by rememberSaveable { mutableStateOf(existing?.sessionCommandOverride ?: "") }
     // USB/IP auto-forward: VID:PID of a phone device to export on connect (null = off).
     var usbForwardVidPid by rememberSaveable { mutableStateOf(existing?.usbForwardVidPid) }
     var disableAltScreen by rememberSaveable { mutableStateOf(existing?.disableAltScreen ?: false) }
@@ -679,6 +680,18 @@ fun ConnectionEditDialog(
                                     onClick = {
                                         proxyExpanded = false
                                         onManageTunnels(sh.haven.core.data.db.entities.TunnelConfigType.NETBIRD)
+                                    },
+                                )
+                                DropdownMenuItem(
+                                    text = {
+                                        Text(
+                                            "+ New AnyConnect tunnel",
+                                            color = MaterialTheme.colorScheme.primary,
+                                        )
+                                    },
+                                    onClick = {
+                                        proxyExpanded = false
+                                        onManageTunnels(sh.haven.core.data.db.entities.TunnelConfigType.ANYCONNECT)
                                     },
                                 )
                                 DropdownMenuItem(
@@ -2805,6 +2818,22 @@ fun ConnectionEditDialog(
                                 onCheckedChange = { requestPty = it },
                             )
                         }
+
+                        // Per-connection session-manager command (#731): the
+                        // built-in tmux/zellij/screen templates are POSIX
+                        // shell, which a Windows OpenSSH server cannot parse.
+                        Spacer(Modifier.height(4.dp))
+                        OutlinedTextField(
+                            value = sessionCommandOverride,
+                            onValueChange = { sessionCommandOverride = it },
+                            label = { Text(stringResource(R.string.connections_field_session_command)) },
+                            placeholder = { Text("wsl -e sh -c \"tmux new-session -A -s {name}\"") },
+                            supportingText = { Text(stringResource(R.string.connections_helper_session_command)) },
+                            singleLine = false,
+                            minLines = 1,
+                            maxLines = 3,
+                            modifier = Modifier.fillMaxWidth(),
+                        )
                     }
 
                     // USB/IP device forwarding (SSH) — export a phone-attached USB
@@ -4016,6 +4045,7 @@ fun ConnectionEditDialog(
                             postLoginBeforeSessionManager = postLoginBeforeSessionManager,
                             remoteCommand = remoteCommand.ifBlank { null },
                             requestPty = requestPty,
+                            sessionCommandOverride = sessionCommandOverride.ifBlank { null },
                             usbForwardVidPid = usbForwardVidPid,
                             disableAltScreen = disableAltScreen,
                             terminalColorScheme = terminalColorScheme,
@@ -4289,6 +4319,7 @@ private fun friendlyTunnelTypeLabel(t: sh.haven.core.data.db.entities.TunnelConf
         sh.haven.core.data.db.entities.TunnelConfigType.CLOUDFLARE_ACCESS -> "Cloudflare Tunnel"
         sh.haven.core.data.db.entities.TunnelConfigType.NETBIRD -> "NetBird"
         sh.haven.core.data.db.entities.TunnelConfigType.OPENVPN -> "OpenVPN"
+        sh.haven.core.data.db.entities.TunnelConfigType.ANYCONNECT -> "AnyConnect"
     }
 
 /**

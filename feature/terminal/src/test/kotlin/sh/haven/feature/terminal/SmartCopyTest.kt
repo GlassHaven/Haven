@@ -578,4 +578,27 @@ class SmartCopyTest {
             captured.captured.text.isNotBlank(),
         )
     }
+
+    // ---------- expandSelectionToWord (#716) ----------
+
+    @Test
+    fun `expandSelectionToWord uses controller visible lines when scrolled into scrollback`() {
+        // Live bottom screen has whitespace at (row = 0, col = 8), whereas the
+        // scrolled-back viewport line at row 0 has the token "scrollback-token"
+        // spanning cols 4..19. Pre-fix, expandSelectionToWord read
+        // emulator.getSnapshotLineTexts() (live screen only), saw whitespace at
+        // col 8, and refused to expand (or expanded to the wrong column span).
+        val ctrl = mockk<SelectionController>(relaxed = true) {
+            every { getSelectionRange() } returns SelectionRange(0, 8, 0, 8)
+            every { scrollbackPosition } returns 5
+            every { getVisibleLineTexts() } returns listOf("    scrollback-token    ")
+        }
+        val emu = emulator(listOf("                 "))
+
+        expandSelectionToWord(ctrl, emu)
+
+        verify { ctrl.updateSelectionStart(0, 4) }
+        verify { ctrl.updateSelectionEnd(0, 19) }
+    }
 }
+

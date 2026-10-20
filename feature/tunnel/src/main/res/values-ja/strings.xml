@@ -59,4 +59,23 @@
     <string name="cf_jump_destination_help">踏み台モードのマルチターゲットトンネル: `Cf-Access-Jump-Destination` として転送されます。単一ターゲットのルートでは空欄にしてください。</string>
     <string name="cf_jwt_paste_help">ヘッドレス環境向け: 別のマシンで `cloudflared access token --app https://&lt;hostname&gt;` を実行し、JWT をここに貼り付けてください。有効期限はトークンから自動的に解析されます。</string>
     <string name="cf_field_jwt">Cloudflare Access JWT（任意）</string>
+    <string name="tunnel_anyconnect_help">Cisco アプリなしで Cisco AnyConnect または ocserv（OpenConnect）VPN 経由で接続します。このトンネルを経由するプロファイルだけが使用し、端末のその他の通信は使用しません。ユーザー名/パスワード、認証グループ、TOTP またはプッシュによる二要素認証に対応しています。SAML/SSO とクライアント証明書には対応していません。</string>
+    <string name="tunnel_anyconnect_server_label">サーバー</string>
+    <string name="tunnel_anyconnect_server_help">Cisco アプリに入力するゲートウェイのホスト。必要に応じて :ポート やグループパスを付けます。</string>
+    <string name="tunnel_anyconnect_username_label">ユーザー名</string>
+    <string name="tunnel_anyconnect_password_label">パスワード</string>
+    <string name="tunnel_anyconnect_group_label">認証グループ（任意）</string>
+    <string name="tunnel_anyconnect_group_help">サーバーの一覧から選ぶグループまたはプロファイル。空欄ならデフォルトを使用します。</string>
+    <string name="tunnel_anyconnect_otp_label">OTP シークレット（任意）</string>
+    <string name="tunnel_anyconnect_otp_help">認証アプリ設定時の Base32 シークレットまたは otpauth:// リンク。Haven がコード入力に自動で応答するため、トンネルは無人で再接続できます。</string>
+    <string name="tunnel_anyconnect_secondary_label">二要素の応答（任意）</string>
+    <string name="tunnel_anyconnect_secondary_help">2 回目の入力に対する固定の応答（例: Duo の push）。OTP シークレット未設定時のみ使用します。</string>
+    <string name="tunnel_anyconnect_cert_label">サーバー証明書（任意）</string>
+    <string name="tunnel_anyconnect_cert_help">自己署名ゲートウェイ専用: pin-sha256:… の値。証明書が信頼されていない場合、接続エラーにここへ貼り付ける値が表示されます。</string>
+    <string name="tunnel_status_connected">接続中</string>
+    <string name="tunnel_sign_out">サインアウト</string>
+    <string name="tunnel_anyconnect_password_help">空欄にするとサインイン時に入力を求めます。</string>
+    <string name="tunnel_anyconnect_prompt_help">SMS やメールで届くコード: OTP シークレットと二要素の応答を空欄にすると、サインイン時に Haven がコードを尋ねます。</string>
+    <string name="tunnel_anyconnect_stay_connected_label">接続を維持</string>
+    <string name="tunnel_anyconnect_stay_connected_help">Cisco アプリと同様に、最後の接続を閉じた後も VPN を維持します。オフの場合は切断されますが、すぐに再接続すれば新しいコードなしでセッションを再開できます。</string>
 </resources>

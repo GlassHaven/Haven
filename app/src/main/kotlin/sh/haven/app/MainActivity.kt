@@ -184,6 +184,7 @@ class MainActivity : AppCompatActivity() {
         setIntent(intent)
         exitIfDisconnected()
         handleWorkspaceShortcut(intent)
+        handleConnectionShortcut(intent)
         handleAppWindowShortcut(intent)
         handleRenewCertDeepLink(intent)
         handleConnectDeepLink(intent)
@@ -443,12 +444,31 @@ class MainActivity : AppCompatActivity() {
      * future patch), kick off the launcher. Idempotent — extras are
      * cleared once consumed so a configuration change doesn't replay.
      */
-    private fun handleWorkspaceShortcut(intent: Intent?) {
-        if (intent?.action != sh.haven.app.workspace.WorkspaceShortcutManager.ACTION_LAUNCH_WORKSPACE) return
-        val workspaceId = intent.getStringExtra(
-            sh.haven.app.workspace.WorkspaceShortcutManager.EXTRA_WORKSPACE_ID,
+    /**
+     * Connection launcher shortcut tap (#699): dial the profile directly
+     * through the same command an MCP `connect_profile` uses — the intent
+     * is app-issued (no BROWSABLE action), so unlike the haven://connect
+     * deep link there is no drive-by confirm sheet. Extras are cleared once
+     * consumed so a configuration change doesn't replay.
+     */
+    private fun handleConnectionShortcut(intent: Intent?) {
+        if (intent?.action != sh.haven.app.launcher.LauncherShortcutManager.ACTION_LAUNCH_CONNECTION) return
+        val profileId = intent.getStringExtra(
+            sh.haven.app.launcher.LauncherShortcutManager.EXTRA_CONNECTION_ID,
         ) ?: return
-        intent.removeExtra(sh.haven.app.workspace.WorkspaceShortcutManager.EXTRA_WORKSPACE_ID)
+        intent.removeExtra(sh.haven.app.launcher.LauncherShortcutManager.EXTRA_CONNECTION_ID)
+        Log.d("MainActivity", "connecting profile $profileId from launcher shortcut")
+        MainScope().launch {
+            agentUiCommandBus.emit(sh.haven.core.data.agent.AgentUiCommand.ConnectProfile(profileId))
+        }
+    }
+
+    private fun handleWorkspaceShortcut(intent: Intent?) {
+        if (intent?.action != sh.haven.app.launcher.LauncherShortcutManager.ACTION_LAUNCH_WORKSPACE) return
+        val workspaceId = intent.getStringExtra(
+            sh.haven.app.launcher.LauncherShortcutManager.EXTRA_WORKSPACE_ID,
+        ) ?: return
+        intent.removeExtra(sh.haven.app.launcher.LauncherShortcutManager.EXTRA_WORKSPACE_ID)
         Log.d("MainActivity", "launching workspace $workspaceId from shortcut")
         MainScope().launch {
             workspaceLauncher.launch(workspaceId)
@@ -473,6 +493,7 @@ class MainActivity : AppCompatActivity() {
         super.onCreate(savedInstanceState)
         enableEdgeToEdge()
         handleWorkspaceShortcut(intent)
+        handleConnectionShortcut(intent)
         handleAppWindowShortcut(intent)
         handleRenewCertDeepLink(intent)
         handleConnectDeepLink(intent)
@@ -623,6 +644,10 @@ class MainActivity : AppCompatActivity() {
                     // BiometricPrompt; the result resumes the
                     // suspending fetch caller.
                     sh.haven.app.agent.BiometricGateHost()
+                    // VPN sign-in questions (AnyConnect SMS code / unstored
+                    // password) — published by TunnelAuthBroker, possibly
+                    // from a background re-login, answered here.
+                    TunnelAuthHost()
                 }
             }
         }

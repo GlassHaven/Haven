@@ -179,6 +179,8 @@
     <string name="connections_helper_post_login">Sent after login.</string>
     <string name="connections_field_remote_command">Remote command (advanced)</string>
     <string name="connections_helper_remote_command">Runs as the SSH command instead of opening a login shell. Leave blank for the normal shell.</string>
+    <string name="connections_field_session_command">Session command (advanced)</string>
+    <string name="connections_helper_session_command">Replaces the session-manager start command for this connection only. {name} becomes the session name. Use it when the built-in tmux/screen command cannot run, e.g. a Windows host: wsl -e sh -c "tmux new-session -A -s {name}". Blank uses the global setting.</string>
     <string name="connections_toggle_request_pty">Request terminal (PTY)</string>
     <string name="connections_dropdown_none_direct">None (direct)</string>
     <string name="connections_dropdown_cloudflare_tunnel">Cloudflare Tunnel</string>

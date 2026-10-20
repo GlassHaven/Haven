@@ -233,6 +233,10 @@
     <string name="settings_scrollback_rows_value">%1$,d Zeilen</string>
     <string name="settings_tap_to_position_title">Tippen, um Cursor bei unterstützten Prompts zu setzen</string>
     <string name="settings_tap_to_position_subtitle">Tippe in einen Shell-Prompt, um den Cursor zur entsprechenden Spalte zu bewegen. Erfordert OSC 133-Prompt-Marker (starship, fish 3.6+, aktuelle bash/zsh-Shell-Integration). Keine Wirkung bei Shells, die diese nicht senden</string>
+    <string name="settings_swipe_arrows_title">Wisch sendet Pfeiltasten</string>
+    <string name="settings_swipe_arrows_subtitle">Horizontale Wischs im Terminal senden ← → (Gedrückthalten wiederholt) statt Tabs zu wechseln. Die Wisch-Taste der Leiste schaltet denselben Modus um</string>
+    <string name="settings_swipe_arrows_exit_hint">Ist die App-Tab-Leiste ausgeblendet und eine Sitzung offen, senden Wischs weiter Pfeiltasten, bis die Wisch-Taste der Leiste angetippt wird. Füge die Wisch-Taste der Leiste hinzu, damit sie immer da ist</string>
+    <string name="settings_swipe_arrows_add_key">Wisch-Taste hinzufügen</string>
 
     <string name="settings_bandwidth_suggest_subtitle">Erkennt einen Durchsatz unter ~1 Mbit/s nach wenigen Sekunden und bietet eine Neuverbindung mit 256 Farben per Tastendruck an. Aus blendet die Meldung aus.</string>
     <string name="settings_bandwidth_suggest_title">256 Farben bei langsamen VNC-Verbindungen vorschlagen</string>
@@ -262,6 +266,7 @@
     <string name="settings_color_scheme_apply_palette_title">ANSI-Palette des Schemas anwenden</string>
     <string name="settings_color_scheme_apply_palette_subtitle">Die 16 ANSI-Farben passend zum Schema umfärben. Aus behält Standardfarben, damit Vollbild-Apps wie mutt wie erwartet aussehen.</string>
     <string name="settings_toolbar_min_key_width">Minimale Tastenbreite: %1$d dp</string>
+    <string name="settings_toolbar_key_scale">Tastenskalierung: %1$d%%</string>
     <string name="settings_toolbar_uniform_grid">Einheitliches Tastenraster</string>
     <string name="settings_toolbar_uniform_grid_desc">Jede Taste belegt eine gleich breite Zelle wie in Termux; lange Beschriftungen umbrechen. Kein seitliches Scrollen.</string>
     <string name="settings_terminal_font_title">Terminal-Schriftart</string>
@@ -444,6 +449,8 @@
     <string name="settings_terminal_opacity_value">%1$d%%</string>
     <string name="settings_terminal_opacity_hint" formatted="false">Unter 100% wird Haven durchscheinend und zeigt dein Hintergrundbild hinter jedem Bildschirm (Terminal, Listen, Einstellungen). Eine Überschreibung pro Verbindung gilt nur für dieses Terminal.</string>
     <string name="settings_section_mcp">KI-Agent (MCP)</string>
+    <string name="settings_tailscale_discovery_title">Tailscale-Peer-Erkennung</string>
+    <string name="settings_tailscale_discovery_subtitle">Hosts im Tailscale-Netzwerk über die lokale API beim Scannen ermitteln. Deaktivieren, damit Haven die Peer-Liste nicht mehr liest; Tailscale selbst bleibt unberührt.</string>
     <string name="settings_audio_bridge_title">Proot-Audio (experimentell)</string>
     <string name="settings_audio_bridge_subtitle">Gibt Ton aus Linux-Apps über den Gerätelautsprecher aus, per PulseAudio-Brücke im Gast. Nur Ausgabe. Streamt dauerhaft, solange aktiviert — bei Nichtgebrauch ausschalten.</string>
     <string name="settings_reverse_tunnel_status_active">Near (SSH): läuft über %1$s — verbunden</string>
@@ -513,4 +520,6 @@ Jeder bereits in Haven gespeicherte private Schlüssel muss erneut importiert od
     <string name="settings_inline_images_off">Aus</string>
     <string name="settings_inline_images_ask">Nachfragen</string>
     <string name="settings_inline_images_always">Immer</string>
+    <string name="settings_ambiwidth_title">Ambigue Breite als Doppelbreite</string>
+    <string name="settings_ambiwidth_subtitle">Ostasiatische Ambiguous-Zeichen als 2 Zellen darstellen</string>
 </resources>

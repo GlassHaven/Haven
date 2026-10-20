@@ -16,6 +16,7 @@
     <string name="rdp_cd_exit_fullscreen">Vollbild beenden</string>
     <string name="rdp_cd_input_mode_trackpad_on">Trackpad-Modus aktiv (Tippen für direkte Berührung)</string>
     <string name="rdp_cd_input_mode_direct">Direktberührungs-Modus (Tippen für Trackpad)</string>
+    <string name="rdp_cd_trackpad_sensitivity">Trackpad-Empfindlichkeit</string>
     <string name="rdp_orientation_landscape_desc">Querformat sperren (Tippen zum Wechsel in Hochformat)</string>
     <string name="rdp_orientation_portrait_desc">Hochformat sperren (Tippen zum Wechsel in Automatik)</string>
     <string name="rdp_orientation_auto_desc">Automatisch drehen (Tippen zum Wechsel in Querformat)</string>

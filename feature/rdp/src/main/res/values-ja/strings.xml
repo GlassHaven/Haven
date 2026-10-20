@@ -16,6 +16,7 @@
     <string name="rdp_cd_exit_fullscreen">全画面を終了</string>
     <string name="rdp_cd_input_mode_trackpad_on">トラックパッドモード オン（タップでダイレクトタッチ）</string>
     <string name="rdp_cd_input_mode_direct">ダイレクトタッチモード（タップでトラックパッド）</string>
+    <string name="rdp_cd_trackpad_sensitivity">トラックパッドの感度</string>
     <string name="rdp_orientation_landscape_desc">横向きにロック（タップで縦向きに切替）</string>
     <string name="rdp_orientation_portrait_desc">縦向きにロック（タップで自動回転に切替）</string>
     <string name="rdp_orientation_auto_desc">自動回転（タップで横向きに切替）</string>

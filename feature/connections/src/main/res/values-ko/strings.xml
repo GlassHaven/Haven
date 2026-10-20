@@ -164,6 +164,8 @@
     <string name="connections_field_post_login">로그인 후 명령</string>
     <string name="connections_field_remote_command">원격 명령(고급)</string>
     <string name="connections_helper_remote_command">로그인 셸을 여는 대신 SSH 명령으로 실행합니다. 일반 셸에는 비워 두세요.</string>
+    <string name="connections_field_session_command">세션 명령(고급)</string>
+    <string name="connections_helper_session_command">이 연결에 대해서만 세션 관리자 시작 명령을 대체합니다. {name}은 세션 이름이 됩니다. 내장 tmux/screen 명령을 실행할 수 없을 때 사용하세요(예: Windows 호스트): wsl -e sh -c "tmux new-session -A -s {name}". 비워 두면 전역 설정을 사용합니다.</string>
     <string name="connections_toggle_request_pty">터미널 요청(PTY)</string>
     <string name="connections_helper_post_login">로그인 후 전송됩니다.</string>
     <string name="connections_dropdown_none_direct">없음(직접)</string>

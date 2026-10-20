@@ -15,6 +15,7 @@
     <string name="rdp_cd_exit_fullscreen">Выйти из полного экрана</string>
     <string name="rdp_cd_input_mode_trackpad_on">Режим трекпада включён (нажмите для прямого касания)</string>
     <string name="rdp_cd_input_mode_direct">Режим прямого касания (нажмите для трекпада)</string>
+    <string name="rdp_cd_trackpad_sensitivity">Чувствительность трекпада</string>
     <string name="rdp_orientation_landscape_desc">Заблокировать альбомную (нажмите для переключения на портретную)</string>
     <string name="rdp_orientation_portrait_desc">Заблокировать портретную (нажмите для переключения на авто)</string>
     <string name="rdp_orientation_auto_desc">Авто-поворот (нажмите для переключения на альбомную)</string>

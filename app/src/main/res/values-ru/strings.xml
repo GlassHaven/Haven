@@ -375,4 +375,8 @@
     <string name="update_notification_channel">Обновления приложения</string>
     <string name="update_notification_title">Доступна версия Haven %1$s</string>
     <string name="update_notification_text">Нажмите, чтобы открыть страницу выпуска.</string>
+    <string name="app_desktop_guest_user_title">Гостевой пользователь</string>
+    <string name="app_desktop_guest_user_description">Запускать оболочки и рабочие столы X11 от имени обычного пользователя (uid 1000) с sudo без пароля вместо root. Оставьте пустым или укажите root для режима суперпользователя.</string>
+    <string name="app_desktop_guest_user_label">Имя пользователя</string>
+    <string name="app_desktop_guest_user_hint">root (или, например, user)</string>
 </resources>

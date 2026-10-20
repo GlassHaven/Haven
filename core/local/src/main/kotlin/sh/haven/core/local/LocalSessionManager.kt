@@ -73,6 +73,37 @@ internal fun mergeEnv(base: Array<String>, overlay: Map<String, String>): Array<
 }
 
 /**
+ * Resolve the effective locale to export into [rootfsDir] (#721).
+ * On glibc distros (where `usr/lib/locale` exists), exporting `LC_ALL=en_US.UTF-8`
+ * before `locale-gen` has generated `/usr/lib/locale/locale-archive` (or
+ * `/usr/lib/locale/en_US.utf8`) causes bash and every child tool to emit
+ * `setlocale: LC_ALL: cannot change locale (en_US.UTF-8): No such file or directory`.
+ * Fall back to `C.UTF-8` (built into glibc) until the requested locale is present.
+ * Non-glibc rootfses (e.g. Alpine musl, no `usr/lib/locale`) return [requestedLocale] unchanged.
+ */
+internal fun resolveGuestLocale(rootfsDir: java.io.File, requestedLocale: String): String {
+    if (
+        requestedLocale.isBlank() ||
+        requestedLocale.equals("C.UTF-8", ignoreCase = true) ||
+        requestedLocale.equals("C", ignoreCase = true) ||
+        requestedLocale.equals("POSIX", ignoreCase = true)
+    ) {
+        return requestedLocale
+    }
+    val localeRoot = java.io.File(rootfsDir, "usr/lib/locale")
+    if (!localeRoot.isDirectory) return requestedLocale
+    if (java.io.File(localeRoot, "locale-archive").exists()) return requestedLocale
+    val normalized = requestedLocale.replace("UTF-8", "utf8").replace("utf-8", "utf8")
+    if (
+        java.io.File(localeRoot, requestedLocale).exists() ||
+        java.io.File(localeRoot, normalized).exists()
+    ) {
+        return requestedLocale
+    }
+    return "C.UTF-8"
+}
+
+/**
  * Manages active local terminal sessions.
  * Follows the same lifecycle pattern as MoshSessionManager.
  */
@@ -302,9 +333,15 @@ class LocalSessionManager @Inject constructor(
             // #301: per-distro user-defined extra binds (any Android path into
             // the guest). Keyed on the distro this session actually runs.
             val customBinds = prootManager.customBindShortArgs(targetDistro).toTypedArray()
+            val guestUser = prootManager.ensureGuestUser(rootfsDir)
+            val identityArgs = if (guestUser.isRoot) {
+                arrayOf("-0")
+            } else {
+                arrayOf("-i", "${guestUser.uid}:${guestUser.gid}")
+            }
             val args = arrayOf(
                 prootBinary,
-                "-0",                    // fake root
+                *identityArgs,           // #718: -0 (root) or -i 1000:1000 (non-root user)
                 "--link2symlink",        // fix link() for X11 lock files
                 "--sysvipc",             // #375: SysV IPC emulation (fakeroot/makepkg)
                 // #325: foreign-arch rootfs runs through the bundled qemu-user
@@ -338,17 +375,19 @@ class LocalSessionManager @Inject constructor(
                 *(prootManager.deviceModelDevicetreeBind()?.let { arrayOf("-b", it) } ?: emptyArray()),
                 // #304 part 2: optionally expose Android's system partitions (opt-in).
                 *prootManager.androidSystemBindArgs(longForm = false),
-                "-w", "/root",
+                "-w", guestUser.home,
             ) + shellArgs
+            val effectiveLocale = resolveGuestLocale(rootfsDir, terminalLocale)
             val env = arrayOf(
-                "HOME=/root",
-                "USER=root",
+                "HOME=${guestUser.home}",
+                "USER=${guestUser.username}",
+                "LOGNAME=${guestUser.username}",
                 "TERM=xterm-256color",
-                "LANG=$terminalLocale",
+                "LANG=$effectiveLocale",
                 // LC_ALL outranks LANG for every locale category, and older seeded
                 // .profiles force LC_ALL=C.UTF-8 when unset — set it too so the
                 // user's chosen locale actually takes effect (#374).
-                "LC_ALL=$terminalLocale",
+                "LC_ALL=$effectiveLocale",
                 "PATH=/usr/local/sbin:/usr/local/bin:/usr/sbin:/usr/bin:/sbin:/bin",
                 "SHELL=/bin/sh",
                 // XDG base dirs so desktop/X11 apps and `startx`/dbus-run-session
@@ -356,10 +395,13 @@ class LocalSessionManager @Inject constructor(
                 // runtime dir instead of erroring (#261). RUNTIME_DIR == /tmp,
                 // which is the cacheDir bind (writable).
                 "XDG_RUNTIME_DIR=/tmp",
-                "XDG_DATA_HOME=/root/.local/share",
+                "XDG_DATA_HOME=${guestUser.home}/.local/share",
                 "XDG_DATA_DIRS=/usr/local/share:/usr/share",
-                "XDG_CONFIG_HOME=/root/.config",
-                "XDG_CACHE_HOME=/root/.cache",
+                "XDG_CONFIG_HOME=${guestUser.home}/.config",
+                "XDG_CACHE_HOME=${guestUser.home}/.cache",
+                // #718: gdk-pixbuf2 2.44+ uses glycin for SVG icon loading, which
+                // spawns `bwrap --unshare-all --seccomp` and aborts GTK apps inside PRoot.
+                "GLYCIN_DISABLE_SANDBOX=i-know-the-risks",
                 "PROOT_TMP_DIR=${context.cacheDir.absolutePath}",
                 "PROOT_LOADER=${java.io.File(context.applicationInfo.nativeLibraryDir, "libproot_loader.so").absolutePath}",
                 "PROOT_L2S_DIR=${prootManager.l2sEnvValue(targetDistro)}",

@@ -36,10 +36,10 @@ internal class TunnelToolProvider(
         ) { _ -> listLiveTunnels() },
 
         "create_tunnel" to ToolHandler(
-            description = "Add a new WireGuard, Tailscale, NetBird, OpenVPN, or Cloudflare Tunnel config. WIREGUARD: pass `configText` (wg-quick INI body). TAILSCALE: pass `tailscaleAuthKey` (and optional `tailscaleControlUrl` for Headscale). NETBIRD: pass `netbirdSetupKey` (and optional `netbirdManagementUrl` for a self-hosted management server). OPENVPN: pass `ovpnConfigText` (a full .ovpn profile); optional `ovpnUsername`/`ovpnPassword` when the profile uses auth-user-pass without inline credentials. CLOUDFLARE_ACCESS: pass `accessHostname`; for Access-protected routes also pass `accessJwt` (from `cloudflared access token --app https://<host>`); optional `accessJumpDestination` for bastion-mode multi-target tunnels. Returns the new tunnel id, which can then be passed to set_profile_routing.",
+            description = "Add a new WireGuard, Tailscale, NetBird, OpenVPN, AnyConnect, or Cloudflare Tunnel config. WIREGUARD: pass `configText` (wg-quick INI body). TAILSCALE: pass `tailscaleAuthKey` (and optional `tailscaleControlUrl` for Headscale). NETBIRD: pass `netbirdSetupKey` (and optional `netbirdManagementUrl` for a self-hosted management server). OPENVPN: pass `ovpnConfigText` (a full .ovpn profile); optional `ovpnUsername`/`ovpnPassword` when the profile uses auth-user-pass without inline credentials. ANYCONNECT (Cisco AnyConnect or ocserv): pass `anyconnectServer` and `anyconnectUsername`, usually `anyconnectPassword`; optional `anyconnectGroup`, a second factor via `anyconnectOtpSecret` (TOTP) or `anyconnectSecondaryPassword` (e.g. push), and `anyconnectServerCert` (pin-sha256:...) for self-signed gateways. CLOUDFLARE_ACCESS: pass `accessHostname`; for Access-protected routes also pass `accessJwt` (from `cloudflared access token --app https://<host>`); optional `accessJumpDestination` for bastion-mode multi-target tunnels. Returns the new tunnel id, which can then be passed to set_profile_routing.",
             inputSchema = objectSchema {
                 string("label", "User-facing label (also used to derive the tunnel hostname).", required = true)
-                string("type", "WIREGUARD, TAILSCALE, NETBIRD, OPENVPN, or CLOUDFLARE_ACCESS.", required = true)
+                string("type", "WIREGUARD, TAILSCALE, NETBIRD, OPENVPN, ANYCONNECT, or CLOUDFLARE_ACCESS.", required = true)
                 string("configText", "WireGuard wg-quick INI body. Required when type=WIREGUARD.")
                 string("tailscaleAuthKey", "Tailscale single-use authkey (tskey-auth-...). Required when type=TAILSCALE.")
                 string("tailscaleControlUrl", "Self-hosted Headscale coordination URL. Optional — empty defaults to controlplane.tailscale.com.")
@@ -48,6 +48,13 @@ internal class TunnelToolProvider(
                 string("ovpnConfigText", "Full .ovpn profile text (client, dev tun, remote, inline ca/cert/key or tls-auth blocks, ...). Required when type=OPENVPN.")
                 string("ovpnUsername", "auth-user-pass username. Optional — only needed when the profile's server requires it without an inline credentials file.")
                 string("ovpnPassword", "auth-user-pass password. Optional, same condition as ovpnUsername.")
+                string("anyconnectServer", "AnyConnect/ocserv gateway, e.g. vpn.example.com or vpn.example.com:8443/group. Required when type=ANYCONNECT.")
+                string("anyconnectUsername", "AnyConnect username. Required when type=ANYCONNECT.")
+                string("anyconnectPassword", "AnyConnect password.")
+                string("anyconnectGroup", "Auth group from the gateway's group list. Optional — empty keeps the server default.")
+                string("anyconnectOtpSecret", "TOTP secret (base32 or otpauth:// URI) answering the gateway's second-factor prompt. Optional.")
+                string("anyconnectSecondaryPassword", "Fixed answer to the second-factor prompt (e.g. push for Duo). Optional; ignored when anyconnectOtpSecret is set.")
+                string("anyconnectServerCert", "Certificate pin for self-signed gateways: pin-sha256:<base64>, sha256:<hex> or sha1:<hex>. Optional.")
                 string("accessHostname", "Cloudflare Tunnel published hostname (e.g. ssh.example.com). Required when type=CLOUDFLARE_ACCESS.")
                 string("accessJwt", "Cloudflare Access JWT (`CF_Authorization` value). Optional — only needed when the Tunnel route is Access-protected.")
                 string("accessTeamDomain", "Cloudflare Access team domain (myteam.cloudflareaccess.com). Optional; only meaningful for Access-protected routes.")
@@ -115,9 +122,10 @@ internal class TunnelToolProvider(
             "TAILSCALE" -> TunnelConfigType.TAILSCALE
             "NETBIRD" -> TunnelConfigType.NETBIRD
             "OPENVPN" -> TunnelConfigType.OPENVPN
+            "ANYCONNECT" -> TunnelConfigType.ANYCONNECT
             "CLOUDFLARE_ACCESS" -> TunnelConfigType.CLOUDFLARE_ACCESS
             else -> throw IllegalArgumentException(
-                "type must be WIREGUARD, TAILSCALE, NETBIRD, OPENVPN, or CLOUDFLARE_ACCESS"
+                "type must be WIREGUARD, TAILSCALE, NETBIRD, OPENVPN, ANYCONNECT, or CLOUDFLARE_ACCESS"
             )
         }
         val configBytes: ByteArray = when (type) {
@@ -183,6 +191,26 @@ internal class TunnelToolProvider(
                 val username = args.optString("ovpnUsername")
                 val password = args.optString("ovpnPassword")
                 sh.haven.core.tunnel.OpenVpnConfigBlob(ovpnConfigText, username, password).encode()
+            }
+            TunnelConfigType.ANYCONNECT -> {
+                val server = sh.haven.core.tunnel.AnyConnectConfigBlob
+                    .normalizeServer(args.optString("anyconnectServer"))
+                    ?: throw IllegalArgumentException(
+                        "anyconnectServer required for ANYCONNECT type (https only)"
+                    )
+                val username = args.optString("anyconnectUsername").trim()
+                if (username.isEmpty()) {
+                    throw IllegalArgumentException("anyconnectUsername required for ANYCONNECT type")
+                }
+                sh.haven.core.tunnel.AnyConnectConfigBlob(
+                    server = server,
+                    username = username,
+                    password = args.optString("anyconnectPassword"),
+                    authGroup = args.optString("anyconnectGroup").trim(),
+                    otpSecret = args.optString("anyconnectOtpSecret").trim(),
+                    secondaryPassword = args.optString("anyconnectSecondaryPassword"),
+                    serverCert = args.optString("anyconnectServerCert").trim(),
+                ).encode()
             }
         }
         val config = TunnelConfig(

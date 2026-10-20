@@ -72,6 +72,9 @@
     <string name="terminal_new_tab_connecting">جارٍ الاتصال…</string>
     <!-- Backfilled translations (i18n drift fix) -->
     <string name="terminal_no_contact">لا استجابة من الخادم منذ %1$d ث — تجري إعادة المحاولة</string>
+    <string name="terminal_attach_notice_unavailable">لم يبدأ مدير الجلسات %1$s — أنت في صدفة عادية. تحقق من أنه مثبّت على المضيف، أو اضبط أمر الجلسة في محرر الاتصال (متقدم).</string>
+    <string name="terminal_attach_notice_missing">لم تُرفق جلسة %1$s "%2$s" — أنت في صدفة عادية. تحقق من أمر البدء، أو اضبط أمر الجلسة في محرر الاتصال (متقدم).</string>
+    <string name="terminal_attach_notice_dismiss">تجاهل</string>
     <string name="terminal_new_session_create">إنشاء</string>
     <string name="terminal_vnc_username_label">اسم المستخدم (اختياري — VeNCrypt فقط)</string>
     <string name="terminal_vnc_username_placeholder">اتركه فارغًا لاستخدام VncAuth التقليدي</string>

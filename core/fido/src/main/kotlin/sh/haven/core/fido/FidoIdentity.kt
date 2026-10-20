@@ -26,6 +26,10 @@ class FidoIdentity(
     private val authenticator: FidoAuthenticator,
     /** Profile key name shown in the touch prompt so the user presents the right key (#237). */
     private val keyLabel: String? = null,
+    /** True when this identity signs agent-forwarded requests rather than an
+     *  interactive connect (#732): an absent key fails fast instead of waiting
+     *  for a presentation nobody is in a position to make. */
+    private val nonInteractive: Boolean = false,
 ) : Identity {
 
     override fun getAlgName(): String = skKeyData.algorithmName
@@ -76,6 +80,7 @@ class FidoIdentity(
                     credentialId = skKeyData.credentialId,
                     requireUv = requireUv,
                     keyLabel = keyLabel,
+                    nonInteractive = nonInteractive,
                 )
             }
         } catch (e: Exception) {

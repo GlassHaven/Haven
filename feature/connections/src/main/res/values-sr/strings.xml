@@ -134,6 +134,8 @@
     <string name="connections_helper_post_login">Шаље се након пријаве.</string>
     <string name="connections_field_remote_command">Удаљена команда (напредно)</string>
     <string name="connections_helper_remote_command">Извршава се као SSH команда, без отварања љуске за пријаву. Оставите празно за обичну љуску.</string>
+    <string name="connections_field_session_command">Команда сесије (напредно)</string>
+    <string name="connections_helper_session_command">Замењује команду за покретање менаџера сесија само за ову везу. {name} постаје име сесије. Користите када уграђена tmux/screen команда не може да се изврши, нпр. Windows домаћин: wsl -e sh -c \"tmux new-session -A -s {name}\". Ако је празно, користи се глобално подешавање.</string>
     <string name="connections_toggle_request_pty">Терминал захтева (PTY)</string>
     <string name="connections_dropdown_none_direct">Ништа (директно)</string>
     <string name="connections_dropdown_cloudflare_tunnel">Cloudflare тунел</string>

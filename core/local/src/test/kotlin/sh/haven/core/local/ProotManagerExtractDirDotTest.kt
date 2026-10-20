@@ -160,4 +160,41 @@ class ProotManagerExtractDirDotTest {
             forceDeleteRecursively(dest)
         }
     }
+
+    @Test
+    fun `pax extended header with trailing slash in truncated ustar name extracts long path and subsequent entries`() {
+        val dest = Files.createTempDirectory("tar-pax-dest").toFile()
+        try {
+            val fullPath = "debian-trixie-aarch64/usr/share/doc/libustr-1.0-1/examples/autoconf-ustr/m4-500-shr-mapped/ustr-import.m4.in"
+            val paxRecordBody = "path=$fullPath\n"
+            // Compute POSIX PAX record length prefix ("%d %s", totalLen, paxRecordBody)
+            var totalLen = paxRecordBody.length + 3
+            while ((totalLen.toString().length + 1 + paxRecordBody.length) != totalLen) {
+                totalLen = totalLen.toString().length + 1 + paxRecordBody.length
+            }
+            val paxPayload = "$totalLen $paxRecordBody"
+            // 100-char ustar name ending in '/' — the exact trigger from debian-trixie-aarch64-pd-v4.29.0.tar.xz (#721)
+            val truncatedPaxHeaderName = "debian-trixie-aarch64/usr/share/doc/libustr-1.0-1/examples/autoconf-ustr/m4-500-shr-mapped/PaxHeader/"
+                .also { assertEquals(101, it.length) }
+                .drop(1) // 100 chars ending in '/'
+            assertEquals('/', truncatedPaxHeaderName.last())
+
+            val tarball = gzTar(
+                "debian-trixie-aarch64/",
+                tarEntry(truncatedPaxHeaderName, paxPayload, typeFlag = 'x'.code.toByte()),
+                tarEntry("debian-trixie-aarch64/usr/share/doc/truncated", "m4-content", typeFlag = '0'.code.toByte()),
+                tarEntry("debian-trixie-aarch64/usr/share/dpkg/cputable", "arm64\taarch64\n", typeFlag = '0'.code.toByte()),
+            )
+            extract(tarball, dest, stripComponents = 1)
+
+            val longFile = File(dest, "usr/share/doc/libustr-1.0-1/examples/autoconf-ustr/m4-500-shr-mapped/ustr-import.m4.in")
+            assertTrue("PAX path override must determine extracted file path", longFile.isFile)
+            assertEquals("m4-content", longFile.readText())
+            val cpuTable = File(dest, "usr/share/dpkg/cputable")
+            assertTrue("Subsequent entries after PAX header must be extracted (#721)", cpuTable.isFile)
+            assertEquals("arm64\taarch64\n", cpuTable.readText())
+        } finally {
+            forceDeleteRecursively(dest)
+        }
+    }
 }

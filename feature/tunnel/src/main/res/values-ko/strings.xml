@@ -11,6 +11,7 @@
     <string name="tunnel_delete_message">\"%1$s\"을(를) 삭제합니다. 이 터널을 참조하는 프로필은 다른 터널을 선택할 때까지 연결되지 않습니다.</string>
     <string name="tunnel_delete_confirm">삭제</string>
     <string name="tunnel_cancel">취소</string>
+    <string name="tunnel_type_label">터널 유형</string>
     <string name="tunnel_label">라벨</string>
     <string name="tunnel_save">저장</string>
     <string name="tunnel_edit">터널 편집</string>

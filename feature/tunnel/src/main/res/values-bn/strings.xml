@@ -11,6 +11,7 @@
     <string name="tunnel_delete_message">\"%1$s\" সরান। এই টানেল উল্লেখকারী প্রোফাইলগুলি আপনি অন্য একটি না বেছে নেওয়া পর্যন্ত সংযোগ করতে ব্যর্থ হবে।</string>
     <string name="tunnel_delete_confirm">মুছুন</string>
     <string name="tunnel_cancel">বাতিল</string>
+    <string name="tunnel_type_label">টানেলের ধরন</string>
     <string name="tunnel_label">লেবেল</string>
     <string name="tunnel_save">সংরক্ষণ</string>
     <string name="tunnel_edit">টানেল সম্পাদনা করুন</string>

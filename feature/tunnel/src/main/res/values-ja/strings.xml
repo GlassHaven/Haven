@@ -18,6 +18,7 @@
     <string name="tunnel_cancel">キャンセル</string>
 
     <!-- Add tunnel dialog -->
+    <string name="tunnel_type_label">トンネルの種類</string>
     <string name="tunnel_label">ラベル</string>
     <string name="tunnel_save">保存</string>
     <string name="tunnel_edit">トンネルを編集</string>

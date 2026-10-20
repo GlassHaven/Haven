@@ -11,6 +11,7 @@
     <string name="tunnel_delete_message">Уклања се „%1$s“. Профили који указују на овај тунел неће моћи да успоставе везу све док не изаберете неки други тунел.</string>
     <string name="tunnel_delete_confirm">Обриши</string>
     <string name="tunnel_cancel">Откажи</string>
+    <string name="tunnel_type_label">Тип тунела</string>
     <string name="tunnel_label">Ознака</string>
     <string name="tunnel_save">Сачувај</string>
     <string name="tunnel_edit">Измени тунел</string>

@@ -22,6 +22,11 @@ import androidx.compose.material.icons.filled.FileOpen
 import androidx.compose.material.icons.filled.VpnLock
 import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.Button
+import androidx.compose.material3.DropdownMenuItem
+import androidx.compose.material3.ExperimentalMaterial3Api
+import androidx.compose.material3.ExposedDropdownMenuAnchorType
+import androidx.compose.material3.ExposedDropdownMenuBox
+import androidx.compose.material3.ExposedDropdownMenuDefaults
 import androidx.compose.material3.FloatingActionButton
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
@@ -78,10 +83,10 @@ fun TunnelsScreen(
     onBack: (() -> Unit)? = null,
     /**
      * If non-null, the Add Tunnel dialog auto-opens on first composition
-     * with this type pre-selected on the chip row. Used by the connection
+     * with this type pre-selected in the dropdown. Used by the connection
      * edit dialog's quick-add affordances ("+ New Cloudflare Tunnel" /
      * "+ New WireGuard tunnel") so the user doesn't have to know which
-     * chip to pick after navigating in. Default null preserves the
+     * type to pick after navigating in. Default null preserves the
      * existing entry-point behaviour (manual + button, type starts on
      * WireGuard).
      */
@@ -153,7 +158,7 @@ fun TunnelsScreen(
                             tunnel = tunnel,
                             // Legacy standalone Cloudflare rows (pre-#154) have
                             // no editor for their payload — delete/recreate is
-                            // the only path for those; the chip row can't even
+                            // the only path for those; the type selector can't even
                             // represent the type (see AddTunnelDialog).
                             onEdit = if (tunnel.typeEnum == TunnelConfigType.CLOUDFLARE_ACCESS) {
                                 null
@@ -348,9 +353,10 @@ private fun TunnelRow(
 /**
  * Add-or-edit dialog (#666). With [existing] null it creates a new config;
  * with it set the type is locked (legacy standalone Cloudflare rows can't
- * be represented by the chip row and are never routed here — the list gives
+ * be represented by the type selector and are never routed here — the list gives
  * them delete only) and each field prefills from the decrypted row.
  */
+@OptIn(ExperimentalMaterial3Api::class)
 @Composable
 private fun AddTunnelDialog(
     initialType: TunnelConfigType,
@@ -362,6 +368,7 @@ private fun AddTunnelDialog(
     onSubmitOpenVpn: (label: String, ovpnConfigText: String, username: String, password: String) -> Unit,
 ) {
     var type by remember { mutableStateOf(initialType) }
+    var typeExpanded by remember { mutableStateOf(false) }
     var label by remember { mutableStateOf(existing?.label ?: "") }
     // Prefill decodes the saved blob per type. A blob that no longer parses
     // (hand-edited, format drift) leaves the field blank rather than
@@ -465,23 +472,48 @@ private fun AddTunnelDialog(
                 style = MaterialTheme.typography.headlineSmall,
             )
 
-            // Type picker — FilterChip row over the backends. Each
-            // toggles the fields below; label persists across flips.
+            // A full-width dropdown keeps every backend accessible on narrow
+            // screens. Changing type preserves the label and per-type fields.
             // Cloudflare Tunnel is omitted here on purpose: it lives as
             // an SSH-profile transport (GH #154), not a standalone tunnel.
             // In edit mode the row's type IS its identity (the payload
-            // blob and key fields are typed) — chips lock.
-            Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-                TunnelConfigType.entries
-                    .filter { it != TunnelConfigType.CLOUDFLARE_ACCESS }
-                    .forEach { t ->
-                        androidx.compose.material3.FilterChip(
-                            selected = type == t,
+            // blob and key fields are typed) — the selector stays locked.
+            ExposedDropdownMenuBox(
+                expanded = typeExpanded,
+                onExpandedChange = { typeExpanded = it && existing == null },
+                modifier = Modifier.fillMaxWidth(),
+            ) {
+                OutlinedTextField(
+                    value = tunnelTypeLabel(type),
+                    onValueChange = {},
+                    readOnly = true,
+                    enabled = existing == null,
+                    label = { Text(stringResource(R.string.tunnel_type_label)) },
+                    trailingIcon = { ExposedDropdownMenuDefaults.TrailingIcon(typeExpanded) },
+                    singleLine = true,
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .menuAnchor(
+                            ExposedDropdownMenuAnchorType.PrimaryNotEditable,
                             enabled = existing == null,
-                            onClick = { type = t },
-                            label = { Text(tunnelTypeLabel(t)) },
-                        )
-                    }
+                        ),
+                )
+                ExposedDropdownMenu(
+                    expanded = typeExpanded,
+                    onDismissRequest = { typeExpanded = false },
+                ) {
+                    TunnelConfigType.entries
+                        .filter { it != TunnelConfigType.CLOUDFLARE_ACCESS }
+                        .forEach { t ->
+                            DropdownMenuItem(
+                                text = { Text(tunnelTypeLabel(t)) },
+                                onClick = {
+                                    type = t
+                                    typeExpanded = false
+                                },
+                            )
+                        }
+                }
             }
 
             OutlinedTextField(
@@ -667,7 +699,7 @@ private fun AddTunnelDialog(
                 }
                 TunnelConfigType.CLOUDFLARE_ACCESS -> {
                     // Retired from this dialog (GH #154). Filtered out of
-                    // the chip row above, so this branch is unreachable in
+                    // the type dropdown above, so this branch is unreachable in
                     // practice; it exists only because the enum still
                     // includes the value for legacy standalone rows in
                     // the list.

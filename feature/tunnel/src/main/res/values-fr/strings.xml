@@ -11,6 +11,7 @@
     <string name="tunnel_delete_message">Supprimer \"%1$s\". Les profils référençant ce tunnel ne pourront pas se connecter tant que vous n\'en aurez pas choisi un autre.</string>
     <string name="tunnel_delete_confirm">Supprimer</string>
     <string name="tunnel_cancel">Annuler</string>
+    <string name="tunnel_type_label">Type de tunnel</string>
     <string name="tunnel_label">Libellé</string>
     <string name="tunnel_save">Enregistrer</string>
     <string name="tunnel_edit">Modifier le tunnel</string>

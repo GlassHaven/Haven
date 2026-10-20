@@ -18,6 +18,7 @@
     <string name="tunnel_cancel">Cancel</string>
 
     <!-- Add tunnel dialog -->
+    <string name="tunnel_type_label">Tunnel type</string>
     <string name="tunnel_label">Label</string>
     <string name="tunnel_save">Save</string>
     <string name="tunnel_edit">Edit tunnel</string>

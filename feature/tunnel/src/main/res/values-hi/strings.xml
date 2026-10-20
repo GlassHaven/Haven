@@ -18,6 +18,7 @@
     <string name="tunnel_cancel">रद्द करें</string>
 
     <!-- Add tunnel dialog -->
+    <string name="tunnel_type_label">टनल का प्रकार</string>
     <string name="tunnel_label">लेबल</string>
     <string name="tunnel_save">सहेजें</string>
     <string name="tunnel_edit">टनल संपादित करें</string>

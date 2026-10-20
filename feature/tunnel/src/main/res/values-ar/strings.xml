@@ -11,6 +11,7 @@
     <string name="tunnel_delete_message">إزالة \"%1$s\". ستفشل ملفات الاتصال التي تشير إلى هذا النفق في الاتصال حتى تختار نفقًا آخر.</string>
     <string name="tunnel_delete_confirm">حذف</string>
     <string name="tunnel_cancel">إلغاء</string>
+    <string name="tunnel_type_label">نوع النفق</string>
     <string name="tunnel_label">التسمية</string>
     <string name="tunnel_save">حفظ</string>
     <string name="tunnel_edit">تعديل النفق</string>

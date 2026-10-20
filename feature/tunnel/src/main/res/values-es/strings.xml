@@ -11,6 +11,7 @@
     <string name="tunnel_delete_message">Eliminar \"%1$s\". Los perfiles que usen este túnel no podrán conectarse hasta que elijas otro.</string>
     <string name="tunnel_delete_confirm">Eliminar</string>
     <string name="tunnel_cancel">Cancelar</string>
+    <string name="tunnel_type_label">Tipo de túnel</string>
     <string name="tunnel_label">Etiqueta</string>
     <string name="tunnel_save">Guardar</string>
     <string name="tunnel_edit">Editar túnel</string>

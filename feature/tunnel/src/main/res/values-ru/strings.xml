@@ -18,6 +18,7 @@
     <string name="tunnel_cancel">Отмена</string>
 
     <!-- Add tunnel dialog -->
+    <string name="tunnel_type_label">Тип туннеля</string>
     <string name="tunnel_label">Метка</string>
     <string name="tunnel_save">Сохранить</string>
     <string name="tunnel_edit">Изменить туннель</string>

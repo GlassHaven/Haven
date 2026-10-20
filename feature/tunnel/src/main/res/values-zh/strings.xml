@@ -11,6 +11,7 @@
     <string name="tunnel_delete_message">移除 \"%1$s\"。在您另选一个隧道之前，引用此隧道的配置文件将无法连接。</string>
     <string name="tunnel_delete_confirm">删除</string>
     <string name="tunnel_cancel">取消</string>
+    <string name="tunnel_type_label">隧道类型</string>
     <string name="tunnel_label">标签</string>
     <string name="tunnel_save">保存</string>
     <string name="tunnel_edit">编辑隧道</string>

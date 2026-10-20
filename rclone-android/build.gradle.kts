@@ -53,10 +53,51 @@ kotlin {
     }
 }
 
+// This is a separate included build (see Haven's settings.gradle.kts).
+// Own the OpenVPN producer here: depending on a task in the including build
+// would not resolve, and independently producing the same archives in both
+// builds would race. core:tunnel's native task delegates to this one.
+val openvpn3Source = file("../openvpn3-core")
+val openvpn3Archives = file("../core/tunnel/jniLibs-openvpn3")
+
+val fetchOpenvpn3Deps by tasks.registering(Exec::class) {
+    inputs.file(openvpn3Source.resolve("fetch-deps.sh"))
+    inputs.file(openvpn3Source.resolve("deps.lock"))
+    inputs.dir(openvpn3Source.resolve("openvpn3/deps/vcpkg-ports/asio"))
+    outputs.dir(openvpn3Source.resolve(".deps/sources"))
+    onlyIf { !project.hasProperty("skipOpenvpn3Native") }
+
+    workingDir = openvpn3Source
+    commandLine("bash", "fetch-deps.sh", if (gradle.startParameter.isOffline) "--offline" else "--prepare")
+}
+
+val buildOpenvpn3Native by tasks.registering(Exec::class) {
+    dependsOn(fetchOpenvpn3Deps)
+    inputs.file(openvpn3Source.resolve("build-android.sh"))
+    inputs.dir(openvpn3Source.resolve("openvpn3"))
+    inputs.file(openvpn3Source.resolve("adapter.cpp"))
+    inputs.file(openvpn3Source.resolve("CMakeLists.txt"))
+    inputs.file(openvpn3Source.resolve("fetch-deps.sh"))
+    inputs.file(openvpn3Source.resolve("deps.lock"))
+    inputs.dir(openvpn3Source.resolve(".deps/sources"))
+    inputs.dir(file("go/ovpnbridge/openvpn3/bridge"))
+    outputs.dir(openvpn3Archives)
+    onlyIf { !project.hasProperty("skipOpenvpn3Native") }
+
+    workingDir = openvpn3Source
+    commandLine("bash", "build-android.sh")
+    environment("OPENVPN3_OUTPUT", openvpn3Archives.absolutePath)
+}
+
 // Build rclone native library from Go source via gomobile.
 // Prerequisites: Go 1.26+, gomobile, gobind, Android NDK.
 // The .so files are NOT committed — they're built as part of the Gradle build.
 val buildRcloneNative by tasks.registering(Exec::class) {
+    // ovpnbridge's cgo link consumes these archives even in task graphs that
+    // never reach core:tunnel:preBuild (for example lint and unit tests).
+    dependsOn(buildOpenvpn3Native)
+    inputs.dir(openvpn3Archives)
+
     val goDir = file("go")
     val jniDir = file("jniLibs")
     val toolsDir = file("tools")

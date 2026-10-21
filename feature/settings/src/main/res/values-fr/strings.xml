@@ -526,7 +526,7 @@ Chaque clé privée déjà stockée dans Haven devra être importée ou génér�
     <string name="settings_inline_images_ask">Demander</string>
     <string name="settings_inline_images_always">Toujours</string>
     <string name="settings_ambiwidth_title">Gestion de la largeur ambiguë des caractères</string>
-    <string name="settings_ambiwidth_subtitle">Rendu des caractères d'Asie orientale à largeur ambiguë (symboles, grec)</string>
+    <string name="settings_ambiwidth_subtitle">Rendu des caractères d\'Asie orientale à largeur ambiguë (symboles, grec)</string>
     <string name="settings_ambiwidth_mode_narrow">Étroit (1 cellule)</string>
     <string name="settings_ambiwidth_mode_narrow_desc">Toujours 1 cellule (Unix / XTerm standard, par défaut)</string>
     <string name="settings_ambiwidth_mode_auto_narrow">Auto + Étroit</string>

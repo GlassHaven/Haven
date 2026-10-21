@@ -136,7 +136,7 @@ class SshTerminalEmulatorOwner @Inject constructor(
     @Volatile private var scrollbackRows = UserPreferencesRepository.DEFAULT_SCROLLBACK_ROWS
     @Volatile private var globalScheme = UserPreferencesRepository.TerminalColorScheme.HAVEN
     @Volatile private var inlineImagesMode = UserPreferencesRepository.TerminalInlineImages.ASK
-    @Volatile private var ambiwidthMode = UserPreferencesRepository.TerminalAmbiwidthMode.AUTO_NARROW
+    @Volatile private var ambiwidthMode = UserPreferencesRepository.TerminalAmbiwidthMode.NARROW
 
     /** Register the provider + start the caches. Call once from `HavenApp.onCreate`. */
     fun start() {

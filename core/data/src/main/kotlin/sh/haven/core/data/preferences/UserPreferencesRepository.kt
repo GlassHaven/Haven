@@ -1482,7 +1482,7 @@ class UserPreferencesRepository @Inject constructor(
             TerminalAmbiwidthMode.fromString(raw)
         } else {
             val legacy = prefs[ambiwidthKey]
-            if (legacy == true) TerminalAmbiwidthMode.WIDE else TerminalAmbiwidthMode.AUTO_NARROW
+            if (legacy == true) TerminalAmbiwidthMode.WIDE else TerminalAmbiwidthMode.NARROW
         }
     }
 
@@ -2479,7 +2479,7 @@ class UserPreferencesRepository @Inject constructor(
 
         companion object {
             fun fromString(value: String?): TerminalAmbiwidthMode =
-                entries.find { it.id.equals(value, ignoreCase = true) || it.name.equals(value, ignoreCase = true) } ?: AUTO_NARROW
+                entries.find { it.id.equals(value, ignoreCase = true) || it.name.equals(value, ignoreCase = true) } ?: NARROW
         }
     }
 

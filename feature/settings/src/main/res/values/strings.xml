@@ -67,9 +67,9 @@
     <string name="settings_ambiwidth_title">Ambiguous width character handling</string>
     <string name="settings_ambiwidth_subtitle">How East Asian Ambiguous characters (symbols, Greek) are rendered</string>
     <string name="settings_ambiwidth_mode_narrow">Narrow (1-cell)</string>
-    <string name="settings_ambiwidth_mode_narrow_desc">Always 1 cell (standard Unix / XTerm)</string>
+    <string name="settings_ambiwidth_mode_narrow_desc">Always 1 cell (standard Unix / XTerm, default)</string>
     <string name="settings_ambiwidth_mode_auto_narrow">Auto + Narrow</string>
-    <string name="settings_ambiwidth_mode_auto_narrow_desc">Profile active font; fallback to 1 cell (Recommended)</string>
+    <string name="settings_ambiwidth_mode_auto_narrow_desc">Profile active font; fallback to 1 cell</string>
     <string name="settings_ambiwidth_mode_wide">Wide (2-cell)</string>
     <string name="settings_ambiwidth_mode_wide_desc">Always 2 cells (legacy CJK ambiwidth)</string>
     <string name="settings_ambiwidth_mode_auto_wide">Auto + Wide</string>

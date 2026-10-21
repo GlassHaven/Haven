@@ -702,7 +702,7 @@ class SettingsViewModel @Inject constructor(
             .stateIn(
                 viewModelScope,
                 SharingStarted.WhileSubscribed(5000),
-                UserPreferencesRepository.TerminalAmbiwidthMode.AUTO_NARROW,
+                UserPreferencesRepository.TerminalAmbiwidthMode.NARROW,
             )
 
     val terminalFontSize: StateFlow<Int> = preferencesRepository.terminalFontSize

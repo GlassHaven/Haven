@@ -522,9 +522,9 @@ Haven에 이미 저장된 모든 개인 키는 다시 가져오거나 생성해�
     <string name="settings_ambiwidth_title">모호 폭 문자 처리 방식</string>
     <string name="settings_ambiwidth_subtitle">동아시아 모호 폭 문자(특수기호, 그리스 문자 등) 렌더링 방식</string>
     <string name="settings_ambiwidth_mode_narrow">Narrow (1셀 고정)</string>
-    <string name="settings_ambiwidth_mode_narrow_desc">항상 1셀 (표준 Unix / XTerm 방식)</string>
+    <string name="settings_ambiwidth_mode_narrow_desc">항상 1셀 (표준 Unix / XTerm 기본 방식)</string>
     <string name="settings_ambiwidth_mode_auto_narrow">Auto + Narrow</string>
-    <string name="settings_ambiwidth_mode_auto_narrow_desc">현재 폰트 자동 측정, 미측정/기본은 1셀 (권장)</string>
+    <string name="settings_ambiwidth_mode_auto_narrow_desc">현재 폰트 자동 측정, 미측정/기본은 1셀</string>
     <string name="settings_ambiwidth_mode_wide">Wide (2셀 고정)</string>
     <string name="settings_ambiwidth_mode_wide_desc">모든 모호 폭 문자를 항상 2셀로 렌더링</string>
     <string name="settings_ambiwidth_mode_auto_wide">Auto + Wide</string>

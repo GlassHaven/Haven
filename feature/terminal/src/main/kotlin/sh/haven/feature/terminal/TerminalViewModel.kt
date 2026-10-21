@@ -700,7 +700,7 @@ class TerminalViewModel @Inject constructor(
             .stateIn(
                 viewModelScope,
                 SharingStarted.Eagerly,
-                UserPreferencesRepository.TerminalAmbiwidthMode.AUTO_NARROW,
+                UserPreferencesRepository.TerminalAmbiwidthMode.NARROW,
             )
 
     private fun currentTermlibAmbiwidthMode(): org.connectbot.terminal.AmbiwidthMode {

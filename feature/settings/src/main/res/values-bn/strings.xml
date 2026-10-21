@@ -53,6 +53,8 @@
     <string name="settings_session_persistence_none">নেই</string>
     <string name="settings_font_size_title">টার্মিনাল ফন্ট সাইজ</string>
     <string name="settings_font_size_subtitle">%1$dsp</string>
+    <string name="settings_horizontal_padding_title">অনুভূমিক প্যাডিং</string>
+    <string name="settings_horizontal_padding_subtitle">%1$d dp</string>
     <string name="settings_color_scheme_title">টার্মিনাল রঙের থিম</string>
     <string name="settings_toolbar_title">কীবোর্ড টুলবার</string>
     <string name="settings_toolbar_subtitle">টুলবার কী ও লেআউট কনফিগার করুন</string>
@@ -169,6 +171,9 @@
     <string name="settings_font_size_dialog_title">টার্মিনাল ফন্ট সাইজ</string>
     <string name="settings_font_size_sample">নমুনা টেক্সট</string>
     <string name="settings_font_size_value">%1$dsp</string>
+    <string name="settings_horizontal_padding_dialog_title">টার্মিনাল অনুভূমিক প্যাডিং</string>
+    <string name="settings_horizontal_padding_sample">নমুনা টেক্সট</string>
+    <string name="settings_horizontal_padding_value">%1$d dp</string>
 
     <!-- Toolbar config dialog -->
     <string name="settings_toolbar_dialog_title">কীবোর্ড টুলবার</string>
@@ -520,6 +525,14 @@ Haven-এ ইম্মদ্য সংরক্ষিত প্রত্যে�
     <string name="settings_inline_images_off">বন্ধ</string>
     <string name="settings_inline_images_ask">জিজ্ঞাসা করুন</string>
     <string name="settings_inline_images_always">সবসময়</string>
-    <string name="settings_ambiwidth_title">অস্পষ্ট প্রস্থ দ্বি-প্রস্থ হিসেবে</string>
-    <string name="settings_ambiwidth_subtitle">পূর্ব এশীয় অস্পষ্ট অক্ষর ২টি সেল হিসেবে রেন্ডার করুন</string>
+    <string name="settings_ambiwidth_title">অস্পষ্ট প্রস্থ অক্ষরের পরিচালনা</string>
+    <string name="settings_ambiwidth_subtitle">পূর্ব এশীয় অস্পষ্ট অক্ষরের (প্রতীক, গ্রীক) রেন্ডারিং পদ্ধতি</string>
+    <string name="settings_ambiwidth_mode_narrow">সংকীর্ণ (১টি ঘর)</string>
+    <string name="settings_ambiwidth_mode_narrow_desc">সর্বদা ১টি ঘর (স্ট্যান্ডার্ড ইউনিক্স / XTerm, ডিফল্ট)</string>
+    <string name="settings_ambiwidth_mode_auto_narrow">অটো + সংকীর্ণ</string>
+    <string name="settings_ambiwidth_mode_auto_narrow_desc">সক্রিয় ফন্ট পরিমাপ করুন; অন্যথায় ১টি ঘর</string>
+    <string name="settings_ambiwidth_mode_wide">প্রশস্ত (২টি ঘর)</string>
+    <string name="settings_ambiwidth_mode_wide_desc">সর্বদা ২টি ঘর (ঐতিহ্যবাহী CJK ambiwidth)</string>
+    <string name="settings_ambiwidth_mode_auto_wide">অটো + প্রশস্ত</string>
+    <string name="settings_ambiwidth_mode_auto_wide_desc">সক্রিয় ফন্ট পরিমাপ করুন; অন্যথায় ২টি ঘর (CJK)</string>
 </resources>

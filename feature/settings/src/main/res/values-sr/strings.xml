@@ -55,6 +55,8 @@
     <string name="settings_session_persistence_none">Ништа</string>
     <string name="settings_font_size_title">Величина фонта терминала</string>
     <string name="settings_font_size_subtitle">%1$dsp</string>
+    <string name="settings_horizontal_padding_title">Хоризонтална маргина</string>
+    <string name="settings_horizontal_padding_subtitle">%1$d dp</string>
     <string name="settings_scrollback_rows_title">Редова за скроловање уназад</string>
     <string name="settings_scrollback_rows_subtitle">%1$,d линија се задржава по картици — примењује се на нове картице</string>
     <string name="settings_tap_to_position_title">Тап за померање курсора на подржаним одзивима</string>
@@ -198,6 +200,9 @@
     <string name="settings_font_size_dialog_title">Величина фонта терминала</string>
     <string name="settings_font_size_sample">Пробни текст</string>
     <string name="settings_font_size_value">%1$dsp</string>
+    <string name="settings_horizontal_padding_dialog_title">Хоризонтална маргина терминала</string>
+    <string name="settings_horizontal_padding_sample">Пробни текст</string>
+    <string name="settings_horizontal_padding_value">%1$d dp</string>
     <string name="settings_terminal_opacity_title">Непрозирност позадине</string>
     <string name="settings_terminal_opacity_value">%1$d%%</string>
     <string name="settings_terminal_opacity_hint" formatted="false">Испод 100% Haven постаје полупрозиран и приказује тапет уређаја иза сваког екрана (терминал, листе, подешавања). Преиначавање за сваку везу се примењује само за тај терминал.</string>
@@ -452,4 +457,14 @@
     <string name="settings_auto_show_keyboard_subtitle">Софтверска тастатура се аутоматски подиже када отворите или пређете на сесију терминала. Искључите ако не желите да се прикаже за сесије које су само-за-читање; тастер тастатуре на алатној линији и двоструки тап и даље могу да је подигну</string>
     <string name="settings_gps_guest_title">Изложи GPS Линукс госту</string>
     <string name="settings_gps_guest_subtitle">Стримује GPS позицију телефона у госта као NMEA уређај (haven-gps). Када се укључи, било који процес у госту може да чита позицију. Свако привезивање још увек пита за пристанак.</string>
+    <string name="settings_ambiwidth_title">Руковање знаковима двосмислене ширине</string>
+    <string name="settings_ambiwidth_subtitle">Како се приказују источноазијски знакови двосмислене ширине (симболи, грчки)</string>
+    <string name="settings_ambiwidth_mode_narrow">Уско (1 ћелија)</string>
+    <string name="settings_ambiwidth_mode_narrow_desc">Увек 1 ћелија (стандардни Unix / XTerm, подразумевано)</string>
+    <string name="settings_ambiwidth_mode_auto_narrow">Ауто + Уско</string>
+    <string name="settings_ambiwidth_mode_auto_narrow_desc">Профилиши активни фонт; резерва на 1 ћелију</string>
+    <string name="settings_ambiwidth_mode_wide">Широко (2 ћелије)</string>
+    <string name="settings_ambiwidth_mode_wide_desc">Увек 2 ћелије (наслеђени CJK ambiwidth)</string>
+    <string name="settings_ambiwidth_mode_auto_wide">Ауто + Широко</string>
+    <string name="settings_ambiwidth_mode_auto_wide_desc">Профилиши активни фонт; резерва на 2 ћелије (CJK)</string>
 </resources>

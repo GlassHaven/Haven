@@ -57,6 +57,8 @@
     <string name="settings_session_persistence_none">없음</string>
     <string name="settings_font_size_title">터미널 글꼴 크기</string>
     <string name="settings_font_size_subtitle">%1$dsp</string>
+    <string name="settings_horizontal_padding_title">좌우 여백</string>
+    <string name="settings_horizontal_padding_subtitle">%1$d dp</string>
     <string name="settings_color_scheme_title">터미널 색상 테마</string>
     <string name="settings_toolbar_title">키보드 도구 모음</string>
     <string name="settings_toolbar_subtitle">도구 모음 키와 레이아웃 구성</string>
@@ -181,6 +183,9 @@
     <string name="settings_font_size_dialog_title">터미널 글꼴 크기</string>
     <string name="settings_font_size_sample">샘플 텍스트</string>
     <string name="settings_font_size_value">%1$dsp</string>
+    <string name="settings_horizontal_padding_dialog_title">터미널 좌우 여백</string>
+    <string name="settings_horizontal_padding_sample">샘플 텍스트</string>
+    <string name="settings_horizontal_padding_value">%1$d dp</string>
 
     <!-- Toolbar config dialog -->
     <string name="settings_toolbar_dialog_title">키보드 도구 모음</string>

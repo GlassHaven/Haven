@@ -29172,41 +29172,245 @@
      }
     },
     {
-     "name": "settings_ambiwidth_title",
-     "en": "Ambiguous width as double-width",
+     "name": "settings_horizontal_padding_title",
+     "en": "Horizontal padding",
      "comment": "Terminal section",
      "args": [],
      "t": {
-      "ar": "العرض الغامض كعرض مزدوج",
-      "bn": "অস্পষ্ট প্রস্থ দ্বি-প্রস্থ হিসেবে",
-      "de": "Ambigue Breite als Doppelbreite",
-      "es": "Ancho ambiguo como doble ancho",
-      "fr": "Largeur ambiguë en double largeur",
-      "hi": "अस्पष्ट चौड़ाई को द्वि-चौड़ाई के रूप में",
-      "ja": "曖昧幅文字を倍幅で表示",
-      "ko": "모호 폭 문자를 배폭으로 표시",
-      "pt": "Largura ambígua como largura dupla",
-      "ru": "Неоднозначная ширина как двойная",
-      "zh": "模糊宽度按双宽显示"
+      "ar": "تباعد أفقي",
+      "bn": "অনুভূমিক প্যাডিং",
+      "de": "Horizontaler Abstand",
+      "es": "Relleno horizontal",
+      "fr": "Marge horizontale",
+      "hi": "क्षैतिज पैडिंग",
+      "ja": "左右の余白",
+      "ko": "좌우 여백",
+      "pt": "Preenchimento horizontal",
+      "ru": "Горизонтальные отступы",
+      "sr": "Хоризонтална маргина",
+      "zh": "水平边距"
+     }
+    },
+    {
+     "name": "settings_horizontal_padding_subtitle",
+     "en": "%1$d dp",
+     "comment": "Terminal section",
+     "args": [
+      "%1$d"
+     ],
+     "t": {
+      "ar": "%1$d dp",
+      "bn": "%1$d dp",
+      "de": "%1$d dp",
+      "es": "%1$d dp",
+      "fr": "%1$d dp",
+      "hi": "%1$d dp",
+      "ja": "%1$d dp",
+      "ko": "%1$d dp",
+      "pt": "%1$d dp",
+      "ru": "%1$d dp",
+      "sr": "%1$d dp",
+      "zh": "%1$d dp"
+     }
+    },
+    {
+     "name": "settings_ambiwidth_title",
+     "en": "Ambiguous width character handling",
+     "comment": "Terminal section",
+     "args": [],
+     "t": {
+      "ar": "معالجة الأحرف ذات العرض الغامض",
+      "bn": "অস্পষ্ট প্রস্থ অক্ষরের পরিচালনা",
+      "de": "Behandlung mehrdeutiger Zeichenbreiten",
+      "es": "Gestión de caracteres de ancho ambiguo",
+      "fr": "Gestion de la largeur ambiguë des caractères",
+      "hi": "अस्पष्ट चौड़ाई वर्ण प्रबंधन",
+      "ja": "曖昧幅文字の処理方式",
+      "ko": "모호 폭 문자 처리 방식",
+      "pt": "Tratamento de largura ambígua de caracteres",
+      "ru": "Обработка символов неоднозначной ширины",
+      "sr": "Руковање знаковима двосмислене ширине",
+      "zh": "不明确宽度字符处理"
      }
     },
     {
      "name": "settings_ambiwidth_subtitle",
-     "en": "Render East Asian Ambiguous characters as 2 cells",
+     "en": "How East Asian Ambiguous characters (symbols, Greek) are rendered",
      "comment": "Terminal section",
      "args": [],
      "t": {
-      "ar": "عرض أحرف شرق آسيا الغامضة كخليتين",
-      "bn": "পূর্ব এশীয় অস্পষ্ট অক্ষর ২টি সেল হিসেবে রেন্ডার করুন",
-      "de": "Ostasiatische Ambiguous-Zeichen als 2 Zellen darstellen",
-      "es": "Renderizar caracteres ambiguos de Asia oriental como 2 celdas",
-      "fr": "Afficher les caractères asiatiques ambigus sur 2 cellules",
-      "hi": "पूर्व एशियाई अस्पष्ट वर्णों को 2 सेल के रूप में रेंडर करें",
-      "ja": "東アジアの曖昧幅文字を2セルで描画",
-      "ko": "동아시아 모호 폭 문자를 2셀로 렌더링",
-      "pt": "Renderizar caracteres ambíguos do Leste Asiático como 2 células",
-      "ru": "Отображать неоднозначные восточноазиатские символы в 2 ячейки",
-      "zh": "将东亚模糊宽度字符渲染为 2 个单元格"
+      "ar": "كيفية عرض أحرف شرق آسيا ذات العرض الغامض (الرموز، اليونانية)",
+      "bn": "পূর্ব এশীয় অস্পষ্ট অক্ষরের (প্রতীক, গ্রীক) রেন্ডারিং পদ্ধতি",
+      "de": "Darstellung ostasiatischer Zeichen mit mehrdeutiger Breite (Symbole, Griechisch)",
+      "es": "Cómo se representan los caracteres ambiguos de Asia oriental (símbolos, griego)",
+      "fr": "Rendu des caractères d'Asie orientale à largeur ambiguë (symboles, grec)",
+      "hi": "पूर्वी एशियाई अस्पष्ट वर्णों (प्रतीक, ग्रीक) को कैसे रेंडर किया जाए",
+      "ja": "東アジアの曖昧幅文字（記号、ギリシャ文字など）の描画方法",
+      "ko": "동아시아 모호 폭 문자(특수기호, 그리스 문자 등) 렌더링 방식",
+      "pt": "Como caracteres ambíguos do Leste Asiático (símbolos, grego) são renderizados",
+      "ru": "Как отображаются восточноазиатские символы неоднозначной ширины (знаки, греческие буквы)",
+      "sr": "Како се приказују источноазијски знакови двосмислене ширине (симболи, грчки)",
+      "zh": "东亚不明确宽度字符（符号、希腊字母等）的渲染方式"
+     }
+    },
+    {
+     "name": "settings_ambiwidth_mode_narrow",
+     "en": "Narrow (1-cell)",
+     "comment": "Terminal section",
+     "args": [],
+     "t": {
+      "ar": "ضيق (خلية واحدة)",
+      "bn": "সংকীর্ণ (১টি ঘর)",
+      "de": "Schmal (1 Spalte)",
+      "es": "Estrecho (1 celda)",
+      "fr": "Étroit (1 cellule)",
+      "hi": "संकीर्ण (1-सेल)",
+      "ja": "Narrow (1セル)",
+      "ko": "Narrow (1셀 고정)",
+      "pt": "Estreito (1 célula)",
+      "ru": "Узкий (1 ячейка)",
+      "sr": "Уско (1 ћелија)",
+      "zh": "窄字符 (1列)"
+     }
+    },
+    {
+     "name": "settings_ambiwidth_mode_narrow_desc",
+     "en": "Always 1 cell (standard Unix / XTerm, default)",
+     "comment": "Terminal section",
+     "args": [],
+     "t": {
+      "ar": "دائمًا خلية واحدة (يونكس القياسي / XTerm، الافتراضي)",
+      "bn": "সর্বদা ১টি ঘর (স্ট্যান্ডার্ড ইউনিক্স / XTerm, ডিফল্ট)",
+      "de": "Immer 1 Spalte (Standard-Unix / XTerm, Standard)",
+      "es": "Siempre 1 celda (Unix estándar / XTerm, predeterminado)",
+      "fr": "Toujours 1 cellule (Unix / XTerm standard, par défaut)",
+      "hi": "हमेशा 1 सेल (मानक यूनिक्स / XTerm, डिफ़ॉल्ट)",
+      "ja": "常に1セル（標準Unix / XTerm、デフォルト）",
+      "ko": "항상 1셀 (표준 Unix / XTerm 기본 방식)",
+      "pt": "Sempre 1 célula (Unix padrão / XTerm, padrão)",
+      "ru": "Всегда 1 ячейка (стандартный Unix / XTerm, по умолчанию)",
+      "sr": "Увек 1 ћелија (стандардни Unix / XTerm, подразумевано)",
+      "zh": "始终占 1 列（标准 Unix / XTerm，默认）"
+     }
+    },
+    {
+     "name": "settings_ambiwidth_mode_auto_narrow",
+     "en": "Auto + Narrow",
+     "comment": "Terminal section",
+     "args": [],
+     "t": {
+      "ar": "تلقائي + ضيق",
+      "bn": "অটো + সংকীর্ণ",
+      "de": "Auto + Schmal",
+      "es": "Automático + Estrecho",
+      "fr": "Auto + Étroit",
+      "hi": "ऑटो + संकीर्ण",
+      "ja": "Auto + Narrow",
+      "ko": "Auto + Narrow",
+      "pt": "Automático + Estreito",
+      "ru": "Авто + Узкий",
+      "sr": "Ауто + Уско",
+      "zh": "自动 + 窄字符"
+     }
+    },
+    {
+     "name": "settings_ambiwidth_mode_auto_narrow_desc",
+     "en": "Profile active font; fallback to 1 cell",
+     "comment": "Terminal section",
+     "args": [],
+     "t": {
+      "ar": "قياس الخط النشط؛ والرجوع إلى خلية واحدة",
+      "bn": "সক্রিয় ফন্ট পরিমাপ করুন; অন্যথায় ১টি ঘর",
+      "de": "Aktive Schrift vermessen; Fallback auf 1 Spalte",
+      "es": "Medir la fuente activa; reserva en 1 celda",
+      "fr": "Mesurer la police active ; secours à 1 cellule",
+      "hi": "सक्रिय फ़ॉन्ट प्रोफाइल करें; फ़ॉलबैक 1 सेल",
+      "ja": "フォント幅を自動計測、未判定時は1セル",
+      "ko": "현재 폰트 자동 측정, 미측정/기본은 1셀",
+      "pt": "Medir fonte ativa; fallback para 1 célula",
+      "ru": "Замерять активный шрифт; при сбое 1 ячейка",
+      "sr": "Профилиши активни фонт; резерва на 1 ћелију",
+      "zh": "分析当前字体；回退至 1 列"
+     }
+    },
+    {
+     "name": "settings_ambiwidth_mode_wide",
+     "en": "Wide (2-cell)",
+     "comment": "Terminal section",
+     "args": [],
+     "t": {
+      "ar": "عريض (خليتان)",
+      "bn": "প্রশস্ত (২টি ঘর)",
+      "de": "Breit (2 Spalten)",
+      "es": "Ancho (2 celdas)",
+      "fr": "Large (2 cellules)",
+      "hi": "चौड़ा (2-सेल)",
+      "ja": "Wide (2セル)",
+      "ko": "Wide (2셀 고정)",
+      "pt": "Largo (2 células)",
+      "ru": "Широкий (2 ячейки)",
+      "sr": "Широко (2 ћелије)",
+      "zh": "宽字符 (2列)"
+     }
+    },
+    {
+     "name": "settings_ambiwidth_mode_wide_desc",
+     "en": "Always 2 cells (legacy CJK ambiwidth)",
+     "comment": "Terminal section",
+     "args": [],
+     "t": {
+      "ar": "دائمًا خليتان (عرض CJK القديم)",
+      "bn": "সর্বদা ২টি ঘর (ঐতিহ্যবাহী CJK ambiwidth)",
+      "de": "Immer 2 Spalten (klassisches CJK-Ambiwidth)",
+      "es": "Siempre 2 celdas (ambiwidth CJK heredado)",
+      "fr": "Toujours 2 cellules (largeur CJK héritée)",
+      "hi": "हमेशा 2 सेल (पारंपरिक CJK ambiwidth)",
+      "ja": "常に2セル（従来のCJK曖昧幅）",
+      "ko": "모든 모호 폭 문자를 항상 2셀로 렌더링",
+      "pt": "Sempre 2 células (ambiwidth CJK herdado)",
+      "ru": "Всегда 2 ячейки (классический CJK ambiwidth)",
+      "sr": "Увек 2 ћелије (наслеђени CJK ambiwidth)",
+      "zh": "始终占 2 列（传统 CJK 宽度）"
+     }
+    },
+    {
+     "name": "settings_ambiwidth_mode_auto_wide",
+     "en": "Auto + Wide",
+     "comment": "Terminal section",
+     "args": [],
+     "t": {
+      "ar": "تلقائي + عريض",
+      "bn": "অটো + প্রশস্ত",
+      "de": "Auto + Breit",
+      "es": "Automático + Ancho",
+      "fr": "Auto + Large",
+      "hi": "ऑटो + चौड़ा",
+      "ja": "Auto + Wide",
+      "ko": "Auto + Wide",
+      "pt": "Automático + Largo",
+      "ru": "Авто + Широкий",
+      "sr": "Ауто + Широко",
+      "zh": "自动 + 宽字符"
+     }
+    },
+    {
+     "name": "settings_ambiwidth_mode_auto_wide_desc",
+     "en": "Profile active font; fallback to 2 cells (CJK)",
+     "comment": "Terminal section",
+     "args": [],
+     "t": {
+      "ar": "قياس الخط النشط؛ والرجوع إلى خليتين (CJK)",
+      "bn": "সক্রিয় ফন্ট পরিমাপ করুন; অন্যথায় ২টি ঘর (CJK)",
+      "de": "Aktive Schrift vermessen; Fallback auf 2 Spalten (CJK)",
+      "es": "Medir la fuente activa; reserva en 2 celdas (CJK)",
+      "fr": "Mesurer la police active ; secours à 2 cellules (CJK)",
+      "hi": "सक्रिय फ़ॉन्ट प्रोफाइल करें; फ़ॉलबैक 2 सेल (CJK)",
+      "ja": "フォント幅を自動計測、未判定時は2セル (CJK)",
+      "ko": "현재 폰트 자동 측정, 미측정(PUA 등)은 2셀",
+      "pt": "Medir fonte ativa; fallback para 2 células (CJK)",
+      "ru": "Замерять активный шрифт; при сбое 2 ячейки (CJK)",
+      "sr": "Профилиши активни фонт; резерва на 2 ћелије (CJK)",
+      "zh": "分析当前字体；回退至 2 列 (CJK)"
      }
     },
     {
@@ -32006,6 +32210,68 @@
       "ru": "%1$dsp",
       "sr": "%1$dsp",
       "zh": "%1$dsp"
+     }
+    },
+    {
+     "name": "settings_horizontal_padding_dialog_title",
+     "en": "Terminal horizontal padding",
+     "comment": "Font size dialog",
+     "args": [],
+     "t": {
+      "ar": "تباعد أفقي للطرفية",
+      "bn": "টার্মিনাল অনুভূমিক প্যাডিং",
+      "de": "Horizontaler Terminal-Abstand",
+      "es": "Relleno horizontal del terminal",
+      "fr": "Marge horizontale du terminal",
+      "hi": "टर्मिनल क्षैतिज पैडिंग",
+      "ja": "ターミナルの左右の余白",
+      "ko": "터미널 좌우 여백",
+      "pt": "Preenchimento horizontal do terminal",
+      "ru": "Горизонтальные отступы терминала",
+      "sr": "Хоризонтална маргина терминала",
+      "zh": "终端水平边距"
+     }
+    },
+    {
+     "name": "settings_horizontal_padding_sample",
+     "en": "Sample text",
+     "comment": "Font size dialog",
+     "args": [],
+     "t": {
+      "ar": "نص تجريبي",
+      "bn": "নমুনা টেক্সট",
+      "de": "Beispieltext",
+      "es": "Texto de ejemplo",
+      "fr": "Texte d\\'exemple",
+      "hi": "नमूना पाठ",
+      "ja": "サンプルテキスト",
+      "ko": "샘플 텍스트",
+      "pt": "Texto de exemplo",
+      "ru": "Пример текста",
+      "sr": "Пробни текст",
+      "zh": "示例文本"
+     }
+    },
+    {
+     "name": "settings_horizontal_padding_value",
+     "en": "%1$d dp",
+     "comment": "Font size dialog",
+     "args": [
+      "%1$d"
+     ],
+     "t": {
+      "ar": "%1$d dp",
+      "bn": "%1$d dp",
+      "de": "%1$d dp",
+      "es": "%1$d dp",
+      "fr": "%1$d dp",
+      "hi": "%1$d dp",
+      "ja": "%1$d dp",
+      "ko": "%1$d dp",
+      "pt": "%1$d dp",
+      "ru": "%1$d dp",
+      "sr": "%1$d dp",
+      "zh": "%1$d dp"
      }
     },
     {

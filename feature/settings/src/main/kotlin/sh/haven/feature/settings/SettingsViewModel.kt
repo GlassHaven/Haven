@@ -712,6 +712,13 @@ class SettingsViewModel @Inject constructor(
             UserPreferencesRepository.DEFAULT_FONT_SIZE,
         )
 
+    val terminalHorizontalPadding: StateFlow<Int> = preferencesRepository.terminalHorizontalPadding
+        .stateIn(
+            viewModelScope,
+            SharingStarted.WhileSubscribed(5000),
+            UserPreferencesRepository.DEFAULT_HORIZONTAL_PADDING_DP,
+        )
+
     val terminalScrollbackRows: StateFlow<Int> = preferencesRepository.terminalScrollbackRows
         .stateIn(
             viewModelScope,
@@ -1128,6 +1135,12 @@ class SettingsViewModel @Inject constructor(
     fun setTerminalFontSize(sizeSp: Int) {
         viewModelScope.launch {
             preferencesRepository.setTerminalFontSize(sizeSp)
+        }
+    }
+
+    fun setTerminalHorizontalPadding(paddingDp: Int) {
+        viewModelScope.launch {
+            preferencesRepository.setTerminalHorizontalPadding(paddingDp)
         }
     }
 

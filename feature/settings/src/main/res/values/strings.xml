@@ -64,6 +64,8 @@
     <string name="settings_session_persistence_none">None</string>
     <string name="settings_font_size_title">Terminal font size</string>
     <string name="settings_font_size_subtitle">%1$dsp</string>
+    <string name="settings_horizontal_padding_title">Horizontal padding</string>
+    <string name="settings_horizontal_padding_subtitle">%1$d dp</string>
     <string name="settings_ambiwidth_title">Ambiguous width character handling</string>
     <string name="settings_ambiwidth_subtitle">How East Asian Ambiguous characters (symbols, Greek) are rendered</string>
     <string name="settings_ambiwidth_mode_narrow">Narrow (1-cell)</string>
@@ -245,6 +247,9 @@
     <string name="settings_font_size_dialog_title">Terminal font size</string>
     <string name="settings_font_size_sample">Sample text</string>
     <string name="settings_font_size_value">%1$dsp</string>
+    <string name="settings_horizontal_padding_dialog_title">Terminal horizontal padding</string>
+    <string name="settings_horizontal_padding_sample">Sample text</string>
+    <string name="settings_horizontal_padding_value">%1$d dp</string>
 
     <!-- Terminal background opacity -->
     <string name="settings_terminal_opacity_title">Background opacity</string>

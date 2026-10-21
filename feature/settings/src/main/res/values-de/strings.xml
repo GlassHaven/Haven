@@ -53,6 +53,8 @@
     <string name="settings_session_persistence_none">Keine</string>
     <string name="settings_font_size_title">Terminal-Schriftgröße</string>
     <string name="settings_font_size_subtitle">%1$dsp</string>
+    <string name="settings_horizontal_padding_title">Horizontaler Abstand</string>
+    <string name="settings_horizontal_padding_subtitle">%1$d dp</string>
     <string name="settings_color_scheme_title">Terminal-Farbschema</string>
     <string name="settings_toolbar_title">Tastatur-Toolbar</string>
     <string name="settings_toolbar_subtitle">Toolbar-Tasten und Layout konfigurieren</string>
@@ -169,6 +171,9 @@
     <string name="settings_font_size_dialog_title">Terminal-Schriftgröße</string>
     <string name="settings_font_size_sample">Beispieltext</string>
     <string name="settings_font_size_value">%1$dsp</string>
+    <string name="settings_horizontal_padding_dialog_title">Horizontaler Terminal-Abstand</string>
+    <string name="settings_horizontal_padding_sample">Beispieltext</string>
+    <string name="settings_horizontal_padding_value">%1$d dp</string>
 
     <!-- Toolbar config dialog -->
     <string name="settings_toolbar_dialog_title">Tastatur-Toolbar</string>
@@ -520,6 +525,14 @@ Jeder bereits in Haven gespeicherte private Schlüssel muss erneut importiert od
     <string name="settings_inline_images_off">Aus</string>
     <string name="settings_inline_images_ask">Nachfragen</string>
     <string name="settings_inline_images_always">Immer</string>
-    <string name="settings_ambiwidth_title">Ambigue Breite als Doppelbreite</string>
-    <string name="settings_ambiwidth_subtitle">Ostasiatische Ambiguous-Zeichen als 2 Zellen darstellen</string>
+    <string name="settings_ambiwidth_title">Behandlung mehrdeutiger Zeichenbreiten</string>
+    <string name="settings_ambiwidth_subtitle">Darstellung ostasiatischer Zeichen mit mehrdeutiger Breite (Symbole, Griechisch)</string>
+    <string name="settings_ambiwidth_mode_narrow">Schmal (1 Spalte)</string>
+    <string name="settings_ambiwidth_mode_narrow_desc">Immer 1 Spalte (Standard-Unix / XTerm, Standard)</string>
+    <string name="settings_ambiwidth_mode_auto_narrow">Auto + Schmal</string>
+    <string name="settings_ambiwidth_mode_auto_narrow_desc">Aktive Schrift vermessen; Fallback auf 1 Spalte</string>
+    <string name="settings_ambiwidth_mode_wide">Breit (2 Spalten)</string>
+    <string name="settings_ambiwidth_mode_wide_desc">Immer 2 Spalten (klassisches CJK-Ambiwidth)</string>
+    <string name="settings_ambiwidth_mode_auto_wide">Auto + Breit</string>
+    <string name="settings_ambiwidth_mode_auto_wide_desc">Aktive Schrift vermessen; Fallback auf 2 Spalten (CJK)</string>
 </resources>

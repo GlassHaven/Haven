@@ -53,6 +53,8 @@
     <string name="settings_session_persistence_none">Nenhuma</string>
     <string name="settings_font_size_title">Tamanho da fonte do terminal</string>
     <string name="settings_font_size_subtitle">%1$dsp</string>
+    <string name="settings_horizontal_padding_title">Preenchimento horizontal</string>
+    <string name="settings_horizontal_padding_subtitle">%1$d dp</string>
     <string name="settings_color_scheme_title">Esquema de cores do terminal</string>
     <string name="settings_toolbar_title">Barra de ferramentas</string>
     <string name="settings_toolbar_subtitle">Configurar teclas e layout da barra</string>
@@ -169,6 +171,9 @@
     <string name="settings_font_size_dialog_title">Tamanho da fonte do terminal</string>
     <string name="settings_font_size_sample">Texto de exemplo</string>
     <string name="settings_font_size_value">%1$dsp</string>
+    <string name="settings_horizontal_padding_dialog_title">Preenchimento horizontal do terminal</string>
+    <string name="settings_horizontal_padding_sample">Texto de exemplo</string>
+    <string name="settings_horizontal_padding_value">%1$d dp</string>
 
     <!-- Toolbar config dialog -->
     <string name="settings_toolbar_dialog_title">Barra de ferramentas</string>
@@ -520,6 +525,14 @@ Cada chave privada já armazenada no Haven precisará ser importada ou gerada no
     <string name="settings_inline_images_off">Desligado</string>
     <string name="settings_inline_images_ask">Perguntar</string>
     <string name="settings_inline_images_always">Sempre</string>
-    <string name="settings_ambiwidth_title">Largura ambígua como largura dupla</string>
-    <string name="settings_ambiwidth_subtitle">Renderizar caracteres ambíguos do Leste Asiático como 2 células</string>
+    <string name="settings_ambiwidth_title">Tratamento de largura ambígua de caracteres</string>
+    <string name="settings_ambiwidth_subtitle">Como caracteres ambíguos do Leste Asiático (símbolos, grego) são renderizados</string>
+    <string name="settings_ambiwidth_mode_narrow">Estreito (1 célula)</string>
+    <string name="settings_ambiwidth_mode_narrow_desc">Sempre 1 célula (Unix padrão / XTerm, padrão)</string>
+    <string name="settings_ambiwidth_mode_auto_narrow">Automático + Estreito</string>
+    <string name="settings_ambiwidth_mode_auto_narrow_desc">Medir fonte ativa; fallback para 1 célula</string>
+    <string name="settings_ambiwidth_mode_wide">Largo (2 células)</string>
+    <string name="settings_ambiwidth_mode_wide_desc">Sempre 2 células (ambiwidth CJK herdado)</string>
+    <string name="settings_ambiwidth_mode_auto_wide">Automático + Largo</string>
+    <string name="settings_ambiwidth_mode_auto_wide_desc">Medir fonte ativa; fallback para 2 células (CJK)</string>
 </resources>

@@ -25,6 +25,9 @@ class UserPreferencesRepository @Inject constructor(
 ) {
     private val biometricEnabledKey = booleanPreferencesKey("biometric_enabled")
     private val terminalFontSizeKey = intPreferencesKey("terminal_font_size")
+    // Horizontal margin around the terminal grid in dp (#745). Shrinking the
+    // measured width makes termlib recompute columns and resize the PTY.
+    private val terminalHorizontalPaddingKey = intPreferencesKey("terminal_horizontal_padding")
     // Mail message-list pinch-zoom factor, multiplied onto the terminal font size.
     private val mailFontScaleKey = floatPreferencesKey("mail_font_scale")
     private val terminalScrollbackRowsKey = intPreferencesKey("terminal_scrollback_rows")
@@ -1476,6 +1479,17 @@ class UserPreferencesRepository @Inject constructor(
         prefs[terminalFontSizeKey] ?: DEFAULT_FONT_SIZE
     }
 
+    val terminalHorizontalPadding: Flow<Int> = dataStore.data.map { prefs ->
+        prefs[terminalHorizontalPaddingKey] ?: DEFAULT_HORIZONTAL_PADDING_DP
+    }
+
+    suspend fun setTerminalHorizontalPadding(paddingDp: Int) {
+        dataStore.edit { prefs ->
+            prefs[terminalHorizontalPaddingKey] =
+                paddingDp.coerceIn(MIN_HORIZONTAL_PADDING_DP, MAX_HORIZONTAL_PADDING_DP)
+        }
+    }
+
     val terminalAmbiwidthMode: Flow<TerminalAmbiwidthMode> = dataStore.data.map { prefs ->
         val raw = prefs[terminalAmbiwidthModeKey]
         if (raw != null) {
@@ -2487,6 +2501,12 @@ class UserPreferencesRepository @Inject constructor(
         const val DEFAULT_FONT_SIZE = 14
         const val MIN_FONT_SIZE = 8
         const val MAX_FONT_SIZE = 32
+        // #745: even steps so the slider has discrete detents; 0 keeps the
+        // terminal edge-to-edge, the previous behaviour.
+        const val DEFAULT_HORIZONTAL_PADDING_DP = 0
+        const val MIN_HORIZONTAL_PADDING_DP = 0
+        const val MAX_HORIZONTAL_PADDING_DP = 24
+        const val HORIZONTAL_PADDING_STEP_DP = 2
         // Mail list pinch-zoom: 75% of the terminal font size up to 300%.
         const val DEFAULT_MAIL_FONT_SCALE = 1.0f
         const val MIN_MAIL_FONT_SCALE = 0.75f

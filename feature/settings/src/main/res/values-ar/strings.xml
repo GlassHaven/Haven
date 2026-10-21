@@ -53,6 +53,8 @@
     <string name="settings_session_persistence_none">بلا</string>
     <string name="settings_font_size_title">حجم خط الطرفية</string>
     <string name="settings_font_size_subtitle">%1$dsp</string>
+    <string name="settings_horizontal_padding_title">تباعد أفقي</string>
+    <string name="settings_horizontal_padding_subtitle">%1$d dp</string>
     <string name="settings_color_scheme_title">نظام ألوان الطرفية</string>
     <string name="settings_toolbar_title">شريط أدوات لوحة المفاتيح</string>
     <string name="settings_toolbar_subtitle">تكوين مفاتيح وتخطيط شريط الأدوات</string>
@@ -169,6 +171,9 @@
     <string name="settings_font_size_dialog_title">حجم خط الطرفية</string>
     <string name="settings_font_size_sample">نص تجريبي</string>
     <string name="settings_font_size_value">%1$dsp</string>
+    <string name="settings_horizontal_padding_dialog_title">تباعد أفقي للطرفية</string>
+    <string name="settings_horizontal_padding_sample">نص تجريبي</string>
+    <string name="settings_horizontal_padding_value">%1$d dp</string>
 
     <!-- Toolbar config dialog -->
     <string name="settings_toolbar_dialog_title">شريط أدوات لوحة المفاتيح</string>
@@ -524,6 +529,14 @@
     <string name="settings_inline_images_off">إيقاف</string>
     <string name="settings_inline_images_ask">اسأل</string>
     <string name="settings_inline_images_always">دائمًا</string>
-    <string name="settings_ambiwidth_title">العرض الغامض كعرض مزدوج</string>
-    <string name="settings_ambiwidth_subtitle">عرض أحرف شرق آسيا الغامضة كخليتين</string>
+    <string name="settings_ambiwidth_title">معالجة الأحرف ذات العرض الغامض</string>
+    <string name="settings_ambiwidth_subtitle">كيفية عرض أحرف شرق آسيا ذات العرض الغامض (الرموز، اليونانية)</string>
+    <string name="settings_ambiwidth_mode_narrow">ضيق (خلية واحدة)</string>
+    <string name="settings_ambiwidth_mode_narrow_desc">دائمًا خلية واحدة (يونكس القياسي / XTerm، الافتراضي)</string>
+    <string name="settings_ambiwidth_mode_auto_narrow">تلقائي + ضيق</string>
+    <string name="settings_ambiwidth_mode_auto_narrow_desc">قياس الخط النشط؛ والرجوع إلى خلية واحدة</string>
+    <string name="settings_ambiwidth_mode_wide">عريض (خليتان)</string>
+    <string name="settings_ambiwidth_mode_wide_desc">دائمًا خليتان (عرض CJK القديم)</string>
+    <string name="settings_ambiwidth_mode_auto_wide">تلقائي + عريض</string>
+    <string name="settings_ambiwidth_mode_auto_wide_desc">قياس الخط النشط؛ والرجوع إلى خليتين (CJK)</string>
 </resources>

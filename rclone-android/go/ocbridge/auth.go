@@ -154,7 +154,10 @@ func (a *authClient) post(ctx context.Context, target *url.URL, body string) (*u
 			return nil, nil, err
 		}
 		setCommonHeaders(req.Header, a.cfg.UserAgent)
-		req.Header.Set("Content-Type", "application/x-www-form-urlencoded")
+		// The body is XML, and openconnect labels it so. ocserv doesn't
+		// care, but a Cisco ASA treats a form-encoded POST to "/" as a
+		// request for a web-portal page and answers 404.
+		req.Header.Set("Content-Type", "application/xml; charset=utf-8")
 		resp, err := a.client.Do(req)
 		if err != nil {
 			return nil, nil, err
@@ -180,8 +183,14 @@ func (a *authClient) post(ctx context.Context, target *url.URL, body string) (*u
 			// reconnect loop must not lock the account out.
 			return nil, nil, rejected("login failed (HTTP %d)", resp.StatusCode)
 		}
+		if resp.StatusCode == http.StatusNotFound {
+			// Retrying won't help; usually the Server field has a path
+			// (a group URL or a copied portal address) the gateway lacks.
+			return nil, nil, rejected("gateway returned HTTP 404 for %s; check that Server is exactly what Cisco's app shows in \"Connect to\" (usually just the host name)",
+				target.Redacted())
+		}
 		if resp.StatusCode != http.StatusOK {
-			return nil, nil, fmt.Errorf("gateway returned HTTP %d", resp.StatusCode)
+			return nil, nil, fmt.Errorf("gateway returned HTTP %d for %s", resp.StatusCode, target.Redacted())
 		}
 		return target, data, nil
 	}
@@ -210,7 +219,8 @@ func (a *authClient) authenticate(ctx context.Context) (string, error) {
 		st.totp, _ = newTOTP(a.cfg.OTPSecret)
 	}
 	target := a.base
-	body := initRequest(a.base)
+	body := initRequest(a.base, false)
+	certDeclined := false
 	for round := 0; round < 8; round++ {
 		finalURL, data, err := a.post(ctx, target, body)
 		if err != nil {
@@ -247,6 +257,15 @@ func (a *authClient) authenticate(ctx context.Context) (string, error) {
 		st.serverMessage = strings.TrimSpace(ca.Auth.Message)
 		st.serverTitle = strings.TrimSpace(ca.Auth.Title)
 		if ca.ClientCertRequest != nil {
+			// Many ASAs ask every client for a certificate first and fall
+			// back to the login form when told there is none. Say so once,
+			// like openconnect: the same init, plus <client-cert-fail/>.
+			if !certDeclined {
+				certDeclined = true
+				target = a.base
+				body = initRequest(a.base, true)
+				continue
+			}
 			return "", rejected("gateway requires a client certificate, which Haven's AnyConnect tunnel does not support yet")
 		}
 		if strings.TrimSpace(ca.Auth.SSOLogin) != "" {
@@ -301,7 +320,9 @@ func authenticate(cfg *Config, base *url.URL, tlsConf *tls.Config, p Prompter) (
 	return ac.authenticate(ctx)
 }
 
-func initRequest(base *url.URL) string {
+// initRequest is the opening <config-auth type="init">. certFail declines a
+// gateway's request for a client certificate.
+func initRequest(base *url.URL, certFail bool) string {
 	var b bytes.Buffer
 	b.WriteString(`<?xml version="1.0" encoding="UTF-8"?>` + "\n")
 	b.WriteString(`<config-auth client="vpn" type="init" aggregate-auth-version="2">`)
@@ -310,6 +331,9 @@ func initRequest(base *url.URL) string {
 	b.WriteString(`<group-access>`)
 	xml.EscapeText(&b, []byte(base.String()))
 	b.WriteString(`</group-access>`)
+	if certFail {
+		b.WriteString(`<client-cert-fail/>`)
+	}
 	b.WriteString(`</config-auth>`)
 	return b.String()
 }

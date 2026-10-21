@@ -53,6 +53,8 @@
     <string name="settings_session_persistence_none">Нет</string>
     <string name="settings_font_size_title">Размер шрифта терминала</string>
     <string name="settings_font_size_subtitle">%1$dsp</string>
+    <string name="settings_horizontal_padding_title">Горизонтальные отступы</string>
+    <string name="settings_horizontal_padding_subtitle">%1$d dp</string>
     <string name="settings_color_scheme_title">Цветовая схема терминала</string>
     <string name="settings_toolbar_title">Панель клавиатуры</string>
     <string name="settings_toolbar_subtitle">Настроить кнопки и расположение панели</string>
@@ -169,6 +171,9 @@
     <string name="settings_font_size_dialog_title">Размер шрифта терминала</string>
     <string name="settings_font_size_sample">Пример текста</string>
     <string name="settings_font_size_value">%1$dsp</string>
+    <string name="settings_horizontal_padding_dialog_title">Горизонтальные отступы терминала</string>
+    <string name="settings_horizontal_padding_sample">Пример текста</string>
+    <string name="settings_horizontal_padding_value">%1$d dp</string>
 
     <!-- Toolbar config dialog -->
     <string name="settings_toolbar_dialog_title">Панель клавиатуры</string>
@@ -522,6 +527,14 @@
     <string name="settings_inline_images_off">Выкл</string>
     <string name="settings_inline_images_ask">Спрашивать</string>
     <string name="settings_inline_images_always">Всегда</string>
-    <string name="settings_ambiwidth_title">Неоднозначная ширина как двойная</string>
-    <string name="settings_ambiwidth_subtitle">Отображать неоднозначные восточноазиатские символы в 2 ячейки</string>
+    <string name="settings_ambiwidth_title">Обработка символов неоднозначной ширины</string>
+    <string name="settings_ambiwidth_subtitle">Как отображаются восточноазиатские символы неоднозначной ширины (знаки, греческие буквы)</string>
+    <string name="settings_ambiwidth_mode_narrow">Узкий (1 ячейка)</string>
+    <string name="settings_ambiwidth_mode_narrow_desc">Всегда 1 ячейка (стандартный Unix / XTerm, по умолчанию)</string>
+    <string name="settings_ambiwidth_mode_auto_narrow">Авто + Узкий</string>
+    <string name="settings_ambiwidth_mode_auto_narrow_desc">Замерять активный шрифт; при сбое 1 ячейка</string>
+    <string name="settings_ambiwidth_mode_wide">Широкий (2 ячейки)</string>
+    <string name="settings_ambiwidth_mode_wide_desc">Всегда 2 ячейки (классический CJK ambiwidth)</string>
+    <string name="settings_ambiwidth_mode_auto_wide">Авто + Широкий</string>
+    <string name="settings_ambiwidth_mode_auto_wide_desc">Замерять активный шрифт; при сбое 2 ячейки (CJK)</string>
 </resources>

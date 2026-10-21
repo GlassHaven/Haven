@@ -407,6 +407,8 @@ fun HavenNavHost(
 
     val terminalFontSize by preferencesRepository.terminalFontSize
         .collectAsState(initial = UserPreferencesRepository.DEFAULT_FONT_SIZE)
+    val terminalHorizontalPadding by preferencesRepository.terminalHorizontalPadding
+        .collectAsState(initial = UserPreferencesRepository.DEFAULT_HORIZONTAL_PADDING_DP)
     // User-picked Nerd Font / custom TTF for the terminal (#123).
     // Null = fall back to bundled Hack Regular.
     val terminalFontPath by preferencesRepository.terminalFontPath
@@ -682,6 +684,7 @@ fun HavenNavHost(
                         openLocalShellDeId = pendingLocalShellDeId,
                         isActive = pagerState.settledPage == pageOf(Screen.Terminal),
                         fontSize = terminalFontSize,
+                        horizontalPaddingDp = terminalHorizontalPadding,
                         terminalFontPath = terminalFontPath,
                         toolbarLayout = toolbarLayout,
                         navBlockMode = navBlockMode,

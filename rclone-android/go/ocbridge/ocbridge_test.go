@@ -155,6 +155,16 @@ type fakeGateway struct {
 	wmu         sync.Mutex  // guards cur and serialises frame writes
 	cur         net.Conn    // tunnel connection packets are forwarded to
 	issued      atomic.Int32
+
+	// asa replays the sign-in of a real Cisco ASA (reported in #724
+	// follow-up): a POST whose Content-Type isn't XML gets 404, the first
+	// init gets a bare <client-cert-request>, and only an init carrying
+	// <client-cert-fail/> gets the login form.
+	asa atomic.Bool
+	// asaCertRequired makes that gateway insist on a certificate even after
+	// <client-cert-fail/>, as one that truly requires one would.
+	asaCertRequired atomic.Bool
+	asaPaths        []string // request paths seen in ASA mode, for the 404 message test
 }
 
 func newFakeGateway(t *testing.T) *fakeGateway {
@@ -208,6 +218,10 @@ func (g *fakeGateway) handle(w http.ResponseWriter, r *http.Request) {
 	g.mu.Lock()
 	g.authRounds = append(g.authRounds, s)
 	g.mu.Unlock()
+	if g.asa.Load() {
+		g.handleASA(w, r, s)
+		return
+	}
 	w.Header().Set("Content-Type", "text/xml")
 
 	opaque := `<opaque is-for="sg"><tunnel-group>X</tunnel-group></opaque>`
@@ -237,6 +251,67 @@ func (g *fakeGateway) handle(w http.ResponseWriter, r *http.Request) {
 </config-auth>`, n)
 	default:
 		fmt.Fprint(w, authRequest(opaque, "Login failed.", groupForm("Eng")))
+	}
+}
+
+// asaCode is the SMS code the ASA-mode gateway "sent".
+const asaCode = "481516"
+
+func (g *fakeGateway) handleASA(w http.ResponseWriter, r *http.Request, s string) {
+	g.mu.Lock()
+	g.asaPaths = append(g.asaPaths, r.URL.Path)
+	g.mu.Unlock()
+	if !strings.HasPrefix(r.Header.Get("Content-Type"), "application/xml") {
+		// What the reporter's ASA does with a form-encoded POST to "/".
+		http.NotFound(w, r)
+		return
+	}
+	w.Header().Set("Content-Type", "text/xml; charset=utf-8")
+	w.Header().Set("X-Aggregate-Auth", "1")
+	const head = `<?xml version="1.0" encoding="UTF-8"?>` + "\n" +
+		`<config-auth client="vpn" type="auth-request" aggregate-auth-version="2">` + "\n"
+	opaque := "<opaque is-for=\"sg\">\n<tunnel-group>DefaultWEBVPNGroup</tunnel-group>\n" +
+		"<auth-method>single-sign-on-v2</auth-method>\n<config-hash>1781561857145</config-hash>\n</opaque>"
+	switch {
+	case strings.Contains(s, `type="init"`) &&
+		(!strings.Contains(s, "<client-cert-fail") || g.asaCertRequired.Load()):
+		fmt.Fprint(w, head+"<client-cert-request></client-cert-request>\n</config-auth>")
+	case strings.Contains(s, `type="init"`):
+		fmt.Fprint(w, head+opaque+`
+<auth id="main">
+<title>Login</title>
+<message>Please enter your username and password.</message>
+<banner></banner>
+<form>
+<input type="text" name="username" label="Username:"></input>
+<input type="password" name="password" label="Password:"></input>
+</form>
+</auth>
+</config-auth>`)
+	case strings.Contains(s, "<username>alice</username>") && strings.Contains(s, "<password>s3cret</password>"):
+		if !strings.Contains(s, "<tunnel-group>DefaultWEBVPNGroup</tunnel-group>") {
+			fmt.Fprint(w, head+`<auth id="main"><error id="1">opaque not echoed</error></auth></config-auth>`)
+			return
+		}
+		fmt.Fprint(w, head+opaque+`
+<auth id="challenge">
+<title>Login</title>
+<message>Enter the code sent to your phone by SMS.</message>
+<form>
+<input type="password" name="answer" label="Response:"></input>
+<input type="submit" name="Continue" label="continue"></input>
+</form>
+</auth>
+</config-auth>`)
+	case strings.Contains(s, "<answer>"+asaCode+"</answer>"):
+		n := g.issued.Add(1)
+		fmt.Fprintf(w, `<?xml version="1.0" encoding="UTF-8"?>
+<config-auth client="vpn" type="complete" aggregate-auth-version="2">
+<session-token>COOKIE%d</session-token>
+<auth id="success"><message>Success</message></auth>
+</config-auth>`, n)
+	default:
+		fmt.Fprint(w, head+`<auth id="main"><error id="2">Login failed.</error></auth></config-auth>`)
 	}
 }
 
@@ -731,6 +806,78 @@ func TestReviveLeavesHealthyConnectionAlone(t *testing.T) {
 	time.Sleep(probeWait + time.Second)
 	if g.connects.Load() != connects {
 		t.Fatal("Revive must not reconnect a connection that answers the probe")
+	}
+}
+
+// --- the reporter's Cisco ASA ------------------------------------------------
+
+func asaConfig(g *fakeGateway) string {
+	return g.config(func(c *Config) {
+		c.Server = strings.TrimPrefix(g.srv.URL, "https://") // bare host:port, as typed
+		c.AuthGroup = ""
+		c.OTPSecret = ""
+	})
+}
+
+func TestASA_XMLContentTypeAndClientCertRetry(t *testing.T) {
+	g := newFakeGateway(t)
+	g.asa.Store(true)
+	var prompts []string
+	h, err := StartTunnelWithPrompter(asaConfig(g), promptFunc(func(title, message, label string, secret bool) string {
+		prompts = append(prompts, label+"|"+message)
+		return asaCode // the user types the SMS code
+	}))
+	if err != nil {
+		t.Fatal(err)
+	}
+	defer h.Logout()
+	// init, init + client-cert-fail, credentials, SMS answer
+	if n := g.rounds(); n != 4 {
+		t.Errorf("auth rounds = %d, want 4", n)
+	}
+	if len(prompts) != 1 || prompts[0] != "Response|Enter the code sent to your phone by SMS." {
+		t.Errorf("prompts = %q", prompts)
+	}
+	c, err := h.Dial(gwAddr, 7, 10_000)
+	if err != nil {
+		t.Fatal(err)
+	}
+	echo(t, c, "through the ASA")
+	c.Close()
+}
+
+func TestASA_CertificateReallyRequired(t *testing.T) {
+	g := newFakeGateway(t)
+	g.asa.Store(true)
+	g.asaCertRequired.Store(true)
+	_, err := StartTunnel(asaConfig(g))
+	if err == nil || !strings.Contains(err.Error(), "client certificate") {
+		t.Fatalf("want a client-certificate error, got %v", err)
+	}
+	if n := g.rounds(); n != 2 {
+		t.Errorf("should retry exactly once without a certificate, rounds = %d", n)
+	}
+}
+
+func Test404NamesTheAddressAndHints(t *testing.T) {
+	srv := httptest.NewTLSServer(http.NotFoundHandler())
+	defer srv.Close()
+	h := sha256.Sum256(srv.Certificate().RawSubjectPublicKeyInfo)
+	cfg, _ := json.Marshal(Config{
+		Server:     strings.TrimPrefix(srv.URL, "https://") + "/engineering",
+		Username:   "alice",
+		Password:   "pw",
+		ServerCert: "pin-sha256:" + base64.StdEncoding.EncodeToString(h[:]),
+	})
+	_, err := StartTunnel(string(cfg))
+	if err == nil {
+		t.Fatal("expected an error")
+	}
+	msg := err.Error()
+	for _, want := range []string{"HTTP 404", "/engineering", "Server"} {
+		if !strings.Contains(msg, want) {
+			t.Errorf("error %q should mention %q", msg, want)
+		}
 	}
 }
 

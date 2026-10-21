@@ -53,6 +53,8 @@
     <string name="settings_session_persistence_none">なし</string>
     <string name="settings_font_size_title">ターミナルのフォントサイズ</string>
     <string name="settings_font_size_subtitle">%1$dsp</string>
+    <string name="settings_horizontal_padding_title">左右の余白</string>
+    <string name="settings_horizontal_padding_subtitle">%1$d dp</string>
     <string name="settings_color_scheme_title">ターミナルの配色</string>
     <string name="settings_toolbar_title">キーボードツールバー</string>
     <string name="settings_toolbar_subtitle">ツールバーのキーとレイアウトを設定</string>
@@ -169,6 +171,9 @@
     <string name="settings_font_size_dialog_title">ターミナルのフォントサイズ</string>
     <string name="settings_font_size_sample">サンプルテキスト</string>
     <string name="settings_font_size_value">%1$dsp</string>
+    <string name="settings_horizontal_padding_dialog_title">ターミナルの左右の余白</string>
+    <string name="settings_horizontal_padding_sample">サンプルテキスト</string>
+    <string name="settings_horizontal_padding_value">%1$d dp</string>
 
     <!-- Toolbar config dialog -->
     <string name="settings_toolbar_dialog_title">キーボードツールバー</string>
@@ -519,6 +524,14 @@ Haven にすでに保存されているすべての秘密鍶は、再びイン�
     <string name="settings_inline_images_off">オフ</string>
     <string name="settings_inline_images_ask">確認</string>
     <string name="settings_inline_images_always">常に</string>
-    <string name="settings_ambiwidth_title">曖昧幅文字を倍幅で表示</string>
-    <string name="settings_ambiwidth_subtitle">東アジアの曖昧幅文字を2セルで描画</string>
+    <string name="settings_ambiwidth_title">曖昧幅文字の処理方式</string>
+    <string name="settings_ambiwidth_subtitle">東アジアの曖昧幅文字（記号、ギリシャ文字など）の描画方法</string>
+    <string name="settings_ambiwidth_mode_narrow">Narrow (1セル)</string>
+    <string name="settings_ambiwidth_mode_narrow_desc">常に1セル（標準Unix / XTerm、デフォルト）</string>
+    <string name="settings_ambiwidth_mode_auto_narrow">Auto + Narrow</string>
+    <string name="settings_ambiwidth_mode_auto_narrow_desc">フォント幅を自動計測、未判定時は1セル</string>
+    <string name="settings_ambiwidth_mode_wide">Wide (2セル)</string>
+    <string name="settings_ambiwidth_mode_wide_desc">常に2セル（従来のCJK曖昧幅）</string>
+    <string name="settings_ambiwidth_mode_auto_wide">Auto + Wide</string>
+    <string name="settings_ambiwidth_mode_auto_wide_desc">フォント幅を自動計測、未判定時は2セル (CJK)</string>
 </resources>

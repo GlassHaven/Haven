@@ -45,13 +45,22 @@ class SwipeArrowsTest {
         val up = org.connectbot.terminal.SwipeHoldDirection.Up
         val down = org.connectbot.terminal.SwipeHoldDirection.Down
         val left = org.connectbot.terminal.SwipeHoldDirection.Left
+        val right = org.connectbot.terminal.SwipeHoldDirection.Right
         assertEquals(down, swipeHoldArrowDirection(up, latchedSwipeArrows = true, altScreen = true))
         assertEquals(up, swipeHoldArrowDirection(down, latchedSwipeArrows = true, altScreen = true))
         // At a prompt, and in the automatic path, holds stay literal.
         assertEquals(up, swipeHoldArrowDirection(up, latchedSwipeArrows = true, altScreen = false))
         assertEquals(up, swipeHoldArrowDirection(up, latchedSwipeArrows = false, altScreen = true))
-        // Horizontal holds are never remapped (pager question is separate).
-        assertEquals(left, swipeHoldArrowDirection(left, latchedSwipeArrows = true, altScreen = true))
+        // #736 follow-up: horizontal holds flip under the same rule — inside
+        // htop a hold left walks the view right, matching the page-slide feel
+        // the vertical flip established (reporter: "they should be inverted,
+        // too"). The pager question (gap 2) is about the unclaimed automatic
+        // path, not this latched mapping.
+        assertEquals(right, swipeHoldArrowDirection(left, latchedSwipeArrows = true, altScreen = true))
+        assertEquals(left, swipeHoldArrowDirection(right, latchedSwipeArrows = true, altScreen = true))
+        // Horizontal holds stay literal at a prompt and in the automatic path.
+        assertEquals(left, swipeHoldArrowDirection(left, latchedSwipeArrows = true, altScreen = false))
+        assertEquals(left, swipeHoldArrowDirection(left, latchedSwipeArrows = false, altScreen = true))
     }
 
     /** The wire bytes for the latched round trip: swipe up at a prompt = CSI A. */

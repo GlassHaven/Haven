@@ -5,6 +5,11 @@ the corresponding GitHub Release; a release can't ship without its section
 (enforced by `scripts/check-changelog.sh` in CI). The GitHub "Full Changelog"
 compare link is appended automatically — don't add it here.
 
+## Unreleased
+
+- **Held horizontal swipes inside full-screen apps now follow the page, like vertical ones (#736).** With the Swipe key latched, holding left or right inside vim/htop/less sent the arrow your finger pointed at, while holding up or down had been flipped to the page-slide direction. The two axes now use the same rule: inside a full-screen app a horizontal hold slides the view the way the page moves (hold left = view right), and at a bare prompt it still walks literally. The automatic (unlatched) horizontal swipe is unchanged — it stays with the tab pager.
+- **AnyConnect: sign in to Cisco ASA gateways that answered "gateway returned HTTP 404" (#724).** Haven now labels its sign-in requests as XML (`application/xml`), as openconnect does; ocserv accepted the old form-encoded label, but an ASA treats such a POST to `/` as a web-portal page request and answers 404. Gateways that ask every client for a certificate before showing the login form now get one retry declining it (`<client-cert-fail/>`, as openconnect sends), instead of Haven giving up. A remaining 404 names the address and points at the Server field.
+
 ## v5.89.47
 
 - **Swiping inside full-screen apps follows the page, not the finger (#736).** With the Swipe key latched, swiping up sent ↑ everywhere — right at a shell prompt, where it walks history, but inverted inside vim, htop or less, where a swipe up should bring the next page. Haven now tells the two apart by the alternate-screen buffer: inside a full-screen app a latched swipe follows the page-slide direction (swipe up = next page), and at a bare prompt it keeps walking history. The Swipe key stays the manual override; held swipes follow the same rule.

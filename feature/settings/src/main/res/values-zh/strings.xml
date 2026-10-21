@@ -53,6 +53,8 @@
     <string name="settings_session_persistence_none">无</string>
     <string name="settings_font_size_title">终端字体大小</string>
     <string name="settings_font_size_subtitle">%1$dsp</string>
+    <string name="settings_horizontal_padding_title">水平边距</string>
+    <string name="settings_horizontal_padding_subtitle">%1$d dp</string>
     <string name="settings_color_scheme_title">终端配色方案</string>
     <string name="settings_toolbar_title">键盘工具栏</string>
     <string name="settings_toolbar_subtitle">配置工具栏按键和布局</string>
@@ -169,6 +171,9 @@
     <string name="settings_font_size_dialog_title">终端字体大小</string>
     <string name="settings_font_size_sample">示例文本</string>
     <string name="settings_font_size_value">%1$dsp</string>
+    <string name="settings_horizontal_padding_dialog_title">终端水平边距</string>
+    <string name="settings_horizontal_padding_sample">示例文本</string>
+    <string name="settings_horizontal_padding_value">%1$d dp</string>
 
     <!-- Toolbar config dialog -->
     <string name="settings_toolbar_dialog_title">键盘工具栏</string>
@@ -518,6 +523,14 @@ Haven 中已存储的每一个私钥都需要重新导入或生成。它们已�
     <string name="settings_inline_images_off">关闭</string>
     <string name="settings_inline_images_ask">询问</string>
     <string name="settings_inline_images_always">总是</string>
-    <string name="settings_ambiwidth_title">模糊宽度按双宽显示</string>
-    <string name="settings_ambiwidth_subtitle">将东亚模糊宽度字符渲染为 2 个单元格</string>
+    <string name="settings_ambiwidth_title">不明确宽度字符处理</string>
+    <string name="settings_ambiwidth_subtitle">东亚不明确宽度字符（符号、希腊字母等）的渲染方式</string>
+    <string name="settings_ambiwidth_mode_narrow">窄字符 (1列)</string>
+    <string name="settings_ambiwidth_mode_narrow_desc">始终占 1 列（标准 Unix / XTerm，默认）</string>
+    <string name="settings_ambiwidth_mode_auto_narrow">自动 + 窄字符</string>
+    <string name="settings_ambiwidth_mode_auto_narrow_desc">分析当前字体；回退至 1 列</string>
+    <string name="settings_ambiwidth_mode_wide">宽字符 (2列)</string>
+    <string name="settings_ambiwidth_mode_wide_desc">始终占 2 列（传统 CJK 宽度）</string>
+    <string name="settings_ambiwidth_mode_auto_wide">自动 + 宽字符</string>
+    <string name="settings_ambiwidth_mode_auto_wide_desc">分析当前字体；回退至 2 列 (CJK)</string>
 </resources>

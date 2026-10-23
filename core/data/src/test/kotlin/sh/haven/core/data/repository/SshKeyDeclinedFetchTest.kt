@@ -35,6 +35,7 @@ class SshKeyDeclinedFetchTest {
     fun `a declined fetch is Declined, not Missing`() = runBlocking {
         val dao: SshKeyDao = mockk(relaxed = true)
         val keystore: Keystore = mockk(relaxed = true)
+        coEvery { dao.getById("k1") } returns key("k1", "work")
         coEvery { keystore.fetch(KeystoreStore.SSH_KEYS, "k1") } returns
             KeystoreFetch.Denied("Authentication was declined for key \"work\".")
 
@@ -51,6 +52,7 @@ class SshKeyDeclinedFetchTest {
     fun `a decrypt failure is still Missing — only a human 'no' is Declined`() = runBlocking {
         val dao: SshKeyDao = mockk(relaxed = true)
         val keystore: Keystore = mockk(relaxed = true)
+        coEvery { dao.getById("k1") } returns key("k1", "work")
         coEvery { keystore.fetch(KeystoreStore.SSH_KEYS, "k1") } returns
             KeystoreFetch.Failed("Decryption failed")
 
@@ -65,6 +67,7 @@ class SshKeyDeclinedFetchTest {
         // getDecryptedKeyBytes is what keeps auth paths off it.
         val dao: SshKeyDao = mockk(relaxed = true)
         val keystore: Keystore = mockk(relaxed = true)
+        coEvery { dao.getById("k1") } returns key("k1", "work")
         coEvery { keystore.fetch(KeystoreStore.SSH_KEYS, "k1") } returns
             KeystoreFetch.Denied("declined")
 

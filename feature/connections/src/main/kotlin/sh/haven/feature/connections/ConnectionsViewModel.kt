@@ -5721,6 +5721,10 @@ class ConnectionsViewModel @Inject constructor(
                 is KeyMaterial.Available -> material.bytes
                 is KeyMaterial.Declined -> throw KeyUnlockDeclinedException(material.reason)
                 KeyMaterial.Missing -> null
+                // T4: hardware keys join explicit-key auth via
+                // KeystoreSshIdentity, not via decrypted bytes — no
+                // local material here by construction.
+                is KeyMaterial.Hardware -> null
             }
         } else {
             null

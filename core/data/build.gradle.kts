@@ -23,6 +23,14 @@ android {
 
     testOptions {
         unitTests.isReturnDefaultValues = true
+        // Room migration tests read the committed schema JSONs from
+        // test assets via MigrationTestHelper under Robolectric.
+        unitTests.isIncludeAndroidResources = true
+    }
+
+    sourceSets {
+        // Exported Room schemas double as test assets for MigrationTestHelper.
+        getByName("test").assets.srcDir("$projectDir/schemas")
     }
 }
 
@@ -47,6 +55,10 @@ dependencies {
     testImplementation(libs.mockk)
     testImplementation(libs.robolectric)
     testImplementation(libs.coroutines.test)
+    // MigrationTestHelper + InstrumentationRegistry/ApplicationProvider
+    // for the Room migration suite.
+    testImplementation(libs.room.testing)
+    testImplementation(libs.androidx.test.core)
     // Real org.json for unit tests (android.jar's is stubbed under
     // isReturnDefaultValues), so MailRuleJson round-trips can be asserted.
     testImplementation("org.json:json:20260814")

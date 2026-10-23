@@ -63,6 +63,18 @@ data class SshKey(
      * without remembering the passphrase on each (#290). Null = not stored.
      */
     val passphraseEncrypted: String? = null,
+    /**
+     * Non-null when this key's private half lives in the device's
+     * Android Keystore (secure chip) instead of the `privateKeyBytes`
+     * column — the value is the Keystore **alias** the signing
+     * operation is dispatched to. Storage convention for such rows:
+     * `privateKeyBytes` is empty, `isEncrypted` false,
+     * `biometricProtected` true (each signature is gated per-op), and
+     * `keyType` is `ecdsa-sha2-nistp256` (the only curve the hardware
+     * backend supports). Null = ordinary software key whose bytes are
+     * Tink-encrypted in [privateKeyBytes].
+     */
+    val hardwareAlias: String? = null,
 ) {
     // Structural equality — NOT id-only. An id-only equals() means a row
     // whose label (or cert) changed is `.equals()` to its old self, so a
@@ -87,7 +99,8 @@ data class SshKey(
             caConfigId == other.caConfigId &&
             certIssuedAt == other.certIssuedAt &&
             enabledForAuth == other.enabledForAuth &&
-            passphraseEncrypted == other.passphraseEncrypted
+            passphraseEncrypted == other.passphraseEncrypted &&
+            hardwareAlias == other.hardwareAlias
     }
 
     override fun hashCode(): Int {
@@ -105,6 +118,7 @@ data class SshKey(
         result = 31 * result + (certIssuedAt?.hashCode() ?: 0)
         result = 31 * result + enabledForAuth.hashCode()
         result = 31 * result + (passphraseEncrypted?.hashCode() ?: 0)
+        result = 31 * result + (hardwareAlias?.hashCode() ?: 0)
         return result
     }
 

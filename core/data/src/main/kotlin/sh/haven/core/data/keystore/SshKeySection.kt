@@ -20,17 +20,19 @@ import sh.haven.core.redact.LogRedact
 private const val TAG = "SshKeySection"
 
 /**
- * [KeystoreSection] over the `ssh_keys` Room table. The table holds two
- * different kinds of entries discriminated by the byte content of
- * `privateKeyBytes`:
+ * [KeystoreSection] over the `ssh_keys` Room table. The table holds
+ * three kinds of entries:
  *
  * - **Regular SSH private keys** — encrypted with [KeyEncryption] (Tink
  *   AEAD over the Android Keystore master key).
  * - **FIDO2 SK credentials** — serialized [SkKeyData] blobs that hold
  *   the credential ID + public key only; the actual signing key lives
  *   on the security key, never on this device.
+ * - **Hardware-resident keys** (`hardwareAlias != null`) — the signing
+ *   key lives in this device's Android Keystore; the row carries only
+ *   public material and never yields bytes from [fetch].
  *
- * Enumerate / wipe operate over both kinds uniformly. Distinguishing
+ * Enumerate / wipe operate over all kinds uniformly. Distinguishing
  * SK vs regular happens via [SkKeyData.isSkKeyBlob].
  */
 @Singleton
@@ -71,6 +73,14 @@ class SshKeySection @Inject constructor(
      */
     override suspend fun fetch(entryId: String): KeystoreFetch {
         val row = sshKeyDao.getById(entryId) ?: return KeystoreFetch.NotFound
+        // Hardware-resident keys have no local private bytes to hand
+        // out — the Android Keystore alias is the only handle.
+        // [SshKeyRepository.fetchKeyMaterial] dispatches them to
+        // KeyMaterial.Hardware before this section is consulted; this
+        // guard keeps that invariant for any direct fetch caller too.
+        row.hardwareAlias?.let {
+            return KeystoreFetch.Failed("Hardware-resident key has no local material")
+        }
         Log.d(TAG, "fetch(id=$entryId, label=${LogRedact.of(row.label)}, biometricProtected=${row.biometricProtected})")
         // Biometric gate runs *before* the decrypt, so a denied prompt
         // never asks Tink to unwrap the bytes.

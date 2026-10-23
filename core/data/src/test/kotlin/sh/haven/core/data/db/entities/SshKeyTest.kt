@@ -18,6 +18,7 @@ class SshKeyTest {
         id: String = "key-1",
         label: String = "001",
         cert: ByteArray? = null,
+        alias: String? = null,
     ) = SshKey(
         id = id,
         label = label,
@@ -27,6 +28,7 @@ class SshKeyTest {
         fingerprintSha256 = "SHA256:abc",
         createdAt = 42L,
         certificateBytes = cert,
+        hardwareAlias = alias,
     )
 
     @Test
@@ -50,5 +52,12 @@ class SshKeyTest {
     @Test
     fun differsByCertificate_notEqual() {
         assertNotEquals(key(cert = null), key(cert = byteArrayOf(9, 9)))
+    }
+
+    @Test
+    fun differsByHardwareAlias_notEqual() {
+        // Hardware vs software is user-visible (Keys screen badge), so a
+        // row flipping hardwareAlias must re-render like any other field.
+        assertNotEquals(key(alias = null), key(alias = "haven_hw_key-1"))
     }
 }

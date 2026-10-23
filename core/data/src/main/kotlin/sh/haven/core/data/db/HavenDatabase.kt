@@ -58,7 +58,7 @@ import sh.haven.core.data.db.entities.WorkspaceProfile
         ChatConversation::class,
         ChatMessage::class,
     ],
-    version = 87,
+    version = 88,
     exportSchema = true,
 )
 abstract class HavenDatabase : RoomDatabase() {
@@ -1390,6 +1390,18 @@ abstract class HavenDatabase : RoomDatabase() {
                 addColumnIfMissing(db, "connection_profiles", "glkvmTargetLayout", "TEXT")
                 addColumnIfMissing(db, "connection_profiles", "glkvmSshForward", "INTEGER NOT NULL DEFAULT 0")
                 addColumnIfMissing(db, "connection_profiles", "glkvmSshProfileId", "TEXT")
+            }
+        }
+
+        /**
+         * Hardware-resident SSH Keys: nullable Android-Keystore alias on
+         * `ssh_keys`. NULL (the default) keeps every existing row a
+         * software key; non-NULL marks a key whose private half never
+         * leaves the secure chip.
+         */
+        val MIGRATION_87_88 = object : Migration(87, 88) {
+            override fun migrate(db: SupportSQLiteDatabase) {
+                addColumnIfMissing(db, "ssh_keys", "hardwareAlias", "TEXT DEFAULT NULL")
             }
         }
 

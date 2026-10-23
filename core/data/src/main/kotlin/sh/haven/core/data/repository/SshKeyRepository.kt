@@ -29,24 +29,42 @@ class SshKeyRepository @Inject constructor(
 
     suspend fun getById(id: String): SshKey? = sshKeyDao.getById(id)
 
-    /** Save a key, encrypting the private key bytes at rest. */
+    /**
+     * Save a key, encrypting the private key bytes at rest. Empty bytes
+     * pass through unencrypted: that is the storage convention for
+     * hardware-resident keys (`hardwareAlias != null` — no local
+     * material to protect), and encrypting them would only produce
+     * misleading ciphertext that decrypts back to nothing.
+     */
     suspend fun save(key: SshKey): Unit = sshKeyDao.upsert(
-        key.copy(privateKeyBytes = KeyEncryption.encrypt(context, key.privateKeyBytes))
+        key.copy(
+            privateKeyBytes =
+                if (key.privateKeyBytes.isEmpty()) key.privateKeyBytes
+                else KeyEncryption.encrypt(context, key.privateKeyBytes)
+        )
     )
 
     /**
      * Get decrypted private key bytes, keeping a declined prompt
      * distinguishable from a missing key.
      *
-     * Routes through the unified [Keystore.fetch] so any biometric
-     * gating set on the entry (#129 stage 5) actually fires before the
-     * bytes are returned. Prefer this over [getDecryptedKeyBytes]
-     * anywhere the answer changes what happens next — above all on the
-     * SSH auth path, where a declined prompt must stop the connect
-     * rather than hand it the next credential (#559).
+     * Hardware-resident keys (`hardwareAlias != null`) short-circuit to
+     * [KeyMaterial.Hardware] — no decrypt, no keystore round-trip;
+     * their private half is in the Android Keystore and the biometric
+     * prompt belongs to the signing operation itself.
+     *
+     * Software keys route through the unified [Keystore.fetch] so any
+     * biometric gating set on the entry (#129 stage 5) actually fires
+     * before the bytes are returned. Prefer this over
+     * [getDecryptedKeyBytes] anywhere the answer changes what happens
+     * next — above all on the SSH auth path, where a declined prompt
+     * must stop the connect rather than hand it the next credential
+     * (#559).
      */
-    suspend fun fetchKeyMaterial(id: String): KeyMaterial =
-        when (val result = keystore.fetch(KeystoreStore.SSH_KEYS, id)) {
+    suspend fun fetchKeyMaterial(id: String): KeyMaterial {
+        val key = sshKeyDao.getById(id) ?: return KeyMaterial.Missing
+        key.hardwareAlias?.let { return KeyMaterial.Hardware(it) }
+        return when (val result = keystore.fetch(KeystoreStore.SSH_KEYS, id)) {
             is KeystoreFetch.Bytes -> KeyMaterial.Available(result.data)
             is KeystoreFetch.NotFound -> KeyMaterial.Missing
             is KeystoreFetch.Denied -> KeyMaterial.Declined(result.reason)
@@ -57,6 +75,7 @@ class SshKeyRepository @Inject constructor(
             // Password is the wrong shape for SSH-keys; treat as missing.
             is KeystoreFetch.Password -> KeyMaterial.Missing
         }
+    }
 
     /**
      * Get decrypted private key bytes, or null.
@@ -72,8 +91,11 @@ class SshKeyRepository @Inject constructor(
         (fetchKeyMaterial(id) as? KeyMaterial.Available)?.bytes
 
     /**
-     * Every stored key with decrypted private bytes, plus the keys the
-     * user declined to unlock.
+     * Every stored software key with decrypted private bytes, plus the
+     * keys the user declined to unlock. Hardware-resident keys
+     * (`hardwareAlias != null`) are excluded entirely — they have no
+     * local private bytes to decrypt, so they must never appear in any
+     * "decrypted private keys" result set (export, backup, auto-auth).
      *
      * Each row goes through [Keystore.fetch], so a biometric-protected
      * entry prompts before its bytes are returned. Rows that are simply
@@ -87,6 +109,9 @@ class SshKeyRepository @Inject constructor(
         val usable = mutableListOf<SshKey>()
         val declined = mutableListOf<KeyMaterial.Declined>()
         for (key in sshKeyDao.getAll()) {
+            // T4: hardware keys join auto-auth via KeystoreSshIdentity,
+            // not via decrypted bytes — so they never reach this pool.
+            if (key.hardwareAlias != null) continue
             when (val r = keystore.fetch(KeystoreStore.SSH_KEYS, key.id)) {
                 is KeystoreFetch.Bytes -> usable += key.copy(privateKeyBytes = r.data)
                 is KeystoreFetch.Denied -> {

@@ -69,6 +69,9 @@ internal object SshlibSftpConnector {
         // engine only, so this connection falls back rather than
         // failing to authenticate with a key that is perfectly valid (#487).
         is ConnectionConfig.AuthMethod.ProviderKey -> "keys held in another app"
+        // Same again for security-chip keys: their private half only signs
+        // via KeystoreSshIdentity on the JSch engine.
+        is ConnectionConfig.AuthMethod.HardwareKey -> "security-chip keys"
         // Chains run as their sub-methods in order plus a keyboard-interactive
         // follow-up (see authenticate); a sub-method we cannot do still gates.
         is ConnectionConfig.AuthMethod.Multi ->
@@ -265,11 +268,12 @@ internal object SshlibSftpConnector {
             }
             last
         }
-        // FidoKey and ProviderKey are rejected by unsupportedReason before
-        // dialing; Password is filtered out by the caller; nested Multi is not
-        // a shape the profile editor can produce.
+        // FidoKey, ProviderKey and HardwareKey are rejected by
+        // unsupportedReason before dialing; Password is filtered out by the
+        // caller; nested Multi is not a shape the profile editor can produce.
         is ConnectionConfig.AuthMethod.FidoKey,
         is ConnectionConfig.AuthMethod.ProviderKey,
+        is ConnectionConfig.AuthMethod.HardwareKey,
         is ConnectionConfig.AuthMethod.Multi,
         is ConnectionConfig.AuthMethod.Password,
         -> throw SshIoException("sshlib: unsupported auth method ${method::class.simpleName}")

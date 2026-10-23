@@ -68,6 +68,14 @@ class CertRenewalGate @Inject constructor(
         leewaySeconds: Long = DEFAULT_LEEWAY_SECONDS,
         nowSecondsProvider: () -> Long = { System.currentTimeMillis() / 1000 },
     ): SshKey {
+        // Hardware-resident keys are never renewed: this gate rotates in a
+        // fresh SOFTWARE keypair (the CA signs a public key), which would
+        // write software bytes into a row whose hardwareAlias says the
+        // private half lives in the chip — a row that lies about itself.
+        // Chip-key cert renewal needs a CSR signed on-chip; until that
+        // exists, the (possibly stale) cert is offered as-is and the server
+        // rejects it if it has truly expired.
+        if (sshKey.hardwareAlias != null) return sshKey
         val caConfigId = sshKey.caConfigId ?: return sshKey
         val certBytes = sshKey.certificateBytes ?: return sshKey
         val cert = OpenSshCertificate.parseOrNull(certBytes) ?: return sshKey

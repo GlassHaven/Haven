@@ -54,10 +54,16 @@ class HeadlessSshExec @Inject constructor(
     // SK key on the profile's own auth must work on the headless exec path too
     // (#732); default null keeps explicit test constructions unchanged.
     private val fidoAuthenticator: FidoAuthenticator? = null,
+    // Security-chip keys sign via the Keystore + biometric ceremony; same
+    // default-null convention as fidoAuthenticator.
+    private val keystoreSshKeySigner: sh.haven.core.ssh.KeystoreSshKeySigner? = null,
 ) {
     /** Test seam — unit tests swap this to avoid opening real sockets. */
     internal var clientFactory: () -> SshClient = {
-        SshClient().apply { fidoAuthenticator = this@HeadlessSshExec.fidoAuthenticator }
+        SshClient().apply {
+            fidoAuthenticator = this@HeadlessSshExec.fidoAuthenticator
+            hardwareKeySigner = this@HeadlessSshExec.keystoreSshKeySigner
+        }
     }
 
     data class Outcome(val exec: ExecResult, val reusedLiveConnection: Boolean)
@@ -152,8 +158,9 @@ class HeadlessSshExec @Inject constructor(
 /**
  * Resolve a non-interactive [ConnectionConfig.AuthMethod] for a profile, or
  * null if authenticating would require a UI prompt (encrypted/biometric key,
- * FIDO2 hardware key, or no stored credential at all). FIDO2 (`sk-`) and
- * encrypted keys are excluded deliberately — nothing is present to answer
+ * FIDO2 hardware key, security-chip key, or no stored credential at all).
+ * FIDO2 (`sk-`), security-chip and encrypted keys are excluded deliberately —
+ * nothing is present to answer
  * their touch/passphrase prompts on a headless connect.
  *
  * Shared by [HeadlessSshExec] and [McpTunnelManager] so the two headless
@@ -167,7 +174,14 @@ internal object HeadlessSshAuth {
         val keyId = profile.keyId
         if (keyId != null) {
             val key = sshKeyRepository.getById(keyId) ?: return null
-            if (key.keyType.startsWith("sk-") || key.isEncrypted) return null
+            // Hardware-resident keys join the exclusion set: their signature
+            // demands a per-op biometric ceremony with the app foreground,
+            // which a headless connect cannot guarantee (same reasoning as
+            // sk- keys' touch).
+            if (key.hardwareAlias != null ||
+                key.keyType.startsWith("sk-") ||
+                key.isEncrypted
+            ) return null
             val keyBytes = sshKeyRepository.getDecryptedKeyBytes(keyId) ?: return null
             val certBytes = sshKeyRepository.getCertificateBytes(keyId)
             return ConnectionConfig.AuthMethod.PrivateKey(

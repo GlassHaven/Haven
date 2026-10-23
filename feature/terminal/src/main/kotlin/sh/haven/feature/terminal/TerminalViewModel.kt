@@ -330,6 +330,13 @@ class TerminalViewModel @Inject constructor(
      * connect path in ConnectionsViewModel already wires this).
      */
     private val fidoAuthenticator: sh.haven.core.fido.FidoAuthenticator,
+    /**
+     * Security-chip SSH key signer, wired onto the SshClients built for new
+     * sessions/tabs: a stored config can carry a HardwareKey auth method (a
+     * profile with a chip key pinned), and without the signer its connect
+     * fails with "no HardwareSshKeySigner configured".
+     */
+    private val keystoreSshKeySigner: sh.haven.core.ssh.KeystoreSshKeySigner,
     private val preferencesRepository: UserPreferencesRepository,
     private val inlineImageConsent: InlineImageConsentRegistry,
     private val connectionRepository: sh.haven.core.data.repository.ConnectionRepository,
@@ -3015,6 +3022,7 @@ class TerminalViewModel @Inject constructor(
             } else null
             val client = reuseClient ?: SshClient().apply {
                 fidoAuthenticator = this@TerminalViewModel.fidoAuthenticator
+                hardwareKeySigner = this@TerminalViewModel.keystoreSshKeySigner
                 openKeychainClients = OpenKeychainClientFactory.from(appContext)
             }
             val sessionId = sessionManager.registerSession(profileId, label, client)
@@ -3225,6 +3233,7 @@ class TerminalViewModel @Inject constructor(
             } else null
             val client = reuseClient ?: SshClient().apply {
                 fidoAuthenticator = this@TerminalViewModel.fidoAuthenticator
+                hardwareKeySigner = this@TerminalViewModel.keystoreSshKeySigner
                 openKeychainClients = OpenKeychainClientFactory.from(appContext)
             }
             val sessionId = sessionManager.registerSession(profileId, label, client)

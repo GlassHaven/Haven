@@ -36,13 +36,16 @@ sealed class KeyMaterial {
 }
 
 /**
- * Keys that could be decrypted, and the ones the user declined to
- * unlock. Auth paths must not treat [declined] as absence — see
+ * Keys that could be decrypted, the ones the user declined to unlock, and
+ * the hardware-resident rows (no local bytes — auth-usable via their Keystore
+ * alias). Auth paths must not treat [declined] as absence — see
  * [KeyMaterial.Declined].
  */
 data class DecryptedKeys(
     val keys: List<SshKey>,
     val declined: List<KeyMaterial.Declined>,
+    /** Hardware-resident rows (`hardwareAlias != null`), never in [keys]. */
+    val hardware: List<SshKey> = emptyList(),
 )
 
 /**

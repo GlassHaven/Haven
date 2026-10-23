@@ -115,6 +115,7 @@ class TerminalViewModelTest {
         umlGuestManager,
         mockk(relaxed = true), // HostKeyVerifier
         mockk(relaxed = true), // FidoAuthenticator
+        mockk(relaxed = true), // KeystoreSshKeySigner
         mockk(relaxed = true), // UserPreferencesRepository
         InlineImageConsentRegistry(),
         connectionRepository,

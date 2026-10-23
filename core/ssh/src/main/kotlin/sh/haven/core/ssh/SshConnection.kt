@@ -28,6 +28,14 @@ interface SshConnection : Closeable {
     var fidoAuthenticator: FidoAuthenticator?
 
     /**
+     * Set before connecting with a [ConnectionConfig.AuthMethod.HardwareKey]
+     * (security-chip key). Supplies the Keystore Signature + biometric
+     * ceremony the identity signs through; the same wiring is carried across
+     * reconnects (see SshSessionManager).
+     */
+    var hardwareKeySigner: HardwareSshKeySigner?
+
+    /**
      * Set before connecting with a ProviderKey auth method (#487). Supplies a
      * client for the app holding the key; a [android.content.Context] has to
      * come from outside, since binding to that app's service needs one.

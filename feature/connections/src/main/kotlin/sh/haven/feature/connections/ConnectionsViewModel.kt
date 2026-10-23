@@ -38,6 +38,9 @@ import sh.haven.core.data.repository.ConnectionRepository
 import sh.haven.core.data.repository.PortForwardRepository
 import sh.haven.core.data.repository.SshKeyRepository
 import sh.haven.core.ssh.ConnectionConfig
+import sh.haven.core.ssh.HardwareKeyInvalidatedException
+import sh.haven.core.ssh.HardwareKeySignDeclinedException
+import sh.haven.core.ssh.KeystoreSshKeySigner
 import sh.haven.core.ssh.OpenKeychainClientFactory
 import sh.haven.core.ssh.openkeychain.OpenKeychainKeyData
 import sh.haven.core.ssh.HostKeyAuthFailure
@@ -243,6 +246,8 @@ class ConnectionsViewModel @Inject constructor(
     private val openAiSessionManager: OpenAiSessionManager,
     private val aiRouteRegistry: sh.haven.core.openai.AiRouteRegistry,
     private val fidoAuthenticator: FidoAuthenticator,
+    /** Security-chip SSH keys sign through the Keystore + biometric ceremony. */
+    private val keystoreSshKeySigner: KeystoreSshKeySigner,
     private val localSessionManager: LocalSessionManager,
     private val umlGuestManager: sh.haven.core.local.uml.UmlGuestManager,
     private val sessionManagerRegistry: SessionManagerRegistry,
@@ -2378,13 +2383,14 @@ class ConnectionsViewModel @Inject constructor(
         dependentPassword: String = "",
         dependentRememberPassword: Boolean? = null,
     ) {
-        if (e is KeyUnlockDeclinedException) {
-            // Same rule as connectSsh (#559): the user declined to unlock a
-            // key on the jump host. The message contains "authentication", so
-            // the classifier below would read it as an auth failure and
-            // re-open the password prompt — offering another way in after a
-            // refusal. Report the decline and stop.
-            _error.value = e.reason.ifBlank { "Key unlock was declined" }
+        if (isKeyRefusal(e)) {
+            // Same rule as connectSsh (#559): the user declined a key
+            // ceremony on the jump host (software-key unlock, or the
+            // security-chip sign prompt). The message contains
+            // "authentication", so the classifier below would read it as an
+            // auth failure and re-open the password prompt — offering another
+            // way in after a refusal. Report the decline and stop.
+            _error.value = (e.message ?: "").ifBlank { "Key unlock was declined" }
             return
         }
         val msg = e.message ?: ""
@@ -4019,6 +4025,7 @@ class ConnectionsViewModel @Inject constructor(
             } else null
             val client = reuseClient ?: clientFactory(profile).apply {
                 fidoAuthenticator = this@ConnectionsViewModel.fidoAuthenticator
+                hardwareKeySigner = this@ConnectionsViewModel.keystoreSshKeySigner
                 openKeychainClients = OpenKeychainClientFactory.from(appContext)
                 this.verboseLogger = verboseLogger
             }
@@ -4249,9 +4256,11 @@ class ConnectionsViewModel @Inject constructor(
                 val isPassphraseError = !isNetworkError &&
                     msg.contains("passphrase", ignoreCase = true)
                 val isAuthError = keyOnly && isAuthMessage
-                if (e is KeyUnlockDeclinedException) {
+                if (isKeyRefusal(e)) {
                     // The user was asked for a key's biometric ack and said no
-                    // (or could not be asked). Say so and stop.
+                    // (or could not be asked) — a software-key unlock decline,
+                    // or the security-chip sign ceremony being refused/timing
+                    // out/failing on invalidation. Say so and stop.
                     //
                     // This branch has to come first because the message
                     // contains the word "authentication", which the classifier
@@ -4373,6 +4382,7 @@ class ConnectionsViewModel @Inject constructor(
             // path as SSH; without the authenticator the connect throws
             // ("no FidoAuthenticator configured") — #732.
             this.fidoAuthenticator = this@ConnectionsViewModel.fidoAuthenticator
+            hardwareKeySigner = this@ConnectionsViewModel.keystoreSshKeySigner
         }
 
         // Jump host takes priority, then SOCKS/HTTP proxy
@@ -4543,12 +4553,13 @@ class ConnectionsViewModel @Inject constructor(
                         msg.contains("authentication", ignoreCase = true) ||
                         msg.contains("publickey", ignoreCase = true)
                 val isAuthError = keyOnly && isAuthMessage
-                if (e is KeyUnlockDeclinedException) {
+                if (isKeyRefusal(e)) {
                     // Same rule as connectSsh (#559), and first for the same
                     // reason: the message contains "authentication", which the
                     // classifier below reads as an auth failure and answers
-                    // with the password fallback. A declined key unlock is
-                    // reported, not answered with another way in.
+                    // with the password fallback. A declined key unlock — or a
+                    // refused/failed security-chip ceremony — is reported, not
+                    // answered with another way in.
                     _error.value = msg.ifBlank { "Key unlock was declined" }
                 } else if (isFidoAuth && (isAuthError || (keyOnly && msg.isBlank()))) {
                     val fidoDetail = fidoAuthenticator.lastAssertionError
@@ -4673,12 +4684,13 @@ class ConnectionsViewModel @Inject constructor(
                         msg.contains("authentication", ignoreCase = true) ||
                         msg.contains("publickey", ignoreCase = true)
                 val isAuthError = keyOnly && isAuthMessage
-                if (e is KeyUnlockDeclinedException) {
+                if (isKeyRefusal(e)) {
                     // Same rule as connectSsh (#559), and first for the same
                     // reason: the message contains "authentication", which the
                     // classifier below reads as an auth failure and answers
-                    // with the password fallback. A declined key unlock is
-                    // reported, not answered with another way in.
+                    // with the password fallback. A declined key unlock — or a
+                    // refused/failed security-chip ceremony — is reported, not
+                    // answered with another way in.
                     _error.value = msg.ifBlank { "Key unlock was declined" }
                 } else if (isFidoAuth && (isAuthError || (keyOnly && msg.isBlank()))) {
                     val fidoDetail = fidoAuthenticator.lastAssertionError
@@ -5059,7 +5071,10 @@ class ConnectionsViewModel @Inject constructor(
     internal var jumpClientFactory: () -> SshConnection = {
         // The jump leg runs the jump profile's own auth (an FIDO2 SK key on
         // the jump host must work here too) — #732.
-        SshClient().apply { fidoAuthenticator = this@ConnectionsViewModel.fidoAuthenticator }
+        SshClient().apply {
+            fidoAuthenticator = this@ConnectionsViewModel.fidoAuthenticator
+            hardwareKeySigner = this@ConnectionsViewModel.keystoreSshKeySigner
+        }
     }
 
     internal suspend fun connectJumpHost(
@@ -5122,6 +5137,7 @@ class ConnectionsViewModel @Inject constructor(
         // this SshClient", never reaching the touch prompt (#286).
         val jumpClient = jumpClientFactory().apply {
             fidoAuthenticator = this@ConnectionsViewModel.fidoAuthenticator
+            hardwareKeySigner = this@ConnectionsViewModel.keystoreSshKeySigner
             openKeychainClients = OpenKeychainClientFactory.from(appContext)
             verboseLogger = jumpVerbose
         }
@@ -5302,6 +5318,7 @@ class ConnectionsViewModel @Inject constructor(
                 is ConnectionConfig.AuthMethod.PrivateKeys -> "key"
                 is ConnectionConfig.AuthMethod.FidoKey -> "FIDO2"
                 is ConnectionConfig.AuthMethod.ProviderKey -> "provider key"
+                is ConnectionConfig.AuthMethod.HardwareKey -> "security-chip key"
                 is ConnectionConfig.AuthMethod.Multi -> m.methods.joinToString("+") { label(it) }
             }
             label(config.authMethod)
@@ -5692,6 +5709,21 @@ class ConnectionsViewModel @Inject constructor(
     }
 
     /**
+     * True when [e] means "a key ceremony was refused or could not run":
+     * a declined software-key unlock ([KeyUnlockDeclinedException], thrown
+     * pre-connect), or the security-chip sign ceremony being refused / timed
+     * out / invalidated ([HardwareKeySignDeclinedException] /
+     * [HardwareKeyInvalidatedException], thrown from inside the JSch auth —
+     * RuntimeExceptions are the only kind JSch rethrows raw instead of
+     * folding them into a generic "Auth fail"). All connect paths treat
+     * these the same: report and stop, never offer another credential (#559).
+     */
+    private fun isKeyRefusal(e: Exception): Boolean =
+        e is KeyUnlockDeclinedException ||
+            e is HardwareKeySignDeclinedException ||
+            e is HardwareKeyInvalidatedException
+
+    /**
      * Resolve a specific saved key into an auth method, running the
      * cert-renewal gate and handling FIDO2 / encrypted keys. Returns null
      * if the key is missing or its bytes can't be decrypted, and callers
@@ -5716,14 +5748,28 @@ class ConnectionsViewModel @Inject constructor(
         // and the JSch connect. (#133 phase 2b)
         val originalKey = sshKeyRepository.getById(keyId)
         val key = if (originalKey != null) certRenewalGate.ensureFresh(originalKey) else null
+        if (key != null && key.hardwareAlias != null) {
+            // Hardware-resident: no local bytes exist to fetch or prompt for —
+            // the biometric ceremony happens per signature inside
+            // KeystoreSshIdentity, only after the server accepts this key.
+            // Cert is public material, same fetch as the software path.
+            Log.d(TAG, "Using security-chip key: ${key.keyType}" +
+                if (key.certificateBytes != null) " (with certificate)" else "")
+            return ConnectionConfig.AuthMethod.HardwareKey(
+                alias = key.hardwareAlias!!,
+                publicKeyOpenSsh = key.publicKeyOpenSsh,
+                fingerprintSha256 = key.fingerprintSha256,
+                keyLabel = key.label,
+                certBytes = sshKeyRepository.getCertificateBytes(keyId),
+            )
+        }
         val keyBytes = if (key != null) {
             when (val material = sshKeyRepository.fetchKeyMaterial(keyId)) {
                 is KeyMaterial.Available -> material.bytes
                 is KeyMaterial.Declined -> throw KeyUnlockDeclinedException(material.reason)
                 KeyMaterial.Missing -> null
-                // T4: hardware keys join explicit-key auth via
-                // KeystoreSshIdentity, not via decrypted bytes — no
-                // local material here by construction.
+                // Unreachable: a row with a hardwareAlias returned above,
+                // and only such rows dispatch to Hardware.
                 is KeyMaterial.Hardware -> null
             }
         } else {
@@ -5774,14 +5820,23 @@ class ConnectionsViewModel @Inject constructor(
     }
 
     /**
-     * Every usable saved key as a [ConnectionConfig.AuthMethod.PrivateKeys]
-     * "try them all" bundle, or null if none — the fallback when a profile has
-     * no explicit key assigned. Includes plaintext keys AND passphrase-protected
-     * keys whose passphrase is stored (#290/#381): the encrypted bytes + stored
-     * passphrase ride along so JSch decrypts at auth time, exactly like a pinned
-     * key. An encrypted key with NO stored passphrase is skipped (nothing to
-     * decrypt it with unattended). Biometric-protected keys are included (each
-     * prompts via its keystore gate in [getAllDecrypted]).
+     * Every usable saved key, or null if none — the fallback when a profile
+     * has no explicit key assigned. Software keys become a
+     * [ConnectionConfig.AuthMethod.PrivateKeys] "try them all" bundle;
+     * hardware-resident keys (security chip, `hardwareAlias != null`) become
+     * individual [ConnectionConfig.AuthMethod.HardwareKey] methods appended
+     * AFTER the software bundle, so JSch offers software keys first and the
+     * hardware biometric ceremony only fires when the server wants a chip
+     * key (and the software keys failed). Mixed ordering follows the
+     * repository's row order (same as `enabledForAuth` software keys).
+     *
+     * Includes plaintext keys AND passphrase-protected keys whose passphrase
+     * is stored (#290/#381): the encrypted bytes + stored passphrase ride
+     * along so JSch decrypts at auth time, exactly like a pinned key. An
+     * encrypted key with NO stored passphrase is skipped (nothing to decrypt
+     * it with unattended). Biometric-protected software keys are included
+     * (each prompts via its keystore gate in [getAllDecryptedDetailed]);
+     * hardware keys prompt per signature later, by design.
      *
      * #381: previously this offered ONLY unencrypted keys, so a user whose only
      * key is passphrase-protected (the shape #290/#377 encourage) got no key
@@ -5795,9 +5850,8 @@ class ConnectionsViewModel @Inject constructor(
      * [resolveExplicitKey] resolves them to a [ConnectionConfig.AuthMethod.FidoKey].
      */
     private suspend fun resolveAnyUsableKeys(): ConnectionConfig.AuthMethod? {
-        val entries = sshKeyRepository.getAllDecryptedDetailed()
-            .also(::failIfAnyDeclined)
-            .keys
+        val detailed = sshKeyRepository.getAllDecryptedDetailed().also(::failIfAnyDeclined)
+        val entries = detailed.keys
             .filter { holdsLoadablePrivateKey(it.keyType) && it.enabledForAuth }
             .mapNotNull { key ->
                 if (key.isEncrypted) {
@@ -5821,8 +5875,23 @@ class ConnectionsViewModel @Inject constructor(
                     )
                 }
             }
-        if (entries.isEmpty()) return null
-        return ConnectionConfig.AuthMethod.PrivateKeys(keys = entries)
+        val hardwareKeys = detailed.hardware
+            .filter { it.enabledForAuth }
+            .map { key ->
+                ConnectionConfig.AuthMethod.HardwareKey(
+                    alias = key.hardwareAlias!!,
+                    publicKeyOpenSsh = key.publicKeyOpenSsh,
+                    fingerprintSha256 = key.fingerprintSha256,
+                    keyLabel = key.label,
+                    certBytes = key.certificateBytes,
+                )
+            }
+        val methods = buildList {
+            if (entries.isNotEmpty()) add(ConnectionConfig.AuthMethod.PrivateKeys(keys = entries))
+            addAll(hardwareKeys)
+        }
+        if (methods.isEmpty()) return null
+        return if (methods.size == 1) methods.single() else ConnectionConfig.AuthMethod.Multi(methods)
     }
 
     /**
@@ -5902,8 +5971,8 @@ class ConnectionsViewModel @Inject constructor(
                 forwardAgentEnabled = false,
             )
         }
-        val allKeys = sshKeyRepository.getAllDecrypted()
-        val enabled = allKeys.filter { it.enabledForAuth }
+        val allKeys = sshKeyRepository.getAllDecryptedDetailed()
+        val enabled = allKeys.keys.filter { it.enabledForAuth }
         val keys = mutableListOf<ConnectionConfig.AgentIdentity>()
         // #602: FIDO2/SK keys are forwardable through a hardware-backed
         // identity (AgentSafeIdentity over FidoIdentity): each signature from
@@ -5915,6 +5984,19 @@ class ConnectionsViewModel @Inject constructor(
                 label = key.label,
                 keyBytes = key.privateKeyBytes,
                 skKeyData = key.privateKeyBytes,
+                certBytes = key.certificateBytes,
+            )
+        }
+        // Security-chip keys forward the same way (AgentSafeIdentity over
+        // KeystoreSshIdentity): each forwarded sign request runs the
+        // biometric ceremony on this phone, so the remote cannot get a
+        // signature the user didn't just authorize.
+        for (key in allKeys.hardware.filter { it.enabledForAuth }) {
+            keys += ConnectionConfig.AgentIdentity(
+                label = key.label,
+                keyBytes = ByteArray(0),
+                hardwareAlias = key.hardwareAlias!!,
+                hardwarePublicKeyOpenSsh = key.publicKeyOpenSsh,
                 certBytes = key.certificateBytes,
             )
         }
@@ -5945,7 +6027,7 @@ class ConnectionsViewModel @Inject constructor(
         return AgentIdentitiesResult(
             keys = keys,
             skippedLockedCount = skippedLocked,
-            hadNoStoredKeys = allKeys.isEmpty(),
+            hadNoStoredKeys = allKeys.keys.isEmpty() && allKeys.hardware.isEmpty(),
             forwardAgentEnabled = true,
         )
     }
@@ -6252,7 +6334,11 @@ class ConnectionsViewModel @Inject constructor(
             if (keys.isEmpty()) return@launch
 
             // Check if key is already deployed by trying key auth
-            val testClient = SshClient()
+            // (security-chip keys can be in the pool resolveAuthMethod builds,
+            // so the signer must be wired before connect).
+            val testClient = SshClient().apply {
+                hardwareKeySigner = this@ConnectionsViewModel.keystoreSshKeySigner
+            }
             try {
                 val keyAuth = resolveAuthMethod(profile, "")
                 if (keyAuth is ConnectionConfig.AuthMethod.Password) return@launch // no keys to deploy
@@ -6520,6 +6606,7 @@ class ConnectionsViewModel @Inject constructor(
         val verboseLogger = if (verboseEnabled) SshVerboseLogger() else null
         val client = SshConnectionFactory.create(sshEngineFromOptionsText(profile.sshOptions)).apply {
             fidoAuthenticator = this@ConnectionsViewModel.fidoAuthenticator
+            hardwareKeySigner = this@ConnectionsViewModel.keystoreSshKeySigner
             openKeychainClients = OpenKeychainClientFactory.from(appContext)
             this.verboseLogger = verboseLogger
         }

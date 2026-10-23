@@ -9,6 +9,7 @@ import org.connectbot.sshlib.transport.TransportFactory
 import sh.haven.core.fido.FidoAuthenticator
 import sh.haven.core.ssh.ConnectionConfig
 import sh.haven.core.ssh.ExecResult
+import sh.haven.core.ssh.HardwareSshKeySigner
 import sh.haven.core.ssh.HavenProxy
 import sh.haven.core.ssh.KeyboardInteractiveAnswerer
 import sh.haven.core.ssh.KeyboardInteractivePrompter
@@ -82,6 +83,12 @@ internal class SshlibConnection : SshConnection {
 
     /** Unused on this engine — FIDO2 auth is refused by the capability gate. */
     override var fidoAuthenticator: FidoAuthenticator? = null
+
+    /**
+     * Unused on this engine — security-chip keys are refused by the same
+     * capability gate (the signing delegation lives on the JSch engine only).
+     */
+    override var hardwareKeySigner: HardwareSshKeySigner? = null
 
     /** Unused on this engine — provider keys are refused by the same gate (#487). */
     override var openKeychainClients: sh.haven.core.ssh.OpenKeychainClientFactory? = null

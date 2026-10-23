@@ -113,16 +113,19 @@ class SshKeyHardwareKeyTest {
     }
 
     @Test
-    fun `getAllDecryptedDetailed excludes hardware keys entirely`() = runBlocking {
+    fun `getAllDecryptedDetailed classifies hardware keys into their own pool`() = runBlocking {
         coEvery { dao.getAll() } returns listOf(softwareKey("sw"), hardwareKey("hw"))
         coEvery { keystore.fetch(KeystoreStore.SSH_KEYS, "sw") } returns
             KeystoreFetch.Bytes(byteArrayOf(1))
 
         val result = SshKeyRepository(dao, context, keystore).getAllDecryptedDetailed()
 
-        // The hardware key appears neither as usable material nor as a
-        // decline — it simply is not part of the decrypted pool.
+        // The hardware key joins the auth-usable pool via its alias, but it
+        // is NOT part of the decrypted-bytes pool (which backs export /
+        // backup / PEM paths) and can never be a decline — its ceremony is
+        // per-signature, later, inside KeystoreSshIdentity.
         assertEquals(listOf("sw"), result.keys.map { it.id })
+        assertEquals(listOf("hw"), result.hardware.map { it.id })
         assertTrue(result.declined.isEmpty())
         coVerify(exactly = 0) { keystore.fetch(KeystoreStore.SSH_KEYS, "hw") }
     }

@@ -46,6 +46,8 @@ class SshClient : SshConnection {
     private val jsch = JSch()
     /** Set before connecting with a FidoKey auth method. */
     override var fidoAuthenticator: FidoAuthenticator? = null
+    /** Set before connecting with a HardwareKey auth method (security chip). */
+    override var hardwareKeySigner: HardwareSshKeySigner? = null
     /** Set before connecting with a ProviderKey auth method (#487). */
     override var openKeychainClients: OpenKeychainClientFactory? = null
     /** Set before connect() to capture verbose SSH protocol output. */
@@ -198,6 +200,7 @@ class SshClient : SshConnection {
                 // profile listing several can accept whichever key the user
                 // actually presents instead of insisting on the first (#237).
                 is ConnectionConfig.AuthMethod.FidoKey -> { }
+                is ConnectionConfig.AuthMethod.HardwareKey -> addHardwareIdentity(auth, sess)
                 is ConnectionConfig.AuthMethod.ProviderKey -> addProviderIdentity(auth, sess)
             }
         }
@@ -345,6 +348,55 @@ class SshClient : SshConnection {
         val skAlgs = "sk-ssh-ed25519@openssh.com,sk-ecdsa-sha2-nistp256@openssh.com"
         val skCertAlgs = "sk-ssh-ed25519-cert-v01@openssh.com,sk-ecdsa-sha2-nistp256-cert-v01@openssh.com"
         val advertised = if (auth.certBytes != null) "$skCertAlgs,$skAlgs" else skAlgs
+        sess.setConfig(
+            "PubkeyAcceptedAlgorithms",
+            if (currentAlgs.isNotEmpty()) "$advertised,$currentAlgs" else advertised,
+        )
+    }
+
+    /**
+     * Register a security-chip key as a JSch identity. The identity signs
+     * through the Keystore + BiometricPrompt ceremony ([KeystoreSshIdentity]);
+     * the prompt fires only when the server accepts this key's offer, so a
+     * hardware key in the "any saved key" pool doesn't demand a fingerprint
+     * for servers that don't know it.
+     *
+     * No AgentSafeIdentity here: that wrapper converts throws to null, which
+     * on the AUTH path would slide the connect to the next credential — the
+     * exact #559 shape. The agent-forwarding path wraps it separately.
+     */
+    private fun addHardwareIdentity(auth: ConnectionConfig.AuthMethod.HardwareKey, sess: Session) {
+        val signer = hardwareKeySigner ?: throw IllegalStateException(
+            "Security-chip key auth has no HardwareSshKeySigner configured on this " +
+                "SshClient (key '${auth.keyLabel ?: auth.alias}') — set " +
+                "hardwareKeySigner before connect()."
+        )
+        val blob = parseHardwarePublicKeyBlob(auth.publicKeyOpenSsh)
+        Log.d(TAG, "Security-chip key: alias=${auth.alias}${if (auth.certBytes != null) " (with certificate)" else ""}")
+        var identity: Identity = KeystoreSshIdentity(
+            alias = auth.alias,
+            publicKeyBlob = blob,
+            signer = signer,
+            keyLabel = auth.keyLabel,
+            fingerprintSha256 = auth.fingerprintSha256,
+        )
+        if (auth.certBytes != null) {
+            identity = CertificateWrappedIdentity(
+                identity,
+                auth.certBytes,
+                SshCertificateParser.getCertKeyType(HARDWARE_SSH_KEY_ALG),
+            )
+        }
+        jsch.addIdentity(identity, null)
+        // ecdsa-sha2-nistp256 sits in JSch's defaults, but a profile option
+        // or an earlier engine may have narrowed PubkeyAcceptedAlgorithms —
+        // advertise explicitly, mirroring the FIDO branch.
+        val currentAlgs = sess.getConfig("PubkeyAcceptedAlgorithms") ?: ""
+        val advertised = if (auth.certBytes != null) {
+            "${SshCertificateParser.getCertKeyType(HARDWARE_SSH_KEY_ALG)},$HARDWARE_SSH_KEY_ALG"
+        } else {
+            HARDWARE_SSH_KEY_ALG
+        }
         sess.setConfig(
             "PubkeyAcceptedAlgorithms",
             if (currentAlgs.isNotEmpty()) "$advertised,$currentAlgs" else advertised,
@@ -860,6 +912,44 @@ class SshClient : SshConnection {
                         "Registered agent identity #$i '${identity.label}' " +
                             "(FIDO2 SK key ${skData.algorithmName}, touch prompts on sign" +
                             (if (identity.certBytes != null) ", cert-wrapped" else "") + ")",
+                    )
+                    return@forEachIndexed
+                }
+                if (identity.hardwareAlias != null) {
+                    // Security-chip key: same shape as the SK branch — the
+                    // Android Keystore holds the private half, each forwarded
+                    // sign request runs the biometric ceremony on this phone,
+                    // and a declined/failed ceremony must answer the remote
+                    // with SSH_AGENT_FAILURE rather than kill the session
+                    // (AgentSafeIdentity converts the identity's throws).
+                    val signer = hardwareKeySigner ?: throw IllegalStateException(
+                        "forwarded security-chip key '${identity.label}' has no " +
+                            "HardwareSshKeySigner configured on this SshClient",
+                    )
+                    val pubLine = identity.hardwarePublicKeyOpenSsh
+                        ?: throw IllegalStateException(
+                            "forwarded security-chip key '${identity.label}' carries no " +
+                                "public key line",
+                        )
+                    var hw: Identity = KeystoreSshIdentity(
+                        alias = identity.hardwareAlias!!,
+                        publicKeyBlob = parseHardwarePublicKeyBlob(pubLine),
+                        signer = signer,
+                        keyLabel = identity.label,
+                    )
+                    if (identity.certBytes != null) {
+                        hw = CertificateWrappedIdentity(
+                            hw,
+                            identity.certBytes,
+                            SshCertificateParser.getCertKeyType(HARDWARE_SSH_KEY_ALG),
+                        )
+                    }
+                    jsch.addIdentity(AgentSafeIdentity(hw), null)
+                    registered++
+                    diag(
+                        "Registered agent identity #$i '${identity.label}' " +
+                            "(security-chip key $HARDWARE_SSH_KEY_ALG, biometric prompt on " +
+                            "sign" + (if (identity.certBytes != null) ", cert-wrapped" else "") + ")",
                     )
                     return@forEachIndexed
                 }

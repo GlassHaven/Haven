@@ -73,6 +73,17 @@ data class ConnectionConfig(
          * signature from the remote prompts for a touch on the phone.
          */
         val skKeyData: ByteArray? = null,
+        /**
+         * Security-chip key (Android Keystore): non-null means the agent
+         * registers a [KeystoreSshIdentity] — [keyBytes] is empty and
+         * ignored, every forwarded sign request runs the biometric ceremony
+         * on this phone, and a declined/failed ceremony answers the remote
+         * with SSH_AGENT_FAILURE instead of killing the session
+         * ([AgentSafeIdentity]).
+         */
+        val hardwareAlias: String? = null,
+        /** Public line for [hardwareAlias] keys — the only material they have. */
+        val hardwarePublicKeyOpenSsh: String? = null,
         /** Optional CA certificate pairing the SK key (#133-style cert path). */
         val certBytes: ByteArray? = null,
     ) {
@@ -83,6 +94,8 @@ data class ConnectionConfig(
                 keyBytes.contentEquals(other.keyBytes) &&
                 (passphrase ?: ByteArray(0)).contentEquals(other.passphrase ?: ByteArray(0)) &&
                 (skKeyData ?: ByteArray(0)).contentEquals(other.skKeyData ?: ByteArray(0)) &&
+                hardwareAlias == other.hardwareAlias &&
+                hardwarePublicKeyOpenSsh == other.hardwarePublicKeyOpenSsh &&
                 (certBytes ?: ByteArray(0)).contentEquals(other.certBytes ?: ByteArray(0))
         }
 
@@ -91,6 +104,8 @@ data class ConnectionConfig(
             result = 31 * result + keyBytes.contentHashCode()
             result = 31 * result + (passphrase?.contentHashCode() ?: 0)
             result = 31 * result + (skKeyData?.contentHashCode() ?: 0)
+            result = 31 * result + (hardwareAlias?.hashCode() ?: 0)
+            result = 31 * result + (hardwarePublicKeyOpenSsh?.hashCode() ?: 0)
             result = 31 * result + (certBytes?.contentHashCode() ?: 0)
             return result
         }
@@ -281,6 +296,48 @@ data class ConnectionConfig(
             }
             override fun hashCode(): Int =
                 skKeyData.contentHashCode() * 31 + (certBytes?.contentHashCode() ?: 0)
+        }
+
+        /**
+         * Security-chip key — the private half lives in this device's
+         * AndroidKeyStore under [alias] and never exists as bytes.
+         * Structurally the same idea as [FidoKey]/[ProviderKey]: a handle to
+         * a signer that isn't in this process. [SshClient] turns it into a
+         * [KeystoreSshIdentity], and every signature runs the per-op
+         * BIOMETRIC_STRONG ceremony on this phone (the prompt only fires when
+         * the server actually accepts this key's offer).
+         *
+         * @param publicKeyOpenSsh The entity's public line
+         *   (`"ecdsa-sha2-nistp256 <base64> [comment]"`) verbatim — parsed
+         *   and validated at identity-construction time.
+         * @param fingerprintSha256 Prompt detail line, same convention as
+         *   the software-key unlock prompt.
+         * @param certBytes Optional OpenSSH certificate pairing the key with
+         *   a CA (#133) — wrapped via [CertificateWrappedIdentity], same as
+         *   sk-keys: JSch's cert-aware IdentityFile cannot wrap a live
+         *   signer.
+         */
+        data class HardwareKey(
+            val alias: String,
+            val publicKeyOpenSsh: String,
+            val fingerprintSha256: String = "",
+            val keyLabel: String? = null,
+            val certBytes: ByteArray? = null,
+        ) : AuthMethod {
+            override fun equals(other: Any?): Boolean {
+                if (this === other) return true
+                if (other !is HardwareKey) return false
+                return alias == other.alias &&
+                    publicKeyOpenSsh == other.publicKeyOpenSsh &&
+                    fingerprintSha256 == other.fingerprintSha256 &&
+                    keyLabel == other.keyLabel &&
+                    (certBytes?.contentEquals(other.certBytes ?: byteArrayOf())
+                        ?: (other.certBytes == null))
+            }
+            override fun hashCode(): Int =
+                alias.hashCode() * 31 + publicKeyOpenSsh.hashCode() * 17 +
+                    fingerprintSha256.hashCode() * 13 + (keyLabel?.hashCode() ?: 0) * 7 +
+                    (certBytes?.contentHashCode() ?: 0)
         }
     }
 

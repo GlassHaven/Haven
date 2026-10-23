@@ -226,6 +226,7 @@ class ConnectionsViewModelSessionTest {
             rcloneSessionManager = rcloneSessionManager,
             rcloneClient = mockk(relaxed = true),
             fidoAuthenticator = mockk(relaxed = true),
+            keystoreSshKeySigner = mockk(relaxed = true),
             localSessionManager = localSessionManager,
             umlGuestManager = mockk(relaxed = true) {
                 every { sessions } returns kotlinx.coroutines.flow.MutableStateFlow(emptyMap())
@@ -398,6 +399,16 @@ class ConnectionsViewModelSessionTest {
         privateKeyBytes = ByteArray(0), publicKeyOpenSsh = "", fingerprintSha256 = "",
     )
 
+    /** Storage convention: empty bytes + non-null hardwareAlias (T4 wiring). */
+    private fun chipKey(id: String = "chip-1") = SshKey(
+        id = id, label = "chip key", keyType = "ecdsa-sha2-nistp256",
+        privateKeyBytes = ByteArray(0),
+        publicKeyOpenSsh = "ecdsa-sha2-nistp256 AAAACHip comment",
+        fingerprintSha256 = "SHA256:chip",
+        hardwareAlias = "haven-hw-$id",
+        enabledForAuth = true,
+    )
+
     // #286: a FIDO ("Any hardware key") jump host has no saved password and no
     // legacy keyId — connectJumpHost authenticates it via the FIDO authenticator,
     // so the pre-check must NOT shadow that with a password prompt.
@@ -502,6 +513,88 @@ class ConnectionsViewModelSessionTest {
 
         val fido = auth as ConnectionConfig.AuthMethod.FidoKey
         org.junit.Assert.assertEquals("yk", fido.keyLabel)
+    }
+
+    // T4: security-chip keys join the "any saved key" pool as individual
+    // HardwareKey methods, offered AFTER the software bundle so a working
+    // software key never triggers the biometric ceremony.
+    @Test
+    fun `any-key pool offers software keys first then chip keys`() = runTest {
+        coEvery { sshKeyRepository.getAllDecryptedDetailed() } returns DecryptedKeys(
+            keys = listOf(
+                SshKey(
+                    label = "laptop", keyType = "ssh-ed25519",
+                    privateKeyBytes = ByteArray(64), publicKeyOpenSsh = "", fingerprintSha256 = "",
+                ),
+            ),
+            declined = emptyList(),
+            hardware = listOf(chipKey()),
+        )
+        val profile = ConnectionProfile(
+            id = "p", label = "p", host = "h", username = "u", connectionType = "SSH",
+        )
+
+        val auth = viewModel.resolveAuthMethod(profile, password = "")
+
+        val multi = auth as ConnectionConfig.AuthMethod.Multi
+        org.junit.Assert.assertEquals(2, multi.methods.size)
+        assertTrue(multi.methods[0] is ConnectionConfig.AuthMethod.PrivateKeys)
+        val chip = multi.methods[1] as ConnectionConfig.AuthMethod.HardwareKey
+        org.junit.Assert.assertEquals("haven-hw-chip-1", chip.alias)
+        org.junit.Assert.assertEquals("ecdsa-sha2-nistp256 AAAACHip comment", chip.publicKeyOpenSsh)
+        org.junit.Assert.assertEquals("chip key", chip.keyLabel)
+        org.junit.Assert.assertEquals("SHA256:chip", chip.fingerprintSha256)
+    }
+
+    // A chip key alone must resolve to itself, not fall through to password.
+    @Test
+    fun `any-key pool offers a lone chip key`() = runTest {
+        coEvery { sshKeyRepository.getAllDecryptedDetailed() } returns
+            DecryptedKeys(keys = emptyList(), declined = emptyList(), hardware = listOf(chipKey()))
+        val profile = ConnectionProfile(
+            id = "p", label = "p", host = "h", username = "u", connectionType = "SSH",
+        )
+
+        val auth = viewModel.resolveAuthMethod(profile, password = "")
+
+        val chip = auth as ConnectionConfig.AuthMethod.HardwareKey
+        org.junit.Assert.assertEquals("haven-hw-chip-1", chip.alias)
+    }
+
+    // A chip key disabled for auth stays out of the auto-offer pool.
+    @Test
+    fun `chip key disabled for auth is not offered`() = runTest {
+        coEvery { sshKeyRepository.getAllDecryptedDetailed() } returns DecryptedKeys(
+            keys = emptyList(),
+            declined = emptyList(),
+            hardware = listOf(chipKey().copy(enabledForAuth = false)),
+        )
+        val profile = ConnectionProfile(
+            id = "p", label = "p", host = "h", username = "u", connectionType = "SSH",
+        )
+
+        val auth = viewModel.resolveAuthMethod(profile, password = "")
+
+        org.junit.Assert.assertTrue(auth is ConnectionConfig.AuthMethod.Password)
+    }
+
+    // T4: a profile pinned to a chip key resolves to the HardwareKey method
+    // — no fetchKeyMaterial round-trip, cert bytes carried along.
+    @Test
+    fun `a pinned chip key resolves to the hardware auth method`() = runTest {
+        coEvery { certRenewalGate.ensureFresh(any(), any(), any()) } answers { firstArg() }
+        coEvery { sshKeyRepository.getById("k-chip") } returns chipKey("k-chip")
+            .copy(certificateBytes = byteArrayOf(1, 2, 3))
+        coEvery { sshKeyRepository.getCertificateBytes("k-chip") } returns byteArrayOf(1, 2, 3)
+
+        val auth = viewModel.resolveAuthMethod(keyProfile("k-chip"), password = "")
+
+        val chip = auth as ConnectionConfig.AuthMethod.HardwareKey
+        org.junit.Assert.assertEquals("haven-hw-k-chip", chip.alias)
+        org.junit.Assert.assertArrayEquals(byteArrayOf(1, 2, 3), chip.certBytes)
+        // The biometric gate belongs to the signing ceremony, not the resolve:
+        // no keystore fetch may have run for the row.
+        io.mockk.coVerify(exactly = 0) { sshKeyRepository.fetchKeyMaterial("k-chip") }
     }
 
     // --- #557: a pre-connect gate that fails must not be invisible ---------

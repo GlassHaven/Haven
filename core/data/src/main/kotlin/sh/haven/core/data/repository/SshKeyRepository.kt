@@ -92,26 +92,36 @@ class SshKeyRepository @Inject constructor(
 
     /**
      * Every stored software key with decrypted private bytes, plus the
-     * keys the user declined to unlock. Hardware-resident keys
-     * (`hardwareAlias != null`) are excluded entirely — they have no
-     * local private bytes to decrypt, so they must never appear in any
-     * "decrypted private keys" result set (export, backup, auto-auth).
+     * keys the user declined to unlock, plus the hardware-resident rows
+     * (`hardwareAlias != null`) classified into [DecryptedKeys.hardware] —
+     * they have no local private bytes, so they must never appear in
+     * [keys] (which backs export / backup / PEM paths), but they ARE
+     * auth-usable via their Keystore alias.
      *
-     * Each row goes through [Keystore.fetch], so a biometric-protected
-     * entry prompts before its bytes are returned. Rows that are simply
-     * unreadable (missing, decrypt error) are dropped as before, since
-     * a caller walking the list cannot do anything with them. Declined
-     * rows are reported separately: dropping those silently is what
-     * turned "I said no" into "try the next key" on the auth path
+     * Each software row goes through [Keystore.fetch], so a
+     * biometric-protected entry prompts before its bytes are returned.
+     * Rows that are simply unreadable (missing, decrypt error) are dropped
+     * as before, since a caller walking the list cannot do anything with
+     * them. Declined rows are reported separately: dropping those silently
+     * is what turned "I said no" into "try the next key" on the auth path
      * (#559), and only the caller knows whether that matters.
+     *
+     * Hardware rows need no fetch and can produce no decline: their
+     * biometric ceremony is per-signature, later, inside
+     * [sh.haven.core.ssh.KeystoreSshIdentity].
      */
     suspend fun getAllDecryptedDetailed(): DecryptedKeys {
         val usable = mutableListOf<SshKey>()
         val declined = mutableListOf<KeyMaterial.Declined>()
+        val hardware = mutableListOf<SshKey>()
         for (key in sshKeyDao.getAll()) {
-            // T4: hardware keys join auto-auth via KeystoreSshIdentity,
-            // not via decrypted bytes — so they never reach this pool.
-            if (key.hardwareAlias != null) continue
+            // Hardware-resident keys join auto-auth via KeystoreSshIdentity
+            // (alias + public line), not via decrypted bytes — so they land
+            // in their own pool, never the decrypted-bytes pool.
+            if (key.hardwareAlias != null) {
+                hardware += key
+                continue
+            }
             when (val r = keystore.fetch(KeystoreStore.SSH_KEYS, key.id)) {
                 is KeystoreFetch.Bytes -> usable += key.copy(privateKeyBytes = r.data)
                 is KeystoreFetch.Denied -> {
@@ -124,7 +134,7 @@ class SshKeyRepository @Inject constructor(
                 is KeystoreFetch.Password -> Unit
             }
         }
-        return DecryptedKeys(keys = usable, declined = declined)
+        return DecryptedKeys(keys = usable, declined = declined, hardware = hardware)
     }
 
     /**

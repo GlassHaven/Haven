@@ -1092,6 +1092,10 @@ class SshSessionManager @Inject constructor(
                     // otherwise addFidoIdentity NPEs on the null authenticator.
                     fidoAuthenticator = _sessions.value[sessionId]?.client?.fidoAuthenticator
                     openKeychainClients = _sessions.value[sessionId]?.client?.openKeychainClients
+                    // Same for security-chip keys: KeystoreSshIdentity needs
+                    // the signer, and a reconnect that drops it would fail
+                    // with "no HardwareSshKeySigner configured".
+                    hardwareKeySigner = _sessions.value[sessionId]?.client?.hardwareKeySigner
                 }
                 val hostKeyEntry = newClient.connectBlocking(
                     config,

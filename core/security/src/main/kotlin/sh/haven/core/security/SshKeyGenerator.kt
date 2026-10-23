@@ -14,13 +14,29 @@ import java.util.Base64
 /**
  * Generates SSH keypairs using BouncyCastle (Ed25519) or JCA (RSA, ECDSA).
  * Private keys are returned as raw bytes — caller is responsible for encryption.
+ *
+ * Also hosts the OpenSSH wire-format encoders shared by software keys and
+ * hardware-resident keys ([HardwareSshKeyManager]): ECDSA public key blobs
+ * ([encodeEcdsaPublicKey], curve-parameterized P-256/P-384) and the
+ * authorized_keys line builder ([openSshPublicKeyLine]).
  */
 object SshKeyGenerator {
+
+    /**
+     * ECDSA curves supported in OpenSSH wire encoding. [sshKeyType] is the
+     * key type string, [wireName] the curve name string inside the blob, and
+     * [coordinateBytes] the fixed width each coordinate half is padded to in
+     * the uncompressed EC point.
+     */
+    enum class EcdsaCurve(val sshKeyType: String, val wireName: String, val coordinateBytes: Int) {
+        NIST_P256("ecdsa-sha2-nistp256", "nistp256", 32),
+        NIST_P384("ecdsa-sha2-nistp384", "nistp384", 48),
+    }
 
     enum class KeyType(val displayName: String, val sshName: String) {
         ED25519("Ed25519", "ssh-ed25519"),
         RSA_4096("RSA 4096", "ssh-rsa"),
-        ECDSA_384("ECDSA P-384", "ecdsa-sha2-nistp384"),
+        ECDSA_384("ECDSA P-384", EcdsaCurve.NIST_P384.sshKeyType),
     }
 
     data class GeneratedKey(
@@ -57,8 +73,7 @@ object SshKeyGenerator {
         val publicKey = keyPair.public as Ed25519PublicKeyParameters
 
         val pubKeyBlob = encodeEd25519PublicKey(publicKey.encoded)
-        val pubKeyB64 = Base64.getEncoder().encodeToString(pubKeyBlob)
-        val pubLine = "ssh-ed25519 $pubKeyB64${if (comment.isNotEmpty()) " $comment" else ""}"
+        val pubLine = openSshPublicKeyLine("ssh-ed25519", pubKeyBlob, comment)
 
         val fingerprint = fingerprintSha256(pubKeyBlob)
 
@@ -77,8 +92,7 @@ object SshKeyGenerator {
 
         val rsaPub = keyPair.public as RSAPublicKey
         val pubKeyBlob = encodeRsaPublicKey(rsaPub)
-        val pubKeyB64 = Base64.getEncoder().encodeToString(pubKeyBlob)
-        val pubLine = "ssh-rsa $pubKeyB64${if (comment.isNotEmpty()) " $comment" else ""}"
+        val pubLine = openSshPublicKeyLine("ssh-rsa", pubKeyBlob, comment)
 
         val fingerprint = fingerprintSha256(pubKeyBlob)
 
@@ -96,9 +110,8 @@ object SshKeyGenerator {
         val keyPair: KeyPair = kpg.generateKeyPair()
 
         val ecPub = keyPair.public as ECPublicKey
-        val pubKeyBlob = encodeEcdsaPublicKey(ecPub)
-        val pubKeyB64 = Base64.getEncoder().encodeToString(pubKeyBlob)
-        val pubLine = "ecdsa-sha2-nistp384 $pubKeyB64${if (comment.isNotEmpty()) " $comment" else ""}"
+        val pubKeyBlob = encodeEcdsaPublicKey(ecPub, EcdsaCurve.NIST_P384)
+        val pubLine = openSshPublicKeyLine(EcdsaCurve.NIST_P384.sshKeyType, pubKeyBlob, comment)
 
         val fingerprint = fingerprintSha256(pubKeyBlob)
 
@@ -117,7 +130,7 @@ object SshKeyGenerator {
         val buf = ByteArray(4 + keyType.size + 4 + rawPublicKey.size)
         var offset = 0
         offset = writeBytes(buf, offset, keyType)
-        offset = writeBytes(buf, offset, rawPublicKey)
+        writeBytes(buf, offset, rawPublicKey)
         return buf
     }
 
@@ -133,19 +146,26 @@ object SshKeyGenerator {
         return buf
     }
 
-    private fun encodeEcdsaPublicKey(key: ECPublicKey): ByteArray {
-        val keyType = "ecdsa-sha2-nistp384".toByteArray()
-        val curveName = "nistp384".toByteArray()
+    /**
+     * OpenSSH ECDSA public key blob:
+     * `string keyType || string curveName || string point`, where point is the
+     * uncompressed `0x04 || X || Y` with each coordinate zero-padded on the
+     * left to [EcdsaCurve.coordinateBytes]. Curve-parameterized so hardware
+     * P-256 keys and software P-384 keys share one encoder.
+     */
+    internal fun encodeEcdsaPublicKey(key: ECPublicKey, curve: EcdsaCurve): ByteArray {
+        val keyType = curve.sshKeyType.toByteArray()
+        val curveName = curve.wireName.toByteArray()
         val point = key.w
-        val x = point.affineX.toByteArray()
-        val y = point.affineY.toByteArray()
-        // Uncompressed point: 0x04 || x || y (padded to 48 bytes each)
-        val xPad = x.padStartTo(48)
-        val yPad = y.padStartTo(48)
-        val pointBytes = ByteArray(1 + 48 + 48)
+        // BigInteger.toByteArray() is minimal two's-complement: a coordinate
+        // with the top bit set arrives with an extra 0x00 sign byte (dropped
+        // by takeLast), a small one shorter than the field width (left-padded).
+        val xPad = point.affineX.toByteArray().padStartTo(curve.coordinateBytes)
+        val yPad = point.affineY.toByteArray().padStartTo(curve.coordinateBytes)
+        val pointBytes = ByteArray(1 + 2 * curve.coordinateBytes)
         pointBytes[0] = 0x04
         xPad.copyInto(pointBytes, 1)
-        yPad.copyInto(pointBytes, 49)
+        yPad.copyInto(pointBytes, 1 + curve.coordinateBytes)
 
         val buf = ByteArray(4 + keyType.size + 4 + curveName.size + 4 + pointBytes.size)
         var offset = 0
@@ -153,6 +173,12 @@ object SshKeyGenerator {
         offset = writeBytes(buf, offset, curveName)
         writeBytes(buf, offset, pointBytes)
         return buf
+    }
+
+    /** authorized_keys line: `<sshName> <base64 blob>[ <comment>]`. */
+    internal fun openSshPublicKeyLine(sshName: String, blob: ByteArray, comment: String): String {
+        val b64 = Base64.getEncoder().encodeToString(blob)
+        return "$sshName $b64${if (comment.isNotEmpty()) " $comment" else ""}"
     }
 
     private fun writeBytes(buf: ByteArray, offset: Int, data: ByteArray): Int {

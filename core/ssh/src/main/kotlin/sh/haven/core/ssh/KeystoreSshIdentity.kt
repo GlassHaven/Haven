@@ -5,13 +5,18 @@ import android.security.keystore.UserNotAuthenticatedException
 import android.util.Log
 import com.jcraft.jsch.Identity
 import sh.haven.core.data.keystore.BiometricGate
+import sh.haven.core.redact.LogRedact
 import sh.haven.core.security.HardwareSshKeyManager
 import sh.haven.core.security.derEcdsaToSshBlob
 import kotlinx.coroutines.runBlocking
 import java.io.ByteArrayOutputStream
 import java.nio.ByteBuffer
 import java.nio.ByteOrder
+import java.security.InvalidKeyException
+import java.security.KeyStoreException
 import java.security.Signature
+import java.security.SignatureException
+import java.security.UnrecoverableKeyException
 import java.util.Base64
 import javax.inject.Inject
 import javax.inject.Singleton
@@ -163,15 +168,22 @@ class KeystoreSshIdentity(
         }
 
         val der = signOrThrow(signature, data)
-        Log.d(TAG, "hardware key '$promptName' signed ${data.size}b via Keystore")
+        Log.d(TAG, "hardware key '${LogRedact.of(promptName)}' signed ${data.size}b via Keystore")
         return assembleSshEcdsaSignature(alg, derEcdsaToSshBlob(der))
     }
 
-    /** [HardwareSshKeySigner.initSignature] with the invalidated/missing-key failures translated. */
+    /**
+     * [HardwareSshKeySigner.initSignature] with every keystore failure
+     * translated. The caught set is exhaustive on purpose: the remaining
+     * options are all *checked* exceptions, and JSch's Session.connect
+     * folds those into a generic "Auth fail" JSchException that matches
+     * neither translation — the connect would slide on to the password
+     * fallback, the exact #559 shape.
+     */
     private fun initOrThrow(): Signature = try {
         signer.initSignature(alias)
     } catch (e: KeyPermanentlyInvalidatedException) {
-        Log.e(TAG, "hardware key '$promptName' invalidated by biometric re-enrollment", e)
+        Log.e(TAG, "hardware key '${LogRedact.of(promptName)}' invalidated by biometric re-enrollment", e)
         throw HardwareKeyInvalidatedException(
             "Security-chip key \"$promptName\" was invalidated because a new biometric " +
                 "was enrolled on this device. Delete the key in Haven (Keys tab) and " +
@@ -184,6 +196,17 @@ class KeystoreSshIdentity(
                 "security chip (it was deleted, or the key list was restored from a " +
                 "backup to another device). Delete the key in Haven and generate it again.",
         )
+    } catch (e: InvalidKeyException) {
+        // KeyStore.getKey / Signature.initSign refusing the key (corrupt,
+        // wrong type): same remedy as an invalidation.
+        Log.e(TAG, "security chip handed out an unusable key for '$alias'", e)
+        throw HardwareKeyInvalidatedException(unusableKeyMessage())
+    } catch (e: UnrecoverableKeyException) {
+        Log.e(TAG, "security chip refused to hand out key '$alias'", e)
+        throw HardwareKeyInvalidatedException(unusableKeyMessage())
+    } catch (e: KeyStoreException) {
+        Log.e(TAG, "android keystore failed while opening key '$alias'", e)
+        throw HardwareKeyInvalidatedException(unusableKeyMessage())
     }
 
     /** update+sign with the per-op auth failures translated (both are fail-closed). */
@@ -199,12 +222,42 @@ class KeystoreSshIdentity(
     } catch (e: UserNotAuthenticatedException) {
         // ALLOW arrived but the Keystore did not attach the auth to this
         // Signature object — nothing to fall back to, refuse the signature.
-        Log.e(TAG, "Keystore demanded a fresh auth at sign time for '$promptName'", e)
+        Log.e(TAG, "Keystore demanded a fresh auth at sign time for '${LogRedact.of(promptName)}'", e)
         throw HardwareKeySignDeclinedException(
             "Security-chip key \"$promptName\" could not be authorized for signing. " +
                 "Try connecting again.",
         )
+    } catch (e: SignatureException) {
+        // Checked, like the keystore family below: leaking it lets JSch fold
+        // it into "Auth fail" and the connect slides to the next credential.
+        Log.e(TAG, "signature engine failed for '${LogRedact.of(promptName)}'", e)
+        throw HardwareKeySignDeclinedException(
+            "Security-chip key \"$promptName\" could not produce a signature. " +
+                "Try connecting again.",
+        )
+    } catch (e: KeyStoreException) {
+        // Binder-level keystore failure mid-sign: the ceremony could not run
+        // — refuse, don't fold.
+        Log.e(TAG, "keystore failed at sign time for '${LogRedact.of(promptName)}'", e)
+        throw HardwareKeySignDeclinedException(
+            "Security-chip key \"$promptName\" could not produce a signature. " +
+                "Try connecting again.",
+        )
+    } catch (e: InvalidKeyException) {
+        // Anything else the Signature engine rejects the key with at sign
+        // time (UserNotAuthenticated and KeyPermanentlyInvalidated, both
+        // InvalidKeyException subclasses, are already handled above).
+        Log.e(TAG, "sign rejected the key for '${LogRedact.of(promptName)}'", e)
+        throw HardwareKeySignDeclinedException(
+            "Security-chip key \"$promptName\" could not produce a signature. " +
+                "Try connecting again.",
+        )
     }
+
+    private fun unusableKeyMessage(): String =
+        "Security-chip key \"$promptName\" can no longer be used — the device's " +
+            "security chip refused or failed to open it. Delete the key in Haven " +
+            "(Keys tab) and generate it again, then update the server's authorized_keys."
 }
 
 /**

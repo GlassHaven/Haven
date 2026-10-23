@@ -96,6 +96,10 @@ class ConnectionsViewModelSessionTest {
     private lateinit var sessionManagerRegistry: SessionManagerRegistry
     private lateinit var sshKeyRepository: SshKeyRepository
     private lateinit var preferencesRepository: UserPreferencesRepository
+    // Field (not just a constructor argument): the pinned-chip-key test
+    // scripts ensureFresh on it — a relaxed default would return a relaxed
+    // SshKey and break the row the test means to resolve.
+    private lateinit var certRenewalGate: sh.haven.core.stepca.CertRenewalGate
     private val tunnelResolver: sh.haven.core.tunnel.TunnelResolver = mockk(relaxed = true)
     private lateinit var viewModel: ConnectionsViewModel
 
@@ -183,6 +187,14 @@ class ConnectionsViewModelSessionTest {
             every { observeAll() } returns flowOf(emptyList())
         }
 
+        certRenewalGate = mockk(relaxed = true) {
+            every { renewing } returns kotlinx.coroutines.flow.MutableStateFlow(null)
+            // Default pass-through: none of these tests renews anything, and a
+            // relaxed ensureFresh would return a proxy row that derails the
+            // hardwareAlias branch (same trap as pinnedSoftwareKey).
+            coEvery { ensureFresh(any(), any(), any()) } answers { firstArg<SshKey>() }
+        }
+
         preferencesRepository = mockk(relaxed = true) {
             every { sessionManager } returns flowOf(mockk(relaxed = true) {
                 every { label } returns "None"
@@ -255,9 +267,7 @@ class ConnectionsViewModelSessionTest {
             tunnelConfigRepository = mockk(relaxed = true) {
                 every { observeAll() } returns flowOf(emptyList())
             },
-            certRenewalGate = mockk(relaxed = true) {
-                every { renewing } returns kotlinx.coroutines.flow.MutableStateFlow(null)
-            },
+            certRenewalGate = certRenewalGate,
             desktopSessionRegistry = mockk(relaxed = true) {
                 every { statuses } returns kotlinx.coroutines.flow.MutableStateFlow(emptyMap())
             },
@@ -416,7 +426,8 @@ class ConnectionsViewModelSessionTest {
     fun `FIDO jump host with an sk-key enrolled needs no password prompt`() = runTest {
         every { sshSessionManager.getSessionsForProfile("jump") } returns emptyList()
         coEvery { repository.getById("jump") } returns jumpProfile("ANY_HARDWARE_KEY")
-        coEvery { sshKeyRepository.getAllDecrypted() } returns listOf(skKey())
+        coEvery { sshKeyRepository.getAllDecryptedDetailed() } returns
+            DecryptedKeys(keys = listOf(skKey()), declined = emptyList())
 
         assertNull(viewModel.jumpHostNeedsPasswordPrompt("jump"))
     }
@@ -428,7 +439,8 @@ class ConnectionsViewModelSessionTest {
         every { sshSessionManager.getSessionsForProfile("jump") } returns emptyList()
         val jp = jumpProfile("ANY_HARDWARE_KEY")
         coEvery { repository.getById("jump") } returns jp
-        coEvery { sshKeyRepository.getAllDecrypted() } returns emptyList()
+        coEvery { sshKeyRepository.getAllDecryptedDetailed() } returns
+            DecryptedKeys(keys = emptyList(), declined = emptyList())
 
         assertSame(jp, viewModel.jumpHostNeedsPasswordPrompt("jump"))
     }
@@ -439,7 +451,8 @@ class ConnectionsViewModelSessionTest {
         every { sshSessionManager.getSessionsForProfile("jump") } returns emptyList()
         val jp = jumpProfile("PASSWORD")
         coEvery { repository.getById("jump") } returns jp
-        coEvery { sshKeyRepository.getAllDecrypted() } returns emptyList()
+        coEvery { sshKeyRepository.getAllDecryptedDetailed() } returns
+            DecryptedKeys(keys = emptyList(), declined = emptyList())
 
         assertSame(jp, viewModel.jumpHostNeedsPasswordPrompt("jump"))
     }
@@ -451,7 +464,8 @@ class ConnectionsViewModelSessionTest {
     fun `enrolled sk-key suppresses jump password prompt without a spec`() = runTest {
         every { sshSessionManager.getSessionsForProfile("jump") } returns emptyList()
         coEvery { repository.getById("jump") } returns jumpProfile("")
-        coEvery { sshKeyRepository.getAllDecrypted() } returns listOf(skKey())
+        coEvery { sshKeyRepository.getAllDecryptedDetailed() } returns
+            DecryptedKeys(keys = listOf(skKey()), declined = emptyList())
 
         assertNull(viewModel.jumpHostNeedsPasswordPrompt("jump"))
     }
@@ -463,8 +477,40 @@ class ConnectionsViewModelSessionTest {
         every { sshSessionManager.getSessionsForProfile("jump") } returns emptyList()
         val jp = jumpProfile("")
         coEvery { repository.getById("jump") } returns jp
-        coEvery { sshKeyRepository.getAllDecrypted() } returns
-            listOf(skKey().copy(enabledForAuth = false))
+        coEvery { sshKeyRepository.getAllDecryptedDetailed() } returns
+            DecryptedKeys(
+                keys = listOf(skKey().copy(enabledForAuth = false)),
+                declined = emptyList(),
+            )
+
+        assertSame(jp, viewModel.jumpHostNeedsPasswordPrompt("jump"))
+    }
+
+    // #531 sibling: an offer-enabled security-chip key joins the auto-offer
+    // pool via KeystoreSshIdentity (its ceremony is per signature), so it
+    // suppresses the password pre-prompt exactly like an sk-key.
+    @Test
+    fun `enrolled chip key suppresses jump password prompt without a spec`() = runTest {
+        every { sshSessionManager.getSessionsForProfile("jump") } returns emptyList()
+        coEvery { repository.getById("jump") } returns jumpProfile("")
+        coEvery { sshKeyRepository.getAllDecryptedDetailed() } returns
+            DecryptedKeys(keys = emptyList(), declined = emptyList(), hardware = listOf(chipKey()))
+
+        assertNull(viewModel.jumpHostNeedsPasswordPrompt("jump"))
+    }
+
+    // …and the offer toggle keeps its meaning for chip keys too: disabled, the
+    // key never reaches the pool, so the prompt stays the fallback path.
+    @Test
+    fun `offer-disabled chip key does not suppress the jump password prompt`() = runTest {
+        every { sshSessionManager.getSessionsForProfile("jump") } returns emptyList()
+        val jp = jumpProfile("")
+        coEvery { repository.getById("jump") } returns jp
+        coEvery { sshKeyRepository.getAllDecryptedDetailed() } returns DecryptedKeys(
+            keys = emptyList(),
+            declined = emptyList(),
+            hardware = listOf(chipKey().copy(enabledForAuth = false)),
+        )
 
         assertSame(jp, viewModel.jumpHostNeedsPasswordPrompt("jump"))
     }
@@ -582,7 +628,6 @@ class ConnectionsViewModelSessionTest {
     // — no fetchKeyMaterial round-trip, cert bytes carried along.
     @Test
     fun `a pinned chip key resolves to the hardware auth method`() = runTest {
-        coEvery { certRenewalGate.ensureFresh(any(), any(), any()) } answers { firstArg() }
         coEvery { sshKeyRepository.getById("k-chip") } returns chipKey("k-chip")
             .copy(certificateBytes = byteArrayOf(1, 2, 3))
         coEvery { sshKeyRepository.getCertificateBytes("k-chip") } returns byteArrayOf(1, 2, 3)
@@ -595,6 +640,27 @@ class ConnectionsViewModelSessionTest {
         // The biometric gate belongs to the signing ceremony, not the resolve:
         // no keystore fetch may have run for the row.
         io.mockk.coVerify(exactly = 0) { sshKeyRepository.fetchKeyMaterial("k-chip") }
+    }
+
+    // #559 semantics for chip keys: every refused / invalidated chip ceremony
+    // must classify as a key refusal so all connect paths report and stop —
+    // anything else (a leaked checked exception, a plain IO error) slides the
+    // connect to the next credential, the exact bug #559 fixed.
+    @Test
+    fun `isKeyRefusal classifies the chip ceremony exceptions`() {
+        assertTrue(
+            viewModel.isKeyRefusal(
+                sh.haven.core.ssh.HardwareKeySignDeclinedException("prompt denied"),
+            ),
+        )
+        assertTrue(
+            viewModel.isKeyRefusal(
+                sh.haven.core.ssh.HardwareKeyInvalidatedException("re-enrolled"),
+            ),
+        )
+        assertTrue(viewModel.isKeyRefusal(KeyUnlockDeclinedException("denied")))
+        assertFalse(viewModel.isKeyRefusal(java.io.IOException("socket reset")))
+        assertFalse(viewModel.isKeyRefusal(IllegalStateException("wiring")))
     }
 
     // --- #557: a pre-connect gate that fails must not be invisible ---------
@@ -658,8 +724,21 @@ class ConnectionsViewModelSessionTest {
         keyId = keyId,
     )
 
+    /**
+     * A pinned SOFTWARE key row for the #559 decline tests. A relaxed
+     * `getById` hands back a proxy SshKey whose `hardwareAlias` does not
+     * read as null, so the chip-key branch (dd8ea23d) derails these tests
+     * before the declined unlock can fire — the row must be real.
+     */
+    private fun pinnedSoftwareKey(id: String) = SshKey(
+        id = id, label = "work laptop", keyType = "ssh-ed25519",
+        privateKeyBytes = byteArrayOf(1), publicKeyOpenSsh = "ssh-ed25519 A",
+        fingerprintSha256 = "SHA256:bio",
+    )
+
     @Test
     fun `declining the prompt for a profile's pinned key aborts instead of falling through`() = runTest {
+        coEvery { sshKeyRepository.getById("k-bio") } returns pinnedSoftwareKey("k-bio")
         coEvery { sshKeyRepository.fetchKeyMaterial("k-bio") } returns
             KeyMaterial.Declined("Authentication was declined for key \"work laptop\".")
 
@@ -716,6 +795,7 @@ class ConnectionsViewModelSessionTest {
 
     @Test
     fun `a declined key unlock reports the decline and does NOT offer the password fallback`() = runTest {
+        coEvery { sshKeyRepository.getById("k-bio") } returns pinnedSoftwareKey("k-bio")
         coEvery { sshKeyRepository.fetchKeyMaterial("k-bio") } returns
             KeyMaterial.Declined("Authentication was declined for key \"work laptop\".")
 
@@ -762,6 +842,7 @@ class ConnectionsViewModelSessionTest {
 
     @Test
     fun `a declined key unlock on the Mosh path does NOT offer the password fallback`() = runTest {
+        coEvery { sshKeyRepository.getById("k-bio") } returns pinnedSoftwareKey("k-bio")
         coEvery { sshKeyRepository.fetchKeyMaterial("k-bio") } returns
             KeyMaterial.Declined("Authentication was declined for key \"work laptop\".")
 
@@ -781,6 +862,7 @@ class ConnectionsViewModelSessionTest {
 
     @Test
     fun `a declined key unlock on the Eternal Terminal path does NOT offer the password fallback`() = runTest {
+        coEvery { sshKeyRepository.getById("k-bio") } returns pinnedSoftwareKey("k-bio")
         coEvery { sshKeyRepository.fetchKeyMaterial("k-bio") } returns
             KeyMaterial.Declined("Authentication was declined for key \"work laptop\".")
 

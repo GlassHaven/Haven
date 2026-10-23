@@ -2255,9 +2255,9 @@ class ConnectionsViewModel @Inject constructor(
     /**
      * Returns the jump host profile if it needs a password prompt before
      * the tunnel auto-connect can proceed (#121a). "Needs a prompt" means
-     * the profile has no saved password, no assigned key, and no
-     * unencrypted SSH keys in the keystore that JSch could try as a
-     * fallback. Returns null when at least one credential path is
+     * the profile has no saved password, no assigned key, and no SSH key
+     * in the keystore — software, FIDO or security-chip — that JSch could
+     * try as a fallback. Returns null when at least one credential path is
      * available — the existing silent auto-connect handles those.
      */
     // internal for unit test (FIDO-jump-host-no-prompt regression, #286).
@@ -2294,7 +2294,18 @@ class ConnectionsViewModel @Inject constructor(
                     (it is ConnectionProfile.AuthMethodSpec.Key && it.keyId != null)
             }
         ) return null
-        val keys = sshKeyRepository.getAllDecrypted().filter { it.enabledForAuth }
+        // The same pool shape the auth path reads (getAllDecryptedDetailed,
+        // #559): declined keys are none of our business here, but the
+        // hardware pools classify correctly instead of collapsing to bytes.
+        val detailed = sshKeyRepository.getAllDecryptedDetailed()
+        // An offer-enabled security-chip key joins the auto-offer pool via
+        // KeystoreSshIdentity (resolveAnyUsableKeys appends it after the
+        // software bundle), so it is a credential path the silent
+        // auto-connect can complete — the #531 sibling: counting only the
+        // byte-keyed pools pre-prompted for a password the connect never
+        // needed.
+        if (detailed.hardware.any { it.enabledForAuth }) return null
+        val keys = detailed.keys.filter { it.enabledForAuth }
         // An offer-enabled sk-key: FIDO needs only a touch, and since #531
         // resolveAuthMethod auto-offers the FIDO pool with no spec needed —
         // so an enrolled key suppresses the prompt unconditionally (#286
@@ -4376,13 +4387,8 @@ class ConnectionsViewModel @Inject constructor(
         verboseLogger: SshVerboseLogger?,
         interactive: Boolean,
     ): SshClient = withContext(Dispatchers.IO) {
-        val sshClient = SshClient().apply {
+        val sshClient = newSshClient().apply {
             this.verboseLogger = verboseLogger
-            // FIDO2 SK keys pinned to a Mosh/ET profile hit the same auth
-            // path as SSH; without the authenticator the connect throws
-            // ("no FidoAuthenticator configured") — #732.
-            this.fidoAuthenticator = this@ConnectionsViewModel.fidoAuthenticator
-            hardwareKeySigner = this@ConnectionsViewModel.keystoreSshKeySigner
         }
 
         // Jump host takes priority, then SOCKS/HTTP proxy
@@ -5069,12 +5075,9 @@ class ConnectionsViewModel @Inject constructor(
     }
 
     internal var jumpClientFactory: () -> SshConnection = {
-        // The jump leg runs the jump profile's own auth (an FIDO2 SK key on
-        // the jump host must work here too) — #732.
-        SshClient().apply {
-            fidoAuthenticator = this@ConnectionsViewModel.fidoAuthenticator
-            hardwareKeySigner = this@ConnectionsViewModel.keystoreSshKeySigner
-        }
+        // The jump leg runs the jump profile's own auth — an FIDO2 SK key or
+        // a security-chip key on the jump host must work here too (#732).
+        newSshClient()
     }
 
     internal suspend fun connectJumpHost(
@@ -5718,7 +5721,9 @@ class ConnectionsViewModel @Inject constructor(
      * folding them into a generic "Auth fail"). All connect paths treat
      * these the same: report and stop, never offer another credential (#559).
      */
-    private fun isKeyRefusal(e: Exception): Boolean =
+    // internal for unit test (the #559 classification pin for the chip
+    // ceremony exceptions, ConnectionsViewModelSessionTest).
+    internal fun isKeyRefusal(e: Exception): Boolean =
         e is KeyUnlockDeclinedException ||
             e is HardwareKeySignDeclinedException ||
             e is HardwareKeyInvalidatedException
@@ -6321,6 +6326,22 @@ class ConnectionsViewModel @Inject constructor(
     }
 
     /**
+     * A fresh [SshClient] with this ViewModel's hardware-ceremony wiring
+     * pre-attached: the FIDO2 authenticator and the security-chip signer.
+     * Any connect whose auth comes from [resolveAuthMethods] /
+     * [resolveAuthMethod] can fold either credential in, and SshClient
+     * throws at assembly time when its collaborator is missing — an
+     * unwired client turned "deploy a key" into an IllegalStateException
+     * the moment the pool held a chip key. Every construction in this
+     * class goes through here so the wiring cannot drift again (#732,
+     * deploy-key).
+     */
+    private fun newSshClient(): SshClient = SshClient().apply {
+        fidoAuthenticator = this@ConnectionsViewModel.fidoAuthenticator
+        hardwareKeySigner = keystoreSshKeySigner
+    }
+
+    /**
      * Auto-deploy the first SSH key to a localhost/VM profile after a successful
      * password-based connect. Only fires if keys exist and haven't been deployed yet.
      */
@@ -6336,9 +6357,7 @@ class ConnectionsViewModel @Inject constructor(
             // Check if key is already deployed by trying key auth
             // (security-chip keys can be in the pool resolveAuthMethod builds,
             // so the signer must be wired before connect).
-            val testClient = SshClient().apply {
-                hardwareKeySigner = this@ConnectionsViewModel.keystoreSshKeySigner
-            }
+            val testClient = newSshClient()
             try {
                 val keyAuth = resolveAuthMethod(profile, "")
                 if (keyAuth is ConnectionConfig.AuthMethod.Password) return@launch // no keys to deploy
@@ -6360,7 +6379,7 @@ class ConnectionsViewModel @Inject constructor(
 
             // Key auth failed — deploy the first key
             val key = keys.first()
-            val deployClient = SshClient()
+            val deployClient = newSshClient()
             try {
                 val config = ConnectionConfig(
                     host = profile.host,
@@ -6403,7 +6422,9 @@ class ConnectionsViewModel @Inject constructor(
                 return@launch
             }
 
-            val client = SshClient()
+            // resolveAuthMethods can fold a security-chip key (or a pinned
+            // FIDO key) into the chain — the factory wires both ceremonies.
+            val client = newSshClient()
             // The deploy connection has to honour the profile's "Route through"
             // jump host, WireGuard tunnel, or legacy SOCKS/HTTP proxy — same
             // precedence the regular connect path uses (#143). If we

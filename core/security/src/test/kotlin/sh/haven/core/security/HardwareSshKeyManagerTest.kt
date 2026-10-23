@@ -10,7 +10,8 @@ import org.junit.Test
  * Robolectric cannot host a real AndroidKeyStore, so the JVM-testable surface
  * of [HardwareSshKeyManager] is its *policy*: [HardwareKeyGenParams] (what
  * every KeyGenParameterSpec field will be set to) and the StrongBox version
- * gate [shouldAttemptStrongBox]. The Keystore-touching shell itself stays a
+ * gate in [HardwareSshKeyManager.generate] (API 28+, inlined there so lint
+ * can verify the SDK_INT check). The Keystore-touching shell itself stays a
  * thin, review-audited wrapper.
  */
 class HardwareSshKeyManagerTest {

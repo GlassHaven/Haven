@@ -252,6 +252,62 @@ class KeystoreSshIdentityTest {
         }
     }
 
+    // The three remaining checked failures HardwareSshKeyManager.initSignature
+    // can surface (KeyStore.getKey / Signature.initSign): JSch's Session.connect
+    // folds any checked exception into a generic "Auth fail" JSchException, so
+    // a leaked one neither matches isKeyRefusal nor tells the user anything —
+    // the connect would slide on to the password fallback (#559 shape).
+    @Test
+    fun `keystore hand-out failures (InvalidKey, Unrecoverable, KeyStore) translate to invalidated`() {
+        val failures = listOf(
+            java.security.InvalidKeyException("key corrupted"),
+            java.security.UnrecoverableKeyException("key locked"),
+            java.security.KeyStoreException("keystore unavailable"),
+        )
+        for (failure in failures) {
+            val id = identity(FakeSigner(initFailure = failure))
+            try {
+                id.getSignature(byteArrayOf(1))
+                fail("${failure.javaClass.simpleName} must not escape raw")
+            } catch (e: HardwareKeyInvalidatedException) {
+                assertTrue(e.message!!.contains("generate"))
+            }
+        }
+    }
+
+    @Test
+    fun `a sign-time SignatureException fails closed as a decline`() {
+        val fake = FakeSignature(
+            der = derSig(BigInteger.TEN, BigInteger.ONE),
+            signFailure = java.security.SignatureException("not initialized"),
+        )
+        val id = identity(FakeSigner(signature = fake))
+        try {
+            id.getSignature(byteArrayOf(1))
+            fail("a broken signature engine must not produce a signature")
+        } catch (e: HardwareKeySignDeclinedException) {
+            // expected: refused, not corrupted
+        }
+    }
+
+    // Same #559 shape at sign time: a binder-level keystore failure is
+    // checked, so JSch would fold a leaked one into "Auth fail" and the
+    // connect would slide to the password fallback.
+    @Test
+    fun `a sign-time KeyStoreException fails closed as a decline`() {
+        val fake = FakeSignature(
+            der = derSig(BigInteger.TEN, BigInteger.ONE),
+            signFailure = java.security.KeyStoreException("keystore busy"),
+        )
+        val id = identity(FakeSigner(signature = fake))
+        try {
+            id.getSignature(byteArrayOf(1))
+            fail("a keystore failure mid-sign must not produce a signature")
+        } catch (e: HardwareKeySignDeclinedException) {
+            // expected: refused, not corrupted
+        }
+    }
+
     // ------------------------------------------- 4. wrapper compatibility
 
     @Test

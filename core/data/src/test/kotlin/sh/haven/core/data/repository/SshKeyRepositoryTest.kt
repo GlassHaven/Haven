@@ -25,7 +25,7 @@ class SshKeyRepositoryTest {
     private val context: Context = mockk(relaxed = true)
     private val keystore: Keystore = mockk(relaxed = true)
 
-    private fun repo(dao: SshKeyDao) = SshKeyRepository(dao, context, keystore)
+    private fun repo(dao: SshKeyDao) = SshKeyRepository(dao, context, keystore, FakeHardwareKeySource())
 
     private fun storedKey() = SshKey(
         id = "key-1",

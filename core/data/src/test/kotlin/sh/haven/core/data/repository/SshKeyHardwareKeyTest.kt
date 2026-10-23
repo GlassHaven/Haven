@@ -34,6 +34,7 @@ class SshKeyHardwareKeyTest {
     private val context: Context = mockk(relaxed = true)
     private val keystore: Keystore = mockk(relaxed = true)
     private val dao: SshKeyDao = mockk(relaxed = true)
+    private val hardwareKeys = FakeHardwareKeySource()
 
     @Before
     fun mockKeyEncryption() {
@@ -72,7 +73,7 @@ class SshKeyHardwareKeyTest {
     fun `fetchKeyMaterial dispatches hardware keys without touching the keystore`() = runBlocking {
         coEvery { dao.getById("hw") } returns hardwareKey("hw", "alias-1")
 
-        val result = SshKeyRepository(dao, context, keystore).fetchKeyMaterial("hw")
+        val result = SshKeyRepository(dao, context, keystore, hardwareKeys).fetchKeyMaterial("hw")
 
         assertEquals(KeyMaterial.Hardware("alias-1"), result)
         // No decrypt attempt — the private key is not on this device.
@@ -85,7 +86,7 @@ class SshKeyHardwareKeyTest {
         coEvery { keystore.fetch(KeystoreStore.SSH_KEYS, "sw") } returns
             KeystoreFetch.Bytes(byteArrayOf(9, 9))
 
-        val result = SshKeyRepository(dao, context, keystore).fetchKeyMaterial("sw")
+        val result = SshKeyRepository(dao, context, keystore, hardwareKeys).fetchKeyMaterial("sw")
 
         assertTrue(result is KeyMaterial.Available)
         assertTrue((result as KeyMaterial.Available).bytes.contentEquals(byteArrayOf(9, 9)))
@@ -97,7 +98,7 @@ class SshKeyHardwareKeyTest {
 
         assertEquals(
             KeyMaterial.Missing,
-            SshKeyRepository(dao, context, keystore).fetchKeyMaterial("ghost"),
+            SshKeyRepository(dao, context, keystore, hardwareKeys).fetchKeyMaterial("ghost"),
         )
         coVerify(exactly = 0) { keystore.fetch(KeystoreStore.SSH_KEYS, any()) }
     }
@@ -109,7 +110,7 @@ class SshKeyHardwareKeyTest {
         // mistake for loadable key material.
         coEvery { dao.getById("hw") } returns hardwareKey("hw")
 
-        assertNull(SshKeyRepository(dao, context, keystore).getDecryptedKeyBytes("hw"))
+        assertNull(SshKeyRepository(dao, context, keystore, hardwareKeys).getDecryptedKeyBytes("hw"))
     }
 
     @Test
@@ -118,7 +119,7 @@ class SshKeyHardwareKeyTest {
         coEvery { keystore.fetch(KeystoreStore.SSH_KEYS, "sw") } returns
             KeystoreFetch.Bytes(byteArrayOf(1))
 
-        val result = SshKeyRepository(dao, context, keystore).getAllDecryptedDetailed()
+        val result = SshKeyRepository(dao, context, keystore, hardwareKeys).getAllDecryptedDetailed()
 
         // The hardware key joins the auth-usable pool via its alias, but it
         // is NOT part of the decrypted-bytes pool (which backs export /
@@ -136,7 +137,7 @@ class SshKeyHardwareKeyTest {
         coEvery { keystore.fetch(KeystoreStore.SSH_KEYS, "hw") } returns
             KeystoreFetch.Bytes(byteArrayOf(1))
 
-        val keys = SshKeyRepository(dao, context, keystore).getAllDecrypted()
+        val keys = SshKeyRepository(dao, context, keystore, hardwareKeys).getAllDecrypted()
 
         assertTrue(keys.isEmpty())
     }
@@ -147,7 +148,7 @@ class SshKeyHardwareKeyTest {
         coEvery { dao.upsert(capture(stored)) } returns Unit
         every { KeyEncryption.encrypt(any(), any()) } returns byteArrayOf(7, 7)
 
-        SshKeyRepository(dao, context, keystore).save(hardwareKey("hw"))
+        SshKeyRepository(dao, context, keystore, hardwareKeys).save(hardwareKey("hw"))
 
         // Stored verbatim: empty stays empty, no misleading ciphertext.
         assertEquals(0, stored.captured.privateKeyBytes.size)
@@ -160,8 +161,40 @@ class SshKeyHardwareKeyTest {
         coEvery { dao.upsert(capture(stored)) } returns Unit
         every { KeyEncryption.encrypt(any(), any()) } returns byteArrayOf(7, 7)
 
-        SshKeyRepository(dao, context, keystore).save(softwareKey("sw"))
+        SshKeyRepository(dao, context, keystore, hardwareKeys).save(softwareKey("sw"))
 
         assertTrue(stored.captured.privateKeyBytes.contentEquals(byteArrayOf(7, 7)))
+    }
+
+    // ---------- delete: SSOT for the Keystore-alias cleanup ----------
+
+    @Test
+    fun `delete removes the row and the hardware alias`() = runBlocking {
+        coEvery { dao.getById("hw") } returns hardwareKey("hw", "alias-1")
+
+        SshKeyRepository(dao, context, keystore, hardwareKeys).delete("hw")
+
+        coVerify(exactly = 1) { dao.deleteById("hw") }
+        assertEquals(listOf("alias-1"), hardwareKeys.deletedAliases)
+    }
+
+    @Test
+    fun `delete of a software key never touches the hardware source`() = runBlocking {
+        coEvery { dao.getById("sw") } returns softwareKey("sw")
+
+        SshKeyRepository(dao, context, keystore, hardwareKeys).delete("sw")
+
+        coVerify(exactly = 1) { dao.deleteById("sw") }
+        assertTrue(hardwareKeys.deletedAliases.isEmpty())
+    }
+
+    @Test
+    fun `delete of a missing id is a no-op and deletes no alias`() = runBlocking {
+        coEvery { dao.getById("ghost") } returns null
+
+        SshKeyRepository(dao, context, keystore, hardwareKeys).delete("ghost")
+
+        coVerify(exactly = 1) { dao.deleteById("ghost") }
+        assertTrue(hardwareKeys.deletedAliases.isEmpty())
     }
 }

@@ -22,6 +22,13 @@ android {
     buildFeatures {
         compose = true
     }
+
+    testOptions {
+        // ViewModel tests exercise paths that call android.util.Log; the
+        // unit-test android.jar stubs it out and would throw "not mocked"
+        // (same recipe as feature/connections, core/security, …).
+        unitTests.isReturnDefaultValues = true
+    }
 }
 
 dependencies {
@@ -42,6 +49,8 @@ dependencies {
     implementation(libs.lifecycle.viewmodel)
 
     testImplementation(libs.junit)
+    testImplementation(libs.mockk)
+    testImplementation(libs.coroutines.test)
 }
 
 kotlin {

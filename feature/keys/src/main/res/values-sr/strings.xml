@@ -44,6 +44,14 @@
     <string name="keys_label_placeholder">нпр. my-server</string>
     <string name="keys_key_type">Тип кључа</string>
     <string name="keys_generate">Генериши</string>
+
+    <!-- GenerateKeyDialog: hardware-resident keys (device secure chip) -->
+    <string name="keys_hardware_toggle">Генериши у безбедносном чипу уређаја</string>
+    <string name="keys_hardware_algorithm">ECDSA P-256 (безбедносни чип)</string>
+    <string name="keys_hardware_constraints">• Приватни кључ никада не напушта чип\n• Није могуће резервно копирање ни извоз\n• Свака употреба захтева верификацију отиском прста или лицем\n• Трајно се губи при ресетовању на фабричка подешавања или преласку на нови уређај</string>
+    <string name="keys_hardware_default_label">Кључ безбедносног чипа</string>
+    <string name="keys_hardware_export_disabled_reason">Приватни кључ никада не напушта чип, па се не може извозити</string>
+    <string name="keys_chip_secure_chip">Безбедносни чип</string>
     <string name="keys_encrypted_key">Шифровани кључ</string>
     <string name="keys_passphrase_prompt">Овај кључ је заштићен приступном реченицом.</string>
     <string name="keys_passphrase">Приступна реченица</string>

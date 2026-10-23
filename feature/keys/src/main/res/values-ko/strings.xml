@@ -52,6 +52,14 @@
     <string name="keys_key_type">키 유형</string>
     <string name="keys_generate">생성</string>
 
+    <!-- GenerateKeyDialog: hardware-resident keys (device secure chip) -->
+    <string name="keys_hardware_toggle">기기 보안 칩에서 생성</string>
+    <string name="keys_hardware_algorithm">ECDSA P-256(보안 칩)</string>
+    <string name="keys_hardware_constraints">• 개인 키는 칩 밖으로 절대 나가지 않습니다\n• 백업하거나 내보낼 수 없습니다\n• 사용할 때마다 지문 또는 얼굴 인증이 필요합니다\n• 공장 초기화 또는 기기 변경 시 영구적으로 사라집니다</string>
+    <string name="keys_hardware_default_label">보안 칩 키</string>
+    <string name="keys_hardware_export_disabled_reason">개인 키가 칩 밖으로 나가지 않으므로 내보낼 수 없습니다</string>
+    <string name="keys_chip_secure_chip">보안 칩</string>
+
     <!-- PassphraseDialog -->
     <string name="keys_encrypted_key">암호화된 키</string>
     <string name="keys_passphrase_prompt">이 키는 암호문으로 보호되어 있습니다.</string>

@@ -21410,6 +21410,126 @@
      }
     },
     {
+     "name": "keys_hardware_toggle",
+     "en": "Generate in device secure chip",
+     "comment": "GenerateKeyDialog: hardware-resident keys (device secure chip, design.md §6)",
+     "args": [],
+     "t": {
+      "ar": "الإنشاء في شريحة الأمان بالجهاز",
+      "bn": "ডিভাইসের সিকিউর চিপে তৈরি করুন",
+      "de": "Im Secure-Chip des Geräts erzeugen",
+      "es": "Generar en el chip de seguridad del dispositivo",
+      "fr": "Générer dans la puce de sécurité de l\\'appareil",
+      "hi": "डिवाइस के सिक्योर चिप में जनरेट करें",
+      "ja": "デバイスのセキュアチップ内で生成",
+      "ko": "기기 보안 칩에서 생성",
+      "pt": "Gerar no chip de segurança do dispositivo",
+      "ru": "Создать в защищённом чипе устройства",
+      "sr": "Генериши у безбедносном чипу уређаја",
+      "zh": "在设备安全芯片中生成"
+     }
+    },
+    {
+     "name": "keys_hardware_algorithm",
+     "en": "ECDSA P-256 (secure chip)",
+     "comment": "GenerateKeyDialog: hardware-resident keys (device secure chip, design.md §6)",
+     "args": [],
+     "t": {
+      "ar": "ECDSA P-256 (شريحة الأمان)",
+      "bn": "ECDSA P-256 (সিকিউর চিপ)",
+      "de": "ECDSA P-256 (Secure-Chip)",
+      "es": "ECDSA P-256 (chip de seguridad)",
+      "fr": "ECDSA P-256 (puce de sécurité)",
+      "hi": "ECDSA P-256 (सिक्योर चिप)",
+      "ja": "ECDSA P-256（セキュアチップ）",
+      "ko": "ECDSA P-256(보안 칩)",
+      "pt": "ECDSA P-256 (chip de segurança)",
+      "ru": "ECDSA P-256 (защищённый чип)",
+      "sr": "ECDSA P-256 (безбедносни чип)",
+      "zh": "ECDSA P-256（安全芯片）"
+     }
+    },
+    {
+     "name": "keys_hardware_constraints",
+     "en": "• The private key never leaves the chip\\n• Cannot be backed up or exported\\n• Every use requires fingerprint or face verification\\n• Permanently lost on factory reset or when moving to a new device",
+     "comment": "GenerateKeyDialog: hardware-resident keys (device secure chip, design.md §6)",
+     "args": [],
+     "t": {
+      "ar": "• المفتاح الخاص لا يخرج من الشريحة أبدًا\\n• لا يمكن نسخه احتياطيًا أو تصديره\\n• يتطلب كل استخدام تحققًا ببصمة الإصبع أو الوجه\\n• يُفقد نهائيًا عند إعادة ضبط المصنع أو الانتقال إلى جهاز جديد",
+      "bn": "• প্রাইভেট কী কখনোই চিপের বাইরে যায় না\\n• ব্যাকআপ বা এক্সপোর্ট করা যায় না\\n• প্রতিটি ব্যবহারে ফিঙ্গারপ্রিন্ট বা ফেস যাচাই প্রয়োজন\\n• ফ্যাক্টরি রিসেট বা নতুন ডিভাইসে স্থানান্তরে স্থায়ীভাবে হারিয়ে যায়",
+      "de": "• Der private Schlüssel verlässt den Chip nie\\n• Kein Backup, kein Export möglich\\n• Jede Nutzung erfordert Fingerabdruck- oder Gesichtsverifizierung\\n• Beim Zurücksetzen auf Werkseinstellungen oder beim Gerätewechsel dauerhaft verloren",
+      "es": "• La clave privada nunca sale del chip\\n• No se puede hacer copia de seguridad ni exportar\\n• Cada uso requiere verificación de huella o rostro\\n• Se pierde permanentemente al restablecer de fábrica o al cambiar de dispositivo",
+      "fr": "• La clé privée ne quitte jamais la puce\\n• Sauvegarde et export impossibles\\n• Chaque utilisation exige une vérification par empreinte ou visage\\n• Définitivement perdue après réinitialisation ou changement d\\'appareil",
+      "hi": "• प्राइवेट की कभी भी चिप से बाहर नहीं जाती\\n• बैकअप या एक्सपोर्ट नहीं किया जा सकता\\n• हर उपयोग के लिए फिंगरप्रिंट या फेस सत्यापन आवश्यक है\\n• फ़ैक्टरी रीसेट या नए डिवाइस पर शिफ़्ट होने पर स्थायी रूप से खो जाती है",
+      "ja": "• 秘密鍵はチップの外に出ません\\n• バックアップやエクスポートはできません\\n• 使用のたびに指紋または顔認証が必要です\\n• 初期化や機種変更すると永久に失われます",
+      "ko": "• 개인 키는 칩 밖으로 절대 나가지 않습니다\\n• 백업하거나 내보낼 수 없습니다\\n• 사용할 때마다 지문 또는 얼굴 인증이 필요합니다\\n• 공장 초기화 또는 기기 변경 시 영구적으로 사라집니다",
+      "pt": "• A chave privada nunca sai do chip\\n• Não pode ser copiada (backup) nem exportada\\n• Cada uso exige verificação por impressão digital ou rosto\\n• Perdida permanentemente ao restaurar o dispositivo ou trocá-lo",
+      "ru": "• Закрытый ключ никогда не покидает чип\\n• Резервное копирование и экспорт невозможны\\n• Каждое использование требует подтверждения отпечатком или лицом\\n• Безвозвратно теряется при сбросе к заводским настройкам или смене устройства",
+      "sr": "• Приватни кључ никада не напушта чип\\n• Није могуће резервно копирање ни извоз\\n• Свака употреба захтева верификацију отиском прста или лицем\\n• Трајно се губи при ресетовању на фабричка подешавања или преласку на нови уређај",
+      "zh": "• 私钥永不出芯片\\n• 不可备份、不可导出\\n• 每次使用都需指纹或人脸验证\\n• 恢复出厂设置或更换设备后将永久失效"
+     }
+    },
+    {
+     "name": "keys_hardware_default_label",
+     "en": "Secure chip key",
+     "comment": "GenerateKeyDialog: hardware-resident keys (device secure chip, design.md §6)",
+     "args": [],
+     "t": {
+      "ar": "مفتاح شريحة الأمان",
+      "bn": "সিকিউর চিপ কী",
+      "de": "Secure-Chip-Schlüssel",
+      "es": "Clave del chip de seguridad",
+      "fr": "Clé de la puce de sécurité",
+      "hi": "सिक्योर चिप की",
+      "ja": "セキュアチップ鍵",
+      "ko": "보안 칩 키",
+      "pt": "Chave do chip de segurança",
+      "ru": "Ключ защищённого чипа",
+      "sr": "Кључ безбедносног чипа",
+      "zh": "安全芯片密钥"
+     }
+    },
+    {
+     "name": "keys_hardware_export_disabled_reason",
+     "en": "The private key never leaves the chip, so it can\\'t be exported",
+     "comment": "GenerateKeyDialog: hardware-resident keys (device secure chip, design.md §6)",
+     "args": [],
+     "t": {
+      "ar": "المفتاح الخاص لا يخرج من الشريحة أبدًا، لذا لا يمكن تصديره",
+      "bn": "প্রাইভেট কী কখনোই চিপের বাইরে যায় না, তাই এটি এক্সপোর্ট করা যায় না",
+      "de": "Der private Schlüssel verlässt den Chip nie und kann daher nicht exportiert werden",
+      "es": "La clave privada nunca sale del chip, por lo que no se puede exportar",
+      "fr": "La clé privée ne quitte jamais la puce, elle ne peut donc pas être exportée",
+      "hi": "प्राइवेट की कभी चिप से बाहर नहीं जाती, इसलिए इसे एक्सपोर्ट नहीं किया जा सकता",
+      "ja": "秘密鍵はチップの外に出ないため、エクスポートできません",
+      "ko": "개인 키가 칩 밖으로 나가지 않으므로 내보낼 수 없습니다",
+      "pt": "A chave privada nunca sai do chip, por isso não pode ser exportada",
+      "ru": "Закрытый ключ никогда не покидает чип, поэтому его нельзя экспортировать",
+      "sr": "Приватни кључ никада не напушта чип, па се не може извозити",
+      "zh": "私钥永不出芯片，因此无法导出"
+     }
+    },
+    {
+     "name": "keys_chip_secure_chip",
+     "en": "Secure chip",
+     "comment": "GenerateKeyDialog: hardware-resident keys (device secure chip, design.md §6)",
+     "args": [],
+     "t": {
+      "ar": "شريحة الأمان",
+      "bn": "সিকিউর চিপ",
+      "de": "Secure-Chip",
+      "es": "Chip de seguridad",
+      "fr": "Puce de sécurité",
+      "hi": "सिक्योर चिप",
+      "ja": "セキュアチップ",
+      "ko": "보안 칩",
+      "pt": "Chip de segurança",
+      "ru": "Защищённый чип",
+      "sr": "Безбедносни чип",
+      "zh": "安全芯片"
+     }
+    },
+    {
      "name": "keys_encrypted_key",
      "en": "Encrypted Key",
      "comment": "PassphraseDialog",

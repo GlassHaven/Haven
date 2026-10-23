@@ -52,6 +52,14 @@
     <string name="keys_key_type">密钥类型</string>
     <string name="keys_generate">生成</string>
 
+    <!-- GenerateKeyDialog: hardware-resident keys (device secure chip) -->
+    <string name="keys_hardware_toggle">在设备安全芯片中生成</string>
+    <string name="keys_hardware_algorithm">ECDSA P-256（安全芯片）</string>
+    <string name="keys_hardware_constraints">• 私钥永不出芯片\n• 不可备份、不可导出\n• 每次使用都需指纹或人脸验证\n• 恢复出厂设置或更换设备后将永久失效</string>
+    <string name="keys_hardware_default_label">安全芯片密钥</string>
+    <string name="keys_hardware_export_disabled_reason">私钥永不出芯片，因此无法导出</string>
+    <string name="keys_chip_secure_chip">安全芯片</string>
+
     <!-- PassphraseDialog -->
     <string name="keys_encrypted_key">加密密钥</string>
     <string name="keys_passphrase_prompt">此密钥受密码短语保护。</string>

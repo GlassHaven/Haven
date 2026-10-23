@@ -52,6 +52,14 @@
     <string name="keys_key_type">Tipo de chave</string>
     <string name="keys_generate">Gerar</string>
 
+    <!-- GenerateKeyDialog: hardware-resident keys (device secure chip) -->
+    <string name="keys_hardware_toggle">Gerar no chip de segurança do dispositivo</string>
+    <string name="keys_hardware_algorithm">ECDSA P-256 (chip de segurança)</string>
+    <string name="keys_hardware_constraints">• A chave privada nunca sai do chip\n• Não pode ser copiada (backup) nem exportada\n• Cada uso exige verificação por impressão digital ou rosto\n• Perdida permanentemente ao restaurar o dispositivo ou trocá-lo</string>
+    <string name="keys_hardware_default_label">Chave do chip de segurança</string>
+    <string name="keys_hardware_export_disabled_reason">A chave privada nunca sai do chip, por isso não pode ser exportada</string>
+    <string name="keys_chip_secure_chip">Chip de segurança</string>
+
     <!-- PassphraseDialog -->
     <string name="keys_encrypted_key">Chave criptografada</string>
     <string name="keys_passphrase_prompt">Esta chave é protegida por uma frase secreta.</string>

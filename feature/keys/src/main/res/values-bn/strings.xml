@@ -52,6 +52,14 @@
     <string name="keys_key_type">কী ধরন</string>
     <string name="keys_generate">তৈরি</string>
 
+    <!-- GenerateKeyDialog: hardware-resident keys (device secure chip) -->
+    <string name="keys_hardware_toggle">ডিভাইসের সিকিউর চিপে তৈরি করুন</string>
+    <string name="keys_hardware_algorithm">ECDSA P-256 (সিকিউর চিপ)</string>
+    <string name="keys_hardware_constraints">• প্রাইভেট কী কখনোই চিপের বাইরে যায় না\n• ব্যাকআপ বা এক্সপোর্ট করা যায় না\n• প্রতিটি ব্যবহারে ফিঙ্গারপ্রিন্ট বা ফেস যাচাই প্রয়োজন\n• ফ্যাক্টরি রিসেট বা নতুন ডিভাইসে স্থানান্তরে স্থায়ীভাবে হারিয়ে যায়</string>
+    <string name="keys_hardware_default_label">সিকিউর চিপ কী</string>
+    <string name="keys_hardware_export_disabled_reason">প্রাইভেট কী কখনোই চিপের বাইরে যায় না, তাই এটি এক্সপোর্ট করা যায় না</string>
+    <string name="keys_chip_secure_chip">সিকিউর চিপ</string>
+
     <!-- PassphraseDialog -->
     <string name="keys_encrypted_key">এনক্রিপ্টেড কী</string>
     <string name="keys_passphrase_prompt">এই কীটি পাসফ্রেজ দিয়ে সুরক্ষিত।</string>

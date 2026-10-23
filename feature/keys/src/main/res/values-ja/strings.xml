@@ -52,6 +52,14 @@
     <string name="keys_key_type">鍵の種類</string>
     <string name="keys_generate">生成</string>
 
+    <!-- GenerateKeyDialog: hardware-resident keys (device secure chip) -->
+    <string name="keys_hardware_toggle">デバイスのセキュアチップ内で生成</string>
+    <string name="keys_hardware_algorithm">ECDSA P-256（セキュアチップ）</string>
+    <string name="keys_hardware_constraints">• 秘密鍵はチップの外に出ません\n• バックアップやエクスポートはできません\n• 使用のたびに指紋または顔認証が必要です\n• 初期化や機種変更すると永久に失われます</string>
+    <string name="keys_hardware_default_label">セキュアチップ鍵</string>
+    <string name="keys_hardware_export_disabled_reason">秘密鍵はチップの外に出ないため、エクスポートできません</string>
+    <string name="keys_chip_secure_chip">セキュアチップ</string>
+
     <!-- PassphraseDialog -->
     <string name="keys_encrypted_key">暗号化された鍵</string>
     <string name="keys_passphrase_prompt">この鍵はパスフレーズで保護されています。</string>

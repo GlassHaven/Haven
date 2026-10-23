@@ -31,7 +31,7 @@ import javax.inject.Singleton
  *   [HardwareKeyInfo.strongBoxBacked] 如实回报实际后端。
  */
 @Singleton
-class HardwareSshKeyManager @Inject constructor() {
+class HardwareSshKeyManager @Inject constructor() : HardwareKeySource {
 
     /** 硬件密钥的对外元数据; publicKeyOpenSsh 可直接展示/导入 authorized_keys。 */
     data class HardwareKeyInfo(
@@ -49,7 +49,7 @@ class HardwareSshKeyManager @Inject constructor() {
      *   或系统 < API 28 时自动降级 TEE，只重试一次；StrongBox 的 API 与异常类都自
      *   P 才存在，版本检查就地展开是为了 lint 可验证，勿抽进辅助函数。
      */
-    fun generate(alias: String, preferStrongBox: Boolean): HardwareKeyInfo {
+    override fun generate(alias: String, preferStrongBox: Boolean): HardwareKeyInfo {
         require(alias.isNotBlank()) { "hardware key alias must not be blank" }
         if (preferStrongBox && Build.VERSION.SDK_INT >= Build.VERSION_CODES.P) {
             try {
@@ -76,18 +76,18 @@ class HardwareSshKeyManager @Inject constructor() {
      * @throws java.security.UnrecoverableKeyException 同族故障，原样上抛。
      * @throws IllegalArgumentException alias 下没有硬件密钥。
      */
-    fun initSignature(alias: String): Signature {
+    override fun initSignature(alias: String): Signature {
         val privateKey = androidKeyStore().getKey(alias, null) as? PrivateKey
             ?: throw IllegalArgumentException("No hardware SSH key in AndroidKeyStore for alias '$alias'")
         return Signature.getInstance(SIGNATURE_ALGORITHM).apply { initSign(privateKey) }
     }
 
     /** 从 Keystore 删除该 alias（幂等：不存在的 alias 静默成功）。 */
-    fun delete(alias: String) {
+    override fun delete(alias: String) {
         androidKeyStore().deleteEntry(alias)
     }
 
-    fun contains(alias: String): Boolean = androidKeyStore().containsAlias(alias)
+    override fun contains(alias: String): Boolean = androidKeyStore().containsAlias(alias)
 
     private fun generateInAndroidKeyStore(params: HardwareKeyGenParams): HardwareKeyInfo {
         val generator = KeyPairGenerator.getInstance(params.algorithm, ANDROID_KEYSTORE)

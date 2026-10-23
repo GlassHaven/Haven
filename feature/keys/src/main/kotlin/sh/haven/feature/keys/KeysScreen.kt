@@ -25,6 +25,7 @@ import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.lazy.itemsIndexed
 import androidx.compose.foundation.rememberScrollState
+import androidx.compose.foundation.selection.toggleable
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.material.icons.Icons
@@ -47,6 +48,7 @@ import androidx.compose.material.icons.filled.Fingerprint
 import androidx.compose.material.icons.filled.Key
 import androidx.compose.material.icons.filled.KeyboardArrowDown
 import androidx.compose.material.icons.filled.KeyboardArrowUp
+import androidx.compose.material.icons.filled.Memory
 import androidx.compose.material.icons.filled.Password
 import androidx.compose.material.icons.filled.Pin
 import androidx.compose.material.icons.filled.QrCodeScanner
@@ -91,6 +93,7 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.res.pluralStringResource
 import androidx.compose.ui.res.stringResource
+import androidx.compose.ui.semantics.Role
 import sh.haven.core.ssh.openkeychain.OpenKeychainKeyData
 import sh.haven.core.ssh.openkeychain.OpenKeychainProvider
 import sh.haven.core.ui.PasswordField
@@ -749,8 +752,9 @@ fun KeysScreen(
     if (showGenerateDialog) {
         GenerateKeyDialog(
             onDismiss = { showGenerateDialog = false },
-            onGenerate = { label, keyType ->
-                viewModel.generateKey(label, keyType)
+            onGenerate = { label, keyType, hardwareBacked ->
+                if (hardwareBacked) viewModel.generateHardwareKey(label)
+                else viewModel.generateKey(label, keyType)
                 showGenerateDialog = false
             },
         )
@@ -1353,17 +1357,28 @@ private fun RegisterOnSecurityKeyDialog(
 @Composable
 private fun GenerateKeyDialog(
     onDismiss: () -> Unit,
-    onGenerate: (label: String, keyType: SshKeyGenerator.KeyType) -> Unit,
+    onGenerate: (label: String, keyType: SshKeyGenerator.KeyType, hardwareBacked: Boolean) -> Unit,
 ) {
     var label by remember { mutableStateOf("") }
     var selectedType by remember { mutableStateOf(SshKeyGenerator.KeyType.ED25519) }
     var expanded by remember { mutableStateOf(false) }
+    // design.md §6: "在设备安全芯片中生成" opt-in. On: the algorithm is
+    // locked to P-256 (the only curve KeyMint's hardware backend supports —
+    // KeyDecision #1) and the constraints are spelled out before generating.
+    var hardwareBacked by remember { mutableStateOf(false) }
+    // Resolved up front: stringResource is @Composable, the confirm onClick
+    // below is not.
+    val hardwareDefaultLabel = stringResource(R.string.keys_hardware_default_label)
 
     AlertDialog(
         onDismissRequest = onDismiss,
         title = { Text(stringResource(R.string.keys_generate_ssh_key)) },
         text = {
-            Column {
+            // Scrollable: the hardware branch adds a toggle + locked field +
+            // four constraint lines on top of the label field — more than a
+            // small phone's dialog can show unscrolled (same reasoning as the
+            // bulk-delete dialog).
+            Column(modifier = Modifier.verticalScroll(rememberScrollState())) {
                 OutlinedTextField(
                     value = label,
                     onValueChange = { label = it },
@@ -1373,33 +1388,82 @@ private fun GenerateKeyDialog(
                     modifier = Modifier.fillMaxWidth(),
                 )
 
-                Box(modifier = Modifier.padding(top = 16.dp)) {
+                // Hardware key: chip toggle above the algorithm picker, so
+                // locking the picker reads as a consequence of the toggle.
+                // Whole row is the hit target (Role.Switch semantics); the
+                // Switch itself gets onCheckedChange = null so the toggle
+                // isn't announced twice.
+                Row(
+                    verticalAlignment = Alignment.CenterVertically,
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .padding(top = 8.dp)
+                        .toggleable(
+                            value = hardwareBacked,
+                            role = Role.Switch,
+                            onValueChange = { hardwareBacked = it },
+                        ),
+                ) {
+                    Text(
+                        text = stringResource(R.string.keys_hardware_toggle),
+                        style = MaterialTheme.typography.bodyMedium,
+                        modifier = Modifier.weight(1f),
+                    )
+                    Switch(
+                        checked = hardwareBacked,
+                        onCheckedChange = null,
+                    )
+                }
+
+                if (hardwareBacked) {
+                    // Key type is a property of the chip's KeyMint backend,
+                    // not a choice — show it locked rather than hiding the
+                    // field, so the user still sees what they're getting.
                     OutlinedTextField(
-                        value = selectedType.displayName,
+                        value = stringResource(R.string.keys_hardware_algorithm),
                         onValueChange = {},
                         readOnly = true,
+                        enabled = false,
                         label = { Text(stringResource(R.string.keys_key_type)) },
                         modifier = Modifier
-                            .fillMaxWidth(),
+                            .fillMaxWidth()
+                            .padding(top = 8.dp),
                     )
-                    // Invisible clickable overlay to open dropdown
-                    Box(
-                        modifier = Modifier
-                            .matchParentSize()
-                            .combinedClickable(onClick = { expanded = true }),
+                    Text(
+                        text = stringResource(R.string.keys_hardware_constraints),
+                        style = MaterialTheme.typography.bodySmall,
+                        color = MaterialTheme.colorScheme.onSurfaceVariant,
+                        modifier = Modifier.padding(top = 12.dp),
                     )
-                    DropdownMenu(
-                        expanded = expanded,
-                        onDismissRequest = { expanded = false },
-                    ) {
-                        SshKeyGenerator.KeyType.entries.forEach { type ->
-                            DropdownMenuItem(
-                                text = { Text(type.displayName) },
-                                onClick = {
-                                    selectedType = type
-                                    expanded = false
-                                },
-                            )
+                } else {
+                    Box(modifier = Modifier.padding(top = 16.dp)) {
+                        OutlinedTextField(
+                            value = selectedType.displayName,
+                            onValueChange = {},
+                            readOnly = true,
+                            label = { Text(stringResource(R.string.keys_key_type)) },
+                            modifier = Modifier
+                                .fillMaxWidth(),
+                        )
+                        // Invisible clickable overlay to open dropdown
+                        Box(
+                            modifier = Modifier
+                                .matchParentSize()
+                                .combinedClickable(onClick = { expanded = true }),
+                        )
+                        DropdownMenu(
+                            expanded = expanded,
+                            onDismissRequest = { expanded = false },
+                        ) {
+                            SshKeyGenerator.KeyType.entries.forEach { type ->
+                                DropdownMenuItem(
+                                    text = { Text(type.displayName) },
+                                    onClick = {
+                                        selectedType = type
+                                        expanded = false
+                                    },
+                                )
+                            }
                         }
                     }
                 }
@@ -1407,7 +1471,15 @@ private fun GenerateKeyDialog(
         },
         confirmButton = {
             TextButton(
-                onClick = { onGenerate(label.ifBlank { selectedType.displayName }, selectedType) },
+                onClick = {
+                    // Blank-label fallback mirrors the software path's
+                    // displayName fallback, via a resource so it localizes.
+                    onGenerate(
+                        label.ifBlank { hardwareDefaultLabel },
+                        selectedType,
+                        hardwareBacked,
+                    )
+                },
             ) {
                 Text(stringResource(R.string.keys_generate))
             }
@@ -1735,6 +1807,9 @@ private fun SshKeyAuditRow(
     onToggleSelected: () -> Unit = {},
 ) {
     val flags = entry?.flags ?: emptySet()
+    // Hardware-resident key (private half in the device secure chip). A
+    // single val up top: both the badge row and the ⋮ menu branch on it.
+    val isHardwareKey = sshKey.hardwareAlias != null
     Box(
         modifier = Modifier
             .fillMaxWidth()
@@ -1764,8 +1839,11 @@ private fun SshKeyAuditRow(
                     Icon(
                         // A provider-held key is worth telling apart at a
                         // glance: it is the one that needs another app present
-                        // to connect (#487).
+                        // to connect (#487). A hardware-resident key is the
+                        // one whose private half lives in the device's secure
+                        // chip — the chip icon says "this one never leaves".
                         imageVector = when {
+                            sshKey.hardwareAlias != null -> Icons.Filled.Memory
                             sshKey.keyType == OpenKeychainKeyData.KEY_TYPE -> Icons.Filled.Badge
                             sshKey.keyType.startsWith("sk-") -> Icons.Filled.Key
                             else -> Icons.Filled.VpnKey
@@ -1814,10 +1892,21 @@ private fun SshKeyAuditRow(
                     // the old full-width chip row + full-width toggle rows (the
                     // toggles now live in the ⋮ menu). The label rides on each icon's
                     // content description so it's still announced / long-press hinted.
-                    if (flags.isNotEmpty() || hasCertificate) {
+                    if (flags.isNotEmpty() || hasCertificate || isHardwareKey) {
                         Spacer(Modifier.height(4.dp))
                         Row(horizontalArrangement = Arrangement.spacedBy(6.dp)) {
                             flags.sortedBy { it.ordinal }.forEach { flag -> FlagBadge(flag) }
+                            if (isHardwareKey) {
+                                // Secure-chip badge: hardware keys carry no Keystore
+                                // entry flags (nothing is stored app-side), so this
+                                // badge is the only "how is this key kept" marker.
+                                Icon(
+                                    imageVector = Icons.Filled.Memory,
+                                    contentDescription = stringResource(R.string.keys_chip_secure_chip),
+                                    tint = MaterialTheme.colorScheme.primary,
+                                    modifier = Modifier.size(18.dp),
+                                )
+                            }
                             if (hasCertificate) {
                                 Icon(
                                     imageVector = Icons.Filled.Badge,
@@ -1836,14 +1925,19 @@ private fun SshKeyAuditRow(
             }
         }
 
-        // Two kinds of key have no private half stored here: a FIDO2/SK key
-        // lives on the token, and a provider key lives in another app (#487).
-        // Exporting or attaching a certificate assume material Haven does not
-        // have. Offering is different: an SK credential handle IS offerable —
-        // the token runs the ceremony — so only provider keys sit that one
-        // out (#531).
+        // Three kinds of key have no private half stored here: a FIDO2/SK key
+        // lives on the token, a provider key lives in another app (#487), and
+        // a hardware-resident key lives in the device's secure chip — there
+        // is nothing to export for any of them, but only the hardware kind
+        // gets the disabled-with-reason item (export is *expected* to be
+        // there because the key row looks like a normal generated key; for
+        // sk/provider keys the omission itself communicates it).
+        // Offering is different: an SK credential handle IS offerable, and
+        // hardware keys join auto-auth via their Keystore identity, so both
+        // stay in the offer-all pool.
         val isProviderKey = sshKey.keyType == OpenKeychainKeyData.KEY_TYPE
-        val havenHoldsPrivateKey = !sshKey.keyType.startsWith("sk-") && !isProviderKey
+        val havenHoldsPrivateKey =
+            !sshKey.keyType.startsWith("sk-") && !isProviderKey && !isHardwareKey
 
         DropdownMenu(
             expanded = menuOpen,
@@ -1891,7 +1985,11 @@ private fun SshKeyAuditRow(
             // Per-key settings — moved off the card into the menu to keep the key
             // rows compact on tall phones; current state shows as a trailing ✓ and
             // as the top-right card badges (#238).
-            if (!isProviderKey) {
+            // Per-op biometric is enforced by the chip's Keystore itself for
+            // hardware keys (setUserAuthenticationValidityDurationSeconds(-1)),
+            // and there is no app-side Keystore entry for the toggle to write
+            // — showing it would offer a switch that does nothing.
+            if (!isProviderKey && !isHardwareKey) {
                 DropdownMenuItem(
                     text = { Text(stringResource(R.string.keys_require_biometric)) },
                     onClick = { onBiometricToggle(KeystoreFlag.BIOMETRIC_PROTECTED !in flags); onMenuDismiss() },
@@ -1935,7 +2033,49 @@ private fun SshKeyAuditRow(
                 )
             }
             HorizontalDivider()
-            if (havenHoldsPrivateKey) {
+            if (isHardwareKey) {
+                // Disabled-with-reason rather than omitted: a hardware key
+                // row looks exactly like a normal generated key, so a missing
+                // export would read as a bug. The reason is why: the private
+                // half does not exist on this device to export.
+                DropdownMenuItem(
+                    text = {
+                        Column {
+                            Text(stringResource(R.string.keys_export_private_key))
+                            Text(
+                                stringResource(R.string.keys_hardware_export_disabled_reason),
+                                style = MaterialTheme.typography.bodySmall,
+                                color = MaterialTheme.colorScheme.onSurfaceVariant,
+                            )
+                        }
+                    },
+                    onClick = {},
+                    enabled = false,
+                    leadingIcon = { Icon(Icons.Filled.FileDownload, contentDescription = null) },
+                )
+                // Certificates are public material signed against the public
+                // key — they compose with hardware-resident keys (design.md
+                // §5: the CA wrapper sits outside the chip's signing path),
+                // so attach/export/remove stay available.
+                if (hasCertificate) {
+                    DropdownMenuItem(
+                        text = { Text(stringResource(R.string.keys_export_certificate)) },
+                        onClick = { onMenuDismiss(); onExportCertificate() },
+                        leadingIcon = { Icon(Icons.Filled.FileDownload, contentDescription = null) },
+                    )
+                    DropdownMenuItem(
+                        text = { Text(stringResource(R.string.keys_remove_certificate)) },
+                        onClick = { onMenuDismiss(); onRemoveCertificate() },
+                        leadingIcon = { Icon(Icons.Filled.Badge, contentDescription = null) },
+                    )
+                } else {
+                    DropdownMenuItem(
+                        text = { Text(stringResource(R.string.keys_attach_certificate)) },
+                        onClick = { onMenuDismiss(); onAttachCertificate() },
+                        leadingIcon = { Icon(Icons.Filled.Badge, contentDescription = null) },
+                    )
+                }
+            } else if (havenHoldsPrivateKey) {
                 DropdownMenuItem(
                     text = { Text(stringResource(R.string.keys_export_private_key)) },
                     onClick = { onMenuDismiss(); onExportPrivate() },

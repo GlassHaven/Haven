@@ -52,6 +52,14 @@
     <string name="keys_key_type">Type de clé</string>
     <string name="keys_generate">Générer</string>
 
+    <!-- GenerateKeyDialog: hardware-resident keys (device secure chip) -->
+    <string name="keys_hardware_toggle">Générer dans la puce de sécurité de l\'appareil</string>
+    <string name="keys_hardware_algorithm">ECDSA P-256 (puce de sécurité)</string>
+    <string name="keys_hardware_constraints">• La clé privée ne quitte jamais la puce\n• Sauvegarde et export impossibles\n• Chaque utilisation exige une vérification par empreinte ou visage\n• Définitivement perdue après réinitialisation ou changement d\'appareil</string>
+    <string name="keys_hardware_default_label">Clé de la puce de sécurité</string>
+    <string name="keys_hardware_export_disabled_reason">La clé privée ne quitte jamais la puce, elle ne peut donc pas être exportée</string>
+    <string name="keys_chip_secure_chip">Puce de sécurité</string>
+
     <!-- PassphraseDialog -->
     <string name="keys_encrypted_key">Clé chiffrée</string>
     <string name="keys_passphrase_prompt">Cette clé est protégée par une phrase de passe.</string>

@@ -52,6 +52,14 @@
     <string name="keys_key_type">Key type</string>
     <string name="keys_generate">Generate</string>
 
+    <!-- GenerateKeyDialog: hardware-resident keys (device secure chip, design.md §6) -->
+    <string name="keys_hardware_toggle">Generate in device secure chip</string>
+    <string name="keys_hardware_algorithm">ECDSA P-256 (secure chip)</string>
+    <string name="keys_hardware_constraints">• The private key never leaves the chip\n• Cannot be backed up or exported\n• Every use requires fingerprint or face verification\n• Permanently lost on factory reset or when moving to a new device</string>
+    <string name="keys_hardware_default_label">Secure chip key</string>
+    <string name="keys_hardware_export_disabled_reason">The private key never leaves the chip, so it can\'t be exported</string>
+    <string name="keys_chip_secure_chip">Secure chip</string>
+
     <!-- PassphraseDialog -->
     <string name="keys_encrypted_key">Encrypted Key</string>
     <string name="keys_passphrase_prompt">This key is protected with a passphrase.</string>

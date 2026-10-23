@@ -8,6 +8,7 @@ import kotlinx.coroutines.flow.map
 import sh.haven.core.data.db.SshKeyDao
 import sh.haven.core.data.db.entities.SshKey
 import sh.haven.core.security.CredentialEncryption
+import sh.haven.core.security.HardwareKeySource
 import sh.haven.core.security.KeyEncryption
 import sh.haven.core.security.Keystore
 import sh.haven.core.security.KeystoreFetch
@@ -22,6 +23,8 @@ class SshKeyRepository @Inject constructor(
     private val sshKeyDao: SshKeyDao,
     @ApplicationContext private val context: Context,
     private val keystore: Keystore,
+    /** 硬件密钥 Keystore 交互; 接口注入以保 JVM 测试可替换 (见 HardwareKeySource)。 */
+    private val hardwareKeys: HardwareKeySource,
 ) {
     fun observeAll(): Flow<List<SshKey>> = sshKeyDao.observeAll()
 
@@ -147,7 +150,27 @@ class SshKeyRepository @Inject constructor(
      */
     suspend fun getAllDecrypted(): List<SshKey> = getAllDecryptedDetailed().keys
 
-    suspend fun delete(id: String) = sshKeyDao.deleteById(id)
+    /**
+     * Delete a key row, and with it every trace of the key. SSOT for the
+     * hardware-resident branch: a row with [SshKey.hardwareAlias] also has
+     * its AndroidKeyStore alias removed here, so *every* delete path — the
+     * Keys screen (single and multi-select), MCP tools, and USB-drive VM
+     * cleanup — cleans the secure chip without duplicating the logic at the
+     * call sites.
+     *
+     * Order: alias first, row second. [HardwareKeySource.delete] is
+     * idempotent, so the two steps converge on retry either way — but the
+     * failure asymmetry is not symmetric: an interrupted delete that leaves
+     * the row would show a key whose connect fails opaquely (its alias is
+     * gone), and deleting that row again repairs everything; the reverse
+     * order would strand an invisible alias in scarce secure-chip storage
+     * with no row left to retry through.
+     */
+    suspend fun delete(id: String) {
+        val key = sshKeyDao.getById(id)
+        key?.hardwareAlias?.let(hardwareKeys::delete)
+        sshKeyDao.deleteById(id)
+    }
 
     /**
      * Read the optional OpenSSH certificate bytes attached to [id]

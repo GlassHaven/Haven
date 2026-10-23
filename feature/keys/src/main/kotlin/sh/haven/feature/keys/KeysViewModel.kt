@@ -35,6 +35,7 @@ import sh.haven.core.security.Keystore
 import sh.haven.core.security.KeystoreEntry
 import sh.haven.core.security.KeystoreFlag
 import sh.haven.core.security.KeystoreStore
+import sh.haven.core.security.HardwareKeySource
 import sh.haven.core.security.SshKeyGenerator
 import sh.haven.core.ssh.SshCertificateParser
 import sh.haven.core.ssh.openkeychain.OpenKeychainApi
@@ -90,6 +91,7 @@ class KeysViewModel @Inject constructor(
     private val sshIdentityRepository: sh.haven.core.data.repository.SshIdentityRepository,
     private val barcodeDecoder: sh.haven.core.scan.BarcodeDecoder,
     private val preferencesRepository: sh.haven.core.data.preferences.UserPreferencesRepository,
+    private val hardwareKeys: HardwareKeySource,
     agentUiCommandBus: AgentUiCommandBus,
 ) : ViewModel() {
 
@@ -371,6 +373,53 @@ class KeysViewModel @Inject constructor(
                 )
                 repository.save(entity)
             } catch (e: Exception) {
+                _error.value = e.message ?: "Key generation failed"
+            } finally {
+                _generating.value = false
+            }
+        }
+    }
+
+    /**
+     * Generate a hardware-resident SSH key (design.md §6): ECDSA P-256 inside
+     * the device's secure chip (StrongBox when available, TEE otherwise),
+     * private half never leaving the hardware, every signature gated by a
+     * per-op biometric prompt.
+     *
+     * Row shape is the storage convention from [SshKey.hardwareAlias]:
+     * empty [SshKey.privateKeyBytes], [SshKey.biometricProtected] true, and
+     * the Keystore alias in [SshKey.hardwareAlias]. The alias is minted here
+     * ("haven-ssh-<uuid8>") — alias uniqueness is the caller's job per the
+     * manager's contract.
+     *
+     * Failure hygiene: if the chip generation succeeded but persisting the
+     * row failed, the freshly minted alias is deleted — secure-chip storage
+     * is scarce, and a saved-less key nobody can name is an orphan forever.
+     */
+    fun generateHardwareKey(label: String) {
+        viewModelScope.launch {
+            _generating.value = true
+            _error.value = null
+            val alias = "haven-ssh-" + java.util.UUID.randomUUID().toString().replace("-", "").take(8)
+            try {
+                val info = withContext(Dispatchers.Default) {
+                    hardwareKeys.generate(alias, preferStrongBox = true)
+                }
+                repository.save(
+                    SshKey(
+                        label = label,
+                        keyType = SshKeyGenerator.EcdsaCurve.NIST_P256.sshKeyType,
+                        privateKeyBytes = ByteArray(0),
+                        publicKeyOpenSsh = info.publicKeyOpenSsh,
+                        fingerprintSha256 = info.fingerprintSha256,
+                        biometricProtected = true,
+                        hardwareAlias = info.alias,
+                    ),
+                )
+                Log.d("KeysViewModel", "Hardware key generated: ${LogRedact.of(label)}, strongBox=${info.strongBoxBacked}")
+            } catch (e: Exception) {
+                hardwareKeys.delete(alias)
+                Log.e("KeysViewModel", "Hardware key generation failed", e)
                 _error.value = e.message ?: "Key generation failed"
             } finally {
                 _generating.value = false

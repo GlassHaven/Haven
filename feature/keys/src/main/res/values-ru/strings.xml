@@ -52,6 +52,14 @@
     <string name="keys_key_type">Тип ключа</string>
     <string name="keys_generate">Создать</string>
 
+    <!-- GenerateKeyDialog: hardware-resident keys (device secure chip) -->
+    <string name="keys_hardware_toggle">Создать в защищённом чипе устройства</string>
+    <string name="keys_hardware_algorithm">ECDSA P-256 (защищённый чип)</string>
+    <string name="keys_hardware_constraints">• Закрытый ключ никогда не покидает чип\n• Резервное копирование и экспорт невозможны\n• Каждое использование требует подтверждения отпечатком или лицом\n• Безвозвратно теряется при сбросе к заводским настройкам или смене устройства</string>
+    <string name="keys_hardware_default_label">Ключ защищённого чипа</string>
+    <string name="keys_hardware_export_disabled_reason">Закрытый ключ никогда не покидает чип, поэтому его нельзя экспортировать</string>
+    <string name="keys_chip_secure_chip">Защищённый чип</string>
+
     <!-- PassphraseDialog -->
     <string name="keys_encrypted_key">Зашифрованный ключ</string>
     <string name="keys_passphrase_prompt">Этот ключ защищён паролем.</string>

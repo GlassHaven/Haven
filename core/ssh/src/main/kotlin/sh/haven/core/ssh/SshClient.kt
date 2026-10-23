@@ -324,11 +324,7 @@ class SshClient : SshConnection {
             "ssh-rsa" -> "rsa-sha2-512,rsa-sha2-256,ssh-rsa"
             else -> keyData.algorithm
         }
-        val currentAlgs = sess.getConfig("PubkeyAcceptedAlgorithms") ?: ""
-        sess.setConfig(
-            "PubkeyAcceptedAlgorithms",
-            if (currentAlgs.isNotEmpty()) "$advertised,$currentAlgs" else advertised,
-        )
+        prependPubkeyAlgorithms(sess, advertised)
     }
 
     private fun addFidoIdentity(auth: ConnectionConfig.AuthMethod.FidoKey, sess: Session) {
@@ -344,14 +340,10 @@ class SshClient : SshConnection {
             CertificateWrappedIdentity(fidoIdentity, auth.certBytes, certKeyType)
         } else fidoIdentity
         jsch.addIdentity(identity, null)
-        val currentAlgs = sess.getConfig("PubkeyAcceptedAlgorithms") ?: ""
         val skAlgs = "sk-ssh-ed25519@openssh.com,sk-ecdsa-sha2-nistp256@openssh.com"
         val skCertAlgs = "sk-ssh-ed25519-cert-v01@openssh.com,sk-ecdsa-sha2-nistp256-cert-v01@openssh.com"
         val advertised = if (auth.certBytes != null) "$skCertAlgs,$skAlgs" else skAlgs
-        sess.setConfig(
-            "PubkeyAcceptedAlgorithms",
-            if (currentAlgs.isNotEmpty()) "$advertised,$currentAlgs" else advertised,
-        )
+        prependPubkeyAlgorithms(sess, advertised)
     }
 
     /**
@@ -371,14 +363,39 @@ class SshClient : SshConnection {
                 "SshClient (key '${auth.keyLabel ?: auth.alias}') — set " +
                 "hardwareKeySigner before connect()."
         )
-        val blob = parseHardwarePublicKeyBlob(auth.publicKeyOpenSsh)
         Log.d(TAG, "Security-chip key: alias=${auth.alias}${if (auth.certBytes != null) " (with certificate)" else ""}")
+        jsch.addIdentity(hardwareIdentity(auth, signer), null)
+        // ecdsa-sha2-nistp256 sits in JSch's defaults, but a profile option
+        // or an earlier engine may have narrowed PubkeyAcceptedAlgorithms —
+        // advertise explicitly, mirroring the FIDO branch.
+        val advertised = if (auth.certBytes != null) {
+            "${SshCertificateParser.getCertKeyType(HARDWARE_SSH_KEY_ALG)},$HARDWARE_SSH_KEY_ALG"
+        } else {
+            HARDWARE_SSH_KEY_ALG
+        }
+        prependPubkeyAlgorithms(sess, advertised)
+    }
+
+    /**
+     * Build the JSch identity for a security-chip key: parse the stored
+     * public line, wrap the Keystore ceremony, apply the CA-cert wrapper
+     * when present. The one shape both consumers register — the auth path
+     * ([addHardwareIdentity], throws fail-closed) and the forwarded-agent
+     * path (wraps the result in [AgentSafeIdentity] so a declined ceremony
+     * answers SSH_AGENT_FAILURE instead of killing the session).
+     */
+    private fun hardwareIdentity(
+        auth: ConnectionConfig.AuthMethod.HardwareKey,
+        signer: HardwareSshKeySigner,
+    ): Identity {
         var identity: Identity = KeystoreSshIdentity(
             alias = auth.alias,
-            publicKeyBlob = blob,
+            publicKeyBlob = parseHardwarePublicKeyBlob(auth.publicKeyOpenSsh),
             signer = signer,
             keyLabel = auth.keyLabel,
-            fingerprintSha256 = auth.fingerprintSha256,
+            // Empty (the agent path carries no fingerprint) renders as no
+            // prompt detail line, exactly like the null it replaces.
+            fingerprintSha256 = auth.fingerprintSha256.takeIf { it.isNotEmpty() },
         )
         if (auth.certBytes != null) {
             identity = CertificateWrappedIdentity(
@@ -387,19 +404,20 @@ class SshClient : SshConnection {
                 SshCertificateParser.getCertKeyType(HARDWARE_SSH_KEY_ALG),
             )
         }
-        jsch.addIdentity(identity, null)
-        // ecdsa-sha2-nistp256 sits in JSch's defaults, but a profile option
-        // or an earlier engine may have narrowed PubkeyAcceptedAlgorithms —
-        // advertise explicitly, mirroring the FIDO branch.
-        val currentAlgs = sess.getConfig("PubkeyAcceptedAlgorithms") ?: ""
-        val advertised = if (auth.certBytes != null) {
-            "${SshCertificateParser.getCertKeyType(HARDWARE_SSH_KEY_ALG)},$HARDWARE_SSH_KEY_ALG"
-        } else {
-            HARDWARE_SSH_KEY_ALG
-        }
+        return identity
+    }
+
+    /**
+     * Prepend [advertised] to the session's `PubkeyAcceptedAlgorithms`.
+     * Identities register their own algorithm names because a profile
+     * option or an earlier engine may have narrowed the list; prepending
+     * (not replacing) keeps whatever the session already accepted.
+     */
+    private fun prependPubkeyAlgorithms(sess: Session, advertised: String) {
+        val current = sess.getConfig("PubkeyAcceptedAlgorithms") ?: ""
         sess.setConfig(
             "PubkeyAcceptedAlgorithms",
-            if (currentAlgs.isNotEmpty()) "$advertised,$currentAlgs" else advertised,
+            if (current.isNotEmpty()) "$advertised,$current" else advertised,
         )
     }
 
@@ -931,19 +949,19 @@ class SshClient : SshConnection {
                             "forwarded security-chip key '${identity.label}' carries no " +
                                 "public key line",
                         )
-                    var hw: Identity = KeystoreSshIdentity(
-                        alias = identity.hardwareAlias!!,
-                        publicKeyBlob = parseHardwarePublicKeyBlob(pubLine),
-                        signer = signer,
-                        keyLabel = identity.label,
+                    val hw = hardwareIdentity(
+                        ConnectionConfig.AuthMethod.HardwareKey(
+                            alias = identity.hardwareAlias!!,
+                            publicKeyOpenSsh = pubLine,
+                            keyLabel = identity.label,
+                            certBytes = identity.certBytes,
+                        ),
+                        signer,
                     )
-                    if (identity.certBytes != null) {
-                        hw = CertificateWrappedIdentity(
-                            hw,
-                            identity.certBytes,
-                            SshCertificateParser.getCertKeyType(HARDWARE_SSH_KEY_ALG),
-                        )
-                    }
+                    // Must be the outermost wrapper: the delegate throws on a
+                    // declined/failed ceremony, and an exception escaping
+                    // ChannelAgentForwarding.run() kills the session, not just
+                    // the request. Null = SSH_AGENT_FAILURE.
                     jsch.addIdentity(AgentSafeIdentity(hw), null)
                     registered++
                     diag(

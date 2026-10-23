@@ -2057,24 +2057,13 @@ private fun SshKeyAuditRow(
                 // key — they compose with hardware-resident keys (design.md
                 // §5: the CA wrapper sits outside the chip's signing path),
                 // so attach/export/remove stay available.
-                if (hasCertificate) {
-                    DropdownMenuItem(
-                        text = { Text(stringResource(R.string.keys_export_certificate)) },
-                        onClick = { onMenuDismiss(); onExportCertificate() },
-                        leadingIcon = { Icon(Icons.Filled.FileDownload, contentDescription = null) },
-                    )
-                    DropdownMenuItem(
-                        text = { Text(stringResource(R.string.keys_remove_certificate)) },
-                        onClick = { onMenuDismiss(); onRemoveCertificate() },
-                        leadingIcon = { Icon(Icons.Filled.Badge, contentDescription = null) },
-                    )
-                } else {
-                    DropdownMenuItem(
-                        text = { Text(stringResource(R.string.keys_attach_certificate)) },
-                        onClick = { onMenuDismiss(); onAttachCertificate() },
-                        leadingIcon = { Icon(Icons.Filled.Badge, contentDescription = null) },
-                    )
-                }
+                CertificateMenuItems(
+                    hasCertificate = hasCertificate,
+                    onMenuDismiss = onMenuDismiss,
+                    onExportCertificate = onExportCertificate,
+                    onRemoveCertificate = onRemoveCertificate,
+                    onAttachCertificate = onAttachCertificate,
+                )
             } else if (havenHoldsPrivateKey) {
                 DropdownMenuItem(
                     text = { Text(stringResource(R.string.keys_export_private_key)) },
@@ -2084,24 +2073,13 @@ private fun SshKeyAuditRow(
                 // Certificate attach / remove (#133 phase 1). FIDO SK keys
                 // skip this — their signing path doesn't compose with
                 // OpenSSH cert auth.
-                if (hasCertificate) {
-                    DropdownMenuItem(
-                        text = { Text(stringResource(R.string.keys_export_certificate)) },
-                        onClick = { onMenuDismiss(); onExportCertificate() },
-                        leadingIcon = { Icon(Icons.Filled.FileDownload, contentDescription = null) },
-                    )
-                    DropdownMenuItem(
-                        text = { Text(stringResource(R.string.keys_remove_certificate)) },
-                        onClick = { onMenuDismiss(); onRemoveCertificate() },
-                        leadingIcon = { Icon(Icons.Filled.Badge, contentDescription = null) },
-                    )
-                } else {
-                    DropdownMenuItem(
-                        text = { Text(stringResource(R.string.keys_attach_certificate)) },
-                        onClick = { onMenuDismiss(); onAttachCertificate() },
-                        leadingIcon = { Icon(Icons.Filled.Badge, contentDescription = null) },
-                    )
-                }
+                CertificateMenuItems(
+                    hasCertificate = hasCertificate,
+                    onMenuDismiss = onMenuDismiss,
+                    onExportCertificate = onExportCertificate,
+                    onRemoveCertificate = onRemoveCertificate,
+                    onAttachCertificate = onAttachCertificate,
+                )
                 // Regenerate (step-ca-minted keys only). Same flow as the
                 // first Generate; updates the existing row in place. (#133 2b)
                 if (sshKey.caConfigId != null) {
@@ -2129,6 +2107,40 @@ private fun SshKeyAuditRow(
                 },
             )
         }
+    }
+}
+
+/**
+ * The certificate menu rows shared by the hardware-resident and software key
+ * rows: certificates are public material signed against the public key, so
+ * they compose with both (the CA wrapper sits outside the signing path —
+ * chip or bytes alike). Attach when absent; export + remove when present.
+ */
+@Composable
+private fun CertificateMenuItems(
+    hasCertificate: Boolean,
+    onMenuDismiss: () -> Unit,
+    onExportCertificate: () -> Unit,
+    onRemoveCertificate: () -> Unit,
+    onAttachCertificate: () -> Unit,
+) {
+    if (hasCertificate) {
+        DropdownMenuItem(
+            text = { Text(stringResource(R.string.keys_export_certificate)) },
+            onClick = { onMenuDismiss(); onExportCertificate() },
+            leadingIcon = { Icon(Icons.Filled.FileDownload, contentDescription = null) },
+        )
+        DropdownMenuItem(
+            text = { Text(stringResource(R.string.keys_remove_certificate)) },
+            onClick = { onMenuDismiss(); onRemoveCertificate() },
+            leadingIcon = { Icon(Icons.Filled.Badge, contentDescription = null) },
+        )
+    } else {
+        DropdownMenuItem(
+            text = { Text(stringResource(R.string.keys_attach_certificate)) },
+            onClick = { onMenuDismiss(); onAttachCertificate() },
+            leadingIcon = { Icon(Icons.Filled.Badge, contentDescription = null) },
+        )
     }
 }
 

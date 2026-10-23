@@ -5761,6 +5761,10 @@ class ConnectionsViewModel @Inject constructor(
             Log.d(TAG, "Using security-chip key: ${key.keyType}" +
                 if (key.certificateBytes != null) " (with certificate)" else "")
             return ConnectionConfig.AuthMethod.HardwareKey(
+                // hardwareAlias is immutable once minted (rows are born
+                // hardware or software; the repository never rewrites it),
+                // so the null-checked value cannot go stale between here
+                // and the signing ceremony.
                 alias = key.hardwareAlias!!,
                 publicKeyOpenSsh = key.publicKeyOpenSsh,
                 fingerprintSha256 = key.fingerprintSha256,
@@ -5832,8 +5836,9 @@ class ConnectionsViewModel @Inject constructor(
      * individual [ConnectionConfig.AuthMethod.HardwareKey] methods appended
      * AFTER the software bundle, so JSch offers software keys first and the
      * hardware biometric ceremony only fires when the server wants a chip
-     * key (and the software keys failed). Mixed ordering follows the
-     * repository's row order (same as `enabledForAuth` software keys).
+     * key (and the software keys failed). Within each group, row order
+     * (the software pool keeps the repository's order, then each hardware
+     * key in the repository's order).
      *
      * Includes plaintext keys AND passphrase-protected keys whose passphrase
      * is stored (#290/#381): the encrypted bytes + stored passphrase ride

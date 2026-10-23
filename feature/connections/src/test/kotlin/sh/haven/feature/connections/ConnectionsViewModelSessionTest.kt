@@ -409,7 +409,7 @@ class ConnectionsViewModelSessionTest {
         privateKeyBytes = ByteArray(0), publicKeyOpenSsh = "", fingerprintSha256 = "",
     )
 
-    /** Storage convention: empty bytes + non-null hardwareAlias (T4 wiring). */
+    /** Storage convention: empty bytes + non-null hardwareAlias (public-key auth wiring). */
     private fun chipKey(id: String = "chip-1") = SshKey(
         id = id, label = "chip key", keyType = "ecdsa-sha2-nistp256",
         privateKeyBytes = ByteArray(0),
@@ -561,7 +561,7 @@ class ConnectionsViewModelSessionTest {
         org.junit.Assert.assertEquals("yk", fido.keyLabel)
     }
 
-    // T4: security-chip keys join the "any saved key" pool as individual
+    // Security-chip keys join the "any saved key" pool as individual
     // HardwareKey methods, offered AFTER the software bundle so a working
     // software key never triggers the biometric ceremony.
     @Test
@@ -624,7 +624,7 @@ class ConnectionsViewModelSessionTest {
         org.junit.Assert.assertTrue(auth is ConnectionConfig.AuthMethod.Password)
     }
 
-    // T4: a profile pinned to a chip key resolves to the HardwareKey method
+    // A profile pinned to a chip key resolves to the HardwareKey method
     // — no fetchKeyMaterial round-trip, cert bytes carried along.
     @Test
     fun `a pinned chip key resolves to the hardware auth method`() = runTest {

@@ -212,7 +212,7 @@ class SshKeyHardwareKeyTest {
         assertEquals(stored.captured.id, key.id)
         with(key) {
             assertEquals("my chip key", label)
-            // The only curve the hardware backend supports (KeyDecision #1).
+            // The only curve the hardware backend supports.
             assertEquals("ecdsa-sha2-nistp256", keyType)
             assertEquals(0, privateKeyBytes.size)
             assertTrue(biometricProtected)

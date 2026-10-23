@@ -382,10 +382,10 @@ class KeysViewModel @Inject constructor(
     }
 
     /**
-     * Generate a hardware-resident SSH key (design.md §6): ECDSA P-256 inside
-     * the device's secure chip (StrongBox when available, TEE otherwise),
-     * private half never leaving the hardware, every signature gated by a
-     * per-op biometric prompt.
+     * Generate a hardware-resident SSH key: ECDSA P-256 inside the device's
+     * secure chip (StrongBox when available, TEE otherwise), private half
+     * never leaving the hardware, every signature gated by a per-op
+     * biometric prompt.
      *
      * Thin delegation: the minting flow itself (alias minting + collision
      * probe, the [SshKey.hardwareAlias] row convention, orphan-alias

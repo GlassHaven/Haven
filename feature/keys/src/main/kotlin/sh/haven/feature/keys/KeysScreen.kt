@@ -1362,9 +1362,9 @@ private fun GenerateKeyDialog(
     var label by remember { mutableStateOf("") }
     var selectedType by remember { mutableStateOf(SshKeyGenerator.KeyType.ED25519) }
     var expanded by remember { mutableStateOf(false) }
-    // design.md §6: "在设备安全芯片中生成" opt-in. On: the algorithm is
-    // locked to P-256 (the only curve KeyMint's hardware backend supports —
-    // KeyDecision #1) and the constraints are spelled out before generating.
+    // "Generate in the device's security chip" opt-in. On: the algorithm is
+    // locked to P-256 (the only curve KeyMint's hardware backend supports)
+    // and the constraints are spelled out before generating.
     var hardwareBacked by remember { mutableStateOf(false) }
     // Resolved up front: stringResource is @Composable, the confirm onClick
     // below is not.
@@ -2054,9 +2054,9 @@ private fun SshKeyAuditRow(
                     leadingIcon = { Icon(Icons.Filled.FileDownload, contentDescription = null) },
                 )
                 // Certificates are public material signed against the public
-                // key — they compose with hardware-resident keys (design.md
-                // §5: the CA wrapper sits outside the chip's signing path),
-                // so attach/export/remove stay available.
+                // key — they compose with hardware-resident keys (the CA
+                // wrapper sits outside the chip's signing path), so
+                // attach/export/remove stay available.
                 CertificateMenuItems(
                     hasCertificate = hasCertificate,
                     onMenuDismiss = onMenuDismiss,

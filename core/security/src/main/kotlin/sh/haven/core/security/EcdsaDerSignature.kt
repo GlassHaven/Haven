@@ -6,16 +6,17 @@ import java.nio.ByteBuffer
 import java.nio.ByteOrder
 
 /**
- * DER → SSH ECDSA 签名 wire 转换（纯函数，JVM 可测）。
+ * DER → SSH ECDSA signature wire conversion (pure function, JVM-testable).
  *
- * 职责边界: 只做字节格式转换 — ASN.1 DER `SEQUENCE { INTEGER r, INTEGER s }`
- * → SSH `mpint r || mpint s`；不关心 Keystore / 签名算法 / 曲线。AndroidKeyStore
- * 与 CTAP2 一样吐 DER，而 `ecdsa-sha2-*` 的签名字段要 mpint 串联，消费方是
- * core/ssh 的 KeystoreSshIdentity（T5）。
+ * Boundary: byte-format conversion only — ASN.1 DER `SEQUENCE { INTEGER r,
+ * INTEGER s }` → SSH `mpint r || mpint s`. It knows nothing about Keystore,
+ * signing algorithm or curve; AndroidKeyStore emits DER exactly like CTAP2
+ * does, while the `ecdsa-sha2-*` signature blob wants the two mpints
+ * concatenated.
  *
- * 注: core/fido 的 FidoIdentity（FIDO sk-ecdsa 场景）与 core/ssh 的
- * KeystoreSshIdentity（T5）都消费本实现 —— 它是 DER→SSH mpint 转换的
- * 唯一事实来源（跨模块去重后的规范落点）。
+ * Consumed by both core/fido's FidoIdentity (FIDO sk-ecdsa) and core/ssh's
+ * KeystoreSshIdentity — the single source of truth for DER→SSH mpint
+ * conversion after the cross-module dedup.
  */
 fun derEcdsaToSshBlob(der: ByteArray): ByteArray {
     var pos = 0

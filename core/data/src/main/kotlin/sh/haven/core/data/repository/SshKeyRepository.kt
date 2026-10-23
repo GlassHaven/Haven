@@ -27,7 +27,7 @@ class SshKeyRepository @Inject constructor(
     private val sshKeyDao: SshKeyDao,
     @ApplicationContext private val context: Context,
     private val keystore: Keystore,
-    /** 硬件密钥 Keystore 交互; 接口注入以保 JVM 测试可替换 (见 HardwareKeySource)。 */
+    /** Hardware-key Keystore interaction; injected as an interface so JVM tests can swap in a fake (see HardwareKeySource). */
     private val hardwareKeys: HardwareKeySource,
 ) {
     companion object {

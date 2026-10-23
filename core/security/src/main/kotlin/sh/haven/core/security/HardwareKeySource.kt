@@ -8,10 +8,11 @@ import dagger.hilt.InstallIn
 import dagger.hilt.components.SingletonComponent
 
 /**
- * 硬件驻留 SSH 密钥的对外元数据（[HardwareKeySource.generate] 的返回值）。
- * `publicKeyOpenSsh` 可直接展示/导入 authorized_keys。顶层而非
- * [HardwareSshKeyManager] 嵌套：接口契约的一部分，消费方不应为一个
- * 返回类型依赖具体实现类。
+ * External metadata of a hardware-resident SSH key (the return value of
+ * [HardwareKeySource.generate]). `publicKeyOpenSsh` can be shown or pasted
+ * into authorized_keys as-is. Top-level rather than nested in
+ * [HardwareSshKeyManager]: it is part of the interface contract, and
+ * consumers should not depend on the concrete class for a return type.
  */
 data class HardwareKeyInfo(
     val alias: String,
@@ -21,17 +22,21 @@ data class HardwareKeyInfo(
 )
 
 /**
- * 硬件驻留 SSH 密钥的薄接口 ([HardwareSshKeyManager] 的可替换视图)。
+ * Thin interface over hardware-resident SSH keys (a swappable view of
+ * [HardwareSshKeyManager]).
  *
- * 职责边界: 与 [HardwareSshKeyManager] 完全一致 —— 它只是给同一组能力一个接口
- * 类型。存在的理由是可测性: [HardwareSshKeyManager] 直连 AndroidKeyStore, JVM
- * 单测无法触碰; 消费方 (SshKeyRepository / KeystoreSshKeySigner) 依赖本接口,
- * 测试注入假实现即可覆盖生成/删除路径 (mirror OpenKeychainProvider/Keystore
- * 的注入模式)。
+ * Boundary: identical to [HardwareSshKeyManager] — it only gives the same
+ * capabilities an interface type. It exists for testability:
+ * [HardwareSshKeyManager] talks to the real AndroidKeyStore, which JVM unit
+ * tests cannot touch; consumers (SshKeyRepository / KeystoreSshKeySigner)
+ * depend on this interface, and tests inject a fake to cover the
+ * generate/delete paths (the same injection pattern as
+ * OpenKeychainProvider/Keystore).
  *
- * 契约 (细节见 [HardwareSshKeyManager] 的 KDoc, 不在此重复):
- * - [generate] 在安全芯片生成 ECDSA P-256 密钥, 私钥永不出硬件, per-op 生物识别。
- * - [delete] 幂等: 不存在的 alias 静默成功。
+ * Contract (details in [HardwareSshKeyManager]'s KDoc, not repeated here):
+ * - [generate] creates an ECDSA P-256 key in the secure chip; the private
+ *   half never leaves the hardware and every use asks for a biometric.
+ * - [delete] is idempotent: a missing alias succeeds silently.
  */
 interface HardwareKeySource {
     fun generate(alias: String, preferStrongBox: Boolean): HardwareKeyInfo
@@ -41,8 +46,9 @@ interface HardwareKeySource {
 }
 
 /**
- * 把 [HardwareSshKeyManager] 绑定为应用级 [HardwareKeySource]。消费方依赖接口,
- * 测试用假实现替换 (mirror KeystoreModule 的绑定模式)。
+ * Binds [HardwareSshKeyManager] as the app-wide [HardwareKeySource].
+ * Consumers depend on the interface; tests swap in a fake (the same
+ * binding pattern as KeystoreModule).
  */
 @Module
 @InstallIn(SingletonComponent::class)

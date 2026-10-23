@@ -11,36 +11,46 @@ import javax.inject.Inject
 import javax.inject.Singleton
 
 /**
- * 硬件驻留 SSH 密钥的 AndroidKeyStore 交互唯一入口（design.md §模块设计-1，L2）。
+ * The single entry point for hardware-resident SSH keys' AndroidKeyStore
+ * interaction.
  *
- * 职责边界: ECDSA P-256 密钥在 Keystore 里的 生成 / 签名初始化 / 存在性 / 删除。
- * 不做: 生物识别 UI 与排队（BiometricGate，T3/T4）、DB 落库（core/data，T3）、
- * SSH 协议栈装配（core/ssh，T5）。
+ * Boundary: generation / sign initialization / existence / deletion of
+ * ECDSA P-256 keys in the Keystore. It does NOT do: biometric UI and
+ * queueing (BiometricGate), DB persistence (core/data), or SSH protocol
+ * wiring (core/ssh's KeystoreSshIdentity).
  *
- * 关键设计:
- * - 私钥永不出硬件: KeyPairGenerator 以 provider "AndroidKeyStore" 生成，
- *   进程只拿到公钥与一个 opaque 私钥句柄，导出路径在更上层直接不存在。
- * - per-op 认证: 生成策略固定 `setUserAuthenticationValidityDurationSeconds(-1)`
- *   （见 [HardwareKeyGenParams.USER_AUTH_VALIDITY_PER_OPERATION]），因此
- *   [initSignature] 返回的 Signature 必须先经 BiometricPrompt + CryptoObject
- *   认证才能 sign —— 这是 T4/T5 对接时的硬契约。
- * - StrongBox 降级: 仅在系统 >= API 28 且 preferStrongBox 时尝试
- *   `setIsStrongBoxBacked(true)`（StrongBox 的两个 API 都是 28+ 才存在，版本
- *   检查就地展开以保 lint 可验证），设备无 StrongBox
- *   （[StrongBoxUnavailableException]）则原样降级 TEE 重试一次，
- *   [HardwareKeyInfo.strongBoxBacked] 如实回报实际后端。
+ * Key design decisions:
+ * - The private key never leaves the hardware: KeyPairGenerator runs with
+ *   provider "AndroidKeyStore", so the process only ever sees the public
+ *   key and an opaque private-key handle — an export path simply does not
+ *   exist at any higher layer.
+ * - Per-operation authentication: the generation policy fixes
+ *   `setUserAuthenticationValidityDurationSeconds(-1)` (see
+ *   [HardwareKeyGenParams.USER_AUTH_VALIDITY_PER_OPERATION]), so a
+ *   Signature returned by [initSignature] must first go through
+ *   BiometricPrompt + CryptoObject before it can sign — a hard contract
+ *   for the biometric-gate and identity consumers.
+ * - StrongBox fallback: `setIsStrongBoxBacked(true)` is attempted only
+ *   when the system is >= API 28 and preferStrongBox is set (both
+ *   StrongBox APIs exist only from 28; the version check is expanded
+ *   inline so lint can verify it). A device without StrongBox
+ *   ([StrongBoxUnavailableException]) silently retries once on the TEE,
+ *   and [HardwareKeyInfo.strongBoxBacked] reports the actual backend.
  */
 @Singleton
 class HardwareSshKeyManager @Inject constructor() : HardwareKeySource {
 
     /**
-     * 在 AndroidKeyStore 中生成一把 ECDSA P-256 SSH 密钥。已存在的同名 alias
-     * 会被覆盖（alias 的唯一性分配是调用方 SshKeyRepository 的职责——铸造前
-     * 用 [contains] 探测碰撞）。
+     * Generates an ECDSA P-256 SSH key inside the AndroidKeyStore. An
+     * existing alias is overwritten (uniqueness allocation is the caller
+     * SshKeyRepository's job — it probes for collisions with [contains]
+     * before minting).
      *
-     * @param preferStrongBox 尝试 StrongBox 安全芯片。不可用（[StrongBoxUnavailableException]）
-     *   或系统 < API 28 时自动降级 TEE，只重试一次；StrongBox 的 API 与异常类都自
-     *   P 才存在，版本检查就地展开是为了 lint 可验证，勿抽进辅助函数。
+     * @param preferStrongBox try the StrongBox secure element first.
+     *   Falls back to the TEE automatically when it is unavailable
+     *   ([StrongBoxUnavailableException]) or the system is < API 28,
+     *   retrying exactly once; the version check stays inline (not in a
+     *   helper) so lint can verify it.
      */
     override fun generate(alias: String, preferStrongBox: Boolean): HardwareKeyInfo {
         require(alias.isNotBlank()) { "hardware key alias must not be blank" }
@@ -50,7 +60,8 @@ class HardwareSshKeyManager @Inject constructor() : HardwareKeySource {
                     HardwareKeyGenParams.forHardwareSshKey(alias, strongBoxBacked = true),
                 )
             } catch (e: StrongBoxUnavailableException) {
-                // 该机型的 Secure Element 不可用（缺失/忙）: 静默降级 TEE 重试一次。
+                // This device's Secure Element is unavailable (absent/busy):
+                // silently fall back to the TEE and retry once.
             }
         }
         return generateInAndroidKeyStore(
@@ -59,15 +70,19 @@ class HardwareSshKeyManager @Inject constructor() : HardwareKeySource {
     }
 
     /**
-     * 返回绑定该 alias 私钥、等待 per-op 生物识别的 SHA256withECDSA Signature。
-     * 调用方（T5 KeystoreSshIdentity）把它包进 BiometricPrompt CryptoObject，
-     * 认证通过后 update+sign；未认证就 sign 会抛 UserNotAuthenticatedException。
+     * Returns a SHA256withECDSA Signature bound to the alias's private key,
+     * awaiting its per-operation biometric. The caller
+     * (core/ssh's KeystoreSshIdentity) wraps it in a BiometricPrompt
+     * CryptoObject and calls update+sign once authenticated; signing
+     * without authentication throws UserNotAuthenticatedException.
      *
      * @throws android.security.keystore.KeyPermanentlyInvalidatedException
-     *   新录生物特征使密钥作废时由 Keystore 抛出，原样上抛（fail-closed，由上层
-     *   提示用户删除重建）。
-     * @throws java.security.UnrecoverableKeyException 同族故障，原样上抛。
-     * @throws IllegalArgumentException alias 下没有硬件密钥。
+     *   thrown by the Keystore when newly enrolled biometrics invalidated
+     *   the key; rethrown as-is (fail-closed — the layer above prompts the
+     *   user to delete and re-create the key).
+     * @throws java.security.UnrecoverableKeyException same failure family,
+     *   rethrown as-is.
+     * @throws IllegalArgumentException no hardware key exists under the alias.
      */
     override fun initSignature(alias: String): Signature {
         val privateKey = androidKeyStore().getKey(alias, null) as? PrivateKey
@@ -75,7 +90,7 @@ class HardwareSshKeyManager @Inject constructor() : HardwareKeySource {
         return Signature.getInstance(SIGNATURE_ALGORITHM).apply { initSign(privateKey) }
     }
 
-    /** 从 Keystore 删除该 alias（幂等：不存在的 alias 静默成功）。 */
+    /** Deletes the alias from the Keystore (idempotent: a missing alias succeeds silently). */
     override fun delete(alias: String) {
         androidKeyStore().deleteEntry(alias)
     }

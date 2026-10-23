@@ -200,4 +200,21 @@ class HeadlessSshExecTest {
         val auth = HeadlessSshAuth.resolve(sshProfile, keyRepo)
         assertTrue(auth is sh.haven.core.ssh.ConnectionConfig.AuthMethod.Password)
     }
+
+    @Test
+    fun `headless auth excludes security-chip keys`() = runBlocking {
+        val keyRepo = mockk<SshKeyRepository>(relaxed = true) {
+            coEvery { getAllDecrypted() } returns emptyList()
+        }
+        // A hardware-resident key: signing needs the per-op biometric
+        // ceremony with the app foregrounded, which a headless connect
+        // (run_command, agent tunnels) cannot raise — same exclusion as
+        // the sk- touch prompt above.
+        coEvery { keyRepo.getById("k-chip") } returns mockk(relaxed = true) {
+            every { keyType } returns "ecdsa-sha2-nistp256"
+            every { isEncrypted } returns false
+            every { hardwareAlias } returns "haven-ssh-ab12cd34"
+        }
+        assertEquals(null, HeadlessSshAuth.resolve(sshProfile.copy(keyId = "k-chip"), keyRepo))
+    }
 }

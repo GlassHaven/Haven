@@ -44,6 +44,22 @@ class SshlibSftpConnectorTest {
     fun `FIDO keys fall back`() =
         assertNotNull(reason(AuthMethod.FidoKey(skKeyData = byteArrayOf(1))))
 
+    /**
+     * Security-chip keys fall back the same way FIDO keys do: their private
+     * half only signs via KeystoreSshIdentity on the JSch engine, so sshlib
+     * must refuse them up front rather than fail to authenticate with a
+     * perfectly valid key.
+     */
+    @Test
+    fun `security-chip keys fall back`() = assertNotNull(
+        reason(
+            AuthMethod.HardwareKey(
+                alias = "haven-ssh-ab12cd34",
+                publicKeyOpenSsh = "ecdsa-sha2-nistp256 AAAA haven-ssh-ab12cd34",
+            ),
+        ),
+    )
+
     @Test
     fun `certificate-carrying keys fall back`() {
         assertNotNull(

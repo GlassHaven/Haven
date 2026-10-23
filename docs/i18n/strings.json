@@ -21510,6 +21510,26 @@
      }
     },
     {
+     "name": "keys_hardware_no_strong_biometrics",
+     "en": "Secure chip keys need a strong biometric (fingerprint or Class 3 face) enrolled on this device — enroll one in Android settings and try again.",
+     "comment": "GenerateKeyDialog: hardware-resident keys (device secure chip, design.md §6)",
+     "args": [],
+     "t": {
+      "ar": "تحتاج مفاتيح شريحة الأمان إلى قياس حيوي قوي (بصمة إصبع أو وجه من الفئة 3) مسجّل على هذا الجهاز — سجّل أحدها في إعدادات Android ثم أعد المحاولة.",
+      "bn": "সিকিউর চিপ কীগুলোর জন্য এই ডিভাইসে একটি সশক্ত বায়োমেট্রিক (আঙুলের ছাপ বা ক্লাস ৩ ফেস) নিবন্ধিত থাকা দরকার — Android সেটিংসে একটি নিবন্ধন করে আবার চেষ্টা করুন।",
+      "de": "Secure-Chip-Schlüssel erfordern eine auf diesem Gerät registrierte starke Biometrie (Fingerabdruck oder Class-3-Gesicht) – registriere eine in den Android-Einstellungen und versuche es erneut.",
+      "es": "Las claves del chip de seguridad necesitan una biometría fuerte (huella o rostro de clase 3) registrada en este dispositivo; registra una en los ajustes de Android e inténtalo de nuevo.",
+      "fr": "Les clés à puce de sécurité exigent une biométrie forte (empreinte ou visage de classe 3) enregistrée sur cet appareil — enregistrez-en une dans les paramètres Android puis réessayez.",
+      "hi": "सिक्योर चिप कुंजियों के लिए इस डिवाइस पर एक सशक्त बायोमेट्रिक (फ़िंगरप्रिंट या क्लास 3 फेस) पंजीकृत होना ज़रूरी है — Android सेटिंग में एक पंजीकृत करें और फिर कोशिश करें।",
+      "ja": "セキュリティチップ鍵には、この端末に強力な生体認証（指紋またはクラス3の顔）の登録が必要です。Android の設定で登録してから、もう一度お試しください。",
+      "ko": "보안 칩 키에는 이 기기에 등록된 강력한 생체 인증(지문 또는 클래스 3 얼굴)이 필요합니다. Android 설정에서 등록한 후 다시 시도하세요.",
+      "pt": "As chaves de chip de segurança exigem uma biometria forte (impressão digital ou rosto de classe 3) registrada neste dispositivo — registre uma nas configurações do Android e tente novamente.",
+      "ru": "Для ключей на защищённом чипе нужна сильная биометрия (отпечаток или лицо класса 3), зарегистрированная на этом устройстве — зарегистрируйте её в настройках Android и повторите попытку.",
+      "sr": "Кључеви на безбедносном чипу захтевају јаку биометрију (отисак прста или лице класе 3) регистровану на овом уређају — региструјте је у Android подешавањима и покушајте поново.",
+      "zh": "安全芯片密钥需要在此设备上已录入强生物识别（指纹或 3 类人脸）——请先在 Android 设置中录入，然后重试。"
+     }
+    },
+    {
      "name": "keys_chip_secure_chip",
      "en": "Secure chip",
      "comment": "GenerateKeyDialog: hardware-resident keys (device secure chip, design.md §6)",

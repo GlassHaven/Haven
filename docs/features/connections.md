@@ -28,6 +28,18 @@ The implementation follows the fwknop wire format: an SHA-256-digested message e
 
 Generate Ed25519, RSA, and ECDSA keys on-device. Import keys from file (PEM/OpenSSH/Dropbear format) or paste from clipboard. FIDO2/SK hardware key support (ed25519-sk, ecdsa-sk) via NFC or USB security keys — and a phone-hosted security key can be forwarded to a remote host (see [USB device forwarding](usb.md)). One-tap public key copy and deploy key dialog for `authorized_keys` setup. Assign specific keys to individual connections.
 
+### Security-chip keys
+
+Keys → Generate can also mint the keypair **inside the phone's secure chip** — the StrongBox security element when the device has one, otherwise the TEE. These are always ECDSA P-256, and the private half never leaves the chip: Haven itself only ever holds the public line.
+
+What that buys, and costs:
+
+- **Every sign-in asks for you.** Each SSH authentication with a security-chip key requires a fresh biometric confirmation (fingerprint or Class 3 face) on the phone — and only when the server actually accepts that key, so servers that don't know the key never trigger a prompt. Declining aborts that connection; Haven doesn't quietly slide on to the next credential.
+- **Nothing to steal.** The private key can't be exported, copied, or backed up — there is no path off the chip, not even for Haven.
+- **No survivors.** A factory reset destroys the key, and re-enrolling any biometric invalidates it (the key then needs to be deleted and re-created). Encrypted backups note how many hardware-backed keys were left out, since they cannot travel.
+
+Worth knowing: they work with OpenSSH CA certificates like any other key, but headless paths that can't raise a biometric prompt (the MCP tunnel, agent-driven connects) don't use them, and a profile switched to the experimental sshlib engine refuses to connect with one until it's switched back to the default engine.
+
 ---
 
 [← All features](../FEATURES.md)

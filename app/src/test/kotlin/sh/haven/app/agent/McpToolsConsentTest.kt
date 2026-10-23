@@ -890,6 +890,21 @@ class McpToolsConsentTest {
         assertEquals(0, out.getInt("count"))
     }
 
+    @Test
+    fun `generate_ssh_key summary reflects hardware backing`() {
+        // The hardwareBacked branch changes what the user is approving (a
+        // key whose private half can never leave the phone), so the consent
+        // one-liner must say so — and the software variant must not.
+        val tools = newTools()
+        val c = tools.consentFor("generate_ssh_key")!!
+        val soft = c.summary(JSONObject().put("label", "ci-deploy"))
+        assertTrue("got: $soft", soft.contains("ci-deploy"))
+        assertFalse("software variant must not mention the chip, got: $soft", soft.contains("chip"))
+        val hw = c.summary(JSONObject().put("label", "ci-deploy").put("hardwareBacked", true))
+        assertTrue("got: $hw", hw.contains("ci-deploy"))
+        assertTrue("hardware variant must name the secure chip, got: $hw", hw.contains("chip"))
+    }
+
     // --- Rclone provider extraction (#mcp-backbone Stage 5, Layer E) ---
 
     @Test

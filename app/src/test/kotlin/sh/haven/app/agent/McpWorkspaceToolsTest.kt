@@ -117,6 +117,7 @@ class McpWorkspaceToolsTest {
             bleSerialSessionManager = mockk(relaxed = true),
             usbSerialSessionManager = mockk(relaxed = true),
             headlessSshExec = mockk(relaxed = true),
+            hardwareKeySource = mockk(relaxed = true),
             reticulumSessionManager = mockk(relaxed = true),
             reticulumForwardServer = mockk(relaxed = true),
             mailRuleRepository = mockk(relaxed = true),

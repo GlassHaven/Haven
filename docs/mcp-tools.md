@@ -2160,10 +2160,11 @@ Forget a pinned SSH host key by hostname + port, so the next connect re-pins on 
 <details markdown="1">
 <summary><code>generate_ssh_key</code> · asks every call</summary>
 
-Generate a new SSH keypair and store it in Haven's key store (the Keys screen). Returns the key id, type, OpenSSH public line, and SHA-256 fingerprint — the private key bytes are never returned and never leave the device. Generated keys are unencrypted at rest (matching the UI's generate flow); set a passphrase later via the UI or set_ssh_key_option. Pairs with deploy_key.
+Generate a new SSH keypair and store it in Haven's key store (the Keys screen). Returns the key id, type, OpenSSH public line, and SHA-256 fingerprint — the private key bytes are never returned and never leave the device. Pass `hardwareBacked: true` to generate inside the device's secure chip (StrongBox when available, TEE otherwise): such keys are always ECDSA P-256 (`ecdsa-sha2-nistp256`), their private half can NEVER be exported or backed up (it never leaves the chip — a factory reset or re-enrolled biometrics destroys it, and it won't survive a backup/restore), and every SSH sign-in with one requires a fresh biometric confirmation (fingerprint / Class 3 face) on the phone — declining aborts that connection. Software keys are unencrypted at rest (matching the UI's generate flow); set a passphrase later via the UI or set_ssh_key_option. Pairs with deploy_key.
 
 - `label` (string, required) — Key label (used as the public-key comment too).
-- `keyType` (string) — One of: ed25519 (default), rsa4096, ecdsa384.
+- `hardwareBacked` (boolean) — Generate inside the device's secure chip instead of as a software key. Always ECDSA P-256; the private key never leaves the chip and every use requires a biometric confirmation. Mutually exclusive with keyType.
+- `keyType` (string) — Software keys only: one of ed25519 (default), rsa4096, ecdsa384. Hardware-backed keys are always ecdsa-sha2-nistp256 — passing a keyType together with hardwareBacked is an error.
 
 </details>
 
@@ -2204,7 +2205,7 @@ List pinned SSH host keys (the TOFU known_hosts store). Returns hostname, port, 
 <details markdown="1">
 <summary><code>list_ssh_keys</code> · no per-call prompt</summary>
 
-List saved SSH keys available for SSH / Mosh / SFTP profiles. Returns id, label, keyType (e.g. ed25519, rsa, sk-ssh-ed25519@openssh.com), publicKeyOpenSsh, fingerprintSha256, isEncrypted (passphrase-protected), biometricProtected, enabledForAuth (whether it's offered in 'any saved key' auto-auth), verifyRequired (FIDO2/SK keys only: requires its PIN at sign-in), and createdAt. Set enabledForAuth / verifyRequired via set_ssh_key_option. Private key bytes are NEVER returned — they stay encrypted at rest.
+List saved SSH keys available for SSH / Mosh / SFTP profiles. Returns id, label, keyType (e.g. ed25519, rsa, sk-ssh-ed25519@openssh.com), publicKeyOpenSsh, fingerprintSha256, isEncrypted (passphrase-protected), biometricProtected, hardwareBacked (true when the private half lives in the device's secure chip — such keys can't be exported or backed up, and every sign-in requires a fresh biometric confirmation on the phone), enabledForAuth (whether it's offered in 'any saved key' auto-auth), verifyRequired (FIDO2/SK keys only: requires its PIN at sign-in), and createdAt. Set enabledForAuth / verifyRequired via set_ssh_key_option. Private key bytes are NEVER returned — they stay encrypted at rest.
 
 </details>
 

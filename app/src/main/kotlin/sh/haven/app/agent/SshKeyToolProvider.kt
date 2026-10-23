@@ -23,7 +23,7 @@ internal class SshKeyToolProvider(
 
     override fun tools(): Map<String, ToolHandler> = linkedMapOf(
         "list_ssh_keys" to ToolHandler(
-            description = "List saved SSH keys available for SSH / Mosh / SFTP profiles. Returns id, label, keyType (e.g. ed25519, rsa, sk-ssh-ed25519@openssh.com), publicKeyOpenSsh, fingerprintSha256, isEncrypted (passphrase-protected), biometricProtected, enabledForAuth (whether it's offered in 'any saved key' auto-auth), verifyRequired (FIDO2/SK keys only: requires its PIN at sign-in), and createdAt. Set enabledForAuth / verifyRequired via set_ssh_key_option. Private key bytes are NEVER returned — they stay encrypted at rest.",
+            description = "List saved SSH keys available for SSH / Mosh / SFTP profiles. Returns id, label, keyType (e.g. ed25519, rsa, sk-ssh-ed25519@openssh.com), publicKeyOpenSsh, fingerprintSha256, isEncrypted (passphrase-protected), biometricProtected, hardwareBacked (true when the private half lives in the device's secure chip — such keys can't be exported or backed up, and every sign-in requires a fresh biometric confirmation on the phone), enabledForAuth (whether it's offered in 'any saved key' auto-auth), verifyRequired (FIDO2/SK keys only: requires its PIN at sign-in), and createdAt. Set enabledForAuth / verifyRequired via set_ssh_key_option. Private key bytes are NEVER returned — they stay encrypted at rest.",
             inputSchema = emptyObjectSchema(),
         ) { _ -> listSshKeys() },
 
@@ -88,6 +88,7 @@ internal class SshKeyToolProvider(
                 put("fingerprintSha256", k.fingerprintSha256)
                 put("isEncrypted", k.isEncrypted)
                 put("biometricProtected", k.biometricProtected)
+                put("hardwareBacked", k.hardwareAlias != null)
                 put("enabledForAuth", k.enabledForAuth)
                 // verify-required (PIN) lives in the SK blob's flags; decrypt
                 // non-biometric SK keys to surface it (null for non-SK or when

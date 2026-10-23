@@ -7,6 +7,7 @@ import sh.haven.core.data.agent.ConsentLevel
 import sh.haven.core.data.db.entities.SshKey
 import sh.haven.core.data.repository.SshKeyRepository
 import sh.haven.core.mcp.McpError
+import sh.haven.core.security.HardwareKeySource
 import sh.haven.core.security.SshKeyGenerator
 
 /**
@@ -19,7 +20,10 @@ import sh.haven.core.security.SshKeyGenerator
  * log in to a host). Both are per-call gated. The private key never leaves
  * the device in either — only the `user@host type base64` public line
  * crosses the wire, via an idempotent `grep -qxF` guard so re-running
- * deploy_key never appends a duplicate.
+ * deploy_key never appends a duplicate. generate_ssh_key also offers a
+ * `hardwareBacked` branch: the keypair is minted inside the device's
+ * secure chip ([HardwareKeySource]) and only its public half ever exists
+ * in app storage.
  *
  * deploy_key rides [HeadlessSshExec]'s reuse path (exec channel multiplexed
  * over a live session) or its headless connect (fail-closed TOFU, same
@@ -29,19 +33,28 @@ import sh.haven.core.security.SshKeyGenerator
 internal class CredentialToolProvider(
     private val sshKeyRepository: SshKeyRepository,
     private val headlessSshExec: HeadlessSshExec?,
+    /** Secure-chip key generation; null in unit-test constructions — the
+     *  hardware branch then answers "unavailable in this build". */
+    private val hardwareKeys: HardwareKeySource?,
 ) : ToolProvider {
 
     override fun tools(): Map<String, ToolHandler> = linkedMapOf(
         "generate_ssh_key" to ToolHandler(
-            description = "Generate a new SSH keypair and store it in Haven's key store (the Keys screen). Returns the key id, type, OpenSSH public line, and SHA-256 fingerprint — the private key bytes are never returned and never leave the device. Generated keys are unencrypted at rest (matching the UI's generate flow); set a passphrase later via the UI or set_ssh_key_option. Pairs with deploy_key.",
+            description = "Generate a new SSH keypair and store it in Haven's key store (the Keys screen). Returns the key id, type, OpenSSH public line, and SHA-256 fingerprint — the private key bytes are never returned and never leave the device. Pass `hardwareBacked: true` to generate inside the device's secure chip (StrongBox when available, TEE otherwise): such keys are always ECDSA P-256 (`ecdsa-sha2-nistp256`), their private half can NEVER be exported or backed up (it never leaves the chip — a factory reset or re-enrolled biometrics destroys it, and it won't survive a backup/restore), and every SSH sign-in with one requires a fresh biometric confirmation (fingerprint / Class 3 face) on the phone — declining aborts that connection. Software keys are unencrypted at rest (matching the UI's generate flow); set a passphrase later via the UI or set_ssh_key_option. Pairs with deploy_key.",
             inputSchema = objectSchema {
                 string("label", "Key label (used as the public-key comment too).", required = true)
-                string("keyType", "One of: ed25519 (default), rsa4096, ecdsa384.")
+                boolean("hardwareBacked", "Generate inside the device's secure chip instead of as a software key. Always ECDSA P-256; the private key never leaves the chip and every use requires a biometric confirmation. Mutually exclusive with keyType.")
+                string("keyType", "Software keys only: one of ed25519 (default), rsa4096, ecdsa384. Hardware-backed keys are always ecdsa-sha2-nistp256 — passing a keyType together with hardwareBacked is an error.")
             },
             consentLevel = ConsentLevel.EVERY_CALL,
             summarise = { args ->
-                "Generate a new ${args.optString("keyType", "ed25519")} SSH key " +
-                    "\"${args.optString("label", "?")}\" in the key store?"
+                if (args.optBoolean("hardwareBacked", false)) {
+                    "Generate a new security-chip SSH key \"${args.optString("label", "?")}\" " +
+                        "in the key store? Its private half can never leave the device."
+                } else {
+                    "Generate a new ${args.optString("keyType", "ed25519")} SSH key " +
+                        "\"${args.optString("label", "?")}\" in the key store?"
+                }
             },
         ) { args -> generateKey(args) },
 
@@ -63,6 +76,8 @@ internal class CredentialToolProvider(
     private suspend fun generateKey(args: JSONObject): JSONObject {
         val label = args.optString("label").trim()
         if (label.isBlank()) throw McpError(-32602, "label is required")
+        if (args.optBoolean("hardwareBacked", false)) return generateHardwareKey(label, args)
+
         val keyType = when (args.optString("keyType", "ed25519").lowercase()) {
             "", "ed25519" -> SshKeyGenerator.KeyType.ED25519
             "rsa4096", "rsa_4096", "rsa" -> SshKeyGenerator.KeyType.RSA_4096
@@ -86,7 +101,60 @@ internal class CredentialToolProvider(
             put("keyType", generated.type.sshName)
             put("publicKeyOpenSsh", generated.publicKeyOpenSsh)
             put("fingerprintSha256", generated.fingerprintSha256)
+            put("hardwareBacked", false)
             put("note", "Private key stored encrypted in the key store and not returned. Deploy it with deploy_key.")
+        }
+    }
+
+    /**
+     * Hardware branch of generate_ssh_key: ECDSA P-256 inside the device's
+     * secure chip (StrongBox preferred, TEE fallback — the source decides).
+     * Same alias rule and storage convention as the Keys screen's generate
+     * flow (KeysViewModel.generateHardwareKey): alias `haven-ssh-<uuid8>`,
+     * empty privateKeyBytes, biometricProtected=true, keyType fixed to
+     * ecdsa-sha2-nistp256. If the row can't be persisted, the freshly
+     * minted alias is deleted again — secure-chip slots are scarce and an
+     * alias no row points at is unreachable forever.
+     */
+    private suspend fun generateHardwareKey(label: String, args: JSONObject): JSONObject {
+        if (args.optString("keyType").isNotBlank()) {
+            throw McpError(
+                -32602,
+                "hardwareBacked keys are always ecdsa-sha2-nistp256 — omit keyType",
+            )
+        }
+        val source = hardwareKeys
+            ?: throw McpError(-32603, "hardware-backed key generation is unavailable in this build")
+        val alias = "haven-ssh-" + java.util.UUID.randomUUID().toString().replace("-", "").take(8)
+        val info = withContext(Dispatchers.Default) {
+            source.generate(alias, preferStrongBox = true)
+        }
+        val entity = SshKey(
+            label = label,
+            keyType = SshKeyGenerator.EcdsaCurve.NIST_P256.sshKeyType,
+            privateKeyBytes = ByteArray(0),
+            publicKeyOpenSsh = info.publicKeyOpenSsh,
+            fingerprintSha256 = info.fingerprintSha256,
+            biometricProtected = true,
+            hardwareAlias = info.alias,
+        )
+        try {
+            sshKeyRepository.save(entity)
+        } catch (e: Exception) {
+            source.delete(alias)
+            throw e
+        }
+        return JSONObject().apply {
+            put("keyId", entity.id)
+            put("label", label)
+            put("keyType", entity.keyType)
+            put("publicKeyOpenSsh", info.publicKeyOpenSsh)
+            put("fingerprintSha256", info.fingerprintSha256)
+            put("hardwareBacked", true)
+            put("strongBoxBacked", info.strongBoxBacked)
+            put("note", "The private half lives in the device's secure chip and never leaves it — " +
+                "it cannot be exported or backed up, and every sign-in asks for a biometric on the phone. " +
+                "Deploy the public half with deploy_key.")
         }
     }
 

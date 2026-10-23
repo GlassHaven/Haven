@@ -33,6 +33,7 @@ import sh.haven.core.data.preferences.TabVisibility
 import sh.haven.core.data.preferences.ToolbarLayout
 import sh.haven.core.data.preferences.UserPreferencesRepository
 import sh.haven.core.data.repository.ConnectionRepository
+import sh.haven.core.data.repository.SshKeyRepository
 import sh.haven.core.data.update.UpdateChecker
 import sh.haven.core.security.BiometricAuthenticator
 import javax.inject.Inject
@@ -48,6 +49,7 @@ class SettingsViewModel @Inject constructor(
     private val agentConsentManager: AgentConsentManager,
     private val terminalFontInstaller: TerminalFontInstaller,
     private val connectionRepository: ConnectionRepository,
+    private val sshKeyRepository: SshKeyRepository,
     private val mcpStatusHolder: sh.haven.core.data.agent.McpStatusHolder,
     private val biometricGate: sh.haven.core.data.keystore.BiometricGate,
     private val agentUiCommandBus: sh.haven.core.data.agent.AgentUiCommandBus,
@@ -320,11 +322,28 @@ class SettingsViewModel @Inject constructor(
                     appContext.contentResolver.openOutputStream(uri)?.use { it.write(data) }
                         ?: throw IllegalStateException("Could not open output stream")
                 }
-                _backupStatus.value = BackupStatus.Success("Backup exported")
+                _backupStatus.value = BackupStatus.Success("Backup exported" + hardwareExcludedNote())
             } catch (e: Exception) {
                 _backupStatus.value = BackupStatus.Error(e.message ?: "Export failed")
             }
         }
+    }
+
+    /**
+     * Clause appended to a successful backup message naming the
+     * hardware-resident keys the file cannot contain (their private half
+     * can't leave the secure chip — feature, not gap). Empty when none
+     * exist, so the note only ever speaks up when something was actually
+     * left out.
+     */
+    private suspend fun hardwareExcludedNote(): String {
+        val skipped = withContext(Dispatchers.IO) {
+            sshKeyRepository.getAll().count { it.hardwareAlias != null }
+        }
+        if (skipped == 0) return ""
+        val plural = if (skipped == 1) "" else "s"
+        return " ($skipped hardware-backed key$plural not included — " +
+            "${if (skipped == 1) "it cannot" else "they cannot"} leave the device)"
     }
 
     fun importBackup(uri: Uri, password: String) {
@@ -435,7 +454,7 @@ class SettingsViewModel @Inject constructor(
                 withContext(Dispatchers.IO) {
                     backupSyncManager.push(profileId, backupSyncPath.value, password)
                 }
-                _backupStatus.value = BackupStatus.Success("Backup pushed to remote")
+                _backupStatus.value = BackupStatus.Success("Backup pushed to remote" + hardwareExcludedNote())
             } catch (e: Exception) {
                 _backupStatus.value = BackupStatus.Error(backupSyncError(e))
             }

@@ -1,7 +1,7 @@
 package sh.haven.core.data.repository
 
+import sh.haven.core.security.HardwareKeyInfo
 import sh.haven.core.security.HardwareKeySource
-import sh.haven.core.security.HardwareSshKeyManager
 
 /**
  * JVM fake for [HardwareKeySource], shared by the SshKeyRepository tests.
@@ -19,10 +19,25 @@ class FakeHardwareKeySource : HardwareKeySource {
 
     val generatedAliases = mutableListOf<String>()
 
-    override fun generate(alias: String, preferStrongBox: Boolean): HardwareSshKeyManager.HardwareKeyInfo {
+    /** Aliases [contains] should report as taken (collision-probe tests). */
+    val takenAliases = mutableSetOf<String>()
+
+    /**
+     * Force the collision probe deterministically: when > 0, the next
+     * distinct unknown candidates are answered "taken" (the repository
+     * mints random uuid suffixes, so a fixed collision can't be spelled
+     * in advance).
+     */
+    var candidatesToRefuse = 0
+    private var refused = 0
+
+    /** Every alias probed via [contains], in order. */
+    val probedCandidates = mutableListOf<String>()
+
+    override fun generate(alias: String, preferStrongBox: Boolean): HardwareKeyInfo {
         generateError?.let { throw it }
         generatedAliases += alias
-        return HardwareSshKeyManager.HardwareKeyInfo(
+        return HardwareKeyInfo(
             alias = alias,
             publicKeyOpenSsh = "ecdsa-sha2-nistp256 AAAA $alias",
             fingerprintSha256 = "SHA256:fake-$alias",
@@ -37,5 +52,13 @@ class FakeHardwareKeySource : HardwareKeySource {
         deletedAliases += alias
     }
 
-    override fun contains(alias: String): Boolean = alias in generatedAliases
+    override fun contains(alias: String): Boolean {
+        probedCandidates += alias
+        if (alias in generatedAliases || alias in takenAliases) return true
+        if (refused < candidatesToRefuse) {
+            refused++
+            return true
+        }
+        return false
+    }
 }

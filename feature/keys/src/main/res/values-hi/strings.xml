@@ -58,6 +58,7 @@
     <string name="keys_hardware_constraints">• प्राइवेट की कभी भी चिप से बाहर नहीं जाती\n• बैकअप या एक्सपोर्ट नहीं किया जा सकता\n• हर उपयोग के लिए फिंगरप्रिंट या फेस सत्यापन आवश्यक है\n• फ़ैक्टरी रीसेट या नए डिवाइस पर शिफ़्ट होने पर स्थायी रूप से खो जाती है</string>
     <string name="keys_hardware_default_label">सिक्योर चिप की</string>
     <string name="keys_hardware_export_disabled_reason">प्राइवेट की कभी चिप से बाहर नहीं जाती, इसलिए इसे एक्सपोर्ट नहीं किया जा सकता</string>
+    <string name="keys_hardware_no_strong_biometrics">सिक्योर चिप कुंजियों के लिए इस डिवाइस पर एक सशक्त बायोमेट्रिक (फ़िंगरप्रिंट या क्लास 3 फेस) पंजीकृत होना ज़रूरी है — Android सेटिंग में एक पंजीकृत करें और फिर कोशिश करें।</string>
     <string name="keys_chip_secure_chip">सिक्योर चिप</string>
 
     <!-- PassphraseDialog -->

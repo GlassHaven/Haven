@@ -12,7 +12,9 @@ import javax.inject.Singleton
 import kotlin.coroutines.resume
 
 @Singleton
-class BiometricAuthenticator @Inject constructor() {
+class BiometricAuthenticator @Inject constructor(
+    @dagger.hilt.android.qualifiers.ApplicationContext private val context: Context,
+) {
 
     companion object {
         /** Accepts biometric (strong or weak) or device credential (PIN/password/pattern). */
@@ -46,6 +48,19 @@ class BiometricAuthenticator @Inject constructor() {
             else -> Availability.NO_HARDWARE
         }
     }
+
+    /**
+     * Whether a CryptoObject ceremony — the per-op authorization a
+     * hardware-resident Keystore key demands at every signature — can run
+     * at all on this device: a BIOMETRIC_STRONG (Class 3) biometric is
+     * enrolled and usable. Weak biometrics and device credential cannot
+     * authorize a Keystore [Signature], so minting a chip key without this
+     * only defers the failure to the first connect. Callers gate key
+     * *generation* on this, with a message that names the remedy.
+     */
+    fun canAuthorizeWithStrongBiometrics(): Boolean =
+        BiometricManager.from(context)
+            .canAuthenticate(CRYPTO_AUTHENTICATORS) == BiometricManager.BIOMETRIC_SUCCESS
 
     suspend fun authenticate(
         activity: FragmentActivity,

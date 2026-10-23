@@ -58,6 +58,7 @@
     <string name="keys_hardware_constraints">• Der private Schlüssel verlässt den Chip nie\n• Kein Backup, kein Export möglich\n• Jede Nutzung erfordert Fingerabdruck- oder Gesichtsverifizierung\n• Beim Zurücksetzen auf Werkseinstellungen oder beim Gerätewechsel dauerhaft verloren</string>
     <string name="keys_hardware_default_label">Secure-Chip-Schlüssel</string>
     <string name="keys_hardware_export_disabled_reason">Der private Schlüssel verlässt den Chip nie und kann daher nicht exportiert werden</string>
+    <string name="keys_hardware_no_strong_biometrics">Secure-Chip-Schlüssel erfordern eine auf diesem Gerät registrierte starke Biometrie (Fingerabdruck oder Class-3-Gesicht) – registriere eine in den Android-Einstellungen und versuche es erneut.</string>
     <string name="keys_chip_secure_chip">Secure-Chip</string>
 
     <!-- PassphraseDialog -->

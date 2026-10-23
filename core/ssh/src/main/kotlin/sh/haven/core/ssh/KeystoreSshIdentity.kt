@@ -6,7 +6,7 @@ import android.util.Log
 import com.jcraft.jsch.Identity
 import sh.haven.core.data.keystore.BiometricGate
 import sh.haven.core.redact.LogRedact
-import sh.haven.core.security.HardwareSshKeyManager
+import sh.haven.core.security.HardwareKeySource
 import sh.haven.core.security.derEcdsaToSshBlob
 import kotlinx.coroutines.runBlocking
 import java.io.ByteArrayOutputStream
@@ -52,17 +52,19 @@ interface HardwareSshKeySigner {
 }
 
 /**
- * [HardwareSshKeySigner] over the real [HardwareSshKeyManager] +
- * [BiometricGate]. Pure glue: both are @Singleton stateful collaborators
- * (the gate is the one the foreground Activity observes), so callers inject
- * this adapter rather than the pair.
+ * [HardwareSshKeySigner] over the real [HardwareSshKeyManager] (Hilt binds
+ * it as the [HardwareKeySource]) + [BiometricGate]. Pure glue: both are
+ * @Singleton stateful collaborators (the gate is the one the foreground
+ * Activity observes), so callers inject this adapter rather than the pair.
+ * The interface (not the concrete manager) is injected so the JVM unit
+ * tests of this module's identities stay fake-able.
  */
 @Singleton
 class KeystoreSshKeySigner @Inject constructor(
-    private val manager: HardwareSshKeyManager,
+    private val hardwareKeys: HardwareKeySource,
     private val gate: BiometricGate,
 ) : HardwareSshKeySigner {
-    override fun initSignature(alias: String): Signature = manager.initSignature(alias)
+    override fun initSignature(alias: String): Signature = hardwareKeys.initSignature(alias)
     override suspend fun authorize(
         label: String,
         detail: String?,

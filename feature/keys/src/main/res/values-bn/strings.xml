@@ -58,6 +58,7 @@
     <string name="keys_hardware_constraints">• প্রাইভেট কী কখনোই চিপের বাইরে যায় না\n• ব্যাকআপ বা এক্সপোর্ট করা যায় না\n• প্রতিটি ব্যবহারে ফিঙ্গারপ্রিন্ট বা ফেস যাচাই প্রয়োজন\n• ফ্যাক্টরি রিসেট বা নতুন ডিভাইসে স্থানান্তরে স্থায়ীভাবে হারিয়ে যায়</string>
     <string name="keys_hardware_default_label">সিকিউর চিপ কী</string>
     <string name="keys_hardware_export_disabled_reason">প্রাইভেট কী কখনোই চিপের বাইরে যায় না, তাই এটি এক্সপোর্ট করা যায় না</string>
+    <string name="keys_hardware_no_strong_biometrics">সিকিউর চিপ কীগুলোর জন্য এই ডিভাইসে একটি সশক্ত বায়োমেট্রিক (আঙুলের ছাপ বা ক্লাস ৩ ফেস) নিবন্ধিত থাকা দরকার — Android সেটিংসে একটি নিবন্ধন করে আবার চেষ্টা করুন।</string>
     <string name="keys_chip_secure_chip">সিকিউর চিপ</string>
 
     <!-- PassphraseDialog -->

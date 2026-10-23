@@ -33,17 +33,10 @@ import javax.inject.Singleton
 @Singleton
 class HardwareSshKeyManager @Inject constructor() : HardwareKeySource {
 
-    /** 硬件密钥的对外元数据; publicKeyOpenSsh 可直接展示/导入 authorized_keys。 */
-    data class HardwareKeyInfo(
-        val alias: String,
-        val publicKeyOpenSsh: String,
-        val fingerprintSha256: String,
-        val strongBoxBacked: Boolean,
-    )
-
     /**
      * 在 AndroidKeyStore 中生成一把 ECDSA P-256 SSH 密钥。已存在的同名 alias
-     * 会被覆盖（alias 的唯一性分配是 DB 层 T3 的职责）。
+     * 会被覆盖（alias 的唯一性分配是调用方 SshKeyRepository 的职责——铸造前
+     * 用 [contains] 探测碰撞）。
      *
      * @param preferStrongBox 尝试 StrongBox 安全芯片。不可用（[StrongBoxUnavailableException]）
      *   或系统 < API 28 时自动降级 TEE，只重试一次；StrongBox 的 API 与异常类都自

@@ -51,6 +51,7 @@
     <string name="keys_hardware_constraints">• Приватни кључ никада не напушта чип\n• Није могуће резервно копирање ни извоз\n• Свака употреба захтева верификацију отиском прста или лицем\n• Трајно се губи при ресетовању на фабричка подешавања или преласку на нови уређај</string>
     <string name="keys_hardware_default_label">Кључ безбедносног чипа</string>
     <string name="keys_hardware_export_disabled_reason">Приватни кључ никада не напушта чип, па се не може извозити</string>
+    <string name="keys_hardware_no_strong_biometrics">Кључеви на безбедносном чипу захтевају јаку биометрију (отисак прста или лице класе 3) регистровану на овом уређају — региструјте је у Android подешавањима и покушајте поново.</string>
     <string name="keys_chip_secure_chip">Безбедносни чип</string>
     <string name="keys_encrypted_key">Шифровани кључ</string>
     <string name="keys_passphrase_prompt">Овај кључ је заштићен приступном реченицом.</string>

@@ -58,6 +58,7 @@
     <string name="keys_hardware_constraints">• 개인 키는 칩 밖으로 절대 나가지 않습니다\n• 백업하거나 내보낼 수 없습니다\n• 사용할 때마다 지문 또는 얼굴 인증이 필요합니다\n• 공장 초기화 또는 기기 변경 시 영구적으로 사라집니다</string>
     <string name="keys_hardware_default_label">보안 칩 키</string>
     <string name="keys_hardware_export_disabled_reason">개인 키가 칩 밖으로 나가지 않으므로 내보낼 수 없습니다</string>
+    <string name="keys_hardware_no_strong_biometrics">보안 칩 키에는 이 기기에 등록된 강력한 생체 인증(지문 또는 클래스 3 얼굴)이 필요합니다. Android 설정에서 등록한 후 다시 시도하세요.</string>
     <string name="keys_chip_secure_chip">보안 칩</string>
 
     <!-- PassphraseDialog -->

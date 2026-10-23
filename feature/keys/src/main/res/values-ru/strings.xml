@@ -58,6 +58,7 @@
     <string name="keys_hardware_constraints">• Закрытый ключ никогда не покидает чип\n• Резервное копирование и экспорт невозможны\n• Каждое использование требует подтверждения отпечатком или лицом\n• Безвозвратно теряется при сбросе к заводским настройкам или смене устройства</string>
     <string name="keys_hardware_default_label">Ключ защищённого чипа</string>
     <string name="keys_hardware_export_disabled_reason">Закрытый ключ никогда не покидает чип, поэтому его нельзя экспортировать</string>
+    <string name="keys_hardware_no_strong_biometrics">Для ключей на защищённом чипе нужна сильная биометрия (отпечаток или лицо класса 3), зарегистрированная на этом устройстве — зарегистрируйте её в настройках Android и повторите попытку.</string>
     <string name="keys_chip_secure_chip">Защищённый чип</string>
 
     <!-- PassphraseDialog -->

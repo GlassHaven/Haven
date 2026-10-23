@@ -58,6 +58,7 @@
     <string name="keys_hardware_constraints">• 秘密鍵はチップの外に出ません\n• バックアップやエクスポートはできません\n• 使用のたびに指紋または顔認証が必要です\n• 初期化や機種変更すると永久に失われます</string>
     <string name="keys_hardware_default_label">セキュアチップ鍵</string>
     <string name="keys_hardware_export_disabled_reason">秘密鍵はチップの外に出ないため、エクスポートできません</string>
+    <string name="keys_hardware_no_strong_biometrics">セキュリティチップ鍵には、この端末に強力な生体認証（指紋またはクラス3の顔）の登録が必要です。Android の設定で登録してから、もう一度お試しください。</string>
     <string name="keys_chip_secure_chip">セキュアチップ</string>
 
     <!-- PassphraseDialog -->

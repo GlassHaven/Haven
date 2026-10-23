@@ -3,8 +3,10 @@ package sh.haven.core.data.repository
 import android.content.Context
 import android.util.Log
 import dagger.hilt.android.qualifiers.ApplicationContext
+import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.map
+import kotlinx.coroutines.withContext
 import sh.haven.core.data.db.SshKeyDao
 import sh.haven.core.data.db.entities.SshKey
 import sh.haven.core.security.CredentialEncryption
@@ -13,6 +15,8 @@ import sh.haven.core.security.KeyEncryption
 import sh.haven.core.security.Keystore
 import sh.haven.core.security.KeystoreFetch
 import sh.haven.core.security.KeystoreStore
+import sh.haven.core.security.SshKeyGenerator
+import java.util.UUID
 import javax.inject.Inject
 import javax.inject.Singleton
 
@@ -26,6 +30,73 @@ class SshKeyRepository @Inject constructor(
     /** 硬件密钥 Keystore 交互; 接口注入以保 JVM 测试可替换 (见 HardwareKeySource)。 */
     private val hardwareKeys: HardwareKeySource,
 ) {
+    companion object {
+        /**
+         * Keystore alias prefix for hardware-resident keys; the suffix is 8
+         * hex chars minted in [generateHardwareKey]. Public so screens and
+         * diagnostics can recognise the shape without re-spelling it.
+         */
+        const val HARDWARE_KEY_ALIAS_PREFIX = "haven-ssh-"
+
+        /** Collision-probe attempts before giving up minting a fresh alias. */
+        private const val ALIAS_MINT_ATTEMPTS = 16
+    }
+
+    /**
+     * Generate a hardware-resident SSH key and persist its row — the SSOT
+     * for the whole minting flow (the Keys screen and the MCP tool both
+     * funnel through here): alias minting with a collision probe, the row
+     * construction ([SshKey.hardwareAlias] storage convention: empty
+     * [SshKey.privateKeyBytes], [SshKey.biometricProtected] true, keyType
+     * fixed to ecdsa-sha2-nistp256), and the orphan-alias cleanup.
+     *
+     * Failure hygiene: ANY failure — chip or DB — attempts
+     * `delete(alias)` before rethrowing. [HardwareKeySource.delete] is
+     * idempotent, so "always try" is both safe and simplest: secure-chip
+     * slots are scarce, and an alias no row points at is unreachable
+     * forever.
+     */
+    suspend fun generateHardwareKey(label: String, preferStrongBox: Boolean = true): SshKey {
+        val alias = mintFreshHardwareAlias()
+        try {
+            val info = withContext(Dispatchers.Default) {
+                hardwareKeys.generate(alias, preferStrongBox)
+            }
+            val key = SshKey(
+                label = label,
+                keyType = SshKeyGenerator.EcdsaCurve.NIST_P256.sshKeyType,
+                privateKeyBytes = ByteArray(0),
+                publicKeyOpenSsh = info.publicKeyOpenSsh,
+                fingerprintSha256 = info.fingerprintSha256,
+                biometricProtected = true,
+                hardwareAlias = info.alias,
+            )
+            save(key)
+            Log.d(TAG, "hardware key minted: alias=$alias strongBox=${info.strongBoxBacked}")
+            return key
+        } catch (e: Exception) {
+            runCatching { hardwareKeys.delete(alias) }
+            throw e
+        }
+    }
+
+    /**
+     * Mint an unused Keystore alias: `haven-ssh-<uuid8>` that no existing
+     * chip key holds ([HardwareKeySource.contains] — the probe is on the
+     * interface for exactly this). 8 hex chars are 32 bits of entropy, so
+     * collisions are rare but re-minting an in-use alias would silently
+     * OVERWRITE the older chip key; fail loud rather than gamble.
+     */
+    private fun mintFreshHardwareAlias(): String {
+        repeat(ALIAS_MINT_ATTEMPTS) {
+            val candidate = HARDWARE_KEY_ALIAS_PREFIX +
+                UUID.randomUUID().toString().replace("-", "").take(8)
+            if (!hardwareKeys.contains(candidate)) return candidate
+        }
+        throw IllegalStateException(
+            "could not mint a fresh hardware key alias after $ALIAS_MINT_ATTEMPTS attempts",
+        )
+    }
     fun observeAll(): Flow<List<SshKey>> = sshKeyDao.observeAll()
 
     suspend fun getAll(): List<SshKey> = sshKeyDao.getAll()

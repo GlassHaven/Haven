@@ -58,6 +58,7 @@
     <string name="keys_hardware_constraints">• المفتاح الخاص لا يخرج من الشريحة أبدًا\n• لا يمكن نسخه احتياطيًا أو تصديره\n• يتطلب كل استخدام تحققًا ببصمة الإصبع أو الوجه\n• يُفقد نهائيًا عند إعادة ضبط المصنع أو الانتقال إلى جهاز جديد</string>
     <string name="keys_hardware_default_label">مفتاح شريحة الأمان</string>
     <string name="keys_hardware_export_disabled_reason">المفتاح الخاص لا يخرج من الشريحة أبدًا، لذا لا يمكن تصديره</string>
+    <string name="keys_hardware_no_strong_biometrics">تحتاج مفاتيح شريحة الأمان إلى قياس حيوي قوي (بصمة إصبع أو وجه من الفئة 3) مسجّل على هذا الجهاز — سجّل أحدها في إعدادات Android ثم أعد المحاولة.</string>
     <string name="keys_chip_secure_chip">شريحة الأمان</string>
 
     <!-- PassphraseDialog -->

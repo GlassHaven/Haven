@@ -36,6 +36,9 @@ internal class CredentialToolProvider(
     /** Secure-chip key generation; null in unit-test constructions — the
      *  hardware branch then answers "unavailable in this build". */
     private val hardwareKeys: HardwareKeySource?,
+    /** Strong-biometry gate for the hardware branch; null in unit-test
+     *  constructions skips the check (nothing exercises it there). */
+    private val biometricAuthenticator: sh.haven.core.security.BiometricAuthenticator? = null,
 ) : ToolProvider {
 
     override fun tools(): Map<String, ToolHandler> = linkedMapOf(
@@ -109,12 +112,9 @@ internal class CredentialToolProvider(
     /**
      * Hardware branch of generate_ssh_key: ECDSA P-256 inside the device's
      * secure chip (StrongBox preferred, TEE fallback — the source decides).
-     * Same alias rule and storage convention as the Keys screen's generate
-     * flow (KeysViewModel.generateHardwareKey): alias `haven-ssh-<uuid8>`,
-     * empty privateKeyBytes, biometricProtected=true, keyType fixed to
-     * ecdsa-sha2-nistp256. If the row can't be persisted, the freshly
-     * minted alias is deleted again — secure-chip slots are scarce and an
-     * alias no row points at is unreachable forever.
+     * Thin delegation: the minting flow (alias minting + collision probe,
+     * the hardwareAlias storage convention, orphan-alias cleanup) is the
+     * repository's SSOT, shared with the Keys screen's generate flow.
      */
     private suspend fun generateHardwareKey(label: String, args: JSONObject): JSONObject {
         if (args.optString("keyType").isNotBlank()) {
@@ -125,33 +125,24 @@ internal class CredentialToolProvider(
         }
         val source = hardwareKeys
             ?: throw McpError(-32603, "hardware-backed key generation is unavailable in this build")
-        val alias = "haven-ssh-" + java.util.UUID.randomUUID().toString().replace("-", "").take(8)
-        val info = withContext(Dispatchers.Default) {
-            source.generate(alias, preferStrongBox = true)
+        // Same gate as the Keys screen: chip keys authorize every signature
+        // with a BIOMETRIC_STRONG CryptoObject, so without one enrolled the
+        // key could never sign. Refuse at generation, naming the remedy.
+        if (biometricAuthenticator?.canAuthorizeWithStrongBiometrics() == false) {
+            throw McpError(
+                -32603,
+                "hardware-backed keys need a strong biometric (Class 3 fingerprint or " +
+                    "face) enrolled on this device — enroll one, or generate a software key",
+            )
         }
-        val entity = SshKey(
-            label = label,
-            keyType = SshKeyGenerator.EcdsaCurve.NIST_P256.sshKeyType,
-            privateKeyBytes = ByteArray(0),
-            publicKeyOpenSsh = info.publicKeyOpenSsh,
-            fingerprintSha256 = info.fingerprintSha256,
-            biometricProtected = true,
-            hardwareAlias = info.alias,
-        )
-        try {
-            sshKeyRepository.save(entity)
-        } catch (e: Exception) {
-            source.delete(alias)
-            throw e
-        }
+        val key = sshKeyRepository.generateHardwareKey(label)
         return JSONObject().apply {
-            put("keyId", entity.id)
+            put("keyId", key.id)
             put("label", label)
-            put("keyType", entity.keyType)
-            put("publicKeyOpenSsh", info.publicKeyOpenSsh)
-            put("fingerprintSha256", info.fingerprintSha256)
+            put("keyType", key.keyType)
+            put("publicKeyOpenSsh", key.publicKeyOpenSsh)
+            put("fingerprintSha256", key.fingerprintSha256)
             put("hardwareBacked", true)
-            put("strongBoxBacked", info.strongBoxBacked)
             put("note", "The private half lives in the device's secure chip and never leaves it — " +
                 "it cannot be exported or backed up, and every sign-in asks for a biometric on the phone. " +
                 "Deploy the public half with deploy_key.")

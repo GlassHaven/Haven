@@ -58,6 +58,7 @@
     <string name="keys_hardware_constraints">• A chave privada nunca sai do chip\n• Não pode ser copiada (backup) nem exportada\n• Cada uso exige verificação por impressão digital ou rosto\n• Perdida permanentemente ao restaurar o dispositivo ou trocá-lo</string>
     <string name="keys_hardware_default_label">Chave do chip de segurança</string>
     <string name="keys_hardware_export_disabled_reason">A chave privada nunca sai do chip, por isso não pode ser exportada</string>
+    <string name="keys_hardware_no_strong_biometrics">As chaves de chip de segurança exigem uma biometria forte (impressão digital ou rosto de classe 3) registrada neste dispositivo — registre uma nas configurações do Android e tente novamente.</string>
     <string name="keys_chip_secure_chip">Chip de segurança</string>
 
     <!-- PassphraseDialog -->

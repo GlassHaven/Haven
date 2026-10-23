@@ -197,4 +197,91 @@ class SshKeyHardwareKeyTest {
         coVerify(exactly = 1) { dao.deleteById("ghost") }
         assertTrue(hardwareKeys.deletedAliases.isEmpty())
     }
+
+    // ---------- generateHardwareKey: the minting-flow SSOT ----------
+
+    @Test
+    fun `generateHardwareKey mints a fresh alias and saves the row convention`() = runBlocking {
+        val stored = slot<SshKey>()
+        coEvery { dao.upsert(capture(stored)) } returns Unit
+
+        val key = SshKeyRepository(dao, context, keystore, hardwareKeys)
+            .generateHardwareKey("my chip key")
+
+        // The returned entity IS the saved row (id, public half, convention).
+        assertEquals(stored.captured.id, key.id)
+        with(key) {
+            assertEquals("my chip key", label)
+            // The only curve the hardware backend supports (KeyDecision #1).
+            assertEquals("ecdsa-sha2-nistp256", keyType)
+            assertEquals(0, privateKeyBytes.size)
+            assertTrue(biometricProtected)
+            // Alias format contract: haven-ssh-<uuid8>, collision-probed.
+            assertTrue(
+                "alias=$hardwareAlias",
+                hardwareAlias!!.startsWith(SshKeyRepository.HARDWARE_KEY_ALIAS_PREFIX) &&
+                    hardwareAlias!!.length == SshKeyRepository.HARDWARE_KEY_ALIAS_PREFIX.length + 8,
+            )
+            assertEquals("ecdsa-sha2-nistp256 AAAA $hardwareAlias", publicKeyOpenSsh)
+            assertEquals("SHA256:fake-$hardwareAlias", fingerprintSha256)
+        }
+        // Minted exactly once, and nothing was cleaned up on the happy path.
+        assertEquals(listOf(key.hardwareAlias), hardwareKeys.generatedAliases)
+        assertTrue(hardwareKeys.deletedAliases.isEmpty())
+    }
+
+    @Test
+    fun `generateHardwareKey re-mints past a taken alias`() = runBlocking {
+        // Two probes answered "taken": the mint must skip both and keep the
+        // third candidate — regenerating into an in-use alias would silently
+        // OVERWRITE that chip key.
+        hardwareKeys.candidatesToRefuse = 2
+
+        val key = SshKeyRepository(dao, context, keystore, hardwareKeys).generateHardwareKey("x")
+
+        assertEquals(3, hardwareKeys.probedCandidates.size)
+        assertEquals(listOf(key.hardwareAlias), hardwareKeys.generatedAliases)
+        assertEquals(key.hardwareAlias, hardwareKeys.probedCandidates.last())
+        assertTrue(hardwareKeys.probedCandidates.dropLast(1).none { it == key.hardwareAlias })
+        // The refused candidates were never handed to the chip.
+        assertTrue(hardwareKeys.deletedAliases.isEmpty())
+    }
+
+    @Test
+    fun `generateHardwareKey deletes the alias when the chip fails`() = runBlocking {
+        hardwareKeys.generateError = IllegalStateException("StrongBox busy")
+
+        try {
+            SshKeyRepository(dao, context, keystore, hardwareKeys).generateHardwareKey("doomed")
+            org.junit.Assert.fail("generation must propagate the chip failure")
+        } catch (e: IllegalStateException) {
+            assertEquals("StrongBox busy", e.message)
+        }
+        // "Any failure tries delete(alias)" — idempotent and safest. The
+        // mint died inside the chip, so the ledger has no successful
+        // generate; the cleanup is still attempted exactly once, on an
+        // alias of the minted shape.
+        assertEquals(1, hardwareKeys.deletedAliases.size)
+        assertTrue(
+            hardwareKeys.deletedAliases.single()
+                .startsWith(SshKeyRepository.HARDWARE_KEY_ALIAS_PREFIX),
+        )
+        coVerify(exactly = 0) { dao.upsert(any()) }
+    }
+
+    @Test
+    fun `generateHardwareKey deletes the minted alias when saving the row fails`() = runBlocking {
+        coEvery { dao.upsert(any()) } throws IllegalStateException("disk full")
+
+        try {
+            SshKeyRepository(dao, context, keystore, hardwareKeys).generateHardwareKey("half-born")
+            org.junit.Assert.fail("generation must propagate the DB failure")
+        } catch (e: IllegalStateException) {
+            assertEquals("disk full", e.message)
+        }
+        // One alias minted, then cleaned up — no orphan key in the scarce
+        // secure-chip storage.
+        assertEquals(1, hardwareKeys.generatedAliases.size)
+        assertEquals(hardwareKeys.generatedAliases, hardwareKeys.deletedAliases)
+    }
 }

@@ -58,6 +58,7 @@
     <string name="keys_hardware_constraints">• 私钥永不出芯片\n• 不可备份、不可导出\n• 每次使用都需指纹或人脸验证\n• 恢复出厂设置或更换设备后将永久失效</string>
     <string name="keys_hardware_default_label">安全芯片密钥</string>
     <string name="keys_hardware_export_disabled_reason">私钥永不出芯片，因此无法导出</string>
+    <string name="keys_hardware_no_strong_biometrics">安全芯片密钥需要在此设备上已录入强生物识别（指纹或 3 类人脸）——请先在 Android 设置中录入，然后重试。</string>
     <string name="keys_chip_secure_chip">安全芯片</string>
 
     <!-- PassphraseDialog -->

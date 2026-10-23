@@ -242,8 +242,10 @@ class McpServer @Inject constructor(
     // One-shot exec on a saved SSH profile for run_command (#367).
     private val headlessSshExec: HeadlessSshExec,
     // Secure-chip source for generate_ssh_key's hardwareBacked branch
-    // (Hilt-bound HardwareSshKeyManager via HardwareKeySource).
+    // (Hilt-bound HardwareSshKeyManager via HardwareKeySource), plus the
+    // strong-biometry gate that branch refuses without.
     private val hardwareKeySource: sh.haven.core.security.HardwareKeySource,
+    private val biometricAuthenticator: sh.haven.core.security.BiometricAuthenticator? = null,
     // Defaulted so the manual McpServer constructions in unit tests (which
     // don't exercise the auth-prompt verbs) compile without it; Hilt always
     // injects the real @Singleton in production.
@@ -511,6 +513,7 @@ class McpServer @Inject constructor(
         tunnelResolver = tunnelResolver,
         headlessSshExec = headlessSshExec,
         hardwareKeySource = hardwareKeySource,
+        biometricAuthenticator = biometricAuthenticator,
         pendingAuthPromptHolder = pendingAuthPromptHolder,
         sessionSelectionHolder = sessionSelectionHolder,
         agentConsentManager = consentManager,

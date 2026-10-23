@@ -58,6 +58,7 @@
     <string name="keys_hardware_constraints">• The private key never leaves the chip\n• Cannot be backed up or exported\n• Every use requires fingerprint or face verification\n• Permanently lost on factory reset or when moving to a new device</string>
     <string name="keys_hardware_default_label">Secure chip key</string>
     <string name="keys_hardware_export_disabled_reason">The private key never leaves the chip, so it can\'t be exported</string>
+    <string name="keys_hardware_no_strong_biometrics">Secure chip keys need a strong biometric (fingerprint or Class 3 face) enrolled on this device — enroll one in Android settings and try again.</string>
     <string name="keys_chip_secure_chip">Secure chip</string>
 
     <!-- PassphraseDialog -->

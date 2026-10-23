@@ -7,6 +7,7 @@ import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.sync.Mutex
 import kotlinx.coroutines.sync.withLock
 import kotlinx.coroutines.withTimeoutOrNull
+import java.security.Signature
 import java.util.concurrent.atomic.AtomicLong
 import javax.inject.Inject
 import javax.inject.Singleton
@@ -43,6 +44,12 @@ class BiometricGate @Inject constructor() {
         val label: String,
         /** Optional second line — fingerprint or algorithm — for the prompt. */
         val detail: String? = null,
+        /**
+         * Keystore [Signature] to authorize via BiometricPrompt's
+         * CryptoObject (hardware-resident keys). Null on the plain
+         * software-key path — the host then prompts without crypto.
+         */
+        val signature: Signature? = null,
     )
 
     private val nextId = AtomicLong(1)
@@ -94,20 +101,28 @@ class BiometricGate @Inject constructor() {
      * this call returns [Decision.ALLOW] immediately without prompting.
      * That's how a single connection attempt that walks multiple
      * biometric-protected keys gets one prompt instead of N.
+     *
+     * Requests carrying [signature] are exempt from that window:
+     * per-op Keystore keys demand a fresh CryptoObject auth on every
+     * use, so a window pass-through would only defer the failure to
+     * `Signature.sign` throwing UserNotAuthenticatedException.
      */
     suspend fun request(
         label: String,
         detail: String? = null,
         timeoutMs: Long = 60_000,
+        signature: Signature? = null,
     ): Decision {
-        if (System.currentTimeMillis() - lastAuthAt < SESSION_UNLOCK_MS) {
+        if (signature == null &&
+            System.currentTimeMillis() - lastAuthAt < SESSION_UNLOCK_MS
+        ) {
             return Decision.ALLOW
         }
         if (!foregroundActive) return Decision.UNAVAILABLE
 
         val id = nextId.getAndIncrement()
         val deferred = CompletableDeferred<Decision>()
-        val request = Request(id = id, label = label, detail = detail)
+        val request = Request(id = id, label = label, detail = detail, signature = signature)
 
         mutex.withLock {
             pendingDeferreds[id] = deferred
@@ -121,6 +136,9 @@ class BiometricGate @Inject constructor() {
             _pending.value = _pending.value.filterNot { it.id == id }
         }
         if (decision == Decision.ALLOW) {
+            // Applies to signature-carrying requests too: a fresh
+            // BIOMETRIC_STRONG auth proves the same human, so
+            // software-key requests within the window stay silent.
             lastAuthAt = System.currentTimeMillis()
         }
         return decision

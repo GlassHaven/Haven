@@ -6,6 +6,7 @@ import androidx.biometric.BiometricPrompt
 import androidx.core.content.ContextCompat
 import androidx.fragment.app.FragmentActivity
 import kotlinx.coroutines.suspendCancellableCoroutine
+import java.security.Signature
 import javax.inject.Inject
 import javax.inject.Singleton
 import kotlin.coroutines.resume
@@ -19,6 +20,14 @@ class BiometricAuthenticator @Inject constructor() {
             BiometricManager.Authenticators.BIOMETRIC_STRONG or
                 BiometricManager.Authenticators.BIOMETRIC_WEAK or
                 BiometricManager.Authenticators.DEVICE_CREDENTIAL
+
+        /**
+         * CryptoObject prompts accept BIOMETRIC_STRONG only — weak
+         * biometrics and device credential cannot authorize a per-use
+         * Keystore operation, so androidx rejects the combination.
+         */
+        private const val CRYPTO_AUTHENTICATORS =
+            BiometricManager.Authenticators.BIOMETRIC_STRONG
     }
 
     enum class Availability { AVAILABLE, NO_HARDWARE, NOT_ENROLLED }
@@ -42,6 +51,37 @@ class BiometricAuthenticator @Inject constructor() {
         activity: FragmentActivity,
         title: String = "Unlock Haven",
         subtitle: String = "Authenticate to continue",
+    ): AuthResult = showPrompt(activity, promptInfo(title, subtitle, ALLOWED_AUTHENTICATORS), crypto = null)
+
+    /**
+     * Crypto variant for hardware-resident Keystore keys: the prompt
+     * authorizes [signature] via `BiometricPrompt.CryptoObject`. On
+     * [AuthResult.Success] the caller's [signature] instance is
+     * authorized in place — Keystore binds the auth to the object, so
+     * proceed to `update`/`sign` on it directly; nothing is handed back.
+     */
+    suspend fun authenticate(
+        activity: FragmentActivity,
+        title: String,
+        subtitle: String,
+        signature: Signature,
+    ): AuthResult = showPrompt(
+        activity,
+        promptInfo(title, subtitle, CRYPTO_AUTHENTICATORS),
+        crypto = BiometricPrompt.CryptoObject(signature),
+    )
+
+    private fun promptInfo(title: String, subtitle: String, authenticators: Int) =
+        BiometricPrompt.PromptInfo.Builder()
+            .setTitle(title)
+            .setSubtitle(subtitle)
+            .setAllowedAuthenticators(authenticators)
+            .build()
+
+    private suspend fun showPrompt(
+        activity: FragmentActivity,
+        info: BiometricPrompt.PromptInfo,
+        crypto: BiometricPrompt.CryptoObject?,
     ): AuthResult = suspendCancellableCoroutine { cont ->
         val executor = ContextCompat.getMainExecutor(activity)
 
@@ -66,13 +106,7 @@ class BiometricAuthenticator @Inject constructor() {
         }
 
         val prompt = BiometricPrompt(activity, executor, callback)
-        val promptInfo = BiometricPrompt.PromptInfo.Builder()
-            .setTitle(title)
-            .setSubtitle(subtitle)
-            .setAllowedAuthenticators(ALLOWED_AUTHENTICATORS)
-            .build()
-
-        prompt.authenticate(promptInfo)
+        if (crypto != null) prompt.authenticate(info, crypto) else prompt.authenticate(info)
 
         cont.invokeOnCancellation { prompt.cancelAuthentication() }
     }

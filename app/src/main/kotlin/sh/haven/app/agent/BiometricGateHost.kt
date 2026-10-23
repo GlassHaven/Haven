@@ -54,10 +54,21 @@ internal fun BiometricGateHost(viewModel: BiometricGateHostViewModel = hiltViewM
     val activity = context as? FragmentActivity ?: return
 
     LaunchedEffect(current.id) {
-        val result = viewModel.authenticator.authenticate(
+        val title = current.label
+        val subtitle = current.detail ?: "Authenticate to unlock the key"
+        val result = current.signature?.let { signature ->
+            // Hardware-resident key: authorize the Keystore Signature
+            // through the CryptoObject prompt variant.
+            viewModel.authenticator.authenticate(
+                activity = activity,
+                title = title,
+                subtitle = subtitle,
+                signature = signature,
+            )
+        } ?: viewModel.authenticator.authenticate(
             activity = activity,
-            title = current.label,
-            subtitle = current.detail ?: "Authenticate to unlock the key",
+            title = title,
+            subtitle = subtitle,
         )
         val decision = when (result) {
             is BiometricAuthenticator.AuthResult.Success -> BiometricGate.Decision.ALLOW

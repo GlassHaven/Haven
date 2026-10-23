@@ -4,8 +4,10 @@ import kotlinx.coroutines.async
 import kotlinx.coroutines.test.UnconfinedTestDispatcher
 import kotlinx.coroutines.test.runTest
 import org.junit.Assert.assertEquals
+import org.junit.Assert.assertSame
 import org.junit.Assert.assertTrue
 import org.junit.Test
+import java.security.Signature
 
 /**
  * Pin [BiometricGate]'s behaviour — most importantly the fail-closed
@@ -156,5 +158,84 @@ class BiometricGateTest {
         assertEquals(1, gate.pending.value.size)
         gate.respond(gate.pending.value.single().id, BiometricGate.Decision.ALLOW)
         second.await()
+    }
+
+    // --- Signature-carrying (hardware-key) requests ---
+
+    /** A non-crypto instance suffices — the gate only carries the reference. */
+    private fun testSignature(): Signature = Signature.getInstance("SHA256withECDSA")
+
+    @Test
+    fun `signature request ignores the session-unlock window`() = runTest(UnconfinedTestDispatcher()) {
+        // Per-op Keystore keys demand a fresh CryptoObject auth on
+        // every use, so riding the window would only defer failure
+        // to UserNotAuthenticatedException at sign() time. The gate
+        // must always queue a prompt for these requests.
+        val gate = BiometricGate()
+        gate.setForegroundActive(true)
+
+        // Open the window with a plain software-key ALLOW first.
+        val first = async { gate.request(label = "Unlock A", timeoutMs = Long.MAX_VALUE) }
+        gate.respond(gate.pending.value.single().id, BiometricGate.Decision.ALLOW)
+        assertEquals(BiometricGate.Decision.ALLOW, first.await())
+
+        val signature = testSignature()
+        val second = async {
+            gate.request(label = "Unlock hw", timeoutMs = Long.MAX_VALUE, signature = signature)
+        }
+        // Must queue despite the fresh ALLOW — and carry the payload
+        // for the host to hand to BiometricPrompt's CryptoObject.
+        val queued = gate.pending.value.single()
+        assertSame(signature, queued.signature)
+        gate.respond(queued.id, BiometricGate.Decision.ALLOW)
+        assertEquals(BiometricGate.Decision.ALLOW, second.await())
+    }
+
+    @Test
+    fun `signature request DENY surfaces as the request decision`() = runTest(UnconfinedTestDispatcher()) {
+        val gate = BiometricGate()
+        gate.setForegroundActive(true)
+
+        val outcome = async {
+            gate.request(label = "Unlock hw", timeoutMs = Long.MAX_VALUE, signature = testSignature())
+        }
+        gate.respond(gate.pending.value.single().id, BiometricGate.Decision.DENY)
+        assertEquals(BiometricGate.Decision.DENY, outcome.await())
+    }
+
+    @Test
+    fun `signature request returns DENY on timeout`() = runTest {
+        val gate = BiometricGate()
+        gate.setForegroundActive(true)
+        val decision = gate.request(label = "Unlock hw", timeoutMs = 1, signature = testSignature())
+        assertEquals(BiometricGate.Decision.DENY, decision)
+    }
+
+    @Test
+    fun `signature request without foreground fails closed`() = runTest {
+        val gate = BiometricGate()
+        // foregroundActive defaults to false — fail-closed, same as
+        // the plain path.
+        val decision = gate.request(label = "Unlock hw", signature = testSignature())
+        assertEquals(BiometricGate.Decision.UNAVAILABLE, decision)
+    }
+
+    @Test
+    fun `signature request ALLOW refreshes the session-unlock window`() = runTest(UnconfinedTestDispatcher()) {
+        // A fresh BIOMETRIC_STRONG auth for a hardware key proves the
+        // same human, so software-key requests right after stay silent
+        // — the window semantics are identical to the plain path.
+        val gate = BiometricGate()
+        gate.setForegroundActive(true)
+
+        val hw = async {
+            gate.request(label = "Unlock hw", timeoutMs = Long.MAX_VALUE, signature = testSignature())
+        }
+        gate.respond(gate.pending.value.single().id, BiometricGate.Decision.ALLOW)
+        assertEquals(BiometricGate.Decision.ALLOW, hw.await())
+
+        val software = gate.request(label = "Unlock soft", timeoutMs = Long.MAX_VALUE)
+        assertEquals(BiometricGate.Decision.ALLOW, software)
+        assertTrue("no pending request should have queued", gate.pending.value.isEmpty())
     }
 }

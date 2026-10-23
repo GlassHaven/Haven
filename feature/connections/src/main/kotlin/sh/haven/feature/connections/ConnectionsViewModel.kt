@@ -5134,14 +5134,12 @@ class ConnectionsViewModel @Inject constructor(
         // logger the direct path uses and persist the result below, so a
         // failed jump is diagnosable from Settings → View connection log.
         val jumpVerbose = if (preferencesRepository.verboseLoggingEnabled.first()) SshVerboseLogger() else null
-        // Wire the FIDO authenticator before connect — a jump host with a
-        // security-key (ed25519-sk) auth method (e.g. SPICE/VNC/RDP-over-SSH)
-        // otherwise fails instantly with "no FidoAuthenticator configured on
-        // this SshClient", never reaching the touch prompt (#286).
+        // Wire the verbose logger the direct path uses — the FIDO
+        // authenticator, chip signer and OpenKeychain clients are already
+        // attached by newSshClient (jumpClientFactory's default), so a
+        // jump host with a security-key or OpenKeychain auth method works
+        // without re-wiring it here (#286).
         val jumpClient = jumpClientFactory().apply {
-            fidoAuthenticator = this@ConnectionsViewModel.fidoAuthenticator
-            hardwareKeySigner = this@ConnectionsViewModel.keystoreSshKeySigner
-            openKeychainClients = OpenKeychainClientFactory.from(appContext)
             verboseLogger = jumpVerbose
         }
         val jumpSessionId = sshSessionManager.registerSession(jumpProfileId, "Jump: ${jumpProfile.label}", jumpClient)
@@ -6337,13 +6335,14 @@ class ConnectionsViewModel @Inject constructor(
      * [resolveAuthMethod] can fold either credential in, and SshClient
      * throws at assembly time when its collaborator is missing — an
      * unwired client turned "deploy a key" into an IllegalStateException
-     * the moment the pool held a chip key. Every construction in this
-     * class goes through here so the wiring cannot drift again (#732,
-     * deploy-key).
+     * the moment the pool held a chip key. All construction sites in this
+     * class go through here (a few legacy ones wire the full ceremony by
+     * hand — connectSsh and connectSshSilent — see #732, deploy-key).
      */
     private fun newSshClient(): SshClient = SshClient().apply {
         fidoAuthenticator = this@ConnectionsViewModel.fidoAuthenticator
         hardwareKeySigner = keystoreSshKeySigner
+        openKeychainClients = OpenKeychainClientFactory.from(appContext)
     }
 
     /**

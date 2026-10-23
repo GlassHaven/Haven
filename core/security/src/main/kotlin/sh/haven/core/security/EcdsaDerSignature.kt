@@ -13,9 +13,9 @@ import java.nio.ByteOrder
  * 与 CTAP2 一样吐 DER，而 `ecdsa-sha2-*` 的签名字段要 mpint 串联，消费方是
  * core/ssh 的 KeystoreSshIdentity（T5）。
  *
- * 注: core/fido 的 FidoIdentity.kt 有一份模块内(internal)同语义实现
- * `derEcdsaToSshBlob`（FIDO sk-ecdsa 场景）。T2 只许改 core/security，故此处
- * 是跨模块整合前的规范落点；后续清理任务应让 core/fido 依赖并复用本实现。
+ * 注: core/fido 的 FidoIdentity（FIDO sk-ecdsa 场景）与 core/ssh 的
+ * KeystoreSshIdentity（T5）都消费本实现 —— 它是 DER→SSH mpint 转换的
+ * 唯一事实来源（跨模块去重后的规范落点）。
  */
 fun derEcdsaToSshBlob(der: ByteArray): ByteArray {
     var pos = 0

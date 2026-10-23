@@ -43,7 +43,7 @@ internal class CredentialToolProvider(
 
     override fun tools(): Map<String, ToolHandler> = linkedMapOf(
         "generate_ssh_key" to ToolHandler(
-            description = "Generate a new SSH keypair and store it in Haven's key store (the Keys screen). Returns the key id, type, OpenSSH public line, and SHA-256 fingerprint — the private key bytes are never returned and never leave the device. Pass `hardwareBacked: true` to generate inside the device's secure chip (StrongBox when available, TEE otherwise): such keys are always ECDSA P-256 (`ecdsa-sha2-nistp256`), their private half can NEVER be exported or backed up (it never leaves the chip — a factory reset or re-enrolled biometrics destroys it, and it won't survive a backup/restore), and every SSH sign-in with one requires a fresh biometric confirmation (fingerprint / Class 3 face) on the phone — declining aborts that connection. Software keys are unencrypted at rest (matching the UI's generate flow); set a passphrase later via the UI or set_ssh_key_option. Pairs with deploy_key.",
+            description = "Generate a new SSH keypair and store it in Haven's key store (the Keys screen). Returns the key id, type, OpenSSH public line, and SHA-256 fingerprint — the private key bytes are never returned and never leave the device. Pass `hardwareBacked: true` to generate inside the device's secure chip (StrongBox when available, TEE otherwise): such keys are always ECDSA P-256 (`ecdsa-sha2-nistp256`), their private half can NEVER be exported or backed up (it never leaves the chip — a factory reset or re-enrolled biometrics destroys it, and it won't survive a backup/restore), and every SSH sign-in with one requires a fresh biometric confirmation (fingerprint / Class 3 face) on the phone — declining aborts that connection. On a device with no Class 3 (strong) biometric enrolled, hardwareBacked is refused with error -32603 — such a key could never sign; generate a software key instead. Software keys are unencrypted at rest (matching the UI's generate flow); set a passphrase later via the UI or set_ssh_key_option. Pairs with deploy_key.",
             inputSchema = objectSchema {
                 string("label", "Key label (used as the public-key comment too).", required = true)
                 boolean("hardwareBacked", "Generate inside the device's secure chip instead of as a software key. Always ECDSA P-256; the private key never leaves the chip and every use requires a biometric confirmation. Mutually exclusive with keyType.")
@@ -123,7 +123,7 @@ internal class CredentialToolProvider(
                 "hardwareBacked keys are always ecdsa-sha2-nistp256 — omit keyType",
             )
         }
-        val source = hardwareKeys
+        hardwareKeys
             ?: throw McpError(-32603, "hardware-backed key generation is unavailable in this build")
         // Same gate as the Keys screen: chip keys authorize every signature
         // with a BIOMETRIC_STRONG CryptoObject, so without one enrolled the

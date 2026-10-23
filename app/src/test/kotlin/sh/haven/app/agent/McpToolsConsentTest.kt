@@ -47,6 +47,8 @@ class McpToolsConsentTest {
         preferencesRepository: UserPreferencesRepository = mockk(relaxed = true),
         sshSessionManager: SshSessionManager = mockk(relaxed = true),
         localSessionManager: LocalSessionManager = mockk(relaxed = true),
+        hardwareKeySource: sh.haven.core.security.HardwareKeySource? = null,
+        biometricAuthenticator: sh.haven.core.security.BiometricAuthenticator? = null,
     ): McpTools {
         val connectionRepository = mockk<ConnectionRepository>(relaxed = true)
         // profileLabel(...) hits this; return a stable label so the
@@ -87,6 +89,8 @@ class McpToolsConsentTest {
             terminalInputQueue = mockk<TerminalInputQueue>(relaxed = true),
             prootInstallLogRepository = mockk<sh.haven.core.data.repository.ProotInstallLogRepository>(relaxed = true),
             sshKeyRepository = mockk<sh.haven.core.data.repository.SshKeyRepository>(relaxed = true),
+            hardwareKeySource = hardwareKeySource,
+            biometricAuthenticator = biometricAuthenticator,
             knownHostDao = mockk(relaxed = true),
             stepCaConfigRepository = mockk<sh.haven.core.data.repository.StepCaConfigRepository>(relaxed = true),
             totpSecretRepository = mockk<sh.haven.core.data.repository.TotpSecretRepository>(relaxed = true),
@@ -903,6 +907,31 @@ class McpToolsConsentTest {
         val hw = c.summary(JSONObject().put("label", "ci-deploy").put("hardwareBacked", true))
         assertTrue("got: $hw", hw.contains("ci-deploy"))
         assertTrue("hardware variant must name the secure chip, got: $hw", hw.contains("chip"))
+    }
+
+    /** Companion to the Keys-screen gate: every chip-key signature demands
+     * a BIOMETRIC_STRONG CryptoObject ceremony, so on a device with no
+     * Class 3 biometric enrolled the key could never sign. The tool must
+     * refuse at generation time (-32603) with a message naming the remedy,
+     * not mint an unusable key. */
+    @Test
+    fun `generate_ssh_key hardware branch refused without strong biometrics`() {
+        val biometrics = mockk<sh.haven.core.security.BiometricAuthenticator>()
+        every { biometrics.canAuthorizeWithStrongBiometrics() } returns false
+        val tools = newTools(
+            hardwareKeySource = mockk(relaxed = true),
+            biometricAuthenticator = biometrics,
+        )
+        val err = runCatching {
+            runBlocking {
+                tools.call(
+                    "generate_ssh_key",
+                    JSONObject().put("label", "chip").put("hardwareBacked", true),
+                )
+            }
+        }.exceptionOrNull() as McpError
+        assertEquals(-32603, err.code)
+        assertTrue("message must name the remedy, got: ${err.message}", err.message!!.contains("enroll"))
     }
 
     // --- Rclone provider extraction (#mcp-backbone Stage 5, Layer E) ---

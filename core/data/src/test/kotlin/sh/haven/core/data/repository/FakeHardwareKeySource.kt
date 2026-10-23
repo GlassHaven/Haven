@@ -19,9 +19,6 @@ class FakeHardwareKeySource : HardwareKeySource {
 
     val generatedAliases = mutableListOf<String>()
 
-    /** Aliases [contains] should report as taken (collision-probe tests). */
-    val takenAliases = mutableSetOf<String>()
-
     /**
      * Force the collision probe deterministically: when > 0, the next
      * distinct unknown candidates are answered "taken" (the repository
@@ -54,7 +51,7 @@ class FakeHardwareKeySource : HardwareKeySource {
 
     override fun contains(alias: String): Boolean {
         probedCandidates += alias
-        if (alias in generatedAliases || alias in takenAliases) return true
+        if (alias in generatedAliases) return true
         if (refused < candidatesToRefuse) {
             refused++
             return true

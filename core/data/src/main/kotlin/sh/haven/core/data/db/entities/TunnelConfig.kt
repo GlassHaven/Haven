@@ -26,6 +26,8 @@ data class TunnelConfig(
      *  tsnet authkey + control-URL JSON; for [TunnelConfigType.CLOUDFLARE_ACCESS]
      *  it's the Access hostname + cached IdP JWT JSON; for
      *  [TunnelConfigType.NETBIRD] it's the setup key + management URL JSON;
+     *  for [TunnelConfigType.OPENVPN] it's the `.ovpn` profile text +
+     *  optional auth-user-pass credentials JSON;
      *  for [TunnelConfigType.ANYCONNECT] it's the gateway + credentials JSON. */
     val configText: ByteArray,
     val createdAt: Long = System.currentTimeMillis(),
@@ -71,6 +73,13 @@ enum class TunnelConfigType {
      *  this tunnel are routed through it. Payload is
      *  [sh.haven.core.tunnel.AnyConnectConfigBlob] JSON. */
     ANYCONNECT,
+
+    /** OpenVPN3 Core + gVisor netstack, gomobile-bound as ovpnbridge. A
+     *  pasted `.ovpn` profile plus optional auth-user-pass username/
+     *  password. Same no-VpnService, no-system-routes architecture as
+     *  [WIREGUARD] — a socketpair fd stands in for the tun device OpenVPN3
+     *  Core would otherwise expect, pumped into a userspace netstack. */
+    OPENVPN,
     ;
 
     companion object {

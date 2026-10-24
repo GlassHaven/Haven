@@ -30,3 +30,6 @@
 	path = prns
 	url = https://github.com/GlassOnTin/Prns.git
 	branch = trunk
+[submodule "openvpn3-core/openvpn3"]
+	path = openvpn3-core/openvpn3
+	url = https://github.com/OpenVPN/openvpn3.git

@@ -60,3 +60,13 @@ kotlin {
         jvmTarget.set(org.jetbrains.kotlin.gradle.dsl.JvmTarget.JVM_17)
     }
 }
+
+// rclone-android is an included build, so it owns the native producer that
+// its cgo link needs. Keep this entry point for existing native build callers.
+val buildOpenvpn3Native by tasks.registering {
+    dependsOn(gradle.includedBuild("rclone-android").task(":buildOpenvpn3Native"))
+}
+
+tasks.named("preBuild") {
+    dependsOn(buildOpenvpn3Native)
+}

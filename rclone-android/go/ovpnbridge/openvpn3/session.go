@@ -44,15 +44,6 @@ package openvpn3
 // at cgo link time (ordering matters: c++abi after c++_static).
 #cgo android LDFLAGS: -lc++_static -lc++abi
 
-// Host linux/amd64 build of the same adapter.cpp/ovpncli.cpp, built by
-// openvpn3-core/build-host-test.sh -- not shipped in the app, exists only
-// so `go test` can produce a real linked test binary on the machine
-// running dev/CI (an Android-only cross-compiled archive compiles but
-// can never link on host). -lstdc++ is explicit because cgo invokes the C
-// compiler, not g++, as the final linker driver, which doesn't auto-link
-// the C++ runtime the way g++ itself would.
-#cgo linux,amd64 LDFLAGS: -L${SRCDIR}/../../../../openvpn3-core/host-test-lib -lopenvpn3_host_amd64 -lm -lstdc++
-
 #include <library.h>
 
 */

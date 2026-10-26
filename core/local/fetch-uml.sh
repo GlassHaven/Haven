@@ -56,11 +56,30 @@ fi
 TMP=$(mktemp -d)
 trap 'rm -rf "$TMP"' EXIT
 
+# The pinned kernel artifact carries its DWARF debug sections (~68 MB of the
+# 79 MB download; #762). AGP's strip pass only covers libraries it builds
+# itself, so a prebuilt jniLib ships exactly as fetched. Drop the debug info
+# after install — the pinned sha256 above still verifies the ORIGINAL artifact,
+# and --strip-debug (not --strip-unneeded) keeps symtab/dynsym so backtraces
+# resolve names. Measured: 79 MB -> 9.3 MB raw, 36.7 -> 3.9 MB compressed in
+# the APK. Idempotent, so it also repairs a jniLibs populated by an older run.
+find_strip() {
+    for cand in "${ANDROID_NDK_HOME:-}" "$ANDROID_HOME/ndk/29.0.14206865"; do
+        [ -n "$cand" ] || continue
+        local tool="$cand/toolchains/llvm/prebuilt/linux-x86_64/bin/llvm-strip"
+        [ -x "$tool" ] && { echo "$tool"; return 0; }
+    done
+    return 1
+}
+
 for spec in "${FILES[@]}"; do
     IFS='|' read -r name sha <<< "$spec"
     dest="$OUT/arm64-v8a/$name"
     if [ -s "$dest" ]; then
         echo "fetch-uml: $dest present — skipping"
+        if [ "$name" = "libvmlinux.so" ] && STRIP=$(find_strip); then
+            "$STRIP" --strip-debug "$dest"
+        fi
         continue
     fi
     url="$BASE/$name"
@@ -79,5 +98,13 @@ for spec in "${FILES[@]}"; do
     }
     mkdir -p "$OUT/arm64-v8a"
     install -m 0755 "$TMP/$name" "$dest"
+    if [ "$name" = "libvmlinux.so" ]; then
+        if STRIP=$(find_strip); then
+            "$STRIP" --strip-debug "$dest"
+            echo "fetch-uml: stripped debug info from $dest"
+        else
+            echo "fetch-uml: WARNING llvm-strip not found — shipping unstripped kernel (+~33 MB APK)" >&2
+        fi
+    fi
     echo "fetch-uml: installed $dest ($(stat -c %s "$dest") bytes)"
 done

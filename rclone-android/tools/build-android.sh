@@ -122,6 +122,24 @@ cp extracted-terminal/jni/armeabi-v7a/libgojni.so "$JNI_TERMINAL_DIR/armeabi-v7a
 unzip -o rcbridge.aar "classes.jar" -d extracted
 cp extracted/classes.jar "$AAR_DIR/rcbridge-bindings.jar"
 
+# Strip DWARF debug info from the packaged Go libraries (#762). gomobile has
+# no strip option and AGP's strip pass only covers libraries it builds
+# itself, so the debug sections would otherwise ride into every APK —
+# ~25 MB compressed on arm64. --strip-debug keeps symtab/dynsym (backtraces
+# still resolve names) and the Go runtime's .gopclntab, which lives in
+# .text/.data, so panic traces are unaffected.
+LLVM_STRIP="$ANDROID_NDK_HOME/toolchains/llvm/prebuilt/linux-x86_64/bin/llvm-strip"
+if [ -x "$LLVM_STRIP" ]; then
+    for lib in "$JNI_DIR"/*/libgojni.so "$JNI_TERMINAL_DIR"/*/libgojni.so; do
+        [ -f "$lib" ] || continue
+        before=$(stat -c %s "$lib")
+        "$LLVM_STRIP" --strip-debug "$lib"
+        echo "stripped $(basename "$(dirname "$lib")")/libgojni.so: $before -> $(stat -c %s "$lib") bytes"
+    done
+else
+    echo "WARNING: llvm-strip not found at $LLVM_STRIP — packaging unstripped Go libraries" >&2
+fi
+
 # Clean up
 rm -rf extracted extracted-terminal
 

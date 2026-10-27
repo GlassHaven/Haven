@@ -702,10 +702,15 @@ private fun RdpViewer(
         label = "fullscreenChipAlpha",
     )
 
-    // Sentinel for the hidden text field
-    val sentinel = " "
+    // The hidden field mirrors whatever the IME reports and is never reset.
+    // Resetting it to a sentinel desynced the IME's own buffer from the field
+    // value, so each commit was diffed against a stale baseline: a growing IME
+    // buffer was sliced at a fixed offset, which dropped characters and
+    // re-emitted earlier ones. VNC fixed the identical bug in v5.89.24
+    // (VncScreen.diffImeCommit, bug #5); RDP, SPICE and GLKVM still ran the
+    // sentinel version.
     var textFieldValue by remember {
-        mutableStateOf(TextFieldValue(sentinel, TextRange(sentinel.length)))
+        mutableStateOf(TextFieldValue("", TextRange(0)))
     }
 
     Box(
@@ -743,7 +748,18 @@ private fun RdpViewer(
                         // keyboardVisible == physicalKeyboardAttached is exactly
                         // that condition, and it also respects a deliberate
                         // hardware-mode toggle-off (no re-grab).
-                        if (keyboardVisible == physicalKeyboardAttached) hardwareKeyFocus.requestFocus()
+                        //
+                        // While the IME is up (or the hidden field holds
+                        // focus) the tap must NOT reclaim: taking focus away
+                        // from the field leaves the soft keyboard attached to
+                        // nothing, so every typed character is silently
+                        // dropped while the toolbar's scancode keys keep
+                        // working — the "Tab works, letters don't" report.
+                        if (!imeVisible && !fieldFocused &&
+                            keyboardVisible == physicalKeyboardAttached
+                        ) {
+                            hardwareKeyFocus.requestFocus()
+                        }
                         var totalFingers = 1
                         var prevCentroid = firstDown.position
                         var prevSpan = 0f
@@ -989,23 +1005,29 @@ private fun RdpViewer(
         BasicTextField(
             value = textFieldValue,
             onValueChange = { newValue ->
-                val oldText = textFieldValue.text
-                val newText = newValue.text
+                // Diff against the text the IME held before this commit, not a
+                // reset sentinel: only that baseline yields the exact change
+                // for append, backspace, autocorrect replacement and
+                // mid-string edits alike.
+                val (added, deleted) = diffImeCommit(textFieldValue.text, newValue.text)
 
-                if (newText.length > oldText.length) {
-                    val added = newText.substring(oldText.length)
-                    for (ch in added) {
-                        onTypeChar(ch)
-                    }
-                } else if (newText.length < oldText.length) {
-                    val deleted = oldText.length - newText.length
+                // For a replacement the remote still holds the old text, so the
+                // removed run is erased first and the new run typed after it.
+                if (deleted > 0) {
                     repeat(deleted) {
                         onKeyDown(SC_BACKSPACE)
                         onKeyUp(SC_BACKSPACE)
                     }
                 }
+                if (added != null) {
+                    for (ch in added) {
+                        onTypeChar(ch)
+                    }
+                }
 
-                textFieldValue = TextFieldValue(sentinel, TextRange(sentinel.length))
+                // Mirror the IME: the next commit's baseline must be exactly
+                // what the IME believes it sent.
+                textFieldValue = newValue
             },
             // Hardware keys are handled by the root Box's onPreviewKeyEvent
             // (#507) — an ancestor of this field, so its preview pass fires
@@ -1583,6 +1605,9 @@ private fun RdpKeyToolbar(
                 RdpToggleButton("Win", winActive, onToggleWin)
                 RdpKeyButton("Esc") { onRdpKey(SC_ESCAPE) }
                 RdpKeyButton("Tab") { onRdpKey(SC_TAB) }
+                // Enter had no button at all: it was reachable only through the
+                // IME's return key, i.e. exactly the path that misbehaves here.
+                RdpKeyButton("Enter") { onRdpKey(SC_RETURN) }
                 RdpKeyButton("Del") { onRdpKey(SC_DELETE) }
                 RdpKeyButton("Ins") { onRdpKey(SC_INSERT) }
             }
@@ -1747,6 +1772,36 @@ private enum class OrientationMode(
     companion object {
         fun fromActivityValue(value: Int): OrientationMode = entries.firstOrNull { it.activityValue == value } ?: Landscape
     }
+}
+
+/**
+ * Diff one IME commit against the text the field held before it, returning the
+ * characters to type and the number of backspaces to send.
+ *
+ * The hidden text field mirrors whatever the IME reports, so the delta between
+ * two consecutive values is exactly what changed — but only if the baseline is
+ * the previous value. The old code reset the field to a `" "` sentinel after
+ * every commit and diffed against that, so a growing IME buffer was sliced at a
+ * fixed offset: characters were dropped and earlier ones re-emitted. VNC's
+ * capture rig saw `a, c, A, AB, C, C1, C12` for `abcABC123` (bug #5).
+ *
+ * Trimming the common prefix and common suffix handles every commit shape:
+ * append (the tail), backspace (the removed run), autocorrect word replacement
+ * (delete the old interior, type the new one), and mid-string edits.
+ */
+internal fun diffImeCommit(oldText: String, newText: String): Pair<String?, Int> {
+    if (oldText == newText) return null to 0
+    var prefix = 0
+    while (prefix < oldText.length && prefix < newText.length && oldText[prefix] == newText[prefix]) prefix++
+    var suffix = 0
+    while (
+        suffix < oldText.length - prefix &&
+        suffix < newText.length - prefix &&
+        oldText[oldText.length - 1 - suffix] == newText[newText.length - 1 - suffix]
+    ) suffix++
+    val added = newText.substring(prefix, newText.length - suffix)
+    val deleted = oldText.length - prefix - suffix
+    return (added.ifEmpty { null }) to deleted
 }
 
 internal fun androidKeyToScancode(key: Key): Int? = when (key) {

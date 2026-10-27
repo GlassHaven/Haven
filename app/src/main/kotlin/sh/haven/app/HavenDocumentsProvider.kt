@@ -56,7 +56,7 @@ class HavenDocumentsProvider : DocumentsProvider() {
     }
 
     companion object {
-        private const val AUTHORITY = "sh.haven.provider"
+        private val AUTHORITY = BuildConfig.APPLICATION_ID + ".provider"
 
         private val ROOT_PROJECTION = arrayOf(
             Root.COLUMN_ROOT_ID,

@@ -1795,8 +1795,25 @@ fn run_rdp_session(
     let fastpath_input_supported = {
         use ironrdp_pdu::rdp::capability_sets::InputFlags;
         let flags = connection_result.input_flags;
-        let supported = flags.intersects(InputFlags::FASTPATH_INPUT | InputFlags::FASTPATH_INPUT_2);
-        if !supported {
+        let advertised =
+            flags.intersects(InputFlags::FASTPATH_INPUT | InputFlags::FASTPATH_INPUT_2);
+        // Fast-path input is only used with Windows-like servers. The
+        // compositor-backed Linux servers tested (GNOME Remote Desktop 50.x,
+        // KDE's KRDP) drop or duplicate input they receive this way: one tap
+        // sometimes does nothing and sometimes repeats the character a dozen
+        // times, while the same session is clean over slow-path TS_INPUT PDUs
+        // and clean with mstsc/FreeRDP. Windows sets
+        // INPUT_FLAG_TS_QOE_TIMESTAMPS and those servers do not, so that flag
+        // is the discriminator; a server we misjudge only loses the small
+        // latency win of fast-path, never correctness.
+        let windows_like = flags.contains(InputFlags::TS_QOE_TIMESTAMPS);
+        let supported = advertised && windows_like;
+        if advertised && !windows_like {
+            info!(
+                "Server is not Windows-like ({flags:?}); using slow-path input PDUs \
+                 (fast-path input is unreliable on compositor-backed Linux RDP servers)"
+            );
+        } else if !advertised {
             info!("Server did not advertise fast-path input ({flags:?}); using slow-path input PDUs");
         }
         supported

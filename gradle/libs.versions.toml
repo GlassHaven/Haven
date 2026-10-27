@@ -28,7 +28,7 @@ ksp = "2.3.10"
 androidx-browser = "1.10.0"
 androidx-work = "2.9.0"
 androidx-hilt-work = "1.4.0"
-okhttp = "5.5.0"
+okhttp = "5.5.1"
 # Real org.json for JVM unit tests: the mockable android.jar stub (returnDefaultValues)
 # makes JSONObject every method return defaults — clients parsing server JSON in tests
 # need the real artifact. Runtime code keeps android.jar's org.json.

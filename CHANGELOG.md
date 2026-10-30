@@ -5,6 +5,10 @@ the corresponding GitHub Release; a release can't ship without its section
 (enforced by `scripts/check-changelog.sh` in CI). The GitHub "Full Changelog"
 compare link is appended automatically — don't add it here.
 
+## v5.91.2
+
+- Fix Desktop viewer (`RdpViewer` and `VncViewer`) stealing focus and scrolling `HorizontalPager` to the Desktop tab when the soft keyboard is dismissed on another tab (such as Terminal).
+
 ## v5.91.1
 
 - Unified Desktop and Terminal extended keyboard rows (`KeyboardToolbar` across RDP, SPICE, GLKVM, and VNC), GLKVM multi-character paste and reconnect fixes, `usbRedirPort` on `start_system_vm`, and UML guest kernel `uml-guest-10` with built-in `uvcvideo`, `snd-usb-audio`, and `cdc-acm` drivers (#613).

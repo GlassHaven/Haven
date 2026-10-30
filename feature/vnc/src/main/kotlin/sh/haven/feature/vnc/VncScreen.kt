@@ -220,6 +220,7 @@ fun VncSessionContent(
     currentScale: Float = 1f,
     /** App-window fullscreen: persist the current output scale as the app's default. See [VncViewer]. */
     onSaveDefault: ((Float) -> Unit)? = null,
+    isActive: Boolean = true,
 ) {
     val connectedState by connected.collectAsState()
     val frameState by frame.collectAsState()
@@ -325,6 +326,7 @@ fun VncSessionContent(
             onChangeScale = onChangeScale,
             currentScale = currentScale,
             onSaveDefault = onSaveDefault,
+            isActive = isActive,
         )
     } else {
         VncPlaceholder(
@@ -672,6 +674,7 @@ private fun VncViewer(
      * per-app default. Receives the current applied scale.
      */
     onSaveDefault: ((Float) -> Unit)? = null,
+    isActive: Boolean = true,
 ) {
     val orientationMode = OrientationMode.fromActivityValue(currentOrientation)
     val orientationDesc = when (orientationMode) {
@@ -807,7 +810,13 @@ private fun VncViewer(
             }
         }
     }
-    LaunchedEffect(Unit) { hardwareKeyFocus.requestFocus() }
+    LaunchedEffect(isActive) {
+        if (isActive) {
+            if (!keyboardVisible) hardwareKeyFocus.requestFocus()
+        } else {
+            if (!physicalKeyboardAttached) keyboardVisible = false
+        }
+    }
 
     // The keyboard icon's meaning is context-dependent (#511). With a
     // hardware keyboard attached it toggles passthrough: on = the canvas
@@ -843,12 +852,14 @@ private fun VncViewer(
     LaunchedEffect(imeVisible) {
         if (wasImeVisible && !imeVisible && !physicalKeyboardAttached) {
             keyboardVisible = false
-            hardwareKeyFocus.requestFocus()
+            if (isActive && (fieldFocused || canvasFocused)) {
+                hardwareKeyFocus.requestFocus()
+            }
         }
         wasImeVisible = imeVisible
     }
-    LaunchedEffect(imeVisible, keyboardVisible, canvasFocused, fieldFocused) {
-        if (!keyboardVisible && imeVisible && (canvasFocused || fieldFocused)) {
+    LaunchedEffect(imeVisible, keyboardVisible, canvasFocused, fieldFocused, isActive) {
+        if (isActive && !keyboardVisible && imeVisible && (canvasFocused || fieldFocused)) {
             keyboardController?.hide()
             hardwareKeyFocus.requestFocus()
         }

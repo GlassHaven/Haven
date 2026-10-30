@@ -206,6 +206,7 @@ fun RdpSessionContent(
     chipAnchor: sh.haven.core.data.preferences.RdpChipAnchor =
         sh.haven.core.data.preferences.RdpChipAnchor.DEFAULT,
     onChipAnchorChange: (sh.haven.core.data.preferences.RdpChipAnchor) -> Unit = {},
+    isActive: Boolean = true,
 ) {
     val connectedState by connected.collectAsState()
     val frameState by frame.collectAsState()
@@ -286,6 +287,7 @@ fun RdpSessionContent(
             onCycleOrientation = onCycleOrientation,
             chipAnchor = chipAnchor,
             onChipAnchorChange = onChipAnchorChange,
+            isActive = isActive,
         )
     } else {
         DesktopPlaceholder(
@@ -482,6 +484,7 @@ private fun RdpViewer(
     chipAnchor: sh.haven.core.data.preferences.RdpChipAnchor =
         sh.haven.core.data.preferences.RdpChipAnchor.DEFAULT,
     onChipAnchorChange: (sh.haven.core.data.preferences.RdpChipAnchor) -> Unit = {},
+    isActive: Boolean = true,
 ) {
     // Map the activity-orientation constant to the local enum for
     // icon/description rendering. Source-of-truth for the value lives
@@ -652,7 +655,13 @@ private fun RdpViewer(
             }
         }
     }
-    LaunchedEffect(Unit) { hardwareKeyFocus.requestFocus() }
+    LaunchedEffect(isActive) {
+        if (isActive) {
+            if (!keyboardVisible) hardwareKeyFocus.requestFocus()
+        } else {
+            if (!physicalKeyboardAttached) keyboardVisible = false
+        }
+    }
 
     // The keyboard icon's meaning is context-dependent (#511). With a
     // hardware keyboard attached it toggles passthrough: on = the canvas
@@ -694,12 +703,14 @@ private fun RdpViewer(
     LaunchedEffect(imeVisible) {
         if (wasImeVisible && !imeVisible && !physicalKeyboardAttached) {
             keyboardVisible = false
-            hardwareKeyFocus.requestFocus()
+            if (isActive && (fieldFocused || canvasFocused)) {
+                hardwareKeyFocus.requestFocus()
+            }
         }
         wasImeVisible = imeVisible
     }
-    LaunchedEffect(imeVisible, keyboardVisible, canvasFocused, fieldFocused) {
-        if (!keyboardVisible && imeVisible && (canvasFocused || fieldFocused)) {
+    LaunchedEffect(imeVisible, keyboardVisible, canvasFocused, fieldFocused, isActive) {
+        if (isActive && !keyboardVisible && imeVisible && (canvasFocused || fieldFocused)) {
             keyboardController?.hide()
             hardwareKeyFocus.requestFocus()
         }

@@ -1,0 +1,1 @@
+- Fix Desktop viewer (`RdpViewer` and `VncViewer`) stealing focus and scrolling `HorizontalPager` to the Desktop tab when the soft keyboard is dismissed on another tab (such as Terminal).

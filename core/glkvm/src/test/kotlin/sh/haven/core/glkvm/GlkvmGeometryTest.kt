@@ -89,4 +89,17 @@ class GlkvmGeometryTest {
         assertEquals(0, asymLeft)
         assertEquals(w, asymWidth)
     }
+
+    @Test
+    fun `isPillarboxBlackRgb accepts full-range and studio-range HDMI black and rejects tinted UI`() {
+        // Full-range HDMI black (0, 0, 0)
+        assertTrue(GlkvmGeometry.isPillarboxBlackRgb(0, 0, 0))
+        // Studio/limited-range BT.709 HDMI black (16, 16, 16) observed on RM10
+        assertTrue(GlkvmGeometry.isPillarboxBlackRgb(16, 16, 16))
+        // 4:2:0 JPEG ringing on the 1-2px pillarbox transition (13, 17, 20)
+        assertTrue(GlkvmGeometry.isPillarboxBlackRgb(13, 17, 20))
+        // Dark-mode desktop UI (30, 30, 30) or tinted dark sidebar (12, 18, 22)
+        org.junit.Assert.assertFalse(GlkvmGeometry.isPillarboxBlackRgb(30, 30, 30))
+        org.junit.Assert.assertFalse(GlkvmGeometry.isPillarboxBlackRgb(12, 18, 22))
+    }
 }

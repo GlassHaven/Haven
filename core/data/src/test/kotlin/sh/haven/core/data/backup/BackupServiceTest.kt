@@ -216,6 +216,16 @@ class BackupServiceTest {
             vncPort = 5901,
             vncPassword = "vncpass",
             vncSshForward = false,
+            authMethods = "PASSWORD\nKEY:key-1",
+            glkvmPort = 443,
+            glkvmPassword = "glkvmpass",
+            glkvmTargetLayout = "uk",
+            glkvmSshForward = true,
+            glkvmSshProfileId = "ssh-tunnel-1",
+            emailProvider = "imap",
+            emailServer = "imap.gmail.com",
+            aiRouteType = "SSH",
+            aiRouteProfileId = "ssh-tunnel-1",
         )
 
         coEvery { connectionRepository.getAll() } returns listOf(profile)
@@ -253,6 +263,16 @@ class BackupServiceTest {
         assertEquals(5901, imported.vncPort)
         assertEquals("vncpass", imported.vncPassword)
         assertEquals(false, imported.vncSshForward)
+        assertEquals("PASSWORD\nKEY:key-1", imported.authMethods)
+        assertEquals(443, imported.glkvmPort)
+        assertEquals("glkvmpass", imported.glkvmPassword)
+        assertEquals("uk", imported.glkvmTargetLayout)
+        assertEquals(true, imported.glkvmSshForward)
+        assertEquals("ssh-tunnel-1", imported.glkvmSshProfileId)
+        assertEquals("imap", imported.emailProvider)
+        assertEquals("imap.gmail.com", imported.emailServer)
+        assertEquals("SSH", imported.aiRouteType)
+        assertEquals("ssh-tunnel-1", imported.aiRouteProfileId)
     }
 
     @Test

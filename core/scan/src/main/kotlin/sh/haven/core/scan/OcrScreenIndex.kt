@@ -285,7 +285,7 @@ class OcrScreenIndex private constructor(
     companion object {
         private val WHITESPACE_REGEX = Regex("\\s+")
 
-        internal fun normalizeText(s: String): String =
+        fun normalizeText(s: String): String =
             s.trim().lowercase().replace(WHITESPACE_REGEX, " ")
 
         internal fun compactText(s: String): String =

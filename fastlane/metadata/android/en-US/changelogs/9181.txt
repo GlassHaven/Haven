@@ -1,0 +1,4 @@
+- Detect BT.709 limited-range HDMI pillarbox black in GlkvmGeometry and expose activeLeftPx/activeWidthPx in desktop MCP tools.
+- Add returnScreenshot, settleMs, multi-point click sequences, and region bounds to desktop MCP tools.
+- Preserve GLKVM, SPICE, email, AI route, and session command fields in BackupService export/import.
+- Improve GlkvmClient.typeText Shift coalescing and multi-tile desktop OCR coverage.

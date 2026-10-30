@@ -31,6 +31,19 @@ class DesktopFrameHandle(
     val frame: () -> Bitmap?,
     val cursor: () -> CursorSnapshot?,
     val pointer: () -> Pair<Int, Int>,
+    /**
+     * Optional on-demand snapshot pull for poll-based protocols (GLKVM), invoked
+     * before `capture_desktop_tab` / `inspect_desktop_tab` so a screenshot taken
+     * right after input or while the viewer tab is paused reflects the latest
+     * remote screen state.
+     */
+    val refreshFrame: ((force: Boolean) -> Bitmap?)? = null,
+    /**
+     * Optional active horizontal desktop bounds `(activeLeftPx, activeWidthPx)` for
+     * pillarboxed HDMI capture sessions (GLKVM), surfaced in `capture_desktop_tab`
+     * and `inspect_desktop_tab`.
+     */
+    val activeBounds: (() -> Pair<Int, Int>)? = null,
 )
 
 /**

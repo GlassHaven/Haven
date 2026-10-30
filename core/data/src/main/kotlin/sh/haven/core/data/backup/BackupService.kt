@@ -142,6 +142,34 @@ class BackupService @Inject constructor(
                 put("spaExplicitIp", p.spaExplicitIp ?: JSONObject.NULL)
                 put("spaPort", p.spaPort)
                 put("identityId", p.identityId ?: JSONObject.NULL)
+                put("authMethods", p.authMethods)
+                put("totpConfirmBeforeSend", p.totpConfirmBeforeSend)
+                put("ignoreSavedKeys", p.ignoreSavedKeys)
+                put("spicePort", p.spicePort ?: JSONObject.NULL)
+                put("spicePassword", p.spicePassword ?: JSONObject.NULL)
+                put("spiceSshForward", p.spiceSshForward)
+                put("spiceSshProfileId", p.spiceSshProfileId ?: JSONObject.NULL)
+                put("glkvmPort", p.glkvmPort ?: JSONObject.NULL)
+                put("glkvmPassword", p.glkvmPassword ?: JSONObject.NULL)
+                put("glkvmTargetLayout", p.glkvmTargetLayout ?: JSONObject.NULL)
+                put("glkvmSshForward", p.glkvmSshForward)
+                put("glkvmSshProfileId", p.glkvmSshProfileId ?: JSONObject.NULL)
+                put("emailProvider", p.emailProvider ?: JSONObject.NULL)
+                put("emailServer", p.emailServer ?: JSONObject.NULL)
+                put("emailSmtpServer", p.emailSmtpServer ?: JSONObject.NULL)
+                put("emailPort", p.emailPort)
+                put("emailSmtpPort", p.emailSmtpPort)
+                put("emailTls", p.emailTls)
+                put("emailUsername", p.emailUsername ?: JSONObject.NULL)
+                put("emailPassword", p.emailPassword ?: JSONObject.NULL)
+                put("emailMailboxPassword", p.emailMailboxPassword ?: JSONObject.NULL)
+                put("emailAuthMethods", p.emailAuthMethods)
+                put("openaiPathPrefix", p.openaiPathPrefix ?: JSONObject.NULL)
+                put("openaiApiKey", p.openaiApiKey ?: JSONObject.NULL)
+                put("aiProtocol", p.aiProtocol ?: JSONObject.NULL)
+                put("aiRouteType", p.aiRouteType ?: JSONObject.NULL)
+                put("aiRouteProfileId", p.aiRouteProfileId ?: JSONObject.NULL)
+                put("sessionCommandOverride", p.sessionCommandOverride ?: JSONObject.NULL)
             })
         }
         json.put("connections", connections)
@@ -512,6 +540,34 @@ class BackupService @Inject constructor(
                             spaExplicitIp = c.optStringOrNull("spaExplicitIp"),
                             spaPort = c.optInt("spaPort", 62201),
                             identityId = c.optStringOrNull("identityId"),
+                            authMethods = c.optString("authMethods", ""),
+                            totpConfirmBeforeSend = c.optBoolean("totpConfirmBeforeSend", false),
+                            ignoreSavedKeys = c.optBoolean("ignoreSavedKeys", false),
+                            spicePort = c.optIntOrNull("spicePort"),
+                            spicePassword = c.optStringOrNull("spicePassword"),
+                            spiceSshForward = c.optBoolean("spiceSshForward", false),
+                            spiceSshProfileId = c.optStringOrNull("spiceSshProfileId"),
+                            glkvmPort = c.optIntOrNull("glkvmPort"),
+                            glkvmPassword = c.optStringOrNull("glkvmPassword"),
+                            glkvmTargetLayout = c.optStringOrNull("glkvmTargetLayout"),
+                            glkvmSshForward = c.optBoolean("glkvmSshForward", false),
+                            glkvmSshProfileId = c.optStringOrNull("glkvmSshProfileId"),
+                            emailProvider = c.optStringOrNull("emailProvider"),
+                            emailServer = c.optStringOrNull("emailServer"),
+                            emailSmtpServer = c.optStringOrNull("emailSmtpServer"),
+                            emailPort = c.optInt("emailPort", 993),
+                            emailSmtpPort = c.optInt("emailSmtpPort", 465),
+                            emailTls = c.optBoolean("emailTls", true),
+                            emailUsername = c.optStringOrNull("emailUsername"),
+                            emailPassword = c.optStringOrNull("emailPassword"),
+                            emailMailboxPassword = c.optStringOrNull("emailMailboxPassword"),
+                            emailAuthMethods = c.optString("emailAuthMethods", ""),
+                            openaiPathPrefix = c.optStringOrNull("openaiPathPrefix"),
+                            openaiApiKey = c.optStringOrNull("openaiApiKey"),
+                            aiProtocol = c.optStringOrNull("aiProtocol"),
+                            aiRouteType = c.optStringOrNull("aiRouteType"),
+                            aiRouteProfileId = c.optStringOrNull("aiRouteProfileId"),
+                            sessionCommandOverride = c.optStringOrNull("sessionCommandOverride"),
                         ),
                     )
                     count++

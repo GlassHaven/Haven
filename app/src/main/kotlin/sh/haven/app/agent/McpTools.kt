@@ -2682,7 +2682,16 @@ internal class McpTools(
         put("groupId", p.groupId ?: JSONObject.NULL)
         put("jumpProfileId", p.jumpProfileId ?: JSONObject.NULL)
         put("authType", p.authType.name)
-        put("hasStoredPassword", !p.sshPassword.isNullOrEmpty())
+        val storedPw = when (p.connectionType) {
+            "VNC" -> p.vncPassword
+            "RDP" -> p.rdpPassword
+            "SPICE" -> p.spicePassword
+            "GLKVM" -> p.glkvmPassword
+            "SMB" -> p.smbPassword
+            "EMAIL" -> p.emailPassword
+            else -> p.sshPassword
+        }
+        put("hasStoredPassword", !storedPw.isNullOrEmpty())
         put("hasKey", p.keyId != null)
         if (p.ignoreSavedKeys) put("ignoreSavedKeys", true)
         if (p.forwardAgent) put("forwardAgent", true)

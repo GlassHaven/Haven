@@ -46,10 +46,14 @@ class GlkvmDesktopSession(
     private val onConnected: () -> Unit,
     private val onError: (Throwable) -> Unit,
     private val onDisconnected: () -> Unit,
+    /** Optional test hook overriding the single-frame snapshot fetch+decode. */
+    private val pollSnap: (() -> Unit)? = null,
 ) : RemoteDesktopSession, Closeable {
 
     private val scope = CoroutineScope(SupervisorJob() + Dispatchers.IO)
     private var pollJob: Job? = null
+    private val pollLock = Any()
+    private val eventSeq = java.util.concurrent.atomic.AtomicLong(0L)
 
     @Volatile
     private var paused = false
@@ -60,7 +64,23 @@ class GlkvmDesktopSession(
     @Volatile
     private var closed = false
 
+    @Volatile
+    private var lastFrameSeq = 0L
+
+    @Volatile
+    private var lastInputSeq = 0L
+
+    @Volatile
+    private var lastFrameAtMs = 0L
+
+    @Volatile
+    private var lastInputAtMs = 0L
+
     private val activeInputs = java.util.concurrent.atomic.AtomicInteger(0)
+
+    /** Detected active horizontal bounds `[activeLeftPx, activeLeftPx + activeWidthPx]` within the captured frame. */
+    val activeLeftPx: Int get() = client.activeLeftPx
+    val activeWidthPx: Int get() = client.activeWidthPx
 
     /** Launch the snapshot poll loop. Non-blocking (unlike SPICE's blocking start()). */
     fun start() {
@@ -71,6 +91,38 @@ class GlkvmDesktopSession(
     /** One snapshot fetch+decode+dispatch. */
     @Throws(Exception::class)
     internal fun fetchAndDispatchFrame() = pollOnce()
+
+    /**
+     * Ensure the latest frame reflects recent input or a paused tab before an
+     * MCP capture/OCR call reads it. If an input completed after (or within
+     * [minSettleMs] before) the last fetched snapshot, waits the remaining
+     * settle window so the target OS has rendered the change, then pulls one
+     * fresh snapshot synchronously.
+     */
+    internal fun refreshFrameIfNeeded(
+        force: Boolean = false,
+        minSettleMs: Long = GLKVM_INPUT_SETTLE_MS,
+    ) {
+        if (closed) return
+        // Wait briefly if an input call is still in flight on another thread.
+        val waitDeadline = System.currentTimeMillis() + 500L
+        while (activeInputs.get() > 0 && System.currentTimeMillis() < waitDeadline) {
+            Thread.sleep(15)
+        }
+        val now = System.currentTimeMillis()
+        val inputSinceLastFrame = lastInputSeq > lastFrameSeq ||
+            (lastInputAtMs > 0L && lastFrameAtMs < lastInputAtMs + minSettleMs)
+        val needsRefresh = force || paused || lastFrameSeq == 0L || inputSinceLastFrame
+        if (!needsRefresh) return
+
+        if (lastInputAtMs > 0L && minSettleMs > 0L) {
+            val elapsed = System.currentTimeMillis() - lastInputAtMs
+            if (elapsed in 0 until minSettleMs) {
+                Thread.sleep(minSettleMs - elapsed)
+            }
+        }
+        runCatching { pollOnce() }
+    }
 
     private suspend fun pollLoop() {
         try {
@@ -119,7 +171,14 @@ class GlkvmDesktopSession(
         }
     }
 
-    private fun pollOnce() {
+    private fun pollOnce(): Unit = synchronized(pollLock) {
+        val custom = pollSnap
+        if (custom != null) {
+            custom()
+            lastFrameSeq = eventSeq.incrementAndGet()
+            lastFrameAtMs = System.currentTimeMillis()
+            return@synchronized
+        }
         val jpeg = client.snapshot()
         if (jpeg.isEmpty()) throw GlkvmException("empty snapshot from /streamer/snapshot")
         val bmp = BitmapFactory.decodeByteArray(jpeg, 0, jpeg.size)
@@ -132,6 +191,8 @@ class GlkvmDesktopSession(
         client.activeLeftPx = activeLeft
         client.activeWidthPx = activeWidth
         onFrame(bmp)
+        lastFrameSeq = eventSeq.incrementAndGet()
+        lastFrameAtMs = System.currentTimeMillis()
     }
 
     private fun detectActiveHorizontalBounds(bmp: Bitmap): Pair<Int, Int> {
@@ -147,7 +208,7 @@ class GlkvmDesktopSession(
                 val r = (c shr 16) and 0xFF
                 val g = (c shr 8) and 0xFF
                 val b = c and 0xFF
-                if (r > PILLARBOX_BLACK_MAX || g > PILLARBOX_BLACK_MAX || b > PILLARBOX_BLACK_MAX) {
+                if (!sh.haven.core.glkvm.GlkvmGeometry.isPillarboxBlackRgb(r, g, b)) {
                     allBlack = false
                     break
                 }
@@ -158,21 +219,52 @@ class GlkvmDesktopSession(
 
     private var consecutiveFailures = 0
 
+    @Volatile
+    private var lastTargetMouseX: Int = -1
+
+    @Volatile
+    private var lastTargetMouseY: Int = -1
+
+    @Volatile
+    private var lastMousePositionAtMs: Long = 0L
+
     // -- RemoteDesktopSession ------------------------------------------------
 
-    override fun sendMouseMove(x: Int, y: Int) = runCatchingInput { client.sendMouseMove(x, y) }
+    override fun sendMouseMove(x: Int, y: Int) = runCatchingInput {
+        lastTargetMouseX = x
+        lastTargetMouseY = y
+        lastMousePositionAtMs = System.currentTimeMillis()
+        client.sendMouseMove(x, y)
+    }
 
     override fun sendMouseButton(button: Int, pressed: Boolean) =
         runCatchingInput { client.sendMouseButton(toKvmdButton(button), pressed) }
 
-    override fun sendMouseClick(x: Int, y: Int, button: Int) =
-        runCatchingInput { client.sendMouseClick(x, y, toKvmdButton(button)) }
+    override fun sendMouseClick(x: Int, y: Int, button: Int) = runCatchingInput {
+        lastTargetMouseX = x
+        lastTargetMouseY = y
+        lastMousePositionAtMs = System.currentTimeMillis()
+        client.sendMouseClick(x, y, toKvmdButton(button))
+    }
 
-    /** Abstraction: positive deltaY scrolls UP; kvmd device convention is opposite. */
+    /**
+     * Abstraction: positive deltaY scrolls UP; kvmd device convention is opposite.
+     * Re-asserts the last intentional target pointer position before scrolling if
+     * enough time has elapsed for the GLKVM hardware mouse wobbler to drift the cursor.
+     */
     override fun sendMouseWheel(deltaY: Int) {
         val notches = deltaY.coerceIn(-NOTCH_MAX, NOTCH_MAX)
         if (notches == 0) return
-        runCatchingInput { client.sendWheel(-notches) }
+        runCatchingInput {
+            val tx = lastTargetMouseX
+            val ty = lastTargetMouseY
+            val now = System.currentTimeMillis()
+            if (tx >= 0 && ty >= 0 && now - lastMousePositionAtMs >= GLKVM_WOBBLE_REASSERT_MS) {
+                client.sendMouseMove(tx, ty)
+                lastMousePositionAtMs = now
+            }
+            client.sendWheel(-notches)
+        }
     }
 
     // kvmd has no remote-clipboard verb; keep the no-op explicit.
@@ -229,6 +321,8 @@ class GlkvmDesktopSession(
             // swallow and log so the lane keeps draining other tabs.
             Log.w(TAG, "GLKVM input dropped: ${e.message}")
         } finally {
+            lastInputSeq = eventSeq.incrementAndGet()
+            lastInputAtMs = System.currentTimeMillis()
             activeInputs.decrementAndGet()
         }
     }
@@ -245,6 +339,12 @@ class GlkvmDesktopSession(
         /** ~4 fps default snapshot cadence — configurable at construction. */
         const val GLKVM_POLL_INTERVAL_MS = 250L
 
+        /** Minimum target render-settle window after HID input before an on-demand MCP capture. */
+        const val GLKVM_INPUT_SETTLE_MS = 120L
+
+        /** Idle threshold after which sendMouseWheel re-asserts lastTargetMouseX/Y against hardware mouse-wobbler drift. */
+        const val GLKVM_WOBBLE_REASSERT_MS = 750L
+
         /** Parked loop delay while paused (don't busy-spin, don't drift far either). */
         const val GLKVM_PAUSE_IDLE_MS = 500L
 
@@ -253,8 +353,5 @@ class GlkvmDesktopSession(
 
         /** Wheel notches sent per abstraction call. */
         const val NOTCH_MAX = 10
-
-        /** Max per-channel intensity (0..255) still considered HDMI black in JPEG pillarbox bars. */
-        private const val PILLARBOX_BLACK_MAX = 6
     }
 }

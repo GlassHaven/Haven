@@ -37,9 +37,17 @@ class TextRecognizer @Inject constructor(
     private val mutex = Mutex()
     @Volatile private var engine: OcrEngine? = null
 
-    @Volatile private var cachedHash: String? = null
+    @Volatile private var cachedSig: TileGridSignature? = null
     @Volatile private var cachedMinScore: Float = -1f
     @Volatile private var cachedIndex: OcrScreenIndex? = null
+
+    /** True when the most recent [recognizeIndex] call returned a cached index without running ONNX. */
+    @Volatile var lastCacheHit: Boolean = false
+        private set
+
+    /** True when the most recent [recognizeIndex] call ignored localized cursor-wobbler motion outside text boxes. */
+    @Volatile var lastWobbleIgnored: Boolean = false
+        private set
 
     /**
      * Recognize text in [bitmap] and return lines joined by `\n`, or `null`
@@ -57,23 +65,39 @@ class TextRecognizer @Inject constructor(
     }
 
     /**
-     * Run RapidOCR over [bitmap] and build a spatial [OcrScreenIndex] with a
-     * 2D k-d tree over all detected words and lines.
+     * Run RapidOCR over [bitmap] (or an optional [region] within [bitmap]) and
+     * build a spatial [OcrScreenIndex] with a 2D k-d tree over all detected
+     * words and lines in full-frame pixel coordinates.
      *
-     * If [forceRefresh] is false and [bitmap] has the same pixel SHA-256 as the
-     * previous call with the same [minScore], returns the cached [OcrScreenIndex]
-     * immediately without re-running ONNX inference.
+     * Uses a perceptual 16×16 tile-grid signature to:
+     * 1. Ignore `±1..6` LSB HDMI capture / JPEG re-encoding noise on unchanged frames.
+     * 2. Ignore localized (`≤ 2×2` tile) hardware mouse-wobbler motion when the
+     *    wobbling cursor does not overlap any previously detected text line.
      */
     suspend fun recognizeIndex(
         bitmap: Bitmap,
         minScore: Float = 0.45f,
         forceRefresh: Boolean = false,
+    ): OcrScreenIndex = recognizeIndex(bitmap, minScore, forceRefresh, region = null)
+
+    suspend fun recognizeIndex(
+        bitmap: Bitmap,
+        minScore: Float = 0.45f,
+        forceRefresh: Boolean = false,
+        region: OcrBbox?,
     ): OcrScreenIndex = withContext(Dispatchers.Default) {
-        val frameHash = hashBitmap(bitmap)
+        val clampedRegion = region?.let { clampRegion(it, bitmap.width, bitmap.height) }
+        val sig = TileGridSignature.compute(bitmap, clampedRegion)
         if (!forceRefresh) {
             val existing = cachedIndex
-            if (existing != null && cachedHash == frameHash && cachedMinScore == minScore) {
-                return@withContext existing
+            val prevSig = cachedSig
+            if (existing != null && prevSig != null && cachedMinScore == minScore) {
+                val diff = sig.diffAgainst(prevSig, existing)
+                if (diff.identical || diff.wobbleOnly) {
+                    lastCacheHit = true
+                    lastWobbleIgnored = diff.wobbleOnly
+                    return@withContext existing
+                }
             }
         }
 
@@ -81,8 +105,14 @@ class TextRecognizer @Inject constructor(
         val (detections, elapsedMs) = mutex.withLock {
             if (!forceRefresh) {
                 val existing = cachedIndex
-                if (existing != null && cachedHash == frameHash && cachedMinScore == minScore) {
-                    return@withContext existing
+                val prevSig = cachedSig
+                if (existing != null && prevSig != null && cachedMinScore == minScore) {
+                    val diff = sig.diffAgainst(prevSig, existing)
+                    if (diff.identical || diff.wobbleOnly) {
+                        lastCacheHit = true
+                        lastWobbleIgnored = diff.wobbleOnly
+                        return@withContext existing
+                    }
                 }
             }
             val eng = engine ?: try {
@@ -92,7 +122,34 @@ class TextRecognizer @Inject constructor(
             }
             val t0 = System.nanoTime()
             val lines = try {
-                eng.detectAndRecognize(bitmap)
+                if (clampedRegion != null &&
+                    (clampedRegion.x != 0 || clampedRegion.y != 0 ||
+                        clampedRegion.width != bitmap.width || clampedRegion.height != bitmap.height)
+                ) {
+                    val sub = Bitmap.createBitmap(
+                        bitmap,
+                        clampedRegion.x,
+                        clampedRegion.y,
+                        clampedRegion.width,
+                        clampedRegion.height,
+                    )
+                    try {
+                        eng.detectAndRecognize(sub).map { det ->
+                            det.copy(
+                                bbox = OcrBbox(
+                                    x = det.bbox.x + clampedRegion.x,
+                                    y = det.bbox.y + clampedRegion.y,
+                                    width = det.bbox.width,
+                                    height = det.bbox.height,
+                                ),
+                            )
+                        }
+                    } finally {
+                        if (sub !== bitmap) sub.recycle()
+                    }
+                } else {
+                    eng.detectAndRecognize(bitmap)
+                }
             } catch (t: Throwable) {
                 throw TextRecognizeException("RapidOCR recognise failed: ${t.message}", t)
             }
@@ -104,11 +161,13 @@ class TextRecognizer @Inject constructor(
             detections = detections,
             frameWidth = bitmap.width,
             frameHeight = bitmap.height,
-            frameHash = frameHash,
+            frameHash = sig.hash,
             ocrMs = elapsedMs,
             minScore = minScore,
         )
-        cachedHash = frameHash
+        lastCacheHit = false
+        lastWobbleIgnored = false
+        cachedSig = sig
         cachedMinScore = minScore
         cachedIndex = built
         built
@@ -119,8 +178,10 @@ class TextRecognizer @Inject constructor(
         mutex.withLock {
             engine?.let { runCatching { it.close() } }
             engine = null
-            cachedHash = null
+            cachedSig = null
             cachedIndex = null
+            lastCacheHit = false
+            lastWobbleIgnored = false
         }
     }
 
@@ -133,32 +194,292 @@ class TextRecognizer @Inject constructor(
     }
 
     companion object {
-        internal fun hashBitmap(bitmap: Bitmap): String {
+        internal fun clampRegion(region: OcrBbox, width: Int, height: Int): OcrBbox? {
+            if (width <= 0 || height <= 0) return null
+            val rx = region.x.coerceIn(0, max(0, width - 1))
+            val ry = region.y.coerceIn(0, max(0, height - 1))
+            val rw = region.width.coerceIn(1, width - rx)
+            val rh = region.height.coerceIn(1, height - ry)
+            return if (rw >= 4 && rh >= 4) OcrBbox(rx, ry, rw, rh) else null
+        }
+
+        internal fun hashBitmap(bitmap: Bitmap): String =
+            TileGridSignature.compute(bitmap, null).hash
+    }
+}
+
+/**
+ * Perceptual 16×16 tile-grid signature of a frame (or region), with 2×2
+ * sub-quadrant RGB means per tile. Tolerates HDMI capture / JPEG quantization
+ * noise (`±6` LSB) and identifies localized `≤ 2×2` tile mouse-wobbler
+ * changes that do not intersect any recognized text line.
+ */
+internal class TileGridSignature(
+    val width: Int,
+    val height: Int,
+    val region: OcrBbox?,
+    val subR: IntArray,
+    val subG: IntArray,
+    val subB: IntArray,
+    val hash: String,
+) {
+    data class FrameDiff(
+        val identical: Boolean,
+        val wobbleOnly: Boolean,
+        val changedTileCount: Int,
+    )
+
+    fun diffAgainst(other: TileGridSignature, cachedIndex: OcrScreenIndex?): FrameDiff {
+        if (width != other.width || height != other.height || region != other.region) {
+            return FrameDiff(identical = false, wobbleOnly = false, changedTileCount = GRID_W * GRID_H)
+        }
+        var changedCount = 0
+        var minTx = GRID_W
+        var maxTx = -1
+        var minTy = GRID_H
+        var maxTy = -1
+
+        for (ty in 0 until GRID_H) {
+            for (tx in 0 until GRID_W) {
+                val tileIdx = (ty * GRID_W + tx) * 4
+                var tileChanged = false
+                for (q in 0 until 4) {
+                    val idx = tileIdx + q
+                    val dr = kotlin.math.abs(subR[idx] - other.subR[idx])
+                    val dg = kotlin.math.abs(subG[idx] - other.subG[idx])
+                    val db = kotlin.math.abs(subB[idx] - other.subB[idx])
+                    if (dr > NOISE_LSB_TOLERANCE || dg > NOISE_LSB_TOLERANCE || db > NOISE_LSB_TOLERANCE) {
+                        tileChanged = true
+                        break
+                    }
+                }
+                if (tileChanged) {
+                    changedCount++
+                    if (tx < minTx) minTx = tx
+                    if (tx > maxTx) maxTx = tx
+                    if (ty < minTy) minTy = ty
+                    if (ty > maxTy) maxTy = ty
+                }
+            }
+        }
+
+        if (changedCount == 0) {
+            return FrameDiff(identical = true, wobbleOnly = false, changedTileCount = 0)
+        }
+
+        val effW = region?.width ?: width
+        val effH = region?.height ?: height
+        val effX = region?.x ?: 0
+        val effY = region?.y ?: 0
+
+        if (changedCount in 1..4 &&
+            effW >= MIN_WOBBLE_FRAME_WIDTH &&
+            effH >= MIN_WOBBLE_FRAME_HEIGHT &&
+            cachedIndex != null &&
+            cachedIndex.lineCount > 0 &&
+            (maxTx - minTx) <= 1 &&
+            (maxTy - minTy) <= 1
+        ) {
+            val dirtyX0 = effX + (minTx * effW) / GRID_W - WOBBLE_MARGIN_PX
+            val dirtyY0 = effY + (minTy * effH) / GRID_H - WOBBLE_MARGIN_PX
+            val dirtyX1 = effX + ((maxTx + 1) * effW) / GRID_W + WOBBLE_MARGIN_PX
+            val dirtyY1 = effY + ((maxTy + 1) * effH) / GRID_H + WOBBLE_MARGIN_PX
+
+            val overlapsText = cachedIndex.blocks.any { blk ->
+                blk.lines.any { line ->
+                    val b = line.bbox
+                    b.right >= dirtyX0 && b.x <= dirtyX1 && b.bottom >= dirtyY0 && b.y <= dirtyY1
+                }
+            }
+            if (!overlapsText) {
+                return FrameDiff(identical = false, wobbleOnly = true, changedTileCount = changedCount)
+            }
+        }
+
+        return FrameDiff(identical = false, wobbleOnly = false, changedTileCount = changedCount)
+    }
+
+    companion object {
+        const val GRID_W = 16
+        const val GRID_H = 16
+        const val NOISE_LSB_TOLERANCE = 6
+        const val MIN_WOBBLE_FRAME_WIDTH = 320
+        const val MIN_WOBBLE_FRAME_HEIGHT = 240
+        const val WOBBLE_MARGIN_PX = 6
+
+        fun compute(bitmap: Bitmap, region: OcrBbox?): TileGridSignature {
             val w = bitmap.width
             val h = bitmap.height
-            if (w <= 0 || h <= 0) return "empty"
-            // Sample a deterministic grid of up to 128x72 pixels plus dimensions
-            // so hashing a 2560x1440 frame takes <0.3ms instead of copying 14MB.
-            val digest = MessageDigest.getInstance("SHA-256")
-            val stepX = max(1, w / 128)
-            val stepY = max(1, h / 72)
-            val row = IntArray(w)
-            val buf = ByteBuffer.allocate(16).order(ByteOrder.LITTLE_ENDIAN)
-            buf.putInt(w).putInt(h)
-            digest.update(buf.array(), 0, 8)
-            var y = 0
-            while (y < h) {
-                bitmap.getPixels(row, 0, w, 0, y, w, 1)
-                var x = 0
-                while (x < w) {
-                    val px = row[x]
-                    buf.putInt(0, px)
-                    digest.update(buf.array(), 0, 4)
-                    x += stepX
-                }
-                y += stepY
+            val numSub = GRID_W * GRID_H * 4
+            if (w <= 0 || h <= 0) {
+                return TileGridSignature(w, h, region, IntArray(numSub), IntArray(numSub), IntArray(numSub), "empty")
             }
-            return digest.digest().take(6).joinToString("") { "%02x".format(it) }
+            val rx = region?.x ?: 0
+            val ry = region?.y ?: 0
+            val rw = region?.width ?: w
+            val rh = region?.height ?: h
+
+            val subR = IntArray(numSub)
+            val subG = IntArray(numSub)
+            val subB = IntArray(numSub)
+
+            // Sample a 2x2 grid of points inside each of the 2x2 sub-quadrants per tile
+            // (64x64 samples across the frame/region).
+            val samplesPerSub = 2
+            val totalSampleY = GRID_H * 2 * samplesPerSub
+            val totalSampleX = GRID_W * 2 * samplesPerSub
+            val rowPixels = IntArray(rw)
+
+            val sumR = IntArray(numSub)
+            val sumG = IntArray(numSub)
+            val sumB = IntArray(numSub)
+            val counts = IntArray(numSub)
+
+            for (sy in 0 until totalSampleY) {
+                val py = ry + ((sy * 2 + 1) * rh / (totalSampleY * 2)).coerceIn(0, rh - 1)
+                bitmap.getPixels(rowPixels, 0, rw, rx, py, rw, 1)
+                val ty = (sy / (2 * samplesPerSub)).coerceIn(0, GRID_H - 1)
+                val qy = (sy / samplesPerSub) and 1
+                for (sx in 0 until totalSampleX) {
+                    val px = ((sx * 2 + 1) * rw / (totalSampleX * 2)).coerceIn(0, rw - 1)
+                    val tx = (sx / (2 * samplesPerSub)).coerceIn(0, GRID_W - 1)
+                    val qx = (sx / samplesPerSub) and 1
+                    val subIdx = (ty * GRID_W + tx) * 4 + (qy * 2 + qx)
+                    val c = rowPixels[px]
+                    sumR[subIdx] += (c ushr 16) and 0xFF
+                    sumG[subIdx] += (c ushr 8) and 0xFF
+                    sumB[subIdx] += c and 0xFF
+                    counts[subIdx]++
+                }
+            }
+
+            val digest = MessageDigest.getInstance("SHA-256")
+            val header = ByteBuffer.allocate(24).order(ByteOrder.LITTLE_ENDIAN)
+            header.putInt(w).putInt(h).putInt(rx).putInt(ry).putInt(rw).putInt(rh)
+            digest.update(header.array(), 0, 24)
+
+            val quantBuf = ByteArray(numSub * 3)
+            for (i in 0 until numSub) {
+                val cnt = max(1, counts[i])
+                val r = sumR[i] / cnt
+                val g = sumG[i] / cnt
+                val b = sumB[i] / cnt
+                subR[i] = r
+                subG[i] = g
+                subB[i] = b
+                // Quantize by >> 4 (16-LSB buckets) for the compact hex hash string.
+                quantBuf[i * 3] = (r ushr 4).toByte()
+                quantBuf[i * 3 + 1] = (g ushr 4).toByte()
+                quantBuf[i * 3 + 2] = (b ushr 4).toByte()
+            }
+            digest.update(quantBuf)
+            val hex = digest.digest().take(6).joinToString("") { "%02x".format(it) }
+            return TileGridSignature(w, h, region, subR, subG, subB, hex)
+        }
+    }
+}
+
+/**
+ * Per-line crop cache that skips SVTR/CRNN recognition on text boxes whose
+ * position, dimensions, and `16×6` sampled luma grid are perceptually unchanged
+ * (`±5` mean LSB) across consecutive frames.
+ */
+internal class PerceptualLineCache(
+    private val maxEntries: Int = 256,
+) {
+    data class Entry(
+        val bbox: OcrBbox,
+        val lumaGrid: ByteArray,
+        val text: String,
+        val score: Float,
+    )
+
+    private val entries = ArrayList<Entry>(maxEntries)
+
+    @Synchronized
+    fun lookup(bbox: OcrBbox, lumaGrid: ByteArray): Pair<String, Float>? {
+        for (i in entries.indices.reversed()) {
+            val e = entries[i]
+            if (kotlin.math.abs(e.bbox.x - bbox.x) <= POS_TOLERANCE_PX &&
+                kotlin.math.abs(e.bbox.y - bbox.y) <= POS_TOLERANCE_PX &&
+                kotlin.math.abs(e.bbox.width - bbox.width) <= SIZE_TOLERANCE_PX &&
+                kotlin.math.abs(e.bbox.height - bbox.height) <= SIZE_TOLERANCE_PX &&
+                isLumaPerceptuallyEqual(e.lumaGrid, lumaGrid)
+            ) {
+                return e.text to e.score
+            }
+        }
+        return null
+    }
+
+    @Synchronized
+    fun put(bbox: OcrBbox, lumaGrid: ByteArray, text: String, score: Float) {
+        entries.removeAll { e ->
+            kotlin.math.abs(e.bbox.x - bbox.x) <= POS_TOLERANCE_PX &&
+                kotlin.math.abs(e.bbox.y - bbox.y) <= POS_TOLERANCE_PX &&
+                kotlin.math.abs(e.bbox.width - bbox.width) <= SIZE_TOLERANCE_PX &&
+                kotlin.math.abs(e.bbox.height - bbox.height) <= SIZE_TOLERANCE_PX
+        }
+        if (entries.size >= maxEntries) {
+            entries.removeAt(0)
+        }
+        entries.add(Entry(bbox, lumaGrid, text, score))
+    }
+
+    @Synchronized
+    fun clear() {
+        entries.clear()
+    }
+
+    companion object {
+        const val SAMPLE_W = 16
+        const val SAMPLE_H = 6
+        const val SAMPLE_COUNT = SAMPLE_W * SAMPLE_H
+        const val POS_TOLERANCE_PX = 4
+        const val SIZE_TOLERANCE_PX = 6
+        const val MAX_MEAN_LUMA_DIFF = 5
+        const val MAX_POINT_LUMA_DIFF = 12
+        const val MAX_OUTLIER_POINTS = 3
+
+        fun sampleLumaGrid(bitmap: Bitmap, box: OcrBbox): ByteArray {
+            val grid = ByteArray(SAMPLE_COUNT)
+            val bw = box.width.coerceAtLeast(1)
+            val bh = box.height.coerceAtLeast(1)
+            val row = IntArray(bw)
+            var idx = 0
+            for (gy in 0 until SAMPLE_H) {
+                val py = (box.y + ((gy * 2 + 1) * bh) / (SAMPLE_H * 2)).coerceIn(0, bitmap.height - 1)
+                val safeW = min(bw, bitmap.width - box.x.coerceIn(0, bitmap.width - 1))
+                if (safeW <= 0) break
+                bitmap.getPixels(row, 0, safeW, box.x.coerceIn(0, bitmap.width - 1), py, safeW, 1)
+                for (gx in 0 until SAMPLE_W) {
+                    val lx = (((gx * 2 + 1) * safeW) / (SAMPLE_W * 2)).coerceIn(0, safeW - 1)
+                    val px = row[lx]
+                    val r = (px ushr 16) and 0xFF
+                    val g = (px ushr 8) and 0xFF
+                    val b = px and 0xFF
+                    val luma = (r * 77 + g * 150 + b * 29) ushr 8
+                    grid[idx++] = luma.toByte()
+                }
+            }
+            return grid
+        }
+
+        fun isLumaPerceptuallyEqual(a: ByteArray, b: ByteArray): Boolean {
+            if (a.size != b.size) return false
+            var diffSum = 0
+            var outliers = 0
+            for (i in a.indices) {
+                val da = a[i].toInt() and 0xFF
+                val db = b[i].toInt() and 0xFF
+                val d = kotlin.math.abs(da - db)
+                diffSum += d
+                if (d > MAX_POINT_LUMA_DIFF) {
+                    outliers++
+                    if (outliers > MAX_OUTLIER_POINTS) return false
+                }
+            }
+            return diffSum <= MAX_MEAN_LUMA_DIFF * a.size
         }
     }
 }
@@ -174,6 +495,7 @@ class DefaultOcrEngineFactory @Inject constructor() : TextRecognizer.OcrEngineFa
         val env = OrtEnvironment.getEnvironment()
         val opts = OrtSession.SessionOptions().apply {
             setIntraOpNumThreads(4)
+            setOptimizationLevel(OrtSession.SessionOptions.OptLevel.ALL_OPT)
         }
         val detSession = env.createSession(detModel.absolutePath, opts)
         val recSession = env.createSession(recModel.absolutePath, opts)
@@ -199,6 +521,7 @@ internal class OnnxRapidOcrEngine(
 
     private val detInputName: String = detSession.inputNames.first()
     private val recInputName: String = recSession.inputNames.first()
+    private val lineCache = PerceptualLineCache()
 
     override fun detectAndRecognize(bitmap: Bitmap): List<OcrLineDetection> {
         val origW = bitmap.width
@@ -211,7 +534,7 @@ internal class OnnxRapidOcrEngine(
             bitmap.copy(Bitmap.Config.ARGB_8888, false)
         }
 
-        // 1. Resize for DBNet detection (multiple of 32, max side <= 1920).
+        // 1. Resize for DBNet detection (multiple of 32, max side <= 1280).
         val maxSide = max(origW, origH)
         val ratio = if (maxSide > DET_MAX_SIDE) DET_MAX_SIDE.toDouble() / maxSide else 1.0
         val detW = max(32, ((origW * ratio) / 32.0).roundToInt() * 32)
@@ -254,12 +577,23 @@ internal class OnnxRapidOcrEngine(
 
         // 2. Threshold + 2x2 dilation + 8-connected components + DBNet unclip.
         val rawBoxes = extractBoxes(probMap, detW, detH, origW, origH)
-        if (rawBoxes.isEmpty()) return emptyList()
+        if (rawBoxes.isEmpty()) {
+            if (srcBitmap !== bitmap) srcBitmap.recycle()
+            return emptyList()
+        }
 
-        // 3. Recognize each detected line box with SVTR/CRNN.
+        // 3. Recognize each detected line box with SVTR/CRNN, reusing cached
+        // line recognitions for boxes whose perceptual luma grid is unchanged.
         val detections = ArrayList<OcrLineDetection>(rawBoxes.size)
         for (box in rawBoxes) {
             if (box.width < 4 || box.height < 4) continue
+            val lumaGrid = PerceptualLineCache.sampleLumaGrid(srcBitmap, box)
+            val cached = lineCache.lookup(box, lumaGrid)
+            if (cached != null) {
+                detections.add(OcrLineDetection(box, cached.first, cached.second))
+                continue
+            }
+
             val crop = Bitmap.createBitmap(srcBitmap, box.x, box.y, box.width, box.height)
             val cropW = max(16, (REC_HEIGHT.toDouble() * box.width / box.height).roundToInt())
             val scaledCrop = if (crop.width == cropW && crop.height == REC_HEIGHT) {
@@ -321,6 +655,7 @@ internal class OnnxRapidOcrEngine(
                         val meanScore = scoreSum / charCount
                         val text = sb.toString()
                         if (text.isNotBlank()) {
+                            lineCache.put(box, lumaGrid, text, meanScore)
                             detections.add(OcrLineDetection(box, text, meanScore))
                         }
                     }
@@ -434,13 +769,14 @@ internal class OnnxRapidOcrEngine(
     }
 
     override fun close() {
+        lineCache.clear()
         runCatching { detSession.close() }
         runCatching { recSession.close() }
         runCatching { sessionOptions.close() }
     }
 
     private companion object {
-        const val DET_MAX_SIDE = 1920
+        const val DET_MAX_SIDE = 1280
         const val DET_THRESH = 0.3f
         const val BOX_THRESH = 0.5
         const val UNCLIP_RATIO = 1.6

@@ -235,15 +235,23 @@ class GlkvmClient private constructor(
     fun typeText(
         text: String,
         targetLayout: String? = null,
-        delay: Long = 20,
+        delay: Long = 4,
         isCancelled: () -> Boolean = { false },
     ) {
         if (text.isEmpty()) return
         val table = GlkvmLayout.tableFor(targetLayout)
         val unmappedRun = StringBuilder()
+        var shiftHeld = false
+        fun setShift(want: Boolean) {
+            if (shiftHeld != want) {
+                sendKey("ShiftLeft", want)
+                shiftHeld = want
+            }
+        }
         fun flushUnmapped(): Boolean {
             if (unmappedRun.isEmpty()) return true
             if (isCancelled()) return false
+            setShift(false)
             callText(
                 "POST",
                 "/api/hid/print",
@@ -253,22 +261,27 @@ class GlkvmClient private constructor(
             unmappedRun.setLength(0)
             return !isCancelled()
         }
-        for (ch in text) {
-            if (isCancelled()) return
-            val key = table[ch]
-            if (key != null) {
-                if (!flushUnmapped()) return
-                if (key.shift) sendKey("ShiftLeft", true)
-                sendKey(key.code, true)
-                if (delay > 0) Thread.sleep(delay / 2)
-                sendKey(key.code, false)
-                if (key.shift) sendKey("ShiftLeft", false)
-                if (delay > 0) Thread.sleep(delay)
-            } else {
-                unmappedRun.append(ch)
+        try {
+            for (ch in text) {
+                if (isCancelled()) return
+                val key = table[ch]
+                if (key != null) {
+                    if (!flushUnmapped()) return
+                    setShift(key.shift)
+                    sendKey(key.code, true)
+                    if (delay > 0) Thread.sleep(delay / 2)
+                    sendKey(key.code, false)
+                    if (delay > 0) Thread.sleep(delay)
+                } else {
+                    unmappedRun.append(ch)
+                }
+            }
+            flushUnmapped()
+        } finally {
+            if (shiftHeld) {
+                runCatching { sendKey("ShiftLeft", false) }
             }
         }
-        flushUnmapped()
     }
 
     /**

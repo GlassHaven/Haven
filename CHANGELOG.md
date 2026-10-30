@@ -5,6 +5,13 @@ the corresponding GitHub Release; a release can't ship without its section
 (enforced by `scripts/check-changelog.sh` in CI). The GitHub "Full Changelog"
 compare link is appended automatically — don't add it here.
 
+## v5.91.3
+
+- Detect BT.709 limited-range HDMI pillarbox black (`RGB <= 22`, chroma spread `<= 8`) in `GlkvmGeometry.detectPillarbox` and expose `activeLeftPx` and `activeWidthPx` in `capture_desktop_tab` and `inspect_desktop_tab` so GLKVM pointer mapping aligns with the active video region.
+- Add `returnScreenshot` and `settleMs` to `tap_desktop_tab`, `tap_desktop_text`, `type_desktop_text`, and `scroll_desktop_tab`, multi-point click sequences (`points`) to `tap_desktop_tab`, and `minX`/`maxX`/`minY`/`maxY` region bounds plus candidate match reporting to `tap_desktop_text` and `inspect_desktop_tab`.
+- Preserve GLKVM, SPICE, email, AI route, and session command fields in `BackupService` export/import and report protocol-specific stored passwords in `list_connections`.
+- Improve `GlkvmClient.typeText` Shift state coalescing and `TextRecognizer` multi-tile desktop OCR coverage.
+
 ## v5.91.2
 
 - Fix Desktop viewer (`RdpViewer` and `VncViewer`) stealing focus and scrolling `HorizontalPager` to the Desktop tab when the soft keyboard is dismissed on another tab (such as Terminal).

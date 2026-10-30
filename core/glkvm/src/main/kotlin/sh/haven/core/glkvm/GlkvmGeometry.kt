@@ -104,6 +104,27 @@ object GlkvmGeometry {
      * down ≈ device delta_y = -3 (and +3 up). One POST per notch.
      */
     const val WHEEL_STEP = 3
+
+    /**
+     * Max per-channel intensity (0..255) considered HDMI black in JPEG pillarbox bars.
+     * Studio/limited-range HDMI video (BT.709 / YCbCr 16..235) encodes black at
+     * RGB(16, 16, 16), with 4:2:0 JPEG ringing up to ~21 on the 1–2px border transition.
+     */
+    const val PILLARBOX_BLACK_MAX = 22
+
+    /**
+     * Max RGB channel spread (`max(r,g,b) - min(r,g,b)`) for HDMI black pillarbox bars,
+     * rejecting dark tinted desktop UI while tolerating JPEG chroma subsampling ringing.
+     */
+    const val PILLARBOX_CHROMA_SPREAD_MAX = 8
+
+    /** True when `(r, g, b)` (`0..255`) is full-range or studio-range HDMI black. */
+    fun isPillarboxBlackRgb(r: Int, g: Int, b: Int): Boolean {
+        val maxCh = maxOf(r, maxOf(g, b))
+        if (maxCh > PILLARBOX_BLACK_MAX) return false
+        val minCh = minOf(r, minOf(g, b))
+        return (maxCh - minCh) <= PILLARBOX_CHROMA_SPREAD_MAX
+    }
 }
 
 /**

@@ -148,4 +148,22 @@ class GlkvmTypeTextTest {
         val keyDowns = synchronized(sent) { sent.filter { it.first == "key" && it.third == "1" } }
         assertEquals(2, keyDowns.size)
     }
+
+    @Test
+    fun `consecutive shifted chars hold ShiftLeft across the run`() {
+        client.typeText("PRa", delay = 0)
+        assertEquals(
+            listOf(
+                Triple("key", "ShiftLeft", "1"),
+                Triple("key", "KeyP", "1"),
+                Triple("key", "KeyP", "0"),
+                Triple("key", "KeyR", "1"),
+                Triple("key", "KeyR", "0"),
+                Triple("key", "ShiftLeft", "0"),
+                Triple("key", "KeyA", "1"),
+                Triple("key", "KeyA", "0"),
+            ),
+            synchronized(sent) { sent.toList() },
+        )
+    }
 }

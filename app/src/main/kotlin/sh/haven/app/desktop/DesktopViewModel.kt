@@ -1627,7 +1627,6 @@ class DesktopViewModel @Inject constructor(
             is DesktopTab.Rdp -> tab.profileId
             is DesktopTab.Spice -> tab.profileId
             is DesktopTab.Glkvm -> tab.profileId
-            is DesktopTab.Glkvm -> tab.profileId
             else -> null
         }
         if (profileId != null) {
@@ -1955,6 +1954,7 @@ class DesktopViewModel @Inject constructor(
                         },
                         mouseWheel = { deltaY -> if (!newTab._viewOnly.value) newTab.remoteDesktop.sendMouseWheel(deltaY) },
                         clipboard = { text -> if (!newTab._viewOnly.value) newTab.remoteDesktop.sendClipboardText(text) },
+                        typeText = { text -> if (!newTab._viewOnly.value) client.typeText(text) },
                         mouseButton = { button, pressed ->
                             if (!newTab._viewOnly.value) newTab.remoteDesktop.sendMouseButton(button, pressed)
                         },
@@ -2244,6 +2244,18 @@ class DesktopViewModel @Inject constructor(
                         },
                         mouseWheel = { deltaY -> tab.remoteDesktop.sendMouseWheel(deltaY) },
                         clipboard = { text -> tab.remoteDesktop.sendClipboardText(text) },
+                        typeText = { text ->
+                            for (ch in text) {
+                                sh.haven.feature.rdp.typeRdpChar(
+                                    ch = ch,
+                                    sendKey = { sc, pressed -> session.sendKey(sc, pressed) },
+                                    sendUnicode = { codepoint ->
+                                        session.sendUnicodeKey(codepoint, true)
+                                        session.sendUnicodeKey(codepoint, false)
+                                    },
+                                )
+                            }
+                        },
                         mouseButton = { button, pressed -> tab.remoteDesktop.sendMouseButton(button, pressed) },
                     ),
                 )
@@ -2437,6 +2449,15 @@ class DesktopViewModel @Inject constructor(
                         },
                         mouseWheel = { deltaY -> tab.remoteDesktop.sendMouseWheel(deltaY) },
                         clipboard = { text -> tab.remoteDesktop.sendClipboardText(text) },
+                        typeText = { text ->
+                            for (ch in text) {
+                                sh.haven.feature.rdp.typeRdpChar(
+                                    ch = ch,
+                                    sendKey = { sc, pressed -> session.sendKey(sc, pressed) },
+                                    sendUnicode = { /* SPICE has no unicode-key verb */ },
+                                )
+                            }
+                        },
                         mouseButton = { button, pressed -> tab.remoteDesktop.sendMouseButton(button, pressed) },
                     ),
                 )
@@ -2630,6 +2651,11 @@ class DesktopViewModel @Inject constructor(
                         frame = { frame.value },
                         cursor = { null },
                         pointer = { pointerPos.value },
+                        refreshFrame = { force ->
+                            session.refreshFrameIfNeeded(force = force)
+                            frame.value
+                        },
+                        activeBounds = { session.activeLeftPx to session.activeWidthPx },
                     ),
                 )
                 desktopSessionRegistry.registerInputHandle(

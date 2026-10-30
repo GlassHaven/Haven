@@ -42,6 +42,7 @@ internal class DesktopToolProvider(
 
     private val prootManager get() = localSessionManager.prootManager
     private val systemVmManager get() = localSessionManager.systemVmManager
+    private val lastInspectedIndex = java.util.concurrent.ConcurrentHashMap<String, OcrScreenIndex>()
 
     override fun tools(): Map<String, ToolHandler> = linkedMapOf(
         "list_desktop_sessions" to ToolHandler(
@@ -210,11 +211,16 @@ internal class DesktopToolProvider(
         ) { args -> captureDesktop(args) },
 
         "capture_desktop_tab" to ToolHandler(
-            description = "Capture what a remote-desktop VIEWER tab (RDP, VNC, SPICE, or GLKVM) is actually rendering, INLINE as an image — the framebuffer the user sees, with the server cursor composited on top at the tracked pointer position. This is distinct from capture_desktop, which screenshots an in-guest X11/VNC desktop; this one captures the RDP/VNC/SPICE client viewer (e.g. to verify colours and the cursor against a remote Windows/Linux server). Pass profileId to pick a tab (from list_desktop_sessions); omit it when exactly one desktop tab is open. Returns the image plus { profileId, protocol, width, height, hasCursor, cursorWidth?, cursorHeight?, hotspotX?, hotspotY?, pointerX?, pointerY?, format }.",
+            description = "Capture what a remote-desktop VIEWER tab (RDP, VNC, SPICE, or GLKVM) is actually rendering, INLINE as an image — the framebuffer the user sees, with the server cursor composited on top at the tracked pointer position. This is distinct from capture_desktop, which screenshots an in-guest X11/VNC desktop; this one captures the RDP/VNC/SPICE client viewer (e.g. to verify colours and the cursor against a remote Windows/Linux server). Optionally pass regionX/regionY/regionWidth/regionHeight to crop to a specific region of interest. Pass profileId to pick a tab (from list_desktop_sessions); omit it when exactly one desktop tab is open. Returns the image plus { profileId, protocol, width, height, imageWidth, imageHeight, region?, hasCursor, cursorWidth?, cursorHeight?, hotspotX?, hotspotY?, pointerX?, pointerY?, format }.",
             inputSchema = objectSchema {
                 string("profileId", "Profile id of the desktop tab (from list_desktop_sessions). Omit when exactly one tab is open.")
                 integer("maxWidth", "Downscale so the image is at most this many pixels wide. Default 1280 (clamped 160–4096).")
                 string("format", "\"jpeg\" (default, smaller) or \"png\" (lossless, larger).")
+                boolean("forceRefresh", "For poll-based protocols (GLKVM), force a fresh snapshot pull even if no input occurred since the last frame. Default false.")
+                integer("regionX", "Optional crop region left X in full framebuffer pixels.")
+                integer("regionY", "Optional crop region top Y in full framebuffer pixels.")
+                integer("regionWidth", "Optional crop region width in framebuffer pixels.")
+                integer("regionHeight", "Optional crop region height in framebuffer pixels.")
             },
             consentLevel = ConsentLevel.ONCE_PER_SESSION,
             summarise = { args ->
@@ -225,39 +231,62 @@ internal class DesktopToolProvider(
         ) { args -> captureDesktopTab(args) },
 
         "tap_desktop_tab" to ToolHandler(
-            description = "Click a point on a remote-desktop VIEWER tab (RDP/VNC/SPICE/GLKVM) — inject a mouse click into the remote server. Coordinates are in the REMOTE framebuffer's pixel space (the same space capture_desktop_tab and inspect_desktop_tab report: 0..width, 0..height), NOT Haven's own UI (that's tap_haven_ui). Pass profileId to pick a tab (from list_desktop_sessions); omit when exactly one desktop tab is open. Buttons follow X11: 1=left (default), 2=middle, 3=right. Pass clicks=2 for a double-click. Returns { profileId, protocol, x, y, button, clicks }.",
+            description = "Click one or more points on a remote-desktop VIEWER tab (RDP/VNC/SPICE/GLKVM) — inject mouse clicks into the remote server. Coordinates are in the REMOTE framebuffer's pixel space (the same space capture_desktop_tab and inspect_desktop_tab report: 0..width, 0..height), NOT Haven's own UI (that's tap_haven_ui). Pass either (x, y) for a single target or points=[{x, y, button?, clicks?, delayMs?}, ...] to click a sequence of points in one round-trip (e.g. selecting multiple checkboxes and closing a dropdown). Set inspectAfter=\"diff\" (or \"lines\"/\"at\") to wait settleMs and return the post-click RapidOCR screen diff/observation in the same call, or returnScreenshot=true to return a fresh screenshot inline. Buttons follow X11: 1=left (default), 2=middle, 3=right. Pass clicks=2 for a double-click. Returns { profileId, protocol, x, y, button, clicks, pointsClicked?, inspection? }.",
             inputSchema = objectSchema {
                 string("profileId", "Profile id of the desktop tab (from list_desktop_sessions). Omit when exactly one is open.")
-                integer("x", "Remote framebuffer X (0..width from capture_desktop_tab).", required = true)
-                integer("y", "Remote framebuffer Y (0..height from capture_desktop_tab).", required = true)
+                integer("x", "Remote framebuffer X (0..width from capture_desktop_tab). Required unless points is provided.")
+                integer("y", "Remote framebuffer Y (0..height from capture_desktop_tab). Required unless points is provided.")
                 integer("button", "X11 button: 1=left (default), 2=middle, 3=right.")
                 integer("clicks", "Number of clicks: 1=single click (default), 2=double-click (clamped 1..3).")
+                objectArray("points", "Optional sequence of points to click in order (1..20 items). Each item specifies {x, y, button?, clicks?, delayMs?}.") {
+                    integer("x", "Remote framebuffer X.", required = true)
+                    integer("y", "Remote framebuffer Y.", required = true)
+                    integer("button", "Optional X11 button (default inherits top-level button or 1).")
+                    integer("clicks", "Optional click count 1..3 (default inherits top-level clicks or 1).")
+                    integer("delayMs", "Optional delay in ms before this click (default 80ms for subsequent points, clamped 0..5000).")
+                }
+                string("inspectAfter", "Optional post-click RapidOCR inspection mode to run after settleMs: \"none\" (default), \"diff\" (added/removed lines vs before the click), \"lines\" (compact line list), \"at\", or \"tree\".", enum = listOf("none", "diff", "lines", "at", "tree"))
+                boolean("returnScreenshot", "If true, wait settleMs after clicking and return a fresh screenshot inline. Default false.")
+                integer("settleMs", "Milliseconds to wait before post-action inspection/screenshot. Default 250 (clamped 0..5000).")
             },
             consentLevel = ConsentLevel.ONCE_PER_SESSION,
             summarise = { args ->
                 val pid = args.optString("profileId").takeIf { it.isNotBlank() }
                 val who = if (pid != null) "desktop '${ctx.profileLabel(pid)}'" else "the open remote desktop"
-                val clicks = args.optInt("clicks", 1).coerceIn(1, 3)
-                val verb = if (clicks == 2) "Double-click" else "Click"
-                "$verb (${args.optInt("x")},${args.optInt("y")}) on $who"
+                val pts = args.optJSONArray("points")
+                if (pts != null && pts.length() > 0) {
+                    "Click ${pts.length()} point(s) on $who"
+                } else {
+                    val clicks = args.optInt("clicks", 1).coerceIn(1, 3)
+                    val verb = if (clicks == 2) "Double-click" else "Click"
+                    "$verb (${args.optInt("x")},${args.optInt("y")}) on $who"
+                }
             },
         ) { args -> tapDesktopTab(args) },
 
         "inspect_desktop_tab" to ToolHandler(
-            description = "Run RapidOCR + a 2D k-d tree spatial index over a remote-desktop VIEWER tab (VNC, RDP, SPICE, or GLKVM) in full framebuffer pixel coordinates (matching tap_desktop_tab). Reuses the cached index when the framebuffer SHA-256 is unchanged unless forceRefresh=true. Also reports recentUserInteractions (with 2D k-d tree OCR lookup at each user click/scroll/move coordinate) and userInteractedSinceLastAgentAction so the agent can detect user collaboration or intervention on the shared session. Supports three query modes: (1) Coordinate k-d tree lookup (pass x and y, or mode=\"at\" to inspect the current pointer position): returns elements whose bounding box contains (x,y) plus the k nearest elements from the 2D k-d tree with centerDistance, rectDistance, and signed (dx,dy) offsets; (2) Text-to-coordinate lookup (pass query): returns matching words/lines (substring or exact=true, including narrow-kerning space-insensitive matches), optionally disambiguated by Euclidean distance to (nearX,nearY) when multiple identical labels exist on screen, along with each match's k nearest spatial neighbors from the 2D k-d tree; (3) Full screen tree (omit query and x/y): returns all blocks -> lines -> words with bounding boxes [x,y,width,height] and click centers [cx,cy].",
+            description = "Run RapidOCR + a 2D k-d tree spatial index over a remote-desktop VIEWER tab (VNC, RDP, SPICE, or GLKVM) in full framebuffer pixel coordinates (matching tap_desktop_tab). Uses perceptual tile-grid caching to ignore HDMI/JPEG noise and GLKVM hardware mouse-wobbler motion outside text boxes, plus per-line crop caching so partial screen updates only re-recognize changed lines. Pass regionX/regionY/regionWidth/regionHeight to restrict OCR to a region of interest while keeping coordinates in full-framebuffer space. Supports five query modes: (1) mode=\"at\" (or pass x and y): coordinate k-d tree lookup returning containing elements and k nearest neighbors; (2) mode=\"find\" (or pass query): text search (substring or exact=true, optionally restricted to minX..maxX / minY..maxY and ranked by nearX/nearY); (3) mode=\"lines\": compact flat list of detected lines [{id, text, score, bbox, center}] without per-word repetition; (4) mode=\"diff\": returns only addedLines, removedLines, and unchangedLineCount compared to the previous inspection on this tab; (5) mode=\"tree\" (default when no query or x/y given): full blocks -> lines -> words hierarchy.",
             inputSchema = objectSchema {
                 string("profileId", "Profile id of the desktop tab (from list_desktop_sessions). Omit when exactly one tab is open.")
-                string("mode", "Query mode: \"auto\" (default: coordinate lookup if x/y set, text search if query set, else full tree), \"at\" (coordinate k-d tree lookup at x,y or the current pointer if x/y omitted), \"find\" (text search for query), or \"tree\" (full blocks/lines/words hierarchy).", enum = listOf("auto", "at", "find", "tree"))
+                string("mode", "Query mode: \"auto\" (default: coordinate lookup if x/y set, text search if query set, else full tree), \"at\", \"find\", \"lines\" (compact line list without word bloat), \"diff\" (added/removed lines since previous inspection), or \"tree\".", enum = listOf("auto", "at", "find", "lines", "diff", "tree"))
                 integer("x", "Framebuffer X coordinate for 2D k-d tree nearest-neighbor / containment lookup.")
                 integer("y", "Framebuffer Y coordinate for 2D k-d tree nearest-neighbor / containment lookup.")
                 string("query", "Text to search for (case-insensitive substring by default, or full match when exact=true).")
                 boolean("exact", "Require exact normalized text equality for query instead of substring match. Default false.")
                 integer("nearX", "Optional anchor X coordinate to disambiguate multiple text matches by proximity.")
                 integer("nearY", "Optional anchor Y coordinate to disambiguate multiple text matches by proximity.")
+                integer("minX", "Optional minimum center X coordinate for text matches.")
+                integer("maxX", "Optional maximum center X coordinate for text matches.")
+                integer("minY", "Optional minimum center Y coordinate for text matches (e.g. minY=160 to skip browser tab/address bars).")
+                integer("maxY", "Optional maximum center Y coordinate for text matches.")
+                integer("regionX", "Optional ROI crop left X in full framebuffer pixels (all returned bboxes remain in full-framebuffer coordinates).")
+                integer("regionY", "Optional ROI crop top Y in full framebuffer pixels.")
+                integer("regionWidth", "Optional ROI crop width in framebuffer pixels.")
+                integer("regionHeight", "Optional ROI crop height in framebuffer pixels.")
                 integer("k", "Number of nearest 2D k-d tree neighbors to return (for coordinate lookup or per text match). Default 5 (clamped 0..50).")
                 integer("maxRadius", "Optional maximum distance in pixels for k-d tree neighbor search.")
                 string("level", "Filter detections by granularity: \"all\" (default), \"word\", or \"line\".", enum = listOf("all", "word", "line"))
-                boolean("forceRefresh", "Force a fresh RapidOCR pass even if the framebuffer hash matches the cached index. Default false.")
+                boolean("forceRefresh", "Force a fresh RapidOCR pass even if the framebuffer perceptually matches the cached index. Default false.")
             },
             consentLevel = ConsentLevel.ONCE_PER_SESSION,
             summarise = { args ->
@@ -268,13 +297,21 @@ internal class DesktopToolProvider(
         ) { args -> inspectDesktopTab(args) },
 
         "tap_desktop_text" to ToolHandler(
-            description = "Find visible text on a remote-desktop VIEWER tab (VNC, RDP, SPICE, or GLKVM) using RapidOCR + the 2D k-d tree index and click its bounding-box center or edge anchor (plus optional dx,dy offset). When multiple identical labels exist on screen (e.g. several 'Close' or 'OK' buttons), pass nearX and nearY to click the match closest to that anchor coordinate, or pass nth (0-based) to select by rank. Set anchor=\"right\" (plus e.g. dx=12) to click a split-button dropdown chevron or icon adjacent to a label without manual width math. Supports single or double click (clicks=2) and left/middle/right mouse buttons (button=1/2/3). Returns the clicked (x,y), the matched OCR node, its k-d tree spatial neighbors, and total match count.",
+            description = "Find visible text on a remote-desktop VIEWER tab (VNC, RDP, SPICE, or GLKVM) using RapidOCR + the 2D k-d tree index and click its bounding-box center or edge anchor (plus optional dx,dy offset). Pass minX/maxX/minY/maxY to restrict matching to a screen region (e.g. minY=160 to ignore browser tabs), or regionX/regionY/regionWidth/regionHeight to run OCR only on a region of interest. When multiple identical labels exist on screen, pass nearX and nearY to click the match closest to that anchor coordinate, or pass nth (0-based) to select by rank. Set anchor=\"right\" (plus e.g. dx=12) to click a split-button dropdown chevron or icon adjacent to a label. Set inspectAfter=\"diff\" (or \"lines\") to wait settleMs and return the post-click OCR diff/observation in a single round-trip, or returnScreenshot=true to return a screenshot inline. Returns the clicked (x,y), the matched OCR node, its k-d tree spatial neighbors, total match count, candidates, and optional inspection.",
             inputSchema = objectSchema {
                 string("profileId", "Profile id of the desktop tab (from list_desktop_sessions). Omit when exactly one is open.")
                 string("query", "Visible text label to find and click.", required = true)
                 boolean("exact", "Require exact normalized text match instead of substring match. Default false.")
                 integer("nearX", "Optional anchor X to rank matches by proximity.")
                 integer("nearY", "Optional anchor Y to rank matches by proximity.")
+                integer("minX", "Optional minimum center X coordinate for matching text.")
+                integer("maxX", "Optional maximum center X coordinate for matching text.")
+                integer("minY", "Optional minimum center Y coordinate for matching text (e.g. minY=160 to skip browser tab/address bars).")
+                integer("maxY", "Optional maximum center Y coordinate for matching text.")
+                integer("regionX", "Optional ROI crop left X in full framebuffer pixels.")
+                integer("regionY", "Optional ROI crop top Y in full framebuffer pixels.")
+                integer("regionWidth", "Optional ROI crop width in framebuffer pixels.")
+                integer("regionHeight", "Optional ROI crop height in framebuffer pixels.")
                 integer("nth", "0-based index among ranked matches to click. Default 0 (best/closest match).")
                 string("anchor", "Point on the matched bounding box before applying (dx,dy): \"center\" (default), \"left\", \"right\", \"top\", or \"bottom\".", enum = listOf("center", "left", "right", "top", "bottom"))
                 integer("dx", "Horizontal pixel offset added to the anchor X before clicking. Default 0.")
@@ -283,6 +320,9 @@ internal class DesktopToolProvider(
                 integer("clicks", "Number of clicks: 1=single click (default), 2=double-click (clamped 1..3).")
                 string("level", "Granularity to match: \"all\" (default, prefers tight word boxes), \"word\", or \"line\".", enum = listOf("all", "word", "line"))
                 boolean("forceRefresh", "Force a fresh RapidOCR pass before matching. Default false.")
+                string("inspectAfter", "Optional post-click RapidOCR inspection mode to run after settleMs: \"none\" (default), \"diff\" (added/removed lines vs before the click), \"lines\", \"at\", or \"tree\".", enum = listOf("none", "diff", "lines", "at", "tree"))
+                boolean("returnScreenshot", "If true, wait settleMs after clicking and return a fresh screenshot inline. Default false.")
+                integer("settleMs", "Milliseconds to wait before post-action inspection/screenshot. Default 250 (clamped 0..5000).")
             },
             consentLevel = ConsentLevel.ONCE_PER_SESSION,
             summarise = { args ->
@@ -328,16 +368,20 @@ internal class DesktopToolProvider(
         ) { args -> dragDesktopTab(args) },
 
         "type_desktop_text" to ToolHandler(
-            description = "Type text or send special keys/shortcuts into a remote-desktop VIEWER tab as real keystrokes (GLKVM HID). Pass text to type characters (with optional pressEnter=true to tap Enter after typing), or pass key (e.g. \"Enter\", \"Tab\", \"Escape\", \"Backspace\", \"Delete\", \"Space\", \"ArrowDown\", \"ArrowUp\", \"ArrowLeft\", \"ArrowRight\", \"Home\", \"End\", \"PageUp\", \"PageDown\", or \"a\"..\"z\" / \"KeyA\"..\"KeyZ\") with optional ctrl/alt/shift/meta modifiers (e.g. key=\"a\", ctrl=true for Ctrl+A; key=\"v\", ctrl=true for Ctrl+V). Pass profileId to pick a tab (from list_desktop_sessions); omit when exactly one is open.",
+            description = "Type text or send special keys/shortcuts into a remote-desktop VIEWER tab as real keystrokes (GLKVM/VNC/RDP/SPICE). Pass text to type characters (with optional pressEnter=true to tap Enter after typing), or pass key (e.g. \"Enter\", \"Tab\", \"Escape\", \"Backspace\", \"Delete\", \"Space\", \"ArrowDown\", \"ArrowUp\", \"ArrowLeft\", \"ArrowRight\", \"Home\", \"End\", \"PageUp\", \"PageDown\", or \"a\"..\"z\" / \"KeyA\"..\"KeyZ\") with optional ctrl/alt/shift/meta modifiers and optional repeat (e.g. key=\"PageUp\", repeat=3 to scroll up 3 pages). Set inspectAfter=\"diff\" (or \"lines\") to wait settleMs and return the post-typing OCR diff/observation in the same call, or returnScreenshot=true to return a fresh screenshot inline. Pass profileId to pick a tab (from list_desktop_sessions); omit when exactly one is open.",
             inputSchema = objectSchema {
                 string("profileId", "Profile id (from list_desktop_sessions). Omit when exactly one is open.")
                 string("text", "Text to type as keystrokes. Optional when key is provided.")
                 string("key", "Optional special key or key code to tap (e.g. \"Enter\", \"Tab\", \"Escape\", \"Backspace\", \"Delete\", \"ArrowDown\", \"ArrowUp\", \"ArrowLeft\", \"ArrowRight\", \"a\", \"v\", \"KeyA\").")
+                integer("repeat", "Number of times to tap key when key is provided. Default 1 (clamped 1..50).")
                 boolean("ctrl", "Hold ControlLeft while tapping key. Default false.")
                 boolean("alt", "Hold AltLeft while tapping key. Default false.")
                 boolean("shift", "Hold ShiftLeft while tapping key. Default false.")
                 boolean("meta", "Hold MetaLeft (Windows/Super) while tapping key. Default false.")
                 boolean("pressEnter", "Tap Enter after typing text. Default false.")
+                string("inspectAfter", "Optional post-typing RapidOCR inspection mode to run after settleMs: \"none\" (default), \"diff\" (added/removed lines vs before typing), \"lines\", \"at\", or \"tree\".", enum = listOf("none", "diff", "lines", "at", "tree"))
+                boolean("returnScreenshot", "If true, wait settleMs after typing and return a fresh screenshot inline. Default false.")
+                integer("settleMs", "Milliseconds to wait before post-action inspection/screenshot. Default 250 (clamped 0..5000).")
             },
             consentLevel = ConsentLevel.ONCE_PER_SESSION,
             summarise = { args ->
@@ -353,10 +397,15 @@ internal class DesktopToolProvider(
         ) { args -> typeDesktopText(args) },
 
         "scroll_desktop_tab" to ToolHandler(
-            description = "Scroll a remote-desktop VIEWER tab (RDP/VNC/SPICE/GLKVM) by injecting mouse-wheel notches into the remote server. deltaY > 0 scrolls down, < 0 scrolls up; magnitude is the number of notches. Pass profileId to pick a tab (from list_desktop_sessions); omit when exactly one is open. Returns { profileId, protocol, deltaY }.",
+            description = "Scroll a remote-desktop VIEWER tab (RDP/VNC/SPICE/GLKVM) by injecting mouse-wheel notches into the remote server. deltaY > 0 scrolls down, < 0 scrolls up; magnitude is the number of notches. Optionally pass x and y to position the pointer over the target pane before scrolling, set inspectAfter=\"diff\" (or \"lines\") to wait settleMs and return the post-scroll OCR diff/observation, or set returnScreenshot=true to return a fresh screenshot inline. Pass profileId to pick a tab (from list_desktop_sessions); omit when exactly one is open. Returns { profileId, protocol, deltaY, x?, y?, inspection? }.",
             inputSchema = objectSchema {
                 string("profileId", "Profile id (from list_desktop_sessions). Omit when exactly one is open.")
                 integer("deltaY", "Wheel notches: >0 scrolls down, <0 scrolls up.", required = true)
+                integer("x", "Optional remote framebuffer X to move the pointer to before scrolling.")
+                integer("y", "Optional remote framebuffer Y to move the pointer to before scrolling.")
+                string("inspectAfter", "Optional post-scroll RapidOCR inspection mode to run after settleMs: \"none\" (default), \"diff\" (added/removed lines vs before scrolling), \"lines\", \"at\", or \"tree\".", enum = listOf("none", "diff", "lines", "at", "tree"))
+                boolean("returnScreenshot", "If true, wait settleMs after scrolling and return a fresh screenshot inline. Default false.")
+                integer("settleMs", "Milliseconds to wait before post-action inspection/screenshot. Default 250 (clamped 0..5000).")
             },
             consentLevel = ConsentLevel.ONCE_PER_SESSION,
             summarise = { args ->
@@ -848,7 +897,7 @@ internal class DesktopToolProvider(
         )
     }
 
-    private suspend fun captureDesktopTab(args: JSONObject): ToolResult {
+    private suspend fun captureDesktopTab(args: JSONObject): ToolResult.Image {
         val explicitPid = args.optString("profileId").takeIf { it.isNotBlank() }
         val handles = desktopSessionRegistry.frameHandles()
         val pid = explicitPid ?: when (handles.size) {
@@ -861,7 +910,10 @@ internal class DesktopToolProvider(
         }
         val handle = desktopSessionRegistry.frameHandle(pid)
             ?: throw McpError(-32602, "No capturable desktop tab for profile '$pid' (call list_desktop_sessions).")
-        val src = handle.frame()
+        val forceRefresh = args.optBoolean("forceRefresh", false)
+        val src = (handle.refreshFrame?.let { refresh ->
+            withContext(Dispatchers.IO) { refresh(forceRefresh) }
+        } ?: handle.frame())
             ?: throw McpError(-32603, "Desktop '$pid' has not rendered a frame yet — wait for it to connect.")
 
         val maxWidth = args.optInt("maxWidth", 1280).coerceIn(160, 4096)
@@ -869,8 +921,17 @@ internal class DesktopToolProvider(
 
         val cursor = handle.cursor()
         val (px, py) = handle.pointer()
+        val reqRegion = parseRegionArg(args, src.width, src.height)
 
-        val (b64, w, h) = withContext(Dispatchers.Default) {
+        data class EncodedCapture(
+            val base64: String,
+            val fullW: Int,
+            val fullH: Int,
+            val imgW: Int,
+            val imgH: Int,
+        )
+
+        val encoded = withContext(Dispatchers.Default) {
             // Composite the cursor onto a mutable copy so the source frame
             // (shared with the live viewer) is never mutated.
             var bmp = src.copy(Bitmap.Config.ARGB_8888, true)
@@ -884,17 +945,26 @@ internal class DesktopToolProvider(
             }
             val fullW = bmp.width
             val fullH = bmp.height
+            if (reqRegion != null &&
+                (reqRegion.x != 0 || reqRegion.y != 0 || reqRegion.width != fullW || reqRegion.height != fullH)
+            ) {
+                val cropped = Bitmap.createBitmap(bmp, reqRegion.x, reqRegion.y, reqRegion.width, reqRegion.height)
+                if (cropped !== bmp) bmp.recycle()
+                bmp = cropped
+            }
             if (maxWidth in 1 until bmp.width) {
                 val nh = (bmp.height.toFloat() * maxWidth / bmp.width).toInt().coerceAtLeast(1)
                 bmp = Bitmap.createScaledBitmap(bmp, maxWidth, nh, true)
             }
+            val imgW = bmp.width
+            val imgH = bmp.height
             val out = java.io.ByteArrayOutputStream()
             if (format == "jpeg") {
                 bmp.compress(Bitmap.CompressFormat.JPEG, 75, out)
             } else {
                 bmp.compress(Bitmap.CompressFormat.PNG, 100, out)
             }
-            Triple(Base64.encodeToString(out.toByteArray(), Base64.NO_WRAP), fullW, fullH)
+            EncodedCapture(Base64.encodeToString(out.toByteArray(), Base64.NO_WRAP), fullW, fullH, imgW, imgH)
         }
 
         val lastAgentAt = desktopSessionRegistry.lastAgentActionAt(pid)
@@ -904,28 +974,126 @@ internal class DesktopToolProvider(
             lastAgentAt == null || u.timestampMs > lastAgentAt
         }
         desktopSessionRegistry.recordAgentAction(pid, nowMs)
+        val activeBounds = handle.activeBounds?.invoke()
 
         return ToolResult.Image(
-            base64 = b64,
+            base64 = encoded.base64,
             mimeType = if (format == "jpeg") "image/jpeg" else "image/png",
             structured = JSONObject().apply {
                 put("profileId", pid)
                 put("protocol", handle.protocol)
-                put("width", w)
-                put("height", h)
+                put("width", encoded.fullW)
+                put("height", encoded.fullH)
+                put("imageWidth", encoded.imgW)
+                put("imageHeight", encoded.imgH)
+                if (reqRegion != null) {
+                    put("region", bboxToJson(reqRegion))
+                }
+                put("pointerX", px)
+                put("pointerY", py)
+                if (activeBounds != null) {
+                    put("activeLeftPx", activeBounds.first)
+                    put("activeWidthPx", activeBounds.second)
+                }
                 put("hasCursor", cursor != null)
                 if (cursor != null) {
                     put("cursorWidth", cursor.bitmap.width)
                     put("cursorHeight", cursor.bitmap.height)
                     put("hotspotX", cursor.hotspotX)
                     put("hotspotY", cursor.hotspotY)
-                    put("pointerX", px)
-                    put("pointerY", py)
                 }
                 put("format", format)
                 put("userInteractedSinceLastAgentAction", userInteractedSinceLastAgent)
             },
         )
+    }
+
+    private fun parseRegionArg(args: JSONObject, frameW: Int, frameH: Int): OcrBbox? {
+        val hasX = args.has("regionX") && !args.isNull("regionX")
+        val hasY = args.has("regionY") && !args.isNull("regionY")
+        val hasW = args.has("regionWidth") && !args.isNull("regionWidth")
+        val hasH = args.has("regionHeight") && !args.isNull("regionHeight")
+        if (!hasX && !hasY && !hasW && !hasH) return null
+        if (frameW <= 0 || frameH <= 0) return null
+        val rx = (if (hasX) args.getInt("regionX") else 0).coerceIn(0, (frameW - 1).coerceAtLeast(0))
+        val ry = (if (hasY) args.getInt("regionY") else 0).coerceIn(0, (frameH - 1).coerceAtLeast(0))
+        val rw = (if (hasW) args.getInt("regionWidth") else frameW - rx).coerceIn(1, (frameW - rx).coerceAtLeast(1))
+        val rh = (if (hasH) args.getInt("regionHeight") else frameH - ry).coerceIn(1, (frameH - ry).coerceAtLeast(1))
+        return if (rw >= 4 && rh >= 4) OcrBbox(rx, ry, rw, rh) else null
+    }
+
+    private suspend fun maybeCapturePreActionBaseline(pid: String, args: JSONObject) {
+        val inspectAfter = args.optString("inspectAfter", "none").trim().lowercase()
+        if (inspectAfter != "diff" || textRecognizer == null) return
+        val fh = desktopSessionRegistry.frameHandle(pid) ?: return
+        runCatching {
+            lastInspectedIndex[pid] = buildOrGetOcrIndex(pid, fh, forceRefresh = false, args = args)
+        }
+    }
+
+    private suspend fun maybeWithPostAction(
+        pid: String,
+        args: JSONObject,
+        structured: JSONObject,
+    ): Any {
+        val inspectAfter = args.optString("inspectAfter", "none").trim().lowercase()
+        val wantInspect = inspectAfter.isNotEmpty() && inspectAfter != "none"
+        val wantScreenshot = args.optBoolean("returnScreenshot", false)
+        if (!wantInspect && !wantScreenshot) return structured
+
+        val settleMs = args.optInt("settleMs", 250).coerceIn(0, 5000)
+        if (settleMs > 0) kotlinx.coroutines.delay(settleMs.toLong())
+
+        if (wantInspect && textRecognizer != null && desktopSessionRegistry.frameHandle(pid) != null) {
+            val inspectArgs = JSONObject().apply {
+                put("profileId", pid)
+                put("mode", inspectAfter)
+                put("forceRefresh", true)
+                for (k in listOf("regionX", "regionY", "regionWidth", "regionHeight", "x", "y")) {
+                    if (args.has(k) && !args.isNull(k)) put(k, args.getInt(k))
+                }
+            }
+            val insp = inspectDesktopTab(inspectArgs)
+            structured.put("inspection", insp)
+        }
+
+        if (!wantScreenshot) return structured
+
+        val captureArgs = JSONObject().apply {
+            put("profileId", pid)
+            put("forceRefresh", !wantInspect)
+            if (args.has("maxWidth")) put("maxWidth", args.optInt("maxWidth", 1280))
+            if (args.has("format")) put("format", args.optString("format", "jpeg"))
+            for (k in listOf("regionX", "regionY", "regionWidth", "regionHeight")) {
+                if (args.has(k) && !args.isNull(k)) put(k, args.getInt(k))
+            }
+        }
+        val cap = captureDesktopTab(captureArgs)
+        structured.put("screenshot", cap.structured)
+        return ToolResult.Image(
+            base64 = cap.base64,
+            mimeType = cap.mimeType,
+            structured = structured,
+        )
+    }
+
+    private fun filterMatchesByBounds(
+        matches: List<OcrScreenIndex.TextMatchResult>,
+        args: JSONObject,
+    ): List<OcrScreenIndex.TextMatchResult> {
+        val minX = if (args.has("minX") && !args.isNull("minX")) args.getInt("minX").toDouble() else null
+        val maxX = if (args.has("maxX") && !args.isNull("maxX")) args.getInt("maxX").toDouble() else null
+        val minY = if (args.has("minY") && !args.isNull("minY")) args.getInt("minY").toDouble() else null
+        val maxY = if (args.has("maxY") && !args.isNull("maxY")) args.getInt("maxY").toDouble() else null
+        if (minX == null && maxX == null && minY == null && maxY == null) return matches
+        return matches.filter { m ->
+            val cx = m.node.bbox.cx
+            val cy = m.node.bbox.cy
+            (minX == null || cx >= minX) &&
+                (maxX == null || cx <= maxX) &&
+                (minY == null || cy >= minY) &&
+                (maxY == null || cy <= maxY)
+        }
     }
 
     private fun resolveDesktopFrame(args: JSONObject): Pair<String, DesktopFrameHandle> {
@@ -1030,22 +1198,33 @@ internal class DesktopToolProvider(
         return sinceLastAgent to arr
     }
 
+    private fun lineToJson(line: sh.haven.core.scan.OcrLine): JSONObject = JSONObject().apply {
+        put("id", line.id)
+        put("text", line.text)
+        put("score", (line.score * 1000.0).roundToInt() / 1000.0)
+        put("bbox", bboxToJson(line.bbox))
+        put("center", centerToJson(line.bbox))
+    }
+
     private suspend fun buildOrGetOcrIndex(
         pid: String,
         handle: DesktopFrameHandle,
         forceRefresh: Boolean,
+        args: JSONObject? = null,
     ): OcrScreenIndex {
         val recognizer = textRecognizer
             ?: throw McpError(-32603, "RapidOCR TextRecognizer is not available")
-        val src = handle.frame()
+        val src = (handle.refreshFrame?.let { refresh ->
+            withContext(Dispatchers.IO) { refresh(forceRefresh) }
+        } ?: handle.frame())
             ?: throw McpError(-32603, "Desktop '$pid' has not rendered a frame yet — wait for it to connect.")
-        // Copy frame off the UI state holder before running OCR so concurrent
-        // viewer updates cannot mutate pixels mid-inference.
-        val bmp = withContext(Dispatchers.Default) {
-            src.copy(Bitmap.Config.ARGB_8888, false)
-        }
+        val region = args?.let { parseRegionArg(it, src.width, src.height) }
         return try {
-            recognizer.recognizeIndex(bmp, forceRefresh = forceRefresh)
+            if (region != null) {
+                recognizer.recognizeIndex(src, forceRefresh = forceRefresh, region = region)
+            } else {
+                recognizer.recognizeIndex(src, forceRefresh = forceRefresh)
+            }
         } catch (e: Exception) {
             throw McpError(-32603, e.message ?: "RapidOCR failed on desktop '$pid'")
         }
@@ -1071,12 +1250,17 @@ internal class DesktopToolProvider(
                 query.isNotEmpty() -> "find"
                 else -> "tree"
             }
-            "at", "find", "tree" -> rawMode
-            else -> throw McpError(-32602, "mode must be one of auto, at, find, tree")
+            "at", "find", "lines", "diff", "tree" -> rawMode
+            else -> throw McpError(-32602, "mode must be one of auto, at, find, lines, diff, tree")
         }
 
-        val index = buildOrGetOcrIndex(pid, handle, forceRefresh)
+        val prevIndex = lastInspectedIndex[pid]
+        val index = buildOrGetOcrIndex(pid, handle, forceRefresh, args)
+        lastInspectedIndex[pid] = index
+
         val (pointerX, pointerY) = handle.pointer()
+        val activeBounds = handle.activeBounds?.invoke()
+        val reqRegion = parseRegionArg(args, index.frameWidth, index.frameHeight)
         val nowMs = System.currentTimeMillis()
         val lastAgentAt = desktopSessionRegistry.lastAgentActionAt(pid)
         val (userInteractedSinceLastAgent, recentUserJson) =
@@ -1088,8 +1272,19 @@ internal class DesktopToolProvider(
             put("protocol", handle.protocol)
             put("width", index.frameWidth)
             put("height", index.frameHeight)
+            if (activeBounds != null) {
+                put("activeLeftPx", activeBounds.first)
+                put("activeWidthPx", activeBounds.second)
+            }
+            if (reqRegion != null) {
+                put("region", bboxToJson(reqRegion))
+            }
             put("frameHash", index.frameHash)
             put("ocrMs", (index.ocrMs * 10.0).roundToInt() / 10.0)
+            textRecognizer?.let { rec ->
+                put("cacheHit", rec.lastCacheHit)
+                put("wobbleIgnored", rec.lastWobbleIgnored)
+            }
             put("blockCount", index.blocks.size)
             put("lineCount", index.lineCount)
             put("wordCount", index.wordCount)
@@ -1127,13 +1322,16 @@ internal class DesktopToolProvider(
                 val exact = args.optBoolean("exact", false)
                 val nearX = if (args.has("nearX") && !args.isNull("nearX")) args.getInt("nearX").toDouble() else null
                 val nearY = if (args.has("nearY") && !args.isNull("nearY")) args.getInt("nearY").toDouble() else null
-                val matches = index.findText(
-                    query = query,
-                    exact = exact,
-                    nearX = nearX,
-                    nearY = nearY,
-                    kNeighbors = k,
-                    level = level,
+                val matches = filterMatchesByBounds(
+                    index.findText(
+                        query = query,
+                        exact = exact,
+                        nearX = nearX,
+                        nearY = nearY,
+                        kNeighbors = k,
+                        level = level,
+                    ),
+                    args,
                 )
                 base.put("query", query)
                 base.put("exact", exact)
@@ -1153,6 +1351,54 @@ internal class DesktopToolProvider(
                             })
                         })
                     }
+                })
+            }
+            "lines" -> {
+                base.put("lines", JSONArray().apply {
+                    index.blocks.forEach { blk ->
+                        blk.lines.forEach { line ->
+                            put(lineToJson(line))
+                        }
+                    }
+                })
+            }
+            "diff" -> {
+                val currLines = index.blocks.flatMap { it.lines }
+                val prevLines = prevIndex?.blocks?.flatMap { it.lines }.orEmpty()
+                val usedPrev = BooleanArray(prevLines.size)
+                val addedLines = mutableListOf<sh.haven.core.scan.OcrLine>()
+                var unchangedCount = 0
+                for (c in currLines) {
+                    val cNorm = OcrScreenIndex.normalizeText(c.text)
+                    var bestIdx = -1
+                    var bestDist = Double.POSITIVE_INFINITY
+                    for (pi in prevLines.indices) {
+                        if (usedPrev[pi]) continue
+                        val p = prevLines[pi]
+                        if (OcrScreenIndex.normalizeText(p.text) == cNorm) {
+                            val dist = kotlin.math.hypot(c.bbox.cx - p.bbox.cx, c.bbox.cy - p.bbox.cy)
+                            if (dist <= 64.0 && dist < bestDist) {
+                                bestDist = dist
+                                bestIdx = pi
+                            }
+                        }
+                    }
+                    if (bestIdx >= 0) {
+                        usedPrev[bestIdx] = true
+                        unchangedCount++
+                    } else {
+                        addedLines.add(c)
+                    }
+                }
+                val removedLines = prevLines.filterIndexed { idx, _ -> !usedPrev[idx] }
+                base.put("hasBaseline", prevIndex != null)
+                base.put("changed", addedLines.isNotEmpty() || removedLines.isNotEmpty())
+                base.put("unchangedLineCount", unchangedCount)
+                base.put("addedLines", JSONArray().apply {
+                    addedLines.forEach { put(lineToJson(it)) }
+                })
+                base.put("removedLines", JSONArray().apply {
+                    removedLines.forEach { put(lineToJson(it)) }
                 })
             }
             else -> {
@@ -1189,7 +1435,7 @@ internal class DesktopToolProvider(
         return base
     }
 
-    private suspend fun tapDesktopText(args: JSONObject): JSONObject {
+    private suspend fun tapDesktopText(args: JSONObject): Any {
         val (pid, inputHandle) = resolveDesktopInput(args)
         val frameHandle = desktopSessionRegistry.frameHandle(pid)
             ?: throw McpError(-32602, "No capturable desktop tab for profile '$pid' (call list_desktop_sessions).")
@@ -1208,14 +1454,18 @@ internal class DesktopToolProvider(
         val level = parseLevelArg(args.optString("level", "all"))
         val forceRefresh = args.optBoolean("forceRefresh", false)
 
-        val index = buildOrGetOcrIndex(pid, frameHandle, forceRefresh)
-        val matches = index.findText(
-            query = query,
-            exact = exact,
-            nearX = nearX,
-            nearY = nearY,
-            kNeighbors = 4,
-            level = level,
+        val index = buildOrGetOcrIndex(pid, frameHandle, forceRefresh, args)
+        lastInspectedIndex[pid] = index
+        val matches = filterMatchesByBounds(
+            index.findText(
+                query = query,
+                exact = exact,
+                nearX = nearX,
+                nearY = nearY,
+                kNeighbors = 4,
+                level = level,
+            ),
+            args,
         )
         if (matches.isEmpty()) {
             throw McpError(
@@ -1249,7 +1499,7 @@ internal class DesktopToolProvider(
             inputHandle.mouseClick(clickX, clickY, button)
         }
 
-        return JSONObject().apply {
+        val structured = JSONObject().apply {
             put("profileId", pid)
             put("protocol", inputHandle.protocol)
             put("x", clickX)
@@ -1265,27 +1515,77 @@ internal class DesktopToolProvider(
                     put("anchorDistance", (d * 10.0).roundToInt() / 10.0)
                 }
             })
+            put("candidates", JSONArray().apply {
+                matches.take(10).forEachIndexed { idx, m ->
+                    put(JSONObject().apply {
+                        put("nth", idx)
+                        put("text", m.node.text)
+                        put("level", m.node.level.name.lowercase())
+                        put("bbox", bboxToJson(m.node.bbox))
+                        put("center", centerToJson(m.node.bbox))
+                        m.anchorDistance?.let { d ->
+                            put("anchorDistance", (d * 10.0).roundToInt() / 10.0)
+                        }
+                    })
+                }
+            })
             put("neighbors", JSONArray().apply {
                 chosen.neighbors.forEach { nb -> put(neighborToJson(nb)) }
             })
         }
+        return maybeWithPostAction(pid, args, structured)
     }
 
-    private suspend fun tapDesktopTab(args: JSONObject): JSONObject {
+    private suspend fun tapDesktopTab(args: JSONObject): Any {
         val (pid, h) = resolveDesktopInput(args)
-        val x = requireIntArg(args, "x")
-        val y = requireIntArg(args, "y")
-        val button = args.optInt("button", 1).coerceIn(1, 7)
-        val clicks = args.optInt("clicks", 1).coerceIn(1, 3)
+        maybeCapturePreActionBaseline(pid, args)
+        val defaultButton = args.optInt("button", 1).coerceIn(1, 7)
+        val defaultClicks = args.optInt("clicks", 1).coerceIn(1, 3)
+        val pointsArr = args.optJSONArray("points")
         desktopSessionRegistry.recordAgentAction(pid)
-        repeat(clicks) { i ->
-            if (i > 0) kotlinx.coroutines.delay(60)
-            h.mouseClick(x, y, button)
+
+        val structured = if (pointsArr != null && pointsArr.length() > 0) {
+            val count = pointsArr.length().coerceAtMost(20)
+            val clicked = JSONArray()
+            var lastX = 0
+            var lastY = 0
+            for (idx in 0 until count) {
+                val pt = pointsArr.optJSONObject(idx)
+                    ?: throw McpError(-32602, "points[$idx] must be an object with x and y")
+                val px = requireIntArg(pt, "x")
+                val py = requireIntArg(pt, "y")
+                val btn = pt.optInt("button", defaultButton).coerceIn(1, 7)
+                val clk = pt.optInt("clicks", defaultClicks).coerceIn(1, 3)
+                val delayMs = pt.optInt("delayMs", if (idx == 0) 0 else 80).coerceIn(0, 5000)
+                if (delayMs > 0) kotlinx.coroutines.delay(delayMs.toLong())
+                repeat(clk) { i ->
+                    if (i > 0) kotlinx.coroutines.delay(60)
+                    h.mouseClick(px, py, btn)
+                }
+                lastX = px
+                lastY = py
+                clicked.put(JSONObject().apply {
+                    put("x", px); put("y", py); put("button", btn); put("clicks", clk)
+                })
+            }
+            JSONObject().apply {
+                put("profileId", pid); put("protocol", h.protocol)
+                put("x", lastX); put("y", lastY)
+                put("pointsClicked", clicked)
+            }
+        } else {
+            val x = requireIntArg(args, "x")
+            val y = requireIntArg(args, "y")
+            repeat(defaultClicks) { i ->
+                if (i > 0) kotlinx.coroutines.delay(60)
+                h.mouseClick(x, y, defaultButton)
+            }
+            JSONObject().apply {
+                put("profileId", pid); put("protocol", h.protocol)
+                put("x", x); put("y", y); put("button", defaultButton); put("clicks", defaultClicks)
+            }
         }
-        return JSONObject().apply {
-            put("profileId", pid); put("protocol", h.protocol)
-            put("x", x); put("y", y); put("button", button); put("clicks", clicks)
-        }
+        return maybeWithPostAction(pid, args, structured)
     }
 
     private fun moveDesktopMouse(args: JSONObject): JSONObject {
@@ -1339,14 +1639,29 @@ internal class DesktopToolProvider(
         }
     }
 
-    private fun scrollDesktopTab(args: JSONObject): JSONObject {
+    private suspend fun scrollDesktopTab(args: JSONObject): Any {
         val (pid, h) = resolveDesktopInput(args)
+        maybeCapturePreActionBaseline(pid, args)
         val deltaY = requireIntArg(args, "deltaY")
+        val hasX = args.has("x") && !args.isNull("x")
+        val hasY = args.has("y") && !args.isNull("y")
         desktopSessionRegistry.recordAgentAction(pid)
-        h.mouseWheel(deltaY)
-        return JSONObject().apply {
-            put("profileId", pid); put("protocol", h.protocol); put("deltaY", deltaY)
+        if (hasX && hasY) {
+            h.mouseMove(args.getInt("x"), args.getInt("y"))
         }
+        // MCP schema convention: deltaY > 0 scrolls down, < 0 scrolls up.
+        // RemoteDesktopSession convention: deltaY > 0 scrolls up, < 0 scrolls down.
+        h.mouseWheel(-deltaY)
+        val structured = JSONObject().apply {
+            put("profileId", pid)
+            put("protocol", h.protocol)
+            put("deltaY", deltaY)
+            if (hasX && hasY) {
+                put("x", args.getInt("x"))
+                put("y", args.getInt("y"))
+            }
+        }
+        return maybeWithPostAction(pid, args, structured)
     }
 
     private fun normalizeKeyCode(raw: String): String {
@@ -1376,10 +1691,12 @@ internal class DesktopToolProvider(
         }
     }
 
-    private suspend fun typeDesktopText(args: JSONObject): JSONObject {
+    private suspend fun typeDesktopText(args: JSONObject): Any {
         val (pid, h) = resolveDesktopInput(args)
+        maybeCapturePreActionBaseline(pid, args)
         val text = args.optString("text")
         val rawKey = args.optString("key").trim()
+        val repeatCount = args.optInt("repeat", 1).coerceIn(1, 50)
         val ctrl = args.optBoolean("ctrl", false)
         val alt = args.optBoolean("alt", false)
         val shift = args.optBoolean("shift", false)
@@ -1420,15 +1737,18 @@ internal class DesktopToolProvider(
                     if (meta) add("MetaLeft")
                 }
                 for (m in mods) sendKey(m, true)
-                sendKey(code, true)
-                kotlinx.coroutines.delay(20)
-                sendKey(code, false)
+                repeat(repeatCount) { i ->
+                    if (i > 0) kotlinx.coroutines.delay(15)
+                    sendKey(code, true)
+                    kotlinx.coroutines.delay(15)
+                    sendKey(code, false)
+                }
                 for (m in mods.asReversed()) sendKey(m, false)
             }
             if (pressEnter) {
                 if (sendKey != null) {
                     sendKey("Enter", true)
-                    kotlinx.coroutines.delay(20)
+                    kotlinx.coroutines.delay(15)
                     sendKey("Enter", false)
                 } else {
                     h.typeText?.invoke("\n")
@@ -1436,13 +1756,17 @@ internal class DesktopToolProvider(
             }
         }
 
-        return JSONObject().apply {
+        val structured = JSONObject().apply {
             put("profileId", pid)
             put("protocol", h.protocol)
             put("chars", text.length)
-            if (rawKey.isNotEmpty()) put("key", normalizeKeyCode(rawKey))
+            if (rawKey.isNotEmpty()) {
+                put("key", normalizeKeyCode(rawKey))
+                if (repeatCount > 1) put("repeat", repeatCount)
+            }
             if (pressEnter) put("pressEnter", true)
         }
+        return maybeWithPostAction(pid, args, structured)
     }
 
     private fun sendDesktopClipboard(args: JSONObject): JSONObject {

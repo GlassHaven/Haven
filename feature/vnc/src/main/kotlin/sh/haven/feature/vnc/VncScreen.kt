@@ -1474,6 +1474,7 @@ private fun VncViewer(
                         ctrlActive = ctrlActive,
                         altActive = altActive,
                         shiftActive = shiftActive,
+                        superActive = superActive,
                         onKeyDown = onKeyDown,
                         onKeyUp = onKeyUp,
                         onTypeChar = onTypeChar,
@@ -1493,6 +1494,7 @@ private fun VncViewer(
                 ctrlActive = ctrlActive,
                 altActive = altActive,
                 shiftActive = shiftActive,
+                winActive = superActive,
                 onToggleCtrl = {
                     ctrlActive = !ctrlActive
                     if (!ctrlActive) onKeyUp(XK_CONTROL_L) else onKeyDown(XK_CONTROL_L)
@@ -1510,6 +1512,10 @@ private fun VncViewer(
                         onKeyUp(XK_SHIFT_L)
                         shiftActive = false
                     }
+                },
+                onToggleWin = {
+                    superActive = !superActive
+                    if (!superActive) onKeyUp(XK_SUPER_L) else onKeyDown(XK_SUPER_L)
                 },
                 layout = toolbarLayout,
                 navBlockMode = navBlockMode,
@@ -2032,6 +2038,7 @@ internal fun handleVncToolbarBytes(
     ctrlActive: Boolean,
     altActive: Boolean,
     shiftActive: Boolean,
+    superActive: Boolean = false,
     onKeyDown: (Int) -> Unit,
     onKeyUp: (Int) -> Unit,
     onTypeChar: (Char) -> Unit,
@@ -2107,10 +2114,16 @@ internal fun handleVncToolbarBytes(
                 releaseModifiers()
             } else {
                 onTypeChar(ch)
+                if (superActive || shiftActive) releaseModifiers()
             }
         }
         payload.size == 1 && (ctrlActive || altActive) -> {
             onTypeChar(payload[0].toInt().toChar())
+            if (superActive || shiftActive) releaseModifiers()
+        }
+        payload.size == 1 && (superActive || shiftActive) -> {
+            onTypeChar(payload[0].toInt().toChar())
+            releaseModifiers()
         }
         else -> {
             onTypeText(str)

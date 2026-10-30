@@ -26,6 +26,7 @@ enum class ToolbarKey(val id: String, val label: String, val isModifier: Boolean
     CTRL("ctrl", "Ctrl", isModifier = true),
     ALT("alt", "Alt", isModifier = true),
     ALTGR("altgr", "AltGr", isModifier = true),
+    WIN("win", "Win", isModifier = true),
     // #524: latched mode, not a one-shot modifier — while on, a vertical swipe
     // sends ↑/↓ even at a plain shell prompt (command history without arrow
     // keys on the bar), instead of only on the alternate screen.

@@ -1132,6 +1132,7 @@ private fun RdpViewer(
                         ctrlActive = ctrlActive,
                         altActive = altActive,
                         shiftActive = shiftActive,
+                        winActive = winActive,
                         onKeyDown = onKeyDown,
                         onKeyUp = onKeyUp,
                         onTypeChar = onTypeChar,
@@ -1151,6 +1152,7 @@ private fun RdpViewer(
                 ctrlActive = ctrlActive,
                 altActive = altActive,
                 shiftActive = shiftActive,
+                winActive = winActive,
                 onToggleCtrl = {
                     ctrlActive = !ctrlActive
                     if (!ctrlActive) onKeyUp(SC_CTRL_L) else onKeyDown(SC_CTRL_L)
@@ -1168,6 +1170,10 @@ private fun RdpViewer(
                         onKeyUp(SC_SHIFT_L)
                         shiftActive = false
                     }
+                },
+                onToggleWin = {
+                    winActive = !winActive
+                    if (!winActive) onKeyUp(SC_WIN_L) else onKeyDown(SC_WIN_L)
                 },
                 layout = toolbarLayout,
                 navBlockMode = navBlockMode,
@@ -1743,6 +1749,7 @@ internal fun handleRdpToolbarBytes(
     ctrlActive: Boolean,
     altActive: Boolean,
     shiftActive: Boolean,
+    winActive: Boolean = false,
     onKeyDown: (Int) -> Unit,
     onKeyUp: (Int) -> Unit,
     onTypeChar: (Char) -> Unit,
@@ -1820,10 +1827,16 @@ internal fun handleRdpToolbarBytes(
                 releaseModifiers()
             } else {
                 onTypeChar(ch)
+                if (winActive || shiftActive) releaseModifiers()
             }
         }
         payload.size == 1 && (ctrlActive || altActive) -> {
             onTypeChar(payload[0].toInt().toChar())
+            if (winActive || shiftActive) releaseModifiers()
+        }
+        payload.size == 1 && (winActive || shiftActive) -> {
+            onTypeChar(payload[0].toInt().toChar())
+            releaseModifiers()
         }
         else -> {
             onTypeText(str)

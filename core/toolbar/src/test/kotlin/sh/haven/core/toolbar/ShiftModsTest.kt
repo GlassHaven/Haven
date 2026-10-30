@@ -1,7 +1,12 @@
 package sh.haven.core.toolbar
 
 import org.junit.Assert.assertEquals
+import org.junit.Assert.assertFalse
+import org.junit.Assert.assertTrue
 import org.junit.Test
+import sh.haven.core.data.preferences.ToolbarItem
+import sh.haven.core.data.preferences.ToolbarKey
+import sh.haven.core.data.preferences.ToolbarLayout
 
 /**
  * #665 — "shift+left doesn't work in Codex in SSH."
@@ -26,5 +31,39 @@ class ShiftModsTest {
     @Test
     fun `no shift dispatches unmodified`() {
         assertEquals(0, shiftMods(shiftActive = false))
+    }
+
+    /** #772: Desktop sessions expose the Win modifier after Alt in row 2 by default. */
+    @Test
+    fun `effectiveToolbarLayout inserts WIN after ALT when hasWinKey is true`() {
+        val effective = effectiveToolbarLayout(ToolbarLayout.DEFAULT, hasWinKey = true)
+        val row2Keys = effective.row2.filterIsInstance<ToolbarItem.BuiltIn>().map { it.key }
+        val altIdx = row2Keys.indexOf(ToolbarKey.ALT)
+        assertTrue("ALT must be present in default row 2", altIdx >= 0)
+        assertEquals(ToolbarKey.WIN, row2Keys[altIdx + 1])
+    }
+
+    /** #772: User-placed WIN key is kept at its chosen position on Desktop sessions. */
+    @Test
+    fun `effectiveToolbarLayout preserves user-placed WIN key`() {
+        val customLayout = ToolbarLayout(
+            listOf(
+                listOf(ToolbarItem.BuiltIn(ToolbarKey.WIN), ToolbarItem.BuiltIn(ToolbarKey.ESC_KEY)),
+                listOf(ToolbarItem.BuiltIn(ToolbarKey.CTRL), ToolbarItem.BuiltIn(ToolbarKey.ALT)),
+            ),
+        )
+        val effective = effectiveToolbarLayout(customLayout, hasWinKey = true)
+        assertEquals(customLayout, effective)
+    }
+
+    /** #772: Terminal sessions filter out WIN so it does not leave an empty cell. */
+    @Test
+    fun `effectiveToolbarLayout strips WIN when hasWinKey is false`() {
+        val withWin = effectiveToolbarLayout(ToolbarLayout.DEFAULT, hasWinKey = true)
+        val terminalLayout = effectiveToolbarLayout(withWin, hasWinKey = false)
+        val allKeys = terminalLayout.rows.flatten()
+            .filterIsInstance<ToolbarItem.BuiltIn>()
+            .map { it.key }
+        assertFalse(ToolbarKey.WIN in allKeys)
     }
 }

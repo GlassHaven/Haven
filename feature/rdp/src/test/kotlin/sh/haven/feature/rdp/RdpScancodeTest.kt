@@ -344,5 +344,24 @@ class RdpScancodeTest {
         send("mcp".toByteArray())
         assertEquals(listOf("text:mcp"), events)
         assertEquals(3, released)
+        events.clear()
+
+        // #772: single-character toolbar key while Win is armed routes via
+        // onTypeChar (scancode tap so held SC_WIN_L composes Win+key) and
+        // releases active modifiers.
+        handleRdpToolbarBytes(
+            bytes = "r".toByteArray(),
+            ctrlActive = false,
+            altActive = false,
+            shiftActive = false,
+            winActive = true,
+            onKeyDown = { events.add("down:$it") },
+            onKeyUp = { events.add("up:$it") },
+            onTypeChar = { events.add("char:$it") },
+            onTypeText = { events.add("text:$it") },
+            releaseModifiers = { released++ },
+        )
+        assertEquals(listOf("char:r"), events)
+        assertEquals(4, released)
     }
 }

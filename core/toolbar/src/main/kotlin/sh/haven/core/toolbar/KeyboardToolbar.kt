@@ -160,6 +160,8 @@ data class ToolbarCallbacks(
     val onToggleAlt: () -> Unit,
     val onToggleShift: () -> Unit,
     val onShiftUsed: () -> Unit,
+    val winActive: Boolean = false,
+    val onToggleWin: (() -> Unit)? = null,
     val bracketPasteMode: Boolean = false,
     val clipboardManager: ClipboardManager? = null,
     val onPaste: (String) -> Unit = {},
@@ -279,6 +281,8 @@ fun KeyboardToolbar(
     shiftActive: Boolean = false,
     onToggleShift: () -> Unit = {},
     onShiftUsed: () -> Unit = {},
+    winActive: Boolean = false,
+    onToggleWin: (() -> Unit)? = null,
     bracketPasteMode: Boolean = false,
     layout: ToolbarLayout = ToolbarLayout.DEFAULT,
     navBlockMode: sh.haven.core.data.preferences.NavBlockMode = sh.haven.core.data.preferences.NavBlockMode.ALIGNED,
@@ -323,10 +327,14 @@ fun KeyboardToolbar(
         view.context.getSystemService(Context.CLIPBOARD_SERVICE) as? ClipboardManager
     }
 
+    val effectiveLayout = remember(layout, onToggleWin != null) {
+        effectiveToolbarLayout(layout, hasWinKey = onToggleWin != null)
+    }
+
     // Scissors-sheet list = snippets placed on the toolbar PLUS the off-toolbar
     // library (#244), so a snippet toggled "Off" in settings is still reachable.
-    val allSnippets = remember(layout, snippetLibrary) {
-        sh.haven.core.data.preferences.SnippetOps.allSnippets(layout, snippetLibrary)
+    val allSnippets = remember(effectiveLayout, snippetLibrary) {
+        sh.haven.core.data.preferences.SnippetOps.allSnippets(effectiveLayout, snippetLibrary)
     }
 
     val callbacks = ToolbarCallbacks(
@@ -336,13 +344,15 @@ fun KeyboardToolbar(
         onToggleAlt = onToggleAlt,
         onToggleShift = onToggleShift,
         onShiftUsed = onShiftUsed,
+        winActive = winActive,
+        onToggleWin = onToggleWin,
         bracketPasteMode = bracketPasteMode,
         clipboardManager = clipboardManager,
         onPaste = onPaste,
         onEnterReorderMode = { onReorderModeChanged(true) },
         onAddCustomKey = { customKey ->
             // Add to last row and persist
-            val newRows = layout.rows.toMutableList()
+            val newRows = effectiveLayout.rows.toMutableList()
             if (newRows.isNotEmpty()) {
                 val targetRow = newRows.last().toMutableList()
                 targetRow.add(customKey)
@@ -378,12 +388,12 @@ fun KeyboardToolbar(
             // button) — the user pins it as a button via toolbar settings if they
             // want one. Stops every added snippet from cluttering the bar (#244).
             onSnippetLibraryChanged(
-                sh.haven.core.data.preferences.SnippetOps.addToLibrary(layout, snippetLibrary, snippet),
+                sh.haven.core.data.preferences.SnippetOps.addToLibrary(effectiveLayout, snippetLibrary, snippet),
             )
         },
         onDeleteSnippet = { snippet ->
             val (newLayout, newLibrary) =
-                sh.haven.core.data.preferences.SnippetOps.delete(layout, snippetLibrary, snippet)
+                sh.haven.core.data.preferences.SnippetOps.delete(effectiveLayout, snippetLibrary, snippet)
             onToolbarLayoutChanged(newLayout)
             onSnippetLibraryChanged(newLibrary)
         },
@@ -424,7 +434,7 @@ fun KeyboardToolbar(
         ) {
             if (reorderMode) {
                 ReorderToolbarContent(
-                    layout = layout,
+                    layout = effectiveLayout,
                     onSave = onToolbarLayoutChanged,
                     onDone = { onReorderModeChanged(false) },
                     onOpenSettings = onOpenSettings,
@@ -434,9 +444,9 @@ fun KeyboardToolbar(
                 )
             } else if (selectionActive && selectionController != null) {
                 Column {
-                    if (layout.rows.size >= 2) {
+                    if (effectiveLayout.rows.size >= 2) {
                         ToolbarRow(
-                            items = layout.row1,
+                            items = effectiveLayout.row1,
                             focusRequester = focusRequester,
                             ctrlActive = ctrlActive,
                             altActive = altActive,
@@ -454,7 +464,7 @@ fun KeyboardToolbar(
                 // #372: Termux-style fixed grid — overrides the nav-block mode
                 // (nav keys become ordinary grid cells).
                 GridToolbarContent(
-                    layout = layout,
+                    layout = effectiveLayout,
                     focusRequester = focusRequester,
                     ctrlActive = ctrlActive,
                     altActive = altActive,
@@ -465,9 +475,9 @@ fun KeyboardToolbar(
                     vncLoading = vncLoading,
                     desktopKeyPlacement = desktopKeyPlacement,
                 )
-            } else if (layout.rows.size >= 2 && navBlockMode == sh.haven.core.data.preferences.NavBlockMode.ALIGNED) {
+            } else if (effectiveLayout.rows.size >= 2 && navBlockMode == sh.haven.core.data.preferences.NavBlockMode.ALIGNED) {
                 AlignedToolbarContent(
-                    layout = layout,
+                    layout = effectiveLayout,
                     focusRequester = focusRequester,
                     ctrlActive = ctrlActive,
                     altActive = altActive,
@@ -480,7 +490,7 @@ fun KeyboardToolbar(
                 )
             } else {
                 Column {
-                    for (row in layout.rows) {
+                    for (row in effectiveLayout.rows) {
                         if (row.isNotEmpty()) {
                             ToolbarRow(
                                 items = row,
@@ -500,6 +510,44 @@ fun KeyboardToolbar(
             }
         }
     }
+}
+
+/**
+ * Adjusts [layout] for the session's Win/Super modifier capability (#772):
+ * - When [hasWinKey] is false (Terminal sessions, where `onToggleWin == null`),
+ *   any `ToolbarKey.WIN` entry in [layout] is filtered out so it does not
+ *   leave an empty column cell.
+ * - When [hasWinKey] is true (Desktop sessions: RDP, SPICE, GLKVM, VNC), if
+ *   `ToolbarKey.WIN` is already placed in [layout] its position is honoured;
+ *   otherwise `ToolbarKey.WIN` is inserted into the modifier row (after `ALT`
+ *   or `CTRL`, or at the start of row 2) so existing saved layouts and
+ *   `ToolbarLayout.DEFAULT` always expose the Win key on Desktop sessions.
+ */
+internal fun effectiveToolbarLayout(layout: ToolbarLayout, hasWinKey: Boolean): ToolbarLayout {
+    val winItem = ToolbarItem.BuiltIn(ToolbarKey.WIN)
+    if (!hasWinKey) {
+        val filtered = layout.rows.map { row -> row.filter { it != winItem } }
+        return if (filtered == layout.rows) layout else ToolbarLayout(filtered)
+    }
+    if (layout.rows.any { row -> winItem in row }) {
+        return layout
+    }
+    if (layout.rows.isEmpty()) return layout
+    val targetRowIdx = if (layout.rows.size >= 2) 1 else 0
+    val targetRow = layout.rows[targetRowIdx].toMutableList()
+    val altIdx = targetRow.indexOf(ToolbarItem.BuiltIn(ToolbarKey.ALT))
+    val ctrlIdx = targetRow.indexOf(ToolbarItem.BuiltIn(ToolbarKey.CTRL))
+    val shiftIdx = targetRow.indexOf(ToolbarItem.BuiltIn(ToolbarKey.SHIFT))
+    val insertIdx = when {
+        altIdx >= 0 -> altIdx + 1
+        ctrlIdx >= 0 -> ctrlIdx + 1
+        shiftIdx >= 0 -> shiftIdx + 1
+        else -> 0
+    }
+    targetRow.add(insertIdx, winItem)
+    val newRows = layout.rows.toMutableList()
+    newRows[targetRowIdx] = targetRow
+    return ToolbarLayout(newRows)
 }
 
 /**
@@ -1230,6 +1278,9 @@ private fun BuiltInKey(
                     if (!altActive) cb.onToggleAlt()
                 }
             }
+        }
+        ToolbarKey.WIN -> if (cb.onToggleWin != null) {
+            ToolbarToggleButton("Win", cb.winActive, onClick = cb.onToggleWin)
         }
         // Nav keys — routed through dispatchKey for DECCKM support
         ToolbarKey.ARROW_LEFT -> ToolbarArrowButton("\u2190") { cb.onDispatchKey(shiftMods(shiftActive), VTERM_KEY_LEFT) }

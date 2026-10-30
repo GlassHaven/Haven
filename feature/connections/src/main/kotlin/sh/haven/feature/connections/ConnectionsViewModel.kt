@@ -1143,6 +1143,7 @@ class ConnectionsViewModel @Inject constructor(
         val port: Int,
         val user: String?,
         val password: String?,
+        val targetLayout: String? = null,
         val sshForward: Boolean = false,
         val sshSessionId: String? = null,
         val profileId: String? = null,
@@ -1372,6 +1373,7 @@ class ConnectionsViewModel @Inject constructor(
         _navigateToVnc.value = null
         _navigateToRdp.value = null
         _navigateToSpice.value = null
+        _navigateToGlkvm.value = null
         _navigateToSmb.value = null
         _navigateToRclone.value = null
         _navigateToEmail.value = null
@@ -1392,6 +1394,7 @@ class ConnectionsViewModel @Inject constructor(
         _navigateToVnc.value = null
         _navigateToRdp.value = null
         _navigateToSpice.value = null
+        _navigateToGlkvm.value = null
     }
 
     /** Open a new terminal session on an already-connected profile. */
@@ -2075,6 +2078,7 @@ class ConnectionsViewModel @Inject constructor(
         profile.isVnc -> false
         profile.isRdp -> false
         profile.isSpice -> false
+        profile.isGlkvm -> false
         profile.isSmb -> false
         profile.isSaf -> false
         else -> !profile.sshPassword.isNullOrBlank() || keys.isNotEmpty()
@@ -2757,6 +2761,7 @@ class ConnectionsViewModel @Inject constructor(
                     )
                     _navigateToGlkvm.value = GlkvmNavigation(
                         host, port, user, password,
+                        targetLayout = profile.glkvmTargetLayout,
                         sshForward = true,
                         sshSessionId = sshSessionId,
                         profileId = profile.id,
@@ -2770,6 +2775,7 @@ class ConnectionsViewModel @Inject constructor(
             } else {
                 _navigateToGlkvm.value = GlkvmNavigation(
                     host, port, user, password,
+                    targetLayout = profile.glkvmTargetLayout,
                     sshForward = profile.glkvmSshForward,
                     profileId = profile.id,
                 )

@@ -223,7 +223,7 @@ class GlkvmClient private constructor(
         postOk("/api/hid/events/send_mouse_button", mapOf("button" to button))
     }
 
-/**
+    /**
      * Type [text] as real keystrokes. Mapped characters go through the
      * layout table ([GlkvmLayout.keySequenceFor]) as position codes + Shift
      * — the target OS then applies its own layout — paced at [delay] ms per
@@ -232,25 +232,43 @@ class GlkvmClient private constructor(
      * mangle those on other targets (accents land wrong; documented GL
      * behaviour).
      */
-    fun typeText(text: String, targetLayout: String? = null, delay: Long = 20) {
+    fun typeText(
+        text: String,
+        targetLayout: String? = null,
+        delay: Long = 20,
+        isCancelled: () -> Boolean = { false },
+    ) {
         if (text.isEmpty()) return
         val table = GlkvmLayout.tableFor(targetLayout)
-        var lastWasPrint = false
+        val unmappedRun = StringBuilder()
+        fun flushUnmapped(): Boolean {
+            if (unmappedRun.isEmpty()) return true
+            if (isCancelled()) return false
+            callText(
+                "POST",
+                "/api/hid/print",
+                mapOf("delay" to (delay / 10).toString()),
+                body = unmappedRun.toString(),
+            )
+            unmappedRun.setLength(0)
+            return !isCancelled()
+        }
         for (ch in text) {
+            if (isCancelled()) return
             val key = table[ch]
             if (key != null) {
+                if (!flushUnmapped()) return
                 if (key.shift) sendKey("ShiftLeft", true)
                 sendKey(key.code, true)
-                Thread.sleep(delay / 2)
+                if (delay > 0) Thread.sleep(delay / 2)
                 sendKey(key.code, false)
                 if (key.shift) sendKey("ShiftLeft", false)
-                Thread.sleep(delay)
-                lastWasPrint = false
+                if (delay > 0) Thread.sleep(delay)
             } else {
-                callText("POST", "/api/hid/print", mapOf("delay" to (delay / 10).toString()), body = ch.toString())
-                lastWasPrint = true
+                unmappedRun.append(ch)
             }
         }
+        flushUnmapped()
     }
 
     /**
@@ -327,6 +345,7 @@ class GlkvmClient private constructor(
     data class VideoState(val signal: Boolean, val resolution: String, val fps: Double? = null)
 
     override fun close() {
+        http.dispatcher.cancelAll()
         http.dispatcher.executorService.shutdown()
     }
 

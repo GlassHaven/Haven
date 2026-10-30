@@ -5,6 +5,20 @@ the corresponding GitHub Release; a release can't ship without its section
 (enforced by `scripts/check-changelog.sh` in CI). The GitHub "Full Changelog"
 compare link is appended automatically — don't add it here.
 
+## v5.91.1
+
+- Unified Desktop and Terminal extended keyboard rows (`KeyboardToolbar` across RDP, SPICE, GLKVM, and VNC), GLKVM multi-character paste and reconnect fixes, `usbRedirPort` on `start_system_vm`, and UML guest kernel `uml-guest-10` with built-in `uvcvideo`, `snd-usb-audio`, and `cdc-acm` drivers (#613).
+
+- **Unified extended keyboard rows on Desktop sessions.**
+  - `RdpScreen` (used by RDP, SPICE, and GLKVM tabs) and `VncScreen` now render the shared `:core:toolbar` `KeyboardToolbar` composable with the same `toolbarLayout`, `navBlockMode`, `toolbarUniformGrid`, `toolbarMinKeyWidth`, `toolbarKeyScale`, `editModeControlsPlacement`, and `snippetLibrary` preferences as the Terminal tab, matching its column alignment, key widths, snippets sheet, and inline reorder editor.
+  - Gated the RDP/SPICE/GLKVM extended key toolbar on `keyboardVisible || imeVisible` (matching VNC) and synced `keyboardVisible` when the system Back gesture dismisses the soft keyboard.
+- **GLKVM paste stability, reconnect fix, and target keyboard layout propagation.**
+  - Pasting or typing multi-character strings in a GLKVM session now runs as a single serialized `typeGlkvmText` job on `inputLane`, coalesces unmapped characters into a single `/api/hid/print` POST, pauses snapshot failure counting while HID input is in flight so slow pastes do not trip `MAX_CONSECUTIVE_FAILURES`, and cancels in-flight OkHttp calls immediately when a tab closes.
+  - Cleared `_navigateToGlkvm` on navigation consumption so tapping a GLKVM profile a second time reconnects cleanly, guarded `disconnectTab` so closing a replaced tab does not clear the new tab's `desktopSessionRegistry` entries, and threaded the profile's `targetLayout` to `addGlkvmSession`.
+- **`usbRedirPort` on `start_system_vm` and `uml-guest-10` kernel (`#613`).**
+  - Added an optional `usbRedirPort` parameter to `start_system_vm` (`SystemVmManager`) that attaches a `-chardev socket,id=usbredir0,host=127.0.0.1,port=<port> -device usb-redir,chardev=usbredir0,bus=xhci.0` device to a local QEMU system VM.
+  - Updated the bundled UML `arm64` guest kernel to `uml-guest-10`, adding `CONFIG_USB_VIDEO_CLASS=y` (`uvcvideo`), `CONFIG_SND_USB_AUDIO=y` (`snd-usb-audio`), and `CONFIG_USB_ACM=y` (`cdc-acm`) alongside `vhci-hcd`.
+
 ## v5.91.0
 
 - Userspace SPICE `usbredir` server (`start_usbredir_export`, `stop_usbredir_export`, `list_usb_exports`) for attaching phone-connected USB devices directly to local or remote QEMU/KVM guests over TCP without root or `vhci_hcd`, including `usbfs` isochronous URB streaming and dynamic alternate-setting switching for UVC webcams and USB audio devices (#613).

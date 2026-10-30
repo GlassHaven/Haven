@@ -37,6 +37,7 @@ import androidx.compose.foundation.text.BasicTextField
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Close
+import androidx.compose.material.icons.filled.ContentPaste
 import androidx.compose.material.icons.filled.ExpandLess
 import androidx.compose.material.icons.filled.ExpandMore
 import androidx.compose.material.icons.filled.Fullscreen
@@ -110,6 +111,7 @@ import androidx.compose.ui.input.pointer.pointerInput
 import androidx.compose.ui.input.pointer.pointerInteropFilter
 import androidx.compose.ui.input.pointer.positionChange
 import androidx.compose.ui.layout.onSizeChanged
+import androidx.compose.ui.platform.LocalClipboardManager
 import androidx.compose.ui.platform.LocalConfiguration
 import androidx.compose.ui.platform.LocalFocusManager
 import androidx.compose.ui.platform.LocalSoftwareKeyboardController
@@ -152,6 +154,15 @@ fun RdpSessionContent(
     frameSeq: StateFlow<Long> = NO_FRAME_SEQ,
     error: StateFlow<String?>,
     toolbarLayout: ToolbarLayout = ToolbarLayout.DEFAULT,
+    navBlockMode: sh.haven.core.data.preferences.NavBlockMode = sh.haven.core.data.preferences.NavBlockMode.ALIGNED,
+    toolbarUniformGrid: Boolean = false,
+    toolbarMinKeyWidth: Int = 0,
+    toolbarKeyScale: Float = 1f,
+    editModeControlsPlacement: sh.haven.core.data.preferences.EditModeControlsPlacement = sh.haven.core.data.preferences.EditModeControlsPlacement.LEFT,
+    snippetLibrary: List<sh.haven.core.data.preferences.ToolbarItem.Custom> = emptyList(),
+    onToolbarLayoutChanged: (ToolbarLayout) -> Unit = {},
+    onSnippetLibraryChanged: (List<sh.haven.core.data.preferences.ToolbarItem.Custom>) -> Unit = {},
+    onOpenToolbarSettings: () -> Unit = {},
     onTap: (Int, Int) -> Unit,
     /** Two-finger tap → middle-button click at the tapped point (X11 button 2). */
     onMiddleClick: (Int, Int) -> Unit = { _, _ -> },
@@ -161,6 +172,8 @@ fun RdpSessionContent(
     onScrollUp: () -> Unit,
     onScrollDown: () -> Unit,
     onTypeChar: (Char) -> Unit,
+    onTypeText: (String) -> Unit = { s -> s.forEach(onTypeChar) },
+    onSendClipboard: ((String) -> Unit)? = null,
     onKeyDown: (scancode: Int) -> Unit,
     onKeyUp: (scancode: Int) -> Unit,
     onDisconnect: () -> Unit,
@@ -240,6 +253,15 @@ fun RdpSessionContent(
             frameSeq = frameSeqState,
             fullscreen = fullscreen,
             toolbarLayout = toolbarLayout,
+            navBlockMode = navBlockMode,
+            toolbarUniformGrid = toolbarUniformGrid,
+            toolbarMinKeyWidth = toolbarMinKeyWidth,
+            toolbarKeyScale = toolbarKeyScale,
+            editModeControlsPlacement = editModeControlsPlacement,
+            snippetLibrary = snippetLibrary,
+            onToolbarLayoutChanged = onToolbarLayoutChanged,
+            onSnippetLibraryChanged = onSnippetLibraryChanged,
+            onOpenToolbarSettings = onOpenToolbarSettings,
             onTap = onTap,
             onMiddleClick = onMiddleClick,
             onDragStart = onDragStart,
@@ -248,6 +270,8 @@ fun RdpSessionContent(
             onScrollUp = onScrollUp,
             onScrollDown = onScrollDown,
             onTypeChar = onTypeChar,
+            onTypeText = onTypeText,
+            onSendClipboard = onSendClipboard,
             onKeyDown = onKeyDown,
             onKeyUp = onKeyUp,
             onToggleFullscreen = { fullscreen = !fullscreen },
@@ -422,6 +446,15 @@ private fun RdpViewer(
     frameSeq: State<Long>,
     fullscreen: Boolean,
     toolbarLayout: ToolbarLayout = ToolbarLayout.DEFAULT,
+    navBlockMode: sh.haven.core.data.preferences.NavBlockMode = sh.haven.core.data.preferences.NavBlockMode.ALIGNED,
+    toolbarUniformGrid: Boolean = false,
+    toolbarMinKeyWidth: Int = 0,
+    toolbarKeyScale: Float = 1f,
+    editModeControlsPlacement: sh.haven.core.data.preferences.EditModeControlsPlacement = sh.haven.core.data.preferences.EditModeControlsPlacement.LEFT,
+    snippetLibrary: List<sh.haven.core.data.preferences.ToolbarItem.Custom> = emptyList(),
+    onToolbarLayoutChanged: (ToolbarLayout) -> Unit = {},
+    onSnippetLibraryChanged: (List<sh.haven.core.data.preferences.ToolbarItem.Custom>) -> Unit = {},
+    onOpenToolbarSettings: () -> Unit = {},
     onTap: (Int, Int) -> Unit,
     onMiddleClick: (Int, Int) -> Unit = { _, _ -> },
     onDragStart: (Int, Int) -> Unit,
@@ -430,6 +463,8 @@ private fun RdpViewer(
     onScrollUp: () -> Unit,
     onScrollDown: () -> Unit,
     onTypeChar: (Char) -> Unit,
+    onTypeText: (String) -> Unit = { s -> s.forEach(onTypeChar) },
+    onSendClipboard: ((String) -> Unit)? = null,
     onKeyDown: (Int) -> Unit,
     onKeyUp: (Int) -> Unit,
     onToggleFullscreen: () -> Unit,
@@ -655,12 +690,24 @@ private fun RdpViewer(
     // the terminal tab's keyboard would be hidden (and its focus stolen) by
     // this effect.
     val imeVisible = WindowInsets.isImeVisible
+    var wasImeVisible by remember { mutableStateOf(imeVisible) }
+    LaunchedEffect(imeVisible) {
+        if (wasImeVisible && !imeVisible && !physicalKeyboardAttached) {
+            keyboardVisible = false
+            hardwareKeyFocus.requestFocus()
+        }
+        wasImeVisible = imeVisible
+    }
     LaunchedEffect(imeVisible, keyboardVisible, canvasFocused, fieldFocused) {
         if (!keyboardVisible && imeVisible && (canvasFocused || fieldFocused)) {
             keyboardController?.hide()
             hardwareKeyFocus.requestFocus()
         }
     }
+    val currentImeVisible by rememberUpdatedState(imeVisible)
+    val currentFieldFocused by rememberUpdatedState(fieldFocused)
+    val currentKeyboardVisible by rememberUpdatedState(keyboardVisible)
+    val currentPhysicalKeyboardAttached by rememberUpdatedState(physicalKeyboardAttached)
 
     // Modifier state for key toolbar
     var ctrlActive by remember { mutableStateOf(false) }
@@ -713,6 +760,15 @@ private fun RdpViewer(
         mutableStateOf(TextFieldValue("", TextRange(0)))
     }
 
+    val clipboardManager = LocalClipboardManager.current
+    val pasteClipboard: () -> Unit = {
+        val text = clipboardManager.getText()?.text
+        if (!text.isNullOrEmpty()) {
+            onSendClipboard?.invoke(text)
+            onTypeText(text)
+        }
+    }
+
     Box(
         modifier = Modifier
             .fillMaxSize()
@@ -755,8 +811,8 @@ private fun RdpViewer(
                         // nothing, so every typed character is silently
                         // dropped while the toolbar's scancode keys keep
                         // working — the "Tab works, letters don't" report.
-                        if (!imeVisible && !fieldFocused &&
-                            keyboardVisible == physicalKeyboardAttached
+                        if (!currentImeVisible && !currentFieldFocused &&
+                            currentKeyboardVisible == currentPhysicalKeyboardAttached
                         ) {
                             hardwareKeyFocus.requestFocus()
                         }
@@ -1001,6 +1057,13 @@ private fun RdpViewer(
             }
         }
 
+        val releaseActiveModifiers: () -> Unit = {
+            if (ctrlActive) { onKeyUp(SC_CTRL_L); ctrlActive = false }
+            if (altActive) { onKeyUp(SC_ALT_L); altActive = false }
+            if (shiftActive) { onKeyUp(SC_SHIFT_L); shiftActive = false }
+            if (winActive) { onKeyUp(SC_WIN_L); winActive = false }
+        }
+
         // Hidden text field for keyboard input capture
         BasicTextField(
             value = textFieldValue,
@@ -1020,8 +1083,12 @@ private fun RdpViewer(
                     }
                 }
                 if (added != null) {
-                    for (ch in added) {
-                        onTypeChar(ch)
+                    if (added.length == 1 && (ctrlActive || altActive || shiftActive || winActive)) {
+                        onTypeChar(added[0])
+                        releaseActiveModifiers()
+                    } else {
+                        onTypeText(added)
+                        releaseActiveModifiers()
                     }
                 }
 
@@ -1038,16 +1105,41 @@ private fun RdpViewer(
                 .onFocusChanged { fieldFocused = it.isFocused },
         )
 
-        // RDP key toolbar — hidden in fullscreen, and also hidden when the
-        // soft keyboard isn't visible (keyboard-extension rows shouldn't eat
-        // screen space when there's no keyboard to extend).
-        if (!fullscreen && imeVisible) {
-            RdpKeyToolbar(
-                layout = toolbarLayout,
+        var reorderMode by remember { mutableStateOf(false) }
+
+        // RDP/SPICE/GLKVM key extension rows. Shown when the user has toggled
+        // the keyboard on (keyboardVisible) OR the soft keyboard's insets are
+        // actually present (imeVisible), including in fullscreen (parity with
+        // VncScreen #171). Uses the shared KeyboardToolbar from :core:toolbar
+        // so the layout, column alignment, uniform grid, and key scale match
+        // the Terminal tab's extended key rows.
+        if (keyboardVisible || imeVisible) {
+            sh.haven.core.toolbar.KeyboardToolbar(
+                onSendBytes = { bytes ->
+                    handleRdpToolbarBytes(
+                        bytes = bytes,
+                        ctrlActive = ctrlActive,
+                        altActive = altActive,
+                        shiftActive = shiftActive,
+                        onKeyDown = onKeyDown,
+                        onKeyUp = onKeyUp,
+                        onTypeChar = onTypeChar,
+                        onTypeText = onTypeText,
+                        releaseModifiers = releaseActiveModifiers,
+                    )
+                },
+                onDispatchKey = { _, key ->
+                    val scancode = vtermKeyToScancode(key)
+                    if (scancode != null) {
+                        onKeyDown(scancode)
+                        onKeyUp(scancode)
+                        releaseActiveModifiers()
+                    }
+                },
+                focusRequester = focusRequester,
                 ctrlActive = ctrlActive,
                 altActive = altActive,
                 shiftActive = shiftActive,
-                winActive = winActive,
                 onToggleCtrl = {
                     ctrlActive = !ctrlActive
                     if (!ctrlActive) onKeyUp(SC_CTRL_L) else onKeyDown(SC_CTRL_L)
@@ -1060,20 +1152,33 @@ private fun RdpViewer(
                     shiftActive = !shiftActive
                     if (!shiftActive) onKeyUp(SC_SHIFT_L) else onKeyDown(SC_SHIFT_L)
                 },
-                onToggleWin = {
-                    winActive = !winActive
-                    if (!winActive) onKeyUp(SC_WIN_L) else onKeyDown(SC_WIN_L)
+                onShiftUsed = {
+                    if (shiftActive) {
+                        onKeyUp(SC_SHIFT_L)
+                        shiftActive = false
+                    }
                 },
-                onRdpKey = { scancode ->
-                    onKeyDown(scancode)
-                    onKeyUp(scancode)
-                    // Auto-release modifiers
-                    if (ctrlActive) { onKeyUp(SC_CTRL_L); ctrlActive = false }
-                    if (altActive) { onKeyUp(SC_ALT_L); altActive = false }
-                    if (shiftActive) { onKeyUp(SC_SHIFT_L); shiftActive = false }
-                    if (winActive) { onKeyUp(SC_WIN_L); winActive = false }
+                layout = toolbarLayout,
+                navBlockMode = navBlockMode,
+                uniformGrid = toolbarUniformGrid,
+                editModeControlsPlacement = editModeControlsPlacement,
+                minKeyWidth = toolbarMinKeyWidth.dp,
+                keyScale = toolbarKeyScale,
+                onPaste = { text ->
+                    if (text.isNotEmpty()) {
+                        onSendClipboard?.invoke(text)
+                        onTypeText(text)
+                        releaseActiveModifiers()
+                    }
                 },
+                reorderMode = reorderMode,
+                onReorderModeChanged = { reorderMode = it },
+                onToolbarLayoutChanged = onToolbarLayoutChanged,
+                snippetLibrary = snippetLibrary,
+                onSnippetLibraryChanged = onSnippetLibraryChanged,
+                onOpenSettings = onOpenToolbarSettings,
                 onToggleKeyboard = toggleKeyboard,
+                modifier = Modifier.fillMaxWidth(),
             )
         }
 
@@ -1104,6 +1209,10 @@ private fun RdpViewer(
                         else Icons.Default.Keyboard,
                         contentDescription = stringResource(R.string.rdp_cd_toggle_keyboard),
                     )
+                }
+
+                IconButton(onClick = pasteClipboard) {
+                    Icon(Icons.Default.ContentPaste, contentDescription = ToolbarKey.PASTE.label)
                 }
 
                 IconButton(onClick = onCycleOrientation) {
@@ -1241,6 +1350,12 @@ private fun RdpViewer(
                             else Icons.Default.Keyboard,
                             contentDescription = stringResource(R.string.rdp_cd_toggle_keyboard),
                         )
+                    }
+                    IconButton(onClick = {
+                        overlayVisible = false
+                        pasteClipboard()
+                    }) {
+                        Icon(Icons.Default.ContentPaste, contentDescription = ToolbarKey.PASTE.label)
                     }
                     IconButton(onClick = onCycleOrientation) {
                         Icon(orientationMode.icon, contentDescription = orientationDesc)
@@ -1570,6 +1685,188 @@ private fun screenToRemote(
 
 // --- RDP Key Toolbar ---
 
+/** Keys that form the aligned navigation block. */
+private val RDP_NAV_KEYS = setOf(
+    ToolbarKey.ARROW_UP, ToolbarKey.ARROW_DOWN,
+    ToolbarKey.ARROW_LEFT, ToolbarKey.ARROW_RIGHT,
+    ToolbarKey.HOME, ToolbarKey.END,
+    ToolbarKey.PGUP, ToolbarKey.PGDN,
+)
+
+private val RDP_NAV_GRID_TOP = arrayOf(
+    ToolbarKey.HOME, ToolbarKey.ARROW_UP, ToolbarKey.END, ToolbarKey.PGUP,
+)
+private val RDP_NAV_GRID_BOTTOM = arrayOf(
+    ToolbarKey.ARROW_LEFT, ToolbarKey.ARROW_DOWN,
+    ToolbarKey.ARROW_RIGHT, ToolbarKey.PGDN,
+)
+
+private val RDP_NAV_CELL_WIDTH = 44.dp
+
+/** Map a libvterm key constant from KeyboardToolbar.onDispatchKey to a Set-1 scancode. */
+internal fun vtermKeyToScancode(key: Int): Int? = when (key) {
+    5 -> SC_UP
+    6 -> SC_DOWN
+    7 -> SC_LEFT
+    8 -> SC_RIGHT
+    9 -> SC_INSERT
+    10 -> SC_DELETE
+    11 -> SC_HOME
+    12 -> SC_END
+    13 -> SC_PGUP
+    14 -> SC_PGDN
+    in 257..268 -> {
+        val fn = key - 256 // 1..12
+        when {
+            fn <= 10 -> SC_F1 + (fn - 1)
+            fn == 11 -> SC_F11
+            else -> SC_F12
+        }
+    }
+    else -> null
+}
+
+/** Translate KeyboardToolbar.onSendBytes payloads into RDP/SPICE/GLKVM key events. */
+internal fun handleRdpToolbarBytes(
+    bytes: ByteArray,
+    ctrlActive: Boolean,
+    altActive: Boolean,
+    shiftActive: Boolean,
+    onKeyDown: (Int) -> Unit,
+    onKeyUp: (Int) -> Unit,
+    onTypeChar: (Char) -> Unit,
+    onTypeText: (String) -> Unit,
+    releaseModifiers: () -> Unit,
+) {
+    if (bytes.isEmpty()) return
+    // Strip leading ESC (0x1b) added by KeyboardToolbar.sendChar when Alt is active
+    // and a single-char symbol/custom key was tapped (SC_ALT_L is already held down).
+    val payload = if (altActive && bytes.size == 2 && bytes[0] == 0x1b.toByte() && bytes[1] != '['.code.toByte()) {
+        byteArrayOf(bytes[1])
+    } else {
+        bytes
+    }
+    val str = String(payload, Charsets.UTF_8)
+    when {
+        payload.contentEquals(byteArrayOf(0x1b)) -> {
+            onKeyDown(SC_ESCAPE)
+            onKeyUp(SC_ESCAPE)
+            releaseModifiers()
+        }
+        payload.contentEquals(byteArrayOf(0x09)) -> {
+            onKeyDown(SC_TAB)
+            onKeyUp(SC_TAB)
+            releaseModifiers()
+        }
+        payload.contentEquals(byteArrayOf(0x0d)) -> {
+            onKeyDown(SC_RETURN)
+            onKeyUp(SC_RETURN)
+            releaseModifiers()
+        }
+        str == "\u001b[Z" -> {
+            if (!shiftActive) onKeyDown(SC_SHIFT_L)
+            onKeyDown(SC_TAB)
+            onKeyUp(SC_TAB)
+            if (!shiftActive) onKeyUp(SC_SHIFT_L)
+            releaseModifiers()
+        }
+        str == "\u001b[3;8~" -> {
+            if (!ctrlActive) onKeyDown(SC_CTRL_L)
+            if (!altActive) onKeyDown(SC_ALT_L)
+            onKeyDown(SC_DELETE)
+            onKeyUp(SC_DELETE)
+            if (!altActive) onKeyUp(SC_ALT_L)
+            if (!ctrlActive) onKeyUp(SC_CTRL_L)
+            releaseModifiers()
+        }
+        str == "\u001b[3;6~" -> {
+            if (!ctrlActive) onKeyDown(SC_CTRL_L)
+            onKeyDown(SC_DELETE)
+            onKeyUp(SC_DELETE)
+            if (!ctrlActive) onKeyUp(SC_CTRL_L)
+            releaseModifiers()
+        }
+        str == "\u001b[2;5~" -> {
+            if (!ctrlActive) onKeyDown(SC_CTRL_L)
+            onKeyDown(SC_INSERT)
+            onKeyUp(SC_INSERT)
+            if (!ctrlActive) onKeyUp(SC_CTRL_L)
+            releaseModifiers()
+        }
+        str == "\u001b[2;2~" -> {
+            if (!shiftActive) onKeyDown(SC_SHIFT_L)
+            onKeyDown(SC_INSERT)
+            onKeyUp(SC_INSERT)
+            if (!shiftActive) onKeyUp(SC_SHIFT_L)
+            releaseModifiers()
+        }
+        payload.size == 1 && payload[0] in 1..26 -> {
+            val ch = 'a' + (payload[0].toInt() - 1)
+            if (!ctrlActive) {
+                onKeyDown(SC_CTRL_L)
+                onTypeChar(ch)
+                onKeyUp(SC_CTRL_L)
+                releaseModifiers()
+            } else {
+                onTypeChar(ch)
+            }
+        }
+        payload.size == 1 && (ctrlActive || altActive) -> {
+            onTypeChar(payload[0].toInt().toChar())
+        }
+        else -> {
+            onTypeText(str)
+            releaseModifiers()
+        }
+    }
+}
+
+/** Map a non-symbol ToolbarKey to its Set-1 scancode. */
+private fun toolbarKeyToScancode(key: ToolbarKey): Int? = when (key) {
+    ToolbarKey.ESC_KEY -> SC_ESCAPE
+    ToolbarKey.TAB_KEY -> SC_TAB
+    ToolbarKey.ENTER_KEY -> SC_RETURN
+    ToolbarKey.ARROW_LEFT -> SC_LEFT
+    ToolbarKey.ARROW_UP -> SC_UP
+    ToolbarKey.ARROW_DOWN -> SC_DOWN
+    ToolbarKey.ARROW_RIGHT -> SC_RIGHT
+    ToolbarKey.HOME -> SC_HOME
+    ToolbarKey.END -> SC_END
+    ToolbarKey.PGUP -> SC_PGUP
+    ToolbarKey.PGDN -> SC_PGDN
+    ToolbarKey.INSERT -> SC_INSERT
+    ToolbarKey.DELETE -> SC_DELETE
+    ToolbarKey.F1 -> SC_F1
+    ToolbarKey.F2 -> SC_F2
+    ToolbarKey.F3 -> SC_F3
+    ToolbarKey.F4 -> SC_F4
+    ToolbarKey.F5 -> SC_F5
+    ToolbarKey.F6 -> SC_F6
+    ToolbarKey.F7 -> SC_F7
+    ToolbarKey.F8 -> SC_F8
+    ToolbarKey.F9 -> SC_F9
+    ToolbarKey.F10 -> SC_F10
+    ToolbarKey.F11 -> SC_F11
+    ToolbarKey.F12 -> SC_F12
+    else -> null
+}
+
+/** Split a row's items into (before nav keys, after nav keys). */
+private fun rdpSplitAroundNav(
+    row: List<sh.haven.core.data.preferences.ToolbarItem>,
+): Pair<List<sh.haven.core.data.preferences.ToolbarItem>, List<sh.haven.core.data.preferences.ToolbarItem>> {
+    val firstNavIdx = row.indexOfFirst {
+        it is sh.haven.core.data.preferences.ToolbarItem.BuiltIn && it.key in RDP_NAV_KEYS
+    }
+    val lastNavIdx = row.indexOfLast {
+        it is sh.haven.core.data.preferences.ToolbarItem.BuiltIn && it.key in RDP_NAV_KEYS
+    }
+    if (firstNavIdx == -1) return row to emptyList()
+    val left = row.subList(0, firstNavIdx)
+    val right = if (lastNavIdx + 1 < row.size) row.subList(lastNavIdx + 1, row.size) else emptyList()
+    return left to right
+}
+
 @Composable
 private fun RdpKeyToolbar(
     layout: ToolbarLayout,
@@ -1582,57 +1879,312 @@ private fun RdpKeyToolbar(
     onToggleShift: () -> Unit,
     onToggleWin: () -> Unit,
     onRdpKey: (scancode: Int) -> Unit,
+    onTypeText: (String) -> Unit,
     onToggleKeyboard: () -> Unit,
+    onPaste: () -> Unit,
 ) {
+    val presentBuiltIns = layout.rows.flatten()
+        .filterIsInstance<sh.haven.core.data.preferences.ToolbarItem.BuiltIn>()
+        .map { it.key }
+        .toSet()
+    val presentNavKeys = presentBuiltIns.intersect(RDP_NAV_KEYS)
+
     Surface(tonalElevation = 2.dp) {
-        Column {
-            // Modifier row
+        if (layout.rows.size >= 2 && presentNavKeys.isNotEmpty()) {
+            val (row1Left, row1Right) = rdpSplitAroundNav(layout.row1)
+            val (row2Left, row2Right) = rdpSplitAroundNav(layout.row2)
+
             Row(
                 modifier = Modifier
                     .horizontalScroll(rememberScrollState())
-                    .padding(horizontal = 4.dp, vertical = 1.dp),
-                verticalAlignment = Alignment.CenterVertically,
+                    .padding(horizontal = 4.dp),
             ) {
-                IconButton(
-                    onClick = onToggleKeyboard,
-                    modifier = Modifier.size(32.dp),
-                ) {
-                    Icon(Icons.Default.Keyboard, contentDescription = stringResource(R.string.rdp_cd_toggle_keyboard), modifier = Modifier.size(18.dp))
+                // Left keys column
+                Column(modifier = Modifier.width(IntrinsicSize.Max)) {
+                    Row(Modifier.fillMaxWidth().padding(vertical = 1.dp), verticalAlignment = Alignment.CenterVertically) {
+                        RdpToggleButton("Win", winActive, onToggleWin)
+                        for (item in row1Left) {
+                            RdpRenderItem(
+                                item = item,
+                                ctrlActive = ctrlActive,
+                                altActive = altActive,
+                                shiftActive = shiftActive,
+                                onToggleCtrl = onToggleCtrl,
+                                onToggleAlt = onToggleAlt,
+                                onToggleShift = onToggleShift,
+                                onRdpKey = onRdpKey,
+                                onTypeText = onTypeText,
+                                onToggleKeyboard = onToggleKeyboard,
+                                onPaste = onPaste,
+                            )
+                        }
+                    }
+                    Row(Modifier.fillMaxWidth().padding(vertical = 1.dp), verticalAlignment = Alignment.CenterVertically) {
+                        for (item in row2Left) {
+                            RdpRenderItem(
+                                item = item,
+                                ctrlActive = ctrlActive,
+                                altActive = altActive,
+                                shiftActive = shiftActive,
+                                onToggleCtrl = onToggleCtrl,
+                                onToggleAlt = onToggleAlt,
+                                onToggleShift = onToggleShift,
+                                onRdpKey = onRdpKey,
+                                onTypeText = onTypeText,
+                                onToggleKeyboard = onToggleKeyboard,
+                                onPaste = onPaste,
+                            )
+                        }
+                    }
                 }
-                RdpToggleButton("Ctrl", ctrlActive, onToggleCtrl)
-                RdpToggleButton("Alt", altActive, onToggleAlt)
-                RdpToggleButton("Shift", shiftActive, onToggleShift)
-                RdpToggleButton("Win", winActive, onToggleWin)
-                RdpKeyButton("Esc") { onRdpKey(SC_ESCAPE) }
-                RdpKeyButton("Tab") { onRdpKey(SC_TAB) }
-                // Enter had no button at all: it was reachable only through the
-                // IME's return key, i.e. exactly the path that misbehaves here.
-                RdpKeyButton("Enter") { onRdpKey(SC_RETURN) }
-                RdpKeyButton("Del") { onRdpKey(SC_DELETE) }
-                RdpKeyButton("Ins") { onRdpKey(SC_INSERT) }
+
+                // Nav block grid (2x4 aligned)
+                Column {
+                    Row(Modifier.padding(vertical = 1.dp), verticalAlignment = Alignment.CenterVertically) {
+                        for (key in RDP_NAV_GRID_TOP) {
+                            if (key in presentNavKeys) {
+                                val sc = toolbarKeyToScancode(key)
+                                RdpNavButton(key) { if (sc != null) onRdpKey(sc) }
+                            } else {
+                                Spacer(Modifier.width(RDP_NAV_CELL_WIDTH).height(32.dp))
+                            }
+                        }
+                    }
+                    Row(Modifier.padding(vertical = 1.dp), verticalAlignment = Alignment.CenterVertically) {
+                        for (key in RDP_NAV_GRID_BOTTOM) {
+                            if (key in presentNavKeys) {
+                                val sc = toolbarKeyToScancode(key)
+                                RdpNavButton(key) { if (sc != null) onRdpKey(sc) }
+                            } else {
+                                Spacer(Modifier.width(RDP_NAV_CELL_WIDTH).height(32.dp))
+                            }
+                        }
+                    }
+                }
+
+                // Right keys (symbols, Enter/Del/Ins, F1..F12)
+                Column {
+                    Row(Modifier.padding(vertical = 1.dp), verticalAlignment = Alignment.CenterVertically) {
+                        for (item in row1Right) {
+                            RdpRenderItem(
+                                item = item,
+                                ctrlActive = ctrlActive,
+                                altActive = altActive,
+                                shiftActive = shiftActive,
+                                onToggleCtrl = onToggleCtrl,
+                                onToggleAlt = onToggleAlt,
+                                onToggleShift = onToggleShift,
+                                onRdpKey = onRdpKey,
+                                onTypeText = onTypeText,
+                                onToggleKeyboard = onToggleKeyboard,
+                                onPaste = onPaste,
+                            )
+                        }
+                        if (ToolbarKey.ENTER_KEY !in presentBuiltIns) {
+                            RdpKeyButton("Enter") { onRdpKey(SC_RETURN) }
+                        }
+                        if (ToolbarKey.DELETE !in presentBuiltIns) {
+                            RdpKeyButton("Del") { onRdpKey(SC_DELETE) }
+                        }
+                        if (ToolbarKey.INSERT !in presentBuiltIns) {
+                            RdpKeyButton("Ins") { onRdpKey(SC_INSERT) }
+                        }
+                    }
+                    Row(Modifier.padding(vertical = 1.dp), verticalAlignment = Alignment.CenterVertically) {
+                        for (item in row2Right) {
+                            RdpRenderItem(
+                                item = item,
+                                ctrlActive = ctrlActive,
+                                altActive = altActive,
+                                shiftActive = shiftActive,
+                                onToggleCtrl = onToggleCtrl,
+                                onToggleAlt = onToggleAlt,
+                                onToggleShift = onToggleShift,
+                                onRdpKey = onRdpKey,
+                                onTypeText = onTypeText,
+                                onToggleKeyboard = onToggleKeyboard,
+                                onPaste = onPaste,
+                            )
+                        }
+                        Spacer(Modifier.width(4.dp))
+                        for (i in 1..12) {
+                            val fk = ToolbarKey.fromId("f$i")
+                            if (fk == null || fk !in presentBuiltIns) {
+                                RdpKeyButton("F$i") { onRdpKey(if (i <= 10) SC_F1 + i - 1 else if (i == 11) SC_F11 else SC_F12) }
+                            }
+                        }
+                    }
+                }
             }
-            // Navigation row
-            Row(
-                modifier = Modifier
-                    .horizontalScroll(rememberScrollState())
-                    .padding(horizontal = 4.dp, vertical = 1.dp),
-                verticalAlignment = Alignment.CenterVertically,
-            ) {
-                RdpArrowButton("\u2190") { onRdpKey(SC_LEFT) }
-                RdpArrowButton("\u2191") { onRdpKey(SC_UP) }
-                RdpArrowButton("\u2193") { onRdpKey(SC_DOWN) }
-                RdpArrowButton("\u2192") { onRdpKey(SC_RIGHT) }
-                Spacer(Modifier.width(8.dp))
-                RdpKeyButton("Home") { onRdpKey(SC_HOME) }
-                RdpKeyButton("End") { onRdpKey(SC_END) }
-                RdpKeyButton("PgUp") { onRdpKey(SC_PGUP) }
-                RdpKeyButton("PgDn") { onRdpKey(SC_PGDN) }
-                Spacer(Modifier.width(8.dp))
-                for (i in 1..12) {
-                    RdpKeyButton("F$i") { onRdpKey(SC_F1 + i - 1) }
+        } else {
+            // Fallback: flat rows
+            Column {
+                var winPlaced = false
+                for (row in layout.rows) {
+                    if (row.isEmpty()) continue
+                    Row(
+                        modifier = Modifier
+                            .horizontalScroll(rememberScrollState())
+                            .padding(horizontal = 4.dp, vertical = 1.dp),
+                        verticalAlignment = Alignment.CenterVertically,
+                    ) {
+                        if (!winPlaced) {
+                            RdpToggleButton("Win", winActive, onToggleWin)
+                            winPlaced = true
+                        }
+                        for (item in row) {
+                            RdpRenderItem(
+                                item = item,
+                                ctrlActive = ctrlActive,
+                                altActive = altActive,
+                                shiftActive = shiftActive,
+                                onToggleCtrl = onToggleCtrl,
+                                onToggleAlt = onToggleAlt,
+                                onToggleShift = onToggleShift,
+                                onRdpKey = onRdpKey,
+                                onTypeText = onTypeText,
+                                onToggleKeyboard = onToggleKeyboard,
+                                onPaste = onPaste,
+                            )
+                        }
+                    }
                 }
             }
         }
+    }
+}
+
+@Composable
+private fun RdpRenderItem(
+    item: sh.haven.core.data.preferences.ToolbarItem,
+    ctrlActive: Boolean,
+    altActive: Boolean,
+    shiftActive: Boolean,
+    onToggleCtrl: () -> Unit,
+    onToggleAlt: () -> Unit,
+    onToggleShift: () -> Unit,
+    onRdpKey: (scancode: Int) -> Unit,
+    onTypeText: (String) -> Unit,
+    onToggleKeyboard: () -> Unit,
+    onPaste: () -> Unit,
+) {
+    when (item) {
+        is sh.haven.core.data.preferences.ToolbarItem.BuiltIn -> {
+            RdpBuiltInKey(
+                key = item.key,
+                ctrlActive = ctrlActive,
+                altActive = altActive,
+                shiftActive = shiftActive,
+                onToggleCtrl = onToggleCtrl,
+                onToggleAlt = onToggleAlt,
+                onToggleShift = onToggleShift,
+                onRdpKey = onRdpKey,
+                onTypeText = onTypeText,
+                onToggleKeyboard = onToggleKeyboard,
+                onPaste = onPaste,
+            )
+        }
+        is sh.haven.core.data.preferences.ToolbarItem.Custom -> {
+            RdpSymbolButton(item.label) {
+                onTypeText(item.send)
+            }
+        }
+    }
+}
+
+@Composable
+private fun RdpNavButton(key: ToolbarKey, onClick: () -> Unit) {
+    val isArrow = key in setOf(
+        ToolbarKey.ARROW_UP, ToolbarKey.ARROW_DOWN,
+        ToolbarKey.ARROW_LEFT, ToolbarKey.ARROW_RIGHT,
+    )
+    RdpRepeatingButton(
+        onClick = onClick,
+        modifier = Modifier.padding(horizontal = 1.dp).width(RDP_NAV_CELL_WIDTH).height(32.dp),
+        contentPadding = PaddingValues(horizontal = 0.dp, vertical = 0.dp),
+    ) {
+        if (isArrow) {
+            val label = when (key) {
+                ToolbarKey.ARROW_UP -> "\u2191"
+                ToolbarKey.ARROW_DOWN -> "\u2193"
+                ToolbarKey.ARROW_LEFT -> "\u2190"
+                ToolbarKey.ARROW_RIGHT -> "\u2192"
+                else -> ""
+            }
+            Text(label, fontSize = 16.sp, lineHeight = 16.sp, fontWeight = FontWeight.Bold)
+        } else {
+            Text(key.label, fontSize = 11.sp, lineHeight = 11.sp)
+        }
+    }
+}
+
+@Composable
+private fun RdpBuiltInKey(
+    key: ToolbarKey,
+    ctrlActive: Boolean,
+    altActive: Boolean,
+    shiftActive: Boolean,
+    onToggleCtrl: () -> Unit,
+    onToggleAlt: () -> Unit,
+    onToggleShift: () -> Unit,
+    onRdpKey: (scancode: Int) -> Unit,
+    onTypeText: (String) -> Unit,
+    onToggleKeyboard: () -> Unit,
+    onPaste: () -> Unit,
+) {
+    when (key) {
+        ToolbarKey.KEYBOARD -> {
+            IconButton(
+                onClick = onToggleKeyboard,
+                modifier = Modifier.size(32.dp),
+            ) {
+                Icon(
+                    Icons.Default.Keyboard,
+                    contentDescription = stringResource(R.string.rdp_cd_toggle_keyboard),
+                    modifier = Modifier.size(18.dp),
+                )
+            }
+        }
+        ToolbarKey.PASTE -> RdpKeyButton(key.label, onPaste)
+        ToolbarKey.CTRL -> RdpToggleButton("Ctrl", ctrlActive, onToggleCtrl)
+        ToolbarKey.ALT -> RdpToggleButton("Alt", altActive, onToggleAlt)
+        ToolbarKey.ALTGR -> {
+            val altGrActive = ctrlActive && altActive
+            RdpToggleButton("AltGr", altGrActive) {
+                if (altGrActive) {
+                    onToggleCtrl()
+                    onToggleAlt()
+                } else {
+                    if (!ctrlActive) onToggleCtrl()
+                    if (!altActive) onToggleAlt()
+                }
+            }
+        }
+        ToolbarKey.SHIFT -> RdpToggleButton("Shift", shiftActive, onToggleShift)
+        ToolbarKey.ARROW_LEFT -> RdpArrowButton("\u2190") { onRdpKey(SC_LEFT) }
+        ToolbarKey.ARROW_UP -> RdpArrowButton("\u2191") { onRdpKey(SC_UP) }
+        ToolbarKey.ARROW_DOWN -> RdpArrowButton("\u2193") { onRdpKey(SC_DOWN) }
+        ToolbarKey.ARROW_RIGHT -> RdpArrowButton("\u2192") { onRdpKey(SC_RIGHT) }
+        else -> {
+            val sc = toolbarKeyToScancode(key)
+            val ch = key.char
+            if (sc != null) {
+                RdpKeyButton(key.label) { onRdpKey(sc) }
+            } else if (ch != null) {
+                RdpSymbolButton(key.label) { onTypeText(ch.toString()) }
+            }
+        }
+    }
+}
+
+@Composable
+private fun RdpSymbolButton(label: String, onClick: () -> Unit) {
+    RdpRepeatingButton(
+        onClick = onClick,
+        modifier = Modifier.padding(horizontal = 1.dp).height(30.dp),
+        contentPadding = PaddingValues(horizontal = 6.dp, vertical = 0.dp),
+    ) {
+        Text(label, fontSize = 12.sp, lineHeight = 12.sp)
     }
 }
 

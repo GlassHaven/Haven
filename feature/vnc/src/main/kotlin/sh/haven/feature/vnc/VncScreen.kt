@@ -150,6 +150,15 @@ fun VncSessionContent(
     frame: StateFlow<Bitmap?>,
     error: StateFlow<String?>,
     toolbarLayout: ToolbarLayout = ToolbarLayout.DEFAULT,
+    navBlockMode: sh.haven.core.data.preferences.NavBlockMode = sh.haven.core.data.preferences.NavBlockMode.ALIGNED,
+    toolbarUniformGrid: Boolean = false,
+    toolbarMinKeyWidth: Int = 0,
+    toolbarKeyScale: Float = 1f,
+    editModeControlsPlacement: sh.haven.core.data.preferences.EditModeControlsPlacement = sh.haven.core.data.preferences.EditModeControlsPlacement.LEFT,
+    snippetLibrary: List<sh.haven.core.data.preferences.ToolbarItem.Custom> = emptyList(),
+    onToolbarLayoutChanged: (ToolbarLayout) -> Unit = {},
+    onSnippetLibraryChanged: (List<sh.haven.core.data.preferences.ToolbarItem.Custom>) -> Unit = {},
+    onOpenToolbarSettings: () -> Unit = {},
     onTap: (Int, Int) -> Unit,
     /** Two-finger tap → middle-button click at the tapped point (X11 button 2). */
     onMiddleClick: (Int, Int) -> Unit = { _, _ -> },
@@ -268,6 +277,15 @@ fun VncSessionContent(
             frame = frameState!!,
             fullscreen = fullscreen,
             toolbarLayout = toolbarLayout,
+            navBlockMode = navBlockMode,
+            toolbarUniformGrid = toolbarUniformGrid,
+            toolbarMinKeyWidth = toolbarMinKeyWidth,
+            toolbarKeyScale = toolbarKeyScale,
+            editModeControlsPlacement = editModeControlsPlacement,
+            snippetLibrary = snippetLibrary,
+            onToolbarLayoutChanged = onToolbarLayoutChanged,
+            onSnippetLibraryChanged = onSnippetLibraryChanged,
+            onOpenToolbarSettings = onOpenToolbarSettings,
             onTap = onTap,
             onMiddleClick = onMiddleClick,
             onLongPress = onLongPress,
@@ -588,6 +606,15 @@ private fun VncViewer(
     frame: Bitmap,
     fullscreen: Boolean,
     toolbarLayout: ToolbarLayout = ToolbarLayout.DEFAULT,
+    navBlockMode: sh.haven.core.data.preferences.NavBlockMode = sh.haven.core.data.preferences.NavBlockMode.ALIGNED,
+    toolbarUniformGrid: Boolean = false,
+    toolbarMinKeyWidth: Int = 0,
+    toolbarKeyScale: Float = 1f,
+    editModeControlsPlacement: sh.haven.core.data.preferences.EditModeControlsPlacement = sh.haven.core.data.preferences.EditModeControlsPlacement.LEFT,
+    snippetLibrary: List<sh.haven.core.data.preferences.ToolbarItem.Custom> = emptyList(),
+    onToolbarLayoutChanged: (ToolbarLayout) -> Unit = {},
+    onSnippetLibraryChanged: (List<sh.haven.core.data.preferences.ToolbarItem.Custom>) -> Unit = {},
+    onOpenToolbarSettings: () -> Unit = {},
     onTap: (Int, Int) -> Unit,
     onMiddleClick: (Int, Int) -> Unit = { _, _ -> },
     onLongPress: (Int, Int) -> Unit,
@@ -812,6 +839,14 @@ private fun VncViewer(
     // asked for it. Scoped to this screen's own focus holders so the terminal
     // tab's keyboard isn't hidden by this effect (isImeVisible is window-global).
     val imeVisible = WindowInsets.isImeVisible
+    var wasImeVisible by remember { mutableStateOf(imeVisible) }
+    LaunchedEffect(imeVisible) {
+        if (wasImeVisible && !imeVisible && !physicalKeyboardAttached) {
+            keyboardVisible = false
+            hardwareKeyFocus.requestFocus()
+        }
+        wasImeVisible = imeVisible
+    }
     LaunchedEffect(imeVisible, keyboardVisible, canvasFocused, fieldFocused) {
         if (!keyboardVisible && imeVisible && (canvasFocused || fieldFocused)) {
             keyboardController?.hide()
@@ -1342,6 +1377,13 @@ private fun VncViewer(
             }
         }
 
+        val releaseActiveModifiers: () -> Unit = {
+            if (ctrlActive) { onKeyUp(XK_CONTROL_L); ctrlActive = false }
+            if (altActive) { onKeyUp(XK_ALT_L); altActive = false }
+            if (shiftActive) { onKeyUp(XK_SHIFT_L); shiftActive = false }
+            if (superActive) { onKeyUp(XK_SUPER_L); superActive = false }
+        }
+
         // Hidden text field for keyboard input capture
         BasicTextField(
             value = textFieldValue,
@@ -1365,12 +1407,18 @@ private fun VncViewer(
                     }
                 }
                 if (added != null) {
-                    // Characters were typed (or pasted). Route through
-                    // onTypeText so multi-char input goes via the
-                    // serialized typeText path — the previous one-
-                    // launch-per-char model interleaved key events on
-                    // the wire and Windows VNC produced "half-capitals".
-                    onTypeText(added)
+                    if (added.length == 1 && (ctrlActive || altActive || shiftActive || superActive)) {
+                        onTypeChar(added[0])
+                        releaseActiveModifiers()
+                    } else {
+                        // Characters were typed (or pasted). Route through
+                        // onTypeText so multi-char input goes via the
+                        // serialized typeText path — the previous one-
+                        // launch-per-char model interleaved key events on
+                        // the wire and Windows VNC produced "half-capitals".
+                        onTypeText(added)
+                        releaseActiveModifiers()
+                    }
                 }
 
                 // Keep the field in sync with the IME: the next commit's
@@ -1395,32 +1443,45 @@ private fun VncViewer(
                 },
         )
 
-        // VNC key extension rows (incl. the Super/Mod4 key, #171). Shown
-        // when the user has toggled the keyboard on (keyboardVisible) OR the
-        // soft keyboard's insets are actually present (imeVisible). Gating on
-        // the explicit toggle — not imeVisible alone — is what makes the
-        // persistent keyboard button a reliable way to reach Super on a
-        // nested-Wayland desktop, where the IME may not raise (or report
-        // insets) the way it does over a focused text field (#171). Still
-        // hidden by default so the rows don't eat screen space unsummoned;
-        // allowed in fullscreen too, since the immersive desktop is exactly
-        // where the compositor keybinds (Super+D / Super+Return) are needed.
         val clipboardManager = LocalClipboardManager.current
         val pasteClipboard: () -> Unit = {
             val text = clipboardManager.getText()?.text
             if (!text.isNullOrEmpty()) {
                 onSendClipboard?.invoke(text)
                 onTypeText(text)
+                releaseActiveModifiers()
             }
         }
 
+        var reorderMode by remember { mutableStateOf(false) }
+
         if (keyboardVisible || imeVisible) {
-            VncKeyToolbar(
-                layout = toolbarLayout,
+            sh.haven.core.toolbar.KeyboardToolbar(
+                onSendBytes = { bytes ->
+                    handleVncToolbarBytes(
+                        bytes = bytes,
+                        ctrlActive = ctrlActive,
+                        altActive = altActive,
+                        shiftActive = shiftActive,
+                        onKeyDown = onKeyDown,
+                        onKeyUp = onKeyUp,
+                        onTypeChar = onTypeChar,
+                        onTypeText = onTypeText,
+                        releaseModifiers = releaseActiveModifiers,
+                    )
+                },
+                onDispatchKey = { _, key ->
+                    val keySym = vtermKeyToKeySym(key)
+                    if (keySym != null) {
+                        onKeyDown(keySym)
+                        onKeyUp(keySym)
+                        releaseActiveModifiers()
+                    }
+                },
+                focusRequester = focusRequester,
                 ctrlActive = ctrlActive,
                 altActive = altActive,
                 shiftActive = shiftActive,
-                superActive = superActive,
                 onToggleCtrl = {
                     ctrlActive = !ctrlActive
                     if (!ctrlActive) onKeyUp(XK_CONTROL_L) else onKeyDown(XK_CONTROL_L)
@@ -1433,21 +1494,33 @@ private fun VncViewer(
                     shiftActive = !shiftActive
                     if (!shiftActive) onKeyUp(XK_SHIFT_L) else onKeyDown(XK_SHIFT_L)
                 },
-                onToggleSuper = {
-                    superActive = !superActive
-                    if (!superActive) onKeyUp(XK_SUPER_L) else onKeyDown(XK_SUPER_L)
+                onShiftUsed = {
+                    if (shiftActive) {
+                        onKeyUp(XK_SHIFT_L)
+                        shiftActive = false
+                    }
                 },
-                onVncKey = { keySym ->
-                    onKeyDown(keySym)
-                    onKeyUp(keySym)
-                    // Auto-release modifiers after key press
-                    if (ctrlActive) { onKeyUp(XK_CONTROL_L); ctrlActive = false }
-                    if (altActive) { onKeyUp(XK_ALT_L); altActive = false }
-                    if (shiftActive) { onKeyUp(XK_SHIFT_L); shiftActive = false }
-                    if (superActive) { onKeyUp(XK_SUPER_L); superActive = false }
+                layout = toolbarLayout,
+                navBlockMode = navBlockMode,
+                uniformGrid = toolbarUniformGrid,
+                editModeControlsPlacement = editModeControlsPlacement,
+                minKeyWidth = toolbarMinKeyWidth.dp,
+                keyScale = toolbarKeyScale,
+                onPaste = { text ->
+                    if (text.isNotEmpty()) {
+                        onSendClipboard?.invoke(text)
+                        onTypeText(text)
+                        releaseActiveModifiers()
+                    }
                 },
+                reorderMode = reorderMode,
+                onReorderModeChanged = { reorderMode = it },
+                onToolbarLayoutChanged = onToolbarLayoutChanged,
+                snippetLibrary = snippetLibrary,
+                onSnippetLibraryChanged = onSnippetLibraryChanged,
+                onOpenSettings = onOpenToolbarSettings,
                 onToggleKeyboard = toggleKeyboard,
-                onPaste = pasteClipboard,
+                modifier = Modifier.fillMaxWidth(),
             )
         }
 
@@ -1923,10 +1996,123 @@ private val VNC_NAV_GRID_BOTTOM = arrayOf(
 
 private val VNC_NAV_CELL_WIDTH = 44.dp
 
+/** Map a libvterm key constant from KeyboardToolbar.onDispatchKey to an X11 KeySym. */
+internal fun vtermKeyToKeySym(key: Int): Int? = when (key) {
+    5 -> XK_UP
+    6 -> XK_DOWN
+    7 -> XK_LEFT
+    8 -> XK_RIGHT
+    9 -> XK_INSERT
+    10 -> XK_DELETE
+    11 -> XK_HOME
+    12 -> XK_END
+    13 -> XK_PAGE_UP
+    14 -> XK_PAGE_DOWN
+    in 257..268 -> {
+        val fn = key - 256 // 1..12
+        XK_F1 + (fn - 1)
+    }
+    else -> null
+}
+
+/** Translate KeyboardToolbar.onSendBytes payloads into VNC KeySym events. */
+internal fun handleVncToolbarBytes(
+    bytes: ByteArray,
+    ctrlActive: Boolean,
+    altActive: Boolean,
+    shiftActive: Boolean,
+    onKeyDown: (Int) -> Unit,
+    onKeyUp: (Int) -> Unit,
+    onTypeChar: (Char) -> Unit,
+    onTypeText: (String) -> Unit,
+    releaseModifiers: () -> Unit,
+) {
+    if (bytes.isEmpty()) return
+    val payload = if (altActive && bytes.size == 2 && bytes[0] == 0x1b.toByte() && bytes[1] != '['.code.toByte()) {
+        byteArrayOf(bytes[1])
+    } else {
+        bytes
+    }
+    val str = String(payload, Charsets.UTF_8)
+    when {
+        payload.contentEquals(byteArrayOf(0x1b)) -> {
+            onKeyDown(XK_ESCAPE)
+            onKeyUp(XK_ESCAPE)
+            releaseModifiers()
+        }
+        payload.contentEquals(byteArrayOf(0x09)) -> {
+            onKeyDown(XK_TAB)
+            onKeyUp(XK_TAB)
+            releaseModifiers()
+        }
+        payload.contentEquals(byteArrayOf(0x0d)) -> {
+            onKeyDown(XK_RETURN)
+            onKeyUp(XK_RETURN)
+            releaseModifiers()
+        }
+        str == "\u001b[Z" -> {
+            if (!shiftActive) onKeyDown(XK_SHIFT_L)
+            onKeyDown(XK_TAB)
+            onKeyUp(XK_TAB)
+            if (!shiftActive) onKeyUp(XK_SHIFT_L)
+            releaseModifiers()
+        }
+        str == "\u001b[3;8~" -> {
+            if (!ctrlActive) onKeyDown(XK_CONTROL_L)
+            if (!altActive) onKeyDown(XK_ALT_L)
+            onKeyDown(XK_DELETE)
+            onKeyUp(XK_DELETE)
+            if (!altActive) onKeyUp(XK_ALT_L)
+            if (!ctrlActive) onKeyUp(XK_CONTROL_L)
+            releaseModifiers()
+        }
+        str == "\u001b[3;6~" -> {
+            if (!ctrlActive) onKeyDown(XK_CONTROL_L)
+            onKeyDown(XK_DELETE)
+            onKeyUp(XK_DELETE)
+            if (!ctrlActive) onKeyUp(XK_CONTROL_L)
+            releaseModifiers()
+        }
+        str == "\u001b[2;5~" -> {
+            if (!ctrlActive) onKeyDown(XK_CONTROL_L)
+            onKeyDown(XK_INSERT)
+            onKeyUp(XK_INSERT)
+            if (!ctrlActive) onKeyUp(XK_CONTROL_L)
+            releaseModifiers()
+        }
+        str == "\u001b[2;2~" -> {
+            if (!shiftActive) onKeyDown(XK_SHIFT_L)
+            onKeyDown(XK_INSERT)
+            onKeyUp(XK_INSERT)
+            if (!shiftActive) onKeyUp(XK_SHIFT_L)
+            releaseModifiers()
+        }
+        payload.size == 1 && payload[0] in 1..26 -> {
+            val ch = 'a' + (payload[0].toInt() - 1)
+            if (!ctrlActive) {
+                onKeyDown(XK_CONTROL_L)
+                onTypeChar(ch)
+                onKeyUp(XK_CONTROL_L)
+                releaseModifiers()
+            } else {
+                onTypeChar(ch)
+            }
+        }
+        payload.size == 1 && (ctrlActive || altActive) -> {
+            onTypeChar(payload[0].toInt().toChar())
+        }
+        else -> {
+            onTypeText(str)
+            releaseModifiers()
+        }
+    }
+}
+
 /** Map a ToolbarKey to its X11 KeySym for VNC. */
 private fun toolbarKeyToKeySym(key: ToolbarKey): Int? = when (key) {
     ToolbarKey.ESC_KEY -> XK_ESCAPE
     ToolbarKey.TAB_KEY -> XK_TAB
+    ToolbarKey.ENTER_KEY -> XK_RETURN
     ToolbarKey.ARROW_LEFT -> XK_LEFT
     ToolbarKey.ARROW_UP -> XK_UP
     ToolbarKey.ARROW_DOWN -> XK_DOWN
@@ -1935,6 +2121,20 @@ private fun toolbarKeyToKeySym(key: ToolbarKey): Int? = when (key) {
     ToolbarKey.END -> XK_END
     ToolbarKey.PGUP -> XK_PAGE_UP
     ToolbarKey.PGDN -> XK_PAGE_DOWN
+    ToolbarKey.INSERT -> XK_INSERT
+    ToolbarKey.DELETE -> XK_DELETE
+    ToolbarKey.F1 -> XK_F1
+    ToolbarKey.F2 -> XK_F2
+    ToolbarKey.F3 -> XK_F3
+    ToolbarKey.F4 -> XK_F4
+    ToolbarKey.F5 -> XK_F5
+    ToolbarKey.F6 -> XK_F6
+    ToolbarKey.F7 -> XK_F7
+    ToolbarKey.F8 -> XK_F8
+    ToolbarKey.F9 -> XK_F9
+    ToolbarKey.F10 -> XK_F10
+    ToolbarKey.F11 -> XK_F11
+    ToolbarKey.F12 -> XK_F12
     else -> key.char?.code
 }
 

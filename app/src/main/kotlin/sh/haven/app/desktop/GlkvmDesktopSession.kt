@@ -57,6 +57,11 @@ class GlkvmDesktopSession(
     @Volatile
     private var connecting = true
 
+    @Volatile
+    private var closed = false
+
+    private val activeInputs = java.util.concurrent.atomic.AtomicInteger(0)
+
     /** Launch the snapshot poll loop. Non-blocking (unlike SPICE's blocking start()). */
     fun start() {
         check(pollJob == null) { "GlkvmDesktopSession.start() called twice" }
@@ -81,6 +86,14 @@ class GlkvmDesktopSession(
                 delay(pollIntervalMs)
                 runCatching { pollOnce() }
                     .onFailure { e ->
+                        // While HID input (e.g. a multi-character paste) is actively
+                        // executing against kvmd, snapshot requests can contend with
+                        // kvmd's HTTP worker pool; don't count contended ticks toward
+                        // the fatal disconnect threshold.
+                        if (activeInputs.get() > 0) {
+                            Log.d(TAG, "GLKVM snapshot tick contended during active input: ${e.message}")
+                            return@onFailure
+                        }
                         // A single failed tick (brief Wi-Fi drop, token flip)
                         // shouldn't kill the tab — mark and continue; on the
                         // next success the frame flows again. Persistent
@@ -94,10 +107,13 @@ class GlkvmDesktopSession(
                     .onSuccess { consecutiveFailures = 0 }
             }
             // Loop exited — cancel() was called.
+            closed = true
             onDisconnected()
         } catch (ce: kotlinx.coroutines.CancellationException) {
+            closed = true
             throw ce // normal close
         } catch (e: Throwable) {
+            closed = true
             Log.e(TAG, "GLKVM session error", e)
             onError(e)
         }
@@ -171,6 +187,7 @@ class GlkvmDesktopSession(
     }
 
     override fun close() {
+        closed = true
         scope.cancel()
         client.close()
     }
@@ -193,7 +210,7 @@ class GlkvmDesktopSession(
      * to kvmd's US-layout printer.
      */
     fun typeText(text: String) = runCatchingInput {
-        client.typeText(text, targetLayout)
+        client.typeText(text, targetLayout, isCancelled = { closed || !scope.isActive })
     }
 
     fun describeCertError(e: Throwable): String? =
@@ -202,12 +219,17 @@ class GlkvmDesktopSession(
     // -- helpers ---------------------------------------------------------------
 
     private inline fun runCatchingInput(block: () -> Unit) {
+        if (closed) return
+        activeInputs.incrementAndGet()
         try {
             block()
+            consecutiveFailures = 0
         } catch (e: Exception) {
             // Input on a dead session fires from lane dispatch after a drop;
             // swallow and log so the lane keeps draining other tabs.
             Log.w(TAG, "GLKVM input dropped: ${e.message}")
+        } finally {
+            activeInputs.decrementAndGet()
         }
     }
 

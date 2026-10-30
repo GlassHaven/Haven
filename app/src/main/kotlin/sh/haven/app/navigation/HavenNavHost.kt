@@ -349,6 +349,7 @@ fun HavenNavHost(
         navigateToGlkvmEvent?.let { nav ->
             desktopViewModel.addGlkvmSession(
                 nav.host, nav.port, nav.user, nav.password,
+                targetLayout = nav.targetLayout,
                 sshForward = nav.sshForward,
                 sshSessionId = nav.sshSessionId,
                 profileId = nav.profileId,
@@ -836,7 +837,26 @@ fun HavenNavHost(
                         toolbarLayout = toolbarLayout,
                         navBlockMode = navBlockMode,
                         toolbarUniformGrid = toolbarUniformGrid,
+                        toolbarMinKeyWidth = toolbarMinKeyWidth,
                         toolbarKeyScale = toolbarKeyScale,
+                        editModeControlsPlacement = editModeControlsPlacement,
+                        snippetLibrary = snippetLibrary,
+                        onToolbarLayoutChanged = { newLayout ->
+                            coroutineScope.launch {
+                                preferencesRepository.setToolbarLayout(newLayout)
+                            }
+                        },
+                        onSnippetLibraryChanged = { newLibrary ->
+                            coroutineScope.launch {
+                                preferencesRepository.setSnippetLibrary(newLibrary)
+                            }
+                        },
+                        onOpenToolbarSettings = {
+                            openToolbarConfig = true
+                            coroutineScope.launch {
+                                requestScreen(Screen.Settings)
+                            }
+                        },
                         rdpChipAnchor = rdpChipAnchor,
                         onRdpChipAnchorChange = {
                             coroutineScope.launch { preferencesRepository.setRdpChipAnchor(it) }

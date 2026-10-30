@@ -131,4 +131,21 @@ class GlkvmTypeTextTest {
             )
         }
     }
+
+    @Test
+    fun `consecutive unmapped chars coalesce into one print call`() {
+        client.typeText("a£€¥b", delay = 0)
+        val events = synchronized(sent) { sent.toList() }
+        val prints = events.filter { it.first == "print" }
+        assertEquals(1, prints.size)
+        assertEquals("£€¥", prints[0].third)
+    }
+
+    @Test
+    fun `typeText stops immediately when cancelled mid-paste`() {
+        var count = 0
+        client.typeText("abcdef", delay = 0, isCancelled = { count++ >= 2 })
+        val keyDowns = synchronized(sent) { sent.filter { it.first == "key" && it.third == "1" } }
+        assertEquals(2, keyDowns.size)
+    }
 }

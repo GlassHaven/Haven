@@ -299,4 +299,50 @@ class RdpScancodeTest {
         )
         assertEquals("two numpad keys share a scancode", all.size, all.toSet().size)
     }
+
+    @Test
+    fun `vtermKeyToScancode maps nav and function keys to Set-1 scancodes`() {
+        assertEquals(SC_UP, vtermKeyToScancode(5))
+        assertEquals(SC_DOWN, vtermKeyToScancode(6))
+        assertEquals(SC_LEFT, vtermKeyToScancode(7))
+        assertEquals(SC_RIGHT, vtermKeyToScancode(8))
+        assertEquals(SC_INSERT, vtermKeyToScancode(9))
+        assertEquals(SC_DELETE, vtermKeyToScancode(10))
+        assertEquals(SC_HOME, vtermKeyToScancode(11))
+        assertEquals(SC_END, vtermKeyToScancode(12))
+        assertEquals(SC_PGUP, vtermKeyToScancode(13))
+        assertEquals(SC_PGDN, vtermKeyToScancode(14))
+        assertEquals(SC_F1, vtermKeyToScancode(257))
+        assertEquals(SC_F12, vtermKeyToScancode(268))
+    }
+
+    @Test
+    fun `handleRdpToolbarBytes translates Esc Tab Enter ShiftTab and snippets`() {
+        val events = mutableListOf<String>()
+        var released = 0
+        fun send(bytes: ByteArray, ctrl: Boolean = false, alt: Boolean = false, shift: Boolean = false) {
+            handleRdpToolbarBytes(
+                bytes = bytes,
+                ctrlActive = ctrl,
+                altActive = alt,
+                shiftActive = shift,
+                onKeyDown = { events.add("down:$it") },
+                onKeyUp = { events.add("up:$it") },
+                onTypeChar = { events.add("char:$it") },
+                onTypeText = { events.add("text:$it") },
+                releaseModifiers = { released++ },
+            )
+        }
+        send(byteArrayOf(0x1b))
+        assertEquals(listOf("down:$SC_ESCAPE", "up:$SC_ESCAPE"), events)
+        events.clear()
+
+        send("\u001b[Z".toByteArray())
+        assertEquals(listOf("down:$SC_SHIFT_L", "down:$SC_TAB", "up:$SC_TAB", "up:$SC_SHIFT_L"), events)
+        events.clear()
+
+        send("mcp".toByteArray())
+        assertEquals(listOf("text:mcp"), events)
+        assertEquals(3, released)
+    }
 }

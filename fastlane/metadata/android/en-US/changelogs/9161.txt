@@ -1,0 +1,1 @@
+- Unified Desktop and Terminal extended keyboard rows (`KeyboardToolbar` across RDP, SPICE, GLKVM, and VNC), GLKVM multi-character paste and reconnect fixes, `usbRedirPort` on `start_system_vm`, and UML guest kernel `uml-guest-10` with built-in `uvcvideo`, `snd-usb-audio`, and `cdc-acm` drivers (#613).

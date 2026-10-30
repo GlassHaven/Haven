@@ -101,4 +101,28 @@ class VncImeDiffTest {
         // so the changed interior is "o" replaced by "low".
         assertEquals("low" to 1, diffImeCommit("horld", "hlowrld"))
     }
+
+    @Test
+    fun `vtermKeyToKeySym and handleVncToolbarBytes translate toolbar keys`() {
+        assertEquals(0xff52, vtermKeyToKeySym(5)) // XK_UP
+        assertEquals(0xffff, vtermKeyToKeySym(10)) // XK_DELETE
+        assertEquals(0xffbe, vtermKeyToKeySym(257)) // XK_F1
+        assertEquals(0xffc9, vtermKeyToKeySym(268)) // XK_F12
+
+        val events = mutableListOf<String>()
+        var released = 0
+        handleVncToolbarBytes(
+            bytes = "\u001b[Z".toByteArray(),
+            ctrlActive = false,
+            altActive = false,
+            shiftActive = false,
+            onKeyDown = { events.add("down:${it.toString(16)}") },
+            onKeyUp = { events.add("up:${it.toString(16)}") },
+            onTypeChar = { events.add("char:$it") },
+            onTypeText = { events.add("text:$it") },
+            releaseModifiers = { released++ },
+        )
+        assertEquals(listOf("down:ffe1", "down:ff09", "up:ff09", "up:ffe1"), events)
+        assertEquals(1, released)
+    }
 }

@@ -217,7 +217,13 @@ data class ToolbarCallbacks(
      * text-entry dialog over the terminal so a full line can be composed
      * with the normal IME and sent to the session in one shot.
      */
-    val onOpenTextInput: () -> Unit = {},
+    val onOpenTextInput: (() -> Unit)? = null,
+    /**
+     * Optional override for the Keyboard toggle key (used by Desktop sessions
+     * that maintain their own `keyboardVisible` state). When null, toggles the
+     * IME via [WindowInsetsController] on [focusRequester].
+     */
+    val onToggleKeyboard: (() -> Unit)? = null,
     /**
      * Tap on the Dictate (microphone) key (#604). Launches the system speech
      * recognizer directly — unlike the Voice lock toggle, this does not depend
@@ -305,7 +311,8 @@ fun KeyboardToolbar(
     swipeArrowsActive: Boolean = false,
     onToggleSwipeArrows: () -> Unit = {},
     onAttachTap: () -> Unit = {},
-    onOpenTextInput: () -> Unit = {},
+    onOpenTextInput: (() -> Unit)? = null,
+    onToggleKeyboard: (() -> Unit)? = null,
     onDictateTap: () -> Unit = {},
     modifier: Modifier = Modifier,
 ) {
@@ -382,6 +389,7 @@ fun KeyboardToolbar(
         },
         onAttachTap = onAttachTap,
         onOpenTextInput = onOpenTextInput,
+        onToggleKeyboard = onToggleKeyboard,
         onDictateTap = onDictateTap,
     )
 
@@ -1038,13 +1046,17 @@ private fun BuiltInKey(
                     )
                     .combinedClickable(
                         onClick = {
-                            val window = (view.context as? Activity)?.window ?: return@combinedClickable
-                            val controller = WindowCompat.getInsetsController(window, view)
-                            if (imeVisible) {
-                                controller.hide(WindowInsetsCompat.Type.ime())
+                            if (cb.onToggleKeyboard != null) {
+                                cb.onToggleKeyboard.invoke()
                             } else {
-                                focusRequester.requestFocus()
-                                controller.show(WindowInsetsCompat.Type.ime())
+                                val window = (view.context as? Activity)?.window ?: return@combinedClickable
+                                val controller = WindowCompat.getInsetsController(window, view)
+                                if (imeVisible) {
+                                    controller.hide(WindowInsetsCompat.Type.ime())
+                                } else {
+                                    focusRequester.requestFocus()
+                                    controller.show(WindowInsetsCompat.Type.ime())
+                                }
                             }
                         },
                         onLongClick = {
@@ -1135,11 +1147,55 @@ private fun BuiltInKey(
             description = stringResource(R.string.toolbar_attach_desc),
             onClick = cb.onAttachTap,
         )
-        ToolbarKey.TEXT_INPUT -> ToolbarIconButton(
-            icon = Icons.Filled.EditNote,
-            description = stringResource(R.string.toolbar_text_input_desc),
-            onClick = cb.onOpenTextInput,
-        )
+        ToolbarKey.TEXT_INPUT -> {
+            var showDialog by remember { mutableStateOf(false) }
+            var draft by remember { mutableStateOf("") }
+            ToolbarIconButton(
+                icon = Icons.Filled.EditNote,
+                description = stringResource(R.string.toolbar_text_input_desc),
+                onClick = {
+                    if (cb.onOpenTextInput != null) {
+                        cb.onOpenTextInput.invoke()
+                    } else {
+                        showDialog = true
+                    }
+                },
+            )
+            if (showDialog) {
+                AlertDialog(
+                    onDismissRequest = { showDialog = false },
+                    title = { Text(stringResource(R.string.toolbar_text_input_desc)) },
+                    text = {
+                        OutlinedTextField(
+                            value = draft,
+                            onValueChange = { draft = it },
+                            modifier = Modifier.fillMaxWidth(),
+                            minLines = 3,
+                            maxLines = 8,
+                        )
+                    },
+                    confirmButton = {
+                        TextButton(
+                            onClick = {
+                                val toSend = draft
+                                draft = ""
+                                showDialog = false
+                                if (toSend.isNotEmpty()) {
+                                    cb.onSendBytes(toSend.toByteArray(Charsets.UTF_8))
+                                }
+                            },
+                        ) {
+                            Text(stringResource(android.R.string.ok))
+                        }
+                    },
+                    dismissButton = {
+                        TextButton(onClick = { showDialog = false }) {
+                            Text(stringResource(android.R.string.cancel))
+                        }
+                    },
+                )
+            }
+        }
         ToolbarKey.VOICE_INPUT -> ToolbarIconButton(
             icon = Icons.Filled.Mic,
             description = stringResource(R.string.toolbar_dictate_desc),

@@ -2731,12 +2731,16 @@ class DesktopViewModel @Inject constructor(
     fun typeGlkvmChar(ch: Char, targetLayout: String?) {
         val tab = activeTab.value as? DesktopTab.Glkvm ?: return
         val session = tab.session
-        val seq = sh.haven.core.glkvm.GlkvmLayout.keySequenceFor(ch, targetLayout) ?: return
+        val seq = sh.haven.core.glkvm.GlkvmLayout.keySequenceFor(ch, targetLayout)
         desktopSessionRegistry.recordUserInteraction(
             profileId = tab.profileId,
             type = "text",
             detail = ch.toString(),
         )
+        if (seq == null) {
+            inputLane.submit { session.typeText(ch.toString()) }
+            return
+        }
         // Sequence layout: optional ShiftLeft down, the key tap, optional
         // ShiftLeft up — positional access, not a first-match scan.
         val withShift = seq.size == 3
@@ -2746,6 +2750,30 @@ class DesktopViewModel @Inject constructor(
             session.sendKey(tapCode, true)
             session.sendKey(tapCode, false)
             if (withShift) session.sendKey("ShiftLeft", false)
+        }
+    }
+
+    /**
+     * Type a string sequentially via the active GLKVM tab. Single-character
+     * commits take the fast un-delayed [typeGlkvmChar] path; multi-character
+     * commits (paste / word completion) run as one paced [GlkvmDesktopSession.typeText]
+     * task on [inputLane] so kvmd is not flooded with un-paced HTTPS POSTs.
+     */
+    fun typeGlkvmText(text: String, targetLayout: String?) {
+        if (text.isEmpty()) return
+        if (text.length == 1) {
+            typeGlkvmChar(text[0], targetLayout)
+            return
+        }
+        val tab = activeTab.value as? DesktopTab.Glkvm ?: return
+        val session = tab.session
+        desktopSessionRegistry.recordUserInteraction(
+            profileId = tab.profileId,
+            type = "text",
+            detail = text,
+        )
+        inputLane.submit {
+            session.typeText(text)
         }
     }
 
@@ -2937,9 +2965,43 @@ class DesktopViewModel @Inject constructor(
         }
     }
 
+    fun typeRdpText(text: String) {
+        val session = (activeTab.value as? DesktopTab.Rdp)?.session ?: return
+        inputLane.submit {
+            for (ch in text) {
+                sh.haven.feature.rdp.typeRdpChar(
+                    ch = ch,
+                    sendKey = { sc, pressed -> session.sendKey(sc, pressed) },
+                    sendUnicode = { codepoint ->
+                        session.sendUnicodeKey(codepoint, true)
+                        session.sendUnicodeKey(codepoint, false)
+                    },
+                )
+            }
+        }
+    }
+
+    fun sendRdpClipboardText(text: String) {
+        val tab = activeTab.value as? DesktopTab.Rdp ?: return
+        inputLane.submit { tab.remoteDesktop.sendClipboardText(text) }
+    }
+
     fun sendSpiceKey(scancode: Int, pressed: Boolean) {
         val session = (activeTab.value as? DesktopTab.Spice)?.session ?: return
         inputLane.submit { session.sendKey(scancode, pressed) }
+    }
+
+    fun typeSpiceText(text: String) {
+        val session = (activeTab.value as? DesktopTab.Spice)?.session ?: return
+        inputLane.submit {
+            for (ch in text) {
+                sh.haven.feature.rdp.typeRdpChar(
+                    ch = ch,
+                    sendKey = { sc, pressed -> session.sendKey(sc, pressed) },
+                    sendUnicode = { /* SPICE has no unicode-key verb */ },
+                )
+            }
+        }
     }
 
     /**
@@ -3009,6 +3071,16 @@ class DesktopViewModel @Inject constructor(
 
     private fun disconnectTab(tab: DesktopTab) {
         viewModelScope.launch(Dispatchers.IO) {
+            fun clearProfileStateIfNoReplacement(profileId: String?) {
+                if (profileId != null && _tabs.value.any { it.id != tab.id && it.profileId == profileId }) {
+                    return
+                }
+                releaseSshTunnelDependent(profileId)
+                desktopSessionRegistry.clear(profileId)
+                desktopSessionRegistry.clearFrameHandle(profileId)
+                desktopSessionRegistry.clearInputHandle(profileId)
+                desktopSessionRegistry.clearCloseHandle(profileId)
+            }
             when (tab) {
                 is DesktopTab.Vnc -> {
                     tab.client.stop()
@@ -3018,11 +3090,7 @@ class DesktopViewModel @Inject constructor(
                     // parent-gone cascade. releaseSshTunnelDependent also
                     // covers the WG/Tailscale dependent (and is idempotent).
                     tab.tunnelLease?.close()
-                    releaseSshTunnelDependent(tab.profileId)
-                    desktopSessionRegistry.clear(tab.profileId)
-                    desktopSessionRegistry.clearFrameHandle(tab.profileId)
-                    desktopSessionRegistry.clearInputHandle(tab.profileId)
-                    desktopSessionRegistry.clearCloseHandle(tab.profileId)
+                    clearProfileStateIfNoReplacement(tab.profileId)
                 }
                 is DesktopTab.Rdp -> {
                     if (tab.profileId != null) {
@@ -3031,11 +3099,7 @@ class DesktopViewModel @Inject constructor(
                     }
                     tab.session.close()
                     tab.tunnelLease?.close()
-                    releaseSshTunnelDependent(tab.profileId)
-                    desktopSessionRegistry.clear(tab.profileId)
-                    desktopSessionRegistry.clearFrameHandle(tab.profileId)
-                    desktopSessionRegistry.clearInputHandle(tab.profileId)
-                    desktopSessionRegistry.clearCloseHandle(tab.profileId)
+                    clearProfileStateIfNoReplacement(tab.profileId)
                 }
                 is DesktopTab.Spice -> {
                     if (tab.profileId != null) {
@@ -3044,20 +3108,12 @@ class DesktopViewModel @Inject constructor(
                     }
                     tab.session.close()
                     tab.tunnelLease?.close()
-                    releaseSshTunnelDependent(tab.profileId)
-                    desktopSessionRegistry.clear(tab.profileId)
-                    desktopSessionRegistry.clearFrameHandle(tab.profileId)
-                    desktopSessionRegistry.clearInputHandle(tab.profileId)
-                    desktopSessionRegistry.clearCloseHandle(tab.profileId)
+                    clearProfileStateIfNoReplacement(tab.profileId)
                 }
                 is DesktopTab.Glkvm -> {
                     tab.session.close()
                     tab.tunnelLease?.close()
-                    releaseSshTunnelDependent(tab.profileId)
-                    desktopSessionRegistry.clear(tab.profileId)
-                    desktopSessionRegistry.clearFrameHandle(tab.profileId)
-                    desktopSessionRegistry.clearInputHandle(tab.profileId)
-                    desktopSessionRegistry.clearCloseHandle(tab.profileId)
+                    clearProfileStateIfNoReplacement(tab.profileId)
                 }
                 is DesktopTab.Wayland -> {} // compositor lifecycle managed externally
             }

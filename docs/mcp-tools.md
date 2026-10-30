@@ -1278,11 +1278,16 @@ Capture a screenshot of a running desktop (deId) and return it INLINE as an imag
 <details markdown="1">
 <summary><code>capture_desktop_tab</code> · asks once per session</summary>
 
-Capture what a remote-desktop VIEWER tab (RDP, VNC, SPICE, or GLKVM) is actually rendering, INLINE as an image — the framebuffer the user sees, with the server cursor composited on top at the tracked pointer position. This is distinct from capture_desktop, which screenshots an in-guest X11/VNC desktop; this one captures the RDP/VNC/SPICE client viewer (e.g. to verify colours and the cursor against a remote Windows/Linux server). Pass profileId to pick a tab (from list_desktop_sessions); omit it when exactly one desktop tab is open. Returns the image plus { profileId, protocol, width, height, hasCursor, cursorWidth?, cursorHeight?, hotspotX?, hotspotY?, pointerX?, pointerY?, format }.
+Capture what a remote-desktop VIEWER tab (RDP, VNC, SPICE, or GLKVM) is actually rendering, INLINE as an image — the framebuffer the user sees, with the server cursor composited on top at the tracked pointer position. This is distinct from capture_desktop, which screenshots an in-guest X11/VNC desktop; this one captures the RDP/VNC/SPICE client viewer (e.g. to verify colours and the cursor against a remote Windows/Linux server). Optionally pass regionX/regionY/regionWidth/regionHeight to crop to a specific region of interest. Pass profileId to pick a tab (from list_desktop_sessions); omit it when exactly one desktop tab is open. Returns the image plus { profileId, protocol, width, height, imageWidth, imageHeight, region?, hasCursor, cursorWidth?, cursorHeight?, hotspotX?, hotspotY?, pointerX?, pointerY?, format }.
 
+- `forceRefresh` (boolean) — For poll-based protocols (GLKVM), force a fresh snapshot pull even if no input occurred since the last frame. Default false.
 - `format` (string) — "jpeg" (default, smaller) or "png" (lossless, larger).
 - `maxWidth` (integer) — Downscale so the image is at most this many pixels wide. Default 1280 (clamped 160–4096).
 - `profileId` (string) — Profile id of the desktop tab (from list_desktop_sessions). Omit when exactly one tab is open.
+- `regionHeight` (integer) — Optional crop region height in framebuffer pixels.
+- `regionWidth` (integer) — Optional crop region width in framebuffer pixels.
+- `regionX` (integer) — Optional crop region left X in full framebuffer pixels.
+- `regionY` (integer) — Optional crop region top Y in full framebuffer pixels.
 
 </details>
 
@@ -1400,18 +1405,26 @@ Import a bootable disk image as a system VM (#326). `source` is an http(s) URL o
 <details markdown="1">
 <summary><code>inspect_desktop_tab</code> · asks once per session</summary>
 
-Run RapidOCR + a 2D k-d tree spatial index over a remote-desktop VIEWER tab (VNC, RDP, SPICE, or GLKVM) in full framebuffer pixel coordinates (matching tap_desktop_tab). Reuses the cached index when the framebuffer SHA-256 is unchanged unless forceRefresh=true. Also reports recentUserInteractions (with 2D k-d tree OCR lookup at each user click/scroll/move coordinate) and userInteractedSinceLastAgentAction so the agent can detect user collaboration or intervention on the shared session. Supports three query modes: (1) Coordinate k-d tree lookup (pass x and y, or mode="at" to inspect the current pointer position): returns elements whose bounding box contains (x,y) plus the k nearest elements from the 2D k-d tree with centerDistance, rectDistance, and signed (dx,dy) offsets; (2) Text-to-coordinate lookup (pass query): returns matching words/lines (substring or exact=true, including narrow-kerning space-insensitive matches), optionally disambiguated by Euclidean distance to (nearX,nearY) when multiple identical labels exist on screen, along with each match's k nearest spatial neighbors from the 2D k-d tree; (3) Full screen tree (omit query and x/y): returns all blocks -> lines -> words with bounding boxes [x,y,width,height] and click centers [cx,cy].
+Run RapidOCR + a 2D k-d tree spatial index over a remote-desktop VIEWER tab (VNC, RDP, SPICE, or GLKVM) in full framebuffer pixel coordinates (matching tap_desktop_tab). Uses perceptual tile-grid caching to ignore HDMI/JPEG noise and GLKVM hardware mouse-wobbler motion outside text boxes, plus per-line crop caching so partial screen updates only re-recognize changed lines. Pass regionX/regionY/regionWidth/regionHeight to restrict OCR to a region of interest while keeping coordinates in full-framebuffer space. Supports five query modes: (1) mode="at" (or pass x and y): coordinate k-d tree lookup returning containing elements and k nearest neighbors; (2) mode="find" (or pass query): text search (substring or exact=true, optionally restricted to minX..maxX / minY..maxY and ranked by nearX/nearY); (3) mode="lines": compact flat list of detected lines [{id, text, score, bbox, center}] without per-word repetition; (4) mode="diff": returns only addedLines, removedLines, and unchangedLineCount compared to the previous inspection on this tab; (5) mode="tree" (default when no query or x/y given): full blocks -> lines -> words hierarchy.
 
 - `exact` (boolean) — Require exact normalized text equality for query instead of substring match. Default false.
-- `forceRefresh` (boolean) — Force a fresh RapidOCR pass even if the framebuffer hash matches the cached index. Default false.
+- `forceRefresh` (boolean) — Force a fresh RapidOCR pass even if the framebuffer perceptually matches the cached index. Default false.
 - `k` (integer) — Number of nearest 2D k-d tree neighbors to return (for coordinate lookup or per text match). Default 5 (clamped 0..50).
 - `level` (string, one of: all | word | line) — Filter detections by granularity: "all" (default), "word", or "line".
 - `maxRadius` (integer) — Optional maximum distance in pixels for k-d tree neighbor search.
-- `mode` (string, one of: auto | at | find | tree) — Query mode: "auto" (default: coordinate lookup if x/y set, text search if query set, else full tree), "at" (coordinate k-d tree lookup at x,y or the current pointer if x/y omitted), "find" (text search for query), or "tree" (full blocks/lines/words hierarchy).
+- `maxX` (integer) — Optional maximum center X coordinate for text matches.
+- `maxY` (integer) — Optional maximum center Y coordinate for text matches.
+- `minX` (integer) — Optional minimum center X coordinate for text matches.
+- `minY` (integer) — Optional minimum center Y coordinate for text matches (e.g. minY=160 to skip browser tab/address bars).
+- `mode` (string, one of: auto | at | find | lines | diff | tree) — Query mode: "auto" (default: coordinate lookup if x/y set, text search if query set, else full tree), "at", "find", "lines" (compact line list without word bloat), "diff" (added/removed lines since previous inspection), or "tree".
 - `nearX` (integer) — Optional anchor X coordinate to disambiguate multiple text matches by proximity.
 - `nearY` (integer) — Optional anchor Y coordinate to disambiguate multiple text matches by proximity.
 - `profileId` (string) — Profile id of the desktop tab (from list_desktop_sessions). Omit when exactly one tab is open.
 - `query` (string) — Text to search for (case-insensitive substring by default, or full match when exact=true).
+- `regionHeight` (integer) — Optional ROI crop height in framebuffer pixels.
+- `regionWidth` (integer) — Optional ROI crop width in framebuffer pixels.
+- `regionX` (integer) — Optional ROI crop left X in full framebuffer pixels (all returned bboxes remain in full-framebuffer coordinates).
+- `regionY` (integer) — Optional ROI crop top Y in full framebuffer pixels.
 - `x` (integer) — Framebuffer X coordinate for 2D k-d tree nearest-neighbor / containment lookup.
 - `y` (integer) — Framebuffer Y coordinate for 2D k-d tree nearest-neighbor / containment lookup.
 
@@ -1607,10 +1620,15 @@ Run a shell command inside the ACTIVE distro's proot guest (the same rootfs the 
 <details markdown="1">
 <summary><code>scroll_desktop_tab</code> · asks once per session</summary>
 
-Scroll a remote-desktop VIEWER tab (RDP/VNC/SPICE/GLKVM) by injecting mouse-wheel notches into the remote server. deltaY > 0 scrolls down, < 0 scrolls up; magnitude is the number of notches. Pass profileId to pick a tab (from list_desktop_sessions); omit when exactly one is open. Returns { profileId, protocol, deltaY }.
+Scroll a remote-desktop VIEWER tab (RDP/VNC/SPICE/GLKVM) by injecting mouse-wheel notches into the remote server. deltaY > 0 scrolls down, < 0 scrolls up; magnitude is the number of notches. Optionally pass x and y to position the pointer over the target pane before scrolling, set inspectAfter="diff" (or "lines") to wait settleMs and return the post-scroll OCR diff/observation, or set returnScreenshot=true to return a fresh screenshot inline. Pass profileId to pick a tab (from list_desktop_sessions); omit when exactly one is open. Returns { profileId, protocol, deltaY, x?, y?, inspection? }.
 
 - `deltaY` (integer, required) — Wheel notches: >0 scrolls down, <0 scrolls up.
+- `inspectAfter` (string, one of: none | diff | lines | at | tree) — Optional post-scroll RapidOCR inspection mode to run after settleMs: "none" (default), "diff" (added/removed lines vs before scrolling), "lines", "at", or "tree".
 - `profileId` (string) — Profile id (from list_desktop_sessions). Omit when exactly one is open.
+- `returnScreenshot` (boolean) — If true, wait settleMs after scrolling and return a fresh screenshot inline. Default false.
+- `settleMs` (integer) — Milliseconds to wait before post-action inspection/screenshot. Default 250 (clamped 0..5000).
+- `x` (integer) — Optional remote framebuffer X to move the pointer to before scrolling.
+- `y` (integer) — Optional remote framebuffer Y to move the pointer to before scrolling.
 
 </details>
 
@@ -1716,20 +1734,24 @@ Power off / kill the running system VM (#326) and release its loopback VNC port.
 <details markdown="1">
 <summary><code>tap_desktop_tab</code> · asks once per session</summary>
 
-Click a point on a remote-desktop VIEWER tab (RDP/VNC/SPICE/GLKVM) — inject a mouse click into the remote server. Coordinates are in the REMOTE framebuffer's pixel space (the same space capture_desktop_tab and inspect_desktop_tab report: 0..width, 0..height), NOT Haven's own UI (that's tap_haven_ui). Pass profileId to pick a tab (from list_desktop_sessions); omit when exactly one desktop tab is open. Buttons follow X11: 1=left (default), 2=middle, 3=right. Pass clicks=2 for a double-click. Returns { profileId, protocol, x, y, button, clicks }.
+Click one or more points on a remote-desktop VIEWER tab (RDP/VNC/SPICE/GLKVM) — inject mouse clicks into the remote server. Coordinates are in the REMOTE framebuffer's pixel space (the same space capture_desktop_tab and inspect_desktop_tab report: 0..width, 0..height), NOT Haven's own UI (that's tap_haven_ui). Pass either (x, y) for a single target or points=[{x, y, button?, clicks?, delayMs?}, ...] to click a sequence of points in one round-trip (e.g. selecting multiple checkboxes and closing a dropdown). Set inspectAfter="diff" (or "lines"/"at") to wait settleMs and return the post-click RapidOCR screen diff/observation in the same call, or returnScreenshot=true to return a fresh screenshot inline. Buttons follow X11: 1=left (default), 2=middle, 3=right. Pass clicks=2 for a double-click. Returns { profileId, protocol, x, y, button, clicks, pointsClicked?, inspection? }.
 
-- `x` (integer, required) — Remote framebuffer X (0..width from capture_desktop_tab).
-- `y` (integer, required) — Remote framebuffer Y (0..height from capture_desktop_tab).
 - `button` (integer) — X11 button: 1=left (default), 2=middle, 3=right.
 - `clicks` (integer) — Number of clicks: 1=single click (default), 2=double-click (clamped 1..3).
+- `inspectAfter` (string, one of: none | diff | lines | at | tree) — Optional post-click RapidOCR inspection mode to run after settleMs: "none" (default), "diff" (added/removed lines vs before the click), "lines" (compact line list), "at", or "tree".
+- `points` (object[]) — Optional sequence of points to click in order (1..20 items). Each item specifies {x, y, button?, clicks?, delayMs?}.
 - `profileId` (string) — Profile id of the desktop tab (from list_desktop_sessions). Omit when exactly one is open.
+- `returnScreenshot` (boolean) — If true, wait settleMs after clicking and return a fresh screenshot inline. Default false.
+- `settleMs` (integer) — Milliseconds to wait before post-action inspection/screenshot. Default 250 (clamped 0..5000).
+- `x` (integer) — Remote framebuffer X (0..width from capture_desktop_tab). Required unless points is provided.
+- `y` (integer) — Remote framebuffer Y (0..height from capture_desktop_tab). Required unless points is provided.
 
 </details>
 
 <details markdown="1">
 <summary><code>tap_desktop_text</code> · asks once per session</summary>
 
-Find visible text on a remote-desktop VIEWER tab (VNC, RDP, SPICE, or GLKVM) using RapidOCR + the 2D k-d tree index and click its bounding-box center or edge anchor (plus optional dx,dy offset). When multiple identical labels exist on screen (e.g. several 'Close' or 'OK' buttons), pass nearX and nearY to click the match closest to that anchor coordinate, or pass nth (0-based) to select by rank. Set anchor="right" (plus e.g. dx=12) to click a split-button dropdown chevron or icon adjacent to a label without manual width math. Supports single or double click (clicks=2) and left/middle/right mouse buttons (button=1/2/3). Returns the clicked (x,y), the matched OCR node, its k-d tree spatial neighbors, and total match count.
+Find visible text on a remote-desktop VIEWER tab (VNC, RDP, SPICE, or GLKVM) using RapidOCR + the 2D k-d tree index and click its bounding-box center or edge anchor (plus optional dx,dy offset). Pass minX/maxX/minY/maxY to restrict matching to a screen region (e.g. minY=160 to ignore browser tabs), or regionX/regionY/regionWidth/regionHeight to run OCR only on a region of interest. When multiple identical labels exist on screen, pass nearX and nearY to click the match closest to that anchor coordinate, or pass nth (0-based) to select by rank. Set anchor="right" (plus e.g. dx=12) to click a split-button dropdown chevron or icon adjacent to a label. Set inspectAfter="diff" (or "lines") to wait settleMs and return the post-click OCR diff/observation in a single round-trip, or returnScreenshot=true to return a screenshot inline. Returns the clicked (x,y), the matched OCR node, its k-d tree spatial neighbors, total match count, candidates, and optional inspection.
 
 - `query` (string, required) — Visible text label to find and click.
 - `anchor` (string, one of: center | left | right | top | bottom) — Point on the matched bounding box before applying (dx,dy): "center" (default), "left", "right", "top", or "bottom".
@@ -1739,25 +1761,40 @@ Find visible text on a remote-desktop VIEWER tab (VNC, RDP, SPICE, or GLKVM) usi
 - `dy` (integer) — Vertical pixel offset added to the anchor Y before clicking. Default 0.
 - `exact` (boolean) — Require exact normalized text match instead of substring match. Default false.
 - `forceRefresh` (boolean) — Force a fresh RapidOCR pass before matching. Default false.
+- `inspectAfter` (string, one of: none | diff | lines | at | tree) — Optional post-click RapidOCR inspection mode to run after settleMs: "none" (default), "diff" (added/removed lines vs before the click), "lines", "at", or "tree".
 - `level` (string, one of: all | word | line) — Granularity to match: "all" (default, prefers tight word boxes), "word", or "line".
+- `maxX` (integer) — Optional maximum center X coordinate for matching text.
+- `maxY` (integer) — Optional maximum center Y coordinate for matching text.
+- `minX` (integer) — Optional minimum center X coordinate for matching text.
+- `minY` (integer) — Optional minimum center Y coordinate for matching text (e.g. minY=160 to skip browser tab/address bars).
 - `nearX` (integer) — Optional anchor X to rank matches by proximity.
 - `nearY` (integer) — Optional anchor Y to rank matches by proximity.
 - `nth` (integer) — 0-based index among ranked matches to click. Default 0 (best/closest match).
 - `profileId` (string) — Profile id of the desktop tab (from list_desktop_sessions). Omit when exactly one is open.
+- `regionHeight` (integer) — Optional ROI crop height in framebuffer pixels.
+- `regionWidth` (integer) — Optional ROI crop width in framebuffer pixels.
+- `regionX` (integer) — Optional ROI crop left X in full framebuffer pixels.
+- `regionY` (integer) — Optional ROI crop top Y in full framebuffer pixels.
+- `returnScreenshot` (boolean) — If true, wait settleMs after clicking and return a fresh screenshot inline. Default false.
+- `settleMs` (integer) — Milliseconds to wait before post-action inspection/screenshot. Default 250 (clamped 0..5000).
 
 </details>
 
 <details markdown="1">
 <summary><code>type_desktop_text</code> · asks once per session</summary>
 
-Type text or send special keys/shortcuts into a remote-desktop VIEWER tab as real keystrokes (GLKVM HID). Pass text to type characters (with optional pressEnter=true to tap Enter after typing), or pass key (e.g. "Enter", "Tab", "Escape", "Backspace", "Delete", "Space", "ArrowDown", "ArrowUp", "ArrowLeft", "ArrowRight", "Home", "End", "PageUp", "PageDown", or "a".."z" / "KeyA".."KeyZ") with optional ctrl/alt/shift/meta modifiers (e.g. key="a", ctrl=true for Ctrl+A; key="v", ctrl=true for Ctrl+V). Pass profileId to pick a tab (from list_desktop_sessions); omit when exactly one is open.
+Type text or send special keys/shortcuts into a remote-desktop VIEWER tab as real keystrokes (GLKVM/VNC/RDP/SPICE). Pass text to type characters (with optional pressEnter=true to tap Enter after typing), or pass key (e.g. "Enter", "Tab", "Escape", "Backspace", "Delete", "Space", "ArrowDown", "ArrowUp", "ArrowLeft", "ArrowRight", "Home", "End", "PageUp", "PageDown", or "a".."z" / "KeyA".."KeyZ") with optional ctrl/alt/shift/meta modifiers and optional repeat (e.g. key="PageUp", repeat=3 to scroll up 3 pages). Set inspectAfter="diff" (or "lines") to wait settleMs and return the post-typing OCR diff/observation in the same call, or returnScreenshot=true to return a fresh screenshot inline. Pass profileId to pick a tab (from list_desktop_sessions); omit when exactly one is open.
 
 - `alt` (boolean) — Hold AltLeft while tapping key. Default false.
 - `ctrl` (boolean) — Hold ControlLeft while tapping key. Default false.
+- `inspectAfter` (string, one of: none | diff | lines | at | tree) — Optional post-typing RapidOCR inspection mode to run after settleMs: "none" (default), "diff" (added/removed lines vs before typing), "lines", "at", or "tree".
 - `key` (string) — Optional special key or key code to tap (e.g. "Enter", "Tab", "Escape", "Backspace", "Delete", "ArrowDown", "ArrowUp", "ArrowLeft", "ArrowRight", "a", "v", "KeyA").
 - `meta` (boolean) — Hold MetaLeft (Windows/Super) while tapping key. Default false.
 - `pressEnter` (boolean) — Tap Enter after typing text. Default false.
 - `profileId` (string) — Profile id (from list_desktop_sessions). Omit when exactly one is open.
+- `repeat` (integer) — Number of times to tap key when key is provided. Default 1 (clamped 1..50).
+- `returnScreenshot` (boolean) — If true, wait settleMs after typing and return a fresh screenshot inline. Default false.
+- `settleMs` (integer) — Milliseconds to wait before post-action inspection/screenshot. Default 250 (clamped 0..5000).
 - `shift` (boolean) — Hold ShiftLeft while tapping key. Default false.
 - `text` (string) — Text to type as keystrokes. Optional when key is provided.
 

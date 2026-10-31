@@ -614,4 +614,6 @@
     <string name="connections_helper_forward_x11">将远程端口 6010 隧道转发到手机的 X11 服务器，按需启动已安装的 X11 桌面，并在 SSH shell 中导出 DISPLAY=localhost:10.0。</string>
     <string name="connections_toggle_forward_pulseaudio">转发 PulseAudio</string>
     <string name="connections_helper_forward_pulseaudio">启动手机的 PulseAudio 音频桥接，将远程端口 14713 隧道转发到本地端口 4713，并在 SSH shell 中导出 PULSE_SERVER=tcp:127.0.0.1:14713。</string>
+    <string name="connections_toggle_persist_rediscovered_host">保存重新发现的局域网地址</string>
+    <string name="connections_helper_persist_rediscovered_host">当本地机器在新的 IPv4 地址上出示相同的 SSH 主机密钥时更新配置。关闭后仅在当前会话使用重新发现的地址连接，并保留已配置的主机地址（例如 WireGuard IP）。</string>
 </resources>

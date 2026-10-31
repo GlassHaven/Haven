@@ -616,4 +616,6 @@
     <string name="connections_helper_forward_x11">रिमोट पोर्ट 6010 को आपके फ़ोन के X11 सर्वर पर टनल करता है, ज़रूरत पड़ने पर इंस्टॉल किया गया X11 डेस्कटॉप शुरू करता है और SSH शेल में DISPLAY=localhost:10.0 एक्सपोर्ट करता है।</string>
     <string name="connections_toggle_forward_pulseaudio">PulseAudio फ़ॉरवर्ड करें</string>
     <string name="connections_helper_forward_pulseaudio">फ़ोन का PulseAudio ब्रिज शुरू करता है, रिमोट पोर्ट 14713 को लोकल पोर्ट 4713 पर टनल करता है और SSH शेल में PULSE_SERVER=tcp:127.0.0.1:14713 एक्सपोर्ट करता है।</string>
+    <string name="connections_toggle_persist_rediscovered_host">पुनः खोजा गया LAN पता सहेजें</string>
+    <string name="connections_helper_persist_rediscovered_host">जब कोई स्थानीय मशीन नए IPv4 पते पर वही SSH होस्ट कुंजी प्रस्तुत करे तो प्रोफ़ाइल अपडेट करें। केवल उस सत्र के लिए पुनः खोजे गए पते से जुड़ने और अपने कॉन्फ़िगर किए गए होस्ट (जैसे WireGuard IP) को बनाए रखने के लिए इसे बंद करें।</string>
 </resources>

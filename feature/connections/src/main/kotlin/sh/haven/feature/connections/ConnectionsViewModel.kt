@@ -4348,9 +4348,15 @@ class ConnectionsViewModel @Inject constructor(
                         runCatching { hostRediscovery.rediscover(profile) }.getOrNull()
                     } else null
                     if (newHost != null) {
+                        val persisted = hostRediscoveryMode(profile.sshOptions) == HostRediscoveryMode.PERSIST
+                        val infoText = if (persisted) {
+                            "${profile.label}: address updated ${profile.host} → $newHost (matched host key)"
+                        } else {
+                            "${profile.label}: connected via $newHost (${profile.host} kept; matched host key)"
+                        }
                         userMessageBus.emit(
                             sh.haven.core.data.message.UserMessage(
-                                "${profile.label}: address updated ${profile.host} → $newHost (matched host key)",
+                                infoText,
                                 sh.haven.core.data.message.UserMessage.Severity.INFO,
                             ),
                         )

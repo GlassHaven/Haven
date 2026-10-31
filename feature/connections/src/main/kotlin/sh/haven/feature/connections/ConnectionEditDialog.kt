@@ -3131,6 +3131,22 @@ fun ConnectionEditDialog(
                         description = stringResource(R.string.connections_helper_disable_alt_screen),
                     )
 
+                    // Per-profile #376 host-rediscovery persistence toggle (#776):
+                    // stored as `HavenHostRediscovery session` inside sshOptions so no
+                    // DB schema migration is needed.
+                    Spacer(Modifier.height(4.dp))
+                    BooleanToggleRow(
+                        label = stringResource(R.string.connections_toggle_persist_rediscovered_host),
+                        checked = hostRediscoveryMode(sshOptions) == HostRediscoveryMode.PERSIST,
+                        onCheckedChange = { persist ->
+                            sshOptions = setHostRediscoveryInOptions(
+                                sshOptions,
+                                if (persist) HostRediscoveryMode.PERSIST else HostRediscoveryMode.SESSION_ONLY,
+                            )
+                        },
+                        description = stringResource(R.string.connections_helper_persist_rediscovered_host),
+                    )
+
                     // Per-profile terminal colour scheme (#144). Null on the
                     // profile means "inherit the global setting"; setting a
                     // scheme here overrides only this profile so users can

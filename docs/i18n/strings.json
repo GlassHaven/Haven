@@ -19939,6 +19939,46 @@
       "sr": "Pokreće PulseAudio most na telefonu, tuneluje udaljeni port 14713 ka lokalnom portu 4713 i izvozi PULSE_SERVER=tcp:127.0.0.1:14713 u SSH školjci.",
       "zh": "启动手机的 PulseAudio 音频桥接，将远程端口 14713 隧道转发到本地端口 4713，并在 SSH shell 中导出 PULSE_SERVER=tcp:127.0.0.1:14713。"
      }
+    },
+    {
+     "name": "connections_toggle_persist_rediscovered_host",
+     "en": "Save rediscovered LAN address",
+     "comment": "#210 i18n sweep: VM-setup copy toasts and code-block copy action.",
+     "args": [],
+     "t": {
+      "ar": "حفظ عنوان الشبكة المحلية المكتشف مجددًا",
+      "bn": "পুনরায় খুঁজে পাওয়া LAN ঠিকানা সংরক্ষণ করুন",
+      "de": "Wiederentdeckte LAN-Adresse speichern",
+      "es": "Guardar dirección LAN redescubierta",
+      "fr": "Enregistrer l\\'adresse LAN redécouverte",
+      "hi": "पुनः खोजा गया LAN पता सहेजें",
+      "ja": "再検出された LAN アドレスを保存",
+      "ko": "재발견된 LAN 주소 저장",
+      "pt": "Salvar endereço LAN redescoberto",
+      "ru": "Сохранять переобнаруженный LAN-адрес",
+      "sr": "Сачувај поново откривену LAN адресу",
+      "zh": "保存重新发现的局域网地址"
+     }
+    },
+    {
+     "name": "connections_helper_persist_rediscovered_host",
+     "en": "Update the profile when a local machine presents the same SSH host key at a new IPv4 address. Turn off to connect at the rediscovered address for that session only and keep your configured host (e.g. a WireGuard IP).",
+     "comment": "#210 i18n sweep: VM-setup copy toasts and code-block copy action.",
+     "args": [],
+     "t": {
+      "ar": "تحديث ملف الاتصال عندما يقدّم جهاز محلي نفس مفتاح مضيف SSH على عنوان IPv4 جديد. أوقف هذا الخيار للاتصال بالعنوان المكتشف لتلك الجلسة فقط مع الاحتفاظ بالمضيف المُعدّ (مثل عنوان WireGuard).",
+      "bn": "কোনো লোকাল মেশিন নতুন IPv4 ঠিকানায় একই SSH হোস্ট কী প্রদান করলে প্রোফাইল আপডেট করুন। শুধুমাত্র সেই সেশনের জন্য পুনরায় খুঁজে পাওয়া ঠিকানায় সংযুক্ত হতে এবং আপনার কনফিগার করা হোস্ট (যেমন WireGuard IP) অপরিবর্তিত রাখতে এটি বন্ধ করুন।",
+      "de": "Aktualisiert das Profil, wenn ein lokaler Rechner denselben SSH-Hostschlüssel unter einer neuen IPv4-Adresse präsentiert. Deaktivieren, um die wiederentdeckte Adresse nur für diese Sitzung zu nutzen und den konfigurierten Host (z. B. eine WireGuard-IP) beizubehalten.",
+      "es": "Actualiza el perfil cuando un equipo local presenta la misma clave de host SSH en una nueva dirección IPv4. Desactívalo para conectarte a la dirección redescubierta solo durante esa sesión y conservar el host configurado (p. ej., una IP de WireGuard).",
+      "fr": "Met à jour le profil lorsqu\\'une machine locale présente la même clé d\\'hôte SSH à une nouvelle adresse IPv4. Désactivez pour vous connecter à l\\'adresse redécouverte uniquement pour cette session et conserver l\\'hôte configuré (par ex. une IP WireGuard).",
+      "hi": "जब कोई स्थानीय मशीन नए IPv4 पते पर वही SSH होस्ट कुंजी प्रस्तुत करे तो प्रोफ़ाइल अपडेट करें। केवल उस सत्र के लिए पुनः खोजे गए पते से जुड़ने और अपने कॉन्फ़िगर किए गए होस्ट (जैसे WireGuard IP) को बनाए रखने के लिए इसे बंद करें।",
+      "ja": "ローカルマシンが新しい IPv4 アドレスで同じ SSH ホスト鍵を提示したときにプロファイルを更新します。オフにすると、そのセッションのみ再検出されたアドレスで接続し、設定済みのホスト（WireGuard IP など）を保持します。",
+      "ko": "로컬 머신이 새 IPv4 주소에서 동일한 SSH 호스트 키를 제시할 때 프로필을 업데이트합니다. 끄면 해당 세션에서만 재발견된 주소로 연결하고 설정된 호스트(예: WireGuard IP)를 유지합니다.",
+      "pt": "Atualiza o perfil quando uma máquina local apresenta a mesma chave de host SSH em um novo endereço IPv4. Desative para conectar no endereço redescoberto apenas nessa sessão e manter o host configurado (ex.: um IP do WireGuard).",
+      "ru": "Обновлять профиль, когда локальный узел предъявляет тот же SSH-ключ хоста по новому адресу IPv4. Отключите, чтобы подключаться по найденному адресу только на время сеанса и сохранять настроенный хост (например, IP WireGuard).",
+      "sr": "Ажурира профил када локални рачунар понуди исти SSH кључ домаћина на новој IPv4 адреси. Искључите да бисте се повезали преко откривене адресе само за ту сесију и задржали подешени домаћин (нпр. WireGuard IP).",
+      "zh": "当本地机器在新的 IPv4 地址上出示相同的 SSH 主机密钥时更新配置。关闭后仅在当前会话使用重新发现的地址连接，并保留已配置的主机地址（例如 WireGuard IP）。"
+     }
     }
    ]
   },

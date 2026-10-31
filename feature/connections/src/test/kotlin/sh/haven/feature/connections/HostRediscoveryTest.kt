@@ -155,4 +155,61 @@ class HostRediscoveryTest {
         assertNull(r.rediscover(profile.copy(host = "example.com")))
         assertNull(r.rediscover(profile.copy(host = "8.8.8.8")))
     }
+
+    @Test
+    fun `session-only mode connects via new host and seeds known-hosts without updating profile host`() = runTest {
+        // #776: profile.host is a permanent WireGuard IP (10.6.0.6), while the
+        // same machine is reachable on the home LAN (192.168.43.23) when the
+        // tunnel is down. With `HavenHostRediscovery session`, rediscover
+        // returns 192.168.43.23 and seeds known_hosts so TOFU succeeds, but
+        // leaves profile.host untouched in ConnectionRepository.
+        val wgStored = storedKey.copy(hostname = "10.6.0.6")
+        val dao = mockk<KnownHostDao>(relaxed = true) {
+            coEvery { findByHostPort("10.6.0.6", 22) } returns wgStored
+        }
+        val repo = mockk<ConnectionRepository>(relaxed = true)
+        val r = rediscovery(
+            dao, repo,
+            responders = setOf("192.168.43.23"),
+            keys = mapOf("192.168.43.23" to entry("192.168.43.23", "AAAAtheRightKey")),
+        )
+        val wgProfile = profile.copy(
+            host = "10.6.0.6",
+            sshOptions = "ServerAliveInterval 60\nHavenHostRediscovery session",
+        )
+
+        assertEquals("192.168.43.23", r.rediscover(wgProfile))
+        coVerify(exactly = 0) { repo.updateHost(any(), any()) }
+        coVerify(exactly = 1) {
+            dao.upsert(match { it.hostname == "192.168.43.23" && it.publicKeyBase64 == "AAAAtheRightKey" })
+        }
+    }
+
+    @Test
+    fun `off mode skips scan and returns null`() = runTest {
+        val dao = daoWithStored()
+        val repo = mockk<ConnectionRepository>(relaxed = true)
+        val r = rediscovery(dao, repo, responders = setOf("192.168.43.23"))
+            .apply { localBases = { throw AssertionError("scan must not run when HavenHostRediscovery is off") } }
+
+        assertNull(r.rediscover(profile.copy(sshOptions = "HavenHostRediscovery off")))
+        coVerify(exactly = 0) { repo.updateHost(any(), any()) }
+    }
+
+    @Test
+    fun `hostRediscoveryMode and setHostRediscoveryInOptions round-trip cleanly`() {
+        assertEquals(HostRediscoveryMode.PERSIST, hostRediscoveryMode(""))
+        assertEquals(HostRediscoveryMode.PERSIST, hostRediscoveryMode("# HavenHostRediscovery session"))
+        assertEquals(HostRediscoveryMode.SESSION_ONLY, hostRediscoveryMode("HavenHostRediscovery session"))
+        assertEquals(HostRediscoveryMode.SESSION_ONLY, hostRediscoveryMode("HavenFollowAddressChanges no"))
+        assertEquals(HostRediscoveryMode.OFF, hostRediscoveryMode("HavenHostRediscovery=off"))
+
+        val withSession = setHostRediscoveryInOptions("ServerAliveInterval 60", HostRediscoveryMode.SESSION_ONLY)
+        assertEquals("ServerAliveInterval 60\nHavenHostRediscovery session", withSession)
+        assertEquals(HostRediscoveryMode.SESSION_ONLY, hostRediscoveryMode(withSession))
+
+        val backToPersist = setHostRediscoveryInOptions(withSession, HostRediscoveryMode.PERSIST)
+        assertEquals("ServerAliveInterval 60", backToPersist)
+        assertEquals(HostRediscoveryMode.PERSIST, hostRediscoveryMode(backToPersist))
+    }
 }

@@ -616,4 +616,6 @@
     <string name="connections_helper_forward_x11">リモートポート 6010 を端末の X11 サーバーにトンネルし、必要に応じてインストール済み X11 デスクトップを起動して SSH シェルで DISPLAY=localhost:10.0 をエクスポートします。</string>
     <string name="connections_toggle_forward_pulseaudio">PulseAudio を転送</string>
     <string name="connections_helper_forward_pulseaudio">端末の PulseAudio ブリッジを起動し、リモートポート 14713 をローカルポート 4713 にトンネルして SSH シェルで PULSE_SERVER=tcp:127.0.0.1:14713 をエクスポートします。</string>
+    <string name="connections_toggle_persist_rediscovered_host">再検出された LAN アドレスを保存</string>
+    <string name="connections_helper_persist_rediscovered_host">ローカルマシンが新しい IPv4 アドレスで同じ SSH ホスト鍵を提示したときにプロファイルを更新します。オフにすると、そのセッションのみ再検出されたアドレスで接続し、設定済みのホスト（WireGuard IP など）を保持します。</string>
 </resources>

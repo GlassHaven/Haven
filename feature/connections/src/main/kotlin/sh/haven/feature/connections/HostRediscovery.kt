@@ -20,6 +20,78 @@ import javax.inject.Singleton
 import sh.haven.core.redact.LogRedact
 
 /**
+ * Per-profile policy for #376 host rediscovery (#776), stored as a
+ * `HavenHostRediscovery` (or `HavenFollowAddressChanges`) directive in
+ * [ConnectionProfile.sshOptions].
+ */
+internal enum class HostRediscoveryMode {
+    /** Default: connect to the rediscovered host, seed known_hosts, and update `profile.host`. */
+    PERSIST,
+    /** Connect to the rediscovered host for this session and seed known_hosts, but keep `profile.host` unchanged (#776). */
+    SESSION_ONLY,
+    /** Do not scan or follow host-key matches on network errors. */
+    OFF,
+}
+
+/**
+ * Parse the host-rediscovery policy from [options] (`ConnectionProfile.sshOptions`).
+ * Recognises `HavenHostRediscovery <persist|session|off>` and the alias
+ * `HavenFollowAddressChanges <yes|no|off>` (#776). Defaults to [HostRediscoveryMode.PERSIST].
+ */
+internal fun hostRediscoveryMode(options: String?): HostRediscoveryMode {
+    if (options.isNullOrBlank()) return HostRediscoveryMode.PERSIST
+    var mode = HostRediscoveryMode.PERSIST
+    for (rawLine in options.lineSequence()) {
+        val trimmed = rawLine.trim()
+        if (trimmed.isEmpty() || trimmed.startsWith("#")) continue
+        val sep = trimmed.indexOfFirst { it == ' ' || it == '\t' || it == '=' }
+        if (sep <= 0) continue
+        val key = trimmed.substring(0, sep).trim()
+        val value = trimmed.substring(sep + 1).trim().lowercase()
+        if (key.equals("HavenHostRediscovery", ignoreCase = true)) {
+            mode = when (value) {
+                "session", "session-only", "ephemeral", "no-persist", "nopersist" -> HostRediscoveryMode.SESSION_ONLY
+                "off", "no", "false", "disabled", "never" -> HostRediscoveryMode.OFF
+                else -> HostRediscoveryMode.PERSIST
+            }
+        } else if (key.equals("HavenFollowAddressChanges", ignoreCase = true)) {
+            mode = when (value) {
+                "no", "false", "session", "session-only", "ephemeral", "no-persist", "nopersist" -> HostRediscoveryMode.SESSION_ONLY
+                "off", "disabled", "never" -> HostRediscoveryMode.OFF
+                else -> HostRediscoveryMode.PERSIST
+            }
+        }
+    }
+    return mode
+}
+
+/**
+ * Rewrite [options] with the given [mode] (`PERSIST` drops the directive).
+ */
+internal fun setHostRediscoveryInOptions(options: String, mode: HostRediscoveryMode): String {
+    val kept = options.lines().filterNot { line ->
+        val trimmed = line.trim()
+        if (trimmed.startsWith("#")) return@filterNot false
+        val sep = trimmed.indexOfFirst { it == ' ' || it == '\t' || it == '=' }
+        if (sep <= 0) return@filterNot false
+        val key = trimmed.substring(0, sep).trim()
+        key.equals("HavenHostRediscovery", ignoreCase = true) ||
+            key.equals("HavenFollowAddressChanges", ignoreCase = true)
+    }
+    val base = kept.joinToString("\n").trim('\n')
+    val directive = when (mode) {
+        HostRediscoveryMode.PERSIST -> null
+        HostRediscoveryMode.SESSION_ONLY -> "HavenHostRediscovery session"
+        HostRediscoveryMode.OFF -> "HavenHostRediscovery off"
+    }
+    return when {
+        directive == null -> base
+        base.isBlank() -> directive
+        else -> "$base\n$directive"
+    }
+}
+
+/**
  * Follows a device across DHCP address changes by its SSH host key (#376).
  *
  * A profile's saved IP is just a hint — the verified host key is the device's
@@ -52,6 +124,8 @@ class HostRediscovery @Inject constructor(
      * subnet) or finds no unambiguous match.
      */
     suspend fun rediscover(profile: ConnectionProfile): String? = withContext(Dispatchers.IO) {
+        val mode = hostRediscoveryMode(profile.sshOptions)
+        if (mode == HostRediscoveryMode.OFF) return@withContext null
         if (!isPrivateIpv4(profile.host)) return@withContext null
         val stored = knownHostDao.findByHostPort(profile.host, profile.port)
             ?: return@withContext null
@@ -106,10 +180,16 @@ class HostRediscovery @Inject constructor(
             return@withContext null
         }
 
-        connectionRepository.updateHost(profile.id, newHost)
+        if (mode == HostRediscoveryMode.PERSIST) {
+            connectionRepository.updateHost(profile.id, newHost)
+        }
         knownHostDao.deleteByHostPort(newHost, profile.port)
         knownHostDao.upsert(stored.copy(id = 0, hostname = newHost))
-        Log.i(TAG, "rediscover ${LogRedact.of(profile.label)}: ${LogRedact.of(profile.host)} → ${LogRedact.of(newHost)} (host key matched)")
+        Log.i(
+            TAG,
+            "rediscover ${LogRedact.of(profile.label)}: ${LogRedact.of(profile.host)} → " +
+                "${LogRedact.of(newHost)} (host key matched, mode=$mode)",
+        )
         newHost
     }
 

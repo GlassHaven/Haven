@@ -616,4 +616,6 @@
     <string name="connections_helper_forward_x11">Tunnelt den entfernten Port 6010 zum X11-Server Ihres Telefons, startet bei Bedarf einen installierten X11-Desktop und exportiert DISPLAY=localhost:10.0 in der SSH-Shell.</string>
     <string name="connections_toggle_forward_pulseaudio">PulseAudio weiterleiten</string>
     <string name="connections_helper_forward_pulseaudio">Startet die PulseAudio-Brücke des Telefons, tunnelt den entfernten Port 14713 zum lokalen Port 4713 und exportiert PULSE_SERVER=tcp:127.0.0.1:14713 in der SSH-Shell.</string>
+    <string name="connections_toggle_persist_rediscovered_host">Wiederentdeckte LAN-Adresse speichern</string>
+    <string name="connections_helper_persist_rediscovered_host">Aktualisiert das Profil, wenn ein lokaler Rechner denselben SSH-Hostschlüssel unter einer neuen IPv4-Adresse präsentiert. Deaktivieren, um die wiederentdeckte Adresse nur für diese Sitzung zu nutzen und den konfigurierten Host (z. B. eine WireGuard-IP) beizubehalten.</string>
 </resources>

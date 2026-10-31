@@ -616,4 +616,6 @@
     <string name="connections_helper_forward_x11">Encaminha a porta remota 6010 para o servidor X11 do telefone, inicia uma área de trabalho X11 instalada se necessário e exporta DISPLAY=localhost:10.0 no shell SSH.</string>
     <string name="connections_toggle_forward_pulseaudio">Encaminhar PulseAudio</string>
     <string name="connections_helper_forward_pulseaudio">Inicia a ponte PulseAudio do telefone, encaminha a porta remota 14713 para a porta local 4713 e exporta PULSE_SERVER=tcp:127.0.0.1:14713 no shell SSH.</string>
+    <string name="connections_toggle_persist_rediscovered_host">Salvar endereço LAN redescoberto</string>
+    <string name="connections_helper_persist_rediscovered_host">Atualiza o perfil quando uma máquina local apresenta a mesma chave de host SSH em um novo endereço IPv4. Desative para conectar no endereço redescoberto apenas nessa sessão e manter o host configurado (ex.: um IP do WireGuard).</string>
 </resources>

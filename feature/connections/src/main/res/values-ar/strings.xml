@@ -616,4 +616,6 @@
     <string name="connections_helper_forward_x11">يمرر المنفذ البعيد 6010 إلى خادم X11 على هاتفك، ويشغل سطح مكتب X11 مثبتاً عند الحاجة، ويصدّر DISPLAY=localhost:10.0 في جلسة SSH.</string>
     <string name="connections_toggle_forward_pulseaudio">توجيه PulseAudio</string>
     <string name="connections_helper_forward_pulseaudio">يشغل جسر PulseAudio على الهاتف، ويمرر المنفذ البعيد 14713 إلى المنفذ المحلي 4713، ويصدّر PULSE_SERVER=tcp:127.0.0.1:14713 في جلسة SSH.</string>
+    <string name="connections_toggle_persist_rediscovered_host">حفظ عنوان الشبكة المحلية المكتشف مجددًا</string>
+    <string name="connections_helper_persist_rediscovered_host">تحديث ملف الاتصال عندما يقدّم جهاز محلي نفس مفتاح مضيف SSH على عنوان IPv4 جديد. أوقف هذا الخيار للاتصال بالعنوان المكتشف لتلك الجلسة فقط مع الاحتفاظ بالمضيف المُعدّ (مثل عنوان WireGuard).</string>
 </resources>

@@ -652,4 +652,6 @@
     <string name="connections_helper_forward_x11">Tunnels remote port 6010 to your phone\'s X11 server, starts an installed X11 desktop if needed, and exports DISPLAY=localhost:10.0 in the SSH shell.</string>
     <string name="connections_toggle_forward_pulseaudio">Forward PulseAudio</string>
     <string name="connections_helper_forward_pulseaudio">Starts the phone\'s PulseAudio bridge, tunnels remote port 14713 to local port 4713, and exports PULSE_SERVER=tcp:127.0.0.1:14713 in the SSH shell.</string>
+    <string name="connections_toggle_persist_rediscovered_host">Save rediscovered LAN address</string>
+    <string name="connections_helper_persist_rediscovered_host">Update the profile when a local machine presents the same SSH host key at a new IPv4 address. Turn off to connect at the rediscovered address for that session only and keep your configured host (e.g. a WireGuard IP).</string>
 </resources>

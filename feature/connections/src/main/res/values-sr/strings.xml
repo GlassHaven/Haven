@@ -550,4 +550,6 @@
     <string name="connections_helper_forward_x11">Tuneluje udaljeni port 6010 ka X11 serveru na telefonu, pokreće instalirano X11 radno okruženje po potrebi i izvozi DISPLAY=localhost:10.0 u SSH školjci.</string>
     <string name="connections_toggle_forward_pulseaudio">Prosledi PulseAudio</string>
     <string name="connections_helper_forward_pulseaudio">Pokreće PulseAudio most na telefonu, tuneluje udaljeni port 14713 ka lokalnom portu 4713 i izvozi PULSE_SERVER=tcp:127.0.0.1:14713 u SSH školjci.</string>
+    <string name="connections_toggle_persist_rediscovered_host">Сачувај поново откривену LAN адресу</string>
+    <string name="connections_helper_persist_rediscovered_host">Ажурира профил када локални рачунар понуди исти SSH кључ домаћина на новој IPv4 адреси. Искључите да бисте се повезали преко откривене адресе само за ту сесију и задржали подешени домаћин (нпр. WireGuard IP).</string>
 </resources>

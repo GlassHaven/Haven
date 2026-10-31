@@ -608,4 +608,6 @@
     <string name="connections_helper_forward_x11">원격 포트 6010을 휴대폰의 X11 서버로 터널링하고 필요한 경우 설치된 X11 데스크톱을 시작한 뒤 SSH 셸에서 DISPLAY=localhost:10.0을 내보냅니다.</string>
     <string name="connections_toggle_forward_pulseaudio">PulseAudio 포워딩</string>
     <string name="connections_helper_forward_pulseaudio">휴대폰의 PulseAudio 브리지를 시작하고 원격 포트 14713을 로컬 포트 4713으로 터널링한 뒤 SSH 셸에서 PULSE_SERVER=tcp:127.0.0.1:14713을 내보냅니다.</string>
+    <string name="connections_toggle_persist_rediscovered_host">재발견된 LAN 주소 저장</string>
+    <string name="connections_helper_persist_rediscovered_host">로컬 머신이 새 IPv4 주소에서 동일한 SSH 호스트 키를 제시할 때 프로필을 업데이트합니다. 끄면 해당 세션에서만 재발견된 주소로 연결하고 설정된 호스트(예: WireGuard IP)를 유지합니다.</string>
 </resources>

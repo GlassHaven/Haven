@@ -227,6 +227,62 @@ class TunnelManagerTest {
     }
 
     @Test
+    fun openvpnConfigReachesFactoryThroughManager() = runTest {
+        val repo = mockk<TunnelConfigRepository>()
+        coEvery { repo.getById("cfg-ovpn") } returns TunnelConfig(
+            id = "cfg-ovpn",
+            label = "office ovpn",
+            type = TunnelConfigType.OPENVPN.name,
+            configText = OpenVpnConfigBlob("client\ndev tun\nremote vpn.example.com 1194").encode(),
+        )
+        val factory = CountingFactory()
+        val manager = TunnelManager(repo, factory)
+
+        val tunnel = manager.acquire("cfg-ovpn", "p1")
+        assertSame(tunnel, manager.acquire("cfg-ovpn", "p2"))
+        assertEquals(1, factory.createCount)
+        assertEquals(TunnelConfigType.OPENVPN, factory.lastConfig?.typeEnum)
+        assertEquals(2, manager.dependentCount("cfg-ovpn"))
+    }
+
+    @Test
+    fun defaultFactoryRejectsOpenVpnConfigWithoutProfileText() {
+        val factory = DefaultTunnelFactory(mockk(), OkHttpClient(), TunnelAuthBroker(mockk()), mockk<SystemVpnAddressProbe>(relaxed = true))
+        val ex = assertThrows(IOException::class.java) {
+            factory.create(
+                TunnelConfig(
+                    id = "ovpn-broken",
+                    label = "ovpn",
+                    type = TunnelConfigType.OPENVPN.name,
+                    configText = """{"ovpnConfigText":"   "}""".toByteArray(),
+                ),
+            )
+        }
+        assertTrue(ex.message!!.contains("no profile text"))
+    }
+
+    @Test
+    fun deadTunnelIsEvictedAndRecreatedOnNextAcquire() = runTest {
+        val repo = mockk<TunnelConfigRepository>()
+        coEvery { repo.getById("cfg-ovpn") } returns TunnelConfig(
+            id = "cfg-ovpn",
+            label = "office ovpn",
+            type = TunnelConfigType.OPENVPN.name,
+            configText = OpenVpnConfigBlob("client\ndev tun\nremote vpn.example.com 1194").encode(),
+        )
+        val factory = CountingFactory()
+        val manager = TunnelManager(repo, factory)
+
+        val first = manager.acquire("cfg-ovpn", "p1") as FakeTunnel
+        first.isDead = true
+
+        val second = manager.acquire("cfg-ovpn", "p2") as FakeTunnel
+        assertTrue("dead cached tunnel must be closed when evicted", first.closed)
+        assertNotSame("dead cached tunnel must be replaced by a fresh instance", first, second)
+        assertEquals(2, factory.createCount)
+    }
+
+    @Test
     fun lingeringTunnelSurvivesLastReleaseAndIsReused() = runTest {
         // "Stay connected": the AnyConnect-style tunnel outlives its last
         // connection, and the next acquire gets the same (still signed-in) one.
@@ -292,6 +348,7 @@ class TunnelManagerTest {
 
     private class FakeTunnel(override val lingerAfterRelease: Boolean = false) : Tunnel {
         var closed = false
+        override var isDead: Boolean = false
         override fun dial(host: String, port: Int, timeoutMs: Int): TunneledConnection =
             throw UnsupportedOperationException("fake")
 

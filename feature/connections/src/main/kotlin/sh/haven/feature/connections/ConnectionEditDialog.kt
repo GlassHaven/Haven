@@ -704,6 +704,18 @@ fun ConnectionEditDialog(
                                 DropdownMenuItem(
                                     text = {
                                         Text(
+                                            "+ New OpenVPN tunnel",
+                                            color = MaterialTheme.colorScheme.primary,
+                                        )
+                                    },
+                                    onClick = {
+                                        proxyExpanded = false
+                                        onManageTunnels(sh.haven.core.data.db.entities.TunnelConfigType.OPENVPN)
+                                    },
+                                )
+                                DropdownMenuItem(
+                                    text = {
+                                        Text(
                                             "+ New AnyConnect tunnel",
                                             color = MaterialTheme.colorScheme.primary,
                                         )

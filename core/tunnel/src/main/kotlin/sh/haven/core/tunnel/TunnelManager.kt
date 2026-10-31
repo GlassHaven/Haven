@@ -121,9 +121,10 @@ class TunnelManager @Inject constructor(
                 Log.w(TAG, "Profile $profileId switching tunnel $previous → $configId without explicit release; auto-releasing prior")
                 staleToClose = internalRelease(previous, profileId)
             }
-            // A session that ended for good (sign-in refused or cancelled
-            // during a background re-login) is replaced rather than handed out.
-            liveTunnels[configId]?.takeIf { (it as? AnyConnectTunnel)?.isDead == true }?.let { dead ->
+            // A session that ended for good (sign-in refused, fatal OpenVPN
+            // disconnect, or cancelled background re-login) is replaced rather
+            // than handed out.
+            liveTunnels[configId]?.takeIf { it.isDead }?.let { dead ->
                 liveTunnels.remove(configId)
                 staleDead = dead
             }

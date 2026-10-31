@@ -37,8 +37,11 @@ type establishResult struct {
 type OvpnTunnelSetup struct {
 	mu        sync.Mutex
 	addresses []netip.Addr
+	dns       []netip.Addr
 	mtu       int
 	pump      *packetPump
+	tnet      *netstack.Net
+	bindAddr  netip.Addr
 
 	establishOnce sync.Once
 	ready         chan establishResult
@@ -59,7 +62,22 @@ func (s *OvpnTunnelSetup) notifyReady(tnet *netstack.Net, bindAddr netip.Addr, e
 	})
 }
 
-func (s *OvpnTunnelSetup) NewBuilder() bool { return true }
+// currentNet returns the active netstack and bind address installed by the
+// most recent Establish() call.
+func (s *OvpnTunnelSetup) currentNet() (*netstack.Net, netip.Addr) {
+	s.mu.Lock()
+	defer s.mu.Unlock()
+	return s.tnet, s.bindAddr
+}
+
+func (s *OvpnTunnelSetup) NewBuilder() bool {
+	s.mu.Lock()
+	s.addresses = nil
+	s.dns = nil
+	s.mtu = defaultMTU
+	s.mu.Unlock()
+	return true
+}
 
 func (s *OvpnTunnelSetup) SetLayer(layer int) bool { return true }
 
@@ -88,7 +106,14 @@ func (s *OvpnTunnelSetup) ExcludeRoute(address string, prefixLength int, metric 
 	return true
 }
 
-func (s *OvpnTunnelSetup) AddDnsServer(address string, ipv6 bool) bool { return true }
+func (s *OvpnTunnelSetup) AddDnsServer(address string, ipv6 bool) bool {
+	if addr, err := netip.ParseAddr(address); err == nil {
+		s.mu.Lock()
+		s.dns = append(s.dns, addr)
+		s.mu.Unlock()
+	}
+	return true
+}
 
 func (s *OvpnTunnelSetup) AddSearchDomain(domain string) bool { return true }
 
@@ -134,6 +159,7 @@ func (s *OvpnTunnelSetup) SocketProtect(socket int) bool { return true }
 func (s *OvpnTunnelSetup) Establish() (int, error) {
 	s.mu.Lock()
 	addresses := append([]netip.Addr(nil), s.addresses...)
+	dns := append([]netip.Addr(nil), s.dns...)
 	mtu := s.mtu
 	prevPump := s.pump
 	s.pump = nil
@@ -149,7 +175,7 @@ func (s *OvpnTunnelSetup) Establish() (int, error) {
 		return -1, err
 	}
 
-	dev, tnet, err := netstack.CreateNetTUN(addresses, nil, mtu)
+	dev, tnet, err := netstack.CreateNetTUN(addresses, dns, mtu)
 	if err != nil {
 		err = fmt.Errorf("create netstack TUN: %w", err)
 		s.notifyReady(nil, netip.Addr{}, err)
@@ -184,10 +210,6 @@ func (s *OvpnTunnelSetup) Establish() (int, error) {
 		return -1, err
 	}
 
-	s.mu.Lock()
-	s.pump = pump
-	s.mu.Unlock()
-
 	// Prefer the first IPv4 address for the tunnel's bind/local address,
 	// same convention as wgbridge.StartTunnel's bindAddr selection.
 	var bindAddr netip.Addr
@@ -200,6 +222,12 @@ func (s *OvpnTunnelSetup) Establish() (int, error) {
 	if !bindAddr.IsValid() {
 		bindAddr = addresses[0]
 	}
+
+	s.mu.Lock()
+	s.pump = pump
+	s.tnet = tnet
+	s.bindAddr = bindAddr
+	s.mu.Unlock()
 
 	s.notifyReady(tnet, bindAddr, nil)
 	return fds[1], nil

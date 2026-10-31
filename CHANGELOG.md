@@ -5,6 +5,15 @@ the corresponding GitHub Release; a release can't ship without its section
 (enforced by `scripts/check-changelog.sh` in CI). The GitHub "Full Changelog"
 compare link is appended automatically — don't add it here.
 
+## v5.92.0
+
+- Userspace OpenVPN3 tunnel support (`OPENVPN`) for routing SSH, Mosh, SFTP, VNC, RDP, SPICE, SMB, rclone, and email connections through an `.ovpn` profile without Android `VpnService` or root (#695, thanks @VadimSurpin).
+
+- **Per-app userspace OpenVPN3 tunnels (`#695`, thanks `@VadimSurpin`).**
+  - Added `OpenVpnTunnel` in `:core:tunnel` and `ovpnbridge` in `:rclone-android`, linking upstream OpenVPN3 Core (`3.12`) with MbedTLS (`3.6.5`), Asio (`1.30.2`), and LZ4 (`1.10.0`) built from SHA-256-pinned source archives (`openvpn3-core/deps.lock` and `openvpn3-core/fetch-deps.sh`) and bridged via a `SOCK_DGRAM` `socketpair` into a userspace gVisor `netstack`.
+  - Added OpenVPN tunnel creation, `.ovpn` file import, and optional `auth-user-pass` username/password fields in the Tunnels screen, a `+ New OpenVPN tunnel` quick-add option in the connection editor's tunnel dropdown, `BackupService` encrypted export/import support, and `type = "OPENVPN"` (`ovpnConfigText`, `ovpnUsername`, `ovpnPassword`) on the `create_tunnel` MCP tool.
+  - Wired pushed `dhcp-option DNS` servers (`tun_builder_set_dns_options` -> `OvpnTunnelSetup.AddDnsServer`) into the tunnel's gVisor `netstack` resolver, added `listenUdp()` (enabling Mosh over OpenVPN) and `listenTcp()` (inbound TCP listeners on the tunnel address), and handled mid-session OpenVPN3 reconnect netstack swaps and fatal-event dead-tunnel eviction in `TunnelManager`.
+
 ## v5.91.5
 
 - Fix startup crash (`IllegalArgumentException: Max number of dynamic shortcuts exceeded`) on Android 8–9 devices when 5 or more connections and workspaces are saved by subtracting static manifest shortcuts from `ShortcutManagerCompat.getMaxShortcutCountPerActivity` before publishing dynamic launcher shortcuts (#775).

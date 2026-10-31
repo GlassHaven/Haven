@@ -60,6 +60,17 @@ kotlin {
 val openvpn3Source = file("../openvpn3-core")
 val openvpn3Archives = file("../core/tunnel/jniLibs-openvpn3")
 
+val sdkRoot: String? = System.getenv("ANDROID_HOME")
+    ?: System.getenv("ANDROID_SDK_ROOT")
+    ?: file("../local.properties").takeIf { it.isFile }?.readLines()
+        ?.firstNotNullOfOrNull { line ->
+            line.trim().takeIf { it.startsWith("sdk.dir=") }?.substringAfter("sdk.dir=")?.trim()?.takeIf { it.isNotEmpty() }
+        }
+val ndkHome: String? = System.getenv("ANDROID_NDK_HOME")
+    ?: sdkRoot?.let { sdk ->
+        file("$sdk/ndk").listFiles()?.maxByOrNull { it.name }?.absolutePath
+    }
+
 val fetchOpenvpn3Deps by tasks.registering(Exec::class) {
     inputs.file(openvpn3Source.resolve("fetch-deps.sh"))
     inputs.file(openvpn3Source.resolve("deps.lock"))
@@ -85,6 +96,12 @@ val buildOpenvpn3Native by tasks.registering(Exec::class) {
     workingDir = openvpn3Source
     commandLine("bash", "build-android.sh")
     environment("OPENVPN3_OUTPUT", openvpn3Archives.absolutePath)
+    if (ndkHome != null) {
+        environment("ANDROID_NDK_HOME", ndkHome)
+    }
+    if (sdkRoot != null) {
+        environment("ANDROID_HOME", sdkRoot)
+    }
 }
 
 // Build rclone native library from Go source via gomobile.
@@ -120,19 +137,9 @@ val buildRcloneNative by tasks.registering(Exec::class) {
     val goPath = System.getenv("GOPATH") ?: "${System.getProperty("user.home")}/go"
     environment("PATH", "$goRoot/bin:$goPath/bin:${System.getenv("PATH")}")
 
-    // Pass SDK/NDK paths through environment (no hardcoded fallbacks)
-    val ndkHome = System.getenv("ANDROID_NDK_HOME")
-        ?: System.getenv("ANDROID_HOME")?.let { sdk ->
-            file("$sdk/ndk").listFiles()?.maxByOrNull { it.name }?.absolutePath
-        }
-        ?: System.getenv("ANDROID_SDK_ROOT")?.let { sdk ->
-            file("$sdk/ndk").listFiles()?.maxByOrNull { it.name }?.absolutePath
-        }
     if (ndkHome != null) {
         environment("ANDROID_NDK_HOME", ndkHome)
     }
-    val sdkRoot = System.getenv("ANDROID_HOME")
-        ?: System.getenv("ANDROID_SDK_ROOT")
     if (sdkRoot != null) {
         environment("ANDROID_HOME", sdkRoot)
     }

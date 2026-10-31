@@ -79,6 +79,14 @@ interface Tunnel {
     val lingerAfterRelease: Boolean get() = false
 
     /**
+     * True once the underlying tunnel session has terminated permanently on
+     * its own (e.g. fatal server disconnect or rejected credentials). When
+     * true, [TunnelManager.acquire] evicts and replaces the cached handle
+     * rather than handing out a dead tunnel.
+     */
+    val isDead: Boolean get() = false
+
+    /**
      * Tear down the tunnel. All outstanding connections are invalidated.
      * Idempotent.
      */

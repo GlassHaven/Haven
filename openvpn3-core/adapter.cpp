@@ -172,14 +172,30 @@ class HavenOpenVPNClient : public openvpn::ClientAPI::OpenVPNClient
         return tcb_.exclude_route ? tcb_.exclude_route(tcb_.usrData, mutableCStr(address), prefix_length, metric, ipv6) : true;
     }
 
-    // NOTE: current upstream TunBuilderBase no longer declares
-    // tun_builder_add_dns_server/tun_builder_add_search_domain as virtuals
-    // (merged into tun_builder_set_dns_options(const DnsOptions&) at some
-    // point after go-openvpn's 2020 bridge/tunsetup.h was written, which
-    // still has the old C function-pointer names). Not overriding the new
-    // method just means DNS options the server pushes aren't forwarded to
-    // the Go side -- harmless here, since Haven never touches system-level
-    // DNS/routing regardless of what any tunnel type pushes.
+    // Upstream TunBuilderBase replaced tun_builder_add_dns_server and
+    // tun_builder_add_search_domain with tun_builder_set_dns_options(const
+    // DnsOptions&). Unpack the pushed servers and search domains into the
+    // existing C bridge callbacks so OvpnTunnelSetup feeds them to gVisor
+    // netstack's DNS resolver.
+    bool tun_builder_set_dns_options(const openvpn::DnsOptions &dns) override
+    {
+        for (const auto &entry : dns.servers) {
+            for (const auto &addr : entry.second.addresses) {
+                const bool ipv6 = addr.address.find(':') != std::string::npos;
+                if (tcb_.add_dns_server &&
+                    !tcb_.add_dns_server(tcb_.usrData, mutableCStr(addr.address), ipv6)) {
+                    return false;
+                }
+            }
+        }
+        for (const auto &dom : dns.search_domains) {
+            if (tcb_.add_search_domain &&
+                !tcb_.add_search_domain(tcb_.usrData, mutableCStr(dom.domain))) {
+                return false;
+            }
+        }
+        return true;
+    }
 
     bool tun_builder_set_mtu(int mtu) override
     {

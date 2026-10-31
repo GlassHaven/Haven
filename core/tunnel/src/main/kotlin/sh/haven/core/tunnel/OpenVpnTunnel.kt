@@ -1,10 +1,13 @@
 package sh.haven.core.tunnel
 
 import sh.haven.rclone.binding.ovpnbridge.Conn as NativeConn
+import sh.haven.rclone.binding.ovpnbridge.Listener as NativeListener
 import sh.haven.rclone.binding.ovpnbridge.Ovpnbridge
 import sh.haven.rclone.binding.ovpnbridge.TunnelHandle as NativeHandle
+import sh.haven.rclone.binding.ovpnbridge.UDPConn as NativeUDPConn
 import java.io.IOException
 import java.io.InputStream
+import java.io.InterruptedIOException
 import java.io.OutputStream
 import java.net.InetSocketAddress
 
@@ -16,8 +19,9 @@ import java.net.InetSocketAddress
  *
  * Holds one live native tunnel handle — created up-front from the user's
  * .ovpn profile text plus optional `auth-user-pass` credentials, torn down
- * on [close]. `ovpnbridge` doesn't expose inbound listeners in v1, so
- * [listenUdp]/[listenTcp] are left at [Tunnel]'s default `null`.
+ * on [close]. Supports outbound TCP ([dial]), UDP ([listenUdp] for Mosh),
+ * localhost SOCKS5 ([socksAddress] for rclone / IronRDP), and inbound TCP
+ * ([listenTcp] on the tunnel interface IP).
  */
 class OpenVpnTunnel internal constructor(
     configText: String,
@@ -43,6 +47,15 @@ class OpenVpnTunnel internal constructor(
         return NativeOvpnTunneledConnection(conn)
     }
 
+    override fun listenUdp(): TunneledDatagramSocket? {
+        val udp = try {
+            native.listenUDP()
+        } catch (e: Exception) {
+            throw IOException("OpenVPN listenUDP failed: ${e.message}", e)
+        }
+        return NativeOvpnDatagramSocket(udp)
+    }
+
     override fun socksAddress(): InetSocketAddress? {
         socksCached?.let { return it }
         return synchronized(this) {
@@ -56,7 +69,27 @@ class OpenVpnTunnel internal constructor(
         }
     }
 
-    override fun localAddress(): String? = native.bindAddr().takeIf { it.isNotBlank() }
+    override fun listenTcp(port: Int): TunneledServerSocket? {
+        val ln = try {
+            native.listenTCP(port.toLong())
+        } catch (e: Exception) {
+            throw IOException("OpenVPN listenTCP $port failed: ${e.message}", e)
+        }
+        return NativeOvpnTunneledServerSocket(ln)
+    }
+
+    override fun localAddress(): String? =
+        runCatching { native.bindAddr() }.getOrNull()?.takeIf { it.isNotBlank() }
+
+    /** True once the OpenVPN session has terminated fatally on its own; see [lastError]. */
+    override val isDead: Boolean get() = lastError() != null
+
+    /**
+     * Fatal reason the OpenVPN session ended on its own (e.g. AUTH_FAILED or
+     * server-side disconnect), or null while up.
+     */
+    fun lastError(): String? =
+        runCatching { native.lastError() }.getOrNull()?.takeIf { it.isNotBlank() }
 
     override fun close() {
         try {
@@ -128,6 +161,80 @@ private class NativeOvpnTunneledConnection(
             conn.close()
         } catch (_: Throwable) {
             // Already-closed connections raise here; ignore.
+        }
+    }
+}
+
+/**
+ * Wraps a native [NativeUDPConn] as [TunneledDatagramSocket]. Go's "i/o
+ * timeout" / "deadline exceeded" becomes a null [TunneledDatagramSocket.receive]
+ * return, which the Mosh receive loop expects.
+ */
+private class NativeOvpnDatagramSocket(
+    private val udp: NativeUDPConn,
+) : TunneledDatagramSocket {
+
+    override fun send(data: ByteArray, host: String, port: Int) {
+        try {
+            udp.writeTo(data, host, port.toLong())
+        } catch (e: Exception) {
+            throw IOException("OpenVPN UDP writeTo $host:$port failed: ${e.message}", e)
+        }
+    }
+
+    override fun receive(buf: ByteArray, timeoutMs: Int): ReceivedPacket? {
+        val result = try {
+            udp.readFrom(buf.size.toLong(), timeoutMs.toLong())
+        } catch (e: Exception) {
+            if (isTimeoutException(e)) return null
+            throw IOException("OpenVPN UDP readFrom failed: ${e.message}", e)
+        }
+        if (result == null) return null
+        val bytes = result.data ?: return null
+        val n = minOf(bytes.size, buf.size)
+        System.arraycopy(bytes, 0, buf, 0, n)
+        return ReceivedPacket(
+            length = n,
+            srcHost = result.fromHost,
+            srcPort = result.fromPort.toInt(),
+        )
+    }
+
+    override fun close() {
+        try {
+            udp.close()
+        } catch (_: Throwable) {
+            // Idempotent.
+        }
+    }
+
+    private fun isTimeoutException(e: Throwable): Boolean {
+        if (e is InterruptedIOException) return true
+        val msg = e.message ?: return false
+        return msg.contains("i/o timeout", ignoreCase = true) ||
+            msg.contains("deadline exceeded", ignoreCase = true)
+    }
+}
+
+/** Wraps a native [NativeListener] as [TunneledServerSocket]. */
+private class NativeOvpnTunneledServerSocket(
+    private val ln: NativeListener,
+) : TunneledServerSocket {
+
+    override fun accept(): TunneledConnection {
+        val conn = try {
+            ln.accept()
+        } catch (e: Exception) {
+            throw IOException("OpenVPN accept failed: ${e.message}", e)
+        }
+        return NativeOvpnTunneledConnection(conn)
+    }
+
+    override fun close() {
+        try {
+            ln.close()
+        } catch (_: Throwable) {
+            // Idempotent.
         }
     }
 }

@@ -1,0 +1,1 @@
+- Userspace OpenVPN3 tunnel support (`OPENVPN`) for routing SSH, Mosh, SFTP, VNC, RDP, SPICE, SMB, rclone, and email connections through an `.ovpn` profile without Android `VpnService` or root (#695, thanks @VadimSurpin).

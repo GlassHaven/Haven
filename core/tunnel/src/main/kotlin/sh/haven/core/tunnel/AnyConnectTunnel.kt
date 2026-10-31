@@ -109,7 +109,7 @@ class AnyConnectTunnel internal constructor(
         runCatching { native.bindAddr() }.getOrNull()?.takeIf { it.isNotBlank() }
 
     /** True once the session has ended on its own; see [lastError]. */
-    val isDead: Boolean get() = lastError() != null
+    override val isDead: Boolean get() = lastError() != null
 
     /**
      * Why the session ended on its own (credentials no longer accepted,

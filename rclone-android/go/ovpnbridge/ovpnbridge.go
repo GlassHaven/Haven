@@ -34,9 +34,9 @@ const establishTimeout = 30 * time.Second
 
 // TunnelHandle is a live OpenVPN tunnel backed by OpenVPN3 Core's TLS/data
 // channel and a userspace TUN + gVisor netstack. Structurally parallel to
-// wgbridge.TunnelHandle — same Dial/StartSocksListener/BindAddr/Close
-// shape — so Kotlin's OpenVpnTunnel and WireguardTunnel can share a common
-// pattern despite the different native session underneath.
+// wgbridge.TunnelHandle — same Dial/ListenUDP/ListenTCP/StartSocksListener/
+// BindAddr/LastError/Close shape — so Kotlin's OpenVpnTunnel, WireguardTunnel,
+// and AnyConnectTunnel share the same contract.
 type TunnelHandle struct {
 	session *openvpn3.Session
 	setup   *OvpnTunnelSetup
@@ -44,6 +44,7 @@ type TunnelHandle struct {
 
 	mu      sync.Mutex
 	closed  bool
+	failure error
 	socksLn net.Listener
 
 	bindAddr netip.Addr
@@ -55,6 +56,23 @@ type Conn struct {
 	c net.Conn
 }
 
+// UDPConn is an unconnected UDP socket inside the tunnel's netstack.
+type UDPConn struct {
+	c net.PacketConn
+}
+
+// UDPRead packages a single ReadFrom result for gomobile.
+type UDPRead struct {
+	Data     []byte
+	FromHost string
+	FromPort int
+}
+
+// Listener accepts inbound TCP connections on the tunnel address.
+type Listener struct {
+	ln net.Listener
+}
+
 // RemoteAddrHost returns the literal IP this connection was established
 // to, or "" when unknown. Mirrors wgbridge.Conn.RemoteAddrHost.
 func (c *Conn) RemoteAddrHost() string {
@@ -64,14 +82,23 @@ func (c *Conn) RemoteAddrHost() string {
 	return ""
 }
 
-// ovpnEvents implements openvpn3.MobileSessionCallbacks. OnEvent's only job
-// is to unblock StartTunnel early on a fatal/error event that arrives
-// before OpenVPN3 core ever reaches Establish() (bad auth, TLS failure,
-// ...) — without it, StartTunnel would sit out the full establishTimeout
-// on a connection that already failed.
+// ovpnEvents implements openvpn3.MobileSessionCallbacks. OnEvent unblocks
+// StartTunnel early on a fatal/error event that arrives before OpenVPN3
+// core ever reaches Establish() (bad auth, TLS failure, ...), and after
+// connect marks the live TunnelHandle dead if a Fatal event terminates the
+// session.
 type ovpnEvents struct {
-	setup    *OvpnTunnelSetup
+	setup   *OvpnTunnelSetup
 	connect chan error
+
+	mu     sync.Mutex
+	handle *TunnelHandle
+}
+
+func (e *ovpnEvents) setHandle(h *TunnelHandle) {
+	e.mu.Lock()
+	e.handle = h
+	e.mu.Unlock()
 }
 
 func (e *ovpnEvents) OnEvent(ev openvpn3.Event) {
@@ -89,6 +116,14 @@ func (e *ovpnEvents) OnEvent(ev openvpn3.Event) {
 		select {
 		case e.connect <- err:
 		default:
+		}
+		if ev.Fatal {
+			e.mu.Lock()
+			h := e.handle
+			e.mu.Unlock()
+			if h != nil {
+				h.closeWith(err)
+			}
 		}
 		return
 	}
@@ -174,24 +209,53 @@ func StartTunnel(configText, username, password string) (*TunnelHandle, error) {
 		return nil, fmt.Errorf("openvpn establish: timed out after %s waiting for CONNECTED", establishTimeout)
 	}
 
-	return &TunnelHandle{
+	h := &TunnelHandle{
 		session:  session,
 		setup:    setup,
 		tnet:     result.tnet,
 		bindAddr: result.bindAddr,
-	}, nil
+	}
+	events.setHandle(h)
+	go func() {
+		if err := <-waitDone; err != nil {
+			h.closeWith(err)
+		} else {
+			h.closeWith(errors.New("openvpn session ended"))
+		}
+	}()
+	return h, nil
 }
 
-// Dial opens a TCP connection through the tunnel. timeoutMs <= 0 uses a
-// generous default so callers don't have to special-case "no timeout".
-func (t *TunnelHandle) Dial(host string, port int, timeoutMs int) (*Conn, error) {
+func (t *TunnelHandle) netAndAddr() (*netstack.Net, netip.Addr, error) {
 	t.mu.Lock()
-	if t.closed {
-		t.mu.Unlock()
-		return nil, errors.New("tunnel closed")
-	}
+	closed := t.closed
+	failure := t.failure
+	setup := t.setup
 	tnet := t.tnet
+	bindAddr := t.bindAddr
 	t.mu.Unlock()
+	if closed {
+		if failure != nil {
+			return nil, netip.Addr{}, fmt.Errorf("tunnel closed: %w", failure)
+		}
+		return nil, netip.Addr{}, errors.New("tunnel closed")
+	}
+	if setup != nil {
+		if curNet, curAddr := setup.currentNet(); curNet != nil {
+			tnet = curNet
+			bindAddr = curAddr
+		}
+	}
+	return tnet, bindAddr, nil
+}
+
+// Dial opens a TCP connection through the tunnel. Hostnames resolve via the
+// DNS servers pushed by the OpenVPN server. timeoutMs <= 0 uses a 30s default.
+func (t *TunnelHandle) Dial(host string, port int, timeoutMs int) (*Conn, error) {
+	tnet, _, err := t.netAndAddr()
+	if err != nil {
+		return nil, err
+	}
 
 	if timeoutMs <= 0 {
 		timeoutMs = 30_000
@@ -206,11 +270,37 @@ func (t *TunnelHandle) Dial(host string, port int, timeoutMs int) (*Conn, error)
 	return &Conn{c: c}, nil
 }
 
+// ListenUDP opens an unconnected UDP socket bound to the tunnel address
+// (used by Mosh so UDP datagrams traverse the OpenVPN tunnel).
+func (t *TunnelHandle) ListenUDP() (*UDPConn, error) {
+	tnet, bindAddr, err := t.netAndAddr()
+	if err != nil {
+		return nil, err
+	}
+	pc, err := tnet.ListenUDPAddrPort(netip.AddrPortFrom(bindAddr, 0))
+	if err != nil {
+		return nil, fmt.Errorf("netstack ListenUDP: %w", err)
+	}
+	return &UDPConn{c: pc}, nil
+}
+
+// ListenTCP binds a TCP listener on the tunnel address inside the userspace
+// netstack, allowing tunnel peers to reach on-device listeners (such as MCP).
+func (t *TunnelHandle) ListenTCP(port int) (*Listener, error) {
+	tnet, bindAddr, err := t.netAndAddr()
+	if err != nil {
+		return nil, err
+	}
+	ln, err := tnet.ListenTCPAddrPort(netip.AddrPortFrom(bindAddr, uint16(port)))
+	if err != nil {
+		return nil, fmt.Errorf("netstack ListenTCP: %w", err)
+	}
+	return &Listener{ln: ln}, nil
+}
+
 // StartSocksListener lazily binds a 127.0.0.1 SOCKS5 listener fronting this
 // tunnel and returns its bound TCP port. Idempotent. Mirrors
-// wgbridge.TunnelHandle.StartSocksListener exactly (same transports rely on
-// a single SOCKS5 endpoint shape regardless of which tunnel backend is
-// active underneath).
+// wgbridge.TunnelHandle.StartSocksListener.
 func (t *TunnelHandle) StartSocksListener() (int, error) {
 	t.mu.Lock()
 	if t.closed {
@@ -228,10 +318,13 @@ func (t *TunnelHandle) StartSocksListener() (int, error) {
 		return 0, fmt.Errorf("bind SOCKS5 listener: %w", err)
 	}
 	t.socksLn = ln
-	tnet := t.tnet
 	t.mu.Unlock()
 
 	go socks5.Serve(ln, func(host string, port int) (net.Conn, error) {
+		tnet, _, err := t.netAndAddr()
+		if err != nil {
+			return nil, err
+		}
 		ctx, cancel := context.WithTimeout(context.Background(), 30*time.Second)
 		defer cancel()
 		return tnet.DialContext(ctx, "tcp", net.JoinHostPort(host, strconv.Itoa(port)))
@@ -244,28 +337,54 @@ func (t *TunnelHandle) StartSocksListener() (int, error) {
 // IPv4 AddAddress, or the first address overall), as reported to
 // OvpnTunnelSetup.Establish. Empty if unset.
 func (t *TunnelHandle) BindAddr() string {
+	if t.setup != nil {
+		if _, curAddr := t.setup.currentNet(); curAddr.IsValid() {
+			return curAddr.String()
+		}
+	}
 	if t.bindAddr.IsValid() {
 		return t.bindAddr.String()
 	}
 	return ""
 }
 
+// LastError returns the fatal reason the tunnel ended on its own, or "" if
+// the tunnel is still up or was closed normally.
+func (t *TunnelHandle) LastError() string {
+	t.mu.Lock()
+	defer t.mu.Unlock()
+	if t.failure != nil {
+		return t.failure.Error()
+	}
+	return ""
+}
+
 // Close tears down the tunnel. Idempotent.
 func (t *TunnelHandle) Close() {
+	t.closeWith(nil)
+}
+
+func (t *TunnelHandle) closeWith(cause error) {
 	t.mu.Lock()
 	if t.closed {
 		t.mu.Unlock()
 		return
 	}
 	t.closed = true
-	if t.socksLn != nil {
-		t.socksLn.Close()
-		t.socksLn = nil
-	}
+	t.failure = cause
+	ln := t.socksLn
+	t.socksLn = nil
 	t.mu.Unlock()
 
-	t.setup.Teardown(true)
-	t.session.Stop()
+	if ln != nil {
+		_ = ln.Close()
+	}
+	if t.setup != nil {
+		t.setup.Teardown(true)
+	}
+	if t.session != nil {
+		t.session.Stop()
+	}
 }
 
 // Read returns up to size bytes from the connection. A nil slice with a
@@ -292,3 +411,52 @@ func (c *Conn) Write(data []byte) error {
 func (c *Conn) Close() error {
 	return c.c.Close()
 }
+
+// ReadFrom blocks for a datagram; timeoutMs > 0 sets a one-shot deadline.
+func (u *UDPConn) ReadFrom(size int, timeoutMs int) (*UDPRead, error) {
+	if size <= 0 {
+		size = 2048
+	}
+	if timeoutMs > 0 {
+		_ = u.c.SetReadDeadline(time.Now().Add(time.Duration(timeoutMs) * time.Millisecond))
+	} else {
+		_ = u.c.SetReadDeadline(time.Time{})
+	}
+	buf := make([]byte, size)
+	n, addr, err := u.c.ReadFrom(buf)
+	if err != nil {
+		return nil, err
+	}
+	if udp, ok := addr.(*net.UDPAddr); ok {
+		return &UDPRead{Data: buf[:n], FromHost: udp.IP.String(), FromPort: udp.Port}, nil
+	}
+	return &UDPRead{Data: buf[:n], FromHost: addr.String()}, nil
+}
+
+// WriteTo sends data to an IP-literal host:port through the tunnel.
+func (u *UDPConn) WriteTo(data []byte, host string, port int) error {
+	ip := net.ParseIP(host)
+	if ip == nil {
+		return fmt.Errorf("WriteTo: host %q is not an IP literal", host)
+	}
+	_, err := u.c.WriteTo(data, &net.UDPAddr{IP: ip, Port: port})
+	return err
+}
+
+// Close closes the UDP socket.
+func (u *UDPConn) Close() error { return u.c.Close() }
+
+// Accept blocks until a peer connects.
+func (l *Listener) Accept() (*Conn, error) {
+	c, err := l.ln.Accept()
+	if err != nil {
+		return nil, err
+	}
+	return &Conn{c: c}, nil
+}
+
+// Addr returns the bound "ip:port".
+func (l *Listener) Addr() string { return l.ln.Addr().String() }
+
+// Close stops accepting.
+func (l *Listener) Close() error { return l.ln.Close() }

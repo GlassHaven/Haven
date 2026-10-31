@@ -32,9 +32,11 @@ func newPacketPump(nativeFD int, dev tun.Device) (*packetPump, error) {
 	return p, nil
 }
 
+const maxPacketSize = 65536
+
 func (p *packetPump) pumpFromNativeToTun() {
 	defer p.wg.Done()
-	buf := make([]byte, 2048)
+	buf := make([]byte, maxPacketSize)
 	for {
 		n, err := p.file.Read(buf)
 		if err != nil {
@@ -52,7 +54,7 @@ func (p *packetPump) pumpFromNativeToTun() {
 func (p *packetPump) pumpFromTunToNative() {
 	defer p.wg.Done()
 	bufs := make([][]byte, 1)
-	bufs[0] = make([]byte, 2048)
+	bufs[0] = make([]byte, maxPacketSize)
 	sizes := make([]int, 1)
 	for {
 		n, err := p.dev.Read(bufs, sizes, 0)
@@ -60,9 +62,11 @@ func (p *packetPump) pumpFromTunToNative() {
 			return
 		}
 		for i := 0; i < n; i++ {
-			if _, err := p.file.Write(bufs[i][:sizes[i]]); err != nil {
-				return
-			}
+			// Keep draining p.dev until p.dev.Close() closes incomingPacket;
+			// exiting early on a socketpair write error would leave gVisor's
+			// WriteNotify blocked on incomingPacket while holding Endpoint.LockUser,
+			// deadlocking netTun.Close() -> stack.Close().
+			_, _ = p.file.Write(bufs[i][:sizes[i]])
 		}
 	}
 }

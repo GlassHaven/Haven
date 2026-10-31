@@ -4521,6 +4521,7 @@ private fun friendlyTunnelTypeLabel(t: sh.haven.core.data.db.entities.TunnelConf
         sh.haven.core.data.db.entities.TunnelConfigType.TAILSCALE -> "Tailscale"
         sh.haven.core.data.db.entities.TunnelConfigType.CLOUDFLARE_ACCESS -> "Cloudflare Tunnel"
         sh.haven.core.data.db.entities.TunnelConfigType.NETBIRD -> "NetBird"
+        sh.haven.core.data.db.entities.TunnelConfigType.OPENVPN -> "OpenVPN"
         sh.haven.core.data.db.entities.TunnelConfigType.ANYCONNECT -> "AnyConnect"
     }
 

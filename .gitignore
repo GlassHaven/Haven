@@ -70,6 +70,10 @@ wayland-android/jniLibs/
 # versions stale and broke every app-window feature (#469); nothing may put
 # them back in the tree.
 core/wayland/src/main/jniLibs/*/*.so
+core/tunnel/jniLibs-openvpn3/
+openvpn3-core/.deps/
+openvpn3-core/build-*/
+openvpn3-core/host-test-lib/
 
 # FFmpeg binaries — built from pinned source by core/ffmpeg's
 # buildFfmpegNatives task (#493). 172 MB of committed blobs that nothing

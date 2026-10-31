@@ -11,6 +11,7 @@
     <string name="tunnel_delete_message">移除 \"%1$s\"。在您另选一个隧道之前，引用此隧道的配置文件将无法连接。</string>
     <string name="tunnel_delete_confirm">删除</string>
     <string name="tunnel_cancel">取消</string>
+    <string name="tunnel_type_label">隧道类型</string>
     <string name="tunnel_label">标签</string>
     <string name="tunnel_save">保存</string>
     <string name="tunnel_edit">编辑隧道</string>
@@ -25,6 +26,10 @@
     <string name="tunnel_netbird_setup_key_label">Setup key（设置密钥）</string>
     <string name="tunnel_netbird_management_url_label">管理 URL（可选）</string>
     <string name="tunnel_netbird_management_url_help">留空则使用 NetBird 托管的管理服务。使用自托管管理服务器时，设为该服务器的 URL。</string>
+    <string name="tunnel_openvpn_help">粘贴 .ovpn 配置文件或加载文件。如果配置文件使用 auth-user-pass 且未内置凭据文件，请在下方输入用户名和密码。</string>
+    <string name="tunnel_openvpn_config_label">OpenVPN 配置文件 (.ovpn)</string>
+    <string name="tunnel_openvpn_username_label">用户名（可选）</string>
+    <string name="tunnel_openvpn_password_label">密码（可选）</string>
 
     <!-- Cloudflare Access SSH tunnel (#154) -->
     <string name="cf_experimental_banner">实验性功能——Haven 实现了与 `cloudflared access ssh` 相同的 WebSocket 线路协议。已针对少量租户测试；如遇不匹配请通过 GitHub #154 反馈。</string>

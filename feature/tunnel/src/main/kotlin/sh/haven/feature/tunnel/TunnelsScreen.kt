@@ -3,7 +3,6 @@ package sh.haven.feature.tunnel
 import android.net.Uri
 import androidx.activity.compose.rememberLauncherForActivityResult
 import androidx.activity.result.contract.ActivityResultContracts
-import androidx.compose.foundation.horizontalScroll
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
@@ -27,6 +26,11 @@ import androidx.compose.material.icons.automirrored.filled.Logout
 import androidx.compose.material.icons.filled.VpnLock
 import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.Button
+import androidx.compose.material3.DropdownMenuItem
+import androidx.compose.material3.ExperimentalMaterial3Api
+import androidx.compose.material3.ExposedDropdownMenuAnchorType
+import androidx.compose.material3.ExposedDropdownMenuBox
+import androidx.compose.material3.ExposedDropdownMenuDefaults
 import androidx.compose.material3.FloatingActionButton
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
@@ -66,6 +70,7 @@ import sh.haven.core.data.db.entities.TunnelConfigType
 import sh.haven.core.data.db.entities.typeEnum
 import sh.haven.core.tunnel.AnyConnectConfigBlob
 import sh.haven.core.tunnel.NetbirdConfigBlob
+import sh.haven.core.tunnel.OpenVpnConfigBlob
 import sh.haven.core.tunnel.TailscaleConfigBlob
 import java.text.SimpleDateFormat
 import java.util.Date
@@ -86,10 +91,10 @@ fun TunnelsScreen(
     onBack: (() -> Unit)? = null,
     /**
      * If non-null, the Add Tunnel dialog auto-opens on first composition
-     * with this type pre-selected on the chip row. Used by the connection
+     * with this type pre-selected in the dropdown. Used by the connection
      * edit dialog's quick-add affordances ("+ New Cloudflare Tunnel" /
      * "+ New WireGuard tunnel") so the user doesn't have to know which
-     * chip to pick after navigating in. Default null preserves the
+     * type to pick after navigating in. Default null preserves the
      * existing entry-point behaviour (manual + button, type starts on
      * WireGuard).
      */
@@ -173,7 +178,7 @@ fun TunnelsScreen(
                             },
                             // Legacy standalone Cloudflare rows (pre-#154) have
                             // no editor for their payload — delete/recreate is
-                            // the only path for those; the chip row can't even
+                            // the only path for those; the type selector can't even
                             // represent the type (see AddTunnelDialog).
                             onEdit = if (tunnel.typeEnum == TunnelConfigType.CLOUDFLARE_ACCESS) {
                                 null
@@ -210,6 +215,10 @@ fun TunnelsScreen(
                 viewModel.addNetbirdConfig(label, setupKey, managementUrl)
                 showAddDialog = false
             },
+            onSubmitOpenVpn = { label, ovpnConfigText, username, password ->
+                viewModel.addOpenVpnConfig(label, ovpnConfigText, username, password)
+                showAddDialog = false
+            },
             onSubmitAnyConnect = { label, form ->
                 viewModel.addAnyConnectConfig(label, form)
                 showAddDialog = false
@@ -231,6 +240,10 @@ fun TunnelsScreen(
                 },
                 onSubmitNetbird = { label, setupKey, managementUrl ->
                     viewModel.updateNetbirdConfig(existing.id, label, setupKey, managementUrl)
+                    editTarget = null; pendingEditId = null
+                },
+                onSubmitOpenVpn = { label, config, username, password ->
+                    viewModel.updateOpenVpnConfig(existing.id, label, config, username, password)
                     editTarget = null; pendingEditId = null
                 },
                 onSubmitAnyConnect = { label, form ->
@@ -391,9 +404,10 @@ private fun TunnelRow(
 /**
  * Add-or-edit dialog (#666). With [existing] null it creates a new config;
  * with it set the type is locked (legacy standalone Cloudflare rows can't
- * be represented by the chip row and are never routed here — the list gives
+ * be represented by the type selector and are never routed here — the list gives
  * them delete only) and each field prefills from the decrypted row.
  */
+@OptIn(ExperimentalMaterial3Api::class)
 @Composable
 private fun AddTunnelDialog(
     initialType: TunnelConfigType,
@@ -402,9 +416,11 @@ private fun AddTunnelDialog(
     onSubmitWireguard: (label: String, configText: String) -> Unit,
     onSubmitTailscale: (label: String, authKey: String, controlUrl: String) -> Unit,
     onSubmitNetbird: (label: String, setupKey: String, managementUrl: String) -> Unit,
+    onSubmitOpenVpn: (label: String, ovpnConfigText: String, username: String, password: String) -> Unit,
     onSubmitAnyConnect: (label: String, form: AnyConnectForm) -> Unit,
 ) {
     var type by remember { mutableStateOf(initialType) }
+    var typeExpanded by remember { mutableStateOf(false) }
     var label by remember { mutableStateOf(existing?.label ?: "") }
     // Prefill decodes the saved blob per type. A blob that no longer parses
     // (hand-edited, format drift) leaves the field blank rather than
@@ -443,6 +459,19 @@ private fun AddTunnelDialog(
                 .orEmpty(),
         )
     }
+    val existingOpenVpn = remember(existing?.id, existing?.configText) {
+        existing?.takeIf { it.typeEnum == TunnelConfigType.OPENVPN }
+            ?.let { OpenVpnConfigBlob.parse(it.configText) }
+    }
+    var ovpnConfigText by remember(existing?.id) {
+        mutableStateOf(existingOpenVpn?.ovpnConfigText.orEmpty())
+    }
+    var ovpnUsername by remember(existing?.id) {
+        mutableStateOf(existingOpenVpn?.username.orEmpty())
+    }
+    var ovpnPassword by remember(existing?.id) {
+        mutableStateOf(existingOpenVpn?.password.orEmpty())
+    }
     var anyConnect by remember {
         mutableStateOf(
             AnyConnectForm.from(
@@ -455,8 +484,10 @@ private fun AddTunnelDialog(
 
     // Use OpenDocument (SAF) rather than GetContent so the user can pick
     // the file from any provider — Drive, NextCloud, Files app, etc.
-    // Filtering to text/* and */* because .conf files often show up as
-    // application/octet-stream depending on the provider.
+    // Filtering to text/* and */* because .conf/.ovpn files often show up
+    // as application/octet-stream depending on the provider. Shared
+    // between WireGuard's .conf and OpenVPN's .ovpn — writes into whichever
+    // field matches the currently selected [type].
     val fileLauncher = rememberLauncherForActivityResult(
         contract = ActivityResultContracts.OpenDocument(),
     ) { uri: Uri? ->
@@ -465,13 +496,13 @@ private fun AddTunnelDialog(
             val text = context.contentResolver.openInputStream(uri)?.use {
                 it.readBytes().toString(Charsets.UTF_8)
             } ?: return@rememberLauncherForActivityResult
-            configText = text
+            if (type == TunnelConfigType.OPENVPN) ovpnConfigText = text else configText = text
             if (label.isBlank()) {
                 // Best-effort label from filename. DocumentsContract gives us
                 // a _display_name via query; for simplicity, extract from the
-                // URI's last path segment and strip .conf suffix.
+                // URI's last path segment and strip the .conf/.ovpn suffix.
                 val last = uri.lastPathSegment?.substringAfterLast('/').orEmpty()
-                val guessed = last.substringAfterLast(':').removeSuffix(".conf")
+                val guessed = last.substringAfterLast(':').removeSuffix(".conf").removeSuffix(".ovpn")
                 if (guessed.isNotBlank()) label = guessed
             }
         } catch (_: Throwable) {
@@ -501,26 +532,48 @@ private fun AddTunnelDialog(
                 style = MaterialTheme.typography.headlineSmall,
             )
 
-            // Type picker — FilterChip row over the backends. Each
-            // toggles the fields below; label persists across flips.
+            // A full-width dropdown keeps every backend accessible on narrow
+            // screens. Changing type preserves the label and per-type fields.
             // Cloudflare Tunnel is omitted here on purpose: it lives as
             // an SSH-profile transport (GH #154), not a standalone tunnel.
             // In edit mode the row's type IS its identity (the payload
-            // blob and key fields are typed) — chips lock.
-            Row(
-                horizontalArrangement = Arrangement.spacedBy(8.dp),
-                modifier = Modifier.horizontalScroll(rememberScrollState()),
+            // blob and key fields are typed) — the selector stays locked.
+            ExposedDropdownMenuBox(
+                expanded = typeExpanded,
+                onExpandedChange = { typeExpanded = it && existing == null },
+                modifier = Modifier.fillMaxWidth(),
             ) {
-                TunnelConfigType.entries
-                    .filter { it != TunnelConfigType.CLOUDFLARE_ACCESS }
-                    .forEach { t ->
-                        androidx.compose.material3.FilterChip(
-                            selected = type == t,
+                OutlinedTextField(
+                    value = tunnelTypeLabel(type),
+                    onValueChange = {},
+                    readOnly = true,
+                    enabled = existing == null,
+                    label = { Text(stringResource(R.string.tunnel_type_label)) },
+                    trailingIcon = { ExposedDropdownMenuDefaults.TrailingIcon(typeExpanded) },
+                    singleLine = true,
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .menuAnchor(
+                            ExposedDropdownMenuAnchorType.PrimaryNotEditable,
                             enabled = existing == null,
-                            onClick = { type = t },
-                            label = { Text(tunnelTypeLabel(t)) },
-                        )
-                    }
+                        ),
+                )
+                ExposedDropdownMenu(
+                    expanded = typeExpanded,
+                    onDismissRequest = { typeExpanded = false },
+                ) {
+                    TunnelConfigType.entries
+                        .filter { it != TunnelConfigType.CLOUDFLARE_ACCESS }
+                        .forEach { t ->
+                            DropdownMenuItem(
+                                text = { Text(tunnelTypeLabel(t)) },
+                                onClick = {
+                                    type = t
+                                    typeExpanded = false
+                                },
+                            )
+                        }
+                }
             }
 
             OutlinedTextField(
@@ -648,6 +701,62 @@ private fun AddTunnelDialog(
                     )
                     androidx.compose.foundation.layout.Spacer(Modifier.weight(1f))
                 }
+                TunnelConfigType.OPENVPN -> {
+                    Text(
+                        stringResource(R.string.tunnel_openvpn_help),
+                        style = MaterialTheme.typography.bodySmall,
+                        color = MaterialTheme.colorScheme.onSurfaceVariant,
+                    )
+                    OutlinedButton(
+                        onClick = { fileLauncher.launch(arrayOf("*/*")) },
+                        modifier = Modifier.fillMaxWidth(),
+                    ) {
+                        Icon(Icons.Filled.FileOpen, contentDescription = null)
+                        Spacer(Modifier.width(8.dp))
+                        Text(stringResource(R.string.tunnel_load_from_file))
+                    }
+                    OutlinedTextField(
+                        value = ovpnConfigText,
+                        onValueChange = { ovpnConfigText = it },
+                        label = { Text(stringResource(R.string.tunnel_openvpn_config_label)) },
+                        placeholder = {
+                            Text(
+                                "client\ndev tun\nproto udp\nremote vpn.example.com 1194\n<ca>\n…\n</ca>",
+                                fontFamily = FontFamily.Monospace,
+                                fontSize = 12.sp,
+                            )
+                        },
+                        singleLine = false,
+                        minLines = 8,
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .weight(1f),
+                        textStyle = MaterialTheme.typography.bodySmall.copy(
+                            fontFamily = FontFamily.Monospace,
+                            fontSize = 12.sp,
+                        ),
+                    )
+                    // Heuristic only — OpenVPN3 Core is the real authority on
+                    // whether the profile actually needs credentials. Shown
+                    // whenever the pasted text mentions auth-user-pass so
+                    // users aren't hunting for fields a cert-only profile
+                    // never needs.
+                    if (ovpnConfigText.contains("auth-user-pass")) {
+                        OutlinedTextField(
+                            value = ovpnUsername,
+                            onValueChange = { ovpnUsername = it },
+                            label = { Text(stringResource(R.string.tunnel_openvpn_username_label)) },
+                            singleLine = true,
+                            modifier = Modifier.fillMaxWidth(),
+                        )
+                        sh.haven.core.ui.PasswordField(
+                            value = ovpnPassword,
+                            onValueChange = { ovpnPassword = it },
+                            label = stringResource(R.string.tunnel_openvpn_password_label),
+                            modifier = Modifier.fillMaxWidth(),
+                        )
+                    }
+                }
                 TunnelConfigType.ANYCONNECT -> {
                     AnyConnectFields(
                         form = anyConnect,
@@ -659,7 +768,7 @@ private fun AddTunnelDialog(
                 }
                 TunnelConfigType.CLOUDFLARE_ACCESS -> {
                     // Retired from this dialog (GH #154). Filtered out of
-                    // the chip row above, so this branch is unreachable in
+                    // the type dropdown above, so this branch is unreachable in
                     // practice; it exists only because the enum still
                     // includes the value for legacy standalone rows in
                     // the list.
@@ -676,6 +785,7 @@ private fun AddTunnelDialog(
                     TunnelConfigType.WIREGUARD -> configText.isNotBlank()
                     TunnelConfigType.TAILSCALE -> authKey.isNotBlank()
                     TunnelConfigType.NETBIRD -> setupKey.isNotBlank()
+                    TunnelConfigType.OPENVPN -> ovpnConfigText.isNotBlank()
                     TunnelConfigType.ANYCONNECT ->
                         anyConnect.server.isNotBlank() && anyConnect.username.isNotBlank()
                     TunnelConfigType.CLOUDFLARE_ACCESS -> false
@@ -689,6 +799,8 @@ private fun AddTunnelDialog(
                                 onSubmitTailscale(label, authKey, controlUrl)
                             TunnelConfigType.NETBIRD ->
                                 onSubmitNetbird(label, setupKey, managementUrl)
+                            TunnelConfigType.OPENVPN ->
+                                onSubmitOpenVpn(label, ovpnConfigText, ovpnUsername, ovpnPassword)
                             TunnelConfigType.ANYCONNECT ->
                                 onSubmitAnyConnect(label, anyConnect)
                             TunnelConfigType.CLOUDFLARE_ACCESS -> Unit
@@ -707,6 +819,7 @@ private fun tunnelTypeLabel(t: TunnelConfigType): String =
         TunnelConfigType.WIREGUARD -> "WireGuard"
         TunnelConfigType.TAILSCALE -> "Tailscale"
         TunnelConfigType.NETBIRD -> "NetBird"
+        TunnelConfigType.OPENVPN -> "OpenVPN"
         TunnelConfigType.ANYCONNECT -> "AnyConnect"
         TunnelConfigType.CLOUDFLARE_ACCESS -> "Cloudflare Tunnel"
     }

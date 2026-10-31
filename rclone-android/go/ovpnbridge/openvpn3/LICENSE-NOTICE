@@ -1,0 +1,16 @@
+This package (except adapter.cpp and the CMake/build-android.sh files under
+openvpn3-core/, which are Haven's own) is vendored from
+https://github.com/mysteriumnetwork/go-openvpn (AGPLv3, same license as
+Haven itself). The original project's copyright headers are preserved
+in each file.
+
+The native OpenVPN3 Core static libraries this package links against are
+NOT go-openvpn's original 2020 prebuilt binaries (those are ~6 years stale
+and their upstream fork, mysteriumnetwork/openvpn3, is defunct). They are
+rebuilt from current https://github.com/OpenVPN/openvpn3 upstream source
+via openvpn3-core/build-android.sh, plus Haven's own adapter.cpp providing
+the new_session/start_session/stop_session/reconnect_session/
+cleanup_session/check_library C functions this package's session.go calls
+(see bridge/library.h) -- those functions were only ever part of the
+defunct fork, never available as source, so Haven re-implements them
+against real upstream OpenVPN3 Core's ClientAPI::OpenVPNClient.

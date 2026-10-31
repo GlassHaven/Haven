@@ -18,6 +18,7 @@
     <string name="tunnel_cancel">Abbrechen</string>
 
     <!-- Add tunnel dialog -->
+    <string name="tunnel_type_label">Tunnel-Typ</string>
     <string name="tunnel_label">Bezeichnung</string>
     <string name="tunnel_save">Speichern</string>
     <string name="tunnel_edit">Tunnel bearbeiten</string>
@@ -32,6 +33,10 @@
     <string name="tunnel_netbird_setup_key_label">Setup-Key</string>
     <string name="tunnel_netbird_management_url_label">Management-URL (optional)</string>
     <string name="tunnel_netbird_management_url_help">Leer lassen für NetBirds gehostetes Management. Für ein selbst gehostetes Management auf die URL deines Servers setzen.</string>
+    <string name="tunnel_openvpn_help">Füge ein .ovpn-Profil ein oder lade eine Datei. Wenn das Profil auth-user-pass ohne eingebettete Zugangsdaten verwendet, gib unten einen Benutzernamen und ein Passwort ein.</string>
+    <string name="tunnel_openvpn_config_label">OpenVPN-Profil (.ovpn)</string>
+    <string name="tunnel_openvpn_username_label">Benutzername (optional)</string>
+    <string name="tunnel_openvpn_password_label">Passwort (optional)</string>
 
     <!-- Cloudflare Access SSH tunnel (#154) -->
     <string name="cf_experimental_banner">Experimentell — Haven implementiert dasselbe WebSocket-Drahtprotokoll wie `cloudflared access ssh`. Gegen eine kleine Anzahl von Tenants getestet; bitte melde Abweichungen über GitHub #154.</string>

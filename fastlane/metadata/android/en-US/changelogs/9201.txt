@@ -1,0 +1,3 @@
+- Fix startup crash on Android 8–9 when 5+ connections/workspaces are saved by subtracting static manifest shortcuts from the dynamic shortcut budget (#775).
+- Add a per-profile "Save rediscovered LAN address" toggle (HavenHostRediscovery session|off|persist) so host-key rediscovery can connect for the session without overwriting a pinned WireGuard host (#776).
+- Update sshlib to 0.6.3, datastore to 1.3.0, okhttp to 5.5.1, and tailscale to 1.104.2 (#766, #768, #769, #770).

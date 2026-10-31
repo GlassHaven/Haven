@@ -5,6 +5,12 @@ the corresponding GitHub Release; a release can't ship without its section
 (enforced by `scripts/check-changelog.sh` in CI). The GitHub "Full Changelog"
 compare link is appended automatically — don't add it here.
 
+## v5.91.5
+
+- Fix startup crash (`IllegalArgumentException: Max number of dynamic shortcuts exceeded`) on Android 8–9 devices when 5 or more connections and workspaces are saved by subtracting static manifest shortcuts from `ShortcutManagerCompat.getMaxShortcutCountPerActivity` before publishing dynamic launcher shortcuts (#775).
+- Add a per-profile **Save rediscovered LAN address** toggle (`HavenHostRediscovery session|off|persist` in SSH Options) so #376 host-key rediscovery can connect via a matched local address for the current session without overwriting the profile's configured host (such as a WireGuard IP) (#776).
+- Update `org.connectbot.sshlib:sshlib` to `0.6.3` (`sntrup761x25519-sha512@openssh.com` post-quantum KEX and `SshCertificate` public-key auth API), `androidx.datastore` to `1.3.0`, `okhttp` to `5.5.1`, and `tailscale.com` in the rclone bridge to `1.104.2` (#766, #768, #769, #770).
+
 ## v5.91.4
 
 - Restore the `Win` (`Super`) modifier key on Desktop (`RDP`, `SPICE`, `GLKVM`, and `VNC`) shortcut bars and make it movable in the toolbar layout editor (#772).

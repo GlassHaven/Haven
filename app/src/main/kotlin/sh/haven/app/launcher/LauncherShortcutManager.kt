@@ -87,7 +87,18 @@ class LauncherShortcutManager @Inject constructor(
     }
 
     private fun rebuildShortcuts(connections: List<ConnectionProfile>, workspaces: List<WorkspaceProfile>) {
-        val shortcuts = selectShortcuts(connections, workspaces).map { spec ->
+        val dynamicBudget = try {
+            val maxPerActivity = ShortcutManagerCompat.getMaxShortcutCountPerActivity(context)
+            val manifestCount = ShortcutManagerCompat
+                .getShortcuts(context, ShortcutManagerCompat.FLAG_MATCH_MANIFEST)
+                .size
+                .coerceAtLeast(MANIFEST_SHORTCUT_COUNT)
+            maxDynamicShortcuts(maxPerActivity, manifestCount)
+        } catch (e: Exception) {
+            Log.w(TAG, "shortcut limit query failed: ${e.message}")
+            MAX_SHORTCUTS - MANIFEST_SHORTCUT_COUNT
+        }
+        val shortcuts = selectShortcuts(connections, workspaces, maxShortcuts = dynamicBudget).map { spec ->
             when (spec) {
                 is ConnectionShortcut -> ShortcutInfoCompat.Builder(context, spec.shortcutId)
                     .setShortLabel(spec.label)
@@ -105,10 +116,11 @@ class LauncherShortcutManager @Inject constructor(
         }
         try {
             ShortcutManagerCompat.setDynamicShortcuts(context, shortcuts)
-            Log.d(TAG, "published ${shortcuts.size} launcher shortcut(s)")
-        } catch (e: IllegalStateException) {
-            // Some launchers throw when called too early in the app
-            // lifetime or when the device is locked; not actionable.
+            Log.d(TAG, "published ${shortcuts.size} launcher shortcut(s) (budget=$dynamicBudget)")
+        } catch (e: Exception) {
+            // Some launchers/ROMs throw IllegalStateException when called too
+            // early or locked, or IllegalArgumentException if a custom cap is
+            // exceeded (#775); never crash app startup over launcher shortcuts.
             Log.w(TAG, "setDynamicShortcuts failed: ${e.message}")
         }
     }
@@ -136,23 +148,46 @@ class LauncherShortcutManager @Inject constructor(
         const val EXTRA_WORKSPACE_ID = "sh.haven.extra.WORKSPACE_ID"
 
         /**
-         * Cap on visible dynamic shortcuts. Android documents 4–5 visible
-         * long-press shortcuts per activity on most launchers; any extras
-         * are silently dropped.
+         * Upper bound on published dynamic shortcuts. Note that Android's
+         * `ShortcutService.enforceMaxActivityShortcuts` throws
+         * `IllegalArgumentException` when `manifestShortcuts + dynamicShortcuts`
+         * exceeds `getMaxShortcutCountPerActivity()` (which is 5 on Android 8–9
+         * and 15 on Android 10+, or lower on some OEM ROMs), so the runtime
+         * budget is computed via [maxDynamicShortcuts] (#775).
          */
-        private const val MAX_SHORTCUTS = 5
+        internal const val MAX_SHORTCUTS = 5
+
+        /**
+         * Number of static `<shortcut>` entries declared in `res/xml/shortcuts.xml`
+         * (`pull_backup_now`), used as a floor when querying manifest shortcuts.
+         */
+        internal const val MANIFEST_SHORTCUT_COUNT = 1
+
+        /**
+         * Computes the safe dynamic-shortcut count given the platform's
+         * per-activity cap ([maxShortcutCountPerActivity]) and the number of
+         * static manifest shortcuts ([manifestShortcutCount]) (#775).
+         */
+        internal fun maxDynamicShortcuts(
+            maxShortcutCountPerActivity: Int,
+            manifestShortcutCount: Int = MANIFEST_SHORTCUT_COUNT,
+        ): Int = (maxShortcutCountPerActivity - manifestShortcutCount.coerceAtLeast(0))
+            .coerceIn(0, MAX_SHORTCUTS)
 
         /**
          * The pure selection policy: dialable connections
          * (most-recently-connected first, never-connected keeping their
          * listing order), alternating with workspaces (most-recently-
-         * [WorkspaceProfile.updatedAt] first), capped at [MAX_SHORTCUTS].
+         * [WorkspaceProfile.updatedAt] first), capped at [maxShortcuts].
          * Pure — unit-tested in LauncherShortcutManagerTest.
          */
         internal fun selectShortcuts(
             connections: List<ConnectionProfile>,
             workspaces: List<WorkspaceProfile>,
+            maxShortcuts: Int = MAX_SHORTCUTS,
         ): List<LauncherShortcut> {
+            val limit = maxShortcuts.coerceIn(0, MAX_SHORTCUTS)
+            if (limit == 0) return emptyList()
             val recentConnections = connections.filterNot { it.connectionType == "OPENAI" || it.connectionType == "EMAIL" }
                 .sortedByDescending { it.lastConnected ?: 0L }
             val recentWorkspaces = workspaces.sortedByDescending { it.updatedAt }
@@ -160,7 +195,7 @@ class LauncherShortcutManager @Inject constructor(
                 recentConnections.map { ConnectionShortcut(it.id, it.label) },
                 recentWorkspaces.map { WorkspaceShortcut(it.id, it.name) },
             )
-            return merged.take(MAX_SHORTCUTS)
+            return merged.take(limit)
         }
 
         /**

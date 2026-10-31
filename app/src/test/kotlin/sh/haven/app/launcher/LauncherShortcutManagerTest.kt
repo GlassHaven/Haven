@@ -91,6 +91,32 @@ class LauncherShortcutManagerTest {
         assertEquals("w1", labels["w1"])
     }
 
+    @Test
+    fun maxDynamicShortcutsSubtractsManifestShortcutsFromPlatformCap() {
+        // Android 8–9 (Pie) ShortcutService sets mMaxShortcuts = 5; with 1
+        // static manifest shortcut (`pull_backup_now`), only 4 dynamic slots
+        // remain (#775).
+        assertEquals(4, LauncherShortcutManager.maxDynamicShortcuts(maxShortcutCountPerActivity = 5, manifestShortcutCount = 1))
+        // OEM launchers with maxShortcutCountPerActivity = 4 leave 3 dynamic slots.
+        assertEquals(3, LauncherShortcutManager.maxDynamicShortcuts(maxShortcutCountPerActivity = 4, manifestShortcutCount = 1))
+        // Android 10+ sets mMaxShortcuts = 15; still capped at MAX_SHORTCUTS (5).
+        assertEquals(5, LauncherShortcutManager.maxDynamicShortcuts(maxShortcutCountPerActivity = 15, manifestShortcutCount = 1))
+        // Degenerate / zero cap never goes negative.
+        assertEquals(0, LauncherShortcutManager.maxDynamicShortcuts(maxShortcutCountPerActivity = 1, manifestShortcutCount = 1))
+        assertEquals(0, LauncherShortcutManager.maxDynamicShortcuts(maxShortcutCountPerActivity = 0, manifestShortcutCount = 1))
+    }
+
+    @Test
+    fun selectShortcutsHonorsReducedMaxShortcutsBudget() {
+        val conns = (1..6).map { conn("c$it", lastConnected = it.toLong() * 100) }
+        val wss = (1..6).map { ws("w$it", it.toLong() * 100) }
+        val budget = LauncherShortcutManager.maxDynamicShortcuts(maxShortcutCountPerActivity = 5, manifestShortcutCount = 1)
+        val ids = LauncherShortcutManager.selectShortcuts(conns, wss, maxShortcuts = budget)
+            .map { it.shortcutId.toSpecId() }
+        assertEquals(listOf("c6", "w6", "c5", "w5"), ids)
+        assertTrue(LauncherShortcutManager.selectShortcuts(conns, wss, maxShortcuts = 0).isEmpty())
+    }
+
     /** "connection-p1" → "p1" (the first segment is the namespace prefix). */
     private fun String.toSpecId(): String = substringAfter('-')
 }

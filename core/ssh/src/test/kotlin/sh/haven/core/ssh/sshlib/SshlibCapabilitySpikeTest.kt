@@ -168,16 +168,14 @@ class SshlibCapabilitySpikeTest {
     }
 
     @Test
-    fun `GAP sshlib cannot negotiate sntrup761x25519 — flips when upstream adds it`() {
+    fun `PASS sshlib negotiates sntrup761x25519 post-quantum KEX`() {
         assumeTrue(BuiltinDHFactories.sntrup761x25519_openssh.isSupported)
         val server = newServer()
         restrictServerKex(server, BuiltinDHFactories.sntrup761x25519_openssh)
         val client = sshlibClient { host = "127.0.0.1"; port = server.port }
         val result = connectAndAuth(client)
-        assertFalse(
-            "sshlib now negotiates sntrup761 — remove this gap and revisit PQ parity (#58 P2)",
-            result is ConnectResult.Success,
-        )
+        assertTrue("expected sntrup761 negotiation to succeed, got $result", result is ConnectResult.Success)
+        assertEquals("sntrup761x25519-sha512@openssh.com", client.connectionInfo?.kexAlgorithm)
     }
 
     @Test
@@ -453,11 +451,10 @@ class SshlibCapabilitySpikeTest {
     // ------------------------------------------------------------------
 
     @Test
-    fun `GAP no certificate surface in the public auth API — flips when upstream adds one`() {
+    fun `PASS certificate surface exists in the public auth API`() {
         // User-cert auth needs the client to send a *-cert-v01@openssh.com blob
-        // in the publickey method. sshlib 0.4.0 exposes no way in: no public
-        // method or parameter mentions certificates. When this fails, upstream
-        // grew a cert path — unlock the cert slice of phase 8.
+        // in the publickey method. sshlib 0.6.x added SshCertificate +
+        // SshClient.authenticatePublicKey(username, privateKey, certificate, passphrase).
         val certMentions = listOf(
             org.connectbot.sshlib.SshClient::class.java,
             org.connectbot.sshlib.AuthHandler::class.java,
@@ -468,7 +465,7 @@ class SshlibCapabilitySpikeTest {
                     m.parameterTypes.any { "cert" in it.simpleName.lowercase() }
             }
         }
-        assertTrue("cert API appeared: $certMentions", certMentions.isEmpty())
+        assertFalse("expected SshCertificate auth overloads in public API", certMentions.isEmpty())
     }
 
     @Test

@@ -8,10 +8,13 @@ or tests therefore also builds the archives first. The archives are inputs to
 rclone's task, so changing native sources also invalidates the Go build.
 
 Dependency preparation is separate from compilation. `deps.lock` pins source
-archives for mbedtls, mbedtls-framework, lz4, fmt, and Asio by commit and SHA-256.
+archives for OpenVPN3, mbedtls, mbedtls-framework, lz4, fmt, and Asio by commit
+and SHA-256.
 `fetch-deps.sh` verifies downloads and cached archives, installs the framework,
-and applies the Asio patches from the pinned OpenVPN3 submodule. No binaries are
-downloaded. The prepared tree is `openvpn3-core/.deps/sources`; downloaded
+and applies the Asio patches from the pinned OpenVPN3 archive. OpenVPN3 is
+prepared in `.deps/sources/openvpn3` and does not require a Git checkout or nested
+submodules at the pinned revision. No binaries are downloaded. The prepared
+tree is `openvpn3-core/.deps/sources`; downloaded
 archives are cached in `.deps/downloads`.
 
 Normal Gradle builds run `rclone-android:fetchOpenvpn3Deps` automatically. For a
@@ -26,9 +29,10 @@ bash openvpn3-core/build-host-test.sh
 
 Both compilation scripts use `fetch-deps.sh --check`, which never downloads or
 modifies sources. Missing or stale dependencies fail with preparation instructions.
-The prepared fingerprint includes the lock, preparation script, and Asio patches;
-changes to any of them require preparing again. Paths are excluded so the tree
-can be relocated into a build server.
+The prepared fingerprint includes the lock and preparation script; the lock's
+OpenVPN3 archive checksum also pins its Asio patches. Changes to any of these
+inputs require preparing again. Paths are excluded so the tree can be relocated
+into a build server.
 
 ## Offline and F-Droid preparation
 

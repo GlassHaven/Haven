@@ -13,9 +13,9 @@ set -euo pipefail
 
 SCRIPT_DIR="$(cd "$(dirname "$0")" && pwd)"
 PROJECT_ROOT="$(cd "$SCRIPT_DIR/.." && pwd)"
-CORE_DIR="$SCRIPT_DIR/openvpn3"
 DEPS_DIR="$SCRIPT_DIR/.deps"
 SOURCES_DIR="$DEPS_DIR/sources"
+CORE_DIR="$SOURCES_DIR/openvpn3"
 
 # Compilation never downloads sources. Gradle's fetchOpenvpn3Deps task or
 # F-Droid's source preparation must populate the pinned dependency tree.

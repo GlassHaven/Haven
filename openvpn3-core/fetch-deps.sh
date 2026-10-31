@@ -12,14 +12,13 @@ case "$MODE" in
     *) echo "Usage: $0 [--prepare|--offline|--check]" >&2; exit 1 ;;
 esac
 
-PATCHES=("$SCRIPT_DIR"/openvpn3/deps/vcpkg-ports/asio/*.patch)
-if [ ! -f "${PATCHES[0]}" ]; then
-    echo "ERROR: OpenVPN3 sources are missing; initialize openvpn3-core/openvpn3 before preparing dependencies." >&2
-    exit 1
-fi
+# The lock also pins OpenVPN3 and its Asio patches by archive checksum.
 # Use file contents, not paths: F-Droid relocates the prepared source tree.
-FINGERPRINT="$(cat "$SCRIPT_DIR/deps.lock" "$SCRIPT_DIR/fetch-deps.sh" "${PATCHES[@]}" | sha256sum | cut -d ' ' -f1)"
+FINGERPRINT="$(cat "$SCRIPT_DIR/deps.lock" "$SCRIPT_DIR/fetch-deps.sh" | sha256sum | cut -d ' ' -f1)"
 if [ -f "$SOURCES_DIR/.prepared" ] && [ "$(cat "$SOURCES_DIR/.prepared")" = "$FINGERPRINT" ] \
+    && [ -f "$SOURCES_DIR/openvpn3/client/ovpncli.cpp" ] \
+    && [ -f "$SOURCES_DIR/openvpn3/client/ovpncli.hpp" ] \
+    && [ -f "$SOURCES_DIR/openvpn3/openvpn/crypto/data_epoch.cpp" ] \
     && [ -f "$SOURCES_DIR/mbedtls/CMakeLists.txt" ] \
     && [ -f "$SOURCES_DIR/mbedtls/framework/CMakeLists.txt" ] \
     && [ -f "$SOURCES_DIR/lz4/build/cmake/CMakeLists.txt" ] \
@@ -66,6 +65,11 @@ done < "$SCRIPT_DIR/deps.lock"
 mv "$STAGE/mbedtls-framework" "$STAGE/mbedtls/framework-prepared"
 rmdir "$STAGE/mbedtls/framework"
 mv "$STAGE/mbedtls/framework-prepared" "$STAGE/mbedtls/framework"
+PATCHES=("$STAGE"/openvpn3/deps/vcpkg-ports/asio/*.patch)
+if [ ! -f "${PATCHES[0]}" ]; then
+    echo "ERROR: pinned OpenVPN3 archive is missing its Asio patches." >&2
+    exit 1
+fi
 for patch in "${PATCHES[@]}"; do
     git -C "$STAGE/asio" apply "$patch"
 done

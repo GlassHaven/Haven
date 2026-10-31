@@ -21,9 +21,9 @@
 set -euo pipefail
 
 SCRIPT_DIR="$(cd "$(dirname "$0")" && pwd)"
-CORE_DIR="$SCRIPT_DIR/openvpn3"
 DEPS_DIR="$SCRIPT_DIR/.deps"
 SOURCES_DIR="$DEPS_DIR/sources"
+CORE_DIR="$SOURCES_DIR/openvpn3"
 OUTPUT_DIR="${OPENVPN3_HOST_OUTPUT:-$SCRIPT_DIR/host-test-lib}"
 
 bash "$SCRIPT_DIR/fetch-deps.sh" --check

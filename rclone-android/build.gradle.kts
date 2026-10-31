@@ -63,7 +63,6 @@ val openvpn3Archives = file("../core/tunnel/jniLibs-openvpn3")
 val fetchOpenvpn3Deps by tasks.registering(Exec::class) {
     inputs.file(openvpn3Source.resolve("fetch-deps.sh"))
     inputs.file(openvpn3Source.resolve("deps.lock"))
-    inputs.dir(openvpn3Source.resolve("openvpn3/deps/vcpkg-ports/asio"))
     outputs.dir(openvpn3Source.resolve(".deps/sources"))
     onlyIf { !project.hasProperty("skipOpenvpn3Native") }
 
@@ -74,7 +73,6 @@ val fetchOpenvpn3Deps by tasks.registering(Exec::class) {
 val buildOpenvpn3Native by tasks.registering(Exec::class) {
     dependsOn(fetchOpenvpn3Deps)
     inputs.file(openvpn3Source.resolve("build-android.sh"))
-    inputs.dir(openvpn3Source.resolve("openvpn3"))
     inputs.file(openvpn3Source.resolve("adapter.cpp"))
     inputs.file(openvpn3Source.resolve("CMakeLists.txt"))
     inputs.file(openvpn3Source.resolve("fetch-deps.sh"))

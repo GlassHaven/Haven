@@ -1,9 +1,7 @@
 # Standalone CMake recipe for OpenVPN3 Core's ClientAPI, targeting Android.
 #
-# This is Haven's own build recipe, NOT part of the vendored openvpn3
-# submodule tree (kept out of openvpn3-core/openvpn3/ so that submodule stays
-# pristine upstream, same split as build-proot/build.sh vs. the proot-termux
-# submodule).
+# This is Haven's own build recipe, separate from the checksum-verified
+# upstream sources prepared in openvpn3-core/.deps/sources/openvpn3/.
 #
 # It exists because upstream OpenVPN/openvpn3 has no maintained Android build
 # path as of this writing: javacli/android/ is a single 40-line CPU-usage JNI
@@ -23,9 +21,9 @@
 # Four dependencies are required and are supplied by build-android.sh via
 # the cache variables below (ASIO_DIR/FMT_DIR are header-only checkouts,
 # MBEDTLS_INSTALL/LZ4_INSTALL are per-ABI cross-compiled install prefixes):
-#   CORE_DIR          - path to the openvpn3 submodule
+#   CORE_DIR          - path to the prepared OpenVPN3 sources
 #   ASIO_DIR           - path to a checkout of chriskohlhoff/asio, patched
-#                        with the openvpn3 submodule's own
+#                        with the pinned OpenVPN3 archive's own
 #                        deps/vcpkg-ports/asio/*.patch (asio isn't usable
 #                        un-patched against this codebase)
 #   FMT_DIR             - path to a checkout of fmtlib/fmt (header-only mode,

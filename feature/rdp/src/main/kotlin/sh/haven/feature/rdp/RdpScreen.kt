@@ -655,9 +655,9 @@ private fun RdpViewer(
             }
         }
     }
-    LaunchedEffect(isActive) {
+    LaunchedEffect(isActive, physicalKeyboardAttached) {
         if (isActive) {
-            if (!keyboardVisible) hardwareKeyFocus.requestFocus()
+            if (keyboardVisible == physicalKeyboardAttached) hardwareKeyFocus.requestFocus()
         } else {
             if (!physicalKeyboardAttached) keyboardVisible = false
         }
@@ -700,17 +700,29 @@ private fun RdpViewer(
     // this effect.
     val imeVisible = WindowInsets.isImeVisible
     var wasImeVisible by remember { mutableStateOf(imeVisible) }
-    LaunchedEffect(imeVisible) {
-        if (wasImeVisible && !imeVisible && !physicalKeyboardAttached) {
-            keyboardVisible = false
-            if (isActive && (fieldFocused || canvasFocused)) {
-                hardwareKeyFocus.requestFocus()
-            }
+    var toolbarPopupOpen by remember { mutableStateOf(false) }
+    var wasToolbarPopupOpen by remember { mutableStateOf(false) }
+    LaunchedEffect(imeVisible, toolbarPopupOpen) {
+        val step = sh.haven.core.toolbar.stepDesktopImeVisibility(
+            keyboardVisible = keyboardVisible,
+            wasImeVisible = wasImeVisible,
+            imeVisible = imeVisible,
+            physicalKeyboardAttached = physicalKeyboardAttached,
+            toolbarPopupOpen = toolbarPopupOpen,
+            wasToolbarPopupOpen = wasToolbarPopupOpen,
+        )
+        keyboardVisible = step.keyboardVisible
+        wasImeVisible = step.wasImeVisible
+        wasToolbarPopupOpen = toolbarPopupOpen
+        if (step.transferFocusToCanvas && isActive && (fieldFocused || canvasFocused)) {
+            hardwareKeyFocus.requestFocus()
+        } else if (step.restoreSoftKeyboard && isActive) {
+            focusRequester.requestFocus()
+            keyboardController?.show()
         }
-        wasImeVisible = imeVisible
     }
-    LaunchedEffect(imeVisible, keyboardVisible, canvasFocused, fieldFocused, isActive) {
-        if (isActive && !keyboardVisible && imeVisible && (canvasFocused || fieldFocused)) {
+    LaunchedEffect(imeVisible, keyboardVisible, canvasFocused, fieldFocused, isActive, toolbarPopupOpen) {
+        if (isActive && !keyboardVisible && !toolbarPopupOpen && imeVisible && (canvasFocused || fieldFocused)) {
             keyboardController?.hide()
             hardwareKeyFocus.requestFocus()
         }
@@ -1195,6 +1207,7 @@ private fun RdpViewer(
                 onSnippetLibraryChanged = onSnippetLibraryChanged,
                 onOpenSettings = onOpenToolbarSettings,
                 onToggleKeyboard = toggleKeyboard,
+                onPopupOpenChanged = { toolbarPopupOpen = it },
                 modifier = Modifier.fillMaxWidth(),
             )
         }

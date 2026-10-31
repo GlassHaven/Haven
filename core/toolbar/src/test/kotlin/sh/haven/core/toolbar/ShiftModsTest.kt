@@ -66,4 +66,75 @@ class ShiftModsTest {
             .map { it.key }
         assertFalse(ToolbarKey.WIN in allKeys)
     }
+
+    /**
+     * #773: When a toolbar popup (Text Input, Snippets, Add Custom Key) opens,
+     * the main window's IME hides (`imeVisible` drops `true -> false`). While
+     * `toolbarPopupOpen` is true, `keyboardVisible` must remain true so
+     * `KeyboardToolbar` is not unmounted out from under the popup.
+     */
+    @Test
+    fun `stepDesktopImeVisibility keeps toolbar mounted when popup steals IME focus`() {
+        // 1. Popup opens while IME is still reported visible on that frame.
+        val openStep = stepDesktopImeVisibility(
+            keyboardVisible = true,
+            wasImeVisible = true,
+            imeVisible = true,
+            physicalKeyboardAttached = false,
+            toolbarPopupOpen = true,
+            wasToolbarPopupOpen = false,
+        )
+        assertTrue(openStep.keyboardVisible)
+        assertFalse(openStep.wasImeVisible)
+        assertFalse(openStep.transferFocusToCanvas)
+        assertFalse(openStep.restoreSoftKeyboard)
+
+        // 2. Main window loses focus to the popup window -> imeVisible drops to false.
+        val imeHideStep = stepDesktopImeVisibility(
+            keyboardVisible = openStep.keyboardVisible,
+            wasImeVisible = openStep.wasImeVisible,
+            imeVisible = false,
+            physicalKeyboardAttached = false,
+            toolbarPopupOpen = true,
+            wasToolbarPopupOpen = true,
+        )
+        assertTrue(imeHideStep.keyboardVisible)
+        assertFalse(imeHideStep.wasImeVisible)
+        assertFalse(imeHideStep.transferFocusToCanvas)
+        assertFalse(imeHideStep.restoreSoftKeyboard)
+
+        // 3. Popup closes -> toolbar stays visible and requests soft keyboard restoration.
+        val closeStep = stepDesktopImeVisibility(
+            keyboardVisible = imeHideStep.keyboardVisible,
+            wasImeVisible = imeHideStep.wasImeVisible,
+            imeVisible = false,
+            physicalKeyboardAttached = false,
+            toolbarPopupOpen = false,
+            wasToolbarPopupOpen = true,
+        )
+        assertTrue(closeStep.keyboardVisible)
+        assertFalse(closeStep.wasImeVisible)
+        assertFalse(closeStep.transferFocusToCanvas)
+        assertTrue(closeStep.restoreSoftKeyboard)
+    }
+
+    /**
+     * #773: Normal user back-swipe on the soft keyboard (with no toolbar popup
+     * open) still dismisses `keyboardVisible` and returns focus to the canvas.
+     */
+    @Test
+    fun `stepDesktopImeVisibility dismisses toolbar on normal IME hide without popup`() {
+        val step = stepDesktopImeVisibility(
+            keyboardVisible = true,
+            wasImeVisible = true,
+            imeVisible = false,
+            physicalKeyboardAttached = false,
+            toolbarPopupOpen = false,
+            wasToolbarPopupOpen = false,
+        )
+        assertFalse(step.keyboardVisible)
+        assertFalse(step.wasImeVisible)
+        assertTrue(step.transferFocusToCanvas)
+        assertFalse(step.restoreSoftKeyboard)
+    }
 }

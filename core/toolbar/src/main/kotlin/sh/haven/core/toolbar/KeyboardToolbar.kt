@@ -45,6 +45,7 @@ import androidx.compose.material3.Text
 import androidx.compose.material3.VerticalDivider
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.CompositionLocalProvider
+import androidx.compose.runtime.DisposableEffect
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.compositionLocalOf
 import androidx.compose.runtime.getValue
@@ -233,6 +234,12 @@ data class ToolbarCallbacks(
      * own keyboard (Supernote + Futo, etc.).
      */
     val onDictateTap: () -> Unit = {},
+    /** Open the built-in Add Custom Key dialog (#773). */
+    val onOpenAddKeyDialog: () -> Unit = {},
+    /** Open the built-in Snippets bottom sheet (#773). */
+    val onOpenSnippetsSheet: () -> Unit = {},
+    /** Open the built-in multi-line Text Input dialog when [onOpenTextInput] is null (#773). */
+    val onOpenBuiltInTextInputDialog: () -> Unit = {},
 )
 
 val LocalToolbarCallbacks = compositionLocalOf<ToolbarCallbacks> {
@@ -318,10 +325,25 @@ fun KeyboardToolbar(
     onOpenTextInput: (() -> Unit)? = null,
     onToggleKeyboard: (() -> Unit)? = null,
     onDictateTap: () -> Unit = {},
+    onPopupOpenChanged: (Boolean) -> Unit = {},
     modifier: Modifier = Modifier,
 ) {
     val view = LocalView.current
     val imeVisible = WindowInsets.isImeVisible
+
+    var showAddKeyDialog by remember { mutableStateOf(false) }
+    var showSnippetsSheet by remember { mutableStateOf(false) }
+    var showTextInputDialog by remember { mutableStateOf(false) }
+    var textInputDraft by remember { mutableStateOf("") }
+    var reorderAddKeyDialogOpen by remember { mutableStateOf(false) }
+
+    val popupOpen = showAddKeyDialog || showSnippetsSheet || showTextInputDialog || reorderAddKeyDialogOpen
+    LaunchedEffect(popupOpen) {
+        onPopupOpenChanged(popupOpen)
+    }
+    DisposableEffect(Unit) {
+        onDispose { onPopupOpenChanged(false) }
+    }
 
     val clipboardManager = remember {
         view.context.getSystemService(Context.CLIPBOARD_SERVICE) as? ClipboardManager
@@ -401,7 +423,94 @@ fun KeyboardToolbar(
         onOpenTextInput = onOpenTextInput,
         onToggleKeyboard = onToggleKeyboard,
         onDictateTap = onDictateTap,
+        onOpenAddKeyDialog = {
+            onPopupOpenChanged(true)
+            showAddKeyDialog = true
+        },
+        onOpenSnippetsSheet = {
+            onPopupOpenChanged(true)
+            showSnippetsSheet = true
+        },
+        onOpenBuiltInTextInputDialog = {
+            onPopupOpenChanged(true)
+            showTextInputDialog = true
+        },
     )
+
+    if (showAddKeyDialog) {
+        AddCustomKeyDialog(
+            onDismiss = {
+                showAddKeyDialog = false
+                onPopupOpenChanged(showSnippetsSheet || showTextInputDialog || reorderAddKeyDialogOpen)
+            },
+            onSave = { customKey ->
+                showAddKeyDialog = false
+                onPopupOpenChanged(showSnippetsSheet || showTextInputDialog || reorderAddKeyDialogOpen)
+                callbacks.onAddCustomKey(customKey)
+            },
+        )
+    }
+
+    if (showSnippetsSheet) {
+        SnippetsBottomSheet(
+            snippets = allSnippets,
+            onDismiss = {
+                showSnippetsSheet = false
+                onPopupOpenChanged(showAddKeyDialog || showTextInputDialog || reorderAddKeyDialogOpen)
+            },
+            onSnippetTap = { snippet ->
+                callbacks.onSnippetTap(snippet)
+                showSnippetsSheet = false
+                onPopupOpenChanged(showAddKeyDialog || showTextInputDialog || reorderAddKeyDialogOpen)
+            },
+            onAddSnippet = callbacks.onAddSnippet,
+            onDeleteSnippet = callbacks.onDeleteSnippet,
+        )
+    }
+
+    if (showTextInputDialog) {
+        AlertDialog(
+            onDismissRequest = {
+                showTextInputDialog = false
+                onPopupOpenChanged(showAddKeyDialog || showSnippetsSheet || reorderAddKeyDialogOpen)
+            },
+            title = { Text(stringResource(R.string.toolbar_text_input_desc)) },
+            text = {
+                OutlinedTextField(
+                    value = textInputDraft,
+                    onValueChange = { textInputDraft = it },
+                    modifier = Modifier.fillMaxWidth(),
+                    minLines = 3,
+                    maxLines = 8,
+                )
+            },
+            confirmButton = {
+                TextButton(
+                    onClick = {
+                        val toSend = textInputDraft
+                        textInputDraft = ""
+                        showTextInputDialog = false
+                        onPopupOpenChanged(showAddKeyDialog || showSnippetsSheet || reorderAddKeyDialogOpen)
+                        if (toSend.isNotEmpty()) {
+                            onSendBytes(toSend.toByteArray(Charsets.UTF_8))
+                        }
+                    },
+                ) {
+                    Text(stringResource(android.R.string.ok))
+                }
+            },
+            dismissButton = {
+                TextButton(
+                    onClick = {
+                        showTextInputDialog = false
+                        onPopupOpenChanged(showAddKeyDialog || showSnippetsSheet || reorderAddKeyDialogOpen)
+                    },
+                ) {
+                    Text(stringResource(android.R.string.cancel))
+                }
+            },
+        )
+    }
 
     CompositionLocalProvider(
         LocalToolbarCallbacks provides callbacks,
@@ -436,11 +545,18 @@ fun KeyboardToolbar(
                 ReorderToolbarContent(
                     layout = effectiveLayout,
                     onSave = onToolbarLayoutChanged,
-                    onDone = { onReorderModeChanged(false) },
+                    onDone = {
+                        reorderAddKeyDialogOpen = false
+                        onReorderModeChanged(false)
+                    },
                     onOpenSettings = onOpenSettings,
                     showVncIcon = onVncTap != null &&
                         desktopKeyPlacement != sh.haven.core.data.preferences.DesktopKeyPlacement.HIDDEN,
                     placement = editModeControlsPlacement,
+                    onAddKeyDialogOpenChanged = { open ->
+                        reorderAddKeyDialogOpen = open
+                        onPopupOpenChanged(open || showAddKeyDialog || showSnippetsSheet || showTextInputDialog)
+                    },
                 )
             } else if (selectionActive && selectionController != null) {
                 Column {
@@ -548,6 +664,76 @@ internal fun effectiveToolbarLayout(layout: ToolbarLayout, hasWinKey: Boolean): 
     val newRows = layout.rows.toMutableList()
     newRows[targetRowIdx] = targetRow
     return ToolbarLayout(newRows)
+}
+
+/**
+ * Result of one step of the desktop (RDP/SPICE/GLKVM/VNC) soft-keyboard
+ * visibility state machine (#773).
+ *
+ * @property keyboardVisible updated `keyboardVisible` state for the screen.
+ * @property wasImeVisible updated `wasImeVisible` edge-detector state.
+ * @property transferFocusToCanvas true when the user dismissed the soft keyboard
+ *   (back / swipe-down while no toolbar popup is open) and focus should move
+ *   back to the desktop canvas (`hardwareKeyFocus`).
+ * @property restoreSoftKeyboard true when a toolbar popup just closed while the
+ *   toolbar is still in soft-keyboard mode, so the hidden IME field should
+ *   reclaim focus and re-show the soft keyboard.
+ */
+data class DesktopImeStep(
+    val keyboardVisible: Boolean,
+    val wasImeVisible: Boolean,
+    val transferFocusToCanvas: Boolean,
+    val restoreSoftKeyboard: Boolean,
+)
+
+/**
+ * Pure transition function for desktop session `LaunchedEffect(imeVisible, toolbarPopupOpen)` (#773).
+ *
+ * When a toolbar popup (`ToolbarKey.TEXT_INPUT`, `ToolbarKey.SNIPPETS`,
+ * `AddKeyButton`) opens its own Dialog/ModalBottomSheet window, Android moves
+ * window focus to the popup and `WindowInsets.isImeVisible` on the main window
+ * drops to `false`. While [toolbarPopupOpen] is true (and on the frame it
+ * closes, [wasToolbarPopupOpen]), that IME hide must not be treated as a user
+ * back-swipe that unmounts `KeyboardToolbar`.
+ */
+fun stepDesktopImeVisibility(
+    keyboardVisible: Boolean,
+    wasImeVisible: Boolean,
+    imeVisible: Boolean,
+    physicalKeyboardAttached: Boolean,
+    toolbarPopupOpen: Boolean,
+    wasToolbarPopupOpen: Boolean,
+): DesktopImeStep {
+    if (toolbarPopupOpen) {
+        return DesktopImeStep(
+            keyboardVisible = keyboardVisible,
+            wasImeVisible = false,
+            transferFocusToCanvas = false,
+            restoreSoftKeyboard = false,
+        )
+    }
+    if (wasToolbarPopupOpen) {
+        return DesktopImeStep(
+            keyboardVisible = keyboardVisible,
+            wasImeVisible = imeVisible,
+            transferFocusToCanvas = false,
+            restoreSoftKeyboard = keyboardVisible && !physicalKeyboardAttached,
+        )
+    }
+    if (wasImeVisible && !imeVisible && !physicalKeyboardAttached) {
+        return DesktopImeStep(
+            keyboardVisible = false,
+            wasImeVisible = false,
+            transferFocusToCanvas = true,
+            restoreSoftKeyboard = false,
+        )
+    }
+    return DesktopImeStep(
+        keyboardVisible = keyboardVisible,
+        wasImeVisible = imeVisible,
+        transferFocusToCanvas = false,
+        restoreSoftKeyboard = false,
+    )
 }
 
 /**
@@ -1034,20 +1220,8 @@ private fun GridToolbarContent(
 @Composable
 private fun AddKeyButton() {
     val cb = LocalToolbarCallbacks.current
-    var showDialog by remember { mutableStateOf(false) }
-
-    if (showDialog) {
-        AddCustomKeyDialog(
-            onDismiss = { showDialog = false },
-            onSave = { customKey ->
-                showDialog = false
-                cb.onAddCustomKey(customKey)
-            },
-        )
-    }
-
     FilledTonalButton(
-        onClick = { showDialog = true },
+        onClick = cb.onOpenAddKeyDialog,
         modifier = Modifier
             .padding(horizontal = 2.dp)
             .height(32.dp),
@@ -1175,20 +1349,7 @@ private fun BuiltInKey(
             }
         }
         ToolbarKey.SNIPPETS -> {
-            var showSheet by remember { mutableStateOf(false) }
-            ToolbarTextButton("\u2702") { showSheet = true }
-            if (showSheet) {
-                SnippetsBottomSheet(
-                    snippets = cb.snippets,
-                    onDismiss = { showSheet = false },
-                    onSnippetTap = { snippet ->
-                        cb.onSnippetTap(snippet)
-                        showSheet = false
-                    },
-                    onAddSnippet = cb.onAddSnippet,
-                    onDeleteSnippet = cb.onDeleteSnippet,
-                )
-            }
+            ToolbarTextButton("\u2702", onClick = cb.onOpenSnippetsSheet)
         }
         ToolbarKey.ATTACH -> ToolbarIconButton(
             icon = Icons.Filled.AttachFile,
@@ -1196,8 +1357,6 @@ private fun BuiltInKey(
             onClick = cb.onAttachTap,
         )
         ToolbarKey.TEXT_INPUT -> {
-            var showDialog by remember { mutableStateOf(false) }
-            var draft by remember { mutableStateOf("") }
             ToolbarIconButton(
                 icon = Icons.Filled.EditNote,
                 description = stringResource(R.string.toolbar_text_input_desc),
@@ -1205,44 +1364,10 @@ private fun BuiltInKey(
                     if (cb.onOpenTextInput != null) {
                         cb.onOpenTextInput.invoke()
                     } else {
-                        showDialog = true
+                        cb.onOpenBuiltInTextInputDialog()
                     }
                 },
             )
-            if (showDialog) {
-                AlertDialog(
-                    onDismissRequest = { showDialog = false },
-                    title = { Text(stringResource(R.string.toolbar_text_input_desc)) },
-                    text = {
-                        OutlinedTextField(
-                            value = draft,
-                            onValueChange = { draft = it },
-                            modifier = Modifier.fillMaxWidth(),
-                            minLines = 3,
-                            maxLines = 8,
-                        )
-                    },
-                    confirmButton = {
-                        TextButton(
-                            onClick = {
-                                val toSend = draft
-                                draft = ""
-                                showDialog = false
-                                if (toSend.isNotEmpty()) {
-                                    cb.onSendBytes(toSend.toByteArray(Charsets.UTF_8))
-                                }
-                            },
-                        ) {
-                            Text(stringResource(android.R.string.ok))
-                        }
-                    },
-                    dismissButton = {
-                        TextButton(onClick = { showDialog = false }) {
-                            Text(stringResource(android.R.string.cancel))
-                        }
-                    },
-                )
-            }
         }
         ToolbarKey.VOICE_INPUT -> ToolbarIconButton(
             icon = Icons.Filled.Mic,
@@ -1818,6 +1943,7 @@ private fun ReorderToolbarContent(
     onOpenSettings: () -> Unit = {},
     showVncIcon: Boolean = false,
     placement: EditModeControlsPlacement = EditModeControlsPlacement.LEFT,
+    onAddKeyDialogOpenChanged: (Boolean) -> Unit = {},
 ) {
     val rows = remember(layout) {
         // Every key is an ordinary draggable item — the saved layout is
@@ -1836,12 +1962,20 @@ private fun ReorderToolbarContent(
     BackHandler { saveAndExit() }
 
     var showAddKeyDialog by remember { mutableStateOf(false) }
+    val openAddKeyDialog: () -> Unit = {
+        onAddKeyDialogOpenChanged(true)
+        showAddKeyDialog = true
+    }
 
     if (showAddKeyDialog) {
         AddCustomKeyDialog(
-            onDismiss = { showAddKeyDialog = false },
+            onDismiss = {
+                showAddKeyDialog = false
+                onAddKeyDialogOpenChanged(false)
+            },
             onSave = { customKey ->
                 showAddKeyDialog = false
+                onAddKeyDialogOpenChanged(false)
                 // Add to row 2 if available, else row 1 (at the end)
                 val targetRow = rows.getOrElse(1) { rows[0] }
                 targetRow.add(customKey)
@@ -1938,7 +2072,7 @@ private fun ReorderToolbarContent(
                 EditModeControlsPlacement.LEFT -> {
                     FixedDoneDesktopColumn(showVncIcon, ::saveAndExit)
                     FixedAddSettingsColumn(
-                        onAddKey = { showAddKeyDialog = true },
+                        onAddKey = openAddKeyDialog,
                         onSettings = { saveAndExit(); onOpenSettings() },
                         modifier = Modifier.padding(start = 4.dp),
                     )
@@ -2033,7 +2167,7 @@ private fun ReorderToolbarContent(
             EditModeControlsPlacement.SPLIT -> {
                 EditModeDivider(Modifier.align(Alignment.CenterVertically))
                 FixedAddSettingsColumn(
-                    onAddKey = { showAddKeyDialog = true },
+                    onAddKey = openAddKeyDialog,
                     onSettings = { saveAndExit(); onOpenSettings() },
                     modifier = Modifier
                         .align(Alignment.CenterVertically)
@@ -2050,7 +2184,7 @@ private fun ReorderToolbarContent(
                 ) {
                     FixedDoneDesktopColumn(showVncIcon, ::saveAndExit)
                     FixedAddSettingsColumn(
-                        onAddKey = { showAddKeyDialog = true },
+                        onAddKey = openAddKeyDialog,
                         onSettings = { saveAndExit(); onOpenSettings() },
                     )
                 }

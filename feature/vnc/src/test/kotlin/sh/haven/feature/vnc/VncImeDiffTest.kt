@@ -1,6 +1,8 @@
 package sh.haven.feature.vnc
 
+import androidx.compose.ui.input.key.Key
 import org.junit.Assert.assertEquals
+import org.junit.Assert.assertNull
 import org.junit.Test
 
 /**
@@ -124,5 +126,40 @@ class VncImeDiffTest {
         )
         assertEquals(listOf("down:ffe1", "down:ff09", "up:ff09", "up:ffe1"), events)
         assertEquals(1, released)
+    }
+
+    /**
+     * #774: Physical hardware keyboards dispatch through `handleHardwareKey`
+     * while the canvas holds focus (`fieldFocused == false`). Printable keys
+     * must resolve to their X11 KeySym via `unicodeChar` (and fallback key map)
+     * instead of returning `null`.
+     */
+    @Test
+    fun `hardwareKeyEventToKeySym maps printable ASCII, shifted symbols, and Unicode`() {
+        // Printable ASCII via KeyEvent.getUnicodeChar
+        assertEquals('a'.code, hardwareKeyEventToKeySym(Key.A, 'a'.code, shiftHeld = false))
+        assertEquals('A'.code, hardwareKeyEventToKeySym(Key.A, 'A'.code, shiftHeld = true))
+        assertEquals('1'.code, hardwareKeyEventToKeySym(Key.One, '1'.code, shiftHeld = false))
+        assertEquals('!'.code, hardwareKeyEventToKeySym(Key.One, '!'.code, shiftHeld = true))
+        assertEquals(':'.code, hardwareKeyEventToKeySym(Key.Semicolon, ':'.code, shiftHeld = true))
+        assertEquals(' '.code, hardwareKeyEventToKeySym(Key.Spacebar, ' '.code, shiftHeld = false))
+
+        // Fallback when getUnicodeChar returns 0
+        assertEquals('z'.code, hardwareKeyEventToKeySym(Key.Z, 0, shiftHeld = false))
+        assertEquals('Z'.code, hardwareKeyEventToKeySym(Key.Z, 0, shiftHeld = true))
+        assertEquals('@'.code, hardwareKeyEventToKeySym(Key.Two, 0, shiftHeld = true))
+        assertEquals('_'.code, hardwareKeyEventToKeySym(Key.Minus, 0, shiftHeld = true))
+
+        // Special keys still map to X11 special KeySyms even when getUnicodeChar is non-zero
+        assertEquals(0xff0d, hardwareKeyEventToKeySym(Key.Enter, '\n'.code, shiftHeld = false))
+        assertEquals(0xff0d, hardwareKeyEventToKeySym(Key.NumPadEnter, '\n'.code, shiftHeld = false))
+        assertEquals(0xff09, hardwareKeyEventToKeySym(Key.Tab, '\t'.code, shiftHeld = false))
+        assertEquals(0xff08, hardwareKeyEventToKeySym(Key.Backspace, 0, shiftHeld = false))
+
+        // Latin-1 and BMP Unicode characters
+        assertEquals(0x00e9, unicodeToKeySym(0x00e9)) // 'é'
+        assertEquals(0x010020ac, unicodeToKeySym(0x20ac)) // '€'
+        assertNull(unicodeToKeySym(0))
+        assertNull(unicodeToKeySym(0x03)) // ETX control char
     }
 }

@@ -789,30 +789,78 @@ private fun VncViewer(
     // the root handler defers to it so the commit path stays the single
     // sender for printable characters; otherwise the root handler is the
     // sender. Same shape as the RDP viewer's #507 fix.
+    // Modifier state for VNC key toolbar (hoisted above handleHardwareKey so
+    // hardware key events can read sticky Shift and release sticky modifiers).
+    var ctrlActive by remember { mutableStateOf(false) }
+    var altActive by remember { mutableStateOf(false) }
+    var shiftActive by remember { mutableStateOf(false) }
+    // Super/Logo (Mod4) — needed to drive nested-Wayland compositor
+    // keybinds (Sway/Hyprland/niri all use Super for $mod), which the
+    // in-app VNC viewer surfaces (#171).
+    var superActive by remember { mutableStateOf(false) }
+    val releaseActiveModifiers: () -> Unit = {
+        if (ctrlActive) { onKeyUp(XK_CONTROL_L); ctrlActive = false }
+        if (altActive) { onKeyUp(XK_ALT_L); altActive = false }
+        if (shiftActive) { onKeyUp(XK_SHIFT_L); shiftActive = false }
+        if (superActive) { onKeyUp(XK_SUPER_L); superActive = false }
+    }
+
     val hardwareKeyFocus = remember { FocusRequester() }
     var canvasFocused by remember { mutableStateOf(false) }
     var fieldFocused by remember { mutableStateOf(false) }
+    val pressedHardwareKeySyms = remember { mutableMapOf<Key, Int>() }
     val handleHardwareKey: (androidx.compose.ui.input.key.KeyEvent) -> Boolean = { event ->
         if (fieldFocused) {
             // Soft keyboard attached: the field's own onPreviewKeyEvent /
             // onValueChange commit path handles input. Defer.
             false
         } else {
-            val keySym = androidKeyToKeySym(event.key)
-            if (keySym != null) {
-                when (event.type) {
-                    KeyEventType.KeyDown -> onKeyDown(keySym)
-                    KeyEventType.KeyUp -> onKeyUp(keySym)
+            val native = event.nativeKeyEvent
+            val shiftHeld = shiftActive ||
+                (native.metaState and AndroidKeyEvent.META_SHIFT_MASK) != 0
+            // Strip Ctrl/Alt/Meta when querying getUnicodeChar so Ctrl+C still
+            // resolves to 'c' while XK_CONTROL_L is held on the wire (#774).
+            val charMeta = (native.metaState and (
+                AndroidKeyEvent.META_CTRL_MASK or
+                    AndroidKeyEvent.META_ALT_MASK or
+                    AndroidKeyEvent.META_META_MASK
+                ).inv()) or (if (shiftActive) AndroidKeyEvent.META_SHIFT_ON else 0)
+            val resolvedKeySym = hardwareKeyEventToKeySym(
+                key = event.key,
+                unicodeChar = native.getUnicodeChar(charMeta),
+                shiftHeld = shiftHeld,
+            )
+            when (event.type) {
+                KeyEventType.KeyDown -> {
+                    if (resolvedKeySym != null) {
+                        pressedHardwareKeySyms[event.key] = resolvedKeySym
+                        onKeyDown(resolvedKeySym)
+                        true
+                    } else {
+                        false
+                    }
                 }
-                true
-            } else {
-                false
+                KeyEventType.KeyUp -> {
+                    val keySym = pressedHardwareKeySyms.remove(event.key) ?: resolvedKeySym
+                    if (keySym != null) {
+                        onKeyUp(keySym)
+                        if (keySym != XK_SHIFT_L && keySym != XK_CONTROL_L &&
+                            keySym != XK_ALT_L && keySym != XK_SUPER_L
+                        ) {
+                            releaseActiveModifiers()
+                        }
+                        true
+                    } else {
+                        false
+                    }
+                }
+                else -> false
             }
         }
     }
-    LaunchedEffect(isActive) {
+    LaunchedEffect(isActive, physicalKeyboardAttached) {
         if (isActive) {
-            if (!keyboardVisible) hardwareKeyFocus.requestFocus()
+            if (keyboardVisible == physicalKeyboardAttached) hardwareKeyFocus.requestFocus()
         } else {
             if (!physicalKeyboardAttached) keyboardVisible = false
         }
@@ -849,32 +897,37 @@ private fun VncViewer(
     // tab's keyboard isn't hidden by this effect (isImeVisible is window-global).
     val imeVisible = WindowInsets.isImeVisible
     var wasImeVisible by remember { mutableStateOf(imeVisible) }
-    LaunchedEffect(imeVisible) {
-        if (wasImeVisible && !imeVisible && !physicalKeyboardAttached) {
-            keyboardVisible = false
-            if (isActive && (fieldFocused || canvasFocused)) {
-                hardwareKeyFocus.requestFocus()
-            }
+    var toolbarPopupOpen by remember { mutableStateOf(false) }
+    var wasToolbarPopupOpen by remember { mutableStateOf(false) }
+    LaunchedEffect(imeVisible, toolbarPopupOpen) {
+        val step = sh.haven.core.toolbar.stepDesktopImeVisibility(
+            keyboardVisible = keyboardVisible,
+            wasImeVisible = wasImeVisible,
+            imeVisible = imeVisible,
+            physicalKeyboardAttached = physicalKeyboardAttached,
+            toolbarPopupOpen = toolbarPopupOpen,
+            wasToolbarPopupOpen = wasToolbarPopupOpen,
+        )
+        keyboardVisible = step.keyboardVisible
+        wasImeVisible = step.wasImeVisible
+        wasToolbarPopupOpen = toolbarPopupOpen
+        if (step.transferFocusToCanvas && isActive && (fieldFocused || canvasFocused)) {
+            hardwareKeyFocus.requestFocus()
+        } else if (step.restoreSoftKeyboard && isActive) {
+            focusRequester.requestFocus()
+            keyboardController?.show()
         }
-        wasImeVisible = imeVisible
     }
-    LaunchedEffect(imeVisible, keyboardVisible, canvasFocused, fieldFocused, isActive) {
-        if (isActive && !keyboardVisible && imeVisible && (canvasFocused || fieldFocused)) {
+    LaunchedEffect(imeVisible, keyboardVisible, canvasFocused, fieldFocused, isActive, toolbarPopupOpen) {
+        if (isActive && !keyboardVisible && !toolbarPopupOpen && imeVisible && (canvasFocused || fieldFocused)) {
             keyboardController?.hide()
             hardwareKeyFocus.requestFocus()
         }
     }
-
-    // Modifier state for VNC key toolbar
-    var ctrlActive by remember { mutableStateOf(false) }
-    var altActive by remember { mutableStateOf(false) }
-    var shiftActive by remember { mutableStateOf(false) }
-    // Super/Logo (Mod4) — needed to drive nested-Wayland compositor
-    // keybinds (Sway/Hyprland/niri all use Super for $mod), which the
-    // in-app VNC viewer surfaces (#171). Not in the configurable layout
-    // (that's shared with the terminal, where Super is meaningless) —
-    // rendered as a fixed toggle on the VNC toolbar.
-    var superActive by remember { mutableStateOf(false) }
+    val currentImeVisible by rememberUpdatedState(imeVisible)
+    val currentFieldFocused by rememberUpdatedState(fieldFocused)
+    val currentKeyboardVisible by rememberUpdatedState(keyboardVisible)
+    val currentPhysicalKeyboardAttached by rememberUpdatedState(physicalKeyboardAttached)
 
     // Fullscreen overlay toolbar
     var overlayVisible by remember { mutableStateOf(false) }
@@ -1049,7 +1102,11 @@ private fun VncViewer(
                         // dismiss it). keyboardVisible == physicalKeyboardAttached
                         // is exactly that condition, and it also respects a
                         // deliberate hardware-mode toggle-off (no re-grab).
-                        if (keyboardVisible == physicalKeyboardAttached) hardwareKeyFocus.requestFocus()
+                        if (!currentImeVisible && !currentFieldFocused &&
+                            currentKeyboardVisible == currentPhysicalKeyboardAttached
+                        ) {
+                            hardwareKeyFocus.requestFocus()
+                        }
                         var totalFingers = 1
                         var prevCentroid = firstDown.position
                         var prevSpan = 0f
@@ -1388,13 +1445,6 @@ private fun VncViewer(
             }
         }
 
-        val releaseActiveModifiers: () -> Unit = {
-            if (ctrlActive) { onKeyUp(XK_CONTROL_L); ctrlActive = false }
-            if (altActive) { onKeyUp(XK_ALT_L); altActive = false }
-            if (shiftActive) { onKeyUp(XK_SHIFT_L); shiftActive = false }
-            if (superActive) { onKeyUp(XK_SUPER_L); superActive = false }
-        }
-
         // Hidden text field for keyboard input capture
         BasicTextField(
             value = textFieldValue,
@@ -1537,6 +1587,7 @@ private fun VncViewer(
                 onSnippetLibraryChanged = onSnippetLibraryChanged,
                 onOpenSettings = onOpenToolbarSettings,
                 onToggleKeyboard = toggleKeyboard,
+                onPopupOpenChanged = { toolbarPopupOpen = it },
                 modifier = Modifier.fillMaxWidth(),
             )
         }
@@ -2633,8 +2684,119 @@ private enum class OrientationMode(
 fun cycleVncOrientation(current: Int): Int =
     OrientationMode.fromActivityValue(current).next().activityValue
 
+/**
+ * Convert a Unicode code point from [AndroidKeyEvent.getUnicodeChar] to its
+ * X11 RFB KeySym (#774).
+ *
+ * - Printable ASCII (`0x20..0x7e`) and Latin-1 (`0xa0..0xff`) map 1:1 to their
+ *   code point.
+ * - Other BMP / supplementary Unicode characters (`0x0100..0x10ffff`) use the
+ *   standard X11 Unicode keysym encoding `0x01000000 or codePoint`.
+ * - Control characters (`< 0x20`, `0x7f..0x9f`) and dead-key combining accents
+ *   ([android.view.KeyCharacterMap.COMBINING_ACCENT]) return `null`.
+ */
+internal fun unicodeToKeySym(codePoint: Int): Int? {
+    if (codePoint <= 0 || (codePoint and android.view.KeyCharacterMap.COMBINING_ACCENT) != 0) {
+        return null
+    }
+    return when (codePoint) {
+        in 0x20..0x7e, in 0xa0..0xff -> codePoint
+        in 0x0100..0x10ffff -> 0x01000000 or codePoint
+        else -> null
+    }
+}
+
+/**
+ * Resolve a physical/hardware [Key] event to its X11 KeySym (#774).
+ *
+ * Non-printable special keys (arrows, F1..F12, modifiers, Enter, Tab, Backspace,
+ * Escape, Delete, Home/End/PgUp/PgDn/Insert, NumPad Enter) are matched first via
+ * [androidKeyToKeySym] so they never depend on `getUnicodeChar`. Printable keys
+ * use [unicodeChar] (queried from the native `KeyEvent` with Ctrl/Alt/Meta
+ * stripped so `Ctrl+C` still resolves to `'c'` while `XK_CONTROL_L` is held on
+ * the wire), falling back to [androidPrintableKeyToKeySym] when the device's
+ * key character map reports `0`.
+ */
+internal fun hardwareKeyEventToKeySym(
+    key: Key,
+    unicodeChar: Int,
+    shiftHeld: Boolean = false,
+): Int? {
+    androidKeyToKeySym(key)?.let { return it }
+    unicodeToKeySym(unicodeChar)?.let { return it }
+    return androidPrintableKeyToKeySym(key, shiftHeld)
+}
+
+internal fun androidPrintableKeyToKeySym(key: Key, shiftHeld: Boolean = false): Int? = when (key) {
+    Key.A -> if (shiftHeld) 'A'.code else 'a'.code
+    Key.B -> if (shiftHeld) 'B'.code else 'b'.code
+    Key.C -> if (shiftHeld) 'C'.code else 'c'.code
+    Key.D -> if (shiftHeld) 'D'.code else 'd'.code
+    Key.E -> if (shiftHeld) 'E'.code else 'e'.code
+    Key.F -> if (shiftHeld) 'F'.code else 'f'.code
+    Key.G -> if (shiftHeld) 'G'.code else 'g'.code
+    Key.H -> if (shiftHeld) 'H'.code else 'h'.code
+    Key.I -> if (shiftHeld) 'I'.code else 'i'.code
+    Key.J -> if (shiftHeld) 'J'.code else 'j'.code
+    Key.K -> if (shiftHeld) 'K'.code else 'k'.code
+    Key.L -> if (shiftHeld) 'L'.code else 'l'.code
+    Key.M -> if (shiftHeld) 'M'.code else 'm'.code
+    Key.N -> if (shiftHeld) 'N'.code else 'n'.code
+    Key.O -> if (shiftHeld) 'O'.code else 'o'.code
+    Key.P -> if (shiftHeld) 'P'.code else 'p'.code
+    Key.Q -> if (shiftHeld) 'Q'.code else 'q'.code
+    Key.R -> if (shiftHeld) 'R'.code else 'r'.code
+    Key.S -> if (shiftHeld) 'S'.code else 's'.code
+    Key.T -> if (shiftHeld) 'T'.code else 't'.code
+    Key.U -> if (shiftHeld) 'U'.code else 'u'.code
+    Key.V -> if (shiftHeld) 'V'.code else 'v'.code
+    Key.W -> if (shiftHeld) 'W'.code else 'w'.code
+    Key.X -> if (shiftHeld) 'X'.code else 'x'.code
+    Key.Y -> if (shiftHeld) 'Y'.code else 'y'.code
+    Key.Z -> if (shiftHeld) 'Z'.code else 'z'.code
+    Key.Zero -> if (shiftHeld) ')'.code else '0'.code
+    Key.One -> if (shiftHeld) '!'.code else '1'.code
+    Key.Two -> if (shiftHeld) '@'.code else '2'.code
+    Key.Three -> if (shiftHeld) '#'.code else '3'.code
+    Key.Four -> if (shiftHeld) '$'.code else '4'.code
+    Key.Five -> if (shiftHeld) '%'.code else '5'.code
+    Key.Six -> if (shiftHeld) '^'.code else '6'.code
+    Key.Seven -> if (shiftHeld) '&'.code else '7'.code
+    Key.Eight -> if (shiftHeld) '*'.code else '8'.code
+    Key.Nine -> if (shiftHeld) '('.code else '9'.code
+    Key.Spacebar -> ' '.code
+    Key.Minus -> if (shiftHeld) '_'.code else '-'.code
+    Key.Equals -> if (shiftHeld) '+'.code else '='.code
+    Key.LeftBracket -> if (shiftHeld) '{'.code else '['.code
+    Key.RightBracket -> if (shiftHeld) '}'.code else ']'.code
+    Key.Backslash -> if (shiftHeld) '|'.code else '\\'.code
+    Key.Semicolon -> if (shiftHeld) ':'.code else ';'.code
+    Key.Apostrophe -> if (shiftHeld) '"'.code else '\''.code
+    Key.Grave -> if (shiftHeld) '~'.code else '`'.code
+    Key.Comma -> if (shiftHeld) '<'.code else ','.code
+    Key.Period -> if (shiftHeld) '>'.code else '.'.code
+    Key.Slash -> if (shiftHeld) '?'.code else '/'.code
+    Key.NumPad0 -> '0'.code
+    Key.NumPad1 -> '1'.code
+    Key.NumPad2 -> '2'.code
+    Key.NumPad3 -> '3'.code
+    Key.NumPad4 -> '4'.code
+    Key.NumPad5 -> '5'.code
+    Key.NumPad6 -> '6'.code
+    Key.NumPad7 -> '7'.code
+    Key.NumPad8 -> '8'.code
+    Key.NumPad9 -> '9'.code
+    Key.NumPadAdd -> '+'.code
+    Key.NumPadSubtract -> '-'.code
+    Key.NumPadMultiply -> '*'.code
+    Key.NumPadDivide -> '/'.code
+    Key.NumPadDot -> '.'.code
+    Key.NumPadEquals -> '='.code
+    else -> null
+}
+
 private fun androidKeyToKeySym(key: Key): Int? = when (key) {
-    Key.Enter -> XK_RETURN
+    Key.Enter, Key.NumPadEnter -> XK_RETURN
     Key.Tab -> XK_TAB
     Key.Escape -> XK_ESCAPE
     Key.Backspace -> XK_BACKSPACE

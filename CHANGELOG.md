@@ -5,6 +5,12 @@ the corresponding GitHub Release; a release can't ship without its section
 (enforced by `scripts/check-changelog.sh` in CI). The GitHub "Full Changelog"
 compare link is appended automatically — don't add it here.
 
+## v5.91.4
+
+- Restore the `Win` (`Super`) modifier key on Desktop (`RDP`, `SPICE`, `GLKVM`, and `VNC`) shortcut bars and make it movable in the toolbar layout editor (#772).
+- Keep the Desktop `KeyboardToolbar` mounted when opening built-in toolbar popups (`Text Input`, `Snippets`, and `Add Custom Key`) causes the main window's soft keyboard to hide, and restore soft-keyboard focus when the popup closes (#773).
+- Forward printable hardware keyboard keys (`a..z`, `0..9`, `Space`, punctuation, shifted symbols, and Unicode) to VNC sessions when the desktop canvas holds focus, and request initial hardware-key focus on session open when a physical keyboard is attached (#774).
+
 ## v5.91.3
 
 - Detect BT.709 limited-range HDMI pillarbox black (`RGB <= 22`, chroma spread `<= 8`) in `GlkvmGeometry.detectPillarbox` and expose `activeLeftPx` and `activeWidthPx` in `capture_desktop_tab` and `inspect_desktop_tab` so GLKVM pointer mapping aligns with the active video region.

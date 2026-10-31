@@ -1,0 +1,3 @@
+- Restore the Win (Super) modifier key on Desktop (RDP, SPICE, GLKVM, VNC) shortcut bars and make it movable in the toolbar layout editor (#772).
+- Keep the Desktop shortcut bar mounted when opening built-in toolbar popups (Text Input, Snippets, Add Custom Key) hides the soft keyboard (#773).
+- Fix VNC hardware keyboard typing for printable keys and request initial canvas focus when a physical keyboard is attached (#774).

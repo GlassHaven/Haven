@@ -8,6 +8,10 @@
 #
 # Only the LAST Builds entry matters for new releases — AutoUpdateMode: Version
 # clones it for each new tag, so a missing build step propagates forever.
+# This PR proposes OpenVPN preparation/build changes in that last entry.
+# Its existing version and commit are retained as mirror context: apply the
+# proposal to the first fdroiddata release entry containing these scripts,
+# after rebasing it onto the current recipe. Earlier entries are unchanged.
 Categories:
   - Cast
   - Remote Access
@@ -2351,6 +2355,7 @@ Builds:
       - popd
     ndk: 29.0.14206865
 
+  # OpenVPN recipe proposal for the next release containing this PR.
   - versionName: 5.86.35
     versionCode: 7441
     commit: abbfd6af49ecd3ced5b66a92bdb01335eaa335b9
@@ -2370,12 +2375,14 @@ Builds:
     # them, and scandelete removes the fetched jniLibs anyway.
     gradleprops:
       - skipUml
-    prebuild: sdkmanager "cmake;3.31.6" "platforms;android-26"
+    prebuild:
+      - sdkmanager "cmake;3.31.6" "platforms;android-26"
+      # Fetch and SHA-256-check pinned source archives before the offline
+      # build phase. Keep .deps/sources in the prepared source tarball.
+      - bash ../openvpn3-core/fetch-deps.sh
+      - rm -rf ../openvpn3-core/.deps/downloads
     scandelete:
-      - core/ffmpeg/src/main/jniLibs
-      - core/wayland/src/main/jniLibs
       - spice-kotlin/jniLibs
-      - rclone-android/build
       - wayland-android
       - reticulum-kt/test-scripts
     build:
@@ -2385,6 +2392,9 @@ Builds:
       - cargo install cargo-ndk@3.5.4 --locked
       - go install golang.org/x/mobile/cmd/gomobile@v0.0.0-20251021151156-188f512ec823
       - go install golang.org/x/mobile/cmd/gobind@v0.0.0-20251021151156-188f512ec823
+      # This direct rclone invocation bypasses Gradle's native dependency.
+      # Build the archives first; this script only consumes prepared sources.
+      - ANDROID_NDK_HOME="$$NDK$$" bash ../openvpn3-core/build-android.sh
       - bash ../rclone-android/tools/build-android.sh
       - bash ../build-proot/build.sh
       - ABI=arm64-v8a bash ../build-ffmpeg/build.sh

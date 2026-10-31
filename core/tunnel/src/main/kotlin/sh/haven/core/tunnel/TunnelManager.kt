@@ -360,6 +360,17 @@ class DefaultTunnelFactory @Inject constructor(
                 managementURL = parsed.managementURL,
             )
         }
+        TunnelConfigType.OPENVPN -> {
+            val parsed = OpenVpnConfigBlob.parse(config.configText)
+                ?: throw IOException(
+                    "OpenVPN tunnel '${config.label}' has no profile text — re-add the tunnel",
+                )
+            OpenVpnTunnel(
+                configText = parsed.ovpnConfigText,
+                username = parsed.username,
+                password = parsed.password,
+            )
+        }
         TunnelConfigType.ANYCONNECT -> {
             val parsed = AnyConnectConfigBlob.parse(config.configText)
                 ?: throw IOException(

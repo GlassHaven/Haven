@@ -1865,10 +1865,10 @@ Expose a live serial terminal session (BTSERIAL / BLESERIAL / USBSERIAL — sess
 <details markdown="1">
 <summary><code>create_tunnel</code> · asks every call</summary>
 
-Add a new WireGuard, Tailscale, NetBird, AnyConnect, or Cloudflare Tunnel config. WIREGUARD: pass `configText` (wg-quick INI body). TAILSCALE: pass `tailscaleAuthKey` (and optional `tailscaleControlUrl` for Headscale). NETBIRD: pass `netbirdSetupKey` (and optional `netbirdManagementUrl` for a self-hosted management server). ANYCONNECT (Cisco AnyConnect or ocserv): pass `anyconnectServer` and `anyconnectUsername`, usually `anyconnectPassword`; optional `anyconnectGroup`, a second factor via `anyconnectOtpSecret` (TOTP) or `anyconnectSecondaryPassword` (e.g. push), and `anyconnectServerCert` (pin-sha256:...) for self-signed gateways. CLOUDFLARE_ACCESS: pass `accessHostname`; for Access-protected routes also pass `accessJwt` (from `cloudflared access token --app https://<host>`); optional `accessJumpDestination` for bastion-mode multi-target tunnels. Returns the new tunnel id, which can then be passed to set_profile_routing.
+Add a new WireGuard, Tailscale, NetBird, OpenVPN, AnyConnect, or Cloudflare Tunnel config. WIREGUARD: pass `configText` (wg-quick INI body). TAILSCALE: pass `tailscaleAuthKey` (and optional `tailscaleControlUrl` for Headscale). NETBIRD: pass `netbirdSetupKey` (and optional `netbirdManagementUrl` for a self-hosted management server). OPENVPN: pass `ovpnConfigText` (a full .ovpn profile); optional `ovpnUsername`/`ovpnPassword` when the profile uses auth-user-pass without inline credentials. ANYCONNECT (Cisco AnyConnect or ocserv): pass `anyconnectServer` and `anyconnectUsername`, usually `anyconnectPassword`; optional `anyconnectGroup`, a second factor via `anyconnectOtpSecret` (TOTP) or `anyconnectSecondaryPassword` (e.g. push), and `anyconnectServerCert` (pin-sha256:...) for self-signed gateways. CLOUDFLARE_ACCESS: pass `accessHostname`; for Access-protected routes also pass `accessJwt` (from `cloudflared access token --app https://<host>`); optional `accessJumpDestination` for bastion-mode multi-target tunnels. Returns the new tunnel id, which can then be passed to set_profile_routing.
 
 - `label` (string, required) — User-facing label (also used to derive the tunnel hostname).
-- `type` (string, required) — WIREGUARD, TAILSCALE, NETBIRD, ANYCONNECT, or CLOUDFLARE_ACCESS.
+- `type` (string, required) — WIREGUARD, TAILSCALE, NETBIRD, OPENVPN, ANYCONNECT, or CLOUDFLARE_ACCESS.
 - `accessExpiresAt` (integer) — Optional explicit JWT expiry (Unix epoch seconds). Defaults to parsing the `exp` claim out of accessJwt.
 - `accessHostname` (string) — Cloudflare Tunnel published hostname (e.g. ssh.example.com). Required when type=CLOUDFLARE_ACCESS.
 - `accessJumpDestination` (string) — Optional `Cf-Access-Jump-Destination` value for bastion-mode multi-target tunnels (e.g. internal-host:22).
@@ -1884,6 +1884,9 @@ Add a new WireGuard, Tailscale, NetBird, AnyConnect, or Cloudflare Tunnel config
 - `configText` (string) — WireGuard wg-quick INI body. Required when type=WIREGUARD.
 - `netbirdManagementUrl` (string) — Self-hosted NetBird management URL (https://...). Optional — empty defaults to the hosted management.
 - `netbirdSetupKey` (string) — NetBird setup key from the NetBird dashboard. Required when type=NETBIRD.
+- `ovpnConfigText` (string) — Full .ovpn profile text (client, dev tun, remote, inline ca/cert/key or tls-auth blocks, ...). Required when type=OPENVPN.
+- `ovpnPassword` (string) — auth-user-pass password. Optional, same condition as ovpnUsername.
+- `ovpnUsername` (string) — auth-user-pass username. Optional — only needed when the profile's server requires it without an inline credentials file.
 - `tailscaleAuthKey` (string) — Tailscale single-use authkey (tskey-auth-...). Required when type=TAILSCALE.
 - `tailscaleControlUrl` (string) — Self-hosted Headscale coordination URL. Optional — empty defaults to controlplane.tailscale.com.
 

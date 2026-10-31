@@ -1,0 +1,11 @@
+# Source archives from https://codeload.github.com/<repo>/tar.gz/<commit>.
+# name|repo|commit|sha256
+# OpenVPN3 at the former submodule pin (no nested submodules),
+# mbedtls v3.6.7, its pinned framework submodule, lz4 v1.10.0,
+# fmt 11.2.0, asio asio-1-38-2. Bump commits and checksums together.
+openvpn3|OpenVPN/openvpn3|b432eb39c7a48c5138ecdd294a389c733bc329a4|d65256e802913ccb725d7e76686e1ab6a43f97f5544591b2ba11a2d7ba5f2d7d
+mbedtls|Mbed-TLS/mbedtls|068ff080b369adfac81509f9b57b2afabaf82dc5|ca6bd316bbec49ef20088f39b8755fcaec0b7e45781506de55b17cd191ae6937
+mbedtls-framework|Mbed-TLS/mbedtls-framework|dde0c4a0e448a0552f18817dcea633bb851fd288|3b0d4864fa877dc9165b90ff3d5b68505c6176c0b22d317d99fe8c89a993e9fd
+lz4|lz4/lz4|ebb370ca83af193212df4dcbadcc5d87bc0de2f0|eb1a93e934d4fd29df6e2061ba0bf447568561764d758f4a5662c0e29370ffa9
+fmt|fmtlib/fmt|40626af88bd7df9a5fb80be7b25ac85b122d6c21|992216a0605e03f0373984ecad11158f42d8569782f1b2c84035272da10f0ff1
+asio|chriskohlhoff/asio|8806a6803cde7054c3049d3666d3ec36786568c5|ca7f6c14f2bf91e61c7e81fb693f2f8fc86f93e85520d5fc7fd035d0f666bb35

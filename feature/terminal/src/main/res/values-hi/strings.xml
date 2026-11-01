@@ -170,4 +170,13 @@
     <string name="terminal_inline_image_always_tab">इस टैब में हमेशा</string>
     <string name="terminal_bell_notification_title">टर्मिनल</string>
     <string name="terminal_bell_notification_body">किसी टर्मिनल प्रोग्राम ने घंटी बजाई</string>
+    <string name="terminal_sudo_prompt_detected">sudo पासवर्ड माँगा गया</string>
+    <string name="terminal_sudo_prompt_subtitle">Android Keystore • बायोमेट्रिक अनलॉक • केवल भरें दबाने पर भेजा जाता है</string>
+    <string name="terminal_sudo_fill_action">भरें</string>
+    <string name="terminal_sudo_turn_off_action">बंद करें</string>
+    <string name="terminal_sudo_disabled_toast">sudo प्रॉम्प्ट पहचान बंद की गई (सेटिंग्स → सुरक्षा और गोपनीयता)</string>
+    <string name="terminal_sudo_entry_title">%1$s के लिए sudo पासवर्ड</string>
+    <string name="terminal_sudo_entry_hint">इस कनेक्शन पर अभी कोई पासवर्ड सहेजा नहीं गया है। इसे सीधे SSH के माध्यम से इस टर्मिनल पर भेजने के लिए एक बार दर्ज करें। यदि सहेजा जाता है, तो यह इस डिवाइस पर Android Keystore में एन्क्रिप्टेड रहता है, हर उपयोग पर बायोमेट्रिक अनलॉक मांगता है, और कभी भी AI/MCP टूल्स को उजागर नहीं किया जाता।</string>
+    <string name="terminal_sudo_turn_off_detection">sudo प्रॉम्प्ट पहचान बंद करें</string>
+    <string name="terminal_sudo_send_action">भेजें</string>
 </resources>

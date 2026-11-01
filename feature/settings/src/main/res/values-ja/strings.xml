@@ -557,4 +557,6 @@ Haven にすでに保存されているすべての秘密鍶は、再びイン�
     <string name="settings_mcp_tools_cat_senses">センサーと位置情報</string>
     <string name="settings_mcp_tools_cat_agent">エージェントとデバイス制御</string>
     <string name="settings_mcp_tools_cat_other">その他</string>
+    <string name="settings_sudo_prompt_detection_title">sudo パスワードプロンプトを検出</string>
+    <string name="settings_sudo_prompt_detection_subtitle">[sudo] や doas のプロンプトで生体認証による自動入力を提案します。パスワードはこの端末の Android Keystore 内で暗号化されたまま保持され、使用ごとの生体認証ロック解除が必要であり、AI/MCP ツールには一切公開されません。</string>
 </resources>

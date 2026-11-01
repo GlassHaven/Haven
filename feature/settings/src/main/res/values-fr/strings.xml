@@ -558,4 +558,6 @@ Chaque clé privée déjà stockée dans Haven devra être importée ou génér�
     <string name="settings_mcp_tools_cat_senses">Capteurs et localisation</string>
     <string name="settings_mcp_tools_cat_agent">Agent et contrôle de l\'appareil</string>
     <string name="settings_mcp_tools_cat_other">Autres</string>
+    <string name="settings_sudo_prompt_detection_title">Détecter les invites de mot de passe sudo</string>
+    <string name="settings_sudo_prompt_detection_subtitle">Proposer le remplissage biométrique sur les invites [sudo] et doas. Les mots de passe restent chiffrés dans Android Keystore sur cet appareil, exigent un déverrouillage biométrique à chaque utilisation et ne sont jamais exposés aux outils IA/MCP.</string>
 </resources>

@@ -13,6 +13,7 @@ enum class ToolbarKey(val id: String, val label: String, val isModifier: Boolean
     PASTE("paste", "Paste", isAction = true),
     TEXT_INPUT("text_input", "Text input", isAction = true),
     SNIPPETS("snippets", "Snippets", isAction = true),
+    SUDO("sudo", "Sudo", isAction = true),
     ATTACH("attach", "Attach", isAction = true),
     VOICE_KEYBOARD("voice_kb", "Voice", isAction = true),
     // #604: starts the system speech recognizer directly instead of flipping

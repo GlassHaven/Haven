@@ -170,4 +170,13 @@
     <string name="terminal_inline_image_always_tab">此标签页内总是允许</string>
     <string name="terminal_bell_notification_title">终端</string>
     <string name="terminal_bell_notification_body">终端程序响铃了</string>
+    <string name="terminal_sudo_prompt_detected">请求 sudo 密码</string>
+    <string name="terminal_sudo_prompt_subtitle">Android Keystore • 生物识别解锁 • 仅在点击填充时发送</string>
+    <string name="terminal_sudo_fill_action">填充</string>
+    <string name="terminal_sudo_turn_off_action">关闭</string>
+    <string name="terminal_sudo_disabled_toast">已关闭 sudo 密码提示检测（设置 → 安全与隐私）</string>
+    <string name="terminal_sudo_entry_title">%1$s 的 sudo 密码</string>
+    <string name="terminal_sudo_entry_hint">此连接尚未保存密码。输入一次即可通过 SSH 直接发送到当前终端。若选择保存，密码将在本机 Android Keystore 中加密存储，每次使用均需生物识别解锁，且绝不会暴露给 AI/MCP 工具。</string>
+    <string name="terminal_sudo_turn_off_detection">关闭 sudo 密码提示检测</string>
+    <string name="terminal_sudo_send_action">发送</string>
 </resources>

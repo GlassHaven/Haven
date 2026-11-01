@@ -238,4 +238,25 @@ class BiometricGateTest {
         assertEquals(BiometricGate.Decision.ALLOW, software)
         assertTrue("no pending request should have queued", gate.pending.value.isEmpty())
     }
+
+    @Test
+    fun `requireFreshAuth request ignores the session-unlock window`() = runTest(UnconfinedTestDispatcher()) {
+        val gate = BiometricGate()
+        gate.setForegroundActive(true)
+
+        val first = async { gate.request(label = "Unlock A", timeoutMs = Long.MAX_VALUE) }
+        gate.respond(gate.pending.value.single().id, BiometricGate.Decision.ALLOW)
+        assertEquals(BiometricGate.Decision.ALLOW, first.await())
+
+        val second = async {
+            gate.request(
+                label = "Fill sudo password",
+                timeoutMs = Long.MAX_VALUE,
+                requireFreshAuth = true,
+            )
+        }
+        assertEquals("requireFreshAuth must queue a new prompt even inside the unlock window", 1, gate.pending.value.size)
+        gate.respond(gate.pending.value.single().id, BiometricGate.Decision.ALLOW)
+        assertEquals(BiometricGate.Decision.ALLOW, second.await())
+    }
 }

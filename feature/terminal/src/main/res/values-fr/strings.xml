@@ -170,4 +170,13 @@
     <string name="terminal_inline_image_always_tab">Toujours dans cet onglet</string>
     <string name="terminal_bell_notification_title">Terminal</string>
     <string name="terminal_bell_notification_body">Un programme du terminal a émis un bip</string>
+    <string name="terminal_sudo_prompt_detected">Mot de passe sudo demandé</string>
+    <string name="terminal_sudo_prompt_subtitle">Android Keystore • Déverrouillage biométrique • Envoyé uniquement sur Remplir</string>
+    <string name="terminal_sudo_fill_action">Remplir</string>
+    <string name="terminal_sudo_turn_off_action">Désactiver</string>
+    <string name="terminal_sudo_disabled_toast">Détection des invites sudo désactivée (Paramètres → Sécurité et confidentialité)</string>
+    <string name="terminal_sudo_entry_title">Mot de passe sudo pour %1$s</string>
+    <string name="terminal_sudo_entry_hint">Aucun mot de passe n\'est encore enregistré sur cette connexion. Saisissez-le une fois pour l\'envoyer directement via SSH à ce terminal. S\'il est enregistré, il reste chiffré dans Android Keystore sur cet appareil, exige un déverrouillage biométrique à chaque utilisation et n\'est jamais exposé aux outils IA/MCP.</string>
+    <string name="terminal_sudo_turn_off_detection">Désactiver la détection des invites sudo</string>
+    <string name="terminal_sudo_send_action">Envoyer</string>
 </resources>

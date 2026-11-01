@@ -170,4 +170,13 @@
     <string name="terminal_inline_image_always_tab">Siempre en esta pestaña</string>
     <string name="terminal_bell_notification_title">Terminal</string>
     <string name="terminal_bell_notification_body">Un programa de terminal hizo sonar la campana</string>
+    <string name="terminal_sudo_prompt_detected">Contraseña de sudo solicitada</string>
+    <string name="terminal_sudo_prompt_subtitle">Android Keystore • Desbloqueo biométrico • Solo se envía al pulsar Rellenar</string>
+    <string name="terminal_sudo_fill_action">Rellenar</string>
+    <string name="terminal_sudo_turn_off_action">Desactivar</string>
+    <string name="terminal_sudo_disabled_toast">Detección de sudo desactivada (Ajustes → Seguridad y privacidad)</string>
+    <string name="terminal_sudo_entry_title">Contraseña de sudo para %1$s</string>
+    <string name="terminal_sudo_entry_hint">Aún no hay una contraseña guardada en esta conexión. Introdúcela una vez para enviarla directamente por SSH a esta terminal. Si se guarda, permanece cifrada en Android Keystore en este dispositivo, requiere desbloqueo biométrico en cada uso y nunca se expone a herramientas de IA/MCP.</string>
+    <string name="terminal_sudo_turn_off_detection">Desactivar detección de solicitudes de sudo</string>
+    <string name="terminal_sudo_send_action">Enviar</string>
 </resources>

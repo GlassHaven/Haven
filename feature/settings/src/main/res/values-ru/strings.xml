@@ -560,4 +560,6 @@
     <string name="settings_mcp_tools_cat_senses">Датчики и местоположение</string>
     <string name="settings_mcp_tools_cat_agent">Агент и управление устройством</string>
     <string name="settings_mcp_tools_cat_other">Прочее</string>
+    <string name="settings_sudo_prompt_detection_title">Обнаруживать запросы пароля sudo</string>
+    <string name="settings_sudo_prompt_detection_subtitle">Предлагать биометрическое автозаполнение при запросах [sudo] и doas. Пароли хранятся в зашифрованном виде в Android Keystore на этом устройстве, требуют биометрической разблокировки при каждом использовании и никогда не передаются инструментам ИИ/MCP.</string>
 </resources>

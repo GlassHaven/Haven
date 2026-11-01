@@ -170,4 +170,13 @@
     <string name="terminal_inline_image_always_tab">Всегда в этой вкладке</string>
     <string name="terminal_bell_notification_title">Терминал</string>
     <string name="terminal_bell_notification_body">Программа в терминале подала звуковой сигнал</string>
+    <string name="terminal_sudo_prompt_detected">Запрошен пароль sudo</string>
+    <string name="terminal_sudo_prompt_subtitle">Android Keystore • Биометрия • Отправка только по нажатию «Ввести»</string>
+    <string name="terminal_sudo_fill_action">Ввести</string>
+    <string name="terminal_sudo_turn_off_action">Отключить</string>
+    <string name="terminal_sudo_disabled_toast">Обнаружение запросов sudo отключено (Настройки → Безопасность и конфиденциальность)</string>
+    <string name="terminal_sudo_entry_title">Пароль sudo для %1$s</string>
+    <string name="terminal_sudo_entry_hint">Для этого подключения ещё не сохранён пароль. Введите его один раз для прямой отправки по SSH в этот терминал. При сохранении он остаётся зашифрованным в Android Keystore на этом устройстве, требует биометрической разблокировки при каждом использовании и никогда не передаётся инструментам ИИ/MCP.</string>
+    <string name="terminal_sudo_turn_off_detection">Отключить обнаружение запросов sudo</string>
+    <string name="terminal_sudo_send_action">Отправить</string>
 </resources>

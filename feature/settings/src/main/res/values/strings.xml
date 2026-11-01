@@ -40,6 +40,8 @@
     <string name="settings_prevent_screenshots_subtitle">Block screen capture and task switcher preview</string>
     <string name="settings_remote_clipboard_title">Sync remote clipboard</string>
     <string name="settings_remote_clipboard_subtitle">Let a remote desktop (VNC) copy into the device clipboard. Off by default.</string>
+    <string name="settings_sudo_prompt_detection_title">Detect sudo password prompts</string>
+    <string name="settings_sudo_prompt_detection_subtitle">Offer biometric autofill on [sudo] and doas prompts. Passwords stay encrypted in the Android Keystore on this device, require per-use biometric unlock, and are never exposed to AI/MCP tools.</string>
     <string name="settings_show_desktops_title">Show Desktops card</string>
     <string name="settings_show_desktops_subtitle">Show desktop environment manager on the Connections screen</string>
     <string name="settings_show_linux_vm_title">Show Linux VM card</string>

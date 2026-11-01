@@ -557,4 +557,6 @@ Haven에 이미 저장된 모든 개인 키는 다시 가져오거나 생성해�
     <string name="settings_mcp_tools_cat_senses">센서 및 위치</string>
     <string name="settings_mcp_tools_cat_agent">에이전트 및 기기 제어</string>
     <string name="settings_mcp_tools_cat_other">기타</string>
+    <string name="settings_sudo_prompt_detection_title">sudo 비밀번호 프롬프트 감지</string>
+    <string name="settings_sudo_prompt_detection_subtitle">[sudo] 및 doas 프롬프트에서 생체인증 자동 입력을 제안합니다. 비밀번호는 이 기기의 Android Keystore에 암호화되어 보관되며, 사용할 때마다 생체인증 잠금 해제가 필요하고 AI/MCP 도구에 절대 노출되지 않습니다.</string>
 </resources>

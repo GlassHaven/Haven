@@ -182,4 +182,15 @@
     <string name="terminal_inline_image_always_tab">Always in this tab</string>
     <string name="terminal_bell_notification_title">Terminal</string>
     <string name="terminal_bell_notification_body">A terminal program rang the bell</string>
+
+    <!-- Sudo password autofill -->
+    <string name="terminal_sudo_prompt_detected">Sudo password requested</string>
+    <string name="terminal_sudo_prompt_subtitle">Android Keystore • Biometric unlock • Sent only on Fill</string>
+    <string name="terminal_sudo_fill_action">Fill</string>
+    <string name="terminal_sudo_turn_off_action">Turn off</string>
+    <string name="terminal_sudo_disabled_toast">Sudo prompt detection turned off (Settings → Security &amp; Privacy)</string>
+    <string name="terminal_sudo_entry_title">Sudo password for %1$s</string>
+    <string name="terminal_sudo_entry_hint">No password is saved on this connection yet. Enter it once to send directly over SSH to this terminal. If saved, it stays encrypted in the Android Keystore on this device, requires per-use biometric unlock, and is never exposed to AI/MCP tools.</string>
+    <string name="terminal_sudo_turn_off_detection">Turn off sudo prompt detection</string>
+    <string name="terminal_sudo_send_action">Send</string>
 </resources>

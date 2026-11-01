@@ -1384,6 +1384,15 @@ class SettingsViewModel @Inject constructor(
         }
     }
 
+    val sudoPromptDetectionEnabled: StateFlow<Boolean> = preferencesRepository.sudoPromptDetectionEnabled
+        .stateIn(viewModelScope, SharingStarted.Eagerly, true)
+
+    fun setSudoPromptDetectionEnabled(enabled: Boolean) {
+        viewModelScope.launch {
+            preferencesRepository.setSudoPromptDetectionEnabled(enabled)
+        }
+    }
+
     companion object {
         /** Connection types that can host a backup file (#323). LOCAL is excluded — it's the device itself, not a cross-device destination. */
         private val BACKUP_SYNC_TYPES = setOf("SSH", "SMB", "RCLONE")

@@ -618,4 +618,6 @@
     <string name="connections_helper_forward_pulseaudio">Inicia a ponte PulseAudio do telefone, encaminha a porta remota 14713 para a porta local 4713 e exporta PULSE_SERVER=tcp:127.0.0.1:14713 no shell SSH.</string>
     <string name="connections_toggle_persist_rediscovered_host">Salvar endereço LAN redescoberto</string>
     <string name="connections_helper_persist_rediscovered_host">Atualiza o perfil quando uma máquina local apresenta a mesma chave de host SSH em um novo endereço IPv4. Desative para conectar no endereço redescoberto apenas nessa sessão e manter o host configurado (ex.: um IP do WireGuard).</string>
+    <string name="connections_field_saved_password">Senha salva (SSH / sudo)</string>
+    <string name="connections_helper_saved_password">Opcional. Criptografada no Android Keystore e usada para login SSH por senha e preenchimento biométrico de sudo no terminal.</string>
 </resources>

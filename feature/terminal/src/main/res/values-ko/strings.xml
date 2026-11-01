@@ -171,4 +171,13 @@
     <string name="terminal_inline_image_always_tab">이 탭에서 항상 허용</string>
     <string name="terminal_bell_notification_title">터미널</string>
     <string name="terminal_bell_notification_body">터미널 프로그램이 벨을 울렸습니다</string>
+    <string name="terminal_sudo_prompt_detected">sudo 비밀번호 요청됨</string>
+    <string name="terminal_sudo_prompt_subtitle">Android Keystore • 생체인증 잠금 해제 • 입력을 탭할 때만 전송됨</string>
+    <string name="terminal_sudo_fill_action">입력</string>
+    <string name="terminal_sudo_turn_off_action">끄기</string>
+    <string name="terminal_sudo_disabled_toast">sudo 프롬프트 감지가 꺼졌습니다 (설정 → 보안 및 개인정보 보호)</string>
+    <string name="terminal_sudo_entry_title">%1$s의 sudo 비밀번호</string>
+    <string name="terminal_sudo_entry_hint">이 연결에 아직 저장된 비밀번호가 없습니다. 한 번 입력하면 SSH를 통해 이 터미널로 직접 전송됩니다. 저장하면 이 기기의 Android Keystore에 암호화되어 보관되며, 사용할 때마다 생체인증 잠금 해제가 필요하고 AI/MCP 도구에 절대 노출되지 않습니다.</string>
+    <string name="terminal_sudo_turn_off_detection">sudo 프롬프트 감지 끄기</string>
+    <string name="terminal_sudo_send_action">전송</string>
 </resources>

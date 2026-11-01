@@ -558,4 +558,6 @@ Jeder bereits in Haven gespeicherte private Schlüssel muss erneut importiert od
     <string name="settings_mcp_tools_cat_senses">Sensoren und Standort</string>
     <string name="settings_mcp_tools_cat_agent">Agent und Gerätesteuerung</string>
     <string name="settings_mcp_tools_cat_other">Sonstige</string>
+    <string name="settings_sudo_prompt_detection_title">sudo-Passwortabfragen erkennen</string>
+    <string name="settings_sudo_prompt_detection_subtitle">Biometrisches Ausfüllen bei [sudo]- und doas-Abfragen anbieten. Passwörter bleiben auf diesem Gerät im Android Keystore verschlüsselt, erfordern bei jeder Nutzung eine biometrische Freigabe und sind für KI-/MCP-Werkzeuge niemals sichtbar.</string>
 </resources>

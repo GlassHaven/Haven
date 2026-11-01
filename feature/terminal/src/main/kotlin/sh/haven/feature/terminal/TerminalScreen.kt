@@ -45,6 +45,7 @@ import androidx.compose.material.icons.filled.DesktopWindows
 import androidx.compose.material.icons.filled.ContentCopy
 import androidx.compose.material.icons.filled.DriveFileRenameOutline
 import androidx.compose.material.icons.filled.Info
+import androidx.compose.material.icons.filled.Key
 import androidx.compose.material.icons.filled.Save
 import androidx.compose.material.icons.filled.Terminal
 import androidx.compose.material.icons.filled.Search
@@ -55,6 +56,7 @@ import androidx.compose.animation.fadeOut
 import androidx.compose.animation.slideInVertically
 import androidx.compose.animation.slideOutVertically
 import androidx.compose.material3.AlertDialog
+import androidx.compose.material3.Checkbox
 import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.DropdownMenuItem
 import androidx.compose.material3.ExposedDropdownMenuBox
@@ -1589,6 +1591,24 @@ fun TerminalScreen(
                         )
                     }
 
+                    val sudoPromptDetectionEnabled by viewModel.sudoPromptDetectionEnabled.collectAsState()
+                    val sudoDisabledToast = stringResource(R.string.terminal_sudo_disabled_toast)
+                    val sudoEntryPrompt by viewModel.sudoPasswordEntryPrompt.collectAsState()
+                    if (sudoEntryPrompt?.sessionId == activeTab.sessionId) {
+                        val req = sudoEntryPrompt!!
+                        SudoPasswordEntryDialog(
+                            request = req,
+                            onDismiss = { viewModel.dismissSudoPasswordEntryPrompt() },
+                            onSubmit = { password, saveToProfile ->
+                                viewModel.submitSudoPasswordEntry(req.sessionId, password, saveToProfile)
+                            },
+                            onDisableDetection = {
+                                viewModel.setSudoPromptDetectionEnabled(false)
+                                android.widget.Toast.makeText(view.context, sudoDisabledToast, android.widget.Toast.LENGTH_SHORT).show()
+                            },
+                        )
+                    }
+
                     val focusRequester = remember { FocusRequester() }
 
                     // Keyed on isActive, not Unit: the HorizontalPager keeps
@@ -2113,6 +2133,16 @@ fun TerminalScreen(
                                 noticeFlow = activeTab.attachNotice,
                                 onDismiss = { viewModel.dismissAttachNotice(activeTab.sessionId) },
                             )
+                            SudoPromptBanner(
+                                promptFlow = activeTab.sudoPrompt,
+                                detectionEnabled = sudoPromptDetectionEnabled,
+                                onFill = { viewModel.triggerSudoFill(activeTab.sessionId) },
+                                onDisableDetection = {
+                                    viewModel.setSudoPromptDetectionEnabled(false)
+                                    android.widget.Toast.makeText(view.context, sudoDisabledToast, android.widget.Toast.LENGTH_SHORT).show()
+                                },
+                                onDismiss = { viewModel.dismissSudoPrompt(activeTab.sessionId) },
+                            )
                         }
 
                         // Fullscreen toggle (#138). Small low-opacity overlay in
@@ -2263,6 +2293,7 @@ fun TerminalScreen(
                         onToggleComposeMode = { composeController?.toggleComposeMode() },
                         onAttachTap = { attachSheetVisible = true },
                         onOpenTextInput = { textInputDialogVisible = true },
+                        onSudoTap = { viewModel.triggerSudoFill(activeTab.sessionId) },
                         onDictateTap = {
                             // #604: resolve a speech recognizer explicitly rather
                             // than startActivity(ACTION_RECOGNIZE_SPEECH) blind —
@@ -2927,6 +2958,144 @@ private fun AttachNoticeBanner(
             }
         }
     }
+}
+
+@Composable
+private fun SudoPromptBanner(
+    promptFlow: kotlinx.coroutines.flow.StateFlow<String?>,
+    detectionEnabled: Boolean,
+    onFill: () -> Unit,
+    onDisableDetection: () -> Unit,
+    onDismiss: () -> Unit,
+    modifier: Modifier = Modifier,
+) {
+    val prompt by promptFlow.collectAsState()
+    AnimatedVisibility(
+        visible = detectionEnabled && prompt != null,
+        enter = fadeIn() + slideInVertically { -it },
+        exit = fadeOut() + slideOutVertically { -it },
+        modifier = modifier,
+    ) {
+        Surface(
+            color = MaterialTheme.colorScheme.secondaryContainer,
+            contentColor = MaterialTheme.colorScheme.onSecondaryContainer,
+            shape = MaterialTheme.shapes.small,
+            tonalElevation = 4.dp,
+            shadowElevation = 4.dp,
+            modifier = Modifier.padding(8.dp),
+        ) {
+            Row(
+                verticalAlignment = Alignment.CenterVertically,
+                modifier = Modifier.padding(horizontal = 12.dp, vertical = 4.dp),
+            ) {
+                Icon(
+                    Icons.Filled.Key,
+                    contentDescription = null,
+                    modifier = Modifier.size(16.dp),
+                )
+                Spacer(Modifier.width(8.dp))
+                Column(modifier = Modifier.weight(1f, fill = false)) {
+                    Text(
+                        text = stringResource(R.string.terminal_sudo_prompt_detected),
+                        style = MaterialTheme.typography.labelMedium,
+                    )
+                    Text(
+                        text = stringResource(R.string.terminal_sudo_prompt_subtitle),
+                        style = MaterialTheme.typography.labelSmall,
+                        color = MaterialTheme.colorScheme.onSecondaryContainer.copy(alpha = 0.78f),
+                    )
+                }
+                Spacer(Modifier.width(4.dp))
+                TextButton(
+                    onClick = onFill,
+                ) {
+                    Text(stringResource(R.string.terminal_sudo_fill_action))
+                }
+                TextButton(
+                    onClick = onDisableDetection,
+                ) {
+                    Text(stringResource(R.string.terminal_sudo_turn_off_action))
+                }
+                IconButton(
+                    onClick = onDismiss,
+                    modifier = Modifier.size(24.dp),
+                ) {
+                    Icon(
+                        Icons.Filled.Close,
+                        contentDescription = stringResource(R.string.terminal_attach_notice_dismiss),
+                        modifier = Modifier.size(16.dp),
+                    )
+                }
+            }
+        }
+    }
+}
+
+@Composable
+private fun SudoPasswordEntryDialog(
+    request: SudoPasswordEntryRequest,
+    onDismiss: () -> Unit,
+    onSubmit: (password: String, saveToProfile: Boolean) -> Unit,
+    onDisableDetection: () -> Unit,
+) {
+    var password by remember { mutableStateOf("") }
+    var saveForConnection by remember { mutableStateOf(true) }
+    AlertDialog(
+        onDismissRequest = onDismiss,
+        title = { Text(stringResource(R.string.terminal_sudo_entry_title, request.profileLabel)) },
+        text = {
+            Column {
+                Text(
+                    text = stringResource(R.string.terminal_sudo_entry_hint),
+                    style = MaterialTheme.typography.bodySmall,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant,
+                )
+                Spacer(Modifier.height(8.dp))
+                sh.haven.core.ui.PasswordField(
+                    value = password,
+                    onValueChange = { password = it },
+                    label = stringResource(R.string.terminal_password),
+                    modifier = Modifier.fillMaxWidth(),
+                )
+                Spacer(Modifier.height(8.dp))
+                Row(
+                    verticalAlignment = Alignment.CenterVertically,
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .clickable { saveForConnection = !saveForConnection }
+                        .padding(vertical = 4.dp),
+                ) {
+                    Checkbox(
+                        checked = saveForConnection,
+                        onCheckedChange = { saveForConnection = it },
+                    )
+                    Spacer(Modifier.width(8.dp))
+                    Text(
+                        text = stringResource(R.string.terminal_save_for_connection),
+                        style = MaterialTheme.typography.bodyMedium,
+                    )
+                }
+                TextButton(
+                    onClick = onDisableDetection,
+                ) {
+                    Text(stringResource(R.string.terminal_sudo_turn_off_detection))
+                }
+            }
+        },
+        confirmButton = {
+            TextButton(
+                onClick = { onSubmit(password, saveForConnection) },
+                enabled = password.isNotEmpty(),
+            ) {
+                Text(stringResource(R.string.terminal_sudo_send_action))
+            }
+        },
+        dismissButton = {
+            TextButton(onClick = onDismiss) {
+                Text(stringResource(R.string.common_cancel))
+            }
+        },
+    )
 }
 
 /**

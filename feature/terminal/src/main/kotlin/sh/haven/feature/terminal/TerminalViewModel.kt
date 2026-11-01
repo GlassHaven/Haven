@@ -54,6 +54,9 @@ private val NEVER_STALLS: StateFlow<Int?> = MutableStateFlow(null)
 /** Sentinel for tabs with no session-manager attach to verify (#731). */
 private val NO_ATTACH_NOTICE: StateFlow<SessionAttachNotice?> = MutableStateFlow(null)
 
+/** Sentinel for tabs with no active sudo prompt. */
+private val NO_SUDO_PROMPT: StateFlow<String?> = MutableStateFlow(null)
+
 /** Main-thread handler for posting emulator writes. */
 private val mainHandler = android.os.Handler(android.os.Looper.getMainLooper())
 
@@ -286,6 +289,9 @@ data class TerminalTab(
      *  start command failed), so the terminal can say why the user landed in
      *  a plain prompt. Null for healthy attaches and non-SSH tabs. */
     val attachNotice: StateFlow<SessionAttachNotice?> = NO_ATTACH_NOTICE,
+    /** Non-null when the terminal output ends at an interactive sudo/doas password prompt. */
+    val sudoPrompt: StateFlow<String?> = NO_SUDO_PROMPT,
+    val dismissSudoPrompt: () -> Unit = {},
     /** Wall-clock ms when this tab was first created. Reconcile passes carry
      *  existing tabs across by copy(), so this records the original open
      *  time, not the last sync's. #728: a session's natural death (exit /
@@ -293,6 +299,13 @@ data class TerminalTab(
      *  longer than [TerminalViewModel.naturalEmptyBounceMinMs] — a connect
      *  that fails right away stays put (the #208 flicker). */
     val openedAtMs: Long = System.currentTimeMillis(),
+)
+
+/** Prompt to enter (and optionally save) a sudo password when none is stored on the profile. */
+data class SudoPasswordEntryRequest(
+    val sessionId: String,
+    val profileId: String,
+    val profileLabel: String,
 )
 
 /** VNC connection info for the active terminal's host. */
@@ -364,7 +377,76 @@ class TerminalViewModel @Inject constructor(
     private val barcodeDecoder: sh.haven.core.scan.BarcodeDecoder,
     /** Tesseract-backed OCR engine; bitmap-in, string-or-null-out. */
     private val textRecognizer: sh.haven.core.scan.TextRecognizer,
+    /** Hardware-backed biometric unlocker for sudo password autofill. */
+    private val sudoPasswordUnlocker: SudoPasswordUnlocker,
 ) : ViewModel() {
+
+    private val _sudoPasswordEntryPrompt = MutableStateFlow<SudoPasswordEntryRequest?>(null)
+    val sudoPasswordEntryPrompt: StateFlow<SudoPasswordEntryRequest?> = _sudoPasswordEntryPrompt.asStateFlow()
+
+    val sudoPromptDetectionEnabled: StateFlow<Boolean> =
+        preferencesRepository.sudoPromptDetectionEnabled
+            .stateIn(viewModelScope, SharingStarted.Eagerly, true)
+
+    fun setSudoPromptDetectionEnabled(enabled: Boolean) {
+        if (!enabled) {
+            _sudoPasswordEntryPrompt.value = null
+            _tabs.value.forEach { it.dismissSudoPrompt() }
+        }
+        viewModelScope.launch {
+            preferencesRepository.setSudoPromptDetectionEnabled(enabled)
+        }
+    }
+
+    fun dismissSudoPrompt(sessionId: String) {
+        _tabs.value.firstOrNull { it.sessionId == sessionId }?.dismissSudoPrompt?.invoke()
+    }
+
+    fun dismissSudoPasswordEntryPrompt() {
+        _sudoPasswordEntryPrompt.value = null
+    }
+
+    fun triggerSudoFill(sessionId: String) {
+        val tab = _tabs.value.firstOrNull { it.sessionId == sessionId } ?: return
+        viewModelScope.launch {
+            when (val result = sudoPasswordUnlocker.unlock(tab.profileId)) {
+                is SudoUnlockResult.Unlocked -> {
+                    tab.dismissSudoPrompt()
+                    tab.sendInput((result.password + "\r").toByteArray(Charsets.UTF_8))
+                }
+                is SudoUnlockResult.NoPasswordStored -> {
+                    _sudoPasswordEntryPrompt.value = SudoPasswordEntryRequest(
+                        sessionId = tab.sessionId,
+                        profileId = tab.profileId,
+                        profileLabel = result.profileLabel.ifBlank { tab.label },
+                    )
+                }
+                is SudoUnlockResult.Declined -> {
+                    // User cancelled or prompt unavailable; leave terminal untouched.
+                }
+            }
+        }
+    }
+
+    fun submitSudoPasswordEntry(
+        sessionId: String,
+        password: String,
+        saveToProfile: Boolean,
+    ) {
+        _sudoPasswordEntryPrompt.value = null
+        if (password.isEmpty()) return
+        val tab = _tabs.value.firstOrNull { it.sessionId == sessionId } ?: return
+        tab.dismissSudoPrompt()
+        tab.sendInput((password + "\r").toByteArray(Charsets.UTF_8))
+        if (saveToProfile) {
+            viewModelScope.launch(Dispatchers.IO) {
+                val profile = connectionRepository.getById(tab.profileId) ?: return@launch
+                if (!profile.ephemeral) {
+                    connectionRepository.save(profile.copy(sshPassword = password))
+                }
+            }
+        }
+    }
 
     /**
      * Run the paperclip flow on this VM's scope so it survives the screen
@@ -1361,6 +1443,7 @@ class TerminalViewModel @Inject constructor(
                 lateinit var reEmulator: TerminalEmulator
                 val reWriteBuffer = EmulatorWriteBuffer({ reEmulator }, createRecorderIfEnabled(sessionId))
                 val reMouseTracker = MouseModeTracker()
+                val reSudoDetector = SudoPromptDetector()
                 val reOscHandler = OscHandler()
                 val reCwdFlow = MutableStateFlow<String?>(null)
                 val reHyperlinkFlow = MutableStateFlow<String?>(null)
@@ -1370,6 +1453,7 @@ class TerminalViewModel @Inject constructor(
                     synchronized(reOscHandler) {
                         reOscHandler.process(data, offset, length)
                         reMouseTracker.process(reOscHandler.outputBuf, 0, reOscHandler.outputLen)
+                        reSudoDetector.process(reOscHandler.outputBuf, 0, reOscHandler.outputLen)
                         val len = reOscHandler.outputLen
                         if (len > 0) reWriteBuffer.append(reOscHandler.outputBuf, 0, len)
                     }
@@ -1377,7 +1461,10 @@ class TerminalViewModel @Inject constructor(
                 val localProfile = profilesById[session.profileId]
                 val localScheme = effectiveColorScheme(localProfile)
                 val reInitialScheme = initialEmulatorScheme(localScheme)
-                val reCoalescer = InputCoalescer { data -> source.getActive(sessionId)?.sendInput(data) }
+                val reCoalescer = InputCoalescer { data ->
+                    reSudoDetector.clear()
+                    source.getActive(sessionId)?.sendInput(data)
+                }
                 reEmulator = TerminalEmulatorFactory.create(
                     autoDetectUrls = true,
                     initialRows = 24,
@@ -1431,11 +1518,16 @@ class TerminalViewModel @Inject constructor(
                         hyperlinkUri = reHyperlinkFlow,
                         isReconnecting = MutableStateFlow(false),
                         stallSeconds = NEVER_STALLS,
-                        sendInput = { data -> reattached.sendInput(data) },
+                        sendInput = { data ->
+                            reSudoDetector.clear()
+                            reattached.sendInput(data)
+                        },
                         resize = { cols, rows -> reattached.resize(cols, rows) },
                         close = { reattached.close() },
                         colorScheme = localScheme,
                         backgroundOpacity = effectiveOpacity(localProfile),
+                        sudoPrompt = reSudoDetector.activePrompt,
+                        dismissSudoPrompt = { reSudoDetector.clear() },
                     )
                 )
                 Log.d(TAG, "Reattached to existing local session $sessionId")
@@ -1451,6 +1543,7 @@ class TerminalViewModel @Inject constructor(
             lateinit var emulator: TerminalEmulator
             val localWriteBuffer = EmulatorWriteBuffer({ emulator }, createRecorderIfEnabled(sessionId))
             val localMouseTracker = MouseModeTracker()
+            val localSudoDetector = SudoPromptDetector()
             val localOscHandler = OscHandler()
             val localCwdFlow = MutableStateFlow<String?>(null)
             val localHyperlinkFlow = MutableStateFlow<String?>(null)
@@ -1460,6 +1553,7 @@ class TerminalViewModel @Inject constructor(
                 synchronized(localOscHandler) {
                     localOscHandler.process(data, offset, length)
                     localMouseTracker.process(localOscHandler.outputBuf, 0, localOscHandler.outputLen)
+                    localSudoDetector.process(localOscHandler.outputBuf, 0, localOscHandler.outputLen)
                     val len = localOscHandler.outputLen
                     if (len > 0) {
                         localWriteBuffer.append(localOscHandler.outputBuf, 0, len)
@@ -1472,7 +1566,10 @@ class TerminalViewModel @Inject constructor(
                 plainSessionIds.remove(sessionId),
             ) ?: continue
 
-            val localCoalescer = InputCoalescer { data -> localSession.sendInput(data) }
+            val localCoalescer = InputCoalescer { data ->
+                localSudoDetector.clear()
+                localSession.sendInput(data)
+            }
             val localProfile = profilesById[session.profileId]
             val localScheme = effectiveColorScheme(localProfile)
             val localInitialScheme = initialEmulatorScheme(localScheme)
@@ -1520,11 +1617,16 @@ class TerminalViewModel @Inject constructor(
                     hyperlinkUri = localHyperlinkFlow,
                     isReconnecting = MutableStateFlow(false),
                     stallSeconds = NEVER_STALLS,
-                    sendInput = { data -> localSession.sendInput(data) },
+                    sendInput = { data ->
+                        localSudoDetector.clear()
+                        localSession.sendInput(data)
+                    },
                     resize = { cols, rows -> localSession.resize(cols, rows) },
                     close = { localSession.close() },
                     colorScheme = localScheme,
                     backgroundOpacity = effectiveOpacity(localProfile),
+                    sudoPrompt = localSudoDetector.activePrompt,
+                    dismissSudoPrompt = { localSudoDetector.clear() },
                 )
             )
             trackedSessionIds.add(session.sessionId)
@@ -1695,7 +1797,10 @@ class TerminalViewModel @Inject constructor(
             // User input goes through keyboard-modifier state + the IME-dedupe
             // coalescer; the owner's default sink (probe responses → session) is
             // swapped to this while the tab is mounted.
-            val coalescer = InputCoalescer { data -> b.session?.sendToSsh(data) }
+            val coalescer = InputCoalescer { data ->
+                b.sudoDetector.clear()
+                b.session?.sendToSsh(data)
+            }
             sshEmulatorOwner.setInputSink(sessionId) { data -> coalescer.send(applyModifiers(data)) }
             sshEmulatorOwner.setResizeSink(sessionId) { dims ->
                 b.session?.resize(dims.columns, dims.rows)
@@ -1724,13 +1829,18 @@ class TerminalViewModel @Inject constructor(
                     hyperlinkUri = b.hyperlinkFlow,
                     isReconnecting = reconnectingFlow,
                     stallSeconds = NEVER_STALLS,
-                    sendInput = { data -> b.session?.sendToSsh(data) },
+                    sendInput = { data ->
+                        b.sudoDetector.clear()
+                        b.session?.sendToSsh(data)
+                    },
                     resize = { cols, rows -> b.session?.resize(cols, rows) },
                     close = { b.session?.close() },
                     colorScheme = effectiveColorScheme(sshProfile),
                     backgroundOpacity = effectiveOpacity(sshProfile),
                     multiplexerName = session.chosenSessionName,
                     attachNotice = sessionManager.attachNoticeFlow(sessionId),
+                    sudoPrompt = b.sudoDetector.activePrompt,
+                    dismissSudoPrompt = { b.sudoDetector.clear() },
                 )
             )
             trackedSessionIds.add(sessionId)
@@ -1755,6 +1865,7 @@ class TerminalViewModel @Inject constructor(
             lateinit var emulator: TerminalEmulator
             val rnsWriteBuffer = EmulatorWriteBuffer({ emulator }, createRecorderIfEnabled(sessionId))
             val rnsMouseTracker = MouseModeTracker()
+            val rnsSudoDetector = SudoPromptDetector()
             val rnsOscHandler = OscHandler()
             val rnsCwdFlow = MutableStateFlow<String?>(null)
             val rnsHyperlinkFlow = MutableStateFlow<String?>(null)
@@ -1764,6 +1875,7 @@ class TerminalViewModel @Inject constructor(
                 synchronized(rnsOscHandler) {
                     rnsOscHandler.process(data, offset, length)
                     rnsMouseTracker.process(rnsOscHandler.outputBuf, 0, rnsOscHandler.outputLen)
+                    rnsSudoDetector.process(rnsOscHandler.outputBuf, 0, rnsOscHandler.outputLen)
                     val len = rnsOscHandler.outputLen
                     if (len > 0) {
                         rnsWriteBuffer.append(rnsOscHandler.outputBuf, 0, len)
@@ -1777,7 +1889,10 @@ class TerminalViewModel @Inject constructor(
                 },
             ) ?: continue
 
-            val rnsCoalescer = InputCoalescer { data -> rnsSession.sendInput(data) }
+            val rnsCoalescer = InputCoalescer { data ->
+                rnsSudoDetector.clear()
+                rnsSession.sendInput(data)
+            }
             val rnsProfile = profilesById[session.profileId]
             val rnsScheme = effectiveColorScheme(rnsProfile)
             val rnsInitialScheme = initialEmulatorScheme(rnsScheme)
@@ -1820,11 +1935,16 @@ class TerminalViewModel @Inject constructor(
                     hyperlinkUri = rnsHyperlinkFlow,
                     isReconnecting = MutableStateFlow(false),
                     stallSeconds = NEVER_STALLS,
-                    sendInput = { data -> rnsSession.sendInput(data) },
+                    sendInput = { data ->
+                        rnsSudoDetector.clear()
+                        rnsSession.sendInput(data)
+                    },
                     resize = { cols, rows -> rnsSession.resize(cols, rows) },
                     close = { rnsSession.close() },
                     colorScheme = rnsScheme,
                     backgroundOpacity = effectiveOpacity(rnsProfile),
+                    sudoPrompt = rnsSudoDetector.activePrompt,
+                    dismissSudoPrompt = { rnsSudoDetector.clear() },
                 )
             )
             trackedSessionIds.add(session.sessionId)
@@ -2083,6 +2203,7 @@ class TerminalViewModel @Inject constructor(
             lateinit var emulator: TerminalEmulator
             val moshWriteBuffer = EmulatorWriteBuffer({ emulator }, createRecorderIfEnabled(sessionId))
             val moshMouseTracker = MouseModeTracker()
+            val moshSudoDetector = SudoPromptDetector()
             val moshOscHandler = OscHandler()
             val moshCwdFlow = MutableStateFlow<String?>(null)
             val moshHyperlinkFlow = MutableStateFlow<String?>(null)
@@ -2092,6 +2213,7 @@ class TerminalViewModel @Inject constructor(
                 synchronized(moshOscHandler) {
                     moshOscHandler.process(data, offset, length)
                     moshMouseTracker.process(moshOscHandler.outputBuf, 0, moshOscHandler.outputLen)
+                    moshSudoDetector.process(moshOscHandler.outputBuf, 0, moshOscHandler.outputLen)
                     val len = moshOscHandler.outputLen
                     if (len > 0) {
                         moshWriteBuffer.append(moshOscHandler.outputBuf, 0, len)
@@ -2127,7 +2249,10 @@ class TerminalViewModel @Inject constructor(
             ) ?: continue
             moshSessionRef[0] = moshSession
 
-            val moshCoalescer = InputCoalescer { data -> moshSession.sendInput(data) }
+            val moshCoalescer = InputCoalescer { data ->
+                moshSudoDetector.clear()
+                moshSession.sendInput(data)
+            }
             val moshScheme = effectiveColorScheme(moshProfile)
             val moshInitialScheme = initialEmulatorScheme(moshScheme)
             emulator = TerminalEmulatorFactory.create(
@@ -2169,11 +2294,16 @@ class TerminalViewModel @Inject constructor(
                     hyperlinkUri = moshHyperlinkFlow,
                     isReconnecting = MutableStateFlow(false),
                     stallSeconds = moshSession.stallSeconds,
-                    sendInput = { data -> moshSession.sendInput(data) },
+                    sendInput = { data ->
+                        moshSudoDetector.clear()
+                        moshSession.sendInput(data)
+                    },
                     resize = { cols, rows -> moshSession.resize(cols, rows) },
                     close = { moshSession.close() },
                     colorScheme = moshScheme,
                     backgroundOpacity = effectiveOpacity(moshProfile),
+                    sudoPrompt = moshSudoDetector.activePrompt,
+                    dismissSudoPrompt = { moshSudoDetector.clear() },
                 )
             )
             trackedSessionIds.add(session.sessionId)
@@ -2191,6 +2321,7 @@ class TerminalViewModel @Inject constructor(
             lateinit var emulator: TerminalEmulator
             val etWriteBuffer = EmulatorWriteBuffer({ emulator }, createRecorderIfEnabled(sessionId))
             val etMouseTracker = MouseModeTracker()
+            val etSudoDetector = SudoPromptDetector()
             val etOscHandler = OscHandler()
             val etCwdFlow = MutableStateFlow<String?>(null)
             val etHyperlinkFlow = MutableStateFlow<String?>(null)
@@ -2200,6 +2331,7 @@ class TerminalViewModel @Inject constructor(
                 synchronized(etOscHandler) {
                     etOscHandler.process(data, offset, length)
                     etMouseTracker.process(etOscHandler.outputBuf, 0, etOscHandler.outputLen)
+                    etSudoDetector.process(etOscHandler.outputBuf, 0, etOscHandler.outputLen)
                     val len = etOscHandler.outputLen
                     if (len > 0) {
                         etWriteBuffer.append(etOscHandler.outputBuf, 0, len)
@@ -2234,7 +2366,10 @@ class TerminalViewModel @Inject constructor(
             ) ?: continue
             etSessionRef[0] = etSession
 
-            val etCoalescer = InputCoalescer { data -> etSession.sendInput(data) }
+            val etCoalescer = InputCoalescer { data ->
+                etSudoDetector.clear()
+                etSession.sendInput(data)
+            }
             val etScheme = effectiveColorScheme(etProfile)
             val etInitialScheme = initialEmulatorScheme(etScheme)
             emulator = TerminalEmulatorFactory.create(
@@ -2276,11 +2411,16 @@ class TerminalViewModel @Inject constructor(
                     hyperlinkUri = etHyperlinkFlow,
                     isReconnecting = MutableStateFlow(false),
                     stallSeconds = NEVER_STALLS,
-                    sendInput = { data -> etSession.sendInput(data) },
+                    sendInput = { data ->
+                        etSudoDetector.clear()
+                        etSession.sendInput(data)
+                    },
                     resize = { cols, rows -> etSession.resize(cols, rows) },
                     close = { etSession.close() },
                     colorScheme = etScheme,
                     backgroundOpacity = effectiveOpacity(etProfile),
+                    sudoPrompt = etSudoDetector.activePrompt,
+                    dismissSudoPrompt = { etSudoDetector.clear() },
                 )
             )
             trackedSessionIds.add(session.sessionId)

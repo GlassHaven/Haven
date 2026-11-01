@@ -19979,6 +19979,44 @@
       "sr": "Ажурира профил када локални рачунар понуди исти SSH кључ домаћина на новој IPv4 адреси. Искључите да бисте се повезали преко откривене адресе само за ту сесију и задржали подешени домаћин (нпр. WireGuard IP).",
       "zh": "当本地机器在新的 IPv4 地址上出示相同的 SSH 主机密钥时更新配置。关闭后仅在当前会话使用重新发现的地址连接，并保留已配置的主机地址（例如 WireGuard IP）。"
      }
+    },
+    {
+     "name": "connections_field_saved_password",
+     "en": "Saved password (SSH / sudo)",
+     "comment": "#210 i18n sweep: VM-setup copy toasts and code-block copy action.",
+     "args": [],
+     "t": {
+      "ar": "كلمة المرور المحفوظة (SSH / sudo)",
+      "bn": "সংরক্ষিত পাসওয়ার্ড (SSH / sudo)",
+      "de": "Gespeichertes Passwort (SSH / sudo)",
+      "es": "Contraseña guardada (SSH / sudo)",
+      "fr": "Mot de passe enregistré (SSH / sudo)",
+      "hi": "सहेजा गया पासवर्ड (SSH / sudo)",
+      "ja": "保存されたパスワード (SSH / sudo)",
+      "ko": "저장된 비밀번호 (SSH / sudo)",
+      "pt": "Senha salva (SSH / sudo)",
+      "ru": "Сохранённый пароль (SSH / sudo)",
+      "zh": "已保存密码 (SSH / sudo)"
+     }
+    },
+    {
+     "name": "connections_helper_saved_password",
+     "en": "Optional. Encrypted in the Android Keystore and used for SSH password login and biometric-gated sudo fill in the terminal.",
+     "comment": "#210 i18n sweep: VM-setup copy toasts and code-block copy action.",
+     "args": [],
+     "t": {
+      "ar": "اختياري. مشفرة في Android Keystore وتُستخدم لتسجيل دخول SSH ولملء sudo المحمي بالبصمة في الطرفية.",
+      "bn": "ঐচ্ছিক। Android Keystore-এ এনক্রিপ্ট করা থাকে এবং SSH পাসওয়ার্ড লগইন ও টার্মিনালে বায়োমেট্রিক sudo অটোফিলের জন্য ব্যবহৃত হয়।",
+      "de": "Optional. Im Android Keystore verschlüsselt und für SSH-Passwortanmeldung sowie biometrisch geschütztes Ausfüllen von sudo im Terminal verwendet.",
+      "es": "Opcional. Cifrada en Android Keystore y usada para el inicio de sesión SSH por contraseña y el autocompletado biométrico de sudo en la terminal.",
+      "fr": "Facultatif. Chiffré dans Android Keystore et utilisé pour la connexion SSH par mot de passe et le remplissage biométrique de sudo dans le terminal.",
+      "hi": "वैकल्पिक। Android Keystore में एन्क्रिप्ट किया गया और SSH पासवर्ड लॉगिन तथा टर्मिनल में बायोमेट्रिक sudo ऑटोफ़िल के लिए उपयोग किया जाता है।",
+      "ja": "任意。Android Keystore で暗号化され、SSH パスワードログインおよびターミナルでの生体認証付き sudo 自動入力に使用されます。",
+      "ko": "선택 사항. Android Keystore에 암호화되어 저장되며 SSH 비밀번호 로그인 및 터미널의 생체인증 기반 sudo 자동 입력에 사용됩니다.",
+      "pt": "Opcional. Criptografada no Android Keystore e usada para login SSH por senha e preenchimento biométrico de sudo no terminal.",
+      "ru": "Необязательно. Зашифрован в Android Keystore и используется для входа по паролю SSH и биометрической автоподстановки sudo в терминале.",
+      "zh": "可选。在 Android Keystore 中加密保存，用于 SSH 密码登录以及终端中受生物识别保护的 sudo 自动填充。"
+     }
     }
    ]
   },
@@ -29166,6 +29204,44 @@
       "ru": "Разрешить удалённому рабочему столу (VNC) копировать в буфер обмена устройства. По умолчанию выключено.",
       "sr": "Дозвољава да удаљени десктоп (VNC) копира у оставу уређаја. Подразумевано је искључено.",
       "zh": "允许远程桌面 (VNC) 复制内容到设备剪贴板。默认关闭。"
+     }
+    },
+    {
+     "name": "settings_sudo_prompt_detection_title",
+     "en": "Detect sudo password prompts",
+     "comment": "Security section",
+     "args": [],
+     "t": {
+      "ar": "اكتشاف مطالبات كلمة مرور sudo",
+      "bn": "sudo পাসওয়ার্ড প্রম্পট শনাক্ত করুন",
+      "de": "sudo-Passwortabfragen erkennen",
+      "es": "Detectar solicitudes de contraseña de sudo",
+      "fr": "Détecter les invites de mot de passe sudo",
+      "hi": "sudo पासवर्ड प्रॉम्प्ट पहचानें",
+      "ja": "sudo パスワードプロンプトを検出",
+      "ko": "sudo 비밀번호 프롬프트 감지",
+      "pt": "Detectar solicitações de senha do sudo",
+      "ru": "Обнаруживать запросы пароля sudo",
+      "zh": "检测 sudo 密码提示"
+     }
+    },
+    {
+     "name": "settings_sudo_prompt_detection_subtitle",
+     "en": "Offer biometric autofill on [sudo] and doas prompts. Passwords stay encrypted in the Android Keystore on this device, require per-use biometric unlock, and are never exposed to AI/MCP tools.",
+     "comment": "Security section",
+     "args": [],
+     "t": {
+      "ar": "عرض الملء التلقائي بالبصمة عند مطالبات [sudo] و doas. تبقى كلمات المرور مشفرة في Android Keystore على هذا الجهاز، وتتطلب فتح القفل بالبصمة في كل مرة، ولا تُكشف أبداً لأدوات AI/MCP.",
+      "bn": "[sudo] এবং doas প্রম্পটে বায়োমেট্রিক অটোফিল অফার করে। পাসওয়ার্ড এই ডিভাইসের Android Keystore-এ এনক্রিপ্ট করা থাকে, প্রতিবার ব্যবহারে বায়োমেট্রিক আনলক প্রয়োজন হয় এবং কখনোই AI/MCP টুলে প্রকাশ করা হয় না।",
+      "de": "Biometrisches Ausfüllen bei [sudo]- und doas-Abfragen anbieten. Passwörter bleiben auf diesem Gerät im Android Keystore verschlüsselt, erfordern bei jeder Nutzung eine biometrische Freigabe und sind für KI-/MCP-Werkzeuge niemals sichtbar.",
+      "es": "Ofrecer autocompletado biométrico en solicitudes de [sudo] y doas. Las contraseñas permanecen cifradas en Android Keystore en este dispositivo, requieren desbloqueo biométrico en cada uso y nunca se exponen a herramientas de IA/MCP.",
+      "fr": "Proposer le remplissage biométrique sur les invites [sudo] et doas. Les mots de passe restent chiffrés dans Android Keystore sur cet appareil, exigent un déverrouillage biométrique à chaque utilisation et ne sont jamais exposés aux outils IA/MCP.",
+      "hi": "[sudo] और doas प्रॉम्प्ट पर बायोमेट्रिक ऑटोफ़िल प्रदान करें। पासवर्ड इस डिवाइस पर Android Keystore में एन्क्रिप्टेड रहते हैं, हर उपयोग पर बायोमेट्रिक अनलॉक आवश्यक होता है, और कभी भी AI/MCP टूल्स को उजागर नहीं किए जाते।",
+      "ja": "[sudo] や doas のプロンプトで生体認証による自動入力を提案します。パスワードはこの端末の Android Keystore 内で暗号化されたまま保持され、使用ごとの生体認証ロック解除が必要であり、AI/MCP ツールには一切公開されません。",
+      "ko": "[sudo] 및 doas 프롬프트에서 생체인증 자동 입력을 제안합니다. 비밀번호는 이 기기의 Android Keystore에 암호화되어 보관되며, 사용할 때마다 생체인증 잠금 해제가 필요하고 AI/MCP 도구에 절대 노출되지 않습니다.",
+      "pt": "Oferecer preenchimento biométrico em solicitações [sudo] e doas. As senhas permanecem criptografadas no Android Keystore neste dispositivo, exigem desbloqueio biométrico a cada uso e nunca são expostas às ferramentas de IA/MCP.",
+      "ru": "Предлагать биометрическое автозаполнение при запросах [sudo] и doas. Пароли хранятся в зашифрованном виде в Android Keystore на этом устройстве, требуют биометрической разблокировки при каждом использовании и никогда не передаются инструментам ИИ/MCP.",
+      "zh": "在出现 [sudo] 和 doas 提示时提供生物识别自动填充。密码在本机 Android Keystore 中加密保存，每次使用均需生物识别解锁，且绝不会暴露给 AI/MCP 工具。"
      }
     },
     {
@@ -46807,6 +46883,179 @@
       "pt": "Um programa do terminal tocou a campainha",
       "ru": "Программа в терминале подала звуковой сигнал",
       "zh": "终端程序响铃了"
+     }
+    },
+    {
+     "name": "terminal_sudo_prompt_detected",
+     "en": "Sudo password requested",
+     "comment": "Sudo password autofill",
+     "args": [],
+     "t": {
+      "ar": "طُلبت كلمة مرور sudo",
+      "bn": "sudo পাসওয়ার্ড চাওয়া হয়েছে",
+      "de": "sudo-Passwort angefordert",
+      "es": "Contraseña de sudo solicitada",
+      "fr": "Mot de passe sudo demandé",
+      "hi": "sudo पासवर्ड माँगा गया",
+      "ja": "sudo パスワードが要求されています",
+      "ko": "sudo 비밀번호 요청됨",
+      "pt": "Senha do sudo solicitada",
+      "ru": "Запрошен пароль sudo",
+      "zh": "请求 sudo 密码"
+     }
+    },
+    {
+     "name": "terminal_sudo_prompt_subtitle",
+     "en": "Android Keystore • Biometric unlock • Sent only on Fill",
+     "comment": "Sudo password autofill",
+     "args": [],
+     "t": {
+      "ar": "Android Keystore • فتح بالبصمة • تُرسل فقط عند الضغط على ملء",
+      "bn": "Android Keystore • বায়োমেট্রিক আনলক • শুধু পূরণ চাপলেই পাঠানো হয়",
+      "de": "Android Keystore • Biometrische Freigabe • Nur bei Ausfüllen gesendet",
+      "es": "Android Keystore • Desbloqueo biométrico • Solo se envía al pulsar Rellenar",
+      "fr": "Android Keystore • Déverrouillage biométrique • Envoyé uniquement sur Remplir",
+      "hi": "Android Keystore • बायोमेट्रिक अनलॉक • केवल भरें दबाने पर भेजा जाता है",
+      "ja": "Android Keystore • 生体認証ロック解除 • 「入力」タップ時のみ送信",
+      "ko": "Android Keystore • 생체인증 잠금 해제 • 입력을 탭할 때만 전송됨",
+      "pt": "Android Keystore • Desbloqueio biométrico • Enviada só ao tocar em Preencher",
+      "ru": "Android Keystore • Биометрия • Отправка только по нажатию «Ввести»",
+      "zh": "Android Keystore • 生物识别解锁 • 仅在点击填充时发送"
+     }
+    },
+    {
+     "name": "terminal_sudo_fill_action",
+     "en": "Fill",
+     "comment": "Sudo password autofill",
+     "args": [],
+     "t": {
+      "ar": "ملء",
+      "bn": "পূরণ",
+      "de": "Ausfüllen",
+      "es": "Rellenar",
+      "fr": "Remplir",
+      "hi": "भरें",
+      "ja": "入力",
+      "ko": "입력",
+      "pt": "Preencher",
+      "ru": "Ввести",
+      "zh": "填充"
+     }
+    },
+    {
+     "name": "terminal_sudo_turn_off_action",
+     "en": "Turn off",
+     "comment": "Sudo password autofill",
+     "args": [],
+     "t": {
+      "ar": "إيقاف",
+      "bn": "বন্ধ করুন",
+      "de": "Ausschalten",
+      "es": "Desactivar",
+      "fr": "Désactiver",
+      "hi": "बंद करें",
+      "ja": "オフにする",
+      "ko": "끄기",
+      "pt": "Desativar",
+      "ru": "Отключить",
+      "zh": "关闭"
+     }
+    },
+    {
+     "name": "terminal_sudo_disabled_toast",
+     "en": "Sudo prompt detection turned off (Settings → Security &amp; Privacy)",
+     "comment": "Sudo password autofill",
+     "args": [],
+     "t": {
+      "ar": "تم إيقاف اكتشاف مطالبات sudo (الإعدادات ← الأمان والخصوصية)",
+      "bn": "sudo প্রম্পট শনাক্তকরণ বন্ধ করা হয়েছে (সেটিংস → নিরাপত্তা ও গোপনীয়তা)",
+      "de": "Erkennung von sudo-Abfragen ausgeschaltet (Einstellungen → Sicherheit &amp; Datenschutz)",
+      "es": "Detección de sudo desactivada (Ajustes → Seguridad y privacidad)",
+      "fr": "Détection des invites sudo désactivée (Paramètres → Sécurité et confidentialité)",
+      "hi": "sudo प्रॉम्प्ट पहचान बंद की गई (सेटिंग्स → सुरक्षा और गोपनीयता)",
+      "ja": "sudo プロンプト検出をオフにしました（設定 → セキュリティとプライバシー）",
+      "ko": "sudo 프롬프트 감지가 꺼졌습니다 (설정 → 보안 및 개인정보 보호)",
+      "pt": "Detecção de sudo desativada (Configurações → Segurança e privacidade)",
+      "ru": "Обнаружение запросов sudo отключено (Настройки → Безопасность и конфиденциальность)",
+      "zh": "已关闭 sudo 密码提示检测（设置 → 安全与隐私）"
+     }
+    },
+    {
+     "name": "terminal_sudo_entry_title",
+     "en": "Sudo password for %1$s",
+     "comment": "Sudo password autofill",
+     "args": [
+      "%1$s"
+     ],
+     "t": {
+      "ar": "كلمة مرور sudo لـ %1$s",
+      "bn": "%1$s-এর জন্য sudo পাসওয়ার্ড",
+      "de": "sudo-Passwort für %1$s",
+      "es": "Contraseña de sudo para %1$s",
+      "fr": "Mot de passe sudo pour %1$s",
+      "hi": "%1$s के लिए sudo पासवर्ड",
+      "ja": "%1$s の sudo パスワード",
+      "ko": "%1$s의 sudo 비밀번호",
+      "pt": "Senha do sudo para %1$s",
+      "ru": "Пароль sudo для %1$s",
+      "zh": "%1$s 的 sudo 密码"
+     }
+    },
+    {
+     "name": "terminal_sudo_entry_hint",
+     "en": "No password is saved on this connection yet. Enter it once to send directly over SSH to this terminal. If saved, it stays encrypted in the Android Keystore on this device, requires per-use biometric unlock, and is never exposed to AI/MCP tools.",
+     "comment": "Sudo password autofill",
+     "args": [],
+     "t": {
+      "ar": "لا توجد كلمة مرور محفوظة لهذا الاتصال بعد. أدخلها مرة واحدة لإرسالها مباشرة عبر SSH إلى هذه الطرفية. عند الحفظ، تبقى مشفرة في Android Keystore على هذا الجهاز، وتتطلب فتح القفل بالبصمة في كل مرة، ولا تُكشف أبداً لأدوات AI/MCP.",
+      "bn": "এই সংযোগে এখনো কোনো পাসওয়ার্ড সংরক্ষিত নেই। এই টার্মিনালে SSH-এর মাধ্যমে সরাসরি পাঠাতে একবার লিখুন। সংরক্ষণ করা হলে এটি এই ডিভাইসের Android Keystore-এ এনক্রিপ্ট করা থাকে, প্রতিবার ব্যবহারে বায়োমেট্রিক আনলক প্রয়োজন হয় এবং কখনোই AI/MCP টুলে প্রকাশ করা হয় না।",
+      "de": "Für diese Verbindung ist noch kein Passwort gespeichert. Einmal eingeben, um es direkt über SSH an dieses Terminal zu senden. Wenn gespeichert, bleibt es im Android Keystore auf diesem Gerät verschlüsselt, erfordert bei jeder Nutzung eine biometrische Freigabe und ist für KI-/MCP-Werkzeuge niemals sichtbar.",
+      "es": "Aún no hay una contraseña guardada en esta conexión. Introdúcela una vez para enviarla directamente por SSH a esta terminal. Si se guarda, permanece cifrada en Android Keystore en este dispositivo, requiere desbloqueo biométrico en cada uso y nunca se expone a herramientas de IA/MCP.",
+      "fr": "Aucun mot de passe n\\'est encore enregistré sur cette connexion. Saisissez-le une fois pour l\\'envoyer directement via SSH à ce terminal. S\\'il est enregistré, il reste chiffré dans Android Keystore sur cet appareil, exige un déverrouillage biométrique à chaque utilisation et n\\'est jamais exposé aux outils IA/MCP.",
+      "hi": "इस कनेक्शन पर अभी कोई पासवर्ड सहेजा नहीं गया है। इसे सीधे SSH के माध्यम से इस टर्मिनल पर भेजने के लिए एक बार दर्ज करें। यदि सहेजा जाता है, तो यह इस डिवाइस पर Android Keystore में एन्क्रिप्टेड रहता है, हर उपयोग पर बायोमेट्रिक अनलॉक मांगता है, और कभी भी AI/MCP टूल्स को उजागर नहीं किया जाता।",
+      "ja": "この接続にはまだパスワードが保存されていません。一度入力すると SSH 経由でこのターミナルへ直接送信されます。保存した場合、この端末の Android Keystore 内で暗号化され、使用ごとの生体認証ロック解除が必要となり、AI/MCP ツールには一切公開されません。",
+      "ko": "이 연결에 아직 저장된 비밀번호가 없습니다. 한 번 입력하면 SSH를 통해 이 터미널로 직접 전송됩니다. 저장하면 이 기기의 Android Keystore에 암호화되어 보관되며, 사용할 때마다 생체인증 잠금 해제가 필요하고 AI/MCP 도구에 절대 노출되지 않습니다.",
+      "pt": "Nenhuma senha foi salva nesta conexão ainda. Digite-a uma vez para enviá-la diretamente via SSH a este terminal. Se salva, permanece criptografada no Android Keystore neste dispositivo, exige desbloqueio biométrico a cada uso e nunca é exposta às ferramentas de IA/MCP.",
+      "ru": "Для этого подключения ещё не сохранён пароль. Введите его один раз для прямой отправки по SSH в этот терминал. При сохранении он остаётся зашифрованным в Android Keystore на этом устройстве, требует биометрической разблокировки при каждом использовании и никогда не передаётся инструментам ИИ/MCP.",
+      "zh": "此连接尚未保存密码。输入一次即可通过 SSH 直接发送到当前终端。若选择保存，密码将在本机 Android Keystore 中加密存储，每次使用均需生物识别解锁，且绝不会暴露给 AI/MCP 工具。"
+     }
+    },
+    {
+     "name": "terminal_sudo_turn_off_detection",
+     "en": "Turn off sudo prompt detection",
+     "comment": "Sudo password autofill",
+     "args": [],
+     "t": {
+      "ar": "إيقاف اكتشاف مطالبات sudo",
+      "bn": "sudo প্রম্পট শনাক্তকরণ বন্ধ করুন",
+      "de": "Erkennung von sudo-Abfragen ausschalten",
+      "es": "Desactivar detección de solicitudes de sudo",
+      "fr": "Désactiver la détection des invites sudo",
+      "hi": "sudo प्रॉम्प्ट पहचान बंद करें",
+      "ja": "sudo プロンプト検出をオフにする",
+      "ko": "sudo 프롬프트 감지 끄기",
+      "pt": "Desativar detecção de solicitações do sudo",
+      "ru": "Отключить обнаружение запросов sudo",
+      "zh": "关闭 sudo 密码提示检测"
+     }
+    },
+    {
+     "name": "terminal_sudo_send_action",
+     "en": "Send",
+     "comment": "Sudo password autofill",
+     "args": [],
+     "t": {
+      "ar": "إرسال",
+      "bn": "পাঠান",
+      "de": "Senden",
+      "es": "Enviar",
+      "fr": "Envoyer",
+      "hi": "भेजें",
+      "ja": "送信",
+      "ko": "전송",
+      "pt": "Enviar",
+      "ru": "Отправить",
+      "zh": "发送"
      }
     }
    ]

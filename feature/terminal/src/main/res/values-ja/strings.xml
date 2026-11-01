@@ -170,4 +170,13 @@
     <string name="terminal_inline_image_always_tab">このタブでは常に許可</string>
     <string name="terminal_bell_notification_title">ターミナル</string>
     <string name="terminal_bell_notification_body">ターミナルのプログラムがベルを鳴らしました</string>
+    <string name="terminal_sudo_prompt_detected">sudo パスワードが要求されています</string>
+    <string name="terminal_sudo_prompt_subtitle">Android Keystore • 生体認証ロック解除 • 「入力」タップ時のみ送信</string>
+    <string name="terminal_sudo_fill_action">入力</string>
+    <string name="terminal_sudo_turn_off_action">オフにする</string>
+    <string name="terminal_sudo_disabled_toast">sudo プロンプト検出をオフにしました（設定 → セキュリティとプライバシー）</string>
+    <string name="terminal_sudo_entry_title">%1$s の sudo パスワード</string>
+    <string name="terminal_sudo_entry_hint">この接続にはまだパスワードが保存されていません。一度入力すると SSH 経由でこのターミナルへ直接送信されます。保存した場合、この端末の Android Keystore 内で暗号化され、使用ごとの生体認証ロック解除が必要となり、AI/MCP ツールには一切公開されません。</string>
+    <string name="terminal_sudo_turn_off_detection">sudo プロンプト検出をオフにする</string>
+    <string name="terminal_sudo_send_action">送信</string>
 </resources>

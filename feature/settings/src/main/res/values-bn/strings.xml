@@ -558,4 +558,6 @@ Haven-এ ইম্মদ্য সংরক্ষিত প্রত্যে�
     <string name="settings_mcp_tools_cat_senses">সেন্সর এবং অবস্থান</string>
     <string name="settings_mcp_tools_cat_agent">এজেন্ট এবং ডিভাইস নিয়ন্ত্রণ</string>
     <string name="settings_mcp_tools_cat_other">অন্যান্য</string>
+    <string name="settings_sudo_prompt_detection_title">sudo পাসওয়ার্ড প্রম্পট শনাক্ত করুন</string>
+    <string name="settings_sudo_prompt_detection_subtitle">[sudo] এবং doas প্রম্পটে বায়োমেট্রিক অটোফিল অফার করে। পাসওয়ার্ড এই ডিভাইসের Android Keystore-এ এনক্রিপ্ট করা থাকে, প্রতিবার ব্যবহারে বায়োমেট্রিক আনলক প্রয়োজন হয় এবং কখনোই AI/MCP টুলে প্রকাশ করা হয় না।</string>
 </resources>

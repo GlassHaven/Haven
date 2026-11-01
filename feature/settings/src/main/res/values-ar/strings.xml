@@ -562,4 +562,6 @@
     <string name="settings_mcp_tools_cat_senses">أجهزة الاستشعار والموقع</string>
     <string name="settings_mcp_tools_cat_agent">الوكيل والتحكم في الجهاز</string>
     <string name="settings_mcp_tools_cat_other">أخرى</string>
+    <string name="settings_sudo_prompt_detection_title">اكتشاف مطالبات كلمة مرور sudo</string>
+    <string name="settings_sudo_prompt_detection_subtitle">عرض الملء التلقائي بالبصمة عند مطالبات [sudo] و doas. تبقى كلمات المرور مشفرة في Android Keystore على هذا الجهاز، وتتطلب فتح القفل بالبصمة في كل مرة، ولا تُكشف أبداً لأدوات AI/MCP.</string>
 </resources>

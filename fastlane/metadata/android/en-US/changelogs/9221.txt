@@ -1,0 +1,1 @@
+- Hardware-backed biometric sudo and doas password autofill in the terminal: detects [sudo] and doas prompts (including inside tmux/screen), unlocks the connection's Android Keystore-encrypted password via a per-use StrongBox/TEE biometric Signature prompt, and adds a Sudo toolbar key plus a one-tap Turn off toggle in the banner and Settings -> Security & Privacy.

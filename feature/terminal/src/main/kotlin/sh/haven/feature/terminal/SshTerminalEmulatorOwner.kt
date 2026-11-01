@@ -77,6 +77,7 @@ class SshTerminalEmulatorOwner @Inject constructor(
         val hyperlinkFlow: MutableStateFlow<String?>,
         val mouseTracker: MouseModeTracker,
         val recorder: TerminalRecorder?,
+        val sudoDetector: SudoPromptDetector = SudoPromptDetector(),
     ) {
         lateinit var emulator: TerminalEmulator
         lateinit var feedOutput: (ByteArray, Int, Int) -> Unit
@@ -237,6 +238,7 @@ class SshTerminalEmulatorOwner @Inject constructor(
             synchronized(oscHandler) {
                 oscHandler.process(data, offset, length)
                 mouseTracker.process(oscHandler.outputBuf, 0, oscHandler.outputLen)
+                bundle.sudoDetector.process(oscHandler.outputBuf, 0, oscHandler.outputLen)
                 val len = oscHandler.outputLen
                 if (len > 0) writeBuffer.append(oscHandler.outputBuf, 0, len)
             }

@@ -240,6 +240,8 @@ data class ToolbarCallbacks(
     val onOpenSnippetsSheet: () -> Unit = {},
     /** Open the built-in multi-line Text Input dialog when [onOpenTextInput] is null (#773). */
     val onOpenBuiltInTextInputDialog: () -> Unit = {},
+    /** Fill the connection's stored sudo password after hardware-backed biometric unlock. */
+    val onSudoTap: () -> Unit = {},
 )
 
 val LocalToolbarCallbacks = compositionLocalOf<ToolbarCallbacks> {
@@ -325,6 +327,7 @@ fun KeyboardToolbar(
     onOpenTextInput: (() -> Unit)? = null,
     onToggleKeyboard: (() -> Unit)? = null,
     onDictateTap: () -> Unit = {},
+    onSudoTap: () -> Unit = {},
     onPopupOpenChanged: (Boolean) -> Unit = {},
     modifier: Modifier = Modifier,
 ) {
@@ -435,6 +438,7 @@ fun KeyboardToolbar(
             onPopupOpenChanged(true)
             showTextInputDialog = true
         },
+        onSudoTap = onSudoTap,
     )
 
     if (showAddKeyDialog) {
@@ -1350,6 +1354,9 @@ private fun BuiltInKey(
         }
         ToolbarKey.SNIPPETS -> {
             ToolbarTextButton("\u2702", onClick = cb.onOpenSnippetsSheet)
+        }
+        ToolbarKey.SUDO -> {
+            ToolbarTextButton("Sudo", onClick = cb.onSudoTap)
         }
         ToolbarKey.ATTACH -> ToolbarIconButton(
             icon = Icons.Filled.AttachFile,

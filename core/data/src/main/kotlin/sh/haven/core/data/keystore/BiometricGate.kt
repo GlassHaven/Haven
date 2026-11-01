@@ -102,18 +102,20 @@ class BiometricGate @Inject constructor() {
      * That's how a single connection attempt that walks multiple
      * biometric-protected keys gets one prompt instead of N.
      *
-     * Requests carrying [signature] are exempt from that window:
-     * per-op Keystore keys demand a fresh CryptoObject auth on every
-     * use, so a window pass-through would only defer the failure to
-     * `Signature.sign` throwing UserNotAuthenticatedException.
+     * Requests carrying [signature] or [requireFreshAuth] are exempt from
+     * that window: per-op Keystore keys demand a fresh CryptoObject auth on
+     * every use, and per-use actions (like filling a sudo password into a
+     * remote PTY) must always demand an explicit confirmation.
      */
     suspend fun request(
         label: String,
         detail: String? = null,
         timeoutMs: Long = 60_000,
         signature: Signature? = null,
+        requireFreshAuth: Boolean = false,
     ): Decision {
         if (signature == null &&
+            !requireFreshAuth &&
             System.currentTimeMillis() - lastAuthAt < SESSION_UNLOCK_MS
         ) {
             return Decision.ALLOW

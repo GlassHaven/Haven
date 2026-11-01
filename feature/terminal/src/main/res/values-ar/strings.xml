@@ -170,4 +170,13 @@
     <string name="terminal_inline_image_always_tab">دائمًا في هذا التبويب</string>
     <string name="terminal_bell_notification_title">الطرفية</string>
     <string name="terminal_bell_notification_body">رنّ برنامج طرفية</string>
+    <string name="terminal_sudo_prompt_detected">طُلبت كلمة مرور sudo</string>
+    <string name="terminal_sudo_prompt_subtitle">Android Keystore • فتح بالبصمة • تُرسل فقط عند الضغط على ملء</string>
+    <string name="terminal_sudo_fill_action">ملء</string>
+    <string name="terminal_sudo_turn_off_action">إيقاف</string>
+    <string name="terminal_sudo_disabled_toast">تم إيقاف اكتشاف مطالبات sudo (الإعدادات ← الأمان والخصوصية)</string>
+    <string name="terminal_sudo_entry_title">كلمة مرور sudo لـ %1$s</string>
+    <string name="terminal_sudo_entry_hint">لا توجد كلمة مرور محفوظة لهذا الاتصال بعد. أدخلها مرة واحدة لإرسالها مباشرة عبر SSH إلى هذه الطرفية. عند الحفظ، تبقى مشفرة في Android Keystore على هذا الجهاز، وتتطلب فتح القفل بالبصمة في كل مرة، ولا تُكشف أبداً لأدوات AI/MCP.</string>
+    <string name="terminal_sudo_turn_off_detection">إيقاف اكتشاف مطالبات sudo</string>
+    <string name="terminal_sudo_send_action">إرسال</string>
 </resources>

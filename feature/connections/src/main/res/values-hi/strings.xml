@@ -618,4 +618,6 @@
     <string name="connections_helper_forward_pulseaudio">फ़ोन का PulseAudio ब्रिज शुरू करता है, रिमोट पोर्ट 14713 को लोकल पोर्ट 4713 पर टनल करता है और SSH शेल में PULSE_SERVER=tcp:127.0.0.1:14713 एक्सपोर्ट करता है।</string>
     <string name="connections_toggle_persist_rediscovered_host">पुनः खोजा गया LAN पता सहेजें</string>
     <string name="connections_helper_persist_rediscovered_host">जब कोई स्थानीय मशीन नए IPv4 पते पर वही SSH होस्ट कुंजी प्रस्तुत करे तो प्रोफ़ाइल अपडेट करें। केवल उस सत्र के लिए पुनः खोजे गए पते से जुड़ने और अपने कॉन्फ़िगर किए गए होस्ट (जैसे WireGuard IP) को बनाए रखने के लिए इसे बंद करें।</string>
+    <string name="connections_field_saved_password">सहेजा गया पासवर्ड (SSH / sudo)</string>
+    <string name="connections_helper_saved_password">वैकल्पिक। Android Keystore में एन्क्रिप्ट किया गया और SSH पासवर्ड लॉगिन तथा टर्मिनल में बायोमेट्रिक sudo ऑटोफ़िल के लिए उपयोग किया जाता है।</string>
 </resources>

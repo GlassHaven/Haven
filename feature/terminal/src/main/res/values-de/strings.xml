@@ -170,4 +170,13 @@
     <string name="terminal_inline_image_always_tab">Immer in diesem Tab</string>
     <string name="terminal_bell_notification_title">Terminal</string>
     <string name="terminal_bell_notification_body">Ein Terminalprogramm hat die Glocke geläutet</string>
+    <string name="terminal_sudo_prompt_detected">sudo-Passwort angefordert</string>
+    <string name="terminal_sudo_prompt_subtitle">Android Keystore • Biometrische Freigabe • Nur bei Ausfüllen gesendet</string>
+    <string name="terminal_sudo_fill_action">Ausfüllen</string>
+    <string name="terminal_sudo_turn_off_action">Ausschalten</string>
+    <string name="terminal_sudo_disabled_toast">Erkennung von sudo-Abfragen ausgeschaltet (Einstellungen → Sicherheit &amp; Datenschutz)</string>
+    <string name="terminal_sudo_entry_title">sudo-Passwort für %1$s</string>
+    <string name="terminal_sudo_entry_hint">Für diese Verbindung ist noch kein Passwort gespeichert. Einmal eingeben, um es direkt über SSH an dieses Terminal zu senden. Wenn gespeichert, bleibt es im Android Keystore auf diesem Gerät verschlüsselt, erfordert bei jeder Nutzung eine biometrische Freigabe und ist für KI-/MCP-Werkzeuge niemals sichtbar.</string>
+    <string name="terminal_sudo_turn_off_detection">Erkennung von sudo-Abfragen ausschalten</string>
+    <string name="terminal_sudo_send_action">Senden</string>
 </resources>

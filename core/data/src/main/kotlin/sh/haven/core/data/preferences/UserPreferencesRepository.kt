@@ -2449,6 +2449,18 @@ class UserPreferencesRepository @Inject constructor(
         }
     }
 
+    private val sudoPromptDetectionEnabledKey = booleanPreferencesKey("sudo_prompt_detection_enabled")
+
+    val sudoPromptDetectionEnabled: Flow<Boolean> = dataStore.data.map { prefs ->
+        prefs[sudoPromptDetectionEnabledKey] ?: true
+    }
+
+    suspend fun setSudoPromptDetectionEnabled(enabled: Boolean) {
+        dataStore.edit { prefs ->
+            prefs[sudoPromptDetectionEnabledKey] = enabled
+        }
+    }
+
     enum class LockTimeout(val label: String, val seconds: Long) {
         IMMEDIATE("Immediately", 0),
         THIRTY_SECONDS("30 seconds", 30),

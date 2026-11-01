@@ -5,6 +5,15 @@ the corresponding GitHub Release; a release can't ship without its section
 (enforced by `scripts/check-changelog.sh` in CI). The GitHub "Full Changelog"
 compare link is appended automatically — don't add it here.
 
+## v5.93.0
+
+- Hardware-backed biometric `sudo` and `doas` password autofill in the terminal, with auto-detected prompt banner, one-tap disable toggle, and `Sudo` toolbar key.
+
+- **Hardware-backed biometric `sudo` / `doas` password autofill.**
+  - Added `SudoPromptDetector` to scan terminal output streams (including inside `tmux` and `screen` across CSI cursor-positioning and status-bar redraws) for interactive `[sudo] password...:` and `doas (...) password:` prompts, surfacing a top-center `SudoPromptBanner` with **Fill**, **Turn off**, and dismiss controls.
+  - Added `SudoPasswordUnlocker` and `BiometricGate.request(..., requireFreshAuth = true)` to gate each fill on a fresh `BiometricPrompt` bound to a StrongBox- or TEE-backed ECDSA P-256 `Signature` (`haven_sudo_hw_gate` with `userAuthenticationValidityDurationSeconds = -1`) before releasing the connection's Android Keystore-encrypted password (`ConnectionProfile.sshPassword` or attached `SshIdentity.password`) to the terminal session.
+  - Added a customizable `Sudo` action key (`ToolbarKey.SUDO`) to `KeyboardToolbar` for on-demand fill on custom prompts, an in-terminal `SudoPasswordEntryDialog` when a key-authenticated profile has no saved password yet, an optional `Saved password (SSH / sudo)` field in the SSH connection editor, and a **Detect sudo password prompts** toggle in **Settings → Security & Privacy** (also reachable via one-tap **Turn off** on the banner and entry dialog).
+
 ## v5.92.0
 
 - Userspace OpenVPN3 tunnel support (`OPENVPN`) for routing SSH, Mosh, SFTP, VNC, RDP, SPICE, SMB, rclone, and email connections through an `.ovpn` profile without Android `VpnService` or root (#695, thanks @VadimSurpin).

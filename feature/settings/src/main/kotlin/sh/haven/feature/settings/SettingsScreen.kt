@@ -225,6 +225,7 @@ fun SettingsScreen(
     val requireAgentConsentForWrites by viewModel.requireAgentConsentForWrites.collectAsState()
     val mouseInputEnabled by viewModel.mouseInputEnabled.collectAsState()
     val remoteClipboardToLocal by viewModel.remoteClipboardToLocalEnabled.collectAsState()
+    val sudoPromptDetectionEnabled by viewModel.sudoPromptDetectionEnabled.collectAsState()
     val desktopInputMode by viewModel.desktopInputMode.collectAsState()
     val gpuUseVenus by viewModel.gpuUseVenus.collectAsState()
     val bandwidthAutoSuggest by viewModel.bandwidthAutoSuggest.collectAsState()
@@ -504,6 +505,13 @@ fun SettingsScreen(
             subtitle = stringResource(R.string.settings_remote_clipboard_subtitle),
             checked = remoteClipboardToLocal,
             onCheckedChange = viewModel::setRemoteClipboardToLocalEnabled,
+        )
+        SettingsToggleItem(
+            icon = Icons.Filled.Fingerprint,
+            title = stringResource(R.string.settings_sudo_prompt_detection_title),
+            subtitle = stringResource(R.string.settings_sudo_prompt_detection_subtitle),
+            checked = sudoPromptDetectionEnabled,
+            onCheckedChange = viewModel::setSudoPromptDetectionEnabled,
         )
         // #579: only rendered when the Keystore has permanently lost Haven's
         // credential master key. A control that wipes every saved password is

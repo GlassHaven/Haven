@@ -610,4 +610,6 @@
     <string name="connections_helper_forward_pulseaudio">휴대폰의 PulseAudio 브리지를 시작하고 원격 포트 14713을 로컬 포트 4713으로 터널링한 뒤 SSH 셸에서 PULSE_SERVER=tcp:127.0.0.1:14713을 내보냅니다.</string>
     <string name="connections_toggle_persist_rediscovered_host">재발견된 LAN 주소 저장</string>
     <string name="connections_helper_persist_rediscovered_host">로컬 머신이 새 IPv4 주소에서 동일한 SSH 호스트 키를 제시할 때 프로필을 업데이트합니다. 끄면 해당 세션에서만 재발견된 주소로 연결하고 설정된 호스트(예: WireGuard IP)를 유지합니다.</string>
+    <string name="connections_field_saved_password">저장된 비밀번호 (SSH / sudo)</string>
+    <string name="connections_helper_saved_password">선택 사항. Android Keystore에 암호화되어 저장되며 SSH 비밀번호 로그인 및 터미널의 생체인증 기반 sudo 자동 입력에 사용됩니다.</string>
 </resources>

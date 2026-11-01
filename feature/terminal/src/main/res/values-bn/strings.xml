@@ -170,4 +170,13 @@
     <string name="terminal_inline_image_always_tab">এই ট্যাবে সবসময়</string>
     <string name="terminal_bell_notification_title">টার্মিনাল</string>
     <string name="terminal_bell_notification_body">একটি টার্মিনাল প্রোগ্রাম ঘণ্টি বাজিয়েছে</string>
+    <string name="terminal_sudo_prompt_detected">sudo পাসওয়ার্ড চাওয়া হয়েছে</string>
+    <string name="terminal_sudo_prompt_subtitle">Android Keystore • বায়োমেট্রিক আনলক • শুধু পূরণ চাপলেই পাঠানো হয়</string>
+    <string name="terminal_sudo_fill_action">পূরণ</string>
+    <string name="terminal_sudo_turn_off_action">বন্ধ করুন</string>
+    <string name="terminal_sudo_disabled_toast">sudo প্রম্পট শনাক্তকরণ বন্ধ করা হয়েছে (সেটিংস → নিরাপত্তা ও গোপনীয়তা)</string>
+    <string name="terminal_sudo_entry_title">%1$s-এর জন্য sudo পাসওয়ার্ড</string>
+    <string name="terminal_sudo_entry_hint">এই সংযোগে এখনো কোনো পাসওয়ার্ড সংরক্ষিত নেই। এই টার্মিনালে SSH-এর মাধ্যমে সরাসরি পাঠাতে একবার লিখুন। সংরক্ষণ করা হলে এটি এই ডিভাইসের Android Keystore-এ এনক্রিপ্ট করা থাকে, প্রতিবার ব্যবহারে বায়োমেট্রিক আনলক প্রয়োজন হয় এবং কখনোই AI/MCP টুলে প্রকাশ করা হয় না।</string>
+    <string name="terminal_sudo_turn_off_detection">sudo প্রম্পট শনাক্তকরণ বন্ধ করুন</string>
+    <string name="terminal_sudo_send_action">পাঠান</string>
 </resources>

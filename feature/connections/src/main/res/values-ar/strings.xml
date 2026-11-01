@@ -618,4 +618,6 @@
     <string name="connections_helper_forward_pulseaudio">يشغل جسر PulseAudio على الهاتف، ويمرر المنفذ البعيد 14713 إلى المنفذ المحلي 4713، ويصدّر PULSE_SERVER=tcp:127.0.0.1:14713 في جلسة SSH.</string>
     <string name="connections_toggle_persist_rediscovered_host">حفظ عنوان الشبكة المحلية المكتشف مجددًا</string>
     <string name="connections_helper_persist_rediscovered_host">تحديث ملف الاتصال عندما يقدّم جهاز محلي نفس مفتاح مضيف SSH على عنوان IPv4 جديد. أوقف هذا الخيار للاتصال بالعنوان المكتشف لتلك الجلسة فقط مع الاحتفاظ بالمضيف المُعدّ (مثل عنوان WireGuard).</string>
+    <string name="connections_field_saved_password">كلمة المرور المحفوظة (SSH / sudo)</string>
+    <string name="connections_helper_saved_password">اختياري. مشفرة في Android Keystore وتُستخدم لتسجيل دخول SSH ولملء sudo المحمي بالبصمة في الطرفية.</string>
 </resources>

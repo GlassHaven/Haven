@@ -558,4 +558,6 @@ Haven में पहले से संग्रहीत प्रत्य�
     <string name="settings_mcp_tools_cat_senses">सेंसर और स्थान</string>
     <string name="settings_mcp_tools_cat_agent">एजेंट और डिवाइस नियंत्रण</string>
     <string name="settings_mcp_tools_cat_other">अन्य</string>
+    <string name="settings_sudo_prompt_detection_title">sudo पासवर्ड प्रॉम्प्ट पहचानें</string>
+    <string name="settings_sudo_prompt_detection_subtitle">[sudo] और doas प्रॉम्प्ट पर बायोमेट्रिक ऑटोफ़िल प्रदान करें। पासवर्ड इस डिवाइस पर Android Keystore में एन्क्रिप्टेड रहते हैं, हर उपयोग पर बायोमेट्रिक अनलॉक आवश्यक होता है, और कभी भी AI/MCP टूल्स को उजागर नहीं किए जाते।</string>
 </resources>

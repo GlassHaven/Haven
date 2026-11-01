@@ -618,4 +618,6 @@
     <string name="connections_helper_forward_pulseaudio">Запускает мост PulseAudio на телефоне, туннелирует удалённый порт 14713 на локальный порт 4713 и экспортирует PULSE_SERVER=tcp:127.0.0.1:14713 в оболочке SSH.</string>
     <string name="connections_toggle_persist_rediscovered_host">Сохранять переобнаруженный LAN-адрес</string>
     <string name="connections_helper_persist_rediscovered_host">Обновлять профиль, когда локальный узел предъявляет тот же SSH-ключ хоста по новому адресу IPv4. Отключите, чтобы подключаться по найденному адресу только на время сеанса и сохранять настроенный хост (например, IP WireGuard).</string>
+    <string name="connections_field_saved_password">Сохранённый пароль (SSH / sudo)</string>
+    <string name="connections_helper_saved_password">Необязательно. Зашифрован в Android Keystore и используется для входа по паролю SSH и биометрической автоподстановки sudo в терминале.</string>
 </resources>

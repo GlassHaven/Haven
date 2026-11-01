@@ -336,6 +336,7 @@ fun ConnectionEditDialog(
     var proxyPort by rememberSaveable { mutableStateOf(existing?.proxyPort?.toString() ?: "1080") }
     var proxyUser by rememberSaveable { mutableStateOf(existing?.proxyUser ?: "") }
     var proxyPassword by rememberSaveable { mutableStateOf(existing?.proxyPassword ?: "") }
+    var sshPassword by rememberSaveable { mutableStateOf(existing?.sshPassword ?: "") }
     var keyId by rememberSaveable { mutableStateOf(existing?.keyId) }
     // #166: ordered auth methods, serialised so rememberSaveable can persist
     // it across config changes. Seeded from the profile's parsed specs (which
@@ -3399,6 +3400,15 @@ fun ConnectionEditDialog(
                         description = stringResource(R.string.connections_helper_password_only),
                     )
 
+                    Spacer(Modifier.height(8.dp))
+                    sh.haven.core.ui.PasswordField(
+                        value = sshPassword,
+                        onValueChange = { sshPassword = it },
+                        label = stringResource(R.string.connections_field_saved_password),
+                        supportingText = stringResource(R.string.connections_helper_saved_password),
+                        modifier = Modifier.fillMaxWidth(),
+                    )
+
                     // Saved VNC settings (shown when the SSH profile has had
                     // VNC configured via the terminal's VNC quick-dialog with
                     // "Save for this connection" ticked). Without this block
@@ -4245,6 +4255,7 @@ fun ConnectionEditDialog(
                                     .firstOrNull()?.keyId,
                                 totpConfirmBeforeSend = totpConfirmBeforeSend,
                                 ignoreSavedKeys = ignoreSavedKeys,
+                                sshPassword = sshPassword.ifBlank { null },
                                 // tunnelConfigId is owned by the ViewModel save
                                 // helper when the user picks the inline CF
                                 // transport — it overwrites this with the

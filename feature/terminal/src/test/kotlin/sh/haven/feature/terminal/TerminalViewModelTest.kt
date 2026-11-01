@@ -100,7 +100,9 @@ class TerminalViewModelTest {
         viewModel = newViewModel()
     }
 
-    private fun newViewModel(): TerminalViewModel = TerminalViewModel(
+    private fun newViewModel(
+        sudoUnlocker: SudoPasswordUnlocker = mockk(relaxed = true),
+    ): TerminalViewModel = TerminalViewModel(
         mockk(relaxed = true),
         sessionManager,
         mockk(relaxed = true), // SshSessionAttacher
@@ -127,6 +129,7 @@ class TerminalViewModelTest {
         sshEmulatorOwner,
         mockk(relaxed = true), // BarcodeDecoder
         mockk(relaxed = true), // TextRecognizer
+        sudoUnlocker,
     )
 
     @After
@@ -810,6 +813,147 @@ class TerminalViewModelTest {
 
             verify(exactly = 1) { sshSession1.resize(51, 23) }
             verify(exactly = 0) { sshSession2.resize(any(), any()) }
+        }
+
+    @Test
+    fun `triggerSudoFill sends unlocked password and carriage return to active session`() =
+        runTest(testDispatcher) {
+            val sshSession = mockk<sh.haven.core.ssh.TerminalSession>(relaxed = true)
+            val s1 = sessionManager.registerSession("p1", "Server 1", mockk(relaxed = true))
+            sessionManager.updateStatus(s1, SshSessionManager.SessionState.Status.CONNECTED)
+
+            val bundle = SshTerminalEmulatorOwner.Bundle(
+                sessionId = s1,
+                profileId = "p1",
+                label = "Server 1",
+                oscHandler = OscHandler(),
+                cwdFlow = MutableStateFlow(null),
+                hyperlinkFlow = MutableStateFlow(null),
+                mouseTracker = MouseModeTracker(),
+                recorder = null,
+            ).apply {
+                emulator = mockk(relaxed = true)
+                feedOutput = { _, _, _ -> }
+                session = sshSession
+            }
+            bundle.sudoDetector.process("[sudo] password for ian: ".toByteArray(), 0, 25)
+            assertEquals("[sudo] password for ian:", bundle.sudoDetector.activePrompt.value)
+
+            every { sshEmulatorOwner.bundleFor(s1) } returns bundle
+            val unlocker = mockk<SudoPasswordUnlocker> {
+                coEvery { unlock("p1") } returns SudoUnlockResult.Unlocked("s3cret!", hardwareBacked = true)
+            }
+            val vm = newViewModel(sudoUnlocker = unlocker)
+            vm.syncSessions()
+
+            vm.triggerSudoFill(s1)
+            testDispatcher.scheduler.advanceUntilIdle()
+
+            assertNull(bundle.sudoDetector.activePrompt.value)
+            verify(exactly = 1) {
+                sshSession.sendToSsh(match { it.contentEquals("s3cret!\r".toByteArray(Charsets.UTF_8)) })
+            }
+        }
+
+    @Test
+    fun `triggerSudoFill opens password entry prompt when no password stored and saves on submit`() =
+        runTest(testDispatcher) {
+            val sshSession = mockk<sh.haven.core.ssh.TerminalSession>(relaxed = true)
+            val s1 = sessionManager.registerSession("p1", "Server 1", mockk(relaxed = true))
+            sessionManager.updateStatus(s1, SshSessionManager.SessionState.Status.CONNECTED)
+
+            val bundle = SshTerminalEmulatorOwner.Bundle(
+                sessionId = s1,
+                profileId = "p1",
+                label = "Server 1",
+                oscHandler = OscHandler(),
+                cwdFlow = MutableStateFlow(null),
+                hyperlinkFlow = MutableStateFlow(null),
+                mouseTracker = MouseModeTracker(),
+                recorder = null,
+            ).apply {
+                emulator = mockk(relaxed = true)
+                feedOutput = { _, _, _ -> }
+                session = sshSession
+            }
+            every { sshEmulatorOwner.bundleFor(s1) } returns bundle
+            val profile = sh.haven.core.data.db.entities.ConnectionProfile(
+                id = "p1",
+                label = "Server 1",
+                host = "10.0.0.1",
+                username = "ian",
+            )
+            coEvery { connectionRepository.getById("p1") } returns profile
+
+            val unlocker = mockk<SudoPasswordUnlocker> {
+                coEvery { unlock("p1") } returns SudoUnlockResult.NoPasswordStored("Server 1")
+            }
+            val vm = newViewModel(sudoUnlocker = unlocker)
+            vm.syncSessions()
+
+            vm.triggerSudoFill(s1)
+            testDispatcher.scheduler.advanceUntilIdle()
+
+            assertEquals(
+                SudoPasswordEntryRequest(sessionId = s1, profileId = "p1", profileLabel = "Server 1"),
+                vm.sudoPasswordEntryPrompt.value,
+            )
+
+            vm.submitSudoPasswordEntry(sessionId = s1, password = "new-sudo-pass", saveToProfile = true)
+            testDispatcher.scheduler.advanceUntilIdle()
+
+            assertNull(vm.sudoPasswordEntryPrompt.value)
+            verify(exactly = 1) {
+                sshSession.sendToSsh(match { it.contentEquals("new-sudo-pass\r".toByteArray(Charsets.UTF_8)) })
+            }
+            io.mockk.coVerify(exactly = 1) {
+                connectionRepository.save(match { it.id == "p1" && it.sshPassword == "new-sudo-pass" })
+            }
+        }
+
+    @Test
+    fun `setSudoPromptDetectionEnabled false clears active prompt and entry dialog`() =
+        runTest(testDispatcher) {
+            val sshSession = mockk<sh.haven.core.ssh.TerminalSession>(relaxed = true)
+            val s1 = sessionManager.registerSession("p1", "Server 1", mockk(relaxed = true))
+            sessionManager.updateStatus(s1, SshSessionManager.SessionState.Status.CONNECTED)
+
+            val bundle = SshTerminalEmulatorOwner.Bundle(
+                sessionId = s1,
+                profileId = "p1",
+                label = "Server 1",
+                oscHandler = OscHandler(),
+                cwdFlow = MutableStateFlow(null),
+                hyperlinkFlow = MutableStateFlow(null),
+                mouseTracker = MouseModeTracker(),
+                recorder = null,
+            ).apply {
+                emulator = mockk(relaxed = true)
+                feedOutput = { _, _, _ -> }
+                session = sshSession
+            }
+            bundle.sudoDetector.process("[sudo] password for ian: ".toByteArray(), 0, 25)
+            every { sshEmulatorOwner.bundleFor(s1) } returns bundle
+
+            val unlocker = mockk<SudoPasswordUnlocker> {
+                coEvery { unlock("p1") } returns SudoUnlockResult.NoPasswordStored("Server 1")
+            }
+            val vm = newViewModel(sudoUnlocker = unlocker)
+            vm.syncSessions()
+
+            vm.triggerSudoFill(s1)
+            testDispatcher.scheduler.advanceUntilIdle()
+            assertEquals("[sudo] password for ian:", bundle.sudoDetector.activePrompt.value)
+            assertEquals(
+                SudoPasswordEntryRequest(sessionId = s1, profileId = "p1", profileLabel = "Server 1"),
+                vm.sudoPasswordEntryPrompt.value,
+            )
+
+            vm.setSudoPromptDetectionEnabled(false)
+            testDispatcher.scheduler.advanceUntilIdle()
+
+            assertNull(bundle.sudoDetector.activePrompt.value)
+            assertNull(vm.sudoPasswordEntryPrompt.value)
         }
 }
 

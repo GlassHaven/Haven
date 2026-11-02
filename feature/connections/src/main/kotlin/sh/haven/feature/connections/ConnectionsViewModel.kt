@@ -1732,7 +1732,11 @@ class ConnectionsViewModel @Inject constructor(
     fun saveConnection(profile: ConnectionProfile) {
         viewModelScope.launch {
             try {
+                val existing = repository.getById(profile.id)
                 repository.save(profile)
+                if (existing != null && routingOrEndpointChanged(existing, profile)) {
+                    disconnectSessionsOnRouteChange(existing, profile)
+                }
             } catch (e: CredentialEncryption.KeystoreUnavailableException) {
                 // #579: the save encrypts every credential field on the profile,
                 // and a Keystore that will not serve the master key used to take
@@ -1764,7 +1768,8 @@ class ConnectionsViewModel @Inject constructor(
         cfTunnel: EmbeddedCloudflareTunnelInput?,
     ) {
         viewModelScope.launch {
-            if (cfTunnel != null) {
+            val existing = repository.getById(profile.id)
+            val saved = if (cfTunnel != null) {
                 val hostname = cfTunnel.hostname.trim()
                     .removePrefix("https://")
                     .removePrefix("http://")
@@ -1784,18 +1789,52 @@ class ConnectionsViewModel @Inject constructor(
                     label = "Cloudflare Tunnel: $hostname",
                     configText = blob.encode(),
                 )
-                repository.save(
-                    profile.copy(
-                        tunnelConfigId = tunnelId,
-                        port = 22,
-                        proxyType = null,
-                        proxyHost = null,
-                    ),
-                )
+                profile.copy(
+                    tunnelConfigId = tunnelId,
+                    port = 22,
+                    proxyType = null,
+                    proxyHost = null,
+                ).also { repository.save(it) }
             } else {
                 tunnelConfigRepository.deleteByOwner(profile.id)
-                repository.save(profile)
+                profile.also { repository.save(it) }
             }
+            if (existing != null && routingOrEndpointChanged(existing, saved)) {
+                disconnectSessionsOnRouteChange(existing, saved)
+            }
+        }
+    }
+
+    /**
+     * #777: when a profile's proxy, tunnel, jump host, or host:port changes
+     * while an SSH session is already open (or kept alive as a shell-less
+     * jump carrier, #764), tear down the stale non-headless session so the
+     * next tap dials through the newly configured route instead of reusing
+     * the old direct SshConnection via `ensureShellForProfile`.
+     */
+    private fun routingOrEndpointChanged(a: ConnectionProfile, b: ConnectionProfile): Boolean =
+        a.host != b.host ||
+            a.port != b.port ||
+            a.proxyType != b.proxyType ||
+            a.proxyHost != b.proxyHost ||
+            a.proxyPort != b.proxyPort ||
+            a.proxyUser != b.proxyUser ||
+            a.proxyPassword != b.proxyPassword ||
+            a.tunnelConfigId != b.tunnelConfigId ||
+            a.jumpProfileId != b.jumpProfileId
+
+    private suspend fun disconnectSessionsOnRouteChange(
+        previous: ConnectionProfile,
+        updated: ConnectionProfile,
+    ) {
+        val sessions = sshSessionManager.getSessionsForProfile(updated.id)
+        for (session in sessions) {
+            if (session.headless) continue
+            if (session.activeForwards.any { it.ruleId == "mcp-reverse-tunnel" }) continue
+            sshSessionManager.removeSession(session.sessionId)
+        }
+        if (previous.tunnelConfigId != null && previous.tunnelConfigId != updated.tunnelConfigId) {
+            runCatching { tunnelResolver.release(updated.id) }
         }
     }
 
@@ -4209,12 +4248,15 @@ class ConnectionsViewModel @Inject constructor(
                         }
 
                         sshSessionManager.storeConnectionConfig(sessionId, config, sshSessionMgr, cmdOverride, profile.postLoginCommand, profile.postLoginBeforeSessionManager)
-                        // Re-resolve the profile's tunnel/proxy on auto-reconnect.
+                        // Re-resolve the profile's tunnel/proxy on auto-reconnect,
+                        // reading the current row from ConnectionRepository so
+                        // proxy/tunnel edits take effect on reconnect (#777).
                         // Jump-host sessions reconnect via createProxyJump instead,
                         // so only register for the non-jump (havenProxy) case.
                         if (jumpSessionId == null) {
                             sshSessionManager.setReconnectProxyProvider(sessionId) {
-                                tunnelResolver.havenProxy(profile)
+                                val current = if (profile.ephemeral) profile else (repository.getById(profile.id) ?: profile)
+                                tunnelResolver.havenProxy(current)
                             }
                         }
                     }
@@ -5263,10 +5305,11 @@ class ConnectionsViewModel @Inject constructor(
                 }
 
                 sshSessionManager.storeConnectionConfig(jumpSessionId, config, SessionManager.NONE)
-                // Re-resolve the jump profile's tunnel on auto-reconnect, same
-                // contract the direct path registers (#690).
+                // Re-resolve the jump profile's tunnel/proxy on auto-reconnect,
+                // reading the current row from ConnectionRepository (#690, #777).
                 sshSessionManager.setReconnectProxyProvider(jumpSessionId) {
-                    tunnelResolver.havenProxy(jumpProfile)
+                    val current = repository.getById(jumpProfile.id) ?: jumpProfile
+                    tunnelResolver.havenProxy(current)
                 }
             }
 
@@ -6810,6 +6853,7 @@ class ConnectionsViewModel @Inject constructor(
                     requestPty = profile.requestPty,
                     addressFamily = profile.addressFamilyForSsh,
                     bindAddress = profile.bindAddress,
+                    reconnectPolicy = profile.reconnectPolicy,
                     agentIdentities = agentIdentitiesFor(profile),
                 )
                 val proxy = if (jumpSessionId != null) {
@@ -6851,6 +6895,12 @@ class ConnectionsViewModel @Inject constructor(
                 val cmdOverride = profile.sessionCommandOverride?.takeIf { it.isNotBlank() }
                     ?: preferencesRepository.sessionCommandOverride.first()
                 sshSessionManager.storeConnectionConfig(sessionId, config, sshSessionMgr, cmdOverride, profile.postLoginCommand, profile.postLoginBeforeSessionManager)
+                if (jumpSessionId == null) {
+                    sshSessionManager.setReconnectProxyProvider(sessionId) {
+                        val current = repository.getById(profile.id) ?: profile
+                        tunnelResolver.havenProxy(current)
+                    }
+                }
             }
 
             verboseLogger?.drain()?.let { pendingVerboseLogs[sessionId] = it }

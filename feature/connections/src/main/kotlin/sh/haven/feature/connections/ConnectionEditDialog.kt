@@ -818,6 +818,8 @@ fun ConnectionEditDialog(
                                 value = proxyHost,
                                 onValueChange = { proxyHost = it },
                                 label = { Text(stringResource(R.string.connections_field_proxy_host)) },
+                                placeholder = { Text("127.0.0.1") },
+                                isError = !proxyComplete(proxyType, proxyHost),
                                 singleLine = true,
                                 modifier = Modifier.weight(1f),
                             )
@@ -3793,7 +3795,11 @@ fun ConnectionEditDialog(
                 portKnockSequence,
                 portKnockDelayMs.toIntOrNull() ?: KnockSequence.DEFAULT_DELAY_MS,
             ).isSuccess
-            val canSave = knockOk && when (connectionType) {
+            val proxyOk = (connectionType == "SSH" && useCloudflareTunnel) ||
+                (connectionType == "OPENAI" && aiRouteMode != "NONE") ||
+                connectionType in setOf("LOCAL", "GUEST", "BTSERIAL", "BLESERIAL", "USBSERIAL", "RCLONE", "RETICULUM") ||
+                proxyComplete(proxyType, proxyHost)
+            val canSave = knockOk && proxyOk && when (connectionType) {
                 "LOCAL" -> true // No host/auth needed
                 "GUEST" -> true // No fields — the rootfs and kernel args are fixed
                 "BTSERIAL" -> btDevice.isNotBlank() // a paired device must be picked
@@ -4113,7 +4119,6 @@ fun ConnectionEditDialog(
                                 colorTag = colorTag,
                                 groupId = groupId,
                                 identityId = identityId,
-                                tunnelConfigId = tunnelConfigId,
                                 portKnockSequence = portKnockSequence.ifBlank { null },
                                 portKnockDelayMs = portKnockDelayMs.toIntOrNull()
                                     ?.coerceAtLeast(0) ?: KnockSequence.DEFAULT_DELAY_MS,
@@ -4126,6 +4131,8 @@ fun ConnectionEditDialog(
                                 spaExplicitIp = spaExplicitIp.ifBlank { null },
                                 spaPort = spaPort.toIntOrNull()?.takeIf { it in 1..65535 }
                                     ?: SpaConfig.DEFAULT_SPA_PORT,
+                            ).withRoutingSelection(
+                                proxyType, proxyHost, proxyPort, proxyUser, proxyPassword, tunnelConfigId,
                             )
                         } else if (connectionType == "OPENAI") {
                             (existing ?: ConnectionProfile(
@@ -4229,13 +4236,6 @@ fun ConnectionEditDialog(
                                 connectionType = "SSH",
                                 destinationHash = null,
                                 jumpProfileId = jumpProfileId,
-                                proxyType = if (useCloudflareTunnel) null else proxyType,
-                                proxyHost = if (useCloudflareTunnel) null else proxyHost.ifBlank { null },
-                                proxyPort = proxyPort.toIntOrNull() ?: 1080,
-                                proxyUser = if (useCloudflareTunnel || proxyType == null) null
-                                    else proxyUser.ifBlank { null },
-                                proxyPassword = if (useCloudflareTunnel || proxyType == null || proxyType == "SOCKS4") null
-                                    else proxyPassword.ifBlank { null },
                                 // #166: persist the ordered method list, and keep
                                 // the legacy authType/keyId in sync with the
                                 // primary (first) method so code paths that still
@@ -4256,12 +4256,6 @@ fun ConnectionEditDialog(
                                 totpConfirmBeforeSend = totpConfirmBeforeSend,
                                 ignoreSavedKeys = ignoreSavedKeys,
                                 sshPassword = sshPassword.ifBlank { null },
-                                // tunnelConfigId is owned by the ViewModel save
-                                // helper when the user picks the inline CF
-                                // transport — it overwrites this with the
-                                // upserted embedded tunnel id. Anything else
-                                // (shared standalone tunnel) is persisted as-is.
-                                tunnelConfigId = if (useCloudflareTunnel) null else tunnelConfigId,
                                 sshOptions = sshOptions.ifBlank { null },
                                 moshServerCommand = moshServerCommand.ifBlank { null },
                                 postLoginCommand = postLoginCommand.ifBlank { null },
@@ -4308,6 +4302,18 @@ fun ConnectionEditDialog(
                                 spaExplicitIp = spaExplicitIp.ifBlank { null },
                                 spaPort = spaPort.toIntOrNull()?.takeIf { it in 1..65535 }
                                     ?: SpaConfig.DEFAULT_SPA_PORT,
+                            ).withRoutingSelection(
+                                proxyType = if (useCloudflareTunnel) null else proxyType,
+                                proxyHost = proxyHost,
+                                proxyPort = proxyPort,
+                                proxyUser = proxyUser,
+                                proxyPassword = proxyPassword,
+                                // tunnelConfigId is owned by the ViewModel save
+                                // helper when the user picks the inline CF
+                                // transport — it overwrites this with the
+                                // upserted embedded tunnel id. Anything else
+                                // (shared standalone tunnel) is persisted as-is.
+                                tunnelConfigId = if (useCloudflareTunnel) null else tunnelConfigId,
                             )
                         } else {
                             val savedHost = if (localSideband) "127.0.0.1" else rnsHost

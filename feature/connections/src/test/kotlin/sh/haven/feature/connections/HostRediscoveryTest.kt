@@ -197,6 +197,22 @@ class HostRediscoveryTest {
     }
 
     @Test
+    fun `routed profile via proxy, tunnel, or jump host skips local LAN rediscovery`() = runTest {
+        // #777: when a profile routes through a SOCKS/HTTP proxy, tunnel, or
+        // jump host and the proxy dial fails, HostRediscovery must not scan the
+        // local /24 directly and bypass the configured route.
+        val dao = daoWithStored()
+        val repo = mockk<ConnectionRepository>(relaxed = true)
+        val r = rediscovery(dao, repo, responders = setOf("192.168.43.23"))
+            .apply { localBases = { throw AssertionError("scan must not run for routed profile") } }
+
+        assertNull(r.rediscover(profile.copy(proxyType = "SOCKS5", proxyHost = "127.0.0.1", proxyPort = 1080)))
+        assertNull(r.rediscover(profile.copy(tunnelConfigId = "wg-1")))
+        assertNull(r.rediscover(profile.copy(jumpProfileId = "jump-1")))
+        coVerify(exactly = 0) { repo.updateHost(any(), any()) }
+    }
+
+    @Test
     fun `hostRediscoveryMode and setHostRediscoveryInOptions round-trip cleanly`() {
         assertEquals(HostRediscoveryMode.PERSIST, hostRediscoveryMode(""))
         assertEquals(HostRediscoveryMode.PERSIST, hostRediscoveryMode("# HavenHostRediscovery session"))

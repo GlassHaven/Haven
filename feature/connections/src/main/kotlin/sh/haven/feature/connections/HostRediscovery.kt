@@ -126,6 +126,16 @@ class HostRediscovery @Inject constructor(
     suspend fun rediscover(profile: ConnectionProfile): String? = withContext(Dispatchers.IO) {
         val mode = hostRediscoveryMode(profile.sshOptions)
         if (mode == HostRediscoveryMode.OFF) return@withContext null
+        // #777: never scan the local LAN directly when the profile routes
+        // through a proxy, tunnel, or jump host — the target's RFC1918 address
+        // belongs to the remote network behind that route, and scanning local
+        // /24 subnets directly when the proxy dial fails bypasses the proxy.
+        if (!profile.proxyType.isNullOrBlank() ||
+            !profile.tunnelConfigId.isNullOrBlank() ||
+            !profile.jumpProfileId.isNullOrBlank()
+        ) {
+            return@withContext null
+        }
         if (!isPrivateIpv4(profile.host)) return@withContext null
         val stored = knownHostDao.findByHostPort(profile.host, profile.port)
             ?: return@withContext null

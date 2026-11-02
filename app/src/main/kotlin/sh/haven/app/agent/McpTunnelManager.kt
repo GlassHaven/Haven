@@ -79,6 +79,8 @@ class McpTunnelManager @Inject constructor(
     // Security-chip keys sign via the Keystore + biometric ceremony; same
     // default-null convention as fidoAuthenticator.
     private val keystoreSshKeySigner: sh.haven.core.ssh.KeystoreSshKeySigner? = null,
+    // #777: honour SOCKS/HTTP proxy and tunnel routing on headless carrier too.
+    private val tunnelResolver: sh.haven.core.tunnel.TunnelResolver? = null,
 ) {
     private val scope = CoroutineScope(SupervisorJob() + Dispatchers.IO)
     private val lock = Any()
@@ -431,7 +433,12 @@ class McpTunnelManager @Inject constructor(
         )
         sessionId = sid
         return try {
-            val hostKeyEntry = client.connect(config, trustedHostCaKeys = hostKeyVerifier.trustedHostCaKeys())
+            val proxy = tunnelResolver?.havenProxy(profile)
+            val hostKeyEntry = client.connect(
+                config,
+                proxy = proxy,
+                trustedHostCaKeys = hostKeyVerifier.trustedHostCaKeys(),
+            )
             // Fail-closed TOFU: this headless tunnel never silently trusts an
             // unknown or changed host key. The user establishes trust by
             // connecting the profile interactively first (host-key prompt). (#5)
@@ -449,6 +456,10 @@ class McpTunnelManager @Inject constructor(
                 }
             }
             sshSessionManager.storeConnectionConfig(sid, config, SessionManager.NONE)
+            sshSessionManager.setReconnectProxyProvider(sid) {
+                val current = connectionRepository.getById(profile.id) ?: profile
+                tunnelResolver?.havenProxy(current)
+            }
             sshSessionManager.updateStatus(sid, SshSessionManager.SessionState.Status.CONNECTED)
 
             // Everything this session carries is non-critical now (Haven's

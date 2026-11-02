@@ -138,6 +138,44 @@ class TunnelDraftTest {
         )
     }
 
+    @Test fun proxyCompleteBlocksBlankHostWhenProxySelected() {
+        // #777: picking SOCKS5/HTTP in the Route-through dropdown auto-fills
+        // port 1080/8080 while leaving Proxy Host blank; saving that state
+        // stored proxyType="SOCKS5", proxyHost=null, which rendered "via SOCKS5"
+        // in the card subtitle while TunnelResolver connected direct.
+        assertTrue(proxyComplete(proxyType = null, proxyHost = ""))
+        assertFalse(proxyComplete(proxyType = "SOCKS5", proxyHost = ""))
+        assertFalse(proxyComplete(proxyType = "HTTP", proxyHost = "   "))
+        assertTrue(proxyComplete(proxyType = "SOCKS5", proxyHost = "127.0.0.1"))
+    }
+
+    @Test fun routingSelectionDropsProxyTypeWhenHostBlank() {
+        val saved = profile().withRoutingSelection(
+            proxyType = "SOCKS5", proxyHost = "   ", proxyPort = "1080",
+            proxyUser = "u", proxyPassword = "p", tunnelConfigId = null,
+        )
+        assertNull(saved.proxyType)
+        assertNull(saved.proxyHost)
+        assertNull(saved.proxyUser)
+        assertNull(saved.proxyPassword)
+    }
+
+    @Test fun routingSelectionNormalizesSchemeAndInlinePortAndHttpDefaultPort() {
+        val socks = profile().withRoutingSelection(
+            proxyType = "SOCKS5", proxyHost = " socks5://10.0.0.1:9050 ", proxyPort = "1080",
+            proxyUser = "", proxyPassword = "", tunnelConfigId = null,
+        )
+        assertEquals("10.0.0.1", socks.proxyHost)
+        assertEquals(9050, socks.proxyPort)
+
+        val http = profile().withRoutingSelection(
+            proxyType = "HTTP", proxyHost = "http://proxy.lan", proxyPort = "",
+            proxyUser = "", proxyPassword = "", tunnelConfigId = null,
+        )
+        assertEquals("proxy.lan", http.proxyHost)
+        assertEquals(8080, http.proxyPort)
+    }
+
     // AI route carrier (OPENAI counterpart of the desktop tunnel rows).
 
     @Test fun aiRouteTypeSaveNoneMeansUnrouted() {

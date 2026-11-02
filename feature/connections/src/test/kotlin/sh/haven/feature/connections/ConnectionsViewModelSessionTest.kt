@@ -1260,4 +1260,77 @@ class ConnectionsViewModelSessionTest {
         assertEquals("desk.example.invalid", viewModel.navigateToRdp.value!!.host)
         coVerify(exactly = 0) { repository.save(any()) }
     }
+
+    @Test
+    fun `saving a profile whose proxy routing changed disconnects existing non-headless SSH session (#777)`() = runTest {
+        // #777: when a user connects directly, then edits the profile to add a
+        // SOCKS/HTTP proxy and taps the card again, ConnectionsScreen sees
+        // ProfileStatus.CONNECTED and calls ensureShellForProfile — reusing the
+        // live direct SshConnection unless saving a routing change tears down
+        // the stale session.
+        val original = ConnectionProfile(
+            id = "p-proxy", label = "box", host = "10.0.0.5", username = "u",
+            connectionType = "SSH",
+        )
+        val updated = original.copy(
+            proxyType = "SOCKS5", proxyHost = "127.0.0.1", proxyPort = 1080,
+        )
+        coEvery { repository.getById("p-proxy") } returns original
+        val liveSession = SshSessionManager.SessionState(
+            sessionId = "sess-1",
+            profileId = "p-proxy",
+            label = "box",
+            client = mockk(relaxed = true),
+            status = SshSessionManager.SessionState.Status.CONNECTED,
+            headless = false,
+        )
+        every { sshSessionManager.getSessionsForProfile("p-proxy") } returns listOf(liveSession)
+        every { sshSessionManager.sessions } returns MutableStateFlow(mapOf("sess-1" to liveSession))
+
+        viewModel.saveConnection(updated)
+        testDispatcher.scheduler.advanceUntilIdle()
+
+        verify { sshSessionManager.removeSession("sess-1") }
+    }
+
+    @Test
+    fun `reconnect proxy provider re-reads the profile from repository so edited proxy routing takes effect (#777)`() = runTest {
+        val initial = ConnectionProfile(
+            id = "p-recon", label = "box", host = "box.example.invalid", username = "u",
+            connectionType = "SSH", authMethods = "PASSWORD", sshPassword = "pw",
+            remoteCommand = "true",
+        )
+        val withProxy = initial.copy(
+            proxyType = "SOCKS5", proxyHost = "127.0.0.1", proxyPort = 1080,
+        )
+        val expectedProxy = mockk<sh.haven.core.ssh.HavenProxy>(relaxed = true)
+        coEvery { repository.getById("p-recon") } returns withProxy
+        coEvery { tunnelResolver.havenProxy(withProxy) } returns expectedProxy
+        coEvery { tunnelResolver.havenProxy(initial) } returns null
+
+        val providerSlot = slot<suspend () -> sh.haven.core.ssh.HavenProxy?>()
+        every { sshSessionManager.registerSession("p-recon", any(), any()) } returns "recon-sess"
+        every { sshSessionManager.setReconnectProxyProvider("recon-sess", capture(providerSlot)) } returns Unit
+        every { sshSessionManager.isClientShared(any()) } returns true
+        every { sshSessionManager.getSession(any()) } returns null
+        every { sshSessionManager.getConnectionConfigForProfile(any()) } returns null
+        coEvery { sshSessionManager.openShellAndAwaitReady(any(), any(), any()) } returns
+            sh.haven.core.ssh.ShellOutcome.Ready("recon-sess")
+        viewModel.clientFactory = { _ ->
+            mockk<sh.haven.core.ssh.SshConnection>(relaxed = true).also {
+                coEvery { it.connect(any(), any(), any(), any(), any(), any(), any(), any()) } returns null
+            }
+        }
+
+        viewModel.connectSsh(initial, password = "pw", keyOnly = false)
+        val deadline = System.currentTimeMillis() + 10_000
+        while (!providerSlot.isCaptured && System.currentTimeMillis() < deadline) {
+            testDispatcher.scheduler.advanceUntilIdle()
+            Thread.sleep(20)
+        }
+
+        assertTrue("reconnect proxy provider must be registered", providerSlot.isCaptured)
+        val resolved = providerSlot.captured.invoke()
+        assertSame("reconnect must resolve proxy from fresh repository row", expectedProxy, resolved)
+    }
 }

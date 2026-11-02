@@ -78,14 +78,70 @@ internal fun aiRouteComplete(mode: String, carrierId: String?): Boolean =
 internal fun aiRouteCarrierForSave(mode: String, carrierId: String?): String? =
     if (mode == "NONE") null else carrierId
 
+/** Save is blocked while a proxy type is selected but Proxy Host is blank (#777). */
+internal fun proxyComplete(proxyType: String?, proxyHost: String): Boolean {
+    if (proxyType == null) return true
+    val (effectiveType, host, _) = normalizeProxyInput(proxyType, proxyHost, "")
+    return effectiveType != null && !host.isNullOrBlank()
+}
+
+/**
+ * Normalize the user-entered proxy fields (#777):
+ *  - Trims whitespace and drops [proxyType] if the host is blank so an
+ *    incomplete `proxyType="SOCKS5", proxyHost=null` row is never persisted.
+ *  - Strips common proxy URL schemes (`socks5://`, `http://`, etc.) and any
+ *    trailing path.
+ *  - Splits inline `host:port` (or `[ipv6]:port`) when pasted into Proxy Host.
+ *  - Defaults invalid/blank port to 8080 for HTTP and 1080 for SOCKS4/SOCKS5.
+ */
+internal fun normalizeProxyInput(
+    proxyType: String?,
+    proxyHost: String,
+    proxyPort: String,
+): Triple<String?, String?, Int> {
+    val defaultPort = if (proxyType.equals("HTTP", ignoreCase = true)) 8080 else 1080
+    val parsedPort = proxyPort.trim().toIntOrNull()?.takeIf { it in 1..65535 }
+    if (proxyType == null) {
+        return Triple(null, null, parsedPort ?: defaultPort)
+    }
+    var host = proxyHost.trim()
+    val schemeIdx = host.indexOf("://")
+    if (schemeIdx >= 0) {
+        host = host.substring(schemeIdx + 3)
+    }
+    host = host.substringBefore('/').trim()
+    var inlinePort: Int? = null
+    if (host.startsWith("[")) {
+        val closeBracket = host.indexOf(']')
+        if (closeBracket > 0) {
+            val remainder = host.substring(closeBracket + 1)
+            host = host.substring(1, closeBracket)
+            if (remainder.startsWith(":")) {
+                inlinePort = remainder.substring(1).trim().toIntOrNull()?.takeIf { it in 1..65535 }
+            }
+        }
+    } else if (host.count { it == ':' } == 1) {
+        val h = host.substringBefore(':').trim()
+        val p = host.substringAfter(':').trim().toIntOrNull()
+        if (h.isNotEmpty() && p != null && p in 1..65535) {
+            host = h
+            inlinePort = p
+        }
+    }
+    if (host.isEmpty()) {
+        return Triple(null, null, parsedPort ?: defaultPort)
+    }
+    val finalPort = inlinePort ?: parsedPort ?: defaultPort
+    return Triple(proxyType, host, finalPort)
+}
+
 /**
  * Apply the shared Route-through picker's state onto a profile being
  * saved. The picker (WireGuard/Tailscale tunnel or SOCKS/HTTP proxy,
  * mutually exclusive) is rendered for VNC / RDP / SPICE / SMB as well as
  * SSH, but only the SSH and EMAIL save branches ever persisted what it
  * wrote — for the other four a picked tunnel or proxy silently reverted
- * to "None (direct)" on save (#527). SSH keeps its own inline handling:
- * the Cloudflare transport interleaves with these fields there.
+ * to "None (direct)" on save (#527).
  */
 internal fun sh.haven.core.data.db.entities.ConnectionProfile.withRoutingSelection(
     proxyType: String?,
@@ -94,12 +150,19 @@ internal fun sh.haven.core.data.db.entities.ConnectionProfile.withRoutingSelecti
     proxyUser: String,
     proxyPassword: String,
     tunnelConfigId: String?,
-): sh.haven.core.data.db.entities.ConnectionProfile = copy(
-    proxyType = proxyType,
-    proxyHost = if (proxyType == null) null else proxyHost.ifBlank { null },
-    proxyPort = proxyPort.toIntOrNull() ?: 1080,
-    proxyUser = if (proxyType == null) null else proxyUser.ifBlank { null },
-    proxyPassword = if (proxyType == null || proxyType == "SOCKS4") null
-        else proxyPassword.ifBlank { null },
-    tunnelConfigId = tunnelConfigId,
-)
+): sh.haven.core.data.db.entities.ConnectionProfile {
+    val (effectiveType, normalizedHost, normalizedPort) = normalizeProxyInput(
+        proxyType = proxyType,
+        proxyHost = proxyHost,
+        proxyPort = proxyPort,
+    )
+    return copy(
+        proxyType = effectiveType,
+        proxyHost = normalizedHost,
+        proxyPort = normalizedPort,
+        proxyUser = if (effectiveType == null) null else proxyUser.trim().ifBlank { null },
+        proxyPassword = if (effectiveType == null || effectiveType == "SOCKS4") null
+            else proxyPassword.ifBlank { null },
+        tunnelConfigId = tunnelConfigId,
+    )
+}

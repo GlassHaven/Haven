@@ -57,6 +57,9 @@ class HeadlessSshExec @Inject constructor(
     // Security-chip keys sign via the Keystore + biometric ceremony; same
     // default-null convention as fidoAuthenticator.
     private val keystoreSshKeySigner: sh.haven.core.ssh.KeystoreSshKeySigner? = null,
+    // #777: honour SOCKS/HTTP proxy and tunnel routing on headless exec too;
+    // default null keeps existing unit-test constructors unchanged.
+    private val tunnelResolver: sh.haven.core.tunnel.TunnelResolver? = null,
 ) {
     /** Test seam — unit tests swap this to avoid opening real sockets. */
     internal var clientFactory: () -> SshClient = {
@@ -110,9 +113,10 @@ class HeadlessSshExec @Inject constructor(
             reconnectPolicy = ConnectionConfig.ReconnectPolicy(autoReconnect = false),
         )
         val client = clientFactory()
+        val proxy = tunnelResolver?.havenProxy(profile)
         try {
             val hostKeyEntry = try {
-                client.connect(config, trustedHostCaKeys = hostKeyVerifier.trustedHostCaKeys())
+                client.connect(config, proxy = proxy, trustedHostCaKeys = hostKeyVerifier.trustedHostCaKeys())
             } catch (e: Exception) {
                 // #376: a network failure on a private address may just mean
                 // DHCP moved the device — follow its host key once, so
@@ -126,7 +130,7 @@ class HeadlessSshExec @Inject constructor(
                 }
                 Log.i(TAG, "'${LogRedact.of(profile.label)}' host rediscovered ${LogRedact.of(profile.host)} → ${LogRedact.of(newHost)} — retrying")
                 try {
-                    client.connect(config.copy(host = newHost), trustedHostCaKeys = hostKeyVerifier.trustedHostCaKeys())
+                    client.connect(config.copy(host = newHost), proxy = proxy, trustedHostCaKeys = hostKeyVerifier.trustedHostCaKeys())
                 } catch (e2: Exception) {
                     throw McpError(-32603, "Connect to '${profile.label}' failed after host rediscovery ($newHost): ${e2.message ?: e2.javaClass.simpleName}")
                 }

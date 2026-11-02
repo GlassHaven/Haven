@@ -52,20 +52,22 @@ class ProxySocketFactory(
 
     override fun createSocket(host: String, port: Int): Socket {
         val type = proxyType.uppercase()
-        // Manual authenticated handshake only when credentials are present
-        // and the type supports it; everything else keeps the proven JDK path.
-        if (proxyUser != null) {
-            when (type) {
-                "SOCKS5" -> return socks5Authenticated(host, port)
-                "HTTP" -> return httpConnectAuthenticated(host, port)
-                // SOCKS4 falls through to the JDK path (userid-only auth not
-                // supported here; see class doc).
-            }
+        // #777: Android's java.net.Socket(Proxy) constructor throws
+        // IllegalArgumentException("Invalid Proxy") for Proxy.Type.HTTP (only
+        // SOCKS and DIRECT are accepted by libcore's Socket). Always run the
+        // HTTP CONNECT handshake manually so both authenticated and
+        // unauthenticated HTTP proxies work on Android.
+        if (type == "HTTP") {
+            return httpConnect(host, port)
+        }
+        // Manual authenticated handshake for SOCKS5 when credentials are present;
+        // unauthenticated SOCKS5 and SOCKS4 keep the JDK SOCKS path.
+        if (!proxyUser.isNullOrEmpty() && type == "SOCKS5") {
+            return socks5Authenticated(host, port)
         }
         val proxyAddress = InetSocketAddress(proxyHost, proxyPort)
         val javaProxy = when (type) {
             "SOCKS5", "SOCKS4" -> Proxy(Proxy.Type.SOCKS, proxyAddress)
-            "HTTP" -> Proxy(Proxy.Type.HTTP, proxyAddress)
             else -> throw IOException("Unsupported proxy type: $proxyType")
         }
         val socket = Socket(javaProxy)
@@ -143,8 +145,8 @@ class ProxySocketFactory(
         }
     }
 
-    /** HTTP CONNECT with Proxy-Authorization: Basic (#227). */
-    private fun httpConnectAuthenticated(host: String, port: Int): Socket {
+    /** HTTP CONNECT with optional Proxy-Authorization: Basic (#227, #777). */
+    private fun httpConnect(host: String, port: Int): Socket {
         val socket = Socket()
         var ok = false
         try {
@@ -154,12 +156,14 @@ class ProxySocketFactory(
             val ins = socket.getInputStream()
 
             val target = "$host:$port"
-            val token = java.util.Base64.getEncoder()
-                .encodeToString("${proxyUser ?: ""}:${proxyPassword ?: ""}".toByteArray(Charsets.UTF_8))
             val request = buildString {
                 append("CONNECT ").append(target).append(" HTTP/1.1\r\n")
                 append("Host: ").append(target).append("\r\n")
-                append("Proxy-Authorization: Basic ").append(token).append("\r\n")
+                if (!proxyUser.isNullOrEmpty()) {
+                    val token = java.util.Base64.getEncoder()
+                        .encodeToString("$proxyUser:${proxyPassword ?: ""}".toByteArray(Charsets.UTF_8))
+                    append("Proxy-Authorization: Basic ").append(token).append("\r\n")
+                }
                 append("Proxy-Connection: keep-alive\r\n")
                 append("\r\n")
             }

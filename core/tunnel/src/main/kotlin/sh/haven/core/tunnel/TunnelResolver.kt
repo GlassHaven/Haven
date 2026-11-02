@@ -151,7 +151,11 @@ class TunnelResolver @Inject constructor(
      */
     internal suspend fun jschProxy(profile: ConnectionProfile): com.jcraft.jsch.Proxy? {
         tunnelFor(profile)?.let { return TunnelProxy(it) }
-        val proxyHost = profile.proxyHost ?: return null
+        val (proxyHost, proxyPort) = normalizeProxyEndpoint(
+            rawHost = profile.proxyHost,
+            rawPort = profile.proxyPort,
+            proxyType = profile.proxyType,
+        ) ?: return null
         // #227: when the proxy requires authentication, JSch throws
         // JSchProxyException("…username/password authentication requested by
         // server with no username/password configured") unless we call
@@ -171,21 +175,21 @@ class TunnelResolver @Inject constructor(
                         ProxySocketFactory(
                             proxyType = "SOCKS5",
                             proxyHost = proxyHost,
-                            proxyPort = profile.proxyPort,
+                            proxyPort = proxyPort,
                             proxyUser = user,
                             proxyPassword = pass,
                         ),
                     )
                 } else {
-                    ProxySOCKS5(proxyHost, profile.proxyPort)
+                    ProxySOCKS5(proxyHost, proxyPort)
                 }
             // SOCKS4 sends a NUL-terminated userid (no length octet → no
             // char/byte mismatch) and HTTP Basic base64s the raw UTF-8 bytes;
             // both are byte-correct in JSch, so they stay on JSch's proxies.
-            "SOCKS4" -> ProxySOCKS4(proxyHost, profile.proxyPort).apply {
+            "SOCKS4" -> ProxySOCKS4(proxyHost, proxyPort).apply {
                 if (user != null) setUserPasswd(user, pass)
             }
-            "HTTP" -> ProxyHTTP(proxyHost, profile.proxyPort).apply {
+            "HTTP" -> ProxyHTTP(proxyHost, proxyPort).apply {
                 if (user != null) setUserPasswd(user, pass)
             }
             else -> null
@@ -247,15 +251,68 @@ class TunnelResolver @Inject constructor(
         timeoutMs: Int = 30_000,
     ): ProxySocketFactory? {
         val type = profile.proxyType ?: return null
-        val host = profile.proxyHost ?: return null
+        val (host, port) = normalizeProxyEndpoint(
+            rawHost = profile.proxyHost,
+            rawPort = profile.proxyPort,
+            proxyType = type,
+        ) ?: return null
         return ProxySocketFactory(
             proxyType = type,
             proxyHost = host,
-            proxyPort = profile.proxyPort,
+            proxyPort = port,
             connectTimeoutMs = timeoutMs,
             proxyUser = profile.proxyUser?.takeIf { it.isNotEmpty() },
             proxyPassword = profile.proxyPassword,
         )
+    }
+
+    /**
+     * Normalize [rawHost] / [rawPort] for a configured proxy (#777):
+     *  - Trims whitespace and returns null if blank or [proxyType] is null.
+     *  - Strips common proxy URL schemes (`socks5://`, `socks5h://`, `socks4://`,
+     *    `socks4a://`, `socks://`, `http://`, `https://`) and any trailing path.
+     *  - Splits inline `host:port` (or `[ipv6]:port`) so JSch's 2-argument
+     *    `ProxySOCKS5(host, port)` / `ProxyHTTP(host, port)` receives a clean
+     *    hostname and port instead of treating `host:port` as a hostname.
+     */
+    private fun normalizeProxyEndpoint(
+        rawHost: String?,
+        rawPort: Int,
+        proxyType: String?,
+    ): Pair<String, Int>? {
+        if (proxyType.isNullOrBlank()) return null
+        var host = rawHost?.trim().orEmpty()
+        if (host.isEmpty()) return null
+        val schemeIdx = host.indexOf("://")
+        if (schemeIdx >= 0) {
+            host = host.substring(schemeIdx + 3)
+        }
+        host = host.substringBefore('/').trim()
+        if (host.isEmpty()) return null
+
+        var port = rawPort
+        if (host.startsWith("[")) {
+            val closeBracket = host.indexOf(']')
+            if (closeBracket > 0) {
+                val remainder = host.substring(closeBracket + 1)
+                host = host.substring(1, closeBracket)
+                if (remainder.startsWith(":")) {
+                    remainder.substring(1).toIntOrNull()?.takeIf { it in 1..65535 }?.let { port = it }
+                }
+            }
+        } else if (host.count { it == ':' } == 1) {
+            val h = host.substringBefore(':').trim()
+            val p = host.substringAfter(':').trim().toIntOrNull()
+            if (h.isNotEmpty() && p != null && p in 1..65535) {
+                host = h
+                port = p
+            }
+        }
+        if (host.isEmpty()) return null
+        if (port !in 1..65535) {
+            port = if (proxyType.equals("HTTP", ignoreCase = true)) 8080 else 1080
+        }
+        return host to port
     }
 }
 

@@ -261,6 +261,27 @@ class TunnelResolverTest {
     }
 
     @Test
+    fun jschProxyReturnsNullWhenProxyHostIsBlank() = runTest {
+        val resolver = TunnelResolver(mockk(relaxed = true))
+        assertNull(resolver.jschProxy(profile(proxyType = "SOCKS5", proxyHost = "   ", proxyPort = 1080)))
+    }
+
+    @Test
+    fun jschProxyNormalizesSchemeWhitespaceAndHostPort() = runTest {
+        // #777: users paste "socks5://127.0.0.1:9050" or trailing spaces into
+        // Proxy Host; JSch's 2-arg ProxySOCKS5(host, port) treats the raw string
+        // as a hostname instead of stripping scheme / splitting port.
+        val resolver = TunnelResolver(mockk(relaxed = true))
+        val proxy = resolver.jschProxy(
+            profile(proxyType = "SOCKS5", proxyHost = "  socks5://127.0.0.1:9050 ", proxyPort = 1080),
+        )
+        assertTrue(proxy is ProxySOCKS5)
+        assertEquals("127.0.0.1", proxyField(proxy!!, "proxy_host"))
+        val portField = proxy.javaClass.getDeclaredField("proxy_port").apply { isAccessible = true }.getInt(proxy)
+        assertEquals(9050, portField)
+    }
+
+    @Test
     fun releaseForwardsToManager() = runTest {
         val mgr = mockk<TunnelManager>(relaxed = true)
         val resolver = TunnelResolver(mgr)

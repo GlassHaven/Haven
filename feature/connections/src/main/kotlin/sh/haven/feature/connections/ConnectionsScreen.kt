@@ -1946,7 +1946,7 @@ private fun ConnectionTreeItem(
                     } else {
                         val via = when {
                             jumpHostLabel != null && indent == 0 -> " " + stringResource(R.string.connections_list_via, jumpHostLabel)
-                            profile.proxyType != null && indent == 0 -> " " + stringResource(R.string.connections_list_via, profile.proxyType.toString())
+                            profile.proxyType != null && !profile.proxyHost.isNullOrBlank() && indent == 0 -> " " + stringResource(R.string.connections_list_via, profile.proxyType.toString())
                             else -> ""
                         }
                         Text("${profile.username}@${profile.host}:${profile.port}$via")

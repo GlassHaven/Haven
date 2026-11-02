@@ -226,6 +226,52 @@ class ProxySocketFactoryTest {
     }
 
     @Test
+    fun httpConnectWithoutCredentialsUsesConnectHandshake() {
+        // #777: java.net.Socket(Proxy(Proxy.Type.HTTP, ...)) throws
+        // IllegalArgumentException("Invalid Proxy") on JVM/Android because raw
+        // Socket only accepts SOCKS and DIRECT. Unauthenticated HTTP proxies
+        // must still perform the HTTP CONNECT handshake via AuthenticatedProxy.
+        val server = ServerSocket(0, 1, java.net.InetAddress.getByName("127.0.0.1"))
+        val requestLines = AtomicReference<List<String>>()
+        val done = CountDownLatch(1)
+        val srv = thread(isDaemon = true) {
+            server.accept().use { s ->
+                val reader = s.getInputStream().bufferedReader(Charsets.ISO_8859_1)
+                val out = s.getOutputStream()
+                val lines = mutableListOf<String>()
+                while (true) {
+                    val line = reader.readLine() ?: break
+                    if (line.isEmpty()) break
+                    lines.add(line)
+                }
+                requestLines.set(lines)
+                out.write("HTTP/1.1 200 Connection established\r\n\r\n".toByteArray(Charsets.ISO_8859_1))
+                out.flush()
+                done.countDown()
+            }
+        }
+        var client: Socket? = null
+        try {
+            client = ProxySocketFactory("HTTP", "127.0.0.1", server.localPort, 5_000)
+                .createSocket("example.com", 443)
+            assertTrue(done.await(5, TimeUnit.SECONDS))
+            val lines = requestLines.get()
+            assertTrue("CONNECT line present", lines.any { it == "CONNECT example.com:443 HTTP/1.1" })
+            assertTrue(
+                "Proxy-Connection header present (proves manual HTTP CONNECT path, not Android-broken Socket(Proxy.Type.HTTP))",
+                lines.any { it.equals("Proxy-Connection: keep-alive", ignoreCase = true) },
+            )
+            org.junit.Assert.assertFalse(
+                "Proxy-Authorization must be absent when no credentials set",
+                lines.any { it.startsWith("Proxy-Authorization:", ignoreCase = true) },
+            )
+            assertTrue(client.isConnected)
+        } finally {
+            client?.close(); server.close(); srv.join(2_000)
+        }
+    }
+
+    @Test
     fun httpConnectSendsBasicProxyAuthorization() {
         val server = ServerSocket(0, 1, java.net.InetAddress.getByName("127.0.0.1"))
         val requestLines = AtomicReference<List<String>>()

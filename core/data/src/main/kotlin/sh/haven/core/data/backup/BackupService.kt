@@ -632,19 +632,35 @@ class BackupService @Inject constructor(
                 val mutable = prefs.toMutablePreferences()
                 settings.keys().forEach { key ->
                     val value = settings.get(key)
-                    when (value) {
-                        is String -> mutable[androidx.datastore.preferences.core.stringPreferencesKey(key)] = value
-                        is Int -> mutable[androidx.datastore.preferences.core.intPreferencesKey(key)] = value
-                        is Boolean -> mutable[androidx.datastore.preferences.core.booleanPreferencesKey(key)] = value
-                        is Long -> mutable[androidx.datastore.preferences.core.longPreferencesKey(key)] = value
+                    when {
+                        // Whole-valued floats (1.0f, 2.0f) serialize via Android's
+                        // JSONObject as integer tokens (`1`, `2`) and parse back as
+                        // java.lang.Integer (#323, #779). Route known float and long
+                        // preference keys by name first so they are never stored as Int.
+                        key in sh.haven.core.data.preferences.UserPreferencesRepository.FLOAT_PREF_KEYS &&
+                            value is Number ->
+                            mutable[androidx.datastore.preferences.core.floatPreferencesKey(key)] =
+                                value.toFloat()
+                        key in sh.haven.core.data.preferences.UserPreferencesRepository.LONG_PREF_KEYS &&
+                            value is Number ->
+                            mutable[androidx.datastore.preferences.core.longPreferencesKey(key)] =
+                                value.toLong()
+                        value is String ->
+                            mutable[androidx.datastore.preferences.core.stringPreferencesKey(key)] = value
+                        value is Boolean ->
+                            mutable[androidx.datastore.preferences.core.booleanPreferencesKey(key)] = value
+                        value is Int ->
+                            mutable[androidx.datastore.preferences.core.intPreferencesKey(key)] = value
+                        value is Long ->
+                            mutable[androidx.datastore.preferences.core.longPreferencesKey(key)] = value
                         // DataStore has no Double type: every JSON double here was
                         // exported from a Float pref (export does Float.toDouble()),
-                        // so it MUST go back under a floatPreferencesKey. The old
-                        // intPreferencesKey/toInt() stored it as an Int under a key
-                        // the app reads as Float, so the next launch crashed with
-                        // ClassCastException (#323). Float reads are also hardened
-                        // (floatSafe) so a store already corrupted this way self-heals.
-                        is Double -> mutable[androidx.datastore.preferences.core.floatPreferencesKey(key)] = value.toFloat()
+                        // so it MUST go back under a floatPreferencesKey.
+                        value is Double ->
+                            mutable[androidx.datastore.preferences.core.floatPreferencesKey(key)] =
+                                value.toFloat()
+                        value is Float ->
+                            mutable[androidx.datastore.preferences.core.floatPreferencesKey(key)] = value
                     }
                     count++
                 }

@@ -7,6 +7,8 @@ import androidx.datastore.preferences.core.booleanPreferencesKey
 import androidx.datastore.preferences.core.edit
 import androidx.datastore.preferences.core.floatPreferencesKey
 import androidx.datastore.preferences.core.intPreferencesKey
+import androidx.datastore.preferences.core.longPreferencesKey
+import sh.haven.core.data.preferences.UserPreferencesRepository
 import androidx.datastore.preferences.core.stringPreferencesKey
 import io.mockk.coEvery
 import io.mockk.coVerify
@@ -102,34 +104,69 @@ class BackupServiceTest {
     }
 
     @Test
-    fun `float preferences survive export-import as Float, not Int (#323 brick)`() = runTest {
+    fun `float preferences survive export-import as Float, not Int (#323, #779)`() = runTest {
         coEvery { connectionRepository.getAll() } returns emptyList()
         coEvery { sshKeyDao.getAll() } returns emptyList()
         coEvery { sshKeyRepository.getAllDecrypted() } returns emptyList()
         coEvery { knownHostDao.getAll() } returns emptyList()
         coEvery { portForwardRuleDao.getAll() } returns emptyList()
 
-        // A Float pref, both fractional and whole-valued (whole floats are the
-        // nastier case: JSON collapses 1.0 -> 1, so import saw an Int).
+        // Fractional and whole-valued floats across all known FLOAT_PREF_KEYS, plus
+        // a small-valued Long pref (JSON collapses 1.0 -> 1 and 0L -> 0, so import
+        // sees java.lang.Integer).
         val fracKey = floatPreferencesKey("terminal_background_opacity")
-        val wholeKey = floatPreferencesKey("app_window_default_scale")
-        dataStore.edit { it[fracKey] = 0.85f; it[wholeKey] = 1.0f }
+        val wholeScaleKey = floatPreferencesKey("app_window_default_scale")
+        val toolbarScaleKey = floatPreferencesKey("toolbar_key_scale")
+        val touchpadKey = floatPreferencesKey("desktop_touchpad_sensitivity")
+        val mailScaleKey = floatPreferencesKey("mail_font_scale")
+        val updateRunKey = longPreferencesKey("update_check_last_run_ms")
+        dataStore.edit {
+            it[fracKey] = 0.85f
+            it[wholeScaleKey] = 1.0f
+            it[toolbarScaleKey] = 2.0f
+            it[touchpadKey] = 1.0f
+            it[mailScaleKey] = 2.0f
+            it[updateRunKey] = 0L
+        }
 
         val encrypted = service.export("pw")
         // Wipe, then import back.
         dataStore.edit { it.clear() }
         service.import(encrypted, "pw")
 
-        // The bug stored these under an Int key; reading them as Float then threw
-        // ClassCastException and crash-looped the app. They must read back as Float.
+        // Every Float key must read back directly as Float (no ClassCastException)
+        // and every Long key must read back directly as Long.
         val prefs = dataStore.data.first()
         assertEquals(0.85f, prefs[fracKey])
-        // Whole-valued float: after the import fix it's a Float; even if it
-        // round-trips as Int, reading via the app's floatSafe path must not throw.
-        assertEquals(
-            1.0f,
-            runCatching { prefs[wholeKey] }.getOrNull() ?: 1.0f,
-        )
+        assertEquals(1.0f, prefs[wholeScaleKey])
+        assertEquals(2.0f, prefs[toolbarScaleKey])
+        assertEquals(1.0f, prefs[touchpadKey])
+        assertEquals(2.0f, prefs[mailScaleKey])
+        assertEquals(0L, prefs[updateRunKey])
+    }
+
+    @Test
+    fun `UserPreferencesRepository heals already-corrupted Int entries for Float and Long keys (#779)`() = runTest {
+        // Simulate a DataStore already corrupted by a pre-#779 backup restore where
+        // whole-numbered floats and small longs were written via intPreferencesKey.
+        dataStore.edit {
+            it[intPreferencesKey("toolbar_key_scale")] = 2
+            it[intPreferencesKey("desktop_touchpad_sensitivity")] = 3
+            it[intPreferencesKey("mail_font_scale")] = 2
+            it[intPreferencesKey("app_window_default_scale")] = 2
+            it[intPreferencesKey("terminal_background_opacity")] = 1
+            it[intPreferencesKey("update_check_last_run_ms")] = 12345
+            it[intPreferencesKey("last_viewed_agent_audit_timestamp")] = 67890
+        }
+
+        val repo = UserPreferencesRepository(mockk(relaxed = true), dataStore)
+        assertEquals(2.0f, repo.toolbarKeyScale.first())
+        assertEquals(3.0f, repo.desktopTouchpadSensitivity.first())
+        assertEquals(2.0f, repo.mailFontScale.first())
+        assertEquals(2.0f, repo.appWindowDefaultScale.first())
+        assertEquals(1.0f, repo.terminalBackgroundOpacity.first())
+        assertEquals(12345L, repo.updateCheckLastRunMs.first())
+        assertEquals(67890L, repo.lastViewedAgentAuditTimestamp.first())
     }
 
     @Test(expected = Exception::class)

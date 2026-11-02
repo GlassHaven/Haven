@@ -443,7 +443,7 @@ class UserPreferencesRepository @Inject constructor(
     }
 
     val backupAutoPullIntervalMinutes: Flow<Int> = dataStore.data.map { prefs ->
-        prefs[backupAutoPullIntervalMinutesKey] ?: 1440
+        prefs.intSafe(backupAutoPullIntervalMinutesKey) ?: 1440
     }
 
     suspend fun setBackupAutoPull(enabled: Boolean, passphrase: String?) {
@@ -744,7 +744,7 @@ class UserPreferencesRepository @Inject constructor(
      * and RDP touchpad paths so both behave the same.
      */
     val desktopTouchpadSensitivity: Flow<Float> = dataStore.data.map { prefs ->
-        prefs[desktopTouchpadSensitivityKey] ?: 1f
+        prefs.floatSafe(desktopTouchpadSensitivityKey) ?: 1f
     }
 
     suspend fun setDesktopTouchpadSensitivity(value: Float) {
@@ -972,7 +972,7 @@ class UserPreferencesRepository @Inject constructor(
 
     /** Wall-clock ms of the last launch-time check; 0 = never. Throttle input. */
     val updateCheckLastRunMs: Flow<Long> = dataStore.data.map { prefs ->
-        prefs[updateCheckLastRunKey] ?: 0L
+        prefs.longSafe(updateCheckLastRunKey) ?: 0L
     }
 
     suspend fun setUpdateCheckLastRunMs(atMs: Long) {
@@ -1178,7 +1178,7 @@ class UserPreferencesRepository @Inject constructor(
 
     /** Last port used by the media streaming server (for reconnection after restart). */
     val lastMediaServerPort: Flow<Int> = dataStore.data.map { prefs ->
-        prefs[lastMediaServerPortKey] ?: 0
+        prefs.intSafe(lastMediaServerPortKey) ?: 0
     }
 
     suspend fun setLastMediaServerPort(port: Int) {
@@ -1228,7 +1228,7 @@ class UserPreferencesRepository @Inject constructor(
      * [McpTunnelManager] to re-arm the `-R` forward across tunnel rebuilds.
      */
     val mcpAdbExposedPort: Flow<Int?> = dataStore.data.map { prefs ->
-        prefs[mcpAdbExposedPortKey]
+        prefs.intSafe(mcpAdbExposedPortKey)
     }
 
     suspend fun setMcpAdbExposedPort(port: Int?) {
@@ -1318,7 +1318,7 @@ class UserPreferencesRepository @Inject constructor(
      * decide whether to show an "unseen" dot.
      */
     val lastViewedAgentAuditTimestamp: Flow<Long> = dataStore.data.map { prefs ->
-        prefs[lastViewedAgentAuditTimestampKey] ?: 0L
+        prefs.longSafe(lastViewedAgentAuditTimestampKey) ?: 0L
     }
 
     suspend fun setLastViewedAgentAuditTimestamp(timestamp: Long) {
@@ -1480,11 +1480,11 @@ class UserPreferencesRepository @Inject constructor(
     }
 
     val terminalFontSize: Flow<Int> = dataStore.data.map { prefs ->
-        prefs[terminalFontSizeKey] ?: DEFAULT_FONT_SIZE
+        prefs.intSafe(terminalFontSizeKey) ?: DEFAULT_FONT_SIZE
     }
 
     val terminalHorizontalPadding: Flow<Int> = dataStore.data.map { prefs ->
-        prefs[terminalHorizontalPaddingKey] ?: DEFAULT_HORIZONTAL_PADDING_DP
+        prefs.intSafe(terminalHorizontalPaddingKey) ?: DEFAULT_HORIZONTAL_PADDING_DP
     }
 
     suspend fun setTerminalHorizontalPadding(paddingDp: Int) {
@@ -1526,7 +1526,7 @@ class UserPreferencesRepository @Inject constructor(
      * shared key primitive.
      */
     val toolbarMinButtonWidth: Flow<Int> = dataStore.data.map { prefs ->
-        prefs[toolbarMinButtonWidthKey] ?: DEFAULT_TOOLBAR_MIN_BUTTON_WIDTH
+        prefs.intSafe(toolbarMinButtonWidthKey) ?: DEFAULT_TOOLBAR_MIN_BUTTON_WIDTH
     }
 
     /**
@@ -1536,7 +1536,7 @@ class UserPreferencesRepository @Inject constructor(
      * with [toolbarMinButtonWidth], which keeps operating in scaled dp.
      */
     val toolbarKeyScale: Flow<Float> = dataStore.data.map { prefs ->
-        prefs[toolbarKeyScaleKey] ?: DEFAULT_TOOLBAR_KEY_SCALE
+        prefs.floatSafe(toolbarKeyScaleKey) ?: DEFAULT_TOOLBAR_KEY_SCALE
     }
 
     /**
@@ -1547,7 +1547,7 @@ class UserPreferencesRepository @Inject constructor(
      * open tabs.
      */
     val terminalScrollbackRows: Flow<Int> = dataStore.data.map { prefs ->
-        (prefs[terminalScrollbackRowsKey] ?: DEFAULT_SCROLLBACK_ROWS)
+        (prefs.intSafe(terminalScrollbackRowsKey) ?: DEFAULT_SCROLLBACK_ROWS)
             .coerceIn(MIN_SCROLLBACK_ROWS, MAX_SCROLLBACK_ROWS)
     }
 
@@ -1562,12 +1562,12 @@ class UserPreferencesRepository @Inject constructor(
      * follow the server is the better fix and is a separate piece of work.
      */
     val rdpDesktopWidth: Flow<Int> = dataStore.data.map { prefs ->
-        (prefs[rdpDesktopWidthKey] ?: DEFAULT_RDP_WIDTH)
+        (prefs.intSafe(rdpDesktopWidthKey) ?: DEFAULT_RDP_WIDTH)
             .coerceIn(MIN_RDP_DIMENSION, MAX_RDP_DIMENSION)
     }
 
     val rdpDesktopHeight: Flow<Int> = dataStore.data.map { prefs ->
-        (prefs[rdpDesktopHeightKey] ?: DEFAULT_RDP_HEIGHT)
+        (prefs.intSafe(rdpDesktopHeightKey) ?: DEFAULT_RDP_HEIGHT)
             .coerceIn(MIN_RDP_DIMENSION, MAX_RDP_DIMENSION)
     }
 
@@ -1593,7 +1593,7 @@ class UserPreferencesRepository @Inject constructor(
      * too, so it stays off unless the user wants idle reclamation.
      */
     val prootIdleTimeoutMinutes: Flow<Int> = dataStore.data.map { prefs ->
-        (prefs[prootIdleTimeoutMinutesKey] ?: 0).coerceAtLeast(0)
+        (prefs.intSafe(prootIdleTimeoutMinutesKey) ?: 0).coerceAtLeast(0)
     }
 
     suspend fun setProotIdleTimeoutMinutes(minutes: Int) {
@@ -1715,15 +1715,22 @@ class UserPreferencesRepository @Inject constructor(
     }
 
     /**
-     * Read a Float pref that a pre-v5.68.27 backup restore may have corrupted to
-     * a non-Float type. That restore stored Float prefs under an Int key (#323),
-     * so `prefs[floatKey]` throws ClassCastException and crash-loops the app on
-     * launch. A wrong stored type returns null here (→ caller's default) instead
-     * of throwing, so an already-corrupted store self-heals; the fix also
-     * corrects the import so it can't recur.
+     * Read a numeric preference defensively (#323, #779). Android's
+     * [org.json.JSONObject] strips `.0` from whole-numbered doubles (`1.0` -> `1`),
+     * so an older backup import stored whole-valued floats (and small longs) as
+     * `Int` in DataStore. Because `Preferences.Key` equality only compares `name`,
+     * `prefs[floatKey]` then threw `ClassCastException: Integer cannot be cast to Float`.
+     * Looking up via [Preferences.asMap] and converting any [Number] heals already-imported
+     * stores on read while preserving the user's numeric value (e.g. `2` -> `2.0f`).
      */
-    private fun Preferences.floatSafe(key: Preferences.Key<Float>): Float? =
-        runCatching { this[key] }.getOrNull()
+    internal fun Preferences.floatSafe(key: Preferences.Key<Float>): Float? =
+        (this.asMap()[key] as? Number)?.toFloat()
+
+    internal fun Preferences.longSafe(key: Preferences.Key<Long>): Long? =
+        (this.asMap()[key] as? Number)?.toLong()
+
+    internal fun Preferences.intSafe(key: Preferences.Key<Int>): Int? =
+        (this.asMap()[key] as? Number)?.toInt()
 
     /** Mail message-list pinch-zoom factor (× the terminal font size). 1.0 = match terminal. */
     val mailFontScale: Flow<Float> = dataStore.data.map { prefs ->
@@ -1766,7 +1773,7 @@ class UserPreferencesRepository @Inject constructor(
     }
 
     val reticulumPort: Flow<Int> = dataStore.data.map { prefs ->
-        prefs[reticulumPortKey] ?: DEFAULT_RETICULUM_PORT
+        prefs.intSafe(reticulumPortKey) ?: DEFAULT_RETICULUM_PORT
     }
 
     val reticulumConfigured: Flow<Boolean> = dataStore.data.map { prefs ->
@@ -2584,5 +2591,30 @@ class UserPreferencesRepository @Inject constructor(
         const val DEFAULT_TOOLBAR_ROW2 = "arrow_left,arrow_up,arrow_down,arrow_right,sym_pipe,sym_tilde,sym_slash,sym_backslash,sym_backtick" // legacy
         const val DEFAULT_MEDIA_EXTENSIONS = "mp3 flac ogg opus m4a aac wma wav aiff alac ape mka mp4 mkv avi mov wmv flv webm m4v ts mpg mpeg 3gp"
         const val DEFAULT_TERMINAL_LOCALE = "en_US.UTF-8"
+
+        /**
+         * DataStore keys backed by [floatPreferencesKey]. Android's [org.json.JSONObject]
+         * strips `.0` from whole-numbered doubles (`1.0` -> `1`), so JSON import sees an
+         * [Int] for whole-valued floats (#323, #779). [sh.haven.core.data.backup.BackupService]
+         * consults this set to restore them as [Float], and [floatSafe] coerces any [Number]
+         * on read so an already-imported store self-heals without losing the stored value.
+         */
+        val FLOAT_PREF_KEYS: Set<String> = setOf(
+            "mail_font_scale",
+            "terminal_background_opacity",
+            "toolbar_key_scale",
+            "app_window_default_scale",
+            "desktop_touchpad_sensitivity",
+        )
+
+        /**
+         * DataStore keys backed by [longPreferencesKey]. Small values (e.g. `0`) parse back
+         * from JSON as [Int]; [sh.haven.core.data.backup.BackupService] restores them as [Long]
+         * and [longSafe] coerces any [Number] on read.
+         */
+        val LONG_PREF_KEYS: Set<String> = setOf(
+            "update_check_last_run_ms",
+            "last_viewed_agent_audit_timestamp",
+        )
     }
 }

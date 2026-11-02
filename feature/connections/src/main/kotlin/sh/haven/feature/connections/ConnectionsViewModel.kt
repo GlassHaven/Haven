@@ -431,7 +431,7 @@ class ConnectionsViewModel @Inject constructor(
                 if (command is sh.haven.core.data.agent.AgentUiCommand.ConnectProfile) {
                     val profile = repository.getById(command.profileId)
                     if (profile != null) {
-                        connect(profile, password = profile.sshPassword.orEmpty(), sessionName = command.sessionName)
+                        connect(profile, password = "", sessionName = command.sessionName)
                     } else {
                         Log.w(TAG, "ConnectProfile: profile ${command.profileId} not found")
                     }
@@ -1204,7 +1204,7 @@ class ConnectionsViewModel @Inject constructor(
         _connectConfirm.value = null
         connect(
             c.profile,
-            password = c.profile.sshPassword.orEmpty(),
+            password = "",
             sessionName = c.sessionName,
             startupCommand = c.startupCommand,
         )
@@ -2499,9 +2499,15 @@ class ConnectionsViewModel @Inject constructor(
             viewModelScope.launch {
                 val resolved = sshIdentityRepository.applyTo(profile)
                 // If the caller didn't already carry a typed password, adopt
-                // the identity's (mirrors the jump-host merge idiom).
-                val effectivePassword =
-                    if (password.isEmpty()) resolved.sshPassword.orEmpty() else password
+                // the identity's / profile's saved login password ONLY when the
+                // profile is not key-auth (#381). Otherwise a stored login/sudo
+                // password gets threaded into resolveAuthMethods as a key
+                // passphrase or causes resolveAuthMethod to skip auto-key offer.
+                val effectivePassword = jumpConnectPassword(
+                    typedPassword = password,
+                    jumpUsesKeyAuth = profileUsesKeyAuth(resolved),
+                    savedSshPassword = resolved.sshPassword,
+                )
                 connectAfterIdentity(resolved, effectivePassword, keyOnly, rememberPassword, usernameOverride, sessionName, startupCommand)
             }
             return
@@ -5756,15 +5762,17 @@ class ConnectionsViewModel @Inject constructor(
         // specs and the legacy/explicit-key callers.
         if (profile.ignoreSavedKeys) return ConnectionConfig.AuthMethod.Password(password)
         val specs = profile.authMethodSpecs
-        // A single explicit-key spec must be honoured via the SPEC's keyId.
-        // The legacy resolveAuthMethod reads profile.keyId, which can be out of
-        // sync with the spec — e.g. a profile pinned via MCP authMethods, or a
-        // UI save that didn't mirror the spec to the legacy field. When unsynced
-        // (keyId null) it silently fell back to "any saved key" and ignored the
-        // pin, so a connection set to require one specific key authenticated
-        // with whatever other key the server accepted.
-        (specs.singleOrNull() as? ConnectionProfile.AuthMethodSpec.Key)?.keyId?.let { kid ->
-            resolveExplicitKey(kid, password)?.let { return it }
+        // A single key spec ("KEY:<id>" or "KEY" = any saved key) must be
+        // honoured directly. Previously only non-null keyId returned here, so a
+        // lone Key(null) spec fell through to resolveAuthMethod where a stored
+        // sshPassword made `if (password.isEmpty())` false and dropped all keys.
+        (specs.singleOrNull() as? ConnectionProfile.AuthMethodSpec.Key)?.let { keySpec ->
+            val keyAuth = if (keySpec.keyId != null) {
+                resolveExplicitKey(keySpec.keyId!!, password)
+            } else {
+                resolveAnySavedKeysPool()
+            }
+            keyAuth?.let { return it }
         }
         // A lone "Any hardware key" must resolve to the FIDO pool, not fall to
         // resolveAuthMethod (which only knows password / any-software-key).
@@ -5776,10 +5784,12 @@ class ConnectionsViewModel @Inject constructor(
         val methods = specs.mapNotNull { spec ->
             when (spec) {
                 is ConnectionProfile.AuthMethodSpec.Password ->
-                    ConnectionConfig.AuthMethod.Password(password)
+                    ConnectionConfig.AuthMethod.Password(
+                        password.ifEmpty { profile.sshPassword.orEmpty() },
+                    )
                 is ConnectionProfile.AuthMethodSpec.Key ->
                     if (spec.keyId != null) resolveExplicitKey(spec.keyId!!, password)
-                    else resolveAnyUsableKeys()
+                    else resolveAnySavedKeysPool()
                 ConnectionProfile.AuthMethodSpec.AnyHardwareKey -> resolveAnyHardwareKeys()
                 ConnectionProfile.AuthMethodSpec.KeyboardInteractive -> null
                 // TOTP is auto-filled into the live keyboard-interactive
@@ -5852,18 +5862,23 @@ class ConnectionsViewModel @Inject constructor(
         // deferred any-hardware-key detection then skips the up-front
         // token prompt, and the FIDO ceremony only runs for an sk-key
         // the server actually accepts the offer of (#531).
-        if (password.isEmpty()) {
-            val software = resolveAnyUsableKeys()
-            val hardware = resolveAnyHardwareKeys()
-            when {
-                software != null && hardware != null ->
-                    return ConnectionConfig.AuthMethod.Multi(listOf(software, hardware))
-                software != null -> return software
-                hardware != null -> return hardware
-            }
+        if (password.isEmpty() || profileUsesKeyAuth(profile)) {
+            resolveAnySavedKeysPool()?.let { return it }
         }
 
         return ConnectionConfig.AuthMethod.Password(password)
+    }
+
+    private suspend fun resolveAnySavedKeysPool(): ConnectionConfig.AuthMethod? {
+        val software = resolveAnyUsableKeys()
+        val hardware = resolveAnyHardwareKeys()
+        return when {
+            software != null && hardware != null ->
+                ConnectionConfig.AuthMethod.Multi(listOf(software, hardware))
+            software != null -> software
+            hardware != null -> hardware
+            else -> null
+        }
     }
 
     /**
@@ -6816,7 +6831,11 @@ class ConnectionsViewModel @Inject constructor(
     }
 
     private suspend fun connectSshSilent(profile: ConnectionProfile) {
-        val password = profile.sshPassword ?: ""
+        val password = jumpConnectPassword(
+            typedPassword = "",
+            jumpUsesKeyAuth = profileUsesKeyAuth(profile),
+            savedSshPassword = profile.sshPassword,
+        )
         val verboseEnabled = preferencesRepository.verboseLoggingEnabled.first()
         val verboseLogger = if (verboseEnabled) SshVerboseLogger() else null
         val client = SshConnectionFactory.create(sshEngineFromOptionsText(profile.sshOptions)).apply {
@@ -6922,7 +6941,11 @@ class ConnectionsViewModel @Inject constructor(
     }
 
     private suspend fun connectMoshSilent(profile: ConnectionProfile) {
-        val password = profile.sshPassword ?: ""
+        val password = jumpConnectPassword(
+            typedPassword = "",
+            jumpUsesKeyAuth = profileUsesKeyAuth(profile),
+            savedSshPassword = profile.sshPassword,
+        )
         val sessionId = moshSessionManager.registerSession(profileId = profile.id, label = profile.label)
         val verboseEnabled = preferencesRepository.verboseLoggingEnabled.first()
         val verboseLogger = if (verboseEnabled) SshVerboseLogger() else null
@@ -6956,7 +6979,11 @@ class ConnectionsViewModel @Inject constructor(
     }
 
     private suspend fun connectEtSilent(profile: ConnectionProfile) {
-        val password = profile.sshPassword ?: ""
+        val password = jumpConnectPassword(
+            typedPassword = "",
+            jumpUsesKeyAuth = profileUsesKeyAuth(profile),
+            savedSshPassword = profile.sshPassword,
+        )
         val sessionId = etSessionManager.registerSession(profileId = profile.id, label = profile.label)
         val verboseEnabled = preferencesRepository.verboseLoggingEnabled.first()
         val verboseLogger = if (verboseEnabled) SshVerboseLogger() else null

@@ -1716,8 +1716,13 @@ private fun onTapProfile(
     } else if (profile.username.isBlank()) {
         // Profile saved without a username — always prompt so the user can pick one.
         showPasswordDialog()
+    } else if (profileUsesKeyAuth(profile) &&
+        profile.authMethodSpecs.none { it is ConnectionProfile.AuthMethodSpec.Password } &&
+        sshKeys.isNotEmpty()
+    ) {
+        viewModel.connectWithKey(profile)
     } else if (!profile.sshPassword.isNullOrBlank()) {
-        viewModel.connect(profile, profile.sshPassword!!)
+        viewModel.connect(profile, if (profileUsesKeyAuth(profile)) "" else profile.sshPassword!!)
     } else if (sshKeys.isNotEmpty()) {
         viewModel.connectWithKey(profile)
     } else {

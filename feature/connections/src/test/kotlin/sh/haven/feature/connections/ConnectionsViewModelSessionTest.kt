@@ -1333,4 +1333,80 @@ class ConnectionsViewModelSessionTest {
         val resolved = providerSlot.captured.invoke()
         assertSame("reconnect must resolve proxy from fresh repository row", expectedProxy, resolved)
     }
+
+    @Test
+    fun `a Key(null) profile with a stored sshPassword still offers saved SSH keys`() = runTest {
+        val profile = ConnectionProfile(
+            id = "p-key-any", label = "msi-z790", host = "192.168.0.180", username = "ian",
+            connectionType = "SSH",
+            authType = ConnectionProfile.AuthType.KEY,
+            authMethods = "KEY",
+            sshPassword = "stored-password",
+            remoteCommand = "true",
+        )
+        coEvery { sshKeyRepository.getAllDecryptedDetailed() } returns DecryptedKeys(
+            keys = listOf(
+                SshKey(
+                    id = "k-haven", label = "haven", keyType = "ssh-ed25519",
+                    privateKeyBytes = ByteArray(64), publicKeyOpenSsh = "ssh-ed25519 A",
+                    fingerprintSha256 = "SHA256:haven",
+                ),
+            ),
+            declined = emptyList(),
+        )
+        val configSlot = slot<ConnectionConfig>()
+        every { sshSessionManager.registerSession("p-key-any", any(), any()) } returns "key-any-sess"
+        every { sshSessionManager.isClientShared(any()) } returns true
+        every { sshSessionManager.getSession(any()) } returns null
+        every { sshSessionManager.getConnectionConfigForProfile(any()) } returns null
+        coEvery { sshSessionManager.openShellAndAwaitReady(any(), any(), any()) } returns
+            sh.haven.core.ssh.ShellOutcome.Ready("key-any-sess")
+        viewModel.clientFactory = { _ ->
+            mockk<sh.haven.core.ssh.SshConnection>(relaxed = true).also {
+                coEvery { it.connect(capture(configSlot), any(), any(), any(), any(), any(), any(), any()) } returns null
+            }
+        }
+
+        viewModel.connect(profile, password = "")
+        val deadline = System.currentTimeMillis() + 10_000
+        while (!configSlot.isCaptured && System.currentTimeMillis() < deadline) {
+            testDispatcher.scheduler.advanceUntilIdle()
+            Thread.sleep(20)
+        }
+
+        assertTrue("client.connect must be called", configSlot.isCaptured)
+        val auth = configSlot.captured.authMethod
+        assertTrue(
+            "expected PrivateKeys for Key(null) profile with stored password, got $auth",
+            auth is ConnectionConfig.AuthMethod.PrivateKeys,
+        )
+    }
+
+    @Test
+    fun `resolveAuthMethod offers saved keys for a KEY profile even when a stored password is present`() = runTest {
+        coEvery { sshKeyRepository.getAllDecryptedDetailed() } returns DecryptedKeys(
+            keys = listOf(
+                SshKey(
+                    id = "k-haven", label = "haven", keyType = "ssh-ed25519",
+                    privateKeyBytes = ByteArray(64), publicKeyOpenSsh = "ssh-ed25519 A",
+                    fingerprintSha256 = "SHA256:haven",
+                ),
+            ),
+            declined = emptyList(),
+        )
+        val profile = ConnectionProfile(
+            id = "p-key", label = "msi-z790", host = "192.168.0.180", username = "ian",
+            connectionType = "SSH",
+            authType = ConnectionProfile.AuthType.KEY,
+            authMethods = "KEY",
+            sshPassword = "stored-password",
+        )
+
+        val auth = viewModel.resolveAuthMethod(profile, password = "stored-password")
+
+        assertTrue(
+            "expected PrivateKeys for KEY profile, got $auth",
+            auth is ConnectionConfig.AuthMethod.PrivateKeys,
+        )
+    }
 }

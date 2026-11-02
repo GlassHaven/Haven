@@ -27981,6 +27981,26 @@
      }
     },
     {
+     "name": "rdp_cd_input_mode_touchscreen_on",
+     "en": "Native touchscreen mode on (tap for direct mouse)",
+     "comment": "",
+     "args": [],
+     "t": {
+      "ar": "وضع شاشة اللمس الأصلية مفعل (اضغط للماوس المباشر)",
+      "bn": "নেটিভ টাচস্ক্রিন মোড চালু (সরাসরি মাউসের জন্য ট্যাপ করুন)",
+      "de": "Nativer Touchscreen-Modus aktiv (Tippen für direkte Maus)",
+      "es": "Modo pantalla táctil nativa activo (toca para ratón directo)",
+      "fr": "Mode écran tactile natif activé (appuyer pour souris directe)",
+      "hi": "Native touchscreen mode चालू (सीधे माउस के लिए टैप करें)",
+      "ja": "ネイティブタッチスクリーンモード有効（タップでダイレクトマウス）",
+      "ko": "네이티브 터치스크린 모드 켜짐 (직접 마우스로 전환하려면 탭)",
+      "pt": "Modo tela de toque nativa ativo (toque para mouse direto)",
+      "ru": "Режим сенсорного экрана включён (нажмите для прямой мыши)",
+      "sr": "Изворни режим екрана на додир укључен (тап за директног миша)",
+      "zh": "原生触屏模式已开启（点击切换为直接鼠标）"
+     }
+    },
+    {
      "name": "rdp_cd_input_mode_direct",
      "en": "Direct touch mode (tap for trackpad)",
      "comment": "",

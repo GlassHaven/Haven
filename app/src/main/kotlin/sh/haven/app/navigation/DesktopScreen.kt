@@ -381,6 +381,8 @@ fun DesktopScreen(
                             onSetInputMode = onSetInputMode,
                             touchpadSensitivity = touchpadSensitivity,
                             onSetTouchpadSensitivity = onSetTouchpadSensitivity,
+                            onTouchFrame = { contacts -> desktopViewModel.sendRdpTouchFrame(contacts) },
+                            onCancelTouches = { desktopViewModel.cancelRdpTouches() },
                             currentOrientation = desktopOrientation,
                             onCycleOrientation = { desktopViewModel.cycleDesktopOrientation() },
                             onRetry = { desktopViewModel.retryTab(tab.id) },

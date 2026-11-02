@@ -47,6 +47,7 @@ import androidx.compose.material.icons.filled.Keyboard
 import androidx.compose.material.icons.filled.KeyboardHide
 import androidx.compose.material.icons.filled.Menu
 import androidx.compose.material.icons.filled.OpenWith
+import androidx.compose.material.icons.filled.PanTool
 import androidx.compose.material.icons.filled.Speed
 import androidx.compose.material.icons.filled.ScreenLockLandscape
 import androidx.compose.material.icons.filled.ScreenLockPortrait
@@ -189,6 +190,13 @@ fun RdpSessionContent(
     /** Persist trackpad sensitivity from the toolbar (#696). Null hides the control. */
     onSetTouchpadSensitivity: ((Float) -> Unit)? = null,
     /**
+     * Multi-touch MS-RDPEI (`Microsoft::Windows::RDS::Input`) frame callback (#778).
+     * Non-null enables `"TOUCHSCREEN"` in the input-mode toggle and forwards
+     * all active pointers directly as remote touch contacts.
+     */
+    onTouchFrame: ((List<sh.haven.core.rdp.RdpTouchContactSample>) -> Unit)? = null,
+    onCancelTouches: (() -> Unit)? = null,
+    /**
      * Activity orientation constant
      * (`ActivityInfo.SCREEN_ORIENTATION_*`) currently in effect for
      * this session. The owner is responsible for applying it to the
@@ -283,6 +291,8 @@ fun RdpSessionContent(
             onSetInputMode = onSetInputMode,
             touchpadSensitivity = touchpadSensitivity,
             onSetTouchpadSensitivity = onSetTouchpadSensitivity,
+            onTouchFrame = onTouchFrame,
+            onCancelTouches = onCancelTouches,
             currentOrientation = currentOrientation,
             onCycleOrientation = onCycleOrientation,
             chipAnchor = chipAnchor,
@@ -479,6 +489,8 @@ private fun RdpViewer(
     touchpadSensitivity: Float = 1f,
     /** Persist trackpad sensitivity from the toolbar (#696). Null hides the control. */
     onSetTouchpadSensitivity: ((Float) -> Unit)? = null,
+    onTouchFrame: ((List<sh.haven.core.rdp.RdpTouchContactSample>) -> Unit)? = null,
+    onCancelTouches: (() -> Unit)? = null,
     currentOrientation: Int = android.content.pm.ActivityInfo.SCREEN_ORIENTATION_LANDSCAPE,
     onCycleOrientation: () -> Unit = {},
     chipAnchor: sh.haven.core.data.preferences.RdpChipAnchor =
@@ -486,6 +498,15 @@ private fun RdpViewer(
     onChipAnchorChange: (sh.haven.core.data.preferences.RdpChipAnchor) -> Unit = {},
     isActive: Boolean = true,
 ) {
+    // SPICE and GLKVM reuse RdpViewer without MS-RDPEI; treat TOUCHSCREEN as
+    // DIRECT when no multi-touch channel is attached (#778).
+    val touchscreenCapable = onTouchFrame != null
+    val effectiveInputMode = effectiveRdpInputMode(inputMode, touchscreenCapable)
+    LaunchedEffect(effectiveInputMode) {
+        if (effectiveInputMode != "TOUCHSCREEN") {
+            onCancelTouches?.invoke()
+        }
+    }
     // Map the activity-orientation constant to the local enum for
     // icon/description rendering. Source-of-truth for the value lives
     // outside this composable (DesktopViewModel) so it
@@ -511,12 +532,12 @@ private fun RdpViewer(
     var twoFingerScroll by rememberSaveable { mutableStateOf(false) }
 
     // Touchpad-mode virtual cursor — composable scope so it survives lifts.
-    var virtualCursor by remember(inputMode) { mutableStateOf(pointerPos) }
+    var virtualCursor by remember(effectiveInputMode) { mutableStateOf(pointerPos) }
     // #696: float accumulator for the same cursor — per-event Int rounding
     // would otherwise drop sub-pixel steps at low sensitivity (a slow drag
     // would round to zero and never move). The Int pair above stays the
     // emitted/consumed value.
-    var virtualCursorF by remember(inputMode) {
+    var virtualCursorF by remember(effectiveInputMode) {
         mutableStateOf(Offset(pointerPos.first.toFloat(), pointerPos.second.toFloat()))
     }
 
@@ -557,8 +578,8 @@ private fun RdpViewer(
 
     // Mario-camera viewport pan: when in touchpad mode and zoomed, snap the
     // pan so the cursor always stays inside the inner dead-zone of the view.
-    LaunchedEffect(virtualCursor, inputMode, zoom, viewSize, frame.width, frame.height) {
-        if (inputMode == "TOUCHPAD" && zoom > 1f && viewSize.width > 0 && viewSize.height > 0) {
+    LaunchedEffect(virtualCursor, effectiveInputMode, zoom, viewSize, frame.width, frame.height) {
+        if (effectiveInputMode == "TOUCHPAD" && zoom > 1f && viewSize.width > 0 && viewSize.height > 0) {
             val (newPanX, newPanY) = cameraFollow(
                 cursorFbX = virtualCursor.first,
                 cursorFbY = virtualCursor.second,
@@ -810,7 +831,7 @@ private fun RdpViewer(
                 .onSizeChanged { viewSize = it }
                 // Sensitivity is a key so an in-flight drag does not carry the
                 // stale multiplier from capture time (#696).
-                .pointerInput(frame.width, frame.height, viewSize, inputMode, touchpadSensitivity) {
+                .pointerInput(frame.width, frame.height, viewSize, effectiveInputMode, touchpadSensitivity) {
                     val touchSlopPx = viewConfiguration.touchSlop
                     awaitEachGesture {
                         val firstDown = awaitFirstDown(
@@ -839,6 +860,76 @@ private fun RdpViewer(
                         ) {
                             hardwareKeyFocus.requestFocus()
                         }
+                        if (effectiveInputMode == "TOUCHSCREEN" && onTouchFrame != null) {
+                            // #778: native MS-RDPEI multi-touch passthrough.
+                            // Every pointer down/move/up is forwarded directly
+                            // to the remote touch digitizer instead of being
+                            // interpreted as local viewport zoom/scroll or mouse.
+                            val activeTouchIds = HashSet<Long>()
+                            try {
+                                val firstPos = screenToRemote(
+                                    firstDown.position, viewSize,
+                                    frame.width, frame.height,
+                                    zoom, panX, panY,
+                                )
+                                activeTouchIds.add(firstDown.id.value)
+                                onTouchFrame(
+                                    listOf(
+                                        sh.haven.core.rdp.RdpTouchContactSample(
+                                            pointerId = firstDown.id.value,
+                                            phase = sh.haven.core.rdp.RdpTouchContactPhase.STARTED,
+                                            x = firstPos.first,
+                                            y = firstPos.second,
+                                        ),
+                                    ),
+                                )
+                                do {
+                                    val event = awaitPointerEvent(PointerEventPass.Initial)
+                                    val samples = ArrayList<sh.haven.core.rdp.RdpTouchContactSample>(event.changes.size)
+                                    for (change in event.changes) {
+                                        val id = change.id.value
+                                        val pos = screenToRemote(
+                                            change.position, viewSize,
+                                            frame.width, frame.height,
+                                            zoom, panX, panY,
+                                        )
+                                        if (change.pressed) {
+                                            val isNew = activeTouchIds.add(id)
+                                            samples.add(
+                                                sh.haven.core.rdp.RdpTouchContactSample(
+                                                    pointerId = id,
+                                                    phase = if (isNew) {
+                                                        sh.haven.core.rdp.RdpTouchContactPhase.STARTED
+                                                    } else {
+                                                        sh.haven.core.rdp.RdpTouchContactPhase.MOVED
+                                                    },
+                                                    x = pos.first,
+                                                    y = pos.second,
+                                                ),
+                                            )
+                                        } else if (activeTouchIds.remove(id)) {
+                                            samples.add(
+                                                sh.haven.core.rdp.RdpTouchContactSample(
+                                                    pointerId = id,
+                                                    phase = sh.haven.core.rdp.RdpTouchContactPhase.ENDED,
+                                                    x = pos.first,
+                                                    y = pos.second,
+                                                ),
+                                            )
+                                        }
+                                        change.consume()
+                                    }
+                                    if (samples.isNotEmpty()) {
+                                        onTouchFrame(samples)
+                                    }
+                                } while (event.changes.any { it.pressed })
+                            } finally {
+                                if (activeTouchIds.isNotEmpty()) {
+                                    onCancelTouches?.invoke()
+                                }
+                            }
+                            return@awaitEachGesture
+                        }
                         var totalFingers = 1
                         var prevCentroid = firstDown.position
                         var prevSpan = 0f
@@ -852,7 +943,7 @@ private fun RdpViewer(
                         var lastSinglePos = firstDown.position
                         var dragging = false
                         // Tap-then-drag follow-up window (touchpad mode only).
-                        val isFollowUpTouch = inputMode == "TOUCHPAD" &&
+                        val isFollowUpTouch = effectiveInputMode == "TOUCHPAD" &&
                             (firstDown.uptimeMillis - lastTapUpMs) <= 300L
                         var dragButtonPressed = false
 
@@ -949,7 +1040,7 @@ private fun RdpViewer(
                                 val deltaScreen = change.positionChange()
                                 totalMovement += deltaScreen.getDistance()
                                 lastSinglePos = change.position
-                                if (inputMode == "TOUCHPAD") {
+                                if (effectiveInputMode == "TOUCHPAD") {
                                     val scale = if (zoom > 0f) zoom else 1f
                                     // #696: scale the finger delta by the trackpad
                                     // sensitivity multiplier; keep the position in
@@ -1003,7 +1094,7 @@ private fun RdpViewer(
                         }
 
                         if (totalFingers == 1 && totalMovement < touchSlopPx) {
-                            val (vx, vy) = if (inputMode == "TOUCHPAD") {
+                            val (vx, vy) = if (effectiveInputMode == "TOUCHPAD") {
                                 virtualCursor
                             } else {
                                 screenToRemote(
@@ -1013,14 +1104,14 @@ private fun RdpViewer(
                                 )
                             }
                             onTap(vx, vy)
-                            if (inputMode == "TOUCHPAD" && !isFollowUpTouch) {
+                            if (effectiveInputMode == "TOUCHPAD" && !isFollowUpTouch) {
                                 lastTapUpMs = SystemClock.uptimeMillis()
                             } else {
                                 lastTapUpMs = 0L
                             }
                         } else if (totalFingers == 2 && twoFingerMovement < touchSlopPx) {
                             // Two fingers down + up with no travel = middle click (#286).
-                            val (mx, my) = if (inputMode == "TOUCHPAD") {
+                            val (mx, my) = if (effectiveInputMode == "TOUCHPAD") {
                                 virtualCursor
                             } else {
                                 screenToRemote(
@@ -1059,23 +1150,26 @@ private fun RdpViewer(
                 // Server cursor overlay (#212). Draw at the touchpad-tracked
                 // virtual cursor in TOUCHPAD mode (the position the user is
                 // steering), else at the server-reported pointer position.
-                val (px, py) = if (inputMode == "TOUCHPAD") virtualCursor else pointerPos
-                if (cursorImage != null && cursor != null) {
-                    drawRdpCursor(
-                        cursor = cursorImage,
-                        cursorW = cursor.bitmap.width,
-                        cursorH = cursor.bitmap.height,
-                        hotspotX = cursor.hotspotX,
-                        hotspotY = cursor.hotspotY,
-                        pointerX = px,
-                        pointerY = py,
-                        fbWidth = frame.width,
-                        fbHeight = frame.height,
-                    )
-                } else if (pointerActive && !hasReceivedCursorShape && !fallbackExpired) {
-                    // #598: the server has not pushed a shape yet — draw the
-                    // built-in arrow at the tracked position instead.
-                    drawFallbackCursor(px, py, frame.width, frame.height)
+                // In native TOUCHSCREEN mode (#778), skip the mouse cursor overlay.
+                if (effectiveInputMode != "TOUCHSCREEN") {
+                    val (px, py) = if (effectiveInputMode == "TOUCHPAD") virtualCursor else pointerPos
+                    if (cursorImage != null && cursor != null) {
+                        drawRdpCursor(
+                            cursor = cursorImage,
+                            cursorW = cursor.bitmap.width,
+                            cursorH = cursor.bitmap.height,
+                            hotspotX = cursor.hotspotX,
+                            hotspotY = cursor.hotspotY,
+                            pointerX = px,
+                            pointerY = py,
+                            fbWidth = frame.width,
+                            fbHeight = frame.height,
+                        )
+                    } else if (pointerActive && !hasReceivedCursorShape && !fallbackExpired) {
+                        // #598: the server has not pushed a shape yet — draw the
+                        // built-in arrow at the tracked position instead.
+                        drawFallbackCursor(px, py, frame.width, frame.height)
+                    }
                 }
             }
         }
@@ -1249,13 +1343,17 @@ private fun RdpViewer(
                     Icon(orientationMode.icon, contentDescription = orientationDesc)
                 }
 
-                // Direct/trackpad input-mode toggle + speed button — #183/#696.
+                // Direct/trackpad/touchscreen input-mode toggle + speed button — #183/#696/#778.
                 InputModeToggle(
-                    inputMode, onSetInputMode, onSetTouchpadSensitivity,
+                    effectiveInputMode, onSetInputMode, onSetTouchpadSensitivity,
                     onOpenSensitivity = { showSensitivityDialog = true },
+                    touchscreenCapable = touchscreenCapable,
                 )
                 // Two-finger drag: viewport pan vs remote scroll — #286.
-                ScrollModeToggle(twoFingerScroll) { twoFingerScroll = !twoFingerScroll }
+                // Hidden in TOUCHSCREEN mode because 2-finger gestures go directly to the remote digitizer.
+                if (effectiveInputMode != "TOUCHSCREEN") {
+                    ScrollModeToggle(twoFingerScroll) { twoFingerScroll = !twoFingerScroll }
+                }
 
                 Spacer(Modifier.weight(1f))
 
@@ -1390,13 +1488,16 @@ private fun RdpViewer(
                     IconButton(onClick = onCycleOrientation) {
                         Icon(orientationMode.icon, contentDescription = orientationDesc)
                     }
-                    // Direct/trackpad input-mode toggle + speed button — #183/#696.
+                    // Direct/trackpad/touchscreen input-mode toggle + speed button — #183/#696/#778.
                     InputModeToggle(
-                        inputMode, onSetInputMode, onSetTouchpadSensitivity, vertical = true,
+                        effectiveInputMode, onSetInputMode, onSetTouchpadSensitivity, vertical = true,
                         onOpenSensitivity = { showSensitivityDialog = true },
+                        touchscreenCapable = touchscreenCapable,
                     )
                     // Two-finger drag: viewport pan vs remote scroll — #286.
-                    ScrollModeToggle(twoFingerScroll) { twoFingerScroll = !twoFingerScroll }
+                    if (effectiveInputMode != "TOUCHSCREEN") {
+                        ScrollModeToggle(twoFingerScroll) { twoFingerScroll = !twoFingerScroll }
+                    }
                     if (zoom != 1f || panX != 0f || panY != 0f) {
                         IconButton(onClick = {
                             zoom = 1f
@@ -1430,11 +1531,21 @@ private fun RdpViewer(
     }
 }
 
+internal fun effectiveRdpInputMode(inputMode: String, touchscreenCapable: Boolean): String =
+    if (inputMode == "TOUCHSCREEN" && !touchscreenCapable) "DIRECT" else inputMode
+
+internal fun nextRdpInputMode(inputMode: String, touchscreenCapable: Boolean): String = when {
+    inputMode == "TOUCHPAD" && touchscreenCapable -> "TOUCHSCREEN"
+    inputMode == "TOUCHPAD" -> "DIRECT"
+    touchscreenCapable && inputMode == "TOUCHSCREEN" -> "DIRECT"
+    else -> "TOUCHPAD"
+}
+
 /**
- * Toggle DIRECT (absolute: finger = cursor) vs TOUCHPAD (relative: drag glides
- * the cursor) input from the viewer (#183/#212). Mirrors the VNC toggle so the
- * cursor-in-touchpad-mode fix is reachable without digging into Settings.
- * Checked (highlighted) = trackpad mode.
+ * Cycle DIRECT (absolute: finger = cursor) -> TOUCHPAD (relative: drag glides
+ * the cursor) -> TOUCHSCREEN (native MS-RDPEI multi-touch passthrough, when
+ * [touchscreenCapable]) from the viewer (#183/#212/#778).
+ * Checked (highlighted) = trackpad or touchscreen mode.
  */
 @Composable
 private fun InputModeToggle(
@@ -1443,26 +1554,32 @@ private fun InputModeToggle(
     onSetTouchpadSensitivity: ((Float) -> Unit)?,
     onOpenSensitivity: () -> Unit,
     vertical: Boolean = false,
+    touchscreenCapable: Boolean = false,
 ) {
     if (onSetInputMode == null) return
     val touchpad = inputMode == "TOUCHPAD"
+    val touchscreen = touchscreenCapable && inputMode == "TOUCHSCREEN"
+    val nextMode = nextRdpInputMode(inputMode, touchscreenCapable)
     // #696 reporter follow-up: in the corner-docked fullscreen overlay the
     // toggle sits inside a vertical panel — stacking here keeps the strip's
     // width at one button instead of widening it for a horizontal row.
     val content: @Composable () -> Unit = {
         FilledIconToggleButton(
-            checked = touchpad,
-            onCheckedChange = { onSetInputMode(if (touchpad) "DIRECT" else "TOUCHPAD") },
+            checked = touchpad || touchscreen,
+            onCheckedChange = { onSetInputMode(nextMode) },
             modifier = Modifier.size(40.dp),
         ) {
             Icon(
-                Icons.Default.TouchApp,
-                contentDescription = if (touchpad) stringResource(R.string.rdp_cd_input_mode_trackpad_on)
-                                     else stringResource(R.string.rdp_cd_input_mode_direct),
+                if (touchscreen) Icons.Default.PanTool else Icons.Default.TouchApp,
+                contentDescription = when {
+                    touchscreen -> stringResource(R.string.rdp_cd_input_mode_touchscreen_on)
+                    touchpad -> stringResource(R.string.rdp_cd_input_mode_trackpad_on)
+                    else -> stringResource(R.string.rdp_cd_input_mode_direct)
+                },
             )
         }
         // Speed control (#696): only while trackpad mode is on — direct touch
-        // has no speed to tune. Opens the sensitivity dialog.
+        // and native touchscreen have no speed to tune. Opens the sensitivity dialog.
         if (touchpad && onSetTouchpadSensitivity != null) {
             val speedDesc = stringResource(R.string.rdp_cd_trackpad_sensitivity)
             IconButton(onClick = onOpenSensitivity) {

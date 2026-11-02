@@ -3012,6 +3012,16 @@ class DesktopViewModel @Inject constructor(
         inputLane.submit { tab.remoteDesktop.sendClipboardText(text) }
     }
 
+    fun sendRdpTouchFrame(contacts: List<sh.haven.core.rdp.RdpTouchContactSample>) {
+        val session = (activeTab.value as? DesktopTab.Rdp)?.session ?: return
+        inputLane.submit { session.sendTouchFrame(contacts) }
+    }
+
+    fun cancelRdpTouches() {
+        val session = (activeTab.value as? DesktopTab.Rdp)?.session ?: return
+        inputLane.submit { session.cancelTouches() }
+    }
+
     fun sendSpiceKey(scancode: Int, pressed: Boolean) {
         val session = (activeTab.value as? DesktopTab.Spice)?.session ?: return
         inputLane.submit { session.sendKey(scancode, pressed) }

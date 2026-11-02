@@ -4,6 +4,7 @@ use log::{debug, error, info, warn};
 
 mod bitmap_bridge;
 mod egfx;
+mod rdpei;
 mod redirection;
 mod yuv;
 
@@ -508,6 +509,43 @@ enum InputEvent {
     ClipboardText(String),
 }
 
+/// Phase of a touch contact for MS-RDPEI multi-touch injection (#778).
+#[derive(uniffi::Enum, Debug, Clone, Copy, PartialEq, Eq)]
+pub enum RdpTouchPhase {
+    Started,
+    Moved,
+    Ended,
+    Canceled,
+}
+
+/// A single touch contact sample within a multi-touch frame (#778).
+#[derive(uniffi::Record, Debug, Clone)]
+pub struct RdpTouchPoint {
+    pub pointer_id: u64,
+    pub phase: RdpTouchPhase,
+    pub x: i32,
+    pub y: i32,
+    /// Normalized contact pressure in 0..=1024, or None if not reported.
+    pub pressure: Option<u32>,
+}
+
+struct TouchInputState {
+    epoch: std::time::Instant,
+    builder: rdpei::contact::TouchFrameBuilder,
+    /// Primary pointer ID when falling back to mouse events before RDPEI is active.
+    fallback_pointer_id: Option<u64>,
+}
+
+impl TouchInputState {
+    fn new() -> Self {
+        Self {
+            epoch: std::time::Instant::now(),
+            builder: rdpei::contact::TouchFrameBuilder::new(rdpei::DEFAULT_MAX_TOUCH_CONTACTS),
+            fallback_pointer_id: None,
+        }
+    }
+}
+
 #[derive(uniffi::Object)]
 pub struct RdpClient {
     config: RdpConfig,
@@ -517,6 +555,8 @@ pub struct RdpClient {
     /// Kotlin passes this id back in.
     bitmap_bridge_id: i64,
     input_queue: Arc<Mutex<Vec<InputEvent>>>,
+    touch_state: Arc<Mutex<TouchInputState>>,
+    rdpei_active: Arc<std::sync::atomic::AtomicBool>,
     session_thread: Mutex<Option<std::thread::JoinHandle<()>>>,
 }
 
@@ -551,6 +591,8 @@ impl RdpClient {
             state,
             bitmap_bridge_id,
             input_queue: Arc::new(Mutex::new(Vec::new())),
+            touch_state: Arc::new(Mutex::new(TouchInputState::new())),
+            rdpei_active: Arc::new(std::sync::atomic::AtomicBool::new(false)),
             session_thread: Mutex::new(None),
         }
     }
@@ -615,6 +657,8 @@ impl RdpClient {
         let config = self.config.clone();
         let state = Arc::clone(&self.state);
         let input_queue = Arc::clone(&self.input_queue);
+        let touch_state = Arc::clone(&self.touch_state);
+        let rdpei_active = Arc::clone(&self.rdpei_active);
         let server_name = host.clone();
         // #117: a followed redirection reconnects from inside the session
         // thread, through the same route (SOCKS or direct) as the original.
@@ -659,6 +703,8 @@ impl RdpClient {
                             &config,
                             &state,
                             &input_queue,
+                            &touch_state,
+                            &rdpei_active,
                             &server_name,
                             server_addr,
                             redirect_plan.as_ref(),
@@ -834,6 +880,118 @@ impl RdpClient {
         if let Ok(mut q) = self.input_queue.lock() {
             q.push(InputEvent::MouseWheel { vertical, delta });
         }
+    }
+
+    /// Queue a multi-touch frame of contact samples for MS-RDPEI (#778).
+    ///
+    /// When `Microsoft::Windows::RDS::Input` is active, contacts are packed into
+    /// `RDPINPUT_TOUCH_EVENT_PDU` frames. Before the channel is ready (such as on
+    /// a pre-logon screen or against servers without RDPEI), the primary contact
+    /// falls back to absolute pointer motion + left-button press/release.
+    pub fn send_touch_frame(&self, points: Vec<RdpTouchPoint>) {
+        if points.is_empty() {
+            return;
+        }
+        let rdpei_ready = self.rdpei_active.load(std::sync::atomic::Ordering::Acquire);
+        if rdpei_ready {
+            let release_fallback = if let Ok(mut ts) = self.touch_state.lock() {
+                let had_fallback = ts.fallback_pointer_id.take().is_some();
+                let now_us = ts.epoch.elapsed().as_micros() as u64;
+                for pt in points {
+                    let phase = match pt.phase {
+                        RdpTouchPhase::Started => rdpei::contact::TouchPhase::Started,
+                        RdpTouchPhase::Moved => rdpei::contact::TouchPhase::Moved,
+                        RdpTouchPhase::Ended => rdpei::contact::TouchPhase::Ended,
+                        RdpTouchPhase::Canceled => rdpei::contact::TouchPhase::Canceled,
+                    };
+                    ts.builder
+                        .push(pt.pointer_id, phase, pt.x, pt.y, pt.pressure, now_us);
+                }
+                ts.builder.finish_frame();
+                had_fallback
+            } else {
+                false
+            };
+            if release_fallback {
+                if let Ok(mut q) = self.input_queue.lock() {
+                    q.push(InputEvent::MouseButton {
+                        button: MouseButton::Left,
+                        pressed: false,
+                    });
+                }
+            }
+        } else {
+            let mut fallback_events: Vec<InputEvent> = Vec::new();
+            if let Ok(mut ts) = self.touch_state.lock() {
+                for pt in points {
+                    let x = pt.x.max(0).min(u16::MAX as i32) as u16;
+                    let y = pt.y.max(0).min(u16::MAX as i32) as u16;
+                    match pt.phase {
+                        RdpTouchPhase::Started => {
+                            if ts.fallback_pointer_id.is_none() {
+                                ts.fallback_pointer_id = Some(pt.pointer_id);
+                                fallback_events.push(InputEvent::MouseMove { x, y });
+                                fallback_events.push(InputEvent::MouseButton {
+                                    button: MouseButton::Left,
+                                    pressed: true,
+                                });
+                            }
+                        }
+                        RdpTouchPhase::Moved => {
+                            if ts.fallback_pointer_id == Some(pt.pointer_id) {
+                                fallback_events.push(InputEvent::MouseMove { x, y });
+                            }
+                        }
+                        RdpTouchPhase::Ended | RdpTouchPhase::Canceled => {
+                            if ts.fallback_pointer_id == Some(pt.pointer_id) {
+                                ts.fallback_pointer_id = None;
+                                fallback_events.push(InputEvent::MouseMove { x, y });
+                                fallback_events.push(InputEvent::MouseButton {
+                                    button: MouseButton::Left,
+                                    pressed: false,
+                                });
+                            }
+                        }
+                    }
+                }
+            }
+            if !fallback_events.is_empty() {
+                if let Ok(mut q) = self.input_queue.lock() {
+                    q.extend(fallback_events);
+                }
+            }
+        }
+    }
+
+    /// Cancel all active touch contacts (e.g. when switching input modes or losing focus).
+    pub fn cancel_touches(&self) {
+        let rdpei_ready = self.rdpei_active.load(std::sync::atomic::Ordering::Acquire);
+        let release_fallback = if let Ok(mut ts) = self.touch_state.lock() {
+            let had_fallback = ts.fallback_pointer_id.take().is_some();
+            if rdpei_ready {
+                let now_us = ts.epoch.elapsed().as_micros() as u64;
+                ts.builder.cancel_all(now_us);
+            } else {
+                ts.builder.reset();
+            }
+            had_fallback
+        } else {
+            false
+        };
+        if release_fallback {
+            if let Ok(mut q) = self.input_queue.lock() {
+                q.push(InputEvent::MouseButton {
+                    button: MouseButton::Left,
+                    pressed: false,
+                });
+            }
+        }
+    }
+
+    /// True once `Microsoft::Windows::RDS::Input` has negotiated SC_READY / CS_READY
+    /// and is not currently suspended.
+    pub fn is_touch_ready(&self) -> bool {
+        self.rdpei_active.load(std::sync::atomic::Ordering::Acquire)
     }
 
     pub fn send_clipboard_text(&self, text: String) {
@@ -1568,6 +1726,8 @@ fn run_rdp_session(
     config: &RdpConfig,
     state: &Arc<RwLock<SessionState>>,
     input_queue: &Arc<Mutex<Vec<InputEvent>>>,
+    touch_state: &Arc<Mutex<TouchInputState>>,
+    rdpei_active: &Arc<std::sync::atomic::AtomicBool>,
     server_name: &str,
     server_addr: SocketAddr,
     redirect: Option<&redirection::RedirectFollow>,
@@ -1578,6 +1738,12 @@ fn run_rdp_session(
     use ironrdp_session::ActiveStageOutput;
     use ironrdp_session::image::DecodedImage;
     use ironrdp_graphics::image_processing::PixelFormat;
+
+    rdpei_active.store(false, std::sync::atomic::Ordering::Release);
+    if let Ok(mut ts) = touch_state.lock() {
+        ts.builder.reset();
+        ts.fallback_pointer_id = None;
+    }
 
     let mut rdp_config = build_config(config);
     // #117: a followed redirection replays the server's routing token in the
@@ -1630,7 +1796,8 @@ fn run_rdp_session(
                     config.progressive_upgrade,
                     config.avc_enabled,
                 ))
-                .with_dynamic_channel(display_control),
+                .with_dynamic_channel(display_control)
+                .with_dynamic_channel(crate::rdpei::RdpeiClient::new(Arc::clone(rdpei_active))),
         );
 
     // Keep a clone of the underlying TCP stream so we can adjust the read
@@ -2009,14 +2176,27 @@ fn run_rdp_session(
             Vec::new()
         };
 
-        if !pending_inputs.is_empty() {
+        let pending_touch_pdu = if let Ok(mut ts) = touch_state.lock() {
+            let now_us = ts.epoch.elapsed().as_micros() as u64;
+            ts.builder.take_event(now_us)
+        } else {
+            None
+        };
+
+        if !pending_inputs.is_empty() || pending_touch_pdu.is_some() {
             use std::sync::atomic::Ordering;
             last_input_at = Some(std::time::Instant::now());
-            input_counters.flushes.fetch_add(1, Ordering::Relaxed);
-            input_counters.events.fetch_add(pending_inputs.len() as u64, Ordering::Relaxed);
+            if !pending_inputs.is_empty() {
+                input_counters.flushes.fetch_add(1, Ordering::Relaxed);
+                input_counters.events.fetch_add(pending_inputs.len() as u64, Ordering::Relaxed);
+            }
+            if let Some(ref pdu) = pending_touch_pdu {
+                input_counters.flushes.fetch_add(1, Ordering::Relaxed);
+                input_counters.events.fetch_add(pdu.frames.len() as u64, Ordering::Relaxed);
+            }
         }
         perf.maybe_report();
-        if input_thread.is_none() {
+        if input_thread.is_none() || last_input_at.is_some() {
             let want_timeout = match last_input_at {
                 Some(t) if t.elapsed() < INPUT_ACTIVE_WINDOW => INPUT_ACTIVE_TIMEOUT,
                 _ => IDLE_TIMEOUT,
@@ -2059,6 +2239,35 @@ fn run_rdp_session(
                     Err(e) => error!("#422 wake nudge send failed: {e:?}"),
                 },
                 Err(e) => error!("#422 wake nudge encode failed: {e}"),
+            }
+        }
+
+        if let Some(touch_pdu) = pending_touch_pdu {
+            let encoded = active_stage
+                .get_dvc::<crate::rdpei::RdpeiClient>()
+                .and_then(|dvc| {
+                    let channel_id = dvc.channel_id()?;
+                    let rdpei = dvc.channel_processor_downcast_ref::<crate::rdpei::RdpeiClient>()?;
+                    Some(rdpei.encode_touch_event(channel_id, touch_pdu))
+                })
+                .transpose()
+                .map_err(|e| format!("RDPEI encode error: {e}"))
+                .and_then(|opt| {
+                    opt.map(|msgs| active_stage.encode_dvc_messages(msgs).map_err(|e| format!("{e}")))
+                        .transpose()
+                });
+            match encoded {
+                Ok(Some(bytes)) => {
+                    if let Err(e) = tls_framed.write_all(&bytes) {
+                        error!("Write RDPEI touch error: {:?}", e);
+                    }
+                }
+                Ok(None) => {
+                    debug!("Dropping RDPEI touch frame: channel not ready");
+                }
+                Err(e) => {
+                    error!("{e}");
+                }
             }
         }
 

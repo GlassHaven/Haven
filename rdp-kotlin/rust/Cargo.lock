@@ -2340,6 +2340,7 @@ name = "rdp-transport"
 version = "0.1.0"
 dependencies = [
  "android_logger",
+ "bitflags 2.13.2",
  "env_logger",
  "ironrdp-blocking",
  "ironrdp-cliprdr",

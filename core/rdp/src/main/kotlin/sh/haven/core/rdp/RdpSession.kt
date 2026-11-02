@@ -11,6 +11,8 @@ import sh.haven.rdp.RdpClient
 import sh.haven.rdp.RdpConfig
 import sh.haven.rdp.RdpException
 import sh.haven.rdp.RdpRect
+import sh.haven.rdp.RdpTouchPhase
+import sh.haven.rdp.RdpTouchPoint
 import sh.haven.rdp.SessionCallback
 import sh.haven.rdp.SocksProxyConfig
 import java.io.Closeable
@@ -20,6 +22,24 @@ import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 
 private const val TAG = "RdpSession"
+
+/** Phase of a touch contact sample for MS-RDPEI multi-touch forwarding (#778). */
+enum class RdpTouchContactPhase {
+    STARTED,
+    MOVED,
+    ENDED,
+    CANCELED,
+}
+
+/** One finger contact sample in remote desktop coordinates (#778). */
+data class RdpTouchContactSample(
+    val pointerId: Long,
+    val phase: RdpTouchContactPhase,
+    val x: Int,
+    val y: Int,
+    /** Normalized contact pressure in 0..1024, or null when not reported. */
+    val pressure: Int? = null,
+)
 
 /**
  * Wraps an [RdpClient] (IronRDP via UniFFI) with Android-specific
@@ -532,6 +552,35 @@ class RdpSession(
     fun sendClipboardText(text: String) {
         if (closed) return
         client?.sendClipboardText(text)
+    }
+
+    fun sendTouchFrame(points: List<RdpTouchContactSample>) {
+        if (closed || points.isEmpty()) return
+        val nativePoints = points.map { pt ->
+            RdpTouchPoint(
+                pointerId = pt.pointerId.toULong(),
+                phase = when (pt.phase) {
+                    RdpTouchContactPhase.STARTED -> RdpTouchPhase.STARTED
+                    RdpTouchContactPhase.MOVED -> RdpTouchPhase.MOVED
+                    RdpTouchContactPhase.ENDED -> RdpTouchPhase.ENDED
+                    RdpTouchContactPhase.CANCELED -> RdpTouchPhase.CANCELED
+                },
+                x = pt.x,
+                y = pt.y,
+                pressure = pt.pressure?.coerceIn(0, 1024)?.toUInt(),
+            )
+        }
+        client?.sendTouchFrame(nativePoints)
+    }
+
+    fun cancelTouches() {
+        if (closed) return
+        client?.cancelTouches()
+    }
+
+    fun isTouchReady(): Boolean {
+        if (closed) return false
+        return client?.isTouchReady() == true
     }
 
     /**

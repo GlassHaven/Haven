@@ -847,6 +847,8 @@ internal object IntegrityCheckingUniffiLib {
     ): Int
     external fun uniffi_rdp_transport_checksum_method_rdpclient_bitmap_bridge_id(
     ): Int
+    external fun uniffi_rdp_transport_checksum_method_rdpclient_cancel_touches(
+    ): Int
     external fun uniffi_rdp_transport_checksum_method_rdpclient_connect(
     ): Int
     external fun uniffi_rdp_transport_checksum_method_rdpclient_disconnect(
@@ -859,6 +861,8 @@ internal object IntegrityCheckingUniffiLib {
     ): Int
     external fun uniffi_rdp_transport_checksum_method_rdpclient_is_connected(
     ): Int
+    external fun uniffi_rdp_transport_checksum_method_rdpclient_is_touch_ready(
+    ): Int
     external fun uniffi_rdp_transport_checksum_method_rdpclient_send_clipboard_text(
     ): Int
     external fun uniffi_rdp_transport_checksum_method_rdpclient_send_key(
@@ -868,6 +872,8 @@ internal object IntegrityCheckingUniffiLib {
     external fun uniffi_rdp_transport_checksum_method_rdpclient_send_mouse_move(
     ): Int
     external fun uniffi_rdp_transport_checksum_method_rdpclient_send_mouse_wheel(
+    ): Int
+    external fun uniffi_rdp_transport_checksum_method_rdpclient_send_touch_frame(
     ): Int
     external fun uniffi_rdp_transport_checksum_method_rdpclient_send_unicode_key(
     ): Int
@@ -966,6 +972,8 @@ internal object UniffiLib {
     ): Long
     external fun uniffi_rdp_transport_fn_method_rdpclient_bitmap_bridge_id(`ptr`: Long,uniffi_out_err: UniffiRustCallStatus, 
     ): Long
+    external fun uniffi_rdp_transport_fn_method_rdpclient_cancel_touches(`ptr`: Long,uniffi_out_err: UniffiRustCallStatus, 
+    ): Unit
     external fun uniffi_rdp_transport_fn_method_rdpclient_connect(`ptr`: Long,`host`: RustBuffer.ByValue,`port`: Short,`socksProxy`: RustBuffer.ByValue,uniffi_out_err: UniffiRustCallStatus, 
     ): Unit
     external fun uniffi_rdp_transport_fn_method_rdpclient_disconnect(`ptr`: Long,uniffi_out_err: UniffiRustCallStatus, 
@@ -978,6 +986,8 @@ internal object UniffiLib {
     ): RustBuffer.ByValue
     external fun uniffi_rdp_transport_fn_method_rdpclient_is_connected(`ptr`: Long,uniffi_out_err: UniffiRustCallStatus, 
     ): Byte
+    external fun uniffi_rdp_transport_fn_method_rdpclient_is_touch_ready(`ptr`: Long,uniffi_out_err: UniffiRustCallStatus, 
+    ): Byte
     external fun uniffi_rdp_transport_fn_method_rdpclient_send_clipboard_text(`ptr`: Long,`text`: RustBuffer.ByValue,uniffi_out_err: UniffiRustCallStatus, 
     ): Unit
     external fun uniffi_rdp_transport_fn_method_rdpclient_send_key(`ptr`: Long,`scancode`: Short,`pressed`: Byte,uniffi_out_err: UniffiRustCallStatus, 
@@ -987,6 +997,8 @@ internal object UniffiLib {
     external fun uniffi_rdp_transport_fn_method_rdpclient_send_mouse_move(`ptr`: Long,`x`: Short,`y`: Short,uniffi_out_err: UniffiRustCallStatus, 
     ): Unit
     external fun uniffi_rdp_transport_fn_method_rdpclient_send_mouse_wheel(`ptr`: Long,`vertical`: Byte,`delta`: Short,uniffi_out_err: UniffiRustCallStatus, 
+    ): Unit
+    external fun uniffi_rdp_transport_fn_method_rdpclient_send_touch_frame(`ptr`: Long,`points`: RustBuffer.ByValue,uniffi_out_err: UniffiRustCallStatus, 
     ): Unit
     external fun uniffi_rdp_transport_fn_method_rdpclient_send_unicode_key(`ptr`: Long,`ch`: Int,`pressed`: Byte,uniffi_out_err: UniffiRustCallStatus, 
     ): Unit
@@ -1167,6 +1179,9 @@ private fun uniffiCheckApiChecksums(lib: IntegrityCheckingUniffiLib) {
     if ((lib.uniffi_rdp_transport_checksum_method_rdpclient_bitmap_bridge_id() and 0xFFFF) != 60513) {
         throw RuntimeException("UniFFI API checksum mismatch: try cleaning and rebuilding your project")
     }
+    if ((lib.uniffi_rdp_transport_checksum_method_rdpclient_cancel_touches() and 0xFFFF) != 52614) {
+        throw RuntimeException("UniFFI API checksum mismatch: try cleaning and rebuilding your project")
+    }
     if ((lib.uniffi_rdp_transport_checksum_method_rdpclient_connect() and 0xFFFF) != 62634) {
         throw RuntimeException("UniFFI API checksum mismatch: try cleaning and rebuilding your project")
     }
@@ -1185,6 +1200,9 @@ private fun uniffiCheckApiChecksums(lib: IntegrityCheckingUniffiLib) {
     if ((lib.uniffi_rdp_transport_checksum_method_rdpclient_is_connected() and 0xFFFF) != 48249) {
         throw RuntimeException("UniFFI API checksum mismatch: try cleaning and rebuilding your project")
     }
+    if ((lib.uniffi_rdp_transport_checksum_method_rdpclient_is_touch_ready() and 0xFFFF) != 2489) {
+        throw RuntimeException("UniFFI API checksum mismatch: try cleaning and rebuilding your project")
+    }
     if ((lib.uniffi_rdp_transport_checksum_method_rdpclient_send_clipboard_text() and 0xFFFF) != 1301) {
         throw RuntimeException("UniFFI API checksum mismatch: try cleaning and rebuilding your project")
     }
@@ -1198,6 +1216,9 @@ private fun uniffiCheckApiChecksums(lib: IntegrityCheckingUniffiLib) {
         throw RuntimeException("UniFFI API checksum mismatch: try cleaning and rebuilding your project")
     }
     if ((lib.uniffi_rdp_transport_checksum_method_rdpclient_send_mouse_wheel() and 0xFFFF) != 44938) {
+        throw RuntimeException("UniFFI API checksum mismatch: try cleaning and rebuilding your project")
+    }
+    if ((lib.uniffi_rdp_transport_checksum_method_rdpclient_send_touch_frame() and 0xFFFF) != 32695) {
         throw RuntimeException("UniFFI API checksum mismatch: try cleaning and rebuilding your project")
     }
     if ((lib.uniffi_rdp_transport_checksum_method_rdpclient_send_unicode_key() and 0xFFFF) != 63832) {
@@ -1521,6 +1542,29 @@ public object FfiConverterUInt: FfiConverter<UInt, Int> {
 
     override fun write(value: UInt, buf: ByteBuffer) {
         buf.putInt(value.toInt())
+    }
+}
+
+/**
+ * @suppress
+ */
+public object FfiConverterInt: FfiConverter<Int, Int> {
+    override fun lift(value: Int): Int {
+        return value
+    }
+
+    override fun read(buf: ByteBuffer): Int {
+        return buf.getInt()
+    }
+
+    override fun lower(value: Int): Int {
+        return value
+    }
+
+    override fun allocationSize(value: Int) = 4UL
+
+    override fun write(value: Int, buf: ByteBuffer) {
+        buf.putInt(value)
     }
 }
 
@@ -3274,6 +3318,11 @@ public interface RdpClientInterface {
      */
     fun `bitmapBridgeId`(): kotlin.Long
     
+    /**
+     * Cancel all active touch contacts (e.g. when switching input modes or losing focus).
+     */
+    fun `cancelTouches`()
+    
     fun `connect`(`host`: kotlin.String, `port`: kotlin.UShort, `socksProxy`: SocksProxyConfig?)
     
     fun `disconnect`()
@@ -3296,6 +3345,12 @@ public interface RdpClientInterface {
     
     fun `isConnected`(): kotlin.Boolean
     
+    /**
+     * True once `Microsoft::Windows::RDS::Input` has negotiated SC_READY / CS_READY
+     * and is not currently suspended.
+     */
+    fun `isTouchReady`(): kotlin.Boolean
+    
     fun `sendClipboardText`(`text`: kotlin.String)
     
     fun `sendKey`(`scancode`: kotlin.UShort, `pressed`: kotlin.Boolean)
@@ -3305,6 +3360,16 @@ public interface RdpClientInterface {
     fun `sendMouseMove`(`x`: kotlin.UShort, `y`: kotlin.UShort)
     
     fun `sendMouseWheel`(`vertical`: kotlin.Boolean, `delta`: kotlin.Short)
+    
+    /**
+     * Queue a multi-touch frame of contact samples for MS-RDPEI (#778).
+     *
+     * When `Microsoft::Windows::RDS::Input` is active, contacts are packed into
+     * `RDPINPUT_TOUCH_EVENT_PDU` frames. Before the channel is ready (such as on
+     * a pre-logon screen or against servers without RDPEI), the primary contact
+     * falls back to absolute pointer motion + left-button press/release.
+     */
+    fun `sendTouchFrame`(`points`: List<RdpTouchPoint>)
     
     fun `sendUnicodeKey`(`ch`: kotlin.UInt, `pressed`: kotlin.Boolean)
     
@@ -3465,6 +3530,21 @@ open class RdpClient: Disposable, AutoCloseable, RdpClientInterface
     
 
     
+    /**
+     * Cancel all active touch contacts (e.g. when switching input modes or losing focus).
+     */override fun `cancelTouches`()
+        = 
+    callWithHandle {
+    uniffiRustCall() { _status ->
+    UniffiLib.uniffi_rdp_transport_fn_method_rdpclient_cancel_touches(
+        it,
+        _status)
+}
+    }
+    
+    
+
+    
     @Throws(RdpException::class)override fun `connect`(`host`: kotlin.String, `port`: kotlin.UShort, `socksProxy`: SocksProxyConfig?)
         = 
     callWithHandle {
@@ -3558,6 +3638,23 @@ open class RdpClient: Disposable, AutoCloseable, RdpClientInterface
     }
     
 
+    
+    /**
+     * True once `Microsoft::Windows::RDS::Input` has negotiated SC_READY / CS_READY
+     * and is not currently suspended.
+     */override fun `isTouchReady`(): kotlin.Boolean {
+            return FfiConverterBoolean.lift(
+    callWithHandle {
+    uniffiRustCall() { _status ->
+    UniffiLib.uniffi_rdp_transport_fn_method_rdpclient_is_touch_ready(
+        it,
+        _status)
+}
+    }
+    )
+    }
+    
+
     override fun `sendClipboardText`(`text`: kotlin.String)
         = 
     callWithHandle {
@@ -3622,6 +3719,27 @@ open class RdpClient: Disposable, AutoCloseable, RdpClientInterface
         
         FfiConverterBoolean.lower(`vertical`),
         FfiConverterShort.lower(`delta`),_status)
+}
+    }
+    
+    
+
+    
+    /**
+     * Queue a multi-touch frame of contact samples for MS-RDPEI (#778).
+     *
+     * When `Microsoft::Windows::RDS::Input` is active, contacts are packed into
+     * `RDPINPUT_TOUCH_EVENT_PDU` frames. Before the channel is ready (such as on
+     * a pre-logon screen or against servers without RDPEI), the primary contact
+     * falls back to absolute pointer motion + left-button press/release.
+     */override fun `sendTouchFrame`(`points`: List<RdpTouchPoint>)
+        = 
+    callWithHandle {
+    uniffiRustCall() { _status ->
+    UniffiLib.uniffi_rdp_transport_fn_method_rdpclient_send_touch_frame(
+        it,
+        
+        FfiConverterSequenceTypeRdpTouchPoint.lower(`points`),_status)
 }
     }
     
@@ -4507,6 +4625,65 @@ public object FfiConverterTypeRdpRect: FfiConverterRustBuffer<RdpRect> {
 
 
 /**
+ * A single touch contact sample within a multi-touch frame (#778).
+ */
+data class RdpTouchPoint (
+    var `pointerId`: kotlin.ULong
+    , 
+    var `phase`: RdpTouchPhase
+    , 
+    var `x`: kotlin.Int
+    , 
+    var `y`: kotlin.Int
+    , 
+    /**
+     * Normalized contact pressure in 0..=1024, or None if not reported.
+     */
+    var `pressure`: kotlin.UInt?
+    
+){
+    
+
+    
+
+    
+    companion object
+}
+
+/**
+ * @suppress
+ */
+public object FfiConverterTypeRdpTouchPoint: FfiConverterRustBuffer<RdpTouchPoint> {
+    override fun read(buf: ByteBuffer): RdpTouchPoint {
+        return RdpTouchPoint(
+            FfiConverterULong.read(buf),
+            FfiConverterTypeRdpTouchPhase.read(buf),
+            FfiConverterInt.read(buf),
+            FfiConverterInt.read(buf),
+            FfiConverterOptionalUInt.read(buf),
+        )
+    }
+
+    override fun allocationSize(value: RdpTouchPoint) = (
+            FfiConverterULong.allocationSize(value.`pointerId`) +
+            FfiConverterTypeRdpTouchPhase.allocationSize(value.`phase`) +
+            FfiConverterInt.allocationSize(value.`x`) +
+            FfiConverterInt.allocationSize(value.`y`) +
+            FfiConverterOptionalUInt.allocationSize(value.`pressure`)
+    )
+
+    override fun write(value: RdpTouchPoint, buf: ByteBuffer) {
+            FfiConverterULong.write(value.`pointerId`, buf)
+            FfiConverterTypeRdpTouchPhase.write(value.`phase`, buf)
+            FfiConverterInt.write(value.`x`, buf)
+            FfiConverterInt.write(value.`y`, buf)
+            FfiConverterOptionalUInt.write(value.`pressure`, buf)
+    }
+}
+
+
+
+/**
  * Optional SOCKS5 endpoint used by [RdpClient::connect] in place of a
  * direct kernel dial. Lets IronRDP route its TCP through Haven's
  * in-app WireGuard / Tailscale tunnel via the per-tunnel localhost
@@ -4716,6 +4893,77 @@ public object FfiConverterTypeRdpError : FfiConverterRustBuffer<RdpException> {
 
 
 
+/**
+ * Phase of a touch contact for MS-RDPEI multi-touch injection (#778).
+ */
+
+enum class RdpTouchPhase {
+    
+    STARTED,
+    MOVED,
+    ENDED,
+    CANCELED;
+
+    
+
+
+    companion object
+}
+
+
+/**
+ * @suppress
+ */
+public object FfiConverterTypeRdpTouchPhase: FfiConverterRustBuffer<RdpTouchPhase> {
+    override fun read(buf: ByteBuffer) = try {
+        RdpTouchPhase.values()[buf.getInt() - 1]
+    } catch (e: IndexOutOfBoundsException) {
+        throw RuntimeException("invalid enum value, something is very wrong!!", e)
+    }
+
+    override fun allocationSize(value: RdpTouchPhase) = 4UL
+
+    override fun write(value: RdpTouchPhase, buf: ByteBuffer) {
+        buf.putInt(value.ordinal + 1)
+    }
+}
+
+
+
+
+
+
+/**
+ * @suppress
+ */
+public object FfiConverterOptionalUInt: FfiConverterRustBuffer<kotlin.UInt?> {
+    override fun read(buf: ByteBuffer): kotlin.UInt? {
+        if (buf.get().toInt() == 0) {
+            return null
+        }
+        return FfiConverterUInt.read(buf)
+    }
+
+    override fun allocationSize(value: kotlin.UInt?): ULong {
+        if (value == null) {
+            return 1UL
+        } else {
+            return 1UL + FfiConverterUInt.allocationSize(value)
+        }
+    }
+
+    override fun write(value: kotlin.UInt?, buf: ByteBuffer) {
+        if (value == null) {
+            buf.put(0)
+        } else {
+            buf.put(1)
+            FfiConverterUInt.write(value, buf)
+        }
+    }
+}
+
+
+
 
 /**
  * @suppress
@@ -4862,6 +5110,34 @@ public object FfiConverterSequenceTypeRdpRect: FfiConverterRustBuffer<List<RdpRe
         buf.putInt(value.size)
         value.iterator().forEach {
             FfiConverterTypeRdpRect.write(it, buf)
+        }
+    }
+}
+
+
+
+
+/**
+ * @suppress
+ */
+public object FfiConverterSequenceTypeRdpTouchPoint: FfiConverterRustBuffer<List<RdpTouchPoint>> {
+    override fun read(buf: ByteBuffer): List<RdpTouchPoint> {
+        val len = buf.getInt()
+        return List<RdpTouchPoint>(len) {
+            FfiConverterTypeRdpTouchPoint.read(buf)
+        }
+    }
+
+    override fun allocationSize(value: List<RdpTouchPoint>): ULong {
+        val sizeForLength = 4UL
+        val sizeForItems = value.map { FfiConverterTypeRdpTouchPoint.allocationSize(it) }.sum()
+        return sizeForLength + sizeForItems
+    }
+
+    override fun write(value: List<RdpTouchPoint>, buf: ByteBuffer) {
+        buf.putInt(value.size)
+        value.iterator().forEach {
+            FfiConverterTypeRdpTouchPoint.write(it, buf)
         }
     }
 }

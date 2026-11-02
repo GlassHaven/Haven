@@ -5,6 +5,15 @@ the corresponding GitHub Release; a release can't ship without its section
 (enforced by `scripts/check-changelog.sh` in CI). The GitHub "Full Changelog"
 compare link is appended automatically — don't add it here.
 
+## v5.93.2
+
+- Fix SSH key authentication on "Key: Any saved key" profiles that also store a saved password for `sudo` autofill, and build OpenVPN3 static libraries automatically when `rclone-android/tools/build-android.sh` is invoked standalone by F-Droid.
+
+- **SSH key auth with stored `sudo` password.**
+  - Fixed `ConnectionsViewModel.resolveAuthMethods`, `resolveAuthMethod`, `connect`, and `onTapConnect` in `ConnectionsScreen` so a profile configured with `AuthMethodSpec.Key(keyId = null)` ("Key: Any saved key") and a stored `sshPassword` (such as a `sudo` password saved by `v5.93.0`'s autofill) still fetches and offers saved SSH keys instead of falling back to password-only authentication.
+- **Standalone `rclone-android` native build.**
+  - Updated `rclone-android/tools/build-android.sh` to invoke `openvpn3-core/build-android.sh` automatically when `libopenvpn3_android_<abi>.a` is not yet built.
+
 ## v5.93.1
 
 - Fix SOCKS5, SOCKS4, and HTTP proxy routing across SSH and non-SSH connections when adding or editing a proxy, reconnecting, or dialing an unauthenticated HTTP proxy (#777, thanks @excurso).

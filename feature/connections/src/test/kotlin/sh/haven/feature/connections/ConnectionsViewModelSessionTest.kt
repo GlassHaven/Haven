@@ -1,6 +1,7 @@
 package sh.haven.feature.connections
 
 import android.content.Context
+import androidx.lifecycle.viewModelScope
 import io.mockk.coEvery
 import io.mockk.coVerify
 import io.mockk.every
@@ -298,6 +299,18 @@ class ConnectionsViewModelSessionTest {
 
     @After
     fun tearDown() {
+        // Cancel viewModelScope and drain any in-flight withContext(Dispatchers.IO)
+        // continuations before unsetting Dispatchers.Main; otherwise an IO worker
+        // finishing after resetMain() calls TestMainDispatcher.isDispatchNeeded()
+        // and fails the next test with UncaughtExceptionsBeforeTest.
+        val scopeJob = viewModel.viewModelScope.coroutineContext[kotlinx.coroutines.Job]
+        scopeJob?.cancel()
+        val deadlineNs = System.nanoTime() + 1_000_000_000L
+        while (scopeJob?.children?.any { !it.isCompleted } == true && System.nanoTime() < deadlineNs) {
+            testDispatcher.scheduler.advanceUntilIdle()
+            Thread.sleep(5)
+        }
+        testDispatcher.scheduler.advanceUntilIdle()
         Dispatchers.resetMain()
     }
 

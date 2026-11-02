@@ -5,6 +5,14 @@ the corresponding GitHub Release; a release can't ship without its section
 (enforced by `scripts/check-changelog.sh` in CI). The GitHub "Full Changelog"
 compare link is appended automatically — don't add it here.
 
+## v5.94.0
+
+- Native multi-touch touchscreen mode for RDP sessions via MS-RDPEI (`Microsoft::Windows::RDS::Input`), reachable from the toolbar input-mode toggle (`Direct` -> `Trackpad` -> `Touchscreen`) (#778, thanks @xchacha20-poly1305).
+
+- **Native multi-touch RDP (`MS-RDPEI`, `#778`, thanks `@xchacha20-poly1305`).**
+  - Added `RdpeiClient` (`Microsoft::Windows::RDS::Input`) in `rdp-kotlin` over `DRDYNVC` with `SC_READY_PDU` / `CS_READY_PDU` negotiation (up to 10 simultaneous touch contacts), `[MS-RDPEI] 2.2.2` variable-length integer codecs, `[MS-RDPEI] 3.1.1.1` per-contact state machine (`DOWN | INRANGE | INCONTACT`, `UPDATE | INRANGE | INCONTACT`, `UP`, `CANCELED`), and multi-contact `RDPINPUT_TOUCH_EVENT_PDU` framing, with automatic single-finger absolute pointer fallback when the server has not opened the RDPEI channel (such as pre-logon screens or non-RDPEI hosts).
+  - Added `"TOUCHSCREEN"` to the RDP viewer's toolbar input-mode toggle (`DIRECT` -> `TOUCHPAD` -> `TOUCHSCREEN` -> `DIRECT`, indicated by a hand icon), forwarding multi-finger gestures directly to the remote digitizer rather than consuming them locally as viewport pinch-zoom or two-finger scroll, hiding the client mouse-cursor overlay, and cancelling active contacts cleanly on mode switch or gesture exit.
+
 ## v5.93.2
 
 - Fix SSH key authentication on "Key: Any saved key" profiles that also store a saved password for `sudo` autofill, and build OpenVPN3 static libraries automatically when `rclone-android/tools/build-android.sh` is invoked standalone by F-Droid.

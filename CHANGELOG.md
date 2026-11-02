@@ -5,6 +5,14 @@ the corresponding GitHub Release; a release can't ship without its section
 (enforced by `scripts/check-changelog.sh` in CI). The GitHub "Full Changelog"
 compare link is appended automatically — don't add it here.
 
+## v5.93.1
+
+- Fix SOCKS5, SOCKS4, and HTTP proxy routing across SSH and non-SSH connections when adding or editing a proxy, reconnecting, or dialing an unauthenticated HTTP proxy (#777, thanks @excurso).
+
+- **SOCKS/HTTP proxy routing (`#777`, thanks `@excurso`).**
+  - Tear down existing non-headless `SshSessionManager` sessions when saving a profile whose proxy, tunnel, jump-host, or endpoint settings changed, and re-read the profile from `ConnectionRepository` on auto-reconnect instead of reusing the initial snapshot.
+  - Require a non-blank Proxy Host before saving a proxy-routed connection, normalize `scheme://` and `host:port` proxy inputs in `TunnelDraft` and `TunnelResolver`, skip local LAN `HostRediscovery` scans on proxy/tunnel/jump-routed profiles, and use the manual `HTTP CONNECT` handshake in `ProxySocketFactory` for unauthenticated HTTP proxies.
+
 ## v5.93.0
 
 - Hardware-backed biometric `sudo` and `doas` password autofill in the terminal, with auto-detected prompt banner, one-tap disable toggle, and `Sudo` toolbar key.

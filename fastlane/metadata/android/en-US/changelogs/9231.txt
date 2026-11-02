@@ -1,0 +1,1 @@
+- Fix SOCKS5, SOCKS4, and HTTP proxy routing across SSH and non-SSH connections when adding or editing a proxy, reconnecting, or dialing an unauthenticated HTTP proxy (#777, thanks @excurso).

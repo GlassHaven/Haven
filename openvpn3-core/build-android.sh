@@ -106,6 +106,9 @@ for entry in "${ABIS[@]}"; do
     mkdir -p "$OPENVPN3_OUTPUT/$ABI"
     cp "$SCRIPT_DIR/build-$ABI/lib/libopenvpn3_android_$SUFFIX.a" "$OPENVPN3_OUTPUT/$ABI/"
     echo "Installed: $OPENVPN3_OUTPUT/$ABI/libopenvpn3_android_$SUFFIX.a ($(stat -c %s "$OPENVPN3_OUTPUT/$ABI/libopenvpn3_android_$SUFFIX.a") bytes)"
+    if [ "${CI:-}" = "true" ] || [ -d /home/vagrant/build ]; then
+        rm -rf "$DEPS_DIR/build-$ABI" "$SCRIPT_DIR/build-$ABI"
+    fi
 done
 
 echo "Done. OpenVPN3 Core static libraries installed to $OPENVPN3_OUTPUT/"

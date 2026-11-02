@@ -63,6 +63,25 @@ echo "Source:       $GO_DIR"
 echo "Output:       $JNI_DIR"
 echo ""
 
+# Ensure OpenVPN3 static archives exist before gomobile bind links ./ovpnbridge.
+# Gradle's :rclone-android:buildRcloneNative depends on buildOpenvpn3Native, but
+# standalone callers (such as F-Droid's metadata/sh.haven.app.yml build block)
+# invoke tools/build-android.sh directly before Gradle runs.
+OPENVPN3_DIR="$PROJECT_DIR/../openvpn3-core"
+OPENVPN3_OUT="${OPENVPN3_OUTPUT:-$PROJECT_DIR/../core/tunnel/jniLibs-openvpn3}"
+if [ -d "$OPENVPN3_DIR" ] && { \
+    [ ! -f "$OPENVPN3_OUT/arm64-v8a/libopenvpn3_android_arm64.a" ] || \
+    [ ! -f "$OPENVPN3_OUT/armeabi-v7a/libopenvpn3_android_armeabi-v7a.a" ] || \
+    [ ! -f "$OPENVPN3_OUT/x86_64/libopenvpn3_android_amd64.a" ]; \
+}; then
+    echo ">>> Building OpenVPN3 static libraries for ovpnbridge"
+    bash "$OPENVPN3_DIR/fetch-deps.sh" --prepare
+    OPENVPN3_OUTPUT="$OPENVPN3_OUT" \
+        ANDROID_HOME="$ANDROID_HOME" \
+        ANDROID_NDK_HOME="$ANDROID_NDK_HOME" \
+        bash "$OPENVPN3_DIR/build-android.sh"
+fi
+
 # Initialize gomobile (downloads NDK toolchain bindings)
 echo ">>> gomobile init"
 gomobile init

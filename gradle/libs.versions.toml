@@ -37,7 +37,7 @@ orgjson = "20240303"
 # terminal's Scan/Recognize attach options and remote-desktop MCP OCR.
 # ZXing core is pure Java (Apache 2.0). ONNX Runtime is MIT-licensed on Central.
 zxing = "3.5.4"
-onnxruntime = "1.20.0"
+onnxruntime = "1.31.1"
 # USB serial driver library (mik3y). MIT-licensed, no transitive deps — pure
 # Android USB host API. Drives CDC-ACM + CH34x/FTDI/CP21xx/Prolific adapters
 # for the USB-serial terminal connection type. JitPack, like jsch.

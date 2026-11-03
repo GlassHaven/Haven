@@ -5,6 +5,15 @@ the corresponding GitHub Release; a release can't ship without its section
 (enforced by `scripts/check-changelog.sh` in CI). The GitHub "Full Changelog"
 compare link is appended automatically — don't add it here.
 
+## v5.94.2
+
+- Add a toolbar Viewport Navigation toggle (`OpenWith` four-way pan icon) in RDP `TOUCHSCREEN` mode so users can pinch-to-zoom (`1×` to `5×`), drag-to-pan, and reset the local viewport without leaving native touchscreen mode (#778, thanks @xchacha20-poly1305).
+
+- **Local viewport navigation in RDP `TOUCHSCREEN` mode (`#778`, thanks `@xchacha20-poly1305`).**
+  - Added `TouchscreenViewportNavToggle` in `RdpScreen` (both the bottom toolbar and the fullscreen menu) whenever `TOUCHSCREEN` mode is active.
+  - While Viewport Navigation is toggled on, two-finger pinch zooms the local viewport (`1×` to `5×`) and one- or two-finger drag pans the zoomed viewport without forwarding any touches or clicks to the remote desktop, while the existing `Reset zoom` (`FitScreen`) button resets the viewport to `1×`.
+  - Tapping the Viewport Navigation button again resumes forwarding all single- and multi-finger touches to the remote `MS-RDPEI` digitizer at the current zoom and pan offset.
+
 ## v5.94.1
 
 - Fix a startup crash (`ClassCastException: Integer cannot be cast to Float`) after restoring a backup with whole-numbered float settings (#779, thanks @heredos), and expose connected Rclone remotes, local shell sessions, installed PRoot rootfses, and document rename in the Android Storage Access Framework provider (#698, thanks @heredos).

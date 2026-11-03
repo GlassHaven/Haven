@@ -1,0 +1,1 @@
+- Add a toolbar Viewport Navigation toggle in RDP touchscreen mode to pinch-to-zoom and drag-to-pan the local viewport without leaving touchscreen mode (#778).

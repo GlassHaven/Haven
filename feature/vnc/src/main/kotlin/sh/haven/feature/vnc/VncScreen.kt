@@ -844,9 +844,7 @@ private fun VncViewer(
                     val keySym = pressedHardwareKeySyms.remove(event.key) ?: resolvedKeySym
                     if (keySym != null) {
                         onKeyUp(keySym)
-                        if (keySym != XK_SHIFT_L && keySym != XK_CONTROL_L &&
-                            keySym != XK_ALT_L && keySym != XK_SUPER_L
-                        ) {
+                        if (!isModifierKeySym(keySym)) {
                             releaseActiveModifiers()
                         }
                         true
@@ -2578,11 +2576,21 @@ private const val XK_DOWN = 0xff54
 private const val XK_PAGE_UP = 0xff55
 private const val XK_PAGE_DOWN = 0xff56
 private const val XK_END = 0xff57
+private const val XK_PRINT = 0xff61
 private const val XK_INSERT = 0xff63
+private const val XK_MENU = 0xff67
+private const val XK_NUM_LOCK = 0xff7f
+private const val XK_PAUSE = 0xff13
+private const val XK_SCROLL_LOCK = 0xff14
 private const val XK_SHIFT_L = 0xffe1
+private const val XK_SHIFT_R = 0xffe2
 private const val XK_CONTROL_L = 0xffe3
+private const val XK_CONTROL_R = 0xffe4
+private const val XK_CAPS_LOCK = 0xffe5
 private const val XK_ALT_L = 0xffe9
+private const val XK_ALT_R = 0xffea
 private const val XK_SUPER_L = 0xffeb
+private const val XK_SUPER_R = 0xffec
 private const val XK_F1 = 0xffbe
 private const val XK_F2 = 0xffbf
 private const val XK_F3 = 0xffc0
@@ -2795,7 +2803,17 @@ internal fun androidPrintableKeyToKeySym(key: Key, shiftHeld: Boolean = false): 
     else -> null
 }
 
-private fun androidKeyToKeySym(key: Key): Int? = when (key) {
+internal fun isModifierKeySym(keySym: Int): Boolean = when (keySym) {
+    XK_SHIFT_L, XK_SHIFT_R,
+    XK_CONTROL_L, XK_CONTROL_R,
+    XK_ALT_L, XK_ALT_R,
+    XK_SUPER_L, XK_SUPER_R,
+    XK_CAPS_LOCK, XK_NUM_LOCK, XK_SCROLL_LOCK,
+    -> true
+    else -> false
+}
+
+internal fun androidKeyToKeySym(key: Key): Int? = when (key) {
     Key.Enter, Key.NumPadEnter -> XK_RETURN
     Key.Tab -> XK_TAB
     Key.Escape -> XK_ESCAPE
@@ -2810,10 +2828,20 @@ private fun androidKeyToKeySym(key: Key): Int? = when (key) {
     Key.PageUp -> XK_PAGE_UP
     Key.PageDown -> XK_PAGE_DOWN
     Key.Insert -> XK_INSERT
-    Key.ShiftLeft, Key.ShiftRight -> XK_SHIFT_L
-    Key.CtrlLeft, Key.CtrlRight -> XK_CONTROL_L
-    Key.AltLeft, Key.AltRight -> XK_ALT_L
-    Key.MetaLeft, Key.MetaRight -> XK_SUPER_L
+    Key.ShiftLeft -> XK_SHIFT_L
+    Key.ShiftRight -> XK_SHIFT_R
+    Key.CtrlLeft -> XK_CONTROL_L
+    Key.CtrlRight -> XK_CONTROL_R
+    Key.AltLeft -> XK_ALT_L
+    Key.AltRight -> XK_ALT_R
+    Key.MetaLeft -> XK_SUPER_L
+    Key.MetaRight -> XK_SUPER_R
+    Key.CapsLock -> XK_CAPS_LOCK
+    Key.NumLock -> XK_NUM_LOCK
+    Key.ScrollLock -> XK_SCROLL_LOCK
+    Key.PrintScreen -> XK_PRINT
+    Key.Break -> XK_PAUSE
+    Key.Menu -> XK_MENU
     Key.F1 -> XK_F1
     Key.F2 -> XK_F2
     Key.F3 -> XK_F3

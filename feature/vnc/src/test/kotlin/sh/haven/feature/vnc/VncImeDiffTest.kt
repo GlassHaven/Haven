@@ -2,7 +2,9 @@ package sh.haven.feature.vnc
 
 import androidx.compose.ui.input.key.Key
 import org.junit.Assert.assertEquals
+import org.junit.Assert.assertFalse
 import org.junit.Assert.assertNull
+import org.junit.Assert.assertTrue
 import org.junit.Test
 
 /**
@@ -161,5 +163,34 @@ class VncImeDiffTest {
         assertEquals(0x010020ac, unicodeToKeySym(0x20ac)) // '€'
         assertNull(unicodeToKeySym(0))
         assertNull(unicodeToKeySym(0x03)) // ETX control char
+    }
+
+    @Test
+    fun `androidKeyToKeySym distinguishes left and right modifiers and lock keys`() {
+        assertEquals(0xffe1, hardwareKeyEventToKeySym(Key.ShiftLeft, 0))
+        assertEquals(0xffe2, hardwareKeyEventToKeySym(Key.ShiftRight, 0))
+        assertEquals(0xffe3, hardwareKeyEventToKeySym(Key.CtrlLeft, 0))
+        assertEquals(0xffe4, hardwareKeyEventToKeySym(Key.CtrlRight, 0))
+        assertEquals(0xffe9, hardwareKeyEventToKeySym(Key.AltLeft, 0))
+        assertEquals(0xffea, hardwareKeyEventToKeySym(Key.AltRight, 0))
+        assertEquals(0xffeb, hardwareKeyEventToKeySym(Key.MetaLeft, 0))
+        assertEquals(0xffec, hardwareKeyEventToKeySym(Key.MetaRight, 0))
+        assertEquals(0xffe5, hardwareKeyEventToKeySym(Key.CapsLock, 0))
+        assertEquals(0xff7f, hardwareKeyEventToKeySym(Key.NumLock, 0))
+        assertEquals(0xff14, hardwareKeyEventToKeySym(Key.ScrollLock, 0))
+        assertEquals(0xff61, hardwareKeyEventToKeySym(Key.PrintScreen, 0))
+        assertEquals(0xff13, hardwareKeyEventToKeySym(Key.Break, 0))
+        assertEquals(0xff67, hardwareKeyEventToKeySym(Key.Menu, 0))
+
+        assertTrue(isModifierKeySym(0xffe1))
+        assertTrue(isModifierKeySym(0xffe2))
+        assertTrue(isModifierKeySym(0xffe3))
+        assertTrue(isModifierKeySym(0xffe4))
+        assertTrue(isModifierKeySym(0xffe9))
+        assertTrue(isModifierKeySym(0xffea))
+        assertTrue(isModifierKeySym(0xffeb))
+        assertTrue(isModifierKeySym(0xffec))
+        assertFalse(isModifierKeySym('a'.code))
+        assertFalse(isModifierKeySym(0xff0d))
     }
 }

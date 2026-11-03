@@ -42,12 +42,12 @@ import javax.net.SocketFactory
  * other non-JSch transports to the same place (#149).
  */
 class ProxySocketFactory(
-    private val proxyType: String,
-    private val proxyHost: String,
-    private val proxyPort: Int,
+    internal val proxyType: String,
+    internal val proxyHost: String,
+    internal val proxyPort: Int,
     private val connectTimeoutMs: Int = 30_000,
-    private val proxyUser: String? = null,
-    private val proxyPassword: String? = null,
+    internal val proxyUser: String? = null,
+    internal val proxyPassword: String? = null,
 ) : SocketFactory() {
 
     override fun createSocket(host: String, port: Int): Socket {
@@ -60,24 +60,36 @@ class ProxySocketFactory(
         if (type == "HTTP") {
             return httpConnect(host, port)
         }
-        // Manual authenticated handshake for SOCKS5 when credentials are present;
-        // unauthenticated SOCKS5 and SOCKS4 keep the JDK SOCKS path.
-        if (!proxyUser.isNullOrEmpty() && type == "SOCKS5") {
-            return socks5Authenticated(host, port)
+        // #227, #777: Always run the SOCKS5 handshake manually so:
+        //  1. RFC 1929 username/password length octets use UTF-8 byte length
+        //     instead of character count (#227).
+        //  2. Literal IPv4 and IPv6 target addresses are encoded as ATYP 0x01
+        //     (4-byte IPv4) and ATYP 0x04 (16-byte IPv6) per RFC 1928 §5
+        //     instead of ATYP 0x03 (DOMAINNAME), which JSch's ProxySOCKS5 and
+        //     JDK's unresolved SocksSocketImpl send unconditionally — causing
+        //     proxies with DNS-rebinding filters or IP-based LAN routing rules
+        //     to drop local/RFC 1918 addresses (#777).
+        if (type == "SOCKS5") {
+            return socks5Connect(host, port)
+        }
+        if (type != "SOCKS4") {
+            throw IOException("Unsupported proxy type: $proxyType")
         }
         val proxyAddress = InetSocketAddress(proxyHost, proxyPort)
-        val javaProxy = when (type) {
-            "SOCKS5", "SOCKS4" -> Proxy(Proxy.Type.SOCKS, proxyAddress)
-            else -> throw IOException("Unsupported proxy type: $proxyType")
+        val socket = Socket(Proxy(Proxy.Type.SOCKS, proxyAddress))
+        val ipv4 = parseIpv4Literal(host)
+        val endpoint = if (ipv4 != null) {
+            InetSocketAddress(java.net.InetAddress.getByAddress(host, ipv4), port)
+        } else {
+            // Unresolved address so a SOCKS4a proxy resolves hostnames remotely.
+            InetSocketAddress.createUnresolved(host, port)
         }
-        val socket = Socket(javaProxy)
-        // Unresolved address so the proxy resolves the hostname remotely.
-        socket.connect(InetSocketAddress.createUnresolved(host, port), connectTimeoutMs)
+        socket.connect(endpoint, connectTimeoutMs)
         return socket
     }
 
-    /** SOCKS5 with RFC 1929 username/password auth (#227). */
-    private fun socks5Authenticated(host: String, port: Int): Socket {
+    /** SOCKS5 CONNECT with optional RFC 1929 username/password auth (#227, #777). */
+    private fun socks5Connect(host: String, port: Int): Socket {
         val socket = Socket()
         var ok = false
         try {
@@ -86,18 +98,26 @@ class ProxySocketFactory(
             val out = socket.getOutputStream()
             val ins = socket.getInputStream()
 
-            // Greeting: offer no-auth (0x00) and username/password (0x02).
-            out.write(byteArrayOf(0x05, 0x02, 0x00, 0x02))
+            // Greeting: offer no-auth (0x00), plus username/password (0x02) when configured.
+            val greeting = if (!proxyUser.isNullOrEmpty()) {
+                byteArrayOf(0x05, 0x02, 0x00, 0x02)
+            } else {
+                byteArrayOf(0x05, 0x01, 0x00)
+            }
+            out.write(greeting)
             out.flush()
             val ver = readByte(ins)
             if (ver != 0x05) throw IOException("SOCKS5 proxy bad version 0x${ver.toString(16)}")
             when (val method = readByte(ins)) {
                 0x00 -> { /* server accepts no-auth */ }
                 0x02 -> {
+                    if (proxyUser.isNullOrEmpty()) {
+                        throw IOException("SOCKS5 proxy requested username/password authentication, but no credentials are configured")
+                    }
                     // UTF-8 to match curl / JSch (str2byte) and what most SOCKS5
                     // servers store; the length octets below come from the byte
                     // arrays, so non-ASCII credentials stay correct (#227).
-                    val u = (proxyUser ?: "").toByteArray(Charsets.UTF_8)
+                    val u = proxyUser.toByteArray(Charsets.UTF_8)
                     val p = (proxyPassword ?: "").toByteArray(Charsets.UTF_8)
                     if (u.size > 255 || p.size > 255) {
                         throw IOException("SOCKS5 proxy credentials exceed 255 bytes")
@@ -117,19 +137,20 @@ class ProxySocketFactory(
                 else -> throw IOException("SOCKS5 proxy requested unsupported auth method 0x${method.toString(16)}")
             }
 
-            // CONNECT request, domain-name address type (remote DNS).
-            val dst = host.toByteArray(Charsets.ISO_8859_1)
-            if (dst.size > 255) throw IOException("SOCKS5 destination host too long")
+            // CONNECT request: encode literal IPv4 as ATYP 0x01, literal IPv6
+            // as ATYP 0x04, and hostnames as ATYP 0x03 (remote DNS) (#777).
             val req = ByteArrayOutputStream()
-            req.write(0x05); req.write(0x01); req.write(0x00); req.write(0x03)
-            req.write(dst.size); req.write(dst)
+            req.write(0x05); req.write(0x01); req.write(0x00)
+            writeSocks5Destination(req, host)
             req.write((port ushr 8) and 0xFF); req.write(port and 0xFF)
             out.write(req.toByteArray())
             out.flush()
 
             if (readByte(ins) != 0x05) throw IOException("SOCKS5 proxy bad reply version")
             val rep = readByte(ins)
-            if (rep != 0x00) throw IOException("SOCKS5 CONNECT failed (reply code $rep)")
+            if (rep != 0x00) {
+                throw IOException("SOCKS5 CONNECT failed (reply code $rep: ${socks5ReplyReason(rep)})")
+            }
             readByte(ins) // RSV
             when (val atyp = readByte(ins)) {
                 0x01 -> skipExact(ins, 4 + 2)            // IPv4 + port
@@ -239,4 +260,120 @@ class ProxySocketFactory(
         localAddress: java.net.InetAddress?,
         localPort: Int,
     ): Socket = createSocket(address, port)
+
+    internal companion object {
+        /**
+         * Encode [host] into a SOCKS5 `ATYP + DST.ADDR` field per RFC 1928 §5:
+         *  - `0x01` + 4 octets when [host] is a dotted-quad IPv4 literal
+         *  - `0x04` + 16 octets when [host] is an IPv6 literal
+         *  - `0x03` + length octet + ASCII bytes when [host] is a domain name
+         *
+         * Both literal checks are pure string parsers and never invoke DNS.
+         */
+        internal fun writeSocks5Destination(out: ByteArrayOutputStream, host: String) {
+            val trimmed = host.trim()
+            val ipv4 = parseIpv4Literal(trimmed)
+            if (ipv4 != null) {
+                out.write(0x01)
+                out.write(ipv4)
+                return
+            }
+            val ipv6 = parseIpv6Literal(trimmed)
+            if (ipv6 != null) {
+                out.write(0x04)
+                out.write(ipv6)
+                return
+            }
+            val dst = trimmed.toByteArray(Charsets.ISO_8859_1)
+            if (dst.isEmpty() || dst.size > 255) {
+                throw IOException("SOCKS5 destination host length out of range: ${dst.size}")
+            }
+            out.write(0x03)
+            out.write(dst.size)
+            out.write(dst)
+        }
+
+        /** Parse a strict dotted-quad IPv4 literal (`a.b.c.d`) without DNS, or null. */
+        internal fun parseIpv4Literal(host: String): ByteArray? {
+            val parts = host.split('.')
+            if (parts.size != 4) return null
+            val bytes = ByteArray(4)
+            for (i in 0 until 4) {
+                val part = parts[i]
+                if (part.isEmpty() || part.length > 3 || !part.all { it in '0'..'9' }) return null
+                // Reject leading zeros like "010" which some stacks interpret as octal.
+                if (part.length > 1 && part[0] == '0') return null
+                val n = part.toIntOrNull() ?: return null
+                if (n !in 0..255) return null
+                bytes[i] = n.toByte()
+            }
+            return bytes
+        }
+
+        /** Parse an IPv6 literal (with optional `[...]` brackets or `%zone`) without DNS, or null. */
+        internal fun parseIpv6Literal(raw: String): ByteArray? {
+            val clean = raw.trim().removeSurrounding("[", "]").substringBefore('%')
+            if (!clean.contains(':')) return null
+            var text = clean
+            var ipv4Tail: ByteArray? = null
+            val lastColon = text.lastIndexOf(':')
+            if (lastColon >= 0 && text.indexOf('.', lastColon) >= 0) {
+                ipv4Tail = parseIpv4Literal(text.substring(lastColon + 1)) ?: return null
+                text = text.substring(0, lastColon) + ":0:0"
+            }
+            if (text.contains(":::")) return null
+            val doubleColonCount = text.split("::").size - 1
+            if (doubleColonCount > 1) return null
+            val groups: List<Int> = if (doubleColonCount == 1) {
+                val sides = text.split("::", limit = 2)
+                val left = if (sides[0].isEmpty()) emptyList() else sides[0].split(':')
+                val right = if (sides[1].isEmpty()) emptyList() else sides[1].split(':')
+                val missing = 8 - (left.size + right.size)
+                if (missing < 1) return null
+                val all = left + List(missing) { "0" } + right
+                all.map { parseHexGroup(it) ?: return null }
+            } else {
+                val parts = text.split(':')
+                if (parts.size != 8) return null
+                parts.map { parseHexGroup(it) ?: return null }
+            }
+            if (groups.size != 8) return null
+            val out = ByteArray(16)
+            for (i in 0 until 8) {
+                out[i * 2] = ((groups[i] ushr 8) and 0xFF).toByte()
+                out[i * 2 + 1] = (groups[i] and 0xFF).toByte()
+            }
+            if (ipv4Tail != null) {
+                System.arraycopy(ipv4Tail, 0, out, 12, 4)
+            }
+            return out
+        }
+
+        private fun parseHexGroup(s: String): Int? {
+            if (s.isEmpty() || s.length > 4) return null
+            var v = 0
+            for (ch in s) {
+                val d = when (ch) {
+                    in '0'..'9' -> ch - '0'
+                    in 'a'..'f' -> ch - 'a' + 10
+                    in 'A'..'F' -> ch - 'A' + 10
+                    else -> return null
+                }
+                v = (v shl 4) or d
+            }
+            return v
+        }
+
+        internal fun socks5ReplyReason(rep: Int): String = when (rep) {
+            0x01 -> "general SOCKS server failure"
+            0x02 -> "connection not allowed by ruleset"
+            0x03 -> "network unreachable"
+            0x04 -> "host unreachable"
+            0x05 -> "connection refused"
+            0x06 -> "TTL expired"
+            0x07 -> "command not supported"
+            0x08 -> "address type not supported"
+            else -> "unknown error"
+        }
+    }
 }

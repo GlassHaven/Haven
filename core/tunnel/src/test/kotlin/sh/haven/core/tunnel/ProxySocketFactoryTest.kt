@@ -310,4 +310,71 @@ class ProxySocketFactoryTest {
             client?.close(); server.close(); srv.join(2_000)
         }
     }
+
+    @Test
+    fun socks5EncodesIpv4LiteralAsAtyp0x01WithoutCredentials() {
+        // #777: JSch's ProxySOCKS5 and JDK's unresolved SocksSocketImpl both
+        // encode "192.168.1.10" as ATYP 0x03 (DOMAINNAME), which proxies with
+        // DNS-rebinding filters or IP-based LAN routing rules reject or
+        // misroute. Literal IPv4 addresses must be sent as ATYP 0x01 (4 bytes).
+        val server = ServerSocket(0, 1, java.net.InetAddress.getByName("127.0.0.1"))
+        val gotAtyp = AtomicReference<Int>()
+        val gotAddr = AtomicReference<ByteArray>()
+        val gotPort = AtomicReference<Int>()
+        val done = CountDownLatch(1)
+
+        val srv = thread(isDaemon = true) {
+            server.accept().use { s ->
+                val ins = DataInputStream(s.getInputStream())
+                val out = s.getOutputStream()
+                assertEquals(0x05, ins.read())
+                val n = ins.read()
+                val methods = IntArray(n) { ins.read() }
+                assertEquals(listOf(0x00), methods.toList())
+                out.write(byteArrayOf(0x05, 0x00)); out.flush()
+                assertEquals(0x05, ins.read())
+                assertEquals(0x01, ins.read()) // CMD CONNECT
+                assertEquals(0x00, ins.read()) // RSV
+                val atyp = ins.read()
+                gotAtyp.set(atyp)
+                val addr = ByteArray(4).also { ins.readFully(it) }
+                gotAddr.set(addr)
+                gotPort.set((ins.read() shl 8) or ins.read())
+                out.write(byteArrayOf(0x05, 0x00, 0x00, 0x01, 0, 0, 0, 0, 0, 0)); out.flush()
+                done.countDown()
+            }
+        }
+
+        var client: Socket? = null
+        try {
+            val proxy = AuthenticatedProxy(
+                ProxySocketFactory("SOCKS5", "127.0.0.1", server.localPort, connectTimeoutMs = 5_000),
+            )
+            proxy.connect(null, "192.168.1.10", 22, 5_000)
+            client = proxy.socket
+            assertTrue(done.await(5, TimeUnit.SECONDS))
+            assertEquals("IPv4 literal must use ATYP 0x01", 0x01, gotAtyp.get())
+            org.junit.Assert.assertArrayEquals(
+                byteArrayOf(192.toByte(), 168.toByte(), 1, 10),
+                gotAddr.get(),
+            )
+            assertEquals(22, gotPort.get())
+            assertTrue(client!!.isConnected)
+        } finally {
+            client?.close(); server.close(); srv.join(2_000)
+        }
+    }
+
+    @Test
+    fun socks5EncodesIpv6LiteralAsAtyp0x04() {
+        val buf = java.io.ByteArrayOutputStream()
+        ProxySocketFactory.writeSocks5Destination(buf, "[fd00::1%wlan0]")
+        val bytes = buf.toByteArray()
+        assertEquals(1 + 16, bytes.size)
+        assertEquals(0x04, bytes[0].toInt() and 0xFF)
+        assertEquals(0xfd, bytes[1].toInt() and 0xFF)
+        assertEquals(0x00, bytes[2].toInt() and 0xFF)
+        for (i in 3..15) assertEquals(0x00, bytes[i].toInt() and 0xFF)
+        assertEquals(0x01, bytes[16].toInt() and 0xFF)
+    }
 }

@@ -172,8 +172,14 @@ class TunnelResolverTest {
     // handshake, else the proxy throws JSchProxyException("…username/password
     // authentication requested by server with no username/password configured").
 
+    private fun declaredField(target: Any, name: String): java.lang.reflect.Field =
+        generateSequence<Class<*>>(target.javaClass) { it.superclass }
+            .mapNotNull { runCatching { it.getDeclaredField(name) }.getOrNull() }
+            .first()
+            .apply { isAccessible = true }
+
     private fun proxyField(proxy: Any, name: String): String? =
-        proxy.javaClass.getDeclaredField(name).apply { isAccessible = true }.get(proxy) as String?
+        declaredField(proxy, name).get(proxy) as String?
 
     @Test
     fun jschProxySocks5WithCredsUsesAuthenticatedProxy() = runTest {
@@ -276,8 +282,9 @@ class TunnelResolverTest {
             profile(proxyType = "SOCKS5", proxyHost = "  socks5://127.0.0.1:9050 ", proxyPort = 1080),
         )
         assertTrue(proxy is ProxySOCKS5)
+        assertTrue(proxy is AuthenticatedProxy)
         assertEquals("127.0.0.1", proxyField(proxy!!, "proxy_host"))
-        val portField = proxy.javaClass.getDeclaredField("proxy_port").apply { isAccessible = true }.getInt(proxy)
+        val portField = declaredField(proxy, "proxy_port").getInt(proxy)
         assertEquals(9050, portField)
     }
 

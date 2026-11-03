@@ -154,6 +154,37 @@ class SshConnectDiagnosisTest {
         assertTrue(message, !message.contains("["))
     }
 
+    @Test
+    fun `a proxied connect closed before any SSH banner names the proxy EOF`() {
+        val raw = JSchException(SshConnectDiagnosis.FOREIGN_HOST_CLOSED_MARKER)
+        val rewritten = SshConnectDiagnosis.rewrite(
+            raw,
+            host = "192.168.1.10",
+            address = "192.168.1.10",
+            port = 22,
+            timeoutMs = 10_000,
+            serverVersion = null,
+            viaProxy = true,
+        )
+        val message = rewritten.message.orEmpty()
+        assertTrue(message, message.contains("Proxy closed the connection to 192.168.1.10:22"))
+        assertTrue(message, message.contains(SshConnectDiagnosis.FOREIGN_HOST_CLOSED_MARKER))
+        assertSame(raw, rewritten.cause)
+        assertTrue(rewritten.isSshNetworkError())
+
+        // Direct connections (viaProxy = false) keep the original JSch exception untouched.
+        val direct = SshConnectDiagnosis.rewrite(
+            raw,
+            host = "192.168.1.10",
+            address = "192.168.1.10",
+            port = 22,
+            timeoutMs = 10_000,
+            serverVersion = null,
+            viaProxy = false,
+        )
+        assertSame(raw, direct)
+    }
+
     private companion object {
         const val LOOPBACK = "127.0.0.1"
         const val TIMEOUT_MS = 1_500

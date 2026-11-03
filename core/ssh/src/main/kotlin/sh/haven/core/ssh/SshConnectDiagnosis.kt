@@ -48,8 +48,14 @@ object SshConnectDiagnosis {
     const val CONNECT_TIMEOUT_MARKER = "timeout: socket is not established"
 
     /**
+     * The literal JSch emits in `Session.connect` when `io.getByte()` hits EOF
+     * (-1) while reading the server's identification banner (`SSH-2.0-...`).
+     */
+    const val FOREIGN_HOST_CLOSED_MARKER = "connection is closed by foreign host"
+
+    /**
      * Rewrite [e] into a failure that names the phase and the address, or return
-     * it untouched when it isn't one of the ambiguous timeouts.
+     * it untouched when it isn't one of the ambiguous timeouts or proxy EOFs.
      *
      * [serverVersion] is the peer's identification string if one arrived —
      * read from `Session.getServerVersion()` *before* disconnecting, and null
@@ -63,6 +69,7 @@ object SshConnectDiagnosis {
         port: Int,
         timeoutMs: Int,
         serverVersion: String?,
+        viaProxy: Boolean = false,
     ): JSchException {
         val where = endpoint(host, address, port)
         val secs = formatSeconds(timeoutMs)
@@ -75,9 +82,20 @@ object SshConnectDiagnosis {
             )
         }
 
+        val banner = serverVersion?.takeIf { it.isNotBlank() }
+        if (viaProxy && banner == null && e.message.orEmpty().contains(FOREIGN_HOST_CLOSED_MARKER)) {
+            return JSchException(
+                "Proxy closed the connection to $where before an SSH banner arrived " +
+                    "($FOREIGN_HOST_CLOSED_MARKER). The proxy accepted the request and then " +
+                    "closed the stream — either the target refused/dropped the proxy's outbound " +
+                    "dial or the proxy's routing rules block this destination (for example, a " +
+                    "private/LAN IP block rule).",
+                e,
+            )
+        }
+
         if (!hasReadTimeout(e)) return e
 
-        val banner = serverVersion?.takeIf { it.isNotBlank() }
         return if (banner != null) {
             JSchException(
                 "$where identified itself as \"$banner\" then stopped responding for $secs " +

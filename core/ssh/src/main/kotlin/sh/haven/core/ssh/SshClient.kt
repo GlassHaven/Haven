@@ -561,6 +561,7 @@ class SshClient : SshConnection {
                 port = config.port,
                 timeoutMs = connectTimeoutMs,
                 serverVersion = serverBanner,
+                viaProxy = proxy != null,
             )
         } finally {
             // Release any NFC field held open for the one-tap either/or sign so
@@ -833,6 +834,7 @@ class SshClient : SshConnection {
                 port = config.port,
                 timeoutMs = connectTimeoutMs,
                 serverVersion = serverBanner,
+                viaProxy = proxy != null,
             )
         } finally {
             fidoAuthenticator?.releaseHeldNfc()

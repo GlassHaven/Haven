@@ -620,4 +620,6 @@
     <string name="connections_helper_persist_rediscovered_host">Обновлять профиль, когда локальный узел предъявляет тот же SSH-ключ хоста по новому адресу IPv4. Отключите, чтобы подключаться по найденному адресу только на время сеанса и сохранять настроенный хост (например, IP WireGuard).</string>
     <string name="connections_field_saved_password">Сохранённый пароль (SSH / sudo)</string>
     <string name="connections_helper_saved_password">Необязательно. Зашифрован в Android Keystore и используется для входа по паролю SSH и биометрической автоподстановки sudo в терминале.</string>
+    <string name="connections_auth_banner_title">Аутентификация SSH</string>
+    <string name="connections_auth_banner_open_link">Открыть ссылку</string>
 </resources>

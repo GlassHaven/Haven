@@ -53,6 +53,9 @@ class SshClient : SshConnection {
     /** Set before connect() to capture verbose SSH protocol output. */
     override var verboseLogger: SshVerboseLogger? = null
     private var session: Session? = null
+    /** In-flight JSch session during [connect]/[connectBlocking], so [disconnect] can abort a blocked handshake (#781). */
+    @Volatile
+    private var connectingSession: Session? = null
 
     /**
      * True when the most recent successful connect verified the host via a
@@ -497,6 +500,7 @@ class SshClient : SshConnection {
 
         val fallbackKiPassword: CharArray? = applyAuthMethods(config, sess)
 
+        var timeoutExtendedForBanner = false
         if (keyboardInteractivePrompter != null) {
             sess.userInfo = KeyboardInteractiveUserInfo(
                 destination = "${config.username}@${config.host}:${config.port}",
@@ -504,6 +508,24 @@ class SshClient : SshConnection {
                 fallbackPassword = fallbackKiPassword,
                 totpCodeProvider = totpCodeProvider,
                 autoSubmit = !confirmOtp,
+                onBanner = { banner ->
+                    Log.i(TAG, "SSH auth banner (${LogRedact.host(config.host, config.port)}): $banner")
+                    verboseLogger?.logInfo("[haven/auth-banner] $banner")
+                    if (extractAuthBannerUrls(banner).isNotEmpty()) {
+                        // Tailscale SSH check mode (and similar browser-approval
+                        // flows) sends SSH_MSG_USERAUTH_BANNER with an approval
+                        // URL and holds the userauth request open on the socket
+                        // while the user completes authentication in a browser.
+                        // Extend the socket read timeout beyond the 10 s connect
+                        // budget so JSch doesn't time out mid-approval (#781).
+                        runCatching {
+                            if (sess.timeout in 1 until AUTH_BANNER_URL_TIMEOUT_MS) {
+                                sess.timeout = AUTH_BANNER_URL_TIMEOUT_MS
+                                timeoutExtendedForBanner = true
+                            }
+                        }
+                    }
+                },
             )
         }
 
@@ -519,8 +541,12 @@ class SshClient : SshConnection {
         preConnect?.invoke()
         timing.mark("knock")
 
+        connectingSession = sess
         try {
             sess.connect(connectTimeoutMs)
+            if (timeoutExtendedForBanner) {
+                runCatching { sess.timeout = connectTimeoutMs }
+            }
             timing.mark("handshake")
             tunnelPeerAddress = proxy?.tunnelPeerAddress
             Log.i(TAG, "connect timing: ${timing.summary()}")
@@ -564,6 +590,7 @@ class SshClient : SshConnection {
                 viaProxy = proxy != null,
             )
         } finally {
+            connectingSession = null
             // Release any NFC field held open for the one-tap either/or sign so
             // it can't outlive this connect attempt (#237).
             fidoAuthenticator?.releaseHeldNfc()
@@ -786,6 +813,7 @@ class SshClient : SshConnection {
 
         val fallbackKiPassword: CharArray? = applyAuthMethods(config, sess)
 
+        var timeoutExtendedForBanner = false
         if (keyboardInteractivePrompter != null) {
             sess.userInfo = KeyboardInteractiveUserInfo(
                 destination = "${config.username}@${config.host}:${config.port}",
@@ -793,6 +821,18 @@ class SshClient : SshConnection {
                 fallbackPassword = fallbackKiPassword,
                 totpCodeProvider = totpCodeProvider,
                 autoSubmit = !confirmOtp,
+                onBanner = { banner ->
+                    Log.i(TAG, "SSH auth banner (${LogRedact.host(config.host, config.port)}): $banner")
+                    verboseLogger?.logInfo("[haven/auth-banner] $banner")
+                    if (extractAuthBannerUrls(banner).isNotEmpty()) {
+                        runCatching {
+                            if (sess.timeout in 1 until AUTH_BANNER_URL_TIMEOUT_MS) {
+                                sess.timeout = AUTH_BANNER_URL_TIMEOUT_MS
+                                timeoutExtendedForBanner = true
+                            }
+                        }
+                    }
+                },
             )
         }
 
@@ -803,8 +843,12 @@ class SshClient : SshConnection {
         preConnect?.invoke()
         timing.mark("knock")
 
+        connectingSession = sess
         try {
             sess.connect(connectTimeoutMs)
+            if (timeoutExtendedForBanner) {
+                runCatching { sess.timeout = connectTimeoutMs }
+            }
             timing.mark("handshake")
             tunnelPeerAddress = proxy?.tunnelPeerAddress
             Log.i(TAG, "connect timing: ${timing.summary()}")
@@ -837,6 +881,7 @@ class SshClient : SshConnection {
                 viaProxy = proxy != null,
             )
         } finally {
+            connectingSession = null
             fidoAuthenticator?.releaseHeldNfc()
         }
         session = sess
@@ -1204,6 +1249,8 @@ class SshClient : SshConnection {
             }
             dynamicForwards.clear()
         }
+        connectingSession?.let { runCatching { it.disconnect() } }
+        connectingSession = null
         session?.disconnect()
         session = null
         agentForwardingEnabled = false
@@ -1213,6 +1260,14 @@ class SshClient : SshConnection {
     override fun close() = disconnect()
 
     companion object {
+        /**
+         * Socket read timeout (5 minutes) applied during `Session.connect`
+         * when an `SSH_MSG_USERAUTH_BANNER` contains an `http://` or `https://`
+         * URL (e.g. Tailscale SSH `check` mode), giving the user time to open
+         * the browser and complete authentication (#781).
+         */
+        internal const val AUTH_BANNER_URL_TIMEOUT_MS = 300_000
+
         /** No-op, kept for API compatibility. DNS is resolved fresh on each connection. */
         fun clearDnsCache() { }
 

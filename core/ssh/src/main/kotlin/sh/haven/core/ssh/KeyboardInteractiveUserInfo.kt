@@ -23,11 +23,12 @@ import kotlinx.coroutines.runBlocking
  * is handled separately by [HostKeyVerifier]).
  */
 internal class KeyboardInteractiveUserInfo(
-    destination: String,
-    prompter: KeyboardInteractivePrompter,
+    private val destination: String,
+    private val prompter: KeyboardInteractivePrompter,
     fallbackPassword: CharArray? = null,
     totpCodeProvider: (() -> String)? = null,
     autoSubmit: Boolean = true,
+    private val onBanner: ((String) -> Unit)? = null,
 ) : UserInfo, UIKeyboardInteractive {
 
     private val answerer = KeyboardInteractiveAnswerer(
@@ -48,7 +49,11 @@ internal class KeyboardInteractiveUserInfo(
 
     override fun promptYesNo(message: String?): Boolean = false
 
-    override fun showMessage(message: String?) { /* no-op */ }
+    override fun showMessage(message: String?) {
+        val trimmed = message?.trim()?.takeIf { it.isNotEmpty() } ?: return
+        onBanner?.invoke(trimmed)
+        prompter.onBanner(destination, trimmed)
+    }
 
     override fun promptKeyboardInteractive(
         destination: String?,

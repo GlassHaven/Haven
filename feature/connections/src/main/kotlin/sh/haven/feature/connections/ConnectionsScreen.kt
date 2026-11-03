@@ -240,6 +240,7 @@ fun ConnectionsScreen(
     val hostKeyPrompt by viewModel.hostKeyPrompt.collectAsState()
     val fidoTouchPrompt by viewModel.fidoTouchPrompt.collectAsState()
     val keyboardInteractiveAuth by viewModel.keyboardInteractiveAuth.collectAsState()
+    val sshAuthBanner by viewModel.sshAuthBanner.collectAsState()
     val globalSessionManagerLabel by viewModel.globalSessionManagerLabel.collectAsState()
     val newSessionProfileId by viewModel.newSessionProfileId.collectAsState()
     val subnetScanning by viewModel.subnetScanning.collectAsState()
@@ -860,7 +861,17 @@ fun ConnectionsScreen(
             challenge = pending.challenge,
             onSubmit = { viewModel.submitKeyboardInteractiveResponses(it) },
             onCancel = { viewModel.cancelKeyboardInteractive() },
+            bannerMessage = sshAuthBanner?.message,
         )
+    }
+
+    if (keyboardInteractiveAuth == null) {
+        sshAuthBanner?.let { banner ->
+            SshAuthBannerDialog(
+                banner = banner,
+                onCancel = { viewModel.cancelSshAuthBanner() },
+            )
+        }
     }
 
     // Rendered as a full-screen overlay Dialog so it's above the profile

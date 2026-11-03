@@ -14413,6 +14413,46 @@
      }
     },
     {
+     "name": "connections_auth_banner_title",
+     "en": "SSH authentication",
+     "comment": "Keyboard-interactive challenge dialog",
+     "args": [],
+     "t": {
+      "ar": "مصادقة SSH",
+      "bn": "SSH প্রমাণীকরণ",
+      "de": "SSH-Authentifizierung",
+      "es": "Autenticación SSH",
+      "fr": "Authentification SSH",
+      "hi": "SSH प्रमाणीकरण",
+      "ja": "SSH 認証",
+      "ko": "SSH 인증",
+      "pt": "Autenticação SSH",
+      "ru": "Аутентификация SSH",
+      "sr": "SSH аутентификација",
+      "zh": "SSH 身份验证"
+     }
+    },
+    {
+     "name": "connections_auth_banner_open_link",
+     "en": "Open link",
+     "comment": "Keyboard-interactive challenge dialog",
+     "args": [],
+     "t": {
+      "ar": "فتح الرابط",
+      "bn": "লিঙ্ক খুলুন",
+      "de": "Link öffnen",
+      "es": "Abrir enlace",
+      "fr": "Ouvrir le lien",
+      "hi": "लिंक खोलें",
+      "ja": "リンクを開く",
+      "ko": "링크 열기",
+      "pt": "Abrir link",
+      "ru": "Открыть ссылку",
+      "sr": "Отвори везу",
+      "zh": "打开链接"
+     }
+    },
+    {
      "name": "connections_vm_title",
      "en": "Linux VM",
      "comment": "Linux VM setup dialog",

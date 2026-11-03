@@ -620,4 +620,6 @@
     <string name="connections_helper_persist_rediscovered_host">কোনো লোকাল মেশিন নতুন IPv4 ঠিকানায় একই SSH হোস্ট কী প্রদান করলে প্রোফাইল আপডেট করুন। শুধুমাত্র সেই সেশনের জন্য পুনরায় খুঁজে পাওয়া ঠিকানায় সংযুক্ত হতে এবং আপনার কনফিগার করা হোস্ট (যেমন WireGuard IP) অপরিবর্তিত রাখতে এটি বন্ধ করুন।</string>
     <string name="connections_field_saved_password">সংরক্ষিত পাসওয়ার্ড (SSH / sudo)</string>
     <string name="connections_helper_saved_password">ঐচ্ছিক। Android Keystore-এ এনক্রিপ্ট করা থাকে এবং SSH পাসওয়ার্ড লগইন ও টার্মিনালে বায়োমেট্রিক sudo অটোফিলের জন্য ব্যবহৃত হয়।</string>
+    <string name="connections_auth_banner_title">SSH প্রমাণীকরণ</string>
+    <string name="connections_auth_banner_open_link">লিঙ্ক খুলুন</string>
 </resources>

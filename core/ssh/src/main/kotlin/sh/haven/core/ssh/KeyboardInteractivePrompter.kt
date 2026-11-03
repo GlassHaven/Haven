@@ -45,4 +45,28 @@ data class KeyboardInteractiveChallenge(
  */
 fun interface KeyboardInteractivePrompter {
     suspend fun prompt(challenge: KeyboardInteractiveChallenge): List<String>?
+
+    /**
+     * Non-blocking notification when the SSH server sends an
+     * `SSH_MSG_USERAUTH_BANNER` during authentication (JSch's
+     * `UserInfo.showMessage`). Must not block the calling IO thread: servers
+     * like Tailscale SSH in `check` mode send a banner containing an approval
+     * URL and hold the userauth request open on the same socket until the user
+     * completes the browser check (#781).
+     */
+    fun onBanner(destination: String, message: String) {}
 }
+
+private val AUTH_BANNER_URL_REGEX = Regex("""https?://[^\s<>"]+""")
+
+/**
+ * Extract `http://` and `https://` URLs from an SSH auth banner, stripping
+ * trailing sentence or wrapper punctuation so links like
+ * `(https://login.tailscale.com/a/abc123).` open cleanly (#781).
+ */
+fun extractAuthBannerUrls(message: String): List<String> =
+    AUTH_BANNER_URL_REGEX.findAll(message)
+        .map { it.value.trimEnd('.', ',', ';', ')', ']', '\'', '"') }
+        .filter { it.length > "https://".length }
+        .distinct()
+        .toList()

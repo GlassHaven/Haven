@@ -346,6 +346,8 @@
     <string name="connections_ki_response_fallback">Response</string>
     <string name="connections_ki_title_additional">Additional authentication required</string>
     <string name="connections_ki_title_server">Server prompt</string>
+    <string name="connections_auth_banner_title">SSH authentication</string>
+    <string name="connections_auth_banner_open_link">Open link</string>
 
     <!-- Linux VM setup dialog -->
     <string name="connections_vm_title">Linux VM</string>

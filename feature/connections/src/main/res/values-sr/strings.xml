@@ -552,4 +552,6 @@
     <string name="connections_helper_forward_pulseaudio">Pokreće PulseAudio most na telefonu, tuneluje udaljeni port 14713 ka lokalnom portu 4713 i izvozi PULSE_SERVER=tcp:127.0.0.1:14713 u SSH školjci.</string>
     <string name="connections_toggle_persist_rediscovered_host">Сачувај поново откривену LAN адресу</string>
     <string name="connections_helper_persist_rediscovered_host">Ажурира профил када локални рачунар понуди исти SSH кључ домаћина на новој IPv4 адреси. Искључите да бисте се повезали преко откривене адресе само за ту сесију и задржали подешени домаћин (нпр. WireGuard IP).</string>
+    <string name="connections_auth_banner_title">SSH аутентификација</string>
+    <string name="connections_auth_banner_open_link">Отвори везу</string>
 </resources>

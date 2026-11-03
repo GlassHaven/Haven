@@ -4,7 +4,10 @@ import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
+import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.text.KeyboardOptions
+import androidx.compose.foundation.text.selection.SelectionContainer
+import androidx.compose.foundation.verticalScroll
 import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.OutlinedTextField
@@ -12,16 +15,23 @@ import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.DisposableEffect
-import androidx.compose.runtime.LaunchedEffect
-import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateListOf
 import androidx.compose.runtime.remember
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.platform.LocalUriHandler
 import androidx.compose.ui.res.stringResource
+import androidx.compose.ui.text.LinkAnnotation
+import androidx.compose.ui.text.SpanStyle
+import androidx.compose.ui.text.TextLinkStyles
+import androidx.compose.ui.text.buildAnnotatedString
+import androidx.compose.ui.text.font.FontFamily
 import androidx.compose.ui.text.input.ImeAction
 import androidx.compose.ui.text.input.KeyboardType
+import androidx.compose.ui.text.style.TextDecoration
 import androidx.compose.ui.unit.dp
+import androidx.compose.ui.window.DialogProperties
 import sh.haven.core.ssh.KeyboardInteractiveChallenge
+import sh.haven.core.ssh.extractAuthBannerUrls
 import sh.haven.core.ui.PasswordField
 
 /**
@@ -40,6 +50,7 @@ fun KeyboardInteractiveDialog(
     challenge: KeyboardInteractiveChallenge,
     onSubmit: (List<String>) -> Unit,
     onCancel: () -> Unit,
+    bannerMessage: String? = null,
 ) {
     val responses = remember(challenge) {
         android.util.Log.d(
@@ -80,7 +91,7 @@ fun KeyboardInteractiveDialog(
         onDismissRequest = onCancel,
         title = { Text(title) },
         text = {
-            Column {
+            Column(modifier = Modifier.verticalScroll(rememberScrollState())) {
                 if (challenge.destination.isNotBlank()) {
                     Text(
                         challenge.destination,
@@ -89,11 +100,12 @@ fun KeyboardInteractiveDialog(
                     )
                     Spacer(Modifier.height(8.dp))
                 }
+                if (!bannerMessage.isNullOrBlank()) {
+                    BannerTextWithLinks(text = bannerMessage)
+                    Spacer(Modifier.height(12.dp))
+                }
                 if (challenge.instruction.isNotBlank()) {
-                    Text(
-                        challenge.instruction,
-                        style = MaterialTheme.typography.bodyMedium,
-                    )
+                    BannerTextWithLinks(text = challenge.instruction)
                     Spacer(Modifier.height(12.dp))
                 }
 
@@ -133,4 +145,109 @@ fun KeyboardInteractiveDialog(
             TextButton(onClick = onCancel) { Text(stringResource(R.string.common_cancel)) }
         },
     )
+}
+
+/**
+ * Displays an `SSH_MSG_USERAUTH_BANNER` while an SSH connection is in progress
+ * (#781, e.g. Tailscale SSH `check` mode). Any `http://` or `https://` URLs in
+ * the banner are clickable inline and via the primary action button so the user
+ * can open the approval page in their browser while JSch waits for
+ * `SSH_MSG_USERAUTH_SUCCESS`. Tapping Cancel aborts the in-flight connect.
+ */
+@Composable
+fun SshAuthBannerDialog(
+    banner: ConnectionsViewModel.PendingSshAuthBanner,
+    onCancel: () -> Unit,
+) {
+    val uriHandler = LocalUriHandler.current
+    val primaryUrl = banner.urls.firstOrNull()
+
+    AlertDialog(
+        onDismissRequest = { /* Keep visible while connect waits; explicit Cancel aborts (#781) */ },
+        properties = DialogProperties(
+            dismissOnBackPress = false,
+            dismissOnClickOutside = false,
+        ),
+        title = { Text(stringResource(R.string.connections_auth_banner_title)) },
+        text = {
+            Column(modifier = Modifier.verticalScroll(rememberScrollState())) {
+                if (banner.destination.isNotBlank()) {
+                    Text(
+                        banner.destination,
+                        style = MaterialTheme.typography.bodySmall,
+                        color = MaterialTheme.colorScheme.onSurfaceVariant,
+                    )
+                    Spacer(Modifier.height(8.dp))
+                }
+                BannerTextWithLinks(
+                    text = banner.message,
+                    monospace = true,
+                )
+            }
+        },
+        confirmButton = {
+            if (primaryUrl != null) {
+                TextButton(onClick = { runCatching { uriHandler.openUri(primaryUrl) } }) {
+                    Text(stringResource(R.string.connections_auth_banner_open_link))
+                }
+            }
+        },
+        dismissButton = {
+            TextButton(onClick = onCancel) {
+                Text(stringResource(R.string.common_cancel))
+            }
+        },
+    )
+}
+
+@Composable
+internal fun BannerTextWithLinks(
+    text: String,
+    modifier: Modifier = Modifier,
+    monospace: Boolean = false,
+) {
+    val uriHandler = LocalUriHandler.current
+    val linkColor = MaterialTheme.colorScheme.primary
+    val urls = remember(text) { extractAuthBannerUrls(text) }
+    val annotated = remember(text, urls, linkColor) {
+        buildAnnotatedString {
+            append(text)
+            val linkStyles = TextLinkStyles(
+                style = SpanStyle(
+                    color = linkColor,
+                    textDecoration = TextDecoration.Underline,
+                ),
+            )
+            for (url in urls) {
+                var searchFrom = 0
+                while (searchFrom < text.length) {
+                    val idx = text.indexOf(url, startIndex = searchFrom)
+                    if (idx < 0) break
+                    val end = idx + url.length
+                    addLink(
+                        LinkAnnotation.Url(
+                            url = url,
+                            styles = linkStyles,
+                            linkInteractionListener = {
+                                runCatching { uriHandler.openUri(url) }
+                            },
+                        ),
+                        start = idx,
+                        end = end,
+                    )
+                    searchFrom = end
+                }
+            }
+        }
+    }
+    SelectionContainer(modifier = modifier) {
+        Text(
+            text = annotated,
+            style = if (monospace) {
+                MaterialTheme.typography.bodySmall.copy(fontFamily = FontFamily.Monospace)
+            } else {
+                MaterialTheme.typography.bodyMedium
+            },
+        )
+    }
 }

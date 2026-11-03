@@ -620,4 +620,6 @@
     <string name="connections_helper_persist_rediscovered_host">Actualiza el perfil cuando un equipo local presenta la misma clave de host SSH en una nueva dirección IPv4. Desactívalo para conectarte a la dirección redescubierta solo durante esa sesión y conservar el host configurado (p. ej., una IP de WireGuard).</string>
     <string name="connections_field_saved_password">Contraseña guardada (SSH / sudo)</string>
     <string name="connections_helper_saved_password">Opcional. Cifrada en Android Keystore y usada para el inicio de sesión SSH por contraseña y el autocompletado biométrico de sudo en la terminal.</string>
+    <string name="connections_auth_banner_title">Autenticación SSH</string>
+    <string name="connections_auth_banner_open_link">Abrir enlace</string>
 </resources>

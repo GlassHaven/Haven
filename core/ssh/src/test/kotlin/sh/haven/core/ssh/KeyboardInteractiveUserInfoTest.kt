@@ -294,7 +294,52 @@ class KeyboardInteractiveUserInfoTest {
         assertEquals(false, ui.promptPassword("p"))
         assertEquals(false, ui.promptPassphrase("p"))
         assertEquals(false, ui.promptYesNo("p"))
-        ui.showMessage("any") // no-op
+        ui.showMessage("any") // default prompter onBanner is a no-op
+    }
+
+    @Test
+    fun showMessageForwardsTrimmedAuthBannerToPrompterAndCallback() {
+        val prompterBanners = mutableListOf<Pair<String, String>>()
+        val callbackBanners = mutableListOf<String>()
+        val prompter = object : KeyboardInteractivePrompter {
+            override suspend fun prompt(challenge: KeyboardInteractiveChallenge): List<String>? = null
+            override fun onBanner(destination: String, message: String) {
+                prompterBanners += destination to message
+            }
+        }
+        val ui = KeyboardInteractiveUserInfo(
+            destination = "root@100.64.0.10:22",
+            prompter = prompter,
+            onBanner = { callbackBanners += it },
+        )
+
+        ui.showMessage(null)
+        ui.showMessage("   \n  ")
+        val tailscaleBanner = """
+            # Tailscale SSH requires an additional check.
+            # To authenticate, visit: https://login.tailscale.com/a/1a2b3c4d5e6f
+        """.trimIndent()
+        ui.showMessage("\n$tailscaleBanner\n")
+
+        assertEquals(listOf(tailscaleBanner), callbackBanners)
+        assertEquals(listOf("root@100.64.0.10:22" to tailscaleBanner), prompterBanners)
+    }
+
+    @Test
+    fun extractAuthBannerUrlsParsesTailscaleAndPunctuatedLinks() {
+        val banner = """
+            # Tailscale SSH requires an additional check.
+            # To authenticate, visit: https://login.tailscale.com/a/1a2b3c4d5e6f
+            # Or open (http://100.100.100.100/check).
+        """.trimIndent()
+
+        assertEquals(
+            listOf(
+                "https://login.tailscale.com/a/1a2b3c4d5e6f",
+                "http://100.100.100.100/check",
+            ),
+            extractAuthBannerUrls(banner),
+        )
     }
 
     /**

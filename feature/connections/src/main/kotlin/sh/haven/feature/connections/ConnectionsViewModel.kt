@@ -970,20 +970,86 @@ class ConnectionsViewModel @Inject constructor(
         _keyboardInteractiveAuth.asStateFlow()
 
     /**
+     * In-flight SSH auth banner (`SSH_MSG_USERAUTH_BANNER`) received while
+     * `Session.connect` is authenticating (#781, e.g. Tailscale SSH `check`
+     * mode). Shown to the user while the connect is in progress with tappable
+     * `http://` / `https://` links and a Cancel button.
+     */
+    data class PendingSshAuthBanner(
+        val destination: String,
+        val message: String,
+        val urls: List<String> = sh.haven.core.ssh.extractAuthBannerUrls(message),
+    )
+
+    private val _sshAuthBanner = MutableStateFlow<PendingSshAuthBanner?>(null)
+    val sshAuthBanner: StateFlow<PendingSshAuthBanner?> = _sshAuthBanner.asStateFlow()
+
+    @Volatile
+    private var activeConnectingSshClient: SshConnection? = null
+
+    @Volatile
+    private var sshAuthBannerCancelled: Boolean = false
+
+    @Volatile
+    private var lastConnectAuthBanner: String? = null
+
+    private fun resetSshAuthBannerForConnect() {
+        _sshAuthBanner.value = null
+        sshAuthBannerCancelled = false
+        lastConnectAuthBanner = null
+    }
+
+    /**
+     * Drain [verboseLogger] if verbose SSH logging is enabled; otherwise, if
+     * the server sent an `SSH_MSG_USERAUTH_BANNER` during this connect (#781),
+     * still return the banner text so the Connection Log always records it.
+     */
+    private fun drainVerboseOrBanner(verboseLogger: SshVerboseLogger?): String? {
+        val drained = verboseLogger?.drain()
+        val banner = lastConnectAuthBanner?.takeIf { it.isNotBlank() }
+        lastConnectAuthBanner = null
+        if (drained != null) {
+            return if (banner != null && !drained.contains(banner)) {
+                "$drained\n[haven/auth-banner] $banner"
+            } else {
+                drained
+            }
+        }
+        return banner?.let { "SSH auth banner:\n$it" }
+    }
+
+    /**
      * Shared prompter for every SSH connect path. Suspends in the JSch IO
      * thread (via [KeyboardInteractiveUserInfo]'s `runBlocking`) until the
-     * user submits or cancels the dialog.
+     * user submits or cancels the dialog, and forwards non-blocking
+     * `SSH_MSG_USERAUTH_BANNER` messages to [sshAuthBanner] (#781).
      */
-    private val keyboardInteractivePrompter = KeyboardInteractivePrompter { challenge ->
-        val deferred = CompletableDeferred<List<String>?>()
-        android.util.Log.d("HavenKI", "VM prompter: set pending challenge prompts=${challenge.prompts.size} first='${challenge.prompts.firstOrNull()?.text}'")
-        _keyboardInteractiveAuth.value = PendingKeyboardInteractiveAuth(challenge, deferred)
-        try {
-            deferred.await().also {
-                android.util.Log.d("HavenKI", "VM prompter: deferred resumed with ${if (it == null) "null" else "${it.size} responses"}")
+    private val keyboardInteractivePrompter = object : KeyboardInteractivePrompter {
+        override suspend fun prompt(challenge: KeyboardInteractiveChallenge): List<String>? {
+            val deferred = CompletableDeferred<List<String>?>()
+            android.util.Log.d("HavenKI", "VM prompter: set pending challenge prompts=${challenge.prompts.size} first='${challenge.prompts.firstOrNull()?.text}'")
+            _keyboardInteractiveAuth.value = PendingKeyboardInteractiveAuth(challenge, deferred)
+            return try {
+                deferred.await().also {
+                    android.util.Log.d("HavenKI", "VM prompter: deferred resumed with ${if (it == null) "null" else "${it.size} responses"}")
+                }
+            } finally {
+                _keyboardInteractiveAuth.value = null
             }
-        } finally {
-            _keyboardInteractiveAuth.value = null
+        }
+
+        override fun onBanner(destination: String, message: String) {
+            val trimmed = message.trim()
+            if (trimmed.isEmpty()) return
+            lastConnectAuthBanner = lastConnectAuthBanner?.let { "$it\n$trimmed" } ?: trimmed
+            _sshAuthBanner.update { existing ->
+                val combined = if (existing != null && existing.destination == destination) {
+                    "${existing.message}\n$trimmed"
+                } else {
+                    trimmed
+                }
+                PendingSshAuthBanner(destination = destination, message = combined)
+            }
         }
     }
 
@@ -996,6 +1062,28 @@ class ConnectionsViewModel @Inject constructor(
     fun cancelKeyboardInteractive() {
         android.util.Log.d("HavenKI", "VM cancel called")
         _keyboardInteractiveAuth.value?.cancel()
+    }
+
+    fun dismissSshAuthBanner() {
+        _sshAuthBanner.value = null
+    }
+
+    /**
+     * Cancel an in-flight SSH connect while waiting on an auth banner (e.g.
+     * Tailscale SSH `check` mode approval, #781). Disconnects the active
+     * [SshConnection] so JSch's blocked `Session.connect` wakes up immediately.
+     */
+    fun cancelSshAuthBanner() {
+        sshAuthBannerCancelled = true
+        _sshAuthBanner.value = null
+        _keyboardInteractiveAuth.value?.cancel()
+        val clientToCancel = activeConnectingSshClient
+        activeConnectingSshClient = null
+        if (clientToCancel != null) {
+            viewModelScope.launch(Dispatchers.IO) {
+                runCatching { clientToCancel.disconnect() }
+            }
+        }
     }
 
     /**
@@ -4083,6 +4171,7 @@ class ConnectionsViewModel @Inject constructor(
         viewModelScope.launch {
             _connectingProfileId.value = profile.id
             _error.value = null
+            resetSshAuthBannerForConnect()
 
             val verboseEnabled = preferencesRepository.verboseLoggingEnabled.first()
             val verboseLogger = if (verboseEnabled) SshVerboseLogger() else null
@@ -4233,6 +4322,7 @@ class ConnectionsViewModel @Inject constructor(
                             tunnelResolver.havenProxy(profile)
                         }
                         Log.d(TAG, "Connecting to ${LogRedact.host(config.host, config.port)} (proxy=${proxy != null})")
+                        activeConnectingSshClient = client
                         try {
                             val hostKeyEntry = client.connect(
                                 config,
@@ -4243,14 +4333,21 @@ class ConnectionsViewModel @Inject constructor(
                                 preConnect = buildKnockHook(profile, verboseLogger),
                                 trustedHostCaKeys = hostKeyVerifier.trustedHostCaKeys(),
                             )
+                            _sshAuthBanner.value = null
                             runTofuVerification(hostKeyEntry, clientToDisconnectOnReject = client, autoAccept = profile.usbDriveSerial != null)
                         } catch (e: HostKeyAuthFailure) {
+                            _sshAuthBanner.value = null
                             // KEX succeeded but auth failed — still run the TOFU
                             // prompt on first contact (Haven#75 follow-up) then
                             // rethrow the underlying JSch auth error so the catch
                             // block below can trigger the password-fallback UX.
-                            runTofuVerification(e.hostKey, clientToDisconnectOnReject = null, autoAccept = profile.usbDriveSerial != null)
+                            if (!sshAuthBannerCancelled) {
+                                runTofuVerification(e.hostKey, clientToDisconnectOnReject = null, autoAccept = profile.usbDriveSerial != null)
+                            }
                             throw e.cause ?: e
+                        } finally {
+                            activeConnectingSshClient = null
+                            _sshAuthBanner.value = null
                         }
 
                         sshSessionManager.storeConnectionConfig(sessionId, config, sshSessionMgr, cmdOverride, profile.postLoginCommand, profile.postLoginBeforeSessionManager)
@@ -4270,7 +4367,7 @@ class ConnectionsViewModel @Inject constructor(
                 }
 
                 // Drain verbose log now (before session picker might return from the coroutine)
-                verboseLogger?.drain()?.let { pendingVerboseLogs[sessionId] = it }
+                drainVerboseOrBanner(verboseLogger)?.let { pendingVerboseLogs[sessionId] = it }
 
                 // Agent-supplied session name (connect_profile sessionName): attach
                 // or create it directly and skip the interactive picker, which the
@@ -4320,7 +4417,11 @@ class ConnectionsViewModel @Inject constructor(
                 }
 
                 // No existing sessions or no session manager — proceed directly
-                finishConnect(sessionId, profile.id, verboseLog = verboseLogger?.drain())
+                finishConnect(
+                    sessionId,
+                    profile.id,
+                    verboseLog = pendingVerboseLogs.remove(sessionId) ?: drainVerboseOrBanner(verboseLogger),
+                )
 
                 // Save or clear remembered password after successful connect.
                 persistRememberedPassword(profile, password, rememberPassword, usernameOverride != null)
@@ -4330,14 +4431,24 @@ class ConnectionsViewModel @Inject constructor(
                     maybeAutoDeployKey(profile, password)
                 }
             } catch (e: Exception) {
+                val cancelledByBanner = sshAuthBannerCancelled
+                sshAuthBannerCancelled = false
                 Log.e(TAG, "connectSsh failed for ${LogRedact.of(profile.label)}: ${e.message}", e)
-                connectionLogRepository.logEvent(profile.id, ConnectionLog.Status.FAILED, details = e.message, verboseLog = verboseLogger?.drain())
+                connectionLogRepository.logEvent(
+                    profile.id,
+                    ConnectionLog.Status.FAILED,
+                    details = if (cancelledByBanner) "Cancelled by user" else e.message,
+                    verboseLog = pendingVerboseLogs.remove(sessionId) ?: drainVerboseOrBanner(verboseLogger),
+                )
                 sshSessionManager.updateStatus(sessionId, SshSessionManager.SessionState.Status.ERROR)
                 sshSessionManager.removeSession(sessionId)
                 // Clean up auto-created jump session if the final host failed
                 autoCreatedJumpSessionId?.let { jid ->
                     Log.d(TAG, "Cleaning up auto-created jump session $jid")
                     sshSessionManager.removeSession(jid)
+                }
+                if (cancelledByBanner) {
+                    return@launch
                 }
                 val msg = e.message ?: ""
                 val isNetworkError = e.isSshNetworkError()
@@ -4497,6 +4608,7 @@ class ConnectionsViewModel @Inject constructor(
         }
 
         if (interactive) {
+            activeConnectingSshClient = sshClient
             try {
                 val hostKeyEntry = sshClient.connect(
                     config,
@@ -4507,10 +4619,17 @@ class ConnectionsViewModel @Inject constructor(
                     preConnect = buildKnockHook(profile, verboseLogger),
                     trustedHostCaKeys = hostKeyVerifier.trustedHostCaKeys(),
                 )
+                _sshAuthBanner.value = null
                 runTofuVerification(hostKeyEntry, clientToDisconnectOnReject = sshClient)
             } catch (e: HostKeyAuthFailure) {
-                runTofuVerification(e.hostKey, clientToDisconnectOnReject = null)
+                _sshAuthBanner.value = null
+                if (!sshAuthBannerCancelled) {
+                    runTofuVerification(e.hostKey, clientToDisconnectOnReject = null)
+                }
                 throw e.cause ?: e
+            } finally {
+                activeConnectingSshClient = null
+                _sshAuthBanner.value = null
             }
         } else {
             val hostKeyEntry = sshClient.connect(
@@ -5284,6 +5403,7 @@ class ConnectionsViewModel @Inject constructor(
                 // though connecting to that same profile directly worked.
                 val jumpProxy = tunnelResolver.havenProxy(jumpProfile)
                 Log.d(TAG, "Jump host SSH connecting... (proxy=${jumpProxy != null})")
+                activeConnectingSshClient = jumpClient
                 try {
                     val hostKeyEntry = jumpClient.connect(
                         config,
@@ -5293,6 +5413,7 @@ class ConnectionsViewModel @Inject constructor(
                         confirmOtp = jumpProfile.totpConfirmBeforeSend,
                         trustedHostCaKeys = hostKeyVerifier.trustedHostCaKeys(),
                     )
+                    _sshAuthBanner.value = null
                     Log.d(TAG, "Jump host SSH connected, verifying host key...")
                     runTofuVerification(
                         hostKeyEntry,
@@ -5301,13 +5422,19 @@ class ConnectionsViewModel @Inject constructor(
                         rejectedOnChangeMessage = "Jump host key change rejected by user",
                     )
                 } catch (e: HostKeyAuthFailure) {
-                    runTofuVerification(
-                        e.hostKey,
-                        clientToDisconnectOnReject = null,
-                        rejectedOnNewHostMessage = "Jump host key rejected by user",
-                        rejectedOnChangeMessage = "Jump host key change rejected by user",
-                    )
+                    _sshAuthBanner.value = null
+                    if (!sshAuthBannerCancelled) {
+                        runTofuVerification(
+                            e.hostKey,
+                            clientToDisconnectOnReject = null,
+                            rejectedOnNewHostMessage = "Jump host key rejected by user",
+                            rejectedOnChangeMessage = "Jump host key change rejected by user",
+                        )
+                    }
                     throw e.cause ?: e
+                } finally {
+                    activeConnectingSshClient = null
+                    _sshAuthBanner.value = null
                 }
 
                 sshSessionManager.storeConnectionConfig(jumpSessionId, config, SessionManager.NONE)
@@ -5321,7 +5448,7 @@ class ConnectionsViewModel @Inject constructor(
 
             sshSessionManager.updateStatus(jumpSessionId, SshSessionManager.SessionState.Status.CONNECTED)
             Log.d(TAG, "Jump host connected: ${LogRedact.of(jumpProfile.label)} ($jumpSessionId), isConnected=${jumpClient.isConnected}")
-            connectionLogRepository.logEvent(jumpProfileId, ConnectionLog.Status.CONNECTED, verboseLog = jumpVerbose?.drain())
+            connectionLogRepository.logEvent(jumpProfileId, ConnectionLog.Status.CONNECTED, verboseLog = drainVerboseOrBanner(jumpVerbose))
             // Newly-opened tunnel session: bind it to its owner so the
             // session is torn down when the owner disconnects (#121).
             if (tunnelOwnerProfileId != null) {
@@ -5351,7 +5478,7 @@ class ConnectionsViewModel @Inject constructor(
             // and one accumulates per retry (#121, KoriKraut: "5 active
             // sessions"). Mark it ERROR and unregister before re-throwing.
             Log.e(TAG, "Jump host connect failed for ${LogRedact.of(jumpProfile.label)}: ${e.message}", e)
-            connectionLogRepository.logEvent(jumpProfileId, ConnectionLog.Status.FAILED, details = e.message, verboseLog = jumpVerbose?.drain())
+            connectionLogRepository.logEvent(jumpProfileId, ConnectionLog.Status.FAILED, details = e.message, verboseLog = drainVerboseOrBanner(jumpVerbose))
             sshSessionManager.updateStatus(jumpSessionId, SshSessionManager.SessionState.Status.ERROR)
             sshSessionManager.removeSession(jumpSessionId)
             throw e

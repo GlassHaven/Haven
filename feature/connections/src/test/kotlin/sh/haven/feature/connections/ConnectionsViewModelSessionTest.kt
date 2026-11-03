@@ -1422,4 +1422,125 @@ class ConnectionsViewModelSessionTest {
             auth is ConnectionConfig.AuthMethod.PrivateKeys,
         )
     }
+
+    @Test
+    fun `SSH auth banner surfaces while connect is in progress and logs to ConnectionLog (#781)`() = runTest {
+        val profile = ConnectionProfile(
+            id = "p-ts-check", label = "ts-host", host = "100.64.0.10", username = "root",
+            connectionType = "SSH", remoteCommand = "true",
+        )
+        coEvery { repository.getById("p-ts-check") } returns profile
+        every { sshSessionManager.registerSession("p-ts-check", any(), any()) } returns "ts-sess"
+        every { sshSessionManager.isClientShared(any()) } returns true
+        every { sshSessionManager.getSession(any()) } returns null
+        every { sshSessionManager.getConnectionConfigForProfile(any()) } returns null
+        coEvery { sshSessionManager.openShellAndAwaitReady(any(), any(), any()) } returns
+            sh.haven.core.ssh.ShellOutcome.Ready("ts-sess")
+
+        val bannerText = "# Tailscale SSH requires an additional check.\n# To authenticate, visit: https://login.tailscale.com/a/1a2b3c4d5e6f"
+        val bannerDelivered = java.util.concurrent.CountDownLatch(1)
+        val allowFinish = java.util.concurrent.CountDownLatch(1)
+        val prompterSlot = slot<sh.haven.core.ssh.KeyboardInteractivePrompter>()
+        val verboseLogSlot = slot<String>()
+        coEvery {
+            connectionLogRepository.logEvent(
+                profileId = "p-ts-check",
+                status = sh.haven.core.data.db.entities.ConnectionLog.Status.CONNECTED,
+                durationMs = any(),
+                details = any(),
+                verboseLog = capture(verboseLogSlot),
+            )
+        } returns Unit
+
+        viewModel.clientFactory = { _ ->
+            mockk<sh.haven.core.ssh.SshConnection>(relaxed = true).also {
+                coEvery {
+                    it.connect(any(), any(), any(), capture(prompterSlot), any(), any(), any(), any())
+                } coAnswers {
+                    prompterSlot.captured.onBanner("root@100.64.0.10:22", bannerText)
+                    bannerDelivered.countDown()
+                    allowFinish.await(5, java.util.concurrent.TimeUnit.SECONDS)
+                    null
+                }
+            }
+        }
+
+        viewModel.connectSsh(profile, password = "pw", keyOnly = false)
+        val deadline = System.currentTimeMillis() + 10_000
+        while (bannerDelivered.count > 0 && System.currentTimeMillis() < deadline) {
+            testDispatcher.scheduler.advanceUntilIdle()
+            Thread.sleep(20)
+        }
+
+        val activeBanner = viewModel.sshAuthBanner.value
+        assertNotNull("sshAuthBanner must be visible while connect waits", activeBanner)
+        assertEquals("root@100.64.0.10:22", activeBanner?.destination)
+        assertEquals(bannerText, activeBanner?.message)
+        assertEquals(listOf("https://login.tailscale.com/a/1a2b3c4d5e6f"), activeBanner?.urls)
+
+        allowFinish.countDown()
+        val finishDeadline = System.currentTimeMillis() + 10_000
+        while (!verboseLogSlot.isCaptured && System.currentTimeMillis() < finishDeadline) {
+            testDispatcher.scheduler.advanceUntilIdle()
+            Thread.sleep(20)
+        }
+
+        assertNull("sshAuthBanner must clear once connect finishes", viewModel.sshAuthBanner.value)
+        assertTrue("ConnectionLog must receive the auth banner", verboseLogSlot.isCaptured)
+        assertTrue(
+            "Expected banner text in ConnectionLog verboseLog, got: ${verboseLogSlot.captured}",
+            verboseLogSlot.captured.contains("https://login.tailscale.com/a/1a2b3c4d5e6f"),
+        )
+    }
+
+    @Test
+    fun `cancelSshAuthBanner disconnects in-flight client and suppresses password fallback (#781)`() = runTest {
+        val profile = ConnectionProfile(
+            id = "p-ts-cancel", label = "ts-host", host = "100.64.0.10", username = "root",
+            connectionType = "SSH", remoteCommand = "true",
+        )
+        every { sshSessionManager.registerSession("p-ts-cancel", any(), any()) } returns "ts-cancel-sess"
+        val bannerDelivered = java.util.concurrent.CountDownLatch(1)
+        val disconnectCalled = java.util.concurrent.CountDownLatch(1)
+        val prompterSlot = slot<sh.haven.core.ssh.KeyboardInteractivePrompter>()
+        val mockClient = mockk<sh.haven.core.ssh.SshConnection>(relaxed = true).also {
+            every { it.disconnect() } answers {
+                disconnectCalled.countDown()
+            }
+            coEvery {
+                it.connect(any(), any(), any(), capture(prompterSlot), any(), any(), any(), any())
+            } coAnswers {
+                prompterSlot.captured.onBanner(
+                    "root@100.64.0.10:22",
+                    "Visit https://login.tailscale.com/a/cancel123",
+                )
+                bannerDelivered.countDown()
+                disconnectCalled.await(5, java.util.concurrent.TimeUnit.SECONDS)
+                throw com.jcraft.jsch.JSchException("Auth cancel")
+            }
+        }
+        viewModel.clientFactory = { _ -> mockClient }
+
+        viewModel.connectSsh(profile, password = "", keyOnly = true)
+        val deadline = System.currentTimeMillis() + 10_000
+        while (bannerDelivered.count > 0 && System.currentTimeMillis() < deadline) {
+            testDispatcher.scheduler.advanceUntilIdle()
+            Thread.sleep(20)
+        }
+        assertNotNull("sshAuthBanner must be set before cancel", viewModel.sshAuthBanner.value)
+
+        viewModel.cancelSshAuthBanner()
+        val cancelDeadline = System.currentTimeMillis() + 10_000
+        while ((disconnectCalled.count > 0 || viewModel.connectingProfileId.value != null) &&
+            System.currentTimeMillis() < cancelDeadline
+        ) {
+            testDispatcher.scheduler.advanceUntilIdle()
+            Thread.sleep(20)
+        }
+
+        assertEquals("disconnect() must be called on in-flight client", 0L, disconnectCalled.count)
+        assertNull("sshAuthBanner must be cleared on cancel", viewModel.sshAuthBanner.value)
+        assertNull("cancelled banner connect must not pop passwordFallback", viewModel.passwordFallback.value)
+        assertNull("cancelled banner connect must not set error toast", viewModel.error.value)
+    }
 }

@@ -342,6 +342,7 @@ class LocalSessionManager @Inject constructor(
             val args = arrayOf(
                 prootBinary,
                 *identityArgs,           // #718: -0 (root) or -i 1000:1000 (non-root user)
+                "--kernel-release=6.2.1",
                 "--link2symlink",        // fix link() for X11 lock files
                 "--sysvipc",             // #375: SysV IPC emulation (fakeroot/makepkg)
                 // #325: foreign-arch rootfs runs through the bundled qemu-user
@@ -363,6 +364,11 @@ class LocalSessionManager @Inject constructor(
                 "-b", "/proc/self/fd/2:/dev/stderr",
                 "-b", "/proc",
                 "-b", "/sys",
+                // #780: overlay readable synthetic /proc files (/proc/version,
+                // /proc/loadavg, /proc/stat, /proc/uptime, /proc/vmstat, sysctls)
+                // after `-b /proc` so tools like VS Code (`grep /proc/version`),
+                // `free`, `top`, and `ps` don't hit Android SELinux EACCES.
+                *prootManager.fakeProcBindArgs(rootfsDir, longForm = false),
                 // Mask the guest's /sys/fs/selinux: Android is SELinux-enforcing,
                 // and exposing enforce=1 makes guest coreutils fail cp -Z/mkdir -Z/
                 // restorecon in package postinst scripts (e.g. openssh-server → no
@@ -402,6 +408,9 @@ class LocalSessionManager @Inject constructor(
                 // #718: gdk-pixbuf2 2.44+ uses glycin for SVG icon loading, which
                 // spawns `bwrap --unshare-all --seccomp` and aborts GTK apps inside PRoot.
                 "GLYCIN_DISABLE_SANDBOX=i-know-the-risks",
+                // #780: disable Chromium/Electron user-namespace/SUID sandbox inside PRoot
+                // so Electron apps (VS Code, VSCodium, Obsidian, etc.) start cleanly.
+                "ELECTRON_DISABLE_SANDBOX=1",
                 "PROOT_TMP_DIR=${context.cacheDir.absolutePath}",
                 "PROOT_LOADER=${java.io.File(context.applicationInfo.nativeLibraryDir, "libproot_loader.so").absolutePath}",
                 "PROOT_L2S_DIR=${prootManager.l2sEnvValue(targetDistro)}",

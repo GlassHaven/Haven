@@ -2428,6 +2428,16 @@ class ProotManager @Inject constructor(
     }
 
     /**
+     * Write minimal fake `/proc` files into `<rootfs>/proc/.<name>` and return
+     * the PRoot bind arguments overlaying them onto `/proc/<name>` (#780).
+     *
+     * Must be placed AFTER `-b /proc` / `--bind=/proc` so the file binds shadow
+     * the directory bind.
+     */
+    fun fakeProcBindArgs(rootfsDir: File, longForm: Boolean = false): Array<String> =
+        ensureFakeProcBindArgs(rootfsDir, longForm)
+
+    /**
      * Build and start a PRoot process running [command] in the active
      * rootfs, with combined stdout+stderr on the returned Process's
      * inputStream. Callers that need to stream output incrementally (a
@@ -2452,24 +2462,6 @@ class ProotManager @Inject constructor(
         // and the fake /proc files are what breaks fontconfig's
         // pre-INSTALL when invoked via the bare ProcessBuilder we used
         // before. See proot-distro/proot-distro.sh:run_proot_cmd().
-        val procDir = File(activeRootfsDir, "proc").apply { mkdirs() }
-        // Write minimal fake /proc replacements once per rootfs. proot
-        // can't read the host's real /proc/{loadavg,stat,uptime,…}
-        // through its bind mount, so apps that parse them (rpm post-
-        // install, locale generation, etc.) need plausible-looking
-        // values to make progress.
-        fun writeIfMissing(name: String, content: String) {
-            val f = File(procDir, name)
-            if (!f.exists()) f.writeText(content)
-        }
-        writeIfMissing(".loadavg", "0.12 0.07 0.02 2/165 765\n")
-        writeIfMissing(".uptime", "284.83 1391.42\n")
-        writeIfMissing(".version", "Linux version 6.2.1 (proot@haven) #1 SMP PREEMPT_DYNAMIC\n")
-        writeIfMissing(".vmstat", "nr_free_pages 1000\n")
-        writeIfMissing(".stat", "cpu  1957 0 2877 93280 262 342 254 87 0 0\nbtime 1680020856\n")
-        writeIfMissing(".sysctl_entry_cap_last_cap", "40\n")
-        writeIfMissing(".sysctl_inotify_max_user_watches", "65536\n")
-
         val rootfsPath = activeRootfsDir.absolutePath
         val devShm = ensureDevShm()
         val sysSelinuxMask = selinuxMaskBind(activeRootfsDir)
@@ -2503,13 +2495,7 @@ class ProotManager @Inject constructor(
             "--bind=/proc/self/fd/1:/dev/stdout",
             "--bind=/proc/self/fd/2:/dev/stderr",
             "--bind=/sys",
-            "--bind=$rootfsPath/proc/.loadavg:/proc/loadavg",
-            "--bind=$rootfsPath/proc/.stat:/proc/stat",
-            "--bind=$rootfsPath/proc/.uptime:/proc/uptime",
-            "--bind=$rootfsPath/proc/.version:/proc/version",
-            "--bind=$rootfsPath/proc/.vmstat:/proc/vmstat",
-            "--bind=$rootfsPath/proc/.sysctl_entry_cap_last_cap:/proc/sys/kernel/cap_last_cap",
-            "--bind=$rootfsPath/proc/.sysctl_inotify_max_user_watches:/proc/sys/fs/inotify/max_user_watches",
+            *fakeProcBindArgs(activeRootfsDir, longForm = true),
             "--bind=$sysSelinuxMask",
             "--bind=${context.cacheDir.absolutePath}:/tmp",
             // #304: surface the device model at the devicetree path fastfetch reads.
@@ -2530,6 +2516,7 @@ class ProotManager @Inject constructor(
             "TERM=xterm-256color",
             "TMPDIR=/tmp",
             "GLYCIN_DISABLE_SANDBOX=i-know-the-risks",
+            "ELECTRON_DISABLE_SANDBOX=1",
             "/bin/sh", "-lc", command,
         )
         return ProcessBuilder(args).apply {
@@ -3954,6 +3941,58 @@ chmod +x /root/.vnc/xstartup""")
             }
 
             return GuestUserSpec(username = username, uid = uid, gid = gid, home = homeGuest)
+        }
+
+        /**
+         * Seed synthetic `/proc` files inside `<rootfs>/proc/.<name>` and return
+         * the PRoot bind flags that overlay them onto `/proc/<name>` (#780).
+         *
+         * Android SELinux blocks `untrusted_app` from reading `/proc/version`,
+         * `/proc/loadavg`, `/proc/stat`, `/proc/uptime`, `/proc/vmstat`, and
+         * `/proc/sys/{kernel/cap_last_cap,fs/inotify/max_user_watches,vm/mmap_min_addr}`.
+         * Without these binds on interactive shell and desktop launches, tools
+         * such as VS Code's `/usr/bin/code` launcher (`grep -qi Microsoft /proc/version`),
+         * `free`, `top`, `ps`, and package post-install scripts fail with
+         * `Permission denied`.
+         */
+        fun ensureFakeProcBindArgs(rootfsDir: File, longForm: Boolean = false): Array<String> {
+            val procDir = File(rootfsDir, "proc").apply {
+                mkdirs()
+                runCatching { android.system.Os.chmod(absolutePath, 0b111_101_101) } // 0755
+                setReadable(true, false)
+                setExecutable(true, false)
+                setWritable(true, true)
+            }
+            val fakeEntries = listOf(
+                Triple(".loadavg", "/proc/loadavg", "0.12 0.07 0.02 2/165 765\n"),
+                Triple(".stat", "/proc/stat", "cpu  1957 0 2877 93280 262 342 254 87 0 0\nbtime 1680020856\n"),
+                Triple(".uptime", "/proc/uptime", "284.83 1391.42\n"),
+                Triple(".version", "/proc/version", "Linux version 6.2.1 (proot@haven) #1 SMP PREEMPT_DYNAMIC\n"),
+                Triple(".vmstat", "/proc/vmstat", "nr_free_pages 1000\n"),
+                Triple(".sysctl_entry_cap_last_cap", "/proc/sys/kernel/cap_last_cap", "40\n"),
+                Triple(".sysctl_inotify_max_user_watches", "/proc/sys/fs/inotify/max_user_watches", "65536\n"),
+                Triple(".sysctl_mmap_min_addr", "/proc/sys/vm/mmap_min_addr", "4096\n"),
+            )
+            val binds = ArrayList<String>(if (longForm) fakeEntries.size else fakeEntries.size * 2)
+            for ((fileName, guestTarget, defaultContent) in fakeEntries) {
+                val f = File(procDir, fileName)
+                if (!f.exists()) {
+                    runCatching { f.writeText(defaultContent) }
+                }
+                if (f.exists()) {
+                    runCatching { android.system.Os.chmod(f.absolutePath, 0b110_100_100) } // 0644
+                    f.setReadable(true, false)
+                    f.setWritable(true, true)
+                }
+                val spec = "${f.absolutePath}:$guestTarget"
+                if (longForm) {
+                    binds.add("--bind=$spec")
+                } else {
+                    binds.add("-b")
+                    binds.add(spec)
+                }
+            }
+            return binds.toTypedArray()
         }
     }
 }

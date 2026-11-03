@@ -917,6 +917,9 @@ class DesktopManager @Inject constructor(
             // PRoot. `GLYCIN_DISABLE_SANDBOX=i-know-the-risks` disables the bwrap
             // sandbox so GTK/Xfce4 panels render their icons cleanly.
             "GLYCIN_DISABLE_SANDBOX=i-know-the-risks",
+            // #780: disable Chromium/Electron user-namespace/SUID sandbox inside PRoot
+            // so Electron apps (VS Code, VSCodium, Obsidian, etc.) start cleanly.
+            "ELECTRON_DISABLE_SANDBOX=1",
         )
     }
 
@@ -1004,6 +1007,7 @@ class DesktopManager @Inject constructor(
                 "export USER=${guestUser.username}; " +
                 "export LOGNAME=${guestUser.username}; " +
                 "export GLYCIN_DISABLE_SANDBOX=i-know-the-risks; " +
+                "export ELECTRON_DISABLE_SANDBOX=1; " +
                 // #718: TigerVNC's Xvnc requires `vncconfig` running on the X
                 // display to bridge X11 CLIPBOARD/PRIMARY selections to RFB
                 // CutText messages for bidirectional copy/paste.
@@ -1033,7 +1037,7 @@ class DesktopManager @Inject constructor(
             listOf("-i", "${guestUser.uid}:${guestUser.gid}")
         }
         val prootArgs = mutableListOf(
-            prootBin, *identityArgs.toTypedArray(), "--link2symlink", "--sysvipc",
+            prootBin, *identityArgs.toTypedArray(), "--kernel-release=6.2.1", "--link2symlink", "--sysvipc",
             // #550/#551: when the launch script exits, kill every remaining
             // tracee. Without this, the dbus-daemon that `dbus-launch` forks
             // outlives the session, proot stays alive tracing it, the host
@@ -1044,7 +1048,15 @@ class DesktopManager @Inject constructor(
             // #325: foreign-arch rootfs runs through the bundled qemu-user loader.
             *prootManager.qemuUserArgs(prootManager.activeDistroId).toTypedArray(),
             "-r", rootfsDir.absolutePath,
-            "-b", "/dev", "-b", "/proc", "-b", "/sys",
+            "-b", "/dev",
+            "-b", "/dev/urandom:/dev/random",
+            "-b", "/proc",
+            "-b", "/proc/self/fd:/dev/fd",
+            "-b", "/proc/self/fd/0:/dev/stdin",
+            "-b", "/proc/self/fd/1:/dev/stdout",
+            "-b", "/proc/self/fd/2:/dev/stderr",
+            "-b", "/sys",
+            *prootManager.fakeProcBindArgs(rootfsDir, longForm = false),
             // Mask /sys/fs/selinux (Android enforces SELinux; exposing enforce=1
             // breaks guest cp -Z/restorecon in package postinst scripts, #283).
             "-b", prootManager.selinuxMaskBind(rootfsDir),
@@ -1264,6 +1276,7 @@ class DesktopManager @Inject constructor(
             append("[ -f /etc/profile.d/pulse.sh ] && . /etc/profile.d/pulse.sh ; ")
             append("export PATH=/usr/local/sbin:/usr/local/bin:/usr/sbin:/usr/bin:/sbin:/bin ; ")
             append("export GLYCIN_DISABLE_SANDBOX=i-know-the-risks ; ")
+            append("export ELECTRON_DISABLE_SANDBOX=1 ; ")
             append("export WLR_BACKENDS=headless ; ")
             append("export WLR_HEADLESS_OUTPUTS=1 ; ")
             append("export WLR_LIBINPUT_NO_DEVICES=1 ; ")
@@ -1346,11 +1359,19 @@ class DesktopManager @Inject constructor(
         // path needs no real privileges. Verified: Sway now boots and
         // creates its HEADLESS-1 output.
         val prootArgs = mutableListOf(
-            prootBin, "-i", "1000:1000", "--link2symlink", "--sysvipc",
+            prootBin, "-i", "1000:1000", "--kernel-release=6.2.1", "--link2symlink", "--sysvipc",
             // #325: foreign-arch rootfs runs through the bundled qemu-user loader.
             *prootManager.qemuUserArgs(prootManager.activeDistroId).toTypedArray(),
             "-r", rootfsDir.absolutePath,
-            "-b", "/dev", "-b", "/proc", "-b", "/sys",
+            "-b", "/dev",
+            "-b", "/dev/urandom:/dev/random",
+            "-b", "/proc",
+            "-b", "/proc/self/fd:/dev/fd",
+            "-b", "/proc/self/fd/0:/dev/stdin",
+            "-b", "/proc/self/fd/1:/dev/stdout",
+            "-b", "/proc/self/fd/2:/dev/stderr",
+            "-b", "/sys",
+            *prootManager.fakeProcBindArgs(rootfsDir, longForm = false),
             // Mask /sys/fs/selinux (Android enforces SELinux; exposing enforce=1
             // breaks guest cp -Z/restorecon in package postinst scripts, #283).
             "-b", prootManager.selinuxMaskBind(rootfsDir),
@@ -1885,12 +1906,21 @@ class DesktopManager @Inject constructor(
             // #301: per-distro user-defined extra binds.
             val customBinds = prootManager.customBindShortArgs(prootManager.activeDistroId).toTypedArray()
             val process = ProcessBuilder(
-                prootBin, "-0", "--link2symlink", "--sysvipc",
+                prootBin, "-0", "--kernel-release=6.2.1", "--link2symlink", "--sysvipc",
                 // #325: foreign-arch rootfs runs through the bundled qemu-user loader.
                 *prootManager.qemuUserArgs(prootManager.activeDistroId).toTypedArray(),
                 *portRemap,
                 "-r", rootfsDir.absolutePath,
-                "-b", "/dev", "-b", "/proc", "-b", "/sys",
+                "-b", "/dev",
+                "-b", "/dev/urandom:/dev/random",
+                "-b", "${prootManager.ensureDevShm()}:/dev/shm",
+                "-b", "/proc",
+                "-b", "/proc/self/fd:/dev/fd",
+                "-b", "/proc/self/fd/0:/dev/stdin",
+                "-b", "/proc/self/fd/1:/dev/stdout",
+                "-b", "/proc/self/fd/2:/dev/stderr",
+                "-b", "/sys",
+                *prootManager.fakeProcBindArgs(rootfsDir, longForm = false),
                 // Mask /sys/fs/selinux (#283) — see ProotManager.selinuxMaskBind.
                 "-b", prootManager.selinuxMaskBind(rootfsDir),
                 "-b", "${context.cacheDir.absolutePath}:/tmp",

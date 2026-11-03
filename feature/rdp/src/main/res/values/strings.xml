@@ -19,6 +19,8 @@
     <string name="rdp_cd_trackpad_sensitivity">Trackpad sensitivity</string>
     <string name="rdp_cd_two_finger_viewport">Two-finger pans the view (tap to scroll the remote)</string>
     <string name="rdp_cd_two_finger_scroll_on">Two-finger scrolls the remote (tap to pan the view)</string>
+    <string name="rdp_cd_touchscreen_viewport_nav_off">Viewport navigation off (tap to zoom or pan view)</string>
+    <string name="rdp_cd_touchscreen_viewport_nav_on">Viewport navigation on (tap to resume touchscreen input)</string>
     <string name="rdp_orientation_landscape_desc">Lock landscape (tap to switch to portrait)</string>
     <string name="rdp_orientation_portrait_desc">Lock portrait (tap to switch to auto)</string>
     <string name="rdp_orientation_auto_desc">Auto rotate (tap to switch to landscape)</string>

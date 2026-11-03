@@ -40,6 +40,8 @@
 
     <!-- Backfill 2026-07: strings added since the last i18n pass -->
     <string name="rdp_cd_two_finger_viewport">Zwei Finger verschieben die Ansicht (tippen, um den entfernten Bildschirm zu scrollen)</string>
+    <string name="rdp_cd_touchscreen_viewport_nav_off">Ansichtsnavigation aus (tippen zum Zoomen oder Verschieben der Ansicht)</string>
+    <string name="rdp_cd_touchscreen_viewport_nav_on">Ansichtsnavigation aktiv (tippen, um Touchscreen-Eingabe fortzusetzen)</string>
     <string name="rdp_cd_two_finger_scroll_on">Zwei Finger scrollen den entfernten Bildschirm (tippen, um die Ansicht zu verschieben)</string>
     <string name="rdp_hint_nla_required_title">Server verlangt Authentifizierung auf Netzwerkebene (NLA)</string>
     <string name="rdp_hint_nla_required_body">Der Server akzeptiert nur Clients, die sich per NLA authentifizieren, und NLA ist in diesem Verbindungsprofil nicht aktiviert. Aktiviere entweder „Network Level Authentication (NLA)“ im Profil oder lockere die Anforderung am PC: Einstellungen → System → Remotedesktop → Erweiterte Einstellungen → „Require devices to use Network Level Authentication“ abwählen.</string>

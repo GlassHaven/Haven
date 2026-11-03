@@ -40,6 +40,8 @@
 
     <!-- Backfill 2026-07: strings added since the last i18n pass -->
     <string name="rdp_cd_two_finger_viewport">إصبعان يحرّكان العرض (اضغط لتمرير الشاشة البعيدة)</string>
+    <string name="rdp_cd_touchscreen_viewport_nav_off">تنقّل العرض متوقف (اضغط لتكبير العرض أو تحريكه)</string>
+    <string name="rdp_cd_touchscreen_viewport_nav_on">تنقّل العرض مفعّل (اضغط لاستئناف إدخال شاشة اللمس)</string>
     <string name="rdp_cd_two_finger_scroll_on">إصبعان يمرّران الشاشة البعيدة (اضغط لتحريك العرض)</string>
     <string name="rdp_hint_nla_required_title">الخادم يتطلب مصادقة على مستوى الشبكة (NLA)</string>
     <string name="rdp_hint_nla_required_body">تم إعداد الخادم لقبول العملاء الذين يصادقون عبر NLA فقط، وخيار NLA غير مُفعّل في ملف الاتصال هذا. فعّل “Network Level Authentication (NLA)” في الملف، أو خفّف الشرط على الحاسوب: الإعدادات ← النظام ← سطح المكتب البعيد ← الإعدادات المتقدمة ← أزل تحديد “Require devices to use Network Level Authentication”.</string>

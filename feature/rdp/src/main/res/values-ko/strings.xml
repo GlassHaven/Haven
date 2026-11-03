@@ -39,6 +39,8 @@
 
     <!-- Backfill 2026-07: strings added since the last i18n pass -->
     <string name="rdp_cd_two_finger_viewport">두 손가락으로 화면 이동 (원격 스크롤로 전환하려면 탭)</string>
+    <string name="rdp_cd_touchscreen_viewport_nav_off">화면 탐색 꺼짐 (화면을 확대하거나 이동하려면 탭)</string>
+    <string name="rdp_cd_touchscreen_viewport_nav_on">화면 탐색 켜짐 (터치스크린 입력을 다시 사용하려면 탭)</string>
     <string name="rdp_cd_two_finger_scroll_on">두 손가락으로 원격 스크롤 (화면 이동으로 전환하려면 탭)</string>
     <string name="rdp_hint_nla_required_title">서버가 네트워크 수준 인증(NLA)을 요구합니다</string>
     <string name="rdp_hint_nla_required_body">서버는 NLA로 인증하는 클라이언트만 허용하도록 설정되어 있지만, 이 연결 프로필에서는 NLA가 꺼져 있습니다. 프로필에서 “Network Level Authentication (NLA)”을 켜거나, PC에서 요구 사항을 완화하세요: 설정 → 시스템 → 원격 데스크톱 → 고급 설정 → “Require devices to use Network Level Authentication” 체크 해제.</string>

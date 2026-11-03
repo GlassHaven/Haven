@@ -39,6 +39,8 @@
 
     <!-- Backfill 2026-07: strings added since the last i18n pass -->
     <string name="rdp_cd_two_finger_viewport">Два пальца перемещают вид (нажмите, чтобы прокручивать удалённый экран)</string>
+    <string name="rdp_cd_touchscreen_viewport_nav_off">Навигация по виду выключена (нажмите для масштабирования или сдвига вида)</string>
+    <string name="rdp_cd_touchscreen_viewport_nav_on">Навигация по виду включена (нажмите для возврата к сенсорному вводу)</string>
     <string name="rdp_cd_two_finger_scroll_on">Два пальца прокручивают удалённый экран (нажмите, чтобы перемещать вид)</string>
     <string name="rdp_hint_nla_required_title">Сервер требует проверку подлинности на уровне сети (NLA)</string>
     <string name="rdp_hint_nla_required_body">Сервер настроен принимать только клиентов, проходящих проверку по NLA, а в этом профиле подключения NLA не отмечен. Либо включите «Network Level Authentication (NLA)» в профиле, либо ослабьте требование на ПК: Параметры → Система → Удалённый рабочий стол → Дополнительные параметры → снимите флажок «Require devices to use Network Level Authentication».</string>

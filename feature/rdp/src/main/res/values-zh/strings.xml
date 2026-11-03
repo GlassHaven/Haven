@@ -40,6 +40,8 @@
 
     <!-- Backfill 2026-07: strings added since the last i18n pass -->
     <string name="rdp_cd_two_finger_viewport">双指平移视图（点按切换为滚动远程端）</string>
+    <string name="rdp_cd_touchscreen_viewport_nav_off">视图导航已关闭（点按以缩放或平移视图）</string>
+    <string name="rdp_cd_touchscreen_viewport_nav_on">视图导航已开启（点按以恢复触屏输入）</string>
     <string name="rdp_cd_two_finger_scroll_on">双指滚动远程端（点按切换为平移视图）</string>
     <string name="rdp_hint_nla_required_title">服务器要求网络级别身份验证 (NLA)</string>
     <string name="rdp_hint_nla_required_body">服务器配置为仅接受使用 NLA 认证的客户端，而此连接配置中未勾选 NLA。请在配置中勾选“Network Level Authentication (NLA)”，或在电脑上放宽此要求：设置 → 系统 → 远程桌面 → 高级设置 → 取消勾选“Require devices to use Network Level Authentication”。</string>

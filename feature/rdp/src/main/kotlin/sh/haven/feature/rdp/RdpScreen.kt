@@ -502,8 +502,19 @@ private fun RdpViewer(
     // DIRECT when no multi-touch channel is attached (#778).
     val touchscreenCapable = onTouchFrame != null
     val effectiveInputMode = effectiveRdpInputMode(inputMode, touchscreenCapable)
+    // In TOUCHSCREEN mode (#778), all gestures normally forward to the remote
+    // digitizer. Toggling this toolbar button temporarily switches canvas
+    // gestures to local viewport navigation (pinch to zoom, 1- or 2-finger drag
+    // to pan) without leaving TOUCHSCREEN mode.
+    var touchscreenViewportNav by rememberSaveable { mutableStateOf(false) }
     LaunchedEffect(effectiveInputMode) {
         if (effectiveInputMode != "TOUCHSCREEN") {
+            touchscreenViewportNav = false
+            onCancelTouches?.invoke()
+        }
+    }
+    LaunchedEffect(touchscreenViewportNav) {
+        if (touchscreenViewportNav) {
             onCancelTouches?.invoke()
         }
     }
@@ -831,7 +842,7 @@ private fun RdpViewer(
                 .onSizeChanged { viewSize = it }
                 // Sensitivity is a key so an in-flight drag does not carry the
                 // stale multiplier from capture time (#696).
-                .pointerInput(frame.width, frame.height, viewSize, effectiveInputMode, touchpadSensitivity) {
+                .pointerInput(frame.width, frame.height, viewSize, effectiveInputMode, touchpadSensitivity, touchscreenViewportNav) {
                     val touchSlopPx = viewConfiguration.touchSlop
                     awaitEachGesture {
                         val firstDown = awaitFirstDown(
@@ -860,11 +871,12 @@ private fun RdpViewer(
                         ) {
                             hardwareKeyFocus.requestFocus()
                         }
-                        if (effectiveInputMode == "TOUCHSCREEN" && onTouchFrame != null) {
+                        if (shouldForwardTouchscreenContacts(effectiveInputMode, onTouchFrame != null, touchscreenViewportNav)) {
                             // #778: native MS-RDPEI multi-touch passthrough.
                             // Every pointer down/move/up is forwarded directly
                             // to the remote touch digitizer instead of being
                             // interpreted as local viewport zoom/scroll or mouse.
+                            val touchCallback = onTouchFrame!!
                             val activeTouchIds = HashSet<Long>()
                             try {
                                 val firstPos = screenToRemote(
@@ -873,7 +885,7 @@ private fun RdpViewer(
                                     zoom, panX, panY,
                                 )
                                 activeTouchIds.add(firstDown.id.value)
-                                onTouchFrame(
+                                touchCallback(
                                     listOf(
                                         sh.haven.core.rdp.RdpTouchContactSample(
                                             pointerId = firstDown.id.value,
@@ -920,7 +932,7 @@ private fun RdpViewer(
                                         change.consume()
                                     }
                                     if (samples.isNotEmpty()) {
-                                        onTouchFrame(samples)
+                                        touchCallback(samples)
                                     }
                                 } while (event.changes.any { it.pressed })
                             } finally {
@@ -928,6 +940,87 @@ private fun RdpViewer(
                                     onCancelTouches?.invoke()
                                 }
                             }
+                            return@awaitEachGesture
+                        }
+                        if (effectiveInputMode == "TOUCHSCREEN" && touchscreenViewportNav) {
+                            // #778 follow-up: temporary Viewport Navigation mode inside
+                            // TOUCHSCREEN mode. Pinch-to-zoom and 1- or 2-finger drag
+                            // adjust the local viewport (zoom/panX/panY) without
+                            // forwarding any touches or mouse clicks to the remote.
+                            var totalFingers = 1
+                            var prevCentroid = firstDown.position
+                            var prevSpan = 0f
+                            var prevCount = 0
+                            var gestureStarted = false
+                            do {
+                                val event = awaitPointerEvent(PointerEventPass.Initial)
+                                val pointers = event.changes.filter { it.pressed }
+                                val count = pointers.size
+                                if (count >= 2) {
+                                    totalFingers = maxOf(totalFingers, count)
+                                    val centroid = Offset(
+                                        pointers.map { it.position.x }.average().toFloat(),
+                                        pointers.map { it.position.y }.average().toFloat(),
+                                    )
+                                    val span = pointers.map {
+                                        (it.position - centroid).getDistance()
+                                    }.average().toFloat()
+                                    if (gestureStarted && count == prevCount) {
+                                        val dx = centroid.x - prevCentroid.x
+                                        val dy = centroid.y - prevCentroid.y
+                                        val spanDelta = if (prevSpan > 0f) abs(span - prevSpan) else 0f
+                                        val pinching = spanDelta > 2f && spanDelta >= abs(dx) + abs(dy)
+                                        if (pinching && prevSpan > 0f && span > 0f) {
+                                            val next = applyViewportPinch(
+                                                zoom = zoom, panX = panX, panY = panY,
+                                                prevSpan = prevSpan, span = span,
+                                                centroid = centroid,
+                                                viewWidth = viewSize.width.toFloat(),
+                                                viewHeight = viewSize.height.toFloat(),
+                                                fbWidth = frame.width,
+                                                fbHeight = frame.height,
+                                            )
+                                            zoom = next.zoom
+                                            panX = next.panX
+                                            panY = next.panY
+                                        } else if (zoom > 1f) {
+                                            val next = applyViewportPan(
+                                                zoom = zoom, panX = panX, panY = panY,
+                                                dx = dx, dy = dy,
+                                                viewWidth = viewSize.width.toFloat(),
+                                                viewHeight = viewSize.height.toFloat(),
+                                                fbWidth = frame.width,
+                                                fbHeight = frame.height,
+                                            )
+                                            panX = next.panX
+                                            panY = next.panY
+                                        }
+                                    }
+                                    gestureStarted = true
+                                    prevCentroid = centroid
+                                    prevSpan = span
+                                    prevCount = count
+                                    pointers.forEach { it.consume() }
+                                } else if (count == 1 && totalFingers == 1) {
+                                    val change = pointers.first()
+                                    val delta = change.positionChange()
+                                    if (zoom > 1f && (delta.x != 0f || delta.y != 0f)) {
+                                        val next = applyViewportPan(
+                                            zoom = zoom, panX = panX, panY = panY,
+                                            dx = delta.x, dy = delta.y,
+                                            viewWidth = viewSize.width.toFloat(),
+                                            viewHeight = viewSize.height.toFloat(),
+                                            fbWidth = frame.width,
+                                            fbHeight = frame.height,
+                                        )
+                                        panX = next.panX
+                                        panY = next.panY
+                                    }
+                                    change.consume()
+                                } else {
+                                    event.changes.forEach { it.consume() }
+                                }
+                            } while (event.changes.any { it.pressed })
                             return@awaitEachGesture
                         }
                         var totalFingers = 1
@@ -979,31 +1072,18 @@ private fun RdpViewer(
                                     val spanDelta = if (prevSpan > 0f) abs(span - prevSpan) else 0f
                                     val pinching = spanDelta > 2f && spanDelta >= abs(dx) + abs(dy)
                                     if (pinching && prevSpan > 0f && span > 0f) {
-                                        // Pinch → zoom local viewport (both modes).
-                                        // graphicsLayer's TransformOrigin is the view
-                                        // centre, so pivot at (cx, cy); use the actual
-                                        // (clamp-aware) scale so we don't over-pan at a limit.
-                                        // Floor at 1×: drawRemoteFrame letterboxes the
-                                        // full screen at zoom 1, so zooming out further
-                                        // only enlarges the bars (Refs #600).
-                                        val newZoom = (zoom * (span / prevSpan)).coerceIn(1f, 5f)
-                                        val actualScale = if (zoom > 0f) newZoom / zoom else 1f
-                                        val cx = viewSize.width / 2f
-                                        val cy = viewSize.height / 2f
-                                        panX = (centroid.x - cx) * (1 - actualScale) + panX * actualScale
-                                        panY = (centroid.y - cy) * (1 - actualScale) + panY * actualScale
-                                        zoom = newZoom
-                                        // #738: an off-centre pinch leaves a residual
-                                        // pan; without the cover clamp zooming back to
-                                        // 1× keeps the content shifted inside its
-                                        // letterbox — one edge black. Clamp so the
-                                        // scaled content always covers the viewport.
-                                        val fit = minOf(
-                                            viewSize.width.toFloat() / frame.width,
-                                            viewSize.height.toFloat() / frame.height,
+                                        val next = applyViewportPinch(
+                                            zoom = zoom, panX = panX, panY = panY,
+                                            prevSpan = prevSpan, span = span,
+                                            centroid = centroid,
+                                            viewWidth = viewSize.width.toFloat(),
+                                            viewHeight = viewSize.height.toFloat(),
+                                            fbWidth = frame.width,
+                                            fbHeight = frame.height,
                                         )
-                                        panX = clampPanToCover(panX, frame.width * fit, viewSize.width.toFloat(), newZoom)
-                                        panY = clampPanToCover(panY, frame.height * fit, viewSize.height.toFloat(), newZoom)
+                                        zoom = next.zoom
+                                        panX = next.panX
+                                        panY = next.panY
                                     } else if (twoFingerScroll) {
                                         // Windows-scroll mode: drag = remote wheel.
                                         // Finger-down (dy>0) → wheel-up so the page
@@ -1014,18 +1094,16 @@ private fun RdpViewer(
                                             cumulativeScrollY = 0f
                                         }
                                     } else if (zoom > 1f) {
-                                        // Viewport mode: drag = pan (only when zoomed in).
-                                        panX += dx
-                                        panY += dy
-                                        // #738: same cover clamp as the pinch path —
-                                        // a drag must not pull the content edge past
-                                        // the viewport.
-                                        val fit = minOf(
-                                            viewSize.width.toFloat() / frame.width,
-                                            viewSize.height.toFloat() / frame.height,
+                                        val next = applyViewportPan(
+                                            zoom = zoom, panX = panX, panY = panY,
+                                            dx = dx, dy = dy,
+                                            viewWidth = viewSize.width.toFloat(),
+                                            viewHeight = viewSize.height.toFloat(),
+                                            fbWidth = frame.width,
+                                            fbHeight = frame.height,
                                         )
-                                        panX = clampPanToCover(panX, frame.width * fit, viewSize.width.toFloat(), zoom)
-                                        panY = clampPanToCover(panY, frame.height * fit, viewSize.height.toFloat(), zoom)
+                                        panX = next.panX
+                                        panY = next.panY
                                     }
                                 }
 
@@ -1349,9 +1427,15 @@ private fun RdpViewer(
                     onOpenSensitivity = { showSensitivityDialog = true },
                     touchscreenCapable = touchscreenCapable,
                 )
-                // Two-finger drag: viewport pan vs remote scroll — #286.
-                // Hidden in TOUCHSCREEN mode because 2-finger gestures go directly to the remote digitizer.
-                if (effectiveInputMode != "TOUCHSCREEN") {
+                // In TOUCHSCREEN mode (#778), toggle temporary local viewport
+                // navigation (pinch to zoom, drag to pan) vs forwarding all
+                // touches to the remote digitizer. In DIRECT/TOUCHPAD mode,
+                // toggle two-finger drag between viewport pan and remote scroll (#286).
+                if (effectiveInputMode == "TOUCHSCREEN") {
+                    TouchscreenViewportNavToggle(touchscreenViewportNav) {
+                        touchscreenViewportNav = !touchscreenViewportNav
+                    }
+                } else {
                     ScrollModeToggle(twoFingerScroll) { twoFingerScroll = !twoFingerScroll }
                 }
 
@@ -1494,8 +1578,13 @@ private fun RdpViewer(
                         onOpenSensitivity = { showSensitivityDialog = true },
                         touchscreenCapable = touchscreenCapable,
                     )
-                    // Two-finger drag: viewport pan vs remote scroll — #286.
-                    if (effectiveInputMode != "TOUCHSCREEN") {
+                    // In TOUCHSCREEN mode (#778), toggle temporary local viewport
+                    // navigation vs remote touch passthrough; otherwise two-finger scroll/pan (#286).
+                    if (effectiveInputMode == "TOUCHSCREEN") {
+                        TouchscreenViewportNavToggle(touchscreenViewportNav) {
+                            touchscreenViewportNav = !touchscreenViewportNav
+                        }
+                    } else {
                         ScrollModeToggle(twoFingerScroll) { twoFingerScroll = !twoFingerScroll }
                     }
                     if (zoom != 1f || panX != 0f || panY != 0f) {
@@ -1539,6 +1628,67 @@ internal fun nextRdpInputMode(inputMode: String, touchscreenCapable: Boolean): S
     inputMode == "TOUCHPAD" -> "DIRECT"
     touchscreenCapable && inputMode == "TOUCHSCREEN" -> "DIRECT"
     else -> "TOUCHPAD"
+}
+
+/**
+ * True when canvas gestures should be forwarded to the remote MS-RDPEI
+ * digitizer (#778); false when [touchscreenViewportNav] is active (so pinch
+ * and drag adjust the local viewport instead of sending remote touches) or
+ * when not in TOUCHSCREEN mode.
+ */
+internal fun shouldForwardTouchscreenContacts(
+    effectiveInputMode: String,
+    hasTouchCallback: Boolean,
+    touchscreenViewportNav: Boolean,
+): Boolean = effectiveInputMode == "TOUCHSCREEN" && hasTouchCallback && !touchscreenViewportNav
+
+internal data class ViewportTransform(val zoom: Float, val panX: Float, val panY: Float)
+
+internal fun applyViewportPinch(
+    zoom: Float,
+    panX: Float,
+    panY: Float,
+    prevSpan: Float,
+    span: Float,
+    centroid: Offset,
+    viewWidth: Float,
+    viewHeight: Float,
+    fbWidth: Int,
+    fbHeight: Int,
+): ViewportTransform {
+    if (prevSpan <= 0f || span <= 0f || fbWidth <= 0 || fbHeight <= 0 || viewWidth <= 0f || viewHeight <= 0f) {
+        return ViewportTransform(zoom, panX, panY)
+    }
+    val newZoom = (zoom * (span / prevSpan)).coerceIn(1f, 5f)
+    val actualScale = if (zoom > 0f) newZoom / zoom else 1f
+    val cx = viewWidth / 2f
+    val cy = viewHeight / 2f
+    val rawPanX = (centroid.x - cx) * (1 - actualScale) + panX * actualScale
+    val rawPanY = (centroid.y - cy) * (1 - actualScale) + panY * actualScale
+    val fit = minOf(viewWidth / fbWidth, viewHeight / fbHeight)
+    val clampedPanX = clampPanToCover(rawPanX, fbWidth * fit, viewWidth, newZoom)
+    val clampedPanY = clampPanToCover(rawPanY, fbHeight * fit, viewHeight, newZoom)
+    return ViewportTransform(newZoom, clampedPanX, clampedPanY)
+}
+
+internal fun applyViewportPan(
+    zoom: Float,
+    panX: Float,
+    panY: Float,
+    dx: Float,
+    dy: Float,
+    viewWidth: Float,
+    viewHeight: Float,
+    fbWidth: Int,
+    fbHeight: Int,
+): ViewportTransform {
+    if (zoom <= 1f || fbWidth <= 0 || fbHeight <= 0 || viewWidth <= 0f || viewHeight <= 0f) {
+        return ViewportTransform(zoom, panX, panY)
+    }
+    val fit = minOf(viewWidth / fbWidth, viewHeight / fbHeight)
+    val clampedPanX = clampPanToCover(panX + dx, fbWidth * fit, viewWidth, zoom)
+    val clampedPanY = clampPanToCover(panY + dy, fbHeight * fit, viewHeight, zoom)
+    return ViewportTransform(zoom, clampedPanX, clampedPanY)
 }
 
 /**
@@ -1647,6 +1797,29 @@ private fun ScrollModeToggle(twoFingerScroll: Boolean, onToggle: () -> Unit) {
             if (twoFingerScroll) Icons.Default.SwapVert else Icons.Default.OpenWith,
             contentDescription = if (twoFingerScroll) stringResource(R.string.rdp_cd_two_finger_scroll_on)
                                  else stringResource(R.string.rdp_cd_two_finger_viewport),
+        )
+    }
+}
+
+/**
+ * In native TOUCHSCREEN mode (#778), temporarily switch canvas gestures from
+ * remote MS-RDPEI touch passthrough to local viewport zoom/pan (pinch to zoom,
+ * drag to pan) without leaving TOUCHSCREEN mode.
+ */
+@Composable
+private fun TouchscreenViewportNavToggle(active: Boolean, onToggle: () -> Unit) {
+    FilledIconToggleButton(
+        checked = active,
+        onCheckedChange = { onToggle() },
+        modifier = Modifier.size(40.dp),
+    ) {
+        Icon(
+            Icons.Default.OpenWith,
+            contentDescription = if (active) {
+                stringResource(R.string.rdp_cd_touchscreen_viewport_nav_on)
+            } else {
+                stringResource(R.string.rdp_cd_touchscreen_viewport_nav_off)
+            },
         )
     }
 }

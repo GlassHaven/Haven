@@ -18,6 +18,8 @@
     <string name="rdp_cd_input_mode_touchscreen_on">Изворни режим екрана на додир укључен (тап за директног миша)</string>
     <string name="rdp_cd_trackpad_sensitivity">Осетљивост трекпеда</string>
     <string name="rdp_cd_two_finger_viewport">Два прста померају приказ (тапните да скролујете удаљени)</string>
+    <string name="rdp_cd_touchscreen_viewport_nav_off">Навигација приказом искључена (тапните за зумирање или померање приказа)</string>
+    <string name="rdp_cd_touchscreen_viewport_nav_on">Навигација приказом укључена (тапните за наставак уноса екраном на додир)</string>
     <string name="rdp_cd_two_finger_scroll_on">Два прста скролују удаљени (тапните да померате приказ)</string>
     <string name="rdp_orientation_landscape_desc">Закључај положено (тап да пређете на усправно)</string>
     <string name="rdp_orientation_portrait_desc">Закључај усправно (тап да пређете на ауто)</string>

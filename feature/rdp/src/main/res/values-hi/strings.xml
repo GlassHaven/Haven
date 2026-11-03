@@ -40,6 +40,8 @@
 
     <!-- Backfill 2026-07: strings added since the last i18n pass -->
     <string name="rdp_cd_two_finger_viewport">दो उँगलियाँ व्यू पैन करती हैं (रिमोट स्क्रॉल करने के लिए टैप करें)</string>
+    <string name="rdp_cd_touchscreen_viewport_nav_off">व्यूपोर्ट नेविगेशन बंद (व्यू ज़ूम या पैन करने के लिए टैप करें)</string>
+    <string name="rdp_cd_touchscreen_viewport_nav_on">व्यूपोर्ट नेविगेशन चालू (टचस्क्रीन इनपुट फिर से शुरू करने के लिए टैप करें)</string>
     <string name="rdp_cd_two_finger_scroll_on">दो उँगलियाँ रिमोट स्क्रॉल करती हैं (व्यू पैन करने के लिए टैप करें)</string>
     <string name="rdp_hint_nla_required_title">सर्वर को नेटवर्क लेवल ऑथेंटिकेशन चाहिए</string>
     <string name="rdp_hint_nla_required_body">सर्वर केवल उन क्लाइंट को स्वीकार करने के लिए कॉन्फ़िगर है जो NLA से प्रमाणीकरण करते हैं, और इस कनेक्शन प्रोफ़ाइल में NLA अनटिक है। या तो प्रोफ़ाइल में “Network Level Authentication (NLA)” टिक करें, या PC पर आवश्यकता ढीली करें: Settings → System → Remote Desktop → Advanced settings → “Require devices to use Network Level Authentication” अनटिक करें।</string>

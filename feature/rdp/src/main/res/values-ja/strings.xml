@@ -40,6 +40,8 @@
 
     <!-- Backfill 2026-07: strings added since the last i18n pass -->
     <string name="rdp_cd_two_finger_viewport">2 本指でビューをパン（タップでリモート側のスクロールに切替）</string>
+    <string name="rdp_cd_touchscreen_viewport_nav_off">ビューポート移動オフ（タップで表示のズーム・移動に切替）</string>
+    <string name="rdp_cd_touchscreen_viewport_nav_on">ビューポート移動オン（タップでタッチスクリーン入力に戻る）</string>
     <string name="rdp_cd_two_finger_scroll_on">2 本指でリモート側をスクロール（タップでビューのパンに切替）</string>
     <string name="rdp_hint_nla_required_title">サーバーがネットワーク レベル認証 (NLA) を要求しています</string>
     <string name="rdp_hint_nla_required_body">サーバーは NLA で認証するクライアントのみを受け入れる設定ですが、この接続プロファイルでは NLA がオフです。プロファイルで「Network Level Authentication (NLA)」をオンにするか、PC 側で要件を緩めてください: 設定 → システム → リモート デスクトップ → 詳細設定 →「Require devices to use Network Level Authentication」のチェックを外します。</string>

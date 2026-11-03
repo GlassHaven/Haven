@@ -28081,6 +28081,46 @@
      }
     },
     {
+     "name": "rdp_cd_touchscreen_viewport_nav_off",
+     "en": "Viewport navigation off (tap to zoom or pan view)",
+     "comment": "",
+     "args": [],
+     "t": {
+      "ar": "تنقّل العرض متوقف (اضغط لتكبير العرض أو تحريكه)",
+      "bn": "ভিউপোর্ট নেভিগেশন বন্ধ (ভিউ জুম বা প্যান করতে ট্যাপ করুন)",
+      "de": "Ansichtsnavigation aus (tippen zum Zoomen oder Verschieben der Ansicht)",
+      "es": "Navegación de vista desactivada (toca para acercar o desplazar la vista)",
+      "fr": "Navigation de la vue désactivée (appuyer pour zoomer ou déplacer la vue)",
+      "hi": "व्यूपोर्ट नेविगेशन बंद (व्यू ज़ूम या पैन करने के लिए टैप करें)",
+      "ja": "ビューポート移動オフ（タップで表示のズーム・移動に切替）",
+      "ko": "화면 탐색 꺼짐 (화면을 확대하거나 이동하려면 탭)",
+      "pt": "Navegação da vista desativada (toque para ampliar ou mover a vista)",
+      "ru": "Навигация по виду выключена (нажмите для масштабирования или сдвига вида)",
+      "sr": "Навигација приказом искључена (тапните за зумирање или померање приказа)",
+      "zh": "视图导航已关闭（点按以缩放或平移视图）"
+     }
+    },
+    {
+     "name": "rdp_cd_touchscreen_viewport_nav_on",
+     "en": "Viewport navigation on (tap to resume touchscreen input)",
+     "comment": "",
+     "args": [],
+     "t": {
+      "ar": "تنقّل العرض مفعّل (اضغط لاستئناف إدخال شاشة اللمس)",
+      "bn": "ভিউপোর্ট নেভিগেশন চালু (টাচস্ক্রিন ইনপুট পুনরায় শুরু করতে ট্যাপ করুন)",
+      "de": "Ansichtsnavigation aktiv (tippen, um Touchscreen-Eingabe fortzusetzen)",
+      "es": "Navegación de vista activa (toca para reanudar la entrada táctil)",
+      "fr": "Navigation de la vue activée (appuyer pour reprendre la saisie tactile)",
+      "hi": "व्यूपोर्ट नेविगेशन चालू (टचस्क्रीन इनपुट फिर से शुरू करने के लिए टैप करें)",
+      "ja": "ビューポート移動オン（タップでタッチスクリーン入力に戻る）",
+      "ko": "화면 탐색 켜짐 (터치스크린 입력을 다시 사용하려면 탭)",
+      "pt": "Navegação da vista ativa (toque para retomar o toque na tela)",
+      "ru": "Навигация по виду включена (нажмите для возврата к сенсорному вводу)",
+      "sr": "Навигација приказом укључена (тапните за наставак уноса екраном на додир)",
+      "zh": "视图导航已开启（点按以恢复触屏输入）"
+     }
+    },
+    {
      "name": "rdp_orientation_landscape_desc",
      "en": "Lock landscape (tap to switch to portrait)",
      "comment": "",

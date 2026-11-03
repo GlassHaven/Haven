@@ -39,6 +39,8 @@
 
     <!-- Backfill 2026-07: strings added since the last i18n pass -->
     <string name="rdp_cd_two_finger_viewport">Dos dedos mueven la vista (toca para desplazar la pantalla remota)</string>
+    <string name="rdp_cd_touchscreen_viewport_nav_off">Navegación de vista desactivada (toca para acercar o desplazar la vista)</string>
+    <string name="rdp_cd_touchscreen_viewport_nav_on">Navegación de vista activa (toca para reanudar la entrada táctil)</string>
     <string name="rdp_cd_two_finger_scroll_on">Dos dedos desplazan la pantalla remota (toca para mover la vista)</string>
     <string name="rdp_hint_nla_required_title">El servidor requiere autenticación a nivel de red (NLA)</string>
     <string name="rdp_hint_nla_required_body">El servidor está configurado para aceptar solo clientes que se autentiquen con NLA, y NLA está desmarcado en este perfil de conexión. Marca “Network Level Authentication (NLA)” en el perfil, o relaja el requisito en el PC: Configuración → Sistema → Escritorio remoto → Configuración avanzada → desmarca “Require devices to use Network Level Authentication”.</string>

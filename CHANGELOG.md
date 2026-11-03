@@ -5,6 +5,17 @@ the corresponding GitHub Release; a release can't ship without its section
 (enforced by `scripts/check-changelog.sh` in CI). The GitHub "Full Changelog"
 compare link is appended automatically — don't add it here.
 
+## v5.94.1
+
+- Fix a startup crash (`ClassCastException: Integer cannot be cast to Float`) after restoring a backup with whole-numbered float settings (#779, thanks @heredos), and expose connected Rclone remotes, local shell sessions, installed PRoot rootfses, and document rename in the Android Storage Access Framework provider (#698, thanks @heredos).
+
+- **Backup restore float and long preference types (`#779`, thanks `@heredos`).**
+  - Fixed `BackupService.import` to restore `FLOAT_PREF_KEYS` (`mail_font_scale`, `terminal_background_opacity`, `toolbar_key_scale`, `app_window_default_scale`, `desktop_touchpad_sensitivity`) and `LONG_PREF_KEYS` (`update_check_last_run_ms`, `last_viewed_agent_audit_timestamp`) under `floatPreferencesKey` and `longPreferencesKey` even when `org.json.JSONObject` serializes whole-valued numbers without a decimal point.
+  - Updated `UserPreferencesRepository.floatSafe` (and wired it into `toolbarKeyScale` and `desktopTouchpadSensitivity`) to convert any stored `Number` via `.toFloat()`, so an already-restored DataStore self-heals on launch without clearing app data.
+- **Storage Access Framework (`HavenDocumentsProvider`) Rclone, local shell, PRoot, and rename support (`#698`, thanks `@heredos`).**
+  - Exposed connected Rclone remotes (`RcloneSessionManager`), active local shell sessions (`LocalSessionManager`), installed PRoot distros (`ProotManager.installedDistros`), and Haven's app-private home directory alongside SFTP and SMB connections in Android's system file picker and external editors.
+  - Added `FLAG_SUPPORTS_RENAME` (`renameDocument`) across SFTP, SMB, Rclone, and Local roots.
+
 ## v5.94.0
 
 - Native multi-touch touchscreen mode for RDP sessions via MS-RDPEI (`Microsoft::Windows::RDS::Input`), reachable from the toolbar input-mode toggle (`Direct` -> `Trackpad` -> `Touchscreen`) (#778, thanks @xchacha20-poly1305).

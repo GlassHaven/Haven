@@ -1,0 +1,1 @@
+- Fix startup ClassCastException after restoring a backup with whole-numbered float settings (#779), and expose Rclone remotes, local shells, PRoot distros, and rename in Android SAF (#698).

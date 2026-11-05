@@ -5,6 +5,15 @@ the corresponding GitHub Release; a release can't ship without its section
 (enforced by `scripts/check-changelog.sh` in CI). The GitHub "Full Changelog"
 compare link is appended automatically — don't add it here.
 
+## v5.94.3
+
+- Fix a `BiometricPrompt` crash when authorizing `sudo` password autofill or hardware-backed SSH keys on devices with Class 3 biometrics enrolled.
+- Surface `SSH_MSG_USERAUTH_BANNER` messages in the authentication dialog with clickable `http://` and `https://` links, a 5-minute timeout extension for URL banners, and verbose connection log capture (#781, thanks @zifken).
+- Bind synthetic `/proc` files (`/proc/loadavg`, `/proc/stat`, `/proc/uptime`, `/proc/version`, `/proc/vmstat`, `/proc/sys/kernel/cap_last_cap`, `/proc/sys/fs/inotify/max_user_watches`) and export `ELECTRON_DISABLE_SANDBOX=1` across interactive shell, run-command, guest service, and desktop PRoot launches (#780, thanks @Infinite1290).
+- Map right-side modifiers (`Ctrl_R`, `Alt_R`, `Shift_R`, `Super_R`) and lock keys (`Caps_Lock`, `Num_Lock`, `Scroll_Lock`) to their distinct X11 KeySyms in VNC sessions (#774, thanks @heredos).
+- Encode IPv4 and IPv6 literal addresses with `ATYP 0x01` and `0x04` in SOCKS5 `CONNECT` requests instead of domain-name `ATYP 0x03`, and report a clear error when the proxy closes the socket at greeting (#777, thanks @FaintShadow).
+- Dependency updates: `org.connectbot.sshlib` `0.6.6`, `org.apache.sshd:sshd-core` `2.20.1`, `com.microsoft.onnxruntime:onnxruntime-android` `1.24.2`, `golang.org/x/net` `0.62.0`, `tailscale.com` `1.104.4`, and Rust `log` `0.4.35` (#782-#789).
+
 ## v5.94.2
 
 - Add a toolbar Viewport Navigation toggle (`OpenWith` four-way pan icon) in RDP `TOUCHSCREEN` mode so users can pinch-to-zoom (`1×` to `5×`), drag-to-pan, and reset the local viewport without leaving native touchscreen mode (#778, thanks @xchacha20-poly1305).

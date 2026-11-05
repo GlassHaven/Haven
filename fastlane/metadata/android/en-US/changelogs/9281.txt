@@ -1,0 +1,5 @@
+- Fix BiometricPrompt crash during sudo autofill and hardware SSH key signing.
+- Display SSH_MSG_USERAUTH_BANNER messages with clickable URLs and 5-minute SSO timeout (#781).
+- Bind synthetic /proc files and ELECTRON_DISABLE_SANDBOX across PRoot shell and desktop launches (#780).
+- Map right-side modifiers and lock keys to distinct X11 KeySyms in VNC (#774).
+- Encode IPv4/IPv6 literals with ATYP 0x01/0x04 in SOCKS5 CONNECT (#777).

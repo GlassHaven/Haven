@@ -650,8 +650,8 @@ fun TerminalScreen(
     // back. A single `pendingScanMode` decides which recogniser the result
     // is routed to so we don't need four separate launchers.
     var attachSheetVisible by remember { mutableStateOf(false) }
-    var pendingScanMode by remember { mutableStateOf<TerminalViewModel.ScanMode?>(null) }
-    var cameraOutputUri by remember { mutableStateOf<Uri?>(null) }
+    var pendingGalleryScanMode by remember { mutableStateOf<TerminalViewModel.ScanMode?>(null) }
+    val cameraCaptureGate = remember { CameraCaptureGate<TerminalViewModel.ScanMode>() }
 
     // Floating text-input dialog (ported from ConnectBot). Both pieces of
     // state are hoisted ABOVE the key(activeTab.sessionId) block below: the
@@ -670,10 +670,7 @@ fun TerminalScreen(
     val cameraScanLauncher = androidx.activity.compose.rememberLauncherForActivityResult(
         androidx.activity.result.contract.ActivityResultContracts.TakePicture()
     ) { success ->
-        val uri = cameraOutputUri
-        val mode = pendingScanMode
-        cameraOutputUri = null
-        pendingScanMode = null
+        val (uri, mode) = cameraCaptureGate.consumeCaptureResult()
         if (success && uri != null) {
             if (mode != null) {
                 viewModel.runScanFlow(uri, mode)
@@ -698,8 +695,8 @@ fun TerminalScreen(
     val galleryScanLauncher = androidx.activity.compose.rememberLauncherForActivityResult(
         androidx.activity.result.contract.ActivityResultContracts.PickVisualMedia()
     ) { uri ->
-        val mode = pendingScanMode
-        pendingScanMode = null
+        val mode = pendingGalleryScanMode
+        pendingGalleryScanMode = null
         if (uri != null && mode != null) {
             viewModel.runScanFlow(uri, mode)
         }
@@ -760,56 +757,64 @@ fun TerminalScreen(
     val linkOpenFailedMessage = stringResource(R.string.terminal_link_open_failed)
     val linkSchemeBlockedMessage = stringResource(R.string.terminal_link_scheme_blocked)
     val localVncFailedMessage = stringResource(R.string.terminal_local_vnc_failed)
-    fun launchCameraScan(mode: TerminalViewModel.ScanMode) {
+    fun createCameraOutputUri(mode: TerminalViewModel.ScanMode?): Uri {
         val cacheRoot = java.io.File(context.cacheDir, "scan").apply { mkdirs() }
-        val file = java.io.File(cacheRoot, "scan_${System.currentTimeMillis()}.jpg")
-        val uri = androidx.core.content.FileProvider.getUriForFile(
+        val prefix = if (mode != null) "scan" else "photo"
+        val file = java.io.File(cacheRoot, "${prefix}_${System.currentTimeMillis()}.jpg")
+        return androidx.core.content.FileProvider.getUriForFile(
             context,
             "${context.packageName}.fileprovider",
             file,
         )
-        cameraOutputUri = uri
-        pendingScanMode = mode
-        try {
-            cameraScanLauncher.launch(uri)
-        } catch (_: android.content.ActivityNotFoundException) {
-            cameraOutputUri = null
-            pendingScanMode = null
-            android.widget.Toast.makeText(
-                context,
-                noCameraMessage,
-                android.widget.Toast.LENGTH_LONG,
-            ).show()
-        }
+    }
+
+    fun showNoCameraToast() {
+        android.widget.Toast.makeText(
+            context,
+            noCameraMessage,
+            android.widget.Toast.LENGTH_LONG,
+        ).show()
+    }
+
+    val cameraPermissionLauncher = androidx.activity.compose.rememberLauncherForActivityResult(
+        androidx.activity.result.contract.ActivityResultContracts.RequestPermission()
+    ) { granted ->
+        cameraCaptureGate.onPermissionResult(
+            granted = granted,
+            createOutputUri = ::createCameraOutputUri,
+            launchTakePicture = cameraScanLauncher::launch,
+            onCameraUnavailable = ::showNoCameraToast,
+        )
+    }
+
+    fun requestCameraCapture(mode: TerminalViewModel.ScanMode?) {
+        val hasCameraPermission = androidx.core.content.ContextCompat.checkSelfPermission(
+            context,
+            android.Manifest.permission.CAMERA,
+        ) == android.content.pm.PackageManager.PERMISSION_GRANTED
+        cameraCaptureGate.requestCapture(
+            mode = mode,
+            hasCameraPermission = hasCameraPermission,
+            createOutputUri = ::createCameraOutputUri,
+            launchTakePicture = cameraScanLauncher::launch,
+            requestPermission = cameraPermissionLauncher::launch,
+            onCameraUnavailable = ::showNoCameraToast,
+        )
+    }
+
+    fun launchCameraScan(mode: TerminalViewModel.ScanMode) {
+        requestCameraCapture(mode)
     }
 
     // TAKE_PHOTO entry: the same TakePicture launcher, but with
-    // pendingScanMode = null as the photo-attach marker — the result routes
+    // pendingMode = null as the photo-attach marker — the result routes
     // to runAttachFlow (see cameraScanLauncher) instead of a recogniser.
     fun launchCameraPhoto() {
-        val cacheRoot = java.io.File(context.cacheDir, "scan").apply { mkdirs() }
-        val file = java.io.File(cacheRoot, "photo_${System.currentTimeMillis()}.jpg")
-        val uri = androidx.core.content.FileProvider.getUriForFile(
-            context,
-            "${context.packageName}.fileprovider",
-            file,
-        )
-        cameraOutputUri = uri
-        pendingScanMode = null
-        try {
-            cameraScanLauncher.launch(uri)
-        } catch (_: android.content.ActivityNotFoundException) {
-            cameraOutputUri = null
-            android.widget.Toast.makeText(
-                context,
-                noCameraMessage,
-                android.widget.Toast.LENGTH_LONG,
-            ).show()
-        }
+        requestCameraCapture(null)
     }
 
     fun launchGalleryScan(mode: TerminalViewModel.ScanMode) {
-        pendingScanMode = mode
+        pendingGalleryScanMode = mode
         galleryScanLauncher.launch(
             androidx.activity.result.PickVisualMediaRequest(
                 androidx.activity.result.contract.ActivityResultContracts.PickVisualMedia.ImageOnly,
@@ -3387,4 +3392,84 @@ private fun WhereaboutsDialog(
         },
     )
 }
+
+/**
+ * State machine gating [androidx.activity.result.contract.ActivityResultContracts.TakePicture]
+ * on `android.permission.CAMERA`.
+ *
+ * Android's `MediaStore.ACTION_IMAGE_CAPTURE` contract throws [SecurityException]
+ * when the calling package declares `<uses-permission android:name="android.permission.CAMERA" />`
+ * in its manifest and does not hold the runtime `CAMERA` grant.
+ */
+internal class CameraCaptureGate<M> {
+    var cameraOutputUri: Uri? = null
+        private set
+    var pendingMode: M? = null
+        private set
+    var awaitingPermission: Boolean = false
+        private set
+
+    fun requestCapture(
+        mode: M?,
+        hasCameraPermission: Boolean,
+        createOutputUri: (M?) -> Uri,
+        launchTakePicture: (Uri) -> Unit,
+        requestPermission: (String) -> Unit,
+        onCameraUnavailable: () -> Unit,
+    ) {
+        if (hasCameraPermission) {
+            launchNow(mode, createOutputUri, launchTakePicture, onCameraUnavailable)
+        } else {
+            pendingMode = mode
+            awaitingPermission = true
+            requestPermission(android.Manifest.permission.CAMERA)
+        }
+    }
+
+    fun onPermissionResult(
+        granted: Boolean,
+        createOutputUri: (M?) -> Uri,
+        launchTakePicture: (Uri) -> Unit,
+        onCameraUnavailable: () -> Unit,
+    ) {
+        val shouldLaunch = awaitingPermission
+        val mode = pendingMode
+        awaitingPermission = false
+        pendingMode = null
+        if (granted && shouldLaunch) {
+            launchNow(mode, createOutputUri, launchTakePicture, onCameraUnavailable)
+        }
+    }
+
+    fun consumeCaptureResult(): Pair<Uri?, M?> {
+        val uri = cameraOutputUri
+        val mode = pendingMode
+        cameraOutputUri = null
+        pendingMode = null
+        return uri to mode
+    }
+
+    private fun launchNow(
+        mode: M?,
+        createOutputUri: (M?) -> Uri,
+        launchTakePicture: (Uri) -> Unit,
+        onCameraUnavailable: () -> Unit,
+    ) {
+        val uri = createOutputUri(mode)
+        cameraOutputUri = uri
+        pendingMode = mode
+        try {
+            launchTakePicture(uri)
+        } catch (_: android.content.ActivityNotFoundException) {
+            cameraOutputUri = null
+            pendingMode = null
+            onCameraUnavailable()
+        } catch (_: SecurityException) {
+            cameraOutputUri = null
+            pendingMode = null
+            onCameraUnavailable()
+        }
+    }
+}
+
 

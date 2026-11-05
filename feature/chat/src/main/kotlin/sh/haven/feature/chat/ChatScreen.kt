@@ -110,6 +110,28 @@ fun ChatScreen(
         cameraOutputUri = null
         if (success && uri != null) viewModel.stageImage(uri)
     }
+    fun launchCameraCaptureNow() {
+        val dir = File(context.cacheDir, "chat")
+        dir.mkdirs()
+        val uri = FileProvider.getUriForFile(
+            context,
+            "${context.packageName}.fileprovider",
+            File(dir, "chat_${System.currentTimeMillis()}.jpg"),
+        )
+        cameraOutputUri = uri
+        try {
+            cameraLauncher.launch(uri)
+        } catch (_: android.content.ActivityNotFoundException) {
+            cameraOutputUri = null
+        } catch (_: SecurityException) {
+            cameraOutputUri = null
+        }
+    }
+    val cameraPermissionLauncher = rememberLauncherForActivityResult(
+        ActivityResultContracts.RequestPermission(),
+    ) { granted ->
+        if (granted) launchCameraCaptureNow()
+    }
     val galleryLauncher = rememberLauncherForActivityResult(
         ActivityResultContracts.PickVisualMedia(),
     ) { uri ->
@@ -123,18 +145,14 @@ fun ChatScreen(
                 ),
             )
             ChatAttachOption.CAMERA -> {
-                val dir = File(context.cacheDir, "chat")
-                dir.mkdirs()
-                val uri = FileProvider.getUriForFile(
+                val hasCameraPermission = androidx.core.content.ContextCompat.checkSelfPermission(
                     context,
-                    "${context.packageName}.fileprovider",
-                    File(dir, "chat_${System.currentTimeMillis()}.jpg"),
-                )
-                cameraOutputUri = uri
-                try {
-                    cameraLauncher.launch(uri)
-                } catch (_: android.content.ActivityNotFoundException) {
-                    cameraOutputUri = null
+                    android.Manifest.permission.CAMERA,
+                ) == android.content.pm.PackageManager.PERMISSION_GRANTED
+                if (hasCameraPermission) {
+                    launchCameraCaptureNow()
+                } else {
+                    cameraPermissionLauncher.launch(android.Manifest.permission.CAMERA)
                 }
             }
             ChatAttachOption.FILES -> {

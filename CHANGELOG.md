@@ -5,6 +5,10 @@ the corresponding GitHub Release; a release can't ship without its section
 (enforced by `scripts/check-changelog.sh` in CI). The GitHub "Full Changelog"
 compare link is appended automatically — don't add it here.
 
+## v5.94.4
+
+- Fix a `SecurityException` crash when launching **Attach → Take a photo** or camera QR/OCR scanning before `android.permission.CAMERA` has been granted at runtime.
+
 ## v5.94.3
 
 - Fix a `BiometricPrompt` crash when authorizing `sudo` password autofill or hardware-backed SSH keys on devices with Class 3 biometrics enrolled.

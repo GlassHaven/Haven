@@ -1,0 +1,1 @@
+- Fix a SecurityException crash when launching Attach -> Take a photo or camera QR/OCR scanning before android.permission.CAMERA has been granted at runtime.

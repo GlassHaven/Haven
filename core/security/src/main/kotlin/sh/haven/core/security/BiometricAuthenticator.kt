@@ -18,7 +18,7 @@ class BiometricAuthenticator @Inject constructor(
 
     companion object {
         /** Accepts biometric (strong or weak) or device credential (PIN/password/pattern). */
-        private const val ALLOWED_AUTHENTICATORS =
+        internal const val ALLOWED_AUTHENTICATORS =
             BiometricManager.Authenticators.BIOMETRIC_STRONG or
                 BiometricManager.Authenticators.BIOMETRIC_WEAK or
                 BiometricManager.Authenticators.DEVICE_CREDENTIAL
@@ -28,7 +28,7 @@ class BiometricAuthenticator @Inject constructor(
          * biometrics and device credential cannot authorize a per-use
          * Keystore operation, so androidx rejects the combination.
          */
-        private const val CRYPTO_AUTHENTICATORS =
+        internal const val CRYPTO_AUTHENTICATORS =
             BiometricManager.Authenticators.BIOMETRIC_STRONG
     }
 
@@ -86,11 +86,16 @@ class BiometricAuthenticator @Inject constructor(
         crypto = BiometricPrompt.CryptoObject(signature),
     )
 
-    private fun promptInfo(title: String, subtitle: String, authenticators: Int) =
+    internal fun promptInfo(title: String, subtitle: String, authenticators: Int) =
         BiometricPrompt.PromptInfo.Builder()
             .setTitle(title)
             .setSubtitle(subtitle)
             .setAllowedAuthenticators(authenticators)
+            .apply {
+                if ((authenticators and BiometricManager.Authenticators.DEVICE_CREDENTIAL) == 0) {
+                    setNegativeButtonText(context.getString(android.R.string.cancel).ifEmpty { "Cancel" })
+                }
+            }
             .build()
 
     private suspend fun showPrompt(

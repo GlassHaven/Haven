@@ -1,0 +1,1 @@
+- Add external display (Presentation) projection for VNC and RDP sessions with OLED phone canvas blanking and a toolbar toggle (#790).

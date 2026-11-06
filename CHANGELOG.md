@@ -5,6 +5,10 @@ the corresponding GitHub Release; a release can't ship without its section
 (enforced by `scripts/check-changelog.sh` in CI). The GitHub "Full Changelog"
 compare link is appended automatically — don't add it here.
 
+## v5.94.5
+
+- Add external display (`android.app.Presentation`) projection for VNC (local and remote) and RDP sessions: when an HDMI, USB-C DisplayPort, or wireless presentation display is connected, the remote desktop and cursor render on the external monitor while the phone canvas blanks to black (`#000000`) to save battery and continues acting as the trackpad and keyboard input surface, with a toolbar toggle (`Tv` icon) to switch between the external monitor and the phone screen (#790, thanks @pixel4696).
+
 ## v5.94.4
 
 - Fix a `SecurityException` crash when launching **Attach → Take a photo** or camera QR/OCR scanning before `android.permission.CAMERA` has been granted at runtime.

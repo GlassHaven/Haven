@@ -5,6 +5,10 @@ the corresponding GitHub Release; a release can't ship without its section
 (enforced by `scripts/check-changelog.sh` in CI). The GitHub "Full Changelog"
 compare link is appended automatically — don't add it here.
 
+## v5.94.8
+
+- Fix `dosbox-staging` startup in UML guest app windows by configuring `output=texture` with `texture_renderer=software`, installing `mesa-dri-gallium` and `wayland-libs-egl` in the Alpine `dosbox` Guest App Pack, and exporting `HOME=/root`, `SDL_AUDIODRIVER=dummy`, and `ALSOFT_DRIVERS=null` in UML kiosk launch scripts.
+
 ## v5.94.7
 
 - Add curated classic computer emulator Guest App Packs (**DOSBox** for x86 MS-DOS, **FS-UAE** for Commodore Amiga 500/1200 with built-in AROS Kickstart replacement, and **VICE (`x64sc`)** for Commodore 64) pre-configured with PulseAudio output and software rendering, and surface `GuestAppCatalog` packs as one-tap installs in **Desktop → Manage → App windows**.

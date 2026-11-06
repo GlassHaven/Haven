@@ -6247,7 +6247,7 @@ class ConnectionsViewModel @Inject constructor(
      * needed to warn the user when the forwarded agent would be empty (e.g.
      * all stored SSH keys are passphrase-protected or none are stored at all).
      */
-    private data class AgentIdentitiesResult(
+    internal data class AgentIdentitiesResult(
         val keys: List<ConnectionConfig.AgentIdentity>,
         val skippedLockedCount: Int,
         val hadNoStoredKeys: Boolean,
@@ -6282,7 +6282,7 @@ class ConnectionsViewModel @Inject constructor(
      * without any side effects. Kept separate from [agentIdentitiesFor] so
      * the warning logic can be unit-tested.
      */
-    private suspend fun computeAgentIdentities(profile: ConnectionProfile): AgentIdentitiesResult {
+    internal suspend fun computeAgentIdentities(profile: ConnectionProfile): AgentIdentitiesResult {
         if (!profile.forwardAgent) {
             return AgentIdentitiesResult(
                 keys = emptyList(),
@@ -6324,7 +6324,11 @@ class ConnectionsViewModel @Inject constructor(
         var skippedLocked = 0
         for (key in candidates) {
             if (!key.isEncrypted) {
-                keys += ConnectionConfig.AgentIdentity(key.label, rawKeyToPem(key.privateKeyBytes, key.keyType))
+                keys += ConnectionConfig.AgentIdentity(
+                    label = key.label,
+                    keyBytes = rawKeyToPem(key.privateKeyBytes, key.keyType),
+                    certBytes = key.certificateBytes,
+                )
                 continue
             }
             // Passphrase-protected key: forwardable when the passphrase is
@@ -6336,9 +6340,10 @@ class ConnectionsViewModel @Inject constructor(
             val passphrase = sshKeyRepository.getStoredPassphrase(key.id)
             if (passphrase != null) {
                 keys += ConnectionConfig.AgentIdentity(
-                    key.label,
-                    key.privateKeyBytes,
-                    passphrase.toByteArray(Charsets.UTF_8),
+                    label = key.label,
+                    keyBytes = key.privateKeyBytes,
+                    passphrase = passphrase.toByteArray(Charsets.UTF_8),
+                    certBytes = key.certificateBytes,
                 )
             } else {
                 skippedLocked++

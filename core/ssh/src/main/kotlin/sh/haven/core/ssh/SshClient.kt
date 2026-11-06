@@ -1022,12 +1022,21 @@ class SshClient : SshConnection {
                 // TIME — required for forwarding, because
                 // ChannelAgentForwarding silently skips identities still
                 // reporting isEncrypted(). (#377)
-                jsch.addIdentity("haven-agent-$i-${identity.label}", identity.keyBytes, null, identity.passphrase)
+                // Pass the OpenSSH cert line when present so JSch wraps the
+                // forwarded software key in OpenSshCertificateAwareIdentityFile,
+                // matching the FIDO2 and security-chip branches above.
+                jsch.addIdentity(
+                    "haven-agent-$i-${identity.label}",
+                    identity.keyBytes,
+                    identity.certBytes?.let { SshCertificateParser.toOpenSshPublicKeyLine(it) },
+                    identity.passphrase,
+                )
                 registered++
                 diag(
                     "Registered agent identity #$i '${identity.label}' " +
                         "(${identity.keyBytes.size} bytes" +
-                        (if (identity.passphrase != null) ", decrypted at add" else "") + ")",
+                        (if (identity.passphrase != null) ", decrypted at add" else "") +
+                        (if (identity.certBytes != null) ", cert-wrapped" else "") + ")",
                 )
             } catch (e: Exception) {
                 skipped++

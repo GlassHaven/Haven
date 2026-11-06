@@ -666,6 +666,49 @@ class ConnectionsViewModelSessionTest {
         io.mockk.coVerify(exactly = 0) { sshKeyRepository.fetchKeyMaterial("k-chip") }
     }
 
+    @Test
+    fun `computeAgentIdentities carries certBytes for software keys`() = runTest {
+        val certA = byteArrayOf(10, 20, 30)
+        val certB = byteArrayOf(40, 50, 60)
+        coEvery { sshKeyRepository.getAllDecryptedDetailed() } returns DecryptedKeys(
+            keys = listOf(
+                SshKey(
+                    id = "k-plain",
+                    label = "step-plain",
+                    keyType = "ssh-ed25519",
+                    privateKeyBytes = ByteArray(64),
+                    publicKeyOpenSsh = "",
+                    fingerprintSha256 = "",
+                    isEncrypted = false,
+                    certificateBytes = certA,
+                ),
+                SshKey(
+                    id = "k-enc",
+                    label = "step-enc",
+                    keyType = "ssh-ed25519",
+                    privateKeyBytes = "-----BEGIN OPENSSH PRIVATE KEY-----\n".toByteArray(),
+                    publicKeyOpenSsh = "",
+                    fingerprintSha256 = "",
+                    isEncrypted = true,
+                    certificateBytes = certB,
+                ),
+            ),
+            declined = emptyList(),
+            hardware = emptyList(),
+        )
+        coEvery { sshKeyRepository.getStoredPassphrase("k-enc") } returns "pw"
+
+        val profile = ConnectionProfile(
+            id = "p-agent", label = "p", host = "h", username = "u",
+            connectionType = "SSH", forwardAgent = true,
+        )
+        val result = viewModel.computeAgentIdentities(profile)
+
+        assertEquals(2, result.keys.size)
+        org.junit.Assert.assertArrayEquals(certA, result.keys[0].certBytes)
+        org.junit.Assert.assertArrayEquals(certB, result.keys[1].certBytes)
+    }
+
     // #559 semantics for chip keys: every refused / invalidated chip ceremony
     // must classify as a key refusal so all connect paths report and stop —
     // anything else (a leaked checked exception, a plain IO error) slides the

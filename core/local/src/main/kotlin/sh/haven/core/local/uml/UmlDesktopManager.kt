@@ -922,9 +922,12 @@ class UmlDesktopManager @Inject constructor(
         /** Launcher script executed by sway for cage slot [slot]. */
         fun buildCageRunScript(slot: Int, command: String): String {
             val umlCmd = command
-                .replace("SDL_AUDIODRIVER=pulse ", "")
-                .replace("ALSOFT_DRIVERS=pulse ", "")
+                .replace("SDL_AUDIODRIVER=pulse", "SDL_AUDIODRIVER=dummy")
+                .replace("ALSOFT_DRIVERS=pulse", "ALSOFT_DRIVERS=null")
             return """#!/bin/sh
+export HOME=/root
+export SDL_AUDIODRIVER=dummy
+export ALSOFT_DRIVERS=null
 $umlCmd
 for k in /tmp/wr-cage-$slot/sway-ipc.*.sock; do
     [ -S "${DS}k" ] && swaymsg -s "${DS}k" exit >/dev/null 2>&1

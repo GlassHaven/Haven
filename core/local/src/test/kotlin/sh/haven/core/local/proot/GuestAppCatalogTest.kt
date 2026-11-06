@@ -122,7 +122,17 @@ class GuestAppCatalogTest {
         val dosbox = GuestAppCatalog.DOSBOX
         assertTrue(dosbox.needsAudioBridge)
         assertTrue(dosbox.appCommand.contains("SDL_AUDIODRIVER=pulse"))
-        assertTrue(dosbox.configWrites.any { it.path == "/root/.dosbox/haven.conf" && it.stanza.contains("usescancodes=false") })
+        assertTrue(dosbox.packages[PackageFamily.APK]!!.contains("mesa-dri-gallium"))
+        assertTrue(dosbox.configWrites.any {
+            it.path == "/root/.dosbox/haven.conf" &&
+                it.stanza.contains("output=texture") &&
+                it.stanza.contains("texture_renderer=software") &&
+                it.stanza.contains("usescancodes=false")
+        })
+        val umlRunScript = sh.haven.core.local.uml.UmlDesktopManager.buildCageRunScript(1, dosbox.appCommand)
+        assertTrue(umlRunScript.contains("export HOME=/root"))
+        assertTrue(umlRunScript.contains("SDL_AUDIODRIVER=dummy"))
+        assertFalse(umlRunScript.contains("SDL_AUDIODRIVER=pulse"))
 
         val fsUae = GuestAppCatalog.FS_UAE
         assertTrue(fsUae.needsAudioBridge)

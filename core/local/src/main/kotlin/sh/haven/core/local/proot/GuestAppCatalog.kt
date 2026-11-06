@@ -223,7 +223,7 @@ object GuestAppCatalog {
         description = "x86 PC / MS-DOS emulator with Sound Blaster 16 and AdLib audio. Mount a host folder with 'mount c /path'.",
         packages = mapOf(
             PackageFamily.APT to listOf("dosbox"),
-            PackageFamily.APK to listOf("dosbox-staging"),
+            PackageFamily.APK to listOf("dosbox-staging", "mesa-dri-gallium", "wayland-libs-egl"),
             PackageFamily.PACMAN to listOf("dosbox"),
             PackageFamily.XBPS to listOf("dosbox"),
         ),
@@ -231,7 +231,7 @@ object GuestAppCatalog {
         configWrites = listOf(
             PackConfigWrite(
                 path = "/root/.dosbox/haven.conf",
-                stanza = "[sdl]\noutput=surface\ntexture_renderer=software\nusescancodes=false",
+                stanza = "[sdl]\noutput=texture\ntexture_renderer=software\nusescancodes=false",
             ),
         ),
         needsAudioBridge = true,

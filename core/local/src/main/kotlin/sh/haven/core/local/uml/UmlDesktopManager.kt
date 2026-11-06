@@ -255,6 +255,55 @@ class UmlDesktopManager @Inject constructor(
     }
 
     /**
+     * Run a [sh.haven.core.local.proot.buildPackInstallScript] inside the shared
+     * UML Alpine guest and verify `/${verifyBinary}` exists afterwards. Keeps the
+     * guest warm so an immediate [startCageWindow] reuses it without rebooting.
+     */
+    suspend fun installPack(script: String, verifyBinary: String): Result<Unit> {
+        if (!isAvailable) return Result.failure(IllegalStateException("UML guest not available"))
+        writeRecipeScript()
+        val share = guestManager.guestShareDir.apply { mkdirs() }
+        val packScriptFile = File(share, "haven-pack-install.sh")
+        val packLogFile = File(share, "haven-pack-install.log").apply { delete() }
+        val cleanRel = verifyBinary.trimStart('/')
+        packScriptFile.writeText(
+            buildString {
+                appendLine("#!/bin/sh")
+                appendLine("{")
+                appendLine(script)
+                appendLine("} > /host/haven-pack-install.log 2>&1")
+                appendLine("rc=\$?")
+                appendLine("if [ \"\$rc\" -ne 0 ]; then echo \"HPACK:fail exit \$rc\"; exit \$rc; fi")
+                appendLine("if [ ! -e \"/$cleanRel\" ]; then echo \"HPACK:fail /$cleanRel missing\"; exit 1; fi")
+                appendLine("mkdir -p /host/applications && cp -f /usr/share/applications/*.desktop /host/applications/ 2>/dev/null || true")
+                appendLine("echo HPACK:done")
+            },
+        )
+        return try {
+            guestMutex.withLock {
+                val (sid, console) = ensureGuestLocked(emptySet(), label = "UML pack install")
+                val pos = console.markPosition()
+                guestManager.sendInput(
+                    sid,
+                    "mount -t hostfs none /host 2>/dev/null; sh /host/haven-pack-install.sh\r",
+                )
+                val marker = awaitAnyMarker(console, sid, "HPACK:", timeoutMs = 300_000, fromIndex = pos)
+                if (marker == "HPACK:done") {
+                    Result.success(Unit)
+                } else {
+                    val tail = if (packLogFile.isFile) {
+                        packLogFile.readLines().lastOrNull { it.isNotBlank() }
+                    } else null
+                    val reason = tail ?: marker?.removePrefix("HPACK:fail")?.trim() ?: "install timed out"
+                    Result.failure(IllegalStateException(reason))
+                }
+            }
+        } catch (e: Exception) {
+            Result.failure(e)
+        }
+    }
+
+    /**
      * Launch [command] as a single-app `sway` kiosk inside the UML guest on a
      * dedicated headless Wayland + `wayvnc` slot. Reuses the running UML guest
      * when warm (<1s startup) or boots it with the cage port pool forwarded.
@@ -871,13 +920,17 @@ class UmlDesktopManager @Inject constructor(
         }
 
         /** Launcher script executed by sway for cage slot [slot]. */
-        fun buildCageRunScript(slot: Int, command: String): String =
-            """#!/bin/sh
-$command
+        fun buildCageRunScript(slot: Int, command: String): String {
+            val umlCmd = command
+                .replace("SDL_AUDIODRIVER=pulse ", "")
+                .replace("ALSOFT_DRIVERS=pulse ", "")
+            return """#!/bin/sh
+$umlCmd
 for k in /tmp/wr-cage-$slot/sway-ipc.*.sock; do
     [ -S "${DS}k" ] && swaymsg -s "${DS}k" exit >/dev/null 2>&1
 done
 """
+        }
 
         /** Sway kiosk configuration for cage slot [slot]. */
         fun buildCageSwayConfig(

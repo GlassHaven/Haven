@@ -785,14 +785,20 @@ class DesktopViewModel @Inject constructor(
      */
     fun installAppPack(pack: sh.haven.core.local.proot.GuestAppPack) {
         viewModelScope.launch(Dispatchers.IO) {
-            if (!prootManager.isRootfsInstalled) {
+            val useProot = prootManager.isRootfsInstalled
+            if (!useProot && !umlAvailable) {
                 _userMessages.emit("Install a Linux distro first to install ${pack.appLabel}")
                 return@launch
             }
-            val family = prootManager.activeDistro.family
+            val family = if (useProot) {
+                prootManager.activeDistro.family
+            } else {
+                sh.haven.core.local.proot.PackageFamily.APK
+            }
             val pkgs = pack.packages[family]
             if (pkgs == null) {
-                _userMessages.emit("${pack.appLabel} is not packaged for ${prootManager.activeDistro.label} ($family)")
+                val targetLabel = if (useProot) prootManager.activeDistro.label else "UML Alpine"
+                _userMessages.emit("${pack.appLabel} is not packaged for $targetLabel ($family)")
                 return@launch
             }
             if (pack.id in _installingPackIds.value) return@launch
@@ -805,21 +811,31 @@ class DesktopViewModel @Inject constructor(
                     family = family,
                     includeAssets = true,
                 )
-                val proc = prootManager.startCommandInProot(script)
-                val tail = ArrayDeque<String>(16)
-                proc.inputStream.bufferedReader().forEachLine { line ->
-                    if (tail.size >= 16) tail.removeFirst()
-                    tail.addLast(line)
-                }
-                val code = proc.waitFor()
-                if (code != 0) {
-                    val lastLine = tail.lastOrNull { it.isNotBlank() } ?: "exit $code"
-                    _userMessages.emit("Couldn't install ${pack.appLabel}: $lastLine")
-                    return@launch
-                }
-                if (!java.io.File(prootManager.activeRootfsDir, pack.verifyBinary).exists()) {
-                    _userMessages.emit("Couldn't install ${pack.appLabel}: ${pack.verifyBinary} missing after install")
-                    return@launch
+                if (useProot) {
+                    val proc = prootManager.startCommandInProot(script)
+                    val tail = ArrayDeque<String>(16)
+                    proc.inputStream.bufferedReader().forEachLine { line ->
+                        if (tail.size >= 16) tail.removeFirst()
+                        tail.addLast(line)
+                    }
+                    val code = proc.waitFor()
+                    if (code != 0) {
+                        val lastLine = tail.lastOrNull { it.isNotBlank() } ?: "exit $code"
+                        _userMessages.emit("Couldn't install ${pack.appLabel}: $lastLine")
+                        return@launch
+                    }
+                    if (!java.io.File(prootManager.activeRootfsDir, pack.verifyBinary).exists()) {
+                        _userMessages.emit("Couldn't install ${pack.appLabel}: ${pack.verifyBinary} missing after install")
+                        return@launch
+                    }
+                } else {
+                    val res = umlDesktopManager.installPack(script, pack.verifyBinary)
+                    if (res.isFailure) {
+                        _userMessages.emit(
+                            "Couldn't install ${pack.appLabel}: ${res.exceptionOrNull()?.message ?: "failed"}",
+                        )
+                        return@launch
+                    }
                 }
                 preferencesRepository.upsertAppWindowDef(
                     label = pack.appLabel,
@@ -831,7 +847,7 @@ class DesktopViewModel @Inject constructor(
                     resolution = pack.resolution,
                     scale = pack.scale,
                 )
-                if (pack.needsAudioBridge) localSessionManager.audioBridge.start()
+                if (useProot && pack.needsAudioBridge) localSessionManager.audioBridge.start()
                 _userMessages.emit("${pack.appLabel} installed — tap Play to launch")
             } catch (e: Exception) {
                 Log.w(TAG, "installAppPack(${pack.id}) failed", e)

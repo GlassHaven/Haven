@@ -5,6 +5,10 @@ the corresponding GitHub Release; a release can't ship without its section
 (enforced by `scripts/check-changelog.sh` in CI). The GitHub "Full Changelog"
 compare link is appended automatically — don't add it here.
 
+## v5.94.9
+
+- Forward attached OpenSSH certificates (`certificateBytes`, including Step CA-minted certificates) on software SSH keys when SSH agent forwarding is enabled, matching the FIDO2 and security-chip agent-forwarding paths.
+
 ## v5.94.8
 
 - Fix `dosbox-staging` startup in UML guest app windows by configuring `output=texture` with `texture_renderer=software`, installing `mesa-dri-gallium` and `wayland-libs-egl` in the Alpine `dosbox` Guest App Pack, and exporting `HOME=/root`, `SDL_AUDIODRIVER=dummy`, and `ALSOFT_DRIVERS=null` in UML kiosk launch scripts.

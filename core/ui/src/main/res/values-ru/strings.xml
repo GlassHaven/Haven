@@ -42,4 +42,6 @@
     <string name="wayland_cd_toggle_keyboard">Показать/скрыть клавиатуру</string>
     <string name="wayland_cd_fullscreen">Полный экран</string>
     <string name="wayland_cd_desktop_resolution">Разрешение рабочего стола</string>
+    <string name="external_display_cd_on">Вывод на внешний экран включён (нажмите для показа на экране устройства)</string>
+    <string name="external_display_cd_off">Вывод на внешний экран выключен (нажмите для вывода на внешний экран)</string>
 </resources>

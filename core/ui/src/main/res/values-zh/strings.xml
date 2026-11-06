@@ -42,4 +42,6 @@
     <string name="wayland_cd_toggle_keyboard">显示/隐藏键盘</string>
     <string name="wayland_cd_fullscreen">全屏</string>
     <string name="wayland_cd_desktop_resolution">桌面分辨率</string>
+    <string name="external_display_cd_on">外接显示器输出已开启（点按以在设备屏幕上显示）</string>
+    <string name="external_display_cd_off">外接显示器输出已关闭（点按以投射到外接显示器）</string>
 </resources>

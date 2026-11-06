@@ -42,4 +42,6 @@
     <string name="wayland_cd_toggle_keyboard">কীবোর্ড দেখান/লুকান</string>
     <string name="wayland_cd_fullscreen">পূর্ণস্ক্রিন</string>
     <string name="wayland_cd_desktop_resolution">ডেস্কটপ রেজোলিউশন</string>
+    <string name="external_display_cd_on">বাহ্যিক ডিসপ্লে আউটপুট চালু (ডিভাইস স্ক্রিনে দেখাতে ট্যাপ করুন)</string>
+    <string name="external_display_cd_off">বাহ্যিক ডিসপ্লে আউটপুট বন্ধ (বাহ্যিক ডিসপ্লেতে দেখাতে ট্যাপ করুন)</string>
 </resources>

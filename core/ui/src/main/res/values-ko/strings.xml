@@ -45,4 +45,6 @@
     <string name="wayland_cd_toggle_keyboard">키보드 표시 전환</string>
     <string name="wayland_cd_fullscreen">전체 화면</string>
     <string name="wayland_cd_desktop_resolution">데스크톱 해상도</string>
+    <string name="external_display_cd_on">외부 디스플레이 출력 켜짐 (탭하여 기기 화면에 표시)</string>
+    <string name="external_display_cd_off">외부 디스플레이 출력 꺼짐 (탭하여 외부 디스플레이에 투사)</string>
 </resources>

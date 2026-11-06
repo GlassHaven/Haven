@@ -42,4 +42,6 @@
     <string name="wayland_cd_toggle_keyboard">कीबोर्ड दिखाएँ/छिपाएँ</string>
     <string name="wayland_cd_fullscreen">पूर्णस्क्रीन</string>
     <string name="wayland_cd_desktop_resolution">डेस्कटॉप रिज़ॉल्यूशन</string>
+    <string name="external_display_cd_on">बाहरी डिस्प्ले आउटपुट चालू (डिवाइस स्क्रीन पर दिखाने के लिए टैप करें)</string>
+    <string name="external_display_cd_off">बाहरी डिस्प्ले आउटपुट बंद (बाहरी डिस्प्ले पर दिखाने के लिए टैप करें)</string>
 </resources>

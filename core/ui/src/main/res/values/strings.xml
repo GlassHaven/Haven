@@ -45,4 +45,6 @@
     <string name="wayland_cd_toggle_keyboard">Toggle keyboard</string>
     <string name="wayland_cd_fullscreen">Fullscreen</string>
     <string name="wayland_cd_desktop_resolution">Desktop resolution</string>
+    <string name="external_display_cd_on">External display output on (tap to show on device screen)</string>
+    <string name="external_display_cd_off">External display output off (tap to project to external display)</string>
 </resources>

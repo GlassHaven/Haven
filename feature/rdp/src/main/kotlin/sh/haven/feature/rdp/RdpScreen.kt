@@ -581,6 +581,16 @@ private fun RdpViewer(
             fallbackExpired = true
         }
     }
+    val (externalCursorX, externalCursorY) = if (effectiveInputMode == "TOUCHPAD") virtualCursor else pointerPos
+    val externalDisplay = sh.haven.core.ui.rememberExternalDisplayProjection(
+        frame = frame,
+        frameSeq = frameSeq.value,
+        cursor = cursor,
+        pointerX = externalCursorX,
+        pointerY = externalCursorY,
+        showCursor = effectiveInputMode != "TOUCHSCREEN",
+        showFallbackCursor = pointerActive && !hasReceivedCursorShape && !fallbackExpired,
+    )
 
     // Tap-then-drag state — see VncScreen for the full rationale. RDP
     // has no long-press right-click branch, so we only need the
@@ -1224,29 +1234,31 @@ private fun RdpViewer(
                 // freezes the picture on the first frame.
                 @Suppress("UNUSED_EXPRESSION")
                 frameSeq.value
-                drawRemoteFrame(imageBitmap, frame.width, frame.height)
-                // Server cursor overlay (#212). Draw at the touchpad-tracked
-                // virtual cursor in TOUCHPAD mode (the position the user is
-                // steering), else at the server-reported pointer position.
-                // In native TOUCHSCREEN mode (#778), skip the mouse cursor overlay.
-                if (effectiveInputMode != "TOUCHSCREEN") {
-                    val (px, py) = if (effectiveInputMode == "TOUCHPAD") virtualCursor else pointerPos
-                    if (cursorImage != null && cursor != null) {
-                        drawRdpCursor(
-                            cursor = cursorImage,
-                            cursorW = cursor.bitmap.width,
-                            cursorH = cursor.bitmap.height,
-                            hotspotX = cursor.hotspotX,
-                            hotspotY = cursor.hotspotY,
-                            pointerX = px,
-                            pointerY = py,
-                            fbWidth = frame.width,
-                            fbHeight = frame.height,
-                        )
-                    } else if (pointerActive && !hasReceivedCursorShape && !fallbackExpired) {
-                        // #598: the server has not pushed a shape yet — draw the
-                        // built-in arrow at the tracked position instead.
-                        drawFallbackCursor(px, py, frame.width, frame.height)
+                if (!externalDisplay.isProjecting) {
+                    drawRemoteFrame(imageBitmap, frame.width, frame.height)
+                    // Server cursor overlay (#212). Draw at the touchpad-tracked
+                    // virtual cursor in TOUCHPAD mode (the position the user is
+                    // steering), else at the server-reported pointer position.
+                    // In native TOUCHSCREEN mode (#778), skip the mouse cursor overlay.
+                    if (effectiveInputMode != "TOUCHSCREEN") {
+                        val (px, py) = if (effectiveInputMode == "TOUCHPAD") virtualCursor else pointerPos
+                        if (cursorImage != null && cursor != null) {
+                            drawRdpCursor(
+                                cursor = cursorImage,
+                                cursorW = cursor.bitmap.width,
+                                cursorH = cursor.bitmap.height,
+                                hotspotX = cursor.hotspotX,
+                                hotspotY = cursor.hotspotY,
+                                pointerX = px,
+                                pointerY = py,
+                                fbWidth = frame.width,
+                                fbHeight = frame.height,
+                            )
+                        } else if (pointerActive && !hasReceivedCursorShape && !fallbackExpired) {
+                            // #598: the server has not pushed a shape yet — draw the
+                            // built-in arrow at the tracked position instead.
+                            drawFallbackCursor(px, py, frame.width, frame.height)
+                        }
                     }
                 }
             }
@@ -1438,6 +1450,11 @@ private fun RdpViewer(
                 } else {
                     ScrollModeToggle(twoFingerScroll) { twoFingerScroll = !twoFingerScroll }
                 }
+                if (externalDisplay.hasExternalDisplay) {
+                    sh.haven.core.ui.ExternalDisplayToggle(externalDisplay.isProjecting) {
+                        externalDisplay.toggleProjection()
+                    }
+                }
 
                 Spacer(Modifier.weight(1f))
 
@@ -1586,6 +1603,11 @@ private fun RdpViewer(
                         }
                     } else {
                         ScrollModeToggle(twoFingerScroll) { twoFingerScroll = !twoFingerScroll }
+                    }
+                    if (externalDisplay.hasExternalDisplay) {
+                        sh.haven.core.ui.ExternalDisplayToggle(externalDisplay.isProjecting) {
+                            externalDisplay.toggleProjection()
+                        }
                     }
                     if (zoom != 1f || panX != 0f || panY != 0f) {
                         IconButton(onClick = {

@@ -42,4 +42,6 @@
     <string name="wayland_cd_toggle_keyboard">キーボードの表示切り替え</string>
     <string name="wayland_cd_fullscreen">全画面</string>
     <string name="wayland_cd_desktop_resolution">デスクトップの解像度</string>
+    <string name="external_display_cd_on">外部ディスプレイ出力オン（タップして端末画面に表示）</string>
+    <string name="external_display_cd_off">外部ディスプレイ出力オフ（タップして外部ディスプレイに投影）</string>
 </resources>

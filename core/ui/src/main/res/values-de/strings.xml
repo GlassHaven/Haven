@@ -42,4 +42,6 @@
     <string name="wayland_cd_toggle_keyboard">Tastatur ein-/ausblenden</string>
     <string name="wayland_cd_fullscreen">Vollbild</string>
     <string name="wayland_cd_desktop_resolution">Desktopauflösung</string>
+    <string name="external_display_cd_on">Ausgabe auf externem Display aktiv (tippen für Gerätebildschirm)</string>
+    <string name="external_display_cd_off">Ausgabe auf externem Display aus (tippen für externes Display)</string>
 </resources>

@@ -42,4 +42,6 @@
     <string name="wayland_cd_toggle_keyboard">Укљ./искљ. тастатуру</string>
     <string name="wayland_cd_fullscreen">Пуни екран</string>
     <string name="wayland_cd_desktop_resolution">Резолуција десктопа</string>
+    <string name="external_display_cd_on">Приказ на спољном екрану укључен (додирните за екран уређаја)</string>
+    <string name="external_display_cd_off">Приказ на спољном екрану искључен (додирните за спољни екран)</string>
 </resources>

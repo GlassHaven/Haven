@@ -42,4 +42,6 @@
     <string name="wayland_cd_toggle_keyboard">إظهار/إخفاء لوحة المفاتيح</string>
     <string name="wayland_cd_fullscreen">ملء الشاشة</string>
     <string name="wayland_cd_desktop_resolution">دقة سطح المكتب</string>
+    <string name="external_display_cd_on">العرض على الشاشة الخارجية مفعّل (اضغط للعرض على شاشة الجهاز)</string>
+    <string name="external_display_cd_off">العرض على الشاشة الخارجية متوقف (اضغط للعرض على الشاشة الخارجية)</string>
 </resources>

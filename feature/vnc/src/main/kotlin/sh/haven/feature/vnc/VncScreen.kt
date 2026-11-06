@@ -690,6 +690,14 @@ private fun VncViewer(
     var viewSize by remember { mutableStateOf(IntSize.Zero) }
     val imageBitmap = remember(frame) { frame.asImageBitmap() }
     val cursorImage = remember(cursor?.bitmap) { cursor?.bitmap?.asImageBitmap() }
+    val externalDisplay = sh.haven.core.ui.rememberExternalDisplayProjection(
+        frame = frame,
+        cursor = cursor,
+        pointerX = pointerPos.first,
+        pointerY = pointerPos.second,
+        showCursor = true,
+        coverFill = coverFill,
+    )
 
     // Zoom & pan state
     var zoom by remember { mutableFloatStateOf(1f) }
@@ -1425,20 +1433,22 @@ private fun VncViewer(
                         clip = true
                     },
             ) {
-                drawVncFrame(imageBitmap, frame.width, frame.height, coverFill)
-                if (cursorImage != null && cursor != null) {
-                    drawVncCursor(
-                        cursor = cursorImage,
-                        cursorW = cursor.bitmap.width,
-                        cursorH = cursor.bitmap.height,
-                        hotspotX = cursor.hotspotX,
-                        hotspotY = cursor.hotspotY,
-                        pointerX = pointerPos.first,
-                        pointerY = pointerPos.second,
-                        fbWidth = frame.width,
-                        fbHeight = frame.height,
-                        coverFill = coverFill,
-                    )
+                if (!externalDisplay.isProjecting) {
+                    drawVncFrame(imageBitmap, frame.width, frame.height, coverFill)
+                    if (cursorImage != null && cursor != null) {
+                        drawVncCursor(
+                            cursor = cursorImage,
+                            cursorW = cursor.bitmap.width,
+                            cursorH = cursor.bitmap.height,
+                            hotspotX = cursor.hotspotX,
+                            hotspotY = cursor.hotspotY,
+                            pointerX = pointerPos.first,
+                            pointerY = pointerPos.second,
+                            fbWidth = frame.width,
+                            fbHeight = frame.height,
+                            coverFill = coverFill,
+                        )
+                    }
                 }
             }
         }
@@ -1655,6 +1665,11 @@ private fun VncViewer(
                 if (!twoFingerZoom) {
                     ScrollModeToggle(twoFingerScroll) { twoFingerScroll = !twoFingerScroll }
                 }
+                if (externalDisplay.hasExternalDisplay) {
+                    sh.haven.core.ui.ExternalDisplayToggle(externalDisplay.isProjecting) {
+                        externalDisplay.toggleProjection()
+                    }
+                }
 
                 // App-window-only: background to an edge icon (keeps it alive).
                 onMinimize?.let { minimize ->
@@ -1818,6 +1833,11 @@ private fun VncViewer(
                     // Desktop only: two-finger drag = viewport pan vs remote scroll — #286.
                     if (!twoFingerZoom) {
                         ScrollModeToggle(twoFingerScroll) { twoFingerScroll = !twoFingerScroll }
+                    }
+                    if (externalDisplay.hasExternalDisplay) {
+                        sh.haven.core.ui.ExternalDisplayToggle(externalDisplay.isProjecting) {
+                            externalDisplay.toggleProjection()
+                        }
                     }
                     if (zoom != 1f || panX != 0f || panY != 0f) {
                         IconButton(onClick = {

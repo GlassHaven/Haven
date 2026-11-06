@@ -42,4 +42,6 @@
     <string name="wayland_cd_toggle_keyboard">Afficher/masquer le clavier</string>
     <string name="wayland_cd_fullscreen">Plein écran</string>
     <string name="wayland_cd_desktop_resolution">Résolution du bureau</string>
+    <string name="external_display_cd_on">Sortie sur écran externe activée (appuyer pour afficher sur l\'appareil)</string>
+    <string name="external_display_cd_off">Sortie sur écran externe désactivée (appuyer pour projeter sur l\'écran externe)</string>
 </resources>

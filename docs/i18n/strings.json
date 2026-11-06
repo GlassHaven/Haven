@@ -8227,6 +8227,46 @@
       "sr": "Резолуција десктопа",
       "zh": "桌面分辨率"
      }
+    },
+    {
+     "name": "external_display_cd_on",
+     "en": "External display output on (tap to show on device screen)",
+     "comment": "Common strings shared across all feature modules",
+     "args": [],
+     "t": {
+      "ar": "العرض على الشاشة الخارجية مفعّل (اضغط للعرض على شاشة الجهاز)",
+      "bn": "বাহ্যিক ডিসপ্লে আউটপুট চালু (ডিভাইস স্ক্রিনে দেখাতে ট্যাপ করুন)",
+      "de": "Ausgabe auf externem Display aktiv (tippen für Gerätebildschirm)",
+      "es": "Salida en pantalla externa activada (toca para mostrar en el dispositivo)",
+      "fr": "Sortie sur écran externe activée (appuyer pour afficher sur l\\'appareil)",
+      "hi": "बाहरी डिस्प्ले आउटपुट चालू (डिवाइस स्क्रीन पर दिखाने के लिए टैप करें)",
+      "ja": "外部ディスプレイ出力オン（タップして端末画面に表示）",
+      "ko": "외부 디스플레이 출력 켜짐 (탭하여 기기 화면에 표시)",
+      "pt": "Saída em monitor externo ativada (toque para mostrar na tela do dispositivo)",
+      "ru": "Вывод на внешний экран включён (нажмите для показа на экране устройства)",
+      "sr": "Приказ на спољном екрану укључен (додирните за екран уређаја)",
+      "zh": "外接显示器输出已开启（点按以在设备屏幕上显示）"
+     }
+    },
+    {
+     "name": "external_display_cd_off",
+     "en": "External display output off (tap to project to external display)",
+     "comment": "Common strings shared across all feature modules",
+     "args": [],
+     "t": {
+      "ar": "العرض على الشاشة الخارجية متوقف (اضغط للعرض على الشاشة الخارجية)",
+      "bn": "বাহ্যিক ডিসপ্লে আউটপুট বন্ধ (বাহ্যিক ডিসপ্লেতে দেখাতে ট্যাপ করুন)",
+      "de": "Ausgabe auf externem Display aus (tippen für externes Display)",
+      "es": "Salida en pantalla externa desactivada (toca para proyectar en pantalla externa)",
+      "fr": "Sortie sur écran externe désactivée (appuyer pour projeter sur l\\'écran externe)",
+      "hi": "बाहरी डिस्प्ले आउटपुट बंद (बाहरी डिस्प्ले पर दिखाने के लिए टैप करें)",
+      "ja": "外部ディスプレイ出力オフ（タップして外部ディスプレイに投影）",
+      "ko": "외부 디스플레이 출력 꺼짐 (탭하여 외부 디스플레이에 투사)",
+      "pt": "Saída em monitor externo desativada (toque para projetar no monitor externo)",
+      "ru": "Вывод на внешний экран выключен (нажмите для вывода на внешний экран)",
+      "sr": "Приказ на спољном екрану искључен (додирните за спољни екран)",
+      "zh": "外接显示器输出已关闭（点按以投射到外接显示器）"
+     }
     }
    ]
   },

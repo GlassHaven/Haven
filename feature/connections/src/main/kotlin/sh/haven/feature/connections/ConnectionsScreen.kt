@@ -41,7 +41,6 @@ import androidx.compose.material.icons.filled.Circle
 import androidx.compose.material.icons.filled.Clear
 import androidx.compose.material.icons.filled.ContentCopy
 import androidx.compose.material.icons.filled.CreateNewFolder
-import androidx.compose.material.icons.filled.MoreVert
 import androidx.compose.material.icons.filled.ArrowDownward
 import androidx.compose.material.icons.filled.ArrowUpward
 import androidx.compose.material.icons.filled.Delete
@@ -66,7 +65,6 @@ import androidx.compose.material.icons.filled.DragHandle
 import androidx.compose.material.icons.filled.Stop
 import androidx.compose.material.icons.filled.Terminal
 import androidx.compose.material.icons.filled.VpnKey
-import androidx.compose.material.icons.filled.VpnLock
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material3.AssistChip
@@ -318,7 +316,6 @@ fun ConnectionsScreen(
     // link with no saved match (#305). Cleared when the dialog closes so a
     // later manual "Add" isn't pre-filled.
     var prefillDraft by remember { mutableStateOf<ConnectionProfile?>(null) }
-    var showOverflowMenu by remember { mutableStateOf(false) }
     var showImportRclone by rememberSaveable { mutableStateOf(false) }
     var showVmSetup by rememberSaveable { mutableStateOf(false) }
     var editingProfileId by rememberSaveable { mutableStateOf<String?>(null) }
@@ -554,6 +551,11 @@ fun ConnectionsScreen(
             reticulumScanning = reticulumScanning,
             reticulumIdentityHash = reticulumIdentityHash,
             onImportReticulumIdentity = { reticulumIdentityPicker.launch(arrayOf("*/*")) },
+            onImportRcloneConfig = {
+                showAddDialog = false
+                prefillDraft = null
+                showImportRclone = true
+            },
             onScanSubnet = { viewModel.scanSubnet() },
             onScanSubnetSmb = { viewModel.scanSubnetSmb() },
             jumpScanning = jumpScanning,
@@ -1079,33 +1081,12 @@ fun ConnectionsScreen(
                     // topbar entrypoint needed.)
                     // (Desktops icon removed in 3c — the install/manage UI
                     // moved to the top-level Desktop tab's Manage toggle.)
-                    // Tunnels are connection definitions (per-app
-                    // WireGuard configs that other profiles route
-                    // through), so they belong on this screen rather
-                    // than in app Settings where they used to live.
-                    IconButton(onClick = {
-                        pendingTunnelAddType = null
-                        showTunnelsScreen = true
-                    }) {
-                        Icon(Icons.Filled.VpnLock, contentDescription = stringResource(R.string.connections_action_tunnels))
-                    }
+                    // (Tunnels icon and ⋮ overflow menu removed (#251) —
+                    // tunnels are per-connection and managed via Route through
+                    // inside ConnectionEditDialog; Import rclone config… now
+                    // lives inside New Connection → Cloud Storage (rclone).)
                     IconButton(onClick = { showNewGroupDialog = true }) {
                         Icon(Icons.Filled.CreateNewFolder, contentDescription = stringResource(R.string.connections_new_group_action))
-                    }
-                    IconButton(onClick = { showOverflowMenu = true }) {
-                        Icon(Icons.Filled.MoreVert, contentDescription = null)
-                    }
-                    DropdownMenu(
-                        expanded = showOverflowMenu,
-                        onDismissRequest = { showOverflowMenu = false },
-                    ) {
-                        DropdownMenuItem(
-                            text = { Text(stringResource(R.string.rclone_import_menu)) },
-                            onClick = {
-                                showOverflowMenu = false
-                                showImportRclone = true
-                            },
-                        )
                     }
                 },
             )

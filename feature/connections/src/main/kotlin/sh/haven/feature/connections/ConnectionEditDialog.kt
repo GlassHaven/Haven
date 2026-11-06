@@ -174,6 +174,8 @@ fun ConnectionEditDialog(
     reticulumIdentityHash: String? = null,
     /** Open the picker for a Reticulum identity file the user supplies (#585). */
     onImportReticulumIdentity: () -> Unit = {},
+    /** Open the Import rclone.conf dialog directly from the rclone editor (#251). */
+    onImportRcloneConfig: (() -> Unit)? = null,
     onScanSubnet: () -> Unit = {},
     onScanSubnetSmb: () -> Unit = {},
     /** Scanning the network behind the selected jump host (#NNN). Opt-in. */
@@ -1480,6 +1482,15 @@ fun ConnectionEditDialog(
                     )
                 } else if (connectionType == "RCLONE") {
                     ConnectionSection(stringResource(R.string.connections_section_cloud_storage))
+                    if (existing == null && onImportRcloneConfig != null) {
+                        OutlinedButton(
+                            onClick = onImportRcloneConfig,
+                            modifier = Modifier.fillMaxWidth(),
+                        ) {
+                            Text(stringResource(R.string.rclone_import_menu))
+                        }
+                        Spacer(Modifier.height(4.dp))
+                    }
                     val providerOptions = listOf(
                         "drive" to "Google Drive",
                         "dropbox" to "Dropbox",

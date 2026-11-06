@@ -116,4 +116,23 @@ class GuestAppCatalogTest {
         val script = buildPackInstallScript(pack, listOf("qmmp"), PackageFamily.APT, includeAssets = true)
         assertTrue(script.contains("'it'\\''s fine'"))
     }
+
+    @Test
+    fun `emulator packs configure pulse audio and software rendering`() {
+        val dosbox = GuestAppCatalog.DOSBOX
+        assertTrue(dosbox.needsAudioBridge)
+        assertTrue(dosbox.appCommand.contains("SDL_AUDIODRIVER=pulse"))
+        assertTrue(dosbox.configWrites.any { it.path == "/root/.dosbox/haven.conf" && it.stanza.contains("usescancodes=false") })
+
+        val fsUae = GuestAppCatalog.FS_UAE
+        assertTrue(fsUae.needsAudioBridge)
+        assertTrue(fsUae.appCommand.contains("LIBGL_ALWAYS_SOFTWARE=1"))
+        assertTrue(fsUae.appCommand.contains("ALSOFT_DRIVERS=pulse"))
+        assertTrue(fsUae.configWrites.any { it.path == "/root/.config/fs-uae/fs-uae.conf" && it.stanza.contains("amiga_model = A500") })
+
+        val vice = GuestAppCatalog.VICE
+        assertTrue(vice.needsAudioBridge)
+        assertTrue(vice.appCommand.contains("GDK_BACKEND=x11"))
+        assertTrue(vice.configWrites.any { it.path == "/root/.config/vice/vicerc" && it.stanza.contains("SoundDeviceName=\"pulse\"") })
+    }
 }

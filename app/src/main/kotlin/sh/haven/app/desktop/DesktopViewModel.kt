@@ -776,6 +776,72 @@ class DesktopViewModel @Inject constructor(
         }
     }
 
+    private val _installingPackIds = MutableStateFlow<Set<String>>(emptySet())
+    val installingPackIds: StateFlow<Set<String>> = _installingPackIds.asStateFlow()
+
+    /**
+     * One-tap installer for curated [sh.haven.core.local.proot.GuestAppCatalog] packs
+     * (music players, classic computer emulators, etc.). Mirrors McpTools.installAppPack.
+     */
+    fun installAppPack(pack: sh.haven.core.local.proot.GuestAppPack) {
+        viewModelScope.launch(Dispatchers.IO) {
+            if (!prootManager.isRootfsInstalled) {
+                _userMessages.emit("Install a Linux distro first to install ${pack.appLabel}")
+                return@launch
+            }
+            val family = prootManager.activeDistro.family
+            val pkgs = pack.packages[family]
+            if (pkgs == null) {
+                _userMessages.emit("${pack.appLabel} is not packaged for ${prootManager.activeDistro.label} ($family)")
+                return@launch
+            }
+            if (pack.id in _installingPackIds.value) return@launch
+            _installingPackIds.update { it + pack.id }
+            try {
+                _userMessages.emit("Installing ${pack.appLabel}…")
+                val script = sh.haven.core.local.proot.buildPackInstallScript(
+                    pack = pack,
+                    pkgs = pkgs,
+                    family = family,
+                    includeAssets = true,
+                )
+                val proc = prootManager.startCommandInProot(script)
+                val tail = ArrayDeque<String>(16)
+                proc.inputStream.bufferedReader().forEachLine { line ->
+                    if (tail.size >= 16) tail.removeFirst()
+                    tail.addLast(line)
+                }
+                val code = proc.waitFor()
+                if (code != 0) {
+                    val lastLine = tail.lastOrNull { it.isNotBlank() } ?: "exit $code"
+                    _userMessages.emit("Couldn't install ${pack.appLabel}: $lastLine")
+                    return@launch
+                }
+                if (!java.io.File(prootManager.activeRootfsDir, pack.verifyBinary).exists()) {
+                    _userMessages.emit("Couldn't install ${pack.appLabel}: ${pack.verifyBinary} missing after install")
+                    return@launch
+                }
+                preferencesRepository.upsertAppWindowDef(
+                    label = pack.appLabel,
+                    command = pack.appCommand,
+                    createdBy = AppWindowOrigin.USER,
+                    fullscreen = pack.fullscreen,
+                    multiWindow = if (pack.multiWindow) true else null,
+                    swayRules = pack.swayRules.ifEmpty { null },
+                    resolution = pack.resolution,
+                    scale = pack.scale,
+                )
+                if (pack.needsAudioBridge) localSessionManager.audioBridge.start()
+                _userMessages.emit("${pack.appLabel} installed — tap Play to launch")
+            } catch (e: Exception) {
+                Log.w(TAG, "installAppPack(${pack.id}) failed", e)
+                _userMessages.emit("Couldn't install ${pack.appLabel}: ${e.message}")
+            } finally {
+                _installingPackIds.update { it - pack.id }
+            }
+        }
+    }
+
     // --- Installed-app launcher ("Browse installed apps", xfce4-style menu) ---
 
     private val _installedApps = MutableStateFlow<AppScanResult?>(null)

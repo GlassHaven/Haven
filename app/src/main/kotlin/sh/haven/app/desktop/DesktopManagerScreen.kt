@@ -142,6 +142,7 @@ fun DesktopManagerScreen(viewModel: DesktopViewModel = hiltViewModel()) {
     val showInstalledApps by viewModel.showInstalledApps.collectAsState()
     val appWindowDefs by viewModel.appWindowDefs.collectAsState()
     val launchingIds by viewModel.launchingIds.collectAsState()
+    val installingPackIds by viewModel.installingPackIds.collectAsState()
     val installedApps by viewModel.installedApps.collectAsState()
     val scanningApps by viewModel.scanningApps.collectAsState()
     val defaultResolution by viewModel.appWindowDefaultResolution.collectAsState()
@@ -242,15 +243,26 @@ fun DesktopManagerScreen(viewModel: DesktopViewModel = hiltViewModel()) {
             )
         }
 
+        val activeFamilyForPacks = DistroCatalog.lookup(activeDistroId)?.family
+        val availablePacks = remember(activeFamilyForPacks, appWindowDefs) {
+            sh.haven.core.local.proot.GuestAppCatalog.PACKS.filter { pack ->
+                (activeFamilyForPacks == null || pack.packages.containsKey(activeFamilyForPacks)) &&
+                    appWindowDefs.none { it.command == pack.appCommand }
+            }
+        }
+
         AppWindowsSection(
             defs = appWindowDefs,
             launchingIds = launchingIds,
+            availablePacks = availablePacks,
+            installingPackIds = installingPackIds,
             defaultResolution = defaultResolution,
             defaultScale = defaultScale,
             onLaunch = { viewModel.launchAppWindow(it) },
             onEdit = { def -> viewModel.openAppWindowDialog(def.toDraft()) },
             onDelete = { viewModel.deleteAppWindow(it.id) },
             onPinToHome = { viewModel.pinAppWindow(it) },
+            onInstallPack = { viewModel.installAppPack(it) },
             onAdd = { viewModel.openAppWindowDialog(DesktopViewModel.AppWindowDraft()) },
             onBrowse = { viewModel.setShowInstalledApps(true) },
             onSetDefaultResolution = { viewModel.setAppWindowDefaultResolution(it) },
@@ -440,12 +452,15 @@ fun DesktopManagerScreen(viewModel: DesktopViewModel = hiltViewModel()) {
 private fun AppWindowsSection(
     defs: List<AppWindowDef>,
     launchingIds: Set<String>,
+    availablePacks: List<sh.haven.core.local.proot.GuestAppPack>,
+    installingPackIds: Set<String>,
     defaultResolution: String,
     defaultScale: Float,
     onLaunch: (AppWindowDef) -> Unit,
     onEdit: (AppWindowDef) -> Unit,
     onDelete: (AppWindowDef) -> Unit,
     onPinToHome: (AppWindowDef) -> Unit,
+    onInstallPack: (sh.haven.core.local.proot.GuestAppPack) -> Unit,
     onAdd: () -> Unit,
     onBrowse: () -> Unit,
     onSetDefaultResolution: (String) -> Unit,
@@ -514,6 +529,45 @@ private fun AppWindowsSection(
                         }
                         IconButton(onClick = { onDelete(def) }) {
                             Icon(Icons.Filled.Delete, contentDescription = stringResource(AppR.string.app_desktop_app_window_delete_cd, def.label))
+                        }
+                    }
+                    HorizontalDivider()
+                }
+            }
+            if (availablePacks.isNotEmpty()) {
+                Spacer(Modifier.height(8.dp))
+                availablePacks.forEach { pack ->
+                    Row(
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .padding(vertical = 6.dp),
+                        verticalAlignment = Alignment.CenterVertically,
+                    ) {
+                        Column(modifier = Modifier.weight(1f)) {
+                            Text(
+                                pack.label,
+                                style = MaterialTheme.typography.bodyMedium,
+                                maxLines = 1,
+                            )
+                            Text(
+                                pack.description,
+                                style = MaterialTheme.typography.bodySmall,
+                                color = MaterialTheme.colorScheme.onSurfaceVariant,
+                                maxLines = 2,
+                                overflow = TextOverflow.Ellipsis,
+                            )
+                        }
+                        if (pack.id in installingPackIds) {
+                            Box(
+                                modifier = Modifier.size(48.dp),
+                                contentAlignment = Alignment.Center,
+                            ) {
+                                CircularProgressIndicator(modifier = Modifier.size(24.dp))
+                            }
+                        } else {
+                            IconButton(onClick = { onInstallPack(pack) }) {
+                                Icon(Icons.Filled.Download, contentDescription = pack.label)
+                            }
                         }
                     }
                     HorizontalDivider()

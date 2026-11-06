@@ -212,7 +212,93 @@ object GuestAppCatalog {
         fullscreen = true,
     )
 
-    val PACKS: List<GuestAppPack> = listOf(QMMP, AUDACIOUS)
+    /**
+     * Classic x86 PC / MS-DOS emulator. Uses `output=surface` so SDL1.2 does
+     * not require hardware OpenGL inside PRoot, and `usescancodes=false` so
+     * Xwayland keycodes map cleanly without raw evdev scancode translation.
+     */
+    val DOSBOX = GuestAppPack(
+        id = "dosbox",
+        label = "DOSBox (MS-DOS emulator)",
+        description = "x86 PC / MS-DOS emulator with Sound Blaster 16 and AdLib audio. Mount a host folder with 'mount c /path'.",
+        packages = mapOf(
+            PackageFamily.APT to listOf("dosbox"),
+            PackageFamily.APK to listOf("dosbox"),
+            PackageFamily.PACMAN to listOf("dosbox"),
+            PackageFamily.XBPS to listOf("dosbox"),
+        ),
+        verifyBinary = "usr/bin/dosbox",
+        configWrites = listOf(
+            PackConfigWrite(
+                path = "/root/.dosbox/haven.conf",
+                stanza = "[sdl]\noutput=surface\nusescancodes=false",
+            ),
+        ),
+        needsAudioBridge = true,
+        appLabel = "DOSBox",
+        appCommand = "env SDL_AUDIODRIVER=pulse dosbox -conf /root/.dosbox/haven.conf",
+        fullscreen = true,
+    )
+
+    /**
+     * Commodore Amiga 500/1200 emulator. Ships with the built-in open-source
+     * AROS Kickstart replacement so it boots to an AmigaDOS prompt out of the
+     * box without proprietary Kickstart ROMs. Forces Mesa software rasterizer
+     * (`LIBGL_ALWAYS_SOFTWARE=1`) and PulseAudio (`SDL_AUDIODRIVER=pulse`,
+     * `ALSOFT_DRIVERS=pulse`) for PRoot compatibility.
+     */
+    val FS_UAE = GuestAppPack(
+        id = "fs-uae",
+        label = "FS-UAE (Commodore Amiga emulator)",
+        description = "Commodore Amiga 500/1200 emulator with built-in open-source AROS Kickstart replacement and Paula stereo audio.",
+        packages = mapOf(
+            PackageFamily.APT to listOf("fs-uae"),
+            PackageFamily.PACMAN to listOf("fs-uae"),
+            PackageFamily.XBPS to listOf("fs-uae"),
+        ),
+        verifyBinary = "usr/bin/fs-uae",
+        configWrites = listOf(
+            PackConfigWrite(
+                path = "/root/.config/fs-uae/fs-uae.conf",
+                stanza = "[fs-uae]\namiga_model = A500\nuae_sound_output = exact",
+            ),
+        ),
+        needsAudioBridge = true,
+        appLabel = "FS-UAE",
+        appCommand = "env LIBGL_ALWAYS_SOFTWARE=1 SDL_AUDIODRIVER=pulse ALSOFT_DRIVERS=pulse fs-uae",
+        fullscreen = true,
+    )
+
+    /**
+     * Cycle-accurate Commodore 64 (`x64sc`) emulator from the VICE suite.
+     * Note: Debian/Ubuntu packages omit the Commodore system ROMs (`kernal`,
+     * `basic`, `chargen`) for licensing reasons; users drop them into
+     * `~/.local/share/vice/C64/`. Uses `GDK_BACKEND=x11` and software GL for
+     * the GTK3 UI under the app-window compositor's Xwayland.
+     */
+    val VICE = GuestAppPack(
+        id = "vice",
+        label = "VICE (Commodore 64 emulator)",
+        description = "Cycle-accurate Commodore 64 (x64sc) emulator with SID audio. Place C64 ROMs (kernal, basic, chargen) in ~/.local/share/vice/C64/.",
+        packages = mapOf(
+            PackageFamily.APT to listOf("vice"),
+            PackageFamily.PACMAN to listOf("vice"),
+            PackageFamily.XBPS to listOf("vice"),
+        ),
+        verifyBinary = "usr/bin/x64sc",
+        configWrites = listOf(
+            PackConfigWrite(
+                path = "/root/.config/vice/vicerc",
+                stanza = "[C64SC]\nSoundDeviceName=\"pulse\"",
+            ),
+        ),
+        needsAudioBridge = true,
+        appLabel = "VICE (C64)",
+        appCommand = "env LIBGL_ALWAYS_SOFTWARE=1 GDK_BACKEND=x11 x64sc",
+        fullscreen = true,
+    )
+
+    val PACKS: List<GuestAppPack> = listOf(QMMP, AUDACIOUS, DOSBOX, FS_UAE, VICE)
 
     fun byId(id: String): GuestAppPack? = PACKS.find { it.id == id }
 }

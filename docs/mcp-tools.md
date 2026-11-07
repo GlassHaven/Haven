@@ -1465,7 +1465,7 @@ Install a desktop environment on the active distro. Calls ProotManager.setupDesk
 
 Set the given distro as active and trigger installRootfs(). Returns immediately; poll `inspect_proot.osSetupState` for progress (Downloading → Extracting → BootstrapHook → Baseline → Ready, or Error with attribution). Idempotent: if the distro is already installed, just switches active.
 
-- `distroId` (string, required) — Distro id from DistroCatalog (e.g. "alpine-3.21", "debian-trixie", "debian-bookworm", "ubuntu-noble", "archlinux", "void").
+- `distroId` (string, required) — Distro id from DistroCatalog (e.g. "alpine-3.21", "debian-trixie", "debian-bookworm", "ubuntu-resolute", "ubuntu-noble", "archlinux", "void").
 
 </details>
 

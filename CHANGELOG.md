@@ -5,6 +5,10 @@ the corresponding GitHub Release; a release can't ship without its section
 (enforced by `scripts/check-changelog.sh` in CI). The GitHub "Full Changelog"
 compare link is appended automatically — don't add it here.
 
+## v5.94.10
+
+- Keep external HDMI / USB-C DisplayPort / wireless `Presentation` projection running when exiting fullscreen mode and switching to other tabs (`Terminal`, `Connections`, `SFTP`, `Settings`, `Desktop → Manage`, or another desktop tab) so the external display continues streaming the pinned VNC/RDP desktop while using the phone for other tasks (#790).
+
 ## v5.94.9
 
 - Forward attached OpenSSH certificates (`certificateBytes`, including Step CA-minted certificates) on software SSH keys when SSH agent forwarding is enabled, matching the FIDO2 and security-chip agent-forwarding paths.

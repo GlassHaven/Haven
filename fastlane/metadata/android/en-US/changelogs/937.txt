@@ -1,0 +1,1 @@
+- Fix terminal URL detection so a URL followed by an explicit newline and a short unindented line starting with a slash path at column 0 (such as https://example.com followed by /1) does not absorb the next line into the link (#791).

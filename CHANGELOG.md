@@ -5,6 +5,10 @@ the corresponding GitHub Release; a release can't ship without its section
 (enforced by `scripts/check-changelog.sh` in CI). The GitHub "Full Changelog"
 compare link is appended automatically — don't add it here.
 
+## v5.94.12
+
+- Fix terminal URL detection (`UrlBlobDetector` and `TerminalScreenState`) so a URL followed by an explicit newline and a short unindented line starting with a slash path at column 0 (such as `https://example.com\n/1`) does not absorb the next line into the link (#791, thanks @UlyssesZh).
+
 ## v5.94.11
 
 - Add Linux `usbfs` (`/dev/bus/usb/001/001`) emulation to `libhaven_usb.so` (raw USB descriptors, synchronous `USBDEVFS_CONTROL`/`USBDEVFS_BULK`, and asynchronous `USBDEVFS_SUBMITURB`/`USBDEVFS_REAPURBNDELAY` over dedicated IN/OUT proxy worker threads and `eventfd`) so unmodified `libusb-1.0` and native `usbfs` tools such as `adb`, `scrcpy`, and `fastboot` can access USB-OTG attached devices inside the local PRoot guest and desktop (`LD_PRELOAD=/usr/local/lib/haven/libhaven_usb.so`, #610, thanks @pixel4696).

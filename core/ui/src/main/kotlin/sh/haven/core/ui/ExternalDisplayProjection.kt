@@ -21,17 +21,35 @@ import androidx.compose.material.icons.filled.Tv
 import androidx.compose.material3.FilledIconToggleButton
 import androidx.compose.material3.Icon
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.CompositionLocalProvider
 import androidx.compose.runtime.DisposableEffect
 import androidx.compose.runtime.SideEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
+import androidx.compose.runtime.staticCompositionLocalOf
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.unit.dp
 import kotlin.math.roundToInt
+
+/**
+ * Snapshot of the currently projected session's framebuffer and cursor overlay
+ * for rendering on an external [Presentation] display (#790).
+ */
+data class ExternalDisplayFrameState(
+    val sessionKey: String,
+    val frame: Bitmap?,
+    val frameSeq: Long = 0L,
+    val cursor: CursorOverlay? = null,
+    val pointerX: Int = 0,
+    val pointerY: Int = 0,
+    val showCursor: Boolean = true,
+    val showFallbackCursor: Boolean = false,
+    val coverFill: Boolean = false,
+)
 
 /**
  * Aspect-preserving destination rectangle and scale factor for rendering a
@@ -91,8 +109,9 @@ fun computeExternalCursorPosition(
 
 /**
  * Pure state machine tracking attached `DISPLAY_CATEGORY_PRESENTATION` displays
- * (HDMI, USB-C DisplayPort alt-mode, wireless display) and the user's per-session
- * external projection toggle (#790).
+ * (HDMI, USB-C DisplayPort alt-mode, wireless display), the user's external
+ * projection toggle, and which desktop session is pinned to the external
+ * monitor across fullscreen exits and tab switches (#790).
  */
 class ExternalDisplayProjectionController(
     initialEnabled: Boolean = true,
@@ -101,6 +120,15 @@ class ExternalDisplayProjectionController(
         private set
 
     var projectionEnabled by mutableStateOf(initialEnabled)
+        private set
+
+    var activeSessionKey by mutableStateOf<String?>(null)
+        private set
+
+    var currentFrameState by mutableStateOf<ExternalDisplayFrameState?>(null)
+        private set
+
+    var mountedViewerSessions by mutableStateOf<Set<String>>(emptySet())
         private set
 
     val hasExternalDisplay: Boolean
@@ -112,12 +140,211 @@ class ExternalDisplayProjectionController(
     val isProjecting: Boolean
         get() = activeDisplayId != null
 
+    fun isProjectingSession(sessionKey: String? = null): Boolean =
+        if (sessionKey == null) {
+            isProjecting
+        } else {
+            isProjecting && (activeSessionKey == null || activeSessionKey == sessionKey)
+        }
+
+    fun claimSessionIfUnset(sessionKey: String) {
+        if (activeSessionKey == null) {
+            activeSessionKey = sessionKey
+        }
+    }
+
+    fun onViewerAttached(sessionKey: String) {
+        mountedViewerSessions = mountedViewerSessions + sessionKey
+        if (activeSessionKey == null) {
+            activeSessionKey = sessionKey
+        }
+    }
+
+    /**
+     * Called when a viewer composable leaves composition (e.g. when the user
+     * exits fullscreen mode and switches to Terminal, Connections, SFTP, Manage,
+     * or another desktop tab). Keeps [activeSessionKey] and [currentFrameState]
+     * intact so the external [Presentation] keeps running uninterrupted (#790).
+     */
+    fun onViewerDetached(sessionKey: String) {
+        mountedViewerSessions = mountedViewerSessions - sessionKey
+    }
+
+    fun isViewerMounted(sessionKey: String): Boolean =
+        sessionKey in mountedViewerSessions
+
     fun onPresentationDisplaysChanged(displayIds: List<Int>) {
         availableDisplayIds = displayIds
     }
 
+    fun toggleProjection(sessionKey: String? = null) {
+        if (sessionKey != null && projectionEnabled && activeSessionKey != null && activeSessionKey != sessionKey) {
+            activeSessionKey = sessionKey
+            currentFrameState = null
+        } else {
+            projectionEnabled = !projectionEnabled
+            if (projectionEnabled && sessionKey != null && activeSessionKey != sessionKey) {
+                activeSessionKey = sessionKey
+                currentFrameState = null
+            }
+        }
+    }
+
+    fun updateSessionFrame(
+        sessionKey: String,
+        frame: Bitmap?,
+        frameSeq: Long = 0L,
+        cursor: CursorOverlay? = null,
+        pointerX: Int = 0,
+        pointerY: Int = 0,
+        showCursor: Boolean = true,
+        showFallbackCursor: Boolean = false,
+        coverFill: Boolean = false,
+    ) {
+        if (activeSessionKey == null) {
+            activeSessionKey = sessionKey
+        }
+        if (activeSessionKey == sessionKey) {
+            currentFrameState = ExternalDisplayFrameState(
+                sessionKey = sessionKey,
+                frame = frame,
+                frameSeq = frameSeq,
+                cursor = cursor,
+                pointerX = pointerX,
+                pointerY = pointerY,
+                showCursor = showCursor,
+                showFallbackCursor = showFallbackCursor,
+                coverFill = coverFill,
+            )
+        }
+    }
+
+    fun releaseSession(sessionKey: String, fallbackSessionKey: String? = null) {
+        mountedViewerSessions = mountedViewerSessions - sessionKey
+        if (activeSessionKey == sessionKey) {
+            activeSessionKey = fallbackSessionKey
+            currentFrameState = null
+        }
+    }
+}
+
+/**
+ * Per-session view of [ExternalDisplayProjectionController] returned to
+ * `VncViewer` / `RdpViewer` so each tab sees its own `isProjecting` state and
+ * can claim or toggle external projection (#790).
+ */
+class ExternalDisplaySessionView(
+    val controller: ExternalDisplayProjectionController,
+    val sessionKey: String?,
+) {
+    val hasExternalDisplay: Boolean
+        get() = controller.hasExternalDisplay
+
+    val isProjecting: Boolean
+        get() = controller.isProjectingSession(sessionKey)
+
     fun toggleProjection() {
-        projectionEnabled = !projectionEnabled
+        controller.toggleProjection(sessionKey)
+    }
+}
+
+val LocalExternalDisplayProjectionController =
+    staticCompositionLocalOf<ExternalDisplayProjectionController?> { null }
+
+/**
+ * Activity-root host that keeps the external [Presentation] window alive across
+ * fullscreen toggles, orientation changes, and tab switches (#790).
+ */
+@Composable
+fun ProvideExternalDisplayProjection(
+    controller: ExternalDisplayProjectionController = remember { ExternalDisplayProjectionController() },
+    content: @Composable () -> Unit,
+) {
+    BindExternalDisplayPresentation(controller)
+    CompositionLocalProvider(LocalExternalDisplayProjectionController provides controller) {
+        content()
+    }
+}
+
+@Composable
+private fun BindExternalDisplayPresentation(
+    controller: ExternalDisplayProjectionController,
+) {
+    val context = LocalContext.current
+    val displayManager = remember(context) {
+        context.getSystemService(Context.DISPLAY_SERVICE) as? DisplayManager
+    }
+    var presentation by remember { mutableStateOf<ExternalDesktopPresentation?>(null) }
+
+    DisposableEffect(displayManager, controller) {
+        if (displayManager == null) {
+            return@DisposableEffect onDispose {}
+        }
+        val handler = Handler(Looper.getMainLooper())
+        fun syncDisplays() {
+            val displays = displayManager
+                .getDisplays(DisplayManager.DISPLAY_CATEGORY_PRESENTATION)
+                .orEmpty()
+            controller.onPresentationDisplaysChanged(displays.map { it.displayId })
+        }
+        val listener = object : DisplayManager.DisplayListener {
+            override fun onDisplayAdded(displayId: Int) = syncDisplays()
+            override fun onDisplayRemoved(displayId: Int) = syncDisplays()
+            override fun onDisplayChanged(displayId: Int) = syncDisplays()
+        }
+        displayManager.registerDisplayListener(listener, handler)
+        syncDisplays()
+        onDispose {
+            displayManager.unregisterDisplayListener(listener)
+            runCatching { presentation?.dismiss() }
+            presentation = null
+        }
+    }
+
+    val frameState = controller.currentFrameState
+    val hasValidFrame = frameState?.frame?.let { !it.isRecycled && it.width > 0 && it.height > 0 } == true
+    val targetDisplayId = if (hasValidFrame) controller.activeDisplayId else null
+
+    DisposableEffect(targetDisplayId, displayManager) {
+        val current = presentation
+        if (current != null && current.display.displayId != targetDisplayId) {
+            runCatching { current.dismiss() }
+            presentation = null
+        }
+        if (targetDisplayId != null && displayManager != null && presentation == null) {
+            val targetDisplay: Display? = displayManager
+                .getDisplays(DisplayManager.DISPLAY_CATEGORY_PRESENTATION)
+                ?.firstOrNull { it.displayId == targetDisplayId }
+            if (targetDisplay != null) {
+                runCatching {
+                    ExternalDesktopPresentation(context, targetDisplay).also { pres ->
+                        pres.setOnDismissListener {
+                            if (presentation === pres) {
+                                presentation = null
+                            }
+                        }
+                        pres.show()
+                        presentation = pres
+                    }
+                }
+            }
+        }
+        onDispose {}
+    }
+
+    SideEffect {
+        if (frameState != null) {
+            presentation?.updateState(
+                frame = frameState.frame,
+                frameSeq = frameState.frameSeq,
+                cursor = frameState.cursor,
+                pointerX = frameState.pointerX,
+                pointerY = frameState.pointerY,
+                showCursor = frameState.showCursor,
+                showFallbackCursor = frameState.showFallbackCursor,
+                coverFill = frameState.coverFill,
+            )
+        }
     }
 }
 
@@ -152,13 +379,13 @@ fun ExternalDisplayToggle(
 }
 
 /**
- * Observes `DisplayManager.DISPLAY_CATEGORY_PRESENTATION` displays and manages
- * an [ExternalDesktopPresentation] window when an external display is connected
- * and enabled (#790).
+ * Binds a remote desktop viewer (`VncViewer` / `RdpViewer`) to the shared
+ * [LocalExternalDisplayProjectionController] (or a local fallback controller
+ * when rendered outside [ProvideExternalDisplayProjection]) (#790).
  *
- * Returns the [ExternalDisplayProjectionController] so the caller can:
- * - Check [ExternalDisplayProjectionController.hasExternalDisplay] to show [ExternalDisplayToggle]
- * - Check [ExternalDisplayProjectionController.isProjecting] to blank the phone canvas to black
+ * When [sessionKey] is provided and hosted inside [ProvideExternalDisplayProjection],
+ * leaving composition (e.g. exiting fullscreen and switching to another tab)
+ * detaches only the viewer without dismissing the external [Presentation].
  */
 @Composable
 fun rememberExternalDisplayProjection(
@@ -170,69 +397,33 @@ fun rememberExternalDisplayProjection(
     showCursor: Boolean = true,
     showFallbackCursor: Boolean = false,
     coverFill: Boolean = false,
-): ExternalDisplayProjectionController {
-    val context = LocalContext.current
-    val controller = remember { ExternalDisplayProjectionController() }
-    val displayManager = remember(context) {
-        context.getSystemService(Context.DISPLAY_SERVICE) as? DisplayManager
+    sessionKey: String? = null,
+): ExternalDisplaySessionView {
+    val sharedController = LocalExternalDisplayProjectionController.current
+    val fallbackController = if (sharedController == null) {
+        remember { ExternalDisplayProjectionController() }.also {
+            BindExternalDisplayPresentation(it)
+        }
+    } else {
+        null
     }
-    var presentation by remember { mutableStateOf<ExternalDesktopPresentation?>(null) }
+    val controller = sharedController ?: fallbackController!!
+    val effectiveKey = sessionKey ?: "default"
 
-    DisposableEffect(displayManager) {
-        if (displayManager == null) {
-            return@DisposableEffect onDispose {}
-        }
-        val handler = Handler(Looper.getMainLooper())
-        fun syncDisplays() {
-            val displays = displayManager
-                .getDisplays(DisplayManager.DISPLAY_CATEGORY_PRESENTATION)
-                .orEmpty()
-            controller.onPresentationDisplaysChanged(displays.map { it.displayId })
-        }
-        val listener = object : DisplayManager.DisplayListener {
-            override fun onDisplayAdded(displayId: Int) = syncDisplays()
-            override fun onDisplayRemoved(displayId: Int) = syncDisplays()
-            override fun onDisplayChanged(displayId: Int) = syncDisplays()
-        }
-        displayManager.registerDisplayListener(listener, handler)
-        syncDisplays()
+    DisposableEffect(controller, effectiveKey, sessionKey != null) {
+        controller.onViewerAttached(effectiveKey)
         onDispose {
-            displayManager.unregisterDisplayListener(listener)
-            runCatching { presentation?.dismiss() }
-            presentation = null
-        }
-    }
-
-    val targetDisplayId = controller.activeDisplayId
-    DisposableEffect(targetDisplayId, displayManager) {
-        val current = presentation
-        if (current != null && current.display.displayId != targetDisplayId) {
-            runCatching { current.dismiss() }
-            presentation = null
-        }
-        if (targetDisplayId != null && displayManager != null && presentation == null) {
-            val targetDisplay: Display? = displayManager
-                .getDisplays(DisplayManager.DISPLAY_CATEGORY_PRESENTATION)
-                ?.firstOrNull { it.displayId == targetDisplayId }
-            if (targetDisplay != null) {
-                runCatching {
-                    ExternalDesktopPresentation(context, targetDisplay).also { pres ->
-                        pres.setOnDismissListener {
-                            if (presentation === pres) {
-                                presentation = null
-                            }
-                        }
-                        pres.show()
-                        presentation = pres
-                    }
-                }
+            if (sharedController != null && sessionKey != null) {
+                controller.onViewerDetached(effectiveKey)
+            } else {
+                controller.releaseSession(effectiveKey)
             }
         }
-        onDispose {}
     }
 
     SideEffect {
-        presentation?.updateState(
+        controller.updateSessionFrame(
+            sessionKey = effectiveKey,
             frame = frame,
             frameSeq = frameSeq,
             cursor = cursor,
@@ -244,7 +435,9 @@ fun rememberExternalDisplayProjection(
         )
     }
 
-    return controller
+    return remember(controller, sessionKey) {
+        ExternalDisplaySessionView(controller, sessionKey)
+    }
 }
 
 private class ExternalDesktopPresentation(

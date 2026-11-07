@@ -81,4 +81,81 @@ class ExternalDisplayProjectionTest {
         assertFalse(state.isProjecting)
         assertNull(state.activeDisplayId)
     }
+
+    @Test
+    fun `projection keeps running across viewer detach when user exits fullscreen and switches tabs`() {
+        val state = ExternalDisplayProjectionController()
+        state.onPresentationDisplaysChanged(listOf(2))
+
+        val tab1View = ExternalDisplaySessionView(state, "tab-1")
+        state.onViewerAttached("tab-1")
+        assertTrue(state.isViewerMounted("tab-1"))
+        assertEquals("tab-1", state.activeSessionKey)
+        assertTrue(tab1View.isProjecting)
+
+        state.updateSessionFrame(
+            sessionKey = "tab-1",
+            frame = null,
+            frameSeq = 10L,
+            pointerX = 120,
+            pointerY = 80,
+        )
+        assertEquals(10L, state.currentFrameState?.frameSeq)
+
+        // User exits fullscreen mode and switches to Terminal / SFTP / Connections tab:
+        // viewer leaves composition, but external display projection stays active and
+        // continues accepting background frame updates from the session.
+        state.onViewerDetached("tab-1")
+        assertFalse(state.isViewerMounted("tab-1"))
+        assertEquals("tab-1", state.activeSessionKey)
+        assertTrue(state.isProjectingSession("tab-1"))
+        assertTrue(tab1View.isProjecting)
+
+        state.updateSessionFrame(
+            sessionKey = "tab-1",
+            frame = null,
+            frameSeq = 11L,
+            pointerX = 240,
+            pointerY = 160,
+        )
+        assertEquals(11L, state.currentFrameState?.frameSeq)
+        assertEquals(240, state.currentFrameState?.pointerX)
+        assertEquals(160, state.currentFrameState?.pointerY)
+    }
+
+    @Test
+    fun `pinned session stays on external display when switching to another desktop tab until explicitly toggled`() {
+        val state = ExternalDisplayProjectionController()
+        state.onPresentationDisplaysChanged(listOf(2))
+
+        val tab1View = ExternalDisplaySessionView(state, "tab-1")
+        val tab2View = ExternalDisplaySessionView(state, "tab-2")
+
+        state.onViewerAttached("tab-1")
+        state.updateSessionFrame(sessionKey = "tab-1", frame = null, frameSeq = 1L)
+        assertTrue(tab1View.isProjecting)
+        assertFalse(tab2View.isProjecting)
+
+        // Switch phone UI from tab-1 to tab-2: tab-1 stays projected on HDMI,
+        // while tab-2 renders on the phone screen (isProjecting == false).
+        state.onViewerDetached("tab-1")
+        state.onViewerAttached("tab-2")
+        state.updateSessionFrame(sessionKey = "tab-2", frame = null, frameSeq = 99L)
+        assertEquals("tab-1", state.activeSessionKey)
+        assertEquals(1L, state.currentFrameState?.frameSeq)
+        assertTrue(tab1View.isProjecting)
+        assertFalse(tab2View.isProjecting)
+
+        // Tapping the Tv toggle on tab-2 hands external projection over to tab-2
+        tab2View.toggleProjection()
+        assertEquals("tab-2", state.activeSessionKey)
+        assertFalse(tab1View.isProjecting)
+        assertTrue(tab2View.isProjecting)
+
+        // Closing tab-2 releases the session and falls back to tab-1
+        state.releaseSession("tab-2", fallbackSessionKey = "tab-1")
+        assertEquals("tab-1", state.activeSessionKey)
+        assertNull(state.currentFrameState)
+        assertTrue(tab1View.isProjecting)
+    }
 }

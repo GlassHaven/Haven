@@ -221,6 +221,7 @@ fun VncSessionContent(
     /** App-window fullscreen: persist the current output scale as the app's default. See [VncViewer]. */
     onSaveDefault: ((Float) -> Unit)? = null,
     isActive: Boolean = true,
+    sessionKey: String? = null,
 ) {
     val connectedState by connected.collectAsState()
     val frameState by frame.collectAsState()
@@ -327,6 +328,7 @@ fun VncSessionContent(
             currentScale = currentScale,
             onSaveDefault = onSaveDefault,
             isActive = isActive,
+            sessionKey = sessionKey,
         )
     } else {
         VncPlaceholder(
@@ -675,6 +677,7 @@ private fun VncViewer(
      */
     onSaveDefault: ((Float) -> Unit)? = null,
     isActive: Boolean = true,
+    sessionKey: String? = null,
 ) {
     val orientationMode = OrientationMode.fromActivityValue(currentOrientation)
     val orientationDesc = when (orientationMode) {
@@ -697,6 +700,7 @@ private fun VncViewer(
         pointerY = pointerPos.second,
         showCursor = true,
         coverFill = coverFill,
+        sessionKey = sessionKey,
     )
 
     // Zoom & pan state

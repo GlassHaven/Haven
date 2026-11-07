@@ -224,6 +224,14 @@ internal class PresentationHostViewModel @Inject constructor(
 internal fun PresentationHost(viewModel: PresentationHostViewModel = hiltViewModel()) {
     val pending by viewModel.pending.collectAsStateWithLifecycle()
     val minimized by viewModel.minimizedIds.collectAsStateWithLifecycle()
+    val externalDisplayController = sh.haven.core.ui.LocalExternalDisplayProjectionController.current
+    if (externalDisplayController != null) {
+        AppWindowExternalDisplaySync(
+            pending = pending,
+            viewModel = viewModel,
+            controller = externalDisplayController,
+        )
+    }
     // Render the focused item: the oldest pending one that isn't backgrounded.
     // Minimized app windows stay live (edge icons) but are skipped here.
     val upstream = pending.firstOrNull { it.id !in minimized }
@@ -336,6 +344,7 @@ internal fun PresentationHost(viewModel: PresentationHostViewModel = hiltViewMod
                             mutableStateOf(current.fullscreen)
                         }
                         AppWindowContent(
+                            sessionKey = "app-window:${current.id}",
                             controller = controller,
                             fullscreen = appFullscreen,
                             onFullscreenChange = { appFullscreen = it },
@@ -772,7 +781,46 @@ private tailrec fun Context.findActivity(): Activity? = when (this) {
  * [onDismiss] tears the window down.
  */
 @Composable
+private fun AppWindowExternalDisplaySync(
+    pending: List<PresentedMedia>,
+    viewModel: PresentationHostViewModel,
+    controller: sh.haven.core.ui.ExternalDisplayProjectionController,
+) {
+    val activeKey = controller.activeSessionKey
+    val appWindows = pending.filter { it.kind == PresentedMediaKind.APP_WINDOW }
+    val validKeys = appWindows.map { "app-window:${it.id}" }.toSet()
+
+    LaunchedEffect(activeKey, validKeys) {
+        if (activeKey != null && activeKey.startsWith("app-window:") && activeKey !in validKeys) {
+            controller.releaseSession(
+                sessionKey = activeKey,
+                fallbackSessionKey = validKeys.firstOrNull(),
+            )
+        }
+    }
+
+    val projectedItem = appWindows.find { "app-window:${it.id}" == activeKey }
+    val vncController = projectedItem?.let { viewModel.controllerFor(it) }
+    if (projectedItem != null && vncController != null) {
+        val key = "app-window:${projectedItem.id}"
+        val connected by vncController.connected.collectAsStateWithLifecycle()
+        val frame by vncController.frame.collectAsStateWithLifecycle()
+        if (connected && frame != null && !controller.isViewerMounted(key)) {
+            androidx.compose.runtime.SideEffect {
+                controller.updateSessionFrame(
+                    sessionKey = key,
+                    frame = frame,
+                    showCursor = true,
+                    coverFill = false,
+                )
+            }
+        }
+    }
+}
+
+@Composable
 private fun AppWindowContent(
+    sessionKey: String,
     controller: AppWindowVncController,
     fullscreen: Boolean,
     onFullscreenChange: (Boolean) -> Unit,
@@ -844,7 +892,7 @@ private fun AppWindowContent(
             }
             Box(modifier = Modifier.fillMaxSize().background(Color.Black)) {
                 Box(modifier = Modifier.fillMaxSize().then(insetMod)) {
-                    AppWindowVnc(controller, true, onFullscreenChange, onDismiss, onMinimize, onPictureInPicture, currentScale, onChangeScale, onSaveDefault)
+                    AppWindowVnc(sessionKey, controller, true, onFullscreenChange, onDismiss, onMinimize, onPictureInPicture, currentScale, onChangeScale, onSaveDefault)
                 }
             }
         }
@@ -853,7 +901,7 @@ private fun AppWindowContent(
         Box(modifier = Modifier.fillMaxWidth().height(420.dp))
     } else {
         Box(modifier = Modifier.fillMaxWidth().height(420.dp)) {
-            AppWindowVnc(controller, false, onFullscreenChange, onDismiss, onMinimize, onPictureInPicture, currentScale, onChangeScale, onSaveDefault)
+            AppWindowVnc(sessionKey, controller, false, onFullscreenChange, onDismiss, onMinimize, onPictureInPicture, currentScale, onChangeScale, onSaveDefault)
         }
     }
 }
@@ -861,6 +909,7 @@ private fun AppWindowContent(
 /** The shared [VncSessionContent] wiring for an app window, in either container. */
 @Composable
 private fun AppWindowVnc(
+    sessionKey: String,
     controller: AppWindowVncController,
     fullscreenOverride: Boolean,
     onFullscreenChange: (Boolean) -> Unit,
@@ -906,5 +955,6 @@ private fun AppWindowVnc(
         currentScale = currentScale,
         onChangeScale = onChangeScale,
         onSaveDefault = onSaveDefault,
+        sessionKey = sessionKey,
     )
 }

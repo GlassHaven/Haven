@@ -604,6 +604,14 @@ fun HavenNavHost(
     LaunchedEffect(desktopConnected) {
         if (!desktopConnected && desktopFullscreen) desktopFullscreen = false
     }
+    val externalDisplayController = sh.haven.core.ui.LocalExternalDisplayProjectionController.current
+    if (externalDisplayController != null) {
+        DesktopExternalDisplaySync(
+            desktopViewModel = desktopViewModel,
+            controller = externalDisplayController,
+            inputMode = desktopInputMode,
+        )
+    }
     // Disable pager swipe when SFTP text editor or image tools are open
     var sftpEditorOpen by remember { mutableStateOf(false) }
     var sftpImageToolOpen by remember { mutableStateOf(false) }
@@ -1211,6 +1219,95 @@ fun HavenNavHost(
         sh.haven.feature.settings.AgentActivityScreen(
             onBack = { showAgentActivityOverlay = false },
         )
+    }
+}
+
+/**
+ * Always-composed bridge that keeps the projected [sh.haven.app.desktop.DesktopTab]
+ * streaming frames and cursor state to [sh.haven.core.ui.ExternalDisplayProjectionController]
+ * when the user exits fullscreen mode and switches to other tabs (`Terminal`,
+ * `Connections`, `SFTP`, `Settings`, `Desktop -> Manage`, or another desktop tab) (#790).
+ */
+@Composable
+private fun DesktopExternalDisplaySync(
+    desktopViewModel: DesktopViewModel,
+    controller: sh.haven.core.ui.ExternalDisplayProjectionController,
+    inputMode: String,
+) {
+    val tabs by desktopViewModel.tabs.collectAsState()
+    val activeTab by desktopViewModel.activeTab.collectAsState()
+    val bitmapTabs = remember(tabs) {
+        tabs.filter { it !is sh.haven.app.desktop.DesktopTab.Wayland }
+    }
+    val validKeys = remember(bitmapTabs) { bitmapTabs.map { it.id }.toSet() }
+    val activeKey = controller.activeSessionKey
+
+    LaunchedEffect(activeKey, validKeys, activeTab?.id) {
+        if (activeKey != null && !activeKey.startsWith("app-window:") && activeKey !in validKeys) {
+            val fallback = activeTab
+                ?.takeIf { it.id in validKeys }
+                ?.id
+                ?: bitmapTabs.firstOrNull()?.id
+            controller.releaseSession(activeKey, fallbackSessionKey = fallback)
+        } else if (activeKey == null) {
+            val candidate = activeTab?.takeIf { it.id in validKeys }?.id
+            if (candidate != null) {
+                controller.claimSessionIfUnset(candidate)
+            }
+        }
+    }
+
+    val projectedTab = bitmapTabs.find { it.id == controller.activeSessionKey }
+    val projectedTabId = if (controller.isProjecting && projectedTab != null) projectedTab.id else null
+    LaunchedEffect(projectedTabId) {
+        desktopViewModel.setExternallyProjectedTabId(projectedTabId)
+    }
+
+    if (projectedTab != null) {
+        val connected by projectedTab.connected.collectAsState()
+        val frame by projectedTab.frame.collectAsState()
+        val frameSeq = when (projectedTab) {
+            is sh.haven.app.desktop.DesktopTab.Rdp -> projectedTab.frameSeq.collectAsState().value
+            else -> 0L
+        }
+        val cursor = when (projectedTab) {
+            is sh.haven.app.desktop.DesktopTab.Vnc -> projectedTab.cursor.collectAsState().value
+            is sh.haven.app.desktop.DesktopTab.Rdp -> projectedTab.cursor.collectAsState().value
+            is sh.haven.app.desktop.DesktopTab.Spice -> projectedTab.cursor.collectAsState().value
+            else -> null
+        }
+        val pointerPos = when (projectedTab) {
+            is sh.haven.app.desktop.DesktopTab.Vnc -> projectedTab.pointerPos.collectAsState().value
+            is sh.haven.app.desktop.DesktopTab.Rdp -> projectedTab.pointerPos.collectAsState().value
+            is sh.haven.app.desktop.DesktopTab.Spice -> projectedTab.pointerPos.collectAsState().value
+            is sh.haven.app.desktop.DesktopTab.Glkvm -> projectedTab.pointerPos.collectAsState().value
+            else -> 0 to 0
+        }
+
+        LaunchedEffect(projectedTab.id, connected) {
+            if (!connected && controller.currentFrameState?.sessionKey == projectedTab.id) {
+                controller.updateSessionFrame(
+                    sessionKey = projectedTab.id,
+                    frame = null,
+                )
+            }
+        }
+
+        if (connected && frame != null && !controller.isViewerMounted(projectedTab.id)) {
+            androidx.compose.runtime.SideEffect {
+                controller.updateSessionFrame(
+                    sessionKey = projectedTab.id,
+                    frame = frame,
+                    frameSeq = frameSeq,
+                    cursor = cursor,
+                    pointerX = pointerPos.first,
+                    pointerY = pointerPos.second,
+                    showCursor = !(projectedTab is sh.haven.app.desktop.DesktopTab.Rdp && inputMode == "TOUCHSCREEN"),
+                    showFallbackCursor = false,
+                    coverFill = false,
+                )
+            }
+        }
     }
 }
 

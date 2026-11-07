@@ -615,63 +615,65 @@ class MainActivity : AppCompatActivity() {
                 }
 
                 val pipWin = activePipMedia
-                if (inPip && pipWin != null) {
-                    // In PiP: render just the item, full-bleed on black. PiP is
-                    // view-only on Android — interaction resumes on expand. (#225)
-                    when (pipWin.kind) {
-                        PresentedMediaKind.APP_WINDOW -> {
-                            if (pipWin.sessionId != null && pipWin.host != null && pipWin.port != null) {
-                                PipAppWindow(
-                                    appWindowConnectionStore.controllerFor(
-                                        pipWin.sessionId!!, pipWin.host!!, pipWin.port!!,
-                                    ),
-                                )
+                sh.haven.core.ui.ProvideExternalDisplayProjection {
+                    if (inPip && pipWin != null) {
+                        // In PiP: render just the item, full-bleed on black. PiP is
+                        // view-only on Android — interaction resumes on expand. (#225)
+                        when (pipWin.kind) {
+                            PresentedMediaKind.APP_WINDOW -> {
+                                if (pipWin.sessionId != null && pipWin.host != null && pipWin.port != null) {
+                                    PipAppWindow(
+                                        appWindowConnectionStore.controllerFor(
+                                            pipWin.sessionId!!, pipWin.host!!, pipWin.port!!,
+                                        ),
+                                    )
+                                }
                             }
+                            PresentedMediaKind.IMAGE -> pipWin.filePath?.let { PipImage(it) }
+                            PresentedMediaKind.WEB ->
+                                if (pipWin.mimeType == "application/pdf") {
+                                    pipWin.filePath?.let { PipPdfFirstPage(it) }
+                                } else {
+                                    pipWin.url?.let { PipWebView(it) }
+                                }
+                            else -> {}
                         }
-                        PresentedMediaKind.IMAGE -> pipWin.filePath?.let { PipImage(it) }
-                        PresentedMediaKind.WEB ->
-                            if (pipWin.mimeType == "application/pdf") {
-                                pipWin.filePath?.let { PipPdfFirstPage(it) }
-                            } else {
-                                pipWin.url?.let { PipWebView(it) }
-                            }
-                        else -> {}
+                    } else if (biometricEnabled && !unlocked) {
+                        BiometricLockScreen(
+                            authenticator = biometricAuthenticator,
+                            onUnlocked = { unlocked = true },
+                        )
+                    } else {
+                        HavenNavHost(
+                            preferencesRepository = preferencesRepository,
+                            connectionRepository = connectionRepository,
+                            sshKeyRepository = sshKeyRepository,
+                            agentUiCommandBus = agentUiCommandBus,
+                            userMessageBus = userMessageBus,
+                            mailSessionManager = mailSessionManager,
+                            openAiSessionManager = openAiSessionManager,
+                            mcpStatusHolder = mcpStatusHolder,
+                        )
+                        // Floats above whatever screen is active so an
+                        // agent's consent prompt is unmissable. No-op when
+                        // there are no pending requests.
+                        ConsentHost()
+                        // Same top-of-tree pattern: an agent-pushed image or
+                        // sound (present_media) floats over the active screen.
+                        sh.haven.app.agent.PresentationHost()
+                        // Backgrounded app windows dock here as draggable edge
+                        // icons; tap restores one to the PresentationHost overlay.
+                        sh.haven.app.agent.EdgeIconDock()
+                        // Same pattern for BIOMETRIC_PROTECTED keystore
+                        // fetches — the gate publishes; this host renders
+                        // BiometricPrompt; the result resumes the
+                        // suspending fetch caller.
+                        sh.haven.app.agent.BiometricGateHost()
+                        // VPN sign-in questions (AnyConnect SMS code / unstored
+                        // password) — published by TunnelAuthBroker, possibly
+                        // from a background re-login, answered here.
+                        TunnelAuthHost()
                     }
-                } else if (biometricEnabled && !unlocked) {
-                    BiometricLockScreen(
-                        authenticator = biometricAuthenticator,
-                        onUnlocked = { unlocked = true },
-                    )
-                } else {
-                    HavenNavHost(
-                        preferencesRepository = preferencesRepository,
-                        connectionRepository = connectionRepository,
-                        sshKeyRepository = sshKeyRepository,
-                        agentUiCommandBus = agentUiCommandBus,
-                        userMessageBus = userMessageBus,
-                        mailSessionManager = mailSessionManager,
-                        openAiSessionManager = openAiSessionManager,
-                        mcpStatusHolder = mcpStatusHolder,
-                    )
-                    // Floats above whatever screen is active so an
-                    // agent's consent prompt is unmissable. No-op when
-                    // there are no pending requests.
-                    ConsentHost()
-                    // Same top-of-tree pattern: an agent-pushed image or
-                    // sound (present_media) floats over the active screen.
-                    sh.haven.app.agent.PresentationHost()
-                    // Backgrounded app windows dock here as draggable edge
-                    // icons; tap restores one to the PresentationHost overlay.
-                    sh.haven.app.agent.EdgeIconDock()
-                    // Same pattern for BIOMETRIC_PROTECTED keystore
-                    // fetches — the gate publishes; this host renders
-                    // BiometricPrompt; the result resumes the
-                    // suspending fetch caller.
-                    sh.haven.app.agent.BiometricGateHost()
-                    // VPN sign-in questions (AnyConnect SMS code / unstored
-                    // password) — published by TunnelAuthBroker, possibly
-                    // from a background re-login, answered here.
-                    TunnelAuthHost()
                 }
             }
         }

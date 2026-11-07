@@ -145,4 +145,29 @@ class DesktopViewModelVncTypingTest {
         verify(timeout = 3000, atLeast = 1) { client.typeText("hello") }
         verify(timeout = 3000, atLeast = 1) { client.moveMouse(10, 20) }
     }
+
+    /**
+     * #790: when a desktop tab is projecting to an external HDMI/DisplayPort
+     * monitor, switching the phone UI to a second desktop tab must not pause
+     * the projected tab's frame stream; clearing external projection pauses
+     * the backgrounded tab.
+     */
+    @Test
+    fun `externally projected tab stays unpaused when selecting another tab`() = runTest {
+        val client1 = mockk<VncClient>(relaxed = true)
+        val client2 = mockk<VncClient>(relaxed = true)
+        val tab1 = DesktopTab.Vnc(id = "t1", label = "t1", client = client1)
+        val tab2 = DesktopTab.Vnc(id = "t2", label = "t2", client = client2)
+        vm.addTabsForTest(tab1, tab2)
+
+        vm.setExternallyProjectedTabId("t1")
+        vm.selectTab(1)
+
+        verify(atLeast = 1) { client1.paused = false }
+        verify(exactly = 0) { client1.paused = true }
+        verify(atLeast = 1) { client2.paused = false }
+
+        vm.setExternallyProjectedTabId(null)
+        verify(atLeast = 1) { client1.paused = true }
+    }
 }

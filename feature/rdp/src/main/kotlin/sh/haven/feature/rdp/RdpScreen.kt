@@ -215,6 +215,7 @@ fun RdpSessionContent(
         sh.haven.core.data.preferences.RdpChipAnchor.DEFAULT,
     onChipAnchorChange: (sh.haven.core.data.preferences.RdpChipAnchor) -> Unit = {},
     isActive: Boolean = true,
+    sessionKey: String? = null,
 ) {
     val connectedState by connected.collectAsState()
     val frameState by frame.collectAsState()
@@ -298,6 +299,7 @@ fun RdpSessionContent(
             chipAnchor = chipAnchor,
             onChipAnchorChange = onChipAnchorChange,
             isActive = isActive,
+            sessionKey = sessionKey,
         )
     } else {
         DesktopPlaceholder(
@@ -497,6 +499,7 @@ private fun RdpViewer(
         sh.haven.core.data.preferences.RdpChipAnchor.DEFAULT,
     onChipAnchorChange: (sh.haven.core.data.preferences.RdpChipAnchor) -> Unit = {},
     isActive: Boolean = true,
+    sessionKey: String? = null,
 ) {
     // SPICE and GLKVM reuse RdpViewer without MS-RDPEI; treat TOUCHSCREEN as
     // DIRECT when no multi-touch channel is attached (#778).
@@ -590,6 +593,7 @@ private fun RdpViewer(
         pointerY = externalCursorY,
         showCursor = effectiveInputMode != "TOUCHSCREEN",
         showFallbackCursor = pointerActive && !hasReceivedCursorShape && !fallbackExpired,
+        sessionKey = sessionKey,
     )
 
     // Tap-then-drag state — see VncScreen for the full rationale. RDP

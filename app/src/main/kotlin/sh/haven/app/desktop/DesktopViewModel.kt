@@ -1627,6 +1627,12 @@ class DesktopViewModel @Inject constructor(
         _activeTabIndex.value = 0
     }
 
+    @androidx.annotation.VisibleForTesting
+    internal fun addTabsForTest(vararg tabs: DesktopTab) {
+        _tabs.value = tabs.toList()
+        _activeTabIndex.value = 0
+    }
+
     fun selectTab(index: Int) {
         val tabs = _tabs.value
         if (index in tabs.indices) {
@@ -3263,10 +3269,25 @@ class DesktopViewModel @Inject constructor(
     }
 
 
+    @Volatile
+    private var externallyProjectedTabId: String? = null
+
+    /**
+     * Keeps [tabId] unpaused while it is projecting to an external HDMI /
+     * DisplayPort / wireless monitor, even if the user selects a different
+     * desktop tab on the phone (#790).
+     */
+    fun setExternallyProjectedTabId(tabId: String?) {
+        if (externallyProjectedTabId == tabId) return
+        externallyProjectedTabId = tabId
+        pauseAllExcept(_activeTabIndex.value)
+    }
+
     private fun pauseAllExcept(activeIndex: Int) {
+        val projectedId = externallyProjectedTabId
         _tabs.value.forEachIndexed { index, tab ->
             val rd = tab.remoteDesktop ?: return@forEachIndexed
-            if (index == activeIndex) rd.resume() else rd.pause()
+            if (index == activeIndex || tab.id == projectedId) rd.resume() else rd.pause()
         }
     }
 

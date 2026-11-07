@@ -332,6 +332,7 @@ fun DesktopScreen(
                                 onRetry = { desktopViewModel.retryTab(tab.id) },
                                 onClose = { desktopViewModel.closeTab(tab.id) },
                                 isActive = isActive,
+                                sessionKey = tab.id,
                             )
                         }
 
@@ -387,6 +388,7 @@ fun DesktopScreen(
                             onCycleOrientation = { desktopViewModel.cycleDesktopOrientation() },
                             onRetry = { desktopViewModel.retryTab(tab.id) },
                             isActive = isActive,
+                            sessionKey = tab.id,
                         )
 
                         // SPICE reuses the RDP content renderer: a bitmap canvas
@@ -442,6 +444,7 @@ fun DesktopScreen(
                             // RDP/VNC, #286).
                             onMiddleClick = { x, y -> desktopViewModel.sendClick(x, y, button = 2) },
                             isActive = isActive,
+                            sessionKey = tab.id,
                         )
 
                         // GLKVM reuses the RDP content renderer: bitmap canvas
@@ -495,6 +498,7 @@ fun DesktopScreen(
                             onCycleOrientation = { desktopViewModel.cycleDesktopOrientation() },
                             onRetry = { desktopViewModel.retryTab(tab.id) },
                             isActive = isActive,
+                            sessionKey = tab.id,
                         )
 
                         is DesktopTab.Wayland -> WaylandDesktopView(

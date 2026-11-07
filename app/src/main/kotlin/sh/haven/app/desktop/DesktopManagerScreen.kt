@@ -1016,22 +1016,23 @@ private fun SystemVmImportDialog(
         ModalBottomSheet(
             onDismissRequest = onDismiss,
             sheetState = rememberModalBottomSheetState(skipPartiallyExpanded = true),
+            dragHandle = null,
         ) {
             Column(
                 modifier = Modifier
                     .fillMaxWidth()
                     .verticalScroll(rememberScrollState())
-                    .padding(horizontal = 24.dp)
-                    .padding(bottom = 16.dp),
+                    .padding(horizontal = 24.dp, vertical = 12.dp),
             ) {
-                Text(
-                    stringResource(AppR.string.app_system_vm_import_title),
-                    style = MaterialTheme.typography.titleMedium,
-                )
-                Spacer(Modifier.height(12.dp))
-                SystemVmImportFields(label, source, arch, onLabelChange, onSourceChange, onArchChange)
-                Spacer(Modifier.height(8.dp))
-                Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.End) {
+                Row(
+                    modifier = Modifier.fillMaxWidth(),
+                    verticalAlignment = Alignment.CenterVertically,
+                ) {
+                    Text(
+                        stringResource(AppR.string.app_system_vm_import_title),
+                        style = MaterialTheme.typography.titleMedium,
+                        modifier = Modifier.weight(1f),
+                    )
                     TextButton(onClick = onDismiss) { Text(stringResource(R.string.common_cancel)) }
                     TextButton(
                         onClick = onImport,
@@ -1040,6 +1041,8 @@ private fun SystemVmImportDialog(
                         Text(stringResource(AppR.string.app_system_vm_import))
                     }
                 }
+                Spacer(Modifier.height(4.dp))
+                SystemVmImportFields(label, source, arch, onLabelChange, onSourceChange, onArchChange)
             }
         }
     } else {

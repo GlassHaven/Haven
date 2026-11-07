@@ -58,9 +58,10 @@ object AnyConnectForegroundModule {
                 // Only tunnels that outlive their connections need the service
                 // on their own account; one that closes with its last SSH
                 // session is already covered by that session.
-                get() = manager.get().live.value.values.any {
-                    it is AnyConnectTunnel && it.lingerAfterRelease && !it.isDead
-                }
+                get() = manager.get().hasStandaloneDependents ||
+                    manager.get().live.value.values.any {
+                        it is AnyConnectTunnel && it.lingerAfterRelease && !it.isDead
+                    }
         }
 
     @Provides

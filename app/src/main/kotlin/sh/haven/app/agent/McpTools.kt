@@ -1295,7 +1295,7 @@ internal class McpTools(
         "install_distro" to ToolHandler(
             description = "Set the given distro as active and trigger installRootfs(). Returns immediately; poll `inspect_proot.osSetupState` for progress (Downloading → Extracting → BootstrapHook → Baseline → Ready, or Error with attribution). Idempotent: if the distro is already installed, just switches active.",
             inputSchema = objectSchema {
-                string("distroId", "Distro id from DistroCatalog (e.g. \"alpine-3.21\", \"debian-trixie\", \"debian-bookworm\", \"ubuntu-noble\", \"archlinux\", \"void\").", required = true)
+                string("distroId", "Distro id from DistroCatalog (e.g. \"alpine-3.21\", \"debian-trixie\", \"debian-bookworm\", \"ubuntu-resolute\", \"ubuntu-noble\", \"archlinux\", \"void\").", required = true)
             },
             consentLevel = ConsentLevel.EVERY_CALL,
             summarise = { args ->
@@ -7941,7 +7941,7 @@ internal class McpTools(
         // seconds for a 100-MB rootfs.
         return runCatching {
             java.nio.file.Files.walk(dir.toPath()).use { stream ->
-                stream.filter { java.nio.file.Files.isRegularFile(it) }
+                stream.filter { java.nio.file.Files.isRegularFile(it, java.nio.file.LinkOption.NOFOLLOW_LINKS) }
                     .mapToLong {
                         runCatching { java.nio.file.Files.size(it) }.getOrDefault(0L)
                     }

@@ -90,8 +90,17 @@ class TunnelManager @Inject constructor(
     /** For fire-and-forget work requested from non-suspending callers. */
     private val scope = CoroutineScope(SupervisorJob() + Dispatchers.IO)
 
+    @Volatile
+    private var _hasStandaloneDependents = false
+
+    /** True when at least one standalone tunnel or port-forward rule holds a live tunnel (#792). */
+    val hasStandaloneDependents: Boolean get() = _hasStandaloneDependents
+
     /** Caller must hold [mutex]. */
     private fun publish() {
+        _hasStandaloneDependents = acquiredBy.keys.any {
+            it.startsWith("standalone:") || it.startsWith("tunnel-fwd:")
+        }
         _live.value = liveTunnels.toMap()
     }
     /** configId → set of profileIds currently depending on this tunnel. */

@@ -78,4 +78,18 @@
     <string name="tunnel_anyconnect_prompt_help">SMS やメールで届くコード: OTP シークレットと二要素の応答を空欄にすると、サインイン時に Haven がコードを尋ねます。</string>
     <string name="tunnel_anyconnect_stay_connected_label">接続を維持</string>
     <string name="tunnel_anyconnect_stay_connected_help">Cisco アプリと同様に、最後の接続を閉じた後も VPN を維持します。オフの場合は切断されますが、すぐに再接続すれば新しいコードなしでセッションを再開できます。</string>
+    <string name="tunnel_status_connecting">接続中…</string>
+    <string name="tunnel_connect">トンネルを接続</string>
+    <string name="tunnel_disconnect">トンネルを切断</string>
+    <string name="tunnel_port_forwards">ポート転送</string>
+    <string name="tunnel_port_forwards_title">ポート転送 · %1$s</string>
+    <string name="tunnel_port_forwards_help">SSH、RDP、Mosh を使わずに、127.0.0.1 上のローカル TCP/UDP ポート（QEMU VM 内では 10.0.2.2 で到達可能）をこのトンネル経由でリモート host:port に直接転送します。</string>
+    <string name="tunnel_port_forward_local_port">ローカルポート</string>
+    <string name="tunnel_port_forward_remote_host">リモートホストまたは IP</string>
+    <string name="tunnel_port_forward_remote_port">リモートポート</string>
+    <string name="tunnel_port_forward_add">転送を追加</string>
+    <string name="tunnel_port_forward_empty">このトンネルにはポート転送が設定されていません。</string>
+    <string name="tunnel_auto_proxy_title">ローカルトunnel経由で Linux を自動プロキシ</string>
+    <string name="tunnel_auto_proxy_subtitle">PRoot シェルとデスクトップでアクティブなトンネルの SOCKS5 リスナーに ALL_PROXY / HTTP(S)_PROXY をエクスポートします（または必要に応じて `with-tunnel &lt;cmd&gt;` を使用、QEMU では 10.0.2.2:&lt;port&gt; を使用）。</string>
+    <string name="tunnel_close">閉じる</string>
 </resources>

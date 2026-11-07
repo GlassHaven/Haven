@@ -1479,7 +1479,11 @@ class ProotManager @Inject constructor(
     }
 
     private fun folderSize(dir: File): Long =
-        dir.walkTopDown().filter { it.isFile }.map { it.length() }.sum()
+        dir.walkTopDown()
+            .onEnter { !java.nio.file.Files.isSymbolicLink(it.toPath()) }
+            .filter { it.isFile && !java.nio.file.Files.isSymbolicLink(it.toPath()) }
+            .map { it.length() }
+            .sum()
 
     /** [Arch] from an ELF header's e_machine, or null if not a known ELF. */
     private fun elfArch(file: File): Arch? {
@@ -2065,29 +2069,43 @@ class ProotManager @Inject constructor(
                         skipEntryData(gzIn, size)
                     }
                     typeFlag == '1'.code.toByte() -> {
-                        // Hard link — copy the target file. The tar's link target
-                        // is an unstripped archive path, so apply the same
-                        // --strip-components as entry names; without this every
-                        // hard link in a wrapped (stripComponents=1) tarball —
-                        // i.e. a typical proot-distro import — pointed at a
-                        // nonexistent path and the file was SILENTLY MISSING
-                        // from the rootfs. (#328)
+                        // Hard link — copy small files, or create a relative symlink
+                        // for large multicall binaries (>= 1 MB, e.g. Ubuntu 26.04's
+                        // 11 MB /usr/bin/coreutils with 114 hard links under
+                        // /usr/lib/cargo/bin/coreutils/*, which would otherwise
+                        // bloat the extracted rootfs by 1.25 GB).
+                        // The tar's link target is an unstripped archive path, so
+                        // apply the same --strip-components as entry names (#328).
                         outFile.parentFile?.mkdirs()
                         try {
                             val strippedTarget = resolveTarLinkTarget(linkTarget, source.stripComponents)
                             val targetFile = File(destDir, strippedTarget)
                             if (targetFile.exists()) {
-                                targetFile.copyTo(outFile, overwrite = true)
-                                // Restore the entry's mode — copyTo leaves the
-                                // app-umask 0600, dropping exec bits from linked
-                                // binaries. Same restore as the regular-file
-                                // branch. (#328)
-                                modeStr.trim().toIntOrNull(8)?.let { m ->
-                                    try {
-                                        android.system.Os.chmod(outFile.absolutePath, m and 0xFFF)
-                                    } catch (_: Exception) {}
+                                val linkedAsSymlink = if (targetFile.length() >= 1_048_576L) {
+                                    runCatching {
+                                        val parentPath = outFile.parentFile?.toPath() ?: destDir.toPath()
+                                        outFile.delete()
+                                        val relTarget = parentPath.relativize(targetFile.toPath())
+                                        java.nio.file.Files.createSymbolicLink(outFile.toPath(), relTarget)
+                                        symlinkCount++
+                                        true
+                                    }.getOrDefault(false)
+                                } else {
+                                    false
                                 }
-                                fileCount++
+                                if (!linkedAsSymlink) {
+                                    targetFile.copyTo(outFile, overwrite = true)
+                                    // Restore the entry's mode — copyTo leaves the
+                                    // app-umask 0600, dropping exec bits from linked
+                                    // binaries. Same restore as the regular-file
+                                    // branch. (#328)
+                                    modeStr.trim().toIntOrNull(8)?.let { m ->
+                                        try {
+                                            android.system.Os.chmod(outFile.absolutePath, m and 0xFFF)
+                                        } catch (_: Exception) {}
+                                    }
+                                    fileCount++
+                                }
                             } else {
                                 Log.w(TAG, "Hard link target missing: $entryName -> $strippedTarget")
                             }
@@ -2326,11 +2344,15 @@ class ProotManager @Inject constructor(
         try {
             val ops = PackageOps.forFamily(distro.family)
             val install = ops.installCmd(distro.baselinePackages)
+            val localeHook = if ("locales" in distro.baselinePackages) {
+                " && if [ -f /etc/locale.gen ] && command -v locale-gen >/dev/null 2>&1; then " +
+                    "sed -i -E 's/#[[:space:]]?(en_US.UTF-8[[:space:]]+UTF-8)/\\1/g' /etc/locale.gen && locale-gen; fi"
+            } else ""
             // Don't pre-truncate with `| tail -N` — that hides the
             // actual error line on a failed install. Kotlin-side
             // takeLast() keeps the log size bounded.
             val (output, code) = runCommandInProot(
-                "${ops.updateCmd()} >/dev/null 2>&1 && $install 2>&1",
+                "${ops.updateCmd()} >/dev/null 2>&1 && ($install$localeHook) 2>&1",
             )
             if (code == 0) {
                 Log.d(TAG, "[baseline ${distro.id}] ok pkgs=${distro.baselinePackages.size}")
@@ -2438,6 +2460,36 @@ class ProotManager @Inject constructor(
         ensureFakeProcBindArgs(rootfsDir, longForm)
 
     /**
+     * Environment variable assignments (`KEY` to `VALUE`) for routing guest traffic
+     * through an active Haven tunnel (#792). Reads `<cacheDir>/.haven_tunnel_socks5`
+     * (written by `TunnelPortForwardManager` whenever a tunnel's localhost SOCKS5
+     * proxy is active). When `<cacheDir>/.haven_tunnel_auto_proxy` is also present,
+     * exports `ALL_PROXY` / `HTTP_PROXY` / `HTTPS_PROXY` (`socks5h://127.0.0.1:<port>`)
+     * into every PRoot shell, desktop session, and command.
+     */
+    fun guestTunnelEnvVars(): Map<String, String> {
+        val socksFile = File(context.cacheDir, ".haven_tunnel_socks5")
+        val socks = runCatching { socksFile.takeIf { it.isFile }?.readText()?.trim() }
+            .getOrNull()
+            ?.takeIf { it.isNotEmpty() }
+            ?: return emptyMap()
+        val result = linkedMapOf(
+            "HAVEN_TUNNEL_SOCKS5" to socks,
+            "HAVEN_TUNNEL_QEMU_SOCKS5" to socks.replace("127.0.0.1:", "10.0.2.2:"),
+        )
+        if (File(context.cacheDir, ".haven_tunnel_auto_proxy").exists()) {
+            val url = "socks5h://$socks"
+            result["ALL_PROXY"] = url
+            result["all_proxy"] = url
+            result["HTTP_PROXY"] = url
+            result["http_proxy"] = url
+            result["HTTPS_PROXY"] = url
+            result["https_proxy"] = url
+        }
+        return result
+    }
+
+    /**
      * Build and start a PRoot process running [command] in the active
      * rootfs, with combined stdout+stderr on the returned Process's
      * inputStream. Callers that need to stream output incrementally (a
@@ -2517,6 +2569,7 @@ class ProotManager @Inject constructor(
             "TMPDIR=/tmp",
             "GLYCIN_DISABLE_SANDBOX=i-know-the-risks",
             "ELECTRON_DISABLE_SANDBOX=1",
+            *guestTunnelEnvVars().map { (k, v) -> "$k=$v" }.toTypedArray(),
             "/bin/sh", "-lc", command,
         )
         return ProcessBuilder(args).apply {
@@ -3773,6 +3826,7 @@ chmod +x /root/.vnc/xstartup""")
          * methods without switching UIDs. No-op on non-APT rootfses.
          */
         fun ensureAptSandboxConfig(rootfsDir: File) {
+            ensureTunnelGuestHelper(rootfsDir)
             val aptConfD = File(rootfsDir, "etc/apt/apt.conf.d")
             if (!aptConfD.isDirectory) return
             val confFile = File(aptConfD, "99haven-nosandbox")
@@ -3781,6 +3835,67 @@ chmod +x /root/.vnc/xstartup""")
                 runCatching {
                     confFile.setWritable(true, true)
                     confFile.writeText(content)
+                }
+            }
+        }
+
+        /**
+         * Ensure `/usr/local/bin/with-tunnel` (`0755`) and `/etc/profile.d/haven-tunnel.sh`
+         * exist in [rootfsDir] (#792) so PRoot guests can route any command through
+         * an active Haven tunnel (`with-tunnel curl ...`) or auto-inherit `ALL_PROXY`
+         * when guest auto-proxy is enabled in `Settings -> Tunnels`.
+         */
+        fun ensureTunnelGuestHelper(rootfsDir: File) {
+            if (!File(rootfsDir, "bin").exists() && !File(rootfsDir, "usr").exists()) return
+            runCatching {
+                val localBin = File(rootfsDir, "usr/local/bin").apply { mkdirs() }
+                val withTunnel = File(localBin, "with-tunnel")
+                val script = """
+                    #!/bin/sh
+                    # Run a command routed through the active Haven tunnel's localhost SOCKS5
+                    # proxy (#792). Inside a local QEMU VM (SLIRP), use 10.0.2.2:<port>.
+                    if [ ! -s /tmp/.haven_tunnel_socks5 ]; then
+                        echo "with-tunnel: no active Haven tunnel SOCKS5 proxy (/tmp/.haven_tunnel_socks5 not found)." >&2
+                        echo "Connect a tunnel in Haven (Settings -> Tunnels) first." >&2
+                        exit 1
+                    fi
+                    _socks="$(cat /tmp/.haven_tunnel_socks5)"
+                    export HAVEN_TUNNEL_SOCKS5="${'$'}_socks"
+                    export ALL_PROXY="socks5h://${'$'}_socks"
+                    export all_proxy="socks5h://${'$'}_socks"
+                    export HTTP_PROXY="socks5h://${'$'}_socks"
+                    export http_proxy="socks5h://${'$'}_socks"
+                    export HTTPS_PROXY="socks5h://${'$'}_socks"
+                    export https_proxy="socks5h://${'$'}_socks"
+                    exec "${'$'}@"
+                """.trimIndent() + "\n"
+                if (!withTunnel.exists() || runCatching { withTunnel.readText() }.getOrNull() != script) {
+                    withTunnel.writeText(script)
+                    try {
+                        android.system.Os.chmod(withTunnel.absolutePath, 0b111_101_101) // 0755
+                    } catch (_: Throwable) {
+                        withTunnel.setExecutable(true, false)
+                    }
+                }
+
+                val profileD = File(rootfsDir, "etc/profile.d").apply { mkdirs() }
+                val profileHook = File(profileD, "haven-tunnel.sh")
+                val hookContent = """
+                    # Haven tunnel environment hook for local PRoot Linux (#792).
+                    if [ -s /tmp/.haven_tunnel_socks5 ]; then
+                        export HAVEN_TUNNEL_SOCKS5="${'$'}(cat /tmp/.haven_tunnel_socks5 2>/dev/null)"
+                        if [ -f /tmp/.haven_tunnel_auto_proxy ]; then
+                            export ALL_PROXY="socks5h://${'$'}HAVEN_TUNNEL_SOCKS5"
+                            export all_proxy="socks5h://${'$'}HAVEN_TUNNEL_SOCKS5"
+                            export HTTP_PROXY="socks5h://${'$'}HAVEN_TUNNEL_SOCKS5"
+                            export http_proxy="socks5h://${'$'}HAVEN_TUNNEL_SOCKS5"
+                            export HTTPS_PROXY="socks5h://${'$'}HAVEN_TUNNEL_SOCKS5"
+                            export https_proxy="socks5h://${'$'}HAVEN_TUNNEL_SOCKS5"
+                        fi
+                    fi
+                """.trimIndent() + "\n"
+                if (!profileHook.exists() || runCatching { profileHook.readText() }.getOrNull() != hookContent) {
+                    profileHook.writeText(hookContent)
                 }
             }
         }

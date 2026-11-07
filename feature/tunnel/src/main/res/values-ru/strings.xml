@@ -78,4 +78,18 @@
     <string name="tunnel_anyconnect_prompt_help">Коды по SMS или e-mail: оставьте секрет OTP и ответ второго фактора пустыми, и Haven запросит код при входе.</string>
     <string name="tunnel_anyconnect_stay_connected_label">Оставаться подключённым</string>
     <string name="tunnel_anyconnect_stay_connected_help">Не отключать VPN после закрытия последнего подключения, как приложение Cisco. Если выключено: VPN отключится, а повторное подключение вскоре после этого продолжит сессию без нового кода.</string>
+    <string name="tunnel_status_connecting">Подключение…</string>
+    <string name="tunnel_connect">Подключить туннель</string>
+    <string name="tunnel_disconnect">Отключить туннель</string>
+    <string name="tunnel_port_forwards">Проброс портов</string>
+    <string name="tunnel_port_forwards_title">Проброс портов · %1$s</string>
+    <string name="tunnel_port_forwards_help">Перенаправляйте локальный TCP- или UDP-порт на 127.0.0.1 (доступен по 10.0.2.2 внутри ВМ QEMU) напрямую на удалённый хост:порт через этот туннель — без SSH, RDP или Mosh.</string>
+    <string name="tunnel_port_forward_local_port">Локальный порт</string>
+    <string name="tunnel_port_forward_remote_host">Удалённый хост или IP</string>
+    <string name="tunnel_port_forward_remote_port">Удалённый порт</string>
+    <string name="tunnel_port_forward_add">Добавить правило</string>
+    <string name="tunnel_port_forward_empty">Для этого туннеля проброс портов не настроен.</string>
+    <string name="tunnel_auto_proxy_title">Автопрокси локального Linux через туннель</string>
+    <string name="tunnel_auto_proxy_subtitle">Экспортировать ALL_PROXY / HTTP(S)_PROXY на SOCKS5-прокси активного туннеля в оболочках и рабочих столах PRoot (или используйте `with-tunnel &lt;cmd&gt;`; в QEMU используйте 10.0.2.2:&lt;port&gt;).</string>
+    <string name="tunnel_close">Закрыть</string>
 </resources>

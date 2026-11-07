@@ -920,6 +920,7 @@ class DesktopManager @Inject constructor(
             // #780: disable Chromium/Electron user-namespace/SUID sandbox inside PRoot
             // so Electron apps (VS Code, VSCodium, Obsidian, etc.) start cleanly.
             "ELECTRON_DISABLE_SANDBOX=1",
+            *prootManager.guestTunnelEnvVars().map { (k, v) -> "$k=$v" }.toTypedArray(),
         )
     }
 
@@ -1021,6 +1022,7 @@ class DesktopManager @Inject constructor(
                 // is unsupported (`--kill-on-exit` on proot still reaps the daemon).
                 "{ command -v dbus-launch >/dev/null 2>&1 && eval \"\$(dbus-launch --sh-syntax --exit-with-x11 2>/dev/null || dbus-launch --sh-syntax)\"; } || true; " +
                 "[ -f /etc/profile.d/pulse.sh ] && . /etc/profile.d/pulse.sh; " +
+                "[ -f /etc/profile.d/haven-tunnel.sh ] && . /etc/profile.d/haven-tunnel.sh; " +
                 // NO virgl — software rendering for VNC desktops. Force the
                 // Mesa software rasteriser so GPU-less GL apps (KiCad/eeschema)
                 // don't crash their OpenGL canvas, and paint a solid root so a
@@ -1274,6 +1276,7 @@ class DesktopManager @Inject constructor(
             append("export XDG_RUNTIME_DIR=$xdgInProot ; ")
             append("export HOME=/root ; ")
             append("[ -f /etc/profile.d/pulse.sh ] && . /etc/profile.d/pulse.sh ; ")
+            append("[ -f /etc/profile.d/haven-tunnel.sh ] && . /etc/profile.d/haven-tunnel.sh ; ")
             append("export PATH=/usr/local/sbin:/usr/local/bin:/usr/sbin:/usr/bin:/sbin:/bin ; ")
             append("export GLYCIN_DISABLE_SANDBOX=i-know-the-risks ; ")
             append("export ELECTRON_DISABLE_SANDBOX=1 ; ")
@@ -1940,6 +1943,7 @@ class DesktopManager @Inject constructor(
                     // Audio bridge (#257): pick up PULSE_SERVER if the bridge
                     // is running (it writes this file); harmless no-op otherwise.
                     "[ -f /etc/profile.d/pulse.sh ] && . /etc/profile.d/pulse.sh; " +
+                "[ -f /etc/profile.d/haven-tunnel.sh ] && . /etc/profile.d/haven-tunnel.sh; " +
                     "export XDG_RUNTIME_DIR=/tmp/xdg-runtime; " +
                     "export XDG_DATA_HOME=/root/.local/share; " +
                     "export XDG_DATA_DIRS=/usr/local/share:/usr/share; " +

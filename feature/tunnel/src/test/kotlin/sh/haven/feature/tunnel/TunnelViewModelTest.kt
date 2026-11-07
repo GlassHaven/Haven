@@ -318,4 +318,26 @@ class TunnelViewModelTest {
         coVerify(exactly = 1) { sessions.disconnect("t1", signOut = true) }
         coVerify(exactly = 1) { repository.delete("t1") }
     }
+
+    @Test
+    fun addPortForward_validatesLocalPortRemoteHostAndRemotePort() = runTest {
+        viewModel.addPortForward("t1", sh.haven.core.tunnel.TunnelForwardProtocol.TCP, "0", "10.0.0.1", "80")
+        assertEquals("Local port must be between 1 and 65535", viewModel.error.value)
+        viewModel.dismissError()
+
+        viewModel.addPortForward("t1", sh.haven.core.tunnel.TunnelForwardProtocol.TCP, "8080", "   ", "80")
+        assertEquals("Remote host is required", viewModel.error.value)
+        viewModel.dismissError()
+
+        viewModel.addPortForward("t1", sh.haven.core.tunnel.TunnelForwardProtocol.UDP, "8080", "10.0.0.1", "70000")
+        assertEquals("Remote port must be between 1 and 65535", viewModel.error.value)
+    }
+
+    @Test
+    fun setAutoProxyGuests_updatesStateFlow() = runTest {
+        viewModel.setAutoProxyGuests(true)
+        assertEquals(true, viewModel.autoProxyGuests.value)
+        viewModel.setAutoProxyGuests(false)
+        assertEquals(false, viewModel.autoProxyGuests.value)
+    }
 }

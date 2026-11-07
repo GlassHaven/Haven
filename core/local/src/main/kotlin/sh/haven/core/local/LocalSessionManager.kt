@@ -411,6 +411,7 @@ class LocalSessionManager @Inject constructor(
                 // #780: disable Chromium/Electron user-namespace/SUID sandbox inside PRoot
                 // so Electron apps (VS Code, VSCodium, Obsidian, etc.) start cleanly.
                 "ELECTRON_DISABLE_SANDBOX=1",
+                *prootManager.guestTunnelEnvVars().map { (k, v) -> "$k=$v" }.toTypedArray(),
                 "PROOT_TMP_DIR=${context.cacheDir.absolutePath}",
                 "PROOT_LOADER=${java.io.File(context.applicationInfo.nativeLibraryDir, "libproot_loader.so").absolutePath}",
                 "PROOT_L2S_DIR=${prootManager.l2sEnvValue(targetDistro)}",

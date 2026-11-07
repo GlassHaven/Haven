@@ -78,4 +78,18 @@
     <string name="tunnel_anyconnect_prompt_help">Per SMS oder E-Mail gesendete Codes: OTP-Geheimnis und Antwort für den zweiten Faktor leer lassen, Haven fragt bei der Anmeldung nach dem Code.</string>
     <string name="tunnel_anyconnect_stay_connected_label">Verbunden bleiben</string>
     <string name="tunnel_anyconnect_stay_connected_help">VPN nach dem Schließen der letzten Verbindung aktiv halten, wie die Cisco-App. Aus: Es wird getrennt, und eine baldige Neuverbindung setzt die Sitzung ohne neuen Code fort.</string>
+    <string name="tunnel_status_connecting">Verbinde…</string>
+    <string name="tunnel_connect">Tunnel verbinden</string>
+    <string name="tunnel_disconnect">Tunnel trennen</string>
+    <string name="tunnel_port_forwards">Portweiterleitungen</string>
+    <string name="tunnel_port_forwards_title">Portweiterleitungen · %1$s</string>
+    <string name="tunnel_port_forwards_help">Leite einen lokalen TCP- oder UDP-Port auf 127.0.0.1 (in QEMU-VMs unter 10.0.2.2 erreichbar) direkt durch diesen Tunnel an Host:Port weiter — ohne SSH, RDP oder Mosh.</string>
+    <string name="tunnel_port_forward_local_port">Lokaler Port</string>
+    <string name="tunnel_port_forward_remote_host">Entfernter Host oder IP</string>
+    <string name="tunnel_port_forward_remote_port">Entfernter Port</string>
+    <string name="tunnel_port_forward_add">Weiterleitung hinzufügen</string>
+    <string name="tunnel_port_forward_empty">Keine Portweiterleitungen für diesen Tunnel konfiguriert.</string>
+    <string name="tunnel_auto_proxy_title">Lokales Linux automatisch über Tunnel leiten</string>
+    <string name="tunnel_auto_proxy_subtitle">Exportiert ALL_PROXY / HTTP(S)_PROXY auf den SOCKS5-Listener des aktiven Tunnels in PRoot-Shells und -Desktops (oder bei Bedarf `with-tunnel &lt;cmd&gt;` nutzen; in QEMU 10.0.2.2:&lt;port&gt; verwenden).</string>
+    <string name="tunnel_close">Schließen</string>
 </resources>

@@ -96,7 +96,7 @@ class MirrorCatalogTest {
         assertTrue(out.contains("http://security.debian.org/debian-security bookworm-security"))
     }
 
-    // --- Ubuntu ports -----------------------------------------------------
+    // --- Ubuntu ports & archive (deb822 + legacy) -------------------------
 
     @Test
     fun `ubuntu rewrites the ports tree host`() {
@@ -109,6 +109,44 @@ class MirrorCatalogTest {
         val out = read(root, "etc/apt/sources.list")
         assertTrue(out.contains("http://de.ports.ubuntu.com/ubuntu-ports noble main"))
         assertFalse(out.contains("http://ports.ubuntu.com"))
+    }
+
+    @Test
+    fun `ubuntu resolute rewrites deb822 ubuntu sources for both archive and ports`() {
+        val root = rootfs()
+        val deb822 = """
+            Types: deb
+            URIs: http://archive.ubuntu.com/ubuntu/
+            Suites: resolute resolute-updates resolute-backports
+            Components: main universe restricted multiverse
+            Signed-By: /usr/share/keyrings/ubuntu-archive-keyring.gpg
+
+            Types: deb
+            URIs: http://ports.ubuntu.com/ubuntu-ports/
+            Suites: resolute-security
+            Components: main universe restricted multiverse
+            Signed-By: /usr/share/keyrings/ubuntu-archive-keyring.gpg
+        """.trimIndent() + "\n"
+        write(root, "etc/apt/sources.list.d/ubuntu.sources", deb822)
+        val changed = MirrorCatalog.apply(root, "ubuntu-resolute", MirrorRegion.ASIA)
+        assertTrue(changed.contains("etc/apt/sources.list.d/ubuntu.sources"))
+        val out = read(root, "etc/apt/sources.list.d/ubuntu.sources")
+        assertTrue(out.contains("URIs: http://mirrors.tuna.tsinghua.edu.cn/ubuntu/"))
+        assertTrue(out.contains("URIs: http://mirrors.tuna.tsinghua.edu.cn/ubuntu-ports/"))
+        // Revert to default
+        MirrorCatalog.apply(root, "ubuntu-resolute", MirrorRegion.DEFAULT)
+        assertEquals(deb822, read(root, "etc/apt/sources.list.d/ubuntu.sources"))
+    }
+
+    @Test
+    fun `ubuntu resolute is registered in DistroCatalog builtins with verified sources`() {
+        assertTrue(DistroCatalog.isBuiltin("ubuntu-resolute"))
+        val resolute = DistroCatalog.lookup("ubuntu-resolute")!!
+        assertEquals("Ubuntu 26.04 LTS (Resolute)", resolute.label)
+        assertEquals(PackageFamily.APT, resolute.family)
+        assertEquals(3, resolute.rootfsSources.size)
+        assertTrue(resolute.rootfsSources.values.all { it.sha256.length == 64 && it.stripComponents == 0 })
+        assertTrue("locales" in resolute.baselinePackages)
     }
 
     // --- Arch: ASIA falls back to the geo-redirect default ----------------

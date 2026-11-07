@@ -352,6 +352,52 @@ object DistroCatalog {
     )
 
     /**
+     * Ubuntu 26.04 LTS ("Resolute Raccoon") — current Ubuntu LTS (#162).
+     *
+     * Rootfs tarballs are Canonical's official `ubuntu-base-26.04.1` images
+     * from `cdimage.ubuntu.com`, verified against Canonical's published
+     * `SHA256SUMS`. Unlike proot-distro's wrapped tarballs, `ubuntu-base`
+     * extracts directly at the root (`stripComponents = 0`, `TAR_GZ`) and
+     * enables `main` + `universe` in `/etc/apt/sources.list.d/ubuntu.sources`
+     * out of the box. `locales` is included in `baselinePackages` so
+     * `en_US.UTF-8` is generated during baseline setup.
+     */
+    val UBUNTU_RESOLUTE = Distro(
+        id = "ubuntu-resolute",
+        label = "Ubuntu 26.04 LTS (Resolute)",
+        family = PackageFamily.APT,
+        rootfsSources = mapOf(
+            Arch.AARCH64 to RootfsSource(
+                url = "https://cdimage.ubuntu.com/ubuntu-base/releases/26.04/release/ubuntu-base-26.04.1-base-arm64.tar.gz",
+                sha256 = "5a1906794ced63a71a8119c3f211ef5f0bbe0a243001b4bbd41fdf80c5b219fd",
+                format = RootfsFormat.TAR_GZ,
+                stripComponents = 0,
+            ),
+            Arch.ARM to RootfsSource(
+                url = "https://cdimage.ubuntu.com/ubuntu-base/releases/26.04/release/ubuntu-base-26.04.1-base-armhf.tar.gz",
+                sha256 = "a40848e9c4ed72c22bdcb6a7bc9832e1ca8a30e5a3e2a0543dc56ed14e2e38b7",
+                format = RootfsFormat.TAR_GZ,
+                stripComponents = 0,
+            ),
+            Arch.X86_64 to RootfsSource(
+                url = "https://cdimage.ubuntu.com/ubuntu-base/releases/26.04/release/ubuntu-base-26.04.1-base-amd64.tar.gz",
+                sha256 = "a496a960472ce474a59590b8987d3a1135d3cbef1991f3b1abe8cacfea8bf85a",
+                format = RootfsFormat.TAR_GZ,
+                stripComponents = 0,
+            ),
+        ),
+        baselinePackages = listOf("bash", "curl", "ca-certificates", "openssh-client", "tmux", "sudo", "locales"),
+        postExtractHooks = listOf(
+            RootfsHook(
+                id = "locale-gen en_US.UTF-8",
+                command = "if [ -f /etc/locale.gen ] && command -v locale-gen >/dev/null 2>&1; then " +
+                    "sed -i -E 's/#[[:space:]]?(en_US.UTF-8[[:space:]]+UTF-8)/\\1/g' /etc/locale.gen && locale-gen; fi",
+            ),
+        ),
+        sizeEstimateMb = 90,
+    )
+
+    /**
      * Ubuntu 24.04 LTS ("Noble Numbat") — APT, same package family
      * and launch paths as Debian, so every DE that lists an APT
      * package set (Openbox, Xfce4, Sway, Cage) is offered on Ubuntu
@@ -618,7 +664,15 @@ object DistroCatalog {
     )
 
     /** Distros shipped with the app (pinned tarball + sha + hooks). */
-    val builtins: List<Distro> = listOf(ALPINE_3_21, DEBIAN_TRIXIE, DEBIAN_BOOKWORM, UBUNTU_NOBLE, ARCH_LINUX, VOID_LINUX)
+    val builtins: List<Distro> = listOf(
+        ALPINE_3_21,
+        DEBIAN_TRIXIE,
+        DEBIAN_BOOKWORM,
+        UBUNTU_RESOLUTE,
+        UBUNTU_NOBLE,
+        ARCH_LINUX,
+        VOID_LINUX,
+    )
 
     /**
      * User-imported distros (#284). Registered at runtime by ProotManager

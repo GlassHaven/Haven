@@ -69,4 +69,18 @@
     <string name="tunnel_anyconnect_prompt_help">SMS나 이메일로 받는 코드: OTP 비밀 키와 2단계 응답을 비워 두면 로그인할 때 Haven이 코드를 묻습니다.</string>
     <string name="tunnel_anyconnect_stay_connected_label">연결 유지</string>
     <string name="tunnel_anyconnect_stay_connected_help">Cisco 앱처럼 마지막 연결을 닫은 뒤에도 VPN을 유지합니다. 끄면 연결이 끊기지만, 곧 다시 연결하면 새 코드 없이 세션이 재개됩니다.</string>
+    <string name="tunnel_status_connecting">연결 중…</string>
+    <string name="tunnel_connect">터널 연결</string>
+    <string name="tunnel_disconnect">터널 연결 해제</string>
+    <string name="tunnel_port_forwards">포트 포워딩</string>
+    <string name="tunnel_port_forwards_title">포트 포워딩 · %1$s</string>
+    <string name="tunnel_port_forwards_help">SSH, RDP, Mosh 없이도 127.0.0.1의 로컬 TCP 또는 UDP 포트(QEMU VM 내부에서는 10.0.2.2로 접근 가능)를 이 터널을 통해 원격 호스트:포트로 직접 전달합니다.</string>
+    <string name="tunnel_port_forward_local_port">로컬 포트</string>
+    <string name="tunnel_port_forward_remote_host">원격 호스트 또는 IP</string>
+    <string name="tunnel_port_forward_remote_port">원격 포트</string>
+    <string name="tunnel_port_forward_add">포워딩 추가</string>
+    <string name="tunnel_port_forward_empty">이 터널에 설정된 포트 포워딩이 없습니다.</string>
+    <string name="tunnel_auto_proxy_title">터널을 통해 로컬 Linux 자동 프록시</string>
+    <string name="tunnel_auto_proxy_subtitle">PRoot 셸 및 데스크톱에서 활성 터널의 SOCKS5 리스너로 ALL_PROXY / HTTP(S)_PROXY를 내보냅니다(또는 필요 시 `with-tunnel &lt;cmd&gt;` 사용, QEMU에서는 10.0.2.2:&lt;port&gt; 사용).</string>
+    <string name="tunnel_close">닫기</string>
 </resources>

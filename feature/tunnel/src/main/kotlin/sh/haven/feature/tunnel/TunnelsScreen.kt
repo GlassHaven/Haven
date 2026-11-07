@@ -22,6 +22,9 @@ import androidx.compose.material.icons.filled.Add
 import androidx.compose.material.icons.filled.Delete
 import androidx.compose.material.icons.filled.Edit
 import androidx.compose.material.icons.filled.FileOpen
+import androidx.compose.material.icons.filled.PlayArrow
+import androidx.compose.material.icons.filled.Stop
+import androidx.compose.material.icons.filled.SwapHoriz
 import androidx.compose.material.icons.automirrored.filled.Logout
 import androidx.compose.material.icons.filled.VpnLock
 import androidx.compose.material3.AlertDialog
@@ -31,7 +34,9 @@ import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.ExposedDropdownMenuAnchorType
 import androidx.compose.material3.ExposedDropdownMenuBox
 import androidx.compose.material3.ExposedDropdownMenuDefaults
+import androidx.compose.material3.FilterChip
 import androidx.compose.material3.FloatingActionButton
+import androidx.compose.material3.HorizontalDivider
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.ListItem
@@ -72,6 +77,8 @@ import sh.haven.core.tunnel.AnyConnectConfigBlob
 import sh.haven.core.tunnel.NetbirdConfigBlob
 import sh.haven.core.tunnel.OpenVpnConfigBlob
 import sh.haven.core.tunnel.TailscaleConfigBlob
+import sh.haven.core.tunnel.TunnelForwardProtocol
+import sh.haven.core.tunnel.TunnelPortForwardRule
 import java.text.SimpleDateFormat
 import java.util.Date
 import java.util.Locale
@@ -102,11 +109,18 @@ fun TunnelsScreen(
 ) {
     val tunnels by viewModel.tunnels.collectAsState()
     val connectedIds by viewModel.connectedIds.collectAsState()
+    val connectingIds by viewModel.connectingIds.collectAsState()
+    val socksPorts by viewModel.socksPorts.collectAsState()
+    val portForwardRules by viewModel.portForwardRules.collectAsState()
+    val boundForwardPorts by viewModel.boundForwardPorts.collectAsState()
+    val forwardRuleErrors by viewModel.forwardRuleErrors.collectAsState()
+    val autoProxyGuests by viewModel.autoProxyGuests.collectAsState()
     val error by viewModel.error.collectAsState()
     val message by viewModel.message.collectAsState()
 
     var showAddDialog by remember { mutableStateOf(false) }
     var pendingDeleteId by remember { mutableStateOf<String?>(null) }
+    var forwardsTunnelId by remember { mutableStateOf<String?>(null) }
     // #666: edit affordance. Rows in the list flow carry the encrypted blob,
     // so the tap records the id and a LaunchedEffect fetches the decrypted
     // copy the dialog prefills from.
@@ -162,17 +176,60 @@ fun TunnelsScreen(
                         vertical = 8.dp,
                     ),
                 ) {
+                    item(key = "guest-auto-proxy") {
+                        ListItem(
+                            headlineContent = {
+                                Text(stringResource(R.string.tunnel_auto_proxy_title))
+                            },
+                            supportingContent = {
+                                Text(
+                                    stringResource(R.string.tunnel_auto_proxy_subtitle),
+                                    style = MaterialTheme.typography.bodySmall,
+                                    color = MaterialTheme.colorScheme.onSurfaceVariant,
+                                )
+                            },
+                            trailingContent = {
+                                Switch(
+                                    checked = autoProxyGuests,
+                                    onCheckedChange = viewModel::setAutoProxyGuests,
+                                )
+                            },
+                        )
+                        HorizontalDivider()
+                    }
                     items(tunnels, key = { it.id }) { tunnel ->
                         val connected = tunnel.id in connectedIds
+                        val connecting = tunnel.id in connectingIds
+                        val socksPort = socksPorts[tunnel.id]
+                        val forwardCount = portForwardRules.count { it.tunnelConfigId == tunnel.id }
+                        val isStandaloneCapable = tunnel.typeEnum != TunnelConfigType.CLOUDFLARE_ACCESS
                         TunnelRow(
                             tunnel = tunnel,
                             connected = connected,
+                            connecting = connecting,
+                            socksPort = socksPort,
+                            forwardCount = forwardCount,
+                            onConnect = if (!connected && isStandaloneCapable) {
+                                { viewModel.connect(tunnel.id) }
+                            } else {
+                                null
+                            },
+                            onDisconnect = if (connected) {
+                                { viewModel.disconnect(tunnel.id, signOut = false) }
+                            } else {
+                                null
+                            },
                             // AnyConnect sessions persist (Stay connected, or
                             // resumable on the gateway); give the user a way
                             // to end one. Other backends close with their
                             // last connection, so they need no button.
                             onSignOut = if (connected && tunnel.typeEnum == TunnelConfigType.ANYCONNECT) {
                                 { viewModel.disconnect(tunnel.id, signOut = true) }
+                            } else {
+                                null
+                            },
+                            onPortForwards = if (isStandaloneCapable) {
+                                { forwardsTunnelId = tunnel.id }
                             } else {
                                 null
                             },
@@ -273,6 +330,26 @@ fun TunnelsScreen(
             },
         )
     }
+
+    forwardsTunnelId?.let { tunnelId ->
+        val tunnel = tunnels.firstOrNull { it.id == tunnelId }
+        if (tunnel == null) {
+            forwardsTunnelId = null
+        } else {
+            TunnelPortForwardsDialog(
+                tunnel = tunnel,
+                socksPort = socksPorts[tunnel.id],
+                rules = portForwardRules.filter { it.tunnelConfigId == tunnel.id },
+                boundPorts = boundForwardPorts,
+                ruleErrors = forwardRuleErrors,
+                onAddForward = { protocol, localPort, remoteHost, remotePort ->
+                    viewModel.addPortForward(tunnel.id, protocol, localPort, remoteHost, remotePort)
+                },
+                onRemoveForward = viewModel::removePortForward,
+                onDismiss = { forwardsTunnelId = null },
+            )
+        }
+    }
 }
 
 @Composable
@@ -304,7 +381,13 @@ private fun EmptyState(modifier: Modifier = Modifier) {
 private fun TunnelRow(
     tunnel: TunnelConfig,
     connected: Boolean = false,
+    connecting: Boolean = false,
+    socksPort: Int? = null,
+    forwardCount: Int = 0,
+    onConnect: (() -> Unit)? = null,
+    onDisconnect: (() -> Unit)? = null,
     onSignOut: (() -> Unit)? = null,
+    onPortForwards: (() -> Unit)? = null,
     onEdit: (() -> Unit)?,
     onDelete: () -> Unit,
 ) {
@@ -343,6 +426,18 @@ private fun TunnelRow(
                             color = MaterialTheme.colorScheme.onPrimaryContainer,
                         )
                     }
+                } else if (connecting) {
+                    Surface(
+                        color = MaterialTheme.colorScheme.secondaryContainer,
+                        shape = MaterialTheme.shapes.small,
+                    ) {
+                        Text(
+                            stringResource(R.string.tunnel_status_connecting),
+                            modifier = Modifier.padding(horizontal = 8.dp, vertical = 2.dp),
+                            style = MaterialTheme.typography.labelSmall,
+                            color = MaterialTheme.colorScheme.onSecondaryContainer,
+                        )
+                    }
                 }
                 if (cfExpired) {
                     Surface(
@@ -362,22 +457,63 @@ private fun TunnelRow(
         supportingContent = {
             val unknown = stringResource(R.string.tunnel_type_unknown)
             val kind = runCatching { tunnelTypeLabel(tunnel.typeEnum) }.getOrDefault(unknown)
-            Text(
-                stringResource(R.string.tunnel_row_subtitle, kind, formatter.format(Date(tunnel.createdAt))),
-                style = MaterialTheme.typography.bodySmall,
-                color = MaterialTheme.colorScheme.onSurfaceVariant,
-            )
+            Column(verticalArrangement = Arrangement.spacedBy(2.dp)) {
+                Text(
+                    stringResource(R.string.tunnel_row_subtitle, kind, formatter.format(Date(tunnel.createdAt))),
+                    style = MaterialTheme.typography.bodySmall,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant,
+                )
+                val extras = buildList {
+                    if (socksPort != null) {
+                        add("SOCKS5 127.0.0.1:$socksPort · QEMU 10.0.2.2:$socksPort")
+                    }
+                    if (forwardCount > 0) {
+                        add("$forwardCount forward${if (forwardCount == 1) "" else "s"}")
+                    }
+                }
+                if (extras.isNotEmpty()) {
+                    Text(
+                        extras.joinToString(" · "),
+                        style = MaterialTheme.typography.labelSmall.copy(fontFamily = FontFamily.Monospace),
+                        color = MaterialTheme.colorScheme.primary,
+                    )
+                }
+            }
         },
         leadingContent = {
             Icon(Icons.Filled.VpnLock, contentDescription = null)
         },
         trailingContent = {
             Row {
+                if (onConnect != null) {
+                    IconButton(onClick = onConnect, enabled = !connecting) {
+                        Icon(
+                            Icons.Filled.PlayArrow,
+                            contentDescription = stringResource(R.string.tunnel_connect),
+                        )
+                    }
+                }
+                if (onDisconnect != null) {
+                    IconButton(onClick = onDisconnect) {
+                        Icon(
+                            Icons.Filled.Stop,
+                            contentDescription = stringResource(R.string.tunnel_disconnect),
+                        )
+                    }
+                }
                 if (onSignOut != null) {
                     IconButton(onClick = onSignOut) {
                         Icon(
                             Icons.AutoMirrored.Filled.Logout,
                             contentDescription = stringResource(R.string.tunnel_sign_out),
+                        )
+                    }
+                }
+                if (onPortForwards != null) {
+                    IconButton(onClick = onPortForwards) {
+                        Icon(
+                            Icons.Filled.SwapHoriz,
+                            contentDescription = stringResource(R.string.tunnel_port_forwards),
                         )
                     }
                 }
@@ -396,6 +532,146 @@ private fun TunnelRow(
                         tint = MaterialTheme.colorScheme.error,
                     )
                 }
+            }
+        },
+    )
+}
+
+@Composable
+private fun TunnelPortForwardsDialog(
+    tunnel: TunnelConfig,
+    socksPort: Int?,
+    rules: List<TunnelPortForwardRule>,
+    boundPorts: Map<String, Int>,
+    ruleErrors: Map<String, String>,
+    onAddForward: (protocol: TunnelForwardProtocol, localPort: String, remoteHost: String, remotePort: String) -> Unit,
+    onRemoveForward: (ruleId: String) -> Unit,
+    onDismiss: () -> Unit,
+) {
+    var protocol by remember { mutableStateOf(TunnelForwardProtocol.TCP) }
+    var localPort by remember { mutableStateOf("") }
+    var remoteHost by remember { mutableStateOf("") }
+    var remotePort by remember { mutableStateOf("") }
+
+    AlertDialog(
+        onDismissRequest = onDismiss,
+        title = { Text(stringResource(R.string.tunnel_port_forwards_title, tunnel.label)) },
+        text = {
+            Column(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .verticalScroll(rememberScrollState()),
+                verticalArrangement = Arrangement.spacedBy(10.dp),
+            ) {
+                Text(
+                    stringResource(R.string.tunnel_port_forwards_help),
+                    style = MaterialTheme.typography.bodySmall,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant,
+                )
+                if (socksPort != null) {
+                    Surface(
+                        color = MaterialTheme.colorScheme.surfaceVariant,
+                        shape = MaterialTheme.shapes.small,
+                        modifier = Modifier.fillMaxWidth(),
+                    ) {
+                        Text(
+                            text = "SOCKS5 (PRoot): 127.0.0.1:$socksPort\n" +
+                                "SOCKS5 (QEMU):  10.0.2.2:$socksPort\n" +
+                                "PRoot CLI:      with-tunnel curl http://…",
+                            modifier = Modifier.padding(8.dp),
+                            style = MaterialTheme.typography.labelSmall.copy(fontFamily = FontFamily.Monospace),
+                        )
+                    }
+                }
+                if (rules.isEmpty()) {
+                    Text(
+                        stringResource(R.string.tunnel_port_forward_empty),
+                        style = MaterialTheme.typography.bodySmall,
+                        color = MaterialTheme.colorScheme.onSurfaceVariant,
+                    )
+                } else {
+                    for (rule in rules) {
+                        val actualLocal = boundPorts[rule.id] ?: rule.localPort
+                        val err = ruleErrors[rule.id]
+                        Row(
+                            modifier = Modifier.fillMaxWidth(),
+                            verticalAlignment = Alignment.CenterVertically,
+                            horizontalArrangement = Arrangement.SpaceBetween,
+                        ) {
+                            Column(modifier = Modifier.weight(1f)) {
+                                Text(
+                                    "${rule.protocol.name} 127.0.0.1:$actualLocal → ${rule.remoteHost}:${rule.remotePort}",
+                                    style = MaterialTheme.typography.bodySmall.copy(fontFamily = FontFamily.Monospace),
+                                )
+                                if (err != null) {
+                                    Text(
+                                        err,
+                                        style = MaterialTheme.typography.labelSmall,
+                                        color = MaterialTheme.colorScheme.error,
+                                    )
+                                }
+                            }
+                            IconButton(onClick = { onRemoveForward(rule.id) }) {
+                                Icon(
+                                    Icons.Filled.Delete,
+                                    contentDescription = stringResource(R.string.tunnel_delete_confirm),
+                                    tint = MaterialTheme.colorScheme.error,
+                                )
+                            }
+                        }
+                    }
+                }
+                HorizontalDivider()
+                Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+                    for (p in TunnelForwardProtocol.entries) {
+                        FilterChip(
+                            selected = protocol == p,
+                            onClick = { protocol = p },
+                            label = { Text(p.name) },
+                        )
+                    }
+                }
+                Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+                    OutlinedTextField(
+                        value = localPort,
+                        onValueChange = { localPort = it.filter(Char::isDigit) },
+                        label = { Text(stringResource(R.string.tunnel_port_forward_local_port)) },
+                        keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Number),
+                        singleLine = true,
+                        modifier = Modifier.weight(1f),
+                    )
+                    OutlinedTextField(
+                        value = remotePort,
+                        onValueChange = { remotePort = it.filter(Char::isDigit) },
+                        label = { Text(stringResource(R.string.tunnel_port_forward_remote_port)) },
+                        keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Number),
+                        singleLine = true,
+                        modifier = Modifier.weight(1f),
+                    )
+                }
+                OutlinedTextField(
+                    value = remoteHost,
+                    onValueChange = { remoteHost = it },
+                    label = { Text(stringResource(R.string.tunnel_port_forward_remote_host)) },
+                    singleLine = true,
+                    modifier = Modifier.fillMaxWidth(),
+                )
+                Button(
+                    onClick = {
+                        onAddForward(protocol, localPort, remoteHost, remotePort)
+                        localPort = ""
+                        remoteHost = ""
+                        remotePort = ""
+                    },
+                    modifier = Modifier.align(Alignment.End),
+                ) {
+                    Text(stringResource(R.string.tunnel_port_forward_add))
+                }
+            }
+        },
+        confirmButton = {
+            TextButton(onClick = onDismiss) {
+                Text(stringResource(R.string.tunnel_close))
             }
         },
     )

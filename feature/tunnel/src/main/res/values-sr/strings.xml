@@ -65,4 +65,18 @@
     <string name="tunnel_anyconnect_prompt_help">Кодови послати SMS-ом или е-поштом: оставите OTP тајну и одговор за други фактор празне, и Haven ће тражити код при пријави.</string>
     <string name="tunnel_anyconnect_stay_connected_label">Остани повезан</string>
     <string name="tunnel_anyconnect_stay_connected_help">Држи VPN укљученим после затварања последње везе, као Cisco апликација. Искључено: веза се прекида, а поновно повезивање убрзо затим наставља сесију без новог кода.</string>
+    <string name="tunnel_status_connecting">Повезивање…</string>
+    <string name="tunnel_connect">Повежи тунел</string>
+    <string name="tunnel_disconnect">Прекини везу тунела</string>
+    <string name="tunnel_port_forwards">Прослеђивање портова</string>
+    <string name="tunnel_port_forwards_title">Прослеђивање портова · %1$s</string>
+    <string name="tunnel_port_forwards_help">Проследите локални TCP или UDP порт на 127.0.0.1 (доступан на 10.0.2.2 унутар QEMU VM-а) директно на удаљени хост:порт кроз овај тунел — без потребе за SSH, RDP или Mosh везом.</string>
+    <string name="tunnel_port_forward_local_port">Локални порт</string>
+    <string name="tunnel_port_forward_remote_host">Удаљени хост или IP</string>
+    <string name="tunnel_port_forward_remote_port">Удаљени порт</string>
+    <string name="tunnel_port_forward_add">Додај прослеђивање</string>
+    <string name="tunnel_port_forward_empty">Нема подешених прослеђивања портова за овај тунел.</string>
+    <string name="tunnel_auto_proxy_title">Ауто-прокси за локални Linux кроз тунел</string>
+    <string name="tunnel_auto_proxy_subtitle">Извези ALL_PROXY / HTTP(S)_PROXY на SOCKS5 слушалац активног тунела у PRoot шкољкама и радним површинама (или користите `with-tunnel &lt;cmd&gt;` по потреби; у QEMU користите 10.0.2.2:&lt;port&gt;).</string>
+    <string name="tunnel_close">Затвори</string>
 </resources>

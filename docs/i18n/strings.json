@@ -48488,6 +48488,66 @@
      }
     },
     {
+     "name": "tunnel_status_connecting",
+     "en": "Connecting…",
+     "comment": "%1$d = hours until the captured Access JWT expires",
+     "args": [],
+     "t": {
+      "ar": "جارٍ الاتصال…",
+      "bn": "সংযোগ করা হচ্ছে…",
+      "de": "Verbinde…",
+      "es": "Conectando…",
+      "fr": "Connexion…",
+      "hi": "कनेक्ट हो रहा है…",
+      "ja": "接続中…",
+      "ko": "연결 중…",
+      "pt": "Conectando…",
+      "ru": "Подключение…",
+      "sr": "Повезивање…",
+      "zh": "正在连接…"
+     }
+    },
+    {
+     "name": "tunnel_connect",
+     "en": "Connect tunnel",
+     "comment": "%1$d = hours until the captured Access JWT expires",
+     "args": [],
+     "t": {
+      "ar": "اتصال بالنفق",
+      "bn": "টানেল সংযুক্ত করুন",
+      "de": "Tunnel verbinden",
+      "es": "Conectar túnel",
+      "fr": "Connecter le tunnel",
+      "hi": "टनल कनेक्ट करें",
+      "ja": "トンネルを接続",
+      "ko": "터널 연결",
+      "pt": "Conectar túnel",
+      "ru": "Подключить туннель",
+      "sr": "Повежи тунел",
+      "zh": "连接隧道"
+     }
+    },
+    {
+     "name": "tunnel_disconnect",
+     "en": "Disconnect tunnel",
+     "comment": "%1$d = hours until the captured Access JWT expires",
+     "args": [],
+     "t": {
+      "ar": "قطع اتصال النفق",
+      "bn": "টানেল বিচ্ছিন্ন করুন",
+      "de": "Tunnel trennen",
+      "es": "Desconectar túnel",
+      "fr": "Déconnecter le tunnel",
+      "hi": "टनल डिस्कनेक्ट करें",
+      "ja": "トンネルを切断",
+      "ko": "터널 연결 해제",
+      "pt": "Desconectar túnel",
+      "ru": "Отключить туннель",
+      "sr": "Прекини везу тунела",
+      "zh": "断开隧道"
+     }
+    },
+    {
      "name": "tunnel_sign_out",
      "en": "Sign out",
      "comment": "%1$d = hours until the captured Access JWT expires",
@@ -48505,6 +48565,228 @@
       "ru": "Выйти",
       "sr": "Одјави се",
       "zh": "退出登录"
+     }
+    },
+    {
+     "name": "tunnel_port_forwards",
+     "en": "Port forwards",
+     "comment": "%1$d = hours until the captured Access JWT expires",
+     "args": [],
+     "t": {
+      "ar": "إعادة توجيه المنافذ",
+      "bn": "পোর্ট ফরওয়ার্ডিং",
+      "de": "Portweiterleitungen",
+      "es": "Reenvío de puertos",
+      "fr": "Transferts de ports",
+      "hi": "पोर्ट फ़ॉरवर्ड",
+      "ja": "ポート転送",
+      "ko": "포트 포워딩",
+      "pt": "Redirecionamento de portas",
+      "ru": "Проброс портов",
+      "sr": "Прослеђивање портова",
+      "zh": "端口转发"
+     }
+    },
+    {
+     "name": "tunnel_port_forwards_title",
+     "en": "Port forwards · %1$s",
+     "comment": "%1$d = hours until the captured Access JWT expires",
+     "args": [
+      "%1$s"
+     ],
+     "t": {
+      "ar": "إعادة توجيه المنافذ · %1$s",
+      "bn": "পোর্ট ফরওয়ার্ডিং · %1$s",
+      "de": "Portweiterleitungen · %1$s",
+      "es": "Reenvío de puertos · %1$s",
+      "fr": "Transferts de ports · %1$s",
+      "hi": "पोर्ट फ़ॉरवर्ड · %1$s",
+      "ja": "ポート転送 · %1$s",
+      "ko": "포트 포워딩 · %1$s",
+      "pt": "Redirecionamento de portas · %1$s",
+      "ru": "Проброс портов · %1$s",
+      "sr": "Прослеђивање портова · %1$s",
+      "zh": "端口转发 · %1$s"
+     }
+    },
+    {
+     "name": "tunnel_port_forwards_help",
+     "en": "Forward a local TCP or UDP port on 127.0.0.1 (reachable at 10.0.2.2 inside QEMU VMs) directly to a remote host:port through this tunnel — no SSH, RDP, or Mosh required.",
+     "comment": "%1$d = hours until the captured Access JWT expires",
+     "args": [],
+     "t": {
+      "ar": "إعادة توجيه منفذ TCP أو UDP محلي على 127.0.0.1 (متاح على 10.0.2.2 داخل أجهزة QEMU الافتراضية) مباشرةً إلى مضيف:منفذ بعيد عبر هذا النفق — دون الحاجة إلى SSH أو RDP أو Mosh.",
+      "bn": "SSH, RDP বা Mosh ছাড়াই এই টানেলের মাধ্যমে সরাসরি রিমোট host:port-এ 127.0.0.1-এর একটি লোকাল TCP বা UDP পোর্ট (QEMU VM-এর ভেতরে 10.0.2.2-এ প্রাপ্য) ফরওয়ার্ড করুন।",
+      "de": "Leite einen lokalen TCP- oder UDP-Port auf 127.0.0.1 (in QEMU-VMs unter 10.0.2.2 erreichbar) direkt durch diesen Tunnel an Host:Port weiter — ohne SSH, RDP oder Mosh.",
+      "es": "Reenvía un puerto TCP o UDP local en 127.0.0.1 (accesible en 10.0.2.2 dentro de máquinas virtuales QEMU) directamente a un host:puerto remoto a través de este túnel, sin necesidad de SSH, RDP ni Mosh.",
+      "fr": "Redirigez un port TCP ou UDP local sur 127.0.0.1 (accessible sur 10.0.2.2 dans les VM QEMU) directement vers un hôte:port distant via ce tunnel — sans SSH, RDP ni Mosh.",
+      "hi": "बिना SSH, RDP या Mosh के इस टनल के माध्यम से सीधे रिमोट host:port पर 127.0.0.1 (QEMU VM में 10.0.2.2 पर उपलब्ध) का लोकल TCP या UDP पोर्ट फ़ॉरवर्ड करें।",
+      "ja": "SSH、RDP、Mosh を使わずに、127.0.0.1 上のローカル TCP/UDP ポート（QEMU VM 内では 10.0.2.2 で到達可能）をこのトンネル経由でリモート host:port に直接転送します。",
+      "ko": "SSH, RDP, Mosh 없이도 127.0.0.1의 로컬 TCP 또는 UDP 포트(QEMU VM 내부에서는 10.0.2.2로 접근 가능)를 이 터널을 통해 원격 호스트:포트로 직접 전달합니다.",
+      "pt": "Redirecione uma porta TCP ou UDP local em 127.0.0.1 (acessível em 10.0.2.2 dentro de VMs QEMU) diretamente para um host:porta remoto através deste túnel — sem necessidade de SSH, RDP ou Mosh.",
+      "ru": "Перенаправляйте локальный TCP- или UDP-порт на 127.0.0.1 (доступен по 10.0.2.2 внутри ВМ QEMU) напрямую на удалённый хост:порт через этот туннель — без SSH, RDP или Mosh.",
+      "sr": "Проследите локални TCP или UDP порт на 127.0.0.1 (доступан на 10.0.2.2 унутар QEMU VM-а) директно на удаљени хост:порт кроз овај тунел — без потребе за SSH, RDP или Mosh везом.",
+      "zh": "无需 SSH、RDP 或 Mosh，直接通过此隧道将 127.0.0.1 上的本地 TCP 或 UDP 端口（在 QEMU 虚拟机内可通过 10.0.2.2 访问）转发到远程 主机:端口。"
+     }
+    },
+    {
+     "name": "tunnel_port_forward_local_port",
+     "en": "Local port",
+     "comment": "%1$d = hours until the captured Access JWT expires",
+     "args": [],
+     "t": {
+      "ar": "المنفذ المحلي",
+      "bn": "লোকাল পোর্ট",
+      "de": "Lokaler Port",
+      "es": "Puerto local",
+      "fr": "Port local",
+      "hi": "लोकल पोर्ट",
+      "ja": "ローカルポート",
+      "ko": "로컬 포트",
+      "pt": "Porta local",
+      "ru": "Локальный порт",
+      "sr": "Локални порт",
+      "zh": "本地端口"
+     }
+    },
+    {
+     "name": "tunnel_port_forward_remote_host",
+     "en": "Remote host or IP",
+     "comment": "%1$d = hours until the captured Access JWT expires",
+     "args": [],
+     "t": {
+      "ar": "المضيف البعيد أو IP",
+      "bn": "রিমোট হোস্ট বা IP",
+      "de": "Entfernter Host oder IP",
+      "es": "Host o IP remota",
+      "fr": "Hôte ou IP distant",
+      "hi": "रिमोट होस्ट या IP",
+      "ja": "リモートホストまたは IP",
+      "ko": "원격 호스트 또는 IP",
+      "pt": "Host ou IP remoto",
+      "ru": "Удалённый хост или IP",
+      "sr": "Удаљени хост или IP",
+      "zh": "远程主机或 IP"
+     }
+    },
+    {
+     "name": "tunnel_port_forward_remote_port",
+     "en": "Remote port",
+     "comment": "%1$d = hours until the captured Access JWT expires",
+     "args": [],
+     "t": {
+      "ar": "المنفذ البعيد",
+      "bn": "রিমোট পোর্ট",
+      "de": "Entfernter Port",
+      "es": "Puerto remoto",
+      "fr": "Port distant",
+      "hi": "रिमोट पोर्ट",
+      "ja": "リモートポート",
+      "ko": "원격 포트",
+      "pt": "Porta remota",
+      "ru": "Удалённый порт",
+      "sr": "Удаљени порт",
+      "zh": "远程端口"
+     }
+    },
+    {
+     "name": "tunnel_port_forward_add",
+     "en": "Add forward",
+     "comment": "%1$d = hours until the captured Access JWT expires",
+     "args": [],
+     "t": {
+      "ar": "إضافة توجيه",
+      "bn": "ফরওয়ার্ড যোগ করুন",
+      "de": "Weiterleitung hinzufügen",
+      "es": "Añadir reenvío",
+      "fr": "Ajouter un transfert",
+      "hi": "फ़ॉरवर्ड जोड़ें",
+      "ja": "転送を追加",
+      "ko": "포워딩 추가",
+      "pt": "Adicionar redirecionamento",
+      "ru": "Добавить правило",
+      "sr": "Додај прослеђивање",
+      "zh": "添加转发"
+     }
+    },
+    {
+     "name": "tunnel_port_forward_empty",
+     "en": "No port forwards configured for this tunnel.",
+     "comment": "%1$d = hours until the captured Access JWT expires",
+     "args": [],
+     "t": {
+      "ar": "لم يتم إعداد إعادة توجيه منافذ لهذا النفق.",
+      "bn": "এই টানেলের জন্য কোনো পোর্ট ফরওয়ার্ড কনফিগার করা হয়নি।",
+      "de": "Keine Portweiterleitungen für diesen Tunnel konfiguriert.",
+      "es": "No hay reenvíos de puertos configurados para este túnel.",
+      "fr": "Aucun transfert de port configuré pour ce tunnel.",
+      "hi": "इस टनल के लिए कोई पोर्ट फ़ॉरवर्ड कॉन्फ़िगर नहीं है।",
+      "ja": "このトンネルにはポート転送が設定されていません。",
+      "ko": "이 터널에 설정된 포트 포워딩이 없습니다.",
+      "pt": "Nenhum redirecionamento de porta configurado para este túnel.",
+      "ru": "Для этого туннеля проброс портов не настроен.",
+      "sr": "Нема подешених прослеђивања портова за овај тунел.",
+      "zh": "此隧道尚未配置端口转发。"
+     }
+    },
+    {
+     "name": "tunnel_auto_proxy_title",
+     "en": "Auto-proxy local Linux through tunnel",
+     "comment": "%1$d = hours until the captured Access JWT expires",
+     "args": [],
+     "t": {
+      "ar": "توجيه Linux المحلي عبر النفق تلقائياً",
+      "bn": "টানেলের মাধ্যমে লোকাল Linux অটো-প্রক্সি করুন",
+      "de": "Lokales Linux automatisch über Tunnel leiten",
+      "es": "Proxy automático para Linux local por el túnel",
+      "fr": "Proxy auto pour Linux local via le tunnel",
+      "hi": "टनल के माध्यम से लोकल Linux ऑटो-प्रॉक्सी करें",
+      "ja": "ローカルトunnel経由で Linux を自動プロキシ",
+      "ko": "터널을 통해 로컬 Linux 자동 프록시",
+      "pt": "Proxy automático para Linux local pelo túnel",
+      "ru": "Автопрокси локального Linux через туннель",
+      "sr": "Ауто-прокси за локални Linux кроз тунел",
+      "zh": "通过隧道自动代理本地 Linux"
+     }
+    },
+    {
+     "name": "tunnel_auto_proxy_subtitle",
+     "en": "Export ALL_PROXY / HTTP(S)_PROXY to the active tunnel\\'s SOCKS5 listener in PRoot shells and desktops (or use `with-tunnel &lt;cmd&gt;` on demand; in QEMU use 10.0.2.2:&lt;port&gt;).",
+     "comment": "%1$d = hours until the captured Access JWT expires",
+     "args": [],
+     "t": {
+      "ar": "تصدير ALL_PROXY / HTTP(S)_PROXY إلى مستمع SOCKS5 للنفق النشط في جلسات PRoot وأسطح المكتب (أو استخدم `with-tunnel &lt;cmd&gt;` عند الطلب؛ وفي QEMU استخدم 10.0.2.2:&lt;port&gt;).",
+      "bn": "PRoot শেল ও ডেস্কটপে সক্রিয় টানেলের SOCKS5 লিসেনারে ALL_PROXY / HTTP(S)_PROXY এক্সপোর্ট করুন (অথবা প্রয়োজনে `with-tunnel &lt;cmd&gt;` ব্যবহার করুন; QEMU-তে 10.0.2.2:&lt;port&gt; ব্যবহার করুন)।",
+      "de": "Exportiert ALL_PROXY / HTTP(S)_PROXY auf den SOCKS5-Listener des aktiven Tunnels in PRoot-Shells und -Desktops (oder bei Bedarf `with-tunnel &lt;cmd&gt;` nutzen; in QEMU 10.0.2.2:&lt;port&gt; verwenden).",
+      "es": "Exporta ALL_PROXY / HTTP(S)_PROXY al oyente SOCKS5 del túnel activo en terminales y escritorios PRoot (o usa `with-tunnel &lt;cmd&gt;` bajo demanda; en QEMU usa 10.0.2.2:&lt;port&gt;).",
+      "fr": "Exporte ALL_PROXY / HTTP(S)_PROXY vers l\\'écouteur SOCKS5 du tunnel actif dans les shells et bureaux PRoot (ou utilisez `with-tunnel &lt;cmd&gt;` à la demande ; dans QEMU utilisez 10.0.2.2:&lt;port&gt;).",
+      "hi": "PRoot शेल और डेस्कटॉप में सक्रिय टनल के SOCKS5 लिसनर पर ALL_PROXY / HTTP(S)_PROXY एक्सपोर्ट करें (या मांग पर `with-tunnel &lt;cmd&gt;` का उपयोग करें; QEMU में 10.0.2.2:&lt;port&gt; का उपयोग करें)।",
+      "ja": "PRoot シェルとデスクトップでアクティブなトンネルの SOCKS5 リスナーに ALL_PROXY / HTTP(S)_PROXY をエクスポートします（または必要に応じて `with-tunnel &lt;cmd&gt;` を使用、QEMU では 10.0.2.2:&lt;port&gt; を使用）。",
+      "ko": "PRoot 셸 및 데스크톱에서 활성 터널의 SOCKS5 리스너로 ALL_PROXY / HTTP(S)_PROXY를 내보냅니다(또는 필요 시 `with-tunnel &lt;cmd&gt;` 사용, QEMU에서는 10.0.2.2:&lt;port&gt; 사용).",
+      "pt": "Exporta ALL_PROXY / HTTP(S)_PROXY para o ouvinte SOCKS5 do túnel ativo em shells e desktops PRoot (ou use `with-tunnel &lt;cmd&gt;` sob demanda; no QEMU use 10.0.2.2:&lt;port&gt;).",
+      "ru": "Экспортировать ALL_PROXY / HTTP(S)_PROXY на SOCKS5-прокси активного туннеля в оболочках и рабочих столах PRoot (или используйте `with-tunnel &lt;cmd&gt;`; в QEMU используйте 10.0.2.2:&lt;port&gt;).",
+      "sr": "Извези ALL_PROXY / HTTP(S)_PROXY на SOCKS5 слушалац активног тунела у PRoot шкољкама и радним површинама (или користите `with-tunnel &lt;cmd&gt;` по потреби; у QEMU користите 10.0.2.2:&lt;port&gt;).",
+      "zh": "在 PRoot 终端和桌面中将 ALL_PROXY / HTTP(S)_PROXY 自动导出到活动隧道的 SOCKS5 监听端口（也可按需使用 `with-tunnel &lt;cmd&gt;`，在 QEMU 中使用 10.0.2.2:&lt;port&gt;）。"
+     }
+    },
+    {
+     "name": "tunnel_close",
+     "en": "Close",
+     "comment": "%1$d = hours until the captured Access JWT expires",
+     "args": [],
+     "t": {
+      "ar": "إغلاق",
+      "bn": "বন্ধ করুন",
+      "de": "Schließen",
+      "es": "Cerrar",
+      "fr": "Fermer",
+      "hi": "बंद करें",
+      "ja": "閉じる",
+      "ko": "닫기",
+      "pt": "Fechar",
+      "ru": "Закрыть",
+      "sr": "Затвори",
+      "zh": "关闭"
      }
     },
     {

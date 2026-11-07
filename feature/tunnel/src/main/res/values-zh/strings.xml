@@ -71,4 +71,18 @@
     <string name="tunnel_anyconnect_prompt_help">通过短信或电子邮件发送的验证码：将 OTP 密钥和二次验证应答留空，Haven 会在登录时询问验证码。</string>
     <string name="tunnel_anyconnect_stay_connected_label">保持连接</string>
     <string name="tunnel_anyconnect_stay_connected_help">像 Cisco 应用一样，在最后一个连接关闭后仍保持 VPN 连接。关闭时：VPN 会断开，但不久后重新连接可恢复会话而无需新验证码。</string>
+    <string name="tunnel_status_connecting">正在连接…</string>
+    <string name="tunnel_connect">连接隧道</string>
+    <string name="tunnel_disconnect">断开隧道</string>
+    <string name="tunnel_port_forwards">端口转发</string>
+    <string name="tunnel_port_forwards_title">端口转发 · %1$s</string>
+    <string name="tunnel_port_forwards_help">无需 SSH、RDP 或 Mosh，直接通过此隧道将 127.0.0.1 上的本地 TCP 或 UDP 端口（在 QEMU 虚拟机内可通过 10.0.2.2 访问）转发到远程 主机:端口。</string>
+    <string name="tunnel_port_forward_local_port">本地端口</string>
+    <string name="tunnel_port_forward_remote_host">远程主机或 IP</string>
+    <string name="tunnel_port_forward_remote_port">远程端口</string>
+    <string name="tunnel_port_forward_add">添加转发</string>
+    <string name="tunnel_port_forward_empty">此隧道尚未配置端口转发。</string>
+    <string name="tunnel_auto_proxy_title">通过隧道自动代理本地 Linux</string>
+    <string name="tunnel_auto_proxy_subtitle">在 PRoot 终端和桌面中将 ALL_PROXY / HTTP(S)_PROXY 自动导出到活动隧道的 SOCKS5 监听端口（也可按需使用 `with-tunnel &lt;cmd&gt;`，在 QEMU 中使用 10.0.2.2:&lt;port&gt;）。</string>
+    <string name="tunnel_close">关闭</string>
 </resources>

@@ -69,4 +69,18 @@
     <string name="tunnel_anyconnect_prompt_help">SMS বা ইমেলে পাঠানো কোড: OTP সিক্রেট ও দ্বিতীয় ফ্যাক্টরের উত্তর খালি রাখুন, সাইন ইনের সময় Haven কোড জিজ্ঞেস করবে।</string>
     <string name="tunnel_anyconnect_stay_connected_label">সংযুক্ত থাকুন</string>
     <string name="tunnel_anyconnect_stay_connected_help">Cisco অ্যাপের মতো শেষ সংযোগ বন্ধ হওয়ার পরও VPN চালু রাখুন। বন্ধ থাকলে: VPN বিচ্ছিন্ন হয়, এবং শীঘ্রই আবার সংযোগ করলে নতুন কোড ছাড়াই সেশন আবার শুরু হয়।</string>
+    <string name="tunnel_status_connecting">সংযোগ করা হচ্ছে…</string>
+    <string name="tunnel_connect">টানেল সংযুক্ত করুন</string>
+    <string name="tunnel_disconnect">টানেল বিচ্ছিন্ন করুন</string>
+    <string name="tunnel_port_forwards">পোর্ট ফরওয়ার্ডিং</string>
+    <string name="tunnel_port_forwards_title">পোর্ট ফরওয়ার্ডিং · %1$s</string>
+    <string name="tunnel_port_forwards_help">SSH, RDP বা Mosh ছাড়াই এই টানেলের মাধ্যমে সরাসরি রিমোট host:port-এ 127.0.0.1-এর একটি লোকাল TCP বা UDP পোর্ট (QEMU VM-এর ভেতরে 10.0.2.2-এ প্রাপ্য) ফরওয়ার্ড করুন।</string>
+    <string name="tunnel_port_forward_local_port">লোকাল পোর্ট</string>
+    <string name="tunnel_port_forward_remote_host">রিমোট হোস্ট বা IP</string>
+    <string name="tunnel_port_forward_remote_port">রিমোট পোর্ট</string>
+    <string name="tunnel_port_forward_add">ফরওয়ার্ড যোগ করুন</string>
+    <string name="tunnel_port_forward_empty">এই টানেলের জন্য কোনো পোর্ট ফরওয়ার্ড কনফিগার করা হয়নি।</string>
+    <string name="tunnel_auto_proxy_title">টানেলের মাধ্যমে লোকাল Linux অটো-প্রক্সি করুন</string>
+    <string name="tunnel_auto_proxy_subtitle">PRoot শেল ও ডেস্কটপে সক্রিয় টানেলের SOCKS5 লিসেনারে ALL_PROXY / HTTP(S)_PROXY এক্সপোর্ট করুন (অথবা প্রয়োজনে `with-tunnel &lt;cmd&gt;` ব্যবহার করুন; QEMU-তে 10.0.2.2:&lt;port&gt; ব্যবহার করুন)।</string>
+    <string name="tunnel_close">বন্ধ করুন</string>
 </resources>

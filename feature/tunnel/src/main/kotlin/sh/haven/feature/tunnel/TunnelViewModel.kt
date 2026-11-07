@@ -22,7 +22,10 @@ import sh.haven.core.data.repository.TunnelConfigRepository
 import sh.haven.core.tunnel.AnyConnectConfigBlob
 import sh.haven.core.tunnel.AnyConnectSessionController
 import sh.haven.core.tunnel.CloudflareAccessTunnel
+import sh.haven.core.tunnel.TunnelForwardProtocol
 import sh.haven.core.tunnel.TunnelManager
+import sh.haven.core.tunnel.TunnelPortForwardManager
+import sh.haven.core.tunnel.TunnelPortForwardRule
 import java.util.concurrent.TimeUnit
 import javax.inject.Inject
 
@@ -38,12 +41,136 @@ class TunnelViewModel @Inject constructor(
     private val httpClient: OkHttpClient,
     tunnelManager: TunnelManager,
     private val anyConnectSessions: AnyConnectSessionController,
+    private val portForwardManager: TunnelPortForwardManager,
 ) : ViewModel() {
+
+    constructor(
+        repository: TunnelConfigRepository,
+        connectionLogRepository: ConnectionLogRepository,
+        httpClient: OkHttpClient,
+        tunnelManager: TunnelManager,
+        anyConnectSessions: AnyConnectSessionController,
+    ) : this(
+        repository = repository,
+        connectionLogRepository = connectionLogRepository,
+        httpClient = httpClient,
+        tunnelManager = tunnelManager,
+        anyConnectSessions = anyConnectSessions,
+        portForwardManager = TunnelPortForwardManager(tunnelManager = tunnelManager),
+    )
 
     /** Ids of tunnels that are up right now, for the list's "Connected" badge. */
     val connectedIds: StateFlow<Set<String>> = tunnelManager.live
         .map { it.keys }
         .stateIn(viewModelScope, SharingStarted.WhileSubscribed(5_000), emptySet())
+
+    /** Ids of tunnels currently establishing a standalone connection (#792). */
+    private val _connectingIds = MutableStateFlow<Set<String>>(emptySet())
+    val connectingIds: StateFlow<Set<String>> = _connectingIds.asStateFlow()
+
+    /** Active localhost SOCKS5 port per connected tunnel (`configId -> port`, #792). */
+    val socksPorts: StateFlow<Map<String, Int>> = portForwardManager.socksPorts
+
+    /** Configured plain TCP/UDP port-forward rules across tunnels (#792). */
+    val portForwardRules: StateFlow<List<TunnelPortForwardRule>> = portForwardManager.rules
+
+    /** Actual bound local port per active port-forward rule (`ruleId -> localPort`). */
+    val boundForwardPorts: StateFlow<Map<String, Int>> = portForwardManager.boundPorts
+
+    /** Per-rule error message when a port-forward listener or tunnel dial setup fails. */
+    val forwardRuleErrors: StateFlow<Map<String, String>> = portForwardManager.ruleErrors
+
+    /** Whether PRoot shells/desktops auto-export `ALL_PROXY` when a tunnel SOCKS5 proxy is up. */
+    val autoProxyGuests: StateFlow<Boolean> = portForwardManager.autoProxyGuests
+
+    /**
+     * Connect a standalone tunnel directly from the Tunnels screen (#792) so
+     * local PRoot Linux and QEMU VMs can use its localhost SOCKS5 proxy or
+     * port forwards without needing an SSH/RDP connection profile.
+     */
+    fun connect(id: String) {
+        if (id in _connectingIds.value) return
+        _connectingIds.value = _connectingIds.value + id
+        viewModelScope.launch {
+            try {
+                val tunnel = portForwardManager.connectStandalone(id)
+                if (tunnel == null) {
+                    _error.value = "Tunnel no longer exists"
+                } else {
+                    val socksPort = portForwardManager.socksPorts.value[id]
+                    _message.value = if (socksPort != null) {
+                        "Tunnel connected (SOCKS5 127.0.0.1:$socksPort · QEMU 10.0.2.2:$socksPort)"
+                    } else {
+                        "Tunnel connected"
+                    }
+                }
+            } catch (e: Throwable) {
+                _error.value = "Connect failed: ${e.message ?: e.javaClass.simpleName}"
+            } finally {
+                _connectingIds.value = _connectingIds.value - id
+            }
+        }
+    }
+
+    fun setAutoProxyGuests(enabled: Boolean) {
+        portForwardManager.setAutoProxyGuests(enabled)
+    }
+
+    fun addPortForward(
+        tunnelConfigId: String,
+        protocol: TunnelForwardProtocol,
+        localPortText: String,
+        remoteHost: String,
+        remotePortText: String,
+    ) {
+        val localPort = localPortText.trim().toIntOrNull()
+        if (localPort == null || localPort !in 1..65535) {
+            _error.value = "Local port must be between 1 and 65535"
+            return
+        }
+        val trimmedHost = remoteHost.trim()
+        if (trimmedHost.isEmpty()) {
+            _error.value = "Remote host is required"
+            return
+        }
+        val remotePort = remotePortText.trim().toIntOrNull()
+        if (remotePort == null || remotePort !in 1..65535) {
+            _error.value = "Remote port must be between 1 and 65535"
+            return
+        }
+        viewModelScope.launch {
+            try {
+                portForwardManager.addRule(
+                    tunnelConfigId = tunnelConfigId,
+                    protocol = protocol,
+                    localPort = localPort,
+                    remoteHost = trimmedHost,
+                    remotePort = remotePort,
+                )
+                val err = portForwardManager.ruleErrors.value.entries
+                    .lastOrNull { (ruleId, _) ->
+                        portForwardManager.rules.value.any { it.id == ruleId && it.tunnelConfigId == tunnelConfigId && it.localPort == localPort }
+                    }?.value
+                if (err != null) {
+                    _error.value = "Forward failed: $err"
+                } else {
+                    _message.value = "Forwarding ${protocol.name} 127.0.0.1:$localPort → $trimmedHost:$remotePort"
+                }
+            } catch (e: Throwable) {
+                _error.value = "Forward failed: ${e.message ?: e.javaClass.simpleName}"
+            }
+        }
+    }
+
+    fun removePortForward(ruleId: String) {
+        viewModelScope.launch {
+            try {
+                portForwardManager.removeRule(ruleId)
+            } catch (e: Throwable) {
+                _error.value = "Remove forward failed: ${e.message}"
+            }
+        }
+    }
 
     /**
      * Disconnect a live tunnel. For AnyConnect, [signOut] also ends the
@@ -53,6 +180,7 @@ class TunnelViewModel @Inject constructor(
     fun disconnect(id: String, signOut: Boolean) {
         viewModelScope.launch {
             try {
+                portForwardManager.disconnectStandalone(id)
                 anyConnectSessions.disconnect(id, signOut)
             } catch (e: Exception) {
                 _error.value = "Disconnect failed: ${e.message}"
@@ -566,6 +694,8 @@ class TunnelViewModel @Inject constructor(
     fun delete(id: String) {
         viewModelScope.launch {
             try {
+                runCatching { portForwardManager.removeRulesForTunnel(id) }
+                runCatching { portForwardManager.disconnectStandalone(id) }
                 // Don't leave a VPN session behind on the gateway for a
                 // tunnel that no longer exists.
                 if (repository.getById(id)?.typeEnum == TunnelConfigType.ANYCONNECT) {

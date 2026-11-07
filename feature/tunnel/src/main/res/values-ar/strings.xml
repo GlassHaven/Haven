@@ -71,4 +71,18 @@
     <string name="tunnel_anyconnect_prompt_help">الرموز المرسلة عبر الرسائل القصيرة أو البريد: اترك سر OTP وإجابة العامل الثاني فارغين، وسيطلب Haven الرمز عند تسجيل الدخول.</string>
     <string name="tunnel_anyconnect_stay_connected_label">البقاء متصلاً</string>
     <string name="tunnel_anyconnect_stay_connected_help">إبقاء الـ VPN متصلاً بعد إغلاق آخر اتصال، مثل تطبيق Cisco. عند الإيقاف: يُقطع الاتصال، وإعادة الاتصال بعد وقت قصير تستأنف الجلسة دون رمز جديد.</string>
+    <string name="tunnel_status_connecting">جارٍ الاتصال…</string>
+    <string name="tunnel_connect">اتصال بالنفق</string>
+    <string name="tunnel_disconnect">قطع اتصال النفق</string>
+    <string name="tunnel_port_forwards">إعادة توجيه المنافذ</string>
+    <string name="tunnel_port_forwards_title">إعادة توجيه المنافذ · %1$s</string>
+    <string name="tunnel_port_forwards_help">إعادة توجيه منفذ TCP أو UDP محلي على 127.0.0.1 (متاح على 10.0.2.2 داخل أجهزة QEMU الافتراضية) مباشرةً إلى مضيف:منفذ بعيد عبر هذا النفق — دون الحاجة إلى SSH أو RDP أو Mosh.</string>
+    <string name="tunnel_port_forward_local_port">المنفذ المحلي</string>
+    <string name="tunnel_port_forward_remote_host">المضيف البعيد أو IP</string>
+    <string name="tunnel_port_forward_remote_port">المنفذ البعيد</string>
+    <string name="tunnel_port_forward_add">إضافة توجيه</string>
+    <string name="tunnel_port_forward_empty">لم يتم إعداد إعادة توجيه منافذ لهذا النفق.</string>
+    <string name="tunnel_auto_proxy_title">توجيه Linux المحلي عبر النفق تلقائياً</string>
+    <string name="tunnel_auto_proxy_subtitle">تصدير ALL_PROXY / HTTP(S)_PROXY إلى مستمع SOCKS5 للنفق النشط في جلسات PRoot وأسطح المكتب (أو استخدم `with-tunnel &lt;cmd&gt;` عند الطلب؛ وفي QEMU استخدم 10.0.2.2:&lt;port&gt;).</string>
+    <string name="tunnel_close">إغلاق</string>
 </resources>

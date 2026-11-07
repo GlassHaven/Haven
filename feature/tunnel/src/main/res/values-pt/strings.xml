@@ -71,4 +71,18 @@
     <string name="tunnel_anyconnect_prompt_help">Códigos enviados por SMS ou e-mail: deixe vazios o segredo OTP e a resposta do segundo fator, e o Haven pede o código ao entrar.</string>
     <string name="tunnel_anyconnect_stay_connected_label">Manter conectado</string>
     <string name="tunnel_anyconnect_stay_connected_help">Mantém a VPN ativa após fechar sua última conexão, como o app da Cisco. Desligado: ela desconecta, e reconectar logo depois retoma a sessão sem um novo código.</string>
+    <string name="tunnel_status_connecting">Conectando…</string>
+    <string name="tunnel_connect">Conectar túnel</string>
+    <string name="tunnel_disconnect">Desconectar túnel</string>
+    <string name="tunnel_port_forwards">Redirecionamento de portas</string>
+    <string name="tunnel_port_forwards_title">Redirecionamento de portas · %1$s</string>
+    <string name="tunnel_port_forwards_help">Redirecione uma porta TCP ou UDP local em 127.0.0.1 (acessível em 10.0.2.2 dentro de VMs QEMU) diretamente para um host:porta remoto através deste túnel — sem necessidade de SSH, RDP ou Mosh.</string>
+    <string name="tunnel_port_forward_local_port">Porta local</string>
+    <string name="tunnel_port_forward_remote_host">Host ou IP remoto</string>
+    <string name="tunnel_port_forward_remote_port">Porta remota</string>
+    <string name="tunnel_port_forward_add">Adicionar redirecionamento</string>
+    <string name="tunnel_port_forward_empty">Nenhum redirecionamento de porta configurado para este túnel.</string>
+    <string name="tunnel_auto_proxy_title">Proxy automático para Linux local pelo túnel</string>
+    <string name="tunnel_auto_proxy_subtitle">Exporta ALL_PROXY / HTTP(S)_PROXY para o ouvinte SOCKS5 do túnel ativo em shells e desktops PRoot (ou use `with-tunnel &lt;cmd&gt;` sob demanda; no QEMU use 10.0.2.2:&lt;port&gt;).</string>
+    <string name="tunnel_close">Fechar</string>
 </resources>

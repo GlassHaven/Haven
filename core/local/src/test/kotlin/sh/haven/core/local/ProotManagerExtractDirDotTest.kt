@@ -46,7 +46,13 @@ class ProotManagerExtractDirDotTest {
     }
 
     /** Minimal POSIX ustar writer — enough for short-name, short-body entries. */
-    private fun tarHeader(name: String, size: Long, typeFlag: Byte, mode: String = "0644"): ByteArray {
+    private fun tarHeader(
+        name: String,
+        size: Long,
+        typeFlag: Byte,
+        mode: String = "0644",
+        linkName: String = "",
+    ): ByteArray {
         val b = ByteArray(512)
         name.toByteArray().copyInto(b, 0)
         mode.toByteArray().copyInto(b, 100)
@@ -55,6 +61,9 @@ class ProotManagerExtractDirDotTest {
         "%011o".format(size).toByteArray().copyInto(b, 124)
         "00000000000".toByteArray().copyInto(b, 136) // mtime
         b[156] = typeFlag
+        if (linkName.isNotEmpty()) {
+            linkName.toByteArray().copyInto(b, 157)
+        }
         "ustar  ".toByteArray().copyInto(b, 257)
         "00".toByteArray().copyInto(b, 265)
         for (i in 148 until 156) b[i] = ' '.code.toByte()
@@ -63,6 +72,15 @@ class ProotManagerExtractDirDotTest {
         "%06o  ".format(sum).toByteArray().copyInto(b, 148)
         return b
     }
+
+    private fun tarEntryBytes(name: String, body: ByteArray, typeFlag: Byte = 0): ByteArray {
+        val pad = 512 - (body.size % 512)
+        return tarHeader(name, body.size.toLong(), typeFlag) + body +
+            if (pad == 512) ByteArray(0) else ByteArray(pad)
+    }
+
+    private fun tarHardLink(name: String, linkTarget: String): ByteArray =
+        tarHeader(name, 0L, typeFlag = '1'.code.toByte(), mode = "0755", linkName = linkTarget)
 
     private fun tarEntry(name: String, content: String, typeFlag: Byte = 0): ByteArray {
         val body = content.toByteArray()
@@ -193,6 +211,64 @@ class ProotManagerExtractDirDotTest {
             val cpuTable = File(dest, "usr/share/dpkg/cputable")
             assertTrue("Subsequent entries after PAX header must be extracted (#721)", cpuTable.isFile)
             assertEquals("arm64\taarch64\n", cpuTable.readText())
+        } finally {
+            forceDeleteRecursively(dest)
+        }
+    }
+
+    @Test
+    fun `large hard link extracts as relative symlink while small hard link copies`() {
+        val dest = Files.createTempDirectory("tar-hardlink-dest").toFile()
+        try {
+            val largePayload = ByteArray(1_048_576) { (it and 0xFF).toByte() }
+            val tarball = gzTar(
+                tarEntryBytes("usr/bin/coreutils", largePayload),
+                tarHardLink("usr/lib/cargo/bin/coreutils/ls", "usr/bin/coreutils"),
+                tarEntry("etc/small-orig", "hello-small"),
+                tarHardLink("etc/small-link", "etc/small-orig"),
+            )
+            extract(tarball, dest)
+
+            val lsLink = File(dest, "usr/lib/cargo/bin/coreutils/ls").toPath()
+            assertTrue("Large hard link (>= 1 MB) must be created as a symlink", Files.isSymbolicLink(lsLink))
+            assertEquals("../../../../bin/coreutils", Files.readSymbolicLink(lsLink).toString())
+            assertEquals(1_048_576L, lsLink.toFile().length())
+
+            val smallLink = File(dest, "etc/small-link").toPath()
+            assertTrue("Small hard link (< 1 MB) must remain an independent regular file", !Files.isSymbolicLink(smallLink))
+            assertEquals("hello-small", smallLink.toFile().readText())
+        } finally {
+            forceDeleteRecursively(dest)
+        }
+    }
+
+    @Test
+    fun `ensureTunnelGuestHelper and guestTunnelEnvVars surface tunnel socks5 and auto proxy`() {
+        val dest = Files.createTempDirectory("tar-tunnel-helper-dest").toFile()
+        try {
+            File(dest, "bin").mkdirs()
+            ProotManager.ensureAptSandboxConfig(dest)
+
+            val withTunnel = File(dest, "usr/local/bin/with-tunnel")
+            val profileHook = File(dest, "etc/profile.d/haven-tunnel.sh")
+            assertTrue("with-tunnel script must be created", withTunnel.isFile)
+            assertTrue("haven-tunnel.sh profile hook must be created", profileHook.isFile)
+            assertTrue(withTunnel.readText().contains("socks5h://"))
+
+            assertTrue(manager.guestTunnelEnvVars().isEmpty())
+
+            val cacheDir = manager.ensureDevShm().let { File(it).parentFile!! }
+            File(cacheDir, ".haven_tunnel_socks5").writeText("127.0.0.1:45678\n")
+            val varsWithoutAuto = manager.guestTunnelEnvVars()
+            assertEquals("127.0.0.1:45678", varsWithoutAuto["HAVEN_TUNNEL_SOCKS5"])
+            assertEquals("10.0.2.2:45678", varsWithoutAuto["HAVEN_TUNNEL_QEMU_SOCKS5"])
+            assertTrue("ALL_PROXY must not be set when auto-proxy is off", !varsWithoutAuto.containsKey("ALL_PROXY"))
+
+            File(cacheDir, ".haven_tunnel_auto_proxy").writeText("1\n")
+            val varsWithAuto = manager.guestTunnelEnvVars()
+            assertEquals("socks5h://127.0.0.1:45678", varsWithAuto["ALL_PROXY"])
+            assertEquals("socks5h://127.0.0.1:45678", varsWithAuto["HTTPS_PROXY"])
+            assertEquals("socks5h://127.0.0.1:45678", varsWithAuto["HTTP_PROXY"])
         } finally {
             forceDeleteRecursively(dest)
         }

@@ -60,15 +60,26 @@ object MirrorCatalog {
         ),
     )
 
-    // Ubuntu arm64 packages come from ports.ubuntu.com/ubuntu-ports, not
-    // archive.ubuntu.com — the mirrors below all carry the ports tree.
+    // Ubuntu arm64/armhf packages on 24.04 (and armhf on 26.04) come from
+    // ports.ubuntu.com/ubuntu-ports; Ubuntu 26.04 ubuntu-base also uses
+    // deb822 /etc/apt/sources.list.d/ubuntu.sources and archive.ubuntu.com.
     private val UBUNTU = MirrorSub(
-        files = listOf("etc/apt/sources.list"),
+        files = listOf("etc/apt/sources.list", "etc/apt/sources.list.d/ubuntu.sources"),
         bases = mapOf(
             MirrorRegion.DEFAULT to "http://ports.ubuntu.com/ubuntu-ports",
             MirrorRegion.EUROPE to "http://de.ports.ubuntu.com/ubuntu-ports",
             MirrorRegion.ASIA to "http://mirrors.tuna.tsinghua.edu.cn/ubuntu-ports",
             MirrorRegion.AMERICAS to "http://us.ports.ubuntu.com/ubuntu-ports",
+        ),
+    )
+
+    private val UBUNTU_ARCHIVE = MirrorSub(
+        files = listOf("etc/apt/sources.list", "etc/apt/sources.list.d/ubuntu.sources"),
+        bases = mapOf(
+            MirrorRegion.DEFAULT to "http://archive.ubuntu.com/ubuntu",
+            MirrorRegion.EUROPE to "http://de.archive.ubuntu.com/ubuntu",
+            MirrorRegion.ASIA to "http://mirrors.tuna.tsinghua.edu.cn/ubuntu",
+            MirrorRegion.AMERICAS to "http://us.archive.ubuntu.com/ubuntu",
         ),
     )
 
@@ -101,7 +112,8 @@ object MirrorCatalog {
         "alpine-3.21" -> listOf(ALPINE)
         "debian-trixie" -> listOf(DEBIAN)
         "debian-bookworm" -> listOf(DEBIAN)
-        "ubuntu-noble" -> listOf(UBUNTU)
+        "ubuntu-noble" -> listOf(UBUNTU, UBUNTU_ARCHIVE)
+        "ubuntu-resolute" -> listOf(UBUNTU, UBUNTU_ARCHIVE)
         "archlinux" -> listOf(ARCH)
         "void" -> listOf(VOID)
         else -> emptyList()

@@ -84,7 +84,7 @@ internal class UsbToolProvider(
         ) { args -> usbBulkTransfer(args) },
 
         "usb_attach_to_guest" to ToolHandler(
-            description = "Expose a USB device to the proot Linux guest: opens it (requesting permission if needed) and binds the haven-usb proxy on an abstract LocalSocket the guest can reach, then stages the haven-usb-probe binary into the guest. Returns the socketName, the in-guest probePath, and a probeCommand you can run via run_in_proot to verify reachability. For a CDC-ACM serial device it also returns serialBridgeCommand (the haven-usb-serial PTY bridge) so unmodified serial apps (e.g. LIRC's lircd/mode2) can open it as /dev/pts/N. deviceName is optional when exactly one device is attached. This is the entry point for the guest-side USB shim (LD_PRELOAD/DllMap for HID, a PTY bridge for serial).",
+            description = "Expose a USB device to the proot Linux guest: opens it (requesting permission if needed) and binds the haven-usb proxy on an abstract LocalSocket the guest can reach, then stages the haven-usb-probe binary and libhaven_usb.so shim into the guest. Returns the socketName, the in-guest probePath/shimPath, and ldPreloadWrapper (`LD_PRELOAD=/usr/local/lib/haven/libhaven_usb.so`). The shim exposes both `/dev/hidraw0` (for HID/FIDO apps) and `/dev/bus/usb/001/001` (`usbfs` — synchronous `USBDEVFS_CONTROL`/`USBDEVFS_BULK` + async `USBDEVFS_SUBMITURB`/`USBDEVFS_REAPURBNDELAY` + `eventfd` poll readiness), so unmodified `libusb-1.0` and native `usbfs` tools (`adb`, `scrcpy`, `fastboot`, SANE, `libgphoto2`, SDR) work inside the guest with `LD_PRELOAD=/usr/local/lib/haven/libhaven_usb.so`. For an Android ADB device (interface 0xFF/0x42/0x01) it also returns `adbServerCommand` and `scrcpyCommand`; for a CDC-ACM serial device it returns `serialBridgeCommand` (the haven-usb-serial PTY bridge). deviceName is optional when exactly one device is attached.",
             inputSchema = objectSchema {
                 string("deviceName", "deviceName from list_usb_devices; optional if only one device is attached.")
             },
@@ -381,6 +381,9 @@ internal class UsbToolProvider(
         val bulkInEp = cdcData?.endpoints?.firstOrNull { it.type == "bulk" && it.direction == "in" }?.address
         val isCdcAcm = info.interfaces.any { it.interfaceClass == 2 && it.interfaceSubclass == 2 } &&
             bulkOutEp != null && bulkInEp != null
+        val isAdb = info.interfaces.any {
+            it.interfaceClass == 0xFF && it.interfaceSubclass == 0x42 && it.interfaceProtocol == 0x01
+        }
         JSONObject().apply {
             put("device", usbDeviceJson(info))
             put("socketName", socketName)
@@ -388,6 +391,7 @@ internal class UsbToolProvider(
             put("probePath", probePath ?: JSONObject.NULL)
             if (probePath != null) put("probeCommand", probePath)
             put("shimPath", shimPath)
+            put("usbfsDevicePath", "/dev/bus/usb/001/001")
             if (isCdcAcm && bulkOutEp != null && bulkInEp != null) {
                 val cmd = "%s 0x%02x 0x%02x".format(serialPath, bulkOutEp, bulkInEp)
                 put("cdcAcm", true)
@@ -399,8 +403,20 @@ internal class UsbToolProvider(
                         "`lircd --driver irtoy --device /dev/pts/N` or `mode2 --driver irtoy --device /dev/pts/N`.",
                 )
             }
-            // For a NATIVE HID app, prepend this so its /dev/hidraw* opens are
-            // routed to the brokered device (no real node, no root).
+            if (isAdb) {
+                put("adbInterface", true)
+                put("adbServerCommand", "LD_PRELOAD=$shimPath adb start-server && adb devices -l")
+                put("scrcpyCommand", "LD_PRELOAD=$shimPath adb start-server && scrcpy")
+                put(
+                    "adbNote",
+                    "Android ADB interface (0xFF/0x42/0x01) detected (#610). Start the ADB server inside the guest " +
+                        "with `LD_PRELOAD=$shimPath adb start-server` (supports both native usbfs and libusb-1.0 " +
+                        "backends), then run `adb devices -l` or `scrcpy` inside the guest desktop.",
+                )
+            }
+            // For a NATIVE HID or usbfs/libusb app, prepend this so its
+            // /dev/hidraw0 or /dev/bus/usb/001/001 opens are routed to the
+            // brokered device (no real node, no root).
             put("ldPreloadWrapper", "LD_PRELOAD=$shimPath")
             put("hidrawTestCommand", "LD_PRELOAD=$shimPath /usr/local/bin/haven-hidraw-test /dev/hidraw0")
             // For a MONO/.NET HID app (e.g. HidSharp-based), LD_PRELOAD can't
@@ -409,7 +425,7 @@ internal class UsbToolProvider(
             // mapping libudev wholesale + the hidraw libc fileops to the shim.
             put("monoDllMapConfigName", "HidSharp.dll.config")
             put("monoDllMapConfig", monoDllMapConfig(shimPath))
-            put("note", "Proxy bound on abstract socket \\0$socketName. Native apps: prepend ldPreloadWrapper (verify with hidrawTestCommand via run_in_proot). Mono apps: write monoDllMapConfig as monoDllMapConfigName next to the assembly's HidSharp.dll, then run the app under mono.")
+            put("note", "Proxy bound on abstract socket \\0$socketName. Native HID and usbfs/libusb-1.0 apps (`adb`, `scrcpy`, `fastboot`, etc.): prepend ldPreloadWrapper (exposes /dev/hidraw0 and /dev/bus/usb/001/001). Mono apps: write monoDllMapConfig as monoDllMapConfigName next to the assembly's HidSharp.dll, then run the app under mono.")
         }
     }
 

@@ -33,15 +33,15 @@ USB/IP. (✅ works · ⚠️ feasible but not yet built · ❌ not feasible by t
 |---|:---:|:---:|---|
 | HID — keyboards, FIDO/CTAPHID security keys | ✅ `hidraw` shim | ✅ | Verified: YubiKey FIDO/SSH |
 | CDC-ACM serial — USB-serial, ESP32 | ✅ serial shim | ✅ | Verified: ESP32-S3 `esptool` |
-| Other bulk/control — printers, scanners, SDR, MTP/PTP cameras, `fastboot` | ⚠️ needs a libusb/usbfs shim | ✅ | Userspace-driven; see [Extending guest support](#extending-guest-support) |
-| Mass storage — flash drives | ❌ no block layer | ✅ real kernel | Guest: read files via Android mount + `/storage` |
+| Other bulk/control — Android `adb` / `scrcpy` / `fastboot`, printers, scanners, SDR, MTP/PTP cameras | ✅ `usbfs` shim | ✅ | Emulates `/dev/bus/usb/001/001` (`USBDEVFS_*` + async URBs) for `libusb-1.0` and native `usbfs` tools |
+| Mass storage — flash drives | ❌ no block layer | ✅ real kernel | Guest: read files via Android mount + `/storage`, or use [Reading USB drives](usb-drives.md) |
 | Network — RNDIS / CDC-ECM / NCM | ❌ no netdev | ✅ | |
-| Webcam (UVC) / Audio (UAC) | ❌ | ❌ | **Isochronous** — no Android `UsbDeviceConnection` API |
+| Webcam (UVC) / Audio (UAC) | ❌ | ❌ (`usbredir` ✅) | **Isochronous** — use `start_usbredir_export` for QEMU/SPICE guests |
 
 ### Why these limits
 
 The broker moves **control and bulk/interrupt** transfers over Android's
-`UsbDeviceConnection` — that's all the Android API exposes. Two hard walls follow:
+`UsbDeviceConnection`. Two limits follow for the local proot guest:
 
 - **Kernel-object classes.** Mass storage (`/dev/sd*` + `mount`), network
   (a netdev), webcams (`/dev/video`), and audio (ALSA) need a kernel **class
@@ -50,20 +50,39 @@ The broker moves **control and bulk/interrupt** transfers over Android's
   the device to a *real* Linux kernel, so any non-isochronous class works there.
   For mass storage specifically, the **on-device VM** route does the same thing
   locally — see [Reading USB drives](usb-drives.md).
-- **Isochronous transfers.** `UsbDeviceConnection` has no isochronous API, so
-  UVC webcams and UAC audio — which live on isochronous endpoints — can't be
-  bridged on *either* path, guest or remote.
+- **Isochronous transfers.** `UsbDeviceConnection` has no Java isochronous API, so
+  UVC webcams and UAC audio can't be bridged via the proot proxy. Use
+  `start_usbredir_export` (SPICE `usbredir`) when forwarding webcams or USB audio
+  to a QEMU/KVM guest.
 
-### Extending guest support
+### Guest `usbfs` and `libusb-1.0` support (`adb`, `scrcpy`, `fastboot`)
 
-Today the guest shim emulates two specific char devices (`hidraw`, serial). The
-general next step is a **libusb / usbfs shim** — emulate `/dev/bus/usb/*` (or
-interpose libusb) and route its URBs over the same proxy. `UsbDeviceConnection`
-already provides exactly libusb's primitives (descriptors, `claimInterface`,
-control, bulk), so one shim would unlock **any userspace-driven class** —
-printers (CUPS), scanners (SANE), SDR, MTP/PTP (libgphoto2/libmtp), `fastboot` —
-with no per-class code. It does **not** move the two walls above: kernel-object
-classes still need the remote path, and isochronous still has no Android API.
+In addition to `/dev/hidraw0` and the CDC-ACM serial PTY bridge, `libhaven_usb.so`
+emulates a Linux `usbfs` bus at `/dev/bus/usb/001/001` (along with
+`/sys/dev/char/189:0` and `/sys/bus/usb/devices/1-1/serial` for `libusb` / `adb`
+discovery):
+
+- **Raw USB descriptors** on `read(fd, ...)` + `lseek` (Device + Configuration +
+  Interface + Endpoint descriptors synthesized from `UsbBroker`).
+- **Synchronous `usbfs` ioctls**: `USBDEVFS_CONTROL`, `USBDEVFS_BULK`,
+  `USBDEVFS_CLAIMINTERFACE`, `USBDEVFS_RELEASEINTERFACE`,
+  `USBDEVFS_DISCONNECT_CLAIM`, `USBDEVFS_SETINTERFACE`,
+  `USBDEVFS_SETCONFIGURATION`, `USBDEVFS_CLEAR_HALT`, `USBDEVFS_RESET`,
+  `USBDEVFS_GET_CAPABILITIES`, and `USBDEVFS_GET_SPEED`.
+- **Asynchronous `usbfs` URBs**: `USBDEVFS_SUBMITURB`, `USBDEVFS_DISCARDURB`,
+  `USBDEVFS_REAPURB`, and `USBDEVFS_REAPURBNDELAY` backed by dedicated IN/OUT
+  proxy worker threads and an `eventfd` so `poll()` / `epoll()` wake `libusb-1.0`
+  and `adb` as soon as a bulk, interrupt, or control URB completes.
+
+To use an OTG-attached Android phone with `adb` or `scrcpy` inside the local
+proot guest (or desktop):
+
+```bash
+# After calling usb_attach_to_guest:
+LD_PRELOAD=/usr/local/lib/haven/libhaven_usb.so adb start-server
+adb devices -l
+scrcpy
+```
 
 ## To the agent (MCP)
 

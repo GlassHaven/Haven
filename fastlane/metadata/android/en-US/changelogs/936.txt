@@ -1,0 +1,1 @@
+- Add Linux usbfs (/dev/bus/usb/001/001) emulation to libhaven_usb.so (synchronous USBDEVFS_CONTROL/USBDEVFS_BULK and asynchronous USBDEVFS_SUBMITURB/USBDEVFS_REAPURBNDELAY with eventfd readiness) so adb, scrcpy, fastboot, and libusb-1.0 tools can use USB-OTG attached devices inside the local PRoot guest and desktop (#610).

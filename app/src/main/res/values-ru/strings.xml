@@ -288,6 +288,7 @@
     <string name="app_desktop_custom_binds_stale">%1$d собственных монтирований указывают на несуществующий путь — при запуске гостя оно пропускается.</string>
     <string name="app_desktop_custom_binds_stale_row">Этот путь более не существует на устройстве — монтирование пропускается при запуске гостя.</string>
     <string name="app_desktop_import_rootfs">Импортировать rootfs…</string>
+    <string name="app_desktop_export_rootfs">Экспортировать rootfs…</string>
     <string name="app_desktop_options_section">Параметры и точки монтирования</string>
     <string name="app_desktop_open_usb_drive">Открыть USB-накопитель…</string>
     <string name="app_desktop_open_usb_drive_writable">Открыть USB-накопитель (с записью)…</string>

@@ -282,6 +282,7 @@
     <string name="app_desktop_custom_binds_stale">%1$d कस्टम माउंट एक ऐसे पथ को दर्शाता है जो अब मौजूद नहीं है — गेस्ट शुरू होते समय यह छोड़ दिया जाता है।</string>
     <string name="app_desktop_custom_binds_stale_row">यह पथ डिवाइस पर अब मौजूद नहीं है — गेस्ट शुरू होते समय यह माउंट छोड़ दिया जाता है।</string>
     <string name="app_desktop_import_rootfs">rootfs आयात करें…</string>
+    <string name="app_desktop_export_rootfs">rootfs निर्यात करें…</string>
     <string name="app_desktop_options_section">विकल्प और माउंट</string>
     <string name="app_desktop_open_usb_drive">USB ड्राइव खोलें…</string>
     <string name="app_desktop_open_usb_drive_writable">USB ड्राइव खोलें (लिखने योग्य)…</string>

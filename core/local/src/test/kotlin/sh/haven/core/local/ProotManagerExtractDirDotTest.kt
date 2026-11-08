@@ -273,4 +273,170 @@ class ProotManagerExtractDirDotTest {
             forceDeleteRecursively(dest)
         }
     }
+
+    private fun buildPaxField(key: String, valueBytes: ByteArray): ByteArray {
+        val keyBytes = key.toByteArray(Charsets.UTF_8)
+        val bodyLen = keyBytes.size + 1 + valueBytes.size + 1
+        var totalLen = bodyLen + 3
+        while (totalLen.toString().length + 1 + bodyLen != totalLen) {
+            totalLen = totalLen.toString().length + 1 + bodyLen
+        }
+        val prefix = "$totalLen ".toByteArray(Charsets.US_ASCII)
+        val out = ByteArray(totalLen)
+        prefix.copyInto(out, 0)
+        keyBytes.copyInto(out, prefix.size)
+        out[prefix.size + keyBytes.size] = '='.code.toByte()
+        valueBytes.copyInto(out, prefix.size + keyBytes.size + 1)
+        out[out.size - 1] = '\n'.code.toByte()
+        return out
+    }
+
+    @Test
+    fun `exportTarball and extractTarball round-trip preserves modes, special bits, mtimes, uids, symlinks, hardlinks, l2s chains, and PAX xattrs`() {
+        val dest1 = Files.createTempDirectory("tar-roundtrip-1").toFile()
+        val dest2 = Files.createTempDirectory("tar-roundtrip-2").toFile()
+        try {
+            val capBytes = byteArrayOf(0x01, 0x00, 0x00, 0x02, 0x20, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00)
+            val paxSudo = buildPaxField("mtime", "1700000123.456789012".toByteArray()) +
+                buildPaxField("SCHILY.xattr.security.capability", capBytes) +
+                buildPaxField("SCHILY.xattr.user.comment", "sudo-cap".toByteArray())
+            val sudoBody = "sudo-binary".toByteArray()
+            val sudoPad = (512 - (sudoBody.size % 512)) % 512
+            val sudoEntry = tarEntry("PaxHeader/sudo", String(paxSudo, Charsets.ISO_8859_1), typeFlag = 'x'.code.toByte()) +
+                tarHeader("usr/bin/sudo", sudoBody.size.toLong(), typeFlag = '0'.code.toByte(), mode = "04755") +
+                sudoBody + ByteArray(sudoPad)
+
+            val paxUserFile = buildPaxField("uid", "1000".toByteArray()) +
+                buildPaxField("gid", "1000".toByteArray()) +
+                buildPaxField("uname", "ubuntu".toByteArray()) +
+                buildPaxField("gname", "ubuntu".toByteArray()) +
+                buildPaxField("mtime", "1700000500.750000000".toByteArray())
+            val userBody = "zshrc-content\n".toByteArray()
+            val userPad = (512 - (userBody.size % 512)) % 512
+            val userEntry = tarEntry("PaxHeader/zshrc", String(paxUserFile, Charsets.ISO_8859_1), typeFlag = 'x'.code.toByte()) +
+                tarHeader("home/ubuntu/.zshrc", userBody.size.toLong(), typeFlag = '0'.code.toByte(), mode = "0600") +
+                userBody + ByteArray(userPad)
+
+            val procDirEntry = tarHeader("proc/", 0L, typeFlag = '5'.code.toByte(), mode = "0555")
+            val tmpDirEntry = tarHeader("tmp/", 0L, typeFlag = '5'.code.toByte(), mode = "01777")
+
+            val longLinkTarget = "../usr/share/zoneinfo/posix/America/Argentina/ComodRivadavia/very_long_symlink_target_name_exceeding_100_bytes_limit"
+            val paxSymlink = buildPaxField("linkpath", longLinkTarget.toByteArray())
+            val symlinkEntry = tarEntry("PaxHeader/localtime", String(paxSymlink, Charsets.ISO_8859_1), typeFlag = 'x'.code.toByte()) +
+                tarHeader("etc/localtime", 0L, typeFlag = '2'.code.toByte(), mode = "0777", linkName = longLinkTarget.take(100))
+
+            val passwdEntry = tarEntry(
+                "etc/passwd",
+                "root:x:0:0:root:/root:/bin/sh\nubuntu:x:1000:1000:Ubuntu:/home/ubuntu:/bin/bash\n",
+            )
+            val groupEntry = tarEntry(
+                "etc/group",
+                "root:x:0:\nubuntu:x:1000:\n",
+            )
+
+            val tarball1 = gzTar(
+                sudoEntry,
+                userEntry,
+                procDirEntry,
+                tmpDirEntry,
+                symlinkEntry,
+                passwdEntry,
+                groupEntry,
+                tarEntry("usr/bin/git", "git-elf-binary"),
+                tarHardLink("usr/libexec/git-core/git", "usr/bin/git"),
+            )
+
+            extract(tarball1, dest1)
+
+            // Simulate runtime PRoot activity inside dest1:
+            // 1. A runtime file created inside /home/ubuntu/ (should infer uid=1000, uname=ubuntu from /etc/passwd)
+            val runtimeUserFile = File(dest1, "home/ubuntu/created-in-proot.txt").apply {
+                parentFile?.mkdirs()
+                writeText("created at runtime")
+            }
+            applyPosixMode(runtimeUserFile, 0b111_100_000) // 0740
+
+            // 2. Runtime PRoot link2symlink hardlinks pointing into /.l2s/
+            val l2sDir = File(dest1, ".l2s").apply { mkdirs() }
+            val l2sPayload = File(l2sDir, ".l2s.0001.0001").apply {
+                writeText("hardlinked-in-proot")
+            }
+            applyPosixMode(l2sPayload, 0b111_101_101)
+            val hlA = File(dest1, "usr/bin/proot-hl-a")
+            val hlB = File(dest1, "usr/bin/proot-hl-b")
+            Files.createSymbolicLink(hlA.toPath(), java.nio.file.Paths.get("/.l2s/.l2s.0001.0001"))
+            Files.createSymbolicLink(hlB.toPath(), java.nio.file.Paths.get("/.l2s/.l2s.0001.0001"))
+
+            // 3. Internal Haven marker files (must be omitted from exported archive)
+            File(dest1, ROOTFS_READY_MARKER).writeText("ready\n")
+            File(dest1, ROOTFS_ARCH_MARKER).writeText("arm64-v8a\n")
+
+            // Export dest1 to an uncompressed .tar file and re-import into dest2
+            val exportedTar = File(Files.createTempDirectory("tar-export").toFile(), "exported.tar")
+            val stats = exportedTar.outputStream().use { fos ->
+                manager.exportTarball(dest1, fos, gzip = false)
+            }
+            assertTrue("Expected at least 2 hardlinks exported (git + proot-hl)", stats.hardlinkCount >= 2)
+            assertTrue("Expected exported bytes > 0", stats.bytesWritten > 0L)
+
+            manager.extractTarball(
+                exportedTar,
+                dest2,
+                RootfsSource(url = "", sha256 = "", format = RootfsFormat.TAR, stripComponents = 0),
+            )
+
+            // Verify internal markers & .l2s were not leaked into dest2
+            assertTrue(!File(dest2, ROOTFS_READY_MARKER).exists())
+            assertTrue(!File(dest2, ".l2s").exists())
+
+            // Verify file contents and symlinks in dest2
+            assertEquals("sudo-binary", File(dest2, "usr/bin/sudo").readText())
+            assertEquals("zshrc-content\n", File(dest2, "home/ubuntu/.zshrc").readText())
+            assertEquals("git-elf-binary", File(dest2, "usr/bin/git").readText())
+            assertEquals("git-elf-binary", File(dest2, "usr/libexec/git-core/git").readText())
+            assertEquals("hardlinked-in-proot", File(dest2, "usr/bin/proot-hl-a").readText())
+            assertEquals("hardlinked-in-proot", File(dest2, "usr/bin/proot-hl-b").readText())
+            assertTrue(!Files.isSymbolicLink(File(dest2, "usr/bin/proot-hl-a").toPath()))
+            assertTrue(!Files.isSymbolicLink(File(dest2, "usr/bin/proot-hl-b").toPath()))
+
+            val localtimePath = File(dest2, "etc/localtime").toPath()
+            assertTrue(Files.isSymbolicLink(localtimePath))
+            assertEquals(longLinkTarget, Files.readSymbolicLink(localtimePath).toString())
+
+            // Verify preserved attributes in dest2's loaded TarEntryAttrs
+            val attrs2 = loadTarAttrs(dest2)
+            val sudoAttrs = attrs2["usr/bin/sudo"]!!
+            assertEquals("04755".toInt(8), sudoAttrs.mode)
+            assertEquals("1700000123.456789012", sudoAttrs.mtimeRaw)
+            assertEquals("sudo-cap", sudoAttrs.xattrs["SCHILY.xattr.user.comment"])
+            assertEquals(
+                capBytes.toList(),
+                sudoAttrs.xattrs["SCHILY.xattr.security.capability"]!!.toByteArray(Charsets.ISO_8859_1).toList(),
+            )
+            assertEquals(1700000123456L, File(dest2, "usr/bin/sudo").lastModified())
+
+            val zshAttrs = attrs2["home/ubuntu/.zshrc"]!!
+            assertEquals("0600".toInt(8), zshAttrs.mode)
+            assertEquals(1000L, zshAttrs.uid)
+            assertEquals(1000L, zshAttrs.gid)
+            assertEquals("ubuntu", zshAttrs.uname)
+            assertEquals("ubuntu", zshAttrs.gname)
+            assertEquals("1700000500.750000000", zshAttrs.mtimeRaw)
+
+            val runtimeAttrs = attrs2["home/ubuntu/created-in-proot.txt"]!!
+            assertEquals("0740".toInt(8), runtimeAttrs.mode)
+            assertEquals(1000L, runtimeAttrs.uid)
+            assertEquals(1000L, runtimeAttrs.gid)
+            assertEquals("ubuntu", runtimeAttrs.uname)
+            assertEquals("ubuntu", runtimeAttrs.gname)
+
+            assertEquals("0555".toInt(8), attrs2["proc"]!!.mode)
+            assertEquals("01777".toInt(8), attrs2["tmp"]!!.mode)
+            assertEquals("hl:usr/bin/proot-hl-a", attrs2["usr/bin/proot-hl-b"]!!.hardlinkGroup)
+            assertEquals("hl:usr/bin/git", attrs2["usr/libexec/git-core/git"]!!.hardlinkGroup)
+        } finally {
+            forceDeleteRecursively(dest1)
+            forceDeleteRecursively(dest2)
+        }
+    }
 }

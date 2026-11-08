@@ -282,6 +282,7 @@
     <string name="app_desktop_custom_binds_stale">%1$d من نقاط التركيب المخصصة تشير إلى مسار لم يعد موجودًا — يتم تجاهلها عند بدء تشغيل الضيف.</string>
     <string name="app_desktop_custom_binds_stale_row">لم يعد هذا المسار موجودًا على الجهاز — يتم تجاهل نقطة التركيب عند بدء تشغيل الضيف.</string>
     <string name="app_desktop_import_rootfs">استيراد rootfs…</string>
+    <string name="app_desktop_export_rootfs">تصدير rootfs…</string>
     <string name="app_desktop_options_section">الخيارات ونقاط التركيب</string>
     <string name="app_desktop_open_usb_drive">فتح قرص USB…</string>
     <string name="app_desktop_open_usb_drive_writable">فتح قرص USB (قابل للكتابة)…</string>

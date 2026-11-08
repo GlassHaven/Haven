@@ -282,6 +282,7 @@
     <string name="app_desktop_custom_binds_stale">%1$d 个自定义挂载指向的路径已不存在 — 启动客机环境时将跳过。</string>
     <string name="app_desktop_custom_binds_stale_row">此路径在设备上已不存在 — 启动客机环境时将跳过此挂载。</string>
     <string name="app_desktop_import_rootfs">导入 rootfs…</string>
+    <string name="app_desktop_export_rootfs">导出 rootfs…</string>
     <string name="app_desktop_options_section">选项与挂载</string>
     <string name="app_desktop_open_usb_drive">打开 USB 驱动器…</string>
     <string name="app_desktop_open_usb_drive_writable">打开 USB 驱动器（可写）…</string>

@@ -73,7 +73,7 @@ enum class McpToolCategory {
                 "tap_desktop_text", "type_desktop_text", "uninstall_desktop",
             ),
             GUEST to listOf(
-                "delete_distro", "delete_system_vm_image", "get_audio_bridge_status",
+                "delete_distro", "delete_system_vm_image", "export_distro", "get_audio_bridge_status",
                 "get_custom_binds", "get_proot_install_log", "import_distro",
                 "inspect_proot", "install_app_pack", "install_distro", "list_app_packs",
                 "list_distros", "list_guest_services", "read_guest_file",

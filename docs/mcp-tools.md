@@ -41,7 +41,7 @@ Tools are grouped into sections by what they touch, and each tool is collapsed �
 expand one for its description and arguments. The tag after each name is its
 consent level:
 
-- **asks every call** — side-effectful or sensitive; a consent sheet describing the specific action on every call (77 tools).
+- **asks every call** — side-effectful or sensitive; a consent sheet describing the specific action on every call (78 tools).
 - **asks once per session** — reversible actions and screen-reading; prompts the first time each session, then proceeds (68 tools).
 - **no per-call prompt** — read-only queries and tap-equivalent UI actions; still behind the endpoint being enabled and the client paired (93 tools).
 
@@ -54,7 +54,7 @@ consent level:
 - [**Files, media & clipboard**](#sec-files) — 23 tools
 - [**Cloud storage (rclone)**](#sec-rclone) — 15 tools
 - [**Email**](#sec-email) — 15 tools
-- [**Linux guest (proot) & desktops**](#sec-linux) — 51 tools
+- [**Linux guest (proot) & desktops**](#sec-linux) — 52 tools
 - [**Networking — tunnels & port forwarding**](#sec-networking) — 14 tools
 - [**USB & host-device brokers**](#sec-usb) — 21 tools
 - [**Security — SSH keys, host keys, TOTP & age**](#sec-security) — 17 tools
@@ -1259,7 +1259,7 @@ Send a plain-text email from a connected EMAIL profile. Pass profileId (from lis
 
 <a id="sec-linux"></a>
 
-## Linux guest (proot) & desktops (51)
+## Linux guest (proot) & desktops (52)
 
 The on-device Linux distros, their desktop environments and windows, guest services, the audio bridge, and guest-file access.
 
@@ -1335,6 +1335,17 @@ Drag the mouse on a remote-desktop VIEWER tab (VNC, RDP, SPICE, or GLKVM) from (
 </details>
 
 <details markdown="1">
+<summary><code>export_distro</code> · asks every call</summary>
+
+Export a proot distro's full rootfs directly from the Android host filesystem to a POSIX.1-2001 PAX/ustar archive (.tar.gz or .tar) with all filesystem attributes preserved (#793): permissions (including setuid/setgid/sticky and read-only directory modes), modification timestamps (including PAX sub-second mtime), ownership (uid/gid/uname/gname), symlinks, hardlinks (including PRoot link2symlink `.l2s.` chains), and PAX extended attributes (`SCHILY.xattr.*`). Runs host-side without invoking `proot` or the guest shell, so a distro whose `/bin/sh` or `libc` broke during an upgrade can still be backed up and rescued.
+
+- `destPath` (string) — Absolute on-device destination path (e.g. "/sdcard/Download/debian-trixie-rootfs.tar.gz"). Defaults to `<cacheDir>/<distroId>-rootfs.tar.gz`.
+- `distroId` (string) — Distro id to export; omit to export the active distro.
+- `gzip` (boolean) — Compress with gzip (.tar.gz). Defaults to true unless destPath ends with `.tar`.
+
+</details>
+
+<details markdown="1">
 <summary><code>get_audio_bridge_status</code> · no per-call prompt</summary>
 
 Proot audio bridge status: state (STOPPED/STARTING/RUNNING/ERROR), loopback PCM port, bytesStreamed so far, and any error. Read-only — a quick way to confirm guest audio is actually flowing.
@@ -1377,12 +1388,12 @@ Launch a GL app into a RUNNING desktop on the GPU PATH (venus/virpipe — NOT th
 <details markdown="1">
 <summary><code>import_distro</code> · asks every call</summary>
 
-Import a custom rootfs tarball as a new distro (#284) — "bring your own rootfs". The tarball (http(s) URL or an on-device file path) is extracted to its own rootfs and registered as a first-class distro, so it then appears in list_distros / set_active_distro / install_desktop exactly like a built-in. Raw mode: no baseline packages and no distro hooks run — the rootfs is used as shipped; `family` only routes later package installs (apk/apt/pacman/xbps). Use this for proot-distro / Docker-export tarballs and for a SECOND instance of a distro you already have (give it a new id — that is how #302 multiple-instances is done). Returns immediately; poll inspect_proot.osSetupState (Downloading → Extracting → Ready/Error). Supported compression: .tar.gz and .tar.xz (zstd not yet supported — recompress first).
+Import or restore a rootfs tarball as a distro (#284, #793) — "bring your own rootfs" or restore a backup exported by `export_distro`. The tarball (http(s) URL or an on-device file path) is extracted to `proot/rootfs/<id>` with all filesystem attributes preserved (permissions + special bits, mtime, uid/gid/uname/gname, symlinks, hardlinks, and PAX xattrs). Can register a new custom distro id OR restore over an existing / built-in distro id. Raw mode: no baseline packages and no distro hooks run — the rootfs is used as shipped; `family` only routes later package installs (apk/apt/pacman/xbps). Returns immediately; poll inspect_proot.osSetupState (Downloading → Extracting → Ready/Error). Supported formats: .tar, .tar.gz, and .tar.xz.
 
 - `family` (string, required) — Package family for later installs: APK | APT | PACMAN | XBPS | NIX.
-- `id` (string, required) — New distro id (slug: lowercase letters/digits/.-_, e.g. "ubuntu-trixie" or "debian-test2"). Must not collide with a built-in or existing custom id.
+- `id` (string, required) — Target distro id (slug: lowercase letters/digits/.-_, e.g. "ubuntu-trixie", "debian-bookworm", or "debian-test2").
 - `source` (string, required) — Rootfs tarball: an http(s):// URL, or an absolute on-device file path.
-- `format` (string) — Optional compression: TAR_GZ | TAR_XZ. Auto-detected from the source extension if omitted.
+- `format` (string) — Optional format: TAR | TAR_GZ | TAR_XZ. Auto-detected from the source extension if omitted.
 - `label` (string) — Human label shown in the picker (e.g. "Ubuntu 26.04 (imported)").
 - `sha256` (string) — Optional SHA-256 to verify the download against. Skipped if omitted.
 - `stripComponents` (integer) — Optional leading path components to strip (proot-distro tarballs wrap in one dir → 1). Defaults to auto: tries 0, retries 1 if no bin/sh is found.

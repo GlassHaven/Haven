@@ -71,6 +71,196 @@ internal const val ROOTFS_READY_MARKER = ".haven-rootfs-ready"
 internal const val ROOTFS_ARCH_MARKER = ".haven-rootfs-arch"
 
 /**
+ * Per-entry tar metadata store (`<rootfs>/.haven-tar-attrs`) written by
+ * [ProotManager.extractTarball] and consulted by [ProotManager.exportTarball]
+ * (#793). Because Android runs PRoot under the app's single unprivileged UID/GID
+ * and requires owner `rwx` on directories for host-side operations, attributes
+ * that the host filesystem cannot represent directly — guest `uid`/`gid`,
+ * `uname`/`gname`, setuid/setgid/sticky bits (`07000`), read-only directory
+ * modes (e.g. `0555`), sub-second PAX `mtime`, PAX extended attributes
+ * (`SCHILY.xattr.*`, `LIBARCHIVE.xattr.*`, `RHT.security.*`), and imported hard
+ * link groups — are persisted here and re-applied when the rootfs is exported.
+ */
+internal const val ROOTFS_TAR_ATTRS_FILE = ".haven-tar-attrs"
+
+internal data class TarEntryAttrs(
+    val mode: Int,
+    val uid: Long = 0L,
+    val gid: Long = 0L,
+    val uname: String = "root",
+    val gname: String = "root",
+    val mtimeSec: Long = 0L,
+    val mtimeRaw: String = "",
+    val hardlinkGroup: String = "",
+    val xattrs: Map<String, String> = emptyMap(),
+)
+
+private val INTERNAL_ROOTFS_MARKERS = setOf(
+    ROOTFS_READY_MARKER,
+    ROOTFS_ARCH_MARKER,
+    ROOTFS_TAR_ATTRS_FILE,
+    ".l2s",
+)
+
+private fun b64EncodeUtf8(s: String): String =
+    java.util.Base64.getUrlEncoder().withoutPadding().encodeToString(s.toByteArray(Charsets.UTF_8))
+
+private fun b64DecodeUtf8(s: String): String =
+    if (s.isEmpty()) "" else String(java.util.Base64.getUrlDecoder().decode(s), Charsets.UTF_8)
+
+private fun b64EncodeLatin1(s: String): String =
+    java.util.Base64.getUrlEncoder().withoutPadding().encodeToString(s.toByteArray(Charsets.ISO_8859_1))
+
+private fun b64DecodeLatin1(s: String): String =
+    if (s.isEmpty()) "" else String(java.util.Base64.getUrlDecoder().decode(s), Charsets.ISO_8859_1)
+
+internal fun saveTarAttrs(rootDir: File, attrs: Map<String, TarEntryAttrs>) {
+    val file = File(rootDir, ROOTFS_TAR_ATTRS_FILE)
+    runCatching {
+        file.bufferedWriter(Charsets.UTF_8).use { out ->
+            for ((path, a) in attrs) {
+                if (path in INTERNAL_ROOTFS_MARKERS) continue
+                val xattrJoined = a.xattrs.entries.joinToString(",") { (k, v) ->
+                    "${b64EncodeUtf8(k)}=${b64EncodeLatin1(v)}"
+                }
+                out.write(
+                    buildString {
+                        append(b64EncodeUtf8(path)).append('\t')
+                        append(a.mode.toString(8)).append('\t')
+                        append(a.uid).append('\t')
+                        append(a.gid).append('\t')
+                        append(b64EncodeUtf8(a.uname)).append('\t')
+                        append(b64EncodeUtf8(a.gname)).append('\t')
+                        append(a.mtimeSec).append('\t')
+                        append(b64EncodeUtf8(a.mtimeRaw)).append('\t')
+                        append(b64EncodeUtf8(a.hardlinkGroup)).append('\t')
+                        append(xattrJoined).append('\n')
+                    },
+                )
+            }
+        }
+    }
+}
+
+internal fun loadTarAttrs(rootDir: File): MutableMap<String, TarEntryAttrs> {
+    val file = File(rootDir, ROOTFS_TAR_ATTRS_FILE)
+    val result = LinkedHashMap<String, TarEntryAttrs>()
+    if (!file.isFile) return result
+    runCatching {
+        file.useLines(Charsets.UTF_8) { lines ->
+            for (line in lines) {
+                if (line.isBlank()) continue
+                val parts = line.split('\t')
+                if (parts.size < 9) continue
+                val path = runCatching { b64DecodeUtf8(parts[0]) }.getOrDefault("")
+                if (path.isEmpty()) continue
+                val mode = parts[1].toIntOrNull(8) ?: 0b110_100_100
+                val uid = parts[2].toLongOrNull() ?: 0L
+                val gid = parts[3].toLongOrNull() ?: 0L
+                val uname = runCatching { b64DecodeUtf8(parts[4]) }.getOrDefault("root")
+                val gname = runCatching { b64DecodeUtf8(parts[5]) }.getOrDefault("root")
+                val mtimeSec = parts[6].toLongOrNull() ?: 0L
+                val mtimeRaw = runCatching { b64DecodeUtf8(parts[7]) }.getOrDefault("")
+                val hardlinkGroup = runCatching { b64DecodeUtf8(parts[8]) }.getOrDefault("")
+                val xattrs = LinkedHashMap<String, String>()
+                if (parts.size >= 10 && parts[9].isNotEmpty()) {
+                    for (pair in parts[9].split(',')) {
+                        val eq = pair.indexOf('=')
+                        if (eq > 0) {
+                            val k = runCatching { b64DecodeUtf8(pair.substring(0, eq)) }.getOrDefault("")
+                            val v = runCatching { b64DecodeLatin1(pair.substring(eq + 1)) }.getOrDefault("")
+                            if (k.isNotEmpty()) xattrs[k] = v
+                        }
+                    }
+                }
+                result[path] = TarEntryAttrs(
+                    mode = mode,
+                    uid = uid,
+                    gid = gid,
+                    uname = uname,
+                    gname = gname,
+                    mtimeSec = mtimeSec,
+                    mtimeRaw = mtimeRaw,
+                    hardlinkGroup = hardlinkGroup,
+                    xattrs = xattrs,
+                )
+            }
+        }
+    }
+    return result
+}
+
+internal fun posixPermissionsFromMode(mode: Int): Set<java.nio.file.attribute.PosixFilePermission> {
+    val set = java.util.EnumSet.noneOf(java.nio.file.attribute.PosixFilePermission::class.java)
+    if ((mode and 0b100_000_000) != 0) set.add(java.nio.file.attribute.PosixFilePermission.OWNER_READ)
+    if ((mode and 0b010_000_000) != 0) set.add(java.nio.file.attribute.PosixFilePermission.OWNER_WRITE)
+    if ((mode and 0b001_000_000) != 0) set.add(java.nio.file.attribute.PosixFilePermission.OWNER_EXECUTE)
+    if ((mode and 0b000_100_000) != 0) set.add(java.nio.file.attribute.PosixFilePermission.GROUP_READ)
+    if ((mode and 0b000_010_000) != 0) set.add(java.nio.file.attribute.PosixFilePermission.GROUP_WRITE)
+    if ((mode and 0b000_001_000) != 0) set.add(java.nio.file.attribute.PosixFilePermission.GROUP_EXECUTE)
+    if ((mode and 0b000_000_100) != 0) set.add(java.nio.file.attribute.PosixFilePermission.OTHERS_READ)
+    if ((mode and 0b000_000_010) != 0) set.add(java.nio.file.attribute.PosixFilePermission.OTHERS_WRITE)
+    if ((mode and 0b000_000_001) != 0) set.add(java.nio.file.attribute.PosixFilePermission.OTHERS_EXECUTE)
+    return set
+}
+
+internal fun modeFromPosixPermissions(perms: Set<java.nio.file.attribute.PosixFilePermission>): Int {
+    var m = 0
+    if (java.nio.file.attribute.PosixFilePermission.OWNER_READ in perms) m = m or 0b100_000_000
+    if (java.nio.file.attribute.PosixFilePermission.OWNER_WRITE in perms) m = m or 0b010_000_000
+    if (java.nio.file.attribute.PosixFilePermission.OWNER_EXECUTE in perms) m = m or 0b001_000_000
+    if (java.nio.file.attribute.PosixFilePermission.GROUP_READ in perms) m = m or 0b000_100_000
+    if (java.nio.file.attribute.PosixFilePermission.GROUP_WRITE in perms) m = m or 0b000_010_000
+    if (java.nio.file.attribute.PosixFilePermission.GROUP_EXECUTE in perms) m = m or 0b000_001_000
+    if (java.nio.file.attribute.PosixFilePermission.OTHERS_READ in perms) m = m or 0b000_000_100
+    if (java.nio.file.attribute.PosixFilePermission.OTHERS_WRITE in perms) m = m or 0b000_000_010
+    if (java.nio.file.attribute.PosixFilePermission.OTHERS_EXECUTE in perms) m = m or 0b000_000_001
+    return m
+}
+
+internal fun applyPosixMode(file: File, mode: Int) {
+    runCatching {
+        java.nio.file.Files.setPosixFilePermissions(
+            file.toPath(),
+            posixPermissionsFromMode(mode and 0b111_111_111),
+        )
+    }
+    try {
+        android.system.Os.chmod(file.absolutePath, mode and 0xFFF)
+    } catch (_: Throwable) {
+    }
+}
+
+internal fun readPosixMode(file: File, fallback: Int): Int {
+    try {
+        val st = android.system.Os.lstat(file.absolutePath)
+        if (st != null && st.st_mode != 0) {
+            return st.st_mode and 0xFFF
+        }
+    } catch (_: Throwable) {
+    }
+    return runCatching {
+        val perms = java.nio.file.Files.getPosixFilePermissions(
+            file.toPath(),
+            java.nio.file.LinkOption.NOFOLLOW_LINKS,
+        )
+        modeFromPosixPermissions(perms)
+    }.getOrDefault(fallback and 0xFFF)
+}
+
+internal fun applyLastModifiedMillis(file: File, mtimeMillis: Long) {
+    if (mtimeMillis <= 0L) return
+    runCatching {
+        java.nio.file.Files.setLastModifiedTime(
+            file.toPath(),
+            java.nio.file.attribute.FileTime.fromMillis(mtimeMillis),
+        )
+    }.onFailure {
+        runCatching { file.setLastModified(mtimeMillis) }
+    }
+}
+
+/**
  * Whether the extracted rootfs *files* are present (busybox `bin/sh`).
  * Necessary but not sufficient for a usable install — an extract killed
  * partway can have `bin/sh` and little else, so callers that need a
@@ -200,7 +390,35 @@ internal fun resolveTarLinkTarget(linkTarget: String, stripComponents: Int): Str
  * Returns the number of links materialized. Pure-JVM so it unit-tests next
  * to [clearPathIfWrongType].
  */
-internal fun flattenL2sLinks(root: File): Int {
+internal fun resolveL2sPayload(root: File, link: File): File? {
+    val targetName = try {
+        java.nio.file.Files.readSymbolicLink(link.toPath()).fileName?.toString()
+    } catch (_: Exception) {
+        null
+    } ?: return null
+    if (!targetName.startsWith(".l2s.")) return null
+    val l2sDir = File(root, ".l2s")
+    fun resolveChain(baseDir: File?, name: String): File? {
+        if (baseDir == null) return null
+        var candidate = File(baseDir, name)
+        var hops = 0
+        while (java.nio.file.Files.isSymbolicLink(candidate.toPath()) && hops++ < 8) {
+            val next = try {
+                java.nio.file.Files.readSymbolicLink(candidate.toPath()).fileName?.toString()
+            } catch (_: Exception) {
+                null
+            } ?: break
+            candidate = File(candidate.parentFile, next)
+        }
+        return candidate.takeIf { it.isFile && !java.nio.file.Files.isSymbolicLink(it.toPath()) }
+    }
+    return resolveChain(link.parentFile, targetName) ?: resolveChain(l2sDir, targetName)
+}
+
+internal fun flattenL2sLinks(
+    root: File,
+    recordedAttrs: MutableMap<String, TarEntryAttrs>? = null,
+): Int {
     var fixed = 0
     val links = mutableListOf<File>()
     root.walkTopDown()
@@ -216,40 +434,34 @@ internal fun flattenL2sLinks(root: File): Int {
             if (targetName?.startsWith(".l2s.") == true) links.add(f)
         }
     val l2sDir = File(root, ".l2s")
-    fun resolveChain(baseDir: File?, targetName: String): File? {
-        if (baseDir == null) return null
-        var candidate = File(baseDir, targetName)
-        var hops = 0
-        while (java.nio.file.Files.isSymbolicLink(candidate.toPath()) && hops++ < 8) {
-            val next = try {
-                java.nio.file.Files.readSymbolicLink(candidate.toPath()).fileName?.toString()
-            } catch (_: Exception) {
-                null
-            } ?: break
-            candidate = File(candidate.parentFile, next)
-        }
-        return candidate.takeIf { it.isFile && !java.nio.file.Files.isSymbolicLink(it.toPath()) }
-    }
     for (link in links) {
-        val targetName = try {
-            java.nio.file.Files.readSymbolicLink(link.toPath()).fileName?.toString()
-        } catch (_: Exception) {
-            null
-        } ?: continue
-        val payload = resolveChain(link.parentFile, targetName)
-            ?: resolveChain(l2sDir, targetName)
+        val payload = resolveL2sPayload(root, link)
         if (payload != null) {
+            val relLink = runCatching { link.relativeTo(root).invariantSeparatorsPath }.getOrDefault("")
+            val relPayload = runCatching { payload.relativeTo(root).invariantSeparatorsPath }.getOrDefault("")
+            val payloadAttrs = if (relPayload.isNotEmpty()) recordedAttrs?.get(relPayload) else null
             val perms = try {
                 java.nio.file.Files.getPosixFilePermissions(payload.toPath())
             } catch (_: Exception) {
                 null
             }
+            val payloadMtime = payload.lastModified()
             link.delete()
             payload.copyTo(link)
-            perms?.let {
+            if (payloadAttrs != null) {
+                applyPosixMode(link, payloadAttrs.mode)
+            } else if (perms != null) {
                 try {
-                    java.nio.file.Files.setPosixFilePermissions(link.toPath(), it)
+                    java.nio.file.Files.setPosixFilePermissions(link.toPath(), perms)
                 } catch (_: Exception) {}
+            }
+            applyLastModifiedMillis(link, payloadMtime)
+            if (recordedAttrs != null && relLink.isNotEmpty() && relPayload.isNotEmpty()) {
+                val base = payloadAttrs ?: recordedAttrs[relLink] ?: TarEntryAttrs(
+                    mode = readPosixMode(link, 0b110_100_100),
+                    mtimeSec = payloadMtime / 1000L,
+                )
+                recordedAttrs[relLink] = base.copy(hardlinkGroup = "l2s:$relPayload")
             }
             fixed++
         }
@@ -1335,7 +1547,6 @@ class ProotManager @Inject constructor(
         require(slug.matches(Regex("[a-z0-9][a-z0-9._-]*"))) {
             "Distro id must be a slug (lowercase letters, digits, ., _, -): got '$id'"
         }
-        require(!DistroCatalog.isBuiltin(slug)) { "'$slug' is a built-in distro id — pick another" }
 
         val installStartedAt = System.currentTimeMillis()
         var currentPhase: Phase = Phase.RootfsDownload
@@ -1403,7 +1614,9 @@ class ProotManager @Inject constructor(
             _state.value = SetupState.Extracting
             val targetDir = File(context.filesDir, "proot/rootfs/$slug")
             withContext(Dispatchers.IO) {
-                File(targetDir, ROOTFS_READY_MARKER).delete()
+                if (targetDir.exists()) {
+                    forceDeleteRecursively(targetDir)
+                }
                 // Try the requested strip first; on a bin/sh-not-found failure
                 // with strip=0, retry with strip=1 (proot-distro tarballs wrap
                 // the rootfs in a single top-level dir). Saves the user from
@@ -1439,18 +1652,25 @@ class ProotManager @Inject constructor(
                 }
             }
 
-            // Register the distro in customDistros and switch activeDistroId so
-            // any post-extract hooks + baseline package install (for foreign-arch
-            // catalog distros like `archlinux-x86_64` or `void-x86_64`, #718)
-            // execute against the newly extracted rootfs before ROOTFS_READY_MARKER
-            // is written. Raw user-imported tarballs have empty hooks and baseline
-            // packages and complete immediately.
+            // Register the distro in customDistros (unless restoring into a
+            // built-in catalog id, #793) and switch activeDistroId so any
+            // post-extract hooks + baseline package install (for pinned
+            // foreign-arch catalog distros like `archlinux-x86_64`, #718)
+            // execute against the newly extracted rootfs before
+            // ROOTFS_READY_MARKER is written. Raw user-imported tarballs complete
+            // immediately without running package managers.
             val sizeMb = runCatching { (folderSize(targetDir) / (1024 * 1024)).toInt() }.getOrDefault(0)
-            val distro = DistroCatalog.customDistro(slug, label.ifBlank { slug }, family, sizeMb)
-            persistCustomDistros((customDistros.filter { it.id != slug }) + distro)
+            val isBuiltin = DistroCatalog.isBuiltin(slug)
+            val distro = if (isBuiltin) {
+                DistroCatalog.lookup(slug)!!
+            } else {
+                DistroCatalog.customDistro(slug, label.ifBlank { slug }, family, sizeMb).also { custom ->
+                    persistCustomDistros((customDistros.filter { it.id != slug }) + custom)
+                }
+            }
             setActiveDistroId(slug)
 
-            if (distro.postExtractHooks.isNotEmpty() || distro.baselinePackages.isNotEmpty()) {
+            if (!isBuiltin && expectedSha256 != null && (distro.postExtractHooks.isNotEmpty() || distro.baselinePackages.isNotEmpty())) {
                 installLogRepository.logEvent(
                     distroId = slug,
                     phase = "RootfsExtract",
@@ -1475,6 +1695,60 @@ class ProotManager @Inject constructor(
             Log.e(TAG, "[import $currentPhase] failed", e)
             installLogRepository.logEvent(distroId = slug, phase = currentPhase.name, ok = false, message = e.message ?: "Import failed")
             _state.value = SetupState.Error(phase = currentPhase, message = e.message ?: "Import failed", logTail = "")
+        }
+    }
+
+    /** Summary statistics returned by [exportTarball] and [exportRootfs] (#793). */
+    data class ExportStats(
+        val fileCount: Int,
+        val dirCount: Int,
+        val symlinkCount: Int,
+        val hardlinkCount: Int,
+        val bytesWritten: Long,
+    )
+
+    /**
+     * Export [distroId]'s rootfs directly from the Android host filesystem as a
+     * POSIX.1-2001 PAX/ustar archive with all filesystem attributes preserved
+     * (#793). Does not spawn PRoot or any guest process, so a distro whose
+     * guest `/bin/sh` or `libc` was broken by a failed package upgrade can still
+     * be backed up and rescued.
+     */
+    suspend fun exportRootfs(
+        distroId: String,
+        rawOut: java.io.OutputStream,
+        gzip: Boolean = true,
+    ): ExportStats = withContext(Dispatchers.IO) {
+        val dir = rootfsDirFor(distroId)
+        require(dir.isDirectory) { "Rootfs directory not found for '$distroId': ${dir.absolutePath}" }
+        val startedAt = System.currentTimeMillis()
+        installLogRepository.logEvent(
+            distroId = distroId,
+            phase = "RootfsExport",
+            message = "Starting rootfs export (gzip=$gzip)",
+        )
+        val stats = exportTarball(dir, rawOut, gzip = gzip)
+        installLogRepository.logEvent(
+            distroId = distroId,
+            phase = "RootfsExport",
+            exit = 0,
+            ok = true,
+            message = "Exported ${stats.fileCount} files, ${stats.dirCount} dirs, " +
+                "${stats.symlinkCount} symlinks, ${stats.hardlinkCount} hardlinks " +
+                "(${stats.bytesWritten} bytes in ${System.currentTimeMillis() - startedAt}ms)",
+        )
+        stats
+    }
+
+    /** Export [distroId]'s rootfs to [destFile] on the host filesystem (#793). */
+    suspend fun exportRootfsToFile(
+        distroId: String,
+        destFile: File,
+        gzip: Boolean = !destFile.name.endsWith(".tar", ignoreCase = true),
+    ): ExportStats = withContext(Dispatchers.IO) {
+        destFile.parentFile?.mkdirs()
+        FileOutputStream(destFile).use { fos ->
+            exportRootfs(distroId = distroId, rawOut = fos, gzip = gzip)
         }
     }
 
@@ -1910,17 +2184,21 @@ class ProotManager @Inject constructor(
      * for tarballs that wrap the rootfs in a top-level directory
      * (e.g. proot-distro's `debian-bookworm-aarch64/`).
      */
-    // internal for the #546 importer regression test (same module).
+    // internal for the #546 and #793 importer/exporter regression tests (same module).
     internal fun extractTarball(tarball: File, destDir: File, source: RootfsSource) {
         destDir.mkdirs()
         var fileCount = 0
         var symlinkCount = 0
-        // Directory modes are applied AFTER all files are written (deferred),
-        // so a read-only dir in the tar can't block writing its contents. (#328)
-        val deferredDirModes = ArrayList<Pair<File, Int>>()
+        // Directory modes and mtimes are applied AFTER all files are written
+        // (deferred), so a read-only dir in the tar can't block writing its
+        // contents (#328) and file creation inside a dir doesn't clobber the
+        // directory's mtime (#793).
+        val deferredDirs = ArrayList<Triple<File, Int, Long>>()
+        val recordedAttrs = loadTarAttrs(destDir)
 
         val rawInput = tarball.inputStream().buffered()
         val decompressed: java.io.InputStream = when (source.format) {
+            RootfsFormat.TAR -> rawInput
             RootfsFormat.TAR_GZ -> java.util.zip.GZIPInputStream(rawInput)
             RootfsFormat.TAR_XZ -> org.tukaani.xz.XZInputStream(rawInput)
             RootfsFormat.TAR_ZSTD -> error(
@@ -1931,6 +2209,8 @@ class ProotManager @Inject constructor(
             val header = ByteArray(512)
             var pendingLongName: String? = null
             var pendingLongLink: String? = null
+            var pendingPax: Map<String, String> = emptyMap()
+            var globalPax: Map<String, String> = emptyMap()
 
             while (true) {
                 val headerRead = readFully(gzIn, header)
@@ -1938,15 +2218,11 @@ class ProotManager @Inject constructor(
                 if (header.all { it == 0.toByte() }) break
 
                 val name = extractString(header, 0, 100)
-                if (name.isEmpty() && pendingLongName == null) break
+                if (name.isEmpty() && pendingLongName == null && pendingPax["path"] == null) break
 
                 val modeStr = extractString(header, 100, 8)
-                val sizeStr = extractString(header, 124, 12)
                 val typeFlag = header[156]
-
-                val size = try {
-                    sizeStr.trim().toLong(8)
-                } catch (_: Exception) { 0L }
+                val headerSize = parseTarNumeric(header, 124, 12)
 
                 // POSIX.1-2001 PAX extended header ('x' = next entry, 'g' = global).
                 // Must be handled BEFORE nameMarksDir/entryIsDir so a PAX header whose
@@ -1954,13 +2230,16 @@ class ProotManager @Inject constructor(
                 // in proot-distro's Debian 13 trixie tarball) is never mistaken for a
                 // directory entry whose payload goes unread (#721).
                 if (typeFlag == 'x'.code.toByte() || typeFlag == 'g'.code.toByte()) {
-                    val paxBytes = ByteArray(size.toInt())
+                    val paxBytes = ByteArray(headerSize.toInt())
                     readFully(gzIn, paxBytes)
-                    skipToBlock(gzIn, size)
-                    if (typeFlag == 'x'.code.toByte()) {
-                        val pax = parsePaxExtendedHeader(paxBytes)
-                        pax["path"]?.takeIf { it.isNotEmpty() }?.let { pendingLongName = it }
-                        pax["linkpath"]?.takeIf { it.isNotEmpty() }?.let { pendingLongLink = it }
+                    skipToBlock(gzIn, headerSize)
+                    val parsed = parsePaxExtendedHeader(paxBytes)
+                    if (typeFlag == 'g'.code.toByte()) {
+                        globalPax = globalPax + parsed
+                    } else {
+                        pendingPax = pendingPax + parsed
+                        parsed["path"]?.takeIf { it.isNotEmpty() }?.let { pendingLongName = it }
+                        parsed["linkpath"]?.takeIf { it.isNotEmpty() }?.let { pendingLongLink = it }
                     }
                     continue
                 }
@@ -1968,10 +2247,10 @@ class ProotManager @Inject constructor(
                 // GNU long name: type 'L' means the data is a long filename
                 // for the NEXT entry
                 if (typeFlag == 'L'.code.toByte()) {
-                    val nameBytes = ByteArray(size.toInt())
+                    val nameBytes = ByteArray(headerSize.toInt())
                     readFully(gzIn, nameBytes)
-                    skipToBlock(gzIn, size)
-                    pendingLongName = String(nameBytes).trimEnd('\u0000')
+                    skipToBlock(gzIn, headerSize)
+                    pendingLongName = String(nameBytes, Charsets.UTF_8).trimEnd('\u0000')
                     continue // next header is the actual entry
                 }
                 // GNU long LINK target: type 'K' — same shape as 'L' but for
@@ -1981,13 +2260,17 @@ class ProotManager @Inject constructor(
                 // path (/data/data/com.termux/.../installed-rootfs/...),
                 // which is how #328's l2s chains dodged the import flattening.
                 if (typeFlag == 'K'.code.toByte()) {
-                    val linkBytes = ByteArray(size.toInt())
+                    val linkBytes = ByteArray(headerSize.toInt())
                     readFully(gzIn, linkBytes)
-                    skipToBlock(gzIn, size)
-                    pendingLongLink = String(linkBytes).trimEnd('\u0000')
+                    skipToBlock(gzIn, headerSize)
+                    pendingLongLink = String(linkBytes, Charsets.UTF_8).trimEnd('\u0000')
                     continue // next header is the actual entry
                 }
 
+                val effectivePax = if (globalPax.isEmpty()) pendingPax else (globalPax + pendingPax)
+                pendingPax = emptyMap()
+
+                val size = effectivePax["size"]?.toLongOrNull() ?: headerSize
                 val linkTarget = pendingLongLink ?: extractString(header, 157, 100)
                 pendingLongLink = null
 
@@ -2022,7 +2305,7 @@ class ProotManager @Inject constructor(
                 } else {
                     collapsedName
                 }
-                if (entryName.isEmpty()) {
+                if (entryName.isEmpty() || entryName == ROOTFS_TAR_ATTRS_FILE) {
                     skipEntryData(gzIn, size)
                     continue
                 }
@@ -2040,6 +2323,39 @@ class ProotManager @Inject constructor(
                 val entryIsDir = typeFlag == '5'.code.toByte() || nameMarksDir
                 clearPathIfWrongType(outFile, entryIsDir = entryIsDir)
 
+                val defaultMode = if (entryIsDir) 0b111_101_101 else 0b110_100_100
+                val parsedMode = (
+                    effectivePax["mode"]?.trim()?.toIntOrNull(8)
+                        ?: modeStr.trim().toIntOrNull(8)
+                        ?: defaultMode
+                    ) and 0xFFF
+                val uid = effectivePax["uid"]?.toLongOrNull() ?: parseTarNumeric(header, 108, 8)
+                val gid = effectivePax["gid"]?.toLongOrNull() ?: parseTarNumeric(header, 116, 8)
+                val uname = effectivePax["uname"]?.takeIf { it.isNotEmpty() }
+                    ?: extractString(header, 265, 32).ifEmpty { "root" }
+                val gname = effectivePax["gname"]?.takeIf { it.isNotEmpty() }
+                    ?: extractString(header, 297, 32).ifEmpty { "root" }
+                val headerMtimeSec = parseTarNumeric(header, 136, 12)
+                val paxMtimeRaw = effectivePax["mtime"].orEmpty()
+                val mtimeMillis = parsePaxMtimeMillis(paxMtimeRaw, headerMtimeSec)
+                val mtimeSec = if (mtimeMillis > 0L) mtimeMillis / 1000L else headerMtimeSec
+                val xattrs = effectivePax.filterKeys { k ->
+                    k.startsWith("SCHILY.xattr.") ||
+                        k.startsWith("LIBARCHIVE.xattr.") ||
+                        k.startsWith("RHT.security.")
+                }
+
+                recordedAttrs[entryName] = TarEntryAttrs(
+                    mode = parsedMode,
+                    uid = uid,
+                    gid = gid,
+                    uname = uname,
+                    gname = gname,
+                    mtimeSec = mtimeSec,
+                    mtimeRaw = paxMtimeRaw,
+                    xattrs = xattrs,
+                )
+
                 when {
                     entryIsDir -> {
                         // A trailing `/` or `/.` marks a directory even when
@@ -2048,9 +2364,7 @@ class ProotManager @Inject constructor(
                         // size on a dir entry would otherwise leave it to be
                         // misread as the next header.
                         outFile.mkdirs()
-                        modeStr.trim().toIntOrNull(8)?.let {
-                            deferredDirModes.add(outFile to (it and 0xFFF))
-                        }
+                        deferredDirs.add(Triple(outFile, parsedMode, mtimeMillis))
                         skipEntryData(gzIn, size)
                     }
                     typeFlag == '2'.code.toByte() -> {
@@ -2080,6 +2394,16 @@ class ProotManager @Inject constructor(
                         try {
                             val strippedTarget = resolveTarLinkTarget(linkTarget, source.stripComponents)
                             val targetFile = File(destDir, strippedTarget)
+                            val targetAttrs = recordedAttrs[strippedTarget]
+                            val hlGroup = targetAttrs?.hardlinkGroup?.takeIf { it.isNotEmpty() }
+                                ?: "hl:$strippedTarget"
+                            if (targetAttrs != null && targetAttrs.hardlinkGroup.isEmpty()) {
+                                recordedAttrs[strippedTarget] = targetAttrs.copy(hardlinkGroup = hlGroup)
+                            }
+                            val effectiveAttrs = (targetAttrs ?: recordedAttrs[entryName]!!).copy(
+                                hardlinkGroup = hlGroup,
+                            )
+                            recordedAttrs[entryName] = effectiveAttrs
                             if (targetFile.exists()) {
                                 val linkedAsSymlink = if (targetFile.length() >= 1_048_576L) {
                                     runCatching {
@@ -2095,15 +2419,14 @@ class ProotManager @Inject constructor(
                                 }
                                 if (!linkedAsSymlink) {
                                     targetFile.copyTo(outFile, overwrite = true)
-                                    // Restore the entry's mode — copyTo leaves the
-                                    // app-umask 0600, dropping exec bits from linked
-                                    // binaries. Same restore as the regular-file
-                                    // branch. (#328)
-                                    modeStr.trim().toIntOrNull(8)?.let { m ->
-                                        try {
-                                            android.system.Os.chmod(outFile.absolutePath, m and 0xFFF)
-                                        } catch (_: Exception) {}
+                                    // Restore the entry's mode and mtime (#328, #793).
+                                    applyPosixMode(outFile, effectiveAttrs.mode)
+                                    val targetMtime = if (effectiveAttrs.mtimeSec > 0L) {
+                                        parsePaxMtimeMillis(effectiveAttrs.mtimeRaw, effectiveAttrs.mtimeSec)
+                                    } else {
+                                        targetFile.lastModified()
                                     }
+                                    applyLastModifiedMillis(outFile, targetMtime)
                                     fileCount++
                                 }
                             } else {
@@ -2128,17 +2451,9 @@ class ProotManager @Inject constructor(
                                 remaining -= n
                             }
                         }
-                        // Restore the tar entry's mode exactly. The Android app
-                        // process umask is 0077, so FileOutputStream would leave
-                        // every file 0600 regardless of the tar — under-
-                        // permissioning the rootfs (e.g. dpkg failing to back up
-                        // files in /var/lib/dpkg). chmod works because the app
-                        // owns the file. (#328)
-                        modeStr.trim().toIntOrNull(8)?.let { m ->
-                            try {
-                                android.system.Os.chmod(outFile.absolutePath, m and 0xFFF)
-                            } catch (_: Exception) {}
-                        }
+                        // Restore the tar entry's mode and mtime (#328, #793).
+                        applyPosixMode(outFile, parsedMode)
+                        applyLastModifiedMillis(outFile, mtimeMillis)
                         skipToBlock(gzIn, size)
                         fileCount++
                     }
@@ -2150,28 +2465,25 @@ class ProotManager @Inject constructor(
             }
         }
 
-        // Apply directory modes now that all files are written. Deepest-first is
-        // safe (chmod needs only ownership, not parent write). Without this dirs
-        // stay at the app umask (0700) instead of the tar's mode (e.g. 0755),
-        // breaking tools that rely on 0755 traversal/perms. (#328)
-        //
-        // Owner rwx is always OR'd in: the app uid must be able to operate
-        // inside every rootfs dir regardless of what the tar says — Alpine's
-        // minirootfs ships `proc/` as 0555, which broke proot's fake-/proc
-        // fabrication (`proc/.loadavg` EACCES) on devices where SELinux hides
-        // the real /proc/loadavg (#325 import testing). Guest-visible modes
-        // are unaffected in practice: proot fake-root reports what matters,
-        // and /proc is bind-mounted over anyway.
-        for ((dir, mode) in deferredDirModes.asReversed()) {
-            try { android.system.Os.chmod(dir.absolutePath, (mode or 0b111_000_000)) } catch (_: Exception) {}
-        }
-
         Log.d(TAG, "Extracted $fileCount files, $symlinkCount symlinks to ${destDir.absolutePath}")
 
-        val l2sFixed = flattenL2sLinks(destDir)
+        val l2sFixed = flattenL2sLinks(destDir, recordedAttrs)
         if (l2sFixed > 0) {
             Log.i(TAG, "Flattened $l2sFixed link2symlink artifacts from a proot-built rootfs (#328)")
         }
+
+        // Apply directory modes and mtimes now that all files and l2s links are
+        // written. Deepest-first is safe (chmod needs only ownership, not parent
+        // write). Owner rwx is always OR'd in on the host disk so the app uid can
+        // operate inside read-only dirs like Alpine's 0555 `proc/` (#325, #328);
+        // the exact original mode (e.g. 0555, 01777) is preserved in
+        // `.haven-tar-attrs` for export (#793).
+        for ((dir, mode, mtimeMillis) in deferredDirs.asReversed()) {
+            applyPosixMode(dir, mode or 0b111_000_000)
+            applyLastModifiedMillis(dir, mtimeMillis)
+        }
+
+        saveTarAttrs(destDir, recordedAttrs)
 
         // Check bin/sh exists — it's a symlink to /bin/busybox so we must
         // not follow the link (the target is inside the rootfs, not the host)
@@ -2184,6 +2496,660 @@ class ProotManager @Inject constructor(
                     "bin/ contents: $binContents"
             )
         }
+    }
+
+    /**
+     * Export [rootDir] as a POSIX.1-2001 PAX/ustar archive with all filesystem
+     * attributes preserved (#793):
+     * - File modes (including `07000` setuid/setgid/sticky bits and read-only
+     *   directory modes like `0555`),
+     * - Modification timestamps (including sub-second PAX `mtime`),
+     * - Ownership (`uid`, `gid`, `uname`, `gname`),
+     * - Symbolic links (including >100-byte targets via PAX `linkpath`),
+     * - Hard links (imported tar hard links, PRoot `.l2s.` `link2symlink`
+     *   chains in `/.l2s` or sibling dirs, and host inode hard links),
+     * - Extended attributes (`SCHILY.xattr.*`, `LIBARCHIVE.xattr.*`, `RHT.security.*`).
+     *
+     * Runs entirely on the Android host in Kotlin without spawning `proot` or
+     * any guest binary, so a user can back up or rescue a rootfs even if a
+     * broken package upgrade corrupted `/bin/sh` or `libc`.
+     */
+    internal fun exportTarball(
+        rootDir: File,
+        rawOut: java.io.OutputStream,
+        gzip: Boolean = true,
+    ): ExportStats {
+        require(rootDir.isDirectory) { "Rootfs directory does not exist: ${rootDir.absolutePath}" }
+        val savedAttrs = loadTarAttrs(rootDir)
+        val homeOwners = parseRootfsHomeOwners(rootDir)
+
+        val entries = ArrayList<Pair<String, File>>()
+        rootDir.walkTopDown()
+            .onEnter { dir ->
+                if (dir == rootDir) {
+                    true
+                } else {
+                    !java.nio.file.Files.isSymbolicLink(dir.toPath()) &&
+                        dir.name !in INTERNAL_ROOTFS_MARKERS
+                }
+            }
+            .forEach { f ->
+                if (f == rootDir) return@forEach
+                val rel = f.relativeTo(rootDir).invariantSeparatorsPath
+                val topComponent = rel.substringBefore('/')
+                if (topComponent in INTERNAL_ROOTFS_MARKERS) return@forEach
+                entries.add(rel to f)
+            }
+        entries.sortBy { it.first }
+
+        // Pre-scan live PRoot `.l2s.` symlinks so their underlying payload files
+        // are materialized onto the first referrer as a regular file ('0') and
+        // onto subsequent referrers as tar hard links ('1'), while skipping raw
+        // `.l2s.*` payload files themselves.
+        val l2sPayloadByLinkRel = HashMap<String, File>()
+        val consumedL2sPayloads = HashSet<String>()
+        for ((rel, f) in entries) {
+            if (java.nio.file.Files.isSymbolicLink(f.toPath())) {
+                val payload = resolveL2sPayload(rootDir, f)
+                if (payload != null) {
+                    l2sPayloadByLinkRel[rel] = payload
+                    runCatching { payload.canonicalPath }.getOrNull()?.let { consumedL2sPayloads.add(it) }
+                }
+            }
+        }
+
+        var fileCount = 0
+        var dirCount = 0
+        var symlinkCount = 0
+        var hardlinkCount = 0
+        var rawBytesWritten = 0L
+
+        val countingOut = object : java.io.FilterOutputStream(rawOut) {
+            override fun write(b: Int) {
+                out.write(b)
+                rawBytesWritten++
+            }
+            override fun write(b: ByteArray, off: Int, len: Int) {
+                out.write(b, off, len)
+                rawBytesWritten += len
+            }
+        }
+        val gzOut = if (gzip) java.util.zip.GZIPOutputStream(countingOut) else null
+        val tarOut: java.io.OutputStream = (gzOut ?: countingOut).buffered()
+
+        val emittedHardlinkFirstPath = HashMap<String, String>()
+        val copyBuf = ByteArray(8192)
+
+        for ((relPath, file) in entries) {
+            val path = file.toPath()
+            val isSymlink = java.nio.file.Files.isSymbolicLink(path)
+            if (!isSymlink) {
+                val canon = runCatching { file.canonicalPath }.getOrNull()
+                if (canon != null && canon in consumedL2sPayloads) continue
+            }
+
+            val l2sPayload = l2sPayloadByLinkRel[relPath]
+            if (l2sPayload != null) {
+                val groupKey = "l2s:${runCatching { l2sPayload.canonicalPath }.getOrDefault(l2sPayload.absolutePath)}"
+                val firstRelPath = emittedHardlinkFirstPath[groupKey]
+                val attrs = mergeExportEntryAttrs(
+                    relPath = relPath,
+                    file = l2sPayload,
+                    isDir = false,
+                    isSymlink = false,
+                    savedAttrs = savedAttrs,
+                    homeOwners = homeOwners,
+                )
+                if (firstRelPath == null) {
+                    emittedHardlinkFirstPath[groupKey] = relPath
+                    writeTarEntry(
+                        tarOut = tarOut,
+                        entryName = relPath,
+                        typeFlag = '0'.code.toByte(),
+                        size = l2sPayload.length(),
+                        linkTarget = "",
+                        attrs = attrs,
+                        payloadFile = l2sPayload,
+                        copyBuf = copyBuf,
+                    )
+                    fileCount++
+                } else {
+                    writeTarEntry(
+                        tarOut = tarOut,
+                        entryName = relPath,
+                        typeFlag = '1'.code.toByte(),
+                        size = 0L,
+                        linkTarget = firstRelPath,
+                        attrs = attrs,
+                        payloadFile = null,
+                        copyBuf = copyBuf,
+                    )
+                    hardlinkCount++
+                }
+                continue
+            }
+
+            if (isSymlink) {
+                // Check if this symlink was created by extractTarball's >= 1 MB
+                // multicall binary hardlink optimization (`hl:<target>`).
+                val saved = savedAttrs[relPath]
+                if (saved != null && saved.hardlinkGroup.startsWith("hl:")) {
+                    val resolvedTarget = runCatching { path.toRealPath().toFile() }.getOrNull()
+                    if (resolvedTarget != null && resolvedTarget.isFile && isWithinDir(rootDir, resolvedTarget)) {
+                        val firstRelPath = emittedHardlinkFirstPath[saved.hardlinkGroup]
+                        val attrs = mergeExportEntryAttrs(
+                            relPath = relPath,
+                            file = resolvedTarget,
+                            isDir = false,
+                            isSymlink = false,
+                            savedAttrs = savedAttrs,
+                            homeOwners = homeOwners,
+                        )
+                        if (firstRelPath == null) {
+                            emittedHardlinkFirstPath[saved.hardlinkGroup] = relPath
+                            writeTarEntry(
+                                tarOut = tarOut,
+                                entryName = relPath,
+                                typeFlag = '0'.code.toByte(),
+                                size = resolvedTarget.length(),
+                                linkTarget = "",
+                                attrs = attrs,
+                                payloadFile = resolvedTarget,
+                                copyBuf = copyBuf,
+                            )
+                            fileCount++
+                        } else {
+                            writeTarEntry(
+                                tarOut = tarOut,
+                                entryName = relPath,
+                                typeFlag = '1'.code.toByte(),
+                                size = 0L,
+                                linkTarget = firstRelPath,
+                                attrs = attrs,
+                                payloadFile = null,
+                                copyBuf = copyBuf,
+                            )
+                            hardlinkCount++
+                        }
+                        continue
+                    }
+                }
+
+                val linkTarget = runCatching { java.nio.file.Files.readSymbolicLink(path).toString() }.getOrDefault("")
+                val attrs = mergeExportEntryAttrs(
+                    relPath = relPath,
+                    file = file,
+                    isDir = false,
+                    isSymlink = true,
+                    savedAttrs = savedAttrs,
+                    homeOwners = homeOwners,
+                )
+                writeTarEntry(
+                    tarOut = tarOut,
+                    entryName = relPath,
+                    typeFlag = '2'.code.toByte(),
+                    size = 0L,
+                    linkTarget = linkTarget,
+                    attrs = attrs,
+                    payloadFile = null,
+                    copyBuf = copyBuf,
+                )
+                symlinkCount++
+                continue
+            }
+
+            if (file.isDirectory) {
+                val attrs = mergeExportEntryAttrs(
+                    relPath = relPath,
+                    file = file,
+                    isDir = true,
+                    isSymlink = false,
+                    savedAttrs = savedAttrs,
+                    homeOwners = homeOwners,
+                )
+                writeTarEntry(
+                    tarOut = tarOut,
+                    entryName = "$relPath/",
+                    typeFlag = '5'.code.toByte(),
+                    size = 0L,
+                    linkTarget = "",
+                    attrs = attrs,
+                    payloadFile = null,
+                    copyBuf = copyBuf,
+                )
+                dirCount++
+                continue
+            }
+
+            if (file.isFile) {
+                val attrs = mergeExportEntryAttrs(
+                    relPath = relPath,
+                    file = file,
+                    isDir = false,
+                    isSymlink = false,
+                    savedAttrs = savedAttrs,
+                    homeOwners = homeOwners,
+                )
+                val diskMtimeSec = file.lastModified() / 1000L
+                val groupKey = attrs.hardlinkGroup.takeIf {
+                    it.isNotEmpty() && (attrs.mtimeSec == 0L || attrs.mtimeSec == diskMtimeSec)
+                } ?: readOsInodeHardlinkGroup(file)
+                val firstRelPath = if (groupKey != null) emittedHardlinkFirstPath[groupKey] else null
+                if (groupKey != null && firstRelPath != null) {
+                    writeTarEntry(
+                        tarOut = tarOut,
+                        entryName = relPath,
+                        typeFlag = '1'.code.toByte(),
+                        size = 0L,
+                        linkTarget = firstRelPath,
+                        attrs = attrs,
+                        payloadFile = null,
+                        copyBuf = copyBuf,
+                    )
+                    hardlinkCount++
+                } else {
+                    if (groupKey != null) {
+                        emittedHardlinkFirstPath[groupKey] = relPath
+                    }
+                    writeTarEntry(
+                        tarOut = tarOut,
+                        entryName = relPath,
+                        typeFlag = '0'.code.toByte(),
+                        size = file.length(),
+                        linkTarget = "",
+                        attrs = attrs,
+                        payloadFile = file,
+                        copyBuf = copyBuf,
+                    )
+                    fileCount++
+                }
+            }
+        }
+
+        // Two 512-byte zero blocks mark the end of a POSIX tar archive.
+        tarOut.write(ByteArray(1024))
+        tarOut.flush()
+        gzOut?.finish()
+        countingOut.flush()
+
+        return ExportStats(
+            fileCount = fileCount,
+            dirCount = dirCount,
+            symlinkCount = symlinkCount,
+            hardlinkCount = hardlinkCount,
+            bytesWritten = rawBytesWritten,
+        )
+    }
+
+    private fun parseRootfsHomeOwners(rootDir: File): Map<String, TarEntryAttrs> {
+        val passwdFile = File(rootDir, "etc/passwd")
+        if (!passwdFile.isFile) return emptyMap()
+        val groupNamesByGid = HashMap<Long, String>()
+        val groupFile = File(rootDir, "etc/group")
+        if (groupFile.isFile) {
+            runCatching {
+                groupFile.forEachLine { line ->
+                    val parts = line.split(':')
+                    if (parts.size >= 3) {
+                        val gid = parts[2].toLongOrNull()
+                        if (gid != null) groupNamesByGid[gid] = parts[0]
+                    }
+                }
+            }
+        }
+        val owners = HashMap<String, TarEntryAttrs>()
+        runCatching {
+            passwdFile.forEachLine { line ->
+                val parts = line.split(':')
+                if (parts.size >= 6) {
+                    val user = parts[0]
+                    val uid = parts[2].toLongOrNull() ?: return@forEachLine
+                    val gid = parts[3].toLongOrNull() ?: uid
+                    val home = parts[5].trimStart('/')
+                    if (home.startsWith("home/") && home.length > 5) {
+                        val gname = groupNamesByGid[gid] ?: user
+                        owners[home] = TarEntryAttrs(
+                            mode = 0b111_101_101,
+                            uid = uid,
+                            gid = gid,
+                            uname = user,
+                            gname = gname,
+                        )
+                    }
+                }
+            }
+        }
+        return owners
+    }
+
+    private fun mergeExportEntryAttrs(
+        relPath: String,
+        file: File,
+        isDir: Boolean,
+        isSymlink: Boolean,
+        savedAttrs: Map<String, TarEntryAttrs>,
+        homeOwners: Map<String, TarEntryAttrs>,
+    ): TarEntryAttrs {
+        val saved = savedAttrs[relPath]
+        val defaultMode = when {
+            isSymlink -> 0b111_111_111
+            isDir -> 0b111_101_101
+            else -> 0b110_100_100
+        }
+        val liveMode = if (isSymlink) {
+            saved?.mode ?: defaultMode
+        } else {
+            readPosixMode(file, saved?.mode ?: defaultMode)
+        }
+        val effectiveMode = when {
+            isSymlink -> saved?.mode ?: defaultMode
+            isDir -> {
+                // extractTarball ORs 0700 into directory modes on host disk so
+                // the app uid can always traverse/modify files inside read-only
+                // dirs like 0555 `proc/`. If group/other bits still match the
+                // saved tar mode, restore the original owner + special bits.
+                if (saved != null && (liveMode and 0b000_111_111) == (saved.mode and 0b000_111_111)) {
+                    saved.mode and 0xFFF
+                } else {
+                    val specialBits = (saved?.mode ?: 0) and 0b111_000_000_000
+                    (specialBits or (liveMode and 0xFFF)) and 0xFFF
+                }
+            }
+            else -> {
+                val specialBits = (saved?.mode ?: 0) and 0b111_000_000_000
+                (specialBits or (liveMode and 0xFFF)) and 0xFFF
+            }
+        }
+
+        val diskMtimeMillis = if (isSymlink) {
+            runCatching {
+                java.nio.file.Files.getLastModifiedTime(
+                    file.toPath(),
+                    java.nio.file.LinkOption.NOFOLLOW_LINKS,
+                ).toMillis()
+            }.getOrDefault(0L)
+        } else {
+            file.lastModified()
+        }
+        val diskMtimeSec = if (diskMtimeMillis > 0L) diskMtimeMillis / 1000L else (saved?.mtimeSec ?: 0L)
+        val effectiveMtimeSec = if (saved != null && (diskMtimeSec == 0L || diskMtimeSec == saved.mtimeSec)) {
+            saved.mtimeSec
+        } else {
+            diskMtimeSec
+        }
+        val effectiveMtimeRaw = if (saved != null && saved.mtimeRaw.isNotEmpty() && effectiveMtimeSec == saved.mtimeSec) {
+            saved.mtimeRaw
+        } else {
+            ""
+        }
+
+        if (saved != null) {
+            return saved.copy(
+                mode = effectiveMode,
+                mtimeSec = effectiveMtimeSec,
+                mtimeRaw = effectiveMtimeRaw,
+            )
+        }
+
+        val homeOwner = homeOwners.entries.firstOrNull { (homePrefix, _) ->
+            relPath == homePrefix || relPath.startsWith("$homePrefix/")
+        }?.value
+        return TarEntryAttrs(
+            mode = effectiveMode,
+            uid = homeOwner?.uid ?: 0L,
+            gid = homeOwner?.gid ?: 0L,
+            uname = homeOwner?.uname ?: "root",
+            gname = homeOwner?.gname ?: "root",
+            mtimeSec = effectiveMtimeSec,
+            mtimeRaw = effectiveMtimeRaw,
+        )
+    }
+
+    private fun readOsInodeHardlinkGroup(file: File): String? = runCatching {
+        val map = java.nio.file.Files.readAttributes(
+            file.toPath(),
+            "unix:dev,ino,nlink",
+            java.nio.file.LinkOption.NOFOLLOW_LINKS,
+        )
+        val nlink = (map["nlink"] as? Number)?.toInt() ?: 1
+        if (nlink > 1) {
+            val dev = (map["dev"] as? Number)?.toLong() ?: 0L
+            val ino = (map["ino"] as? Number)?.toLong() ?: 0L
+            if (ino != 0L) "ino:$dev:$ino" else null
+        } else {
+            null
+        }
+    }.getOrNull()
+
+    private fun writeTarEntry(
+        tarOut: java.io.OutputStream,
+        entryName: String,
+        typeFlag: Byte,
+        size: Long,
+        linkTarget: String,
+        attrs: TarEntryAttrs,
+        payloadFile: File?,
+        copyBuf: ByteArray,
+    ) {
+        val paxRecords = java.io.ByteArrayOutputStream()
+        val nameBytes = entryName.toByteArray(Charsets.UTF_8)
+        val linkBytes = linkTarget.toByteArray(Charsets.UTF_8)
+        val unameBytes = attrs.uname.toByteArray(Charsets.UTF_8)
+        val gnameBytes = attrs.gname.toByteArray(Charsets.UTF_8)
+
+        val (ustarName, ustarPrefix, needsPaxPath) = splitUstarPath(entryName, nameBytes)
+        if (needsPaxPath) {
+            paxRecords.write(buildPaxRecord("path", nameBytes))
+        }
+        if (linkBytes.size > 100 || linkTarget.any { it.code > 0x7F }) {
+            paxRecords.write(buildPaxRecord("linkpath", linkBytes))
+        }
+        if (size > 0b111_111_111_111_111_111_111_111_111_111_111L) { // > 077777777777 (8 GiB - 1)
+            paxRecords.write(buildPaxRecord("size", size.toString().toByteArray(Charsets.US_ASCII)))
+        }
+        if (attrs.uid > 0b111_111_111_111_111_111_111L) { // > 07777777
+            paxRecords.write(buildPaxRecord("uid", attrs.uid.toString().toByteArray(Charsets.US_ASCII)))
+        }
+        if (attrs.gid > 0b111_111_111_111_111_111_111L) {
+            paxRecords.write(buildPaxRecord("gid", attrs.gid.toString().toByteArray(Charsets.US_ASCII)))
+        }
+        if (unameBytes.size > 31 || attrs.uname.any { it.code > 0x7F }) {
+            paxRecords.write(buildPaxRecord("uname", unameBytes))
+        }
+        if (gnameBytes.size > 31 || attrs.gname.any { it.code > 0x7F }) {
+            paxRecords.write(buildPaxRecord("gname", gnameBytes))
+        }
+        if (attrs.mtimeRaw.isNotEmpty()) {
+            paxRecords.write(buildPaxRecord("mtime", attrs.mtimeRaw.toByteArray(Charsets.US_ASCII)))
+        }
+        for ((k, v) in attrs.xattrs) {
+            val charset = if (k.startsWith("SCHILY.xattr.") || k.startsWith("RHT.security.")) {
+                Charsets.ISO_8859_1
+            } else {
+                Charsets.UTF_8
+            }
+            paxRecords.write(buildPaxRecord(k, v.toByteArray(charset)))
+        }
+
+        if (paxRecords.size() > 0) {
+            val paxBytes = paxRecords.toByteArray()
+            val paxHeaderName = ("PaxHeader/${entryName.trimEnd('/').substringAfterLast('/')}")
+                .take(99)
+            val paxHeader = buildUstarHeader(
+                name = paxHeaderName,
+                prefix = "",
+                mode = 0b110_100_100,
+                uid = 0L,
+                gid = 0L,
+                size = paxBytes.size.toLong(),
+                mtimeSec = attrs.mtimeSec,
+                typeFlag = 'x'.code.toByte(),
+                linkName = "",
+                uname = "root",
+                gname = "root",
+            )
+            tarOut.write(paxHeader)
+            tarOut.write(paxBytes)
+            writeBlockPadding(tarOut, paxBytes.size.toLong())
+        }
+
+        val header = buildUstarHeader(
+            name = ustarName,
+            prefix = ustarPrefix,
+            mode = attrs.mode and 0xFFF,
+            uid = attrs.uid.coerceIn(0L, 0b111_111_111_111_111_111_111L),
+            gid = attrs.gid.coerceIn(0L, 0b111_111_111_111_111_111_111L),
+            size = if (payloadFile != null) size else 0L,
+            mtimeSec = attrs.mtimeSec.coerceAtLeast(0L),
+            typeFlag = typeFlag,
+            linkName = linkTarget,
+            uname = attrs.uname,
+            gname = attrs.gname,
+        )
+        tarOut.write(header)
+
+        if (payloadFile != null && size > 0L) {
+            var written = 0L
+            payloadFile.inputStream().use { fis ->
+                while (written < size) {
+                    val toRead = minOf((size - written).toInt(), copyBuf.size)
+                    val n = fis.read(copyBuf, 0, toRead)
+                    if (n <= 0) break
+                    tarOut.write(copyBuf, 0, n)
+                    written += n
+                }
+            }
+            while (written < size) {
+                val pad = minOf((size - written).toInt(), copyBuf.size)
+                copyBuf.fill(0, 0, pad)
+                tarOut.write(copyBuf, 0, pad)
+                written += pad
+            }
+            writeBlockPadding(tarOut, size)
+        }
+    }
+
+    private fun splitUstarPath(entryName: String, nameBytes: ByteArray): Triple<String, String, Boolean> {
+        val isAscii = entryName.all { it.code in 1..0x7F }
+        if (isAscii && nameBytes.size <= 100) {
+            return Triple(entryName, "", false)
+        }
+        if (isAscii && nameBytes.size <= 255) {
+            val slashIdx = entryName.indexOf('/', startIndex = (entryName.length - 100).coerceAtLeast(1))
+            if (slashIdx in 1..155) {
+                val prefix = entryName.substring(0, slashIdx)
+                val suffix = entryName.substring(slashIdx + 1)
+                if (suffix.isNotEmpty() && suffix.length <= 100) {
+                    return Triple(suffix, prefix, false)
+                }
+            }
+        }
+        val truncated = String(nameBytes, 0, minOf(nameBytes.size, 100), Charsets.US_ASCII)
+        return Triple(truncated, "", true)
+    }
+
+    private fun buildUstarHeader(
+        name: String,
+        prefix: String,
+        mode: Int,
+        uid: Long,
+        gid: Long,
+        size: Long,
+        mtimeSec: Long,
+        typeFlag: Byte,
+        linkName: String,
+        uname: String,
+        gname: String,
+    ): ByteArray {
+        val b = ByteArray(512)
+        writeAsciiField(b, 0, 100, name)
+        writeAsciiField(b, 100, 8, "%07o".format(mode and 0xFFF))
+        writeAsciiField(b, 108, 8, "%07o".format(uid and 0b111_111_111_111_111_111_111L))
+        writeAsciiField(b, 116, 8, "%07o".format(gid and 0b111_111_111_111_111_111_111L))
+        writeAsciiField(b, 124, 12, "%011o".format(size.coerceAtMost(0b111_111_111_111_111_111_111_111_111_111_111L)))
+        writeAsciiField(b, 136, 12, "%011o".format(mtimeSec.coerceAtLeast(0L)))
+        b[156] = typeFlag
+        if (linkName.isNotEmpty()) {
+            writeAsciiField(b, 157, 100, linkName)
+        }
+        // POSIX ustar magic ("ustar\0") + version ("00")
+        writeAsciiField(b, 257, 6, "ustar")
+        b[263] = '0'.code.toByte()
+        b[264] = '0'.code.toByte()
+        writeAsciiField(b, 265, 32, uname)
+        writeAsciiField(b, 297, 32, gname)
+        writeAsciiField(b, 329, 8, "0000000")
+        writeAsciiField(b, 337, 8, "0000000")
+        if (prefix.isNotEmpty()) {
+            writeAsciiField(b, 345, 155, prefix)
+        }
+        for (i in 148 until 156) b[i] = ' '.code.toByte()
+        var sum = 0L
+        for (byte in b) sum += (byte.toInt() and 0xFF).toLong()
+        val chk = "%06o".format(sum).toByteArray(Charsets.US_ASCII)
+        chk.copyInto(b, 148, 0, minOf(chk.size, 6))
+        b[154] = 0
+        b[155] = ' '.code.toByte()
+        return b
+    }
+
+    private fun writeAsciiField(buf: ByteArray, offset: Int, length: Int, value: String) {
+        val bytes = value.toByteArray(Charsets.US_ASCII)
+        val n = minOf(bytes.size, length)
+        bytes.copyInto(buf, offset, 0, n)
+    }
+
+    private fun writeBlockPadding(out: java.io.OutputStream, dataSize: Long) {
+        val remainder = ((512 - (dataSize % 512)) % 512).toInt()
+        if (remainder > 0) {
+            out.write(ByteArray(remainder))
+        }
+    }
+
+    private fun buildPaxRecord(key: String, valueBytes: ByteArray): ByteArray {
+        val keyBytes = key.toByteArray(Charsets.UTF_8)
+        val bodyLen = keyBytes.size + 1 + valueBytes.size + 1
+        var totalLen = bodyLen + 3
+        while (totalLen.toString().length + 1 + bodyLen != totalLen) {
+            totalLen = totalLen.toString().length + 1 + bodyLen
+        }
+        val prefixBytes = "$totalLen ".toByteArray(Charsets.US_ASCII)
+        val out = ByteArray(totalLen)
+        prefixBytes.copyInto(out, 0)
+        keyBytes.copyInto(out, prefixBytes.size)
+        out[prefixBytes.size + keyBytes.size] = '='.code.toByte()
+        valueBytes.copyInto(out, prefixBytes.size + keyBytes.size + 1)
+        out[out.size - 1] = '\n'.code.toByte()
+        return out
+    }
+
+    private fun parseTarNumeric(buf: ByteArray, offset: Int, length: Int): Long {
+        if (length <= 0 || offset + length > buf.size) return 0L
+        val first = buf[offset].toInt() and 0xFF
+        if ((first and 0x80) != 0) {
+            var v = (first and 0x7F).toLong()
+            for (i in (offset + 1) until (offset + length)) {
+                v = (v shl 8) or (buf[i].toInt() and 0xFF).toLong()
+            }
+            return v
+        }
+        val s = extractString(buf, offset, length).trim()
+        return if (s.isEmpty()) 0L else runCatching { s.toLong(8) }.getOrDefault(0L)
+    }
+
+    private fun parsePaxMtimeMillis(paxMtime: String, fallbackSec: Long): Long {
+        if (paxMtime.isNotEmpty()) {
+            val dot = paxMtime.indexOf('.')
+            if (dot < 0) {
+                paxMtime.trim().toLongOrNull()?.let { return it * 1000L }
+            } else {
+                val sec = paxMtime.substring(0, dot).trim().toLongOrNull()
+                val fracStr = paxMtime.substring(dot + 1).trim().take(3).padEnd(3, '0')
+                val millis = fracStr.toLongOrNull() ?: 0L
+                if (sec != null) return sec * 1000L + millis
+            }
+        }
+        return if (fallbackSec > 0L) fallbackSec * 1000L else 0L
     }
 
     private fun readFully(input: java.io.InputStream, buf: ByteArray): Int {
@@ -3806,10 +4772,21 @@ chmod +x /root/.vnc/xstartup""")
                 } else {
                     recordEnd
                 }
-                val kv = String(data, spaceIdx + 1, payloadEnd - (spaceIdx + 1), Charsets.UTF_8)
-                val eqIdx = kv.indexOf('=')
-                if (eqIdx > 0) {
-                    result[kv.substring(0, eqIdx)] = kv.substring(eqIdx + 1)
+                var eqPos = spaceIdx + 1
+                while (eqPos < payloadEnd && data[eqPos] != '='.code.toByte()) {
+                    eqPos++
+                }
+                if (eqPos > spaceIdx + 1 && eqPos < payloadEnd) {
+                    val key = String(data, spaceIdx + 1, eqPos - (spaceIdx + 1), Charsets.UTF_8)
+                    val valueCharset = if (
+                        key.startsWith("SCHILY.xattr.") || key.startsWith("RHT.security.")
+                    ) {
+                        Charsets.ISO_8859_1
+                    } else {
+                        Charsets.UTF_8
+                    }
+                    val value = String(data, eqPos + 1, payloadEnd - (eqPos + 1), valueCharset)
+                    result[key] = value
                 }
                 pos = recordEnd
             }

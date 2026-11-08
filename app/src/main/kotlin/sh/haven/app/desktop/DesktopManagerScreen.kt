@@ -1,5 +1,7 @@
 package sh.haven.app.desktop
 
+import androidx.activity.compose.rememberLauncherForActivityResult
+import androidx.activity.result.contract.ActivityResultContracts
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
@@ -30,9 +32,12 @@ import androidx.compose.material.icons.filled.Download
 import androidx.compose.material.icons.filled.Edit
 import androidx.compose.material.icons.filled.ExpandLess
 import androidx.compose.material.icons.filled.ExpandMore
+import androidx.compose.material.icons.filled.FolderOpen
 import androidx.compose.material.icons.filled.PlayArrow
 import androidx.compose.material.icons.filled.Stop
 import androidx.compose.material.icons.filled.Terminal
+import androidx.compose.material.icons.filled.Upload
+import androidx.compose.ui.platform.LocalContext
 import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.AssistChip
 import androidx.compose.material3.AssistChipDefaults
@@ -1634,6 +1639,24 @@ private fun DesktopManagerSection(
     viewModel: DesktopViewModel,
 ) {
     var distroMenuOpen by remember { mutableStateOf(false) }
+    val context = LocalContext.current
+    var pendingExportDistroId by rememberSaveable { mutableStateOf<String?>(null) }
+    val exportRootfsLauncher = rememberLauncherForActivityResult(
+        contract = ActivityResultContracts.CreateDocument("application/gzip"),
+    ) { uri ->
+        val distroId = pendingExportDistroId
+        pendingExportDistroId = null
+        if (uri != null && distroId != null) {
+            viewModel.exportRootfsToUri(context, distroId, uri)
+        }
+    }
+    val importRootfsFileLauncher = rememberLauncherForActivityResult(
+        contract = ActivityResultContracts.OpenDocument(),
+    ) { uri ->
+        if (uri != null) {
+            viewModel.stageImportRootfsUri(context, uri)
+        }
+    }
     val showImportDialog by viewModel.showImportRootfs.collectAsState()
     val showCustomBindsDialog by viewModel.showCustomBinds.collectAsState()
     // #361: non-null while the Custom (X11) command dialog is open; true =
@@ -1753,6 +1776,17 @@ private fun DesktopManagerSection(
                                 }
                                 IconButton(onClick = {
                                     distroMenuOpen = false
+                                    pendingExportDistroId = distro.id
+                                    exportRootfsLauncher.launch("${distro.id}-rootfs.tar.gz")
+                                }) {
+                                    Icon(
+                                        Icons.Filled.Upload,
+                                        contentDescription = stringResource(AppR.string.app_desktop_export_rootfs),
+                                        modifier = Modifier.size(20.dp),
+                                    )
+                                }
+                                IconButton(onClick = {
+                                    distroMenuOpen = false
                                     viewModel.setDistroPendingDelete(distro)
                                 }) {
                                     Icon(
@@ -1802,6 +1836,17 @@ private fun DesktopManagerSection(
                                 viewModel.openImportRootfs()
                             },
                         )
+                        if (installedDistros.any { it.id == activeDistroId }) {
+                            DropdownMenuItem(
+                                text = { Text(stringResource(AppR.string.app_desktop_export_rootfs)) },
+                                leadingIcon = { Icon(Icons.Filled.Upload, contentDescription = null, modifier = Modifier.size(20.dp)) },
+                                onClick = {
+                                    distroMenuOpen = false
+                                    pendingExportDistroId = activeDistroId
+                                    exportRootfsLauncher.launch("$activeDistroId-rootfs.tar.gz")
+                                },
+                            )
+                        }
                         // #287: open a USB mass-storage drive in a VM so its
                         // ext4/GPT/block files are reachable (proot can't). Up
                         // to MAX_CONCURRENT_DRIVES at once — each is its own row
@@ -2211,6 +2256,7 @@ private fun DesktopManagerSection(
         ImportRootfsDialog(
             draft = draft,
             onDraftChange = { viewModel.setImportRootfsDraft(it) },
+            onPickLocalFile = { importRootfsFileLauncher.launch(arrayOf("*/*")) },
             onDismiss = { viewModel.dismissImportRootfs() },
             onImport = { id, label, family, source ->
                 onImportRootfs(id, label, family, source)
@@ -2399,6 +2445,7 @@ private fun UsbLuksUnlockDialog(
 private fun ImportRootfsDialog(
     draft: DesktopViewModel.ImportRootfsDraft,
     onDraftChange: (DesktopViewModel.ImportRootfsDraft) -> Unit,
+    onPickLocalFile: () -> Unit = {},
     onDismiss: () -> Unit,
     onImport: (String, String, sh.haven.core.local.proot.PackageFamily, String) -> Unit,
 ) {
@@ -2444,6 +2491,11 @@ private fun ImportRootfsDialog(
                     onValueChange = { onDraftChange(draft.copy(source = it.trim())) },
                     singleLine = true,
                     label = { Text(stringResource(AppR.string.app_desktop_import_source_hint)) },
+                    trailingIcon = {
+                        IconButton(onClick = onPickLocalFile) {
+                            Icon(Icons.Filled.FolderOpen, contentDescription = null)
+                        }
+                    },
                     modifier = Modifier.fillMaxWidth(),
                 )
                 Spacer(Modifier.height(8.dp))

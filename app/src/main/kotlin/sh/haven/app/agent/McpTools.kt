@@ -1321,21 +1321,36 @@ internal class McpTools(
         ) { args -> deleteDistroTool(args) },
 
         "import_distro" to ToolHandler(
-            description = "Import a custom rootfs tarball as a new distro (#284) — \"bring your own rootfs\". The tarball (http(s) URL or an on-device file path) is extracted to its own rootfs and registered as a first-class distro, so it then appears in list_distros / set_active_distro / install_desktop exactly like a built-in. Raw mode: no baseline packages and no distro hooks run — the rootfs is used as shipped; `family` only routes later package installs (apk/apt/pacman/xbps). Use this for proot-distro / Docker-export tarballs and for a SECOND instance of a distro you already have (give it a new id — that is how #302 multiple-instances is done). Returns immediately; poll inspect_proot.osSetupState (Downloading → Extracting → Ready/Error). Supported compression: .tar.gz and .tar.xz (zstd not yet supported — recompress first).",
+            description = "Import or restore a rootfs tarball as a distro (#284, #793) — \"bring your own rootfs\" or restore a backup exported by `export_distro`. The tarball (http(s) URL or an on-device file path) is extracted to `proot/rootfs/<id>` with all filesystem attributes preserved (permissions + special bits, mtime, uid/gid/uname/gname, symlinks, hardlinks, and PAX xattrs). Can register a new custom distro id OR restore over an existing / built-in distro id. Raw mode: no baseline packages and no distro hooks run — the rootfs is used as shipped; `family` only routes later package installs (apk/apt/pacman/xbps). Returns immediately; poll inspect_proot.osSetupState (Downloading → Extracting → Ready/Error). Supported formats: .tar, .tar.gz, and .tar.xz.",
             inputSchema = objectSchema {
-                string("id", "New distro id (slug: lowercase letters/digits/.-_, e.g. \"ubuntu-trixie\" or \"debian-test2\"). Must not collide with a built-in or existing custom id.", required = true)
+                string("id", "Target distro id (slug: lowercase letters/digits/.-_, e.g. \"ubuntu-trixie\", \"debian-bookworm\", or \"debian-test2\").", required = true)
                 string("label", "Human label shown in the picker (e.g. \"Ubuntu 26.04 (imported)\").")
                 string("family", "Package family for later installs: APK | APT | PACMAN | XBPS | NIX.", required = true)
                 string("source", "Rootfs tarball: an http(s):// URL, or an absolute on-device file path.", required = true)
-                string("format", "Optional compression: TAR_GZ | TAR_XZ. Auto-detected from the source extension if omitted.")
+                string("format", "Optional format: TAR | TAR_GZ | TAR_XZ. Auto-detected from the source extension if omitted.")
                 integer("stripComponents", "Optional leading path components to strip (proot-distro tarballs wrap in one dir → 1). Defaults to auto: tries 0, retries 1 if no bin/sh is found.")
                 string("sha256", "Optional SHA-256 to verify the download against. Skipped if omitted.")
             },
             consentLevel = ConsentLevel.EVERY_CALL,
             summarise = { args ->
-                "Import a custom rootfs as distro \"${args.optString("id")}\" from ${args.optString("source")}?"
+                "Import rootfs into distro \"${args.optString("id")}\" from ${args.optString("source")}?"
             },
         ) { args -> importDistroTool(args) },
+
+        "export_distro" to ToolHandler(
+            description = "Export a proot distro's full rootfs directly from the Android host filesystem to a POSIX.1-2001 PAX/ustar archive (.tar.gz or .tar) with all filesystem attributes preserved (#793): permissions (including setuid/setgid/sticky and read-only directory modes), modification timestamps (including PAX sub-second mtime), ownership (uid/gid/uname/gname), symlinks, hardlinks (including PRoot link2symlink `.l2s.` chains), and PAX extended attributes (`SCHILY.xattr.*`). Runs host-side without invoking `proot` or the guest shell, so a distro whose `/bin/sh` or `libc` broke during an upgrade can still be backed up and rescued.",
+            inputSchema = objectSchema {
+                string("distroId", "Distro id to export; omit to export the active distro.")
+                string("destPath", "Absolute on-device destination path (e.g. \"/sdcard/Download/debian-trixie-rootfs.tar.gz\"). Defaults to `<cacheDir>/<distroId>-rootfs.tar.gz`.")
+                boolean("gzip", "Compress with gzip (.tar.gz). Defaults to true unless destPath ends with `.tar`.")
+            },
+            consentLevel = ConsentLevel.EVERY_CALL,
+            summarise = { args ->
+                val id = args.optString("distroId").ifEmpty { prootManager.activeDistroId }
+                val dst = args.optString("destPath").ifEmpty { "${context.cacheDir}/$id-rootfs.tar.gz" }
+                "Export rootfs of distro \"$id\" to $dst?"
+            },
+        ) { args -> exportDistroTool(args) },
 
         "get_custom_binds" to ToolHandler(
             description = "List the user-defined extra proot bind mounts (#301) for a distro — the per-distro custom Android→guest mounts added on top of the fixed system binds. Pass distroId; omit to use the active distro. Returns each bind as {host, guest} plus its proot spec.",
@@ -8178,23 +8193,23 @@ internal class McpTools(
             sh.haven.core.local.proot.PackageFamily.valueOf(args.optString("family").uppercase())
         }.getOrNull() ?: throw McpError(-32602, "family must be one of APK, APT, PACMAN, XBPS, NIX")
         val label = args.optString("label").ifBlank { id }
+        val cleanSource = source.substringBefore('?').lowercase()
         // Auto-detect compression from the source extension if not given.
-        val format = when (val f = args.optString("format")) {
+        val format = when (val f = args.optString("format").uppercase()) {
+            "TAR" -> sh.haven.core.local.proot.RootfsFormat.TAR
             "TAR_GZ" -> sh.haven.core.local.proot.RootfsFormat.TAR_GZ
             "TAR_XZ" -> sh.haven.core.local.proot.RootfsFormat.TAR_XZ
             "TAR_ZSTD" -> sh.haven.core.local.proot.RootfsFormat.TAR_ZSTD
             "" -> when {
-                source.endsWith(".tar.xz") || source.endsWith(".txz") -> sh.haven.core.local.proot.RootfsFormat.TAR_XZ
-                source.endsWith(".tar.zst") || source.endsWith(".tar.zstd") -> sh.haven.core.local.proot.RootfsFormat.TAR_ZSTD
+                cleanSource.endsWith(".tar.xz") || cleanSource.endsWith(".txz") -> sh.haven.core.local.proot.RootfsFormat.TAR_XZ
+                cleanSource.endsWith(".tar.zst") || cleanSource.endsWith(".tar.zstd") -> sh.haven.core.local.proot.RootfsFormat.TAR_ZSTD
+                cleanSource.endsWith(".tar") -> sh.haven.core.local.proot.RootfsFormat.TAR
                 else -> sh.haven.core.local.proot.RootfsFormat.TAR_GZ
             }
             else -> throw McpError(-32602, "Unknown format: $f")
         }
         val strip = if (args.has("stripComponents")) args.optInt("stripComponents", 0) else 0
         val sha = args.optString("sha256").takeIf { it.isNotEmpty() }
-        if (sh.haven.core.local.proot.DistroCatalog.isBuiltin(id)) {
-            throw McpError(-32602, "'$id' is a built-in distro id — pick another")
-        }
         backgroundScope.launch {
             try {
                 prootManager.importRootfs(id, label, family, source, format, strip, sha)
@@ -8208,6 +8223,35 @@ internal class McpTools(
             put("family", family.name)
             put("status", "started")
             put("poll", "inspect_proot.osSetupState")
+        }
+    }
+
+    private suspend fun exportDistroTool(args: JSONObject): JSONObject {
+        val distroId = args.optString("distroId").takeIf { it.isNotEmpty() } ?: prootManager.activeDistroId
+        val rootfsDir = prootManager.rootfsDirFor(distroId)
+        if (!rootfsDir.isDirectory) {
+            throw McpError(-32602, "Rootfs directory does not exist for distro '$distroId'")
+        }
+        val defaultExt = if (args.has("gzip") && !args.optBoolean("gzip", true)) "tar" else "tar.gz"
+        val destPath = args.optString("destPath").takeIf { it.isNotEmpty() }
+            ?: java.io.File(context.cacheDir, "$distroId-rootfs.$defaultExt").absolutePath
+        val destFile = java.io.File(destPath)
+        val gzip = if (args.has("gzip")) {
+            args.optBoolean("gzip", true)
+        } else {
+            !destFile.name.endsWith(".tar", ignoreCase = true)
+        }
+        val stats = prootManager.exportRootfsToFile(distroId = distroId, destFile = destFile, gzip = gzip)
+        return JSONObject().apply {
+            put("distroId", distroId)
+            put("destPath", destFile.absolutePath)
+            put("gzip", gzip)
+            put("fileCount", stats.fileCount)
+            put("dirCount", stats.dirCount)
+            put("symlinkCount", stats.symlinkCount)
+            put("hardlinkCount", stats.hardlinkCount)
+            put("bytesWritten", stats.bytesWritten)
+            put("status", "exported")
         }
     }
 

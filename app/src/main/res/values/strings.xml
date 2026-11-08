@@ -137,6 +137,7 @@
     <string name="app_desktop_custom_binds_stale_row">This path no longer exists on the device — the mount is skipped when the guest starts.</string>
     <!-- Desktop manager: import custom rootfs (#284) -->
     <string name="app_desktop_import_rootfs">Import rootfs…</string>
+    <string name="app_desktop_export_rootfs">Export rootfs…</string>
     <string name="app_desktop_options_section">Options &amp; mounts</string>
     <string name="app_desktop_open_usb_drive">Open USB drive…</string>
     <string name="app_desktop_open_usb_drive_writable">Open USB drive (writable)…</string>

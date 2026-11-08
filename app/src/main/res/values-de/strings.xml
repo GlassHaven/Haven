@@ -282,6 +282,7 @@
     <string name="app_desktop_custom_binds_stale">%1$d eigener Mount zeigt auf einen nicht mehr vorhandenen Pfad — er wird beim Start des Gastes übersprungen.</string>
     <string name="app_desktop_custom_binds_stale_row">Dieser Pfad existiert nicht mehr auf dem Gerät — der Mount wird beim Start des Gastes übersprungen.</string>
     <string name="app_desktop_import_rootfs">Rootfs importieren…</string>
+    <string name="app_desktop_export_rootfs">Rootfs exportieren…</string>
     <string name="app_desktop_options_section">Optionen &amp; Mounts</string>
     <string name="app_desktop_open_usb_drive">USB-Laufwerk öffnen…</string>
     <string name="app_desktop_open_usb_drive_writable">USB-Laufwerk öffnen (beschreibbar)…</string>

@@ -292,6 +292,7 @@
     <string name="app_desktop_custom_binds_stale">%1$d개의 사용자 마운트가 더 이상 존재하지 않는 경로를 가리킵니다 — 게스트 시작 시 무시됩니다.</string>
     <string name="app_desktop_custom_binds_stale_row">이 경로가 기기에 더 이상 존재하지 않습니다 — 게스트 시작 시 무시됩니다.</string>
     <string name="app_desktop_import_rootfs">rootfs 가져오기…</string>
+    <string name="app_desktop_export_rootfs">rootfs 내보내기…</string>
     <string name="app_desktop_options_section">옵션 및 마운트</string>
     <string name="app_desktop_open_usb_drive">USB 드라이브 열기…</string>
     <string name="app_desktop_open_usb_drive_writable">USB 드라이브 열기 (쓰기 가능)…</string>

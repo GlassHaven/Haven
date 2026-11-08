@@ -282,6 +282,7 @@
     <string name="app_desktop_custom_binds_stale">%1$d のカスタマウントが存在しないパスを指定しています — ゲストの起動時にスキップされます。</string>
     <string name="app_desktop_custom_binds_stale_row">このパスはデバイス上に存在しません — ゲストの起動時にスキップされます。</string>
     <string name="app_desktop_import_rootfs">rootfs をインポート…</string>
+    <string name="app_desktop_export_rootfs">rootfs をエクスポート…</string>
     <string name="app_desktop_options_section">オプションとマウント</string>
     <string name="app_desktop_open_usb_drive">USB ドライブを開く…</string>
     <string name="app_desktop_open_usb_drive_writable">USB ドライブを開く（書き込み可）…</string>

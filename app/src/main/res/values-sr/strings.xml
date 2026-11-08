@@ -101,6 +101,7 @@
     <string name="app_desktop_custom_binds_stale">%1$d посебних монтирања показује на путању које више не постоји — прескаче се при покретању госта.</string>
     <string name="app_desktop_custom_binds_stale_row">Ова путања више не постоји на уређају — монтирање ће бити прескочено при покретању госта.</string>
     <string name="app_desktop_import_rootfs">Увези rootfs…</string>
+    <string name="app_desktop_export_rootfs">Извези rootfs…</string>
     <string name="app_desktop_options_section">Опције &amp; монтирања</string>
     <string name="app_desktop_open_usb_drive">Отвори USB драјв…</string>
     <string name="app_desktop_open_usb_drive_writable">Отвори USB драјв (може да се уписује)…</string>

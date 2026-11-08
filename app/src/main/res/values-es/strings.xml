@@ -288,6 +288,7 @@
     <string name="app_desktop_custom_binds_stale">%1$d montaje propio apunta a una ruta que ya no existe — se omite al iniciar el invitado.</string>
     <string name="app_desktop_custom_binds_stale_row">Esta ruta ya no existe en el dispositivo — el montaje se omite al iniciar el invitado.</string>
     <string name="app_desktop_import_rootfs">Importar rootfs…</string>
+    <string name="app_desktop_export_rootfs">Exportar rootfs…</string>
     <string name="app_desktop_options_section">Opciones y montajes</string>
     <string name="app_desktop_open_usb_drive">Abrir unidad USB…</string>
     <string name="app_desktop_open_usb_drive_writable">Abrir unidad USB (escritura)…</string>

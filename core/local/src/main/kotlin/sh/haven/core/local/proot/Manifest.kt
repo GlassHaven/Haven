@@ -85,7 +85,7 @@ enum class PackageFamily {
 }
 
 /** Tarball format for a rootfs source. */
-enum class RootfsFormat { TAR_GZ, TAR_XZ, TAR_ZSTD }
+enum class RootfsFormat { TAR, TAR_GZ, TAR_XZ, TAR_ZSTD }
 
 /**
  * A rootfs download source — pinned URL + sha256 for one arch of

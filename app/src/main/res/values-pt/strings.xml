@@ -282,6 +282,7 @@
     <string name="app_desktop_custom_binds_stale">%1$d montagem própria aponta para um caminho que não existe mais — é ignorada ao iniciar o convidado.</string>
     <string name="app_desktop_custom_binds_stale_row">Este caminho não existe mais no dispositivo — a montagem é ignorada ao iniciar o convidado.</string>
     <string name="app_desktop_import_rootfs">Importar rootfs…</string>
+    <string name="app_desktop_export_rootfs">Exportar rootfs…</string>
     <string name="app_desktop_options_section">Opções e montagens</string>
     <string name="app_desktop_open_usb_drive">Abrir unidade USB…</string>
     <string name="app_desktop_open_usb_drive_writable">Abrir unidade USB (gravável)…</string>

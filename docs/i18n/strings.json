@@ -2344,6 +2344,26 @@
      }
     },
     {
+     "name": "app_desktop_export_rootfs",
+     "en": "Export rootfs…",
+     "comment": "Desktop manager: import custom rootfs (#284)",
+     "args": [],
+     "t": {
+      "ar": "تصدير rootfs…",
+      "bn": "rootfs এক্সপোর্ট করুন…",
+      "de": "Rootfs exportieren…",
+      "es": "Exportar rootfs…",
+      "fr": "Exporter un rootfs…",
+      "hi": "rootfs निर्यात करें…",
+      "ja": "rootfs をエクスポート…",
+      "ko": "rootfs 내보내기…",
+      "pt": "Exportar rootfs…",
+      "ru": "Экспортировать rootfs…",
+      "sr": "Извези rootfs…",
+      "zh": "导出 rootfs…"
+     }
+    },
+    {
      "name": "app_desktop_options_section",
      "en": "Options &amp; mounts",
      "comment": "Desktop manager: import custom rootfs (#284)",

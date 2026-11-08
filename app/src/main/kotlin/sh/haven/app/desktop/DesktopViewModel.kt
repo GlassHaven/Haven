@@ -338,11 +338,134 @@ class DesktopViewModel @Inject constructor(
         }
     }
 
-    private fun formatFor(source: String): sh.haven.core.local.proot.RootfsFormat = when {
-        source.endsWith(".tar.xz") || source.endsWith(".txz") -> sh.haven.core.local.proot.RootfsFormat.TAR_XZ
-        source.endsWith(".tar.zst") || source.endsWith(".tar.zstd") -> sh.haven.core.local.proot.RootfsFormat.TAR_ZSTD
-        else -> sh.haven.core.local.proot.RootfsFormat.TAR_GZ
+    private fun formatFor(source: String): sh.haven.core.local.proot.RootfsFormat {
+        val clean = source.substringBefore('?').lowercase()
+        return when {
+            clean.endsWith(".tar.xz") || clean.endsWith(".txz") -> sh.haven.core.local.proot.RootfsFormat.TAR_XZ
+            clean.endsWith(".tar.zst") || clean.endsWith(".tar.zstd") -> sh.haven.core.local.proot.RootfsFormat.TAR_ZSTD
+            clean.endsWith(".tar") -> sh.haven.core.local.proot.RootfsFormat.TAR
+            else -> sh.haven.core.local.proot.RootfsFormat.TAR_GZ
+        }
     }
+
+    private val _exportingDistroId = MutableStateFlow<String?>(null)
+    val exportingDistroId: StateFlow<String?> = _exportingDistroId.asStateFlow()
+
+    /**
+     * Export [distroId]'s rootfs to a Storage Access Framework document [uri]
+     * (#793). Runs entirely on the Android host in Kotlin without spawning
+     * PRoot, so a distro with a broken guest `/bin/sh` or `libc` can still be
+     * backed up and rescued.
+     */
+    fun exportRootfsToUri(
+        context: android.content.Context,
+        distroId: String,
+        uri: android.net.Uri,
+    ) {
+        if (_exportingDistroId.value != null) return
+        val appContext = context.applicationContext
+        _exportingDistroId.value = distroId
+        viewModelScope.launch {
+            try {
+                val stats = withContext(Dispatchers.IO) {
+                    val displayName = resolveDocumentDisplayName(appContext, uri).orEmpty()
+                    val gzip = !displayName.endsWith(".tar", ignoreCase = true)
+                    val out = appContext.contentResolver.openOutputStream(uri)
+                        ?: throw IllegalStateException("Could not open destination URI: $uri")
+                    out.use { stream ->
+                        prootManager.exportRootfs(distroId = distroId, rawOut = stream, gzip = gzip)
+                    }
+                }
+                android.widget.Toast.makeText(
+                    appContext,
+                    "Exported $distroId (${stats.fileCount} files, ${stats.bytesWritten / 1024} KB)",
+                    android.widget.Toast.LENGTH_LONG,
+                ).show()
+            } catch (e: Exception) {
+                Log.e(TAG, "exportRootfsToUri: $distroId failed", e)
+                android.widget.Toast.makeText(
+                    appContext,
+                    "Export failed: ${e.message}",
+                    android.widget.Toast.LENGTH_LONG,
+                ).show()
+            } finally {
+                _exportingDistroId.value = null
+            }
+        }
+    }
+
+    /**
+     * Stage a user-picked SAF document [uri] into `cacheDir/rootfs-imports/` so
+     * [importRootfs] can extract it as a local file (#793).
+     */
+    fun stageImportRootfsUri(
+        context: android.content.Context,
+        uri: android.net.Uri,
+    ) {
+        val appContext = context.applicationContext
+        viewModelScope.launch {
+            try {
+                val staged = withContext(Dispatchers.IO) {
+                    val rawName = resolveDocumentDisplayName(appContext, uri)
+                        ?.takeIf { it.isNotBlank() }
+                        ?: "imported-rootfs.tar.gz"
+                    val safeName = rawName.replace(Regex("[^A-Za-z0-9._-]"), "_")
+                    val dir = java.io.File(appContext.cacheDir, "rootfs-imports").apply { mkdirs() }
+                    val dst = java.io.File(dir, safeName)
+                    val input = appContext.contentResolver.openInputStream(uri)
+                        ?: throw IllegalStateException("Could not open selected file: $uri")
+                    input.use { src ->
+                        dst.outputStream().use { out -> src.copyTo(out) }
+                    }
+                    dst to rawName
+                }
+                val (dstFile, rawName) = staged
+                val current = _importRootfsDraft.value
+                val baseSlug = rawName
+                    .removeSuffix(".tar.gz")
+                    .removeSuffix(".tgz")
+                    .removeSuffix(".tar.xz")
+                    .removeSuffix(".txz")
+                    .removeSuffix(".tar")
+                    .removeSuffix("-rootfs")
+                    .lowercase()
+                    .replace(Regex("[^a-z0-9._-]"), "-")
+                    .trim('-', '.', '_')
+                _importRootfsDraft.value = current.copy(
+                    source = dstFile.absolutePath,
+                    id = current.id.ifBlank { baseSlug },
+                    label = current.label.ifBlank { baseSlug },
+                )
+            } catch (e: Exception) {
+                Log.e(TAG, "stageImportRootfsUri failed", e)
+                android.widget.Toast.makeText(
+                    appContext,
+                    "Could not read file: ${e.message}",
+                    android.widget.Toast.LENGTH_LONG,
+                ).show()
+            }
+        }
+    }
+
+    private fun resolveDocumentDisplayName(
+        context: android.content.Context,
+        uri: android.net.Uri,
+    ): String? = runCatching {
+        context.contentResolver.query(
+            uri,
+            arrayOf(android.provider.OpenableColumns.DISPLAY_NAME),
+            null,
+            null,
+            null,
+        )?.use { cursor ->
+            if (cursor.moveToFirst()) {
+                val idx = cursor.getColumnIndex(android.provider.OpenableColumns.DISPLAY_NAME)
+                if (idx >= 0) cursor.getString(idx) else null
+            } else {
+                null
+            }
+        }
+    }.getOrNull() ?: uri.lastPathSegment
 
     // --- Per-distro custom bind mounts (#301) ---
 

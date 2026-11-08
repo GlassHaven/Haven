@@ -29,6 +29,10 @@ BASE="${UML_RELEASE_MIRROR:-https://github.com/GlassOnTin/uml-transport/releases
 
 NAME="rootfs-aarch64.ext4.gz"
 SHA="4bc520eac8564f6f076972c28f2681dfff52f80503fa42b2cdc8c2596ec1e34f"
+# GitHub API release-asset endpoint for uml-guest-9/rootfs-aarch64.ext4.gz;
+# routes directly to release-assets.githubusercontent.com when github.com's
+# web /releases/download/ redirector returns HTTP 502/504.
+API_URL="https://api.github.com/repos/GlassOnTin/uml-transport/releases/assets/620301426"
 
 if [ "${SKIP_UML:-0}" = "1" ]; then
     echo "fetch-uml-rootfs: SKIP_UML=1 — APK will lack the recovery rootfs"
@@ -47,12 +51,24 @@ url="$BASE/$NAME"
 echo "fetch-uml-rootfs: $url"
 # --retry-all-errors: plain --retry ignores TLS handshake failures,
 # which is how a release build died fetching a pinned tarball.
-curl -fsSL --retry 3 --retry-all-errors -o "$TMP/$NAME" "$url" || {
-    echo "fetch-uml-rootfs: FAILED to fetch $url" >&2
-    echo "  To build without the UML guest: SKIP_UML=1 or -PskipUml." >&2
-    echo "  To build offline from local files: UML_RELEASE_MIRROR=file:///path." >&2
-    exit 1
-}
+if ! curl -fsSL --retry 3 --retry-all-errors -o "$TMP/$NAME" "$url"; then
+    if [ -z "${UML_RELEASE_MIRROR:-}" ]; then
+        echo "fetch-uml-rootfs: $url failed, falling back to $API_URL" >&2
+        curl -fsSL --retry 3 --retry-all-errors \
+            -H "Accept: application/octet-stream" \
+            -o "$TMP/$NAME" "$API_URL" || {
+            echo "fetch-uml-rootfs: FAILED to fetch $url (and fallback $API_URL)" >&2
+            echo "  To build without the UML guest: SKIP_UML=1 or -PskipUml." >&2
+            echo "  To build offline from local files: UML_RELEASE_MIRROR=file:///path." >&2
+            exit 1
+        }
+    else
+        echo "fetch-uml-rootfs: FAILED to fetch $url" >&2
+        echo "  To build without the UML guest: SKIP_UML=1 or -PskipUml." >&2
+        echo "  To build offline from local files: UML_RELEASE_MIRROR=file:///path." >&2
+        exit 1
+    fi
+fi
 echo "$SHA  $TMP/$NAME" | sha256sum -c - >/dev/null || {
     echo "fetch-uml-rootfs: sha256 MISMATCH for $NAME" >&2
     exit 1

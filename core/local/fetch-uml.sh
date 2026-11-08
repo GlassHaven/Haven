@@ -41,12 +41,12 @@ cd "$(dirname "$0")"
 OUT="${UML_OUTPUT:-src/main/jniLibs}"
 BASE="${UML_RELEASE_MIRROR:-https://github.com/GlassOnTin/uml-transport/releases/download/uml-guest-10}"
 
-# file | sha256
+# file | sha256 | github release asset id (uml-guest-10)
 # Sizes: libvmlinux.so 129634648 (13141144 stripped), libuml-stub.so 1920, libuml-passt.so 608472
 FILES=(
-  "libvmlinux.so|246d84a1401438b14766f5a70f1f11b67f8e9eb29d8cabff4922c6c7c774ab6c"
-  "libuml-stub.so|83f51f7c45133daa135b595562b09c5e2829f1d0f1e00b7fce2a7695370781fc"
-  "libuml-passt.so|17703eb787afcfc57475921f186bec6eae479db00cf60e1763c1a8459c055b36"
+  "libvmlinux.so|246d84a1401438b14766f5a70f1f11b67f8e9eb29d8cabff4922c6c7c774ab6c|690054160"
+  "libuml-stub.so|83f51f7c45133daa135b595562b09c5e2829f1d0f1e00b7fce2a7695370781fc|690054161"
+  "libuml-passt.so|17703eb787afcfc57475921f186bec6eae479db00cf60e1763c1a8459c055b36|690054159"
 )
 
 if [ "${SKIP_UML:-0}" = "1" ]; then
@@ -65,7 +65,7 @@ trap 'rm -rf "$TMP"' EXIT
 # resolve names. Measured: 79 MB -> 9.3 MB raw, 36.7 -> 3.9 MB compressed in
 # the APK. Idempotent, so it also repairs a jniLibs populated by an older run.
 find_strip() {
-    for cand in "${ANDROID_NDK_HOME:-}" "$ANDROID_HOME/ndk/29.0.14206865"; do
+    for cand in "${ANDROID_NDK_HOME:-}" "${ANDROID_HOME:-}/ndk/29.0.14206865"; do
         [ -n "$cand" ] || continue
         local tool="$cand/toolchains/llvm/prebuilt/linux-x86_64/bin/llvm-strip"
         [ -x "$tool" ] && { echo "$tool"; return 0; }
@@ -74,7 +74,7 @@ find_strip() {
 }
 
 for spec in "${FILES[@]}"; do
-    IFS='|' read -r name sha <<< "$spec"
+    IFS='|' read -r name sha asset_id <<< "$spec"
     dest="$OUT/arm64-v8a/$name"
     if [ -s "$dest" ]; then
         echo "fetch-uml: $dest present — skipping"
@@ -84,15 +84,28 @@ for spec in "${FILES[@]}"; do
         continue
     fi
     url="$BASE/$name"
+    api_url="https://api.github.com/repos/GlassOnTin/uml-transport/releases/assets/$asset_id"
     echo "fetch-uml: $url"
     # --retry-all-errors: plain --retry ignores TLS handshake failures,
     # which is how a release build died fetching a pinned tarball.
-    curl -fsSL --retry 3 --retry-all-errors -o "$TMP/$name" "$url" || {
-        echo "fetch-uml: FAILED to fetch $url" >&2
-        echo "  To build without the UML guest: SKIP_UML=1 or -PskipUml." >&2
-        echo "  To build offline from local files: UML_RELEASE_MIRROR=file:///path." >&2
-        exit 1
-    }
+    if ! curl -fsSL --retry 3 --retry-all-errors -o "$TMP/$name" "$url"; then
+        if [ -z "${UML_RELEASE_MIRROR:-}" ]; then
+            echo "fetch-uml: $url failed, falling back to $api_url" >&2
+            curl -fsSL --retry 3 --retry-all-errors \
+                -H "Accept: application/octet-stream" \
+                -o "$TMP/$name" "$api_url" || {
+                echo "fetch-uml: FAILED to fetch $url (and fallback $api_url)" >&2
+                echo "  To build without the UML guest: SKIP_UML=1 or -PskipUml." >&2
+                echo "  To build offline from local files: UML_RELEASE_MIRROR=file:///path." >&2
+                exit 1
+            }
+        else
+            echo "fetch-uml: FAILED to fetch $url" >&2
+            echo "  To build without the UML guest: SKIP_UML=1 or -PskipUml." >&2
+            echo "  To build offline from local files: UML_RELEASE_MIRROR=file:///path." >&2
+            exit 1
+        fi
+    fi
     echo "$sha  $TMP/$name" | sha256sum -c - >/dev/null || {
         echo "fetch-uml: sha256 MISMATCH for $name" >&2
         exit 1

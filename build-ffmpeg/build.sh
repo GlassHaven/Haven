@@ -235,32 +235,38 @@ fetch_git_tag() {
 }
 
 fetch_tarball() {
-    # fetch_tarball <name> <url> <tarball-filename> <extracted-dir> <sha256>
+    # fetch_tarball <name> <url> <tarball-filename> <extracted-dir> <sha256> [mirror-url ...]
     local name="$1" url="$2" tarball="$3" extracted="$4" sha="$5"
+    shift 5
+    local mirrors=("$@")
     local dst="$SRC_DIR/$name"
     if [ -d "$dst" ]; then echo "  [cached] $name"; return; fi
-    [ -f "$DL_DIR/$tarball" ] || {
-        echo "  [download] $url"
-        # Retry on transient network blips. F-Droid's buildserver hit
-        # `curl: (7) Failed to connect to downloads.xiph.org port 443`
-        # on the v5.24.99 bot MR (!37726, 2026-05-05) — single tarball
-        # blip aborted the whole build. Retries absorb DNS/TCP flakes
-        # without changing behaviour on the happy path.
+    if [ ! -f "$DL_DIR/$tarball" ]; then
+        # Retry on transient network blips, then fall back to mirrors verified
+        # against the exact same pinned SHA-256 (e.g. when GitHub Releases
+        # returns HTTP 504 on harfbuzz-8.5.0.tar.xz, Release run 42463693347).
         #
         # --retry-all-errors is doing the real work here and is not optional.
         # curl's --retry alone covers only "a timeout, an FTP 4xx response
         # code or an HTTP 408, 429, 500, 502, 503, 504, 522 or 524" — a TLS
-        # handshake failure is not on that list. The v5.86.44 release build
-        # died on exactly that:
-        #     curl: (35) OpenSSL SSL_connect: SSL_ERROR_SYSCALL
-        #         in connection to downloads.xiph.org:443
-        # with --retry 3 already set, having retried zero times. Measured:
-        # without the flag an SSL error returns in 0s, with it two retries
-        # take 4s.
-        curl -fsSL --retry 3 --retry-delay 5 --retry-connrefused --retry-all-errors \
-            --connect-timeout 15 --max-time 600 \
-            -o "$DL_DIR/$tarball" "$url"
-    }
+        # handshake failure is not on that list.
+        local candidate
+        for candidate in "$url" "${mirrors[@]}"; do
+            echo "  [download] $candidate"
+            rm -f "$DL_DIR/$tarball"
+            if curl -fsSL --retry 3 --retry-delay 5 --retry-connrefused --retry-all-errors \
+                --connect-timeout 15 --max-time 600 \
+                -o "$DL_DIR/$tarball" "$candidate"; then
+                break
+            fi
+            echo "  download failed from $candidate — trying next mirror" >&2
+            rm -f "$DL_DIR/$tarball"
+        done
+        if [ ! -f "$DL_DIR/$tarball" ]; then
+            echo "ERROR: could not download $tarball from $url or ${#mirrors[@]} mirror(s)" >&2
+            exit 22
+        fi
+    fi
     # Checked on every run, not just after a download: a cached tarball from an
     # earlier build is exactly as unverified as a fresh one.
     local got
@@ -367,7 +373,9 @@ build_mp3lame() {
     fetch_tarball lame \
         "https://downloads.sourceforge.net/project/lame/lame/3.100/lame-3.100.tar.gz" \
         "lame-3.100.tar.gz" "lame-3.100" \
-        "ddfe36cab873794038ae2c1210557ad34857a4b6bdc515785d1da9e175b1da1e"
+        "ddfe36cab873794038ae2c1210557ad34857a4b6bdc515785d1da9e175b1da1e" \
+        "https://distfiles.macports.org/lame/lame-3.100.tar.gz" \
+        "https://sources.buildroot.net/lame/lame-3.100.tar.gz"
     build_autotools lame "$DEPS_SYSROOT/lib/libmp3lame.a" \
         --disable-frontend --disable-decoder
 }
@@ -376,7 +384,9 @@ build_opus() {
     fetch_tarball opus \
         "https://downloads.xiph.org/releases/opus/opus-1.5.2.tar.gz" \
         "opus-1.5.2.tar.gz" "opus-1.5.2" \
-        "65c1d2f78b9f2fb20082c38cbe47c951ad5839345876e46941612ee87f9a7ce1"
+        "65c1d2f78b9f2fb20082c38cbe47c951ad5839345876e46941612ee87f9a7ce1" \
+        "https://distfiles.macports.org/libopus/opus-1.5.2.tar.gz" \
+        "https://sources.buildroot.net/opus/opus-1.5.2.tar.gz"
     build_autotools opus "$DEPS_SYSROOT/lib/libopus.a" \
         --disable-doc --disable-extra-programs
 }
@@ -393,7 +403,8 @@ build_libvorbis() {
     fetch_tarball vorbis \
         "https://downloads.xiph.org/releases/vorbis/libvorbis-1.3.7.tar.gz" \
         "libvorbis-1.3.7.tar.gz" "libvorbis-1.3.7" \
-        "0e982409a9c3fc82ee06e08205b1355e5c6aa4c36bca58146ef399621b0ce5ab"
+        "0e982409a9c3fc82ee06e08205b1355e5c6aa4c36bca58146ef399621b0ce5ab" \
+        "https://distfiles.macports.org/libvorbis/libvorbis-1.3.7.tar.gz"
     build_autotools vorbis "$DEPS_SYSROOT/lib/libvorbis.a" \
         --with-ogg="$DEPS_SYSROOT" --disable-examples
 }
@@ -465,7 +476,10 @@ build_freetype() {
     fetch_tarball freetype \
         "https://downloads.sourceforge.net/project/freetype/freetype2/2.13.3/freetype-2.13.3.tar.xz" \
         "freetype-2.13.3.tar.xz" "freetype-2.13.3" \
-        "0550350666d427c74daeb85d5ac7bb353acba5f76956395995311a9c6f063289"
+        "0550350666d427c74daeb85d5ac7bb353acba5f76956395995311a9c6f063289" \
+        "https://download.savannah.gnu.org/releases/freetype/freetype-2.13.3.tar.xz" \
+        "https://distfiles.macports.org/freetype/freetype-2.13.3.tar.xz" \
+        "https://sources.buildroot.net/freetype/freetype-2.13.3.tar.xz"
     build_autotools freetype "$DEPS_SYSROOT/lib/libfreetype.a" \
         --without-harfbuzz --without-bzip2 --without-png \
         --without-brotli --without-zlib
@@ -475,7 +489,8 @@ build_fribidi() {
     fetch_tarball fribidi \
         "https://github.com/fribidi/fribidi/releases/download/v1.0.16/fribidi-1.0.16.tar.xz" \
         "fribidi-1.0.16.tar.xz" "fribidi-1.0.16" \
-        "1b1cde5b235d40479e91be2f0e88a309e3214c8ab470ec8a2744d82a5a9ea05c"
+        "1b1cde5b235d40479e91be2f0e88a309e3214c8ab470ec8a2744d82a5a9ea05c" \
+        "https://distfiles.macports.org/fribidi/fribidi-1.0.16.tar.xz"
     build_autotools fribidi "$DEPS_SYSROOT/lib/libfribidi.a" \
         --disable-docs --disable-tests
 }
@@ -487,7 +502,8 @@ build_harfbuzz() {
     fetch_tarball harfbuzz \
         "https://github.com/harfbuzz/harfbuzz/releases/download/8.5.0/harfbuzz-8.5.0.tar.xz" \
         "harfbuzz-8.5.0.tar.xz" "harfbuzz-8.5.0" \
-        "77e4f7f98f3d86bf8788b53e6832fb96279956e1c3961988ea3d4b7ca41ddc27"
+        "77e4f7f98f3d86bf8788b53e6832fb96279956e1c3961988ea3d4b7ca41ddc27" \
+        "https://distfiles.macports.org/harfbuzz/harfbuzz-8.5.0.tar.xz"
     build_autotools harfbuzz "$DEPS_SYSROOT/lib/libharfbuzz.a" \
         --with-freetype --without-glib --without-icu --without-cairo \
         --disable-introspection
@@ -503,7 +519,8 @@ build_mbedtls() {
     fetch_tarball mbedtls \
         "https://github.com/Mbed-TLS/mbedtls/releases/download/mbedtls-3.6.2/mbedtls-3.6.2.tar.bz2" \
         "mbedtls-3.6.2.tar.bz2" "mbedtls-3.6.2" \
-        "8b54fb9bcf4d5a7078028e0520acddefb7900b3e66fec7f7175bb5b7d85ccdca"
+        "8b54fb9bcf4d5a7078028e0520acddefb7900b3e66fec7f7175bb5b7d85ccdca" \
+        "https://distfiles.macports.org/mbedtls3/mbedtls-3.6.2.tar.bz2"
     local SRC="$SRC_DIR/mbedtls"
     local LOG="$SCRIPT_DIR/dep-mbedtls.log"
     local BUILD="$SCRIPT_DIR/build-$ABI/deps/mbedtls"
@@ -532,7 +549,8 @@ build_libass() {
     fetch_tarball libass \
         "https://github.com/libass/libass/releases/download/0.17.3/libass-0.17.3.tar.xz" \
         "libass-0.17.3.tar.xz" "libass-0.17.3" \
-        "eae425da50f0015c21f7b3a9c7262a910f0218af469e22e2931462fed3c50959"
+        "eae425da50f0015c21f7b3a9c7262a910f0218af469e22e2931462fed3c50959" \
+        "https://sources.buildroot.net/libass/libass-0.17.3.tar.xz"
     build_autotools libass "$DEPS_SYSROOT/lib/libass.a" \
         --disable-require-system-font-provider
 }

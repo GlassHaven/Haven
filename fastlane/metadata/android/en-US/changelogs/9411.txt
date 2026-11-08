@@ -1,0 +1,3 @@
+- Support selecting multiple files in Attach -> Send a file, uploading all selected files into one chosen folder and pasting their quoted paths (#797).
+- Repair stranded terminal IME focus before raising the soft keyboard in tmux mouse-mode sessions (#796).
+- Search /opt/homebrew/bin and /usr/local/bin on SSH exec channel session-manager commands (#795).

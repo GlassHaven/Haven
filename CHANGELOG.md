@@ -5,6 +5,12 @@ the corresponding GitHub Release; a release can't ship without its section
 (enforced by `scripts/check-changelog.sh` in CI). The GitHub "Full Changelog"
 compare link is appended automatically — don't add it here.
 
+## v5.94.16
+
+- Support selecting multiple files in **Attach → Send a file** (`OpenMultipleDocuments`), uploading the batch into one chosen SFTP/rclone destination folder and pasting their space-separated shell-quoted paths at the terminal cursor (#797, thanks @boyce-ywr).
+- Repair stranded Compose interop focus (`repairBrokenFocusChain`) before host-side soft-keyboard shows (toolbar keyboard key, toolbar swipe-up, terminal double-tap, and tab auto-show) so soft-keyboard input continues reaching `tmux` mouse-mode sessions (#796, thanks @boyce-ywr).
+- Append Homebrew binary directories (`/opt/homebrew/bin` and `/usr/local/bin`) to `PATH` on non-login SSH `exec` channel commands (`list`, `kill`, `rename`) in `SessionManager` so Homebrew-installed `tmux`, `zellij`, `screen`, `byobu`, `herdr`, and `psmux` are detected on macOS hosts (#795, thanks @boyce-ywr).
+
 ## v5.94.15
 
 - Expand terminal selection Copy and Paste pills horizontally (`minWidth = 48.dp`, `12.dp` padding) and clamp the pill row by its measured width so localized labels such as Russian `"Копировать"` fit on one line (#794, thanks @del26).

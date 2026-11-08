@@ -5,6 +5,11 @@ the corresponding GitHub Release; a release can't ship without its section
 (enforced by `scripts/check-changelog.sh` in CI). The GitHub "Full Changelog"
 compare link is appended automatically — don't add it here.
 
+## v5.94.15
+
+- Expand terminal selection Copy and Paste pills horizontally (`minWidth = 48.dp`, `12.dp` padding) and clamp the pill row by its measured width so localized labels such as Russian `"Копировать"` fit on one line (#794, thanks @del26).
+- Compose physical keyboard spacing dead-key accents (`´`, `¨`, `ˆ`, `˜`, `ˇ`, `˘`, `˙`, `˚`, `¸`, `˛`, `˝`) via Unicode NFC when `COMBINING_ACCENT` is omitted, and preserve pending dead keys across `Shift` presses (#759, thanks @gitmoncode).
+
 ## v5.94.14
 
 - Add host-side PRoot rootfs tar export (**Export rootfs…** and `export_distro`) and preserve file modes, PAX xattrs/timestamps, ownership, and hard links across import/export (#793, #505, thanks @pixel4696 and @linux-colonel).

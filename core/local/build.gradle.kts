@@ -148,13 +148,17 @@ val fetchQemuLoaders by tasks.registering(Exec::class) {
 // fetch-uml.sh for the GPL source-offer note.
 val fetchUml by tasks.registering(Exec::class) {
     val script = file("fetch-uml.sh")
+    val targetAbi = providers.gradleProperty("targetAbi").orNull
     inputs.file(script)
     outputs.files(
         file("src/main/jniLibs/arm64-v8a/libvmlinux.so"),
         file("src/main/jniLibs/arm64-v8a/libuml-stub.so"),
         file("src/main/jniLibs/arm64-v8a/libuml-passt.so"),
     )
-    onlyIf { !project.hasProperty("skipUml") }
+    onlyIf {
+        val abiWanted = targetAbi == null || targetAbi == "arm64"
+        !project.hasProperty("skipUml") && abiWanted
+    }
 
     workingDir = projectDir
     commandLine("bash", script.absolutePath)

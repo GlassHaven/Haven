@@ -351,9 +351,13 @@ kotlin {
 // in place is left alone, so offline builds work via UML_RELEASE_MIRROR=file://.
 val fetchUmlRootfs by tasks.registering(Exec::class) {
     val script = file("fetch-uml-rootfs.sh")
+    val targetAbi = providers.gradleProperty("targetAbi").orNull
     inputs.file(script)
     outputs.file(file("src/full/assets/uml/rootfs-aarch64.ext4.gz"))
-    onlyIf { !project.hasProperty("skipUml") }
+    onlyIf {
+        val abiWanted = targetAbi == null || targetAbi == "arm64"
+        !project.hasProperty("skipUml") && abiWanted
+    }
 
     workingDir = projectDir
     commandLine("bash", script.absolutePath)

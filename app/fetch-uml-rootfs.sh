@@ -54,7 +54,13 @@ echo "fetch-uml-rootfs: $url"
 if ! curl -fsSL --retry 3 --retry-all-errors -o "$TMP/$NAME" "$url"; then
     if [ -z "${UML_RELEASE_MIRROR:-}" ]; then
         echo "fetch-uml-rootfs: $url failed, falling back to $API_URL" >&2
+        auth_args=()
+        token="${GITHUB_TOKEN:-${GH_TOKEN:-}}"
+        if [ -n "$token" ]; then
+            auth_args=(-H "Authorization: Bearer $token")
+        fi
         curl -fsSL --retry 3 --retry-all-errors \
+            "${auth_args[@]}" \
             -H "Accept: application/octet-stream" \
             -o "$TMP/$NAME" "$API_URL" || {
             echo "fetch-uml-rootfs: FAILED to fetch $url (and fallback $API_URL)" >&2

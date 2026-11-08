@@ -91,7 +91,13 @@ for spec in "${FILES[@]}"; do
     if ! curl -fsSL --retry 3 --retry-all-errors -o "$TMP/$name" "$url"; then
         if [ -z "${UML_RELEASE_MIRROR:-}" ]; then
             echo "fetch-uml: $url failed, falling back to $api_url" >&2
+            auth_args=()
+            token="${GITHUB_TOKEN:-${GH_TOKEN:-}}"
+            if [ -n "$token" ]; then
+                auth_args=(-H "Authorization: Bearer $token")
+            fi
             curl -fsSL --retry 3 --retry-all-errors \
+                "${auth_args[@]}" \
                 -H "Accept: application/octet-stream" \
                 -o "$TMP/$name" "$api_url" || {
                 echo "fetch-uml: FAILED to fetch $url (and fallback $api_url)" >&2

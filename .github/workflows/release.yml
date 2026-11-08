@@ -98,6 +98,7 @@ jobs:
         # is what ships; restore the gate here when a fixed sshlib lands.
         run: ./gradlew testDebugUnitTest -PexcludeSshlibContractTests=true -PskipWaylandNatives=true -PskipFfmpegNatives=true
         env:
+          GH_TOKEN: ${{ github.token }}
           KEYSTORE_PASSWORD: ${{ secrets.KEYSTORE_PASSWORD }}
           KEY_ALIAS: ${{ secrets.KEY_ALIAS }}
           KEY_PASSWORD: ${{ secrets.KEY_PASSWORD }}
@@ -214,6 +215,7 @@ jobs:
           kill "$MEMSAMPLER" 2>/dev/null
           exit "$rc"
         env:
+          GH_TOKEN: ${{ github.token }}
           KEYSTORE_PASSWORD: ${{ secrets.KEYSTORE_PASSWORD }}
           KEY_ALIAS: ${{ secrets.KEY_ALIAS }}
           KEY_PASSWORD: ${{ secrets.KEY_PASSWORD }}

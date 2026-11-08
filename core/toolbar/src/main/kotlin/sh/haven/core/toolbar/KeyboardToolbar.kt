@@ -94,6 +94,7 @@ import androidx.compose.material3.ExposedDropdownMenuAnchorType
 import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.TextButton
 import sh.haven.core.data.preferences.MACRO_PRESETS
+import sh.haven.core.ui.repairBrokenFocusChain
 import androidx.compose.runtime.mutableFloatStateOf
 import androidx.compose.runtime.mutableIntStateOf
 import androidx.compose.runtime.mutableStateMapOf
@@ -539,6 +540,7 @@ fun KeyboardToolbar(
                     if (dragAmount > 15f) {
                         controller.hide(WindowInsetsCompat.Type.ime())
                     } else if (dragAmount < -15f) {
+                        repairBrokenFocusChain(window.decorView)
                         focusRequester.requestFocus()
                         controller.show(WindowInsetsCompat.Type.ime())
                     }
@@ -1280,6 +1282,10 @@ private fun BuiltInKey(
                                 if (imeVisible) {
                                     controller.hide(WindowInsetsCompat.Type.ime())
                                 } else {
+                                    // tmux mouse mode eats terminal taps, so this key is
+                                    // often the only way back in: re-link a stranded
+                                    // ImeInputView first or the IME has nothing to serve.
+                                    repairBrokenFocusChain(window.decorView)
                                     focusRequester.requestFocus()
                                     controller.show(WindowInsetsCompat.Type.ime())
                                 }

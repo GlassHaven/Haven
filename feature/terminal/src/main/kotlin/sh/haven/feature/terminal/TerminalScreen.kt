@@ -106,6 +106,7 @@ import androidx.compose.ui.platform.LocalFocusManager
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.graphics.Color
 import sh.haven.core.ui.KeyEventInterceptor
+import sh.haven.core.ui.repairBrokenFocusChain
 import androidx.compose.ui.platform.LocalClipboardManager
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.platform.LocalView
@@ -918,6 +919,7 @@ fun TerminalScreen(
             // The toolbar's keyboard key and the double-tap gesture still raise
             // it deliberately, so typing is never blocked — only the surprise.
             if (!physicalKeyboardAttached && autoShowKeyboardInTerminal) {
+                repairBrokenFocusChain(window.decorView)
                 controller.show(WindowInsetsCompat.Type.ime())
             }
         } else if (!isActive) {
@@ -2077,6 +2079,9 @@ fun TerminalScreen(
                                     if (imeShowing) {
                                         controller.hide(WindowInsetsCompat.Type.ime())
                                     } else {
+                                        // A no-op requestFocus() on a stranded
+                                        // ImeInputView leaves the IME unserved.
+                                        repairBrokenFocusChain(rootView)
                                         focusRequester.requestFocus()
                                         controller.show(WindowInsetsCompat.Type.ime())
                                     }

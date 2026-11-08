@@ -1,0 +1,4 @@
+- Add standalone tunnel connect/disconnect, SOCKS5/with-tunnel guest proxying, and direct TCP/UDP tunnel port forwarding for local PRoot Linux and QEMU VMs (#792).
+- Add Ubuntu 26.04 LTS (Resolute) to the local PRoot Linux distribution catalog (#162).
+- Fix tap-to-position-cursor in boxed REPL prompts (such as agy) and tmux mouse-reporting sessions.
+- Keep Import System VM action buttons visible in the header row on compact-height screens (#558).

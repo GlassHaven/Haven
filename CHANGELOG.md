@@ -5,6 +5,13 @@ the corresponding GitHub Release; a release can't ship without its section
 (enforced by `scripts/check-changelog.sh` in CI). The GitHub "Full Changelog"
 compare link is appended automatically — don't add it here.
 
+## v5.94.13
+
+- Add standalone tunnel controls (`Connect` / `Disconnect` and `Port Forwards`) in **Settings → Tunnels** with automatic localhost SOCKS5 proxy listeners (`127.0.0.1:<port>`, reachable at `10.0.2.2:<port>` in QEMU SLIRP VMs), `with-tunnel` / `Auto-proxy local Linux through tunnel` for PRoot shells and desktops, and direct TCP/UDP tunnel port forwarding without requiring an SSH, RDP, or Mosh session (#792, thanks @pixel4696).
+- Add **Ubuntu 26.04 LTS (Resolute)** to the local Linux PRoot distribution catalog (`ubuntu-26.04`) and MCP `install_distro` tool (#162, thanks @pixel4696).
+- Fix tap-to-position-cursor in boxed REPL prompts (such as `agy`) and `tmux` mouse-reporting sessions so tapping inside single-line or wrapped multi-line prompt boxes moves the cursor to the tapped cell instead of being swallowed by mouse mode or initial preference load.
+- Place the **Import System VM** sheet `Cancel` and `Import` actions in the header row on compact-height screens (such as landscape phones) so the action buttons remain visible without scrolling (#558).
+
 ## v5.94.12
 
 - Fix terminal URL detection (`UrlBlobDetector` and `TerminalScreenState`) so a URL followed by an explicit newline and a short unindented line starting with a slash path at column 0 (such as `https://example.com\n/1`) does not absorb the next line into the link (#791, thanks @UlyssesZh).

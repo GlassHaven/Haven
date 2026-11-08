@@ -107,17 +107,27 @@ class RemoteDesktopSessionTest {
     }
 
     @Test
-    fun `rdp adapter maps x11 button 1 to LEFT`() {
+    fun `rdp adapter maps x11 buttons 1 2 3 to LEFT MIDDLE RIGHT`() {
         val session = mockk<RdpSession>(relaxed = true)
-        RdpDesktopSession(session).sendMouseButton(button = 1, pressed = true)
+        val adapter = RdpDesktopSession(session)
+        adapter.sendMouseButton(button = 1, pressed = true)
+        adapter.sendMouseButton(button = 2, pressed = true)
+        adapter.sendMouseButton(button = 3, pressed = false)
         verify(exactly = 1) { session.sendMouseButton(MouseButton.LEFT, true) }
+        verify(exactly = 1) { session.sendMouseButton(MouseButton.MIDDLE, true) }
+        verify(exactly = 1) { session.sendMouseButton(MouseButton.RIGHT, false) }
     }
 
     @Test
-    fun `rdp adapter sendMouseClick translates the button number`() {
+    fun `rdp adapter sendMouseClick translates left middle and right button numbers`() {
         val session = mockk<RdpSession>(relaxed = true)
-        RdpDesktopSession(session).sendMouseClick(5, 6, button = 1)
+        val adapter = RdpDesktopSession(session)
+        adapter.sendMouseClick(5, 6, button = 1)
+        adapter.sendMouseClick(7, 8, button = 2)
+        adapter.sendMouseClick(9, 10, button = 3)
         verify(exactly = 1) { session.sendMouseClick(5, 6, MouseButton.LEFT) }
+        verify(exactly = 1) { session.sendMouseClick(7, 8, MouseButton.MIDDLE) }
+        verify(exactly = 1) { session.sendMouseClick(9, 10, MouseButton.RIGHT) }
     }
 
     @Test

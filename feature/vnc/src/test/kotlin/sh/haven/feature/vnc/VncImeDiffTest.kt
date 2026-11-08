@@ -1,6 +1,10 @@
 package sh.haven.feature.vnc
 
+import android.view.InputDevice
+import android.view.MotionEvent
 import androidx.compose.ui.input.key.Key
+import androidx.compose.ui.input.pointer.PointerButtons
+import androidx.compose.ui.input.pointer.PointerType
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertFalse
 import org.junit.Assert.assertNull
@@ -192,5 +196,39 @@ class VncImeDiffTest {
         assertTrue(isModifierKeySym(0xffec))
         assertFalse(isModifierKeySym('a'.code))
         assertFalse(isModifierKeySym(0xff0d))
+    }
+
+    @Test
+    fun `isHardwareMouseGesture and resolveHardwareMouseButton handle mouse and SOURCE_MOUSE trackpad`() {
+        assertFalse(
+            isHardwareMouseGesture(
+                pointerType = PointerType.Touch,
+                buttons = PointerButtons(0),
+                motionSource = InputDevice.SOURCE_TOUCHSCREEN,
+            ),
+        )
+        assertTrue(
+            isHardwareMouseGesture(
+                pointerType = PointerType.Mouse,
+                buttons = PointerButtons(0),
+                motionSource = 0,
+            ),
+        )
+        assertTrue(
+            isHardwareMouseGesture(
+                pointerType = PointerType.Touch,
+                buttons = PointerButtons(0),
+                motionSource = InputDevice.SOURCE_MOUSE,
+            ),
+        )
+        assertEquals(0, resolveHardwareMouseButton(PointerButtons(0), 0))
+        assertEquals(1, resolveHardwareMouseButton(PointerButtons(MotionEvent.BUTTON_PRIMARY), 0))
+        assertEquals(2, resolveHardwareMouseButton(PointerButtons(MotionEvent.BUTTON_TERTIARY), 0))
+        assertEquals(3, resolveHardwareMouseButton(PointerButtons(MotionEvent.BUTTON_SECONDARY), 0))
+
+        val wheel = VncWheelNotchAccumulator()
+        assertEquals(0, wheel.feed(-0.5f))
+        assertEquals(1, wheel.feed(-0.6f))
+        assertEquals(-1, wheel.feed(1.2f))
     }
 }

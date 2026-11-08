@@ -5,6 +5,11 @@ the corresponding GitHub Release; a release can't ship without its section
 (enforced by `scripts/check-changelog.sh` in CI). The GitHub "Full Changelog"
 compare link is appended automatically — don't add it here.
 
+## v5.94.14
+
+- Add host-side PRoot rootfs tar export (**Export rootfs…** and `export_distro`) and preserve file modes, PAX xattrs/timestamps, ownership, and hard links across import/export (#793, #505, thanks @pixel4696 and @linux-colonel).
+- Support hardware mice and `SOURCE_MOUSE` trackpads in RDP, SPICE, GLKVM, and VNC viewers: hover motion, left/middle/right click and drag, scroll wheel, and buttonless trackpad motion (#660, #622, thanks @t184256).
+
 ## v5.94.13
 
 - Add standalone tunnel controls (`Connect` / `Disconnect` and `Port Forwards`) in **Settings → Tunnels** with automatic localhost SOCKS5 proxy listeners (`127.0.0.1:<port>`, reachable at `10.0.2.2:<port>` in QEMU SLIRP VMs), `with-tunnel` / `Auto-proxy local Linux through tunnel` for PRoot shells and desktops, and direct TCP/UDP tunnel port forwarding without requiring an SSH, RDP, or Mosh session (#792, thanks @pixel4696).

@@ -1,0 +1,2 @@
+- Add host-side PRoot rootfs tar export (**Export rootfs…** and `export_distro`) and preserve file modes, PAX xattrs/timestamps, ownership, and hard links across import/export (#793, #505, thanks @pixel4696 and @linux-colonel).
+- Support hardware mice and `SOURCE_MOUSE` trackpads in RDP, SPICE, GLKVM, and VNC viewers: hover motion, left/middle/right click and drag, scroll wheel, and buttonless trackpad motion (#660, #622, thanks @t184256).

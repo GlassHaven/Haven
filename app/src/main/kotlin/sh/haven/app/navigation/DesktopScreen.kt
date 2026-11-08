@@ -355,6 +355,7 @@ fun DesktopScreen(
                             onChipAnchorChange = onRdpChipAnchorChange,
                             onTap = { x, y -> desktopViewModel.sendClick(x, y) },
                             onMiddleClick = { x, y -> desktopViewModel.sendClick(x, y, button = 2) },
+                            onRightClick = { x, y -> desktopViewModel.sendClick(x, y, button = 3) },
                             onDragStart = { x, y ->
                                 desktopViewModel.sendPointer(x, y)
                                 desktopViewModel.pressButton(1)
@@ -363,6 +364,8 @@ fun DesktopScreen(
                             onDragEnd = { desktopViewModel.releaseButton(1) },
                             onScrollUp = { desktopViewModel.scrollUp() },
                             onScrollDown = { desktopViewModel.scrollDown() },
+                            onPressButton = { btn -> desktopViewModel.pressButton(btn) },
+                            onReleaseButton = { btn -> desktopViewModel.releaseButton(btn) },
                             onTypeChar = { ch ->
                                 sh.haven.feature.rdp.typeRdpChar(
                                     ch = ch,
@@ -410,6 +413,7 @@ fun DesktopScreen(
                             chipAnchor = rdpChipAnchor,
                             onChipAnchorChange = onRdpChipAnchorChange,
                             onTap = { x, y -> desktopViewModel.sendClick(x, y) },
+                            onRightClick = { x, y -> desktopViewModel.sendClick(x, y, button = 3) },
                             onDragStart = { x, y ->
                                 desktopViewModel.sendPointer(x, y)
                                 desktopViewModel.pressButton(1)
@@ -418,6 +422,8 @@ fun DesktopScreen(
                             onDragEnd = { desktopViewModel.releaseButton(1) },
                             onScrollUp = { desktopViewModel.scrollUp() },
                             onScrollDown = { desktopViewModel.scrollDown() },
+                            onPressButton = { btn -> desktopViewModel.pressButton(btn) },
+                            onReleaseButton = { btn -> desktopViewModel.releaseButton(btn) },
                             onTypeChar = { ch ->
                                 sh.haven.feature.rdp.typeRdpChar(
                                     ch = ch,
@@ -470,6 +476,7 @@ fun DesktopScreen(
                             onChipAnchorChange = onRdpChipAnchorChange,
                             onTap = { x, y -> desktopViewModel.sendClick(x, y) },
                             onMiddleClick = { x, y -> desktopViewModel.sendClick(x, y, button = 2) },
+                            onRightClick = { x, y -> desktopViewModel.sendClick(x, y, button = 3) },
                             onDragStart = { x, y ->
                                 desktopViewModel.sendPointer(x, y)
                                 desktopViewModel.pressButton(1)
@@ -478,6 +485,8 @@ fun DesktopScreen(
                             onDragEnd = { desktopViewModel.releaseButton(1) },
                             onScrollUp = { desktopViewModel.scrollUp() },
                             onScrollDown = { desktopViewModel.scrollDown() },
+                            onPressButton = { btn -> desktopViewModel.pressButton(btn) },
+                            onReleaseButton = { btn -> desktopViewModel.releaseButton(btn) },
                             onTypeChar = { ch ->
                                 desktopViewModel.typeGlkvmChar(ch, tab.session.targetLayout)
                             },

@@ -102,9 +102,15 @@ import androidx.compose.ui.input.key.key
 import androidx.compose.ui.input.key.onPreviewKeyEvent
 import androidx.compose.ui.input.key.type
 import androidx.compose.ui.ExperimentalComposeUiApi
+import androidx.compose.ui.input.pointer.PointerButtons
 import androidx.compose.ui.input.pointer.PointerEvent
 import androidx.compose.ui.input.pointer.PointerEventPass
 import androidx.compose.ui.input.pointer.PointerEventType
+import androidx.compose.ui.input.pointer.PointerType
+import androidx.compose.ui.input.pointer.areAnyPressed
+import androidx.compose.ui.input.pointer.isPrimaryPressed
+import androidx.compose.ui.input.pointer.isSecondaryPressed
+import androidx.compose.ui.input.pointer.isTertiaryPressed
 import androidx.compose.ui.input.pointer.pointerInput
 import androidx.compose.ui.input.pointer.pointerInteropFilter
 import androidx.compose.ui.input.pointer.positionChange
@@ -1088,6 +1094,48 @@ private fun VncViewer(
                 .focusable()
                 .onFocusChanged { canvasFocused = it.isFocused }
                 .onSizeChanged { viewSize = it }
+                // #660/#622: unpressed hardware mouse / trackpad hover motion
+                // (PointerEventType.Move with pressed == false) and mouse wheel
+                // scroll (PointerEventType.Scroll) carry no pressed pointer, so
+                // awaitFirstDown() below never wakes for them. Handle both here
+                // so moving a Bluetooth/USB mouse moves the remote cursor and
+                // rolling the wheel scrolls the window under the cursor.
+                .pointerInput(frame.width, frame.height, viewSize, inputMode) {
+                    val wheelNotches = VncWheelNotchAccumulator()
+                    awaitPointerEventScope {
+                        while (true) {
+                            val event = awaitPointerEvent(PointerEventPass.Initial)
+                            val change = event.changes.firstOrNull() ?: continue
+                            if (event.type == PointerEventType.Scroll) {
+                                val pos = screenToVnc(
+                                    change.position, viewSize,
+                                    frame.width, frame.height,
+                                    zoom, panX, panY, coverFill,
+                                )
+                                virtualCursor = pos
+                                virtualCursorF = Offset(pos.first.toFloat(), pos.second.toFloat())
+                                onDrag(pos.first, pos.second)
+                                val steps = wheelNotches.feed(change.scrollDelta.y)
+                                change.consume()
+                                if (steps > 0) {
+                                    repeat(steps) { onScrollUp() }
+                                } else if (steps < 0) {
+                                    repeat(-steps) { onScrollDown() }
+                                }
+                            } else if (event.type == PointerEventType.Move && event.changes.none { it.pressed }) {
+                                val pos = screenToVnc(
+                                    change.position, viewSize,
+                                    frame.width, frame.height,
+                                    zoom, panX, panY, coverFill,
+                                )
+                                virtualCursor = pos
+                                virtualCursorF = Offset(pos.first.toFloat(), pos.second.toFloat())
+                                onDrag(pos.first, pos.second)
+                                change.consume()
+                            }
+                        }
+                    }
+                }
                 // All touch handling: tap, drag, pinch-to-zoom, two-finger pan/scroll.
                 // Uses Initial pass and consumes all events so the pager can't steal them.
                 // Sensitivity is a key so an in-flight drag does not carry the
@@ -1099,6 +1147,20 @@ private fun VncViewer(
                             requireUnconsumed = false,
                             pass = PointerEventPass.Initial,
                         )
+                        val downMotionEvent = currentEvent.motionEvent
+                        val isMouseDevice = isHardwareMouseGesture(
+                            pointerType = firstDown.type,
+                            buttons = currentEvent.buttons,
+                            motionSource = downMotionEvent?.source ?: 0,
+                        )
+                        var mouseButton = if (isMouseDevice) {
+                            resolveHardwareMouseButton(
+                                buttons = currentEvent.buttons,
+                                motionButtonState = downMotionEvent?.buttonState ?: 0,
+                            )
+                        } else {
+                            0
+                        }
                         firstDown.consume()
                         // #511: a canvas tap re-claims hardware-key focus from
                         // whatever took it (the pager, a toolbar button, another
@@ -1135,8 +1197,9 @@ private fun VncViewer(
                         // Tap-then-drag follow-up window: this touch came
                         // within 300 ms of the previous tap's lift. In
                         // touchpad mode that signals "drag with button 1"
-                        // (RealVNC convention).
-                        val isFollowUpTouch = inputMode == "TOUCHPAD" &&
+                        // (RealVNC convention). Hardware mouse/touchpad gestures
+                        // never use touchscreen tap-then-drag (#622).
+                        val isFollowUpTouch = !isMouseDevice && inputMode == "TOUCHPAD" &&
                             (downUptimeMs - lastTapUpMs) <= 300L
                         var dragButtonPressed = false
                         // virtualCursor is hoisted to composable scope so
@@ -1149,7 +1212,8 @@ private fun VncViewer(
                         var event: PointerEvent
                         do {
                             // Use timeout to detect long press when finger is still
-                            val remaining = if (!longPressFired && totalMovement < touchSlopPx)
+                            // (touchscreen only — a real mouse has its own right button).
+                            val remaining = if (!isMouseDevice && !longPressFired && totalMovement < touchSlopPx)
                                 (longPressMs - (SystemClock.uptimeMillis() - downUptimeMs)).coerceAtLeast(1)
                             else Long.MAX_VALUE
 
@@ -1163,7 +1227,7 @@ private fun VncViewer(
                                 // AND isn't a follow-up to a recent tap (in which
                                 // case we want to allow the user to start a drag
                                 // with button 1, not get a phantom right-click).
-                                if (totalFingers == 1 && !longPressFired && !dragging && totalMovement < touchSlopPx && !isFollowUpTouch && heldButton == null) {
+                                if (!isMouseDevice && totalFingers == 1 && !longPressFired && !dragging && totalMovement < touchSlopPx && !isFollowUpTouch && heldButton == null) {
                                     val (vx, vy) = if (inputMode == "TOUCHPAD") {
                                         virtualCursor
                                     } else {
@@ -1181,14 +1245,24 @@ private fun VncViewer(
                             } else {
                                 event = timedEvent
                             }
+                            if (isMouseDevice && mouseButton == 0) {
+                                mouseButton = resolveHardwareMouseButton(
+                                    buttons = event.buttons,
+                                    motionButtonState = event.motionEvent?.buttonState ?: 0,
+                                )
+                            }
 
                             val pointers = event.changes.filter { it.pressed }
                             val count = pointers.size
 
                             if (count >= 2) {
-                                // If we were dragging with button 1, release it
+                                // If we were dragging, release the active button
                                 if (dragging) {
-                                    onDragEnd()
+                                    if (isMouseDevice && mouseButton in 2..3) {
+                                        onReleaseButton(mouseButton)
+                                    } else {
+                                        onDragEnd()
+                                    }
                                     dragging = false
                                 }
                                 totalFingers = maxOf(totalFingers, count)
@@ -1302,7 +1376,37 @@ private fun VncViewer(
                                 val deltaScreen = change.positionChange()
                                 totalMovement += deltaScreen.getDistance()
                                 lastSinglePos = change.position
-                                if (inputMode == "TOUCHPAD") {
+                                if (isMouseDevice) {
+                                    // #622/#660: hardware mouse or SOURCE_MOUSE trackpad.
+                                    // Buttonless SOURCE_MOUSE motion (mouseButton == 0)
+                                    // moves the remote pointer without pressing button 1,
+                                    // while a held mouse button (1/2/3) drags with that button.
+                                    val pos = screenToVnc(
+                                        change.position, viewSize,
+                                        frame.width, frame.height,
+                                        zoom, panX, panY, coverFill,
+                                    )
+                                    virtualCursor = pos
+                                    virtualCursorF = Offset(pos.first.toFloat(), pos.second.toFloat())
+                                    when {
+                                        heldButton != null -> onDrag(pos.first, pos.second)
+                                        mouseButton == 0 -> {
+                                            if (totalMovement >= touchSlopPx) {
+                                                onDrag(pos.first, pos.second)
+                                            }
+                                        }
+                                        !dragging && totalMovement >= touchSlopPx -> {
+                                            if (mouseButton == 1) {
+                                                onDragStart(pos.first, pos.second)
+                                            } else {
+                                                onDrag(pos.first, pos.second)
+                                                onPressButton(mouseButton)
+                                            }
+                                            dragging = true
+                                        }
+                                        dragging -> onDrag(pos.first, pos.second)
+                                    }
+                                } else if (inputMode == "TOUCHPAD") {
                                     // Integrate finger delta into virtualCursor in
                                     // framebuffer coords (screen delta / zoom).
                                     // If this gesture is a tap-then-touch
@@ -1369,10 +1473,14 @@ private fun VncViewer(
                             }
                         } while (event.changes.any { it.pressed })
 
-                        // Release button 1 if drag was active (direct-mode
-                        // drag or touchpad tap-then-drag).
+                        // Release active button if drag was active (direct-mode
+                        // drag, touchpad tap-then-drag, or mouse drag).
                         if (dragging || dragButtonPressed) {
-                            onDragEnd()
+                            if (isMouseDevice && mouseButton in 2..3) {
+                                onReleaseButton(mouseButton)
+                            } else {
+                                onDragEnd()
+                            }
                         }
 
                         // Short tap with little movement = click (skip if
@@ -1382,17 +1490,24 @@ private fun VncViewer(
                         // a subsequent touch within 300 ms is treated as a
                         // tap-then-drag follow-up.
                         if (totalFingers == 1 && totalMovement < touchSlopPx && !longPressFired && heldButton == null) {
-                            val (vx, vy) = if (inputMode == "TOUCHPAD") {
+                            val (vx, vy) = if (!isMouseDevice && inputMode == "TOUCHPAD") {
                                 virtualCursor
                             } else {
-                                screenToVnc(
+                                val pos = screenToVnc(
                                     lastSinglePos, viewSize,
                                     frame.width, frame.height,
                                     zoom, panX, panY, coverFill,
                                 )
+                                virtualCursor = pos
+                                virtualCursorF = Offset(pos.first.toFloat(), pos.second.toFloat())
+                                pos
                             }
-                            onTap(vx, vy)
-                            if (inputMode == "TOUCHPAD" && !isFollowUpTouch) {
+                            when {
+                                isMouseDevice && mouseButton == 3 -> onLongPress(vx, vy)
+                                isMouseDevice && mouseButton == 2 -> onMiddleClick(vx, vy)
+                                else -> onTap(vx, vy)
+                            }
+                            if (!isMouseDevice && inputMode == "TOUCHPAD" && !isFollowUpTouch) {
                                 lastTapUpMs = SystemClock.uptimeMillis()
                             } else {
                                 // Either non-touchpad mode (no follow-up
@@ -2066,6 +2181,48 @@ private fun screenToVnc(
     val vncX = ((localX - offsetX) / fitScale).toInt().coerceIn(0, fbWidth - 1)
     val vncY = ((localY - offsetY) / fitScale).toInt().coerceIn(0, fbHeight - 1)
     return vncX to vncY
+}
+
+internal fun isHardwareMouseGesture(
+    pointerType: PointerType,
+    buttons: PointerButtons,
+    motionSource: Int,
+): Boolean =
+    pointerType == PointerType.Mouse ||
+        buttons.areAnyPressed ||
+        (motionSource and android.view.InputDevice.SOURCE_MOUSE) == android.view.InputDevice.SOURCE_MOUSE
+
+internal fun resolveHardwareMouseButton(
+    buttons: PointerButtons,
+    motionButtonState: Int,
+): Int = when {
+    buttons.isSecondaryPressed ||
+        (motionButtonState and (android.view.MotionEvent.BUTTON_SECONDARY or android.view.MotionEvent.BUTTON_STYLUS_SECONDARY)) != 0 -> 3
+    buttons.isTertiaryPressed ||
+        (motionButtonState and android.view.MotionEvent.BUTTON_TERTIARY) != 0 -> 2
+    buttons.isPrimaryPressed ||
+        (motionButtonState and (android.view.MotionEvent.BUTTON_PRIMARY or android.view.MotionEvent.BUTTON_STYLUS_PRIMARY)) != 0 -> 1
+    else -> 0
+}
+
+internal class VncWheelNotchAccumulator {
+    private var accumulated = 0f
+
+    fun feed(scrollDeltaY: Float): Int {
+        if (scrollDeltaY.isNaN() || scrollDeltaY == 0f) return 0
+        accumulated += scrollDeltaY
+        var notches = 0
+        while (abs(accumulated) >= 1f) {
+            if (accumulated <= -1f) {
+                notches += 1
+                accumulated += 1f
+            } else {
+                notches -= 1
+                accumulated -= 1f
+            }
+        }
+        return notches
+    }
 }
 
 /** Keys that form the aligned navigation block. */

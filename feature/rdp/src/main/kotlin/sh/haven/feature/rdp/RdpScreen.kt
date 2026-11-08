@@ -107,7 +107,14 @@ import androidx.compose.ui.input.key.key
 import androidx.compose.ui.input.key.onPreviewKeyEvent
 import androidx.compose.ui.input.key.type
 import androidx.compose.ui.ExperimentalComposeUiApi
+import androidx.compose.ui.input.pointer.PointerButtons
 import androidx.compose.ui.input.pointer.PointerEventPass
+import androidx.compose.ui.input.pointer.PointerEventType
+import androidx.compose.ui.input.pointer.PointerType
+import androidx.compose.ui.input.pointer.areAnyPressed
+import androidx.compose.ui.input.pointer.isPrimaryPressed
+import androidx.compose.ui.input.pointer.isSecondaryPressed
+import androidx.compose.ui.input.pointer.isTertiaryPressed
 import androidx.compose.ui.input.pointer.pointerInput
 import androidx.compose.ui.input.pointer.pointerInteropFilter
 import androidx.compose.ui.input.pointer.positionChange
@@ -165,13 +172,17 @@ fun RdpSessionContent(
     onSnippetLibraryChanged: (List<sh.haven.core.data.preferences.ToolbarItem.Custom>) -> Unit = {},
     onOpenToolbarSettings: () -> Unit = {},
     onTap: (Int, Int) -> Unit,
-    /** Two-finger tap → middle-button click at the tapped point (X11 button 2). */
+    /** Two-finger tap or middle mouse button → middle-button click at the tapped point (X11 button 2). */
     onMiddleClick: (Int, Int) -> Unit = { _, _ -> },
+    /** Right mouse button click at the tapped point (X11 button 3, #660). */
+    onRightClick: (Int, Int) -> Unit = { _, _ -> },
     onDragStart: (Int, Int) -> Unit,
     onDrag: (Int, Int) -> Unit,
     onDragEnd: () -> Unit,
     onScrollUp: () -> Unit,
     onScrollDown: () -> Unit,
+    onPressButton: (Int) -> Unit = {},
+    onReleaseButton: (Int) -> Unit = {},
     onTypeChar: (Char) -> Unit,
     onTypeText: (String) -> Unit = { s -> s.forEach(onTypeChar) },
     onSendClipboard: ((String) -> Unit)? = null,
@@ -274,11 +285,14 @@ fun RdpSessionContent(
             onOpenToolbarSettings = onOpenToolbarSettings,
             onTap = onTap,
             onMiddleClick = onMiddleClick,
+            onRightClick = onRightClick,
             onDragStart = onDragStart,
             onDrag = onDrag,
             onDragEnd = onDragEnd,
             onScrollUp = onScrollUp,
             onScrollDown = onScrollDown,
+            onPressButton = onPressButton,
+            onReleaseButton = onReleaseButton,
             onTypeChar = onTypeChar,
             onTypeText = onTypeText,
             onSendClipboard = onSendClipboard,
@@ -471,11 +485,14 @@ private fun RdpViewer(
     onOpenToolbarSettings: () -> Unit = {},
     onTap: (Int, Int) -> Unit,
     onMiddleClick: (Int, Int) -> Unit = { _, _ -> },
+    onRightClick: (Int, Int) -> Unit = { _, _ -> },
     onDragStart: (Int, Int) -> Unit,
     onDrag: (Int, Int) -> Unit,
     onDragEnd: () -> Unit,
     onScrollUp: () -> Unit,
     onScrollDown: () -> Unit,
+    onPressButton: (Int) -> Unit = {},
+    onReleaseButton: (Int) -> Unit = {},
     onTypeChar: (Char) -> Unit,
     onTypeText: (String) -> Unit = { s -> s.forEach(onTypeChar) },
     onSendClipboard: ((String) -> Unit)? = null,
@@ -854,6 +871,50 @@ private fun RdpViewer(
                 .focusable()
                 .onFocusChanged { canvasFocused = it.isFocused }
                 .onSizeChanged { viewSize = it }
+                // #660/#622: unpressed hardware mouse / trackpad hover motion
+                // (PointerEventType.Move with pressed == false) and mouse wheel
+                // scroll (PointerEventType.Scroll) carry no pressed pointer, so
+                // awaitFirstDown() below never wakes for them. Handle both here
+                // so moving a Bluetooth/USB mouse moves the remote cursor and
+                // rolling the wheel scrolls the window under the cursor.
+                .pointerInput(frame.width, frame.height, viewSize, effectiveInputMode) {
+                    val wheelNotches = DesktopWheelNotchAccumulator()
+                    awaitPointerEventScope {
+                        while (true) {
+                            val event = awaitPointerEvent(PointerEventPass.Initial)
+                            val change = event.changes.firstOrNull() ?: continue
+                            if (event.type == PointerEventType.Scroll) {
+                                val pos = screenToRemote(
+                                    change.position, viewSize,
+                                    frame.width, frame.height,
+                                    zoom, panX, panY,
+                                )
+                                pointerActive = true
+                                virtualCursor = pos
+                                virtualCursorF = Offset(pos.first.toFloat(), pos.second.toFloat())
+                                onDrag(pos.first, pos.second)
+                                val steps = wheelNotches.feed(change.scrollDelta.y)
+                                change.consume()
+                                if (steps > 0) {
+                                    repeat(steps) { onScrollUp() }
+                                } else if (steps < 0) {
+                                    repeat(-steps) { onScrollDown() }
+                                }
+                            } else if (event.type == PointerEventType.Move && event.changes.none { it.pressed }) {
+                                val pos = screenToRemote(
+                                    change.position, viewSize,
+                                    frame.width, frame.height,
+                                    zoom, panX, panY,
+                                )
+                                pointerActive = true
+                                virtualCursor = pos
+                                virtualCursorF = Offset(pos.first.toFloat(), pos.second.toFloat())
+                                onDrag(pos.first, pos.second)
+                                change.consume()
+                            }
+                        }
+                    }
+                }
                 // Sensitivity is a key so an in-flight drag does not carry the
                 // stale multiplier from capture time (#696).
                 .pointerInput(frame.width, frame.height, viewSize, effectiveInputMode, touchpadSensitivity, touchscreenViewportNav) {
@@ -863,6 +924,20 @@ private fun RdpViewer(
                             requireUnconsumed = false,
                             pass = PointerEventPass.Initial,
                         )
+                        val downMotionEvent = currentEvent.motionEvent
+                        val isMouseDevice = isHardwareMouseGesture(
+                            pointerType = firstDown.type,
+                            buttons = currentEvent.buttons,
+                            motionSource = downMotionEvent?.source ?: 0,
+                        )
+                        var mouseButton = if (isMouseDevice) {
+                            resolveHardwareMouseButton(
+                                buttons = currentEvent.buttons,
+                                motionButtonState = downMotionEvent?.buttonState ?: 0,
+                            )
+                        } else {
+                            0
+                        }
                         firstDown.consume()
                         pointerActive = true
                         // #507: a canvas tap re-claims hardware-key focus from
@@ -885,7 +960,7 @@ private fun RdpViewer(
                         ) {
                             hardwareKeyFocus.requestFocus()
                         }
-                        if (shouldForwardTouchscreenContacts(effectiveInputMode, onTouchFrame != null, touchscreenViewportNav)) {
+                        if (!isMouseDevice && shouldForwardTouchscreenContacts(effectiveInputMode, onTouchFrame != null, touchscreenViewportNav)) {
                             // #778: native MS-RDPEI multi-touch passthrough.
                             // Every pointer down/move/up is forwarded directly
                             // to the remote touch digitizer instead of being
@@ -1049,19 +1124,30 @@ private fun RdpViewer(
                         var twoFingerMovement = 0f
                         var lastSinglePos = firstDown.position
                         var dragging = false
-                        // Tap-then-drag follow-up window (touchpad mode only).
-                        val isFollowUpTouch = effectiveInputMode == "TOUCHPAD" &&
+                        // Tap-then-drag follow-up window (touchscreen touchpad mode only;
+                        // hardware mouse/touchpad gestures never use tap-then-drag, #622).
+                        val isFollowUpTouch = !isMouseDevice && effectiveInputMode == "TOUCHPAD" &&
                             (firstDown.uptimeMillis - lastTapUpMs) <= 300L
                         var dragButtonPressed = false
 
                         do {
                             val event = awaitPointerEvent(PointerEventPass.Initial)
+                            if (isMouseDevice && mouseButton == 0) {
+                                mouseButton = resolveHardwareMouseButton(
+                                    buttons = event.buttons,
+                                    motionButtonState = event.motionEvent?.buttonState ?: 0,
+                                )
+                            }
                             val pointers = event.changes.filter { it.pressed }
                             val count = pointers.size
 
                             if (count >= 2) {
                                 if (dragging) {
-                                    onDragEnd()
+                                    if (isMouseDevice && mouseButton in 2..3) {
+                                        onReleaseButton(mouseButton)
+                                    } else {
+                                        onDragEnd()
+                                    }
                                     dragging = false
                                 }
                                 totalFingers = maxOf(totalFingers, count)
@@ -1132,7 +1218,34 @@ private fun RdpViewer(
                                 val deltaScreen = change.positionChange()
                                 totalMovement += deltaScreen.getDistance()
                                 lastSinglePos = change.position
-                                if (effectiveInputMode == "TOUCHPAD") {
+                                if (isMouseDevice) {
+                                    // #660/#622: hardware mouse or SOURCE_MOUSE trackpad.
+                                    // Buttonless SOURCE_MOUSE motion (mouseButton == 0)
+                                    // moves the remote pointer without pressing button 1,
+                                    // while a held mouse button (1/2/3) drags with that button.
+                                    val pos = screenToRemote(
+                                        change.position, viewSize,
+                                        frame.width, frame.height,
+                                        zoom, panX, panY,
+                                    )
+                                    virtualCursor = pos
+                                    virtualCursorF = Offset(pos.first.toFloat(), pos.second.toFloat())
+                                    if (mouseButton == 0) {
+                                        if (totalMovement >= touchSlopPx) {
+                                            onDrag(pos.first, pos.second)
+                                        }
+                                    } else if (!dragging && totalMovement >= touchSlopPx) {
+                                        if (mouseButton == 1) {
+                                            onDragStart(pos.first, pos.second)
+                                        } else {
+                                            onDrag(pos.first, pos.second)
+                                            onPressButton(mouseButton)
+                                        }
+                                        dragging = true
+                                    } else if (dragging) {
+                                        onDrag(pos.first, pos.second)
+                                    }
+                                } else if (effectiveInputMode == "TOUCHPAD") {
                                     val scale = if (zoom > 0f) zoom else 1f
                                     // #696: scale the finger delta by the trackpad
                                     // sensitivity multiplier; keep the position in
@@ -1182,21 +1295,32 @@ private fun RdpViewer(
                         } while (event.changes.any { it.pressed })
 
                         if (dragging || dragButtonPressed) {
-                            onDragEnd()
+                            if (isMouseDevice && mouseButton in 2..3) {
+                                onReleaseButton(mouseButton)
+                            } else {
+                                onDragEnd()
+                            }
                         }
 
                         if (totalFingers == 1 && totalMovement < touchSlopPx) {
-                            val (vx, vy) = if (effectiveInputMode == "TOUCHPAD") {
+                            val (vx, vy) = if (!isMouseDevice && effectiveInputMode == "TOUCHPAD") {
                                 virtualCursor
                             } else {
-                                screenToRemote(
+                                val pos = screenToRemote(
                                     lastSinglePos, viewSize,
                                     frame.width, frame.height,
                                     zoom, panX, panY,
                                 )
+                                virtualCursor = pos
+                                virtualCursorF = Offset(pos.first.toFloat(), pos.second.toFloat())
+                                pos
                             }
-                            onTap(vx, vy)
-                            if (effectiveInputMode == "TOUCHPAD" && !isFollowUpTouch) {
+                            when {
+                                isMouseDevice && mouseButton == 3 -> onRightClick(vx, vy)
+                                isMouseDevice && mouseButton == 2 -> onMiddleClick(vx, vy)
+                                else -> onTap(vx, vy)
+                            }
+                            if (!isMouseDevice && effectiveInputMode == "TOUCHPAD" && !isFollowUpTouch) {
                                 lastTapUpMs = SystemClock.uptimeMillis()
                             } else {
                                 lastTapUpMs = 0L
@@ -1667,6 +1791,63 @@ internal fun shouldForwardTouchscreenContacts(
     hasTouchCallback: Boolean,
     touchscreenViewportNav: Boolean,
 ): Boolean = effectiveInputMode == "TOUCHSCREEN" && hasTouchCallback && !touchscreenViewportNav
+
+/**
+ * True when a down/move stream originates from a physical mouse or a
+ * pointer-mode hardware touchpad (`SOURCE_MOUSE`) rather than the phone's
+ * touchscreen (#660, #622).
+ */
+internal fun isHardwareMouseGesture(
+    pointerType: PointerType,
+    buttons: PointerButtons,
+    motionSource: Int,
+): Boolean =
+    pointerType == PointerType.Mouse ||
+        buttons.areAnyPressed ||
+        (motionSource and android.view.InputDevice.SOURCE_MOUSE) == android.view.InputDevice.SOURCE_MOUSE
+
+/**
+ * Map Compose [PointerButtons] and Android [ android.view.MotionEvent.getButtonState ]
+ * to X11 mouse button numbers (1 = left, 2 = middle, 3 = right, 0 = buttonless
+ * trackpad pointer stream, #660, #622).
+ */
+internal fun resolveHardwareMouseButton(
+    buttons: PointerButtons,
+    motionButtonState: Int,
+): Int = when {
+    buttons.isSecondaryPressed ||
+        (motionButtonState and (android.view.MotionEvent.BUTTON_SECONDARY or android.view.MotionEvent.BUTTON_STYLUS_SECONDARY)) != 0 -> 3
+    buttons.isTertiaryPressed ||
+        (motionButtonState and android.view.MotionEvent.BUTTON_TERTIARY) != 0 -> 2
+    buttons.isPrimaryPressed ||
+        (motionButtonState and (android.view.MotionEvent.BUTTON_PRIMARY or android.view.MotionEvent.BUTTON_STYLUS_PRIMARY)) != 0 -> 1
+    else -> 0
+}
+
+/**
+ * Accumulates Compose `scrollDelta.y` values into whole wheel notches (#660).
+ * Compose flips `MotionEvent.AXIS_VSCROLL`, so negative `scrollDelta.y` is
+ * wheel-up (away from the user) and positive is wheel-down.
+ */
+internal class DesktopWheelNotchAccumulator {
+    private var accumulated = 0f
+
+    fun feed(scrollDeltaY: Float): Int {
+        if (scrollDeltaY.isNaN() || scrollDeltaY == 0f) return 0
+        accumulated += scrollDeltaY
+        var notches = 0
+        while (abs(accumulated) >= 1f) {
+            if (accumulated <= -1f) {
+                notches += 1
+                accumulated += 1f
+            } else {
+                notches -= 1
+                accumulated -= 1f
+            }
+        }
+        return notches
+    }
+}
 
 internal data class ViewportTransform(val zoom: Float, val panX: Float, val panY: Float)
 

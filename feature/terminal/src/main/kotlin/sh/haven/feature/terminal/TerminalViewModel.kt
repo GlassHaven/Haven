@@ -453,13 +453,14 @@ class TerminalViewModel @Inject constructor(
      * leaving composition while the user navigates the SFTP picker. On
      * success the returned (already shell-quoted) payload is fed to the
      * active tab's stdin so it lands at the cursor in the live shell.
+     * [files] may hold several picks: they share one folder choice and their
+     * paths are pasted together.
      */
     fun runAttachFlow(
-        sourceUri: android.net.Uri,
-        fileName: String,
-        fileSize: Long,
+        files: List<sh.haven.feature.sftp.attach.TerminalAttachCoordinator.AttachFile>,
         initialProfileId: String?,
     ) {
+        if (files.isEmpty()) return
         viewModelScope.launch {
             // A local shell has no remote filesystem to upload into, and the
             // Files tab's pick banner refuses local destinations — so passing
@@ -472,9 +473,7 @@ class TerminalViewModel @Inject constructor(
             val carrier = initialProfileId
                 ?.takeIf { connectionRepository.getById(it)?.isLocal != true }
             val payload = attachCoordinator.attach(
-                sourceUri = sourceUri,
-                fileName = fileName,
-                fileSize = fileSize,
+                files = files,
                 initialProfileId = carrier,
             ) ?: return@launch
             _pendingAttachInjection.value = payload

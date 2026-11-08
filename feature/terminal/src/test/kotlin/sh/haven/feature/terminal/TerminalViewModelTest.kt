@@ -200,13 +200,15 @@ class TerminalViewModelTest {
     // stripped before the request is published so the banner offers remote
     // destinations, exactly as it does for the other attach origins.
     private fun kotlinx.coroutines.test.TestScope.runAttach(profileId: String?) {
-        coEvery { attachCoordinator.attach(any(), any(), any(), any()) } returns null
+        coEvery { attachCoordinator.attach(any(), any()) } returns null
         // Uri.parse is stubbed to null under unit tests (returnDefaultValues),
         // and the flow only forwards the uri — a mock does the same job.
         viewModel.runAttachFlow(
-            sourceUri = mockk<android.net.Uri>(relaxed = true),
-            fileName = "photo.jpg",
-            fileSize = 1234L,
+            files = listOf(
+                sh.haven.feature.sftp.attach.TerminalAttachCoordinator.AttachFile(
+                    mockk<android.net.Uri>(relaxed = true), "photo.jpg", 1234L,
+                ),
+            ),
             initialProfileId = profileId,
         )
         advanceUntilIdle()
@@ -221,7 +223,7 @@ class TerminalViewModelTest {
 
         runAttach("profile-under-test")
 
-        coVerify(exactly = 1) { attachCoordinator.attach(any(), any(), any(), null) }
+        coVerify(exactly = 1) { attachCoordinator.attach(any(), null) }
     }
 
     @Test
@@ -234,8 +236,16 @@ class TerminalViewModelTest {
         runAttach("profile-under-test")
 
         coVerify(exactly = 1) {
-            attachCoordinator.attach(any(), any(), any(), "profile-under-test")
+            attachCoordinator.attach(any(), "profile-under-test")
         }
+    }
+
+    @Test
+    fun `an empty pick starts no attach`() = runTest(testDispatcher) {
+        viewModel.runAttachFlow(files = emptyList(), initialProfileId = "profile-under-test")
+        advanceUntilIdle()
+
+        coVerify(exactly = 0) { attachCoordinator.attach(any(), any()) }
     }
 
     @Test

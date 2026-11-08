@@ -24,13 +24,13 @@ private const val TAG = "AttachCoordinator"
 /**
  * Mediates the terminal's "attach (paperclip)" flow:
  *
- *  1. The terminal screen launches a SAF picker, then calls [attach] with
- *     the resulting URI. [attach] suspends and publishes a [pendingRequest]
- *     so the SFTP screen can render a folder-picker mode.
+ *  1. The terminal screen launches a (multi-select) SAF picker, then calls
+ *     [attach] with the resulting files. [attach] suspends and publishes a
+ *     [pendingRequest] so the SFTP screen can render a folder-picker mode.
  *  2. The user navigates to a destination folder and confirms via
  *     [confirmFolder], or backs out via [cancel].
- *  3. On confirm, [attach] uploads the file (SSH or rclone) and returns
- *     the shell-quoted reference (absolute path or share URL) for the
+ *  3. On confirm, [attach] uploads the files (SSH or rclone) and returns
+ *     their shell-quoted references (absolute paths or share URLs) for the
  *     terminal to inject at the cursor. On cancel, [attach] returns null.
  *
  * Singleton-scoped so the SFTP and terminal screens — which live in
@@ -44,15 +44,23 @@ class TerminalAttachCoordinator @Inject constructor(
     @ApplicationContext private val appContext: Context,
 ) {
 
-    /** Single attach in flight; null when no picker is active. */
-    data class AttachRequest(
+    /** One picked file to upload. */
+    data class AttachFile(
         val sourceUri: Uri,
         val fileName: String,
         val fileSize: Long,
+    )
+
+    /** Single attach in flight (one or more files); null when no picker is active. */
+    data class AttachRequest(
+        val files: List<AttachFile>,
         /** Profile to pre-select in the picker (the terminal's active session). */
         val initialProfileId: String?,
         internal val deferred: CompletableDeferred<DestinationChoice?>,
-    )
+    ) {
+        /** Banner label: the file's name, or every picked name comma-joined. */
+        val fileName: String get() = files.joinToString(", ") { it.fileName }
+    }
 
     /** What the picker resolved to. */
     data class DestinationChoice(
@@ -73,26 +81,31 @@ class TerminalAttachCoordinator @Inject constructor(
     val progress: StateFlow<Progress?> = _progress.asStateFlow()
 
     /**
-     * Run the picker → upload pipeline. Returns the shell-quoted paste
-     * payload, or null if the user cancelled.
+     * Run the picker → upload pipeline. The destination folder is picked once
+     * for the whole batch; files upload one after another into it. Returns the
+     * shell-quoted references of the files that uploaded, space-separated in
+     * pick order, or null if the user cancelled or nothing uploaded. A failed
+     * file is logged and skipped so it doesn't cost the rest of the batch.
      */
     suspend fun attach(
-        sourceUri: Uri,
-        fileName: String,
-        fileSize: Long,
+        files: List<AttachFile>,
         initialProfileId: String?,
     ): String? {
+        if (files.isEmpty()) return null
         val deferred = CompletableDeferred<DestinationChoice?>()
-        val request = AttachRequest(sourceUri, fileName, fileSize, initialProfileId, deferred)
+        val request = AttachRequest(files, initialProfileId, deferred)
         _pendingRequest.value = request
         val choice = try {
             deferred.await()
         } finally {
             _pendingRequest.value = null
         } ?: return null
-        return runCatching { performUpload(choice, fileName, sourceUri, fileSize) }
-            .onFailure { Log.e(TAG, "Upload failed", it) }
-            .getOrElse { return null }
+        val references = files.mapNotNull { file ->
+            runCatching { performUpload(choice, file.fileName, file.sourceUri, file.fileSize) }
+                .onFailure { Log.e(TAG, "Upload failed for ${file.fileName}", it) }
+                .getOrNull()
+        }
+        return references.takeIf { it.isNotEmpty() }?.joinToString(" ")
     }
 
     /** Called by the SFTP screen when the user taps "Use this folder". */

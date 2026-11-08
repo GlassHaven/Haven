@@ -3,6 +3,18 @@ package sh.haven.core.ssh
 import org.json.JSONObject
 
 /**
+ * Prefix for the list / kill / rename commands, which run over an SSH exec
+ * channel rather than the interactive shell. sshd gives that non-login `sh` a
+ * bare PATH (macOS: /usr/bin:/bin:/usr/sbin:/sbin), so a Homebrew-installed
+ * manager was "not found" (exit 127) there even though the login shell had
+ * just started it: the attach probe reported "tmux not running" over a live
+ * tmux session and the picker listed nothing. Append (never prepend) the
+ * Homebrew bin directories so a binary already on PATH keeps winning. The
+ * start commands are typed into the login shell and already see its PATH.
+ */
+private const val EXEC_SH = "sh -c 'PATH=\"\$PATH:/opt/homebrew/bin:/usr/local/bin\"; "
+
+/**
  * Session manager options for wrapping SSH shells in persistent sessions.
  * @param label Display name for logging.
  * @param command Template that produces an attach-or-create shell command given a session name,
@@ -20,40 +32,40 @@ enum class SessionManager(
     NONE("None", null, null),
     TMUX("tmux",
         { name -> "exec sh -c 'if ! command -v tmux >/dev/null 2>&1; then echo \"Haven: tmux not found. Install it (e.g. apt install tmux) or change session manager in connection settings.\"; else exec tmux new-session -A -s $name \\; set -gq allow-passthrough on \\; set -gq mouse on; fi'" },
-        "sh -c 'tmux ls -F \"#{session_name}\" 2>/dev/null'",
-        { name -> "sh -c 'tmux kill-session -t $name'" },
-        { old, new -> "sh -c 'tmux rename-session -t $old $new'" },
+        "${EXEC_SH}tmux ls -F \"#{session_name}\" 2>/dev/null'",
+        { name -> "${EXEC_SH}tmux kill-session -t $name'" },
+        { old, new -> "${EXEC_SH}tmux rename-session -t $old $new'" },
     ),
     ZELLIJ("zellij",
         { name -> "exec sh -c 'if ! command -v zellij >/dev/null 2>&1; then echo \"Haven: zellij not found. See https://zellij.dev/documentation/installation or change session manager in connection settings.\"; else exec zellij attach $name --create; fi'" },
-        "sh -c 'zellij ls 2>/dev/null'",
-        { name -> "sh -c 'zellij kill-session $name 2>/dev/null; zellij delete-session $name 2>/dev/null'" },
-        { old, new -> "sh -c 'zellij delete-session $new 2>/dev/null; zellij --session $old action rename-session $new'" },
+        "${EXEC_SH}zellij ls 2>/dev/null'",
+        { name -> "${EXEC_SH}zellij kill-session $name 2>/dev/null; zellij delete-session $name 2>/dev/null'" },
+        { old, new -> "${EXEC_SH}zellij delete-session $new 2>/dev/null; zellij --session $old action rename-session $new'" },
     ),
     SCREEN("screen",
         { name -> "exec sh -c 'if ! command -v screen >/dev/null 2>&1; then echo \"Haven: screen not found. Install it (e.g. apt install screen) or change session manager in connection settings.\"; else exec screen -dRR $name; fi'" },
-        "sh -c 'screen -ls 2>/dev/null'",
-        { name -> "sh -c 'screen -S $name -X quit'" },
-        { old, new -> "sh -c 'screen -S $old -X sessionname $new'" },
+        "${EXEC_SH}screen -ls 2>/dev/null'",
+        { name -> "${EXEC_SH}screen -S $name -X quit'" },
+        { old, new -> "${EXEC_SH}screen -S $old -X sessionname $new'" },
     ),
     BYOBU("byobu",
         { name -> "exec sh -c 'if ! command -v byobu >/dev/null 2>&1; then echo \"Haven: byobu not found. Install it (e.g. apt install byobu) or change session manager in connection settings.\"; else exec byobu new-session -A -s $name \\; set -gq mouse on; fi'" },
-        "sh -c 'byobu ls -F \"#{session_name}\" 2>/dev/null'",
-        { name -> "sh -c 'byobu kill-session -t $name'" },
-        { old, new -> "sh -c 'byobu rename-session -t $old $new'" },
+        "${EXEC_SH}byobu ls -F \"#{session_name}\" 2>/dev/null'",
+        { name -> "${EXEC_SH}byobu kill-session -t $name'" },
+        { old, new -> "${EXEC_SH}byobu rename-session -t $old $new'" },
     ),
     HERDR("herdr",
         { name -> "exec sh -c 'if ! command -v herdr >/dev/null 2>&1; then echo \"Haven: Herdr not found. See https://herdr.dev or change session manager in connection settings.\"; else exec herdr --session $name; fi'" },
-        "sh -c 'herdr session list --json 2>/dev/null'",
-        { name -> "sh -c 'herdr session stop $name --json >/dev/null 2>&1 || true; herdr session delete $name --json >/dev/null 2>&1'" },
+        "${EXEC_SH}herdr session list --json 2>/dev/null'",
+        { name -> "${EXEC_SH}herdr session stop $name --json >/dev/null 2>&1 || true; herdr session delete $name --json >/dev/null 2>&1'" },
     ),
     // psmux's CLI differs from tmux twice: `ls` prints "NAME: N windows
     // (created ...)" unless asked for -F, and `rename-session` takes only the
     // new name and acts on the current session, so no target-based rename.
     PSMUX("psmux",
         { name -> "exec sh -c 'if ! command -v psmux >/dev/null 2>&1; then echo \"Haven: psmux not found. See https://github.com/psmux/psmux or change session manager in connection settings.\"; else exec psmux attach -t $name || exec psmux new-session -s $name; fi'" },
-        "sh -c 'psmux ls -F \"#{session_name}\" 2>/dev/null'",
-        { name -> "sh -c 'psmux kill-session -t $name'" },
+        "${EXEC_SH}psmux ls -F \"#{session_name}\" 2>/dev/null'",
+        { name -> "${EXEC_SH}psmux kill-session -t $name'" },
     );
 
     companion object {

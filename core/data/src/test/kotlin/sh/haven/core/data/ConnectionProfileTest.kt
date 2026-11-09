@@ -252,6 +252,51 @@ class ConnectionProfileTest {
     }
 
     @Test
+    fun `openaiBaseUrl handles full https URLs, prefixes, and bare hosts`() {
+        assertEquals(
+            "https://openrouter.ai/api/v1",
+            ConnectionProfile(
+                label = "or",
+                host = "https://openrouter.ai/api/v1/",
+                port = 0,
+                username = "",
+                connectionType = "OPENAI",
+            ).openaiBaseUrl,
+        )
+        assertEquals(
+            "https://openrouter.ai/api",
+            ConnectionProfile(
+                label = "or",
+                host = "https://openrouter.ai",
+                port = 0,
+                username = "",
+                connectionType = "OPENAI",
+                openaiPathPrefix = "/api",
+            ).openaiBaseUrl,
+        )
+        assertEquals(
+            "https://openrouter.ai",
+            ConnectionProfile(
+                label = "or",
+                host = "openrouter.ai",
+                port = 443,
+                username = "",
+                connectionType = "OPENAI",
+            ).openaiBaseUrl,
+        )
+        assertEquals(
+            "http://192.168.1.20:80",
+            ConnectionProfile(
+                label = "local",
+                host = "192.168.1.20",
+                port = 0,
+                username = "",
+                connectionType = "OPENAI",
+            ).openaiBaseUrl,
+        )
+    }
+
+    @Test
     fun `aiProtocol is stored as the raw string`() {
         val p = ConnectionProfile(label = "t", host = "h", username = "u", aiProtocol = "ANTHROPIC")
         assertEquals("ANTHROPIC", p.aiProtocol)

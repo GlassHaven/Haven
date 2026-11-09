@@ -1940,6 +1940,13 @@ private fun ConnectionTreeItem(
                             else -> profile.rcloneProvider ?: stringResource(R.string.connections_rclone_provider_cloud)
                         }
                         Text("$providerLabel \u2022 ${profile.rcloneRemoteName ?: ""}")
+                    } else if (profile.isOpenai) {
+                        val via = when {
+                            jumpHostLabel != null && indent == 0 -> " " + stringResource(R.string.connections_list_via, jumpHostLabel)
+                            profile.proxyType != null && !profile.proxyHost.isNullOrBlank() && indent == 0 -> " " + stringResource(R.string.connections_list_via, profile.proxyType.toString())
+                            else -> ""
+                        }
+                        Text("${profile.openaiBaseUrl}$via")
                     } else {
                         val via = when {
                             jumpHostLabel != null && indent == 0 -> " " + stringResource(R.string.connections_list_via, jumpHostLabel)

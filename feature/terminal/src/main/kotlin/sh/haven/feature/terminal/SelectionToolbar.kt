@@ -394,6 +394,9 @@ internal fun smartCopy(
 
     val sel = controller.getSelectionRange() ?: return null
     val snapshotLines = getSnapshotLines(emulator) ?: return null
+    if (sel.startRow < 0 || sel.endRow >= snapshotLines.size) {
+        return controller.getSelectedText().ifEmpty { null }
+    }
 
     val fullTexts = (sel.startRow..sel.endRow).map { row ->
         if (row in snapshotLines.indices) snapshotLines[row] else ""

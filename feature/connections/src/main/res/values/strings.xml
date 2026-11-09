@@ -479,7 +479,7 @@
     <string name="connections_section_glkvm">GLKVM settings</string>
     <string name="connections_section_openai">AI endpoint</string>
     <string name="connections_field_openai_host">Server address</string>
-    <string name="connections_field_openai_host_hint">IP, hostname, or a full http:// URL</string>
+    <string name="connections_field_openai_host_hint">IP, hostname, or a full http:// or https:// URL</string>
     <string name="connections_field_openai_api_key">API key (optional)</string>
     <string name="connections_field_openai_api_key_hint">Sent as a Bearer token. Leave blank for keyless endpoints.</string>
     <string name="connections_field_openai_path_prefix">Path prefix (optional)</string>

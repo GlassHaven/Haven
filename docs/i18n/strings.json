@@ -16878,7 +16878,7 @@
     },
     {
      "name": "connections_field_openai_host_hint",
-     "en": "IP, hostname, or a full http:// URL",
+     "en": "IP, hostname, or a full http:// or https:// URL",
      "comment": "Import rclone.conf (#251)",
      "args": [],
      "t": {

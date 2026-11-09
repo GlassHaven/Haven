@@ -64,16 +64,25 @@ class OpenAiClient @Inject constructor() {
         }
     }
 
-    private fun baseUrl(base: String, prefix: String?): String {
+    private fun baseUrl(base: String, prefix: String?, protocol: AiProtocol = AiProtocol.OPENAI): String {
         var b = base.trim().trimEnd('/')
-        prefix?.takeIf { it.isNotBlank() }?.let { p ->
-            b += if (p.startsWith("/")) p else "/$p"
+        val normPrefix = prefix?.trim()?.trim('/')?.takeIf { it.isNotEmpty() }?.let { "/$it" }
+        if (normPrefix != null && !b.endsWith(normPrefix) && !b.endsWith("$normPrefix/v1")) {
+            b += normPrefix
+        }
+        val versionSegment = when (protocol) {
+            AiProtocol.OPENAI, AiProtocol.ANTHROPIC -> "/v1"
+            AiProtocol.OLLAMA -> "/api"
+            AiProtocol.GEMINI -> "/v1beta"
+        }
+        if (b.endsWith(versionSegment)) {
+            b = b.removeSuffix(versionSegment)
         }
         return b
     }
 
     fun modelsUrl(base: String, prefix: String?, protocol: AiProtocol = AiProtocol.OPENAI): String =
-        baseUrl(base, prefix) + when (protocol) {
+        baseUrl(base, prefix, protocol) + when (protocol) {
             AiProtocol.OPENAI, AiProtocol.ANTHROPIC -> "/v1/models"
             AiProtocol.OLLAMA -> "/api/tags"
             AiProtocol.GEMINI -> "/v1beta/models"
@@ -83,7 +92,7 @@ class OpenAiClient @Inject constructor() {
         chatUrlFor(base, prefix, protocol, model = "", stream = false)
 
     private fun chatUrlFor(base: String, prefix: String?, protocol: AiProtocol, model: String, stream: Boolean): String =
-        baseUrl(base, prefix) + when (protocol) {
+        baseUrl(base, prefix, protocol) + when (protocol) {
             AiProtocol.OPENAI -> "/v1/chat/completions"
             AiProtocol.OLLAMA -> "/api/chat"
             AiProtocol.ANTHROPIC -> "/v1/messages"

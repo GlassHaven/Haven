@@ -587,10 +587,14 @@ data class ConnectionProfile(
      */
     val openaiBaseUrl: String
         get() {
-            val base = if (host.contains("://")) host.trimEnd('/')
-            else "http://$host:${if (port > 0) port else 80}".trimEnd('/')
-            val prefix = openaiPathPrefix.orEmpty()
-            return if (prefix.isEmpty()) base else base + (if (prefix.startsWith("/")) prefix else "/$prefix")
+            val trimmedHost = host.trim().trimEnd('/')
+            val base = when {
+                trimmedHost.contains("://") -> trimmedHost
+                port == 443 -> "https://$trimmedHost"
+                else -> "http://$trimmedHost:${if (port > 0) port else 80}".trimEnd('/')
+            }
+            val prefix = openaiPathPrefix?.trim()?.trim('/')?.takeIf { it.isNotEmpty() }
+            return if (prefix == null || base.endsWith("/$prefix") || base.endsWith("/$prefix/v1")) base else "$base/$prefix"
         }
 
     /** SAF-backed "local folder" file location (#415) — browses a persisted [safTreeUri] tree. */

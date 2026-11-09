@@ -91,6 +91,30 @@ class OpenAiClientTest {
     }
 
     @Test
+    fun `baseUrl deduplicates pre-applied pathPrefix and strips trailing v1`() {
+        // When ConnectionProfile.openaiBaseUrl has already appended /api, passing
+        // pathPrefix="/api" to OpenAiClient must not double it to /api/api/v1.
+        assertEquals(
+            "https://openrouter.ai/api/v1/models",
+            client.modelsUrl("https://openrouter.ai/api", "/api"),
+        )
+        assertEquals(
+            "https://openrouter.ai/api/v1/chat/completions",
+            client.chatUrl("https://openrouter.ai/api", "/api"),
+        )
+        // Pasting a URL that already includes /v1 (e.g. https://openrouter.ai/api/v1)
+        // must not double /v1 to /api/v1/v1/models.
+        assertEquals(
+            "https://openrouter.ai/api/v1/models",
+            client.modelsUrl("https://openrouter.ai/api/v1", null),
+        )
+        assertEquals(
+            "https://openrouter.ai/api/v1/chat/completions",
+            client.chatUrl("https://openrouter.ai/api/v1/", "/api"),
+        )
+    }
+
+    @Test
     fun `apiKey is sent as Bearer and omitted when blank`() = runBlocking {
         server.enqueue(MockResponse().setBody(modelsBody("m")))
         client.verify(client.buildClient(null), baseUrl(), null, "secret")

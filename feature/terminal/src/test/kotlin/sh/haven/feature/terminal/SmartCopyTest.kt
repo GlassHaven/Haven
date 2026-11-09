@@ -56,6 +56,18 @@ class SmartCopyTest {
     }
 
     @Test
+    fun `selection spanning negative scrollback rows returns controller text (#805)`() {
+        val out = smartCopy(
+            controller(
+                SelectionRange(startRow = -5, startCol = 0, endRow = 1, endCol = 4),
+                selectedText = "scrollback line\nrow0\nrow1",
+            ),
+            emulator(listOf("row0  │ right", "row1  │ right")),
+        )
+        assertEquals("scrollback line\nrow0\nrow1", out)
+    }
+
+    @Test
     fun `multi-row hard-break selection keeps the controller's newlines`() {
         // The controller (backed by SelectionManager.getSelectedText) reports
         // hard-broken rows by inserting "\n" between them — these rows aren't

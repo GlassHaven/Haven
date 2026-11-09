@@ -283,6 +283,7 @@ fun ConnectionEditDialog(
                 seed?.isSpice == true -> (seed.spicePort ?: 5900).toString()
                 seed?.isGlkvm == true -> (seed.glkvmPort ?: 443).toString()
                 seed?.isSmb == true -> seed.smbPort.toString()
+                seed?.isOpenai == true -> seed.port.takeIf { it > 0 }?.toString() ?: ""
                 else -> seed?.port?.toString() ?: "22"
             }
         )
@@ -1225,11 +1226,11 @@ fun ConnectionEditDialog(
                                         "RDP" -> "3389"
                                         "SPICE" -> "5900"
                                         "SMB" -> "445"
-                                        "OPENAI" -> "80"
+                                        "OPENAI" -> ""
                                         "ET" -> "22"
                                         else -> "22"
                                     }
-                                    if (port == "22" || port == "5900" || port == "3389" || port == "445" || port == "2022" || port == "443") {
+                                    if (port == "" || port == "22" || port == "5900" || port == "3389" || port == "445" || port == "2022" || port == "443" || port == "80") {
                                         port = defaultPort
                                     }
                                 },
@@ -1836,23 +1837,25 @@ fun ConnectionEditDialog(
                         value = host,
                         onValueChange = { host = it },
                         label = { Text(stringResource(R.string.connections_field_openai_host)) },
-                        placeholder = { Text("192.168.1.20") },
+                        placeholder = { Text("https://openrouter.ai/api/v1") },
                         singleLine = true,
                         supportingText = {
                             Text(stringResource(R.string.connections_field_openai_host_hint))
                         },
                         modifier = Modifier.fillMaxWidth(),
                     )
-                    Spacer(Modifier.height(4.dp))
-                    OutlinedTextField(
-                        value = port,
-                        onValueChange = { port = it.filter { c -> c.isDigit() } },
-                        label = { Text(stringResource(R.string.connections_field_port)) },
-                        placeholder = { Text("8090") },
-                        singleLine = true,
-                        keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Number),
-                        modifier = Modifier.width(120.dp),
-                    )
+                    if (!host.contains("://")) {
+                        Spacer(Modifier.height(4.dp))
+                        OutlinedTextField(
+                            value = port,
+                            onValueChange = { port = it.filter { c -> c.isDigit() } },
+                            label = { Text(stringResource(R.string.connections_field_port)) },
+                            placeholder = { Text("80") },
+                            singleLine = true,
+                            keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Number),
+                            modifier = Modifier.width(120.dp),
+                        )
+                    }
                     Spacer(Modifier.height(4.dp))
                     sh.haven.core.ui.PasswordField(
                         value = openaiApiKey,
@@ -1918,11 +1921,16 @@ fun ConnectionEditDialog(
                         }
                     }
                     val openaiPreview = run {
-                        val base = if (host.contains("://")) host.trimEnd('/')
-                        else "http://$host:${if ((port.toIntOrNull() ?: 0) > 0) port else "80"}".trimEnd('/')
-                        val prefix = openaiPathPrefix.trim()
-                        if (prefix.isEmpty()) base
-                        else base + (if (prefix.startsWith("/")) prefix else "/$prefix")
+                        val trimmedHost = host.trim().trimEnd('/')
+                        val portInt = port.toIntOrNull() ?: 0
+                        val base = when {
+                            trimmedHost.contains("://") -> trimmedHost
+                            portInt == 443 -> "https://$trimmedHost"
+                            else -> "http://$trimmedHost:${if (portInt > 0) port else "80"}".trimEnd('/')
+                        }
+                        val prefix = openaiPathPrefix.trim().trim('/')
+                        if (prefix.isEmpty() || base.endsWith("/$prefix") || base.endsWith("/$prefix/v1")) base
+                        else "$base/$prefix"
                     }
                     Text(
                         stringResource(R.string.connections_openai_url_preview, openaiPreview),

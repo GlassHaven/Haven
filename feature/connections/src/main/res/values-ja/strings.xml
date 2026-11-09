@@ -324,7 +324,7 @@
     <string name="connections_field_provider">プロバイダー</string>
     <string name="connections_field_tunnel_through_ssh">SSH経由でトンネル</string>
     <string name="connections_field_ssh_connection">SSH接続</string>
-    <string name="connections_field_username_vnc">ユーザー名（任意 — VeNCryptのみ）</string>
+    <string name="connections_field_username_vnc">ユーザー名（任意 — VeNCryptまたはmacOSアカウント）</string>
     <string name="connections_field_password_optional">パスワード（任意）</string>
     <string name="connections_field_domain_optional">ドメイン（任意）</string>
     <string name="connections_field_share_name">共有名</string>
@@ -395,7 +395,7 @@
     <string name="connections_field_passphrase">パスフレーズ</string>
     <string name="connections_hint_ifac_passphrase">IFACパスフレーズ（任意）</string>
     <string name="connections_helper_vnc_host_via_ssh">SSHサーバーからVNCサーバーに到達できる場所 — 同じマシンの場合は通常127.0.0.1（wayvncなどはループバックのみにバインドします）。</string>
-    <string name="connections_helper_vnc_auth">従来のVncAuth（8文字のパスワード）にはユーザー名を空欄のままにします。VeNCrypt（wayvnc、TigerVNC）にはユーザー名を入力します — より長いパスワードとTLS暗号化に対応します。</string>
+    <string name="connections_helper_vnc_auth">従来のVncAuth（8文字のパスワード）にはユーザー名を空欄のままにします。VeNCrypt（wayvnc、TigerVNC）にはユーザー名を入力します — より長いパスワードとTLS暗号化に対応します。macOSの画面共有では、macOSのアカウント名とパスワードを入力すると自分のデスクトップを共有できます。</string>
     <string name="connections_helper_rdp_host_via_ssh">SSHサーバーからRDPサーバーに到達できる場所 — 同じマシンの場合は通常127.0.0.1。</string>
     <string name="connections_helper_rdp_nla">既定でオン。サーバーがHavenのNLAを拒否する場合はオフにします（一部のWindows Server 2025構成 — SSLのみで接続するにはサーバーで\"Require NLA\"を無効にする必要があります）。</string>
     <string name="connections_action_manage_tunnels">トンネルを管理…</string>

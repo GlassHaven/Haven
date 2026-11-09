@@ -324,7 +324,7 @@
     <string name="connections_field_provider">Anbieter</string>
     <string name="connections_field_tunnel_through_ssh">Über SSH tunneln</string>
     <string name="connections_field_ssh_connection">SSH-Verbindung</string>
-    <string name="connections_field_username_vnc">Benutzername (optional — nur VeNCrypt)</string>
+    <string name="connections_field_username_vnc">Benutzername (optional — VeNCrypt oder macOS-Konto)</string>
     <string name="connections_field_password_optional">Passwort (optional)</string>
     <string name="connections_field_domain_optional">Domäne (optional)</string>
     <string name="connections_field_share_name">Freigabename</string>
@@ -395,7 +395,7 @@
     <string name="connections_field_passphrase">Passphrase</string>
     <string name="connections_hint_ifac_passphrase">IFAC-Passphrase (optional)</string>
     <string name="connections_helper_vnc_host_via_ssh">Wo der VNC-Server vom SSH-Server aus erreichbar ist — normalerweise 127.0.0.1, wenn es dieselbe Maschine ist (wayvnc usw. binden nur an Loopback).</string>
-    <string name="connections_helper_vnc_auth">Benutzername für klassisches VncAuth (8-Zeichen-Passwort) leer lassen. Benutzername für VeNCrypt (wayvnc, TigerVNC) ausfüllen — unterstützt längere Passwörter und TLS-Verschlüsselung.</string>
+    <string name="connections_helper_vnc_auth">Benutzername für klassisches VncAuth (8-Zeichen-Passwort) leer lassen. Benutzername für VeNCrypt (wayvnc, TigerVNC) ausfüllen — unterstützt längere Passwörter und TLS-Verschlüsselung. Für die macOS-Bildschirmfreigabe Namen und Passwort des macOS-Kontos eingeben, um den eigenen Desktop zu teilen.</string>
     <string name="connections_helper_rdp_host_via_ssh">Wo der RDP-Server vom SSH-Server aus erreichbar ist — normalerweise 127.0.0.1, wenn es dieselbe Maschine ist.</string>
     <string name="connections_helper_rdp_nla">Standardmäßig ein. Ausschalten, wenn der Server Havens NLA ablehnt (einige Windows Server 2025-Setups — auf dem Server muss \"Require NLA\" deaktiviert sein, damit eine reine SSL-Verbindung möglich ist).</string>
     <string name="connections_action_manage_tunnels">Tunnel verwalten…</string>

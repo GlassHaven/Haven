@@ -21,6 +21,7 @@ private const val TAG = "VncHandshaker"
 private const val SEC_NONE = 1
 private const val SEC_VNC_AUTH = 2
 private const val SEC_VENCRYPT = 19
+private const val SEC_ARD = 30
 
 // --- VeNCrypt sub-types ---
 // 256 = Plain (plain auth, no TLS — rarely used)
@@ -46,6 +47,8 @@ private const val VENCRYPT_X509_PLAIN = 262
  *   - 2 (VncAuth — DES challenge/response, password only, 8-char max)
  *   - 19 (VeNCrypt) with sub-types Plain, TLSNone, TLSVnc, TLSPlain,
  *                                 X509None, X509Vnc, X509Plain
+ *   - 30 (Apple Remote Desktop — macOS Screen Sharing account login,
+ *         chosen when a username is configured; see [ArdAuth])
  *
  * For VeNCrypt TLS variants, the socket is upgraded to an SSLSocket after
  * the sub-type is selected; subsequent RFB messages (including ServerInit
@@ -104,6 +107,15 @@ object Handshaker {
                     session.outputStream.write(SEC_VENCRYPT)
                     session.outputStream.flush()
                     negotiateVeNCrypt(session, socket, host)
+                }
+                // macOS Screen Sharing: with a username, log into that macOS
+                // account so the server shares the user's console session.
+                // Password-only VncAuth is tied to no account, and current
+                // macOS parks it on a separate, never-refreshing login window.
+                SEC_ARD in types && hasUsername -> {
+                    session.outputStream.write(SEC_ARD)
+                    session.outputStream.flush()
+                    authenticateArd(session)
                 }
                 SEC_VNC_AUTH in types -> {
                     session.outputStream.write(SEC_VNC_AUTH)
@@ -332,6 +344,18 @@ object Handshaker {
         o.flush()
         // Zero the password copy we made
         pBytes.fill(0)
+    }
+
+    // --- Apple Remote Desktop (type 30) ---
+
+    private fun authenticateArd(session: VncSession) {
+        val username = session.config.usernameSupplier?.invoke().orEmpty()
+        val password = session.config.passwordSupplier?.invoke()
+            ?: throw AuthenticationFailedException("Password required")
+        val params = ArdAuth.readParams(DataInputStream(session.inputStream))
+        session.outputStream.write(ArdAuth.response(params, username, password))
+        session.outputStream.flush()
+        // SecurityResult is read by the caller (type 30 implies RFB 3.8).
     }
 
     // --- Classic VncAuth (type 2) ---

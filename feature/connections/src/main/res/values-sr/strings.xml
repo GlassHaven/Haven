@@ -162,7 +162,7 @@
     <string name="connections_field_provider">Пружалац услуге</string>
     <string name="connections_field_tunnel_through_ssh">Тунелуј кроз SSH</string>
     <string name="connections_field_ssh_connection">SSH веза</string>
-    <string name="connections_field_username_vnc">Корисничко име (није обавезно — само за VeNCrypt)</string>
+    <string name="connections_field_username_vnc">Корисничко име (није обавезно — VeNCrypt или macOS налог)</string>
     <string name="connections_field_password_optional">Лозинка (није обавезно)</string>
     <string name="connections_field_domain_optional">Домен (није обавезно)</string>
     <string name="connections_field_share_name">Име дељења</string>
@@ -465,7 +465,7 @@
     <string name="connections_field_passphrase">Приступна реченица</string>
     <string name="connections_hint_ifac_passphrase">IFAC приступна реченица (није обавезно)</string>
     <string name="connections_helper_vnc_host_via_ssh">Како се приступа VNC серверу са SSH сервера — обично 127.0.0.1 ако се налазе на истој машини (wayvnc итд. се везују само за loopback интерфејс).</string>
-    <string name="connections_helper_vnc_auth">Оставите корисничко име празно за класични VncAuth (лозинка од 8 карактера). Попуните корисничко име за VeNCrypt (wayvnc, TigerVNC) — подржава дуже лозинке и TLS шифровање.</string>
+    <string name="connections_helper_vnc_auth">Оставите корисничко име празно за класични VncAuth (лозинка од 8 карактера). Попуните корисничко име за VeNCrypt (wayvnc, TigerVNC) — подржава дуже лозинке и TLS шифровање. За дељење екрана на macOS-у унесите име и лозинку свог macOS налога да бисте делили сопствену радну површину.</string>
     <string name="connections_helper_spice_auth">SPICE користи један необавезни тикет/лозинку. Оставите празно у случају сервера који не користи тикете.</string>
     <string name="connections_helper_rdp_host_via_ssh">Како се приступа RDP серверу са SSH сервера — обично 127.0.0.1 ако се налазе на истој машини.</string>
     <string name="connections_helper_rdp_nla">Подразумевано је укључено. Искључите ако сервер одбија Haven-ов NLA (неке Windows Server 2025 конфигурације — „Require NLA” само за SSL на серверу мора бити искључено да би се успоставила веза).</string>

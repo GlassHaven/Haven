@@ -12105,22 +12105,22 @@
     },
     {
      "name": "connections_field_username_vnc",
-     "en": "Username (optional — VeNCrypt only)",
+     "en": "Username (optional — VeNCrypt or macOS account)",
      "comment": "Group header",
      "args": [],
      "t": {
-      "ar": "اسم المستخدم (اختياري — VeNCrypt فقط)",
-      "bn": "ব্যবহারকারীর নাম (ঐচ্ছিক — শুধু VeNCrypt)",
-      "de": "Benutzername (optional — nur VeNCrypt)",
-      "es": "Usuario (opcional — solo VeNCrypt)",
-      "fr": "Nom d\\'utilisateur (facultatif — VeNCrypt uniquement)",
-      "hi": "उपयोगकर्ता नाम (वैकल्पिक — केवल VeNCrypt)",
-      "ja": "ユーザー名（任意 — VeNCryptのみ）",
-      "ko": "사용자 이름(선택 사항 — VeNCrypt 전용)",
-      "pt": "Usuário (opcional — apenas VeNCrypt)",
-      "ru": "Имя пользователя (необязательно — только VeNCrypt)",
-      "sr": "Корисничко име (није обавезно — само за VeNCrypt)",
-      "zh": "用户名（可选 — 仅 VeNCrypt）"
+      "ar": "اسم المستخدم (اختياري — VeNCrypt أو حساب macOS)",
+      "bn": "ব্যবহারকারীর নাম (ঐচ্ছিক — VeNCrypt বা macOS অ্যাকাউন্ট)",
+      "de": "Benutzername (optional — VeNCrypt oder macOS-Konto)",
+      "es": "Usuario (opcional — VeNCrypt o cuenta de macOS)",
+      "fr": "Nom d\\'utilisateur (facultatif — VeNCrypt ou compte macOS)",
+      "hi": "उपयोगकर्ता नाम (वैकल्पिक — VeNCrypt या macOS खाता)",
+      "ja": "ユーザー名（任意 — VeNCryptまたはmacOSアカウント）",
+      "ko": "사용자 이름(선택 사항 — VeNCrypt 또는 macOS 계정)",
+      "pt": "Usuário (opcional — VeNCrypt ou conta do macOS)",
+      "ru": "Имя пользователя (необязательно — VeNCrypt или учётная запись macOS)",
+      "sr": "Корисничко име (није обавезно — VeNCrypt или macOS налог)",
+      "zh": "用户名（可选 — VeNCrypt 或 macOS 账户）"
      }
     },
     {
@@ -18284,22 +18284,22 @@
     },
     {
      "name": "connections_helper_vnc_auth",
-     "en": "Leave username blank for classic VncAuth (8-char password). Fill username for VeNCrypt (wayvnc, TigerVNC) — supports longer passwords and TLS encryption.",
+     "en": "Leave username blank for classic VncAuth (8-char password). Fill username for VeNCrypt (wayvnc, TigerVNC) — supports longer passwords and TLS encryption. For macOS Screen Sharing, enter your macOS account name and password to share your own desktop.",
      "comment": "Connection edit dialog: remaining field labels, toggles and helper text.",
      "args": [],
      "t": {
-      "ar": "اترك اسم المستخدم فارغًا لـ VncAuth الكلاسيكي (كلمة مرور من 8 أحرف). املأ اسم المستخدم لـ VeNCrypt (wayvnc وTigerVNC) — يدعم كلمات مرور أطول وتشفير TLS.",
-      "bn": "ক্লাসিক VncAuth (৮-অক্ষরের পাসওয়ার্ড) এর জন্য ব্যবহারকারীর নাম খালি রাখুন। VeNCrypt (wayvnc, TigerVNC) এর জন্য ব্যবহারকারীর নাম পূরণ করুন — দীর্ঘ পাসওয়ার্ড এবং TLS এনক্রিপশন সমর্থন করে।",
-      "de": "Benutzername für klassisches VncAuth (8-Zeichen-Passwort) leer lassen. Benutzername für VeNCrypt (wayvnc, TigerVNC) ausfüllen — unterstützt längere Passwörter und TLS-Verschlüsselung.",
-      "es": "Deja el usuario en blanco para VncAuth clásico (contraseña de 8 caracteres). Rellena el usuario para VeNCrypt (wayvnc, TigerVNC): admite contraseñas más largas y cifrado TLS.",
-      "fr": "Laissez le nom d\\'utilisateur vide pour le VncAuth classique (mot de passe de 8 caractères). Renseignez le nom d\\'utilisateur pour VeNCrypt (wayvnc, TigerVNC) — prend en charge des mots de passe plus longs et le chiffrement TLS.",
-      "hi": "क्लासिक VncAuth (8-वर्ण पासवर्ड) के लिए उपयोगकर्ता नाम खाली छोड़ें। VeNCrypt (wayvnc, TigerVNC) के लिए उपयोगकर्ता नाम भरें — लंबे पासवर्ड और TLS एन्क्रिप्शन का समर्थन करता है।",
-      "ja": "従来のVncAuth（8文字のパスワード）にはユーザー名を空欄のままにします。VeNCrypt（wayvnc、TigerVNC）にはユーザー名を入力します — より長いパスワードとTLS暗号化に対応します。",
-      "ko": "기본 VncAuth(8자 비밀번호)는 사용자 이름을 비워 두세요. VeNCrypt(wayvnc, TigerVNC)는 사용자 이름을 입력하세요 — 더 긴 비밀번호와 TLS 암호화를 지원합니다.",
-      "pt": "Deixe o usuário em branco para o VncAuth clássico (senha de 8 caracteres). Preencha o usuário para VeNCrypt (wayvnc, TigerVNC) — suporta senhas mais longas e criptografia TLS.",
-      "ru": "Оставьте имя пользователя пустым для классического VncAuth (8-символьный пароль). Заполните имя пользователя для VeNCrypt (wayvnc, TigerVNC) — поддерживает более длинные пароли и TLS-шифрование.",
-      "sr": "Оставите корисничко име празно за класични VncAuth (лозинка од 8 карактера). Попуните корисничко име за VeNCrypt (wayvnc, TigerVNC) — подржава дуже лозинке и TLS шифровање.",
-      "zh": "经典 VncAuth（8 字符密码）请将用户名留空。VeNCrypt（wayvnc、TigerVNC）请填写用户名 — 支持更长的密码和 TLS 加密。"
+      "ar": "اترك اسم المستخدم فارغًا لـ VncAuth الكلاسيكي (كلمة مرور من 8 أحرف). املأ اسم المستخدم لـ VeNCrypt (wayvnc وTigerVNC) — يدعم كلمات مرور أطول وتشفير TLS. لمشاركة الشاشة في macOS، أدخل اسم حساب macOS وكلمة مروره لمشاركة سطح المكتب الخاص بك.",
+      "bn": "ক্লাসিক VncAuth (৮-অক্ষরের পাসওয়ার্ড) এর জন্য ব্যবহারকারীর নাম খালি রাখুন। VeNCrypt (wayvnc, TigerVNC) এর জন্য ব্যবহারকারীর নাম পূরণ করুন — দীর্ঘ পাসওয়ার্ড এবং TLS এনক্রিপশন সমর্থন করে। macOS স্ক্রিন শেয়ারিংয়ের জন্য, নিজের ডেস্কটপ শেয়ার করতে আপনার macOS অ্যাকাউন্টের নাম ও পাসওয়ার্ড দিন।",
+      "de": "Benutzername für klassisches VncAuth (8-Zeichen-Passwort) leer lassen. Benutzername für VeNCrypt (wayvnc, TigerVNC) ausfüllen — unterstützt längere Passwörter und TLS-Verschlüsselung. Für die macOS-Bildschirmfreigabe Namen und Passwort des macOS-Kontos eingeben, um den eigenen Desktop zu teilen.",
+      "es": "Deja el usuario en blanco para VncAuth clásico (contraseña de 8 caracteres). Rellena el usuario para VeNCrypt (wayvnc, TigerVNC): admite contraseñas más largas y cifrado TLS. Para Compartir pantalla de macOS, introduce el nombre y la contraseña de tu cuenta de macOS para compartir tu propio escritorio.",
+      "fr": "Laissez le nom d\\'utilisateur vide pour le VncAuth classique (mot de passe de 8 caractères). Renseignez le nom d\\'utilisateur pour VeNCrypt (wayvnc, TigerVNC) — prend en charge des mots de passe plus longs et le chiffrement TLS. Pour le Partage d\\'écran de macOS, saisissez le nom et le mot de passe de votre compte macOS afin de partager votre propre bureau.",
+      "hi": "क्लासिक VncAuth (8-वर्ण पासवर्ड) के लिए उपयोगकर्ता नाम खाली छोड़ें। VeNCrypt (wayvnc, TigerVNC) के लिए उपयोगकर्ता नाम भरें — लंबे पासवर्ड और TLS एन्क्रिप्शन का समर्थन करता है। macOS स्क्रीन शेयरिंग के लिए, अपना डेस्कटॉप साझा करने हेतु अपने macOS खाते का नाम और पासवर्ड दर्ज करें।",
+      "ja": "従来のVncAuth（8文字のパスワード）にはユーザー名を空欄のままにします。VeNCrypt（wayvnc、TigerVNC）にはユーザー名を入力します — より長いパスワードとTLS暗号化に対応します。macOSの画面共有では、macOSのアカウント名とパスワードを入力すると自分のデスクトップを共有できます。",
+      "ko": "기본 VncAuth(8자 비밀번호)는 사용자 이름을 비워 두세요. VeNCrypt(wayvnc, TigerVNC)는 사용자 이름을 입력하세요 — 더 긴 비밀번호와 TLS 암호화를 지원합니다. macOS 화면 공유의 경우 macOS 계정 이름과 비밀번호를 입력하면 내 데스크톱을 공유할 수 있습니다.",
+      "pt": "Deixe o usuário em branco para o VncAuth clássico (senha de 8 caracteres). Preencha o usuário para VeNCrypt (wayvnc, TigerVNC) — suporta senhas mais longas e criptografia TLS. Para o Compartilhamento de Tela do macOS, informe o nome e a senha da sua conta do macOS para compartilhar sua própria área de trabalho.",
+      "ru": "Оставьте имя пользователя пустым для классического VncAuth (8-символьный пароль). Заполните имя пользователя для VeNCrypt (wayvnc, TigerVNC) — поддерживает более длинные пароли и TLS-шифрование. Для общего экрана macOS укажите имя и пароль своей учётной записи macOS, чтобы открыть собственный рабочий стол.",
+      "sr": "Оставите корисничко име празно за класични VncAuth (лозинка од 8 карактера). Попуните корисничко име за VeNCrypt (wayvnc, TigerVNC) — подржава дуже лозинке и TLS шифровање. За дељење екрана на macOS-у унесите име и лозинку свог macOS налога да бисте делили сопствену радну површину.",
+      "zh": "经典 VncAuth（8 字符密码）请将用户名留空。VeNCrypt（wayvnc、TigerVNC）请填写用户名 — 支持更长的密码和 TLS 加密。连接 macOS 屏幕共享时，填写 macOS 账户名和登录密码，即可共享你自己的桌面。"
      }
     },
     {

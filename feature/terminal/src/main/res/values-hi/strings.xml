@@ -110,6 +110,7 @@
     <string name="terminal_selection_open">खोलें</string>
     <string name="terminal_selection_macros">मैक्रोज़</string>
     <string name="terminal_selection_copied">कॉपी हुआ</string>
+    <string name="terminal_selection_copy_one_line">एक पंक्ति में कॉपी करें</string>
     <string name="terminal_selection_no_url">कोई URL नहीं मिला</string>
     <string name="terminal_selection_anchor_start">शुरू</string>
     <string name="terminal_selection_anchor_end">अंत</string>

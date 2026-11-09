@@ -110,6 +110,7 @@
     <string name="terminal_selection_open">開く</string>
     <string name="terminal_selection_macros">マクロ</string>
     <string name="terminal_selection_copied">コピーしました</string>
+    <string name="terminal_selection_copy_one_line">1行にしてコピー</string>
     <string name="terminal_selection_no_url">URL が検出されませんでした</string>
     <string name="terminal_selection_anchor_start">開始</string>
     <string name="terminal_selection_anchor_end">終了</string>

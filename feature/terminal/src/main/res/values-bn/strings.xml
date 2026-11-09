@@ -110,6 +110,7 @@
     <string name="terminal_selection_open">খুলুন</string>
     <string name="terminal_selection_macros">ম্যাক্রো</string>
     <string name="terminal_selection_copied">কপি হয়েছে</string>
+    <string name="terminal_selection_copy_one_line">এক লাইনে কপি করুন</string>
     <string name="terminal_selection_no_url">কোনো URL পাওয়া যায়নি</string>
     <string name="terminal_selection_anchor_start">শুরু</string>
     <string name="terminal_selection_anchor_end">শেষ</string>

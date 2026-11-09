@@ -21,6 +21,7 @@ import androidx.compose.material.icons.filled.ContentPaste
 import androidx.compose.material.icons.filled.KeyboardArrowDown
 import androidx.compose.material.icons.filled.KeyboardArrowUp
 import androidx.compose.material.icons.automirrored.filled.OpenInNew
+import androidx.compose.material.icons.automirrored.filled.WrapText
 import androidx.compose.material3.ButtonDefaults
 import androidx.compose.material3.DropdownMenu
 import androidx.compose.material3.DropdownMenuItem
@@ -461,7 +462,66 @@ class SmartTerminalClipboard(
         }
         delegate.setText(annotatedString)
     }
+
+    /**
+     * Copy as one line: the same smart processing as [setText] (panel border
+     * stripping, wrapped-URL rebuild, soft-wrap rejoin), then
+     * [joinWrappedLines]. [fallback] is the raw selection text, used when the
+     * smart pass has nothing (snapshot drifted past the selection rows).
+     */
+    fun setTextAsOneLine(fallback: String) {
+        val controller = getController()
+        val processed = controller?.let { smartCopy(it, getEmulator(), getScrollbackPosition()) }
+        val source = processed?.takeUnless { it.isBlank() } ?: fallback
+        delegate.setText(AnnotatedString(joinWrappedLines(source)))
+    }
 }
+
+/**
+ * Join [text] into a single line, for pasting a selection into a one-line
+ * prompt (a chat box, Claude Code's input) without each row becoming Enter.
+ *
+ * Full-screen TUIs such as Claude Code wrap their own text and draw every row
+ * separately, so the terminal never sets libvterm's `softWrapped` flag and a
+ * plain copy keeps a newline per visual row. Guessing which rows wrapped is
+ * unreliable (see [SelectionController.getSelectedText]), so this is an
+ * explicit action rather than a heuristic on every copy.
+ *
+ * Each line is trimmed (dropping a TUI's continuation indent) and blank lines
+ * are skipped. Lines meet with no separator when either side of the seam is
+ * Chinese/Japanese or fullwidth — those scripts don't put spaces between words
+ * — and with one space otherwise, because a TUI wrapping at a word boundary
+ * swallows the space it broke on. Korean separates words with spaces, so it
+ * takes the space like Latin text.
+ */
+internal fun joinWrappedLines(text: String): String {
+    val parts = text.lines().map { it.trim() }.filter { it.isNotEmpty() }
+    if (parts.isEmpty()) return ""
+    return buildString {
+        append(parts.first())
+        for (part in parts.drop(1)) {
+            val seamLeft = codePointBefore(length)
+            val seamRight = part.codePointAt(0)
+            if (!isUnspacedScript(seamLeft) && !isUnspacedScript(seamRight)) append(' ')
+            append(part)
+        }
+    }
+}
+
+private val UNSPACED_BLOCKS = setOf(
+    Character.UnicodeBlock.CJK_UNIFIED_IDEOGRAPHS,
+    Character.UnicodeBlock.CJK_UNIFIED_IDEOGRAPHS_EXTENSION_A,
+    Character.UnicodeBlock.CJK_UNIFIED_IDEOGRAPHS_EXTENSION_B,
+    Character.UnicodeBlock.CJK_COMPATIBILITY_IDEOGRAPHS,
+    Character.UnicodeBlock.CJK_SYMBOLS_AND_PUNCTUATION,
+    Character.UnicodeBlock.HALFWIDTH_AND_FULLWIDTH_FORMS,
+    Character.UnicodeBlock.HIRAGANA,
+    Character.UnicodeBlock.KATAKANA,
+    Character.UnicodeBlock.BOPOMOFO,
+)
+
+private fun isUnspacedScript(codePoint: Int): Boolean =
+    Character.UnicodeBlock.of(codePoint) in UNSPACED_BLOCKS
 
 /** Which selection anchor the d-pad arrows control. */
 private enum class AnchorTarget { START, END }
@@ -516,6 +576,7 @@ fun SelectionToolbarContent(
         horizontalArrangement = Arrangement.Center,
     ) {
         val copyLabel = stringResource(R.string.terminal_selection_copy)
+        val copyOneLineLabel = stringResource(R.string.terminal_selection_copy_one_line)
         val pasteLabel = stringResource(R.string.terminal_selection_paste)
         val openLabel = stringResource(R.string.terminal_selection_open)
         val copiedMsg = stringResource(R.string.terminal_selection_copied)
@@ -533,6 +594,22 @@ fun SelectionToolbarContent(
             val text = controller.copySelection()
             if (!text.isNullOrEmpty()) {
                 clipboardManager.setText(AnnotatedString(text))
+                controller.clearSelection()
+                Toast.makeText(context, copiedMsg, Toast.LENGTH_SHORT).show()
+            }
+        }
+
+        // Copy as one line — for pasting a TUI's self-wrapped rows into a
+        // one-line prompt without each row turning into Enter.
+        SelectionIconButton(Icons.AutoMirrored.Filled.WrapText, copyOneLineLabel) {
+            val text = controller.copySelection()
+            if (!text.isNullOrEmpty()) {
+                val smart = clipboardManager as? SmartTerminalClipboard
+                if (smart != null) {
+                    smart.setTextAsOneLine(text)
+                } else {
+                    clipboardManager.setText(AnnotatedString(joinWrappedLines(text)))
+                }
                 controller.clearSelection()
                 Toast.makeText(context, copiedMsg, Toast.LENGTH_SHORT).show()
             }

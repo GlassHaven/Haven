@@ -110,6 +110,7 @@
     <string name="terminal_selection_open">Abrir</string>
     <string name="terminal_selection_macros">Macros</string>
     <string name="terminal_selection_copied">Copiado</string>
+    <string name="terminal_selection_copy_one_line">Copiar em uma linha</string>
     <string name="terminal_selection_no_url">Nenhuma URL detectada</string>
     <string name="terminal_selection_anchor_start">Início</string>
     <string name="terminal_selection_anchor_end">Fim</string>

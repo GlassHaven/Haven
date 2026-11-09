@@ -110,6 +110,7 @@
     <string name="terminal_selection_open">打开</string>
     <string name="terminal_selection_macros">宏</string>
     <string name="terminal_selection_copied">已复制</string>
+    <string name="terminal_selection_copy_one_line">复制为一行</string>
     <string name="terminal_selection_no_url">未检测到 URL</string>
     <string name="terminal_selection_anchor_start">起点</string>
     <string name="terminal_selection_anchor_end">终点</string>

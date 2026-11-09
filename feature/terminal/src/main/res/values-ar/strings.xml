@@ -110,6 +110,7 @@
     <string name="terminal_selection_open">فتح</string>
     <string name="terminal_selection_macros">ماكروات</string>
     <string name="terminal_selection_copied">تم النسخ</string>
+    <string name="terminal_selection_copy_one_line">نسخ كسطر واحد</string>
     <string name="terminal_selection_no_url">لم يُكتشف رابط</string>
     <string name="terminal_selection_anchor_start">البداية</string>
     <string name="terminal_selection_anchor_end">النهاية</string>

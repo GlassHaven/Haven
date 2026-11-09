@@ -178,7 +178,32 @@ object Pacman : PackageOps {
      */
     private const val CLEAR_LOCK = "rm -f /var/lib/pacman/db.lck;"
 
-    override fun updateCmd(): String = "$CLEAR_LOCK pacman -Sy --noconfirm"
+    /**
+     * Refresh the package databases and ensure `archlinux-keyring`, `glibc`,
+     * and `gcc-libs` are up to date before any package install (#808, #809).
+     *
+     * Why this is needed on top of `-Sy`:
+     * 1. Arch rotates packager PGP keys in `archlinux-keyring` (e.g. key
+     *    `9B7A287D9A2EC608` added after the Dec 2025 proot-distro tarballs
+     *    were built). Upgrading `archlinux-keyring` first runs
+     *    `pacman-key --populate archlinux` locally so subsequent package
+     *    installs do not fail PGP verification or hang trying to reach a
+     *    keyserver via `dirmngr`.
+     * 2. Arch 2026 split monolithic `gcc-libs` (15.x) into `libgcc` +
+     *    `libstdc++` + transitional `gcc-libs` (16.x) across `x86_64`,
+     *    `aarch64`, and `armv7h`, and bumped `glibc` (2.42 -> 2.43/2.44).
+     *    Any caller that runs `updateCmd() && installCmd(pkgs)` on an
+     *    un-upgraded or imported Arch rootfs without updating `glibc` and
+     *    `gcc-libs` first hits `libgcc: /usr/lib/libgcc_s.so.1 exists in
+     *    filesystem (owned by gcc-libs)` or `GLIBC_2.43 not found`.
+     *
+     * `--needed` makes both steps a fast no-op (`there is nothing to do`,
+     * 0 bytes downloaded) once `archlinux-keyring`, `glibc`, and `gcc-libs`
+     * are already current.
+     */
+    override fun updateCmd(): String =
+        "$CLEAR_LOCK pacman -Sy --noconfirm --needed archlinux-keyring && " +
+            "$CLEAR_LOCK pacman -S --noconfirm --needed glibc gcc-libs"
 
     /**
      * Full system upgrade — the canonical Arch fix for the
@@ -189,12 +214,13 @@ object Pacman : PackageOps {
      * per failing install attempt.
      *
      * Double-`y` forces a complete re-download of the package
-     * databases even if they look fresh. Needed when a mirror
-     * pushed a new index but Haven's local cache still references
-     * the previous one — the "ffmpeg-2:8.0.1-2 not found" symptom
-     * from a partially-synced mirror.
+     * databases even if they look fresh, and `archlinux-keyring` is
+     * upgraded before `-Su` so newly rotated packager PGP keys are
+     * populated before the full transaction verifies signatures.
      */
-    override fun upgradeCmd(): String = "$CLEAR_LOCK pacman -Syyu --noconfirm"
+    override fun upgradeCmd(): String =
+        "$CLEAR_LOCK pacman -Syy --noconfirm --needed archlinux-keyring && " +
+            "$CLEAR_LOCK pacman -Su --noconfirm"
 
     override fun installCmd(pkgs: List<String>): String =
         "$CLEAR_LOCK pacman -S --noconfirm --needed ${pkgs.joinToString(" ")}"
@@ -219,6 +245,8 @@ object Pacman : PackageOps {
             output.contains("conflicting dependencies") ||
             output.contains("conflicting files") ||
             output.contains("exists in filesystem (owned by") ||
+            output.contains("invalid or corrupted package (PGP signature)") ||
+            (output.contains("GLIBC_") && output.contains("not found")) ||
             // Mirror sync race: the mirror's DB references a
             // package version whose .pkg.tar.xz is no longer on
             // disk (typical when a new ffmpeg or similar high-

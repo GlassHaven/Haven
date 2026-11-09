@@ -506,7 +506,8 @@ object DistroCatalog {
             // on first install, paid once.
             RootfsHook(
                 id = "pacman -Syu",
-                command = "rm -f /var/lib/pacman/db.lck; pacman -Syu --noconfirm",
+                command = "rm -f /var/lib/pacman/db.lck; pacman -Sy --noconfirm --needed archlinux-keyring && " +
+                    "rm -f /var/lib/pacman/db.lck; pacman -Su --noconfirm",
             ),
             RootfsHook(
                 id = "locale-gen en_US.UTF-8",

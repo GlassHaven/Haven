@@ -5,6 +5,10 @@ the corresponding GitHub Release; a release can't ship without its section
 (enforced by `scripts/check-changelog.sh` in CI). The GitHub "Full Changelog"
 compare link is appended automatically — don't add it here.
 
+## v5.94.18
+
+- Show direct item counts (`1 item` / `N items`, respecting the `Show hidden files` toggle) on folder rows in the Files tab instead of the redundant `Directory` subtitle, loading local counts during listing and remote SFTP counts in a single batched SSH command (#800, thanks @zol-c).
+
 ## v5.94.17
 
 - Run same-session SFTP file and folder moves (`rename` with `mv -f` fallback across mountpoints) and copies (`cp -Rfp` over SSH `exec`, falling back to stream transfer on SFTP-only hosts) directly on the remote server instead of downloading to local cache and re-uploading (#798, thanks @zol-c).

@@ -1,0 +1,1 @@
+- Show direct item counts (`1 item` / `N items`, respecting the `Show hidden files` toggle) on folder rows in the Files tab instead of the redundant `Directory` subtitle, loading local counts during listing and remote SFTP counts in a single batched SSH command (#800, thanks @zol-c).

@@ -106,6 +106,7 @@ import androidx.compose.ui.platform.LocalFocusManager
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.graphics.Color
 import sh.haven.core.ui.KeyEventInterceptor
+import sh.haven.core.ui.rebindImeTarget
 import sh.haven.core.ui.repairBrokenFocusChain
 import androidx.compose.ui.platform.LocalClipboardManager
 import androidx.compose.ui.platform.LocalContext
@@ -1623,8 +1624,22 @@ fun TerminalScreen(
                     // IME's InputConnection stays wired to the previous
                     // screen's view (desktop tab) and keys go nowhere until
                     // the user switches away and back a second time.
+                    // A plain requestFocus() was not enough after Attach → Send
+                    // a file (Files tab and back): the keyboard composed but
+                    // nothing reached the terminal until a background round
+                    // trip, so rebind over a fresh InputConnection instead.
                     LaunchedEffect(isActive) {
-                        if (isActive) focusRequester.requestFocus()
+                        if (!isActive) return@LaunchedEffect
+                        val root = (view.context as? Activity)?.window?.decorView
+                        if (root == null) {
+                            focusRequester.requestFocus()
+                        } else {
+                            rebindImeTarget(
+                                root,
+                                requestFocus = { runCatching { focusRequester.requestFocus() } },
+                                clearFocus = { focusManager.clearFocus(force = true) },
+                            )
+                        }
                     }
 
                     var selectionController by remember {
@@ -2078,10 +2093,14 @@ fun TerminalScreen(
                                     if (imeShowing) {
                                         controller.hide(WindowInsetsCompat.Type.ime())
                                     } else {
-                                        // A no-op requestFocus() on a stranded
-                                        // ImeInputView leaves the IME unserved.
-                                        repairBrokenFocusChain(rootView)
-                                        focusRequester.requestFocus()
+                                        // Rebind over a fresh InputConnection: a
+                                        // no-op requestFocus() can leave the IME
+                                        // on a stale or unserved target.
+                                        rebindImeTarget(
+                                            rootView,
+                                            requestFocus = { runCatching { focusRequester.requestFocus() } },
+                                            clearFocus = { focusManager.clearFocus(force = true) },
+                                        )
                                         controller.show(WindowInsetsCompat.Type.ime())
                                     }
                                 },

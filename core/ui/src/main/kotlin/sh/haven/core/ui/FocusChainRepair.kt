@@ -2,6 +2,7 @@ package sh.haven.core.ui
 
 import android.view.View
 import android.view.ViewGroup
+import android.view.inputmethod.InputMethodManager
 
 /**
  * Re-link a view that still holds focus but has dropped out of its ancestors'
@@ -39,4 +40,46 @@ private fun findStrandedFocus(view: View): View? {
         }
     }
     return null
+}
+
+/**
+ * Point the IME at the terminal's editor over a *fresh* InputConnection —
+ * what a background round trip does, minus the round trip.
+ *
+ * Reported: after Attach → Send a file (which visits the Files tab and comes
+ * back) the soft keyboard is up and composes, yet nothing reaches the
+ * terminal until the app is sent to the background and brought back. On the
+ * way back the window regains focus and the IMM starts input afresh on the
+ * focused view, which is the only thing that round trip changes. A Compose
+ * `focusRequester.requestFocus()` alone cannot reproduce it: it is a no-op
+ * when Compose already believes the node is focused, and it never replaces a
+ * stale InputConnection.
+ *
+ * Steps: re-link a stranded focus ([repairBrokenFocusChain]), request focus;
+ * on the next frame, if the window's focused view still isn't a text editor,
+ * clear and re-request once (forcing the interop focus enter); then restart
+ * input on the editor. Call where the host raises the keyboard or the terminal
+ * becomes active — never mid-composition, since restarting drops a preedit.
+ */
+fun rebindImeTarget(
+    root: View,
+    requestFocus: () -> Unit,
+    clearFocus: () -> Unit,
+    restartInput: (View) -> Unit = { editor ->
+        editor.context.getSystemService(InputMethodManager::class.java)?.restartInput(editor)
+    },
+) {
+    repairBrokenFocusChain(root)
+    requestFocus()
+    root.post {
+        if (root.findFocus()?.onCheckIsTextEditor() == true) {
+            restartInput(root.findFocus()!!)
+            return@post
+        }
+        clearFocus()
+        requestFocus()
+        root.post {
+            root.findFocus()?.takeIf { it.onCheckIsTextEditor() }?.let(restartInput)
+        }
+    }
 }

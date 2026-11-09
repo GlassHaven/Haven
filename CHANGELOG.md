@@ -5,6 +5,10 @@ the corresponding GitHub Release; a release can't ship without its section
 (enforced by `scripts/check-changelog.sh` in CI). The GitHub "Full Changelog"
 compare link is appended automatically — don't add it here.
 
+## v5.94.21
+
+- Add a searchable AI model picker with custom model entry and quick routing suffix chips (`:free`, `:online`, `:nitro`, `:floor`, `:extended`, `:batch`), inline composer slash commands (`/new`, `/clear`, `/model`, `/save`, `/history`), a saved-conversation history sheet, and encrypted backup/restore support for saved AI chats (#807, thanks @n1x0l4s).
+
 ## v5.94.20
 
 - Support full `https://` endpoint URLs that include `/v1` (such as `https://openrouter.ai/api/v1`) and deduplicate pre-applied path prefixes in AI endpoint connections, use `https://` for bare hosts on port 443, and omit `:0` from the connection list and edit dialog when no port is set (#806, thanks @n1x0l4s).

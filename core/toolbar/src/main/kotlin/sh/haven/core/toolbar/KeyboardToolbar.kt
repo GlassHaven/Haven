@@ -58,6 +58,7 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.focus.FocusRequester
 import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.platform.LocalDensity
+import androidx.compose.ui.platform.LocalFocusManager
 import androidx.compose.ui.platform.LocalView
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.unit.dp
@@ -94,7 +95,7 @@ import androidx.compose.material3.ExposedDropdownMenuAnchorType
 import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.TextButton
 import sh.haven.core.data.preferences.MACRO_PRESETS
-import sh.haven.core.ui.repairBrokenFocusChain
+import sh.haven.core.ui.rebindImeTarget
 import androidx.compose.runtime.mutableFloatStateOf
 import androidx.compose.runtime.mutableIntStateOf
 import androidx.compose.runtime.mutableStateMapOf
@@ -333,6 +334,7 @@ fun KeyboardToolbar(
     modifier: Modifier = Modifier,
 ) {
     val view = LocalView.current
+    val focusManager = LocalFocusManager.current
     val imeVisible = WindowInsets.isImeVisible
 
     var showAddKeyDialog by remember { mutableStateOf(false) }
@@ -540,8 +542,11 @@ fun KeyboardToolbar(
                     if (dragAmount > 15f) {
                         controller.hide(WindowInsetsCompat.Type.ime())
                     } else if (dragAmount < -15f) {
-                        repairBrokenFocusChain(window.decorView)
-                        focusRequester.requestFocus()
+                        rebindImeTarget(
+                            window.decorView,
+                            requestFocus = { runCatching { focusRequester.requestFocus() } },
+                            clearFocus = { focusManager.clearFocus(force = true) },
+                        )
                         controller.show(WindowInsetsCompat.Type.ime())
                     }
                 }
@@ -1255,6 +1260,7 @@ private fun BuiltInKey(
     view: android.view.View,
 ) {
     val cb = LocalToolbarCallbacks.current
+    val focusManager = LocalFocusManager.current
     when (key) {
         @OptIn(ExperimentalFoundationApi::class)
         ToolbarKey.KEYBOARD -> {
@@ -1283,10 +1289,14 @@ private fun BuiltInKey(
                                     controller.hide(WindowInsetsCompat.Type.ime())
                                 } else {
                                     // tmux mouse mode eats terminal taps, so this key is
-                                    // often the only way back in: re-link a stranded
-                                    // ImeInputView first or the IME has nothing to serve.
-                                    repairBrokenFocusChain(window.decorView)
-                                    focusRequester.requestFocus()
+                                    // often the only way back in. Rebind over a fresh
+                                    // InputConnection so hiding and re-showing the
+                                    // keyboard recovers a dead one, no background trip.
+                                    rebindImeTarget(
+                                        window.decorView,
+                                        requestFocus = { runCatching { focusRequester.requestFocus() } },
+                                        clearFocus = { focusManager.clearFocus(force = true) },
+                                    )
                                     controller.show(WindowInsetsCompat.Type.ime())
                                 }
                             }

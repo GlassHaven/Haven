@@ -32,4 +32,11 @@
     <string name="vnc_cd_two_finger_viewport">Два пальца перемещают вид (нажмите, чтобы прокручивать удалённый экран)</string>
     <string name="vnc_cd_two_finger_scroll_on">Два пальца прокручивают удалённый экран (нажмите, чтобы перемещать вид)</string>
     <string name="vnc_cd_paste">Вставить из буфера обмена</string>
+    <string name="vnc_compose_open">Ввести текст для отправки</string>
+    <string name="vnc_compose_placeholder">Введите, проверьте и отправьте</string>
+    <string name="vnc_compose_send">Отправить</string>
+    <string name="vnc_compose_press_enter">Нажать Enter после отправки</string>
+    <string name="vnc_compose_show">Показать текст</string>
+    <string name="vnc_compose_hide">Скрыть текст</string>
+    <string name="vnc_compose_untypeable">Выделенные символы нельзя ввести через VNC. Используйте «Вставить», чтобы отправить их.</string>
 </resources>

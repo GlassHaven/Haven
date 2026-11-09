@@ -33,4 +33,11 @@
     <string name="vnc_cd_two_finger_viewport">दो उँगलियाँ व्यू पैन करती हैं (रिमोट स्क्रॉल करने के लिए टैप करें)</string>
     <string name="vnc_cd_two_finger_scroll_on">दो उँगलियाँ रिमोट स्क्रॉल करती हैं (व्यू पैन करने के लिए टैप करें)</string>
     <string name="vnc_cd_paste">क्लिपबोर्ड पेस्ट करें</string>
+    <string name="vnc_compose_open">भेजने के लिए टेक्स्ट लिखें</string>
+    <string name="vnc_compose_placeholder">लिखें, जाँचें, फिर भेजें</string>
+    <string name="vnc_compose_send">भेजें</string>
+    <string name="vnc_compose_press_enter">भेजने के बाद Enter दबाएँ</string>
+    <string name="vnc_compose_show">टेक्स्ट दिखाएँ</string>
+    <string name="vnc_compose_hide">टेक्स्ट छिपाएँ</string>
+    <string name="vnc_compose_untypeable">हाइलाइट किए गए अक्षर VNC पर टाइप नहीं हो सकते। उन्हें भेजने के लिए पेस्ट का उपयोग करें।</string>
 </resources>

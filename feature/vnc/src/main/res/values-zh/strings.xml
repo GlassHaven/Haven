@@ -33,4 +33,11 @@
     <string name="vnc_cd_two_finger_viewport">双指平移视图（点按切换为滚动远程端）</string>
     <string name="vnc_cd_two_finger_scroll_on">双指滚动远程端（点按切换为平移视图）</string>
     <string name="vnc_cd_paste">粘贴剪贴板</string>
+    <string name="vnc_compose_open">输入要发送的文字</string>
+    <string name="vnc_compose_placeholder">输入并确认后再发送</string>
+    <string name="vnc_compose_send">发送</string>
+    <string name="vnc_compose_press_enter">发送后按回车</string>
+    <string name="vnc_compose_show">显示文字</string>
+    <string name="vnc_compose_hide">隐藏文字</string>
+    <string name="vnc_compose_untypeable">高亮的字符无法通过 VNC 键入，请改用粘贴按钮发送。</string>
 </resources>

@@ -33,4 +33,11 @@
     <string name="vnc_cd_two_finger_viewport">Dois dedos deslocam a visualização (toque para rolar o remoto)</string>
     <string name="vnc_cd_two_finger_scroll_on">Dois dedos rolam o remoto (toque para deslocar a visualização)</string>
     <string name="vnc_cd_paste">Colar área de transferência</string>
+    <string name="vnc_compose_open">Digitar texto para enviar</string>
+    <string name="vnc_compose_placeholder">Digite, confira e envie</string>
+    <string name="vnc_compose_send">Enviar</string>
+    <string name="vnc_compose_press_enter">Pressionar Enter após enviar</string>
+    <string name="vnc_compose_show">Mostrar texto</string>
+    <string name="vnc_compose_hide">Ocultar texto</string>
+    <string name="vnc_compose_untypeable">Os caracteres destacados não podem ser digitados via VNC. Use Colar para enviá-los.</string>
 </resources>

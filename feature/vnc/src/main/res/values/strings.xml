@@ -10,6 +10,13 @@
     <string name="vnc_cd_disconnect">Disconnect</string>
     <string name="vnc_cd_toggle_keyboard">Toggle keyboard</string>
     <string name="vnc_cd_paste">Paste clipboard</string>
+    <string name="vnc_compose_open">Type text to send</string>
+    <string name="vnc_compose_placeholder">Type, check, then send</string>
+    <string name="vnc_compose_send">Send</string>
+    <string name="vnc_compose_press_enter">Press Enter after sending</string>
+    <string name="vnc_compose_show">Show text</string>
+    <string name="vnc_compose_hide">Hide text</string>
+    <string name="vnc_compose_untypeable">Highlighted characters can\'t be typed over VNC. Use Paste to send them.</string>
     <string name="vnc_cd_background_to_edge">Background to edge icon</string>
     <string name="vnc_cd_picture_in_picture">Picture-in-picture</string>
     <string name="vnc_cd_reset_zoom">Reset zoom</string>

@@ -49159,6 +49159,146 @@
      }
     },
     {
+     "name": "vnc_compose_open",
+     "en": "Type text to send",
+     "comment": "",
+     "args": [],
+     "t": {
+      "ar": "اكتب نصًا لإرساله",
+      "bn": "পাঠানোর জন্য লেখা টাইপ করুন",
+      "de": "Text zum Senden eingeben",
+      "es": "Escribir texto para enviar",
+      "fr": "Saisir le texte à envoyer",
+      "hi": "भेजने के लिए टेक्स्ट लिखें",
+      "ja": "送信するテキストを入力",
+      "ko": "보낼 텍스트 입력",
+      "pt": "Digitar texto para enviar",
+      "ru": "Ввести текст для отправки",
+      "sr": "Унесите текст за слање",
+      "zh": "输入要发送的文字"
+     }
+    },
+    {
+     "name": "vnc_compose_placeholder",
+     "en": "Type, check, then send",
+     "comment": "",
+     "args": [],
+     "t": {
+      "ar": "اكتب وتحقق ثم أرسل",
+      "bn": "লিখুন, যাচাই করুন, তারপর পাঠান",
+      "de": "Eingeben, prüfen, dann senden",
+      "es": "Escribe, revisa y envía",
+      "fr": "Saisissez, vérifiez, puis envoyez",
+      "hi": "लिखें, जाँचें, फिर भेजें",
+      "ja": "入力して確認してから送信",
+      "ko": "입력하고 확인한 뒤 보내기",
+      "pt": "Digite, confira e envie",
+      "ru": "Введите, проверьте и отправьте",
+      "sr": "Унесите, проверите, па пошаљите",
+      "zh": "输入并确认后再发送"
+     }
+    },
+    {
+     "name": "vnc_compose_send",
+     "en": "Send",
+     "comment": "",
+     "args": [],
+     "t": {
+      "ar": "إرسال",
+      "bn": "পাঠান",
+      "de": "Senden",
+      "es": "Enviar",
+      "fr": "Envoyer",
+      "hi": "भेजें",
+      "ja": "送信",
+      "ko": "보내기",
+      "pt": "Enviar",
+      "ru": "Отправить",
+      "sr": "Пошаљи",
+      "zh": "发送"
+     }
+    },
+    {
+     "name": "vnc_compose_press_enter",
+     "en": "Press Enter after sending",
+     "comment": "",
+     "args": [],
+     "t": {
+      "ar": "اضغط Enter بعد الإرسال",
+      "bn": "পাঠানোর পরে Enter চাপুন",
+      "de": "Nach dem Senden Enter drücken",
+      "es": "Pulsar Intro tras enviar",
+      "fr": "Appuyer sur Entrée après l\\'envoi",
+      "hi": "भेजने के बाद Enter दबाएँ",
+      "ja": "送信後にEnterを押す",
+      "ko": "보낸 후 Enter 누르기",
+      "pt": "Pressionar Enter após enviar",
+      "ru": "Нажать Enter после отправки",
+      "sr": "Притисни Enter након слања",
+      "zh": "发送后按回车"
+     }
+    },
+    {
+     "name": "vnc_compose_show",
+     "en": "Show text",
+     "comment": "",
+     "args": [],
+     "t": {
+      "ar": "إظهار النص",
+      "bn": "লেখা দেখান",
+      "de": "Text anzeigen",
+      "es": "Mostrar texto",
+      "fr": "Afficher le texte",
+      "hi": "टेक्स्ट दिखाएँ",
+      "ja": "テキストを表示",
+      "ko": "텍스트 표시",
+      "pt": "Mostrar texto",
+      "ru": "Показать текст",
+      "sr": "Прикажи текст",
+      "zh": "显示文字"
+     }
+    },
+    {
+     "name": "vnc_compose_hide",
+     "en": "Hide text",
+     "comment": "",
+     "args": [],
+     "t": {
+      "ar": "إخفاء النص",
+      "bn": "লেখা লুকান",
+      "de": "Text verbergen",
+      "es": "Ocultar texto",
+      "fr": "Masquer le texte",
+      "hi": "टेक्स्ट छिपाएँ",
+      "ja": "テキストを隠す",
+      "ko": "텍스트 숨기기",
+      "pt": "Ocultar texto",
+      "ru": "Скрыть текст",
+      "sr": "Сакриј текст",
+      "zh": "隐藏文字"
+     }
+    },
+    {
+     "name": "vnc_compose_untypeable",
+     "en": "Highlighted characters can\\'t be typed over VNC. Use Paste to send them.",
+     "comment": "",
+     "args": [],
+     "t": {
+      "ar": "لا يمكن كتابة الأحرف المميزة عبر VNC. استخدم اللصق لإرسالها.",
+      "bn": "হাইলাইট করা অক্ষরগুলো VNC-তে টাইপ করা যায় না। পাঠাতে পেস্ট ব্যবহার করুন।",
+      "de": "Hervorgehobene Zeichen lassen sich über VNC nicht tippen. Zum Senden „Einfügen“ verwenden.",
+      "es": "Los caracteres resaltados no se pueden teclear por VNC. Usa Pegar para enviarlos.",
+      "fr": "Les caractères en surbrillance ne peuvent pas être saisis via VNC. Utilisez Coller pour les envoyer.",
+      "hi": "हाइलाइट किए गए अक्षर VNC पर टाइप नहीं हो सकते। उन्हें भेजने के लिए पेस्ट का उपयोग करें।",
+      "ja": "強調表示された文字はVNCで入力できません。貼り付けを使って送信してください。",
+      "ko": "강조 표시된 문자는 VNC로 입력할 수 없습니다. 붙여넣기로 보내세요.",
+      "pt": "Os caracteres destacados não podem ser digitados via VNC. Use Colar para enviá-los.",
+      "ru": "Выделенные символы нельзя ввести через VNC. Используйте «Вставить», чтобы отправить их.",
+      "sr": "Истакнути знакови не могу да се укуцају преко VNC-а. Користите Налепи да бисте их послали.",
+      "zh": "高亮的字符无法通过 VNC 键入，请改用粘贴按钮发送。"
+     }
+    },
+    {
      "name": "vnc_cd_background_to_edge",
      "en": "Background to edge icon",
      "comment": "",

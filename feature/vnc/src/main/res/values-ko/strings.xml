@@ -32,4 +32,11 @@
     <string name="vnc_cd_two_finger_viewport">두 손가락으로 화면 이동 (원격 스크롤로 전환하려면 탭)</string>
     <string name="vnc_cd_two_finger_scroll_on">두 손가락으로 원격 스크롤 (화면 이동으로 전환하려면 탭)</string>
     <string name="vnc_cd_paste">클립보드 붙여넣기</string>
+    <string name="vnc_compose_open">보낼 텍스트 입력</string>
+    <string name="vnc_compose_placeholder">입력하고 확인한 뒤 보내기</string>
+    <string name="vnc_compose_send">보내기</string>
+    <string name="vnc_compose_press_enter">보낸 후 Enter 누르기</string>
+    <string name="vnc_compose_show">텍스트 표시</string>
+    <string name="vnc_compose_hide">텍스트 숨기기</string>
+    <string name="vnc_compose_untypeable">강조 표시된 문자는 VNC로 입력할 수 없습니다. 붙여넣기로 보내세요.</string>
 </resources>

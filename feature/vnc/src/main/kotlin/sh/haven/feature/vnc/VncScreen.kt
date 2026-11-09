@@ -40,6 +40,7 @@ import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Close
 import androidx.compose.material.icons.filled.ContentPaste
+import androidx.compose.material.icons.filled.EditNote
 import androidx.compose.material.icons.filled.ExpandLess
 import androidx.compose.material.icons.filled.ExpandMore
 import androidx.compose.material.icons.filled.Fullscreen
@@ -987,6 +988,26 @@ private fun VncViewer(
         onDispose { heldButton?.let(onReleaseButton) }
     }
 
+    // Compose-then-send bar (VncComposeBar): type and check text locally,
+    // then send it in one go. Replaces the key toolbar while open.
+    var composeOpen by remember { mutableStateOf(false) }
+    val openCompose: () -> Unit = { composeOpen = true }
+    val closeCompose: () -> Unit = {
+        composeOpen = false
+        if (!physicalKeyboardAttached) {
+            keyboardVisible = false
+            keyboardController?.hide()
+        }
+        hardwareKeyFocus.requestFocus()
+    }
+    val sendComposed: (String) -> Unit = { keystrokes ->
+        // Release sticky modifiers and a held mouse button *before* typing:
+        // the composed text must arrive as plain keystrokes, not Ctrl+letter.
+        releaseActiveModifiers()
+        heldButton?.let { onReleaseButton(it); heldButton = null }
+        onTypeText(keystrokes)
+    }
+
     // Virtual cursor position for TOUCHPAD mode. Hoisted to composable
     // scope so it persists across gesture lifts — Nesos-ita reported on
     // #107 that cursor "teleported back" on each finger lift, because
@@ -1643,7 +1664,9 @@ private fun VncViewer(
 
         var reorderMode by remember { mutableStateOf(false) }
 
-        if (keyboardVisible || imeVisible) {
+        if (composeOpen) {
+            VncComposeBar(onSend = sendComposed, onDismiss = closeCompose)
+        } else if (keyboardVisible || imeVisible) {
             sh.haven.core.toolbar.KeyboardToolbar(
                 onSendBytes = { bytes ->
                     handleVncToolbarBytes(
@@ -1765,6 +1788,15 @@ private fun VncViewer(
                     Icon(
                         Icons.Default.ContentPaste,
                         contentDescription = stringResource(R.string.vnc_cd_paste),
+                    )
+                }
+
+                // Compose-then-send text (VncComposeBar) — same icon as the
+                // terminal toolbar's text-input key.
+                IconButton(onClick = openCompose) {
+                    Icon(
+                        Icons.Default.EditNote,
+                        contentDescription = stringResource(R.string.vnc_compose_open),
                     )
                 }
 
@@ -1937,6 +1969,15 @@ private fun VncViewer(
                         Icon(
                             Icons.Default.ContentPaste,
                             contentDescription = stringResource(R.string.vnc_cd_paste),
+                        )
+                    }
+                    IconButton(onClick = {
+                        overlayVisible = false
+                        openCompose()
+                    }) {
+                        Icon(
+                            Icons.Default.EditNote,
+                            contentDescription = stringResource(R.string.vnc_compose_open),
                         )
                     }
                     IconButton(onClick = onCycleOrientation) {

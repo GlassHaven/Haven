@@ -33,4 +33,11 @@
     <string name="vnc_cd_two_finger_viewport">Deux doigts déplacent la vue (toucher pour faire défiler l\'écran distant)</string>
     <string name="vnc_cd_two_finger_scroll_on">Deux doigts font défiler l\'écran distant (toucher pour déplacer la vue)</string>
     <string name="vnc_cd_paste">Coller le presse-papiers</string>
+    <string name="vnc_compose_open">Saisir le texte à envoyer</string>
+    <string name="vnc_compose_placeholder">Saisissez, vérifiez, puis envoyez</string>
+    <string name="vnc_compose_send">Envoyer</string>
+    <string name="vnc_compose_press_enter">Appuyer sur Entrée après l\'envoi</string>
+    <string name="vnc_compose_show">Afficher le texte</string>
+    <string name="vnc_compose_hide">Masquer le texte</string>
+    <string name="vnc_compose_untypeable">Les caractères en surbrillance ne peuvent pas être saisis via VNC. Utilisez Coller pour les envoyer.</string>
 </resources>

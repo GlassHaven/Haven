@@ -33,4 +33,11 @@
     <string name="vnc_cd_two_finger_viewport">2 本指でビューをパン（タップでリモート側のスクロールに切替）</string>
     <string name="vnc_cd_two_finger_scroll_on">2 本指でリモート側をスクロール（タップでビューのパンに切替）</string>
     <string name="vnc_cd_paste">クリップボードを貼り付け</string>
+    <string name="vnc_compose_open">送信するテキストを入力</string>
+    <string name="vnc_compose_placeholder">入力して確認してから送信</string>
+    <string name="vnc_compose_send">送信</string>
+    <string name="vnc_compose_press_enter">送信後にEnterを押す</string>
+    <string name="vnc_compose_show">テキストを表示</string>
+    <string name="vnc_compose_hide">テキストを隠す</string>
+    <string name="vnc_compose_untypeable">強調表示された文字はVNCで入力できません。貼り付けを使って送信してください。</string>
 </resources>

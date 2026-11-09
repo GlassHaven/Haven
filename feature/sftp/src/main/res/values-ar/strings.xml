@@ -63,6 +63,8 @@
     <!-- FileListItem -->
     <string name="sftp_directory">مجلد</string>
     <string name="sftp_directory_icon">مجلد</string>
+    <string name="sftp_folder_item_count">%d عنصر</string>
+    <string name="sftp_folder_item_count_plural">%d عناصر</string>
     <string name="sftp_file_icon">ملف</string>
     <string name="sftp_download">تنزيل</string>
     <string name="sftp_cut">قص</string>

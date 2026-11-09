@@ -90,6 +90,8 @@
     <string name="sftp_saved_sync_name">Име</string>
     <string name="sftp_directory">Директоријум</string>
     <string name="sftp_directory_icon">Директоријум</string>
+    <string name="sftp_folder_item_count">%d ставка</string>
+    <string name="sftp_folder_item_count_plural">%d ставки</string>
     <string name="sftp_file_icon">Фајл</string>
     <string name="sftp_download">Преузми</string>
     <string name="sftp_convert">Конвертуј</string>

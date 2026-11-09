@@ -1253,6 +1253,7 @@ fun SftpScreen(
                     itemsIndexed(entries, key = { index, entry -> "${activeProfileId}:${index}:${entry.path}" }) { _, entry ->
                             FileListItem(
                                 entry = entry,
+                                showHidden = showHidden,
                                 selected = entry.path in selectedPaths,
                                 selectionActive = selectionMode,
                                 agentServing = entry.path in agentServedPaths,
@@ -2659,6 +2660,7 @@ private fun FileListItem(
     onDownload: () -> Unit,
     onDelete: () -> Unit,
     onCopyPath: () -> Unit,
+    showHidden: Boolean = false,
     selected: Boolean = false,
     selectionActive: Boolean = false,
     agentServing: Boolean = false,
@@ -2718,8 +2720,19 @@ private fun FileListItem(
             },
             supportingContent = {
                 @Suppress("LocalContextGetResourceValueCall")
-                val sizeText = if (entry.isDirectory) context.getString(R.string.sftp_directory) else Formatter.formatFileSize(context, entry.size)
+                val sizeText: String? = if (entry.isDirectory) {
+                    val count = if (showHidden) entry.childCount else (entry.visibleChildCount ?: entry.childCount)
+                    count?.let {
+                        context.getString(
+                            if (it == 1) R.string.sftp_folder_item_count else R.string.sftp_folder_item_count_plural,
+                            it,
+                        )
+                    }
+                } else {
+                    Formatter.formatFileSize(context, entry.size)
+                }
                 val dateText = dateFormat.format(Date(entry.modifiedTime * 1000))
+                val prefixText = if (sizeText != null) "$sizeText  $dateText" else dateText
                 val perms = entry.permissions.takeIf { it.isNotEmpty() }
                 val onPerms = onPermissions
                 if (perms != null && onPerms != null && !selectionActive) {
@@ -2729,7 +2742,7 @@ private fun FileListItem(
                     val linkColor = MaterialTheme.colorScheme.primary
                     Text(
                         buildAnnotatedString {
-                            append("$sizeText  $dateText  ")
+                            append("$prefixText  ")
                             withLink(
                                 LinkAnnotation.Clickable(
                                     tag = "chmod",
@@ -2744,7 +2757,7 @@ private fun FileListItem(
                     )
                 } else {
                     val extra = perms?.let { "  $it" } ?: ""
-                    Text("$sizeText  $dateText$extra")
+                    Text("$prefixText$extra")
                 }
             },
             leadingContent = {

@@ -33,6 +33,7 @@ class LocalFileBackend(
         val dir = File(path)
         val files = dir.listFiles() ?: return@withContext listRoots()
         files.map { f ->
+            val counts = countDirectoryChildren(f)
             SftpEntry(
                 name = f.name,
                 path = f.absolutePath,
@@ -44,6 +45,8 @@ class LocalFileBackend(
                     if (f.canWrite()) append('w') else append('-')
                     if (f.canExecute()) append('x') else append('-')
                 },
+                childCount = counts?.first,
+                visibleChildCount = counts?.second,
             )
         }
     }
@@ -98,15 +101,39 @@ class LocalFileBackend(
         )
     }
 
+    private fun countDirectoryChildren(dir: File): Pair<Int, Int>? {
+        if (!dir.isDirectory) return null
+        val names = dir.list() ?: return null
+        var visible = 0
+        for (name in names) {
+            if (!name.startsWith(".")) visible++
+        }
+        return names.size to visible
+    }
+
+    private fun rootDirEntry(name: String, dir: File): SftpEntry {
+        val counts = countDirectoryChildren(dir)
+        return SftpEntry(
+            name = name,
+            path = dir.absolutePath,
+            isDirectory = true,
+            size = 0,
+            modifiedTime = dir.lastModified() / 1000,
+            permissions = "",
+            childCount = counts?.first,
+            visibleChildCount = counts?.second,
+        )
+    }
+
     private fun listRoots(): List<SftpEntry> {
         val roots = mutableListOf<SftpEntry>()
         val storage = Environment.getExternalStorageDirectory()
         if (storage.canRead()) {
-            roots.add(SftpEntry("Internal Storage", storage.absolutePath, true, 0, storage.lastModified() / 1000, ""))
+            roots.add(rootDirEntry("Internal Storage", storage))
         }
         val downloads = Environment.getExternalStoragePublicDirectory(Environment.DIRECTORY_DOWNLOADS)
         if (downloads.canRead()) {
-            roots.add(SftpEntry("Downloads", downloads.absolutePath, true, 0, downloads.lastModified() / 1000, ""))
+            roots.add(rootDirEntry("Downloads", downloads))
         }
         // Removable storage — USB SD card readers, USB flash drives, and
         // (on some phones) physical microSD slots. StorageManager enumerates
@@ -131,16 +158,7 @@ class LocalFileBackend(
                     val volLabel = volume.getDescription(appContext)
                         ?: dir.name
                         ?: "Removable Storage"
-                    roots.add(
-                        SftpEntry(
-                            name = volLabel,
-                            path = dir.absolutePath,
-                            isDirectory = true,
-                            size = 0,
-                            modifiedTime = dir.lastModified() / 1000,
-                            permissions = "",
-                        ),
-                    )
+                    roots.add(rootDirEntry(volLabel, dir))
                 } catch (e: Exception) {
                     Log.w(TAG, "Skipping storage volume: ${e.message}")
                 }
@@ -158,14 +176,9 @@ class LocalFileBackend(
             .map { File(rootfsRoot, "$it/root") }
             .firstOrNull { it.exists() && it.canRead() }
         if (prootHome != null) {
-            roots.add(
-                SftpEntry(
-                    "PRoot (~/)", prootHome.absolutePath, true, 0,
-                    prootHome.lastModified() / 1000, "",
-                ),
-            )
+            roots.add(rootDirEntry("PRoot (~/)", prootHome))
         }
-        roots.add(SftpEntry("App Cache", appContext.cacheDir.absolutePath, true, 0, appContext.cacheDir.lastModified() / 1000, ""))
+        roots.add(rootDirEntry("App Cache", appContext.cacheDir))
         return roots
     }
 }

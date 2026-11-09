@@ -63,6 +63,8 @@
     <!-- FileListItem -->
     <string name="sftp_directory">ডিরেক্টরি</string>
     <string name="sftp_directory_icon">ডিরেক্টরি</string>
+    <string name="sftp_folder_item_count">%d আইটেম</string>
+    <string name="sftp_folder_item_count_plural">%d আইটেম</string>
     <string name="sftp_file_icon">ফাইল</string>
     <string name="sftp_download">ডাউনলোড</string>
     <string name="sftp_cut">কাটুন</string>

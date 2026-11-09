@@ -40332,6 +40332,50 @@
      }
     },
     {
+     "name": "sftp_folder_item_count",
+     "en": "%d item",
+     "comment": "FileListItem",
+     "args": [
+      "%d"
+     ],
+     "t": {
+      "ar": "%d عنصر",
+      "bn": "%d আইটেম",
+      "de": "%d Element",
+      "es": "%d elemento",
+      "fr": "%d élément",
+      "hi": "%d आइटम",
+      "ja": "%d項目",
+      "ko": "항목 %d개",
+      "pt": "%d item",
+      "ru": "%d элемент",
+      "sr": "%d ставка",
+      "zh": "%d 项"
+     }
+    },
+    {
+     "name": "sftp_folder_item_count_plural",
+     "en": "%d items",
+     "comment": "FileListItem",
+     "args": [
+      "%d"
+     ],
+     "t": {
+      "ar": "%d عناصر",
+      "bn": "%d আইটেম",
+      "de": "%d Elemente",
+      "es": "%d elementos",
+      "fr": "%d éléments",
+      "hi": "%d आइटम",
+      "ja": "%d項目",
+      "ko": "항목 %d개",
+      "pt": "%d itens",
+      "ru": "%d элементов",
+      "sr": "%d ставки",
+      "zh": "%d 项"
+     }
+    },
+    {
      "name": "sftp_file_icon",
      "en": "File",
      "comment": "FileListItem",

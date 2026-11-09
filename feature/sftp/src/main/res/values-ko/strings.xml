@@ -92,6 +92,8 @@
     <!-- FileListItem -->
     <string name="sftp_directory">디렉터리</string>
     <string name="sftp_directory_icon">디렉터리</string>
+    <string name="sftp_folder_item_count">항목 %d개</string>
+    <string name="sftp_folder_item_count_plural">항목 %d개</string>
     <string name="sftp_file_icon">파일</string>
     <string name="sftp_download">다운로드</string>
     <string name="sftp_convert">변환</string>

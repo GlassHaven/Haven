@@ -63,6 +63,8 @@
     <!-- FileListItem -->
     <string name="sftp_directory">目录</string>
     <string name="sftp_directory_icon">目录</string>
+    <string name="sftp_folder_item_count">%d 项</string>
+    <string name="sftp_folder_item_count_plural">%d 项</string>
     <string name="sftp_file_icon">文件</string>
     <string name="sftp_download">下载</string>
     <string name="sftp_cut">剪切</string>

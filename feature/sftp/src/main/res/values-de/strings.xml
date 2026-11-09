@@ -63,6 +63,8 @@
     <!-- FileListItem -->
     <string name="sftp_directory">Verzeichnis</string>
     <string name="sftp_directory_icon">Verzeichnis</string>
+    <string name="sftp_folder_item_count">%d Element</string>
+    <string name="sftp_folder_item_count_plural">%d Elemente</string>
     <string name="sftp_file_icon">Datei</string>
     <string name="sftp_download">Herunterladen</string>
     <string name="sftp_cut">Ausschneiden</string>

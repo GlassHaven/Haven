@@ -240,4 +240,53 @@ class SameRemotePasteTest {
 
         coVerify(exactly = 1) { pasteQueueDao.insertAll(any()) }
     }
+
+    @Test
+    fun `directory listing populates remote folder item counts via single SSH batch exec`() = runTest(dispatcher) {
+        coEvery { fakeBackend.list("/work") } returns listOf(
+            dirEntry("docs", dir = "/work"),
+            dirEntry("empty", dir = "/work"),
+            fileEntry("readme.md", dir = "/work"),
+        )
+        coEvery { sshConnection.execCommand(match { it.contains("ls -1A -- '/work/docs'") }, any()) } returns
+            ExecResult(0, "0 5 4\n1 0 0\n", "")
+
+        val vm = newViewModel()
+        selectRemoteProfile(vm, "prof-1", "/src")
+        navigateAndAwait(vm, "/work")
+
+        withContext(Dispatchers.Default) {
+            vm.entries.first { list -> list.find { it.name == "docs" }?.childCount == 5 }
+        }
+        val byName = vm.entries.value.associateBy { it.name }
+        assertEquals(5, byName.getValue("docs").childCount)
+        assertEquals(4, byName.getValue("docs").visibleChildCount)
+        assertEquals(0, byName.getValue("empty").childCount)
+        assertEquals(0, byName.getValue("empty").visibleChildCount)
+        assertNull(byName.getValue("readme.md").childCount)
+    }
+
+    @Test
+    fun `directory listing falls back to backend list for folder item counts when SSH exec is disallowed`() = runTest(dispatcher) {
+        coEvery { fakeBackend.list("/work") } returns listOf(
+            dirEntry("sub", dir = "/work"),
+        )
+        coEvery { fakeBackend.list("/work/sub") } returns listOf(
+            fileEntry("visible.txt", dir = "/work/sub"),
+            fileEntry(".secret", dir = "/work/sub"),
+        )
+        coEvery { sshConnection.execCommand(any(), any()) } returns
+            ExecResult(1, "", "sftp only")
+
+        val vm = newViewModel()
+        selectRemoteProfile(vm, "prof-1", "/src")
+        navigateAndAwait(vm, "/work")
+
+        withContext(Dispatchers.Default) {
+            vm.entries.first { list -> list.find { it.name == "sub" }?.childCount == 2 }
+        }
+        val sub = vm.entries.value.single { it.name == "sub" }
+        assertEquals(2, sub.childCount)
+        assertEquals(1, sub.visibleChildCount)
+    }
 }

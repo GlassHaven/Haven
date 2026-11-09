@@ -107,6 +107,8 @@
     <!-- FileListItem -->
     <string name="sftp_directory">Directory</string>
     <string name="sftp_directory_icon">Directory</string>
+    <string name="sftp_folder_item_count">%d item</string>
+    <string name="sftp_folder_item_count_plural">%d items</string>
     <string name="sftp_file_icon">File</string>
     <string name="sftp_download">Download</string>
     <string name="sftp_convert">Convert</string>

@@ -159,4 +159,28 @@ class LocalFileBackendTest {
     fun `readBytes on missing path throws`() = runTest {
         backend.readBytes(File(tempRoot, "absent").absolutePath)
     }
+
+    @Test
+    fun `list populates childCount and visibleChildCount on directories`() = runTest {
+        File(tempRoot, "empty").mkdirs()
+        val populated = File(tempRoot, "populated").apply { mkdirs() }
+        File(populated, "a.txt").writeText("1")
+        File(populated, "b.txt").writeText("2")
+        File(populated, ".hidden").writeText("3")
+        File(tempRoot, "plain.txt").writeText("file")
+
+        val entries = backend.list(tempRoot.absolutePath).associateBy { it.name }
+
+        val emptyDir = entries.getValue("empty")
+        assertEquals(0, emptyDir.childCount)
+        assertEquals(0, emptyDir.visibleChildCount)
+
+        val popDir = entries.getValue("populated")
+        assertEquals(3, popDir.childCount)
+        assertEquals(2, popDir.visibleChildCount)
+
+        val plainFile = entries.getValue("plain.txt")
+        assertEquals(null, plainFile.childCount)
+        assertEquals(null, plainFile.visibleChildCount)
+    }
 }

@@ -98,6 +98,10 @@ data class SftpEntry(
      * symlink discovered mid-walk — link cycles must terminate.
      */
     val isSymlink: Boolean = false,
+    /** Direct child item count for directories (including dot-entries), or null when not yet known. */
+    val childCount: Int? = null,
+    /** Direct non-hidden child item count for directories (`!name.startsWith(".")`), or null when not yet known. */
+    val visibleChildCount: Int? = null,
 )
 
 /**
@@ -1637,6 +1641,7 @@ class SftpViewModel @Inject constructor(
 
     fun refresh() {
         _activeProfileId.value ?: return
+        folderCountCache.clear()
         loadDirectoryEntries(_currentPath.value)
     }
 
@@ -5162,8 +5167,7 @@ class SftpViewModel @Inject constructor(
                 _currentPath.value = landing
                 val transport = currentSshTransport() ?: throw IllegalStateException("Session not connected")
                 val results = transport.list(landing)
-                _allEntries.value = sortEntries(results, _sortMode.value)
-                applyFilter()
+                applyListedEntries(landing, results)
             } catch (e: SshIoException) {
                 Log.w(TAG, "SFTP open failed; resetting channel and retrying", e)
                 resetSftpChannel()
@@ -5172,8 +5176,7 @@ class SftpViewModel @Inject constructor(
                         ?: throw IllegalStateException("Session not connected after reset")
                     val landing = _currentPath.value
                     val results = transport.list(landing)
-                    _allEntries.value = sortEntries(results, _sortMode.value)
-                    applyFilter()
+                    applyListedEntries(landing, results)
                 } catch (e2: Exception) {
                     Log.e(TAG, "SFTP open failed after retry", e2)
                     _error.value = "SFTP connection lost — please try again"
@@ -5244,6 +5247,135 @@ class SftpViewModel @Inject constructor(
     /** Latest in-flight listing job; cancelled when a new navigation arrives. */
     private var listJob: Job? = null
 
+    /** Cached `(childCount, visibleChildCount)` keyed by `"$profileId:$dirPath"` (#800). */
+    private val folderCountCache = java.util.concurrent.ConcurrentHashMap<String, Pair<Int, Int>>()
+
+    /** Background job populating remote directory child counts for the active directory (#800). */
+    private var folderCountJob: Job? = null
+
+    private fun isVirtualKernelDir(path: String): Boolean =
+        path == "/proc" || path.startsWith("/proc/") ||
+            path == "/sys" || path.startsWith("/sys/") ||
+            path == "/dev" || path.startsWith("/dev/")
+
+    private fun applyListedEntries(path: String, results: List<SftpEntry>) {
+        val profileId = _activeProfileId.value
+        if (profileId != null) {
+            folderCountCache["$profileId:$path"] = results.size to results.count { !it.name.startsWith(".") }
+        }
+        val enriched = if (profileId != null) {
+            results.map { entry ->
+                if (!entry.isDirectory || entry.childCount != null) {
+                    entry
+                } else {
+                    val cached = folderCountCache["$profileId:${entry.path}"]
+                    if (cached != null) {
+                        entry.copy(childCount = cached.first, visibleChildCount = cached.second)
+                    } else {
+                        entry
+                    }
+                }
+            }
+        } else {
+            results
+        }
+        _allEntries.value = sortEntries(enriched, _sortMode.value)
+        applyFilter()
+        if (profileId != null) {
+            populateFolderChildCounts(profileId, path, enriched)
+        }
+    }
+
+    private fun populateFolderChildCounts(
+        profileId: String,
+        parentPath: String,
+        entries: List<SftpEntry>,
+    ) {
+        folderCountJob?.cancel()
+        val dirsToProbe = entries
+            .filter { it.isDirectory && it.childCount == null && !isVirtualKernelDir(it.path) }
+            .take(64)
+        if (dirsToProbe.isEmpty()) {
+            folderCountJob = null
+            return
+        }
+        folderCountJob = viewModelScope.launch(Dispatchers.IO) {
+            val isSshProfile = !_isLocalProfile.value &&
+                !_isSafProfile.value &&
+                !_isSmbProfile.value &&
+                !_isRcloneProfile.value &&
+                !_isReticulumProfile.value
+            if (isSshProfile) {
+                val ssh = getSshConnectionForProfile(profileId)
+                if (ssh != null) {
+                    val script = buildString {
+                        dirsToProbe.forEachIndexed { idx, dir ->
+                            val q = sh.haven.core.security.posixShellQuote(dir.path)
+                            append("if [ -r $q ] && [ -x $q ]; then ")
+                            append("printf '$idx %d %d\\n' \"$(ls -1A -- $q 2>/dev/null | wc -l)\" \"$(ls -1 -- $q 2>/dev/null | wc -l)\"; ")
+                            append("fi; ")
+                        }
+                    }
+                    val res = runCatching { ssh.execCommand(script) }.getOrNull()
+                    if (res != null && res.exitStatus == 0) {
+                        val updatedByPath = mutableMapOf<String, Pair<Int, Int>>()
+                        for (line in res.stdout.lineSequence()) {
+                            val parts = line.trim().split(Regex("\\s+"))
+                            if (parts.size == 3) {
+                                val idx = parts[0].toIntOrNull() ?: continue
+                                val total = parts[1].toIntOrNull() ?: continue
+                                val visible = parts[2].toIntOrNull() ?: continue
+                                val dir = dirsToProbe.getOrNull(idx) ?: continue
+                                val counts = total to visible
+                                folderCountCache["$profileId:${dir.path}"] = counts
+                                updatedByPath[dir.path] = counts
+                            }
+                        }
+                        if (updatedByPath.isNotEmpty() &&
+                            _activeProfileId.value == profileId &&
+                            _currentPath.value == parentPath
+                        ) {
+                            _allEntries.value = _allEntries.value.map { entry ->
+                                val counts = updatedByPath[entry.path]
+                                if (counts != null) {
+                                    entry.copy(childCount = counts.first, visibleChildCount = counts.second)
+                                } else {
+                                    entry
+                                }
+                            }
+                            applyFilter()
+                        }
+                        return@launch
+                    }
+                }
+            }
+
+            // Fallback for SFTP-only servers (`ForceCommand internal-sftp`), SMB, or rclone:
+            // list up to 20 subdirectories sequentially under listMutex.
+            for (dir in dirsToProbe.take(20)) {
+                if (_activeProfileId.value != profileId || _currentPath.value != parentPath) return@launch
+                val children = runCatching {
+                    listMutex.withLock {
+                        val backend = currentFileBackend() ?: return@withLock null
+                        backend.list(dir.path)
+                    }
+                }.getOrNull() ?: continue
+                val counts = children.size to children.count { !it.name.startsWith(".") }
+                folderCountCache["$profileId:${dir.path}"] = counts
+                if (_activeProfileId.value == profileId && _currentPath.value == parentPath) {
+                    _allEntries.value = _allEntries.value.map { entry ->
+                        if (entry.path == dir.path) {
+                            entry.copy(childCount = counts.first, visibleChildCount = counts.second)
+                        } else {
+                            entry
+                        }
+                    }
+                    applyFilter()
+                }
+            }
+        }
+    }
+
     private fun loadDirectoryEntries(path: String) {
         // Cancel anything queued on the mutex from a previous tap so
         // we don't accumulate stale work behind the in-flight call.
@@ -5254,8 +5386,7 @@ class SftpViewModel @Inject constructor(
                     if (!pasteInProgress.get()) _loading.value = true
                     val backend = currentFileBackend() ?: throw IllegalStateException("Not connected")
                     val results = backend.list(path)
-                    _allEntries.value = sortEntries(results, _sortMode.value)
-                    applyFilter()
+                    applyListedEntries(path, results)
                 } catch (e: CancellationException) {
                     throw e // propagate normal cancellation
                 } catch (e: IndexOutOfBoundsException) {
@@ -5278,8 +5409,7 @@ class SftpViewModel @Inject constructor(
                         val backend = currentFileBackend()
                             ?: throw IllegalStateException("Not connected after reset")
                         val results = backend.list(path)
-                        _allEntries.value = sortEntries(results, _sortMode.value)
-                        applyFilter()
+                        applyListedEntries(path, results)
                     } catch (e2: Exception) {
                         Log.e(TAG, "List directory failed after retry: path='$path'", e2)
                         _error.value = "SFTP connection lost — please try again"

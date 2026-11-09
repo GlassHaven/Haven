@@ -3805,12 +3805,19 @@ class SftpViewModel @Inject constructor(
         destType: BackendType,
         destProfileId: String,
         destRemote: String?,
-    ): FileBackend? = when (destType) {
+    ): FileBackend? = backendOverride?.invoke() ?: when (destType) {
         BackendType.LOCAL -> LocalFileBackend(appContext)
         BackendType.SFTP -> getOrOpenSession(destProfileId)?.let { s -> SftpTransport({ s }) }
+            ?: if (destProfileId == _activeProfileId.value) currentFileBackend() else null
         BackendType.SMB -> activeSmbClient?.let { SmbFileBackend(it) }
         BackendType.RCLONE -> destRemote?.let { RcloneFileBackend(rcloneClient, it, appContext) }
         BackendType.SAF -> safBackendFor(destProfileId)
+    }
+
+    private fun getSshConnectionForProfile(profileId: String): sh.haven.core.ssh.SshConnection? {
+        return sessionManager.getSshClientForProfile(profileId)
+            ?: (moshSessionManager.getSshClientForProfile(profileId) as? sh.haven.core.ssh.SshConnection)
+            ?: (etSessionManager.getSshClientForProfile(profileId) as? sh.haven.core.ssh.SshConnection)
     }
 
     /**
@@ -3866,6 +3873,30 @@ class SftpViewModel @Inject constructor(
         return destPath
     }
 
+    private suspend fun probeDestExists(
+        destType: BackendType,
+        destProfileId: String,
+        destRemote: String?,
+        destPath: String,
+    ): Boolean = try {
+        destFileBackend(destType, destProfileId, destRemote)?.stat(destPath) != null
+    } catch (_: Exception) {
+        false
+    }
+
+    private suspend fun findUniqueEntryPath(
+        destType: BackendType,
+        destProfileId: String,
+        destRemote: String?,
+        destPath: String,
+    ): String {
+        for (i in 1..999) {
+            val candidate = uniqueNameCandidate(destPath, i)
+            if (!probeDestExists(destType, destProfileId, destRemote, candidate)) return candidate
+        }
+        return destPath
+    }
+
     /**
      * If [destPath] already exists, suspend until the user picks a [ConflictAction]
      * (unless [batchResolution] is already set by "Apply to all"). Returns null
@@ -3880,6 +3911,7 @@ class SftpViewModel @Inject constructor(
         destProfileId: String,
         destRemote: String?,
         destPath: String,
+        allowResume: Boolean = true,
     ): Pair<ConflictAction, Long>? {
         val destSize = withContext(Dispatchers.IO) {
             probeDestFile(destType, destProfileId, destRemote, destPath)
@@ -3892,7 +3924,7 @@ class SftpViewModel @Inject constructor(
             fileName = entry.name,
             sourceSize = entry.size,
             destSize = destSize,
-            canResume = (destType == BackendType.SFTP || destType == BackendType.LOCAL) &&
+            canResume = allowResume && (destType == BackendType.SFTP || destType == BackendType.LOCAL) &&
                 destSize in 1 until entry.size,
             onChoice = { action, applyToAll -> deferred.complete(action to applyToAll) },
         )
@@ -3905,7 +3937,7 @@ class SftpViewModel @Inject constructor(
     private fun acquirePasteWakeLock() {
         if (pasteWakeLock?.isHeld == true) return
         try {
-            val pm = appContext.getSystemService(Context.POWER_SERVICE) as android.os.PowerManager
+            val pm = appContext.getSystemService(Context.POWER_SERVICE) as? android.os.PowerManager ?: return
             pasteWakeLock = pm.newWakeLock(
                 android.os.PowerManager.PARTIAL_WAKE_LOCK,
                 "sh.haven.app:paste",
@@ -3913,7 +3945,7 @@ class SftpViewModel @Inject constructor(
                 setReferenceCounted(false)
                 acquire(60 * 60 * 1000L) // 1 hour safety cap; released in finally regardless
             }
-        } catch (e: SecurityException) {
+        } catch (e: Exception) {
             // WAKE_LOCK permission missing (pre-v5.24.11 builds didn't declare
             // it in the manifest). Paste should still work — the wake lock is
             // a stability-on-device nice-to-have, not a correctness dependency.
@@ -4060,120 +4092,360 @@ class SftpViewModel @Inject constructor(
             return
         }
 
+        // Same-session SSH/SFTP paste (#798): move via SFTP rename (with
+        // shell `mv -f` fallback across remote mountpoints) and copy via
+        // remote `cp -Rfp` (preserving mtime and permissions) instead of
+        // downloading every file to phone cache and uploading it back.
+        if (cb.sourceBackendType == BackendType.SFTP &&
+            destType == BackendType.SFTP &&
+            cb.sourceProfileId == destProfileId
+        ) {
+            viewModelScope.launch { pasteFromClipboardSameRemoteSsh(cb, destProfileId, destRemote, destPath) }
+            return
+        }
+
         viewModelScope.launch {
-            try {
-                _loading.value = true
-                pasteInProgress.set(true)
-                pasteFileCount.set(0)
-                pasteTotalFiles.set(0)
-                batchResolution = null
-                acquirePasteWakeLock()
-                _transferProgress.value = TransferProgress("Scanning selection…", 0, 0)
+            pasteFromClipboardViaQueue(cb, destType, destProfileId, destRemote, destPath)
+        }
+    }
 
-                val leaves = withContext(Dispatchers.IO) {
-                    enumerateLeaves(cb, destPath)
+    private suspend fun pasteFromClipboardSameRemoteSsh(
+        cb: FileClipboard,
+        destProfileId: String,
+        destRemote: String?,
+        destPath: String,
+    ) {
+        val ssh = getSshConnectionForProfile(destProfileId)
+        if (!cb.isCut && ssh == null) {
+            pasteFromClipboardViaQueue(cb, BackendType.SFTP, destProfileId, destRemote, destPath)
+            return
+        }
+        try {
+            _loading.value = true
+            pasteInProgress.set(true)
+            pasteFileCount.set(0)
+            pasteTotalFiles.set(cb.entries.size)
+            batchResolution = null
+            acquirePasteWakeLock()
+
+            for (entry in cb.entries) {
+                val rawDestPath = destPath.trimEnd('/') + "/" + entry.name
+                if (entry.isDirectory && rawDestPath.startsWith(entry.path.trimEnd('/') + "/")) {
+                    throw java.io.IOException(
+                        "Cannot ${if (cb.isCut) "move" else "copy"} '${entry.name}' into itself"
+                    )
                 }
+            }
 
-                // Apply conflict resolution to top-level leaves (anything a
-                // user directly put on the clipboard). Deeper descendants
-                // inherit the batch-resolution if set, otherwise default to
-                // OVERWRITE — matching the old crossCopyDir behaviour.
-                val resolved = mutableListOf<PasteLeaf>()
-                val actions = mutableListOf<ConflictAction>()
-                val resumeBytes = mutableListOf<Long>()
-                var skipped = 0
-                for (leaf in leaves) {
-                    if (!leaf.isTopLevel) {
-                        resolved.add(leaf)
-                        actions.add(batchResolution ?: ConflictAction.OVERWRITE)
-                        resumeBytes.add(0L)
+            var skipped = 0
+            if (cb.isCut) {
+                val backend = currentFileBackend()
+                    ?: destFileBackend(BackendType.SFTP, destProfileId, destRemote)
+                    ?: cb.sourceSftpSession?.let { SftpTransport({ it }) }
+                    ?: throw IllegalStateException("SFTP not connected")
+                for (entry in cb.entries) {
+                    val rawDestPath = destPath.trimEnd('/') + "/" + entry.name
+                    if (rawDestPath == entry.path) {
+                        skipped++
                         continue
                     }
-                    val virtualEntry = SftpEntry(leaf.sourceName, leaf.sourcePath, false, leaf.size, 0, "")
-                    val check = resolveConflictIfExists(virtualEntry, destType, destProfileId, destRemote, leaf.destPath)
-                    if (check == null) {
+                    var targetPath = rawDestPath
+                    var overwriteExisting = false
+                    if (!entry.isDirectory) {
+                        val check = resolveConflictIfExists(
+                            entry = entry,
+                            destType = BackendType.SFTP,
+                            destProfileId = destProfileId,
+                            destRemote = destRemote,
+                            destPath = rawDestPath,
+                            allowResume = false,
+                        )
+                        if (check != null) {
+                            when (check.first) {
+                                ConflictAction.SKIP -> {
+                                    skipped++
+                                    continue
+                                }
+                                ConflictAction.RENAME -> {
+                                    targetPath = withContext(Dispatchers.IO) {
+                                        findUniqueName(BackendType.SFTP, destProfileId, destRemote, rawDestPath)
+                                    }
+                                }
+                                ConflictAction.OVERWRITE, ConflictAction.RESUME -> {
+                                    overwriteExisting = true
+                                }
+                            }
+                        }
+                    }
+                    val current = pasteFileCount.incrementAndGet()
+                    _transferProgress.value = TransferProgress(
+                        "Moving $current of ${cb.entries.size}: ${entry.name}",
+                        entry.size,
+                        0,
+                    )
+                    withContext(Dispatchers.IO) {
+                        moveRemoteEntry(backend, ssh, entry.path, targetPath, overwriteExisting)
+                    }
+                }
+            } else {
+                val activeSsh = ssh ?: error("ssh required for server-side copy")
+                for (entry in cb.entries) {
+                    val rawDestPath = destPath.trimEnd('/') + "/" + entry.name
+                    val copyDestArg: String
+                    if (!entry.isDirectory) {
+                        if (rawDestPath == entry.path) {
+                            copyDestArg = withContext(Dispatchers.IO) {
+                                findUniqueName(BackendType.SFTP, destProfileId, destRemote, rawDestPath)
+                            }
+                        } else {
+                            val check = resolveConflictIfExists(
+                                entry = entry,
+                                destType = BackendType.SFTP,
+                                destProfileId = destProfileId,
+                                destRemote = destRemote,
+                                destPath = rawDestPath,
+                                allowResume = false,
+                            )
+                            if (check != null) {
+                                when (check.first) {
+                                    ConflictAction.SKIP -> {
+                                        skipped++
+                                        continue
+                                    }
+                                    ConflictAction.RENAME -> {
+                                        copyDestArg = withContext(Dispatchers.IO) {
+                                            findUniqueName(BackendType.SFTP, destProfileId, destRemote, rawDestPath)
+                                        }
+                                    }
+                                    ConflictAction.OVERWRITE, ConflictAction.RESUME -> {
+                                        copyDestArg = rawDestPath
+                                    }
+                                }
+                            } else {
+                                copyDestArg = rawDestPath
+                            }
+                        }
+                    } else {
+                        copyDestArg = if (rawDestPath == entry.path) {
+                            withContext(Dispatchers.IO) {
+                                findUniqueEntryPath(BackendType.SFTP, destProfileId, destRemote, rawDestPath)
+                            }
+                        } else {
+                            destPath.trimEnd('/') + "/"
+                        }
+                    }
+
+                    val current = pasteFileCount.incrementAndGet()
+                    _transferProgress.value = TransferProgress(
+                        "Copying $current of ${cb.entries.size}: ${entry.name}",
+                        entry.size,
+                        0,
+                    )
+                    val fallbackToQueue = withContext(Dispatchers.IO) {
+                        val cmd = "cp -Rfp -- ${sh.haven.core.security.posixShellQuote(entry.path)} " +
+                            sh.haven.core.security.posixShellQuote(copyDestArg)
+                        val r = try {
+                            activeSsh.execCommand(cmd)
+                        } catch (e: Exception) {
+                            if (current == 1) return@withContext true
+                            throw e
+                        }
+                        if (r.exitStatus != 0) {
+                            if (current == 1 && isShellExecRefused(r.exitStatus, r.stderr)) {
+                                return@withContext true
+                            }
+                            throw java.io.IOException(
+                                r.stderr.trim().ifEmpty { "cp failed (exit ${r.exitStatus})" }
+                            )
+                        }
+                        false
+                    }
+                    if (fallbackToQueue) {
+                        Log.i(TAG, "Remote shell cp unavailable on $destProfileId; falling back to SFTP stream copy")
+                        pasteFromClipboardViaQueue(cb, BackendType.SFTP, destProfileId, destRemote, destPath)
+                        return
+                    }
+                }
+            }
+
+            _clipboard.value = null
+            val done = pasteFileCount.get()
+            val verb = if (cb.isCut) "Moved" else "Copied"
+            _message.value = if (skipped > 0) "$verb $done files — skipped $skipped" else "$verb $done files"
+            refresh()
+        } catch (e: Exception) {
+            Log.e(TAG, "Same-remote SSH paste failed", e)
+            _error.value = "Paste failed: ${e.message}"
+        } finally {
+            pasteInProgress.set(false)
+            _loading.value = false
+            _transferProgress.value = null
+            _conflictPrompt.value = null
+            batchResolution = null
+            releasePasteWakeLock()
+        }
+    }
+
+    private suspend fun moveRemoteEntry(
+        backend: FileBackend,
+        ssh: sh.haven.core.ssh.SshConnection?,
+        fromPath: String,
+        toPath: String,
+        deleteExistingTargetFirst: Boolean,
+    ) {
+        try {
+            if (deleteExistingTargetFirst) {
+                try {
+                    backend.delete(toPath, isDirectory = false)
+                } catch (_: Exception) {
+                    // Best-effort before SFTP rename
+                }
+            }
+            backend.rename(fromPath, toPath)
+        } catch (renameErr: Exception) {
+            if (ssh == null) throw renameErr
+            val cmd = "mv -f -- ${sh.haven.core.security.posixShellQuote(fromPath)} " +
+                sh.haven.core.security.posixShellQuote(toPath)
+            val r = ssh.execCommand(cmd)
+            if (r.exitStatus != 0) {
+                throw java.io.IOException(
+                    r.stderr.trim().ifEmpty { renameErr.message ?: "mv failed" },
+                    renameErr,
+                )
+            }
+        }
+    }
+
+    private fun isShellExecRefused(exitStatus: Int, stderr: String): Boolean {
+        if (exitStatus == 126 || exitStatus == 127) return true
+        if (exitStatus == 1 && stderr.isBlank()) return true
+        val lower = stderr.lowercase()
+        return "sftp connections only" in lower ||
+            "internal-sftp" in lower ||
+            "nologin" in lower ||
+            "this account is currently not available" in lower ||
+            "shell access is not enabled" in lower
+    }
+
+    private suspend fun pasteFromClipboardViaQueue(
+        cb: FileClipboard,
+        destType: BackendType,
+        destProfileId: String,
+        destRemote: String?,
+        destPath: String,
+    ) {
+        try {
+            _loading.value = true
+            pasteInProgress.set(true)
+            pasteFileCount.set(0)
+            pasteTotalFiles.set(0)
+            batchResolution = null
+            acquirePasteWakeLock()
+            _transferProgress.value = TransferProgress("Scanning selection…", 0, 0)
+
+            val leaves = withContext(Dispatchers.IO) {
+                enumerateLeaves(cb, destPath)
+            }
+
+            // Apply conflict resolution to top-level leaves (anything a
+            // user directly put on the clipboard). Deeper descendants
+            // inherit the batch-resolution if set, otherwise default to
+            // OVERWRITE — matching the old crossCopyDir behaviour.
+            val resolved = mutableListOf<PasteLeaf>()
+            val actions = mutableListOf<ConflictAction>()
+            val resumeBytes = mutableListOf<Long>()
+            var skipped = 0
+            for (leaf in leaves) {
+                if (!leaf.isTopLevel) {
+                    resolved.add(leaf)
+                    actions.add(batchResolution ?: ConflictAction.OVERWRITE)
+                    resumeBytes.add(0L)
+                    continue
+                }
+                val virtualEntry = SftpEntry(leaf.sourceName, leaf.sourcePath, false, leaf.size, 0, "")
+                val check = resolveConflictIfExists(virtualEntry, destType, destProfileId, destRemote, leaf.destPath)
+                if (check == null) {
+                    resolved.add(leaf)
+                    actions.add(ConflictAction.OVERWRITE)
+                    resumeBytes.add(0L)
+                    continue
+                }
+                val (action, destSize) = check
+                when (action) {
+                    ConflictAction.SKIP -> skipped++
+                    ConflictAction.RENAME -> {
+                        val newPath = withContext(Dispatchers.IO) {
+                            findUniqueName(destType, destProfileId, destRemote, leaf.destPath)
+                        }
+                        resolved.add(leaf.copy(destPath = newPath))
+                        actions.add(ConflictAction.RENAME)
+                        resumeBytes.add(0L)
+                    }
+                    ConflictAction.RESUME -> {
+                        resolved.add(leaf)
+                        actions.add(ConflictAction.RESUME)
+                        resumeBytes.add(destSize)
+                    }
+                    ConflictAction.OVERWRITE -> {
                         resolved.add(leaf)
                         actions.add(ConflictAction.OVERWRITE)
                         resumeBytes.add(0L)
-                        continue
-                    }
-                    val (action, destSize) = check
-                    when (action) {
-                        ConflictAction.SKIP -> skipped++
-                        ConflictAction.RENAME -> {
-                            val newPath = withContext(Dispatchers.IO) {
-                                findUniqueName(destType, destProfileId, destRemote, leaf.destPath)
-                            }
-                            resolved.add(leaf.copy(destPath = newPath))
-                            actions.add(ConflictAction.RENAME)
-                            resumeBytes.add(0L)
-                        }
-                        ConflictAction.RESUME -> {
-                            resolved.add(leaf)
-                            actions.add(ConflictAction.RESUME)
-                            resumeBytes.add(destSize)
-                        }
-                        ConflictAction.OVERWRITE -> {
-                            resolved.add(leaf)
-                            actions.add(ConflictAction.OVERWRITE)
-                            resumeBytes.add(0L)
-                        }
                     }
                 }
-
-                val rows = resolved.mapIndexed { i, leaf ->
-                    sh.haven.core.data.db.entities.PasteQueueEntry(
-                        indexInBatch = i,
-                        sourceBackendType = cb.sourceBackendType.name,
-                        sourceProfileId = cb.sourceProfileId,
-                        sourceRemoteName = cb.sourceRemoteName,
-                        sourcePath = leaf.sourcePath,
-                        sourceName = leaf.sourceName,
-                        sourceSize = leaf.size,
-                        destBackendType = destType.name,
-                        destProfileId = destProfileId,
-                        destRemote = destRemote,
-                        destPath = leaf.destPath,
-                        isCut = cb.isCut,
-                        conflictAction = actions[i].name,
-                        bytesTransferred = resumeBytes[i],
-                    )
-                }
-
-                withContext(Dispatchers.IO) {
-                    pasteQueueDao.clear()
-                    pasteQueueDao.insertAll(rows)
-                }
-                _clipboard.value = null
-
-                pasteTotalFiles.set(rows.size)
-                executePasteQueue()
-
-                val copied = pasteFileCount.get()
-                val stillPending = withContext(Dispatchers.IO) {
-                    pasteQueueDao.countByStatus(sh.haven.core.data.db.entities.PasteQueueEntry.STATUS_PENDING)
-                }
-                val verb = if (cb.isCut) "Moved" else "Copied"
-                _message.value = when {
-                    stillPending > 0 -> "$verb $copied — $stillPending still pending (Resume to retry)"
-                    skipped > 0 -> "$verb $copied files — skipped $skipped"
-                    else -> "$verb $copied files"
-                }
-                if (stillPending == 0) {
-                    withContext(Dispatchers.IO) { pasteQueueDao.clear() }
-                }
-                refresh()
-            } catch (e: Exception) {
-                Log.e(TAG, "Paste failed", e)
-                _error.value = "Paste failed: ${e.message}"
-            } finally {
-                pasteInProgress.set(false)
-                _loading.value = false
-                _transferProgress.value = null
-                _conflictPrompt.value = null
-                batchResolution = null
-                releasePasteWakeLock()
             }
+
+            val rows = resolved.mapIndexed { i, leaf ->
+                sh.haven.core.data.db.entities.PasteQueueEntry(
+                    indexInBatch = i,
+                    sourceBackendType = cb.sourceBackendType.name,
+                    sourceProfileId = cb.sourceProfileId,
+                    sourceRemoteName = cb.sourceRemoteName,
+                    sourcePath = leaf.sourcePath,
+                    sourceName = leaf.sourceName,
+                    sourceSize = leaf.size,
+                    destBackendType = destType.name,
+                    destProfileId = destProfileId,
+                    destRemote = destRemote,
+                    destPath = leaf.destPath,
+                    isCut = cb.isCut,
+                    conflictAction = actions[i].name,
+                    bytesTransferred = resumeBytes[i],
+                )
+            }
+
+            withContext(Dispatchers.IO) {
+                pasteQueueDao.clear()
+                pasteQueueDao.insertAll(rows)
+            }
+            _clipboard.value = null
+
+            pasteTotalFiles.set(rows.size)
+            executePasteQueue()
+
+            val copied = pasteFileCount.get()
+            val stillPending = withContext(Dispatchers.IO) {
+                pasteQueueDao.countByStatus(sh.haven.core.data.db.entities.PasteQueueEntry.STATUS_PENDING)
+            }
+            val verb = if (cb.isCut) "Moved" else "Copied"
+            _message.value = when {
+                stillPending > 0 -> "$verb $copied — $stillPending still pending (Resume to retry)"
+                skipped > 0 -> "$verb $copied files — skipped $skipped"
+                else -> "$verb $copied files"
+            }
+            if (stillPending == 0) {
+                withContext(Dispatchers.IO) { pasteQueueDao.clear() }
+            }
+            refresh()
+        } catch (e: Exception) {
+            Log.e(TAG, "Paste failed", e)
+            _error.value = "Paste failed: ${e.message}"
+        } finally {
+            pasteInProgress.set(false)
+            _loading.value = false
+            _transferProgress.value = null
+            _conflictPrompt.value = null
+            batchResolution = null
+            releasePasteWakeLock()
         }
     }
 

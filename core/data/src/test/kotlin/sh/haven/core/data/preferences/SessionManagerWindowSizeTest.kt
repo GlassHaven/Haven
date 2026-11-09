@@ -23,4 +23,10 @@ class SessionManagerWindowSizeTest {
         val cmd = UserPreferencesRepository.SessionManager.BYOBU.command!!("work")
         assertFalse("pinning window-size clamps the shared window. Got: $cmd", cmd.contains("window-size"))
     }
+
+    @Test
+    fun `rmux attach does not pin window-size`() {
+        val cmd = UserPreferencesRepository.SessionManager.RMUX.command!!("work")
+        assertFalse("pinning window-size clamps the shared window. Got: $cmd", cmd.contains("window-size"))
+    }
 }

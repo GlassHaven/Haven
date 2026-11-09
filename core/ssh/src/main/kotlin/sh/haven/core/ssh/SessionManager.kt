@@ -12,7 +12,7 @@ import org.json.JSONObject
  * Homebrew bin directories so a binary already on PATH keeps winning. The
  * start commands are typed into the login shell and already see its PATH.
  */
-private const val EXEC_SH = "sh -c 'PATH=\"\$PATH:/opt/homebrew/bin:/usr/local/bin\"; "
+private const val EXEC_SH = "sh -c 'PATH=\"\$PATH:/opt/homebrew/bin:/usr/local/bin:\$HOME/.local/bin:\$HOME/.cargo/bin\"; "
 
 /**
  * Session manager options for wrapping SSH shells in persistent sessions.
@@ -66,6 +66,12 @@ enum class SessionManager(
         { name -> "exec sh -c 'if ! command -v psmux >/dev/null 2>&1; then echo \"Haven: psmux not found. See https://github.com/psmux/psmux or change session manager in connection settings.\"; else exec psmux attach -t $name || exec psmux new-session -s $name; fi'" },
         "${EXEC_SH}psmux ls -F \"#{session_name}\" 2>/dev/null'",
         { name -> "${EXEC_SH}psmux kill-session -t $name'" },
+    ),
+    RMUX("rmux",
+        { name -> "exec sh -c 'PATH=\"\$PATH:\$HOME/.local/bin:\$HOME/.cargo/bin\"; if ! command -v rmux >/dev/null 2>&1; then echo \"Haven: rmux not found. See https://github.com/Helvesec/rmux or change session manager in connection settings.\"; else exec rmux new-session -A -s $name \\; set -gq allow-passthrough on \\; set -gq mouse on; fi'" },
+        "${EXEC_SH}rmux ls -F \"#{session_name}\" 2>/dev/null'",
+        { name -> "${EXEC_SH}rmux kill-session -t $name'" },
+        { old, new -> "${EXEC_SH}rmux rename-session -t $old $new'" },
     );
 
     companion object {
@@ -91,7 +97,7 @@ enum class SessionManager(
             if (clean.isBlank()) return emptyList()
             return when (manager) {
                 NONE -> emptyList()
-                TMUX, BYOBU, PSMUX -> clean.lines().filter { it.isNotBlank() }
+                TMUX, BYOBU, PSMUX, RMUX -> clean.lines().filter { it.isNotBlank() }
                 ZELLIJ -> clean.lines()
                     .filter { it.isNotBlank() && !it.contains("EXITED") }
                     .map { it.trim().split(Regex("\\s+")).first() }

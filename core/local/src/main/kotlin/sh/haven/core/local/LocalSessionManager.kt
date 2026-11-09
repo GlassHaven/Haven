@@ -394,7 +394,7 @@ class LocalSessionManager @Inject constructor(
                 // .profiles force LC_ALL=C.UTF-8 when unset — set it too so the
                 // user's chosen locale actually takes effect (#374).
                 "LC_ALL=$effectiveLocale",
-                "PATH=/usr/local/sbin:/usr/local/bin:/usr/sbin:/usr/bin:/sbin:/bin",
+                "PATH=/usr/local/sbin:/usr/local/bin:/usr/sbin:/usr/bin:/sbin:/bin:${guestUser.home}/.local/bin:${guestUser.home}/.cargo/bin",
                 "SHELL=/bin/sh",
                 // XDG base dirs so desktop/X11 apps and `startx`/dbus-run-session
                 // launched from the shell find their config/data and a writable

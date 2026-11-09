@@ -1126,7 +1126,7 @@ class TerminalViewModel @Inject constructor(
             }
 
             when (smName) {
-                "TMUX" -> {
+                "TMUX", "RMUX" -> {
                     tab.sendInput(byteArrayOf(0x02)) // Ctrl+B (tmux prefix)
                     kotlinx.coroutines.delay(50)
                     tab.sendInput("[/".toByteArray()) // copy-mode + forward search
@@ -2774,7 +2774,7 @@ class TerminalViewModel @Inject constructor(
     }
 
     private fun detachBytesFor(smName: String): ByteArray? = when (smName) {
-        "TMUX", "BYOBU" -> byteArrayOf(0x02, 'd'.code.toByte()) // Ctrl+B d
+        "TMUX", "BYOBU", "RMUX" -> byteArrayOf(0x02, 'd'.code.toByte()) // Ctrl+B d
         "ZELLIJ" -> byteArrayOf(0x0F, 'd'.code.toByte())        // Ctrl+O d
         "SCREEN" -> byteArrayOf(0x01, 'd'.code.toByte())        // Ctrl+A d
         "HERDR" -> byteArrayOf(0x02, 'q'.code.toByte())         // Ctrl+B q (herdr default prefix+detach)

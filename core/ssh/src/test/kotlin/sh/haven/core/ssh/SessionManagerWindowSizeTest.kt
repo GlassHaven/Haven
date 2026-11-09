@@ -56,6 +56,15 @@ class SessionManagerWindowSizeTest {
         )
     }
 
+    @Test
+    fun `rmux attach does not pin window-size`() {
+        val cmd = SessionManager.RMUX.command!!("work")
+        assertFalse(
+            "rmux shares tmux window sizing semantics. Got: $cmd",
+            cmd.contains("window-size"),
+        )
+    }
+
     /** The options that ARE wanted must survive this revert. */
     @Test
     fun `the mouse and passthrough options are still set`() {

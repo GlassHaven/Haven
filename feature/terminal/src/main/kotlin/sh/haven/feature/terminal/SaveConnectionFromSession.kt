@@ -47,6 +47,7 @@ object SaveConnectionFromSession {
             SessionManager.BYOBU -> "byobu new-session -A -s $name"
             SessionManager.HERDR -> "herdr --session $name"
             SessionManager.PSMUX -> "psmux attach -t $name || psmux new-session -s $name"
+            SessionManager.RMUX -> "rmux new -A -s $name"
         }
     }
 
@@ -210,8 +211,8 @@ object SaveConnectionFromSession {
      */
     fun sessionNameFromRemoteCommand(remoteCommand: String?): String? {
         val cmd = remoteCommand?.trim()?.takeIf { it.isNotEmpty() } ?: return null
-        // tmux new -A -s NAME  |  byobu new-session -A -s NAME
-        Regex("""(?:tmux|byobu)\s+(?:new(?:-session)?)\s+-A\s+-s\s+(\S+)""")
+        // tmux new -A -s NAME  |  byobu new-session -A -s NAME  |  rmux new -A -s NAME
+        Regex("""(?:tmux|byobu|rmux)\s+(?:new(?:-session)?)\s+-A\s+-s\s+(\S+)""")
             .find(cmd)?.groupValues?.getOrNull(1)?.let { return SessionManager.sanitizeSessionName(it) }
         // zellij attach NAME --create
         Regex("""zellij\s+attach\s+(\S+)""")

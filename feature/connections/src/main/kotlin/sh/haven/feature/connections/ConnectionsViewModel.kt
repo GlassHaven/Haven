@@ -6871,6 +6871,7 @@ class ConnectionsViewModel @Inject constructor(
             UserPreferencesRepository.SessionManager.BYOBU -> SessionManager.BYOBU
             UserPreferencesRepository.SessionManager.HERDR -> SessionManager.HERDR
             UserPreferencesRepository.SessionManager.PSMUX -> SessionManager.PSMUX
+            UserPreferencesRepository.SessionManager.RMUX -> SessionManager.RMUX
         }
 
     private suspend fun resolveSessionManager(profile: ConnectionProfile?): SessionManager {

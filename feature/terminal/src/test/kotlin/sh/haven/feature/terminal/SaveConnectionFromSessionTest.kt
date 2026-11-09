@@ -44,6 +44,14 @@ class SaveConnectionFromSessionTest {
     }
 
     @Test
+    fun pinRemoteCommand_rmux() {
+        assertEquals(
+            "rmux new -A -s work",
+            SaveConnectionFromSession.pinRemoteCommand(SessionManager.RMUX, "work"),
+        )
+    }
+
+    @Test
     fun pinRemoteCommand_sanitizesDots() {
         assertEquals("tmux new -A -s user-10-0-0-5", SaveConnectionFromSession.pinRemoteCommand(SessionManager.TMUX, "user@10.0.0.5"))
     }
@@ -208,6 +216,10 @@ class SaveConnectionFromSessionTest {
         assertEquals(
             "scr",
             SaveConnectionFromSession.sessionNameFromRemoteCommand("screen -dRR scr"),
+        )
+        assertEquals(
+            "dev",
+            SaveConnectionFromSession.sessionNameFromRemoteCommand("rmux new -A -s dev"),
         )
         assertNull(SaveConnectionFromSession.sessionNameFromRemoteCommand("htop"))
     }

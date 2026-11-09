@@ -2504,7 +2504,8 @@ class UserPreferencesRepository @Inject constructor(
         SCREEN("screen", "https://www.gnu.org/software/screen/", { name -> "screen -dRR $name" }, supportsScrollback = false),
         BYOBU("byobu", "https://www.byobu.org", { name -> "byobu new-session -A -s $name \\; set -gq mouse on" }),
         HERDR("herdr", "https://herdr.dev", { name -> "herdr --session $name" }),
-        PSMUX("psmux", "https://github.com/psmux/psmux", { name -> "psmux new-session -A -s $name" });
+        PSMUX("psmux", "https://github.com/psmux/psmux", { name -> "psmux new-session -A -s $name" }),
+        RMUX("rmux", "https://github.com/Helvesec/rmux", { name -> "rmux new-session -A -s $name \\; set -gq allow-passthrough on \\; set -gq mouse on" });
 
         companion object {
             fun fromString(value: String?): SessionManager =

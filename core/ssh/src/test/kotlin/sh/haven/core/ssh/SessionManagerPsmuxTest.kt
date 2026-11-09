@@ -53,4 +53,27 @@ class SessionManagerPsmuxTest {
             SessionManager.parseSessionList(SessionManager.PSMUX, "\n"),
         )
     }
+
+    @Test
+    fun `rmux attach checks PATH including local and cargo bin and enables passthrough and mouse`() {
+        val command = SessionManager.RMUX.command!!("work")
+
+        assertTrue(command.contains(".local/bin"))
+        assertTrue(command.contains(".cargo/bin"))
+        assertTrue(command.contains("command -v rmux"))
+        assertTrue(command.contains("rmux new-session -A -s work"))
+        assertTrue(command.contains("set -gq allow-passthrough on"))
+        assertTrue(command.contains("set -gq mouse on"))
+    }
+
+    @Test
+    fun `rmux list kill and rename commands and parser work`() {
+        assertTrue(SessionManager.RMUX.listCommand!!.contains("rmux ls -F \"#{session_name}\""))
+        assertTrue(SessionManager.RMUX.killCommand!!("work").contains("rmux kill-session -t work"))
+        assertTrue(SessionManager.RMUX.renameCommand!!("old", "new").contains("rmux rename-session -t old new"))
+        assertEquals(
+            listOf("alpha", "beta"),
+            SessionManager.parseSessionList(SessionManager.RMUX, "alpha\nbeta\n"),
+        )
+    }
 }

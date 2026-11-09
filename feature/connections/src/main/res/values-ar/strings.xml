@@ -324,7 +324,7 @@
     <string name="connections_field_provider">المزوّد</string>
     <string name="connections_field_tunnel_through_ssh">نفق عبر SSH</string>
     <string name="connections_field_ssh_connection">اتصال SSH</string>
-    <string name="connections_field_username_vnc">اسم المستخدم (اختياري — VeNCrypt فقط)</string>
+    <string name="connections_field_username_vnc">اسم المستخدم (اختياري — VeNCrypt أو حساب macOS)</string>
     <string name="connections_field_password_optional">كلمة المرور (اختيارية)</string>
     <string name="connections_field_domain_optional">النطاق (اختياري)</string>
     <string name="connections_field_share_name">اسم المشاركة</string>
@@ -395,7 +395,7 @@
     <string name="connections_field_passphrase">عبارة المرور</string>
     <string name="connections_hint_ifac_passphrase">عبارة مرور IFAC (اختيارية)</string>
     <string name="connections_helper_vnc_host_via_ssh">أين يمكن الوصول إلى خادم VNC من خادم SSH — عادةً 127.0.0.1 إذا كانا نفس الجهاز (wayvnc وغيره يرتبط بالاسترجاع فقط).</string>
-    <string name="connections_helper_vnc_auth">اترك اسم المستخدم فارغًا لـ VncAuth الكلاسيكي (كلمة مرور من 8 أحرف). املأ اسم المستخدم لـ VeNCrypt (wayvnc وTigerVNC) — يدعم كلمات مرور أطول وتشفير TLS.</string>
+    <string name="connections_helper_vnc_auth">اترك اسم المستخدم فارغًا لـ VncAuth الكلاسيكي (كلمة مرور من 8 أحرف). املأ اسم المستخدم لـ VeNCrypt (wayvnc وTigerVNC) — يدعم كلمات مرور أطول وتشفير TLS. لمشاركة الشاشة في macOS، أدخل اسم حساب macOS وكلمة مروره لمشاركة سطح المكتب الخاص بك.</string>
     <string name="connections_helper_rdp_host_via_ssh">أين يمكن الوصول إلى خادم RDP من خادم SSH — عادةً 127.0.0.1 إذا كانا نفس الجهاز.</string>
     <string name="connections_helper_rdp_nla">مُفعَّل افتراضيًا. أوقفه إذا رفض الخادم NLA الخاص بـ Haven (بعض إعدادات Windows Server 2025 — يجب تعطيل \"Require NLA\" على الخادم للاتصال عبر SSL فقط).</string>
     <string name="connections_action_manage_tunnels">إدارة الأنفاق…</string>

@@ -324,7 +324,7 @@
     <string name="connections_field_provider">Provedor</string>
     <string name="connections_field_tunnel_through_ssh">Túnel através de SSH</string>
     <string name="connections_field_ssh_connection">Conexão SSH</string>
-    <string name="connections_field_username_vnc">Usuário (opcional — apenas VeNCrypt)</string>
+    <string name="connections_field_username_vnc">Usuário (opcional — VeNCrypt ou conta do macOS)</string>
     <string name="connections_field_password_optional">Senha (opcional)</string>
     <string name="connections_field_domain_optional">Domínio (opcional)</string>
     <string name="connections_field_share_name">Nome do compartilhamento</string>
@@ -395,7 +395,7 @@
     <string name="connections_field_passphrase">Frase secreta</string>
     <string name="connections_hint_ifac_passphrase">Frase secreta IFAC (opcional)</string>
     <string name="connections_helper_vnc_host_via_ssh">Onde o servidor VNC é acessível a partir do servidor SSH — normalmente 127.0.0.1 se forem a mesma máquina (wayvnc etc. vinculam apenas ao loopback).</string>
-    <string name="connections_helper_vnc_auth">Deixe o usuário em branco para o VncAuth clássico (senha de 8 caracteres). Preencha o usuário para VeNCrypt (wayvnc, TigerVNC) — suporta senhas mais longas e criptografia TLS.</string>
+    <string name="connections_helper_vnc_auth">Deixe o usuário em branco para o VncAuth clássico (senha de 8 caracteres). Preencha o usuário para VeNCrypt (wayvnc, TigerVNC) — suporta senhas mais longas e criptografia TLS. Para o Compartilhamento de Tela do macOS, informe o nome e a senha da sua conta do macOS para compartilhar sua própria área de trabalho.</string>
     <string name="connections_helper_rdp_host_via_ssh">Onde o servidor RDP é acessível a partir do servidor SSH — normalmente 127.0.0.1 se forem a mesma máquina.</string>
     <string name="connections_helper_rdp_nla">Ativado por padrão. Desative se o servidor rejeitar a NLA do Haven (algumas configurações do Windows Server 2025 — o servidor precisa ter \"Require NLA\" desativado para conectar apenas via SSL).</string>
     <string name="connections_action_manage_tunnels">Gerenciar túneis…</string>

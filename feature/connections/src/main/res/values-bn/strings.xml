@@ -324,7 +324,7 @@
     <string name="connections_field_provider">প্রদানকারী</string>
     <string name="connections_field_tunnel_through_ssh">SSH-এর মাধ্যমে টানেল</string>
     <string name="connections_field_ssh_connection">SSH সংযোগ</string>
-    <string name="connections_field_username_vnc">ব্যবহারকারীর নাম (ঐচ্ছিক — শুধু VeNCrypt)</string>
+    <string name="connections_field_username_vnc">ব্যবহারকারীর নাম (ঐচ্ছিক — VeNCrypt বা macOS অ্যাকাউন্ট)</string>
     <string name="connections_field_password_optional">পাসওয়ার্ড (ঐচ্ছিক)</string>
     <string name="connections_field_domain_optional">ডোমেইন (ঐচ্ছিক)</string>
     <string name="connections_field_share_name">শেয়ারের নাম</string>
@@ -395,7 +395,7 @@
     <string name="connections_field_passphrase">পাসফ্রেজ</string>
     <string name="connections_hint_ifac_passphrase">IFAC পাসফ্রেজ (ঐচ্ছিক)</string>
     <string name="connections_helper_vnc_host_via_ssh">SSH সার্ভার থেকে VNC সার্ভার কোথায় পৌঁছানো যায় — একই মেশিন হলে সাধারণত 127.0.0.1 (wayvnc ইত্যাদি শুধু লুপব্যাকে বাইন্ড করে)।</string>
-    <string name="connections_helper_vnc_auth">ক্লাসিক VncAuth (৮-অক্ষরের পাসওয়ার্ড) এর জন্য ব্যবহারকারীর নাম খালি রাখুন। VeNCrypt (wayvnc, TigerVNC) এর জন্য ব্যবহারকারীর নাম পূরণ করুন — দীর্ঘ পাসওয়ার্ড এবং TLS এনক্রিপশন সমর্থন করে।</string>
+    <string name="connections_helper_vnc_auth">ক্লাসিক VncAuth (৮-অক্ষরের পাসওয়ার্ড) এর জন্য ব্যবহারকারীর নাম খালি রাখুন। VeNCrypt (wayvnc, TigerVNC) এর জন্য ব্যবহারকারীর নাম পূরণ করুন — দীর্ঘ পাসওয়ার্ড এবং TLS এনক্রিপশন সমর্থন করে। macOS স্ক্রিন শেয়ারিংয়ের জন্য, নিজের ডেস্কটপ শেয়ার করতে আপনার macOS অ্যাকাউন্টের নাম ও পাসওয়ার্ড দিন।</string>
     <string name="connections_helper_rdp_host_via_ssh">SSH সার্ভার থেকে RDP সার্ভার কোথায় পৌঁছানো যায় — একই মেশিন হলে সাধারণত 127.0.0.1।</string>
     <string name="connections_helper_rdp_nla">ডিফল্টভাবে চালু। সার্ভার Haven-এর NLA প্রত্যাখ্যান করলে বন্ধ করুন (কিছু Windows Server 2025 সেটআপ — শুধু-SSL সংযোগের জন্য সার্ভারে \"Require NLA\" নিষ্ক্রিয় থাকতে হবে)।</string>
     <string name="connections_action_manage_tunnels">টানেল পরিচালনা করুন…</string>

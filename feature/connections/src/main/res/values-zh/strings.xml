@@ -186,7 +186,7 @@
     <string name="connections_field_provider">提供商</string>
     <string name="connections_field_tunnel_through_ssh">通过 SSH 隧道</string>
     <string name="connections_field_ssh_connection">SSH 连接</string>
-    <string name="connections_field_username_vnc">用户名（可选 — 仅 VeNCrypt）</string>
+    <string name="connections_field_username_vnc">用户名（可选 — VeNCrypt 或 macOS 账户）</string>
     <string name="connections_field_password_optional">密码（可选）</string>
     <string name="connections_field_domain_optional">域（可选）</string>
     <string name="connections_field_share_name">共享名称</string>
@@ -393,7 +393,7 @@
     <string name="connections_field_passphrase">密码短语</string>
     <string name="connections_hint_ifac_passphrase">IFAC 密码短语（可选）</string>
     <string name="connections_helper_vnc_host_via_ssh">VNC 服务器从 SSH 服务器可访问的位置 — 如果是同一台机器，通常为 127.0.0.1（wayvnc 等仅绑定回环地址）。</string>
-    <string name="connections_helper_vnc_auth">经典 VncAuth（8 字符密码）请将用户名留空。VeNCrypt（wayvnc、TigerVNC）请填写用户名 — 支持更长的密码和 TLS 加密。</string>
+    <string name="connections_helper_vnc_auth">经典 VncAuth（8 字符密码）请将用户名留空。VeNCrypt（wayvnc、TigerVNC）请填写用户名 — 支持更长的密码和 TLS 加密。连接 macOS 屏幕共享时，填写 macOS 账户名和登录密码，即可共享你自己的桌面。</string>
     <string name="connections_helper_rdp_host_via_ssh">RDP 服务器从 SSH 服务器可访问的位置 — 如果是同一台机器，通常为 127.0.0.1。</string>
     <string name="connections_helper_rdp_nla">默认开启。如果服务器拒绝 Haven 的 NLA，请关闭（某些 Windows Server 2025 配置 — 服务器必须禁用\"Require NLA\"才能仅通过 SSL 连接）。</string>
     <string name="connections_action_manage_tunnels">管理隧道…</string>

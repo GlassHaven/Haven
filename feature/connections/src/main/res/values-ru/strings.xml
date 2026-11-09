@@ -324,7 +324,7 @@
     <string name="connections_field_provider">Поставщик</string>
     <string name="connections_field_tunnel_through_ssh">Туннель через SSH</string>
     <string name="connections_field_ssh_connection">SSH-подключение</string>
-    <string name="connections_field_username_vnc">Имя пользователя (необязательно — только VeNCrypt)</string>
+    <string name="connections_field_username_vnc">Имя пользователя (необязательно — VeNCrypt или учётная запись macOS)</string>
     <string name="connections_field_password_optional">Пароль (необязательно)</string>
     <string name="connections_field_domain_optional">Домен (необязательно)</string>
     <string name="connections_field_share_name">Имя общего ресурса</string>
@@ -395,7 +395,7 @@
     <string name="connections_field_passphrase">Парольная фраза</string>
     <string name="connections_hint_ifac_passphrase">Парольная фраза IFAC (необязательно)</string>
     <string name="connections_helper_vnc_host_via_ssh">Где VNC-сервер доступен с SSH-сервера — обычно 127.0.0.1, если это одна машина (wayvnc и т.п. привязываются только к loopback).</string>
-    <string name="connections_helper_vnc_auth">Оставьте имя пользователя пустым для классического VncAuth (8-символьный пароль). Заполните имя пользователя для VeNCrypt (wayvnc, TigerVNC) — поддерживает более длинные пароли и TLS-шифрование.</string>
+    <string name="connections_helper_vnc_auth">Оставьте имя пользователя пустым для классического VncAuth (8-символьный пароль). Заполните имя пользователя для VeNCrypt (wayvnc, TigerVNC) — поддерживает более длинные пароли и TLS-шифрование. Для общего экрана macOS укажите имя и пароль своей учётной записи macOS, чтобы открыть собственный рабочий стол.</string>
     <string name="connections_helper_rdp_host_via_ssh">Где RDP-сервер доступен с SSH-сервера — обычно 127.0.0.1, если это одна машина.</string>
     <string name="connections_helper_rdp_nla">Включено по умолчанию. Отключите, если сервер отклоняет NLA от Haven (некоторые конфигурации Windows Server 2025 — на сервере должно быть отключено \"Require NLA\" для подключения только по SSL).</string>
     <string name="connections_action_manage_tunnels">Управление туннелями…</string>

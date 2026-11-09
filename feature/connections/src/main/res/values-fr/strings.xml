@@ -324,7 +324,7 @@
     <string name="connections_field_provider">Fournisseur</string>
     <string name="connections_field_tunnel_through_ssh">Tunnel via SSH</string>
     <string name="connections_field_ssh_connection">Connexion SSH</string>
-    <string name="connections_field_username_vnc">Nom d\'utilisateur (facultatif — VeNCrypt uniquement)</string>
+    <string name="connections_field_username_vnc">Nom d\'utilisateur (facultatif — VeNCrypt ou compte macOS)</string>
     <string name="connections_field_password_optional">Mot de passe (facultatif)</string>
     <string name="connections_field_domain_optional">Domaine (facultatif)</string>
     <string name="connections_field_share_name">Nom du partage</string>
@@ -395,7 +395,7 @@
     <string name="connections_field_passphrase">Phrase secrète</string>
     <string name="connections_hint_ifac_passphrase">Phrase secrète IFAC (facultative)</string>
     <string name="connections_helper_vnc_host_via_ssh">Où le serveur VNC est accessible depuis le serveur SSH — généralement 127.0.0.1 s\'il s\'agit de la même machine (wayvnc, etc. ne se lient qu\'au loopback).</string>
-    <string name="connections_helper_vnc_auth">Laissez le nom d\'utilisateur vide pour le VncAuth classique (mot de passe de 8 caractères). Renseignez le nom d\'utilisateur pour VeNCrypt (wayvnc, TigerVNC) — prend en charge des mots de passe plus longs et le chiffrement TLS.</string>
+    <string name="connections_helper_vnc_auth">Laissez le nom d\'utilisateur vide pour le VncAuth classique (mot de passe de 8 caractères). Renseignez le nom d\'utilisateur pour VeNCrypt (wayvnc, TigerVNC) — prend en charge des mots de passe plus longs et le chiffrement TLS. Pour le Partage d\'écran de macOS, saisissez le nom et le mot de passe de votre compte macOS afin de partager votre propre bureau.</string>
     <string name="connections_helper_rdp_host_via_ssh">Où le serveur RDP est accessible depuis le serveur SSH — généralement 127.0.0.1 s\'il s\'agit de la même machine.</string>
     <string name="connections_helper_rdp_nla">Activé par défaut. Désactivez-le si le serveur rejette la NLA de Haven (certaines configurations Windows Server 2025 — le serveur doit avoir \"Require NLA\" désactivé pour se connecter en SSL uniquement).</string>
     <string name="connections_action_manage_tunnels">Gérer les tunnels…</string>

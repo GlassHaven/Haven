@@ -324,7 +324,7 @@
     <string name="connections_field_provider">प्रदाता</string>
     <string name="connections_field_tunnel_through_ssh">SSH के माध्यम से टनल</string>
     <string name="connections_field_ssh_connection">SSH कनेक्शन</string>
-    <string name="connections_field_username_vnc">उपयोगकर्ता नाम (वैकल्पिक — केवल VeNCrypt)</string>
+    <string name="connections_field_username_vnc">उपयोगकर्ता नाम (वैकल्पिक — VeNCrypt या macOS खाता)</string>
     <string name="connections_field_password_optional">पासवर्ड (वैकल्पिक)</string>
     <string name="connections_field_domain_optional">डोमेन (वैकल्पिक)</string>
     <string name="connections_field_share_name">शेयर नाम</string>
@@ -395,7 +395,7 @@
     <string name="connections_field_passphrase">पासफ़्रेज़</string>
     <string name="connections_hint_ifac_passphrase">IFAC पासफ़्रेज़ (वैकल्पिक)</string>
     <string name="connections_helper_vnc_host_via_ssh">SSH सर्वर से VNC सर्वर कहाँ पहुँच योग्य है — आमतौर पर 127.0.0.1 यदि वे एक ही मशीन हैं (wayvnc आदि केवल लूपबैक से बाइंड होते हैं)।</string>
-    <string name="connections_helper_vnc_auth">क्लासिक VncAuth (8-वर्ण पासवर्ड) के लिए उपयोगकर्ता नाम खाली छोड़ें। VeNCrypt (wayvnc, TigerVNC) के लिए उपयोगकर्ता नाम भरें — लंबे पासवर्ड और TLS एन्क्रिप्शन का समर्थन करता है।</string>
+    <string name="connections_helper_vnc_auth">क्लासिक VncAuth (8-वर्ण पासवर्ड) के लिए उपयोगकर्ता नाम खाली छोड़ें। VeNCrypt (wayvnc, TigerVNC) के लिए उपयोगकर्ता नाम भरें — लंबे पासवर्ड और TLS एन्क्रिप्शन का समर्थन करता है। macOS स्क्रीन शेयरिंग के लिए, अपना डेस्कटॉप साझा करने हेतु अपने macOS खाते का नाम और पासवर्ड दर्ज करें।</string>
     <string name="connections_helper_rdp_host_via_ssh">SSH सर्वर से RDP सर्वर कहाँ पहुँच योग्य है — आमतौर पर 127.0.0.1 यदि वे एक ही मशीन हैं।</string>
     <string name="connections_helper_rdp_nla">डिफ़ॉल्ट रूप से चालू। बंद करें यदि सर्वर Haven की NLA अस्वीकार करता है (कुछ Windows Server 2025 सेटअप — केवल-SSL कनेक्ट करने के लिए सर्वर पर \"Require NLA\" अक्षम होना चाहिए)।</string>
     <string name="connections_action_manage_tunnels">टनल प्रबंधित करें…</string>

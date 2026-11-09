@@ -156,6 +156,7 @@
     <string name="terminal_selection_open">Open</string>
     <string name="terminal_selection_macros">Macros</string>
     <string name="terminal_selection_copied">Copied</string>
+    <string name="terminal_selection_copy_one_line">Copy as one line</string>
     <string name="terminal_selection_no_url">No URL detected</string>
     <string name="terminal_selection_anchor_start">Start</string>
     <string name="terminal_selection_anchor_end">End</string>

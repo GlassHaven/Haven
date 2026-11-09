@@ -130,6 +130,7 @@
     <string name="terminal_selection_open">Отвори</string>
     <string name="terminal_selection_macros">Макрои</string>
     <string name="terminal_selection_copied">Копирано</string>
+    <string name="terminal_selection_copy_one_line">Копирај као један ред</string>
     <string name="terminal_selection_no_url">Није детектован URL</string>
     <string name="terminal_selection_anchor_start">Почетак</string>
     <string name="terminal_selection_anchor_end">Крај</string>

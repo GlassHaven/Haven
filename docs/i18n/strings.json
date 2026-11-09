@@ -46647,6 +46647,26 @@
      }
     },
     {
+     "name": "terminal_selection_copy_one_line",
+     "en": "Copy as one line",
+     "comment": "SelectionToolbar button labels and toasts",
+     "args": [],
+     "t": {
+      "ar": "نسخ كسطر واحد",
+      "bn": "এক লাইনে কপি করুন",
+      "de": "Als eine Zeile kopieren",
+      "es": "Copiar en una sola línea",
+      "fr": "Copier sur une seule ligne",
+      "hi": "एक पंक्ति में कॉपी करें",
+      "ja": "1行にしてコピー",
+      "ko": "한 줄로 복사",
+      "pt": "Copiar em uma linha",
+      "ru": "Копировать одной строкой",
+      "sr": "Копирај као један ред",
+      "zh": "复制为一行"
+     }
+    },
+    {
      "name": "terminal_selection_no_url",
      "en": "No URL detected",
      "comment": "SelectionToolbar button labels and toasts",

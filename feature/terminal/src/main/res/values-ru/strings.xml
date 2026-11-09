@@ -110,6 +110,7 @@
     <string name="terminal_selection_open">Открыть</string>
     <string name="terminal_selection_macros">Макросы</string>
     <string name="terminal_selection_copied">Скопировано</string>
+    <string name="terminal_selection_copy_one_line">Копировать одной строкой</string>
     <string name="terminal_selection_no_url">URL не обнаружен</string>
     <string name="terminal_selection_anchor_start">Начало</string>
     <string name="terminal_selection_anchor_end">Конец</string>

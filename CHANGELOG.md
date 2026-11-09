@@ -5,6 +5,11 @@ the corresponding GitHub Release; a release can't ship without its section
 (enforced by `scripts/check-changelog.sh` in CI). The GitHub "Full Changelog"
 compare link is appended automatically — don't add it here.
 
+## v5.94.22
+
+- Add `rmux` as a global and per-connection session manager option across SSH, Mosh, Eternal Terminal, and local PRoot shells, with `~/.local/bin` and `~/.cargo/bin` on `PATH` (#810, thanks @NAZY-OS).
+- Refresh `archlinux-keyring` and update `glibc` and `gcc-libs` (`--needed`) in `Pacman.updateCmd()` and Arch upgrade hooks to avoid `libgcc`/`libstdc++` file conflicts and stale PGP keys on Arch rootfses (#808, #809, thanks @NAZY-OS).
+
 ## v5.94.21
 
 - Add a searchable AI model picker with custom model entry and quick routing suffix chips (`:free`, `:online`, `:nitro`, `:floor`, `:extended`, `:batch`), inline composer slash commands (`/new`, `/clear`, `/model`, `/save`, `/history`), a saved-conversation history sheet, and encrypted backup/restore support for saved AI chats (#807, thanks @n1x0l4s).

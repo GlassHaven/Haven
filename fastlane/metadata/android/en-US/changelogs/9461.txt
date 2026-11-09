@@ -1,0 +1,1 @@
+- Add a searchable AI model picker with custom model entry and quick routing suffix chips (`:free`, `:online`, `:nitro`, `:floor`, `:extended`, `:batch`), inline composer slash commands (`/new`, `/clear`, `/model`, `/save`, `/history`), a saved-conversation history sheet, and encrypted backup/restore support for saved AI chats (#807, thanks @n1x0l4s).

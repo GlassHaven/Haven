@@ -1,0 +1,2 @@
+- Add `rmux` as a global and per-connection session manager option across SSH, Mosh, Eternal Terminal, and local PRoot shells, with `~/.local/bin` and `~/.cargo/bin` on `PATH` (#810, thanks @NAZY-OS).
+- Refresh `archlinux-keyring` and update `glibc` and `gcc-libs` (`--needed`) in `Pacman.updateCmd()` and Arch upgrade hooks to avoid `libgcc`/`libstdc++` file conflicts and stale PGP keys on Arch rootfses (#808, #809, thanks @NAZY-OS).

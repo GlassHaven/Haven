@@ -1,0 +1,4 @@
+- Add Apple Remote Desktop authentication (RFB security type 30) for macOS Screen Sharing when a VNC profile has a username (#801, thanks @boyce-ywr).
+- Add a compose-then-send text bar to the VNC viewer toolbar and fullscreen overlay (#804, thanks @boyce-ywr).
+- Add **Copy as one line** to the terminal selection toolbar (#803, thanks @boyce-ywr).
+- Rebind the IME over a fresh `InputConnection` when returning to the terminal or raising the keyboard (#802, thanks @boyce-ywr).

@@ -5,6 +5,13 @@ the corresponding GitHub Release; a release can't ship without its section
 (enforced by `scripts/check-changelog.sh` in CI). The GitHub "Full Changelog"
 compare link is appended automatically — don't add it here.
 
+## v5.94.19
+
+- Add Apple Remote Desktop authentication (RFB security type 30) for macOS Screen Sharing when a VNC profile has a username (#801, thanks @boyce-ywr).
+- Add a compose-then-send text bar to the VNC viewer toolbar and fullscreen overlay (#804, thanks @boyce-ywr).
+- Add **Copy as one line** to the terminal selection toolbar (#803, thanks @boyce-ywr).
+- Rebind the IME over a fresh `InputConnection` when returning to the terminal or raising the keyboard (#802, thanks @boyce-ywr).
+
 ## v5.94.18
 
 - Show direct item counts (`1 item` / `N items`, respecting the `Show hidden files` toggle) on folder rows in the Files tab instead of the redundant `Directory` subtitle, loading local counts during listing and remote SFTP counts in a single batched SSH command (#800, thanks @zol-c).

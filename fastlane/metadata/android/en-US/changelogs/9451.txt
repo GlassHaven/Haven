@@ -1,0 +1,2 @@
+- Support full `https://` endpoint URLs that include `/v1` (such as `https://openrouter.ai/api/v1`) and deduplicate pre-applied path prefixes in AI endpoint connections, use `https://` for bare hosts on port 443, and omit `:0` from the connection list and edit dialog when no port is set (#806, thanks @n1x0l4s).
+- Preserve scrollback lines in `smartCopy` when a terminal selection spans negative scrollback row indices while the viewport is at the bottom (#805, thanks @del26).

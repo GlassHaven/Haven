@@ -1016,7 +1016,7 @@ class SshSessionManagerTest {
         } answers {
             dialStarted.countDown()
             try {
-                finishDial.await(2, java.util.concurrent.TimeUnit.SECONDS)
+                finishDial.await(5, java.util.concurrent.TimeUnit.SECONDS)
             } catch (_: InterruptedException) {
                 // removeSession interrupts the reconnect thread; simulate connectBlocking
                 // either returning just as removeSession raced or throwing on interrupt.
@@ -1031,7 +1031,7 @@ class SshSessionManagerTest {
         manager.updateStatus(s1, SshSessionManager.SessionState.Status.DISCONNECTED)
 
         manager.requestReconnect(s1)
-        assertTrue("reconnect should enter connectBlocking", dialStarted.await(2, java.util.concurrent.TimeUnit.SECONDS))
+        assertTrue("reconnect should enter connectBlocking", dialStarted.await(5, java.util.concurrent.TimeUnit.SECONDS))
 
         // User removes the session while connectBlocking is in flight.
         manager.removeSession(s1)

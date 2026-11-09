@@ -5,6 +5,10 @@ the corresponding GitHub Release; a release can't ship without its section
 (enforced by `scripts/check-changelog.sh` in CI). The GitHub "Full Changelog"
 compare link is appended automatically — don't add it here.
 
+## v5.94.17
+
+- Run same-session SFTP file and folder moves (`rename` with `mv -f` fallback across mountpoints) and copies (`cp -Rfp` over SSH `exec`, falling back to stream transfer on SFTP-only hosts) directly on the remote server instead of downloading to local cache and re-uploading (#798, thanks @zol-c).
+
 ## v5.94.16
 
 - Support selecting multiple files in **Attach → Send a file** (`OpenMultipleDocuments`), uploading the batch into one chosen SFTP/rclone destination folder and pasting their space-separated shell-quoted paths at the terminal cursor (#797, thanks @boyce-ywr).

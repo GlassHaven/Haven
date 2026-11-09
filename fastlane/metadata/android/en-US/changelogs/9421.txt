@@ -1,0 +1,1 @@
+- Run same-session SFTP file and folder moves (`rename` with `mv -f` fallback across mountpoints) and copies (`cp -Rfp` over SSH `exec`, falling back to stream transfer on SFTP-only hosts) directly on the remote server instead of downloading to local cache and re-uploading (#798, thanks @zol-c).

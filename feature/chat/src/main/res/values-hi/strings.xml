@@ -27,4 +27,10 @@
     <string name="chat_paste_image">इमेज पेस्ट करें</string>
     <string name="chat_copy_image_failed">वह इमेज कॉपी नहीं हो सकी</string>
     <string name="chat_paste_image_unavailable">क्लिपबोर्ड पर कोई इमेज नहीं है</string>
+    <string name="chat_new_session">नई चैट</string>
+    <string name="chat_history_title">सहेजी गई बातचीत</string>
+    <string name="chat_history_empty">अभी तक कोई सहेजी गई बातचीत नहीं है</string>
+    <string name="chat_delete_conversation">बातचीत हटाएं</string>
+    <string name="chat_search_models">मॉडल खोजें या आईडी दर्ज करें</string>
+    <string name="chat_use_custom_model">"%1$s" का उपयोग करें</string>
 </resources>

@@ -61,6 +61,7 @@ class BackupServiceTest {
     private lateinit var tunnelConfigRepository: TunnelConfigRepository
     private lateinit var sshIdentityRepository: sh.haven.core.data.repository.SshIdentityRepository
     private lateinit var totpSecretRepository: sh.haven.core.data.repository.TotpSecretRepository
+    private lateinit var chatRepository: sh.haven.core.data.repository.ChatRepository
     private lateinit var dataStore: DataStore<Preferences>
     private lateinit var service: BackupService
 
@@ -76,14 +77,16 @@ class BackupServiceTest {
         tunnelConfigRepository = mockk(relaxed = true)
         sshIdentityRepository = mockk(relaxed = true)
         totpSecretRepository = mockk(relaxed = true)
+        chatRepository = mockk(relaxed = true)
         // Default: no tunnels / identities stored. Individual tests override.
         coEvery { tunnelConfigRepository.getAllDecrypted() } returns emptyList()
         coEvery { sshIdentityRepository.getAllDecrypted() } returns emptyList()
+        coEvery { chatRepository.getAllConversations() } returns emptyList()
 
         val prefsFile = File(tempFolder.root, "test.preferences_pb")
         dataStore = PreferenceDataStoreFactory.create { prefsFile }
 
-        service = BackupService(connectionDao, connectionRepository, connectionGroupDao, sshKeyDao, sshKeyRepository, knownHostDao, portForwardRuleDao, tunnelConfigRepository, sshIdentityRepository, totpSecretRepository, dataStore)
+        service = BackupService(connectionDao, connectionRepository, connectionGroupDao, sshKeyDao, sshKeyRepository, knownHostDao, portForwardRuleDao, tunnelConfigRepository, sshIdentityRepository, totpSecretRepository, dataStore, chatRepository)
     }
 
     // -- Encrypt/Decrypt roundtrip --
@@ -783,7 +786,7 @@ class BackupServiceTest {
             File(tempFolder.root, "importer-${System.nanoTime()}.preferences_pb")
         }
         return BackupServicePair(
-            service = BackupService(cd, cr, cgd, skd, skr, khd, pfd, tcr, sir, mockk(relaxed = true), ds),
+            service = BackupService(cd, cr, cgd, skd, skr, khd, pfd, tcr, sir, mockk(relaxed = true), ds, mockk(relaxed = true)),
             connectionRepository = cr,
             sshKeyRepository = skr,
             knownHostDao = khd,
@@ -1028,5 +1031,52 @@ class BackupServiceTest {
         val result = service.import(encrypted, "pw")
 
         assertTrue("no errors expected, got ${result.errors}", result.errors.isEmpty())
+    }
+
+    @Test
+    fun `saved chat conversations and messages survive export-import roundtrip (#807)`() = runTest {
+        coEvery { connectionRepository.getAll() } returns emptyList()
+        coEvery { sshKeyDao.getAll() } returns emptyList()
+        coEvery { sshKeyRepository.getAllDecrypted() } returns emptyList()
+        coEvery { knownHostDao.getAll() } returns emptyList()
+        coEvery { portForwardRuleDao.getAll() } returns emptyList()
+        coEvery { totpSecretRepository.getAll() } returns emptyList()
+        val conv = sh.haven.core.data.db.entities.ChatConversation(
+            id = "conv-1",
+            profileId = "prof-1",
+            title = "OpenRouter test",
+            createdAt = 1700000000000L,
+            savedAt = 1700000001000L,
+            updatedAt = 1700000002000L,
+        )
+        val msg = sh.haven.core.data.db.entities.ChatMessage(
+            id = "msg-1",
+            conversationId = "conv-1",
+            role = "assistant",
+            content = "Hello from deepseek:free",
+            model = "deepseek/deepseek-chat:free",
+            attachments = null,
+            createdAt = 1700000002000L,
+        )
+        coEvery { chatRepository.getAllConversations() } returns listOf(conv)
+        coEvery { chatRepository.getMessages("conv-1") } returns listOf(msg)
+
+        val savedConv = slot<sh.haven.core.data.db.entities.ChatConversation>()
+        val savedMsg = slot<sh.haven.core.data.db.entities.ChatMessage>()
+        coEvery { chatRepository.saveConversation(capture(savedConv)) } returns Unit
+        coEvery { chatRepository.saveMessage(capture(savedMsg)) } returns Unit
+
+        val encrypted = service.export("pw123")
+        val result = service.import(encrypted, "pw123")
+
+        assertTrue(result.errors.isEmpty())
+        assertEquals("conv-1", savedConv.captured.id)
+        assertEquals("prof-1", savedConv.captured.profileId)
+        assertEquals("OpenRouter test", savedConv.captured.title)
+        assertEquals("msg-1", savedMsg.captured.id)
+        assertEquals("conv-1", savedMsg.captured.conversationId)
+        assertEquals("assistant", savedMsg.captured.role)
+        assertEquals("Hello from deepseek:free", savedMsg.captured.content)
+        assertEquals("deepseek/deepseek-chat:free", savedMsg.captured.model)
     }
 }

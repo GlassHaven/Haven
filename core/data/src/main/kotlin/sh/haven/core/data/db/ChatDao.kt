@@ -14,6 +14,9 @@ interface ChatConversationDao {
     @Query("SELECT * FROM chat_conversations ORDER BY updatedAt DESC")
     fun observeAll(): Flow<List<ChatConversation>>
 
+    @Query("SELECT * FROM chat_conversations ORDER BY updatedAt DESC")
+    suspend fun getAll(): List<ChatConversation>
+
     @Query("SELECT * FROM chat_conversations WHERE id = :id")
     suspend fun getById(id: String): ChatConversation?
 

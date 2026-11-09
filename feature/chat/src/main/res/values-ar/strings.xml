@@ -27,4 +27,10 @@
     <string name="chat_paste_image">لصق صورة</string>
     <string name="chat_copy_image_failed">تعذّر نسخ هذه الصورة</string>
     <string name="chat_paste_image_unavailable">لا توجد صورة في الحافظة</string>
+    <string name="chat_new_session">محادثة جديدة</string>
+    <string name="chat_history_title">المحادثات المحفوظة</string>
+    <string name="chat_history_empty">لا توجد محادثات محفوظة بعد</string>
+    <string name="chat_delete_conversation">حذف المحادثة</string>
+    <string name="chat_search_models">ابحث أو أدخل معرّف النموذج</string>
+    <string name="chat_use_custom_model">استخدام "%1$s"</string>
 </resources>

@@ -23,25 +23,35 @@ import androidx.compose.foundation.layout.imePadding
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.lazy.LazyColumn
+import androidx.compose.foundation.lazy.LazyRow
 import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.lazy.rememberLazyListState
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.filled.Add
 import androidx.compose.material.icons.filled.AddPhotoAlternate
+import androidx.compose.material.icons.filled.ArrowDropDown
 import androidx.compose.material.icons.filled.Bookmark
 import androidx.compose.material.icons.filled.BookmarkBorder
 import androidx.compose.material.icons.filled.Close
 import androidx.compose.material.icons.filled.ContentCopy
 import androidx.compose.material.icons.filled.ContentPaste
+import androidx.compose.material.icons.filled.Delete
+import androidx.compose.material.icons.filled.History
 import androidx.compose.material.icons.filled.Photo
 import androidx.compose.material.icons.filled.Send
 import androidx.compose.material.icons.filled.Stop
+import androidx.compose.material3.AssistChip
 import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.DropdownMenu
 import androidx.compose.material3.DropdownMenuItem
+import androidx.compose.material3.FilterChip
+import androidx.compose.material3.HorizontalDivider
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
+import androidx.compose.material3.ListItem
 import androidx.compose.material3.MaterialTheme
+import androidx.compose.material3.ModalBottomSheet
 import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.Scaffold
 import androidx.compose.material3.Text
@@ -102,6 +112,8 @@ fun ChatScreen(
     // FileProvider cache URI we control; PickVisualMedia returns a transient
     // picker URI consumed immediately by stageImage.
     var attachSheetVisible by remember { mutableStateOf(false) }
+    var modelSheetVisible by remember { mutableStateOf(false) }
+    var historySheetVisible by remember { mutableStateOf(false) }
     var cameraOutputUri by remember { mutableStateOf<Uri?>(null) }
     val cameraLauncher = rememberLauncherForActivityResult(
         ActivityResultContracts.TakePicture(),
@@ -171,6 +183,24 @@ fun ChatScreen(
                 title = { Text(ui.label.ifBlank { stringResource(R.string.chat_title) }) },
                 actions = {
                     IconButton(
+                        onClick = { viewModel.newConversation() },
+                        enabled = ui.profileId != null,
+                    ) {
+                        Icon(
+                            imageVector = Icons.Filled.Add,
+                            contentDescription = stringResource(R.string.chat_new_session),
+                        )
+                    }
+                    IconButton(
+                        onClick = { historySheetVisible = true },
+                        enabled = ui.profileId != null,
+                    ) {
+                        Icon(
+                            imageVector = Icons.Filled.History,
+                            contentDescription = stringResource(R.string.chat_history_title),
+                        )
+                    }
+                    IconButton(
                         onClick = { viewModel.toggleSave() },
                         enabled = ui.profileId != null,
                     ) {
@@ -202,9 +232,9 @@ fun ChatScreen(
                 .padding(padding),
         ) {
             ModelSelector(
-                models = ui.models,
                 selected = ui.selectedModel,
-                onSelect = viewModel::selectModel,
+                onOpenPicker = { modelSheetVisible = true },
+                onToggleFlavour = viewModel::toggleModelFlavour,
             )
             ui.error?.let { error ->
                 TextButton(
@@ -233,6 +263,23 @@ fun ChatScreen(
                 onRemoveStaged = viewModel::removeStaged,
                 onSend = viewModel::send,
                 onStop = viewModel::stopStreaming,
+                onSlashCommand = { cmd ->
+                    when (cmd) {
+                        ChatSlashCommands.ParsedSlashCommand.NewSession,
+                        ChatSlashCommands.ParsedSlashCommand.ClearTranscript,
+                        -> viewModel.newConversation()
+                        ChatSlashCommands.ParsedSlashCommand.ToggleSave -> viewModel.toggleSave()
+                        ChatSlashCommands.ParsedSlashCommand.OpenHistory -> historySheetVisible = true
+                        is ChatSlashCommands.ParsedSlashCommand.SelectModel -> {
+                            val arg = cmd.modelOrFlavour
+                            when {
+                                arg.isNullOrBlank() -> modelSheetVisible = true
+                                arg.startsWith(":") -> viewModel.toggleModelFlavour(arg)
+                                else -> viewModel.selectModel(arg)
+                            }
+                        }
+                    }
+                },
             )
         }
     }
@@ -246,28 +293,225 @@ fun ChatScreen(
             },
         )
     }
+
+    if (modelSheetVisible) {
+        ModelPickerSheet(
+            models = ui.models,
+            selected = ui.selectedModel,
+            onDismiss = { modelSheetVisible = false },
+            onSelect = { modelId ->
+                viewModel.selectModel(modelId)
+                modelSheetVisible = false
+            },
+            onToggleFlavour = viewModel::toggleModelFlavour,
+        )
+    }
+
+    if (historySheetVisible) {
+        ChatHistorySheet(
+            conversations = ui.savedConversations,
+            activeConversationId = ui.activeConversationId,
+            onDismiss = { historySheetVisible = false },
+            onSelectConversation = { id ->
+                viewModel.loadConversation(id)
+                historySheetVisible = false
+            },
+            onDeleteConversation = viewModel::deleteSavedConversation,
+            onNewConversation = {
+                viewModel.newConversation()
+                historySheetVisible = false
+            },
+        )
+    }
 }
 
 @Composable
 private fun ModelSelector(
+    selected: String?,
+    onOpenPicker: () -> Unit,
+    onToggleFlavour: (String) -> Unit,
+) {
+    val activeFlavour = ChatModelFlavours.activeFlavour(selected)
+    Column(modifier = Modifier.fillMaxWidth()) {
+        Row(
+            verticalAlignment = Alignment.CenterVertically,
+            modifier = Modifier
+                .fillMaxWidth()
+                .padding(horizontal = 8.dp),
+        ) {
+            TextButton(onClick = onOpenPicker) {
+                Text(selected ?: stringResource(R.string.chat_no_model))
+                Icon(Icons.Filled.ArrowDropDown, contentDescription = null)
+            }
+            if (!selected.isNullOrBlank()) {
+                LazyRow(
+                    horizontalArrangement = Arrangement.spacedBy(6.dp),
+                    modifier = Modifier.weight(1f),
+                ) {
+                    items(ChatModelFlavours.FLAVOUR_SUFFIXES) { suffix ->
+                        FilterChip(
+                            selected = activeFlavour == suffix,
+                            onClick = { onToggleFlavour(suffix) },
+                            label = { Text(suffix) },
+                        )
+                    }
+                }
+            }
+        }
+    }
+}
+
+@OptIn(androidx.compose.material3.ExperimentalMaterial3Api::class)
+@Composable
+private fun ModelPickerSheet(
     models: List<sh.haven.core.openai.ModelInfo>,
     selected: String?,
+    onDismiss: () -> Unit,
     onSelect: (String) -> Unit,
+    onToggleFlavour: (String) -> Unit,
 ) {
-    var expanded by remember { mutableStateOf(false) }
-    Box {
-        TextButton(onClick = { expanded = true }) {
-            Text(selected ?: stringResource(R.string.chat_no_model))
-        }
-        DropdownMenu(expanded = expanded, onDismissRequest = { expanded = false }) {
-            models.forEach { model ->
-                DropdownMenuItem(
-                    text = { Text(model.id) },
-                    onClick = {
-                        onSelect(model.id)
-                        expanded = false
+    var query by remember { mutableStateOf("") }
+    val filtered = remember(models, query) { ChatModelFlavours.filterModels(models, query) }
+    val activeFlavour = ChatModelFlavours.activeFlavour(selected)
+    val trimmedQuery = query.trim()
+    val exactMatch = remember(models, trimmedQuery) {
+        trimmedQuery.isNotEmpty() && models.any { it.id.equals(trimmedQuery, ignoreCase = true) }
+    }
+    ModalBottomSheet(onDismissRequest = onDismiss) {
+        Column(
+            modifier = Modifier
+                .fillMaxWidth()
+                .padding(horizontal = 16.dp, vertical = 8.dp),
+            verticalArrangement = Arrangement.spacedBy(8.dp),
+        ) {
+            OutlinedTextField(
+                value = query,
+                onValueChange = { query = it },
+                placeholder = { Text(stringResource(R.string.chat_search_models)) },
+                singleLine = true,
+                trailingIcon = {
+                    if (query.isNotEmpty()) {
+                        IconButton(onClick = { query = "" }) {
+                            Icon(Icons.Filled.Close, contentDescription = null)
+                        }
+                    }
+                },
+                modifier = Modifier.fillMaxWidth(),
+            )
+            LazyRow(horizontalArrangement = Arrangement.spacedBy(6.dp)) {
+                items(ChatModelFlavours.FLAVOUR_SUFFIXES) { suffix ->
+                    FilterChip(
+                        selected = activeFlavour == suffix,
+                        onClick = { onToggleFlavour(suffix) },
+                        label = { Text(suffix) },
+                    )
+                }
+            }
+            if (trimmedQuery.isNotEmpty() && !exactMatch) {
+                ListItem(
+                    headlineContent = {
+                        Text(stringResource(R.string.chat_use_custom_model, trimmedQuery))
                     },
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .clickable { onSelect(trimmedQuery) },
                 )
+                HorizontalDivider()
+            }
+            LazyColumn(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .heightIn(max = 360.dp),
+            ) {
+                items(filtered, key = { it.id }) { model ->
+                    val candidateId = if (activeFlavour != null && ChatModelFlavours.activeFlavour(model.id) == null) {
+                        model.id + activeFlavour
+                    } else {
+                        model.id
+                    }
+                    ListItem(
+                        headlineContent = { Text(model.id) },
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .clickable { onSelect(candidateId) },
+                    )
+                }
+            }
+        }
+    }
+}
+
+@OptIn(androidx.compose.material3.ExperimentalMaterial3Api::class)
+@Composable
+private fun ChatHistorySheet(
+    conversations: List<sh.haven.core.data.db.entities.ChatConversation>,
+    activeConversationId: String?,
+    onDismiss: () -> Unit,
+    onSelectConversation: (String) -> Unit,
+    onDeleteConversation: (String) -> Unit,
+    onNewConversation: () -> Unit,
+) {
+    ModalBottomSheet(onDismissRequest = onDismiss) {
+        Column(
+            modifier = Modifier
+                .fillMaxWidth()
+                .padding(horizontal = 16.dp, vertical = 8.dp),
+            verticalArrangement = Arrangement.spacedBy(8.dp),
+        ) {
+            Row(
+                modifier = Modifier.fillMaxWidth(),
+                horizontalArrangement = Arrangement.SpaceBetween,
+                verticalAlignment = Alignment.CenterVertically,
+            ) {
+                Text(
+                    text = stringResource(R.string.chat_history_title),
+                    style = MaterialTheme.typography.titleMedium,
+                )
+                TextButton(onClick = onNewConversation) {
+                    Icon(Icons.Filled.Add, contentDescription = null)
+                    Text(stringResource(R.string.chat_new_session))
+                }
+            }
+            if (conversations.isEmpty()) {
+                Text(
+                    text = stringResource(R.string.chat_history_empty),
+                    style = MaterialTheme.typography.bodyMedium,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant,
+                    modifier = Modifier.padding(vertical = 16.dp),
+                )
+            } else {
+                LazyColumn(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .heightIn(max = 360.dp),
+                ) {
+                    items(conversations, key = { it.id }) { conv ->
+                        val isCurrent = conv.id == activeConversationId
+                        ListItem(
+                            headlineContent = {
+                                Text(
+                                    text = conv.title.ifBlank { stringResource(R.string.chat_title) },
+                                    color = if (isCurrent) {
+                                        MaterialTheme.colorScheme.primary
+                                    } else {
+                                        MaterialTheme.colorScheme.onSurface
+                                    },
+                                )
+                            },
+                            trailingContent = {
+                                IconButton(onClick = { onDeleteConversation(conv.id) }) {
+                                    Icon(
+                                        Icons.Filled.Delete,
+                                        contentDescription = stringResource(R.string.chat_delete_conversation),
+                                    )
+                                }
+                            },
+                            modifier = Modifier
+                                .fillMaxWidth()
+                                .clickable { onSelectConversation(conv.id) },
+                        )
+                    }
+                }
             }
         }
     }
@@ -439,8 +683,10 @@ private fun Composer(
     onRemoveStaged: (String) -> Unit,
     onSend: (String) -> Unit,
     onStop: () -> Unit,
+    onSlashCommand: (ChatSlashCommands.ParsedSlashCommand) -> Unit,
 ) {
     var text by remember { mutableStateOf("") }
+    val slashSuggestions = remember(text) { ChatSlashCommands.suggestionsFor(text) }
     val context = LocalContext.current
     val view = LocalView.current
     val pasteUnavailable = stringResource(R.string.chat_paste_image_unavailable)
@@ -471,6 +717,29 @@ private fun Composer(
             .imePadding()
             .padding(8.dp),
     ) {
+        if (slashSuggestions.isNotEmpty()) {
+            LazyRow(
+                horizontalArrangement = Arrangement.spacedBy(6.dp),
+                modifier = Modifier.padding(bottom = 6.dp),
+            ) {
+                items(slashSuggestions, key = { it.command }) { item ->
+                    AssistChip(
+                        onClick = {
+                            if (item.takesArgument && text.trim() == item.command) {
+                                ChatSlashCommands.parse(item.command)?.let(onSlashCommand)
+                                text = ""
+                            } else if (item.takesArgument && !text.startsWith("${item.command} ")) {
+                                text = "${item.command} "
+                            } else {
+                                ChatSlashCommands.parse(item.command)?.let(onSlashCommand)
+                                text = ""
+                            }
+                        },
+                        label = { Text(item.command) },
+                    )
+                }
+            }
+        }
         if (staged.isNotEmpty()) {
             Row(
                 horizontalArrangement = Arrangement.spacedBy(8.dp),
@@ -528,7 +797,12 @@ private fun Composer(
             } else {
                 IconButton(
                     onClick = {
-                        onSend(text)
+                        val slash = ChatSlashCommands.parse(text)
+                        if (slash != null && staged.isEmpty()) {
+                            onSlashCommand(slash)
+                        } else {
+                            onSend(text)
+                        }
                         text = ""
                     },
                     enabled = text.isNotBlank() || staged.isNotEmpty(),

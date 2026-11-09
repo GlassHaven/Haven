@@ -27,4 +27,10 @@
     <string name="chat_paste_image">粘贴图片</string>
     <string name="chat_copy_image_failed">无法复制该图片</string>
     <string name="chat_paste_image_unavailable">剪贴板中没有图片</string>
+    <string name="chat_new_session">新对话</string>
+    <string name="chat_history_title">已保存的对话</string>
+    <string name="chat_history_empty">暂无已保存的对话</string>
+    <string name="chat_delete_conversation">删除对话</string>
+    <string name="chat_search_models">搜索或输入模型 ID</string>
+    <string name="chat_use_custom_model">使用 "%1$s"</string>
 </resources>

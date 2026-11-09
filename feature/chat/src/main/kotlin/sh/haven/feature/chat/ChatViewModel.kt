@@ -56,6 +56,8 @@ data class ChatUiState(
     val streaming: Boolean = false,
     /** Opt-in save: false = ephemeral (memory only), true = persisted encrypted. */
     val saveEnabled: Boolean = false,
+    val activeConversationId: String? = null,
+    val savedConversations: List<ChatConversation> = emptyList(),
     /** Images staged in the composer, awaiting the next send. */
     val staged: List<StagedImage> = emptyList(),
     val error: String? = null,
@@ -85,6 +87,7 @@ class ChatViewModel @Inject constructor(
     val ui: StateFlow<ChatUiState> = _ui.asStateFlow()
 
     private var streamJob: Job? = null
+    private var conversationsJob: Job? = null
     private var conversationId: String? = null
 
     /** Composer staging cap; bounds the request payload a single send can reach. */
@@ -101,6 +104,7 @@ class ChatViewModel @Inject constructor(
     fun attach(profileId: String) {
         if (_ui.value.profileId == profileId) return
         streamJob?.cancel()
+        conversationsJob?.cancel()
         conversationId = null
         val session = openAiSessionManager.getSessionsForProfile(profileId)
             .firstOrNull { it.status == OpenAiSessionManager.SessionState.Status.CONNECTED }
@@ -110,9 +114,86 @@ class ChatViewModel @Inject constructor(
             models = session?.models.orEmpty(),
             selectedModel = session?.models?.firstOrNull()?.id,
         )
+        conversationsJob = viewModelScope.launch {
+            runCatching {
+                chatRepository.observeAll().collect { all ->
+                    _ui.update { s ->
+                        s.copy(savedConversations = all.filter { it.profileId == profileId })
+                    }
+                }
+            }
+        }
     }
 
     fun selectModel(id: String) = _ui.update { it.copy(selectedModel = id) }
+
+    fun toggleModelFlavour(suffix: String) = _ui.update { s ->
+        val current = s.selectedModel ?: return@update s
+        s.copy(selectedModel = ChatModelFlavours.toggleFlavour(current, suffix))
+    }
+
+    /** Start a fresh ephemeral session on the attached profile (#807). */
+    fun newConversation() {
+        streamJob?.cancel()
+        streamJob = null
+        conversationId = null
+        _ui.update { s ->
+            s.copy(
+                messages = emptyList(),
+                streaming = false,
+                saveEnabled = false,
+                activeConversationId = null,
+                staged = emptyList(),
+                error = null,
+            )
+        }
+    }
+
+    /** Load a previously saved conversation into the active transcript (#807). */
+    fun loadConversation(id: String) {
+        val profileId = _ui.value.profileId ?: return
+        streamJob?.cancel()
+        streamJob = null
+        viewModelScope.launch {
+            val conv = chatRepository.getConversation(id) ?: return@launch
+            if (conv.profileId != profileId) return@launch
+            val savedMessages = chatRepository.getMessages(id)
+            val uiMessages = savedMessages.map { m ->
+                ChatUiMessage(
+                    id = m.id,
+                    role = m.role,
+                    text = m.content,
+                    pending = false,
+                    model = m.model,
+                    images = deserializeAttachments(m.attachments),
+                )
+            }
+            val lastModel = savedMessages.lastOrNull { !it.model.isNullOrBlank() }?.model
+            conversationId = id
+            _ui.update { s ->
+                s.copy(
+                    messages = uiMessages,
+                    streaming = false,
+                    saveEnabled = true,
+                    activeConversationId = id,
+                    selectedModel = lastModel ?: s.selectedModel,
+                    staged = emptyList(),
+                    error = null,
+                )
+            }
+        }
+    }
+
+    /** Delete a saved conversation; if it was the active one, revert to unsaved (#807). */
+    fun deleteSavedConversation(id: String) {
+        viewModelScope.launch {
+            chatRepository.deleteConversation(id)
+        }
+        if (conversationId == id) {
+            conversationId = null
+            _ui.update { it.copy(saveEnabled = false, activeConversationId = null) }
+        }
+    }
 
     /**
      * Decode + downscale a picked/captured image and stage it for the next
@@ -205,9 +286,13 @@ class ChatViewModel @Inject constructor(
             )
         }
 
+        val hadUserMessage = state.messages.any { it.role == "user" }
         val conversation = ensureConversation(profileId)
         if (conversation != null) {
             viewModelScope.launch {
+                if (!hadUserMessage && trimmed.isNotEmpty()) {
+                    chatRepository.rename(conversation, trimmed.take(80))
+                }
                 chatRepository.saveMessage(
                     SavedChatMessage(
                         conversationId = conversation,
@@ -310,14 +395,14 @@ class ChatViewModel @Inject constructor(
                     )
                 }
             }
-            _ui.update { it.copy(saveEnabled = true) }
+            _ui.update { it.copy(saveEnabled = true, activeConversationId = conversation) }
         } else {
             val id = conversationId
             if (id != null) {
                 viewModelScope.launch { chatRepository.deleteConversation(id) }
             }
             conversationId = null
-            _ui.update { it.copy(saveEnabled = false) }
+            _ui.update { it.copy(saveEnabled = false, activeConversationId = null) }
         }
     }
 
@@ -407,8 +492,24 @@ class ChatViewModel @Inject constructor(
         }.toString()
     }
 
+    private fun deserializeAttachments(raw: String?): List<ChatImage> {
+        if (raw.isNullOrBlank()) return emptyList()
+        return runCatching {
+            val arr = JSONArray(raw)
+            buildList {
+                for (i in 0 until arr.length()) {
+                    val obj = arr.optJSONObject(i) ?: continue
+                    val mime = obj.optString("mimeType").takeIf { it.isNotBlank() } ?: continue
+                    val b64 = obj.optString("base64").takeIf { it.isNotBlank() } ?: continue
+                    add(ChatImage(mime, b64))
+                }
+            }
+        }.getOrDefault(emptyList())
+    }
+
     override fun onCleared() {
         streamJob?.cancel()
+        conversationsJob?.cancel()
         super.onCleared()
     }
 }

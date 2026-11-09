@@ -27,4 +27,10 @@
     <string name="chat_paste_image">Coller l\'image</string>
     <string name="chat_copy_image_failed">Impossible de copier cette image</string>
     <string name="chat_paste_image_unavailable">Aucune image dans le presse-papiers</string>
+    <string name="chat_new_session">Nouvelle discussion</string>
+    <string name="chat_history_title">Conversations enregistrées</string>
+    <string name="chat_history_empty">Aucune conversation enregistrée pour le moment</string>
+    <string name="chat_delete_conversation">Supprimer la conversation</string>
+    <string name="chat_search_models">Rechercher ou saisir l\'ID du modèle</string>
+    <string name="chat_use_custom_model">Utiliser "%1$s"</string>
 </resources>

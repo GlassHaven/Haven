@@ -51,6 +51,7 @@ class BackupService @Inject constructor(
     private val sshIdentityRepository: sh.haven.core.data.repository.SshIdentityRepository,
     private val totpSecretRepository: sh.haven.core.data.repository.TotpSecretRepository,
     private val dataStore: DataStore<Preferences>,
+    private val chatRepository: sh.haven.core.data.repository.ChatRepository,
 ) {
     data class BackupResult(val count: Int, val errors: List<String> = emptyList())
 
@@ -291,6 +292,35 @@ class BackupService @Inject constructor(
             })
         }
         json.put("portForwards", forwards)
+
+        // Saved AI chat conversations and their messages (#807)
+        if (chatRepository != null) {
+            val chatConversations = JSONArray()
+            chatRepository.getAllConversations().forEach { conv ->
+                val messagesJson = JSONArray()
+                chatRepository.getMessages(conv.id).forEach { msg ->
+                    messagesJson.put(JSONObject().apply {
+                        put("id", msg.id)
+                        put("conversationId", msg.conversationId)
+                        put("role", msg.role)
+                        put("content", msg.content)
+                        put("model", msg.model ?: JSONObject.NULL)
+                        put("attachments", msg.attachments ?: JSONObject.NULL)
+                        put("createdAt", msg.createdAt)
+                    })
+                }
+                chatConversations.put(JSONObject().apply {
+                    put("id", conv.id)
+                    put("profileId", conv.profileId)
+                    put("title", conv.title)
+                    put("createdAt", conv.createdAt)
+                    put("savedAt", conv.savedAt)
+                    put("updatedAt", conv.updatedAt)
+                    put("messages", messagesJson)
+                })
+            }
+            json.put("chatConversations", chatConversations)
+        }
 
         // Settings (DataStore preferences)
         val settings = JSONObject()
@@ -621,6 +651,47 @@ class BackupService @Inject constructor(
                     count++
                 } catch (e: Exception) {
                     errors.add("PortForward ${i}: ${e.message}")
+                }
+            }
+        }
+
+        // Saved AI chat conversations and messages (#807)
+        val chatConversations = json.optJSONArray("chatConversations")
+        if (chatConversations != null && chatRepository != null) {
+            for (i in 0 until chatConversations.length()) {
+                try {
+                    val conv = chatConversations.getJSONObject(i)
+                    val convId = conv.getString("id")
+                    chatRepository.saveConversation(
+                        sh.haven.core.data.db.entities.ChatConversation(
+                            id = convId,
+                            profileId = conv.getString("profileId"),
+                            title = conv.getString("title"),
+                            createdAt = conv.optLong("createdAt", System.currentTimeMillis()),
+                            savedAt = conv.optLong("savedAt", System.currentTimeMillis()),
+                            updatedAt = conv.optLong("updatedAt", System.currentTimeMillis()),
+                        ),
+                    )
+                    count++
+                    val messages = conv.optJSONArray("messages")
+                    if (messages != null) {
+                        for (j in 0 until messages.length()) {
+                            val m = messages.getJSONObject(j)
+                            chatRepository.saveMessage(
+                                sh.haven.core.data.db.entities.ChatMessage(
+                                    id = m.getString("id"),
+                                    conversationId = m.optString("conversationId", convId),
+                                    role = m.getString("role"),
+                                    content = m.getString("content"),
+                                    model = m.optStringOrNull("model"),
+                                    attachments = m.optStringOrNull("attachments"),
+                                    createdAt = m.optLong("createdAt", System.currentTimeMillis()),
+                                ),
+                            )
+                        }
+                    }
+                } catch (e: Exception) {
+                    errors.add("ChatConversation ${i}: ${e.message}")
                 }
             }
         }

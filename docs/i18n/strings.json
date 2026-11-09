@@ -8835,6 +8835,128 @@
       "sr": "Нема слике у остави",
       "zh": "剪贴板中没有图片"
      }
+    },
+    {
+     "name": "chat_new_session",
+     "en": "New chat",
+     "comment": "",
+     "args": [],
+     "t": {
+      "ar": "محادثة جديدة",
+      "bn": "নতুন চ্যাট",
+      "de": "Neuer Chat",
+      "es": "Nuevo chat",
+      "fr": "Nouvelle discussion",
+      "hi": "नई चैट",
+      "ja": "新しいチャット",
+      "ko": "새 채팅",
+      "pt": "Novo chat",
+      "ru": "Новый чат",
+      "sr": "Нови разговор",
+      "zh": "新对话"
+     }
+    },
+    {
+     "name": "chat_history_title",
+     "en": "Saved conversations",
+     "comment": "",
+     "args": [],
+     "t": {
+      "ar": "المحادثات المحفوظة",
+      "bn": "সংরক্ষিত কথোপকথন",
+      "de": "Gespeicherte Unterhaltungen",
+      "es": "Conversaciones guardadas",
+      "fr": "Conversations enregistrées",
+      "hi": "सहेजी गई बातचीत",
+      "ja": "保存済みの会話",
+      "ko": "저장된 대화",
+      "pt": "Conversas salvas",
+      "ru": "Сохранённые диалоги",
+      "sr": "Сачувани разговори",
+      "zh": "已保存的对话"
+     }
+    },
+    {
+     "name": "chat_history_empty",
+     "en": "No saved conversations yet",
+     "comment": "",
+     "args": [],
+     "t": {
+      "ar": "لا توجد محادثات محفوظة بعد",
+      "bn": "এখনও কোনো সংরক্ষিত কথোপকথন নেই",
+      "de": "Noch keine gespeicherten Unterhaltungen",
+      "es": "Aún no hay conversaciones guardadas",
+      "fr": "Aucune conversation enregistrée pour le moment",
+      "hi": "अभी तक कोई सहेजी गई बातचीत नहीं है",
+      "ja": "保存済みの会話はまだありません",
+      "ko": "저장된 대화가 없습니다",
+      "pt": "Nenhuma conversa salva ainda",
+      "ru": "Сохранённых диалогов пока нет",
+      "sr": "Још нема сачуваних разговора",
+      "zh": "暂无已保存的对话"
+     }
+    },
+    {
+     "name": "chat_delete_conversation",
+     "en": "Delete conversation",
+     "comment": "",
+     "args": [],
+     "t": {
+      "ar": "حذف المحادثة",
+      "bn": "কথোপকথন মুছুন",
+      "de": "Unterhaltung löschen",
+      "es": "Eliminar conversación",
+      "fr": "Supprimer la conversation",
+      "hi": "बातचीत हटाएं",
+      "ja": "会話を削除",
+      "ko": "대화 삭제",
+      "pt": "Excluir conversa",
+      "ru": "Удалить диалог",
+      "sr": "Обриши разговор",
+      "zh": "删除对话"
+     }
+    },
+    {
+     "name": "chat_search_models",
+     "en": "Search or enter model ID",
+     "comment": "",
+     "args": [],
+     "t": {
+      "ar": "ابحث أو أدخل معرّف النموذج",
+      "bn": "মডেল খুঁজুন বা আইডি লিখুন",
+      "de": "Modell suchen oder ID eingeben",
+      "es": "Buscar o introducir ID del modelo",
+      "fr": "Rechercher ou saisir l\\'ID du modèle",
+      "hi": "मॉडल खोजें या आईडी दर्ज करें",
+      "ja": "モデルを検索またはIDを入力",
+      "ko": "모델 검색 또는 ID 입력",
+      "pt": "Pesquisar ou inserir ID do modelo",
+      "ru": "Поиск или ввод ID модели",
+      "sr": "Претражите или унесите ID модела",
+      "zh": "搜索或输入模型 ID"
+     }
+    },
+    {
+     "name": "chat_use_custom_model",
+     "en": "Use \"%1$s\"",
+     "comment": "",
+     "args": [
+      "%1$s"
+     ],
+     "t": {
+      "ar": "استخدام \"%1$s\"",
+      "bn": "\"%1$s\" ব্যবহার করুন",
+      "de": "\"%1$s\" verwenden",
+      "es": "Usar \"%1$s\"",
+      "fr": "Utiliser \"%1$s\"",
+      "hi": "\"%1$s\" का उपयोग करें",
+      "ja": "\"%1$s\" を使用",
+      "ko": "\"%1$s\" 사용",
+      "pt": "Usar \"%1$s\"",
+      "ru": "Использовать \"%1$s\"",
+      "sr": "Користи \"%1$s\"",
+      "zh": "使用 \"%1$s\""
+     }
     }
    ]
   },

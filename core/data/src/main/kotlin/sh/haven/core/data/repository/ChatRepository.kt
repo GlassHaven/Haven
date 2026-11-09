@@ -28,6 +28,9 @@ class ChatRepository @Inject constructor(
     fun observeAll(): Flow<List<ChatConversation>> =
         conversationDao.observeAll().map { list -> list.map { decryptConversation(it) } }
 
+    suspend fun getAllConversations(): List<ChatConversation> =
+        conversationDao.getAll().map { decryptConversation(it) }
+
     fun observeMessages(conversationId: String): Flow<List<ChatMessage>> =
         messageDao.observeMessages(conversationId).map { messages -> messages.map { decryptMessage(it) } }
 

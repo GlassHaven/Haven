@@ -33,4 +33,11 @@
     <string name="vnc_cd_two_finger_viewport">দুই আঙুলে ভিউ প্যান হয় (রিমোট স্ক্রোল করতে ট্যাপ করুন)</string>
     <string name="vnc_cd_two_finger_scroll_on">দুই আঙুলে রিমোট স্ক্রোল হয় (ভিউ প্যান করতে ট্যাপ করুন)</string>
     <string name="vnc_cd_paste">ক্লিপবোর্ড পেস্ট করুন</string>
+    <string name="vnc_compose_open">পাঠানোর জন্য লেখা টাইপ করুন</string>
+    <string name="vnc_compose_placeholder">লিখুন, যাচাই করুন, তারপর পাঠান</string>
+    <string name="vnc_compose_send">পাঠান</string>
+    <string name="vnc_compose_press_enter">পাঠানোর পরে Enter চাপুন</string>
+    <string name="vnc_compose_show">লেখা দেখান</string>
+    <string name="vnc_compose_hide">লেখা লুকান</string>
+    <string name="vnc_compose_untypeable">হাইলাইট করা অক্ষরগুলো VNC-তে টাইপ করা যায় না। পাঠাতে পেস্ট ব্যবহার করুন।</string>
 </resources>

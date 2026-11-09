@@ -33,4 +33,11 @@
     <string name="vnc_cd_two_finger_viewport">إصبعان يحرّكان العرض (اضغط لتمرير الشاشة البعيدة)</string>
     <string name="vnc_cd_two_finger_scroll_on">إصبعان يمرّران الشاشة البعيدة (اضغط لتحريك العرض)</string>
     <string name="vnc_cd_paste">لصق الحافظة</string>
+    <string name="vnc_compose_open">اكتب نصًا لإرساله</string>
+    <string name="vnc_compose_placeholder">اكتب وتحقق ثم أرسل</string>
+    <string name="vnc_compose_send">إرسال</string>
+    <string name="vnc_compose_press_enter">اضغط Enter بعد الإرسال</string>
+    <string name="vnc_compose_show">إظهار النص</string>
+    <string name="vnc_compose_hide">إخفاء النص</string>
+    <string name="vnc_compose_untypeable">لا يمكن كتابة الأحرف المميزة عبر VNC. استخدم اللصق لإرسالها.</string>
 </resources>

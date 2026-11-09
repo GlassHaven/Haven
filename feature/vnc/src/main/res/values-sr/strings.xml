@@ -28,4 +28,11 @@
     <string name="vnc_gesture_help_title">Гестикулације додиром</string>
     <string name="vnc_gesture_help_two_finger">Превуците са два прста да скролујете; уштините за зумирање. Један прст помера миша.</string>
     <string name="vnc_gesture_help_three_finger">Уштините са три прста за промените величину апликације док остајете у пуном екрану.</string>
+    <string name="vnc_compose_open">Унесите текст за слање</string>
+    <string name="vnc_compose_placeholder">Унесите, проверите, па пошаљите</string>
+    <string name="vnc_compose_send">Пошаљи</string>
+    <string name="vnc_compose_press_enter">Притисни Enter након слања</string>
+    <string name="vnc_compose_show">Прикажи текст</string>
+    <string name="vnc_compose_hide">Сакриј текст</string>
+    <string name="vnc_compose_untypeable">Истакнути знакови не могу да се укуцају преко VNC-а. Користите Налепи да бисте их послали.</string>
 </resources>

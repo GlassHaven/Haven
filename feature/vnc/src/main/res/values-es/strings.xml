@@ -32,4 +32,11 @@
     <string name="vnc_cd_two_finger_viewport">Dos dedos mueven la vista (toca para desplazar la pantalla remota)</string>
     <string name="vnc_cd_two_finger_scroll_on">Dos dedos desplazan la pantalla remota (toca para mover la vista)</string>
     <string name="vnc_cd_paste">Pegar portapapeles</string>
+    <string name="vnc_compose_open">Escribir texto para enviar</string>
+    <string name="vnc_compose_placeholder">Escribe, revisa y envía</string>
+    <string name="vnc_compose_send">Enviar</string>
+    <string name="vnc_compose_press_enter">Pulsar Intro tras enviar</string>
+    <string name="vnc_compose_show">Mostrar texto</string>
+    <string name="vnc_compose_hide">Ocultar texto</string>
+    <string name="vnc_compose_untypeable">Los caracteres resaltados no se pueden teclear por VNC. Usa Pegar para enviarlos.</string>
 </resources>

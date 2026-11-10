@@ -179,5 +179,17 @@ class SftpTransportDeleteTest {
                 externalStorageDir = "/storage/emulated/0",
             ),
         )
+        assertEquals(
+            "/storage/emulated/11/Download/report.pdf",
+            SftpViewModel.resolveLocalPathFromDocumentId(
+                authority = "com.android.externalstorage.documents",
+                docId = "primary:Download/report.pdf",
+                externalStorageDir = SftpViewModel.resolvePrimaryExternalStoragePath(
+                    envExternalStoragePath = "/storage/emulated/0",
+                    filesDirPath = "/data/user/11/sh.haven.app/files",
+                    uid = 1110234,
+                ),
+            ),
+        )
     }
 }

@@ -806,9 +806,10 @@ class ProotManager @Inject constructor(
 
     /**
      * #301: when off, the local proot shell no longer binds `/storage` and
-     * `/storage/emulated/0` into the guest, so the guest can't see the user's
-     * photos/downloads. Default on (preserves the original behaviour where the
-     * guest reaches shared files via `/storage` and `/sdcard`).
+     * the active Android user's emulated storage (`/storage/emulated/<user>`)
+     * into the guest, so the guest can't see the user's photos/downloads.
+     * Default on (preserves the original behaviour where the guest reaches
+     * shared files via `/storage` and `/sdcard`).
      */
     val shareStorageWithGuestFlow: StateFlow<Boolean> = _shareStorageWithGuest.asStateFlow()
     val shareStorageWithGuest: Boolean get() = _shareStorageWithGuest.value
@@ -1019,10 +1020,24 @@ class ProotManager @Inject constructor(
         validCustomBinds(distroId).flatMap { listOf("-b", it.spec()) }
 
     /**
+     * Active Android user's primary shared storage path (e.g. `/storage/emulated/0`
+     * on the primary profile, or `/storage/emulated/11` on Android user 11, #825).
+     */
+    fun userEmulatedStoragePath(): String =
+        resolveUserEmulatedStoragePath(
+            envExternalStoragePath = runCatching {
+                android.os.Environment.getExternalStorageDirectory()?.absolutePath
+            }.getOrNull(),
+            filesDirPath = runCatching { context.filesDir.absolutePath }.getOrNull(),
+            uid = runCatching { android.system.Os.getuid() }.getOrNull(),
+        )
+
+    /**
      * Shared-storage binds as proot short-form args (`-b spec …`), or empty when
      * the user has opted out ([shareStorageWithGuest], default on). Binds Android's
-     * `/storage` plus a `/sdcard` alias (#256) so the guest reaches the user's
-     * files; needs Haven's storage permission for content to actually show.
+     * `/storage` plus a `/sdcard` alias (#256) pointing at the current Android
+     * user's emulated storage (#825) so the guest reaches the user's files; needs
+     * Haven's storage permission for content to actually show.
      *
      * Centralised here because EVERY proot launch path that should expose storage
      * must add the identical binds — the interactive shell had them but the desktop
@@ -1030,19 +1045,19 @@ class ProotManager @Inject constructor(
      * manager saw an empty `/sdcard` (#420).
      */
     fun storageBindShortArgs(): List<String> =
-        if (shareStorageWithGuest) {
-            listOf("-b", "/storage", "-b", "/storage/emulated/0:/sdcard")
-        } else {
-            emptyList()
-        }
+        buildStorageBindArgs(
+            shareStorageWithGuest = shareStorageWithGuest,
+            longForm = false,
+            emulatedStoragePath = userEmulatedStoragePath(),
+        )
 
     /** Shared-storage binds as proot long-form args (`--bind=spec`); see [storageBindShortArgs]. */
     fun storageBindLongArgs(): List<String> =
-        if (shareStorageWithGuest) {
-            listOf("--bind=/storage", "--bind=/storage/emulated/0:/sdcard")
-        } else {
-            emptyList()
-        }
+        buildStorageBindArgs(
+            shareStorageWithGuest = shareStorageWithGuest,
+            longForm = true,
+            emulatedStoragePath = userEmulatedStoragePath(),
+        )
 
     /** Custom binds for [distroId] as proot long-form args (`--bind=spec`); see [customBindShortArgs] for the #760 drop. */
     fun customBindLongArgs(distroId: String): List<String> =
@@ -5337,4 +5352,74 @@ internal fun readProcessBounded(
     reader.join(drainGraceMs)
     val exit = if (finished) runCatching { process.exitValue() }.getOrDefault(-1) else -1
     return BoundedRun(out.toString(), exit, timedOut = !finished)
+}
+
+private val DATA_USER_PATH_REGEX = Regex("""^/data/user(?:_de)?/(\d+)(?:/|$)""")
+private const val ANDROID_PER_USER_UID_RANGE = 100_000
+
+/**
+ * Extract the Android multi-user profile ID (`0` for the primary owner, `10+`
+ * for work profiles and secondary users, #825) from the app's data directory
+ * path (`/data/user/<id>/...` or `/data/user_de/<id>/...`) or Linux UID
+ * (`uid / 100000`).
+ */
+internal fun resolveAndroidUserId(
+    filesDirPath: String? = null,
+    uid: Int? = null,
+): Int {
+    if (!filesDirPath.isNullOrBlank()) {
+        DATA_USER_PATH_REGEX.find(filesDirPath.trim())
+            ?.groupValues
+            ?.getOrNull(1)
+            ?.toIntOrNull()
+            ?.let { return it }
+    }
+    if (uid != null && uid >= 0) {
+        return uid / ANDROID_PER_USER_UID_RANGE
+    }
+    return 0
+}
+
+/**
+ * Resolve the active Android user's primary shared storage path (#825).
+ *
+ * Returns `/storage/emulated/<userId>` (e.g. `/storage/emulated/11` for Android
+ * user 11) so PRoot binds the current user's storage at `/sdcard` instead of
+ * hardcoding `/storage/emulated/0` (which fails with `EACCES` under secondary
+ * users and work profiles).
+ */
+internal fun resolveUserEmulatedStoragePath(
+    envExternalStoragePath: String? = null,
+    filesDirPath: String? = null,
+    uid: Int? = null,
+): String {
+    val userId = resolveAndroidUserId(filesDirPath = filesDirPath, uid = uid)
+    val userEmulated = "/storage/emulated/$userId"
+    val cleanedEnv = envExternalStoragePath
+        ?.trim()
+        ?.trimEnd('/')
+        ?.takeIf { it.startsWith("/") && it.isNotEmpty() }
+    return when {
+        cleanedEnv == null -> userEmulated
+        userId > 0 && (cleanedEnv == "/storage/emulated/0" || cleanedEnv == "/sdcard") -> userEmulated
+        else -> cleanedEnv
+    }
+}
+
+/**
+ * Build PRoot shared-storage bind arguments (`-b /storage -b <emulated>:/sdcard`
+ * or `--bind=/storage --bind=<emulated>:/sdcard`, #825).
+ */
+internal fun buildStorageBindArgs(
+    shareStorageWithGuest: Boolean,
+    longForm: Boolean,
+    emulatedStoragePath: String,
+): List<String> {
+    if (!shareStorageWithGuest) return emptyList()
+    val hostPath = emulatedStoragePath.trim().trimEnd('/').ifEmpty { "/storage/emulated/0" }
+    return if (longForm) {
+        listOf("--bind=/storage", "--bind=$hostPath:/sdcard")
+    } else {
+        listOf("-b", "/storage", "-b", "$hostPath:/sdcard")
+    }
 }

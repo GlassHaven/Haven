@@ -23,22 +23,21 @@ preference, so anything beyond these four is one `apk add` away.
 
 ## Reaching your Android files
 
-Haven bind-mounts the device's `/storage` tree into this PRoot, so
+Haven bind-mounts the device's `/storage` tree and `/sdcard` into this PRoot, so
 your Android-visible storage shows up at:
 
 ```
-/storage/emulated/0/        # primary user storage
-/storage/emulated/0/Download
-/storage/emulated/0/DCIM
-/storage/emulated/0/Documents
+/sdcard/                    # active Android user's primary storage
+/sdcard/Download
+/sdcard/DCIM
+/sdcard/Documents
+/storage/emulated/<user>/   # underlying path (0 on primary profile, 10+ on work/secondary profiles)
 ```
 
-Note: PRoot does not provide the conventional `/sdcard` shortcut,
-only the canonical `/storage/...` path. If you want the shortcut,
-create it yourself once:
+If you also want a `~/sdcard` shortcut inside your home directory:
 
 ```sh
-ln -s /storage/emulated/0 ~/sdcard
+ln -s /sdcard ~/sdcard
 ```
 
 Read access works out of the box. Write access depends on the

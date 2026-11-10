@@ -1272,11 +1272,18 @@ class SftpViewModel @Inject constructor(
         }
     }
 
+    private fun primaryExternalStoragePath(): String =
+        resolvePrimaryExternalStoragePath(
+            envExternalStoragePath = runCatching {
+                android.os.Environment.getExternalStorageDirectory()?.absolutePath
+            }.getOrNull(),
+            filesDirPath = runCatching { appContext.filesDir.absolutePath }.getOrNull(),
+            uid = runCatching { android.system.Os.getuid() }.getOrNull(),
+        )
+
     private fun resolveMediaScanPathForUri(uri: Uri): String? {
         if (uri.scheme == "file") return uri.path
-        val externalRoot = runCatching {
-            android.os.Environment.getExternalStorageDirectory().absolutePath
-        }.getOrDefault("/storage/emulated/0")
+        val externalRoot = primaryExternalStoragePath()
         val docId = runCatching {
             android.provider.DocumentsContract.getDocumentId(uri)
         }.getOrNull()
@@ -5352,7 +5359,7 @@ class SftpViewModel @Inject constructor(
         }
 
         // MediaStore fallback — only applies under Download/.
-        val downloads = "/storage/emulated/0/Download/"
+        val downloads = "${primaryExternalStoragePath().trimEnd('/')}/Download/"
         if (!destFile.absolutePath.startsWith(downloads)) {
             throw java.io.IOException("Cannot write to $destPath and path is not under Downloads/")
         }
@@ -6498,6 +6505,36 @@ class SftpViewModel @Inject constructor(
                 }
             }
             return null
+        }
+
+        private val DATA_USER_PATH_REGEX = Regex("""^/data/user(?:_de)?/(\d+)(?:/|$)""")
+        private const val ANDROID_PER_USER_UID_RANGE = 100_000
+
+        /**
+         * Resolve the active Android user's primary shared storage path (#825),
+         * supporting secondary Android users and work profiles (e.g. user 11 at
+         * `/storage/emulated/11`).
+         */
+        internal fun resolvePrimaryExternalStoragePath(
+            envExternalStoragePath: String? = null,
+            filesDirPath: String? = null,
+            uid: Int? = null,
+        ): String {
+            val userId = filesDirPath
+                ?.trim()
+                ?.let { DATA_USER_PATH_REGEX.find(it)?.groupValues?.getOrNull(1)?.toIntOrNull() }
+                ?: uid?.takeIf { it >= 0 }?.div(ANDROID_PER_USER_UID_RANGE)
+                ?: 0
+            val userEmulated = "/storage/emulated/$userId"
+            val cleanedEnv = envExternalStoragePath
+                ?.trim()
+                ?.trimEnd('/')
+                ?.takeIf { it.startsWith("/") && it.isNotEmpty() }
+            return when {
+                cleanedEnv == null -> userEmulated
+                userId > 0 && (cleanedEnv == "/storage/emulated/0" || cleanedEnv == "/sdcard") -> userEmulated
+                else -> cleanedEnv
+            }
         }
 
         /** Natural sort: numeric chunks compared as numbers, text chunks compared lexicographically. */

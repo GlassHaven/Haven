@@ -1,0 +1,2 @@
+- Wire Sway and nested-Wayland launchers to the configured PRoot guest user, skip `fakeroot` on Mozilla browser app windows, seed `/etc/machine-id`, and disable Mozilla seccomp child sandboxes inside PRoot so Firefox starts under `qemu-user` emulation (#827, thanks @NAZY-OS).
+- Build RDP, PRNS, and rclone native libraries for the requested `-PtargetAbi` instead of compiling unused ABIs (#826).

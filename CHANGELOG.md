@@ -5,6 +5,11 @@ the corresponding GitHub Release; a release can't ship without its section
 (enforced by `scripts/check-changelog.sh` in CI). The GitHub "Full Changelog"
 compare link is appended automatically — don't add it here.
 
+## v5.94.26
+
+- Wire Sway and nested-Wayland launchers to the configured PRoot guest user, skip `fakeroot` on Mozilla browser app windows, seed `/etc/machine-id`, and disable Mozilla seccomp child sandboxes inside PRoot so Firefox starts under `qemu-user` emulation (#827, thanks @NAZY-OS).
+- Build RDP, PRNS, and rclone native libraries for the requested `-PtargetAbi` instead of compiling unused ABIs (#826).
+
 ## v5.94.25
 
 - Resolve the active Android user's emulated storage directory (`/storage/emulated/<user>`) dynamically for PRoot `/sdcard` bind mounts and SFTP local `Download/` saves so secondary Android users and work profiles (such as user 11) do not fail with `Permission denied` on `/storage/emulated/0` (#825, thanks @DragonXen).

@@ -170,7 +170,5 @@ rm -rf extracted extracted-terminal
 
 echo ""
 echo "=== Build complete ==="
-ls -lh "$JNI_DIR/arm64-v8a/libgojni.so"
-ls -lh "$JNI_DIR/x86_64/libgojni.so"
-ls -lh "$JNI_TERMINAL_DIR/arm64-v8a/libgojni.so"
-ls -lh "$AAR_DIR/rcbridge-bindings.jar"
+# Whatever ABIs this bind produced (HAVEN_GOMOBILE_TARGETS may name only one).
+ls -lh "$JNI_DIR"/*/libgojni.so "$JNI_TERMINAL_DIR"/*/libgojni.so "$AAR_DIR/rcbridge-bindings.jar"

@@ -1,0 +1,2 @@
+- Add an opt-in **Root (/)** tab in **Files** (**Settings -> Advanced**), lazily starting an `app_process` worker via `su -mm` only when opened while keeping MCP tools and `DocumentsProvider` isolated (#799, thanks @zol-c).
+- Isolate concurrent Firefox/LibreWolf app-window profiles (`-no-remote`), clear stale Mozilla profile locks before launch, and send `SIGTERM` before `SIGKILL` on stop (#812, thanks @NAZY-OS).

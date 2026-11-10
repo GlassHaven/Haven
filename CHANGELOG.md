@@ -5,6 +5,11 @@ the corresponding GitHub Release; a release can't ship without its section
 (enforced by `scripts/check-changelog.sh` in CI). The GitHub "Full Changelog"
 compare link is appended automatically — don't add it here.
 
+## v5.94.23
+
+- Add an opt-in **Root (/)** tab in **Files** (**Settings -> Advanced**), lazily starting an `app_process` worker via `su -mm` only when opened while keeping MCP tools and `DocumentsProvider` isolated (#799, thanks @zol-c).
+- Isolate concurrent Firefox/LibreWolf app-window profiles (`-no-remote`), clear stale Mozilla profile locks before launch, and send `SIGTERM` before `SIGKILL` on stop (#812, thanks @NAZY-OS).
+
 ## v5.94.22
 
 - Add `rmux` as a global and per-connection session manager option across SSH, Mosh, Eternal Terminal, and local PRoot shells, with `~/.local/bin` and `~/.cargo/bin` on `PATH` (#810, thanks @NAZY-OS).

@@ -56,6 +56,19 @@ val buildRdpNative by tasks.registering(Exec::class) {
     inputs.file(rustDir.resolve("Cargo.lock"))
     outputs.dir(jniDir)
 
+    // -PtargetAbi=arm64|x64|armv7 (release.yml's per-ABI matrix) builds only that
+    // ABI, as core/wayland and core/local already do; without it every ABI
+    // builds. targetAbi is a task input, so switching it re-runs the task.
+    val targetAbi = providers.gradleProperty("targetAbi").orNull
+    val abis = when (targetAbi) {
+        null -> listOf("arm64-v8a", "armeabi-v7a", "x86_64")
+        "arm64" -> listOf("arm64-v8a")
+        "x64" -> listOf("x86_64")
+        "armv7" -> listOf("armeabi-v7a")
+        else -> throw GradleException("Unknown targetAbi '$targetAbi' (expected arm64, x64 or armv7)")
+    }
+    inputs.property("abis", abis)
+
     workingDir = rustDir
 
     // Detect NDK from ANDROID_NDK_HOME or ANDROID_SDK_ROOT
@@ -67,12 +80,11 @@ val buildRdpNative by tasks.registering(Exec::class) {
         environment("ANDROID_NDK_HOME", ndkHome)
     }
 
-    commandLine("cargo", "ndk",
-        "-o", jniDir.absolutePath,
-        "-t", "arm64-v8a",
-        "-t", "armeabi-v7a",
-        "-t", "x86_64",
-        "build", "--release")
+    commandLine(
+        listOf("cargo", "ndk", "-o", jniDir.absolutePath) +
+            abis.flatMap { listOf("-t", it) } +
+            listOf("build", "--release"),
+    )
 }
 
 // No publishing block needed — consumed via includeBuild() in settings.gradle.kts

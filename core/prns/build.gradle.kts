@@ -54,6 +54,19 @@ val buildPrnsNative by tasks.registering(Exec::class) {
     inputs.dir(File(rootProject.projectDir, "prns/prns-host/impls/native/src"))
     outputs.dir(jniDir)
 
+    // -PtargetAbi=arm64|x64|armv7 (release.yml's per-ABI matrix) builds only that
+    // ABI, as core/wayland and core/local already do; without it every ABI
+    // builds. targetAbi is a task input, so switching it re-runs the task.
+    val targetAbi = providers.gradleProperty("targetAbi").orNull
+    val abis = when (targetAbi) {
+        null -> listOf("arm64-v8a", "armeabi-v7a", "x86_64")
+        "arm64" -> listOf("arm64-v8a")
+        "x64" -> listOf("x86_64")
+        "armv7" -> listOf("armeabi-v7a")
+        else -> throw GradleException("Unknown targetAbi '$targetAbi' (expected arm64, x64 or armv7)")
+    }
+    inputs.property("abis", abis)
+
     workingDir = crateDir
 
     val ndkHome = System.getenv("ANDROID_NDK_HOME")
@@ -73,9 +86,9 @@ val buildPrnsNative by tasks.registering(Exec::class) {
     // Adding an ABI to the APK means adding it here in the same change —
     // a missing target ships a silently absent (or stale) library.
     commandLine(
-        "cargo", "ndk", "-o", jniDir.absolutePath,
-        "-t", "arm64-v8a", "-t", "armeabi-v7a", "-t", "x86_64",
-        "build", "--release",
+        listOf("cargo", "ndk", "-o", jniDir.absolutePath) +
+            abis.flatMap { listOf("-t", it) } +
+            listOf("build", "--release"),
     )
 }
 

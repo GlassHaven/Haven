@@ -120,6 +120,20 @@ val buildRcloneNative by tasks.registering(Exec::class) {
     inputs.dir(goDir)
     inputs.file(toolsDir.resolve("build-android.sh"))
     outputs.dir(jniDir)
+
+    // -PtargetAbi=arm64|x64|armv7 (release.yml's per-ABI matrix) builds only that
+    // ABI, as core/wayland and core/local already do; without it every ABI
+    // builds. targetAbi is a task input, so switching it re-runs the task.
+    val targetAbi = providers.gradleProperty("targetAbi").orNull
+    val goTargets = when (targetAbi) {
+        null -> "android/arm64,android/amd64,android/arm"
+        "arm64" -> "android/arm64"
+        "x64" -> "android/amd64"
+        "armv7" -> "android/arm"
+        else -> throw GradleException("Unknown targetAbi '$targetAbi' (expected arm64, x64 or armv7)")
+    }
+    inputs.property("goTargets", goTargets)
+    environment("HAVEN_GOMOBILE_TARGETS", goTargets)
     outputs.file(rcbridgeJar)
 
     // Up-to-date checking is driven by Gradle's inputs/outputs above: the

@@ -86,13 +86,15 @@ fi
 echo ">>> gomobile init"
 gomobile init
 
-# Build AAR via gomobile bind
-echo ">>> gomobile bind (arm64 + amd64)"
+# Build AAR via gomobile bind. Gradle sets HAVEN_GOMOBILE_TARGETS from
+# -PtargetAbi; standalone callers (F-Droid) get every ABI.
+GOMOBILE_TARGETS="${HAVEN_GOMOBILE_TARGETS:-android/arm64,android/amd64,android/arm}"
+echo ">>> gomobile bind ($GOMOBILE_TARGETS)"
 mkdir -p "$AAR_DIR"
 cd "$GO_DIR"
 
 gomobile bind \
-    -target=android/arm64,android/amd64,android/arm \
+    -target="$GOMOBILE_TARGETS" \
     -javapkg=sh.haven.rclone.binding \
     -androidapi=26 \
     -o "$AAR_DIR/rcbridge.aar" \
@@ -109,7 +111,7 @@ gomobile bind \
 # callers gate on NativeFeatures.rclone rather than catching a link error.
 echo ">>> gomobile bind (terminal flavour: no rclone)"
 gomobile bind \
-    -target=android/arm64,android/amd64,android/arm \
+    -target="$GOMOBILE_TARGETS" \
     -javapkg=sh.haven.rclone.binding \
     -androidapi=26 \
     -o "$AAR_DIR/rcbridge-terminal.aar" \
@@ -120,22 +122,26 @@ mkdir -p "$JNI_DIR"
 
 # AAR is a zip; extract jni/ subdirectories
 cd "$AAR_DIR"
+# A previous bind's extraction may hold other ABIs; start from this bind only.
+rm -rf extracted/jni extracted-terminal/jni
 unzip -o rcbridge.aar "jni/*" -d extracted
 
-# Map Android ABI names
-mkdir -p "$JNI_DIR/arm64-v8a" "$JNI_DIR/x86_64" "$JNI_DIR/armeabi-v7a"
-cp extracted/jni/arm64-v8a/libgojni.so "$JNI_DIR/arm64-v8a/"
-cp extracted/jni/x86_64/libgojni.so    "$JNI_DIR/x86_64/"
-cp extracted/jni/armeabi-v7a/libgojni.so "$JNI_DIR/armeabi-v7a/"
+# Copy every ABI the bind produced.
+copy_abis() {  # <extracted dir> <jni dir>
+    local abi_dir abi
+    for abi_dir in "$1"/jni/*/; do
+        abi="$(basename "$abi_dir")"
+        mkdir -p "$2/$abi"
+        cp "$abi_dir/libgojni.so" "$2/$abi/"
+    done
+}
+copy_abis extracted "$JNI_DIR"
 
 # Terminal-flavour natives, kept in their own tree so the app can choose
 # between them per flavour. Same file name — gomobile always emits
 # libgojni.so — so they cannot share a directory.
 unzip -o rcbridge-terminal.aar "jni/*" -d extracted-terminal
-mkdir -p "$JNI_TERMINAL_DIR/arm64-v8a" "$JNI_TERMINAL_DIR/x86_64" "$JNI_TERMINAL_DIR/armeabi-v7a"
-cp extracted-terminal/jni/arm64-v8a/libgojni.so   "$JNI_TERMINAL_DIR/arm64-v8a/"
-cp extracted-terminal/jni/x86_64/libgojni.so      "$JNI_TERMINAL_DIR/x86_64/"
-cp extracted-terminal/jni/armeabi-v7a/libgojni.so "$JNI_TERMINAL_DIR/armeabi-v7a/"
+copy_abis extracted-terminal "$JNI_TERMINAL_DIR"
 
 # Also extract the Java/Kotlin bindings JAR from the AAR
 unzip -o rcbridge.aar "classes.jar" -d extracted

@@ -93,4 +93,36 @@ class GeneratedShellSyntaxTest {
         assertTrue("plain kiosk script rejected by sh -n:\n$plainScript", parses(plainScript))
         assertEquals("galculator\nswaymsg exit\n", plainScript)
     }
+
+    @Test
+    fun `resolveNestedWaylandUser honours configured guest user and avoids USER=root fallback (#827)`() {
+        val fromRoot = resolveNestedWaylandUser(ProotManager.GuestUserSpec.ROOT)
+        assertEquals("haven", fromRoot.username)
+        assertEquals(1000, fromRoot.uid)
+        assertEquals(1000, fromRoot.gid)
+        assertEquals("/root", fromRoot.home)
+
+        val configured = ProotManager.GuestUserSpec(
+            username = "nazy",
+            uid = 1000,
+            gid = 1000,
+            home = "/home/nazy",
+        )
+        val fromConfigured = resolveNestedWaylandUser(configured)
+        assertEquals(configured, fromConfigured)
+    }
+
+    @Test
+    fun `resolveAppWindowExecCommand never wraps Mozilla browsers in fakeroot (#827)`() {
+        assertEquals("fakeroot-tcp synaptic", resolveAppWindowExecCommand("synaptic", runAsRoot = true))
+        assertEquals("firefox", resolveAppWindowExecCommand("firefox", runAsRoot = true))
+        assertEquals(
+            "env GDK_BACKEND=wayland firefox https://example.com",
+            resolveAppWindowExecCommand("env GDK_BACKEND=wayland firefox https://example.com", runAsRoot = true),
+        )
+        assertEquals(
+            "librewolf",
+            resolveAppWindowExecCommand("fakeroot-tcp librewolf", runAsRoot = false),
+        )
+    }
 }

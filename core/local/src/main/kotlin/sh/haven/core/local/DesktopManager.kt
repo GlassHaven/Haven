@@ -832,14 +832,19 @@ class DesktopManager @Inject constructor(
     ): String {
         val instance = _desktops.value[de]
             ?: throw IllegalStateException("Desktop '${de.spec.id}' is not running")
+        val configuredUser = prootManager.ensureGuestUser(prootManager.activeRootfsDir)
+        val guestUser = when (de.spec.launch) {
+            is LaunchSpec.NestedWayland -> resolveNestedWaylandUser(configuredUser)
+            else -> configuredUser
+        }
         // Default: force software GL so GPU-less GL apps (KiCad/eeschema) don't
         // crash their canvas. gpu=true instead routes through the venus/virpipe
         // passthrough env (the gl_smoke_test path) so we can exercise the real
         // GPU present pipeline rather than llvmpipe.
         val glEnv = if (gpu) {
-            "export HOME=/root; " + gpuPassthroughEnv("; ")
+            "export HOME=${guestUser.home}; " + gpuPassthroughEnv("; ")
         } else {
-            "export HOME=/root; export LIBGL_ALWAYS_SOFTWARE=1; export GALLIUM_DRIVER=llvmpipe; "
+            "export HOME=${guestUser.home}; export LIBGL_ALWAYS_SOFTWARE=1; export GALLIUM_DRIVER=llvmpipe; "
         }
         val displayLabel: String
         val launchCmd: String
@@ -848,7 +853,7 @@ class DesktopManager @Inject constructor(
                 val display = requireX11Display(de)
                 displayLabel = ":$display"
                 launchCmd =
-                    "export DISPLAY=:$display; export XAUTHORITY=/root/.Xauthority; $glEnv exec $command"
+                    "export DISPLAY=:$display; export XAUTHORITY=${guestUser.home}/.Xauthority; $glEnv exec $command"
             }
             is LaunchSpec.NestedWayland -> {
                 val xdg = "/tmp/xdg-runtime-${instance.displayNumber}"
@@ -863,7 +868,7 @@ class DesktopManager @Inject constructor(
             )
         }
         val appId = "deapp-${System.currentTimeMillis()}"
-        val proc = prootManager.startCommandInProot(launchCmd)
+        val proc = prootManager.startCommandInProot(launchCmd, guestUser)
         appProcesses[appId] = proc
         Thread({
             try {
@@ -911,15 +916,9 @@ class DesktopManager @Inject constructor(
             "XDG_DATA_DIRS=/usr/local/share:/usr/share",
             "XDG_CONFIG_HOME=${guestUser.home}/.config",
             "XDG_CACHE_HOME=${guestUser.home}/.cache",
-            // #718: Arch's gdk-pixbuf2 (2.44+) delegates SVG icon loading to
-            // glycin (`libglycin-2.so.0`), which spawns `bwrap --unshare-all --seccomp`
-            // and aborts `xfce4-panel` and `xfdesktop` 3 seconds after launch inside
-            // PRoot. `GLYCIN_DISABLE_SANDBOX=i-know-the-risks` disables the bwrap
-            // sandbox so GTK/Xfce4 panels render their icons cleanly.
-            "GLYCIN_DISABLE_SANDBOX=i-know-the-risks",
-            // #780: disable Chromium/Electron user-namespace/SUID sandbox inside PRoot
-            // so Electron apps (VS Code, VSCodium, Obsidian, etc.) start cleanly.
-            "ELECTRON_DISABLE_SANDBOX=1",
+            // #718 / #780 / #827: disable bubblewrap (glycin SVG loader),
+            // Chromium/Electron user-namespace, and Mozilla seccomp child sandboxes inside PRoot.
+            *ProotManager.PROOT_SANDBOX_ENV.toTypedArray(),
             *prootManager.guestTunnelEnvVars().map { (k, v) -> "$k=$v" }.toTypedArray(),
         )
     }
@@ -1007,8 +1006,7 @@ class DesktopManager @Inject constructor(
                 "export HOME=${guestUser.home}; " +
                 "export USER=${guestUser.username}; " +
                 "export LOGNAME=${guestUser.username}; " +
-                "export GLYCIN_DISABLE_SANDBOX=i-know-the-risks; " +
-                "export ELECTRON_DISABLE_SANDBOX=1; " +
+                ProotManager.PROOT_SANDBOX_ENV.joinToString("; ") { "export $it" } + "; " +
                 // #718: TigerVNC's Xvnc requires `vncconfig` running on the X
                 // display to bridge X11 CLIPBOARD/PRIMARY selections to RFB
                 // CutText messages for bidirectional copy/paste.
@@ -1191,6 +1189,8 @@ class DesktopManager @Inject constructor(
         ).absolutePath
         val rootfsDir = prootManager.activeRootfsDir
         File(rootfsDir, "root").mkdirs()
+        val guestUser = resolveNestedWaylandUser(prootManager.ensureGuestUser(rootfsDir))
+        File(rootfsDir, guestUser.home.trimStart('/')).mkdirs()
 
         val xdgInProot = "/tmp/xdg-runtime-$display"
         // Clear stale per-display debris from any prior unclean stop (a crash
@@ -1270,16 +1270,20 @@ class DesktopManager @Inject constructor(
             // uid-1000 passwd/group entry exists — idempotent (grep-guarded)
             // so it appends once and works for existing installs too. The
             // real Android app uid owns the rootfs, so the guest can write.
-            append("grep -q ':x:1000:' /etc/passwd 2>/dev/null || echo 'haven:x:1000:1000:Haven:/root:/bin/bash' >> /etc/passwd ; ")
-            append("grep -q ':x:1000:' /etc/group 2>/dev/null || echo 'haven:x:1000:' >> /etc/group ; ")
+            append("grep -q ':x:${guestUser.uid}:' /etc/passwd 2>/dev/null || echo '${guestUser.username}:x:${guestUser.uid}:${guestUser.gid}:Haven:${guestUser.home}:/bin/bash' >> /etc/passwd ; ")
+            append("grep -q ':x:${guestUser.gid}:' /etc/group 2>/dev/null || echo '${guestUser.username}:x:${guestUser.gid}:' >> /etc/group ; ")
             append("mkdir -p $xdgInProot ; chmod 700 $xdgInProot ; ")
             append("export XDG_RUNTIME_DIR=$xdgInProot ; ")
-            append("export HOME=/root ; ")
+            append("export HOME=${guestUser.home} ; ")
+            append("export USER=${guestUser.username} ; ")
+            append("export LOGNAME=${guestUser.username} ; ")
             append("[ -f /etc/profile.d/pulse.sh ] && . /etc/profile.d/pulse.sh ; ")
+            append("[ -f /etc/profile.d/haven-sandbox.sh ] && . /etc/profile.d/haven-sandbox.sh ; ")
             append("[ -f /etc/profile.d/haven-tunnel.sh ] && . /etc/profile.d/haven-tunnel.sh ; ")
-            append("export PATH=/usr/local/sbin:/usr/local/bin:/usr/sbin:/usr/bin:/sbin:/bin ; ")
-            append("export GLYCIN_DISABLE_SANDBOX=i-know-the-risks ; ")
-            append("export ELECTRON_DISABLE_SANDBOX=1 ; ")
+            append("export PATH=/usr/local/sbin:/usr/local/bin:/usr/sbin:/usr/bin:/sbin:/bin:${guestUser.home}/.local/bin:${guestUser.home}/.cargo/bin ; ")
+            for (entry in ProotManager.PROOT_SANDBOX_ENV) {
+                append("export $entry ; ")
+            }
             append("export WLR_BACKENDS=headless ; ")
             append("export WLR_HEADLESS_OUTPUTS=1 ; ")
             append("export WLR_LIBINPUT_NO_DEVICES=1 ; ")
@@ -1364,7 +1368,7 @@ class DesktopManager @Inject constructor(
         // path needs no real privileges. Verified: Sway now boots and
         // creates its HEADLESS-1 output.
         val prootArgs = mutableListOf(
-            prootBin, "-i", "1000:1000", "--kernel-release=6.2.1", "--link2symlink", "--sysvipc",
+            prootBin, "-i", "${guestUser.uid}:${guestUser.gid}", "--kernel-release=6.2.1", "--link2symlink", "--sysvipc",
             // #325: foreign-arch rootfs runs through the bundled qemu-user loader.
             *prootManager.qemuUserArgs(prootManager.activeDistroId).toTypedArray(),
             "-r", rootfsDir.absolutePath,
@@ -1395,13 +1399,13 @@ class DesktopManager @Inject constructor(
         prootArgs.addAll(prootManager.storageBindShortArgs())
         // #301: per-distro user-defined extra binds.
         prootArgs.addAll(prootManager.customBindShortArgs(prootManager.activeDistroId))
-        prootArgs.addAll(listOf("-w", "/root") + cleanGuestEnv() + listOf("/bin/sh", "-c", shellCmd))
+        prootArgs.addAll(listOf("-w", guestUser.home) + cleanGuestEnv(guestUser) + listOf("/bin/sh", "-c", shellCmd))
 
         Log.d(TAG, "Starting $label (nested wayland) on port $port (display $display)")
 
         return ProcessBuilder(prootArgs).apply {
             environment().apply {
-                put("HOME", "/root")
+                put("HOME", guestUser.home)
                 put("PATH", "/usr/local/sbin:/usr/local/bin:/usr/sbin:/usr/bin:/sbin:/bin")
                 // Pin TMPDIR to the cacheDir-backed /tmp bind; else the desktop
                 // session (and terminals opened from it) inherit the Android
@@ -1547,7 +1551,7 @@ class DesktopManager @Inject constructor(
         // read-only. `fakeroot-tcp` (LD_PRELOAD) makes the app's getuid() report
         // 0; proot doesn't enforce DAC so the writes still land. Caller passes
         // runAsRoot=true only after ensureRunAsRoot() confirmed fakeroot-tcp.
-        val execCommand = if (runAsRoot) "fakeroot-tcp $command" else command
+        val execCommand = resolveAppWindowExecCommand(command, runAsRoot)
         val display = allocateDisplay()
         val port = 5900 + display
         val scaleStr = formatCageScale(scale)
@@ -1941,7 +1945,9 @@ class DesktopManager @Inject constructor(
                     // Audio bridge (#257): pick up PULSE_SERVER if the bridge
                     // is running (it writes this file); harmless no-op otherwise.
                     "[ -f /etc/profile.d/pulse.sh ] && . /etc/profile.d/pulse.sh; " +
-                "[ -f /etc/profile.d/haven-tunnel.sh ] && . /etc/profile.d/haven-tunnel.sh; " +
+                    "[ -f /etc/profile.d/haven-sandbox.sh ] && . /etc/profile.d/haven-sandbox.sh; " +
+                    "[ -f /etc/profile.d/haven-tunnel.sh ] && . /etc/profile.d/haven-tunnel.sh; " +
+                    ProotManager.PROOT_SANDBOX_ENV.joinToString("; ") { "export $it" } + "; " +
                     "export XDG_RUNTIME_DIR=/tmp/xdg-runtime; " +
                     "export XDG_DATA_HOME=/root/.local/share; " +
                     "export XDG_DATA_DIRS=/usr/local/share:/usr/share; " +
@@ -2212,21 +2218,81 @@ private val MOZILLA_BINARIES = setOf("firefox", "firefox-esr", "librewolf")
 private val COMPOUND_SHELL_CHARS = charArrayOf(';', '&', '|', '\n', '`', '$', '(', ')', '<', '>')
 
 /**
+ * Sway and Hyprland refuse to start when `setuid(0)` succeeds (`proot -0`), so
+ * nested-Wayland compositors always run under PRoot `-i 1000:1000` (#162).
+ *
+ * - When the user configured a non-root guest username (#718), honour that
+ *   [ProotManager.GuestUserSpec] (`uid 1000`, `/home/<user>`, `USER=<user>`).
+ * - When the guest is still configured as default `root`, synthesize the `haven`
+ *   `uid 1000` identity rooted at `/root` so `USER` and `LOGNAME` match `/etc/passwd`
+ *   instead of leaking `USER=root` into Sway terminals and child processes (#827).
+ */
+internal fun resolveNestedWaylandUser(
+    configuredUser: ProotManager.GuestUserSpec,
+): ProotManager.GuestUserSpec =
+    if (!configuredUser.isRoot) {
+        configuredUser
+    } else {
+        ProotManager.GuestUserSpec(
+            username = "haven",
+            uid = 1000,
+            gid = 1000,
+            home = "/root",
+        )
+    }
+
+/**
+ * True when [command] is a non-compound invocation of Firefox / LibreWolf (#812, #827).
+ * Compound shell pipelines return false so arguments or wrappers are never altered
+ * across shell control operators.
+ */
+internal fun isMozillaBrowserCommand(command: String): Boolean {
+    val trimmed = command.trim()
+    if (trimmed.isEmpty() || trimmed.any { it in COMPOUND_SHELL_CHARS }) return false
+    val tokens = trimmed.split(Regex("\\s+"))
+    for (t in tokens) {
+        if (t == "env" || t == "fakeroot-tcp" || t == "fakeroot" || t == "exec") continue
+        if (t.contains('=') && !t.startsWith('/')) continue
+        return t.substringAfterLast('/') in MOZILLA_BINARIES
+    }
+    return false
+}
+
+/**
  * True when [command] is a simple invocation of Firefox / LibreWolf without an
  * explicit `--profile` or `-P` flag (#812). Compound shell pipelines return
  * false so arguments are never appended onto a shell control operator.
  */
 internal fun isSimpleMozillaBrowserCommand(command: String): Boolean {
-    val trimmed = command.trim()
-    if (trimmed.isEmpty() || trimmed.any { it in COMPOUND_SHELL_CHARS }) return false
-    val tokens = trimmed.split(Regex("\\s+"))
-    if (tokens.any { it == "--profile" || it.startsWith("--profile=") || it == "-P" }) return false
-    for (t in tokens) {
-        if (t == "env" || t == "fakeroot-tcp" || t == "exec") continue
-        if (t.contains('=') && !t.startsWith('/')) continue
-        return t.substringAfterLast('/') in MOZILLA_BINARIES
+    if (!isMozillaBrowserCommand(command)) return false
+    val tokens = command.trim().split(Regex("\\s+"))
+    return tokens.none { it == "--profile" || it.startsWith("--profile=") || it == "-P" }
+}
+
+/**
+ * Resolve the command to execute inside a PRoot Sway kiosk app window (#827).
+ *
+ * Mozilla browsers (`firefox`, `firefox-esr`, `librewolf`) refuse to start in
+ * `nsAppRunner.cpp` whenever `geteuid() == 0` while `$XDG_RUNTIME_DIR` is owned
+ * by the non-root Sway compositor (`uid 1000`):
+ *   `Running Firefox as root in a regular user's session is not supported.`
+ * Wrapping them in `fakeroot-tcp` also injects `libfakeroot.so` via `LD_PRELOAD`,
+ * whose SysV `semop` IPC calls trip Firefox's seccomp filter. Strip any leading
+ * `fakeroot-tcp` / `fakeroot` wrapper and ignore [runAsRoot] for Mozilla browsers.
+ */
+internal fun resolveAppWindowExecCommand(command: String, runAsRoot: Boolean): String {
+    if (isMozillaBrowserCommand(command)) {
+        val tokens = command.trim().split(Regex("\\s+"))
+        val filtered = tokens.filterIndexed { index, token ->
+            !(token == "fakeroot-tcp" || token == "fakeroot") ||
+                tokens.take(index).any { prev ->
+                    prev != "env" && prev != "fakeroot-tcp" && prev != "fakeroot" && prev != "exec" &&
+                        !(prev.contains('=') && !prev.startsWith('/'))
+                }
+        }
+        return filtered.joinToString(" ")
     }
-    return false
+    return if (runAsRoot) "fakeroot-tcp $command" else command
 }
 
 /**

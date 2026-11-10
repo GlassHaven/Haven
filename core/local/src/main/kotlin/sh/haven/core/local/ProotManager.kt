@@ -3640,7 +3640,10 @@ class ProotManager @Inject constructor(
      * long apt install surfaced through an async MCP job) read the stream
      * themselves; [runCommandInProot] is the read-to-completion wrapper.
      */
-    fun startCommandInProot(command: String): Process {
+    fun startCommandInProot(command: String): Process =
+        startCommandInProot(command, GuestUserSpec.ROOT)
+
+    fun startCommandInProot(command: String, guestUser: GuestUserSpec): Process {
         val prootBin = prootBinary ?: throw IllegalStateException("PRoot not available")
         // Refresh the guest resolver before every guest command (#446). This is the
         // path package installs run through — the exact thing that hangs when
@@ -3677,8 +3680,8 @@ class ProotManager @Inject constructor(
             // bundled — otherwise an empty spread.
             *qemuUserArgs(activeDistroId).toTypedArray(),
             "--rootfs=$rootfsPath",
-            "--root-id",
-            "--cwd=/root",
+            guestUser.prootLongIdentityArg,
+            "--cwd=${guestUser.home}",
             "--bind=/dev",
             "--bind=/dev/urandom:/dev/random",
             // Writable /dev/shm — Android's /dev (bound above) is read-only and
@@ -3706,13 +3709,14 @@ class ProotManager @Inject constructor(
             // (and MCP run_in_proot) sees the same mounts as the shell/desktop.
             *customBindLongArgs(activeDistroId).toTypedArray(),
             "/usr/bin/env", "-i",
-            "HOME=/root",
+            "HOME=${guestUser.home}",
+            "USER=${guestUser.username}",
+            "LOGNAME=${guestUser.username}",
             "LANG=C.UTF-8",
             "PATH=/usr/local/sbin:/usr/local/bin:/usr/sbin:/usr/bin:/sbin:/bin",
             "TERM=xterm-256color",
             "TMPDIR=/tmp",
-            "GLYCIN_DISABLE_SANDBOX=i-know-the-risks",
-            "ELECTRON_DISABLE_SANDBOX=1",
+            *PROOT_SANDBOX_ENV.toTypedArray(),
             *guestTunnelEnvVars().map { (k, v) -> "$k=$v" }.toTypedArray(),
             "/bin/sh", "-lc", command,
         )
@@ -5007,6 +5011,28 @@ chmod +x /root/.vnc/xstartup""")
         }
 
         /**
+         * Sandbox environment overrides injected into PRoot shells, commands, and
+         * desktop sessions (#718, #780, #827):
+         * - `GLYCIN_DISABLE_SANDBOX=i-know-the-risks`: disables gdk-pixbuf2/glycin's
+         *   `bwrap --unshare-all --seccomp` SVG loader inside PRoot (#718).
+         * - `ELECTRON_DISABLE_SANDBOX=1`: disables Chromium/Electron user-namespace/SUID
+         *   sandbox inside PRoot (#780).
+         * - `MOZ_DISABLE_*_SANDBOX=1`: disables Mozilla's seccomp-bpf child-process
+         *   sandboxes (`Content`, `GMP`, `RDD`, `Socket`, `Utility`), which SIGSEGV
+         *   immediately under `qemu-user` foreign-arch emulation (e.g. `archlinux-x86_64`
+         *   in Sway) and fail when `LD_PRELOAD` shims are active (#827).
+         */
+        val PROOT_SANDBOX_ENV: List<String> = listOf(
+            "GLYCIN_DISABLE_SANDBOX=i-know-the-risks",
+            "ELECTRON_DISABLE_SANDBOX=1",
+            "MOZ_DISABLE_CONTENT_SANDBOX=1",
+            "MOZ_DISABLE_GMP_SANDBOX=1",
+            "MOZ_DISABLE_RDD_SANDBOX=1",
+            "MOZ_DISABLE_SOCKET_PROCESS_SANDBOX=1",
+            "MOZ_DISABLE_UTILITY_SANDBOX=1",
+        )
+
+        /**
          * Disable apt's `_apt` privilege-drop sandbox inside [rootfsDir] (#721).
          * Under PRoot on Android (especially secondary users / Work Profiles where
          * host UID >= 65536, or non-root guest sessions), apt's `DropPrivileges()`
@@ -5016,6 +5042,8 @@ chmod +x /root/.vnc/xstartup""")
          * methods without switching UIDs. No-op on non-APT rootfses.
          */
         fun ensureAptSandboxConfig(rootfsDir: File) {
+            ensureGuestMachineId(rootfsDir)
+            ensureSandboxProfileHook(rootfsDir)
             ensureTunnelGuestHelper(rootfsDir)
             val aptConfD = File(rootfsDir, "etc/apt/apt.conf.d")
             if (!aptConfD.isDirectory) return
@@ -5025,6 +5053,61 @@ chmod +x /root/.vnc/xstartup""")
                 runCatching {
                     confFile.setWritable(true, true)
                     confFile.writeText(content)
+                }
+            }
+        }
+
+        /**
+         * Ensure `/etc/machine-id` contains a valid 32-hex-character ID inside [rootfsDir] (#827).
+         * Container and PRoot rootfs tarballs ship an empty or missing `/etc/machine-id`,
+         * which causes D-Bus auto-launch inside GTK/Mozilla apps to fail with
+         * `Cannot spawn a message bus without a machine-id`.
+         */
+        fun ensureGuestMachineId(rootfsDir: File) {
+            if (!File(rootfsDir, "etc").isDirectory &&
+                !File(rootfsDir, "bin").exists() &&
+                !File(rootfsDir, "usr").exists()
+            ) {
+                return
+            }
+            runCatching {
+                val etcDir = File(rootfsDir, "etc").apply { mkdirs() }
+                val machineIdFile = File(etcDir, "machine-id")
+                val existing = if (machineIdFile.isFile) {
+                    runCatching { machineIdFile.readText().trim() }.getOrDefault("")
+                } else {
+                    ""
+                }
+                val isValidHex32 = existing.length == 32 &&
+                    existing.all { it in '0'..'9' || it in 'a'..'f' || it in 'A'..'F' }
+                if (!isValidHex32) {
+                    val generated = java.util.UUID.randomUUID().toString().replace("-", "").lowercase() + "\n"
+                    machineIdFile.setWritable(true, true)
+                    machineIdFile.writeText(generated)
+                }
+            }
+        }
+
+        /**
+         * Ensure `/etc/profile.d/haven-sandbox.sh` exists in [rootfsDir] (#827) so
+         * already-installed distros inherit [PROOT_SANDBOX_ENV] even across `su -` or
+         * `sudo -i` login shells that clear inherited environment variables.
+         */
+        fun ensureSandboxProfileHook(rootfsDir: File) {
+            if (!File(rootfsDir, "bin").exists() && !File(rootfsDir, "usr").exists()) return
+            runCatching {
+                val profileD = File(rootfsDir, "etc/profile.d").apply { mkdirs() }
+                val hook = File(profileD, "haven-sandbox.sh")
+                val hookContent = buildString {
+                    appendLine("# Haven PRoot sandbox environment hook (#718, #780, #827).")
+                    for (entry in PROOT_SANDBOX_ENV) {
+                        val key = entry.substringBefore('=')
+                        val value = entry.substringAfter('=')
+                        appendLine("export $key=\"\${$key:-$value}\"")
+                    }
+                }
+                if (!hook.exists() || runCatching { hook.readText() }.getOrNull() != hookContent) {
+                    hook.writeText(hookContent)
                 }
             }
         }
@@ -5090,6 +5173,20 @@ chmod +x /root/.vnc/xstartup""")
             }
         }
 
+        private fun copyMissingRecursively(src: File, dst: File) {
+            if (java.nio.file.Files.isSymbolicLink(src.toPath())) return
+            if (src.isDirectory) {
+                if (!dst.exists()) dst.mkdirs()
+                if (!dst.isDirectory) return
+                src.listFiles()?.forEach { child ->
+                    copyMissingRecursively(child, File(dst, child.name))
+                }
+            } else if (src.isFile && !dst.exists()) {
+                dst.parentFile?.mkdirs()
+                src.copyTo(dst, overwrite = false)
+            }
+        }
+
         /**
          * Ensure [rawUsername] (uid 1000 / gid 1000) is provisioned in [rootfsDir]'s
          * `/etc/passwd`, `/etc/group`, `/etc/shadow`, `/etc/sudoers.d/<user>`,
@@ -5112,12 +5209,15 @@ chmod +x /root/.vnc/xstartup""")
 
             // Seed default configs from /root into /home/<user> if missing so X11/Wayland
             // desktops find their seeded .config and .vnc files when launched as non-root.
+            // Merge recursively without overwriting existing user files so desktops
+            // installed after the user's home was created (e.g. Sway after Xfce4) still
+            // populate their default config (#827).
             val rootHome = File(rootfsDir, "root")
             for (sub in listOf(".config", ".vnc")) {
                 val src = File(rootHome, sub)
                 val dst = File(homeDir, sub)
-                if (src.exists() && !dst.exists()) {
-                    runCatching { src.copyRecursively(dst, overwrite = false) }
+                if (src.exists()) {
+                    runCatching { copyMissingRecursively(src, dst) }
                 }
             }
 

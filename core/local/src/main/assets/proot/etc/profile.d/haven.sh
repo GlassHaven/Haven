@@ -16,7 +16,12 @@ case ":$PATH:" in
     *) export PATH="$HOME/.local/bin:$PATH" ;;
 esac
 
-# Disable bubblewrap (glycin SVG loader) and Chromium/Electron user-namespace
-# sandboxes inside PRoot (#718, #780).
+# Disable bubblewrap (glycin SVG loader), Chromium/Electron user-namespace,
+# and Mozilla seccomp content sandboxes inside PRoot (#718, #780, #827).
 export GLYCIN_DISABLE_SANDBOX="${GLYCIN_DISABLE_SANDBOX:-i-know-the-risks}"
 export ELECTRON_DISABLE_SANDBOX="${ELECTRON_DISABLE_SANDBOX:-1}"
+export MOZ_DISABLE_CONTENT_SANDBOX="${MOZ_DISABLE_CONTENT_SANDBOX:-1}"
+export MOZ_DISABLE_GMP_SANDBOX="${MOZ_DISABLE_GMP_SANDBOX:-1}"
+export MOZ_DISABLE_RDD_SANDBOX="${MOZ_DISABLE_RDD_SANDBOX:-1}"
+export MOZ_DISABLE_SOCKET_PROCESS_SANDBOX="${MOZ_DISABLE_SOCKET_PROCESS_SANDBOX:-1}"
+export MOZ_DISABLE_UTILITY_SANDBOX="${MOZ_DISABLE_UTILITY_SANDBOX:-1}"

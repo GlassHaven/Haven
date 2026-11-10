@@ -177,4 +177,53 @@ class DesktopInstalledMarkerTest {
         File(unconfiguredGlibcRootfs, "usr/lib/locale/locale-archive").writeText("archive")
         assertEquals("en_US.UTF-8", resolveGuestLocale(unconfiguredGlibcRootfs, "en_US.UTF-8"))
     }
+
+    @Test
+    fun `provisionGuestUser merges newly seeded desktop configs into existing user dot-config without overwriting edits (#827)`() {
+        val rootfs = tmp.newFolder("rootfs-827-config")
+        File(rootfs, "etc/passwd").apply { parentFile?.mkdirs(); writeText("root:x:0:0:root:/root:/bin/sh\n") }
+        File(rootfs, "etc/group").writeText("root:x:0:\n")
+        // User already ran Xfce4 first, so /home/nazy/.config/xfce4 exists before Sway is installed.
+        File(rootfs, "home/nazy/.config/xfce4").apply { mkdirs() }
+        File(rootfs, "home/nazy/.config/xfce4/panel.xml").writeText("user-panel")
+        File(rootfs, "home/nazy/.config/sway").apply { mkdirs() }
+        File(rootfs, "home/nazy/.config/sway/custom").writeText("keep-me")
+
+        // Installing Sway later writes /root/.config/sway/config.
+        File(rootfs, "root/.config/sway").apply { mkdirs() }
+        File(rootfs, "root/.config/sway/config").writeText("output HEADLESS-1 enable\n")
+        File(rootfs, "root/.config/sway/custom").writeText("default-do-not-overwrite")
+
+        ProotManager.provisionGuestUser(rootfs, "nazy")
+
+        assertEquals(
+            "Newly seeded sway/config must be copied into existing /home/nazy/.config",
+            "output HEADLESS-1 enable\n",
+            File(rootfs, "home/nazy/.config/sway/config").readText(),
+        )
+        assertEquals(
+            "Existing user files under /home/nazy/.config must not be overwritten",
+            "keep-me",
+            File(rootfs, "home/nazy/.config/sway/custom").readText(),
+        )
+        assertEquals("user-panel", File(rootfs, "home/nazy/.config/xfce4/panel.xml").readText())
+
+        val machineId = File(rootfs, "etc/machine-id").readText().trim()
+        assertEquals("machine-id must be a 32-hex UUID (#827)", 32, machineId.length)
+        assertTrue(machineId.all { it in '0'..'9' || it in 'a'..'f' })
+    }
+
+    @Test
+    fun `proot sandbox env disables Mozilla content and utility sandboxes alongside Electron and Glycin (#827)`() {
+        val keys = ProotManager.PROOT_SANDBOX_ENV.associate {
+            it.substringBefore('=') to it.substringAfter('=')
+        }
+        assertEquals("i-know-the-risks", keys["GLYCIN_DISABLE_SANDBOX"])
+        assertEquals("1", keys["ELECTRON_DISABLE_SANDBOX"])
+        assertEquals("1", keys["MOZ_DISABLE_CONTENT_SANDBOX"])
+        assertEquals("1", keys["MOZ_DISABLE_GMP_SANDBOX"])
+        assertEquals("1", keys["MOZ_DISABLE_RDD_SANDBOX"])
+        assertEquals("1", keys["MOZ_DISABLE_SOCKET_PROCESS_SANDBOX"])
+        assertEquals("1", keys["MOZ_DISABLE_UTILITY_SANDBOX"])
+    }
 }

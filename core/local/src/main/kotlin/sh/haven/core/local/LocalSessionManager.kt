@@ -334,6 +334,7 @@ class LocalSessionManager @Inject constructor(
             // the guest). Keyed on the distro this session actually runs.
             val customBinds = prootManager.customBindShortArgs(targetDistro).toTypedArray()
             val guestUser = prootManager.ensureGuestUser(rootfsDir)
+            ProotManager.ensureAptSandboxConfig(rootfsDir)
             val identityArgs = if (guestUser.isRoot) {
                 arrayOf("-0")
             } else {
@@ -405,12 +406,9 @@ class LocalSessionManager @Inject constructor(
                 "XDG_DATA_DIRS=/usr/local/share:/usr/share",
                 "XDG_CONFIG_HOME=${guestUser.home}/.config",
                 "XDG_CACHE_HOME=${guestUser.home}/.cache",
-                // #718: gdk-pixbuf2 2.44+ uses glycin for SVG icon loading, which
-                // spawns `bwrap --unshare-all --seccomp` and aborts GTK apps inside PRoot.
-                "GLYCIN_DISABLE_SANDBOX=i-know-the-risks",
-                // #780: disable Chromium/Electron user-namespace/SUID sandbox inside PRoot
-                // so Electron apps (VS Code, VSCodium, Obsidian, etc.) start cleanly.
-                "ELECTRON_DISABLE_SANDBOX=1",
+                // #718 / #780 / #827: disable bubblewrap (glycin SVG loader),
+                // Chromium/Electron user-namespace, and Mozilla seccomp child sandboxes inside PRoot.
+                *ProotManager.PROOT_SANDBOX_ENV.toTypedArray(),
                 *prootManager.guestTunnelEnvVars().map { (k, v) -> "$k=$v" }.toTypedArray(),
                 "PROOT_TMP_DIR=${context.cacheDir.absolutePath}",
                 "PROOT_LOADER=${java.io.File(context.applicationInfo.nativeLibraryDir, "libproot_loader.so").absolutePath}",

@@ -69,4 +69,28 @@ class GeneratedShellSyntaxTest {
             assertEquals("first field must be a pid: '$row'", pid, pid.filter { it.isDigit() })
         }
     }
+
+    @Test
+    fun `isSimpleMozillaBrowserCommand detects bare and wrapped firefox commands unless profile is explicit`() {
+        assertTrue(isSimpleMozillaBrowserCommand("firefox"))
+        assertTrue(isSimpleMozillaBrowserCommand("/usr/bin/firefox-esr https://example.com"))
+        assertTrue(isSimpleMozillaBrowserCommand("env GDK_BACKEND=wayland firefox"))
+        assertTrue(isSimpleMozillaBrowserCommand("fakeroot-tcp librewolf"))
+        assertTrue(!isSimpleMozillaBrowserCommand("firefox --profile /tmp/custom"))
+        assertTrue(!isSimpleMozillaBrowserCommand("firefox -P dev"))
+        assertTrue(!isSimpleMozillaBrowserCommand("mkdir -p /tmp/x && firefox"))
+        assertTrue(!isSimpleMozillaBrowserCommand("galculator"))
+    }
+
+    @Test
+    fun `buildProotKioskRunScript parses under sh -n for mozilla and non-mozilla commands`() {
+        val mozScript = buildProotKioskRunScript("env GDK_BACKEND=wayland firefox", 2)
+        assertTrue("mozilla kiosk script rejected by sh -n:\n$mozScript", parses(mozScript))
+        assertTrue(mozScript.contains("--no-remote --profile"))
+        assertTrue(mozScript.contains(".parentlock"))
+
+        val plainScript = buildProotKioskRunScript("galculator", 2)
+        assertTrue("plain kiosk script rejected by sh -n:\n$plainScript", parses(plainScript))
+        assertEquals("galculator\nswaymsg exit\n", plainScript)
+    }
 }

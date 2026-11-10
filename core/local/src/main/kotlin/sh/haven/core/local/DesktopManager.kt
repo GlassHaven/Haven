@@ -1550,7 +1550,7 @@ class DesktopManager @Inject constructor(
         val port = 5900 + display
         val scaleStr = formatCageScale(scale)
         val kioskRun = File(context.cacheDir, "haven-kiosk-$display.run")
-        kioskRun.writeText("$execCommand\nswaymsg exit\n")
+        kioskRun.writeText(buildProotKioskRunScript(execCommand, display))
         val kioskConfig = File(context.cacheDir, "haven-kiosk-$display.config")
         kioskConfig.writeText(
             """
@@ -1708,11 +1708,7 @@ class DesktopManager @Inject constructor(
             proc.waitFor()
             if (pids.isNotEmpty()) {
                 Log.d(TAG, "Killing app-window session (display $display): ${pids.replace('\n', ' ')}")
-                for (pid in pids.lines()) {
-                    try {
-                        ProcessBuilder("kill", "-9", pid.trim()).start().waitFor()
-                    } catch (_: Exception) {}
-                }
+                terminateThenKillPids(pids.lines())
             } else {
                 Log.d(TAG, "No app-window processes for display $display")
             }
@@ -2053,11 +2049,7 @@ class DesktopManager @Inject constructor(
             proc.waitFor()
             if (pids.isNotEmpty()) {
                 Log.d(TAG, "Killing nested-wayland orphans ($compositorCmd tree): ${pids.replace('\n', ' ')}")
-                for (pid in pids.lines()) {
-                    try {
-                        ProcessBuilder("kill", "-9", pid.trim()).start().waitFor()
-                    } catch (_: Exception) {}
-                }
+                terminateThenKillPids(pids.lines())
             } else {
                 Log.d(TAG, "No nested-wayland orphans for $compositorCmd")
             }
@@ -2101,7 +2093,33 @@ class DesktopManager @Inject constructor(
             return
         }
         Log.d(TAG, "Killing $label PIDs: ${pids.joinToString(" ")}")
-        for (pid in pids) {
+        terminateThenKillPids(pids)
+    }
+
+    /**
+     * Send SIGTERM first so GUI applications (Firefox, Chromium, LibreOffice)
+     * can flush state and unlink profile lock files before SIGKILL sweeps any
+     * processes still alive after the grace window (#812).
+     */
+    private fun terminateThenKillPids(pids: List<String>) {
+        val clean = pids.map { it.trim() }.filter { it.isNotEmpty() }
+        if (clean.isEmpty()) return
+        for (pid in clean) {
+            try {
+                ProcessBuilder("kill", "-TERM", pid).start().waitFor()
+            } catch (_: Exception) {}
+        }
+        val deadline = System.currentTimeMillis() + 600L
+        while (System.currentTimeMillis() < deadline) {
+            if (clean.none { File("/proc/$it").exists() }) return
+            try {
+                Thread.sleep(100)
+            } catch (_: InterruptedException) {
+                break
+            }
+        }
+        for (pid in clean) {
+            if (!File("/proc/$pid").exists()) continue
             try {
                 ProcessBuilder("kill", "-9", pid).start().waitFor()
             } catch (_: Exception) {}
@@ -2186,6 +2204,69 @@ internal fun parseWxH(token: String): Pair<Int, Int>? {
 internal fun formatCageScale(scale: Float): String {
     val c = scale.coerceIn(0.5f, 3f)
     return if (c == c.toInt().toFloat()) c.toInt().toString() else c.toString()
+}
+
+private val MOZILLA_BINARIES = setOf("firefox", "firefox-esr", "librewolf")
+private val COMPOUND_SHELL_CHARS = charArrayOf(';', '&', '|', '\n', '`', '$', '(', ')', '<', '>')
+
+/**
+ * True when [command] is a simple invocation of Firefox / LibreWolf without an
+ * explicit `--profile` or `-P` flag (#812). Compound shell pipelines return
+ * false so arguments are never appended onto a shell control operator.
+ */
+internal fun isSimpleMozillaBrowserCommand(command: String): Boolean {
+    val trimmed = command.trim()
+    if (trimmed.isEmpty() || trimmed.any { it in COMPOUND_SHELL_CHARS }) return false
+    val tokens = trimmed.split(Regex("\\s+"))
+    if (tokens.any { it == "--profile" || it.startsWith("--profile=") || it == "-P" }) return false
+    for (t in tokens) {
+        if (t == "env" || t == "fakeroot-tcp" || t == "exec") continue
+        if (t.contains('=') && !t.startsWith('/')) continue
+        return t.substringAfterLast('/') in MOZILLA_BINARIES
+    }
+    return false
+}
+
+/**
+ * Shell block that prevents Firefox / LibreWolf `"already running, but is not
+ * responding"` dialogs when launching an Application window (#812):
+ *  - If another Firefox / LibreWolf instance is live on another display (e.g.
+ *    inside a running Xfce4 desktop), launches with `--no-remote --profile`
+ *    pointed at a per-slot directory so both windows run concurrently.
+ *  - Otherwise removes any stale `lock` / `.parentlock` files stranded by an
+ *    unclean shutdown before launching the user's default profile.
+ */
+internal fun buildMozillaKioskLaunchBlock(execCommand: String, profileTag: String): String = """
+    moz_live=0
+    for p in /proc/[0-9]*; do
+        [ -r "${'$'}p/cmdline" ] || continue
+        [ "${'$'}{p##*/}" = "${'$'}${'$'}" ] && continue
+        first=${'$'}(tr '\0' ' ' < "${'$'}p/cmdline" 2>/dev/null | awk '{print ${'$'}1}')
+        case "${'$'}{first##*/}" in
+            firefox|firefox-esr|firefox-bin|librewolf|librewolf-bin)
+                moz_live=1
+                break
+                ;;
+        esac
+    done
+    if [ "${'$'}moz_live" = "1" ]; then
+        prof="${'$'}{HOME:-/root}/.cache/haven-kiosk-mozilla-$profileTag"
+        mkdir -p "${'$'}prof"
+        $execCommand --no-remote --profile "${'$'}prof"
+    else
+        rm -f "${'$'}{HOME:-/root}"/.mozilla/firefox/*/lock "${'$'}{HOME:-/root}"/.mozilla/firefox/*/.parentlock "${'$'}{HOME:-/root}"/.librewolf/*/lock "${'$'}{HOME:-/root}"/.librewolf/*/.parentlock 2>/dev/null || true
+        $execCommand
+    fi
+""".trimIndent()
+
+/** Build `/tmp/haven-kiosk-<display>.run` for PRoot single-app windows (#812). */
+internal fun buildProotKioskRunScript(execCommand: String, display: Int): String {
+    val body = if (isSimpleMozillaBrowserCommand(execCommand)) {
+        buildMozillaKioskLaunchBlock(execCommand, "proot-$display")
+    } else {
+        execCommand
+    }
+    return "$body\nswaymsg exit\n"
 }
 
 /**

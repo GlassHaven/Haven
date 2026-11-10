@@ -924,11 +924,16 @@ class UmlDesktopManager @Inject constructor(
             val umlCmd = command
                 .replace("SDL_AUDIODRIVER=pulse", "SDL_AUDIODRIVER=dummy")
                 .replace("ALSOFT_DRIVERS=pulse", "ALSOFT_DRIVERS=null")
+            val launchBody = if (sh.haven.core.local.isSimpleMozillaBrowserCommand(umlCmd)) {
+                sh.haven.core.local.buildMozillaKioskLaunchBlock(umlCmd, "uml-$slot")
+            } else {
+                umlCmd
+            }
             return """#!/bin/sh
 export HOME=/root
 export SDL_AUDIODRIVER=dummy
 export ALSOFT_DRIVERS=null
-$umlCmd
+$launchBody
 for k in /tmp/wr-cage-$slot/sway-ipc.*.sock; do
     [ -S "${DS}k" ] && swaymsg -s "${DS}k" exit >/dev/null 2>&1
 done

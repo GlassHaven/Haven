@@ -504,6 +504,150 @@ internal fun desktopPackagesToRemove(
 }
 
 /**
+ * Stateful parser that extracts human-readable step labels and `[0.0, 1.0]`
+ * progress fractions from `pacman`, `apt-get`, `apk`, and `xbps-install`
+ * stdout lines during desktop package installation (#814).
+ */
+internal class PackageInstallProgressTracker {
+    var totalPackages: Int = 0
+        private set
+    private var downloadedCount: Int = 0
+    private var installedCount: Int = 0
+
+    fun onLine(rawLine: String): Pair<String, Float?>? {
+        val line = rawLine.trim()
+        if (line.isEmpty()) return null
+
+        // 1. Explicit `(i/N) ...` prefix (apk: `(12/45) Installing foo (1.0)`,
+        //    pacman TTY/hooks: `(12/85) installing foo`, `(1/4) Arming...`)
+        FRACTION_PREFIX_REGEX.matchEntire(line)?.let { m ->
+            val cur = m.groupValues[1].toIntOrNull() ?: return@let
+            val tot = m.groupValues[2].toIntOrNull()?.takeIf { it > 0 } ?: return@let
+            val rest = m.groupValues[3].trim()
+            val lower = rest.lowercase()
+            return when {
+                lower.startsWith("installing ") || lower.startsWith("upgrading ") || lower.startsWith("reinstalling ") -> {
+                    val isApk = rest.startsWith("Installing ") || rest.startsWith("Upgrading ")
+                    val pkg = rest.substringAfter(' ').substringBefore(' ').removeSuffix("...").trim()
+                    val frac = if (isApk) {
+                        (cur.toFloat() / tot.toFloat()).coerceIn(0.05f, 0.98f)
+                    } else {
+                        (0.50f + 0.45f * (cur.toFloat() / tot.toFloat())).coerceIn(0.50f, 0.95f)
+                    }
+                    "Installing $pkg ($cur/$tot)..." to frac
+                }
+                else -> null
+            }
+        }
+
+        // 2. Pacman output lines
+        if (line.startsWith(":: Synchronizing package databases")) {
+            return "Synchronizing package databases..." to 0.02f
+        }
+        PACMAN_PACKAGES_HEADER_REGEX.find(line)?.let { m ->
+            val count = m.groupValues[1].toIntOrNull() ?: 0
+            if (count > 0) {
+                totalPackages = count
+                downloadedCount = 0
+                installedCount = 0
+                return "Resolving $count packages..." to 0.05f
+            }
+        }
+        if (line.startsWith(":: Retrieving packages")) {
+            return "Downloading packages..." to 0.08f
+        }
+        if (rawLine.startsWith(" ") && line.endsWith(" downloading...")) {
+            val pkg = line.removeSuffix(" downloading...").trim()
+            downloadedCount++
+            val frac = if (totalPackages > 0) {
+                (0.08f + 0.42f * (downloadedCount.toFloat() / totalPackages).coerceAtMost(1f))
+            } else {
+                null
+            }
+            val suffix = if (totalPackages > 0) " ($downloadedCount/$totalPackages)" else ""
+            return "Downloading $pkg$suffix..." to frac
+        }
+        if (line.startsWith("installing ") || line.startsWith("upgrading ") || line.startsWith("reinstalling ")) {
+            val pkg = line.substringAfter(' ').removeSuffix("...").trim()
+            installedCount++
+            val frac = if (totalPackages > 0) {
+                (0.50f + 0.45f * (installedCount.toFloat() / totalPackages).coerceAtMost(1f))
+            } else {
+                null
+            }
+            val suffix = if (totalPackages > 0) " ($installedCount/$totalPackages)" else ""
+            return "Installing $pkg$suffix..." to frac
+        }
+        if (line.startsWith(":: Running post-transaction hooks")) {
+            return "Running post-install hooks..." to 0.96f
+        }
+
+        // 3. APT (`apt-get`) output lines
+        APT_SUMMARY_REGEX.find(line)?.let { m ->
+            val upg = m.groupValues[1].toIntOrNull() ?: 0
+            val newly = m.groupValues[2].toIntOrNull() ?: 0
+            val sum = upg + newly
+            if (sum > 0) {
+                totalPackages = sum
+                downloadedCount = 0
+                installedCount = 0
+                return "Downloading $sum packages..." to 0.05f
+            }
+        }
+        APT_GET_REGEX.find(line)?.let { m ->
+            val idx = m.groupValues[1].toIntOrNull() ?: 0
+            val pkg = m.groupValues[2]
+            if (idx > downloadedCount) downloadedCount = idx
+            val frac = if (totalPackages > 0) {
+                (0.05f + 0.45f * (downloadedCount.toFloat() / totalPackages).coerceAtMost(1f))
+            } else {
+                null
+            }
+            val suffix = if (totalPackages > 0) " ($downloadedCount/$totalPackages)" else ""
+            return "Downloading $pkg$suffix..." to frac
+        }
+        if (line.startsWith("Unpacking ")) {
+            val pkg = line.removePrefix("Unpacking ").substringBefore(' ').substringBefore(':').trim()
+            installedCount++
+            val frac = if (totalPackages > 0) {
+                (0.50f + 0.25f * (installedCount.toFloat() / totalPackages).coerceAtMost(1f))
+            } else {
+                null
+            }
+            val suffix = if (totalPackages > 0) " ($installedCount/$totalPackages)" else ""
+            return "Unpacking $pkg$suffix..." to frac
+        }
+        if (line.startsWith("Setting up ")) {
+            val pkg = line.removePrefix("Setting up ").substringBefore(' ').substringBefore(':').trim()
+            return "Setting up $pkg..." to 0.85f
+        }
+
+        // 4. XBPS (`xbps-install`) output lines
+        if (line.contains("[*] Downloading binary packages")) {
+            return "Downloading packages..." to 0.10f
+        }
+        if (line.contains("[*] Verifying package integrity")) {
+            return "Verifying package integrity..." to 0.45f
+        }
+        if (line.contains("[*] Unpacking packages")) {
+            return "Unpacking packages..." to 0.65f
+        }
+        if (line.contains("[*] Configuring unpacked packages")) {
+            return "Configuring packages..." to 0.85f
+        }
+
+        return null
+    }
+
+    companion object {
+        private val FRACTION_PREFIX_REGEX = Regex("""^\((\d+)/(\d+)\)\s+(.+)$""")
+        private val PACMAN_PACKAGES_HEADER_REGEX = Regex("""^Packages?\s+\((\d+)\)""")
+        private val APT_SUMMARY_REGEX = Regex("""(\d+)\s+upgraded,\s+(\d+)\s+newly installed""")
+        private val APT_GET_REGEX = Regex("""^Get:(\d+)\s+\S+\s+\S+\s+(?:(?:amd64|arm64|armhf|i386|all)\s+)?(\S+)""")
+    }
+}
+
+/**
  * Manages the PRoot binary and Alpine Linux rootfs.
  *
  * PRoot is bundled as libproot.so in jniLibs (extracted to nativeLibraryDir
@@ -1392,7 +1536,11 @@ class ProotManager @Inject constructor(
          * replaced every other desktop's controls with a spinner — they all
          * looked like they had been started too (#502).
          */
-        data class Installing(val step: String, val de: DesktopEnvironment? = null) : DesktopSetupState()
+        data class Installing(
+            val step: String,
+            val de: DesktopEnvironment? = null,
+            val progress: Float? = null,
+        ) : DesktopSetupState()
         data object Complete : DesktopSetupState()
         /**
          * Failure attributed to a specific [DePhase]. [logTail] is
@@ -3353,9 +3501,15 @@ class ProotManager @Inject constructor(
 
     /**
      * Run a command inside the PRoot rootfs (non-interactive).
-     * Returns (stdout+stderr, exitCode).
+     * Returns (stdout+stderr, exitCode). When [onLine] is provided and
+     * [timeoutMs] is null, each line of combined output is streamed to
+     * [onLine] as it arrives (#814).
      */
-    suspend fun runCommandInProot(command: String, timeoutMs: Long? = null): Pair<String, Int> =
+    suspend fun runCommandInProot(
+        command: String,
+        timeoutMs: Long? = null,
+        onLine: ((String) -> Unit)? = null,
+    ): Pair<String, Int> =
         withContext(Dispatchers.IO) {
             val process = startCommandInProot(command)
             if (timeoutMs == null) {
@@ -3363,7 +3517,16 @@ class ProotManager @Inject constructor(
                 // package install would turn a slow network into a failure,
                 // which is a worse trade than waiting; #503 is only fixed for
                 // the step that is already best-effort.
-                val output = process.inputStream.bufferedReader().readText()
+                val output = if (onLine == null) {
+                    process.inputStream.bufferedReader().readText()
+                } else {
+                    val sb = StringBuilder()
+                    process.inputStream.bufferedReader().forEachLine { line ->
+                        sb.append(line).append('\n')
+                        onLine(line)
+                    }
+                    sb.toString()
+                }
                 Pair(output, process.waitFor())
             } else {
                 val run = readProcessBounded(process, timeoutMs)
@@ -3673,8 +3836,19 @@ class ProotManager @Inject constructor(
         pkgs: List<String>,
         de: DesktopEnvironment? = null,
     ): Pair<String, Int> {
+        val prefix = de?.label?.let { "$it: " } ?: ""
+        val tracker = PackageInstallProgressTracker()
+        val onLine: (String) -> Unit = { line ->
+            tracker.onLine(line)?.let { (step, progress) ->
+                _desktopState.value = DesktopSetupState.Installing(
+                    step = "$prefix$step",
+                    de = de,
+                    progress = progress,
+                )
+            }
+        }
         val installCmd = "${ops.updateCmd()} && ${ops.installCmd(pkgs)}"
-        val (output, code) = runCommandInProot(installCmd)
+        val (output, code) = runCommandInProot(installCmd, onLine = onLine)
         if (code == 0 || !ops.looksLikeStaleDb(output)) {
             return Pair(output, code)
         }
@@ -3683,9 +3857,33 @@ class ProotManager @Inject constructor(
             "Refreshing package database (one-time upgrade)…",
             de,
         )
-        val (upgOut, upgCode) = runCommandInProot(ops.upgradeCmd())
+        val upgradeTracker = PackageInstallProgressTracker()
+        val (upgOut, upgCode) = runCommandInProot(
+            ops.upgradeCmd(),
+            onLine = { line ->
+                upgradeTracker.onLine(line)?.let { (step, progress) ->
+                    _desktopState.value = DesktopSetupState.Installing(
+                        step = "${prefix}Upgrading base system: $step",
+                        de = de,
+                        progress = progress,
+                    )
+                }
+            },
+        )
         Log.d(TAG, "Auto-upgrade exit=$upgCode tail=${upgOut.takeLast(300)}")
-        return runCommandInProot(installCmd)
+        val retryTracker = PackageInstallProgressTracker()
+        return runCommandInProot(
+            installCmd,
+            onLine = { line ->
+                retryTracker.onLine(line)?.let { (step, progress) ->
+                    _desktopState.value = DesktopSetupState.Installing(
+                        step = "$prefix$step",
+                        de = de,
+                        progress = progress,
+                    )
+                }
+            },
+        )
     }
 
     /**

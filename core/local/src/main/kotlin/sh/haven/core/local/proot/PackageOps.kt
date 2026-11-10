@@ -174,18 +174,48 @@ object Pacman : PackageOps {
      * subsequent run hard-fails with "unable to lock database".
      * Inside our proot we only ever run one pacman at a time
      * (runCommandInProot is synchronous), so it's always safe to
-     * remove a stale lock before running.
+     * remove a stale lock before running. Also clear any stale
+     * GnuPG lockfiles under `/etc/pacman.d/gnupg`.
      */
-    private const val CLEAR_LOCK = "rm -f /var/lib/pacman/db.lck;"
+    private const val CLEAR_LOCK =
+        "rm -f /var/lib/pacman/db.lck /etc/pacman.d/gnupg/*.lock /etc/pacman.d/gnupg/.#lk* 2>/dev/null;"
+
+    /**
+     * Prepare `/etc/pacman.d/gnupg` for `proot --link2symlink` (#814):
+     * 1. GnuPG's `dotlock_take_unix` creates `.#lk0x...`, hardlinks it, and
+     *    stats the temp file to check `st_nlink == 2`. Under `proot --link2symlink`
+     *    that fails with `gpg: lock not made: Oops: stat of tmp file failed` and
+     *    `gpg: can't lock '/etc/pacman.d/gnupg/pubring.gpg'`.
+     * 2. `archlinux-keyring`'s `post_upgrade` hook strips an exact `^lock-never$`
+     *    line via `grep -qx 'lock-never'` / `sed -i '/^lock-never$/d'` right before
+     *    calling `pacman-key --populate archlinux`. Appending `'lock-never '` with a
+     *    trailing space is valid GnuPG config syntax (trailing whitespace is trimmed)
+     *    while surviving the `post_upgrade` sed filter.
+     * 3. `proot-distro` v4.34.2 Arch tarballs ship an unpopulated keyring on both
+     *    `x86_64` and `aarch64`, so `pacman-key --init && pacman-key --populate`
+     *    must run once before `archlinux-keyring` can verify and locally sign newly
+     *    rotated packager keys. `gpgconf --kill all` stops the daemonized `gpg-agent`
+     *    so it does not hold proot open.
+     */
+    internal const val ENSURE_KEYRING =
+        "mkdir -p /etc/pacman.d/gnupg; " +
+            "grep -q '^lock-never ' /etc/pacman.d/gnupg/gpg.conf 2>/dev/null || " +
+            "printf 'lock-never \\n' >> /etc/pacman.d/gnupg/gpg.conf; " +
+            "if [ ! -f /etc/pacman.d/gnupg/.haven-keyring-ready ]; then " +
+            "pacman-key --init >/dev/null 2>&1 && pacman-key --populate >/dev/null 2>&1 && " +
+            "touch /etc/pacman.d/gnupg/.haven-keyring-ready; " +
+            "gpgconf --homedir /etc/pacman.d/gnupg --kill all >/dev/null 2>&1 || true; " +
+            "fi;"
 
     /**
      * Refresh the package databases and ensure `archlinux-keyring`, `glibc`,
-     * and `gcc-libs` are up to date before any package install (#808, #809).
+     * and `gcc-libs` are up to date before any package install (#808, #809, #814).
      *
      * Why this is needed on top of `-Sy`:
      * 1. Arch rotates packager PGP keys in `archlinux-keyring` (e.g. key
-     *    `9B7A287D9A2EC608` added after the Dec 2025 proot-distro tarballs
-     *    were built). Upgrading `archlinux-keyring` first runs
+     *    `9B7A287D9A2EC608` / `6D42BDD116E0068F` added after the Dec 2025
+     *    proot-distro tarballs were built). Initializing `/etc/pacman.d/gnupg`
+     *    with `lock-never ` and upgrading `archlinux-keyring` first runs
      *    `pacman-key --populate archlinux` locally so subsequent package
      *    installs do not fail PGP verification or hang trying to reach a
      *    keyserver via `dirmngr`.
@@ -202,7 +232,7 @@ object Pacman : PackageOps {
      * are already current.
      */
     override fun updateCmd(): String =
-        "$CLEAR_LOCK pacman -Sy --noconfirm --needed archlinux-keyring && " +
+        "$CLEAR_LOCK $ENSURE_KEYRING pacman -Sy --noconfirm --needed archlinux-keyring && " +
             "$CLEAR_LOCK pacman -S --noconfirm --needed glibc gcc-libs"
 
     /**
@@ -219,7 +249,7 @@ object Pacman : PackageOps {
      * populated before the full transaction verifies signatures.
      */
     override fun upgradeCmd(): String =
-        "$CLEAR_LOCK pacman -Syy --noconfirm --needed archlinux-keyring && " +
+        "$CLEAR_LOCK $ENSURE_KEYRING pacman -Syy --noconfirm --needed archlinux-keyring && " +
             "$CLEAR_LOCK pacman -Su --noconfirm"
 
     override fun installCmd(pkgs: List<String>): String =
@@ -246,6 +276,9 @@ object Pacman : PackageOps {
             output.contains("conflicting files") ||
             output.contains("exists in filesystem (owned by") ||
             output.contains("invalid or corrupted package (PGP signature)") ||
+            output.contains("required key missing from keyring") ||
+            output.contains("could not be looked up remotely") ||
+            output.contains("missing required signature") ||
             (output.contains("GLIBC_") && output.contains("not found")) ||
             // Mirror sync race: the mirror's DB references a
             // package version whose .pkg.tar.xz is no longer on

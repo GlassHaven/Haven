@@ -506,7 +506,9 @@ object DistroCatalog {
             // on first install, paid once.
             RootfsHook(
                 id = "pacman -Syu",
-                command = "rm -f /var/lib/pacman/db.lck; pacman -Sy --noconfirm --needed archlinux-keyring && " +
+                command = "rm -f /var/lib/pacman/db.lck /etc/pacman.d/gnupg/*.lock /etc/pacman.d/gnupg/.#lk* 2>/dev/null; " +
+                    "${Pacman.ENSURE_KEYRING} " +
+                    "pacman -Sy --noconfirm --needed archlinux-keyring && " +
                     "rm -f /var/lib/pacman/db.lck; pacman -Su --noconfirm",
             ),
             RootfsHook(

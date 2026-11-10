@@ -596,8 +596,13 @@ class DesktopViewModel @Inject constructor(
             // records ERROR + an errorMessage and we exit the wait immediately
             // with the diagnostic instead of running out the full timeout and
             // leaving the user staring at a spinner. See #169.
+            val timeoutMs = if (prootManager.foreignRootfsArch(prootManager.activeDistroId) != null) {
+                45_000L
+            } else {
+                20_000L
+            }
             val outcome = withContext(Dispatchers.IO) {
-                val deadline = System.currentTimeMillis() + 20_000
+                val deadline = System.currentTimeMillis() + timeoutMs
                 while (System.currentTimeMillis() < deadline) {
                     val managerInstance = desktopManager.desktops.value[de]
                     if (managerInstance?.state == DesktopManager.DesktopState.ERROR) {
@@ -638,8 +643,9 @@ class DesktopViewModel @Inject constructor(
                     return@launch
                 }
                 is DesktopStartOutcome.Timeout -> {
-                    Log.e(TAG, "startDesktop: VNC port $port not listening after 8s")
-                    _userMessages.emit("${de.label} didn't come up within 8s")
+                    val timeoutSec = timeoutMs / 1000
+                    Log.e(TAG, "startDesktop: VNC port $port not listening after ${timeoutSec}s")
+                    _userMessages.emit("${de.label} didn't come up within ${timeoutSec}s")
                     desktopManager.stopDesktop(de)
                     return@launch
                 }

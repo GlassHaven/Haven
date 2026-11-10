@@ -1318,10 +1318,12 @@ class DesktopManager @Inject constructor(
             append("set +e ; ")
             append("$compositorCmd > $xdgInProot/compositor.log 2>&1 & ")
             append("comp_pid=\$! ; ")
-            // Wait up to ~10 s for ANY wayland-N socket to appear, then bind
+            // Wait up to ~30 s for ANY wayland-N socket to appear, then bind
             // wayvnc to whichever one the compositor actually created
             // (cage → wayland-0, Sway → wayland-1), rather than assuming -1.
-            append("i=0 ; while [ -z \"\$(ls $xdgInProot 2>/dev/null | grep -E '^wayland-[0-9]+\$')\" ] && [ \$i -lt 20 ]; do sleep 0.5; i=\$((i+1)); done ; ")
+            // 60 * 0.5 s accommodates foreign-arch (qemu-user) compositors
+            // on Arch/Debian x86_64 which take >10 s to initialize (#814).
+            append("i=0 ; while [ -z \"\$(ls $xdgInProot 2>/dev/null | grep -E '^wayland-[0-9]+\$')\" ] && [ \$i -lt 60 ]; do sleep 0.5; i=\$((i+1)); done ; ")
             append("WL_SOCK=\$(ls $xdgInProot 2>/dev/null | grep -E '^wayland-[0-9]+\$' | head -1) ; ")
             append("if [ -z \"\$WL_SOCK\" ]; then ")
             append("echo '[haven] compositor did not create a wayland socket in $xdgInProot — log tail:' ; ")

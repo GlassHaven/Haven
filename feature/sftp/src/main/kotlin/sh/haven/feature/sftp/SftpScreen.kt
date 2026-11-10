@@ -373,10 +373,21 @@ fun SftpScreen(
         }
     }
 
-    // Directory picker for download
+    // Directory picker for download (#816: pass the entry's real MIME type so
+    // Android's DownloadsStorageProvider / MediaStore indexes images, video,
+    // and audio with their media type instead of application/octet-stream).
     var pendingDownload by remember { mutableStateOf<SftpEntry?>(null) }
     val downloadLauncher = rememberLauncherForActivityResult(
-        ActivityResultContracts.CreateDocument("*/*")
+        object : androidx.activity.result.contract.ActivityResultContract<Pair<String, String>, android.net.Uri?>() {
+            override fun createIntent(context: android.content.Context, input: Pair<String, String>): android.content.Intent =
+                android.content.Intent(android.content.Intent.ACTION_CREATE_DOCUMENT)
+                    .addCategory(android.content.Intent.CATEGORY_OPENABLE)
+                    .setType(input.second)
+                    .putExtra(android.content.Intent.EXTRA_TITLE, input.first)
+
+            override fun parseResult(resultCode: Int, intent: android.content.Intent?): android.net.Uri? =
+                intent.takeIf { resultCode == android.app.Activity.RESULT_OK }?.data
+        }
     ) { uri ->
         if (uri != null) {
             pendingDownload?.let { entry ->
@@ -1342,7 +1353,7 @@ fun SftpScreen(
                                 },
                                 onDownload = {
                                     pendingDownload = entry
-                                    downloadLauncher.launch(entry.name)
+                                    downloadLauncher.launch(entry.name to viewModel.mimeTypeForDownload(entry))
                                 },
                                 onDelete = { viewModel.deleteEntry(entry) },
                                 onCopyPath = {

@@ -790,11 +790,8 @@ class HavenDocumentsProvider : DocumentsProvider() {
             ?: throw IllegalStateException("Not connected: $profileId")
         runBlocking {
             val attrs = session.stat(path)
-            if (attrs.isDirectory) {
-                session.rmdir(path)
-            } else {
-                session.rm(path)
-            }
+            sh.haven.feature.sftp.transport.SftpTransport({ session })
+                .delete(path, attrs.isDirectory && !attrs.isSymlink)
         }
     }
 

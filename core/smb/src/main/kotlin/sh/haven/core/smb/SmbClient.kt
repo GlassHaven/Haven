@@ -245,7 +245,7 @@ class SmbClient : Closeable {
         val diskShare = ensureShare()
         val smbPath = toSmbPath(path)
         if (isDirectory) {
-            diskShare.rmdir(smbPath, false)
+            diskShare.rmdir(smbPath, true)
         } else {
             diskShare.rm(smbPath)
         }

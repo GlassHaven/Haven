@@ -825,6 +825,9 @@ class SftpViewModel @Inject constructor(
     @VisibleForTesting
     internal var backendOverride: (() -> FileBackend?)? = null
 
+    @VisibleForTesting
+    internal var mediaScannerOverride: ((path: String, mimeType: String?) -> Unit)? = null
+
     fun openInEditor(entry: SftpEntry) {
         if (entry.isDirectory) return
         // The editor materialises the whole file as a UTF-16 String and
@@ -1236,6 +1239,63 @@ class SftpViewModel @Inject constructor(
         android.webkit.MimeTypeMap.getSingleton().getMimeTypeFromExtension(ext)?.let { return it }
         val media = guessContentType(name)
         return if (media != "application/octet-stream") media else "*/*"
+    }
+
+    /**
+     * MIME type passed to `ACTION_CREATE_DOCUMENT` and `MediaScannerConnection`
+     * when downloading [entry] (#816). Uses a specific MIME type whenever known
+     * so Android's `MediaStore` indexes images, videos, and audio immediately.
+     */
+    fun mimeTypeForDownload(entry: SftpEntry): String =
+        entry.mimeType.takeIf { it.isNotBlank() } ?: mimeTypeForName(entry.name)
+
+    /**
+     * Notify Android's `MediaStore` / `MediaScannerConnection` that a local file
+     * at [path] has been created or modified (#816), so newly downloaded or
+     * pasted media files appear in Gallery / music apps without a reboot.
+     */
+    internal fun notifyMediaScanner(path: String, mimeType: String? = null) {
+        if (path.isBlank()) return
+        val effectiveMime = (mimeType ?: mimeTypeForName(path.substringAfterLast('/')))
+            .takeIf { it.isNotBlank() && it != "*/*" && it != "application/octet-stream" }
+        mediaScannerOverride?.let {
+            it(path, effectiveMime)
+            return
+        }
+        runCatching {
+            android.media.MediaScannerConnection.scanFile(
+                appContext,
+                arrayOf(path),
+                effectiveMime?.let { arrayOf(it) },
+                null,
+            )
+        }
+    }
+
+    private fun resolveMediaScanPathForUri(uri: Uri): String? {
+        if (uri.scheme == "file") return uri.path
+        val externalRoot = runCatching {
+            android.os.Environment.getExternalStorageDirectory().absolutePath
+        }.getOrDefault("/storage/emulated/0")
+        val docId = runCatching {
+            android.provider.DocumentsContract.getDocumentId(uri)
+        }.getOrNull()
+        resolveLocalPathFromDocumentId(uri.authority, docId, externalRoot)?.let { return it }
+        return runCatching {
+            appContext.contentResolver.query(
+                uri,
+                arrayOf(android.provider.MediaStore.MediaColumns.DATA),
+                null,
+                null,
+                null,
+            )?.use { cursor ->
+                if (cursor.moveToFirst() && !cursor.isNull(0)) {
+                    cursor.getString(0)?.takeIf { it.startsWith("/") }
+                } else {
+                    null
+                }
+            }
+        }.getOrNull()
     }
 
     /** Tracks which active profile is SMB (vs SFTP). */
@@ -1782,6 +1842,11 @@ class SftpViewModel @Inject constructor(
                         }
                     }
                 }
+                withContext(Dispatchers.IO) {
+                    resolveMediaScanPathForUri(destinationUri)?.let { localPath ->
+                        notifyMediaScanner(localPath, mimeTypeForDownload(entry))
+                    }
+                }
                 _lastDownload.value = DownloadResult(entry.name, destinationUri)
                 _message.value = appContext.getString(R.string.sftp_downloaded_file, entry.name)
             } catch (e: Exception) {
@@ -2034,6 +2099,7 @@ class SftpViewModel @Inject constructor(
                                 )
                                 val dest = java.io.File(dlDir, outName)
                                 cacheOutput.copyTo(dest, overwrite = true)
+                                notifyMediaScanner(dest.absolutePath, mimeType)
                             }
                         }
                         appContext.getString(R.string.sftp_location_downloads)
@@ -2046,6 +2112,7 @@ class SftpViewModel @Inject constructor(
                             _isLocalProfile.value -> {
                                 withContext(Dispatchers.IO) {
                                     cacheOutput.copyTo(java.io.File(destPath), overwrite = true)
+                                    notifyMediaScanner(destPath, mimeType)
                                 }
                                 sourceDir
                             }
@@ -2283,6 +2350,7 @@ class SftpViewModel @Inject constructor(
         when {
             _isLocalProfile.value -> withContext(Dispatchers.IO) {
                 cacheFile.copyTo(java.io.File(destPath), overwrite = true)
+                notifyMediaScanner(destPath)
             }
             _isRootProfile.value -> {
                 val root = rootBackendOrNull() ?: throw IllegalStateException("Root access is disabled")
@@ -2453,7 +2521,9 @@ class SftpViewModel @Inject constructor(
                         val dlDir = android.os.Environment.getExternalStoragePublicDirectory(
                             android.os.Environment.DIRECTORY_DOWNLOADS,
                         )
-                        cacheOutput.copyTo(java.io.File(dlDir, outName), overwrite = true)
+                        val dest = java.io.File(dlDir, outName)
+                        cacheOutput.copyTo(dest, overwrite = true)
+                        notifyMediaScanner(dest.absolutePath, mimeType)
                     }
                 }
                 appContext.getString(R.string.sftp_location_downloads)
@@ -2465,6 +2535,7 @@ class SftpViewModel @Inject constructor(
                     _isLocalProfile.value -> {
                         withContext(Dispatchers.IO) {
                             cacheOutput.copyTo(java.io.File(destPath), overwrite = true)
+                            notifyMediaScanner(destPath, mimeType)
                         }
                         sourceDir
                     }
@@ -3344,7 +3415,7 @@ class SftpViewModel @Inject constructor(
             try {
                 _loading.value = true
                 val backend = currentFileBackend() ?: throw IllegalStateException("Not connected")
-                backend.delete(entry.path, entry.isDirectory)
+                backend.delete(entry.path, entry.isDirectory && !entry.isSymlink)
                 _message.value = "Deleted ${entry.name}"
                 refresh()
             } catch (e: Exception) {
@@ -3675,7 +3746,7 @@ class SftpViewModel @Inject constructor(
 
     private suspend fun deleteOne(entry: SftpEntry) {
         val backend = currentFileBackend() ?: throw IllegalStateException("Not connected")
-        backend.delete(entry.path, entry.isDirectory)
+        backend.delete(entry.path, entry.isDirectory && !entry.isSymlink)
     }
 
     private suspend fun chmodOne(entry: SftpEntry, mode: Int) {
@@ -4659,7 +4730,16 @@ class SftpViewModel @Inject constructor(
                 else -> "$verb $copied files"
             }
             if (stillPending == 0) {
-                withContext(Dispatchers.IO) { pasteQueueDao.clear() }
+                withContext(Dispatchers.IO) {
+                    if (cb.isCut && skipped == 0) {
+                        for (entry in cb.entries) {
+                            if (entry.isDirectory && !entry.isSymlink) {
+                                runCatching { deleteSourceEntry(cb, entry) }
+                            }
+                        }
+                    }
+                    pasteQueueDao.clear()
+                }
             }
             refresh()
         } catch (e: Exception) {
@@ -5220,6 +5300,7 @@ class SftpViewModel @Inject constructor(
                     _transferProgress.value = TransferProgress(label, total, displayed)
                     maybePersistQueueProgress(displayed)
                 }
+                notifyMediaScanner(destPath)
                 return
             } catch (e: java.io.IOException) {
                 Log.w(TAG, "Direct write to $destPath failed (${e.message}); falling back to MediaStore path")
@@ -5239,6 +5320,7 @@ class SftpViewModel @Inject constructor(
             _transferProgress.value = TransferProgress(label, total, displayed)
             maybePersistQueueProgress(displayed)
         }
+        notifyMediaScanner(destPath)
     }
 
     /**
@@ -5261,6 +5343,7 @@ class SftpViewModel @Inject constructor(
             java.io.FileOutputStream(destFile, false).use { out ->
                 source.inputStream().use { it.copyTo(out) }
             }
+            notifyMediaScanner(destPath)
             return
         } catch (e: java.io.IOException) {
             Log.w(TAG, "Direct write to $destPath failed (${e.message}); trying MediaStore", e)
@@ -5300,9 +5383,12 @@ class SftpViewModel @Inject constructor(
             }
         }
 
+        val mime = mimeTypeForName(displayName).let {
+            if (it == "*/*") "application/octet-stream" else it
+        }
         val values = android.content.ContentValues().apply {
             put(android.provider.MediaStore.Downloads.DISPLAY_NAME, displayName)
-            put(android.provider.MediaStore.Downloads.MIME_TYPE, guessContentType(displayName))
+            put(android.provider.MediaStore.Downloads.MIME_TYPE, mime)
         }
         val newUri = resolver.insert(queryUri, values)
             ?: throw java.io.IOException("Failed to create MediaStore entry for $displayName")
@@ -5329,32 +5415,33 @@ class SftpViewModel @Inject constructor(
 
     /** Delete a source entry (for cut/move operations). */
     private fun deleteSourceEntry(cb: FileClipboard, entry: SftpEntry) {
+        val isRealDir = entry.isDirectory && !entry.isSymlink
         when (cb.sourceBackendType) {
             BackendType.LOCAL -> {
                 val f = java.io.File(entry.path)
-                if (entry.isDirectory) f.deleteRecursively() else f.delete()
+                if (isRealDir) f.deleteRecursively() else f.delete()
             }
             BackendType.RCLONE -> {
-                if (entry.isDirectory) rcloneClient.deleteDir(cb.sourceRemoteName!!, entry.path)
+                if (isRealDir) rcloneClient.deleteDir(cb.sourceRemoteName!!, entry.path)
                 else rcloneClient.deleteFile(cb.sourceRemoteName!!, entry.path)
             }
             BackendType.SFTP -> {
                 val session = cb.sourceSftpSession
                     ?: sessionManager.openSftpSession(cb.sourceProfileId) ?: return
                 kotlinx.coroutines.runBlocking {
-                    if (entry.isDirectory) session.rmdir(entry.path) else session.rm(entry.path)
+                    SftpTransport({ session }).delete(entry.path, isRealDir)
                 }
             }
             BackendType.SMB -> {
                 val client = cb.sourceSmbClient
                     ?: smbSessionManager.getClientForProfile(cb.sourceProfileId) ?: return
-                client.delete(entry.path, entry.isDirectory)
+                client.delete(entry.path, isRealDir)
             }
             BackendType.SAF -> kotlinx.coroutines.runBlocking {
-                safBackendFor(cb.sourceProfileId)?.delete(entry.path, entry.isDirectory)
+                safBackendFor(cb.sourceProfileId)?.delete(entry.path, isRealDir)
             }
             BackendType.ROOT -> kotlinx.coroutines.runBlocking {
-                rootBackendOrNull()?.delete(entry.path, entry.isDirectory)
+                rootBackendOrNull()?.delete(entry.path, isRealDir)
             }
         }
     }
@@ -6382,6 +6469,35 @@ class SftpViewModel @Inject constructor(
             }
             val ext = name.substringAfterLast('.', "").lowercase()
             return ext in extensions
+        }
+
+        /**
+         * Resolve a local `/storage/...` path from a `DocumentsProvider` document ID
+         * (`primary:Pictures/foo.jpg`, `<uuid>:DCIM/clip.mp4`, or `raw:/storage/...`)
+         * so [notifyMediaScanner] can trigger `MediaScannerConnection.scanFile` (#816).
+         */
+        internal fun resolveLocalPathFromDocumentId(
+            authority: String?,
+            docId: String?,
+            externalStorageDir: String = "/storage/emulated/0",
+        ): String? {
+            if (docId.isNullOrBlank()) return null
+            if (docId.startsWith("raw:")) {
+                return docId.removePrefix("raw:").takeIf { it.startsWith("/") }
+            }
+            if (authority == "com.android.externalstorage.documents" && ':' in docId) {
+                val volume = docId.substringBefore(':')
+                val rel = docId.substringAfter(':').trimStart('/')
+                if (rel.isEmpty()) return null
+                return when {
+                    volume.equals("primary", ignoreCase = true) ->
+                        "${externalStorageDir.trimEnd('/')}/$rel"
+                    volume.isNotEmpty() ->
+                        "/storage/$volume/$rel"
+                    else -> null
+                }
+            }
+            return null
         }
 
         /** Natural sort: numeric chunks compared as numbers, text chunks compared lexicographically. */

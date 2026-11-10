@@ -55,6 +55,7 @@ class LocalFileBackend(
         val f = File(path)
         val ok = if (isDirectory) f.deleteRecursively() else f.delete()
         if (!ok) throw java.io.IOException("Could not delete $path")
+        scanPaths(path)
     }
 
     override suspend fun mkdir(path: String) = withContext(Dispatchers.IO) {
@@ -67,6 +68,7 @@ class LocalFileBackend(
     override suspend fun rename(from: String, to: String) = withContext(Dispatchers.IO) {
         val ok = File(from).renameTo(File(to))
         if (!ok) throw java.io.IOException("Could not rename $from to $to")
+        scanPaths(from, to)
     }
 
     override suspend fun readBytes(path: String): ByteArray = withContext(Dispatchers.IO) {
@@ -75,6 +77,13 @@ class LocalFileBackend(
 
     override suspend fun writeBytes(path: String, data: ByteArray) = withContext(Dispatchers.IO) {
         File(path).writeBytes(data)
+        scanPaths(path)
+    }
+
+    private fun scanPaths(vararg paths: String) {
+        runCatching {
+            android.media.MediaScannerConnection.scanFile(appContext, arrayOf(*paths), null, null)
+        }
     }
 
     override suspend fun openInputStream(path: String, offset: Long): InputStream =

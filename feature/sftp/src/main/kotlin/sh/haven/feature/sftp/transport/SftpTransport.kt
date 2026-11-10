@@ -115,7 +115,28 @@ class SftpTransport(
 
     override suspend fun delete(path: String, isDirectory: Boolean) {
         val session = sessionProvider()
-        if (isDirectory) session.rmdir(path) else session.rm(path)
+        if (isDirectory) deleteDirectoryRecursively(session, path) else session.rm(path)
+    }
+
+    private suspend fun deleteDirectoryRecursively(session: SftpSession, dirPath: String) {
+        val children = mutableListOf<sh.haven.core.ssh.sftp.SftpAttrs>()
+        session.list(dirPath) { attrs ->
+            children.add(attrs)
+            ListResult.CONTINUE
+        }
+        val prefix = dirPath.trimEnd('/')
+        for (child in children) {
+            if (child.filename == "." || child.filename == "..") continue
+            val childPath = if (prefix.isEmpty()) "/${child.filename}" else "$prefix/${child.filename}"
+            // Never follow symlinks when deleting a directory tree: unlink the
+            // symlink itself via rm() so target directories remain untouched.
+            if (child.isDirectory && !child.isSymlink) {
+                deleteDirectoryRecursively(session, childPath)
+            } else {
+                session.rm(childPath)
+            }
+        }
+        session.rmdir(dirPath)
     }
 
     override suspend fun chmod(path: String, mode: Int) {

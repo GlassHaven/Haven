@@ -235,10 +235,24 @@ class SafFileBackend(
         }
 
     private fun guessMime(name: String): String {
-        val ext = name.substringAfterLast('.', "")
+        val ext = name.substringAfterLast('.', "").lowercase()
         if (ext.isEmpty()) return "application/octet-stream"
-        return MimeTypeMap.getSingleton().getMimeTypeFromExtension(ext.lowercase())
-            ?: "application/octet-stream"
+        MimeTypeMap.getSingleton().getMimeTypeFromExtension(ext)?.let { return it }
+        return when (ext) {
+            "mp4", "m4v" -> "video/mp4"
+            "mkv" -> "video/x-matroska"
+            "webm" -> "video/webm"
+            "mov" -> "video/quicktime"
+            "avi" -> "video/x-msvideo"
+            "ts" -> "video/mp2t"
+            "mp3" -> "audio/mpeg"
+            "m4a", "aac" -> "audio/aac"
+            "ogg", "oga" -> "audio/ogg"
+            "flac" -> "audio/flac"
+            "wav" -> "audio/wav"
+            "opus" -> "audio/opus"
+            else -> "application/octet-stream"
+        }
     }
 }
 

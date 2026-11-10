@@ -216,6 +216,7 @@ fun SettingsScreen(
     val hideNavBarInTerminal by viewModel.hideNavBarInTerminal.collectAsState()
     val connectionLoggingEnabled by viewModel.connectionLoggingEnabled.collectAsState()
     val excludeFromRecents by viewModel.excludeFromRecents.collectAsState()
+    val rootFilesEnabled by viewModel.rootFilesEnabled.collectAsState()
     val verboseLoggingEnabled by viewModel.verboseLoggingEnabled.collectAsState()
     val rdpProgressiveUpgrade by viewModel.rdpProgressiveUpgrade.collectAsState()
     val rdpAvcEnabled by viewModel.rdpAvcEnabled.collectAsState()
@@ -1148,6 +1149,16 @@ fun SettingsScreen(
             subtitle = stringResource(R.string.settings_exclude_recents_subtitle),
             checked = excludeFromRecents,
             onCheckedChange = viewModel::setExcludeFromRecents,
+        )
+
+        // Opt-in UID-0 Root (/) tab in Files (#799). Off by default; spawns su
+        // lazily only when the user opens the Root (/) tab.
+        SettingsToggleItem(
+            icon = Icons.Filled.Terminal,
+            title = stringResource(R.string.settings_root_files_title),
+            subtitle = stringResource(R.string.settings_root_files_subtitle),
+            checked = rootFilesEnabled,
+            onCheckedChange = viewModel::setRootFilesEnabled,
         )
 
         // Media extensions stays in Advanced (moved up from below the MCP

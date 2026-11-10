@@ -49,6 +49,7 @@ class EditorLargeFileGuardTest {
         every { bus.commands } returns MutableSharedFlow()
         val prefs = mockk<UserPreferencesRepository>(relaxed = true)
         every { prefs.sftpSortMode } returns flowOf("NAME_ASC")
+        every { prefs.rootFilesEnabled } returns flowOf(false)
         val app = mockk<Context>(relaxed = true)
         every {
             app.getString(eq(R.string.sftp_file_too_large_for_editor), any<String>())
@@ -75,6 +76,7 @@ class EditorLargeFileGuardTest {
             attachCoordinator = mockk(relaxed = true),
             chatAttachBroker = mockk(relaxed = true),
             servedFileTracker = mockk(relaxed = true),
+            rootFsClient = mockk(relaxed = true),
             appContext = app,
         ).also { it.backendOverride = { fakeBackend } }
     }

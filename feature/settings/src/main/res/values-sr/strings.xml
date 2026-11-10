@@ -475,4 +475,6 @@
     <string name="settings_ambiwidth_mode_wide_desc">Увек 2 ћелије (наслеђени CJK ambiwidth)</string>
     <string name="settings_ambiwidth_mode_auto_wide">Ауто + Широко</string>
     <string name="settings_ambiwidth_mode_auto_wide_desc">Профилиши активни фонт; резерва на 2 ћелије (CJK)</string>
+    <string name="settings_root_files_title">Root (/) прегледач датотека</string>
+    <string name="settings_root_files_subtitle">Прикажи картицу Root (/) у Датотекама која захтева su тек када се отвори. Подразумевано искључено и изоловано од MCP алата.</string>
 </resources>

@@ -560,4 +560,6 @@ Chaque clé privée déjà stockée dans Haven devra être importée ou génér�
     <string name="settings_mcp_tools_cat_other">Autres</string>
     <string name="settings_sudo_prompt_detection_title">Détecter les invites de mot de passe sudo</string>
     <string name="settings_sudo_prompt_detection_subtitle">Proposer le remplissage biométrique sur les invites [sudo] et doas. Les mots de passe restent chiffrés dans Android Keystore sur cet appareil, exigent un déverrouillage biométrique à chaque utilisation et ne sont jamais exposés aux outils IA/MCP.</string>
+    <string name="settings_root_files_title">Explorateur de fichiers Root (/)</string>
+    <string name="settings_root_files_subtitle">Afficher un onglet Root (/) dans Fichiers qui ne demande su qu\'à l\'ouverture. Désactivé par défaut et isolé des outils MCP.</string>
 </resources>

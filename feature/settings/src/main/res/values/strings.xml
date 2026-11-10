@@ -602,4 +602,8 @@ Every private key already stored in Haven will need to be imported or generated 
     <string name="settings_inline_images_off">Off</string>
     <string name="settings_inline_images_ask">Ask</string>
     <string name="settings_inline_images_always">Always</string>
+
+    <!-- Opt-in Root (/) filesystem tab (#799) -->
+    <string name="settings_root_files_title">Root (/) file browser</string>
+    <string name="settings_root_files_subtitle">Show a Root (/) tab in Files that requests su only when opened. Off by default and isolated from MCP tools.</string>
 </resources>

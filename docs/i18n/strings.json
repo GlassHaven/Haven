@@ -38634,6 +38634,46 @@
       "sr": "Увек",
       "zh": "总是"
      }
+    },
+    {
+     "name": "settings_root_files_title",
+     "en": "Root (/) file browser",
+     "comment": "Opt-in Root (/) filesystem tab (#799)",
+     "args": [],
+     "t": {
+      "ar": "متصفح ملفات الجذر Root (/)",
+      "bn": "Root (/) ফাইল ব্রাউজার",
+      "de": "Root-(/)-Dateibrowser",
+      "es": "Explorador de archivos Root (/)",
+      "fr": "Explorateur de fichiers Root (/)",
+      "hi": "Root (/) फ़ाइल ब्राउज़र",
+      "ja": "Root (/) ファイルブラウザー",
+      "ko": "Root (/) 파일 브라우저",
+      "pt": "Navegador de arquivos Root (/)",
+      "ru": "Файловый менеджер Root (/)",
+      "sr": "Root (/) прегледач датотека",
+      "zh": "Root (/) 文件浏览器"
+     }
+    },
+    {
+     "name": "settings_root_files_subtitle",
+     "en": "Show a Root (/) tab in Files that requests su only when opened. Off by default and isolated from MCP tools.",
+     "comment": "Opt-in Root (/) filesystem tab (#799)",
+     "args": [],
+     "t": {
+      "ar": "إظهار علامة تبويب Root (/) في الملفات تطلب صلاحية su فقط عند فتحها. معطل افتراضياً ومعزول عن أدوات MCP.",
+      "bn": "Files-এ একটি Root (/) ট্যাব দেখায় যা কেবল খোলা হলেই su অনুরোধ করে। ডিফল্টভাবে বন্ধ এবং MCP টুল থেকে বিচ্ছিন্ন।",
+      "de": "Zeigt in Dateien einen Tab „Root (/)“ an, der erst beim Öffnen su anfordert. Standardmäßig deaktiviert und von MCP-Werkzeugen isoliert.",
+      "es": "Muestra una pestaña Root (/) en Archivos que solicita su solo al abrirse. Desactivado por defecto y aislado de las herramientas MCP.",
+      "fr": "Afficher un onglet Root (/) dans Fichiers qui ne demande su qu\\'à l\\'ouverture. Désactivé par défaut et isolé des outils MCP.",
+      "hi": "फ़ाइलों में एक Root (/) टैब दिखाएँ जो केवल खोले जाने पर ही su का अनुरोध करता है। डिफ़ॉल्ट रूप से बंद और MCP टूल्स से अलग।",
+      "ja": "ファイル画面に「Root (/)」タブを表示し、開いたときのみ su を要求します。既定ではオフで、MCP ツールからは分離されています。",
+      "ko": "파일 화면에 열었을 때만 su를 요청하는 Root (/) 탭을 표시합니다. 기본적으로 꺼져 있으며 MCP 도구와 격리됩니다.",
+      "pt": "Mostrar uma aba Root (/) em Arquivos que solicita su apenas ao ser aberta. Desativado por padrão e isolado das ferramentas MCP.",
+      "ru": "Показывать вкладку Root (/) в «Файлах», запрашивающую su только при открытии. Выключено по умолчанию и изолировано от инструментов MCP.",
+      "sr": "Прикажи картицу Root (/) у Датотекама која захтева su тек када се отвори. Подразумевано искључено и изоловано од MCP алата.",
+      "zh": "在“文件”中显示 Root (/) 标签页，仅在打开该标签页时请求 su 权限。默认关闭，并与 MCP 工具隔离。"
+     }
     }
    ]
   },

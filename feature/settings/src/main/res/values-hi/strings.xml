@@ -560,4 +560,6 @@ Haven में पहले से संग्रहीत प्रत्य�
     <string name="settings_mcp_tools_cat_other">अन्य</string>
     <string name="settings_sudo_prompt_detection_title">sudo पासवर्ड प्रॉम्प्ट पहचानें</string>
     <string name="settings_sudo_prompt_detection_subtitle">[sudo] और doas प्रॉम्प्ट पर बायोमेट्रिक ऑटोफ़िल प्रदान करें। पासवर्ड इस डिवाइस पर Android Keystore में एन्क्रिप्टेड रहते हैं, हर उपयोग पर बायोमेट्रिक अनलॉक आवश्यक होता है, और कभी भी AI/MCP टूल्स को उजागर नहीं किए जाते।</string>
+    <string name="settings_root_files_title">Root (/) फ़ाइल ब्राउज़र</string>
+    <string name="settings_root_files_subtitle">फ़ाइलों में एक Root (/) टैब दिखाएँ जो केवल खोले जाने पर ही su का अनुरोध करता है। डिफ़ॉल्ट रूप से बंद और MCP टूल्स से अलग।</string>
 </resources>

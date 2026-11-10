@@ -562,4 +562,6 @@
     <string name="settings_mcp_tools_cat_other">Прочее</string>
     <string name="settings_sudo_prompt_detection_title">Обнаруживать запросы пароля sudo</string>
     <string name="settings_sudo_prompt_detection_subtitle">Предлагать биометрическое автозаполнение при запросах [sudo] и doas. Пароли хранятся в зашифрованном виде в Android Keystore на этом устройстве, требуют биометрической разблокировки при каждом использовании и никогда не передаются инструментам ИИ/MCP.</string>
+    <string name="settings_root_files_title">Файловый менеджер Root (/)</string>
+    <string name="settings_root_files_subtitle">Показывать вкладку Root (/) в «Файлах», запрашивающую su только при открытии. Выключено по умолчанию и изолировано от инструментов MCP.</string>
 </resources>

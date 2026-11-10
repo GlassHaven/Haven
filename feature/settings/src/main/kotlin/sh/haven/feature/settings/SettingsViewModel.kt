@@ -556,6 +556,9 @@ class SettingsViewModel @Inject constructor(
     val excludeFromRecents: StateFlow<Boolean> = preferencesRepository.excludeFromRecents
         .stateIn(viewModelScope, SharingStarted.WhileSubscribed(5000), false)
 
+    val rootFilesEnabled: StateFlow<Boolean> = preferencesRepository.rootFilesEnabled
+        .stateIn(viewModelScope, SharingStarted.WhileSubscribed(5000), false)
+
     val tabVisibility: StateFlow<Map<String, TabVisibility>> = preferencesRepository.tabVisibility
         .stateIn(viewModelScope, SharingStarted.WhileSubscribed(5000), emptyMap())
 
@@ -993,6 +996,12 @@ class SettingsViewModel @Inject constructor(
     fun setExcludeFromRecents(enabled: Boolean) {
         viewModelScope.launch {
             preferencesRepository.setExcludeFromRecents(enabled)
+        }
+    }
+
+    fun setRootFilesEnabled(enabled: Boolean) {
+        viewModelScope.launch {
+            preferencesRepository.setRootFilesEnabled(enabled)
         }
     }
 

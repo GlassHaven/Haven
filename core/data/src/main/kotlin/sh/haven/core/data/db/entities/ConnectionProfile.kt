@@ -600,6 +600,9 @@ data class ConnectionProfile(
     /** SAF-backed "local folder" file location (#415) — browses a persisted [safTreeUri] tree. */
     val isSaf: Boolean get() = connectionType == "SAF"
 
+    /** Opt-in UID-0 local filesystem tab (#799) — synthetic in-memory profile, never persisted in Room. */
+    val isRoot: Boolean get() = connectionType == "ROOT"
+
     // Bluetooth-serial (SPP/RFCOMM) console (#406). The paired device's MAC is
     // stored in [host] — no new column, so no Room schema bump. A byte-stream
     // terminal, so isTerminal below already covers it.
@@ -632,5 +635,5 @@ data class ConnectionProfile(
     val usbSerialConfig: String? get() = sshOptions
 
     val isDesktop: Boolean get() = isVnc || isRdp || isSpice || isGlkvm
-    val isTerminal: Boolean get() = !isDesktop && !isSmb && !isRclone && !isEmail && !isSaf && !isOpenai
+    val isTerminal: Boolean get() = !isDesktop && !isSmb && !isRclone && !isEmail && !isSaf && !isRoot && !isOpenai
 }

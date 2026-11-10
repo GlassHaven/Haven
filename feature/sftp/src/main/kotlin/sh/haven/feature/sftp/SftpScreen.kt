@@ -479,16 +479,16 @@ fun SftpScreen(
             if (activeProfileId != initialId) {
                 viewModel.selectProfile(initialId)
             }
-        } else if (activeProfileId == null || activeProfileId == "local") {
+        } else if (activeProfileId == null || activeProfileId == "local" || activeProfileId == SftpViewModel.ROOT_PROFILE_ID) {
             // No carrier profile (e.g. attach from a local shell tab — the
             // terminal strips local profiles because the banner can't confirm
             // a local destination) and the tab is parked on no profile or the
-            // synthetic Local one: land on the first connected remote instead,
+            // synthetic Local/Root one: land on the first connected remote instead,
             // which is usually the SSH host the upload will ride. With nothing
             // remote connected the tab stays put and the banner's
             // pick-a-profile state is the only honest offer.
             viewModel.connectedProfiles.value
-                .firstOrNull { it.id != "local" && !it.isSaf }
+                .firstOrNull { it.id != "local" && !it.isSaf && !it.isRoot }
                 ?.let { viewModel.selectProfile(it.id) }
         }
     }
@@ -568,19 +568,26 @@ fun SftpScreen(
                                     .weight(1f, fill = false)
                                     .clickable { editingPath = true },
                             )
-                            // Show a transport badge when SCP is active so
-                            // users always know why browsing is shell-based
-                            // and uploads go through spool files.
-                            if (activeTransportLabel == "SCP") {
+                            // Show a transport badge when SCP or Root is active so
+                            // users always know why browsing is shell-based / UID-0.
+                            if (activeTransportLabel == "SCP" || activeTransportLabel == "Root") {
                                 Spacer(Modifier.width(8.dp))
                                 Surface(
-                                    color = MaterialTheme.colorScheme.secondaryContainer,
+                                    color = if (activeTransportLabel == "Root") {
+                                        MaterialTheme.colorScheme.errorContainer
+                                    } else {
+                                        MaterialTheme.colorScheme.secondaryContainer
+                                    },
                                     shape = MaterialTheme.shapes.small,
                                 ) {
                                     Text(
-                                        "SCP",
+                                        activeTransportLabel!!.uppercase(),
                                         style = MaterialTheme.typography.labelSmall,
-                                        color = MaterialTheme.colorScheme.onSecondaryContainer,
+                                        color = if (activeTransportLabel == "Root") {
+                                            MaterialTheme.colorScheme.onErrorContainer
+                                        } else {
+                                            MaterialTheme.colorScheme.onSecondaryContainer
+                                        },
                                         modifier = Modifier.padding(horizontal = 6.dp, vertical = 2.dp),
                                     )
                                 }
@@ -782,11 +789,11 @@ fun SftpScreen(
             // freely (including switching profiles / rclone remotes) and
             // taps "Use this folder" once happy, or backs out via Cancel.
             attachRequest?.let { req ->
-                // The "local" pseudo-profile is the device's own filesystem;
-                // letting the user "upload" to it would just copy a file the
-                // app already has on-device, so it's not a valid attach
-                // destination. Block confirm and explain on the banner.
-                val isLocalDest = activeProfileId == "local"
+                // The "local" / "root" pseudo-profiles are the device's own filesystem;
+                // letting the user "upload" to them would just copy a file the
+                // app already has on-device, so they're not valid attach
+                // destinations. Block confirm and explain on the banner.
+                val isLocalDest = activeProfileId == "local" || activeProfileId == SftpViewModel.ROOT_PROFILE_ID
                 val canConfirm = activeProfileId != null && !isLocalDest
                 Surface(
                     modifier = Modifier.fillMaxWidth(),
@@ -1109,6 +1116,12 @@ fun SftpScreen(
                                                 contentDescription = null,
                                                 modifier = Modifier.size(14.dp),
                                             )
+                                        } else if (profile.isRoot) {
+                                            Icon(
+                                                Icons.Filled.Security,
+                                                contentDescription = null,
+                                                modifier = Modifier.size(14.dp),
+                                            )
                                         } else if (profile.isSaf) {
                                             Icon(
                                                 Icons.Filled.FolderOpen,
@@ -1271,10 +1284,11 @@ fun SftpScreen(
                                     } else if (chatAttachActive) {
                                         // Chat attach pick: tapping a file
                                         // confirms it into the chat composer;
-                                        // folders keep navigating.
+                                        // folders keep navigating. Root (/) is
+                                        // excluded from ChatRemoteReader.
                                         if (entry.isDirectory) {
                                             viewModel.navigateTo(entry.path)
-                                        } else {
+                                        } else if (!viewModel.isRootProfile()) {
                                             viewModel.confirmChatAttach(entry)
                                             onChatAttachFinished()
                                         }
@@ -1287,8 +1301,8 @@ fun SftpScreen(
                                         viewModel.navigateTo(entry.path)
                                     } else if (sh.haven.feature.editor.TextMateSupport.scopeForFileName(entry.name) != null) {
                                         viewModel.openInEditor(entry)
-                                    } else if ((isRclone || viewModel.isSmbProfile()) && entry.isMediaFile(mediaExtensions)) {
-                                        // Rclone / SMB media file: play via the loopback
+                                    } else if ((isRclone || viewModel.isSmbProfile() || viewModel.isRootProfile()) && entry.isMediaFile(mediaExtensions)) {
+                                        // Rclone / SMB / Root media file: play via the loopback
                                         // media bridge (Range-capable, no full download).
                                         viewModel.playMediaFile(entry)
                                     } else if (viewModel.isLocalProfile()) {
@@ -1894,7 +1908,7 @@ fun SftpScreen(
                     // Output destination selector
                     Text(stringResource(R.string.sftp_convert_save_to), style = MaterialTheme.typography.labelMedium)
                     val sourceFolderLabel = when {
-                        viewModel.isLocalProfile() -> stringResource(R.string.sftp_convert_dest_same_folder_local)
+                        viewModel.isLocalProfile() || viewModel.isRootProfile() -> stringResource(R.string.sftp_convert_dest_same_folder_local)
                         isRclone -> stringResource(R.string.sftp_convert_dest_same_folder_cloud)
                         else -> stringResource(R.string.sftp_convert_dest_same_folder_server)
                     }

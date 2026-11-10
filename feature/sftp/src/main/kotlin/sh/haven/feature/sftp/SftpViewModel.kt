@@ -31,6 +31,7 @@ import kotlinx.coroutines.flow.map
 import kotlinx.coroutines.CompletableDeferred
 import kotlinx.coroutines.withTimeoutOrNull
 import kotlinx.coroutines.flow.first
+import kotlinx.coroutines.flow.firstOrNull
 import kotlinx.coroutines.sync.Mutex
 import kotlinx.coroutines.sync.withLock
 import kotlinx.coroutines.async
@@ -113,7 +114,7 @@ data class SftpEntry(
  */
 enum class ConvertDestination { DOWNLOADS, SOURCE_FOLDER }
 
-enum class BackendType { SFTP, SMB, RCLONE, LOCAL, SAF }
+enum class BackendType { SFTP, SMB, RCLONE, LOCAL, SAF, ROOT }
 
 /** Clipboard for cross-filesystem copy/move. */
 data class FileClipboard(
@@ -236,6 +237,7 @@ class SftpViewModel @Inject constructor(
     private val attachCoordinator: sh.haven.feature.sftp.attach.TerminalAttachCoordinator,
     private val chatAttachBroker: sh.haven.core.data.attach.ChatAttachBroker,
     private val servedFileTracker: sh.haven.core.data.agent.ServedFileTracker,
+    private val rootFsClient: sh.haven.feature.sftp.root.RootFsClient,
     @ApplicationContext private val appContext: Context,
 ) : ViewModel() {
 
@@ -257,6 +259,7 @@ class SftpViewModel @Inject constructor(
      */
     fun confirmAttachFolder() {
         val profileId = _activeProfileId.value ?: return
+        if (profileId == "local" || profileId == ROOT_PROFILE_ID) return
         attachCoordinator.confirmFolder(
             profileId = profileId,
             isRclone = _isRcloneProfile.value,
@@ -279,6 +282,7 @@ class SftpViewModel @Inject constructor(
     /** The tapped file confirms the chat pick; only files (not folders) get here. */
     fun confirmChatAttach(entry: SftpEntry) {
         val profileId = _activeProfileId.value ?: return
+        if (profileId == ROOT_PROFILE_ID) return
         chatAttachBroker.confirmPick(profileId, entry.path, entry.name, entry.size)
     }
 
@@ -327,10 +331,14 @@ class SftpViewModel @Inject constructor(
      * Apply an agent-issued UI command to this file browser. Called live from
      * the bus collector and once on subscription to drain a cold-start command
      * the bus latched before this ViewModel existed (see AgentUiCommandBus).
+     *
+     * Agent commands targeting [ROOT_PROFILE_ID] are ignored unconditionally so
+     * MCP UI verbs cannot switch the Files tab onto UID-0 root or trigger `su`.
      */
     private fun handleAgentCommand(command: sh.haven.core.data.agent.AgentUiCommand) {
                     when (command) {
                     is sh.haven.core.data.agent.AgentUiCommand.NavigateToSftpPath -> {
+                        if (command.profileId == ROOT_PROFILE_ID) return
                         if (_activeProfileId.value != command.profileId) {
                             // Pass the target path INTO selectProfile so the
                             // session-open lands there directly. Calling a
@@ -344,6 +352,7 @@ class SftpViewModel @Inject constructor(
                         }
                     }
                     is sh.haven.core.data.agent.AgentUiCommand.OpenConvertDialog -> {
+                        if (command.profileId == ROOT_PROFILE_ID) return
                         if (_activeProfileId.value != command.profileId) {
                             selectProfile(command.profileId)
                         }
@@ -372,6 +381,7 @@ class SftpViewModel @Inject constructor(
                         )
                     }
                     is sh.haven.core.data.agent.AgentUiCommand.OpenInEditor -> {
+                        if (command.profileId == ROOT_PROFILE_ID) return
                         if (_activeProfileId.value != command.profileId) {
                             selectProfile(command.profileId)
                         }
@@ -388,12 +398,14 @@ class SftpViewModel @Inject constructor(
                         openInEditor(entry)
                     }
                     is sh.haven.core.data.agent.AgentUiCommand.EncryptFile -> {
+                        if (command.profileId == ROOT_PROFILE_ID) return
                         if (_activeProfileId.value != command.profileId) {
                             selectProfile(command.profileId)
                         }
                         encryptFile(partialEntry(command.path), command.recipients)
                     }
                     is sh.haven.core.data.agent.AgentUiCommand.DecryptFile -> {
+                        if (command.profileId == ROOT_PROFILE_ID) return
                         if (_activeProfileId.value != command.profileId) {
                             selectProfile(command.profileId)
                         }
@@ -1116,6 +1128,7 @@ class SftpViewModel @Inject constructor(
             "rcloneRemote=$activeRcloneRemote, sftpSession=${sftpSession?.isConnected}, smbClient=${activeSmbClient != null}")
         val backendType = when {
             _isLocalProfile.value -> BackendType.LOCAL
+            _isRootProfile.value -> BackendType.ROOT
             _isRcloneProfile.value -> BackendType.RCLONE
             _isSmbProfile.value -> BackendType.SMB
             _isSafProfile.value -> BackendType.SAF
@@ -1177,6 +1190,25 @@ class SftpViewModel @Inject constructor(
             client.openInputStream(path, if (offset > 0) offset else 0L)
         }
 
+    /**
+     * Range-capable opener for opt-in `Root (/)` files (#799), so unprivileged
+     * `ffmpeg` / external players can read root-owned paths over the loopback
+     * HTTP bridge without direct DAC/SELinux access.
+     */
+    private fun rootOpener(path: String): SftpStreamServer.Opener =
+        SftpStreamServer.Opener { offset ->
+            val backend = kotlinx.coroutines.runBlocking { rootBackendOrNull() }
+                ?: throw java.io.IOException("Root access is disabled")
+            kotlinx.coroutines.runBlocking {
+                backend.openInputStream(path, if (offset > 0) offset else 0L)
+            }
+        }
+
+    private suspend fun rootBackendOrNull(): sh.haven.feature.sftp.transport.RootFileBackend? {
+        if (preferencesRepository.rootFilesEnabled.firstOrNull() != true) return null
+        return sh.haven.feature.sftp.transport.RootFileBackend(rootFsClient)
+    }
+
     private fun guessContentType(name: String): String = when (name.substringAfterLast('.', "").lowercase()) {
         "mp4", "m4v" -> "video/mp4"
         "mkv" -> "video/x-matroska"
@@ -1225,6 +1257,9 @@ class SftpViewModel @Inject constructor(
     /** Tracks whether the active profile is the local filesystem. */
     private val _isLocalProfile = MutableStateFlow(false)
 
+    /** Tracks whether the active profile is the opt-in UID-0 Root (/) filesystem (#799). */
+    private val _isRootProfile = MutableStateFlow(false)
+
     /**
      * Tracks whether the active profile is a SAF "local folder" location (#415).
      * Like [_isLocalProfile] its backend is resolved on demand via
@@ -1240,6 +1275,15 @@ class SftpViewModel @Inject constructor(
         host = "",
         username = "",
         connectionType = "LOCAL",
+    )
+
+    /** Synthetic profile for the opt-in "Root (/)" tab (#799). */
+    private val rootProfile = ConnectionProfile(
+        id = ROOT_PROFILE_ID,
+        label = "Root (/)",
+        host = "",
+        username = "",
+        connectionType = "ROOT",
     )
 
     /** rclone remote name for the active profile. */
@@ -1268,6 +1312,29 @@ class SftpViewModel @Inject constructor(
                 SortMode.NAME_ASC
             }
         }
+        // React to the opt-in Root (/) toggle (#799): shut down any live su
+        // worker and drop back to Local immediately when turned off.
+        viewModelScope.launch {
+            var previous: Boolean? = null
+            preferencesRepository.rootFilesEnabled.collect { enabled ->
+                if (!enabled) {
+                    rootFsClient.shutdown()
+                    profileStateCache.remove(ROOT_PROFILE_ID)
+                    if (_activeProfileId.value == ROOT_PROFILE_ID) {
+                        selectProfile("local")
+                    }
+                }
+                if (previous != null && previous != enabled) {
+                    syncConnectedProfiles()
+                }
+                previous = enabled
+            }
+        }
+    }
+
+    override fun onCleared() {
+        super.onCleared()
+        rootFsClient.shutdownAsync()
     }
 
     fun syncConnectedProfiles() {
@@ -1332,14 +1399,17 @@ class SftpViewModel @Inject constructor(
 
             val profiles = withContext(Dispatchers.IO) { repository.getAll() }
             val remoteProfiles = profiles.filter { it.id in connectedProfileIds }
+            val rootEnabled = preferencesRepository.rootFilesEnabled.firstOrNull() == true
+            val rootProfiles = if (rootEnabled) listOf(rootProfile) else emptyList()
             // SAF "local folder" locations (#415) are always available — the grant
             // is persisted, there's no session to connect — so they show as tabs
-            // unconditionally, right after the synthetic "Local" tab.
+            // unconditionally, right after the synthetic "Local" (and opt-in "Root") tabs.
             val safProfiles = profiles.filter { it.isSaf }
-            _connectedProfiles.value = listOf(localProfile) + safProfiles + remoteProfiles
+            _connectedProfiles.value = listOf(localProfile) + rootProfiles + safProfiles + remoteProfiles
 
             if (connectedProfileIds.isEmpty() && _activeProfileId.value == null) {
-                // No remote connections — auto-select local
+                // No remote connections — auto-select local (never auto-open Root so
+                // su is only requested when the user explicitly taps Root (/)).
                 selectProfile("local")
                 return@launch
             }
@@ -1361,14 +1431,11 @@ class SftpViewModel @Inject constructor(
             }
 
             // Auto-select first connected profile if none selected. SAF "local
-            // folder" profiles (#415) and the synthetic "local" tab are valid
-            // active selections even though they're never in connectedProfileIds
-            // (no session to connect). Without them here, this sweep silently
-            // deselects an active SAF tab back to "local" — and because the tab's
-            // entries stay on screen, the next file op then misroutes to
-            // LocalFileBackend (opening the tree-relative path against the real
-            // filesystem root: EROFS/ENOENT). Device-verified regression.
-            val selectableIds = connectedProfileIds + safProfiles.map { it.id } + "local"
+            // folder" profiles (#415), opt-in "root" (#799), and the synthetic "local"
+            // tab are valid active selections even though they're never in
+            // connectedProfileIds (no remote session to connect). Without them here,
+            // this sweep silently deselects an active SAF/Root tab back to "local".
+            val selectableIds = connectedProfileIds + safProfiles.map { it.id } + rootProfiles.map { it.id } + "local"
             if (_activeProfileId.value == null || _activeProfileId.value !in selectableIds) {
                 _connectedProfiles.value.firstOrNull()?.let { selectProfile(it.id) }
             }
@@ -1459,11 +1526,13 @@ class SftpViewModel @Inject constructor(
         }
 
         val isLocal = profileId == "local"
-        val isSaf = !isLocal && _connectedProfiles.value.find { it.id == profileId }?.isSaf == true
-        val isSmb = !isLocal && smbSessionManager.isProfileConnected(profileId)
-        val isRclone = !isLocal && rcloneSessionManager.isProfileConnected(profileId)
-        val isReticulum = !isLocal && reticulumSessionManager.isProfileConnected(profileId)
+        val isRoot = profileId == ROOT_PROFILE_ID
+        val isSaf = !isLocal && !isRoot && _connectedProfiles.value.find { it.id == profileId }?.isSaf == true
+        val isSmb = !isLocal && !isRoot && smbSessionManager.isProfileConnected(profileId)
+        val isRclone = !isLocal && !isRoot && rcloneSessionManager.isProfileConnected(profileId)
+        val isReticulum = !isLocal && !isRoot && reticulumSessionManager.isProfileConnected(profileId)
         _isLocalProfile.value = isLocal
+        _isRootProfile.value = isRoot
         _isSafProfile.value = isSaf
         _isSmbProfile.value = isSmb
         _isRcloneProfile.value = isRclone
@@ -1481,6 +1550,7 @@ class SftpViewModel @Inject constructor(
         if (cached != null) {
             _currentPath.value = cached.path
             _allEntries.value = cached.allEntries
+            if (isRoot) _activeTransportLabel.value = "Root" else _activeTransportLabel.value = null
             // Re-derive the visible list from the CURRENT global filter (show-hidden /
             // name filter) rather than the list cached when this tab was last active —
             // otherwise the toolbar's show-hidden icon (global) and this tab's contents
@@ -1489,6 +1559,7 @@ class SftpViewModel @Inject constructor(
             // Still need to re-establish the backend connection
             when {
                 isLocal -> { /* no connection needed */ }
+                isRoot -> { /* lazy RootFsClient kept across tab switches */ }
                 isSaf -> { /* backend resolved on demand from the persisted tree Uri */ }
                 isRclone -> {
                     val remoteName = rcloneSessionManager.getRemoteNameForProfile(profileId)
@@ -1519,8 +1590,10 @@ class SftpViewModel @Inject constructor(
             _currentPath.value = landing
             _allEntries.value = emptyList()
             _entries.value = emptyList()
+            if (!isRoot) _activeTransportLabel.value = null
             when {
                 isLocal -> loadDirectoryEntries(landing)
+                isRoot -> loadDirectoryEntries(landing)
                 isSaf -> loadDirectoryEntries(landing)
                 isRclone -> openRcloneAndList(profileId)
                 isSmb -> openSmbAndList(profileId)
@@ -1647,6 +1720,7 @@ class SftpViewModel @Inject constructor(
 
     /** Whether the active profile is the local filesystem. */
     fun isLocalProfile(): Boolean = _isLocalProfile.value
+    fun isRootProfile(): Boolean = _isRootProfile.value
     fun isSmbProfile(): Boolean = _isSmbProfile.value
 
     /** True when the local file browser needs MANAGE_EXTERNAL_STORAGE permission. */
@@ -1684,6 +1758,21 @@ class SftpViewModel @Inject constructor(
                             val client = activeSmbClient ?: throw IllegalStateException("SMB not connected")
                             client.download(entry.path, out) { transferred, total ->
                                 _transferProgress.value = TransferProgress(entry.name, total, transferred)
+                            }
+                        }
+                    } else if (_isRootProfile.value || _isSafProfile.value || _isLocalProfile.value) {
+                        withContext(Dispatchers.IO) {
+                            val backend = currentFileBackend() ?: throw IllegalStateException("Not connected")
+                            backend.openInputStream(entry.path, 0L).use { input ->
+                                val buf = ByteArray(64 * 1024)
+                                var transferred = 0L
+                                while (true) {
+                                    val n = input.read(buf)
+                                    if (n < 0) break
+                                    out.write(buf, 0, n)
+                                    transferred += n
+                                    _transferProgress.value = TransferProgress(entry.name, entry.size, transferred)
+                                }
                             }
                         }
                     } else {
@@ -1770,6 +1859,17 @@ class SftpViewModel @Inject constructor(
                     )
                     ffmpegInput = "http://127.0.0.1:$port$urlPath"
                     Log.d(TAG, "convertFile: streaming SMB via $ffmpegInput")
+                } else if (_isRootProfile.value && !downloadFirst) {
+                    val port = withContext(Dispatchers.IO) { sftpStreamServer.start() }
+                    val urlPath = sftpStreamServer.publish(
+                        path = entry.path,
+                        size = entry.size,
+                        contentType = guessContentType(entry.name),
+                        opener = rootOpener(entry.path),
+                        concurrentSafe = true,
+                    )
+                    ffmpegInput = "http://127.0.0.1:$port$urlPath"
+                    Log.d(TAG, "convertFile: streaming Root via $ffmpegInput")
                 } else if (!downloadFirst) {
                     // SFTP — stream via the loopback bridge too (VISION §2). The
                     // download path below remains the downloadFirst opt-in for a
@@ -1784,7 +1884,7 @@ class SftpViewModel @Inject constructor(
                     ffmpegInput = "http://127.0.0.1:$port$urlPath"
                     Log.d(TAG, "convertFile: streaming SFTP via $ffmpegInput")
                 } else {
-                    // rclone/SFTP/SMB with downloadFirst=true — pull the whole
+                    // rclone/SFTP/SMB/Root with downloadFirst=true — pull the whole
                     // file into cache, then hand the path to ffmpeg.
                     val dlLabel = "\u2B07 Downloading ${entry.name}"
                     _transferProgress.value = TransferProgress(dlLabel, entry.size, 0)
@@ -1800,6 +1900,19 @@ class SftpViewModel @Inject constructor(
                                 val client = activeSmbClient ?: throw IllegalStateException("SMB not connected")
                                 client.download(entry.path, out) { transferred, total ->
                                     _transferProgress.value = TransferProgress(dlLabel, total, transferred)
+                                }
+                            } else if (_isRootProfile.value) {
+                                val root = rootBackendOrNull() ?: throw IllegalStateException("Root access is disabled")
+                                root.openInputStream(entry.path, 0L).use { input ->
+                                    val buf = ByteArray(64 * 1024)
+                                    var transferred = 0L
+                                    while (true) {
+                                        val n = input.read(buf)
+                                        if (n < 0) break
+                                        out.write(buf, 0, n)
+                                        transferred += n
+                                        _transferProgress.value = TransferProgress(dlLabel, entry.size, transferred)
+                                    }
                                 }
                             } else {
                                 val session = getOrOpenSession(profileId) ?: throw IllegalStateException("Not connected")
@@ -1933,6 +2046,20 @@ class SftpViewModel @Inject constructor(
                             _isLocalProfile.value -> {
                                 withContext(Dispatchers.IO) {
                                     cacheOutput.copyTo(java.io.File(destPath), overwrite = true)
+                                }
+                                sourceDir
+                            }
+                            _isRootProfile.value -> {
+                                val root = rootBackendOrNull() ?: throw IllegalStateException("Root access is disabled")
+                                val uploadLabel = "\u2B06 Saving $outName"
+                                val total = cacheOutput.length()
+                                _transferProgress.value = TransferProgress(uploadLabel, total, 0)
+                                withContext(Dispatchers.IO) {
+                                    cacheOutput.inputStream().use { input ->
+                                        root.writeStream(destPath, input) { written ->
+                                            _transferProgress.value = TransferProgress(uploadLabel, total, written)
+                                        }
+                                    }
                                 }
                                 sourceDir
                             }
@@ -2105,6 +2232,22 @@ class SftpViewModel @Inject constructor(
         _transferProgress.value = TransferProgress(label, entry.size, 0)
         withContext(Dispatchers.IO) {
             when {
+                _isRootProfile.value -> {
+                    val root = rootBackendOrNull() ?: throw IllegalStateException("Root access is disabled")
+                    root.openInputStream(entry.path, 0L).use { input ->
+                        cacheTarget.outputStream().use { out ->
+                            val buf = ByteArray(64 * 1024)
+                            var transferred = 0L
+                            while (true) {
+                                val n = input.read(buf)
+                                if (n < 0) break
+                                out.write(buf, 0, n)
+                                transferred += n
+                                _transferProgress.value = TransferProgress(label, entry.size, transferred)
+                            }
+                        }
+                    }
+                }
                 _isRcloneProfile.value -> {
                     val remote = activeRcloneRemote ?: throw IllegalStateException("Rclone not connected")
                     rcloneClient.copyFile(remote, entry.path, cacheTarget.parent!!, cacheTarget.name)
@@ -2140,6 +2283,18 @@ class SftpViewModel @Inject constructor(
         when {
             _isLocalProfile.value -> withContext(Dispatchers.IO) {
                 cacheFile.copyTo(java.io.File(destPath), overwrite = true)
+            }
+            _isRootProfile.value -> {
+                val root = rootBackendOrNull() ?: throw IllegalStateException("Root access is disabled")
+                val len = cacheFile.length()
+                _transferProgress.value = TransferProgress(label, len, 0)
+                withContext(Dispatchers.IO) {
+                    cacheFile.inputStream().use { input ->
+                        root.writeStream(destPath, input) { written ->
+                            _transferProgress.value = TransferProgress(label, len, written)
+                        }
+                    }
+                }
             }
             _isRcloneProfile.value -> {
                 val remote = activeRcloneRemote ?: throw IllegalStateException("Rclone not connected")
@@ -2178,7 +2333,7 @@ class SftpViewModel @Inject constructor(
     /**
      * Persist a media-job event to the ConnectionLog store so its captured
      * ffmpeg stderr + command line is visible in the existing Audit Log UI.
-     * No-op for the synthetic "local" profile since it isn't in the DB and
+     * No-op for the synthetic "local" / "root" profiles since they aren't in the DB and
      * the foreign-key insert would fail.
      *
      * Gated on the user's connectionLoggingEnabled preference — we call the
@@ -2194,7 +2349,7 @@ class SftpViewModel @Inject constructor(
         extra: String?,
     ) {
         val profileId = _activeProfileId.value ?: return
-        if (profileId == "local") return
+        if (profileId == "local" || profileId == ROOT_PROFILE_ID) return
         try {
             connectionLogRepository.logEvent(
                 profileId = profileId,
@@ -2220,10 +2375,22 @@ class SftpViewModel @Inject constructor(
      *  - rclone → loopback HTTP URL via ensureMediaServer
      *  - SFTP → loopback HTTP URL via sftpStreamServer
      *  - SMB → loopback HTTP URL via sftpStreamServer (smbOpener) — VISION §2
+     *  - Root → loopback HTTP URL via sftpStreamServer (rootOpener) — #799
      */
     private suspend fun resolveStreamInput(entry: SftpEntry): String {
         return when {
             _isLocalProfile.value -> entry.path
+            _isRootProfile.value -> {
+                val port = withContext(Dispatchers.IO) { sftpStreamServer.start() }
+                val urlPath = sftpStreamServer.publish(
+                    path = entry.path,
+                    size = entry.size,
+                    contentType = guessContentType(entry.name),
+                    opener = rootOpener(entry.path),
+                    concurrentSafe = true,
+                )
+                "http://127.0.0.1:$port$urlPath"
+            }
             _isRcloneProfile.value -> {
                 val port = ensureMediaServer()
                 val encodedPath = entry.path
@@ -2298,6 +2465,20 @@ class SftpViewModel @Inject constructor(
                     _isLocalProfile.value -> {
                         withContext(Dispatchers.IO) {
                             cacheOutput.copyTo(java.io.File(destPath), overwrite = true)
+                        }
+                        sourceDir
+                    }
+                    _isRootProfile.value -> {
+                        val root = rootBackendOrNull() ?: throw IllegalStateException("Root access is disabled")
+                        val uploadLabel = "\u2B06 Saving $outName"
+                        val total = cacheOutput.length()
+                        _transferProgress.value = TransferProgress(uploadLabel, total, 0)
+                        withContext(Dispatchers.IO) {
+                            cacheOutput.inputStream().use { input ->
+                                root.writeStream(destPath, input) { written ->
+                                    _transferProgress.value = TransferProgress(uploadLabel, total, written)
+                                }
+                            }
                         }
                         sourceDir
                     }
@@ -2844,6 +3025,19 @@ class SftpViewModel @Inject constructor(
                         isRemote = true
                         Log.d(TAG, "preparePreview: using SMB HTTP URL $inputSource")
                     }
+                    _isRootProfile.value -> {
+                        val port = withContext(Dispatchers.IO) { sftpStreamServer.start() }
+                        val urlPath = sftpStreamServer.publish(
+                            path = entry.path,
+                            size = entry.size,
+                            contentType = guessContentType(entry.name),
+                            opener = rootOpener(entry.path),
+                            concurrentSafe = true,
+                        )
+                        inputSource = "http://127.0.0.1:$port$urlPath"
+                        isRemote = false
+                        Log.d(TAG, "preparePreview: using Root HTTP URL $inputSource")
+                    }
                     else -> {
                         // SFTP — stream via loopback HTTP so ffmpeg uses Range
                         // requests (probe typically reads just the moov atom,
@@ -3103,6 +3297,11 @@ class SftpViewModel @Inject constructor(
                             client.upload(input, destPath, fileSize) { transferred, total ->
                                 _transferProgress.value = TransferProgress(fileName, total, transferred)
                             }
+                        } else if (_isRootProfile.value) {
+                            val root = rootBackendOrNull() ?: throw IllegalStateException("Root access is disabled")
+                            root.writeStream(destPath, input) { transferred ->
+                                _transferProgress.value = TransferProgress(fileName, fileSize, transferred)
+                            }
                         } else if (_isReticulumProfile.value) {
                             // Reticulum has no streaming transport.upload(); route through the
                             // resolved FileBackend (Reticulum SFTP writeBytes, or the exec
@@ -3247,7 +3446,7 @@ class SftpViewModel @Inject constructor(
         // to human-readable names asynchronously via a remote `ls -ld`
         // so the dialog first appears with "1000:1000" and then swaps in
         // "ian:ian" once the lookup returns.
-        if (looksNumeric(seed) && !_isLocalProfile.value && !_isRcloneProfile.value && !_isSmbProfile.value) {
+        if (looksNumeric(seed) && !_isLocalProfile.value && !_isRootProfile.value && !_isRcloneProfile.value && !_isSmbProfile.value) {
             viewModelScope.launch {
                 resolveOwnerName(entry.path)?.let { resolved ->
                     if (_chownRequest.value?.entry == entry) {
@@ -3484,6 +3683,10 @@ class SftpViewModel @Inject constructor(
             _isLocalProfile.value -> withContext(Dispatchers.IO) {
                 android.system.Os.chmod(entry.path, mode)
             }
+            _isRootProfile.value -> {
+                val root = rootBackendOrNull() ?: throw IllegalStateException("Root access is disabled")
+                root.chmod(entry.path, mode)
+            }
             _isRcloneProfile.value ->
                 throw UnsupportedOperationException("chmod not supported on rclone remotes")
             _isSmbProfile.value ->
@@ -3497,20 +3700,24 @@ class SftpViewModel @Inject constructor(
 
     /** Whether the active backend understands POSIX permissions. */
     fun supportsPermissions(): Boolean =
-        _isLocalProfile.value || (!_isRcloneProfile.value && !_isSmbProfile.value)
+        _isLocalProfile.value || _isRootProfile.value || (!_isRcloneProfile.value && !_isSmbProfile.value && !_isSafProfile.value)
 
     /**
      * Whether the active backend supports changing ownership. Same set
-     * as [supportsPermissions] minus local files — an unrooted Android
-     * app can't chown outside its own UID.
+     * as [supportsPermissions] minus unprivileged local files — an unrooted
+     * Android app UID can't chown outside its own UID, whereas `Root (/)` can.
      */
     fun supportsOwnership(): Boolean =
-        !_isLocalProfile.value && !_isRcloneProfile.value && !_isSmbProfile.value
+        _isRootProfile.value || (!_isLocalProfile.value && !_isRcloneProfile.value && !_isSmbProfile.value && !_isSafProfile.value)
 
     private suspend fun chownOne(entry: SftpEntry, owner: String) {
         when {
             _isLocalProfile.value ->
                 throw UnsupportedOperationException("chown not supported on local files")
+            _isRootProfile.value -> {
+                val root = rootBackendOrNull() ?: throw IllegalStateException("Root access is disabled")
+                root.chown(entry.path, owner)
+            }
             _isRcloneProfile.value ->
                 throw UnsupportedOperationException("chown not supported on rclone remotes")
             _isSmbProfile.value ->
@@ -3660,6 +3867,7 @@ class SftpViewModel @Inject constructor(
                     _isRcloneProfile.value -> BackendType.RCLONE
                     _isSmbProfile.value -> BackendType.SMB
                     _isSafProfile.value -> BackendType.SAF
+                    _isRootProfile.value -> BackendType.ROOT
                     else -> BackendType.SFTP
                 }
                 val ensuredDirs = mutableSetOf<String>()
@@ -3705,6 +3913,11 @@ class SftpViewModel @Inject constructor(
                             val saf = safBackendFor(profileId) ?: throw IllegalStateException("SAF folder unavailable")
                             appContext.contentResolver.openInputStream(item.uri)?.use { input ->
                                 saf.writeStream(destPath, input)
+                            }
+                        } else if (_isRootProfile.value) {
+                            val root = rootBackendOrNull() ?: throw IllegalStateException("Root access is disabled")
+                            appContext.contentResolver.openInputStream(item.uri)?.use { input ->
+                                root.writeStream(destPath, input)
                             }
                         } else {
                             val session = getOrOpenSession(profileId) ?: throw IllegalStateException("Not connected")
@@ -3812,6 +4025,7 @@ class SftpViewModel @Inject constructor(
         destRemote: String?,
     ): FileBackend? = backendOverride?.invoke() ?: when (destType) {
         BackendType.LOCAL -> LocalFileBackend(appContext)
+        BackendType.ROOT -> rootBackendOrNull()
         BackendType.SFTP -> getOrOpenSession(destProfileId)?.let { s -> SftpTransport({ s }) }
             ?: if (destProfileId == _activeProfileId.value) currentFileBackend() else null
         BackendType.SMB -> activeSmbClient?.let { SmbFileBackend(it) }
@@ -3929,7 +4143,7 @@ class SftpViewModel @Inject constructor(
             fileName = entry.name,
             sourceSize = entry.size,
             destSize = destSize,
-            canResume = allowResume && (destType == BackendType.SFTP || destType == BackendType.LOCAL) &&
+            canResume = allowResume && (destType == BackendType.SFTP || destType == BackendType.LOCAL || destType == BackendType.ROOT) &&
                 destSize in 1 until entry.size,
             onChoice = { action, applyToAll -> deferred.complete(action to applyToAll) },
         )
@@ -3996,6 +4210,9 @@ class SftpViewModel @Inject constructor(
             }
             BackendType.SAF -> { path: String ->
                 safBackendFor(cb.sourceProfileId)?.list(path) ?: emptyList()
+            }
+            BackendType.ROOT -> { path: String ->
+                rootBackendOrNull()?.list(path) ?: emptyList()
             }
         }
 
@@ -4067,6 +4284,9 @@ class SftpViewModel @Inject constructor(
                 BackendType.SAF -> kotlinx.coroutines.runBlocking {
                     safBackendFor(sourceProfileId)?.delete(sourcePath, isDirectory = false)
                 }
+                BackendType.ROOT -> kotlinx.coroutines.runBlocking {
+                    rootBackendOrNull()?.delete(sourcePath, isDirectory = false)
+                }
             }
         } catch (e: Exception) {
             Log.w(TAG, "deleteSourceLeaf failed for $sourcePath: ${e.message}")
@@ -4082,6 +4302,7 @@ class SftpViewModel @Inject constructor(
 
         val destType = when {
             _isLocalProfile.value -> BackendType.LOCAL
+            _isRootProfile.value -> BackendType.ROOT
             _isRcloneProfile.value -> BackendType.RCLONE
             _isSmbProfile.value -> BackendType.SMB
             _isSafProfile.value -> BackendType.SAF
@@ -4754,6 +4975,21 @@ class SftpViewModel @Inject constructor(
                         }
                     }
                 }
+                BackendType.ROOT -> {
+                    val root = rootBackendOrNull() ?: throw IllegalStateException("Root access is disabled")
+                    srcFile.inputStream().use { input ->
+                        root.writeStream(
+                            path = destPath,
+                            input = input,
+                            append = resumeFromByte > 0,
+                            startOffset = resumeFromByte,
+                        ) { written ->
+                            val effective = resumeFromByte + written
+                            _transferProgress.value = TransferProgress(label, total, effective)
+                            maybePersistQueueProgress(effective)
+                        }
+                    }
+                }
             }
             return
         }
@@ -4804,6 +5040,22 @@ class SftpViewModel @Inject constructor(
                     val saf = safBackendFor(cb.sourceProfileId)
                         ?: throw IllegalStateException("SAF folder unavailable")
                     saf.openInputStream(entry.path, 0).use { input ->
+                        tempFile.outputStream().use { out ->
+                            val buf = ByteArray(64 * 1024)
+                            var transferred = 0L
+                            while (true) {
+                                val n = input.read(buf)
+                                if (n < 0) break
+                                out.write(buf, 0, n)
+                                transferred += n
+                                _transferProgress.value = TransferProgress("\u2B07 $baseLabel", knownSize * 2, transferred)
+                            }
+                        }
+                    }
+                }
+                BackendType.ROOT -> {
+                    val root = rootBackendOrNull() ?: throw IllegalStateException("Root access is disabled")
+                    root.openInputStream(entry.path, 0).use { input ->
                         tempFile.outputStream().use { out ->
                             val buf = ByteArray(64 * 1024)
                             var transferred = 0L
@@ -4869,6 +5121,20 @@ class SftpViewModel @Inject constructor(
                         saf.writeStream(destPath, input) { transferred ->
                             _transferProgress.value = TransferProgress("\u2B06 $baseLabel", downloaded * 2, downloaded + transferred)
                             maybePersistQueueProgress(transferred)
+                        }
+                    }
+                }
+                BackendType.ROOT -> {
+                    val root = rootBackendOrNull() ?: throw IllegalStateException("Root access is disabled")
+                    tempFile.inputStream().use { input ->
+                        root.writeStream(
+                            path = destPath,
+                            input = input,
+                            append = resumeFromByte > 0,
+                            startOffset = resumeFromByte,
+                        ) { written ->
+                            _transferProgress.value = TransferProgress("\u2B06 $baseLabel", downloaded * 2, downloaded + written)
+                            maybePersistQueueProgress(written)
                         }
                     }
                 }
@@ -5087,6 +5353,9 @@ class SftpViewModel @Inject constructor(
             BackendType.SAF -> kotlinx.coroutines.runBlocking {
                 safBackendFor(cb.sourceProfileId)?.delete(entry.path, entry.isDirectory)
             }
+            BackendType.ROOT -> kotlinx.coroutines.runBlocking {
+                rootBackendOrNull()?.delete(entry.path, entry.isDirectory)
+            }
         }
     }
 
@@ -5225,6 +5494,11 @@ class SftpViewModel @Inject constructor(
     private suspend fun currentFileBackend(): sh.haven.feature.sftp.transport.FileBackend? {
         backendOverride?.invoke()?.let { return it }
         val profileId = _activeProfileId.value ?: return null
+        if (profileId == ROOT_PROFILE_ID) {
+            val root = rootBackendOrNull() ?: return null
+            _activeTransportLabel.value = root.label
+            return root
+        }
         val resolution = withContext(Dispatchers.IO) {
             transportSelector.resolveFileBackend(profileId)
         } ?: return null
@@ -5301,6 +5575,7 @@ class SftpViewModel @Inject constructor(
         }
         folderCountJob = viewModelScope.launch(Dispatchers.IO) {
             val isSshProfile = !_isLocalProfile.value &&
+                !_isRootProfile.value &&
                 !_isSafProfile.value &&
                 !_isSmbProfile.value &&
                 !_isRcloneProfile.value &&
@@ -5635,6 +5910,19 @@ class SftpViewModel @Inject constructor(
                             size = entry.size,
                             contentType = mime,
                             opener = smbOpener(entry.path),
+                            concurrentSafe = true,
+                        )
+                        data = android.net.Uri.parse("http://127.0.0.1:$port$urlPath")
+                    }
+                    _isRootProfile.value -> {
+                        // Root (/) via the loopback HTTP bridge so external viewer apps
+                        // can stream root-readable files without needing root themselves.
+                        val port = withContext(Dispatchers.IO) { sftpStreamServer.start() }
+                        val urlPath = sftpStreamServer.publish(
+                            path = entry.path,
+                            size = entry.size,
+                            contentType = mime,
+                            opener = rootOpener(entry.path),
                             concurrentSafe = true,
                         )
                         data = android.net.Uri.parse("http://127.0.0.1:$port$urlPath")
@@ -6003,6 +6291,7 @@ class SftpViewModel @Inject constructor(
     }
 
     companion object {
+        const val ROOT_PROFILE_ID = "root"
         private val MEDIA_MIME_PREFIXES = listOf("audio/", "video/")
 
         /**

@@ -205,3 +205,11 @@
 # Found on-device while making overlay windows dumpable (#355).
 -keep class androidx.compose.ui.platform.AndroidComposeView { *; }
 -keep class androidx.compose.ui.semantics.SemanticsOwner { *; }
+
+# Opt-in root filesystem worker (#799) — launched via `/system/bin/app_process`
+# by fully-qualified class name (`sh.haven.feature.sftp.root.RootFsDaemon`)
+# with `CLASSPATH=<apk>`. Without this keep, R8 renames the class/main method
+# in release builds and `app_process` fails with ClassNotFoundException.
+-keep class sh.haven.feature.sftp.root.RootFsDaemon {
+    public static void main(java.lang.String[]);
+}

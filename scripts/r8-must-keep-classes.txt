@@ -47,3 +47,8 @@ org.openintents.ssh.authentication.SshAuthenticationApiError
 # rule alone: it is a name-dependency like the rest, and this is the only
 # check that would notice the rule being dropped.
 org.connectbot.sshlib.crypto.ed25519.Ed25519Provider
+
+# Opt-in root filesystem worker (#799) — launched via `/system/bin/app_process`
+# by literal class name (`sh.haven.feature.sftp.root.RootFsDaemon`) with
+# `CLASSPATH=<apk>`. Renaming breaks `Root (/)` in release builds only.
+sh.haven.feature.sftp.root.RootFsDaemon

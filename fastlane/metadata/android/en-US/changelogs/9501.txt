@@ -1,0 +1,2 @@
+- Resolve the active Android user's emulated storage directory (/storage/emulated/<user>) dynamically for PRoot /sdcard bind mounts and local Download/ saves on secondary users and work profiles (#825, thanks @DragonXen).
+- Update sshlib 0.6.7, androidx.biometric 1.4.0-beta01, tailscale 1.104.5, golang.org/x/sys 0.50.0, and smallvec 1.16.5 (#819-#824).

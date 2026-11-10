@@ -5,6 +5,11 @@ the corresponding GitHub Release; a release can't ship without its section
 (enforced by `scripts/check-changelog.sh` in CI). The GitHub "Full Changelog"
 compare link is appended automatically — don't add it here.
 
+## v5.94.25
+
+- Resolve the active Android user's emulated storage directory (`/storage/emulated/<user>`) dynamically for PRoot `/sdcard` bind mounts and SFTP local `Download/` saves so secondary Android users and work profiles (such as user 11) do not fail with `Permission denied` on `/storage/emulated/0` (#825, thanks @DragonXen).
+- Update `sshlib` to 0.6.7, `androidx.biometric` to 1.4.0-beta01, `tailscale` to 1.104.5, `golang.org/x/sys` to 0.50.0, and `smallvec` to 1.16.5 (#819, #820, #821, #822, #823, #824).
+
 ## v5.94.24
 
 - Fix Arch Linux `proot` GnuPG keyring locking (`archlinux-keyring` upgrades), extend emulated `qemu-user` desktop startup timeouts, and show a live package download/install progress bar during DE setup (#814, thanks @NAZY-OS).

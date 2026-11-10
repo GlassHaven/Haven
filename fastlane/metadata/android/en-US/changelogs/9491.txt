@@ -1,0 +1,3 @@
+- Fix Arch Linux `proot` GnuPG keyring locking (`archlinux-keyring` upgrades), extend emulated `qemu-user` desktop startup timeouts, and show a live package download/install progress bar during DE setup (#814, thanks @NAZY-OS).
+- Recursively delete non-empty folders over SFTP and SMB without traversing symlink targets (#815, thanks @zol-c).
+- Pass file MIME types on download and trigger `MediaScannerConnection` after local saves so new media appears in gallery apps (#816, thanks @zol-c).

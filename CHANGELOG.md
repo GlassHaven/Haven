@@ -5,6 +5,12 @@ the corresponding GitHub Release; a release can't ship without its section
 (enforced by `scripts/check-changelog.sh` in CI). The GitHub "Full Changelog"
 compare link is appended automatically — don't add it here.
 
+## v5.94.24
+
+- Fix Arch Linux `proot` GnuPG keyring locking (`archlinux-keyring` upgrades), extend emulated `qemu-user` desktop startup timeouts, and show a live package download/install progress bar during DE setup (#814, thanks @NAZY-OS).
+- Recursively delete non-empty folders over SFTP and SMB without traversing symlink targets (#815, thanks @zol-c).
+- Pass file MIME types on download and trigger `MediaScannerConnection` after local saves so new media appears in gallery apps (#816, thanks @zol-c).
+
 ## v5.94.23
 
 - Add an opt-in **Root (/)** tab in **Files** (**Settings -> Advanced**), lazily starting an `app_process` worker via `su -mm` only when opened while keeping MCP tools and `DocumentsProvider` isolated (#799, thanks @zol-c).

@@ -24,10 +24,9 @@ android {
 
 dependencies {
     implementation(project(":core:usb"))
-    // derEcdsaToSshBlob SSOT: sk-ecdsa signatures convert through the same
-    // core/security helper the security-chip identity uses (the old module
-    // -internal copy was a byte-for-byte duplicate).
-    implementation(project(":core:security"))
+    // derEcdsaToSshBlob + SkKeyData SSOT in :core:security (api so downstream
+    // callers referencing sh.haven.core.fido.SkKeyData resolve transparently).
+    api(project(":core:security"))
     implementation(libs.jsch)
     implementation(libs.bouncycastle)
     implementation(libs.coroutines.core)

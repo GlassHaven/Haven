@@ -40,6 +40,9 @@ build-ffmpeg/dep-*.log
 .claude/*
 !.claude/skills/
 .agents/
+.opencode/
+.venv/
+scratch/
 
 # Personal dev notes — never committed
 DEV.local.md

@@ -3,6 +3,7 @@ package sh.haven.app.agent
 import android.util.Log
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.Job
 import kotlinx.coroutines.SupervisorJob
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.launch
@@ -82,14 +83,20 @@ class TerminalInputQueue @Inject constructor(
 
     private val queue = ConcurrentHashMap<String, QueuedInput>()
     private val scope = CoroutineScope(SupervisorJob() + Dispatchers.IO)
+    private val pollLock = Any()
+    @Volatile
+    private var pollJob: Job? = null
 
-    init {
-        Log.i(TAG, "TerminalInputQueue starting poll loop (interval=${POLL_INTERVAL_MS}ms)")
-        scope.launch {
-            try {
-                pollLoop()
-            } catch (e: Throwable) {
-                Log.e(TAG, "poll loop died", e)
+    private fun ensurePolling() {
+        synchronized(pollLock) {
+            if (queue.isEmpty() || pollJob?.isActive == true) return
+            Log.i(TAG, "TerminalInputQueue starting poll loop (interval=${POLL_INTERVAL_MS}ms)")
+            pollJob = scope.launch {
+                try {
+                    pollLoop()
+                } catch (e: Throwable) {
+                    Log.e(TAG, "poll loop died", e)
+                }
             }
         }
     }
@@ -128,6 +135,7 @@ class TerminalInputQueue @Inject constructor(
         // Length, not content: what gets queued here is typed into a shell, and a
         // password sent this way would otherwise sit in logcat verbatim (#518).
         Log.i(TAG, "enqueue $id: sessionId=$sessionId textLen=${text.length} pattern=$promptPattern timeout=${timeoutSeconds}s baselineTotalBytes=$baseline submitKey=${submitKey.toByteArray().joinToString { "0x%02x".format(it) }}")
+        ensurePolling()
         return id
     }
 
@@ -138,6 +146,12 @@ class TerminalInputQueue @Inject constructor(
     private suspend fun pollLoop() {
         var lastTickLog = 0L
         while (true) {
+            synchronized(pollLock) {
+                if (queue.isEmpty()) {
+                    pollJob = null
+                    return
+                }
+            }
             delay(POLL_INTERVAL_MS)
             val now = System.currentTimeMillis()
             for ((id, msg) in queue.toMap()) {

@@ -200,8 +200,6 @@
     <string name="connections_password_title">%1$s এ সংযোগ করুন</string>
     <string name="connections_password_button">সংযোগ করুন</string>
 
-    <string name="connections_fido_pin_title">সিকিউরিটি কী PIN</string>
-    <string name="connections_fido_pin_label">PIN</string>
 
     <string name="connections_ki_submit">জমা দিন</string>
 
@@ -236,15 +234,6 @@
     <string name="connections_password_remember_password">পাসওয়ার্ড মনে রাখুন</string>
     <string name="connections_password_remember_passphrase">কী পাসফ্রেজ মনে রাখুন</string>
     <string name="connections_password_leave_empty_for_key">SSH কী দিয়ে সংযোগ করতে ফাঁকা রাখুন</string>
-    <string name="connections_fido_pin_help">এই SSH কী verify-required সহ নিবন্ধিত। চালিয়ে যেতে আপনার সিকিউরিটি কী-তে সেট করা PIN দিন।</string>
-    <string name="connections_fido_pin_wrong">ভুল PIN। কী লক হওয়ার আগে %1$d বার চেষ্টা বাকি।</string>
-    <string name="connections_fido_waiting_title">সিকিউরিটি কী প্রয়োজন</string>
-    <string name="connections_fido_waiting_body">USB দিয়ে আপনার সিকিউরিটি কী লাগান, বা NFC-এর জন্য ডিভাইসের পেছনে ট্যাপ করুন। শনাক্ত হলে Haven স্বয়ংক্রিয়ভাবে এগিয়ে যাবে।</string>
-    <string name="connections_fido_touch_usb_title">আপনার সিকিউরিটি কী স্পর্শ করুন</string>
-    <string name="connections_fido_touch_usb_body">SSH স্বাক্ষর অনুমোদন করতে এখনই আপনার সিকিউরিটি কী-এর বোতাম চাপুন। কী-টি অপেক্ষা করছে বোঝাতে জ্বলতে-নিভতে পারে।</string>
-    <string name="connections_fido_touch_nfc_title">আপনার সিকিউরিটি কী ধরে রাখুন</string>
-    <string name="connections_fido_touch_nfc_body">স্বাক্ষর করার সময় সিকিউরিটি কী-টি ডিভাইসের পেছনে দুই সেকেন্ড ধরে রাখুন। আগেই সরিয়ে নিলে প্রক্রিয়া বাতিল হবে এবং আবার ট্যাপ করতে হবে।</string>
-    <string name="connections_fido_cancel_hint">সংযোগ তালিকা থেকে সংযোগ বিচ্ছিন্ন করে বাতিল করুন।</string>
     <string name="connections_ki_response_fallback">প্রতিক্রিয়া</string>
     <string name="connections_ki_title_additional">অতিরিক্ত প্রমাণীকরণ প্রয়োজন</string>
     <string name="connections_ki_title_server">সার্ভারের প্রম্পট</string>
@@ -528,9 +517,6 @@
     <string name="connections_usb_forward_unattached">%1$s (সংযুক্ত নয়)</string>
     <string name="connections_deploy_field_password_optional">পাসওয়ার্ড (ঐচ্ছিক)</string>
     <string name="connections_deploy_password_hint">এই প্রোফাইলের সংরক্ষিত কী দিয়ে ডিপ্লয় করতে ফাঁকা রাখুন। পাসওয়ার্ড কেবল তখনই দরকার যখন সার্ভার পাসওয়ার্ড দিয়ে যাচাই করে (অথবা কোনো কী পাসফ্রেজ / জাম্প হোস্ট আনলক করতে)।</string>
-    <string name="connections_fido_key_label">কী: %1$s</string>
-    <string name="connections_fido_wrong_title">ভুল সিকিউরিটি কী</string>
-    <string name="connections_fido_wrong_body">এই কী-তে সার্ভারের চাওয়া শংসাপত্র নেই। অনুরোধ করা কী উপস্থাপন করে এটি টাচ করুন।</string>
     <string name="connections_auth_key_picker">কী: %1$s ▾</string>
     <string name="connections_auth_key_only">✓ শুধু এই কী ব্যবহার করুন</string>
     <string name="connections_mcp_active">এজেন্ট এই সংযোগে কাজ করছে — এর জন্য MCP নিষ্ক্রিয় করতে ট্যাপ করুন</string>

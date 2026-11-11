@@ -25,7 +25,6 @@ android {
 
 dependencies {
     implementation(project(":core:ui"))
-    implementation(project(":core:ffmpeg"))
 
     implementation(libs.activity.compose)
     implementation(libs.hilt.android)

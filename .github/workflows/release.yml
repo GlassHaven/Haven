@@ -87,16 +87,19 @@ jobs:
             reticulum-kt
             rnsh-kt
             build-proot/proot-termux
-            prns
       - uses: ./.github/actions/setup-toolchain
       - name: Run release unit tests
-        # Same gating set as ci.yml: the sshlib contract tests are excluded
-        # here too, because that engine's known CHANNEL_CLOSE flakiness
-        # (connectbot/cbssh#245, #448) is non-gating by design — the 0.5.0
-        # bump failing them deterministically killed the v5.89.27 release run
-        # while CI on the same SHA was green (#692). The default JSch engine
-        # is what ships; restore the gate here when a fixed sshlib lands.
-        run: ./gradlew testDebugUnitTest -PexcludeSshlibContractTests=true -PskipWaylandNatives=true -PskipFfmpegNatives=true
+        # Same gating set as ci.yml: name :app:testArm64FullDebugUnitTest
+        # explicitly because :app uses ABI+features product flavors (bare
+        # testDebugUnitTest matches no :app task). The sshlib contract tests are
+        # excluded here too because that engine's known CHANNEL_CLOSE flakiness
+        # (connectbot/cbssh#245, #448) is non-gating by design (#692).
+        run: >-
+          ./gradlew testDebugUnitTest :app:testArm64FullDebugUnitTest
+          -PexcludeSshlibContractTests=true
+          -PskipWaylandNatives=true
+          -PskipFfmpegNatives=true
+          -PskipUml=true
         env:
           GH_TOKEN: ${{ github.token }}
           KEYSTORE_PASSWORD: ${{ secrets.KEYSTORE_PASSWORD }}

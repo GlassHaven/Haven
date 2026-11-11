@@ -39,7 +39,6 @@ dependencies {
     implementation(libs.hilt.android)
     // OkHttp WebSocket client for the Cloudflare Access SSH gateway (#154).
     implementation(libs.okhttp)
-    implementation(project(":core:security"))
     // LogRedact for tunnel log lines (NoRawPiiInLogsTest).
     implementation(project(":core:redact"))
     ksp(libs.hilt.compiler)
@@ -52,7 +51,7 @@ dependencies {
     // (returns defaults), so add the real JSON lib for tests that
     // exercise TailscaleConfigBlob's JSON envelope. Same package, same
     // class — JVM resolves to the real impl when both are on the path.
-    testImplementation("org.json:json:20260814")
+    testImplementation(libs.orgjson)
 }
 
 kotlin {

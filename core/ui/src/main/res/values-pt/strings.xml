@@ -44,4 +44,18 @@
     <string name="wayland_cd_desktop_resolution">Resolução da área de trabalho</string>
     <string name="external_display_cd_on">Saída em monitor externo ativada (toque para mostrar na tela do dispositivo)</string>
     <string name="external_display_cd_off">Saída em monitor externo desativada (toque para projetar no monitor externo)</string>
+    <string name="connections_fido_pin_title">PIN da chave de segurança</string>
+    <string name="connections_fido_pin_label">PIN</string>
+    <string name="connections_fido_pin_help">Esta chave SSH foi registrada com verify-required. Digite o PIN configurado na sua chave de segurança para continuar.</string>
+    <string name="connections_fido_pin_wrong">PIN incorreto. Restam %1$d tentativas antes de a chave bloquear.</string>
+    <string name="connections_fido_waiting_title">Chave de segurança necessária</string>
+    <string name="connections_fido_waiting_body">Conecte sua chave de segurança via USB ou aproxime-a da parte de trás do dispositivo para NFC. O Haven continuará automaticamente assim que a detectar.</string>
+    <string name="connections_fido_touch_usb_title">Toque na sua chave de segurança</string>
+    <string name="connections_fido_touch_usb_body">Pressione agora o botão da sua chave de segurança para autorizar a assinatura SSH. A chave pode piscar para indicar que está aguardando.</string>
+    <string name="connections_fido_touch_nfc_title">Segure sua chave de segurança</string>
+    <string name="connections_fido_touch_nfc_body">Mantenha a chave de segurança encostada na parte de trás do dispositivo por dois segundos enquanto ela assina. Afastá-la cedo cancela a troca e você precisará aproximá-la de novo.</string>
+    <string name="connections_fido_cancel_hint">Cancele desconectando na lista de conexões.</string>
+    <string name="connections_fido_key_label">Chave: %1$s</string>
+    <string name="connections_fido_wrong_title">Chave de segurança incorreta</string>
+    <string name="connections_fido_wrong_body">Essa chave não contém a credencial solicitada pelo servidor. Apresente a chave solicitada e toque nela.</string>
 </resources>

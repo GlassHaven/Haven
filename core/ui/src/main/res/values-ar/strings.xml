@@ -44,4 +44,18 @@
     <string name="wayland_cd_desktop_resolution">دقة سطح المكتب</string>
     <string name="external_display_cd_on">العرض على الشاشة الخارجية مفعّل (اضغط للعرض على شاشة الجهاز)</string>
     <string name="external_display_cd_off">العرض على الشاشة الخارجية متوقف (اضغط للعرض على الشاشة الخارجية)</string>
+    <string name="connections_fido_pin_title">رمز PIN لمفتاح الأمان</string>
+    <string name="connections_fido_pin_label">PIN</string>
+    <string name="connections_fido_pin_help">سُجِّل مفتاح SSH هذا بخيار verify-required. أدخل رمز PIN المُعدّ على مفتاح الأمان للمتابعة.</string>
+    <string name="connections_fido_pin_wrong">رمز PIN خاطئ. تبقّت %1$d محاولات قبل قفل المفتاح.</string>
+    <string name="connections_fido_waiting_title">مطلوب مفتاح أمان</string>
+    <string name="connections_fido_waiting_body">وصّل مفتاح الأمان عبر USB، أو المسه بظهر الجهاز لاستخدام NFC. سيتابع Haven تلقائيًا بمجرد اكتشافه.</string>
+    <string name="connections_fido_touch_usb_title">المس مفتاح الأمان</string>
+    <string name="connections_fido_touch_usb_body">اضغط الزر على مفتاح الأمان الآن للسماح بتوقيع SSH. قد يومض المفتاح للإشارة إلى أنه في انتظارك.</string>
+    <string name="connections_fido_touch_nfc_title">أمسك مفتاح الأمان</string>
+    <string name="connections_fido_touch_nfc_body">أبقِ مفتاح الأمان ملاصقًا لظهر الجهاز لمدة ثانيتين أثناء التوقيع. إبعاده مبكرًا يُلغي العملية وستحتاج إلى لمسه مرة أخرى.</string>
+    <string name="connections_fido_cancel_hint">للإلغاء، اقطع الاتصال من قائمة الاتصالات.</string>
+    <string name="connections_fido_key_label">المفتاح: %1$s</string>
+    <string name="connections_fido_wrong_title">مفتاح أمان خاطئ</string>
+    <string name="connections_fido_wrong_body">لا يحتوي هذا المفتاح على بيانات الاعتماد التي طلبها الخادم. قدّم المفتاح المطلوب والمسه.</string>
 </resources>

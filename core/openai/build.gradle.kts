@@ -24,8 +24,6 @@ android {
 
 dependencies {
     implementation(project(":core:data"))
-    implementation(project(":core:ssh"))
-    implementation(project(":core:tunnel"))
     implementation(libs.coroutines.core)
     implementation(libs.coroutines.android)
     // Socket-level tunnel routing: HttpURLConnection can't take a SocketFactory
@@ -45,7 +43,7 @@ dependencies {
     // Android's android.jar stubs out org.json.JSONObject in unit tests; add
     // the real lib (same package/class) so OpenAiClient tests hit the real
     // parser. Same trick :core:tunnel's tests use.
-    testImplementation("org.json:json:20260814")
+    testImplementation(libs.orgjson)
 }
 
 kotlin {

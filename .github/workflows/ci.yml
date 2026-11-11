@@ -119,6 +119,24 @@ jobs:
         working-directory: prns/prns-host/abi/c
         run: cargo test
 
+  # Pure-Go unit tests for the rclone-android bridge packages (wgbridge,
+  # tsbridge, ocbridge, nbbridge, ovpnbridge, mailbridge, socks5). Excludes
+  # /openvpn3 which links the C++ OpenVPN3 static library built under NDK.
+  rclone-go-test:
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1  # v7.0.1
+        with:
+          submodules: false
+      - uses: actions/setup-go@4a3601121dd01d1626a1e23e37211e3254c1c06c  # v6.4.0
+        with:
+          go-version: '1.27'
+          cache-dependency-path: rclone-android/go/go.sum
+      - name: Run Go bridge unit tests
+        working-directory: rclone-android/go
+        run: go test $(go list ./... | grep -v '/openvpn3$')
+
   # Host-built proot exercising the link2symlink emulation: refcounts,
   # PROOT_L2S_DIR payload relocation (the Nix/libgit2 tarball-cache
   # durability fix, discussion #536), and broken-chain fail-soft. Runs on
@@ -196,6 +214,8 @@ jobs:
         with:
           submodules: false
       - uses: ./.github/actions/init-submodules-with-retry
+      - name: Check no new binaries are committed in submodules
+        run: ./scripts/check-no-committed-binaries.sh
       - uses: ./.github/actions/setup-toolchain
       - name: Run unit tests
         # :app uses ABI product flavors, so the unqualified `testDebugUnitTest`
@@ -295,6 +315,8 @@ jobs:
         with:
           submodules: false
       - uses: ./.github/actions/init-submodules-with-retry
+      - name: Check no new binaries are committed in submodules
+        run: ./scripts/check-no-committed-binaries.sh
       - uses: ./.github/actions/setup-toolchain
       - name: Run lint
         # Skip the from-source native builds. Android lint analyses sources,
@@ -331,6 +353,8 @@ jobs:
         with:
           submodules: false
       - uses: ./.github/actions/init-submodules-with-retry
+      - name: Check no new binaries are committed in submodules
+        run: ./scripts/check-no-committed-binaries.sh
       - uses: ./.github/actions/setup-toolchain
       # Build arm64 only in CI — the x64 flavor exists for emulator support
       # and Play Store fat distribution, not smoke-testing main. Cuts build
@@ -381,6 +405,8 @@ jobs:
         with:
           submodules: false
       - uses: ./.github/actions/init-submodules-with-retry
+      - name: Check no new binaries are committed in submodules
+        run: ./scripts/check-no-committed-binaries.sh
       - uses: ./.github/actions/setup-toolchain
       - name: Build ${{ matrix.abi }} debug APK
         run: ./gradlew :app:assemble${{ matrix.variant }}FullDebug -PtargetAbi=${{ matrix.abi }} -PskipUml=true -Pkotlin.compiler.execution.strategy=in-process
@@ -406,6 +432,8 @@ jobs:
         with:
           submodules: false
       - uses: ./.github/actions/init-submodules-with-retry
+      - name: Check no new binaries are committed in submodules
+        run: ./scripts/check-no-committed-binaries.sh
       - uses: ./.github/actions/setup-toolchain
       - name: R8 the release variant
         # Same skip as lint, same reason: R8 shrinks bytecode and never reads

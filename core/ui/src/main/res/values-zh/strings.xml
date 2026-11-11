@@ -44,4 +44,18 @@
     <string name="wayland_cd_desktop_resolution">桌面分辨率</string>
     <string name="external_display_cd_on">外接显示器输出已开启（点按以在设备屏幕上显示）</string>
     <string name="external_display_cd_off">外接显示器输出已关闭（点按以投射到外接显示器）</string>
+    <string name="connections_fido_pin_title">安全密钥 PIN 码</string>
+    <string name="connections_fido_pin_label">PIN 码</string>
+    <string name="connections_fido_pin_help">此 SSH 密钥需要验证。请输入安全密钥上设置的 PIN 码以继续。</string>
+    <string name="connections_fido_pin_wrong">PIN 码错误。安全密钥锁定前还有 %1$d 次尝试机会。</string>
+    <string name="connections_fido_waiting_title">需要安全密钥</string>
+    <string name="connections_fido_waiting_body">通过 USB 插入安全密钥，或将其贴在设备背面以使用 NFC。检测到密钥后 Haven 会自动继续。</string>
+    <string name="connections_fido_touch_usb_title">触摸您的安全密钥</string>
+    <string name="connections_fido_touch_usb_body">现在按下安全密钥上的按钮以授权 SSH 签名。密钥可能会闪烁提示等待操作。</string>
+    <string name="connections_fido_touch_nfc_title">贴住您的安全密钥</string>
+    <string name="connections_fido_touch_nfc_body">在签名期间将安全密钥贴在设备背面持续两秒。提前移开会中止交换，需要再次贴近。</string>
+    <string name="connections_fido_cancel_hint">如需取消，请从连接列表断开此连接。</string>
+    <string name="connections_fido_key_label">密钥：%1$s</string>
+    <string name="connections_fido_wrong_title">安全密钥不正确</string>
+    <string name="connections_fido_wrong_body">该密钥未持有服务器请求的凭据。请出示所需的密钥并触摸它。</string>
 </resources>

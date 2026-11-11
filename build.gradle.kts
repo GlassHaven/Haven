@@ -7,22 +7,11 @@ plugins {
     alias(libs.plugins.ksp) apply false
 }
 
-// Library modules that don't define the "store" dimension need a default
-// so they can consume core:ssh (which has foss/full variants).
-//
-// Also downgrades `MissingTranslation` from error (default) to warning so
-// it doesn't block CI when a new string lands ahead of its 10 locales,
-// but still surfaces in lint reports — disabling it entirely caused
-// ~120 strings to drift silently before issue #125 caught it.
+// Downgrades `MissingTranslation` from error (default) to warning so
+// it doesn't block CI when a new string lands ahead of its locales,
+// while scripts/check-i18n-coverage.py enforces translation parity on main.
 subprojects {
     afterEvaluate {
-        extensions.findByType<com.android.build.gradle.LibraryExtension>()?.apply {
-            if (flavorDimensionList.none { it == "store" }) {
-                defaultConfig {
-                    missingDimensionStrategy("store", "full")
-                }
-            }
-        }
         // AGP 9 removed `lintOptions` and the old-extension `lint.warning +=` path
         // no longer downgrades severity, so MissingTranslation started blocking CI
         // again (4 errors slipped onto main because lint only runs on PRs, not push).

@@ -44,4 +44,18 @@
     <string name="wayland_cd_desktop_resolution">Desktopauflösung</string>
     <string name="external_display_cd_on">Ausgabe auf externem Display aktiv (tippen für Gerätebildschirm)</string>
     <string name="external_display_cd_off">Ausgabe auf externem Display aus (tippen für externes Display)</string>
+    <string name="connections_fido_pin_title">PIN des Sicherheitsschlüssels</string>
+    <string name="connections_fido_pin_label">PIN</string>
+    <string name="connections_fido_pin_help">Dieser SSH-Schlüssel wurde mit verify-required registriert. Gib zum Fortfahren die auf deinem Sicherheitsschlüssel eingerichtete PIN ein.</string>
+    <string name="connections_fido_pin_wrong">Falsche PIN. Noch %1$d Versuche, bevor der Schlüssel gesperrt wird.</string>
+    <string name="connections_fido_waiting_title">Sicherheitsschlüssel erforderlich</string>
+    <string name="connections_fido_waiting_body">Schließe deinen Sicherheitsschlüssel per USB an oder halte ihn für NFC an die Rückseite des Geräts. Haven fährt automatisch fort, sobald er erkannt wird.</string>
+    <string name="connections_fido_touch_usb_title">Sicherheitsschlüssel berühren</string>
+    <string name="connections_fido_touch_usb_body">Drücke jetzt die Taste auf deinem Sicherheitsschlüssel, um die SSH-Signatur zu bestätigen. Der Schlüssel blinkt möglicherweise, während er wartet.</string>
+    <string name="connections_fido_touch_nfc_title">Sicherheitsschlüssel auflegen</string>
+    <string name="connections_fido_touch_nfc_body">Halte den Sicherheitsschlüssel während des Signierens zwei Sekunden an die Rückseite des Geräts. Wird er zu früh entfernt, bricht der Vorgang ab und du musst ihn erneut auflegen.</string>
+    <string name="connections_fido_cancel_hint">Zum Abbrechen in der Verbindungsliste die Verbindung trennen.</string>
+    <string name="connections_fido_key_label">Schlüssel: %1$s</string>
+    <string name="connections_fido_wrong_title">Falscher Sicherheitsschlüssel</string>
+    <string name="connections_fido_wrong_body">Dieser Schlüssel enthält nicht die vom Server angeforderten Anmeldedaten. Halte den angeforderten Schlüssel bereit und berühre ihn.</string>
 </resources>

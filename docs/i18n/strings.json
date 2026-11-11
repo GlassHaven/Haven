@@ -8287,6 +8287,290 @@
       "sr": "Приказ на спољном екрану искључен (додирните за спољни екран)",
       "zh": "外接显示器输出已关闭（点按以投射到外接显示器）"
      }
+    },
+    {
+     "name": "connections_fido_pin_title",
+     "en": "Security key PIN",
+     "comment": "Common strings shared across all feature modules",
+     "args": [],
+     "t": {
+      "ar": "رمز PIN لمفتاح الأمان",
+      "bn": "সিকিউরিটি কী PIN",
+      "de": "PIN des Sicherheitsschlüssels",
+      "es": "PIN de la llave de seguridad",
+      "fr": "Code PIN de la clé de sécurité",
+      "hi": "सुरक्षा कुंजी PIN",
+      "ja": "セキュリティ キーの PIN",
+      "ko": "보안 키 PIN",
+      "pt": "PIN da chave de segurança",
+      "ru": "PIN аппаратного ключа",
+      "sr": "PIN безбедносног кључа",
+      "zh": "安全密钥 PIN 码"
+     }
+    },
+    {
+     "name": "connections_fido_pin_label",
+     "en": "PIN",
+     "comment": "Common strings shared across all feature modules",
+     "args": [],
+     "t": {
+      "ar": "PIN",
+      "bn": "PIN",
+      "de": "PIN",
+      "es": "PIN",
+      "fr": "PIN",
+      "hi": "PIN",
+      "ja": "PIN",
+      "ko": "PIN",
+      "pt": "PIN",
+      "ru": "PIN",
+      "sr": "PIN",
+      "zh": "PIN 码"
+     }
+    },
+    {
+     "name": "connections_fido_pin_help",
+     "en": "This SSH key was registered with verify-required. Enter the PIN configured on your security key to continue.",
+     "comment": "Common strings shared across all feature modules",
+     "args": [],
+     "t": {
+      "ar": "سُجِّل مفتاح SSH هذا بخيار verify-required. أدخل رمز PIN المُعدّ على مفتاح الأمان للمتابعة.",
+      "bn": "এই SSH কী verify-required সহ নিবন্ধিত। চালিয়ে যেতে আপনার সিকিউরিটি কী-তে সেট করা PIN দিন।",
+      "de": "Dieser SSH-Schlüssel wurde mit verify-required registriert. Gib zum Fortfahren die auf deinem Sicherheitsschlüssel eingerichtete PIN ein.",
+      "es": "Esta clave SSH se registró con verify-required. Introduce el PIN configurado en tu llave de seguridad para continuar.",
+      "fr": "Cette clé SSH a été enregistrée avec verify-required. Saisissez le code PIN configuré sur votre clé de sécurité pour continuer.",
+      "hi": "यह SSH कुंजी verify-required के साथ पंजीकृत है। जारी रखने के लिए अपनी सुरक्षा कुंजी पर सेट किया गया PIN दर्ज करें।",
+      "ja": "この SSH 鍵は verify-required で登録されています。続行するにはセキュリティ キーに設定した PIN を入力してください。",
+      "ko": "이 SSH 키는 verify-required로 등록되었습니다. 계속하려면 보안 키에 설정된 PIN을 입력하세요.",
+      "pt": "Esta chave SSH foi registrada com verify-required. Digite o PIN configurado na sua chave de segurança para continuar.",
+      "ru": "Этот ключ SSH зарегистрирован с verify-required. Введите PIN, заданный на аппаратном ключе, чтобы продолжить.",
+      "sr": "Овај SSH кључ је регистрован са verify-required. Да бисте наставили, унесите PIN који је подешен на вашем безбедносном кључу.",
+      "zh": "此 SSH 密钥需要验证。请输入安全密钥上设置的 PIN 码以继续。"
+     }
+    },
+    {
+     "name": "connections_fido_pin_wrong",
+     "en": "Wrong PIN. %1$d attempts remaining before the key locks.",
+     "comment": "Common strings shared across all feature modules",
+     "args": [
+      "%1$d"
+     ],
+     "t": {
+      "ar": "رمز PIN خاطئ. تبقّت %1$d محاولات قبل قفل المفتاح.",
+      "bn": "ভুল PIN। কী লক হওয়ার আগে %1$d বার চেষ্টা বাকি।",
+      "de": "Falsche PIN. Noch %1$d Versuche, bevor der Schlüssel gesperrt wird.",
+      "es": "PIN incorrecto. Quedan %1$d intentos antes de que la llave se bloquee.",
+      "fr": "Code PIN incorrect. Il reste %1$d tentatives avant le blocage de la clé.",
+      "hi": "गलत PIN। कुंजी लॉक होने से पहले %1$d प्रयास शेष।",
+      "ja": "PIN が違います。鍵がロックされるまで残り %1$d 回です。",
+      "ko": "잘못된 PIN입니다. 키가 잠기기 전 %1$d회 시도 남음.",
+      "pt": "PIN incorreto. Restam %1$d tentativas antes de a chave bloquear.",
+      "ru": "Неверный PIN. Осталось попыток до блокировки ключа: %1$d.",
+      "sr": "Неисправан PIN. Преостаје још %1$d покушаја пре него што се кључ закључа.",
+      "zh": "PIN 码错误。安全密钥锁定前还有 %1$d 次尝试机会。"
+     }
+    },
+    {
+     "name": "connections_fido_waiting_title",
+     "en": "Security key required",
+     "comment": "Common strings shared across all feature modules",
+     "args": [],
+     "t": {
+      "ar": "مطلوب مفتاح أمان",
+      "bn": "সিকিউরিটি কী প্রয়োজন",
+      "de": "Sicherheitsschlüssel erforderlich",
+      "es": "Se requiere llave de seguridad",
+      "fr": "Clé de sécurité requise",
+      "hi": "सुरक्षा कुंजी आवश्यक",
+      "ja": "セキュリティ キーが必要です",
+      "ko": "보안 키 대기 중",
+      "pt": "Chave de segurança necessária",
+      "ru": "Требуется аппаратный ключ",
+      "sr": "Потребан је безбедносни кључ",
+      "zh": "需要安全密钥"
+     }
+    },
+    {
+     "name": "connections_fido_waiting_body",
+     "en": "Plug in your security key over USB, or tap it on the back of the device for NFC. Haven will continue automatically once it is detected.",
+     "comment": "Common strings shared across all feature modules",
+     "args": [],
+     "t": {
+      "ar": "وصّل مفتاح الأمان عبر USB، أو المسه بظهر الجهاز لاستخدام NFC. سيتابع Haven تلقائيًا بمجرد اكتشافه.",
+      "bn": "USB দিয়ে আপনার সিকিউরিটি কী লাগান, বা NFC-এর জন্য ডিভাইসের পেছনে ট্যাপ করুন। শনাক্ত হলে Haven স্বয়ংক্রিয়ভাবে এগিয়ে যাবে।",
+      "de": "Schließe deinen Sicherheitsschlüssel per USB an oder halte ihn für NFC an die Rückseite des Geräts. Haven fährt automatisch fort, sobald er erkannt wird.",
+      "es": "Conecta tu llave de seguridad por USB o acércala a la parte trasera del dispositivo para NFC. Haven continuará automáticamente en cuanto la detecte.",
+      "fr": "Branchez votre clé de sécurité en USB, ou présentez-la à l’arrière de l’appareil pour le NFC. Haven poursuivra automatiquement dès qu’elle sera détectée.",
+      "hi": "अपनी सुरक्षा कुंजी को USB से लगाएँ, या NFC के लिए डिवाइस के पीछे टैप करें। पहचान होते ही Haven अपने आप आगे बढ़ेगा।",
+      "ja": "セキュリティ キーを USB で接続するか、NFC の場合は本体の背面にかざしてください。検出されると Haven は自動的に続行します。",
+      "ko": "보안 키를 USB로 연결하거나, NFC라면 기기 뒷면에 태그하세요. 감지되면 Haven이 자동으로 계속 진행합니다.",
+      "pt": "Conecte sua chave de segurança via USB ou aproxime-a da parte de trás do dispositivo para NFC. O Haven continuará automaticamente assim que a detectar.",
+      "ru": "Подключите аппаратный ключ по USB или приложите его к задней панели для NFC. Haven продолжит автоматически, как только обнаружит ключ.",
+      "sr": "Уметните свој безбедносни кључ у USB, или га тапните на позадину уређаја за NFC. Када се детектује, Haven ће аутоматски да настави даље.",
+      "zh": "通过 USB 插入安全密钥，或将其贴在设备背面以使用 NFC。检测到密钥后 Haven 会自动继续。"
+     }
+    },
+    {
+     "name": "connections_fido_touch_usb_title",
+     "en": "Touch your security key",
+     "comment": "Common strings shared across all feature modules",
+     "args": [],
+     "t": {
+      "ar": "المس مفتاح الأمان",
+      "bn": "আপনার সিকিউরিটি কী স্পর্শ করুন",
+      "de": "Sicherheitsschlüssel berühren",
+      "es": "Toca tu llave de seguridad",
+      "fr": "Touchez votre clé de sécurité",
+      "hi": "अपनी सुरक्षा कुंजी को स्पर्श करें",
+      "ja": "セキュリティ キーにタッチ",
+      "ko": "보안 키를 터치하세요",
+      "pt": "Toque na sua chave de segurança",
+      "ru": "Коснитесь аппаратного ключа",
+      "sr": "Додирните свој безбедносни кључ",
+      "zh": "触摸您的安全密钥"
+     }
+    },
+    {
+     "name": "connections_fido_touch_usb_body",
+     "en": "Press the button on your security key now to authorise the SSH signature. The key may blink to indicate it is waiting.",
+     "comment": "Common strings shared across all feature modules",
+     "args": [],
+     "t": {
+      "ar": "اضغط الزر على مفتاح الأمان الآن للسماح بتوقيع SSH. قد يومض المفتاح للإشارة إلى أنه في انتظارك.",
+      "bn": "SSH স্বাক্ষর অনুমোদন করতে এখনই আপনার সিকিউরিটি কী-এর বোতাম চাপুন। কী-টি অপেক্ষা করছে বোঝাতে জ্বলতে-নিভতে পারে।",
+      "de": "Drücke jetzt die Taste auf deinem Sicherheitsschlüssel, um die SSH-Signatur zu bestätigen. Der Schlüssel blinkt möglicherweise, während er wartet.",
+      "es": "Pulsa ahora el botón de tu llave de seguridad para autorizar la firma SSH. La llave puede parpadear para indicar que está esperando.",
+      "fr": "Appuyez maintenant sur le bouton de votre clé de sécurité pour autoriser la signature SSH. La clé peut clignoter pour indiquer qu’elle attend.",
+      "hi": "SSH हस्ताक्षर को अधिकृत करने के लिए अभी अपनी सुरक्षा कुंजी का बटन दबाएँ। प्रतीक्षा दर्शाने के लिए कुंजी झपक सकती है।",
+      "ja": "SSH 署名を許可するため、セキュリティ キーのボタンを今すぐ押してください。待機中であることを示して点滅する場合があります。",
+      "ko": "지금 보안 키의 버튼을 눌러 SSH 서명을 승인하세요. 키가 대기 중임을 알리기 위해 깜박일 수 있습니다.",
+      "pt": "Pressione agora o botão da sua chave de segurança para autorizar a assinatura SSH. A chave pode piscar para indicar que está aguardando.",
+      "ru": "Нажмите кнопку на аппаратном ключе, чтобы разрешить подпись SSH. Ключ может мигать, показывая ожидание.",
+      "sr": "Притисните сада дугме на свом безбедносном кључу да ауторизујете SSH потпис. Кључ може да трепти и тако вас обавести да чека.",
+      "zh": "现在按下安全密钥上的按钮以授权 SSH 签名。密钥可能会闪烁提示等待操作。"
+     }
+    },
+    {
+     "name": "connections_fido_touch_nfc_title",
+     "en": "Hold your security key",
+     "comment": "Common strings shared across all feature modules",
+     "args": [],
+     "t": {
+      "ar": "أمسك مفتاح الأمان",
+      "bn": "আপনার সিকিউরিটি কী ধরে রাখুন",
+      "de": "Sicherheitsschlüssel auflegen",
+      "es": "Mantén tu llave de seguridad",
+      "fr": "Maintenez votre clé de sécurité",
+      "hi": "अपनी सुरक्षा कुंजी पकड़े रखें",
+      "ja": "セキュリティ キーをかざしたままに",
+      "ko": "보안 키를 대고 있으세요",
+      "pt": "Segure sua chave de segurança",
+      "ru": "Держите аппаратный ключ",
+      "sr": "Држите свој безбедносни кључ",
+      "zh": "贴住您的安全密钥"
+     }
+    },
+    {
+     "name": "connections_fido_touch_nfc_body",
+     "en": "Keep the security key against the back of the device for two seconds while it signs. Moving it away early aborts the exchange and you\\'ll need to tap it again.",
+     "comment": "Common strings shared across all feature modules",
+     "args": [],
+     "t": {
+      "ar": "أبقِ مفتاح الأمان ملاصقًا لظهر الجهاز لمدة ثانيتين أثناء التوقيع. إبعاده مبكرًا يُلغي العملية وستحتاج إلى لمسه مرة أخرى.",
+      "bn": "স্বাক্ষর করার সময় সিকিউরিটি কী-টি ডিভাইসের পেছনে দুই সেকেন্ড ধরে রাখুন। আগেই সরিয়ে নিলে প্রক্রিয়া বাতিল হবে এবং আবার ট্যাপ করতে হবে।",
+      "de": "Halte den Sicherheitsschlüssel während des Signierens zwei Sekunden an die Rückseite des Geräts. Wird er zu früh entfernt, bricht der Vorgang ab und du musst ihn erneut auflegen.",
+      "es": "Mantén la llave de seguridad contra la parte trasera del dispositivo durante dos segundos mientras firma. Si la retiras antes, el intercambio se cancela y tendrás que volver a acercarla.",
+      "fr": "Maintenez la clé de sécurité contre l’arrière de l’appareil pendant deux secondes le temps de la signature. La retirer trop tôt interrompt l’échange et vous devrez la présenter à nouveau.",
+      "hi": "हस्ताक्षर होते समय सुरक्षा कुंजी को डिवाइस के पीछे दो सेकंड तक लगाए रखें। जल्दी हटाने पर प्रक्रिया रद्द हो जाती है और फिर से टैप करना होगा।",
+      "ja": "署名の間、セキュリティ キーを本体の背面に 2 秒間当てたままにしてください。早く離すと処理が中断され、もう一度かざす必要があります。",
+      "ko": "보안 키를 기기 뒤쪽에 2초간 대고 있어 서명이 완료되도록 하세요. 미리 떼면 교환이 중단되어 다시 태그해야 합니다.",
+      "pt": "Mantenha a chave de segurança encostada na parte de trás do dispositivo por dois segundos enquanto ela assina. Afastá-la cedo cancela a troca e você precisará aproximá-la de novo.",
+      "ru": "Держите аппаратный ключ у задней панели устройства две секунды, пока идёт подпись. Если убрать раньше, обмен прервётся и ключ придётся приложить снова.",
+      "sr": "Задржите свој безбедносни кључ уз позадину уређаја на две секунде док се потписује. Ако га одвојите прерано, прекинуће се размена и мораћете поново да га прислоните.",
+      "zh": "在签名期间将安全密钥贴在设备背面持续两秒。提前移开会中止交换，需要再次贴近。"
+     }
+    },
+    {
+     "name": "connections_fido_cancel_hint",
+     "en": "Cancel by disconnecting from the connections list.",
+     "comment": "Common strings shared across all feature modules",
+     "args": [],
+     "t": {
+      "ar": "للإلغاء، اقطع الاتصال من قائمة الاتصالات.",
+      "bn": "সংযোগ তালিকা থেকে সংযোগ বিচ্ছিন্ন করে বাতিল করুন।",
+      "de": "Zum Abbrechen in der Verbindungsliste die Verbindung trennen.",
+      "es": "Cancela desconectando desde la lista de conexiones.",
+      "fr": "Annulez en vous déconnectant depuis la liste des connexions.",
+      "hi": "कनेक्शन सूची से डिस्कनेक्ट करके रद्द करें।",
+      "ja": "接続一覧から切断してキャンセルします。",
+      "ko": "연결 목록에서 연결을 끊어 취소하세요.",
+      "pt": "Cancele desconectando na lista de conexões.",
+      "ru": "Отмените, отключившись в списке подключений.",
+      "sr": "Отказивање путем прекида везе на листи веза.",
+      "zh": "如需取消，请从连接列表断开此连接。"
+     }
+    },
+    {
+     "name": "connections_fido_key_label",
+     "en": "Key: %1$s",
+     "comment": "Common strings shared across all feature modules",
+     "args": [
+      "%1$s"
+     ],
+     "t": {
+      "ar": "المفتاح: %1$s",
+      "bn": "কী: %1$s",
+      "de": "Schlüssel: %1$s",
+      "es": "Clave: %1$s",
+      "fr": "Clé : %1$s",
+      "hi": "कुंजी: %1$s",
+      "ja": "キー: %1$s",
+      "ko": "키: %1$s",
+      "pt": "Chave: %1$s",
+      "ru": "Ключ: %1$s",
+      "sr": "Кључ: %1$s",
+      "zh": "密钥：%1$s"
+     }
+    },
+    {
+     "name": "connections_fido_wrong_title",
+     "en": "Wrong security key",
+     "comment": "Common strings shared across all feature modules",
+     "args": [],
+     "t": {
+      "ar": "مفتاح أمان خاطئ",
+      "bn": "ভুল সিকিউরিটি কী",
+      "de": "Falscher Sicherheitsschlüssel",
+      "es": "Llave de seguridad incorrecta",
+      "fr": "Mauvaise clé de sécurité",
+      "hi": "गलत सुरक्षा कुंजी",
+      "ja": "セキュリティキーが違います",
+      "ko": "잘못된 보안 키",
+      "pt": "Chave de segurança incorreta",
+      "ru": "Неверный ключ безопасности",
+      "sr": "Погрешан безбедносни кључ",
+      "zh": "安全密钥不正确"
+     }
+    },
+    {
+     "name": "connections_fido_wrong_body",
+     "en": "That key doesn\\'t hold the credential the server asked for. Present the requested key and touch it.",
+     "comment": "Common strings shared across all feature modules",
+     "args": [],
+     "t": {
+      "ar": "لا يحتوي هذا المفتاح على بيانات الاعتماد التي طلبها الخادم. قدّم المفتاح المطلوب والمسه.",
+      "bn": "এই কী-তে সার্ভারের চাওয়া শংসাপত্র নেই। অনুরোধ করা কী উপস্থাপন করে এটি টাচ করুন।",
+      "de": "Dieser Schlüssel enthält nicht die vom Server angeforderten Anmeldedaten. Halte den angeforderten Schlüssel bereit und berühre ihn.",
+      "es": "Esa llave no contiene la credencial que pidió el servidor. Presenta la llave solicitada y tócala.",
+      "fr": "Cette clé ne contient pas l\\'identifiant demandé par le serveur. Présentez la clé demandée et touchez-la.",
+      "hi": "इस कुंजी में वह क्रेडेंशियल नहीं है जो सर्वर ने माँगा। अनुरोधित कुंजी प्रस्तुत करें और उसे टच करें।",
+      "ja": "このキーにはサーバーが要求した認証情報がありません。要求されたキーを提示してタッチしてください。",
+      "ko": "이 키에는 서버가 요청한 자격 증명이 없습니다. 요청된 키를 제시하고 터치하세요.",
+      "pt": "Essa chave não contém a credencial solicitada pelo servidor. Apresente a chave solicitada e toque nela.",
+      "ru": "Этот ключ не содержит учётные данные, запрошенные сервером. Предъявите запрошенный ключ и коснитесь его.",
+      "sr": "Тај кључ не садржи приступне податке које је тражио сервер. Представите тражени кључ и додирните га.",
+      "zh": "该密钥未持有服务器请求的凭据。请出示所需的密钥并触摸它。"
+     }
     }
    ]
   },
@@ -14228,290 +14512,6 @@
       "ru": "Оставьте пустым, чтобы подключиться по ключу SSH",
       "sr": "Оставите празно да се веза успостави са SSH кључем",
       "zh": "留空以使用 SSH 密钥连接"
-     }
-    },
-    {
-     "name": "connections_fido_pin_title",
-     "en": "Security key PIN",
-     "comment": "FIDO2 security-key PIN prompt",
-     "args": [],
-     "t": {
-      "ar": "رمز PIN لمفتاح الأمان",
-      "bn": "সিকিউরিটি কী PIN",
-      "de": "PIN des Sicherheitsschlüssels",
-      "es": "PIN de la llave de seguridad",
-      "fr": "Code PIN de la clé de sécurité",
-      "hi": "सुरक्षा कुंजी PIN",
-      "ja": "セキュリティ キーの PIN",
-      "ko": "보안 키 PIN",
-      "pt": "PIN da chave de segurança",
-      "ru": "PIN аппаратного ключа",
-      "sr": "PIN безбедносног кључа",
-      "zh": "安全密钥 PIN 码"
-     }
-    },
-    {
-     "name": "connections_fido_pin_label",
-     "en": "PIN",
-     "comment": "FIDO2 security-key PIN prompt",
-     "args": [],
-     "t": {
-      "ar": "PIN",
-      "bn": "PIN",
-      "de": "PIN",
-      "es": "PIN",
-      "fr": "PIN",
-      "hi": "PIN",
-      "ja": "PIN",
-      "ko": "PIN",
-      "pt": "PIN",
-      "ru": "PIN",
-      "sr": "PIN",
-      "zh": "PIN 码"
-     }
-    },
-    {
-     "name": "connections_fido_pin_help",
-     "en": "This SSH key was registered with verify-required. Enter the PIN configured on your security key to continue.",
-     "comment": "FIDO2 security-key PIN prompt",
-     "args": [],
-     "t": {
-      "ar": "سُجِّل مفتاح SSH هذا بخيار verify-required. أدخل رمز PIN المُعدّ على مفتاح الأمان للمتابعة.",
-      "bn": "এই SSH কী verify-required সহ নিবন্ধিত। চালিয়ে যেতে আপনার সিকিউরিটি কী-তে সেট করা PIN দিন।",
-      "de": "Dieser SSH-Schlüssel wurde mit verify-required registriert. Gib zum Fortfahren die auf deinem Sicherheitsschlüssel eingerichtete PIN ein.",
-      "es": "Esta clave SSH se registró con verify-required. Introduce el PIN configurado en tu llave de seguridad para continuar.",
-      "fr": "Cette clé SSH a été enregistrée avec verify-required. Saisissez le code PIN configuré sur votre clé de sécurité pour continuer.",
-      "hi": "यह SSH कुंजी verify-required के साथ पंजीकृत है। जारी रखने के लिए अपनी सुरक्षा कुंजी पर सेट किया गया PIN दर्ज करें।",
-      "ja": "この SSH 鍵は verify-required で登録されています。続行するにはセキュリティ キーに設定した PIN を入力してください。",
-      "ko": "이 SSH 키는 verify-required로 등록되었습니다. 계속하려면 보안 키에 설정된 PIN을 입력하세요.",
-      "pt": "Esta chave SSH foi registrada com verify-required. Digite o PIN configurado na sua chave de segurança para continuar.",
-      "ru": "Этот ключ SSH зарегистрирован с verify-required. Введите PIN, заданный на аппаратном ключе, чтобы продолжить.",
-      "sr": "Овај SSH кључ је регистрован са verify-required. Да бисте наставили, унесите PIN који је подешен на вашем безбедносном кључу.",
-      "zh": "此 SSH 密钥需要验证。请输入安全密钥上设置的 PIN 码以继续。"
-     }
-    },
-    {
-     "name": "connections_fido_pin_wrong",
-     "en": "Wrong PIN. %1$d attempts remaining before the key locks.",
-     "comment": "FIDO2 security-key PIN prompt",
-     "args": [
-      "%1$d"
-     ],
-     "t": {
-      "ar": "رمز PIN خاطئ. تبقّت %1$d محاولات قبل قفل المفتاح.",
-      "bn": "ভুল PIN। কী লক হওয়ার আগে %1$d বার চেষ্টা বাকি।",
-      "de": "Falsche PIN. Noch %1$d Versuche, bevor der Schlüssel gesperrt wird.",
-      "es": "PIN incorrecto. Quedan %1$d intentos antes de que la llave se bloquee.",
-      "fr": "Code PIN incorrect. Il reste %1$d tentatives avant le blocage de la clé.",
-      "hi": "गलत PIN। कुंजी लॉक होने से पहले %1$d प्रयास शेष।",
-      "ja": "PIN が違います。鍵がロックされるまで残り %1$d 回です。",
-      "ko": "잘못된 PIN입니다. 키가 잠기기 전 %1$d회 시도 남음.",
-      "pt": "PIN incorreto. Restam %1$d tentativas antes de a chave bloquear.",
-      "ru": "Неверный PIN. Осталось попыток до блокировки ключа: %1$d.",
-      "sr": "Неисправан PIN. Преостаје још %1$d покушаја пре него што се кључ закључа.",
-      "zh": "PIN 码错误。安全密钥锁定前还有 %1$d 次尝试机会。"
-     }
-    },
-    {
-     "name": "connections_fido_waiting_title",
-     "en": "Security key required",
-     "comment": "FIDO2 security-key PIN prompt",
-     "args": [],
-     "t": {
-      "ar": "مطلوب مفتاح أمان",
-      "bn": "সিকিউরিটি কী প্রয়োজন",
-      "de": "Sicherheitsschlüssel erforderlich",
-      "es": "Se requiere llave de seguridad",
-      "fr": "Clé de sécurité requise",
-      "hi": "सुरक्षा कुंजी आवश्यक",
-      "ja": "セキュリティ キーが必要です",
-      "ko": "보안 키 대기 중",
-      "pt": "Chave de segurança necessária",
-      "ru": "Требуется аппаратный ключ",
-      "sr": "Потребан је безбедносни кључ",
-      "zh": "需要安全密钥"
-     }
-    },
-    {
-     "name": "connections_fido_waiting_body",
-     "en": "Plug in your security key over USB, or tap it on the back of the device for NFC. Haven will continue automatically once it is detected.",
-     "comment": "FIDO2 security-key PIN prompt",
-     "args": [],
-     "t": {
-      "ar": "وصّل مفتاح الأمان عبر USB، أو المسه بظهر الجهاز لاستخدام NFC. سيتابع Haven تلقائيًا بمجرد اكتشافه.",
-      "bn": "USB দিয়ে আপনার সিকিউরিটি কী লাগান, বা NFC-এর জন্য ডিভাইসের পেছনে ট্যাপ করুন। শনাক্ত হলে Haven স্বয়ংক্রিয়ভাবে এগিয়ে যাবে।",
-      "de": "Schließe deinen Sicherheitsschlüssel per USB an oder halte ihn für NFC an die Rückseite des Geräts. Haven fährt automatisch fort, sobald er erkannt wird.",
-      "es": "Conecta tu llave de seguridad por USB o acércala a la parte trasera del dispositivo para NFC. Haven continuará automáticamente en cuanto la detecte.",
-      "fr": "Branchez votre clé de sécurité en USB, ou présentez-la à l’arrière de l’appareil pour le NFC. Haven poursuivra automatiquement dès qu’elle sera détectée.",
-      "hi": "अपनी सुरक्षा कुंजी को USB से लगाएँ, या NFC के लिए डिवाइस के पीछे टैप करें। पहचान होते ही Haven अपने आप आगे बढ़ेगा।",
-      "ja": "セキュリティ キーを USB で接続するか、NFC の場合は本体の背面にかざしてください。検出されると Haven は自動的に続行します。",
-      "ko": "보안 키를 USB로 연결하거나, NFC라면 기기 뒷면에 태그하세요. 감지되면 Haven이 자동으로 계속 진행합니다.",
-      "pt": "Conecte sua chave de segurança via USB ou aproxime-a da parte de trás do dispositivo para NFC. O Haven continuará automaticamente assim que a detectar.",
-      "ru": "Подключите аппаратный ключ по USB или приложите его к задней панели для NFC. Haven продолжит автоматически, как только обнаружит ключ.",
-      "sr": "Уметните свој безбедносни кључ у USB, или га тапните на позадину уређаја за NFC. Када се детектује, Haven ће аутоматски да настави даље.",
-      "zh": "通过 USB 插入安全密钥，或将其贴在设备背面以使用 NFC。检测到密钥后 Haven 会自动继续。"
-     }
-    },
-    {
-     "name": "connections_fido_touch_usb_title",
-     "en": "Touch your security key",
-     "comment": "FIDO2 security-key PIN prompt",
-     "args": [],
-     "t": {
-      "ar": "المس مفتاح الأمان",
-      "bn": "আপনার সিকিউরিটি কী স্পর্শ করুন",
-      "de": "Sicherheitsschlüssel berühren",
-      "es": "Toca tu llave de seguridad",
-      "fr": "Touchez votre clé de sécurité",
-      "hi": "अपनी सुरक्षा कुंजी को स्पर्श करें",
-      "ja": "セキュリティ キーにタッチ",
-      "ko": "보안 키를 터치하세요",
-      "pt": "Toque na sua chave de segurança",
-      "ru": "Коснитесь аппаратного ключа",
-      "sr": "Додирните свој безбедносни кључ",
-      "zh": "触摸您的安全密钥"
-     }
-    },
-    {
-     "name": "connections_fido_touch_usb_body",
-     "en": "Press the button on your security key now to authorise the SSH signature. The key may blink to indicate it is waiting.",
-     "comment": "FIDO2 security-key PIN prompt",
-     "args": [],
-     "t": {
-      "ar": "اضغط الزر على مفتاح الأمان الآن للسماح بتوقيع SSH. قد يومض المفتاح للإشارة إلى أنه في انتظارك.",
-      "bn": "SSH স্বাক্ষর অনুমোদন করতে এখনই আপনার সিকিউরিটি কী-এর বোতাম চাপুন। কী-টি অপেক্ষা করছে বোঝাতে জ্বলতে-নিভতে পারে।",
-      "de": "Drücke jetzt die Taste auf deinem Sicherheitsschlüssel, um die SSH-Signatur zu bestätigen. Der Schlüssel blinkt möglicherweise, während er wartet.",
-      "es": "Pulsa ahora el botón de tu llave de seguridad para autorizar la firma SSH. La llave puede parpadear para indicar que está esperando.",
-      "fr": "Appuyez maintenant sur le bouton de votre clé de sécurité pour autoriser la signature SSH. La clé peut clignoter pour indiquer qu’elle attend.",
-      "hi": "SSH हस्ताक्षर को अधिकृत करने के लिए अभी अपनी सुरक्षा कुंजी का बटन दबाएँ। प्रतीक्षा दर्शाने के लिए कुंजी झपक सकती है।",
-      "ja": "SSH 署名を許可するため、セキュリティ キーのボタンを今すぐ押してください。待機中であることを示して点滅する場合があります。",
-      "ko": "지금 보안 키의 버튼을 눌러 SSH 서명을 승인하세요. 키가 대기 중임을 알리기 위해 깜박일 수 있습니다.",
-      "pt": "Pressione agora o botão da sua chave de segurança para autorizar a assinatura SSH. A chave pode piscar para indicar que está aguardando.",
-      "ru": "Нажмите кнопку на аппаратном ключе, чтобы разрешить подпись SSH. Ключ может мигать, показывая ожидание.",
-      "sr": "Притисните сада дугме на свом безбедносном кључу да ауторизујете SSH потпис. Кључ може да трепти и тако вас обавести да чека.",
-      "zh": "现在按下安全密钥上的按钮以授权 SSH 签名。密钥可能会闪烁提示等待操作。"
-     }
-    },
-    {
-     "name": "connections_fido_touch_nfc_title",
-     "en": "Hold your security key",
-     "comment": "FIDO2 security-key PIN prompt",
-     "args": [],
-     "t": {
-      "ar": "أمسك مفتاح الأمان",
-      "bn": "আপনার সিকিউরিটি কী ধরে রাখুন",
-      "de": "Sicherheitsschlüssel auflegen",
-      "es": "Mantén tu llave de seguridad",
-      "fr": "Maintenez votre clé de sécurité",
-      "hi": "अपनी सुरक्षा कुंजी पकड़े रखें",
-      "ja": "セキュリティ キーをかざしたままに",
-      "ko": "보안 키를 대고 있으세요",
-      "pt": "Segure sua chave de segurança",
-      "ru": "Держите аппаратный ключ",
-      "sr": "Држите свој безбедносни кључ",
-      "zh": "贴住您的安全密钥"
-     }
-    },
-    {
-     "name": "connections_fido_touch_nfc_body",
-     "en": "Keep the security key against the back of the device for two seconds while it signs. Moving it away early aborts the exchange and you\\'ll need to tap it again.",
-     "comment": "FIDO2 security-key PIN prompt",
-     "args": [],
-     "t": {
-      "ar": "أبقِ مفتاح الأمان ملاصقًا لظهر الجهاز لمدة ثانيتين أثناء التوقيع. إبعاده مبكرًا يُلغي العملية وستحتاج إلى لمسه مرة أخرى.",
-      "bn": "স্বাক্ষর করার সময় সিকিউরিটি কী-টি ডিভাইসের পেছনে দুই সেকেন্ড ধরে রাখুন। আগেই সরিয়ে নিলে প্রক্রিয়া বাতিল হবে এবং আবার ট্যাপ করতে হবে।",
-      "de": "Halte den Sicherheitsschlüssel während des Signierens zwei Sekunden an die Rückseite des Geräts. Wird er zu früh entfernt, bricht der Vorgang ab und du musst ihn erneut auflegen.",
-      "es": "Mantén la llave de seguridad contra la parte trasera del dispositivo durante dos segundos mientras firma. Si la retiras antes, el intercambio se cancela y tendrás que volver a acercarla.",
-      "fr": "Maintenez la clé de sécurité contre l’arrière de l’appareil pendant deux secondes le temps de la signature. La retirer trop tôt interrompt l’échange et vous devrez la présenter à nouveau.",
-      "hi": "हस्ताक्षर होते समय सुरक्षा कुंजी को डिवाइस के पीछे दो सेकंड तक लगाए रखें। जल्दी हटाने पर प्रक्रिया रद्द हो जाती है और फिर से टैप करना होगा।",
-      "ja": "署名の間、セキュリティ キーを本体の背面に 2 秒間当てたままにしてください。早く離すと処理が中断され、もう一度かざす必要があります。",
-      "ko": "보안 키를 기기 뒤쪽에 2초간 대고 있어 서명이 완료되도록 하세요. 미리 떼면 교환이 중단되어 다시 태그해야 합니다.",
-      "pt": "Mantenha a chave de segurança encostada na parte de trás do dispositivo por dois segundos enquanto ela assina. Afastá-la cedo cancela a troca e você precisará aproximá-la de novo.",
-      "ru": "Держите аппаратный ключ у задней панели устройства две секунды, пока идёт подпись. Если убрать раньше, обмен прервётся и ключ придётся приложить снова.",
-      "sr": "Задржите свој безбедносни кључ уз позадину уређаја на две секунде док се потписује. Ако га одвојите прерано, прекинуће се размена и мораћете поново да га прислоните.",
-      "zh": "在签名期间将安全密钥贴在设备背面持续两秒。提前移开会中止交换，需要再次贴近。"
-     }
-    },
-    {
-     "name": "connections_fido_cancel_hint",
-     "en": "Cancel by disconnecting from the connections list.",
-     "comment": "FIDO2 security-key PIN prompt",
-     "args": [],
-     "t": {
-      "ar": "للإلغاء، اقطع الاتصال من قائمة الاتصالات.",
-      "bn": "সংযোগ তালিকা থেকে সংযোগ বিচ্ছিন্ন করে বাতিল করুন।",
-      "de": "Zum Abbrechen in der Verbindungsliste die Verbindung trennen.",
-      "es": "Cancela desconectando desde la lista de conexiones.",
-      "fr": "Annulez en vous déconnectant depuis la liste des connexions.",
-      "hi": "कनेक्शन सूची से डिस्कनेक्ट करके रद्द करें।",
-      "ja": "接続一覧から切断してキャンセルします。",
-      "ko": "연결 목록에서 연결을 끊어 취소하세요.",
-      "pt": "Cancele desconectando na lista de conexões.",
-      "ru": "Отмените, отключившись в списке подключений.",
-      "sr": "Отказивање путем прекида везе на листи веза.",
-      "zh": "如需取消，请从连接列表断开此连接。"
-     }
-    },
-    {
-     "name": "connections_fido_key_label",
-     "en": "Key: %1$s",
-     "comment": "FIDO2 security-key PIN prompt",
-     "args": [
-      "%1$s"
-     ],
-     "t": {
-      "ar": "المفتاح: %1$s",
-      "bn": "কী: %1$s",
-      "de": "Schlüssel: %1$s",
-      "es": "Clave: %1$s",
-      "fr": "Clé : %1$s",
-      "hi": "कुंजी: %1$s",
-      "ja": "キー: %1$s",
-      "ko": "키: %1$s",
-      "pt": "Chave: %1$s",
-      "ru": "Ключ: %1$s",
-      "sr": "Кључ: %1$s",
-      "zh": "密钥：%1$s"
-     }
-    },
-    {
-     "name": "connections_fido_wrong_title",
-     "en": "Wrong security key",
-     "comment": "FIDO2 security-key PIN prompt",
-     "args": [],
-     "t": {
-      "ar": "مفتاح أمان خاطئ",
-      "bn": "ভুল সিকিউরিটি কী",
-      "de": "Falscher Sicherheitsschlüssel",
-      "es": "Llave de seguridad incorrecta",
-      "fr": "Mauvaise clé de sécurité",
-      "hi": "गलत सुरक्षा कुंजी",
-      "ja": "セキュリティキーが違います",
-      "ko": "잘못된 보안 키",
-      "pt": "Chave de segurança incorreta",
-      "ru": "Неверный ключ безопасности",
-      "sr": "Погрешан безбедносни кључ",
-      "zh": "安全密钥不正确"
-     }
-    },
-    {
-     "name": "connections_fido_wrong_body",
-     "en": "That key doesn\\'t hold the credential the server asked for. Present the requested key and touch it.",
-     "comment": "FIDO2 security-key PIN prompt",
-     "args": [],
-     "t": {
-      "ar": "لا يحتوي هذا المفتاح على بيانات الاعتماد التي طلبها الخادم. قدّم المفتاح المطلوب والمسه.",
-      "bn": "এই কী-তে সার্ভারের চাওয়া শংসাপত্র নেই। অনুরোধ করা কী উপস্থাপন করে এটি টাচ করুন।",
-      "de": "Dieser Schlüssel enthält nicht die vom Server angeforderten Anmeldedaten. Halte den angeforderten Schlüssel bereit und berühre ihn.",
-      "es": "Esa llave no contiene la credencial que pidió el servidor. Presenta la llave solicitada y tócala.",
-      "fr": "Cette clé ne contient pas l\\'identifiant demandé par le serveur. Présentez la clé demandée et touchez-la.",
-      "hi": "इस कुंजी में वह क्रेडेंशियल नहीं है जो सर्वर ने माँगा। अनुरोधित कुंजी प्रस्तुत करें और उसे टच करें।",
-      "ja": "このキーにはサーバーが要求した認証情報がありません。要求されたキーを提示してタッチしてください。",
-      "ko": "이 키에는 서버가 요청한 자격 증명이 없습니다. 요청된 키를 제시하고 터치하세요.",
-      "pt": "Essa chave não contém a credencial solicitada pelo servidor. Apresente a chave solicitada e toque nela.",
-      "ru": "Этот ключ не содержит учётные данные, запрошенные сервером. Предъявите запрошенный ключ и коснитесь его.",
-      "sr": "Тај кључ не садржи приступне податке које је тражио сервер. Представите тражени кључ и додирните га.",
-      "zh": "该密钥未持有服务器请求的凭据。请出示所需的密钥并触摸它。"
      }
     },
     {

@@ -5,7 +5,7 @@ import android.util.Log
 import dagger.hilt.android.qualifiers.ApplicationContext
 import sh.haven.core.data.db.SshKeyDao
 import sh.haven.core.data.db.entities.SshKey
-import sh.haven.core.fido.SkKeyData
+import sh.haven.core.security.SkKeyData
 import sh.haven.core.security.KeyEncryption
 import sh.haven.core.security.KeyKind
 import sh.haven.core.security.KeystoreEntry

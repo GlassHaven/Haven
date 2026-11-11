@@ -35,22 +35,22 @@ import javax.inject.Inject
 @HiltAndroidApp
 class HavenApp : Application(), Configuration.Provider {
 
-    @Inject lateinit var mcpServer: sh.haven.app.agent.McpServer
-    @Inject lateinit var mcpTunnelManager: sh.haven.app.agent.McpTunnelManager
-    @Inject lateinit var mcpNearCarrier: sh.haven.app.agent.McpNearCarrier
+    @Inject lateinit var mcpServer: dagger.Lazy<sh.haven.app.agent.McpServer>
+    @Inject lateinit var mcpTunnelManager: dagger.Lazy<sh.haven.app.agent.McpTunnelManager>
+    @Inject lateinit var mcpNearCarrier: dagger.Lazy<sh.haven.app.agent.McpNearCarrier>
     @Inject lateinit var preferencesRepository: UserPreferencesRepository
     @Inject lateinit var agentConsentManager: sh.haven.core.data.agent.AgentConsentManager
     @Inject lateinit var launcherShortcutManager: sh.haven.app.launcher.LauncherShortcutManager
     @Inject lateinit var workerFactory: HiltWorkerFactory
-    @Inject lateinit var prootManager: sh.haven.core.local.ProotManager
-    @Inject lateinit var guestServiceManager: sh.haven.core.local.GuestServiceManager
-    @Inject lateinit var sessionManagerRegistry: sh.haven.core.ssh.SessionManagerRegistry
-    @Inject lateinit var mailWatchManager: sh.haven.app.agent.mailrules.MailWatchManager
-    @Inject lateinit var backupAutoSyncScheduler: sh.haven.app.backup.BackupAutoSyncScheduler
-    @Inject lateinit var backupAutoPullScheduler: sh.haven.app.backup.BackupAutoPullScheduler
+    @Inject lateinit var prootManager: dagger.Lazy<sh.haven.core.local.ProotManager>
+    @Inject lateinit var guestServiceManager: dagger.Lazy<sh.haven.core.local.GuestServiceManager>
+    @Inject lateinit var sessionManagerRegistry: dagger.Lazy<sh.haven.core.ssh.SessionManagerRegistry>
+    @Inject lateinit var mailWatchManager: dagger.Lazy<sh.haven.app.agent.mailrules.MailWatchManager>
+    @Inject lateinit var backupAutoSyncScheduler: dagger.Lazy<sh.haven.app.backup.BackupAutoSyncScheduler>
+    @Inject lateinit var backupAutoPullScheduler: dagger.Lazy<sh.haven.app.backup.BackupAutoPullScheduler>
     @Inject lateinit var sshTerminalEmulatorOwner: sh.haven.feature.terminal.SshTerminalEmulatorOwner
-    @Inject lateinit var updateNotifier: sh.haven.app.update.UpdateNotifier
-    @Inject lateinit var usbMountCorrelator: sh.haven.app.usb.UsbMountCorrelator
+    @Inject lateinit var updateNotifier: dagger.Lazy<sh.haven.app.update.UpdateNotifier>
+    @Inject lateinit var usbMountCorrelator: dagger.Lazy<sh.haven.app.usb.UsbMountCorrelator>
 
     private val appScope = CoroutineScope(SupervisorJob() + Dispatchers.IO)
 
@@ -138,26 +138,29 @@ class HavenApp : Application(), Configuration.Provider {
         // /root/.config/haven/mcp-servers.json, so any MCP client the
         // user has installed in PRoot can pick it up with a one-liner.
         // When the endpoint is disabled the file is removed again.
+        var mcpWasStarted = false
         preferencesRepository.mcpAgentEndpointEnabled
             .distinctUntilChanged()
             .onEach { enabled ->
                 if (enabled) {
-                    mcpServer.start()
+                    val server = mcpServer.get()
+                    server.start()
+                    mcpWasStarted = true
                     advertiseEndpointToProot()
                     // Relaunch supervised guest MCP servers (e.g. a KiCad MCP)
                     // for the active distro before the tunnel comes up, so
                     // establish() snapshots their ports into the forward set.
-                    guestServiceManager.startAutostart()
+                    guestServiceManager.get().startAutostart()
                     // Bring up the dedicated, headless reverse tunnel that
                     // keeps the loopback endpoint reachable off-device as
                     // the network roams. No-op when no endpoint profile is
                     // configured (on-device / adb-forward only). Uses the
                     // live bound port so an 8731+ fallback follows.
-                    mcpTunnelManager.start(mcpServer.port)
+                    mcpTunnelManager.get().start(server.port)
                     // Watch for the same endpoint profile's *interactive*
                     // session and ride it for MCP instead of a separate
                     // authenticated connection — see McpNearCarrier's kdoc.
-                    mcpNearCarrier.start(mcpServer.port, mcpServer.tunneledPort)
+                    mcpNearCarrier.get().start(server.port, server.tunneledPort)
                     // Bind the MCP HTTP listener to the foreground
                     // service's lifecycle. Without this, the OS reclaims
                     // the app process within seconds of backgrounding
@@ -172,17 +175,18 @@ class HavenApp : Application(), Configuration.Provider {
                     // ForegroundKeepAlive entry (so an SSH disconnect
                     // doesn't tear down the FGS while MCP is still on).
                     startSessionServiceIfPossible()
-                } else {
-                    mcpTunnelManager.stop()
-                    mcpNearCarrier.stop()
-                    mcpServer.stop()
-                    guestServiceManager.stopAll()
+                } else if (mcpWasStarted) {
+                    mcpWasStarted = false
+                    mcpTunnelManager.get().stop()
+                    mcpNearCarrier.get().stop()
+                    mcpServer.get().stop()
+                    guestServiceManager.get().stopAll()
                     removeEndpointFromProot()
                     // Stop the FGS only if nothing else is keeping it
                     // alive. hasActiveSessions now includes the MCP
                     // keep-alive, which is `false` post-stop, so this
                     // boils down to "any other transport active?".
-                    if (!sessionManagerRegistry.hasActiveSessions()) {
+                    if (!sessionManagerRegistry.get().hasActiveSessions()) {
                         stopService(Intent(this, sh.haven.core.ssh.SshConnectionService::class.java))
                     }
                 }
@@ -197,8 +201,8 @@ class HavenApp : Application(), Configuration.Provider {
             .drop(1)
             .distinctUntilChanged()
             .onEach {
-                if (mcpServer.isRunning) {
-                    mcpTunnelManager.start(mcpServer.port)
+                if (mcpWasStarted && mcpServer.get().isRunning) {
+                    mcpTunnelManager.get().start(mcpServer.get().port)
                 }
             }
             .launchIn(appScope)
@@ -209,7 +213,7 @@ class HavenApp : Application(), Configuration.Provider {
         preferencesRepository.mcpWireguardEnabled
             .drop(1)
             .distinctUntilChanged()
-            .onEach { mcpServer.setWireguardEnabled(it) }
+            .onEach { if (mcpWasStarted) mcpServer.get().setWireguardEnabled(it) }
             .launchIn(appScope)
 
         // Bind/unbind the MCP Wi-Fi/LAN listener when the user toggles it
@@ -218,7 +222,7 @@ class HavenApp : Application(), Configuration.Provider {
         preferencesRepository.mcpLanBindEnabled
             .drop(1)
             .distinctUntilChanged()
-            .onEach { mcpServer.setLanBindEnabled(it) }
+            .onEach { if (mcpWasStarted) mcpServer.get().setLanBindEnabled(it) }
             .launchIn(appScope)
 
         // Toggle loopback auto-trust live. drop(1): start() reads the
@@ -226,7 +230,7 @@ class HavenApp : Application(), Configuration.Provider {
         preferencesRepository.trustLoopbackMcpClients
             .drop(1)
             .distinctUntilChanged()
-            .onEach { mcpServer.setTrustLoopbackEnabled(it) }
+            .onEach { if (mcpWasStarted) mcpServer.get().setTrustLoopbackEnabled(it) }
             .launchIn(appScope)
 
         // Re-home the MCP reverse tunnel when the set of RUNNING guest services
@@ -234,17 +238,18 @@ class HavenApp : Application(), Configuration.Provider {
         // was already up), so its loopback port is multiplexed onto -R. drop(1)
         // skips the initial replay — startup autostart is handled in the enable
         // branch before the tunnel starts. No-op when the server isn't running.
-        guestServiceManager.services
-            .map { svcs ->
-                svcs.values
-                    .filter { it.state == sh.haven.core.local.GuestServiceManager.ServiceState.RUNNING }
-                    .map { it.spec.port }
-                    .toSortedSet()
-            }
-            .distinctUntilChanged()
-            .drop(1)
-            .onEach { if (mcpServer.isRunning) mcpTunnelManager.refreshForwards() }
-            .launchIn(appScope)
+        appScope.launch {
+            guestServiceManager.get().services
+                .map { svcs ->
+                    svcs.values
+                        .filter { it.state == sh.haven.core.local.GuestServiceManager.ServiceState.RUNNING }
+                        .map { it.spec.port }
+                        .toSortedSet()
+                }
+                .distinctUntilChanged()
+                .drop(1)
+                .collect { if (mcpWasStarted && mcpServer.get().isRunning) mcpTunnelManager.get().refreshForwards() }
+        }
 
         // Keep the consent manager's persistent auto-approve set in sync
         // with the user's Settings choice. AgentConsentManager holds no
@@ -272,19 +277,14 @@ class HavenApp : Application(), Configuration.Provider {
         // configured — the worker enumerates SshKeys and exits early.
         CertRenewalWorker.schedule(this)
 
-        // Start the Mail-Rules watch. It observes the master switch and does nothing
-        // until the user enables inbound-email automation (off by default).
-        mailWatchManager.start()
-
-        // Auto-push backup watch (#359) — same pattern: inert until the user
-        // enables auto-sync in Settings → Backup → Sync to a remote.
-        backupAutoSyncScheduler.start(appScope)
-        backupAutoPullScheduler.start(appScope)
-
-        // Opt-in update check (#578). Same pattern again: returns without a
-        // network request unless the switch is on, the copy was signed with the
-        // GitHub-release key, and a day has passed since the last look.
-        updateNotifier.start(appScope)
+        // Start opt-in background watches off the main thread so their
+        // @Singleton graphs do not instantiate during super.onCreate().
+        appScope.launch {
+            mailWatchManager.get().start()
+            backupAutoSyncScheduler.get().start(appScope)
+            backupAutoPullScheduler.get().start(appScope)
+            updateNotifier.get().start(appScope)
+        }
 
         // Extend the shell-prompt terminator set used for command-on-attach
         // detection with the user's custom prompt characters (#280). Replays
@@ -327,7 +327,7 @@ class HavenApp : Application(), Configuration.Provider {
         // #603: seed the USB mount correlator's "preexisting volumes" set so
         // the weak (no-attach-baseline) match can never claim a volume that
         // was already mounted before this process started (e.g. a microSD).
-        appScope.launch { usbMountCorrelator.onAppStarted() }
+        appScope.launch { usbMountCorrelator.get().onAppStarted() }
     }
 
     private val usbDriveAttachReceiver = object : android.content.BroadcastReceiver() {
@@ -353,7 +353,7 @@ class HavenApp : Application(), Configuration.Provider {
                     // correlation BEFORE vold's mount can land (it follows the
                     // attach by ~0.5–2s). Must stay before the notification so
                     // a slow snapshot never runs after the mount appears.
-                    usbMountCorrelator.onDeviceAttached(device.deviceName)
+                    usbMountCorrelator.get().onDeviceAttached(device.deviceName)
                     postUsbDriveDetectedNotification(device)
                 }
             }
@@ -550,14 +550,14 @@ class HavenApp : Application(), Configuration.Provider {
      */
     private val prootMcpConfigFile: File
         get() = File(
-            prootManager.activeRootfsDir,
+            prootManager.get().activeRootfsDir,
             "root/.config/haven/mcp-servers.json",
         )
 
     private fun advertiseEndpointToProot() {
-        val rootfsDir = prootManager.activeRootfsDir
+        val rootfsDir = prootManager.get().activeRootfsDir
         if (!rootfsDir.exists()) return
-        val json = mcpServer.mcpServerConfigJson ?: return
+        val json = mcpServer.get().mcpServerConfigJson ?: return
         try {
             val target = prootMcpConfigFile
             target.parentFile?.mkdirs()

@@ -3,11 +3,16 @@ package sh.haven.core.local
 import android.content.Context
 import android.util.Log
 import dagger.hilt.android.qualifiers.ApplicationContext
+import kotlinx.coroutines.CoroutineScope
+import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.Job
+import kotlinx.coroutines.SupervisorJob
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.flow.update
+import kotlinx.coroutines.launch
 import kotlinx.coroutines.runBlocking
 import sh.haven.core.data.preferences.UserPreferencesRepository
 import sh.haven.core.local.proot.LaunchSpec
@@ -82,8 +87,11 @@ class DesktopManager @Inject constructor(
         context.getSharedPreferences("desktop-port-prefs", Context.MODE_PRIVATE)
     }
 
-    init {
-        // Kill orphaned Xvnc processes from previous app instances
+    private val initScope = CoroutineScope(SupervisorJob() + Dispatchers.IO)
+
+    // Kill orphaned Xvnc processes from previous app instances off the main thread
+    // so Hilt singleton construction does not fork/wait on /proc scans.
+    internal val orphanReapJob: Job = initScope.launch {
         killAllOrphanedXvnc()
     }
 
@@ -448,6 +456,7 @@ class DesktopManager @Inject constructor(
             if (WaylandBridge.nativeIsRunning()) {
                 WaylandBridge.nativeStop()
             }
+            WaylandBridge.refreshCompositorState()
             WaylandBridge.nativeStopVirglServer()
             WaylandSocketHelper.tryRemoveSymlink()
         }
@@ -1853,6 +1862,7 @@ class DesktopManager @Inject constructor(
                 xkbConfigRoot = xkbDir.absolutePath,
                 fontconfigFile = fontconfFile.absolutePath,
             )
+            bridge.refreshCompositorState()
 
             // Wait for socket to appear
             val socket = File(xdgDir, "wayland-0")

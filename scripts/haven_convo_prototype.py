@@ -49,7 +49,7 @@ await_turn / read_last_turn:
      `pilz`). Surface chosenSessionName + an isAgentRepl flag.
 
 Run (with the Haven MCP endpoint reverse-tunnelled to 127.0.0.1:8730):
-    python3 docs/haven_convo_prototype.py      # self-test: sessions, a near
+    python3 scripts/haven_convo_prototype.py   # self-test: sessions, a near
                                                # read, and a shell round-trip
 """
 from __future__ import annotations

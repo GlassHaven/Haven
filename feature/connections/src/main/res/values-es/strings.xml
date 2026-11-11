@@ -200,8 +200,6 @@
     <string name="connections_password_title">Conectar a %1$s</string>
     <string name="connections_password_button">Connect</string>
 
-    <string name="connections_fido_pin_title">PIN de la llave de seguridad</string>
-    <string name="connections_fido_pin_label">PIN</string>
 
     <string name="connections_ki_submit">Submit</string>
 
@@ -236,15 +234,6 @@
     <string name="connections_password_remember_password">Remember password</string>
     <string name="connections_password_remember_passphrase">Recordar la frase de contraseña</string>
     <string name="connections_password_leave_empty_for_key">Déjalo vacío para conectar con clave SSH</string>
-    <string name="connections_fido_pin_help">Esta clave SSH se registró con verify-required. Introduce el PIN configurado en tu llave de seguridad para continuar.</string>
-    <string name="connections_fido_pin_wrong">PIN incorrecto. Quedan %1$d intentos antes de que la llave se bloquee.</string>
-    <string name="connections_fido_waiting_title">Se requiere llave de seguridad</string>
-    <string name="connections_fido_waiting_body">Conecta tu llave de seguridad por USB o acércala a la parte trasera del dispositivo para NFC. Haven continuará automáticamente en cuanto la detecte.</string>
-    <string name="connections_fido_touch_usb_title">Toca tu llave de seguridad</string>
-    <string name="connections_fido_touch_usb_body">Pulsa ahora el botón de tu llave de seguridad para autorizar la firma SSH. La llave puede parpadear para indicar que está esperando.</string>
-    <string name="connections_fido_touch_nfc_title">Mantén tu llave de seguridad</string>
-    <string name="connections_fido_touch_nfc_body">Mantén la llave de seguridad contra la parte trasera del dispositivo durante dos segundos mientras firma. Si la retiras antes, el intercambio se cancela y tendrás que volver a acercarla.</string>
-    <string name="connections_fido_cancel_hint">Cancela desconectando desde la lista de conexiones.</string>
     <string name="connections_ki_response_fallback">Response</string>
     <string name="connections_ki_title_additional">Se requiere autenticación adicional</string>
     <string name="connections_ki_title_server">Server prompt</string>
@@ -528,9 +517,6 @@
     <string name="connections_usb_forward_unattached">%1$s (sin acoplar)</string>
     <string name="connections_deploy_field_password_optional">Contraseña (opcional)</string>
     <string name="connections_deploy_password_hint">Déjalo en blanco para desplegar con la clave guardada de este perfil. Solo se necesita una contraseña si el servidor autentica por contraseña (o para desbloquear la frase de una clave / un host de salto).</string>
-    <string name="connections_fido_key_label">Clave: %1$s</string>
-    <string name="connections_fido_wrong_title">Llave de seguridad incorrecta</string>
-    <string name="connections_fido_wrong_body">Esa llave no contiene la credencial que pidió el servidor. Presenta la llave solicitada y tócala.</string>
     <string name="connections_auth_key_picker">Clave: %1$s ▾</string>
     <string name="connections_auth_key_only">✓ Usar solo esta clave</string>
     <string name="connections_mcp_active">El agente está operando en esta conexión — toca para desactivar MCP en ella</string>

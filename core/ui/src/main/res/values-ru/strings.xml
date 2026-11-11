@@ -44,4 +44,18 @@
     <string name="wayland_cd_desktop_resolution">Разрешение рабочего стола</string>
     <string name="external_display_cd_on">Вывод на внешний экран включён (нажмите для показа на экране устройства)</string>
     <string name="external_display_cd_off">Вывод на внешний экран выключен (нажмите для вывода на внешний экран)</string>
+    <string name="connections_fido_pin_title">PIN аппаратного ключа</string>
+    <string name="connections_fido_pin_label">PIN</string>
+    <string name="connections_fido_pin_help">Этот ключ SSH зарегистрирован с verify-required. Введите PIN, заданный на аппаратном ключе, чтобы продолжить.</string>
+    <string name="connections_fido_pin_wrong">Неверный PIN. Осталось попыток до блокировки ключа: %1$d.</string>
+    <string name="connections_fido_waiting_title">Требуется аппаратный ключ</string>
+    <string name="connections_fido_waiting_body">Подключите аппаратный ключ по USB или приложите его к задней панели для NFC. Haven продолжит автоматически, как только обнаружит ключ.</string>
+    <string name="connections_fido_touch_usb_title">Коснитесь аппаратного ключа</string>
+    <string name="connections_fido_touch_usb_body">Нажмите кнопку на аппаратном ключе, чтобы разрешить подпись SSH. Ключ может мигать, показывая ожидание.</string>
+    <string name="connections_fido_touch_nfc_title">Держите аппаратный ключ</string>
+    <string name="connections_fido_touch_nfc_body">Держите аппаратный ключ у задней панели устройства две секунды, пока идёт подпись. Если убрать раньше, обмен прервётся и ключ придётся приложить снова.</string>
+    <string name="connections_fido_cancel_hint">Отмените, отключившись в списке подключений.</string>
+    <string name="connections_fido_key_label">Ключ: %1$s</string>
+    <string name="connections_fido_wrong_title">Неверный ключ безопасности</string>
+    <string name="connections_fido_wrong_body">Этот ключ не содержит учётные данные, запрошенные сервером. Предъявите запрошенный ключ и коснитесь его.</string>
 </resources>

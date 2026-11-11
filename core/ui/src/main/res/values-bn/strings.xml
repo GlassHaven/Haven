@@ -44,4 +44,18 @@
     <string name="wayland_cd_desktop_resolution">ডেস্কটপ রেজোলিউশন</string>
     <string name="external_display_cd_on">বাহ্যিক ডিসপ্লে আউটপুট চালু (ডিভাইস স্ক্রিনে দেখাতে ট্যাপ করুন)</string>
     <string name="external_display_cd_off">বাহ্যিক ডিসপ্লে আউটপুট বন্ধ (বাহ্যিক ডিসপ্লেতে দেখাতে ট্যাপ করুন)</string>
+    <string name="connections_fido_pin_title">সিকিউরিটি কী PIN</string>
+    <string name="connections_fido_pin_label">PIN</string>
+    <string name="connections_fido_pin_help">এই SSH কী verify-required সহ নিবন্ধিত। চালিয়ে যেতে আপনার সিকিউরিটি কী-তে সেট করা PIN দিন।</string>
+    <string name="connections_fido_pin_wrong">ভুল PIN। কী লক হওয়ার আগে %1$d বার চেষ্টা বাকি।</string>
+    <string name="connections_fido_waiting_title">সিকিউরিটি কী প্রয়োজন</string>
+    <string name="connections_fido_waiting_body">USB দিয়ে আপনার সিকিউরিটি কী লাগান, বা NFC-এর জন্য ডিভাইসের পেছনে ট্যাপ করুন। শনাক্ত হলে Haven স্বয়ংক্রিয়ভাবে এগিয়ে যাবে।</string>
+    <string name="connections_fido_touch_usb_title">আপনার সিকিউরিটি কী স্পর্শ করুন</string>
+    <string name="connections_fido_touch_usb_body">SSH স্বাক্ষর অনুমোদন করতে এখনই আপনার সিকিউরিটি কী-এর বোতাম চাপুন। কী-টি অপেক্ষা করছে বোঝাতে জ্বলতে-নিভতে পারে।</string>
+    <string name="connections_fido_touch_nfc_title">আপনার সিকিউরিটি কী ধরে রাখুন</string>
+    <string name="connections_fido_touch_nfc_body">স্বাক্ষর করার সময় সিকিউরিটি কী-টি ডিভাইসের পেছনে দুই সেকেন্ড ধরে রাখুন। আগেই সরিয়ে নিলে প্রক্রিয়া বাতিল হবে এবং আবার ট্যাপ করতে হবে।</string>
+    <string name="connections_fido_cancel_hint">সংযোগ তালিকা থেকে সংযোগ বিচ্ছিন্ন করে বাতিল করুন।</string>
+    <string name="connections_fido_key_label">কী: %1$s</string>
+    <string name="connections_fido_wrong_title">ভুল সিকিউরিটি কী</string>
+    <string name="connections_fido_wrong_body">এই কী-তে সার্ভারের চাওয়া শংসাপত্র নেই। অনুরোধ করা কী উপস্থাপন করে এটি টাচ করুন।</string>
 </resources>

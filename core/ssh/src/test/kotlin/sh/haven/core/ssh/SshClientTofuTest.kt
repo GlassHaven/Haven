@@ -81,7 +81,7 @@ class SshClientTofuTest {
         )
 
         val thrown = assertThrows(HostKeyAuthFailure::class.java) {
-            runBlocking { client.connect(config, connectTimeoutMs = 5_000) }
+            runBlocking { client.connect(config, connectTimeoutMs = 15_000) }
         }
 
         assertNotNull("host key must be captured from KEX", thrown.hostKey)
@@ -119,7 +119,7 @@ class SshClientTofuTest {
                 username = "anyuser",
                 authMethod = ConnectionConfig.AuthMethod.Password("accepted"),
             )
-            val hostKey = runBlocking { client.connect(config, connectTimeoutMs = 5_000) }
+            val hostKey = runBlocking { client.connect(config, connectTimeoutMs = 15_000) }
             assertNotNull("plain-key host must surface a TOFU entry", hostKey)
             assertEquals("127.0.0.1", hostKey!!.hostname)
             assertEquals(serverPort, hostKey.port)
@@ -153,6 +153,9 @@ class SshClientTofuTest {
                 // name ("ssh-rsa") — the latter fails with NoSuchAlgorithmException.
                 algorithm = "RSA"
                 keySize = 2048
+                // Eagerly materialize the RSA-2048 key before server.start() so prime
+                // search on a CPU-contended CI runner never runs inside JSch's KEX timeout.
+                loadKeys(null)
             }
             passwordAuthenticator = if (acceptAuth) {
                 AcceptAllPasswordAuthenticator.INSTANCE

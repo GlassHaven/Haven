@@ -37,17 +37,12 @@ android {
 dependencies {
     implementation(project(":core:redact"))
     implementation(project(":core:security"))
-    // The Keystore aggregator surfaces FIDO SK credentials alongside
-    // regular SSH keys, so the SshKeySection adapter needs SkKeyData
-    // to detect and parse SK blobs stored in the ssh_keys table.
-    implementation(project(":core:fido"))
 
     implementation(libs.room.runtime)
     implementation(libs.room.ktx)
     ksp(libs.room.compiler)
     implementation(libs.datastore.preferences)
     implementation(libs.coroutines.core)
-    implementation(project(":core:security"))
     implementation(libs.hilt.android)
     ksp(libs.hilt.compiler)
 
@@ -61,7 +56,7 @@ dependencies {
     testImplementation(libs.androidx.test.core)
     // Real org.json for unit tests (android.jar's is stubbed under
     // isReturnDefaultValues), so MailRuleJson round-trips can be asserted.
-    testImplementation("org.json:json:20260814")
+    testImplementation(libs.orgjson)
 }
 
 kotlin {

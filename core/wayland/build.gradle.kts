@@ -22,6 +22,10 @@ android {
         targetCompatibility = JavaVersion.VERSION_17
     }
 
+    testOptions {
+        unitTests.isReturnDefaultValues = true
+    }
+
     sourceSets {
         getByName("main") {
             // Native binaries built from source by buildWaylandNatives below.
@@ -175,6 +179,9 @@ dependencies {
     implementation(project(":core:ui"))
     implementation(project(":core:toolbar"))
     implementation(project(":core:data"))
+
+    testImplementation(libs.junit)
+    testImplementation(libs.coroutines.core)
 }
 
 kotlin {

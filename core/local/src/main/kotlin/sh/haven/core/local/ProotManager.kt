@@ -4,10 +4,14 @@ import android.content.Context
 import android.os.Build
 import android.util.Log
 import dagger.hilt.android.qualifiers.ApplicationContext
+import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.Job
+import kotlinx.coroutines.SupervisorJob
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
+import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
 import sh.haven.core.data.repository.ProotInstallLogRepository
 import sh.haven.core.local.proot.Arch
@@ -1574,11 +1578,14 @@ class ProotManager @Inject constructor(
     private val _desktopState = MutableStateFlow<DesktopSetupState>(DesktopSetupState.Idle)
     val desktopState: StateFlow<DesktopSetupState> = _desktopState.asStateFlow()
 
-    init {
-        // Register imported distros (#284) FIRST: reconcileActiveDistro and
-        // the ready check below resolve the active distro through
-        // DistroCatalog, so a custom distro that was active must be known
-        // before they run.
+    private val initScope = CoroutineScope(SupervisorJob() + Dispatchers.IO)
+
+    // Register imported distros (#284) FIRST: reconcileActiveDistro and the
+    // ready check below resolve the active distro through DistroCatalog, so a
+    // custom distro that was active must be known before they run. Offloaded
+    // onto Dispatchers.IO so cold-start injection never blocks on filesystem
+    // directory scans, marker backfill, or cacheDir writes.
+    internal val startupInitJob: Job = initScope.launch {
         loadCustomDistros()
         migrateLegacyAlpineDir()
         backfillInstallMarkers()

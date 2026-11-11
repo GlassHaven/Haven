@@ -32,7 +32,7 @@ okhttp = "5.5.1"
 # Real org.json for JVM unit tests: the mockable android.jar stub (returnDefaultValues)
 # makes JSONObject every method return defaults — clients parsing server JSON in tests
 # need the real artifact. Runtime code keeps android.jar's org.json.
-orgjson = "20240303"
+orgjson = "20260814"
 # QR / barcode + on-device RapidOCR (PP-OCRv4 via ONNX Runtime) for the
 # terminal's Scan/Recognize attach options and remote-desktop MCP OCR.
 # ZXing core is pure Java (Apache 2.0). ONNX Runtime is MIT-licensed on Central.

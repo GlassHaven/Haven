@@ -27,7 +27,6 @@ dependencies {
     // the Proton MailBridge wrapper) and the libgojni.so jniLibs — depending on
     // it gives us MailBridge at compile time and the native lib in the APK.
     implementation(project(":core:rclone"))
-    implementation(project(":core:data"))
     implementation(libs.coroutines.core)
     implementation(libs.coroutines.android)
     implementation(libs.hilt.android)

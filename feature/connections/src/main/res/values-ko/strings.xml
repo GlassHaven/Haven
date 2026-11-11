@@ -255,17 +255,6 @@
     <string name="connections_deploy_title">SSH 키 배포</string>
     <string name="connections_discovered_count">발견됨 (%1$d)</string>
     <string name="connections_discovered_count_filtered">발견됨 (%2$d 중 %1$d)</string>
-    <string name="connections_fido_cancel_hint">연결 목록에서 연결을 끊어 취소하세요.</string>
-    <string name="connections_fido_pin_help">이 SSH 키는 verify-required로 등록되었습니다. 계속하려면 보안 키에 설정된 PIN을 입력하세요.</string>
-    <string name="connections_fido_pin_label">PIN</string>
-    <string name="connections_fido_pin_title">보안 키 PIN</string>
-    <string name="connections_fido_pin_wrong">잘못된 PIN입니다. 키가 잠기기 전 %1$d회 시도 남음.</string>
-    <string name="connections_fido_touch_nfc_body">보안 키를 기기 뒤쪽에 2초간 대고 있어 서명이 완료되도록 하세요. 미리 떼면 교환이 중단되어 다시 태그해야 합니다.</string>
-    <string name="connections_fido_touch_nfc_title">보안 키를 대고 있으세요</string>
-    <string name="connections_fido_touch_usb_body">지금 보안 키의 버튼을 눌러 SSH 서명을 승인하세요. 키가 대기 중임을 알리기 위해 깜박일 수 있습니다.</string>
-    <string name="connections_fido_touch_usb_title">보안 키를 터치하세요</string>
-    <string name="connections_fido_waiting_body">보안 키를 USB로 연결하거나, NFC라면 기기 뒷면에 태그하세요. 감지되면 Haven이 자동으로 계속 진행합니다.</string>
-    <string name="connections_fido_waiting_title">보안 키 대기 중</string>
     <string name="connections_hostkey_accept_new">수락 후 연결</string>
     <string name="connections_hostkey_changed_body">%1$s의 호스트 키가 변경되었습니다. 서버를 재설치했거나 중간자 공격일 수 있습니다.</string>
     <string name="connections_hostkey_changed_title">호스트 키 변경됨</string>
@@ -520,9 +509,6 @@
     <string name="connections_usb_forward_unattached">%1$s (연결 안 됨)</string>
     <string name="connections_deploy_field_password_optional">비밀번호 (선택 사항)</string>
     <string name="connections_deploy_password_hint">이 프로필의 저장된 키로 배포하려면 비워 두세요. 비밀번호는 서버가 비밀번호로 인증할 때(또는 키 암호문/점프 호스트 잠금 해제)에만 필요합니다.</string>
-    <string name="connections_fido_key_label">키: %1$s</string>
-    <string name="connections_fido_wrong_title">잘못된 보안 키</string>
-    <string name="connections_fido_wrong_body">이 키에는 서버가 요청한 자격 증명이 없습니다. 요청된 키를 제시하고 터치하세요.</string>
     <string name="connections_auth_key_picker">키: %1$s ▾</string>
     <string name="connections_auth_key_only">✓ 이 키만 사용</string>
     <string name="connections_mcp_active">에이전트가 이 연결에서 작동 중 — 탭하여 MCP 비활성화</string>

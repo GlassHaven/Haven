@@ -16,7 +16,7 @@ import org.junit.Assert.assertTrue
 import org.junit.Test
 import sh.haven.core.data.db.SshKeyDao
 import sh.haven.core.data.db.entities.SshKey
-import sh.haven.core.fido.SkKeyData
+import sh.haven.core.security.SkKeyData
 import sh.haven.core.security.KeyKind
 import sh.haven.core.security.KeystoreFetch
 import sh.haven.core.security.KeystoreFlag

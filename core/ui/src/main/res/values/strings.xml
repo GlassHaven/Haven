@@ -47,4 +47,18 @@
     <string name="wayland_cd_desktop_resolution">Desktop resolution</string>
     <string name="external_display_cd_on">External display output on (tap to show on device screen)</string>
     <string name="external_display_cd_off">External display output off (tap to project to external display)</string>
+    <string name="connections_fido_pin_title">Security key PIN</string>
+    <string name="connections_fido_pin_label">PIN</string>
+    <string name="connections_fido_pin_help">This SSH key was registered with verify-required. Enter the PIN configured on your security key to continue.</string>
+    <string name="connections_fido_pin_wrong">Wrong PIN. %1$d attempts remaining before the key locks.</string>
+    <string name="connections_fido_waiting_title">Security key required</string>
+    <string name="connections_fido_waiting_body">Plug in your security key over USB, or tap it on the back of the device for NFC. Haven will continue automatically once it is detected.</string>
+    <string name="connections_fido_touch_usb_title">Touch your security key</string>
+    <string name="connections_fido_touch_usb_body">Press the button on your security key now to authorise the SSH signature. The key may blink to indicate it is waiting.</string>
+    <string name="connections_fido_touch_nfc_title">Hold your security key</string>
+    <string name="connections_fido_touch_nfc_body">Keep the security key against the back of the device for two seconds while it signs. Moving it away early aborts the exchange and you\'ll need to tap it again.</string>
+    <string name="connections_fido_cancel_hint">Cancel by disconnecting from the connections list.</string>
+    <string name="connections_fido_key_label">Key: %1$s</string>
+    <string name="connections_fido_wrong_title">Wrong security key</string>
+    <string name="connections_fido_wrong_body">That key doesn\'t hold the credential the server asked for. Present the requested key and touch it.</string>
 </resources>

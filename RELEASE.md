@@ -4,8 +4,8 @@ Each release needs **three pieces of release-note content** written before the t
 
 | Surface | Location | Limit |
 |---|---|---|
-| F-Droid | `fastlane/metadata/android/en-US/changelogs/<arm64VersionCode>.txt` | ~500 chars |
-| GitHub release body | Written below via `gh release edit` (or the UI) at tag time | no limit |
+| F-Droid | `fastlane/metadata/android/en-US/changelogs/<arm64VersionCode>.txt` | 500 chars (`wc -m`) |
+| GitHub release body | `CHANGELOG.md` `## v<x.y.z>` section (extracted automatically by `publish`) | no limit |
 | Commit message body | Second line + body of the bump commit | keep short |
 
 The arm64 versionCode is `versionCode × 10 + 1` (see `app/build.gradle.kts`: `output.versionCodeOverride = (defaultConfig.versionCode ?: 0) * 10 + abiCode`). For versionCode 246 → `2461.txt`.
@@ -37,12 +37,8 @@ versionCode = <increment>
 versionName = "<x.y.z>"
 ```
 
-★ **Two numbers are spoken for:**
+★ **Reserved major version:**
 
-- **The next release is `5.87.0`**, not `5.86.54`. The minor bump marks the
-  era of two downloads (#510) — note the terminal flavour itself first shipped
-  in `5.86.53`, numbered as a patch before the decision was taken, so `5.87.0`
-  marks it a release late. Everything after goes back to patch increments.
 - **`6.0.0` is reserved for the SSH engine default flip (#58)** — JSch →
   sshlib. That version was promised in the issue thread and is the one change
   that alters the default behaviour of every SSH connection, so don't spend it
@@ -75,22 +71,24 @@ git push origin main v<x.y.z>
 The `v*` tag triggers the **Release** workflow (`.github/workflows/release.yml`),
 a gated pipeline hardened under #211. It runs four jobs in sequence:
 
-1. **`verify-ci`** — reads the combined commit status for the tagged SHA. If
+1. **`verify-ci`** — reads the CI workflow run status for the tagged SHA. If
    `main` CI already went green for this exact commit, the test job is skipped
    (same commit ⇒ same result); otherwise the pipeline runs the tests itself.
-2. **`test`** — `./gradlew testReleaseUnitTest`. The build is gated on this, so a
-   red test stops the release here. (This is why a broken `main` silently blocks
-   publishing — only ever tag a green commit.)
-3. **`build`** — signed APK **and** AAB for both ABIs (arm64 + x64); keystore +
-   passwords come from repo secrets.
+2. **`test`** — `./gradlew testDebugUnitTest :app:testArm64FullDebugUnitTest`.
+   The build is gated on this, so a red test stops the release here. (Only tag
+   a commit whose `main` CI run has already passed.)
+3. **`build`** — signed `full` APK, `terminal` APK, and `full` AAB across all
+   three ABIs (`arm64`, `x64`, `armv7`); keystore + passwords come from repo
+   secrets.
 4. **`publish`** — ⏸ **reviewer sign-off gate (#211).** This job runs under the
    protected **`signing` GitHub Environment**, which requires an explicit
    approval from a designated reviewer (currently **@GlassOnTin**) and is
    restricted to `v*` tags / `main`. **The run pauses here until the reviewer
    approves** — so no single account can ship with the signing identity
-   unilaterally. On approval it writes a build-provenance attestation, generates
-   `SHA256SUMS`, and creates the GitHub Release with the signed APK/AAB attached
-   (release notes are auto-generated; step 4 below adds human context).
+   unilaterally. On approval it extracts `CHANGELOG.md` via
+   `scripts/check-changelog.sh extract v<x.y.z>`, writes a build-provenance
+   attestation, generates `SHA256SUMS`, and publishes the GitHub Release with
+   all 10 assets (6 APKs + 3 AABs + `SHA256SUMS`).
 
 ### Approve the publish (the sign-off)
 
@@ -112,15 +110,9 @@ The same `signing` Environment also gates `extract-secrets.yml`, so exporting th
 keystore bundle needs the identical reviewer approval. Manage the reviewer list
 under *Settings → Environments → signing*.
 
-## 4. Fill in the GitHub release body
+## 4. Verify published release assets & signatures
 
-Once the release exists, edit its body so users see what changed instead of just a compare link. The fastlane changelog is a solid seed — copy it and expand with any context worth highlighting.
-
-```bash
-gh release edit v<x.y.z> --repo GlassHaven/Haven --notes-file fastlane/metadata/android/en-US/changelogs/<arm64VersionCode>.txt
-```
-
-Or open the release on GitHub and paste the notes into the body field.
+Once `publish` completes, verify that `isDraft=false`, the release body matches `CHANGELOG.md`, all 10 assets are present, `SHA256SUMS` matches the downloaded APKs/AABs, and `apksigner verify --verbose` succeeds on the APKs.
 
 ## 5. F-Droid
 
@@ -138,12 +130,13 @@ The buildserver no longer pre-installs NDKs in its Docker image — `fdroidserve
 
 | Tool | F-Droid pin | Our CI |
 |---|---|---|
+| JDK | `21` | Temurin `21` (`actions/setup-java`) |
 | NDK | `r29` (`29.0.14206865`) — declared per-module in `core/local`, `termlib/lib` | `sdkmanager "ndk;29.0.14206865"` in the composite action |
-| Rust | `rustup default 1.85.0` (overridden by the toml below for the rdp build) | `rustup default 1.89.0`, and `rdp-kotlin/rust/rust-toolchain.toml` `channel = "1.89.0"` (not `stable`). The crate-scoped toml governs the only Rust build, so F-Droid's `1.85.0` default also compiles rdp at 1.89.0. **Floor: 1.87** (ironrdp-graphics 0.7.0 uses `integer_sign_cast`). Align F-Droid's default to 1.89.0 in a follow-up. |
+| Rust | `rustup default 1.94.1` | `rustup default 1.94.1` (`rdp-kotlin/rust/rust-toolchain.toml` pins `1.94.1`) |
 | `cargo-ndk` | `3.5.4` | `3.5.4` |
 | CMake | `3.31.6` | `3.31.6` |
-| `gomobile` / `gobind` | `@latest` | **pinned** `@v0.0.0-20251021151156-188f512ec823` (matches `rclone-android/go/go.sum`); bump in lockstep with the go.sum entry + the `gomobile-cache` key |
-| Go | `1.26` (implicit — matches our `actions/setup-go`) | `1.26` |
+| `gomobile` / `gobind` | `@v0.0.0-20251021151156-188f512ec823` | **pinned** `@v0.0.0-20251021151156-188f512ec823` (matches `rclone-android/go/go.sum`) |
+| Go | `1.27` | `1.27` (`actions/setup-go`) |
 
 > Supply-chain hardening (#211) pinned our CI's `gomobile`/`gobind` to the
 > `go.sum` pseudo-version instead of `@latest`. The F-Droid recipe still uses
@@ -255,7 +248,7 @@ The task set above is a superset of what CI and the release build resolve (no re
 
 ## Signing
 
-The release keystore `haven-release.jks` is in the repo root. Passwords are stored in GitHub secrets:
+The release keystore is decoded from `KEYSTORE_BASE64` in CI (and stored outside the repo locally, e.g. via `KEYSTORE_FILE` in `~/.haven-release.env`). Passwords are stored in GitHub secrets:
 
 - `KEYSTORE_PASSWORD`
 - `KEY_PASSWORD`

@@ -18,7 +18,7 @@ import org.connectbot.terminal.AgentSnapshot
  *    line near the bottom, and screen stability across polls.
  *
  * All functions are pure over snapshot data so they unit-test without a
- * device (prototype spec: docs/haven_convo_prototype.py, round-tripped live).
+ * device (prototype spec: scripts/haven_convo_prototype.py, round-tripped live).
  */
 
 /** A Claude-Code-style REPL is mid-turn (still working). */

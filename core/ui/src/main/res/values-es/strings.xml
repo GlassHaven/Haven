@@ -44,4 +44,18 @@
     <string name="wayland_cd_desktop_resolution">Resolución del escritorio</string>
     <string name="external_display_cd_on">Salida en pantalla externa activada (toca para mostrar en el dispositivo)</string>
     <string name="external_display_cd_off">Salida en pantalla externa desactivada (toca para proyectar en pantalla externa)</string>
+    <string name="connections_fido_pin_title">PIN de la llave de seguridad</string>
+    <string name="connections_fido_pin_label">PIN</string>
+    <string name="connections_fido_pin_help">Esta clave SSH se registró con verify-required. Introduce el PIN configurado en tu llave de seguridad para continuar.</string>
+    <string name="connections_fido_pin_wrong">PIN incorrecto. Quedan %1$d intentos antes de que la llave se bloquee.</string>
+    <string name="connections_fido_waiting_title">Se requiere llave de seguridad</string>
+    <string name="connections_fido_waiting_body">Conecta tu llave de seguridad por USB o acércala a la parte trasera del dispositivo para NFC. Haven continuará automáticamente en cuanto la detecte.</string>
+    <string name="connections_fido_touch_usb_title">Toca tu llave de seguridad</string>
+    <string name="connections_fido_touch_usb_body">Pulsa ahora el botón de tu llave de seguridad para autorizar la firma SSH. La llave puede parpadear para indicar que está esperando.</string>
+    <string name="connections_fido_touch_nfc_title">Mantén tu llave de seguridad</string>
+    <string name="connections_fido_touch_nfc_body">Mantén la llave de seguridad contra la parte trasera del dispositivo durante dos segundos mientras firma. Si la retiras antes, el intercambio se cancela y tendrás que volver a acercarla.</string>
+    <string name="connections_fido_cancel_hint">Cancela desconectando desde la lista de conexiones.</string>
+    <string name="connections_fido_key_label">Clave: %1$s</string>
+    <string name="connections_fido_wrong_title">Llave de seguridad incorrecta</string>
+    <string name="connections_fido_wrong_body">Esa llave no contiene la credencial que pidió el servidor. Presenta la llave solicitada y tócala.</string>
 </resources>

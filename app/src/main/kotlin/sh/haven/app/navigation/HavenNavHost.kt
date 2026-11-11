@@ -146,13 +146,11 @@ fun HavenNavHost(
         }
     }
 
-    // Native Wayland desktop — poll compositor state reactively
-    var waylandRunning by remember { mutableStateOf(false) }
+    // Native Wayland desktop — observe compositor transitions reactively
+    // without spinning an unconditional 500ms JNI poll timer.
+    val waylandRunning by sh.haven.core.wayland.WaylandBridge.compositorRunning.collectAsState()
     LaunchedEffect(Unit) {
-        while (true) {
-            waylandRunning = sh.haven.core.wayland.WaylandBridge.isCompositorRunning()
-            kotlinx.coroutines.delay(500)
-        }
+        sh.haven.core.wayland.WaylandBridge.refreshCompositorState()
     }
 
     // Tab visibility (#navbar-visibility): each nav tab has a per-tab

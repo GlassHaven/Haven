@@ -44,4 +44,18 @@
     <string name="wayland_cd_desktop_resolution">Résolution du bureau</string>
     <string name="external_display_cd_on">Sortie sur écran externe activée (appuyer pour afficher sur l\'appareil)</string>
     <string name="external_display_cd_off">Sortie sur écran externe désactivée (appuyer pour projeter sur l\'écran externe)</string>
+    <string name="connections_fido_pin_title">Code PIN de la clé de sécurité</string>
+    <string name="connections_fido_pin_label">PIN</string>
+    <string name="connections_fido_pin_help">Cette clé SSH a été enregistrée avec verify-required. Saisissez le code PIN configuré sur votre clé de sécurité pour continuer.</string>
+    <string name="connections_fido_pin_wrong">Code PIN incorrect. Il reste %1$d tentatives avant le blocage de la clé.</string>
+    <string name="connections_fido_waiting_title">Clé de sécurité requise</string>
+    <string name="connections_fido_waiting_body">Branchez votre clé de sécurité en USB, ou présentez-la à l’arrière de l’appareil pour le NFC. Haven poursuivra automatiquement dès qu’elle sera détectée.</string>
+    <string name="connections_fido_touch_usb_title">Touchez votre clé de sécurité</string>
+    <string name="connections_fido_touch_usb_body">Appuyez maintenant sur le bouton de votre clé de sécurité pour autoriser la signature SSH. La clé peut clignoter pour indiquer qu’elle attend.</string>
+    <string name="connections_fido_touch_nfc_title">Maintenez votre clé de sécurité</string>
+    <string name="connections_fido_touch_nfc_body">Maintenez la clé de sécurité contre l’arrière de l’appareil pendant deux secondes le temps de la signature. La retirer trop tôt interrompt l’échange et vous devrez la présenter à nouveau.</string>
+    <string name="connections_fido_cancel_hint">Annulez en vous déconnectant depuis la liste des connexions.</string>
+    <string name="connections_fido_key_label">Clé : %1$s</string>
+    <string name="connections_fido_wrong_title">Mauvaise clé de sécurité</string>
+    <string name="connections_fido_wrong_body">Cette clé ne contient pas l\'identifiant demandé par le serveur. Présentez la clé demandée et touchez-la.</string>
 </resources>

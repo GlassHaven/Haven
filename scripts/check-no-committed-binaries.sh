@@ -1,5 +1,5 @@
 #!/usr/bin/env bash
-# Fail if any tracked file is a compiled binary.
+# Fail if any tracked file (including inside initialized submodules) is a compiled binary.
 #
 # Why this gate exists
 # -------------------
@@ -20,25 +20,11 @@
 # file extension, so renaming a blob does not get it past this.
 #
 # Usage:
-#   scripts/check-no-committed-binaries.sh            # check tracked files
+#   scripts/check-no-committed-binaries.sh            # check tracked files (+ submodules)
 #   scripts/check-no-committed-binaries.sh --staged   # check the index (hooks)
 
-set -uo pipefail
+set -euo pipefail
 cd "$(git rev-parse --show-toplevel)"
-
-# The only permitted binary. Gradle's wrapper jar cannot bootstrap itself and is
-# an accepted prebuilt on F-Droid's trusted-source list.
-#
-# gradle/actions/wrapper-validation in CI proves it is an official Gradle
-# release jar. It does NOT check WHICH release, and that gap is not theoretical:
-# the jar committed in 6b4ad367 was Gradle 8.12's and stayed there while
-# distributionUrl moved 8.11.1 -> 9.4.1, because bumping the URL does not touch
-# the jar. Validation passed the whole time, correctly — the jar was genuine,
-# just for a different Gradle than the one this project declares.
-# check_gradle_wrapper below closes that.
-ALLOWLIST=(
-    "gradle/wrapper/gradle-wrapper.jar"
-)
 
 # Pinned rather than fetched from services.gradle.org on purpose: a gate that
 # needs the network fails when the network does, which is exactly how an
@@ -52,7 +38,6 @@ ALLOWLIST=(
 WRAPPER_VERSION="9.7.1"
 WRAPPER_JAR_SHA256="7a9ce74cff467ca1bf60a4fcd9f05185acceda4d0f382434d393e17864262c5d"
 
-# Assert the allowed jar is the jar for the distribution we actually declare.
 check_gradle_wrapper() {
     local props="gradle/wrapper/gradle-wrapper.properties"
     local jar="gradle/wrapper/gradle-wrapper.jar"
@@ -79,47 +64,108 @@ check_gradle_wrapper() {
     fi
 }
 
-is_allowed() {
-    local f="$1"
-    for a in "${ALLOWLIST[@]}"; do [ "$f" = "$a" ] && return 0; done
-    return 1
+# Scanning 30k+ tracked files across `--recurse-submodules` in a single Python
+# process runs in ~0.1s vs ~45s of per-file subshells.
+python3 - "${1:-}" <<'PY'
+import configparser
+import subprocess
+import sys
+from pathlib import Path
+
+staged = len(sys.argv) > 1 and sys.argv[1] == "--staged"
+
+ALLOWLIST = {
+    "gradle/wrapper/gradle-wrapper.jar",
 }
 
-if [ "${1:-}" = "--staged" ]; then
-    mapfile -t FILES < <(git diff --cached --name-only --diff-filter=ACM)
-    READ_FROM_INDEX=1
-else
-    mapfile -t FILES < <(git ls-files)
-    READ_FROM_INDEX=0
-fi
+# Pre-existing binaries tracked inside submodules that predate `--recurse-submodules`
+# enforcement (#493). This list may ONLY SHRINK: if an entry stops being tracked
+# in an initialized submodule, the gate fails until the entry is removed here too.
+GRANDFATHERED = [
+    "spice-kotlin/jniLibs/arm64-v8a/libspice_transport.so",
+    "spice-kotlin/jniLibs/armeabi-v7a/libspice_transport.so",
+    "spice-kotlin/jniLibs/x86_64/libspice_transport.so",
+]
 
-violations=()
-for f in "${FILES[@]}"; do
-    [ -n "$f" ] || continue
-    is_allowed "$f" && continue
-    if [ "$READ_FROM_INDEX" = "1" ]; then
-        magic=$(git show ":$f" 2>/dev/null | head -c 4 | od -An -tx1 -v 2>/dev/null | tr -d ' \n')
-    else
-        [ -f "$f" ] || continue
-        magic=$(head -c 4 "$f" 2>/dev/null | od -An -tx1 -v 2>/dev/null | tr -d ' \n')
-    fi
-    case "$magic" in
-        7f454c46)  violations+=("$f  (ELF)") ;;          # .so / executable
-        feedface|feedfacf|cffaedfe|cafebabe) violations+=("$f  (Mach-O or Java class)") ;;
-        4d5a*)     violations+=("$f  (PE/DLL)") ;;
-        6465780a)  violations+=("$f  (Android dex)") ;;
-        504b0304)  # zip container — only flag the ones that carry code
-                   case "$f" in
-                       *.jar|*.aar|*.apk|*.aab|*.war) violations+=("$f  (Java/Android archive)") ;;
-                   esac ;;
-    esac
-done
+def is_allowed(path: str) -> bool:
+    return path in ALLOWLIST or path.endswith("/gradle/wrapper/gradle-wrapper.jar")
 
-if [ ${#violations[@]} -gt 0 ]; then
-    echo "✗ ${#violations[@]} committed binary file(s) found:" >&2
-    printf '    %s\n' "${violations[@]}" >&2
-    cat >&2 <<'EOF'
+if staged:
+    out = subprocess.check_output(
+        ["git", "diff", "--cached", "-z", "--name-only", "--diff-filter=ACM"]
+    ).decode("utf-8", "surrogateescape")
+    files = [f for f in out.split("\0") if f]
+else:
+    out = subprocess.check_output(
+        ["git", "ls-files", "-z", "--recurse-submodules"]
+    ).decode("utf-8", "surrogateescape")
+    files = [f for f in out.split("\0") if f]
 
+tracked_set = set(files)
+grandfathered_set = set(GRANDFATHERED)
+
+def read_magic(path: str) -> bytes:
+    if staged:
+        p = subprocess.run(
+            ["git", "show", f":{path}"],
+            stdout=subprocess.PIPE,
+            stderr=subprocess.DEVNULL,
+            check=False,
+        )
+        return p.stdout[:4]
+    try:
+        with open(path, "rb") as fp:
+            return fp.read(4)
+    except OSError:
+        return b""
+
+violations = []
+for f in files:
+    if is_allowed(f) or f in grandfathered_set:
+        continue
+    m = read_magic(f)
+    if len(m) < 2:
+        continue
+    if m == b"\x7fELF":
+        violations.append(f"{f}  (ELF)")
+    elif m in (b"\xfe\xed\xfa\xce", b"\xfe\xed\xfa\xcf", b"\xcf\xfa\xed\xfe", b"\xca\xfe\xba\xbe"):
+        violations.append(f"{f}  (Mach-O or Java class)")
+    elif m[:2] == b"MZ":
+        violations.append(f"{f}  (PE/DLL)")
+    elif m == b"dex\n":
+        violations.append(f"{f}  (Android dex)")
+    elif m == b"PK\x03\x04" and f.endswith((".jar", ".aar", ".apk", ".aab", ".war")):
+        violations.append(f"{f}  (Java/Android archive)")
+
+if not staged:
+    submodule_paths = set()
+    gm = Path(".gitmodules")
+    if gm.is_file():
+        cp = configparser.ConfigParser()
+        cp.read(gm, encoding="utf-8")
+        for sec in cp.sections():
+            if cp.has_option(sec, "path"):
+                submodule_paths.add(cp.get(sec, "path"))
+
+    stale = []
+    for g in GRANDFATHERED:
+        top = g.split("/", 1)[0]
+        if top in submodule_paths and not (Path(top) / ".git").exists():
+            continue
+        if g not in tracked_set:
+            stale.append(g)
+    if stale:
+        print("✗ GRANDFATHERED entry no longer tracked — remove it from GRANDFATHERED in scripts/check-no-committed-binaries.sh:", file=sys.stderr)
+        for s in stale:
+            print(f"    {s}", file=sys.stderr)
+        sys.exit(1)
+
+if violations:
+    print(f"✗ {len(violations)} committed binary file(s) found:", file=sys.stderr)
+    for v in violations:
+        print(f"    {v}", file=sys.stderr)
+    print(
+        """
 Binaries must not be committed — they are unauditable in review and go stale
 silently (#469). Build them from source instead:
 
@@ -128,16 +174,18 @@ silently (#469). Build them from source instead:
     core/wayland/src/main/jniLibs/ wayland-android/build_liblabwc_android.sh
                                    wayland-android/build-native-helpers.sh
     rdp-kotlin/jniLibs/            cargo-ndk (rdp-kotlin:buildRdpNative)
+    spice-kotlin/jniLibs/          cargo-ndk (spice-kotlin:buildSpiceNative)
     core/prns/src/main/jniLibs/    cargo-ndk (:core:prns:buildPrnsNative)
     rclone-android/build/          gomobile (buildRcloneNative)
 
 then add the output path to .gitignore. If a binary genuinely must be tracked,
-add it to ALLOWLIST in this script with a comment saying why.
-EOF
-    exit 1
-fi
+add it to ALLOWLIST in this script with a comment saying why.""",
+        file=sys.stderr,
+    )
+    sys.exit(1)
 
-check_gradle_wrapper || exit 1
+print(f"✓ no committed binaries ({len(files)} tracked files checked)")
+PY
 
-echo "✓ no committed binaries (${#FILES[@]} tracked files checked)"
+check_gradle_wrapper
 echo "✓ gradle-wrapper.jar is the Gradle $WRAPPER_VERSION wrapper jar"

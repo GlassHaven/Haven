@@ -200,8 +200,6 @@
     <string name="connections_password_title">الاتصال بـ %1$s</string>
     <string name="connections_password_button">اتصال</string>
 
-    <string name="connections_fido_pin_title">رمز PIN لمفتاح الأمان</string>
-    <string name="connections_fido_pin_label">PIN</string>
 
     <string name="connections_ki_submit">إرسال</string>
 
@@ -236,15 +234,6 @@
     <string name="connections_password_remember_password">تذكّر كلمة المرور</string>
     <string name="connections_password_remember_passphrase">تذكّر عبارة مرور المفتاح</string>
     <string name="connections_password_leave_empty_for_key">اتركه فارغًا للاتصال باستخدام مفتاح SSH</string>
-    <string name="connections_fido_pin_help">سُجِّل مفتاح SSH هذا بخيار verify-required. أدخل رمز PIN المُعدّ على مفتاح الأمان للمتابعة.</string>
-    <string name="connections_fido_pin_wrong">رمز PIN خاطئ. تبقّت %1$d محاولات قبل قفل المفتاح.</string>
-    <string name="connections_fido_waiting_title">مطلوب مفتاح أمان</string>
-    <string name="connections_fido_waiting_body">وصّل مفتاح الأمان عبر USB، أو المسه بظهر الجهاز لاستخدام NFC. سيتابع Haven تلقائيًا بمجرد اكتشافه.</string>
-    <string name="connections_fido_touch_usb_title">المس مفتاح الأمان</string>
-    <string name="connections_fido_touch_usb_body">اضغط الزر على مفتاح الأمان الآن للسماح بتوقيع SSH. قد يومض المفتاح للإشارة إلى أنه في انتظارك.</string>
-    <string name="connections_fido_touch_nfc_title">أمسك مفتاح الأمان</string>
-    <string name="connections_fido_touch_nfc_body">أبقِ مفتاح الأمان ملاصقًا لظهر الجهاز لمدة ثانيتين أثناء التوقيع. إبعاده مبكرًا يُلغي العملية وستحتاج إلى لمسه مرة أخرى.</string>
-    <string name="connections_fido_cancel_hint">للإلغاء، اقطع الاتصال من قائمة الاتصالات.</string>
     <string name="connections_ki_response_fallback">الاستجابة</string>
     <string name="connections_ki_title_additional">مطلوب مصادقة إضافية</string>
     <string name="connections_ki_title_server">مطالبة الخادم</string>
@@ -528,9 +517,6 @@
     <string name="connections_usb_forward_unattached">%1$s (غير مرفق)</string>
     <string name="connections_deploy_field_password_optional">كلمة المرور (اختياري)</string>
     <string name="connections_deploy_password_hint">اتركها فارغة للنشر باستخدام المفتاح المحفوظ لهذا الملف الشخصي. لا تلزم كلمة المرور إلا إذا كان الخادم يصادق بكلمة مرور (أو لفتح عبارة مرور المفتاح / مضيف وسيط).</string>
-    <string name="connections_fido_key_label">المفتاح: %1$s</string>
-    <string name="connections_fido_wrong_title">مفتاح أمان خاطئ</string>
-    <string name="connections_fido_wrong_body">لا يحتوي هذا المفتاح على بيانات الاعتماد التي طلبها الخادم. قدّم المفتاح المطلوب والمسه.</string>
     <string name="connections_auth_key_picker">المفتاح: %1$s ▾</string>
     <string name="connections_auth_key_only">✓ استخدام هذا المفتاح فقط</string>
     <string name="connections_mcp_active">الوكيل يعمل على هذا الاتصال — انقر لتعطيل MCP له</string>

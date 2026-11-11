@@ -47,7 +47,7 @@ dependencies {
     // Real org.json for unit tests (OpenAiSseParser round-trips); the
     // android.jar stub returns null from put(). Same artifact app/core:data
     // verify.
-    testImplementation("org.json:json:20260814")
+    testImplementation(libs.orgjson)
     testImplementation(libs.okhttp.mockwebserver)
 }
 

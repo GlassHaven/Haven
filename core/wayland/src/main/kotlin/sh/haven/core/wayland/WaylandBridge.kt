@@ -1,6 +1,9 @@
 package sh.haven.core.wayland
 
 import android.util.Log
+import kotlinx.coroutines.flow.MutableStateFlow
+import kotlinx.coroutines.flow.StateFlow
+import kotlinx.coroutines.flow.asStateFlow
 
 /**
  * JNI bridge to the native labwc Wayland compositor.
@@ -57,12 +60,24 @@ object WaylandBridge {
     /** Returns true if the compositor event loop is running. */
     external fun nativeIsRunning(): Boolean
 
+    private val _compositorRunning = MutableStateFlow(false)
+
+    /** Reactive compositor status so UI observers do not have to poll JNI on a timer. */
+    val compositorRunning: StateFlow<Boolean> = _compositorRunning.asStateFlow()
+
     /**
      * Safe status query for callers that just want to know if the compositor
      * is up: returns false (instead of throwing) on ABIs without the native
      * lib. Prefer this over calling [nativeIsRunning] directly.
      */
-    fun isCompositorRunning(): Boolean = available && nativeIsRunning()
+    fun isCompositorRunning(): Boolean {
+        val running = available && nativeIsRunning()
+        _compositorRunning.value = running
+        return running
+    }
+
+    /** Re-read native compositor status and publish any transition to [compositorRunning]. */
+    fun refreshCompositorState(): Boolean = isCompositorRunning()
 
     /** Set the Android Surface for compositor output. Pass null to detach. */
     external fun nativeSetSurface(surface: android.view.Surface?)

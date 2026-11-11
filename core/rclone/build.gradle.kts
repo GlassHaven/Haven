@@ -45,7 +45,7 @@ dependencies {
     ksp(libs.hilt.compiler)
 
     testImplementation(libs.junit)
-    testImplementation("org.json:json:20260814")
+    testImplementation(libs.orgjson)
 }
 
 kotlin {

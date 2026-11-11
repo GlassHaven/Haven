@@ -258,7 +258,9 @@ dependencies {
     implementation(project(":core:usbserial"))
     implementation(project(":core:vnc"))
     implementation(project(":core:rdp"))
-    implementation(project(":core:prns"))
+    if (providers.gradleProperty("enablePrns").orNull == "true") {
+        implementation(project(":core:prns"))
+    }
     implementation(project(":core:spice"))
     implementation(project(":core:glkvm"))
     implementation(project(":core:smb"))
@@ -331,7 +333,7 @@ dependencies {
     testImplementation(libs.junit)
     testImplementation(libs.mockk)
     testImplementation(libs.coroutines.test)
-    testImplementation("org.json:json:20260814")
+    testImplementation(libs.orgjson)
     androidTestImplementation(platform(libs.compose.bom))
     androidTestImplementation(libs.compose.ui.test)
 }

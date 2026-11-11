@@ -200,8 +200,6 @@
     <string name="connections_password_title">Mit %1$s verbinden</string>
     <string name="connections_password_button">Connect</string>
 
-    <string name="connections_fido_pin_title">PIN des Sicherheitsschlüssels</string>
-    <string name="connections_fido_pin_label">PIN</string>
 
     <string name="connections_ki_submit">Submit</string>
 
@@ -236,15 +234,6 @@
     <string name="connections_password_remember_password">Remember password</string>
     <string name="connections_password_remember_passphrase">Schlüssel-Passphrase merken</string>
     <string name="connections_password_leave_empty_for_key">Leer lassen, um mit SSH-Schlüssel zu verbinden</string>
-    <string name="connections_fido_pin_help">Dieser SSH-Schlüssel wurde mit verify-required registriert. Gib zum Fortfahren die auf deinem Sicherheitsschlüssel eingerichtete PIN ein.</string>
-    <string name="connections_fido_pin_wrong">Falsche PIN. Noch %1$d Versuche, bevor der Schlüssel gesperrt wird.</string>
-    <string name="connections_fido_waiting_title">Sicherheitsschlüssel erforderlich</string>
-    <string name="connections_fido_waiting_body">Schließe deinen Sicherheitsschlüssel per USB an oder halte ihn für NFC an die Rückseite des Geräts. Haven fährt automatisch fort, sobald er erkannt wird.</string>
-    <string name="connections_fido_touch_usb_title">Sicherheitsschlüssel berühren</string>
-    <string name="connections_fido_touch_usb_body">Drücke jetzt die Taste auf deinem Sicherheitsschlüssel, um die SSH-Signatur zu bestätigen. Der Schlüssel blinkt möglicherweise, während er wartet.</string>
-    <string name="connections_fido_touch_nfc_title">Sicherheitsschlüssel auflegen</string>
-    <string name="connections_fido_touch_nfc_body">Halte den Sicherheitsschlüssel während des Signierens zwei Sekunden an die Rückseite des Geräts. Wird er zu früh entfernt, bricht der Vorgang ab und du musst ihn erneut auflegen.</string>
-    <string name="connections_fido_cancel_hint">Zum Abbrechen in der Verbindungsliste die Verbindung trennen.</string>
     <string name="connections_ki_response_fallback">Response</string>
     <string name="connections_ki_title_additional">Zusätzliche Authentifizierung erforderlich</string>
     <string name="connections_ki_title_server">Server prompt</string>
@@ -528,9 +517,6 @@
     <string name="connections_usb_forward_unattached">%1$s (nicht eingebunden)</string>
     <string name="connections_deploy_field_password_optional">Passwort (optional)</string>
     <string name="connections_deploy_password_hint">Leer lassen, um mit dem gespeicherten Schlüssel dieses Profils bereitzustellen. Ein Passwort ist nur nötig, wenn sich der Server per Passwort authentifiziert (oder um eine Schlüssel-Passphrase / einen Jump-Host zu entsperren).</string>
-    <string name="connections_fido_key_label">Schlüssel: %1$s</string>
-    <string name="connections_fido_wrong_title">Falscher Sicherheitsschlüssel</string>
-    <string name="connections_fido_wrong_body">Dieser Schlüssel enthält nicht die vom Server angeforderten Anmeldedaten. Halte den angeforderten Schlüssel bereit und berühre ihn.</string>
     <string name="connections_auth_key_picker">Schlüssel: %1$s ▾</string>
     <string name="connections_auth_key_only">✓ Nur diesen Schlüssel verwenden</string>
     <string name="connections_mcp_active">Der Agent arbeitet an dieser Verbindung — tippen, um MCP dafür zu deaktivieren</string>

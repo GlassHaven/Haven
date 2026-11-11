@@ -44,4 +44,18 @@
     <string name="wayland_cd_desktop_resolution">デスクトップの解像度</string>
     <string name="external_display_cd_on">外部ディスプレイ出力オン（タップして端末画面に表示）</string>
     <string name="external_display_cd_off">外部ディスプレイ出力オフ（タップして外部ディスプレイに投影）</string>
+    <string name="connections_fido_pin_title">セキュリティ キーの PIN</string>
+    <string name="connections_fido_pin_label">PIN</string>
+    <string name="connections_fido_pin_help">この SSH 鍵は verify-required で登録されています。続行するにはセキュリティ キーに設定した PIN を入力してください。</string>
+    <string name="connections_fido_pin_wrong">PIN が違います。鍵がロックされるまで残り %1$d 回です。</string>
+    <string name="connections_fido_waiting_title">セキュリティ キーが必要です</string>
+    <string name="connections_fido_waiting_body">セキュリティ キーを USB で接続するか、NFC の場合は本体の背面にかざしてください。検出されると Haven は自動的に続行します。</string>
+    <string name="connections_fido_touch_usb_title">セキュリティ キーにタッチ</string>
+    <string name="connections_fido_touch_usb_body">SSH 署名を許可するため、セキュリティ キーのボタンを今すぐ押してください。待機中であることを示して点滅する場合があります。</string>
+    <string name="connections_fido_touch_nfc_title">セキュリティ キーをかざしたままに</string>
+    <string name="connections_fido_touch_nfc_body">署名の間、セキュリティ キーを本体の背面に 2 秒間当てたままにしてください。早く離すと処理が中断され、もう一度かざす必要があります。</string>
+    <string name="connections_fido_cancel_hint">接続一覧から切断してキャンセルします。</string>
+    <string name="connections_fido_key_label">キー: %1$s</string>
+    <string name="connections_fido_wrong_title">セキュリティキーが違います</string>
+    <string name="connections_fido_wrong_body">このキーにはサーバーが要求した認証情報がありません。要求されたキーを提示してタッチしてください。</string>
 </resources>

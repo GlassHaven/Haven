@@ -44,4 +44,18 @@
     <string name="wayland_cd_desktop_resolution">डेस्कटॉप रिज़ॉल्यूशन</string>
     <string name="external_display_cd_on">बाहरी डिस्प्ले आउटपुट चालू (डिवाइस स्क्रीन पर दिखाने के लिए टैप करें)</string>
     <string name="external_display_cd_off">बाहरी डिस्प्ले आउटपुट बंद (बाहरी डिस्प्ले पर दिखाने के लिए टैप करें)</string>
+    <string name="connections_fido_pin_title">सुरक्षा कुंजी PIN</string>
+    <string name="connections_fido_pin_label">PIN</string>
+    <string name="connections_fido_pin_help">यह SSH कुंजी verify-required के साथ पंजीकृत है। जारी रखने के लिए अपनी सुरक्षा कुंजी पर सेट किया गया PIN दर्ज करें।</string>
+    <string name="connections_fido_pin_wrong">गलत PIN। कुंजी लॉक होने से पहले %1$d प्रयास शेष।</string>
+    <string name="connections_fido_waiting_title">सुरक्षा कुंजी आवश्यक</string>
+    <string name="connections_fido_waiting_body">अपनी सुरक्षा कुंजी को USB से लगाएँ, या NFC के लिए डिवाइस के पीछे टैप करें। पहचान होते ही Haven अपने आप आगे बढ़ेगा।</string>
+    <string name="connections_fido_touch_usb_title">अपनी सुरक्षा कुंजी को स्पर्श करें</string>
+    <string name="connections_fido_touch_usb_body">SSH हस्ताक्षर को अधिकृत करने के लिए अभी अपनी सुरक्षा कुंजी का बटन दबाएँ। प्रतीक्षा दर्शाने के लिए कुंजी झपक सकती है।</string>
+    <string name="connections_fido_touch_nfc_title">अपनी सुरक्षा कुंजी पकड़े रखें</string>
+    <string name="connections_fido_touch_nfc_body">हस्ताक्षर होते समय सुरक्षा कुंजी को डिवाइस के पीछे दो सेकंड तक लगाए रखें। जल्दी हटाने पर प्रक्रिया रद्द हो जाती है और फिर से टैप करना होगा।</string>
+    <string name="connections_fido_cancel_hint">कनेक्शन सूची से डिस्कनेक्ट करके रद्द करें।</string>
+    <string name="connections_fido_key_label">कुंजी: %1$s</string>
+    <string name="connections_fido_wrong_title">गलत सुरक्षा कुंजी</string>
+    <string name="connections_fido_wrong_body">इस कुंजी में वह क्रेडेंशियल नहीं है जो सर्वर ने माँगा। अनुरोधित कुंजी प्रस्तुत करें और उसे टच करें।</string>
 </resources>

@@ -62,14 +62,14 @@ includeBuild("spice-kotlin") {
     }
 }
 
-// Prns (Personal Reticulum, Rust engine) JVM SDK — upstream's own Gradle
-// project inside the submodule, consumed unmodified so the submodule tracks
-// pure upstream trunk (Prns#94: app-supplied Pipe transports). The native
-// capsule (libprns_host.so) is cross-built by :core:prns's buildPrnsNative,
-// not by this included build.
-includeBuild("prns/prns-host/bindings/jvm") {
-    dependencySubstitution {
-        substitute(module("rs.reticulum:personal-rns")).using(project(":"))
+// Prns (Personal Reticulum, Rust engine) JVM SDK — gated behind -PenablePrns=true
+// until PrnsEngine is wired into production callers so default builds and APKs
+// don't compile 3-ABI Rust or bundle 6.6 MB of unused libprns_host.so.
+if (providers.gradleProperty("enablePrns").orNull == "true") {
+    includeBuild("prns/prns-host/bindings/jvm") {
+        dependencySubstitution {
+            substitute(module("rs.reticulum:personal-rns")).using(project(":"))
+        }
     }
 }
 
@@ -136,7 +136,9 @@ include(":core:usbserial")
 include(":core:bleserial")
 include(":core:vnc")
 include(":core:rdp")
-include(":core:prns")
+if (providers.gradleProperty("enablePrns").orNull == "true") {
+    include(":core:prns")
+}
 include(":core:spice")
 include(":core:glkvm")
 include(":core:smb")

@@ -27,10 +27,6 @@ dependencies {
     implementation(project(":core:ui"))
     implementation(project(":core:toolbar"))
     implementation(project(":core:rdp"))
-    implementation(project(":core:knock"))
-    implementation(project(":core:ssh"))
-    implementation(project(":core:mosh"))
-    implementation(project(":core:et"))
     implementation(project(":core:data"))
 
     implementation(libs.activity.compose)

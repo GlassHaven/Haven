@@ -1115,11 +1115,38 @@ fun TerminalScreen(
     }
 
     // Security-key (FIDO2) touch/PIN prompt for a new-tab fresh dial that needs
-    // an assertion — same dialog the Connections screen shows, so the auth no
-    // longer blocks silently when triggered from the terminal.
+    // an assertion — shared `:core:ui` dialog so `:feature:terminal` compiles
+    // independently of `:feature:connections`.
     fidoTouchPrompt?.let { prompt ->
-        sh.haven.feature.connections.FidoTouchPromptDialog(
-            prompt = prompt,
+        val uiPrompt = when (prompt) {
+            is sh.haven.core.fido.FidoTouchPrompt.WaitingForKey ->
+                sh.haven.core.ui.components.FidoPromptUiState.WaitingForKey(keyLabel = prompt.keyLabel)
+            is sh.haven.core.fido.FidoTouchPrompt.WrongKey ->
+                sh.haven.core.ui.components.FidoPromptUiState.WrongKey(
+                    keyLabel = prompt.keyLabel,
+                    attemptsLeft = prompt.attemptsLeft,
+                )
+            is sh.haven.core.fido.FidoTouchPrompt.TouchKey ->
+                sh.haven.core.ui.components.FidoPromptUiState.TouchKey(
+                    transport = when (prompt.transport) {
+                        sh.haven.core.fido.FidoTouchPrompt.TouchKey.Transport.USB ->
+                            sh.haven.core.ui.components.FidoPromptUiState.TouchKey.Transport.USB
+                        sh.haven.core.fido.FidoTouchPrompt.TouchKey.Transport.NFC ->
+                            sh.haven.core.ui.components.FidoPromptUiState.TouchKey.Transport.NFC
+                    },
+                    keyLabel = prompt.keyLabel,
+                )
+            is sh.haven.core.fido.FidoTouchPrompt.EnterPin ->
+                sh.haven.core.ui.components.FidoPromptUiState.EnterPin(
+                    submit = prompt.submit,
+                    retriesRemaining = prompt.retriesRemaining,
+                    keyLabel = prompt.keyLabel,
+                    settingNew = prompt.settingNew,
+                    promptKey = prompt,
+                )
+        }
+        sh.haven.core.ui.components.FidoTouchPromptDialog(
+            prompt = uiPrompt,
             onCancel = { viewModel.cancelFido() },
         )
     }

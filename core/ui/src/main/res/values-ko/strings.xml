@@ -47,4 +47,18 @@
     <string name="wayland_cd_desktop_resolution">데스크톱 해상도</string>
     <string name="external_display_cd_on">외부 디스플레이 출력 켜짐 (탭하여 기기 화면에 표시)</string>
     <string name="external_display_cd_off">외부 디스플레이 출력 꺼짐 (탭하여 외부 디스플레이에 투사)</string>
+    <string name="connections_fido_cancel_hint">연결 목록에서 연결을 끊어 취소하세요.</string>
+    <string name="connections_fido_pin_help">이 SSH 키는 verify-required로 등록되었습니다. 계속하려면 보안 키에 설정된 PIN을 입력하세요.</string>
+    <string name="connections_fido_pin_label">PIN</string>
+    <string name="connections_fido_pin_title">보안 키 PIN</string>
+    <string name="connections_fido_pin_wrong">잘못된 PIN입니다. 키가 잠기기 전 %1$d회 시도 남음.</string>
+    <string name="connections_fido_touch_nfc_body">보안 키를 기기 뒤쪽에 2초간 대고 있어 서명이 완료되도록 하세요. 미리 떼면 교환이 중단되어 다시 태그해야 합니다.</string>
+    <string name="connections_fido_touch_nfc_title">보안 키를 대고 있으세요</string>
+    <string name="connections_fido_touch_usb_body">지금 보안 키의 버튼을 눌러 SSH 서명을 승인하세요. 키가 대기 중임을 알리기 위해 깜박일 수 있습니다.</string>
+    <string name="connections_fido_touch_usb_title">보안 키를 터치하세요</string>
+    <string name="connections_fido_waiting_body">보안 키를 USB로 연결하거나, NFC라면 기기 뒷면에 태그하세요. 감지되면 Haven이 자동으로 계속 진행합니다.</string>
+    <string name="connections_fido_waiting_title">보안 키 대기 중</string>
+    <string name="connections_fido_key_label">키: %1$s</string>
+    <string name="connections_fido_wrong_title">잘못된 보안 키</string>
+    <string name="connections_fido_wrong_body">이 키에는 서버가 요청한 자격 증명이 없습니다. 요청된 키를 제시하고 터치하세요.</string>
 </resources>

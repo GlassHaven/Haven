@@ -200,8 +200,6 @@
     <string name="connections_password_title">%1$s से कनेक्ट करें</string>
     <string name="connections_password_button">कनेक्ट करें</string>
 
-    <string name="connections_fido_pin_title">सुरक्षा कुंजी PIN</string>
-    <string name="connections_fido_pin_label">PIN</string>
 
     <string name="connections_ki_submit">सबमिट करें</string>
 
@@ -236,15 +234,6 @@
     <string name="connections_password_remember_password">पासवर्ड याद रखें</string>
     <string name="connections_password_remember_passphrase">कुंजी पासफ़्रेज़ याद रखें</string>
     <string name="connections_password_leave_empty_for_key">SSH कुंजी से कनेक्ट करने के लिए खाली छोड़ें</string>
-    <string name="connections_fido_pin_help">यह SSH कुंजी verify-required के साथ पंजीकृत है। जारी रखने के लिए अपनी सुरक्षा कुंजी पर सेट किया गया PIN दर्ज करें।</string>
-    <string name="connections_fido_pin_wrong">गलत PIN। कुंजी लॉक होने से पहले %1$d प्रयास शेष।</string>
-    <string name="connections_fido_waiting_title">सुरक्षा कुंजी आवश्यक</string>
-    <string name="connections_fido_waiting_body">अपनी सुरक्षा कुंजी को USB से लगाएँ, या NFC के लिए डिवाइस के पीछे टैप करें। पहचान होते ही Haven अपने आप आगे बढ़ेगा।</string>
-    <string name="connections_fido_touch_usb_title">अपनी सुरक्षा कुंजी को स्पर्श करें</string>
-    <string name="connections_fido_touch_usb_body">SSH हस्ताक्षर को अधिकृत करने के लिए अभी अपनी सुरक्षा कुंजी का बटन दबाएँ। प्रतीक्षा दर्शाने के लिए कुंजी झपक सकती है।</string>
-    <string name="connections_fido_touch_nfc_title">अपनी सुरक्षा कुंजी पकड़े रखें</string>
-    <string name="connections_fido_touch_nfc_body">हस्ताक्षर होते समय सुरक्षा कुंजी को डिवाइस के पीछे दो सेकंड तक लगाए रखें। जल्दी हटाने पर प्रक्रिया रद्द हो जाती है और फिर से टैप करना होगा।</string>
-    <string name="connections_fido_cancel_hint">कनेक्शन सूची से डिस्कनेक्ट करके रद्द करें।</string>
     <string name="connections_ki_response_fallback">प्रतिक्रिया</string>
     <string name="connections_ki_title_additional">अतिरिक्त प्रमाणीकरण आवश्यक</string>
     <string name="connections_ki_title_server">सर्वर संकेत</string>
@@ -528,9 +517,6 @@
     <string name="connections_usb_forward_unattached">%1$s (अटैच नहीं)</string>
     <string name="connections_deploy_field_password_optional">पासवर्ड (वैकल्पिक)</string>
     <string name="connections_deploy_password_hint">इस प्रोफ़ाइल की सहेजी गई कुंजी से डिप्लॉय करने के लिए खाली छोड़ें। पासवर्ड केवल तब चाहिए जब सर्वर पासवर्ड से प्रमाणित करता हो (या किसी कुंजी पासफ़्रेज़ / जंप होस्ट को अनलॉक करने के लिए)।</string>
-    <string name="connections_fido_key_label">कुंजी: %1$s</string>
-    <string name="connections_fido_wrong_title">गलत सुरक्षा कुंजी</string>
-    <string name="connections_fido_wrong_body">इस कुंजी में वह क्रेडेंशियल नहीं है जो सर्वर ने माँगा। अनुरोधित कुंजी प्रस्तुत करें और उसे टच करें।</string>
     <string name="connections_auth_key_picker">कुंजी: %1$s ▾</string>
     <string name="connections_auth_key_only">✓ केवल यही कुंजी उपयोग करें</string>
     <string name="connections_mcp_active">एजेंट इस कनेक्शन पर काम कर रहा है — इसके लिए MCP अक्षम करने हेतु टैप करें</string>

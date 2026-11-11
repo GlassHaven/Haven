@@ -53,10 +53,6 @@ dependencies {
     // upload pipeline (TerminalAttachCoordinator) — depending on the SFTP
     // module is therefore intentional, not a layering accident.
     implementation(project(":feature:sftp"))
-    // Reuse the Connections feature's FidoTouchPromptDialog so a security-key
-    // re-auth triggered from the terminal (a fresh-dial new tab) surfaces the
-    // same touch/PIN prompt instead of hanging silently.
-    implementation(project(":feature:connections"))
 
     implementation(libs.core.ktx)
     implementation(libs.activity.compose)

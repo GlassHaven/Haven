@@ -79,7 +79,7 @@ That rule produces a sharp dividing line:
 
 The build-vs-delegate rule has a useful test: *if the user would want to invoke a second primitive while looking at this view, we have to own the view.* You want to copy a line from a terminal into the port-forward dialog → same app. You want to open a media file in a player → different app is fine. You want to drag a file from one backend tab to another → same app. You want to watch the file → different app is fine.
 
-This is also why certain features are explicitly not going to be built (see "Scope boundaries" below): a text editor, a media player, a chat client for IRC/Matrix/XMPP. Those would be presentations of nothing — they don't compose with Haven's primitives, they just duplicate work the OS already supports well.
+This is also why certain features are explicitly not going to be built (see "Scope boundaries" below): a media player, a full IDE / LSP server, or a native chat client for IRC/Matrix/XMPP. Those don't compose with Haven's primitives in ways the host OS or PRoot runtime cannot already serve well.
 
 #### Shared with agents
 
@@ -156,7 +156,7 @@ The tier is a property of the **verb, not the caller**. A human tapping a Tier-4
 
 ## Memory — the agent's persistent constitution
 
-An agent that works on the same project across many sessions needs somewhere durable to keep what it has learned and the rules it operates under — and, consistent with "the UI is ground truth, no hidden channel," that store should be a **surfaced artifact the human can read and edit**, not state buried inside a model's context. Haven's role here is not to ship a model or a memory service; it is to host the agent's *constitution* — its notes, decisions, and standing instructions — as a human-auditable, human-editable document set the agent maintains. Because a write to it reshapes all of the agent's future behaviour, editing the constitution is a **Tier-4** action: irreversible in spirit, always surfaced. This is forward-looking; the nearest shipped substrate is turn-based agent↔agent conversation (`send_to_agent`, `await_turn`, `read_last_turn`), prototyped in `docs/haven_convo_prototype.py`.
+An agent that works on the same project across many sessions needs somewhere durable to keep what it has learned and the rules it operates under — and, consistent with "the UI is ground truth, no hidden channel," that store should be a **surfaced artifact the human can read and edit**, not state buried inside a model's context. Haven's role here is not to ship a model or a memory service; it is to host the agent's *constitution* — its notes, decisions, and standing instructions — as a human-auditable, human-editable document set the agent maintains. Because a write to it reshapes all of the agent's future behaviour, editing the constitution is a **Tier-4** action: irreversible in spirit, always surfaced. This is forward-looking; the nearest shipped substrate is turn-based agent↔agent conversation (`send_to_agent`, `await_turn`, `read_last_turn`), prototyped in `scripts/haven_convo_prototype.py`.
 
 ## The self-hosting loop — Haven develops Haven
 
@@ -291,7 +291,7 @@ Haven's native Wayland compositor is the most technically differentiated piece o
 
 A tight scope is how a small project stays coherent. Haven deliberately does not:
 
-- **Build an editor** — vim/nano/micro in PRoot or on the remote shell is the editor. Building an in-app text editor is a tar pit.
+- **Build a full IDE** — `:feature:editor` provides lightweight in-app code viewing and edits directly over `FileBackend` transports, while full LSP/project IDEs (`neovim`, `helix`, `code-server`) belong in PRoot or on the remote shell.
 - **Build a media player** — the OS already has VLC, MX Player, etc. Haven hands off via intents. We are the file transport and transformation layer, not the playback layer.
 - **Reimplement tmux/zellij** — split panes, scrollback search, session persistence are session-manager features. Haven integrates with them via SessionManagerRegistry instead of competing.
 - **Build provider-specific features** — rclone is the abstraction. No Google Drive-specific sharing UI, no Dropbox versioning, no S3 object lifecycle panel. The provider list stays uniform.

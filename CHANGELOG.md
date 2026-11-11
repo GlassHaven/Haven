@@ -5,6 +5,11 @@ the corresponding GitHub Release; a release can't ship without its section
 (enforced by `scripts/check-changelog.sh` in CI). The GitHub "Full Changelog"
 compare link is appended automatically — don't add it here.
 
+## v5.94.28
+
+- Register `UpdateNotifier`'s `ProcessLifecycleOwner` observer on the main thread so cold launch after `v5.94.27` no longer crashes during `HavenApp` background startup (#830, thanks @3in1sl).
+- Honour latched `Swipe` arrow mode (`swipeArrowsMode`), including horizontal swipes and `Shift`+swipe, when a terminal app enables mouse tracking (`htop`, `lnav`, `vim` with `mouse=a`, `tmux`) (#736, thanks @excurso).
+
 ## v5.94.27
 
 - Trigger a remote right-click on stationary touch long-press in RDP, SPICE, and GLKVM **Direct** and **Touchpad** modes, matching VNC (#828, thanks @pixel4696).

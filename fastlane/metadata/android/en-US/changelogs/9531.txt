@@ -1,0 +1,2 @@
+- Register UpdateNotifier's ProcessLifecycleOwner observer on the main thread so cold launch after v5.94.27 no longer crashes during HavenApp background startup (#830, thanks @3in1sl).
+- Honour latched Swipe arrow mode, including horizontal swipes and Shift+swipe, when a terminal app enables mouse tracking such as htop, lnav, vim with mouse=a, and tmux (#736, thanks @excurso).

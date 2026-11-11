@@ -385,4 +385,24 @@
     <string name="app_desktop_guest_user_description">تشغيل الصدفات وأسطح مكتب X11 كمستخدم عادي (uid 1000) مع صلاحية sudo بدون كلمة مرور بدلاً من الجذر. اتركه فارغاً أو اضبطه على root لوضع الجذر.</string>
     <string name="app_desktop_guest_user_label">اسم المستخدم</string>
     <string name="app_desktop_guest_user_hint">root (أو مثلاً user)</string>
+    <string name="app_desktop_routing_title">توجيه الضيف</string>
+    <string name="app_desktop_routing_description">توجيه وكيل الشبكة لبيئة %1$s. يُطبَّق عند التشغيل التالي للصدفة أو سطح المكتب أو الأوامر.</string>
+    <string name="app_desktop_routing_reset">إعادة ضبط</string>
+    <string name="app_desktop_routing_mode_follow_tunnel">اتّباع النفق النشط</string>
+    <string name="app_desktop_routing_mode_direct">مباشر (بدون وكيل)</string>
+    <string name="app_desktop_routing_mode_haven_tunnel">نفق Haven</string>
+    <string name="app_desktop_routing_mode_socks5">SOCKS5 مخصّص</string>
+    <string name="app_desktop_routing_mode_http">HTTP(S) مخصّص</string>
+    <string name="app_desktop_routing_tunnel_select">اختر نفقًا…</string>
+    <string name="app_desktop_routing_no_tunnels">لا توجد أنفاق مستقلة محفوظة بعد. أضف نفق WireGuard أو Tailscale أو OpenVPN أو AnyConnect من الإعدادات ← الأنفاق.</string>
+    <string name="app_desktop_routing_proxy_label">عنوان الوكيل (URL)</string>
+    <string name="app_desktop_routing_no_proxy_label">المضيفات المستثناة (NO_PROXY)</string>
+    <string name="app_desktop_routing_proxychains_title">التغليف عبر proxychains4</string>
+    <string name="app_desktop_routing_proxychains_description">يكتب الملف /etc/proxychains-haven.conf ويشغّل الصدفات والأوامر عبر proxychains4 عند تثبيته داخل الضيف (للبرامج المرتبطة ديناميكيًا فقط).</string>
+    <string name="app_desktop_routing_err_missing_tunnel">اختر نفق Haven محفوظًا.</string>
+    <string name="app_desktop_routing_err_missing_url">أدخل مضيف:منفذ أو عنوان URL للوكيل.</string>
+    <string name="app_desktop_routing_err_scheme_socks5">يتطلّب وضع SOCKS5 الصيغة host:port أو socks5:// أو socks5h://.</string>
+    <string name="app_desktop_routing_err_scheme_http">يتطلّب وضع HTTP الصيغة host:port أو http:// أو https://.</string>
+    <string name="app_desktop_routing_err_invalid_host">اسم مضيف أو عنوان IP للوكيل غير صالح.</string>
+    <string name="app_desktop_routing_err_invalid_port">أدخل منفذًا صالحًا بين 1 و65535 (مثل 127.0.0.1:1080).</string>
 </resources>

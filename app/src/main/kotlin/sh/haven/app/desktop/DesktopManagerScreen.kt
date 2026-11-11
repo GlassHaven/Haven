@@ -87,6 +87,9 @@ import kotlinx.coroutines.launch
 import sh.haven.core.local.DesktopManager
 import sh.haven.core.local.ProotDnsMode
 import sh.haven.core.local.ProotManager
+import sh.haven.core.local.ProotRouting
+import sh.haven.core.local.ProotRoutingConfig
+import sh.haven.core.local.ProotRoutingMode
 import sh.haven.core.local.SystemVmManager
 import sh.haven.core.local.VmArch
 import sh.haven.core.local.proot.Compatibility
@@ -1521,6 +1524,213 @@ private fun dnsModeLabel(mode: ProotDnsMode): String = when (mode) {
 }
 
 /**
+ * Per-distro network proxy routing (#835). Complements [GuestDnsRow] with
+ * `ALL_PROXY`/`HTTP_PROXY`/`HTTPS_PROXY`/`NO_PROXY` export, saved Haven tunnel
+ * SOCKS5 loopback bring-up, inline validation, reset/clear, and optional
+ * `proxychains4` wrapping.
+ */
+@Composable
+private fun GuestRoutingRow(
+    distroLabel: String,
+    config: ProotRoutingConfig,
+    savedTunnels: List<sh.haven.core.data.db.entities.TunnelConfig>,
+    onConfigChange: (ProotRoutingConfig) -> Unit,
+    onReset: () -> Unit,
+) {
+    var modeMenuOpen by remember { mutableStateOf(false) }
+    var tunnelMenuOpen by remember { mutableStateOf(false) }
+    val validationError = remember(config) { ProotRouting.validate(config) }
+
+    Row(
+        modifier = Modifier.fillMaxWidth(),
+        verticalAlignment = Alignment.CenterVertically,
+    ) {
+        Text(
+            stringResource(AppR.string.app_desktop_routing_title),
+            style = MaterialTheme.typography.titleSmall,
+            modifier = Modifier.weight(1f),
+        )
+        if (!config.isDefault) {
+            TextButton(onClick = onReset) {
+                Text(stringResource(AppR.string.app_desktop_routing_reset))
+            }
+        }
+    }
+    Spacer(Modifier.height(2.dp))
+    Text(
+        stringResource(AppR.string.app_desktop_routing_description, distroLabel),
+        style = MaterialTheme.typography.bodySmall,
+        color = MaterialTheme.colorScheme.onSurfaceVariant,
+    )
+    Spacer(Modifier.height(4.dp))
+    Box {
+        AssistChip(
+            onClick = { modeMenuOpen = true },
+            label = { Text(routingModeLabel(config.mode)) },
+            trailingIcon = {
+                Icon(
+                    Icons.Filled.ExpandMore,
+                    contentDescription = null,
+                    modifier = Modifier.size(16.dp),
+                )
+            },
+        )
+        DropdownMenu(expanded = modeMenuOpen, onDismissRequest = { modeMenuOpen = false }) {
+            ProotRoutingMode.entries.forEach { candidate ->
+                DropdownMenuItem(
+                    text = { Text(routingModeLabel(candidate)) },
+                    leadingIcon = if (candidate == config.mode) {
+                        {
+                            Icon(
+                                Icons.Filled.Check,
+                                contentDescription = null,
+                                modifier = Modifier.size(20.dp),
+                            )
+                        }
+                    } else {
+                        null
+                    },
+                    onClick = {
+                        onConfigChange(config.copy(mode = candidate))
+                        modeMenuOpen = false
+                    },
+                )
+            }
+        }
+    }
+
+    when (config.mode) {
+        ProotRoutingMode.FOLLOW_TUNNEL, ProotRoutingMode.DIRECT -> Unit
+        ProotRoutingMode.HAVEN_TUNNEL -> {
+            Spacer(Modifier.height(8.dp))
+            if (savedTunnels.isEmpty()) {
+                Text(
+                    stringResource(AppR.string.app_desktop_routing_no_tunnels),
+                    style = MaterialTheme.typography.bodySmall,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant,
+                )
+            } else {
+                val selectedTunnel = savedTunnels.firstOrNull { it.id == config.tunnelConfigId }
+                val chipText = if (selectedTunnel != null) {
+                    "${selectedTunnel.label} (${selectedTunnel.type})"
+                } else {
+                    stringResource(AppR.string.app_desktop_routing_tunnel_select)
+                }
+                Box {
+                    AssistChip(
+                        onClick = { tunnelMenuOpen = true },
+                        label = { Text(chipText) },
+                        trailingIcon = {
+                            Icon(
+                                Icons.Filled.ExpandMore,
+                                contentDescription = null,
+                                modifier = Modifier.size(16.dp),
+                            )
+                        },
+                    )
+                    DropdownMenu(expanded = tunnelMenuOpen, onDismissRequest = { tunnelMenuOpen = false }) {
+                        savedTunnels.forEach { tunnel ->
+                            DropdownMenuItem(
+                                text = { Text("${tunnel.label} (${tunnel.type})") },
+                                leadingIcon = if (tunnel.id == config.tunnelConfigId) {
+                                    {
+                                        Icon(
+                                            Icons.Filled.Check,
+                                            contentDescription = null,
+                                            modifier = Modifier.size(20.dp),
+                                        )
+                                    }
+                                } else {
+                                    null
+                                },
+                                onClick = {
+                                    onConfigChange(config.copy(tunnelConfigId = tunnel.id))
+                                    tunnelMenuOpen = false
+                                },
+                            )
+                        }
+                    }
+                }
+                if (validationError == ProotRouting.ValidationError.MISSING_TUNNEL) {
+                    Spacer(Modifier.height(4.dp))
+                    Text(
+                        stringResource(AppR.string.app_desktop_routing_err_missing_tunnel),
+                        style = MaterialTheme.typography.bodySmall,
+                        color = MaterialTheme.colorScheme.error,
+                    )
+                }
+            }
+            Spacer(Modifier.height(8.dp))
+            OutlinedTextField(
+                value = config.noProxy,
+                onValueChange = { onConfigChange(config.copy(noProxy = it)) },
+                label = { Text(stringResource(AppR.string.app_desktop_routing_no_proxy_label)) },
+                singleLine = true,
+                modifier = Modifier.fillMaxWidth(),
+            )
+        }
+
+        ProotRoutingMode.SOCKS5, ProotRoutingMode.HTTP -> {
+            Spacer(Modifier.height(8.dp))
+            val hintRes = if (config.mode == ProotRoutingMode.SOCKS5) {
+                AppR.string.app_desktop_routing_socks5_hint
+            } else {
+                AppR.string.app_desktop_routing_http_hint
+            }
+            OutlinedTextField(
+                value = config.proxyUrl,
+                onValueChange = { onConfigChange(config.copy(proxyUrl = it)) },
+                label = { Text(stringResource(AppR.string.app_desktop_routing_proxy_label)) },
+                placeholder = { Text(stringResource(hintRes)) },
+                isError = validationError != null,
+                supportingText = validationError?.let { err ->
+                    { Text(routingValidationErrorText(err)) }
+                },
+                singleLine = true,
+                modifier = Modifier.fillMaxWidth(),
+            )
+            Spacer(Modifier.height(8.dp))
+            OutlinedTextField(
+                value = config.noProxy,
+                onValueChange = { onConfigChange(config.copy(noProxy = it)) },
+                label = { Text(stringResource(AppR.string.app_desktop_routing_no_proxy_label)) },
+                singleLine = true,
+                modifier = Modifier.fillMaxWidth(),
+            )
+        }
+    }
+
+    if (config.mode != ProotRoutingMode.DIRECT) {
+        Spacer(Modifier.height(8.dp))
+        BindingToggleRow(
+            title = stringResource(AppR.string.app_desktop_routing_proxychains_title),
+            description = stringResource(AppR.string.app_desktop_routing_proxychains_description),
+            checked = config.useProxychains,
+            onCheckedChange = { onConfigChange(config.copy(useProxychains = it)) },
+        )
+    }
+}
+
+@Composable
+private fun routingModeLabel(mode: ProotRoutingMode): String = when (mode) {
+    ProotRoutingMode.FOLLOW_TUNNEL -> stringResource(AppR.string.app_desktop_routing_mode_follow_tunnel)
+    ProotRoutingMode.DIRECT -> stringResource(AppR.string.app_desktop_routing_mode_direct)
+    ProotRoutingMode.HAVEN_TUNNEL -> stringResource(AppR.string.app_desktop_routing_mode_haven_tunnel)
+    ProotRoutingMode.SOCKS5 -> stringResource(AppR.string.app_desktop_routing_mode_socks5)
+    ProotRoutingMode.HTTP -> stringResource(AppR.string.app_desktop_routing_mode_http)
+}
+
+@Composable
+private fun routingValidationErrorText(error: ProotRouting.ValidationError): String = when (error) {
+    ProotRouting.ValidationError.MISSING_TUNNEL -> stringResource(AppR.string.app_desktop_routing_err_missing_tunnel)
+    ProotRouting.ValidationError.MISSING_PROXY_URL -> stringResource(AppR.string.app_desktop_routing_err_missing_url)
+    ProotRouting.ValidationError.SCHEME_MISMATCH_SOCKS5 -> stringResource(AppR.string.app_desktop_routing_err_scheme_socks5)
+    ProotRouting.ValidationError.SCHEME_MISMATCH_HTTP -> stringResource(AppR.string.app_desktop_routing_err_scheme_http)
+    ProotRouting.ValidationError.INVALID_HOST -> stringResource(AppR.string.app_desktop_routing_err_invalid_host)
+    ProotRouting.ValidationError.INVALID_PORT -> stringResource(AppR.string.app_desktop_routing_err_invalid_port)
+}
+
+/**
  * Guest non-root user (#718). When non-blank and not "root", Haven provisions
  * `/home/<user>` (uid 1000) with passwordless sudo in `/etc/sudoers.d/99-haven`
  * and runs local shells and X11 desktops via PRoot `-i 1000:1000`.
@@ -2264,6 +2474,24 @@ private fun DesktopManagerSection(
                         servers = dnsServers,
                         onSelectMode = onSetDnsMode,
                         onServersChange = onSetDnsServers,
+                    )
+                    Spacer(Modifier.height(8.dp))
+                    val routingRev by viewModel.routingRev.collectAsState()
+                    val savedTunnels by viewModel.savedTunnels.collectAsState()
+                    val activeRoutingConfig = remember(activeDistroId, routingRev) {
+                        viewModel.routingConfig(activeDistroId)
+                    }
+                    val activeDistroLabel = remember(activeDistroId, installedDistros) {
+                        installedDistros.firstOrNull { it.id == activeDistroId }?.label
+                            ?: DistroCatalog.lookup(activeDistroId)?.label
+                            ?: activeDistroId
+                    }
+                    GuestRoutingRow(
+                        distroLabel = activeDistroLabel,
+                        config = activeRoutingConfig,
+                        savedTunnels = savedTunnels,
+                        onConfigChange = { updated -> viewModel.setRoutingConfig(activeDistroId, updated) },
+                        onReset = { viewModel.clearRoutingConfig(activeDistroId) },
                     )
                     Spacer(Modifier.height(8.dp))
                     GuestUserRow(

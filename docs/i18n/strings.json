@@ -6835,6 +6835,422 @@
       "sr": "Тапните да се отвори страница издања.",
       "zh": "点按打开发行版页面。"
      }
+    },
+    {
+     "name": "app_desktop_routing_socks5_hint",
+     "en": "socks5h://127.0.0.1:1080",
+     "comment": "Per-distro PRoot routing (#835)",
+     "args": [],
+     "t": {}
+    },
+    {
+     "name": "app_desktop_routing_http_hint",
+     "en": "http://127.0.0.1:8080",
+     "comment": "Per-distro PRoot routing (#835)",
+     "args": [],
+     "t": {}
+    },
+    {
+     "name": "app_desktop_routing_title",
+     "en": "Guest routing",
+     "comment": "Per-distro PRoot routing (#835)",
+     "args": [],
+     "t": {
+      "ar": "توجيه الضيف",
+      "bn": "গেস্ট রাউটিং",
+      "de": "Gast-Routing",
+      "es": "Enrutamiento del invitado",
+      "fr": "Routage invité",
+      "hi": "गेस्ट रूटिंग",
+      "ja": "ゲストルーティング",
+      "ko": "게스트 라우팅",
+      "pt": "Roteamento do convidado",
+      "ru": "Маршрутизация гостя",
+      "sr": "Rutiranje gosta",
+      "zh": "客户机路由"
+     }
+    },
+    {
+     "name": "app_desktop_routing_description",
+     "en": "Network proxy routing for %1$s. Applied on the next shell, desktop, or guest command launch.",
+     "comment": "Per-distro PRoot routing (#835)",
+     "args": [
+      "%1$s"
+     ],
+     "t": {
+      "ar": "توجيه وكيل الشبكة لبيئة %1$s. يُطبَّق عند التشغيل التالي للصدفة أو سطح المكتب أو الأوامر.",
+      "bn": "%1$s-এর জন্য নেটওয়ার্ক প্রক্সি রাউটিং। পরবর্তী শেল, ডেস্কটপ বা কমান্ড চালুর সময় প্রযোজ্য হবে।",
+      "de": "Netzwerk-Proxy-Routing für %1$s. Wird beim nächsten Start von Shell, Desktop oder Gastbefehl angewendet.",
+      "es": "Enrutamiento por proxy de red para %1$s. Se aplica al próximo inicio de shell, escritorio o comando.",
+      "fr": "Routage proxy réseau pour %1$s. Appliqué au prochain lancement de shell, de bureau ou de commande.",
+      "hi": "%1$s के लिए नेटवर्क प्रॉक्सी रूटिंग। अगली बार शेल, डेस्कटॉप या कमांड शुरू करने पर लागू होगी।",
+      "ja": "%1$s のネットワークプロキシルーティング。次回のシェル、デスクトップ、またはゲストコマンド起動時に適用されます。",
+      "ko": "%1$s용 네트워크 프록시 라우팅입니다. 다음 셸, 데스크톱 또는 명령 실행 시 적용됩니다.",
+      "pt": "Roteamento de proxy de rede para %1$s. Aplicado na próxima inicialização de shell, área de trabalho ou comando.",
+      "ru": "Прокси-маршрутизация сети для %1$s. Применяется при следующем запуске оболочки, рабочего стола или команды.",
+      "sr": "Mrežno proksi rutiranje za %1$s. Primenjuje se pri sledećem pokretanju ljuske, radne površine ili komande.",
+      "zh": "%1$s 的网络代理路由。将在下次启动终端、桌面或客户机命令时生效。"
+     }
+    },
+    {
+     "name": "app_desktop_routing_reset",
+     "en": "Reset",
+     "comment": "Per-distro PRoot routing (#835)",
+     "args": [],
+     "t": {
+      "ar": "إعادة ضبط",
+      "bn": "রিসেট",
+      "de": "Zurücksetzen",
+      "es": "Restablecer",
+      "fr": "Réinitialiser",
+      "hi": "रीसेट करें",
+      "ja": "リセット",
+      "ko": "초기화",
+      "pt": "Redefinir",
+      "ru": "Сбросить",
+      "sr": "Resetuj",
+      "zh": "重置"
+     }
+    },
+    {
+     "name": "app_desktop_routing_mode_follow_tunnel",
+     "en": "Follow active tunnel",
+     "comment": "Per-distro PRoot routing (#835)",
+     "args": [],
+     "t": {
+      "ar": "اتّباع النفق النشط",
+      "bn": "সক্রিয় টানেল অনুসরণ করুন",
+      "de": "Aktivem Tunnel folgen",
+      "es": "Seguir túnel activo",
+      "fr": "Suivre le tunnel actif",
+      "hi": "सक्रिय टनल का अनुसरण करें",
+      "ja": "アクティブなトンネルに従う",
+      "ko": "활성 터널 따르기",
+      "pt": "Seguir túnel ativo",
+      "ru": "Следовать активному туннелю",
+      "sr": "Prati aktivni tunel",
+      "zh": "跟随活动隧道"
+     }
+    },
+    {
+     "name": "app_desktop_routing_mode_direct",
+     "en": "Direct (no proxy)",
+     "comment": "Per-distro PRoot routing (#835)",
+     "args": [],
+     "t": {
+      "ar": "مباشر (بدون وكيل)",
+      "bn": "সরাসরি (প্রক্সি ছাড়া)",
+      "de": "Direkt (kein Proxy)",
+      "es": "Directo (sin proxy)",
+      "fr": "Direct (sans proxy)",
+      "hi": "प्रत्यक्ष (बिना प्रॉक्सी)",
+      "ja": "直接接続（プロキシなし）",
+      "ko": "직접 연결 (프록시 없음)",
+      "pt": "Direto (sem proxy)",
+      "ru": "Напрямую (без прокси)",
+      "sr": "Direktno (bez proksija)",
+      "zh": "直连（不使用代理）"
+     }
+    },
+    {
+     "name": "app_desktop_routing_mode_haven_tunnel",
+     "en": "Haven tunnel",
+     "comment": "Per-distro PRoot routing (#835)",
+     "args": [],
+     "t": {
+      "ar": "نفق Haven",
+      "bn": "Haven টানেল",
+      "de": "Haven-Tunnel",
+      "es": "Túnel de Haven",
+      "fr": "Tunnel Haven",
+      "hi": "Haven टनल",
+      "ja": "Haven トンネル",
+      "ko": "Haven 터널",
+      "pt": "Túnel do Haven",
+      "ru": "Туннель Haven",
+      "sr": "Haven tunel",
+      "zh": "Haven 隧道"
+     }
+    },
+    {
+     "name": "app_desktop_routing_mode_socks5",
+     "en": "Custom SOCKS5",
+     "comment": "Per-distro PRoot routing (#835)",
+     "args": [],
+     "t": {
+      "ar": "SOCKS5 مخصّص",
+      "bn": "কাস্টম SOCKS5",
+      "de": "Benutzerdefiniertes SOCKS5",
+      "es": "SOCKS5 personalizado",
+      "fr": "SOCKS5 personnalisé",
+      "hi": "कस्टम SOCKS5",
+      "ja": "カスタム SOCKS5",
+      "ko": "사용자 지정 SOCKS5",
+      "pt": "SOCKS5 personalizado",
+      "ru": "Свой SOCKS5",
+      "sr": "Prilagođeni SOCKS5",
+      "zh": "自定义 SOCKS5"
+     }
+    },
+    {
+     "name": "app_desktop_routing_mode_http",
+     "en": "Custom HTTP(S)",
+     "comment": "Per-distro PRoot routing (#835)",
+     "args": [],
+     "t": {
+      "ar": "HTTP(S) مخصّص",
+      "bn": "কাস্টম HTTP(S)",
+      "de": "Benutzerdefiniertes HTTP(S)",
+      "es": "HTTP(S) personalizado",
+      "fr": "HTTP(S) personnalisé",
+      "hi": "कस्टम HTTP(S)",
+      "ja": "カスタム HTTP(S)",
+      "ko": "사용자 지정 HTTP(S)",
+      "pt": "HTTP(S) personalizado",
+      "ru": "Свой HTTP(S)",
+      "sr": "Prilagođeni HTTP(S)",
+      "zh": "自定义 HTTP(S)"
+     }
+    },
+    {
+     "name": "app_desktop_routing_tunnel_select",
+     "en": "Select tunnel…",
+     "comment": "Per-distro PRoot routing (#835)",
+     "args": [],
+     "t": {
+      "ar": "اختر نفقًا…",
+      "bn": "টানেল নির্বাচন করুন…",
+      "de": "Tunnel auswählen…",
+      "es": "Seleccionar túnel…",
+      "fr": "Sélectionner un tunnel…",
+      "hi": "टनल चुनें…",
+      "ja": "トンネルを選択…",
+      "ko": "터널 선택…",
+      "pt": "Selecionar túnel…",
+      "ru": "Выберите туннель…",
+      "sr": "Izaberi tunel…",
+      "zh": "选择隧道…"
+     }
+    },
+    {
+     "name": "app_desktop_routing_no_tunnels",
+     "en": "No standalone tunnels saved yet. Add a WireGuard, Tailscale, OpenVPN, or AnyConnect tunnel in Settings → Tunnels.",
+     "comment": "Per-distro PRoot routing (#835)",
+     "args": [],
+     "t": {
+      "ar": "لا توجد أنفاق مستقلة محفوظة بعد. أضف نفق WireGuard أو Tailscale أو OpenVPN أو AnyConnect من الإعدادات ← الأنفاق.",
+      "bn": "এখনও কোনো স্বতন্ত্র টানেল সংরক্ষিত নেই। সেটিংস → টানেলস থেকে WireGuard, Tailscale, OpenVPN বা AnyConnect টানেল যোগ করুন।",
+      "de": "Noch keine eigenständigen Tunnel gespeichert. Fügen Sie unter Einstellungen → Tunnel einen WireGuard-, Tailscale-, OpenVPN- oder AnyConnect-Tunnel hinzu.",
+      "es": "Aún no hay túneles independientes guardados. Añade un túnel WireGuard, Tailscale, OpenVPN o AnyConnect en Ajustes → Túneles.",
+      "fr": "Aucun tunnel autonome enregistré. Ajoutez un tunnel WireGuard, Tailscale, OpenVPN ou AnyConnect dans Paramètres → Tunnels.",
+      "hi": "अभी कोई स्टैंडअलोन टनल सहेजा नहीं गया है। सेटिंग्स → टनल्स में WireGuard, Tailscale, OpenVPN या AnyConnect टनल जोड़ें।",
+      "ja": "保存済みのトンネルがありません。「設定 → トンネル」で WireGuard、Tailscale、OpenVPN、または AnyConnect トンネルを追加してください。",
+      "ko": "저장된 단독 터널이 없습니다. 설정 → 터널에서 WireGuard, Tailscale, OpenVPN 또는 AnyConnect 터널을 추가하세요.",
+      "pt": "Nenhum túnel autônomo salvo ainda. Adicione um túnel WireGuard, Tailscale, OpenVPN ou AnyConnect em Configurações → Túneis.",
+      "ru": "Автономные туннели ещё не сохранены. Добавьте туннель WireGuard, Tailscale, OpenVPN или AnyConnect в разделе Настройки → Туннели.",
+      "sr": "Nema sačuvanih samostalnih tunela. Dodajte WireGuard, Tailscale, OpenVPN ili AnyConnect tunel u Podešavanja → Tuneli.",
+      "zh": "尚未保存独立隧道。请在“设置 → 隧道”中添加 WireGuard、Tailscale、OpenVPN 或 AnyConnect 隧道。"
+     }
+    },
+    {
+     "name": "app_desktop_routing_proxy_label",
+     "en": "Proxy URL",
+     "comment": "Per-distro PRoot routing (#835)",
+     "args": [],
+     "t": {
+      "ar": "عنوان الوكيل (URL)",
+      "bn": "প্রক্সি URL",
+      "de": "Proxy-URL",
+      "es": "URL del proxy",
+      "fr": "URL du proxy",
+      "hi": "प्रॉक्सी URL",
+      "ja": "プロキシ URL",
+      "ko": "프록시 URL",
+      "pt": "URL do proxy",
+      "ru": "URL прокси",
+      "sr": "URL proksija",
+      "zh": "代理地址"
+     }
+    },
+    {
+     "name": "app_desktop_routing_no_proxy_label",
+     "en": "Bypass hosts (NO_PROXY)",
+     "comment": "Per-distro PRoot routing (#835)",
+     "args": [],
+     "t": {
+      "ar": "المضيفات المستثناة (NO_PROXY)",
+      "bn": "বাইপাস হোস্ট (NO_PROXY)",
+      "de": "Ausnahmen (NO_PROXY)",
+      "es": "Hosts excluidos (NO_PROXY)",
+      "fr": "Hôtes exclus (NO_PROXY)",
+      "hi": "बाईपास होस्ट (NO_PROXY)",
+      "ja": "除外ホスト (NO_PROXY)",
+      "ko": "우회 호스트 (NO_PROXY)",
+      "pt": "Hosts ignorados (NO_PROXY)",
+      "ru": "Исключения (NO_PROXY)",
+      "sr": "Zaobiđi hostove (NO_PROXY)",
+      "zh": "绕过主机 (NO_PROXY)"
+     }
+    },
+    {
+     "name": "app_desktop_routing_proxychains_title",
+     "en": "Wrap with proxychains4",
+     "comment": "Per-distro PRoot routing (#835)",
+     "args": [],
+     "t": {
+      "ar": "التغليف عبر proxychains4",
+      "bn": "proxychains4 দিয়ে চালান",
+      "de": "Mit proxychains4 ausführen",
+      "es": "Envolver con proxychains4",
+      "fr": "Exécuter via proxychains4",
+      "hi": "proxychains4 के साथ चलाएँ",
+      "ja": "proxychains4 でラップする",
+      "ko": "proxychains4로 감싸기",
+      "pt": "Encapsular com proxychains4",
+      "ru": "Запускать через proxychains4",
+      "sr": "Pokreni uz proxychains4",
+      "zh": "使用 proxychains4 包装"
+     }
+    },
+    {
+     "name": "app_desktop_routing_proxychains_description",
+     "en": "Writes /etc/proxychains-haven.conf and runs shells/commands under proxychains4 when installed in the guest (dynamic binaries only).",
+     "comment": "Per-distro PRoot routing (#835)",
+     "args": [],
+     "t": {
+      "ar": "يكتب الملف /etc/proxychains-haven.conf ويشغّل الصدفات والأوامر عبر proxychains4 عند تثبيته داخل الضيف (للبرامج المرتبطة ديناميكيًا فقط).",
+      "bn": "/etc/proxychains-haven.conf লেখে এবং গেস্টে proxychains4 ইনস্টল থাকলে তার অধীনে শেল/কমান্ড চালায় (শুধুমাত্র ডায়নামিক বাইনারি)।",
+      "de": "Schreibt /etc/proxychains-haven.conf und startet Shells/Befehle unter proxychains4, sofern im Gast installiert (nur dynamisch gelinkte Programme).",
+      "es": "Escribe /etc/proxychains-haven.conf y ejecuta shells/comandos con proxychains4 cuando está instalado en el invitado (solo binarios dinámicos).",
+      "fr": "Écrit /etc/proxychains-haven.conf et lance les shells/commandes sous proxychains4 lorsqu\\'il est installé dans l\\'invité (binaires dynamiques uniquement).",
+      "hi": "/etc/proxychains-haven.conf लिखता है और गेस्ट में proxychains4 इंस्टॉल होने पर उसके अंतर्गत शेल/कमांड चलाता है (केवल डायनेमिक बाइनरी)।",
+      "ja": "/etc/proxychains-haven.conf を書き出し、ゲスト内に proxychains4 がある場合にシェルやコマンドをラップします（動的リンクバイナリのみ）。",
+      "ko": "/etc/proxychains-haven.conf를 작성하고 게스트에 proxychains4가 설치된 경우 이를 통해 셸과 명령을 실행합니다(동적 바이너리 전용).",
+      "pt": "Grava /etc/proxychains-haven.conf e executa shells/comandos sob proxychains4 quando instalado no convidado (apenas binários dinâmicos).",
+      "ru": "Записывает /etc/proxychains-haven.conf и запускает оболочки и команды через proxychains4, если он установлен в гостевой ОС (только динамические бинарники).",
+      "sr": "Upisuje /etc/proxychains-haven.conf i pokreće ljuske i komande kroz proxychains4 kada je instaliran u gostu (samo dinamički binarni fajlovi).",
+      "zh": "写入 /etc/proxychains-haven.conf，并在客户机已安装 proxychains4 时通过其运行终端和命令（仅限动态链接程序）。"
+     }
+    },
+    {
+     "name": "app_desktop_routing_err_missing_tunnel",
+     "en": "Choose a saved Haven tunnel.",
+     "comment": "Per-distro PRoot routing (#835)",
+     "args": [],
+     "t": {
+      "ar": "اختر نفق Haven محفوظًا.",
+      "bn": "সংরক্ষিত একটি Haven টানেল বেছে নিন।",
+      "de": "Wählen Sie einen gespeicherten Haven-Tunnel aus.",
+      "es": "Elige un túnel de Haven guardado.",
+      "fr": "Choisissez un tunnel Haven enregistré.",
+      "hi": "सहेजा गया Haven टनल चुनें।",
+      "ja": "保存済みの Haven トンネルを選択してください。",
+      "ko": "저장된 Haven 터널을 선택하세요.",
+      "pt": "Escolha um túnel do Haven salvo.",
+      "ru": "Выберите сохранённый туннель Haven.",
+      "sr": "Izaberite sačuvani Haven tunel.",
+      "zh": "请选择已保存的 Haven 隧道。"
+     }
+    },
+    {
+     "name": "app_desktop_routing_err_missing_url",
+     "en": "Enter a proxy host:port or URL.",
+     "comment": "Per-distro PRoot routing (#835)",
+     "args": [],
+     "t": {
+      "ar": "أدخل مضيف:منفذ أو عنوان URL للوكيل.",
+      "bn": "প্রক্সি host:port বা URL লিখুন।",
+      "de": "Geben Sie Host:Port oder eine Proxy-URL ein.",
+      "es": "Introduce un host:puerto o URL de proxy.",
+      "fr": "Saisissez un hôte:port ou une URL de proxy.",
+      "hi": "प्रॉक्सी host:port या URL दर्ज करें।",
+      "ja": "プロキシの host:port または URL を入力してください。",
+      "ko": "프록시 host:port 또는 URL을 입력하세요.",
+      "pt": "Insira um host:porta ou URL de proxy.",
+      "ru": "Введите хост:порт или URL прокси.",
+      "sr": "Unesite host:port ili URL proksija.",
+      "zh": "请输入代理 host:port 或 URL。"
+     }
+    },
+    {
+     "name": "app_desktop_routing_err_scheme_socks5",
+     "en": "SOCKS5 mode expects host:port, socks5://, or socks5h://.",
+     "comment": "Per-distro PRoot routing (#835)",
+     "args": [],
+     "t": {
+      "ar": "يتطلّب وضع SOCKS5 الصيغة host:port أو socks5:// أو socks5h://.",
+      "bn": "SOCKS5 মোডে host:port, socks5:// অথবা socks5h:// প্রয়োজন।",
+      "de": "SOCKS5 erwartet Host:Port, socks5:// oder socks5h://.",
+      "es": "El modo SOCKS5 espera host:puerto, socks5:// o socks5h://.",
+      "fr": "Le mode SOCKS5 attend hôte:port, socks5:// ou socks5h://.",
+      "hi": "SOCKS5 मोड में host:port, socks5:// या socks5h:// अपेक्षित है।",
+      "ja": "SOCKS5 モードでは host:port、socks5://、または socks5h:// を指定してください。",
+      "ko": "SOCKS5 모드는 host:port, socks5:// 또는 socks5h:// 형식이어야 합니다.",
+      "pt": "O modo SOCKS5 espera host:porta, socks5:// ou socks5h://.",
+      "ru": "Для SOCKS5 укажите хост:порт, socks5:// или socks5h://.",
+      "sr": "SOCKS5 režim očekuje host:port, socks5:// ili socks5h://.",
+      "zh": "SOCKS5 模式需要 host:port、socks5:// 或 socks5h://。"
+     }
+    },
+    {
+     "name": "app_desktop_routing_err_scheme_http",
+     "en": "HTTP mode expects host:port, http://, or https://.",
+     "comment": "Per-distro PRoot routing (#835)",
+     "args": [],
+     "t": {
+      "ar": "يتطلّب وضع HTTP الصيغة host:port أو http:// أو https://.",
+      "bn": "HTTP মোডে host:port, http:// অথবা https:// প্রয়োজন।",
+      "de": "HTTP erwartet Host:Port, http:// oder https://.",
+      "es": "El modo HTTP espera host:puerto, http:// o https://.",
+      "fr": "Le mode HTTP attend hôte:port, http:// ou https://.",
+      "hi": "HTTP मोड में host:port, http:// या https:// अपेक्षित है।",
+      "ja": "HTTP モードでは host:port、http://、または https:// を指定してください。",
+      "ko": "HTTP 모드는 host:port, http:// 또는 https:// 형식이어야 합니다.",
+      "pt": "O modo HTTP espera host:porta, http:// ou https://.",
+      "ru": "Для HTTP укажите хост:порт, http:// или https://.",
+      "sr": "HTTP režim očekuje host:port, http:// ili https://.",
+      "zh": "HTTP 模式需要 host:port、http:// 或 https://。"
+     }
+    },
+    {
+     "name": "app_desktop_routing_err_invalid_host",
+     "en": "Invalid proxy hostname or IP address.",
+     "comment": "Per-distro PRoot routing (#835)",
+     "args": [],
+     "t": {
+      "ar": "اسم مضيف أو عنوان IP للوكيل غير صالح.",
+      "bn": "অবৈধ প্রক্সি হোস্টনেম বা IP ঠিকানা।",
+      "de": "Ungültiger Proxy-Hostname oder ungültige IP-Adresse.",
+      "es": "Nombre de host o dirección IP del proxy no válidos.",
+      "fr": "Nom d\\'hôte ou adresse IP du proxy invalide.",
+      "hi": "अमान्य प्रॉक्सी होस्टनेम या IP पता।",
+      "ja": "プロキシのホスト名または IP アドレスが無効です。",
+      "ko": "유효하지 않은 프록시 호스트 이름 또는 IP 주소입니다.",
+      "pt": "Nome de host ou endereço IP do proxy inválido.",
+      "ru": "Некорректное имя хоста или IP-адрес прокси.",
+      "sr": "Nevažeće ime hosta ili IP adresa proksija.",
+      "zh": "代理主机名或 IP 地址无效。"
+     }
+    },
+    {
+     "name": "app_desktop_routing_err_invalid_port",
+     "en": "Include a valid port between 1 and 65535 (e.g. 127.0.0.1:1080).",
+     "comment": "Per-distro PRoot routing (#835)",
+     "args": [],
+     "t": {
+      "ar": "أدخل منفذًا صالحًا بين 1 و65535 (مثل 127.0.0.1:1080).",
+      "bn": "1 থেকে 65535-এর মধ্যে একটি বৈধ পোর্ট দিন (যেমন 127.0.0.1:1080)।",
+      "de": "Geben Sie einen gültigen Port zwischen 1 und 65535 an (z. B. 127.0.0.1:1080).",
+      "es": "Incluye un puerto válido entre 1 y 65535 (p. ej. 127.0.0.1:1080).",
+      "fr": "Indiquez un port valide entre 1 et 65535 (p. ex. 127.0.0.1:1080).",
+      "hi": "1 और 65535 के बीच मान्य पोर्ट शामिल करें (जैसे 127.0.0.1:1080)।",
+      "ja": "1〜65535 の有効なポートを指定してください（例: 127.0.0.1:1080）。",
+      "ko": "1~65535 사이의 유효한 포트를 포함하세요(예: 127.0.0.1:1080).",
+      "pt": "Inclua uma porta válida entre 1 e 65535 (ex.: 127.0.0.1:1080).",
+      "ru": "Укажите порт от 1 до 65535 (например, 127.0.0.1:1080).",
+      "sr": "Unesite važeći port između 1 i 65535 (npr. 127.0.0.1:1080).",
+      "zh": "请包含 1 到 65535 之间的有效端口（例如 127.0.0.1:1080）。"
+     }
     }
    ]
   },

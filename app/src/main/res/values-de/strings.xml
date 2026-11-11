@@ -369,4 +369,24 @@
     <string name="app_desktop_guest_user_description">Shells und X11-Desktops als normaler Benutzer (UID 1000) mit passwortlosem sudo statt als root ausführen. Für den Root-Modus leer lassen oder auf root setzen.</string>
     <string name="app_desktop_guest_user_label">Benutzername</string>
     <string name="app_desktop_guest_user_hint">root (oder z. B. user)</string>
+    <string name="app_desktop_routing_title">Gast-Routing</string>
+    <string name="app_desktop_routing_description">Netzwerk-Proxy-Routing für %1$s. Wird beim nächsten Start von Shell, Desktop oder Gastbefehl angewendet.</string>
+    <string name="app_desktop_routing_reset">Zurücksetzen</string>
+    <string name="app_desktop_routing_mode_follow_tunnel">Aktivem Tunnel folgen</string>
+    <string name="app_desktop_routing_mode_direct">Direkt (kein Proxy)</string>
+    <string name="app_desktop_routing_mode_haven_tunnel">Haven-Tunnel</string>
+    <string name="app_desktop_routing_mode_socks5">Benutzerdefiniertes SOCKS5</string>
+    <string name="app_desktop_routing_mode_http">Benutzerdefiniertes HTTP(S)</string>
+    <string name="app_desktop_routing_tunnel_select">Tunnel auswählen…</string>
+    <string name="app_desktop_routing_no_tunnels">Noch keine eigenständigen Tunnel gespeichert. Fügen Sie unter Einstellungen → Tunnel einen WireGuard-, Tailscale-, OpenVPN- oder AnyConnect-Tunnel hinzu.</string>
+    <string name="app_desktop_routing_proxy_label">Proxy-URL</string>
+    <string name="app_desktop_routing_no_proxy_label">Ausnahmen (NO_PROXY)</string>
+    <string name="app_desktop_routing_proxychains_title">Mit proxychains4 ausführen</string>
+    <string name="app_desktop_routing_proxychains_description">Schreibt /etc/proxychains-haven.conf und startet Shells/Befehle unter proxychains4, sofern im Gast installiert (nur dynamisch gelinkte Programme).</string>
+    <string name="app_desktop_routing_err_missing_tunnel">Wählen Sie einen gespeicherten Haven-Tunnel aus.</string>
+    <string name="app_desktop_routing_err_missing_url">Geben Sie Host:Port oder eine Proxy-URL ein.</string>
+    <string name="app_desktop_routing_err_scheme_socks5">SOCKS5 erwartet Host:Port, socks5:// oder socks5h://.</string>
+    <string name="app_desktop_routing_err_scheme_http">HTTP erwartet Host:Port, http:// oder https://.</string>
+    <string name="app_desktop_routing_err_invalid_host">Ungültiger Proxy-Hostname oder ungültige IP-Adresse.</string>
+    <string name="app_desktop_routing_err_invalid_port">Geben Sie einen gültigen Port zwischen 1 und 65535 an (z. B. 127.0.0.1:1080).</string>
 </resources>

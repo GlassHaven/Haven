@@ -375,4 +375,24 @@
     <string name="app_desktop_guest_user_description">root 대신 비밀번호 없는 sudo 권한을 가진 일반 사용자(uid 1000)로 셸과 X11 데스크톱을 실행합니다. root 모드를 사용하려면 비워 두거나 root로 설정하세요.</string>
     <string name="app_desktop_guest_user_label">사용자 이름</string>
     <string name="app_desktop_guest_user_hint">root (또는 예: user)</string>
+    <string name="app_desktop_routing_title">게스트 라우팅</string>
+    <string name="app_desktop_routing_description">%1$s용 네트워크 프록시 라우팅입니다. 다음 셸, 데스크톱 또는 명령 실행 시 적용됩니다.</string>
+    <string name="app_desktop_routing_reset">초기화</string>
+    <string name="app_desktop_routing_mode_follow_tunnel">활성 터널 따르기</string>
+    <string name="app_desktop_routing_mode_direct">직접 연결 (프록시 없음)</string>
+    <string name="app_desktop_routing_mode_haven_tunnel">Haven 터널</string>
+    <string name="app_desktop_routing_mode_socks5">사용자 지정 SOCKS5</string>
+    <string name="app_desktop_routing_mode_http">사용자 지정 HTTP(S)</string>
+    <string name="app_desktop_routing_tunnel_select">터널 선택…</string>
+    <string name="app_desktop_routing_no_tunnels">저장된 단독 터널이 없습니다. 설정 → 터널에서 WireGuard, Tailscale, OpenVPN 또는 AnyConnect 터널을 추가하세요.</string>
+    <string name="app_desktop_routing_proxy_label">프록시 URL</string>
+    <string name="app_desktop_routing_no_proxy_label">우회 호스트 (NO_PROXY)</string>
+    <string name="app_desktop_routing_proxychains_title">proxychains4로 감싸기</string>
+    <string name="app_desktop_routing_proxychains_description">/etc/proxychains-haven.conf를 작성하고 게스트에 proxychains4가 설치된 경우 이를 통해 셸과 명령을 실행합니다(동적 바이너리 전용).</string>
+    <string name="app_desktop_routing_err_missing_tunnel">저장된 Haven 터널을 선택하세요.</string>
+    <string name="app_desktop_routing_err_missing_url">프록시 host:port 또는 URL을 입력하세요.</string>
+    <string name="app_desktop_routing_err_scheme_socks5">SOCKS5 모드는 host:port, socks5:// 또는 socks5h:// 형식이어야 합니다.</string>
+    <string name="app_desktop_routing_err_scheme_http">HTTP 모드는 host:port, http:// 또는 https:// 형식이어야 합니다.</string>
+    <string name="app_desktop_routing_err_invalid_host">유효하지 않은 프록시 호스트 이름 또는 IP 주소입니다.</string>
+    <string name="app_desktop_routing_err_invalid_port">1~65535 사이의 유효한 포트를 포함하세요(예: 127.0.0.1:1080).</string>
 </resources>

@@ -444,11 +444,16 @@ class TunnelPortForwardManager(
         val dir = cacheDir ?: return
         runCatching {
             val marker = File(dir, GUEST_SOCKS_MARKER)
+            val byIdMarker = File(dir, GUEST_SOCKS_BY_ID_MARKER)
             val firstPort = socksMap.values.firstOrNull()
             if (firstPort != null) {
                 marker.writeText("127.0.0.1:$firstPort\n")
+                byIdMarker.writeText(
+                    socksMap.entries.joinToString(separator = "") { (id, port) -> "$id=$port\n" },
+                )
             } else {
                 marker.delete()
+                byIdMarker.delete()
             }
         }
     }
@@ -520,6 +525,7 @@ class TunnelPortForwardManager(
         internal const val KEY_RULES_JSON = "rules_json"
         internal const val KEY_AUTO_PROXY_GUESTS = "auto_proxy_guests"
         internal const val GUEST_SOCKS_MARKER = ".haven_tunnel_socks5"
+        internal const val GUEST_SOCKS_BY_ID_MARKER = ".haven_tunnel_socks5_by_id"
         internal const val GUEST_AUTO_PROXY_MARKER = ".haven_tunnel_auto_proxy"
 
         fun standaloneDependentId(configId: String): String = "standalone:$configId"

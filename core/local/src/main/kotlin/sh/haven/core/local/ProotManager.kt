@@ -53,6 +53,9 @@ private const val PREF_GUEST_USERNAME = "guest_username"
 /** Per-distro custom bind mounts (#301). Key suffix is the distro id. */
 private const val PREF_CUSTOM_BINDS_PREFIX = "custom_binds_"
 
+/** Per-distro network routing configuration (#835). Key suffix is the distro id. */
+private const val PREF_ROUTING_PREFIX = "proot_routing_"
+
 /** User-imported distros registry (#284), stored as a JSON array. */
 private const val PREF_CUSTOM_DISTROS = "custom_distros_json"
 
@@ -1029,6 +1032,42 @@ class ProotManager @Inject constructor(
             .joinToString("\n")
         prefs.edit().putString("$PREF_CUSTOM_BINDS_PREFIX$distroId", joined).apply()
         _customBindsRev.value++
+    }
+
+    // --- Per-distro network routing (#835) ---
+
+    private val _routingRev = MutableStateFlow(0)
+
+    /** Bumped whenever any distro's routing configuration changes. */
+    val routingRev: StateFlow<Int> = _routingRev.asStateFlow()
+
+    /**
+     * Optional callback wired by `:app` (`HavenApp`) to acquire a saved Haven tunnel on
+     * demand and return its localhost SOCKS5 port when a distro uses
+     * [ProotRoutingMode.HAVEN_TUNNEL].
+     */
+    @Volatile
+    var tunnelSocksStarter: ((String) -> Int?)? = null
+
+    /** Read the network routing configuration for [distroId] (#835). */
+    fun routingConfig(distroId: String): ProotRoutingConfig =
+        ProotRoutingConfig.decode(prefs.getString("$PREF_ROUTING_PREFIX$distroId", null))
+
+    /** Save [config] for [distroId] (or remove the key when equal to default). */
+    fun setRoutingConfig(distroId: String, config: ProotRoutingConfig) {
+        val editor = prefs.edit()
+        if (config.isDefault) {
+            editor.remove("$PREF_ROUTING_PREFIX$distroId")
+        } else {
+            editor.putString("$PREF_ROUTING_PREFIX$distroId", config.encode())
+        }
+        editor.apply()
+        _routingRev.value++
+    }
+
+    /** Reset [distroId]'s routing configuration back to [ProotRoutingConfig.DEFAULT]. */
+    fun clearRoutingConfig(distroId: String) {
+        setRoutingConfig(distroId, ProotRoutingConfig.DEFAULT)
     }
 
     /**
@@ -3652,32 +3691,19 @@ class ProotManager @Inject constructor(
 
     /**
      * Environment variable assignments (`KEY` to `VALUE`) for routing guest traffic
-     * through an active Haven tunnel (#792). Reads `<cacheDir>/.haven_tunnel_socks5`
-     * (written by `TunnelPortForwardManager` whenever a tunnel's localhost SOCKS5
-     * proxy is active). When `<cacheDir>/.haven_tunnel_auto_proxy` is also present,
-     * exports `ALL_PROXY` / `HTTP_PROXY` / `HTTPS_PROXY` (`socks5h://127.0.0.1:<port>`)
-     * into every PRoot shell, desktop session, and command.
+     * in [distroId] (#792, #835). Honours per-distro [routingConfig] (`follow_tunnel`,
+     * `direct`, `haven_tunnel`, `socks5`, `http`) and writes `/etc/proxychains-haven.conf`
+     * when `useProxychains` is enabled.
      */
-    fun guestTunnelEnvVars(): Map<String, String> {
-        val socksFile = File(context.cacheDir, ".haven_tunnel_socks5")
-        val socks = runCatching { socksFile.takeIf { it.isFile }?.readText()?.trim() }
-            .getOrNull()
-            ?.takeIf { it.isNotEmpty() }
-            ?: return emptyMap()
-        val result = linkedMapOf(
-            "HAVEN_TUNNEL_SOCKS5" to socks,
-            "HAVEN_TUNNEL_QEMU_SOCKS5" to socks.replace("127.0.0.1:", "10.0.2.2:"),
+    fun guestTunnelEnvVars(distroId: String = activeDistroId): Map<String, String> {
+        val cfg = routingConfig(distroId)
+        val rootfs = runCatching { rootfsDirFor(distroId) }.getOrNull()
+        return ProotRouting.resolveEnv(
+            config = cfg,
+            cacheDir = context.cacheDir,
+            rootfsDir = rootfs,
+            tunnelStarter = tunnelSocksStarter,
         )
-        if (File(context.cacheDir, ".haven_tunnel_auto_proxy").exists()) {
-            val url = "socks5h://$socks"
-            result["ALL_PROXY"] = url
-            result["all_proxy"] = url
-            result["HTTP_PROXY"] = url
-            result["http_proxy"] = url
-            result["HTTPS_PROXY"] = url
-            result["https_proxy"] = url
-        }
-        return result
     }
 
     /**
@@ -3764,8 +3790,17 @@ class ProotManager @Inject constructor(
             "TERM=xterm-256color",
             "TMPDIR=/tmp",
             *PROOT_SANDBOX_ENV.toTypedArray(),
-            *guestTunnelEnvVars().map { (k, v) -> "$k=$v" }.toTypedArray(),
-            "/bin/sh", "-lc", command,
+            *run {
+                val routingCfg = routingConfig(activeDistroId)
+                val tunnelEnv = guestTunnelEnvVars(activeDistroId)
+                val effectiveCommand = ProotRouting.wrapShellCommandIfNeeded(
+                    rootfsDir = activeRootfsDir,
+                    config = routingCfg,
+                    env = tunnelEnv,
+                    command = command,
+                )
+                (tunnelEnv.map { (k, v) -> "$k=$v" } + listOf("/bin/sh", "-lc", effectiveCommand)).toTypedArray()
+            },
         )
         return ProcessBuilder(args).apply {
             // proot/PROOT_LOADER vars must live in the OUTER env so
@@ -5201,8 +5236,8 @@ chmod +x /root/.vnc/xstartup""")
                 val profileD = File(rootfsDir, "etc/profile.d").apply { mkdirs() }
                 val profileHook = File(profileD, "haven-tunnel.sh")
                 val hookContent = """
-                    # Haven tunnel environment hook for local PRoot Linux (#792).
-                    if [ -s /tmp/.haven_tunnel_socks5 ]; then
+                    # Haven tunnel environment hook for local PRoot Linux (#792, #835).
+                    if [ "${'$'}{HAVEN_PROOT_ROUTING_MODE:-follow_tunnel}" = "follow_tunnel" ] && [ -s /tmp/.haven_tunnel_socks5 ]; then
                         export HAVEN_TUNNEL_SOCKS5="${'$'}(cat /tmp/.haven_tunnel_socks5 2>/dev/null)"
                         if [ -f /tmp/.haven_tunnel_auto_proxy ]; then
                             export ALL_PROXY="socks5h://${'$'}HAVEN_TUNNEL_SOCKS5"

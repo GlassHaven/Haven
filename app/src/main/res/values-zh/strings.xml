@@ -365,4 +365,24 @@
     <string name="app_desktop_guest_user_description">以具有免密 sudo 权限的普通用户 (uid 1000) 而非 root 身份运行 shell 和 X11 桌面。留空或设为 root 则使用 root 模式。</string>
     <string name="app_desktop_guest_user_label">用户名</string>
     <string name="app_desktop_guest_user_hint">root（或例如 user）</string>
+    <string name="app_desktop_routing_title">客户机路由</string>
+    <string name="app_desktop_routing_description">%1$s 的网络代理路由。将在下次启动终端、桌面或客户机命令时生效。</string>
+    <string name="app_desktop_routing_reset">重置</string>
+    <string name="app_desktop_routing_mode_follow_tunnel">跟随活动隧道</string>
+    <string name="app_desktop_routing_mode_direct">直连（不使用代理）</string>
+    <string name="app_desktop_routing_mode_haven_tunnel">Haven 隧道</string>
+    <string name="app_desktop_routing_mode_socks5">自定义 SOCKS5</string>
+    <string name="app_desktop_routing_mode_http">自定义 HTTP(S)</string>
+    <string name="app_desktop_routing_tunnel_select">选择隧道…</string>
+    <string name="app_desktop_routing_no_tunnels">尚未保存独立隧道。请在“设置 → 隧道”中添加 WireGuard、Tailscale、OpenVPN 或 AnyConnect 隧道。</string>
+    <string name="app_desktop_routing_proxy_label">代理地址</string>
+    <string name="app_desktop_routing_no_proxy_label">绕过主机 (NO_PROXY)</string>
+    <string name="app_desktop_routing_proxychains_title">使用 proxychains4 包装</string>
+    <string name="app_desktop_routing_proxychains_description">写入 /etc/proxychains-haven.conf，并在客户机已安装 proxychains4 时通过其运行终端和命令（仅限动态链接程序）。</string>
+    <string name="app_desktop_routing_err_missing_tunnel">请选择已保存的 Haven 隧道。</string>
+    <string name="app_desktop_routing_err_missing_url">请输入代理 host:port 或 URL。</string>
+    <string name="app_desktop_routing_err_scheme_socks5">SOCKS5 模式需要 host:port、socks5:// 或 socks5h://。</string>
+    <string name="app_desktop_routing_err_scheme_http">HTTP 模式需要 host:port、http:// 或 https://。</string>
+    <string name="app_desktop_routing_err_invalid_host">代理主机名或 IP 地址无效。</string>
+    <string name="app_desktop_routing_err_invalid_port">请包含 1 到 65535 之间的有效端口（例如 127.0.0.1:1080）。</string>
 </resources>

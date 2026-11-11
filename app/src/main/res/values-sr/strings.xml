@@ -328,5 +328,25 @@
     <string name="app_uml_desktop_running">Извршава се · VNC 127.0.0.1:%1$d</string>
     <string name="app_uml_desktop_failed">Није успело</string>
     <string name="app_uml_desktop_start_cd">Покрени %1$s десктоп</string>
+    <string name="app_desktop_routing_title">Rutiranje gosta</string>
+    <string name="app_desktop_routing_description">Mrežno proksi rutiranje za %1$s. Primenjuje se pri sledećem pokretanju ljuske, radne površine ili komande.</string>
+    <string name="app_desktop_routing_reset">Resetuj</string>
+    <string name="app_desktop_routing_mode_follow_tunnel">Prati aktivni tunel</string>
+    <string name="app_desktop_routing_mode_direct">Direktno (bez proksija)</string>
+    <string name="app_desktop_routing_mode_haven_tunnel">Haven tunel</string>
+    <string name="app_desktop_routing_mode_socks5">Prilagođeni SOCKS5</string>
+    <string name="app_desktop_routing_mode_http">Prilagođeni HTTP(S)</string>
+    <string name="app_desktop_routing_tunnel_select">Izaberi tunel…</string>
+    <string name="app_desktop_routing_no_tunnels">Nema sačuvanih samostalnih tunela. Dodajte WireGuard, Tailscale, OpenVPN ili AnyConnect tunel u Podešavanja → Tuneli.</string>
+    <string name="app_desktop_routing_proxy_label">URL proksija</string>
+    <string name="app_desktop_routing_no_proxy_label">Zaobiđi hostove (NO_PROXY)</string>
+    <string name="app_desktop_routing_proxychains_title">Pokreni uz proxychains4</string>
+    <string name="app_desktop_routing_proxychains_description">Upisuje /etc/proxychains-haven.conf i pokreće ljuske i komande kroz proxychains4 kada je instaliran u gostu (samo dinamički binarni fajlovi).</string>
+    <string name="app_desktop_routing_err_missing_tunnel">Izaberite sačuvani Haven tunel.</string>
+    <string name="app_desktop_routing_err_missing_url">Unesite host:port ili URL proksija.</string>
+    <string name="app_desktop_routing_err_scheme_socks5">SOCKS5 režim očekuje host:port, socks5:// ili socks5h://.</string>
+    <string name="app_desktop_routing_err_scheme_http">HTTP režim očekuje host:port, http:// ili https://.</string>
+    <string name="app_desktop_routing_err_invalid_host">Nevažeće ime hosta ili IP adresa proksija.</string>
+    <string name="app_desktop_routing_err_invalid_port">Unesite važeći port između 1 i 65535 (npr. 127.0.0.1:1080).</string>
 </resources>
 

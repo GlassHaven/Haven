@@ -369,4 +369,24 @@
     <string name="app_desktop_guest_user_description">রুটের পরিবর্তে পাসওয়ার্ডহীন sudo সহ সাধারণ ব্যবহারকারী (uid 1000) হিসেবে শেল এবং X11 ডেস্কটপ চালান। রুট মোডের জন্য ফাঁকা রাখুন বা root লিখুন।</string>
     <string name="app_desktop_guest_user_label">ব্যবহারকারীর নাম</string>
     <string name="app_desktop_guest_user_hint">root (অথবা যেমন user)</string>
+    <string name="app_desktop_routing_title">গেস্ট রাউটিং</string>
+    <string name="app_desktop_routing_description">%1$s-এর জন্য নেটওয়ার্ক প্রক্সি রাউটিং। পরবর্তী শেল, ডেস্কটপ বা কমান্ড চালুর সময় প্রযোজ্য হবে।</string>
+    <string name="app_desktop_routing_reset">রিসেট</string>
+    <string name="app_desktop_routing_mode_follow_tunnel">সক্রিয় টানেল অনুসরণ করুন</string>
+    <string name="app_desktop_routing_mode_direct">সরাসরি (প্রক্সি ছাড়া)</string>
+    <string name="app_desktop_routing_mode_haven_tunnel">Haven টানেল</string>
+    <string name="app_desktop_routing_mode_socks5">কাস্টম SOCKS5</string>
+    <string name="app_desktop_routing_mode_http">কাস্টম HTTP(S)</string>
+    <string name="app_desktop_routing_tunnel_select">টানেল নির্বাচন করুন…</string>
+    <string name="app_desktop_routing_no_tunnels">এখনও কোনো স্বতন্ত্র টানেল সংরক্ষিত নেই। সেটিংস → টানেলস থেকে WireGuard, Tailscale, OpenVPN বা AnyConnect টানেল যোগ করুন।</string>
+    <string name="app_desktop_routing_proxy_label">প্রক্সি URL</string>
+    <string name="app_desktop_routing_no_proxy_label">বাইপাস হোস্ট (NO_PROXY)</string>
+    <string name="app_desktop_routing_proxychains_title">proxychains4 দিয়ে চালান</string>
+    <string name="app_desktop_routing_proxychains_description">/etc/proxychains-haven.conf লেখে এবং গেস্টে proxychains4 ইনস্টল থাকলে তার অধীনে শেল/কমান্ড চালায় (শুধুমাত্র ডায়নামিক বাইনারি)।</string>
+    <string name="app_desktop_routing_err_missing_tunnel">সংরক্ষিত একটি Haven টানেল বেছে নিন।</string>
+    <string name="app_desktop_routing_err_missing_url">প্রক্সি host:port বা URL লিখুন।</string>
+    <string name="app_desktop_routing_err_scheme_socks5">SOCKS5 মোডে host:port, socks5:// অথবা socks5h:// প্রয়োজন।</string>
+    <string name="app_desktop_routing_err_scheme_http">HTTP মোডে host:port, http:// অথবা https:// প্রয়োজন।</string>
+    <string name="app_desktop_routing_err_invalid_host">অবৈধ প্রক্সি হোস্টনেম বা IP ঠিকানা।</string>
+    <string name="app_desktop_routing_err_invalid_port">1 থেকে 65535-এর মধ্যে একটি বৈধ পোর্ট দিন (যেমন 127.0.0.1:1080)।</string>
 </resources>

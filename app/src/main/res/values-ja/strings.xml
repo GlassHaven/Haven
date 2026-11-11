@@ -365,4 +365,24 @@
     <string name="app_desktop_guest_user_description">root の代わりにパスワードなし sudo を持つ一般ユーザー (uid 1000) としてシェルと X11 デスクトップを実行します。root モードにするには空欄にするか root を指定してください。</string>
     <string name="app_desktop_guest_user_label">ユーザー名</string>
     <string name="app_desktop_guest_user_hint">root (または user など)</string>
+    <string name="app_desktop_routing_title">ゲストルーティング</string>
+    <string name="app_desktop_routing_description">%1$s のネットワークプロキシルーティング。次回のシェル、デスクトップ、またはゲストコマンド起動時に適用されます。</string>
+    <string name="app_desktop_routing_reset">リセット</string>
+    <string name="app_desktop_routing_mode_follow_tunnel">アクティブなトンネルに従う</string>
+    <string name="app_desktop_routing_mode_direct">直接接続（プロキシなし）</string>
+    <string name="app_desktop_routing_mode_haven_tunnel">Haven トンネル</string>
+    <string name="app_desktop_routing_mode_socks5">カスタム SOCKS5</string>
+    <string name="app_desktop_routing_mode_http">カスタム HTTP(S)</string>
+    <string name="app_desktop_routing_tunnel_select">トンネルを選択…</string>
+    <string name="app_desktop_routing_no_tunnels">保存済みのトンネルがありません。「設定 → トンネル」で WireGuard、Tailscale、OpenVPN、または AnyConnect トンネルを追加してください。</string>
+    <string name="app_desktop_routing_proxy_label">プロキシ URL</string>
+    <string name="app_desktop_routing_no_proxy_label">除外ホスト (NO_PROXY)</string>
+    <string name="app_desktop_routing_proxychains_title">proxychains4 でラップする</string>
+    <string name="app_desktop_routing_proxychains_description">/etc/proxychains-haven.conf を書き出し、ゲスト内に proxychains4 がある場合にシェルやコマンドをラップします（動的リンクバイナリのみ）。</string>
+    <string name="app_desktop_routing_err_missing_tunnel">保存済みの Haven トンネルを選択してください。</string>
+    <string name="app_desktop_routing_err_missing_url">プロキシの host:port または URL を入力してください。</string>
+    <string name="app_desktop_routing_err_scheme_socks5">SOCKS5 モードでは host:port、socks5://、または socks5h:// を指定してください。</string>
+    <string name="app_desktop_routing_err_scheme_http">HTTP モードでは host:port、http://、または https:// を指定してください。</string>
+    <string name="app_desktop_routing_err_invalid_host">プロキシのホスト名または IP アドレスが無効です。</string>
+    <string name="app_desktop_routing_err_invalid_port">1〜65535 の有効なポートを指定してください（例: 127.0.0.1:1080）。</string>
 </resources>

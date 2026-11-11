@@ -50,6 +50,10 @@ class TunnelResolver @Inject constructor(
         const val TAG = "TunnelResolver"
     }
 
+    /** Observe saved standalone tunnels so per-distro PRoot routing can pick one (#835). */
+    fun observeStandaloneConfigs(): kotlinx.coroutines.flow.Flow<List<sh.haven.core.data.db.entities.TunnelConfig>> =
+        tunnelManager.observeStandaloneConfigs()
+
     suspend fun dial(
         profile: ConnectionProfile,
         host: String,

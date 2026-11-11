@@ -369,4 +369,24 @@
     <string name="app_desktop_guest_user_description">Executar shells e ambientes gráficos X11 como um utilizador normal (uid 1000) com sudo sem palavra-passe em vez de root. Deixe em branco ou defina como root para o modo root.</string>
     <string name="app_desktop_guest_user_label">Nome de utilizador</string>
     <string name="app_desktop_guest_user_hint">root (ou ex. user)</string>
+    <string name="app_desktop_routing_title">Roteamento do convidado</string>
+    <string name="app_desktop_routing_description">Roteamento de proxy de rede para %1$s. Aplicado na próxima inicialização de shell, área de trabalho ou comando.</string>
+    <string name="app_desktop_routing_reset">Redefinir</string>
+    <string name="app_desktop_routing_mode_follow_tunnel">Seguir túnel ativo</string>
+    <string name="app_desktop_routing_mode_direct">Direto (sem proxy)</string>
+    <string name="app_desktop_routing_mode_haven_tunnel">Túnel do Haven</string>
+    <string name="app_desktop_routing_mode_socks5">SOCKS5 personalizado</string>
+    <string name="app_desktop_routing_mode_http">HTTP(S) personalizado</string>
+    <string name="app_desktop_routing_tunnel_select">Selecionar túnel…</string>
+    <string name="app_desktop_routing_no_tunnels">Nenhum túnel autônomo salvo ainda. Adicione um túnel WireGuard, Tailscale, OpenVPN ou AnyConnect em Configurações → Túneis.</string>
+    <string name="app_desktop_routing_proxy_label">URL do proxy</string>
+    <string name="app_desktop_routing_no_proxy_label">Hosts ignorados (NO_PROXY)</string>
+    <string name="app_desktop_routing_proxychains_title">Encapsular com proxychains4</string>
+    <string name="app_desktop_routing_proxychains_description">Grava /etc/proxychains-haven.conf e executa shells/comandos sob proxychains4 quando instalado no convidado (apenas binários dinâmicos).</string>
+    <string name="app_desktop_routing_err_missing_tunnel">Escolha um túnel do Haven salvo.</string>
+    <string name="app_desktop_routing_err_missing_url">Insira um host:porta ou URL de proxy.</string>
+    <string name="app_desktop_routing_err_scheme_socks5">O modo SOCKS5 espera host:porta, socks5:// ou socks5h://.</string>
+    <string name="app_desktop_routing_err_scheme_http">O modo HTTP espera host:porta, http:// ou https://.</string>
+    <string name="app_desktop_routing_err_invalid_host">Nome de host ou endereço IP do proxy inválido.</string>
+    <string name="app_desktop_routing_err_invalid_port">Inclua uma porta válida entre 1 e 65535 (ex.: 127.0.0.1:1080).</string>
 </resources>

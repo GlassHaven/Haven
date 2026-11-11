@@ -96,6 +96,10 @@ class TunnelManager @Inject constructor(
     /** True when at least one standalone tunnel or port-forward rule holds a live tunnel (#792). */
     val hasStandaloneDependents: Boolean get() = _hasStandaloneDependents
 
+    /** Observe saved standalone tunnels (WireGuard, Tailscale, OpenVPN, AnyConnect, NetBird) (#835). */
+    fun observeStandaloneConfigs(): kotlinx.coroutines.flow.Flow<List<TunnelConfig>> =
+        tunnelConfigRepository.observeStandalone()
+
     /** Caller must hold [mutex]. */
     private fun publish() {
         _hasStandaloneDependents = acquiredBy.keys.any {

@@ -54,6 +54,7 @@ class HavenApp : Application(), Configuration.Provider {
     @Inject lateinit var sshTerminalEmulatorOwner: sh.haven.feature.terminal.SshTerminalEmulatorOwner
     @Inject lateinit var updateNotifier: dagger.Lazy<sh.haven.app.update.UpdateNotifier>
     @Inject lateinit var usbMountCorrelator: dagger.Lazy<sh.haven.app.usb.UsbMountCorrelator>
+    @Inject lateinit var tunnelPortForwardManager: dagger.Lazy<sh.haven.core.tunnel.TunnelPortForwardManager>
 
     private val appScope = CoroutineScope(SupervisorJob() + Dispatchers.IO)
 
@@ -299,6 +300,19 @@ class HavenApp : Application(), Configuration.Provider {
         // opened ConnectionsViewModel or has zero SSH tabs open.
         appScope.launch {
             val proot = prootManager.get()
+            proot.tunnelSocksStarter = starter@{ configId ->
+                if (android.os.Looper.myLooper() == android.os.Looper.getMainLooper()) {
+                    appScope.launch { tunnelPortForwardManager.get().connectStandalone(configId) }
+                    return@starter tunnelPortForwardManager.get().socksPorts.value[configId]
+                }
+                runCatching {
+                    runBlocking {
+                        kotlinx.coroutines.withTimeoutOrNull(12_000L) {
+                            tunnelPortForwardManager.get().connectStandalone(configId)?.socksAddress()?.port
+                        }
+                    }
+                }.getOrNull()
+            }
             val desktops = desktopManager.get()
             val vms = systemVmManager.get()
             var localWorkWasActive = false

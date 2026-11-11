@@ -489,6 +489,31 @@ class DesktopViewModel @Inject constructor(
         prootManager.setCustomBinds(distroId, binds)
     }
 
+    // --- Per-distro network routing (#835) ---
+
+    val routingRev: StateFlow<Int> get() = prootManager.routingRev
+
+    val savedTunnels: StateFlow<List<sh.haven.core.data.db.entities.TunnelConfig>> =
+        (
+            runCatching { tunnelResolver.observeStandaloneConfigs() }.getOrNull()
+                ?: kotlinx.coroutines.flow.flowOf(emptyList())
+            ).stateIn(
+            viewModelScope,
+            kotlinx.coroutines.flow.SharingStarted.Lazily,
+            emptyList(),
+        )
+
+    fun routingConfig(distroId: String): sh.haven.core.local.ProotRoutingConfig =
+        prootManager.routingConfig(distroId)
+
+    fun setRoutingConfig(distroId: String, config: sh.haven.core.local.ProotRoutingConfig) {
+        prootManager.setRoutingConfig(distroId, config)
+    }
+
+    fun clearRoutingConfig(distroId: String) {
+        prootManager.clearRoutingConfig(distroId)
+    }
+
     /**
      * Delete a distro's rootfs. Stops any DEs running on it first so
      * the session-viewer tabs don't outlive their backing rootfs.

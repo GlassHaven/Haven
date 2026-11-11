@@ -383,4 +383,24 @@
     <string name="app_desktop_guest_user_description">Запускать оболочки и рабочие столы X11 от имени обычного пользователя (uid 1000) с sudo без пароля вместо root. Оставьте пустым или укажите root для режима суперпользователя.</string>
     <string name="app_desktop_guest_user_label">Имя пользователя</string>
     <string name="app_desktop_guest_user_hint">root (или, например, user)</string>
+    <string name="app_desktop_routing_title">Маршрутизация гостя</string>
+    <string name="app_desktop_routing_description">Прокси-маршрутизация сети для %1$s. Применяется при следующем запуске оболочки, рабочего стола или команды.</string>
+    <string name="app_desktop_routing_reset">Сбросить</string>
+    <string name="app_desktop_routing_mode_follow_tunnel">Следовать активному туннелю</string>
+    <string name="app_desktop_routing_mode_direct">Напрямую (без прокси)</string>
+    <string name="app_desktop_routing_mode_haven_tunnel">Туннель Haven</string>
+    <string name="app_desktop_routing_mode_socks5">Свой SOCKS5</string>
+    <string name="app_desktop_routing_mode_http">Свой HTTP(S)</string>
+    <string name="app_desktop_routing_tunnel_select">Выберите туннель…</string>
+    <string name="app_desktop_routing_no_tunnels">Автономные туннели ещё не сохранены. Добавьте туннель WireGuard, Tailscale, OpenVPN или AnyConnect в разделе Настройки → Туннели.</string>
+    <string name="app_desktop_routing_proxy_label">URL прокси</string>
+    <string name="app_desktop_routing_no_proxy_label">Исключения (NO_PROXY)</string>
+    <string name="app_desktop_routing_proxychains_title">Запускать через proxychains4</string>
+    <string name="app_desktop_routing_proxychains_description">Записывает /etc/proxychains-haven.conf и запускает оболочки и команды через proxychains4, если он установлен в гостевой ОС (только динамические бинарники).</string>
+    <string name="app_desktop_routing_err_missing_tunnel">Выберите сохранённый туннель Haven.</string>
+    <string name="app_desktop_routing_err_missing_url">Введите хост:порт или URL прокси.</string>
+    <string name="app_desktop_routing_err_scheme_socks5">Для SOCKS5 укажите хост:порт, socks5:// или socks5h://.</string>
+    <string name="app_desktop_routing_err_scheme_http">Для HTTP укажите хост:порт, http:// или https://.</string>
+    <string name="app_desktop_routing_err_invalid_host">Некорректное имя хоста или IP-адрес прокси.</string>
+    <string name="app_desktop_routing_err_invalid_port">Укажите порт от 1 до 65535 (например, 127.0.0.1:1080).</string>
 </resources>

@@ -319,7 +319,18 @@ class LocalSessionManager @Inject constructor(
             // plain login shell if the binary isn't installed in the
             // rootfs, so picking tmux without `apk add tmux` degrades
             // to today's behaviour rather than failing the session.
-            val shellArgs: Array<String> = sessionManagerShellArgs("haven-local", plain = plain)
+            val routingCfg = prootManager.routingConfig(targetDistro)
+            val tunnelEnv = prootManager.guestTunnelEnvVars(targetDistro)
+            val baseShellArgs: Array<String> = sessionManagerShellArgs("haven-local", plain = plain)
+            val shellArgs: Array<String> = if (
+                routingCfg.useProxychains &&
+                tunnelEnv.containsKey("PROXYCHAINS_CONF_FILE") &&
+                ProotRouting.isProxychainsInstalled(rootfsDir)
+            ) {
+                arrayOf("proxychains4", "-q", "-f", ProotRouting.GUEST_PROXYCHAINS_CONF_ABS) + baseShellArgs
+            } else {
+                baseShellArgs
+            }
             // Writable /dev/shm overlay (Android's /dev is read-only with no shm),
             // matching the one-shot (runCommandInProot) and desktop launch paths.
             val devShm = prootManager.ensureDevShm()
@@ -409,7 +420,7 @@ class LocalSessionManager @Inject constructor(
                 // #718 / #780 / #827: disable bubblewrap (glycin SVG loader),
                 // Chromium/Electron user-namespace, and Mozilla seccomp child sandboxes inside PRoot.
                 *ProotManager.PROOT_SANDBOX_ENV.toTypedArray(),
-                *prootManager.guestTunnelEnvVars().map { (k, v) -> "$k=$v" }.toTypedArray(),
+                *tunnelEnv.map { (k, v) -> "$k=$v" }.toTypedArray(),
                 "PROOT_TMP_DIR=${context.cacheDir.absolutePath}",
                 "PROOT_LOADER=${java.io.File(context.applicationInfo.nativeLibraryDir, "libproot_loader.so").absolutePath}",
                 "PROOT_L2S_DIR=${prootManager.l2sEnvValue(targetDistro)}",

@@ -3,6 +3,7 @@ package sh.haven.core.glkvm
 import okhttp3.FormBody
 import okhttp3.HttpUrl
 import okhttp3.HttpUrl.Companion.toHttpUrl
+import okhttp3.MultipartBody
 import okhttp3.OkHttpClient
 import okhttp3.Request
 import okhttp3.RequestBody.Companion.toRequestBody
@@ -400,6 +401,59 @@ class GlkvmClient private constructor(
     }
 
     data class VideoState(val signal: Boolean, val resolution: String, val fps: Double? = null)
+
+    /** Current configured EDID preset on the KVM (e.g. `"E2560x1440"`, or `""` for device default). */
+    fun edidGet(): String {
+        val json = callJson("/api/upgrade/get_edid")
+        val r = json.optJSONObject("result") ?: json
+        return r.optString("edid", "")
+    }
+
+    /** Re-apply an EDID preset (`POST /api/upgrade/edid` multipart field `"edid"`). */
+    fun edidSet(value: String): JSONObject {
+        val tok = login(force = false)
+        val url = (baseUrl.resolve("api/upgrade/edid") ?: throw GlkvmException("bad base url"))
+            .newBuilder().addQueryParameter("auth_token", tok).build()
+        val multipart = MultipartBody.Builder()
+            .setType(MultipartBody.FORM)
+            .addFormDataPart("edid", value)
+            .build()
+        val req = Request.Builder().url(url).header("token", tok).post(multipart).build()
+        http.newCall(req).execute().use { resp ->
+            val text = resp.body?.string().orEmpty()
+            if ((resp.code == 401) || (resp.code == 403 && text.contains("ForbiddenError"))) {
+                val tok2 = login(force = true)
+                val url2 = (baseUrl.resolve("api/upgrade/edid") ?: throw GlkvmException("bad base url"))
+                    .newBuilder().addQueryParameter("auth_token", tok2).build()
+                http.newCall(Request.Builder().url(url2).header("token", tok2).post(multipart).build())
+                    .execute().use { second ->
+                        val t2 = second.body?.string().orEmpty()
+                        if (!second.isSuccessful) throw GlkvmException("POST /api/upgrade/edid -> HTTP ${second.code}: ${t2.take(200)}")
+                        return runCatching { JSONObject(t2) }.getOrElse { JSONObject().put("ok", true) }
+                    }
+            }
+            if (!resp.isSuccessful) throw GlkvmException("POST /api/upgrade/edid -> HTTP ${resp.code}: ${text.take(200)}")
+            return runCatching { JSONObject(text) }.getOrElse { JSONObject().put("ok", true) }
+        }
+    }
+
+    /**
+     * Re-emit the current EDID preset (HPD pulse) to wake a target whose GPU dropped
+     * its HDMI output (typical after a KVM reboot while Windows still has Duplicate enabled).
+     * Polls up to [timeoutMs] for `videoState().signal` to become true.
+     */
+    fun edidProd(timeoutMs: Long = 15_000L, pollIntervalMs: Long = 2_000L): Boolean {
+        val cur = edidGet()
+        val value = cur.ifEmpty { "E2560x1440" }
+        edidSet(value)
+        var after = videoState()
+        val deadline = System.currentTimeMillis() + timeoutMs
+        while (!after.signal && System.currentTimeMillis() < deadline) {
+            Thread.sleep(pollIntervalMs.coerceAtLeast(10L))
+            after = videoState()
+        }
+        return after.signal
+    }
 
     override fun close() {
         http.dispatcher.cancelAll()

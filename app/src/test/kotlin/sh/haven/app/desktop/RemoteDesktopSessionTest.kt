@@ -549,4 +549,73 @@ class RemoteDesktopSessionTest {
         verify(exactly = 2) { client.sendMouseMove(640, 360) }
         verify(exactly = 1) { client.sendWheel(3) }
     }
+
+    @Test
+    fun `send_desktop_clipboard fails fast when protocol has no clipboard channel`() = kotlinx.coroutines.runBlocking {
+        val registry = sh.haven.core.data.desktop.DesktopSessionRegistry()
+        registry.registerInputHandle(
+            "p1",
+            sh.haven.core.data.desktop.DesktopInputHandle(
+                protocol = "GLKVM",
+                mouseMove = { _, _ -> },
+                mouseClick = { _, _, _ -> },
+                mouseWheel = {},
+                clipboard = null,
+            ),
+        )
+        val provider = sh.haven.app.agent.DesktopToolProvider(
+            ctx = mockk(relaxed = true),
+            desktopSessionRegistry = registry,
+            localSessionManager = mockk(relaxed = true),
+        )
+        val clipTool = provider.tools()["send_desktop_clipboard"]!!
+        try {
+            clipTool.handle(org.json.JSONObject().put("text", "hello"))
+            org.junit.Assert.fail("expected McpError for unsupported GLKVM clipboard")
+        } catch (e: sh.haven.core.mcp.McpError) {
+            org.junit.Assert.assertTrue(e.message!!.contains("type_desktop_text"))
+        }
+    }
+
+    @Test
+    fun `type_desktop_text keys array presses chord in order and releases in reverse`() = kotlinx.coroutines.runBlocking {
+        val registry = sh.haven.core.data.desktop.DesktopSessionRegistry()
+        val events = mutableListOf<Pair<String, Boolean>>()
+        registry.registerInputHandle(
+            "p1",
+            sh.haven.core.data.desktop.DesktopInputHandle(
+                protocol = "GLKVM",
+                mouseMove = { _, _ -> },
+                mouseClick = { _, _, _ -> },
+                mouseWheel = {},
+                clipboard = null,
+                sendKey = { code, pressed -> events.add(code to pressed) },
+            ),
+        )
+        val provider = sh.haven.app.agent.DesktopToolProvider(
+            ctx = mockk(relaxed = true),
+            desktopSessionRegistry = registry,
+            localSessionManager = mockk(relaxed = true),
+        )
+        val typeTool = provider.tools()["type_desktop_text"]!!
+        val res = typeTool.handle(
+            org.json.JSONObject().put(
+                "keys",
+                org.json.JSONArray().put("ControlLeft").put("ShiftLeft").put("t"),
+            ),
+        ).structured
+
+        org.junit.Assert.assertEquals(
+            listOf(
+                "ControlLeft" to true,
+                "ShiftLeft" to true,
+                "KeyT" to true,
+                "KeyT" to false,
+                "ShiftLeft" to false,
+                "ControlLeft" to false,
+            ),
+            events,
+        )
+        org.junit.Assert.assertEquals("KeyT", res.getJSONArray("keys").getString(2))
+    }
 }

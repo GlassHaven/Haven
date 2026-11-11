@@ -2692,7 +2692,7 @@ class DesktopViewModel @Inject constructor(
                             tab.remoteDesktop.sendMouseClick(x, y, button)
                         },
                         mouseWheel = { deltaY -> tab.remoteDesktop.sendMouseWheel(deltaY) },
-                        clipboard = { text -> tab.remoteDesktop.sendClipboardText(text) },
+                        clipboard = null,
                         typeText = { text ->
                             for (ch in text) {
                                 sh.haven.feature.rdp.typeRdpChar(
@@ -2953,7 +2953,7 @@ class DesktopViewModel @Inject constructor(
                             tab.remoteDesktop.sendMouseClick(x, y, button)
                         },
                         mouseWheel = { deltaY -> tab.remoteDesktop.sendMouseWheel(deltaY) },
-                        clipboard = { text -> tab.remoteDesktop.sendClipboardText(text) },
+                        clipboard = null,
                         // GLKVM types as real keystrokes (layout table + kvmd
                         // printer for the rest) — the one desktop protocol
                         // with a text verb today; MCP's type_desktop_text

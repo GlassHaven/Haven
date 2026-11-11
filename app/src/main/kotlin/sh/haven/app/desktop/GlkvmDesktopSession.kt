@@ -179,20 +179,53 @@ class GlkvmDesktopSession(
             lastFrameAtMs = System.currentTimeMillis()
             return@synchronized
         }
-        val jpeg = client.snapshot()
-        if (jpeg.isEmpty()) throw GlkvmException("empty snapshot from /streamer/snapshot")
+        val jpeg = try {
+            val raw = client.snapshot()
+            if (raw.isEmpty()) throw GlkvmException("empty snapshot from /streamer/snapshot")
+            raw
+        } catch (e: Exception) {
+            // If HDMI signal dropped (typical after a KVM reboot while target OS still
+            // thinks Duplicate is active), re-emit EDID once per connect to pulse HPD.
+            if (!edidProddedSinceConnect && runCatching { !client.videoState().signal }.getOrDefault(false)) {
+                edidProddedSinceConnect = true
+                if (runCatching { client.edidProd(timeoutMs = 12_000L) }.getOrDefault(false)) {
+                    val recovered = client.snapshot()
+                    if (recovered.isEmpty()) throw GlkvmException("empty snapshot after EDID recovery")
+                    recovered
+                } else {
+                    throw e
+                }
+            } else {
+                throw e
+            }
+        }
         val bmp = BitmapFactory.decodeByteArray(jpeg, 0, jpeg.size)
             ?: throw GlkvmException("snapshot JPEG failed to decode (${jpeg.size} bytes)")
-        // Resolution can change with the target's mode switch — the mouse
-        // calibration fractions are frame-relative, so keep them fresh.
-        client.frameWidth = bmp.width
-        client.frameHeight = bmp.height
-        val (activeLeft, activeWidth) = detectActiveHorizontalBounds(bmp)
-        client.activeLeftPx = activeLeft
-        client.activeWidthPx = activeWidth
+        updateFrameGeometry(bmp)
         onFrame(bmp)
         lastFrameSeq = eventSeq.incrementAndGet()
         lastFrameAtMs = System.currentTimeMillis()
+    }
+
+    /**
+     * Update [client.frameWidth]/[client.frameHeight] and pillarbox bounds with 2px
+     * hysteresis so 4:2:0 JPEG border ringing never jitters click coordinates by 1px
+     * between consecutive snapshot polls.
+     */
+    internal fun updateFrameGeometry(bmp: Bitmap) {
+        val sameWidth = geometryInitialized && client.frameWidth == bmp.width && client.frameHeight == bmp.height
+        val (activeLeft, activeWidth) = detectActiveHorizontalBounds(bmp)
+        if (sameWidth &&
+            kotlin.math.abs(activeLeft - client.activeLeftPx) <= 2 &&
+            kotlin.math.abs(activeWidth - client.activeWidthPx) <= 4
+        ) {
+            return
+        }
+        client.frameWidth = bmp.width
+        client.frameHeight = bmp.height
+        client.activeLeftPx = activeLeft
+        client.activeWidthPx = activeWidth
+        geometryInitialized = true
     }
 
     private fun detectActiveHorizontalBounds(bmp: Bitmap): Pair<Int, Int> {
@@ -218,6 +251,12 @@ class GlkvmDesktopSession(
     }
 
     private var consecutiveFailures = 0
+
+    @Volatile
+    private var geometryInitialized = false
+
+    @Volatile
+    private var edidProddedSinceConnect = false
 
     @Volatile
     private var lastTargetMouseX: Int = -1

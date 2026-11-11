@@ -214,7 +214,7 @@ internal class DesktopToolProvider(
             description = "Capture what a remote-desktop VIEWER tab (RDP, VNC, SPICE, or GLKVM) is actually rendering, INLINE as an image — the framebuffer the user sees, with the server cursor composited on top at the tracked pointer position. This is distinct from capture_desktop, which screenshots an in-guest X11/VNC desktop; this one captures the RDP/VNC/SPICE client viewer (e.g. to verify colours and the cursor against a remote Windows/Linux server). Optionally pass regionX/regionY/regionWidth/regionHeight to crop to a specific region of interest. Pass profileId to pick a tab (from list_desktop_sessions); omit it when exactly one desktop tab is open. Returns the image plus { profileId, protocol, width, height, imageWidth, imageHeight, region?, hasCursor, cursorWidth?, cursorHeight?, hotspotX?, hotspotY?, pointerX?, pointerY?, format }.",
             inputSchema = objectSchema {
                 string("profileId", "Profile id of the desktop tab (from list_desktop_sessions). Omit when exactly one tab is open.")
-                integer("maxWidth", "Downscale so the image is at most this many pixels wide. Default 1280 (clamped 160–4096).")
+                integer("maxWidth", "Downscale so the image is at most this many pixels wide. Default 1920 (1:1 for 1080p desktops; clamped 160–4096).")
                 string("format", "\"jpeg\" (default, smaller) or \"png\" (lossless, larger).")
                 boolean("forceRefresh", "For poll-based protocols (GLKVM), force a fresh snapshot pull even if no input occurred since the last frame. Default false.")
                 integer("regionX", "Optional crop region left X in full framebuffer pixels.")
@@ -371,8 +371,9 @@ internal class DesktopToolProvider(
             description = "Type text or send special keys/shortcuts into a remote-desktop VIEWER tab as real keystrokes (GLKVM/VNC/RDP/SPICE). Pass text to type characters (with optional pressEnter=true to tap Enter after typing), or pass key (e.g. \"Enter\", \"Tab\", \"Escape\", \"Backspace\", \"Delete\", \"Space\", \"ArrowDown\", \"ArrowUp\", \"ArrowLeft\", \"ArrowRight\", \"Home\", \"End\", \"PageUp\", \"PageDown\", or \"a\"..\"z\" / \"KeyA\"..\"KeyZ\") with optional ctrl/alt/shift/meta modifiers and optional repeat (e.g. key=\"PageUp\", repeat=3 to scroll up 3 pages). Set inspectAfter=\"diff\" (or \"lines\") to wait settleMs and return the post-typing OCR diff/observation in the same call, or returnScreenshot=true to return a fresh screenshot inline. Pass profileId to pick a tab (from list_desktop_sessions); omit when exactly one is open.",
             inputSchema = objectSchema {
                 string("profileId", "Profile id (from list_desktop_sessions). Omit when exactly one is open.")
-                string("text", "Text to type as keystrokes. Optional when key is provided.")
+                string("text", "Text to type as keystrokes. Optional when key or keys is provided.")
                 string("key", "Optional special key or key code to tap (e.g. \"Enter\", \"Tab\", \"Escape\", \"Backspace\", \"Delete\", \"ArrowDown\", \"ArrowUp\", \"ArrowLeft\", \"ArrowRight\", \"a\", \"v\", \"KeyA\").")
+                stringArray("keys", "Optional chorded shortcut sequence pressed in order and released in reverse (e.g. [\"MetaLeft\", \"ArrowUp\"] or [\"ControlLeft\", \"ShiftLeft\", \"KeyT\"]).")
                 integer("repeat", "Number of times to tap key when key is provided. Default 1 (clamped 1..50).")
                 boolean("ctrl", "Hold ControlLeft while tapping key. Default false.")
                 boolean("alt", "Hold AltLeft while tapping key. Default false.")
@@ -916,7 +917,7 @@ internal class DesktopToolProvider(
         } ?: handle.frame())
             ?: throw McpError(-32603, "Desktop '$pid' has not rendered a frame yet — wait for it to connect.")
 
-        val maxWidth = args.optInt("maxWidth", 1280).coerceIn(160, 4096)
+        val maxWidth = args.optInt("maxWidth", 1920).coerceIn(160, 4096)
         val format = if (args.optString("format", "jpeg").lowercase() == "png") "png" else "jpeg"
 
         val cursor = handle.cursor()
@@ -986,6 +987,10 @@ internal class DesktopToolProvider(
                 put("height", encoded.fullH)
                 put("imageWidth", encoded.imgW)
                 put("imageHeight", encoded.imgH)
+                val baseW = reqRegion?.width ?: encoded.fullW
+                val baseH = reqRegion?.height ?: encoded.fullH
+                put("scaleX", ((encoded.imgW.toDouble() / baseW.coerceAtLeast(1)) * 10000.0).roundToInt() / 10000.0)
+                put("scaleY", ((encoded.imgH.toDouble() / baseH.coerceAtLeast(1)) * 10000.0).roundToInt() / 10000.0)
                 if (reqRegion != null) {
                     put("region", bboxToJson(reqRegion))
                 }
@@ -1696,6 +1701,15 @@ internal class DesktopToolProvider(
         maybeCapturePreActionBaseline(pid, args)
         val text = args.optString("text")
         val rawKey = args.optString("key").trim()
+        val keysArr = args.optJSONArray("keys")
+        val chordKeys = buildList {
+            if (keysArr != null) {
+                for (i in 0 until keysArr.length().coerceAtMost(12)) {
+                    val k = keysArr.optString(i).trim()
+                    if (k.isNotEmpty()) add(normalizeKeyCode(k))
+                }
+            }
+        }
         val repeatCount = args.optInt("repeat", 1).coerceIn(1, 50)
         val ctrl = args.optBoolean("ctrl", false)
         val alt = args.optBoolean("alt", false)
@@ -1703,8 +1717,8 @@ internal class DesktopToolProvider(
         val meta = args.optBoolean("meta", false)
         val pressEnter = args.optBoolean("pressEnter", false)
 
-        if (text.isEmpty() && rawKey.isEmpty()) {
-            throw McpError(-32602, "Either text or key is required")
+        if (text.isEmpty() && rawKey.isEmpty() && chordKeys.isEmpty()) {
+            throw McpError(-32602, "Either text, key, or keys is required")
         }
         desktopSessionRegistry.recordAgentAction(pid)
 
@@ -1718,9 +1732,9 @@ internal class DesktopToolProvider(
             type(text)
         }
 
-        if (rawKey.isNotEmpty() || pressEnter) {
+        if (rawKey.isNotEmpty() || chordKeys.isNotEmpty() || pressEnter) {
             val sendKey = h.sendKey
-                ?: if (pressEnter && h.typeText != null && rawKey.isEmpty()) {
+                ?: if (pressEnter && h.typeText != null && rawKey.isEmpty() && chordKeys.isEmpty()) {
                     null
                 } else {
                     throw McpError(
@@ -1728,6 +1742,17 @@ internal class DesktopToolProvider(
                         "${h.protocol} does not support raw key codes yet.",
                     )
                 }
+            if (chordKeys.isNotEmpty() && sendKey != null) {
+                for (k in chordKeys) {
+                    sendKey(k, true)
+                    kotlinx.coroutines.delay(15)
+                }
+                kotlinx.coroutines.delay(25)
+                for (k in chordKeys.asReversed()) {
+                    sendKey(k, false)
+                    kotlinx.coroutines.delay(15)
+                }
+            }
             if (rawKey.isNotEmpty() && sendKey != null) {
                 val code = normalizeKeyCode(rawKey)
                 val mods = buildList {
@@ -1760,6 +1785,9 @@ internal class DesktopToolProvider(
             put("profileId", pid)
             put("protocol", h.protocol)
             put("chars", text.length)
+            if (chordKeys.isNotEmpty()) {
+                put("keys", JSONArray(chordKeys))
+            }
             if (rawKey.isNotEmpty()) {
                 put("key", normalizeKeyCode(rawKey))
                 if (repeatCount > 1) put("repeat", repeatCount)
@@ -1772,9 +1800,14 @@ internal class DesktopToolProvider(
     private fun sendDesktopClipboard(args: JSONObject): JSONObject {
         val (pid, h) = resolveDesktopInput(args)
         if (!args.has("text")) throw McpError(-32602, "text is required")
+        val clip = h.clipboard
+            ?: throw McpError(
+                -32602,
+                "${h.protocol} does not support remote clipboard injection; use type_desktop_text on this tab instead.",
+            )
         val text = args.optString("text")
         desktopSessionRegistry.recordAgentAction(pid)
-        h.clipboard(text)
+        clip(text)
         return JSONObject().apply {
             put("profileId", pid); put("protocol", h.protocol); put("chars", text.length)
         }

@@ -401,4 +401,52 @@ class GlkvmClientTest {
             tunneledClient.close()
         }
     }
+
+    @Test
+    fun `edidProd reads current EDID and posts multipart edid until HDMI signal returns`() {
+        val s2 = MockWebServer()
+        var edidPosted = false
+        var signalPollsAfterPost = 0
+        s2.dispatcher = object : Dispatcher() {
+            override fun dispatch(request: RecordedRequest): MockResponse {
+                val path = request.requestUrl?.encodedPath ?: return MockResponse().setResponseCode(400)
+                return when (path) {
+                    "/api/auth/login" -> MockResponse().setBody("""{"ok":true,"result":{"token":"tok-edid"}}""")
+                    "/api/upgrade/get_edid" -> MockResponse().setBody("""{"ok":true,"result":{"edid":"E1920x1080"}}""")
+                    "/api/upgrade/edid" -> {
+                        val body = request.body.readUtf8()
+                        assertTrue("expected multipart edid field, got: $body", body.contains("E1920x1080"))
+                        edidPosted = true
+                        MockResponse().setBody("""{"ok":true}""")
+                    }
+                    "/api/streamer" -> {
+                        val sig = if (edidPosted) {
+                            signalPollsAfterPost++
+                            signalPollsAfterPost >= 2
+                        } else {
+                            false
+                        }
+                        MockResponse().setBody(
+                            """{"ok":true,"result":{"streamer":{"hdmi":{"signal":$sig},"source":{"real_resolution":"1920x1080@60"}}}}"""
+                        )
+                    }
+                    else -> MockResponse().setResponseCode(404)
+                }
+            }
+        }
+        s2.start()
+        val c2 = GlkvmClient.Builder().apply {
+            baseUrlOverride = "http://127.0.0.1:${s2.port}"
+            user = "admin"
+            password = "secret"
+        }.build()
+        try {
+            assertTrue(c2.edidProd(timeoutMs = 2_000L, pollIntervalMs = 20L))
+            assertTrue(edidPosted)
+            assertEquals(2, signalPollsAfterPost)
+        } finally {
+            c2.close()
+            s2.shutdown()
+        }
+    }
 }

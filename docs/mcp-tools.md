@@ -1307,7 +1307,7 @@ Capture what a remote-desktop VIEWER tab (RDP, VNC, SPICE, or GLKVM) is actually
 
 - `forceRefresh` (boolean) — For poll-based protocols (GLKVM), force a fresh snapshot pull even if no input occurred since the last frame. Default false.
 - `format` (string) — "jpeg" (default, smaller) or "png" (lossless, larger).
-- `maxWidth` (integer) — Downscale so the image is at most this many pixels wide. Default 1280 (clamped 160–4096).
+- `maxWidth` (integer) — Downscale so the image is at most this many pixels wide. Default 1920 (1:1 for 1080p desktops; clamped 160–4096).
 - `profileId` (string) — Profile id of the desktop tab (from list_desktop_sessions). Omit when exactly one tab is open.
 - `regionHeight` (integer) — Optional crop region height in framebuffer pixels.
 - `regionWidth` (integer) — Optional crop region width in framebuffer pixels.
@@ -1825,6 +1825,7 @@ Type text or send special keys/shortcuts into a remote-desktop VIEWER tab as rea
 - `ctrl` (boolean) — Hold ControlLeft while tapping key. Default false.
 - `inspectAfter` (string, one of: none | diff | lines | at | tree) — Optional post-typing RapidOCR inspection mode to run after settleMs: "none" (default), "diff" (added/removed lines vs before typing), "lines", "at", or "tree".
 - `key` (string) — Optional special key or key code to tap (e.g. "Enter", "Tab", "Escape", "Backspace", "Delete", "ArrowDown", "ArrowUp", "ArrowLeft", "ArrowRight", "a", "v", "KeyA").
+- `keys` (string[]) — Optional chorded shortcut sequence pressed in order and released in reverse (e.g. ["MetaLeft", "ArrowUp"] or ["ControlLeft", "ShiftLeft", "KeyT"]).
 - `meta` (boolean) — Hold MetaLeft (Windows/Super) while tapping key. Default false.
 - `pressEnter` (boolean) — Tap Enter after typing text. Default false.
 - `profileId` (string) — Profile id (from list_desktop_sessions). Omit when exactly one is open.
@@ -1832,7 +1833,7 @@ Type text or send special keys/shortcuts into a remote-desktop VIEWER tab as rea
 - `returnScreenshot` (boolean) — If true, wait settleMs after typing and return a fresh screenshot inline. Default false.
 - `settleMs` (integer) — Milliseconds to wait before post-action inspection/screenshot. Default 250 (clamped 0..5000).
 - `shift` (boolean) — Hold ShiftLeft while tapping key. Default false.
-- `text` (string) — Text to type as keystrokes. Optional when key is provided.
+- `text` (string) — Text to type as keystrokes. Optional when key or keys is provided.
 
 </details>
 

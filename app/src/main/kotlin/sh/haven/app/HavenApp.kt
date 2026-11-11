@@ -27,6 +27,7 @@ import kotlinx.coroutines.flow.map
 import kotlinx.coroutines.flow.onEach
 import kotlinx.coroutines.flow.launchIn
 import kotlinx.coroutines.runBlocking
+import kotlinx.coroutines.withContext
 import sh.haven.core.data.preferences.UserPreferencesRepository
 import sh.haven.core.stepca.CertRenewalWorker
 import java.io.File
@@ -279,11 +280,15 @@ class HavenApp : Application(), Configuration.Provider {
 
         // Start opt-in background watches off the main thread so their
         // @Singleton graphs do not instantiate during super.onCreate().
+        // UpdateNotifier registers a ProcessLifecycleOwner observer, which
+        // requires the main thread (#830).
         appScope.launch {
             mailWatchManager.get().start()
             backupAutoSyncScheduler.get().start(appScope)
             backupAutoPullScheduler.get().start(appScope)
-            updateNotifier.get().start(appScope)
+            withContext(Dispatchers.Main.immediate) {
+                updateNotifier.get().start(appScope)
+            }
         }
 
         // Extend the shell-prompt terminator set used for command-on-attach

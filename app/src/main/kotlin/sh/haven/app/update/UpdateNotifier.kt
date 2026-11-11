@@ -12,8 +12,10 @@ import androidx.core.app.NotificationManagerCompat
 import androidx.lifecycle.DefaultLifecycleObserver
 import androidx.lifecycle.LifecycleOwner
 import androidx.lifecycle.ProcessLifecycleOwner
+import dagger.Lazy
 import dagger.hilt.android.qualifiers.ApplicationContext
 import kotlinx.coroutines.CoroutineScope
+import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.launch
 import sh.haven.app.R
 import sh.haven.core.data.update.UpdateChecker
@@ -48,26 +50,31 @@ private const val TAG = "UpdateNotifier"
 @Singleton
 class UpdateNotifier @Inject constructor(
     @ApplicationContext private val context: Context,
-    private val updateChecker: UpdateChecker,
+    private val updateChecker: Lazy<UpdateChecker>,
 ) {
     private val registered = AtomicBoolean(false)
 
-    /** Idempotent; safe to call from `Application.onCreate`. */
+    /**
+     * Idempotent; safe to call from `Application.onCreate` or a background
+     * startup scope (#830: `ProcessLifecycleOwner.lifecycle.addObserver`
+     * enforces main-thread access).
+     */
     fun start(scope: CoroutineScope) {
         if (!registered.compareAndSet(false, true)) return
-        ProcessLifecycleOwner.get().lifecycle.addObserver(
-            object : DefaultLifecycleObserver {
-                override fun onStart(owner: LifecycleOwner) {
-                    scope.launch {
-                        val available =
-                            runCatching { updateChecker.checkOnLaunch(System.currentTimeMillis()) }
-                                .onFailure { Log.w(TAG, "launch update check failed", it) }
-                                .getOrNull() ?: return@launch
-                        notify(available)
-                    }
+        val observer = object : DefaultLifecycleObserver {
+            override fun onStart(owner: LifecycleOwner) {
+                scope.launch {
+                    val available =
+                        runCatching { updateChecker.get().checkOnLaunch(System.currentTimeMillis()) }
+                            .onFailure { Log.w(TAG, "launch update check failed", it) }
+                            .getOrNull() ?: return@launch
+                    notify(available)
                 }
-            },
-        )
+            }
+        }
+        scope.launch(Dispatchers.Main.immediate) {
+            ProcessLifecycleOwner.get().lifecycle.addObserver(observer)
+        }
     }
 
     private fun notify(available: UpdateChecker.Result.Available) {

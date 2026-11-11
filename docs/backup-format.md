@@ -54,14 +54,22 @@ subset present, all optional except `version`):
 {
   "version": 2,
   "created": <ms-since-epoch>,
-  "connections": [ { "id": ..., "label": ..., ... }, ... ],
-  "groups":      [ ... ],
-  "keys":        [ { "id": ..., "privateKeyBytes": "<base64>", ... }, ... ],
-  "totp":        [ { "id": ..., "secret": "<base32>", ... }, ... ],
-  "knownHosts":  [ ... ],
-  "portForwards":[ ... ],
-  "tunnels":     [ { "configText": "<base64>", ... }, ... ],
-  "settings":    { ... }
+  "connections":       [ { "id": ..., "label": ..., ... }, ... ],
+  "groups":            [ ... ],
+  "identities":        [ ... ],
+  "stepCaConfigs":     [ ... ],
+  "keys":              [ { "id": ..., "privateKeyBytes": "<base64>", ... }, ... ],
+  "totp":              [ { "id": ..., "secret": "<base32>", ... }, ... ],
+  "ageIdentities":     [ { "id": ..., "recipient": "age1...", "secret": "AGE-SECRET-KEY-1..." }, ... ],
+  "knownHosts":        [ ... ],
+  "knownTlsCerts":     [ ... ],
+  "portForwards":      [ ... ],
+  "tunnels":           [ { "configText": "<base64>", ... }, ... ],
+  "workspaces":        [ { "id": ..., "items": [ ... ] }, ... ],
+  "syncProfiles":      [ ... ],
+  "mailRules":         [ ... ],
+  "chatConversations": [ { "id": ..., "messages": [ ... ] }, ... ],
+  "settings":          { ... }
 }
 ```
 

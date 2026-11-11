@@ -16,6 +16,9 @@ interface MailRuleDao {
     @Query("SELECT * FROM mail_rules ORDER BY orderIndex ASC, createdAt ASC")
     fun observeAll(): Flow<List<MailRule>>
 
+    @Query("SELECT * FROM mail_rules ORDER BY orderIndex ASC, createdAt ASC")
+    suspend fun getAll(): List<MailRule>
+
     /** Enabled rules in evaluation order for a given account (its own rules + ANY-account rules). */
     @Query(
         "SELECT * FROM mail_rules WHERE enabled = 1 AND (accountProfileId IS NULL OR accountProfileId = :profileId) " +

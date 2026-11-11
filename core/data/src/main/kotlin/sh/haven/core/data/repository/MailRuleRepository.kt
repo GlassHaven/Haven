@@ -30,6 +30,7 @@ class MailRuleRepository @Inject constructor(
 
     // rules
     fun observeRules(): Flow<List<MailRule>> = ruleDao.observeAll()
+    suspend fun getAllRules(): List<MailRule> = ruleDao.getAll()
     suspend fun enabledForAccount(profileId: String): List<MailRule> = ruleDao.enabledForAccount(profileId)
     suspend fun allEnabled(): List<MailRule> = ruleDao.allEnabled()
     suspend fun getRule(id: String): MailRule? = ruleDao.getById(id)

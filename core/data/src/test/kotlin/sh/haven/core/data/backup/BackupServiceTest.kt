@@ -62,6 +62,12 @@ class BackupServiceTest {
     private lateinit var sshIdentityRepository: sh.haven.core.data.repository.SshIdentityRepository
     private lateinit var totpSecretRepository: sh.haven.core.data.repository.TotpSecretRepository
     private lateinit var chatRepository: sh.haven.core.data.repository.ChatRepository
+    private lateinit var ageIdentityRepository: sh.haven.core.data.repository.AgeIdentityRepository
+    private lateinit var workspaceRepository: sh.haven.core.data.repository.WorkspaceRepository
+    private lateinit var syncProfileRepository: sh.haven.core.data.repository.SyncProfileRepository
+    private lateinit var stepCaConfigRepository: sh.haven.core.data.repository.StepCaConfigRepository
+    private lateinit var knownTlsCertDao: sh.haven.core.data.db.KnownTlsCertDao
+    private lateinit var mailRuleRepository: sh.haven.core.data.repository.MailRuleRepository
     private lateinit var dataStore: DataStore<Preferences>
     private lateinit var service: BackupService
 
@@ -78,15 +84,46 @@ class BackupServiceTest {
         sshIdentityRepository = mockk(relaxed = true)
         totpSecretRepository = mockk(relaxed = true)
         chatRepository = mockk(relaxed = true)
-        // Default: no tunnels / identities stored. Individual tests override.
+        ageIdentityRepository = mockk(relaxed = true)
+        workspaceRepository = mockk(relaxed = true)
+        syncProfileRepository = mockk(relaxed = true)
+        stepCaConfigRepository = mockk(relaxed = true)
+        knownTlsCertDao = mockk(relaxed = true)
+        mailRuleRepository = mockk(relaxed = true)
+        // Default: empty collections unless overridden by a test.
         coEvery { tunnelConfigRepository.getAllDecrypted() } returns emptyList()
         coEvery { sshIdentityRepository.getAllDecrypted() } returns emptyList()
         coEvery { chatRepository.getAllConversations() } returns emptyList()
+        coEvery { ageIdentityRepository.getAllDecrypted() } returns emptyList()
+        coEvery { workspaceRepository.getAllWithItems() } returns emptyList()
+        coEvery { syncProfileRepository.getAll() } returns emptyList()
+        coEvery { stepCaConfigRepository.getAll() } returns emptyList()
+        coEvery { knownTlsCertDao.getAll() } returns emptyList()
+        coEvery { mailRuleRepository.getAllRules() } returns emptyList()
 
         val prefsFile = File(tempFolder.root, "test.preferences_pb")
         dataStore = PreferenceDataStoreFactory.create { prefsFile }
 
-        service = BackupService(connectionDao, connectionRepository, connectionGroupDao, sshKeyDao, sshKeyRepository, knownHostDao, portForwardRuleDao, tunnelConfigRepository, sshIdentityRepository, totpSecretRepository, dataStore, chatRepository)
+        service = BackupService(
+            connectionDao,
+            connectionRepository,
+            connectionGroupDao,
+            sshKeyDao,
+            sshKeyRepository,
+            knownHostDao,
+            portForwardRuleDao,
+            tunnelConfigRepository,
+            sshIdentityRepository,
+            totpSecretRepository,
+            dataStore,
+            chatRepository,
+            ageIdentityRepository,
+            workspaceRepository,
+            syncProfileRepository,
+            stepCaConfigRepository,
+            knownTlsCertDao,
+            mailRuleRepository,
+        )
     }
 
     // -- Encrypt/Decrypt roundtrip --
@@ -782,16 +819,31 @@ class BackupServiceTest {
         coEvery { tcr.getAllDecrypted() } returns emptyList()
         val sir = mockk<sh.haven.core.data.repository.SshIdentityRepository>(relaxed = true)
         coEvery { sir.getAllDecrypted() } returns emptyList()
+        val air = mockk<sh.haven.core.data.repository.AgeIdentityRepository>(relaxed = true)
+        val wr = mockk<sh.haven.core.data.repository.WorkspaceRepository>(relaxed = true)
+        val spr = mockk<sh.haven.core.data.repository.SyncProfileRepository>(relaxed = true)
+        val scar = mockk<sh.haven.core.data.repository.StepCaConfigRepository>(relaxed = true)
+        val ktcd = mockk<sh.haven.core.data.db.KnownTlsCertDao>(relaxed = true)
+        val mrr = mockk<sh.haven.core.data.repository.MailRuleRepository>(relaxed = true)
         val ds = PreferenceDataStoreFactory.create {
             File(tempFolder.root, "importer-${System.nanoTime()}.preferences_pb")
         }
         return BackupServicePair(
-            service = BackupService(cd, cr, cgd, skd, skr, khd, pfd, tcr, sir, mockk(relaxed = true), ds, mockk(relaxed = true)),
+            service = BackupService(
+                cd, cr, cgd, skd, skr, khd, pfd, tcr, sir, mockk(relaxed = true), ds, mockk(relaxed = true),
+                air, wr, spr, scar, ktcd, mrr,
+            ),
             connectionRepository = cr,
             sshKeyRepository = skr,
             knownHostDao = khd,
             portForwardRuleDao = pfd,
             tunnelConfigRepository = tcr,
+            ageIdentityRepository = air,
+            workspaceRepository = wr,
+            syncProfileRepository = spr,
+            stepCaConfigRepository = scar,
+            knownTlsCertDao = ktcd,
+            mailRuleRepository = mrr,
         )
     }
 
@@ -802,6 +854,12 @@ class BackupServiceTest {
         val knownHostDao: KnownHostDao,
         val portForwardRuleDao: PortForwardRuleDao,
         val tunnelConfigRepository: TunnelConfigRepository,
+        val ageIdentityRepository: sh.haven.core.data.repository.AgeIdentityRepository,
+        val workspaceRepository: sh.haven.core.data.repository.WorkspaceRepository,
+        val syncProfileRepository: sh.haven.core.data.repository.SyncProfileRepository,
+        val stepCaConfigRepository: sh.haven.core.data.repository.StepCaConfigRepository,
+        val knownTlsCertDao: sh.haven.core.data.db.KnownTlsCertDao,
+        val mailRuleRepository: sh.haven.core.data.repository.MailRuleRepository,
     )
 
     @Test
@@ -1078,5 +1136,408 @@ class BackupServiceTest {
         assertEquals("assistant", savedMsg.captured.role)
         assertEquals("Hello from deepseek:free", savedMsg.captured.content)
         assertEquals("deepseek/deepseek-chat:free", savedMsg.captured.model)
+    }
+
+    @Test
+    fun `every persisted ConnectionProfile field survives export-import and v1 rdpColorDepth defaults to 32`() = runTest {
+        val nonDefault = ConnectionProfile(
+            id = "full-114",
+            label = "Every Column",
+            host = "192.0.2.99",
+            port = 2202,
+            username = "operator",
+            sshPassword = "ssh-secret",
+            authType = ConnectionProfile.AuthType.KEY,
+            keyId = "key-99",
+            authMethods = "KEY:key-99\nPASSWORD",
+            totpConfirmBeforeSend = true,
+            ignoreSavedKeys = true,
+            colorTag = 4,
+            lastConnected = 1711111111111L,
+            sortOrder = 9,
+            connectionType = "SAF",
+            safTreeUri = "content://com.android.externalstorage.documents/tree/primary%3ADocs",
+            destinationHash = "deadbeefcafebabe",
+            reticulumHost = "10.9.0.1",
+            reticulumPort = 49999,
+            jumpProfileId = "jump-99",
+            sshOptions = "-o ServerAliveInterval=15",
+            vncPort = 5909,
+            vncUsername = "vnc-op",
+            vncPassword = "vnc-secret",
+            vncSshForward = false,
+            vncSshProfileId = "vnc-ssh-99",
+            vncColorDepth = "BPP_16_TRUE",
+            sessionManager = "tmux",
+            useMosh = true,
+            useEternalTerminal = true,
+            etPort = 2099,
+            rdpPort = 3399,
+            rdpUsername = "rdp-op",
+            rdpDomain = "CORP",
+            rdpPassword = "rdp-secret",
+            rdpSshForward = true,
+            rdpSshProfileId = "rdp-ssh-99",
+            rdpUseNla = false,
+            rdpColorDepth = 24,
+            spicePort = 5930,
+            spicePassword = "spice-secret",
+            spiceSshForward = true,
+            spiceSshProfileId = "spice-ssh-99",
+            glkvmPort = 8443,
+            glkvmPassword = "glkvm-secret",
+            glkvmTargetLayout = "uk",
+            glkvmSshForward = true,
+            glkvmSshProfileId = "glkvm-ssh-99",
+            smbPort = 1445,
+            smbShare = "backups",
+            smbDomain = "WORKGROUP",
+            smbPassword = "smb-secret",
+            smbSshForward = true,
+            smbSshProfileId = "smb-ssh-99",
+            proxyType = "SOCKS5",
+            proxyHost = "127.0.0.1",
+            proxyPort = 9050,
+            proxyUser = "tor",
+            proxyPassword = "proxy-secret",
+            groupId = "grp-99",
+            identityId = "ident-99",
+            lastSessionName = "main|logs",
+            disableAltScreen = true,
+            rcloneRemoteName = "b2-crypt",
+            rcloneProvider = "b2",
+            emailProvider = "proton",
+            emailServer = "127.0.0.1",
+            emailSmtpServer = "127.0.0.2",
+            emailPort = 1143,
+            emailSmtpPort = 1025,
+            emailTls = false,
+            emailUsername = "user@proton.me",
+            emailPassword = "email-secret",
+            emailMailboxPassword = "mailbox-secret",
+            emailAuthMethods = "PROTON_SRP",
+            openaiPathPrefix = "/api",
+            openaiApiKey = "sk-test-secret",
+            aiProtocol = "ANTHROPIC",
+            aiRouteType = "SSH",
+            aiRouteProfileId = "ssh-ai-99",
+            useAndroidShell = true,
+            prootDistroId = "debian-trixie",
+            moshServerCommand = "/usr/local/bin/mosh-server new -s",
+            forwardAgent = true,
+            addressFamily = "IPV6_ONLY",
+            bindAddress = "fd00::1",
+            reticulumNetworkName = "ifac-net",
+            reticulumPassphrase = "ifac-secret",
+            postLoginCommand = "uptime",
+            sessionCommandOverride = "tmux new -A -s {name}",
+            postLoginBeforeSessionManager = false,
+            remoteCommand = "/bin/zsh -l",
+            requestPty = false,
+            usbForwardVidPid = "1050:0407",
+            fileTransport = "SCP",
+            tunnelConfigId = "tun-99",
+            terminalColorScheme = "NORD",
+            terminalBackgroundOpacity = 0.75f,
+            autoReconnect = false,
+            reconnectMaxAttempts = 12,
+            reconnectOnNetworkChange = false,
+            tunnelOnly = true,
+            mcpEnabled = false,
+            portKnockSequence = "7000/tcp 8000/udp",
+            portKnockDelayMs = 250,
+            spaKey = "spa-aes-secret",
+            spaKeyBase64 = true,
+            spaHmacKey = "spa-hmac-secret",
+            spaHmacKeyBase64 = true,
+            spaAccessSpec = "tcp/22",
+            spaAllowMode = "EXPLICIT",
+            spaExplicitIp = "203.0.113.10",
+            spaPort = 62202,
+            usbDriveSerial = "SN-USB-9999",
+        )
+
+        // Guard against future columns: every persisted field on nonDefault must differ
+        // from the default ConnectionProfile so an omitted export/import key cannot hide
+        // behind a default value.
+        val defaults = ConnectionProfile(id = "default-id", label = "Default", host = "default.host", username = "default-user")
+        val persistedFields = ConnectionProfile::class.java.declaredFields
+            .filter { !java.lang.reflect.Modifier.isStatic(it.modifiers) && !it.isSynthetic && it.name != "ephemeral" }
+        assertEquals(114, persistedFields.size)
+        for (field in persistedFields) {
+            field.isAccessible = true
+            org.junit.Assert.assertNotEquals(
+                "Test fixture must set a non-default value for ConnectionProfile.${field.name}",
+                field.get(defaults),
+                field.get(nonDefault),
+            )
+        }
+
+        coEvery { connectionRepository.getAll() } returns listOf(nonDefault)
+        coEvery { sshKeyDao.getAll() } returns emptyList()
+        coEvery { sshKeyRepository.getAllDecrypted() } returns emptyList()
+        coEvery { knownHostDao.getAll() } returns emptyList()
+        coEvery { portForwardRuleDao.getAll() } returns emptyList()
+
+        val encrypted = service.export("pw")
+        val captured = slot<ConnectionProfile>()
+        coEvery { connectionRepository.save(capture(captured)) } returns Unit
+        val result = service.import(encrypted, "pw")
+        assertTrue("Import errors: ${result.errors}", result.errors.isEmpty())
+        assertEquals(nonDefault, captured.captured)
+
+        // Legacy backup omitting rdpColorDepth must default to ConnectionProfile's 32 (not 16).
+        val legacyJson = JSONObject().apply {
+            put("version", 1)
+            put("created", 1700000000000L)
+            put("connections", org.json.JSONArray().apply {
+                put(JSONObject().apply {
+                    put("id", "legacy-rdp")
+                    put("label", "Win11")
+                    put("host", "10.0.0.9")
+                    put("port", 3389)
+                    put("username", "admin")
+                    put("connectionType", "RDP")
+                })
+            })
+        }
+        val legacyEnc = encryptForTest(legacyJson.toString().toByteArray(Charsets.UTF_8), "pw")
+        service.import(legacyEnc, "pw")
+        assertEquals(32, captured.captured.rdpColorDepth)
+    }
+
+    @Test
+    fun `stringSet preferences roundtrip and device-bound backup_sync_passphrase is excluded`() = runTest {
+        coEvery { connectionRepository.getAll() } returns emptyList()
+        coEvery { sshKeyDao.getAll() } returns emptyList()
+        coEvery { sshKeyRepository.getAllDecrypted() } returns emptyList()
+        coEvery { knownHostDao.getAll() } returns emptyList()
+        coEvery { portForwardRuleDao.getAll() } returns emptyList()
+
+        val disabledToolsKey = androidx.datastore.preferences.core.stringSetPreferencesKey("mcp_disabled_tools")
+        val syncPassphraseKey = stringPreferencesKey("backup_sync_passphrase")
+        dataStore.edit {
+            it[disabledToolsKey] = setOf("ssh_exec", "write_file")
+            it[syncPassphraseKey] = "ENC:device-a-keystore-ciphertext"
+        }
+
+        val encrypted = service.export("pw")
+
+        dataStore.edit {
+            it.clear()
+            it[syncPassphraseKey] = "ENC:device-b-existing-ciphertext"
+        }
+        service.import(encrypted, "pw")
+
+        val prefs = dataStore.data.first()
+        assertEquals(setOf("ssh_exec", "write_file"), prefs[disabledToolsKey])
+        assertEquals("ENC:device-b-existing-ciphertext", prefs[syncPassphraseKey])
+    }
+
+    @Test
+    fun `every HavenDatabase entity is partitioned between BACKED_UP_ENTITIES and TRANSIENT_OR_DEVICE_SCOPED_ENTITIES`() {
+        // @androidx.room.Database has BINARY retention, so resolve the @Database(entities = [...])
+        // list from HavenDatabase.kt and cross-check its cardinality against Room's KSP-exported schema JSON.
+        val dbSource = sequenceOf(
+            java.io.File("src/main/kotlin/sh/haven/core/data/db/HavenDatabase.kt"),
+            java.io.File("core/data/src/main/kotlin/sh/haven/core/data/db/HavenDatabase.kt"),
+        ).first { it.isFile }.readText()
+        val entitiesBlock = Regex("""@Database\(\s*entities\s*=\s*\[(.*?)]""", RegexOption.DOT_MATCHES_ALL)
+            .find(dbSource)?.groupValues?.get(1)
+            ?: error("Could not locate @Database(entities = [...]) in HavenDatabase.kt")
+        val declared = Regex("""([A-Za-z0-9_]+)::class""")
+            .findAll(entitiesBlock)
+            .map { Class.forName("sh.haven.core.data.db.entities.${it.groupValues[1]}") }
+            .toSet()
+
+        val schemaDir = sequenceOf(
+            java.io.File("schemas/sh.haven.core.data.db.HavenDatabase"),
+            java.io.File("core/data/schemas/sh.haven.core.data.db.HavenDatabase"),
+        ).first { it.isDirectory }
+        val latestSchema = schemaDir.listFiles { f -> f.extension == "json" }!!
+            .maxBy { it.nameWithoutExtension.toInt() }
+        val schemaEntities = JSONObject(latestSchema.readText())
+            .getJSONObject("database")
+            .getJSONArray("entities")
+        assertEquals(
+            "Parsed @Database entities must match Room KSP schema ${latestSchema.name}",
+            schemaEntities.length(),
+            declared.size,
+        )
+
+        val overlap = BackupService.BACKED_UP_ENTITIES intersect BackupService.TRANSIENT_OR_DEVICE_SCOPED_ENTITIES
+        assertTrue("Entity sets must be disjoint, overlap=$overlap", overlap.isEmpty())
+        assertEquals(
+            "Every @Database entity in HavenDatabase must be backed up or explicitly classified as transient/device-scoped",
+            declared,
+            BackupService.BACKED_UP_ENTITIES + BackupService.TRANSIENT_OR_DEVICE_SCOPED_ENTITIES,
+        )
+    }
+
+    @Test
+    fun `newly covered entities and SshKey plus TunnelConfig columns survive cross-device roundtrip`() = runTest {
+        val age = sh.haven.core.data.db.entities.AgeIdentityEntity(
+            id = "age-1",
+            label = "Vault Key",
+            recipient = "age1ql3z7hjy54pw3hyww5ayyfg7zqgvc7w3j2elw8zmrj2kg5sfn9aqmcac8p",
+            secret = "AGE-SECRET-KEY-1GFP3Z7HJY54PW3HYWW5AYYFG7ZQGVC7W3J2ELW8ZMRJ2KG5SFN9AQ00000",
+            createdAt = 1700000010000L,
+        )
+        val wsProfile = sh.haven.core.data.db.entities.WorkspaceProfile(
+            id = "ws-1",
+            name = "Morning Ops",
+            sortOrder = 2,
+            createdAt = 1700000020000L,
+            updatedAt = 1700000030000L,
+        )
+        val wsItems = listOf(
+            sh.haven.core.data.db.entities.WorkspaceItem(
+                id = "wsi-1",
+                workspaceId = "ws-1",
+                kind = sh.haven.core.data.db.entities.WorkspaceItem.Kind.TERMINAL,
+                connectionProfileId = "c1",
+                path = null,
+                sessionName = "ops",
+                sortOrder = 0,
+            ),
+            sh.haven.core.data.db.entities.WorkspaceItem(
+                id = "wsi-2",
+                workspaceId = "ws-1",
+                kind = sh.haven.core.data.db.entities.WorkspaceItem.Kind.WAYLAND,
+                connectionProfileId = null,
+                path = null,
+                sessionName = null,
+                sortOrder = 1,
+            ),
+        )
+        val syncProfile = sh.haven.core.data.db.entities.SyncProfile(
+            id = "sync-1",
+            name = "Photos Backup",
+            srcFs = "/storage/emulated/0/DCIM",
+            dstFs = "b2:photos",
+            mode = "COPY",
+            includePatterns = "*.jpg\n*.png",
+            excludePatterns = ".thumbnails/**",
+            minSize = "10k",
+            maxSize = "500M",
+            bandwidthLimit = "5M",
+            createdAt = 1700000040000L,
+            lastRunAt = 1700000050000L,
+        )
+        val stepCa = sh.haven.core.data.db.entities.StepCaConfig(
+            id = "ca-1",
+            name = "Corp CA",
+            caUrl = "https://ca.corp.internal:9000",
+            oidcIssuer = "https://idp.corp.internal",
+            oidcAuthUrl = "https://idp.corp.internal/authorize",
+            oidcTokenUrl = "https://idp.corp.internal/token",
+            oidcClientId = "step-ca",
+            oidcClientSecret = "semi-public-secret",
+            provisioner = "sso",
+            defaultPrincipals = "ops,root",
+            rootCertPem = "-----BEGIN CERTIFICATE-----\nMIIB...\n-----END CERTIFICATE-----",
+            sshHostCaPublicKey = "ssh-ed25519 AAAAC3NzaC1lZDI1NTE5AAAAIHostCa",
+            createdAt = 1700000060000L,
+        )
+        val tlsCert = sh.haven.core.data.db.entities.KnownTlsCert(
+            id = 42,
+            hostname = "kvm.corp.internal",
+            port = 443,
+            sha256 = "0123456789abcdef0123456789abcdef0123456789abcdef0123456789abcdef",
+            firstSeen = 1700000070000L,
+        )
+        val mailRule = sh.haven.core.data.db.entities.MailRule(
+            id = "mr-1",
+            name = "PagerDuty Alerts",
+            enabled = false,
+            orderIndex = 3,
+            accountProfileId = "mail-1",
+            folderId = "Alerts",
+            criteriaJson = """{"from":"alerts@pagerduty.com"}""",
+            actionsJson = """[{"type":"star"}]""",
+            stopOnMatch = true,
+            notifyOnFire = true,
+            createdAt = 1700000080000L,
+            lastFiredAt = 1700000090000L,
+        )
+        val sshKey = SshKey(
+            id = "k-cert",
+            label = "Signed Key",
+            keyType = "ED25519",
+            privateKeyBytes = byteArrayOf(9, 8, 7, 6),
+            publicKeyOpenSsh = "ssh-ed25519 AAAAC3NzaC1lZDI1NTE5AAAAISigned",
+            fingerprintSha256 = "SHA256:signed",
+            createdAt = 1700000100000L,
+            isEncrypted = true,
+            biometricProtected = true,
+            certificateBytes = "ssh-ed25519-cert-v01@openssh.com AAAA...".toByteArray(),
+            caConfigId = "ca-1",
+            certIssuedAt = 1700000110000L,
+            enabledForAuth = false,
+            passphraseEncrypted = "ENC:device-a-wrapped",
+        )
+        val ownedTunnel = TunnelConfig(
+            id = "tun-owned",
+            label = "Inline CF",
+            type = "CLOUDFLARE_ACCESS",
+            configText = """{"hostname":"ssh.example.com"}""".toByteArray(),
+            createdAt = 1700000120000L,
+            ownerProfileId = "c1",
+        )
+
+        coEvery { connectionRepository.getAll() } returns emptyList()
+        coEvery { sshKeyDao.getAll() } returns listOf(sshKey)
+        coEvery { sshKeyRepository.getAllDecrypted() } returns listOf(sshKey)
+        coEvery { sshKeyRepository.getStoredPassphrase("k-cert") } returns "key-passphrase-plain"
+        coEvery { knownHostDao.getAll() } returns emptyList()
+        coEvery { portForwardRuleDao.getAll() } returns emptyList()
+        coEvery { tunnelConfigRepository.getAllDecrypted() } returns listOf(ownedTunnel)
+        coEvery { ageIdentityRepository.getAllDecrypted() } returns listOf(age)
+        coEvery { workspaceRepository.getAllWithItems() } returns listOf(
+            sh.haven.core.data.repository.WorkspaceWithItems(wsProfile, wsItems),
+        )
+        coEvery { syncProfileRepository.getAll() } returns listOf(syncProfile)
+        coEvery { stepCaConfigRepository.getAll() } returns listOf(stepCa)
+        coEvery { knownTlsCertDao.getAll() } returns listOf(tlsCert)
+        coEvery { mailRuleRepository.getAllRules() } returns listOf(mailRule)
+
+        val encrypted = service.export("cross-device-pw")
+
+        val b = newImporterService()
+        val savedAge = slot<sh.haven.core.data.db.entities.AgeIdentityEntity>()
+        val savedWsProfile = slot<sh.haven.core.data.db.entities.WorkspaceProfile>()
+        val savedWsItems = slot<List<sh.haven.core.data.db.entities.WorkspaceItem>>()
+        val savedSync = slot<sh.haven.core.data.db.entities.SyncProfile>()
+        val savedCa = slot<sh.haven.core.data.db.entities.StepCaConfig>()
+        val savedTls = slot<sh.haven.core.data.db.entities.KnownTlsCert>()
+        val savedMailRule = slot<sh.haven.core.data.db.entities.MailRule>()
+        val savedKey = slot<SshKey>()
+        val savedTunnel = slot<TunnelConfig>()
+
+        coEvery { b.ageIdentityRepository.savePlaintext(capture(savedAge)) } returns Unit
+        coEvery { b.workspaceRepository.restoreFromBackup(capture(savedWsProfile), capture(savedWsItems)) } returns Unit
+        coEvery { b.syncProfileRepository.save(capture(savedSync)) } returns Unit
+        coEvery { b.stepCaConfigRepository.save(capture(savedCa)) } returns Unit
+        coEvery { b.knownTlsCertDao.upsert(capture(savedTls)) } returns Unit
+        coEvery { b.mailRuleRepository.saveRule(capture(savedMailRule)) } returns Unit
+        coEvery { b.sshKeyRepository.save(capture(savedKey)) } returns Unit
+        coEvery { b.tunnelConfigRepository.save(capture(savedTunnel)) } returns Unit
+
+        val result = b.service.import(encrypted, "cross-device-pw")
+        assertTrue("Import errors: ${result.errors}", result.errors.isEmpty())
+
+        assertEquals(age, savedAge.captured)
+        assertEquals(wsProfile, savedWsProfile.captured)
+        assertEquals(wsItems, savedWsItems.captured)
+        assertEquals(syncProfile, savedSync.captured)
+        assertEquals(stepCa.id, savedCa.captured.id)
+        assertEquals(stepCa.oidcClientSecret, savedCa.captured.oidcClientSecret)
+        assertEquals(stepCa.sshHostCaPublicKey, savedCa.captured.sshHostCaPublicKey)
+        assertEquals(stepCa.rootCertPem, savedCa.captured.rootCertPem)
+        assertEquals(tlsCert.copy(id = 0), savedTls.captured)
+        assertEquals(mailRule, savedMailRule.captured)
+        assertEquals(sshKey.copy(passphraseEncrypted = null), savedKey.captured)
+        coVerify(exactly = 1) { b.sshKeyRepository.setStoredPassphrase("k-cert", "key-passphrase-plain") }
+        assertEquals("c1", savedTunnel.captured.ownerProfileId)
     }
 }

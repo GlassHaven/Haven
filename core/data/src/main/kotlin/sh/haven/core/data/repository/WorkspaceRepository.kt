@@ -21,6 +21,19 @@ class WorkspaceRepository @Inject constructor(
         return WorkspaceWithItems(profile, dao.getItemsForWorkspace(id))
     }
 
+    suspend fun getAllWithItems(): List<WorkspaceWithItems> =
+        dao.getAll().map { profile ->
+            WorkspaceWithItems(profile, dao.getItemsForWorkspace(profile.id))
+        }
+
+    /** Restore a workspace and its ordered items verbatim (preserving [WorkspaceProfile.updatedAt]). */
+    suspend fun restoreFromBackup(profile: WorkspaceProfile, items: List<WorkspaceItem>) {
+        dao.saveWorkspace(
+            profile,
+            items.map { it.copy(workspaceId = profile.id) },
+        )
+    }
+
     /**
      * Atomic save: writes the profile, drops any prior items for that
      * workspace, and writes the new items in their list order. Items

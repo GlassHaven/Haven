@@ -247,4 +247,51 @@ class ProfileCredentialSectionTest {
         val (section, _) = newSection(emptyList())
         assertEquals(KeystoreStore.PROFILE_CREDENTIALS, section.store)
     }
+
+    @Test
+    fun `enumerate and wipe cover all 13 secret columns on ConnectionProfile`() = runTest {
+        val p = ConnectionProfile(
+            id = "p-all",
+            label = "all-secrets",
+            host = "10.0.0.1",
+            username = "u",
+            sshPassword = encSample,
+            vncPassword = encSample,
+            rdpPassword = encSample,
+            spicePassword = encSample,
+            glkvmPassword = encSample,
+            smbPassword = encSample,
+            proxyPassword = encSample,
+            spaKey = encSample,
+            spaHmacKey = encSample,
+            reticulumPassphrase = encSample,
+            emailPassword = encSample,
+            emailMailboxPassword = encSample,
+            openaiApiKey = encSample,
+        )
+        val (section, dao) = newSection(listOf(p))
+        val ids = section.enumerate().map { it.id }.toSet()
+        val expected = setOf(
+            "p-all/sshPassword",
+            "p-all/vncPassword",
+            "p-all/rdpPassword",
+            "p-all/spicePassword",
+            "p-all/glkvmPassword",
+            "p-all/smbPassword",
+            "p-all/proxyPassword",
+            "p-all/spaKey",
+            "p-all/spaHmacKey",
+            "p-all/reticulumPassphrase",
+            "p-all/emailPassword",
+            "p-all/emailMailboxPassword",
+            "p-all/openaiApiKey",
+        )
+        assertEquals(expected, ids)
+
+        val captured = slot<ConnectionProfile>()
+        coEvery { dao.upsert(capture(captured)) } returns Unit
+        assertTrue(section.wipe("p-all/spicePassword"))
+        assertEquals(null, captured.captured.spicePassword)
+        assertEquals(encSample, captured.captured.sshPassword)
+    }
 }

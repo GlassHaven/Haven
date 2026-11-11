@@ -31,6 +31,8 @@ class MailRuleEngineTest {
 
     private class FakeRuleDao(val rules: MutableList<MailRule> = mutableListOf()) : MailRuleDao {
         override fun observeAll(): Flow<List<MailRule>> = emptyFlow()
+        override suspend fun getAll(): List<MailRule> =
+            rules.sortedWith(compareBy({ it.orderIndex }, { it.createdAt }))
         override suspend fun enabledForAccount(profileId: String) =
             rules.filter { it.enabled && (it.accountProfileId == null || it.accountProfileId == profileId) }
                 .sortedWith(compareBy({ it.orderIndex }, { it.createdAt }))

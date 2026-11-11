@@ -36,30 +36,7 @@ class ProfileCredentialSection @Inject constructor(
 
     override val store: KeystoreStore = KeystoreStore.PROFILE_CREDENTIALS
 
-    private data class Field(
-        val name: String,
-        val displaySuffix: String,
-        val read: (ConnectionProfile) -> String?,
-        val write: (ConnectionProfile, String?) -> ConnectionProfile,
-    )
-
-    private val fields = listOf(
-        Field("sshPassword", "SSH password",
-            { it.sshPassword },
-            { p, v -> p.copy(sshPassword = v) }),
-        Field("vncPassword", "VNC password",
-            { it.vncPassword },
-            { p, v -> p.copy(vncPassword = v) }),
-        Field("rdpPassword", "RDP password",
-            { it.rdpPassword },
-            { p, v -> p.copy(rdpPassword = v) }),
-        Field("smbPassword", "SMB password",
-            { it.smbPassword },
-            { p, v -> p.copy(smbPassword = v) }),
-        Field("proxyPassword", "proxy password",
-            { it.proxyPassword },
-            { p, v -> p.copy(proxyPassword = v) }),
-    )
+    private val fields = ConnectionProfile.CREDENTIAL_FIELDS
 
     override suspend fun enumerate(): List<KeystoreEntry> {
         val profiles = connectionDao.getAll()

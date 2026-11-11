@@ -182,6 +182,8 @@ class WorkspaceRepositoryTest {
 
         override fun observeAll(): Flow<List<WorkspaceProfile>> = profiles
 
+        override suspend fun getAll(): List<WorkspaceProfile> = profiles.value
+
         override suspend fun getById(id: String): WorkspaceProfile? =
             profiles.value.firstOrNull { it.id == id }
 

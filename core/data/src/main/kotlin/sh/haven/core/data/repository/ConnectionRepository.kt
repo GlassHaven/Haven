@@ -22,19 +22,28 @@ class ConnectionRepository @Inject constructor(
     @ApplicationContext private val context: Context,
 ) {
     init {
-        // Encrypt any plaintext passwords left from before v3.3.0.
+        // Encrypt any plaintext credentials left from legacy installs or newly added columns.
         CoroutineScope(Dispatchers.IO).launch {
-            for (profile in connectionDao.getAll()) {
-                val hasPlaintext = listOfNotNull(
-                    profile.sshPassword, profile.vncPassword,
-                    profile.rdpPassword, profile.smbPassword,
-                    profile.proxyPassword, profile.reticulumPassphrase,
-                    profile.emailPassword, profile.emailMailboxPassword,
-                    profile.openaiApiKey,
-                ).any { !CredentialEncryption.isEncrypted(it) }
-                if (hasPlaintext) {
-                    connectionDao.upsert(encryptPasswords(decryptPasswords(profile)))
+            migrateLegacyPlaintextCredentials()
+        }
+    }
+
+    internal suspend fun migrateLegacyPlaintextCredentials() {
+        for (profile in connectionDao.getAll()) {
+            val hasPlaintext = ConnectionProfile.CREDENTIAL_FIELDS.any { field ->
+                val raw = field.read(profile)
+                !raw.isNullOrEmpty() && !CredentialEncryption.isEncrypted(raw)
+            }
+            if (hasPlaintext) {
+                val migrated = ConnectionProfile.CREDENTIAL_FIELDS.fold(profile) { acc, field ->
+                    val raw = field.read(acc)
+                    if (!raw.isNullOrEmpty() && !CredentialEncryption.isEncrypted(raw)) {
+                        field.write(acc, CredentialEncryption.encrypt(context, raw))
+                    } else {
+                        acc
+                    }
                 }
+                connectionDao.upsert(migrated)
             }
         }
     }
@@ -48,8 +57,10 @@ class ConnectionRepository @Inject constructor(
     suspend fun getById(id: String): ConnectionProfile? =
         connectionDao.getById(id)?.let { decryptPasswords(it) }
 
-    suspend fun save(profile: ConnectionProfile) =
+    suspend fun save(profile: ConnectionProfile) {
+        if (profile.ephemeral) return
         connectionDao.upsert(encryptPasswords(profile))
+    }
 
     suspend fun delete(id: String) {
         tunnelConfigDao.deleteByOwner(id)
@@ -86,20 +97,11 @@ class ConnectionRepository @Inject constructor(
         sshProfileId,
     )
 
-    private fun encryptPasswords(profile: ConnectionProfile): ConnectionProfile = profile.copy(
-        sshPassword = profile.sshPassword?.let { CredentialEncryption.encrypt(context, it) },
-        vncPassword = profile.vncPassword?.let { CredentialEncryption.encrypt(context, it) },
-        rdpPassword = profile.rdpPassword?.let { CredentialEncryption.encrypt(context, it) },
-        smbPassword = profile.smbPassword?.let { CredentialEncryption.encrypt(context, it) },
-        glkvmPassword = profile.glkvmPassword?.let { CredentialEncryption.encrypt(context, it) },
-        proxyPassword = profile.proxyPassword?.let { CredentialEncryption.encrypt(context, it) },
-        spaKey = profile.spaKey?.let { CredentialEncryption.encrypt(context, it) },
-        spaHmacKey = profile.spaHmacKey?.let { CredentialEncryption.encrypt(context, it) },
-        reticulumPassphrase = profile.reticulumPassphrase?.let { CredentialEncryption.encrypt(context, it) },
-        emailPassword = profile.emailPassword?.let { CredentialEncryption.encrypt(context, it) },
-        emailMailboxPassword = profile.emailMailboxPassword?.let { CredentialEncryption.encrypt(context, it) },
-        openaiApiKey = profile.openaiApiKey?.let { CredentialEncryption.encrypt(context, it) },
-    )
+    private fun encryptPasswords(profile: ConnectionProfile): ConnectionProfile =
+        ConnectionProfile.CREDENTIAL_FIELDS.fold(profile) { acc, field ->
+            val raw = field.read(acc)
+            if (raw != null) field.write(acc, CredentialEncryption.encrypt(context, raw)) else acc
+        }
 
     /**
      * Decrypt every credential field for display/use.
@@ -110,18 +112,9 @@ class ConnectionRepository @Inject constructor(
      * throws — nulling it would let the next save overwrite ciphertext that is
      * about to become readable again.
      */
-    private fun decryptPasswords(profile: ConnectionProfile): ConnectionProfile = profile.copy(
-        sshPassword = profile.sshPassword?.let { CredentialEncryption.decryptOrNull(context, it) },
-        vncPassword = profile.vncPassword?.let { CredentialEncryption.decryptOrNull(context, it) },
-        rdpPassword = profile.rdpPassword?.let { CredentialEncryption.decryptOrNull(context, it) },
-        smbPassword = profile.smbPassword?.let { CredentialEncryption.decryptOrNull(context, it) },
-        glkvmPassword = profile.glkvmPassword?.let { CredentialEncryption.decryptOrNull(context, it) },
-        proxyPassword = profile.proxyPassword?.let { CredentialEncryption.decryptOrNull(context, it) },
-        spaKey = profile.spaKey?.let { CredentialEncryption.decryptOrNull(context, it) },
-        spaHmacKey = profile.spaHmacKey?.let { CredentialEncryption.decryptOrNull(context, it) },
-        reticulumPassphrase = profile.reticulumPassphrase?.let { CredentialEncryption.decryptOrNull(context, it) },
-        emailPassword = profile.emailPassword?.let { CredentialEncryption.decryptOrNull(context, it) },
-        emailMailboxPassword = profile.emailMailboxPassword?.let { CredentialEncryption.decryptOrNull(context, it) },
-        openaiApiKey = profile.openaiApiKey?.let { CredentialEncryption.decryptOrNull(context, it) },
-    )
+    private fun decryptPasswords(profile: ConnectionProfile): ConnectionProfile =
+        ConnectionProfile.CREDENTIAL_FIELDS.fold(profile) { acc, field ->
+            val raw = field.read(acc)
+            if (raw != null) field.write(acc, CredentialEncryption.decryptOrNull(context, raw)) else acc
+        }
 }

@@ -9,17 +9,45 @@ import org.json.JSONObject
 import sh.haven.core.data.db.ConnectionDao
 import sh.haven.core.data.db.ConnectionGroupDao
 import sh.haven.core.data.db.KnownHostDao
+import sh.haven.core.data.db.KnownTlsCertDao
 import sh.haven.core.data.db.PortForwardRuleDao
 import sh.haven.core.data.db.SshKeyDao
+import sh.haven.core.data.db.entities.AgeIdentityEntity
+import sh.haven.core.data.db.entities.AgentAuditEvent
+import sh.haven.core.data.db.entities.ChatConversation
+import sh.haven.core.data.db.entities.ChatMessage
 import sh.haven.core.data.db.entities.ConnectionGroup
+import sh.haven.core.data.db.entities.ConnectionLog
 import sh.haven.core.data.db.entities.ConnectionProfile
 import sh.haven.core.data.db.entities.KnownHost
+import sh.haven.core.data.db.entities.KnownTlsCert
+import sh.haven.core.data.db.entities.MailRule
+import sh.haven.core.data.db.entities.MailRuleFiring
+import sh.haven.core.data.db.entities.MailRulePendingAction
+import sh.haven.core.data.db.entities.MailWatermark
+import sh.haven.core.data.db.entities.PasteQueueEntry
 import sh.haven.core.data.db.entities.PortForwardRule
+import sh.haven.core.data.db.entities.ProotInstallLog
 import sh.haven.core.data.db.entities.SshIdentity
 import sh.haven.core.data.db.entities.SshKey
+import sh.haven.core.data.db.entities.StandingPolicy
+import sh.haven.core.data.db.entities.StepCaConfig
+import sh.haven.core.data.db.entities.SyncProfile
 import sh.haven.core.data.db.entities.TotpSecret
 import sh.haven.core.data.db.entities.TunnelConfig
+import sh.haven.core.data.db.entities.WorkspaceItem
+import sh.haven.core.data.db.entities.WorkspaceProfile
+import sh.haven.core.data.repository.AgeIdentityRepository
+import sh.haven.core.data.repository.ChatRepository
+import sh.haven.core.data.repository.ConnectionRepository
+import sh.haven.core.data.repository.MailRuleRepository
+import sh.haven.core.data.repository.SshIdentityRepository
+import sh.haven.core.data.repository.SshKeyRepository
+import sh.haven.core.data.repository.StepCaConfigRepository
+import sh.haven.core.data.repository.SyncProfileRepository
+import sh.haven.core.data.repository.TotpSecretRepository
 import sh.haven.core.data.repository.TunnelConfigRepository
+import sh.haven.core.data.repository.WorkspaceRepository
 import java.security.SecureRandom
 import javax.crypto.Cipher
 import javax.crypto.SecretKeyFactory
@@ -41,17 +69,23 @@ import javax.inject.Singleton
 @Singleton
 class BackupService @Inject constructor(
     private val connectionDao: ConnectionDao,
-    private val connectionRepository: sh.haven.core.data.repository.ConnectionRepository,
+    private val connectionRepository: ConnectionRepository,
     private val connectionGroupDao: ConnectionGroupDao,
     private val sshKeyDao: SshKeyDao,
-    private val sshKeyRepository: sh.haven.core.data.repository.SshKeyRepository,
+    private val sshKeyRepository: SshKeyRepository,
     private val knownHostDao: KnownHostDao,
     private val portForwardRuleDao: PortForwardRuleDao,
     private val tunnelConfigRepository: TunnelConfigRepository,
-    private val sshIdentityRepository: sh.haven.core.data.repository.SshIdentityRepository,
-    private val totpSecretRepository: sh.haven.core.data.repository.TotpSecretRepository,
+    private val sshIdentityRepository: SshIdentityRepository,
+    private val totpSecretRepository: TotpSecretRepository,
     private val dataStore: DataStore<Preferences>,
-    private val chatRepository: sh.haven.core.data.repository.ChatRepository,
+    private val chatRepository: ChatRepository,
+    private val ageIdentityRepository: AgeIdentityRepository,
+    private val workspaceRepository: WorkspaceRepository,
+    private val syncProfileRepository: SyncProfileRepository,
+    private val stepCaConfigRepository: StepCaConfigRepository,
+    private val knownTlsCertDao: KnownTlsCertDao,
+    private val mailRuleRepository: MailRuleRepository,
 ) {
     data class BackupResult(val count: Int, val errors: List<String> = emptyList())
 
@@ -171,12 +205,23 @@ class BackupService @Inject constructor(
                 put("aiRouteType", p.aiRouteType ?: JSONObject.NULL)
                 put("aiRouteProfileId", p.aiRouteProfileId ?: JSONObject.NULL)
                 put("sessionCommandOverride", p.sessionCommandOverride ?: JSONObject.NULL)
+                put("safTreeUri", p.safTreeUri ?: JSONObject.NULL)
+                put("prootDistroId", p.prootDistroId ?: JSONObject.NULL)
+                put("addressFamily", p.addressFamily)
+                put("bindAddress", p.bindAddress ?: JSONObject.NULL)
+                put("usbForwardVidPid", p.usbForwardVidPid ?: JSONObject.NULL)
+                put("autoReconnect", p.autoReconnect)
+                put("reconnectMaxAttempts", p.reconnectMaxAttempts)
+                put("reconnectOnNetworkChange", p.reconnectOnNetworkChange)
+                put("tunnelOnly", p.tunnelOnly)
+                put("mcpEnabled", p.mcpEnabled)
+                put("usbDriveSerial", p.usbDriveSerial ?: JSONObject.NULL)
             })
         }
         json.put("connections", connections)
 
-        // Tunnel configs (WireGuard / Tailscale). Decrypted here — the backup
-        // file has its own AES-GCM layer around the whole payload.
+        // Tunnel configs (WireGuard / Tailscale / Cloudflare / NetBird / AnyConnect / OpenVPN).
+        // Decrypted here — the backup file has its own AES-GCM layer around the whole payload.
         val tunnels = JSONArray()
         tunnelConfigRepository.getAllDecrypted().forEach { t ->
             tunnels.put(JSONObject().apply {
@@ -185,6 +230,7 @@ class BackupService @Inject constructor(
                 put("type", t.type)
                 put("configText", Base64.encodeToString(t.configText, Base64.NO_WRAP))
                 put("createdAt", t.createdAt)
+                put("ownerProfileId", t.ownerProfileId ?: JSONObject.NULL)
             })
         }
         json.put("tunnels", tunnels)
@@ -218,9 +264,35 @@ class BackupService @Inject constructor(
         }
         json.put("identities", identities)
 
-        // SSH keys
+        // step-ca certificate authority configs (#133).
+        val stepCaConfigs = JSONArray()
+        stepCaConfigRepository.getAll().forEach { ca ->
+            stepCaConfigs.put(JSONObject().apply {
+                put("id", ca.id)
+                put("name", ca.name)
+                put("caUrl", ca.caUrl)
+                put("oidcIssuer", ca.oidcIssuer)
+                put("oidcAuthUrl", ca.oidcAuthUrl)
+                put("oidcTokenUrl", ca.oidcTokenUrl)
+                put("oidcClientId", ca.oidcClientId)
+                put("oidcClientSecret", ca.oidcClientSecret ?: JSONObject.NULL)
+                put("provisioner", ca.provisioner)
+                put("defaultPrincipals", ca.defaultPrincipals)
+                put("rootCertPem", ca.rootCertPem)
+                put("sshHostCaPublicKey", ca.sshHostCaPublicKey ?: JSONObject.NULL)
+                put("createdAt", ca.createdAt)
+            })
+        }
+        json.put("stepCaConfigs", stepCaConfigs)
+
+        // SSH keys (software keys only — hardware Keystore keys stay bound to the secure chip)
         val keys = JSONArray()
         sshKeyRepository.getAllDecrypted().forEach { k ->
+            val storedPassphrase = if (k.passphraseEncrypted != null) {
+                runCatching { sshKeyRepository.getStoredPassphrase(k.id) }.getOrNull()
+            } else {
+                null
+            }
             keys.put(JSONObject().apply {
                 put("id", k.id)
                 put("label", k.label)
@@ -233,20 +305,20 @@ class BackupService @Inject constructor(
                 // distinct from on-disk encryption. Backups need to preserve
                 // this so JSch knows to prompt for the passphrase on use.
                 put("isEncrypted", k.isEncrypted)
+                put("biometricProtected", k.biometricProtected)
+                put(
+                    "certificateBytes",
+                    k.certificateBytes?.let { Base64.encodeToString(it, Base64.NO_WRAP) } ?: JSONObject.NULL,
+                )
+                put("caConfigId", k.caConfigId ?: JSONObject.NULL)
+                put("certIssuedAt", k.certIssuedAt ?: JSONObject.NULL)
+                put("enabledForAuth", k.enabledForAuth)
+                put("storedPassphrase", storedPassphrase ?: JSONObject.NULL)
             })
         }
         json.put("keys", keys)
 
         // Authenticator (TOTP) secrets.
-        //
-        // Absent from backups until v5.87.x, which made restoring onto a new
-        // device silently lose every enrolled entry — the one kind of data
-        // here that cannot be re-derived from anything else. Re-enrolling
-        // means going back to each service and doing the QR dance again.
-        //
-        // Exported decrypted, like the SSH private keys above: the backup
-        // file carries its own AES-256-GCM layer, and the at-rest encryption
-        // is keyed to a device keystore the restoring device does not have.
         val totp = JSONArray()
         totpSecretRepository.getAll().forEach { t ->
             totp.put(JSONObject().apply {
@@ -263,6 +335,19 @@ class BackupService @Inject constructor(
         }
         json.put("totp", totp)
 
+        // age X25519 file-encryption identities (decrypted secret — re-encrypted on import).
+        val ageIdentities = JSONArray()
+        ageIdentityRepository.getAllDecrypted().forEach { a ->
+            ageIdentities.put(JSONObject().apply {
+                put("id", a.id)
+                put("label", a.label)
+                put("recipient", a.recipient)
+                put("secret", a.secret)
+                put("createdAt", a.createdAt)
+            })
+        }
+        json.put("ageIdentities", ageIdentities)
+
         // Known hosts
         val hosts = JSONArray()
         knownHostDao.getAll().forEach { h ->
@@ -276,6 +361,18 @@ class BackupService @Inject constructor(
             })
         }
         json.put("knownHosts", hosts)
+
+        // Known TLS leaf certificates (TOFU pins for VNC VeNCrypt / RDP / GLKVM)
+        val knownTlsCerts = JSONArray()
+        knownTlsCertDao.getAll().forEach { cert ->
+            knownTlsCerts.put(JSONObject().apply {
+                put("hostname", cert.hostname)
+                put("port", cert.port)
+                put("sha256", cert.sha256)
+                put("firstSeen", cert.firstSeen)
+            })
+        }
+        json.put("knownTlsCerts", knownTlsCerts)
 
         // Port forward rules
         val forwards = JSONArray()
@@ -293,39 +390,104 @@ class BackupService @Inject constructor(
         }
         json.put("portForwards", forwards)
 
-        // Saved AI chat conversations and their messages (#807)
-        if (chatRepository != null) {
-            val chatConversations = JSONArray()
-            chatRepository.getAllConversations().forEach { conv ->
-                val messagesJson = JSONArray()
-                chatRepository.getMessages(conv.id).forEach { msg ->
-                    messagesJson.put(JSONObject().apply {
-                        put("id", msg.id)
-                        put("conversationId", msg.conversationId)
-                        put("role", msg.role)
-                        put("content", msg.content)
-                        put("model", msg.model ?: JSONObject.NULL)
-                        put("attachments", msg.attachments ?: JSONObject.NULL)
-                        put("createdAt", msg.createdAt)
-                    })
-                }
-                chatConversations.put(JSONObject().apply {
-                    put("id", conv.id)
-                    put("profileId", conv.profileId)
-                    put("title", conv.title)
-                    put("createdAt", conv.createdAt)
-                    put("savedAt", conv.savedAt)
-                    put("updatedAt", conv.updatedAt)
-                    put("messages", messagesJson)
+        // Workspaces and their ordered launch items
+        val workspaces = JSONArray()
+        workspaceRepository.getAllWithItems().forEach { ws ->
+            val itemsJson = JSONArray()
+            ws.items.forEach { item ->
+                itemsJson.put(JSONObject().apply {
+                    put("id", item.id)
+                    put("workspaceId", item.workspaceId)
+                    put("kind", item.kind.name)
+                    put("connectionProfileId", item.connectionProfileId ?: JSONObject.NULL)
+                    put("path", item.path ?: JSONObject.NULL)
+                    put("sessionName", item.sessionName ?: JSONObject.NULL)
+                    put("sortOrder", item.sortOrder)
                 })
             }
-            json.put("chatConversations", chatConversations)
+            workspaces.put(JSONObject().apply {
+                put("id", ws.profile.id)
+                put("name", ws.profile.name)
+                put("sortOrder", ws.profile.sortOrder)
+                put("createdAt", ws.profile.createdAt)
+                put("updatedAt", ws.profile.updatedAt)
+                put("items", itemsJson)
+            })
         }
+        json.put("workspaces", workspaces)
+
+        // Saved rclone folder-sync profiles (#159)
+        val syncProfiles = JSONArray()
+        syncProfileRepository.getAll().forEach { s ->
+            syncProfiles.put(JSONObject().apply {
+                put("id", s.id)
+                put("name", s.name)
+                put("srcFs", s.srcFs)
+                put("dstFs", s.dstFs)
+                put("mode", s.mode)
+                put("includePatterns", s.includePatterns)
+                put("excludePatterns", s.excludePatterns)
+                put("minSize", s.minSize ?: JSONObject.NULL)
+                put("maxSize", s.maxSize ?: JSONObject.NULL)
+                put("bandwidthLimit", s.bandwidthLimit ?: JSONObject.NULL)
+                put("createdAt", s.createdAt)
+                put("lastRunAt", s.lastRunAt ?: JSONObject.NULL)
+            })
+        }
+        json.put("syncProfiles", syncProfiles)
+
+        // Inbound email automation rules
+        val mailRules = JSONArray()
+        mailRuleRepository.getAllRules().forEach { r ->
+            mailRules.put(JSONObject().apply {
+                put("id", r.id)
+                put("name", r.name)
+                put("enabled", r.enabled)
+                put("orderIndex", r.orderIndex)
+                put("accountProfileId", r.accountProfileId ?: JSONObject.NULL)
+                put("folderId", r.folderId)
+                put("criteriaJson", r.criteriaJson)
+                put("actionsJson", r.actionsJson)
+                put("stopOnMatch", r.stopOnMatch)
+                put("notifyOnFire", r.notifyOnFire)
+                put("createdAt", r.createdAt)
+                put("lastFiredAt", r.lastFiredAt ?: JSONObject.NULL)
+            })
+        }
+        json.put("mailRules", mailRules)
+
+        // Saved AI chat conversations and their messages (#807)
+        val chatConversations = JSONArray()
+        chatRepository.getAllConversations().forEach { conv ->
+            val messagesJson = JSONArray()
+            chatRepository.getMessages(conv.id).forEach { msg ->
+                messagesJson.put(JSONObject().apply {
+                    put("id", msg.id)
+                    put("conversationId", msg.conversationId)
+                    put("role", msg.role)
+                    put("content", msg.content)
+                    put("model", msg.model ?: JSONObject.NULL)
+                    put("attachments", msg.attachments ?: JSONObject.NULL)
+                    put("createdAt", msg.createdAt)
+                })
+            }
+            chatConversations.put(JSONObject().apply {
+                put("id", conv.id)
+                put("profileId", conv.profileId)
+                put("title", conv.title)
+                put("createdAt", conv.createdAt)
+                put("savedAt", conv.savedAt)
+                put("updatedAt", conv.updatedAt)
+                put("messages", messagesJson)
+            })
+        }
+        json.put("chatConversations", chatConversations)
 
         // Settings (DataStore preferences)
         val settings = JSONObject()
         val prefs = dataStore.data.first()
         prefs.asMap().forEach { (key, value) ->
+            if (key.name in DEVICE_BOUND_PREF_KEYS) return@forEach
             when (value) {
                 is String -> settings.put(key.name, value)
                 is Int -> settings.put(key.name, value)
@@ -333,6 +495,11 @@ class BackupService @Inject constructor(
                 is Long -> settings.put(key.name, value)
                 is Float -> settings.put(key.name, value.toDouble())
                 is Double -> settings.put(key.name, value)
+                is Set<*> -> {
+                    val arr = JSONArray()
+                    value.filterIsInstance<String>().forEach { arr.put(it) }
+                    settings.put(key.name, arr)
+                }
             }
         }
         json.put("settings", settings)
@@ -398,15 +565,46 @@ class BackupService @Inject constructor(
             }
         }
 
+        // step-ca configs (import before SSH keys, which reference caConfigId)
+        val stepCaConfigs = json.optJSONArray("stepCaConfigs")
+        if (stepCaConfigs != null) {
+            for (i in 0 until stepCaConfigs.length()) {
+                try {
+                    val ca = stepCaConfigs.getJSONObject(i)
+                    stepCaConfigRepository.save(
+                        StepCaConfig(
+                            id = ca.getString("id"),
+                            name = ca.getString("name"),
+                            caUrl = ca.getString("caUrl"),
+                            oidcIssuer = ca.getString("oidcIssuer"),
+                            oidcAuthUrl = ca.getString("oidcAuthUrl"),
+                            oidcTokenUrl = ca.getString("oidcTokenUrl"),
+                            oidcClientId = ca.getString("oidcClientId"),
+                            oidcClientSecret = ca.optStringOrNull("oidcClientSecret"),
+                            provisioner = ca.getString("provisioner"),
+                            defaultPrincipals = ca.optString("defaultPrincipals", ""),
+                            rootCertPem = ca.getString("rootCertPem"),
+                            sshHostCaPublicKey = ca.optStringOrNull("sshHostCaPublicKey"),
+                            createdAt = ca.optLong("createdAt", System.currentTimeMillis()),
+                        ),
+                    )
+                    count++
+                } catch (e: Exception) {
+                    errors.add("StepCaConfig ${i}: ${e.message}")
+                }
+            }
+        }
+
         // SSH keys (import first since connections reference keyId)
         val keys = json.optJSONArray("keys")
         if (keys != null) {
             for (i in 0 until keys.length()) {
                 try {
                     val k = keys.getJSONObject(i)
+                    val keyId = k.getString("id")
                     sshKeyRepository.save(
                         SshKey(
-                            id = k.getString("id"),
+                            id = keyId,
                             label = k.getString("label"),
                             keyType = k.getString("keyType"),
                             privateKeyBytes = Base64.decode(k.getString("privateKeyBytes"), Base64.NO_WRAP),
@@ -414,8 +612,17 @@ class BackupService @Inject constructor(
                             fingerprintSha256 = k.getString("fingerprintSha256"),
                             createdAt = k.getLong("createdAt"),
                             isEncrypted = k.optBoolean("isEncrypted", false),
+                            biometricProtected = k.optBoolean("biometricProtected", false),
+                            certificateBytes = k.optStringOrNull("certificateBytes")
+                                ?.let { Base64.decode(it, Base64.NO_WRAP) },
+                            caConfigId = k.optStringOrNull("caConfigId"),
+                            certIssuedAt = k.optLongOrNull("certIssuedAt"),
+                            enabledForAuth = k.optBoolean("enabledForAuth", true),
                         ),
                     )
+                    k.optStringOrNull("storedPassphrase")?.let { passphrase ->
+                        sshKeyRepository.setStoredPassphrase(keyId, passphrase)
+                    }
                     count++
                 } catch (e: Exception) {
                     errors.add("Key ${i}: ${e.message}")
@@ -451,6 +658,28 @@ class BackupService @Inject constructor(
             }
         }
 
+        // age X25519 file-encryption identities
+        val ageIdentities = json.optJSONArray("ageIdentities")
+        if (ageIdentities != null) {
+            for (i in 0 until ageIdentities.length()) {
+                try {
+                    val a = ageIdentities.getJSONObject(i)
+                    ageIdentityRepository.savePlaintext(
+                        AgeIdentityEntity(
+                            id = a.getString("id"),
+                            label = a.getString("label"),
+                            recipient = a.getString("recipient"),
+                            secret = a.getString("secret"),
+                            createdAt = a.optLong("createdAt", System.currentTimeMillis()),
+                        ),
+                    )
+                    count++
+                } catch (e: Exception) {
+                    errors.add("AgeIdentity ${i}: ${e.message}")
+                }
+            }
+        }
+
         // Tunnel configs (v2+). Import before connections so each
         // ConnectionProfile.tunnelConfigId has a target row to reference.
         // v1 backups simply won't have this key — optJSONArray returns null
@@ -467,6 +696,7 @@ class BackupService @Inject constructor(
                             type = t.getString("type"),
                             configText = Base64.decode(t.getString("configText"), Base64.NO_WRAP),
                             createdAt = t.optLong("createdAt", System.currentTimeMillis()),
+                            ownerProfileId = t.optStringOrNull("ownerProfileId"),
                         ),
                     )
                     count++
@@ -498,6 +728,7 @@ class BackupService @Inject constructor(
                             lastConnected = c.optLongOrNull("lastConnected"),
                             sortOrder = c.optInt("sortOrder", 0),
                             connectionType = c.optString("connectionType", "SSH"),
+                            safTreeUri = c.optStringOrNull("safTreeUri"),
                             destinationHash = c.optStringOrNull("destinationHash"),
                             reticulumHost = c.optString("reticulumHost", "127.0.0.1"),
                             reticulumPort = c.optInt("reticulumPort", 37428),
@@ -521,7 +752,7 @@ class BackupService @Inject constructor(
                             rdpSshForward = c.optBoolean("rdpSshForward", false),
                             rdpSshProfileId = c.optStringOrNull("rdpSshProfileId"),
                             rdpUseNla = c.optBoolean("rdpUseNla", true),
-                            rdpColorDepth = c.optInt("rdpColorDepth", 16),
+                            rdpColorDepth = c.optInt("rdpColorDepth", 32),
                             smbPort = c.optInt("smbPort", 445),
                             smbShare = c.optStringOrNull("smbShare"),
                             smbDomain = c.optStringOrNull("smbDomain"),
@@ -543,13 +774,17 @@ class BackupService @Inject constructor(
                             rcloneRemoteName = c.optStringOrNull("rcloneRemoteName"),
                             rcloneProvider = c.optStringOrNull("rcloneProvider"),
                             useAndroidShell = c.optBoolean("useAndroidShell", false),
+                            prootDistroId = c.optStringOrNull("prootDistroId"),
                             forwardAgent = c.optBoolean("forwardAgent", false),
+                            addressFamily = c.optString("addressFamily", "AUTO"),
+                            bindAddress = c.optStringOrNull("bindAddress"),
                             reticulumNetworkName = c.optStringOrNull("reticulumNetworkName"),
                             reticulumPassphrase = c.optStringOrNull("reticulumPassphrase"),
                             postLoginCommand = c.optStringOrNull("postLoginCommand"),
                             postLoginBeforeSessionManager = c.optBoolean("postLoginBeforeSessionManager", true),
                             remoteCommand = c.optStringOrNull("remoteCommand"),
                             requestPty = c.optBoolean("requestPty", true),
+                            usbForwardVidPid = c.optStringOrNull("usbForwardVidPid"),
                             fileTransport = c.optString("fileTransport", "AUTO"),
                             tunnelConfigId = c.optStringOrNull("tunnelConfigId"),
                             terminalColorScheme = c.optStringOrNull("terminalColorScheme"),
@@ -559,6 +794,11 @@ class BackupService @Inject constructor(
                                 } else {
                                     null
                                 },
+                            autoReconnect = c.optBoolean("autoReconnect", true),
+                            reconnectMaxAttempts = c.optInt("reconnectMaxAttempts", 5),
+                            reconnectOnNetworkChange = c.optBoolean("reconnectOnNetworkChange", true),
+                            tunnelOnly = c.optBoolean("tunnelOnly", false),
+                            mcpEnabled = c.optBoolean("mcpEnabled", true),
                             portKnockSequence = c.optStringOrNull("portKnockSequence"),
                             portKnockDelayMs = c.optInt("portKnockDelayMs", 100),
                             spaKey = c.optStringOrNull("spaKey"),
@@ -598,6 +838,7 @@ class BackupService @Inject constructor(
                             aiRouteType = c.optStringOrNull("aiRouteType"),
                             aiRouteProfileId = c.optStringOrNull("aiRouteProfileId"),
                             sessionCommandOverride = c.optStringOrNull("sessionCommandOverride"),
+                            usbDriveSerial = c.optStringOrNull("usbDriveSerial"),
                         ),
                     )
                     count++
@@ -630,7 +871,31 @@ class BackupService @Inject constructor(
             }
         }
 
-        // Port forward rules
+        // Known TLS leaf certificates
+        val knownTlsCerts = json.optJSONArray("knownTlsCerts")
+        if (knownTlsCerts != null) {
+            for (i in 0 until knownTlsCerts.length()) {
+                try {
+                    val cert = knownTlsCerts.getJSONObject(i)
+                    val hostname = cert.getString("hostname")
+                    val port = cert.getInt("port")
+                    knownTlsCertDao.deleteByHostPort(hostname, port)
+                    knownTlsCertDao.upsert(
+                        KnownTlsCert(
+                            hostname = hostname,
+                            port = port,
+                            sha256 = cert.getString("sha256"),
+                            firstSeen = cert.optLong("firstSeen", System.currentTimeMillis()),
+                        ),
+                    )
+                    count++
+                } catch (e: Exception) {
+                    errors.add("KnownTlsCert ${i}: ${e.message}")
+                }
+            }
+        }
+
+        // Port forward rules (after connections because of FK to connection_profiles)
         val forwards = json.optJSONArray("portForwards")
         if (forwards != null) {
             for (i in 0 until forwards.length()) {
@@ -655,15 +920,114 @@ class BackupService @Inject constructor(
             }
         }
 
+        // Workspaces and items (after connections because WorkspaceItem.connectionProfileId FKs connection_profiles)
+        val workspaces = json.optJSONArray("workspaces")
+        if (workspaces != null) {
+            for (i in 0 until workspaces.length()) {
+                try {
+                    val ws = workspaces.getJSONObject(i)
+                    val wsId = ws.getString("id")
+                    val profile = WorkspaceProfile(
+                        id = wsId,
+                        name = ws.getString("name"),
+                        sortOrder = ws.optInt("sortOrder", 0),
+                        createdAt = ws.optLong("createdAt", System.currentTimeMillis()),
+                        updatedAt = ws.optLong("updatedAt", System.currentTimeMillis()),
+                    )
+                    val itemsJson = ws.optJSONArray("items")
+                    val items = buildList {
+                        if (itemsJson != null) {
+                            for (j in 0 until itemsJson.length()) {
+                                val item = itemsJson.getJSONObject(j)
+                                add(
+                                    WorkspaceItem(
+                                        id = item.getString("id"),
+                                        workspaceId = item.optString("workspaceId", wsId),
+                                        kind = WorkspaceItem.Kind.valueOf(item.getString("kind")),
+                                        connectionProfileId = item.optStringOrNull("connectionProfileId"),
+                                        path = item.optStringOrNull("path"),
+                                        sessionName = item.optStringOrNull("sessionName"),
+                                        sortOrder = item.optInt("sortOrder", j),
+                                    ),
+                                )
+                            }
+                        }
+                    }
+                    workspaceRepository.restoreFromBackup(profile, items)
+                    count++
+                } catch (e: Exception) {
+                    errors.add("Workspace ${i}: ${e.message}")
+                }
+            }
+        }
+
+        // Saved rclone sync profiles (#159)
+        val syncProfiles = json.optJSONArray("syncProfiles")
+        if (syncProfiles != null) {
+            for (i in 0 until syncProfiles.length()) {
+                try {
+                    val s = syncProfiles.getJSONObject(i)
+                    syncProfileRepository.save(
+                        SyncProfile(
+                            id = s.getString("id"),
+                            name = s.getString("name"),
+                            srcFs = s.getString("srcFs"),
+                            dstFs = s.getString("dstFs"),
+                            mode = s.getString("mode"),
+                            includePatterns = s.optString("includePatterns", ""),
+                            excludePatterns = s.optString("excludePatterns", ""),
+                            minSize = s.optStringOrNull("minSize"),
+                            maxSize = s.optStringOrNull("maxSize"),
+                            bandwidthLimit = s.optStringOrNull("bandwidthLimit"),
+                            createdAt = s.optLong("createdAt", System.currentTimeMillis()),
+                            lastRunAt = s.optLongOrNull("lastRunAt"),
+                        ),
+                    )
+                    count++
+                } catch (e: Exception) {
+                    errors.add("SyncProfile ${i}: ${e.message}")
+                }
+            }
+        }
+
+        // Inbound email automation rules
+        val mailRules = json.optJSONArray("mailRules")
+        if (mailRules != null) {
+            for (i in 0 until mailRules.length()) {
+                try {
+                    val r = mailRules.getJSONObject(i)
+                    mailRuleRepository.saveRule(
+                        MailRule(
+                            id = r.getString("id"),
+                            name = r.getString("name"),
+                            enabled = r.optBoolean("enabled", true),
+                            orderIndex = r.optInt("orderIndex", 0),
+                            accountProfileId = r.optStringOrNull("accountProfileId"),
+                            folderId = r.optString("folderId", "INBOX"),
+                            criteriaJson = r.getString("criteriaJson"),
+                            actionsJson = r.getString("actionsJson"),
+                            stopOnMatch = r.optBoolean("stopOnMatch", false),
+                            notifyOnFire = r.optBoolean("notifyOnFire", false),
+                            createdAt = r.optLong("createdAt", System.currentTimeMillis()),
+                            lastFiredAt = r.optLongOrNull("lastFiredAt"),
+                        ),
+                    )
+                    count++
+                } catch (e: Exception) {
+                    errors.add("MailRule ${i}: ${e.message}")
+                }
+            }
+        }
+
         // Saved AI chat conversations and messages (#807)
         val chatConversations = json.optJSONArray("chatConversations")
-        if (chatConversations != null && chatRepository != null) {
+        if (chatConversations != null) {
             for (i in 0 until chatConversations.length()) {
                 try {
                     val conv = chatConversations.getJSONObject(i)
                     val convId = conv.getString("id")
                     chatRepository.saveConversation(
-                        sh.haven.core.data.db.entities.ChatConversation(
+                        ChatConversation(
                             id = convId,
                             profileId = conv.getString("profileId"),
                             title = conv.getString("title"),
@@ -678,7 +1042,7 @@ class BackupService @Inject constructor(
                         for (j in 0 until messages.length()) {
                             val m = messages.getJSONObject(j)
                             chatRepository.saveMessage(
-                                sh.haven.core.data.db.entities.ChatMessage(
+                                ChatMessage(
                                     id = m.getString("id"),
                                     conversationId = m.optString("conversationId", convId),
                                     role = m.getString("role"),
@@ -702,6 +1066,7 @@ class BackupService @Inject constructor(
             dataStore.updateData { prefs ->
                 val mutable = prefs.toMutablePreferences()
                 settings.keys().forEach { key ->
+                    if (key in DEVICE_BOUND_PREF_KEYS) return@forEach
                     val value = settings.get(key)
                     when {
                         // Whole-valued floats (1.0f, 2.0f) serialize via Android's
@@ -716,6 +1081,14 @@ class BackupService @Inject constructor(
                             value is Number ->
                             mutable[androidx.datastore.preferences.core.longPreferencesKey(key)] =
                                 value.toLong()
+                        value is JSONArray -> {
+                            val set = buildSet {
+                                for (idx in 0 until value.length()) {
+                                    if (!value.isNull(idx)) add(value.getString(idx))
+                                }
+                            }
+                            mutable[androidx.datastore.preferences.core.stringSetPreferencesKey(key)] = set
+                        }
                         value is String ->
                             mutable[androidx.datastore.preferences.core.stringPreferencesKey(key)] = value
                         value is Boolean ->
@@ -800,11 +1173,66 @@ class BackupService @Inject constructor(
         private const val TAG_LENGTH_BITS = 128
         private const val PBKDF2_ITERATIONS = 600_000
         private const val PBKDF2_ITERATIONS_LEGACY = 100_000
+
+        /**
+         * Preferences wrapped with the local Android Keystore master key rather
+         * than stored as portable values. Exporting raw `ENC:...` ciphertext
+         * onto another device produces permanently unreadable preferences and
+         * overwrites any working auto-sync passphrase already configured there.
+         */
+        internal val DEVICE_BOUND_PREF_KEYS: Set<String> = setOf(
+            "backup_sync_passphrase",
+        )
+
+        /**
+         * Authoritative partition of [sh.haven.core.data.db.HavenDatabase] entities
+         * backed up by [export] / [import]. Locked against `@Database(entities = ...)`
+         * by `BackupServiceTest` so a newly added Room table cannot be omitted silently.
+         */
+        internal val BACKED_UP_ENTITIES: Set<Class<*>> = setOf(
+            ConnectionProfile::class.java,
+            ConnectionGroup::class.java,
+            KnownHost::class.java,
+            KnownTlsCert::class.java,
+            SshKey::class.java,
+            PortForwardRule::class.java,
+            TunnelConfig::class.java,
+            WorkspaceProfile::class.java,
+            WorkspaceItem::class.java,
+            StepCaConfig::class.java,
+            SyncProfile::class.java,
+            TotpSecret::class.java,
+            MailRule::class.java,
+            AgeIdentityEntity::class.java,
+            SshIdentity::class.java,
+            ChatConversation::class.java,
+            ChatMessage::class.java,
+        )
+
+        /**
+         * Room tables intentionally excluded from portable backups:
+         * - Runtime/audit logs and transfer queues ([ConnectionLog], [AgentAuditEvent],
+         *   [PasteQueueEntry], [ProotInstallLog], [MailWatermark], [MailRuleFiring],
+         *   [MailRulePendingAction]).
+         * - [StandingPolicy]: expiring Tier-3 MCP consent grants require an interactive
+         *   consent-sheet approval on the target device and must never be silently
+         *   installed by importing a backup file.
+         */
+        internal val TRANSIENT_OR_DEVICE_SCOPED_ENTITIES: Set<Class<*>> = setOf(
+            ConnectionLog::class.java,
+            AgentAuditEvent::class.java,
+            PasteQueueEntry::class.java,
+            ProotInstallLog::class.java,
+            MailWatermark::class.java,
+            MailRuleFiring::class.java,
+            MailRulePendingAction::class.java,
+            StandingPolicy::class.java,
+        )
     }
 }
 
 private fun JSONObject.optStringOrNull(key: String): String? {
-    return if (isNull(key)) null else optString(key, null)
+    return if (isNull(key)) null else optString(key)
 }
 
 private fun JSONObject.optLongOrNull(key: String): Long? {

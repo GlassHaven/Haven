@@ -14,6 +14,9 @@ interface SyncProfileDao {
     @Query("SELECT * FROM sync_profiles ORDER BY COALESCE(lastRunAt, createdAt) DESC")
     fun observeAll(): Flow<List<SyncProfile>>
 
+    @Query("SELECT * FROM sync_profiles ORDER BY COALESCE(lastRunAt, createdAt) DESC")
+    suspend fun getAll(): List<SyncProfile>
+
     @Query("SELECT * FROM sync_profiles WHERE id = :id")
     suspend fun getById(id: String): SyncProfile?
 

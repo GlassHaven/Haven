@@ -31,6 +31,23 @@ class AgeIdentityRepository @Inject constructor(
 
     suspend fun getAll(): List<AgeIdentityEntity> = ageIdentityDao.getAll()
 
+    /** All identities with [AgeIdentityEntity.secret] decrypted — for encrypted backup export only. */
+    suspend fun getAllDecrypted(): List<AgeIdentityEntity> = ageIdentityDao.getAll().mapNotNull { row ->
+        try {
+            row.copy(secret = CredentialEncryption.decrypt(context, row.secret))
+        } catch (e: Exception) {
+            Log.w(TAG, "age identity '${row.label}' decrypt failed during export: ${e.message}")
+            null
+        }
+    }
+
+    /** Store an imported identity whose [AgeIdentityEntity.secret] is currently plaintext, encrypting at rest. */
+    suspend fun savePlaintext(identity: AgeIdentityEntity) {
+        ageIdentityDao.upsert(
+            identity.copy(secret = CredentialEncryption.encrypt(context, identity.secret)),
+        )
+    }
+
     /** Generate a new age identity, store it (secret encrypted), and return the stored row. */
     suspend fun create(label: String): AgeIdentityEntity {
         val identity = AgeFile.generateIdentity()

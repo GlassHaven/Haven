@@ -15,6 +15,9 @@ interface WorkspaceDao {
     @Query("SELECT * FROM workspace_profile ORDER BY sortOrder, name")
     fun observeAll(): Flow<List<WorkspaceProfile>>
 
+    @Query("SELECT * FROM workspace_profile ORDER BY sortOrder, name")
+    suspend fun getAll(): List<WorkspaceProfile>
+
     @Query("SELECT * FROM workspace_profile WHERE id = :id")
     suspend fun getById(id: String): WorkspaceProfile?
 

@@ -346,4 +346,68 @@ class ConnectionProfileTest {
             parsed,
         )
     }
+
+    @Test
+    fun `copy preserves ephemeral marker`() {
+        val ephemeral = ConnectionProfile(label = "quick", host = "10.0.0.5", username = "root")
+            .also { it.ephemeral = true }
+        val copied = ephemeral.copy(host = "10.0.0.6", sshPassword = "ENC:x")
+        assertEquals(true, copied.ephemeral)
+
+        val persisted = ConnectionProfile(label = "saved", host = "10.0.0.5", username = "root")
+        assertEquals(false, persisted.copy(host = "10.0.0.6").ephemeral)
+    }
+
+    @Test
+    fun `CREDENTIAL_FIELDS covers every secret-named field on ConnectionProfile`() {
+        val secretPattern = Regex("(?i).*(password|passphrase|secret|apikey|token|spakey|spahmackey).*")
+        val nonSecretAllowlist = setOf(
+            // Boolean encoding toggles for how spaKey/spaHmacKey are interpreted, not secrets.
+            "spaKeyBase64",
+            "spaHmacKeyBase64",
+        )
+        val reflectedSecretFields = ConnectionProfile::class.java.declaredFields
+            .filter { !java.lang.reflect.Modifier.isStatic(it.modifiers) && !it.isSynthetic }
+            .map { it.name }
+            .filter { secretPattern.matches(it) && it !in nonSecretAllowlist }
+            .toSet()
+
+        val registered = ConnectionProfile.CREDENTIAL_FIELDS.map { it.name }.toSet()
+        assertEquals(
+            "Every secret-looking ConnectionProfile column must be in CREDENTIAL_FIELDS (or nonSecretAllowlist)",
+            reflectedSecretFields,
+            registered,
+        )
+        assertEquals(13, ConnectionProfile.CREDENTIAL_FIELDS.size)
+
+        // Verify each descriptor reads and writes its target column without mutating neighbors.
+        val base = ConnectionProfile(label = "t", host = "h", username = "u")
+        for (field in ConnectionProfile.CREDENTIAL_FIELDS) {
+            assertNull(field.read(base))
+            val populated = field.write(base, "val-${field.name}")
+            assertEquals("val-${field.name}", field.read(populated))
+            for (other in ConnectionProfile.CREDENTIAL_FIELDS) {
+                if (other.name != field.name) {
+                    assertNull("Writing ${field.name} mutated ${other.name}", other.read(populated))
+                }
+            }
+        }
+    }
+
+    @Test
+    fun `Room persistence constructor matches primary constructor minus ephemeral`() {
+        // Note: @androidx.room.Ignore has BINARY retention (enforced by Room KSP at compile time),
+        // so at runtime we distinguish the two explicit constructors by arity.
+        val constructors = ConnectionProfile::class.java.declaredConstructors
+            .filter { !it.isSynthetic && it.parameterCount > 0 }
+            .sortedBy { it.parameterCount }
+        assertEquals(2, constructors.size)
+        val (roomCtor, primaryCtor) = constructors
+        assertEquals(primaryCtor.parameterCount - 1, roomCtor.parameterCount)
+        assertEquals(
+            primaryCtor.parameterTypes.dropLast(1),
+            roomCtor.parameterTypes.toList(),
+        )
+        assertEquals(Boolean::class.javaPrimitiveType, primaryCtor.parameterTypes.last())
+    }
 }

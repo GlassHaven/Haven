@@ -12,6 +12,8 @@ class SyncProfileRepository @Inject constructor(
 ) {
     fun observeAll(): Flow<List<SyncProfile>> = dao.observeAll()
 
+    suspend fun getAll(): List<SyncProfile> = dao.getAll()
+
     suspend fun getById(id: String): SyncProfile? = dao.getById(id)
 
     suspend fun save(profile: SyncProfile) = dao.upsert(profile)

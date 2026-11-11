@@ -1,0 +1,2 @@
+- Fix soft-keyboard number row (0-9), shifted capitals, and symbols in RDP, SPICE, GLKVM, and VNC sessions without leaving Shift stuck on the remote host (#606, thanks @thegoodpackage).
+- Add GLKVM HDMI EDID signal recovery and 2 px pillarbox hysteresis, return explicit errors for unsupported GLKVM/SPICE clipboard sends, and support keys chords in type_desktop_text.

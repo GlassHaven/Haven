@@ -5,6 +5,11 @@ the corresponding GitHub Release; a release can't ship without its section
 (enforced by `scripts/check-changelog.sh` in CI). The GitHub "Full Changelog"
 compare link is appended automatically — don't add it here.
 
+## v5.94.29
+
+- Fix soft-keyboard number row (`0`–`9`), shifted capitals, and symbols in RDP, SPICE, GLKVM, and VNC sessions without leaving `Shift` stuck on the remote host or duplicating AOSP `commitText` key echoes (#606, thanks @thegoodpackage).
+- Add GLKVM HDMI EDID signal recovery and 2 px pillarbox crop hysteresis, return an explicit error when `send_desktop_clipboard` targets GLKVM or SPICE, raise `capture_desktop_tab` default `maxWidth` to 1920 with `scaleX`/`scaleY` metadata, and support `keys` chords in `type_desktop_text`.
+
 ## v5.94.28
 
 - Register `UpdateNotifier`'s `ProcessLifecycleOwner` observer on the main thread so cold launch after `v5.94.27` no longer crashes during `HavenApp` background startup (#830, thanks @3in1sl).

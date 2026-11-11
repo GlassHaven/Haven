@@ -50,7 +50,6 @@ import sh.haven.core.mosh.MoshSessionManager
 import sh.haven.core.reticulum.ReticulumTransport
 import sh.haven.core.reticulum.ReticulumSessionManager
 import sh.haven.core.smb.SmbSessionManager
-import sh.haven.core.rdp.RdpSessionManager
 import sh.haven.core.ssh.HostKeyVerifier
 import sh.haven.core.ssh.SessionManagerRegistry
 import sh.haven.core.ssh.SshSessionManager
@@ -88,7 +87,6 @@ class ConnectionsViewModelSessionTest {
     private lateinit var etSessionManager: EtSessionManager
     private lateinit var smbSessionManager: SmbSessionManager
     private lateinit var localSessionManager: LocalSessionManager
-    private lateinit var rdpSessionManager: RdpSessionManager
     private lateinit var mailSessionManager: MailSessionManager
     private lateinit var rcloneSessionManager: sh.haven.core.rclone.RcloneSessionManager
     private lateinit var openAiSessionManager: sh.haven.core.openai.OpenAiSessionManager
@@ -145,10 +143,6 @@ class ConnectionsViewModelSessionTest {
             every { prootManager } returns this@ConnectionsViewModelSessionTest.prootManager
             every { desktopManager } returns this@ConnectionsViewModelSessionTest.desktopManager
         }
-        rdpSessionManager = mockk(relaxed = true) {
-            every { sessions } returns MutableStateFlow(emptyMap())
-            every { activeSessions } returns emptyList()
-        }
         mailSessionManager = mockk(relaxed = true) {
             every { sessions } returns MutableStateFlow(emptyMap())
         }
@@ -172,7 +166,7 @@ class ConnectionsViewModelSessionTest {
                 disconnectable(Transport.ET) { etSessionManager.removeAllSessionsForProfile(it) },
                 disconnectable(Transport.SMB) { smbSessionManager.removeAllSessionsForProfile(it) },
                 disconnectable(Transport.LOCAL) { localSessionManager.removeAllSessionsForProfile(it) },
-                disconnectable(Transport.RDP) { rdpSessionManager.removeAllSessionsForProfile(it) },
+                disconnectable(Transport.RDP) { desktopSessionRegistry.close(it) },
                 disconnectable(Transport.MAIL) { mailSessionManager.removeAllSessionsForProfile(it) },
                 disconnectable(Transport.RCLONE) { rcloneSessionManager.removeAllSessionsForProfile(it) },
                 // OPENAI was missing from this set, so disconnect left the chat
@@ -209,7 +203,10 @@ class ConnectionsViewModelSessionTest {
             every { sessionCommandOverride } returns flowOf(null)
         }
 
-        viewModel = ConnectionsViewModel(
+        viewModel = buildViewModel()
+    }
+
+    private fun buildViewModel(): ConnectionsViewModel = ConnectionsViewModel(
             appContext = appContext,
             repository = repository,
             portForwardRepository = portForwardRepository,
@@ -295,7 +292,6 @@ class ConnectionsViewModelSessionTest {
                 }
             },
         )
-    }
 
     @After
     fun tearDown() {
@@ -1585,5 +1581,60 @@ class ConnectionsViewModelSessionTest {
         assertNull("sshAuthBanner must be cleared on cancel", viewModel.sshAuthBanner.value)
         assertNull("cancelled banner connect must not pop passwordFallback", viewModel.passwordFallback.value)
         assertNull("cancelled banner connect must not set error toast", viewModel.error.value)
+    }
+
+    @Test
+    fun `launchGroup forwards useAndroidShell and prootDistroId and never routes OPENAI to SSH`() = runTest {
+        val localProfile = ConnectionProfile(
+            id = "local-android",
+            label = "Android Shell",
+            host = "localhost",
+            username = "u0_a123",
+            connectionType = "LOCAL",
+            groupId = "grp-1",
+            useAndroidShell = true,
+            prootDistroId = "debian-trixie",
+        )
+        val openAiProfile = ConnectionProfile(
+            id = "openai-1",
+            label = "Local LLM",
+            host = "10.0.0.50",
+            port = 11434,
+            username = "",
+            connectionType = "OPENAI",
+            groupId = "grp-1",
+        )
+        every { repository.observeAll() } returns flowOf(listOf(localProfile, openAiProfile))
+        val fakeKey = sh.haven.core.data.db.entities.SshKey(
+            id = "k-1",
+            label = "key",
+            keyType = "ssh-ed25519",
+            privateKeyBytes = ByteArray(16),
+            publicKeyOpenSsh = "ssh-ed25519 AAAA",
+            fingerprintSha256 = "SHA256:test",
+        )
+        every { sshKeyRepository.observeAll() } returns flowOf(listOf(fakeKey))
+        every { localSessionManager.getSessionsForProfile("local-android") } returns emptyList()
+        every {
+            localSessionManager.registerSession("local-android", "Android Shell", true, "debian-trixie")
+        } returns "local-sess-1"
+
+        val vm = buildViewModel()
+        // Activate WhileSubscribed flows (connections, sshKeys, profileStatuses)
+        val collectJob = backgroundScope.launch {
+            kotlinx.coroutines.flow.combine(vm.connections, vm.sshKeys, vm.profileStatuses) { _, _, _ -> }.collect {}
+        }
+        testDispatcher.scheduler.advanceUntilIdle()
+
+        vm.launchGroup("grp-1")
+        testDispatcher.scheduler.advanceUntilIdle()
+
+        io.mockk.verify(exactly = 1) {
+            localSessionManager.registerSession("local-android", "Android Shell", true, "debian-trixie")
+        }
+        io.mockk.verify(exactly = 0) {
+            sshSessionManager.registerSession("openai-1", any(), any())
+        }
+        collectJob.cancel()
     }
 }

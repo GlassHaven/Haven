@@ -33,7 +33,9 @@ import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.produceState
 import androidx.compose.runtime.remember
+import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.runtime.setValue
+import kotlinx.coroutines.launch
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.res.stringResource
@@ -58,6 +60,7 @@ import javax.inject.Inject
 class TaskerEditActivity : ComponentActivity() {
 
     @Inject lateinit var connectionRepository: ConnectionRepository
+    @Inject lateinit var preferencesRepository: sh.haven.core.data.preferences.UserPreferencesRepository
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
@@ -71,6 +74,7 @@ class TaskerEditActivity : ComponentActivity() {
 
         setContent {
             HavenTheme {
+                val saveScope = rememberCoroutineScope()
                 val profiles by produceState<List<ConnectionProfile>?>(initialValue = null) {
                     value = connectionRepository.getAll().filter { it.isSsh }
                 }
@@ -83,28 +87,32 @@ class TaskerEditActivity : ComponentActivity() {
                     hostVariables = TaskerPlugin.hostVariables(intent),
                     onCancel = { setResult(Activity.RESULT_CANCELED); finish() },
                     onSave = { profile, command, overlay, block ->
-                        val bundle = TaskerPlugin.buildBundle(
-                            profileId = profile.id,
-                            profileLabel = profile.label,
-                            command = command,
-                            overlay = overlay,
-                            block = block,
-                        )
-                        val blurb = getString(R.string.tasker_blurb, profile.label, command).take(60)
-                        setResult(
-                            Activity.RESULT_OK,
-                            Intent().apply {
-                                putExtra(TaskerPlugin.EXTRA_BUNDLE, bundle)
-                                putExtra(TaskerPlugin.EXTRA_BLURB, blurb)
-                                // Declare the variables this action sets (%hstdout /
-                                // %hstderr / %hexit) so the host lists them (#367).
-                                putExtra(
-                                    TaskerPlugin.BUNDLE_KEY_RELEVANT_VARIABLES,
-                                    TaskerPlugin.RELEVANT_VARIABLES,
-                                )
-                            },
-                        )
-                        finish()
+                        saveScope.launch {
+                            val secret = preferencesRepository.getOrCreateTaskerPluginSecret()
+                            val bundle = TaskerPlugin.buildBundle(
+                                profileId = profile.id,
+                                profileLabel = profile.label,
+                                command = command,
+                                overlay = overlay,
+                                block = block,
+                                secret = secret,
+                            )
+                            val blurb = getString(R.string.tasker_blurb, profile.label, command).take(60)
+                            setResult(
+                                Activity.RESULT_OK,
+                                Intent().apply {
+                                    putExtra(TaskerPlugin.EXTRA_BUNDLE, bundle)
+                                    putExtra(TaskerPlugin.EXTRA_BLURB, blurb)
+                                    // Declare the variables this action sets (%hstdout /
+                                    // %hstderr / %hexit) so the host lists them (#367).
+                                    putExtra(
+                                        TaskerPlugin.BUNDLE_KEY_RELEVANT_VARIABLES,
+                                        TaskerPlugin.RELEVANT_VARIABLES,
+                                    )
+                                },
+                            )
+                            finish()
+                        }
                     },
                 )
             }

@@ -3541,6 +3541,15 @@ internal class McpTools(
         // The url case needs no staging (it already IS a URL) — present it
         // inline and return the full ack, including the url for reference.
         if (explicitUrl != null) {
+            val parsedUri = try {
+                java.net.URI(explicitUrl)
+            } catch (_: Exception) {
+                throw McpError(-32602, "present_web url is not a valid URI.")
+            }
+            val scheme = parsedUri.scheme?.lowercase()
+            if ((scheme != "http" && scheme != "https") || parsedUri.host.isNullOrBlank()) {
+                throw McpError(-32602, "present_web url must use http:// or https:// with a non-empty host.")
+            }
             val mime = guessContentType(explicitUrl.substringBefore('?'))
             val id = presentationManager.presentWeb(
                 url = explicitUrl,

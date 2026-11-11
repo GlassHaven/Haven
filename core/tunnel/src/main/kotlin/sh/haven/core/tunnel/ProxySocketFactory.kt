@@ -244,6 +244,8 @@ class ProxySocketFactory(
         return buf.toString("ISO-8859-1")
     }
 
+    override fun createSocket(): Socket = DeferredProxySocket()
+
     override fun createSocket(
         host: String,
         port: Int,
@@ -260,6 +262,105 @@ class ProxySocketFactory(
         localAddress: java.net.InetAddress?,
         localPort: Int,
     ): Socket = createSocket(address, port)
+
+    /**
+     * Unconnected [Socket] wrapper for callers (OkHttp, JavaMail) that invoke
+     * zero-arg [createSocket] and then `connect(InetSocketAddress, timeout)`.
+     * Preserves `InetSocketAddress.hostString` so SOCKS5/HTTP proxies resolve
+     * target hostnames remotely without clearnet fallback.
+     */
+    private inner class DeferredProxySocket : Socket() {
+        @Volatile private var delegate: Socket? = null
+        @Volatile private var closed: Boolean = false
+        @Volatile private var pendingSoTimeout: Int? = null
+        @Volatile private var pendingTcpNoDelay: Boolean? = null
+        @Volatile private var pendingKeepAlive: Boolean? = null
+
+        override fun connect(endpoint: java.net.SocketAddress?) = connect(endpoint, 0)
+
+        override fun connect(endpoint: java.net.SocketAddress?, timeout: Int) {
+            if (closed) throw IOException("Socket is closed")
+            val addr = endpoint as? InetSocketAddress
+                ?: throw IOException("Unsupported endpoint: $endpoint")
+            val targetHost = addr.hostString ?: addr.address?.hostAddress
+                ?: throw IOException("Unresolved endpoint host")
+            val connected = if (timeout > 0 && timeout != connectTimeoutMs) {
+                ProxySocketFactory(
+                    proxyType = proxyType,
+                    proxyHost = proxyHost,
+                    proxyPort = proxyPort,
+                    connectTimeoutMs = timeout,
+                    proxyUser = proxyUser,
+                    proxyPassword = proxyPassword,
+                ).createSocket(targetHost, addr.port)
+            } else {
+                createSocket(targetHost, addr.port)
+            }
+            pendingSoTimeout?.let { runCatching { connected.soTimeout = it } }
+            pendingTcpNoDelay?.let { runCatching { connected.tcpNoDelay = it } }
+            pendingKeepAlive?.let { runCatching { connected.keepAlive = it } }
+            delegate = connected
+            if (closed) runCatching { connected.close() }
+        }
+
+        private fun requireConnected(): Socket {
+            if (closed) throw IOException("Socket is closed")
+            return delegate ?: throw IOException("Socket is not connected")
+        }
+
+        override fun getInputStream(): InputStream = requireConnected().getInputStream()
+        override fun getOutputStream(): java.io.OutputStream = requireConnected().getOutputStream()
+        override fun getInetAddress(): java.net.InetAddress? = delegate?.inetAddress
+        override fun getPort(): Int = delegate?.port ?: 0
+        override fun getLocalAddress(): java.net.InetAddress =
+            delegate?.localAddress ?: java.net.InetAddress.getLoopbackAddress()
+        override fun getLocalPort(): Int = delegate?.localPort ?: -1
+        override fun getRemoteSocketAddress(): java.net.SocketAddress? = delegate?.remoteSocketAddress
+        override fun getLocalSocketAddress(): java.net.SocketAddress? = delegate?.localSocketAddress
+        override fun isConnected(): Boolean = delegate?.isConnected == true && !closed
+        override fun isBound(): Boolean = delegate?.isBound == true
+        override fun isClosed(): Boolean = closed || delegate?.isClosed == true
+        override fun isInputShutdown(): Boolean = closed || delegate?.isInputShutdown == true
+        override fun isOutputShutdown(): Boolean = closed || delegate?.isOutputShutdown == true
+
+        override fun close() {
+            if (closed) return
+            closed = true
+            runCatching { delegate?.close() }
+        }
+
+        override fun bind(bindpoint: java.net.SocketAddress?) {}
+        override fun shutdownInput() { delegate?.shutdownInput() }
+        override fun shutdownOutput() { delegate?.shutdownOutput() }
+
+        override fun setSoTimeout(timeout: Int) {
+            pendingSoTimeout = timeout
+            delegate?.let { it.soTimeout = timeout }
+        }
+        override fun getSoTimeout(): Int = delegate?.soTimeout ?: pendingSoTimeout ?: 0
+
+        override fun setTcpNoDelay(on: Boolean) {
+            pendingTcpNoDelay = on
+            delegate?.let { it.tcpNoDelay = on }
+        }
+        override fun getTcpNoDelay(): Boolean = delegate?.tcpNoDelay ?: pendingTcpNoDelay ?: false
+
+        override fun setKeepAlive(on: Boolean) {
+            pendingKeepAlive = on
+            delegate?.let { it.keepAlive = on }
+        }
+        override fun getKeepAlive(): Boolean = delegate?.keepAlive ?: pendingKeepAlive ?: false
+
+        override fun setSoLinger(on: Boolean, linger: Int) { delegate?.setSoLinger(on, linger) }
+        override fun getSoLinger(): Int = delegate?.soLinger ?: -1
+        override fun setReuseAddress(on: Boolean) { delegate?.let { it.reuseAddress = on } }
+        override fun getReuseAddress(): Boolean = delegate?.reuseAddress ?: false
+        override fun setOOBInline(on: Boolean) { delegate?.let { it.oobInline = on } }
+        override fun getOOBInline(): Boolean = delegate?.oobInline ?: false
+        override fun setReceiveBufferSize(size: Int) { delegate?.let { it.receiveBufferSize = size } }
+        override fun setSendBufferSize(size: Int) { delegate?.let { it.sendBufferSize = size } }
+        override fun setTrafficClass(tc: Int) { delegate?.let { it.trafficClass = tc } }
+    }
 
     internal companion object {
         /**

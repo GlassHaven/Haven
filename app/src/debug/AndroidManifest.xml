@@ -6,7 +6,7 @@
         <receiver
             android:name="sh.haven.app.debug.DebugReceiver"
             android:exported="true"
-            tools:ignore="ExportedReceiver">
+            android:permission="android.permission.DUMP">
             <intent-filter>
                 <action android:name="sh.haven.app.DEBUG_CREATE_PROFILE" />
                 <action android:name="sh.haven.app.DEBUG_LIST_PROFILES" />

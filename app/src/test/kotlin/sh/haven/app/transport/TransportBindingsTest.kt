@@ -88,4 +88,17 @@ class TransportBindingsTest {
             writable,
         )
     }
+
+    @Test
+    fun `ForegroundSessionParticipantModule covers serial, desktop, and system VM sessions`() {
+        val methodNames = ForegroundSessionParticipantModule::class.java.declaredMethods
+            .map { it.name }
+            .toSet()
+        for (expected in listOf("btSerial", "bleSerial", "usbSerial", "prootDesktops", "systemVm")) {
+            org.junit.Assert.assertTrue(
+                "ForegroundSessionParticipantModule must register '$expected' (found: $methodNames)",
+                expected in methodNames,
+            )
+        }
+    }
 }

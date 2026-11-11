@@ -6,44 +6,53 @@ import dagger.hilt.InstallIn
 import dagger.hilt.components.SingletonComponent
 import dagger.multibindings.IntoSet
 import kotlinx.coroutines.flow.map
-import sh.haven.core.rdp.RdpSessionManager
+import sh.haven.core.data.desktop.DesktopSessionRegistry
+import sh.haven.core.data.desktop.DesktopStatus
 import sh.haven.core.ssh.ForegroundSessionParticipant
 import sh.haven.core.ssh.Transport
 import sh.haven.core.ssh.TransportSessionManager
 
 /**
- * The remote-desktop transports' registry bindings, kept apart from
- * [TransportSessionManagerModule] so a build without remote desktop can drop
- * this file and nothing else (#510).
+ * Remote-desktop (`VNC` / `RDP` / `SPICE` / `GLKVM`) bindings into
+ * [sh.haven.core.ssh.SessionManagerRegistry] and [ForegroundSessionParticipant],
+ * backed by the live [DesktopSessionRegistry] populated by `DesktopViewModel`.
  *
- * Nothing outside this file names `sh.haven.core.rdp` in the registry path, so
- * removing it from a variant's source set removes RDP from the session
- * registry and the foreground notification together — the two places a
- * forgotten transport has bitten us before (#363, #366).
- *
- * There is no VNC or SPICE binding: those are desktop *sessions* rather than
- * transports and were never in the registry.
+ * Kept apart from [TransportSessionManagerModule] so a terminal-only build
+ * variant can omit remote-desktop registrations cleanly (#510).
  */
 @Module
 @InstallIn(SingletonComponent::class)
 object DesktopTransportModule {
 
-    // No sendInput: RDP input goes through its own protocol path, not a PTY.
+    private fun isActiveStatus(status: DesktopStatus): Boolean =
+        status == DesktopStatus.CONNECTED || status == DesktopStatus.CONNECTING
+
+    // No sendInput: desktop sessions route input through their own protocol handles, not a PTY.
     @Provides @IntoSet
-    fun rdpTransport(m: RdpSessionManager): TransportSessionManager = object : TransportSessionManager {
+    fun rdpTransport(registry: DesktopSessionRegistry): TransportSessionManager = object : TransportSessionManager {
         override val transport = Transport.RDP
-        override fun removeAllSessionsForProfile(profileId: String) = m.removeAllSessionsForProfile(profileId)
-        override val activeSessionCount get() = m.activeSessions.size
+        override fun removeAllSessionsForProfile(profileId: String) = registry.close(profileId)
+        override val activeSessionCount: Int
+            get() = registry.statuses.value.values.count { isActiveStatus(it) }
         override val sessions
-            get() = m.sessions.value.values.map {
-                UnifiedSession(it.sessionId, it.profileId, it.label, mapStatus(it.status.name), Transport.RDP)
+            get() = registry.statuses.value.map { (profileId, status) ->
+                UnifiedSession(
+                    sessionId = "desktop-$profileId",
+                    profileId = profileId,
+                    label = registry.label(profileId) ?: profileId,
+                    status = mapStatus(status.name),
+                    transport = Transport.RDP,
+                )
             }
     }
 
     @Provides @IntoSet
-    fun rdpForeground(m: RdpSessionManager): ForegroundSessionParticipant = object : ForegroundSessionParticipant {
-        override val activeSessions get() = m.activeSessions.map { SessionInfo(it.profileId, it.label) }
-        override val changes get() = m.sessions.map { }
-        override fun disconnectAll() = m.disconnectAll()
+    fun rdpForeground(registry: DesktopSessionRegistry): ForegroundSessionParticipant = object : ForegroundSessionParticipant {
+        override val activeSessions
+            get() = registry.statuses.value
+                .filterValues { isActiveStatus(it) }
+                .map { (profileId, _) -> SessionInfo(profileId, registry.label(profileId) ?: profileId) }
+        override val changes get() = registry.statuses.map { }
+        override fun disconnectAll() = registry.closeAll()
     }
 }

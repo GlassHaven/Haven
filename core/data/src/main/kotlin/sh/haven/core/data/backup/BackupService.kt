@@ -1182,6 +1182,7 @@ class BackupService @Inject constructor(
          */
         internal val DEVICE_BOUND_PREF_KEYS: Set<String> = setOf(
             "backup_sync_passphrase",
+            "tasker_plugin_secret",
         )
 
         /**

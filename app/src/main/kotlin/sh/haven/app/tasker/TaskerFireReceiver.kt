@@ -41,37 +41,33 @@ import javax.inject.Inject
 class TaskerFireReceiver : BroadcastReceiver() {
 
     @Inject lateinit var headlessSshExec: HeadlessSshExec
+    @Inject lateinit var preferencesRepository: sh.haven.core.data.preferences.UserPreferencesRepository
 
     override fun onReceive(context: Context, intent: Intent) {
         if (intent.action != TaskerPlugin.ACTION_FIRE_SETTING) return
-        val bundle = TaskerPlugin.configFrom(intent)
-        if (bundle == null) {
-            Log.w(TAG, "ignoring fire with invalid/foreign config")
-            return
-        }
-        val profileId = bundle.getString(TaskerPlugin.BUNDLE_PROFILE_ID)!!
-        val label = bundle.getString(TaskerPlugin.BUNDLE_PROFILE_LABEL) ?: profileId
-        val command = bundle.getString(TaskerPlugin.BUNDLE_COMMAND)!!
-        val overlay = bundle.getBoolean(TaskerPlugin.BUNDLE_OVERLAY, false)
-        val block = bundle.getBoolean(TaskerPlugin.BUNDLE_BLOCK, false)
-
-        if (overlay) {
-            // #367 Phase 2: run the command in a VISIBLE terminal the user can
-            // watch. Android's background-activity-launch (BAL) rules forbid a
-            // broadcast receiver from foregrounding an activity, so we can't
-            // just bring Haven up. Instead post a tap-to-watch notification —
-            // the user's tap carries the activity-start privilege, foregrounds
-            // MainActivity, and MainActivity drives the connect + command.
-            postWatchNotification(context.applicationContext, profileId, label, command)
-            return
-        }
-
-        // Headless mode. goAsync keeps us alive; whether the host actually waits
-        // is decided by whether we finish() before or after the command.
         val pending = goAsync()
         val appContext = context.applicationContext
         scope.launch {
             try {
+                val secret = preferencesRepository.taskerPluginSecret()
+                val bundle = TaskerPlugin.verifiedConfigFrom(intent, secret)
+                if (bundle == null) {
+                    Log.w(TAG, "ignoring fire with unauthenticated or invalid config")
+                    pending.finish()
+                    return@launch
+                }
+                val profileId = bundle.getString(TaskerPlugin.BUNDLE_PROFILE_ID)!!
+                val label = bundle.getString(TaskerPlugin.BUNDLE_PROFILE_LABEL) ?: profileId
+                val command = bundle.getString(TaskerPlugin.BUNDLE_COMMAND)!!
+                val overlay = bundle.getBoolean(TaskerPlugin.BUNDLE_OVERLAY, false)
+                val block = bundle.getBoolean(TaskerPlugin.BUNDLE_BLOCK, false)
+
+                if (overlay) {
+                    postWatchNotification(appContext, profileId, label, command)
+                    pending.finish()
+                    return@launch
+                }
+
                 if (!block) {
                     // Fire-and-forget: let the macro continue immediately, run
                     // on the app-process scope so we survive the receiver. No

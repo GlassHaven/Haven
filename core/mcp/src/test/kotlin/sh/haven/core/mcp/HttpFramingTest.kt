@@ -87,10 +87,17 @@ class HttpFramingTest {
     @Test
     fun `loopback origins are accepted and real hosts rejected`() {
         assertTrue(isLoopbackOrigin("http://127.0.0.1:8730"))
+        assertTrue(isLoopbackOrigin("https://127.0.0.1:8730"))
         assertTrue(isLoopbackOrigin("http://localhost:8788"))
         assertTrue(isLoopbackOrigin("http://[::1]:8730"))
         assertTrue(isLoopbackOrigin("http://127.5.5.5"))
         assertFalse(isLoopbackOrigin("https://evil.example"))
+        assertFalse(isLoopbackOrigin("https://127.attacker.tld"))
+        assertFalse(isLoopbackOrigin("http://127.0.0.1.attacker.tld:8730"))
+        assertFalse(isLoopbackOrigin("http://127.256.0.1:8730"))
+        assertFalse(isLoopbackOrigin("file://127.0.0.1/etc/hosts"))
+        assertFalse(isLoopbackOrigin("javascript://127.0.0.1/%0aalert(1)"))
+        assertFalse(isLoopbackOrigin("http://127.0.0.1@evil.example"))
         assertFalse(isLoopbackOrigin("http://192.168.1.5:8730"))
         assertFalse(isLoopbackOrigin("null"))
     }

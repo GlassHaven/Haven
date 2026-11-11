@@ -104,6 +104,17 @@ class GlkvmClient private constructor(
             }
             if (plainSocketFactory != null) {
                 builder.socketFactory(plainSocketFactory!!)
+                // Tunnel/proxy factories (WireGuard, Tailscale, SOCKS5) resolve
+                // internal hostnames remotely via InetSocketAddress.hostString;
+                // fall back to a hostname-carrying placeholder address when local
+                // system DNS cannot resolve a private tunnel name.
+                builder.dns { hostname ->
+                    try {
+                        okhttp3.Dns.SYSTEM.lookup(hostname)
+                    } catch (_: java.net.UnknownHostException) {
+                        listOf(java.net.InetAddress.getByAddress(hostname, ByteArray(4)))
+                    }
+                }
             }
             return GlkvmClient(builder.build(), base.toHttpUrl(), user, password)
         }

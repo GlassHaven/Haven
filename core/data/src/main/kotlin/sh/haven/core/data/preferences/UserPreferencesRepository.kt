@@ -101,6 +101,8 @@ class UserPreferencesRepository @Inject constructor(
     private val backupAutoPullIntervalMinutesKey = intPreferencesKey("backup_auto_pull_interval_minutes")
     // CredentialEncryption-wrapped backup passphrase for background pushes (#359).
     private val backupSyncPassphraseKey = stringPreferencesKey("backup_sync_passphrase")
+    // CredentialEncryption-wrapped device secret signing Tasker/MacroDroid action bundles.
+    private val taskerPluginSecretKey = stringPreferencesKey("tasker_plugin_secret")
     // Session command for the Custom (X11) desktop (#361).
     private val customDesktopCommandKey = stringPreferencesKey("custom_desktop_command")
     // Which backend the Desktop screen's primary "Start" uses: "quick" (UML)
@@ -515,6 +517,26 @@ class UserPreferencesRepository @Inject constructor(
      *  can carry ciphertext its own Keystore will never decrypt again). */
     suspend fun backupSyncPassphrase(): String? =
         dataStore.data.first()[backupSyncPassphraseKey]?.let { decryptSyncPassphraseOrNull(it) }
+
+    /**
+     * Device-bound HMAC secret authenticating `TaskerFireReceiver` broadcasts.
+     * Null until the user explicitly saves an action in `TaskerEditActivity`,
+     * so unconfigured installs reject every broadcast by default.
+     */
+    suspend fun taskerPluginSecret(): String? =
+        dataStore.data.first()[taskerPluginSecretKey]?.let { decryptSyncPassphraseOrNull(it) }
+
+    /** Return the existing Tasker HMAC secret, or mint and persist a fresh 256-bit secret. */
+    suspend fun getOrCreateTaskerPluginSecret(): String {
+        taskerPluginSecret()?.takeIf { it.isNotBlank() }?.let { return it }
+        val bytes = ByteArray(32).also { java.security.SecureRandom().nextBytes(it) }
+        val fresh = java.util.Base64.getUrlEncoder().withoutPadding().encodeToString(bytes)
+        val encrypted = CredentialEncryption.encrypt(context, fresh)
+        dataStore.edit { prefs ->
+            prefs[taskerPluginSecretKey] = encrypted
+        }
+        return fresh
+    }
 
     private fun decryptSyncPassphraseOrNull(encrypted: String): String? =
         try {

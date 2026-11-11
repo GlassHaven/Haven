@@ -281,18 +281,6 @@ class McpServer @Inject constructor(
     internal var consentWaitMs: Long = CONSENT_WAIT_MS
 
     /**
-     * Last authenticated (or, on `initialize`, self-asserted) client name.
-     * Used for AUDIT attribution and as the key for consent memos /
-     * standing policies — never as authentication (#mcp-backbone Stage 3):
-     * the dispatch gate accepts only a bearer pairing token or a session id
-     * minted by an authenticated `initialize` in this process. Set from the
-     * bearer/session resolution on every authenticated request, so grant
-     * keys are backed by a real credential.
-     */
-    @Volatile
-    private var lastClientHint: String? = null
-
-    /**
      * In-memory mirror of [UserPreferencesRepository.mcpClientTokenHashes]
      * (clientName → SHA-256 hex of its pairing token). Seeded at [start],
      * lazily on first use for the socket-less test paths, and updated when a
@@ -1124,6 +1112,15 @@ class McpServer @Inject constructor(
     private fun dispatchHttpRequest(req: ParsedHttpRequest, origin: McpOrigin): HttpResponse {
         val method = req.method
         val path = req.path
+        // Loopback DNS-rebinding guard: listeners bound to 127.0.0.1 must also
+        // reject non-loopback HTTP `Host` headers (e.g. `rebind.attacker.tld:8730`
+        // sent by a browser simple-POST after DNS TTL expiry).
+        if (origin == McpOrigin.DEVICE || origin == McpOrigin.TUNNELED) {
+            val hostHeader = req.headers["host"]
+            if (hostHeader != null && !sh.haven.core.mcp.isLoopbackHttpHost(hostHeader)) {
+                return textResponse(403, "Forbidden")
+            }
+        }
         return when {
             method == "POST" && (path == "/mcp" || path == "/") -> {
                 // DNS-rebinding / CSRF guard (#mcp-backbone Stage 0): a browser
@@ -1287,13 +1284,13 @@ class McpServer @Inject constructor(
         // pairing prompt/audit, never authentication (#mcp-backbone Stage 3).
         val authClient: String? = bearerToken?.let { resolveBearer(it) }
         val sessionClient: String? = requestSessionId?.let { sessions[it]?.clientName }
-        when {
-            authClient != null -> lastClientHint = authClient
-            sessionClient != null -> lastClientHint = sessionClient
+        val callerHint: String? = when {
+            authClient != null -> authClient
+            sessionClient != null -> sessionClient
             method == "initialize" ->
                 params.optJSONObject("clientInfo")?.optString("name")
                     ?.takeIf { it.isNotEmpty() }
-                    ?.let { lastClientHint = it }
+            else -> null
         }
 
         val started = System.nanoTime()
@@ -1302,18 +1299,17 @@ class McpServer @Inject constructor(
         var resultJson: JSONObject? = null
         var newSessionId: String? = null
         val response = try {
-            val result = dispatch(method, params, requestSessionId, origin, authClient)
+            val result = dispatch(method, params, requestSessionId, origin, authClient, callerHint)
             if (result is JSONObject) resultJson = result
             // A successful `initialize` mints a new session id we'll
             // hand back to the client in the response header. The
             // client echoes it on subsequent requests and we resolve
             // it back to a clientName without re-prompting.
             if (method == "initialize" && result is JSONObject) {
-                val clientName = lastClientHint
-                if (!clientName.isNullOrBlank()) {
+                if (!callerHint.isNullOrBlank()) {
                     purgeExpiredSessions()
                     val sid = UUID.randomUUID().toString()
-                    sessions[sid] = Session(clientName, System.currentTimeMillis())
+                    sessions[sid] = Session(callerHint, System.currentTimeMillis())
                     newSessionId = sid
                 }
             }
@@ -1376,7 +1372,7 @@ class McpServer @Inject constructor(
                 durationMs = durationMs,
                 outcome = outcome,
                 errorMessage = errorMessage,
-                clientHint = lastClientHint,
+                clientHint = callerHint,
             )
         }
 
@@ -1410,6 +1406,7 @@ class McpServer @Inject constructor(
         requestSessionId: String?,
         origin: McpOrigin,
         authClient: String? = null,
+        callerHint: String? = null,
     ): Any? {
         // Loopback auto-trust: only a DEVICE-origin client (the plain
         // loopback binder) can be treated as already-paired and
@@ -1458,9 +1455,9 @@ class McpServer @Inject constructor(
             "initialize" -> handleInitialize(params, trusted, authClient)
             "notifications/initialized" -> JSONObject() // ack
             "tools/list" -> handleToolsList()
-            "tools/call" -> handleToolsCall(params, trusted, origin)
+            "tools/call" -> handleToolsCall(params, trusted, origin, callerHint)
             "resources/list" -> handleResourcesList()
-            "resources/read" -> handleResourcesRead(params, trusted)
+            "resources/read" -> handleResourcesRead(params, trusted, callerHint)
             "ping" -> JSONObject()
             else -> throw McpError(-32601, "Method not found: $method")
         }
@@ -1606,7 +1603,7 @@ class McpServer @Inject constructor(
         })
     }
 
-    private fun handleResourcesRead(params: JSONObject, trusted: Boolean): JSONObject {
+    private fun handleResourcesRead(params: JSONObject, trusted: Boolean, callerHint: String?): JSONObject {
         val uri = params.optString("uri")
         tools.readToolCategoryResource(uri)?.let { markdown ->
             return JSONObject().apply {
@@ -1627,14 +1624,14 @@ class McpServer @Inject constructor(
         // A standing policy covering capture_haven_ui covers the resource
         // read too (same memo key, same gate, same audit).
         val policyAllowed = !trusted && runBlocking {
-            standingPolicyEnforcer.permits(lastClientHint, "capture_haven_ui", JSONObject())
+            standingPolicyEnforcer.permits(callerHint, "capture_haven_ui", JSONObject())
         }
         if (!trusted && !policyAllowed) {
             val decision = runBlocking {
                 withTimeoutOrNull(consentWaitMs + CONSENT_TIMEOUT_GRACE_MS) {
                     consentManager.requestConsent(
                         toolName = "capture_haven_ui",
-                        clientHint = lastClientHint,
+                        clientHint = callerHint,
                         summary = "Let the agent see Haven's own screen",
                         level = ConsentLevel.ONCE_PER_SESSION,
                         timeoutMs = consentWaitMs,
@@ -1665,6 +1662,7 @@ class McpServer @Inject constructor(
         params: JSONObject,
         trusted: Boolean,
         origin: McpOrigin = McpOrigin.LAN,
+        callerHint: String? = null,
     ): JSONObject {
         val name = params.optString("name", "")
             .ifEmpty { throw McpError(-32602, "Missing tool name") }
@@ -1696,9 +1694,9 @@ class McpServer @Inject constructor(
         // a rate ceiling hit) falls through to the normal prompt. Only
         // evaluated where a prompt would otherwise be needed.
         val policyAllowed = !trusted && consent != null && consent.level != ConsentLevel.NEVER &&
-            runBlocking { standingPolicyEnforcer.permits(lastClientHint, name, arguments) }
+            runBlocking { standingPolicyEnforcer.permits(callerHint, name, arguments) }
         if (policyAllowed) {
-            Log.i(TAG, "tools/call '$name' allowed by standing policy for '$lastClientHint'")
+            Log.i(TAG, "tools/call '$name' allowed by standing policy for '$callerHint'")
         }
         if (!trusted && !policyAllowed && consent != null && consent.level != ConsentLevel.NEVER) {
             val summary = try {
@@ -1724,7 +1722,7 @@ class McpServer @Inject constructor(
                 withTimeoutOrNull(consentWaitMs + CONSENT_TIMEOUT_GRACE_MS) {
                     consentManager.requestConsent(
                         toolName = name,
-                        clientHint = lastClientHint,
+                        clientHint = callerHint,
                         summary = summary,
                         level = consent.level,
                         operationKey = operationKey,
@@ -1744,7 +1742,7 @@ class McpServer @Inject constructor(
         }
         mcpStatusHolder.callStarted(name)
         val result = try {
-            runBlocking { tools.callTyped(name, arguments, lastClientHint, origin.name) }
+            runBlocking { tools.callTyped(name, arguments, callerHint, origin.name) }
         } catch (e: McpError) {
             mcpStatusHolder.callFinished(name, e.message)
             throw e

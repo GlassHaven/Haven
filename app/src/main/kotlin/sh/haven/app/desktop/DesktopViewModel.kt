@@ -57,7 +57,7 @@ import sh.haven.core.vnc.ColorDepth
 import sh.haven.core.vnc.VncClient
 import sh.haven.core.vnc.VncConfig
 import sh.haven.feature.rdp.describeRdpError
-import sh.haven.feature.vnc.VncViewModel
+import sh.haven.feature.vnc.describeVncError
 import java.util.UUID
 import java.util.concurrent.ConcurrentLinkedQueue
 import javax.inject.Inject
@@ -98,6 +98,16 @@ class DesktopViewModel @Inject constructor(
 
     /** Per-connection timestamps of recent MCP agent activity, for the Desktop tab robot indicator. */
     val agentActiveProfiles: StateFlow<Map<String, Long>> = agentActivityHolder.activeProfiles
+
+    /**
+     * Non-cancelled background scope dedicated to socket/tunnel teardown in
+     * [disconnectTab] and [releaseSshTunnelDependent], so [onCleared] (invoked
+     * AFTER `viewModelScope` has already been cancelled) still closes live
+     * VNC/RDP/SPICE/GLKVM sessions and releases WireGuard/Tailscale/SSH leases.
+     */
+    private val cleanupScope = kotlinx.coroutines.CoroutineScope(
+        kotlinx.coroutines.SupervisorJob() + Dispatchers.IO,
+    )
 
     // --- Distro / DE management (issue #162 Phase 3c) ---
     //
@@ -2067,9 +2077,9 @@ class DesktopViewModel @Inject constructor(
                     }
                     onError = { e ->
                         Log.e(TAG, "VNC error on tab $tabId", e)
-                        error.value = VncViewModel.describeError(e, host, port)
+                        error.value = describeVncError(e, host, port)
                         connected.value = false
-                        desktopSessionRegistry.setStatus(profileId, DesktopStatus.ERROR)
+                        desktopSessionRegistry.setStatus(profileId, DesktopStatus.ERROR, label = label)
                         // VncClient.start() catches setup failures (e.g. the
                         // handshake EOF when no VNC server is listening behind
                         // the SSH forward) and routes them here instead of
@@ -2201,7 +2211,7 @@ class DesktopViewModel @Inject constructor(
                 // set the registry to ERROR. Only flip to connected on success.
                 if (error.value == null) {
                     connected.value = true
-                    desktopSessionRegistry.setStatus(profileId, DesktopStatus.CONNECTED)
+                    desktopSessionRegistry.setStatus(profileId, DesktopStatus.CONNECTED, label = label)
                 }
             } catch (e: Exception) {
                 Log.e(TAG, "VNC connect failed", e)
@@ -2212,8 +2222,8 @@ class DesktopViewModel @Inject constructor(
                 // happened before the lease was acquired.
                 tunnelLease?.close()
                 releaseSshTunnelDependent(profileId)
-                error.value = VncViewModel.describeError(e, host, port)
-                desktopSessionRegistry.setStatus(profileId, DesktopStatus.ERROR)
+                error.value = describeVncError(e, host, port)
+                desktopSessionRegistry.setStatus(profileId, DesktopStatus.ERROR, label = label)
                 // If the failure happened before the tab was added (e.g. tunnel
                 // setup threw), surface an error tab so the user sees why.
                 if (!tabAdded) {
@@ -2533,14 +2543,23 @@ class DesktopViewModel @Inject constructor(
             val label = resolveLabel(profileId) ?: "$host:$port"
             val colorTag = resolveColorTag(profileId)
             val tabId = UUID.randomUUID().toString()
+            val connected = MutableStateFlow(false)
+            val frame = MutableStateFlow<Bitmap?>(null)
+            val error = MutableStateFlow<String?>(null)
+            val cursor = MutableStateFlow<CursorOverlay?>(null)
+            val pointerPos = MutableStateFlow(0 to 0)
 
             var tunnelLease: SshSessionManager.TunnelLease? = null
+            var tunnelRelay: java.io.Closeable? = null
             try {
                 val actualHost: String
                 val actualPort: Int
-                // SPICE's Rust client does its own TCP dial — no socket/SOCKS
-                // injection like VNC/RDP — so SSH-forward goes via a local
-                // -L forward and we hand it 127.0.0.1:<localPort>.
+                // SPICE's Rust client does its own TCP dial across multiple
+                // channels (main, display, inputs, cursor) — SSH-forward goes
+                // via a local -L forward, and WireGuard/Tailscale/SOCKS/HTTP
+                // proxy profiles go via a loopback TCP relay backed by
+                // tunnelResolver.socketFactory(profile) (fail-closed: a tunnel
+                // bring-up failure aborts before any TCP socket is opened).
                 if (sshForward && sshSessionId != null) {
                     val sshClient = findSshClient(sshSessionId)
                         ?: throw IllegalStateException("SSH session not found")
@@ -2553,18 +2572,22 @@ class DesktopViewModel @Inject constructor(
                             sessionId = sshSessionId,
                             dependentProfileId = profileId,
                             localForwardPort = lp,
-                        ) { viewModelScope.launch { closeTab(tabId) } }
+                        ) { cleanupScope.launch { closeTab(tabId) } }
                     }
                 } else {
-                    actualHost = host
-                    actualPort = port
+                    val profile = profileId?.let { connectionRepository.getById(it) }
+                    val routeFactory = if (profile != null) tunnelResolver.socketFactory(profile) else null
+                    if (routeFactory != null) {
+                        val relay = startLoopbackTcpRelay(routeFactory, host, port)
+                        tunnelRelay = relay
+                        actualHost = "127.0.0.1"
+                        actualPort = relay.port
+                        Log.d(TAG, "SPICE tunnel relay: localhost:${relay.port} -> ${LogRedact.host(host, port)}")
+                    } else {
+                        actualHost = host
+                        actualPort = port
+                    }
                 }
-
-                val connected = MutableStateFlow(false)
-                val frame = MutableStateFlow<Bitmap?>(null)
-                val error = MutableStateFlow<String?>(null)
-                val cursor = MutableStateFlow<CursorOverlay?>(null)
-                val pointerPos = MutableStateFlow(0 to 0)
 
                 val verboseEnabled = preferencesRepository.verboseLoggingEnabled.first()
                 val verboseBuffer = if (verboseEnabled) ConcurrentLinkedQueue<String>() else null
@@ -2585,18 +2608,19 @@ class DesktopViewModel @Inject constructor(
                     Log.e(TAG, "SPICE error on tab $tabId", e)
                     error.value = e.message ?: "SPICE connection to $host:$port failed"
                     connected.value = false
-                    desktopSessionRegistry.setStatus(profileId, DesktopStatus.ERROR)
+                    desktopSessionRegistry.setStatus(profileId, DesktopStatus.ERROR, label = label)
                     if (profileId != null) {
                         viewModelScope.launch(Dispatchers.IO) {
                             connectionLogRepository.logEvent(profileId, ConnectionLog.Status.FAILED, details = e.message)
                         }
                     }
+                    runCatching { tunnelRelay?.close() }
                     tunnelLease?.close()
                     releaseSshTunnelDependent(profileId)
                 }
                 session.onConnected = { _, _ ->
                     connected.value = true
-                    desktopSessionRegistry.setStatus(profileId, DesktopStatus.CONNECTED)
+                    desktopSessionRegistry.setStatus(profileId, DesktopStatus.CONNECTED, label = label)
                     if (profileId != null) {
                         viewModelScope.launch(Dispatchers.IO) {
                             val startLog = session.drainVerboseLog()
@@ -2609,7 +2633,7 @@ class DesktopViewModel @Inject constructor(
                     // path so the tab never claims "connected" past death (#437).
                     if (_tabs.value.any { it.id == tabId }) {
                         connected.value = false
-                        desktopSessionRegistry.setStatus(profileId, DesktopStatus.DISCONNECTED)
+                        desktopSessionRegistry.setStatus(profileId, DesktopStatus.DISCONNECTED, label = label)
                         if (profileId != null) {
                             viewModelScope.launch(Dispatchers.IO) {
                                 connectionLogRepository.logEvent(
@@ -2637,6 +2661,7 @@ class DesktopViewModel @Inject constructor(
                     _cursor = cursor,
                     _pointerPos = pointerPos,
                     tunnelLease = tunnelLease,
+                    tunnelRelay = tunnelRelay,
                     profileId = profileId,
                 )
                 val tabs = _tabs.value.toMutableList()
@@ -2681,26 +2706,43 @@ class DesktopViewModel @Inject constructor(
                 // Let MCP disconnect_profile close this tab even when there's
                 // no tunnel lease to cascade through (direct connections, #437).
                 desktopSessionRegistry.registerCloseHandle(profileId) {
-                    viewModelScope.launch { closeTab(tabId) }
+                    cleanupScope.launch { closeTab(tabId) }
                 }
 
-                // Knock only on the direct path (SSH-forward knocked at SSH connect).
-                if (!sshForward && profileId != null) {
+                // Knock only on the direct path (SSH-forward knocked at SSH connect;
+                // userspace tunnel relays don't expose host kernel packets).
+                if (!sshForward && tunnelRelay == null && profileId != null) {
                     runVncKnockIfConfigured(profileId, actualHost)
                 }
 
-                desktopSessionRegistry.setStatus(profileId, DesktopStatus.CONNECTING)
+                desktopSessionRegistry.setStatus(profileId, DesktopStatus.CONNECTING, label = label)
                 session.start() // blocks until established; fires onConnected/onError
             } catch (e: Exception) {
-                // SpiceSession.start() invokes onError (which sets the tab's
-                // error state) before rethrowing, so just clean up here.
                 Log.e(TAG, "SPICE connect failed", e)
+                if (error.value == null) {
+                    error.value = e.message ?: "SPICE connection to $host:$port failed"
+                }
                 if (profileId != null) {
                     connectionLogRepository.logEvent(profileId, ConnectionLog.Status.FAILED, details = e.message)
                 }
+                runCatching { tunnelRelay?.close() }
                 tunnelLease?.close()
                 releaseSshTunnelDependent(profileId)
-                desktopSessionRegistry.setStatus(profileId, DesktopStatus.ERROR)
+                val errorTab = DesktopTab.Spice(
+                    id = tabId,
+                    label = label,
+                    colorTag = colorTag,
+                    session = SpiceSession("spice-err-$tabId", host, port, password),
+                    _connected = connected,
+                    _frame = frame,
+                    _error = error,
+                    _cursor = cursor,
+                    _pointerPos = pointerPos,
+                    profileId = profileId,
+                )
+                _tabs.update { current -> if (current.none { it.id == tabId }) current + errorTab else current }
+                _activeTabIndex.value = (_tabs.value.size - 1).coerceAtLeast(0)
+                desktopSessionRegistry.setStatus(profileId, DesktopStatus.ERROR, label = label)
             }
         }
     }
@@ -2761,9 +2803,11 @@ class DesktopViewModel @Inject constructor(
                             sessionId = sshSessionId,
                             dependentProfileId = profileId,
                             localForwardPort = lp,
-                        ) { viewModelScope.launch { closeTab(tabId) } }
+                        ) { cleanupScope.launch { closeTab(tabId) } }
                     }
                 } else {
+                    val profile = profileId?.let { connectionRepository.getById(it) }
+                    routeSocketFactory = if (profile != null) tunnelResolver.socketFactory(profile) else null
                     actualHost = host
                     actualPort = port
                 }
@@ -2899,11 +2943,12 @@ class DesktopViewModel @Inject constructor(
                     ),
                 )
                 desktopSessionRegistry.registerCloseHandle(profileId) {
-                    viewModelScope.launch { closeTab(tabId) }
+                    cleanupScope.launch { closeTab(tabId) }
                 }
 
-                // Knock only on the direct path (SSH-forward knocked at SSH connect).
-                if (!sshForward && profileId != null) {
+                // Knock only on the direct path (SSH-forward knocked at SSH connect;
+                // userspace tunnel factories don't expose host kernel packets).
+                if (!sshForward && routeSocketFactory == null && profileId != null) {
                     runVncKnockIfConfigured(profileId, actualHost)
                 }
 
@@ -2916,36 +2961,31 @@ class DesktopViewModel @Inject constructor(
                 }
                 tunnelLease?.close()
                 releaseSshTunnelDependent(profileId)
-                desktopSessionRegistry.setStatus(profileId, DesktopStatus.ERROR)
                 // Tab with the error visible even when the client build fails.
-                if (_tabs.value.none { it.id == tabId }) {
-                    _tabs.value = _tabs.value.toMutableList().apply {
-                        add(
-                            DesktopTab.Glkvm(
-                                id = tabId,
-                                label = label,
-                                colorTag = colorTag,
-                                session = GlkvmDesktopSession(
-                                    client = GlkvmClient.Builder().apply {
-                                        this.host = host; this.port = port
-                                        this.user = user?.ifBlank { "admin" } ?: "admin"
-                                        this.password = password.orEmpty()
-                                        baseUrlOverride = "https://$host:$port"
-                                    }.build(),
-                                    onFrame = {}, onConnected = {},
-                                    onError = { }, onDisconnected = { },
-                                ),
-                                _connected = MutableStateFlow(false),
-                                _frame = frame,
-                                _error = error,
-                                _pointerPos = MutableStateFlow(0 to 0),
-                                tunnelLease = null,
-                                profileId = profileId,
-                            ),
-                        )
-                    }
-                    _activeTabIndex.value = _tabs.value.size - 1
-                }
+                val errorTab = DesktopTab.Glkvm(
+                    id = tabId,
+                    label = label,
+                    colorTag = colorTag,
+                    session = GlkvmDesktopSession(
+                        client = GlkvmClient.Builder().apply {
+                            this.host = host; this.port = port
+                            this.user = user?.ifBlank { "admin" } ?: "admin"
+                            this.password = password.orEmpty()
+                            baseUrlOverride = "https://$host:$port"
+                        }.build(),
+                        onFrame = {}, onConnected = {},
+                        onError = { }, onDisconnected = { },
+                    ),
+                    _connected = MutableStateFlow(false),
+                    _frame = frame,
+                    _error = error,
+                    _pointerPos = MutableStateFlow(0 to 0),
+                    tunnelLease = null,
+                    profileId = profileId,
+                )
+                _tabs.update { current -> if (current.none { it.id == tabId }) current + errorTab else current }
+                _activeTabIndex.value = (_tabs.value.size - 1).coerceAtLeast(0)
+                desktopSessionRegistry.setStatus(profileId, DesktopStatus.ERROR, label = label)
             }
         }
     }
@@ -3322,8 +3362,81 @@ class DesktopViewModel @Inject constructor(
 
     // --- Lifecycle ---
 
+    private class LoopbackTcpRelay(
+        val port: Int,
+        private val onClose: () -> Unit,
+    ) : java.io.Closeable {
+        override fun close() = onClose()
+    }
+
+    /**
+     * Binds `127.0.0.1:0` and forwards each accepted local socket through
+     * [routeFactory] to `[targetHost]:[targetPort]`, supporting multi-channel
+     * protocols like SPICE whose native client opens its own TCP connections.
+     */
+    private fun startLoopbackTcpRelay(
+        routeFactory: javax.net.SocketFactory,
+        targetHost: String,
+        targetPort: Int,
+    ): LoopbackTcpRelay {
+        val server = java.net.ServerSocket(0, 16, java.net.InetAddress.getByName("127.0.0.1"))
+        val activeSockets = java.util.Collections.synchronizedSet(mutableSetOf<java.net.Socket>())
+        val closed = java.util.concurrent.atomic.AtomicBoolean(false)
+        val acceptThread = Thread({
+            while (!closed.get()) {
+                val local = try {
+                    server.accept()
+                } catch (_: Exception) {
+                    break
+                }
+                activeSockets.add(local)
+                Thread({
+                    var remote: java.net.Socket? = null
+                    try {
+                        remote = routeFactory.createSocket(targetHost, targetPort)
+                        activeSockets.add(remote)
+                        val r = remote
+                        val pumpReverse = Thread({
+                            try {
+                                r.getInputStream().copyTo(local.getOutputStream())
+                            } catch (_: Exception) {
+                            } finally {
+                                runCatching { local.shutdownOutput() }
+                            }
+                        }, "spice-relay-rx").apply { isDaemon = true; start() }
+                        try {
+                            local.getInputStream().copyTo(r.getOutputStream())
+                        } catch (_: Exception) {
+                        } finally {
+                            runCatching { r.shutdownOutput() }
+                        }
+                        pumpReverse.join(2_000)
+                    } catch (e: Exception) {
+                        Log.w(TAG, "SPICE tunnel relay connection failed: ${e.message}")
+                    } finally {
+                        activeSockets.remove(local)
+                        remote?.let { activeSockets.remove(it) }
+                        runCatching { local.close() }
+                        runCatching { remote?.close() }
+                    }
+                }, "spice-relay-tx").apply { isDaemon = true; start() }
+            }
+        }, "spice-relay-accept").apply { isDaemon = true; start() }
+
+        return LoopbackTcpRelay(server.localPort) {
+            if (closed.compareAndSet(false, true)) {
+                runCatching { server.close() }
+                synchronized(activeSockets) {
+                    activeSockets.toList().forEach { runCatching { it.close() } }
+                    activeSockets.clear()
+                }
+                acceptThread.interrupt()
+            }
+        }
+    }
+
     private fun disconnectTab(tab: DesktopTab) {
-        viewModelScope.launch(Dispatchers.IO) {
+        cleanupScope.launch {
             fun clearProfileStateIfNoReplacement(profileId: String?) {
                 if (profileId != null && _tabs.value.any { it.id != tab.id && it.profileId == profileId }) {
                     return
@@ -3360,6 +3473,7 @@ class DesktopViewModel @Inject constructor(
                         connectionLogRepository.logEvent(tab.profileId, ConnectionLog.Status.DISCONNECTED, verboseLog = verboseLog)
                     }
                     tab.session.close()
+                    runCatching { tab.tunnelRelay?.close() }
                     tab.tunnelLease?.close()
                     clearProfileStateIfNoReplacement(tab.profileId)
                 }
@@ -3394,7 +3508,7 @@ class DesktopViewModel @Inject constructor(
     private fun releaseSshTunnelDependent(profileId: String?) {
         if (profileId == null) return
         sshSessionManager.releaseTunnelDependent(profileId)
-        viewModelScope.launch { tunnelResolver.release(profileId) }
+        cleanupScope.launch { tunnelResolver.release(profileId) }
     }
 
 

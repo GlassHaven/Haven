@@ -97,16 +97,22 @@ data class DesktopUserInteraction(
 class DesktopSessionRegistry @Inject constructor() {
     private val _statuses = MutableStateFlow<Map<String, DesktopStatus>>(emptyMap())
     val statuses: StateFlow<Map<String, DesktopStatus>> = _statuses.asStateFlow()
+    private val labels = ConcurrentHashMap<String, String>()
 
-    /** Record [status] for [profileId] (no-op when [profileId] is null). */
-    fun setStatus(profileId: String?, status: DesktopStatus) {
+    /** Record [status] (and optional human-readable [label]) for [profileId] (no-op when [profileId] is null). */
+    fun setStatus(profileId: String?, status: DesktopStatus, label: String? = null) {
         if (profileId == null) return
+        if (!label.isNullOrBlank()) labels[profileId] = label
         _statuses.update { it + (profileId to status) }
     }
+
+    /** Human-readable label recorded for [profileId], or null. */
+    fun label(profileId: String): String? = labels[profileId]
 
     /** Drop any status for [profileId] — the desktop tab is gone. */
     fun clear(profileId: String?) {
         if (profileId == null) return
+        labels.remove(profileId)
         _statuses.update { it - profileId }
     }
 
@@ -177,6 +183,16 @@ class DesktopSessionRegistry @Inject constructor() {
 
     /** The close handle for [profileId], or null if none registered. */
     fun closeHandle(profileId: String): (() -> Unit)? = closeHandles[profileId]
+
+    /** Close the tab registered for [profileId], if any. */
+    fun close(profileId: String) {
+        closeHandles[profileId]?.invoke()
+    }
+
+    /** Close all registered desktop tabs (e.g. ForegroundService "Disconnect All"). */
+    fun closeAll() {
+        closeHandles.values.toList().forEach { runCatching { it.invoke() } }
+    }
 
     // --- User vs. Agent interaction log (for collaborative MCP inspection) ---
 

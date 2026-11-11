@@ -377,4 +377,49 @@ class ProxySocketFactoryTest {
         for (i in 3..15) assertEquals(0x00, bytes[i].toInt() and 0xFF)
         assertEquals(0x01, bytes[16].toInt() and 0xFF)
     }
+
+    @Test
+    fun unconnectedCreateSocketThenConnectTunnelsViaSocks5() {
+        // OkHttp (GlkvmClient, OpenAiClient) calls zero-arg createSocket() and
+        // then socket.connect(InetSocketAddress, timeout).
+        val server = ServerSocket(0, 1, java.net.InetAddress.getByName("127.0.0.1"))
+        val done = CountDownLatch(1)
+        val srv = thread(isDaemon = true) {
+            server.accept().use { s ->
+                val ins = DataInputStream(s.getInputStream())
+                val out = s.getOutputStream()
+                assertEquals(0x05, ins.read())
+                val n = ins.read()
+                repeat(n) { ins.read() }
+                out.write(byteArrayOf(0x05, 0x00)); out.flush()
+                assertEquals(0x05, ins.read())
+                assertEquals(0x01, ins.read())
+                assertEquals(0x00, ins.read())
+                val atyp = ins.read()
+                assertEquals(0x03, atyp)
+                val len = ins.read()
+                val hostBytes = ByteArray(len).also { ins.readFully(it) }
+                assertEquals("kvmd.internal", String(hostBytes, Charsets.ISO_8859_1))
+                val port = (ins.read() shl 8) or ins.read()
+                assertEquals(443, port)
+                out.write(byteArrayOf(0x05, 0x00, 0x00, 0x01, 0, 0, 0, 0, 0, 0)); out.flush()
+                out.write("OK".toByteArray()); out.flush()
+                done.countDown()
+            }
+        }
+
+        val factory = ProxySocketFactory("SOCKS5", "127.0.0.1", server.localPort, connectTimeoutMs = 5_000)
+        val sock = factory.createSocket()
+        try {
+            sock.connect(java.net.InetSocketAddress.createUnresolved("kvmd.internal", 443), 5_000)
+            assertTrue(done.await(5, TimeUnit.SECONDS))
+            val reply = ByteArray(2)
+            DataInputStream(sock.getInputStream()).readFully(reply)
+            assertEquals("OK", String(reply))
+        } finally {
+            runCatching { sock.close() }
+            server.close()
+            srv.join(2_000)
+        }
+    }
 }

@@ -6,14 +6,19 @@ import dagger.hilt.InstallIn
 import dagger.hilt.components.SingletonComponent
 import dagger.multibindings.IntoSet
 import kotlinx.coroutines.flow.map
+import sh.haven.core.bleserial.BleSerialSessionManager
+import sh.haven.core.btserial.BtSerialSessionManager
 import sh.haven.core.et.EtSessionManager
+import sh.haven.core.local.DesktopManager
 import sh.haven.core.local.LocalSessionManager
+import sh.haven.core.local.SystemVmManager
 import sh.haven.core.mosh.MoshSessionManager
 import sh.haven.core.reticulum.ReticulumSessionManager
 import sh.haven.core.smb.SmbSessionManager
 import sh.haven.core.local.uml.UmlGuestManager
 import sh.haven.core.ssh.ForegroundSessionParticipant
 import sh.haven.core.ssh.SshSessionManager
+import sh.haven.core.usbserial.UsbSerialSessionManager
 
 /**
  * Which transports count as "active connections" in the foreground
@@ -76,5 +81,52 @@ object ForegroundSessionParticipantModule {
         override val activeSessions get() = m.activeSessions.map { SessionInfo(it.profileId, it.label) }
         override val changes get() = m.sessions.map { }
         override fun disconnectAll() = m.disconnectAll()
+    }
+
+    @Provides @IntoSet
+    fun btSerial(m: BtSerialSessionManager): ForegroundSessionParticipant = object : ForegroundSessionParticipant {
+        override val activeSessions get() = m.activeSessions.map { SessionInfo(it.profileId, it.label) }
+        override val changes get() = m.sessions.map { }
+        override fun disconnectAll() = m.disconnectAll()
+    }
+
+    @Provides @IntoSet
+    fun bleSerial(m: BleSerialSessionManager): ForegroundSessionParticipant = object : ForegroundSessionParticipant {
+        override val activeSessions get() = m.activeSessions.map { SessionInfo(it.profileId, it.label) }
+        override val changes get() = m.sessions.map { }
+        override fun disconnectAll() = m.disconnectAll()
+    }
+
+    @Provides @IntoSet
+    fun usbSerial(m: UsbSerialSessionManager): ForegroundSessionParticipant = object : ForegroundSessionParticipant {
+        override val activeSessions get() = m.activeSessions.map { SessionInfo(it.profileId, it.label) }
+        override val changes get() = m.sessions.map { }
+        override fun disconnectAll() = m.disconnectAll()
+    }
+
+    @Provides @IntoSet
+    fun prootDesktops(m: DesktopManager): ForegroundSessionParticipant = object : ForegroundSessionParticipant {
+        override val activeSessions
+            get() = m.desktops.value.values
+                .filter {
+                    it.state == DesktopManager.DesktopState.RUNNING ||
+                        it.state == DesktopManager.DesktopState.STARTING
+                }
+                .map { SessionInfo("desktop-${it.de.spec.id}", "Local Desktop (${it.de.spec.label})") }
+        override val changes get() = m.desktops.map { }
+        override fun disconnectAll() = m.stopAll()
+    }
+
+    @Provides @IntoSet
+    fun systemVm(m: SystemVmManager): ForegroundSessionParticipant = object : ForegroundSessionParticipant {
+        override val activeSessions
+            get() = listOfNotNull(
+                m.state.value?.takeIf {
+                    it.status == SystemVmManager.Status.RUNNING ||
+                        it.status == SystemVmManager.Status.STARTING
+                }?.let { SessionInfo("system-vm", "System VM (${it.arch.name.lowercase()})") },
+            )
+        override val changes get() = m.state.map { }
+        override fun disconnectAll() = m.stopAsync()
     }
 }

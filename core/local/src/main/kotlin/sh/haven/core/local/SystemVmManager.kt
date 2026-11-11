@@ -3,10 +3,13 @@ package sh.haven.core.local
 import android.content.Context
 import android.util.Log
 import dagger.hilt.android.qualifiers.ApplicationContext
+import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.SupervisorJob
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
+import kotlinx.coroutines.launch
 import kotlinx.coroutines.sync.Mutex
 import kotlinx.coroutines.sync.withLock
 import kotlinx.coroutines.withContext
@@ -88,6 +91,9 @@ class SystemVmManager @Inject constructor(
     val state: StateFlow<VmState?> = _state.asStateFlow()
 
     private val mutex = Mutex()
+    private val teardownScope = CoroutineScope(
+        SupervisorJob() + Dispatchers.IO,
+    )
 
     @Volatile
     private var process: Process? = null
@@ -203,6 +209,11 @@ class SystemVmManager @Inject constructor(
 
     /** Power off / kill the running VM (idempotent). */
     suspend fun stop() = mutex.withLock { stopLocked() }
+
+    /** Non-blocking teardown entry point for `ForegroundSessionParticipant.disconnectAll()`. */
+    fun stopAsync() {
+        teardownScope.launch { stop() }
+    }
 
     private fun describeStartFailure(proc: Process, port: Int, plan: AccelPlan): String = when {
         !proc.isAlive ->

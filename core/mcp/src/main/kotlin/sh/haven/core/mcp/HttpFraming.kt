@@ -123,12 +123,58 @@ fun parseHttpRequest(input: InputStream): HttpParseResult {
  * no Origin at all and bypass the check entirely.
  */
 fun isLoopbackOrigin(origin: String): Boolean {
-    val afterScheme = origin.substringAfter("://", "").substringBefore('/')
-    val host = if (afterScheme.startsWith("[")) {
-        val end = afterScheme.indexOf(']')
-        if (end > 0) afterScheme.substring(1, end) else afterScheme
-    } else {
-        afterScheme.substringBefore(':')
+    val schemeSep = origin.indexOf("://")
+    if (schemeSep <= 0) return false
+    val scheme = origin.substring(0, schemeSep).lowercase()
+    if (scheme != "http" && scheme != "https") return false
+    val authority = origin.substring(schemeSep + 3).substringBefore('/')
+    return isLoopbackHttpHost(authority)
+}
+
+/**
+ * True iff [hostHeader] (an HTTP `Host` header or `host[:port]` authority) names
+ * a strict loopback host (`localhost`, `[::1]`, or a 4-octet `127.0.0.0/8` IPv4
+ * literal). Rejects userinfo (`@`), whitespace, and domains that merely begin
+ * with `"127."` such as `127.attacker.tld`.
+ */
+fun isLoopbackHttpHost(hostHeader: String): Boolean {
+    val trimmed = hostHeader.trim()
+    if (trimmed.isEmpty() || '@' in trimmed || '/' in trimmed || trimmed.any { it.isWhitespace() }) {
+        return false
     }
-    return host == "localhost" || host == "::1" || host.startsWith("127.")
+    val host = if (trimmed.startsWith("[")) {
+        val end = trimmed.indexOf(']')
+        if (end <= 1) return false
+        val rest = trimmed.substring(end + 1)
+        if (rest.isNotEmpty() && (!rest.startsWith(":") || rest.substring(1).toIntOrNull() !in 1..65535)) {
+            return false
+        }
+        trimmed.substring(1, end).lowercase()
+    } else {
+        val colon = trimmed.indexOf(':')
+        if (colon >= 0) {
+            if (trimmed.indexOf(':', colon + 1) >= 0) return false
+            val port = trimmed.substring(colon + 1).toIntOrNull() ?: return false
+            if (port !in 1..65535) return false
+            trimmed.substring(0, colon).lowercase()
+        } else {
+            trimmed.lowercase()
+        }
+    }
+    if (host == "localhost" || host == "::1" || host == "0:0:0:0:0:0:0:1") return true
+    return isIpv4LoopbackLiteral(host)
+}
+
+private fun isIpv4LoopbackLiteral(host: String): Boolean {
+    val parts = host.split('.')
+    if (parts.size != 4) return false
+    for (i in 0..3) {
+        val p = parts[i]
+        if (p.isEmpty() || p.length > 3 || !p.all { it in '0'..'9' }) return false
+        if (p.length > 1 && p[0] == '0') return false
+        val octet = p.toIntOrNull() ?: return false
+        if (octet !in 0..255) return false
+        if (i == 0 && octet != 127) return false
+    }
+    return true
 }

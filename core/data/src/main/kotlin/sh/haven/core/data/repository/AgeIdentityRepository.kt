@@ -36,7 +36,7 @@ class AgeIdentityRepository @Inject constructor(
         try {
             row.copy(secret = CredentialEncryption.decrypt(context, row.secret))
         } catch (e: Exception) {
-            Log.w(TAG, "age identity '${row.label}' decrypt failed during export: ${e.message}")
+            Log.w(TAG, "age identity '${row.id}' decrypt failed during export: ${e.message}")
             null
         }
     }

@@ -3,6 +3,13 @@ package sh.haven.feature.vnc
 import android.graphics.Bitmap
 import android.os.SystemClock
 import android.view.KeyEvent as AndroidKeyEvent
+import sh.haven.core.vnc.protocol.AuthenticationFailedException
+import sh.haven.core.vnc.protocol.HandshakingFailedException
+import sh.haven.core.vnc.protocol.VncException
+import java.net.ConnectException
+import java.net.NoRouteToHostException
+import java.net.SocketTimeoutException
+import java.net.UnknownHostException
 import androidx.compose.foundation.Canvas
 import androidx.compose.foundation.background
 import androidx.compose.foundation.gestures.awaitEachGesture
@@ -344,92 +351,6 @@ fun VncSessionContent(
             onClose = onClose,
         )
     }
-}
-
-/** Legacy VncScreen with ViewModel — delegates to VncSessionContent. */
-@Composable
-fun VncScreen(
-    isActive: Boolean = true,
-    pendingHost: String? = null,
-    pendingPort: Int? = null,
-    pendingPassword: String? = null,
-    pendingUsername: String? = null,
-    pendingSshForward: Boolean = false,
-    pendingSshSessionId: String? = null,
-    toolbarLayout: ToolbarLayout = ToolbarLayout.DEFAULT,
-    onPendingConsumed: () -> Unit = {},
-    onFullscreenChanged: (Boolean) -> Unit = {},
-    viewModel: VncViewModel = hiltViewModel(),
-) {
-    LaunchedEffect(isActive) { viewModel.setActive(isActive) }
-
-    LaunchedEffect(pendingHost) {
-        if (pendingHost != null) {
-            if (pendingSshForward && pendingSshSessionId != null) {
-                // 127.0.0.1 rather than "localhost" so sshd doesn't resolve
-                // through getaddrinfo and hit the IPv6 loopback first — a
-                // VNC server bound only to 127.0.0.1 (common for wayvnc)
-                // rejects the ::1 attempt and depending on the sshd version
-                // the retry can surface as a closed channel rather than
-                // a successful fallback (#104).
-                viewModel.connectViaSsh(
-                    pendingSshSessionId, "127.0.0.1", pendingPort ?: 5900, pendingPassword,
-                )
-            } else {
-                viewModel.connect(pendingHost, pendingPort ?: 5900, pendingPassword, pendingUsername)
-            }
-            onPendingConsumed()
-        }
-    }
-
-    // Standalone-path orientation state. Lives in VncScreen (the
-    // outer composable) so it sits above any conditional siblings
-    // inside VncSessionContent / VncViewer. Mirrors RdpScreen.
-    val activity = androidx.activity.compose.LocalActivity.current
-    var orientationValue by remember {
-        mutableStateOf(android.content.pm.ActivityInfo.SCREEN_ORIENTATION_LANDSCAPE)
-    }
-    LaunchedEffect(orientationValue, activity) {
-        activity?.requestedOrientation = orientationValue
-    }
-    DisposableEffect(activity) {
-        onDispose {
-            activity?.requestedOrientation =
-                android.content.pm.ActivityInfo.SCREEN_ORIENTATION_UNSPECIFIED
-        }
-    }
-
-    VncSessionContent(
-        connected = viewModel.connected,
-        frame = viewModel.frame,
-        error = viewModel.error,
-        toolbarLayout = toolbarLayout,
-        onTap = { x, y -> viewModel.sendClick(x, y) },
-        onLongPress = { x, y -> viewModel.sendClick(x, y, button = 3) },
-        onDragStart = { x, y ->
-            viewModel.sendPointer(x, y)
-            viewModel.pressButton(1)
-        },
-        onDrag = { x, y -> viewModel.sendPointer(x, y) },
-        onDragEnd = { viewModel.releaseButton(1) },
-        onScrollUp = { viewModel.scrollUp() },
-        onScrollDown = { viewModel.scrollDown() },
-        onPressButton = { btn -> viewModel.pressButton(btn) },
-        onReleaseButton = { btn -> viewModel.releaseButton(btn) },
-        onTypeChar = { ch -> viewModel.typeKey(charToKeySym(ch)) },
-        onTypeText = { text -> viewModel.typeText(text) },
-        onSendClipboard = { text -> viewModel.sendClipboardText(text) },
-        onKeyDown = { keySym -> viewModel.sendKey(keySym, true) },
-        onKeyUp = { keySym -> viewModel.sendKey(keySym, false) },
-        onDisconnect = { viewModel.disconnect() },
-        onFullscreenChanged = onFullscreenChanged,
-        cursor = viewModel.cursor,
-        pointerPos = viewModel.pointerPos,
-        securityWarning = viewModel.securityWarning,
-        onDismissSecurityWarning = { viewModel.dismissSecurityWarning() },
-        currentOrientation = orientationValue,
-        onCycleOrientation = { orientationValue = cycleVncOrientation(orientationValue) },
-    )
 }
 
 /**
@@ -3078,4 +2999,72 @@ internal fun androidKeyToKeySym(key: Key): Int? = when (key) {
     Key.F12 -> XK_F12
     else -> null
 }
+
+/** Map VNC/network exceptions to user-friendly messages with troubleshooting hints. */
+fun describeVncError(e: Exception, host: String? = null, port: Int? = null): String {
+    val portStr = port?.toString() ?: "5900"
+    val hostStr = host ?: "the remote host"
+    return when (e) {
+        is ConnectException -> buildString {
+            append("Connection refused")
+            if (e.message?.contains("refused", ignoreCase = true) == true) {
+                append(". No VNC server appears to be listening on $hostStr:$portStr.\n\n")
+                append("To start a VNC server on the remote host:\n")
+                append("  TigerVNC:  vncserver :1\n")
+                append("  x11vnc:    x11vnc -display :0 -rfbport $portStr\n")
+                append("  wayvnc:    wayvnc 0.0.0.0 $portStr\n\n")
+                append("Check: ss -tlnp | grep $portStr")
+            }
+        }
+        is SocketTimeoutException -> buildString {
+            append("Connection timed out reaching $hostStr:$portStr.\n\n")
+            append("Check:\n")
+            append("  - Host address is correct\n")
+            append("  - Port $portStr is not blocked by a firewall\n")
+            append("  - If tunneling through SSH, the SSH session is still connected")
+        }
+        is UnknownHostException ->
+            "Could not resolve hostname \"$hostStr\". Check the address is correct."
+        is NoRouteToHostException ->
+            "No route to $hostStr. Check your network connection and that the host is reachable."
+        is AuthenticationFailedException -> buildString {
+            append("Authentication failed")
+            val msg = e.message
+            if (msg != null && msg != "Authentication failed") append(": $msg")
+            append(".\n\n")
+            append("Check your VNC password. VNC passwords are limited to 8 characters.\n")
+            append("To reset: vncpasswd ~/.vnc/passwd")
+        }
+        is HandshakingFailedException -> buildString {
+            append("VNC handshake failed: ${e.message}\n\n")
+            append("This may indicate:\n")
+            append("  - An incompatible VNC server version\n")
+            append("  - Something other than a VNC server on port $portStr\n")
+            append("  - A web-based VNC proxy (noVNC) instead of a raw VNC port")
+        }
+        is VncException -> buildString {
+            val msg = e.message ?: "Unknown protocol error"
+            append("VNC protocol error: $msg\n\n")
+            if (msg.contains("encoding", ignoreCase = true)) {
+                append("The server is using an encoding Haven doesn't support.\n")
+                append("Try setting the server to use Raw or Hextile encoding.")
+            } else if (msg.contains("Unexpected end", ignoreCase = true)) {
+                append("The server closed the connection unexpectedly.\n")
+                append("Check the VNC server logs on the remote host for errors.")
+            }
+        }
+        is java.io.EOFException, is java.io.IOException -> {
+            val msg = e.message ?: ""
+            if (msg.contains("Broken pipe") || msg.contains("reset by peer") ||
+                msg.contains("end of stream", ignoreCase = true) || e is java.io.EOFException
+            ) {
+                "Connection lost. The VNC server may have stopped or the network dropped."
+            } else {
+                "Network error: $msg"
+            }
+        }
+        else -> e.message ?: "Unknown error"
+    }
+}
+
 

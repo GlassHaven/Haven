@@ -664,14 +664,28 @@ private fun WebPageView(url: String, modifier: Modifier = Modifier) {
         modifier = modifier,
         factory = { ctx ->
                 WebView(ctx).apply {
-                    webViewClient = WebViewClient()
+                    webViewClient = object : WebViewClient() {
+                        override fun shouldOverrideUrlLoading(
+                            view: WebView?,
+                            request: android.webkit.WebResourceRequest?,
+                        ): Boolean {
+                            val scheme = request?.url?.scheme?.lowercase()
+                            return scheme != "http" && scheme != "https"
+                        }
+                    }
                     // JS + DOM storage are off by default in WebView — without
                     // them any scripted page (code-server, dashboards, even a
                     // chart in presented HTML) renders blank white. No JS
                     // bridge is added, so page script stays sandboxed to web
-                    // content exactly as in a browser.
+                    // content; file:// and content:// access are disabled.
                     settings.javaScriptEnabled = true
                     settings.domStorageEnabled = true
+                    settings.allowFileAccess = false
+                    settings.allowContentAccess = false
+                    @Suppress("DEPRECATION")
+                    settings.allowFileAccessFromFileURLs = false
+                    @Suppress("DEPRECATION")
+                    settings.allowUniversalAccessFromFileURLs = false
                     settings.builtInZoomControls = true
                     settings.displayZoomControls = false
                     settings.useWideViewPort = true

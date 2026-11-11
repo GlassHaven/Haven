@@ -66,6 +66,7 @@ object TaskerPlugin {
     const val BUNDLE_COMMAND = "sh.haven.tasker.COMMAND"
     const val BUNDLE_OVERLAY = "sh.haven.tasker.OVERLAY"
     const val BUNDLE_BLOCK = "sh.haven.tasker.BLOCK"
+    const val BUNDLE_CAPABILITY_TOKEN = "sh.haven.tasker.TOKEN"
 
     /** Build the config Bundle the edit activity hands back to the host. */
     fun buildBundle(
@@ -74,16 +75,45 @@ object TaskerPlugin {
         command: String,
         overlay: Boolean,
         block: Boolean,
-    ): Bundle = Bundle().apply {
+        secret: String? = null,
+    ): Bundle = populateBundle(Bundle(), profileId, profileLabel, command, overlay, block, secret)
+
+    internal fun populateBundle(
+        target: Bundle,
+        profileId: String,
+        profileLabel: String,
+        command: String,
+        overlay: Boolean,
+        block: Boolean,
+        secret: String? = null,
+    ): Bundle = target.apply {
         putString(BUNDLE_PROFILE_ID, profileId)
         putString(BUNDLE_PROFILE_LABEL, profileLabel)
         putString(BUNDLE_COMMAND, command)
         putBoolean(BUNDLE_OVERLAY, overlay)
         putBoolean(BUNDLE_BLOCK, block)
+        if (!secret.isNullOrBlank()) {
+            // Bind the capability token to the target profile + execution mode,
+            // intentionally excluding BUNDLE_COMMAND so Tasker/MacroDroid can
+            // substitute %vars into BUNDLE_COMMAND at fire time (#367).
+            putString(BUNDLE_CAPABILITY_TOKEN, computeCapabilityToken(secret, profileId, overlay, block))
+        }
         // Let the host substitute its own variables into the command at fire
         // time (Tasker %vars / MacroDroid magic text). Harmless if the host
         // ignores it; the receiver just sees the already-substituted command.
         putString(BUNDLE_VARIABLE_REPLACE_KEYS, BUNDLE_COMMAND)
+    }
+
+    internal fun computeCapabilityToken(
+        secret: String,
+        profileId: String,
+        overlay: Boolean,
+        block: Boolean,
+    ): String {
+        val mac = javax.crypto.Mac.getInstance("HmacSHA256")
+        mac.init(javax.crypto.spec.SecretKeySpec(secret.toByteArray(Charsets.UTF_8), "HmacSHA256"))
+        val payload = "v1\u0000$profileId\u0000$overlay\u0000$block".toByteArray(Charsets.UTF_8)
+        return java.util.Base64.getUrlEncoder().withoutPadding().encodeToString(mac.doFinal(payload))
     }
 
     /**
@@ -126,5 +156,30 @@ object TaskerPlugin {
             putBoolean(BUNDLE_BLOCK, intent.getBooleanExtra(BUNDLE_BLOCK, false))
         }
         return if (isValid(flat)) flat else null
+    }
+
+    /**
+     * Resolve and cryptographically authenticate a fired [intent] against the
+     * device-local [secret] minted when the user saved an action in
+     * [TaskerEditActivity]. Rejects:
+     * - all broadcasts when [secret] is null/blank (plugin never configured);
+     * - flat intent extras without a nested [EXTRA_BUNDLE];
+     * - bundles missing or failing constant-time HMAC verification on
+     *   `(profileId, overlay, block)`.
+     */
+    fun verifiedConfigFrom(intent: Intent, secret: String?): Bundle? {
+        if (secret.isNullOrBlank()) return null
+        val bundle = intent.getBundleExtra(EXTRA_BUNDLE) ?: return null
+        if (!isValid(bundle)) return null
+        val token = bundle.getString(BUNDLE_CAPABILITY_TOKEN)?.takeIf { it.isNotBlank() } ?: return null
+        val profileId = bundle.getString(BUNDLE_PROFILE_ID) ?: return null
+        val overlay = bundle.getBoolean(BUNDLE_OVERLAY, false)
+        val block = bundle.getBoolean(BUNDLE_BLOCK, false)
+        val expected = computeCapabilityToken(secret, profileId, overlay, block)
+        val ok = java.security.MessageDigest.isEqual(
+            expected.toByteArray(Charsets.US_ASCII),
+            token.toByteArray(Charsets.US_ASCII),
+        )
+        return if (ok) bundle else null
     }
 }

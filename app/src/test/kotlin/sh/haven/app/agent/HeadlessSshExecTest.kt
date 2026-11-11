@@ -217,4 +217,60 @@ class HeadlessSshExecTest {
         }
         assertEquals(null, HeadlessSshAuth.resolve(sshProfile.copy(keyId = "k-chip"), keyRepo))
     }
+
+    @Test
+    fun `headless auth auto-offer excludes hardwareAlias and disabled keys and honours ignoreSavedKeys`() = runBlocking {
+        val hwKey = sh.haven.core.data.db.entities.SshKey(
+            id = "k-hw",
+            label = "chip",
+            keyType = "ecdsa-sha2-nistp256",
+            privateKeyBytes = ByteArray(0),
+            publicKeyOpenSsh = "ecdsa-sha2-nistp256 AAAA",
+            fingerprintSha256 = "SHA256:hw",
+            hardwareAlias = "haven-ssh-chip1",
+        )
+        val disabledGen = sh.haven.core.security.SshKeyGenerator.generate(
+            sh.haven.core.security.SshKeyGenerator.KeyType.ED25519,
+            "off",
+        )
+        val disabledKey = sh.haven.core.data.db.entities.SshKey(
+            id = "k-off",
+            label = "disabled",
+            keyType = disabledGen.type.sshName,
+            privateKeyBytes = disabledGen.privateKeyBytes,
+            publicKeyOpenSsh = disabledGen.publicKeyOpenSsh,
+            fingerprintSha256 = disabledGen.fingerprintSha256,
+            enabledForAuth = false,
+        )
+        val goodKeyGen = sh.haven.core.security.SshKeyGenerator.generate(
+            sh.haven.core.security.SshKeyGenerator.KeyType.ED25519,
+            "good",
+        )
+        val goodKey = sh.haven.core.data.db.entities.SshKey(
+            id = "k-good",
+            label = "good",
+            keyType = goodKeyGen.type.sshName,
+            privateKeyBytes = goodKeyGen.privateKeyBytes,
+            publicKeyOpenSsh = goodKeyGen.publicKeyOpenSsh,
+            fingerprintSha256 = goodKeyGen.fingerprintSha256,
+            enabledForAuth = true,
+        )
+        val keyRepo = mockk<SshKeyRepository>(relaxed = true) {
+            coEvery { getAllDecrypted() } returns listOf(hwKey, disabledKey, goodKey)
+        }
+
+        // Auto-offer must exclude both hardwareAlias!=null (empty privateKeyBytes would throw or fail)
+        // and enabledForAuth=false, offering only goodKey.
+        val offered = HeadlessSshAuth.resolve(sshProfile.copy(keyId = null), keyRepo)
+        assertTrue(offered is sh.haven.core.ssh.ConnectionConfig.AuthMethod.PrivateKeys)
+        offered as sh.haven.core.ssh.ConnectionConfig.AuthMethod.PrivateKeys
+        assertEquals(listOf("good"), offered.keys.map { it.label })
+
+        // When ignoreSavedKeys=true, auto-offer is skipped and password fallback is used.
+        val passwordOnly = HeadlessSshAuth.resolve(
+            sshProfile.copy(keyId = null, ignoreSavedKeys = true),
+            keyRepo,
+        )
+        assertTrue(passwordOnly is sh.haven.core.ssh.ConnectionConfig.AuthMethod.Password)
+    }
 }

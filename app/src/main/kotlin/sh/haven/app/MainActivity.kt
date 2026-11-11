@@ -798,11 +798,25 @@ private fun PipWebView(url: String) {
         AndroidView(
             factory = { ctx ->
                 android.webkit.WebView(ctx).apply {
-                    webViewClient = android.webkit.WebViewClient()
+                    webViewClient = object : android.webkit.WebViewClient() {
+                        override fun shouldOverrideUrlLoading(
+                            view: android.webkit.WebView?,
+                            request: android.webkit.WebResourceRequest?,
+                        ): Boolean {
+                            val scheme = request?.url?.scheme?.lowercase()
+                            return scheme != "http" && scheme != "https"
+                        }
+                    }
                     // Match the sheet's WebContent: JS/DOM storage default off
-                    // and blank any scripted page.
+                    // and blank any scripted page; block local file/content URLs.
                     settings.javaScriptEnabled = true
                     settings.domStorageEnabled = true
+                    settings.allowFileAccess = false
+                    settings.allowContentAccess = false
+                    @Suppress("DEPRECATION")
+                    settings.allowFileAccessFromFileURLs = false
+                    @Suppress("DEPRECATION")
+                    settings.allowUniversalAccessFromFileURLs = false
                     settings.useWideViewPort = true
                     settings.loadWithOverviewMode = true
                     loadUrl(url)

@@ -193,19 +193,27 @@ internal object HeadlessSshAuth {
                 certificateBytes = certBytes,
             )
         }
-        // No explicit key — try every stored unencrypted, non-FIDO key.
-        val usableKeys = sshKeyRepository.getAllDecrypted()
-            .filter { !it.isEncrypted && !it.keyType.startsWith("sk-") }
-        if (usableKeys.isNotEmpty()) {
-            return ConnectionConfig.AuthMethod.PrivateKeys(
-                keys = usableKeys.map {
-                    ConnectionConfig.AuthMethod.PrivateKeys.KeyEntry(
-                        label = it.label,
-                        keyBytes = SshKeyExporter.toPem(it.privateKeyBytes, it.keyType),
-                        certificateBytes = it.certificateBytes, // CA-only servers (#185)
-                    )
-                },
-            )
+        // No explicit key — try stored unencrypted, non-FIDO, non-hardware,
+        // auto-auth-enabled keys unless the profile opted out via ignoreSavedKeys.
+        if (!profile.ignoreSavedKeys) {
+            val usableKeys = sshKeyRepository.getAllDecrypted()
+                .filter {
+                    !it.isEncrypted &&
+                        !it.keyType.startsWith("sk-") &&
+                        it.hardwareAlias == null &&
+                        it.enabledForAuth
+                }
+            if (usableKeys.isNotEmpty()) {
+                return ConnectionConfig.AuthMethod.PrivateKeys(
+                    keys = usableKeys.map {
+                        ConnectionConfig.AuthMethod.PrivateKeys.KeyEntry(
+                            label = it.label,
+                            keyBytes = SshKeyExporter.toPem(it.privateKeyBytes, it.keyType),
+                            certificateBytes = it.certificateBytes, // CA-only servers (#185)
+                        )
+                    },
+                )
+            }
         }
         val password = profile.sshPassword
         if (!password.isNullOrEmpty()) {

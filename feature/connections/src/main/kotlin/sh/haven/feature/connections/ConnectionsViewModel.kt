@@ -2191,8 +2191,9 @@ class ConnectionsViewModel @Inject constructor(
 
     private fun canAutoConnect(profile: ConnectionProfile, keys: List<SshKey>): Boolean = when {
         profile.isLocal -> true
+        profile.isGuest -> true
         profile.isReticulum -> true
-        profile.isRclone -> true
+        profile.isRclone -> !profile.rcloneRemoteName.isNullOrBlank()
         // Connect only on explicit tap: a BT link is slow/blocking and needs the
         // adapter powered + the device in range (#406).
         profile.isBtSerial -> false
@@ -2208,7 +2209,11 @@ class ConnectionsViewModel @Inject constructor(
         profile.isGlkvm -> false
         profile.isSmb -> false
         profile.isSaf -> false
-        else -> !profile.sshPassword.isNullOrBlank() || keys.isNotEmpty()
+        profile.isEmail -> false
+        profile.isOpenai -> false
+        profile.isEternalTerminal || profile.isMosh || profile.isSsh ->
+            !profile.sshPassword.isNullOrBlank() || (!profile.ignoreSavedKeys && keys.isNotEmpty()) || profile.keyId != null
+        else -> false
     }
 
     /**
@@ -6896,10 +6901,15 @@ class ConnectionsViewModel @Inject constructor(
     private suspend fun connectSilent(profile: ConnectionProfile) {
         when {
             profile.isLocal -> connectLocalSilent(profile)
+            profile.isGuest -> connectGuestSilent(profile)
+            profile.isRclone -> connectRcloneSilent(profile)
             profile.isReticulum -> connectReticulumSilent(profile)
             profile.isEternalTerminal -> connectEtSilent(profile)
             profile.isMosh -> connectMoshSilent(profile)
-            else -> connectSshSilent(profile)
+            profile.isSsh -> connectSshSilent(profile)
+            else -> throw UnsupportedOperationException(
+                "Silent group launch is not supported for connection type ${profile.connectionType}",
+            )
         }
     }
 
@@ -6910,11 +6920,23 @@ class ConnectionsViewModel @Inject constructor(
         }
 
         val prootManager = localSessionManager.prootManager
-        if (prootManager.prootBinary != null && !prootManager.isRootfsInstalled) {
-            prootManager.installRootfs()
+        if (!profile.useAndroidShell) {
+            profile.prootDistroId?.takeIf { it.isNotBlank() }?.let { distroId ->
+                if (prootManager.activeDistroId != distroId) {
+                    prootManager.setActiveDistroId(distroId)
+                }
+            }
+            if (prootManager.prootBinary != null && !prootManager.isRootfsInstalled) {
+                prootManager.installRootfs()
+            }
         }
 
-        val sessionId = localSessionManager.registerSession(profile.id, profile.label)
+        val sessionId = localSessionManager.registerSession(
+            profile.id,
+            profile.label,
+            profile.useAndroidShell,
+            profile.prootDistroId,
+        )
         try {
             localSessionManager.connectSession(sessionId)
             repository.markConnected(profile.id)
@@ -6927,6 +6949,42 @@ class ConnectionsViewModel @Inject constructor(
             localSessionManager.removeSession(sessionId)
             throw e
         }
+    }
+
+    private suspend fun connectGuestSilent(profile: ConnectionProfile) {
+        val existing = umlGuestManager.getSessionsForProfile(profile.id)
+        if (existing.any { it.status == sh.haven.core.local.uml.UmlGuestManager.SessionState.Status.CONNECTED }) {
+            return
+        }
+        if (!umlGuestManager.isAvailable()) {
+            throw IllegalStateException("This build does not include the Linux guest payload")
+        }
+        umlGuestManager.ensureRootfs()
+        val sessionId = umlGuestManager.registerSession(profile.id, profile.label)
+        try {
+            umlGuestManager.connectSession(sessionId)
+            repository.markConnected(profile.id)
+            connectionLogRepository.logEvent(profile.id, ConnectionLog.Status.CONNECTED)
+            startForegroundServiceIfNeeded()
+        } catch (e: Exception) {
+            connectionLogRepository.logEvent(profile.id, ConnectionLog.Status.FAILED, details = e.message)
+            umlGuestManager.updateStatus(sessionId, sh.haven.core.local.uml.UmlGuestManager.SessionState.Status.ERROR)
+            umlGuestManager.removeSession(sessionId)
+            throw e
+        }
+    }
+
+    private suspend fun connectRcloneSilent(profile: ConnectionProfile) {
+        val remoteName = profile.rcloneRemoteName
+            ?: throw IllegalStateException("No rclone remote configured for ${profile.label}")
+        val provider = profile.rcloneProvider ?: ""
+        val socksAddr = tunnelResolver.socksEndpoint(profile)
+        rcloneClient.setProxy(socksAddr?.let { "socks5://${it.hostString}:${it.port}" })
+        val sessionId = rcloneSessionManager.registerSession(profile.id, profile.label)
+        withContext(Dispatchers.IO) {
+            rcloneSessionManager.connectSession(sessionId, remoteName, provider)
+        }
+        repository.markConnected(profile.id)
     }
 
     private suspend fun connectReticulumSilent(profile: ConnectionProfile) {

@@ -544,9 +544,18 @@ internal class PackageInstallProgressTracker {
             }
         }
 
-        // 2. Pacman output lines
+        // 2. Pacman & bootstrap output lines
+        if (line.startsWith(":: Initializing pacman keyring")) {
+            return "Initializing pacman keyring..." to 0.01f
+        }
+        if (line.startsWith(":: Populating Arch Linux keyring")) {
+            return "Populating Arch Linux keyring..." to 0.02f
+        }
         if (line.startsWith(":: Synchronizing package databases")) {
             return "Synchronizing package databases..." to 0.02f
+        }
+        if (line.startsWith(":: Starting full system upgrade")) {
+            return "Starting system upgrade..." to 0.04f
         }
         PACMAN_PACKAGES_HEADER_REGEX.find(line)?.let { m ->
             val count = m.groupValues[1].toIntOrNull() ?: 0
@@ -639,6 +648,12 @@ internal class PackageInstallProgressTracker {
         if (line.contains("[*] Configuring unpacked packages")) {
             return "Configuring packages..." to 0.85f
         }
+        if (line.startsWith("extracting /var/cache/xbps/")) {
+            return "Bootstrapping ${line.substringAfterLast('/')}..." to null
+        }
+        if (line.startsWith("Generating locales")) {
+            return "Generating locales..." to null
+        }
 
         return null
     }
@@ -690,7 +705,10 @@ class ProotManager @Inject constructor(
          * tmux etc.). Distinct from [Extracting] so the UI doesn't
          * mislabel the slow distro-prep phase as "extraction".
          */
-        data class Initializing(val step: String) : SetupState()
+        data class Initializing(
+            val step: String,
+            val progress: Float? = null,
+        ) : SetupState()
         data object Ready : SetupState()
         /**
          * Failure attributed to a specific [Phase]. [logTail] is the
@@ -2234,7 +2252,18 @@ class ProotManager @Inject constructor(
                 phase = "BootstrapHook:${hook.id}",
                 message = "Starting hook",
             )
-            val (output, code) = runCommandInProot(hook.command)
+            val hookTracker = PackageInstallProgressTracker()
+            val (output, code) = runCommandInProot(
+                hook.command,
+                onLine = { line ->
+                    hookTracker.onLine(line)?.let { (step, progress) ->
+                        _state.value = SetupState.Initializing(
+                            step = "${hook.id}: $step",
+                            progress = progress,
+                        )
+                    }
+                },
+            )
             if (code == 0) {
                 Log.d(TAG, "[hook ${hook.id}] ok bytes=${output.length}")
                 installLogRepository.logEvent(
@@ -3486,9 +3515,20 @@ class ProotManager @Inject constructor(
             } else ""
             // Don't pre-truncate with `| tail -N` — that hides the
             // actual error line on a failed install. Kotlin-side
-            // takeLast() keeps the log size bounded.
+            // takeLast() keeps the log size bounded. Stream lines into
+            // PackageInstallProgressTracker so emulated baseline syncs
+            // (Arch keyring + glibc/gcc-libs) report live progress (#831).
+            val baselineTracker = PackageInstallProgressTracker()
             val (output, code) = runCommandInProot(
-                "${ops.updateCmd()} >/dev/null 2>&1 && ($install$localeHook) 2>&1",
+                "(${ops.updateCmd()}) 2>&1 && ($install$localeHook) 2>&1",
+                onLine = { line ->
+                    baselineTracker.onLine(line)?.let { (step, progress) ->
+                        _state.value = SetupState.Initializing(
+                            step = step,
+                            progress = progress,
+                        )
+                    }
+                },
             )
             if (code == 0) {
                 Log.d(TAG, "[baseline ${distro.id}] ok pkgs=${distro.baselinePackages.size}")

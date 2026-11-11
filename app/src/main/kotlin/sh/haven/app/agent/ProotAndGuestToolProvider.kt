@@ -667,6 +667,7 @@ internal class ProotAndGuestToolProvider(
             is sh.haven.core.local.ProotManager.SetupState.Initializing -> {
                 put("phase", "Initializing")
                 put("step", state.step)
+                state.progress?.let { put("progress", (it * 100).toInt()) }
             }
             is sh.haven.core.local.ProotManager.SetupState.Ready -> {
                 put("phase", "Ready")

@@ -202,7 +202,10 @@ object Pacman : PackageOps {
             "grep -q '^lock-never ' /etc/pacman.d/gnupg/gpg.conf 2>/dev/null || " +
             "printf 'lock-never \\n' >> /etc/pacman.d/gnupg/gpg.conf; " +
             "if [ ! -f /etc/pacman.d/gnupg/.haven-keyring-ready ]; then " +
-            "pacman-key --init >/dev/null 2>&1 && pacman-key --populate >/dev/null 2>&1 && " +
+            "echo ':: Initializing pacman keyring...'; " +
+            "pacman-key --init >/dev/null 2>&1 && " +
+            "echo ':: Populating Arch Linux keyring...' && " +
+            "pacman-key --populate >/dev/null 2>&1 && " +
             "touch /etc/pacman.d/gnupg/.haven-keyring-ready; " +
             "gpgconf --homedir /etc/pacman.d/gnupg --kill all >/dev/null 2>&1 || true; " +
             "fi;"

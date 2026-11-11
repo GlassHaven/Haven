@@ -94,7 +94,7 @@ class TransportBindingsTest {
         val methodNames = ForegroundSessionParticipantModule::class.java.declaredMethods
             .map { it.name }
             .toSet()
-        for (expected in listOf("btSerial", "bleSerial", "usbSerial", "prootDesktops", "systemVm")) {
+        for (expected in listOf("btSerial", "bleSerial", "usbSerial", "prootDesktops", "systemVm", "prootSetup", "localWorkKeepAlive")) {
             org.junit.Assert.assertTrue(
                 "ForegroundSessionParticipantModule must register '$expected' (found: $methodNames)",
                 expected in methodNames,

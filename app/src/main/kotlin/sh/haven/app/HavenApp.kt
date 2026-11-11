@@ -44,6 +44,8 @@ class HavenApp : Application(), Configuration.Provider {
     @Inject lateinit var launcherShortcutManager: sh.haven.app.launcher.LauncherShortcutManager
     @Inject lateinit var workerFactory: HiltWorkerFactory
     @Inject lateinit var prootManager: dagger.Lazy<sh.haven.core.local.ProotManager>
+    @Inject lateinit var desktopManager: dagger.Lazy<sh.haven.core.local.DesktopManager>
+    @Inject lateinit var systemVmManager: dagger.Lazy<sh.haven.core.local.SystemVmManager>
     @Inject lateinit var guestServiceManager: dagger.Lazy<sh.haven.core.local.GuestServiceManager>
     @Inject lateinit var sessionManagerRegistry: dagger.Lazy<sh.haven.core.session.SessionManagerRegistry>
     @Inject lateinit var mailWatchManager: dagger.Lazy<sh.haven.app.agent.mailrules.MailWatchManager>
@@ -289,6 +291,37 @@ class HavenApp : Application(), Configuration.Provider {
             withContext(Dispatchers.Main.immediate) {
                 updateNotifier.get().start(appScope)
             }
+        }
+
+        // Hold SshConnectionService (silent IMPORTANCE_LOW ongoing notification)
+        // while first-time PRoot distro/desktop package setup, a local PRoot
+        // desktop, or a System VM is running (#832), even when the user never
+        // opened ConnectionsViewModel or has zero SSH tabs open.
+        appScope.launch {
+            val proot = prootManager.get()
+            val desktops = desktopManager.get()
+            val vms = systemVmManager.get()
+            var localWorkWasActive = false
+            kotlinx.coroutines.flow.combine(
+                proot.state,
+                proot.desktopState,
+                desktops.desktops,
+                vms.state,
+            ) { rootfs, deSetup, deMap, vm ->
+                sh.haven.app.transport.isLocalWorkForegroundActive(rootfs, deSetup, deMap, vm)
+            }
+                .distinctUntilChanged()
+                .collect { active ->
+                    if (active) {
+                        localWorkWasActive = true
+                        startSessionServiceIfPossible()
+                    } else if (localWorkWasActive) {
+                        localWorkWasActive = false
+                        if (!sessionManagerRegistry.get().hasActiveSessions()) {
+                            stopService(Intent(this@HavenApp, sh.haven.core.ssh.SshConnectionService::class.java))
+                        }
+                    }
+                }
         }
 
         // Extend the shell-prompt terminator set used for command-on-attach

@@ -1995,28 +1995,86 @@ private fun DesktopManagerSection(
                 }
                 when (val s = rootfsSetupState) {
                     is ProotManager.SetupState.Downloading -> {
+                        Spacer(Modifier.height(6.dp))
+                        Row(
+                            modifier = Modifier.fillMaxWidth(),
+                            verticalAlignment = Alignment.CenterVertically,
+                        ) {
+                            CircularProgressIndicator(
+                                modifier = Modifier.size(16.dp),
+                                strokeWidth = 2.dp,
+                            )
+                            Spacer(Modifier.width(8.dp))
+                            Text(
+                                stringResource(AppR.string.app_desktop_rootfs_downloading, s.progress),
+                                style = MaterialTheme.typography.labelSmall,
+                                color = MaterialTheme.colorScheme.primary,
+                                modifier = Modifier.weight(1f),
+                            )
+                        }
                         Spacer(Modifier.height(4.dp))
-                        Text(
-                            stringResource(AppR.string.app_desktop_rootfs_downloading, s.progress),
-                            style = MaterialTheme.typography.labelSmall,
-                            color = MaterialTheme.colorScheme.primary,
+                        LinearProgressIndicator(
+                            progress = { (s.progress / 100f).coerceIn(0f, 1f) },
+                            modifier = Modifier.fillMaxWidth(),
                         )
                     }
                     ProotManager.SetupState.Extracting -> {
+                        Spacer(Modifier.height(6.dp))
+                        Row(
+                            modifier = Modifier.fillMaxWidth(),
+                            verticalAlignment = Alignment.CenterVertically,
+                        ) {
+                            CircularProgressIndicator(
+                                modifier = Modifier.size(16.dp),
+                                strokeWidth = 2.dp,
+                            )
+                            Spacer(Modifier.width(8.dp))
+                            Text(
+                                stringResource(AppR.string.app_desktop_rootfs_extracting),
+                                style = MaterialTheme.typography.labelSmall,
+                                color = MaterialTheme.colorScheme.primary,
+                                modifier = Modifier.weight(1f),
+                            )
+                        }
                         Spacer(Modifier.height(4.dp))
-                        Text(
-                            stringResource(AppR.string.app_desktop_rootfs_extracting),
-                            style = MaterialTheme.typography.labelSmall,
-                            color = MaterialTheme.colorScheme.primary,
-                        )
+                        LinearProgressIndicator(modifier = Modifier.fillMaxWidth())
                     }
                     is ProotManager.SetupState.Initializing -> {
+                        Spacer(Modifier.height(6.dp))
+                        Row(
+                            modifier = Modifier.fillMaxWidth(),
+                            verticalAlignment = Alignment.CenterVertically,
+                        ) {
+                            CircularProgressIndicator(
+                                modifier = Modifier.size(16.dp),
+                                strokeWidth = 2.dp,
+                            )
+                            Spacer(Modifier.width(8.dp))
+                            Text(
+                                stringResource(AppR.string.app_desktop_rootfs_initializing, s.step),
+                                style = MaterialTheme.typography.labelSmall,
+                                color = MaterialTheme.colorScheme.primary,
+                                modifier = Modifier.weight(1f),
+                            )
+                            s.progress?.let { pct ->
+                                Spacer(Modifier.width(8.dp))
+                                Text(
+                                    "${(pct * 100).toInt()}%",
+                                    style = MaterialTheme.typography.labelSmall,
+                                    color = MaterialTheme.colorScheme.primary,
+                                )
+                            }
+                        }
                         Spacer(Modifier.height(4.dp))
-                        Text(
-                            stringResource(AppR.string.app_desktop_rootfs_initializing, s.step),
-                            style = MaterialTheme.typography.labelSmall,
-                            color = MaterialTheme.colorScheme.primary,
-                        )
+                        val progress = s.progress
+                        if (progress != null) {
+                            LinearProgressIndicator(
+                                progress = { progress.coerceIn(0f, 1f) },
+                                modifier = Modifier.fillMaxWidth(),
+                            )
+                        } else {
+                            LinearProgressIndicator(modifier = Modifier.fillMaxWidth())
+                        }
                     }
                     is ProotManager.SetupState.Error -> {
                         Spacer(Modifier.height(4.dp))

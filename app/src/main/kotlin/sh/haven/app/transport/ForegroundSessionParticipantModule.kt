@@ -1,24 +1,82 @@
 package sh.haven.app.transport
 
+import dagger.Lazy
 import dagger.Module
 import dagger.Provides
 import dagger.hilt.InstallIn
 import dagger.hilt.components.SingletonComponent
 import dagger.multibindings.IntoSet
 import kotlinx.coroutines.flow.map
+import kotlinx.coroutines.flow.merge
 import sh.haven.core.bleserial.BleSerialSessionManager
 import sh.haven.core.btserial.BtSerialSessionManager
 import sh.haven.core.et.EtSessionManager
 import sh.haven.core.local.DesktopManager
 import sh.haven.core.local.LocalSessionManager
+import sh.haven.core.local.ProotManager
 import sh.haven.core.local.SystemVmManager
 import sh.haven.core.mosh.MoshSessionManager
 import sh.haven.core.reticulum.ReticulumSessionManager
 import sh.haven.core.smb.SmbSessionManager
 import sh.haven.core.local.uml.UmlGuestManager
+import sh.haven.core.session.ForegroundKeepAlive
+import sh.haven.core.session.ForegroundSessionInfo
 import sh.haven.core.session.ForegroundSessionParticipant
 import sh.haven.core.ssh.SshSessionManager
 import sh.haven.core.usbserial.UsbSerialSessionManager
+
+/**
+ * Ongoing notification entry for an in-flight PRoot rootfs or desktop package
+ * installation (#832), or null when setup is idle / completed / errored.
+ */
+internal fun prootSetupSessionInfo(
+    distroLabel: String,
+    rootfsState: ProotManager.SetupState,
+    desktopState: ProotManager.DesktopSetupState,
+): ForegroundSessionInfo? {
+    if (desktopState is ProotManager.DesktopSetupState.Installing) {
+        val pct = desktopState.progress?.let { " (${(it * 100).toInt()}%)" }.orEmpty()
+        val step = desktopState.step.ifBlank { "Installing desktop…" }
+        return SessionInfo("proot-setup", "$step$pct")
+    }
+    return when (rootfsState) {
+        is ProotManager.SetupState.Downloading ->
+            SessionInfo("proot-setup", "Installing $distroLabel: downloading (${rootfsState.progress}%)")
+        ProotManager.SetupState.Extracting ->
+            SessionInfo("proot-setup", "Installing $distroLabel: extracting rootfs…")
+        is ProotManager.SetupState.Initializing -> {
+            val pct = rootfsState.progress?.let { " (${(it * 100).toInt()}%)" }.orEmpty()
+            SessionInfo("proot-setup", "Installing $distroLabel: ${rootfsState.step}$pct")
+        }
+        ProotManager.SetupState.NotInstalled,
+        ProotManager.SetupState.Ready,
+        is ProotManager.SetupState.Error,
+        -> null
+    }
+}
+
+/**
+ * True when any non-`TransportSessionManager` local workload (PRoot setup,
+ * running PRoot desktop, or running System VM) needs [sh.haven.core.ssh.SshConnectionService]
+ * kept alive (#832).
+ */
+internal fun isLocalWorkForegroundActive(
+    rootfsState: ProotManager.SetupState,
+    desktopSetupState: ProotManager.DesktopSetupState,
+    desktops: Map<ProotManager.DesktopEnvironment, DesktopManager.DesktopInstance>,
+    systemVm: SystemVmManager.VmState?,
+): Boolean {
+    if (prootSetupSessionInfo("", rootfsState, desktopSetupState) != null) return true
+    if (desktops.values.any {
+            it.state == DesktopManager.DesktopState.RUNNING ||
+                it.state == DesktopManager.DesktopState.STARTING
+        }
+    ) {
+        return true
+    }
+    return systemVm?.status == SystemVmManager.Status.RUNNING ||
+        systemVm?.status == SystemVmManager.Status.STARTING
+}
 
 /**
  * Which transports count as "active connections" in the foreground
@@ -128,5 +186,48 @@ object ForegroundSessionParticipantModule {
             )
         override val changes get() = m.state.map { }
         override fun disconnectAll() = m.stopAsync()
+    }
+
+    @Provides @IntoSet
+    fun prootSetup(m: ProotManager): ForegroundSessionParticipant = object : ForegroundSessionParticipant {
+        override val activeSessions
+            get() = listOfNotNull(
+                prootSetupSessionInfo(
+                    distroLabel = m.activeDistro.label,
+                    rootfsState = m.state.value,
+                    desktopState = m.desktopState.value,
+                ),
+            )
+        override val changes get() = merge(m.state.map { }, m.desktopState.map { })
+        override fun disconnectAll() {}
+    }
+
+    /**
+     * Keep-alive contributor for non-[sh.haven.core.session.TransportSessionManager]
+     * local workloads (in-flight PRoot setup, running PRoot desktops, and
+     * running System VMs) so [sh.haven.core.session.SessionManagerRegistry.hasActiveSessions]
+     * stays true and disconnecting an unrelated SSH profile does not stop the
+     * foreground service mid-install (#832).
+     */
+    @Provides @IntoSet
+    fun localWorkKeepAlive(
+        proot: Lazy<ProotManager>,
+        desktops: Lazy<DesktopManager>,
+        systemVm: Lazy<SystemVmManager>,
+    ): ForegroundKeepAlive = object : ForegroundKeepAlive {
+        override val isActive: Boolean
+            get() = isLocalWorkForegroundActive(
+                rootfsState = proot.get().state.value,
+                desktopSetupState = proot.get().desktopState.value,
+                desktops = desktops.get().desktops.value,
+                systemVm = systemVm.get().state.value,
+            )
+        override val changes
+            get() = merge(
+                proot.get().state.map { },
+                proot.get().desktopState.map { },
+                desktops.get().desktops.map { },
+                systemVm.get().state.map { },
+            )
     }
 }

@@ -6,6 +6,7 @@ import org.junit.Assert.assertNotNull
 import org.junit.Assert.assertTrue
 import org.junit.Test
 import sh.haven.core.local.PackageInstallProgressTracker
+import sh.haven.core.local.ProotManager
 
 /**
  * Regression coverage for [PackageOps.Pacman] (#718, #808, #809, #814):
@@ -159,5 +160,40 @@ class PacmanPackageOpsTest {
         val xbps = PackageInstallProgressTracker()
         assertEquals("Downloading packages..." to 0.10f, xbps.onLine("[*] Downloading binary packages"))
         assertEquals("Configuring packages..." to 0.85f, xbps.onLine("[*] Configuring unpacked packages"))
+    }
+
+    @Test
+    fun `Arch bootstrap keyring and system upgrade phases emit trackable progress lines`() {
+        val cmd = pacman.updateCmd()
+        val echoInitIdx = cmd.indexOf(":: Initializing pacman keyring...")
+        val initIdx = cmd.indexOf("pacman-key --init")
+        val echoPopIdx = cmd.indexOf(":: Populating Arch Linux keyring...")
+        val populateIdx = cmd.indexOf("pacman-key --populate")
+        assertTrue("Expected keyring init progress marker before pacman-key --init", echoInitIdx in 0 until initIdx)
+        assertTrue("Expected keyring populate progress marker before pacman-key --populate", echoPopIdx in (initIdx + 1) until populateIdx)
+
+        val tracker = PackageInstallProgressTracker()
+        assertEquals(
+            "Initializing pacman keyring..." to 0.01f,
+            tracker.onLine(":: Initializing pacman keyring..."),
+        )
+        assertEquals(
+            "Populating Arch Linux keyring..." to 0.02f,
+            tracker.onLine(":: Populating Arch Linux keyring..."),
+        )
+        assertEquals(
+            "Starting system upgrade..." to 0.04f,
+            tracker.onLine(":: Starting full system upgrade..."),
+        )
+        assertEquals(
+            "Generating locales..." to null,
+            tracker.onLine("Generating locales..."),
+        )
+
+        val initState = ProotManager.SetupState.Initializing(
+            step = "pacman -Syu: Downloading mesa (12/85)...",
+            progress = 0.25f,
+        )
+        assertEquals(0.25f, initState.progress ?: -1f, 0.001f)
     }
 }

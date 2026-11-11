@@ -1797,142 +1797,18 @@ fun TerminalScreen(
                     // Haven's local scrollback and row-based selection are reached
                     // with a two-finger swipe / tap-and-hold in non-mouse-mode.
                     val gestureCallback = remember(activeTab, isMouseMode, isAltScreen, mouseInputEnabled, terminalRightClick, swipeArrowsMode) {
-                        if (isMouseMode) object : org.connectbot.terminal.TerminalGestureCallback {
-                            override fun onTap(col: Int, row: Int): Boolean {
-                                if (!mouseInputEnabled) return false
-                                activeTab.sendInput(sgrMouseButton(0, col + 1, row + 1, true))
-                                activeTab.sendInput(sgrMouseButton(0, col + 1, row + 1, false))
-                                return true
-                            }
-                            override fun onLongPress(col: Int, row: Int): Boolean {
-                                // Returning false arms the copy-mode drag (the
-                                // default); only a right-click is a discrete action
-                                // that consumes the long-press.
-                                if (!mouseInputEnabled) return false
-                                if (!terminalRightClick) return false
-                                activeTab.sendInput(sgrMouseButton(2, col + 1, row + 1, true))
-                                activeTab.sendInput(sgrMouseButton(2, col + 1, row + 1, false))
-                                return true // right-click handled — ignore the trailing drag
-                            }
-                            override fun onScroll(col: Int, row: Int, scrollUp: Boolean): Boolean {
-                                activeTab.sendInput(sgrMouseWheel(scrollUp, col + 1, row + 1))
-                                return true // forward wheel to the mouse-mode app (tmux/vim/less)
-                            }
-                            override fun onMouseDrag(
-                                col: Int,
-                                row: Int,
-                                phase: org.connectbot.terminal.MouseDragPhase,
-                            ): Boolean {
-                                if (!mouseInputEnabled) return false
-                                when (phase) {
-                                    org.connectbot.terminal.MouseDragPhase.Start ->
-                                        activeTab.sendInput(sgrMouseButton(0, col + 1, row + 1, true))
-                                    org.connectbot.terminal.MouseDragPhase.Move ->
-                                        activeTab.sendInput(sgrMouseMotion(0, col + 1, row + 1))
-                                    org.connectbot.terminal.MouseDragPhase.End ->
-                                        activeTab.sendInput(sgrMouseButton(0, col + 1, row + 1, false))
-                                }
-                                return true // claim the drag — terminal stops scroll fallback
-                            }
-                        } else if (isAltScreen || swipeArrowsMode) object : org.connectbot.terminal.TerminalGestureCallback {
-                            // Alt screen without mouse tracking (tmux default,
-                            // nano, vim, less): Haven's local scrollback is the
-                            // frozen *primary* buffer, so scrolling it paints
-                            // stale history over the TUI and rubber-bands on
-                            // every app redraw. Route the swipe to the app as
-                            // arrow keys instead — Termux parity. Taps and
-                            // long-press keep the native handling (defaults
-                            // return false), so text selection still works. (#255)
-                            override fun onScroll(col: Int, row: Int, scrollUp: Boolean): Boolean {
-                                // The tracker scans raw bytes, so it sees
-                                // ESC[?1049h even when the emulator was built
-                                // with enableAltScreen=false (profile opt-out,
-                                // `screen` session manager) and the TUI's output
-                                // actually lands in the primary buffer. Trust the
-                                // emulator: decline so the swipe falls back to
-                                // native local scrollback — which is exactly what
-                                // those opt-outs are for.
-                                // #524: swipe-arrows mode forces this branch at a
-                                // plain shell prompt too — command history without
-                                // arrow keys on the toolbar — so the emulator
-                                // check only gates the automatic path.
-                                if (!swipeArrowsMode && !activeTab.emulator.isAltScreenActive()) return false
-                                activeTab.sendInput(
-                                    arrowKeyBytes(
-                                        // Latched mode maps the finger literally at a
-                                        // shell prompt (swipe up = ↑); inside an
-                                        // alternate-screen app it follows the
-                                        // page-slide direction instead (#736
-                                        // auto-detect), and the automatic path keeps
-                                        // natural-scroll direction — see swipeArrowIsUp. (#524)
-                                        swipeArrowIsUp(scrollUp, swipeArrowsMode, isAltScreen),
-                                        activeTab.cursorKeyAppMode.value,
-                                        // #736 lnav: carry the toolbar Shift latch so
-                                        // Shift+swipe sends the same ESC[1;2A the
-                                        // Shift+arrow button sends.
-                                        shift = shiftActive,
-                                    ),
-                                )
-                                return true
-                            }
-
-                            // Hold-to-repeat (#524b): in latched swipe-arrows mode
-                            // the swipe direction SELECTS the arrow and holding
-                            // repeats it at a fixed cadence — lift to stop.
-                            // Distance stops mattering past the initial direction
-                            // threshold, so a flick is one keystroke and a held
-                            // drag is continuous. Reversing the finger switches
-                            // arrows mid-hold. Claiming horizontal swipes here
-                            // also keeps them from the tab pager (the NavHost
-                            // gate suppresses the pager override too).
-                            private var holdDirection: org.connectbot.terminal.SwipeHoldDirection? = null
-                            private var holdJob: kotlinx.coroutines.Job? = null
-
-                            // #736: reads the Shift latch live, so holding a
-                            // direction with Shift repeats the modified arrow.
-                            // Auto-detect: inside an alternate-screen app the
-                            // vertical hold follows the page-slide direction
-                            // (hold up = next page = ↓) — see
-                            // swipeHoldArrowDirection.
-                            private fun holdArrowBytes(dir: org.connectbot.terminal.SwipeHoldDirection) =
-                                arrowKeyBytesFor(
-                                    swipeHoldArrowDirection(dir, swipeArrowsMode, isAltScreen),
-                                    activeTab.cursorKeyAppMode.value,
-                                    shift = shiftActive,
-                                )
-
-                            override fun onSwipeHoldStart(
-                                col: Int,
-                                row: Int,
-                                direction: org.connectbot.terminal.SwipeHoldDirection,
-                            ): Boolean {
-                                // Only the latched mode gets hold-to-repeat; the
-                                // automatic alt-screen path keeps quantized
-                                // scrolling, which matches touch-scroll feel.
-                                if (!swipeArrowsMode) return false
-                                holdDirection = direction
-                                holdJob?.cancel()
-                                holdJob = coroutineScope.launch {
-                                    activeTab.sendInput(holdArrowBytes(direction))
-                                    kotlinx.coroutines.delay(SWIPE_HOLD_INITIAL_DELAY_MS)
-                                    while (true) {
-                                        holdDirection?.let { activeTab.sendInput(holdArrowBytes(it)) }
-                                        kotlinx.coroutines.delay(SWIPE_HOLD_REPEAT_MS)
-                                    }
-                                }
-                                return true
-                            }
-
-                            override fun onSwipeHold(direction: org.connectbot.terminal.SwipeHoldDirection) {
-                                holdDirection = direction
-                            }
-
-                            override fun onSwipeHoldEnd() {
-                                holdJob?.cancel()
-                                holdJob = null
-                                holdDirection = null
-                            }
-                        } else null
+                        buildTerminalGestureCallback(
+                            isMouseMode = isMouseMode,
+                            isAltScreen = isAltScreen,
+                            mouseInputEnabled = mouseInputEnabled,
+                            terminalRightClick = terminalRightClick,
+                            swipeArrowsMode = swipeArrowsMode,
+                            isEmulatorAltScreenActive = { activeTab.emulator.isAltScreenActive() },
+                            cursorKeyAppMode = { activeTab.cursorKeyAppMode.value },
+                            isShiftActive = { shiftActive },
+                            coroutineScope = coroutineScope,
+                            sendInput = activeTab.sendInput,
+                        )
                     }
 
                     // Smart clipboard intercepts all terminal copy operations
@@ -2774,6 +2650,122 @@ internal const val SWIPE_ARROWS_SCROLL_QUANTUM = 4f
 internal fun swipeArrowsQuantumMultiplier(fontSizeSp: Int): Float =
     (SWIPE_ARROWS_SCROLL_QUANTUM * fontSizeSp / UserPreferencesRepository.DEFAULT_FONT_SIZE)
         .coerceAtLeast(1f)
+
+internal fun buildTerminalGestureCallback(
+    isMouseMode: Boolean,
+    isAltScreen: Boolean,
+    mouseInputEnabled: Boolean,
+    terminalRightClick: Boolean,
+    swipeArrowsMode: Boolean,
+    isEmulatorAltScreenActive: () -> Boolean,
+    cursorKeyAppMode: () -> Boolean,
+    isShiftActive: () -> Boolean,
+    coroutineScope: kotlinx.coroutines.CoroutineScope,
+    sendInput: (ByteArray) -> Unit,
+): org.connectbot.terminal.TerminalGestureCallback? {
+    if (!isMouseMode && !isAltScreen && !swipeArrowsMode) return null
+    return object : org.connectbot.terminal.TerminalGestureCallback {
+        private var mouseDragActive = false
+        private var holdDirection: org.connectbot.terminal.SwipeHoldDirection? = null
+        private var holdJob: kotlinx.coroutines.Job? = null
+
+        override fun onTap(col: Int, row: Int): Boolean {
+            if (!isMouseMode || !mouseInputEnabled) return false
+            sendInput(sgrMouseButton(0, col + 1, row + 1, true))
+            sendInput(sgrMouseButton(0, col + 1, row + 1, false))
+            return true
+        }
+
+        override fun onLongPress(col: Int, row: Int): Boolean {
+            // Returning false arms the copy-mode drag (the default); only a
+            // right-click is a discrete action that consumes the long-press.
+            if (!isMouseMode || !mouseInputEnabled || !terminalRightClick) return false
+            sendInput(sgrMouseButton(2, col + 1, row + 1, true))
+            sendInput(sgrMouseButton(2, col + 1, row + 1, false))
+            return true
+        }
+
+        override fun onMouseDrag(
+            col: Int,
+            row: Int,
+            phase: org.connectbot.terminal.MouseDragPhase,
+        ): Boolean {
+            if (!isMouseMode || !mouseInputEnabled) return false
+            mouseDragActive = phase != org.connectbot.terminal.MouseDragPhase.End
+            when (phase) {
+                org.connectbot.terminal.MouseDragPhase.Start ->
+                    sendInput(sgrMouseButton(0, col + 1, row + 1, true))
+                org.connectbot.terminal.MouseDragPhase.Move ->
+                    sendInput(sgrMouseMotion(0, col + 1, row + 1))
+                org.connectbot.terminal.MouseDragPhase.End ->
+                    sendInput(sgrMouseButton(0, col + 1, row + 1, false))
+            }
+            return true
+        }
+
+        override fun onScroll(col: Int, row: Int, scrollUp: Boolean): Boolean {
+            // Forward SGR wheel in mouse mode unless the user explicitly latched
+            // Swipe-arrows mode (outside an active long-press MouseDrag, whose
+            // edge-zone auto-scroll still needs wheel ticks for tmux copy-mode).
+            if (isMouseMode && (!swipeArrowsMode || mouseDragActive)) {
+                sendInput(sgrMouseWheel(scrollUp, col + 1, row + 1))
+                return true
+            }
+            // The tracker scans raw bytes, so it sees ESC[?1049h even when the
+            // emulator was built with enableAltScreen=false; trust the emulator
+            // on the automatic path so opt-outs fall back to local scrollback.
+            if (!swipeArrowsMode && !isEmulatorAltScreenActive()) return false
+            sendInput(
+                arrowKeyBytes(
+                    swipeArrowIsUp(scrollUp, swipeArrowsMode, isAltScreen),
+                    cursorKeyAppMode(),
+                    shift = isShiftActive(),
+                ),
+            )
+            return true
+        }
+
+        private fun holdArrowBytes(dir: org.connectbot.terminal.SwipeHoldDirection) =
+            arrowKeyBytesFor(
+                swipeHoldArrowDirection(dir, swipeArrowsMode, isAltScreen),
+                cursorKeyAppMode(),
+                shift = isShiftActive(),
+            )
+
+        override fun onSwipeHoldStart(
+            col: Int,
+            row: Int,
+            direction: org.connectbot.terminal.SwipeHoldDirection,
+        ): Boolean {
+            // #736: latched Swipe-arrows mode claims horizontal and vertical
+            // swipes even when the TUI enabled DECSET ?1000 mouse tracking
+            // (htop, lnav, vim mouse=a), while leaving taps/long-press/drag on
+            // the mouse path above.
+            if (!swipeArrowsMode) return false
+            holdDirection = direction
+            holdJob?.cancel()
+            holdJob = coroutineScope.launch {
+                sendInput(holdArrowBytes(direction))
+                kotlinx.coroutines.delay(SWIPE_HOLD_INITIAL_DELAY_MS)
+                while (true) {
+                    holdDirection?.let { sendInput(holdArrowBytes(it)) }
+                    kotlinx.coroutines.delay(SWIPE_HOLD_REPEAT_MS)
+                }
+            }
+            return true
+        }
+
+        override fun onSwipeHold(direction: org.connectbot.terminal.SwipeHoldDirection) {
+            holdDirection = direction
+        }
+
+        override fun onSwipeHoldEnd() {
+            holdJob?.cancel()
+            holdJob = null
+            holdDirection = null
+        }
+    }
+}
 
 @OptIn(androidx.compose.material3.ExperimentalMaterial3Api::class)
 @Composable

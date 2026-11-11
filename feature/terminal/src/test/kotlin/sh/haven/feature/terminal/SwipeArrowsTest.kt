@@ -137,4 +137,89 @@ class SwipeArrowsTest {
         assertEquals(SWIPE_ARROWS_SCROLL_QUANTUM / 2f, swipeArrowsQuantumMultiplier(7), 0.001f)
         assertTrue(swipeArrowsQuantumMultiplier(4) >= 1f)
     }
+
+    /**
+     * #736 htop / lnav / vim (mouse=a): these TUIs enable DECSET ?1000 mouse
+     * tracking (`isMouseMode = true`) on startup. Previously `if (isMouseMode)`
+     * built a callback without `onSwipeHoldStart` and hardcoded `sgrMouseWheel`
+     * in `onScroll`, so latching the toolbar Swipe button (`swipeArrowsMode =
+     * true`) dropped horizontal swipes on the floor in `htop` and ignored
+     * `Shift`+swipe in `lnav`.
+     */
+    @OptIn(kotlinx.coroutines.ExperimentalCoroutinesApi::class)
+    @Test
+    fun `latched swipeArrowsMode claims horizontal and vertical swipes even in mouse mode`() =
+        kotlinx.coroutines.test.runTest {
+            val sent = mutableListOf<String>()
+            var shift = false
+            val cb = buildTerminalGestureCallback(
+                isMouseMode = true,
+                isAltScreen = true,
+                mouseInputEnabled = true,
+                terminalRightClick = false,
+                swipeArrowsMode = true,
+                isEmulatorAltScreenActive = { true },
+                cursorKeyAppMode = { false },
+                isShiftActive = { shift },
+                coroutineScope = this,
+                sendInput = { sent += String(it, Charsets.ISO_8859_1) },
+            )!!
+
+            // Horizontal left swipe in htop (altScreen=true) flips to Right arrow (ESC[C).
+            assertTrue(cb.onSwipeHoldStart(4, 2, org.connectbot.terminal.SwipeHoldDirection.Left))
+            testScheduler.runCurrent()
+            assertEquals(listOf("\u001b[C"), sent)
+            cb.onSwipeHoldEnd()
+            sent.clear()
+
+            // Shift + horizontal left swipe in lnav sends ESC[1;2C even in mouse mode.
+            shift = true
+            assertTrue(cb.onSwipeHoldStart(4, 2, org.connectbot.terminal.SwipeHoldDirection.Left))
+            testScheduler.runCurrent()
+            assertEquals(listOf("\u001b[1;2C"), sent)
+            cb.onSwipeHoldEnd()
+            sent.clear()
+
+            // Mouse taps and long-press mouse drags still work alongside latched swipe-arrows,
+            // and edge-zone onScroll during an active MouseDrag still sends SGR mouse wheel.
+            shift = false
+            assertTrue(cb.onTap(5, 3))
+            assertEquals(listOf("\u001b[<0;6;4M", "\u001b[<0;6;4m"), sent)
+            sent.clear()
+
+            assertTrue(cb.onMouseDrag(2, 1, org.connectbot.terminal.MouseDragPhase.Start))
+            assertTrue(cb.onScroll(2, 0, scrollUp = true))
+            assertTrue(cb.onMouseDrag(2, 0, org.connectbot.terminal.MouseDragPhase.End))
+            assertEquals(
+                listOf("\u001b[<0;3;2M", "\u001b[<64;3;1M", "\u001b[<0;3;1m"),
+                sent,
+            )
+            sent.clear()
+
+            // Outside MouseDrag, onScroll in latched swipeArrowsMode sends arrow keys, not wheel.
+            assertTrue(cb.onScroll(2, 1, scrollUp = false))
+            assertEquals(listOf("\u001b[B"), sent)
+        }
+
+    @Test
+    fun `unlatched mouse mode declines swipe-hold and keeps SGR wheel`() =
+        kotlinx.coroutines.test.runTest {
+            val sent = mutableListOf<String>()
+            val cb = buildTerminalGestureCallback(
+                isMouseMode = true,
+                isAltScreen = true,
+                mouseInputEnabled = true,
+                terminalRightClick = false,
+                swipeArrowsMode = false,
+                isEmulatorAltScreenActive = { true },
+                cursorKeyAppMode = { false },
+                isShiftActive = { false },
+                coroutineScope = this,
+                sendInput = { sent += String(it, Charsets.ISO_8859_1) },
+            )!!
+
+            assertFalse(cb.onSwipeHoldStart(4, 2, org.connectbot.terminal.SwipeHoldDirection.Left))
+            assertTrue(cb.onScroll(4, 2, scrollUp = true))
+            assertEquals(listOf("\u001b[<64;5;3M"), sent)
+        }
 }

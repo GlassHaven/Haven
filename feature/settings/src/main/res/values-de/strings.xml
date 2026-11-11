@@ -562,4 +562,14 @@ Jeder bereits in Haven gespeicherte private Schlüssel muss erneut importiert od
     <string name="settings_sudo_prompt_detection_subtitle">Biometrisches Ausfüllen bei [sudo]- und doas-Abfragen anbieten. Passwörter bleiben auf diesem Gerät im Android Keystore verschlüsselt, erfordern bei jeder Nutzung eine biometrische Freigabe und sind für KI-/MCP-Werkzeuge niemals sichtbar.</string>
     <string name="settings_root_files_title">Root-(/)-Dateibrowser</string>
     <string name="settings_root_files_subtitle">Zeigt in Dateien einen Tab „Root (/)“ an, der erst beim Öffnen su anfordert. Standardmäßig deaktiviert und von MCP-Werkzeugen isoliert.</string>
+
+    <!-- Offline user guide (#833) -->
+    <string name="settings_user_guide_title">Benutzerhandbuch</string>
+    <string name="settings_user_guide_subtitle">Offline-Referenz für SSH, Desktops, lokales Linux, Dateien, USB und Sicherheit</string>
+    <string name="settings_user_guide_home">Alle Themen</string>
+    <string name="settings_user_guide_search_hint">Handbuch durchsuchen…</string>
+    <string name="settings_user_guide_search_cd">Handbuch durchsuchen</string>
+    <string name="settings_user_guide_back_cd">Zurück</string>
+    <string name="settings_user_guide_no_results">Keine passenden Themen gefunden.</string>
+    <string name="settings_user_guide_load_error">Integriertes Benutzerhandbuch konnte nicht geladen werden.</string>
 </resources>

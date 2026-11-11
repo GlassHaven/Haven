@@ -564,4 +564,14 @@
     <string name="settings_sudo_prompt_detection_subtitle">Предлагать биометрическое автозаполнение при запросах [sudo] и doas. Пароли хранятся в зашифрованном виде в Android Keystore на этом устройстве, требуют биометрической разблокировки при каждом использовании и никогда не передаются инструментам ИИ/MCP.</string>
     <string name="settings_root_files_title">Файловый менеджер Root (/)</string>
     <string name="settings_root_files_subtitle">Показывать вкладку Root (/) в «Файлах», запрашивающую su только при открытии. Выключено по умолчанию и изолировано от инструментов MCP.</string>
+
+    <!-- Offline user guide (#833) -->
+    <string name="settings_user_guide_title">Руководство пользователя</string>
+    <string name="settings_user_guide_subtitle">Офлайн-справочник по SSH, рабочим столам, локальному Linux, файлам, USB и безопасности</string>
+    <string name="settings_user_guide_home">Все разделы</string>
+    <string name="settings_user_guide_search_hint">Поиск по руководству…</string>
+    <string name="settings_user_guide_search_cd">Поиск по руководству</string>
+    <string name="settings_user_guide_back_cd">Назад</string>
+    <string name="settings_user_guide_no_results">Подходящие разделы не найдены.</string>
+    <string name="settings_user_guide_load_error">Не удалось загрузить встроенное руководство.</string>
 </resources>

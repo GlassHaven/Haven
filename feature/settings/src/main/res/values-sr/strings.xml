@@ -477,4 +477,14 @@
     <string name="settings_ambiwidth_mode_auto_wide_desc">Профилиши активни фонт; резерва на 2 ћелије (CJK)</string>
     <string name="settings_root_files_title">Root (/) прегледач датотека</string>
     <string name="settings_root_files_subtitle">Прикажи картицу Root (/) у Датотекама која захтева su тек када се отвори. Подразумевано искључено и изоловано од MCP алата.</string>
+
+    <!-- Offline user guide (#833) -->
+    <string name="settings_user_guide_title">Корисничко упутство</string>
+    <string name="settings_user_guide_subtitle">Офлајн водич за SSH, радне површине, локални Linux, датотеке, USB и безбедност</string>
+    <string name="settings_user_guide_home">Све теме</string>
+    <string name="settings_user_guide_search_hint">Претражи упутство…</string>
+    <string name="settings_user_guide_search_cd">Претражи упутство</string>
+    <string name="settings_user_guide_back_cd">Назад</string>
+    <string name="settings_user_guide_no_results">Нема одговарајућих тема.</string>
+    <string name="settings_user_guide_load_error">Није могуће учитати уграђено упутство.</string>
 </resources>

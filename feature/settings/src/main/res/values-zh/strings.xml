@@ -560,4 +560,14 @@ Haven 中已存储的每一个私钥都需要重新导入或生成。它们已�
     <string name="settings_sudo_prompt_detection_subtitle">在出现 [sudo] 和 doas 提示时提供生物识别自动填充。密码在本机 Android Keystore 中加密保存，每次使用均需生物识别解锁，且绝不会暴露给 AI/MCP 工具。</string>
     <string name="settings_root_files_title">Root (/) 文件浏览器</string>
     <string name="settings_root_files_subtitle">在“文件”中显示 Root (/) 标签页，仅在打开该标签页时请求 su 权限。默认关闭，并与 MCP 工具隔离。</string>
+
+    <!-- Offline user guide (#833) -->
+    <string name="settings_user_guide_title">使用指南</string>
+    <string name="settings_user_guide_subtitle">SSH、远程与本地桌面、本地 Linux、文件、USB 与安全的离线参考手册</string>
+    <string name="settings_user_guide_home">全部主题</string>
+    <string name="settings_user_guide_search_hint">搜索使用指南…</string>
+    <string name="settings_user_guide_search_cd">搜索指南</string>
+    <string name="settings_user_guide_back_cd">返回</string>
+    <string name="settings_user_guide_no_results">未找到匹配的主题。</string>
+    <string name="settings_user_guide_load_error">无法加载内置使用指南。</string>
 </resources>

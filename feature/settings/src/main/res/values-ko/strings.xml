@@ -561,4 +561,14 @@ Haven에 이미 저장된 모든 개인 키는 다시 가져오거나 생성해�
     <string name="settings_sudo_prompt_detection_subtitle">[sudo] 및 doas 프롬프트에서 생체인증 자동 입력을 제안합니다. 비밀번호는 이 기기의 Android Keystore에 암호화되어 보관되며, 사용할 때마다 생체인증 잠금 해제가 필요하고 AI/MCP 도구에 절대 노출되지 않습니다.</string>
     <string name="settings_root_files_title">Root (/) 파일 브라우저</string>
     <string name="settings_root_files_subtitle">파일 화면에 열었을 때만 su를 요청하는 Root (/) 탭을 표시합니다. 기본적으로 꺼져 있으며 MCP 도구와 격리됩니다.</string>
+
+    <!-- Offline user guide (#833) -->
+    <string name="settings_user_guide_title">사용 설명서</string>
+    <string name="settings_user_guide_subtitle">SSH, 데스크톱, 로컬 Linux, 파일, USB 및 보안에 대한 오프라인 안내서</string>
+    <string name="settings_user_guide_home">전체 주제</string>
+    <string name="settings_user_guide_search_hint">사용 설명서 검색…</string>
+    <string name="settings_user_guide_search_cd">설명서 검색</string>
+    <string name="settings_user_guide_back_cd">뒤로</string>
+    <string name="settings_user_guide_no_results">일치하는 주제가 없습니다.</string>
+    <string name="settings_user_guide_load_error">내장된 사용 설명서를 불러올 수 없습니다.</string>
 </resources>

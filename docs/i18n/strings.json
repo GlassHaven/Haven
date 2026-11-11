@@ -39090,6 +39090,166 @@
       "sr": "Прикажи картицу Root (/) у Датотекама која захтева su тек када се отвори. Подразумевано искључено и изоловано од MCP алата.",
       "zh": "在“文件”中显示 Root (/) 标签页，仅在打开该标签页时请求 su 权限。默认关闭，并与 MCP 工具隔离。"
      }
+    },
+    {
+     "name": "settings_user_guide_title",
+     "en": "User guide",
+     "comment": "Offline user guide (#833)",
+     "args": [],
+     "t": {
+      "ar": "دليل المستخدم",
+      "bn": "ব্যবহারকারী নির্দেশিকা",
+      "de": "Benutzerhandbuch",
+      "es": "Guía de usuario",
+      "fr": "Guide d\\'utilisation",
+      "hi": "उपयोगकर्ता मार्गदर्शिका",
+      "ja": "ユーザーガイド",
+      "ko": "사용 설명서",
+      "pt": "Guia do utilizador",
+      "ru": "Руководство пользователя",
+      "sr": "Корисничко упутство",
+      "zh": "使用指南"
+     }
+    },
+    {
+     "name": "settings_user_guide_subtitle",
+     "en": "Offline reference for SSH, desktops, local Linux, files, USB, and security",
+     "comment": "Offline user guide (#833)",
+     "args": [],
+     "t": {
+      "ar": "مرجع دون اتصال لـ SSH وسطح المكتب ولينكس المحلي والملفات وUSB والأمان",
+      "bn": "SSH, ডেস্কটপ, স্থানীয় Linux, ফাইল, USB এবং নিরাপত্তার অফলাইন রেফারেন্স",
+      "de": "Offline-Referenz für SSH, Desktops, lokales Linux, Dateien, USB und Sicherheit",
+      "es": "Referencia sin conexión de SSH, escritorios, Linux local, archivos, USB y seguridad",
+      "fr": "Référence hors ligne pour SSH, bureaux, Linux local, fichiers, USB et sécurité",
+      "hi": "SSH, डेस्कटॉप, लोकल Linux, फ़ाइलें, USB और सुरक्षा के लिए ऑफ़लाइन संदर्भ",
+      "ja": "SSH・デスクトップ・ローカル Linux・ファイル・USB・セキュリティのオフライン解説",
+      "ko": "SSH, 데스크톱, 로컬 Linux, 파일, USB 및 보안에 대한 오프라인 안내서",
+      "pt": "Referência offline para SSH, ambientes de trabalho, Linux local, ficheiros, USB e segurança",
+      "ru": "Офлайн-справочник по SSH, рабочим столам, локальному Linux, файлам, USB и безопасности",
+      "sr": "Офлајн водич за SSH, радне површине, локални Linux, датотеке, USB и безбедност",
+      "zh": "SSH、远程与本地桌面、本地 Linux、文件、USB 与安全的离线参考手册"
+     }
+    },
+    {
+     "name": "settings_user_guide_home",
+     "en": "All topics",
+     "comment": "Offline user guide (#833)",
+     "args": [],
+     "t": {
+      "ar": "كل المواضيع",
+      "bn": "সব বিষয়",
+      "de": "Alle Themen",
+      "es": "Todos los temas",
+      "fr": "Tous les sujets",
+      "hi": "सभी विषय",
+      "ja": "すべてのトピック",
+      "ko": "전체 주제",
+      "pt": "Todos os tópicos",
+      "ru": "Все разделы",
+      "sr": "Све теме",
+      "zh": "全部主题"
+     }
+    },
+    {
+     "name": "settings_user_guide_search_hint",
+     "en": "Search user guide…",
+     "comment": "Offline user guide (#833)",
+     "args": [],
+     "t": {
+      "ar": "ابحث في دليل المستخدم…",
+      "bn": "নির্দেশিকায় খুঁজুন…",
+      "de": "Handbuch durchsuchen…",
+      "es": "Buscar en la guía…",
+      "fr": "Rechercher dans le guide…",
+      "hi": "मार्गदर्शिका में खोजें…",
+      "ja": "ガイド内を検索…",
+      "ko": "사용 설명서 검색…",
+      "pt": "Pesquisar no guia…",
+      "ru": "Поиск по руководству…",
+      "sr": "Претражи упутство…",
+      "zh": "搜索使用指南…"
+     }
+    },
+    {
+     "name": "settings_user_guide_search_cd",
+     "en": "Search guide",
+     "comment": "Offline user guide (#833)",
+     "args": [],
+     "t": {
+      "ar": "البحث في الدليل",
+      "bn": "নির্দেশিকা অনুসন্ধান",
+      "de": "Handbuch durchsuchen",
+      "es": "Buscar en la guía",
+      "fr": "Rechercher dans le guide",
+      "hi": "मार्गदर्शिका खोजें",
+      "ja": "ガイドを検索",
+      "ko": "설명서 검색",
+      "pt": "Pesquisar no guia",
+      "ru": "Поиск по руководству",
+      "sr": "Претражи упутство",
+      "zh": "搜索指南"
+     }
+    },
+    {
+     "name": "settings_user_guide_back_cd",
+     "en": "Back",
+     "comment": "Offline user guide (#833)",
+     "args": [],
+     "t": {
+      "ar": "رجوع",
+      "bn": "ফিরে যান",
+      "de": "Zurück",
+      "es": "Atrás",
+      "fr": "Retour",
+      "hi": "वापस",
+      "ja": "戻る",
+      "ko": "뒤로",
+      "pt": "Voltar",
+      "ru": "Назад",
+      "sr": "Назад",
+      "zh": "返回"
+     }
+    },
+    {
+     "name": "settings_user_guide_no_results",
+     "en": "No matching topics found.",
+     "comment": "Offline user guide (#833)",
+     "args": [],
+     "t": {
+      "ar": "لم يتم العثور على مواضيع مطابقة.",
+      "bn": "মিলে যাওয়া কোনো বিষয় পাওয়া যায়নি।",
+      "de": "Keine passenden Themen gefunden.",
+      "es": "No se encontraron temas coincidentes.",
+      "fr": "Aucun sujet correspondant trouvé.",
+      "hi": "कोई मिलता-जुलता विषय नहीं मिला।",
+      "ja": "一致するトピックが見つかりません。",
+      "ko": "일치하는 주제가 없습니다.",
+      "pt": "Nenhum tópico correspondente encontrado.",
+      "ru": "Подходящие разделы не найдены.",
+      "sr": "Нема одговарајућих тема.",
+      "zh": "未找到匹配的主题。"
+     }
+    },
+    {
+     "name": "settings_user_guide_load_error",
+     "en": "Could not load bundled user guide.",
+     "comment": "Offline user guide (#833)",
+     "args": [],
+     "t": {
+      "ar": "تعذر تحميل دليل المستخدم المدمج.",
+      "bn": "বান্ডেল করা ব্যবহারকারী নির্দেশিকা লোড করা যায়নি।",
+      "de": "Integriertes Benutzerhandbuch konnte nicht geladen werden.",
+      "es": "No se pudo cargar la guía integrada.",
+      "fr": "Impossible de charger le guide intégré.",
+      "hi": "बंडल की गई मार्गदर्शिका लोड नहीं हो सकी।",
+      "ja": "内蔵のユーザーガイドを読み込めませんでした。",
+      "ko": "내장된 사용 설명서를 불러올 수 없습니다.",
+      "pt": "Não foi possível carregar o guia integrado.",
+      "ru": "Не удалось загрузить встроенное руководство.",
+      "sr": "Није могуће учитати уграђено упутство.",
+      "zh": "无法加载内置使用指南。"
+     }
     }
    ]
   },

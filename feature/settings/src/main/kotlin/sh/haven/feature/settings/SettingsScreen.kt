@@ -67,6 +67,7 @@ import androidx.compose.material.icons.filled.Label
 import androidx.compose.material.icons.filled.LightMode
 import androidx.compose.material.icons.filled.ScreenLockPortrait
 import androidx.compose.material.icons.filled.Timer
+import androidx.compose.material.icons.automirrored.filled.MenuBook
 import androidx.compose.material.icons.filled.Info
 import androidx.compose.material.icons.filled.PlayArrow
 import androidx.compose.material.icons.filled.KeyboardAlt
@@ -280,6 +281,7 @@ fun SettingsScreen(
     var showDarkColorSchemeDialog by remember { mutableStateOf(false) }
     var showBackgroundOpacityDialog by remember { mutableStateOf(false) }
     var showAboutDialog by remember { mutableStateOf(false) }
+    var showUserGuideDialog by remember { mutableStateOf(false) }
     var showToolbarConfigDialog by remember { mutableStateOf(false) }
     var showKeyboardModeDialog by remember { mutableStateOf(false) }
     var showImeFlagsDialog by remember { mutableStateOf(false) }
@@ -1515,6 +1517,12 @@ fun SettingsScreen(
             subtitle = "v${packageInfo.versionName}",
             onClick = { showAboutDialog = true },
         )
+        SettingsItem(
+            icon = Icons.AutoMirrored.Filled.MenuBook,
+            title = stringResource(R.string.settings_user_guide_title),
+            subtitle = stringResource(R.string.settings_user_guide_subtitle),
+            onClick = { showUserGuideDialog = true },
+        )
         // #578. Only a copy signed with the GitHub-release key can install a
         // GitHub release over itself, so on any other channel the honest thing
         // is to say where updates come from rather than offer a download that
@@ -1590,12 +1598,22 @@ fun SettingsScreen(
                 packageInfo.versionCode.toLong()
             },
             onDismiss = { showAboutDialog = false },
+            onOpenUserGuide = {
+                showAboutDialog = false
+                showUserGuideDialog = true
+            },
             onOpenGitHub = {
                 context.startActivity(Intent(Intent.ACTION_VIEW, Uri.parse(GITHUB_URL)))
             },
             onOpenKofi = {
                 context.startActivity(Intent(Intent.ACTION_VIEW, Uri.parse(KOFI_URL)))
             },
+        )
+    }
+
+    if (showUserGuideDialog) {
+        UserGuideDialog(
+            onDismiss = { showUserGuideDialog = false },
         )
     }
 
@@ -2587,6 +2605,7 @@ private fun AboutDialog(
     versionName: String,
     versionCode: Long,
     onDismiss: () -> Unit,
+    onOpenUserGuide: () -> Unit,
     onOpenGitHub: () -> Unit,
     onOpenKofi: () -> Unit,
 ) {
@@ -2649,6 +2668,9 @@ private fun AboutDialog(
         },
         dismissButton = {
             Row {
+                TextButton(onClick = onOpenUserGuide) {
+                    Text(stringResource(R.string.settings_user_guide_title))
+                }
                 TextButton(onClick = onOpenKofi) {
                     Text(stringResource(R.string.common_support))
                 }

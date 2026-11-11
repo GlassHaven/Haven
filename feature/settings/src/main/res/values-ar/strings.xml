@@ -566,4 +566,14 @@
     <string name="settings_sudo_prompt_detection_subtitle">عرض الملء التلقائي بالبصمة عند مطالبات [sudo] و doas. تبقى كلمات المرور مشفرة في Android Keystore على هذا الجهاز، وتتطلب فتح القفل بالبصمة في كل مرة، ولا تُكشف أبداً لأدوات AI/MCP.</string>
     <string name="settings_root_files_title">متصفح ملفات الجذر Root (/)</string>
     <string name="settings_root_files_subtitle">إظهار علامة تبويب Root (/) في الملفات تطلب صلاحية su فقط عند فتحها. معطل افتراضياً ومعزول عن أدوات MCP.</string>
+
+    <!-- Offline user guide (#833) -->
+    <string name="settings_user_guide_title">دليل المستخدم</string>
+    <string name="settings_user_guide_subtitle">مرجع دون اتصال لـ SSH وسطح المكتب ولينكس المحلي والملفات وUSB والأمان</string>
+    <string name="settings_user_guide_home">كل المواضيع</string>
+    <string name="settings_user_guide_search_hint">ابحث في دليل المستخدم…</string>
+    <string name="settings_user_guide_search_cd">البحث في الدليل</string>
+    <string name="settings_user_guide_back_cd">رجوع</string>
+    <string name="settings_user_guide_no_results">لم يتم العثور على مواضيع مطابقة.</string>
+    <string name="settings_user_guide_load_error">تعذر تحميل دليل المستخدم المدمج.</string>
 </resources>

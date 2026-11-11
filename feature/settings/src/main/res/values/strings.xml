@@ -606,4 +606,14 @@ Every private key already stored in Haven will need to be imported or generated 
     <!-- Opt-in Root (/) filesystem tab (#799) -->
     <string name="settings_root_files_title">Root (/) file browser</string>
     <string name="settings_root_files_subtitle">Show a Root (/) tab in Files that requests su only when opened. Off by default and isolated from MCP tools.</string>
+
+    <!-- Offline user guide (#833) -->
+    <string name="settings_user_guide_title">User guide</string>
+    <string name="settings_user_guide_subtitle">Offline reference for SSH, desktops, local Linux, files, USB, and security</string>
+    <string name="settings_user_guide_home">All topics</string>
+    <string name="settings_user_guide_search_hint">Search user guide…</string>
+    <string name="settings_user_guide_search_cd">Search guide</string>
+    <string name="settings_user_guide_back_cd">Back</string>
+    <string name="settings_user_guide_no_results">No matching topics found.</string>
+    <string name="settings_user_guide_load_error">Could not load bundled user guide.</string>
 </resources>

@@ -562,4 +562,14 @@ Haven-এ ইম্মদ্য সংরক্ষিত প্রত্যে�
     <string name="settings_sudo_prompt_detection_subtitle">[sudo] এবং doas প্রম্পটে বায়োমেট্রিক অটোফিল অফার করে। পাসওয়ার্ড এই ডিভাইসের Android Keystore-এ এনক্রিপ্ট করা থাকে, প্রতিবার ব্যবহারে বায়োমেট্রিক আনলক প্রয়োজন হয় এবং কখনোই AI/MCP টুলে প্রকাশ করা হয় না।</string>
     <string name="settings_root_files_title">Root (/) ফাইল ব্রাউজার</string>
     <string name="settings_root_files_subtitle">Files-এ একটি Root (/) ট্যাব দেখায় যা কেবল খোলা হলেই su অনুরোধ করে। ডিফল্টভাবে বন্ধ এবং MCP টুল থেকে বিচ্ছিন্ন।</string>
+
+    <!-- Offline user guide (#833) -->
+    <string name="settings_user_guide_title">ব্যবহারকারী নির্দেশিকা</string>
+    <string name="settings_user_guide_subtitle">SSH, ডেস্কটপ, স্থানীয় Linux, ফাইল, USB এবং নিরাপত্তার অফলাইন রেফারেন্স</string>
+    <string name="settings_user_guide_home">সব বিষয়</string>
+    <string name="settings_user_guide_search_hint">নির্দেশিকায় খুঁজুন…</string>
+    <string name="settings_user_guide_search_cd">নির্দেশিকা অনুসন্ধান</string>
+    <string name="settings_user_guide_back_cd">ফিরে যান</string>
+    <string name="settings_user_guide_no_results">মিলে যাওয়া কোনো বিষয় পাওয়া যায়নি।</string>
+    <string name="settings_user_guide_load_error">বান্ডেল করা ব্যবহারকারী নির্দেশিকা লোড করা যায়নি।</string>
 </resources>

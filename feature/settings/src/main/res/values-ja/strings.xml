@@ -561,4 +561,14 @@ Haven にすでに保存されているすべての秘密鍶は、再びイン�
     <string name="settings_sudo_prompt_detection_subtitle">[sudo] や doas のプロンプトで生体認証による自動入力を提案します。パスワードはこの端末の Android Keystore 内で暗号化されたまま保持され、使用ごとの生体認証ロック解除が必要であり、AI/MCP ツールには一切公開されません。</string>
     <string name="settings_root_files_title">Root (/) ファイルブラウザー</string>
     <string name="settings_root_files_subtitle">ファイル画面に「Root (/)」タブを表示し、開いたときのみ su を要求します。既定ではオフで、MCP ツールからは分離されています。</string>
+
+    <!-- Offline user guide (#833) -->
+    <string name="settings_user_guide_title">ユーザーガイド</string>
+    <string name="settings_user_guide_subtitle">SSH・デスクトップ・ローカル Linux・ファイル・USB・セキュリティのオフライン解説</string>
+    <string name="settings_user_guide_home">すべてのトピック</string>
+    <string name="settings_user_guide_search_hint">ガイド内を検索…</string>
+    <string name="settings_user_guide_search_cd">ガイドを検索</string>
+    <string name="settings_user_guide_back_cd">戻る</string>
+    <string name="settings_user_guide_no_results">一致するトピックが見つかりません。</string>
+    <string name="settings_user_guide_load_error">内蔵のユーザーガイドを読み込めませんでした。</string>
 </resources>

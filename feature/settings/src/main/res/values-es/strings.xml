@@ -562,4 +562,14 @@ Cada clave privada ya almacenada en Haven deberá importarse o generarse de nuev
     <string name="settings_sudo_prompt_detection_subtitle">Ofrecer autocompletado biométrico en solicitudes de [sudo] y doas. Las contraseñas permanecen cifradas en Android Keystore en este dispositivo, requieren desbloqueo biométrico en cada uso y nunca se exponen a herramientas de IA/MCP.</string>
     <string name="settings_root_files_title">Explorador de archivos Root (/)</string>
     <string name="settings_root_files_subtitle">Muestra una pestaña Root (/) en Archivos que solicita su solo al abrirse. Desactivado por defecto y aislado de las herramientas MCP.</string>
+
+    <!-- Offline user guide (#833) -->
+    <string name="settings_user_guide_title">Guía de usuario</string>
+    <string name="settings_user_guide_subtitle">Referencia sin conexión de SSH, escritorios, Linux local, archivos, USB y seguridad</string>
+    <string name="settings_user_guide_home">Todos los temas</string>
+    <string name="settings_user_guide_search_hint">Buscar en la guía…</string>
+    <string name="settings_user_guide_search_cd">Buscar en la guía</string>
+    <string name="settings_user_guide_back_cd">Atrás</string>
+    <string name="settings_user_guide_no_results">No se encontraron temas coincidentes.</string>
+    <string name="settings_user_guide_load_error">No se pudo cargar la guía integrada.</string>
 </resources>

@@ -5,6 +5,13 @@ the corresponding GitHub Release; a release can't ship without its section
 (enforced by `scripts/check-changelog.sh` in CI). The GitHub "Full Changelog"
 compare link is appended automatically — don't add it here.
 
+## v5.94.27
+
+- Trigger a remote right-click on stationary touch long-press in RDP, SPICE, and GLKVM **Direct** and **Touchpad** modes, matching VNC (#828, thanks @pixel4696).
+- Encrypt `spicePassword` at rest via a single 13-field `ConnectionProfile.CREDENTIAL_FIELDS` descriptor table, preserve runtime `ephemeral` flags across `.copy(...)`, and extend encrypted backups across workspaces, sync profiles, age identities, step-ca configs, pinned TLS certificates, mail rules, `Set<String>` preferences, and 11 previously omitted `ConnectionProfile` columns.
+- Route SPICE and GLKVM sessions fail-closed through configured tunnels, clean up remote-desktop sockets and tunnel leases on a non-cancelled scope in `DesktopViewModel.onCleared()`, honour `useAndroidShell` / `prootDistroId` and non-SSH protocols during group launch, register serial/desktop/VM sessions as foreground-service participants, and harden MCP loopback `Origin`/`Host` validation, `present_web` WebView settings, Tasker action HMAC tokens, and headless SSH key selection.
+- Defer startup graph construction in `HavenApp` via `dagger.Lazy`, move orphan Xvnc and PRoot rootfs startup scans off the main thread, extract `:core:session` and Hilt `@IntoSet ToolProvider` multibindings (`McpServer` constructor `64 -> 9` parameters), and share a single `RemoteDesktopViewport` in `:core:ui` across VNC, RDP, SPICE, and GLKVM.
+
 ## v5.94.26
 
 - Wire Sway and nested-Wayland launchers to the configured PRoot guest user, skip `fakeroot` on Mozilla browser app windows, seed `/etc/machine-id`, and disable Mozilla seccomp child sandboxes inside PRoot so Firefox starts under `qemu-user` emulation (#827, thanks @NAZY-OS).

@@ -1,0 +1,2 @@
+- Trigger a remote right-click on stationary touch long-press in RDP, SPICE, and GLKVM Direct and Touchpad modes, matching VNC (#828, thanks @pixel4696).
+- Encrypt SPICE passwords at rest, extend encrypted backups across workspaces, sync profiles, age identities, step-ca, TLS pins, and mail rules, route SPICE/GLKVM fail-closed through tunnels, harden MCP loopback and WebView controls, and share a unified VNC/RDP/SPICE/GLKVM viewport.

@@ -5,6 +5,12 @@ the corresponding GitHub Release; a release can't ship without its section
 (enforced by `scripts/check-changelog.sh` in CI). The GitHub "Full Changelog"
 compare link is appended automatically — don't add it here.
 
+## v5.94.30
+
+- Show live download, archive extraction, and rootfs configuration progress during PRoot Linux setup and keep `SessionService` running in the foreground while PRoot setup, local desktops, and System VMs are active in the background (#831, #832, thanks @NAZY-OS).
+- Add per-distro PRoot network routing (`Auto`, `Direct`, `Specific tunnel`, and `Offline`) with custom `/etc/resolv.conf` DNS overrides and per-tunnel loopback SOCKS5 exposure via `HAVEN_SOCKS5_PROXY` (#835, thanks @NAZY-OS).
+- Bundle the 19 Markdown user guide pages into app assets and add a searchable offline **User guide** reader under `Settings -> About` (#833, thanks @NAZY-OS).
+
 ## v5.94.29
 
 - Fix soft-keyboard number row (`0`–`9`), shifted capitals, and symbols in RDP, SPICE, GLKVM, and VNC sessions without leaving `Shift` stuck on the remote host or duplicating AOSP `commitText` key echoes (#606, thanks @thegoodpackage).

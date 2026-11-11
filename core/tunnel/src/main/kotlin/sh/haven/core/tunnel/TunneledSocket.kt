@@ -44,15 +44,9 @@ class TunneledSocket(
 
     override fun getInetAddress(): InetAddress? {
         // #539: answer from the tunnel's namespace when it can say what it
-        // actually connected to. InetAddress.getByName(host) resolves through
-        // the PHONE's resolver — a different namespace from the tunnel's
-        // (MagicDNS), so its answer can be wrong or absent. getByName on a
-        // literal never touches DNS.
-        return try {
-            InetAddress.getByName(connection.remoteAddress ?: host)
-        } catch (_: Exception) {
-            null
-        }
+        // actually connected to, without ever touching the phone's DNS
+        // resolver (which lives in clearnet/LAN rather than the tunnel).
+        return tunnelInetAddressNoDns(host, connection.remoteAddress ?: host)
     }
 
     override fun getPort(): Int = port
@@ -129,9 +123,10 @@ class TunneledSocket(
         // Resolved from the tunnel's own report when available (#539);
         // otherwise the unresolved holder it always was.
         val peer = connection.remoteAddress ?: return java.net.InetSocketAddress.createUnresolved(host, port)
-        return try {
-            java.net.InetSocketAddress(InetAddress.getByName(peer), port)
-        } catch (_: Exception) {
+        val resolved = tunnelInetAddressNoDns(host, peer)
+        return if (resolved != null) {
+            java.net.InetSocketAddress(resolved, port)
+        } else {
             java.net.InetSocketAddress.createUnresolved(host, port)
         }
     }
@@ -183,11 +178,8 @@ class DeferredTunneledSocket(
 
     override fun getOutputStream(): OutputStream = conn().outputStream
 
-    override fun getInetAddress(): InetAddress? = try {
-        InetAddress.getByName(host)
-    } catch (_: Exception) {
-        null
-    }
+    override fun getInetAddress(): InetAddress? =
+        tunnelInetAddressNoDns(host, connection?.remoteAddress ?: host)
 
     override fun getPort(): Int = port
 
@@ -240,6 +232,34 @@ class DeferredTunneledSocket(
     override fun getReuseAddress(): Boolean = false
     override fun getOOBInline(): Boolean = false
 
-    override fun getRemoteSocketAddress(): SocketAddress? =
-        if (port >= 0) InetSocketAddress.createUnresolved(host, port) else null
+    override fun getRemoteSocketAddress(): SocketAddress? {
+        if (port < 0) return null
+        val peer = connection?.remoteAddress
+        val resolved = if (peer != null) tunnelInetAddressNoDns(host, peer) else null
+        return if (resolved != null) {
+            InetSocketAddress(resolved, port)
+        } else {
+            InetSocketAddress.createUnresolved(host, port)
+        }
+    }
+}
+
+/**
+ * Construct an [InetAddress] for a tunnel peer without consulting system DNS (#539).
+ *
+ * Returns a resolved [InetAddress] when [peerOrHost] is an IPv4 or IPv6 literal,
+ * or `null` when only an un-resolved domain name is available (preventing leaks
+ * or timeouts against the phone's clearnet/LAN DNS).
+ */
+internal fun tunnelInetAddressNoDns(hostnameLabel: String, peerOrHost: String?): InetAddress? {
+    val candidate = peerOrHost?.trim()?.takeIf { it.isNotEmpty() } ?: return null
+    val ipv4 = ProxySocketFactory.parseIpv4Literal(candidate)
+    if (ipv4 != null) {
+        return InetAddress.getByAddress(hostnameLabel.ifEmpty { candidate }, ipv4)
+    }
+    val ipv6 = ProxySocketFactory.parseIpv6Literal(candidate)
+    if (ipv6 != null) {
+        return InetAddress.getByAddress(hostnameLabel.ifEmpty { candidate }, ipv6)
+    }
+    return null
 }

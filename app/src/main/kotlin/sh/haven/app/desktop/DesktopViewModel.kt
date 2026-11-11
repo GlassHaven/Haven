@@ -2550,7 +2550,7 @@ class DesktopViewModel @Inject constructor(
             val pointerPos = MutableStateFlow(0 to 0)
 
             var tunnelLease: SshSessionManager.TunnelLease? = null
-            var tunnelRelay: java.io.Closeable? = null
+            var tunnelRelay: LoopbackTcpRelay? = null
             try {
                 val actualHost: String
                 val actualPort: Int
@@ -2606,12 +2606,14 @@ class DesktopViewModel @Inject constructor(
                 session.onCursorPosition = { x, y -> pointerPos.value = x to y }
                 session.onError = { e ->
                     Log.e(TAG, "SPICE error on tab $tabId", e)
-                    error.value = e.message ?: "SPICE connection to $host:$port failed"
+                    val relayErr = tunnelRelay?.lastDialError?.get()
+                    val detail = relayErr?.message ?: e.message
+                    error.value = detail ?: "SPICE connection to $host:$port failed"
                     connected.value = false
                     desktopSessionRegistry.setStatus(profileId, DesktopStatus.ERROR, label = label)
                     if (profileId != null) {
                         viewModelScope.launch(Dispatchers.IO) {
-                            connectionLogRepository.logEvent(profileId, ConnectionLog.Status.FAILED, details = e.message)
+                            connectionLogRepository.logEvent(profileId, ConnectionLog.Status.FAILED, details = detail)
                         }
                     }
                     runCatching { tunnelRelay?.close() }
@@ -2719,11 +2721,13 @@ class DesktopViewModel @Inject constructor(
                 session.start() // blocks until established; fires onConnected/onError
             } catch (e: Exception) {
                 Log.e(TAG, "SPICE connect failed", e)
+                val relayErr = tunnelRelay?.lastDialError?.get()
+                val detail = relayErr?.message ?: e.message
                 if (error.value == null) {
-                    error.value = e.message ?: "SPICE connection to $host:$port failed"
+                    error.value = detail ?: "SPICE connection to $host:$port failed"
                 }
                 if (profileId != null) {
-                    connectionLogRepository.logEvent(profileId, ConnectionLog.Status.FAILED, details = e.message)
+                    connectionLogRepository.logEvent(profileId, ConnectionLog.Status.FAILED, details = detail)
                 }
                 runCatching { tunnelRelay?.close() }
                 tunnelLease?.close()
@@ -2787,7 +2791,7 @@ class DesktopViewModel @Inject constructor(
             val pointerPos = MutableStateFlow(0 to 0)
 
             var tunnelLease: SshSessionManager.TunnelLease? = null
-            var routeSocketFactory: javax.net.SocketFactory? = null
+            var tunnelRelay: LoopbackTcpRelay? = null
             try {
                 val actualHost: String
                 val actualPort: Int
@@ -2807,9 +2811,20 @@ class DesktopViewModel @Inject constructor(
                     }
                 } else {
                     val profile = profileId?.let { connectionRepository.getById(it) }
-                    routeSocketFactory = if (profile != null) tunnelResolver.socketFactory(profile) else null
-                    actualHost = host
-                    actualPort = port
+                    val routeSocketFactory = if (profile != null) tunnelResolver.socketFactory(profile) else null
+                    if (routeSocketFactory != null) {
+                        // Route OkHttp/Conscrypt through a kernel loopback socket so
+                        // OkHttp's 1 ms SO_TIMEOUT liveness probe and Conscrypt TLS work
+                        // cleanly while HTTP/1.1 keep-alive reuses a single tunnel stream.
+                        val relay = startLoopbackTcpRelay(routeSocketFactory, host, port)
+                        tunnelRelay = relay
+                        actualHost = "127.0.0.1"
+                        actualPort = relay.port
+                        Log.d(TAG, "GLKVM tunnel relay: localhost:${relay.port} -> ${LogRedact.host(host, port)}")
+                    } else {
+                        actualHost = host
+                        actualPort = port
+                    }
                 }
 
                 // TLS: pinned cert (or first-use pin) for the original host:port.
@@ -2830,7 +2845,6 @@ class DesktopViewModel @Inject constructor(
                     sslSocketFactory = sslFactory
                     trustManager = tm
                     baseUrlOverride = "https://$actualHost:$actualPort"
-                    plainSocketFactory = routeSocketFactory
                 }.build()
 
                 val session = GlkvmDesktopSession(
@@ -2859,14 +2873,20 @@ class DesktopViewModel @Inject constructor(
                     },
                     onError = { e ->
                         Log.e(TAG, "GLKVM error on tab $tabId", e)
-                        error.value = describeGlkvmError(e, host, port)
+                        val relayErr = tunnelRelay?.lastDialError?.get()
+                        error.value = describeGlkvmError(e, host, port, relayErr)
                         connected.value = false
                         desktopSessionRegistry.setStatus(profileId, DesktopStatus.ERROR)
                         if (profileId != null) {
                             viewModelScope.launch(Dispatchers.IO) {
-                                connectionLogRepository.logEvent(profileId, ConnectionLog.Status.FAILED, details = e.message)
+                                connectionLogRepository.logEvent(
+                                    profileId,
+                                    ConnectionLog.Status.FAILED,
+                                    details = relayErr?.message ?: e.message,
+                                )
                             }
                         }
+                        runCatching { tunnelRelay?.close() }
                         tunnelLease?.close()
                         releaseSshTunnelDependent(profileId)
                     },
@@ -2899,6 +2919,7 @@ class DesktopViewModel @Inject constructor(
                     _error = error,
                     _pointerPos = pointerPos,
                     tunnelLease = tunnelLease,
+                    tunnelRelay = tunnelRelay,
                     profileId = profileId,
                 )
                 _tabs.value = _tabs.value.toMutableList().apply { add(tab) }
@@ -2947,18 +2968,24 @@ class DesktopViewModel @Inject constructor(
                 }
 
                 // Knock only on the direct path (SSH-forward knocked at SSH connect;
-                // userspace tunnel factories don't expose host kernel packets).
-                if (!sshForward && routeSocketFactory == null && profileId != null) {
+                // userspace tunnel relays don't expose host kernel packets).
+                if (!sshForward && tunnelRelay == null && profileId != null) {
                     runVncKnockIfConfigured(profileId, actualHost)
                 }
 
                 session.start()
             } catch (e: Exception) {
                 Log.e(TAG, "GLKVM connect failed", e)
-                error.value = describeGlkvmError(e, host, port)
+                val relayErr = tunnelRelay?.lastDialError?.get()
+                error.value = describeGlkvmError(e, host, port, relayErr)
                 if (profileId != null) {
-                    connectionLogRepository.logEvent(profileId, ConnectionLog.Status.FAILED, details = e.message)
+                    connectionLogRepository.logEvent(
+                        profileId,
+                        ConnectionLog.Status.FAILED,
+                        details = relayErr?.message ?: e.message,
+                    )
                 }
+                runCatching { tunnelRelay?.close() }
                 tunnelLease?.close()
                 releaseSshTunnelDependent(profileId)
                 // Tab with the error visible even when the client build fails.
@@ -2990,10 +3017,23 @@ class DesktopViewModel @Inject constructor(
         }
     }
 
-    private fun describeGlkvmError(e: Throwable, host: String, port: Int): String = when {
-        e is sh.haven.core.glkvm.GlkvmCertMismatch -> e.message ?: "TLS certificate changed"
-        e.message?.contains("login failed") == true -> "GLKVM login failed (check web UI password). ${e.message}"
-        else -> "GLKVM connection to $host:$port failed: ${e.message}"
+    private fun describeGlkvmError(
+        e: Throwable,
+        host: String,
+        port: Int,
+        relayError: Throwable? = null,
+    ): String {
+        val certMismatch = generateSequence(e) { it.cause }
+            .filterIsInstance<sh.haven.core.glkvm.GlkvmCertMismatch>()
+            .firstOrNull()
+        return when {
+            certMismatch != null -> certMismatch.message ?: "TLS certificate changed"
+            relayError != null -> "GLKVM connection to $host:$port failed: ${relayError.message ?: e.message}"
+            e.message?.contains("ValidatorError") == true && e.message?.contains("passwd") == true ->
+                "GLKVM rejected the web UI password (empty or unsupported characters) — edit the connection or re-enter the password. ${e.message}"
+            e.message?.contains("login failed") == true -> "GLKVM login failed (check web UI password). ${e.message}"
+            else -> "GLKVM connection to $host:$port failed: ${e.message}"
+        }
     }
 
     fun sendGlkvmKey(scancode: Int, pressed: Boolean) {
@@ -3364,6 +3404,8 @@ class DesktopViewModel @Inject constructor(
 
     private class LoopbackTcpRelay(
         val port: Int,
+        val lastDialError: java.util.concurrent.atomic.AtomicReference<Throwable?> =
+            java.util.concurrent.atomic.AtomicReference(null),
         private val onClose: () -> Unit,
     ) : java.io.Closeable {
         override fun close() = onClose()
@@ -3372,7 +3414,7 @@ class DesktopViewModel @Inject constructor(
     /**
      * Binds `127.0.0.1:0` and forwards each accepted local socket through
      * [routeFactory] to `[targetHost]:[targetPort]`, supporting multi-channel
-     * protocols like SPICE whose native client opens its own TCP connections.
+     * protocols like SPICE and Conscrypt/OkHttp keep-alive clients like GLKVM.
      */
     private fun startLoopbackTcpRelay(
         routeFactory: javax.net.SocketFactory,
@@ -3382,6 +3424,7 @@ class DesktopViewModel @Inject constructor(
         val server = java.net.ServerSocket(0, 16, java.net.InetAddress.getByName("127.0.0.1"))
         val activeSockets = java.util.Collections.synchronizedSet(mutableSetOf<java.net.Socket>())
         val closed = java.util.concurrent.atomic.AtomicBoolean(false)
+        val lastDialError = java.util.concurrent.atomic.AtomicReference<Throwable?>(null)
         val acceptThread = Thread({
             while (!closed.get()) {
                 val local = try {
@@ -3394,6 +3437,7 @@ class DesktopViewModel @Inject constructor(
                     var remote: java.net.Socket? = null
                     try {
                         remote = routeFactory.createSocket(targetHost, targetPort)
+                        lastDialError.set(null)
                         activeSockets.add(remote)
                         val r = remote
                         val pumpReverse = Thread({
@@ -3403,7 +3447,7 @@ class DesktopViewModel @Inject constructor(
                             } finally {
                                 runCatching { local.shutdownOutput() }
                             }
-                        }, "spice-relay-rx").apply { isDaemon = true; start() }
+                        }, "tunnel-relay-rx").apply { isDaemon = true; start() }
                         try {
                             local.getInputStream().copyTo(r.getOutputStream())
                         } catch (_: Exception) {
@@ -3412,18 +3456,21 @@ class DesktopViewModel @Inject constructor(
                         }
                         pumpReverse.join(2_000)
                     } catch (e: Exception) {
-                        Log.w(TAG, "SPICE tunnel relay connection failed: ${e.message}")
+                        if (!closed.get()) {
+                            lastDialError.set(e)
+                            Log.w(TAG, "Tunnel relay connection failed: ${e.message}")
+                        }
                     } finally {
                         activeSockets.remove(local)
                         remote?.let { activeSockets.remove(it) }
                         runCatching { local.close() }
                         runCatching { remote?.close() }
                     }
-                }, "spice-relay-tx").apply { isDaemon = true; start() }
+                }, "tunnel-relay-tx").apply { isDaemon = true; start() }
             }
-        }, "spice-relay-accept").apply { isDaemon = true; start() }
+        }, "tunnel-relay-accept").apply { isDaemon = true; start() }
 
-        return LoopbackTcpRelay(server.localPort) {
+        return LoopbackTcpRelay(server.localPort, lastDialError) {
             if (closed.compareAndSet(false, true)) {
                 runCatching { server.close() }
                 synchronized(activeSockets) {
@@ -3479,6 +3526,7 @@ class DesktopViewModel @Inject constructor(
                 }
                 is DesktopTab.Glkvm -> {
                     tab.session.close()
+                    runCatching { tab.tunnelRelay?.close() }
                     tab.tunnelLease?.close()
                     clearProfileStateIfNoReplacement(tab.profileId)
                 }

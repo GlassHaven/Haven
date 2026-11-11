@@ -187,6 +187,7 @@ fun RdpSessionContent(
     onChipAnchorChange: (sh.haven.core.data.preferences.RdpChipAnchor) -> Unit = {},
     isActive: Boolean = true,
     sessionKey: String? = null,
+    protocolLabel: String = "RDP",
 ) {
     val connectedState by connected.collectAsState()
     val frameState by frame.collectAsState()
@@ -277,7 +278,7 @@ fun RdpSessionContent(
         )
     } else {
         DesktopPlaceholder(
-            protocol = "RDP",
+            protocol = protocolLabel,
             error = errorState,
             progressState = when {
                 errorState != null -> ProgressState.Error
@@ -348,7 +349,7 @@ private fun DesktopPlaceholder(
             // failure patterns. Detected by substring match on the
             // server's error string — cheap, robust, and the raw text
             // remains visible underneath for anything else.
-            val hint = rdpErrorHint(error)
+            val hint = if (protocol == "RDP") rdpErrorHint(error) else null
             if (hint != null) {
                 Spacer(Modifier.height(16.dp))
                 val uriHandler = LocalUriHandler.current

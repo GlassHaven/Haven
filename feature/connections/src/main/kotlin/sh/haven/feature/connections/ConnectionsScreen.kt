@@ -770,8 +770,13 @@ fun ConnectionsScreen(
     }
 
     connectingProfile?.let { profile ->
-        val assignedKey = profile.keyId?.let { id -> sshKeys.firstOrNull { it.id == id } }
+        val usesSshKeyAuth = profile.isSsh || profile.isReticulum
+        val assignedKey = if (usesSshKeyAuth) {
+            profile.keyId?.let { id -> sshKeys.firstOrNull { it.id == id } }
+        } else null
         val mode = when {
+            !usesSshKeyAuth ->
+                PasswordDialogMode.PASSWORD_ONLY
             assignedKey != null && assignedKey.isEncrypted ->
                 PasswordDialogMode.ASSIGNED_ENCRYPTED_KEY_PASSPHRASE
             assignedKey != null ->
@@ -783,7 +788,7 @@ fun ConnectionsScreen(
         }
         PasswordDialog(
             profile = profile,
-            hasKeys = sshKeys.isNotEmpty(),
+            hasKeys = usesSshKeyAuth && sshKeys.isNotEmpty(),
             mode = mode,
             assignedKeyLabel = assignedKey?.label,
             onDismiss = { connectingProfile = null },
@@ -801,11 +806,16 @@ fun ConnectionsScreen(
     }
 
     passwordFallback?.let { profile ->
-        val assignedKey = profile.keyId?.let { id -> sshKeys.firstOrNull { it.id == id } }
+        val usesSshKeyAuth = profile.isSsh || profile.isReticulum
+        val assignedKey = if (usesSshKeyAuth) {
+            profile.keyId?.let { id -> sshKeys.firstOrNull { it.id == id } }
+        } else null
         // If the profile has an encrypted key assigned and the initial
         // key-only connect attempt just failed, this dialog is specifically
         // asking for the key passphrase — not a host password.
         val mode = when {
+            !usesSshKeyAuth ->
+                PasswordDialogMode.PASSWORD_ONLY
             assignedKey != null && assignedKey.isEncrypted ->
                 PasswordDialogMode.ASSIGNED_ENCRYPTED_KEY_PASSPHRASE
             assignedKey != null ->
@@ -817,7 +827,7 @@ fun ConnectionsScreen(
         }
         PasswordDialog(
             profile = profile,
-            hasKeys = sshKeys.isNotEmpty(),
+            hasKeys = usesSshKeyAuth && sshKeys.isNotEmpty(),
             mode = mode,
             assignedKeyLabel = assignedKey?.label,
             onDismiss = { viewModel.dismissPasswordFallback() },
@@ -1653,7 +1663,14 @@ private fun onTapProfile(
         // existing tab instead of reconnecting. (A VNC/RDP-over-SSH profile
         // now reports CONNECTED via its tunnel dependent, so without this it
         // would fall into the generic branch below and open a shell instead.)
-        viewModel.connect(profile, if (profile.isRdp) profile.rdpPassword.orEmpty() else "")
+        viewModel.connect(
+            profile,
+            when {
+                profile.isRdp -> profile.rdpPassword.orEmpty()
+                profile.isGlkvm -> profile.glkvmPassword.orEmpty()
+                else -> ""
+            },
+        )
     } else if (profileStatus == ProfileStatus.CONNECTED) {
         viewModel.ensureShellForProfile(profile.id)
     } else if (profile.isVnc) {
@@ -1670,7 +1687,12 @@ private fun onTapProfile(
         // reads the saved ticket; no prompt needed if the server is unticketed).
         viewModel.connect(profile, "")
     } else if (profile.isGlkvm) {
-        viewModel.connect(profile, "")
+        val savedPassword = profile.glkvmPassword
+        if (!savedPassword.isNullOrBlank()) {
+            viewModel.connect(profile, savedPassword)
+        } else {
+            showPasswordDialog()
+        }
     } else if (profile.isSmb) {
         val savedPassword = profile.smbPassword
         if (savedPassword != null) {

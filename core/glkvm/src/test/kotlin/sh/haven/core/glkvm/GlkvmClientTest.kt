@@ -9,6 +9,7 @@ import okhttp3.mockwebserver.RecordedRequest
 import okio.Buffer
 import org.junit.After
 import org.junit.Assert.assertEquals
+import org.junit.Assert.assertFalse
 import org.junit.Assert.assertNotNull
 import org.junit.Assert.assertTrue
 import org.junit.Assert.fail
@@ -333,6 +334,71 @@ class GlkvmClientTest {
             fail("expected CertificateException")
         } catch (e: CertificateException) {
             assertTrue(e.message!!.contains("empty"))
+        }
+    }
+
+    @Test(timeout = 5_000)
+    fun `plainSocketFactory with no-op setSoTimeout and private hostname never pools idle sockets`() {
+        val dialledHosts = java.util.Collections.synchronizedList(mutableListOf<String>())
+        val tunnelLikeFactory = object : javax.net.SocketFactory() {
+            override fun createSocket(): java.net.Socket = object : java.net.Socket() {
+                private var delegate: java.net.Socket? = null
+                override fun connect(endpoint: java.net.SocketAddress?, timeout: Int) {
+                    val addr = endpoint as java.net.InetSocketAddress
+                    dialledHosts.add(addr.hostString)
+                    val s = java.net.Socket()
+                    s.connect(java.net.InetSocketAddress("127.0.0.1", server.port), timeout)
+                    delegate = s
+                }
+                override fun getInputStream() = delegate!!.getInputStream()
+                override fun getOutputStream() = delegate!!.getOutputStream()
+                override fun isConnected() = delegate?.isConnected == true
+                override fun isClosed() = delegate?.isClosed ?: false
+                override fun close() { delegate?.close() }
+                // Exact contract of TunneledSocket / DeferredTunneledSocket:
+                // userspace tunnels ignore kernel SO_TIMEOUT, which causes
+                // OkHttp's RealConnection.isHealthy 1 ms probe after >=10 s
+                // idle to block forever if tunnel sockets are kept in ConnectionPool.
+                override fun setSoTimeout(timeout: Int) { /* no-op */ }
+                override fun getSoTimeout(): Int = 0
+            }
+            override fun createSocket(host: String?, port: Int) = throw UnsupportedOperationException()
+            override fun createSocket(host: String?, port: Int, lh: java.net.InetAddress?, lp: Int) =
+                throw UnsupportedOperationException()
+            override fun createSocket(host: java.net.InetAddress?, port: Int) = throw UnsupportedOperationException()
+            override fun createSocket(a: java.net.InetAddress?, port: Int, la: java.net.InetAddress?, lp: Int) =
+                throw UnsupportedOperationException()
+        }
+
+        val tunneledClient = GlkvmClient.Builder().apply {
+            host = "glkvm-private.tunnel.invalid"
+            port = 443
+            baseUrlOverride = "http://glkvm-private.tunnel.invalid:443"
+            user = "admin"
+            password = "secret\n"
+            plainSocketFactory = tunnelLikeFactory
+        }.build()
+        try {
+            val state = tunneledClient.videoState()
+            assertTrue(state.signal)
+            val loginReq = server.takeRequest(2, TimeUnit.SECONDS)!!
+            // Trailing newline from clipboard paste must be stripped before form-encoding
+            // so kvmd's valid_passwd validator does not reject with HTTP 400 ValidatorError.
+            assertFalse("passwd must strip trailing newline: ${loginReq.body.clone().readUtf8()}",
+                loginReq.body.readUtf8().contains("%0A"))
+            val snap = tunneledClient.snapshot()
+            assertEquals(4, snap.size)
+            assertTrue(
+                "Tunnel factory must receive original private hostname",
+                dialledHosts.all { it == "glkvm-private.tunnel.invalid" },
+            )
+            assertEquals(
+                "No-op setSoTimeout tunnel sockets must not sit idle in OkHttp ConnectionPool (login + videoState + snapshot = 3 dials)",
+                3,
+                dialledHosts.size,
+            )
+        } finally {
+            tunneledClient.close()
         }
     }
 }

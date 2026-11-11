@@ -89,7 +89,16 @@ fun PasswordDialog(
     val needsUsername = profile.username.isBlank() && (profile.isSsh || profile.isReticulum)
     var username by remember { mutableStateOf("") }
     var password by remember { mutableStateOf("") }
-    var rememberPassword by remember { mutableStateOf(!profile.sshPassword.isNullOrBlank()) }
+    var rememberPassword by remember {
+        mutableStateOf(
+            when {
+                profile.isGlkvm -> !profile.glkvmPassword.isNullOrBlank()
+                profile.isRdp -> !profile.rdpPassword.isNullOrBlank()
+                profile.isSmb -> !profile.smbPassword.isNullOrBlank()
+                else -> !profile.sshPassword.isNullOrBlank()
+            },
+        )
+    }
     val keyboardHasInternet = rememberKeyboardHasInternet()
     val canSubmit = !needsUsername || username.isNotBlank()
     val submit: () -> Unit = {
@@ -146,6 +155,9 @@ fun PasswordDialog(
                             )
                         }
                     }
+                    profile.isGlkvm -> {
+                        Text("${profile.username.ifBlank { "admin" }}@${profile.host}:${profile.glkvmPort ?: 443}")
+                    }
                     needsUsername -> Text("${profile.host}:${profile.port}")
                     else -> Text("${profile.username}@${profile.host}:${profile.port}")
                 }
@@ -182,7 +194,7 @@ fun PasswordDialog(
                 )
                 // An ephemeral one-off (#751) has no saved profile to remember
                 // into — offering the tick would promise a save that never lands.
-                if (!profile.ephemeral && (profile.isSsh || profile.isSmb)) {
+                if (!profile.ephemeral && (profile.isSsh || profile.isSmb || profile.isRdp || profile.isGlkvm)) {
                     Row(
                         verticalAlignment = androidx.compose.ui.Alignment.CenterVertically,
                         modifier = Modifier.fillMaxWidth(),

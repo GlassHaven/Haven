@@ -2677,7 +2677,7 @@ class ConnectionsViewModel @Inject constructor(
             return
         }
         if (profile.isRdp) {
-            connectRdp(profile, password)
+            connectRdp(profile, password, rememberPassword)
             return
         }
         if (profile.isSpice) {
@@ -2685,11 +2685,12 @@ class ConnectionsViewModel @Inject constructor(
             return
         }
         if (profile.isGlkvm) {
-            connectGlkvm(profile, profile.username, profile.glkvmPassword)
+            val effectiveUser = usernameOverride?.takeIf { it.isNotBlank() } ?: profile.username
+            connectGlkvm(profile, effectiveUser, password, rememberPassword)
             return
         }
         if (profile.isSmb) {
-            connectSmb(profile, password)
+            connectSmb(profile, password, rememberPassword)
             return
         }
         if (profile.isRclone) {
@@ -2793,19 +2794,28 @@ class ConnectionsViewModel @Inject constructor(
         }
     }
 
-    private fun connectRdp(profile: ConnectionProfile, password: String) {
+    private fun connectRdp(
+        profile: ConnectionProfile,
+        password: String,
+        rememberPassword: Boolean? = null,
+    ) {
         val host = profile.host
         val port = profile.rdpPort
         val username = profile.rdpUsername ?: profile.username
         val rdpPassword = password.ifBlank { profile.rdpPassword ?: "" }
         val domain = profile.rdpDomain ?: ""
         viewModelScope.launch {
+            if (rememberPassword == true && !profile.ephemeral && rdpPassword.isNotBlank()) {
+                repository.save(profile.copy(rdpPassword = rdpPassword))
+            }
             repository.markConnected(profile.id)
             val sshProfileId = profile.rdpSshProfileId
             if (profile.rdpSshForward && sshProfileId != null) {
                 val needsPrompt = jumpHostNeedsPasswordPrompt(sshProfileId)
                 if (needsPrompt != null) {
                     _pendingTunnelDependent.value = profile
+                    _pendingDependentPassword.value = rdpPassword
+                    _pendingDependentRememberPassword.value = rememberPassword
                     _passwordFallback.value = needsPrompt
                     return@launch
                 }
@@ -2828,7 +2838,13 @@ class ConnectionsViewModel @Inject constructor(
                     )
                 } catch (e: Exception) {
                     Log.e(TAG, "Failed to connect SSH tunnel host for RDP", e)
-                    handleTunnelJumpFailure(e, profile, sshProfileId)
+                    handleTunnelJumpFailure(
+                        e,
+                        profile,
+                        sshProfileId,
+                        dependentPassword = rdpPassword,
+                        dependentRememberPassword = rememberPassword,
+                    )
                 } finally {
                     _connectingProfileId.value = null
                 }
@@ -2879,16 +2895,44 @@ class ConnectionsViewModel @Inject constructor(
         }
     }
 
-    private fun connectGlkvm(profile: ConnectionProfile, user: String?, password: String?) {
+    private fun connectGlkvm(
+        profile: ConnectionProfile,
+        user: String?,
+        password: String?,
+        rememberPassword: Boolean? = null,
+    ) {
+        val effectiveUser = user?.ifBlank { "admin" } ?: "admin"
+        val effectivePassword = password?.takeIf { it.isNotBlank() }
+            ?: profile.glkvmPassword?.takeIf { it.isNotBlank() }
+        // kvmd rejects an empty `passwd` field with HTTP 400 ValidatorError
+        // ("The argument is not a valid passwd characters"). Prompt for the web
+        // UI password when none is stored yet (unless already connected, where
+        // re-tapping only switches focus to the open Desktop tab).
+        if (effectivePassword == null &&
+            desktopSessionRegistry.statuses.value[profile.id] != sh.haven.core.data.desktop.DesktopStatus.CONNECTED
+        ) {
+            _passwordFallback.value = profile
+            return
+        }
         val host = profile.host
         val port = profile.glkvmPort ?: 443
         viewModelScope.launch {
+            if (rememberPassword == true && !profile.ephemeral && effectivePassword != null) {
+                repository.save(
+                    profile.copy(
+                        username = effectiveUser,
+                        glkvmPassword = effectivePassword,
+                    ),
+                )
+            }
             repository.markConnected(profile.id)
             val sshProfileId = profile.glkvmSshProfileId
             if (profile.glkvmSshForward && sshProfileId != null) {
                 val needsPrompt = jumpHostNeedsPasswordPrompt(sshProfileId)
                 if (needsPrompt != null) {
                     _pendingTunnelDependent.value = profile
+                    _pendingDependentPassword.value = effectivePassword
+                    _pendingDependentRememberPassword.value = rememberPassword
                     _passwordFallback.value = needsPrompt
                     return@launch
                 }
@@ -2898,7 +2942,7 @@ class ConnectionsViewModel @Inject constructor(
                         sshProfileId, "", tunnelOwnerProfileId = profile.id,
                     )
                     _navigateToGlkvm.value = GlkvmNavigation(
-                        host, port, user, password,
+                        host, port, effectiveUser, effectivePassword,
                         targetLayout = profile.glkvmTargetLayout,
                         sshForward = true,
                         sshSessionId = sshSessionId,
@@ -2906,13 +2950,19 @@ class ConnectionsViewModel @Inject constructor(
                     )
                 } catch (e: Exception) {
                     Log.e(TAG, "Failed to connect SSH tunnel host for GLKVM", e)
-                    handleTunnelJumpFailure(e, profile, sshProfileId)
+                    handleTunnelJumpFailure(
+                        e,
+                        profile,
+                        sshProfileId,
+                        dependentPassword = effectivePassword ?: "",
+                        dependentRememberPassword = rememberPassword,
+                    )
                 } finally {
                     _connectingProfileId.value = null
                 }
             } else {
                 _navigateToGlkvm.value = GlkvmNavigation(
-                    host, port, user, password,
+                    host, port, effectiveUser, effectivePassword,
                     targetLayout = profile.glkvmTargetLayout,
                     sshForward = profile.glkvmSshForward,
                     profileId = profile.id,
@@ -2921,7 +2971,11 @@ class ConnectionsViewModel @Inject constructor(
         }
     }
 
-    private fun connectSmb(profile: ConnectionProfile, password: String) {
+    private fun connectSmb(
+        profile: ConnectionProfile,
+        password: String,
+        rememberPassword: Boolean? = null,
+    ) {
         val host = profile.host
         val port = profile.smbPort
         val shareName = profile.smbShare ?: return
@@ -2929,6 +2983,9 @@ class ConnectionsViewModel @Inject constructor(
         val smbPassword = password.ifBlank { profile.smbPassword ?: "" }
         val domain = profile.smbDomain ?: ""
         viewModelScope.launch {
+            if (rememberPassword == true && !profile.ephemeral && smbPassword.isNotBlank()) {
+                repository.save(profile.copy(smbPassword = smbPassword))
+            }
             repository.markConnected(profile.id)
             // Hoisted out of try so the catch block can see them when
             // cleaning up after a connect failure (#121).

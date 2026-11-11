@@ -147,6 +147,61 @@ class DesktopViewModelTrack2Test {
     }
 
     @Test
+    fun `addGlkvmSession routes tunnel SocketFactory via loopback relay and surfaces tunnel dial error`() = runTest {
+        val glkvmProfile = ConnectionProfile(
+            id = "glkvm-wg-dial",
+            label = "GLKVM LAN over WG",
+            host = "glkvm.lan",
+            username = "admin",
+            connectionType = "GLKVM",
+            glkvmPort = 443,
+            tunnelConfigId = "wg-home",
+        )
+        val dialFailureFactory = object : javax.net.SocketFactory() {
+            override fun createSocket(host: String?, port: Int): java.net.Socket {
+                throw IOException("WireGuard dial $host:$port failed: context deadline exceeded")
+            }
+            override fun createSocket(host: String?, port: Int, lh: java.net.InetAddress?, lp: Int): java.net.Socket =
+                createSocket(host, port)
+            override fun createSocket(host: java.net.InetAddress?, port: Int): java.net.Socket =
+                createSocket(host?.hostAddress, port)
+            override fun createSocket(
+                a: java.net.InetAddress?,
+                port: Int,
+                la: java.net.InetAddress?,
+                lp: Int,
+            ): java.net.Socket = createSocket(a?.hostAddress, port)
+        }
+        coEvery { connectionRepository.getById("glkvm-wg-dial") } returns glkvmProfile
+        coEvery { tunnelResolver.socketFactory(glkvmProfile) } returns dialFailureFactory
+
+        vm.addGlkvmSession(
+            host = "glkvm.lan",
+            port = 443,
+            user = "admin",
+            password = "pw",
+            profileId = "glkvm-wg-dial",
+        )
+
+        val deadline = System.currentTimeMillis() + 5_000
+        while (registry.statuses.value["glkvm-wg-dial"] != DesktopStatus.ERROR &&
+            System.currentTimeMillis() < deadline
+        ) {
+            testDispatcher.scheduler.advanceUntilIdle()
+            Thread.sleep(20)
+        }
+
+        assertEquals(DesktopStatus.ERROR, registry.statuses.value["glkvm-wg-dial"])
+        val glkvmTab = vm.tabs.value.firstOrNull { it.profileId == "glkvm-wg-dial" }
+        assertNotNull("Failed GLKVM session must remain visible with error", glkvmTab)
+        val err = glkvmTab!!.error.value.orEmpty()
+        assertTrue(
+            "Expected underlying WireGuard dial failure in tab error, got: $err",
+            err.contains("WireGuard dial glkvm.lan:443 failed"),
+        )
+    }
+
+    @Test
     fun `onCleared closes active desktop sessions and releases tunnel dependents`() {
         val clientStopped = CountDownLatch(1)
         val leaseClosed = CountDownLatch(1)

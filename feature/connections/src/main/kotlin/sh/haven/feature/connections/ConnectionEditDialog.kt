@@ -2226,12 +2226,12 @@ fun ConnectionEditDialog(
                         modifier = Modifier.width(120.dp),
                     )
                     Spacer(Modifier.height(4.dp))
-                    OutlinedTextField(
+                    sh.haven.core.ui.PasswordField(
                         value = spicePassword,
                         onValueChange = { spicePassword = it },
-                        label = { Text(stringResource(R.string.connections_field_password_optional)) },
-                        singleLine = true,
+                        label = stringResource(R.string.connections_field_password_optional),
                         modifier = Modifier.fillMaxWidth(),
+                        onRevealRequest = onRevealSavedSecret,
                     )
                     Spacer(Modifier.height(4.dp))
                     Text(
@@ -2283,12 +2283,12 @@ fun ConnectionEditDialog(
                         modifier = Modifier.fillMaxWidth(),
                     )
                     Spacer(Modifier.height(4.dp))
-                    OutlinedTextField(
+                    sh.haven.core.ui.PasswordField(
                         value = glkvmPassword,
                         onValueChange = { glkvmPassword = it },
-                        label = { Text(stringResource(R.string.connections_field_password_optional)) },
-                        singleLine = true,
+                        label = stringResource(R.string.connections_field_password_optional),
                         modifier = Modifier.fillMaxWidth(),
+                        onRevealRequest = onRevealSavedSecret,
                     )
                     Spacer(Modifier.height(4.dp))
                     var layoutExpanded by remember { mutableStateOf(false) }

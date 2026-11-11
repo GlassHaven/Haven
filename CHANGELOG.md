@@ -9,6 +9,7 @@ compare link is appended automatically — don't add it here.
 
 - Register `UpdateNotifier`'s `ProcessLifecycleOwner` observer on the main thread so cold launch after `v5.94.27` no longer crashes during `HavenApp` background startup (#830, thanks @3in1sl).
 - Honour latched `Swipe` arrow mode (`swipeArrowsMode`), including horizontal swipes and `Shift`+swipe, when a terminal app enables mouse tracking (`htop`, `lnav`, `vim` with `mouse=a`, `tmux`) (#736, thanks @excurso).
+- Prompt for a GLKVM password (with **Remember password**) instead of sending an empty `passwd` that `kvmd` rejects with `HTTP 400 ValidatorError`, trim pasted `\r`/`\n` characters, mask GLKVM and SPICE password inputs, show `GLKVM`/`SPICE` status headers instead of `RDP`, and route GLKVM tunnel sessions over a local loopback TCP relay without idle-socket deadlocks or host DNS leaks.
 
 ## v5.94.27
 

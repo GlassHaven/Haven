@@ -84,6 +84,45 @@ class OpenAiClientTest {
         assertTrue(result is VerifyResult.Failure && result.error is OpenAiException.Network)
     }
 
+    @Test(timeout = 5_000)
+    fun `buildClient with tunnel SocketFactory resolves private hostname remotely and avoids isHealthy deadlock`() = runBlocking {
+        server.enqueue(MockResponse().setBody(modelsBody("m1")))
+        server.enqueue(MockResponse().setBody(modelsBody("m2")))
+        val dialledHosts = java.util.Collections.synchronizedList(mutableListOf<String>())
+        val tunnelLikeFactory = object : javax.net.SocketFactory() {
+            override fun createSocket(): java.net.Socket = object : java.net.Socket() {
+                private var delegate: java.net.Socket? = null
+                override fun connect(endpoint: java.net.SocketAddress?, timeout: Int) {
+                    val addr = endpoint as java.net.InetSocketAddress
+                    dialledHosts.add(addr.hostString)
+                    val s = java.net.Socket()
+                    s.connect(java.net.InetSocketAddress("127.0.0.1", server.port), timeout)
+                    delegate = s
+                }
+                override fun getInputStream() = delegate!!.getInputStream()
+                override fun getOutputStream() = delegate!!.getOutputStream()
+                override fun isConnected() = delegate?.isConnected == true
+                override fun isClosed() = delegate?.isClosed ?: false
+                override fun close() { delegate?.close() }
+                override fun setSoTimeout(timeout: Int) { /* no-op */ }
+                override fun getSoTimeout(): Int = 0
+            }
+            override fun createSocket(host: String?, port: Int) = throw UnsupportedOperationException()
+            override fun createSocket(host: String?, port: Int, lh: java.net.InetAddress?, lp: Int) =
+                throw UnsupportedOperationException()
+            override fun createSocket(host: java.net.InetAddress?, port: Int) = throw UnsupportedOperationException()
+            override fun createSocket(a: java.net.InetAddress?, port: Int, la: java.net.InetAddress?, lp: Int) =
+                throw UnsupportedOperationException()
+        }
+
+        val http = client.buildClient(tunnelLikeFactory)
+        val r1 = client.verify(http, "http://ollama.lan:11434", null, null)
+        val r2 = client.verify(http, "http://ollama.lan:11434", null, null)
+        assertTrue("first verify expected Ok, got $r1", r1 is VerifyResult.Ok)
+        assertTrue("second verify expected Ok without pooled-socket deadlock, got $r2", r2 is VerifyResult.Ok)
+        assertTrue(dialledHosts.all { it == "ollama.lan" })
+    }
+
     @Test
     fun `path prefix is inserted before v1`() {
         assertEquals("http://h/api/v1/models", client.modelsUrl("http://h/", "/api"))

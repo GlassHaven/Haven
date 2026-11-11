@@ -49,8 +49,48 @@ class OpenAiClient @Inject constructor() {
             // -call readTimeout() overrides below cover finite requests.
             .readTimeout(0, TimeUnit.SECONDS)
             .writeTimeout(30, TimeUnit.SECONDS)
-            .apply { factory?.let { socketFactory(it) } }
+            .apply {
+                if (factory != null) {
+                    socketFactory(factory)
+                    // Userspace tunnel sockets ignore setSoTimeout, which makes
+                    // OkHttp's 1 ms RealConnection.isHealthy probe block forever
+                    // after >= 10 s idle between chat turns. Disable idle pooling
+                    // and avoid leaking internal tunnel hostnames to system DNS.
+                    connectionPool(okhttp3.ConnectionPool(0, 1, TimeUnit.NANOSECONDS))
+                    dns { hostname -> placeholderOrLiteralAddresses(hostname) }
+                }
+            }
             .build()
+
+    private fun placeholderOrLiteralAddresses(hostname: String): List<java.net.InetAddress> {
+        val trimmed = hostname.trim().removeSurrounding("[", "]")
+        if (trimmed.equals("localhost", ignoreCase = true)) {
+            return listOf(
+                java.net.InetAddress.getByAddress("localhost", byteArrayOf(127, 0, 0, 1)),
+                java.net.InetAddress.getByAddress("localhost", ByteArray(16).apply { this[15] = 1 }),
+            )
+        }
+        val ipv4Parts = trimmed.split('.')
+        if (ipv4Parts.size == 4 && ipv4Parts.all { p -> p.isNotEmpty() && p.length <= 3 && p.all { it.isDigit() } }) {
+            val nums = ipv4Parts.map { it.toInt() }
+            if (nums.all { it in 0..255 }) {
+                return listOf(
+                    java.net.InetAddress.getByAddress(
+                        trimmed,
+                        byteArrayOf(nums[0].toByte(), nums[1].toByte(), nums[2].toByte(), nums[3].toByte()),
+                    ),
+                )
+            }
+        }
+        if (trimmed.contains(':')) {
+            return try {
+                listOf(java.net.InetAddress.getByName(trimmed))
+            } catch (_: java.net.UnknownHostException) {
+                listOf(java.net.InetAddress.getByAddress(hostname, ByteArray(4)))
+            }
+        }
+        return listOf(java.net.InetAddress.getByAddress(hostname, ByteArray(4)))
+    }
 
     private fun Request.Builder.auth(apiKey: String?, protocol: AiProtocol): Request.Builder {
         if (apiKey.isNullOrBlank() && protocol != AiProtocol.GEMINI) return this

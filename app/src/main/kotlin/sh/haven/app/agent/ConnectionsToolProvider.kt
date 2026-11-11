@@ -891,9 +891,12 @@ internal class ConnectionsToolProvider(
             }
         }
 
-        // Password maps to the transport-specific column.
-        val newPassword: (current: String?) -> String? = { current ->
-            if (args.has("password")) args.optString("password").ifBlank { null } else current
+        // Password maps to the transport-specific column; accept either the
+        // transport-specific key (matching create_connection) or generic `password`.
+        fun newPassword(specificKey: String, current: String?): String? = when {
+            args.has(specificKey) -> args.optString(specificKey).ifBlank { null }
+            args.has("password") -> args.optString("password").ifBlank { null }
+            else -> current
         }
 
         // `port` maps to the base port AND the transport-specific port column —
@@ -911,12 +914,12 @@ internal class ConnectionsToolProvider(
             smbPort = if (portChanged && existing.connectionType == "SMB") newPort else existing.smbPort,
             spicePort = if (portChanged && existing.connectionType == "SPICE") newPort else existing.spicePort,
             username = if (args.has("username")) args.optString("username") else existing.username,
-            sshPassword = if (existing.connectionType == "SSH") newPassword(existing.sshPassword) else existing.sshPassword,
-            vncPassword = if (existing.connectionType == "VNC") newPassword(existing.vncPassword) else existing.vncPassword,
-            rdpPassword = if (existing.connectionType == "RDP") newPassword(existing.rdpPassword) else existing.rdpPassword,
-            smbPassword = if (existing.connectionType == "SMB") newPassword(existing.smbPassword) else existing.smbPassword,
-            spicePassword = if (existing.connectionType == "SPICE") newPassword(existing.spicePassword) else existing.spicePassword,
-            openaiApiKey = if (existing.connectionType == "OPENAI") newPassword(existing.openaiApiKey) else existing.openaiApiKey,
+            sshPassword = if (existing.connectionType == "SSH") newPassword("sshPassword", existing.sshPassword) else existing.sshPassword,
+            vncPassword = if (existing.connectionType == "VNC") newPassword("vncPassword", existing.vncPassword) else existing.vncPassword,
+            rdpPassword = if (existing.connectionType == "RDP") newPassword("rdpPassword", existing.rdpPassword) else existing.rdpPassword,
+            smbPassword = if (existing.connectionType == "SMB") newPassword("smbPassword", existing.smbPassword) else existing.smbPassword,
+            spicePassword = if (existing.connectionType == "SPICE") newPassword("spicePassword", existing.spicePassword) else existing.spicePassword,
+            openaiApiKey = if (existing.connectionType == "OPENAI") newPassword("openaiApiKey", existing.openaiApiKey) else existing.openaiApiKey,
             openaiPathPrefix = if (existing.connectionType == "OPENAI") str("openaiPathPrefix", existing.openaiPathPrefix) else existing.openaiPathPrefix,
             aiProtocol = if (existing.connectionType == "OPENAI") {
                 // Absent = unchanged; empty string clears (back to OPENAI).
@@ -955,7 +958,7 @@ internal class ConnectionsToolProvider(
             spiceSshForward = bool("spiceSshForward", existing.spiceSshForward),
             spiceSshProfileId = str("spiceSshProfileId", existing.spiceSshProfileId),
             glkvmPort = if (portChanged && existing.connectionType == "GLKVM") newPort else existing.glkvmPort,
-            glkvmPassword = if (existing.connectionType == "GLKVM") newPassword(existing.glkvmPassword) else existing.glkvmPassword,
+            glkvmPassword = if (existing.connectionType == "GLKVM") newPassword("glkvmPassword", existing.glkvmPassword) else existing.glkvmPassword,
             glkvmTargetLayout = str("glkvmTargetLayout", existing.glkvmTargetLayout),
             glkvmSshForward = bool("glkvmSshForward", existing.glkvmSshForward),
             glkvmSshProfileId = str("glkvmSshProfileId", existing.glkvmSshProfileId),
@@ -1199,7 +1202,7 @@ internal class ConnectionsToolProvider(
                     connectionType = "VNC",
                     vncPort = port,
                     vncUsername = args.optString("vncUsername").ifBlank { null },
-                    vncPassword = args.optString("vncPassword").ifBlank { null },
+                    vncPassword = args.optString("vncPassword").ifBlank { args.optString("password") }.ifBlank { null },
                     vncSshForward = vncSshForward,
                     vncSshProfileId = vncSshProfileId,
                     tunnelConfigId = tunnelConfigId,
@@ -1219,7 +1222,7 @@ internal class ConnectionsToolProvider(
                     connectionType = "RDP",
                     rdpPort = port,
                     rdpUsername = rdpUser,
-                    rdpPassword = args.optString("rdpPassword").ifBlank { null },
+                    rdpPassword = args.optString("rdpPassword").ifBlank { args.optString("password") }.ifBlank { null },
                     rdpDomain = args.optString("rdpDomain").ifBlank { null },
                     rdpSshForward = false,
                     tunnelConfigId = tunnelConfigId,
@@ -1243,7 +1246,7 @@ internal class ConnectionsToolProvider(
                     username = "",
                     connectionType = "SPICE",
                     spicePort = port,
-                    spicePassword = args.optString("spicePassword").ifBlank { null },
+                    spicePassword = args.optString("spicePassword").ifBlank { args.optString("password") }.ifBlank { null },
                     spiceSshForward = spiceSshForward,
                     spiceSshProfileId = spiceSshProfileId,
                     tunnelConfigId = tunnelConfigId,
@@ -1266,7 +1269,7 @@ internal class ConnectionsToolProvider(
                     username = args.optString("username").ifBlank { "admin" },
                     connectionType = "GLKVM",
                     glkvmPort = port,
-                    glkvmPassword = args.optString("glkvmPassword").ifBlank { null },
+                    glkvmPassword = args.optString("glkvmPassword").ifBlank { args.optString("password") }.ifBlank { null },
                     glkvmTargetLayout = args.optString("glkvmTargetLayout").ifBlank { null },
                     glkvmSshForward = glkvmSshForward,
                     glkvmSshProfileId = glkvmSshProfileId,

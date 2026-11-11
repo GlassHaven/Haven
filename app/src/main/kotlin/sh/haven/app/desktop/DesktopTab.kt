@@ -149,6 +149,8 @@ sealed class DesktopTab {
         val _pointerPos: MutableStateFlow<Pair<Int, Int>> = MutableStateFlow(0 to 0),
         /** Lease tying this tab to its SSH tunnel; closing it releases the tunnel. */
         val tunnelLease: SshSessionManager.TunnelLease? = null,
+        /** Loopback TCP relay forwarding GLKVM HTTPS requests through a WireGuard/Tailscale/proxy factory. */
+        val tunnelRelay: java.io.Closeable? = null,
         override val profileId: String? = null,
     ) : DesktopTab() {
         override val connected: StateFlow<Boolean> get() = _connected

@@ -1,2 +1,3 @@
-- Register UpdateNotifier's ProcessLifecycleOwner observer on the main thread so cold launch after v5.94.27 no longer crashes during HavenApp background startup (#830, thanks @3in1sl).
-- Honour latched Swipe arrow mode, including horizontal swipes and Shift+swipe, when a terminal app enables mouse tracking such as htop, lnav, vim with mouse=a, and tmux (#736, thanks @excurso).
+- Fix cold-launch ProcessLifecycleOwner crash on background startup (#830, thanks @3in1sl).
+- Honour latched Swipe arrow mode (including horizontal and Shift+swipe) when terminal mouse tracking is active (#736, thanks @excurso).
+- Prompt for missing GLKVM passwords (with Remember password), mask GLKVM/SPICE password fields, show GLKVM/SPICE status headers instead of RDP, and route GLKVM over tunnels via loopback TCP relay.

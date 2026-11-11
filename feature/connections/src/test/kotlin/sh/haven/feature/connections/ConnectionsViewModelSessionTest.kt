@@ -1637,4 +1637,36 @@ class ConnectionsViewModelSessionTest {
         }
         collectJob.cancel()
     }
+
+    @Test
+    fun `glkvm profile without stored password prompts instead of dialling empty passwd and remembers when requested`() = runTest {
+        val glkvm = ConnectionProfile(
+            id = "glkvm-1",
+            label = "GLKVM",
+            host = "glkvm.lan",
+            port = 443,
+            username = "admin",
+            connectionType = "GLKVM",
+            glkvmPort = 443,
+            glkvmPassword = null,
+        )
+        viewModel.connect(glkvm, "")
+        testDispatcher.scheduler.advanceUntilIdle()
+
+        org.junit.Assert.assertNull(
+            "Must not navigate to GLKVM with empty password (kvmd rejects empty passwd with HTTP 400 ValidatorError)",
+            viewModel.navigateToGlkvm.value,
+        )
+        assertEquals(glkvm, viewModel.passwordFallback.value)
+
+        viewModel.answerPasswordFallback("s3cr3t!", rememberPassword = true)
+        testDispatcher.scheduler.advanceUntilIdle()
+
+        val nav = viewModel.navigateToGlkvm.value
+        org.junit.Assert.assertNotNull("Answering fallback prompt must navigate to GLKVM", nav)
+        assertEquals("s3cr3t!", nav!!.password)
+        coVerify {
+            repository.save(match { it.id == "glkvm-1" && it.glkvmPassword == "s3cr3t!" })
+        }
+    }
 }

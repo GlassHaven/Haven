@@ -95,6 +95,34 @@ class TunneledSocketTest {
         } catch (_: UnsupportedOperationException) { /* expected */ }
     }
 
+    @Test
+    fun deferredTunneledSocketUsesTunnelRemoteAddressWithoutSystemDns() {
+        val conn = object : TunneledConnection {
+            override val inputStream: InputStream = ByteArrayInputStream(ByteArray(0))
+            override val outputStream: OutputStream = ByteArrayOutputStream()
+            override val remoteAddress: String = "10.55.0.1"
+            override fun close() {}
+        }
+        val tunnel = object : Tunnel {
+            override fun dial(host: String, port: Int, timeoutMs: Int): TunneledConnection {
+                assertEquals("glkvm.lan", host)
+                assertEquals(443, port)
+                return conn
+            }
+            override fun close() {}
+        }
+        val s = DeferredTunneledSocket(tunnel, dialTimeoutMs = 5_000)
+        s.connect(InetSocketAddress.createUnresolved("glkvm.lan", 443))
+
+        assertNotNull("DeferredTunneledSocket must expose tunnel-reported peer IP (#539)", s.inetAddress)
+        assertEquals("10.55.0.1", s.inetAddress?.hostAddress)
+        val remote = s.remoteSocketAddress as? InetSocketAddress
+        assertNotNull(remote)
+        assertFalse("remoteSocketAddress should be resolved when tunnel reports peer IP", remote!!.isUnresolved)
+        assertEquals("10.55.0.1", remote.address.hostAddress)
+        assertEquals(443, remote.port)
+    }
+
     private class FakeConn(
         input: ByteArray = ByteArray(0),
         output: OutputStream = ByteArrayOutputStream(),

@@ -337,6 +337,7 @@ fun DesktopScreen(
                         }
 
                         is DesktopTab.Rdp -> RdpSessionContent(
+                            protocolLabel = tab.protocol,
                             connected = tab.connected,
                             frame = tab.frame,
                             frameSeq = tab.frameSeq,
@@ -397,6 +398,7 @@ fun DesktopScreen(
                         // SPICE reuses the RDP content renderer: a bitmap canvas
                         // + PC set-1 scancode keyboard, which SPICE also uses.
                         is DesktopTab.Spice -> RdpSessionContent(
+                            protocolLabel = tab.protocol,
                             connected = tab.connected,
                             frame = tab.frame,
                             error = tab.error,
@@ -459,6 +461,7 @@ fun DesktopScreen(
                         // in core/glkvm). kvmd pushes no cursor shape, so no
                         // cursor flow.
                         is DesktopTab.Glkvm -> RdpSessionContent(
+                            protocolLabel = tab.protocol,
                             connected = tab.connected,
                             frame = tab.frame,
                             error = tab.error,

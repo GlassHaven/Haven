@@ -603,26 +603,11 @@ private fun RdpViewer(
     var canvasFocused by remember { mutableStateOf(false) }
     var fieldFocused by remember { mutableStateOf(false) }
     val handleHardwareKey: (androidx.compose.ui.input.key.KeyEvent) -> Boolean = { event ->
-        // #606: while the soft keyboard is attached to the hidden text field,
-        // the commit path (onValueChange → onTypeChar) is the single sender for
-        // printable characters. Some IMEs (AOSP's Spanish layout among them)
-        // ALSO fire a synthetic hardware key event for the same press, which
-        // this preview handler sees — the guest gets the character twice (the
-        // `!!@@` flip), and when the IME repeats the event on its flush
-        // cadence, a stream of keystrokes. Drop printable events while the
-        // field holds focus; non-printable keys (arrows, F-keys, Enter, Tab,
-        // modifiers) have no commit-path equivalent and still pass through.
-        // termlib's terminal input path guards the same race with a
-        // commit-then-suppress queue (ImeInputView.dispatchKeyEvent).
-        val native = event.nativeKeyEvent
-        val committed = native.getUnicodeChar(native.metaState)
-        // Enter and Tab are excluded: the soft keyboard delivers them as
-        // editor actions, not text commits, so onValueChange never sees them
-        // and the scancode path below is their only sender.
-        if (fieldFocused && committed > 0 &&
-            committed != '\r'.code && committed != '\n'.code && committed != '\t'.code
-        ) {
-            true
+        if (!shouldHandleRdpRootHardwareKey(fieldFocused)) {
+            // Soft keyboard attached: RemoteDesktopImeField handles printable
+            // commits, sendKeyEvent digits/symbols/capitals, same-turn echo
+            // suppression (#606), Backspace/Enter buffer sync, and special keys.
+            false
         } else {
             val scancode = androidKeyToScancode(event.key)
             if (scancode != null) {
@@ -990,6 +975,24 @@ private fun RdpViewer(
             onTypeChar = onTypeChar,
             onTypeText = onTypeText,
             releaseActiveModifiers = releaseActiveModifiers,
+            onPreviewKey = { event ->
+                val native = event.nativeKeyEvent
+                val hasCtrlAltMeta = (native.metaState and (
+                    android.view.KeyEvent.META_CTRL_MASK or
+                        android.view.KeyEvent.META_ALT_MASK or
+                        android.view.KeyEvent.META_META_MASK
+                    )) != 0
+                val scancode = rdpImeSpecialKeyToScancode(event.key, hasCtrlAltMeta)
+                if (scancode != null) {
+                    when (event.type) {
+                        KeyEventType.KeyDown -> onKeyDown(scancode)
+                        KeyEventType.KeyUp -> onKeyUp(scancode)
+                    }
+                    true
+                } else {
+                    false
+                }
+            },
         )
 
         var reorderMode by remember { mutableStateOf(false) }
@@ -1691,6 +1694,56 @@ internal fun handleRdpToolbarBytes(
 
 internal fun diffImeCommit(oldText: String, newText: String): Pair<String?, Int> =
     sh.haven.core.ui.diffRemoteImeCommit(oldText, newText)
+
+internal fun shouldHandleRdpRootHardwareKey(fieldFocused: Boolean): Boolean = !fieldFocused
+
+/**
+ * Map special keys arriving on [RemoteDesktopImeField] while the soft keyboard
+ * holds focus (#606). Printable keys (`0`–`9`, letters, symbols), `Backspace`,
+ * and bare soft-keyboard `Shift` are intentionally excluded here so
+ * `RemoteImeController` handles them via character/layout synthesis without
+ * leaking stuck `SC_SHIFT_L` scancodes onto the remote wire. When a hardware
+ * `Ctrl`/`Alt`/`Meta` modifier chord is active, falls back to [androidKeyToScancode].
+ */
+internal fun rdpImeSpecialKeyToScancode(key: Key, hasCtrlAltMeta: Boolean): Int? {
+    if (hasCtrlAltMeta) return androidKeyToScancode(key)
+    return when (key) {
+        Key.Enter -> SC_RETURN
+        Key.NumPadEnter -> SC_NUMPAD_ENTER
+        Key.Tab -> SC_TAB
+        Key.Escape -> SC_ESCAPE
+        Key.Delete -> SC_DELETE
+        Key.Insert -> SC_INSERT
+        Key.DirectionLeft -> SC_LEFT
+        Key.DirectionRight -> SC_RIGHT
+        Key.DirectionUp -> SC_UP
+        Key.DirectionDown -> SC_DOWN
+        Key.MoveHome -> SC_HOME
+        Key.MoveEnd -> SC_END
+        Key.PageUp -> SC_PGUP
+        Key.PageDown -> SC_PGDN
+        Key.CtrlLeft -> SC_CTRL_L
+        Key.CtrlRight -> SC_CTRL_R
+        Key.AltLeft -> SC_ALT_L
+        Key.AltRight -> SC_ALT_R
+        Key.MetaLeft -> SC_WIN_L
+        Key.MetaRight -> SC_WIN_R
+        Key.NumLock -> SC_NUMLOCK
+        Key.F1 -> SC_F1
+        Key.F2 -> SC_F2
+        Key.F3 -> SC_F3
+        Key.F4 -> SC_F4
+        Key.F5 -> SC_F5
+        Key.F6 -> SC_F6
+        Key.F7 -> SC_F7
+        Key.F8 -> SC_F8
+        Key.F9 -> SC_F9
+        Key.F10 -> SC_F10
+        Key.F11 -> SC_F11
+        Key.F12 -> SC_F12
+        else -> null
+    }
+}
 
 internal fun androidKeyToScancode(key: Key): Int? = when (key) {
     Key.Enter -> SC_RETURN

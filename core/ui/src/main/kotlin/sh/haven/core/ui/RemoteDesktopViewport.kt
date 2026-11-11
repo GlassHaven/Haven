@@ -2,8 +2,12 @@ package sh.haven.core.ui
 
 import android.content.pm.ActivityInfo
 import android.graphics.Bitmap
+import android.os.Handler
+import android.os.Looper
 import android.os.SystemClock
 import android.view.InputDevice
+import android.view.KeyCharacterMap
+import android.view.KeyEvent as AndroidKeyEvent
 import android.view.MotionEvent
 import androidx.compose.foundation.Canvas
 import androidx.compose.foundation.background
@@ -16,6 +20,7 @@ import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.text.BasicTextField
+import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.OpenWith
 import androidx.compose.material.icons.filled.ScreenLockLandscape
@@ -58,7 +63,9 @@ import androidx.compose.ui.graphics.drawscope.scale
 import androidx.compose.ui.graphics.drawscope.translate
 import androidx.compose.ui.graphics.graphicsLayer
 import androidx.compose.ui.graphics.vector.ImageVector
+import androidx.compose.ui.input.key.Key
 import androidx.compose.ui.input.key.KeyEvent
+import androidx.compose.ui.input.key.key
 import androidx.compose.ui.input.key.onPreviewKeyEvent
 import androidx.compose.ui.input.pointer.AwaitPointerEventScope
 import androidx.compose.ui.input.pointer.PointerButtons
@@ -75,6 +82,7 @@ import androidx.compose.ui.input.pointer.pointerInput
 import androidx.compose.ui.input.pointer.positionChange
 import androidx.compose.ui.layout.onSizeChanged
 import androidx.compose.ui.text.TextRange
+import androidx.compose.ui.text.input.KeyboardCapitalization
 import androidx.compose.ui.text.input.TextFieldValue
 import androidx.compose.ui.unit.IntOffset
 import androidx.compose.ui.unit.IntSize
@@ -1157,9 +1165,271 @@ private fun DrawScope.drawRemoteDesktopFallbackCursor(
     }
 }
 
+private const val REMOTE_IME_BUFFER_MAX_CHARS = 512
+
+/**
+ * Stateful soft-keyboard controller for [RemoteDesktopImeField] (#606).
+ *
+ * Bridges two Android IME delivery paths into a single character/special-key
+ * stream without dropping keys or doubling echoes:
+ * 1. `InputConnection.commitText` / `setComposingText` (`BasicTextField.onValueChange`):
+ *    diffs against [text] via [diffRemoteImeCommit] and queues committed printable
+ *    characters into [committedThisTurn] (cleared on a two-hop main-looper drain,
+ *    matching `termlib`'s `ImeInputView.consumeSameMessagePrintableEcho`). If the
+ *    IME also fires a synthetic `KeyEvent` echo (or held-echo repeat stream, e.g.
+ *    AOSP Spanish layout), only the echo is consumed.
+ * 2. `InputConnection.sendKeyEvent` (`onPreviewKeyEvent`): soft keyboards send the
+ *    top number bar (`0`–`9`), shifted capitals, and many symbols via `sendKeyEvent`
+ *    without calling `commitText`. When [committedThisTurn] does not match, the
+ *    resolved Unicode character is emitted via [onTypeChar]/[onTypeText] and
+ *    appended to [text] so surrounding-text queries stay in sync without
+ *    double-firing `onValueChange`.
+ *
+ * Also keeps [text] in lock-step on `Backspace` (`KEYCODE_DEL`), clears [text] on
+ * `Enter` so separate lines never fuse into one run-on token, and ignores bare
+ * soft-keyboard `ShiftLeft`/`ShiftRight` events so an unpaired `ACTION_DOWN` can
+ * never leave `Shift` stuck down on the remote host.
+ */
+internal class RemoteImeController(
+    private val scheduleTwoHopDrain: ((() -> Unit) -> Unit)? = null,
+) {
+    var text: String = ""
+        private set
+
+    private val committedThisTurn = ArrayDeque<Char>()
+    private var echoDrainScheduled = false
+    private var suppressedEchoKeyCode: Int = -1
+    private var consumedPrintableKeyCode: Int = -1
+
+    fun onValueChanged(
+        newText: String,
+        hasActiveModifier: Boolean,
+        onBackspace: () -> Unit,
+        onTypeChar: (Char) -> Unit,
+        onTypeText: (String) -> Unit,
+        releaseActiveModifiers: () -> Unit,
+    ): String {
+        val (added, deleted) = diffRemoteImeCommit(text, newText)
+        text = trimBufferIfOversized(newText)
+        if (deleted > 0) {
+            repeat(deleted) { onBackspace() }
+        }
+        if (added != null) {
+            rememberCommittedPrintableEcho(added)
+            emitTypedString(added, hasActiveModifier, onTypeChar, onTypeText, releaseActiveModifiers)
+        }
+        return text
+    }
+
+    fun onPreviewKeyEvent(
+        event: KeyEvent,
+        hasActiveModifier: Boolean,
+        onBackspace: () -> Unit,
+        onTypeChar: (Char) -> Unit,
+        onTypeText: (String) -> Unit,
+        releaseActiveModifiers: () -> Unit,
+        onSpecialKey: ((KeyEvent) -> Boolean)?,
+    ): Boolean {
+        val native = event.nativeKeyEvent
+        if (native.action == AndroidKeyEvent.ACTION_MULTIPLE) {
+            @Suppress("DEPRECATION")
+            val chars = native.characters
+            if (!chars.isNullOrEmpty()) {
+                text = trimBufferIfOversized(text + chars)
+                emitTypedString(chars, hasActiveModifier, onTypeChar, onTypeText, releaseActiveModifiers)
+                return true
+            }
+            return false
+        }
+
+        val isDown = native.action == AndroidKeyEvent.ACTION_DOWN
+        val isUp = native.action == AndroidKeyEvent.ACTION_UP
+        if (!isDown && !isUp) return false
+
+        val key = event.key
+        if (key == Key.Backspace) {
+            if (isDown) {
+                if (text.isNotEmpty()) {
+                    text = deleteLastCodePoint(text)
+                }
+                onBackspace()
+                releaseActiveModifiers()
+            }
+            return true
+        }
+
+        if (key == Key.Enter || key == Key.NumPadEnter) {
+            if (isDown) {
+                text = ""
+            }
+            val handled = onSpecialKey?.invoke(event) ?: false
+            if (isUp && handled) {
+                releaseActiveModifiers()
+            }
+            return handled
+        }
+
+        val hasCtrlAltMeta = (native.metaState and (
+            AndroidKeyEvent.META_CTRL_MASK or
+                AndroidKeyEvent.META_ALT_MASK or
+                AndroidKeyEvent.META_META_MASK
+            )) != 0
+
+        if (!hasCtrlAltMeta && (key == Key.ShiftLeft || key == Key.ShiftRight)) {
+            // Do not leak soft-keyboard Shift scancodes onto the remote wire:
+            // soft keyboards frequently emit KEYCODE_SHIFT_LEFT ACTION_DOWN
+            // without a matching ACTION_UP when the character commits via
+            // commitText, leaving Shift stuck down on the guest (#606).
+            return false
+        }
+
+        if (!hasCtrlAltMeta) {
+            if (isUp) {
+                if (native.keyCode == suppressedEchoKeyCode) {
+                    suppressedEchoKeyCode = -1
+                    return true
+                }
+                if (native.keyCode == consumedPrintableKeyCode) {
+                    consumedPrintableKeyCode = -1
+                    return true
+                }
+            } else {
+                if (native.repeatCount > 0 && native.keyCode == suppressedEchoKeyCode) {
+                    return true
+                }
+                val cp = resolvePrintableImeCodePoint(native)
+                if (cp != 0) {
+                    if (committedThisTurn.isNotEmpty()) {
+                        if (committedThisTurn.first().code == cp) {
+                            committedThisTurn.removeFirst()
+                            suppressedEchoKeyCode = native.keyCode
+                            return true
+                        }
+                        committedThisTurn.clear()
+                    }
+                    val committedStr = String(Character.toChars(cp))
+                    text = trimBufferIfOversized(text + committedStr)
+                    consumedPrintableKeyCode = native.keyCode
+                    emitTypedString(
+                        committedStr,
+                        hasActiveModifier,
+                        onTypeChar,
+                        onTypeText,
+                        releaseActiveModifiers,
+                    )
+                    return true
+                }
+            }
+        }
+
+        return onSpecialKey?.invoke(event) ?: false
+    }
+
+    fun drainEchoQueueNow() {
+        committedThisTurn.clear()
+        echoDrainScheduled = false
+    }
+
+    private fun rememberCommittedPrintableEcho(added: String) {
+        for (ch in added) {
+            if (ch.code >= 0x20) {
+                committedThisTurn.addLast(ch)
+            }
+        }
+        if (committedThisTurn.isNotEmpty() && !echoDrainScheduled) {
+            echoDrainScheduled = true
+            val clear = { drainEchoQueueNow() }
+            if (scheduleTwoHopDrain != null) {
+                scheduleTwoHopDrain.invoke(clear)
+            } else {
+                val mainLooper = Looper.getMainLooper()
+                if (mainLooper != null) {
+                    val handler = Handler(mainLooper)
+                    handler.post { handler.post(clear) }
+                } else {
+                    clear()
+                }
+            }
+        }
+    }
+
+    private fun emitTypedString(
+        added: String,
+        hasActiveModifier: Boolean,
+        onTypeChar: (Char) -> Unit,
+        onTypeText: (String) -> Unit,
+        releaseActiveModifiers: () -> Unit,
+    ) {
+        if (added.length == 1 && hasActiveModifier) {
+            onTypeChar(added[0])
+            releaseActiveModifiers()
+        } else {
+            onTypeText(added)
+            releaseActiveModifiers()
+        }
+    }
+
+    private fun deleteLastCodePoint(s: String): String {
+        if (s.isEmpty()) return s
+        val drop = if (s.length >= 2 && Character.isSurrogatePair(s[s.length - 2], s[s.length - 1])) 2 else 1
+        return s.substring(0, s.length - drop)
+    }
+
+    private fun trimBufferIfOversized(s: String): String =
+        if (s.length <= REMOTE_IME_BUFFER_MAX_CHARS) s else s.takeLast(REMOTE_IME_BUFFER_MAX_CHARS / 2)
+}
+
+/**
+ * Resolve a printable Unicode code point from [event], excluding Enter/Tab/control
+ * characters and dead-key combining accents. Falls back to `keyCode` + Shift state
+ * when `getUnicodeChar` returns 0 (e.g. mockable `android.jar` in JVM unit tests).
+ */
+internal fun resolvePrintableImeCodePoint(event: AndroidKeyEvent): Int {
+    val u = event.getUnicodeChar(event.metaState)
+    if (u != 0) {
+        if ((u and KeyCharacterMap.COMBINING_ACCENT) != 0) return 0
+        if (u < 0x20 || u == '\r'.code || u == '\n'.code || u == '\t'.code || u == 0x7F) return 0
+        return u
+    }
+    val shifted = (event.metaState and AndroidKeyEvent.META_SHIFT_MASK) != 0
+    return when (event.keyCode) {
+        in AndroidKeyEvent.KEYCODE_A..AndroidKeyEvent.KEYCODE_Z -> {
+            val base = if (shifted) 'A'.code else 'a'.code
+            base + (event.keyCode - AndroidKeyEvent.KEYCODE_A)
+        }
+        in AndroidKeyEvent.KEYCODE_0..AndroidKeyEvent.KEYCODE_9 -> {
+            val idx = event.keyCode - AndroidKeyEvent.KEYCODE_0
+            if (shifted) {
+                ")!@#$%^&*("[idx].code
+            } else {
+                '0'.code + idx
+            }
+        }
+        AndroidKeyEvent.KEYCODE_SPACE -> ' '.code
+        AndroidKeyEvent.KEYCODE_AT -> '@'.code
+        AndroidKeyEvent.KEYCODE_POUND -> '#'.code
+        AndroidKeyEvent.KEYCODE_STAR -> '*'.code
+        AndroidKeyEvent.KEYCODE_PLUS -> '+'.code
+        AndroidKeyEvent.KEYCODE_MINUS -> (if (shifted) '_' else '-').code
+        AndroidKeyEvent.KEYCODE_EQUALS -> (if (shifted) '+' else '=').code
+        AndroidKeyEvent.KEYCODE_LEFT_BRACKET -> (if (shifted) '{' else '[').code
+        AndroidKeyEvent.KEYCODE_RIGHT_BRACKET -> (if (shifted) '}' else ']').code
+        AndroidKeyEvent.KEYCODE_BACKSLASH -> (if (shifted) '|' else '\\').code
+        AndroidKeyEvent.KEYCODE_SEMICOLON -> (if (shifted) ':' else ';').code
+        AndroidKeyEvent.KEYCODE_APOSTROPHE -> (if (shifted) '"' else '\'').code
+        AndroidKeyEvent.KEYCODE_SLASH -> (if (shifted) '?' else '/').code
+        AndroidKeyEvent.KEYCODE_COMMA -> (if (shifted) '<' else ',').code
+        AndroidKeyEvent.KEYCODE_PERIOD -> (if (shifted) '>' else '.').code
+        AndroidKeyEvent.KEYCODE_GRAVE -> (if (shifted) '~' else '`').code
+        else -> 0
+    }
+}
+
 /**
  * Hidden 1.dp [BasicTextField] that mirrors the IME buffer and diffs each commit
- * via [diffRemoteImeCommit] without resetting to a sentinel (bug #5).
+ * via [diffRemoteImeCommit] without resetting to a sentinel (bug #5), while also
+ * forwarding `sendKeyEvent` digits/symbols/capitals and suppressing duplicate
+ * `commitText` + `KeyEvent` echoes (#606).
  */
 @Composable
 fun RemoteDesktopImeField(
@@ -1172,37 +1442,57 @@ fun RemoteDesktopImeField(
     releaseActiveModifiers: () -> Unit,
     onPreviewKey: ((KeyEvent) -> Boolean)? = null,
 ) {
+    val controller = remember { RemoteImeController() }
     var textFieldValue by remember {
         mutableStateOf(TextFieldValue("", TextRange(0)))
     }
-    val baseModifier = Modifier
+    val currentHasActiveModifier by rememberUpdatedState(hasActiveModifier)
+    val currentOnBackspace by rememberUpdatedState(onBackspace)
+    val currentOnTypeChar by rememberUpdatedState(onTypeChar)
+    val currentOnTypeText by rememberUpdatedState(onTypeText)
+    val currentReleaseModifiers by rememberUpdatedState(releaseActiveModifiers)
+    val currentOnPreviewKey by rememberUpdatedState(onPreviewKey)
+
+    val fieldModifier = Modifier
         .size(1.dp)
         .focusRequester(focusRequester)
         .onFocusChanged { onFieldFocusChanged(it.isFocused) }
-    val fieldModifier = if (onPreviewKey != null) {
-        baseModifier.onPreviewKeyEvent(onPreviewKey)
-    } else {
-        baseModifier
-    }
+        .onPreviewKeyEvent { event ->
+            val handled = controller.onPreviewKeyEvent(
+                event = event,
+                hasActiveModifier = currentHasActiveModifier,
+                onBackspace = currentOnBackspace,
+                onTypeChar = currentOnTypeChar,
+                onTypeText = currentOnTypeText,
+                releaseActiveModifiers = currentReleaseModifiers,
+                onSpecialKey = currentOnPreviewKey,
+            )
+            if (textFieldValue.text != controller.text) {
+                textFieldValue = TextFieldValue(controller.text, TextRange(controller.text.length))
+            }
+            handled
+        }
 
     BasicTextField(
         value = textFieldValue,
         onValueChange = { newValue ->
-            val (added, deleted) = diffRemoteImeCommit(textFieldValue.text, newValue.text)
-            if (deleted > 0) {
-                repeat(deleted) { onBackspace() }
+            val synced = controller.onValueChanged(
+                newText = newValue.text,
+                hasActiveModifier = currentHasActiveModifier,
+                onBackspace = currentOnBackspace,
+                onTypeChar = currentOnTypeChar,
+                onTypeText = currentOnTypeText,
+                releaseActiveModifiers = currentReleaseModifiers,
+            )
+            textFieldValue = if (synced == newValue.text) {
+                newValue
+            } else {
+                TextFieldValue(synced, TextRange(synced.length))
             }
-            if (added != null) {
-                if (added.length == 1 && hasActiveModifier) {
-                    onTypeChar(added[0])
-                    releaseActiveModifiers()
-                } else {
-                    onTypeText(added)
-                    releaseActiveModifiers()
-                }
-            }
-            textFieldValue = newValue
         },
+        keyboardOptions = KeyboardOptions(
+            capitalization = KeyboardCapitalization.None,
+        ),
         modifier = fieldModifier,
     )
 }

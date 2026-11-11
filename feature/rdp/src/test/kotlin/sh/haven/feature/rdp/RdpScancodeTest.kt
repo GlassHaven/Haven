@@ -4,6 +4,7 @@ import androidx.compose.ui.input.key.Key
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertFalse
 import org.junit.Assert.assertNotEquals
+import org.junit.Assert.assertNull
 import org.junit.Assert.assertTrue
 import org.junit.Test
 
@@ -363,5 +364,48 @@ class RdpScancodeTest {
         )
         assertEquals(listOf("char:r"), events)
         assertEquals(4, released)
+    }
+
+    /**
+     * #606: when the soft-keyboard IME field holds focus (`fieldFocused == true`),
+     * the root Box preview handler must NOT intercept key events — consuming
+     * printable `sendKeyEvent` events at the root swallowed the entire `0`–`9`
+     * number row and shifted symbols before `BasicTextField` could see them,
+     * while forwarding `Key.ShiftLeft` sent stuck `SC_SHIFT_L` scancodes.
+     */
+    @Test
+    fun `root hardware key handler defers when soft keyboard field is focused`() {
+        assertTrue(shouldHandleRdpRootHardwareKey(fieldFocused = false))
+        assertFalse(shouldHandleRdpRootHardwareKey(fieldFocused = true))
+    }
+
+    @Test
+    fun `rdpImeSpecialKeyToScancode excludes printable keys Backspace and bare Shift`() {
+        val excludedWithoutChord = listOf(
+            Key.Zero, Key.One, Key.Two, Key.Three, Key.Four,
+            Key.Five, Key.Six, Key.Seven, Key.Eight, Key.Nine,
+            Key.A, Key.Q, Key.Z, Key.Spacebar, Key.Minus, Key.Equals,
+            Key.Semicolon, Key.Apostrophe, Key.Slash, Key.Period,
+            Key.Backspace, Key.ShiftLeft, Key.ShiftRight,
+        )
+        excludedWithoutChord.forEach { key ->
+            assertNull(
+                "IME field must not map $key to a raw scancode without Ctrl/Alt/Meta (#606)",
+                rdpImeSpecialKeyToScancode(key, hasCtrlAltMeta = false),
+            )
+        }
+
+        // Special navigation/control keys still map to Set-1 scancodes.
+        assertEquals(SC_RETURN, rdpImeSpecialKeyToScancode(Key.Enter, hasCtrlAltMeta = false))
+        assertEquals(SC_NUMPAD_ENTER, rdpImeSpecialKeyToScancode(Key.NumPadEnter, hasCtrlAltMeta = false))
+        assertEquals(SC_TAB, rdpImeSpecialKeyToScancode(Key.Tab, hasCtrlAltMeta = false))
+        assertEquals(SC_ESCAPE, rdpImeSpecialKeyToScancode(Key.Escape, hasCtrlAltMeta = false))
+        assertEquals(SC_DELETE, rdpImeSpecialKeyToScancode(Key.Delete, hasCtrlAltMeta = false))
+        assertEquals(SC_UP, rdpImeSpecialKeyToScancode(Key.DirectionUp, hasCtrlAltMeta = false))
+        assertEquals(SC_F1, rdpImeSpecialKeyToScancode(Key.F1, hasCtrlAltMeta = false))
+
+        // Hardware Ctrl/Alt/Meta chords still map printable keys to scancodes.
+        assertEquals(0x2E, rdpImeSpecialKeyToScancode(Key.C, hasCtrlAltMeta = true))
+        assertEquals(SC_F12, rdpImeSpecialKeyToScancode(Key.F12, hasCtrlAltMeta = true))
     }
 }

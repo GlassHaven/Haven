@@ -4,6 +4,7 @@ import android.content.Context
 import dagger.hilt.android.qualifiers.ApplicationContext
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.SupervisorJob
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.map
 import kotlinx.coroutines.launch
@@ -15,15 +16,29 @@ import javax.inject.Inject
 import javax.inject.Singleton
 
 @Singleton
-class ConnectionRepository @Inject constructor(
+class ConnectionRepository internal constructor(
     private val connectionDao: ConnectionDao,
     private val tunnelConfigDao: TunnelConfigDao,
     private val chatRepository: ChatRepository,
-    @ApplicationContext private val context: Context,
+    private val context: Context,
+    initScope: CoroutineScope? = null,
 ) {
+    @Inject constructor(
+        connectionDao: ConnectionDao,
+        tunnelConfigDao: TunnelConfigDao,
+        chatRepository: ChatRepository,
+        @ApplicationContext context: Context,
+    ) : this(
+        connectionDao = connectionDao,
+        tunnelConfigDao = tunnelConfigDao,
+        chatRepository = chatRepository,
+        context = context,
+        initScope = CoroutineScope(SupervisorJob() + Dispatchers.IO),
+    )
+
     init {
         // Encrypt any plaintext credentials left from legacy installs or newly added columns.
-        CoroutineScope(Dispatchers.IO).launch {
+        initScope?.launch {
             migrateLegacyPlaintextCredentials()
         }
     }

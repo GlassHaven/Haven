@@ -1,26 +1,18 @@
 package sh.haven.feature.rdp
 
 import android.graphics.Bitmap
-import android.os.SystemClock
-import androidx.compose.foundation.Canvas
-import androidx.compose.foundation.background
-import androidx.compose.foundation.focusable
-import androidx.compose.foundation.gestures.awaitEachGesture
-import androidx.compose.foundation.gestures.awaitFirstDown
 import androidx.compose.animation.AnimatedVisibility
-import androidx.compose.animation.animateContentSize
 import androidx.compose.animation.core.animateFloatAsState
 import androidx.compose.animation.core.tween
 import androidx.compose.animation.fadeIn
 import androidx.compose.animation.fadeOut
 import androidx.compose.foundation.clickable
+import androidx.compose.foundation.gestures.detectDragGesturesAfterLongPress
 import androidx.compose.foundation.interaction.MutableInteractionSource
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.ExperimentalLayoutApi
-import androidx.compose.foundation.layout.IntrinsicSize
-import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.WindowInsets
@@ -28,20 +20,15 @@ import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.isImeVisible
+import androidx.compose.foundation.layout.offset
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
-import androidx.compose.foundation.layout.width
-import androidx.compose.foundation.rememberScrollState
-import androidx.compose.foundation.horizontalScroll
-import androidx.compose.foundation.text.BasicTextField
-import androidx.compose.foundation.verticalScroll
+import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Close
 import androidx.compose.material.icons.filled.ContentPaste
-import androidx.compose.material.icons.filled.ExpandLess
-import androidx.compose.material.icons.filled.ExpandMore
-import androidx.compose.material.icons.filled.Fullscreen
 import androidx.compose.material.icons.filled.FitScreen
+import androidx.compose.material.icons.filled.Fullscreen
 import androidx.compose.material.icons.filled.FullscreenExit
 import androidx.compose.material.icons.filled.Keyboard
 import androidx.compose.material.icons.filled.KeyboardHide
@@ -49,34 +36,23 @@ import androidx.compose.material.icons.filled.Menu
 import androidx.compose.material.icons.filled.OpenWith
 import androidx.compose.material.icons.filled.PanTool
 import androidx.compose.material.icons.filled.Speed
-import androidx.compose.material.icons.filled.ScreenLockLandscape
-import androidx.compose.material.icons.filled.ScreenLockPortrait
-import androidx.compose.material.icons.filled.ScreenRotation
-import androidx.compose.material.icons.filled.SwapVert
 import androidx.compose.material.icons.filled.TouchApp
 import androidx.compose.material3.Button
-import androidx.compose.material3.ButtonDefaults
 import androidx.compose.material3.Card
 import androidx.compose.material3.CardDefaults
+import androidx.compose.material3.FilledIconToggleButton
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
-import androidx.compose.material3.FilledIconToggleButton
 import androidx.compose.material3.MaterialTheme
-import androidx.compose.material3.FilledTonalButton
-import androidx.compose.material3.AlertDialog
-import androidx.compose.material3.OutlinedTextField
-import androidx.compose.material3.Slider
 import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
-import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.DisposableEffect
 import androidx.compose.runtime.LaunchedEffect
-import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.State
+import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
-import androidx.compose.runtime.mutableFloatStateOf
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.rememberUpdatedState
@@ -85,66 +61,49 @@ import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.focus.FocusRequester
-import androidx.compose.ui.focus.focusRequester
-import androidx.compose.ui.focus.onFocusChanged
-import androidx.compose.foundation.gestures.detectDragGesturesAfterLongPress
-import androidx.compose.foundation.layout.offset
 import androidx.compose.ui.geometry.Offset
-import androidx.compose.ui.layout.boundsInParent
-import androidx.compose.ui.layout.onGloballyPositioned
-import androidx.compose.ui.graphics.Color
-import androidx.compose.ui.graphics.Path
-import androidx.compose.ui.graphics.asImageBitmap
-import androidx.compose.ui.graphics.drawscope.Fill
-import androidx.compose.ui.graphics.drawscope.Stroke
-import androidx.compose.ui.graphics.drawscope.scale
-import androidx.compose.ui.graphics.drawscope.translate
-import androidx.compose.ui.graphics.drawscope.DrawScope
 import androidx.compose.ui.graphics.graphicsLayer
 import androidx.compose.ui.input.key.Key
 import androidx.compose.ui.input.key.KeyEventType
 import androidx.compose.ui.input.key.key
 import androidx.compose.ui.input.key.onPreviewKeyEvent
 import androidx.compose.ui.input.key.type
-import androidx.compose.ui.ExperimentalComposeUiApi
 import androidx.compose.ui.input.pointer.PointerButtons
-import androidx.compose.ui.input.pointer.PointerEvent
 import androidx.compose.ui.input.pointer.PointerEventPass
-import androidx.compose.ui.input.pointer.PointerEventType
 import androidx.compose.ui.input.pointer.PointerType
-import androidx.compose.ui.input.pointer.areAnyPressed
-import androidx.compose.ui.input.pointer.isPrimaryPressed
-import androidx.compose.ui.input.pointer.isSecondaryPressed
-import androidx.compose.ui.input.pointer.isTertiaryPressed
 import androidx.compose.ui.input.pointer.pointerInput
-import androidx.compose.ui.input.pointer.pointerInteropFilter
 import androidx.compose.ui.input.pointer.positionChange
-import androidx.compose.ui.layout.onSizeChanged
+import androidx.compose.ui.layout.boundsInParent
+import androidx.compose.ui.layout.onGloballyPositioned
 import androidx.compose.ui.platform.LocalClipboardManager
 import androidx.compose.ui.platform.LocalConfiguration
 import androidx.compose.ui.platform.LocalFocusManager
 import androidx.compose.ui.platform.LocalSoftwareKeyboardController
 import androidx.compose.ui.platform.LocalUriHandler
-import androidx.compose.ui.text.TextRange
-import androidx.compose.ui.text.input.TextFieldValue
 import androidx.compose.ui.platform.LocalView
-import androidx.compose.ui.unit.IntSize
+import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.unit.dp
-import androidx.compose.ui.unit.sp
 import androidx.core.view.WindowCompat
 import androidx.core.view.WindowInsetsCompat
 import androidx.core.view.WindowInsetsControllerCompat
-import androidx.compose.ui.text.font.FontWeight
+import kotlin.math.abs
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import sh.haven.core.data.preferences.ToolbarKey
 import sh.haven.core.data.preferences.ToolbarLayout
 import sh.haven.core.ui.CursorOverlay
-import sh.haven.core.ui.clampPanToCover
+import sh.haven.core.ui.DesktopOrientationMode
+import sh.haven.core.ui.RemoteDesktopCameraFollowEffect
+import sh.haven.core.ui.RemoteDesktopImeField
+import sh.haven.core.ui.RemoteDesktopViewport
+import sh.haven.core.ui.RemoteScrollModeToggle
+import sh.haven.core.ui.RemoteTrackpadSensitivityDialog
+import sh.haven.core.ui.applyRemoteViewportPan
+import sh.haven.core.ui.applyRemoteViewportPinch
+import sh.haven.core.ui.rememberRemoteDesktopViewportState
+import sh.haven.core.ui.screenToRemoteDesktop
 import sh.haven.feature.rdp.R
-import androidx.compose.ui.res.stringResource
-import kotlin.math.abs
 
 /**
  * Stateless RDP session content — takes StateFlows and input lambdas directly.
@@ -539,39 +498,21 @@ private fun RdpViewer(
             onCancelTouches?.invoke()
         }
     }
-    // Map the activity-orientation constant to the local enum for
-    // icon/description rendering. Source-of-truth for the value lives
-    // outside this composable (DesktopViewModel) so it
-    // survives recomposition cycles that would tear down a `remember`
-    // here.
-    val orientationMode = OrientationMode.fromActivityValue(currentOrientation)
+    val orientationMode = DesktopOrientationMode.fromActivityValue(currentOrientation)
     val orientationDesc = when (orientationMode) {
-        OrientationMode.Landscape -> stringResource(R.string.rdp_orientation_landscape_desc)
-        OrientationMode.Portrait -> stringResource(R.string.rdp_orientation_portrait_desc)
-        OrientationMode.Auto -> stringResource(R.string.rdp_orientation_auto_desc)
+        DesktopOrientationMode.Landscape -> stringResource(R.string.rdp_orientation_landscape_desc)
+        DesktopOrientationMode.Portrait -> stringResource(R.string.rdp_orientation_portrait_desc)
+        DesktopOrientationMode.Auto -> stringResource(R.string.rdp_orientation_auto_desc)
     }
-    var viewSize by remember { mutableStateOf(IntSize.Zero) }
-    val imageBitmap = remember(frame) { frame.asImageBitmap() }
-    val cursorImage = remember(cursor) { cursor?.bitmap?.asImageBitmap() }
-
-    // Zoom & pan state
-    var zoom by rememberSaveable { mutableFloatStateOf(1f) }
-    var panX by rememberSaveable { mutableFloatStateOf(0f) }
-    var panY by rememberSaveable { mutableFloatStateOf(0f) }
+    val viewportState = rememberRemoteDesktopViewportState(
+        inputMode = effectiveInputMode,
+        pointerPos = pointerPos,
+        saveable = true,
+    )
     // Two-finger drag target: false = pan the local viewport (when zoomed),
     // true = forward as remote scroll-wheel. Pinch always zooms. Toolbar
     // toggle (#286 — 3-finger gestures are unreliable on OnePlus/OxygenOS).
     var twoFingerScroll by rememberSaveable { mutableStateOf(false) }
-
-    // Touchpad-mode virtual cursor — composable scope so it survives lifts.
-    var virtualCursor by remember(effectiveInputMode) { mutableStateOf(pointerPos) }
-    // #696: float accumulator for the same cursor — per-event Int rounding
-    // would otherwise drop sub-pixel steps at low sensitivity (a slow drag
-    // would round to zero and never move). The Int pair above stays the
-    // emitted/consumed value.
-    var virtualCursorF by remember(effectiveInputMode) {
-        mutableStateOf(Offset(pointerPos.first.toFloat(), pointerPos.second.toFloat()))
-    }
 
     // #598: the server only sends a cursor SHAPE when the guest first moves its
     // own cursor, so a freshly connected session has input but nothing to draw
@@ -602,7 +543,8 @@ private fun RdpViewer(
             fallbackExpired = true
         }
     }
-    val (externalCursorX, externalCursorY) = if (effectiveInputMode == "TOUCHPAD") virtualCursor else pointerPos
+    val (externalCursorX, externalCursorY) =
+        if (effectiveInputMode == "TOUCHPAD") viewportState.virtualCursor else pointerPos
     val externalDisplay = sh.haven.core.ui.rememberExternalDisplayProjection(
         frame = frame,
         frameSeq = frameSeq.value,
@@ -614,38 +556,13 @@ private fun RdpViewer(
         sessionKey = sessionKey,
     )
 
-    // Tap-then-drag state — see VncScreen for the full rationale. A follow-up
-    // touch within 300 ms triggers button-1 drag rather than long-press right-click (#828).
-    var lastTapUpMs by remember { mutableStateOf(0L) }
-
-    // Mario-camera viewport pan: when in touchpad mode and zoomed, snap the
-    // pan so the cursor always stays inside the inner dead-zone of the view.
-    LaunchedEffect(virtualCursor, effectiveInputMode, zoom, viewSize, frame.width, frame.height) {
-        if (effectiveInputMode == "TOUCHPAD" && zoom > 1f && viewSize.width > 0 && viewSize.height > 0) {
-            val (newPanX, newPanY) = cameraFollow(
-                cursorFbX = virtualCursor.first,
-                cursorFbY = virtualCursor.second,
-                fbWidth = frame.width,
-                fbHeight = frame.height,
-                viewW = viewSize.width.toFloat(),
-                viewH = viewSize.height.toFloat(),
-                zoom = zoom,
-                panX = panX,
-                panY = panY,
-            )
-            // #738: the dead-zone snap can overshoot the cover bound near a
-            // content edge (it centres the cursor, not the content) — clamp
-            // the result so the camera never exposes black.
-            val fit = minOf(
-                viewSize.width.toFloat() / frame.width,
-                viewSize.height.toFloat() / frame.height,
-            )
-            val clampedX = clampPanToCover(newPanX, frame.width * fit, viewSize.width.toFloat(), zoom)
-            val clampedY = clampPanToCover(newPanY, frame.height * fit, viewSize.height.toFloat(), zoom)
-            if (clampedX != panX) panX = clampedX
-            if (clampedY != panY) panY = clampedY
-        }
-    }
+    RemoteDesktopCameraFollowEffect(
+        state = viewportState,
+        cursorPos = viewportState.virtualCursor,
+        enabled = effectiveInputMode == "TOUCHPAD",
+        fbWidth = frame.width,
+        fbHeight = frame.height,
+    )
 
     // Keyboard
     // #511: where a real keyboard is attached and usable, the keyboard icon
@@ -835,17 +752,6 @@ private fun RdpViewer(
         label = "fullscreenChipAlpha",
     )
 
-    // The hidden field mirrors whatever the IME reports and is never reset.
-    // Resetting it to a sentinel desynced the IME's own buffer from the field
-    // value, so each commit was diffed against a stale baseline: a growing IME
-    // buffer was sliced at a fixed offset, which dropped characters and
-    // re-emitted earlier ones. VNC fixed the identical bug in v5.89.24
-    // (VncScreen.diffImeCommit, bug #5); RDP, SPICE and GLKVM still ran the
-    // sentinel version.
-    var textFieldValue by remember {
-        mutableStateOf(TextFieldValue("", TextRange(0)))
-    }
-
     val clipboardManager = LocalClipboardManager.current
     val pasteClipboard: () -> Unit = {
         val text = clipboardManager.getText()?.text
@@ -861,591 +767,209 @@ private fun RdpViewer(
             .onPreviewKeyEvent(handleHardwareKey),
     ) {
     Column(modifier = Modifier.fillMaxSize()) {
-        // RDP canvas
-        Box(
-            modifier = Modifier
-                .weight(1f)
-                .fillMaxWidth()
-                .background(Color.Black)
-                .focusRequester(hardwareKeyFocus)
-                .focusable()
-                .onFocusChanged { canvasFocused = it.isFocused }
-                .onSizeChanged { viewSize = it }
-                // #660/#622: unpressed hardware mouse / trackpad hover motion
-                // (PointerEventType.Move with pressed == false) and mouse wheel
-                // scroll (PointerEventType.Scroll) carry no pressed pointer, so
-                // awaitFirstDown() below never wakes for them. Handle both here
-                // so moving a Bluetooth/USB mouse moves the remote cursor and
-                // rolling the wheel scrolls the window under the cursor.
-                .pointerInput(frame.width, frame.height, viewSize, effectiveInputMode) {
-                    val wheelNotches = DesktopWheelNotchAccumulator()
-                    awaitPointerEventScope {
-                        while (true) {
+        // Shared remote-desktop canvas & gesture state machine (:core:ui)
+        RemoteDesktopViewport(
+            frame = frame,
+            state = viewportState,
+            inputMode = effectiveInputMode,
+            touchpadSensitivity = touchpadSensitivity,
+            twoFingerScroll = twoFingerScroll,
+            minZoom = 1f,
+            maxZoom = 5f,
+            frameSeq = frameSeq,
+            isProjectingExternal = externalDisplay.isProjecting,
+            cursor = cursor,
+            pointerPos = pointerPos,
+            showCursor = effectiveInputMode != "TOUCHSCREEN",
+            showFallbackCursor = pointerActive && !hasReceivedCursorShape && !fallbackExpired,
+            useVirtualCursorPositionForOverlay = effectiveInputMode == "TOUCHPAD",
+            hardwareKeyFocus = hardwareKeyFocus,
+            onCanvasFocusChanged = { canvasFocused = it },
+            shouldReclaimHardwareKeyFocusOnTap = {
+                !currentImeVisible && !currentFieldFocused &&
+                    currentKeyboardVisible == currentPhysicalKeyboardAttached
+            },
+            onPointerActivated = { pointerActive = true },
+            onTap = onTap,
+            onMiddleClick = onMiddleClick,
+            onRightClick = onRightClick,
+            onDragStart = onDragStart,
+            onDrag = onDrag,
+            onDragEnd = onDragEnd,
+            onScrollUp = onScrollUp,
+            onScrollDown = onScrollDown,
+            onPressButton = onPressButton,
+            onReleaseButton = onReleaseButton,
+            gestureKey = touchscreenViewportNav,
+            customTouchGestureHandler = { firstDown, viewSize ->
+                if (shouldForwardTouchscreenContacts(effectiveInputMode, onTouchFrame != null, touchscreenViewportNav)) {
+                    // #778: native MS-RDPEI multi-touch passthrough.
+                    val touchCallback = onTouchFrame!!
+                    val activeTouchIds = HashSet<Long>()
+                    try {
+                        val firstPos = screenToRemoteDesktop(
+                            offset = firstDown.position,
+                            viewSize = viewSize,
+                            fbWidth = frame.width,
+                            fbHeight = frame.height,
+                            zoom = viewportState.zoom,
+                            panX = viewportState.panX,
+                            panY = viewportState.panY,
+                        )
+                        activeTouchIds.add(firstDown.id.value)
+                        touchCallback(
+                            listOf(
+                                sh.haven.core.rdp.RdpTouchContactSample(
+                                    pointerId = firstDown.id.value,
+                                    phase = sh.haven.core.rdp.RdpTouchContactPhase.STARTED,
+                                    x = firstPos.first,
+                                    y = firstPos.second,
+                                ),
+                            ),
+                        )
+                        do {
                             val event = awaitPointerEvent(PointerEventPass.Initial)
-                            val change = event.changes.firstOrNull() ?: continue
-                            if (event.type == PointerEventType.Scroll) {
-                                val pos = screenToRemote(
-                                    change.position, viewSize,
-                                    frame.width, frame.height,
-                                    zoom, panX, panY,
+                            val samples = ArrayList<sh.haven.core.rdp.RdpTouchContactSample>(event.changes.size)
+                            for (change in event.changes) {
+                                val id = change.id.value
+                                val pos = screenToRemoteDesktop(
+                                    offset = change.position,
+                                    viewSize = viewSize,
+                                    fbWidth = frame.width,
+                                    fbHeight = frame.height,
+                                    zoom = viewportState.zoom,
+                                    panX = viewportState.panX,
+                                    panY = viewportState.panY,
                                 )
-                                pointerActive = true
-                                virtualCursor = pos
-                                virtualCursorF = Offset(pos.first.toFloat(), pos.second.toFloat())
-                                onDrag(pos.first, pos.second)
-                                val steps = wheelNotches.feed(change.scrollDelta.y)
-                                change.consume()
-                                if (steps > 0) {
-                                    repeat(steps) { onScrollUp() }
-                                } else if (steps < 0) {
-                                    repeat(-steps) { onScrollDown() }
+                                if (change.pressed) {
+                                    val isNew = activeTouchIds.add(id)
+                                    samples.add(
+                                        sh.haven.core.rdp.RdpTouchContactSample(
+                                            pointerId = id,
+                                            phase = if (isNew) {
+                                                sh.haven.core.rdp.RdpTouchContactPhase.STARTED
+                                            } else {
+                                                sh.haven.core.rdp.RdpTouchContactPhase.MOVED
+                                            },
+                                            x = pos.first,
+                                            y = pos.second,
+                                        ),
+                                    )
+                                } else if (activeTouchIds.remove(id)) {
+                                    samples.add(
+                                        sh.haven.core.rdp.RdpTouchContactSample(
+                                            pointerId = id,
+                                            phase = sh.haven.core.rdp.RdpTouchContactPhase.ENDED,
+                                            x = pos.first,
+                                            y = pos.second,
+                                        ),
+                                    )
                                 }
-                            } else if (event.type == PointerEventType.Move && event.changes.none { it.pressed }) {
-                                val pos = screenToRemote(
-                                    change.position, viewSize,
-                                    frame.width, frame.height,
-                                    zoom, panX, panY,
-                                )
-                                pointerActive = true
-                                virtualCursor = pos
-                                virtualCursorF = Offset(pos.first.toFloat(), pos.second.toFloat())
-                                onDrag(pos.first, pos.second)
                                 change.consume()
                             }
+                            if (samples.isNotEmpty()) {
+                                touchCallback(samples)
+                            }
+                        } while (event.changes.any { it.pressed })
+                    } finally {
+                        if (activeTouchIds.isNotEmpty()) {
+                            onCancelTouches?.invoke()
                         }
                     }
-                }
-                // Sensitivity is a key so an in-flight drag does not carry the
-                // stale multiplier from capture time (#696).
-                .pointerInput(frame.width, frame.height, viewSize, effectiveInputMode, touchpadSensitivity, touchscreenViewportNav) {
-                    val touchSlopPx = viewConfiguration.touchSlop
-                    awaitEachGesture {
-                        val firstDown = awaitFirstDown(
-                            requireUnconsumed = false,
-                            pass = PointerEventPass.Initial,
-                        )
-                        val downMotionEvent = currentEvent.motionEvent
-                        val isMouseDevice = isHardwareMouseGesture(
-                            pointerType = firstDown.type,
-                            buttons = currentEvent.buttons,
-                            motionSource = downMotionEvent?.source ?: 0,
-                        )
-                        var mouseButton = if (isMouseDevice) {
-                            resolveHardwareMouseButton(
-                                buttons = currentEvent.buttons,
-                                motionButtonState = downMotionEvent?.buttonState ?: 0,
+                    true
+                } else if (effectiveInputMode == "TOUCHSCREEN" && touchscreenViewportNav) {
+                    // #778 follow-up: temporary local viewport zoom/pan inside TOUCHSCREEN mode.
+                    var totalFingers = 1
+                    var prevCentroid = firstDown.position
+                    var prevSpan = 0f
+                    var prevCount = 0
+                    var gestureStarted = false
+                    do {
+                        val event = awaitPointerEvent(PointerEventPass.Initial)
+                        val pointers = event.changes.filter { it.pressed }
+                        val count = pointers.size
+                        if (count >= 2) {
+                            totalFingers = maxOf(totalFingers, count)
+                            val centroid = Offset(
+                                pointers.map { it.position.x }.average().toFloat(),
+                                pointers.map { it.position.y }.average().toFloat(),
                             )
-                        } else {
-                            0
-                        }
-                        firstDown.consume()
-                        pointerActive = true
-                        // #507: a canvas tap re-claims hardware-key focus from
-                        // whatever took it (drawer, toolbar button). Reclaim
-                        // whenever passthrough should hold focus: hardware mode
-                        // with the toggle on, soft mode with the IME down
-                        // (reclaiming while the IME is up would dismiss it).
-                        // keyboardVisible == physicalKeyboardAttached is exactly
-                        // that condition, and it also respects a deliberate
-                        // hardware-mode toggle-off (no re-grab).
-                        //
-                        // While the IME is up (or the hidden field holds
-                        // focus) the tap must NOT reclaim: taking focus away
-                        // from the field leaves the soft keyboard attached to
-                        // nothing, so every typed character is silently
-                        // dropped while the toolbar's scancode keys keep
-                        // working — the "Tab works, letters don't" report.
-                        if (!currentImeVisible && !currentFieldFocused &&
-                            currentKeyboardVisible == currentPhysicalKeyboardAttached
-                        ) {
-                            hardwareKeyFocus.requestFocus()
-                        }
-                        if (!isMouseDevice && shouldForwardTouchscreenContacts(effectiveInputMode, onTouchFrame != null, touchscreenViewportNav)) {
-                            // #778: native MS-RDPEI multi-touch passthrough.
-                            // Every pointer down/move/up is forwarded directly
-                            // to the remote touch digitizer instead of being
-                            // interpreted as local viewport zoom/scroll or mouse.
-                            val touchCallback = onTouchFrame!!
-                            val activeTouchIds = HashSet<Long>()
-                            try {
-                                val firstPos = screenToRemote(
-                                    firstDown.position, viewSize,
-                                    frame.width, frame.height,
-                                    zoom, panX, panY,
-                                )
-                                activeTouchIds.add(firstDown.id.value)
-                                touchCallback(
-                                    listOf(
-                                        sh.haven.core.rdp.RdpTouchContactSample(
-                                            pointerId = firstDown.id.value,
-                                            phase = sh.haven.core.rdp.RdpTouchContactPhase.STARTED,
-                                            x = firstPos.first,
-                                            y = firstPos.second,
-                                        ),
-                                    ),
-                                )
-                                do {
-                                    val event = awaitPointerEvent(PointerEventPass.Initial)
-                                    val samples = ArrayList<sh.haven.core.rdp.RdpTouchContactSample>(event.changes.size)
-                                    for (change in event.changes) {
-                                        val id = change.id.value
-                                        val pos = screenToRemote(
-                                            change.position, viewSize,
-                                            frame.width, frame.height,
-                                            zoom, panX, panY,
-                                        )
-                                        if (change.pressed) {
-                                            val isNew = activeTouchIds.add(id)
-                                            samples.add(
-                                                sh.haven.core.rdp.RdpTouchContactSample(
-                                                    pointerId = id,
-                                                    phase = if (isNew) {
-                                                        sh.haven.core.rdp.RdpTouchContactPhase.STARTED
-                                                    } else {
-                                                        sh.haven.core.rdp.RdpTouchContactPhase.MOVED
-                                                    },
-                                                    x = pos.first,
-                                                    y = pos.second,
-                                                ),
-                                            )
-                                        } else if (activeTouchIds.remove(id)) {
-                                            samples.add(
-                                                sh.haven.core.rdp.RdpTouchContactSample(
-                                                    pointerId = id,
-                                                    phase = sh.haven.core.rdp.RdpTouchContactPhase.ENDED,
-                                                    x = pos.first,
-                                                    y = pos.second,
-                                                ),
-                                            )
-                                        }
-                                        change.consume()
-                                    }
-                                    if (samples.isNotEmpty()) {
-                                        touchCallback(samples)
-                                    }
-                                } while (event.changes.any { it.pressed })
-                            } finally {
-                                if (activeTouchIds.isNotEmpty()) {
-                                    onCancelTouches?.invoke()
-                                }
-                            }
-                            return@awaitEachGesture
-                        }
-                        if (effectiveInputMode == "TOUCHSCREEN" && touchscreenViewportNav) {
-                            // #778 follow-up: temporary Viewport Navigation mode inside
-                            // TOUCHSCREEN mode. Pinch-to-zoom and 1- or 2-finger drag
-                            // adjust the local viewport (zoom/panX/panY) without
-                            // forwarding any touches or mouse clicks to the remote.
-                            var totalFingers = 1
-                            var prevCentroid = firstDown.position
-                            var prevSpan = 0f
-                            var prevCount = 0
-                            var gestureStarted = false
-                            do {
-                                val event = awaitPointerEvent(PointerEventPass.Initial)
-                                val pointers = event.changes.filter { it.pressed }
-                                val count = pointers.size
-                                if (count >= 2) {
-                                    totalFingers = maxOf(totalFingers, count)
-                                    val centroid = Offset(
-                                        pointers.map { it.position.x }.average().toFloat(),
-                                        pointers.map { it.position.y }.average().toFloat(),
-                                    )
-                                    val span = pointers.map {
-                                        (it.position - centroid).getDistance()
-                                    }.average().toFloat()
-                                    if (gestureStarted && count == prevCount) {
-                                        val dx = centroid.x - prevCentroid.x
-                                        val dy = centroid.y - prevCentroid.y
-                                        val spanDelta = if (prevSpan > 0f) abs(span - prevSpan) else 0f
-                                        val pinching = spanDelta > 2f && spanDelta >= abs(dx) + abs(dy)
-                                        if (pinching && prevSpan > 0f && span > 0f) {
-                                            val next = applyViewportPinch(
-                                                zoom = zoom, panX = panX, panY = panY,
-                                                prevSpan = prevSpan, span = span,
-                                                centroid = centroid,
-                                                viewWidth = viewSize.width.toFloat(),
-                                                viewHeight = viewSize.height.toFloat(),
-                                                fbWidth = frame.width,
-                                                fbHeight = frame.height,
-                                            )
-                                            zoom = next.zoom
-                                            panX = next.panX
-                                            panY = next.panY
-                                        } else if (zoom > 1f) {
-                                            val next = applyViewportPan(
-                                                zoom = zoom, panX = panX, panY = panY,
-                                                dx = dx, dy = dy,
-                                                viewWidth = viewSize.width.toFloat(),
-                                                viewHeight = viewSize.height.toFloat(),
-                                                fbWidth = frame.width,
-                                                fbHeight = frame.height,
-                                            )
-                                            panX = next.panX
-                                            panY = next.panY
-                                        }
-                                    }
-                                    gestureStarted = true
-                                    prevCentroid = centroid
-                                    prevSpan = span
-                                    prevCount = count
-                                    pointers.forEach { it.consume() }
-                                } else if (count == 1 && totalFingers == 1) {
-                                    val change = pointers.first()
-                                    val delta = change.positionChange()
-                                    if (zoom > 1f && (delta.x != 0f || delta.y != 0f)) {
-                                        val next = applyViewportPan(
-                                            zoom = zoom, panX = panX, panY = panY,
-                                            dx = delta.x, dy = delta.y,
-                                            viewWidth = viewSize.width.toFloat(),
-                                            viewHeight = viewSize.height.toFloat(),
-                                            fbWidth = frame.width,
-                                            fbHeight = frame.height,
-                                        )
-                                        panX = next.panX
-                                        panY = next.panY
-                                    }
-                                    change.consume()
-                                } else {
-                                    event.changes.forEach { it.consume() }
-                                }
-                            } while (event.changes.any { it.pressed })
-                            return@awaitEachGesture
-                        }
-                        var totalFingers = 1
-                        var prevCentroid = firstDown.position
-                        var prevSpan = 0f
-                        var prevCount = 0
-                        var gestureStarted = false
-                        var cumulativeScrollY = 0f
-                        var totalMovement = 0f
-                        // Centroid travel while ≥2 fingers are down; a near-zero
-                        // total means a 2-finger tap → middle click (#286).
-                        var twoFingerMovement = 0f
-                        var lastSinglePos = firstDown.position
-                        var dragging = false
-                        var longPressFired = false
-                        val longPressMs = viewConfiguration.longPressTimeoutMillis
-                        val downUptimeMs = firstDown.uptimeMillis
-                        // Tap-then-drag follow-up window (touchscreen touchpad mode only;
-                        // hardware mouse/touchpad gestures never use tap-then-drag, #622).
-                        val isFollowUpTouch = !isMouseDevice && effectiveInputMode == "TOUCHPAD" &&
-                            (downUptimeMs - lastTapUpMs) <= 300L
-                        var dragButtonPressed = false
-
-                        var event: PointerEvent
-                        do {
-                            val remaining = remainingTouchLongPressTimeoutMs(
-                                isMouseDevice = isMouseDevice,
-                                totalFingers = totalFingers,
-                                longPressFired = longPressFired,
-                                dragging = dragging,
-                                totalMovement = totalMovement,
-                                touchSlopPx = touchSlopPx,
-                                isFollowUpTouch = isFollowUpTouch,
-                                longPressMs = longPressMs,
-                                elapsedMs = SystemClock.uptimeMillis() - downUptimeMs,
-                            )
-                            val timedEvent = if (remaining == Long.MAX_VALUE) {
-                                awaitPointerEvent(PointerEventPass.Initial)
-                            } else {
-                                withTimeoutOrNull(remaining) {
-                                    awaitPointerEvent(PointerEventPass.Initial)
-                                }
-                            }
-                            if (timedEvent == null) {
-                                if (shouldFireTouchLongPressRightClick(
-                                        isMouseDevice = isMouseDevice,
-                                        totalFingers = totalFingers,
-                                        longPressFired = longPressFired,
-                                        dragging = dragging,
-                                        totalMovement = totalMovement,
-                                        touchSlopPx = touchSlopPx,
-                                        isFollowUpTouch = isFollowUpTouch,
-                                    )
-                                ) {
-                                    val (vx, vy) = resolveTouchLongPressTarget(
-                                        effectiveInputMode = effectiveInputMode,
-                                        virtualCursor = virtualCursor,
-                                        directPos = {
-                                            val pos = screenToRemote(
-                                                lastSinglePos, viewSize,
-                                                frame.width, frame.height,
-                                                zoom, panX, panY,
-                                            )
-                                            virtualCursor = pos
-                                            virtualCursorF = Offset(pos.first.toFloat(), pos.second.toFloat())
-                                            pos
-                                        },
-                                    )
-                                    onRightClick(vx, vy)
-                                    longPressFired = true
-                                }
-                                event = awaitPointerEvent(PointerEventPass.Initial)
-                            } else {
-                                event = timedEvent
-                            }
-                            if (isMouseDevice && mouseButton == 0) {
-                                mouseButton = resolveHardwareMouseButton(
-                                    buttons = event.buttons,
-                                    motionButtonState = event.motionEvent?.buttonState ?: 0,
-                                )
-                            }
-                            val pointers = event.changes.filter { it.pressed }
-                            val count = pointers.size
-
-                            if (count >= 2) {
-                                if (dragging) {
-                                    if (isMouseDevice && mouseButton in 2..3) {
-                                        onReleaseButton(mouseButton)
-                                    } else {
-                                        onDragEnd()
-                                    }
-                                    dragging = false
-                                }
-                                totalFingers = maxOf(totalFingers, count)
-                                val centroid = Offset(
-                                    pointers.map { it.position.x }.average().toFloat(),
-                                    pointers.map { it.position.y }.average().toFloat(),
-                                )
-                                val span = pointers.map {
-                                    (it.position - centroid).getDistance()
-                                }.average().toFloat()
-
-                                // Skip delta on the frame where pointer count
-                                // changed — the centroid recomputes over a
-                                // different pointer set, so the apparent jump
-                                // would feed in as a real pan/zoom delta.
-                                if (gestureStarted && count == prevCount) {
-                                    val dx = centroid.x - prevCentroid.x
-                                    val dy = centroid.y - prevCentroid.y
-                                    twoFingerMovement += abs(dx) + abs(dy)
-                                    // Distinguish a pinch (span changing) from a
-                                    // drag (fingers translating together).
-                                    val spanDelta = if (prevSpan > 0f) abs(span - prevSpan) else 0f
-                                    val pinching = spanDelta > 2f && spanDelta >= abs(dx) + abs(dy)
-                                    if (pinching && prevSpan > 0f && span > 0f) {
-                                        val next = applyViewportPinch(
-                                            zoom = zoom, panX = panX, panY = panY,
-                                            prevSpan = prevSpan, span = span,
+                            val span = pointers.map {
+                                (it.position - centroid).getDistance()
+                            }.average().toFloat()
+                            if (gestureStarted && count == prevCount) {
+                                val dx = centroid.x - prevCentroid.x
+                                val dy = centroid.y - prevCentroid.y
+                                val spanDelta = if (prevSpan > 0f) abs(span - prevSpan) else 0f
+                                val pinching = spanDelta > 2f && spanDelta >= abs(dx) + abs(dy)
+                                if (pinching && prevSpan > 0f && span > 0f) {
+                                    viewportState.applyTransform(
+                                        applyRemoteViewportPinch(
+                                            zoom = viewportState.zoom,
+                                            panX = viewportState.panX,
+                                            panY = viewportState.panY,
+                                            prevSpan = prevSpan,
+                                            span = span,
                                             centroid = centroid,
                                             viewWidth = viewSize.width.toFloat(),
                                             viewHeight = viewSize.height.toFloat(),
                                             fbWidth = frame.width,
                                             fbHeight = frame.height,
-                                        )
-                                        zoom = next.zoom
-                                        panX = next.panX
-                                        panY = next.panY
-                                    } else if (twoFingerScroll) {
-                                        // Windows-scroll mode: drag = remote wheel.
-                                        // Finger-down (dy>0) → wheel-up so the page
-                                        // tracks the fingers (touchscreen convention).
-                                        cumulativeScrollY += dy
-                                        if (abs(cumulativeScrollY) > 40f) {
-                                            if (cumulativeScrollY < 0) onScrollDown() else onScrollUp()
-                                            cumulativeScrollY = 0f
-                                        }
-                                    } else if (zoom > 1f) {
-                                        val next = applyViewportPan(
-                                            zoom = zoom, panX = panX, panY = panY,
-                                            dx = dx, dy = dy,
+                                        ),
+                                    )
+                                } else if (viewportState.zoom > 1f) {
+                                    viewportState.applyTransform(
+                                        applyRemoteViewportPan(
+                                            zoom = viewportState.zoom,
+                                            panX = viewportState.panX,
+                                            panY = viewportState.panY,
+                                            dx = dx,
+                                            dy = dy,
                                             viewWidth = viewSize.width.toFloat(),
                                             viewHeight = viewSize.height.toFloat(),
                                             fbWidth = frame.width,
                                             fbHeight = frame.height,
-                                        )
-                                        panX = next.panX
-                                        panY = next.panY
-                                    }
-                                }
-
-                                gestureStarted = true
-                                prevCentroid = centroid
-                                prevSpan = span
-                                prevCount = count
-
-                                pointers.forEach { it.consume() }
-                            } else if (count == 1 && totalFingers == 1) {
-                                val change = pointers.first()
-                                val deltaScreen = change.positionChange()
-                                totalMovement += deltaScreen.getDistance()
-                                lastSinglePos = change.position
-                                if (isMouseDevice) {
-                                    // #660/#622: hardware mouse or SOURCE_MOUSE trackpad.
-                                    // Buttonless SOURCE_MOUSE motion (mouseButton == 0)
-                                    // moves the remote pointer without pressing button 1,
-                                    // while a held mouse button (1/2/3) drags with that button.
-                                    val pos = screenToRemote(
-                                        change.position, viewSize,
-                                        frame.width, frame.height,
-                                        zoom, panX, panY,
+                                        ),
                                     )
-                                    virtualCursor = pos
-                                    virtualCursorF = Offset(pos.first.toFloat(), pos.second.toFloat())
-                                    if (mouseButton == 0) {
-                                        if (totalMovement >= touchSlopPx) {
-                                            onDrag(pos.first, pos.second)
-                                        }
-                                    } else if (!dragging && totalMovement >= touchSlopPx) {
-                                        if (mouseButton == 1) {
-                                            onDragStart(pos.first, pos.second)
-                                        } else {
-                                            onDrag(pos.first, pos.second)
-                                            onPressButton(mouseButton)
-                                        }
-                                        dragging = true
-                                    } else if (dragging) {
-                                        onDrag(pos.first, pos.second)
-                                    }
-                                } else if (effectiveInputMode == "TOUCHPAD") {
-                                    if (!longPressFired) {
-                                        val scale = if (zoom > 0f) zoom else 1f
-                                        // #696: scale the finger delta by the trackpad
-                                        // sensitivity multiplier; keep the position in
-                                        // float space so per-event rounding can't drop
-                                        // sub-pixel steps at low sensitivity.
-                                        val fx = virtualCursorF.x + deltaScreen.x / scale * touchpadSensitivity
-                                        val fy = virtualCursorF.y + deltaScreen.y / scale * touchpadSensitivity
-                                        virtualCursorF = Offset(
-                                            fx.coerceIn(0f, (frame.width - 1).toFloat()),
-                                            fy.coerceIn(0f, (frame.height - 1).toFloat()),
-                                        )
-                                        val nx = fx.toInt().coerceIn(0, frame.width - 1)
-                                        val ny = fy.toInt().coerceIn(0, frame.height - 1)
-                                        virtualCursor = nx to ny
-                                        if (totalMovement >= touchSlopPx) {
-                                            if (isFollowUpTouch && !dragButtonPressed) {
-                                                onDragStart(nx, ny)
-                                                dragButtonPressed = true
-                                            } else {
-                                                onDrag(nx, ny)
-                                            }
-                                        }
-                                    }
-                                } else {
-                                    val pos = screenToRemote(
-                                        change.position, viewSize,
-                                        frame.width, frame.height,
-                                        zoom, panX, panY,
-                                    )
-                                    if (!longPressFired && !dragging && totalMovement >= touchSlopPx) {
-                                        onDragStart(pos.first, pos.second)
-                                        dragging = true
-                                    } else if (dragging) {
-                                        onDrag(pos.first, pos.second)
-                                    }
                                 }
-                                change.consume()
-                            } else {
-                                // Residual finger after a multi-finger pinch
-                                // (count == 1 but totalFingers already >= 2), or
-                                // the final all-up frame. Consume it so the
-                                // lingering single-finger slide can't leak up to
-                                // the HorizontalPager and swipe the Haven screen
-                                // sideways during/after a zoom. It isn't a tap or
-                                // drag in this state, so consuming costs nothing.
-                                event.changes.forEach { it.consume() }
                             }
-                        } while (event.changes.any { it.pressed })
-
-                        if (dragging || dragButtonPressed) {
-                            if (isMouseDevice && mouseButton in 2..3) {
-                                onReleaseButton(mouseButton)
-                            } else {
-                                onDragEnd()
-                            }
-                        }
-
-                        if (shouldFirePostGestureTap(totalFingers, totalMovement, touchSlopPx, longPressFired)) {
-                            val (vx, vy) = if (!isMouseDevice && effectiveInputMode == "TOUCHPAD") {
-                                virtualCursor
-                            } else {
-                                val pos = screenToRemote(
-                                    lastSinglePos, viewSize,
-                                    frame.width, frame.height,
-                                    zoom, panX, panY,
-                                )
-                                virtualCursor = pos
-                                virtualCursorF = Offset(pos.first.toFloat(), pos.second.toFloat())
-                                pos
-                            }
-                            when {
-                                isMouseDevice && mouseButton == 3 -> onRightClick(vx, vy)
-                                isMouseDevice && mouseButton == 2 -> onMiddleClick(vx, vy)
-                                else -> onTap(vx, vy)
-                            }
-                            if (!isMouseDevice && effectiveInputMode == "TOUCHPAD" && !isFollowUpTouch) {
-                                lastTapUpMs = SystemClock.uptimeMillis()
-                            } else {
-                                lastTapUpMs = 0L
-                            }
-                        } else if (totalFingers == 2 && twoFingerMovement < touchSlopPx && !longPressFired) {
-                            // Two fingers down + up with no travel = middle click (#286).
-                            val (mx, my) = if (effectiveInputMode == "TOUCHPAD") {
-                                virtualCursor
-                            } else {
-                                screenToRemote(
-                                    prevCentroid, viewSize,
-                                    frame.width, frame.height,
-                                    zoom, panX, panY,
+                            gestureStarted = true
+                            prevCentroid = centroid
+                            prevSpan = span
+                            prevCount = count
+                            pointers.forEach { it.consume() }
+                        } else if (count == 1 && totalFingers == 1) {
+                            val change = pointers.first()
+                            val delta = change.positionChange()
+                            if (viewportState.zoom > 1f && (delta.x != 0f || delta.y != 0f)) {
+                                viewportState.applyTransform(
+                                    applyRemoteViewportPan(
+                                        zoom = viewportState.zoom,
+                                        panX = viewportState.panX,
+                                        panY = viewportState.panY,
+                                        dx = delta.x,
+                                        dy = delta.y,
+                                        viewWidth = viewSize.width.toFloat(),
+                                        viewHeight = viewSize.height.toFloat(),
+                                        fbWidth = frame.width,
+                                        fbHeight = frame.height,
+                                    ),
                                 )
                             }
-                            onMiddleClick(mx, my)
-                            lastTapUpMs = 0L
+                            change.consume()
                         } else {
-                            lastTapUpMs = 0L
+                            event.changes.forEach { it.consume() }
                         }
-                    }
-                },
-        ) {
-            Canvas(
-                modifier = Modifier
-                    .fillMaxSize()
-                    .graphicsLayer {
-                        scaleX = zoom
-                        scaleY = zoom
-                        translationX = panX
-                        translationY = panY
-                        // Clip so zoomed/panned pixels don't escape into the
-                        // sibling bottom toolbar (see #107 for VNC equivalent).
-                        clip = true
-                    },
-            ) {
-                // The bitmap is mutated in place, so its identity cannot signal a
-                // change; this read is what invalidates the draw. Removing it
-                // freezes the picture on the first frame.
-                @Suppress("UNUSED_EXPRESSION")
-                frameSeq.value
-                if (!externalDisplay.isProjecting) {
-                    drawRemoteFrame(imageBitmap, frame.width, frame.height)
-                    // Server cursor overlay (#212). Draw at the touchpad-tracked
-                    // virtual cursor in TOUCHPAD mode (the position the user is
-                    // steering), else at the server-reported pointer position.
-                    // In native TOUCHSCREEN mode (#778), skip the mouse cursor overlay.
-                    if (effectiveInputMode != "TOUCHSCREEN") {
-                        val (px, py) = if (effectiveInputMode == "TOUCHPAD") virtualCursor else pointerPos
-                        if (cursorImage != null && cursor != null) {
-                            drawRdpCursor(
-                                cursor = cursorImage,
-                                cursorW = cursor.bitmap.width,
-                                cursorH = cursor.bitmap.height,
-                                hotspotX = cursor.hotspotX,
-                                hotspotY = cursor.hotspotY,
-                                pointerX = px,
-                                pointerY = py,
-                                fbWidth = frame.width,
-                                fbHeight = frame.height,
-                            )
-                        } else if (pointerActive && !hasReceivedCursorShape && !fallbackExpired) {
-                            // #598: the server has not pushed a shape yet — draw the
-                            // built-in arrow at the tracked position instead.
-                            drawFallbackCursor(px, py, frame.width, frame.height)
-                        }
-                    }
+                    } while (event.changes.any { it.pressed })
+                    true
+                } else {
+                    false
                 }
-            }
-        }
+            },
+            modifier = Modifier
+                .weight(1f)
+                .fillMaxWidth(),
+        )
 
         val releaseActiveModifiers: () -> Unit = {
             if (ctrlActive) { onKeyUp(SC_CTRL_L); ctrlActive = false }
@@ -1454,45 +978,17 @@ private fun RdpViewer(
             if (winActive) { onKeyUp(SC_WIN_L); winActive = false }
         }
 
-        // Hidden text field for keyboard input capture
-        BasicTextField(
-            value = textFieldValue,
-            onValueChange = { newValue ->
-                // Diff against the text the IME held before this commit, not a
-                // reset sentinel: only that baseline yields the exact change
-                // for append, backspace, autocorrect replacement and
-                // mid-string edits alike.
-                val (added, deleted) = diffImeCommit(textFieldValue.text, newValue.text)
-
-                // For a replacement the remote still holds the old text, so the
-                // removed run is erased first and the new run typed after it.
-                if (deleted > 0) {
-                    repeat(deleted) {
-                        onKeyDown(SC_BACKSPACE)
-                        onKeyUp(SC_BACKSPACE)
-                    }
-                }
-                if (added != null) {
-                    if (added.length == 1 && (ctrlActive || altActive || shiftActive || winActive)) {
-                        onTypeChar(added[0])
-                        releaseActiveModifiers()
-                    } else {
-                        onTypeText(added)
-                        releaseActiveModifiers()
-                    }
-                }
-
-                // Mirror the IME: the next commit's baseline must be exactly
-                // what the IME believes it sent.
-                textFieldValue = newValue
+        RemoteDesktopImeField(
+            focusRequester = focusRequester,
+            onFieldFocusChanged = { fieldFocused = it },
+            hasActiveModifier = ctrlActive || altActive || shiftActive || winActive,
+            onBackspace = {
+                onKeyDown(SC_BACKSPACE)
+                onKeyUp(SC_BACKSPACE)
             },
-            // Hardware keys are handled by the root Box's onPreviewKeyEvent
-            // (#507) — an ancestor of this field, so its preview pass fires
-            // whether focus sits here (soft keyboard) or on the canvas.
-            modifier = Modifier
-                .size(1.dp)
-                .focusRequester(focusRequester)
-                .onFocusChanged { fieldFocused = it.isFocused },
+            onTypeChar = onTypeChar,
+            onTypeText = onTypeText,
+            releaseActiveModifiers = releaseActiveModifiers,
         )
 
         var reorderMode by remember { mutableStateOf(false) }
@@ -1631,7 +1127,11 @@ private fun RdpViewer(
                         touchscreenViewportNav = !touchscreenViewportNav
                     }
                 } else {
-                    ScrollModeToggle(twoFingerScroll) { twoFingerScroll = !twoFingerScroll }
+                    RemoteScrollModeToggle(
+                        twoFingerScroll = twoFingerScroll,
+                        scrollOnDescription = stringResource(R.string.rdp_cd_two_finger_scroll_on),
+                        viewportDescription = stringResource(R.string.rdp_cd_two_finger_viewport),
+                    ) { twoFingerScroll = !twoFingerScroll }
                 }
                 if (externalDisplay.hasExternalDisplay) {
                     sh.haven.core.ui.ExternalDisplayToggle(externalDisplay.isProjecting) {
@@ -1641,12 +1141,8 @@ private fun RdpViewer(
 
                 Spacer(Modifier.weight(1f))
 
-                if (zoom != 1f || panX != 0f || panY != 0f) {
-                    IconButton(onClick = {
-                        zoom = 1f
-                        panX = 0f
-                        panY = 0f
-                    }) {
+                if (viewportState.isTransformed) {
+                    IconButton(onClick = { viewportState.resetTransform() }) {
                         Icon(Icons.Default.FitScreen, contentDescription = stringResource(R.string.rdp_cd_reset_zoom))
                     }
                 }
@@ -1785,19 +1281,19 @@ private fun RdpViewer(
                             touchscreenViewportNav = !touchscreenViewportNav
                         }
                     } else {
-                        ScrollModeToggle(twoFingerScroll) { twoFingerScroll = !twoFingerScroll }
+                        RemoteScrollModeToggle(
+                            twoFingerScroll = twoFingerScroll,
+                            scrollOnDescription = stringResource(R.string.rdp_cd_two_finger_scroll_on),
+                            viewportDescription = stringResource(R.string.rdp_cd_two_finger_viewport),
+                        ) { twoFingerScroll = !twoFingerScroll }
                     }
                     if (externalDisplay.hasExternalDisplay) {
                         sh.haven.core.ui.ExternalDisplayToggle(externalDisplay.isProjecting) {
                             externalDisplay.toggleProjection()
                         }
                     }
-                    if (zoom != 1f || panX != 0f || panY != 0f) {
-                        IconButton(onClick = {
-                            zoom = 1f
-                            panX = 0f
-                            panY = 0f
-                        }) {
+                    if (viewportState.isTransformed) {
+                        IconButton(onClick = { viewportState.resetTransform() }) {
                             Icon(
                                 Icons.Default.FitScreen,
                                 contentDescription = stringResource(R.string.rdp_cd_reset_zoom),
@@ -1817,8 +1313,10 @@ private fun RdpViewer(
     } // end Box
 
     if (showSensitivityDialog) {
-        TrackpadSensitivityDialog(
+        RemoteTrackpadSensitivityDialog(
             sensitivity = touchpadSensitivity,
+            title = stringResource(R.string.rdp_cd_trackpad_sensitivity),
+            closeLabel = stringResource(R.string.rdp_action_close),
             onSetSensitivity = { onSetTouchpadSensitivity?.invoke(it) },
             onDismiss = { showSensitivityDialog = false },
         )
@@ -1847,12 +1345,6 @@ internal fun shouldForwardTouchscreenContacts(
     touchscreenViewportNav: Boolean,
 ): Boolean = effectiveInputMode == "TOUCHSCREEN" && hasTouchCallback && !touchscreenViewportNav
 
-/**
- * Remaining wait before a stationary single-finger touchscreen press triggers
- * right-click in DIRECT/TOUCHPAD modes (#828), or [Long.MAX_VALUE] when the
- * gesture is ineligible (hardware mouse, multi-finger, moved past slop,
- * tap-then-drag follow-up, or already fired).
- */
 internal fun remainingTouchLongPressTimeoutMs(
     isMouseDevice: Boolean,
     totalFingers: Int,
@@ -1863,20 +1355,17 @@ internal fun remainingTouchLongPressTimeoutMs(
     isFollowUpTouch: Boolean,
     longPressMs: Long,
     elapsedMs: Long,
-): Long = if (shouldFireTouchLongPressRightClick(
-        isMouseDevice = isMouseDevice,
-        totalFingers = totalFingers,
-        longPressFired = longPressFired,
-        dragging = dragging,
-        totalMovement = totalMovement,
-        touchSlopPx = touchSlopPx,
-        isFollowUpTouch = isFollowUpTouch,
-    )
-) {
-    (longPressMs - elapsedMs).coerceAtLeast(1L)
-} else {
-    Long.MAX_VALUE
-}
+): Long = sh.haven.core.ui.remainingRemoteTouchLongPressTimeoutMs(
+    isMouseDevice = isMouseDevice,
+    totalFingers = totalFingers,
+    longPressFired = longPressFired,
+    dragging = dragging,
+    totalMovement = totalMovement,
+    touchSlopPx = touchSlopPx,
+    isFollowUpTouch = isFollowUpTouch,
+    longPressMs = longPressMs,
+    elapsedMs = elapsedMs,
+)
 
 internal fun shouldFireTouchLongPressRightClick(
     isMouseDevice: Boolean,
@@ -1886,85 +1375,52 @@ internal fun shouldFireTouchLongPressRightClick(
     totalMovement: Float,
     touchSlopPx: Float,
     isFollowUpTouch: Boolean,
-): Boolean =
-    !isMouseDevice &&
-        totalFingers == 1 &&
-        !longPressFired &&
-        !dragging &&
-        totalMovement < touchSlopPx &&
-        !isFollowUpTouch
+): Boolean = sh.haven.core.ui.shouldFireRemoteTouchLongPressRightClick(
+    isMouseDevice = isMouseDevice,
+    totalFingers = totalFingers,
+    longPressFired = longPressFired,
+    dragging = dragging,
+    totalMovement = totalMovement,
+    touchSlopPx = touchSlopPx,
+    isFollowUpTouch = isFollowUpTouch,
+)
 
 internal inline fun resolveTouchLongPressTarget(
     effectiveInputMode: String,
     virtualCursor: Pair<Int, Int>,
     directPos: () -> Pair<Int, Int>,
-): Pair<Int, Int> = if (effectiveInputMode == "TOUCHPAD") virtualCursor else directPos()
+): Pair<Int, Int> = sh.haven.core.ui.resolveRemoteTouchLongPressTarget(
+    effectiveInputMode = effectiveInputMode,
+    virtualCursor = virtualCursor,
+    directPos = directPos,
+)
 
 internal fun shouldFirePostGestureTap(
     totalFingers: Int,
     totalMovement: Float,
     touchSlopPx: Float,
     longPressFired: Boolean,
-): Boolean = totalFingers == 1 && totalMovement < touchSlopPx && !longPressFired
+): Boolean = sh.haven.core.ui.shouldFireRemotePostGestureTap(
+    totalFingers = totalFingers,
+    totalMovement = totalMovement,
+    touchSlopPx = touchSlopPx,
+    longPressFired = longPressFired,
+)
 
-/**
- * True when a down/move stream originates from a physical mouse or a
- * pointer-mode hardware touchpad (`SOURCE_MOUSE`) rather than the phone's
- * touchscreen (#660, #622).
- */
 internal fun isHardwareMouseGesture(
     pointerType: PointerType,
     buttons: PointerButtons,
     motionSource: Int,
-): Boolean =
-    pointerType == PointerType.Mouse ||
-        buttons.areAnyPressed ||
-        (motionSource and android.view.InputDevice.SOURCE_MOUSE) == android.view.InputDevice.SOURCE_MOUSE
+): Boolean = sh.haven.core.ui.isRemoteHardwareMouseGesture(pointerType, buttons, motionSource)
 
-/**
- * Map Compose [PointerButtons] and Android [ android.view.MotionEvent.getButtonState ]
- * to X11 mouse button numbers (1 = left, 2 = middle, 3 = right, 0 = buttonless
- * trackpad pointer stream, #660, #622).
- */
 internal fun resolveHardwareMouseButton(
     buttons: PointerButtons,
     motionButtonState: Int,
-): Int = when {
-    buttons.isSecondaryPressed ||
-        (motionButtonState and (android.view.MotionEvent.BUTTON_SECONDARY or android.view.MotionEvent.BUTTON_STYLUS_SECONDARY)) != 0 -> 3
-    buttons.isTertiaryPressed ||
-        (motionButtonState and android.view.MotionEvent.BUTTON_TERTIARY) != 0 -> 2
-    buttons.isPrimaryPressed ||
-        (motionButtonState and (android.view.MotionEvent.BUTTON_PRIMARY or android.view.MotionEvent.BUTTON_STYLUS_PRIMARY)) != 0 -> 1
-    else -> 0
-}
+): Int = sh.haven.core.ui.resolveRemoteHardwareMouseButton(buttons, motionButtonState)
 
-/**
- * Accumulates Compose `scrollDelta.y` values into whole wheel notches (#660).
- * Compose flips `MotionEvent.AXIS_VSCROLL`, so negative `scrollDelta.y` is
- * wheel-up (away from the user) and positive is wheel-down.
- */
-internal class DesktopWheelNotchAccumulator {
-    private var accumulated = 0f
+internal typealias DesktopWheelNotchAccumulator = sh.haven.core.ui.RemoteWheelNotchAccumulator
 
-    fun feed(scrollDeltaY: Float): Int {
-        if (scrollDeltaY.isNaN() || scrollDeltaY == 0f) return 0
-        accumulated += scrollDeltaY
-        var notches = 0
-        while (abs(accumulated) >= 1f) {
-            if (accumulated <= -1f) {
-                notches += 1
-                accumulated += 1f
-            } else {
-                notches -= 1
-                accumulated -= 1f
-            }
-        }
-        return notches
-    }
-}
-
-internal data class ViewportTransform(val zoom: Float, val panX: Float, val panY: Float)
+internal typealias ViewportTransform = sh.haven.core.ui.RemoteViewportTransform
 
 internal fun applyViewportPinch(
     zoom: Float,
@@ -1977,21 +1433,18 @@ internal fun applyViewportPinch(
     viewHeight: Float,
     fbWidth: Int,
     fbHeight: Int,
-): ViewportTransform {
-    if (prevSpan <= 0f || span <= 0f || fbWidth <= 0 || fbHeight <= 0 || viewWidth <= 0f || viewHeight <= 0f) {
-        return ViewportTransform(zoom, panX, panY)
-    }
-    val newZoom = (zoom * (span / prevSpan)).coerceIn(1f, 5f)
-    val actualScale = if (zoom > 0f) newZoom / zoom else 1f
-    val cx = viewWidth / 2f
-    val cy = viewHeight / 2f
-    val rawPanX = (centroid.x - cx) * (1 - actualScale) + panX * actualScale
-    val rawPanY = (centroid.y - cy) * (1 - actualScale) + panY * actualScale
-    val fit = minOf(viewWidth / fbWidth, viewHeight / fbHeight)
-    val clampedPanX = clampPanToCover(rawPanX, fbWidth * fit, viewWidth, newZoom)
-    val clampedPanY = clampPanToCover(rawPanY, fbHeight * fit, viewHeight, newZoom)
-    return ViewportTransform(newZoom, clampedPanX, clampedPanY)
-}
+): ViewportTransform = applyRemoteViewportPinch(
+    zoom = zoom,
+    panX = panX,
+    panY = panY,
+    prevSpan = prevSpan,
+    span = span,
+    centroid = centroid,
+    viewWidth = viewWidth,
+    viewHeight = viewHeight,
+    fbWidth = fbWidth,
+    fbHeight = fbHeight,
+)
 
 internal fun applyViewportPan(
     zoom: Float,
@@ -2003,15 +1456,17 @@ internal fun applyViewportPan(
     viewHeight: Float,
     fbWidth: Int,
     fbHeight: Int,
-): ViewportTransform {
-    if (zoom <= 1f || fbWidth <= 0 || fbHeight <= 0 || viewWidth <= 0f || viewHeight <= 0f) {
-        return ViewportTransform(zoom, panX, panY)
-    }
-    val fit = minOf(viewWidth / fbWidth, viewHeight / fbHeight)
-    val clampedPanX = clampPanToCover(panX + dx, fbWidth * fit, viewWidth, zoom)
-    val clampedPanY = clampPanToCover(panY + dy, fbHeight * fit, viewHeight, zoom)
-    return ViewportTransform(zoom, clampedPanX, clampedPanY)
-}
+): ViewportTransform = applyRemoteViewportPan(
+    zoom = zoom,
+    panX = panX,
+    panY = panY,
+    dx = dx,
+    dy = dy,
+    viewWidth = viewWidth,
+    viewHeight = viewHeight,
+    fbWidth = fbWidth,
+    fbHeight = fbHeight,
+)
 
 /**
  * Cycle DIRECT (absolute: finger = cursor) -> TOUCHPAD (relative: drag glides
@@ -2067,63 +1522,6 @@ private fun InputModeToggle(
 }
 
 /**
- * Trackpad sensitivity dialog (#696): a slider over the relative-motion
- * multiplier the VNC and RDP touchpad paths share. Commits on release and on
- * Close, so the value can be tuned live; leaving without a drag keeps the old
- * value.
- */
-@Composable
-private fun TrackpadSensitivityDialog(
-    sensitivity: Float,
-    onSetSensitivity: (Float) -> Unit,
-    onDismiss: () -> Unit,
-) {
-    var value by remember { mutableStateOf(sensitivity.coerceIn(TOUCHPAD_SENSITIVITY_MIN, TOUCHPAD_SENSITIVITY_MAX)) }
-    AlertDialog(
-        onDismissRequest = onDismiss,
-        confirmButton = {
-            TextButton(onClick = { onSetSensitivity(value); onDismiss() }) {
-                Text(stringResource(R.string.rdp_action_close))
-            }
-        },
-        icon = { Icon(Icons.Default.Speed, contentDescription = null) },
-        title = { Text(stringResource(R.string.rdp_cd_trackpad_sensitivity)) },
-        text = {
-            Column(verticalArrangement = Arrangement.spacedBy(12.dp)) {
-                Text(
-                    "%.1f×".format(value),
-                    style = MaterialTheme.typography.headlineSmall,
-                    modifier = Modifier.align(Alignment.CenterHorizontally),
-                )
-                Slider(
-                    value = value,
-                    onValueChange = { value = it },
-                    onValueChangeFinished = { onSetSensitivity(value) },
-                    valueRange = TOUCHPAD_SENSITIVITY_MIN..TOUCHPAD_SENSITIVITY_MAX,
-                    steps = 27,
-                )
-            }
-        },
-    )
-}
-
-/** Two-finger drag target: viewport pan (off) vs remote scroll-wheel (on). */
-@Composable
-private fun ScrollModeToggle(twoFingerScroll: Boolean, onToggle: () -> Unit) {
-    FilledIconToggleButton(
-        checked = twoFingerScroll,
-        onCheckedChange = { onToggle() },
-        modifier = Modifier.size(40.dp),
-    ) {
-        Icon(
-            if (twoFingerScroll) Icons.Default.SwapVert else Icons.Default.OpenWith,
-            contentDescription = if (twoFingerScroll) stringResource(R.string.rdp_cd_two_finger_scroll_on)
-                                 else stringResource(R.string.rdp_cd_two_finger_viewport),
-        )
-    }
-}
-
-/**
  * In native TOUCHSCREEN mode (#778), temporarily switch canvas gestures from
  * remote MS-RDPEI touch passthrough to local viewport zoom/pan (pinch to zoom,
  * drag to pan) without leaving TOUCHSCREEN mode.
@@ -2146,204 +1544,24 @@ private fun TouchscreenViewportNavToggle(active: Boolean, onToggle: () -> Unit) 
     }
 }
 
-private fun DrawScope.drawRemoteFrame(
-    image: androidx.compose.ui.graphics.ImageBitmap,
-    srcWidth: Int,
-    srcHeight: Int,
-) {
-    val viewW = size.width
-    val viewH = size.height
-    val scale = minOf(viewW / srcWidth, viewH / srcHeight)
-    val dstW = srcWidth * scale
-    val dstH = srcHeight * scale
-    val offsetX = (viewW - dstW) / 2
-    val offsetY = (viewH - dstH) / 2
-
-    drawImage(
-        image = image,
-        srcOffset = androidx.compose.ui.unit.IntOffset.Zero,
-        srcSize = androidx.compose.ui.unit.IntSize(srcWidth, srcHeight),
-        dstOffset = androidx.compose.ui.unit.IntOffset(offsetX.toInt(), offsetY.toInt()),
-        dstSize = androidx.compose.ui.unit.IntSize(dstW.toInt(), dstH.toInt()),
-    )
-}
-
-/**
- * Draw the server cursor at the tracked pointer position (#212). Uses the same
- * fit-scale/centre math as [drawRemoteFrame] so it lands in the framebuffer's
- * local coordinate space; the enclosing Canvas's graphicsLayer then applies
- * zoom/pan uniformly. Mirror of VncScreen's drawVncCursor.
- */
-private fun DrawScope.drawRdpCursor(
-    cursor: androidx.compose.ui.graphics.ImageBitmap,
-    cursorW: Int,
-    cursorH: Int,
-    hotspotX: Int,
-    hotspotY: Int,
-    pointerX: Int,
-    pointerY: Int,
-    fbWidth: Int,
-    fbHeight: Int,
-) {
-    val viewW = size.width
-    val viewH = size.height
-    val scale = minOf(viewW / fbWidth, viewH / fbHeight)
-    val fbOffsetX = (viewW - fbWidth * scale) / 2
-    val fbOffsetY = (viewH - fbHeight * scale) / 2
-
-    val cx = fbOffsetX + (pointerX - hotspotX) * scale
-    val cy = fbOffsetY + (pointerY - hotspotY) * scale
-    val dstW = cursorW * scale
-    val dstH = cursorH * scale
-
-    drawImage(
-        image = cursor,
-        srcOffset = androidx.compose.ui.unit.IntOffset.Zero,
-        srcSize = androidx.compose.ui.unit.IntSize(cursorW, cursorH),
-        dstOffset = androidx.compose.ui.unit.IntOffset(cx.toInt(), cy.toInt()),
-        dstSize = androidx.compose.ui.unit.IntSize(dstW.toInt().coerceAtLeast(1), dstH.toInt().coerceAtLeast(1)),
-    )
-}
-
-/**
- * #598 fallback pointer. The guest's current cursor shape is not replayed on
- * channel init — the first CURSOR_SET only arrives on the guest's NEXT cursor
- * update — so a freshly connected session has working input but no glyph to
- * draw. Until the server pushes a shape, draw a built-in arrow at the tracked
- * position. Uses the same fit-scale/centre space as [drawRdpCursor]; the
- * enclosing Canvas's graphicsLayer applies zoom/pan uniformly.
- */
-private fun DrawScope.drawFallbackCursor(
-    pointerX: Int,
-    pointerY: Int,
-    fbWidth: Int,
-    fbHeight: Int,
-) {
-    val viewW = size.width
-    val viewH = size.height
-    val scale = minOf(viewW / fbWidth, viewH / fbHeight)
-    val originX = (viewW - fbWidth * scale) / 2f + pointerX * scale
-    val originY = (viewH - fbHeight * scale) / 2f + pointerY * scale
-
-    // Classic arrow in a 24x24 remote-pixel box, tip (hotspot) at (0, 0).
-    val path = Path().apply {
-        moveTo(0f, 0f)
-        lineTo(0f, 16f)
-        lineTo(4.5f, 12.5f)
-        lineTo(7.5f, 19.5f)
-        lineTo(10.5f, 18f)
-        lineTo(7.5f, 11f)
-        lineTo(13f, 11f)
-        close()
-    }
-    translate(originX, originY) {
-        scale(scale, scale) {
-            drawPath(path, Color.White, style = Fill)
-            drawPath(path, Color.Black, style = Stroke(width = 1.5f / scale))
-        }
-    }
-}
-
-/**
- * Map a screen touch coordinate to remote desktop coordinates,
- * accounting for zoom and pan.
- */
-/**
- * Mario-camera viewport pan: keep the cursor inside an inner dead-zone of
- * the view. Returns the (panX, panY) we should snap to. No-op when not
- * zoomed in (whole framebuffer fits, no point panning). Mirror of the VNC
- * helper of the same name; kept local because feature/rdp doesn't depend
- * on feature/vnc.
- */
 internal fun cameraFollow(
     cursorFbX: Int, cursorFbY: Int,
     fbWidth: Int, fbHeight: Int,
     viewW: Float, viewH: Float,
     zoom: Float, panX: Float, panY: Float,
     deadZoneFraction: Float = 0.30f,
-): Pair<Float, Float> {
-    if (zoom <= 1f) return panX to panY
-    if (viewW <= 0f || viewH <= 0f || fbWidth <= 0 || fbHeight <= 0) return panX to panY
-
-    val cx = viewW / 2f
-    val cy = viewH / 2f
-    val fitScale = minOf(viewW / fbWidth, viewH / fbHeight)
-    val fitOffsetX = (viewW - fbWidth * fitScale) / 2f
-    val fitOffsetY = (viewH - fbHeight * fitScale) / 2f
-
-    val localX = cursorFbX * fitScale + fitOffsetX
-    val localY = cursorFbY * fitScale + fitOffsetY
-    val screenX = (localX - cx) * zoom + cx + panX
-    val screenY = (localY - cy) * zoom + cy + panY
-
-    val marginX = viewW * (deadZoneFraction / 2f)
-    val marginY = viewH * (deadZoneFraction / 2f)
-    val minX = marginX
-    val maxX = viewW - marginX
-    val minY = marginY
-    val maxY = viewH - marginY
-
-    val newPanX = when {
-        screenX < minX -> panX + (minX - screenX)
-        screenX > maxX -> panX - (screenX - maxX)
-        else -> panX
-    }
-    val newPanY = when {
-        screenY < minY -> panY + (minY - screenY)
-        screenY > maxY -> panY - (screenY - maxY)
-        else -> panY
-    }
-    return newPanX to newPanY
-}
-
-private fun screenToRemote(
-    offset: Offset,
-    viewSize: IntSize,
-    fbWidth: Int,
-    fbHeight: Int,
-    zoom: Float,
-    panX: Float,
-    panY: Float,
-): Pair<Int, Int> {
-    if (viewSize.width == 0 || viewSize.height == 0) return 0 to 0
-    val viewW = viewSize.width.toFloat()
-    val viewH = viewSize.height.toFloat()
-
-    val cx = viewW / 2f
-    val cy = viewH / 2f
-    val localX = (offset.x - cx - panX) / zoom + cx
-    val localY = (offset.y - cy - panY) / zoom + cy
-
-    val fitScale = minOf(viewW / fbWidth, viewH / fbHeight)
-    val dstW = fbWidth * fitScale
-    val dstH = fbHeight * fitScale
-    val offsetX = (viewW - dstW) / 2
-    val offsetY = (viewH - dstH) / 2
-
-    val remoteX = ((localX - offsetX) / fitScale).toInt().coerceIn(0, fbWidth - 1)
-    val remoteY = ((localY - offsetY) / fitScale).toInt().coerceIn(0, fbHeight - 1)
-    return remoteX to remoteY
-}
-
-// --- RDP Key Toolbar ---
-
-/** Keys that form the aligned navigation block. */
-private val RDP_NAV_KEYS = setOf(
-    ToolbarKey.ARROW_UP, ToolbarKey.ARROW_DOWN,
-    ToolbarKey.ARROW_LEFT, ToolbarKey.ARROW_RIGHT,
-    ToolbarKey.HOME, ToolbarKey.END,
-    ToolbarKey.PGUP, ToolbarKey.PGDN,
+): Pair<Float, Float> = sh.haven.core.ui.remoteCameraFollow(
+    cursorFbX = cursorFbX,
+    cursorFbY = cursorFbY,
+    fbWidth = fbWidth,
+    fbHeight = fbHeight,
+    viewW = viewW,
+    viewH = viewH,
+    zoom = zoom,
+    panX = panX,
+    panY = panY,
+    deadZoneFraction = deadZoneFraction,
 )
-
-private val RDP_NAV_GRID_TOP = arrayOf(
-    ToolbarKey.HOME, ToolbarKey.ARROW_UP, ToolbarKey.END, ToolbarKey.PGUP,
-)
-private val RDP_NAV_GRID_BOTTOM = arrayOf(
-    ToolbarKey.ARROW_LEFT, ToolbarKey.ARROW_DOWN,
-    ToolbarKey.ARROW_RIGHT, ToolbarKey.PGDN,
-)
-
-private val RDP_NAV_CELL_WIDTH = 44.dp
 
 /** Map a libvterm key constant from KeyboardToolbar.onDispatchKey to a Set-1 scancode. */
 internal fun vtermKeyToScancode(key: Int): Int? = when (key) {
@@ -2470,540 +1688,8 @@ internal fun handleRdpToolbarBytes(
     }
 }
 
-/** Map a non-symbol ToolbarKey to its Set-1 scancode. */
-private fun toolbarKeyToScancode(key: ToolbarKey): Int? = when (key) {
-    ToolbarKey.ESC_KEY -> SC_ESCAPE
-    ToolbarKey.TAB_KEY -> SC_TAB
-    ToolbarKey.ENTER_KEY -> SC_RETURN
-    ToolbarKey.ARROW_LEFT -> SC_LEFT
-    ToolbarKey.ARROW_UP -> SC_UP
-    ToolbarKey.ARROW_DOWN -> SC_DOWN
-    ToolbarKey.ARROW_RIGHT -> SC_RIGHT
-    ToolbarKey.HOME -> SC_HOME
-    ToolbarKey.END -> SC_END
-    ToolbarKey.PGUP -> SC_PGUP
-    ToolbarKey.PGDN -> SC_PGDN
-    ToolbarKey.INSERT -> SC_INSERT
-    ToolbarKey.DELETE -> SC_DELETE
-    ToolbarKey.F1 -> SC_F1
-    ToolbarKey.F2 -> SC_F2
-    ToolbarKey.F3 -> SC_F3
-    ToolbarKey.F4 -> SC_F4
-    ToolbarKey.F5 -> SC_F5
-    ToolbarKey.F6 -> SC_F6
-    ToolbarKey.F7 -> SC_F7
-    ToolbarKey.F8 -> SC_F8
-    ToolbarKey.F9 -> SC_F9
-    ToolbarKey.F10 -> SC_F10
-    ToolbarKey.F11 -> SC_F11
-    ToolbarKey.F12 -> SC_F12
-    else -> null
-}
-
-/** Split a row's items into (before nav keys, after nav keys). */
-private fun rdpSplitAroundNav(
-    row: List<sh.haven.core.data.preferences.ToolbarItem>,
-): Pair<List<sh.haven.core.data.preferences.ToolbarItem>, List<sh.haven.core.data.preferences.ToolbarItem>> {
-    val firstNavIdx = row.indexOfFirst {
-        it is sh.haven.core.data.preferences.ToolbarItem.BuiltIn && it.key in RDP_NAV_KEYS
-    }
-    val lastNavIdx = row.indexOfLast {
-        it is sh.haven.core.data.preferences.ToolbarItem.BuiltIn && it.key in RDP_NAV_KEYS
-    }
-    if (firstNavIdx == -1) return row to emptyList()
-    val left = row.subList(0, firstNavIdx)
-    val right = if (lastNavIdx + 1 < row.size) row.subList(lastNavIdx + 1, row.size) else emptyList()
-    return left to right
-}
-
-@Composable
-private fun RdpKeyToolbar(
-    layout: ToolbarLayout,
-    ctrlActive: Boolean,
-    altActive: Boolean,
-    shiftActive: Boolean,
-    winActive: Boolean,
-    onToggleCtrl: () -> Unit,
-    onToggleAlt: () -> Unit,
-    onToggleShift: () -> Unit,
-    onToggleWin: () -> Unit,
-    onRdpKey: (scancode: Int) -> Unit,
-    onTypeText: (String) -> Unit,
-    onToggleKeyboard: () -> Unit,
-    onPaste: () -> Unit,
-) {
-    val presentBuiltIns = layout.rows.flatten()
-        .filterIsInstance<sh.haven.core.data.preferences.ToolbarItem.BuiltIn>()
-        .map { it.key }
-        .toSet()
-    val presentNavKeys = presentBuiltIns.intersect(RDP_NAV_KEYS)
-
-    Surface(tonalElevation = 2.dp) {
-        if (layout.rows.size >= 2 && presentNavKeys.isNotEmpty()) {
-            val (row1Left, row1Right) = rdpSplitAroundNav(layout.row1)
-            val (row2Left, row2Right) = rdpSplitAroundNav(layout.row2)
-
-            Row(
-                modifier = Modifier
-                    .horizontalScroll(rememberScrollState())
-                    .padding(horizontal = 4.dp),
-            ) {
-                // Left keys column
-                Column(modifier = Modifier.width(IntrinsicSize.Max)) {
-                    Row(Modifier.fillMaxWidth().padding(vertical = 1.dp), verticalAlignment = Alignment.CenterVertically) {
-                        RdpToggleButton("Win", winActive, onToggleWin)
-                        for (item in row1Left) {
-                            RdpRenderItem(
-                                item = item,
-                                ctrlActive = ctrlActive,
-                                altActive = altActive,
-                                shiftActive = shiftActive,
-                                onToggleCtrl = onToggleCtrl,
-                                onToggleAlt = onToggleAlt,
-                                onToggleShift = onToggleShift,
-                                onRdpKey = onRdpKey,
-                                onTypeText = onTypeText,
-                                onToggleKeyboard = onToggleKeyboard,
-                                onPaste = onPaste,
-                            )
-                        }
-                    }
-                    Row(Modifier.fillMaxWidth().padding(vertical = 1.dp), verticalAlignment = Alignment.CenterVertically) {
-                        for (item in row2Left) {
-                            RdpRenderItem(
-                                item = item,
-                                ctrlActive = ctrlActive,
-                                altActive = altActive,
-                                shiftActive = shiftActive,
-                                onToggleCtrl = onToggleCtrl,
-                                onToggleAlt = onToggleAlt,
-                                onToggleShift = onToggleShift,
-                                onRdpKey = onRdpKey,
-                                onTypeText = onTypeText,
-                                onToggleKeyboard = onToggleKeyboard,
-                                onPaste = onPaste,
-                            )
-                        }
-                    }
-                }
-
-                // Nav block grid (2x4 aligned)
-                Column {
-                    Row(Modifier.padding(vertical = 1.dp), verticalAlignment = Alignment.CenterVertically) {
-                        for (key in RDP_NAV_GRID_TOP) {
-                            if (key in presentNavKeys) {
-                                val sc = toolbarKeyToScancode(key)
-                                RdpNavButton(key) { if (sc != null) onRdpKey(sc) }
-                            } else {
-                                Spacer(Modifier.width(RDP_NAV_CELL_WIDTH).height(32.dp))
-                            }
-                        }
-                    }
-                    Row(Modifier.padding(vertical = 1.dp), verticalAlignment = Alignment.CenterVertically) {
-                        for (key in RDP_NAV_GRID_BOTTOM) {
-                            if (key in presentNavKeys) {
-                                val sc = toolbarKeyToScancode(key)
-                                RdpNavButton(key) { if (sc != null) onRdpKey(sc) }
-                            } else {
-                                Spacer(Modifier.width(RDP_NAV_CELL_WIDTH).height(32.dp))
-                            }
-                        }
-                    }
-                }
-
-                // Right keys (symbols, Enter/Del/Ins, F1..F12)
-                Column {
-                    Row(Modifier.padding(vertical = 1.dp), verticalAlignment = Alignment.CenterVertically) {
-                        for (item in row1Right) {
-                            RdpRenderItem(
-                                item = item,
-                                ctrlActive = ctrlActive,
-                                altActive = altActive,
-                                shiftActive = shiftActive,
-                                onToggleCtrl = onToggleCtrl,
-                                onToggleAlt = onToggleAlt,
-                                onToggleShift = onToggleShift,
-                                onRdpKey = onRdpKey,
-                                onTypeText = onTypeText,
-                                onToggleKeyboard = onToggleKeyboard,
-                                onPaste = onPaste,
-                            )
-                        }
-                        if (ToolbarKey.ENTER_KEY !in presentBuiltIns) {
-                            RdpKeyButton("Enter") { onRdpKey(SC_RETURN) }
-                        }
-                        if (ToolbarKey.DELETE !in presentBuiltIns) {
-                            RdpKeyButton("Del") { onRdpKey(SC_DELETE) }
-                        }
-                        if (ToolbarKey.INSERT !in presentBuiltIns) {
-                            RdpKeyButton("Ins") { onRdpKey(SC_INSERT) }
-                        }
-                    }
-                    Row(Modifier.padding(vertical = 1.dp), verticalAlignment = Alignment.CenterVertically) {
-                        for (item in row2Right) {
-                            RdpRenderItem(
-                                item = item,
-                                ctrlActive = ctrlActive,
-                                altActive = altActive,
-                                shiftActive = shiftActive,
-                                onToggleCtrl = onToggleCtrl,
-                                onToggleAlt = onToggleAlt,
-                                onToggleShift = onToggleShift,
-                                onRdpKey = onRdpKey,
-                                onTypeText = onTypeText,
-                                onToggleKeyboard = onToggleKeyboard,
-                                onPaste = onPaste,
-                            )
-                        }
-                        Spacer(Modifier.width(4.dp))
-                        for (i in 1..12) {
-                            val fk = ToolbarKey.fromId("f$i")
-                            if (fk == null || fk !in presentBuiltIns) {
-                                RdpKeyButton("F$i") { onRdpKey(if (i <= 10) SC_F1 + i - 1 else if (i == 11) SC_F11 else SC_F12) }
-                            }
-                        }
-                    }
-                }
-            }
-        } else {
-            // Fallback: flat rows
-            Column {
-                var winPlaced = false
-                for (row in layout.rows) {
-                    if (row.isEmpty()) continue
-                    Row(
-                        modifier = Modifier
-                            .horizontalScroll(rememberScrollState())
-                            .padding(horizontal = 4.dp, vertical = 1.dp),
-                        verticalAlignment = Alignment.CenterVertically,
-                    ) {
-                        if (!winPlaced) {
-                            RdpToggleButton("Win", winActive, onToggleWin)
-                            winPlaced = true
-                        }
-                        for (item in row) {
-                            RdpRenderItem(
-                                item = item,
-                                ctrlActive = ctrlActive,
-                                altActive = altActive,
-                                shiftActive = shiftActive,
-                                onToggleCtrl = onToggleCtrl,
-                                onToggleAlt = onToggleAlt,
-                                onToggleShift = onToggleShift,
-                                onRdpKey = onRdpKey,
-                                onTypeText = onTypeText,
-                                onToggleKeyboard = onToggleKeyboard,
-                                onPaste = onPaste,
-                            )
-                        }
-                    }
-                }
-            }
-        }
-    }
-}
-
-@Composable
-private fun RdpRenderItem(
-    item: sh.haven.core.data.preferences.ToolbarItem,
-    ctrlActive: Boolean,
-    altActive: Boolean,
-    shiftActive: Boolean,
-    onToggleCtrl: () -> Unit,
-    onToggleAlt: () -> Unit,
-    onToggleShift: () -> Unit,
-    onRdpKey: (scancode: Int) -> Unit,
-    onTypeText: (String) -> Unit,
-    onToggleKeyboard: () -> Unit,
-    onPaste: () -> Unit,
-) {
-    when (item) {
-        is sh.haven.core.data.preferences.ToolbarItem.BuiltIn -> {
-            RdpBuiltInKey(
-                key = item.key,
-                ctrlActive = ctrlActive,
-                altActive = altActive,
-                shiftActive = shiftActive,
-                onToggleCtrl = onToggleCtrl,
-                onToggleAlt = onToggleAlt,
-                onToggleShift = onToggleShift,
-                onRdpKey = onRdpKey,
-                onTypeText = onTypeText,
-                onToggleKeyboard = onToggleKeyboard,
-                onPaste = onPaste,
-            )
-        }
-        is sh.haven.core.data.preferences.ToolbarItem.Custom -> {
-            RdpSymbolButton(item.label) {
-                onTypeText(item.send)
-            }
-        }
-    }
-}
-
-@Composable
-private fun RdpNavButton(key: ToolbarKey, onClick: () -> Unit) {
-    val isArrow = key in setOf(
-        ToolbarKey.ARROW_UP, ToolbarKey.ARROW_DOWN,
-        ToolbarKey.ARROW_LEFT, ToolbarKey.ARROW_RIGHT,
-    )
-    RdpRepeatingButton(
-        onClick = onClick,
-        modifier = Modifier.padding(horizontal = 1.dp).width(RDP_NAV_CELL_WIDTH).height(32.dp),
-        contentPadding = PaddingValues(horizontal = 0.dp, vertical = 0.dp),
-    ) {
-        if (isArrow) {
-            val label = when (key) {
-                ToolbarKey.ARROW_UP -> "\u2191"
-                ToolbarKey.ARROW_DOWN -> "\u2193"
-                ToolbarKey.ARROW_LEFT -> "\u2190"
-                ToolbarKey.ARROW_RIGHT -> "\u2192"
-                else -> ""
-            }
-            Text(label, fontSize = 16.sp, lineHeight = 16.sp, fontWeight = FontWeight.Bold)
-        } else {
-            Text(key.label, fontSize = 11.sp, lineHeight = 11.sp)
-        }
-    }
-}
-
-@Composable
-private fun RdpBuiltInKey(
-    key: ToolbarKey,
-    ctrlActive: Boolean,
-    altActive: Boolean,
-    shiftActive: Boolean,
-    onToggleCtrl: () -> Unit,
-    onToggleAlt: () -> Unit,
-    onToggleShift: () -> Unit,
-    onRdpKey: (scancode: Int) -> Unit,
-    onTypeText: (String) -> Unit,
-    onToggleKeyboard: () -> Unit,
-    onPaste: () -> Unit,
-) {
-    when (key) {
-        ToolbarKey.KEYBOARD -> {
-            IconButton(
-                onClick = onToggleKeyboard,
-                modifier = Modifier.size(32.dp),
-            ) {
-                Icon(
-                    Icons.Default.Keyboard,
-                    contentDescription = stringResource(R.string.rdp_cd_toggle_keyboard),
-                    modifier = Modifier.size(18.dp),
-                )
-            }
-        }
-        ToolbarKey.PASTE -> RdpKeyButton(key.label, onPaste)
-        ToolbarKey.CTRL -> RdpToggleButton("Ctrl", ctrlActive, onToggleCtrl)
-        ToolbarKey.ALT -> RdpToggleButton("Alt", altActive, onToggleAlt)
-        ToolbarKey.ALTGR -> {
-            val altGrActive = ctrlActive && altActive
-            RdpToggleButton("AltGr", altGrActive) {
-                if (altGrActive) {
-                    onToggleCtrl()
-                    onToggleAlt()
-                } else {
-                    if (!ctrlActive) onToggleCtrl()
-                    if (!altActive) onToggleAlt()
-                }
-            }
-        }
-        ToolbarKey.SHIFT -> RdpToggleButton("Shift", shiftActive, onToggleShift)
-        ToolbarKey.ARROW_LEFT -> RdpArrowButton("\u2190") { onRdpKey(SC_LEFT) }
-        ToolbarKey.ARROW_UP -> RdpArrowButton("\u2191") { onRdpKey(SC_UP) }
-        ToolbarKey.ARROW_DOWN -> RdpArrowButton("\u2193") { onRdpKey(SC_DOWN) }
-        ToolbarKey.ARROW_RIGHT -> RdpArrowButton("\u2192") { onRdpKey(SC_RIGHT) }
-        else -> {
-            val sc = toolbarKeyToScancode(key)
-            val ch = key.char
-            if (sc != null) {
-                RdpKeyButton(key.label) { onRdpKey(sc) }
-            } else if (ch != null) {
-                RdpSymbolButton(key.label) { onTypeText(ch.toString()) }
-            }
-        }
-    }
-}
-
-@Composable
-private fun RdpSymbolButton(label: String, onClick: () -> Unit) {
-    RdpRepeatingButton(
-        onClick = onClick,
-        modifier = Modifier.padding(horizontal = 1.dp).height(30.dp),
-        contentPadding = PaddingValues(horizontal = 6.dp, vertical = 0.dp),
-    ) {
-        Text(label, fontSize = 12.sp, lineHeight = 12.sp)
-    }
-}
-
-@OptIn(ExperimentalComposeUiApi::class)
-@Composable
-private fun RdpRepeatingButton(
-    onClick: () -> Unit,
-    modifier: Modifier = Modifier,
-    contentPadding: PaddingValues = PaddingValues(horizontal = 8.dp, vertical = 0.dp),
-    content: @Composable () -> Unit,
-) {
-    var isPressed by remember { mutableStateOf(false) }
-    var didRepeat by remember { mutableStateOf(false) }
-    val currentOnClick by rememberUpdatedState(onClick)
-
-    LaunchedEffect(isPressed) {
-        if (isPressed) {
-            delay(400)
-            didRepeat = true
-            while (isPressed) {
-                currentOnClick()
-                delay(80)
-            }
-        }
-    }
-
-    FilledTonalButton(
-        onClick = {},
-        // #515 — the same latch fixed in core:toolbar's ToolbarKeyButton, which
-        // carries the full explanation. Short version: `action` misses the
-        // ACTION_POINTER_* forms a second finger produces, and `didRepeat` has to
-        // be cleared on release rather than at the top of the effect. Leaving
-        // either latched gives a button that highlights but sends nothing until
-        // the screen is recreated.
-        modifier = modifier.pointerInteropFilter { motionEvent ->
-            when (motionEvent.actionMasked) {
-                android.view.MotionEvent.ACTION_DOWN,
-                android.view.MotionEvent.ACTION_POINTER_DOWN -> {
-                    isPressed = true
-                    true
-                }
-                android.view.MotionEvent.ACTION_UP,
-                android.view.MotionEvent.ACTION_POINTER_UP -> {
-                    if (!didRepeat) onClick()
-                    didRepeat = false
-                    isPressed = false
-                    true
-                }
-                android.view.MotionEvent.ACTION_CANCEL -> {
-                    didRepeat = false
-                    isPressed = false
-                    true
-                }
-                else -> false
-            }
-        },
-        contentPadding = contentPadding,
-    ) {
-        content()
-    }
-}
-
-@Composable
-private fun RdpKeyButton(label: String, onClick: () -> Unit) {
-    RdpRepeatingButton(
-        onClick = onClick,
-        modifier = Modifier
-            .padding(horizontal = 1.dp)
-            .height(32.dp),
-    ) {
-        Text(label, fontSize = 11.sp, lineHeight = 11.sp)
-    }
-}
-
-@Composable
-private fun RdpArrowButton(label: String, onClick: () -> Unit) {
-    RdpRepeatingButton(
-        onClick = onClick,
-        modifier = Modifier
-            .padding(horizontal = 1.dp)
-            .height(32.dp),
-    ) {
-        Text(label, fontSize = 16.sp, lineHeight = 16.sp, fontWeight = FontWeight.Bold)
-    }
-}
-
-@Composable
-private fun RdpToggleButton(label: String, active: Boolean, onClick: () -> Unit) {
-    FilledTonalButton(
-        onClick = onClick,
-        modifier = Modifier
-            .padding(horizontal = 1.dp)
-            .height(32.dp),
-        contentPadding = PaddingValues(horizontal = 8.dp, vertical = 0.dp),
-        colors = if (active) {
-            ButtonDefaults.filledTonalButtonColors(
-                containerColor = MaterialTheme.colorScheme.primary,
-                contentColor = MaterialTheme.colorScheme.onPrimary,
-            )
-        } else {
-            ButtonDefaults.filledTonalButtonColors()
-        },
-    ) {
-        Text(label, fontSize = 11.sp, lineHeight = 11.sp)
-    }
-}
-
-/** Map Android Compose Key to Windows scancode for special (non-printable) keys. */
-/**
- * Three-state orientation cycle for the session toolbar's rotate
- * button. Defaults to Landscape (matches the pre-existing forced-
- * landscape behaviour in DesktopScreen.kt for #109/surf5726). The
- * button cycles Landscape -> Portrait -> Auto and back. `Auto` here
- * means "follow the system / device orientation".
- */
-private enum class OrientationMode(
-    val activityValue: Int,
-    val icon: androidx.compose.ui.graphics.vector.ImageVector,
-    val description: String,
-) {
-    Landscape(
-        activityValue = android.content.pm.ActivityInfo.SCREEN_ORIENTATION_LANDSCAPE,
-        icon = Icons.Default.ScreenLockLandscape,
-        description = "Lock landscape (tap to switch to portrait)",
-    ),
-    Portrait(
-        activityValue = android.content.pm.ActivityInfo.SCREEN_ORIENTATION_PORTRAIT,
-        icon = Icons.Default.ScreenLockPortrait,
-        description = "Lock portrait (tap to switch to auto)",
-    ),
-    Auto(
-        activityValue = android.content.pm.ActivityInfo.SCREEN_ORIENTATION_UNSPECIFIED,
-        icon = Icons.Default.ScreenRotation,
-        description = "Auto rotate (tap to switch to landscape)",
-    );
-
-    companion object {
-        fun fromActivityValue(value: Int): OrientationMode = entries.firstOrNull { it.activityValue == value } ?: Landscape
-    }
-}
-
-/**
- * Diff one IME commit against the text the field held before it, returning the
- * characters to type and the number of backspaces to send.
- *
- * The hidden text field mirrors whatever the IME reports, so the delta between
- * two consecutive values is exactly what changed — but only if the baseline is
- * the previous value. The old code reset the field to a `" "` sentinel after
- * every commit and diffed against that, so a growing IME buffer was sliced at a
- * fixed offset: characters were dropped and earlier ones re-emitted. VNC's
- * capture rig saw `a, c, A, AB, C, C1, C12` for `abcABC123` (bug #5).
- *
- * Trimming the common prefix and common suffix handles every commit shape:
- * append (the tail), backspace (the removed run), autocorrect word replacement
- * (delete the old interior, type the new one), and mid-string edits.
- */
-internal fun diffImeCommit(oldText: String, newText: String): Pair<String?, Int> {
-    if (oldText == newText) return null to 0
-    var prefix = 0
-    while (prefix < oldText.length && prefix < newText.length && oldText[prefix] == newText[prefix]) prefix++
-    var suffix = 0
-    while (
-        suffix < oldText.length - prefix &&
-        suffix < newText.length - prefix &&
-        oldText[oldText.length - 1 - suffix] == newText[newText.length - 1 - suffix]
-    ) suffix++
-    val added = newText.substring(prefix, newText.length - suffix)
-    val deleted = oldText.length - prefix - suffix
-    return (added.ifEmpty { null }) to deleted
-}
+internal fun diffImeCommit(oldText: String, newText: String): Pair<String?, Int> =
+    sh.haven.core.ui.diffRemoteImeCommit(oldText, newText)
 
 internal fun androidKeyToScancode(key: Key): Int? = when (key) {
     Key.Enter -> SC_RETURN
@@ -3202,11 +1888,6 @@ internal const val SC_CTRL_R = EXT or 0x1D
 internal const val SC_ALT_R = EXT or 0x38
 internal const val SC_WIN_R = EXT or 0x5C
 internal const val SC_F1 = 0x3B
-// Trackpad sensitivity slider range (#696): 0.2 (very fine) up to 3 (fast);
-// slider steps are 0.1 granularity.
-private const val TOUCHPAD_SENSITIVITY_MIN = 0.2f
-private const val TOUCHPAD_SENSITIVITY_MAX = 3f
-
 private const val SC_F2 = 0x3C
 private const val SC_F3 = 0x3D
 private const val SC_F4 = 0x3E

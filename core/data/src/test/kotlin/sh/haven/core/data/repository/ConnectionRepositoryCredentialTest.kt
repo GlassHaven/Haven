@@ -37,7 +37,7 @@ class ConnectionRepositoryCredentialTest {
 
     @Test
     fun `save encrypts and getById decrypts all 13 credential fields including spicePassword`() = runTest {
-        val repo = ConnectionRepository(connectionDao, tunnelConfigDao, chatRepository, context)
+        val repo = ConnectionRepository(connectionDao, tunnelConfigDao, chatRepository, context, initScope = null)
         var profile = ConnectionProfile(id = "p-cred", label = "Spice VM", host = "10.0.0.2", username = "root")
         for (field in ConnectionProfile.CREDENTIAL_FIELDS) {
             profile = field.write(profile, "plain-${field.name}")
@@ -65,7 +65,7 @@ class ConnectionRepositoryCredentialTest {
 
     @Test
     fun `migrateLegacyPlaintextCredentials upgrades plaintext spicePassword without corrupting encrypted fields`() = runTest {
-        val repo = ConnectionRepository(connectionDao, tunnelConfigDao, chatRepository, context)
+        val repo = ConnectionRepository(connectionDao, tunnelConfigDao, chatRepository, context, initScope = null)
         val alreadyEncryptedSsh = CredentialEncryption.encrypt(context, "ssh-secret")
         val legacyRow = ConnectionProfile(
             id = "p-legacy",
@@ -92,7 +92,7 @@ class ConnectionRepositoryCredentialTest {
 
     @Test
     fun `save refuses to persist ephemeral profiles`() = runTest {
-        val repo = ConnectionRepository(connectionDao, tunnelConfigDao, chatRepository, context)
+        val repo = ConnectionRepository(connectionDao, tunnelConfigDao, chatRepository, context, initScope = null)
         val ephemeral = ConnectionProfile(
             id = "ephem-1",
             label = "Quick",

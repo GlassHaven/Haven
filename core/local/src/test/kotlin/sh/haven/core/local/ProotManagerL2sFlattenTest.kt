@@ -22,7 +22,7 @@ class ProotManagerL2sFlattenTest {
     private fun tempDir(): File = Files.createTempDirectory("l2s-flatten-test").toFile()
 
     private fun symlink(at: File, target: String) {
-        at.parentFile.mkdirs()
+        at.parentFile?.mkdirs()
         Files.createSymbolicLink(at.toPath(), Paths.get(target))
     }
 

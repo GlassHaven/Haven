@@ -108,6 +108,7 @@ import androidx.compose.ui.input.key.onPreviewKeyEvent
 import androidx.compose.ui.input.key.type
 import androidx.compose.ui.ExperimentalComposeUiApi
 import androidx.compose.ui.input.pointer.PointerButtons
+import androidx.compose.ui.input.pointer.PointerEvent
 import androidx.compose.ui.input.pointer.PointerEventPass
 import androidx.compose.ui.input.pointer.PointerEventType
 import androidx.compose.ui.input.pointer.PointerType
@@ -174,7 +175,7 @@ fun RdpSessionContent(
     onTap: (Int, Int) -> Unit,
     /** Two-finger tap or middle mouse button → middle-button click at the tapped point (X11 button 2). */
     onMiddleClick: (Int, Int) -> Unit = { _, _ -> },
-    /** Right mouse button click at the tapped point (X11 button 3, #660). */
+    /** Touch long-press or right mouse button click at the target point (X11 button 3, #660, #828). */
     onRightClick: (Int, Int) -> Unit = { _, _ -> },
     onDragStart: (Int, Int) -> Unit,
     onDrag: (Int, Int) -> Unit,
@@ -613,9 +614,8 @@ private fun RdpViewer(
         sessionKey = sessionKey,
     )
 
-    // Tap-then-drag state — see VncScreen for the full rationale. RDP
-    // has no long-press right-click branch, so we only need the
-    // follow-up window for triggering button-1 drag.
+    // Tap-then-drag state — see VncScreen for the full rationale. A follow-up
+    // touch within 300 ms triggers button-1 drag rather than long-press right-click (#828).
     var lastTapUpMs by remember { mutableStateOf(0L) }
 
     // Mario-camera viewport pan: when in touchpad mode and zoomed, snap the
@@ -1124,14 +1124,67 @@ private fun RdpViewer(
                         var twoFingerMovement = 0f
                         var lastSinglePos = firstDown.position
                         var dragging = false
+                        var longPressFired = false
+                        val longPressMs = viewConfiguration.longPressTimeoutMillis
+                        val downUptimeMs = firstDown.uptimeMillis
                         // Tap-then-drag follow-up window (touchscreen touchpad mode only;
                         // hardware mouse/touchpad gestures never use tap-then-drag, #622).
                         val isFollowUpTouch = !isMouseDevice && effectiveInputMode == "TOUCHPAD" &&
-                            (firstDown.uptimeMillis - lastTapUpMs) <= 300L
+                            (downUptimeMs - lastTapUpMs) <= 300L
                         var dragButtonPressed = false
 
+                        var event: PointerEvent
                         do {
-                            val event = awaitPointerEvent(PointerEventPass.Initial)
+                            val remaining = remainingTouchLongPressTimeoutMs(
+                                isMouseDevice = isMouseDevice,
+                                totalFingers = totalFingers,
+                                longPressFired = longPressFired,
+                                dragging = dragging,
+                                totalMovement = totalMovement,
+                                touchSlopPx = touchSlopPx,
+                                isFollowUpTouch = isFollowUpTouch,
+                                longPressMs = longPressMs,
+                                elapsedMs = SystemClock.uptimeMillis() - downUptimeMs,
+                            )
+                            val timedEvent = if (remaining == Long.MAX_VALUE) {
+                                awaitPointerEvent(PointerEventPass.Initial)
+                            } else {
+                                withTimeoutOrNull(remaining) {
+                                    awaitPointerEvent(PointerEventPass.Initial)
+                                }
+                            }
+                            if (timedEvent == null) {
+                                if (shouldFireTouchLongPressRightClick(
+                                        isMouseDevice = isMouseDevice,
+                                        totalFingers = totalFingers,
+                                        longPressFired = longPressFired,
+                                        dragging = dragging,
+                                        totalMovement = totalMovement,
+                                        touchSlopPx = touchSlopPx,
+                                        isFollowUpTouch = isFollowUpTouch,
+                                    )
+                                ) {
+                                    val (vx, vy) = resolveTouchLongPressTarget(
+                                        effectiveInputMode = effectiveInputMode,
+                                        virtualCursor = virtualCursor,
+                                        directPos = {
+                                            val pos = screenToRemote(
+                                                lastSinglePos, viewSize,
+                                                frame.width, frame.height,
+                                                zoom, panX, panY,
+                                            )
+                                            virtualCursor = pos
+                                            virtualCursorF = Offset(pos.first.toFloat(), pos.second.toFloat())
+                                            pos
+                                        },
+                                    )
+                                    onRightClick(vx, vy)
+                                    longPressFired = true
+                                }
+                                event = awaitPointerEvent(PointerEventPass.Initial)
+                            } else {
+                                event = timedEvent
+                            }
                             if (isMouseDevice && mouseButton == 0) {
                                 mouseButton = resolveHardwareMouseButton(
                                     buttons = event.buttons,
@@ -1246,26 +1299,28 @@ private fun RdpViewer(
                                         onDrag(pos.first, pos.second)
                                     }
                                 } else if (effectiveInputMode == "TOUCHPAD") {
-                                    val scale = if (zoom > 0f) zoom else 1f
-                                    // #696: scale the finger delta by the trackpad
-                                    // sensitivity multiplier; keep the position in
-                                    // float space so per-event rounding can't drop
-                                    // sub-pixel steps at low sensitivity.
-                                    val fx = virtualCursorF.x + deltaScreen.x / scale * touchpadSensitivity
-                                    val fy = virtualCursorF.y + deltaScreen.y / scale * touchpadSensitivity
-                                    virtualCursorF = Offset(
-                                        fx.coerceIn(0f, (frame.width - 1).toFloat()),
-                                        fy.coerceIn(0f, (frame.height - 1).toFloat()),
-                                    )
-                                    val nx = fx.toInt().coerceIn(0, frame.width - 1)
-                                    val ny = fy.toInt().coerceIn(0, frame.height - 1)
-                                    virtualCursor = nx to ny
-                                    if (totalMovement >= touchSlopPx) {
-                                        if (isFollowUpTouch && !dragButtonPressed) {
-                                            onDragStart(nx, ny)
-                                            dragButtonPressed = true
-                                        } else {
-                                            onDrag(nx, ny)
+                                    if (!longPressFired) {
+                                        val scale = if (zoom > 0f) zoom else 1f
+                                        // #696: scale the finger delta by the trackpad
+                                        // sensitivity multiplier; keep the position in
+                                        // float space so per-event rounding can't drop
+                                        // sub-pixel steps at low sensitivity.
+                                        val fx = virtualCursorF.x + deltaScreen.x / scale * touchpadSensitivity
+                                        val fy = virtualCursorF.y + deltaScreen.y / scale * touchpadSensitivity
+                                        virtualCursorF = Offset(
+                                            fx.coerceIn(0f, (frame.width - 1).toFloat()),
+                                            fy.coerceIn(0f, (frame.height - 1).toFloat()),
+                                        )
+                                        val nx = fx.toInt().coerceIn(0, frame.width - 1)
+                                        val ny = fy.toInt().coerceIn(0, frame.height - 1)
+                                        virtualCursor = nx to ny
+                                        if (totalMovement >= touchSlopPx) {
+                                            if (isFollowUpTouch && !dragButtonPressed) {
+                                                onDragStart(nx, ny)
+                                                dragButtonPressed = true
+                                            } else {
+                                                onDrag(nx, ny)
+                                            }
                                         }
                                     }
                                 } else {
@@ -1274,7 +1329,7 @@ private fun RdpViewer(
                                         frame.width, frame.height,
                                         zoom, panX, panY,
                                     )
-                                    if (!dragging && totalMovement >= touchSlopPx) {
+                                    if (!longPressFired && !dragging && totalMovement >= touchSlopPx) {
                                         onDragStart(pos.first, pos.second)
                                         dragging = true
                                     } else if (dragging) {
@@ -1302,7 +1357,7 @@ private fun RdpViewer(
                             }
                         }
 
-                        if (totalFingers == 1 && totalMovement < touchSlopPx) {
+                        if (shouldFirePostGestureTap(totalFingers, totalMovement, touchSlopPx, longPressFired)) {
                             val (vx, vy) = if (!isMouseDevice && effectiveInputMode == "TOUCHPAD") {
                                 virtualCursor
                             } else {
@@ -1325,7 +1380,7 @@ private fun RdpViewer(
                             } else {
                                 lastTapUpMs = 0L
                             }
-                        } else if (totalFingers == 2 && twoFingerMovement < touchSlopPx) {
+                        } else if (totalFingers == 2 && twoFingerMovement < touchSlopPx && !longPressFired) {
                             // Two fingers down + up with no travel = middle click (#286).
                             val (mx, my) = if (effectiveInputMode == "TOUCHPAD") {
                                 virtualCursor
@@ -1791,6 +1846,66 @@ internal fun shouldForwardTouchscreenContacts(
     hasTouchCallback: Boolean,
     touchscreenViewportNav: Boolean,
 ): Boolean = effectiveInputMode == "TOUCHSCREEN" && hasTouchCallback && !touchscreenViewportNav
+
+/**
+ * Remaining wait before a stationary single-finger touchscreen press triggers
+ * right-click in DIRECT/TOUCHPAD modes (#828), or [Long.MAX_VALUE] when the
+ * gesture is ineligible (hardware mouse, multi-finger, moved past slop,
+ * tap-then-drag follow-up, or already fired).
+ */
+internal fun remainingTouchLongPressTimeoutMs(
+    isMouseDevice: Boolean,
+    totalFingers: Int,
+    longPressFired: Boolean,
+    dragging: Boolean,
+    totalMovement: Float,
+    touchSlopPx: Float,
+    isFollowUpTouch: Boolean,
+    longPressMs: Long,
+    elapsedMs: Long,
+): Long = if (shouldFireTouchLongPressRightClick(
+        isMouseDevice = isMouseDevice,
+        totalFingers = totalFingers,
+        longPressFired = longPressFired,
+        dragging = dragging,
+        totalMovement = totalMovement,
+        touchSlopPx = touchSlopPx,
+        isFollowUpTouch = isFollowUpTouch,
+    )
+) {
+    (longPressMs - elapsedMs).coerceAtLeast(1L)
+} else {
+    Long.MAX_VALUE
+}
+
+internal fun shouldFireTouchLongPressRightClick(
+    isMouseDevice: Boolean,
+    totalFingers: Int,
+    longPressFired: Boolean,
+    dragging: Boolean,
+    totalMovement: Float,
+    touchSlopPx: Float,
+    isFollowUpTouch: Boolean,
+): Boolean =
+    !isMouseDevice &&
+        totalFingers == 1 &&
+        !longPressFired &&
+        !dragging &&
+        totalMovement < touchSlopPx &&
+        !isFollowUpTouch
+
+internal inline fun resolveTouchLongPressTarget(
+    effectiveInputMode: String,
+    virtualCursor: Pair<Int, Int>,
+    directPos: () -> Pair<Int, Int>,
+): Pair<Int, Int> = if (effectiveInputMode == "TOUCHPAD") virtualCursor else directPos()
+
+internal fun shouldFirePostGestureTap(
+    totalFingers: Int,
+    totalMovement: Float,
+    touchSlopPx: Float,
+    longPressFired: Boolean,
+): Boolean = totalFingers == 1 && totalMovement < touchSlopPx && !longPressFired
 
 /**
  * True when a down/move stream originates from a physical mouse or a

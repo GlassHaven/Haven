@@ -154,4 +154,193 @@ class RdpInputModeTest {
         assertEquals(1, acc.feed(-0.7f)) // -1.1f total -> +1 notch (up), -0.1f remainder
         assertEquals(-2, acc.feed(2.3f)) // +2.2f total -> -2 notches (down), +0.2f remainder
     }
+
+    @Test
+    fun `remainingTouchLongPressTimeoutMs counts down only while single-finger touch stays still`() {
+        assertEquals(
+            280L,
+            remainingTouchLongPressTimeoutMs(
+                isMouseDevice = false,
+                totalFingers = 1,
+                longPressFired = false,
+                dragging = false,
+                totalMovement = 4f,
+                touchSlopPx = 18f,
+                isFollowUpTouch = false,
+                longPressMs = 400L,
+                elapsedMs = 120L,
+            ),
+        )
+        // Clamps to 1ms once elapsed reaches or exceeds timeout before firing
+        assertEquals(
+            1L,
+            remainingTouchLongPressTimeoutMs(
+                isMouseDevice = false,
+                totalFingers = 1,
+                longPressFired = false,
+                dragging = false,
+                totalMovement = 0f,
+                touchSlopPx = 18f,
+                isFollowUpTouch = false,
+                longPressMs = 400L,
+                elapsedMs = 450L,
+            ),
+        )
+        // Disables timeout for hardware mouse, tap-then-drag follow-up, movement >= slop, multi-finger, or already fired
+        assertEquals(
+            Long.MAX_VALUE,
+            remainingTouchLongPressTimeoutMs(
+                isMouseDevice = true,
+                totalFingers = 1,
+                longPressFired = false,
+                dragging = false,
+                totalMovement = 0f,
+                touchSlopPx = 18f,
+                isFollowUpTouch = false,
+                longPressMs = 400L,
+                elapsedMs = 100L,
+            ),
+        )
+        assertEquals(
+            Long.MAX_VALUE,
+            remainingTouchLongPressTimeoutMs(
+                isMouseDevice = false,
+                totalFingers = 1,
+                longPressFired = false,
+                dragging = false,
+                totalMovement = 0f,
+                touchSlopPx = 18f,
+                isFollowUpTouch = true,
+                longPressMs = 400L,
+                elapsedMs = 100L,
+            ),
+        )
+        assertEquals(
+            Long.MAX_VALUE,
+            remainingTouchLongPressTimeoutMs(
+                isMouseDevice = false,
+                totalFingers = 1,
+                longPressFired = false,
+                dragging = false,
+                totalMovement = 18f,
+                touchSlopPx = 18f,
+                isFollowUpTouch = false,
+                longPressMs = 400L,
+                elapsedMs = 100L,
+            ),
+        )
+        assertEquals(
+            Long.MAX_VALUE,
+            remainingTouchLongPressTimeoutMs(
+                isMouseDevice = false,
+                totalFingers = 2,
+                longPressFired = false,
+                dragging = false,
+                totalMovement = 0f,
+                touchSlopPx = 18f,
+                isFollowUpTouch = false,
+                longPressMs = 400L,
+                elapsedMs = 100L,
+            ),
+        )
+    }
+
+    @Test
+    fun `shouldFireTouchLongPressRightClick fires only on stationary single-finger non-followup touch`() {
+        assertTrue(
+            shouldFireTouchLongPressRightClick(
+                isMouseDevice = false,
+                totalFingers = 1,
+                longPressFired = false,
+                dragging = false,
+                totalMovement = 5f,
+                touchSlopPx = 18f,
+                isFollowUpTouch = false,
+            ),
+        )
+        assertFalse(
+            shouldFireTouchLongPressRightClick(
+                isMouseDevice = true,
+                totalFingers = 1,
+                longPressFired = false,
+                dragging = false,
+                totalMovement = 0f,
+                touchSlopPx = 18f,
+                isFollowUpTouch = false,
+            ),
+        )
+        assertFalse(
+            shouldFireTouchLongPressRightClick(
+                isMouseDevice = false,
+                totalFingers = 1,
+                longPressFired = false,
+                dragging = false,
+                totalMovement = 0f,
+                touchSlopPx = 18f,
+                isFollowUpTouch = true,
+            ),
+        )
+        assertFalse(
+            shouldFireTouchLongPressRightClick(
+                isMouseDevice = false,
+                totalFingers = 1,
+                longPressFired = false,
+                dragging = true,
+                totalMovement = 0f,
+                touchSlopPx = 18f,
+                isFollowUpTouch = false,
+            ),
+        )
+        assertFalse(
+            shouldFireTouchLongPressRightClick(
+                isMouseDevice = false,
+                totalFingers = 1,
+                longPressFired = true,
+                dragging = false,
+                totalMovement = 0f,
+                touchSlopPx = 18f,
+                isFollowUpTouch = false,
+            ),
+        )
+    }
+
+    @Test
+    fun `resolveTouchLongPressTarget uses virtualCursor in TOUCHPAD and screenToRemote in DIRECT`() {
+        assertEquals(
+            320 to 240,
+            resolveTouchLongPressTarget(
+                effectiveInputMode = "TOUCHPAD",
+                virtualCursor = 320 to 240,
+                directPos = { 800 to 600 },
+            ),
+        )
+        assertEquals(
+            800 to 600,
+            resolveTouchLongPressTarget(
+                effectiveInputMode = "DIRECT",
+                virtualCursor = 320 to 240,
+                directPos = { 800 to 600 },
+            ),
+        )
+    }
+
+    @Test
+    fun `shouldFirePostGestureTap suppresses left-click after long-press right-click`() {
+        assertTrue(
+            shouldFirePostGestureTap(
+                totalFingers = 1,
+                totalMovement = 4f,
+                touchSlopPx = 18f,
+                longPressFired = false,
+            ),
+        )
+        assertFalse(
+            shouldFirePostGestureTap(
+                totalFingers = 1,
+                totalMovement = 4f,
+                touchSlopPx = 18f,
+                longPressFired = true,
+            ),
+        )
+    }
 }

@@ -34,7 +34,7 @@ internal class OpenAiToolProvider(
     /** Max messages accepted by openai_chat — a transcript, not a memory. */
     private val maxMessages = 64
 
-    override fun tools(): Map<String, ToolHandler> = linkedMapOf(
+    override fun tools(): Map<String, ToolHandler> = toolMapOf(
         "openai_list_models" to ToolHandler(
             description = "List the models a connected OPENAI profile advertises, from the connect-time GET /v1/models cache (connect_profile first; connect_profile re-verifies). Read-only.",
             inputSchema = objectSchema {

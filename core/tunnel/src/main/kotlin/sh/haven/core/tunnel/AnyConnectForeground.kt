@@ -15,11 +15,11 @@ import kotlinx.coroutines.withContext
 import sh.haven.core.data.db.entities.TunnelConfigType
 import sh.haven.core.data.db.entities.typeEnum
 import sh.haven.core.data.repository.TunnelConfigRepository
-import sh.haven.core.ssh.ForegroundKeepAlive
-import sh.haven.core.ssh.ForegroundReviveHook
-import sh.haven.core.ssh.ForegroundSessionInfo
-import sh.haven.core.ssh.ForegroundSessionParticipant
-import sh.haven.core.ssh.SessionManagerRegistry
+import sh.haven.core.session.ForegroundKeepAlive
+import sh.haven.core.session.ForegroundReviveHook
+import sh.haven.core.session.ForegroundSessionInfo
+import sh.haven.core.session.ForegroundSessionParticipant
+import sh.haven.core.session.SessionManagerRegistry
 import sh.haven.core.ssh.SshConnectionService
 import javax.inject.Inject
 import javax.inject.Singleton

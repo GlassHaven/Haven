@@ -28,7 +28,7 @@ internal class StepCaToolProvider(
     private val stepCaConfigRepository: StepCaConfigRepository,
 ) : ToolProvider {
 
-    override fun tools(): Map<String, ToolHandler> = linkedMapOf(
+    override fun tools(): Map<String, ToolHandler> = toolMapOf(
         "list_trusted_host_cas" to ToolHandler(
             description = "List the trusted SSH host-CA entries — the step-ca configs whose SSH host-CA public " +
                 "key is set (#133). A server presenting an OpenSSH host certificate signed by one of these CAs " +

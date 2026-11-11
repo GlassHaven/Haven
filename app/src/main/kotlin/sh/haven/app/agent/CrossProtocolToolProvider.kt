@@ -10,9 +10,9 @@ import sh.haven.core.data.db.entities.WorkspaceItem
 import sh.haven.core.data.db.entities.WorkspaceProfile
 import sh.haven.core.data.repository.WorkspaceRepository
 import sh.haven.core.mcp.McpError
-import sh.haven.core.ssh.SessionManagerRegistry
-import sh.haven.core.ssh.SessionStatus
-import sh.haven.core.ssh.Transport
+import sh.haven.core.session.SessionManagerRegistry
+import sh.haven.core.session.SessionStatus
+import sh.haven.core.session.Transport
 import sh.haven.core.wayland.WaylandBridge
 import sh.haven.feature.sftp.SftpEntry
 import sh.haven.feature.sftp.transport.TransportSelector
@@ -52,7 +52,7 @@ internal class CrossProtocolToolProvider(
     private val transportSelector: TransportSelector,
 ) : ToolProvider {
 
-    override fun tools(): Map<String, ToolHandler> = linkedMapOf(
+    override fun tools(): Map<String, ToolHandler> = toolMapOf(
         "save_workspace" to ToolHandler(
             description = "Snapshot every currently-connected transport session (terminals, file browsers, desktops) plus a running Wayland compositor into a named workspace that list_workspaces/compose_workspace can relaunch. Connects nothing and launches nothing — it records what is live right now, the same capture the Connections screen's save dialog performs. Fails when nothing is connected; returns saved:false + existingWorkspaceId when the name is taken and overwrite is not set.",
             inputSchema = objectSchema {

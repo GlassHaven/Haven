@@ -242,6 +242,7 @@ androidComponents {
 dependencies {
     implementation(project(":core:redact"))
     implementation(project(":core:ui"))
+    implementation(project(":core:session"))
     implementation(project(":core:ssh"))
     implementation(project(":core:security"))
     implementation(project(":core:data"))

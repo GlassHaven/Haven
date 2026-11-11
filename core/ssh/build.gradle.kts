@@ -43,6 +43,7 @@ if (providers.gradleProperty("excludeSshlibContractTests").orNull == "true") {
 }
 
 dependencies {
+    api(project(":core:session"))
     implementation(project(":core:redact"))
     api(libs.jsch)
     // Second SSH engine (#58). implementation, NOT api — no module outside

@@ -34,6 +34,7 @@ dependencies {
     implementation(project(":core:terminal-haven"))
     implementation(project(":core:toolbar"))
     implementation(project(":core:data"))
+    implementation(project(":core:session"))
     implementation(project(":core:ssh"))
     // Security-key (FIDO2/SK) authenticator, wired onto new-tab SshClients.
     implementation(project(":core:fido"))

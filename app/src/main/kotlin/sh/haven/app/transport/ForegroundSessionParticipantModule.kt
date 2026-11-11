@@ -16,7 +16,7 @@ import sh.haven.core.mosh.MoshSessionManager
 import sh.haven.core.reticulum.ReticulumSessionManager
 import sh.haven.core.smb.SmbSessionManager
 import sh.haven.core.local.uml.UmlGuestManager
-import sh.haven.core.ssh.ForegroundSessionParticipant
+import sh.haven.core.session.ForegroundSessionParticipant
 import sh.haven.core.ssh.SshSessionManager
 import sh.haven.core.usbserial.UsbSerialSessionManager
 

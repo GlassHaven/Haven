@@ -28,6 +28,7 @@ dependencies {
     // doesn't leak through `core/tunnel`'s public surface; consumers see only
     // `sh.haven.core.ssh.HavenProxy`.
     implementation(libs.jsch)
+    implementation(project(":core:session"))
     implementation(project(":core:ssh"))
     implementation(project(":core:data"))
     // The gomobile wgbridge package (wireguard-go + gVisor netstack) lives

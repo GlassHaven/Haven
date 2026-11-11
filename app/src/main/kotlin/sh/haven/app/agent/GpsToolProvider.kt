@@ -30,7 +30,7 @@ internal class GpsToolProvider(
     private val localSessionManager: LocalSessionManager,
 ) : ToolProvider {
 
-    override fun tools(): Map<String, ToolHandler> = linkedMapOf(
+    override fun tools(): Map<String, ToolHandler> = toolMapOf(
         "get_gps_status" to ToolHandler(
             description = "Full GNSS status: the current fix (lat/lon/accuracy/altitude/speed/bearing with the fix's age), satellite detail from GnssStatus (in view / used in fix, per-constellation counts, mean C/N0 of used satellites, top C/N0 values), HDOP from the GGA sentence, the GPS time discipline (source gnss_clock|nmea, jitter, uncertainty, holdover — the model the NTP service serves), and the state of gps logging and the NTP service. When no GPS session is running, satellites/discipline are absent and only the last-known fix appears — start one via get_location_precise, start_gps_log, or start_ntp_service to wake the engine. Read of device metadata and the current fix; gated once per session like read_sensors.",
             inputSchema = emptyObjectSchema(),

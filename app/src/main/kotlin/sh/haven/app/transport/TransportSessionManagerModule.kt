@@ -15,10 +15,10 @@ import sh.haven.core.mosh.MoshSessionManager
 import sh.haven.core.rclone.RcloneSessionManager
 import sh.haven.core.reticulum.ReticulumSessionManager
 import sh.haven.core.smb.SmbSessionManager
+import sh.haven.core.session.Transport
+import sh.haven.core.session.TransportSessionManager
 import sh.haven.core.ssh.SessionManager
 import sh.haven.core.ssh.SshSessionManager
-import sh.haven.core.ssh.Transport
-import sh.haven.core.ssh.TransportSessionManager
 import sh.haven.core.local.uml.UmlGuestManager
 import sh.haven.core.usbserial.UsbSerialSessionManager
 

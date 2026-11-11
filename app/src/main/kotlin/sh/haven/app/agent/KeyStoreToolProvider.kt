@@ -29,7 +29,7 @@ internal class KeyStoreToolProvider(
     private val agentUiCommandBus: AgentUiCommandBus,
 ) : ToolProvider {
 
-    override fun tools(): Map<String, ToolHandler> = linkedMapOf(
+    override fun tools(): Map<String, ToolHandler> = toolMapOf(
         "list_totp_secrets" to ToolHandler(
             description = "List saved OATH-TOTP authenticator secrets (#178). Returns id, label, issuer, accountName, algorithm, digits, periodSeconds, and createdAt. The base32 secret itself is NEVER returned — it stays encrypted at rest. Reference an id as a `TOTP:<id>` token in create_connection's authMethods to auto-fill the SSH 'Verification code:' prompt.",
             inputSchema = emptyObjectSchema(),

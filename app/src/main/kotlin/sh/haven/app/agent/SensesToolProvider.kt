@@ -73,7 +73,7 @@ internal class SensesToolProvider(
     private val shizukuGrant: (permission: String) -> String?,
 ) : ToolProvider {
 
-    override fun tools(): Map<String, ToolHandler> = linkedMapOf(
+    override fun tools(): Map<String, ToolHandler> = toolMapOf(
         "get_device_state" to ToolHandler(
             description = "One-shot snapshot of the phone's own state: battery (percent, charging, plugged source, temperature, voltage), thermal status, memory (total/available/low-memory), storage (internal data partition total/free, plus the user-visible external dir when mounted), active network (transports, validated, metered), and device identity (model, Android version, uptime). Read-only, no Android permission needed. The natural first call when diagnosing 'the phone is slow / hot / about to die' before digging into sessions or logs.",
             inputSchema = emptyObjectSchema(),

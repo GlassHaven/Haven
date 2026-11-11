@@ -28,7 +28,7 @@ internal class SerialBridgeToolProvider(
     // sessionId -> live bridge. One bridge per session; start is idempotent.
     private val bridges = ConcurrentHashMap<String, SerialTcpBridge>()
 
-    override fun tools(): Map<String, ToolHandler> = linkedMapOf(
+    override fun tools(): Map<String, ToolHandler> = toolMapOf(
         "bridge_serial_to_tcp" to ToolHandler(
             description = "Expose a live serial terminal session (BTSERIAL / BLESERIAL / USBSERIAL — sessionId from list_sessions) as a raw-byte TCP server on 127.0.0.1, and return the bound port. Feed that port to add_port_forward (a remote-forward) or a tunnel to reach the device off-phone — this is how a serial device joins Haven's routing fabric. The terminal tab keeps working; the bridge taps the same stream. Bytes are raw with no framing: every connected client sees the device output and any client can write back to it. Pass an explicit `port`, or omit for an OS-assigned free port. Idempotent — a second call for the same session returns the existing port. Open the device's terminal first (connect_profile / a serial tab); a session with no open terminal has nothing to bridge.",
             inputSchema = objectSchema {

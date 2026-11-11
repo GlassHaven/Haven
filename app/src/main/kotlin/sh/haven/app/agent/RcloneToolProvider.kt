@@ -13,7 +13,7 @@ import sh.haven.core.mcp.McpError
 import sh.haven.core.rclone.RcloneClient
 import sh.haven.core.rclone.RcloneConfigParseResult
 import sh.haven.core.rclone.RcloneConfigParser
-import sh.haven.core.ssh.SessionManagerRegistry
+import sh.haven.core.session.SessionManagerRegistry
 
 /**
  * The rclone MCP tools (#mcp-backbone Stage 5, Layer E): remote-config CRUD
@@ -32,7 +32,7 @@ internal class RcloneToolProvider(
     private val sessionManagerRegistry: SessionManagerRegistry,
 ) : ToolProvider {
 
-    override fun tools(): Map<String, ToolHandler> = linkedMapOf(
+    override fun tools(): Map<String, ToolHandler> = toolMapOf(
         "list_rclone_remotes" to ToolHandler(
             description = "List rclone cloud storage remotes configured in Haven.",
             inputSchema = emptyObjectSchema(),

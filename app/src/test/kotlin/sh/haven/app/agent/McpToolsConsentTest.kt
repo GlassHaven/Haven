@@ -49,8 +49,8 @@ class McpToolsConsentTest {
         localSessionManager: LocalSessionManager = mockk(relaxed = true),
         hardwareKeySource: sh.haven.core.security.HardwareKeySource? = null,
         biometricAuthenticator: sh.haven.core.security.BiometricAuthenticator? = null,
-        openAiSessionManager: sh.haven.core.openai.OpenAiSessionManager? = null,
-        tunnelResolver: sh.haven.core.tunnel.TunnelResolver? = null,
+        openAiSessionManager: sh.haven.core.openai.OpenAiSessionManager? = mockk(relaxed = true),
+        tunnelResolver: sh.haven.core.tunnel.TunnelResolver? = mockk(relaxed = true),
     ): McpTools {
         val connectionRepository = mockk<ConnectionRepository>(relaxed = true)
         // profileLabel(...) hits this; return a stable label so the
@@ -632,7 +632,7 @@ class McpToolsConsentTest {
                 listOf("gps", "ntp")),
             Section("connections", "Connections & profiles", 9,
                 "The saved SSH/SFTP/RDP/VNC/… connection profiles and their live connect/disconnect state.",
-                listOf("connection", "connect_profile", "disconnect_profile", "run_command", "bluetooth")),
+                listOf("connection", "connect_profile", "disconnect_profile", "run_command", "bluetooth", "openai")),
             Section("terminal", "Terminal, selection & sessions", 8,
                 "Reading and driving terminal sessions: input, scrollback, text selection, snippets, and workspace layouts.",
                 listOf("terminal", "selection", "snippet", "list_sessions", "auth_prompt", "session_picker", "workspace", "compose", "open_local_shell", "exited_session")),

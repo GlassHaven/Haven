@@ -776,6 +776,13 @@ func TestLogoutAndEndSessionForgetTheSession(t *testing.T) {
 	if HasResumableSession(cfg) {
 		t.Fatal("Logout must forget the session")
 	}
+	logoutDeadline := time.Now().Add(3 * time.Second)
+	for g.logouts.Load() == 0 && time.Now().Before(logoutDeadline) {
+		time.Sleep(20 * time.Millisecond)
+	}
+	if g.logouts.Load() != 1 {
+		t.Fatalf("Logout must end the session on the gateway before the next StartTunnel (got %d)", g.logouts.Load())
+	}
 
 	h, err = StartTunnel(cfg)
 	if err != nil {

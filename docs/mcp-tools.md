@@ -41,15 +41,15 @@ Tools are grouped into sections by what they touch, and each tool is collapsed �
 expand one for its description and arguments. The tag after each name is its
 consent level:
 
-- **asks every call** — side-effectful or sensitive; a consent sheet describing the specific action on every call (78 tools).
-- **asks once per session** — reversible actions and screen-reading; prompts the first time each session, then proceeds (68 tools).
+- **asks every call** — side-effectful or sensitive; a consent sheet describing the specific action on every call (79 tools).
+- **asks once per session** — reversible actions and screen-reading; prompts the first time each session, then proceeds (69 tools).
 - **no per-call prompt** — read-only queries and tap-equivalent UI actions; still behind the endpoint being enabled and the client paired (93 tools).
 
 ## Sections
 
 - [**Device senses (battery, sensors, location, camera)**](#sec-senses) — 5 tools
 - [**GPS — precise fixes, logging & NTP service**](#sec-gps) — 9 tools
-- [**Connections & profiles**](#sec-connections) — 9 tools
+- [**Connections & profiles**](#sec-connections) — 11 tools
 - [**Terminal, selection & sessions**](#sec-terminal) — 29 tools
 - [**Files, media & clipboard**](#sec-files) — 23 tools
 - [**Cloud storage (rclone)**](#sec-rclone) — 15 tools
@@ -196,7 +196,7 @@ Stop the NTP service and release its GPS session (unless logging still needs it)
 
 <a id="sec-connections"></a>
 
-## Connections & profiles (9)
+## Connections & profiles (11)
 
 The saved SSH/SFTP/RDP/VNC/… connection profiles and their live connect/disconnect state.
 
@@ -316,6 +316,31 @@ List Bluetooth Classic devices already paired (bonded) with the phone — { addr
 <summary><code>list_connections</code> · no per-call prompt</summary>
 
 List saved connection profiles (SSH, Mosh, VNC, RDP, SMB, rclone, local, Reticulum, OPENAI). Secrets like passwords and keys are redacted. SSH profiles also report `sshOptions` (the ssh_config-style lines set on the profile) and `sshEngine` — "jsch" (default) or "sshlib" (the experimental whole-connection engine, opted into with the 'HavenSshEngine sshlib' directive) — so an agent that sets the engine can confirm which one a profile is actually on.
+
+</details>
+
+<details markdown="1">
+<summary><code>openai_chat</code> · asks every call</summary>
+
+Send a non-streaming one-shot chat completion to a connected OPENAI profile and return the assistant reply as text. The endpoint decides what to do with the prompt — this is a real model call, so consent is required on every call. Never persisted; use the in-app chat screen for saved conversations. Pass `message` (single turn; the profile's system prompt stays the server's) or `messages` (an array of {role, content} for a multi-turn context, max 64). Optional imageBase64 + imageMimeType attach one image to the user turn for vision-capable models. Optional model (defaults to the profile's first advertised model), maxTokens, temperature.
+
+- `profileId` (string, required) — OPENAI connection profile id (from list_connections).
+- `imageBase64` (string) — Optional raw base64 image (no data: prefix) attached to the single user turn for vision models. Max 5 MB encoded; jpeg, png, gif or webp. Only with `message`, not `messages`.
+- `imageMimeType` (string) — MIME type of imageBase64; default image/jpeg.
+- `maxTokens` (integer) — Optional max_tokens for the completion.
+- `message` (string) — Single user turn; mutually exclusive with messages.
+- `messages` (object[]) — Full transcript as {role, content} objects (role: user|assistant|system). Mutually exclusive with message.
+- `model` (string) — Model id (from openai_list_models); defaults to the first advertised model.
+- `temperature` (number) — Optional sampling temperature (0–2).
+
+</details>
+
+<details markdown="1">
+<summary><code>openai_list_models</code> · asks once per session</summary>
+
+List the models a connected OPENAI profile advertises, from the connect-time GET /v1/models cache (connect_profile first; connect_profile re-verifies). Read-only.
+
+- `profileId` (string, required) — OPENAI connection profile id (from list_connections).
 
 </details>
 

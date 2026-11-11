@@ -20,7 +20,7 @@ internal class HostKeyToolProvider(
     private val knownHostDao: KnownHostDao,
 ) : ToolProvider {
 
-    override fun tools(): Map<String, ToolHandler> = linkedMapOf(
+    override fun tools(): Map<String, ToolHandler> = toolMapOf(
         "list_known_hosts" to ToolHandler(
             description = "List pinned SSH host keys (the TOFU known_hosts store). Returns hostname, port, keyType, " +
                 "fingerprint (SHA-256), and firstSeen (epoch ms). Use forget_known_host to remove one.",

@@ -1,9 +1,9 @@
 package sh.haven.app.transport
 
-import sh.haven.core.ssh.ForegroundSessionInfo
-import sh.haven.core.ssh.Session
-import sh.haven.core.ssh.SessionStatus
-import sh.haven.core.ssh.Transport
+import sh.haven.core.session.ForegroundSessionInfo
+import sh.haven.core.session.Session
+import sh.haven.core.session.SessionStatus
+import sh.haven.core.session.Transport
 
 /**
  * Shared plumbing for the transport adapters in this package. Each manager

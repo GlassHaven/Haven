@@ -14,11 +14,6 @@ import org.json.JSONObject
  * Pure shared helpers (requireIntArg, encodeCapture, desktopByIdOrThrow,
  * desktopToJson) are NOT here — they were promoted to top-level `internal`
  * functions in McpTools.kt and are called directly.
- *
- * First consumers: the desktop and mail tool providers (whose summaries name a
- * connection profile via [profileLabel], whose lifecycle verbs launch on the
- * shared [backgroundScope], and — desktop — open a guest terminal via
- * [attachAgentShell]).
  */
 internal class ToolContext(
     /** Human label for a connection profile id (falls back to the id itself). */
@@ -30,4 +25,6 @@ internal class ToolContext(
      * open_desktop_terminal handler): `(plain, desktopEnv, reuse) -> result`.
      */
     val attachAgentShell: suspend (Boolean, Map<String, String>?, Boolean) -> JSONObject,
+    /** Force guest MCP tool discovery cache invalidation after service mutations. */
+    val invalidateGuestTools: () -> Unit = {},
 )

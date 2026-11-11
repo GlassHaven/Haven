@@ -24,7 +24,7 @@ internal class TunnelToolProvider(
     private val tunnelManager: TunnelManager,
 ) : ToolProvider {
 
-    override fun tools(): Map<String, ToolHandler> = linkedMapOf(
+    override fun tools(): Map<String, ToolHandler> = toolMapOf(
         "list_tunnels" to ToolHandler(
             description = "List saved WireGuard / Tailscale tunnel configs available for Route-through on connection profiles. Returns id, label, type (WIREGUARD or TAILSCALE), and createdAt for each. The encrypted configText (wg-quick payload or Tailscale authkey blob) is NOT returned.",
             inputSchema = emptyObjectSchema(),

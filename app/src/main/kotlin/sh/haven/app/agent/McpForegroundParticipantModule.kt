@@ -8,10 +8,10 @@ import dagger.hilt.components.SingletonComponent
 import dagger.multibindings.IntoSet
 import sh.haven.core.data.agent.McpActivity
 import sh.haven.core.data.agent.McpStatusHolder
-import sh.haven.core.ssh.ForegroundKeepAlive
-import sh.haven.core.ssh.ForegroundReviveHook
-import sh.haven.core.ssh.ForegroundSessionInfo
-import sh.haven.core.ssh.ForegroundSessionParticipant
+import sh.haven.core.session.ForegroundKeepAlive
+import sh.haven.core.session.ForegroundReviveHook
+import sh.haven.core.session.ForegroundSessionInfo
+import sh.haven.core.session.ForegroundSessionParticipant
 
 private data class McpEndpointSession(
     override val profileId: String,

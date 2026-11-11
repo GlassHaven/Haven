@@ -141,7 +141,7 @@ internal class NotificationToolProvider(
     private val shizukuExec: (cmd: String) -> WaylandSocketHelper.ShizukuExecResult?,
 ) : ToolProvider {
 
-    override fun tools(): Map<String, ToolHandler> = linkedMapOf(
+    override fun tools(): Map<String, ToolHandler> = toolMapOf(
         "list_notifications" to ToolHandler(
             description = "Read recent Android notifications — the phone's inbound attention: app, title, body text, post time, ongoing/clearable flags. Backed by a notification-listener ring (last 300, memory only, no history across Haven restarts); removed notifications stay visible with `removed: true` so polling reads dismissals as facts. Optional filters: `app` (package-name substring, e.g. \"whatsapp\"), `text` (substring in title or body), `sinceMs`, `limit`. Requires Notification-listener access — a special Android grant, not a runtime permission: if not yet granted, the call attempts it via Shizuku (this consent sheet is the gate) or errors with the Settings path; after a first grant the listener binds asynchronously, so the first call may return {connected:true, count:0} and a re-call is needed.",
             inputSchema = objectSchema {

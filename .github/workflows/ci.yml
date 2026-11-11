@@ -119,12 +119,13 @@ jobs:
         working-directory: prns/prns-host/abi/c
         run: cargo test
 
-  # Pure-Go unit tests for the rclone-android bridge packages (wgbridge,
-  # tsbridge, ocbridge, nbbridge, ovpnbridge, mailbridge, socks5). Excludes
-  # /openvpn3 which links the C++ OpenVPN3 static library built under NDK.
+  # Go unit tests for the rclone-android bridge packages (wgbridge, tsbridge,
+  # ocbridge, nbbridge, ovpnbridge, mailbridge, socks5). Builds and caches the
+  # host linux/amd64 OpenVPN3 static adapter archive when missing so ovpnbridge
+  # links against the real C++ adapter on CI runners too.
   rclone-go-test:
     runs-on: ubuntu-latest
-    timeout-minutes: 10
+    timeout-minutes: 15
     steps:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1  # v7.0.1
         with:
@@ -133,9 +134,24 @@ jobs:
         with:
           go-version: '1.27'
           cache-dependency-path: rclone-android/go/go.sum
+      - name: Cache OpenVPN3 host test archive
+        id: ovpn-host-cache
+        uses: actions/cache@27d5ce7f107fe9357f9df03efb73ab90386fccae  # v5.0.5
+        with:
+          path: openvpn3-core/host-test-lib
+          key: openvpn3-host-amd64-${{ hashFiles('openvpn3-core/deps.lock', 'openvpn3-core/fetch-deps.sh', 'openvpn3-core/build-host-test.sh', 'openvpn3-core/CMakeLists.txt', 'openvpn3-core/adapter/**') }}
+      - name: Build OpenVPN3 host test archive
+        if: steps.ovpn-host-cache.outputs.cache-hit != 'true'
+        run: |
+          if ! command -v ninja >/dev/null 2>&1; then
+            sudo apt-get -o Acquire::Retries=3 update
+            sudo apt-get -o Acquire::Retries=3 install -y --no-install-recommends cmake ninja-build
+          fi
+          bash openvpn3-core/fetch-deps.sh --prepare
+          bash openvpn3-core/build-host-test.sh
       - name: Run Go bridge unit tests
         working-directory: rclone-android/go
-        run: go test $(go list ./... | grep -v '/openvpn3$')
+        run: go test ./...
 
   # Host-built proot exercising the link2symlink emulation: refcounts,
   # PROOT_L2S_DIR payload relocation (the Nix/libgit2 tarball-cache

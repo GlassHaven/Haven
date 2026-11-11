@@ -8,9 +8,9 @@ import dagger.multibindings.IntoSet
 import kotlinx.coroutines.flow.map
 import sh.haven.core.data.desktop.DesktopSessionRegistry
 import sh.haven.core.data.desktop.DesktopStatus
-import sh.haven.core.ssh.ForegroundSessionParticipant
-import sh.haven.core.ssh.Transport
-import sh.haven.core.ssh.TransportSessionManager
+import sh.haven.core.session.ForegroundSessionParticipant
+import sh.haven.core.session.Transport
+import sh.haven.core.session.TransportSessionManager
 
 /**
  * Remote-desktop (`VNC` / `RDP` / `SPICE` / `GLKVM`) bindings into

@@ -44,7 +44,7 @@ internal class DesktopToolProvider(
     private val systemVmManager get() = localSessionManager.systemVmManager
     private val lastInspectedIndex = java.util.concurrent.ConcurrentHashMap<String, OcrScreenIndex>()
 
-    override fun tools(): Map<String, ToolHandler> = linkedMapOf(
+    override fun tools(): Map<String, ToolHandler> = toolMapOf(
         "list_desktop_sessions" to ToolHandler(
             description = "List open remote-desktop tabs (VNC/RDP/SPICE) by connection profile, with their live status (connecting, connected, disconnected, error). These are Desktop-screen tabs, not transport sessions — a VNC/RDP/SPICE-over-SSH desktop has its SSH tunnel in list_sessions and its own connect state here. 'disconnected' means the tab is still open but its session ended (server logoff / transport death) — reconnect with connect_profile, which replaces the dead tab. Use after connect_profile to confirm a desktop reached 'connected', and after disconnect_profile to confirm the tab is gone (profile absent from the list).",
             inputSchema = emptyObjectSchema(),

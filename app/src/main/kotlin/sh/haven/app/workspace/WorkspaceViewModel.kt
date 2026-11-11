@@ -14,9 +14,9 @@ import sh.haven.core.data.db.entities.WorkspaceItem
 import sh.haven.core.data.db.entities.WorkspaceProfile
 import sh.haven.core.data.repository.ConnectionRepository
 import sh.haven.core.data.repository.WorkspaceRepository
-import sh.haven.core.ssh.SessionManagerRegistry
-import sh.haven.core.ssh.SessionStatus
-import sh.haven.core.ssh.Transport
+import sh.haven.core.session.SessionManagerRegistry
+import sh.haven.core.session.SessionStatus
+import sh.haven.core.session.Transport
 import sh.haven.core.wayland.WaylandBridge
 import javax.inject.Inject
 

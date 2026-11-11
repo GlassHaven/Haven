@@ -38,7 +38,7 @@ internal class UsbToolProvider(
     private val usbRedirServer: UsbRedirServer = UsbRedirServer(usbBroker),
 ) : ToolProvider {
 
-    override fun tools(): Map<String, ToolHandler> = linkedMapOf(
+    override fun tools(): Map<String, ToolHandler> = toolMapOf(
         "list_usb_devices" to ToolHandler(
             description = "List USB devices attached to the phone (host/OTG). Each entry has deviceName (the stable /dev/bus/usb path used as the key for the other usb_* tools), vidPid, deviceClass, hasPermission, isOpen, and the interface/endpoint descriptors (id, class, endpoint address + direction + type). Manufacturer/product/serial strings are only filled once permission is held (call request_usb_permission). Read-only; never prompts.",
             inputSchema = emptyObjectSchema(),

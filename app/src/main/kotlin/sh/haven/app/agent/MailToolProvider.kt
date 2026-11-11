@@ -40,7 +40,7 @@ internal class MailToolProvider(
     /** Hard cap on an attachment save (send or download) — 25 MiB. */
     private val mailAttachmentMaxBytes: Long = 25L * 1024 * 1024
 
-    override fun tools(): Map<String, ToolHandler> = linkedMapOf(
+    override fun tools(): Map<String, ToolHandler> = toolMapOf(
         "list_mail_rules" to ToolHandler(
             description = "List inbound-email automation rules (Mail Rules). Returns each rule's id, name, enabled, orderIndex, accountProfileId (null=any), folderId, criteria, actions, lastFiredAt. Read-only.",
             inputSchema = emptyObjectSchema(),
@@ -95,14 +95,6 @@ internal class MailToolProvider(
             mailWatchManager.pokeNow()
             JSONObject().put("poked", true)
         },
-
-        "list_mail_folders" to ToolHandler(
-            description = "List folders/labels for a connected EMAIL profile (IMAP/Gmail or Proton). Pass profileId (from list_connections). The profile must already be connected (connect_profile first). Returns each folder's id, name, type, and role (inbox/sent/trash/…). Read-only.",
-            inputSchema = objectSchema {
-                string("profileId", "EMAIL connection profile id.", required = true)
-            },
-            consentLevel = ConsentLevel.NEVER,
-        ) { args -> listMailFolders(args) },
 
         "list_mail_folders" to ToolHandler(
             description = "List folders/labels for a connected EMAIL profile (IMAP/Gmail or Proton). Pass profileId (from list_connections). The profile must already be connected (connect_profile first). Returns each folder's id, name, type, and role (inbox/sent/trash/…). Read-only.",

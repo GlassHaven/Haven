@@ -1308,6 +1308,251 @@ class TerminalViewModel @Inject constructor(
         val label: String,
     )
 
+    private class SerialTerminalHandle(
+        val sendInput: (ByteArray) -> Unit,
+        val close: () -> Unit,
+    )
+
+    private class SerialTabSession(
+        val sessionId: String,
+        val profileId: String,
+        val label: String,
+    )
+
+    private class SerialTabSource(
+        val transportType: String,
+        val activeIds: Set<String>,
+        val sessionOf: (String) -> SerialTabSession?,
+        val isReady: (String) -> Boolean,
+        val create: (String, (ByteArray, Int, Int) -> Unit) -> SerialTerminalHandle?,
+    )
+
+    private class RoamingTerminalHandle(
+        val sendInput: (ByteArray) -> Unit,
+        val resize: (Int, Int) -> Unit,
+        val start: () -> Unit,
+        val close: () -> Unit,
+        val stallSeconds: StateFlow<Int?>,
+    )
+
+    private class RoamingTabSession(
+        val sessionId: String,
+        val profileId: String,
+        val label: String,
+        val initialCommand: String?,
+    )
+
+    private class RoamingShellTabSource(
+        val transportType: String,
+        val activeIds: Set<String>,
+        val sessionOf: (String) -> RoamingTabSession?,
+        val isReady: (String) -> Boolean,
+        val create: (String, (ByteArray, Int, Int) -> Unit) -> RoamingTerminalHandle?,
+    )
+
+    private fun buildSerialTabs(
+        source: SerialTabSource,
+        currentTabs: MutableList<TerminalTab>,
+        trackedSessionIds: MutableSet<String>,
+        profilesById: Map<String, ConnectionProfile?>,
+    ) {
+        for (sessionId in source.activeIds) {
+            if (sessionId in trackedSessionIds) continue
+            if (!source.isReady(sessionId)) continue
+
+            val session = source.sessionOf(sessionId) ?: continue
+            val profile = profilesById[session.profileId]
+            val tabLabel = generateTabLabel(session.label, session.profileId, currentTabs)
+
+            lateinit var emulator: TerminalEmulator
+            val writeBuffer = EmulatorWriteBuffer({ emulator }, createRecorderIfEnabled(sessionId))
+            val mouseTracker = MouseModeTracker()
+            val oscHandler = OscHandler()
+            val cwdFlow = MutableStateFlow<String?>(null)
+            val hyperlinkFlow = MutableStateFlow<String?>(null)
+            oscHandler.onCwdChanged = { cwdFlow.value = it }
+            oscHandler.onHyperlink = { uri -> hyperlinkFlow.value = uri }
+            val feedOutput: (ByteArray, Int, Int) -> Unit = { data, offset, length ->
+                synchronized(oscHandler) {
+                    oscHandler.process(data, offset, length)
+                    mouseTracker.process(oscHandler.outputBuf, 0, oscHandler.outputLen)
+                    val len = oscHandler.outputLen
+                    if (len > 0) {
+                        writeBuffer.append(oscHandler.outputBuf, 0, len)
+                    }
+                }
+            }
+            val handle = source.create(sessionId) { data, offset, length ->
+                feedOutput(data, offset, length)
+            } ?: continue
+
+            val coalescer = InputCoalescer { data -> handle.sendInput(data) }
+            val scheme = effectiveColorScheme(profile)
+            val initialScheme = initialEmulatorScheme(scheme)
+            emulator = TerminalEmulatorFactory.create(
+                autoDetectUrls = true,
+                initialRows = 24,
+                initialCols = 80,
+                defaultForeground = Color(initialScheme.foreground),
+                defaultBackground = Color(initialScheme.background),
+                enableAltScreen = profile?.disableAltScreen != true,
+                onKeyboardInput = { data -> coalescer.send(applyModifiers(data)) },
+                onResize = { /* raw serial: no resize channel */ },
+                maxScrollbackLines = terminalScrollbackRows.value,
+                inlineImages = inlineImagesPolicy(terminalInlineImages.value, inlineImageConsent.state(sessionId)),
+                ambiwidthMode = currentTermlibAmbiwidthMode(),
+                onBell = bellCallback(tabLabel),
+            )
+
+            currentTabs.add(
+                TerminalTab(
+                    sessionId = session.sessionId,
+                    profileId = session.profileId,
+                    colorTag = profile?.colorTag ?: 0,
+                    label = tabLabel,
+                    transportType = source.transportType,
+                    emulator = emulator,
+                    mouseMode = mouseTracker.mouseMode,
+                    activeMouseMode = mouseTracker.activeMouseMode,
+                    bracketPasteMode = mouseTracker.bracketPasteMode,
+                    altScreen = mouseTracker.altScreen,
+                    cursorKeyAppMode = mouseTracker.cursorKeyAppMode,
+                    oscHandler = oscHandler,
+                    feedOutput = feedOutput,
+                    cwd = cwdFlow,
+                    hyperlinkUri = hyperlinkFlow,
+                    isReconnecting = MutableStateFlow(false),
+                    stallSeconds = NEVER_STALLS,
+                    sendInput = { data -> handle.sendInput(data) },
+                    resize = { _, _ -> /* raw serial: no resize channel */ },
+                    close = { handle.close() },
+                    colorScheme = scheme,
+                    backgroundOpacity = effectiveOpacity(profile),
+                )
+            )
+            trackedSessionIds.add(session.sessionId)
+        }
+    }
+
+    private fun buildRoamingShellTabs(
+        source: RoamingShellTabSource,
+        currentTabs: MutableList<TerminalTab>,
+        trackedSessionIds: MutableSet<String>,
+        profilesById: Map<String, ConnectionProfile?>,
+    ) {
+        for (sessionId in source.activeIds) {
+            if (sessionId in trackedSessionIds) continue
+            if (!source.isReady(sessionId)) continue
+
+            val session = source.sessionOf(sessionId) ?: continue
+            val profile = profilesById[session.profileId]
+            val tabLabel = generateTabLabel(session.label, session.profileId, currentTabs, sessionName = profile?.lastSessionName)
+
+            lateinit var emulator: TerminalEmulator
+            val writeBuffer = EmulatorWriteBuffer({ emulator }, createRecorderIfEnabled(sessionId))
+            val mouseTracker = MouseModeTracker()
+            val sudoDetector = SudoPromptDetector()
+            val oscHandler = OscHandler()
+            val cwdFlow = MutableStateFlow<String?>(null)
+            val hyperlinkFlow = MutableStateFlow<String?>(null)
+            oscHandler.onCwdChanged = { cwdFlow.value = it }
+            oscHandler.onHyperlink = { uri -> hyperlinkFlow.value = uri }
+            val feedOutput: (ByteArray, Int, Int) -> Unit = { data, offset, length ->
+                synchronized(oscHandler) {
+                    oscHandler.process(data, offset, length)
+                    mouseTracker.process(oscHandler.outputBuf, 0, oscHandler.outputLen)
+                    sudoDetector.process(oscHandler.outputBuf, 0, oscHandler.outputLen)
+                    val len = oscHandler.outputLen
+                    if (len > 0) {
+                        writeBuffer.append(oscHandler.outputBuf, 0, len)
+                    }
+                }
+            }
+
+            // Defer initial command until shell prompt detected
+            val initialCmd = session.initialCommand
+            val pendingSent = java.util.concurrent.atomic.AtomicBoolean(false)
+            val handleRef = arrayOfNulls<RoamingTerminalHandle>(1)
+
+            val handle = source.create(sessionId) { data, offset, length ->
+                feedOutput(data, offset, length)
+                if (initialCmd != null && !pendingSent.get()) {
+                    val raw = String(data, offset, length)
+                    val stripped = raw.replace(Regex("\u001b(?:\\[[^a-zA-Z]*[a-zA-Z]|][^\u0007]*\u0007)"), "").trimEnd()
+                    if (stripped.isNotEmpty()) {
+                        val last = stripped.last()
+                        if (last == '$' || last == '#' || last == '%' || last == '>') {
+                            if (pendingSent.compareAndSet(false, true)) {
+                                Log.d(TAG, "${source.transportType}: shell prompt detected ('$last'), sending session manager command")
+                                handleRef[0]?.sendInput((initialCmd + "\n").toByteArray())
+                            }
+                        }
+                    }
+                }
+            } ?: continue
+            handleRef[0] = handle
+
+            val coalescer = InputCoalescer { data ->
+                sudoDetector.clear()
+                handle.sendInput(data)
+            }
+            val scheme = effectiveColorScheme(profile)
+            val initialScheme = initialEmulatorScheme(scheme)
+            emulator = TerminalEmulatorFactory.create(
+                autoDetectUrls = true,
+                initialRows = 24,
+                initialCols = 80,
+                defaultForeground = Color(initialScheme.foreground),
+                defaultBackground = Color(initialScheme.background),
+                enableAltScreen = profile?.disableAltScreen != true && profile?.sessionManager != "screen",
+                onKeyboardInput = { data -> coalescer.send(applyModifiers(data)) },
+                onResize = { dims ->
+                    Log.d(TAG, "${source.transportType} onResize: ${dims.columns}x${dims.rows}")
+                    handle.resize(dims.columns, dims.rows)
+                },
+                maxScrollbackLines = terminalScrollbackRows.value,
+                inlineImages = inlineImagesPolicy(terminalInlineImages.value, inlineImageConsent.state(sessionId)),
+                ambiwidthMode = currentTermlibAmbiwidthMode(),
+                onBell = bellCallback(tabLabel),
+            )
+
+            handle.start()
+
+            currentTabs.add(
+                TerminalTab(
+                    sessionId = session.sessionId,
+                    profileId = session.profileId,
+                    colorTag = profile?.colorTag ?: 0,
+                    label = tabLabel,
+                    transportType = source.transportType,
+                    emulator = emulator,
+                    mouseMode = mouseTracker.mouseMode,
+                    activeMouseMode = mouseTracker.activeMouseMode,
+                    bracketPasteMode = mouseTracker.bracketPasteMode,
+                    altScreen = mouseTracker.altScreen,
+                    cursorKeyAppMode = mouseTracker.cursorKeyAppMode,
+                    oscHandler = oscHandler,
+                    feedOutput = feedOutput,
+                    cwd = cwdFlow,
+                    hyperlinkUri = hyperlinkFlow,
+                    isReconnecting = MutableStateFlow(false),
+                    stallSeconds = handle.stallSeconds,
+                    sendInput = { data ->
+                        sudoDetector.clear()
+                        handle.sendInput(data)
+                    },
+                    resize = { cols, rows -> handle.resize(cols, rows) },
+                    close = { handle.close() },
+                    colorScheme = scheme,
+                    backgroundOpacity = effectiveOpacity(profile),
+                    sudoPrompt = sudoDetector.activePrompt,
+                    dismissSudoPrompt = { sudoDetector.clear() },
+                )
+            )
+            trackedSessionIds.add(session.sessionId)
+        }
+    }
+
     private fun buildPtyTabSources(
         localStates: Map<String, sh.haven.core.local.LocalSessionManager.SessionState>,
         guestStates: Map<String, sh.haven.core.local.uml.UmlGuestManager.SessionState>,
@@ -1949,480 +2194,85 @@ class TerminalViewModel @Inject constructor(
             trackedSessionIds.add(session.sessionId)
         }
 
-        // Create tabs for new Bluetooth-serial sessions (#406). A raw serial link
-        // has no window-size channel, so resize is a no-op (the console's width is
-        // fixed on the far side).
-        for (sessionId in activeBtIds) {
-            if (sessionId in trackedSessionIds) continue
-            if (!btSerialSessionManager.isReadyForTerminal(sessionId)) continue
-
-            val session = btSerialSessions[sessionId] ?: continue
-            val btProfile = profilesById[session.profileId]
-            val tabLabel = generateTabLabel(session.label, session.profileId, currentTabs)
-
-            lateinit var emulator: TerminalEmulator
-            val btWriteBuffer = EmulatorWriteBuffer({ emulator }, createRecorderIfEnabled(sessionId))
-            val btMouseTracker = MouseModeTracker()
-            val btOscHandler = OscHandler()
-            val btCwdFlow = MutableStateFlow<String?>(null)
-            val btHyperlinkFlow = MutableStateFlow<String?>(null)
-            btOscHandler.onCwdChanged = { btCwdFlow.value = it }
-            btOscHandler.onHyperlink = { uri -> btHyperlinkFlow.value = uri }
-            val btFeedOutput: (ByteArray, Int, Int) -> Unit = { data, offset, length ->
-                synchronized(btOscHandler) {
-                    btOscHandler.process(data, offset, length)
-                    btMouseTracker.process(btOscHandler.outputBuf, 0, btOscHandler.outputLen)
-                    val len = btOscHandler.outputLen
-                    if (len > 0) {
-                        btWriteBuffer.append(btOscHandler.outputBuf, 0, len)
-                    }
-                }
-            }
-            val btSession = btSerialSessionManager.createTerminalSession(
-                sessionId = sessionId,
-                onDataReceived = { data, offset, length -> btFeedOutput(data, offset, length) },
-            ) ?: continue
-
-            val btCoalescer = InputCoalescer { data -> btSession.sendInput(data) }
-            val btScheme = effectiveColorScheme(btProfile)
-            val btInitialScheme = initialEmulatorScheme(btScheme)
-            emulator = TerminalEmulatorFactory.create(
-                autoDetectUrls = true,
-                initialRows = 24,
-                initialCols = 80,
-                defaultForeground = Color(btInitialScheme.foreground),
-                defaultBackground = Color(btInitialScheme.background),
-                enableAltScreen = btProfile?.disableAltScreen != true,
-                onKeyboardInput = { data -> btCoalescer.send(applyModifiers(data)) },
-                onResize = { /* raw serial: no resize channel */ },
-                maxScrollbackLines = terminalScrollbackRows.value,
-                inlineImages = inlineImagesPolicy(terminalInlineImages.value, inlineImageConsent.state(sessionId)),
-                ambiwidthMode = currentTermlibAmbiwidthMode(),
-                onBell = bellCallback(tabLabel),
-            )
-
-            currentTabs.add(
-                TerminalTab(
-                    sessionId = session.sessionId,
-                    profileId = session.profileId,
-                    colorTag = btProfile?.colorTag ?: 0,
-                    label = tabLabel,
-                    transportType = "BTSERIAL",
-                    emulator = emulator,
-                    mouseMode = btMouseTracker.mouseMode,
-                    activeMouseMode = btMouseTracker.activeMouseMode,
-                    bracketPasteMode = btMouseTracker.bracketPasteMode,
-                    altScreen = btMouseTracker.altScreen,
-                    cursorKeyAppMode = btMouseTracker.cursorKeyAppMode,
-                    oscHandler = btOscHandler,
-                    feedOutput = btFeedOutput,
-                    cwd = btCwdFlow,
-                    hyperlinkUri = btHyperlinkFlow,
-                    isReconnecting = MutableStateFlow(false),
-                    stallSeconds = NEVER_STALLS,
-                    sendInput = { data -> btSession.sendInput(data) },
-                    resize = { _, _ -> /* raw serial: no resize channel */ },
-                    close = { btSession.close() },
-                    colorScheme = btScheme,
-                    backgroundOpacity = effectiveOpacity(btProfile),
-                )
-            )
-            trackedSessionIds.add(session.sessionId)
-        }
-
-        // Create tabs for new BLE-serial sessions (GATT). Same transport-agnostic
-        // terminal setup as BTSERIAL; a BLE UART link has no resize channel.
-        for (sessionId in activeBleIds) {
-            if (sessionId in trackedSessionIds) continue
-            if (!bleSerialSessionManager.isReadyForTerminal(sessionId)) continue
-
-            val session = bleSerialSessions[sessionId] ?: continue
-            val bleProfile = profilesById[session.profileId]
-            val tabLabel = generateTabLabel(session.label, session.profileId, currentTabs)
-
-            lateinit var emulator: TerminalEmulator
-            val bleWriteBuffer = EmulatorWriteBuffer({ emulator }, createRecorderIfEnabled(sessionId))
-            val bleMouseTracker = MouseModeTracker()
-            val bleOscHandler = OscHandler()
-            val bleCwdFlow = MutableStateFlow<String?>(null)
-            val bleHyperlinkFlow = MutableStateFlow<String?>(null)
-            bleOscHandler.onCwdChanged = { bleCwdFlow.value = it }
-            bleOscHandler.onHyperlink = { uri -> bleHyperlinkFlow.value = uri }
-            val bleFeedOutput: (ByteArray, Int, Int) -> Unit = { data, offset, length ->
-                synchronized(bleOscHandler) {
-                    bleOscHandler.process(data, offset, length)
-                    bleMouseTracker.process(bleOscHandler.outputBuf, 0, bleOscHandler.outputLen)
-                    val len = bleOscHandler.outputLen
-                    if (len > 0) {
-                        bleWriteBuffer.append(bleOscHandler.outputBuf, 0, len)
-                    }
-                }
-            }
-            val bleSession = bleSerialSessionManager.createTerminalSession(
-                sessionId = sessionId,
-                onDataReceived = { data, offset, length -> bleFeedOutput(data, offset, length) },
-            ) ?: continue
-
-            val bleCoalescer = InputCoalescer { data -> bleSession.sendInput(data) }
-            val bleScheme = effectiveColorScheme(bleProfile)
-            val bleInitialScheme = initialEmulatorScheme(bleScheme)
-            emulator = TerminalEmulatorFactory.create(
-                autoDetectUrls = true,
-                initialRows = 24,
-                initialCols = 80,
-                defaultForeground = Color(bleInitialScheme.foreground),
-                defaultBackground = Color(bleInitialScheme.background),
-                enableAltScreen = bleProfile?.disableAltScreen != true,
-                onKeyboardInput = { data -> bleCoalescer.send(applyModifiers(data)) },
-                onResize = { /* raw serial: no resize channel */ },
-                maxScrollbackLines = terminalScrollbackRows.value,
-                inlineImages = inlineImagesPolicy(terminalInlineImages.value, inlineImageConsent.state(sessionId)),
-                ambiwidthMode = currentTermlibAmbiwidthMode(),
-                onBell = bellCallback(tabLabel),
-            )
-
-            currentTabs.add(
-                TerminalTab(
-                    sessionId = session.sessionId,
-                    profileId = session.profileId,
-                    colorTag = bleProfile?.colorTag ?: 0,
-                    label = tabLabel,
-                    transportType = "BLESERIAL",
-                    emulator = emulator,
-                    mouseMode = bleMouseTracker.mouseMode,
-                    activeMouseMode = bleMouseTracker.activeMouseMode,
-                    bracketPasteMode = bleMouseTracker.bracketPasteMode,
-                    altScreen = bleMouseTracker.altScreen,
-                    cursorKeyAppMode = bleMouseTracker.cursorKeyAppMode,
-                    oscHandler = bleOscHandler,
-                    feedOutput = bleFeedOutput,
-                    cwd = bleCwdFlow,
-                    hyperlinkUri = bleHyperlinkFlow,
-                    isReconnecting = MutableStateFlow(false),
-                    stallSeconds = NEVER_STALLS,
-                    sendInput = { data -> bleSession.sendInput(data) },
-                    resize = { _, _ -> /* raw serial: no resize channel */ },
-                    close = { bleSession.close() },
-                    colorScheme = bleScheme,
-                    backgroundOpacity = effectiveOpacity(bleProfile),
-                )
-            )
-            trackedSessionIds.add(session.sessionId)
-        }
-
-        // Create tabs for new USB-serial sessions (#408). Same transport-agnostic
-        // terminal setup as BTSERIAL; raw serial has no resize channel.
-        for (sessionId in activeUsbIds) {
-            if (sessionId in trackedSessionIds) continue
-            if (!usbSerialSessionManager.isReadyForTerminal(sessionId)) continue
-
-            val session = usbSerialSessions[sessionId] ?: continue
-            val usbProfile = profilesById[session.profileId]
-            val tabLabel = generateTabLabel(session.label, session.profileId, currentTabs)
-
-            lateinit var emulator: TerminalEmulator
-            val usbWriteBuffer = EmulatorWriteBuffer({ emulator }, createRecorderIfEnabled(sessionId))
-            val usbMouseTracker = MouseModeTracker()
-            val usbOscHandler = OscHandler()
-            val usbCwdFlow = MutableStateFlow<String?>(null)
-            val usbHyperlinkFlow = MutableStateFlow<String?>(null)
-            usbOscHandler.onCwdChanged = { usbCwdFlow.value = it }
-            usbOscHandler.onHyperlink = { uri -> usbHyperlinkFlow.value = uri }
-            val usbFeedOutput: (ByteArray, Int, Int) -> Unit = { data, offset, length ->
-                synchronized(usbOscHandler) {
-                    usbOscHandler.process(data, offset, length)
-                    usbMouseTracker.process(usbOscHandler.outputBuf, 0, usbOscHandler.outputLen)
-                    val len = usbOscHandler.outputLen
-                    if (len > 0) {
-                        usbWriteBuffer.append(usbOscHandler.outputBuf, 0, len)
-                    }
-                }
-            }
-            val usbSession = usbSerialSessionManager.createTerminalSession(
-                sessionId = sessionId,
-                onDataReceived = { data, offset, length -> usbFeedOutput(data, offset, length) },
-            ) ?: continue
-
-            val usbCoalescer = InputCoalescer { data -> usbSession.sendInput(data) }
-            val usbScheme = effectiveColorScheme(usbProfile)
-            val usbInitialScheme = initialEmulatorScheme(usbScheme)
-            emulator = TerminalEmulatorFactory.create(
-                autoDetectUrls = true,
-                initialRows = 24,
-                initialCols = 80,
-                defaultForeground = Color(usbInitialScheme.foreground),
-                defaultBackground = Color(usbInitialScheme.background),
-                enableAltScreen = usbProfile?.disableAltScreen != true,
-                onKeyboardInput = { data -> usbCoalescer.send(applyModifiers(data)) },
-                onResize = { /* raw serial: no resize channel */ },
-                maxScrollbackLines = terminalScrollbackRows.value,
-                inlineImages = inlineImagesPolicy(terminalInlineImages.value, inlineImageConsent.state(sessionId)),
-                ambiwidthMode = currentTermlibAmbiwidthMode(),
-                onBell = bellCallback(tabLabel),
-            )
-
-            currentTabs.add(
-                TerminalTab(
-                    sessionId = session.sessionId,
-                    profileId = session.profileId,
-                    colorTag = usbProfile?.colorTag ?: 0,
-                    label = tabLabel,
-                    transportType = "USBSERIAL",
-                    emulator = emulator,
-                    mouseMode = usbMouseTracker.mouseMode,
-                    activeMouseMode = usbMouseTracker.activeMouseMode,
-                    bracketPasteMode = usbMouseTracker.bracketPasteMode,
-                    altScreen = usbMouseTracker.altScreen,
-                    cursorKeyAppMode = usbMouseTracker.cursorKeyAppMode,
-                    oscHandler = usbOscHandler,
-                    feedOutput = usbFeedOutput,
-                    cwd = usbCwdFlow,
-                    hyperlinkUri = usbHyperlinkFlow,
-                    isReconnecting = MutableStateFlow(false),
-                    stallSeconds = NEVER_STALLS,
-                    sendInput = { data -> usbSession.sendInput(data) },
-                    resize = { _, _ -> /* raw serial: no resize channel */ },
-                    close = { usbSession.close() },
-                    colorScheme = usbScheme,
-                    backgroundOpacity = effectiveOpacity(usbProfile),
-                )
-            )
-            trackedSessionIds.add(session.sessionId)
-        }
-
-        // Create tabs for new Mosh sessions
-        for (sessionId in activeMoshIds) {
-            if (sessionId in trackedSessionIds) continue
-            if (!moshSessionManager.isReadyForTerminal(sessionId)) continue
-
-            val session = moshSessions[sessionId] ?: continue
-            val moshProfile = profilesById[session.profileId]
-            val tabLabel = generateTabLabel(session.label, session.profileId, currentTabs, sessionName = moshProfile?.lastSessionName)
-
-            lateinit var emulator: TerminalEmulator
-            val moshWriteBuffer = EmulatorWriteBuffer({ emulator }, createRecorderIfEnabled(sessionId))
-            val moshMouseTracker = MouseModeTracker()
-            val moshSudoDetector = SudoPromptDetector()
-            val moshOscHandler = OscHandler()
-            val moshCwdFlow = MutableStateFlow<String?>(null)
-            val moshHyperlinkFlow = MutableStateFlow<String?>(null)
-            moshOscHandler.onCwdChanged = { moshCwdFlow.value = it }
-            moshOscHandler.onHyperlink = { uri -> moshHyperlinkFlow.value = uri }
-            val moshFeedOutput: (ByteArray, Int, Int) -> Unit = { data, offset, length ->
-                synchronized(moshOscHandler) {
-                    moshOscHandler.process(data, offset, length)
-                    moshMouseTracker.process(moshOscHandler.outputBuf, 0, moshOscHandler.outputLen)
-                    moshSudoDetector.process(moshOscHandler.outputBuf, 0, moshOscHandler.outputLen)
-                    val len = moshOscHandler.outputLen
-                    if (len > 0) {
-                        moshWriteBuffer.append(moshOscHandler.outputBuf, 0, len)
-                    }
-                }
-            }
-
-            // Defer initial command until shell prompt detected
-            val moshInitialCmd = session.initialCommand
-            val moshPendingSent = java.util.concurrent.atomic.AtomicBoolean(false)
-            // Holder so lambda can reference session before it's assigned
-            val moshSessionRef = arrayOfNulls<sh.haven.core.mosh.MoshSession>(1)
-
-            val moshSession = moshSessionManager.createTerminalSession(
-                sessionId = sessionId,
-                onDataReceived = { data, offset, length ->
-                    moshFeedOutput(data, offset, length)
-                    // Send session manager command once shell prompt detected
-                    if (moshInitialCmd != null && !moshPendingSent.get()) {
-                        val raw = String(data, offset, length)
-                        val stripped = raw.replace(Regex("\u001b(?:\\[[^a-zA-Z]*[a-zA-Z]|][^\u0007]*\u0007)"), "").trimEnd()
-                        if (stripped.isNotEmpty()) {
-                            val last = stripped.last()
-                            if (last == '$' || last == '#' || last == '%' || last == '>') {
-                                if (moshPendingSent.compareAndSet(false, true)) {
-                                    Log.d(TAG, "Mosh: shell prompt detected ('$last'), sending session manager command")
-                                    moshSessionRef[0]?.sendInput((moshInitialCmd + "\n").toByteArray())
-                                }
-                            }
-                        }
+        // Create tabs for raw serial transports (BT RFCOMM #406, BLE GATT UART,
+        // USB serial #408). Raw serial links have no window-size channel, so
+        // resize is a no-op handled once inside [buildSerialTabs].
+        for (source in listOf(
+            SerialTabSource(
+                transportType = "BTSERIAL",
+                activeIds = activeBtIds,
+                sessionOf = { id -> btSerialSessions[id]?.let { SerialTabSession(it.sessionId, it.profileId, it.label) } },
+                isReady = { btSerialSessionManager.isReadyForTerminal(it) },
+                create = { id, onData ->
+                    btSerialSessionManager.createTerminalSession(id, onData)?.let { s ->
+                        SerialTerminalHandle(sendInput = s::sendInput, close = s::close)
                     }
                 },
-            ) ?: continue
-            moshSessionRef[0] = moshSession
-
-            val moshCoalescer = InputCoalescer { data ->
-                moshSudoDetector.clear()
-                moshSession.sendInput(data)
-            }
-            val moshScheme = effectiveColorScheme(moshProfile)
-            val moshInitialScheme = initialEmulatorScheme(moshScheme)
-            emulator = TerminalEmulatorFactory.create(
-                autoDetectUrls = true,
-                initialRows = 24,
-                initialCols = 80,
-                defaultForeground = Color(moshInitialScheme.foreground),
-                enableAltScreen = moshProfile?.disableAltScreen != true && moshProfile?.sessionManager != "screen",
-                defaultBackground = Color(moshInitialScheme.background),
-                onKeyboardInput = { data -> moshCoalescer.send(applyModifiers(data)) },
-                onResize = { dims ->
-                    Log.d(TAG, "MOSH onResize: ${dims.columns}x${dims.rows}")
-                    moshSession.resize(dims.columns, dims.rows)
+            ),
+            SerialTabSource(
+                transportType = "BLESERIAL",
+                activeIds = activeBleIds,
+                sessionOf = { id -> bleSerialSessions[id]?.let { SerialTabSession(it.sessionId, it.profileId, it.label) } },
+                isReady = { bleSerialSessionManager.isReadyForTerminal(it) },
+                create = { id, onData ->
+                    bleSerialSessionManager.createTerminalSession(id, onData)?.let { s ->
+                        SerialTerminalHandle(sendInput = s::sendInput, close = s::close)
+                    }
                 },
-                maxScrollbackLines = terminalScrollbackRows.value,
-                inlineImages = inlineImagesPolicy(terminalInlineImages.value, inlineImageConsent.state(sessionId)),
-                ambiwidthMode = currentTermlibAmbiwidthMode(),
-                onBell = bellCallback(tabLabel),
-            )
-
-            moshSession.start()
-
-            currentTabs.add(
-                TerminalTab(
-                    sessionId = session.sessionId,
-                    profileId = session.profileId,
-                    colorTag = moshProfile?.colorTag ?: 0,
-                    label = tabLabel,
-                    transportType = "MOSH",
-                    emulator = emulator,
-                    mouseMode = moshMouseTracker.mouseMode,
-                    activeMouseMode = moshMouseTracker.activeMouseMode,
-                    bracketPasteMode = moshMouseTracker.bracketPasteMode,
-                    altScreen = moshMouseTracker.altScreen,
-                    cursorKeyAppMode = moshMouseTracker.cursorKeyAppMode,
-                    oscHandler = moshOscHandler,
-                    feedOutput = moshFeedOutput,
-                    cwd = moshCwdFlow,
-                    hyperlinkUri = moshHyperlinkFlow,
-                    isReconnecting = MutableStateFlow(false),
-                    stallSeconds = moshSession.stallSeconds,
-                    sendInput = { data ->
-                        moshSudoDetector.clear()
-                        moshSession.sendInput(data)
-                    },
-                    resize = { cols, rows -> moshSession.resize(cols, rows) },
-                    close = { moshSession.close() },
-                    colorScheme = moshScheme,
-                    backgroundOpacity = effectiveOpacity(moshProfile),
-                    sudoPrompt = moshSudoDetector.activePrompt,
-                    dismissSudoPrompt = { moshSudoDetector.clear() },
-                )
-            )
-            trackedSessionIds.add(session.sessionId)
+            ),
+            SerialTabSource(
+                transportType = "USBSERIAL",
+                activeIds = activeUsbIds,
+                sessionOf = { id -> usbSerialSessions[id]?.let { SerialTabSession(it.sessionId, it.profileId, it.label) } },
+                isReady = { usbSerialSessionManager.isReadyForTerminal(it) },
+                create = { id, onData ->
+                    usbSerialSessionManager.createTerminalSession(id, onData)?.let { s ->
+                        SerialTerminalHandle(sendInput = s::sendInput, close = s::close)
+                    }
+                },
+            ),
+        )) {
+            buildSerialTabs(source, currentTabs, trackedSessionIds, profilesById)
         }
 
-        // Create tabs for new ET sessions
-        for (sessionId in activeEtIds) {
-            if (sessionId in trackedSessionIds) continue
-            if (!etSessionManager.isReadyForTerminal(sessionId)) continue
-
-            val session = etSessions[sessionId] ?: continue
-            val etProfile = profilesById[session.profileId]
-            val tabLabel = generateTabLabel(session.label, session.profileId, currentTabs, sessionName = etProfile?.lastSessionName)
-
-            lateinit var emulator: TerminalEmulator
-            val etWriteBuffer = EmulatorWriteBuffer({ emulator }, createRecorderIfEnabled(sessionId))
-            val etMouseTracker = MouseModeTracker()
-            val etSudoDetector = SudoPromptDetector()
-            val etOscHandler = OscHandler()
-            val etCwdFlow = MutableStateFlow<String?>(null)
-            val etHyperlinkFlow = MutableStateFlow<String?>(null)
-            etOscHandler.onCwdChanged = { etCwdFlow.value = it }
-            etOscHandler.onHyperlink = { uri -> etHyperlinkFlow.value = uri }
-            val etFeedOutput: (ByteArray, Int, Int) -> Unit = { data, offset, length ->
-                synchronized(etOscHandler) {
-                    etOscHandler.process(data, offset, length)
-                    etMouseTracker.process(etOscHandler.outputBuf, 0, etOscHandler.outputLen)
-                    etSudoDetector.process(etOscHandler.outputBuf, 0, etOscHandler.outputLen)
-                    val len = etOscHandler.outputLen
-                    if (len > 0) {
-                        etWriteBuffer.append(etOscHandler.outputBuf, 0, len)
-                    }
-                }
-            }
-
-            // Defer initial command until shell prompt detected
-            val etInitialCmd = session.initialCommand
-            val etPendingSent = java.util.concurrent.atomic.AtomicBoolean(false)
-            val etSessionRef = arrayOfNulls<sh.haven.core.et.EtSession>(1)
-
-            val etSession = etSessionManager.createTerminalSession(
-                sessionId = sessionId,
-                onDataReceived = { data, offset, length ->
-                    etFeedOutput(data, offset, length)
-                    // Send session manager command once shell prompt detected
-                    if (etInitialCmd != null && !etPendingSent.get()) {
-                        val raw = String(data, offset, length)
-                        val stripped = raw.replace(Regex("\u001b(?:\\[[^a-zA-Z]*[a-zA-Z]|][^\u0007]*\u0007)"), "").trimEnd()
-                        if (stripped.isNotEmpty()) {
-                            val last = stripped.last()
-                            if (last == '$' || last == '#' || last == '%' || last == '>') {
-                                if (etPendingSent.compareAndSet(false, true)) {
-                                    Log.d(TAG, "ET: shell prompt detected ('$last'), sending session manager command")
-                                    etSessionRef[0]?.sendInput((etInitialCmd + "\n").toByteArray())
-                                }
-                            }
-                        }
+        // Create tabs for roaming-shell transports (Mosh + Eternal Terminal).
+        for (source in listOf(
+            RoamingShellTabSource(
+                transportType = "MOSH",
+                activeIds = activeMoshIds,
+                sessionOf = { id -> moshSessions[id]?.let { RoamingTabSession(it.sessionId, it.profileId, it.label, it.initialCommand) } },
+                isReady = { moshSessionManager.isReadyForTerminal(it) },
+                create = { id, onData ->
+                    moshSessionManager.createTerminalSession(id, onData)?.let { s ->
+                        RoamingTerminalHandle(
+                            sendInput = s::sendInput,
+                            resize = s::resize,
+                            start = s::start,
+                            close = s::close,
+                            stallSeconds = s.stallSeconds,
+                        )
                     }
                 },
-            ) ?: continue
-            etSessionRef[0] = etSession
-
-            val etCoalescer = InputCoalescer { data ->
-                etSudoDetector.clear()
-                etSession.sendInput(data)
-            }
-            val etScheme = effectiveColorScheme(etProfile)
-            val etInitialScheme = initialEmulatorScheme(etScheme)
-            emulator = TerminalEmulatorFactory.create(
-                autoDetectUrls = true,
-                initialRows = 24,
-                initialCols = 80,
-                defaultForeground = Color(etInitialScheme.foreground),
-                defaultBackground = Color(etInitialScheme.background),
-                enableAltScreen = etProfile?.disableAltScreen != true && etProfile?.sessionManager != "screen",
-                onKeyboardInput = { data -> etCoalescer.send(applyModifiers(data)) },
-                onResize = { dims ->
-                    Log.d(TAG, "ET onResize: ${dims.columns}x${dims.rows}")
-                    etSession.resize(dims.columns, dims.rows)
+            ),
+            RoamingShellTabSource(
+                transportType = "ET",
+                activeIds = activeEtIds,
+                sessionOf = { id -> etSessions[id]?.let { RoamingTabSession(it.sessionId, it.profileId, it.label, it.initialCommand) } },
+                isReady = { etSessionManager.isReadyForTerminal(it) },
+                create = { id, onData ->
+                    etSessionManager.createTerminalSession(id, onData)?.let { s ->
+                        RoamingTerminalHandle(
+                            sendInput = s::sendInput,
+                            resize = s::resize,
+                            start = s::start,
+                            close = s::close,
+                            stallSeconds = NEVER_STALLS,
+                        )
+                    }
                 },
-                maxScrollbackLines = terminalScrollbackRows.value,
-                inlineImages = inlineImagesPolicy(terminalInlineImages.value, inlineImageConsent.state(sessionId)),
-                ambiwidthMode = currentTermlibAmbiwidthMode(),
-                onBell = bellCallback(tabLabel),
-            )
-
-            etSession.start()
-
-            currentTabs.add(
-                TerminalTab(
-                    sessionId = session.sessionId,
-                    profileId = session.profileId,
-                    colorTag = etProfile?.colorTag ?: 0,
-                    label = tabLabel,
-                    transportType = "ET",
-                    emulator = emulator,
-                    mouseMode = etMouseTracker.mouseMode,
-                    activeMouseMode = etMouseTracker.activeMouseMode,
-                    bracketPasteMode = etMouseTracker.bracketPasteMode,
-                    altScreen = etMouseTracker.altScreen,
-                    cursorKeyAppMode = etMouseTracker.cursorKeyAppMode,
-                    oscHandler = etOscHandler,
-                    feedOutput = etFeedOutput,
-                    cwd = etCwdFlow,
-                    hyperlinkUri = etHyperlinkFlow,
-                    isReconnecting = MutableStateFlow(false),
-                    stallSeconds = NEVER_STALLS,
-                    sendInput = { data ->
-                        etSudoDetector.clear()
-                        etSession.sendInput(data)
-                    },
-                    resize = { cols, rows -> etSession.resize(cols, rows) },
-                    close = { etSession.close() },
-                    colorScheme = etScheme,
-                    backgroundOpacity = effectiveOpacity(etProfile),
-                    sudoPrompt = etSudoDetector.activePrompt,
-                    dismissSudoPrompt = { etSudoDetector.clear() },
-                )
-            )
-            trackedSessionIds.add(session.sessionId)
+            ),
+        )) {
+            buildRoamingShellTabs(source, currentTabs, trackedSessionIds, profilesById)
         }
 
         // Create tabs for new Local + UML-guest sessions. Both transports run

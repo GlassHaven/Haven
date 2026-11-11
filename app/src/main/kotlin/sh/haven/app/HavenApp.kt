@@ -44,7 +44,7 @@ class HavenApp : Application(), Configuration.Provider {
     @Inject lateinit var workerFactory: HiltWorkerFactory
     @Inject lateinit var prootManager: dagger.Lazy<sh.haven.core.local.ProotManager>
     @Inject lateinit var guestServiceManager: dagger.Lazy<sh.haven.core.local.GuestServiceManager>
-    @Inject lateinit var sessionManagerRegistry: dagger.Lazy<sh.haven.core.ssh.SessionManagerRegistry>
+    @Inject lateinit var sessionManagerRegistry: dagger.Lazy<sh.haven.core.session.SessionManagerRegistry>
     @Inject lateinit var mailWatchManager: dagger.Lazy<sh.haven.app.agent.mailrules.MailWatchManager>
     @Inject lateinit var backupAutoSyncScheduler: dagger.Lazy<sh.haven.app.backup.BackupAutoSyncScheduler>
     @Inject lateinit var backupAutoPullScheduler: dagger.Lazy<sh.haven.app.backup.BackupAutoPullScheduler>

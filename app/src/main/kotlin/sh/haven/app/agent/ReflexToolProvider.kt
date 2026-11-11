@@ -56,7 +56,7 @@ internal class ReflexToolProvider(
     @Volatile
     private var notificationChannelEnsured = false
 
-    override fun tools(): Map<String, ToolHandler> = linkedMapOf(
+    override fun tools(): Map<String, ToolHandler> = toolMapOf(
         "search_terminal" to ToolHandler(
             description = "Search a live terminal session's scrollback for a pattern and return the matching lines with line numbers and optional surrounding context — the middle ground between read_terminal_scrollback (raw dump) and read_terminal_snapshot (visible screen). Matches RAW scrollback text (ANSI escapes may be present, as with read_terminal_scrollback); searches the same 256 KiB ring, so anything that scrolled out of the buffer is unfindable — run the search while the text is still on screen or use a pattern that matches recent output.",
             inputSchema = objectSchema {

@@ -57,7 +57,7 @@ import sh.haven.core.ssh.sshEngineFromOptionsText
 import sh.haven.core.ssh.SshConnectionService
 import sh.haven.core.ssh.SshKeyExporter
 import sh.haven.core.ssh.SessionManager
-import sh.haven.core.ssh.SessionManagerRegistry
+import sh.haven.core.session.SessionManagerRegistry
 import sh.haven.core.ssh.SshSessionManager
 import sh.haven.core.ssh.SshVerboseLogger
 import sh.haven.core.data.db.entities.KnownHost

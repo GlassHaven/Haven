@@ -5,8 +5,8 @@ import dagger.Provides
 import dagger.hilt.InstallIn
 import dagger.hilt.components.SingletonComponent
 import dagger.multibindings.IntoSet
-import sh.haven.core.ssh.ForegroundSessionInfo
-import sh.haven.core.ssh.ForegroundSessionParticipant
+import sh.haven.core.session.ForegroundSessionInfo
+import sh.haven.core.session.ForegroundSessionParticipant
 import sh.haven.core.usb.UsbBroker
 import sh.haven.core.usb.UsbIpServer
 import sh.haven.core.usb.UsbRedirServer

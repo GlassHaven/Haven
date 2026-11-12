@@ -956,13 +956,22 @@ class ProotManager constructor(
     fun ensureGuestUser(rootfsDir: File): GuestUserSpec =
         provisionGuestUser(rootfsDir, _guestUsername.value)
 
+    private val dnsProxyBridge = ProotDnsProxyBridge()
+
     /**
      * Write `etc/resolv.conf` under [rootfsDir] from the current DNS setting, returning
      * the servers used. Called on every guest launch as well as at install time, so
      * changing the setting takes effect without reinstalling the distro.
      */
-    fun applyResolvConf(rootfsDir: File): List<String> =
-        ProotDns.write(rootfsDir, context, dnsMode, dnsServers)
+    @JvmOverloads
+    fun applyResolvConf(rootfsDir: File, distroId: String = activeDistroId): List<String> {
+        val proxyActive = ProotRouting.resolveActiveProxyEndpoint(
+            config = routingConfig(distroId),
+            cacheDir = context.cacheDir,
+            tunnelStarter = tunnelSocksStarter,
+        ) != null
+        return ProotDns.write(rootfsDir, context, dnsMode, dnsServers, proxyActive = proxyActive)
+    }
 
     /**
      * Android system partitions exposed by [bindAndroidSystem]. `/apex` carries the
@@ -3768,10 +3777,25 @@ class ProotManager constructor(
     fun netPolicyArgs(distroId: String = activeDistroId): List<String> {
         val cfg = routingConfig(distroId)
         val dnsSpecs = ProotDns.customPortRedirectSpecs(dnsMode, dnsServers)
+        val activeProxy = ProotRouting.resolveActiveProxyEndpoint(
+            config = cfg,
+            cacheDir = context.cacheDir,
+            tunnelStarter = tunnelSocksStarter,
+        )
+        val bridgeListeners = if (activeProxy != null) {
+            val upstreams = ProotDns.proxyUpstreamEndpoints(dnsMode, dnsServers) {
+                ProotDns.systemNameservers(context)
+            }
+            runCatching { dnsProxyBridge.ensureStarted(activeProxy, upstreams) }.getOrNull()
+        } else {
+            null
+        }
         val spec = ProotRouting.buildNetPolicySpec(
             config = cfg,
             cacheDir = context.cacheDir,
             dnsRedirectSpecs = dnsSpecs,
+            dnsProxyIpv4Spec = bridgeListeners?.ipv4Spec,
+            dnsProxyIpv6Spec = bridgeListeners?.ipv6Spec,
             tunnelStarter = tunnelSocksStarter,
         ) ?: return emptyList()
         return listOf("--net-policy=$spec")

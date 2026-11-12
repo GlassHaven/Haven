@@ -468,6 +468,49 @@ object ProotRouting {
     }
 
     /**
+     * Resolve the active proxy endpoint for [config] when one is currently usable
+     * (`SOCKS5`, `HTTP`, `HAVEN_TUNNEL` with an active loopback port, or `FOLLOW_TUNNEL`
+     * while global tunnel auto-proxy is enabled). Returns `null` for `DIRECT`, inactive
+     * `FOLLOW_TUNNEL`, or unresolvable/down `HAVEN_TUNNEL`.
+     */
+    fun resolveActiveProxyEndpoint(
+        config: ProotRoutingConfig,
+        cacheDir: File,
+        tunnelStarter: ((String) -> Int?)? = null,
+    ): ParsedProxyEndpoint? = when (config.mode) {
+        ProotRoutingMode.DIRECT -> null
+
+        ProotRoutingMode.FOLLOW_TUNNEL -> {
+            val globalSocks = runCatching {
+                File(cacheDir, ".haven_tunnel_socks5").takeIf { it.isFile }?.readText()?.trim()
+            }.getOrNull()?.takeIf { it.isNotEmpty() }
+            if (globalSocks != null && File(cacheDir, ".haven_tunnel_auto_proxy").exists()) {
+                (parseProxyEndpoint(ProotRoutingMode.SOCKS5, globalSocks) as? ParseResult.Valid)?.endpoint
+            } else {
+                null
+            }
+        }
+
+        ProotRoutingMode.HAVEN_TUNNEL -> {
+            val id = config.tunnelConfigId.trim()
+            if (id.isEmpty()) {
+                null
+            } else {
+                val port = readTunnelSocksPort(cacheDir, id) ?: tunnelStarter?.invoke(id)
+                if (port != null && port in 1..65535) {
+                    ParsedProxyEndpoint(scheme = "socks5h", host = "127.0.0.1", port = port)
+                } else {
+                    null
+                }
+            }
+        }
+
+        ProotRoutingMode.SOCKS5, ProotRoutingMode.HTTP -> {
+            (parseProxyEndpoint(config.mode, config.proxyUrl) as? ParseResult.Valid)?.endpoint
+        }
+    }
+
+    /**
      * Build PRoot `--net-policy=<spec>` value (#838) combining:
      * - Fail-closed `lockdown` + `allow=<ip>:<port>` when [ProotRoutingConfig.blockDirectTraffic]
      *   is enabled and this distro is routed through an active proxy (`SOCKS5`, `HTTP`,
@@ -477,13 +520,18 @@ object ProotRouting {
      *   brought up or resolved, preventing silent clearnet/DNS fallback leaks.
      * - `dns=<ip>:<port>` entries from [dnsRedirectSpecs] so guest resolvers querying
      *   port 53 reach custom-port DNS listeners (e.g. `127.0.0.1:5400`).
+     * - `dns_proxy=<v4>:<port>` and `dns_proxy6=[::1]:<port>` when a loopback
+     *   [ProotDnsProxyBridge] listener is active so external port-53 DNS queries
+     *   (including `dig @1.1.1.1`) traverse the proxy over TCP port 53.
      *
-     * Returns `null` when neither `lockdown` nor `dns=` applies.
+     * Returns `null` when none of `lockdown`, `dns=`, or `dns_proxy=` applies.
      */
     fun buildNetPolicySpec(
         config: ProotRoutingConfig,
         cacheDir: File,
         dnsRedirectSpecs: List<String> = emptyList(),
+        dnsProxyIpv4Spec: String? = null,
+        dnsProxyIpv6Spec: String? = null,
         tunnelStarter: ((String) -> Int?)? = null,
         hostIpResolver: (String) -> String? = ::defaultHostIpResolver,
     ): String? {
@@ -495,27 +543,19 @@ object ProotRouting {
             ProotRoutingMode.DIRECT -> Unit
 
             ProotRoutingMode.FOLLOW_TUNNEL -> {
-                val globalSocks = runCatching {
-                    File(cacheDir, ".haven_tunnel_socks5").takeIf { it.isFile }?.readText()?.trim()
-                }.getOrNull()?.takeIf { it.isNotEmpty() }
-                if (config.blockDirectTraffic && globalSocks != null && File(cacheDir, ".haven_tunnel_auto_proxy").exists()) {
+                val active = resolveActiveProxyEndpoint(config, cacheDir, tunnelStarter)
+                if (config.blockDirectTraffic && active != null) {
                     lockdown = true
-                    val parsed = parseProxyEndpoint(ProotRoutingMode.SOCKS5, globalSocks)
-                    if (parsed is ParseResult.Valid) {
-                        allowSpecs += resolveAllowSpecs(parsed.endpoint, hostIpResolver)
-                    }
+                    allowSpecs += resolveAllowSpecs(active, hostIpResolver)
                 }
             }
 
             ProotRoutingMode.HAVEN_TUNNEL -> {
                 if (config.blockDirectTraffic) {
                     lockdown = true
-                    val id = config.tunnelConfigId.trim()
-                    if (id.isNotEmpty()) {
-                        val port = readTunnelSocksPort(cacheDir, id) ?: tunnelStarter?.invoke(id)
-                        if (port != null && port in 1..65535) {
-                            allowSpecs += "127.0.0.1:$port"
-                        }
+                    val active = resolveActiveProxyEndpoint(config, cacheDir, tunnelStarter)
+                    if (active != null) {
+                        allowSpecs += "127.0.0.1:${active.port}"
                     }
                 }
             }
@@ -523,9 +563,9 @@ object ProotRouting {
             ProotRoutingMode.SOCKS5, ProotRoutingMode.HTTP -> {
                 if (config.blockDirectTraffic) {
                     lockdown = true
-                    val parsed = parseProxyEndpoint(config.mode, config.proxyUrl)
-                    if (parsed is ParseResult.Valid) {
-                        allowSpecs += resolveAllowSpecs(parsed.endpoint, hostIpResolver)
+                    val active = resolveActiveProxyEndpoint(config, cacheDir, tunnelStarter)
+                    if (active != null) {
+                        allowSpecs += resolveAllowSpecs(active, hostIpResolver)
                     }
                 }
             }
@@ -540,6 +580,8 @@ object ProotRouting {
             .filter { it.isNotEmpty() }
             .distinct()
             .forEach { tokens += "dns=$it" }
+        dnsProxyIpv4Spec?.trim()?.takeIf { it.isNotEmpty() }?.let { tokens += "dns_proxy=$it" }
+        dnsProxyIpv6Spec?.trim()?.takeIf { it.isNotEmpty() }?.let { tokens += "dns_proxy6=$it" }
 
         return tokens.takeIf { it.isNotEmpty() }?.joinToString(";")
     }

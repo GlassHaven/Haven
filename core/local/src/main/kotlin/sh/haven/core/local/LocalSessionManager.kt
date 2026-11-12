@@ -330,7 +330,7 @@ class LocalSessionManager @Inject constructor(
             // Android has no /etc/resolv.conf, so Haven owns the guest's. Rewrite it
             // on every launch from the configured DNS mode (#446) so changing the
             // setting takes effect without reinstalling the distro.
-            prootManager.applyResolvConf(rootfsDir)
+            prootManager.applyResolvConf(rootfsDir, targetDistro)
             val cmd = prootBinary
             // Append a session-manager wrapper if the user picked one
             // (tmux/zellij/screen/byobu). The wrapper falls back to a

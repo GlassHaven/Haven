@@ -274,10 +274,12 @@ class ProotRoutingTest {
             java.io.File(cacheDir, ".haven_tunnel_socks5").writeText("127.0.0.1:41080\n")
             java.io.File(cacheDir, ".haven_tunnel_auto_proxy").writeText("1\n")
             assertEquals(
-                "lockdown;allow=127.0.0.1:41080",
+                "lockdown;allow=127.0.0.1:41080;dns_proxy=127.0.0.1:45353;dns_proxy6=[::1]:45354",
                 ProotRouting.buildNetPolicySpec(
                     config = ProotRoutingConfig(mode = ProotRoutingMode.FOLLOW_TUNNEL),
                     cacheDir = cacheDir,
+                    dnsProxyIpv4Spec = "127.0.0.1:45353",
+                    dnsProxyIpv6Spec = "[::1]:45354",
                 ),
             )
         } finally {

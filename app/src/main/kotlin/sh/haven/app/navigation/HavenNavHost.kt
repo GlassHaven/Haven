@@ -1295,6 +1295,7 @@ private fun DesktopExternalDisplaySync(
         val frame by projectedTab.frame.collectAsState()
         val frameSeq = when (projectedTab) {
             is sh.haven.app.desktop.DesktopTab.Rdp -> projectedTab.frameSeq.collectAsState().value
+            is sh.haven.app.desktop.DesktopTab.Spice -> projectedTab.frameSeq.collectAsState().value
             else -> 0L
         }
         val cursor = when (projectedTab) {

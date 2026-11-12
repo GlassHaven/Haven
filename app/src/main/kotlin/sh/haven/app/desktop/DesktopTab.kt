@@ -139,6 +139,9 @@ sealed class DesktopTab {
         override val remoteDesktop: RemoteDesktopSession = SpiceDesktopSession(session)
         val cursor: StateFlow<CursorOverlay?> get() = _cursor
         val pointerPos: StateFlow<Pair<Int, Int>> get() = _pointerPos
+
+        /** #607: [frame] reuses one bitmap per surface size; draw scopes observe [frameSeq]. */
+        val frameSeq: StateFlow<Long> get() = session.frameSeq
     }
 
     data class Glkvm(

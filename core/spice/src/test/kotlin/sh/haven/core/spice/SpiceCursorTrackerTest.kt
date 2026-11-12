@@ -1,9 +1,13 @@
 package sh.haven.core.spice
 
 import org.junit.Assert.assertEquals
+import org.junit.Assert.assertNotSame
+import org.junit.Assert.assertNull
 import org.junit.Assert.assertSame
+import org.junit.Assert.assertThrows
 import org.junit.Test
 import sh.haven.spice.CursorData
+import sh.haven.spice.FrameData
 
 class SpiceCursorTrackerTest {
 
@@ -213,5 +217,46 @@ class SpiceCursorTrackerTest {
         org.junit.Assert.assertTrue(logText.contains("input: mouse move #1 -> (320,240)"))
         org.junit.Assert.assertTrue(logText.contains("input: mouse LEFT down (after 1 moves)"))
         org.junit.Assert.assertTrue(logText.contains("input: mouse LEFT up (after 1 moves)"))
+    }
+
+    @Test
+    fun `frameBuffer reuses single bitmap for unchanged dimensions and reallocates only on resize`() {
+        var allocations = 0
+        val written = mutableListOf<Pair<FakeBitmap, Byte>>()
+        val buffer = SpiceFrameBuffer(
+            allocate = { w, h ->
+                allocations++
+                FakeBitmap("fb-$allocations-${w}x$h")
+            },
+            writePixels = { bmp, bytes -> written.add(bmp to bytes[0]) },
+        )
+
+        val f1 = buffer.update(FrameData(4u, 3u, ByteArray(4 * 3 * 4) { 0x10 }))
+        val f2 = buffer.update(FrameData(4u, 3u, ByteArray(4 * 3 * 4) { 0x20 }))
+        assertSame(f1, f2)
+        assertEquals(1, allocations)
+        assertSame(f1, buffer.get())
+        assertEquals(listOf<Byte>(0x10, 0x20), written.map { it.second })
+
+        val f3 = buffer.update(FrameData(8u, 6u, ByteArray(8 * 6 * 4) { 0x30 }))
+        assertNotSame(f1, f3)
+        assertEquals(2, allocations)
+        assertEquals("fb-2-8x6", f3.tag)
+
+        buffer.clear()
+        assertNull(buffer.get())
+    }
+
+    @Test
+    fun `frameBuffer rejects truncated pixel payload without corrupting current bitmap`() {
+        val buffer = SpiceFrameBuffer(
+            allocate = { w, h -> FakeBitmap("${w}x$h") },
+            writePixels = { _, _ -> },
+        )
+        val initial = buffer.update(FrameData(2u, 2u, ByteArray(16) { 0x01 }))
+        assertThrows(IllegalArgumentException::class.java) {
+            buffer.update(FrameData(2u, 2u, ByteArray(15)))
+        }
+        assertSame(initial, buffer.get())
     }
 }

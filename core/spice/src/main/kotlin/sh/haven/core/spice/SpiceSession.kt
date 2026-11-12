@@ -2,6 +2,8 @@ package sh.haven.core.spice
 
 import android.graphics.Bitmap
 import android.util.Log
+import kotlinx.coroutines.flow.MutableStateFlow
+import kotlinx.coroutines.flow.StateFlow
 import sh.haven.spice.CursorCallback
 import sh.haven.spice.CursorData
 import sh.haven.spice.FrameCallback
@@ -40,7 +42,10 @@ class SpiceSession(
     @Volatile
     private var closed = false
     private var client: SpiceClient? = null
-    private var currentBitmap: Bitmap? = null
+    private val frameBuffer = SpiceFrameBuffer<Bitmap>(
+        allocate = { w, h -> Bitmap.createBitmap(w, h, Bitmap.Config.ARGB_8888) },
+        writePixels = { bmp, pixels -> bmp.copyPixelsFromBuffer(ByteBuffer.wrap(pixels)) },
+    )
     private val startTime = System.currentTimeMillis()
 
     private fun log(level: String, msg: String) {
@@ -48,8 +53,19 @@ class SpiceSession(
         verboseBuffer?.add("+${System.currentTimeMillis() - startTime}ms [$TAG] $level: $msg")
     }
 
-    /** Called on each full-frame update. Set by the ViewModel. */
+    /**
+     * Called on each frame update. Set by the ViewModel.
+     *
+     * The [Bitmap] instance is reused in place across updates of the same
+     * surface dimensions (#607, matching [sh.haven.core.rdp.RdpSession] #422);
+     * observe [frameSeq] inside draw scopes to trigger repaints without
+     * recomposing the surrounding viewer chrome.
+     */
     var onFrameUpdate: ((Bitmap) -> Unit)? = null
+
+    /** Bumped once per in-place framebuffer update so draw scopes repaint (#607). */
+    val frameSeq: StateFlow<Long> get() = _frameSeq
+    private val _frameSeq = MutableStateFlow(0L)
 
     /**
      * Called when the server pushes a new cursor shape / visibility. Args mirror
@@ -115,8 +131,8 @@ class SpiceSession(
                             lastFrameHeight = frameH
                             log("D", "surface size: ${frameW}x${frameH}")
                         }
-                        val bmp = frameToBitmap(frame)
-                        synchronized(this@SpiceSession) { currentBitmap = bmp }
+                        val bmp = frameBuffer.update(frame)
+                        _frameSeq.value = _frameSeq.value + 1
                         onFrameUpdate?.invoke(bmp)
                     } catch (e: Exception) {
                         log("E", "frameToBitmap failed (${frame.width}x${frame.height}, ${frame.pixels.size} bytes): ${e.message}")
@@ -184,15 +200,6 @@ class SpiceSession(
         }
     }
 
-    /** Convert FrameData (RGBA, opaque) to an Android Bitmap. */
-    private fun frameToBitmap(frame: FrameData): Bitmap {
-        val w = frame.width.toInt()
-        val h = frame.height.toInt()
-        val bitmap = Bitmap.createBitmap(w, h, Bitmap.Config.ARGB_8888)
-        bitmap.copyPixelsFromBuffer(ByteBuffer.wrap(frame.pixels))
-        return bitmap
-    }
-
     /**
      * Convert a SPICE cursor shape (RGBA) to an Android Bitmap.
      * ponytail: SPICE ALPHA cursors are *premultiplied* RGBA, so copy the bytes
@@ -207,7 +214,7 @@ class SpiceSession(
     }
 
     /** Get the current frame as a Bitmap. */
-    fun getFrame(): Bitmap? = synchronized(this) { currentBitmap }
+    fun getFrame(): Bitmap? = frameBuffer.get()
 
     // --- Input forwarding ---
 
@@ -280,10 +287,55 @@ class SpiceSession(
         }
         client = null
         cursorTracker.clear()
-        synchronized(this) {
-            currentBitmap?.recycle()
-            currentBitmap = null
+        // #425: never call recycle() on a bitmap Compose's RenderThread may
+        // still be drawing; drop the reference and let NativeAllocationRegistry free it.
+        frameBuffer.clear()
+    }
+}
+
+/**
+ * Reuses one framebuffer bitmap per `(width, height)` across SPICE frame
+ * updates (#607), avoiding per-frame full-screen `Bitmap.createBitmap`
+ * allocations and viewer chrome recompositions while never calling `recycle()`
+ * on bitmaps that Compose may still be drawing (#425).
+ */
+internal class SpiceFrameBuffer<B : Any>(
+    private val allocate: (width: Int, height: Int) -> B,
+    private val writePixels: (B, ByteArray) -> Unit,
+) {
+    private var currentBitmap: B? = null
+    private var currentWidth: Int = 0
+    private var currentHeight: Int = 0
+
+    @Synchronized
+    fun update(frame: FrameData): B {
+        val w = frame.width.toInt()
+        val h = frame.height.toInt()
+        val requiredBytes = w * h * 4
+        require(w > 0 && h > 0 && frame.pixels.size >= requiredBytes) {
+            "Invalid SPICE frame ${w}x${h} (${frame.pixels.size} bytes, need $requiredBytes)"
         }
+        val bmp = if (currentBitmap != null && currentWidth == w && currentHeight == h) {
+            currentBitmap!!
+        } else {
+            val fresh = allocate(w, h)
+            currentBitmap = fresh
+            currentWidth = w
+            currentHeight = h
+            fresh
+        }
+        writePixels(bmp, frame.pixels)
+        return bmp
+    }
+
+    @Synchronized
+    fun get(): B? = currentBitmap
+
+    @Synchronized
+    fun clear() {
+        currentBitmap = null
+        currentWidth = 0
+        currentHeight = 0
     }
 }
 

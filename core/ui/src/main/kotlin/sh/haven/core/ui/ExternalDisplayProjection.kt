@@ -24,6 +24,7 @@ import androidx.compose.runtime.Composable
 import androidx.compose.runtime.CompositionLocalProvider
 import androidx.compose.runtime.DisposableEffect
 import androidx.compose.runtime.SideEffect
+import androidx.compose.runtime.State
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
@@ -391,6 +392,7 @@ fun ExternalDisplayToggle(
 fun rememberExternalDisplayProjection(
     frame: Bitmap?,
     frameSeq: Long = 0L,
+    frameSeqState: State<Long>? = null,
     cursor: CursorOverlay? = null,
     pointerX: Int = 0,
     pointerY: Int = 0,
@@ -421,11 +423,48 @@ fun rememberExternalDisplayProjection(
         }
     }
 
+    // Isolate `frameSeqState.value` inside a tiny restartable leaf composable so
+    // `RdpViewer` (and its `!fullscreen` bottom toolbar, #607) does not recompose
+    // on every in-place framebuffer update.
+    SyncExternalDisplaySessionFrame(
+        controller = controller,
+        effectiveKey = effectiveKey,
+        frame = frame,
+        frameSeq = frameSeq,
+        frameSeqState = frameSeqState,
+        cursor = cursor,
+        pointerX = pointerX,
+        pointerY = pointerY,
+        showCursor = showCursor,
+        showFallbackCursor = showFallbackCursor,
+        coverFill = coverFill,
+    )
+
+    return remember(controller, sessionKey) {
+        ExternalDisplaySessionView(controller, sessionKey)
+    }
+}
+
+@Composable
+private fun SyncExternalDisplaySessionFrame(
+    controller: ExternalDisplayProjectionController,
+    effectiveKey: String,
+    frame: Bitmap?,
+    frameSeq: Long,
+    frameSeqState: State<Long>?,
+    cursor: CursorOverlay?,
+    pointerX: Int,
+    pointerY: Int,
+    showCursor: Boolean,
+    showFallbackCursor: Boolean,
+    coverFill: Boolean,
+) {
+    val resolvedSeq = frameSeqState?.value ?: frameSeq
     SideEffect {
         controller.updateSessionFrame(
             sessionKey = effectiveKey,
             frame = frame,
-            frameSeq = frameSeq,
+            frameSeq = resolvedSeq,
             cursor = cursor,
             pointerX = pointerX,
             pointerY = pointerY,
@@ -433,10 +472,6 @@ fun rememberExternalDisplayProjection(
             showFallbackCursor = showFallbackCursor,
             coverFill = coverFill,
         )
-    }
-
-    return remember(controller, sessionKey) {
-        ExternalDisplaySessionView(controller, sessionKey)
     }
 }
 

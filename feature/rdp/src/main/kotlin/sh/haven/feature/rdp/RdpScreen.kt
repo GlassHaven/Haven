@@ -553,7 +553,7 @@ private fun RdpViewer(
         if (effectiveInputMode == "TOUCHPAD") viewportState.virtualCursor else pointerPos
     val externalDisplay = sh.haven.core.ui.rememberExternalDisplayProjection(
         frame = frame,
-        frameSeq = frameSeq.value,
+        frameSeqState = frameSeq,
         cursor = cursor,
         pointerX = externalCursorX,
         pointerY = externalCursorY,

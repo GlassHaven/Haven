@@ -405,6 +405,7 @@ fun DesktopScreen(
                             protocolLabel = tab.protocol,
                             connected = tab.connected,
                             frame = tab.frame,
+                            frameSeq = tab.frameSeq,
                             error = tab.error,
                             toolbarLayout = toolbarLayout,
                             navBlockMode = navBlockMode,

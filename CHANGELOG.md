@@ -5,6 +5,11 @@ the corresponding GitHub Release; a release can't ship without its section
 (enforced by `scripts/check-changelog.sh` in CI). The GitHub "Full Changelog"
 compare link is appended automatically — don't add it here.
 
+## v5.94.35
+
+- Enforce fail-closed socket filtering in PRoot when a per-distro proxy is active and redirect custom `ip:port` DNS resolvers (such as `127.0.0.1:5400`) at the syscall boundary so direct UDP/TCP DNS queries cannot bypass the proxy (#838, thanks @DragonXen).
+- Update `connectbot/sshlib` to 0.6.9 for SSH channel-request replies and fold `termux/proot` v5.1.107.102 into the bundled PRoot fork.
+
 ## v5.94.34
 
 - Coalesce SPICE primary-surface display updates at 60 Hz, ignore off-screen surface pixmaps, reuse one framebuffer Bitmap per resolution, and isolate frameSeq reads from the windowed toolbar (#607, thanks @empanadablues).

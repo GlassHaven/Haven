@@ -5,6 +5,11 @@ the corresponding GitHub Release; a release can't ship without its section
 (enforced by `scripts/check-changelog.sh` in CI). The GitHub "Full Changelog"
 compare link is appended automatically — don't add it here.
 
+## v5.94.32
+
+- Serialize local and UML guest PTY session attachment with MCP `open_local_shell`, replay buffered scrollback atomically when attaching the agent tee, drain queued main-looper `writeInput` updates before `open_local_shell` returns, and retain backing `AgentHandles` behind UI-opened tabs across Activity teardown (#555).
+- Seed remote-desktop touchpad `virtualCursor` from late server `CURSOR_INIT` coordinates before user movement, preserve sub-pixel touchpad cursor state across configuration/fullscreen saveable restore, deduplicate SPICE cursor shape bitmaps across pointer moves, and log SPICE surface-size transitions and click events under verbose logging (#607, #608, thanks @empanadablues).
+
 ## v5.94.31
 
 - Fix SPICE key-release scancodes (PS/2 Set-1 `0x80` break bit) and `0xE0` extended-key byte order, add a per-profile **Keyboard layout** picker on RDP and SPICE profiles, and add XKB-verified base scancode remap tables for Spanish (Spain and Latin America), Italian, Swiss German/French, Belgian French, Portuguese (Portugal and Brazil), and Swedish/Finnish (#606, thanks @empanadablues).

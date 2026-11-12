@@ -1,0 +1,2 @@
+- Fix local/guest MCP open_local_shell PTY race, replay buffered scrollback on tee attach, and retain backing agent handles behind UI-opened tabs (#555).
+- Seed touchpad virtual cursor from late SPICE CURSOR_INIT positions, preserve cursor state across fullscreen/rotation restore, and deduplicate SPICE cursor shape bitmaps across pointer moves (#607, #608, thanks @empanadablues).

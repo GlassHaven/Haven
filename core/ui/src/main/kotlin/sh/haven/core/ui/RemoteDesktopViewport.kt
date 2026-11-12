@@ -552,14 +552,18 @@ class RemoteDesktopViewportState(
     initialPanX: Float = 0f,
     initialPanY: Float = 0f,
     initialCursor: Pair<Int, Int> = 0 to 0,
+    initialCursorF: Offset = Offset(initialCursor.first.toFloat(), initialCursor.second.toFloat()),
+    initialHasUserMovedCursor: Boolean = false,
+    initialSeededInputMode: String? = null,
 ) {
     var zoom by mutableFloatStateOf(initialZoom)
     var panX by mutableFloatStateOf(initialPanX)
     var panY by mutableFloatStateOf(initialPanY)
     var viewSize by mutableStateOf(IntSize.Zero)
     var virtualCursor by mutableStateOf(initialCursor)
-    var virtualCursorF by mutableStateOf(Offset(initialCursor.first.toFloat(), initialCursor.second.toFloat()))
-    internal var lastSeededInputMode: String? = null
+    var virtualCursorF by mutableStateOf(initialCursorF)
+    internal var lastSeededInputMode: String? = initialSeededInputMode
+    internal var hasUserMovedCursor: Boolean = initialHasUserMovedCursor
 
     val isTransformed: Boolean
         get() = zoom != 1f || panX != 0f || panY != 0f
@@ -576,9 +580,28 @@ class RemoteDesktopViewportState(
         panY = transform.panY
     }
 
-    fun setVirtualCursorPosition(pos: Pair<Int, Int>) {
+    fun setVirtualCursorPosition(pos: Pair<Int, Int>, fromUser: Boolean = true) {
         virtualCursor = pos
         virtualCursorF = Offset(pos.first.toFloat(), pos.second.toFloat())
+        hasUserMovedCursor = fromUser
+    }
+
+    /**
+     * Keep [virtualCursor] aligned with the server's reported [pointerPos]
+     * whenever [inputMode] changes OR before the user has moved the cursor in
+     * the current mode (#608). SPICE delivers `CURSOR_INIT` on a separate TCP
+     * channel that can arrive after the first display frame mounted the
+     * viewport with `pointerPos == (0, 0)`; without adopting that late seed,
+     * `SPICE_MOUSE_MODE_SERVER` relative deltas start from `(0, 0)` while the
+     * guest pointer sits at its initial offset, clamping the reachable area.
+     */
+    fun syncVirtualCursorSeed(inputMode: String, pointerPos: Pair<Int, Int>) {
+        if (lastSeededInputMode != inputMode) {
+            lastSeededInputMode = inputMode
+            setVirtualCursorPosition(pointerPos, fromUser = false)
+        } else if (!hasUserMovedCursor && pointerPos != virtualCursor) {
+            setVirtualCursorPosition(pointerPos, fromUser = false)
+        }
     }
 
     fun stepVirtualCursor(deltaX: Float, deltaY: Float, fbWidth: Int, fbHeight: Int): Pair<Int, Int> {
@@ -589,13 +612,41 @@ class RemoteDesktopViewportState(
         virtualCursorF = Offset(fx, fy)
         val pos = fx.toInt().coerceIn(0, maxX) to fy.toInt().coerceIn(0, maxY)
         virtualCursor = pos
+        hasUserMovedCursor = true
         return pos
     }
 
     companion object {
-        val Saver: Saver<RemoteDesktopViewportState, List<Float>> = Saver(
-            save = { listOf(it.zoom, it.panX, it.panY) },
-            restore = { RemoteDesktopViewportState(initialZoom = it[0], initialPanX = it[1], initialPanY = it[2]) },
+        val Saver: Saver<RemoteDesktopViewportState, ArrayList<Any?>> = Saver(
+            save = {
+                arrayListOf(
+                    it.zoom,
+                    it.panX,
+                    it.panY,
+                    it.virtualCursorF.x,
+                    it.virtualCursorF.y,
+                    it.hasUserMovedCursor,
+                    it.lastSeededInputMode,
+                )
+            },
+            restore = { saved ->
+                val zoom = (saved.getOrNull(0) as? Number)?.toFloat() ?: 1f
+                val panX = (saved.getOrNull(1) as? Number)?.toFloat() ?: 0f
+                val panY = (saved.getOrNull(2) as? Number)?.toFloat() ?: 0f
+                val cursorFx = (saved.getOrNull(3) as? Number)?.toFloat() ?: 0f
+                val cursorFy = (saved.getOrNull(4) as? Number)?.toFloat() ?: 0f
+                val userMoved = saved.getOrNull(5) as? Boolean ?: false
+                val seededMode = saved.getOrNull(6) as? String
+                RemoteDesktopViewportState(
+                    initialZoom = zoom,
+                    initialPanX = panX,
+                    initialPanY = panY,
+                    initialCursor = cursorFx.toInt() to cursorFy.toInt(),
+                    initialCursorF = Offset(cursorFx, cursorFy),
+                    initialHasUserMovedCursor = userMoved,
+                    initialSeededInputMode = seededMode,
+                )
+            },
         )
     }
 }
@@ -613,10 +664,7 @@ fun rememberRemoteDesktopViewportState(
     } else {
         remember { RemoteDesktopViewportState(initialCursor = pointerPos) }
     }
-    if (state.lastSeededInputMode != inputMode) {
-        state.lastSeededInputMode = inputMode
-        state.setVirtualCursorPosition(pointerPos)
-    }
+    state.syncVirtualCursorSeed(inputMode = inputMode, pointerPos = pointerPos)
     return state
 }
 

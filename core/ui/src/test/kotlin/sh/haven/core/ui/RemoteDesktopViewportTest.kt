@@ -400,4 +400,51 @@ class RemoteDesktopViewportTest {
             ),
         )
     }
+
+    @Test
+    fun `RemoteDesktopViewportState seeds virtualCursor from late CURSOR_INIT before user touch and preserves cursor across Saver`() {
+        // Initial mount happens when display frame arrives while cursor channel is still at (0, 0).
+        val state = RemoteDesktopViewportState(initialCursor = 0 to 0)
+        state.syncVirtualCursorSeed(inputMode = "TOUCHPAD", pointerPos = 0 to 0)
+        assertEquals(0 to 0, state.virtualCursor)
+
+        // Late SPICE_MSG_CURSOR_INIT arrives with guest pointer at (220, 190) before any user touch:
+        // virtualCursor must adopt (220, 190) so relative server-mode deltas can reach (0, 0) (#608).
+        state.syncVirtualCursorSeed(inputMode = "TOUCHPAD", pointerPos = 220 to 190)
+        assertEquals(220 to 190, state.virtualCursor)
+
+        // User now steps (-220, -190) on touchpad -> reaches top-left (0, 0) cleanly without clamping early.
+        assertEquals(0 to 0, state.stepVirtualCursor(-220f, -190f, fbWidth = 1024, fbHeight = 768))
+
+        // Once the user has moved the touchpad cursor, server pointerPos echoes must NOT snap
+        // sub-pixel virtualCursorF or overwrite user-driven tracking.
+        state.stepVirtualCursor(15.6f, 24.4f, fbWidth = 1024, fbHeight = 768)
+        assertEquals(15 to 24, state.virtualCursor)
+        state.syncVirtualCursorSeed(inputMode = "TOUCHPAD", pointerPos = 400 to 300)
+        assertEquals(15 to 24, state.virtualCursor)
+        assertEquals(15.6f, state.virtualCursorF.x, 0.001f)
+        assertEquals(24.4f, state.virtualCursorF.y, 0.001f)
+
+        // Switching inputMode (DIRECT -> TOUCHPAD) re-seeds from current pointerPos.
+        state.syncVirtualCursorSeed(inputMode = "DIRECT", pointerPos = 512 to 384)
+        state.syncVirtualCursorSeed(inputMode = "TOUCHPAD", pointerPos = 512 to 384)
+        assertEquals(512 to 384, state.virtualCursor)
+
+        // Saver round-trip (fullscreen / rotation restore) preserves sub-pixel virtualCursor and user-moved bit.
+        state.applyTransform(RemoteViewportTransform(zoom = 1.5f, panX = -40f, panY = 25f))
+        state.stepVirtualCursor(10.5f, -5.25f, fbWidth = 1024, fbHeight = 768)
+        val saved = with(RemoteDesktopViewportState.Saver) {
+            androidx.compose.runtime.saveable.SaverScope { true }.save(state)
+        }!!
+        val restored = RemoteDesktopViewportState.Saver.restore(saved)!!
+        assertEquals(1.5f, restored.zoom, 0.001f)
+        assertEquals(-40f, restored.panX, 0.001f)
+        assertEquals(25f, restored.panY, 0.001f)
+        assertEquals(522 to 378, restored.virtualCursor)
+        assertEquals(522.5f, restored.virtualCursorF.x, 0.001f)
+        assertEquals(378.75f, restored.virtualCursorF.y, 0.001f)
+        // Restored user-moved state must also resist stale server pointerPos overwrite:
+        restored.syncVirtualCursorSeed(inputMode = "TOUCHPAD", pointerPos = 0 to 0)
+        assertEquals(522 to 378, restored.virtualCursor)
+    }
 }

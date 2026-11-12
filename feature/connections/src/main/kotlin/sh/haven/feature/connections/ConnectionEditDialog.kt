@@ -417,7 +417,11 @@ fun ConnectionEditDialog(
     // USB/IP auto-forward: VID:PID of a phone device to export on connect (null = off).
     var usbForwardVidPid by rememberSaveable { mutableStateOf(existing?.usbForwardVidPid) }
     var disableAltScreen by rememberSaveable { mutableStateOf(existing?.disableAltScreen ?: false) }
-    var useAndroidShell by rememberSaveable { mutableStateOf(existing?.useAndroidShell ?: false) }
+    var localShellMode by rememberSaveable {
+        mutableStateOf(existing?.resolvedLocalShellMode?.name ?: "PROOT")
+    }
+    val useAndroidShell = localShellMode == "ANDROID_SHELL"
+    val isProotShell = localShellMode == "PROOT"
     // null = follow the active distro (the default). Set to a distro id to
     // pin this LOCAL profile to a specific OS. (#per-distro-local)
     var prootDistroId by rememberSaveable { mutableStateOf(existing?.prootDistroId) }
@@ -1379,33 +1383,36 @@ fun ConnectionEditDialog(
                 }
                 if (connectionType == "LOCAL") {
                     ConnectionSection(stringResource(R.string.connections_section_local_shell))
+                    val localShellOptions = listOf(
+                        "PROOT" to stringResource(R.string.connections_local_mode_proot),
+                        "ANDROID_SHELL" to stringResource(R.string.connections_local_mode_android),
+                        "SHIZUKU" to stringResource(R.string.connections_local_mode_shizuku),
+                    )
+                    SingleChoiceSegmentedButtonRow(modifier = Modifier.fillMaxWidth()) {
+                        localShellOptions.forEachIndexed { index, (modeKey, modeLabel) ->
+                            SegmentedButton(
+                                selected = localShellMode == modeKey,
+                                onClick = { localShellMode = modeKey },
+                                shape = SegmentedButtonDefaults.itemShape(
+                                    index = index,
+                                    count = localShellOptions.size,
+                                ),
+                            ) { Text(modeLabel, maxLines = 1) }
+                        }
+                    }
+                    Spacer(Modifier.height(6.dp))
                     Text(
-                        if (useAndroidShell) {
-                            stringResource(R.string.connections_local_shell_android_desc)
-                        } else {
-                            stringResource(R.string.connections_local_shell_proot_desc)
+                        when (localShellMode) {
+                            "SHIZUKU" -> stringResource(R.string.connections_local_shell_shizuku_desc)
+                            "ANDROID_SHELL" -> stringResource(R.string.connections_local_shell_android_desc)
+                            else -> stringResource(R.string.connections_local_shell_proot_desc)
                         },
                         style = MaterialTheme.typography.bodySmall,
                         color = MaterialTheme.colorScheme.onSurfaceVariant,
                     )
-                    Row(
-                        verticalAlignment = Alignment.CenterVertically,
-                        modifier = Modifier
-                            .fillMaxWidth()
-                            .clickable { useAndroidShell = !useAndroidShell },
-                    ) {
-                        Checkbox(
-                            checked = useAndroidShell,
-                            onCheckedChange = { useAndroidShell = it },
-                        )
-                        Text(
-                            stringResource(R.string.connections_use_android_shell),
-                            style = MaterialTheme.typography.bodyMedium,
-                        )
-                    }
                     // Pin this Local profile to a specific OS (proot only).
                     // Default "Active distro" = follow the global active one.
-                    if (!useAndroidShell && availableDistros.isNotEmpty()) {
+                    if (isProotShell && availableDistros.isNotEmpty()) {
                         Spacer(Modifier.height(8.dp))
                         var distroExpanded by remember { mutableStateOf(false) }
                         val activeDefault = stringResource(R.string.connections_local_distro_active_default)
@@ -3865,13 +3872,20 @@ fun ConnectionEditDialog(
                                 host = "localhost",
                                 username = "",
                             )).copy(
-                                label = label.ifBlank { if (useAndroidShell) "Android Shell" else "Local Shell" },
+                                label = label.ifBlank {
+                                    when (localShellMode) {
+                                        "SHIZUKU" -> "Shizuku Shell"
+                                        "ANDROID_SHELL" -> "Android Shell"
+                                        else -> "Local Shell"
+                                    }
+                                },
                                 host = "localhost",
                                 port = 0,
                                 username = "",
                                 connectionType = "LOCAL",
                                 useAndroidShell = useAndroidShell,
-                                prootDistroId = if (useAndroidShell) null else prootDistroId,
+                                localShellMode = localShellMode,
+                                prootDistroId = if (isProotShell) prootDistroId else null,
                                 colorTag = colorTag,
                                 groupId = groupId,
                                 identityId = identityId,
@@ -4304,7 +4318,8 @@ fun ConnectionEditDialog(
                                 terminalColorScheme = terminalColorScheme,
                                 terminalBackgroundOpacity = terminalBackgroundOpacity,
                                 useAndroidShell = useAndroidShell,
-                                prootDistroId = if (useAndroidShell) null else prootDistroId,
+                                localShellMode = localShellMode,
+                                prootDistroId = if (isProotShell) prootDistroId else null,
                                 forwardAgent = forwardAgent,
                                 addressFamily = addressFamily,
                                 bindAddress = bindAddress.ifBlank { null },

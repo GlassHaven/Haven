@@ -405,7 +405,7 @@ class HavenDocumentsProvider : DocumentsProvider() {
             .distinctBy { it.profileId }
         for (session in localSessions) {
             val distroId = session.prootDistroId ?: pm?.activeDistroId
-            val usesRootfs = !session.useAndroidShell &&
+            val usesRootfs = session.localShellMode == sh.haven.core.data.db.entities.ConnectionProfile.LocalShellMode.PROOT &&
                 pm != null &&
                 distroId != null &&
                 pm.isRootfsInstalledFor(distroId)
@@ -955,7 +955,12 @@ class HavenDocumentsProvider : DocumentsProvider() {
         } ?: return null
         val pm = runCatching { local.prootManager }.getOrNull()
         val distroId = session.prootDistroId ?: pm?.activeDistroId
-        return if (!session.useAndroidShell && pm != null && distroId != null && pm.isRootfsInstalledFor(distroId)) {
+        return if (
+            session.localShellMode == sh.haven.core.data.db.entities.ConnectionProfile.LocalShellMode.PROOT &&
+            pm != null &&
+            distroId != null &&
+            pm.isRootfsInstalledFor(distroId)
+        ) {
             pm.rootfsDirFor(distroId)
         } else {
             filesDir

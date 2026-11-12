@@ -20795,6 +20795,106 @@
       "sr": "SPICE шаље сирове скан-кодове — изаберите распоред тастатуре подешен у гостујућој ВМ.",
       "zh": "SPICE 发送原始扫描码，请选择客户机虚拟机内配置的键盘布局。"
      }
+    },
+    {
+     "name": "connections_shizuku_shell_label",
+     "en": "Shizuku shell",
+     "comment": "#210 i18n sweep: VM-setup copy toasts and code-block copy action.",
+     "args": [],
+     "t": {
+      "ar": "صدفة Shizuku",
+      "bn": "Shizuku শেল",
+      "de": "Shizuku-Shell",
+      "es": "Shell de Shizuku",
+      "fr": "Shell Shizuku",
+      "hi": "Shizuku शेल",
+      "ja": "Shizuku シェル",
+      "ko": "Shizuku 셸",
+      "pt": "Shell Shizuku",
+      "ru": "Оболочка Shizuku",
+      "sr": "Shizuku љуска",
+      "zh": "Shizuku shell"
+     }
+    },
+    {
+     "name": "connections_local_mode_proot",
+     "en": "PRoot",
+     "comment": "#210 i18n sweep: VM-setup copy toasts and code-block copy action.",
+     "args": [],
+     "t": {
+      "ar": "PRoot",
+      "bn": "PRoot",
+      "de": "PRoot",
+      "es": "PRoot",
+      "fr": "PRoot",
+      "hi": "PRoot",
+      "ja": "PRoot",
+      "ko": "PRoot",
+      "pt": "PRoot",
+      "ru": "PRoot",
+      "sr": "PRoot",
+      "zh": "PRoot"
+     }
+    },
+    {
+     "name": "connections_local_mode_android",
+     "en": "Android",
+     "comment": "#210 i18n sweep: VM-setup copy toasts and code-block copy action.",
+     "args": [],
+     "t": {
+      "ar": "Android",
+      "bn": "Android",
+      "de": "Android",
+      "es": "Android",
+      "fr": "Android",
+      "hi": "Android",
+      "ja": "Android",
+      "ko": "Android",
+      "pt": "Android",
+      "ru": "Android",
+      "sr": "Android",
+      "zh": "Android"
+     }
+    },
+    {
+     "name": "connections_local_mode_shizuku",
+     "en": "Shizuku",
+     "comment": "#210 i18n sweep: VM-setup copy toasts and code-block copy action.",
+     "args": [],
+     "t": {
+      "ar": "Shizuku",
+      "bn": "Shizuku",
+      "de": "Shizuku",
+      "es": "Shizuku",
+      "fr": "Shizuku",
+      "hi": "Shizuku",
+      "ja": "Shizuku",
+      "ko": "Shizuku",
+      "pt": "Shizuku",
+      "ru": "Shizuku",
+      "sr": "Shizuku",
+      "zh": "Shizuku"
+     }
+    },
+    {
+     "name": "connections_local_shell_shizuku_desc",
+     "en": "Runs a privileged Android shell (/system/bin/sh) via Shizuku (ADB uid 2000 or root). Requires Shizuku to be running and authorized.",
+     "comment": "#210 i18n sweep: VM-setup copy toasts and code-block copy action.",
+     "args": [],
+     "t": {
+      "ar": "يشغّل صدفة Android بصلاحيات مرتفعة (/system/bin/sh) عبر Shizuku (معرّف ADB 2000 أو root). يتطلب أن تكون خدمة Shizuku قيد التشغيل ومصرّحًا بها.",
+      "bn": "Shizuku (ADB uid 2000 বা root) এর মাধ্যমে উন্নত অনুমতিসহ Android শেল (/system/bin/sh) চালায়। এজন্য Shizuku চালু ও অনুমোদিত থাকতে হবে।",
+      "de": "Führt eine privilegierte Android-Shell (/system/bin/sh) über Shizuku (ADB UID 2000 oder Root) aus. Erfordert einen laufenden und autorisierten Shizuku-Dienst.",
+      "es": "Ejecuta un shell privilegiado de Android (/system/bin/sh) mediante Shizuku (ADB uid 2000 o root). Requiere que Shizuku esté en ejecución y autorizado.",
+      "fr": "Exécute un shell Android privilégié (/system/bin/sh) via Shizuku (ADB uid 2000 ou root). Nécessite que le service Shizuku soit actif et autorisé.",
+      "hi": "Shizuku (ADB uid 2000 या root) के माध्यम से विशेषाधिकार प्राप्त Android शेल (/system/bin/sh) चलाता है। इसके लिए Shizuku का चालू और अधिकृत होना आवश्यक है।",
+      "ja": "Shizuku（ADB uid 2000 または root）経由で特権 Android シェル (/system/bin/sh) を実行します。Shizuku が起動しており、権限が許可されている必要があります。",
+      "ko": "Shizuku(ADB uid 2000 또는 root)를 통해 권한 있는 Android 셸(/system/bin/sh)을 실행합니다. Shizuku 서비스가 실행 중이고 권한이 허용되어 있어야 합니다.",
+      "pt": "Executa um shell privilegiado do Android (/system/bin/sh) via Shizuku (ADB uid 2000 ou root). Requer o Shizuku em execução e autorizado.",
+      "ru": "Запускает привилегированную оболочку Android (/system/bin/sh) через Shizuku (ADB uid 2000 или root). Требуется запущенный и авторизованный сервис Shizuku.",
+      "sr": "Покреће привилеговану Андроид љуску (/system/bin/sh) преко сервиса Shizuku (ADB uid 2000 или root). Потребно је да Shizuku буде покренут и одобрен.",
+      "zh": "通过 Shizuku（ADB uid 2000 或 root）运行特权 Android shell (/system/bin/sh)。需要 Shizuku 正在运行且已授权。"
+     }
     }
    ]
   },

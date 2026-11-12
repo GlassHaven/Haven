@@ -213,3 +213,13 @@
 -keep class sh.haven.feature.sftp.root.RootFsDaemon {
     public static void main(java.lang.String[]);
 }
+
+# Shizuku PTY UserService (#837) — bound by Shizuku's server in a privileged
+# app_process via ComponentName / reflection on its () or (Context) constructor
+# and AIDL Stub.
+-keep class sh.haven.core.local.ShizukuPtyUserService {
+    public <init>();
+    public <init>(android.content.Context);
+    *;
+}
+-keep class sh.haven.core.local.IShizukuPtyService** { *; }

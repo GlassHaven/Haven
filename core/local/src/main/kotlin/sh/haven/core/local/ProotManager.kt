@@ -679,10 +679,21 @@ internal class PackageInstallProgressTracker {
  * extracted to filesDir/proot/rootfs/alpine/.
  */
 @Singleton
-class ProotManager @Inject constructor(
-    @ApplicationContext private val context: Context,
+class ProotManager constructor(
+    private val context: Context,
     private val installLogRepository: ProotInstallLogRepository,
 ) {
+    @Volatile
+    private var shizukuBridgeServer: ShizukuBridgeServer? = null
+
+    @Inject
+    constructor(
+        @ApplicationContext context: Context,
+        installLogRepository: ProotInstallLogRepository,
+        shizukuBridgeServer: ShizukuBridgeServer,
+    ) : this(context, installLogRepository) {
+        this.shizukuBridgeServer = shizukuBridgeServer
+    }
     /**
      * Which phase of the OS install pipeline the state belongs to.
      * Used by [SetupState.Error] to attribute failures, so the UI
@@ -1689,6 +1700,49 @@ class ProotManager @Inject constructor(
     fun deviceModelDevicetreeBind(): String? {
         val f = File(context.cacheDir, "sysinfo/model")
         return if (f.exists()) "${f.absolutePath}:/sys/firmware/devicetree/base/model" else null
+    }
+
+    /**
+     * Static guest CLI helper (`libhaven-shizuku.so`) compiled from
+     * `haven_shizuku.c` (#837), or null when native libs are absent (e.g. JVM
+     * unit tests).
+     */
+    val shizukuGuestBinary: String?
+        get() {
+            val libDir = context.applicationInfo?.nativeLibraryDir ?: return null
+            val f = File(libDir, "libhaven-shizuku.so")
+            return if (f.isFile && f.canExecute()) f.absolutePath else null
+        }
+
+    /**
+     * PRoot bind arguments mounting `libhaven-shizuku.so` at
+     * `/usr/local/bin/shizuku` and `/usr/local/bin/rish` inside [rootfsDir] and
+     * ensuring [ShizukuBridgeServer] is listening at `/tmp/.haven-shizuku.sock`
+     * (#837).
+     */
+    fun shizukuGuestBindArgs(rootfsDir: File, longForm: Boolean = false): Array<String> {
+        val helper = shizukuGuestBinary ?: return emptyArray()
+        shizukuBridgeServer?.ensureStarted()
+        runCatching {
+            val binDir = File(rootfsDir, "usr/local/bin")
+            binDir.mkdirs()
+            for (name in listOf("shizuku", "rish")) {
+                val placeholder = File(binDir, name)
+                if (!placeholder.exists()) {
+                    placeholder.createNewFile()
+                    applyPosixMode(placeholder, 0b111_101_101)
+                }
+            }
+        }
+        val specs = listOf(
+            "$helper:/usr/local/bin/shizuku",
+            "$helper:/usr/local/bin/rish",
+        )
+        return if (longForm) {
+            specs.map { "--bind=$it" }.toTypedArray()
+        } else {
+            specs.flatMap { listOf("-b", it) }.toTypedArray()
+        }
     }
 
     // --- User-imported distros (#284) ---
@@ -3788,6 +3842,7 @@ class ProotManager @Inject constructor(
             *fakeProcBindArgs(activeRootfsDir, longForm = true),
             "--bind=$sysSelinuxMask",
             "--bind=${context.cacheDir.absolutePath}:/tmp",
+            *shizukuGuestBindArgs(activeRootfsDir, longForm = true),
             // #304: surface the device model at the devicetree path fastfetch reads.
             *(deviceModelDevicetreeBind()?.let { arrayOf("--bind=$it") } ?: emptyArray()),
             // #304 part 2: optionally expose Android's system partitions (opt-in).
@@ -3807,6 +3862,7 @@ class ProotManager @Inject constructor(
             "PATH=/usr/local/sbin:/usr/local/bin:/usr/sbin:/usr/bin:/sbin:/bin",
             "TERM=xterm-256color",
             "TMPDIR=/tmp",
+            "${ShizukuBridgeProtocol.SOCKET_ENV_VAR}=${ShizukuBridgeProtocol.GUEST_SOCKET_PATH}",
             *PROOT_SANDBOX_ENV.toTypedArray(),
             *run {
                 val routingCfg = routingConfig(activeDistroId)

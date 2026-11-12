@@ -60,7 +60,7 @@ class HavenDatabaseMigrationTest {
             HavenDatabase::class.java,
             dbName,
         )
-            .addMigrations(HavenDatabase.MIGRATION_87_88, HavenDatabase.MIGRATION_88_89)
+            .addMigrations(HavenDatabase.MIGRATION_87_88, HavenDatabase.MIGRATION_88_89, HavenDatabase.MIGRATION_89_90)
             .build()
 
         db.openHelper.writableDatabase // force open + migration
@@ -91,7 +91,7 @@ class HavenDatabaseMigrationTest {
             HavenDatabase::class.java,
             dbName,
         )
-            .addMigrations(HavenDatabase.MIGRATION_88_89)
+            .addMigrations(HavenDatabase.MIGRATION_88_89, HavenDatabase.MIGRATION_89_90)
             .build()
 
         db.openHelper.writableDatabase
@@ -128,12 +128,69 @@ class HavenDatabaseMigrationTest {
         }
     }
 
+    @Test
+    fun `migration 89 to 90 adds nullable localShellMode to connection_profiles`() {
+        val dbName = "migration-test-89.db"
+        helper.createDatabase(dbName, 89).close()
+
+        val db = Room.databaseBuilder(
+            ApplicationProvider.getApplicationContext(),
+            HavenDatabase::class.java,
+            dbName,
+        )
+            .addMigrations(HavenDatabase.MIGRATION_89_90)
+            .build()
+
+        db.openHelper.writableDatabase
+        try {
+            runBlocking {
+                val dao = db.connectionDao()
+                val shizukuProfile = sh.haven.core.data.db.entities.ConnectionProfile(
+                    id = "local-shizuku-1",
+                    label = "Shizuku Shell",
+                    host = "",
+                    port = 22,
+                    username = "",
+                    connectionType = "LOCAL",
+                    localShellMode = "SHIZUKU",
+                )
+                dao.upsert(shizukuProfile)
+                val loaded = dao.getById("local-shizuku-1")
+                assertEquals("SHIZUKU", loaded?.localShellMode)
+                assertEquals(
+                    sh.haven.core.data.db.entities.ConnectionProfile.LocalShellMode.SHIZUKU,
+                    loaded?.resolvedLocalShellMode,
+                )
+
+                val legacyAndroid = sh.haven.core.data.db.entities.ConnectionProfile(
+                    id = "local-android-legacy",
+                    label = "Android Shell",
+                    host = "",
+                    port = 22,
+                    username = "",
+                    connectionType = "LOCAL",
+                    useAndroidShell = true,
+                )
+                dao.upsert(legacyAndroid)
+                val loadedLegacy = dao.getById("local-android-legacy")
+                assertNull(loadedLegacy?.localShellMode)
+                assertEquals(
+                    sh.haven.core.data.db.entities.ConnectionProfile.LocalShellMode.ANDROID_SHELL,
+                    loadedLegacy?.resolvedLocalShellMode,
+                )
+            }
+        } finally {
+            db.close()
+        }
+    }
+
     /**
      * The full registered chain from the last shipped schema (85) to the
-     * current one (89): GLKVM's five connection_profiles columns (86→87),
-     * ssh_keys.hardwareAlias (87→88), and connection_profiles.keyboardLayout
-     * (88→89) must all land — a renumbered migration that skipped or reordered
-     * a step would fail here, not at a user's next app update.
+     * current one (90): GLKVM's five connection_profiles columns (86→87),
+     * ssh_keys.hardwareAlias (87→88), connection_profiles.keyboardLayout
+     * (88→89), and connection_profiles.localShellMode (89→90) must all land —
+     * a renumbered migration that skipped or reordered a step would fail here,
+     * not at a user's next app update.
      */
     @Test
     fun `migration chain 85 to 89 runs every step in order`() {
@@ -165,6 +222,7 @@ class HavenDatabaseMigrationTest {
                 HavenDatabase.MIGRATION_86_87,
                 HavenDatabase.MIGRATION_87_88,
                 HavenDatabase.MIGRATION_88_89,
+                HavenDatabase.MIGRATION_89_90,
             )
             .build()
 
@@ -174,7 +232,7 @@ class HavenDatabaseMigrationTest {
                 // 87→88 landed: the seeded software row is NULL-aliased.
                 assertNull(db.sshKeyDao().getById("chain-1")?.hardwareAlias)
             }
-            // 86→87 and 88→89 landed: GLKVM columns and keyboardLayout exist on connection_profiles.
+            // 86→87, 88→89, and 89→90 landed: GLKVM columns, keyboardLayout, and localShellMode exist.
             val profileColumns = db.openHelper.readableDatabase
                 .query("PRAGMA table_info(connection_profiles)").use { c ->
                     val idx = c.getColumnIndex("name")
@@ -186,6 +244,7 @@ class HavenDatabaseMigrationTest {
                     setOf(
                         "glkvmPort", "glkvmPassword", "glkvmTargetLayout",
                         "glkvmSshForward", "glkvmSshProfileId", "keyboardLayout",
+                        "localShellMode",
                     ),
                 ),
             )

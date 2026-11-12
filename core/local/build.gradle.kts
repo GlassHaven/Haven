@@ -28,6 +28,10 @@ android {
         }
     }
 
+    buildFeatures {
+        aidl = true
+    }
+
     compileOptions {
         sourceCompatibility = JavaVersion.VERSION_17
         targetCompatibility = JavaVersion.VERSION_17
@@ -49,6 +53,7 @@ dependencies {
     implementation(libs.coroutines.android)
     implementation(libs.hilt.android)
     ksp(libs.hilt.compiler)
+    implementation(libs.shizuku.api)
 
     // Pure-Java XZ decoder for tar.xz rootfs tarballs (issue #162 phase 2).
     implementation(libs.xz)

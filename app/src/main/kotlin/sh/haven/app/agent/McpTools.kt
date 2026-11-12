@@ -727,9 +727,10 @@ class McpTools private constructor(
         ) { _ -> listBridges() },
 
         "open_local_shell" to ToolHandler(
-            description = "Open a fresh local Alpine PRoot shell session and return its sessionId. Equivalent to tapping the Terminal icon in the Connections top bar — creates the local shell profile if missing, registers a session, and connects it. The returned sessionId is immediately usable with send_terminal_input and read_terminal_scrollback. Use this when you need a clean bash REPL (e.g. when an existing session has Claude Code, vim, or another stdin-capturing process in front of it). Pass `plain: true` to bypass the user's session-manager preference (tmux / zellij / screen / byobu) and exec a bare login shell — required when the agent needs Haven's own scrollback ring to capture output, which doesn't happen when a multiplexer's status bar uses DECSTBM to reserve the bottom row. NOTE: if a live local shell already exists, this returns that sessionId regardless of `plain` (response `reused: true`); call disconnect_profile on the existing profile first if you need a fresh plain-shell respawn.",
+            description = "Open a fresh local shell session (PRoot Linux by default, or Android / Shizuku shell via `mode`) and return its sessionId. Equivalent to opening a LOCAL profile — creates the profile if missing, registers a session, and connects it. The returned sessionId is immediately usable with send_terminal_input and read_terminal_scrollback. Use this when you need a clean bash REPL (e.g. when an existing session has Claude Code, vim, or another stdin-capturing process in front of it). Pass `plain: true` to bypass the user's session-manager preference (tmux / zellij / screen / byobu) and exec a bare login shell — required when the agent needs Haven's own scrollback ring to capture output, which doesn't happen when a multiplexer's status bar uses DECSTBM to reserve the bottom row. Pass `mode: \"SHIZUKU\"` (#837) for a privileged Shizuku shell (ADB uid 2000 / root) or `\"ANDROID_SHELL\"` for unprivileged `/system/bin/sh`. NOTE: if a live shell of the requested mode already exists, this returns that sessionId regardless of `plain` (response `reused: true`); call disconnect_profile on the existing profile first if you need a fresh plain-shell respawn.",
             inputSchema = objectSchema {
-                boolean("plain", "Skip the user's sessionManager preference and exec /bin/busybox sh -l directly. Default false (UI-equivalent behaviour).")
+                boolean("plain", "Skip the user's sessionManager preference and exec a bare login shell directly. Default false (UI-equivalent behaviour).")
+                string("mode", "Local shell mode (#837): \"PROOT\" (default), \"ANDROID_SHELL\", or \"SHIZUKU\".")
             },
             consentLevel = ConsentLevel.NEVER,
         ) { args -> openLocalShell(args) },
@@ -5175,11 +5176,15 @@ class McpTools private constructor(
         }
     }
 
-    private suspend fun openLocalShell(args: JSONObject = JSONObject()): JSONObject =
-        attachAgentShell(plain = args.optBoolean("plain", false), desktopEnv = null, reuse = true)
+    private suspend fun openLocalShell(args: JSONObject = JSONObject()): JSONObject {
+        val rawMode = args.optString("mode", "PROOT").trim().uppercase().ifBlank { "PROOT" }
+        val shellMode = runCatching { ConnectionProfile.LocalShellMode.valueOf(rawMode) }
+            .getOrElse { throw IllegalArgumentException("mode must be PROOT, ANDROID_SHELL, or SHIZUKU") }
+        return attachAgentShell(plain = args.optBoolean("plain", false), desktopEnv = null, reuse = true, shellMode = shellMode)
+    }
 
     /**
-     * Open (or, when [reuse], adopt) the canonical "Local Shell" PRoot session,
+     * Open (or, when [reuse], adopt) the canonical local shell session for [shellMode],
      * spin up a headless PTY + agent emulator, and return its session JSON.
      * When [desktopEnv] is non-null the shell joins a running desktop (#285)
      * via DISPLAY / WAYLAND_DISPLAY / XDG_RUNTIME_DIR — pass [reuse]=false in
@@ -5190,30 +5195,29 @@ class McpTools private constructor(
         plain: Boolean,
         desktopEnv: Map<String, String>?,
         reuse: Boolean,
+        shellMode: ConnectionProfile.LocalShellMode = ConnectionProfile.LocalShellMode.PROOT,
     ): JSONObject = withContext(Dispatchers.IO) {
-        // Find or seed the canonical "Local Shell" profile, mirroring
-        // ConnectionsViewModel.connectLocalTerminal so the agent and
-        // the user reach the same place. We deliberately do NOT trigger
-        // a rootfs install from here — that's a long-running install
-        // step that belongs behind explicit user consent in the UI; if
-        // the rootfs is missing the session falls back to /system/bin/sh,
-        // same as the existing UI fallback.
-        val all = connectionRepository.getAll()
-        val existing = all.firstOrNull {
-            it.connectionType == "LOCAL" && !it.useAndroidShell
+        if (shellMode == ConnectionProfile.LocalShellMode.SHIZUKU) localSessionManager.ensureShizukuReady()
+        val defaultLabel = when (shellMode) {
+            ConnectionProfile.LocalShellMode.SHIZUKU -> "Shizuku Shell"
+            ConnectionProfile.LocalShellMode.ANDROID_SHELL -> "Android Shell"
+            ConnectionProfile.LocalShellMode.PROOT -> "Local Shell"
+        }
+        // Find or seed the canonical profile for the requested local shell mode.
+        // We deliberately do NOT trigger a rootfs install from here — that's a
+        // long-running install step that belongs behind explicit user consent in
+        // the UI; if the rootfs is missing PRoot falls back to /system/bin/sh.
+        val existing = connectionRepository.getAll().firstOrNull {
+            it.connectionType == "LOCAL" && it.resolvedLocalShellMode == shellMode
         }
         val profile = existing ?: run {
             val seeded = ConnectionProfile(
-                label = "Local Shell",
-                host = "localhost",
-                username = "",
-                port = 0,
-                connectionType = "LOCAL",
-                useAndroidShell = false,
+                label = defaultLabel, host = "localhost", username = "", port = 0, connectionType = "LOCAL",
+                useAndroidShell = shellMode == ConnectionProfile.LocalShellMode.ANDROID_SHELL, localShellMode = shellMode.name,
             )
             connectionRepository.save(seeded)
             connectionRepository.getAll()
-                .firstOrNull { it.connectionType == "LOCAL" && it.label == "Local Shell" && !it.useAndroidShell }
+                .firstOrNull { it.connectionType == "LOCAL" && it.label == defaultLabel && it.resolvedLocalShellMode == shellMode }
                 ?: seeded
         }
         // Reuse a connected session for this profile if one is already
@@ -5225,12 +5229,8 @@ class McpTools private constructor(
         val alive = if (reuse) {
             localSessionManager.getSessionsForProfile(profile.id)
                 .firstOrNull { it.status == LocalSessionManager.SessionState.Status.CONNECTED }
-        } else {
-            null
-        }
-        val sessionId = if (alive != null) {
-            alive.sessionId
-        } else {
+        } else null
+        val sessionId = alive?.sessionId ?: run {
             // Leave status as CONNECTING until terminalSessionRegistry has its
             // headless handles installed and startHeadlessShell transitions to
             // CONNECTED + attaches the LocalSession atomically under
@@ -5239,8 +5239,8 @@ class McpTools private constructor(
             // suspended, letting TerminalViewModel.syncSessions race ahead and
             // fork a second PTY.
             localSessionManager.registerSession(
-                profile.id, profile.label, profile.useAndroidShell, profile.prootDistroId,
-                desktopEnv = desktopEnv,
+                profile.id, profile.label, shellMode == ConnectionProfile.LocalShellMode.ANDROID_SHELL,
+                profile.prootDistroId, desktopEnv = desktopEnv, localShellMode = shellMode,
             )
         }
         // Spin up the PTY without a UI tab on top so the agent can

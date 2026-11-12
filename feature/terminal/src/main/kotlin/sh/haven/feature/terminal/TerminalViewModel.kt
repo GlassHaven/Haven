@@ -2795,13 +2795,24 @@ class TerminalViewModel @Inject constructor(
                 val resolvedLabel = label
                     ?: profile?.label
                     ?: profileId.take(8)
+                val shellMode = existingSession?.localShellMode
+                    ?: profile?.resolvedLocalShellMode
+                    ?: ConnectionProfile.LocalShellMode.PROOT
+                if (shellMode == ConnectionProfile.LocalShellMode.SHIZUKU) {
+                    localSessionManager.ensureShizukuReady()
+                }
                 // Join a running desktop session (#285) when a deId was supplied.
-                val desktopEnv = localSessionManager.resolveDesktopEnv(desktopDeId)
+                val desktopEnv = if (shellMode == ConnectionProfile.LocalShellMode.PROOT) {
+                    localSessionManager.resolveDesktopEnv(desktopDeId)
+                } else {
+                    null
+                }
                 val sessionId = localSessionManager.registerSession(
                     profileId, resolvedLabel,
-                    useAndroidShell = existingSession?.useAndroidShell ?: profile?.useAndroidShell ?: false,
+                    useAndroidShell = shellMode == ConnectionProfile.LocalShellMode.ANDROID_SHELL,
                     prootDistroId = existingSession?.prootDistroId ?: profile?.prootDistroId,
                     desktopEnv = desktopEnv,
+                    localShellMode = shellMode,
                 )
                 if (plain) plainSessionIds.add(sessionId)
                 localSessionManager.connectSession(sessionId)

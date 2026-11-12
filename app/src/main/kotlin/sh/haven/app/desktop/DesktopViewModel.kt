@@ -231,7 +231,7 @@ class DesktopViewModel @Inject constructor(
             }
             val all = connectionRepository.getAll()
             val profile = all.firstOrNull {
-                it.connectionType == "LOCAL" && !it.useAndroidShell
+                it.connectionType == "LOCAL" && it.isProotShell
             } ?: run {
                 val seeded = ConnectionProfile(
                     label = "Local Shell",
@@ -243,7 +243,7 @@ class DesktopViewModel @Inject constructor(
                 )
                 connectionRepository.save(seeded)
                 connectionRepository.getAll().firstOrNull {
-                    it.connectionType == "LOCAL" && it.label == "Local Shell" && !it.useAndroidShell
+                    it.connectionType == "LOCAL" && it.label == "Local Shell" && it.isProotShell
                 } ?: seeded
             }
             _openLocalShellRequests.emit(LocalShellRequest(profile.id))
@@ -263,7 +263,7 @@ class DesktopViewModel @Inject constructor(
         viewModelScope.launch(Dispatchers.IO) {
             val all = connectionRepository.getAll()
             val profile = all.firstOrNull {
-                it.connectionType == "LOCAL" && !it.useAndroidShell
+                it.connectionType == "LOCAL" && it.isProotShell
             } ?: run {
                 val seeded = ConnectionProfile(
                     label = "Local Shell",
@@ -275,7 +275,7 @@ class DesktopViewModel @Inject constructor(
                 )
                 connectionRepository.save(seeded)
                 connectionRepository.getAll().firstOrNull {
-                    it.connectionType == "LOCAL" && it.label == "Local Shell" && !it.useAndroidShell
+                    it.connectionType == "LOCAL" && it.label == "Local Shell" && it.isProotShell
                 } ?: seeded
             }
             _openLocalShellRequests.emit(LocalShellRequest(profile.id, de.spec.id))

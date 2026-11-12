@@ -147,8 +147,10 @@ internal class ConnectionsToolProvider(
             description = "Create a saved connection profile. Supports connectionType=SSH, SMB, VNC, RDP, SPICE, EMAIL, RETICULUM. SSH-family fields: username (required), password (optional, stored), keyId (optional — references list_ssh_keys), ignoreSavedKeys (force password-only auth, never offer saved keys), useMosh (turn an SSH profile into a Mosh profile), sessionManager (optional: TMUX | ZELLIJ | SCREEN | BYOBU | HERDR | PSMUX | RMUX — attach through that multiplexer; omit for a plain shell), remoteCommand (run a command via an SSH exec request instead of a login shell — e.g. 'tmux new -A -s work' to attach-or-create that session before shell startup files run) + requestPty (PTY for it, default true), bindAddress (local address the outgoing SSH socket binds to, ssh -b — direct connections only). SMB: smbShare (required), username + password, smbDomain. VNC: vncUsername, vncPassword, vncPort, and vncSshForward + vncSshProfileId to tunnel VNC through a saved SSH profile. RDP: rdpUsername (required), rdpPassword, rdpDomain, rdpPort. SPICE: spicePassword (optional ticket — no username/domain), spicePort (default 5900), and spiceSshForward + spiceSshProfileId to tunnel SPICE through a saved SSH profile. GLKVM (PiKVM-style KVM over HTTPS — kvmd API): username = the web-UI user (default admin when omitted), glkvmPassword = the web-UI password, glkvmPort (default 443), glkvmTargetLayout (\"uk\"/\"us\" — target OS keyboard layout for typed text, default uk), and glkvmSshForward + glkvmSshProfileId to tunnel through a saved SSH profile. TLS to the device is trust-on-first-use (self-signed by default). EMAIL: emailProvider (\"imap\" default, or \"proton\"); username = the email address; password = the account/app-password; for IMAP set emailServer (required) + emailPort (993) + emailSmtpPort (465) + emailTls (true), plus emailSmtpServer when the SMTP host differs (e.g. smtp.gmail.com); for Proton add emailMailboxPassword if two-password mode. EMAIL host is optional (the tunnel-ingress/bastion SPA/knock guards), not the mail server. OPENAI (OpenAI-compatible endpoint, e.g. llama-server or CLIProxyAPI): host = server IP/hostname (a full http:// URL also works), port = TCP port (default 80), optional password arg = the API key (sent as a Bearer token; omit for keyless servers), openaiPathPrefix = optional path inserted before /v1 (e.g. \"/api\"). Connect verifies via GET /v1/models; chat via the chat screen or openai_chat. BTSERIAL (Bluetooth-serial console, #406): host = the paired device's Bluetooth MAC (from list_bluetooth_devices); no other fields. The device must already be paired in Android Settings. BLESERIAL (Bluetooth-LE-serial console — Nordic UART Service / HM-10): host = the BLE peripheral's MAC; no other fields. It needn't be paired — scan-and-pick in the editor; the GATT service/characteristics are auto-detected (NUS 6E400001…, then HM-10 FFE0/FFE1). USBSERIAL (USB-serial console, #408 — Arduino / Duet3D G-code / ESP32 / USB-TTL): host = the device's vendorId:productId hex, e.g. 1a86:7523, from list_usb_devices; usbBaudRate = baud (default 115200); usbDataBits/usbParity/usbStopBits/usbFlowControl set the rest of the line format (default 8N1, no flow control). Plug the adapter in first; connect_profile pops the Android USB-permission prompt. Chipsets: CDC-ACM, CH34x, FTDI, CP21xx, Prolific. RETICULUM: destinationHash (required, 32 hex chars) is the address; reticulumHost + reticulumPort are only how this phone reaches the mesh, defaulting to 127.0.0.1:37428 which is a Sideband or Columba shared instance on this device — any other host is a TCP gateway. reticulumNetworkName + reticulumPassphrase set IFAC on an authenticated gateway. The new profile id is returned for follow-up calls (set_profile_routing, connect_profile). For rclone / local create the profile in the UI — those need an OAuth flow the agent can't drive.",
             inputSchema = objectSchema {
                 string("label", "User-facing label.", required = true)
-                string("connectionType", "SSH | SMB | VNC | RDP | SPICE | GLKVM | EMAIL | BTSERIAL | BLESERIAL | USBSERIAL | RETICULUM | GUEST.", required = true)
-                string("host", "Target hostname or IP. For EMAIL this is the optional tunnel ingress/bastion (SPA/knock target), NOT the mail server — leave blank for a direct IMAP connection.", required = true)
+                string("connectionType", "SSH | SMB | VNC | RDP | SPICE | GLKVM | EMAIL | BTSERIAL | BLESERIAL | USBSERIAL | RETICULUM | GUEST | LOCAL.", required = true)
+                string("host", "Target hostname or IP. For EMAIL this is the optional tunnel ingress/bastion (SPA/knock target), NOT the mail server — leave blank for a direct IMAP connection. Ignored for GUEST and LOCAL.")
+                string("localShellMode", "LOCAL only (#837): \"PROOT\" (default), \"ANDROID_SHELL\", or \"SHIZUKU\".")
+                string("prootDistroId", "LOCAL/PROOT only: installed distro id to pin to (omit for active distro).")
                 integer("port", "TCP port. Defaults: SSH 22, SMB 445, VNC 5900, RDP 3389, SPICE 5900, GLKVM 443. Type-specific vncPort/rdpPort/spicePort/glkvmPort override this.")
                 string("username", "Username for SSH/SMB.")
                 string("password", "Password (stored). Optional for SSH if a key is used; some VNC/SMB setups allow guest.")
@@ -214,8 +216,11 @@ internal class ConnectionsToolProvider(
                 // GUEST has no host field (rootfs is staged locally, kernel
                 // args fixed) — an empty host here would render as a blank
                 // target in the consent sheet.
-                val host = if (type == "GUEST") "on-device UML guest"
-                    else args.optString("host", "?")
+                val host = when (type) {
+                    "GUEST" -> "on-device UML guest"
+                    "LOCAL" -> args.optString("localShellMode", "PROOT").uppercase()
+                    else -> args.optString("host", "?")
+                }
                 val tunnelTag = if (args.optBoolean("tunnelOnly", false)) " [tunnel-only]" else ""
                 val knockTag = args.optString("portKnockSequence").let {
                     if (it.isNotBlank()) " [knock: $it]" else ""
@@ -262,6 +267,8 @@ internal class ConnectionsToolProvider(
                 string("usbForwardVidPid", "SSH only: VID:PID of a phone-attached USB device (e.g. '1050:0406' — see list_usb_devices) to auto-export over USB/IP whenever this profile connects. Haven opens the device, starts the usbip server on loopback, adds the remote forward, and runs `usbip attach` on the host, re-attaching after a tunnel drop. Empty string clears (no auto-forward).")
                 boolean("forwardX11", "SSH only (#605): enable or disable one-tap X11 forwarding (DISPLAY=localhost:10.0 over -R 6010).")
                 boolean("forwardPulseAudio", "SSH only (#605): enable or disable one-tap PulseAudio forwarding (PULSE_SERVER=tcp:127.0.0.1:14713 over -R 14713:127.0.0.1:4713).")
+                string("localShellMode", "LOCAL only (#837): \"PROOT\", \"ANDROID_SHELL\", or \"SHIZUKU\".")
+                string("prootDistroId", "LOCAL/PROOT only: distro id to pin to (empty string clears back to active distro).")
             },
             consentLevel = ConsentLevel.EVERY_CALL,
             summarise = { args ->
@@ -501,6 +508,12 @@ internal class ConnectionsToolProvider(
             put("reticulumPort", p.reticulumPort)
             if (!p.reticulumNetworkName.isNullOrEmpty()) {
                 put("reticulumNetworkName", p.reticulumNetworkName)
+            }
+        }
+        if (p.isLocal) {
+            put("localShellMode", p.resolvedLocalShellMode.name)
+            if (!p.prootDistroId.isNullOrBlank()) {
+                put("prootDistroId", p.prootDistroId)
             }
         }
         // Rclone
@@ -971,6 +984,30 @@ internal class ConnectionsToolProvider(
             } else {
                 existing.usbForwardVidPid
             },
+            localShellMode = if (existing.connectionType == "LOCAL" && args.has("localShellMode")) {
+                val raw = args.optString("localShellMode").trim().uppercase()
+                if (raw.isBlank()) {
+                    "PROOT"
+                } else {
+                    try {
+                        ConnectionProfile.LocalShellMode.valueOf(raw).name
+                    } catch (_: IllegalArgumentException) {
+                        throw IllegalArgumentException("localShellMode must be PROOT, ANDROID_SHELL, or SHIZUKU")
+                    }
+                }
+            } else {
+                existing.localShellMode
+            },
+            useAndroidShell = if (existing.connectionType == "LOCAL" && args.has("localShellMode")) {
+                args.optString("localShellMode").trim().equals("ANDROID_SHELL", ignoreCase = true)
+            } else {
+                existing.useAndroidShell
+            },
+            prootDistroId = if (existing.connectionType == "LOCAL") {
+                str("prootDistroId", existing.prootDistroId)
+            } else {
+                existing.prootDistroId
+            },
         )
         connectionRepository.save(updated)
         return profileToJson(updated)
@@ -981,18 +1018,17 @@ internal class ConnectionsToolProvider(
         val type = args.optString("connectionType").uppercase().ifBlank {
             throw IllegalArgumentException("connectionType required")
         }
-        if (type !in setOf("SSH", "SMB", "VNC", "RDP", "SPICE", "GLKVM", "EMAIL", "OPENAI", "BTSERIAL", "BLESERIAL", "USBSERIAL", "RETICULUM", "GUEST")) {
-            throw IllegalArgumentException("connectionType must be SSH, SMB, VNC, RDP, SPICE, EMAIL, OPENAI, BTSERIAL, BLESERIAL, USBSERIAL, or RETICULUM (use the UI for LOCAL / RCLONE / GUEST)")
+        if (type !in setOf("SSH", "SMB", "VNC", "RDP", "SPICE", "GLKVM", "EMAIL", "OPENAI", "BTSERIAL", "BLESERIAL", "USBSERIAL", "RETICULUM", "GUEST", "LOCAL")) {
+            throw IllegalArgumentException("connectionType must be SSH, SMB, VNC, RDP, SPICE, GLKVM, EMAIL, OPENAI, BTSERIAL, BLESERIAL, USBSERIAL, RETICULUM, GUEST, or LOCAL")
         }
         // EMAIL's host is the optional tunnel-ingress/bastion (SPA/knock target),
         // not the mail server — so it may be blank; every other type requires it.
         // RETICULUM addresses a destination hash, not a host: the gateway or
         // shared instance it reaches the mesh through is `reticulumHost`, and
         // it has a working default, so `host` may be blank here too.
-        // GUEST has no fields at all — kernel args are fixed, the rootfs is
-        // staged locally — so its host is blank as well.
+        // GUEST and LOCAL run on-device and need no remote host.
         val host = args.optString("host")
-        if (type !in setOf("EMAIL", "RETICULUM", "GUEST") && host.isBlank()) {
+        if (type !in setOf("EMAIL", "RETICULUM", "GUEST", "LOCAL") && host.isBlank()) {
             throw IllegalArgumentException("host required")
         }
         val username = args.optString("username")
@@ -1076,6 +1112,28 @@ internal class ConnectionsToolProvider(
                 username = "",
                 connectionType = "GUEST",
             )
+            "LOCAL" -> {
+                val rawMode = args.optString("localShellMode", "PROOT").trim().uppercase().ifBlank { "PROOT" }
+                val shellMode = try {
+                    ConnectionProfile.LocalShellMode.valueOf(rawMode)
+                } catch (_: IllegalArgumentException) {
+                    throw IllegalArgumentException("localShellMode must be PROOT, ANDROID_SHELL, or SHIZUKU")
+                }
+                ConnectionProfile(
+                    label = label,
+                    host = "localhost",
+                    port = 0,
+                    username = "",
+                    connectionType = "LOCAL",
+                    useAndroidShell = shellMode == ConnectionProfile.LocalShellMode.ANDROID_SHELL,
+                    localShellMode = shellMode.name,
+                    prootDistroId = if (shellMode == ConnectionProfile.LocalShellMode.PROOT) {
+                        args.optString("prootDistroId").ifBlank { null }
+                    } else {
+                        null
+                    },
+                )
+            }
             "SSH" -> ConnectionProfile(
                 label = label,
                 host = host,

@@ -155,6 +155,7 @@ class BackupService @Inject constructor(
                 put("rcloneRemoteName", p.rcloneRemoteName ?: JSONObject.NULL)
                 put("rcloneProvider", p.rcloneProvider ?: JSONObject.NULL)
                 put("useAndroidShell", p.useAndroidShell)
+                put("localShellMode", p.localShellMode ?: JSONObject.NULL)
                 put("forwardAgent", p.forwardAgent)
                 put("reticulumNetworkName", p.reticulumNetworkName ?: JSONObject.NULL)
                 put("reticulumPassphrase", p.reticulumPassphrase ?: JSONObject.NULL)
@@ -775,6 +776,9 @@ class BackupService @Inject constructor(
                             rcloneRemoteName = c.optStringOrNull("rcloneRemoteName"),
                             rcloneProvider = c.optStringOrNull("rcloneProvider"),
                             useAndroidShell = c.optBoolean("useAndroidShell", false),
+                            localShellMode = c.optStringOrNull("localShellMode")?.takeIf { raw ->
+                                ConnectionProfile.LocalShellMode.entries.any { it.name == raw }
+                            },
                             prootDistroId = c.optStringOrNull("prootDistroId"),
                             forwardAgent = c.optBoolean("forwardAgent", false),
                             addressFamily = c.optString("addressFamily", "AUTO"),

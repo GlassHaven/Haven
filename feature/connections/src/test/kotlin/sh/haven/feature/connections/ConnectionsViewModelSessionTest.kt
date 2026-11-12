@@ -1633,7 +1633,13 @@ class ConnectionsViewModelSessionTest {
         every { sshKeyRepository.observeAll() } returns flowOf(listOf(fakeKey))
         every { localSessionManager.getSessionsForProfile("local-android") } returns emptyList()
         every {
-            localSessionManager.registerSession("local-android", "Android Shell", true, "debian-trixie")
+            localSessionManager.registerSession(
+                profileId = "local-android",
+                label = "Android Shell",
+                useAndroidShell = true,
+                prootDistroId = "debian-trixie",
+                localShellMode = ConnectionProfile.LocalShellMode.ANDROID_SHELL,
+            )
         } returns "local-sess-1"
 
         val vm = buildViewModel()
@@ -1647,12 +1653,93 @@ class ConnectionsViewModelSessionTest {
         testDispatcher.scheduler.advanceUntilIdle()
 
         io.mockk.verify(exactly = 1) {
-            localSessionManager.registerSession("local-android", "Android Shell", true, "debian-trixie")
+            localSessionManager.registerSession(
+                profileId = "local-android",
+                label = "Android Shell",
+                useAndroidShell = true,
+                prootDistroId = "debian-trixie",
+                localShellMode = ConnectionProfile.LocalShellMode.ANDROID_SHELL,
+            )
         }
         io.mockk.verify(exactly = 0) {
             sshSessionManager.registerSession("openai-1", any(), any())
         }
         collectJob.cancel()
+    }
+
+    @Test
+    fun `shizuku local profile verifies Shizuku readiness and registers SHIZUKU session without installing proot`() = runTest {
+        val shizukuProfile = ConnectionProfile(
+            id = "local-shizuku",
+            label = "Shizuku Shell",
+            host = "localhost",
+            username = "",
+            connectionType = "LOCAL",
+            localShellMode = "SHIZUKU",
+        )
+        io.mockk.coEvery { localSessionManager.ensureShizukuReady() } returns Unit
+        every { localSessionManager.getSessionsForProfile("local-shizuku") } returns emptyList()
+        every {
+            localSessionManager.registerSession(
+                profileId = "local-shizuku",
+                label = "Shizuku Shell",
+                useAndroidShell = false,
+                prootDistroId = null,
+                localShellMode = ConnectionProfile.LocalShellMode.SHIZUKU,
+            )
+        } returns "shizuku-sess-1"
+
+        viewModel.connect(shizukuProfile, "")
+        testDispatcher.scheduler.advanceUntilIdle()
+
+        coVerify(exactly = 1) { localSessionManager.ensureShizukuReady() }
+        io.mockk.verify(exactly = 1) {
+            localSessionManager.registerSession(
+                profileId = "local-shizuku",
+                label = "Shizuku Shell",
+                useAndroidShell = false,
+                prootDistroId = null,
+                localShellMode = ConnectionProfile.LocalShellMode.SHIZUKU,
+            )
+        }
+        assertEquals("local-shizuku", viewModel.navigateToTerminal.value)
+    }
+
+    @Test
+    fun `shizuku local profile surfaces error without registering session when Shizuku is unavailable`() = runTest {
+        val shizukuProfile = ConnectionProfile(
+            id = "local-shizuku-down",
+            label = "Shizuku Shell",
+            host = "localhost",
+            username = "",
+            connectionType = "LOCAL",
+            localShellMode = "SHIZUKU",
+        )
+        io.mockk.coEvery { localSessionManager.ensureShizukuReady() } throws
+            sh.haven.core.local.ShizukuUnavailableException("Shizuku service is not running.")
+        every { localSessionManager.getSessionsForProfile("local-shizuku-down") } returns emptyList()
+
+        viewModel.connect(shizukuProfile, "")
+        testDispatcher.scheduler.advanceUntilIdle()
+
+        assertEquals("Shizuku service is not running.", viewModel.error.value)
+        org.junit.Assert.assertNull(viewModel.navigateToTerminal.value)
+        io.mockk.verify(exactly = 0) {
+            localSessionManager.registerSession(any(), any(), any(), any(), any(), any())
+        }
+    }
+
+    @Test
+    fun `parseQuickConnect recognizes shizuku and shizuku scheme`() {
+        val plain = viewModel.parseQuickConnect("shizuku")
+        org.junit.Assert.assertNotNull(plain)
+        assertEquals("LOCAL", plain!!.connectionType)
+        assertEquals(ConnectionProfile.LocalShellMode.SHIZUKU, plain.resolvedLocalShellMode)
+
+        val scheme = viewModel.parseQuickConnect("  shizuku:// ")
+        org.junit.Assert.assertNotNull(scheme)
+        assertEquals("LOCAL", scheme!!.connectionType)
+        assertEquals(ConnectionProfile.LocalShellMode.SHIZUKU, scheme.resolvedLocalShellMode)
     }
 
     @Test

@@ -612,4 +612,9 @@
     <string name="connections_keyboard_layout_auto">Automática (idioma del dispositivo)</string>
     <string name="connections_helper_keyboard_layout_rdp">Anuncia esta distribución al servidor RDP y convierte los caracteres escritos a sus códigos de tecla.</string>
     <string name="connections_helper_keyboard_layout_spice">SPICE envía códigos de tecla sin procesar; elige la distribución de teclado configurada en la máquina virtual invitada.</string>
+    <string name="connections_shizuku_shell_label">Shell de Shizuku</string>
+    <string name="connections_local_mode_proot">PRoot</string>
+    <string name="connections_local_mode_android">Android</string>
+    <string name="connections_local_mode_shizuku">Shizuku</string>
+    <string name="connections_local_shell_shizuku_desc">Ejecuta un shell privilegiado de Android (/system/bin/sh) mediante Shizuku (ADB uid 2000 o root). Requiere que Shizuku esté en ejecución y autorizado.</string>
 </resources>

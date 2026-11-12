@@ -1,13 +1,42 @@
 package sh.haven.core.local
 
+import java.io.File
+
 /**
  * JNI bridge to the native PTY library.
  * Provides forkpty(), terminal resize, and waitpid().
  */
 object PtyBridge {
 
+    @Volatile
+    private var loaded: Boolean = false
+
     init {
-        System.loadLibrary("pty_bridge")
+        try {
+            System.loadLibrary("pty_bridge")
+            loaded = true
+        } catch (_: UnsatisfiedLinkError) {
+            // In a Shizuku UserService spawned via app_process, java.library.path
+            // may omit the APK's extracted nativeLibraryDir; ensureLoaded() loads
+            // libpty_bridge.so by explicit path before invoking native methods.
+        }
+    }
+
+    fun ensureLoaded(nativeLibraryDir: String? = null) {
+        if (loaded) return
+        synchronized(this) {
+            if (loaded) return
+            if (!nativeLibraryDir.isNullOrBlank()) {
+                val candidate = File(nativeLibraryDir, "libpty_bridge.so")
+                if (candidate.isFile) {
+                    System.load(candidate.absolutePath)
+                    loaded = true
+                    return
+                }
+            }
+            System.loadLibrary("pty_bridge")
+            loaded = true
+        }
     }
 
     /**

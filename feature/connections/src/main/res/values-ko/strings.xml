@@ -604,4 +604,9 @@
     <string name="connections_keyboard_layout_auto">자동 (기기 로케일)</string>
     <string name="connections_helper_keyboard_layout_rdp">RDP 서버에 이 레이아웃을 알리고 입력한 문자를 해당 스캔코드로 변환합니다.</string>
     <string name="connections_helper_keyboard_layout_spice">SPICE는 원시 스캔코드를 전송하므로 게스트 VM 내부에 설정된 키보드 레이아웃을 선택하세요.</string>
+    <string name="connections_shizuku_shell_label">Shizuku 셸</string>
+    <string name="connections_local_mode_proot">PRoot</string>
+    <string name="connections_local_mode_android">Android</string>
+    <string name="connections_local_mode_shizuku">Shizuku</string>
+    <string name="connections_local_shell_shizuku_desc">Shizuku(ADB uid 2000 또는 root)를 통해 권한 있는 Android 셸(/system/bin/sh)을 실행합니다. Shizuku 서비스가 실행 중이고 권한이 허용되어 있어야 합니다.</string>
 </resources>

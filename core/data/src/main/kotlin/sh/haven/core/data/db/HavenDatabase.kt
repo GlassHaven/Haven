@@ -58,7 +58,7 @@ import sh.haven.core.data.db.entities.WorkspaceProfile
         ChatConversation::class,
         ChatMessage::class,
     ],
-    version = 89,
+    version = 90,
     exportSchema = true,
 )
 abstract class HavenDatabase : RoomDatabase() {
@@ -1409,6 +1409,13 @@ abstract class HavenDatabase : RoomDatabase() {
         val MIGRATION_88_89 = object : Migration(88, 89) {
             override fun migrate(db: SupportSQLiteDatabase) {
                 addColumnIfMissing(db, "connection_profiles", "keyboardLayout", "TEXT DEFAULT NULL")
+            }
+        }
+
+        /** #837: explicit localShellMode ("PROOT" | "ANDROID_SHELL" | "SHIZUKU") for LOCAL profiles. */
+        val MIGRATION_89_90 = object : Migration(89, 90) {
+            override fun migrate(db: SupportSQLiteDatabase) {
+                addColumnIfMissing(db, "connection_profiles", "localShellMode", "TEXT DEFAULT NULL")
             }
         }
 

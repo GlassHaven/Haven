@@ -28,6 +28,9 @@ object WaylandSocketHelper {
     @Volatile
     private var shizukuListenersRegistered = false
 
+    private val permissionWaiters =
+        java.util.concurrent.CopyOnWriteArrayList<(Boolean) -> Unit>()
+
     fun initShizukuListeners() {
         if (shizukuListenersRegistered) return
         try {
@@ -89,6 +92,9 @@ object WaylandSocketHelper {
                     shizukuBinderAlive = true
                     warmUpShizukuShell()
                 }
+                val pending = permissionWaiters.toList()
+                permissionWaiters.removeAll(pending.toSet())
+                pending.forEach { cb -> runCatching { cb(granted) } }
             }
 
             shizukuListenersRegistered = true
@@ -283,10 +289,13 @@ object WaylandSocketHelper {
     /** Shizuku is installed AND its binder service is running. */
     fun isShizukuAvailable(): Boolean {
         initShizukuListeners()
-        return shizukuBinderAlive
+        if (shizukuBinderAlive) return true
+        val live = runCatching { rikka.shizuku.Shizuku.pingBinder() }.getOrDefault(false)
+        if (live) shizukuBinderAlive = true
+        return live
     }
 
-    /** Shizuku APK is installed on the device (may not be running). */
+    /** Shizuku APK is installed in the current Android user profile (may not be running). */
     fun isShizukuInstalled(context: android.content.Context): Boolean {
         return try {
             context.packageManager.getPackageInfo("moe.shizuku.privileged.api", 0)
@@ -294,6 +303,58 @@ object WaylandSocketHelper {
         } catch (_: Exception) {
             false
         }
+    }
+
+    /** Current Android user profile ID (`0` = primary owner, `10+` = work/secondary profile). */
+    fun currentAndroidUserId(): Int = android.os.Process.myUid() / 100_000
+
+    /**
+     * Human-readable diagnostic when [isShizukuAvailable] is false (#837).
+     * Always check [isShizukuAvailable] BEFORE calling this: in a secondary
+     * Android user profile, Shizuku's binder can be active even when the
+     * Manager APK is only installed in user 0.
+     */
+    fun diagnoseUnavailable(context: Context): String {
+        val userId = currentAndroidUserId()
+        val installed = isShizukuInstalled(context)
+        return when {
+            installed ->
+                "Shizuku is installed but its service is not running. Open Shizuku and start it via Wireless Debugging or ADB."
+            userId != 0 ->
+                "Shizuku service is not reachable in Android user profile $userId. Install Shizuku in this profile and ensure the Shizuku service is running via Wireless Debugging or ADB."
+            else ->
+                "Shizuku is not installed. Install Shizuku and start its service via Wireless Debugging or ADB."
+        }
+    }
+
+    /** Human-readable diagnostic when Shizuku permission is not granted (#837). */
+    fun diagnosePermissionDenied(): String {
+        val userId = currentAndroidUserId()
+        return if (userId != 0) {
+            "Shizuku permission was denied for Haven in Android user profile $userId. Open Shizuku (or the owner profile's Shizuku Manager) and enable Haven under Authorized applications."
+        } else {
+            "Shizuku permission was denied for Haven. Open Shizuku and enable Haven under Authorized applications."
+        }
+    }
+
+    /**
+     * Request Shizuku runtime permission if needed and suspend up to [timeoutMs]
+     * for the user's decision. Returns `true` if granted.
+     */
+    suspend fun awaitPermissionGrant(timeoutMs: Long = 20_000L): Boolean {
+        initShizukuListeners()
+        if (hasShizukuPermission()) return true
+        val granted = kotlinx.coroutines.withTimeoutOrNull(timeoutMs) {
+            kotlinx.coroutines.suspendCancellableCoroutine { cont ->
+                val waiter: (Boolean) -> Unit = { ok ->
+                    if (cont.isActive) cont.resumeWith(Result.success(ok))
+                }
+                permissionWaiters.add(waiter)
+                cont.invokeOnCancellation { permissionWaiters.remove(waiter) }
+                requestPermission()
+            }
+        }
+        return granted == true || hasShizukuPermission()
     }
 
     fun hasShizukuPermission(): Boolean {

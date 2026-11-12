@@ -921,6 +921,7 @@ class DesktopManager @Inject constructor(
             "SHELL=/bin/sh",
             "TMPDIR=/tmp",
             "XDG_RUNTIME_DIR=/tmp",
+            "${ShizukuBridgeProtocol.SOCKET_ENV_VAR}=${ShizukuBridgeProtocol.GUEST_SOCKET_PATH}",
             "XDG_DATA_HOME=${guestUser.home}/.local/share",
             "XDG_DATA_DIRS=/usr/local/share:/usr/share",
             "XDG_CONFIG_HOME=${guestUser.home}/.config",
@@ -1075,6 +1076,7 @@ class DesktopManager @Inject constructor(
             // desktop apps that use POSIX shared memory work. See ProotManager.
             "-b", "${prootManager.ensureDevShm()}:/dev/shm",
             "-b", "${context.cacheDir.absolutePath}:/tmp",
+            *prootManager.shizukuGuestBindArgs(rootfsDir, longForm = false),
             // #304: surface the device model at the devicetree path fastfetch reads.
             *(prootManager.deviceModelDevicetreeBind()?.let { arrayOf("-b", it) } ?: emptyArray()),
             // #304 part 2: optionally expose Android's system partitions (opt-in).
@@ -1399,6 +1401,7 @@ class DesktopManager @Inject constructor(
             "-b", prootManager.selinuxMaskBind(rootfsDir),
             "-b", "${context.cacheDir.absolutePath}:/tmp",
             "-b", "${devShmHost.absolutePath}:/dev/shm",
+            *prootManager.shizukuGuestBindArgs(rootfsDir, longForm = false),
             // #304: surface the device model at the devicetree path fastfetch reads.
             *(prootManager.deviceModelDevicetreeBind()?.let { arrayOf("-b", it) } ?: emptyArray()),
             // #304 part 2: optionally expose Android's system partitions (opt-in).
@@ -1946,6 +1949,7 @@ class DesktopManager @Inject constructor(
                 "-b", prootManager.selinuxMaskBind(rootfsDir),
                 "-b", "${context.cacheDir.absolutePath}:/tmp",
                 "-b", "${xdgDir.absolutePath}:/tmp/xdg-runtime",
+                *prootManager.shizukuGuestBindArgs(rootfsDir, longForm = false),
                 // #304: surface the device model at the devicetree path fastfetch reads.
                 *(prootManager.deviceModelDevicetreeBind()?.let { arrayOf("-b", it) } ?: emptyArray()),
                 // #304 part 2: optionally expose Android's system partitions (opt-in).

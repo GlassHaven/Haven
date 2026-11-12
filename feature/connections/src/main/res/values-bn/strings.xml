@@ -612,4 +612,9 @@
     <string name="connections_keyboard_layout_auto">স্বয়ংক্রিয় (ডিভাইসের ভাষা)</string>
     <string name="connections_helper_keyboard_layout_rdp">RDP সার্ভারে এই লেআউটটি ঘোষণা করে এবং টাইপ করা অক্ষরগুলিকে এর স্ক্যানকোডে ম্যাপ করে।</string>
     <string name="connections_helper_keyboard_layout_spice">SPICE কাঁচা স্ক্যানকোড পাঠায়, তাই গেস্ট VM-এর ভেতরে কনফিগার করা কীবোর্ড লেআউটটি বেছে নিন।</string>
+    <string name="connections_shizuku_shell_label">Shizuku শেল</string>
+    <string name="connections_local_mode_proot">PRoot</string>
+    <string name="connections_local_mode_android">Android</string>
+    <string name="connections_local_mode_shizuku">Shizuku</string>
+    <string name="connections_local_shell_shizuku_desc">Shizuku (ADB uid 2000 বা root) এর মাধ্যমে উন্নত অনুমতিসহ Android শেল (/system/bin/sh) চালায়। এজন্য Shizuku চালু ও অনুমোদিত থাকতে হবে।</string>
 </resources>

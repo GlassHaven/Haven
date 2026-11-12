@@ -20,3 +20,13 @@ add_executable(uml-net uml_net.c)
 target_compile_options(uml-net PRIVATE -fno-emulated-tls)
 target_link_options(uml-net PRIVATE -static -fno-emulated-tls)
 set_target_properties(uml-net PROPERTIES PREFIX "lib" OUTPUT_NAME "uml-net" SUFFIX ".so")
+
+# Static guest CLI client (#837) bind-mounted into PRoot at
+# /usr/local/bin/shizuku and /usr/local/bin/rish. Connects to Haven's
+# SO_PEERCRED-authenticated Unix socket in /tmp/.haven-shizuku.sock so any
+# guest distro (Alpine musl, Debian glibc, etc.) gets an interactive Shizuku
+# TTY shell without staging DEX files or calling Android Binder inside PRoot.
+add_executable(haven-shizuku haven_shizuku.c)
+target_compile_options(haven-shizuku PRIVATE -fno-emulated-tls)
+target_link_options(haven-shizuku PRIVATE -static -fno-emulated-tls)
+set_target_properties(haven-shizuku PROPERTIES PREFIX "lib" OUTPUT_NAME "haven-shizuku" SUFFIX ".so")

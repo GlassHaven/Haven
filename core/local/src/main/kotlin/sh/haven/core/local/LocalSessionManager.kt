@@ -13,6 +13,7 @@ import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.flow.update
 import kotlinx.coroutines.launch
 import sh.haven.core.data.db.entities.ConnectionLog
+import sh.haven.core.data.db.entities.ConnectionProfile
 import sh.haven.core.data.preferences.UserPreferencesRepository
 import sh.haven.core.data.repository.ConnectionLogRepository
 import java.util.UUID
@@ -117,6 +118,7 @@ class LocalSessionManager @Inject constructor(
     val audioBridge: AudioBridge,
     private val preferences: UserPreferencesRepository,
     private val connectionLog: ConnectionLogRepository,
+    private val shizukuPtyClient: ShizukuPtyClient,
 ) {
 
     /**
@@ -158,6 +160,9 @@ class LocalSessionManager @Inject constructor(
         val status: Status,
         val localSession: LocalSession? = null,
         val useAndroidShell: Boolean = false,
+        val localShellMode: ConnectionProfile.LocalShellMode =
+            if (useAndroidShell) ConnectionProfile.LocalShellMode.ANDROID_SHELL
+            else ConnectionProfile.LocalShellMode.PROOT,
         /** Distro to open the proot shell in; null = the active distro. */
         val prootDistroId: String? = null,
         /**
@@ -190,6 +195,9 @@ class LocalSessionManager @Inject constructor(
         useAndroidShell: Boolean = false,
         prootDistroId: String? = null,
         desktopEnv: Map<String, String>? = null,
+        localShellMode: ConnectionProfile.LocalShellMode =
+            if (useAndroidShell) ConnectionProfile.LocalShellMode.ANDROID_SHELL
+            else ConnectionProfile.LocalShellMode.PROOT,
     ): String {
         // Reap any superseded dead shells for this profile before minting a
         // fresh one. A local shell never reconnects, so a DISCONNECTED entry is
@@ -206,12 +214,22 @@ class LocalSessionManager @Inject constructor(
                 profileId = profileId,
                 label = label,
                 status = SessionState.Status.CONNECTING,
-                useAndroidShell = useAndroidShell,
+                useAndroidShell = localShellMode == ConnectionProfile.LocalShellMode.ANDROID_SHELL,
+                localShellMode = localShellMode,
                 prootDistroId = prootDistroId,
                 desktopEnv = desktopEnv,
             ))
         }
         return sessionId
+    }
+
+    /**
+     * Validate that Shizuku is running, authorized, and bound before opening a
+     * `SHIZUKU` local terminal (#837). Throws [ShizukuUnavailableException] or
+     * [ShizukuPermissionDeniedException] with a clear diagnostic message.
+     */
+    suspend fun ensureShizukuReady() {
+        shizukuPtyClient.ensureReady()
     }
 
     /**
@@ -390,6 +408,7 @@ class LocalSessionManager @Inject constructor(
                 *storageBinds,
                 *customBinds,
                 "-b", "${context.cacheDir.absolutePath}:/tmp",
+                *prootManager.shizukuGuestBindArgs(rootfsDir, longForm = false),
                 // #304: surface the device model at the devicetree path fastfetch reads.
                 *(prootManager.deviceModelDevicetreeBind()?.let { arrayOf("-b", it) } ?: emptyArray()),
                 // #304 part 2: optionally expose Android's system partitions (opt-in).
@@ -423,6 +442,7 @@ class LocalSessionManager @Inject constructor(
                 *ProotManager.PROOT_SANDBOX_ENV.toTypedArray(),
                 *tunnelEnv.map { (k, v) -> "$k=$v" }.toTypedArray(),
                 "PROOT_TMP_DIR=${context.cacheDir.absolutePath}",
+                "${ShizukuBridgeProtocol.SOCKET_ENV_VAR}=${ShizukuBridgeProtocol.GUEST_SOCKET_PATH}",
                 "PROOT_LOADER=${java.io.File(context.applicationInfo.nativeLibraryDir, "libproot_loader.so").absolutePath}",
                 "PROOT_L2S_DIR=${prootManager.l2sEnvValue(targetDistro)}",
             )
@@ -486,15 +506,31 @@ class LocalSessionManager @Inject constructor(
             if (session.status != SessionState.Status.CONNECTED) return null
             if (session.localSession != null) return null
 
-        val (cmd, args, baseEnv) = buildCommand(session.useAndroidShell, plain = plain, distroId = session.prootDistroId)
+        val isShizuku = session.localShellMode == ConnectionProfile.LocalShellMode.SHIZUKU
+        val (cmd, args, baseEnv) = if (isShizuku) {
+            val (shCmd, shArgs) = shizukuPtyClient.buildShellCommand()
+            Triple(shCmd, shArgs, shizukuPtyClient.buildShellEnv(locale = terminalLocale))
+        } else {
+            buildCommand(
+                useAndroidShell = session.localShellMode == ConnectionProfile.LocalShellMode.ANDROID_SHELL,
+                plain = plain,
+                distroId = session.prootDistroId,
+            )
+        }
         // Join a running desktop session (#285): override DISPLAY / WAYLAND_DISPLAY
         // / XDG_RUNTIME_DIR so the shell can drive the desktop's apps. The desktop's
         // sockets are in the shared cacheDir (bound at /tmp), so only the env needs
-        // pointing. Irrelevant for Android shells (no proot /tmp bind).
+        // pointing. Irrelevant for Android / Shizuku shells (no proot /tmp bind).
         val env = session.desktopEnv
-            ?.takeIf { it.isNotEmpty() && !session.useAndroidShell }
+            ?.takeIf { it.isNotEmpty() && session.localShellMode == ConnectionProfile.LocalShellMode.PROOT }
             ?.let { mergeEnv(baseEnv, it) }
             ?: baseEnv
+
+        val customBackend = if (isShizuku) {
+            shizukuPtyClient.createSessionBackend(locale = terminalLocale)
+        } else {
+            null
+        }
 
         // Permanent agent-scope mirror of PTY stdout, wired here so EVERY local
         // shell — UI-opened or headless — feeds the ring that
@@ -510,6 +546,7 @@ class LocalSessionManager @Inject constructor(
             args = args,
             env = env,
             onDataReceived = agentMirror.mirror(sessionId, onDataReceived),
+            customBackend = customBackend,
             onExited = { exitCode ->
                 Log.d(TAG, "Session $sessionId process exited: $exitCode")
                 // Mark DISCONNECTED and drop the dead LocalSession in one

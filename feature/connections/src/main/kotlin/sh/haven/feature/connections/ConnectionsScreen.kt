@@ -1608,7 +1608,9 @@ private fun quickConnectAction(
     // #751: the quick-connect bar is a one-off by design — dial it ephemeral
     // instead of saving a profile the user never asked to keep.
     val ephemeral = profile.copy().also { it.ephemeral = true }
-    if (sshKeys.isNotEmpty()) {
+    if (ephemeral.isLocal) {
+        viewModel.connect(ephemeral, "")
+    } else if (sshKeys.isNotEmpty()) {
         viewModel.connectWithKey(ephemeral)
     } else {
         showPasswordDialog(ephemeral)
@@ -1940,8 +1942,11 @@ private fun ConnectionTreeItem(
                     if (profile.isLocal) {
                         Text(
                             stringResource(
-                                if (profile.useAndroidShell) R.string.connections_android_shell_label
-                                else R.string.connections_proot_label,
+                                when (profile.resolvedLocalShellMode) {
+                                    ConnectionProfile.LocalShellMode.SHIZUKU -> R.string.connections_shizuku_shell_label
+                                    ConnectionProfile.LocalShellMode.ANDROID_SHELL -> R.string.connections_android_shell_label
+                                    ConnectionProfile.LocalShellMode.PROOT -> R.string.connections_proot_label
+                                },
                             ),
                         )
                     } else if (profile.isReticulum) {

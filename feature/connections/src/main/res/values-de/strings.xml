@@ -612,4 +612,9 @@
     <string name="connections_keyboard_layout_auto">Automatisch (Gerätesprache)</string>
     <string name="connections_helper_keyboard_layout_rdp">Meldet dieses Layout dem RDP-Server und bildet eingegebene Zeichen auf dessen Scancodes ab.</string>
     <string name="connections_helper_keyboard_layout_spice">SPICE sendet rohe Scancodes — wählen Sie das in der Gast-VM eingestellte Tastaturlayout.</string>
+    <string name="connections_shizuku_shell_label">Shizuku-Shell</string>
+    <string name="connections_local_mode_proot">PRoot</string>
+    <string name="connections_local_mode_android">Android</string>
+    <string name="connections_local_mode_shizuku">Shizuku</string>
+    <string name="connections_local_shell_shizuku_desc">Führt eine privilegierte Android-Shell (/system/bin/sh) über Shizuku (ADB UID 2000 oder Root) aus. Erfordert einen laufenden und autorisierten Shizuku-Dienst.</string>
 </resources>

@@ -5,7 +5,9 @@ import android.util.Log
 import java.io.Closeable
 import java.io.FileInputStream
 import java.io.FileOutputStream
+import java.util.concurrent.CountDownLatch
 import java.util.concurrent.Executors
+import java.util.concurrent.TimeUnit
 
 private const val TAG = "LocalSession"
 private const val READ_BUFFER_SIZE = 8192
@@ -13,8 +15,9 @@ private const val READ_BUFFER_SIZE = 8192
 /**
  * Bridges a local PTY process to the terminal emulator.
  *
- * Manages a child process (shell or proot) with a pseudoterminal,
- * reading output on a background thread and writing input from any thread.
+ * Manages a child process (shell, proot, or Shizuku UserService PTY) with a
+ * pseudoterminal, reading output on a background thread and writing input from
+ * any thread.
  */
 class LocalSession(
     val sessionId: String,
@@ -28,7 +31,21 @@ class LocalSession(
     /** Raw pty termios — for UML guest consoles, which implement their own
      * tty semantics in the guest (a cooked host pty mangles \r and ctrl-c). */
     private val rawTermios: Boolean = false,
+    /**
+     * Optional out-of-process PTY backend (#837 Shizuku UserService). When
+     * non-null, [start] attaches on the background reader thread so synchronous
+     * callers on the main thread (ViewModel tab sync) never deadlock waiting on
+     * main-Looper `ServiceConnection` callbacks.
+     */
+    private val customBackend: CustomPtyBackend? = null,
 ) : Closeable {
+
+    interface CustomPtyBackend {
+        fun open(rows: Int, cols: Int): ParcelFileDescriptor
+        fun resize(rows: Int, cols: Int)
+        fun waitExit(): Int
+        fun close()
+    }
 
     // Swappable so the PTY can outlive the emulator: when the Activity (and its
     // TerminalViewModel) is torn down while the proot shell keeps running, the
@@ -59,9 +76,19 @@ class LocalSession(
     private var masterFd: Int = -1
     private var childPid: Int = -1
     private var masterPfd: ParcelFileDescriptor? = null
+    @Volatile
     private var inputStream: FileInputStream? = null
+    @Volatile
     private var outputStream: FileOutputStream? = null
     private var readerThread: Thread? = null
+
+    @Volatile
+    private var pendingRows: Int = 24
+    @Volatile
+    private var pendingCols: Int = 80
+    @Volatile
+    private var customAttached: Boolean = false
+    private val customOutputReady = CountDownLatch(1)
 
     private val writeExecutor = Executors.newSingleThreadExecutor { r ->
         Thread(r, "local-pty-write-$sessionId").apply { isDaemon = true }
@@ -82,11 +109,18 @@ class LocalSession(
     }
 
     /**
-     * Fork the child process and start reading PTY output.
-     * @throws IllegalStateException if forkpty fails
+     * Fork the child process (or attach the custom PTY backend) and start reading PTY output.
+     * @throws IllegalStateException if local forkpty fails
      */
     fun start(rows: Int = 24, cols: Int = 80) {
         if (closed) return
+        pendingRows = rows
+        pendingCols = cols
+
+        if (customBackend != null) {
+            startCustomBackend(customBackend)
+            return
+        }
 
         val result = try {
             forkExecutor.submit<IntArray> {
@@ -152,12 +186,71 @@ class LocalSession(
         }
     }
 
+    private fun startCustomBackend(backend: CustomPtyBackend) {
+        readerThread = Thread({
+            val pfd = try {
+                backend.open(pendingRows, pendingCols)
+            } catch (t: Throwable) {
+                customOutputReady.countDown()
+                if (!closed) {
+                    val msg = "\r\n[Shizuku] ${t.message ?: t.javaClass.simpleName}\r\n"
+                        .toByteArray(Charsets.UTF_8)
+                    runCatching { onData(msg, 0, msg.size) }
+                    onExited?.invoke(1)
+                }
+                return@Thread
+            }
+
+            if (closed) {
+                runCatching { pfd.close() }
+                runCatching { backend.close() }
+                customOutputReady.countDown()
+                return@Thread
+            }
+
+            masterPfd = pfd
+            inputStream = FileInputStream(pfd.fileDescriptor)
+            outputStream = FileOutputStream(pfd.fileDescriptor)
+            customAttached = true
+            customOutputReady.countDown()
+            // Apply any layout resize that arrived while the binder service was connecting.
+            backend.resize(pendingRows, pendingCols)
+
+            val buf = ByteArray(READ_BUFFER_SIZE)
+            try {
+                while (!closed) {
+                    val n = inputStream!!.read(buf)
+                    if (n <= 0) break
+                    try {
+                        onData(buf, 0, n)
+                    } catch (e: Exception) {
+                        if (!closed) Log.w(TAG, "output sink threw: ${e.message}")
+                    }
+                }
+            } catch (e: Exception) {
+                if (!closed) {
+                    Log.d(TAG, "Custom PTY read loop ended: ${e.message}")
+                }
+            }
+
+            if (!closed) {
+                val exitCode = runCatching { backend.waitExit() }.getOrDefault(-1)
+                Log.d(TAG, "Custom PTY session $sessionId exited: $exitCode")
+                onExited?.invoke(exitCode)
+            }
+        }, "local-pty-read-$sessionId").apply {
+            isDaemon = true
+            start()
+        }
+    }
+
     /**
      * True while the child process and its reader thread are live. Goes false
      * once the PTY hits EOF (process exited) or [close] runs — used so callers
      * can fail a write loudly instead of silently dropping it into a dead fd.
      */
-    fun isAlive(): Boolean = !closed && childPid > 0 && readerThread?.isAlive == true
+    fun isAlive(): Boolean =
+        !closed && (childPid > 0 || customBackend != null) && readerThread?.isAlive == true
 
     /**
      * Send keyboard input to the PTY.
@@ -167,6 +260,9 @@ class LocalSession(
         try {
             writeExecutor.execute {
                 try {
+                    if (customBackend != null && !customAttached) {
+                        customOutputReady.await(15, TimeUnit.SECONDS)
+                    }
                     outputStream?.write(data)
                     outputStream?.flush()
                 } catch (e: Exception) {
@@ -186,18 +282,29 @@ class LocalSession(
      * Resize the PTY terminal.
      */
     fun resize(cols: Int, rows: Int) {
-        if (closed || masterFd < 0) return
+        if (closed) return
+        pendingRows = rows
+        pendingCols = cols
+        if (customBackend != null) {
+            if (customAttached) {
+                customBackend.resize(rows, cols)
+            }
+            return
+        }
+        if (masterFd < 0) return
         PtyBridge.nativeSetSize(masterFd, rows, cols)
     }
 
     override fun close() {
         if (closed) return
         closed = true
+        customOutputReady.countDown()
 
         // Close streams — this will cause the read loop to exit
         try { outputStream?.close() } catch (_: Exception) {}
         try { inputStream?.close() } catch (_: Exception) {}
         try { masterPfd?.close() } catch (_: Exception) {}
+        try { customBackend?.close() } catch (_: Exception) {}
 
         // Kill the child process AND its proot tracees. proot's --kill-on-exit
         // doesn't reap the ptrace tracees when the launcher is signalled, so

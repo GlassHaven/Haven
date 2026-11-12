@@ -5,6 +5,11 @@ the corresponding GitHub Release; a release can't ship without its section
 (enforced by `scripts/check-changelog.sh` in CI). The GitHub "Full Changelog"
 compare link is appended automatically — don't add it here.
 
+## v5.94.34
+
+- Coalesce SPICE primary-surface display updates at 60 Hz, ignore off-screen surface pixmaps, reuse one framebuffer Bitmap per resolution, and isolate frameSeq reads from the windowed toolbar (#607, thanks @empanadablues).
+- Guard libvterm against excess CSI parameters and subparameters, clamp oversized CSI and OSC numbers before overflow, ignore REP before any graphic character, and reset scroll regions invalidated by terminal resize.
+
 ## v5.94.33
 
 - Span retained scrollback rows on terminal Select All on the primary buffer while keeping alternate-screen Select All scoped to the visible grid (#805, thanks @del26).

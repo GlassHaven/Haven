@@ -1,0 +1,2 @@
+- Coalesce SPICE primary-surface display updates at 60 Hz, ignore off-screen surface pixmaps, reuse one framebuffer Bitmap per resolution, and isolate frameSeq reads from the windowed toolbar (#607, thanks @empanadablues).
+- Guard libvterm against excess CSI parameters and subparameters, clamp oversized CSI and OSC numbers before overflow, ignore REP before any graphic character, and reset scroll regions invalidated by terminal resize.

@@ -160,6 +160,69 @@ class TerminalSessionRegistry @Inject constructor() {
     }
 
     /**
+     * Claim an empty slot as a headless agent shell (like [registerHeadless])
+     * OR attach backing [AgentHandles] behind an already-registered UI-opened
+     * tab whose [Entry.agentHandles] is still null (#555). When backing an
+     * open UI tab, the active tab's live [Entry.emulator], [Entry.oscHandler],
+     * and [Entry.feedOutput] remain untouched while the tab lives, and
+     * [restoreAgentHandles] hands the entry over to [emulator]/[feedOutput]
+     * if the Activity/ViewModel is later torn down.
+     *
+     * Returns true if [emulator]/[feedOutput] was installed as the session's
+     * [AgentHandles], or false if [AgentHandles] were already present.
+     */
+    fun attachOrRegisterHeadless(
+        sessionId: String,
+        emulator: TerminalEmulator,
+        feedOutput: (ByteArray, Int, Int) -> Unit,
+        mouseMode: StateFlow<Boolean>,
+        activeMouseMode: StateFlow<Int?>,
+        bracketPasteMode: StateFlow<Boolean>,
+        altScreen: StateFlow<Boolean>,
+        cursorKeyAppMode: StateFlow<Boolean>,
+    ): Boolean {
+        var installed = false
+        val agent = AgentHandles(
+            emulator = emulator,
+            mouseMode = mouseMode,
+            activeMouseMode = activeMouseMode,
+            bracketPasteMode = bracketPasteMode,
+            altScreen = altScreen,
+            cursorKeyAppMode = cursorKeyAppMode,
+            feedOutput = feedOutput,
+        )
+        _sessions.update { map ->
+            val current = map[sessionId]
+            when {
+                current == null -> {
+                    installed = true
+                    map + (
+                        sessionId to Entry(
+                            emulator = agent.emulator,
+                            mouseMode = agent.mouseMode,
+                            activeMouseMode = agent.activeMouseMode,
+                            bracketPasteMode = agent.bracketPasteMode,
+                            altScreen = agent.altScreen,
+                            cursorKeyAppMode = agent.cursorKeyAppMode,
+                            feedOutput = agent.feedOutput,
+                            agentHandles = agent,
+                        )
+                        )
+                }
+                current.agentHandles == null -> {
+                    installed = true
+                    map + (sessionId to current.copy(agentHandles = agent))
+                }
+                else -> {
+                    installed = false
+                    map
+                }
+            }
+        }
+        return installed
+    }
+
+    /**
      * Repoint a session's entry at a UI tab's live handles. Heals the #378
      * race: open_local_shell claimed the slot with a headless emulator while
      * syncSessions was concurrently building a real tab for the same session

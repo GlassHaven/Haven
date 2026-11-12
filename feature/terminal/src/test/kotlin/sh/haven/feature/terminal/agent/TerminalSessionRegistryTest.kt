@@ -259,6 +259,69 @@ class TerminalSessionRegistryTest {
         assertSame(feedA, registry.get("s1")!!.feedOutput)
     }
 
+    @Test
+    fun `attachOrRegisterHeadless installs backing agent handles behind an existing UI-opened tab without clobbering active tab handles`() {
+        val tabEmulator = mockk<TerminalEmulator>()
+        val osc = OscHandler()
+        registry.register("s1", tabEmulator)
+        registry.setAgentHandles(
+            "s1",
+            mouseMode = MutableStateFlow(true),
+            activeMouseMode = MutableStateFlow<Int?>(1002),
+            bracketPasteMode = MutableStateFlow(false),
+            altScreen = MutableStateFlow(false),
+            cursorKeyAppMode = MutableStateFlow(false),
+            oscHandler = osc,
+            feedOutput = feedB,
+        )
+
+        val backingHeadless = mockk<TerminalEmulator>()
+        val attached = registry.attachOrRegisterHeadless(
+            "s1",
+            backingHeadless,
+            feedA,
+            mouseMode = MutableStateFlow(false),
+            activeMouseMode = MutableStateFlow<Int?>(null),
+            bracketPasteMode = MutableStateFlow(true),
+            altScreen = MutableStateFlow(false),
+            cursorKeyAppMode = MutableStateFlow(false),
+        )
+        assertTrue(attached)
+
+        // While the UI tab lives, the active entry still points at the UI tab's handles.
+        val live = registry.get("s1")!!
+        assertSame(tabEmulator, live.emulator)
+        assertSame(feedB, live.feedOutput)
+        assertSame(osc, live.oscHandler)
+
+        // Once the UI tab's ViewModel tears down, restoreAgentHandles hands the slot to backingHeadless.
+        assertTrue(registry.restoreAgentHandles("s1"))
+        val restored = registry.get("s1")!!
+        assertSame(backingHeadless, restored.emulator)
+        assertSame(feedA, restored.feedOutput)
+        assertNull(restored.oscHandler)
+    }
+
+    @Test
+    fun `attachOrRegisterHeadless refuses a second backing claim once agentHandles exist`() {
+        val firstHeadless = mockk<TerminalEmulator>()
+        assertTrue(registerHeadless("s1", firstHeadless, feedA))
+
+        val secondHeadless = mockk<TerminalEmulator>()
+        val second = registry.attachOrRegisterHeadless(
+            "s1",
+            secondHeadless,
+            feedB,
+            mouseMode = MutableStateFlow(false),
+            activeMouseMode = MutableStateFlow<Int?>(null),
+            bracketPasteMode = MutableStateFlow(false),
+            altScreen = MutableStateFlow(false),
+            cursorKeyAppMode = MutableStateFlow(false),
+        )
+        assertFalse(second)
+        assertSame(firstHeadless, registry.get("s1")!!.emulator)
+    }
+
     // ------------------------------------------------------------------
     // Retained final screen for an exited session
     // ------------------------------------------------------------------

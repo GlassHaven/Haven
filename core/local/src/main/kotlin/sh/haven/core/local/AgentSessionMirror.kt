@@ -29,6 +29,16 @@ class AgentSessionMirror(private val scrollbackBytes: Int = 256 * 1024) {
      */
     private val tees = ConcurrentHashMap<String, (ByteArray, Int, Int) -> Unit>()
 
+    /**
+     * Per-session lock serializing `(ring.append + tee)` against [setTee] so
+     * replaying buffered scrollback when a tee attaches neither misses nor
+     * duplicates a concurrent PTY write (#555).
+     */
+    private val locks = ConcurrentHashMap<String, Any>()
+
+    private fun lockFor(sessionId: String): Any =
+        locks.computeIfAbsent(sessionId) { Any() }
+
     /** The session's ring, created on first use (create + reattach both call this). */
     fun ring(sessionId: String): ScrollbackRing =
         rings.computeIfAbsent(sessionId) { ScrollbackRing(scrollbackBytes) }
@@ -43,23 +53,40 @@ class AgentSessionMirror(private val scrollbackBytes: Int = 256 * 1024) {
         sessionId: String,
         onDataReceived: (ByteArray, Int, Int) -> Unit,
     ): (ByteArray, Int, Int) -> Unit = { data, off, len ->
-        ring(sessionId).append(data, off, len)
-        tees[sessionId]?.invoke(data, off, len)
+        synchronized(lockFor(sessionId)) {
+            ring(sessionId).append(data, off, len)
+            tees[sessionId]?.invoke(data, off, len)
+        }
         onDataReceived(data, off, len)
     }
 
     /**
      * Register the agent-emulator tee for [sessionId], surviving later
      * callback swaps. Registered even when a UI tab already owns the session —
-     * the mirrors look it up dynamically, so the agent emulator starts
-     * receiving from here on (blank until then; no replay). Never cleared for
-     * the session's life: a UI tab adopting the session still leaves the
-     * agent shell consuming PTY output behind it, which is what keeps the
-     * emulator current when the tab's ViewModel teardown hands the registry
-     * entry back to the shell (#555).
+     * when [replayExisting] is true (the default), any bytes already buffered
+     * in [sessionId]'s scrollback ring are replayed into [sink] atomically
+     * before live chunks start streaming, so an agent attaching to a UI-opened
+     * or post-teardown session does not start from a blank grid (#555).
+     * Never cleared for the session's life: a UI tab adopting the session still
+     * leaves the agent shell consuming PTY output behind it, which is what
+     * keeps the emulator current when the tab's ViewModel teardown hands the
+     * registry entry back to the shell (#555).
      */
-    fun setTee(sessionId: String, sink: (ByteArray, Int, Int) -> Unit) {
-        tees[sessionId] = sink
+    fun setTee(
+        sessionId: String,
+        sink: (ByteArray, Int, Int) -> Unit,
+        replayExisting: Boolean = true,
+    ) {
+        synchronized(lockFor(sessionId)) {
+            if (tees[sessionId] === sink) return
+            if (replayExisting) {
+                val buffered = rings[sessionId]?.snapshot()
+                if (buffered != null && buffered.isNotEmpty()) {
+                    sink(buffered, 0, buffered.size)
+                }
+            }
+            tees[sessionId] = sink
+        }
     }
 
     /**
@@ -97,7 +124,15 @@ class AgentSessionMirror(private val scrollbackBytes: Int = 256 * 1024) {
 
     /** Free the ring and tee for a session leaving the map for good. */
     fun remove(sessionId: String) {
-        rings.remove(sessionId)
-        tees.remove(sessionId)
+        val lock = locks.remove(sessionId)
+        if (lock != null) {
+            synchronized(lock) {
+                rings.remove(sessionId)
+                tees.remove(sessionId)
+            }
+        } else {
+            rings.remove(sessionId)
+            tees.remove(sessionId)
+        }
     }
 }

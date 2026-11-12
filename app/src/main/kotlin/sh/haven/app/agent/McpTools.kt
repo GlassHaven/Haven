@@ -5227,18 +5227,17 @@ class McpTools private constructor(
         val sessionId = if (alive != null) {
             alive.sessionId
         } else {
-            val sid = localSessionManager.registerSession(
+            // Leave status as CONNECTING until terminalSessionRegistry has its
+            // headless handles installed and startHeadlessShell transitions to
+            // CONNECTED + attaches the LocalSession atomically under
+            // sessionAttachLock (#555). Calling connectSession before the
+            // preference reads below exposed isReadyForTerminal == true while
+            // suspended, letting TerminalViewModel.syncSessions race ahead and
+            // fork a second PTY.
+            localSessionManager.registerSession(
                 profile.id, profile.label, profile.useAndroidShell, profile.prootDistroId,
                 desktopEnv = desktopEnv,
             )
-            try {
-                localSessionManager.connectSession(sid)
-            } catch (e: Exception) {
-                localSessionManager.updateStatus(sid, LocalSessionManager.SessionState.Status.ERROR)
-                localSessionManager.removeSession(sid)
-                throw McpError(-32603, "Failed to open local shell: ${e.message}")
-            }
-            sid
         }
         // Spin up the PTY without a UI tab on top so the agent can
         // immediately type into the session. Idempotent — a no-op if
@@ -5252,15 +5251,14 @@ class McpTools private constructor(
         // Terminal tab adopts the session later, it shares this same
         // emulator, so agent reads and the on-screen tab agree.
         //
-        // Racy on a fresh app start (#378): TerminalViewModel's
-        // syncSessions may be building a UI tab for this session
-        // concurrently, complete with its own emulator + LocalSession.
-        // The registry claim below is atomic — if the tab registered
-        // first we skip the headless emulator entirely; if we claim
-        // first and the tab still gets built, syncSessions detects the
-        // emulator mismatch and repoints the entry at the tab.
+        // Check `agentHandles == null` rather than `get(sessionId) == null`:
+        // when the user opened the UI tab first, `get(sessionId)` is already
+        // non-null with `agentHandles == null`; installing backing AgentHandles
+        // + tee behind the tab lets `restoreAgentHandles` preserve structured
+        // agent reads if the Activity is later torn down (#555).
         var agentFeed: ((ByteArray, Int, Int) -> Unit)? = null
-        if (terminalSessionRegistry.get(sessionId) == null) {
+        var feedMainHandler: android.os.Handler? = null
+        if (terminalSessionRegistry.get(sessionId)?.agentHandles == null) {
             val scrollbackRows = preferencesRepository.terminalScrollbackRows.first()
             val bellNotif = preferencesRepository.terminalBellNotification.first()
             val agentEmulator = org.connectbot.terminal.TerminalEmulatorFactory.create(
@@ -5309,13 +5307,7 @@ class McpTools private constructor(
                 val copy = data.copyOfRange(off, off + len)
                 mainHandler.post { agentEmulator.writeInput(copy, 0, copy.size) }
             }
-            // Atomic claim: feed + mode flows land in the same write as the
-            // emulator (#226/#336 rules preserved — the entry's feedOutput
-            // must inject into the emulator the agent tools read, and the
-            // mode flows come from the tracker on the same stream). If a UI
-            // tab registered between the get() above and here, the claim
-            // fails and the tab's emulator stays the source of truth.
-            if (terminalSessionRegistry.registerHeadless(
+            if (terminalSessionRegistry.attachOrRegisterHeadless(
                     sessionId,
                     agentEmulator,
                     feed,
@@ -5327,21 +5319,49 @@ class McpTools private constructor(
                 )
             ) {
                 agentFeed = feed
+                feedMainHandler = mainHandler
             }
         }
-        // No-op when an existing LocalSession is attached, regardless of
-        // the original plain choice — see LocalSessionManager.startHeadlessShell.
-        localSessionManager.startHeadlessShell(
-            sessionId,
-            extraOnData = agentFeed,
-            plain = plain,
-        )
+        // Transitions CONNECTING -> CONNECTED and starts the PTY under
+        // sessionAttachLock, or attaches the tee (replaying buffered scrollback)
+        // when an existing LocalSession is already running (#555).
+        try {
+            localSessionManager.startHeadlessShell(
+                sessionId,
+                extraOnData = agentFeed,
+                plain = plain,
+            )
+        } catch (e: Exception) {
+            if (alive == null) {
+                terminalSessionRegistry.unregister(sessionId)
+                localSessionManager.updateStatus(sessionId, LocalSessionManager.SessionState.Status.ERROR)
+                localSessionManager.removeSession(sessionId)
+            }
+            throw McpError(-32603, "Failed to open local shell: ${e.message}")
+        }
         // The PTY reader thread starts asynchronously, so wait briefly for the
         // shell's first output before returning — otherwise an immediate
         // send_terminal_input / read_terminal_scrollback races an unattached
         // PTY (input ignored, scrollback empty). `ready` tells the agent
         // whether output is already flowing.
         val ready = localSessionManager.awaitFirstOutput(sessionId)
+        // Drain any main-looper `agentEmulator.writeInput` runnables queued by
+        // scrollback replay or initial prompt chunks so an immediate
+        // read_terminal_snapshot sees the rendered prompt (#555).
+        val drainHandler = feedMainHandler
+            ?: if (ready) android.os.Looper.getMainLooper()?.let { android.os.Handler(it) } else null
+        if (drainHandler != null) {
+            withTimeoutOrNull(500L) {
+                kotlinx.coroutines.suspendCancellableCoroutine<Unit> { cont ->
+                    val posted = drainHandler.post {
+                        if (cont.isActive) cont.resumeWith(Result.success(Unit))
+                    }
+                    if (!posted && cont.isActive) {
+                        cont.resumeWith(Result.success(Unit))
+                    }
+                }
+            }
+        }
         JSONObject().apply {
             put("sessionId", sessionId)
             put("profileId", profile.id)

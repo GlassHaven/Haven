@@ -299,66 +299,70 @@ class UmlGuestManager @Inject constructor(
         return Triple(cmd, args, env)
     }
 
+    private val sessionAttachLock = Any()
+
     fun createTerminalSession(
         sessionId: String,
         onDataReceived: (ByteArray, Int, Int) -> Unit,
         rows: Int = 24,
         cols: Int = 80,
     ): LocalSession? {
-        val session = _sessions.value[sessionId] ?: return null
-        if (session.status != SessionState.Status.CONNECTED) return null
-        if (session.localSession != null) return null
+        synchronized(sessionAttachLock) {
+            val session = _sessions.value[sessionId] ?: return null
+            if (session.status != SessionState.Status.CONNECTED) return null
+            if (session.localSession != null) return null
 
-        val (cmd, args, env) = buildLaunchCommand(sessionId)
-        // passt's log dir; uml_net.c only creates the file.
-        File(context.cacheDir, "uml").mkdirs()
+            val (cmd, args, env) = buildLaunchCommand(sessionId)
+            // passt's log dir; uml_net.c only creates the file.
+            File(context.cacheDir, "uml").mkdirs()
 
-        val localSession = LocalSession(
-            sessionId = sessionId,
-            profileId = session.profileId,
-            label = session.label,
-            command = cmd,
-            args = args,
-            env = env,
-            onDataReceived = agentMirror.mirror(sessionId, onDataReceived),
-            // The guest kernel implements its own tty semantics; a cooked host
-            // pty double-processes input (ICRNL eats \r so Enter never submits
-            // in the agent TUI, ISIG makes ctrl-c SIGINT the UML kernel itself).
-            rawTermios = true,
-            onExited = { exitCode ->
-                Log.d(TAG, "Guest $sessionId process exited: $exitCode")
-                _sessions.update { map ->
-                    val existing = map[sessionId] ?: return@update map
-                    existing.localSession?.close()
-                    map + (sessionId to existing.copy(
-                        status = SessionState.Status.DISCONNECTED,
-                        localSession = null,
-                    ))
-                }
-                // Same diagnosis channel as LOCAL: the scrollback tail usually
-                // carries the kernel panic or the passt error that killed the
-                // guest.
-                val tail = agentMirror.tail(sessionId)
-                if (UmlDesktopManager.DESKTOP_KERNEL_ARG !in session.extraKernelArgs) {
-                    prefScope.launch {
-                        connectionLog.logEvent(
-                            profileId = session.profileId,
-                            status = if (exitCode == 0) ConnectionLog.Status.DISCONNECTED
-                            else ConnectionLog.Status.FAILED,
-                            details = "Guest exited (exit code $exitCode)",
-                            verboseLog = tail,
-                        )
+            val localSession = LocalSession(
+                sessionId = sessionId,
+                profileId = session.profileId,
+                label = session.label,
+                command = cmd,
+                args = args,
+                env = env,
+                onDataReceived = agentMirror.mirror(sessionId, onDataReceived),
+                // The guest kernel implements its own tty semantics; a cooked host
+                // pty double-processes input (ICRNL eats \r so Enter never submits
+                // in the agent TUI, ISIG makes ctrl-c SIGINT the UML kernel itself).
+                rawTermios = true,
+                onExited = { exitCode ->
+                    Log.d(TAG, "Guest $sessionId process exited: $exitCode")
+                    _sessions.update { map ->
+                        val existing = map[sessionId] ?: return@update map
+                        existing.localSession?.close()
+                        map + (sessionId to existing.copy(
+                            status = SessionState.Status.DISCONNECTED,
+                            localSession = null,
+                        ))
                     }
-                }
-            },
-        )
+                    // Same diagnosis channel as LOCAL: the scrollback tail usually
+                    // carries the kernel panic or the passt error that killed the
+                    // guest.
+                    val tail = agentMirror.tail(sessionId)
+                    if (UmlDesktopManager.DESKTOP_KERNEL_ARG !in session.extraKernelArgs) {
+                        prefScope.launch {
+                            connectionLog.logEvent(
+                                profileId = session.profileId,
+                                status = if (exitCode == 0) ConnectionLog.Status.DISCONNECTED
+                                else ConnectionLog.Status.FAILED,
+                                details = "Guest exited (exit code $exitCode)",
+                                verboseLog = tail,
+                            )
+                        }
+                    }
+                },
+            )
 
-        _sessions.update { map ->
-            val existing = map[sessionId] ?: return@update map
-            map + (sessionId to existing.copy(localSession = localSession))
+            _sessions.update { map ->
+                val existing = map[sessionId] ?: return@update map
+                map + (sessionId to existing.copy(localSession = localSession))
+            }
+
+            return localSession
         }
-
-        return localSession
     }
 
     fun isReadyForTerminal(sessionId: String): Boolean {
@@ -410,11 +414,16 @@ class UmlGuestManager @Inject constructor(
         sessionId: String,
         extraOnData: ((ByteArray, Int, Int) -> Unit)? = null,
     ) {
-        val session = _sessions.value[sessionId] ?: return
-        extraOnData?.let { agentMirror.setTee(sessionId, it) }
-        if (session.localSession != null) return
-        val ls = createTerminalSession(sessionId, onDataReceived = { _, _, _ -> }) ?: return
-        ls.start(rows = 24, cols = 80)
+        synchronized(sessionAttachLock) {
+            val session = _sessions.value[sessionId] ?: return
+            if (session.status == SessionState.Status.CONNECTING) {
+                connectSession(sessionId)
+            }
+            extraOnData?.let { agentMirror.setTee(sessionId, it) }
+            if (session.localSession != null) return
+            val ls = createTerminalSession(sessionId, onDataReceived = { _, _, _ -> }) ?: return
+            ls.start(rows = 24, cols = 80)
+        }
     }
 
     fun sendInput(sessionId: String, text: String) {

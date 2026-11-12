@@ -463,6 +463,13 @@ class LocalSessionManager @Inject constructor(
     }
 
     /**
+     * Serializes [createTerminalSession] and [startHeadlessShell] so concurrent
+     * UI-tab sync and MCP `open_local_shell` callers can never both pass the
+     * `session.localSession != null` check and fork two PTYs for one sessionId (#555).
+     */
+    private val sessionAttachLock = Any()
+
+    /**
      * Create a [LocalSession] for a connected session.
      * The PTY process starts immediately and output flows via [onDataReceived].
      */
@@ -473,9 +480,10 @@ class LocalSessionManager @Inject constructor(
         cols: Int = 80,
         plain: Boolean = false,
     ): LocalSession? {
-        val session = _sessions.value[sessionId] ?: return null
-        if (session.status != SessionState.Status.CONNECTED) return null
-        if (session.localSession != null) return null
+        synchronized(sessionAttachLock) {
+            val session = _sessions.value[sessionId] ?: return null
+            if (session.status != SessionState.Status.CONNECTED) return null
+            if (session.localSession != null) return null
 
         val (cmd, args, baseEnv) = buildCommand(session.useAndroidShell, plain = plain, distroId = session.prootDistroId)
         // Join a running desktop session (#285): override DISPLAY / WAYLAND_DISPLAY
@@ -541,6 +549,7 @@ class LocalSessionManager @Inject constructor(
         }
 
         return localSession
+        }
     }
 
     fun isReadyForTerminal(sessionId: String): Boolean {
@@ -660,25 +669,29 @@ class LocalSessionManager @Inject constructor(
         extraOnData: ((ByteArray, Int, Int) -> Unit)? = null,
         plain: Boolean = false,
     ) {
-        val session = _sessions.value[sessionId] ?: return
-        // The agent-emulator tee is registered in [AgentSessionMirror] so it
-        // survives
-        // reattachTerminalSession's callback swap; the create/reattach mirrors
-        // invoke it alongside the scrollback ring. Registered even when a UI
-        // tab already owns the LocalSession (the early return below) — the
-        // mirrors look it up dynamically, so the agent emulator starts
-        // receiving from here on (blank until then; no replay).
-        extraOnData?.let { agentMirror.setTee(sessionId, it) }
-        if (session.localSession != null) return
-        val ls = createTerminalSession(
-            sessionId,
-            onDataReceived = { _, _, _ -> },
-            plain = plain,
-        ) ?: return
-        // Default to a sensible PTY size; the UI will resize once a tab
-        // attaches. 80x24 keeps line wrapping predictable for an agent
-        // that's about to do `printf` glyph tests.
-        ls.start(rows = 24, cols = 80)
+        synchronized(sessionAttachLock) {
+            val session = _sessions.value[sessionId] ?: return
+            if (session.status == SessionState.Status.CONNECTING) {
+                connectSession(sessionId)
+            }
+            // The agent-emulator tee is registered in [AgentSessionMirror] so it
+            // survives reattachTerminalSession's callback swap; the create/reattach
+            // mirrors invoke it alongside the scrollback ring. Registered even when
+            // a UI tab already owns the LocalSession (the early return below),
+            // atomically replaying any buffered scrollback before live output
+            // resumes (#555).
+            extraOnData?.let { agentMirror.setTee(sessionId, it) }
+            if (session.localSession != null) return
+            val ls = createTerminalSession(
+                sessionId,
+                onDataReceived = { _, _, _ -> },
+                plain = plain,
+            ) ?: return
+            // Default to a sensible PTY size; the UI will resize once a tab
+            // attaches. 80x24 keeps line wrapping predictable for an agent
+            // that's about to do `printf` glyph tests.
+            ls.start(rows = 24, cols = 80)
+        }
     }
 
     /**

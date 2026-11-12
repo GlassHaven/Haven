@@ -582,4 +582,19 @@ Cada chave privada já armazenada no Haven precisará ser importada ou gerada no
     <string name="settings_desktop_gesture_middle_click">Clique do meio</string>
     <string name="settings_desktop_gesture_left_click">Clique esquerdo</string>
     <string name="settings_desktop_gesture_disabled">Desativado</string>
+    <string name="settings_mcp_https_title">Expor ouvinte HTTPS local</string>
+    <string name="settings_mcp_https_subtitle_on">Ativado — também acessível em %1$s no loopback</string>
+    <string name="settings_mcp_https_subtitle_off">Desativado — ative para clientes MCP no dispositivo que exigem https://127.0.0.1</string>
+    <string name="settings_mcp_https_copy_url_title">Copiar URL HTTPS do endpoint do agente</string>
+    <string name="settings_mcp_https_export_ca_title">Exportar CA raiz HTTPS local (.crt)</string>
+    <string name="settings_mcp_https_export_ca_subtitle">Instale nas definições do sistema Android para que os clientes HTTPS locais confiem no Haven (SHA-256 %1$s)</string>
+    <string name="settings_mcp_https_ca_exported_toast">Certificado CA raiz guardado</string>
+    <string name="settings_mcp_https_ca_export_failed_toast">Não foi possível guardar o certificado CA raiz</string>
+    <string name="settings_mcp_https_import_p12_title">Certificado de servidor HTTPS personalizado (.p12)</string>
+    <string name="settings_mcp_https_import_p12_subtitle_default">A usar CA raiz do Haven gerada automaticamente — toque para importar o seu pacote PKCS#12</string>
+    <string name="settings_mcp_https_import_p12_subtitle_custom">A usar pacote personalizado (%1$s) — toque para voltar à CA raiz gerada automaticamente</string>
+    <string name="settings_mcp_https_p12_password_label">Palavra-passe PKCS#12 (deixe em branco se não tiver)</string>
+    <string name="settings_mcp_https_p12_imported_toast">Certificado HTTPS personalizado importado</string>
+    <string name="settings_mcp_https_p12_import_failed_toast">Não foi possível importar o pacote PKCS#12: %1$s</string>
+    <string name="settings_mcp_https_p12_cleared_toast">Revertido para a CA raiz gerada automaticamente</string>
 </resources>

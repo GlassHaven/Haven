@@ -582,4 +582,19 @@ Jeder bereits in Haven gespeicherte private Schlüssel muss erneut importiert od
     <string name="settings_desktop_gesture_middle_click">Mittelklick</string>
     <string name="settings_desktop_gesture_left_click">Linksklick</string>
     <string name="settings_desktop_gesture_disabled">Deaktiviert</string>
+    <string name="settings_mcp_https_title">Lokalen HTTPS-Listener bereitstellen</string>
+    <string name="settings_mcp_https_subtitle_on">Aktiviert — auch unter %1$s auf Loopback erreichbar</string>
+    <string name="settings_mcp_https_subtitle_off">Deaktiviert — einschalten für lokale MCP-Clients, die https://127.0.0.1 verlangen</string>
+    <string name="settings_mcp_https_copy_url_title">HTTPS-Agent-Endpunkt-URL kopieren</string>
+    <string name="settings_mcp_https_export_ca_title">Lokale HTTPS-Stamm-CA exportieren (.crt)</string>
+    <string name="settings_mcp_https_export_ca_subtitle">In den Android-Systemeinstellungen installieren, damit lokale HTTPS-Clients Haven vertrauen (SHA-256 %1$s)</string>
+    <string name="settings_mcp_https_ca_exported_toast">Stamm-CA-Zertifikat gespeichert</string>
+    <string name="settings_mcp_https_ca_export_failed_toast">Stamm-CA-Zertifikat konnte nicht gespeichert werden</string>
+    <string name="settings_mcp_https_import_p12_title">Eigenes HTTPS-Serverzertifikat (.p12)</string>
+    <string name="settings_mcp_https_import_p12_subtitle_default">Automatisch erzeugte Haven-Stamm-CA aktiv — tippen, um ein eigenes PKCS#12-Paket zu importieren</string>
+    <string name="settings_mcp_https_import_p12_subtitle_custom">Eigenes Paket aktiv (%1$s) — tippen, um zur automatisch erzeugten Stamm-CA zurückzukehren</string>
+    <string name="settings_mcp_https_p12_password_label">PKCS#12-Passwort (leer lassen, falls keines)</string>
+    <string name="settings_mcp_https_p12_imported_toast">Eigenes HTTPS-Zertifikat importiert</string>
+    <string name="settings_mcp_https_p12_import_failed_toast">PKCS#12-Paket konnte nicht importiert werden: %1$s</string>
+    <string name="settings_mcp_https_p12_cleared_toast">Auf automatisch erzeugte Stamm-CA zurückgesetzt</string>
 </resources>

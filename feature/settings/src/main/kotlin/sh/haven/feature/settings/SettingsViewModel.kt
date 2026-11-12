@@ -55,6 +55,7 @@ class SettingsViewModel @Inject constructor(
     private val agentUiCommandBus: sh.haven.core.data.agent.AgentUiCommandBus,
     private val updateChecker: UpdateChecker,
     private val mcpToolCatalog: sh.haven.core.data.agent.McpToolCatalog,
+    private val mcpLocalTlsManager: sh.haven.core.security.McpLocalTlsManager,
 ) : ViewModel() {
     // --- Credential storage health + recovery (#579) ---
 
@@ -614,6 +615,84 @@ class SettingsViewModel @Inject constructor(
     fun setMcpLanBindEnabled(enabled: Boolean) {
         viewModelScope.launch {
             preferencesRepository.setMcpLanBindEnabled(enabled)
+        }
+    }
+
+    /** Whether the MCP server also binds a local HTTPS loopback listener (#735). */
+    val mcpHttpsEnabled: StateFlow<Boolean> = preferencesRepository.mcpHttpsEnabled
+        .stateIn(viewModelScope, SharingStarted.WhileSubscribed(5000), false)
+
+    val mcpHttpsEndpointUrl: StateFlow<String?> = mcpStatusHolder.httpsEndpointUrl
+
+    private val _mcpTlsSummary =
+        MutableStateFlow<sh.haven.core.security.McpLocalTlsManager.CertSummary?>(null)
+    val mcpTlsSummary: StateFlow<sh.haven.core.security.McpLocalTlsManager.CertSummary?> =
+        _mcpTlsSummary.asStateFlow()
+
+    fun setMcpHttpsEnabled(enabled: Boolean) {
+        viewModelScope.launch {
+            preferencesRepository.setMcpHttpsEnabled(enabled)
+            if (enabled) refreshMcpTlsSummary()
+        }
+    }
+
+    fun refreshMcpTlsSummary() {
+        viewModelScope.launch(Dispatchers.IO) {
+            runCatching { mcpLocalTlsManager.currentSummary() }
+                .onSuccess { _mcpTlsSummary.value = it }
+        }
+    }
+
+    fun exportMcpLocalCaToUri(uri: Uri, onDone: (Boolean) -> Unit) {
+        viewModelScope.launch {
+            val ok = withContext(Dispatchers.IO) {
+                runCatching {
+                    val pem = mcpLocalTlsManager.exportLocalCaPem()
+                    appContext.contentResolver.openOutputStream(uri)?.use { out ->
+                        out.write(pem)
+                        out.flush()
+                    } ?: error("Cannot open output stream")
+                    _mcpTlsSummary.value = mcpLocalTlsManager.currentSummary()
+                }.isSuccess
+            }
+            onDone(ok)
+        }
+    }
+
+    fun importMcpCustomPkcs12FromUri(
+        uri: Uri,
+        password: String,
+        onDone: (Result<sh.haven.core.security.McpLocalTlsManager.CertSummary>) -> Unit,
+    ) {
+        viewModelScope.launch {
+            val result = withContext(Dispatchers.IO) {
+                runCatching {
+                    val bytes = appContext.contentResolver.openInputStream(uri)?.use { it.readBytes() }
+                        ?: error("Cannot read PKCS#12 file")
+                    val pwChars = password.toCharArray()
+                    try {
+                        val summary = mcpLocalTlsManager.importCustomPkcs12(bytes, pwChars)
+                        _mcpTlsSummary.value = summary
+                        preferencesRepository.bumpMcpHttpsCertGeneration()
+                        summary
+                    } finally {
+                        pwChars.fill('\u0000')
+                    }
+                }
+            }
+            onDone(result)
+        }
+    }
+
+    fun clearMcpCustomPkcs12(onDone: () -> Unit) {
+        viewModelScope.launch {
+            withContext(Dispatchers.IO) {
+                runCatching {
+                    _mcpTlsSummary.value = mcpLocalTlsManager.clearCustomPkcs12()
+                    preferencesRepository.bumpMcpHttpsCertGeneration()
+                }
+            }
+            onDone()
         }
     }
 

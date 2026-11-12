@@ -581,4 +581,19 @@ Haven にすでに保存されているすべての秘密鍶は、再びイン�
     <string name="settings_desktop_gesture_middle_click">中クリック</string>
     <string name="settings_desktop_gesture_left_click">左クリック</string>
     <string name="settings_desktop_gesture_disabled">無効</string>
+    <string name="settings_mcp_https_title">ローカル HTTPS リスナーを公開</string>
+    <string name="settings_mcp_https_subtitle_on">有効 — ループバック上の %1$s でも接続可能</string>
+    <string name="settings_mcp_https_subtitle_off">無効 — https://127.0.0.1 を要求する端末内 MCP クライアント向けに有効化します</string>
+    <string name="settings_mcp_https_copy_url_title">HTTPS エージェントエンドポイント URL をコピー</string>
+    <string name="settings_mcp_https_export_ca_title">ローカル HTTPS ルート CA をエクスポート (.crt)</string>
+    <string name="settings_mcp_https_export_ca_subtitle">ローカル HTTPS クライアントが Haven を信頼できるよう Android のシステム設定でインストールしてください (SHA-256 %1$s)</string>
+    <string name="settings_mcp_https_ca_exported_toast">ルート CA 証明書を保存しました</string>
+    <string name="settings_mcp_https_ca_export_failed_toast">ルート CA 証明書を保存できませんでした</string>
+    <string name="settings_mcp_https_import_p12_title">カスタム HTTPS サーバー証明書 (.p12)</string>
+    <string name="settings_mcp_https_import_p12_subtitle_default">自動生成された Haven ルート CA を使用中 — タップして独自の PKCS#12 バンドルをインポート</string>
+    <string name="settings_mcp_https_import_p12_subtitle_custom">カスタムバンドルを使用中 (%1$s) — タップして自動生成ルート CA に戻す</string>
+    <string name="settings_mcp_https_p12_password_label">PKCS#12 パスワード (なしの場合は空欄)</string>
+    <string name="settings_mcp_https_p12_imported_toast">カスタム HTTPS 証明書をインポートしました</string>
+    <string name="settings_mcp_https_p12_import_failed_toast">PKCS#12 バンドルをインポートできませんでした: %1$s</string>
+    <string name="settings_mcp_https_p12_cleared_toast">自動生成ルート CA に戻しました</string>
 </resources>

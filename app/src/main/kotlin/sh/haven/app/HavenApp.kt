@@ -229,6 +229,18 @@ class HavenApp : Application(), Configuration.Provider {
             .onEach { if (mcpWasStarted) mcpServer.get().setLanBindEnabled(it) }
             .launchIn(appScope)
 
+        preferencesRepository.mcpHttpsEnabled
+            .drop(1)
+            .distinctUntilChanged()
+            .onEach { if (mcpWasStarted) mcpServer.get().setHttpsEnabled(it) }
+            .launchIn(appScope)
+
+        preferencesRepository.mcpHttpsCertGeneration
+            .drop(1)
+            .distinctUntilChanged()
+            .onEach { if (mcpWasStarted) mcpServer.get().reloadHttpsCredentials() }
+            .launchIn(appScope)
+
         // Toggle loopback auto-trust live. drop(1): start() reads the
         // initial value itself, so this only reacts to later changes. (#214)
         preferencesRepository.trustLoopbackMcpClients

@@ -582,4 +582,19 @@ Cada clave privada ya almacenada en Haven deberá importarse o generarse de nuev
     <string name="settings_desktop_gesture_middle_click">Clic central</string>
     <string name="settings_desktop_gesture_left_click">Clic izquierdo</string>
     <string name="settings_desktop_gesture_disabled">Desactivado</string>
+    <string name="settings_mcp_https_title">Exponer escucha HTTPS local</string>
+    <string name="settings_mcp_https_subtitle_on">Activado — también accesible en %1$s por loopback</string>
+    <string name="settings_mcp_https_subtitle_off">Desactivado — actívalo para clientes MCP en el dispositivo que requieran https://127.0.0.1</string>
+    <string name="settings_mcp_https_copy_url_title">Copiar URL HTTPS del punto de enlace del agente</string>
+    <string name="settings_mcp_https_export_ca_title">Exportar CA raíz HTTPS local (.crt)</string>
+    <string name="settings_mcp_https_export_ca_subtitle">Instálala en los ajustes del sistema Android para que los clientes HTTPS locales confíen en Haven (SHA-256 %1$s)</string>
+    <string name="settings_mcp_https_ca_exported_toast">Certificado CA raíz guardado</string>
+    <string name="settings_mcp_https_ca_export_failed_toast">No se pudo guardar el certificado CA raíz</string>
+    <string name="settings_mcp_https_import_p12_title">Certificado de servidor HTTPS personalizado (.p12)</string>
+    <string name="settings_mcp_https_import_p12_subtitle_default">Usando la CA raíz de Haven generada automáticamente — toca para importar tu propio paquete PKCS#12</string>
+    <string name="settings_mcp_https_import_p12_subtitle_custom">Usando paquete personalizado (%1$s) — toca para volver a la CA raíz generada automáticamente</string>
+    <string name="settings_mcp_https_p12_password_label">Contraseña PKCS#12 (déjala vacía si no tiene)</string>
+    <string name="settings_mcp_https_p12_imported_toast">Certificado HTTPS personalizado importado</string>
+    <string name="settings_mcp_https_p12_import_failed_toast">No se pudo importar el paquete PKCS#12: %1$s</string>
+    <string name="settings_mcp_https_p12_cleared_toast">Se volvió a la CA raíz generada automáticamente</string>
 </resources>

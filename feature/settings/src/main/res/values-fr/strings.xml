@@ -582,4 +582,19 @@ Chaque clé privée déjà stockée dans Haven devra être importée ou génér�
     <string name="settings_desktop_gesture_middle_click">Clic central</string>
     <string name="settings_desktop_gesture_left_click">Clic gauche</string>
     <string name="settings_desktop_gesture_disabled">Désactivé</string>
+    <string name="settings_mcp_https_title">Exposer l\'écouteur HTTPS local</string>
+    <string name="settings_mcp_https_subtitle_on">Activé — également joignable sur %1$s en boucle locale</string>
+    <string name="settings_mcp_https_subtitle_off">Désactivé — activer pour les clients MCP sur l\'appareil qui exigent https://127.0.0.1</string>
+    <string name="settings_mcp_https_copy_url_title">Copier l\'URL HTTPS du point de terminaison de l\'agent</string>
+    <string name="settings_mcp_https_export_ca_title">Exporter l\'autorité racine HTTPS locale (.crt)</string>
+    <string name="settings_mcp_https_export_ca_subtitle">À installer dans les paramètres système Android pour que les clients HTTPS locaux fassent confiance à Haven (SHA-256 %1$s)</string>
+    <string name="settings_mcp_https_ca_exported_toast">Certificat d\'autorité racine enregistré</string>
+    <string name="settings_mcp_https_ca_export_failed_toast">Impossible d\'enregistrer le certificat d\'autorité racine</string>
+    <string name="settings_mcp_https_import_p12_title">Certificat serveur HTTPS personnalisé (.p12)</string>
+    <string name="settings_mcp_https_import_p12_subtitle_default">Autorité racine Haven auto-générée active — toucher pour importer votre propre archive PKCS#12</string>
+    <string name="settings_mcp_https_import_p12_subtitle_custom">Archive personnalisée active (%1$s) — toucher pour revenir à l\'autorité racine auto-générée</string>
+    <string name="settings_mcp_https_p12_password_label">Mot de passe PKCS#12 (laisser vide s\'il n\'y en a pas)</string>
+    <string name="settings_mcp_https_p12_imported_toast">Certificat HTTPS personnalisé importé</string>
+    <string name="settings_mcp_https_p12_import_failed_toast">Impossible d\'importer l\'archive PKCS#12 : %1$s</string>
+    <string name="settings_mcp_https_p12_cleared_toast">Retour à l\'autorité racine auto-générée effectué</string>
 </resources>

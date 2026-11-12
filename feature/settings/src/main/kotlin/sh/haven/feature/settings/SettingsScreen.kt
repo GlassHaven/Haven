@@ -339,6 +339,92 @@ fun SettingsScreen(
     val mcpUrlCopiedMsg = stringResource(R.string.settings_mcp_url_copied_toast)
     val mcpConfigCopiedMsg = stringResource(R.string.settings_mcp_config_copied_toast)
     val agentAllowsClearedMsg = stringResource(R.string.settings_agent_allows_cleared_toast)
+    val mcpCaExportedMsg = stringResource(R.string.settings_mcp_https_ca_exported_toast)
+    val mcpCaExportFailedMsg = stringResource(R.string.settings_mcp_https_ca_export_failed_toast)
+    val mcpP12ImportedMsg = stringResource(R.string.settings_mcp_https_p12_imported_toast)
+    val mcpP12ImportFailedTmpl = stringResource(R.string.settings_mcp_https_p12_import_failed_toast)
+    val mcpP12ClearedMsg = stringResource(R.string.settings_mcp_https_p12_cleared_toast)
+
+    // SAF launchers for MCP local HTTPS root CA export and custom PKCS#12 import (#735)
+    var pendingMcpPkcs12Uri by remember { mutableStateOf<Uri?>(null) }
+    var mcpPkcs12Password by remember { mutableStateOf("") }
+    val mcpCaExportLauncher = rememberLauncherForActivityResult(
+        ActivityResultContracts.CreateDocument("application/x-x509-ca-cert"),
+    ) { uri ->
+        if (uri != null) {
+            viewModel.exportMcpLocalCaToUri(uri) { ok ->
+                Toast.makeText(
+                    context,
+                    if (ok) mcpCaExportedMsg else mcpCaExportFailedMsg,
+                    Toast.LENGTH_SHORT,
+                ).show()
+            }
+        }
+    }
+    val mcpPkcs12ImportLauncher = rememberLauncherForActivityResult(
+        ActivityResultContracts.OpenDocument(),
+    ) { uri ->
+        if (uri != null) {
+            mcpPkcs12Password = ""
+            pendingMcpPkcs12Uri = uri
+        }
+    }
+    pendingMcpPkcs12Uri?.let { targetUri ->
+        AlertDialog(
+            onDismissRequest = {
+                pendingMcpPkcs12Uri = null
+                mcpPkcs12Password = ""
+            },
+            title = { Text(stringResource(R.string.settings_mcp_https_import_p12_title)) },
+            text = {
+                OutlinedTextField(
+                    value = mcpPkcs12Password,
+                    onValueChange = { mcpPkcs12Password = it },
+                    label = { Text(stringResource(R.string.settings_mcp_https_p12_password_label)) },
+                    singleLine = true,
+                    visualTransformation = PasswordVisualTransformation(),
+                    keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Password),
+                    modifier = Modifier.fillMaxWidth(),
+                )
+            },
+            confirmButton = {
+                TextButton(
+                    onClick = {
+                        val pw = mcpPkcs12Password
+                        pendingMcpPkcs12Uri = null
+                        mcpPkcs12Password = ""
+                        viewModel.importMcpCustomPkcs12FromUri(targetUri, pw) { result ->
+                            result.fold(
+                                onSuccess = {
+                                    Toast.makeText(context, mcpP12ImportedMsg, Toast.LENGTH_SHORT).show()
+                                },
+                                onFailure = { err ->
+                                    val detail = err.message ?: err.javaClass.simpleName
+                                    Toast.makeText(
+                                        context,
+                                        String.format(mcpP12ImportFailedTmpl, detail),
+                                        Toast.LENGTH_LONG,
+                                    ).show()
+                                },
+                            )
+                        }
+                    },
+                ) {
+                    Text(stringResource(R.string.common_import))
+                }
+            },
+            dismissButton = {
+                TextButton(
+                    onClick = {
+                        pendingMcpPkcs12Uri = null
+                        mcpPkcs12Password = ""
+                    },
+                ) {
+                    Text(stringResource(R.string.common_cancel))
+                }
+            },
+        )
+    }
 
     // SAF launchers for backup/restore
     var pendingPassword by remember { mutableStateOf("") }
@@ -1387,6 +1473,77 @@ fun SettingsScreen(
                 checked = mcpLanBindEnabled,
                 onCheckedChange = viewModel::setMcpLanBindEnabled,
             )
+
+            // Local HTTPS loopback listener (#735): for on-device MCP clients
+            // (e.g. OPPO XiaoBu Next) that reject plain HTTP even on 127.0.0.1.
+            val mcpHttpsEnabled by viewModel.mcpHttpsEnabled.collectAsState()
+            val mcpHttpsEndpointUrl by viewModel.mcpHttpsEndpointUrl.collectAsState()
+            val mcpTlsSummary by viewModel.mcpTlsSummary.collectAsState()
+            LaunchedEffect(mcpHttpsEnabled) {
+                if (mcpHttpsEnabled) viewModel.refreshMcpTlsSummary()
+            }
+            val effectiveHttpsUrl = mcpHttpsEndpointUrl ?: "https://127.0.0.1:8750/mcp"
+            SettingsToggleItem(
+                icon = Icons.Filled.VpnLock,
+                title = stringResource(R.string.settings_mcp_https_title),
+                subtitle = if (mcpHttpsEnabled) {
+                    stringResource(R.string.settings_mcp_https_subtitle_on, effectiveHttpsUrl)
+                } else {
+                    stringResource(R.string.settings_mcp_https_subtitle_off)
+                },
+                checked = mcpHttpsEnabled,
+                onCheckedChange = viewModel::setMcpHttpsEnabled,
+            )
+            if (mcpHttpsEnabled) {
+                SettingsItem(
+                    icon = Icons.Filled.ContentCopy,
+                    title = stringResource(R.string.settings_mcp_https_copy_url_title),
+                    subtitle = effectiveHttpsUrl,
+                    onClick = {
+                        val clipboard = context.getSystemService(Context.CLIPBOARD_SERVICE)
+                            as? android.content.ClipboardManager
+                        clipboard?.setPrimaryClip(
+                            android.content.ClipData.newPlainText(
+                                "Haven MCP HTTPS endpoint",
+                                effectiveHttpsUrl,
+                            ),
+                        )
+                        Toast.makeText(context, mcpUrlCopiedMsg, Toast.LENGTH_SHORT).show()
+                    },
+                )
+                val shortCaFp = mcpTlsSummary?.caSha256Fingerprint?.take(23) ?: "…"
+                SettingsItem(
+                    icon = Icons.Filled.Download,
+                    title = stringResource(R.string.settings_mcp_https_export_ca_title),
+                    subtitle = stringResource(R.string.settings_mcp_https_export_ca_subtitle, shortCaFp),
+                    onClick = {
+                        mcpCaExportLauncher.launch("haven-local-mcp-ca.crt")
+                    },
+                )
+                val isCustomTls =
+                    mcpTlsSummary?.mode == sh.haven.core.security.McpLocalTlsManager.Mode.CUSTOM_PKCS12
+                SettingsItem(
+                    icon = if (isCustomTls) Icons.Filled.Refresh else Icons.Filled.CloudUpload,
+                    title = stringResource(R.string.settings_mcp_https_import_p12_title),
+                    subtitle = if (isCustomTls) {
+                        stringResource(
+                            R.string.settings_mcp_https_import_p12_subtitle_custom,
+                            mcpTlsSummary?.subjectDn ?: "",
+                        )
+                    } else {
+                        stringResource(R.string.settings_mcp_https_import_p12_subtitle_default)
+                    },
+                    onClick = {
+                        if (isCustomTls) {
+                            viewModel.clearMcpCustomPkcs12 {
+                                Toast.makeText(context, mcpP12ClearedMsg, Toast.LENGTH_SHORT).show()
+                            }
+                        } else {
+                            mcpPkcs12ImportLauncher.launch(arrayOf("application/x-pkcs12", "*/*"))
+                        }
+                    },
+                )
+            }
 
             // Loopback auto-trust: local clients (127.0.0.1 via adb forward
             // or on-device) skip pairing + per-call consent prompts. On by

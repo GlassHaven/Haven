@@ -586,4 +586,19 @@
     <string name="settings_desktop_gesture_middle_click">نقر أوسط</string>
     <string name="settings_desktop_gesture_left_click">نقر أيسر</string>
     <string name="settings_desktop_gesture_disabled">معطّل</string>
+    <string name="settings_mcp_https_title">إتاحة مستمع HTTPS محلي</string>
+    <string name="settings_mcp_https_subtitle_on">مُفعَّل — يمكن الوصول إليه أيضًا عبر %1$s على الواجهة المحلية</string>
+    <string name="settings_mcp_https_subtitle_off">مُعطَّل — فعِّله لعملاء MCP على الجهاز الذين يتطلبون https://127.0.0.1</string>
+    <string name="settings_mcp_https_copy_url_title">نسخ عنوان URL لنقطة نهاية HTTPS للوكيل</string>
+    <string name="settings_mcp_https_export_ca_title">تصدير شهادة الجذر CA المحلية لـ HTTPS (.crt)</string>
+    <string name="settings_mcp_https_export_ca_subtitle">ثبِّتها في إعدادات نظام Android ليثق عملاء HTTPS المحليون في Haven (SHA-256 %1$s)</string>
+    <string name="settings_mcp_https_ca_exported_toast">تم حفظ شهادة الجذر CA</string>
+    <string name="settings_mcp_https_ca_export_failed_toast">تعذَّر حفظ شهادة الجذر CA</string>
+    <string name="settings_mcp_https_import_p12_title">شهادة خادم HTTPS مخصصة (.p12)</string>
+    <string name="settings_mcp_https_import_p12_subtitle_default">يستخدم شهادة الجذر CA المُنشأة تلقائيًا من Haven — اضغط لاستيراد حزمة PKCS#12 الخاصة بك</string>
+    <string name="settings_mcp_https_import_p12_subtitle_custom">يستخدم حزمة مخصصة (%1$s) — اضغط للعودة إلى شهادة الجذر CA المُنشأة تلقائيًا</string>
+    <string name="settings_mcp_https_p12_password_label">كلمة مرور PKCS#12 (اتركها فارغة إن لم توجد)</string>
+    <string name="settings_mcp_https_p12_imported_toast">تم استيراد شهادة HTTPS المخصصة</string>
+    <string name="settings_mcp_https_p12_import_failed_toast">تعذَّر استيراد حزمة PKCS#12: %1$s</string>
+    <string name="settings_mcp_https_p12_cleared_toast">تمت العودة إلى شهادة الجذر CA المُنشأة تلقائيًا</string>
 </resources>

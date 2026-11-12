@@ -581,4 +581,19 @@ Haven에 이미 저장된 모든 개인 키는 다시 가져오거나 생성해�
     <string name="settings_desktop_gesture_middle_click">가운데 클릭</string>
     <string name="settings_desktop_gesture_left_click">왼쪽 클릭</string>
     <string name="settings_desktop_gesture_disabled">사용 안 함</string>
+    <string name="settings_mcp_https_title">로컬 HTTPS 리스너 노출</string>
+    <string name="settings_mcp_https_subtitle_on">사용 중 — 루프백의 %1$s 주소로도 연결 가능</string>
+    <string name="settings_mcp_https_subtitle_off">사용 안 함 — https://127.0.0.1 연결이 필요한 기기 내 MCP 클라이언트를 위해 켜세요</string>
+    <string name="settings_mcp_https_copy_url_title">HTTPS 에이전트 엔드포인트 URL 복사</string>
+    <string name="settings_mcp_https_export_ca_title">로컬 HTTPS 루트 CA 내보내기 (.crt)</string>
+    <string name="settings_mcp_https_export_ca_subtitle">로컬 HTTPS 클라이언트가 Haven을 신뢰하도록 Android 시스템 설정에서 설치하세요 (SHA-256 %1$s)</string>
+    <string name="settings_mcp_https_ca_exported_toast">루트 CA 인증서를 저장했습니다</string>
+    <string name="settings_mcp_https_ca_export_failed_toast">루트 CA 인증서를 저장하지 못했습니다</string>
+    <string name="settings_mcp_https_import_p12_title">사용자 지정 HTTPS 서버 인증서 (.p12)</string>
+    <string name="settings_mcp_https_import_p12_subtitle_default">자동 생성된 Haven 루트 CA 사용 중 — 탭하여 직접 만든 PKCS#12 번들 가져오기</string>
+    <string name="settings_mcp_https_import_p12_subtitle_custom">사용자 지정 번들 사용 중 (%1$s) — 탭하여 자동 생성 루트 CA로 되돌리기</string>
+    <string name="settings_mcp_https_p12_password_label">PKCS#12 비밀번호 (없으면 비워 두세요)</string>
+    <string name="settings_mcp_https_p12_imported_toast">사용자 지정 HTTPS 인증서를 가져왔습니다</string>
+    <string name="settings_mcp_https_p12_import_failed_toast">PKCS#12 번들을 가져오지 못했습니다: %1$s</string>
+    <string name="settings_mcp_https_p12_cleared_toast">자동 생성 루트 CA로 되돌렸습니다</string>
 </resources>

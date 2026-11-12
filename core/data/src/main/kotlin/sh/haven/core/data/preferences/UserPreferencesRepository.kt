@@ -241,6 +241,10 @@ class UserPreferencesRepository @Inject constructor(
     // Off by default — a LAN-reachable listener is a wider surface than
     // loopback, though still gated by client pairing. See McpServer.
     private val mcpLanBindEnabledKey = booleanPreferencesKey("mcp_lan_bind_enabled")
+    // Bind an additional TLS loopback listener (127.0.0.1:8750..8759) for
+    // on-device MCP clients that reject plain http:// URLs (#735).
+    private val mcpHttpsEnabledKey = booleanPreferencesKey("mcp_https_enabled")
+    private val mcpHttpsCertGenerationKey = longPreferencesKey("mcp_https_cert_generation")
     // Auto-trust MCP clients arriving on the loopback binder (127.0.0.1):
     // skip pairing + per-action consent for local agents (adb forward /
     // on-device). On by default — loopback is already the trusted boundary
@@ -1359,6 +1363,32 @@ class UserPreferencesRepository @Inject constructor(
     suspend fun setMcpLanBindEnabled(enabled: Boolean) {
         dataStore.edit { prefs ->
             prefs[mcpLanBindEnabledKey] = enabled
+        }
+    }
+
+    /**
+     * Whether the MCP server also binds an HTTPS loopback listener (`127.0.0.1`,
+     * port range `8750..8759`) alongside plain HTTP for on-device clients that
+     * strictly require `https://` URLs (#735). Off by default.
+     */
+    val mcpHttpsEnabled: Flow<Boolean> = dataStore.data.map { prefs ->
+        prefs[mcpHttpsEnabledKey] ?: false
+    }
+
+    suspend fun setMcpHttpsEnabled(enabled: Boolean) {
+        dataStore.edit { prefs ->
+            prefs[mcpHttpsEnabledKey] = enabled
+        }
+    }
+
+    /** Monotonic counter bumped when MCP HTTPS TLS credentials rotate/import so [McpServer] reloads live. */
+    val mcpHttpsCertGeneration: Flow<Long> = dataStore.data.map { prefs ->
+        prefs[mcpHttpsCertGenerationKey] ?: 0L
+    }
+
+    suspend fun bumpMcpHttpsCertGeneration() {
+        dataStore.edit { prefs ->
+            prefs[mcpHttpsCertGenerationKey] = (prefs[mcpHttpsCertGenerationKey] ?: 0L) + 1L
         }
     }
 

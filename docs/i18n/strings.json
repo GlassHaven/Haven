@@ -36715,6 +36715,314 @@
      }
     },
     {
+     "name": "settings_mcp_https_title",
+     "en": "Expose local HTTPS listener",
+     "comment": "MCP agent endpoint",
+     "args": [],
+     "t": {
+      "ar": "إتاحة مستمع HTTPS محلي",
+      "bn": "লোকাল HTTPS লিসেনার চালু করুন",
+      "de": "Lokalen HTTPS-Listener bereitstellen",
+      "es": "Exponer escucha HTTPS local",
+      "fr": "Exposer l\\'écouteur HTTPS local",
+      "hi": "लोकल HTTPS लिसनर चालू करें",
+      "ja": "ローカル HTTPS リスナーを公開",
+      "ko": "로컬 HTTPS 리스너 노출",
+      "pt": "Expor ouvinte HTTPS local",
+      "ru": "Локальный HTTPS-слушатель",
+      "sr": "Изложи локални HTTPS слушач",
+      "zh": "开放本地 HTTPS 监听端口"
+     }
+    },
+    {
+     "name": "settings_mcp_https_subtitle_on",
+     "en": "Enabled — also reachable at %1$s on loopback",
+     "comment": "MCP agent endpoint",
+     "args": [
+      "%1$s"
+     ],
+     "t": {
+      "ar": "مُفعَّل — يمكن الوصول إليه أيضًا عبر %1$s على الواجهة المحلية",
+      "bn": "চালু — লুপব্যাকে %1$s ঠিকানাতেও পৌঁছানো যাবে",
+      "de": "Aktiviert — auch unter %1$s auf Loopback erreichbar",
+      "es": "Activado — también accesible en %1$s por loopback",
+      "fr": "Activé — également joignable sur %1$s en boucle locale",
+      "hi": "सक्रिय — लूपबैक पर %1$s पर भी उपलब्ध",
+      "ja": "有効 — ループバック上の %1$s でも接続可能",
+      "ko": "사용 중 — 루프백의 %1$s 주소로도 연결 가능",
+      "pt": "Ativado — também acessível em %1$s no loopback",
+      "ru": "Включено — также доступен по адресу %1$s на loopback",
+      "sr": "Укључено — доступно и на %1$s на локалној петљи",
+      "zh": "已启用 — 同时可通过回环地址 %1$s 访问"
+     }
+    },
+    {
+     "name": "settings_mcp_https_subtitle_off",
+     "en": "Disabled — turn on for on-device MCP clients that require https://127.0.0.1",
+     "comment": "MCP agent endpoint",
+     "args": [],
+     "t": {
+      "ar": "مُعطَّل — فعِّله لعملاء MCP على الجهاز الذين يتطلبون https://127.0.0.1",
+      "bn": "বন্ধ — ডিভাইসের যে MCP ক্লায়েন্টগুলোর https://127.0.0.1 প্রয়োজন তাদের জন্য চালু করুন",
+      "de": "Deaktiviert — einschalten für lokale MCP-Clients, die https://127.0.0.1 verlangen",
+      "es": "Desactivado — actívalo para clientes MCP en el dispositivo que requieran https://127.0.0.1",
+      "fr": "Désactivé — activer pour les clients MCP sur l\\'appareil qui exigent https://127.0.0.1",
+      "hi": "निष्क्रिय — डिवाइस के उन MCP क्लाइंट के लिए चालू करें जिन्हें https://127.0.0.1 चाहिए",
+      "ja": "無効 — https://127.0.0.1 を要求する端末内 MCP クライアント向けに有効化します",
+      "ko": "사용 안 함 — https://127.0.0.1 연결이 필요한 기기 내 MCP 클라이언트를 위해 켜세요",
+      "pt": "Desativado — ative para clientes MCP no dispositivo que exigem https://127.0.0.1",
+      "ru": "Выключено — включите для локальных MCP-клиентов на устройстве, требующих https://127.0.0.1",
+      "sr": "Искључено — укључите за MCP клијенте на уређају који захтевају https://127.0.0.1",
+      "zh": "已禁用 — 为要求使用 https://127.0.0.1 的本机 MCP 客户端开启"
+     }
+    },
+    {
+     "name": "settings_mcp_https_copy_url_title",
+     "en": "Copy HTTPS agent endpoint URL",
+     "comment": "MCP agent endpoint",
+     "args": [],
+     "t": {
+      "ar": "نسخ عنوان URL لنقطة نهاية HTTPS للوكيل",
+      "bn": "HTTPS এজেন্ট এন্ডপয়েন্ট URL কপি করুন",
+      "de": "HTTPS-Agent-Endpunkt-URL kopieren",
+      "es": "Copiar URL HTTPS del punto de enlace del agente",
+      "fr": "Copier l\\'URL HTTPS du point de terminaison de l\\'agent",
+      "hi": "HTTPS एजेंट एंडपॉइंट URL कॉपी करें",
+      "ja": "HTTPS エージェントエンドポイント URL をコピー",
+      "ko": "HTTPS 에이전트 엔드포인트 URL 복사",
+      "pt": "Copiar URL HTTPS do endpoint do agente",
+      "ru": "Скопировать HTTPS URL конечной точки агента",
+      "sr": "Копирај HTTPS URL крајње тачке агента",
+      "zh": "复制 HTTPS 代理端点 URL"
+     }
+    },
+    {
+     "name": "settings_mcp_https_export_ca_title",
+     "en": "Export local HTTPS root CA (.crt)",
+     "comment": "MCP agent endpoint",
+     "args": [],
+     "t": {
+      "ar": "تصدير شهادة الجذر CA المحلية لـ HTTPS (.crt)",
+      "bn": "লোকাল HTTPS রুট CA এক্সপোর্ট করুন (.crt)",
+      "de": "Lokale HTTPS-Stamm-CA exportieren (.crt)",
+      "es": "Exportar CA raíz HTTPS local (.crt)",
+      "fr": "Exporter l\\'autorité racine HTTPS locale (.crt)",
+      "hi": "लोकल HTTPS रूट CA निर्यात करें (.crt)",
+      "ja": "ローカル HTTPS ルート CA をエクスポート (.crt)",
+      "ko": "로컬 HTTPS 루트 CA 내보내기 (.crt)",
+      "pt": "Exportar CA raiz HTTPS local (.crt)",
+      "ru": "Экспортировать локальный корневой сертификат CA для HTTPS (.crt)",
+      "sr": "Извези локални HTTPS корени CA (.crt)",
+      "zh": "导出本地 HTTPS 根证书 (.crt)"
+     }
+    },
+    {
+     "name": "settings_mcp_https_export_ca_subtitle",
+     "en": "Install in Android system settings so local HTTPS clients trust Haven (SHA-256 %1$s)",
+     "comment": "MCP agent endpoint",
+     "args": [
+      "%1$s"
+     ],
+     "t": {
+      "ar": "ثبِّتها في إعدادات نظام Android ليثق عملاء HTTPS المحليون في Haven (SHA-256 %1$s)",
+      "bn": "লোকাল HTTPS ক্লায়েন্টরা যেন Haven-কে বিশ্বাস করে তার জন্য Android সিস্টেম সেটিংসে ইনস্টল করুন (SHA-256 %1$s)",
+      "de": "In den Android-Systemeinstellungen installieren, damit lokale HTTPS-Clients Haven vertrauen (SHA-256 %1$s)",
+      "es": "Instálala en los ajustes del sistema Android para que los clientes HTTPS locales confíen en Haven (SHA-256 %1$s)",
+      "fr": "À installer dans les paramètres système Android pour que les clients HTTPS locaux fassent confiance à Haven (SHA-256 %1$s)",
+      "hi": "Android सिस्टम सेटिंग्स में इंस्टॉल करें ताकि लोकल HTTPS क्लाइंट Haven पर भरोसा करें (SHA-256 %1$s)",
+      "ja": "ローカル HTTPS クライアントが Haven を信頼できるよう Android のシステム設定でインストールしてください (SHA-256 %1$s)",
+      "ko": "로컬 HTTPS 클라이언트가 Haven을 신뢰하도록 Android 시스템 설정에서 설치하세요 (SHA-256 %1$s)",
+      "pt": "Instale nas definições do sistema Android para que os clientes HTTPS locais confiem no Haven (SHA-256 %1$s)",
+      "ru": "Установите его в системных настройках Android, чтобы локальные HTTPS-клиенты доверяли Haven (SHA-256 %1$s)",
+      "sr": "Инсталирајте у системским подешавањима Андроида да локални HTTPS клијенти верују апликацији Haven (SHA-256 %1$s)",
+      "zh": "在 Android 系统设置中安装此证书，以便本机 HTTPS 客户端信任 Haven（SHA-256 %1$s）"
+     }
+    },
+    {
+     "name": "settings_mcp_https_ca_exported_toast",
+     "en": "Root CA certificate saved",
+     "comment": "MCP agent endpoint",
+     "args": [],
+     "t": {
+      "ar": "تم حفظ شهادة الجذر CA",
+      "bn": "রুট CA সার্টিফিকেট সংরক্ষিত হয়েছে",
+      "de": "Stamm-CA-Zertifikat gespeichert",
+      "es": "Certificado CA raíz guardado",
+      "fr": "Certificat d\\'autorité racine enregistré",
+      "hi": "रूट CA प्रमाणपत्र सहेजा गया",
+      "ja": "ルート CA 証明書を保存しました",
+      "ko": "루트 CA 인증서를 저장했습니다",
+      "pt": "Certificado CA raiz guardado",
+      "ru": "Корневой сертификат CA сохранён",
+      "sr": "Корени CA сертификат је сачуван",
+      "zh": "根 CA 证书已保存"
+     }
+    },
+    {
+     "name": "settings_mcp_https_ca_export_failed_toast",
+     "en": "Could not save root CA certificate",
+     "comment": "MCP agent endpoint",
+     "args": [],
+     "t": {
+      "ar": "تعذَّر حفظ شهادة الجذر CA",
+      "bn": "রুট CA সার্টিফিকেট সংরক্ষণ করা যায়নি",
+      "de": "Stamm-CA-Zertifikat konnte nicht gespeichert werden",
+      "es": "No se pudo guardar el certificado CA raíz",
+      "fr": "Impossible d\\'enregistrer le certificat d\\'autorité racine",
+      "hi": "रूट CA प्रमाणपत्र सहेजा नहीं जा सका",
+      "ja": "ルート CA 証明書を保存できませんでした",
+      "ko": "루트 CA 인증서를 저장하지 못했습니다",
+      "pt": "Não foi possível guardar o certificado CA raiz",
+      "ru": "Не удалось сохранить корневой сертификат CA",
+      "sr": "Није могао да се сачува корени CA сертификат",
+      "zh": "无法保存根 CA 证书"
+     }
+    },
+    {
+     "name": "settings_mcp_https_import_p12_title",
+     "en": "Custom HTTPS server certificate (.p12)",
+     "comment": "MCP agent endpoint",
+     "args": [],
+     "t": {
+      "ar": "شهادة خادم HTTPS مخصصة (.p12)",
+      "bn": "কাস্টম HTTPS সার্ভার সার্টিফিকেট (.p12)",
+      "de": "Eigenes HTTPS-Serverzertifikat (.p12)",
+      "es": "Certificado de servidor HTTPS personalizado (.p12)",
+      "fr": "Certificat serveur HTTPS personnalisé (.p12)",
+      "hi": "कस्टम HTTPS सर्वर प्रमाणपत्र (.p12)",
+      "ja": "カスタム HTTPS サーバー証明書 (.p12)",
+      "ko": "사용자 지정 HTTPS 서버 인증서 (.p12)",
+      "pt": "Certificado de servidor HTTPS personalizado (.p12)",
+      "ru": "Собственный HTTPS-сертификат сервера (.p12)",
+      "sr": "Произвољни HTTPS сертификат сервера (.p12)",
+      "zh": "自定义 HTTPS 服务器证书 (.p12)"
+     }
+    },
+    {
+     "name": "settings_mcp_https_import_p12_subtitle_default",
+     "en": "Using auto-generated Haven root CA — tap to import your own PKCS#12 bundle",
+     "comment": "MCP agent endpoint",
+     "args": [],
+     "t": {
+      "ar": "يستخدم شهادة الجذر CA المُنشأة تلقائيًا من Haven — اضغط لاستيراد حزمة PKCS#12 الخاصة بك",
+      "bn": "স্বয়ংক্রিয়ভাবে তৈরি Haven রুট CA ব্যবহৃত হচ্ছে — নিজস্ব PKCS#12 বান্ডিল ইমপোর্ট করতে ট্যাপ করুন",
+      "de": "Automatisch erzeugte Haven-Stamm-CA aktiv — tippen, um ein eigenes PKCS#12-Paket zu importieren",
+      "es": "Usando la CA raíz de Haven generada automáticamente — toca para importar tu propio paquete PKCS#12",
+      "fr": "Autorité racine Haven auto-générée active — toucher pour importer votre propre archive PKCS#12",
+      "hi": "स्वतः जनित Haven रूट CA उपयोग में — अपना PKCS#12 बंडल आयात करने के लिए टैप करें",
+      "ja": "自動生成された Haven ルート CA を使用中 — タップして独自の PKCS#12 バンドルをインポート",
+      "ko": "자동 생성된 Haven 루트 CA 사용 중 — 탭하여 직접 만든 PKCS#12 번들 가져오기",
+      "pt": "A usar CA raiz do Haven gerada automaticamente — toque para importar o seu pacote PKCS#12",
+      "ru": "Используется автоматически созданный корневой CA Haven — нажмите, чтобы импортировать свой пакет PKCS#12",
+      "sr": "Користи се аутоматски генерисани Haven корени CA — тапните за увоз сопственог PKCS#12 пакета",
+      "zh": "当前使用自动生成的 Haven 根 CA — 点按可导入您自己的 PKCS#12 证书包"
+     }
+    },
+    {
+     "name": "settings_mcp_https_import_p12_subtitle_custom",
+     "en": "Using custom bundle (%1$s) — tap to revert to auto-generated root CA",
+     "comment": "MCP agent endpoint",
+     "args": [
+      "%1$s"
+     ],
+     "t": {
+      "ar": "يستخدم حزمة مخصصة (%1$s) — اضغط للعودة إلى شهادة الجذر CA المُنشأة تلقائيًا",
+      "bn": "কাস্টম বান্ডিল ব্যবহৃত হচ্ছে (%1$s) — স্বয়ংক্রিয় রুট CA-তে ফিরতে ট্যাপ করুন",
+      "de": "Eigenes Paket aktiv (%1$s) — tippen, um zur automatisch erzeugten Stamm-CA zurückzukehren",
+      "es": "Usando paquete personalizado (%1$s) — toca para volver a la CA raíz generada automáticamente",
+      "fr": "Archive personnalisée active (%1$s) — toucher pour revenir à l\\'autorité racine auto-générée",
+      "hi": "कस्टम बंडल उपयोग में (%1$s) — स्वतः जनित रूट CA पर लौटने के लिए टैप करें",
+      "ja": "カスタムバンドルを使用中 (%1$s) — タップして自動生成ルート CA に戻す",
+      "ko": "사용자 지정 번들 사용 중 (%1$s) — 탭하여 자동 생성 루트 CA로 되돌리기",
+      "pt": "A usar pacote personalizado (%1$s) — toque para voltar à CA raiz gerada automaticamente",
+      "ru": "Используется собственный пакет (%1$s) — нажмите, чтобы вернуться к автоматически созданному корневому CA",
+      "sr": "Користи се произвољни пакет (%1$s) — тапните за повратак на аутоматски генерисани корени CA",
+      "zh": "当前使用自定义证书包（%1$s）— 点按可恢复为自动生成的根 CA"
+     }
+    },
+    {
+     "name": "settings_mcp_https_p12_password_label",
+     "en": "PKCS#12 password (leave blank if none)",
+     "comment": "MCP agent endpoint",
+     "args": [],
+     "t": {
+      "ar": "كلمة مرور PKCS#12 (اتركها فارغة إن لم توجد)",
+      "bn": "PKCS#12 পাসওয়ার্ড (না থাকলে খালি রাখুন)",
+      "de": "PKCS#12-Passwort (leer lassen, falls keines)",
+      "es": "Contraseña PKCS#12 (déjala vacía si no tiene)",
+      "fr": "Mot de passe PKCS#12 (laisser vide s\\'il n\\'y en a pas)",
+      "hi": "PKCS#12 पासवर्ड (यदि नहीं है तो खाली छोड़ें)",
+      "ja": "PKCS#12 パスワード (なしの場合は空欄)",
+      "ko": "PKCS#12 비밀번호 (없으면 비워 두세요)",
+      "pt": "Palavra-passe PKCS#12 (deixe em branco se não tiver)",
+      "ru": "Пароль PKCS#12 (оставьте пустым, если нет)",
+      "sr": "PKCS#12 лозинка (оставите празно ако је нема)",
+      "zh": "PKCS#12 密码（如无密码请留空）"
+     }
+    },
+    {
+     "name": "settings_mcp_https_p12_imported_toast",
+     "en": "Custom HTTPS certificate imported",
+     "comment": "MCP agent endpoint",
+     "args": [],
+     "t": {
+      "ar": "تم استيراد شهادة HTTPS المخصصة",
+      "bn": "কাস্টম HTTPS সার্টিফিকেট ইমপোর্ট হয়েছে",
+      "de": "Eigenes HTTPS-Zertifikat importiert",
+      "es": "Certificado HTTPS personalizado importado",
+      "fr": "Certificat HTTPS personnalisé importé",
+      "hi": "कस्टम HTTPS प्रमाणपत्र आयात किया गया",
+      "ja": "カスタム HTTPS 証明書をインポートしました",
+      "ko": "사용자 지정 HTTPS 인증서를 가져왔습니다",
+      "pt": "Certificado HTTPS personalizado importado",
+      "ru": "Собственный HTTPS-сертификат импортирован",
+      "sr": "Произвољни HTTPS сертификат је увезен",
+      "zh": "已导入自定义 HTTPS 证书"
+     }
+    },
+    {
+     "name": "settings_mcp_https_p12_import_failed_toast",
+     "en": "Could not import PKCS#12 bundle: %1$s",
+     "comment": "MCP agent endpoint",
+     "args": [
+      "%1$s"
+     ],
+     "t": {
+      "ar": "تعذَّر استيراد حزمة PKCS#12: %1$s",
+      "bn": "PKCS#12 বান্ডিল ইমপোর্ট করা যায়নি: %1$s",
+      "de": "PKCS#12-Paket konnte nicht importiert werden: %1$s",
+      "es": "No se pudo importar el paquete PKCS#12: %1$s",
+      "fr": "Impossible d\\'importer l\\'archive PKCS#12 : %1$s",
+      "hi": "PKCS#12 बंडल आयात नहीं हो सका: %1$s",
+      "ja": "PKCS#12 バンドルをインポートできませんでした: %1$s",
+      "ko": "PKCS#12 번들을 가져오지 못했습니다: %1$s",
+      "pt": "Não foi possível importar o pacote PKCS#12: %1$s",
+      "ru": "Не удалось импортировать пакет PKCS#12: %1$s",
+      "sr": "Није успео увоз PKCS#12 пакета: %1$s",
+      "zh": "无法导入 PKCS#12 证书包：%1$s"
+     }
+    },
+    {
+     "name": "settings_mcp_https_p12_cleared_toast",
+     "en": "Reverted to auto-generated root CA",
+     "comment": "MCP agent endpoint",
+     "args": [],
+     "t": {
+      "ar": "تمت العودة إلى شهادة الجذر CA المُنشأة تلقائيًا",
+      "bn": "স্বয়ংক্রিয় রুট CA-তে ফিরে যাওয়া হয়েছে",
+      "de": "Auf automatisch erzeugte Stamm-CA zurückgesetzt",
+      "es": "Se volvió a la CA raíz generada automáticamente",
+      "fr": "Retour à l\\'autorité racine auto-générée effectué",
+      "hi": "स्वतः जनित रूट CA पर वापस लौटा गया",
+      "ja": "自動生成ルート CA に戻しました",
+      "ko": "자동 생성 루트 CA로 되돌렸습니다",
+      "pt": "Revertido para a CA raiz gerada automaticamente",
+      "ru": "Возвращён автоматически созданный корневой CA",
+      "sr": "Враћено на аутоматски генерисани корени CA",
+      "zh": "已恢复为自动生成的根 CA"
+     }
+    },
+    {
      "name": "settings_mcp_trust_loopback_title",
      "en": "Trust local clients",
      "comment": "MCP agent endpoint",

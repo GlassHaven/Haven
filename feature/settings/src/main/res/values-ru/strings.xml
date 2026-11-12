@@ -584,4 +584,19 @@
     <string name="settings_desktop_gesture_middle_click">Средний клик</string>
     <string name="settings_desktop_gesture_left_click">Левый клик</string>
     <string name="settings_desktop_gesture_disabled">Отключено</string>
+    <string name="settings_mcp_https_title">Локальный HTTPS-слушатель</string>
+    <string name="settings_mcp_https_subtitle_on">Включено — также доступен по адресу %1$s на loopback</string>
+    <string name="settings_mcp_https_subtitle_off">Выключено — включите для локальных MCP-клиентов на устройстве, требующих https://127.0.0.1</string>
+    <string name="settings_mcp_https_copy_url_title">Скопировать HTTPS URL конечной точки агента</string>
+    <string name="settings_mcp_https_export_ca_title">Экспортировать локальный корневой сертификат CA для HTTPS (.crt)</string>
+    <string name="settings_mcp_https_export_ca_subtitle">Установите его в системных настройках Android, чтобы локальные HTTPS-клиенты доверяли Haven (SHA-256 %1$s)</string>
+    <string name="settings_mcp_https_ca_exported_toast">Корневой сертификат CA сохранён</string>
+    <string name="settings_mcp_https_ca_export_failed_toast">Не удалось сохранить корневой сертификат CA</string>
+    <string name="settings_mcp_https_import_p12_title">Собственный HTTPS-сертификат сервера (.p12)</string>
+    <string name="settings_mcp_https_import_p12_subtitle_default">Используется автоматически созданный корневой CA Haven — нажмите, чтобы импортировать свой пакет PKCS#12</string>
+    <string name="settings_mcp_https_import_p12_subtitle_custom">Используется собственный пакет (%1$s) — нажмите, чтобы вернуться к автоматически созданному корневому CA</string>
+    <string name="settings_mcp_https_p12_password_label">Пароль PKCS#12 (оставьте пустым, если нет)</string>
+    <string name="settings_mcp_https_p12_imported_toast">Собственный HTTPS-сертификат импортирован</string>
+    <string name="settings_mcp_https_p12_import_failed_toast">Не удалось импортировать пакет PKCS#12: %1$s</string>
+    <string name="settings_mcp_https_p12_cleared_toast">Возвращён автоматически созданный корневой CA</string>
 </resources>

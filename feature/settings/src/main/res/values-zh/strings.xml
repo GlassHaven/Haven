@@ -580,4 +580,19 @@ Haven 中已存储的每一个私钥都需要重新导入或生成。它们已�
     <string name="settings_desktop_gesture_middle_click">中键点击</string>
     <string name="settings_desktop_gesture_left_click">左键点击</string>
     <string name="settings_desktop_gesture_disabled">已禁用</string>
+    <string name="settings_mcp_https_title">开放本地 HTTPS 监听端口</string>
+    <string name="settings_mcp_https_subtitle_on">已启用 — 同时可通过回环地址 %1$s 访问</string>
+    <string name="settings_mcp_https_subtitle_off">已禁用 — 为要求使用 https://127.0.0.1 的本机 MCP 客户端开启</string>
+    <string name="settings_mcp_https_copy_url_title">复制 HTTPS 代理端点 URL</string>
+    <string name="settings_mcp_https_export_ca_title">导出本地 HTTPS 根证书 (.crt)</string>
+    <string name="settings_mcp_https_export_ca_subtitle">在 Android 系统设置中安装此证书，以便本机 HTTPS 客户端信任 Haven（SHA-256 %1$s）</string>
+    <string name="settings_mcp_https_ca_exported_toast">根 CA 证书已保存</string>
+    <string name="settings_mcp_https_ca_export_failed_toast">无法保存根 CA 证书</string>
+    <string name="settings_mcp_https_import_p12_title">自定义 HTTPS 服务器证书 (.p12)</string>
+    <string name="settings_mcp_https_import_p12_subtitle_default">当前使用自动生成的 Haven 根 CA — 点按可导入您自己的 PKCS#12 证书包</string>
+    <string name="settings_mcp_https_import_p12_subtitle_custom">当前使用自定义证书包（%1$s）— 点按可恢复为自动生成的根 CA</string>
+    <string name="settings_mcp_https_p12_password_label">PKCS#12 密码（如无密码请留空）</string>
+    <string name="settings_mcp_https_p12_imported_toast">已导入自定义 HTTPS 证书</string>
+    <string name="settings_mcp_https_p12_import_failed_toast">无法导入 PKCS#12 证书包：%1$s</string>
+    <string name="settings_mcp_https_p12_cleared_toast">已恢复为自动生成的根 CA</string>
 </resources>

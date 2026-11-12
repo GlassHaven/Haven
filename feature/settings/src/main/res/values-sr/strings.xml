@@ -497,4 +497,19 @@
     <string name="settings_desktop_gesture_middle_click">Средњи клик</string>
     <string name="settings_desktop_gesture_left_click">Леви клик</string>
     <string name="settings_desktop_gesture_disabled">Онемогућено</string>
+    <string name="settings_mcp_https_title">Изложи локални HTTPS слушач</string>
+    <string name="settings_mcp_https_subtitle_on">Укључено — доступно и на %1$s на локалној петљи</string>
+    <string name="settings_mcp_https_subtitle_off">Искључено — укључите за MCP клијенте на уређају који захтевају https://127.0.0.1</string>
+    <string name="settings_mcp_https_copy_url_title">Копирај HTTPS URL крајње тачке агента</string>
+    <string name="settings_mcp_https_export_ca_title">Извези локални HTTPS корени CA (.crt)</string>
+    <string name="settings_mcp_https_export_ca_subtitle">Инсталирајте у системским подешавањима Андроида да локални HTTPS клијенти верују апликацији Haven (SHA-256 %1$s)</string>
+    <string name="settings_mcp_https_ca_exported_toast">Корени CA сертификат је сачуван</string>
+    <string name="settings_mcp_https_ca_export_failed_toast">Није могао да се сачува корени CA сертификат</string>
+    <string name="settings_mcp_https_import_p12_title">Произвољни HTTPS сертификат сервера (.p12)</string>
+    <string name="settings_mcp_https_import_p12_subtitle_default">Користи се аутоматски генерисани Haven корени CA — тапните за увоз сопственог PKCS#12 пакета</string>
+    <string name="settings_mcp_https_import_p12_subtitle_custom">Користи се произвољни пакет (%1$s) — тапните за повратак на аутоматски генерисани корени CA</string>
+    <string name="settings_mcp_https_p12_password_label">PKCS#12 лозинка (оставите празно ако је нема)</string>
+    <string name="settings_mcp_https_p12_imported_toast">Произвољни HTTPS сертификат је увезен</string>
+    <string name="settings_mcp_https_p12_import_failed_toast">Није успео увоз PKCS#12 пакета: %1$s</string>
+    <string name="settings_mcp_https_p12_cleared_toast">Враћено на аутоматски генерисани корени CA</string>
 </resources>

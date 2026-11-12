@@ -582,4 +582,19 @@ Haven में पहले से संग्रहीत प्रत्य�
     <string name="settings_desktop_gesture_middle_click">मिडल-क्लिक</string>
     <string name="settings_desktop_gesture_left_click">लेफ्ट-क्लिक</string>
     <string name="settings_desktop_gesture_disabled">अक्षम</string>
+    <string name="settings_mcp_https_title">लोकल HTTPS लिसनर चालू करें</string>
+    <string name="settings_mcp_https_subtitle_on">सक्रिय — लूपबैक पर %1$s पर भी उपलब्ध</string>
+    <string name="settings_mcp_https_subtitle_off">निष्क्रिय — डिवाइस के उन MCP क्लाइंट के लिए चालू करें जिन्हें https://127.0.0.1 चाहिए</string>
+    <string name="settings_mcp_https_copy_url_title">HTTPS एजेंट एंडपॉइंट URL कॉपी करें</string>
+    <string name="settings_mcp_https_export_ca_title">लोकल HTTPS रूट CA निर्यात करें (.crt)</string>
+    <string name="settings_mcp_https_export_ca_subtitle">Android सिस्टम सेटिंग्स में इंस्टॉल करें ताकि लोकल HTTPS क्लाइंट Haven पर भरोसा करें (SHA-256 %1$s)</string>
+    <string name="settings_mcp_https_ca_exported_toast">रूट CA प्रमाणपत्र सहेजा गया</string>
+    <string name="settings_mcp_https_ca_export_failed_toast">रूट CA प्रमाणपत्र सहेजा नहीं जा सका</string>
+    <string name="settings_mcp_https_import_p12_title">कस्टम HTTPS सर्वर प्रमाणपत्र (.p12)</string>
+    <string name="settings_mcp_https_import_p12_subtitle_default">स्वतः जनित Haven रूट CA उपयोग में — अपना PKCS#12 बंडल आयात करने के लिए टैप करें</string>
+    <string name="settings_mcp_https_import_p12_subtitle_custom">कस्टम बंडल उपयोग में (%1$s) — स्वतः जनित रूट CA पर लौटने के लिए टैप करें</string>
+    <string name="settings_mcp_https_p12_password_label">PKCS#12 पासवर्ड (यदि नहीं है तो खाली छोड़ें)</string>
+    <string name="settings_mcp_https_p12_imported_toast">कस्टम HTTPS प्रमाणपत्र आयात किया गया</string>
+    <string name="settings_mcp_https_p12_import_failed_toast">PKCS#12 बंडल आयात नहीं हो सका: %1$s</string>
+    <string name="settings_mcp_https_p12_cleared_toast">स्वतः जनित रूट CA पर वापस लौटा गया</string>
 </resources>

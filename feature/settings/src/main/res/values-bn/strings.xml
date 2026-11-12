@@ -582,4 +582,19 @@ Haven-এ ইম্মদ্য সংরক্ষিত প্রত্যে�
     <string name="settings_desktop_gesture_middle_click">মিডল-ক্লিক</string>
     <string name="settings_desktop_gesture_left_click">লেফট-ক্লিক</string>
     <string name="settings_desktop_gesture_disabled">নিষ্ক্রিয়</string>
+    <string name="settings_mcp_https_title">লোকাল HTTPS লিসেনার চালু করুন</string>
+    <string name="settings_mcp_https_subtitle_on">চালু — লুপব্যাকে %1$s ঠিকানাতেও পৌঁছানো যাবে</string>
+    <string name="settings_mcp_https_subtitle_off">বন্ধ — ডিভাইসের যে MCP ক্লায়েন্টগুলোর https://127.0.0.1 প্রয়োজন তাদের জন্য চালু করুন</string>
+    <string name="settings_mcp_https_copy_url_title">HTTPS এজেন্ট এন্ডপয়েন্ট URL কপি করুন</string>
+    <string name="settings_mcp_https_export_ca_title">লোকাল HTTPS রুট CA এক্সপোর্ট করুন (.crt)</string>
+    <string name="settings_mcp_https_export_ca_subtitle">লোকাল HTTPS ক্লায়েন্টরা যেন Haven-কে বিশ্বাস করে তার জন্য Android সিস্টেম সেটিংসে ইনস্টল করুন (SHA-256 %1$s)</string>
+    <string name="settings_mcp_https_ca_exported_toast">রুট CA সার্টিফিকেট সংরক্ষিত হয়েছে</string>
+    <string name="settings_mcp_https_ca_export_failed_toast">রুট CA সার্টিফিকেট সংরক্ষণ করা যায়নি</string>
+    <string name="settings_mcp_https_import_p12_title">কাস্টম HTTPS সার্ভার সার্টিফিকেট (.p12)</string>
+    <string name="settings_mcp_https_import_p12_subtitle_default">স্বয়ংক্রিয়ভাবে তৈরি Haven রুট CA ব্যবহৃত হচ্ছে — নিজস্ব PKCS#12 বান্ডিল ইমপোর্ট করতে ট্যাপ করুন</string>
+    <string name="settings_mcp_https_import_p12_subtitle_custom">কাস্টম বান্ডিল ব্যবহৃত হচ্ছে (%1$s) — স্বয়ংক্রিয় রুট CA-তে ফিরতে ট্যাপ করুন</string>
+    <string name="settings_mcp_https_p12_password_label">PKCS#12 পাসওয়ার্ড (না থাকলে খালি রাখুন)</string>
+    <string name="settings_mcp_https_p12_imported_toast">কাস্টম HTTPS সার্টিফিকেট ইমপোর্ট হয়েছে</string>
+    <string name="settings_mcp_https_p12_import_failed_toast">PKCS#12 বান্ডিল ইমপোর্ট করা যায়নি: %1$s</string>
+    <string name="settings_mcp_https_p12_cleared_toast">স্বয়ংক্রিয় রুট CA-তে ফিরে যাওয়া হয়েছে</string>
 </resources>

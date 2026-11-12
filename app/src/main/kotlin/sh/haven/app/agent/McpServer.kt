@@ -186,6 +186,7 @@ class McpServer @Inject constructor(
     // grants consulted at the consent gate (VISION.md "Consent tiers").
     private val standingPolicyEnforcer: StandingPolicyEnforcer,
     private val tools: McpTools,
+    private val mcpLocalTlsManager: sh.haven.core.security.McpLocalTlsManager,
 ) : Closeable {
 
     internal constructor(
@@ -255,6 +256,8 @@ class McpServer @Inject constructor(
             sh.haven.core.data.agent.SessionSelectionHolder(),
         toolCatalog: sh.haven.core.data.agent.McpToolCatalog? = null,
         textRecognizer: sh.haven.core.scan.TextRecognizer? = null,
+        mcpLocalTlsManager: sh.haven.core.security.McpLocalTlsManager =
+            sh.haven.core.security.McpLocalTlsManager(context),
     ) : this(
         context = context,
         preferencesRepository = preferencesRepository,
@@ -328,6 +331,7 @@ class McpServer @Inject constructor(
             toolCatalog = toolCatalog,
             textRecognizer = textRecognizer,
         ),
+        mcpLocalTlsManager = mcpLocalTlsManager,
     )
 
     /**
@@ -496,6 +500,20 @@ class McpServer @Inject constructor(
     private var lanServerThread: Thread? = null
 
     /**
+     * Optional HTTPS loopback listener (`https://127.0.0.1:<port>/mcp`, preferred
+     * range `8750..8759`) for on-device MCP clients that enforce `https://` (#735).
+     */
+    private val _httpsEndpointUrl = MutableStateFlow<String?>(null)
+    val httpsEndpointUrl: StateFlow<String?> = _httpsEndpointUrl.asStateFlow()
+
+    @Volatile
+    var httpsPort: Int = 0
+        private set
+
+    private var httpsServerSocket: ServerSocket? = null
+    private var httpsServerThread: Thread? = null
+
+    /**
      * Standard MCP server registration JSON for the Haven endpoint.
      * Null when the server isn't running. Any MCP-aware client can
      * merge this into its own config; the shape is compatible with
@@ -597,6 +615,10 @@ class McpServer @Inject constructor(
         if (runBlocking { preferencesRepository.mcpLanBindEnabled.first() }) {
             startLanBinderLocked()
         }
+        // Optionally also bind the local HTTPS loopback listener (#735).
+        if (runBlocking { preferencesRepository.mcpHttpsEnabled.first() }) {
+            startHttpsBinderLocked()
+        }
     }
 
     /**
@@ -647,6 +669,25 @@ class McpServer @Inject constructor(
     }
 
     /**
+     * Enable/disable the local HTTPS loopback listener (`127.0.0.1:8750..8759`)
+     * at runtime (driven by `mcpHttpsEnabled`, #735).
+     */
+    fun setHttpsEnabled(enabled: Boolean) = synchronized(lifecycleLock) {
+        if (!isRunning) return@synchronized
+        if (enabled) startHttpsBinderLocked() else stopHttpsBinderLocked()
+    }
+
+    /**
+     * Rebind the running HTTPS loopback listener after TLS credentials rotate
+     * or a custom PKCS#12 bundle is imported/cleared (#735).
+     */
+    fun reloadHttpsCredentials() = synchronized(lifecycleLock) {
+        if (!isRunning || httpsServerSocket == null) return@synchronized
+        stopHttpsBinderLocked()
+        startHttpsBinderLocked()
+    }
+
+    /**
      * Toggle loopback auto-trust at runtime (driven by the
      * `trustLoopbackMcpClients` preference). No lock needed — it's a
      * single volatile flag read on the dispatch path. (#214)
@@ -694,6 +735,7 @@ class McpServer @Inject constructor(
                         try {
                             if (overloaded) {
                                 Log.w(TAG, "$name: connection cap ($MAX_CONCURRENT_CONNECTIONS) hit — 503")
+                                client.soTimeout = 5_000
                                 writeHttpResponse(
                                     client.getOutputStream(),
                                     textResponse(503, "Service Unavailable"),
@@ -728,6 +770,34 @@ class McpServer @Inject constructor(
         lanServerSocket = null
         lanServerThread = null
         _lanEndpointUrl.value = null
+    }
+
+    /** Must hold [lifecycleLock]. Idempotent. */
+    private fun startHttpsBinderLocked() {
+        if (httpsServerThread?.isAlive == true && httpsServerSocket?.isClosed == false) return
+        val tlsSocket = try {
+            bindHttpsLoopback()
+        } catch (e: Exception) {
+            Log.e(TAG, "MCP HTTPS loopback bind failed: ${e.message}", e)
+            return
+        }
+        httpsServerSocket = tlsSocket
+        httpsPort = tlsSocket.localPort
+        val url = "https://127.0.0.1:$httpsPort/mcp"
+        _httpsEndpointUrl.value = url
+        mcpStatusHolder.setHttpsEndpointUrl(url)
+        Log.i(TAG, "MCP HTTPS listener on $url")
+        httpsServerThread = acceptThread(tlsSocket, "mcp-https", McpOrigin.DEVICE)
+    }
+
+    /** Must hold [lifecycleLock]. Idempotent. */
+    private fun stopHttpsBinderLocked() {
+        try { httpsServerSocket?.close() } catch (_: Exception) {}
+        httpsServerSocket = null
+        httpsServerThread = null
+        httpsPort = 0
+        _httpsEndpointUrl.value = null
+        mcpStatusHolder.setHttpsEndpointUrl(null)
     }
 
     /**
@@ -971,6 +1041,7 @@ class McpServer @Inject constructor(
         trustSyncJob = null
         stopWireguardBinderLocked()
         stopLanBinderLocked()
+        stopHttpsBinderLocked()
         try { serverSocket?.close() } catch (_: Exception) {}
         serverSocket = null
         serverThread = null
@@ -1036,6 +1107,32 @@ class McpServer @Inject constructor(
             }
         }
         return ServerSocket(0, 10, loopback).apply { reuseAddress = true }
+    }
+
+    /**
+     * Bind the optional HTTPS loopback listener on the first free port in
+     * [8750..8759] (OS-assigned fallback if all are busy), restricted to
+     * TLSv1.2 / TLSv1.3 (#735).
+     */
+    private fun bindHttpsLoopback(): javax.net.ssl.SSLServerSocket {
+        val ssf = mcpLocalTlsManager.buildServerSocketFactory()
+        val loopback = InetAddress.getByName("127.0.0.1")
+        val sock = run {
+            for (p in 8750..8759) {
+                try {
+                    return@run ssf.createServerSocket(p, 10, loopback) as javax.net.ssl.SSLServerSocket
+                } catch (_: IOException) {
+                    // busy, try next
+                }
+            }
+            ssf.createServerSocket(0, 10, loopback) as javax.net.ssl.SSLServerSocket
+        }
+        sock.reuseAddress = true
+        val modernProtocols = sock.supportedProtocols.filter { it == "TLSv1.3" || it == "TLSv1.2" }
+        if (modernProtocols.isNotEmpty()) {
+            sock.enabledProtocols = modernProtocols.toTypedArray()
+        }
+        return sock
     }
 
     /**

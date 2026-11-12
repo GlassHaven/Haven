@@ -76,6 +76,13 @@ class McpStatusHolder @Inject constructor() {
         _nearCarrier.value = status
     }
 
+    private val _httpsEndpointUrl = MutableStateFlow<String?>(null)
+    val httpsEndpointUrl: StateFlow<String?> = _httpsEndpointUrl.asStateFlow()
+
+    fun setHttpsEndpointUrl(url: String?) {
+        _httpsEndpointUrl.value = url
+    }
+
     private val _activity = MutableStateFlow(McpActivity())
 
     /** Live tool-call activity for the foreground notification (#239). */

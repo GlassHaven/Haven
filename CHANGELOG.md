@@ -5,6 +5,11 @@ the corresponding GitHub Release; a release can't ship without its section
 (enforced by `scripts/check-changelog.sh` in CI). The GitHub "Full Changelog"
 compare link is appended automatically — don't add it here.
 
+## v5.94.33
+
+- Span retained scrollback rows on terminal Select All on the primary buffer while keeping alternate-screen Select All scoped to the visible grid (#805, thanks @del26).
+- Add an optional local HTTPS loopback MCP listener (`https://127.0.0.1:8750/mcp`) under `Settings -> AI agent (MCP)` with persistent ECDSA P-256 root CA `.crt` export and custom PKCS#12 `.p12` server bundle import (#735, thanks @wzy603).
+
 ## v5.94.32
 
 - Serialize local and UML guest PTY session attachment with MCP `open_local_shell`, replay buffered scrollback atomically when attaching the agent tee, drain queued main-looper `writeInput` updates before `open_local_shell` returns, and retain backing `AgentHandles` behind UI-opened tabs across Activity teardown (#555).

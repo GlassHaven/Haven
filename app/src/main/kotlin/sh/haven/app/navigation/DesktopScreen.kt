@@ -103,6 +103,7 @@ fun DesktopScreen(
     touchpadSensitivity: Float = 1f,
     /** Persist trackpad sensitivity changes from the toolbar (#696); null hides the control. */
     onSetTouchpadSensitivity: ((Float) -> Unit)? = null,
+    mouseGestures: sh.haven.core.ui.DesktopMouseGestureConfig = sh.haven.core.ui.DesktopMouseGestureConfig.DEFAULT,
     isActive: Boolean = true,
     /** When the active viewer is fullscreen, the manager's own chrome (the
      *  compact Manage row + tab bar) is hidden too, so a small-screen RDP/VNC
@@ -324,6 +325,7 @@ fun DesktopScreen(
                                 onSetInputMode = onSetInputMode,
                                 touchpadSensitivity = touchpadSensitivity,
                                 onSetTouchpadSensitivity = onSetTouchpadSensitivity,
+                                mouseGestures = mouseGestures,
                                 bandwidthSuggestion = tab.bandwidthSuggestion,
                                 onAcceptBandwidthSuggestion = { desktopViewModel.acceptBandwidthSuggestion(tab.id) },
                                 onDismissBandwidthSuggestion = { desktopViewModel.dismissBandwidthSuggestion(tab.id) },
@@ -387,6 +389,7 @@ fun DesktopScreen(
                             onSetInputMode = onSetInputMode,
                             touchpadSensitivity = touchpadSensitivity,
                             onSetTouchpadSensitivity = onSetTouchpadSensitivity,
+                            mouseGestures = mouseGestures,
                             onTouchFrame = { contacts -> desktopViewModel.sendRdpTouchFrame(contacts) },
                             onCancelTouches = { desktopViewModel.cancelRdpTouches() },
                             currentOrientation = desktopOrientation,
@@ -446,6 +449,7 @@ fun DesktopScreen(
                             onSetInputMode = onSetInputMode,
                             touchpadSensitivity = touchpadSensitivity,
                             onSetTouchpadSensitivity = onSetTouchpadSensitivity,
+                            mouseGestures = mouseGestures,
                             currentOrientation = desktopOrientation,
                             onCycleOrientation = { desktopViewModel.cycleDesktopOrientation() },
                             onRetry = { desktopViewModel.retryTab(tab.id) },
@@ -508,6 +512,7 @@ fun DesktopScreen(
                             onSetInputMode = onSetInputMode,
                             touchpadSensitivity = touchpadSensitivity,
                             onSetTouchpadSensitivity = onSetTouchpadSensitivity,
+                            mouseGestures = mouseGestures,
                             currentOrientation = desktopOrientation,
                             onCycleOrientation = { desktopViewModel.cycleDesktopOrientation() },
                             onRetry = { desktopViewModel.retryTab(tab.id) },

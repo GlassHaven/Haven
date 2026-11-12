@@ -39330,6 +39330,206 @@
       "sr": "Није могуће учитати уграђено упутство.",
       "zh": "无法加载内置使用指南。"
      }
+    },
+    {
+     "name": "settings_desktop_long_press_title",
+     "en": "Desktop long-press gesture",
+     "comment": "Offline user guide (#833)",
+     "args": [],
+     "t": {
+      "ar": "إيماءة الضغط المطوّل لسطح المكتب",
+      "bn": "ডেস্কটপে দীর্ঘ-চাপ জেসচার",
+      "de": "Desktop-Geste: Gedrückthalten",
+      "es": "Gesto de pulsación larga en escritorio",
+      "fr": "Geste d\\'appui long sur le bureau",
+      "hi": "डेस्कटॉप देर तक दबाने का जेस्चर",
+      "ja": "デスクトップの長押しジェスチャー",
+      "ko": "데스크톱 길게 누르기 제스처",
+      "pt": "Gesto de toque longo na área de trabalho",
+      "ru": "Жест долгого нажатия на рабочем столе",
+      "sr": "Гест дугог притиска на радној површини",
+      "zh": "桌面长按手势"
+     }
+    },
+    {
+     "name": "settings_desktop_long_press_subtitle",
+     "en": "Mouse click sent when holding one finger still on VNC, RDP, SPICE, or GLKVM",
+     "comment": "Offline user guide (#833)",
+     "args": [],
+     "t": {
+      "ar": "نقرة الفأرة المُرسلة عند تثبيت إصبع واحد في VNC أو RDP أو SPICE أو GLKVM",
+      "bn": "VNC, RDP, SPICE বা GLKVM-এ এক আঙুল স্থির ধরে রাখলে যে মাউস ক্লিক পাঠানো হয়",
+      "de": "Mausklick beim ruhigen Halten eines Fingers in VNC, RDP, SPICE oder GLKVM",
+      "es": "Clic de ratón al mantener un dedo quieto en VNC, RDP, SPICE o GLKVM",
+      "fr": "Clic de souris envoyé en maintenant un doigt immobile dans VNC, RDP, SPICE ou GLKVM",
+      "hi": "VNC, RDP, SPICE या GLKVM में एक उँगली स्थिर दबाए रखने पर भेजा जाने वाला माउस क्लिक",
+      "ja": "VNC、RDP、SPICE、GLKVM で 1 本指を静止長押ししたときに送るマウスクリック",
+      "ko": "VNC, RDP, SPICE, GLKVM에서 한 손가락을 움직이지 않고 길게 누를 때 보낼 마우스 클릭",
+      "pt": "Clique do mouse enviado ao manter um dedo parado em VNC, RDP, SPICE ou GLKVM",
+      "ru": "Щелчок мыши при удержании одного пальца в VNC, RDP, SPICE или GLKVM",
+      "sr": "Клик миша при мирном држању једног прста у VNC, RDP, SPICE или GLKVM сесији",
+      "zh": "在 VNC、RDP、SPICE 或 GLKVM 中单指长按静止时发送的鼠标点击"
+     }
+    },
+    {
+     "name": "settings_desktop_two_finger_tap_title",
+     "en": "Desktop two-finger tap",
+     "comment": "Offline user guide (#833)",
+     "args": [],
+     "t": {
+      "ar": "النقر بإصبعين لسطح المكتب",
+      "bn": "ডেস্কটপে দুই-আঙুলে ট্যাপ",
+      "de": "Desktop-Tippen mit zwei Fingern",
+      "es": "Toque con dos dedos en escritorio",
+      "fr": "Toucher à deux doigts sur le bureau",
+      "hi": "डेस्कटॉप दो-उँगली टैप",
+      "ja": "デスクトップの 2 本指タップ",
+      "ko": "데스크톱 두 손가락 탭",
+      "pt": "Toque com dois dedos na área de trabalho",
+      "ru": "Касание двумя пальцами на рабочем столе",
+      "sr": "Тап са два прста на радној површини",
+      "zh": "桌面双指点按"
+     }
+    },
+    {
+     "name": "settings_desktop_two_finger_tap_subtitle",
+     "en": "Mouse click sent by a two-finger tap (for example right-click instead of middle-click)",
+     "comment": "Offline user guide (#833)",
+     "args": [],
+     "t": {
+      "ar": "نقرة الفأرة المُرسلة عند النقر بإصبعين (مثل النقر الأيمن بدل النقر الأوسط)",
+      "bn": "দুই আঙুলে ট্যাপ করলে যে মাউস ক্লিক পাঠানো হয় (যেমন মিডল-ক্লিকের বদলে রাইট-ক্লিক)",
+      "de": "Mausklick beim Tippen mit zwei Fingern (z. B. Rechtsklick statt Mittelklick)",
+      "es": "Clic de ratón al tocar con dos dedos (por ejemplo clic derecho en lugar de clic central)",
+      "fr": "Clic de souris envoyé par un toucher à deux doigts (par ex. clic droit au lieu du clic central)",
+      "hi": "दो उँगलियों के टैप पर भेजा जाने वाला माउस क्लिक (उदाहरण: मिडल-क्लिक के बजाय राइट-क्लिक)",
+      "ja": "2 本指タップで送るマウスクリック（中クリックの代わりに右クリックなど）",
+      "ko": "두 손가락 탭으로 보낼 마우스 클릭 (예: 가운데 클릭 대신 오른쪽 클릭)",
+      "pt": "Clique do mouse enviado por toque com dois dedos (ex.: clique direito em vez de clique do meio)",
+      "ru": "Щелчок мыши при касании двумя пальцами (например, правый клик вместо среднего)",
+      "sr": "Клик миша при тапу са два прста (нпр. десни клик уместо средњег)",
+      "zh": "双指点按时发送的鼠标点击（例如改为右键点击而非中键点击）"
+     }
+    },
+    {
+     "name": "settings_desktop_three_finger_tap_title",
+     "en": "Desktop three-finger tap",
+     "comment": "Offline user guide (#833)",
+     "args": [],
+     "t": {
+      "ar": "النقر بثلاثة أصابع لسطح المكتب",
+      "bn": "ডেস্কটপে তিন-আঙুলে ট্যাপ",
+      "de": "Desktop-Tippen mit drei Fingern",
+      "es": "Toque con tres dedos en escritorio",
+      "fr": "Toucher à trois doigts sur le bureau",
+      "hi": "डेस्कटॉप तीन-उँगली टैप",
+      "ja": "デスクトップの 3 本指タップ",
+      "ko": "데스크톱 세 손가락 탭",
+      "pt": "Toque com três dedos na área de trabalho",
+      "ru": "Касание тремя пальцами на рабочем столе",
+      "sr": "Тап са три прста на радној површини",
+      "zh": "桌面三指点按"
+     }
+    },
+    {
+     "name": "settings_desktop_three_finger_tap_subtitle",
+     "en": "Mouse click sent by a three-finger tap",
+     "comment": "Offline user guide (#833)",
+     "args": [],
+     "t": {
+      "ar": "نقرة الفأرة المُرسلة عند النقر بثلاثة أصابع",
+      "bn": "তিন আঙুলে ট্যাপ করলে যে মাউস ক্লিক পাঠানো হয়",
+      "de": "Mausklick beim Tippen mit drei Fingern",
+      "es": "Clic de ratón al tocar con tres dedos",
+      "fr": "Clic de souris envoyé par un toucher à trois doigts",
+      "hi": "तीन उँगलियों के टैप पर भेजा जाने वाला माउस क्लिक",
+      "ja": "3 本指タップで送るマウスクリック",
+      "ko": "세 손가락 탭으로 보낼 마우스 클릭",
+      "pt": "Clique do mouse enviado por toque com três dedos",
+      "ru": "Щелчок мыши при касании тремя пальцами",
+      "sr": "Клик миша при тапу са три прста",
+      "zh": "三指点按时发送的鼠标点击"
+     }
+    },
+    {
+     "name": "settings_desktop_gesture_right_click",
+     "en": "Right-click",
+     "comment": "Offline user guide (#833)",
+     "args": [],
+     "t": {
+      "ar": "نقر أيمن",
+      "bn": "রাইট-ক্লিক",
+      "de": "Rechtsklick",
+      "es": "Clic derecho",
+      "fr": "Clic droit",
+      "hi": "राइट-क्लिक",
+      "ja": "右クリック",
+      "ko": "오른쪽 클릭",
+      "pt": "Clique direito",
+      "ru": "Правый клик",
+      "sr": "Десни клик",
+      "zh": "右键点击"
+     }
+    },
+    {
+     "name": "settings_desktop_gesture_middle_click",
+     "en": "Middle-click",
+     "comment": "Offline user guide (#833)",
+     "args": [],
+     "t": {
+      "ar": "نقر أوسط",
+      "bn": "মিডল-ক্লিক",
+      "de": "Mittelklick",
+      "es": "Clic central",
+      "fr": "Clic central",
+      "hi": "मिडल-क्लिक",
+      "ja": "中クリック",
+      "ko": "가운데 클릭",
+      "pt": "Clique do meio",
+      "ru": "Средний клик",
+      "sr": "Средњи клик",
+      "zh": "中键点击"
+     }
+    },
+    {
+     "name": "settings_desktop_gesture_left_click",
+     "en": "Left-click",
+     "comment": "Offline user guide (#833)",
+     "args": [],
+     "t": {
+      "ar": "نقر أيسر",
+      "bn": "লেফট-ক্লিক",
+      "de": "Linksklick",
+      "es": "Clic izquierdo",
+      "fr": "Clic gauche",
+      "hi": "लेफ्ट-क्लिक",
+      "ja": "左クリック",
+      "ko": "왼쪽 클릭",
+      "pt": "Clique esquerdo",
+      "ru": "Левый клик",
+      "sr": "Леви клик",
+      "zh": "左键点击"
+     }
+    },
+    {
+     "name": "settings_desktop_gesture_disabled",
+     "en": "Disabled",
+     "comment": "Offline user guide (#833)",
+     "args": [],
+     "t": {
+      "ar": "معطّل",
+      "bn": "নিষ্ক্রিয়",
+      "de": "Deaktiviert",
+      "es": "Desactivado",
+      "fr": "Désactivé",
+      "hi": "अक्षम",
+      "ja": "無効",
+      "ko": "사용 안 함",
+      "pt": "Desativado",
+      "ru": "Отключено",
+      "sr": "Онемогућено",
+      "zh": "已禁用"
+     }
     }
    ]
   },

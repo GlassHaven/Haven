@@ -572,4 +572,14 @@ Haven में पहले से संग्रहीत प्रत्य�
     <string name="settings_user_guide_back_cd">वापस</string>
     <string name="settings_user_guide_no_results">कोई मिलता-जुलता विषय नहीं मिला।</string>
     <string name="settings_user_guide_load_error">बंडल की गई मार्गदर्शिका लोड नहीं हो सकी।</string>
+    <string name="settings_desktop_long_press_title">डेस्कटॉप देर तक दबाने का जेस्चर</string>
+    <string name="settings_desktop_long_press_subtitle">VNC, RDP, SPICE या GLKVM में एक उँगली स्थिर दबाए रखने पर भेजा जाने वाला माउस क्लिक</string>
+    <string name="settings_desktop_two_finger_tap_title">डेस्कटॉप दो-उँगली टैप</string>
+    <string name="settings_desktop_two_finger_tap_subtitle">दो उँगलियों के टैप पर भेजा जाने वाला माउस क्लिक (उदाहरण: मिडल-क्लिक के बजाय राइट-क्लिक)</string>
+    <string name="settings_desktop_three_finger_tap_title">डेस्कटॉप तीन-उँगली टैप</string>
+    <string name="settings_desktop_three_finger_tap_subtitle">तीन उँगलियों के टैप पर भेजा जाने वाला माउस क्लिक</string>
+    <string name="settings_desktop_gesture_right_click">राइट-क्लिक</string>
+    <string name="settings_desktop_gesture_middle_click">मिडल-क्लिक</string>
+    <string name="settings_desktop_gesture_left_click">लेफ्ट-क्लिक</string>
+    <string name="settings_desktop_gesture_disabled">अक्षम</string>
 </resources>

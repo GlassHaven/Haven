@@ -572,4 +572,14 @@ Cada chave privada já armazenada no Haven precisará ser importada ou gerada no
     <string name="settings_user_guide_back_cd">Voltar</string>
     <string name="settings_user_guide_no_results">Nenhum tópico correspondente encontrado.</string>
     <string name="settings_user_guide_load_error">Não foi possível carregar o guia integrado.</string>
+    <string name="settings_desktop_long_press_title">Gesto de toque longo na área de trabalho</string>
+    <string name="settings_desktop_long_press_subtitle">Clique do mouse enviado ao manter um dedo parado em VNC, RDP, SPICE ou GLKVM</string>
+    <string name="settings_desktop_two_finger_tap_title">Toque com dois dedos na área de trabalho</string>
+    <string name="settings_desktop_two_finger_tap_subtitle">Clique do mouse enviado por toque com dois dedos (ex.: clique direito em vez de clique do meio)</string>
+    <string name="settings_desktop_three_finger_tap_title">Toque com três dedos na área de trabalho</string>
+    <string name="settings_desktop_three_finger_tap_subtitle">Clique do mouse enviado por toque com três dedos</string>
+    <string name="settings_desktop_gesture_right_click">Clique direito</string>
+    <string name="settings_desktop_gesture_middle_click">Clique do meio</string>
+    <string name="settings_desktop_gesture_left_click">Clique esquerdo</string>
+    <string name="settings_desktop_gesture_disabled">Desativado</string>
 </resources>

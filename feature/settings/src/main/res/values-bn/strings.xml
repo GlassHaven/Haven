@@ -572,4 +572,14 @@ Haven-এ ইম্মদ্য সংরক্ষিত প্রত্যে�
     <string name="settings_user_guide_back_cd">ফিরে যান</string>
     <string name="settings_user_guide_no_results">মিলে যাওয়া কোনো বিষয় পাওয়া যায়নি।</string>
     <string name="settings_user_guide_load_error">বান্ডেল করা ব্যবহারকারী নির্দেশিকা লোড করা যায়নি।</string>
+    <string name="settings_desktop_long_press_title">ডেস্কটপে দীর্ঘ-চাপ জেসচার</string>
+    <string name="settings_desktop_long_press_subtitle">VNC, RDP, SPICE বা GLKVM-এ এক আঙুল স্থির ধরে রাখলে যে মাউস ক্লিক পাঠানো হয়</string>
+    <string name="settings_desktop_two_finger_tap_title">ডেস্কটপে দুই-আঙুলে ট্যাপ</string>
+    <string name="settings_desktop_two_finger_tap_subtitle">দুই আঙুলে ট্যাপ করলে যে মাউস ক্লিক পাঠানো হয় (যেমন মিডল-ক্লিকের বদলে রাইট-ক্লিক)</string>
+    <string name="settings_desktop_three_finger_tap_title">ডেস্কটপে তিন-আঙুলে ট্যাপ</string>
+    <string name="settings_desktop_three_finger_tap_subtitle">তিন আঙুলে ট্যাপ করলে যে মাউস ক্লিক পাঠানো হয়</string>
+    <string name="settings_desktop_gesture_right_click">রাইট-ক্লিক</string>
+    <string name="settings_desktop_gesture_middle_click">মিডল-ক্লিক</string>
+    <string name="settings_desktop_gesture_left_click">লেফট-ক্লিক</string>
+    <string name="settings_desktop_gesture_disabled">নিষ্ক্রিয়</string>
 </resources>

@@ -246,4 +246,158 @@ class RemoteDesktopViewportTest {
         assertEquals(DesktopOrientationMode.Landscape, DesktopOrientationMode.Auto.next())
         assertEquals(DesktopOrientationMode.Landscape, DesktopOrientationMode.fromActivityValue(-999))
     }
+
+    @Test
+    fun `configurable desktop mouse gestures resolve long-press, two-finger, and three-finger actions`() {
+        assertEquals(DesktopGestureAction.RIGHT_CLICK, DesktopGestureAction.fromStorage("RIGHT_CLICK", DesktopGestureAction.NONE))
+        assertEquals(DesktopGestureAction.MIDDLE_CLICK, DesktopGestureAction.fromStorage("UNKNOWN", DesktopGestureAction.MIDDLE_CLICK))
+        assertEquals(DesktopGestureAction.NONE, DesktopGestureAction.fromStorage(null, DesktopGestureAction.NONE))
+
+        val fired = mutableListOf<String>()
+        for (action in DesktopGestureAction.entries) {
+            dispatchDesktopGestureAction(
+                action = action,
+                x = 120,
+                y = 340,
+                onLeftClick = { x, y -> fired += "L:$x,$y" },
+                onMiddleClick = { x, y -> fired += "M:$x,$y" },
+                onRightClick = { x, y -> fired += "R:$x,$y" },
+            )
+        }
+        assertEquals(listOf("R:120,340", "M:120,340", "L:120,340"), fired)
+
+        // Disabling long-press cancels the timeout timer AND suppresses stationary holds >= longPressMs,
+        // while keeping normal short taps (< longPressMs) and hardware mouse clicks intact (#836).
+        assertFalse(
+            shouldFireRemoteTouchLongPressRightClick(
+                isMouseDevice = false,
+                totalFingers = 1,
+                longPressFired = false,
+                dragging = false,
+                totalMovement = 1f,
+                touchSlopPx = 18f,
+                isFollowUpTouch = false,
+                longPressAction = DesktopGestureAction.NONE,
+            ),
+        )
+        assertEquals(
+            Long.MAX_VALUE,
+            remainingRemoteTouchLongPressTimeoutMs(
+                isMouseDevice = false,
+                totalFingers = 1,
+                longPressFired = false,
+                dragging = false,
+                totalMovement = 1f,
+                touchSlopPx = 18f,
+                isFollowUpTouch = false,
+                longPressAction = DesktopGestureAction.NONE,
+                longPressMs = 400L,
+                elapsedMs = 50L,
+            ),
+        )
+        assertTrue(
+            shouldFireRemotePostGestureTap(
+                totalFingers = 1,
+                totalMovement = 2f,
+                touchSlopPx = 18f,
+                longPressFired = false,
+                isMouseDevice = false,
+                longPressDisabled = true,
+                gestureDurationMs = 150L,
+                longPressMs = 400L,
+            ),
+        )
+        assertFalse(
+            shouldFireRemotePostGestureTap(
+                totalFingers = 1,
+                totalMovement = 2f,
+                touchSlopPx = 18f,
+                longPressFired = false,
+                isMouseDevice = false,
+                longPressDisabled = true,
+                gestureDurationMs = 450L,
+                longPressMs = 400L,
+            ),
+        )
+        assertTrue(
+            shouldFireRemotePostGestureTap(
+                totalFingers = 1,
+                totalMovement = 0f,
+                touchSlopPx = 18f,
+                longPressFired = false,
+                isMouseDevice = true,
+                longPressDisabled = true,
+                gestureDurationMs = 900L,
+                longPressMs = 400L,
+            ),
+        )
+
+        val precisionTouchpad = DesktopMouseGestureConfig(
+            longPressAction = DesktopGestureAction.NONE,
+            twoFingerTapAction = DesktopGestureAction.RIGHT_CLICK,
+            threeFingerTapAction = DesktopGestureAction.MIDDLE_CLICK,
+        )
+        assertEquals(
+            DesktopGestureAction.RIGHT_CLICK,
+            resolveRemoteMultiFingerTapAction(
+                isMouseDevice = false,
+                totalFingers = 2,
+                multiFingerMovement = 4f,
+                touchSlopPx = 18f,
+                longPressFired = false,
+                heldButton = null,
+                gestures = precisionTouchpad,
+            ),
+        )
+        assertEquals(
+            DesktopGestureAction.MIDDLE_CLICK,
+            resolveRemoteMultiFingerTapAction(
+                isMouseDevice = false,
+                totalFingers = 3,
+                multiFingerMovement = 6f,
+                touchSlopPx = 18f,
+                longPressFired = false,
+                heldButton = null,
+                gestures = precisionTouchpad,
+            ),
+        )
+        // Pinch/scroll motion >= touchSlopPx suppresses multi-finger tap click
+        assertEquals(
+            DesktopGestureAction.NONE,
+            resolveRemoteMultiFingerTapAction(
+                isMouseDevice = false,
+                totalFingers = 2,
+                multiFingerMovement = 24f,
+                touchSlopPx = 18f,
+                longPressFired = false,
+                heldButton = null,
+                gestures = precisionTouchpad,
+            ),
+        )
+        // Held toolbar button or 4-finger gesture yields NONE
+        assertEquals(
+            DesktopGestureAction.NONE,
+            resolveRemoteMultiFingerTapAction(
+                isMouseDevice = false,
+                totalFingers = 2,
+                multiFingerMovement = 0f,
+                touchSlopPx = 18f,
+                longPressFired = false,
+                heldButton = 1,
+                gestures = precisionTouchpad,
+            ),
+        )
+        assertEquals(
+            DesktopGestureAction.NONE,
+            resolveRemoteMultiFingerTapAction(
+                isMouseDevice = false,
+                totalFingers = 4,
+                multiFingerMovement = 0f,
+                touchSlopPx = 18f,
+                longPressFired = false,
+                heldButton = null,
+                gestures = precisionTouchpad,
+            ),
+        )
+    }
 }

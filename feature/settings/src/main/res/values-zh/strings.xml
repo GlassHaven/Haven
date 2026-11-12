@@ -570,4 +570,14 @@ Haven 中已存储的每一个私钥都需要重新导入或生成。它们已�
     <string name="settings_user_guide_back_cd">返回</string>
     <string name="settings_user_guide_no_results">未找到匹配的主题。</string>
     <string name="settings_user_guide_load_error">无法加载内置使用指南。</string>
+    <string name="settings_desktop_long_press_title">桌面长按手势</string>
+    <string name="settings_desktop_long_press_subtitle">在 VNC、RDP、SPICE 或 GLKVM 中单指长按静止时发送的鼠标点击</string>
+    <string name="settings_desktop_two_finger_tap_title">桌面双指点按</string>
+    <string name="settings_desktop_two_finger_tap_subtitle">双指点按时发送的鼠标点击（例如改为右键点击而非中键点击）</string>
+    <string name="settings_desktop_three_finger_tap_title">桌面三指点按</string>
+    <string name="settings_desktop_three_finger_tap_subtitle">三指点按时发送的鼠标点击</string>
+    <string name="settings_desktop_gesture_right_click">右键点击</string>
+    <string name="settings_desktop_gesture_middle_click">中键点击</string>
+    <string name="settings_desktop_gesture_left_click">左键点击</string>
+    <string name="settings_desktop_gesture_disabled">已禁用</string>
 </resources>

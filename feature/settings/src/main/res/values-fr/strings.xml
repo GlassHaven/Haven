@@ -572,4 +572,14 @@ Chaque clé privée déjà stockée dans Haven devra être importée ou génér�
     <string name="settings_user_guide_back_cd">Retour</string>
     <string name="settings_user_guide_no_results">Aucun sujet correspondant trouvé.</string>
     <string name="settings_user_guide_load_error">Impossible de charger le guide intégré.</string>
+    <string name="settings_desktop_long_press_title">Geste d\'appui long sur le bureau</string>
+    <string name="settings_desktop_long_press_subtitle">Clic de souris envoyé en maintenant un doigt immobile dans VNC, RDP, SPICE ou GLKVM</string>
+    <string name="settings_desktop_two_finger_tap_title">Toucher à deux doigts sur le bureau</string>
+    <string name="settings_desktop_two_finger_tap_subtitle">Clic de souris envoyé par un toucher à deux doigts (par ex. clic droit au lieu du clic central)</string>
+    <string name="settings_desktop_three_finger_tap_title">Toucher à trois doigts sur le bureau</string>
+    <string name="settings_desktop_three_finger_tap_subtitle">Clic de souris envoyé par un toucher à trois doigts</string>
+    <string name="settings_desktop_gesture_right_click">Clic droit</string>
+    <string name="settings_desktop_gesture_middle_click">Clic central</string>
+    <string name="settings_desktop_gesture_left_click">Clic gauche</string>
+    <string name="settings_desktop_gesture_disabled">Désactivé</string>
 </resources>

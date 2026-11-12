@@ -487,4 +487,14 @@
     <string name="settings_user_guide_back_cd">Назад</string>
     <string name="settings_user_guide_no_results">Нема одговарајућих тема.</string>
     <string name="settings_user_guide_load_error">Није могуће учитати уграђено упутство.</string>
+    <string name="settings_desktop_long_press_title">Гест дугог притиска на радној површини</string>
+    <string name="settings_desktop_long_press_subtitle">Клик миша при мирном држању једног прста у VNC, RDP, SPICE или GLKVM сесији</string>
+    <string name="settings_desktop_two_finger_tap_title">Тап са два прста на радној површини</string>
+    <string name="settings_desktop_two_finger_tap_subtitle">Клик миша при тапу са два прста (нпр. десни клик уместо средњег)</string>
+    <string name="settings_desktop_three_finger_tap_title">Тап са три прста на радној површини</string>
+    <string name="settings_desktop_three_finger_tap_subtitle">Клик миша при тапу са три прста</string>
+    <string name="settings_desktop_gesture_right_click">Десни клик</string>
+    <string name="settings_desktop_gesture_middle_click">Средњи клик</string>
+    <string name="settings_desktop_gesture_left_click">Леви клик</string>
+    <string name="settings_desktop_gesture_disabled">Онемогућено</string>
 </resources>

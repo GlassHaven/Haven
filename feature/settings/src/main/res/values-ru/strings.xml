@@ -574,4 +574,14 @@
     <string name="settings_user_guide_back_cd">Назад</string>
     <string name="settings_user_guide_no_results">Подходящие разделы не найдены.</string>
     <string name="settings_user_guide_load_error">Не удалось загрузить встроенное руководство.</string>
+    <string name="settings_desktop_long_press_title">Жест долгого нажатия на рабочем столе</string>
+    <string name="settings_desktop_long_press_subtitle">Щелчок мыши при удержании одного пальца в VNC, RDP, SPICE или GLKVM</string>
+    <string name="settings_desktop_two_finger_tap_title">Касание двумя пальцами на рабочем столе</string>
+    <string name="settings_desktop_two_finger_tap_subtitle">Щелчок мыши при касании двумя пальцами (например, правый клик вместо среднего)</string>
+    <string name="settings_desktop_three_finger_tap_title">Касание тремя пальцами на рабочем столе</string>
+    <string name="settings_desktop_three_finger_tap_subtitle">Щелчок мыши при касании тремя пальцами</string>
+    <string name="settings_desktop_gesture_right_click">Правый клик</string>
+    <string name="settings_desktop_gesture_middle_click">Средний клик</string>
+    <string name="settings_desktop_gesture_left_click">Левый клик</string>
+    <string name="settings_desktop_gesture_disabled">Отключено</string>
 </resources>

@@ -160,6 +160,8 @@ fun VncSessionContent(
     touchpadSensitivity: Float = 1f,
     /** Persist trackpad sensitivity from the toolbar (#696). Null hides the control. */
     onSetTouchpadSensitivity: ((Float) -> Unit)? = null,
+    /** Configurable touch gesture click bindings (#836). */
+    mouseGestures: sh.haven.core.ui.DesktopMouseGestureConfig = sh.haven.core.ui.DesktopMouseGestureConfig.DEFAULT,
     bandwidthSuggestion: StateFlow<String?>? = null,
     onAcceptBandwidthSuggestion: (() -> Unit)? = null,
     onDismissBandwidthSuggestion: (() -> Unit)? = null,
@@ -285,6 +287,7 @@ fun VncSessionContent(
             onSetInputMode = onSetInputMode,
             touchpadSensitivity = touchpadSensitivity,
             onSetTouchpadSensitivity = onSetTouchpadSensitivity,
+            mouseGestures = mouseGestures,
             bandwidthSuggestion = bandwidthSuggestion?.collectAsState()?.value,
             onAcceptBandwidthSuggestion = onAcceptBandwidthSuggestion,
             onDismissBandwidthSuggestion = onDismissBandwidthSuggestion,
@@ -458,6 +461,8 @@ private fun VncViewer(
     touchpadSensitivity: Float = 1f,
     /** Persist trackpad sensitivity from the toolbar (#696). Null hides the control. */
     onSetTouchpadSensitivity: ((Float) -> Unit)? = null,
+    /** Configurable touch gesture click bindings (#836). */
+    mouseGestures: sh.haven.core.ui.DesktopMouseGestureConfig = sh.haven.core.ui.DesktopMouseGestureConfig.DEFAULT,
     bandwidthSuggestion: String? = null,
     onAcceptBandwidthSuggestion: (() -> Unit)? = null,
     onDismissBandwidthSuggestion: (() -> Unit)? = null,
@@ -856,6 +861,7 @@ private fun VncViewer(
             state = viewportState,
             inputMode = inputMode,
             touchpadSensitivity = touchpadSensitivity,
+            mouseGestures = mouseGestures,
             twoFingerScroll = twoFingerScroll,
             scrollWhenUnzoomed = twoFingerZoom,
             coverFill = coverFill,

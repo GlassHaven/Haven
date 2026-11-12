@@ -523,6 +523,32 @@ fun HavenNavHost(
         .collectAsState(initial = "DIRECT")
     val desktopTouchpadSensitivity by preferencesRepository.desktopTouchpadSensitivity
         .collectAsState(initial = 1f)
+    val desktopLongPressAction by preferencesRepository.desktopLongPressAction
+        .collectAsState(initial = "RIGHT_CLICK")
+    val desktopTwoFingerTapAction by preferencesRepository.desktopTwoFingerTapAction
+        .collectAsState(initial = "MIDDLE_CLICK")
+    val desktopThreeFingerTapAction by preferencesRepository.desktopThreeFingerTapAction
+        .collectAsState(initial = "NONE")
+    val desktopMouseGestures = remember(
+        desktopLongPressAction,
+        desktopTwoFingerTapAction,
+        desktopThreeFingerTapAction,
+    ) {
+        sh.haven.core.ui.DesktopMouseGestureConfig(
+            longPressAction = sh.haven.core.ui.DesktopGestureAction.fromStorage(
+                desktopLongPressAction,
+                sh.haven.core.ui.DesktopGestureAction.RIGHT_CLICK,
+            ),
+            twoFingerTapAction = sh.haven.core.ui.DesktopGestureAction.fromStorage(
+                desktopTwoFingerTapAction,
+                sh.haven.core.ui.DesktopGestureAction.MIDDLE_CLICK,
+            ),
+            threeFingerTapAction = sh.haven.core.ui.DesktopGestureAction.fromStorage(
+                desktopThreeFingerTapAction,
+                sh.haven.core.ui.DesktopGestureAction.NONE,
+            ),
+        )
+    }
 
     // Profile ID to focus when navigating to terminal
     var pendingTerminalProfileId by rememberSaveable { mutableStateOf<String?>(null) }
@@ -877,6 +903,7 @@ fun HavenNavHost(
                         onSetTouchpadSensitivity = { value ->
                             coroutineScope.launch { preferencesRepository.setDesktopTouchpadSensitivity(value) }
                         },
+                        mouseGestures = desktopMouseGestures,
                         isActive = pagerState.settledPage == pageOf(Screen.Desktop),
                         fullscreen = desktopFullscreen,
                         onFullscreenChanged = { desktopFullscreen = it },

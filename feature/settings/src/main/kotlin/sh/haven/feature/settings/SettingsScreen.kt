@@ -35,6 +35,7 @@ import androidx.compose.material.icons.filled.CloudUpload
 import androidx.compose.material.icons.filled.Sync
 import androidx.compose.material.icons.filled.Laptop
 import androidx.compose.material.icons.filled.Mouse
+import androidx.compose.material.icons.filled.TouchApp
 import androidx.compose.material.icons.filled.InstallMobile
 import androidx.compose.material.icons.filled.ColorLens
 import androidx.compose.material.icons.filled.ContentCopy
@@ -229,6 +230,9 @@ fun SettingsScreen(
     val remoteClipboardToLocal by viewModel.remoteClipboardToLocalEnabled.collectAsState()
     val sudoPromptDetectionEnabled by viewModel.sudoPromptDetectionEnabled.collectAsState()
     val desktopInputMode by viewModel.desktopInputMode.collectAsState()
+    val desktopLongPressAction by viewModel.desktopLongPressAction.collectAsState()
+    val desktopTwoFingerTapAction by viewModel.desktopTwoFingerTapAction.collectAsState()
+    val desktopThreeFingerTapAction by viewModel.desktopThreeFingerTapAction.collectAsState()
     val gpuUseVenus by viewModel.gpuUseVenus.collectAsState()
     val bandwidthAutoSuggest by viewModel.bandwidthAutoSuggest.collectAsState()
     val terminalRightClick by viewModel.terminalRightClick.collectAsState()
@@ -910,6 +914,33 @@ fun SettingsScreen(
             onCheckedChange = { enabled ->
                 viewModel.setDesktopInputMode(if (enabled) "TOUCHPAD" else "DIRECT")
             },
+        )
+        SettingsChipsItem(
+            icon = Icons.Filled.TouchApp,
+            title = stringResource(R.string.settings_desktop_long_press_title),
+            subtitle = stringResource(R.string.settings_desktop_long_press_subtitle),
+            options = sh.haven.core.ui.DesktopGestureAction.entries,
+            selected = desktopLongPressAction,
+            label = { action -> stringResource(desktopGestureActionLabel(action)) },
+            onChange = viewModel::setDesktopLongPressAction,
+        )
+        SettingsChipsItem(
+            icon = Icons.Filled.TouchApp,
+            title = stringResource(R.string.settings_desktop_two_finger_tap_title),
+            subtitle = stringResource(R.string.settings_desktop_two_finger_tap_subtitle),
+            options = sh.haven.core.ui.DesktopGestureAction.entries,
+            selected = desktopTwoFingerTapAction,
+            label = { action -> stringResource(desktopGestureActionLabel(action)) },
+            onChange = viewModel::setDesktopTwoFingerTapAction,
+        )
+        SettingsChipsItem(
+            icon = Icons.Filled.TouchApp,
+            title = stringResource(R.string.settings_desktop_three_finger_tap_title),
+            subtitle = stringResource(R.string.settings_desktop_three_finger_tap_subtitle),
+            options = sh.haven.core.ui.DesktopGestureAction.entries,
+            selected = desktopThreeFingerTapAction,
+            label = { action -> stringResource(desktopGestureActionLabel(action)) },
+            onChange = viewModel::setDesktopThreeFingerTapAction,
         )
         // Selects the GPU stack for the native compositor.
         if (nativeFeatures.wayland) {
@@ -3507,6 +3538,7 @@ private fun SettingsHintItem(
 }
 
 /** Generic settings row whose value is a chip choice (enum prefs). */
+@OptIn(androidx.compose.foundation.layout.ExperimentalLayoutApi::class)
 @Composable
 private fun <T> SettingsChipsItem(
     icon: ImageVector,
@@ -3524,7 +3556,7 @@ private fun <T> SettingsChipsItem(
             Icon(icon, contentDescription = null, tint = MaterialTheme.colorScheme.primary)
         },
     )
-    Row(modifier = Modifier.padding(start = 24.dp, bottom = 8.dp)) {
+    FlowRow(modifier = Modifier.padding(start = 24.dp, end = 16.dp, bottom = 8.dp)) {
         options.forEach { option ->
             FilterChip(
                 selected = option == selected,
@@ -3536,6 +3568,14 @@ private fun <T> SettingsChipsItem(
             )
         }
     }
+}
+
+@androidx.annotation.StringRes
+private fun desktopGestureActionLabel(action: sh.haven.core.ui.DesktopGestureAction): Int = when (action) {
+    sh.haven.core.ui.DesktopGestureAction.RIGHT_CLICK -> R.string.settings_desktop_gesture_right_click
+    sh.haven.core.ui.DesktopGestureAction.MIDDLE_CLICK -> R.string.settings_desktop_gesture_middle_click
+    sh.haven.core.ui.DesktopGestureAction.LEFT_CLICK -> R.string.settings_desktop_gesture_left_click
+    sh.haven.core.ui.DesktopGestureAction.NONE -> R.string.settings_desktop_gesture_disabled
 }
 
 /** String resource for a [UserPreferencesRepository.TerminalInlineImages] chip label. */

@@ -160,6 +160,10 @@ class UserPreferencesRepository @Inject constructor(
     private val desktopInputModeKey = stringPreferencesKey("desktop_input_mode")
     // Trackpad-mode speed multiplier (#696). 1f = the 1:1 finger→cursor ratio.
     private val desktopTouchpadSensitivityKey = floatPreferencesKey("desktop_touchpad_sensitivity")
+    // Configurable desktop touch-gesture click bindings (#836).
+    private val desktopLongPressActionKey = stringPreferencesKey("desktop_long_press_action")
+    private val desktopTwoFingerTapActionKey = stringPreferencesKey("desktop_two_finger_tap_action")
+    private val desktopThreeFingerTapActionKey = stringPreferencesKey("desktop_three_finger_tap_action")
     // Experimental GPU stack for accelerated Wayland/cage desktops. Off (default)
     // = virgl/virpipe (GL 2.1, present works on every path). On = venus
     // (Vulkan→Mali) + zink (modern GL, ~3.2 core) with the wl_shm CPU-copy WSI
@@ -790,6 +794,49 @@ class UserPreferencesRepository @Inject constructor(
     suspend fun setDesktopTouchpadSensitivity(value: Float) {
         dataStore.edit { prefs ->
             prefs[desktopTouchpadSensitivityKey] = value
+        }
+    }
+
+    /**
+     * Mouse button action triggered by a stationary 1-finger long-press on a
+     * desktop viewport (`"RIGHT_CLICK"` default, `"MIDDLE_CLICK"`,
+     * `"LEFT_CLICK"`, or `"NONE"`, #836).
+     */
+    val desktopLongPressAction: Flow<String> = dataStore.data.map { prefs ->
+        prefs[desktopLongPressActionKey] ?: "RIGHT_CLICK"
+    }
+
+    suspend fun setDesktopLongPressAction(action: String) {
+        dataStore.edit { prefs ->
+            prefs[desktopLongPressActionKey] = action
+        }
+    }
+
+    /**
+     * Mouse button action triggered by a 2-finger tap on a desktop viewport
+     * (`"MIDDLE_CLICK"` default, `"RIGHT_CLICK"`, `"LEFT_CLICK"`, or `"NONE"`, #836).
+     */
+    val desktopTwoFingerTapAction: Flow<String> = dataStore.data.map { prefs ->
+        prefs[desktopTwoFingerTapActionKey] ?: "MIDDLE_CLICK"
+    }
+
+    suspend fun setDesktopTwoFingerTapAction(action: String) {
+        dataStore.edit { prefs ->
+            prefs[desktopTwoFingerTapActionKey] = action
+        }
+    }
+
+    /**
+     * Mouse button action triggered by a 3-finger tap on a desktop viewport
+     * (`"NONE"` default, `"MIDDLE_CLICK"`, `"RIGHT_CLICK"`, or `"LEFT_CLICK"`, #836).
+     */
+    val desktopThreeFingerTapAction: Flow<String> = dataStore.data.map { prefs ->
+        prefs[desktopThreeFingerTapActionKey] ?: "NONE"
+    }
+
+    suspend fun setDesktopThreeFingerTapAction(action: String) {
+        dataStore.edit { prefs ->
+            prefs[desktopThreeFingerTapActionKey] = action
         }
     }
 

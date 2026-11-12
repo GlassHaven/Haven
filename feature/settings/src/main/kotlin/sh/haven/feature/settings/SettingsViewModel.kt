@@ -660,6 +660,33 @@ class SettingsViewModel @Inject constructor(
         viewModelScope.launch { preferencesRepository.setDesktopInputMode(mode) }
     }
 
+    val desktopLongPressAction: StateFlow<sh.haven.core.ui.DesktopGestureAction> =
+        preferencesRepository.desktopLongPressAction
+            .map { sh.haven.core.ui.DesktopGestureAction.fromStorage(it, sh.haven.core.ui.DesktopGestureAction.RIGHT_CLICK) }
+            .stateIn(viewModelScope, SharingStarted.WhileSubscribed(5000), sh.haven.core.ui.DesktopGestureAction.RIGHT_CLICK)
+
+    fun setDesktopLongPressAction(action: sh.haven.core.ui.DesktopGestureAction) {
+        viewModelScope.launch { preferencesRepository.setDesktopLongPressAction(action.storageValue) }
+    }
+
+    val desktopTwoFingerTapAction: StateFlow<sh.haven.core.ui.DesktopGestureAction> =
+        preferencesRepository.desktopTwoFingerTapAction
+            .map { sh.haven.core.ui.DesktopGestureAction.fromStorage(it, sh.haven.core.ui.DesktopGestureAction.MIDDLE_CLICK) }
+            .stateIn(viewModelScope, SharingStarted.WhileSubscribed(5000), sh.haven.core.ui.DesktopGestureAction.MIDDLE_CLICK)
+
+    fun setDesktopTwoFingerTapAction(action: sh.haven.core.ui.DesktopGestureAction) {
+        viewModelScope.launch { preferencesRepository.setDesktopTwoFingerTapAction(action.storageValue) }
+    }
+
+    val desktopThreeFingerTapAction: StateFlow<sh.haven.core.ui.DesktopGestureAction> =
+        preferencesRepository.desktopThreeFingerTapAction
+            .map { sh.haven.core.ui.DesktopGestureAction.fromStorage(it, sh.haven.core.ui.DesktopGestureAction.NONE) }
+            .stateIn(viewModelScope, SharingStarted.WhileSubscribed(5000), sh.haven.core.ui.DesktopGestureAction.NONE)
+
+    fun setDesktopThreeFingerTapAction(action: sh.haven.core.ui.DesktopGestureAction) {
+        viewModelScope.launch { preferencesRepository.setDesktopThreeFingerTapAction(action.storageValue) }
+    }
+
     /** Desktop size Haven asks RDP servers for (#422). */
     val rdpDesktopWidth: StateFlow<Int> = preferencesRepository.rdpDesktopWidth
         .stateIn(viewModelScope, SharingStarted.WhileSubscribed(5000), 1920)

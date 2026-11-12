@@ -82,8 +82,11 @@ import androidx.lifecycle.ViewModel
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import dagger.hilt.android.lifecycle.HiltViewModel
 import kotlinx.coroutines.Dispatchers
-import kotlinx.coroutines.flow.first
+import kotlinx.coroutines.flow.SharingStarted
 import kotlinx.coroutines.flow.StateFlow
+import kotlinx.coroutines.flow.combine
+import kotlinx.coroutines.flow.first
+import kotlinx.coroutines.flow.stateIn
 import kotlinx.coroutines.withContext
 import androidx.compose.ui.platform.LocalContext
 import androidx.lifecycle.viewModelScope
@@ -115,6 +118,30 @@ internal class PresentationHostViewModel @Inject constructor(
 ) : ViewModel() {
     val pending: StateFlow<List<PresentedMedia>> = manager.pending
     val minimizedIds: StateFlow<Set<Long>> = manager.minimizedIds
+    val mouseGestures: StateFlow<sh.haven.core.ui.DesktopMouseGestureConfig> = combine(
+        preferencesRepository.desktopLongPressAction,
+        preferencesRepository.desktopTwoFingerTapAction,
+        preferencesRepository.desktopThreeFingerTapAction,
+    ) { lp, two, three ->
+        sh.haven.core.ui.DesktopMouseGestureConfig(
+            longPressAction = sh.haven.core.ui.DesktopGestureAction.fromStorage(
+                lp,
+                sh.haven.core.ui.DesktopGestureAction.RIGHT_CLICK,
+            ),
+            twoFingerTapAction = sh.haven.core.ui.DesktopGestureAction.fromStorage(
+                two,
+                sh.haven.core.ui.DesktopGestureAction.MIDDLE_CLICK,
+            ),
+            threeFingerTapAction = sh.haven.core.ui.DesktopGestureAction.fromStorage(
+                three,
+                sh.haven.core.ui.DesktopGestureAction.NONE,
+            ),
+        )
+    }.stateIn(
+        viewModelScope,
+        SharingStarted.WhileSubscribed(5000),
+        sh.haven.core.ui.DesktopMouseGestureConfig.DEFAULT,
+    )
 
     init {
         viewModelScope.launch {
@@ -224,6 +251,7 @@ internal class PresentationHostViewModel @Inject constructor(
 internal fun PresentationHost(viewModel: PresentationHostViewModel = hiltViewModel()) {
     val pending by viewModel.pending.collectAsStateWithLifecycle()
     val minimized by viewModel.minimizedIds.collectAsStateWithLifecycle()
+    val mouseGestures by viewModel.mouseGestures.collectAsStateWithLifecycle()
     val externalDisplayController = sh.haven.core.ui.LocalExternalDisplayProjectionController.current
     if (externalDisplayController != null) {
         AppWindowExternalDisplaySync(
@@ -346,6 +374,7 @@ internal fun PresentationHost(viewModel: PresentationHostViewModel = hiltViewMod
                         AppWindowContent(
                             sessionKey = "app-window:${current.id}",
                             controller = controller,
+                            mouseGestures = mouseGestures,
                             fullscreen = appFullscreen,
                             onFullscreenChange = { appFullscreen = it },
                             // Close (in the viewer's own toolbar) tears the cage
@@ -836,6 +865,7 @@ private fun AppWindowExternalDisplaySync(
 private fun AppWindowContent(
     sessionKey: String,
     controller: AppWindowVncController,
+    mouseGestures: sh.haven.core.ui.DesktopMouseGestureConfig,
     fullscreen: Boolean,
     onFullscreenChange: (Boolean) -> Unit,
     onDismiss: () -> Unit,
@@ -906,7 +936,7 @@ private fun AppWindowContent(
             }
             Box(modifier = Modifier.fillMaxSize().background(Color.Black)) {
                 Box(modifier = Modifier.fillMaxSize().then(insetMod)) {
-                    AppWindowVnc(sessionKey, controller, true, onFullscreenChange, onDismiss, onMinimize, onPictureInPicture, currentScale, onChangeScale, onSaveDefault)
+                    AppWindowVnc(sessionKey, controller, mouseGestures, true, onFullscreenChange, onDismiss, onMinimize, onPictureInPicture, currentScale, onChangeScale, onSaveDefault)
                 }
             }
         }
@@ -915,7 +945,7 @@ private fun AppWindowContent(
         Box(modifier = Modifier.fillMaxWidth().height(420.dp))
     } else {
         Box(modifier = Modifier.fillMaxWidth().height(420.dp)) {
-            AppWindowVnc(sessionKey, controller, false, onFullscreenChange, onDismiss, onMinimize, onPictureInPicture, currentScale, onChangeScale, onSaveDefault)
+            AppWindowVnc(sessionKey, controller, mouseGestures, false, onFullscreenChange, onDismiss, onMinimize, onPictureInPicture, currentScale, onChangeScale, onSaveDefault)
         }
     }
 }
@@ -925,6 +955,7 @@ private fun AppWindowContent(
 private fun AppWindowVnc(
     sessionKey: String,
     controller: AppWindowVncController,
+    mouseGestures: sh.haven.core.ui.DesktopMouseGestureConfig,
     fullscreenOverride: Boolean,
     onFullscreenChange: (Boolean) -> Unit,
     onDismiss: () -> Unit,
@@ -939,7 +970,9 @@ private fun AppWindowVnc(
         frame = controller.frame,
         error = controller.error,
         onTap = { x, y -> controller.click(x, y, 1) },
+        onMiddleClick = { x, y -> controller.click(x, y, 2) },
         onLongPress = { x, y -> controller.click(x, y, 3) },
+        mouseGestures = mouseGestures,
         onDragStart = { x, y -> controller.dragStart(x, y) },
         onDrag = { x, y -> controller.drag(x, y) },
         onDragEnd = { controller.dragEnd() },

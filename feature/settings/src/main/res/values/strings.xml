@@ -616,4 +616,14 @@ Every private key already stored in Haven will need to be imported or generated 
     <string name="settings_user_guide_back_cd">Back</string>
     <string name="settings_user_guide_no_results">No matching topics found.</string>
     <string name="settings_user_guide_load_error">Could not load bundled user guide.</string>
+    <string name="settings_desktop_long_press_title">Desktop long-press gesture</string>
+    <string name="settings_desktop_long_press_subtitle">Mouse click sent when holding one finger still on VNC, RDP, SPICE, or GLKVM</string>
+    <string name="settings_desktop_two_finger_tap_title">Desktop two-finger tap</string>
+    <string name="settings_desktop_two_finger_tap_subtitle">Mouse click sent by a two-finger tap (for example right-click instead of middle-click)</string>
+    <string name="settings_desktop_three_finger_tap_title">Desktop three-finger tap</string>
+    <string name="settings_desktop_three_finger_tap_subtitle">Mouse click sent by a three-finger tap</string>
+    <string name="settings_desktop_gesture_right_click">Right-click</string>
+    <string name="settings_desktop_gesture_middle_click">Middle-click</string>
+    <string name="settings_desktop_gesture_left_click">Left-click</string>
+    <string name="settings_desktop_gesture_disabled">Disabled</string>
 </resources>

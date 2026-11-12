@@ -576,4 +576,14 @@
     <string name="settings_user_guide_back_cd">رجوع</string>
     <string name="settings_user_guide_no_results">لم يتم العثور على مواضيع مطابقة.</string>
     <string name="settings_user_guide_load_error">تعذر تحميل دليل المستخدم المدمج.</string>
+    <string name="settings_desktop_long_press_title">إيماءة الضغط المطوّل لسطح المكتب</string>
+    <string name="settings_desktop_long_press_subtitle">نقرة الفأرة المُرسلة عند تثبيت إصبع واحد في VNC أو RDP أو SPICE أو GLKVM</string>
+    <string name="settings_desktop_two_finger_tap_title">النقر بإصبعين لسطح المكتب</string>
+    <string name="settings_desktop_two_finger_tap_subtitle">نقرة الفأرة المُرسلة عند النقر بإصبعين (مثل النقر الأيمن بدل النقر الأوسط)</string>
+    <string name="settings_desktop_three_finger_tap_title">النقر بثلاثة أصابع لسطح المكتب</string>
+    <string name="settings_desktop_three_finger_tap_subtitle">نقرة الفأرة المُرسلة عند النقر بثلاثة أصابع</string>
+    <string name="settings_desktop_gesture_right_click">نقر أيمن</string>
+    <string name="settings_desktop_gesture_middle_click">نقر أوسط</string>
+    <string name="settings_desktop_gesture_left_click">نقر أيسر</string>
+    <string name="settings_desktop_gesture_disabled">معطّل</string>
 </resources>

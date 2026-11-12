@@ -572,4 +572,14 @@ Jeder bereits in Haven gespeicherte private Schlüssel muss erneut importiert od
     <string name="settings_user_guide_back_cd">Zurück</string>
     <string name="settings_user_guide_no_results">Keine passenden Themen gefunden.</string>
     <string name="settings_user_guide_load_error">Integriertes Benutzerhandbuch konnte nicht geladen werden.</string>
+    <string name="settings_desktop_long_press_title">Desktop-Geste: Gedrückthalten</string>
+    <string name="settings_desktop_long_press_subtitle">Mausklick beim ruhigen Halten eines Fingers in VNC, RDP, SPICE oder GLKVM</string>
+    <string name="settings_desktop_two_finger_tap_title">Desktop-Tippen mit zwei Fingern</string>
+    <string name="settings_desktop_two_finger_tap_subtitle">Mausklick beim Tippen mit zwei Fingern (z. B. Rechtsklick statt Mittelklick)</string>
+    <string name="settings_desktop_three_finger_tap_title">Desktop-Tippen mit drei Fingern</string>
+    <string name="settings_desktop_three_finger_tap_subtitle">Mausklick beim Tippen mit drei Fingern</string>
+    <string name="settings_desktop_gesture_right_click">Rechtsklick</string>
+    <string name="settings_desktop_gesture_middle_click">Mittelklick</string>
+    <string name="settings_desktop_gesture_left_click">Linksklick</string>
+    <string name="settings_desktop_gesture_disabled">Deaktiviert</string>
 </resources>

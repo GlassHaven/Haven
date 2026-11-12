@@ -572,4 +572,14 @@ Cada clave privada ya almacenada en Haven deberá importarse o generarse de nuev
     <string name="settings_user_guide_back_cd">Atrás</string>
     <string name="settings_user_guide_no_results">No se encontraron temas coincidentes.</string>
     <string name="settings_user_guide_load_error">No se pudo cargar la guía integrada.</string>
+    <string name="settings_desktop_long_press_title">Gesto de pulsación larga en escritorio</string>
+    <string name="settings_desktop_long_press_subtitle">Clic de ratón al mantener un dedo quieto en VNC, RDP, SPICE o GLKVM</string>
+    <string name="settings_desktop_two_finger_tap_title">Toque con dos dedos en escritorio</string>
+    <string name="settings_desktop_two_finger_tap_subtitle">Clic de ratón al tocar con dos dedos (por ejemplo clic derecho en lugar de clic central)</string>
+    <string name="settings_desktop_three_finger_tap_title">Toque con tres dedos en escritorio</string>
+    <string name="settings_desktop_three_finger_tap_subtitle">Clic de ratón al tocar con tres dedos</string>
+    <string name="settings_desktop_gesture_right_click">Clic derecho</string>
+    <string name="settings_desktop_gesture_middle_click">Clic central</string>
+    <string name="settings_desktop_gesture_left_click">Clic izquierdo</string>
+    <string name="settings_desktop_gesture_disabled">Desactivado</string>
 </resources>

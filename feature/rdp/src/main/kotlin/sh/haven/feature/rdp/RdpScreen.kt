@@ -160,6 +160,8 @@ fun RdpSessionContent(
     touchpadSensitivity: Float = 1f,
     /** Persist trackpad sensitivity from the toolbar (#696). Null hides the control. */
     onSetTouchpadSensitivity: ((Float) -> Unit)? = null,
+    /** Configurable touch gesture click bindings (#836). */
+    mouseGestures: sh.haven.core.ui.DesktopMouseGestureConfig = sh.haven.core.ui.DesktopMouseGestureConfig.DEFAULT,
     /**
      * Multi-touch MS-RDPEI (`Microsoft::Windows::RDS::Input`) frame callback (#778).
      * Non-null enables `"TOUCHSCREEN"` in the input-mode toggle and forwards
@@ -267,6 +269,7 @@ fun RdpSessionContent(
             onSetInputMode = onSetInputMode,
             touchpadSensitivity = touchpadSensitivity,
             onSetTouchpadSensitivity = onSetTouchpadSensitivity,
+            mouseGestures = mouseGestures,
             onTouchFrame = onTouchFrame,
             onCancelTouches = onCancelTouches,
             currentOrientation = currentOrientation,
@@ -469,6 +472,8 @@ private fun RdpViewer(
     touchpadSensitivity: Float = 1f,
     /** Persist trackpad sensitivity from the toolbar (#696). Null hides the control. */
     onSetTouchpadSensitivity: ((Float) -> Unit)? = null,
+    /** Configurable touch gesture click bindings (#836). */
+    mouseGestures: sh.haven.core.ui.DesktopMouseGestureConfig = sh.haven.core.ui.DesktopMouseGestureConfig.DEFAULT,
     onTouchFrame: ((List<sh.haven.core.rdp.RdpTouchContactSample>) -> Unit)? = null,
     onCancelTouches: (() -> Unit)? = null,
     currentOrientation: Int = android.content.pm.ActivityInfo.SCREEN_ORIENTATION_LANDSCAPE,
@@ -759,6 +764,7 @@ private fun RdpViewer(
             state = viewportState,
             inputMode = effectiveInputMode,
             touchpadSensitivity = touchpadSensitivity,
+            mouseGestures = mouseGestures,
             twoFingerScroll = twoFingerScroll,
             minZoom = 1f,
             maxZoom = 5f,

@@ -571,4 +571,14 @@ Haven にすでに保存されているすべての秘密鍶は、再びイン�
     <string name="settings_user_guide_back_cd">戻る</string>
     <string name="settings_user_guide_no_results">一致するトピックが見つかりません。</string>
     <string name="settings_user_guide_load_error">内蔵のユーザーガイドを読み込めませんでした。</string>
+    <string name="settings_desktop_long_press_title">デスクトップの長押しジェスチャー</string>
+    <string name="settings_desktop_long_press_subtitle">VNC、RDP、SPICE、GLKVM で 1 本指を静止長押ししたときに送るマウスクリック</string>
+    <string name="settings_desktop_two_finger_tap_title">デスクトップの 2 本指タップ</string>
+    <string name="settings_desktop_two_finger_tap_subtitle">2 本指タップで送るマウスクリック（中クリックの代わりに右クリックなど）</string>
+    <string name="settings_desktop_three_finger_tap_title">デスクトップの 3 本指タップ</string>
+    <string name="settings_desktop_three_finger_tap_subtitle">3 本指タップで送るマウスクリック</string>
+    <string name="settings_desktop_gesture_right_click">右クリック</string>
+    <string name="settings_desktop_gesture_middle_click">中クリック</string>
+    <string name="settings_desktop_gesture_left_click">左クリック</string>
+    <string name="settings_desktop_gesture_disabled">無効</string>
 </resources>

@@ -209,6 +209,26 @@ class BackupServiceTest {
         assertEquals(67890L, repo.lastViewedAgentAuditTimestamp.first())
     }
 
+    @Test
+    fun `desktop mouse gesture preferences survive backup export and import (#836)`() = runTest {
+        val repo = UserPreferencesRepository(mockk(relaxed = true), dataStore)
+        assertEquals("RIGHT_CLICK", repo.desktopLongPressAction.first())
+        assertEquals("MIDDLE_CLICK", repo.desktopTwoFingerTapAction.first())
+        assertEquals("NONE", repo.desktopThreeFingerTapAction.first())
+
+        repo.setDesktopLongPressAction("NONE")
+        repo.setDesktopTwoFingerTapAction("RIGHT_CLICK")
+        repo.setDesktopThreeFingerTapAction("MIDDLE_CLICK")
+
+        val encrypted = service.export("pw")
+        dataStore.edit { it.clear() }
+        service.import(encrypted, "pw")
+
+        assertEquals("NONE", repo.desktopLongPressAction.first())
+        assertEquals("RIGHT_CLICK", repo.desktopTwoFingerTapAction.first())
+        assertEquals("MIDDLE_CLICK", repo.desktopThreeFingerTapAction.first())
+    }
+
     @Test(expected = Exception::class)
     fun `import with wrong password throws`() = runTest {
         coEvery { connectionRepository.getAll() } returns emptyList()

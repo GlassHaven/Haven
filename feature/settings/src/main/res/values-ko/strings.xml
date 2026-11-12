@@ -571,4 +571,14 @@ Haven에 이미 저장된 모든 개인 키는 다시 가져오거나 생성해�
     <string name="settings_user_guide_back_cd">뒤로</string>
     <string name="settings_user_guide_no_results">일치하는 주제가 없습니다.</string>
     <string name="settings_user_guide_load_error">내장된 사용 설명서를 불러올 수 없습니다.</string>
+    <string name="settings_desktop_long_press_title">데스크톱 길게 누르기 제스처</string>
+    <string name="settings_desktop_long_press_subtitle">VNC, RDP, SPICE, GLKVM에서 한 손가락을 움직이지 않고 길게 누를 때 보낼 마우스 클릭</string>
+    <string name="settings_desktop_two_finger_tap_title">데스크톱 두 손가락 탭</string>
+    <string name="settings_desktop_two_finger_tap_subtitle">두 손가락 탭으로 보낼 마우스 클릭 (예: 가운데 클릭 대신 오른쪽 클릭)</string>
+    <string name="settings_desktop_three_finger_tap_title">데스크톱 세 손가락 탭</string>
+    <string name="settings_desktop_three_finger_tap_subtitle">세 손가락 탭으로 보낼 마우스 클릭</string>
+    <string name="settings_desktop_gesture_right_click">오른쪽 클릭</string>
+    <string name="settings_desktop_gesture_middle_click">가운데 클릭</string>
+    <string name="settings_desktop_gesture_left_click">왼쪽 클릭</string>
+    <string name="settings_desktop_gesture_disabled">사용 안 함</string>
 </resources>

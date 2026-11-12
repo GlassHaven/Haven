@@ -50,6 +50,9 @@ private const val PREF_DNS_MODE = "proot_dns_mode"
 private const val PREF_DNS_SERVERS = "proot_dns_servers"
 private const val PREF_GUEST_USERNAME = "guest_username"
 
+/** Per-distro default login user (#567). Key suffix is the distro id. */
+private const val PREF_GUEST_USERNAME_PREFIX = "guest_username_"
+
 /** Per-distro custom bind mounts (#301). Key suffix is the distro id. */
 private const val PREF_CUSTOM_BINDS_PREFIX = "custom_binds_"
 
@@ -958,12 +961,55 @@ class ProotManager constructor(
         _guestUsername.value = clean
     }
 
+    private val _guestUserRev = MutableStateFlow(0)
+    /** Bumped whenever any distro's default login user changes (#567). */
+    val guestUserRev: StateFlow<Int> = _guestUserRev.asStateFlow()
+
     /**
-     * Provision the configured [guestUsername] inside [rootfsDir] if non-empty,
-     * returning the [GuestUserSpec] to launch PRoot with.
+     * Default non-root login username for [distroId] (#567), or `""` for `root`.
+     *
+     * When an explicit per-distro key (`guest_username_<distroId>`) is stored, its
+     * sanitized value wins — including `""` (`root`), so one distro can explicitly
+     * stay `root` even when a legacy global [PREF_GUEST_USERNAME] exists. Otherwise
+     * falls back to the global [guestUsername] (#718) so existing single-setting
+     * upgrades keep their configured user without migration.
      */
-    fun ensureGuestUser(rootfsDir: File): GuestUserSpec =
-        provisionGuestUser(rootfsDir, _guestUsername.value)
+    fun guestUsernameFor(distroId: String): String {
+        val key = "$PREF_GUEST_USERNAME_PREFIX$distroId"
+        if (prefs.contains(key)) {
+            return sanitizeGuestUsername(prefs.getString(key, "").orEmpty())
+        }
+        return _guestUsername.value
+    }
+
+    /** True when [distroId] has an explicit per-distro login user override (#567). */
+    fun hasGuestUsernameOverride(distroId: String): Boolean =
+        prefs.contains("$PREF_GUEST_USERNAME_PREFIX$distroId")
+
+    /** Set the default login user for [distroId] (#567). `"root"` or blank stores `""` (`root`). */
+    fun setGuestUsernameFor(distroId: String, raw: String) {
+        val clean = sanitizeGuestUsername(raw)
+        val key = "$PREF_GUEST_USERNAME_PREFIX$distroId"
+        if (prefs.contains(key) && sanitizeGuestUsername(prefs.getString(key, "").orEmpty()) == clean) return
+        prefs.edit().putString(key, clean).apply()
+        _guestUserRev.value++
+    }
+
+    /** Remove [distroId]'s explicit login user override so it inherits the default (#567). */
+    fun clearGuestUsernameFor(distroId: String) {
+        val key = "$PREF_GUEST_USERNAME_PREFIX$distroId"
+        if (!prefs.contains(key)) return
+        prefs.edit().remove(key).apply()
+        _guestUserRev.value++
+    }
+
+    /**
+     * Provision the configured login user for [distroId] inside [rootfsDir] if non-empty,
+     * returning the [GuestUserSpec] to launch PRoot with (#718, #567).
+     */
+    @JvmOverloads
+    fun ensureGuestUser(rootfsDir: File, distroId: String = activeDistroId): GuestUserSpec =
+        provisionGuestUser(rootfsDir, guestUsernameFor(distroId))
 
     private val dnsProxyBridge = ProotDnsProxyBridge()
 
@@ -5107,6 +5153,7 @@ chmod +x /root/.vnc/xstartup""")
         if (!DistroCatalog.isBuiltin(distroId)) {
             persistCustomDistros(customDistros.filter { it.id != distroId })
         }
+        clearGuestUsernameFor(distroId)
         if (activeDistroId == distroId) {
             reconcileActiveDistro()
         }

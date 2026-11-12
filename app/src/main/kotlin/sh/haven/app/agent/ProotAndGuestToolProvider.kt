@@ -629,6 +629,7 @@ internal class ProotAndGuestToolProvider(
         put("installedDesktops", JSONArray().apply {
             prootManager.installedDesktopsFor(d.id).forEach { put(it.spec.id) }
         })
+        put("defaultLoginUser", prootManager.guestUsernameFor(d.id).ifEmpty { "root" })
     }
 
     private fun rootfsBytesOnDisk(distroId: String): Long {

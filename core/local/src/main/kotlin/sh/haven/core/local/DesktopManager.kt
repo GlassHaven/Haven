@@ -841,7 +841,7 @@ class DesktopManager @Inject constructor(
     ): String {
         val instance = _desktops.value[de]
             ?: throw IllegalStateException("Desktop '${de.spec.id}' is not running")
-        val configuredUser = prootManager.ensureGuestUser(prootManager.activeRootfsDir)
+        val configuredUser = prootManager.ensureGuestUser(prootManager.activeRootfsDir, prootManager.activeDistroId)
         val guestUser = when (de.spec.launch) {
             is LaunchSpec.NestedWayland -> resolveNestedWaylandUser(configuredUser)
             else -> configuredUser
@@ -946,7 +946,7 @@ class DesktopManager @Inject constructor(
         val rootfsDir = prootManager.activeRootfsDir
         prootManager.applyResolvConf(rootfsDir)
         val rootHome = File(rootfsDir, "root").apply { mkdirs() }
-        val guestUser = prootManager.ensureGuestUser(rootfsDir)
+        val guestUser = prootManager.ensureGuestUser(rootfsDir, prootManager.activeDistroId)
         val userHomeDir = File(rootfsDir, guestUser.home.trimStart('/')).apply { mkdirs() }
 
         val launch = de.spec.launch as LaunchSpec.X11Vnc
@@ -1203,7 +1203,9 @@ class DesktopManager @Inject constructor(
         val rootfsDir = prootManager.activeRootfsDir
         prootManager.applyResolvConf(rootfsDir)
         File(rootfsDir, "root").mkdirs()
-        val guestUser = resolveNestedWaylandUser(prootManager.ensureGuestUser(rootfsDir))
+        val guestUser = resolveNestedWaylandUser(
+            prootManager.ensureGuestUser(rootfsDir, prootManager.activeDistroId),
+        )
         File(rootfsDir, guestUser.home.trimStart('/')).mkdirs()
 
         val xdgInProot = "/tmp/xdg-runtime-$display"

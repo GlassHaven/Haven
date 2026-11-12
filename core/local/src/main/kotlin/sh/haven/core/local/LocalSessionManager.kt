@@ -363,7 +363,7 @@ class LocalSessionManager @Inject constructor(
             // #301: per-distro user-defined extra binds (any Android path into
             // the guest). Keyed on the distro this session actually runs.
             val customBinds = prootManager.customBindShortArgs(targetDistro).toTypedArray()
-            val guestUser = prootManager.ensureGuestUser(rootfsDir)
+            val guestUser = prootManager.ensureGuestUser(rootfsDir, targetDistro)
             ProotManager.ensureAptSandboxConfig(rootfsDir)
             val identityArgs = if (guestUser.isRoot) {
                 arrayOf("-0")

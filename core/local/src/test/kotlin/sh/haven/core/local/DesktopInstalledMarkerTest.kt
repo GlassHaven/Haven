@@ -1,13 +1,19 @@
 package sh.haven.core.local
 
+import android.content.Context
+import android.content.SharedPreferences
+import io.mockk.every
+import io.mockk.mockk
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertFalse
 import org.junit.Assert.assertTrue
 import org.junit.Rule
 import org.junit.Test
 import org.junit.rules.TemporaryFolder
+import sh.haven.core.data.repository.ProotInstallLogRepository
 import sh.haven.core.local.ProotManager.DesktopEnvironment
 import java.io.File
+import java.util.concurrent.ConcurrentHashMap
 
 /**
  * Regression coverage for #718:
@@ -226,4 +232,133 @@ class DesktopInstalledMarkerTest {
         assertEquals("1", keys["MOZ_DISABLE_SOCKET_PROCESS_SANDBOX"])
         assertEquals("1", keys["MOZ_DISABLE_UTILITY_SANDBOX"])
     }
+
+    @Test
+    fun `per-distro default login user isolates distros, honours legacy fallback, and clears on delete (#567)`() {
+        val filesDir = tmp.newFolder("files-567")
+        val cacheDir = tmp.newFolder("cache-567")
+        val store = ConcurrentHashMap<String, Any?>()
+        val prefs = inMemoryPrefs(store)
+        val ctx = mockk<Context>(relaxed = true) {
+            every { this@mockk.filesDir } returns filesDir
+            every { this@mockk.cacheDir } returns cacheDir
+            every { getSharedPreferences("proot-manager", Context.MODE_PRIVATE) } returns prefs
+        }
+
+        val mgr = ProotManager(
+            context = ctx,
+            installLogRepository = mockk<ProotInstallLogRepository>(relaxed = true),
+        )
+
+        // Fresh state: all distros default to root ("").
+        assertEquals("", mgr.guestUsernameFor("archlinux"))
+        assertEquals("", mgr.guestUsernameFor("alpine-3.21"))
+        assertFalse(mgr.hasGuestUsernameOverride("archlinux"))
+
+        // Setting Arch Linux's user leaves Alpine on root.
+        val revBefore = mgr.guestUserRev.value
+        mgr.setGuestUsernameFor("archlinux", "ArchUser")
+        assertTrue(mgr.guestUserRev.value > revBefore)
+        assertTrue(mgr.hasGuestUsernameOverride("archlinux"))
+        assertEquals("archuser", mgr.guestUsernameFor("archlinux"))
+        assertEquals("", mgr.guestUsernameFor("alpine-3.21"))
+
+        val archRootfs = File(filesDir, "proot/rootfs/archlinux").apply {
+            File(this, "etc").mkdirs()
+            File(this, "etc/passwd").writeText("root:x:0:0:root:/root:/bin/bash\n")
+            File(this, "etc/group").writeText("root:x:0:\n")
+            File(this, "etc/shadow").writeText("root:*:19000:0:99999:7:::\n")
+            File(this, "bin").mkdirs()
+            File(this, "bin/bash").writeText("#!/bin/sh\n")
+        }
+        val alpineRootfs = File(filesDir, "proot/rootfs/alpine-3.21").apply {
+            File(this, "etc").mkdirs()
+            File(this, "etc/passwd").writeText("root:x:0:0:root:/root:/bin/ash\n")
+        }
+
+        val archSpec = mgr.ensureGuestUser(archRootfs, "archlinux")
+        assertEquals("archuser", archSpec.username)
+        assertFalse(archSpec.isRoot)
+        assertTrue(File(archRootfs, "home/archuser").isDirectory)
+
+        val alpineSpec = mgr.ensureGuestUser(alpineRootfs, "alpine-3.21")
+        assertTrue(alpineSpec.isRoot)
+        assertFalse(File(alpineRootfs, "home").exists())
+
+        // Legacy global guest_username (#718) acts as fallback for distros without an override,
+        // while an explicit "root" override on one distro keeps that distro as root.
+        mgr.setGuestUsername("haven")
+        assertEquals("haven", mgr.guestUsernameFor("debian-trixie"))
+        mgr.setGuestUsernameFor("alpine-3.21", "root")
+        assertTrue(mgr.hasGuestUsernameOverride("alpine-3.21"))
+        assertEquals("", mgr.guestUsernameFor("alpine-3.21"))
+
+        // Clearing an override restores fallback; deleting a distro removes its per-distro user key.
+        mgr.clearGuestUsernameFor("alpine-3.21")
+        assertFalse(mgr.hasGuestUsernameOverride("alpine-3.21"))
+        assertEquals("haven", mgr.guestUsernameFor("alpine-3.21"))
+
+        mgr.deleteDistro("archlinux")
+        assertFalse(mgr.hasGuestUsernameOverride("archlinux"))
+        assertEquals("haven", mgr.guestUsernameFor("archlinux"))
+    }
+
+    private fun inMemoryPrefs(backing: ConcurrentHashMap<String, Any?>): SharedPreferences =
+        mockk<SharedPreferences>(relaxed = true) {
+            every { contains(any()) } answers { backing.containsKey(firstArg<String>()) }
+            every { getString(any(), any()) } answers {
+                val key = firstArg<String>()
+                if (backing.containsKey(key)) backing[key] as? String else secondArg()
+            }
+            every { getBoolean(any(), any()) } answers {
+                val key = firstArg<String>()
+                (backing[key] as? Boolean) ?: secondArg()
+            }
+            every { edit() } answers {
+                object : SharedPreferences.Editor {
+                    private val staged = LinkedHashMap<String, Any?>()
+                    private val removals = HashSet<String>()
+                    private var clearAll = false
+
+                    override fun putString(key: String, value: String?): SharedPreferences.Editor = apply {
+                        removals.remove(key)
+                        staged[key] = value
+                    }
+                    override fun putStringSet(key: String, values: MutableSet<String>?): SharedPreferences.Editor = apply {
+                        removals.remove(key)
+                        staged[key] = values?.toSet()
+                    }
+                    override fun putInt(key: String, value: Int): SharedPreferences.Editor = apply {
+                        removals.remove(key)
+                        staged[key] = value
+                    }
+                    override fun putLong(key: String, value: Long): SharedPreferences.Editor = apply {
+                        removals.remove(key)
+                        staged[key] = value
+                    }
+                    override fun putFloat(key: String, value: Float): SharedPreferences.Editor = apply {
+                        removals.remove(key)
+                        staged[key] = value
+                    }
+                    override fun putBoolean(key: String, value: Boolean): SharedPreferences.Editor = apply {
+                        removals.remove(key)
+                        staged[key] = value
+                    }
+                    override fun remove(key: String): SharedPreferences.Editor = apply {
+                        staged.remove(key)
+                        removals.add(key)
+                    }
+                    override fun clear(): SharedPreferences.Editor = apply { clearAll = true }
+                    override fun commit(): Boolean {
+                        if (clearAll) backing.clear()
+                        removals.forEach { backing.remove(it) }
+                        staged.forEach { (k, v) -> if (v == null) backing.remove(k) else backing[k] = v }
+                        return true
+                    }
+                    override fun apply() {
+                        commit()
+                    }
+                }
+            }
+        }
 }

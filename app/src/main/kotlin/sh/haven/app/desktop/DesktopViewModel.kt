@@ -194,6 +194,23 @@ class DesktopViewModel @Inject constructor(
         prootManager.setGuestUsername(username)
     }
 
+    /** #567: per-distro default login user (`""` = root). */
+    val guestUserRev: StateFlow<Int> get() = prootManager.guestUserRev
+
+    fun guestUsernameFor(distroId: String): String =
+        prootManager.guestUsernameFor(distroId)
+
+    fun hasGuestUsernameOverride(distroId: String): Boolean =
+        prootManager.hasGuestUsernameOverride(distroId)
+
+    fun setGuestUsernameFor(distroId: String, username: String) {
+        prootManager.setGuestUsernameFor(distroId, username)
+    }
+
+    fun clearGuestUsernameFor(distroId: String) {
+        prootManager.clearGuestUsernameFor(distroId)
+    }
+
     /**
      * Local-shell open requests keyed by the resolved profile id. Collected
      * by HavenNavHost (which is always composed, unlike TerminalScreen) so

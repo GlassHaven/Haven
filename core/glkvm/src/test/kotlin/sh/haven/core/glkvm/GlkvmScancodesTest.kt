@@ -38,6 +38,16 @@ class GlkvmScancodesTest {
         assertEquals("AltRight", GlkvmScancodes.codeFor(0xE038))
         assertEquals("NumpadEnter", GlkvmScancodes.codeFor(0xE01C))
         assertEquals("ControlRight", GlkvmScancodes.codeFor(0xE01D))
+        assertEquals("MetaLeft", GlkvmScancodes.codeFor(0xE05B))
+        assertEquals("MetaRight", GlkvmScancodes.codeFor(0xE05C))
+        assertEquals("ContextMenu", GlkvmScancodes.codeFor(0xE05D))
+    }
+
+    @Test
+    fun `lock keys map to position codes`() {
+        assertEquals("CapsLock", GlkvmScancodes.codeFor(0x3A))
+        assertEquals("NumLock", GlkvmScancodes.codeFor(0x45))
+        assertEquals("ScrollLock", GlkvmScancodes.codeFor(0x46))
     }
 
     @Test

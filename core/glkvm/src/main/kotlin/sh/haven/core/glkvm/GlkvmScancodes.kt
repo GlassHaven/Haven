@@ -48,8 +48,9 @@ object GlkvmScancodes {
         put(0x36, "ShiftRight")
         put(0x37, "NumpadMultiply")
         put(0x38, "AltLeft"); put(0x39, "Space"); put(0x3A, "CapsLock")
-        // Function row
+        // Function row + lock keys
         for (i in 0..9) put(0x3B + i, "F${i + 1}")
+        put(0x45, "NumLock"); put(0x46, "ScrollLock")
         put(0x57, "F11"); put(0x58, "F12")
         // ISO 102nd key
         put(0x56, "IntlBackslash")
@@ -75,6 +76,9 @@ object GlkvmScancodes {
         0x51 to "PageDown",
         0x52 to "Insert",
         0x53 to "Delete",
+        0x5B to "MetaLeft",
+        0x5C to "MetaRight",
+        0x5D to "ContextMenu",
         0x1C to "NumpadEnter",
     )
 

@@ -76,6 +76,7 @@ import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
 import androidx.activity.result.contract.ActivityResultContracts
 import androidx.compose.ui.platform.LocalContext
+import androidx.compose.ui.platform.LocalLocale
 import androidx.compose.ui.platform.LocalUriHandler
 import androidx.compose.ui.semantics.Role
 import androidx.compose.ui.text.font.FontFamily
@@ -5535,7 +5536,7 @@ private fun DesktopKeyboardLayoutPicker(
     onSelect: (String) -> Unit,
 ) {
     val autoLabel = stringResource(R.string.connections_keyboard_layout_auto)
-    val displayLocale = java.util.Locale.getDefault()
+    val displayLocale = LocalLocale.current.platformLocale
     val options = remember(autoLabel, displayLocale) {
         buildList {
             add("" to autoLabel)

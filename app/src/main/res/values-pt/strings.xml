@@ -389,4 +389,7 @@
     <string name="app_desktop_routing_err_scheme_http">O modo HTTP espera host:porta, http:// ou https://.</string>
     <string name="app_desktop_routing_err_invalid_host">Nome de host ou endereço IP do proxy inválido.</string>
     <string name="app_desktop_routing_err_invalid_port">Inclua uma porta válida entre 1 e 65535 (ex.: 127.0.0.1:1080).</string>
+    <string name="app_desktop_dns_custom_err_invalid">Insira endereços IP ou IP:porta (ex.: 1.1.1.1, 127.0.0.1:5400).</string>
+    <string name="app_desktop_routing_block_direct_title">Bloquear tráfego fora do proxy</string>
+    <string name="app_desktop_routing_block_direct_description">Bloqueia sockets de saída diretos e consultas DNS no PRoot para evitar que programas convidados contornem o proxy ativo.</string>
 </resources>

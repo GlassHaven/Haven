@@ -389,4 +389,7 @@
     <string name="app_desktop_routing_err_scheme_http">HTTP मोड में host:port, http:// या https:// अपेक्षित है।</string>
     <string name="app_desktop_routing_err_invalid_host">अमान्य प्रॉक्सी होस्टनेम या IP पता।</string>
     <string name="app_desktop_routing_err_invalid_port">1 और 65535 के बीच मान्य पोर्ट शामिल करें (जैसे 127.0.0.1:1080)।</string>
+    <string name="app_desktop_dns_custom_err_invalid">IP या IP:port पते दर्ज करें (जैसे 1.1.1.1, 127.0.0.1:5400)।</string>
+    <string name="app_desktop_routing_block_direct_title">गैर-प्रॉक्सी ट्रैफ़िक ब्लॉक करें</string>
+    <string name="app_desktop_routing_block_direct_description">PRoot में सीधे आउटबाउंड सॉकेट और DNS क्वेरी को रोकता है ताकि गेस्ट प्रोग्राम सक्रिय प्रॉक्सी को बाईपास न कर सकें।</string>
 </resources>

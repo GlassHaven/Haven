@@ -943,6 +943,7 @@ class DesktopManager @Inject constructor(
             context.applicationInfo.nativeLibraryDir, "libproot_loader.so",
         ).absolutePath
         val rootfsDir = prootManager.activeRootfsDir
+        prootManager.applyResolvConf(rootfsDir)
         val rootHome = File(rootfsDir, "root").apply { mkdirs() }
         val guestUser = prootManager.ensureGuestUser(rootfsDir)
         val userHomeDir = File(rootfsDir, guestUser.home.trimStart('/')).apply { mkdirs() }
@@ -1056,6 +1057,7 @@ class DesktopManager @Inject constructor(
             "--kill-on-exit",
             // #325: foreign-arch rootfs runs through the bundled qemu-user loader.
             *prootManager.qemuUserArgs(prootManager.activeDistroId).toTypedArray(),
+            *prootManager.netPolicyArgs(prootManager.activeDistroId).toTypedArray(),
             "-r", rootfsDir.absolutePath,
             "-b", "/dev",
             "-b", "/dev/urandom:/dev/random",
@@ -1197,6 +1199,7 @@ class DesktopManager @Inject constructor(
             context.applicationInfo.nativeLibraryDir, "libproot_loader.so",
         ).absolutePath
         val rootfsDir = prootManager.activeRootfsDir
+        prootManager.applyResolvConf(rootfsDir)
         File(rootfsDir, "root").mkdirs()
         val guestUser = resolveNestedWaylandUser(prootManager.ensureGuestUser(rootfsDir))
         File(rootfsDir, guestUser.home.trimStart('/')).mkdirs()
@@ -1380,6 +1383,7 @@ class DesktopManager @Inject constructor(
             prootBin, "-i", "${guestUser.uid}:${guestUser.gid}", "--kernel-release=6.2.1", "--link2symlink", "--sysvipc",
             // #325: foreign-arch rootfs runs through the bundled qemu-user loader.
             *prootManager.qemuUserArgs(prootManager.activeDistroId).toTypedArray(),
+            *prootManager.netPolicyArgs(prootManager.activeDistroId).toTypedArray(),
             "-r", rootfsDir.absolutePath,
             "-b", "/dev",
             "-b", "/dev/urandom:/dev/random",
@@ -1846,6 +1850,7 @@ class DesktopManager @Inject constructor(
                 context.applicationInfo.nativeLibraryDir, "libproot_loader.so",
             ).absolutePath
             val rootfsDir = prootManager.activeRootfsDir
+            prootManager.applyResolvConf(rootfsDir)
             android.system.Os.setenv("WLR_XWAYLAND", xwaylandWrapper.absolutePath, true)
             android.system.Os.setenv("HAVEN_PROOT_BIN", prootManager.prootBinary ?: "", true)
             android.system.Os.setenv("HAVEN_PROOT_LOADER", loaderPathXw, true)
@@ -1924,6 +1929,7 @@ class DesktopManager @Inject constructor(
                 prootBin, "-0", "--kernel-release=6.2.1", "--link2symlink", "--sysvipc",
                 // #325: foreign-arch rootfs runs through the bundled qemu-user loader.
                 *prootManager.qemuUserArgs(prootManager.activeDistroId).toTypedArray(),
+                *prootManager.netPolicyArgs(prootManager.activeDistroId).toTypedArray(),
                 *portRemap,
                 "-r", rootfsDir.absolutePath,
                 "-b", "/dev",

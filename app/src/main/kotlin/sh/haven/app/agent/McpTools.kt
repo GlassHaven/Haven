@@ -3433,11 +3433,15 @@ class McpTools private constructor(
             }
             "proot_dns_servers" -> {
                 val raw = (rawValue as? String)
-                    ?: throw McpError(-32602, "value must be a string of IP literals for $key")
+                    ?: throw McpError(-32602, "value must be a string of IP or IP:port literals for $key")
                 // Reject early rather than writing a resolv.conf that silently never
-                // resolves - a hostname here cannot be resolved (#446).
-                if (raw.isNotBlank() && sh.haven.core.local.ProotDns.parseServers(raw).isEmpty()) {
-                    throw McpError(-32602, "No usable IP literals in \"$raw\" for $key")
+                // resolves - a hostname here cannot be resolved (#446, #838).
+                if (
+                    raw.isNotBlank() &&
+                    (sh.haven.core.local.ProotDns.invalidTokens(raw).isNotEmpty() ||
+                        sh.haven.core.local.ProotDns.parseServers(raw).isEmpty())
+                ) {
+                    throw McpError(-32602, "Invalid DNS server entry in \"$raw\" for $key (expected IP or IP:port literals)")
                 }
                 prootManager.setDnsServers(raw)
             }

@@ -102,4 +102,36 @@ class ProotDnsTest {
         // A stored value must survive a case change rather than silently resetting.
         assertEquals(ProotDnsMode.CUSTOM, ProotDnsMode.fromId("CUSTOM"))
     }
+
+    @Test
+    fun `custom ip-port endpoints write bare ip to resolv conf and emit port redirect specs`() {
+        val raw = "127.0.0.1:5400, [::1]:5453, 10.0.0.53"
+        assertEquals(
+            listOf("127.0.0.1", "::1", "10.0.0.53"),
+            ProotDns.nameservers(ProotDnsMode.CUSTOM, raw) { emptyList() },
+        )
+        assertEquals(
+            listOf("127.0.0.1:5400", "[::1]:5453"),
+            ProotDns.customPortRedirectSpecs(ProotDnsMode.CUSTOM, raw),
+        )
+        assertEquals(
+            emptyList<String>(),
+            ProotDns.customPortRedirectSpecs(ProotDnsMode.SYSTEM, raw),
+        )
+        assertEquals(
+            emptyList<String>(),
+            ProotDns.customPortRedirectSpecs(ProotDnsMode.CUSTOM, "127.0.0.1:53"),
+        )
+    }
+
+    @Test
+    fun `invalidTokens flags hostnames and out-of-range ports while accepting ip-port`() {
+        assertEquals(emptyList<String>(), ProotDns.invalidTokens(null))
+        assertEquals(emptyList<String>(), ProotDns.invalidTokens("   "))
+        assertEquals(emptyList<String>(), ProotDns.invalidTokens("127.0.0.1:5400, [2606:4700::1111]:5353"))
+        assertEquals(
+            listOf("dns.google", "127.0.0.1:0", "127.0.0.1:70000", "[::1]:abc"),
+            ProotDns.invalidTokens("127.0.0.1:5400, dns.google, 127.0.0.1:0; 127.0.0.1:70000 [::1]:abc"),
+        )
+    }
 }

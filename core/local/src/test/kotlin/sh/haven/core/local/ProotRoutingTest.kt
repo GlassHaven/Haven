@@ -22,9 +22,14 @@ class ProotRoutingTest {
             proxyUrl = "socks5h://alice:secret@10.0.0.2:1080",
             noProxy = "localhost,127.0.0.1,.corp.internal",
             useProxychains = true,
+            blockDirectTraffic = false,
         )
         assertFalse(custom.isDefault)
         assertEquals(custom, ProotRoutingConfig.decode(custom.encode()))
+
+        // Legacy encoded configs without blockDirectTraffic upgrade to fail-closed (true).
+        val legacy = ProotRoutingConfig.decode("mode=socks5\nproxyUrl=127.0.0.1:1080\n")
+        assertTrue(legacy.blockDirectTraffic)
     }
 
     @Test
@@ -177,6 +182,106 @@ class ProotRoutingTest {
         } finally {
             cacheDir.deleteRecursively()
             rootfsDir.deleteRecursively()
+        }
+    }
+
+    @Test
+    fun `buildNetPolicySpec enforces fail-closed lockdown on active proxies and emits custom dns redirects`() {
+        val cacheDir = Files.createTempDirectory("proot-routing-netpolicy").toFile()
+        try {
+            // Default FOLLOW_TUNNEL with no active auto-proxy and default DNS -> null (zero overhead).
+            assertNull(
+                ProotRouting.buildNetPolicySpec(
+                    config = ProotRoutingConfig.DEFAULT,
+                    cacheDir = cacheDir,
+                ),
+            )
+
+            // DIRECT mode with custom port DNS -> standalone dns= without lockdown.
+            assertEquals(
+                "dns=127.0.0.1:5400",
+                ProotRouting.buildNetPolicySpec(
+                    config = ProotRoutingConfig(mode = ProotRoutingMode.DIRECT),
+                    cacheDir = cacheDir,
+                    dnsRedirectSpecs = listOf("127.0.0.1:5400"),
+                ),
+            )
+
+            // Issue #838 exact scenario: SOCKS5 proxy + custom DNS 127.0.0.1:5400 -> lockdown + allow + dns.
+            assertEquals(
+                "lockdown;allow=127.0.0.1:1080;dns=127.0.0.1:5400",
+                ProotRouting.buildNetPolicySpec(
+                    config = ProotRoutingConfig(
+                        mode = ProotRoutingMode.SOCKS5,
+                        proxyUrl = "127.0.0.1:1080",
+                    ),
+                    cacheDir = cacheDir,
+                    dnsRedirectSpecs = listOf("127.0.0.1:5400"),
+                ),
+            )
+
+            // Hostname proxy resolves via hostIpResolver; localhost expands to IPv4 + IPv6 loopback.
+            assertEquals(
+                "lockdown;allow=192.168.1.20:3128",
+                ProotRouting.buildNetPolicySpec(
+                    config = ProotRoutingConfig(
+                        mode = ProotRoutingMode.HTTP,
+                        proxyUrl = "http://proxy.lan:3128",
+                    ),
+                    cacheDir = cacheDir,
+                    hostIpResolver = { if (it == "proxy.lan") "192.168.1.20" else null },
+                ),
+            )
+            assertEquals(
+                "lockdown;allow=127.0.0.1:9050;allow=[::1]:9050",
+                ProotRouting.buildNetPolicySpec(
+                    config = ProotRoutingConfig(
+                        mode = ProotRoutingMode.SOCKS5,
+                        proxyUrl = "localhost:9050",
+                    ),
+                    cacheDir = cacheDir,
+                ),
+            )
+
+            // HAVEN_TUNNEL fails closed even if tunnel starter returns null.
+            assertEquals(
+                "lockdown",
+                ProotRouting.buildNetPolicySpec(
+                    config = ProotRoutingConfig(
+                        mode = ProotRoutingMode.HAVEN_TUNNEL,
+                        tunnelConfigId = "wg-down",
+                    ),
+                    cacheDir = cacheDir,
+                    tunnelStarter = { null },
+                ),
+            )
+
+            // Opting out of blockDirectTraffic omits lockdown while preserving custom DNS redirect.
+            assertEquals(
+                "dns=127.0.0.1:5400",
+                ProotRouting.buildNetPolicySpec(
+                    config = ProotRoutingConfig(
+                        mode = ProotRoutingMode.SOCKS5,
+                        proxyUrl = "127.0.0.1:1080",
+                        blockDirectTraffic = false,
+                    ),
+                    cacheDir = cacheDir,
+                    dnsRedirectSpecs = listOf("127.0.0.1:5400"),
+                ),
+            )
+
+            // FOLLOW_TUNNEL activates lockdown when global auto-proxy is active.
+            java.io.File(cacheDir, ".haven_tunnel_socks5").writeText("127.0.0.1:41080\n")
+            java.io.File(cacheDir, ".haven_tunnel_auto_proxy").writeText("1\n")
+            assertEquals(
+                "lockdown;allow=127.0.0.1:41080",
+                ProotRouting.buildNetPolicySpec(
+                    config = ProotRoutingConfig(mode = ProotRoutingMode.FOLLOW_TUNNEL),
+                    cacheDir = cacheDir,
+                ),
+            )
+        } finally {
+            cacheDir.deleteRecursively()
         }
     }
 }

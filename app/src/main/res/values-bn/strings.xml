@@ -389,4 +389,7 @@
     <string name="app_desktop_routing_err_scheme_http">HTTP মোডে host:port, http:// অথবা https:// প্রয়োজন।</string>
     <string name="app_desktop_routing_err_invalid_host">অবৈধ প্রক্সি হোস্টনেম বা IP ঠিকানা।</string>
     <string name="app_desktop_routing_err_invalid_port">1 থেকে 65535-এর মধ্যে একটি বৈধ পোর্ট দিন (যেমন 127.0.0.1:1080)।</string>
+    <string name="app_desktop_dns_custom_err_invalid">IP অথবা IP:port ঠিকানা লিখুন (যেমন 1.1.1.1, 127.0.0.1:5400)।</string>
+    <string name="app_desktop_routing_block_direct_title">প্রক্সি-বহির্ভূত ট্রাফিক ব্লক করুন</string>
+    <string name="app_desktop_routing_block_direct_description">PRoot-এ সরাসরি আউটবাউন্ড সকেট ও DNS কুয়েরি ব্লক করে যাতে গেস্ট প্রোগ্রাম সক্রিয় প্রক্সি এড়িয়ে যেতে না পারে।</string>
 </resources>

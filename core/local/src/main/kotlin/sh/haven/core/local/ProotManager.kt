@@ -3707,6 +3707,23 @@ class ProotManager @Inject constructor(
     }
 
     /**
+     * PRoot `--net-policy=<spec>` CLI argument for [distroId] (#838), combining
+     * fail-closed proxy enforcement (`lockdown` + `allow=`) with custom `ip:port`
+     * DNS port-53 redirection (`dns=`). Empty when neither applies.
+     */
+    fun netPolicyArgs(distroId: String = activeDistroId): List<String> {
+        val cfg = routingConfig(distroId)
+        val dnsSpecs = ProotDns.customPortRedirectSpecs(dnsMode, dnsServers)
+        val spec = ProotRouting.buildNetPolicySpec(
+            config = cfg,
+            cacheDir = context.cacheDir,
+            dnsRedirectSpecs = dnsSpecs,
+            tunnelStarter = tunnelSocksStarter,
+        ) ?: return emptyList()
+        return listOf("--net-policy=$spec")
+    }
+
+    /**
      * Build and start a PRoot process running [command] in the active
      * rootfs, with combined stdout+stderr on the returned Process's
      * inputStream. Callers that need to stream output incrementally (a
@@ -3752,6 +3769,7 @@ class ProotManager @Inject constructor(
             // Inert unless the active rootfs is marked foreign AND its loader is
             // bundled — otherwise an empty spread.
             *qemuUserArgs(activeDistroId).toTypedArray(),
+            *netPolicyArgs(activeDistroId).toTypedArray(),
             "--rootfs=$rootfsPath",
             guestUser.prootLongIdentityArg,
             "--cwd=${guestUser.home}",

@@ -395,4 +395,7 @@
     <string name="app_desktop_routing_err_scheme_http">HTTP 모드는 host:port, http:// 또는 https:// 형식이어야 합니다.</string>
     <string name="app_desktop_routing_err_invalid_host">유효하지 않은 프록시 호스트 이름 또는 IP 주소입니다.</string>
     <string name="app_desktop_routing_err_invalid_port">1~65535 사이의 유효한 포트를 포함하세요(예: 127.0.0.1:1080).</string>
+    <string name="app_desktop_dns_custom_err_invalid">IP 또는 IP:포트 주소를 입력하세요(예: 1.1.1.1, 127.0.0.1:5400).</string>
+    <string name="app_desktop_routing_block_direct_title">프록시 외 트래픽 차단</string>
+    <string name="app_desktop_routing_block_direct_description">게스트 프로그램이 활성 프록시를 우회하지 못하도록 PRoot에서 직접 발신 소켓과 DNS 쿼리를 차단합니다.</string>
 </resources>

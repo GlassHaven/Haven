@@ -200,10 +200,10 @@ jobs:
       # GNU ld rejects it.
       - name: Build host proot
         run: make -C build-proot/proot-termux/src proot CC="clang -fuse-ld=lld"
-      - name: Run link2symlink tests
+      - name: Run link2symlink and net-policy tests
         run: |
           cd build-proot/proot-termux/tests
-          for t in test-l2s-refcount.sh test-l2s-dir.sh test-l2s-broken-chain.sh test-l2s-guest-dir.sh; do
+          for t in test-l2s-refcount.sh test-l2s-dir.sh test-l2s-broken-chain.sh test-l2s-guest-dir.sh test-net-policy.sh; do
             echo "=== $t"
             env PROOT="$PWD/../src/proot" sh -e "$t"
           done

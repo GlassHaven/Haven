@@ -348,5 +348,8 @@
     <string name="app_desktop_routing_err_scheme_http">HTTP režim očekuje host:port, http:// ili https://.</string>
     <string name="app_desktop_routing_err_invalid_host">Nevažeće ime hosta ili IP adresa proksija.</string>
     <string name="app_desktop_routing_err_invalid_port">Unesite važeći port između 1 i 65535 (npr. 127.0.0.1:1080).</string>
+    <string name="app_desktop_dns_custom_err_invalid">Unesite IP ili IP:port adrese (npr. 1.1.1.1, 127.0.0.1:5400).</string>
+    <string name="app_desktop_routing_block_direct_title">Blokiraj saobraćaj van proksija</string>
+    <string name="app_desktop_routing_block_direct_description">Blokira direktne odlazne sokete i DNS upite u PRoot okruženju kako programi gosta ne bi zaobišli aktivni proksi.</string>
 </resources>
 

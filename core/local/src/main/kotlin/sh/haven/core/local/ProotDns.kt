@@ -41,9 +41,31 @@ enum class ProotDnsMode(val id: String) {
 object ProotDns {
 
     private const val TAG = "ProotDns"
+    const val DEFAULT_PORT = 53
 
     /** The historical hardcoded pair, and the fallback whenever a source yields nothing. */
     val PUBLIC_SERVERS = listOf("8.8.8.8", "1.1.1.1")
+
+    /**
+     * Parsed DNS resolver endpoint (#838). Standard `/etc/resolv.conf` only accepts
+     * bare IP addresses (always querying port 53); when [port] differs from 53
+     * (e.g. `127.0.0.1:5400` or `[::1]:5400`), [ip] is written to `resolv.conf` and
+     * PRoot's `--net-policy=dns=<ip>:<port>` redirects port-53 traffic to [port].
+     */
+    data class DnsEndpoint(
+        val ip: String,
+        val port: Int = DEFAULT_PORT,
+    ) {
+        init {
+            require(port in 1..65535) { "Invalid DNS port: $port" }
+        }
+
+        val hasCustomPort: Boolean
+            get() = port != DEFAULT_PORT
+
+        val hostPortSpec: String
+            get() = if (':' in ip) "[$ip]:$port" else "$ip:$port"
+    }
 
     /**
      * Nameservers for [mode]. [systemProvider] supplies the device's resolvers for
@@ -63,13 +85,71 @@ object ProotDns {
         ProotDnsMode.SYSTEM -> systemProvider().ifEmpty { PUBLIC_SERVERS }
     }
 
-    /** Split a user-entered list on commas/whitespace and keep only IP literals. */
-    fun parseServers(text: String?): List<String> =
+    private fun tokenize(text: String?): List<String> =
         text.orEmpty()
             .split(',', ' ', '\n', '\t', ';')
             .map { it.trim() }
-            .filter { it.isNotEmpty() && isIpLiteral(it) }
-            .distinct()
+            .filter { it.isNotEmpty() }
+
+    /**
+     * Parse a single DNS server token: bare IPv4 (`1.1.1.1`), IPv4 with port
+     * (`127.0.0.1:5400`), bare IPv6 (`2606:4700:4700::1111`), or bracketed IPv6
+     * with optional port (`[::1]:5400`, `[::1]`). Returns `null` on hostnames or
+     * out-of-range ports.
+     */
+    fun parseEndpoint(token: String): DnsEndpoint? {
+        val trimmed = token.trim()
+        if (trimmed.isEmpty()) return null
+        if (trimmed.startsWith("[")) {
+            val closeIdx = trimmed.indexOf(']')
+            if (closeIdx <= 1) return null
+            val inner = trimmed.substring(1, closeIdx)
+            if (':' !in inner || !isIpLiteral(inner)) return null
+            val remainder = trimmed.substring(closeIdx + 1)
+            if (remainder.isEmpty()) return DnsEndpoint(inner, DEFAULT_PORT)
+            if (!remainder.startsWith(":")) return null
+            val port = remainder.substring(1).toIntOrNull() ?: return null
+            if (port !in 1..65535) return null
+            return DnsEndpoint(inner, port)
+        }
+        if (isIpLiteral(trimmed)) {
+            return DnsEndpoint(trimmed, DEFAULT_PORT)
+        }
+        if (trimmed.count { it == ':' } == 1) {
+            val ip = trimmed.substringBefore(':')
+            val portStr = trimmed.substringAfter(':')
+            if (':' in ip || !isIpLiteral(ip)) return null
+            val port = portStr.toIntOrNull() ?: return null
+            if (port !in 1..65535) return null
+            return DnsEndpoint(ip, port)
+        }
+        return null
+    }
+
+    /** Parse user-entered custom DNS endpoints, keeping the first entry per IP. */
+    fun parseEndpoints(text: String?): List<DnsEndpoint> =
+        tokenize(text)
+            .mapNotNull(::parseEndpoint)
+            .distinctBy { it.ip }
+
+    /** Split a user-entered list on commas/whitespace and keep only valid IP endpoints. */
+    fun parseServers(text: String?): List<String> =
+        parseEndpoints(text).map { it.ip }
+
+    /** Non-empty tokens in [text] that failed [parseEndpoint], for inline UI validation. */
+    fun invalidTokens(text: String?): List<String> =
+        tokenize(text).filter { parseEndpoint(it) == null }
+
+    /**
+     * `ip:port` / `[ipv6]:port` specs for custom-port DNS resolvers (`port != 53`)
+     * when [mode] is [ProotDnsMode.CUSTOM], consumed by PRoot `--net-policy=dns=...`.
+     */
+    fun customPortRedirectSpecs(mode: ProotDnsMode, customServers: String?): List<String> {
+        if (mode != ProotDnsMode.CUSTOM) return emptyList()
+        return parseEndpoints(customServers)
+            .filter { it.hasCustomPort }
+            .map { it.hostPortSpec }
+    }
 
     /**
      * Accept only IP literals. A hostname in resolv.conf cannot be resolved (there is

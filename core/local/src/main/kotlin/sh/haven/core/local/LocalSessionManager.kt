@@ -360,6 +360,7 @@ class LocalSessionManager @Inject constructor(
                 // #325: foreign-arch rootfs runs through the bundled qemu-user
                 // loader. Empty for host-arch rootfses.
                 *prootManager.qemuUserArgs(targetDistro).toTypedArray(),
+                *prootManager.netPolicyArgs(targetDistro).toTypedArray(),
                 *portRemap,
                 "-r", rootfsDir.absolutePath,
                 "-b", "/dev",

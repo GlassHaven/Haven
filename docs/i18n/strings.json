@@ -7251,6 +7251,66 @@
       "sr": "Unesite važeći port između 1 i 65535 (npr. 127.0.0.1:1080).",
       "zh": "请包含 1 到 65535 之间的有效端口（例如 127.0.0.1:1080）。"
      }
+    },
+    {
+     "name": "app_desktop_dns_custom_err_invalid",
+     "en": "Enter IP or IP:port addresses (e.g. 1.1.1.1, 127.0.0.1:5400).",
+     "comment": "Per-distro PRoot routing (#835)",
+     "args": [],
+     "t": {
+      "ar": "أدخل عناوين IP أو IP:port (مثل 1.1.1.1 أو 127.0.0.1:5400).",
+      "bn": "IP অথবা IP:port ঠিকানা লিখুন (যেমন 1.1.1.1, 127.0.0.1:5400)।",
+      "de": "Geben Sie IP- oder IP:Port-Adressen ein (z. B. 1.1.1.1, 127.0.0.1:5400).",
+      "es": "Introduce direcciones IP o IP:puerto (p. ej. 1.1.1.1, 127.0.0.1:5400).",
+      "fr": "Saisissez des adresses IP ou IP:port (p. ex. 1.1.1.1, 127.0.0.1:5400).",
+      "hi": "IP या IP:port पते दर्ज करें (जैसे 1.1.1.1, 127.0.0.1:5400)।",
+      "ja": "IP または IP:port アドレスを入力してください（例: 1.1.1.1, 127.0.0.1:5400）。",
+      "ko": "IP 또는 IP:포트 주소를 입력하세요(예: 1.1.1.1, 127.0.0.1:5400).",
+      "pt": "Insira endereços IP ou IP:porta (ex.: 1.1.1.1, 127.0.0.1:5400).",
+      "ru": "Введите адреса IP или IP:порт (например, 1.1.1.1, 127.0.0.1:5400).",
+      "sr": "Unesite IP ili IP:port adrese (npr. 1.1.1.1, 127.0.0.1:5400).",
+      "zh": "请输入 IP 或 IP:端口 地址（例如 1.1.1.1, 127.0.0.1:5400）。"
+     }
+    },
+    {
+     "name": "app_desktop_routing_block_direct_title",
+     "en": "Block non-proxy traffic",
+     "comment": "Per-distro PRoot routing (#835)",
+     "args": [],
+     "t": {
+      "ar": "حظر حركة المرور خارج الوكيل",
+      "bn": "প্রক্সি-বহির্ভূত ট্রাফিক ব্লক করুন",
+      "de": "Direkten Datenverkehr blockieren",
+      "es": "Bloquear tráfico fuera del proxy",
+      "fr": "Bloquer le trafic hors proxy",
+      "hi": "गैर-प्रॉक्सी ट्रैफ़िक ब्लॉक करें",
+      "ja": "プロキシ以外の通信を遮断",
+      "ko": "프록시 외 트래픽 차단",
+      "pt": "Bloquear tráfego fora do proxy",
+      "ru": "Блокировать трафик мимо прокси",
+      "sr": "Blokiraj saobraćaj van proksija",
+      "zh": "阻止非代理流量"
+     }
+    },
+    {
+     "name": "app_desktop_routing_block_direct_description",
+     "en": "Blocks direct outbound sockets and DNS queries in PRoot so guest programs cannot bypass the active proxy.",
+     "comment": "Per-distro PRoot routing (#835)",
+     "args": [],
+     "t": {
+      "ar": "يحظر الاتصالات الصادرة المباشرة واستعلامات DNS داخل PRoot لمنع البرامج من تجاوز الوكيل النشط.",
+      "bn": "PRoot-এ সরাসরি আউটবাউন্ড সকেট ও DNS কুয়েরি ব্লক করে যাতে গেস্ট প্রোগ্রাম সক্রিয় প্রক্সি এড়িয়ে যেতে না পারে।",
+      "de": "Blockiert direkte ausgehende Sockets und DNS-Abfragen in PRoot, damit Gastprogramme den aktiven Proxy nicht umgehen können.",
+      "es": "Bloquea los sockets salientes directos y las consultas DNS en PRoot para evitar que los programas omitan el proxy activo.",
+      "fr": "Bloque les connexions sortantes directes et les requêtes DNS dans PRoot afin que les programmes invités ne contournent pas le proxy actif.",
+      "hi": "PRoot में सीधे आउटबाउंड सॉकेट और DNS क्वेरी को रोकता है ताकि गेस्ट प्रोग्राम सक्रिय प्रॉक्सी को बाईपास न कर सकें।",
+      "ja": "PRoot 内の直接の発信ソケットと DNS クエリを遮断し、ゲストプログラムが有効なプロキシを迂回できないようにします。",
+      "ko": "게스트 프로그램이 활성 프록시를 우회하지 못하도록 PRoot에서 직접 발신 소켓과 DNS 쿼리를 차단합니다.",
+      "pt": "Bloqueia sockets de saída diretos e consultas DNS no PRoot para evitar que programas convidados contornem o proxy ativo.",
+      "ru": "Блокирует прямые исходящие соединения и DNS-запросы в PRoot, чтобы программы гостя не обходили активный прокси.",
+      "sr": "Blokira direktne odlazne sokete i DNS upite u PRoot okruženju kako programi gosta ne bi zaobišli aktivni proksi.",
+      "zh": "在 PRoot 中拦截直接出站套接字与 DNS 查询，防止客户机程序绕过当前代理。"
+     }
     }
    ]
   },

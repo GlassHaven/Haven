@@ -405,4 +405,7 @@
     <string name="app_desktop_routing_err_scheme_http">يتطلّب وضع HTTP الصيغة host:port أو http:// أو https://.</string>
     <string name="app_desktop_routing_err_invalid_host">اسم مضيف أو عنوان IP للوكيل غير صالح.</string>
     <string name="app_desktop_routing_err_invalid_port">أدخل منفذًا صالحًا بين 1 و65535 (مثل 127.0.0.1:1080).</string>
+    <string name="app_desktop_dns_custom_err_invalid">أدخل عناوين IP أو IP:port (مثل 1.1.1.1 أو 127.0.0.1:5400).</string>
+    <string name="app_desktop_routing_block_direct_title">حظر حركة المرور خارج الوكيل</string>
+    <string name="app_desktop_routing_block_direct_description">يحظر الاتصالات الصادرة المباشرة واستعلامات DNS داخل PRoot لمنع البرامج من تجاوز الوكيل النشط.</string>
 </resources>

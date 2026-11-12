@@ -85,6 +85,7 @@ import androidx.compose.ui.window.DialogProperties
 import androidx.hilt.navigation.compose.hiltViewModel
 import kotlinx.coroutines.launch
 import sh.haven.core.local.DesktopManager
+import sh.haven.core.local.ProotDns
 import sh.haven.core.local.ProotDnsMode
 import sh.haven.core.local.ProotManager
 import sh.haven.core.local.ProotRouting
@@ -1504,12 +1505,19 @@ private fun GuestDnsRow(
         }
     }
     if (mode == ProotDnsMode.CUSTOM) {
+        val hasInvalidTokens = remember(servers) { ProotDns.invalidTokens(servers).isNotEmpty() }
         Spacer(Modifier.height(8.dp))
         OutlinedTextField(
             value = servers,
             onValueChange = onServersChange,
             label = { Text(stringResource(AppR.string.app_desktop_dns_custom_label)) },
             placeholder = { Text(stringResource(AppR.string.app_desktop_dns_custom_hint)) },
+            isError = hasInvalidTokens,
+            supportingText = if (hasInvalidTokens) {
+                { Text(stringResource(AppR.string.app_desktop_dns_custom_err_invalid)) }
+            } else {
+                null
+            },
             singleLine = true,
             modifier = Modifier.fillMaxWidth(),
         )
@@ -1701,6 +1709,13 @@ private fun GuestRoutingRow(
     }
 
     if (config.mode != ProotRoutingMode.DIRECT) {
+        Spacer(Modifier.height(8.dp))
+        BindingToggleRow(
+            title = stringResource(AppR.string.app_desktop_routing_block_direct_title),
+            description = stringResource(AppR.string.app_desktop_routing_block_direct_description),
+            checked = config.blockDirectTraffic,
+            onCheckedChange = { onConfigChange(config.copy(blockDirectTraffic = it)) },
+        )
         Spacer(Modifier.height(8.dp))
         BindingToggleRow(
             title = stringResource(AppR.string.app_desktop_routing_proxychains_title),

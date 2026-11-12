@@ -385,4 +385,7 @@
     <string name="app_desktop_routing_err_scheme_http">HTTP 模式需要 host:port、http:// 或 https://。</string>
     <string name="app_desktop_routing_err_invalid_host">代理主机名或 IP 地址无效。</string>
     <string name="app_desktop_routing_err_invalid_port">请包含 1 到 65535 之间的有效端口（例如 127.0.0.1:1080）。</string>
+    <string name="app_desktop_dns_custom_err_invalid">请输入 IP 或 IP:端口 地址（例如 1.1.1.1, 127.0.0.1:5400）。</string>
+    <string name="app_desktop_routing_block_direct_title">阻止非代理流量</string>
+    <string name="app_desktop_routing_block_direct_description">在 PRoot 中拦截直接出站套接字与 DNS 查询，防止客户机程序绕过当前代理。</string>
 </resources>

@@ -1162,7 +1162,7 @@ fun ConnectionEditDialog(
                     "VNC" to "VNC (Desktop)",
                     "RDP" to "RDP (Desktop)",
                     "SPICE" to "SPICE (Desktop)",
-                    "GLKVM" to "GLKVM (Desktop)",
+                    "GLKVM" to "GLKVM / PiKVM (Desktop)",
                     "SMB" to "SMB (File Share)",
                     "RCLONE" to "Cloud Storage (rclone)",
                     "EMAIL" to "Email (IMAP / Proton)",
@@ -2280,7 +2280,7 @@ fun ConnectionEditDialog(
                         value = host,
                         onValueChange = { host = it },
                         label = { Text(stringResource(R.string.common_host)) },
-                        placeholder = { Text(if (glkvmSshForward) "127.0.0.1" else "glkvm.lan") },
+                        placeholder = { Text(if (glkvmSshForward) "127.0.0.1" else "glkvm.lan / pikvm.local") },
                         singleLine = true,
                         modifier = Modifier.fillMaxWidth(),
                     )

@@ -449,4 +449,152 @@ class GlkvmClientTest {
             s2.shutdown()
         }
     }
+
+    // -- Stock upstream PiKVM (kvmd) compatibility --------------------------
+
+    @Test
+    fun `pikvm Set-Cookie auth, source online streamer shape, and api streamer snapshot fallback`() {
+        val pikvm = MockWebServer()
+        var loginCount = 0
+        var legacySnapshotProbes = 0
+        var apiSnapshotHits = 0
+        val seenCookies = java.util.Collections.synchronizedList(mutableListOf<String?>())
+        val seenQueries = java.util.Collections.synchronizedList(mutableListOf<String?>())
+        pikvm.dispatcher = object : Dispatcher() {
+            override fun dispatch(request: RecordedRequest): MockResponse {
+                val url = request.requestUrl ?: return MockResponse().setResponseCode(400)
+                val path = url.encodedPath
+                if (path == "/api/auth/login") {
+                    loginCount++
+                    return MockResponse()
+                        .setHeader("Set-Cookie", "auth_token=pikvm-cookie-$loginCount; Path=/; HttpOnly")
+                        .setBody("""{"ok":true,"result":{}}""")
+                }
+                seenCookies.add(request.getHeader("Cookie"))
+                seenQueries.add(url.encodedQuery)
+                if (request.getHeader("Cookie") != "auth_token=pikvm-cookie-$loginCount") {
+                    return MockResponse().setResponseCode(401).setBody("""{"ok":false,"result":{"error":"UnauthorizedError"}}""")
+                }
+                return when (path) {
+                    "/api/streamer" -> MockResponse().setBody(
+                        """{"ok":true,"result":{"source":{"online":true,"resolution":{"width":1920,"height":1080},"captured_fps":59.5},"stream":{"clients":1}}}""",
+                    )
+                    "/streamer/snapshot" -> {
+                        legacySnapshotProbes++
+                        MockResponse().setResponseCode(404).setBody("not found")
+                    }
+                    "/api/streamer/snapshot" -> {
+                        apiSnapshotHits++
+                        MockResponse()
+                            .setBody(Buffer().write(byteArrayOf(0xFF.toByte(), 0xD8.toByte(), 0x11, 0x22)))
+                            .setHeader("Content-Type", "image/jpeg")
+                    }
+                    "/api/hid/events/send_key" -> MockResponse().setBody("""{"ok":true,"result":{}}""")
+                    else -> MockResponse().setResponseCode(404)
+                }
+            }
+        }
+        pikvm.start()
+        val pc = GlkvmClient.Builder().apply {
+            baseUrlOverride = "http://127.0.0.1:${pikvm.port}"
+            user = "admin"
+            password = "secret"
+        }.build()
+        try {
+            val state = pc.videoState()
+            assertTrue(state.signal)
+            assertEquals("1920x1080", state.resolution)
+            assertEquals(59.5, state.fps!!, 0.01)
+
+            val snap1 = pc.snapshot()
+            assertTrue(snap1.contentEquals(byteArrayOf(0xFF.toByte(), 0xD8.toByte(), 0x11, 0x22)))
+            val snap2 = pc.snapshot()
+            assertTrue(snap2.contentEquals(byteArrayOf(0xFF.toByte(), 0xD8.toByte(), 0x11, 0x22)))
+            // /streamer/snapshot 404s once, then client remembers /api/streamer/snapshot.
+            assertEquals(1, legacySnapshotProbes)
+            assertEquals(2, apiSnapshotHits)
+
+            pc.sendKey("Enter", true)
+            assertEquals(1, loginCount)
+            assertTrue(seenCookies.all { it == "auth_token=pikvm-cookie-1" })
+            // Cookie-authenticated PiKVM requests don't leak token in query string.
+            assertTrue(seenQueries.none { it?.contains("auth_token=") == true })
+        } finally {
+            pc.close()
+            pikvm.shutdown()
+        }
+    }
+
+    @Test
+    fun `pikvm expired cookie 401 on snapshot forces relogin and retries`() {
+        val pikvm = MockWebServer()
+        var loginCount = 0
+        pikvm.dispatcher = object : Dispatcher() {
+            override fun dispatch(request: RecordedRequest): MockResponse {
+                val path = request.requestUrl?.encodedPath ?: return MockResponse().setResponseCode(400)
+                if (path == "/api/auth/login") {
+                    loginCount++
+                    return MockResponse()
+                        .setHeader("Set-Cookie", "auth_token=ck-$loginCount; Path=/")
+                        .setBody("""{"ok":true,"result":{}}""")
+                }
+                if (path == "/streamer/snapshot") {
+                    return if (loginCount < 2 || request.getHeader("Cookie") != "auth_token=ck-2") {
+                        MockResponse().setResponseCode(401).setBody("""{"ok":false,"result":{"error":"UnauthorizedError"}}""")
+                    } else {
+                        MockResponse()
+                            .setBody(Buffer().write(byteArrayOf(9, 8, 7, 6)))
+                            .setHeader("Content-Type", "image/jpeg")
+                    }
+                }
+                return MockResponse().setResponseCode(404)
+            }
+        }
+        pikvm.start()
+        val pc = GlkvmClient.Builder().apply {
+            baseUrlOverride = "http://127.0.0.1:${pikvm.port}"
+            user = "admin"
+            password = "secret"
+        }.build()
+        try {
+            val bytes = pc.snapshot()
+            assertTrue(bytes.contentEquals(byteArrayOf(9, 8, 7, 6)))
+            assertEquals(2, loginCount)
+        } finally {
+            pc.close()
+            pikvm.shutdown()
+        }
+    }
+
+    @Test
+    fun `pikvm with auth disabled succeeds via auth check fallback`() {
+        val pikvm = MockWebServer()
+        pikvm.dispatcher = object : Dispatcher() {
+            override fun dispatch(request: RecordedRequest): MockResponse {
+                return when (request.requestUrl?.encodedPath) {
+                    "/api/auth/login" -> MockResponse().setResponseCode(403)
+                        .setBody("""{"ok":false,"result":{"error":"ForbiddenError","error_msg":"Auth is disabled"}}""")
+                    "/api/auth/check" -> MockResponse().setBody("""{"ok":true,"result":{}}""")
+                    "/api/streamer" -> MockResponse().setBody(
+                        """{"ok":true,"result":{"streamer":{"source":{"online":false,"resolution":{"width":0,"height":0}}}}}""",
+                    )
+                    else -> MockResponse().setResponseCode(404)
+                }
+            }
+        }
+        pikvm.start()
+        val pc = GlkvmClient.Builder().apply {
+            baseUrlOverride = "http://127.0.0.1:${pikvm.port}"
+            user = "admin"
+            password = ""
+        }.build()
+        try {
+            val state = pc.videoState()
+            assertFalse(state.signal)
+            assertEquals("", state.resolution)
+        } finally {
+            pc.close()
+            pikvm.shutdown()
+        }
+    }
 }

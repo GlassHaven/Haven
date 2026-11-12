@@ -17520,7 +17520,7 @@
     },
     {
      "name": "connections_section_glkvm",
-     "en": "GLKVM settings",
+     "en": "GLKVM / PiKVM settings",
      "comment": "Import rclone.conf (#251)",
      "args": [],
      "t": {
@@ -19044,7 +19044,7 @@
     },
     {
      "name": "connections_helper_glkvm",
-     "en": "GLKVM (PiKVM-style KVM over HTTPS) — drives the target\\'s physical mouse and keyboard. TLS uses trust-on-first-use and the target\\'s keyboard layout controls typed characters. Route through an SSH tunnel or a WireGuard/Tailscale profile to reach it from outside the LAN.",
+     "en": "GLKVM and PiKVM (kvmd over HTTPS) — drives the target\\'s physical mouse and keyboard. TLS uses trust-on-first-use and the target\\'s keyboard layout controls typed characters (append your 6-digit 2FA code to the password if PiKVM 2FA is enabled). Route through an SSH tunnel or a WireGuard/Tailscale profile to reach it from outside the LAN.",
      "comment": "Connection edit dialog: remaining field labels, toggles and helper text.",
      "args": [],
      "t": {

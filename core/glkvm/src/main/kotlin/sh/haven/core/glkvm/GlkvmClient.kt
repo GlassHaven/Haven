@@ -27,17 +27,19 @@ open class GlkvmException(message: String) : RuntimeException(message)
 class GlkvmCertMismatch(message: String) : GlkvmException(message)
 
 /**
- * Driver for a GL.iNet GLKVM (PiKVM kvmd fork) web API over HTTPS.
- * Protocol empirically verified against kvmd 4.82 (RM10); ~/Code/glkvm-mcp
- * `kvmd.py` is the reference write-up — this port carries the GL fork's
- * quirks:
+ * Driver for GL.iNet GLKVM and upstream PiKVM (`kvmd`) web APIs over HTTPS.
+ * Protocol verified against GLKVM kvmd 4.82 (RM10) and stock PiKVM `kvmd`:
  *
- *  - login is a form POST returning a token; every API call then echoes it
- *    both as `?auth_token=` and as a `token` header;
- *  - a kvmd restart invalidates the cached token, but GL firmware answers a
- *    format-valid unknown token with **403 ForbiddenError** (real permission
- *    denials come back 401/400), so a 403 with that word triggers one forced
- *    relogin + retry;
+ *  - login is a form POST (`user` + `passwd`) to `/api/auth/login`:
+ *      * GLKVM returns `{"ok":true,"result":{"token":"..."}}` and expects
+ *        both `?auth_token=` and a `token` header on subsequent calls;
+ *      * stock PiKVM returns `{"ok":true,"result":{}}` with
+ *        `Set-Cookie: auth_token=...` and expects `Cookie: auth_token=...`;
+ *      * PiKVM instances with `auth.enabled: false` verify via `/api/auth/check`
+ *        and run without session headers;
+ *  - a kvmd restart invalidates the cached session: stock PiKVM answers `401`,
+ *    while GL firmware answers a format-valid unknown token with **403
+ *    ForbiddenError**, so either triggers one forced relogin + retry;
  *  - TLS certs are self-signed on stock devices — callers inject the trust
  *    decision ([GlkvmTrust.tofu]); hostname verification is deliberately
  *    pin-only.
@@ -53,6 +55,12 @@ class GlkvmClient private constructor(
     private val password: String,
 ) : AutoCloseable {
 
+    private sealed interface AuthSession {
+        data class GlToken(val token: String) : AuthSession
+        data class CookieToken(val cookieValue: String) : AuthSession
+        data object NoAuth : AuthSession
+    }
+
     /** Current frame size in px — the mouse-verb calibration input. */
     @Volatile var frameWidth: Int = 2560
     @Volatile var frameHeight: Int = 1440
@@ -67,8 +75,12 @@ class GlkvmClient private constructor(
     @Volatile var activeWidthPx: Int = 2560
 
     @Volatile
-    private var token: String? = null
+    private var authSession: AuthSession? = null
     private val tokenLock = Any()
+
+    /** Snapshot endpoint relative to [baseUrl]; switches to `api/streamer/snapshot` if `streamer/snapshot` 404s. */
+    @Volatile
+    private var snapshotPath: String = "streamer/snapshot"
 
     class Builder {
         var host: String = ""
@@ -156,8 +168,8 @@ class GlkvmClient private constructor(
 
     // -- auth ----------------------------------------------------------------
 
-    private fun login(force: Boolean): String = synchronized(tokenLock) {
-        val cached = token
+    private fun login(force: Boolean): AuthSession = synchronized(tokenLock) {
+        val cached = authSession
         if (!force && cached != null) return cached
         val form = FormBody.Builder().add("user", user).add("passwd", password).build()
         val req = Request.Builder()
@@ -166,18 +178,74 @@ class GlkvmClient private constructor(
         http.newCall(req).execute().use { resp ->
             val responseBody = resp.body
             val body: String = if (responseBody != null) responseBody.string() else ""
-            if (!resp.isSuccessful) throw GlkvmException("auth/login -> HTTP ${resp.code}: ${body.take(200)}")
+            if (!resp.isSuccessful) {
+                if ((resp.code == 400 || resp.code == 403 || resp.code == 404) && isServerUnauthenticated()) {
+                    authSession = AuthSession.NoAuth
+                    return AuthSession.NoAuth
+                }
+                throw GlkvmException("auth/login -> HTTP ${resp.code}: ${body.take(200)}")
+            }
             val json = runCatching { JSONObject(body) }
                 .getOrElse { throw GlkvmException("auth/login: non-JSON response: ${body.take(120)}") }
             if (!json.optBoolean("ok")) {
                 throw GlkvmException("login failed: ${json.optString("message").ifEmpty { body.take(120) }}")
             }
             val resultObj = json.optJSONObject("result")
-            val t = resultObj?.optString("token") ?: ""
-            if (t.isEmpty()) throw GlkvmException("login failed: no token in response")
-            token = t
-            return t
+            val glToken = resultObj?.optString("token").orEmpty()
+            val resolved = when {
+                glToken.isNotEmpty() -> AuthSession.GlToken(glToken)
+                else -> {
+                    val cookie = extractAuthTokenCookie(resp)
+                    when {
+                        !cookie.isNullOrEmpty() -> AuthSession.CookieToken(cookie)
+                        isServerUnauthenticated() -> AuthSession.NoAuth
+                        else -> throw GlkvmException("login failed: no token in response")
+                    }
+                }
+            }
+            authSession = resolved
+            return resolved
         }
+    }
+
+    private fun extractAuthTokenCookie(resp: okhttp3.Response): String? {
+        for (raw in resp.headers("Set-Cookie")) {
+            val firstPair = raw.substringBefore(';').trim()
+            if (firstPair.startsWith("auth_token=")) {
+                val value = firstPair.removePrefix("auth_token=").trim()
+                if (value.isNotEmpty()) return value
+            }
+        }
+        return null
+    }
+
+    private fun isServerUnauthenticated(): Boolean {
+        val url = baseUrl.resolve("api/auth/check") ?: return false
+        return runCatching {
+            http.newCall(Request.Builder().url(url).get().build()).execute().use { it.isSuccessful }
+        }.getOrDefault(false)
+    }
+
+    private fun buildAuthedRequest(
+        path: String,
+        auth: AuthSession,
+        query: Map<String, String> = emptyMap(),
+    ): Pair<HttpUrl, Request.Builder> {
+        val cleanPath = path.trimStart('/')
+        val url = (baseUrl.resolve(cleanPath) ?: throw GlkvmException("bad path: $path"))
+            .newBuilder().apply {
+                query.forEach { (k, v) -> addQueryParameter(k, v) }
+                if (auth is AuthSession.GlToken) {
+                    addQueryParameter("auth_token", auth.token)
+                }
+            }.build()
+        val rb = Request.Builder().url(url)
+        when (auth) {
+            is AuthSession.GlToken -> rb.header("token", auth.token)
+            is AuthSession.CookieToken -> rb.header("Cookie", "auth_token=${auth.cookieValue}")
+            AuthSession.NoAuth -> Unit
+        }
+        return url to rb
     }
 
     // -- request pipeline ----------------------------------------------------
@@ -190,13 +258,8 @@ class GlkvmClient private constructor(
         body: String? = null,
         retry: Boolean = true,
     ): String {
-        val tok = login(force = false)
-        val url = (baseUrl.resolve(path) ?: throw GlkvmException("bad path: $path"))
-            .newBuilder().apply {
-                query.forEach { (k, v) -> addQueryParameter(k, v) }
-                addQueryParameter("auth_token", tok)
-            }.build()
-        val rb = Request.Builder().url(url).header("token", tok)
+        val auth = login(force = false)
+        val (_, rb) = buildAuthedRequest(path, auth, query)
         if (body != null) rb.post(body.toRequestBody(null))
         http.newCall(rb.build()).execute().use { resp ->
             val text = resp.body?.string().orEmpty()
@@ -349,55 +412,86 @@ class GlkvmClient private constructor(
     // -- video ---------------------------------------------------------------
 
     /**
-     * Raw JPEG of the live frame (streamer snapshot). Binary-safe: goes over
-     * the wire without the token-retry text decode. A stale-token snapshot
-     * surfaces as GlkvmException — callers re-raise or refresh; the poller
-     * treats one failure as a skipped tick.
+     * Raw JPEG of the live frame (`streamer/snapshot` on GLKVM and nginx-fronted
+     * PiKVM, falling back to `api/streamer/snapshot` on kvmd setups without the
+     * direct ustreamer route). Binary-safe with one forced relogin retry on
+     * stale session (`401` or GL's `403 ForbiddenError`).
      */
     fun snapshot(): ByteArray {
-        fetchSnapshotBytes().use { first ->
+        val currentPath = snapshotPath
+        return snapshotAt(currentPath, allowFallbackPath = currentPath == "streamer/snapshot")
+    }
+
+    private fun snapshotAt(path: String, allowFallbackPath: Boolean): ByteArray {
+        fetchSnapshotBytes(path).use { first ->
+            if (first.code == 404 && allowFallbackPath) {
+                val fallback = "api/streamer/snapshot"
+                val bytes = snapshotAt(fallback, allowFallbackPath = false)
+                snapshotPath = fallback
+                return bytes
+            }
             if (first.code == 401 || first.code == 403) {
-                // Route the retry through the text pipeline, which owns the
-                // GL quirks (403 ForbiddenError relogin; a real 401/403 denial
-                // throws with the server's explanation) — then fetch again.
-                callText("GET", "/streamer/snapshot")
-                val tok2 = login(force = false)
-                val url2 = (baseUrl.resolve("streamer/snapshot") ?: throw GlkvmException("bad base url"))
-                    .newBuilder().addQueryParameter("auth_token", tok2).build()
-                http.newCall(Request.Builder().url(url2).header("token", tok2).get().build())
-                    .execute().use { second ->
-                        if (!second.isSuccessful) throw GlkvmException("/streamer/snapshot -> HTTP ${second.code}")
+                val errText = first.body?.string().orEmpty()
+                if (first.code == 401 || errText.contains("ForbiddenError")) {
+                    login(force = true)
+                    fetchSnapshotBytes(path).use { second ->
+                        if (second.code == 404 && allowFallbackPath) {
+                            val fallback = "api/streamer/snapshot"
+                            val bytes = snapshotAt(fallback, allowFallbackPath = false)
+                            snapshotPath = fallback
+                            return bytes
+                        }
+                        if (!second.isSuccessful) {
+                            val err2 = second.body?.string().orEmpty()
+                            throw GlkvmException("/$path -> HTTP ${second.code}: ${err2.take(200)}")
+                        }
                         return second.body?.bytes() ?: ByteArray(0)
                     }
+                }
+                throw GlkvmException("/$path -> HTTP ${first.code}: ${errText.take(200)}")
             }
-            if (first.code >= 400) throw GlkvmException("/streamer/snapshot -> HTTP ${first.code}")
+            if (first.code >= 400) throw GlkvmException("/$path -> HTTP ${first.code}")
             return first.body?.bytes() ?: ByteArray(0)
         }
     }
 
-    /** Raw snapshot GET without touching the token state; caller closes the response. */
-    private fun fetchSnapshotBytes(): okhttp3.Response {
-        val tok = login(force = false)
-        val url = (baseUrl.resolve("streamer/snapshot") ?: throw GlkvmException("bad base url"))
-            .newBuilder().addQueryParameter("auth_token", tok).build()
-        val req = Request.Builder().url(url).header("token", tok).get().build()
-        return http.newCall(req).execute()
+    /** Raw snapshot GET using cached auth; caller closes the response. */
+    private fun fetchSnapshotBytes(path: String): okhttp3.Response {
+        val auth = login(force = false)
+        val (_, rb) = buildAuthedRequest(path, auth)
+        return http.newCall(rb.get().build()).execute()
     }
 
-    /** HDMI/capture state: signal, real resolution string, captured fps. */
+    /** HDMI/capture state: signal, resolution string, captured fps. */
     fun videoState(): VideoState {
-        val streamer = callJson("/api/streamer")
-            .optJSONObject("result")?.optJSONObject("streamer")
-        if (streamer == null) {
-            throw GlkvmException("/api/streamer: unexpected shape")
-        }
+        val result = callJson("/api/streamer").optJSONObject("result")
+        val streamer = result?.optJSONObject("streamer")
+            ?: result?.takeIf { it.has("source") || it.has("hdmi") || it.has("stream") }
+            ?: throw GlkvmException("/api/streamer: unexpected shape")
         val source = streamer.optJSONObject("source") ?: JSONObject()
-        val hdmi = streamer.optJSONObject("hdmi") ?: JSONObject()
+        val hdmi = streamer.optJSONObject("hdmi")
+        val signal = if (hdmi != null && hdmi.has("signal")) {
+            hdmi.optBoolean("signal", false)
+        } else {
+            source.optBoolean("online", false)
+        }
+        val realRes = source.optString("real_resolution", "")
+        val resolution = realRes.ifEmpty { formatStreamerResolution(source.opt("resolution")) }
         return VideoState(
-            signal = hdmi.optBoolean("signal", false),
-            resolution = source.optString("real_resolution", ""),
+            signal = signal,
+            resolution = resolution,
             fps = if (source.has("captured_fps")) source.optDouble("captured_fps") else null,
         )
+    }
+
+    private fun formatStreamerResolution(raw: Any?): String = when (raw) {
+        is JSONObject -> {
+            val w = raw.optInt("width", 0)
+            val h = raw.optInt("height", 0)
+            if (w > 0 && h > 0) "${w}x$h" else ""
+        }
+        is String -> raw
+        else -> ""
     }
 
     data class VideoState(val signal: Boolean, val resolution: String, val fps: Double? = null)
@@ -411,21 +505,18 @@ class GlkvmClient private constructor(
 
     /** Re-apply an EDID preset (`POST /api/upgrade/edid` multipart field `"edid"`). */
     fun edidSet(value: String): JSONObject {
-        val tok = login(force = false)
-        val url = (baseUrl.resolve("api/upgrade/edid") ?: throw GlkvmException("bad base url"))
-            .newBuilder().addQueryParameter("auth_token", tok).build()
+        val auth = login(force = false)
         val multipart = MultipartBody.Builder()
             .setType(MultipartBody.FORM)
             .addFormDataPart("edid", value)
             .build()
-        val req = Request.Builder().url(url).header("token", tok).post(multipart).build()
-        http.newCall(req).execute().use { resp ->
+        val (_, rb) = buildAuthedRequest("api/upgrade/edid", auth)
+        http.newCall(rb.post(multipart).build()).execute().use { resp ->
             val text = resp.body?.string().orEmpty()
             if ((resp.code == 401) || (resp.code == 403 && text.contains("ForbiddenError"))) {
-                val tok2 = login(force = true)
-                val url2 = (baseUrl.resolve("api/upgrade/edid") ?: throw GlkvmException("bad base url"))
-                    .newBuilder().addQueryParameter("auth_token", tok2).build()
-                http.newCall(Request.Builder().url(url2).header("token", tok2).post(multipart).build())
+                val auth2 = login(force = true)
+                val (_, rb2) = buildAuthedRequest("api/upgrade/edid", auth2)
+                http.newCall(rb2.post(multipart).build())
                     .execute().use { second ->
                         val t2 = second.body?.string().orEmpty()
                         if (!second.isSuccessful) throw GlkvmException("POST /api/upgrade/edid -> HTTP ${second.code}: ${t2.take(200)}")

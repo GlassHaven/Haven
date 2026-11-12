@@ -467,7 +467,7 @@
     <string name="connections_section_vnc">VNC settings</string>
     <string name="connections_section_rdp">RDP settings</string>
     <string name="connections_section_spice">SPICE settings</string>
-    <string name="connections_section_glkvm">GLKVM settings</string>
+    <string name="connections_section_glkvm">GLKVM / PiKVM settings</string>
     <string name="connections_section_openai">AI endpoint</string>
     <string name="connections_field_openai_host">Server address</string>
     <string name="connections_field_openai_host_hint">IP, hostname, or a full http:// or https:// URL</string>
@@ -547,7 +547,7 @@
     <string name="connections_helper_vnc_auth">Leave username blank for classic VncAuth (8-char password). Fill username for VeNCrypt (wayvnc, TigerVNC) — supports longer passwords and TLS encryption. For macOS Screen Sharing, enter your macOS account name and password to share your own desktop.</string>
     <string name="connections_helper_spice_auth">SPICE uses a single optional ticket/password. Leave blank for an unticketed server.</string>
     <string name="connections_field_glkvm_layout">Target keyboard layout</string>
-    <string name="connections_helper_glkvm">GLKVM (PiKVM-style KVM over HTTPS) — drives the target\'s physical mouse and keyboard. TLS uses trust-on-first-use and the target\'s keyboard layout controls typed characters. Route through an SSH tunnel or a WireGuard/Tailscale profile to reach it from outside the LAN.</string>
+    <string name="connections_helper_glkvm">GLKVM and PiKVM (kvmd over HTTPS) — drives the target\'s physical mouse and keyboard. TLS uses trust-on-first-use and the target\'s keyboard layout controls typed characters (append your 6-digit 2FA code to the password if PiKVM 2FA is enabled). Route through an SSH tunnel or a WireGuard/Tailscale profile to reach it from outside the LAN.</string>
     <string name="connections_helper_rdp_host_via_ssh">Where the RDP server is reachable from the SSH server — usually 127.0.0.1 if they\'re the same machine.</string>
     <string name="connections_helper_rdp_nla">Default on. Turn off if the server rejects Haven\'s NLA (some Windows Server 2025 setups — the server must have \"Require NLA\" disabled for SSL-only to connect).</string>
     <string name="connections_action_manage_tunnels">Manage tunnels…</string>

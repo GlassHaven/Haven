@@ -1,0 +1,2 @@
+- Add a **Shizuku** local shell mode on `LOCAL` profiles (`shizuku://` quick-connect and MCP `open_local_shell`), spawning PTY sessions in Shizuku (`uid 2000` over ADB or `uid 0` over root) via `Shizuku.UserService` (#837, thanks @DragonXen).
+- Bind `/usr/local/bin/shizuku` and `/usr/local/bin/rish` inside PRoot sessions over a peer-UID-verified socket so guest tools can run Android shell commands through Shizuku (#837).

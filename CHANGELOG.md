@@ -5,6 +5,11 @@ the corresponding GitHub Release; a release can't ship without its section
 (enforced by `scripts/check-changelog.sh` in CI). The GitHub "Full Changelog"
 compare link is appended automatically — don't add it here.
 
+## v5.94.36
+
+- Add a **Shizuku** local shell mode on `LOCAL` profiles (`shizuku://` quick-connect and MCP `open_local_shell`), spawning PTY sessions in Shizuku (`uid 2000` over ADB or `uid 0` over root) via `Shizuku.UserService` (#837, thanks @DragonXen).
+- Bind `/usr/local/bin/shizuku` and `/usr/local/bin/rish` inside PRoot sessions over a peer-UID-verified socket so guest tools can run Android shell commands through Shizuku (#837).
+
 ## v5.94.35
 
 - Enforce fail-closed socket filtering in PRoot when a per-distro proxy is active and redirect custom `ip:port` DNS resolvers (such as `127.0.0.1:5400`) at the syscall boundary so direct UDP/TCP DNS queries cannot bypass the proxy (#838, thanks @DragonXen).

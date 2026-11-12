@@ -1,0 +1,2 @@
+- Route PRoot DNS queries (including explicit `dig @server` and `+tcp` requests) over TCP through active SOCKS5 and HTTP CONNECT tunnels under `--net-policy=lockdown`, and filter unreachable LAN DHCP resolvers when proxied (#838, thanks @DragonXen).
+- Delete orphaned `rclone.conf` sections when removing rclone connections, allow overwriting or repairing remotes in **Import rclone.conf**, and add a two-step **Reset rclone storage** action (#839, thanks @ghanan).

@@ -5,6 +5,11 @@ the corresponding GitHub Release; a release can't ship without its section
 (enforced by `scripts/check-changelog.sh` in CI). The GitHub "Full Changelog"
 compare link is appended automatically — don't add it here.
 
+## v5.94.37
+
+- Route PRoot DNS queries (including explicit `dig @server` and `+tcp` requests) over TCP through active SOCKS5 and HTTP CONNECT tunnels under `--net-policy=lockdown`, and filter unreachable LAN DHCP resolvers when proxied (#838, thanks @DragonXen).
+- Delete orphaned `rclone.conf` sections when removing rclone connections, allow overwriting or repairing remotes in **Import rclone.conf**, and add a two-step **Reset rclone storage** action (#839, thanks @ghanan).
+
 ## v5.94.36
 
 - Add a **Shizuku** local shell mode on `LOCAL` profiles (`shizuku://` quick-connect and MCP `open_local_shell`), spawning PTY sessions in Shizuku (`uid 2000` over ADB or `uid 0` over root) via `Shizuku.UserService` (#837, thanks @DragonXen).

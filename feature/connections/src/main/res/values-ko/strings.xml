@@ -534,6 +534,11 @@
     <string name="rclone_import_select_count">원격 %1$d개 가져오기</string>
     <string name="rclone_import_done">가져옴 %1$d개, 건너뜀 %2$d개, 실패 %3$d개.</string>
     <string name="rclone_import_menu">rclone 구성 가져오기…</string>
+    <string name="rclone_import_already_added_overwrite">이미 추가됨(체크하여 덮어쓰기)</string>
+    <string name="rclone_import_orphaned_repair">카드 없이 rclone.conf에 존재함(복구 예정)</string>
+    <string name="rclone_import_reset_button">rclone 스토리지 초기화…</string>
+    <string name="rclone_import_reset_confirm">저장된 rclone 연결을 제거하고 rclone.conf를 비우시겠습니까? SSH 키와 다른 연결은 유지됩니다.</string>
+    <string name="rclone_import_reset_done">스토리지 연결 %1$d개와 rclone.conf 원격 %2$d개를 지웠습니다.</string>
     <string name="connections_section_spice">SPICE 설정</string>
     <string name="connections_section_mcp">AI 에이전트 (MCP)</string>
     <string name="connections_rclone_configure_first">연결을 저장하려면 먼저 “구성 및 확인”을 탭하여 이 원격을 저장하세요.</string>

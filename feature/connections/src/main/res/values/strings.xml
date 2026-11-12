@@ -459,6 +459,11 @@
     <string name="rclone_import_select_count">Import %1$d remote(s)</string>
     <string name="rclone_import_done">Imported %1$d, skipped %2$d, failed %3$d.</string>
     <string name="rclone_import_menu">Import rclone config…</string>
+    <string name="rclone_import_already_added_overwrite">already added (tick to overwrite)</string>
+    <string name="rclone_import_orphaned_repair">in rclone.conf without a card (will repair)</string>
+    <string name="rclone_import_reset_button">Reset rclone storage…</string>
+    <string name="rclone_import_reset_confirm">Remove saved rclone connections and clear rclone.conf? SSH keys and other connections are kept.</string>
+    <string name="rclone_import_reset_done">Cleared %1$d storage connection(s) and %2$d rclone.conf remote(s).</string>
     <string name="connections_section_vnc">VNC settings</string>
     <string name="connections_section_rdp">RDP settings</string>
     <string name="connections_section_spice">SPICE settings</string>

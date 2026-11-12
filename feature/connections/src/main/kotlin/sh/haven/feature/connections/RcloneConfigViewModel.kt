@@ -16,6 +16,7 @@ import sh.haven.core.rclone.ProviderOption
 import sh.haven.core.rclone.RcloneClient
 import sh.haven.core.rclone.RcloneConfigParseResult
 import sh.haven.core.rclone.RcloneConfigParser
+import sh.haven.core.session.SessionManagerRegistry
 import javax.inject.Inject
 
 /**
@@ -33,6 +34,7 @@ import javax.inject.Inject
 class RcloneConfigViewModel @Inject constructor(
     private val rcloneClient: RcloneClient,
     private val connectionRepository: ConnectionRepository,
+    private val sessionManagerRegistry: SessionManagerRegistry,
 ) : ViewModel() {
 
     /** Status of the most recent [configure] attempt, for inline UI feedback. */
@@ -121,16 +123,23 @@ class RcloneConfigViewModel @Inject constructor(
         if (_status.value != Status.Working) _status.value = Status.Idle
     }
 
-    // ── Import from a Linux rclone.conf (#251) ──────────────────────────────
+    // ── Import from a Linux rclone.conf (#251, #839) ────────────────────────
 
-    /** State of the "import remotes from an rclone.conf" flow (#251). */
+    /** State of the "import remotes from an rclone.conf" flow (#251, #839). */
     sealed interface ImportState {
         data object Idle : ImportState
 
-        /** Parsed remotes ready to choose from; [existing] names are already configured. */
+        /**
+         * Parsed remotes ready to choose from:
+         * - [existing] already have a visible RCLONE [ConnectionProfile] in the UI
+         *   (unchecked by default, but selectable to overwrite credentials).
+         * - [orphaned] exist in `rclone.conf` without a matching UI profile (#839)
+         *   (pre-selected so importing repairs the missing card).
+         */
         data class Loaded(
             val remotes: List<ParsedRemote>,
             val existing: Set<String>,
+            val orphaned: Set<String> = emptySet(),
         ) : ImportState
 
         /** The pasted/picked file is a password-encrypted rclone config. */
@@ -139,11 +148,17 @@ class RcloneConfigViewModel @Inject constructor(
         data class Failed(val message: String) : ImportState
         data object Importing : ImportState
 
-        /** Per-remote outcome: created remote names, skipped (existing/typeless), failed→reason. */
+        /** Per-remote outcome: created/updated remote names, skipped (typeless), failed→reason. */
         data class Done(
             val created: List<String>,
             val skipped: List<String>,
             val failed: Map<String, String>,
+        ) : ImportState
+
+        /** Outcome of clearing existing rclone profiles and `rclone.conf` sections (#839). */
+        data class ResetDone(
+            val removedProfiles: Int,
+            val removedRemotes: Int,
         ) : ImportState
     }
 
@@ -174,22 +189,29 @@ class RcloneConfigViewModel @Inject constructor(
                         _importState.value = ImportState.Failed("No remotes found in that file.")
                         return@launch
                     }
-                    val existing = withContext(Dispatchers.IO) {
-                        runCatching {
+                    val (existing, orphaned) = withContext(Dispatchers.IO) {
+                        val inDb = runCatching {
+                            connectionRepository.getAll()
+                                .filter { it.connectionType == "RCLONE" }
+                                .mapNotNull { it.rcloneRemoteName?.takeIf(String::isNotBlank) }
+                                .toSet()
+                        }.getOrDefault(emptySet())
+                        val inConfig = runCatching {
                             rcloneClient.initialize()
                             rcloneClient.listRemotes().toSet()
                         }.getOrDefault(emptySet())
+                        inDb to (inConfig - inDb)
                     }
-                    _importState.value = ImportState.Loaded(parsed.remotes, existing)
+                    _importState.value = ImportState.Loaded(parsed.remotes, existing, orphaned)
                 }
             }
         }
     }
 
     /**
-     * Create each selected remote in rclone (values copied verbatim via
-     * `noObscure` — they're already obscured) and a matching RCLONE
-     * [ConnectionProfile]. Skips typeless sections and names that already exist.
+     * Create or overwrite each selected remote in rclone (values copied verbatim
+     * via `noObscure` — they're already obscured) and create or update the
+     * matching RCLONE [ConnectionProfile] (#251, #839). Skips typeless sections.
      */
     fun importRemotes(selected: List<ParsedRemote>) {
         _importState.value = ImportState.Importing
@@ -200,10 +222,24 @@ class RcloneConfigViewModel @Inject constructor(
             withContext(Dispatchers.IO) {
                 runCatching { rcloneClient.initialize() }
                 val existingRemotes = runCatching { rcloneClient.listRemotes().toSet() }.getOrDefault(emptySet())
+                val existingProfilesByRemote = runCatching {
+                    connectionRepository.getAll()
+                        .filter { it.connectionType == "RCLONE" && !it.rcloneRemoteName.isNullOrBlank() }
+                        .groupBy { it.rcloneRemoteName!! }
+                }.getOrDefault(emptyMap())
+
                 for (remote in selected) {
                     if (remote.type.isBlank()) { skipped += remote.name; continue }
-                    if (remote.name in existingRemotes) { skipped += remote.name; continue }
+                    val hadConfig = remote.name in existingRemotes
+                    val priorConfig = if (hadConfig) {
+                        runCatching { rcloneClient.getRemoteConfig(remote.name) }.getOrNull()
+                    } else {
+                        null
+                    }
                     val result = runCatching {
+                        if (hadConfig) {
+                            rcloneClient.deleteRemote(remote.name)
+                        }
                         // nonInteractive so an OAuth remote (token already in
                         // params) doesn't block config/create on the browser
                         // flow and hang the import dialog (#269).
@@ -212,8 +248,11 @@ class RcloneConfigViewModel @Inject constructor(
                             noObscure = true, nonInteractive = true,
                         )
                         if (state.error.isNotEmpty()) error(state.error)
+                        val existingProfile = existingProfilesByRemote[remote.name]?.firstOrNull()
                         connectionRepository.save(
-                            ConnectionProfile(
+                            existingProfile?.copy(
+                                rcloneProvider = remote.type,
+                            ) ?: ConnectionProfile(
                                 label = remote.name,
                                 host = "",
                                 username = "",
@@ -226,17 +265,59 @@ class RcloneConfigViewModel @Inject constructor(
                     result.fold(
                         onSuccess = { created += remote.name },
                         onFailure = {
-                            // Roll back any half-created rclone remote so a failed
-                            // import doesn't leave a "ghost": present in rclone.conf
-                            // (offered for sync, re-import says "already imported")
-                            // with no matching connection profile (#269).
+                            // Roll back any half-created rclone remote; if overwriting an
+                            // existing remote failed, restore its previous rclone.conf entry.
                             runCatching { rcloneClient.deleteRemote(remote.name) }
+                            val priorType = priorConfig?.get("type")?.takeIf { it.isNotBlank() }
+                            if (priorType != null) {
+                                runCatching {
+                                    rcloneClient.createRemote(
+                                        remote.name,
+                                        priorType,
+                                        priorConfig - "type",
+                                        noObscure = true,
+                                        nonInteractive = true,
+                                    )
+                                }
+                            }
                             failed[remote.name] = it.message ?: "failed"
                         },
                     )
                 }
             }
             _importState.value = ImportState.Done(created, skipped, failed)
+        }
+    }
+
+    /**
+     * Clear all saved RCLONE connection profiles and all `rclone.conf` remotes (#839)
+     * so a user can start clean from a desktop `rclone.conf` without affecting SSH
+     * keys, tunnels, or non-rclone connections.
+     */
+    fun resetRcloneStorage() {
+        _importState.value = ImportState.Importing
+        viewModelScope.launch {
+            val (removedProfiles, removedRemotes) = withContext(Dispatchers.IO) {
+                val rcloneProfiles = runCatching {
+                    connectionRepository.getAll().filter { it.connectionType == "RCLONE" }
+                }.getOrDefault(emptyList())
+                for (profile in rcloneProfiles) {
+                    runCatching { sessionManagerRegistry.disconnectProfile(profile.id) }
+                    runCatching { connectionRepository.delete(profile.id) }
+                }
+                val remotes = runCatching {
+                    rcloneClient.initialize()
+                    rcloneClient.listRemotes()
+                }.getOrDefault(emptyList())
+                for (name in remotes) {
+                    runCatching { rcloneClient.deleteRemote(name) }
+                }
+                rcloneProfiles.size to remotes.size
+            }
+            _importState.value = ImportState.ResetDone(
+                removedProfiles = removedProfiles,
+                removedRemotes = removedRemotes,
+            )
         }
     }
 

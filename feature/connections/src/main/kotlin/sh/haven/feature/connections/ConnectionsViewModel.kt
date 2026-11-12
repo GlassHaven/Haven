@@ -2298,12 +2298,35 @@ class ConnectionsViewModel @Inject constructor(
 
     fun deleteConnection(id: String) {
         viewModelScope.launch {
+            val profile = repository.getById(id)
             sessionManagerRegistry.disconnectProfile(id)
             sshSessionManager.teardownTunnelDependent(id)
             desktopSessionRegistry.closeHandle(id)?.invoke()
             localSessionManager.desktopManager.stopAll()
             updateServiceNotification()
             repository.delete(id)
+            // Symmetric cleanup (#839): drop the underlying rclone.conf section
+            // when deleting the last RCLONE profile pointing at it so re-importing
+            // later does not see an orphaned remote in config/listremotes.
+            val remoteName = profile
+                ?.takeIf { it.connectionType == "RCLONE" }
+                ?.rcloneRemoteName
+                ?.takeIf { it.isNotBlank() }
+            if (remoteName != null) {
+                val stillShared = repository.getAll().any {
+                    it.id != id && it.connectionType == "RCLONE" && it.rcloneRemoteName == remoteName
+                }
+                if (!stillShared) {
+                    withContext(Dispatchers.IO) {
+                        runCatching {
+                            rcloneClient.initialize()
+                            if (remoteName in rcloneClient.listRemotes()) {
+                                rcloneClient.deleteRemote(remoteName)
+                            }
+                        }
+                    }
+                }
+            }
         }
     }
 

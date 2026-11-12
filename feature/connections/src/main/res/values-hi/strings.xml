@@ -542,6 +542,11 @@
     <string name="rclone_import_select_count">%1$d रिमोट आयात करें</string>
     <string name="rclone_import_done">%1$d आयात हुए, %2$d छोड़े गए, %3$d विफल।</string>
     <string name="rclone_import_menu">rclone कॉन्फ़िग आयात करें…</string>
+    <string name="rclone_import_already_added_overwrite">पहले से जुड़ा है (ओवरराइट करने के लिए चुनें)</string>
+    <string name="rclone_import_orphaned_repair">बिना कार्ड के rclone.conf में मौजूद (मरम्मत की जाएगी)</string>
+    <string name="rclone_import_reset_button">rclone स्टोरेज रीसेट करें…</string>
+    <string name="rclone_import_reset_confirm">सहेजे गए rclone कनेक्शन हटाएं और rclone.conf साफ़ करें? SSH कुंजियां और अन्य कनेक्शन सुरक्षित रहेंगे।</string>
+    <string name="rclone_import_reset_done">%1$d स्टोरेज कनेक्शन और %2$d rclone.conf रिमोट साफ़ किए गए।</string>
     <string name="connections_section_spice">SPICE सेटिंग्स</string>
     <string name="connections_section_mcp">AI एजेंट (MCP)</string>
     <string name="connections_rclone_configure_first">कनेक्शन सहेजने से पहले इस रिमोट को सहेजने के लिए “कॉन्फ़िगर करें और सत्यापित करें” पर टैप करें।</string>

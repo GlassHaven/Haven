@@ -542,6 +542,11 @@
     <string name="rclone_import_select_count">Importar %1$d remoto(s)</string>
     <string name="rclone_import_done">%1$d importados, %2$d omitidos, %3$d fallidos.</string>
     <string name="rclone_import_menu">Importar configuración de rclone…</string>
+    <string name="rclone_import_already_added_overwrite">ya añadido (marca para sobrescribir)</string>
+    <string name="rclone_import_orphaned_repair">en rclone.conf sin tarjeta (se reparará)</string>
+    <string name="rclone_import_reset_button">Restablecer almacenamiento rclone…</string>
+    <string name="rclone_import_reset_confirm">¿Eliminar las conexiones rclone guardadas y vaciar rclone.conf? Las claves SSH y el resto de conexiones se conservan.</string>
+    <string name="rclone_import_reset_done">Se borraron %1$d conexión(es) de almacenamiento y %2$d remoto(s) de rclone.conf.</string>
     <string name="connections_section_spice">Ajustes de SPICE</string>
     <string name="connections_section_mcp">Agente de IA (MCP)</string>
     <string name="connections_rclone_configure_first">Toca “Configurar y verificar” para guardar este remoto antes de poder guardar la conexión.</string>

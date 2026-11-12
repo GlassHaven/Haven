@@ -17356,6 +17356,109 @@
      }
     },
     {
+     "name": "rclone_import_already_added_overwrite",
+     "en": "already added (tick to overwrite)",
+     "comment": "Import rclone.conf (#251)",
+     "args": [],
+     "t": {
+      "ar": "مضاف بالفعل (حدّد للاستبدال)",
+      "bn": "ইতিমধ্যে যোগ করা হয়েছে (ওভাররাইট করতে টিক দিন)",
+      "de": "bereits hinzugefügt (zum Überschreiben auswählen)",
+      "es": "ya añadido (marca para sobrescribir)",
+      "fr": "déjà ajouté (cocher pour écraser)",
+      "hi": "पहले से जुड़ा है (ओवरराइट करने के लिए चुनें)",
+      "ja": "追加済み（チェックで上書き）",
+      "ko": "이미 추가됨(체크하여 덮어쓰기)",
+      "pt": "já adicionado (marque para substituir)",
+      "ru": "уже добавлено (отметьте для перезаписи)",
+      "sr": "већ је додат (означите за преписивање)",
+      "zh": "已添加（勾选以覆盖）"
+     }
+    },
+    {
+     "name": "rclone_import_orphaned_repair",
+     "en": "in rclone.conf without a card (will repair)",
+     "comment": "Import rclone.conf (#251)",
+     "args": [],
+     "t": {
+      "ar": "موجود في rclone.conf بدون بطاقة (سيتم إصلاحه)",
+      "bn": "কার্ড ছাড়াই rclone.conf-এ আছে (মেরামত করা হবে)",
+      "de": "in rclone.conf ohne Eintrag vorhanden (wird repariert)",
+      "es": "en rclone.conf sin tarjeta (se reparará)",
+      "fr": "dans rclone.conf sans fiche (sera réparé)",
+      "hi": "बिना कार्ड के rclone.conf में मौजूद (मरम्मत की जाएगी)",
+      "ja": "カードなしで rclone.conf に存在（修復します）",
+      "ko": "카드 없이 rclone.conf에 존재함(복구 예정)",
+      "pt": "no rclone.conf sem cartão (será reparado)",
+      "ru": "есть в rclone.conf без карточки (будет восстановлено)",
+      "sr": "у rclone.conf без картице (биће поправљено)",
+      "zh": "在 rclone.conf 中存在但无卡片（将修复）"
+     }
+    },
+    {
+     "name": "rclone_import_reset_button",
+     "en": "Reset rclone storage…",
+     "comment": "Import rclone.conf (#251)",
+     "args": [],
+     "t": {
+      "ar": "إعادة تعيين تخزين rclone…",
+      "bn": "rclone স্টোরেজ রিসেট করুন…",
+      "de": "rclone-Speicher zurücksetzen…",
+      "es": "Restablecer almacenamiento rclone…",
+      "fr": "Réinitialiser le stockage rclone…",
+      "hi": "rclone स्टोरेज रीसेट करें…",
+      "ja": "rclone ストレージをリセット…",
+      "ko": "rclone 스토리지 초기화…",
+      "pt": "Redefinir armazenamento rclone…",
+      "ru": "Сбросить хранилище rclone…",
+      "sr": "Ресетуј rclone складиште…",
+      "zh": "重置 rclone 存储…"
+     }
+    },
+    {
+     "name": "rclone_import_reset_confirm",
+     "en": "Remove saved rclone connections and clear rclone.conf? SSH keys and other connections are kept.",
+     "comment": "Import rclone.conf (#251)",
+     "args": [],
+     "t": {
+      "ar": "هل تريد إزالة اتصالات rclone المحفوظة ومسح rclone.conf؟ سيتم الاحتفاظ بمفاتيح SSH والاتصالات الأخرى.",
+      "bn": "সংরক্ষিত rclone সংযোগগুলি মুছে rclone.conf পরিষ্কার করবেন? SSH কী এবং অন্যান্য সংযোগ অক্ষত থাকবে।",
+      "de": "Gespeicherte rclone-Verbindungen entfernen und rclone.conf leeren? SSH-Schlüssel und andere Verbindungen bleiben erhalten.",
+      "es": "¿Eliminar las conexiones rclone guardadas y vaciar rclone.conf? Las claves SSH y el resto de conexiones se conservan.",
+      "fr": "Supprimer les connexions rclone enregistrées et vider rclone.conf ? Les clés SSH et les autres connexions sont conservées.",
+      "hi": "सहेजे गए rclone कनेक्शन हटाएं और rclone.conf साफ़ करें? SSH कुंजियां और अन्य कनेक्शन सुरक्षित रहेंगे।",
+      "ja": "保存済みの rclone 接続を削除し、rclone.conf を消去しますか？SSH 鍵や他の接続は保持されます。",
+      "ko": "저장된 rclone 연결을 제거하고 rclone.conf를 비우시겠습니까? SSH 키와 다른 연결은 유지됩니다.",
+      "pt": "Remover as conexões rclone salvas e limpar o rclone.conf? Chaves SSH e outras conexões serão mantidas.",
+      "ru": "Удалить сохранённые подключения rclone и очистить rclone.conf? SSH-ключи и другие подключения останутся.",
+      "sr": "Уклонити сачуване rclone везе и испразнити rclone.conf? SSH кључеви и остале везе се задржавају.",
+      "zh": "移除已保存的 rclone 连接并清空 rclone.conf？SSH 密钥和其他连接将保留。"
+     }
+    },
+    {
+     "name": "rclone_import_reset_done",
+     "en": "Cleared %1$d storage connection(s) and %2$d rclone.conf remote(s).",
+     "comment": "Import rclone.conf (#251)",
+     "args": [
+      "%1$d",
+      "%2$d"
+     ],
+     "t": {
+      "ar": "تم مسح %1$d من اتصالات التخزين و%2$d من وجهات rclone.conf.",
+      "bn": "%1$dটি স্টোরেজ সংযোগ এবং %2$dটি rclone.conf রিমোট মুছে ফেলা হয়েছে।",
+      "de": "%1$d Speicherverbindung(en) und %2$d rclone.conf-Remote(s) gelöscht.",
+      "es": "Se borraron %1$d conexión(es) de almacenamiento y %2$d remoto(s) de rclone.conf.",
+      "fr": "%1$d connexion(s) de stockage et %2$d distant(s) rclone.conf effacés.",
+      "hi": "%1$d स्टोरेज कनेक्शन और %2$d rclone.conf रिमोट साफ़ किए गए।",
+      "ja": "ストレージ接続 %1$d 件と rclone.conf リモート %2$d 件を消去しました。",
+      "ko": "스토리지 연결 %1$d개와 rclone.conf 원격 %2$d개를 지웠습니다.",
+      "pt": "%1$d conexão(ões) de armazenamento e %2$d remoto(s) do rclone.conf limpos.",
+      "ru": "Очищено подключений хранилища: %1$d, удалённых записей rclone.conf: %2$d.",
+      "sr": "Очишћено веза складишта: %1$d и удаљених у rclone.conf: %2$d.",
+      "zh": "已清除 %1$d 个存储连接和 %2$d 个 rclone.conf 远程。"
+     }
+    },
+    {
      "name": "connections_section_vnc",
      "en": "VNC settings",
      "comment": "Import rclone.conf (#251)",

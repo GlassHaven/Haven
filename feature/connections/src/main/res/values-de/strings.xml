@@ -542,6 +542,11 @@
     <string name="rclone_import_select_count">%1$d Remote(s) importieren</string>
     <string name="rclone_import_done">%1$d importiert, %2$d übersprungen, %3$d fehlgeschlagen.</string>
     <string name="rclone_import_menu">rclone-Konfiguration importieren…</string>
+    <string name="rclone_import_already_added_overwrite">bereits hinzugefügt (zum Überschreiben auswählen)</string>
+    <string name="rclone_import_orphaned_repair">in rclone.conf ohne Eintrag vorhanden (wird repariert)</string>
+    <string name="rclone_import_reset_button">rclone-Speicher zurücksetzen…</string>
+    <string name="rclone_import_reset_confirm">Gespeicherte rclone-Verbindungen entfernen und rclone.conf leeren? SSH-Schlüssel und andere Verbindungen bleiben erhalten.</string>
+    <string name="rclone_import_reset_done">%1$d Speicherverbindung(en) und %2$d rclone.conf-Remote(s) gelöscht.</string>
     <string name="connections_section_spice">SPICE-Einstellungen</string>
     <string name="connections_section_mcp">KI-Agent (MCP)</string>
     <string name="connections_rclone_configure_first">Tippe auf „Konfigurieren &amp; prüfen“, um dieses Remote zu speichern, bevor du die Verbindung speichern kannst.</string>

@@ -72,4 +72,29 @@ class RcloneConfigParserTest {
         assertTrue(remotes("").isEmpty())
         assertTrue(remotes("   \n\n# only a comment").isEmpty())
     }
+
+    @Test
+    fun `exact duplicate section names merge with later values while case-distinct names stay separate`() {
+        val conf = """
+            [gdrive]
+            type = drive
+            scope = drive.readonly
+
+            [GDrive]
+            type = drive
+            scope = drive
+
+            [gdrive]
+            type = s3
+            provider = AWS
+        """.trimIndent()
+
+        val r = remotes(conf)
+        assertEquals(listOf("gdrive", "GDrive"), r.map { it.name })
+        assertEquals("s3", r[0].type)
+        assertEquals("AWS", r[0].params["provider"])
+        assertTrue(!r[0].params.containsKey("scope"))
+        assertEquals("drive", r[1].type)
+        assertEquals("drive", r[1].params["scope"])
+    }
 }

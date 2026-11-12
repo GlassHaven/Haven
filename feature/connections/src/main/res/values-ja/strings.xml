@@ -542,6 +542,11 @@
     <string name="rclone_import_select_count">%1$d 件のリモートをインポート</string>
     <string name="rclone_import_done">インポート %1$d 件、スキップ %2$d 件、失敗 %3$d 件。</string>
     <string name="rclone_import_menu">rclone 設定をインポート…</string>
+    <string name="rclone_import_already_added_overwrite">追加済み（チェックで上書き）</string>
+    <string name="rclone_import_orphaned_repair">カードなしで rclone.conf に存在（修復します）</string>
+    <string name="rclone_import_reset_button">rclone ストレージをリセット…</string>
+    <string name="rclone_import_reset_confirm">保存済みの rclone 接続を削除し、rclone.conf を消去しますか？SSH 鍵や他の接続は保持されます。</string>
+    <string name="rclone_import_reset_done">ストレージ接続 %1$d 件と rclone.conf リモート %2$d 件を消去しました。</string>
     <string name="connections_section_spice">SPICE 設定</string>
     <string name="connections_section_mcp">AI エージェント (MCP)</string>
     <string name="connections_rclone_configure_first">接続を保存する前に、「設定して確認」をタップしてこのリモートを保存してください。</string>

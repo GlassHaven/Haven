@@ -33,13 +33,13 @@ sealed interface RcloneConfigParseResult {
 object RcloneConfigParser {
 
     fun parse(text: String): RcloneConfigParseResult {
-        val remotes = mutableListOf<ParsedRemote>()
+        val remotes = linkedMapOf<String, ParsedRemote>()
         var name: String? = null
         var type = ""
         var params = mutableMapOf<String, String>()
 
         fun flush() {
-            name?.let { remotes += ParsedRemote(it, type, params) }
+            name?.let { remotes[it] = ParsedRemote(it, type, params) }
             name = null
             type = ""
             params = mutableMapOf()
@@ -64,6 +64,6 @@ object RcloneConfigParser {
             if (key.equals("type", ignoreCase = true)) type = value else params[key] = value
         }
         flush()
-        return RcloneConfigParseResult.Success(remotes)
+        return RcloneConfigParseResult.Success(remotes.values.toList())
     }
 }

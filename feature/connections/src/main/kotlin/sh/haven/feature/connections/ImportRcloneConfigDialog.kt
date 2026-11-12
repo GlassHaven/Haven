@@ -37,8 +37,10 @@ import sh.haven.core.rclone.ParsedRemote
 
 /**
  * Imports remotes from a Linux `rclone.conf` so the user doesn't reconfigure
- * them in Haven (#251). Paste the file or pick it; each chosen remote becomes
- * an rclone remote + an RCLONE connection profile.
+ * them in Haven (#251, #839). Paste the file or pick it; each chosen remote
+ * becomes an rclone remote + an RCLONE connection profile, with optional
+ * overwrite of existing remotes, repair of orphaned `rclone.conf` entries, and
+ * one-step reset of rclone storage.
  */
 @Composable
 fun ImportRcloneConfigDialog(
@@ -48,6 +50,7 @@ fun ImportRcloneConfigDialog(
     val context = LocalContext.current
     val state by viewModel.importState.collectAsStateWithLifecycle()
     var pasted by remember { mutableStateOf("") }
+    var confirmingReset by remember { mutableStateOf(false) }
 
     // OpenDocument (ACTION_OPEN_DOCUMENT), not GetContent: GET_CONTENT is
     // resolved by whatever handler the ROM ships, which is how this started
@@ -92,6 +95,7 @@ fun ImportRcloneConfigDialog(
     }
 
     fun close() {
+        confirmingReset = false
         viewModel.resetImport()
         onDismiss()
     }
@@ -122,6 +126,37 @@ fun ImportRcloneConfigDialog(
                             pasted = pasted,
                             onPastedChange = { pasted = it },
                             onPick = ::launchPicker,
+                            confirmingReset = confirmingReset,
+                            onRequestReset = { confirmingReset = true },
+                            onCancelReset = { confirmingReset = false },
+                            onConfirmReset = {
+                                confirmingReset = false
+                                viewModel.resetRcloneStorage()
+                            },
+                        )
+                    }
+                    is RcloneConfigViewModel.ImportState.ResetDone -> {
+                        Text(
+                            stringResource(
+                                R.string.rclone_import_reset_done,
+                                s.removedProfiles,
+                                s.removedRemotes,
+                            ),
+                            style = MaterialTheme.typography.bodySmall,
+                            color = MaterialTheme.colorScheme.primary,
+                        )
+                        Spacer(Modifier.height(12.dp))
+                        PickOrPaste(
+                            pasted = pasted,
+                            onPastedChange = { pasted = it },
+                            onPick = ::launchPicker,
+                            confirmingReset = confirmingReset,
+                            onRequestReset = { confirmingReset = true },
+                            onCancelReset = { confirmingReset = false },
+                            onConfirmReset = {
+                                confirmingReset = false
+                                viewModel.resetRcloneStorage()
+                            },
                         )
                     }
                     is RcloneConfigViewModel.ImportState.Done ->
@@ -138,6 +173,13 @@ fun ImportRcloneConfigDialog(
                             pasted = pasted,
                             onPastedChange = { pasted = it },
                             onPick = ::launchPicker,
+                            confirmingReset = confirmingReset,
+                            onRequestReset = { confirmingReset = true },
+                            onCancelReset = { confirmingReset = false },
+                            onConfirmReset = {
+                                confirmingReset = false
+                                viewModel.resetRcloneStorage()
+                            },
                         )
                     }
                 }
@@ -145,10 +187,11 @@ fun ImportRcloneConfigDialog(
         },
         confirmButton = {
             when (state) {
-                // Failed offers Parse as well, so a pasted config recovers the
-                // dialog in place instead of needing it closed and reopened.
+                // Failed and ResetDone offer Parse as well, so a pasted config
+                // recovers or imports in place without closing the dialog.
                 RcloneConfigViewModel.ImportState.Idle,
                 is RcloneConfigViewModel.ImportState.Failed,
+                is RcloneConfigViewModel.ImportState.ResetDone,
                 ->
                     TextButton(
                         onClick = { viewModel.loadConfig(pasted) },
@@ -168,7 +211,8 @@ private fun SelectRemotes(
     loaded: RcloneConfigViewModel.ImportState.Loaded,
     viewModel: RcloneConfigViewModel,
 ) {
-    // Default-select everything importable (has a type, not already added).
+    // Pre-select fresh and orphaned remotes; leave already-visible UI profiles
+    // unchecked by default while keeping their checkboxes enabled for overwrite (#839).
     val checked = remember(loaded) {
         mutableStateMapOf<String, Boolean>().apply {
             loaded.remotes.forEach { put(it.name, it.type.isNotBlank() && it.name !in loaded.existing) }
@@ -177,18 +221,19 @@ private fun SelectRemotes(
     Column {
         loaded.remotes.forEach { remote ->
             val already = remote.name in loaded.existing
+            val orphaned = remote.name in loaded.orphaned
             val noType = remote.type.isBlank()
-            val disabled = already || noType
             val sub = when {
-                already -> "${remote.type} · ${stringResource(R.string.rclone_import_already_added)}"
                 noType -> stringResource(R.string.rclone_import_no_type)
+                already -> "${remote.type} · ${stringResource(R.string.rclone_import_already_added_overwrite)}"
+                orphaned -> "${remote.type} · ${stringResource(R.string.rclone_import_orphaned_repair)}"
                 else -> remote.type
             }
             Row(verticalAlignment = Alignment.CenterVertically, modifier = Modifier.fillMaxWidth()) {
                 Checkbox(
                     checked = checked[remote.name] == true,
-                    onCheckedChange = if (disabled) null else { v -> checked[remote.name] = v },
-                    enabled = !disabled,
+                    onCheckedChange = if (noType) null else { v -> checked[remote.name] = v },
+                    enabled = !noType,
                 )
                 Column(Modifier.padding(start = 4.dp)) {
                     Text(remote.name, style = MaterialTheme.typography.bodyMedium)
@@ -207,13 +252,16 @@ private fun SelectRemotes(
     }
 }
 
-/** The pick-a-file button plus the paste box, shown both initially and after a
- *  failure so the advice in an error message is actionable where it appears. */
+/** The pick-a-file button, paste box, and two-step storage reset (#839). */
 @Composable
 private fun PickOrPaste(
     pasted: String,
     onPastedChange: (String) -> Unit,
     onPick: () -> Unit,
+    confirmingReset: Boolean,
+    onRequestReset: () -> Unit,
+    onCancelReset: () -> Unit,
+    onConfirmReset: () -> Unit,
 ) {
     OutlinedButton(onClick = onPick) {
         Text(stringResource(R.string.rclone_import_pick_file))
@@ -225,4 +273,30 @@ private fun PickOrPaste(
         label = { Text(stringResource(R.string.rclone_import_paste_label)) },
         modifier = Modifier.fillMaxWidth().heightIn(min = 120.dp),
     )
+    Spacer(Modifier.height(8.dp))
+    if (confirmingReset) {
+        Text(
+            stringResource(R.string.rclone_import_reset_confirm),
+            style = MaterialTheme.typography.bodySmall,
+            color = MaterialTheme.colorScheme.error,
+        )
+        Row(horizontalArrangement = Arrangement.End, modifier = Modifier.fillMaxWidth()) {
+            TextButton(onClick = onCancelReset) {
+                Text(stringResource(R.string.common_cancel))
+            }
+            TextButton(onClick = onConfirmReset) {
+                Text(
+                    stringResource(R.string.common_reset),
+                    color = MaterialTheme.colorScheme.error,
+                )
+            }
+        }
+    } else {
+        TextButton(onClick = onRequestReset) {
+            Text(
+                stringResource(R.string.rclone_import_reset_button),
+                color = MaterialTheme.colorScheme.error,
+            )
+        }
+    }
 }

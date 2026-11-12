@@ -542,6 +542,11 @@
     <string name="rclone_import_select_count">Импортировать хранилища (%1$d)</string>
     <string name="rclone_import_done">Импортировано: %1$d, пропущено: %2$d, с ошибкой: %3$d.</string>
     <string name="rclone_import_menu">Импорт конфигурации rclone…</string>
+    <string name="rclone_import_already_added_overwrite">уже добавлено (отметьте для перезаписи)</string>
+    <string name="rclone_import_orphaned_repair">есть в rclone.conf без карточки (будет восстановлено)</string>
+    <string name="rclone_import_reset_button">Сбросить хранилище rclone…</string>
+    <string name="rclone_import_reset_confirm">Удалить сохранённые подключения rclone и очистить rclone.conf? SSH-ключи и другие подключения останутся.</string>
+    <string name="rclone_import_reset_done">Очищено подключений хранилища: %1$d, удалённых записей rclone.conf: %2$d.</string>
     <string name="connections_section_spice">Настройки SPICE</string>
     <string name="connections_section_mcp">ИИ-агент (MCP)</string>
     <string name="connections_rclone_configure_first">Нажмите «Настроить и проверить», чтобы сохранить это хранилище, прежде чем сохранять подключение.</string>

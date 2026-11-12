@@ -542,6 +542,11 @@
     <string name="rclone_import_select_count">Importer %1$d dépôt(s) distant(s)</string>
     <string name="rclone_import_done">%1$d importé(s), %2$d ignoré(s), %3$d en échec.</string>
     <string name="rclone_import_menu">Importer la configuration rclone…</string>
+    <string name="rclone_import_already_added_overwrite">déjà ajouté (cocher pour écraser)</string>
+    <string name="rclone_import_orphaned_repair">dans rclone.conf sans fiche (sera réparé)</string>
+    <string name="rclone_import_reset_button">Réinitialiser le stockage rclone…</string>
+    <string name="rclone_import_reset_confirm">Supprimer les connexions rclone enregistrées et vider rclone.conf ? Les clés SSH et les autres connexions sont conservées.</string>
+    <string name="rclone_import_reset_done">%1$d connexion(s) de stockage et %2$d distant(s) rclone.conf effacés.</string>
     <string name="connections_section_spice">Paramètres SPICE</string>
     <string name="connections_section_mcp">Agent IA (MCP)</string>
     <string name="connections_rclone_configure_first">Touchez « Configurer et vérifier » pour enregistrer ce dépôt distant avant de pouvoir enregistrer la connexion.</string>

@@ -542,6 +542,11 @@
     <string name="rclone_import_select_count">استيراد %1$d من السجلات البعيدة</string>
     <string name="rclone_import_done">تم استيراد %1$d، وتخطي %2$d، وفشل %3$d.</string>
     <string name="rclone_import_menu">استيراد تهيئة rclone…</string>
+    <string name="rclone_import_already_added_overwrite">مضاف بالفعل (حدّد للاستبدال)</string>
+    <string name="rclone_import_orphaned_repair">موجود في rclone.conf بدون بطاقة (سيتم إصلاحه)</string>
+    <string name="rclone_import_reset_button">إعادة تعيين تخزين rclone…</string>
+    <string name="rclone_import_reset_confirm">هل تريد إزالة اتصالات rclone المحفوظة ومسح rclone.conf؟ سيتم الاحتفاظ بمفاتيح SSH والاتصالات الأخرى.</string>
+    <string name="rclone_import_reset_done">تم مسح %1$d من اتصالات التخزين و%2$d من وجهات rclone.conf.</string>
     <string name="connections_section_spice">إعدادات SPICE</string>
     <string name="connections_section_mcp">وكيل الذكاء الاصطناعي (MCP)</string>
     <string name="connections_rclone_configure_first">اضغط “تهيئة والتحقق” لحفظ هذا السجل البعيد قبل أن تتمكن من حفظ الاتصال.</string>

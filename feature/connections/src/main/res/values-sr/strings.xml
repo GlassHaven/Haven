@@ -376,6 +376,11 @@
     <string name="rclone_import_select_count">Увози се %1$d удаљени(х)</string>
     <string name="rclone_import_done">Увезено је %1$d, прескочено %2$d, није успело %3$d.</string>
     <string name="rclone_import_menu">Увоз rclone конфигурације…</string>
+    <string name="rclone_import_already_added_overwrite">већ је додат (означите за преписивање)</string>
+    <string name="rclone_import_orphaned_repair">у rclone.conf без картице (биће поправљено)</string>
+    <string name="rclone_import_reset_button">Ресетуј rclone складиште…</string>
+    <string name="rclone_import_reset_confirm">Уклонити сачуване rclone везе и испразнити rclone.conf? SSH кључеви и остале везе се задржавају.</string>
+    <string name="rclone_import_reset_done">Очишћено веза складишта: %1$d и удаљених у rclone.conf: %2$d.</string>
     <string name="connections_section_vnc">VNC подешавања</string>
     <string name="connections_section_rdp">RDP подешавања</string>
     <string name="connections_section_spice">SPICE подешавања</string>

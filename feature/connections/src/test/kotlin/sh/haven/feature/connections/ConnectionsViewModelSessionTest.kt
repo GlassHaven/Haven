@@ -89,6 +89,7 @@ class ConnectionsViewModelSessionTest {
     private lateinit var localSessionManager: LocalSessionManager
     private lateinit var mailSessionManager: MailSessionManager
     private lateinit var rcloneSessionManager: sh.haven.core.rclone.RcloneSessionManager
+    private lateinit var rcloneClient: sh.haven.core.rclone.RcloneClient
     private lateinit var openAiSessionManager: sh.haven.core.openai.OpenAiSessionManager
     private val openAiSessions = MutableStateFlow<Map<String, sh.haven.core.openai.OpenAiSessionManager.SessionState>>(emptyMap())
     private lateinit var prootManager: ProotManager
@@ -203,6 +204,7 @@ class ConnectionsViewModelSessionTest {
             every { sessionCommandOverride } returns flowOf(null)
         }
 
+        rcloneClient = mockk(relaxed = true)
         viewModel = buildViewModel()
     }
 
@@ -237,7 +239,7 @@ class ConnectionsViewModelSessionTest {
             reticulumForwardServer = mockk(relaxed = true),
             smbSessionManager = smbSessionManager,
             rcloneSessionManager = rcloneSessionManager,
-            rcloneClient = mockk(relaxed = true),
+            rcloneClient = rcloneClient,
             fidoAuthenticator = mockk(relaxed = true),
             keystoreSshKeySigner = mockk(relaxed = true),
             localSessionManager = localSessionManager,
@@ -386,6 +388,52 @@ class ConnectionsViewModelSessionTest {
 
         verify { desktopManager.stopAll() }
         coVerify { repository.delete("profile1") }
+    }
+
+    @Test
+    fun `deleteConnection removes unshared rclone remote from rclone conf`() = runTest {
+        val rcloneProfile = ConnectionProfile(
+            id = "rc1",
+            label = "My Drive",
+            host = "",
+            username = "",
+            connectionType = "RCLONE",
+            rcloneRemoteName = "gdrive",
+            rcloneProvider = "drive",
+        )
+        coEvery { repository.getById("rc1") } returns rcloneProfile
+        coEvery { repository.getAll() } returns emptyList()
+        every { rcloneClient.listRemotes() } returns listOf("gdrive", "other")
+
+        viewModel.deleteConnection("rc1")
+        testDispatcher.scheduler.advanceUntilIdle()
+
+        coVerify { repository.delete("rc1") }
+        verify(timeout = 2_000) { rcloneClient.initialize() }
+        verify(timeout = 2_000) { rcloneClient.deleteRemote("gdrive") }
+    }
+
+    @Test
+    fun `deleteConnection preserves rclone remote when shared by another profile`() = runTest {
+        val rc1 = ConnectionProfile(
+            id = "rc1",
+            label = "Drive 1",
+            host = "",
+            username = "",
+            connectionType = "RCLONE",
+            rcloneRemoteName = "gdrive",
+            rcloneProvider = "drive",
+        )
+        val rc2 = rc1.copy(id = "rc2", label = "Drive 2")
+        coEvery { repository.getById("rc1") } returns rc1
+        coEvery { repository.getAll() } returns listOf(rc2)
+        every { rcloneClient.listRemotes() } returns listOf("gdrive")
+
+        viewModel.deleteConnection("rc1")
+        testDispatcher.scheduler.advanceUntilIdle()
+
+        coVerify { repository.delete("rc1") }
+        verify(exactly = 0) { rcloneClient.deleteRemote("gdrive") }
     }
 
     private fun jumpProfile(authMethods: String) = ConnectionProfile(

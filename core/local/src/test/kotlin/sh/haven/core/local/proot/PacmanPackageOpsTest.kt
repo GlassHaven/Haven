@@ -196,4 +196,50 @@ class PacmanPackageOpsTest {
         )
         assertEquals(0.25f, initState.progress ?: -1f, 0.001f)
     }
+
+    @Test
+    fun `updateCmd, upgradeCmd, and Arch bootstrap hook abort cleanly when keyring sync fails (#840)`() {
+        val tmpDir = java.nio.file.Files.createTempDirectory("pacman-shortcircuit").toFile()
+        try {
+            val callsLog = java.io.File(tmpDir, "calls.log")
+            val binDir = java.io.File(tmpDir, "bin").apply { mkdirs() }
+            fun writeStub(name: String, body: String) {
+                java.io.File(binDir, name).apply {
+                    writeText("#!/bin/sh\n$body\n")
+                    setExecutable(true)
+                }
+            }
+            writeStub("pacman-key", "exit 0")
+            writeStub("gpgconf", "exit 0")
+            writeStub(
+                "pacman",
+                "echo \"\$*\" >> '${callsLog.absolutePath}'\n" +
+                    "case \"\$*\" in\n" +
+                    "  *archlinux-keyring*) exit 1 ;;\n" +
+                    "  *) exit 0 ;;\n" +
+                    "esac",
+            )
+            fun runSandboxed(rawCmd: String): Int {
+                callsLog.delete()
+                val rewritten = rawCmd
+                    .replace("/etc/pacman.d/gnupg", "${tmpDir.absolutePath}/gnupg")
+                    .replace("/var/lib/pacman/db.lck", "${tmpDir.absolutePath}/db.lck")
+                val pb = ProcessBuilder("sh", "-c", rewritten)
+                pb.environment()["PATH"] = "${binDir.absolutePath}:/usr/bin:/bin"
+                return pb.start().waitFor()
+            }
+
+            assertEquals(1, runSandboxed(pacman.updateCmd()))
+            assertEquals(1, callsLog.readLines().size)
+
+            assertEquals(1, runSandboxed(pacman.upgradeCmd()))
+            assertEquals(1, callsLog.readLines().size)
+
+            val hookCmd = DistroCatalog.ARCH_LINUX.postExtractHooks.first { it.id == "pacman -Syu" }.command
+            assertEquals(1, runSandboxed(hookCmd))
+            assertEquals(1, callsLog.readLines().size)
+        } finally {
+            tmpDir.deleteRecursively()
+        }
+    }
 }

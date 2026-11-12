@@ -800,6 +800,15 @@ class ProotManager constructor(
     val mirrorRegion: MirrorRegion get() = _mirrorRegion.value
 
     /**
+     * Ensure [distroId]'s repository mirror config under [rootfsDir] reflects
+     * [mirrorRegion] (and migrates any retired default hosts such as Arch
+     * `x86_64`'s `mirror.rackspace.com`, #840). Idempotent no-op once applied
+     * and leaves custom user mirror URLs untouched.
+     */
+    fun applyMirrorConfig(rootfsDir: File, distroId: String = activeDistroId): List<String> =
+        MirrorCatalog.apply(rootfsDir, distroId, _mirrorRegion.value)
+
+    /**
      * Change the package-mirror region. Persists the choice and rewrites
      * the repo config of every already-installed distro in place (cheap
      * local file edits; idempotent). Future installs pick it up in
@@ -3818,6 +3827,7 @@ class ProotManager constructor(
         // resolv.conf points at resolvers the network won't route to — so it must
         // reflect the current DNS setting, not whatever was written at install time.
         applyResolvConf(activeRootfsDir)
+        applyMirrorConfig(activeRootfsDir, activeDistroId)
         ensureAptSandboxConfig(activeRootfsDir)
         val loaderPath = File(context.applicationInfo.nativeLibraryDir, "libproot_loader.so").absolutePath
         // Mirror termux/proot-distro v4.29.0's `run_proot_cmd` invocation

@@ -509,7 +509,7 @@ object DistroCatalog {
                 command = "rm -f /var/lib/pacman/db.lck /etc/pacman.d/gnupg/*.lock /etc/pacman.d/gnupg/.#lk* 2>/dev/null; " +
                     "${Pacman.ENSURE_KEYRING} " +
                     "pacman -Sy --noconfirm --needed archlinux-keyring && " +
-                    "rm -f /var/lib/pacman/db.lck; pacman -Su --noconfirm",
+                    "{ rm -f /var/lib/pacman/db.lck; pacman -Su --noconfirm; }",
             ),
             RootfsHook(
                 id = "locale-gen en_US.UTF-8",

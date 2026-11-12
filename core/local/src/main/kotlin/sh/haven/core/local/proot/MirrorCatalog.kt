@@ -26,6 +26,19 @@ enum class MirrorRegion { DEFAULT, EUROPE, ASIA, AMERICAS }
 data class MirrorSub(
     val files: List<String>,
     val bases: Map<MirrorRegion, String>,
+    /**
+     * Shipped host+path bases that should be migrated away from even on
+     * [MirrorRegion.DEFAULT] (e.g. `proot-distro` Arch `x86_64`'s single
+     * `http://mirror.rackspace.com/archlinux` entry, #840), while never
+     * being selected as an output target.
+     */
+    val legacyBases: List<String> = emptyList(),
+    /**
+     * Optional secondary repository line appended once when this substitution
+     * matches the target file, giving package managers (`pacman`) an automatic
+     * per-file failover mirror without touching custom user mirrorlists.
+     */
+    val fallbackLine: String? = null,
 )
 
 /**
@@ -94,6 +107,29 @@ object MirrorCatalog {
         ),
     )
 
+    // Mainline x86_64 Arch Linux (`archlinux` on x86_64 hosts and emulated
+    // `archlinux-x86_64` on ARM64, #840). proot-distro v4.34.2 ships only a
+    // single `http://mirror.rackspace.com/archlinux/$repo/os/$arch` entry,
+    // which aborts Sway/package installs when Rackspace returns HTTP 403 on
+    // newly synced packages. Migrate that legacy base to Arch's official
+    // GeoDNS CDN (`geo.mirror.pkgbuild.com`) even on DEFAULT and append
+    // `fastly.mirror.pkgbuild.com` as a fallback `Server =` entry so pacman
+    // fails over per-file on single-mirror errors.
+    private val ARCH_X86_64 = MirrorSub(
+        files = listOf("etc/pacman.d/mirrorlist"),
+        bases = mapOf(
+            MirrorRegion.DEFAULT to "https://geo.mirror.pkgbuild.com",
+            MirrorRegion.EUROPE to "https://ftp.halifax.rwth-aachen.de/archlinux",
+            MirrorRegion.ASIA to "https://mirrors.tuna.tsinghua.edu.cn/archlinux",
+            MirrorRegion.AMERICAS to "https://mirrors.kernel.org/archlinux",
+        ),
+        legacyBases = listOf(
+            "http://mirror.rackspace.com/archlinux",
+            "https://mirror.rackspace.com/archlinux",
+        ),
+        fallbackLine = "Server = https://fastly.mirror.pkgbuild.com/\$repo/os/\$arch",
+    )
+
     // Void's default repo conf lives under /usr/share; xbps reads it
     // directly. Rewriting it in place is simplest (an /etc override would
     // also work but leaves the picker unable to revert to DEFAULT cleanly).
@@ -107,16 +143,22 @@ object MirrorCatalog {
         ),
     )
 
-    /** Subs for [distroId], or empty if the distro has no mirror options. */
-    fun forDistro(distroId: String): List<MirrorSub> = when (distroId) {
-        "alpine-3.21" -> listOf(ALPINE)
-        "debian-trixie" -> listOf(DEBIAN)
-        "debian-bookworm" -> listOf(DEBIAN)
-        "ubuntu-noble" -> listOf(UBUNTU, UBUNTU_ARCHIVE)
-        "ubuntu-resolute" -> listOf(UBUNTU, UBUNTU_ARCHIVE)
-        "archlinux" -> listOf(ARCH)
-        "void" -> listOf(VOID)
-        else -> emptyList()
+    /**
+     * Subs for [distroId] (including foreign-arch catalog variants such as
+     * `archlinux-x86_64`, #840), or empty if the distro has no mirror options.
+     */
+    fun forDistro(distroId: String): List<MirrorSub> {
+        val canonicalId = DistroCatalog.builtinForForeignId(distroId)?.id ?: distroId
+        return when (canonicalId) {
+            "alpine-3.21" -> listOf(ALPINE)
+            "debian-trixie" -> listOf(DEBIAN)
+            "debian-bookworm" -> listOf(DEBIAN)
+            "ubuntu-noble" -> listOf(UBUNTU, UBUNTU_ARCHIVE)
+            "ubuntu-resolute" -> listOf(UBUNTU, UBUNTU_ARCHIVE)
+            "archlinux" -> listOf(ARCH, ARCH_X86_64)
+            "void" -> listOf(VOID)
+            else -> emptyList()
+        }
     }
 
     /** Whether [distroId] offers a mirror picker at all. */
@@ -136,7 +178,7 @@ object MirrorCatalog {
             val chosen = sub.bases[region] ?: sub.bases[MirrorRegion.DEFAULT] ?: continue
             // Longest-first so a base that's a prefix of another can't
             // shadow it; lambda replacement avoids $-group interpretation.
-            val pattern = sub.bases.values.distinct()
+            val pattern = (sub.bases.values + sub.legacyBases).distinct()
                 .sortedByDescending { it.length }
                 .joinToString("|") { Regex.escape(it) }
             val regex = Regex(pattern)
@@ -144,10 +186,16 @@ object MirrorCatalog {
                 val f = File(rootfsDir, rel)
                 if (!f.isFile) continue
                 val before = f.readText()
-                val after = regex.replace(before) { chosen }
+                if (!regex.containsMatchIn(before)) continue
+                var after = regex.replace(before) { chosen }
+                val fallback = sub.fallbackLine
+                if (fallback != null && after.lines().none { it.trim() == fallback }) {
+                    val prefix = if (after.endsWith("\n")) after else "$after\n"
+                    after = "$prefix$fallback\n"
+                }
                 if (after != before) {
                     f.writeText(after)
-                    changed += rel
+                    if (rel !in changed) changed += rel
                 }
             }
         }

@@ -172,6 +172,73 @@ class MirrorCatalogTest {
         assertEquals(src, read(root, "etc/pacman.d/mirrorlist"))
     }
 
+    @Test
+    fun `arch x86_64 default replaces broken rackspace mirror with geo pkgbuild and fastly fallback (#840)`() {
+        val root = rootfs()
+        write(root, "etc/pacman.d/mirrorlist", "Server = http://mirror.rackspace.com/archlinux/\$repo/os/\$arch\n")
+        val changed = MirrorCatalog.apply(root, "archlinux-x86_64", MirrorRegion.DEFAULT)
+        assertEquals(listOf("etc/pacman.d/mirrorlist"), changed)
+        val expected =
+            "Server = https://geo.mirror.pkgbuild.com/\$repo/os/\$arch\n" +
+                "Server = https://fastly.mirror.pkgbuild.com/\$repo/os/\$arch\n"
+        assertEquals(expected, read(root, "etc/pacman.d/mirrorlist"))
+
+        // Second apply on DEFAULT is idempotent.
+        val second = MirrorCatalog.apply(root, "archlinux-x86_64", MirrorRegion.DEFAULT)
+        assertTrue(second.isEmpty())
+        assertEquals(expected, read(root, "etc/pacman.d/mirrorlist"))
+    }
+
+    @Test
+    fun `arch x86_64 region switch and revert preserve single fastly fallback without reverting to rackspace (#840)`() {
+        val root = rootfs()
+        write(root, "etc/pacman.d/mirrorlist", "Server = http://mirror.rackspace.com/archlinux/\$repo/os/\$arch\n")
+        MirrorCatalog.apply(root, "archlinux-x86_64", MirrorRegion.EUROPE)
+        assertEquals(
+            "Server = https://ftp.halifax.rwth-aachen.de/archlinux/\$repo/os/\$arch\n" +
+                "Server = https://fastly.mirror.pkgbuild.com/\$repo/os/\$arch\n",
+            read(root, "etc/pacman.d/mirrorlist"),
+        )
+        MirrorCatalog.apply(root, "archlinux-x86_64", MirrorRegion.ASIA)
+        assertEquals(
+            "Server = https://mirrors.tuna.tsinghua.edu.cn/archlinux/\$repo/os/\$arch\n" +
+                "Server = https://fastly.mirror.pkgbuild.com/\$repo/os/\$arch\n",
+            read(root, "etc/pacman.d/mirrorlist"),
+        )
+        MirrorCatalog.apply(root, "archlinux-x86_64", MirrorRegion.AMERICAS)
+        assertEquals(
+            "Server = https://mirrors.kernel.org/archlinux/\$repo/os/\$arch\n" +
+                "Server = https://fastly.mirror.pkgbuild.com/\$repo/os/\$arch\n",
+            read(root, "etc/pacman.d/mirrorlist"),
+        )
+        MirrorCatalog.apply(root, "archlinux-x86_64", MirrorRegion.DEFAULT)
+        assertEquals(
+            "Server = https://geo.mirror.pkgbuild.com/\$repo/os/\$arch\n" +
+                "Server = https://fastly.mirror.pkgbuild.com/\$repo/os/\$arch\n",
+            read(root, "etc/pacman.d/mirrorlist"),
+        )
+    }
+
+    @Test
+    fun `custom user arch mirrorlist is left untouched (#840)`() {
+        val root = rootfs()
+        val custom = "Server = https://mirror.23m.com/archlinux/\$repo/os/\$arch\n"
+        write(root, "etc/pacman.d/mirrorlist", custom)
+        assertTrue(MirrorCatalog.apply(root, "archlinux-x86_64", MirrorRegion.DEFAULT).isEmpty())
+        assertTrue(MirrorCatalog.apply(root, "archlinux-x86_64", MirrorRegion.EUROPE).isEmpty())
+        assertEquals(custom, read(root, "etc/pacman.d/mirrorlist"))
+    }
+
+    @Test
+    fun `foreign-arch catalog distros inherit parent mirror definitions (#840)`() {
+        assertTrue(MirrorCatalog.hasMirrors("archlinux-x86_64"))
+        assertTrue(MirrorCatalog.hasMirrors("debian-trixie-x86_64"))
+        assertTrue(MirrorCatalog.hasMirrors("ubuntu-noble-x86_64"))
+        assertTrue(MirrorCatalog.hasMirrors("void-x86_64"))
+        assertTrue(MirrorCatalog.hasMirrors("alpine-3.21-x86_64"))
+        assertFalse(MirrorCatalog.hasMirrors("my-custom-tarball"))
+    }
+
     // --- Void -------------------------------------------------------------
 
     @Test

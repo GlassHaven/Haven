@@ -236,7 +236,7 @@ object Pacman : PackageOps {
      */
     override fun updateCmd(): String =
         "$CLEAR_LOCK $ENSURE_KEYRING pacman -Sy --noconfirm --needed archlinux-keyring && " +
-            "$CLEAR_LOCK pacman -S --noconfirm --needed glibc gcc-libs"
+            "{ $CLEAR_LOCK pacman -S --noconfirm --needed glibc gcc-libs; }"
 
     /**
      * Full system upgrade — the canonical Arch fix for the
@@ -253,7 +253,7 @@ object Pacman : PackageOps {
      */
     override fun upgradeCmd(): String =
         "$CLEAR_LOCK $ENSURE_KEYRING pacman -Syy --noconfirm --needed archlinux-keyring && " +
-            "$CLEAR_LOCK pacman -Su --noconfirm"
+            "{ $CLEAR_LOCK pacman -Su --noconfirm; }"
 
     override fun installCmd(pkgs: List<String>): String =
         "$CLEAR_LOCK pacman -S --noconfirm --needed ${pkgs.joinToString(" ")}"

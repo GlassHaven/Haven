@@ -5,6 +5,11 @@ the corresponding GitHub Release; a release can't ship without its section
 (enforced by `scripts/check-changelog.sh` in CI). The GitHub "Full Changelog"
 compare link is appended automatically — don't add it here.
 
+## v5.94.38
+
+- Map PC Set-1 extended scancodes `0xE05B`..`0xE05D` (`MetaLeft`, `MetaRight`, `ContextMenu`) and lock scancodes `0x45`..`0x46` (`NumLock`, `ScrollLock`) in GLKVM sessions so the toolbar `Win` toggle and hardware Super/Windows keys forward chords such as `Win+L` to `kvmd`.
+- Upgrade IronRDP crates to crates.io `0.12`/`0.13` (retiring the git patch pin while keeping VRDP frame repair and server redirection) and bump `rclone` to `v1.76.0`.
+
 ## v5.94.37
 
 - Route PRoot DNS queries (including explicit `dig @server` and `+tcp` requests) over TCP through active SOCKS5 and HTTP CONNECT tunnels under `--net-policy=lockdown`, and filter unreachable LAN DHCP resolvers when proxied (#838, thanks @DragonXen).

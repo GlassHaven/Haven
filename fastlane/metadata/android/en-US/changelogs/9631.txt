@@ -1,0 +1,2 @@
+- Map PC Set-1 extended scancodes `0xE05B`..`0xE05D` (`MetaLeft`, `MetaRight`, `ContextMenu`) and lock scancodes `0x45`..`0x46` (`NumLock`, `ScrollLock`) in GLKVM sessions so the toolbar `Win` toggle and hardware Super/Windows keys forward chords such as `Win+L` to `kvmd`.
+- Upgrade IronRDP crates to crates.io `0.12`/`0.13` (retiring the git patch pin while keeping VRDP frame repair and server redirection) and bump `rclone` to `v1.76.0`.

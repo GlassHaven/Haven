@@ -540,4 +540,8 @@
     <string name="connections_helper_persist_rediscovered_host">Ажурира профил када локални рачунар понуди исти SSH кључ домаћина на новој IPv4 адреси. Искључите да бисте се повезали преко откривене адресе само за ту сесију и задржали подешени домаћин (нпр. WireGuard IP).</string>
     <string name="connections_auth_banner_title">SSH аутентификација</string>
     <string name="connections_auth_banner_open_link">Отвори везу</string>
+    <string name="connections_field_keyboard_layout">Распоред тастатуре</string>
+    <string name="connections_keyboard_layout_auto">Аутоматски (језик уређаја)</string>
+    <string name="connections_helper_keyboard_layout_rdp">Објављује овај распоред RDP серверу и мапира унете знакове у његове скан-кодове.</string>
+    <string name="connections_helper_keyboard_layout_spice">SPICE шаље сирове скан-кодове — изаберите распоред тастатуре подешен у гостујућој ВМ.</string>
 </resources>

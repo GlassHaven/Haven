@@ -372,6 +372,7 @@ fun DesktopScreen(
                                     ch = ch,
                                     sendKey = { sc, pressed -> desktopViewModel.sendRdpKey(sc, pressed) },
                                     sendUnicode = { codepoint -> desktopViewModel.typeRdpUnicode(codepoint) },
+                                    layoutKlid = tab.keyboardLayoutKlid,
                                 )
                             },
                             onTypeText = { text -> desktopViewModel.typeRdpText(text) },
@@ -431,6 +432,7 @@ fun DesktopScreen(
                                     ch = ch,
                                     sendKey = { sc, pressed -> desktopViewModel.sendSpiceKey(sc, pressed) },
                                     sendUnicode = { /* SPICE has no unicode-key verb */ },
+                                    layoutKlid = tab.keyboardLayoutKlid,
                                 )
                             },
                             onTypeText = { text -> desktopViewModel.typeSpiceText(text) },

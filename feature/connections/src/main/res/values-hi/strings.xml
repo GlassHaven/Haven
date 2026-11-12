@@ -608,4 +608,8 @@
     <string name="connections_helper_saved_password">वैकल्पिक। Android Keystore में एन्क्रिप्ट किया गया और SSH पासवर्ड लॉगिन तथा टर्मिनल में बायोमेट्रिक sudo ऑटोफ़िल के लिए उपयोग किया जाता है।</string>
     <string name="connections_auth_banner_title">SSH प्रमाणीकरण</string>
     <string name="connections_auth_banner_open_link">लिंक खोलें</string>
+    <string name="connections_field_keyboard_layout">कीबोर्ड लेआउट</string>
+    <string name="connections_keyboard_layout_auto">स्वचालित (डिवाइस लोकेल)</string>
+    <string name="connections_helper_keyboard_layout_rdp">RDP सर्वर को यह लेआउट बताता है और टाइप किए गए अक्षरों को उसके स्कैनकोड में बदलता है।</string>
+    <string name="connections_helper_keyboard_layout_spice">SPICE कच्चे स्कैनकोड भेजता है, इसलिए अतिथि VM के भीतर सेट किया गया कीबोर्ड लेआउट चुनें।</string>
 </resources>

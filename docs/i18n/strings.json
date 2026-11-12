@@ -20655,6 +20655,86 @@
       "ru": "Необязательно. Зашифрован в Android Keystore и используется для входа по паролю SSH и биометрической автоподстановки sudo в терминале.",
       "zh": "可选。在 Android Keystore 中加密保存，用于 SSH 密码登录以及终端中受生物识别保护的 sudo 自动填充。"
      }
+    },
+    {
+     "name": "connections_field_keyboard_layout",
+     "en": "Keyboard layout",
+     "comment": "#210 i18n sweep: VM-setup copy toasts and code-block copy action.",
+     "args": [],
+     "t": {
+      "ar": "تخطيط لوحة المفاتيح",
+      "bn": "কীবোর্ড লেআউট",
+      "de": "Tastaturlayout",
+      "es": "Distribución de teclado",
+      "fr": "Disposition du clavier",
+      "hi": "कीबोर्ड लेआउट",
+      "ja": "キーボード配列",
+      "ko": "키보드 레이아웃",
+      "pt": "Layout do teclado",
+      "ru": "Раскладка клавиатуры",
+      "sr": "Распоред тастатуре",
+      "zh": "键盘布局"
+     }
+    },
+    {
+     "name": "connections_keyboard_layout_auto",
+     "en": "Automatic (device locale)",
+     "comment": "#210 i18n sweep: VM-setup copy toasts and code-block copy action.",
+     "args": [],
+     "t": {
+      "ar": "تلقائي (لغة الجهاز)",
+      "bn": "স্বয়ংক্রিয় (ডিভাইসের ভাষা)",
+      "de": "Automatisch (Gerätesprache)",
+      "es": "Automática (idioma del dispositivo)",
+      "fr": "Automatique (langue de l\\'appareil)",
+      "hi": "स्वचालित (डिवाइस लोकेल)",
+      "ja": "自動（端末のロケール）",
+      "ko": "자동 (기기 로케일)",
+      "pt": "Automático (idioma do dispositivo)",
+      "ru": "Автоматически (язык устройства)",
+      "sr": "Аутоматски (језик уређаја)",
+      "zh": "自动（设备语言区域）"
+     }
+    },
+    {
+     "name": "connections_helper_keyboard_layout_rdp",
+     "en": "Announces this layout to the RDP server and maps typed characters to its scancodes.",
+     "comment": "#210 i18n sweep: VM-setup copy toasts and code-block copy action.",
+     "args": [],
+     "t": {
+      "ar": "يعلن عن هذا التخطيط لخادم RDP ويطابق الأحرف المكتوبة مع رموز المسح الخاصة به.",
+      "bn": "RDP সার্ভারে এই লেআউটটি ঘোষণা করে এবং টাইপ করা অক্ষরগুলিকে এর স্ক্যানকোডে ম্যাপ করে।",
+      "de": "Meldet dieses Layout dem RDP-Server und bildet eingegebene Zeichen auf dessen Scancodes ab.",
+      "es": "Anuncia esta distribución al servidor RDP y convierte los caracteres escritos a sus códigos de tecla.",
+      "fr": "Annonce cette disposition au serveur RDP et convertit les caractères saisis vers ses scancodes.",
+      "hi": "RDP सर्वर को यह लेआउट बताता है और टाइप किए गए अक्षरों को उसके स्कैनकोड में बदलता है।",
+      "ja": "この配列を RDP サーバーへ通知し、入力文字を対応するスキャンコードへ変換します。",
+      "ko": "RDP 서버에 이 레이아웃을 알리고 입력한 문자를 해당 스캔코드로 변환합니다.",
+      "pt": "Anuncia este layout ao servidor RDP e mapeia os caracteres digitados para os seus scancodes.",
+      "ru": "Сообщает эту раскладку RDP-серверу и преобразует вводимые символы в её скан-коды.",
+      "sr": "Објављује овај распоред RDP серверу и мапира унете знакове у његове скан-кодове.",
+      "zh": "向 RDP 服务器声明此键盘布局，并将输入字符映射为对应扫描码。"
+     }
+    },
+    {
+     "name": "connections_helper_keyboard_layout_spice",
+     "en": "SPICE sends raw scancodes, so pick the keyboard layout configured inside the guest VM.",
+     "comment": "#210 i18n sweep: VM-setup copy toasts and code-block copy action.",
+     "args": [],
+     "t": {
+      "ar": "يرسل SPICE رموز مسح خام، لذا اختر تخطيط لوحة المفاتيح المضبوط داخل الجهاز الافتراضي الضيف.",
+      "bn": "SPICE কাঁচা স্ক্যানকোড পাঠায়, তাই গেস্ট VM-এর ভেতরে কনফিগার করা কীবোর্ড লেআউটটি বেছে নিন।",
+      "de": "SPICE sendet rohe Scancodes — wählen Sie das in der Gast-VM eingestellte Tastaturlayout.",
+      "es": "SPICE envía códigos de tecla sin procesar; elige la distribución de teclado configurada en la máquina virtual invitada.",
+      "fr": "SPICE envoie des scancodes bruts : choisissez la disposition du clavier configurée dans la VM invitée.",
+      "hi": "SPICE कच्चे स्कैनकोड भेजता है, इसलिए अतिथि VM के भीतर सेट किया गया कीबोर्ड लेआउट चुनें।",
+      "ja": "SPICE は生のスキャンコードを送信するため、ゲスト VM 側で設定されているキーボード配列を選択してください。",
+      "ko": "SPICE는 원시 스캔코드를 전송하므로 게스트 VM 내부에 설정된 키보드 레이아웃을 선택하세요.",
+      "pt": "O SPICE envia scancodes brutos; escolha o layout do teclado configurado dentro da VM convidada.",
+      "ru": "SPICE передаёт прямые скан-коды — выберите раскладку клавиатуры, настроенную внутри гостевой ВМ.",
+      "sr": "SPICE шаље сирове скан-кодове — изаберите распоред тастатуре подешен у гостујућој ВМ.",
+      "zh": "SPICE 发送原始扫描码，请选择客户机虚拟机内配置的键盘布局。"
+     }
     }
    ]
   },

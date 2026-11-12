@@ -608,4 +608,8 @@
     <string name="connections_helper_saved_password">Opcional. Cifrada en Android Keystore y usada para el inicio de sesión SSH por contraseña y el autocompletado biométrico de sudo en la terminal.</string>
     <string name="connections_auth_banner_title">Autenticación SSH</string>
     <string name="connections_auth_banner_open_link">Abrir enlace</string>
+    <string name="connections_field_keyboard_layout">Distribución de teclado</string>
+    <string name="connections_keyboard_layout_auto">Automática (idioma del dispositivo)</string>
+    <string name="connections_helper_keyboard_layout_rdp">Anuncia esta distribución al servidor RDP y convierte los caracteres escritos a sus códigos de tecla.</string>
+    <string name="connections_helper_keyboard_layout_spice">SPICE envía códigos de tecla sin procesar; elige la distribución de teclado configurada en la máquina virtual invitada.</string>
 </resources>

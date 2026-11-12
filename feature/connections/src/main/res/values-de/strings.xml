@@ -608,4 +608,8 @@
     <string name="connections_helper_saved_password">Optional. Im Android Keystore verschlüsselt und für SSH-Passwortanmeldung sowie biometrisch geschütztes Ausfüllen von sudo im Terminal verwendet.</string>
     <string name="connections_auth_banner_title">SSH-Authentifizierung</string>
     <string name="connections_auth_banner_open_link">Link öffnen</string>
+    <string name="connections_field_keyboard_layout">Tastaturlayout</string>
+    <string name="connections_keyboard_layout_auto">Automatisch (Gerätesprache)</string>
+    <string name="connections_helper_keyboard_layout_rdp">Meldet dieses Layout dem RDP-Server und bildet eingegebene Zeichen auf dessen Scancodes ab.</string>
+    <string name="connections_helper_keyboard_layout_spice">SPICE sendet rohe Scancodes — wählen Sie das in der Gast-VM eingestellte Tastaturlayout.</string>
 </resources>

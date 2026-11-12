@@ -301,6 +301,7 @@ fun ConnectionEditDialog(
         mutableStateOf(existing?.let { strictTunnelInitialEnabled(it.connectionType, "SPICE", it.spiceSshForward, it.spiceSshProfileId) } ?: false)
     }
     var spiceSshProfileId by rememberSaveable { mutableStateOf(existing?.spiceSshProfileId) }
+    var keyboardLayout by rememberSaveable { mutableStateOf(existing?.keyboardLayout.orEmpty()) }
     var glkvmPassword by rememberSaveable { mutableStateOf(existing?.glkvmPassword ?: "") }
     var glkvmTargetLayout by rememberSaveable { mutableStateOf(existing?.glkvmTargetLayout ?: "uk") }
     var glkvmSshForward by rememberSaveable {
@@ -2190,6 +2191,12 @@ fun ConnectionEditDialog(
                             }
                         }
                     }
+                    Spacer(Modifier.height(8.dp))
+                    DesktopKeyboardLayoutPicker(
+                        selectedLayout = keyboardLayout,
+                        helperText = stringResource(R.string.connections_helper_keyboard_layout_rdp),
+                        onSelect = { keyboardLayout = it },
+                    )
                 } else if (connectionType == "SPICE") {
                     ConnectionSection(stringResource(R.string.connections_section_spice))
                     // SPICE: tunnel toggle first (changes what Host means), then
@@ -2238,6 +2245,12 @@ fun ConnectionEditDialog(
                         stringResource(R.string.connections_helper_spice_auth),
                         style = MaterialTheme.typography.bodySmall,
                         color = MaterialTheme.colorScheme.onSurfaceVariant,
+                    )
+                    Spacer(Modifier.height(8.dp))
+                    DesktopKeyboardLayoutPicker(
+                        selectedLayout = keyboardLayout,
+                        helperText = stringResource(R.string.connections_helper_keyboard_layout_spice),
+                        onSelect = { keyboardLayout = it },
                     )
                 } else if (connectionType == "GLKVM") {
                     ConnectionSection(stringResource(R.string.connections_section_glkvm))
@@ -3991,6 +4004,7 @@ fun ConnectionEditDialog(
                                 rdpSshProfileId = tunnelCarrierForSave(rdpSshForward, rdpSshProfileId),
                                 rdpUseNla = rdpUseNla,
                                 rdpColorDepth = rdpColorDepth,
+                                keyboardLayout = keyboardLayout.ifBlank { null },
                                 colorTag = colorTag,
                                 groupId = groupId,
                                 identityId = identityId,
@@ -4025,6 +4039,7 @@ fun ConnectionEditDialog(
                                 spicePassword = spicePassword.ifBlank { null },
                                 spiceSshForward = spiceSshForward,
                                 spiceSshProfileId = tunnelCarrierForSave(spiceSshForward, spiceSshProfileId),
+                                keyboardLayout = keyboardLayout.ifBlank { null },
                                 colorTag = colorTag,
                                 groupId = groupId,
                                 identityId = identityId,
@@ -5494,4 +5509,52 @@ private fun SerialOptionDropdown(
             }
         }
     }
+}
+
+private val DESKTOP_KEYBOARD_LAYOUT_SPECS: List<Pair<String, String>> = listOf(
+    "en-US" to "QWERTY",
+    "en-GB" to "QWERTY",
+    "de-DE" to "QWERTZ",
+    "de-CH" to "QWERTZ",
+    "fr-FR" to "AZERTY",
+    "fr-BE" to "AZERTY",
+    "fr-CH" to "QWERTZ",
+    "es-ES" to "QWERTY",
+    "es-419" to "QWERTY",
+    "it-IT" to "QWERTY",
+    "pt-PT" to "QWERTY",
+    "pt-BR" to "ABNT2",
+    "sv-SE" to "QWERTY",
+    "pl-PL" to "QWERTY",
+)
+
+@Composable
+private fun DesktopKeyboardLayoutPicker(
+    selectedLayout: String,
+    helperText: String,
+    onSelect: (String) -> Unit,
+) {
+    val autoLabel = stringResource(R.string.connections_keyboard_layout_auto)
+    val displayLocale = java.util.Locale.getDefault()
+    val options = remember(autoLabel, displayLocale) {
+        buildList {
+            add("" to autoLabel)
+            DESKTOP_KEYBOARD_LAYOUT_SPECS.forEach { (tag, family) ->
+                val locName = java.util.Locale.forLanguageTag(tag).getDisplayName(displayLocale)
+                add(tag to "$locName ($family)")
+            }
+        }
+    }
+    SerialOptionDropdown(
+        label = stringResource(R.string.connections_field_keyboard_layout),
+        options = options,
+        selectedValue = selectedLayout,
+        onSelect = onSelect,
+    )
+    Spacer(Modifier.height(4.dp))
+    Text(
+        helperText,
+        style = MaterialTheme.typography.bodySmall,
+        color = MaterialTheme.colorScheme.onSurfaceVariant,
+    )
 }

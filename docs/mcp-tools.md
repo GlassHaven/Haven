@@ -237,6 +237,7 @@ Create a saved connection profile. Supports connectionType=SSH, SMB, VNC, RDP, S
 - `glkvmTargetLayout` (string) — GLKVM only: target OS keyboard layout for typed text — "uk" (default) or "us".
 - `ignoreSavedKeys` (boolean) — SSH-family only: when true, authenticate with password (and keyboard-interactive) only — saved keystore keys are never offered to the server. Lets a profile target a password-only server without the auto-key-offer suppressing the password prompt (#121). Default false.
 - `keyId` (string) — SSH only: id of a saved SSH key (from list_ssh_keys) to authenticate with. Mutually optional with password.
+- `keyboardLayout` (string) — RDP/SPICE only (#606): keyboard layout tag matching the guest OS layout (e.g. "en-US", "en-GB", "de-DE", "de-CH", "fr-FR", "fr-BE", "fr-CH", "es-ES", "es-419", "it-IT", "pt-PT", "pt-BR", "sv-SE", "pl-PL"). Omit for device locale.
 - `openaiPathPrefix` (string) — OPENAI only: optional path prefix inserted before /v1 (e.g. "/api" for CLIProxyAPI).
 - `password` (string) — Password (stored). Optional for SSH if a key is used; some VNC/SMB setups allow guest.
 - `port` (integer) — TCP port. Defaults: SSH 22, SMB 445, VNC 5900, RDP 3389, SPICE 5900, GLKVM 443. Type-specific vncPort/rdpPort/spicePort/glkvmPort override this.
@@ -375,6 +376,7 @@ Edit fields on an existing connection profile (load → change → save). Pass p
 - `ignoreSavedKeys` (boolean) — SSH-family only: force password-only auth, never offer saved keystore keys (#121).
 - `jumpProfileId` (string) — SSH only: id of the SSH profile to jump through (ssh -J). The target host is dialled from the jump host, so it may be an address only the jump can reach. Empty string clears.
 - `keyId` (string) — SSH only: id of a saved key (list_ssh_keys). Empty string clears.
+- `keyboardLayout` (string) — RDP/SPICE only (#606): keyboard layout tag (e.g. "es-ES", "en-US", "de-DE", "fr-FR"). Empty string clears (reverts to device locale).
 - `label` (string) — New user-facing label.
 - `moshServerCommand` (string) — Mosh only: override the command Haven runs over SSH to start mosh-server (default 'mosh-server new -s -c 256 …'). It must print a 'MOSH CONNECT <port> <key>' line, which Haven parses to find the session — so a wrapper can point Haven at a different port (e.g. scripts/mosh-fault-rig.py bootstrap, which puts a fault-injecting relay in front). Empty string restores the default.
 - `openaiPathPrefix` (string) — OPENAI only: path prefix inserted before /v1 (e.g. "/api"). Empty string clears.

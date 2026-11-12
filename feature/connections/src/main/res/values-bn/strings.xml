@@ -608,4 +608,8 @@
     <string name="connections_helper_saved_password">ঐচ্ছিক। Android Keystore-এ এনক্রিপ্ট করা থাকে এবং SSH পাসওয়ার্ড লগইন ও টার্মিনালে বায়োমেট্রিক sudo অটোফিলের জন্য ব্যবহৃত হয়।</string>
     <string name="connections_auth_banner_title">SSH প্রমাণীকরণ</string>
     <string name="connections_auth_banner_open_link">লিঙ্ক খুলুন</string>
+    <string name="connections_field_keyboard_layout">কীবোর্ড লেআউট</string>
+    <string name="connections_keyboard_layout_auto">স্বয়ংক্রিয় (ডিভাইসের ভাষা)</string>
+    <string name="connections_helper_keyboard_layout_rdp">RDP সার্ভারে এই লেআউটটি ঘোষণা করে এবং টাইপ করা অক্ষরগুলিকে এর স্ক্যানকোডে ম্যাপ করে।</string>
+    <string name="connections_helper_keyboard_layout_spice">SPICE কাঁচা স্ক্যানকোড পাঠায়, তাই গেস্ট VM-এর ভেতরে কনফিগার করা কীবোর্ড লেআউটটি বেছে নিন।</string>
 </resources>

@@ -608,4 +608,8 @@
     <string name="connections_helper_saved_password">Необязательно. Зашифрован в Android Keystore и используется для входа по паролю SSH и биометрической автоподстановки sudo в терминале.</string>
     <string name="connections_auth_banner_title">Аутентификация SSH</string>
     <string name="connections_auth_banner_open_link">Открыть ссылку</string>
+    <string name="connections_field_keyboard_layout">Раскладка клавиатуры</string>
+    <string name="connections_keyboard_layout_auto">Автоматически (язык устройства)</string>
+    <string name="connections_helper_keyboard_layout_rdp">Сообщает эту раскладку RDP-серверу и преобразует вводимые символы в её скан-коды.</string>
+    <string name="connections_helper_keyboard_layout_spice">SPICE передаёт прямые скан-коды — выберите раскладку клавиатуры, настроенную внутри гостевой ВМ.</string>
 </resources>

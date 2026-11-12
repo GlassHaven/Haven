@@ -606,4 +606,8 @@
     <string name="connections_helper_saved_password">可选。在 Android Keystore 中加密保存，用于 SSH 密码登录以及终端中受生物识别保护的 sudo 自动填充。</string>
     <string name="connections_auth_banner_title">SSH 身份验证</string>
     <string name="connections_auth_banner_open_link">打开链接</string>
+    <string name="connections_field_keyboard_layout">键盘布局</string>
+    <string name="connections_keyboard_layout_auto">自动（设备语言区域）</string>
+    <string name="connections_helper_keyboard_layout_rdp">向 RDP 服务器声明此键盘布局，并将输入字符映射为对应扫描码。</string>
+    <string name="connections_helper_keyboard_layout_spice">SPICE 发送原始扫描码，请选择客户机虚拟机内配置的键盘布局。</string>
 </resources>

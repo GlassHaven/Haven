@@ -1304,13 +1304,30 @@ class ConnectionsViewModelSessionTest {
         val rdp = ConnectionProfile(
             id = "eph-3", label = "desk", host = "desk.example.invalid",
             username = "", connectionType = "RDP", rdpUsername = "u",
+            keyboardLayout = "es-ES",
         ).also { it.ephemeral = true }
         viewModel.connectEphemeral(rdp)
         testDispatcher.scheduler.advanceUntilIdle()
 
         assertNotNull(viewModel.navigateToRdp.value)
         assertEquals("desk.example.invalid", viewModel.navigateToRdp.value!!.host)
+        assertEquals("es-ES", viewModel.navigateToRdp.value!!.keyboardLayout)
         coVerify(exactly = 0) { repository.save(any()) }
+    }
+
+    @Test
+    fun `connecting a SPICE profile forwards its keyboardLayout to SpiceNavigation (#606)`() = runTest {
+        val spice = ConnectionProfile(
+            id = "spice-1", label = "Debian 13", host = "192.168.122.50",
+            port = 5900, username = "", connectionType = "SPICE",
+            spicePort = 5900, keyboardLayout = "es-ES",
+        )
+        viewModel.connect(spice, "")
+        testDispatcher.scheduler.advanceUntilIdle()
+
+        assertNotNull(viewModel.navigateToSpice.value)
+        assertEquals("192.168.122.50", viewModel.navigateToSpice.value!!.host)
+        assertEquals("es-ES", viewModel.navigateToSpice.value!!.keyboardLayout)
     }
 
     @Test

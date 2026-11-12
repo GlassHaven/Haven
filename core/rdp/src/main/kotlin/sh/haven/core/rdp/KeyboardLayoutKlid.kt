@@ -50,3 +50,37 @@ fun keyboardLayoutKlid(locale: Locale = Locale.getDefault()): UInt {
         else -> 0x0409u
     }
 }
+
+/**
+ * #606: resolve a per-connection `keyboardLayout` tag (stored on
+ * `ConnectionProfile`, e.g. `"es-ES"`, `"en-US"`, `"de-DE"`, `"fr-FR"`) to the
+ * corresponding Windows KLID. Null, blank, or `"auto"` defers to
+ * [keyboardLayoutKlid] on [fallbackLocale].
+ */
+fun keyboardLayoutKlidForTag(
+    layoutTag: String?,
+    fallbackLocale: Locale = Locale.getDefault(),
+): UInt {
+    val normalized = layoutTag?.trim()?.replace('_', '-')?.lowercase(Locale.ROOT).orEmpty()
+    if (normalized.isEmpty() || normalized == "auto") {
+        return keyboardLayoutKlid(fallbackLocale)
+    }
+    return when (normalized) {
+        "en-us", "us" -> 0x0409u
+        "en-gb", "uk", "gb" -> 0x0809u
+        "de-de", "de" -> 0x0407u
+        "de-ch" -> 0x0807u
+        "fr-fr", "fr" -> 0x040Cu
+        "fr-be", "be" -> 0x080Cu
+        "fr-ch" -> 0x100Cu
+        "es-es", "es" -> 0x040Au
+        "es-419", "es-mx", "latam" -> 0x080Au
+        "it-it", "it" -> 0x0410u
+        "pt-pt", "pt" -> 0x0816u
+        "pt-br", "br" -> 0x0416u
+        "sv-se", "sv" -> 0x041Du
+        "fi-fi", "fi" -> 0x040Bu
+        "pl-pl", "pl" -> 0x0415u
+        else -> keyboardLayoutKlid(Locale.forLanguageTag(layoutTag!!.trim().replace('_', '-')))
+    }
+}

@@ -8,7 +8,7 @@ compare link is appended automatically — don't add it here.
 ## v5.94.30
 
 - Show live download, archive extraction, and rootfs configuration progress during PRoot Linux setup and keep `SessionService` running in the foreground while PRoot setup, local desktops, and System VMs are active in the background (#831, #832, thanks @NAZY-OS).
-- Add per-distro PRoot network routing (`Auto`, `Direct`, `Specific tunnel`, and `Offline`) with custom `/etc/resolv.conf` DNS overrides and per-tunnel loopback SOCKS5 exposure via `HAVEN_SOCKS5_PROXY` (#835, thanks @NAZY-OS).
+- Add per-distro PRoot network routing (`Follow active tunnel`, `Direct`, `Haven tunnel`, `Custom SOCKS5`, and `Custom HTTP`) with `NO_PROXY`, loopback tunnel SOCKS5 listeners, and optional `proxychains4` wrapping (#835, thanks @DragonXen).
 - Bundle the 19 Markdown user guide pages into app assets and add a searchable offline **User guide** reader under `Settings -> About` (#833, thanks @NAZY-OS).
 
 ## v5.94.29

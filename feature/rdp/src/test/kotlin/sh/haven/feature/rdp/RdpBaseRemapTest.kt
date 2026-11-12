@@ -158,5 +158,93 @@ class RdpBaseRemapTest {
     fun `control keys work in remapped layouts`() {
         assertEquals(plainTap(0x39), type(' ', GERMAN_QWERTZ_KLID).events)
         assertEquals(plainTap(0x1C), type('\n', FRENCH_AZERTY_KLID).events)
+        assertEquals(plainTap(0x0F), type('\t', SPANISH_KLID).events)
+    }
+
+    // --- Spanish (es-ES & es-419, #606) ---
+
+    @Test
+    fun `spanish maps ntilde and @empanadablues punctuation vector cleanly`() {
+        // Exact keys reported broken in #606: ñ/Ñ, @#€%&-+() *"':;!?
+        assertEquals(plainTap(0x27), type('ñ', SPANISH_KLID).events)
+        assertEquals(shiftTap(0x27), type('Ñ', SPANISH_KLID).events)
+        assertEquals(altGrTap(0x03), type('@', SPANISH_KLID).events)
+        assertEquals(altGrTap(0x04), type('#', SPANISH_KLID).events)
+        assertEquals(altGrTap(0x12), type('€', SPANISH_KLID).events)
+        assertEquals(shiftTap(0x06), type('%', SPANISH_KLID).events)
+        assertEquals(shiftTap(0x07), type('&', SPANISH_KLID).events)
+        assertEquals(plainTap(0x35), type('-', SPANISH_KLID).events)
+        assertEquals(plainTap(0x1B), type('+', SPANISH_KLID).events)
+        assertEquals(shiftTap(0x09), type('(', SPANISH_KLID).events)
+        assertEquals(shiftTap(0x0A), type(')', SPANISH_KLID).events)
+        assertEquals(shiftTap(0x1B), type('*', SPANISH_KLID).events)
+        assertEquals(shiftTap(0x03), type('"', SPANISH_KLID).events)
+        assertEquals(plainTap(0x0C), type('\'', SPANISH_KLID).events)
+        assertEquals(shiftTap(0x34), type(':', SPANISH_KLID).events)
+        assertEquals(shiftTap(0x33), type(';', SPANISH_KLID).events)
+        assertEquals(shiftTap(0x02), type('!', SPANISH_KLID).events)
+        assertEquals(shiftTap(0x0C), type('?', SPANISH_KLID).events)
+        assertEquals(plainTap(0x0D), type('¡', SPANISH_KLID).events)
+        assertEquals(shiftTap(0x0D), type('¿', SPANISH_KLID).events)
+
+        // Dead keys ` ^ ´ ¨ must fall through to unicode rather than pressing 0x1A/0x28.
+        for (ch in charArrayOf('`', '^', '´', '¨')) {
+            val typed = type(ch, SPANISH_KLID)
+            assertTrue("$ch should use unicode on es-ES", typed.unicode)
+            assertTrue("$ch must not emit dead-key scancodes on es-ES", typed.events.isEmpty())
+        }
+    }
+
+    @Test
+    fun `latin american spanish maps @ to AltGr+Q and braces to direct keys`() {
+        assertEquals(plainTap(0x27), type('ñ', LATIN_AMERICAN_SPANISH_KLID).events)
+        assertEquals(altGrTap(0x10), type('@', LATIN_AMERICAN_SPANISH_KLID).events)
+        assertEquals(plainTap(0x28), type('{', LATIN_AMERICAN_SPANISH_KLID).events)
+        assertEquals(shiftTap(0x28), type('[', LATIN_AMERICAN_SPANISH_KLID).events)
+        assertEquals(plainTap(0x2B), type('}', LATIN_AMERICAN_SPANISH_KLID).events)
+        assertEquals(shiftTap(0x2B), type(']', LATIN_AMERICAN_SPANISH_KLID).events)
+    }
+
+    // --- Additional European & ABNT2 layouts (#606) ---
+
+    @Test
+    fun `italian swiss belgian portuguese brazilian and swedish layouts map national and symbol keys`() {
+        // Italian: accented vowels on home/top rows, @ on AltGr+0x27, { on Shift+AltGr+0x1A.
+        assertEquals(plainTap(0x1A), type('è', ITALIAN_KLID).events)
+        assertEquals(altGrTap(0x27), type('@', ITALIAN_KLID).events)
+        assertEquals(
+            listOf(
+                SC_ALTGR_PUBLIC to true, SC_SHIFT_L_PUBLIC to true,
+                0x1A to true, 0x1A to false,
+                SC_SHIFT_L_PUBLIC to false, SC_ALTGR_PUBLIC to false,
+            ),
+            type('{', ITALIAN_KLID).events,
+        )
+
+        // Swiss German vs Swiss French swap unshifted/shifted on 0x1A, 0x27, 0x28.
+        assertEquals(plainTap(0x15), type('z', SWISS_GERMAN_KLID).events)
+        assertEquals(plainTap(0x1A), type('ü', SWISS_GERMAN_KLID).events)
+        assertEquals(shiftTap(0x1A), type('è', SWISS_GERMAN_KLID).events)
+        assertEquals(plainTap(0x1A), type('è', SWISS_FRENCH_KLID).events)
+        assertEquals(shiftTap(0x1A), type('ü', SWISS_FRENCH_KLID).events)
+
+        // Belgian AZERTY: ! unshifted on 0x09, - on 0x0D, = on 0x35.
+        assertEquals(plainTap(0x10), type('a', BELGIAN_AZERTY_KLID).events)
+        assertEquals(plainTap(0x09), type('!', BELGIAN_AZERTY_KLID).events)
+        assertEquals(plainTap(0x0D), type('-', BELGIAN_AZERTY_KLID).events)
+        assertEquals(plainTap(0x35), type('=', BELGIAN_AZERTY_KLID).events)
+
+        // Portuguese (PT) & Brazilian ABNT2 (BR).
+        assertEquals(plainTap(0x27), type('ç', PORTUGUESE_KLID).events)
+        assertEquals(altGrTap(0x08), type('{', PORTUGUESE_KLID).events)
+        assertEquals(plainTap(0x27), type('ç', BRAZILIAN_ABNT2_KLID).events)
+        assertEquals(altGrTap(0x10), type('/', BRAZILIAN_ABNT2_KLID).events)
+        assertEquals(altGrTap(0x11), type('?', BRAZILIAN_ABNT2_KLID).events)
+
+        // Swedish / Finnish: å ä ö on 0x1A / 0x28 / 0x27, $ on AltGr+4.
+        assertEquals(plainTap(0x1A), type('å', SWEDISH_KLID).events)
+        assertEquals(plainTap(0x28), type('ä', SWEDISH_KLID).events)
+        assertEquals(plainTap(0x27), type('ö', SWEDISH_KLID).events)
+        assertEquals(altGrTap(0x05), type('$', FINNISH_KLID).events)
     }
 }

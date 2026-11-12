@@ -644,4 +644,8 @@
     <string name="connections_helper_persist_rediscovered_host">Update the profile when a local machine presents the same SSH host key at a new IPv4 address. Turn off to connect at the rediscovered address for that session only and keep your configured host (e.g. a WireGuard IP).</string>
     <string name="connections_field_saved_password">Saved password (SSH / sudo)</string>
     <string name="connections_helper_saved_password">Optional. Encrypted in the Android Keystore and used for SSH password login and biometric-gated sudo fill in the terminal.</string>
+    <string name="connections_field_keyboard_layout">Keyboard layout</string>
+    <string name="connections_keyboard_layout_auto">Automatic (device locale)</string>
+    <string name="connections_helper_keyboard_layout_rdp">Announces this layout to the RDP server and maps typed characters to its scancodes.</string>
+    <string name="connections_helper_keyboard_layout_spice">SPICE sends raw scancodes, so pick the keyboard layout configured inside the guest VM.</string>
 </resources>

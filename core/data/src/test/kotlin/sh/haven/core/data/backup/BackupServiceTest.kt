@@ -297,6 +297,7 @@ class BackupServiceTest {
             glkvmPort = 443,
             glkvmPassword = "glkvmpass",
             glkvmTargetLayout = "uk",
+            keyboardLayout = "es-ES",
             glkvmSshForward = true,
             glkvmSshProfileId = "ssh-tunnel-1",
             emailProvider = "imap",
@@ -344,6 +345,7 @@ class BackupServiceTest {
         assertEquals(443, imported.glkvmPort)
         assertEquals("glkvmpass", imported.glkvmPassword)
         assertEquals("uk", imported.glkvmTargetLayout)
+        assertEquals("es-ES", imported.keyboardLayout)
         assertEquals(true, imported.glkvmSshForward)
         assertEquals("ssh-tunnel-1", imported.glkvmSshProfileId)
         assertEquals("imap", imported.emailProvider)
@@ -1184,6 +1186,7 @@ class BackupServiceTest {
             spicePassword = "spice-secret",
             spiceSshForward = true,
             spiceSshProfileId = "spice-ssh-99",
+            keyboardLayout = "es-ES",
             glkvmPort = 8443,
             glkvmPassword = "glkvm-secret",
             glkvmTargetLayout = "uk",
@@ -1263,7 +1266,7 @@ class BackupServiceTest {
         val defaults = ConnectionProfile(id = "default-id", label = "Default", host = "default.host", username = "default-user")
         val persistedFields = ConnectionProfile::class.java.declaredFields
             .filter { !java.lang.reflect.Modifier.isStatic(it.modifiers) && !it.isSynthetic && it.name != "ephemeral" }
-        assertEquals(114, persistedFields.size)
+        assertEquals(115, persistedFields.size)
         for (field in persistedFields) {
             field.isAccessible = true
             org.junit.Assert.assertNotEquals(

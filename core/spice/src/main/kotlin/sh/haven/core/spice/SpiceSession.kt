@@ -210,9 +210,10 @@ class SpiceSession(
     private var mouseMoveCount = 0L
 
     fun sendKey(scancode: Int, pressed: Boolean) {
-        if (closed) return
-        log("D", "input: key 0x${scancode.toString(16)} ${if (pressed) "down" else "up"}")
-        client?.sendKey(scancode.toUInt(), pressed)
+        if (closed || (scancode and 0x7F) == 0) return
+        val wire = spiceWireScancode(scancode, pressed)
+        log("D", "input: key 0x${scancode.toString(16)} (wire=0x${wire.toString(16)}) ${if (pressed) "down" else "up"}")
+        client?.sendKey(wire, pressed)
     }
 
     fun sendMouseMove(x: Int, y: Int) {
@@ -272,5 +273,29 @@ class SpiceSession(
             currentBitmap?.recycle()
             currentBitmap = null
         }
+    }
+}
+
+/**
+ * Encode a PC XT/AT Set-1 scancode (with `0xE000` marking extended keys, matching
+ * `RdpScreen` / `RdpKeyMapping`) into the 32-bit little-endian `code` word expected
+ * by `SPICE_MSGC_INPUTS_KEY_DOWN` / `SPICE_MSGC_INPUTS_KEY_UP` (`spice-server`
+ * `inputs-channel.cpp` + `spice-gtk` `spice_make_scancode`):
+ *
+ * - `spice-server` pushes `code` byte-by-byte (`(code >> (i * 8)) & 0xff`, stopping
+ *   at `0x00`) straight into `kbd_push_scan` for BOTH `KEY_DOWN` and `KEY_UP`, so
+ *   key releases MUST carry the PS/2 `0x80` break bit (`base | 0x80`). Sending the
+ *   unmodified make code on `KEY_UP` pressed every key a second time and left keys
+ *   and `Shift` stuck down in the guest (#606).
+ * - Extended `0xE0`-prefixed keys must push `0xE0` first (bits 0..7) and
+ *   `base` / `base | 0x80` second (bits 8..15), i.e. `0xE0 | (byte1 << 8)`.
+ */
+internal fun spiceWireScancode(scancode: Int, pressed: Boolean): UInt {
+    val base = scancode and 0x7F
+    val scanByte = if (pressed) base else (base or 0x80)
+    return if ((scancode and 0xFF00) == 0xE000) {
+        (0xE0 or (scanByte shl 8)).toUInt()
+    } else {
+        scanByte.toUInt()
     }
 }

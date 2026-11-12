@@ -127,11 +127,39 @@ private val POLISH_ALTGR_OVERLAY: Map<Char, Int> = mapOf(
 /** German QWERTZ (kbdgr.dll). */
 const val GERMAN_QWERTZ_KLID: UInt = 0x0407u
 
+/** Swiss German QWERTZ (kbdsg.dll / xkb `ch(de)`). */
+const val SWISS_GERMAN_KLID: UInt = 0x0807u
+
 /** French AZERTY (kbdfr.dll). */
 const val FRENCH_AZERTY_KLID: UInt = 0x040Cu
 
+/** Belgian AZERTY (kbdbe.dll / xkb `be`). */
+const val BELGIAN_AZERTY_KLID: UInt = 0x080Cu
+
+/** Swiss French QWERTZ (kbdsf.dll / xkb `ch(fr)`). */
+const val SWISS_FRENCH_KLID: UInt = 0x100Cu
+
 /** UK English (kbduk.dll) — US base with a handful of moved symbols. */
 const val UK_ENGLISH_KLID: UInt = 0x0809u
+
+/** Spanish — Spain (kbdsp.dll / xkb `es`, #606). */
+const val SPANISH_KLID: UInt = 0x040Au
+
+/** Spanish — Latin America (kbdla.dll / xkb `latam`, #606). */
+const val LATIN_AMERICAN_SPANISH_KLID: UInt = 0x080Au
+
+/** Italian (kbdit.dll / xkb `it`, #606). */
+const val ITALIAN_KLID: UInt = 0x0410u
+
+/** Portuguese — Portugal (kbdpo.dll / xkb `pt`, #606). */
+const val PORTUGUESE_KLID: UInt = 0x0816u
+
+/** Portuguese — Brazil ABNT2 (kbdbr.dll / xkb `br`, #606). */
+const val BRAZILIAN_ABNT2_KLID: UInt = 0x0416u
+
+/** Swedish / Finnish (kbdsw.dll / kbdfi.dll / xkb `se`, #606). */
+const val SWEDISH_KLID: UInt = 0x041Du
+const val FINNISH_KLID: UInt = 0x040Bu
 
 /** The ISO 102nd key (between left Shift and Z on non-US boards). */
 const val SC_ISO_102: Int = 0x56
@@ -145,8 +173,17 @@ const val SC_ISO_102: Int = 0x56
  */
 fun baseRemapTableFor(layoutKlid: UInt): Map<Char, LayoutKeystroke>? = when (layoutKlid) {
     GERMAN_QWERTZ_KLID -> GERMAN_QWERTZ_BASE
+    SWISS_GERMAN_KLID -> SWISS_GERMAN_BASE
     FRENCH_AZERTY_KLID -> FRENCH_AZERTY_BASE
+    BELGIAN_AZERTY_KLID -> BELGIAN_AZERTY_BASE
+    SWISS_FRENCH_KLID -> SWISS_FRENCH_BASE
     UK_ENGLISH_KLID -> UK_ENGLISH_BASE
+    SPANISH_KLID -> SPANISH_BASE
+    LATIN_AMERICAN_SPANISH_KLID -> LATIN_AMERICAN_SPANISH_BASE
+    ITALIAN_KLID -> ITALIAN_BASE
+    PORTUGUESE_KLID -> PORTUGUESE_BASE
+    BRAZILIAN_ABNT2_KLID -> BRAZILIAN_ABNT2_BASE
+    SWEDISH_KLID, FINNISH_KLID -> SWEDISH_BASE
     else -> null
 }
 
@@ -295,6 +332,262 @@ private val UK_ENGLISH_BASE: Map<Char, LayoutKeystroke> = buildMap {
     put('\\', LayoutKeystroke(SC_ISO_102)); put('|', LayoutKeystroke(SC_ISO_102, shift = true))
     put('`', LayoutKeystroke(0x29)); put('¬', LayoutKeystroke(0x29, shift = true))
     put('€', LayoutKeystroke(0x05, altGr = true))
+}
+
+private fun MutableMap<Char, LayoutKeystroke>.putQwertyLetters() {
+    ('a'..'z').forEach { c ->
+        put(c, LayoutKeystroke(LOWER_LETTER_SC[c - 'a']))
+        put(c.uppercaseChar(), LayoutKeystroke(LOWER_LETTER_SC[c - 'a'], shift = true))
+    }
+}
+
+private fun MutableMap<Char, LayoutKeystroke>.putQwertzLetters() {
+    "abcdefghijklmnopqrstuvwx".forEach { c ->
+        put(c, LayoutKeystroke(LOWER_LETTER_SC[c - 'a']))
+        put(c.uppercaseChar(), LayoutKeystroke(LOWER_LETTER_SC[c - 'a'], shift = true))
+    }
+    put('y', LayoutKeystroke(0x2C)); put('Y', LayoutKeystroke(0x2C, shift = true))
+    put('z', LayoutKeystroke(0x15)); put('Z', LayoutKeystroke(0x15, shift = true))
+}
+
+// Spanish — Spain (kbdsp.dll / xkb `es`, #606). Dead keys ` ^ (0x1A) and ´ ¨ (0x28)
+// are omitted so they never poison the next keystroke.
+private val SPANISH_BASE: Map<Char, LayoutKeystroke> = buildMap {
+    putQwertyLetters()
+    "1234567890".forEachIndexed { i, c -> put(c, LayoutKeystroke(0x02 + i)) }
+    "!\"·$%&/()=".forEachIndexed { i, c -> put(c, LayoutKeystroke(0x02 + i, shift = true)) }
+    put('º', LayoutKeystroke(0x29))
+    put('ª', LayoutKeystroke(0x29, shift = true))
+    put('\\', LayoutKeystroke(0x29, altGr = true))
+    put('|', LayoutKeystroke(0x02, altGr = true))
+    put('@', LayoutKeystroke(0x03, altGr = true))
+    put('#', LayoutKeystroke(0x04, altGr = true))
+    put('~', LayoutKeystroke(0x05, altGr = true))
+    put('¬', LayoutKeystroke(0x07, altGr = true))
+    put('€', LayoutKeystroke(0x12, altGr = true))
+    put('\'', LayoutKeystroke(0x0C)); put('?', LayoutKeystroke(0x0C, shift = true))
+    put('¡', LayoutKeystroke(0x0D)); put('¿', LayoutKeystroke(0x0D, shift = true))
+    put('[', LayoutKeystroke(0x1A, altGr = true))
+    put('+', LayoutKeystroke(0x1B)); put('*', LayoutKeystroke(0x1B, shift = true))
+    put(']', LayoutKeystroke(0x1B, altGr = true))
+    put('ñ', LayoutKeystroke(0x27)); put('Ñ', LayoutKeystroke(0x27, shift = true))
+    put('{', LayoutKeystroke(0x28, altGr = true))
+    put('ç', LayoutKeystroke(0x2B)); put('Ç', LayoutKeystroke(0x2B, shift = true))
+    put('}', LayoutKeystroke(0x2B, altGr = true))
+    put('<', LayoutKeystroke(SC_ISO_102)); put('>', LayoutKeystroke(SC_ISO_102, shift = true))
+    put(',', LayoutKeystroke(0x33)); put(';', LayoutKeystroke(0x33, shift = true))
+    put('.', LayoutKeystroke(0x34)); put(':', LayoutKeystroke(0x34, shift = true))
+    put('-', LayoutKeystroke(0x35)); put('_', LayoutKeystroke(0x35, shift = true))
+}
+
+// Spanish — Latin America (kbdla.dll / xkb `latam`, #606). Dead ´ ¨ sit on 0x1A;
+// { [ and } ] sit directly on 0x28 and 0x2B without AltGr, and @ sits on AltGr+Q.
+private val LATIN_AMERICAN_SPANISH_BASE: Map<Char, LayoutKeystroke> = buildMap {
+    putQwertyLetters()
+    "1234567890".forEachIndexed { i, c -> put(c, LayoutKeystroke(0x02 + i)) }
+    "!\"#$%&/()=".forEachIndexed { i, c -> put(c, LayoutKeystroke(0x02 + i, shift = true)) }
+    put('|', LayoutKeystroke(0x29))
+    put('°', LayoutKeystroke(0x29, shift = true))
+    put('¬', LayoutKeystroke(0x29, altGr = true))
+    put('@', LayoutKeystroke(0x10, altGr = true))
+    put('€', LayoutKeystroke(0x12, altGr = true))
+    put('\'', LayoutKeystroke(0x0C)); put('?', LayoutKeystroke(0x0C, shift = true))
+    put('\\', LayoutKeystroke(0x0C, altGr = true))
+    put('¿', LayoutKeystroke(0x0D)); put('¡', LayoutKeystroke(0x0D, shift = true))
+    put('+', LayoutKeystroke(0x1B)); put('*', LayoutKeystroke(0x1B, shift = true))
+    put('~', LayoutKeystroke(0x1B, altGr = true))
+    put('ñ', LayoutKeystroke(0x27)); put('Ñ', LayoutKeystroke(0x27, shift = true))
+    put('{', LayoutKeystroke(0x28)); put('[', LayoutKeystroke(0x28, shift = true))
+    put('}', LayoutKeystroke(0x2B)); put(']', LayoutKeystroke(0x2B, shift = true))
+    put('<', LayoutKeystroke(SC_ISO_102)); put('>', LayoutKeystroke(SC_ISO_102, shift = true))
+    put(',', LayoutKeystroke(0x33)); put(';', LayoutKeystroke(0x33, shift = true))
+    put('.', LayoutKeystroke(0x34)); put(':', LayoutKeystroke(0x34, shift = true))
+    put('-', LayoutKeystroke(0x35)); put('_', LayoutKeystroke(0x35, shift = true))
+}
+
+// Italian (kbdit.dll / xkb `it`, #606). Standard Italian has no base dead keys.
+private val ITALIAN_BASE: Map<Char, LayoutKeystroke> = buildMap {
+    putQwertyLetters()
+    "1234567890".forEachIndexed { i, c -> put(c, LayoutKeystroke(0x02 + i)) }
+    "!\"£$%&/()=".forEachIndexed { i, c -> put(c, LayoutKeystroke(0x02 + i, shift = true)) }
+    put('\\', LayoutKeystroke(0x29)); put('|', LayoutKeystroke(0x29, shift = true))
+    put('\'', LayoutKeystroke(0x0C)); put('?', LayoutKeystroke(0x0C, shift = true))
+    put('ì', LayoutKeystroke(0x0D)); put('^', LayoutKeystroke(0x0D, shift = true))
+    put('€', LayoutKeystroke(0x12, altGr = true))
+    put('è', LayoutKeystroke(0x1A)); put('é', LayoutKeystroke(0x1A, shift = true))
+    put('[', LayoutKeystroke(0x1A, altGr = true))
+    put('{', LayoutKeystroke(0x1A, shift = true, altGr = true))
+    put('+', LayoutKeystroke(0x1B)); put('*', LayoutKeystroke(0x1B, shift = true))
+    put(']', LayoutKeystroke(0x1B, altGr = true))
+    put('}', LayoutKeystroke(0x1B, shift = true, altGr = true))
+    put('ò', LayoutKeystroke(0x27)); put('ç', LayoutKeystroke(0x27, shift = true))
+    put('@', LayoutKeystroke(0x27, altGr = true))
+    put('à', LayoutKeystroke(0x28)); put('°', LayoutKeystroke(0x28, shift = true))
+    put('#', LayoutKeystroke(0x28, altGr = true))
+    put('ù', LayoutKeystroke(0x2B)); put('§', LayoutKeystroke(0x2B, shift = true))
+    put('<', LayoutKeystroke(SC_ISO_102)); put('>', LayoutKeystroke(SC_ISO_102, shift = true))
+    put(',', LayoutKeystroke(0x33)); put(';', LayoutKeystroke(0x33, shift = true))
+    put('.', LayoutKeystroke(0x34)); put(':', LayoutKeystroke(0x34, shift = true))
+    put('-', LayoutKeystroke(0x35)); put('_', LayoutKeystroke(0x35, shift = true))
+}
+
+// Swiss German / Swiss French QWERTZ (kbdsg.dll / kbdsf.dll / xkb `ch`, #606).
+// The two layouts are identical except whether umlauts or French accents sit unshifted
+// on 0x1A / 0x27 / 0x28. Dead keys ^ ` ~ (0x0D) and ¨ (unshifted 0x1B) are omitted.
+private fun buildSwissQwertz(frenchPrimary: Boolean): Map<Char, LayoutKeystroke> = buildMap {
+    putQwertzLetters()
+    "1234567890".forEachIndexed { i, c -> put(c, LayoutKeystroke(0x02 + i)) }
+    "+\"*ç%&/()=".forEachIndexed { i, c -> put(c, LayoutKeystroke(0x02 + i, shift = true)) }
+    put('§', LayoutKeystroke(0x29)); put('°', LayoutKeystroke(0x29, shift = true))
+    put('|', LayoutKeystroke(0x02, altGr = true))
+    put('@', LayoutKeystroke(0x03, altGr = true))
+    put('#', LayoutKeystroke(0x04, altGr = true))
+    put('¬', LayoutKeystroke(0x07, altGr = true))
+    put('¢', LayoutKeystroke(0x09, altGr = true))
+    put('€', LayoutKeystroke(0x12, altGr = true))
+    put('\'', LayoutKeystroke(0x0C)); put('?', LayoutKeystroke(0x0C, shift = true))
+    if (frenchPrimary) {
+        put('è', LayoutKeystroke(0x1A)); put('ü', LayoutKeystroke(0x1A, shift = true))
+        put('é', LayoutKeystroke(0x27)); put('ö', LayoutKeystroke(0x27, shift = true))
+        put('à', LayoutKeystroke(0x28)); put('ä', LayoutKeystroke(0x28, shift = true))
+    } else {
+        put('ü', LayoutKeystroke(0x1A)); put('è', LayoutKeystroke(0x1A, shift = true))
+        put('ö', LayoutKeystroke(0x27)); put('é', LayoutKeystroke(0x27, shift = true))
+        put('ä', LayoutKeystroke(0x28)); put('à', LayoutKeystroke(0x28, shift = true))
+    }
+    put('[', LayoutKeystroke(0x1A, altGr = true))
+    put('!', LayoutKeystroke(0x1B, shift = true))
+    put(']', LayoutKeystroke(0x1B, altGr = true))
+    put('{', LayoutKeystroke(0x28, altGr = true))
+    put('$', LayoutKeystroke(0x2B)); put('£', LayoutKeystroke(0x2B, shift = true))
+    put('}', LayoutKeystroke(0x2B, altGr = true))
+    put('<', LayoutKeystroke(SC_ISO_102)); put('>', LayoutKeystroke(SC_ISO_102, shift = true))
+    put('\\', LayoutKeystroke(SC_ISO_102, altGr = true))
+    put(',', LayoutKeystroke(0x33)); put(';', LayoutKeystroke(0x33, shift = true))
+    put('.', LayoutKeystroke(0x34)); put(':', LayoutKeystroke(0x34, shift = true))
+    put('-', LayoutKeystroke(0x35)); put('_', LayoutKeystroke(0x35, shift = true))
+}
+
+private val SWISS_GERMAN_BASE: Map<Char, LayoutKeystroke> = buildSwissQwertz(frenchPrimary = false)
+private val SWISS_FRENCH_BASE: Map<Char, LayoutKeystroke> = buildSwissQwertz(frenchPrimary = true)
+
+// Belgian AZERTY (kbdbe.dll / xkb `be`, #606). Differs from French AZERTY on the
+// number row (§/! instead of -/_ on 6/8), -/_ on 0x0D, =/+ on 0x35, and AltGr brackets.
+private val BELGIAN_AZERTY_BASE: Map<Char, LayoutKeystroke> = buildMap {
+    val letterPos = mapOf(
+        'a' to 0x10, 'z' to 0x11, 'e' to 0x12, 'r' to 0x13, 't' to 0x14,
+        'y' to 0x15, 'u' to 0x16, 'i' to 0x17, 'o' to 0x18, 'p' to 0x19,
+        'q' to 0x1E, 's' to 0x1F, 'd' to 0x20, 'f' to 0x21, 'g' to 0x22,
+        'h' to 0x23, 'j' to 0x24, 'k' to 0x25, 'l' to 0x26, 'm' to 0x27,
+        'w' to 0x2C, 'x' to 0x2D, 'c' to 0x2E, 'v' to 0x2F, 'b' to 0x30,
+        'n' to 0x31,
+    )
+    letterPos.forEach { (c, sc) ->
+        put(c, LayoutKeystroke(sc))
+        put(c.uppercaseChar(), LayoutKeystroke(sc, shift = true))
+    }
+    put('²', LayoutKeystroke(0x29)); put('³', LayoutKeystroke(0x29, shift = true))
+    "&é\"'(§è!çà".forEachIndexed { i, c -> put(c, LayoutKeystroke(0x02 + i)) }
+    "1234567890".forEachIndexed { i, c -> put(c, LayoutKeystroke(0x02 + i, shift = true)) }
+    put('|', LayoutKeystroke(0x02, altGr = true))
+    put('@', LayoutKeystroke(0x03, altGr = true))
+    put('#', LayoutKeystroke(0x04, altGr = true))
+    put('^', LayoutKeystroke(0x07, altGr = true)) // AltGr+6 non-dead caret
+    put('{', LayoutKeystroke(0x0A, altGr = true)) // AltGr+9
+    put('}', LayoutKeystroke(0x0B, altGr = true)) // AltGr+0
+    put('€', LayoutKeystroke(0x12, altGr = true))
+    put(')', LayoutKeystroke(0x0C)); put('°', LayoutKeystroke(0x0C, shift = true))
+    put('-', LayoutKeystroke(0x0D)); put('_', LayoutKeystroke(0x0D, shift = true))
+    put('[', LayoutKeystroke(0x1A, altGr = true))
+    put('$', LayoutKeystroke(0x1B)); put('*', LayoutKeystroke(0x1B, shift = true))
+    put(']', LayoutKeystroke(0x1B, altGr = true))
+    put('ù', LayoutKeystroke(0x28)); put('%', LayoutKeystroke(0x28, shift = true))
+    put('µ', LayoutKeystroke(0x2B)); put('£', LayoutKeystroke(0x2B, shift = true))
+    put('<', LayoutKeystroke(SC_ISO_102)); put('>', LayoutKeystroke(SC_ISO_102, shift = true))
+    put('\\', LayoutKeystroke(SC_ISO_102, altGr = true))
+    put(',', LayoutKeystroke(0x32)); put('?', LayoutKeystroke(0x32, shift = true))
+    put(';', LayoutKeystroke(0x33)); put('.', LayoutKeystroke(0x33, shift = true))
+    put(':', LayoutKeystroke(0x34)); put('/', LayoutKeystroke(0x34, shift = true))
+    put('=', LayoutKeystroke(0x35)); put('+', LayoutKeystroke(0x35, shift = true))
+}
+
+// Portuguese — Portugal (kbdpo.dll / xkb `pt`, #606). Dead ´ ` (0x1B) and ~ ^ (0x2B) omitted.
+private val PORTUGUESE_BASE: Map<Char, LayoutKeystroke> = buildMap {
+    putQwertyLetters()
+    "1234567890".forEachIndexed { i, c -> put(c, LayoutKeystroke(0x02 + i)) }
+    "!\"#$%&/()=".forEachIndexed { i, c -> put(c, LayoutKeystroke(0x02 + i, shift = true)) }
+    put('\\', LayoutKeystroke(0x29)); put('|', LayoutKeystroke(0x29, shift = true))
+    put('@', LayoutKeystroke(0x03, altGr = true))
+    put('£', LayoutKeystroke(0x04, altGr = true))
+    put('§', LayoutKeystroke(0x05, altGr = true))
+    put('{', LayoutKeystroke(0x08, altGr = true))
+    put('[', LayoutKeystroke(0x09, altGr = true))
+    put(']', LayoutKeystroke(0x0A, altGr = true))
+    put('}', LayoutKeystroke(0x0B, altGr = true))
+    put('€', LayoutKeystroke(0x12, altGr = true))
+    put('\'', LayoutKeystroke(0x0C)); put('?', LayoutKeystroke(0x0C, shift = true))
+    put('«', LayoutKeystroke(0x0D)); put('»', LayoutKeystroke(0x0D, shift = true))
+    put('+', LayoutKeystroke(0x1A)); put('*', LayoutKeystroke(0x1A, shift = true))
+    put('ç', LayoutKeystroke(0x27)); put('Ç', LayoutKeystroke(0x27, shift = true))
+    put('º', LayoutKeystroke(0x28)); put('ª', LayoutKeystroke(0x28, shift = true))
+    put('<', LayoutKeystroke(SC_ISO_102)); put('>', LayoutKeystroke(SC_ISO_102, shift = true))
+    put(',', LayoutKeystroke(0x33)); put(';', LayoutKeystroke(0x33, shift = true))
+    put('.', LayoutKeystroke(0x34)); put(':', LayoutKeystroke(0x34, shift = true))
+    put('-', LayoutKeystroke(0x35)); put('_', LayoutKeystroke(0x35, shift = true))
+}
+
+// Portuguese — Brazil ABNT2 (kbdbr.dll / xkb `br`, #606). Shift+6 (¨), 0x1A (´/`),
+// and 0x28 (~/^) are dead keys; `/` and `?` use AltGr+Q / AltGr+W so they work even
+// when a hypervisor emulates a 105-key ISO PS/2 board without physical key 0x73.
+private val BRAZILIAN_ABNT2_BASE: Map<Char, LayoutKeystroke> = buildMap {
+    putQwertyLetters()
+    "1234567890".forEachIndexed { i, c -> put(c, LayoutKeystroke(0x02 + i)) }
+    "!@#$%".forEachIndexed { i, c -> put(c, LayoutKeystroke(0x02 + i, shift = true)) }
+    "&*()".forEachIndexed { i, c -> put(c, LayoutKeystroke(0x08 + i, shift = true)) }
+    put('\'', LayoutKeystroke(0x29)); put('"', LayoutKeystroke(0x29, shift = true))
+    put('-', LayoutKeystroke(0x0C)); put('_', LayoutKeystroke(0x0C, shift = true))
+    put('=', LayoutKeystroke(0x0D)); put('+', LayoutKeystroke(0x0D, shift = true))
+    put('§', LayoutKeystroke(0x0D, altGr = true))
+    put('/', LayoutKeystroke(0x10, altGr = true))  // AltGr+Q on kbdbr.dll & xkb `br`
+    put('?', LayoutKeystroke(0x11, altGr = true))  // AltGr+W on kbdbr.dll & xkb `br`
+    put('°', LayoutKeystroke(0x12, altGr = true))  // AltGr+E on kbdbr.dll & xkb `br`
+    put('[', LayoutKeystroke(0x1B)); put('{', LayoutKeystroke(0x1B, shift = true))
+    put('ª', LayoutKeystroke(0x1B, altGr = true))
+    put('ç', LayoutKeystroke(0x27)); put('Ç', LayoutKeystroke(0x27, shift = true))
+    put(']', LayoutKeystroke(0x2B)); put('}', LayoutKeystroke(0x2B, shift = true))
+    put('º', LayoutKeystroke(0x2B, altGr = true))
+    put('\\', LayoutKeystroke(SC_ISO_102)); put('|', LayoutKeystroke(SC_ISO_102, shift = true))
+    put(',', LayoutKeystroke(0x33)); put('<', LayoutKeystroke(0x33, shift = true))
+    put('.', LayoutKeystroke(0x34)); put('>', LayoutKeystroke(0x34, shift = true))
+    put(';', LayoutKeystroke(0x35)); put(':', LayoutKeystroke(0x35, shift = true))
+}
+
+// Swedish / Finnish (kbdsw.dll / kbdfi.dll / xkb `se`, #606). Dead ´ ` (0x0D) and
+// ¨ ^ ~ (0x1B) are omitted.
+private val SWEDISH_BASE: Map<Char, LayoutKeystroke> = buildMap {
+    putQwertyLetters()
+    "1234567890".forEachIndexed { i, c -> put(c, LayoutKeystroke(0x02 + i)) }
+    "!\"#¤%&/()=".forEachIndexed { i, c -> put(c, LayoutKeystroke(0x02 + i, shift = true)) }
+    put('§', LayoutKeystroke(0x29)); put('½', LayoutKeystroke(0x29, shift = true))
+    put('@', LayoutKeystroke(0x03, altGr = true))
+    put('£', LayoutKeystroke(0x04, altGr = true))
+    put('$', LayoutKeystroke(0x05, altGr = true))
+    put('€', LayoutKeystroke(0x06, altGr = true))
+    put('{', LayoutKeystroke(0x08, altGr = true))
+    put('[', LayoutKeystroke(0x09, altGr = true))
+    put(']', LayoutKeystroke(0x0A, altGr = true))
+    put('}', LayoutKeystroke(0x0B, altGr = true))
+    put('+', LayoutKeystroke(0x0C)); put('?', LayoutKeystroke(0x0C, shift = true))
+    put('\\', LayoutKeystroke(0x0C, altGr = true))
+    put('å', LayoutKeystroke(0x1A)); put('Å', LayoutKeystroke(0x1A, shift = true))
+    put('ö', LayoutKeystroke(0x27)); put('Ö', LayoutKeystroke(0x27, shift = true))
+    put('ä', LayoutKeystroke(0x28)); put('Ä', LayoutKeystroke(0x28, shift = true))
+    put('\'', LayoutKeystroke(0x2B)); put('*', LayoutKeystroke(0x2B, shift = true))
+    put('<', LayoutKeystroke(SC_ISO_102)); put('>', LayoutKeystroke(SC_ISO_102, shift = true))
+    put('|', LayoutKeystroke(SC_ISO_102, altGr = true))
+    put(',', LayoutKeystroke(0x33)); put(';', LayoutKeystroke(0x33, shift = true))
+    put('.', LayoutKeystroke(0x34)); put(':', LayoutKeystroke(0x34, shift = true))
+    put('-', LayoutKeystroke(0x35)); put('_', LayoutKeystroke(0x35, shift = true))
 }
 
 /**

@@ -83,6 +83,12 @@ class RdpSession(
      */
     private val certHost: String = host,
     private val certPort: Int = port,
+    /**
+     * #606: optional per-profile keyboard layout override (BCP-47 tag such as
+     * `"es-ES"`, `"en-US"`, `"de-DE"`, `"fr-FR"`). Null / blank uses the device
+     * locale via [keyboardLayoutKlid].
+     */
+    private val keyboardLayout: String? = null,
 ) : Closeable {
 
     @Volatile
@@ -214,9 +220,10 @@ class RdpSession(
                 // #425: advertise H.264/AVC420 (KRDP). Only meaningful with a
                 // decoder registered below, so keep the two in lock-step.
                 avcEnabled = RdpDebugToggles.avcEnabled,
-                // #504: announce the device locale's keyboard layout instead
-                // of hardcoded US, for servers that honour the announcement.
-                keyboardLayout = keyboardLayoutKlid(),
+                // #504 / #606: announce the profile's explicit keyboard layout
+                // (or the device locale's layout when unset) for servers that
+                // honour the Client Core Data announcement.
+                keyboardLayout = keyboardLayoutKlidForTag(keyboardLayout),
             )
 
             // #477: record which settings this session actually ran with. Two
@@ -227,7 +234,8 @@ class RdpSession(
             log(
                 "D",
                 "RDP settings: avc420=${config.avcEnabled} progressiveUpgrade=" +
-                    "${config.progressiveUpgrade} colorDepth=$colorDepth nla=$useNla",
+                    "${config.progressiveUpgrade} colorDepth=$colorDepth nla=$useNla " +
+                    "klid=0x${config.keyboardLayout.toString(16)}",
             )
 
             val c = RdpClient(config)

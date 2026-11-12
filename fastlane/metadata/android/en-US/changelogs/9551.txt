@@ -1,3 +1,3 @@
 - Show PRoot download, extraction, and configuration progress and hold the foreground service while PRoot setup, local desktops, or System VMs run in the background (#831, #832, thanks @NAZY-OS).
-- Add per-distro PRoot network routing (Auto, Direct, Specific tunnel, Offline) with custom DNS overrides (#835, thanks @NAZY-OS).
-- Bundle the 19 Markdown reference guides for searchable offline reading under Settings -> About (#833, thanks @NAZY-OS).
+- Add per-distro PRoot network routing (Follow active tunnel, Direct, Haven tunnel, Custom SOCKS5/HTTP) with NO_PROXY and proxychains4 support (#835, thanks @DragonXen).
+- Bundle the 19 Markdown guides for searchable offline reading under Settings -> About (#833, thanks @NAZY-OS).

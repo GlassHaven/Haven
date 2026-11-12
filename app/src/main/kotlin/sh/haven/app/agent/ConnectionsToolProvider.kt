@@ -167,6 +167,7 @@ internal class ConnectionsToolProvider(
                 integer("spicePort", "SPICE only: TCP port (default 5900). Overrides the generic `port`.")
                 boolean("spiceSshForward", "SPICE only: tunnel through a saved SSH profile (set spiceSshProfileId). The SPICE target is reached at 127.0.0.1:<port> from the SSH server. Default false.")
                 string("spiceSshProfileId", "SPICE only: id of the SSH profile (from list_connections) to tunnel through when spiceSshForward is true.")
+                string("keyboardLayout", "RDP/SPICE only (#606): keyboard layout tag matching the guest OS layout (e.g. \"en-US\", \"en-GB\", \"de-DE\", \"de-CH\", \"fr-FR\", \"fr-BE\", \"fr-CH\", \"es-ES\", \"es-419\", \"it-IT\", \"pt-PT\", \"pt-BR\", \"sv-SE\", \"pl-PL\"). Omit for device locale.")
                 string("glkvmPassword", "GLKVM only: the device's web-UI password (stored encrypted).")
                 integer("glkvmPort", "GLKVM only: HTTPS port (default 443). Overrides the generic `port`.")
                 string("glkvmTargetLayout", "GLKVM only: target OS keyboard layout for typed text — \"uk\" (default) or \"us\".")
@@ -251,6 +252,7 @@ internal class ConnectionsToolProvider(
                 string("smbSshProfileId", "SMB only: SSH profile id to tunnel through. Empty string clears.")
                 boolean("spiceSshForward", "SPICE only: tunnel through a saved SSH profile (set spiceSshProfileId).")
                 string("spiceSshProfileId", "SPICE only: SSH profile id to tunnel through. Empty string clears.")
+                string("keyboardLayout", "RDP/SPICE only (#606): keyboard layout tag (e.g. \"es-ES\", \"en-US\", \"de-DE\", \"fr-FR\"). Empty string clears (reverts to device locale).")
                 string("glkvmPassword", "GLKVM only: web-UI password (stored encrypted). Empty string clears.")
                 integer("glkvmPort", "GLKVM only: HTTPS port (default 443).")
                 string("glkvmTargetLayout", "GLKVM only: target OS keyboard layout, \"uk\" or \"us\". Empty string clears.")
@@ -957,6 +959,7 @@ internal class ConnectionsToolProvider(
             smbSshProfileId = str("smbSshProfileId", existing.smbSshProfileId),
             spiceSshForward = bool("spiceSshForward", existing.spiceSshForward),
             spiceSshProfileId = str("spiceSshProfileId", existing.spiceSshProfileId),
+            keyboardLayout = str("keyboardLayout", existing.keyboardLayout),
             glkvmPort = if (portChanged && existing.connectionType == "GLKVM") newPort else existing.glkvmPort,
             glkvmPassword = if (existing.connectionType == "GLKVM") newPassword("glkvmPassword", existing.glkvmPassword) else existing.glkvmPassword,
             glkvmTargetLayout = str("glkvmTargetLayout", existing.glkvmTargetLayout),
@@ -1225,6 +1228,7 @@ internal class ConnectionsToolProvider(
                     rdpPassword = args.optString("rdpPassword").ifBlank { args.optString("password") }.ifBlank { null },
                     rdpDomain = args.optString("rdpDomain").ifBlank { null },
                     rdpSshForward = false,
+                    keyboardLayout = args.optString("keyboardLayout").ifBlank { null },
                     tunnelConfigId = tunnelConfigId,
                     portKnockSequence = knockSequence,
                     portKnockDelayMs = knockDelay,
@@ -1249,6 +1253,7 @@ internal class ConnectionsToolProvider(
                     spicePassword = args.optString("spicePassword").ifBlank { args.optString("password") }.ifBlank { null },
                     spiceSshForward = spiceSshForward,
                     spiceSshProfileId = spiceSshProfileId,
+                    keyboardLayout = args.optString("keyboardLayout").ifBlank { null },
                     tunnelConfigId = tunnelConfigId,
                     portKnockSequence = knockSequence,
                     portKnockDelayMs = knockDelay,

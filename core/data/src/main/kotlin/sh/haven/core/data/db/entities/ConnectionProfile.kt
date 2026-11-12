@@ -119,6 +119,14 @@ data class ConnectionProfile @Ignore constructor(
     val spicePassword: String? = null,
     val spiceSshForward: Boolean = false,
     val spiceSshProfileId: String? = null,
+    /**
+     * #606: optional per-profile keyboard layout override (BCP-47 tag such as
+     * `"es-ES"`, `"en-US"`, `"de-DE"`, `"fr-FR"`). Null uses the device locale.
+     * On RDP this sets both the Client Core Data KLID announcement and client-side
+     * character-to-scancode synthesis; on SPICE (which has no layout announcement
+     * PDU) this maps typed characters to the guest VM's configured keyboard layout.
+     */
+    val keyboardLayout: String? = null,
     // GLKVM (PiKVM kvmd fork, #GLKVM). Auth is web-UI user + password; TLS is
     // TOFU-pinned via the shared known_tls_certs store so no cert column exists.
     val glkvmPort: Int? = null,
@@ -429,13 +437,13 @@ data class ConnectionProfile @Ignore constructor(
      * lastSessionName). Kept on the [@Ignore]-annotated primary constructor
      * so Kotlin's generated [copy] preserves it across credential encryption,
      * identity substitution, and host rediscovery, while Room uses the
-     * 114-column secondary constructor below with zero schema change.
+     * 115-column secondary constructor below with zero schema change.
      */
     @field:Ignore
     @get:Ignore
     var ephemeral: Boolean = false,
 ) {
-    /** Room persistence constructor matching the 114 database columns (leaves [ephemeral] false). */
+    /** Room persistence constructor matching the 115 database columns (leaves [ephemeral] false). */
     constructor(
         id: String,
         label: String,
@@ -480,6 +488,7 @@ data class ConnectionProfile @Ignore constructor(
         spicePassword: String?,
         spiceSshForward: Boolean,
         spiceSshProfileId: String?,
+        keyboardLayout: String?,
         glkvmPort: Int?,
         glkvmPassword: String?,
         glkvmTargetLayout: String?,
@@ -595,6 +604,7 @@ data class ConnectionProfile @Ignore constructor(
         spicePassword = spicePassword,
         spiceSshForward = spiceSshForward,
         spiceSshProfileId = spiceSshProfileId,
+        keyboardLayout = keyboardLayout,
         glkvmPort = glkvmPort,
         glkvmPassword = glkvmPassword,
         glkvmTargetLayout = glkvmTargetLayout,

@@ -608,4 +608,8 @@
     <string name="connections_helper_saved_password">اختياري. مشفرة في Android Keystore وتُستخدم لتسجيل دخول SSH ولملء sudo المحمي بالبصمة في الطرفية.</string>
     <string name="connections_auth_banner_title">مصادقة SSH</string>
     <string name="connections_auth_banner_open_link">فتح الرابط</string>
+    <string name="connections_field_keyboard_layout">تخطيط لوحة المفاتيح</string>
+    <string name="connections_keyboard_layout_auto">تلقائي (لغة الجهاز)</string>
+    <string name="connections_helper_keyboard_layout_rdp">يعلن عن هذا التخطيط لخادم RDP ويطابق الأحرف المكتوبة مع رموز المسح الخاصة به.</string>
+    <string name="connections_helper_keyboard_layout_spice">يرسل SPICE رموز مسح خام، لذا اختر تخطيط لوحة المفاتيح المضبوط داخل الجهاز الافتراضي الضيف.</string>
 </resources>

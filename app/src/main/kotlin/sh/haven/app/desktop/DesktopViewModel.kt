@@ -1219,6 +1219,7 @@ class DesktopViewModel @Inject constructor(
                         profileId = profile.id,
                         useNla = profile.rdpUseNla,
                         colorDepth = profile.rdpColorDepth,
+                        keyboardLayout = profile.keyboardLayout,
                     )
                 }
                 profile.isSpice -> {
@@ -1235,6 +1236,7 @@ class DesktopViewModel @Inject constructor(
                         sshForward = profile.spiceSshForward,
                         sshSessionId = sshSessionId,
                         profileId = profile.id,
+                        keyboardLayout = profile.keyboardLayout,
                     )
                 }
                 profile.isGlkvm -> {
@@ -2287,6 +2289,7 @@ class DesktopViewModel @Inject constructor(
         profileId: String? = null,
         useNla: Boolean = true,
         colorDepth: Int = 16,
+        keyboardLayout: String? = null,
     ) {
         viewModelScope.launch(Dispatchers.IO) {
             // Deduplicate: if a tab for the same connection exists, reuse or replace
@@ -2367,6 +2370,9 @@ class DesktopViewModel @Inject constructor(
                 // and never announces a resize).
                 val rdpWidth = preferencesRepository.rdpDesktopWidth.first()
                 val rdpHeight = preferencesRepository.rdpDesktopHeight.first()
+                val effectiveLayout = keyboardLayout
+                    ?: profileId?.let { connectionRepository.getById(it)?.keyboardLayout }
+                val layoutKlid = sh.haven.core.rdp.keyboardLayoutKlidForTag(effectiveLayout)
 
                 val session = RdpSession(
                     sessionId = "rdp-$tabId",
@@ -2381,6 +2387,7 @@ class DesktopViewModel @Inject constructor(
                     colorDepth = colorDepth,
                     verboseBuffer = verboseBuffer,
                     socksProxy = rdpSocksProxy,
+                    keyboardLayout = effectiveLayout,
                 )
                 session.onFrameUpdate = { bitmap -> frame.value = bitmap }
                 session.onCursorUpdate = { bmp, hx, hy ->
@@ -2465,6 +2472,7 @@ class DesktopViewModel @Inject constructor(
                     _pointerPos = pointerPos,
                     tunnelLease = tunnelLease,
                     profileId = profileId,
+                    keyboardLayoutKlid = layoutKlid,
                 )
 
                 val tabs = _tabs.value.toMutableList()
@@ -2505,6 +2513,7 @@ class DesktopViewModel @Inject constructor(
                                         session.sendUnicodeKey(codepoint, true)
                                         session.sendUnicodeKey(codepoint, false)
                                     },
+                                    layoutKlid = layoutKlid,
                                 )
                             }
                         },
@@ -2552,6 +2561,7 @@ class DesktopViewModel @Inject constructor(
         sshForward: Boolean = false,
         sshSessionId: String? = null,
         profileId: String? = null,
+        keyboardLayout: String? = null,
     ) {
         viewModelScope.launch(Dispatchers.IO) {
             val existingIdx = findExistingTab(profileId, host, port, "SPICE")
@@ -2616,6 +2626,9 @@ class DesktopViewModel @Inject constructor(
 
                 val verboseEnabled = preferencesRepository.verboseLoggingEnabled.first()
                 val verboseBuffer = if (verboseEnabled) ConcurrentLinkedQueue<String>() else null
+                val effectiveLayout = keyboardLayout
+                    ?: profileId?.let { connectionRepository.getById(it)?.keyboardLayout }
+                val layoutKlid = sh.haven.core.rdp.keyboardLayoutKlidForTag(effectiveLayout)
 
                 val session = SpiceSession(
                     sessionId = "spice-$tabId",
@@ -2690,6 +2703,7 @@ class DesktopViewModel @Inject constructor(
                     tunnelLease = tunnelLease,
                     tunnelRelay = tunnelRelay,
                     profileId = profileId,
+                    keyboardLayoutKlid = layoutKlid,
                 )
                 val tabs = _tabs.value.toMutableList()
                 tabs.add(tab)
@@ -2724,6 +2738,7 @@ class DesktopViewModel @Inject constructor(
                                     ch = ch,
                                     sendKey = { sc, pressed -> session.sendKey(sc, pressed) },
                                     sendUnicode = { /* SPICE has no unicode-key verb */ },
+                                    layoutKlid = layoutKlid,
                                 )
                             }
                         },
@@ -3314,7 +3329,9 @@ class DesktopViewModel @Inject constructor(
     }
 
     fun typeRdpText(text: String) {
-        val session = (activeTab.value as? DesktopTab.Rdp)?.session ?: return
+        val tab = activeTab.value as? DesktopTab.Rdp ?: return
+        val session = tab.session
+        val layoutKlid = tab.keyboardLayoutKlid
         inputLane.submit {
             for (ch in text) {
                 sh.haven.feature.rdp.typeRdpChar(
@@ -3324,6 +3341,7 @@ class DesktopViewModel @Inject constructor(
                         session.sendUnicodeKey(codepoint, true)
                         session.sendUnicodeKey(codepoint, false)
                     },
+                    layoutKlid = layoutKlid,
                 )
             }
         }
@@ -3350,13 +3368,16 @@ class DesktopViewModel @Inject constructor(
     }
 
     fun typeSpiceText(text: String) {
-        val session = (activeTab.value as? DesktopTab.Spice)?.session ?: return
+        val tab = activeTab.value as? DesktopTab.Spice ?: return
+        val session = tab.session
+        val layoutKlid = tab.keyboardLayoutKlid
         inputLane.submit {
             for (ch in text) {
                 sh.haven.feature.rdp.typeRdpChar(
                     ch = ch,
                     sendKey = { sc, pressed -> session.sendKey(sc, pressed) },
                     sendUnicode = { /* SPICE has no unicode-key verb */ },
+                    layoutKlid = layoutKlid,
                 )
             }
         }

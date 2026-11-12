@@ -608,4 +608,8 @@
     <string name="connections_helper_saved_password">任意。Android Keystore で暗号化され、SSH パスワードログインおよびターミナルでの生体認証付き sudo 自動入力に使用されます。</string>
     <string name="connections_auth_banner_title">SSH 認証</string>
     <string name="connections_auth_banner_open_link">リンクを開く</string>
+    <string name="connections_field_keyboard_layout">キーボード配列</string>
+    <string name="connections_keyboard_layout_auto">自動（端末のロケール）</string>
+    <string name="connections_helper_keyboard_layout_rdp">この配列を RDP サーバーへ通知し、入力文字を対応するスキャンコードへ変換します。</string>
+    <string name="connections_helper_keyboard_layout_spice">SPICE は生のスキャンコードを送信するため、ゲスト VM 側で設定されているキーボード配列を選択してください。</string>
 </resources>

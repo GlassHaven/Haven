@@ -1209,7 +1209,7 @@ class ConnectionsViewModel @Inject constructor(
     val navigateToWayland: StateFlow<Boolean> = _navigateToWayland.asStateFlow()
 
     /** Emitted to navigate to RDP screen with connection params. */
-    data class RdpNavigation(val host: String, val port: Int, val username: String, val password: String, val domain: String, val sshForward: Boolean = false, val sshSessionId: String? = null, val profileId: String? = null, val useNla: Boolean = true, val colorDepth: Int = 32, val portKnockSequence: String? = null, val portKnockDelayMs: Int = 100)
+    data class RdpNavigation(val host: String, val port: Int, val username: String, val password: String, val domain: String, val sshForward: Boolean = false, val sshSessionId: String? = null, val profileId: String? = null, val useNla: Boolean = true, val colorDepth: Int = 32, val portKnockSequence: String? = null, val portKnockDelayMs: Int = 100, val keyboardLayout: String? = null)
     private val _navigateToRdp = MutableStateFlow<RdpNavigation?>(null)
     val navigateToRdp: StateFlow<RdpNavigation?> = _navigateToRdp.asStateFlow()
 
@@ -1221,6 +1221,7 @@ class ConnectionsViewModel @Inject constructor(
         val sshForward: Boolean = false,
         val sshSessionId: String? = null,
         val profileId: String? = null,
+        val keyboardLayout: String? = null,
     )
     private val _navigateToSpice = MutableStateFlow<SpiceNavigation?>(null)
     val navigateToSpice: StateFlow<SpiceNavigation?> = _navigateToSpice.asStateFlow()
@@ -2835,6 +2836,7 @@ class ConnectionsViewModel @Inject constructor(
                         colorDepth = profile.rdpColorDepth,
                         portKnockSequence = profile.portKnockSequence,
                         portKnockDelayMs = profile.portKnockDelayMs,
+                        keyboardLayout = profile.keyboardLayout,
                     )
                 } catch (e: Exception) {
                     Log.e(TAG, "Failed to connect SSH tunnel host for RDP", e)
@@ -2849,7 +2851,7 @@ class ConnectionsViewModel @Inject constructor(
                     _connectingProfileId.value = null
                 }
             } else {
-                _navigateToRdp.value = RdpNavigation(host, port, username, rdpPassword, domain, profile.rdpSshForward, profileId = profile.id, useNla = profile.rdpUseNla, colorDepth = profile.rdpColorDepth, portKnockSequence = profile.portKnockSequence, portKnockDelayMs = profile.portKnockDelayMs)
+                _navigateToRdp.value = RdpNavigation(host, port, username, rdpPassword, domain, profile.rdpSshForward, profileId = profile.id, useNla = profile.rdpUseNla, colorDepth = profile.rdpColorDepth, portKnockSequence = profile.portKnockSequence, portKnockDelayMs = profile.portKnockDelayMs, keyboardLayout = profile.keyboardLayout)
             }
         }
     }
@@ -2878,6 +2880,7 @@ class ConnectionsViewModel @Inject constructor(
                         sshForward = true,
                         sshSessionId = sshSessionId,
                         profileId = profile.id,
+                        keyboardLayout = profile.keyboardLayout,
                     )
                 } catch (e: Exception) {
                     Log.e(TAG, "Failed to connect SSH tunnel host for SPICE", e)
@@ -2890,6 +2893,7 @@ class ConnectionsViewModel @Inject constructor(
                     host, port, password,
                     sshForward = profile.spiceSshForward,
                     profileId = profile.id,
+                    keyboardLayout = profile.keyboardLayout,
                 )
             }
         }

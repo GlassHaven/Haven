@@ -184,6 +184,7 @@ class BackupService @Inject constructor(
                 put("spicePassword", p.spicePassword ?: JSONObject.NULL)
                 put("spiceSshForward", p.spiceSshForward)
                 put("spiceSshProfileId", p.spiceSshProfileId ?: JSONObject.NULL)
+                put("keyboardLayout", p.keyboardLayout ?: JSONObject.NULL)
                 put("glkvmPort", p.glkvmPort ?: JSONObject.NULL)
                 put("glkvmPassword", p.glkvmPassword ?: JSONObject.NULL)
                 put("glkvmTargetLayout", p.glkvmTargetLayout ?: JSONObject.NULL)
@@ -817,6 +818,7 @@ class BackupService @Inject constructor(
                             spicePassword = c.optStringOrNull("spicePassword"),
                             spiceSshForward = c.optBoolean("spiceSshForward", false),
                             spiceSshProfileId = c.optStringOrNull("spiceSshProfileId"),
+                            keyboardLayout = c.optStringOrNull("keyboardLayout"),
                             glkvmPort = c.optIntOrNull("glkvmPort"),
                             glkvmPassword = c.optStringOrNull("glkvmPassword"),
                             glkvmTargetLayout = c.optStringOrNull("glkvmTargetLayout"),

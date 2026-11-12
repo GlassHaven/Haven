@@ -326,6 +326,7 @@ fun HavenNavHost(
                 nav.sshForward, nav.sshSessionId, nav.profileId,
                 useNla = nav.useNla,
                 colorDepth = nav.colorDepth,
+                keyboardLayout = nav.keyboardLayout,
             )
             connectionsViewModel.onDesktopNavigated()
             requestScreen(Screen.Desktop)
@@ -338,6 +339,7 @@ fun HavenNavHost(
                 sshForward = nav.sshForward,
                 sshSessionId = nav.sshSessionId,
                 profileId = nav.profileId,
+                keyboardLayout = nav.keyboardLayout,
             )
             connectionsViewModel.onDesktopNavigated()
             requestScreen(Screen.Desktop)

@@ -5,6 +5,11 @@ the corresponding GitHub Release; a release can't ship without its section
 (enforced by `scripts/check-changelog.sh` in CI). The GitHub "Full Changelog"
 compare link is appended automatically — don't add it here.
 
+## v5.94.39
+
+- Migrate `archlinux-x86_64` PRoot guests off the broken `mirror.rackspace.com` default (`HTTP 403`) onto `geo.mirror.pkgbuild.com` with `fastly.mirror.pkgbuild.com` fallback, apply mirror configuration across foreign-arch distros and interactive/non-interactive PRoot sessions, and fail fast if keyring sync fails before system upgrades (#840, thanks @NAZY-OS).
+- Bump `tailscale.com` to `v1.104.7` and `golang.org/x/crypto` to `v0.59.0` in the embedded Go bridge.
+
 ## v5.94.38
 
 - Map PC Set-1 extended scancodes `0xE05B`..`0xE05D` (`MetaLeft`, `MetaRight`, `ContextMenu`) and lock scancodes `0x45`..`0x46` (`NumLock`, `ScrollLock`) in GLKVM sessions so the toolbar `Win` toggle and hardware Super/Windows keys forward chords such as `Win+L` to `kvmd`.

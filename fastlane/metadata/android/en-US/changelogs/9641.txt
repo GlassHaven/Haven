@@ -1,0 +1,2 @@
+- Migrate `archlinux-x86_64` PRoot guests off the broken `mirror.rackspace.com` default (`HTTP 403`) onto `geo.mirror.pkgbuild.com` with `fastly.mirror.pkgbuild.com` fallback, apply mirror configuration across foreign-arch distros and interactive/non-interactive PRoot sessions, and fail fast if keyring sync fails before system upgrades (#840, thanks @NAZY-OS).
+- Bump `tailscale.com` to `v1.104.7` and `golang.org/x/crypto` to `v0.59.0` in the embedded Go bridge.

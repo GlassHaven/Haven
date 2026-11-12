@@ -1,0 +1,2 @@
+- Fix SPICE key-up scancodes and 0xE0 extended keys, add per-profile Keyboard layout selection for RDP/SPICE, and add Spanish, Italian, Swiss, Belgian, Portuguese, and Swedish/Finnish layouts (#606, thanks @empanadablues).
+- Add configurable desktop touch click bindings (long-press, two-finger tap, and three-finger tap -> Right-click, Middle-click, Left-click, or Off) across VNC, RDP, SPICE, GLKVM, and app windows (#836, thanks @thegoodpackage).

@@ -5,6 +5,11 @@ the corresponding GitHub Release; a release can't ship without its section
 (enforced by `scripts/check-changelog.sh` in CI). The GitHub "Full Changelog"
 compare link is appended automatically — don't add it here.
 
+## v5.94.31
+
+- Fix SPICE key-release scancodes (PS/2 Set-1 `0x80` break bit) and `0xE0` extended-key byte order, add a per-profile **Keyboard layout** picker on RDP and SPICE profiles, and add XKB-verified base scancode remap tables for Spanish (Spain and Latin America), Italian, Swiss German/French, Belgian French, Portuguese (Portugal and Brazil), and Swedish/Finnish (#606, thanks @empanadablues).
+- Add configurable desktop touch click bindings under `Settings -> Terminal -> Gestures` (**Desktop long-press gesture**, **Desktop two-finger tap**, and **Desktop three-finger tap**, each selectable between `Right-click`, `Middle-click`, `Left-click`, and `Off`) across VNC, RDP, SPICE, GLKVM, and local app windows (#836, thanks @thegoodpackage).
+
 ## v5.94.30
 
 - Show live download, archive extraction, and rootfs configuration progress during PRoot Linux setup and keep `SessionService` running in the foreground while PRoot setup, local desktops, and System VMs are active in the background (#831, #832, thanks @NAZY-OS).

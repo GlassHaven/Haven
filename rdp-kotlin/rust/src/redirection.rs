@@ -88,6 +88,22 @@ pub struct RedirectionInfo {
     pub no_redirect: bool,
 }
 
+impl From<&ironrdp_pdu::rdp::server_redirection::ServerRedirectionPdu> for RedirectionInfo {
+    fn from(pdu: &ironrdp_pdu::rdp::server_redirection::ServerRedirectionPdu) -> Self {
+        Self {
+            session_id: pdu.session_id,
+            redir_flags: pdu.flags.bits(),
+            target_net_address: pdu.target_net_address.clone(),
+            target_fqdn: pdu.target_fqdn.clone(),
+            load_balance_info: pdu.load_balance_info.clone(),
+            username: pdu.username.clone(),
+            domain: pdu.domain.clone(),
+            password: pdu.password.clone(),
+            no_redirect: pdu.is_informational(),
+        }
+    }
+}
+
 impl RedirectionInfo {
     /// The host to reconnect to: the explicit target net address, else the
     /// target FQDN, else `None` meaning "reconnect to the same endpoint"
@@ -622,5 +638,29 @@ mod tests {
         assert!(decode_utf16le_password(&[b'a', 0, b'b']).is_none());
         // Unpaired surrogate: invalid UTF-16, refuse.
         assert!(decode_utf16le_password(&[0x00, 0xD8]).is_none());
+    }
+
+    #[test]
+    fn from_ironrdp_server_redirection_pdu_preserves_follow_plan() {
+        use ironrdp_pdu::rdp::server_redirection::{ServerRedirectionFlags, ServerRedirectionPdu};
+
+        let pdu = ServerRedirectionPdu {
+            session_id: 42,
+            flags: ServerRedirectionFlags::LOAD_BALANCE_INFO
+                | ServerRedirectionFlags::USERNAME
+                | ServerRedirectionFlags::PASSWORD,
+            load_balance_info: Some(b"Cookie: msts=987654\r\n".to_vec()),
+            username: Some("grd-user".to_owned()),
+            password: Some(vec![b's', 0, b'3', 0, b'c', 0, 0, 0]),
+            ..Default::default()
+        };
+
+        let info = RedirectionInfo::from(&pdu);
+        assert_eq!(info.session_id, 42);
+        assert!(!info.no_redirect);
+        let plan = info.follow_plan().expect("follow plan extracted");
+        assert_eq!(plan.routing_token, "987654");
+        assert_eq!(plan.username.as_deref(), Some("grd-user"));
+        assert_eq!(plan.password.as_deref(), Some("s3c"));
     }
 }

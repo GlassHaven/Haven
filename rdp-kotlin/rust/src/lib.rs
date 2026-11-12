@@ -1042,6 +1042,84 @@ fn redial(host: &str, port: u16, socks: Option<&SocksProxyConfig>) -> Result<Tcp
     Ok(stream)
 }
 
+fn repair_underdeclared_share_control_frame(frame: &[u8]) -> Option<Vec<u8>> {
+    use ironrdp_core::encode_vec;
+    use ironrdp_pdu::mcs::{decode_send_data_indication, SendDataIndication};
+    use ironrdp_pdu::x224::X224;
+    use std::borrow::Cow;
+
+    const MIN_DATA_PDU_LEN: usize = 18; // ShareControlHeader(10) + ShareDataHeader(8)
+    const SHARE_CONTROL_TYPE_MASK: u16 = 0xf;
+    const DATA_PDU_TYPE: u16 = 0x7;
+
+    let sdi = decode_send_data_indication(frame).ok()?;
+    let ud = sdi.user_data;
+    if ud.len() < MIN_DATA_PDU_LEN || ud.len() > usize::from(u16::MAX) {
+        return None;
+    }
+    let declared_len = usize::from(u16::from_le_bytes([ud[0], ud[1]]));
+    let pdu_type = u16::from_le_bytes([ud[2], ud[3]]) & SHARE_CONTROL_TYPE_MASK;
+    if pdu_type != DATA_PDU_TYPE || declared_len == 0 || declared_len >= ud.len() {
+        return None;
+    }
+    let mut patched_ud = ud.to_vec();
+    let actual_len = patched_ud.len() as u16;
+    patched_ud[0..2].copy_from_slice(&actual_len.to_le_bytes());
+    encode_vec(&X224(SendDataIndication {
+        initiator_id: sdi.initiator_id,
+        channel_id: sdi.channel_id,
+        user_data: Cow::Borrowed(&patched_ud),
+    }))
+    .ok()
+}
+
+fn handle_server_redirect(
+    info: &redirection::RedirectionInfo,
+    redirect_hops: u8,
+) -> Result<redirection::RedirectFollow, String> {
+    if redirect_hops < MAX_REDIRECT_HOPS {
+        if let Some(plan) = info.follow_plan() {
+            info!(
+                "#117: server redirection received (flags={:#010x}) — reconnecting to follow the handover",
+                info.redir_flags,
+            );
+            return Ok(plan);
+        }
+    }
+    let target = info
+        .target_host()
+        .unwrap_or_else(|| "another session on the same host".to_string());
+    // Reaching here means the redirect was declined: past MAX_REDIRECT_HOPS,
+    // LB_NOREDIRECT, or a token Haven can't replay. The dump below says which.
+    let reason = format!(
+        "Server requested a session redirection to {target} that Haven \
+         could not follow (see #117), so the session cannot continue."
+    );
+    warn!("{reason} (redir_flags={:#06x})", info.redir_flags);
+    // #117: one structured dump per redirect so a reporter's logcat pins down
+    // what the server sent. The password is a one-time session credential — log
+    // its length only, never the bytes.
+    warn!(
+        "#117 redirect dump: session_id={:#010x} flags={:#010x} no_redirect={} \
+         target_net={:?} target_fqdn={:?} username={:?} domain={:?} \
+         password_len={:?} lb_info_len={:?} lb_info_hex={}",
+        info.session_id,
+        info.redir_flags,
+        info.no_redirect,
+        info.target_net_address,
+        info.target_fqdn,
+        info.username,
+        info.domain,
+        info.password.as_ref().map(|p| p.len()),
+        info.load_balance_info.as_ref().map(|l| l.len()),
+        info.load_balance_info
+            .as_ref()
+            .map(|l| l.iter().map(|b| format!("{b:02x}")).collect::<String>())
+            .unwrap_or_default(),
+    );
+    Err(reason)
+}
+
 fn build_config(config: &RdpConfig) -> ironrdp_connector::Config {
     use ironrdp_connector::*;
     use ironrdp_pdu::gcc;
@@ -1054,6 +1132,8 @@ fn build_config(config: &RdpConfig) -> ironrdp_connector::Config {
         // New in connector 0.9; keep prior behaviour (none requested).
         alternate_shell: String::new(),
         work_dir: String::new(),
+        remote_application_mode: false,
+        rail_support_level: ironrdp_pdu::rdp::capability_sets::RailSupportLevel::empty(),
         compression_type: None,
         multitransport_flags: None,
         domain: if config.domain.is_empty() {
@@ -1063,14 +1143,21 @@ fn build_config(config: &RdpConfig) -> ironrdp_connector::Config {
         },
         enable_tls: true,
         enable_credssp: config.enable_credssp,
+        enable_standard_rdp_security: false,
         desktop_size: DesktopSize {
             width: config.width,
             height: config.height,
         },
+        monitor_layout: None,
         desktop_scale_factor: 0,
+        desktop_physical_size: None,
+        desktop_orientation: None,
+        device_scale_factor: None,
+        monitor_extended_layout: None,
+        relative_mouse_input: false,
         client_build: 0,
         client_name: "Haven".to_string(),
-        keyboard_type: gcc::KeyboardType::IbmEnhanced,
+        keyboard_type: gcc::KeyboardType::IBM_ENHANCED,
         keyboard_subtype: 0,
         keyboard_functional_keys_count: 12,
         keyboard_layout: if config.keyboard_layout == 0 {
@@ -1155,6 +1242,7 @@ fn build_config(config: &RdpConfig) -> ironrdp_connector::Config {
         request_data: None,
         autologon: true,
         enable_audio_playback: false,
+        enable_audio_capture: false,
         performance_flags: ironrdp_pdu::rdp::client_info::PerformanceFlags::default(),
         license_cache: None,
         timezone_info: Default::default(),
@@ -1912,7 +2000,7 @@ fn run_rdp_session(
     }
     let mut network_client = NoopNetworkClient;
 
-    let connection_result = connect_finalize(
+    let outcome = connect_finalize(
         upgraded,
         connector,
         &mut tls_framed,
@@ -1920,7 +2008,16 @@ fn run_rdp_session(
         sname,
         server_public_key,
         None, // no Kerberos config
-    ).map_err(|e| diagnose_finalize_error(&e))?;
+    )
+    .map_err(|e| diagnose_finalize_error(&e))?;
+
+    let connection_result = match outcome {
+        ironrdp_connector::ConnectionOutcome::Connected(res) => res,
+        ironrdp_connector::ConnectionOutcome::Redirected(pdu) => {
+            let info = redirection::RedirectionInfo::from(pdu.as_ref());
+            return handle_server_redirect(&info, redirect_hops).map(Some);
+        }
+    };
 
     // Session is connected
     let fb_width = connection_result.desktop_size.width;
@@ -2245,11 +2342,7 @@ fn run_rdp_session(
         if let Some(touch_pdu) = pending_touch_pdu {
             let encoded = active_stage
                 .get_dvc::<crate::rdpei::RdpeiClient>()
-                .and_then(|dvc| {
-                    let channel_id = dvc.channel_id()?;
-                    let rdpei = dvc.channel_processor_downcast_ref::<crate::rdpei::RdpeiClient>()?;
-                    Some(rdpei.encode_touch_event(channel_id, touch_pdu))
-                })
+                .map(|dvc| dvc.processor().encode_touch_event(dvc.channel_id(), touch_pdu))
                 .transpose()
                 .map_err(|e| format!("RDPEI encode error: {e}"))
                 .and_then(|opt| {
@@ -2328,9 +2421,34 @@ fn run_rdp_session(
                     debug!("FRAMEDIAG action={:?} len={} bytes={:02x?}", action, frame.len(), &frame[..n]);
                 }
                 let frame_to_process: &[u8] = &frame;
+                let received_at = tls_framed.last_read_at();
 
                 let t_process = std::time::Instant::now();
-                match active_stage.process(&mut image, action, frame_to_process) {
+                let mut process_res =
+                    active_stage.process(&mut image, action, frame_to_process, received_at);
+                // #422: upstream IronRDP#1541 accepts VirtualBox VRDP's handshake
+                // Server Font Map (totalLength=18 on 26 bytes), while keeping the
+                // totalLength cross-check on other Share Data PDUs. VRDP also
+                // under-declares mid-session Pointer updates (e.g. totalLength=24
+                // on an 8565-byte MCS frame); patch totalLength to the actual MCS
+                // user_data length and retry so the cursor update decodes cleanly.
+                if let Err(ref e) = process_res {
+                    if matches!(action, ironrdp_pdu::Action::X224) {
+                        let emsg = format!("{e:?}");
+                        if emsg.contains("NotEnoughBytes") && emsg.contains("ShareControlHeader") {
+                            if let Some(repaired) =
+                                repair_underdeclared_share_control_frame(frame_to_process)
+                            {
+                                debug!(
+                                    "Retrying VRDP Share Data PDU after repairing under-declared totalLength"
+                                );
+                                process_res =
+                                    active_stage.process(&mut image, action, &repaired, received_at);
+                            }
+                        }
+                    }
+                }
+                match process_res {
                     Ok(outputs) => {
                         // Time inside process(): protocol decode, and for AVC
                         // tiles the MediaCodec round-trip plus YUV->RGB, since
@@ -2445,68 +2563,42 @@ fn run_rdp_session(
                                 ActiveStageOutput::AutoDetect(_) => {
                                     debug!("Ignoring autodetect request");
                                 }
+                                ActiveStageOutput::MonitorLayout(monitors) => {
+                                    debug!("Server reported monitor layout ({} monitors)", monitors.len());
+                                }
+                                ActiveStageOutput::WindowingOrders(_)
+                                | ActiveStageOutput::WindowSurfaceUpdates(_) => {
+                                    debug!("Ignoring RemoteApp window update (RAIL disabled)");
+                                }
+                                ActiveStageOutput::SessionId(session_id) => {
+                                    debug!("Server session ID: {session_id:#010x}");
+                                }
+                                ActiveStageOutput::LogonErrors(err) => {
+                                    warn!("Server logon notification: {err:?}");
+                                }
+                                ActiveStageOutput::AutoReconnectFailed => {
+                                    warn!("Server rejected auto-reconnect");
+                                }
+                                ActiveStageOutput::ServerRedirection(pdu) => {
+                                    let info = redirection::RedirectionInfo::from(pdu.as_ref());
+                                    if info.no_redirect {
+                                        debug!(
+                                            "Informational server redirection (LB_NOREDIRECT): session_id={:#010x}",
+                                            info.session_id
+                                        );
+                                    } else {
+                                        return handle_server_redirect(&info, redirect_hops).map(Some);
+                                    }
+                                }
                             }
                         }
                     }
                     Err(e) => {
                         let msg = format!("{:?}", e);
-                        // A server-redirection PDU (GNOME Remote Desktop, Windows
-                        // RDS load-balancers) reaches us as an "unexpected share
-                        // control PDU type" because IronRDP can't decode it.
-                        // Recognise it from the raw frame and follow it (#117):
-                        // hand the replay plan to the caller, which reconnects
-                        // with the routing token + one-time credentials. A short
-                        // chain is allowed — GNOME Remote Desktop's remote login
-                        // redirects again once the password is accepted — and
-                        // anything past MAX_REDIRECT_HOPS is treated as a loop.
+                        // Fallback for non-standard server-redirection frames that fail
+                        // ActiveStage decoding (#117).
                         if let Some(info) = redirection::detect_server_redirect(frame_to_process) {
-                            if redirect_hops < MAX_REDIRECT_HOPS {
-                                if let Some(plan) = info.follow_plan() {
-                                    info!(
-                                        "#117: server redirection received (flags={:#010x}) — reconnecting to follow the handover",
-                                        info.redir_flags,
-                                    );
-                                    return Ok(Some(plan));
-                                }
-                            }
-                            let target = info
-                                .target_host()
-                                .unwrap_or_else(|| "another session on the same host".to_string());
-                            // Reaching here means the redirect was declined: a
-                            // second hop, LB_NOREDIRECT, or a token Haven can't
-                            // replay. The dump below says which.
-                            let reason = format!(
-                                "Server requested a session redirection to {target} that Haven \
-                                 could not follow (see #117), so the session cannot continue."
-                            );
-                            warn!("{reason} (redir_flags={:#06x})", info.redir_flags);
-                            // #117: one structured dump per redirect so a
-                            // reporter's logcat pins down exactly what GRD
-                            // sends and the follow step can replay it. The
-                            // password is a one-time session credential — log
-                            // its length only, never the bytes. The
-                            // LoadBalanceInfo routing token is session-scoped
-                            // and is the piece whose framing the reconnect
-                            // needs verbatim.
-                            warn!(
-                                "#117 redirect dump: session_id={:#010x} flags={:#010x} no_redirect={} \
-                                 target_net={:?} target_fqdn={:?} username={:?} domain={:?} \
-                                 password_len={:?} lb_info_len={:?} lb_info_hex={}",
-                                info.session_id,
-                                info.redir_flags,
-                                info.no_redirect,
-                                info.target_net_address,
-                                info.target_fqdn,
-                                info.username,
-                                info.domain,
-                                info.password.as_ref().map(|p| p.len()),
-                                info.load_balance_info.as_ref().map(|l| l.len()),
-                                info.load_balance_info
-                                    .as_ref()
-                                    .map(|l| l.iter().map(|b| format!("{b:02x}")).collect::<String>())
-                                    .unwrap_or_default(),
-                            );
-                            return Err(reason);
+                            return handle_server_redirect(&info, redirect_hops).map(Some);
                         }
                         if msg.contains("unexpected channel received") {
                             // #425: KRDP (FreeRDP server) addresses the IO channel
@@ -3140,7 +3232,7 @@ fn perform_reactivation<S: std::io::Read + std::io::Write>(
      -> Result<(), String> {
         buf.clear();
         let written = cas
-            .step(input, buf)
+            .step(input, framed.last_read_at(), buf)
             .map_err(|e| format!("reactivation step: {}", error_chain(&e)))?;
         if let Some(n) = written.size() {
             framed
@@ -3734,27 +3826,57 @@ mod tests {
         assert_eq!(0, dropped.load(Ordering::Relaxed));
     }
 
-    /// #422: pins that an under-declared totalLength decodes, because the error
-    /// it used to raise says the opposite and we shipped two fixes built on the
-    /// wrong reading before settling what it meant.
-    ///
-    /// `ShareControlHeader::decode` used to finish with a cross-check that the
-    /// PDU it decoded is the size the header declared, and report a mismatch as
-    /// `not_enough_bytes_err!(total_length, header_length)` — so `received` was
-    /// the server's *declared* totalLength and `expected` the size IronRDP
-    /// decoded, neither of them a count of bytes off the wire. Nothing was ever
-    /// missing, so our fork dropped the check (`haven-pin-20260804`) and the
-    /// frame is now simply accepted.
-    ///
-    /// Build the reporter's exact frame — 8565 bytes on the wire, so 8550 of
-    /// MCS user_data after TPKT(4) + X224(3) + MCS SDI(8) — with a greedily
-    /// decoded Pointer payload and totalLength under-declared as 24, and assert
-    /// the whole payload survives. This is the gate on the pin: revert to a
-    /// stock IronRDP and it fails with the reporter's error verbatim.
+    /// #422: upstream IronRDP#1541 accepts VirtualBox VRDP's handshake Server
+    /// Font Map PDU when totalLength declares only the two headers (18 bytes)
+    /// while all 26 bytes are present on the wire.
     #[test]
-    fn under_declared_share_control_length_is_not_a_truncated_pdu() {
+    fn vrdp_under_declared_font_map_decodes_on_handshake() {
         use ironrdp_core::decode;
         use ironrdp_pdu::rdp::headers::{ShareControlHeader, ShareControlPdu, ShareDataPdu};
+
+        const PROTOCOL_VERSION: u16 = 0x10;
+        const DATA_PDU: u16 = 0x7;
+        const PDU_TYPE_FONT_MAP: u8 = 0x28;
+
+        let mut b = Vec::with_capacity(26);
+        b.extend_from_slice(&18u16.to_le_bytes()); // VRDP declares headers only (10 + 8)
+        b.extend_from_slice(&(PROTOCOL_VERSION | DATA_PDU).to_le_bytes());
+        b.extend_from_slice(&1002u16.to_le_bytes()); // pduSource
+        b.extend_from_slice(&0x0001_0000u32.to_le_bytes()); // shareId
+        b.push(0); // padding
+        b.push(1); // streamPriority = Low
+        b.extend_from_slice(&0u16.to_le_bytes()); // uncompressedLength
+        b.push(PDU_TYPE_FONT_MAP); // pduType2 = FontMap
+        b.push(0); // compressionFlags | compressionType
+        b.extend_from_slice(&0u16.to_le_bytes()); // compressedLength
+        b.extend_from_slice(&0u16.to_le_bytes()); // numberEntries
+        b.extend_from_slice(&0u16.to_le_bytes()); // totalNumEntries
+        b.extend_from_slice(&0x0003u16.to_le_bytes()); // mapFlags (FONTMAP_FIRST | FONTMAP_LAST)
+        b.extend_from_slice(&4u16.to_le_bytes()); // entrySize
+        assert_eq!(b.len(), 26);
+
+        let hdr = decode::<ShareControlHeader>(&b)
+            .expect("VRDP 18-declared 26-byte Server Font Map must decode via IronRDP#1541");
+        assert!(matches!(
+            hdr.share_control_pdu,
+            ShareControlPdu::Data(ref d) if matches!(d.share_data_pdu, ShareDataPdu::FontMap(_))
+        ));
+    }
+
+    /// #422: mid-session VirtualBox VRDP also under-declares Pointer updates
+    /// (totalLength=24 on an 8565-byte wire frame = 8550 bytes of MCS user_data).
+    /// Upstream IronRDP#1541 scoped its ShareControlHeader exception to FontMap(18),
+    /// so `repair_underdeclared_share_control_frame` rewrites totalLength on the
+    /// MCS SendDataIndication and retries ActiveStage::process without dropping
+    /// the cursor bitmap.
+    #[test]
+    fn under_declared_share_control_length_is_not_a_truncated_pdu() {
+        use super::repair_underdeclared_share_control_frame;
+        use ironrdp_core::{decode, encode_vec};
+        use ironrdp_pdu::mcs::{decode_send_data_indication, SendDataIndication};
+        use ironrdp_pdu::rdp::headers::{ShareControlHeader, ShareControlPdu, ShareDataPdu};
+        use ironrdp_pdu::x224::X224;
+        use std::borrow::Cow;
 
         const SHARE_CONTROL_HEADER_SIZE: usize = 2 * 3 + 4;
         const SHARE_DATA_HEADER_SIZE: usize = 1 + 1 + 2 + 1 + 1 + 2;
@@ -3780,8 +3902,18 @@ mod tests {
         b.resize(user_data, 0);
         assert_eq!(b.len(), 8550);
 
-        let hdr = decode::<ShareControlHeader>(&b)
-            .expect("an under-declared totalLength is complete, not truncated");
+        let wire_frame = encode_vec(&X224(SendDataIndication {
+            initiator_id: 1002,
+            channel_id: 1003,
+            user_data: Cow::Borrowed(&b),
+        }))
+        .expect("encode MCS SendDataIndication");
+
+        let repaired = repair_underdeclared_share_control_frame(&wire_frame)
+            .expect("under-declared Share Data frame must be repaired");
+        let sdi = decode_send_data_indication(&repaired).expect("repaired MCS frame decodes");
+        let hdr = decode::<ShareControlHeader>(sdi.user_data)
+            .expect("repaired totalLength decodes cleanly");
 
         let ShareControlPdu::Data(data) = hdr.share_control_pdu else {
             panic!("expected a Share Data PDU");
@@ -3789,8 +3921,7 @@ mod tests {
         let ShareDataPdu::Pointer(payload) = data.share_data_pdu else {
             panic!("expected a Pointer PDU");
         };
-        // Every byte past the two headers, i.e. nothing was dropped as padding
-        // on the strength of the server's wrong number.
+        // Every byte past the two headers survives intact.
         assert_eq!(
             payload.len(),
             user_data - SHARE_CONTROL_HEADER_SIZE - SHARE_DATA_HEADER_SIZE
@@ -3926,7 +4057,7 @@ mod framebuffer_publish_tests {
         st
     }
 
-    fn image_filled(v: u8) -> DecodedImage {
+    fn image_filled(_v: u8) -> DecodedImage {
         let mut img = DecodedImage::new(PixelFormat::RgbA32, W, H);
         // DecodedImage exposes its buffer read-only; paint through a full-size
         // update so the test drives the same path the session does.

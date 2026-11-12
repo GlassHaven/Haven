@@ -23,10 +23,10 @@ use std::path::{Path, PathBuf};
 use std::process::ExitCode;
 
 use ironrdp_core::{Decode, ReadCursor};
-use ironrdp_pdu::bitmap::BitmapUpdateData;
-use ironrdp_pdu::rdp::vc::dvc::gfx::{
-    Codec1Type, Codec2Type, ServerPdu, WireToSurface1Pdu, WireToSurface2Pdu,
+use ironrdp_egfx::pdu::{
+    Codec1Type, Codec2Type, GfxPdu as ServerPdu, WireToSurface1Pdu, WireToSurface2Pdu,
 };
+use ironrdp_pdu::bitmap::BitmapUpdateData;
 
 #[derive(Copy, Clone, PartialEq, Eq)]
 enum Mode {
@@ -247,6 +247,12 @@ fn summarise_server_pdu(pdu: &ServerPdu) -> String {
             p.surface_id, p.codec_context_id
         ),
         ServerPdu::CacheImportReply(_) => "CacheImportReply".into(),
+        ServerPdu::MapSurfaceToWindow(_) => "MapSurfaceToWindow".into(),
+        ServerPdu::FrameAcknowledge(_) => "FrameAcknowledge".into(),
+        ServerPdu::CacheImportOffer(_) => "CacheImportOffer".into(),
+        ServerPdu::CapabilitiesAdvertise(_) => "CapabilitiesAdvertise".into(),
+        ServerPdu::QoeFrameAcknowledge(_) => "QoeFrameAcknowledge".into(),
+        other => format!("{other:?}"),
     }
 }
 

@@ -8,19 +8,19 @@ crate-type = ["cdylib", "rlib"]
 name = "rdp_transport"
 
 [dependencies]
-ironrdp-blocking = "0.10"
-ironrdp-connector = "0.10"
-ironrdp-session = "0.11"
-ironrdp-input = "0.7"
-ironrdp-cliprdr = "0.7"
-ironrdp-graphics = "0.9"
-ironrdp-tls = { version = "0.2", features = ["rustls"] }
-ironrdp-pdu = "0.9"
-ironrdp-dvc = "0.8"
-ironrdp-displaycontrol = "0.8"
-ironrdp-svc = "0.8"
-ironrdp-core = "0.2"
-ironrdp-egfx = "0.3"
+ironrdp-blocking = "0.12"
+ironrdp-connector = "0.12"
+ironrdp-session = "0.13"
+ironrdp-input = "0.9"
+ironrdp-cliprdr = "0.9"
+ironrdp-graphics = "0.11"
+ironrdp-tls = { version = "0.3", features = ["rustls"] }
+ironrdp-pdu = "0.11"
+ironrdp-dvc = "0.10"
+ironrdp-displaycontrol = "0.10"
+ironrdp-svc = "0.10"
+ironrdp-core = "0.3"
+ironrdp-egfx = "0.5"
 x509-cert = { version = "0.3", default-features = false }
 bitflags = "2"
 smallvec = "1"
@@ -76,54 +76,6 @@ optional = true
 
 [build-dependencies]
 uniffi = { version = "0.32", features = ["build"] }
-
-# IronRDP comes from git, not crates.io.
-#
-# Two of the three patches the vendored connector fork carried are now upstream
-# — the server Input capability flags (#1488) and the lenient Server Font Map
-# (#1506, which superseded our #1472 with a better-scoped fix) — so the fork is
-# down to one patch: the SUPPORT_DYN_VC_GFX_PROTOCOL early-capability flag,
-# still open as #1237. That one patch is what `GlassOnTin/IronRDP` adds on top
-# of upstream master.
-#
-# What the released crates cost us: ironrdp-session 0.11.0 panics out of bounds
-# on a bitmap taller than its own destination rectangle, which is the crash in
-# #422 that closes Haven outright. Upstream fixed it in #1521 (merged
-# 2026-08-02) and there is no release carrying it. Waiting for one means
-# shipping a known app-killing crash.
-#
-# Pinned to an immutable tag, not a branch: `haven-pin-20260805d` marks
-# 6261ef91 = upstream e9e0bb49 + the #1237 patch + tolerating the under-declared
-# Share Data totalLength that VirtualBox's VRDP sends (#422, upstream PR #1541)
-# + sspi 0.22 (upstream sspi-rs#719: accept '@' in down-level account names,
-# the #461 MSA+NLA fix; picky pin moved to =7.0.0-rc.26 with it).
-# The `b` revision narrows that relaxation: upstream review caught that the
-# first cut also accepted a *zero* totalLength on a non-output Data PDU, which
-# an existing regression test forbids. The tag exists precisely so
-# the object survives force-pushes of feat/egfx-early-cap-flag, which is an
-# open PR and gets rebased. A `rev` alone would eventually be unreachable.
-#
-# ALL ironrdp crates must come from the same source. Mixing git and crates.io
-# links two copies of ironrdp-pdu and the types stop matching.
-#
-# To move the pin: rebase the fork branch, re-tag, update the tag here, then
-# rebuild the 3-ABI .so — the bump is inert until they are rebuilt.
-# To drop it entirely: once #1237 merges and a connector release carries it,
-# delete this block and set support_dyn_vc_gfx_protocol on ConnectorConfig.
-[patch.crates-io]
-ironrdp-blocking = { git = "https://github.com/GlassOnTin/IronRDP", tag = "haven-pin-20260805d" }
-ironrdp-cliprdr = { git = "https://github.com/GlassOnTin/IronRDP", tag = "haven-pin-20260805d" }
-ironrdp-connector = { git = "https://github.com/GlassOnTin/IronRDP", tag = "haven-pin-20260805d" }
-ironrdp-core = { git = "https://github.com/GlassOnTin/IronRDP", tag = "haven-pin-20260805d" }
-ironrdp-displaycontrol = { git = "https://github.com/GlassOnTin/IronRDP", tag = "haven-pin-20260805d" }
-ironrdp-dvc = { git = "https://github.com/GlassOnTin/IronRDP", tag = "haven-pin-20260805d" }
-ironrdp-egfx = { git = "https://github.com/GlassOnTin/IronRDP", tag = "haven-pin-20260805d" }
-ironrdp-graphics = { git = "https://github.com/GlassOnTin/IronRDP", tag = "haven-pin-20260805d" }
-ironrdp-input = { git = "https://github.com/GlassOnTin/IronRDP", tag = "haven-pin-20260805d" }
-ironrdp-pdu = { git = "https://github.com/GlassOnTin/IronRDP", tag = "haven-pin-20260805d" }
-ironrdp-session = { git = "https://github.com/GlassOnTin/IronRDP", tag = "haven-pin-20260805d" }
-ironrdp-svc = { git = "https://github.com/GlassOnTin/IronRDP", tag = "haven-pin-20260805d" }
-ironrdp-tls = { git = "https://github.com/GlassOnTin/IronRDP", tag = "haven-pin-20260805d" }
 
 [profile.release]
 opt-level = "z"

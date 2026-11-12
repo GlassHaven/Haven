@@ -1435,8 +1435,9 @@ dependencies = [
 
 [[package]]
 name = "ironrdp-blocking"
-version = "0.10.0"
-source = "git+https://github.com/GlassOnTin/IronRDP?tag=haven-pin-20260805d#6261ef916940f77e9bad1d7ecd3815e06e8bb2a4"
+version = "0.12.0"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "921cf5c06b7fe8ca537f2d8cd09bfcbf354b88f19e2287ee54dea3c2b632ba4c"
 dependencies = [
  "bytes",
  "ironrdp-connector",
@@ -1447,13 +1448,15 @@ dependencies = [
 
 [[package]]
 name = "ironrdp-bulk"
-version = "0.1.1"
-source = "git+https://github.com/GlassOnTin/IronRDP?tag=haven-pin-20260805d#6261ef916940f77e9bad1d7ecd3815e06e8bb2a4"
+version = "0.2.0"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "f69800329d37810d4d9e493d254646fd8d5ce8e63435cdc7593dd994cde3fa01"
 
 [[package]]
 name = "ironrdp-cliprdr"
-version = "0.7.0"
-source = "git+https://github.com/GlassOnTin/IronRDP?tag=haven-pin-20260805d#6261ef916940f77e9bad1d7ecd3815e06e8bb2a4"
+version = "0.9.0"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "56772c18e4bceb03aa81157cd663080f5b88bc0983c8a4eae6a5784fbce33e85"
 dependencies = [
  "bitflags 2.13.2",
  "ironrdp-core",
@@ -1464,8 +1467,9 @@ dependencies = [
 
 [[package]]
 name = "ironrdp-connector"
-version = "0.10.0"
-source = "git+https://github.com/GlassOnTin/IronRDP?tag=haven-pin-20260805d#6261ef916940f77e9bad1d7ecd3815e06e8bb2a4"
+version = "0.12.0"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "0c7dc2114dd834136536b8381219fd192ceeda66039b9c7f391a468e3d046271"
 dependencies = [
  "ironrdp-core",
  "ironrdp-error",
@@ -1475,6 +1479,7 @@ dependencies = [
  "picky-asn1-der",
  "picky-asn1-x509",
  "rand 0.9.5",
+ "serde_json",
  "sspi",
  "tracing",
  "url",
@@ -1482,16 +1487,18 @@ dependencies = [
 
 [[package]]
 name = "ironrdp-core"
-version = "0.2.1"
-source = "git+https://github.com/GlassOnTin/IronRDP?tag=haven-pin-20260805d#6261ef916940f77e9bad1d7ecd3815e06e8bb2a4"
+version = "0.3.1"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "6b2b5b0378bdb42744fee09578015cfbf33a4cbf8d52910eeef0e3b77baa8889"
 dependencies = [
  "ironrdp-error",
 ]
 
 [[package]]
 name = "ironrdp-displaycontrol"
-version = "0.8.0"
-source = "git+https://github.com/GlassOnTin/IronRDP?tag=haven-pin-20260805d#6261ef916940f77e9bad1d7ecd3815e06e8bb2a4"
+version = "0.10.0"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "e2df22ebcea939c428e31f8e920cb7fe25d342fa63a445f64d185dedf0072d5a"
 dependencies = [
  "ironrdp-core",
  "ironrdp-dvc",
@@ -1502,9 +1509,11 @@ dependencies = [
 
 [[package]]
 name = "ironrdp-dvc"
-version = "0.8.0"
-source = "git+https://github.com/GlassOnTin/IronRDP?tag=haven-pin-20260805d#6261ef916940f77e9bad1d7ecd3815e06e8bb2a4"
+version = "0.10.0"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "47afd86754e12bebc45f32c9f62d8bb51df50b7bafea8cab7addbcf83c456338"
 dependencies = [
+ "ironrdp-bulk",
  "ironrdp-core",
  "ironrdp-pdu",
  "ironrdp-svc",
@@ -1513,8 +1522,9 @@ dependencies = [
 
 [[package]]
 name = "ironrdp-egfx"
-version = "0.3.0"
-source = "git+https://github.com/GlassOnTin/IronRDP?tag=haven-pin-20260805d#6261ef916940f77e9bad1d7ecd3815e06e8bb2a4"
+version = "0.5.0"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "dc4c4b1897e3008a2744fa5e780e939e7e8bd4c516b2a10b32d592ea41480df1"
 dependencies = [
  "bit_field",
  "bitflags 2.13.2",
@@ -1527,13 +1537,15 @@ dependencies = [
 
 [[package]]
 name = "ironrdp-error"
-version = "0.2.0"
-source = "git+https://github.com/GlassOnTin/IronRDP?tag=haven-pin-20260805d#6261ef916940f77e9bad1d7ecd3815e06e8bb2a4"
+version = "0.2.1"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "97c5b444931aeea5d2967c94d493bcc809de63b491ec96389e643c224ba60849"
 
 [[package]]
 name = "ironrdp-graphics"
-version = "0.9.0"
-source = "git+https://github.com/GlassOnTin/IronRDP?tag=haven-pin-20260805d#6261ef916940f77e9bad1d7ecd3815e06e8bb2a4"
+version = "0.11.0"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "09c38878a0a7ea52a64be174283e67c7e2a6655933437367cec38a5e23129cc6"
 dependencies = [
  "bit_field",
  "bitflags 2.13.2",
@@ -1541,7 +1553,7 @@ dependencies = [
  "byteorder",
  "ironrdp-core",
  "ironrdp-pdu",
- "num-derive 0.4.2",
+ "num-derive",
  "num-traits",
  "wide",
  "yuv",
@@ -1549,8 +1561,9 @@ dependencies = [
 
 [[package]]
 name = "ironrdp-input"
-version = "0.7.0"
-source = "git+https://github.com/GlassOnTin/IronRDP?tag=haven-pin-20260805d#6261ef916940f77e9bad1d7ecd3815e06e8bb2a4"
+version = "0.9.0"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "d4d1d7a821b8fac70d5fc6b60ec509fa59cca9110fbdf22e4804ccf968441c4d"
 dependencies = [
  "bitvec",
  "ironrdp-pdu",
@@ -1559,8 +1572,9 @@ dependencies = [
 
 [[package]]
 name = "ironrdp-pdu"
-version = "0.9.0"
-source = "git+https://github.com/GlassOnTin/IronRDP?tag=haven-pin-20260805d#6261ef916940f77e9bad1d7ecd3815e06e8bb2a4"
+version = "0.11.0"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "52d2251374ed85a74ece0cbf582db91257d7b078aa377dd89feac649fb61769f"
 dependencies = [
  "bit_field",
  "bitflags 2.13.2",
@@ -1571,7 +1585,7 @@ dependencies = [
  "ironrdp-error",
  "md-5 0.10.6",
  "num-bigint",
- "num-derive 0.4.2",
+ "num-derive",
  "num-integer",
  "num-traits",
  "pkcs1 0.7.5",
@@ -1581,25 +1595,43 @@ dependencies = [
 ]
 
 [[package]]
-name = "ironrdp-session"
-version = "0.11.0"
-source = "git+https://github.com/GlassOnTin/IronRDP?tag=haven-pin-20260805d#6261ef916940f77e9bad1d7ecd3815e06e8bb2a4"
+name = "ironrdp-rdpei"
+version = "0.3.0"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "09efc2b197da253f420c5b4cff77f828e6c6773261503b36c137b6fff63b50b0"
 dependencies = [
- "ironrdp-bulk",
+ "bitflags 2.13.2",
  "ironrdp-core",
- "ironrdp-displaycontrol",
  "ironrdp-dvc",
- "ironrdp-error",
- "ironrdp-graphics",
  "ironrdp-pdu",
  "ironrdp-svc",
  "tracing",
 ]
 
 [[package]]
+name = "ironrdp-session"
+version = "0.13.0"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "962ae82b680b3e60ad2f847f74a2b94af3330aa7a146cdb1c2be13420afa8493"
+dependencies = [
+ "ironrdp-bulk",
+ "ironrdp-core",
+ "ironrdp-displaycontrol",
+ "ironrdp-dvc",
+ "ironrdp-egfx",
+ "ironrdp-error",
+ "ironrdp-graphics",
+ "ironrdp-pdu",
+ "ironrdp-rdpei",
+ "ironrdp-svc",
+ "tracing",
+]
+
+[[package]]
 name = "ironrdp-svc"
-version = "0.8.0"
-source = "git+https://github.com/GlassOnTin/IronRDP?tag=haven-pin-20260805d#6261ef916940f77e9bad1d7ecd3815e06e8bb2a4"
+version = "0.10.0"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "8643434c98343ca0c52e951af4a7c3be52dc60753d2b2b48e4353a3fcf38ac8b"
 dependencies = [
  "bitflags 2.13.2",
  "ironrdp-core",
@@ -1608,8 +1640,9 @@ dependencies = [
 
 [[package]]
 name = "ironrdp-tls"
-version = "0.2.2"
-source = "git+https://github.com/GlassOnTin/IronRDP?tag=haven-pin-20260805d#6261ef916940f77e9bad1d7ecd3815e06e8bb2a4"
+version = "0.3.0"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "63dcf5982519d8bd18eb102ffbba1933d25744f3e0f2c59f794b4b7fe0ef0f84"
 dependencies = [
  "rustls-native-certs",
  "tokio",
@@ -1856,17 +1889,6 @@ name = "num-conv"
 version = "0.2.2"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "521739c6d2bac4aa25192232afe6841231376b2b26d4d9fae5ecf8ca5772e441"
-
-[[package]]
-name = "num-derive"
-version = "0.4.2"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "ed3955f1a9c7c0c15e092f9c887db08b1fc683305fdf6eb6684f22555355e202"
-dependencies = [
- "proc-macro2",
- "quote",
- "syn 2.0.119",
-]
 
 [[package]]
 name = "num-derive"
@@ -2825,9 +2847,9 @@ checksum = "3a0219bd7d979d58245a4f41f695e1ac9f8befdffadd7f61f1bae9e39abc6620"
 
 [[package]]
 name = "sspi"
-version = "0.22.0"
+version = "0.23.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "c0f37d923437132ca241de0f792298f2443a85e95fd64c19585944cbf8805daf"
+checksum = "256b74a75c961d4eb11e0e302a4451cdc51d713d5f26b2ede8156ba61cca5d7e"
 dependencies = [
  "async-dnssd",
  "async-recursion",
@@ -2843,7 +2865,7 @@ dependencies = [
  "hmac 0.13.0",
  "md-5 0.11.0",
  "md4",
- "num-derive 0.5.1",
+ "num-derive",
  "num-traits",
  "oid",
  "picky",
@@ -3681,16 +3703,16 @@ dependencies = [
 
 [[package]]
 name = "winscard"
-version = "0.3.4"
+version = "0.4.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "b8167aea5df2822f1af68489659df8569f08d14700f640774b43db8a934d4432"
+checksum = "060a9e7ea89246300455586df88643c1083df8d1c770246207bcf6c419c665f2"
 dependencies = [
  "bitflags 2.13.2",
  "crypto-bigint",
  "flate2",
  "iso7816",
  "iso7816-tlv",
- "num-derive 0.5.1",
+ "num-derive",
  "num-traits",
  "picky",
  "picky-asn1-x509",

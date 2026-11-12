@@ -61,8 +61,16 @@ class SpiceSession(
     /** Called when the server moves the pointer. Advisory in touchpad mode. */
     var onCursorPosition: ((Int, Int) -> Unit)? = null
 
-    /** Last non-null cursor shape, re-emitted when a position-only update arrives. */
-    private var lastCursor: Triple<Bitmap, Int, Int>? = null
+    /** Deduplicates cursor shape bitmaps across position-only `SPICE_MSG_CURSOR_MOVE` callbacks. */
+    private val cursorTracker = SpiceCursorTracker { cursor, w, h ->
+        cursorToBitmap(cursor, w, h)
+    }
+
+    @Volatile
+    private var lastFrameWidth: Int = 0
+
+    @Volatile
+    private var lastFrameHeight: Int = 0
 
     /** Called when an error occurs. */
     var onError: ((Exception) -> Unit)? = null
@@ -100,6 +108,13 @@ class SpiceSession(
                 override fun onFrame(frame: FrameData) {
                     if (closed) return
                     try {
+                        val frameW = frame.width.toInt()
+                        val frameH = frame.height.toInt()
+                        if (frameW != lastFrameWidth || frameH != lastFrameHeight) {
+                            lastFrameWidth = frameW
+                            lastFrameHeight = frameH
+                            log("D", "surface size: ${frameW}x${frameH}")
+                        }
                         val bmp = frameToBitmap(frame)
                         synchronized(this@SpiceSession) { currentBitmap = bmp }
                         onFrameUpdate?.invoke(bmp)
@@ -113,19 +128,14 @@ class SpiceSession(
             c.setCursorCallback(object : CursorCallback {
                 override fun onCursor(cursor: CursorData) {
                     if (closed) return
-                    onCursorPosition?.invoke(cursor.x, cursor.y)
-                    val w = cursor.width.toInt()
-                    val h = cursor.height.toInt()
-                    if (!cursor.visible || w <= 0 || h <= 0 || cursor.pixels.size < w * h * 4) {
-                        onCursorUpdate?.invoke(null, 0, 0)
-                        return
-                    }
                     try {
-                        val bmp = cursorToBitmap(cursor, w, h)
-                        lastCursor = Triple(bmp, cursor.hotX.toInt(), cursor.hotY.toInt())
-                        onCursorUpdate?.invoke(bmp, cursor.hotX.toInt(), cursor.hotY.toInt())
+                        cursorTracker.onCursor(
+                            cursor = cursor,
+                            onPosition = onCursorPosition,
+                            onShape = onCursorUpdate,
+                        )
                     } catch (e: Exception) {
-                        log("E", "cursorToBitmap failed (${w}x$h): ${e.message}")
+                        log("E", "cursorToBitmap failed (${cursor.width}x${cursor.height}): ${e.message}")
                     }
                 }
             })
@@ -233,9 +243,9 @@ class SpiceSession(
 
     fun sendMouseClick(x: Int, y: Int, button: MouseButton = MouseButton.LEFT) {
         if (closed) return
-        client?.sendMouseMove(x, y)
-        client?.sendMouseButton(button, true)
-        client?.sendMouseButton(button, false)
+        sendMouseMove(x, y)
+        sendMouseButton(button, true)
+        sendMouseButton(button, false)
     }
 
     /** Vertical wheel: positive scrolls up, negative down. */
@@ -269,10 +279,94 @@ class SpiceSession(
             log("E", "Error disconnecting SPICE: ${e.message}")
         }
         client = null
+        cursorTracker.clear()
         synchronized(this) {
             currentBitmap?.recycle()
             currentBitmap = null
         }
+    }
+}
+
+/**
+ * Deduplicates SPICE cursor shape updates across high-rate `SPICE_MSG_CURSOR_MOVE`
+ * callbacks (`spice-client`'s `cursor.rs` invokes `on_cursor` with the full RGBA
+ * shape buffer on every pointer move).
+ *
+ * - Always forwards `(cursor.x, cursor.y)` via [onPosition].
+ * - Only decodes a new bitmap via [decodeShape] when `(width, height, pixels)`
+ *   changes; hotspot-only changes reuse the decoded bitmap and re-emit [onShape].
+ * - Suppresses duplicate [onShape] emissions when neither visibility, bitmap, nor
+ *   hotspot changed, avoiding per-move `Bitmap.createBitmap` allocations,
+ *   `CursorOverlay` `StateFlow` updates, and Compose `asImageBitmap()` texture uploads.
+ * - Re-emits the cached bitmap without re-decoding when a hidden cursor becomes
+ *   visible again with the same shape, and preserves `#598`'s initial `null`
+ *   emission when `CURSOR_INIT(visible = false)` arrives at connect time.
+ */
+internal class SpiceCursorTracker<B : Any>(
+    private val decodeShape: (CursorData, Int, Int) -> B,
+) {
+    private var cachedWidth: Int = 0
+    private var cachedHeight: Int = 0
+    private var cachedPixels: ByteArray? = null
+    private var cachedBitmap: B? = null
+    private var emittedHotX: Int = 0
+    private var emittedHotY: Int = 0
+    private var emittedVisible: Boolean? = null
+
+    @Synchronized
+    fun onCursor(
+        cursor: CursorData,
+        onPosition: ((Int, Int) -> Unit)?,
+        onShape: ((B?, Int, Int) -> Unit)?,
+    ) {
+        onPosition?.invoke(cursor.x, cursor.y)
+        val w = cursor.width.toInt()
+        val h = cursor.height.toInt()
+        if (!cursor.visible || w <= 0 || h <= 0 || cursor.pixels.size < w * h * 4) {
+            if (emittedVisible != false) {
+                emittedVisible = false
+                onShape?.invoke(null, 0, 0)
+            }
+            return
+        }
+
+        val hotX = cursor.hotX.toInt()
+        val hotY = cursor.hotY.toInt()
+        val samePixels = cachedBitmap != null &&
+            w == cachedWidth &&
+            h == cachedHeight &&
+            cachedPixels != null &&
+            cachedPixels.contentEquals(cursor.pixels)
+
+        if (samePixels && emittedVisible == true && hotX == emittedHotX && hotY == emittedHotY) {
+            return
+        }
+
+        val bmp = if (samePixels) {
+            cachedBitmap!!
+        } else {
+            val decoded = decodeShape(cursor, w, h)
+            cachedWidth = w
+            cachedHeight = h
+            cachedPixels = cursor.pixels.copyOf()
+            cachedBitmap = decoded
+            decoded
+        }
+        emittedHotX = hotX
+        emittedHotY = hotY
+        emittedVisible = true
+        onShape?.invoke(bmp, hotX, hotY)
+    }
+
+    @Synchronized
+    fun clear() {
+        cachedWidth = 0
+        cachedHeight = 0
+        cachedPixels = null
+        cachedBitmap = null
+        emittedHotX = 0
+        emittedHotY = 0
+        emittedVisible = null
     }
 }
 

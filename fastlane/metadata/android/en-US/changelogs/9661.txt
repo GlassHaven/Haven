@@ -1,0 +1,2 @@
+- Re-wrap soft-wrapped scrollback on terminal resize, preserve top-overflow wrapped chains on shrink, coalesce restored tails on widen, and wrap wide CJK/emoji glyphs cleanly (#520, thanks @frebib).
+- Add armeabi-v7a and -PtargetAbi support to buildSpiceNative for source-built SPICE native libraries (#493).

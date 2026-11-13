@@ -5,6 +5,11 @@ the corresponding GitHub Release; a release can't ship without its section
 (enforced by `scripts/check-changelog.sh` in CI). The GitHub "Full Changelog"
 compare link is appended automatically — don't add it here.
 
+## v5.94.41
+
+- Re-wrap soft-wrapped scrollback lines on terminal resize, split top-straddling wrapped chains cleanly across scrollback and the visible grid instead of dropping continuation rows, coalesce restored scrollback tails when widening, and wrap double-width CJK and emoji glyphs before `cols - 1` (#520, thanks @frebib).
+- Support `armeabi-v7a` and `-PtargetAbi` filtering in `buildSpiceNative` for source-built SPICE native packaging (#493).
+
 ## v5.94.40
 
 - Add per-distro default login user settings under `Desktop -> Manage`, provisioning the configured guest user and `sudoers` entry on terminal or desktop launch while preserving global user defaults (#567, thanks @sugerpersion).

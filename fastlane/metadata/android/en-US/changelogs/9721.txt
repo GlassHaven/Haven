@@ -1,0 +1,2 @@
+- Add unprivileged ICMP and ICMPv6 Echo Request port knocking (`<size>/icmp`, `<size>x<count>:icmp`, `icmp+h`, and `icmp+ip`) across SSH, RDP, VNC, SPICE, GLKVM, SMB, and MCP tools (#846, thanks @NeshikRUS).
+- Build `chroot-ng` 1.6.0 (`libchrootng.so`) from source on `arm64-v8a` with OPlus UID-probe, ART signal-mask, and `sudo` stat-remap patches as an opt-in seccomp `SIGSYS` container engine under `Desktop -> Manage -> Options & mounts` and MCP `proot_engine` (#573).

@@ -5,6 +5,11 @@ the corresponding GitHub Release; a release can't ship without its section
 (enforced by `scripts/check-changelog.sh` in CI). The GitHub "Full Changelog"
 compare link is appended automatically — don't add it here.
 
+## v5.94.47
+
+- Add unprivileged ICMP and ICMPv6 Echo Request port knocking (`<size>/icmp`, `<size>x<count>:icmp`, `icmp+h`, and `icmp+ip`) across SSH, RDP, VNC, SPICE, GLKVM, SMB, and MCP tools (#846, thanks @NeshikRUS).
+- Build `chroot-ng` 1.6.0 (`libchrootng.so`) from source on `arm64-v8a` with OPlus UID-probe, ART signal-mask, and `sudo` stat-remap patches as an opt-in seccomp `SIGSYS` container engine under `Desktop -> Manage -> Options & mounts` and MCP `proot_engine` (#573).
+
 ## v5.94.46
 
 - Hold `/api/ws?stream=1` open with periodic `ping` frames during GLKVM and PiKVM sessions so `kvmd` wakes idle `ustreamer` instances without needing a browser tab open, retry cold-start `502`/`503`/`504` snapshot responses, and send `POST /api/streamer/set_params?gl_webrtc=0` once when GL.iNet `gl_webrtc=1` adaptive mode stalls `/streamer/snapshot` (#845, thanks @skug67).

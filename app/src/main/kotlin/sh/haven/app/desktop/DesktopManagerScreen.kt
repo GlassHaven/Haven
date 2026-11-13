@@ -1785,6 +1785,45 @@ private fun dnsModeLabel(mode: ProotDnsMode): String = when (mode) {
 }
 
 /**
+ * Container engine selector (#573). Rendered only when `libchrootng.so` is
+ * packaged (`arm64-v8a` builds) so `x86_64` / `armeabi-v7a` hosts never show a
+ * dead option. Uses `FilterChip`s per Haven's enum-picker convention.
+ */
+@OptIn(ExperimentalLayoutApi::class)
+@Composable
+private fun GuestEngineRow(
+    engine: ProotManager.GuestEngine,
+    onSelectEngine: (ProotManager.GuestEngine) -> Unit,
+) {
+    Text(
+        stringResource(AppR.string.app_desktop_engine_title),
+        style = MaterialTheme.typography.titleSmall,
+    )
+    Spacer(Modifier.height(2.dp))
+    Text(
+        stringResource(AppR.string.app_desktop_engine_description),
+        style = MaterialTheme.typography.bodySmall,
+        color = MaterialTheme.colorScheme.onSurfaceVariant,
+    )
+    Spacer(Modifier.height(4.dp))
+    FlowRow(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+        ProotManager.GuestEngine.entries.forEach { candidate ->
+            FilterChip(
+                selected = candidate == engine,
+                onClick = { onSelectEngine(candidate) },
+                label = { Text(guestEngineLabel(candidate)) },
+            )
+        }
+    }
+}
+
+@Composable
+private fun guestEngineLabel(engine: ProotManager.GuestEngine): String = when (engine) {
+    ProotManager.GuestEngine.PROOT -> stringResource(AppR.string.app_desktop_engine_proot)
+    ProotManager.GuestEngine.CHROOT_NG -> stringResource(AppR.string.app_desktop_engine_chroot_ng)
+}
+
+/**
  * Per-distro network proxy routing (#835). Complements [GuestDnsRow] with
  * `ALL_PROXY`/`HTTP_PROXY`/`HTTPS_PROXY`/`NO_PROXY` export, saved Haven tunnel
  * SOCKS5 loopback bring-up, inline validation, reset/clear, and optional
@@ -2772,6 +2811,14 @@ private fun DesktopManagerSection(
                 Spacer(Modifier.height(8.dp))
                 HorizontalDivider()
                 ExpandableSection(title = stringResource(AppR.string.app_desktop_options_section)) {
+                    if (viewModel.chrootNgAvailable) {
+                        val guestEngine by viewModel.guestEngine.collectAsState()
+                        GuestEngineRow(
+                            engine = guestEngine,
+                            onSelectEngine = { viewModel.setGuestEngine(it) },
+                        )
+                        Spacer(Modifier.height(8.dp))
+                    }
                     if (installedDistros.any { MirrorCatalog.hasMirrors(it.id) }) {
                         MirrorRegionRow(region = mirrorRegion, onSelect = onSetMirrorRegion)
                         Spacer(Modifier.height(8.dp))

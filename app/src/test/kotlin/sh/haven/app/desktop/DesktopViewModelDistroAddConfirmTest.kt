@@ -176,4 +176,17 @@ class DesktopViewModelDistroAddConfirmTest {
         coVerify(exactly = 0) { prootManager.installRootfs() }
         coVerify(exactly = 0) { prootManager.importRootfs(any(), any(), any(), any(), any(), any(), any()) }
     }
+
+    @Test
+    fun `guestEngine and chrootNgAvailable delegate to prootManager`() = runTest {
+        val engineFlow = MutableStateFlow(ProotManager.GuestEngine.PROOT)
+        every { prootManager.guestEngineFlow } returns engineFlow
+        every { prootManager.isChrootNgAvailable } returns true
+
+        assertEquals(true, vm.chrootNgAvailable)
+        assertEquals(ProotManager.GuestEngine.PROOT, vm.guestEngine.value)
+
+        vm.setGuestEngine(ProotManager.GuestEngine.CHROOT_NG)
+        io.mockk.verify(exactly = 1) { prootManager.setGuestEngine(ProotManager.GuestEngine.CHROOT_NG) }
+    }
 }

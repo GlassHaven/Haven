@@ -406,4 +406,8 @@
     <string name="app_guest_services_description">Servidores en segundo plano en la distribución Linux activa por loopback.</string>
     <string name="app_guest_services_running">En ejecución · 127.0.0.1:%1$d</string>
     <string name="app_guest_services_stopped">Detenido · 127.0.0.1:%1$d</string>
+    <string name="app_desktop_engine_title">Motor de contenedor</string>
+    <string name="app_desktop_engine_description">Motor para terminales y escritorios arm64 nativos. Vuelve automáticamente a PRoot cuando la emulación QEMU, el reenvío de puertos bajos o el bloqueo de tráfico directo están activos.</string>
+    <string name="app_desktop_engine_proot">PRoot (predeterminado)</string>
+    <string name="app_desktop_engine_chroot_ng">chroot-ng (seccomp, arm64)</string>
 </resources>

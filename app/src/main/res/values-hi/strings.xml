@@ -400,4 +400,8 @@
     <string name="app_guest_services_description">सक्रिय Linux डिस्ट्रो में लूपबैक पर चलने वाले बैकग्राउंड सर्वर।</string>
     <string name="app_guest_services_running">चालू · 127.0.0.1:%1$d</string>
     <string name="app_guest_services_stopped">बंद · 127.0.0.1:%1$d</string>
+    <string name="app_desktop_engine_title">कंटेनर इंजन</string>
+    <string name="app_desktop_engine_description">नेटिव arm64 शेल और डेस्कटॉप के लिए इंजन। QEMU इम्यूलेशन, लो-पोर्ट रीमैपिंग या डायरेक्ट ट्रैफ़िक ब्लॉकिंग सक्रिय होने पर अपने-आप PRoot का उपयोग करता है।</string>
+    <string name="app_desktop_engine_proot">PRoot (डिफ़ॉल्ट)</string>
+    <string name="app_desktop_engine_chroot_ng">chroot-ng (seccomp, arm64)</string>
 </resources>

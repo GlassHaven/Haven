@@ -396,4 +396,8 @@
     <string name="app_guest_services_description">有効な Linux ディストロ内でループバック動作するバックグラウンドサーバー。</string>
     <string name="app_guest_services_running">実行中 · 127.0.0.1:%1$d</string>
     <string name="app_guest_services_stopped">停止 · 127.0.0.1:%1$d</string>
+    <string name="app_desktop_engine_title">コンテナエンジン</string>
+    <string name="app_desktop_engine_description">ネイティブ arm64 のシェルとデスクトップで使用するエンジン。QEMU エミュレーション、低番号ポートの再マッピング、または直接通信の遮断が有効な場合は自動的に PRoot へ切り替わります。</string>
+    <string name="app_desktop_engine_proot">PRoot（既定）</string>
+    <string name="app_desktop_engine_chroot_ng">chroot-ng（seccomp, arm64）</string>
 </resources>

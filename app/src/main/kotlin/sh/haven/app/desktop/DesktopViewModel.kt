@@ -182,6 +182,17 @@ class DesktopViewModel @Inject constructor(
         prootManager.setDnsMode(mode)
     }
 
+    /** #573: opt-in arm64 seccomp SIGSYS container engine vs default PRoot. Pass-through. */
+    val guestEngine: StateFlow<sh.haven.core.local.ProotManager.GuestEngine>
+        get() = prootManager.guestEngineFlow
+
+    val chrootNgAvailable: Boolean
+        get() = prootManager.isChrootNgAvailable
+
+    fun setGuestEngine(engine: sh.haven.core.local.ProotManager.GuestEngine) {
+        prootManager.setGuestEngine(engine)
+    }
+
     /** #446: custom nameservers, used when [dnsMode] is CUSTOM. Pass-through. */
     val dnsServers: StateFlow<String> get() = prootManager.dnsServersFlow
 

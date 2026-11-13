@@ -439,4 +439,9 @@
     <string name="app_guest_services_description">Background servers running in the active Linux distro on loopback.</string>
     <string name="app_guest_services_running">Running · 127.0.0.1:%1$d</string>
     <string name="app_guest_services_stopped">Stopped · 127.0.0.1:%1$d</string>
+    <!-- Guest container engine (#573): arm64 opt-in seccomp SIGSYS engine vs default PRoot -->
+    <string name="app_desktop_engine_title">Container engine</string>
+    <string name="app_desktop_engine_description">Engine for native arm64 shells and desktops. Automatically falls back to PRoot when QEMU emulation, low-port remapping, or direct-traffic blocking is active.</string>
+    <string name="app_desktop_engine_proot">PRoot (default)</string>
+    <string name="app_desktop_engine_chroot_ng">chroot-ng (seccomp, arm64)</string>
 </resources>

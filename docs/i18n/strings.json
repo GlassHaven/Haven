@@ -7471,6 +7471,86 @@
       "ru": "Остановлено · 127.0.0.1:%1$d",
       "zh": "已停止 · 127.0.0.1:%1$d"
      }
+    },
+    {
+     "name": "app_desktop_engine_title",
+     "en": "Container engine",
+     "comment": "Guest container engine (#573): arm64 opt-in seccomp SIGSYS engine vs default PRoot",
+     "args": [],
+     "t": {
+      "ar": "محرك الحاوية",
+      "bn": "কন্টেইনার ইঞ্জিন",
+      "de": "Container-Engine",
+      "es": "Motor de contenedor",
+      "fr": "Moteur de conteneur",
+      "hi": "कंटेनर इंजन",
+      "ja": "コンテナエンジン",
+      "ko": "컨테이너 엔진",
+      "pt": "Motor de contêiner",
+      "ru": "Движок контейнера",
+      "sr": "Pokretač kontejnera",
+      "zh": "容器引擎"
+     }
+    },
+    {
+     "name": "app_desktop_engine_description",
+     "en": "Engine for native arm64 shells and desktops. Automatically falls back to PRoot when QEMU emulation, low-port remapping, or direct-traffic blocking is active.",
+     "comment": "Guest container engine (#573): arm64 opt-in seccomp SIGSYS engine vs default PRoot",
+     "args": [],
+     "t": {
+      "ar": "المحرك المستخدم لأصداف وسطح مكتب arm64 الأصليين. يعود تلقائياً إلى PRoot عند تفعيل محاكاة QEMU أو إعادة توجيه المنافذ المنخفضة أو حظر الاتصالات المباشرة.",
+      "bn": "নেটিভ arm64 শেল ও ডেস্কটপের ইঞ্জিন। QEMU এমুলেশন, লো-পোর্ট রিম্যাপিং বা সরাসরি ট্রাফিক ব্লকিং সক্রিয় থাকলে স্বয়ংক্রিয়ভাবে PRoot ব্যবহৃত হয়।",
+      "de": "Engine für native arm64-Shells und -Desktops. Fällt automatisch auf PRoot zurück, wenn QEMU-Emulation, Port-Umleitung oder die Sperre direkter Verbindungen aktiv ist.",
+      "es": "Motor para terminales y escritorios arm64 nativos. Vuelve automáticamente a PRoot cuando la emulación QEMU, el reenvío de puertos bajos o el bloqueo de tráfico directo están activos.",
+      "fr": "Moteur pour les terminaux et bureaux arm64 natifs. Revient automatiquement à PRoot lorsque l’émulation QEMU, la redirection des ports bas ou le blocage du trafic direct est actif.",
+      "hi": "नेटिव arm64 शेल और डेस्कटॉप के लिए इंजन। QEMU इम्यूलेशन, लो-पोर्ट रीमैपिंग या डायरेक्ट ट्रैफ़िक ब्लॉकिंग सक्रिय होने पर अपने-आप PRoot का उपयोग करता है।",
+      "ja": "ネイティブ arm64 のシェルとデスクトップで使用するエンジン。QEMU エミュレーション、低番号ポートの再マッピング、または直接通信の遮断が有効な場合は自動的に PRoot へ切り替わります。",
+      "ko": "네이티브 arm64 셸 및 데스크톱에 사용하는 엔진입니다. QEMU 에뮬레이션, 낮은 포트 리매핑 또는 직접 트래픽 차단이 활성화된 경우 자동으로 PRoot로 전환됩니다.",
+      "pt": "Motor para terminais e ambientes gráficos arm64 nativos. Volta automaticamente ao PRoot quando a emulação QEMU, o remapeamento de portas baixas ou o bloqueio de tráfego direto está ativo.",
+      "ru": "Движок для нативных оболочек и рабочих столов arm64. Автоматически переключается на PRoot при включённой эмуляции QEMU, перенаправлении младших портов или блокировке прямого трафика.",
+      "sr": "Pokretač za izvorne arm64 terminale i radna okruženja. Automatski prelazi na PRoot kada su aktivni QEMU emulacija, preusmeravanje niskih portova ili blokiranje direktnog saobraćaja.",
+      "zh": "用于原生 arm64 终端与桌面的运行引擎。启用 QEMU 模拟、低端口重映射或直接流量拦截时会自动回退到 PRoot。"
+     }
+    },
+    {
+     "name": "app_desktop_engine_proot",
+     "en": "PRoot (default)",
+     "comment": "Guest container engine (#573): arm64 opt-in seccomp SIGSYS engine vs default PRoot",
+     "args": [],
+     "t": {
+      "ar": "PRoot (افتراضي)",
+      "bn": "PRoot (ডিফল্ট)",
+      "de": "PRoot (Standard)",
+      "es": "PRoot (predeterminado)",
+      "fr": "PRoot (par défaut)",
+      "hi": "PRoot (डिफ़ॉल्ट)",
+      "ja": "PRoot（既定）",
+      "ko": "PRoot (기본값)",
+      "pt": "PRoot (padrão)",
+      "ru": "PRoot (по умолчанию)",
+      "sr": "PRoot (podrazumevano)",
+      "zh": "PRoot（默认）"
+     }
+    },
+    {
+     "name": "app_desktop_engine_chroot_ng",
+     "en": "chroot-ng (seccomp, arm64)",
+     "comment": "Guest container engine (#573): arm64 opt-in seccomp SIGSYS engine vs default PRoot",
+     "args": [],
+     "t": {
+      "ar": "chroot-ng (seccomp، arm64)",
+      "bn": "chroot-ng (seccomp, arm64)",
+      "de": "chroot-ng (seccomp, arm64)",
+      "es": "chroot-ng (seccomp, arm64)",
+      "fr": "chroot-ng (seccomp, arm64)",
+      "hi": "chroot-ng (seccomp, arm64)",
+      "ja": "chroot-ng（seccomp, arm64）",
+      "ko": "chroot-ng (seccomp, arm64)",
+      "pt": "chroot-ng (seccomp, arm64)",
+      "ru": "chroot-ng (seccomp, arm64)",
+      "sr": "chroot-ng (seccomp, arm64)",
+      "zh": "chroot-ng（seccomp，arm64）"
+     }
     }
    ]
   },

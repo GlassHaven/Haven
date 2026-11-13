@@ -355,5 +355,9 @@
     <string name="app_desktop_dns_custom_err_invalid">Unesite IP ili IP:port adrese (npr. 1.1.1.1, 127.0.0.1:5400).</string>
     <string name="app_desktop_routing_block_direct_title">Blokiraj saobraćaj van proksija</string>
     <string name="app_desktop_routing_block_direct_description">Blokira direktne odlazne sokete i DNS upite u PRoot okruženju kako programi gosta ne bi zaobišli aktivni proksi.</string>
+    <string name="app_desktop_engine_title">Pokretač kontejnera</string>
+    <string name="app_desktop_engine_description">Pokretač za izvorne arm64 terminale i radna okruženja. Automatski prelazi na PRoot kada su aktivni QEMU emulacija, preusmeravanje niskih portova ili blokiranje direktnog saobraćaja.</string>
+    <string name="app_desktop_engine_proot">PRoot (podrazumevano)</string>
+    <string name="app_desktop_engine_chroot_ng">chroot-ng (seccomp, arm64)</string>
 </resources>
 

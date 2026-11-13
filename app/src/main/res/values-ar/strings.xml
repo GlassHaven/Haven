@@ -416,4 +416,8 @@
     <string name="app_guest_services_description">خوادم تعمل في الخلفية داخل توزيعة Linux النشطة على الواجهة المحلية.</string>
     <string name="app_guest_services_running">قيد التشغيل · 127.0.0.1:%1$d</string>
     <string name="app_guest_services_stopped">متوقف · 127.0.0.1:%1$d</string>
+    <string name="app_desktop_engine_title">محرك الحاوية</string>
+    <string name="app_desktop_engine_description">المحرك المستخدم لأصداف وسطح مكتب arm64 الأصليين. يعود تلقائياً إلى PRoot عند تفعيل محاكاة QEMU أو إعادة توجيه المنافذ المنخفضة أو حظر الاتصالات المباشرة.</string>
+    <string name="app_desktop_engine_proot">PRoot (افتراضي)</string>
+    <string name="app_desktop_engine_chroot_ng">chroot-ng (seccomp، arm64)</string>
 </resources>

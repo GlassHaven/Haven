@@ -414,4 +414,8 @@
     <string name="app_guest_services_description">Фоновые серверы на локальном интерфейсе в активном дистрибутиве Linux.</string>
     <string name="app_guest_services_running">Работает · 127.0.0.1:%1$d</string>
     <string name="app_guest_services_stopped">Остановлено · 127.0.0.1:%1$d</string>
+    <string name="app_desktop_engine_title">Движок контейнера</string>
+    <string name="app_desktop_engine_description">Движок для нативных оболочек и рабочих столов arm64. Автоматически переключается на PRoot при включённой эмуляции QEMU, перенаправлении младших портов или блокировке прямого трафика.</string>
+    <string name="app_desktop_engine_proot">PRoot (по умолчанию)</string>
+    <string name="app_desktop_engine_chroot_ng">chroot-ng (seccomp, arm64)</string>
 </resources>

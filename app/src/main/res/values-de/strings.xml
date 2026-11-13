@@ -400,4 +400,8 @@
     <string name="app_guest_services_description">Hintergrundserver in der aktiven Linux-Distribution auf Loopback.</string>
     <string name="app_guest_services_running">Läuft · 127.0.0.1:%1$d</string>
     <string name="app_guest_services_stopped">Gestoppt · 127.0.0.1:%1$d</string>
+    <string name="app_desktop_engine_title">Container-Engine</string>
+    <string name="app_desktop_engine_description">Engine für native arm64-Shells und -Desktops. Fällt automatisch auf PRoot zurück, wenn QEMU-Emulation, Port-Umleitung oder die Sperre direkter Verbindungen aktiv ist.</string>
+    <string name="app_desktop_engine_proot">PRoot (Standard)</string>
+    <string name="app_desktop_engine_chroot_ng">chroot-ng (seccomp, arm64)</string>
 </resources>

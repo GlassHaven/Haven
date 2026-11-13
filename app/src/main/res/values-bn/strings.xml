@@ -400,4 +400,8 @@
     <string name="app_guest_services_description">সক্রিয় Linux ডিস্ট্রোতে লুপব্যাকে চলমান ব্যাকগ্রাউন্ড সার্ভার।</string>
     <string name="app_guest_services_running">চলমান · 127.0.0.1:%1$d</string>
     <string name="app_guest_services_stopped">বন্ধ · 127.0.0.1:%1$d</string>
+    <string name="app_desktop_engine_title">কন্টেইনার ইঞ্জিন</string>
+    <string name="app_desktop_engine_description">নেটিভ arm64 শেল ও ডেস্কটপের ইঞ্জিন। QEMU এমুলেশন, লো-পোর্ট রিম্যাপিং বা সরাসরি ট্রাফিক ব্লকিং সক্রিয় থাকলে স্বয়ংক্রিয়ভাবে PRoot ব্যবহৃত হয়।</string>
+    <string name="app_desktop_engine_proot">PRoot (ডিফল্ট)</string>
+    <string name="app_desktop_engine_chroot_ng">chroot-ng (seccomp, arm64)</string>
 </resources>

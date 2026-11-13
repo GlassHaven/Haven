@@ -406,4 +406,8 @@
     <string name="app_guest_services_description">활성 Linux 배포판의 루프백에서 실행되는 백그라운드 서버입니다.</string>
     <string name="app_guest_services_running">실행 중 · 127.0.0.1:%1$d</string>
     <string name="app_guest_services_stopped">중지됨 · 127.0.0.1:%1$d</string>
+    <string name="app_desktop_engine_title">컨테이너 엔진</string>
+    <string name="app_desktop_engine_description">네이티브 arm64 셸 및 데스크톱에 사용하는 엔진입니다. QEMU 에뮬레이션, 낮은 포트 리매핑 또는 직접 트래픽 차단이 활성화된 경우 자동으로 PRoot로 전환됩니다.</string>
+    <string name="app_desktop_engine_proot">PRoot (기본값)</string>
+    <string name="app_desktop_engine_chroot_ng">chroot-ng (seccomp, arm64)</string>
 </resources>

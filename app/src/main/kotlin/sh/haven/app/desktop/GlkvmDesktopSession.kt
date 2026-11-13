@@ -132,6 +132,7 @@ class GlkvmDesktopSession(
             onConnected()
             while (coroutineContext.isActive) {
                 if (paused) {
+                    client.keepStreamAliveIfNeeded()
                     delay(GLKVM_PAUSE_IDLE_MS)
                     continue
                 }
@@ -179,6 +180,7 @@ class GlkvmDesktopSession(
             lastFrameAtMs = System.currentTimeMillis()
             return@synchronized
         }
+        client.ensureStreamSession()
         val jpeg = try {
             val raw = client.snapshot()
             if (raw.isEmpty()) throw GlkvmException("empty snapshot from /streamer/snapshot")

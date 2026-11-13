@@ -551,6 +551,29 @@ class RemoteDesktopSessionTest {
     }
 
     @Test
+    fun `glkvm fetchAndDispatchFrame ensures stream session before polling snapshot`() {
+        val client = mockk<sh.haven.core.glkvm.GlkvmClient>(relaxed = true)
+        io.mockk.every { client.ensureStreamSession() } returns true
+        io.mockk.every { client.snapshot() } returns ByteArray(0)
+        io.mockk.every { client.videoState() } returns sh.haven.core.glkvm.GlkvmClient.VideoState(
+            signal = true,
+            resolution = "1920x1080",
+        )
+        val s = GlkvmDesktopSession(
+            client = client,
+            onFrame = {},
+            onConnected = {},
+            onError = {},
+            onDisconnected = {},
+        )
+        runCatching { s.fetchAndDispatchFrame() }
+        verifyOrder {
+            client.ensureStreamSession()
+            client.snapshot()
+        }
+    }
+
+    @Test
     fun `send_desktop_clipboard fails fast when protocol has no clipboard channel`() = kotlinx.coroutines.runBlocking {
         val registry = sh.haven.core.data.desktop.DesktopSessionRegistry()
         registry.registerInputHandle(

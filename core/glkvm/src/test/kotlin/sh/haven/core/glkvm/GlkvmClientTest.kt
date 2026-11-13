@@ -597,4 +597,225 @@ class GlkvmClientTest {
             pikvm.shutdown()
         }
     }
+
+    // -- Issue #845: /api/ws?stream=1 stream wake & cold-start recovery ------
+
+    @Test(timeout = 10_000)
+    fun `ensureStreamSession opens authenticated ws stream=1, sends ping, retries cold 503, and closes cleanly`() {
+        val rm1 = MockWebServer()
+        val activeWs = java.util.concurrent.atomic.AtomicInteger(0)
+        val coldSnapshotAttemptsAfterWs = java.util.concurrent.atomic.AtomicInteger(0)
+        val wsMessages = java.util.Collections.synchronizedList(mutableListOf<String>())
+        val closeLatch = java.util.concurrent.CountDownLatch(1)
+        val wsUpgradeQuery = java.util.concurrent.atomic.AtomicReference<String?>(null)
+        val wsUpgradeTokenHeader = java.util.concurrent.atomic.AtomicReference<String?>(null)
+        val wsCloseCode = java.util.concurrent.atomic.AtomicInteger(-1)
+
+        rm1.dispatcher = object : Dispatcher() {
+            override fun dispatch(request: RecordedRequest): MockResponse {
+                val url = request.requestUrl ?: return MockResponse().setResponseCode(400)
+                return when (url.encodedPath) {
+                    "/api/auth/login" -> MockResponse().setBody("""{"ok":true,"result":{"token":"tok-rm1"}}""")
+                    "/api/ws" -> {
+                        wsUpgradeQuery.set(url.encodedQuery)
+                        wsUpgradeTokenHeader.set(request.getHeader("token"))
+                        if (url.queryParameter("stream") != "1" || url.queryParameter("auth_token") != "tok-rm1") {
+                            MockResponse().setResponseCode(403).setBody("""{"ok":false,"message":"ForbiddenError"}""")
+                        } else {
+                            MockResponse().withWebSocketUpgrade(object : okhttp3.WebSocketListener() {
+                                override fun onOpen(webSocket: okhttp3.WebSocket, response: okhttp3.Response) {
+                                    activeWs.incrementAndGet()
+                                    webSocket.send("""{"event_type":"loop","event":{"version":{"major":4,"minor":82}}}""")
+                                }
+
+                                override fun onMessage(webSocket: okhttp3.WebSocket, text: String) {
+                                    wsMessages.add(text)
+                                    if (text.contains("\"ping\"")) {
+                                        webSocket.send("""{"event_type":"pong","event":{}}""")
+                                    }
+                                }
+
+                                override fun onClosing(webSocket: okhttp3.WebSocket, code: Int, reason: String) {
+                                    wsCloseCode.set(code)
+                                    activeWs.decrementAndGet()
+                                    webSocket.close(code, reason)
+                                    closeLatch.countDown()
+                                }
+                            })
+                        }
+                    }
+                    "/streamer/snapshot" -> {
+                        if (activeWs.get() <= 0) {
+                            // Comet RM1 with streamer.forever=false: hangs/unavailable without /api/ws?stream=1.
+                            MockResponse().setResponseCode(503).setBody("""{"ok":false,"result":{"error":"UnavailableError"}}""")
+                        } else if (coldSnapshotAttemptsAfterWs.incrementAndGet() <= 2) {
+                            // RV1126 ustreamer still initializing capture for first two polls after WS open.
+                            MockResponse().setResponseCode(503).setBody("""{"ok":false,"result":{"error":"UnavailableError"}}""")
+                        } else {
+                            MockResponse()
+                                .setBody(Buffer().write(byteArrayOf(0xFF.toByte(), 0xD8.toByte(), 0xAA.toByte(), 0x55.toByte())))
+                                .setHeader("Content-Type", "image/jpeg")
+                        }
+                    }
+                    else -> MockResponse().setResponseCode(404)
+                }
+            }
+        }
+        rm1.start()
+        val c = GlkvmClient.Builder().apply {
+            baseUrlOverride = "http://127.0.0.1:${rm1.port}"
+            user = "admin"
+            password = "secret"
+            streamWakeRetryDelayMs = 15L
+        }.build()
+        try {
+            assertTrue("expected /api/ws?stream=1 to open", c.ensureStreamSession())
+            assertEquals("tok-rm1", wsUpgradeTokenHeader.get())
+            assertTrue("ws query=${wsUpgradeQuery.get()}", wsUpgradeQuery.get()!!.contains("stream=1"))
+            assertTrue("ws query=${wsUpgradeQuery.get()}", wsUpgradeQuery.get()!!.contains("auth_token=tok-rm1"))
+
+            val jpeg = c.snapshot()
+            assertTrue(jpeg.contentEquals(byteArrayOf(0xFF.toByte(), 0xD8.toByte(), 0xAA.toByte(), 0x55.toByte())))
+            assertEquals(3, coldSnapshotAttemptsAfterWs.get())
+            assertTrue(
+                "expected kvmd sliding-auth ping message over ws, got $wsMessages",
+                wsMessages.any { it.contains("\"event_type\":\"ping\"") },
+            )
+
+            c.closeStreamSession()
+            assertTrue("expected clean WebSocket close handshake", closeLatch.await(2, TimeUnit.SECONDS))
+            assertEquals(1000, wsCloseCode.get())
+            assertEquals(0, activeWs.get())
+        } finally {
+            c.close()
+            rm1.shutdown()
+        }
+    }
+
+    @Test(timeout = 10_000)
+    fun `snapshot auto-opens stream ws and exits stuck gl_webrtc adaptive mode when snapshot stalls`() {
+        val rm1 = MockWebServer()
+        val wsOpen = java.util.concurrent.atomic.AtomicBoolean(false)
+        val adaptiveMode = java.util.concurrent.atomic.AtomicBoolean(true)
+        val setParamsQueries = java.util.Collections.synchronizedList(mutableListOf<String?>())
+
+        rm1.dispatcher = object : Dispatcher() {
+            override fun dispatch(request: RecordedRequest): MockResponse {
+                val url = request.requestUrl ?: return MockResponse().setResponseCode(400)
+                return when (url.encodedPath) {
+                    "/api/auth/login" -> MockResponse().setBody("""{"ok":true,"result":{"token":"tok-adapt"}}""")
+                    "/api/ws" -> MockResponse().withWebSocketUpgrade(object : okhttp3.WebSocketListener() {
+                        override fun onOpen(webSocket: okhttp3.WebSocket, response: okhttp3.Response) {
+                            wsOpen.set(true)
+                        }
+                        override fun onClosing(webSocket: okhttp3.WebSocket, code: Int, reason: String) {
+                            wsOpen.set(false)
+                            webSocket.close(code, reason)
+                        }
+                    })
+                    "/api/streamer/set_params" -> {
+                        setParamsQueries.add(url.encodedQuery)
+                        if (url.queryParameter("gl_webrtc") == "0") {
+                            adaptiveMode.set(false)
+                        }
+                        MockResponse().setBody("""{"ok":true,"result":{}}""")
+                    }
+                    "/streamer/snapshot" -> {
+                        if (!wsOpen.get() || adaptiveMode.get()) {
+                            // Simulate ustreamer stalled until /api/ws?stream=1 is open AND adaptive mode is exited.
+                            MockResponse()
+                                .setHeadersDelay(350, TimeUnit.MILLISECONDS)
+                                .setResponseCode(504)
+                        } else {
+                            MockResponse()
+                                .setBody(Buffer().write(byteArrayOf(0xFF.toByte(), 0xD8.toByte(), 0x33, 0x44)))
+                                .setHeader("Content-Type", "image/jpeg")
+                        }
+                    }
+                    else -> MockResponse().setResponseCode(404)
+                }
+            }
+        }
+        rm1.start()
+        val c = GlkvmClient.Builder().apply {
+            baseUrlOverride = "http://127.0.0.1:${rm1.port}"
+            user = "admin"
+            password = "secret"
+            snapshotReadTimeoutMs = 120L
+            streamWakeRetryDelayMs = 15L
+        }.build()
+        try {
+            // Even without an explicit ensureStreamSession() call, snapshot() self-wakes /api/ws?stream=1
+            // and clears gl_webrtc adaptive mode on GLToken devices when /streamer/snapshot stalls.
+            val jpeg = c.snapshot()
+            assertTrue(jpeg.contentEquals(byteArrayOf(0xFF.toByte(), 0xD8.toByte(), 0x33, 0x44)))
+            assertTrue(wsOpen.get())
+            assertFalse(adaptiveMode.get())
+            assertTrue("setParams=$setParamsQueries", setParamsQueries.any { it?.contains("gl_webrtc=0") == true })
+        } finally {
+            c.close()
+            rm1.shutdown()
+        }
+    }
+
+    @Test(timeout = 10_000)
+    fun `pikvm ensureStreamSession uses Cookie auth on ws without calling gl_webrtc`() {
+        val pikvm = MockWebServer()
+        val wsCookie = java.util.concurrent.atomic.AtomicReference<String?>(null)
+        val wsQuery = java.util.concurrent.atomic.AtomicReference<String?>(null)
+        val setParamsCalled = java.util.concurrent.atomic.AtomicBoolean(false)
+        val snapCount = java.util.concurrent.atomic.AtomicInteger(0)
+
+        pikvm.dispatcher = object : Dispatcher() {
+            override fun dispatch(request: RecordedRequest): MockResponse {
+                val url = request.requestUrl ?: return MockResponse().setResponseCode(400)
+                return when (url.encodedPath) {
+                    "/api/auth/login" -> MockResponse()
+                        .setHeader("Set-Cookie", "auth_token=pikvm-ws-cookie; Path=/; HttpOnly")
+                        .setBody("""{"ok":true,"result":{}}""")
+                    "/api/ws" -> {
+                        wsCookie.set(request.getHeader("Cookie"))
+                        wsQuery.set(url.encodedQuery)
+                        MockResponse().withWebSocketUpgrade(object : okhttp3.WebSocketListener() {
+                            override fun onClosing(webSocket: okhttp3.WebSocket, code: Int, reason: String) {
+                                webSocket.close(code, reason)
+                            }
+                        })
+                    }
+                    "/api/streamer/set_params" -> {
+                        setParamsCalled.set(true)
+                        MockResponse().setResponseCode(400)
+                    }
+                    "/streamer/snapshot" -> {
+                        if (snapCount.incrementAndGet() == 1) {
+                            MockResponse().setResponseCode(502).setBody("Bad Gateway")
+                        } else {
+                            MockResponse()
+                                .setBody(Buffer().write(byteArrayOf(0xFF.toByte(), 0xD8.toByte(), 0x77, 0x11)))
+                                .setHeader("Content-Type", "image/jpeg")
+                        }
+                    }
+                    else -> MockResponse().setResponseCode(404)
+                }
+            }
+        }
+        pikvm.start()
+        val pc = GlkvmClient.Builder().apply {
+            baseUrlOverride = "http://127.0.0.1:${pikvm.port}"
+            user = "admin"
+            password = "secret"
+            streamWakeRetryDelayMs = 15L
+        }.build()
+        try {
+            assertTrue(pc.ensureStreamSession())
+            assertEquals("auth_token=pikvm-ws-cookie", wsCookie.get())
+            assertEquals("stream=1", wsQuery.get())
+            val jpeg = pc.snapshot()
+            assertTrue(jpeg.contentEquals(byteArrayOf(0xFF.toByte(), 0xD8.toByte(), 0x77, 0x11)))
+            assertFalse("stock PiKVM must not receive GL-only gl_webrtc param", setParamsCalled.get())
+        } finally {
+            pc.close()
+            pikvm.shutdown()
+        }
+    }
 }

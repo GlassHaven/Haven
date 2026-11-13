@@ -7,7 +7,12 @@ import okhttp3.MultipartBody
 import okhttp3.OkHttpClient
 import okhttp3.Request
 import okhttp3.RequestBody.Companion.toRequestBody
+import okhttp3.WebSocket
+import okhttp3.WebSocketListener
+import okio.ByteString
 import org.json.JSONObject
+import java.io.InterruptedIOException
+import java.net.SocketTimeoutException
 import java.security.MessageDigest
 import java.security.SecureRandom
 import java.security.cert.Certificate
@@ -21,7 +26,7 @@ import javax.net.ssl.X509TrustManager
 import kotlin.math.sign
 
 /** Thrown on API failures after token retry has been exhausted. */
-open class GlkvmException(message: String) : RuntimeException(message)
+open class GlkvmException(message: String, cause: Throwable? = null) : RuntimeException(message, cause)
 
 /** Raised when the pinned TLS certificate does not match the server's. */
 class GlkvmCertMismatch(message: String) : GlkvmException(message)
@@ -50,9 +55,14 @@ class GlkvmCertMismatch(message: String) : GlkvmException(message)
  */
 class GlkvmClient private constructor(
     private val http: OkHttpClient,
+    private val snapshotHttp: OkHttpClient,
+    private val wsHttp: OkHttpClient,
     private val baseUrl: HttpUrl,
     private val user: String,
     private val password: String,
+    private val streamWsOpenTimeoutMs: Long,
+    private val streamWakeMaxRetries: Int,
+    private val streamWakeRetryDelayMs: Long,
 ) : AutoCloseable {
 
     private sealed interface AuthSession {
@@ -82,6 +92,26 @@ class GlkvmClient private constructor(
     @Volatile
     private var snapshotPath: String = "streamer/snapshot"
 
+    private val wsLock = Any()
+
+    @Volatile
+    private var streamWs: WebSocket? = null
+
+    @Volatile
+    private var streamWsOpen: Boolean = false
+
+    @Volatile
+    private var streamWsUnsupported: Boolean = false
+
+    @Volatile
+    private var lastWsPingAtMs: Long = 0L
+
+    @Volatile
+    private var glAdaptiveCleared: Boolean = false
+
+    @Volatile
+    private var closedClient: Boolean = false
+
     class Builder {
         var host: String = ""
         var port: Int = 443
@@ -97,6 +127,16 @@ class GlkvmClient private constructor(
 
         /** Full base URL override, e.g. `http://127.0.0.1:2222` (SSH-forward dial). */
         var baseUrlOverride: String? = null
+
+        /** Per-attempt read timeout on snapshot GETs so a sleeping/stalled streamer self-heals promptly. */
+        var snapshotReadTimeoutMs: Long = 6_000L
+
+        /** Max handshake wait for `GET /api/ws?stream=1` HTTP 101 upgrade. */
+        var streamWsOpenTimeoutMs: Long = 2_000L
+
+        /** Cold-start retry count & delay while `ustreamer` initializes capture after `/api/ws?stream=1` opens. */
+        var streamWakeMaxRetries: Int = 8
+        var streamWakeRetryDelayMs: Long = 300L
 
         fun build(): GlkvmClient {
             val host = host.trim()
@@ -132,7 +172,25 @@ class GlkvmClient private constructor(
                     placeholderOrLiteralAddresses(hostname)
                 }
             }
-            return GlkvmClient(builder.build(), base.toHttpUrl(), user, cleanPassword)
+            val coreHttp = builder.build()
+            val snapHttp = coreHttp.newBuilder()
+                .readTimeout(snapshotReadTimeoutMs.coerceAtLeast(50L), TimeUnit.MILLISECONDS)
+                .build()
+            val wsClient = coreHttp.newBuilder()
+                .readTimeout(0, TimeUnit.MILLISECONDS)
+                .pingInterval(15, TimeUnit.SECONDS)
+                .build()
+            return GlkvmClient(
+                http = coreHttp,
+                snapshotHttp = snapHttp,
+                wsHttp = wsClient,
+                baseUrl = base.toHttpUrl(),
+                user = user,
+                password = cleanPassword,
+                streamWsOpenTimeoutMs = streamWsOpenTimeoutMs.coerceAtLeast(50L),
+                streamWakeMaxRetries = streamWakeMaxRetries.coerceAtLeast(0),
+                streamWakeRetryDelayMs = streamWakeRetryDelayMs.coerceAtLeast(0L),
+            )
         }
 
         private fun placeholderOrLiteralAddresses(hostname: String): List<java.net.InetAddress> {
@@ -171,6 +229,10 @@ class GlkvmClient private constructor(
     private fun login(force: Boolean): AuthSession = synchronized(tokenLock) {
         val cached = authSession
         if (!force && cached != null) return cached
+        if (force) {
+            closeStreamSession()
+            glAdaptiveCleared = false
+        }
         val form = FormBody.Builder().add("user", user).add("passwd", password).build()
         val req = Request.Builder()
             .url(baseUrl.resolve("api/auth/login") ?: throw GlkvmException("bad base url"))
@@ -409,49 +471,228 @@ class GlkvmClient private constructor(
         }
     }
 
-    // -- video ---------------------------------------------------------------
+    // -- video & stream wake -------------------------------------------------
+
+    /**
+     * Ensure an authenticated `GET /api/ws?stream=1` WebSocket session is open.
+     *
+     * On GL.iNet Comet (RM1 `1.10.1`+) and stock PiKVM configs where
+     * `kvmd.streamer.forever` defaults to `false`, `kvmd`'s stream controller
+     * stops `ustreamer` whenever zero `/api/ws` stream clients are connected,
+     * causing `/streamer/snapshot` to return `502`/`503` or time out until a
+     * browser session opens (#845). Holding `/api/ws?stream=1` open keeps
+     * `ustreamer` awake for the lifetime of the Haven session, and periodic
+     * JSON `ping` events refresh GLKVM's sliding `auth_token` expiry.
+     */
+    fun ensureStreamSession(): Boolean {
+        if (closedClient) return false
+        if (streamWsOpen && streamWs != null) {
+            keepStreamAliveIfNeeded()
+            return true
+        }
+        if (streamWsUnsupported) return false
+        return openStreamSessionInternal(allowRelogin = true)
+    }
+
+    private fun openStreamSessionInternal(allowRelogin: Boolean): Boolean {
+        val auth = login(force = false)
+        val openLatch = java.util.concurrent.CountDownLatch(1)
+        val authRejected = java.util.concurrent.atomic.AtomicBoolean(false)
+        synchronized(wsLock) {
+            if (closedClient || streamWsUnsupported) return false
+            if (streamWsOpen && streamWs != null) return true
+            streamWs?.let { stale -> runCatching { stale.cancel() } }
+            streamWs = null
+            streamWsOpen = false
+            val (_, rb) = buildAuthedRequest("api/ws", auth, mapOf("stream" to "1"))
+            streamWs = wsHttp.newWebSocket(
+                rb.get().build(),
+                object : WebSocketListener() {
+                    override fun onOpen(webSocket: WebSocket, response: okhttp3.Response) {
+                        synchronized(wsLock) {
+                            if (streamWs === webSocket && !closedClient) {
+                                streamWsOpen = true
+                                lastWsPingAtMs = System.currentTimeMillis()
+                            }
+                        }
+                        runCatching { webSocket.send(STREAM_WS_PING_EVENT) }
+                        openLatch.countDown()
+                    }
+
+                    override fun onMessage(webSocket: WebSocket, text: String) {
+                        // Drain kvmd state broadcasts so the socket receive window stays clear.
+                    }
+
+                    override fun onMessage(webSocket: WebSocket, bytes: ByteString) {
+                        // Drain binary pong/HID frames.
+                    }
+
+                    override fun onClosing(webSocket: WebSocket, code: Int, reason: String) {
+                        synchronized(wsLock) {
+                            if (streamWs === webSocket) {
+                                streamWsOpen = false
+                            }
+                        }
+                        runCatching { webSocket.close(code, reason) }
+                    }
+
+                    override fun onClosed(webSocket: WebSocket, code: Int, reason: String) {
+                        synchronized(wsLock) {
+                            if (streamWs === webSocket) {
+                                streamWs = null
+                                streamWsOpen = false
+                            }
+                        }
+                    }
+
+                    override fun onFailure(webSocket: WebSocket, t: Throwable, response: okhttp3.Response?) {
+                        val code = response?.code ?: -1
+                        synchronized(wsLock) {
+                            if (streamWs === webSocket) {
+                                streamWs = null
+                                streamWsOpen = false
+                            }
+                            if (code == 404) {
+                                streamWsUnsupported = true
+                            }
+                        }
+                        if (code == 401 || code == 403) {
+                            authRejected.set(true)
+                        }
+                        openLatch.countDown()
+                    }
+                },
+            )
+        }
+        openLatch.await(streamWsOpenTimeoutMs, TimeUnit.MILLISECONDS)
+        if (authRejected.get() && allowRelogin && !closedClient) {
+            login(force = true)
+            return openStreamSessionInternal(allowRelogin = false)
+        }
+        return streamWsOpen
+    }
+
+    /** Send a kvmd JSON ping over `/api/ws?stream=1` periodically to refresh sliding token expiry. */
+    fun keepStreamAliveIfNeeded(nowMs: Long = System.currentTimeMillis()) {
+        val ws = streamWs ?: return
+        if (!streamWsOpen) return
+        if (nowMs - lastWsPingAtMs >= STREAM_WS_HEARTBEAT_MS) {
+            lastWsPingAtMs = nowMs
+            if (!ws.send(STREAM_WS_PING_EVENT)) {
+                synchronized(wsLock) {
+                    if (streamWs === ws) {
+                        streamWs = null
+                        streamWsOpen = false
+                    }
+                }
+            }
+        }
+    }
+
+    /** Close `/api/ws?stream=1` cleanly (`1000`) so kvmd clears HID state and idles `ustreamer`. */
+    fun closeStreamSession() {
+        val ws = synchronized(wsLock) {
+            val cur = streamWs
+            streamWs = null
+            streamWsOpen = false
+            cur
+        } ?: return
+        runCatching { ws.close(1000, "closed") }
+    }
+
+    /**
+     * Exit GLKVM's `webrtc_client` adaptive mode (`gl_webrtc=0`) once per GL token
+     * session if `/streamer/snapshot` stalls or stays unavailable even with
+     * `/api/ws?stream=1` open (e.g. after the GL.iNet mobile/cloud client left
+     * `webrtc_client` holding the capture device). Never sent to stock PiKVM.
+     */
+    private fun exitGlAdaptiveModeIfNeeded() {
+        if (glAdaptiveCleared || authSession !is AuthSession.GlToken) return
+        glAdaptiveCleared = true
+        runCatching { postOk("/api/streamer/set_params", mapOf("gl_webrtc" to "0")) }
+    }
 
     /**
      * Raw JPEG of the live frame (`streamer/snapshot` on GLKVM and nginx-fronted
      * PiKVM, falling back to `api/streamer/snapshot` on kvmd setups without the
      * direct ustreamer route). Binary-safe with one forced relogin retry on
-     * stale session (`401` or GL's `403 ForbiddenError`).
+     * stale session (`401` or GL's `403 ForbiddenError`), plus automatic
+     * `/api/ws?stream=1` streamer wakeup and cold-start retries when `ustreamer`
+     * is sleeping or initializing (#845).
      */
     fun snapshot(): ByteArray {
+        keepStreamAliveIfNeeded()
         val currentPath = snapshotPath
         return snapshotAt(currentPath, allowFallbackPath = currentPath == "streamer/snapshot")
     }
 
     private fun snapshotAt(path: String, allowFallbackPath: Boolean): ByteArray {
-        fetchSnapshotBytes(path).use { first ->
-            if (first.code == 404 && allowFallbackPath) {
-                val fallback = "api/streamer/snapshot"
-                val bytes = snapshotAt(fallback, allowFallbackPath = false)
-                snapshotPath = fallback
-                return bytes
-            }
-            if (first.code == 401 || first.code == 403) {
-                val errText = first.body?.string().orEmpty()
-                if (first.code == 401 || errText.contains("ForbiddenError")) {
-                    login(force = true)
-                    fetchSnapshotBytes(path).use { second ->
-                        if (second.code == 404 && allowFallbackPath) {
-                            val fallback = "api/streamer/snapshot"
-                            val bytes = snapshotAt(fallback, allowFallbackPath = false)
-                            snapshotPath = fallback
-                            return bytes
-                        }
-                        if (!second.isSuccessful) {
-                            val err2 = second.body?.string().orEmpty()
-                            throw GlkvmException("/$path -> HTTP ${second.code}: ${err2.take(200)}")
-                        }
-                        return second.body?.bytes() ?: ByteArray(0)
-                    }
+        var reloginUsed = false
+        var wakeAttempt = 0
+        while (true) {
+            val response = try {
+                fetchSnapshotBytes(path)
+            } catch (e: InterruptedIOException) {
+                if (closedClient || Thread.currentThread().isInterrupted || e !is SocketTimeoutException) {
+                    throw GlkvmException("/$path interrupted: ${e.message}", e)
                 }
-                throw GlkvmException("/$path -> HTTP ${first.code}: ${errText.take(200)}")
+                if (wakeAttempt >= streamWakeMaxRetries) {
+                    if (allowFallbackPath) {
+                        val fallback = "api/streamer/snapshot"
+                        val bytes = snapshotAt(fallback, allowFallbackPath = false)
+                        snapshotPath = fallback
+                        return bytes
+                    }
+                    throw GlkvmException("/$path timed out waiting for streamer", e)
+                }
+                wakeAttempt++
+                ensureStreamSession()
+                exitGlAdaptiveModeIfNeeded()
+                if (streamWakeRetryDelayMs > 0) Thread.sleep(streamWakeRetryDelayMs)
+                continue
             }
-            if (first.code >= 400) throw GlkvmException("/$path -> HTTP ${first.code}")
-            return first.body?.bytes() ?: ByteArray(0)
+
+            response.use { resp ->
+                if (resp.code == 404 && allowFallbackPath) {
+                    val fallback = "api/streamer/snapshot"
+                    val bytes = snapshotAt(fallback, allowFallbackPath = false)
+                    snapshotPath = fallback
+                    return bytes
+                }
+                if (resp.code == 401 || resp.code == 403) {
+                    val errText = resp.body?.string().orEmpty()
+                    if (!reloginUsed && (resp.code == 401 || errText.contains("ForbiddenError"))) {
+                        reloginUsed = true
+                        login(force = true)
+                        return@use
+                    }
+                    throw GlkvmException("/$path -> HTTP ${resp.code}: ${errText.take(200)}")
+                }
+                if (resp.code == 502 || resp.code == 503 || resp.code == 504) {
+                    if (!closedClient && wakeAttempt < streamWakeMaxRetries) {
+                        wakeAttempt++
+                        ensureStreamSession()
+                        if (resp.code == 504 || wakeAttempt >= 2) {
+                            exitGlAdaptiveModeIfNeeded()
+                        }
+                        if (streamWakeRetryDelayMs > 0) Thread.sleep(streamWakeRetryDelayMs)
+                        return@use
+                    }
+                    if (allowFallbackPath) {
+                        val fallback = "api/streamer/snapshot"
+                        val bytes = snapshotAt(fallback, allowFallbackPath = false)
+                        snapshotPath = fallback
+                        return bytes
+                    }
+                    val errText = resp.body?.string().orEmpty()
+                    throw GlkvmException("/$path -> HTTP ${resp.code}: ${errText.take(200)}")
+                }
+                if (resp.code >= 400) {
+                    val errText = resp.body?.string().orEmpty()
+                    throw GlkvmException("/$path -> HTTP ${resp.code}: ${errText.take(200)}")
+                }
+                return resp.body?.bytes() ?: ByteArray(0)
+            }
         }
     }
 
@@ -459,7 +700,7 @@ class GlkvmClient private constructor(
     private fun fetchSnapshotBytes(path: String): okhttp3.Response {
         val auth = login(force = false)
         val (_, rb) = buildAuthedRequest(path, auth)
-        return http.newCall(rb.get().build()).execute()
+        return snapshotHttp.newCall(rb.get().build()).execute()
     }
 
     /** HDMI/capture state: signal, resolution string, captured fps. */
@@ -547,11 +788,16 @@ class GlkvmClient private constructor(
     }
 
     override fun close() {
+        closedClient = true
+        closeStreamSession()
         http.dispatcher.cancelAll()
         http.dispatcher.executorService.shutdown()
     }
 
     companion object {
+        private const val STREAM_WS_HEARTBEAT_MS = 15_000L
+        private const val STREAM_WS_PING_EVENT = """{"event_type":"ping","event":{}}"""
+
         /** SHA-256 of a cert chain's leaf, lowercase hex — the TOFU pin format. */
         fun leafSha256(cert: Certificate): String =
             MessageDigest.getInstance("SHA-256").digest(cert.encoded)

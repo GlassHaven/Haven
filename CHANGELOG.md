@@ -5,6 +5,12 @@ the corresponding GitHub Release; a release can't ship without its section
 (enforced by `scripts/check-changelog.sh` in CI). The GitHub "Full Changelog"
 compare link is appended automatically — don't add it here.
 
+## v5.94.40
+
+- Add per-distro default login user settings under `Desktop -> Manage`, provisioning the configured guest user and `sudoers` entry on terminal or desktop launch while preserving global user defaults (#567, thanks @sugerpersion).
+- Support stock PiKVM (`kvmd`) devices on `GLKVM / PiKVM` profiles alongside GL.iNet Comet, adding `auth_token` session cookies, `/api/auth/check` unauthenticated setups, `/api/streamer` resolution state, and `/api/streamer/snapshot` fallback.
+- Step single-touch latched `Swipe` drags continuously by one terminal row height (`charHeight`) on both vertical and horizontal axes without scroll-on-hold, and gate scroll-on-hold behind a double-touch gesture (#736, thanks @excurso).
+
 ## v5.94.39
 
 - Migrate `archlinux-x86_64` PRoot guests off the broken `mirror.rackspace.com` default (`HTTP 403`) onto `geo.mirror.pkgbuild.com` with `fastly.mirror.pkgbuild.com` fallback, apply mirror configuration across foreign-arch distros and interactive/non-interactive PRoot sessions, and fail fast if keyring sync fails before system upgrades (#840, thanks @NAZY-OS).

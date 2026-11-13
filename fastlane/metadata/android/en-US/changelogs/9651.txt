@@ -1,0 +1,3 @@
+- Add per-distro default login user settings under Desktop -> Manage with guest provisioning (#567, thanks @sugerpersion).
+- Support stock PiKVM (kvmd) cookie/no-auth login, /api/streamer state, and snapshot fallback on GLKVM / PiKVM profiles.
+- Step single-touch latched Swipe drags continuously by one row height on both axes and arm scroll-on-hold on double-touch (#736, thanks @excurso).

@@ -5,6 +5,10 @@ the corresponding GitHub Release; a release can't ship without its section
 (enforced by `scripts/check-changelog.sh` in CI). The GitHub "Full Changelog"
 compare link is appended automatically — don't add it here.
 
+## v5.94.46
+
+- Hold `/api/ws?stream=1` open with periodic `ping` frames during GLKVM and PiKVM sessions so `kvmd` wakes idle `ustreamer` instances without needing a browser tab open, retry cold-start `502`/`503`/`504` snapshot responses, and send `POST /api/streamer/set_params?gl_webrtc=0` once when GL.iNet `gl_webrtc=1` adaptive mode stalls `/streamer/snapshot` (#845, thanks @skug67).
+
 ## v5.94.45
 
 - Add QEMU 11.1.3 and Virgl/Venus GPU acceleration (`gpuMode = std | virgl | venus` via Android's native `libvirgl_render_server.so` socket), a PRoot `EGL_PLATFORM_SURFACELESS_MESA` + `EGL_PBUFFER_BIT` patch for `-display egl-headless`, OVMF UEFI `pflash` firmware, and `swtpm` TPM 2.0 support across System VM import/boot, `Desktop -> Manage -> System VM`, and MCP tools (`upgrade_system_vm_qemu`, `import_system_vm_image`, `start_system_vm`) (#829, thanks @pixel4696).

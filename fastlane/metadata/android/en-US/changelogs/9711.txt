@@ -1,0 +1,1 @@
+- Hold `/api/ws?stream=1` open with periodic `ping` frames during GLKVM and PiKVM sessions so `kvmd` wakes idle `ustreamer` instances without needing a browser tab open, retry cold-start `502`/`503`/`504` snapshot responses, and send `POST /api/streamer/set_params?gl_webrtc=0` once when GL.iNet `gl_webrtc=1` adaptive mode stalls `/streamer/snapshot` (#845, thanks @skug67).

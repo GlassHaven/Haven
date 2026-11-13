@@ -70,7 +70,18 @@ internal class AdbPairingDiscovery(
      * that opens the dialog first and starts looking second can miss it on a
      * fast device.
      */
-    suspend fun awaitPairingEndpoint(timeoutMs: Long = DEFAULT_TIMEOUT_MS): Endpoint? {
+    suspend fun awaitPairingEndpoint(timeoutMs: Long = DEFAULT_TIMEOUT_MS): Endpoint? =
+        awaitServiceEndpoint(PAIRING_SERVICE_TYPE, timeoutMs)
+
+    /**
+     * Resolve the always-on Wireless Debugging TLS connect listener
+     * (`_adb-tls-connect._tcp`) so Haven's local non-root ADB bridge can dial
+     * `adbd` even after Wireless Debugging randomizes its port (#575 v2).
+     */
+    suspend fun awaitConnectEndpoint(timeoutMs: Long = DEFAULT_CONNECT_TIMEOUT_MS): Endpoint? =
+        awaitServiceEndpoint(CONNECT_SERVICE_TYPE, timeoutMs)
+
+    private suspend fun awaitServiceEndpoint(serviceType: String, timeoutMs: Long): Endpoint? {
         val found = CompletableDeferred<Endpoint>()
 
         val listener = object : NsdManager.DiscoveryListener {
@@ -117,11 +128,11 @@ internal class AdbPairingDiscovery(
             override fun onStopDiscoveryFailed(serviceType: String, errorCode: Int) = Unit
         }
 
-        nsd.discover(PAIRING_SERVICE_TYPE, listener)
+        nsd.discover(serviceType, listener)
         return try {
             withTimeoutOrNull(timeoutMs) { found.await() }
         } catch (e: IllegalStateException) {
-            Log.w(TAG, "pairing discovery: ${e.message}")
+            Log.w(TAG, "adb mDNS discovery ($serviceType): ${e.message}")
             null
         } finally {
             nsd.stopDiscovery(listener)
@@ -143,5 +154,8 @@ internal class AdbPairingDiscovery(
          * client timeout.
          */
         const val DEFAULT_TIMEOUT_MS = 30_000L
+
+        /** Fast probe timeout for the steady-state `_adb-tls-connect._tcp` service. */
+        const val DEFAULT_CONNECT_TIMEOUT_MS = 5_000L
     }
 }

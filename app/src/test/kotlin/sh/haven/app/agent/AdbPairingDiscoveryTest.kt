@@ -140,4 +140,19 @@ class AdbPairingDiscoveryTest {
         // Times out rather than throwing — another announcement may still land.
         assertNull(deferred.await())
     }
+
+    @Test
+    fun `awaitConnectEndpoint resolves the steady-state connect service`() = runTest {
+        val nsd = FakeNsd()
+        val resolved = serviceInfo("192.168.0.193", 39235)
+        nsd.willResolveTo(resolved)
+        val discovery = AdbPairingDiscovery(nsd)
+
+        val deferred = async { discovery.awaitConnectEndpoint(5_000) }
+        yield()
+        nsd.emitFound(resolved)
+
+        assertEquals(AdbPairingDiscovery.Endpoint("192.168.0.193", 39235), deferred.await())
+        assertEquals("_adb-tls-connect._tcp", nsd.discoveredType)
+    }
 }

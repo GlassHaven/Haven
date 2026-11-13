@@ -81,6 +81,8 @@ class McpTunnelManager @Inject constructor(
     private val keystoreSshKeySigner: sh.haven.core.ssh.KeystoreSshKeySigner? = null,
     // #777: honour SOCKS/HTTP proxy and tunnel routing on headless carrier too.
     private val tunnelResolver: sh.haven.core.tunnel.TunnelResolver? = null,
+    // #575 v2: re-arms the local non-root Wireless Debugging TLS bridge on reconnect.
+    private val adbBridgeController: AdbWirelessBridgeController? = null,
 ) {
     private val scope = CoroutineScope(SupervisorJob() + Dispatchers.IO)
     private val lock = Any()
@@ -472,6 +474,7 @@ class McpTunnelManager @Inject constructor(
                 .forEach { forwards.add(guestForwardInfo(it)) }
             preferencesRepository.mcpAdbExposedPort.first()?.let { adbPort ->
                 if (adbPort != mcpPort && forwards.none { it.bindPort == adbPort }) {
+                    runCatching { adbBridgeController?.ensureBridgeForReconnect(adbPort) }
                     forwards.add(adbForwardInfo(adbPort))
                 }
             }

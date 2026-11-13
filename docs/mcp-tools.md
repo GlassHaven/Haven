@@ -2065,8 +2065,10 @@ USB devices and drives, USB/IP export, the adb-over-VPN bridge, and adb pairing.
 <details markdown="1">
 <summary><code>await_adb_pairing_code</code> · no per-call prompt</summary>
 
-Block until the user sends the 6-digit code from Haven's direct-reply pairing notification, then return it with a ready-to-run `adb pair <host>:<port> <code>` (#575). Pair this with start_adb_pairing: that verb opens the dialog, finds the ephemeral pairing port and posts the prompt; this one collects the reply, and the agent runs the resulting command from the workstation that wants adb — Haven cannot run it itself (that needs SPAKE2-EE over TLS-PSK). Returns { code, host, port, pairCommand }. Errors if no pairing is in progress or the wait elapsed; the port dies with the dialog, so restart the flow rather than retrying a stale one.
+Block until the user sends the 6-digit code from Haven's direct-reply pairing notification, then complete Android's SPAKE2+/TLS-1.3 Wireless Debugging pairing handshake in-app (#575) and/or return a ready-to-run `adb pair <host>:<port> <code>`. Pair this with start_adb_pairing: when `pairInApp` is true (default), Haven pairs its own persistent ADB key against `_adb-tls-pairing._tcp` so non-root `expose_adb` works without Shizuku root; pass `publicKey` (`~/.android/adbkey.pub`) to register a workstation key instead, or set `pairInApp` to false to leave the one-shot pairing port untouched for a LAN `adb pair` command. Returns `{ code, host, port, pairCommand, pairedInApp, guid?, pairedKeyTarget?, pairError? }`.
 
+- `pairInApp` (boolean) — Complete the SPAKE2+/TLS-1.3 pairing handshake on-device (default true). Set false to leave the ephemeral pairing port unconsumed so a LAN workstation can run pairCommand directly.
+- `publicKey` (string) — Optional workstation ~/.android/adbkey.pub line to register with adbd instead of Haven's internal bridge key when pairInApp is true.
 - `timeoutMs` (integer) — How long to wait for the code, 1000-300000. Default 120000 — this is a human typing.
 
 </details>
@@ -2098,7 +2100,7 @@ Turn on Android's Wireless debugging (`adb connect` over WiFi) by setting `adb_w
 <details markdown="1">
 <summary><code>expose_adb</code> · asks every call</summary>
 
-Make the device's adb reachable from the workstation over 4G even with a system VPN active. Enables classic adb-over-TCP on a loopback port (default 5555) via Shizuku — no per-host pairing — then reverse-forwards 127.0.0.1:<port> over the existing MCP tunnel. Because the only phone-side hop is loopback (which Android never routes through a VpnService), adb stays reachable through any VPN. On the workstation: `adb connect localhost:<port>`. Requires Shizuku running + granted. Use install_apk_from_url/_from_backend for installs that don't need a full adb connection. Tear down with unexpose_adb.
+Make the device's adb reachable from the workstation over 4G even with a system VPN active. Tries classic adb-over-TCP (`service.adb.tcp.port`, default 5555) via Shizuku first; when Shizuku is unavailable or running without root, falls back to a local non-root TLS 1.3 bridge (`127.0.0.1:<port>` -> `_adb-tls-connect._tcp`) authenticated with Haven's paired ADB key (#575), then reverse-forwards `127.0.0.1:<port>` over the existing MCP tunnel. On the workstation: `adb connect localhost:<port>`. Tear down with unexpose_adb.
 
 - `port` (integer) — Loopback adb-over-TCP port to expose (default 5555).
 

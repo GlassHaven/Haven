@@ -115,6 +115,7 @@ class McpTools private constructor(
     internal var mcpPortProvider: () -> Int,
     private val updateChecker: sh.haven.core.data.update.UpdateChecker,
     textRecognizer: sh.haven.core.scan.TextRecognizer?,
+    private val adbBridgeController: AdbWirelessBridgeController = AdbWirelessBridgeController(context),
 ) {
 
     @Inject
@@ -158,6 +159,7 @@ class McpTools private constructor(
         agentConsentManager: sh.haven.core.data.agent.AgentConsentManager,
         updateChecker: sh.haven.core.data.update.UpdateChecker,
         textRecognizer: sh.haven.core.scan.TextRecognizer,
+        adbBridgeController: AdbWirelessBridgeController,
     ) : this(
         injectedProviders = injectedProviders,
         context = context,
@@ -199,6 +201,7 @@ class McpTools private constructor(
         mcpPortProvider = { MCP_REVERSE_TUNNEL_PORT },
         updateChecker = updateChecker,
         textRecognizer = textRecognizer,
+        adbBridgeController = adbBridgeController,
     )
 
     internal constructor(
@@ -274,6 +277,7 @@ class McpTools private constructor(
         usbProxyServer: sh.haven.core.usb.UsbProxyServer =
             sh.haven.core.usb.UsbProxyServer(usbBroker),
         extraProviders: Set<ToolProvider> = emptySet(),
+        adbBridgeController: AdbWirelessBridgeController = AdbWirelessBridgeController(context),
     ) : this(
         injectedProviders = linkedSetOf<ToolProvider>(
             KeyStoreToolProvider(
@@ -387,6 +391,7 @@ class McpTools private constructor(
         mcpPortProvider = mcpPortProvider,
         updateChecker = updateChecker,
         textRecognizer = textRecognizer,
+        adbBridgeController = adbBridgeController,
     )
 
     private val prootManager get() = localSessionManager.prootManager
@@ -1214,9 +1219,11 @@ class McpTools private constructor(
         ) { args -> startAdbPairing(args) },
 
         "await_adb_pairing_code" to ToolHandler(
-            description = "Block until the user sends the 6-digit code from Haven's direct-reply pairing notification, then return it with a ready-to-run `adb pair <host>:<port> <code>` (#575). Pair this with start_adb_pairing: that verb opens the dialog, finds the ephemeral pairing port and posts the prompt; this one collects the reply, and the agent runs the resulting command from the workstation that wants adb — Haven cannot run it itself (that needs SPAKE2-EE over TLS-PSK). Returns { code, host, port, pairCommand }. Errors if no pairing is in progress or the wait elapsed; the port dies with the dialog, so restart the flow rather than retrying a stale one.",
+            description = "Block until the user sends the 6-digit code from Haven's direct-reply pairing notification, then complete Android's SPAKE2+/TLS-1.3 Wireless Debugging pairing handshake in-app (#575) and/or return a ready-to-run `adb pair <host>:<port> <code>`. Pair this with start_adb_pairing: when `pairInApp` is true (default), Haven pairs its own persistent ADB key against `_adb-tls-pairing._tcp` so non-root `expose_adb` works without Shizuku root; pass `publicKey` (`~/.android/adbkey.pub`) to register a workstation key instead, or set `pairInApp` to false to leave the one-shot pairing port untouched for a LAN `adb pair` command. Returns `{ code, host, port, pairCommand, pairedInApp, guid?, pairedKeyTarget?, pairError? }`.",
             inputSchema = objectSchema {
                 integer("timeoutMs", "How long to wait for the code, 1000-300000. Default 120000 — this is a human typing.")
+                boolean("pairInApp", "Complete the SPAKE2+/TLS-1.3 pairing handshake on-device (default true). Set false to leave the ephemeral pairing port unconsumed so a LAN workstation can run pairCommand directly.")
+                string("publicKey", "Optional workstation ~/.android/adbkey.pub line to register with adbd instead of Haven's internal bridge key when pairInApp is true.")
             },
             consentLevel = ConsentLevel.NEVER,
         ) { args -> awaitAdbPairingCode(args) },
@@ -1240,7 +1247,7 @@ class McpTools private constructor(
         ) { args -> readLogcat(args) },
 
         "expose_adb" to ToolHandler(
-            description = "Make the device's adb reachable from the workstation over 4G even with a system VPN active. Enables classic adb-over-TCP on a loopback port (default 5555) via Shizuku — no per-host pairing — then reverse-forwards 127.0.0.1:<port> over the existing MCP tunnel. Because the only phone-side hop is loopback (which Android never routes through a VpnService), adb stays reachable through any VPN. On the workstation: `adb connect localhost:<port>`. Requires Shizuku running + granted. Use install_apk_from_url/_from_backend for installs that don't need a full adb connection. Tear down with unexpose_adb.",
+            description = "Make the device's adb reachable from the workstation over 4G even with a system VPN active. Tries classic adb-over-TCP (`service.adb.tcp.port`, default 5555) via Shizuku first; when Shizuku is unavailable or running without root, falls back to a local non-root TLS 1.3 bridge (`127.0.0.1:<port>` -> `_adb-tls-connect._tcp`) authenticated with Haven's paired ADB key (#575), then reverse-forwards `127.0.0.1:<port>` over the existing MCP tunnel. On the workstation: `adb connect localhost:<port>`. Tear down with unexpose_adb.",
             inputSchema = objectSchema {
                 integer("port", "Loopback adb-over-TCP port to expose (default 5555).")
             },
@@ -4881,15 +4888,16 @@ class McpTools private constructor(
     @Volatile
     private var pendingPairingPrompt: AdbPairingPrompt? = null
 
-    /** Await the code typed into the on-device overlay (#575). */
+    /** Await the code typed into the on-device overlay and optionally pair in-app (#575). */
     private suspend fun awaitAdbPairingCode(args: JSONObject): JSONObject {
         val latch = pendingPairingCode
             ?: throw McpError(-32603, "No pairing in progress — call start_adb_pairing first.")
         val timeoutMs = args.optLong("timeoutMs", 120_000L).coerceIn(1_000L, 300_000L)
+        val pairInApp = args.optBoolean("pairInApp", true)
+        val requestedPubKey = args.optString("publicKey", "").trim().ifEmpty { null }
         val code = kotlinx.coroutines.withTimeoutOrNull(timeoutMs) {
             runCatching { latch.await() }.getOrNull()
         } ?: run {
-            // A reply box for a dead port is worse than none.
             pendingPairingPrompt?.let { it.unregister(); it.cancel() }
             pendingPairingPrompt = null
             throw McpError(
@@ -4903,14 +4911,7 @@ class McpTools private constructor(
         pendingPairingEndpoint = null
         pendingPairingPrompt?.let { it.unregister(); it.cancel() }
         pendingPairingPrompt = null
-        return JSONObject().apply {
-            put("code", code)
-            if (endpoint != null) {
-                put("host", endpoint.host)
-                put("port", endpoint.port)
-                put("pairCommand", "adb pair ${endpoint.host}:${endpoint.port} $code")
-            }
-        }
+        return adbBridgeController.buildPairingCodeResponse(code, endpoint, pairInApp, requestedPubKey)
     }
 
     /**
@@ -4985,23 +4986,24 @@ class McpTools private constructor(
         if (port < 1024 || port > 65535) {
             throw McpError(-32602, "port must be between 1024 and 65535")
         }
-        enableAdbTcpipViaShizuku(port)
+        val activation = adbBridgeController.activateLocalAdbEndpoint(port, ::enableAdbTcpipViaShizuku)
         preferencesRepository.setMcpAdbExposedPort(port)
         val bound = mcpTunnelManager.exposeAdbPort(port)
         JSONObject().apply {
-            put("method", "tcpip")
+            put("method", activation.method)
             put("adbPort", port)
             put("activated", bound)
             put("connect", "adb connect localhost:$port")
+            activation.wirelessEndpoint?.let { put("wirelessEndpoint", it) }
             put(
                 "note",
                 if (bound) {
-                    "adbd exposed on the MCP tunnel endpoint (127.0.0.1:$port). On the " +
-                        "workstation run: adb connect localhost:$port — the loopback hop " +
+                    "adbd exposed on the MCP tunnel endpoint (127.0.0.1:$port, method=${activation.method}). " +
+                        "On the workstation run: adb connect localhost:$port — the loopback hop " +
                         "bypasses any system VPN. Verify with `adb devices`."
                 } else {
-                    "adb enabled and armed, but the MCP tunnel is not up right now — the " +
-                        "forward binds automatically once the tunnel connects, then: " +
+                    "adb enabled (${activation.method}) and armed, but the MCP tunnel is not up right now — " +
+                        "the forward binds automatically once the tunnel connects, then: " +
                         "adb connect localhost:$port."
                 },
             )
@@ -5010,18 +5012,20 @@ class McpTools private constructor(
 
     /**
      * Reverse of [exposeAdb]: drop the reverse forward, clear the persisted port,
-     * and return adbd to USB-only. Best-effort on the Shizuku step so the more
-     * important security action (removing the forward) always completes.
+     * tear down any local Wireless Debugging TLS bridge, and return adbd to USB-only.
      */
     private suspend fun unexposeAdb(): JSONObject = withContext(Dispatchers.IO) {
         val port = preferencesRepository.mcpAdbExposedPort.first() ?: DEFAULT_ADB_PORT
         mcpTunnelManager.unexposeAdbPort(port)
         preferencesRepository.setMcpAdbExposedPort(null)
+        val stoppedWirelessBridge = adbBridgeController.tlsBridge.isRunning
+        adbBridgeController.tlsBridge.stop()
         disableAdbTcpipViaShizuku()
         JSONObject().apply {
             put("disabled", true)
             put("adbPort", port)
-            put("note", "Removed the adb reverse forward and disabled adb-over-TCP on the device.")
+            put("stoppedWirelessBridge", stoppedWirelessBridge)
+            put("note", "Removed the adb reverse forward and stopped device adb exposure.")
         }
     }
 
@@ -5131,7 +5135,10 @@ class McpTools private constructor(
         // adb → workstation (reverse tunnel)
         val adbPort = preferencesRepository.mcpAdbExposedPort.first()
         if (adbPort != null) {
-            add("adb", "adb", "workstation", "reverse-tunnel", "active") { put("port", adbPort) }
+            add("adb", "adb", "workstation", "reverse-tunnel", "active") {
+                put("port", adbPort)
+                put("mode", if (adbBridgeController.tlsBridge.isRunning) "wireless-tls-bridge" else "tcpip")
+            }
         }
 
         // GPS broker (bridges.md GPS row): the continuous log feeds the

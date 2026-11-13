@@ -219,7 +219,65 @@ class SwipeArrowsTest {
             )!!
 
             assertFalse(cb.onSwipeHoldStart(4, 2, org.connectbot.terminal.SwipeHoldDirection.Left))
+            assertFalse(cb.prefersRowHeightScrollQuantum())
+            assertFalse(cb.onHorizontalScroll(4, 2, scrollLeft = false))
             assertTrue(cb.onScroll(4, 2, scrollUp = true))
             assertEquals(listOf("\u001b[<64;5;3M"), sent)
+        }
+
+    /**
+     * #736 second half: latched swipeArrowsMode requests row-height continuous
+     * drag quantization (`prefersRowHeightScrollQuantum() == true`) and maps
+     * single-touch `onHorizontalScroll` with the same prompt-literal vs
+     * alt-screen page-slide rule and Shift modifier as vertical/held swipes.
+     */
+    @Test
+    fun `latched swipeArrowsMode enables row-height quantum and routes horizontal continuous scroll`() =
+        kotlinx.coroutines.test.runTest {
+            val sent = mutableListOf<String>()
+            var altScreen = true
+            var shift = false
+            val cb = buildTerminalGestureCallback(
+                isMouseMode = true,
+                isAltScreen = true,
+                mouseInputEnabled = true,
+                terminalRightClick = false,
+                swipeArrowsMode = true,
+                isEmulatorAltScreenActive = { altScreen },
+                cursorKeyAppMode = { false },
+                isShiftActive = { shift },
+                coroutineScope = this,
+                sendInput = { sent += String(it, Charsets.ISO_8859_1) },
+            )!!
+
+            assertTrue(cb.prefersRowHeightScrollQuantum())
+            // Finger dragged LEFT (`scrollLeft = false`) inside alt-screen TUI (`htop`/`lnav`)
+            // slides the page left -> view moves right -> Right arrow (`ESC[C`).
+            assertTrue(cb.onHorizontalScroll(4, 2, scrollLeft = false))
+            assertEquals(listOf("\u001b[C"), sent)
+            sent.clear()
+
+            // Shift + horizontal drag in `lnav` sends Shift+Right (`ESC[1;2C`).
+            shift = true
+            assertTrue(cb.onHorizontalScroll(4, 2, scrollLeft = false))
+            assertEquals(listOf("\u001b[1;2C"), sent)
+            sent.clear()
+
+            // At a bare shell prompt (`isAltScreen = false`), finger dragged LEFT sends literal Left (`ESC[D`).
+            val promptCb = buildTerminalGestureCallback(
+                isMouseMode = false,
+                isAltScreen = false,
+                mouseInputEnabled = true,
+                terminalRightClick = false,
+                swipeArrowsMode = true,
+                isEmulatorAltScreenActive = { false },
+                cursorKeyAppMode = { false },
+                isShiftActive = { false },
+                coroutineScope = this,
+                sendInput = { sent += String(it, Charsets.ISO_8859_1) },
+            )!!
+            assertTrue(promptCb.prefersRowHeightScrollQuantum())
+            assertTrue(promptCb.onHorizontalScroll(4, 2, scrollLeft = false))
+            assertEquals(listOf("\u001b[D"), sent)
         }
 }

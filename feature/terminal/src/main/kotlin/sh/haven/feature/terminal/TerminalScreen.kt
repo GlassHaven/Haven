@@ -2732,6 +2732,19 @@ internal fun buildTerminalGestureCallback(
                 shift = isShiftActive(),
             )
 
+        override fun prefersRowHeightScrollQuantum(): Boolean = swipeArrowsMode
+
+        override fun onHorizontalScroll(col: Int, row: Int, scrollLeft: Boolean): Boolean {
+            if (!swipeArrowsMode) return false
+            val fingerDir = if (scrollLeft) {
+                org.connectbot.terminal.SwipeHoldDirection.Right
+            } else {
+                org.connectbot.terminal.SwipeHoldDirection.Left
+            }
+            sendInput(holdArrowBytes(fingerDir))
+            return true
+        }
+
         override fun onSwipeHoldStart(
             col: Int,
             row: Int,

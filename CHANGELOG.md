@@ -5,6 +5,10 @@ the corresponding GitHub Release; a release can't ship without its section
 (enforced by `scripts/check-changelog.sh` in CI). The GitHub "Full Changelog"
 compare link is appended automatically — don't add it here.
 
+## v5.94.42
+
+- Add a width-gated two-pane horizontal terminal split (`>= 600 dp`) via the tab context menu (`Split with...`) and tab-strip unsplit control, with independent PTY geometries, a draggable `0.2`..`0.8` divider (double-tap to reset to `50/50`), tap-to-focus IME routing, per-pane color schemes, and auto-collapse below `600 dp` or when either split tab closes (#141).
+
 ## v5.94.41
 
 - Re-wrap soft-wrapped scrollback lines on terminal resize, split top-straddling wrapped chains cleanly across scrollback and the visible grid instead of dropping continuation rows, coalesce restored scrollback tails when widening, and wrap double-width CJK and emoji glyphs before `cols - 1` (#520, thanks @frebib).

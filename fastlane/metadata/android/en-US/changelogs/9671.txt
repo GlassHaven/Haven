@@ -1,0 +1,1 @@
+- Add a width-gated two-pane horizontal terminal split (`>= 600 dp`) via the tab context menu (`Split with...`) and tab-strip unsplit control, with independent PTY geometries, a draggable `0.2`..`0.8` divider (double-tap to reset to `50/50`), tap-to-focus IME routing, per-pane color schemes, and auto-collapse below `600 dp` or when either split tab closes (#141).

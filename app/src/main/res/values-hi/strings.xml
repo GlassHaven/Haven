@@ -215,6 +215,10 @@
     <string name="app_system_vm_import_source">इमेज URL या डिवाइस पर पथ</string>
     <string name="app_system_vm_import_arch">गेस्ट आर्किटेक्चर</string>
     <string name="app_system_vm_import_arch_hint">इमेज से मेल खाना चाहिए — गलत टारगेट कोई त्रुटि नहीं दिखाता, वह बस कभी बूट नहीं होता।</string>
+    <string name="app_system_vm_upgrade_qemu11">QEMU 11 + Virgl अपग्रेड करें</string>
+    <string name="app_system_vm_import_gpu">GPU त्वरण</string>
+    <string name="app_system_vm_import_uefi">UEFI फ़र्मवेयर (OVMF)</string>
+    <string name="app_system_vm_import_tpm2">TPM 2.0 (swtpm, Windows 11)</string>
 
     <!-- Desktop manager: desktops inside the UML guest (docs/plans/uml-dm.md) -->
     <string name="app_uml_desktop_title">UML गेस्ट डेस्कटॉप</string>

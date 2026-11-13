@@ -225,6 +225,10 @@
     <string name="app_system_vm_import_source">이미지 URL 또는 기기 내 경로</string>
     <string name="app_system_vm_import_arch">게스트 아키텍처</string>
     <string name="app_system_vm_import_arch_hint">이미지와 일치해야 합니다. 대상이 틀리면 오류 없이 그냥 부팅되지 않습니다.</string>
+    <string name="app_system_vm_upgrade_qemu11">QEMU 11 + Virgl 업그레이드</string>
+    <string name="app_system_vm_import_gpu">GPU 가속</string>
+    <string name="app_system_vm_import_uefi">UEFI 펌웨어 (OVMF)</string>
+    <string name="app_system_vm_import_tpm2">TPM 2.0 (swtpm, Windows 11)</string>
 
     <!-- Desktop manager: desktops inside the UML guest (docs/plans/uml-dm.md) -->
     <string name="app_uml_desktop_title">UML 게스트 데스크톱</string>

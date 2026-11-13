@@ -225,6 +225,10 @@
     <string name="app_system_vm_import_source">Image URL or on-device path</string>
     <string name="app_system_vm_import_arch">Guest architecture</string>
     <string name="app_system_vm_import_arch_hint">Must match the image — the wrong target doesn\'t error, it just never boots.</string>
+    <string name="app_system_vm_upgrade_qemu11">Upgrade QEMU 11 + Virgl</string>
+    <string name="app_system_vm_import_gpu">GPU acceleration</string>
+    <string name="app_system_vm_import_uefi">UEFI firmware (OVMF)</string>
+    <string name="app_system_vm_import_tpm2">TPM 2.0 (swtpm, Windows 11)</string>
 
     <!-- Desktop manager: desktops inside the UML guest (docs/plans/uml-dm.md) -->
     <string name="app_uml_desktop_title">UML guest desktop</string>

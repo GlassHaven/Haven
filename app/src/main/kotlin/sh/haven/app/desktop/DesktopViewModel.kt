@@ -1617,6 +1617,15 @@ class DesktopViewModel @Inject constructor(
     private val _systemVmImportArch = MutableStateFlow(sh.haven.core.local.VmArch.X86_64)
     val systemVmImportArch: StateFlow<sh.haven.core.local.VmArch> = _systemVmImportArch.asStateFlow()
 
+    private val _systemVmImportGpuMode = MutableStateFlow(sh.haven.core.local.VmGpuMode.STD)
+    val systemVmImportGpuMode: StateFlow<sh.haven.core.local.VmGpuMode> = _systemVmImportGpuMode.asStateFlow()
+
+    private val _systemVmImportUefi = MutableStateFlow(false)
+    val systemVmImportUefi: StateFlow<Boolean> = _systemVmImportUefi.asStateFlow()
+
+    private val _systemVmImportTpm2 = MutableStateFlow(false)
+    val systemVmImportTpm2: StateFlow<Boolean> = _systemVmImportTpm2.asStateFlow()
+
     // --- Desktop-manager dialog drafts -------------------------------------
     //
     // Same reason as the system-VM import draft below, and the same rule: flag
@@ -1809,12 +1818,21 @@ class DesktopViewModel @Inject constructor(
 
     fun setSystemVmImportArch(value: sh.haven.core.local.VmArch) { _systemVmImportArch.value = value }
 
+    fun setSystemVmImportGpuMode(value: sh.haven.core.local.VmGpuMode) { _systemVmImportGpuMode.value = value }
+
+    fun setSystemVmImportUefi(value: Boolean) { _systemVmImportUefi.value = value }
+
+    fun setSystemVmImportTpm2(value: Boolean) { _systemVmImportTpm2.value = value }
+
     /** Closes the dialog and clears the draft, so the next open starts clean rather than resurrecting a cancelled one. */
     fun dismissSystemVmImport() {
         _showSystemVmImport.value = false
         _systemVmImportLabel.value = ""
         _systemVmImportSource.value = ""
         _systemVmImportArch.value = sh.haven.core.local.VmArch.X86_64
+        _systemVmImportGpuMode.value = sh.haven.core.local.VmGpuMode.STD
+        _systemVmImportUefi.value = false
+        _systemVmImportTpm2.value = false
     }
 
     init {
@@ -1831,7 +1849,14 @@ class DesktopViewModel @Inject constructor(
      * with it, since a qcow2 doesn't say and the boot silently hangs on the
      * wrong target.
      */
-    fun importSystemVmImage(label: String, source: String, arch: sh.haven.core.local.VmArch) {
+    fun importSystemVmImage(
+        label: String,
+        source: String,
+        arch: sh.haven.core.local.VmArch,
+        gpuMode: sh.haven.core.local.VmGpuMode = sh.haven.core.local.VmGpuMode.STD,
+        uefi: Boolean = false,
+        tpm2: Boolean = false,
+    ) {
         val id = label.lowercase().replace(Regex("[^a-z0-9._-]+"), "-").trim('-')
         if (id.isEmpty()) {
             viewModelScope.launch { _userMessages.emit("Give the image a name (letters/digits).") }
@@ -1840,11 +1865,34 @@ class DesktopViewModel @Inject constructor(
         viewModelScope.launch(Dispatchers.IO) {
             _systemVmBusy.value = true
             try {
-                systemVmManager.importImage(id, label.ifBlank { id }, source.trim(), arch = arch)
+                systemVmManager.importImage(
+                    id = id,
+                    label = label.ifBlank { id },
+                    source = source.trim(),
+                    arch = arch,
+                    gpuMode = gpuMode,
+                    uefi = uefi,
+                    tpm2 = tpm2,
+                )
                 refreshSystemVmImages()
                 _userMessages.emit("Imported \"$label\".")
             } catch (e: Exception) {
                 _userMessages.emit(e.message ?: "Couldn't import the image")
+            } finally {
+                _systemVmBusy.value = false
+            }
+        }
+    }
+
+    /** Build and install QEMU 11.1.3 + virglrenderer (Venus socket bridge) into `/opt/qemu11` in the active distro (#829). */
+    fun upgradeSystemVmQemu11() {
+        viewModelScope.launch(Dispatchers.IO) {
+            _systemVmBusy.value = true
+            try {
+                val status = systemVmManager.upgradeQemu11()
+                _userMessages.emit("Installed ${status.qemuVersion ?: "QEMU 11"} + virgl in /opt/qemu11.")
+            } catch (e: Exception) {
+                _userMessages.emit(e.message ?: "Couldn't upgrade QEMU 11 + virgl")
             } finally {
                 _systemVmBusy.value = false
             }

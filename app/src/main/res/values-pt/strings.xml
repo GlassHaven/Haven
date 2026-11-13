@@ -215,6 +215,10 @@
     <string name="app_system_vm_import_source">URL da imagem ou caminho no dispositivo</string>
     <string name="app_system_vm_import_arch">Arquitetura do convidado</string>
     <string name="app_system_vm_import_arch_hint">Deve corresponder à imagem — um destino errado não dá erro, apenas nunca inicializa.</string>
+    <string name="app_system_vm_upgrade_qemu11">Atualizar QEMU 11 + Virgl</string>
+    <string name="app_system_vm_import_gpu">Aceleração de GPU</string>
+    <string name="app_system_vm_import_uefi">Firmware UEFI (OVMF)</string>
+    <string name="app_system_vm_import_tpm2">TPM 2.0 (swtpm, Windows 11)</string>
 
     <!-- Desktop manager: desktops inside the UML guest (docs/plans/uml-dm.md) -->
     <string name="app_uml_desktop_title">Desktop de convidado UML</string>

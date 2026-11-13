@@ -71,6 +71,7 @@ enum class McpToolCategory {
                 "scroll_desktop_tab", "send_desktop_clipboard", "start_desktop",
                 "start_system_vm", "stop_desktop", "stop_system_vm", "tap_desktop_tab",
                 "tap_desktop_text", "type_desktop_text", "uninstall_desktop",
+                "upgrade_system_vm_qemu",
             ),
             GUEST to listOf(
                 "delete_distro", "delete_system_vm_image", "export_distro", "get_audio_bridge_status",

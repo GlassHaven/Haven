@@ -3923,6 +3923,86 @@
      }
     },
     {
+     "name": "app_system_vm_upgrade_qemu11",
+     "en": "Upgrade QEMU 11 + Virgl",
+     "comment": "Desktop manager: system VM (#326)",
+     "args": [],
+     "t": {
+      "ar": "ترقية QEMU 11 + Virgl",
+      "bn": "QEMU 11 + Virgl আপগ্রেড করুন",
+      "de": "QEMU 11 + Virgl aktualisieren",
+      "es": "Actualizar QEMU 11 + Virgl",
+      "fr": "Mettre à niveau QEMU 11 + Virgl",
+      "hi": "QEMU 11 + Virgl अपग्रेड करें",
+      "ja": "QEMU 11 + Virgl をアップグレード",
+      "ko": "QEMU 11 + Virgl 업그레이드",
+      "pt": "Atualizar QEMU 11 + Virgl",
+      "ru": "Обновить QEMU 11 + Virgl",
+      "sr": "Надогради QEMU 11 + Virgl",
+      "zh": "升级 QEMU 11 + Virgl"
+     }
+    },
+    {
+     "name": "app_system_vm_import_gpu",
+     "en": "GPU acceleration",
+     "comment": "Desktop manager: system VM (#326)",
+     "args": [],
+     "t": {
+      "ar": "تسريع معالج الرسوميات (GPU)",
+      "bn": "GPU ত্বরণ",
+      "de": "GPU-Beschleunigung",
+      "es": "Aceleración por GPU",
+      "fr": "Accélération GPU",
+      "hi": "GPU त्वरण",
+      "ja": "GPU アクセラレーション",
+      "ko": "GPU 가속",
+      "pt": "Aceleração de GPU",
+      "ru": "Ускорение GPU",
+      "sr": "GPU убрзање",
+      "zh": "GPU 加速"
+     }
+    },
+    {
+     "name": "app_system_vm_import_uefi",
+     "en": "UEFI firmware (OVMF)",
+     "comment": "Desktop manager: system VM (#326)",
+     "args": [],
+     "t": {
+      "ar": "برنامج UEFI الثابت (OVMF)",
+      "bn": "UEFI ফার্মওয়্যার (OVMF)",
+      "de": "UEFI-Firmware (OVMF)",
+      "es": "Firmware UEFI (OVMF)",
+      "fr": "Micrologiciel UEFI (OVMF)",
+      "hi": "UEFI फ़र्मवेयर (OVMF)",
+      "ja": "UEFI ファームウェア (OVMF)",
+      "ko": "UEFI 펌웨어 (OVMF)",
+      "pt": "Firmware UEFI (OVMF)",
+      "ru": "Прошивка UEFI (OVMF)",
+      "sr": "UEFI фирмвер (OVMF)",
+      "zh": "UEFI 固件 (OVMF)"
+     }
+    },
+    {
+     "name": "app_system_vm_import_tpm2",
+     "en": "TPM 2.0 (swtpm, Windows 11)",
+     "comment": "Desktop manager: system VM (#326)",
+     "args": [],
+     "t": {
+      "ar": "TPM 2.0 (swtpm، Windows 11)",
+      "bn": "TPM 2.0 (swtpm, Windows 11)",
+      "de": "TPM 2.0 (swtpm, Windows 11)",
+      "es": "TPM 2.0 (swtpm, Windows 11)",
+      "fr": "TPM 2.0 (swtpm, Windows 11)",
+      "hi": "TPM 2.0 (swtpm, Windows 11)",
+      "ja": "TPM 2.0 (swtpm、Windows 11)",
+      "ko": "TPM 2.0 (swtpm, Windows 11)",
+      "pt": "TPM 2.0 (swtpm, Windows 11)",
+      "ru": "TPM 2.0 (swtpm, Windows 11)",
+      "sr": "TPM 2.0 (swtpm, Windows 11)",
+      "zh": "TPM 2.0 (swtpm, Windows 11)"
+     }
+    },
+    {
      "name": "app_uml_desktop_title",
      "en": "UML guest desktop",
      "comment": "Desktop manager: desktops inside the UML guest (docs/plans/uml-dm.md)",

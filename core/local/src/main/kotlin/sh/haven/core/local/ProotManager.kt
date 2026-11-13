@@ -4354,6 +4354,7 @@ chmod +x /root/.vnc/xstartup""")
                 // would have had anyway. A desktop that mostly works beats
                 // an install marked failed.
                 stageWayvncBuildScript()
+        stageQemu11BuildScript()
                 _desktopState.value = DesktopSetupState.Installing("Checking wayvnc version...", de)
                 // Bounded, unlike the rest: this compiles wayvnc from source
                 // and is the one step a reporter watched sit at "Checking
@@ -4641,6 +4642,30 @@ chmod +x /root/.vnc/xstartup""")
      */
     val wayvncBuildCommand: String get() = "sh /usr/local/share/haven/wayvnc-build/build.sh"
 
+    /**
+     * Stage the QEMU 11.1.3 + virglrenderer (Venus socket bridge) build assets
+     * into the active rootfs at `/usr/local/share/haven/qemu11-build/` (#829).
+     */
+    fun stageQemu11BuildScript() {
+        val destDir = File(activeRootfsDir, "usr/local/share/haven/qemu11-build")
+        fun copy(name: String) = try {
+            destDir.mkdirs()
+            val target = File(destDir, name)
+            context.assets.open("qemu11-build/$name").use { input ->
+                target.outputStream().use { output -> input.copyTo(output) }
+            }
+            target.setReadable(true, false)
+            Log.d(TAG, "[qemu11-build] staged $name (${target.length()} bytes)")
+        } catch (e: Exception) {
+            Log.w(TAG, "[qemu11-build] failed to stage $name: ${e.message}")
+        }
+        copy("build.sh")
+        copy("qemu-egl-surfaceless.patch")
+    }
+
+    /** In-guest command that builds QEMU 11.1.3 + virglrenderer into `/opt/qemu11` (#829). */
+    val qemu11BuildCommand: String get() = "sh /usr/local/share/haven/qemu11-build/build.sh"
+
     /** Absolute in-guest path of the LD_PRELOAD list written by [mesaVenusFixBuildCommand]. */
     val mesaVenusFixPreloadPath: String get() = "/usr/local/lib/haven/mesa-venus-fix/preload"
 
@@ -4697,6 +4722,7 @@ chmod +x /root/.vnc/xstartup""")
         // keeps its old wayvnc until the DE is reinstalled or the user runs
         // the staged script themselves.
         stageWayvncBuildScript()
+        stageQemu11BuildScript()
         for ((relPath, content) in de.spec.configSeed) {
             val target = File(activeRootfsDir, relPath)
             val existing = if (target.exists()) {

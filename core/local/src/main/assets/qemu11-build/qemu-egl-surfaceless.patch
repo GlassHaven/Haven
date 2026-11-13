@@ -1,0 +1,119 @@
+--- a/ui/egl-helpers.c	2026-11-13 12:48:37.231398826 +0000
++++ b/ui/egl-helpers.c	2026-11-13 12:48:37.231425855 +0000
+@@ -25,6 +25,11 @@
+ #include "trace.h"
+ #include "standard-headers/drm/drm_fourcc.h"
+ 
++#ifndef EGL_PLATFORM_SURFACELESS_MESA
++#define EGL_PLATFORM_SURFACELESS_MESA 0x31DD
++#endif
++static int qemu_egl_init_dpy_surfaceless(DisplayGLMode mode);
++
+ EGLDisplay *qemu_egl_display;
+ EGLConfig qemu_egl_config;
+ DisplayGLMode qemu_egl_mode;
+@@ -237,21 +242,27 @@
+ 
+     qemu_egl_rn_fd = qemu_drm_rendernode_open(rendernode);
+     if (qemu_egl_rn_fd == -1) {
+-        error_report("egl: no drm render node available");
+-        goto err;
+-    }
+-
+-    qemu_egl_rn_gbm_dev = gbm_create_device(qemu_egl_rn_fd);
+-    if (!qemu_egl_rn_gbm_dev) {
+-        error_report("egl: gbm_create_device failed");
+-        goto err;
+-    }
++        /* Haven PRoot fallback: no /dev/dri node in Android PRoot guests.
++         * Initialise EGL_PLATFORM_SURFACELESS_MESA so egl-headless can render
++         * scanout textures and import Venus memfd dma-bufs into VNC. */
++        rc = qemu_egl_init_dpy_surfaceless(mode);
++        if (rc != 0) {
++            error_report("egl: no drm render node available and surfaceless fallback failed");
++            goto err;
++        }
++    } else {
++        qemu_egl_rn_gbm_dev = gbm_create_device(qemu_egl_rn_fd);
++        if (!qemu_egl_rn_gbm_dev) {
++            error_report("egl: gbm_create_device failed");
++            goto err;
++        }
+ 
+-    rc = qemu_egl_init_dpy_mesa((EGLNativeDisplayType)qemu_egl_rn_gbm_dev,
+-                                mode);
+-    if (rc != 0) {
+-        /* qemu_egl_init_dpy_mesa reports error */
+-        goto err;
++        rc = qemu_egl_init_dpy_mesa((EGLNativeDisplayType)qemu_egl_rn_gbm_dev,
++                                    mode);
++        if (rc != 0) {
++            /* qemu_egl_init_dpy_mesa reports error */
++            goto err;
++        }
+     }
+ 
+     if (!epoxy_has_egl_extension(qemu_egl_display,
+@@ -259,15 +270,17 @@
+         error_report("egl: EGL_KHR_surfaceless_context not supported");
+         goto err;
+     }
+-    if (!epoxy_has_egl_extension(qemu_egl_display,
+-                                 "EGL_MESA_image_dma_buf_export")) {
+-        error_report("egl: EGL_MESA_image_dma_buf_export not supported");
+-        goto err;
+-    }
+-    if (!epoxy_has_egl_extension(qemu_egl_display,
+-                                 "EGL_EXT_image_dma_buf_import_modifiers")) {
+-        error_report("egl: EGL_EXT_image_dma_buf_import_modifiers not supported");
+-        goto err;
++    if (qemu_egl_rn_fd != -1) {
++        if (!epoxy_has_egl_extension(qemu_egl_display,
++                                     "EGL_MESA_image_dma_buf_export")) {
++            error_report("egl: EGL_MESA_image_dma_buf_export not supported");
++            goto err;
++        }
++        if (!epoxy_has_egl_extension(qemu_egl_display,
++                                     "EGL_EXT_image_dma_buf_import_modifiers")) {
++            error_report("egl: EGL_EXT_image_dma_buf_import_modifiers not supported");
++            goto err;
++        }
+     }
+ 
+     qemu_egl_rn_ctx = qemu_egl_init_ctx();
+@@ -543,8 +556,10 @@
+                              EGLenum platform,
+                              DisplayGLMode mode)
+ {
+-    static const EGLint conf_att_core[] = {
+-        EGL_SURFACE_TYPE, EGL_WINDOW_BIT,
++    const EGLint surf_bit = (platform == EGL_PLATFORM_SURFACELESS_MESA)
++        ? EGL_PBUFFER_BIT : EGL_WINDOW_BIT;
++    const EGLint conf_att_core[] = {
++        EGL_SURFACE_TYPE, surf_bit,
+         EGL_RENDERABLE_TYPE, EGL_OPENGL_BIT,
+         EGL_RED_SIZE,   5,
+         EGL_GREEN_SIZE, 5,
+@@ -552,8 +567,8 @@
+         EGL_ALPHA_SIZE, 0,
+         EGL_NONE,
+     };
+-    static const EGLint conf_att_gles[] = {
+-        EGL_SURFACE_TYPE, EGL_WINDOW_BIT,
++    const EGLint conf_att_gles[] = {
++        EGL_SURFACE_TYPE, surf_bit,
+         EGL_RENDERABLE_TYPE, EGL_OPENGL_ES2_BIT,
+         EGL_RED_SIZE,   5,
+         EGL_GREEN_SIZE, 5,
+@@ -618,6 +633,11 @@
+     return qemu_egl_init_dpy(dpy, 0, mode);
+ #endif
+ }
++
++static int qemu_egl_init_dpy_surfaceless(DisplayGLMode mode)
++{
++    return qemu_egl_init_dpy(EGL_DEFAULT_DISPLAY, EGL_PLATFORM_SURFACELESS_MESA, mode);
++}
+ #endif
+ 
+ 

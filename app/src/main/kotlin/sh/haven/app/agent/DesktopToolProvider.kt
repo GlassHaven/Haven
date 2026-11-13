@@ -127,36 +127,52 @@ internal class DesktopToolProvider(
         ) { args -> stopDesktopTool(args) },
 
         "list_system_vm_images" to ToolHandler(
-            description = "List the stored system-VM disk images (#326) and the current VM's state. A system VM is a full QEMU Linux VM (x86_64 or aarch64) booted inside the active proot and viewed over VNC on loopback — distinct from a desktop environment (list_desktop_environments) and the USB-drive appliance (#287). Returns { vm: { status, vncPort, arch, accel, accelReason }, host: { arch, kvm: { usable, detail } }, count, images:[{ id, label, sizeBytes, arch }] }. `status` is one of stopped/starting/running/error; when running, `vncPort` is the loopback port a VNC connection points at (create_connection type=VNC host=127.0.0.1 vncPort=<port>). `host.kvm` is a live probe of /dev/kvm — on retail arm64 phones it is absent because the vendor hypervisor owns EL2, so guests run under TCG emulation. Images are qcow2, normalised on import.",
+            description = "List the stored system-VM disk images (#326, #829) and the current VM's state. A system VM is a full QEMU VM (x86_64 or aarch64, Linux or Windows 11) booted inside the active proot and viewed over VNC on loopback — distinct from a desktop environment (list_desktop_environments) and the USB-drive appliance (#287). Returns { vm: { status, vncPort, arch, accel, accelReason, usbRedirPort, gpuMode, uefi, tpm2 }, host: { arch, kvm: { usable, detail } }, count, images:[{ id, label, sizeBytes, arch, gpuMode, uefi, tpm2 }] }. `status` is one of stopped/starting/running/error; when running, `vncPort` is the loopback port a VNC connection points at (create_connection type=VNC host=127.0.0.1 vncPort=<port>). `gpuMode` is one of std/virgl/venus (`venus` forwards guest Vulkan and DirectX 11 over `VIRGL_RENDER_SERVER_SOCKET` to Android's native `libvirgl_render_server.so` when `/opt/qemu11` is installed via upgrade_system_vm_qemu). Images are qcow2, normalised on import.",
             inputSchema = emptyObjectSchema(),
             consentLevel = ConsentLevel.NEVER,
         ) { _ -> listSystemVmImages() },
 
         "import_system_vm_image" to ToolHandler(
-            description = "Import a bootable disk image as a system VM (#326). `source` is an http(s) URL or an on-device file path; it is downloaded/copied then normalised to qcow2 via `qemu-img convert` (raw/qcow2/vdi/vmdk in, qcow2 out) under the app cache. Provide a `label`; `id` defaults to a slug of the label. Optional `sha256` is verified against the SOURCE bytes. `arch` records which CPU the image is for — a qcow2 does not say, and booting an arm64 rootfs on the x86_64 target just hangs — and decides which qemu target is installed (Debian: qemu-system-arm for aarch64). Installs qemu in the active distro on first use (needs a VNC-capable qemu — Debian's has it, Alpine's does not). Synchronous: returns { id, label, sizeBytes, arch } when the converted image is ready. Then boot it with start_system_vm.",
+            description = "Import a bootable disk image as a system VM (#326, #829). `source` is an http(s) URL or an on-device file path; it is downloaded/copied then normalised to qcow2 via `qemu-img convert` (raw/qcow2/vdi/vmdk in, qcow2 out) under the app cache. Provide a `label`; `id` defaults to a slug of the label. Optional `sha256` is verified against the SOURCE bytes. `arch` records which CPU the image is for (`x86_64` or `aarch64`). Optional `gpuMode` (`std`, `virgl`, `venus`), `uefi` (OVMF pflash on x86_64), and `tpm2` (`swtpm` TPM 2.0) record default boot settings; pass `windows11=true` as shorthand for `gpuMode=venus`, `uefi=true`, `tpm2=true`. Synchronous: returns { id, label, sizeBytes, arch, gpuMode, uefi, tpm2 } when the converted image is ready. Then boot it with start_system_vm.",
             inputSchema = objectSchema {
-                string("label", "Human-readable name for the image (e.g. \"Debian 12\").", required = true)
+                string("label", "Human-readable name for the image (e.g. \"Debian 12\" or \"Windows 11\").", required = true)
                 string("source", "http(s) URL or on-device file path to a bootable disk image (.qcow2/.img/.iso/.vdi/.vmdk).", required = true)
                 string("id", "Image id slug (lowercase letters, digits, . _ -). Defaults to a slug of the label.")
                 string("sha256", "Optional SHA-256 of the source bytes to verify after download.")
                 string("arch", "Guest CPU architecture of the image. Default x86_64.", enum = listOf("x86_64", "aarch64"))
+                string("gpuMode", "Default GPU mode: std (software VGA), virgl (OpenGL via virgl_test_server), or venus (Vulkan + DirectX 11 via libvirgl_render_server.so, requires upgrade_system_vm_qemu). Default std.", enum = listOf("std", "virgl", "venus"))
+                boolean("uefi", "Boot x86_64 image with OVMF UEFI pflash + writable NVRAM vars (required for Windows 11). Default false.")
+                boolean("tpm2", "Attach a swtpm TPM 2.0 device (required for Windows 11). Default false.")
+                boolean("windows11", "Convenience preset enabling gpuMode=venus, uefi=true, and tpm2=true unless explicitly overridden. Default false.")
             },
             consentLevel = ConsentLevel.EVERY_CALL,
             summarise = { args -> "Import system-VM image \"${args.optString("label")}\" from ${args.optString("source")}?" },
         ) { args -> importSystemVmImage(args) },
 
         "start_system_vm" to ToolHandler(
-            description = "Boot a stored system-VM image (#326) with a VNC display on a free loopback port, and wait for the VNC server to bind (up to ~20s; a timeout means this distro's qemu has no VNC — try a Debian image/distro). The image's recorded arch picks the machine: x86_64 gets `-M pc -vga std`, aarch64 gets `-M virt` with UEFI firmware, virtio-gpu and USB HID (installing the distro's edk2 package if needed). Pass `usbRedirPort` (from `start_usbredir_export`, default 4000) to attach a phone-connected USB device directly into the guest over `-device qemu-xhci -chardev socket,id=usbredir0,host=127.0.0.1,port=<usbRedirPort> -device usb-redir,chardev=usbredir0` (#613). One VM at a time — call stop_system_vm first to replace a running one. Does NOT open a viewer (MCP has no UI) — returns { imageId, status, arch, accel, accelReason, vncHost, vncPort, usbRedirPort, hint } so you connect it yourself: create_connection type=VNC host=127.0.0.1 vncPort=<vncPort>, then connect_profile. `accel` is the resolved reality, not a request: KVM needs a usable /dev/kvm AND a guest arch matching the host, which retail arm64 phones cannot offer, so expect TCG and a slow (~2 min) but usable boot. `accel=kvm` fails fast when it is impossible rather than booting slowly; `accel=auto` (default) falls back to TCG if a KVM boot does not come up.",
+            description = "Boot a stored system-VM image (#326, #829) with a VNC display on a free loopback port, and wait for the VNC server to bind (up to ~20s; a timeout means this distro's qemu has no VNC — try a Debian image/distro). Uses `/opt/qemu11` automatically when installed via `upgrade_system_vm_qemu`. Optional `gpuMode` (`std`, `virgl`, `venus`), `uefi`, and `tpm2` override the image's stored defaults (`venus` spawns Android's native `libvirgl_render_server.so` on a shared socket, configures `-object memory-backend-memfd,share=on`, `-M q35`, `-cpu qemu64,+ssse3,+sse4.1,+sse4.2,+popcnt`, and `-device virtio-vga-gl,drm_native_context=off,disable-legacy=on,hostmem=4G,blob=on,venus=on,xres=1920,yres=1080` + `-display egl-headless` for DirectX 11 / Vulkan). Pass `usbRedirPort` (from `start_usbredir_export`, default 4000) to attach a phone-connected USB device (#613). One VM at a time — call stop_system_vm first to replace a running one. Returns { imageId, status, arch, accel, accelReason, gpuMode, uefi, tpm2, vncHost, vncPort, usbRedirPort, hint }.",
             inputSchema = objectSchema {
                 string("imageId", "Image id from list_system_vm_images.", required = true)
-                integer("memMb", "Guest RAM in MiB. Default 2048.")
+                integer("memMb", "Guest RAM in MiB. Default 2048 (4096 when gpuMode=venus or tpm2=true).")
                 integer("cpus", "Guest vCPUs. Default 2.")
                 string("accel", "auto = KVM when genuinely possible else TCG (default); kvm = insist, erroring out if impossible; tcg = force emulation.", enum = listOf("auto", "kvm", "tcg"))
                 integer("usbRedirPort", "Optional loopback TCP port of a running usbredir export (from start_usbredir_export, default 4000) to attach to the guest over qemu-xhci + usb-redir (#613).")
+                string("gpuMode", "Optional override for GPU mode: std, virgl, or venus (#829).", enum = listOf("std", "virgl", "venus"))
+                boolean("uefi", "Optional override for x86_64 OVMF UEFI pflash firmware (#829).")
+                boolean("tpm2", "Optional override for swtpm TPM 2.0 emulation (#829).")
             },
             consentLevel = ConsentLevel.EVERY_CALL,
             summarise = { args -> "Boot system VM '${args.optString("imageId")}'?" },
         ) { args -> startSystemVm(args) },
+
+        "upgrade_system_vm_qemu" to ToolHandler(
+            description = "Build and install QEMU 11.1.3 + virglrenderer (with Venus `VIRGL_RENDER_SERVER_SOCKET` bridge, PRoot surfaceless `egl-headless` fallback, OVMF UEFI firmware, and `swtpm` TPM 2.0) from pinned SHA-verified sources into `/opt/qemu11` inside the active PRoot distro (#829). Idempotent — returns immediately if `/opt/qemu11` already matches both source pins unless `forceRebuild=true`. Required once per distro before booting a system VM with `gpuMode=venus` (DirectX 11 / Vulkan).",
+            inputSchema = objectSchema {
+                boolean("forceRebuild", "Rebuild /opt/qemu11 from source even if matching pins are already installed. Default false.")
+            },
+            consentLevel = ConsentLevel.EVERY_CALL,
+            summarise = { _ -> "Build and install QEMU 11.1.3 + virglrenderer into /opt/qemu11 in the active distro?" },
+        ) { args -> upgradeSystemVmQemu(args) },
 
         "stop_system_vm" to ToolHandler(
             description = "Power off / kill the running system VM (#326) and release its loopback VNC port. Idempotent — a no-op if none is running. Kills the whole qemu process tree inside the proot.",
@@ -669,11 +685,11 @@ internal class DesktopToolProvider(
             put("vncPort", st?.vncPort ?: JSONObject.NULL)
             put("arch", st?.arch?.id ?: JSONObject.NULL)
             put("accel", st?.accel?.name?.lowercase() ?: JSONObject.NULL)
-            // Why it's TCG is the question every "this is slow" report starts
-            // with; carry the probe's own answer instead of making the agent
-            // guess from the timing.
             put("accelReason", st?.accelReason?.takeIf { it.isNotBlank() } ?: JSONObject.NULL)
             put("usbRedirPort", st?.usbRedirPort ?: JSONObject.NULL)
+            put("gpuMode", st?.gpuMode?.id ?: JSONObject.NULL)
+            put("uefi", st?.uefi ?: JSONObject.NULL)
+            put("tpm2", st?.tpm2 ?: JSONObject.NULL)
         }
     }
 
@@ -700,6 +716,9 @@ internal class DesktopToolProvider(
                 put("label", img.label)
                 put("sizeBytes", img.sizeBytes)
                 put("arch", img.arch.id)
+                put("gpuMode", img.gpuMode.id)
+                put("uefi", img.uefi)
+                put("tpm2", img.tpm2)
             })
         }
         return JSONObject().apply {
@@ -719,11 +738,19 @@ internal class DesktopToolProvider(
             ?: label.lowercase().replace(Regex("[^a-z0-9._-]+"), "-").trim('-')
         if (id.isEmpty()) throw McpError(-32602, "could not derive an image id from the label; pass an explicit id")
         val sha = args.optString("sha256").takeIf { it.isNotBlank() }
-        // An unrecognised arch resolves to x86_64 rather than erroring — but the
-        // schema enumerates the two, so a typo is caught before it gets here.
         val arch = sh.haven.core.local.VmArch.fromId(args.optString("arch").takeIf { it.isNotBlank() })
+        val win11Preset = args.optBoolean("windows11", false)
+        val gpuMode = if (args.has("gpuMode") && !args.isNull("gpuMode") && args.optString("gpuMode").isNotBlank()) {
+            sh.haven.core.local.VmGpuMode.fromId(args.optString("gpuMode"))
+        } else if (win11Preset) {
+            sh.haven.core.local.VmGpuMode.VENUS
+        } else {
+            sh.haven.core.local.VmGpuMode.STD
+        }
+        val uefi = if (args.has("uefi") && !args.isNull("uefi")) args.optBoolean("uefi") else win11Preset
+        val tpm2 = if (args.has("tpm2") && !args.isNull("tpm2")) args.optBoolean("tpm2") else win11Preset
         val img = try {
-            systemVmManager.importImage(id, label, source, sha, arch)
+            systemVmManager.importImage(id, label, source, sha, arch, gpuMode, uefi, tpm2)
         } catch (e: Exception) {
             throw McpError(-32603, e.message ?: "import failed")
         }
@@ -732,6 +759,9 @@ internal class DesktopToolProvider(
             put("label", img.label)
             put("sizeBytes", img.sizeBytes)
             put("arch", img.arch.id)
+            put("gpuMode", img.gpuMode.id)
+            put("uefi", img.uefi)
+            put("tpm2", img.tpm2)
         }
     }
 
@@ -752,8 +782,25 @@ internal class DesktopToolProvider(
         } else {
             null
         }
+        val gpuOverride = args.optString("gpuMode").takeIf { it.isNotBlank() }?.let {
+            when (it.trim().lowercase()) {
+                "std", "virgl", "venus" -> sh.haven.core.local.VmGpuMode.fromId(it)
+                else -> throw McpError(-32602, "gpuMode must be one of std, virgl, venus")
+            }
+        }
+        val uefiOverride = if (args.has("uefi") && !args.isNull("uefi")) args.optBoolean("uefi") else null
+        val tpm2Override = if (args.has("tpm2") && !args.isNull("tpm2")) args.optBoolean("tpm2") else null
         val st = try {
-            systemVmManager.startImage(imageId, memMb, cpus, accelMode, usbRedirPort)
+            systemVmManager.startImage(
+                imageId = imageId,
+                memMb = memMb,
+                cpus = cpus,
+                accelMode = accelMode,
+                usbRedirPort = usbRedirPort,
+                gpuMode = gpuOverride,
+                uefi = uefiOverride,
+                tpm2 = tpm2Override,
+            )
         } catch (e: Exception) {
             throw McpError(-32603, e.message ?: "start failed")
         }
@@ -763,10 +810,27 @@ internal class DesktopToolProvider(
             put("arch", st.arch.id)
             put("accel", st.accel.name.lowercase())
             put("accelReason", st.accelReason)
+            put("gpuMode", st.gpuMode.id)
+            put("uefi", st.uefi)
+            put("tpm2", st.tpm2)
             put("vncHost", "127.0.0.1")
             put("vncPort", st.vncPort ?: JSONObject.NULL)
             put("usbRedirPort", st.usbRedirPort ?: JSONObject.NULL)
             put("hint", "create_connection type=VNC host=127.0.0.1 vncPort=${st.vncPort} then connect_profile")
+        }
+    }
+
+    private suspend fun upgradeSystemVmQemu(args: JSONObject): JSONObject {
+        val forceRebuild = args.optBoolean("forceRebuild", false)
+        val status = try {
+            systemVmManager.upgradeQemu11(forceRebuild)
+        } catch (e: Exception) {
+            throw McpError(-32603, e.message ?: "QEMU 11 upgrade failed")
+        }
+        return JSONObject().apply {
+            put("installed", status.installed)
+            put("qemuVersion", status.qemuVersion ?: JSONObject.NULL)
+            put("virglCommit", status.virglCommit ?: JSONObject.NULL)
         }
     }
 

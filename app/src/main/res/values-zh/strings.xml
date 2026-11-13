@@ -215,6 +215,10 @@
     <string name="app_system_vm_import_source">镜像 URL 或设备上的路径</string>
     <string name="app_system_vm_import_arch">客户机架构</string>
     <string name="app_system_vm_import_arch_hint">必须与镜像一致 — 目标不对不会报错，只是永远无法启动。</string>
+    <string name="app_system_vm_upgrade_qemu11">升级 QEMU 11 + Virgl</string>
+    <string name="app_system_vm_import_gpu">GPU 加速</string>
+    <string name="app_system_vm_import_uefi">UEFI 固件 (OVMF)</string>
+    <string name="app_system_vm_import_tpm2">TPM 2.0 (swtpm, Windows 11)</string>
 
     <!-- Desktop manager: desktops inside the UML guest (docs/plans/uml-dm.md) -->
     <string name="app_uml_desktop_title">UML 客机桌面</string>

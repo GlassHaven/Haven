@@ -341,4 +341,147 @@ class SystemVmManagerTest {
             )
         }
     }
+
+    // --- QEMU 11 + Virgl / Venus + Windows 11 UEFI/TPM2 (#829) -------------
+
+    @Test
+    fun `VmGpuMode parses stored and MCP identifiers with STD fallback`() {
+        assertEquals(VmGpuMode.STD, VmGpuMode.fromId(null))
+        assertEquals(VmGpuMode.STD, VmGpuMode.fromId(""))
+        assertEquals(VmGpuMode.STD, VmGpuMode.fromId("std"))
+        assertEquals(VmGpuMode.VIRGL, VmGpuMode.fromId("virgl"))
+        assertEquals(VmGpuMode.VENUS, VmGpuMode.fromId(" VENUS\n"))
+        assertEquals(VmGpuMode.STD, VmGpuMode.fromId("unknown"))
+    }
+
+    @Test
+    fun `x86_64 VENUS mode wires opt-qemu11, surfaceless EGL, Venus socket, shared memfd, q35 and virtio-vga-gl`() {
+        val cmd = qemuVncCommand(
+            diskGuestPath = "/tmp/system-vm/win11.qcow2",
+            display = 4,
+            memMb = 4096,
+            cpus = 4,
+            arch = VmArch.X86_64,
+            accel = Accel.TCG,
+            usbRedirPort = 4000,
+            gpuMode = VmGpuMode.VENUS,
+            useOptQemu11 = true,
+        )
+        assertTrue("uses /opt/qemu11 binary", cmd.contains("exec /opt/qemu11/bin/qemu-system-x86_64"))
+        assertTrue("loads /opt/qemu11 libvirglrenderer", cmd.contains("LD_LIBRARY_PATH=/opt/qemu11/lib"))
+        assertTrue("surfaceless EGL for PRoot without /dev/dri", cmd.contains("EGL_PLATFORM=surfaceless"))
+        assertTrue("points virglrenderer at host libvirgl_render_server.so socket", cmd.contains("VIRGL_RENDER_SERVER_SOCKET=$VENUS_GUEST_SOCKET"))
+        assertFalse(
+            "VENUS must NOT set GALLIUM_DRIVER=virpipe (llvmpipe provides EGL_EXT_image_dma_buf_import for 2D scanout blobs)",
+            cmd.contains("GALLIUM_DRIVER=virpipe"),
+        )
+        assertTrue("q35 PCIe machine for virtio-vga-gl BARs and Windows 11", cmd.contains("-M q35"))
+        assertTrue("Windows 11 24H2 TCG CPU baseline (+sse4.2,+popcnt)", cmd.contains("-cpu $X86_64_MODERN_TCG_CPU"))
+        assertTrue(
+            "shared memfd RAM is required for blob=on,venus=on SHM fd export",
+            cmd.contains("-object memory-backend-memfd,id=mem,size=4096M,share=on -numa node,memdev=mem"),
+        )
+        assertTrue(
+            "Venus 3D + 4G hostmem BAR with DRM disabled for PRoot",
+            cmd.contains("-device virtio-vga-gl,drm_native_context=off,disable-legacy=on,hostmem=4G,blob=on,venus=on,xres=1920,yres=1080"),
+        )
+        assertFalse("virtio-vga-gl replaces -vga std", cmd.contains("-vga std"))
+        assertTrue("egl-headless blits scanout into VNC", cmd.contains("-display egl-headless -vnc 127.0.0.1:4"))
+        assertTrue("q35 gets USB HID for seamless VNC pointer", cmd.contains("-device usb-kbd -device usb-tablet"))
+        assertEquals("reuses single qemu-xhci across USB HID and usbredir", 1, Regex("-device qemu-xhci").findAll(cmd).count())
+    }
+
+    @Test
+    fun `aarch64 VENUS and VIRGL modes swap virtio-gpu-pci for virtio-gpu-gl-pci`() {
+        val venus = qemuVncCommand(
+            "/tmp/system-vm/arm.qcow2",
+            display = 2,
+            memMb = 4096,
+            cpus = 4,
+            arch = VmArch.AARCH64,
+            biosGuestPath = fw,
+            gpuMode = VmGpuMode.VENUS,
+        )
+        assertTrue(venus.contains("-device virtio-gpu-gl-pci,drm_native_context=off,disable-legacy=on,hostmem=4G,blob=on,venus=on,xres=1920,yres=1080"))
+        assertFalse(venus.contains("-device virtio-gpu-pci "))
+        assertTrue(venus.contains("-object memory-backend-memfd,id=mem,size=4096M,share=on -numa node,memdev=mem"))
+        assertTrue(venus.contains("-display egl-headless -vnc 127.0.0.1:2"))
+
+        val virgl = qemuVncCommand(
+            "/tmp/system-vm/arm.qcow2",
+            display = 3,
+            memMb = 2048,
+            cpus = 2,
+            arch = VmArch.AARCH64,
+            biosGuestPath = fw,
+            gpuMode = VmGpuMode.VIRGL,
+        )
+        assertTrue(virgl.contains("EGL_PLATFORM=surfaceless GALLIUM_DRIVER=virpipe VTEST_SOCKET=$VIRGL_TEST_GUEST_SOCKET"))
+        assertTrue(virgl.contains("-device virtio-gpu-gl-pci,drm_native_context=off,xres=1920,yres=1080"))
+        assertFalse(virgl.contains("venus=on"))
+    }
+
+    @Test
+    fun `Windows 11 UEFI pflash and swtpm TPM 2_0 wire cleanly on x86_64 and aarch64`() {
+        val win11 = qemuVncCommand(
+            diskGuestPath = "/tmp/system-vm/win11.qcow2",
+            display = 1,
+            memMb = 4096,
+            cpus = 4,
+            arch = VmArch.X86_64,
+            gpuMode = VmGpuMode.VENUS,
+            uefiCodeGuestPath = "/usr/share/OVMF/OVMF_CODE_4M.fd",
+            uefiVarsGuestPath = "/tmp/system-vm/win11-efivars.fd",
+            swtpmSocketGuestPath = "/tmp/system-vm/win11-swtpm.sock",
+            useOptQemu11 = true,
+        )
+        assertTrue(win11.contains("-drive if=pflash,format=raw,readonly=on,file=/usr/share/OVMF/OVMF_CODE_4M.fd"))
+        assertTrue(win11.contains("-drive if=pflash,format=raw,file=/tmp/system-vm/win11-efivars.fd"))
+        assertFalse("UEFI handles boot order; BIOS -boot c is omitted", win11.contains("-boot c"))
+        assertTrue(
+            win11.contains("-chardev socket,id=chrtpm,path=/tmp/system-vm/win11-swtpm.sock -tpmdev emulator,id=tpm0,chardev=chrtpm -device tpm-tis,tpmdev=tpm0"),
+        )
+
+        val armTpm = qemuVncCommand(
+            diskGuestPath = "/tmp/system-vm/arm-win11.qcow2",
+            display = 1,
+            memMb = 4096,
+            cpus = 4,
+            arch = VmArch.AARCH64,
+            biosGuestPath = fw,
+            swtpmSocketGuestPath = "/tmp/system-vm/arm-swtpm.sock",
+        )
+        assertTrue("aarch64 virt uses sysbus tpm-tis-device", armTpm.contains("-device tpm-tis-device,tpmdev=tpm0"))
+
+        runCatching {
+            qemuVncCommand(
+                "/tmp/system-vm/win11.qcow2",
+                display = 1,
+                memMb = 4096,
+                cpus = 2,
+                uefiCodeGuestPath = "/usr/share/OVMF/OVMF_CODE_4M.fd",
+                uefiVarsGuestPath = null,
+            )
+        }.fold(
+            onSuccess = { throw AssertionError("expected refusal when uefiCodeGuestPath has no writable uefiVarsGuestPath") },
+            onFailure = { assertTrue("wrong exception: $it", it is IllegalArgumentException) },
+        )
+    }
+
+    @Test
+    fun `qemu11-build assets pin 40-hex virgl commit, 64-hex QEMU 11 tarball sha256, and PRoot surfaceless patch`() {
+        val assetsRoot = sequenceOf(
+            File("src/main/assets/qemu11-build"),
+            File("core/local/src/main/assets/qemu11-build"),
+        ).firstOrNull { it.isDirectory }
+            ?: throw AssertionError("qemu11-build asset dir not found from working dir ${File(".").absolutePath}")
+
+        val script = File(assetsRoot, "build.sh").readText()
+        val patch = File(assetsRoot, "qemu-egl-surfaceless.patch").readText()
+
+        assertTrue("pins 40-char virglrenderer commit", Regex("VIRGL_COMMIT=[0-9a-f]{40}").containsMatchIn(script))
+        assertTrue("pins 64-char QEMU 11 tarball sha256", Regex("QEMU_SHA256=[0-9a-f]{64}").containsMatchIn(script))
+        assertTrue("enables Venus in virglrenderer", script.contains("-Dvenus=true"))
+        assertTrue("patches Surfaceless PBUFFER config", patch.contains("EGL_PLATFORM_SURFACELESS_MESA") && patch.contains("EGL_PBUFFER_BIT"))
+    }
 }

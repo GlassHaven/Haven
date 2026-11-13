@@ -41,7 +41,7 @@ Tools are grouped into sections by what they touch, and each tool is collapsed �
 expand one for its description and arguments. The tag after each name is its
 consent level:
 
-- **asks every call** — side-effectful or sensitive; a consent sheet describing the specific action on every call (79 tools).
+- **asks every call** — side-effectful or sensitive; a consent sheet describing the specific action on every call (80 tools).
 - **asks once per session** — reversible actions and screen-reading; prompts the first time each session, then proceeds (69 tools).
 - **no per-call prompt** — read-only queries and tap-equivalent UI actions; still behind the endpoint being enabled and the client paired (93 tools).
 
@@ -54,7 +54,7 @@ consent level:
 - [**Files, media & clipboard**](#sec-files) — 23 tools
 - [**Cloud storage (rclone)**](#sec-rclone) — 15 tools
 - [**Email**](#sec-email) — 15 tools
-- [**Linux guest (proot) & desktops**](#sec-linux) — 52 tools
+- [**Linux guest (proot) & desktops**](#sec-linux) — 53 tools
 - [**Networking — tunnels & port forwarding**](#sec-networking) — 14 tools
 - [**USB & host-device brokers**](#sec-usb) — 21 tools
 - [**Security — SSH keys, host keys, TOTP & age**](#sec-security) — 17 tools
@@ -1291,7 +1291,7 @@ Send a plain-text email from a connected EMAIL profile. Pass profileId (from lis
 
 <a id="sec-linux"></a>
 
-## Linux guest (proot) & desktops (52)
+## Linux guest (proot) & desktops (53)
 
 The on-device Linux distros, their desktop environments and windows, guest services, the audio bridge, and guest-file access.
 
@@ -1435,13 +1435,17 @@ Import or restore a rootfs tarball as a distro (#284, #793) — "bring your own 
 <details markdown="1">
 <summary><code>import_system_vm_image</code> · asks every call</summary>
 
-Import a bootable disk image as a system VM (#326). `source` is an http(s) URL or an on-device file path; it is downloaded/copied then normalised to qcow2 via `qemu-img convert` (raw/qcow2/vdi/vmdk in, qcow2 out) under the app cache. Provide a `label`; `id` defaults to a slug of the label. Optional `sha256` is verified against the SOURCE bytes. `arch` records which CPU the image is for — a qcow2 does not say, and booting an arm64 rootfs on the x86_64 target just hangs — and decides which qemu target is installed (Debian: qemu-system-arm for aarch64). Installs qemu in the active distro on first use (needs a VNC-capable qemu — Debian's has it, Alpine's does not). Synchronous: returns { id, label, sizeBytes, arch } when the converted image is ready. Then boot it with start_system_vm.
+Import a bootable disk image as a system VM (#326, #829). `source` is an http(s) URL or an on-device file path; it is downloaded/copied then normalised to qcow2 via `qemu-img convert` (raw/qcow2/vdi/vmdk in, qcow2 out) under the app cache. Provide a `label`; `id` defaults to a slug of the label. Optional `sha256` is verified against the SOURCE bytes. `arch` records which CPU the image is for (`x86_64` or `aarch64`). Optional `gpuMode` (`std`, `virgl`, `venus`), `uefi` (OVMF pflash on x86_64), and `tpm2` (`swtpm` TPM 2.0) record default boot settings; pass `windows11=true` as shorthand for `gpuMode=venus`, `uefi=true`, `tpm2=true`. Synchronous: returns { id, label, sizeBytes, arch, gpuMode, uefi, tpm2 } when the converted image is ready. Then boot it with start_system_vm.
 
-- `label` (string, required) — Human-readable name for the image (e.g. "Debian 12").
+- `label` (string, required) — Human-readable name for the image (e.g. "Debian 12" or "Windows 11").
 - `source` (string, required) — http(s) URL or on-device file path to a bootable disk image (.qcow2/.img/.iso/.vdi/.vmdk).
 - `arch` (string, one of: x86_64 | aarch64) — Guest CPU architecture of the image. Default x86_64.
+- `gpuMode` (string, one of: std | virgl | venus) — Default GPU mode: std (software VGA), virgl (OpenGL via virgl_test_server), or venus (Vulkan + DirectX 11 via libvirgl_render_server.so, requires upgrade_system_vm_qemu). Default std.
 - `id` (string) — Image id slug (lowercase letters, digits, . _ -). Defaults to a slug of the label.
 - `sha256` (string) — Optional SHA-256 of the source bytes to verify after download.
+- `tpm2` (boolean) — Attach a swtpm TPM 2.0 device (required for Windows 11). Default false.
+- `uefi` (boolean) — Boot x86_64 image with OVMF UEFI pflash + writable NVRAM vars (required for Windows 11). Default false.
+- `windows11` (boolean) — Convenience preset enabling gpuMode=venus, uefi=true, and tpm2=true unless explicitly overridden. Default false.
 
 </details>
 
@@ -1578,7 +1582,7 @@ List guest services registered on the active distro with their live state (STOPP
 <details markdown="1">
 <summary><code>list_system_vm_images</code> · no per-call prompt</summary>
 
-List the stored system-VM disk images (#326) and the current VM's state. A system VM is a full QEMU Linux VM (x86_64 or aarch64) booted inside the active proot and viewed over VNC on loopback — distinct from a desktop environment (list_desktop_environments) and the USB-drive appliance (#287). Returns { vm: { status, vncPort, arch, accel, accelReason }, host: { arch, kvm: { usable, detail } }, count, images:[{ id, label, sizeBytes, arch }] }. `status` is one of stopped/starting/running/error; when running, `vncPort` is the loopback port a VNC connection points at (create_connection type=VNC host=127.0.0.1 vncPort=<port>). `host.kvm` is a live probe of /dev/kvm — on retail arm64 phones it is absent because the vendor hypervisor owns EL2, so guests run under TCG emulation. Images are qcow2, normalised on import.
+List the stored system-VM disk images (#326, #829) and the current VM's state. A system VM is a full QEMU VM (x86_64 or aarch64, Linux or Windows 11) booted inside the active proot and viewed over VNC on loopback — distinct from a desktop environment (list_desktop_environments) and the USB-drive appliance (#287). Returns { vm: { status, vncPort, arch, accel, accelReason, usbRedirPort, gpuMode, uefi, tpm2 }, host: { arch, kvm: { usable, detail } }, count, images:[{ id, label, sizeBytes, arch, gpuMode, uefi, tpm2 }] }. `status` is one of stopped/starting/running/error; when running, `vncPort` is the loopback port a VNC connection points at (create_connection type=VNC host=127.0.0.1 vncPort=<port>). `gpuMode` is one of std/virgl/venus (`venus` forwards guest Vulkan and DirectX 11 over `VIRGL_RENDER_SERVER_SOCKET` to Android's native `libvirgl_render_server.so` when `/opt/qemu11` is installed via upgrade_system_vm_qemu). Images are qcow2, normalised on import.
 
 </details>
 
@@ -1732,12 +1736,15 @@ Start a registered guest service by id (no-op if already running). Returns its s
 <details markdown="1">
 <summary><code>start_system_vm</code> · asks every call</summary>
 
-Boot a stored system-VM image (#326) with a VNC display on a free loopback port, and wait for the VNC server to bind (up to ~20s; a timeout means this distro's qemu has no VNC — try a Debian image/distro). The image's recorded arch picks the machine: x86_64 gets `-M pc -vga std`, aarch64 gets `-M virt` with UEFI firmware, virtio-gpu and USB HID (installing the distro's edk2 package if needed). Pass `usbRedirPort` (from `start_usbredir_export`, default 4000) to attach a phone-connected USB device directly into the guest over `-device qemu-xhci -chardev socket,id=usbredir0,host=127.0.0.1,port=<usbRedirPort> -device usb-redir,chardev=usbredir0` (#613). One VM at a time — call stop_system_vm first to replace a running one. Does NOT open a viewer (MCP has no UI) — returns { imageId, status, arch, accel, accelReason, vncHost, vncPort, usbRedirPort, hint } so you connect it yourself: create_connection type=VNC host=127.0.0.1 vncPort=<vncPort>, then connect_profile. `accel` is the resolved reality, not a request: KVM needs a usable /dev/kvm AND a guest arch matching the host, which retail arm64 phones cannot offer, so expect TCG and a slow (~2 min) but usable boot. `accel=kvm` fails fast when it is impossible rather than booting slowly; `accel=auto` (default) falls back to TCG if a KVM boot does not come up.
+Boot a stored system-VM image (#326, #829) with a VNC display on a free loopback port, and wait for the VNC server to bind (up to ~20s; a timeout means this distro's qemu has no VNC — try a Debian image/distro). Uses `/opt/qemu11` automatically when installed via `upgrade_system_vm_qemu`. Optional `gpuMode` (`std`, `virgl`, `venus`), `uefi`, and `tpm2` override the image's stored defaults (`venus` spawns Android's native `libvirgl_render_server.so` on a shared socket, configures `-object memory-backend-memfd,share=on`, `-M q35`, `-cpu qemu64,+ssse3,+sse4.1,+sse4.2,+popcnt`, and `-device virtio-vga-gl,drm_native_context=off,disable-legacy=on,hostmem=4G,blob=on,venus=on,xres=1920,yres=1080` + `-display egl-headless` for DirectX 11 / Vulkan). Pass `usbRedirPort` (from `start_usbredir_export`, default 4000) to attach a phone-connected USB device (#613). One VM at a time — call stop_system_vm first to replace a running one. Returns { imageId, status, arch, accel, accelReason, gpuMode, uefi, tpm2, vncHost, vncPort, usbRedirPort, hint }.
 
 - `imageId` (string, required) — Image id from list_system_vm_images.
 - `accel` (string, one of: auto | kvm | tcg) — auto = KVM when genuinely possible else TCG (default); kvm = insist, erroring out if impossible; tcg = force emulation.
 - `cpus` (integer) — Guest vCPUs. Default 2.
-- `memMb` (integer) — Guest RAM in MiB. Default 2048.
+- `gpuMode` (string, one of: std | virgl | venus) — Optional override for GPU mode: std, virgl, or venus (#829).
+- `memMb` (integer) — Guest RAM in MiB. Default 2048 (4096 when gpuMode=venus or tpm2=true).
+- `tpm2` (boolean) — Optional override for swtpm TPM 2.0 emulation (#829).
+- `uefi` (boolean) — Optional override for x86_64 OVMF UEFI pflash firmware (#829).
 - `usbRedirPort` (integer) — Optional loopback TCP port of a running usbredir export (from start_usbredir_export, default 4000) to attach to the guest over qemu-xhci + usb-redir (#613).
 
 </details>
@@ -1859,6 +1866,15 @@ Remove a desktop environment from the active distro. Stops it first if running. 
 Stop (if running) and remove a guest service from the registry by id.
 
 - `id` (string, required) — Service id.
+
+</details>
+
+<details markdown="1">
+<summary><code>upgrade_system_vm_qemu</code> · asks every call</summary>
+
+Build and install QEMU 11.1.3 + virglrenderer (with Venus `VIRGL_RENDER_SERVER_SOCKET` bridge, PRoot surfaceless `egl-headless` fallback, OVMF UEFI firmware, and `swtpm` TPM 2.0) from pinned SHA-verified sources into `/opt/qemu11` inside the active PRoot distro (#829). Idempotent — returns immediately if `/opt/qemu11` already matches both source pins unless `forceRebuild=true`. Required once per distro before booting a system VM with `gpuMode=venus` (DirectX 11 / Vulkan).
+
+- `forceRebuild` (boolean) — Rebuild /opt/qemu11 from source even if matching pins are already installed. Default false.
 
 </details>
 

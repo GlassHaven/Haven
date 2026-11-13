@@ -215,6 +215,10 @@
     <string name="app_system_vm_import_source">イメージ URL またはデバイス上のパス</string>
     <string name="app_system_vm_import_arch">ゲストのアーキテクチャ</string>
     <string name="app_system_vm_import_arch_hint">イメージと一致させてください。ターゲットが違うとエラーは出ず、起動しないだけです。</string>
+    <string name="app_system_vm_upgrade_qemu11">QEMU 11 + Virgl をアップグレード</string>
+    <string name="app_system_vm_import_gpu">GPU アクセラレーション</string>
+    <string name="app_system_vm_import_uefi">UEFI ファームウェア (OVMF)</string>
+    <string name="app_system_vm_import_tpm2">TPM 2.0 (swtpm、Windows 11)</string>
 
     <!-- Desktop manager: desktops inside the UML guest (docs/plans/uml-dm.md) -->
     <string name="app_uml_desktop_title">UML ゲストデスクトップ</string>

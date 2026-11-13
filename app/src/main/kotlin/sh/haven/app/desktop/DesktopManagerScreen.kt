@@ -93,6 +93,7 @@ import sh.haven.core.local.ProotRoutingConfig
 import sh.haven.core.local.ProotRoutingMode
 import sh.haven.core.local.SystemVmManager
 import sh.haven.core.local.VmArch
+import sh.haven.core.local.VmGpuMode
 import sh.haven.core.local.proot.Compatibility
 import sh.haven.core.local.proot.Distro
 import sh.haven.core.local.proot.DistroCatalog
@@ -172,6 +173,9 @@ fun DesktopManagerScreen(viewModel: DesktopViewModel = hiltViewModel()) {
     val importVmLabel by viewModel.systemVmImportLabel.collectAsState()
     val importVmSource by viewModel.systemVmImportSource.collectAsState()
     val importVmArch by viewModel.systemVmImportArch.collectAsState()
+    val importVmGpuMode by viewModel.systemVmImportGpuMode.collectAsState()
+    val importVmUefi by viewModel.systemVmImportUefi.collectAsState()
+    val importVmTpm2 by viewModel.systemVmImportTpm2.collectAsState()
 
     val backendPref by viewModel.primaryDesktopBackendPref.collectAsState()
     val quick = (backendPref.ifEmpty { if (viewModel.umlAvailable) "quick" else "full" }) == "quick"
@@ -307,6 +311,7 @@ fun DesktopManagerScreen(viewModel: DesktopViewModel = hiltViewModel()) {
             images = systemVmImages,
             busy = systemVmBusy,
             onImport = { viewModel.openSystemVmImport() },
+            onUpgradeQemu11 = { viewModel.upgradeSystemVmQemu11() },
             onStart = { viewModel.startSystemVm(it.id) },
             onStop = { viewModel.stopSystemVm() },
             onDelete = { viewModel.deleteSystemVmImage(it.id) },
@@ -318,11 +323,24 @@ fun DesktopManagerScreen(viewModel: DesktopViewModel = hiltViewModel()) {
             label = importVmLabel,
             source = importVmSource,
             arch = importVmArch,
+            gpuMode = importVmGpuMode,
+            uefi = importVmUefi,
+            tpm2 = importVmTpm2,
             onLabelChange = { viewModel.setSystemVmImportLabel(it) },
             onSourceChange = { viewModel.setSystemVmImportSource(it) },
             onArchChange = { viewModel.setSystemVmImportArch(it) },
+            onGpuModeChange = { viewModel.setSystemVmImportGpuMode(it) },
+            onUefiChange = { viewModel.setSystemVmImportUefi(it) },
+            onTpm2Change = { viewModel.setSystemVmImportTpm2(it) },
             onImport = {
-                viewModel.importSystemVmImage(importVmLabel.trim(), importVmSource.trim(), importVmArch)
+                viewModel.importSystemVmImage(
+                    label = importVmLabel.trim(),
+                    source = importVmSource.trim(),
+                    arch = importVmArch,
+                    gpuMode = importVmGpuMode,
+                    uefi = importVmUefi,
+                    tpm2 = importVmTpm2,
+                )
                 viewModel.dismissSystemVmImport()
             },
             onDismiss = { viewModel.dismissSystemVmImport() },
@@ -757,6 +775,7 @@ private fun SystemVmSection(
     images: List<SystemVmManager.VmImage>,
     busy: Boolean,
     onImport: () -> Unit,
+    onUpgradeQemu11: () -> Unit,
     onStart: (SystemVmManager.VmImage) -> Unit,
     onStop: () -> Unit,
     onDelete: (SystemVmManager.VmImage) -> Unit,
@@ -813,11 +832,14 @@ private fun SystemVmSection(
                 ) {
                     Column(modifier = Modifier.weight(1f)) {
                         Text(img.label, style = MaterialTheme.typography.bodyLarge, maxLines = 1)
-                        // Arch alongside the size: it's chosen at import and
-                        // then invisible, which makes two similarly-named
-                        // images impossible to tell apart.
+                        val extras = buildList {
+                            add(img.arch.id)
+                            if (img.gpuMode != VmGpuMode.STD) add(img.gpuMode.id)
+                            if (img.uefi) add("UEFI")
+                            if (img.tpm2) add("TPM2")
+                        }.joinToString(" · ")
                         Text(
-                            "%,d MB · %s".format(img.sizeBytes / (1024 * 1024), img.arch.id),
+                            "%,d MB · %s".format(img.sizeBytes / (1024 * 1024), extras),
                             style = MaterialTheme.typography.bodySmall,
                             color = MaterialTheme.colorScheme.onSurfaceVariant,
                         )
@@ -842,13 +864,20 @@ private fun SystemVmSection(
             }
         }
         Spacer(Modifier.height(8.dp))
-        Row(verticalAlignment = Alignment.CenterVertically) {
+        FlowRow(horizontalArrangement = Arrangement.spacedBy(4.dp)) {
             TextButton(onClick = onImport, enabled = !busy) {
                 Text(stringResource(AppR.string.app_system_vm_import))
             }
+            TextButton(onClick = onUpgradeQemu11, enabled = !busy) {
+                Text(stringResource(AppR.string.app_system_vm_upgrade_qemu11))
+            }
             if (busy) {
-                Spacer(Modifier.width(8.dp))
-                CircularProgressIndicator(modifier = Modifier.size(20.dp))
+                Spacer(Modifier.width(4.dp))
+                CircularProgressIndicator(
+                    modifier = Modifier
+                        .size(20.dp)
+                        .align(Alignment.CenterVertically),
+                )
             }
         }
     }
@@ -1158,9 +1187,15 @@ private fun SystemVmImportDialog(
     label: String,
     source: String,
     arch: VmArch,
+    gpuMode: VmGpuMode,
+    uefi: Boolean,
+    tpm2: Boolean,
     onLabelChange: (String) -> Unit,
     onSourceChange: (String) -> Unit,
     onArchChange: (VmArch) -> Unit,
+    onGpuModeChange: (VmGpuMode) -> Unit,
+    onUefiChange: (Boolean) -> Unit,
+    onTpm2Change: (Boolean) -> Unit,
     onImport: () -> Unit,
     onDismiss: () -> Unit,
 ) {
@@ -1195,7 +1230,20 @@ private fun SystemVmImportDialog(
                     }
                 }
                 Spacer(Modifier.height(4.dp))
-                SystemVmImportFields(label, source, arch, onLabelChange, onSourceChange, onArchChange)
+                SystemVmImportFields(
+                    label = label,
+                    source = source,
+                    arch = arch,
+                    gpuMode = gpuMode,
+                    uefi = uefi,
+                    tpm2 = tpm2,
+                    onLabelChange = onLabelChange,
+                    onSourceChange = onSourceChange,
+                    onArchChange = onArchChange,
+                    onGpuModeChange = onGpuModeChange,
+                    onUefiChange = onUefiChange,
+                    onTpm2Change = onTpm2Change,
+                )
             }
         }
     } else {
@@ -1203,11 +1251,21 @@ private fun SystemVmImportDialog(
             onDismissRequest = onDismiss,
             title = { Text(stringResource(AppR.string.app_system_vm_import_title)) },
             text = {
-                // Scrollable: M3 doesn't scroll the text slot for you, and the arch
-                // row pushed this past what a small portrait phone shows at a large
-                // font scale.
                 Column(modifier = Modifier.verticalScroll(rememberScrollState())) {
-                    SystemVmImportFields(label, source, arch, onLabelChange, onSourceChange, onArchChange)
+                    SystemVmImportFields(
+                        label = label,
+                        source = source,
+                        arch = arch,
+                        gpuMode = gpuMode,
+                        uefi = uefi,
+                        tpm2 = tpm2,
+                        onLabelChange = onLabelChange,
+                        onSourceChange = onSourceChange,
+                        onArchChange = onArchChange,
+                        onGpuModeChange = onGpuModeChange,
+                        onUefiChange = onUefiChange,
+                        onTpm2Change = onTpm2Change,
+                    )
                 }
             },
             confirmButton = {
@@ -1231,9 +1289,15 @@ private fun SystemVmImportFields(
     label: String,
     source: String,
     arch: VmArch,
+    gpuMode: VmGpuMode,
+    uefi: Boolean,
+    tpm2: Boolean,
     onLabelChange: (String) -> Unit,
     onSourceChange: (String) -> Unit,
     onArchChange: (VmArch) -> Unit,
+    onGpuModeChange: (VmGpuMode) -> Unit,
+    onUefiChange: (Boolean) -> Unit,
+    onTpm2Change: (Boolean) -> Unit,
 ) {
     OutlinedTextField(
         value = label,
@@ -1271,6 +1335,52 @@ private fun SystemVmImportFields(
         style = MaterialTheme.typography.bodySmall,
         color = MaterialTheme.colorScheme.onSurfaceVariant,
     )
+    Spacer(Modifier.height(12.dp))
+    Text(
+        stringResource(AppR.string.app_system_vm_import_gpu),
+        style = MaterialTheme.typography.titleSmall,
+    )
+    Spacer(Modifier.height(4.dp))
+    FlowRow(horizontalArrangement = Arrangement.spacedBy(6.dp)) {
+        VmGpuMode.entries.forEach { candidate ->
+            FilterChip(
+                selected = gpuMode == candidate,
+                onClick = { onGpuModeChange(candidate) },
+                label = { Text(candidate.id) },
+            )
+        }
+    }
+    if (arch == VmArch.X86_64) {
+        Spacer(Modifier.height(8.dp))
+        Row(
+            modifier = Modifier
+                .fillMaxWidth()
+                .clickable { onUefiChange(!uefi) }
+                .padding(vertical = 4.dp),
+            verticalAlignment = Alignment.CenterVertically,
+        ) {
+            Text(
+                stringResource(AppR.string.app_system_vm_import_uefi),
+                style = MaterialTheme.typography.bodyMedium,
+                modifier = Modifier.weight(1f),
+            )
+            Switch(checked = uefi, onCheckedChange = onUefiChange)
+        }
+    }
+    Row(
+        modifier = Modifier
+            .fillMaxWidth()
+            .clickable { onTpm2Change(!tpm2) }
+            .padding(vertical = 4.dp),
+        verticalAlignment = Alignment.CenterVertically,
+    ) {
+        Text(
+            stringResource(AppR.string.app_system_vm_import_tpm2),
+            style = MaterialTheme.typography.bodyMedium,
+            modifier = Modifier.weight(1f),
+        )
+        Switch(checked = tpm2, onCheckedChange = onTpm2Change)
+    }
 }
 
 /** The global "Default display" defaults (resolution + scale) for all app windows. */

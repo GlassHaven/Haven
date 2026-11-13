@@ -221,6 +221,10 @@
     <string name="app_system_vm_import_source">URL образа или путь на устройстве</string>
     <string name="app_system_vm_import_arch">Архитектура гостя</string>
     <string name="app_system_vm_import_arch_hint">Должна совпадать с образом — при неверной цели ошибки не будет, просто не загрузится.</string>
+    <string name="app_system_vm_upgrade_qemu11">Обновить QEMU 11 + Virgl</string>
+    <string name="app_system_vm_import_gpu">Ускорение GPU</string>
+    <string name="app_system_vm_import_uefi">Прошивка UEFI (OVMF)</string>
+    <string name="app_system_vm_import_tpm2">TPM 2.0 (swtpm, Windows 11)</string>
 
     <!-- Desktop manager: desktops inside the UML guest (docs/plans/uml-dm.md) -->
     <string name="app_uml_desktop_title">Рабочий стол гостя UML</string>

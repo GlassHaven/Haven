@@ -154,4 +154,8 @@
     <string name="terminal_inline_image_deny">Одбиј</string>
     <string name="terminal_inline_image_always_tab">Увек у овој картици</string>
     <string name="terminal_switch_tab">Пребаци картицу</string>
+    <string name="terminal_split_with_session">Подели са овом сесијом</string>
+    <string name="terminal_split_with_named">Подели са %1$s</string>
+    <string name="terminal_unsplit">Затвори подељени приказ</string>
+    <string name="terminal_resize_split_panes">Промени величину подељених панела</string>
 </resources>

@@ -180,4 +180,8 @@
     <string name="terminal_sudo_entry_hint">此连接尚未保存密码。输入一次即可通过 SSH 直接发送到当前终端。若选择保存，密码将在本机 Android Keystore 中加密存储，每次使用均需生物识别解锁，且绝不会暴露给 AI/MCP 工具。</string>
     <string name="terminal_sudo_turn_off_detection">关闭 sudo 密码提示检测</string>
     <string name="terminal_sudo_send_action">发送</string>
+    <string name="terminal_split_with_session">与此会话分屏</string>
+    <string name="terminal_split_with_named">与 %1$s 分屏</string>
+    <string name="terminal_unsplit">取消分屏</string>
+    <string name="terminal_resize_split_panes">调整分屏大小</string>
 </resources>

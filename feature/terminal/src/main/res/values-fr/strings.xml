@@ -180,4 +180,8 @@
     <string name="terminal_sudo_entry_hint">Aucun mot de passe n\'est encore enregistré sur cette connexion. Saisissez-le une fois pour l\'envoyer directement via SSH à ce terminal. S\'il est enregistré, il reste chiffré dans Android Keystore sur cet appareil, exige un déverrouillage biométrique à chaque utilisation et n\'est jamais exposé aux outils IA/MCP.</string>
     <string name="terminal_sudo_turn_off_detection">Désactiver la détection des invites sudo</string>
     <string name="terminal_sudo_send_action">Envoyer</string>
+    <string name="terminal_split_with_session">Partager avec cette session</string>
+    <string name="terminal_split_with_named">Partager avec %1$s</string>
+    <string name="terminal_unsplit">Quitter la vue partagée</string>
+    <string name="terminal_resize_split_panes">Redimensionner les volets partagés</string>
 </resources>

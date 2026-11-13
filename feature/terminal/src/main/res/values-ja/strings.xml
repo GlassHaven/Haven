@@ -180,4 +180,8 @@
     <string name="terminal_sudo_entry_hint">この接続にはまだパスワードが保存されていません。一度入力すると SSH 経由でこのターミナルへ直接送信されます。保存した場合、この端末の Android Keystore 内で暗号化され、使用ごとの生体認証ロック解除が必要となり、AI/MCP ツールには一切公開されません。</string>
     <string name="terminal_sudo_turn_off_detection">sudo プロンプト検出をオフにする</string>
     <string name="terminal_sudo_send_action">送信</string>
+    <string name="terminal_split_with_session">このセッションと画面分割</string>
+    <string name="terminal_split_with_named">%1$s と画面分割</string>
+    <string name="terminal_unsplit">分割を解除</string>
+    <string name="terminal_resize_split_panes">分割ペインのサイズ変更</string>
 </resources>

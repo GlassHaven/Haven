@@ -180,4 +180,8 @@
     <string name="terminal_sudo_entry_hint">इस कनेक्शन पर अभी कोई पासवर्ड सहेजा नहीं गया है। इसे सीधे SSH के माध्यम से इस टर्मिनल पर भेजने के लिए एक बार दर्ज करें। यदि सहेजा जाता है, तो यह इस डिवाइस पर Android Keystore में एन्क्रिप्टेड रहता है, हर उपयोग पर बायोमेट्रिक अनलॉक मांगता है, और कभी भी AI/MCP टूल्स को उजागर नहीं किया जाता।</string>
     <string name="terminal_sudo_turn_off_detection">sudo प्रॉम्प्ट पहचान बंद करें</string>
     <string name="terminal_sudo_send_action">भेजें</string>
+    <string name="terminal_split_with_session">इस सत्र के साथ विभाजित करें</string>
+    <string name="terminal_split_with_named">%1$s के साथ विभाजित करें</string>
+    <string name="terminal_unsplit">विभाजन बंद करें</string>
+    <string name="terminal_resize_split_panes">विभाजित फलकों का आकार बदलें</string>
 </resources>

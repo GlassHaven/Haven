@@ -194,4 +194,10 @@
     <string name="terminal_sudo_entry_hint">No password is saved on this connection yet. Enter it once to send directly over SSH to this terminal. If saved, it stays encrypted in the Android Keystore on this device, requires per-use biometric unlock, and is never exposed to AI/MCP tools.</string>
     <string name="terminal_sudo_turn_off_detection">Turn off sudo prompt detection</string>
     <string name="terminal_sudo_send_action">Send</string>
+
+    <!-- Split panes (#141) -->
+    <string name="terminal_split_with_session">Split with this session</string>
+    <string name="terminal_split_with_named">Split with %1$s</string>
+    <string name="terminal_unsplit">Unsplit</string>
+    <string name="terminal_resize_split_panes">Resize split panes</string>
 </resources>

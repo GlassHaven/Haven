@@ -180,4 +180,8 @@
     <string name="terminal_sudo_entry_hint">এই সংযোগে এখনো কোনো পাসওয়ার্ড সংরক্ষিত নেই। এই টার্মিনালে SSH-এর মাধ্যমে সরাসরি পাঠাতে একবার লিখুন। সংরক্ষণ করা হলে এটি এই ডিভাইসের Android Keystore-এ এনক্রিপ্ট করা থাকে, প্রতিবার ব্যবহারে বায়োমেট্রিক আনলক প্রয়োজন হয় এবং কখনোই AI/MCP টুলে প্রকাশ করা হয় না।</string>
     <string name="terminal_sudo_turn_off_detection">sudo প্রম্পট শনাক্তকরণ বন্ধ করুন</string>
     <string name="terminal_sudo_send_action">পাঠান</string>
+    <string name="terminal_split_with_session">এই সেশনের সাথে স্প্লিট করুন</string>
+    <string name="terminal_split_with_named">%1$s-এর সাথে স্প্লিট করুন</string>
+    <string name="terminal_unsplit">স্প্লিট বন্ধ করুন</string>
+    <string name="terminal_resize_split_panes">স্প্লিট প্যানের আকার পরিবর্তন করুন</string>
 </resources>

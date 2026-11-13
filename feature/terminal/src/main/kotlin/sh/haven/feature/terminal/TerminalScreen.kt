@@ -15,9 +15,15 @@ import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.core.view.WindowInsetsControllerCompat
 import androidx.compose.foundation.isSystemInDarkTheme
 import androidx.compose.foundation.background
+import androidx.compose.foundation.border
 import androidx.compose.foundation.ExperimentalFoundationApi
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.combinedClickable
+import androidx.compose.foundation.gestures.awaitEachGesture
+import androidx.compose.foundation.gestures.awaitFirstDown
+import androidx.compose.foundation.gestures.detectHorizontalDragGestures
+import androidx.compose.foundation.gestures.detectTapGestures
+import androidx.compose.foundation.layout.fillMaxHeight
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
@@ -40,6 +46,7 @@ import androidx.compose.material.icons.filled.ArrowDropDown
 import androidx.compose.material.icons.filled.Cable
 import androidx.compose.material.icons.filled.Autorenew
 import androidx.compose.material.icons.filled.Close
+import androidx.compose.material.icons.filled.CloseFullscreen
 import androidx.compose.material.icons.filled.Delete
 import androidx.compose.material.icons.filled.DesktopWindows
 import androidx.compose.material.icons.filled.ContentCopy
@@ -49,6 +56,7 @@ import androidx.compose.material.icons.filled.Key
 import androidx.compose.material.icons.filled.Save
 import androidx.compose.material.icons.filled.Terminal
 import androidx.compose.material.icons.filled.Search
+import androidx.compose.material.icons.filled.VerticalSplit
 import androidx.compose.material.icons.filled.WifiOff
 import androidx.compose.animation.AnimatedVisibility
 import androidx.compose.animation.fadeIn
@@ -83,21 +91,27 @@ import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.DisposableEffect
 import androidx.compose.runtime.LaunchedEffect
+import androidx.compose.runtime.SideEffect
 import androidx.compose.ui.platform.LocalConfiguration
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.key
 import androidx.compose.runtime.mutableIntStateOf
 import androidx.compose.runtime.mutableLongStateOf
+import androidx.compose.runtime.mutableStateMapOf
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.CompositionLocalProvider
 import androidx.compose.runtime.rememberUpdatedState
 import androidx.compose.runtime.setValue
 import androidx.compose.foundation.gestures.detectDragGesturesAfterLongPress
+import androidx.compose.ui.input.pointer.PointerEventPass
 import androidx.compose.ui.input.pointer.pointerInput
 import androidx.compose.ui.layout.boundsInParent
 import androidx.compose.ui.layout.onGloballyPositioned
+import androidx.compose.ui.layout.positionInParent
+import androidx.compose.ui.semantics.contentDescription
+import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.focus.FocusRequester
@@ -240,6 +254,9 @@ private fun TabActionsMenu(
     tab: TerminalTab,
     index: Int,
     tabs: List<TerminalTab>,
+    activeSessionId: String?,
+    effectiveLayout: PaneLayout,
+    canSplitWidth: Boolean,
     expanded: Boolean,
     onDismiss: () -> Unit,
     requestRename: (sessionId: String, currentLabel: String) -> Unit,
@@ -384,6 +401,78 @@ private fun TabActionsMenu(
                     viewModel.beginSaveConnection(tab.sessionId)
                 },
             )
+        }
+        if (canSplitWidth) {
+            val activeSplit = effectiveLayout as? PaneLayout.SplitH
+            val canSplitWithThisTab = activeSessionId != null &&
+                tab.sessionId != activeSessionId &&
+                activeSplit?.contains(tab.sessionId) != true
+            val splitCandidates = if (tab.sessionId == activeSessionId) {
+                tabs.filter { other ->
+                    other.sessionId != tab.sessionId &&
+                        activeSplit?.contains(other.sessionId) != true
+                }
+            } else {
+                emptyList()
+            }
+            val canUnsplit = activeSplit != null
+            if (canSplitWithThisTab || splitCandidates.isNotEmpty() || canUnsplit) {
+                HorizontalDivider(modifier = Modifier.padding(vertical = 4.dp))
+                if (canSplitWithThisTab) {
+                    DropdownMenuItem(
+                        text = { Text(stringResource(R.string.terminal_split_with_session)) },
+                        leadingIcon = {
+                            Icon(
+                                Icons.Filled.VerticalSplit,
+                                null,
+                                modifier = Modifier.size(16.dp),
+                            )
+                        },
+                        onClick = {
+                            onDismiss()
+                            viewModel.splitWithSession(tab.sessionId)
+                        },
+                    )
+                }
+                splitCandidates.forEach { candidate ->
+                    DropdownMenuItem(
+                        text = {
+                            Text(
+                                stringResource(R.string.terminal_split_with_named, candidate.label),
+                                maxLines = 1,
+                                overflow = TextOverflow.Ellipsis,
+                            )
+                        },
+                        leadingIcon = {
+                            Icon(
+                                Icons.Filled.VerticalSplit,
+                                null,
+                                modifier = Modifier.size(16.dp),
+                            )
+                        },
+                        onClick = {
+                            onDismiss()
+                            viewModel.splitWithSession(candidate.sessionId)
+                        },
+                    )
+                }
+                if (canUnsplit) {
+                    DropdownMenuItem(
+                        text = { Text(stringResource(R.string.terminal_unsplit)) },
+                        leadingIcon = {
+                            Icon(
+                                Icons.Filled.CloseFullscreen,
+                                null,
+                                modifier = Modifier.size(16.dp),
+                            )
+                        },
+                        onClick = {
+                            onDismiss()
+                            viewModel.unsplitPanes()
+                        },
+                    )
+                }
+            }
         }
         // Show connected sessions without tabs + remote sessions (tmux/zellij)
         val untabbed by viewModel.untabbedSessions.collectAsState()
@@ -544,6 +633,7 @@ fun TerminalScreen(
     BackHandler(enabled = fullscreen) { fullscreen = false }
     val tabs by viewModel.tabs.collectAsState()
     val activeTabIndex by viewModel.activeTabIndex.collectAsState()
+    val paneLayout by viewModel.paneLayout.collectAsState()
     val ctrlActive by viewModel.ctrlActive.collectAsState()
     val altActive by viewModel.altActive.collectAsState()
     val ctrlLocked by viewModel.ctrlLocked.collectAsState()
@@ -905,6 +995,8 @@ fun TerminalScreen(
     // reports KEYBOARD_QWERTY with the keys physically inaccessible, and there the
     // soft keyboard is the only way to type.
     val screenConfiguration = LocalConfiguration.current
+    val canSplitWidth = screenConfiguration.screenWidthDp >= SPLIT_PANE_MIN_WIDTH_DP
+    val effectiveLayout = paneLayout.effectiveForWidth(screenConfiguration.screenWidthDp)
     val physicalKeyboardAttached =
         screenConfiguration.keyboard != android.content.res.Configuration.KEYBOARD_NOKEYS &&
             screenConfiguration.hardKeyboardHidden ==
@@ -1365,6 +1457,8 @@ fun TerminalScreen(
                                         }.collectAsState(initial = null)
                                         val listReconnecting by listTab.isReconnecting.collectAsState()
                                         val listColor = profileColors[listTab.profileId]
+                                        val inSplitPair = (effectiveLayout as? PaneLayout.SplitH)
+                                            ?.contains(listTab.sessionId) == true
                                         DropdownMenuItem(
                                             text = {
                                                 Row(verticalAlignment = Alignment.CenterVertically) {
@@ -1389,10 +1483,10 @@ fun TerminalScreen(
                                                         // check glyph — the trailing icons are
                                                         // actions (close), mixing a state indicator
                                                         // in with them reads as a second button.
-                                                        fontWeight = if (listIndex == clampedIndex) {
-                                                            FontWeight.Bold
-                                                        } else {
-                                                            null
+                                                        fontWeight = when {
+                                                            listIndex == clampedIndex -> FontWeight.Bold
+                                                            inSplitPair -> FontWeight.Medium
+                                                            else -> null
                                                         },
                                                     )
                                                 }
@@ -1438,6 +1532,9 @@ fun TerminalScreen(
                                     tab = comboTab,
                                     index = clampedIndex,
                                     tabs = tabs,
+                                    activeSessionId = comboTab.sessionId,
+                                    effectiveLayout = effectiveLayout,
+                                    canSplitWidth = canSplitWidth,
                                     expanded = tabMenuFor == comboTab.sessionId,
                                     onDismiss = { tabMenuFor = null },
                                     requestRename = { sessionId, label ->
@@ -1448,6 +1545,7 @@ fun TerminalScreen(
                                 )
                             }
                         } else {
+                            val activeSessionIdForStrip = tabs.getOrNull(clampedIndex)?.sessionId
                             tabs.forEachIndexed { index, tab ->
                                 val reconnecting by tab.isReconnecting.collectAsState()
                                 // OSC 0/2 title from the running program (#625). Falls
@@ -1462,6 +1560,8 @@ fun TerminalScreen(
                                     tab.emulator.terminalTitle.map { it.ifBlank { null } }
                                 }.collectAsState(initial = null)
                                 val selected = activeTabIndex == index
+                                val inSplitUnfocused = !selected &&
+                                    (effectiveLayout as? PaneLayout.SplitH)?.contains(tab.sessionId) == true
                                 val tabColor = profileColors[tab.profileId]
     
                                 Box(modifier = Modifier.weight(1f)) {
@@ -1469,20 +1569,36 @@ fun TerminalScreen(
                                         modifier = Modifier
                                             .fillMaxWidth()
                                             .padding(horizontal = 2.dp)
+                                            .then(
+                                                if (inSplitUnfocused) {
+                                                    Modifier.border(
+                                                        width = 1.dp,
+                                                        color = MaterialTheme.colorScheme.outlineVariant,
+                                                        shape = MaterialTheme.shapes.small,
+                                                    )
+                                                } else {
+                                                    Modifier
+                                                },
+                                            )
                                             .combinedClickable(
                                                 onClick = { viewModel.selectTab(index) },
                                                 onLongClick = { tabMenuFor = tab.sessionId },
                                             ),
                                         shape = MaterialTheme.shapes.small,
-                                        color = if (selected) {
-                                            tabColor?.copy(alpha = 0.55f)
+                                        color = when {
+                                            selected -> tabColor?.copy(alpha = 0.55f)
                                                 ?: MaterialTheme.colorScheme.secondaryContainer
-                                        } else {
-                                            tabColor?.copy(alpha = 0.25f)
+                                            inSplitUnfocused -> tabColor?.copy(alpha = 0.35f)
+                                                ?: MaterialTheme.colorScheme.surfaceVariant
+                                            else -> tabColor?.copy(alpha = 0.25f)
                                                 ?: MaterialTheme.colorScheme.surface
                                         },
-                                        contentColor = tabContentColor(tabColor, selected),
-                                        tonalElevation = if (selected) 4.dp else 0.dp,
+                                        contentColor = tabContentColor(tabColor, selected || inSplitUnfocused),
+                                        tonalElevation = when {
+                                            selected -> 4.dp
+                                            inSplitUnfocused -> 2.dp
+                                            else -> 0.dp
+                                        },
                                     ) {
                                         Row(
                                             modifier = Modifier.padding(
@@ -1543,6 +1659,9 @@ fun TerminalScreen(
                                         tab = tab,
                                         index = index,
                                         tabs = tabs,
+                                        activeSessionId = activeSessionIdForStrip,
+                                        effectiveLayout = effectiveLayout,
+                                        canSplitWidth = canSplitWidth,
                                         expanded = tabMenuFor == tab.sessionId,
                                         onDismiss = { tabMenuFor = null },
                                         requestRename = { sessionId, label ->
@@ -1555,6 +1674,18 @@ fun TerminalScreen(
                         }
                         }
                         // Action buttons after tabs
+                        if (effectiveLayout is PaneLayout.SplitH) {
+                            IconButton(
+                                onClick = { viewModel.unsplitPanes() },
+                                modifier = Modifier.size(36.dp),
+                            ) {
+                                Icon(
+                                    Icons.Filled.CloseFullscreen,
+                                    contentDescription = stringResource(R.string.terminal_unsplit),
+                                    modifier = Modifier.size(18.dp),
+                                )
+                            }
+                        }
                         if (showCopyOutputButton) {
                             IconButton(
                                 onClick = {
@@ -1597,91 +1728,292 @@ fun TerminalScreen(
             // Terminal area
             val activeTab = tabs.getOrNull(activeTabIndex)
             if (activeTab != null) {
-                // key() forces Terminal recreation when switching tabs, ensuring
-                // the emulator and keyboard input are bound to the correct session.
-                key(activeTab.sessionId) {
-                    // Wire OSC handler callbacks
-                    val clipboard = remember {
-                        context.getSystemService(Context.CLIPBOARD_SERVICE) as ClipboardManager
-                    }
-                    activeTab.oscHandler.onClipboardSet = { text ->
-                        clipboard.setPrimaryClip(ClipData.newPlainText("terminal", text))
-                    }
-                    activeTab.oscHandler.onNotification = { title, body ->
-                        showTerminalNotification(context, title, body, activeTab.label)
-                    }
+                val focusRequesters = remember { mutableStateMapOf<String, FocusRequester>() }
+                val selectionControllers = remember {
+                    mutableStateMapOf<String, org.connectbot.terminal.SelectionController>()
+                }
+                val composeControllers = remember {
+                    mutableStateMapOf<String, org.connectbot.terminal.ComposeController>()
+                }
+                val fallbackFocusRequester = remember { FocusRequester() }
 
-                    // Inline-image consent (#583): the ASK policy parks the
-                    // request on the per-session registry; answer it here.
-                    val inlineImagePrompt by viewModel
-                        .inlineImagePromptFor(activeTab.sessionId)
-                        .collectAsState()
-                    inlineImagePrompt?.let { prompt ->
-                        InlineImageConsentDialog(
-                            prompt = prompt,
-                            onAnswer = { allowed, alwaysInTab ->
-                                viewModel.answerInlineImage(activeTab.sessionId, allowed, alwaysInTab)
-                            },
-                        )
+                val sudoPromptDetectionEnabled by viewModel.sudoPromptDetectionEnabled.collectAsState()
+                val sudoDisabledToast = stringResource(R.string.terminal_sudo_disabled_toast)
+                val sudoEntryPrompt by viewModel.sudoPasswordEntryPrompt.collectAsState()
+                if (sudoEntryPrompt != null && tabs.any { it.sessionId == sudoEntryPrompt!!.sessionId }) {
+                    val req = sudoEntryPrompt!!
+                    SudoPasswordEntryDialog(
+                        request = req,
+                        onDismiss = { viewModel.dismissSudoPasswordEntryPrompt() },
+                        onSubmit = { password, saveToProfile ->
+                            viewModel.submitSudoPasswordEntry(req.sessionId, password, saveToProfile)
+                        },
+                        onDisableDetection = {
+                            viewModel.setSudoPromptDetectionEnabled(false)
+                            android.widget.Toast.makeText(view.context, sudoDisabledToast, android.widget.Toast.LENGTH_SHORT).show()
+                        },
+                    )
+                }
+
+                // ModifierManager bridges our Ctrl/Alt toolbar state to the
+                // library's KeyboardHandler. clearTransients is a no-op here
+                // because the library calls it during recomposition, not after
+                // key processing. We clear modifiers ourselves via
+                // onInputProcessed below.
+                val modifierManager = remember(viewModel) {
+                    object : ModifierManager {
+                        override fun isCtrlActive() = viewModel.ctrlActive.value
+                        override fun isAltActive() = viewModel.altActive.value
+                        override fun isShiftActive() = false
+                        // One-shot: clear the tapped modifier once the
+                        // keystroke that consumed it has dispatched, so
+                        // it can't get stuck (#298).
+                        override fun clearTransients() = viewModel.clearStickyModifiers()
                     }
+                }
 
-                    val sudoPromptDetectionEnabled by viewModel.sudoPromptDetectionEnabled.collectAsState()
-                    val sudoDisabledToast = stringResource(R.string.terminal_sudo_disabled_toast)
-                    val sudoEntryPrompt by viewModel.sudoPasswordEntryPrompt.collectAsState()
-                    if (sudoEntryPrompt?.sessionId == activeTab.sessionId) {
-                        val req = sudoEntryPrompt!!
-                        SudoPasswordEntryDialog(
-                            request = req,
-                            onDismiss = { viewModel.dismissSudoPasswordEntryPrompt() },
-                            onSubmit = { password, saveToProfile ->
-                                viewModel.submitSudoPasswordEntry(req.sessionId, password, saveToProfile)
-                            },
-                            onDisableDetection = {
-                                viewModel.setSudoPromptDetectionEnabled(false)
-                                android.widget.Toast.makeText(view.context, sudoDisabledToast, android.widget.Toast.LENGTH_SHORT).show()
-                            },
-                        )
-                    }
+                val keyboardMode = when {
+                    rawKeyboardMode -> HavenKeyboardMode.Raw
+                    allowStandardKeyboard -> HavenKeyboardMode.Standard
+                    customKeyboardFlags != null -> HavenKeyboardMode.Custom(customKeyboardFlags!!)
+                    // #684: on some OEMs (Huawei confirmed) the Secure
+                    // recipe's password variation locks the IME to a
+                    // minimal system keypad, so the default adapts.
+                    else -> defaultKeyboardModeForDevice(Build.MANUFACTURER)
+                }
 
-                    val focusRequester = remember { FocusRequester() }
+                val splitLayout = effectiveLayout as? PaneLayout.SplitH
+                val leftSplitTab = splitLayout?.let { s ->
+                    tabs.firstOrNull { it.sessionId == s.leftSessionId }
+                }
+                val rightSplitTab = splitLayout?.let { s ->
+                    tabs.firstOrNull { it.sessionId == s.rightSessionId }
+                }
 
-                    // Keyed on isActive, not Unit: the HorizontalPager keeps
-                    // adjacent pages composed, so returning to this screen
-                    // doesn't recompose it — without re-requesting here the
-                    // IME's InputConnection stays wired to the previous
-                    // screen's view (desktop tab) and keys go nowhere until
-                    // the user switches away and back a second time.
-                    // A plain requestFocus() was not enough after Attach → Send
-                    // a file (Files tab and back): the keyboard composed but
-                    // nothing reached the terminal until a background round
-                    // trip, so rebind over a fresh InputConnection instead.
-                    LaunchedEffect(isActive) {
-                        if (!isActive) return@LaunchedEffect
-                        val root = (view.context as? Activity)?.window?.decorView
-                        if (root == null) {
-                            focusRequester.requestFocus()
-                        } else {
-                            rebindImeTarget(
-                                root,
-                                requestFocus = { runCatching { focusRequester.requestFocus() } },
-                                clearFocus = { focusManager.clearFocus(force = true) },
+                Box(
+                    modifier = Modifier
+                        .weight(1f)
+                        .then(terminalModifier),
+                ) {
+                    if (splitLayout != null && leftSplitTab != null && rightSplitTab != null) {
+                        val leftFocused = splitLayout.focusedSide == SplitSide.LEFT
+                        val rightFocused = splitLayout.focusedSide == SplitSide.RIGHT
+                        val focusBorderColor =
+                            (indicatorColor ?: MaterialTheme.colorScheme.primary).copy(alpha = 0.7f)
+                        Row(modifier = Modifier.fillMaxSize()) {
+                            Box(
+                                modifier = Modifier
+                                    .weight(splitLayout.splitFraction)
+                                    .fillMaxHeight()
+                                    .then(
+                                        if (leftFocused) {
+                                            Modifier.border(1.dp, focusBorderColor)
+                                        } else {
+                                            Modifier.pointerInput(Unit) {
+                                                awaitEachGesture {
+                                                    awaitFirstDown(
+                                                        requireUnconsumed = false,
+                                                        pass = PointerEventPass.Initial,
+                                                    )
+                                                    viewModel.focusPane(SplitSide.LEFT)
+                                                }
+                                            }
+                                        },
+                                    ),
+                            ) {
+                                key(leftSplitTab.sessionId) {
+                                    TerminalPaneHost(
+                                        viewModel = viewModel,
+                                        tab = leftSplitTab,
+                                        isActive = isActive,
+                                        isFocusedPane = leftFocused,
+                                        onRequestPaneFocus = { viewModel.focusPane(SplitSide.LEFT) },
+                                        defaultColorScheme = colorScheme,
+                                        applySchemePalette = applySchemePalette,
+                                        globalBgOpacity = globalBgOpacity,
+                                        horizontalPaddingDp = horizontalPaddingDp,
+                                        fontSize = fontSize,
+                                        hackTypeface = hackTypeface,
+                                        termlibAmbiwidthMode = termlibAmbiwidthMode,
+                                        autoShowKeyboardInTerminal = autoShowKeyboardInTerminal,
+                                        imeRestoreTick = imeRestoreTick,
+                                        reflowTerminalOnKeyboard = reflowTerminalOnKeyboard,
+                                        mouseInputEnabled = mouseInputEnabled,
+                                        terminalRightClick = terminalRightClick,
+                                        swipeArrowsMode = swipeArrowsMode,
+                                        isShiftActive = { shiftActive },
+                                        interceptCtrlShiftV = interceptCtrlShiftV,
+                                        keyboardMode = keyboardMode,
+                                        tapToPositionCursorOnPrompt = tapToPositionCursorOnPrompt,
+                                        modifierManager = modifierManager,
+                                        sudoPromptDetectionEnabled = sudoPromptDetectionEnabled,
+                                        sudoDisabledToast = sudoDisabledToast,
+                                        linkOpenFailedMessage = linkOpenFailedMessage,
+                                        linkSchemeBlockedMessage = linkSchemeBlockedMessage,
+                                        focusRequesters = focusRequesters,
+                                        selectionControllers = selectionControllers,
+                                        composeControllers = composeControllers,
+                                    )
+                                }
+                            }
+                            SplitPaneDivider(
+                                onResizeFraction = { viewModel.resizeSplit(it) },
+                                onResetFraction = { viewModel.resizeSplit(DEFAULT_SPLIT_FRACTION) },
+                            )
+                            Box(
+                                modifier = Modifier
+                                    .weight(1f - splitLayout.splitFraction)
+                                    .fillMaxHeight()
+                                    .then(
+                                        if (rightFocused) {
+                                            Modifier.border(1.dp, focusBorderColor)
+                                        } else {
+                                            Modifier.pointerInput(Unit) {
+                                                awaitEachGesture {
+                                                    awaitFirstDown(
+                                                        requireUnconsumed = false,
+                                                        pass = PointerEventPass.Initial,
+                                                    )
+                                                    viewModel.focusPane(SplitSide.RIGHT)
+                                                }
+                                            }
+                                        },
+                                    ),
+                            ) {
+                                key(rightSplitTab.sessionId) {
+                                    TerminalPaneHost(
+                                        viewModel = viewModel,
+                                        tab = rightSplitTab,
+                                        isActive = isActive,
+                                        isFocusedPane = rightFocused,
+                                        onRequestPaneFocus = { viewModel.focusPane(SplitSide.RIGHT) },
+                                        defaultColorScheme = colorScheme,
+                                        applySchemePalette = applySchemePalette,
+                                        globalBgOpacity = globalBgOpacity,
+                                        horizontalPaddingDp = horizontalPaddingDp,
+                                        fontSize = fontSize,
+                                        hackTypeface = hackTypeface,
+                                        termlibAmbiwidthMode = termlibAmbiwidthMode,
+                                        autoShowKeyboardInTerminal = autoShowKeyboardInTerminal,
+                                        imeRestoreTick = imeRestoreTick,
+                                        reflowTerminalOnKeyboard = reflowTerminalOnKeyboard,
+                                        mouseInputEnabled = mouseInputEnabled,
+                                        terminalRightClick = terminalRightClick,
+                                        swipeArrowsMode = swipeArrowsMode,
+                                        isShiftActive = { shiftActive },
+                                        interceptCtrlShiftV = interceptCtrlShiftV,
+                                        keyboardMode = keyboardMode,
+                                        tapToPositionCursorOnPrompt = tapToPositionCursorOnPrompt,
+                                        modifierManager = modifierManager,
+                                        sudoPromptDetectionEnabled = sudoPromptDetectionEnabled,
+                                        sudoDisabledToast = sudoDisabledToast,
+                                        linkOpenFailedMessage = linkOpenFailedMessage,
+                                        linkSchemeBlockedMessage = linkSchemeBlockedMessage,
+                                        focusRequesters = focusRequesters,
+                                        selectionControllers = selectionControllers,
+                                        composeControllers = composeControllers,
+                                    )
+                                }
+                            }
+                        }
+                    } else {
+                        key(activeTab.sessionId) {
+                            TerminalPaneHost(
+                                viewModel = viewModel,
+                                tab = activeTab,
+                                isActive = isActive,
+                                isFocusedPane = true,
+                                onRequestPaneFocus = {},
+                                defaultColorScheme = colorScheme,
+                                applySchemePalette = applySchemePalette,
+                                globalBgOpacity = globalBgOpacity,
+                                horizontalPaddingDp = horizontalPaddingDp,
+                                fontSize = fontSize,
+                                hackTypeface = hackTypeface,
+                                termlibAmbiwidthMode = termlibAmbiwidthMode,
+                                autoShowKeyboardInTerminal = autoShowKeyboardInTerminal,
+                                imeRestoreTick = imeRestoreTick,
+                                reflowTerminalOnKeyboard = reflowTerminalOnKeyboard,
+                                mouseInputEnabled = mouseInputEnabled,
+                                terminalRightClick = terminalRightClick,
+                                swipeArrowsMode = swipeArrowsMode,
+                                isShiftActive = { shiftActive },
+                                interceptCtrlShiftV = interceptCtrlShiftV,
+                                keyboardMode = keyboardMode,
+                                tapToPositionCursorOnPrompt = tapToPositionCursorOnPrompt,
+                                modifierManager = modifierManager,
+                                sudoPromptDetectionEnabled = sudoPromptDetectionEnabled,
+                                sudoDisabledToast = sudoDisabledToast,
+                                linkOpenFailedMessage = linkOpenFailedMessage,
+                                linkSchemeBlockedMessage = linkSchemeBlockedMessage,
+                                focusRequesters = focusRequesters,
+                                selectionControllers = selectionControllers,
+                                composeControllers = composeControllers,
                             )
                         }
                     }
 
-                    var selectionController by remember {
-                        mutableStateOf<org.connectbot.terminal.SelectionController?>(null)
+                    // Fullscreen toggle (#138). Small low-opacity overlay in
+                    // a corner (default top-right; the TopCenter slot is the
+                    // disconnect banner's, so they never collide). Tap toggles
+                    // fullscreen; hold-drag moves it to another corner, snapping
+                    // to whichever it's released nearest and remembering it (#445).
+                    var fsDragOffset by remember { mutableStateOf(androidx.compose.ui.geometry.Offset.Zero) }
+                    var fsButtonCoords by remember {
+                        mutableStateOf<androidx.compose.ui.layout.LayoutCoordinates?>(null)
                     }
+                    IconButton(
+                        onClick = { fullscreen = !fullscreen },
+                        modifier = Modifier
+                            .align(fullscreenButtonCorner.toComposeAlignment())
+                            .offset { androidx.compose.ui.unit.IntOffset(fsDragOffset.x.toInt(), fsDragOffset.y.toInt()) }
+                            .onGloballyPositioned { fsButtonCoords = it }
+                            .pointerInput(Unit) {
+                                detectDragGesturesAfterLongPress(
+                                    onDrag = { change, delta ->
+                                        change.consume()
+                                        fsDragOffset += delta
+                                    },
+                                    onDragEnd = {
+                                        val coords = fsButtonCoords
+                                        val parent = coords?.parentLayoutCoordinates
+                                        if (coords != null && parent != null) {
+                                            val c = coords.boundsInParent().center
+                                            onFullscreenButtonCornerChange(
+                                                sh.haven.core.data.preferences.FullscreenButtonCorner.nearest(
+                                                    c.x, c.y,
+                                                    parent.size.width.toFloat(),
+                                                    parent.size.height.toFloat(),
+                                                ),
+                                            )
+                                        }
+                                        fsDragOffset = androidx.compose.ui.geometry.Offset.Zero
+                                    },
+                                )
+                            }
+                            .padding(2.dp)
+                            .size(32.dp),
+                    ) {
+                        Icon(
+                            imageVector = if (fullscreen) Icons.Filled.FullscreenExit
+                            else Icons.Filled.Fullscreen,
+                            contentDescription = stringResource(
+                                if (fullscreen) R.string.terminal_exit_fullscreen
+                                else R.string.terminal_enter_fullscreen,
+                            ),
+                            tint = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.55f),
+                            modifier = Modifier.size(20.dp),
+                        )
+                    }
+                }
 
-                    // The active tab's compose controller (termlib local
-                    // CJK/accent buffer). Held here so the Compose toolbar key
-                    // can toggle it and reflect its state; also registered into
-                    // TerminalSessionRegistry for the MCP set_compose_mode verb.
-                    // isComposeModeActive is Compose-state backed, so reads
-                    // recompose the toolbar tint (incl. auto-exit on Enter).
-                    var composeController by remember {
-                        mutableStateOf<org.connectbot.terminal.ComposeController?>(null)
-                    }
+                // key() ensures hardware-key routing, selection toolbar, and
+                // FloatingTextInputDialog re-bind cleanly whenever the focused
+                // session changes (including tap-to-focus across split panes).
+                key(activeTab.sessionId) {
+                    val focusRequester = focusRequesters[activeTab.sessionId] ?: fallbackFocusRequester
+                    val selectionController = selectionControllers[activeTab.sessionId]
+                    val composeController = composeControllers[activeTab.sessionId]
 
                     // Notify parent when selection state changes.
                     // isSelectionActive is backed by Compose MutableState, so
@@ -1728,405 +2060,12 @@ fun TerminalScreen(
                         }
                     }
                     val currentHyperlinkUri by activeTab.hyperlinkUri.collectAsState()
+                    val isBracketPaste by activeTab.bracketPasteMode.collectAsState()
 
                     LaunchedEffect(selectionActive) {
                         onSelectionActiveChanged(selectionActive)
                         if (selectionActive && selectionController != null) {
-                            expandSelectionToWord(selectionController!!, activeTab.emulator)
-                        }
-                    }
-
-                    val isMouseMode by activeTab.mouseMode.collectAsState()
-                    val isBracketPaste by activeTab.bracketPasteMode.collectAsState()
-                    val isAltScreen by activeTab.altScreen.collectAsState()
-
-                    // #580. The per-gesture line reports the EFFECTIVE flag, which
-                    // is `isMouseMode && mouseInputEnabled` — so "mouseMode=false"
-                    // means either the app never asked for the mouse (DECSET
-                    // ?1000/?1002/?1003 not seen) or the user has "Mouse input in
-                    // TUI apps" switched off, and the two are indistinguishable.
-                    // A reporter lost a round trip to exactly that ambiguity: they
-                    // proved with a minimal program that the taps arrived and the
-                    // app had enabled mouse tracking, which rules out one cause but
-                    // cannot confirm the other. Same "HavenGesture" tag on purpose,
-                    // so `adb logcat -s HavenGesture` picks it up alongside the
-                    // gesture lines with no second capture to ask for.
-                    // Read in composable scope, not inside the effect: resolving
-                    // it from LocalContext at fire time is not configuration-aware
-                    // and lint rejects it (LocalContextGetResourceValueCall).
-                    val mouseDisabledHint =
-                        stringResource(R.string.terminal_mouse_requested_but_disabled)
-
-                    LaunchedEffect(activeTab, isMouseMode, mouseInputEnabled) {
-                        android.util.Log.i(
-                            "HavenGesture",
-                            "mouseModeState tracker=$isMouseMode pref=$mouseInputEnabled " +
-                                "effective=${isMouseMode && mouseInputEnabled}",
-                        )
-                        // #586: the app asked for the mouse and the preference is
-                        // off, so every tap will be swallowed and nothing will say
-                        // why. That silence is indistinguishable from broken touch
-                        // input — it cost the #580 reporter a minimal reproducer,
-                        // adb captures and two days before the answer turned out to
-                        // be a switch. Say it once and then stay quiet: repeating it
-                        // on every tab switch would be worse than saying nothing.
-                        if (shouldShowMouseHint(
-                                appRequestedMouse = isMouseMode,
-                                preferenceEnabled = mouseInputEnabled,
-                                alreadyShown = mouseHintShownThisSession,
-                            )
-                        ) {
-                            mouseHintShownThisSession = true
-                            android.widget.Toast.makeText(
-                                context,
-                                mouseDisabledHint,
-                                android.widget.Toast.LENGTH_LONG,
-                            ).show()
-                        }
-                    }
-
-                    // Build gesture callback when mouse mode is active. Gesture
-                    // routing follows the mode (#186):
-                    //  • one-finger swipe → onScroll → wheel → scrolls the pane
-                    //  • long-press (haptic) then drag → onMouseDrag → the
-                    //    multiplexer's own pane-aware copy-mode selection
-                    //  • long-press release → right-click iff terminalRightClick;
-                    //    otherwise it just arms the copy-mode drag above
-                    // Taps/long-press/drag are gated by mouseInputEnabled; the
-                    // scroll wheel forwards whenever the app requested mouse mode.
-                    // Haven's local scrollback and row-based selection are reached
-                    // with a two-finger swipe / tap-and-hold in non-mouse-mode.
-                    val gestureCallback = remember(activeTab, isMouseMode, isAltScreen, mouseInputEnabled, terminalRightClick, swipeArrowsMode) {
-                        buildTerminalGestureCallback(
-                            isMouseMode = isMouseMode,
-                            isAltScreen = isAltScreen,
-                            mouseInputEnabled = mouseInputEnabled,
-                            terminalRightClick = terminalRightClick,
-                            swipeArrowsMode = swipeArrowsMode,
-                            isEmulatorAltScreenActive = { activeTab.emulator.isAltScreenActive() },
-                            cursorKeyAppMode = { activeTab.cursorKeyAppMode.value },
-                            isShiftActive = { shiftActive },
-                            coroutineScope = coroutineScope,
-                            sendInput = activeTab.sendInput,
-                        )
-                    }
-
-                    // Smart clipboard intercepts all terminal copy operations
-                    // (toolbar button + library popup) to strip TUI borders and
-                    // unwrap soft-wrapped lines.
-                    val realClipboard = LocalClipboardManager.current
-                    val smartClipboard = remember(activeTab, realClipboard) {
-                        SmartTerminalClipboard(
-                            delegate = realClipboard,
-                            getEmulator = { activeTab.emulator },
-                            getController = { selectionController },
-                            // Read live at copy time: when the viewport is
-                            // scrolled into scrollback, selection rows and
-                            // screen lines are different coordinate spaces.
-                            getScrollbackPosition = {
-                                selectionController?.scrollbackPosition ?: 0
-                            },
-                        )
-                    }
-
-                    Box(
-                        modifier = Modifier
-                            .weight(1f)
-                            .then(terminalModifier),
-                    ) {
-                        // ModifierManager bridges our Ctrl/Alt toolbar state to the
-                        // library's KeyboardHandler. clearTransients is a no-op here
-                        // because the library calls it during recomposition, not after
-                        // key processing. We clear modifiers ourselves via
-                        // onInputProcessed below.
-                        val modifierManager = remember(viewModel) {
-                            object : ModifierManager {
-                                override fun isCtrlActive() = viewModel.ctrlActive.value
-                                override fun isAltActive() = viewModel.altActive.value
-                                override fun isShiftActive() = false
-                                // One-shot: clear the tapped modifier once the
-                                // keystroke that consumed it has dispatched, so
-                                // it can't get stuck (#298).
-                                override fun clearTransients() = viewModel.clearStickyModifiers()
-                            }
-                        }
-
-                        // Update native emulator colors when scheme changes.
-                        // MATERIAL_YOU: pulled from MaterialTheme above and
-                        // re-applied whenever the system theme shifts (light /
-                        // dark / wallpaper change), so the terminal repaints.
-                        //
-                        // Pushing the scheme's 16-colour ANSI palette makes
-                        // SGR-coloured prompts track the theme, but it also
-                        // remaps the colours full-screen TUIs like mutt rely on
-                        // (e.g. ANSI white → a scheme "cream"), which reads as a
-                        // regression (#407). So it's opt-in: default OFF applies
-                        // only the default fg/bg and leaves libvterm's stock
-                        // palette, matching pre-#165 behaviour.
-                        val terminalFgArgb = terminalFg.toArgb()
-                        val terminalBgArgb = terminalBg.toArgb()
-                        // MATERIAL_YOU derives its palette from the live theme
-                        // (#139), so it re-derives on theme/wallpaper changes the
-                        // same way terminalFg/Bg do; static schemes use the
-                        // enum's fixed longs.
-                        val ansiPalette = remember(activeTabScheme, themeCs) {
-                            if (activeTabScheme.isDynamic) {
-                                materialYouAnsiPalette(themeCs)
-                            } else {
-                                activeTabScheme.ansiPaletteArgb()
-                            }
-                        }
-                        val applyScheme: (TerminalEmulator) -> Unit = { emu ->
-                            if (applySchemePalette) {
-                                emu.applyColorScheme(ansiPalette, terminalFgArgb, terminalBgArgb)
-                            } else {
-                                emu.setDefaultColors(terminalFgArgb, terminalBgArgb)
-                            }
-                        }
-                        LaunchedEffect(applySchemePalette, terminalFgArgb, terminalBgArgb, ansiPalette, activeTab.emulator) {
-                            activeTab.emulator?.let(applyScheme)
-                        }
-
-                        // Force terminal redraw on resume from background
-                        androidx.lifecycle.compose.LifecycleResumeEffect(activeTab.emulator) {
-                            activeTab.emulator?.let(applyScheme)
-                            onPauseOrDispose {}
-                        }
-
-                        // Shared paste action: read the (real, non-smart) system
-                        // clipboard and send via sendInput, wrapping in bracketed-
-                        // paste when the remote app has mode 2004 active.
-                        val doPaste: () -> Unit = {
-                            val text = realClipboard.getText()?.text
-                            if (!text.isNullOrEmpty()) {
-                                activeTab.sendInput(
-                                    bracketPasteWrap(text, isBracketPaste).toByteArray(),
-                                )
-                            }
-                        }
-
-                        // Hardware Ctrl+Shift+V shortcut. Null when the user has
-                        // turned the shortcut off, so the V key passes through to
-                        // the shell unchanged.
-                        val pasteShortcut: (() -> Unit)? = if (interceptCtrlShiftV) doPaste else null
-
-                        val keyboardMode = when {
-                            rawKeyboardMode -> HavenKeyboardMode.Raw
-                            allowStandardKeyboard -> HavenKeyboardMode.Standard
-                            customKeyboardFlags != null -> HavenKeyboardMode.Custom(customKeyboardFlags!!)
-                            // #684: on some OEMs (Huawei confirmed) the Secure
-                            // recipe's password variation locks the IME to a
-                            // minimal system keypad, so the default adapts.
-                            else -> defaultKeyboardModeForDevice(Build.MANUFACTURER)
-                        }
-                        CompositionLocalProvider(LocalClipboardManager provides smartClipboard) {
-                            HavenTerminal(
-                                terminalEmulator = activeTab.emulator,
-                                // #745: horizontal margin around the grid. The
-                                // padding shrinks the measured width, so termlib
-                                // recomputes columns and resizes the PTY; the
-                                // strip is painted with the terminal background
-                                // so it reads as one surface.
-                                modifier = Modifier
-                                    .fillMaxSize()
-                                    .background(terminalBg.copy(alpha = effectiveBgOpacity))
-                                    .padding(horizontal = horizontalPaddingDp.dp),
-                                initialFontSize = fontSize.sp,
-                                typeface = hackTypeface,
-                                ambiwidthMode = termlibAmbiwidthMode,
-                                keyboardEnabled = true,
-                                // #756: termlib shows the IME itself whenever the
-                                // input view is created (its LaunchedEffect on
-                                // shouldShowIme), and creating one is what a
-                                // session switch does — that path never saw the
-                                // #675 setting, so the keyboard still popped with
-                                // it off. Feed the setting in so the view's own
-                                // show honours it; the toolbar keyboard key and
-                                // the double-tap raise through the insets
-                                // controller and stay deliberate either way.
-                                showSoftKeyboard = autoShowKeyboardInTerminal,
-                                // Only the active tab restores; adjacent pager
-                                // pages stay composed and must not fight over
-                                // the IME (#515).
-                                imeRestoreTick = if (isActive) imeRestoreTick else 0,
-                                // Reflow (resize) the PTY on a keyboard toggle
-                                // when a full-screen TUI is running, so its top
-                                // status/header row isn't shifted off the top
-                                // (#206 / tmux copy-mode indicator / mutt header
-                                // #407). The alt screen is the reliable
-                                // full-screen signal — mutt, vim, less, htop and
-                                // nested compositors all switch to it, so reflow
-                                // it automatically (termlib reflows alt-screen
-                                // content correctly on resize). Mouse tracking
-                                // additionally catches the primary-buffer
-                                // multiplexers (Haven forces `mouse on` for
-                                // tmux/byobu). A plain-shell primary-buffer TUI
-                                // the heuristics miss (e.g. `top`) keeps the
-                                // no-resize render-shift unless the user opts in
-                                // (#242).
-                                reflowOnKeyboard = isMouseMode || isAltScreen || reflowTerminalOnKeyboard,
-                                backgroundColor = terminalBg,
-                                foregroundColor = terminalFg,
-                                backgroundOpacity = effectiveBgOpacity,
-                                focusRequester = focusRequester,
-                                modifierManager = modifierManager,
-                                onPasteShortcut = pasteShortcut,
-                                onPasteRequest = doPaste,
-                                onSelectionControllerAvailable = {
-                                    selectionController = it
-                                    viewModel.terminalSessionRegistry.setSelectionController(activeTab.sessionId, it)
-                                },
-                                onScrollControllerAvailable = {
-                                    viewModel.terminalSessionRegistry.setScrollController(activeTab.sessionId, it)
-                                },
-                                onGestureInjectorReady = {
-                                    viewModel.terminalSessionRegistry.setGestureInjector(activeTab.sessionId, it)
-                                },
-                                onComposeControllerAvailable = {
-                                    composeController = it
-                                    viewModel.terminalSessionRegistry.setComposeController(activeTab.sessionId, it)
-                                },
-                                onTerminalDoubleTap = {
-                                    val window = (view.context as? Activity)?.window ?: return@HavenTerminal
-                                    val controller = WindowCompat.getInsetsController(window, view)
-                                    val rootView = window.decorView
-                                    val imeShowing = androidx.core.view.ViewCompat
-                                        .getRootWindowInsets(rootView)
-                                        ?.isVisible(WindowInsetsCompat.Type.ime()) == true
-                                    if (imeShowing) {
-                                        controller.hide(WindowInsetsCompat.Type.ime())
-                                    } else {
-                                        // Rebind over a fresh InputConnection: a
-                                        // no-op requestFocus() can leave the IME
-                                        // on a stale or unserved target.
-                                        rebindImeTarget(
-                                            rootView,
-                                            requestFocus = { runCatching { focusRequester.requestFocus() } },
-                                            clearFocus = { focusManager.clearFocus(force = true) },
-                                        )
-                                        controller.show(WindowInsetsCompat.Type.ime())
-                                    }
-                                },
-                                onFontSizeChanged = { newSize ->
-                                    viewModel.setFontSize(newSize.value.toInt())
-                                },
-                                onHyperlinkClick = { url ->
-                                    // OSC 8 link targets come straight from untrusted server
-                                    // output. Only launch a vetted scheme, and never let a
-                                    // missing handler crash the app. (#208 finding 16)
-                                    val finalUrl = if (url.contains("://")) url else "https://$url"
-                                    val scheme = Uri.parse(finalUrl).scheme?.lowercase()
-                                    if (scheme in setOf("http", "https", "mailto", "tel")) {
-                                        try {
-                                            context.startActivity(Intent(Intent.ACTION_VIEW, Uri.parse(finalUrl)))
-                                        } catch (_: android.content.ActivityNotFoundException) {
-                                            android.widget.Toast.makeText(
-                                                context,
-                                                linkOpenFailedMessage,
-                                                android.widget.Toast.LENGTH_LONG,
-                                            ).show()
-                                        }
-                                    } else {
-                                        android.widget.Toast.makeText(
-                                            context,
-                                            linkSchemeBlockedMessage,
-                                            android.widget.Toast.LENGTH_LONG,
-                                        ).show()
-                                    }
-                                },
-                                gestureCallback = gestureCallback,
-                                // Coarser per-arrow travel only while the latched
-                                // swipe-arrows callback is the active branch — a
-                                // mouse-tracking app keeps the fine wheel quantum
-                                // even with the latch on. (#524)
-                                scrollQuantumMultiplier =
-                                    if (swipeArrowsMode && !isMouseMode) swipeArrowsQuantumMultiplier(fontSize) else 1f,
-                                // The real DECSET mouse-tracking signal, not
-                                // "a gestureCallback exists" — one is installed
-                                // for alt-screen-only apps too, and those have
-                                // no click to protect. (#435)
-                                mouseModeActive = isMouseMode && mouseInputEnabled,
-                                keyboardMode = keyboardMode,
-                                tapToPositionCursorOnPrompt = tapToPositionCursorOnPrompt,
-                            )
-                        }
-
-                        // Top-center banner stack: the stall countdown (Mosh)
-                        // and the session-manager attach notice (#731, SSH).
-                        // Mutually exclusive in practice (different transports)
-                        // but stacked in a Column so they never overlap.
-                        Column(
-                            horizontalAlignment = Alignment.CenterHorizontally,
-                            modifier = Modifier.align(Alignment.TopCenter),
-                        ) {
-                            StallBanner(stallFlow = activeTab.stallSeconds)
-                            AttachNoticeBanner(
-                                noticeFlow = activeTab.attachNotice,
-                                onDismiss = { viewModel.dismissAttachNotice(activeTab.sessionId) },
-                            )
-                            SudoPromptBanner(
-                                promptFlow = activeTab.sudoPrompt,
-                                detectionEnabled = sudoPromptDetectionEnabled,
-                                onFill = { viewModel.triggerSudoFill(activeTab.sessionId) },
-                                onDisableDetection = {
-                                    viewModel.setSudoPromptDetectionEnabled(false)
-                                    android.widget.Toast.makeText(view.context, sudoDisabledToast, android.widget.Toast.LENGTH_SHORT).show()
-                                },
-                                onDismiss = { viewModel.dismissSudoPrompt(activeTab.sessionId) },
-                            )
-                        }
-
-                        // Fullscreen toggle (#138). Small low-opacity overlay in
-                        // a corner (default top-right; the TopCenter slot is the
-                        // disconnect banner's, so they never collide). Tap toggles
-                        // fullscreen; hold-drag moves it to another corner, snapping
-                        // to whichever it's released nearest and remembering it (#445).
-                        var fsDragOffset by remember { mutableStateOf(androidx.compose.ui.geometry.Offset.Zero) }
-                        var fsButtonCoords by remember {
-                            mutableStateOf<androidx.compose.ui.layout.LayoutCoordinates?>(null)
-                        }
-                        IconButton(
-                            onClick = { fullscreen = !fullscreen },
-                            modifier = Modifier
-                                .align(fullscreenButtonCorner.toComposeAlignment())
-                                .offset { androidx.compose.ui.unit.IntOffset(fsDragOffset.x.toInt(), fsDragOffset.y.toInt()) }
-                                .onGloballyPositioned { fsButtonCoords = it }
-                                .pointerInput(Unit) {
-                                    detectDragGesturesAfterLongPress(
-                                        onDrag = { change, delta ->
-                                            change.consume()
-                                            fsDragOffset += delta
-                                        },
-                                        onDragEnd = {
-                                            val coords = fsButtonCoords
-                                            val parent = coords?.parentLayoutCoordinates
-                                            if (coords != null && parent != null) {
-                                                val c = coords.boundsInParent().center
-                                                onFullscreenButtonCornerChange(
-                                                    sh.haven.core.data.preferences.FullscreenButtonCorner.nearest(
-                                                        c.x, c.y,
-                                                        parent.size.width.toFloat(),
-                                                        parent.size.height.toFloat(),
-                                                    ),
-                                                )
-                                            }
-                                            fsDragOffset = androidx.compose.ui.geometry.Offset.Zero
-                                        },
-                                    )
-                                }
-                                .padding(2.dp)
-                                .size(32.dp),
-                        ) {
-                            Icon(
-                                imageVector = if (fullscreen) Icons.Filled.FullscreenExit
-                                else Icons.Filled.Fullscreen,
-                                contentDescription = stringResource(
-                                    if (fullscreen) R.string.terminal_exit_fullscreen
-                                    else R.string.terminal_enter_fullscreen,
-                                ),
-                                tint = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.55f),
-                                modifier = Modifier.size(20.dp),
-                            )
+                            expandSelectionToWord(selectionController, activeTab.emulator)
                         }
                     }
 
@@ -2326,6 +2265,405 @@ fun TerminalScreen(
                     }
                 }
             }
+        }
+    }
+}
+
+@Composable
+private fun SplitPaneDivider(
+    onResizeFraction: (Float) -> Unit,
+    onResetFraction: () -> Unit,
+) {
+    val resizeLabel = stringResource(R.string.terminal_resize_split_panes)
+    var handleCoords by remember {
+        mutableStateOf<androidx.compose.ui.layout.LayoutCoordinates?>(null)
+    }
+    var dragging by remember { mutableStateOf(false) }
+    val lineColor = if (dragging) {
+        MaterialTheme.colorScheme.primary
+    } else {
+        MaterialTheme.colorScheme.outlineVariant
+    }
+    Box(
+        modifier = Modifier
+            .width(12.dp)
+            .fillMaxHeight()
+            .background(MaterialTheme.colorScheme.surface)
+            .semantics { contentDescription = resizeLabel }
+            .onGloballyPositioned { handleCoords = it }
+            .pointerInput(Unit) {
+                detectTapGestures(onDoubleTap = { onResetFraction() })
+            }
+            .pointerInput(Unit) {
+                detectHorizontalDragGestures(
+                    onDragStart = { dragging = true },
+                    onDragEnd = { dragging = false },
+                    onDragCancel = { dragging = false },
+                    onHorizontalDrag = { change, _ ->
+                        change.consume()
+                        val coords = handleCoords
+                        val parentWidth =
+                            coords?.parentLayoutCoordinates?.size?.width?.toFloat() ?: 0f
+                        if (coords != null && parentWidth > 0f) {
+                            val xInRow = coords.positionInParent().x + change.position.x
+                            onResizeFraction(xInRow / parentWidth)
+                        }
+                    },
+                )
+            },
+        contentAlignment = Alignment.Center,
+    ) {
+        Box(
+            modifier = Modifier
+                .width(2.dp)
+                .fillMaxHeight()
+                .background(lineColor),
+        )
+        Box(
+            modifier = Modifier
+                .width(4.dp)
+                .height(32.dp)
+                .background(lineColor, CircleShape),
+        )
+    }
+}
+
+@Composable
+private fun TerminalPaneHost(
+    viewModel: TerminalViewModel,
+    tab: TerminalTab,
+    isActive: Boolean,
+    isFocusedPane: Boolean,
+    onRequestPaneFocus: () -> Unit,
+    defaultColorScheme: UserPreferencesRepository.TerminalColorScheme,
+    applySchemePalette: Boolean,
+    globalBgOpacity: Float,
+    horizontalPaddingDp: Int,
+    fontSize: Int,
+    hackTypeface: android.graphics.Typeface,
+    termlibAmbiwidthMode: org.connectbot.terminal.AmbiwidthMode,
+    autoShowKeyboardInTerminal: Boolean,
+    imeRestoreTick: Int,
+    reflowTerminalOnKeyboard: Boolean,
+    mouseInputEnabled: Boolean,
+    terminalRightClick: Boolean,
+    swipeArrowsMode: Boolean,
+    isShiftActive: () -> Boolean,
+    interceptCtrlShiftV: Boolean,
+    keyboardMode: HavenKeyboardMode,
+    tapToPositionCursorOnPrompt: Boolean,
+    modifierManager: ModifierManager,
+    sudoPromptDetectionEnabled: Boolean,
+    sudoDisabledToast: String,
+    linkOpenFailedMessage: String,
+    linkSchemeBlockedMessage: String,
+    focusRequesters: androidx.compose.runtime.snapshots.SnapshotStateMap<String, FocusRequester>,
+    selectionControllers: androidx.compose.runtime.snapshots.SnapshotStateMap<String, org.connectbot.terminal.SelectionController>,
+    composeControllers: androidx.compose.runtime.snapshots.SnapshotStateMap<String, org.connectbot.terminal.ComposeController>,
+) {
+    val context = LocalContext.current
+    val view = LocalView.current
+    val focusManager = LocalFocusManager.current
+    val coroutineScope = androidx.compose.runtime.rememberCoroutineScope()
+    val themeCs = MaterialTheme.colorScheme
+
+    // Wire OSC handler callbacks per mounted pane so OSC 52 clipboard and
+    // OSC 9/777 desktop notifications work from both visible split panes.
+    val clipboard = remember {
+        context.getSystemService(Context.CLIPBOARD_SERVICE) as ClipboardManager
+    }
+    tab.oscHandler.onClipboardSet = { text ->
+        clipboard.setPrimaryClip(ClipData.newPlainText("terminal", text))
+    }
+    tab.oscHandler.onNotification = { title, body ->
+        showTerminalNotification(context, title, body, tab.label)
+    }
+
+    // Inline-image consent (#583): the ASK policy parks the request on the
+    // per-session registry; answer it here for whichever pane received it.
+    val inlineImagePrompt by viewModel
+        .inlineImagePromptFor(tab.sessionId)
+        .collectAsState()
+    inlineImagePrompt?.let { prompt ->
+        InlineImageConsentDialog(
+            prompt = prompt,
+            onAnswer = { allowed, alwaysInTab ->
+                viewModel.answerInlineImage(tab.sessionId, allowed, alwaysInTab)
+            },
+        )
+    }
+
+    val focusRequester = remember { FocusRequester() }
+    var localSelectionController by remember {
+        mutableStateOf<org.connectbot.terminal.SelectionController?>(null)
+    }
+    var localComposeController by remember {
+        mutableStateOf<org.connectbot.terminal.ComposeController?>(null)
+    }
+
+    SideEffect {
+        focusRequesters[tab.sessionId] = focusRequester
+    }
+    DisposableEffect(tab.sessionId, focusRequester) {
+        focusRequesters[tab.sessionId] = focusRequester
+        onDispose {
+            if (focusRequesters[tab.sessionId] === focusRequester) {
+                focusRequesters.remove(tab.sessionId)
+            }
+            if (localSelectionController != null &&
+                selectionControllers[tab.sessionId] === localSelectionController
+            ) {
+                selectionControllers.remove(tab.sessionId)
+            }
+            if (localComposeController != null &&
+                composeControllers[tab.sessionId] === localComposeController
+            ) {
+                composeControllers.remove(tab.sessionId)
+            }
+        }
+    }
+
+    // Clear any lingering selection handles on a pane when focus moves to the
+    // other split pane, so only one selection overlay is active at a time.
+    LaunchedEffect(isFocusedPane) {
+        if (!isFocusedPane && localSelectionController?.isSelectionActive == true) {
+            localSelectionController?.clearSelection()
+        }
+    }
+
+    // Keyed on isActive + isFocusedPane: the HorizontalPager keeps adjacent
+    // pages composed, and SplitH keeps both panes composed — only the focused
+    // pane on the active Terminal page binds the IME's InputConnection.
+    LaunchedEffect(isActive, isFocusedPane) {
+        if (!isActive || !isFocusedPane) return@LaunchedEffect
+        val root = (view.context as? Activity)?.window?.decorView
+        if (root == null) {
+            focusRequester.requestFocus()
+        } else {
+            rebindImeTarget(
+                root,
+                requestFocus = { runCatching { focusRequester.requestFocus() } },
+                clearFocus = { focusManager.clearFocus(force = true) },
+            )
+        }
+    }
+
+    val isMouseMode by tab.mouseMode.collectAsState()
+    val isBracketPaste by tab.bracketPasteMode.collectAsState()
+    val isAltScreen by tab.altScreen.collectAsState()
+
+    val mouseDisabledHint =
+        stringResource(R.string.terminal_mouse_requested_but_disabled)
+
+    LaunchedEffect(tab, isFocusedPane, isMouseMode, mouseInputEnabled) {
+        if (!isFocusedPane) return@LaunchedEffect
+        android.util.Log.i(
+            "HavenGesture",
+            "mouseModeState tracker=$isMouseMode pref=$mouseInputEnabled " +
+                "effective=${isMouseMode && mouseInputEnabled}",
+        )
+        if (shouldShowMouseHint(
+                appRequestedMouse = isMouseMode,
+                preferenceEnabled = mouseInputEnabled,
+                alreadyShown = mouseHintShownThisSession,
+            )
+        ) {
+            mouseHintShownThisSession = true
+            android.widget.Toast.makeText(
+                context,
+                mouseDisabledHint,
+                android.widget.Toast.LENGTH_LONG,
+            ).show()
+        }
+    }
+
+    val gestureCallback = remember(
+        tab,
+        isFocusedPane,
+        isMouseMode,
+        isAltScreen,
+        mouseInputEnabled,
+        terminalRightClick,
+        swipeArrowsMode,
+    ) {
+        buildTerminalGestureCallback(
+            isMouseMode = isMouseMode,
+            isAltScreen = isAltScreen,
+            mouseInputEnabled = mouseInputEnabled,
+            terminalRightClick = terminalRightClick,
+            swipeArrowsMode = swipeArrowsMode,
+            isEmulatorAltScreenActive = { tab.emulator.isAltScreenActive() },
+            cursorKeyAppMode = { tab.cursorKeyAppMode.value },
+            isShiftActive = { isFocusedPane && isShiftActive() },
+            coroutineScope = coroutineScope,
+            sendInput = tab.sendInput,
+        )
+    }
+
+    val realClipboard = LocalClipboardManager.current
+    val smartClipboard = remember(tab, realClipboard) {
+        SmartTerminalClipboard(
+            delegate = realClipboard,
+            getEmulator = { tab.emulator },
+            getController = { localSelectionController },
+            getScrollbackPosition = {
+                localSelectionController?.scrollbackPosition ?: 0
+            },
+        )
+    }
+
+    // Per-pane colour scheme and background translucency (#144), so splitting
+    // two profiles with distinct overrides renders each pane in its own palette.
+    val paneScheme = tab.colorScheme ?: defaultColorScheme
+    val paneBg: Color = if (paneScheme.isDynamic) themeCs.surface else Color(paneScheme.background)
+    val paneFg: Color = if (paneScheme.isDynamic) themeCs.onSurface else Color(paneScheme.foreground)
+    val paneBgOpacity = (tab.backgroundOpacity ?: globalBgOpacity).coerceIn(0f, 1f)
+    val paneFgArgb = paneFg.toArgb()
+    val paneBgArgb = paneBg.toArgb()
+    val ansiPalette = remember(paneScheme, themeCs) {
+        if (paneScheme.isDynamic) {
+            materialYouAnsiPalette(themeCs)
+        } else {
+            paneScheme.ansiPaletteArgb()
+        }
+    }
+    val applyScheme: (TerminalEmulator) -> Unit = { emu ->
+        if (applySchemePalette) {
+            emu.applyColorScheme(ansiPalette, paneFgArgb, paneBgArgb)
+        } else {
+            emu.setDefaultColors(paneFgArgb, paneBgArgb)
+        }
+    }
+    LaunchedEffect(applySchemePalette, paneFgArgb, paneBgArgb, ansiPalette, tab.emulator) {
+        tab.emulator?.let(applyScheme)
+    }
+    androidx.lifecycle.compose.LifecycleResumeEffect(tab.emulator) {
+        tab.emulator?.let(applyScheme)
+        onPauseOrDispose {}
+    }
+
+    val doPaste: () -> Unit = {
+        val text = realClipboard.getText()?.text
+        if (!text.isNullOrEmpty()) {
+            tab.sendInput(
+                bracketPasteWrap(text, isBracketPaste).toByteArray(),
+            )
+        }
+    }
+    val pasteShortcut: (() -> Unit)? = if (interceptCtrlShiftV) doPaste else null
+
+    Box(modifier = Modifier.fillMaxSize()) {
+        CompositionLocalProvider(LocalClipboardManager provides smartClipboard) {
+            HavenTerminal(
+                terminalEmulator = tab.emulator,
+                modifier = Modifier
+                    .fillMaxSize()
+                    .background(paneBg.copy(alpha = paneBgOpacity))
+                    .padding(horizontal = horizontalPaddingDp.dp),
+                initialFontSize = fontSize.sp,
+                typeface = hackTypeface,
+                ambiwidthMode = termlibAmbiwidthMode,
+                keyboardEnabled = isFocusedPane,
+                showSoftKeyboard = autoShowKeyboardInTerminal && isFocusedPane,
+                imeRestoreTick = if (isActive && isFocusedPane) imeRestoreTick else 0,
+                reflowOnKeyboard = isMouseMode || isAltScreen || reflowTerminalOnKeyboard,
+                backgroundColor = paneBg,
+                foregroundColor = paneFg,
+                backgroundOpacity = paneBgOpacity,
+                focusRequester = focusRequester,
+                modifierManager = modifierManager,
+                onPasteShortcut = pasteShortcut,
+                onPasteRequest = doPaste,
+                onSelectionControllerAvailable = {
+                    localSelectionController = it
+                    selectionControllers[tab.sessionId] = it
+                    viewModel.terminalSessionRegistry.setSelectionController(tab.sessionId, it)
+                },
+                onScrollControllerAvailable = {
+                    viewModel.terminalSessionRegistry.setScrollController(tab.sessionId, it)
+                },
+                onGestureInjectorReady = {
+                    viewModel.terminalSessionRegistry.setGestureInjector(tab.sessionId, it)
+                },
+                onComposeControllerAvailable = {
+                    localComposeController = it
+                    composeControllers[tab.sessionId] = it
+                    viewModel.terminalSessionRegistry.setComposeController(tab.sessionId, it)
+                },
+                onTerminalTap = {
+                    if (!isFocusedPane) onRequestPaneFocus()
+                },
+                onTerminalDoubleTap = {
+                    if (!isFocusedPane) onRequestPaneFocus()
+                    val window = (view.context as? Activity)?.window ?: return@HavenTerminal
+                    val controller = WindowCompat.getInsetsController(window, view)
+                    val rootView = window.decorView
+                    val imeShowing = androidx.core.view.ViewCompat
+                        .getRootWindowInsets(rootView)
+                        ?.isVisible(WindowInsetsCompat.Type.ime()) == true
+                    if (imeShowing) {
+                        controller.hide(WindowInsetsCompat.Type.ime())
+                    } else {
+                        rebindImeTarget(
+                            rootView,
+                            requestFocus = { runCatching { focusRequester.requestFocus() } },
+                            clearFocus = { focusManager.clearFocus(force = true) },
+                        )
+                        controller.show(WindowInsetsCompat.Type.ime())
+                    }
+                },
+                onFontSizeChanged = { newSize ->
+                    viewModel.setFontSize(newSize.value.toInt())
+                },
+                onHyperlinkClick = { url ->
+                    val finalUrl = if (url.contains("://")) url else "https://$url"
+                    val scheme = Uri.parse(finalUrl).scheme?.lowercase()
+                    if (scheme in setOf("http", "https", "mailto", "tel")) {
+                        try {
+                            context.startActivity(Intent(Intent.ACTION_VIEW, Uri.parse(finalUrl)))
+                        } catch (_: android.content.ActivityNotFoundException) {
+                            android.widget.Toast.makeText(
+                                context,
+                                linkOpenFailedMessage,
+                                android.widget.Toast.LENGTH_LONG,
+                            ).show()
+                        }
+                    } else {
+                        android.widget.Toast.makeText(
+                            context,
+                            linkSchemeBlockedMessage,
+                            android.widget.Toast.LENGTH_LONG,
+                        ).show()
+                    }
+                },
+                gestureCallback = gestureCallback,
+                scrollQuantumMultiplier =
+                    if (swipeArrowsMode && !isMouseMode) swipeArrowsQuantumMultiplier(fontSize) else 1f,
+                mouseModeActive = isMouseMode && mouseInputEnabled,
+                keyboardMode = keyboardMode,
+                tapToPositionCursorOnPrompt = tapToPositionCursorOnPrompt,
+            )
+        }
+
+        Column(
+            horizontalAlignment = Alignment.CenterHorizontally,
+            modifier = Modifier.align(Alignment.TopCenter),
+        ) {
+            StallBanner(stallFlow = tab.stallSeconds)
+            AttachNoticeBanner(
+                noticeFlow = tab.attachNotice,
+                onDismiss = { viewModel.dismissAttachNotice(tab.sessionId) },
+            )
+            SudoPromptBanner(
+                promptFlow = tab.sudoPrompt,
+                detectionEnabled = sudoPromptDetectionEnabled,
+                onFill = { viewModel.triggerSudoFill(tab.sessionId) },
+                onDisableDetection = {
+                    viewModel.setSudoPromptDetectionEnabled(false)
+                    android.widget.Toast.makeText(view.context, sudoDisabledToast, android.widget.Toast.LENGTH_SHORT).show()
+                },
+                onDismiss = { viewModel.dismissSudoPrompt(tab.sessionId) },
+            )
         }
     }
 }

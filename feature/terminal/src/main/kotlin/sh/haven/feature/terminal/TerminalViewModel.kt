@@ -570,6 +570,14 @@ class TerminalViewModel @Inject constructor(
     @Volatile
     private var verboseLoggingCached = false
 
+    /**
+     * Split-pane layout state (#141). Declared above both `init` blocks so
+     * synchronous `selectTab` / `syncSessions` emissions during construction
+     * never observe an uninitialized reference (#688).
+     */
+    private val _paneLayout = MutableStateFlow<PaneLayout>(PaneLayout.Single)
+    val paneLayout: StateFlow<PaneLayout> = _paneLayout.asStateFlow()
+
     init {
         viewModelScope.launch {
             preferencesRepository.verboseLoggingEnabled.collect { verboseLoggingCached = it }
@@ -2407,8 +2415,19 @@ class TerminalViewModel @Inject constructor(
             if (id !in knownSessionIds) terminalSessionRegistry.unregister(id)
         }
 
-        // Clamp active index
-        if (_activeTabIndex.value >= currentTabs.size && currentTabs.isNotEmpty()) {
+        // Reconcile split-pane layout (#141) before clamping activeTabIndex so
+        // closing or disconnecting one side of a split collapses cleanly to the
+        // surviving pane's tab.
+        val (reconciledLayout, focusSessionId) = _paneLayout.value.reconcile(liveIds)
+        _paneLayout.value = reconciledLayout
+        val focusedIndex = focusSessionId?.let { id ->
+            currentTabs.indexOfFirst { it.sessionId == id }
+        } ?: -1
+        if (focusedIndex >= 0) {
+            _activeTabIndex.value = focusedIndex
+        } else if (currentTabs.isEmpty()) {
+            _activeTabIndex.value = 0
+        } else if (_activeTabIndex.value >= currentTabs.size) {
             _activeTabIndex.value = currentTabs.size - 1
         }
     }
@@ -2428,8 +2447,10 @@ class TerminalViewModel @Inject constructor(
     }
 
     fun selectTab(index: Int) {
-        if (index in _tabs.value.indices) {
+        val tabsSnapshot = _tabs.value
+        if (index in tabsSnapshot.indices) {
             _activeTabIndex.value = index
+            _paneLayout.value = _paneLayout.value.onSelectTab(tabsSnapshot[index].sessionId)
             // Re-query remote sessions for the new active tab — without
             // this the long-press tab menu kept showing tmux names from
             // a previously-active tab whose profile used a different
@@ -2437,6 +2458,57 @@ class TerminalViewModel @Inject constructor(
             // a NONE profile and the stale tmux list lingers).
             refreshRemoteSessions()
         }
+    }
+
+    /**
+     * Pair the currently active tab with [targetSessionId] in a side-by-side
+     * horizontal split (#141). Active tab stays on the left; [targetSessionId]
+     * opens on the right and takes focus.
+     */
+    fun splitWithSession(targetSessionId: String) {
+        val tabsSnapshot = _tabs.value
+        val activeSessionId = tabsSnapshot.getOrNull(_activeTabIndex.value)?.sessionId ?: return
+        if (tabsSnapshot.none { it.sessionId == targetSessionId }) return
+        val next = _paneLayout.value.splitWith(
+            activeSessionId = activeSessionId,
+            targetSessionId = targetSessionId,
+        )
+        _paneLayout.value = next
+        if (next is PaneLayout.SplitH) {
+            val idx = tabsSnapshot.indexOfFirst { it.sessionId == next.focusedSessionId }
+            if (idx >= 0) {
+                _activeTabIndex.value = idx
+                refreshRemoteSessions()
+            }
+        }
+    }
+
+    /** Collapse an active split back to the focused pane (#141); the other session remains an open tab. */
+    fun unsplitPanes() {
+        val current = _paneLayout.value
+        if (current is PaneLayout.SplitH) {
+            val idx = _tabs.value.indexOfFirst { it.sessionId == current.focusedSessionId }
+            if (idx >= 0) _activeTabIndex.value = idx
+            _paneLayout.value = current.unsplit()
+        }
+    }
+
+    /** Focus the left or right pane of an active split (#141), routing keyboard/toolbar/tab-bar focus to it. */
+    fun focusPane(side: SplitSide) {
+        val next = _paneLayout.value.focusSide(side)
+        _paneLayout.value = next
+        if (next is PaneLayout.SplitH) {
+            val idx = _tabs.value.indexOfFirst { it.sessionId == next.focusedSessionId }
+            if (idx >= 0 && _activeTabIndex.value != idx) {
+                _activeTabIndex.value = idx
+                refreshRemoteSessions()
+            }
+        }
+    }
+
+    /** Update the horizontal split ratio (`0.2..0.8`, #141). */
+    fun resizeSplit(fraction: Float) {
+        _paneLayout.value = _paneLayout.value.resizeSplit(fraction)
     }
 
     /**
@@ -2469,7 +2541,7 @@ class TerminalViewModel @Inject constructor(
     fun selectTabByProfileId(profileId: String) {
         val index = _tabs.value.indexOfFirst { it.profileId == profileId }
         if (index >= 0) {
-            _activeTabIndex.value = index
+            selectTab(index)
         } else {
             val shellLess = sessionManager.getSessionsForProfile(profileId).firstOrNull {
                 !it.headless &&
@@ -2493,7 +2565,7 @@ class TerminalViewModel @Inject constructor(
                 }
                 _tabs.value.indexOfFirst { it.profileId == profileId }
                     .takeIf { it >= 0 }
-                    ?.let { _activeTabIndex.value = it }
+                    ?.let { selectTab(it) }
             }
         }
     }
@@ -2501,7 +2573,7 @@ class TerminalViewModel @Inject constructor(
     fun selectTabBySessionId(sessionId: String) {
         val index = _tabs.value.indexOfFirst { it.sessionId == sessionId }
         if (index >= 0) {
-            _activeTabIndex.value = index
+            selectTab(index)
         }
     }
 

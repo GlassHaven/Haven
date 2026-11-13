@@ -965,5 +965,89 @@ class TerminalViewModelTest {
             assertNull(bundle.sudoDetector.activePrompt.value)
             assertNull(vm.sudoPasswordEntryPrompt.value)
         }
+
+    @Test
+    fun `splitWithSession syncs activeTabIndex across focusPane moveTab selectTab and auto-unsplits on closeTab`() =
+        runTest(testDispatcher) {
+            fun registerBundledTab(profileId: String, label: String): String {
+                val sshSession = mockk<sh.haven.core.ssh.TerminalSession>(relaxed = true)
+                val sid = sessionManager.registerSession(profileId, label, mockk(relaxed = true))
+                sessionManager.updateStatus(sid, SshSessionManager.SessionState.Status.CONNECTED)
+                val bundle = SshTerminalEmulatorOwner.Bundle(
+                    sessionId = sid,
+                    profileId = profileId,
+                    label = label,
+                    oscHandler = OscHandler(),
+                    cwdFlow = MutableStateFlow(null),
+                    hyperlinkFlow = MutableStateFlow(null),
+                    mouseTracker = MouseModeTracker(),
+                    recorder = null,
+                ).apply {
+                    emulator = mockk(relaxed = true)
+                    feedOutput = { _, _, _ -> }
+                    session = sshSession
+                }
+                every { sshEmulatorOwner.bundleFor(sid) } returns bundle
+                return sid
+            }
+
+            val s1 = registerBundledTab("p1", "Workstation")
+            val s2 = registerBundledTab("p2", "Local Shell")
+            val s3 = registerBundledTab("p3", "Router")
+
+            val vm = newViewModel()
+            vm.syncSessions()
+            assertEquals(3, vm.tabs.value.size)
+            assertEquals(PaneLayout.Single, vm.paneLayout.value)
+            assertEquals(0, vm.activeTabIndex.value) // s1 active
+
+            // Split active tab (s1) with s2 -> s1 on left, s2 focused on right (index 1).
+            vm.splitWithSession(s2)
+            val split1 = vm.paneLayout.value as PaneLayout.SplitH
+            assertEquals(s1, split1.leftSessionId)
+            assertEquals(s2, split1.rightSessionId)
+            assertEquals(SplitSide.RIGHT, split1.focusedSide)
+            assertEquals(1, vm.activeTabIndex.value)
+
+            // Focus LEFT -> activeTabIndex moves back to s1 (index 0).
+            vm.focusPane(SplitSide.LEFT)
+            assertEquals(0, vm.activeTabIndex.value)
+            assertEquals(SplitSide.LEFT, (vm.paneLayout.value as PaneLayout.SplitH).focusedSide)
+
+            // Reordering tabs (s1 index 0 -> index 1) preserves sessionId-keyed panes and activeTabIndex.
+            vm.moveTab(0, 1)
+            assertEquals(listOf(s2, s1, s3), vm.tabs.value.map { it.sessionId })
+            assertEquals(1, vm.activeTabIndex.value) // s1 is now at index 1
+            val afterMove = vm.paneLayout.value as PaneLayout.SplitH
+            assertEquals(s1, afterMove.leftSessionId)
+            assertEquals(s2, afterMove.rightSessionId)
+            assertEquals(SplitSide.LEFT, afterMove.focusedSide)
+
+            // Resize split clamps cleanly.
+            vm.resizeSplit(0.65f)
+            assertEquals(0.65f, (vm.paneLayout.value as PaneLayout.SplitH).splitFraction, 0.0001f)
+
+            // Selecting third tab s3 (index 2) swaps s3 into the focused LEFT slot alongside s2 on RIGHT.
+            vm.selectTab(2)
+            assertEquals(2, vm.activeTabIndex.value)
+            val swapped = vm.paneLayout.value as PaneLayout.SplitH
+            assertEquals(s3, swapped.leftSessionId)
+            assertEquals(s2, swapped.rightSessionId)
+            assertEquals(SplitSide.LEFT, swapped.focusedSide)
+
+            // Closing s3 (left pane) auto-unsplits to Single and focuses surviving right pane s2 (now index 0).
+            vm.closeTab(s3)
+            testDispatcher.scheduler.advanceUntilIdle()
+            assertEquals(PaneLayout.Single, vm.paneLayout.value)
+            assertEquals(s2, vm.tabs.value[vm.activeTabIndex.value].sessionId)
+
+            // Re-splitting s2 with s1 and calling unsplitPanes() collapses to focused pane while keeping both tabs open.
+            vm.splitWithSession(s1)
+            assertEquals(s1, (vm.paneLayout.value as PaneLayout.SplitH).focusedSessionId)
+            vm.unsplitPanes()
+            assertEquals(PaneLayout.Single, vm.paneLayout.value)
+            assertEquals(2, vm.tabs.value.size)
+            assertEquals(s1, vm.tabs.value[vm.activeTabIndex.value].sessionId)
+        }
 }
 

@@ -180,4 +180,8 @@
     <string name="terminal_sudo_entry_hint">Aún no hay una contraseña guardada en esta conexión. Introdúcela una vez para enviarla directamente por SSH a esta terminal. Si se guarda, permanece cifrada en Android Keystore en este dispositivo, requiere desbloqueo biométrico en cada uso y nunca se expone a herramientas de IA/MCP.</string>
     <string name="terminal_sudo_turn_off_detection">Desactivar detección de solicitudes de sudo</string>
     <string name="terminal_sudo_send_action">Enviar</string>
+    <string name="terminal_split_with_session">Dividir con esta sesión</string>
+    <string name="terminal_split_with_named">Dividir con %1$s</string>
+    <string name="terminal_unsplit">Cerrar vista dividida</string>
+    <string name="terminal_resize_split_panes">Redimensionar paneles divididos</string>
 </resources>

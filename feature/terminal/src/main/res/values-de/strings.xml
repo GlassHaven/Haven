@@ -180,4 +180,8 @@
     <string name="terminal_sudo_entry_hint">Für diese Verbindung ist noch kein Passwort gespeichert. Einmal eingeben, um es direkt über SSH an dieses Terminal zu senden. Wenn gespeichert, bleibt es im Android Keystore auf diesem Gerät verschlüsselt, erfordert bei jeder Nutzung eine biometrische Freigabe und ist für KI-/MCP-Werkzeuge niemals sichtbar.</string>
     <string name="terminal_sudo_turn_off_detection">Erkennung von sudo-Abfragen ausschalten</string>
     <string name="terminal_sudo_send_action">Senden</string>
+    <string name="terminal_split_with_session">Mit dieser Sitzung teilen</string>
+    <string name="terminal_split_with_named">Mit %1$s teilen</string>
+    <string name="terminal_unsplit">Teilung aufheben</string>
+    <string name="terminal_resize_split_panes">Geteilte Bereiche anpassen</string>
 </resources>

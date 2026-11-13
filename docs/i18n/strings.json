@@ -48870,6 +48870,88 @@
       "ru": "Отправить",
       "zh": "发送"
      }
+    },
+    {
+     "name": "terminal_split_with_session",
+     "en": "Split with this session",
+     "comment": "Split panes (#141)",
+     "args": [],
+     "t": {
+      "ar": "تقسيم الشاشة مع هذه الجلسة",
+      "bn": "এই সেশনের সাথে স্প্লিট করুন",
+      "de": "Mit dieser Sitzung teilen",
+      "es": "Dividir con esta sesión",
+      "fr": "Partager avec cette session",
+      "hi": "इस सत्र के साथ विभाजित करें",
+      "ja": "このセッションと画面分割",
+      "ko": "이 세션과 화면 분할",
+      "pt": "Dividir com esta sessão",
+      "ru": "Разделить экран с этой сессией",
+      "sr": "Подели са овом сесијом",
+      "zh": "与此会话分屏"
+     }
+    },
+    {
+     "name": "terminal_split_with_named",
+     "en": "Split with %1$s",
+     "comment": "Split panes (#141)",
+     "args": [
+      "%1$s"
+     ],
+     "t": {
+      "ar": "تقسيم الشاشة مع %1$s",
+      "bn": "%1$s-এর সাথে স্প্লিট করুন",
+      "de": "Mit %1$s teilen",
+      "es": "Dividir con %1$s",
+      "fr": "Partager avec %1$s",
+      "hi": "%1$s के साथ विभाजित करें",
+      "ja": "%1$s と画面分割",
+      "ko": "%1$s 세션과 화면 분할",
+      "pt": "Dividir com %1$s",
+      "ru": "Разделить экран с %1$s",
+      "sr": "Подели са %1$s",
+      "zh": "与 %1$s 分屏"
+     }
+    },
+    {
+     "name": "terminal_unsplit",
+     "en": "Unsplit",
+     "comment": "Split panes (#141)",
+     "args": [],
+     "t": {
+      "ar": "إلغاء التقسيم",
+      "bn": "স্প্লিট বন্ধ করুন",
+      "de": "Teilung aufheben",
+      "es": "Cerrar vista dividida",
+      "fr": "Quitter la vue partagée",
+      "hi": "विभाजन बंद करें",
+      "ja": "分割を解除",
+      "ko": "분할 해제",
+      "pt": "Fechar divisão",
+      "ru": "Закрыть разделение",
+      "sr": "Затвори подељени приказ",
+      "zh": "取消分屏"
+     }
+    },
+    {
+     "name": "terminal_resize_split_panes",
+     "en": "Resize split panes",
+     "comment": "Split panes (#141)",
+     "args": [],
+     "t": {
+      "ar": "تغيير حجم أجزاء الطرفية المقسّمة",
+      "bn": "স্প্লিট প্যানের আকার পরিবর্তন করুন",
+      "de": "Geteilte Bereiche anpassen",
+      "es": "Redimensionar paneles divididos",
+      "fr": "Redimensionner les volets partagés",
+      "hi": "विभाजित फलकों का आकार बदलें",
+      "ja": "分割ペインのサイズ変更",
+      "ko": "분할 창 크기 조절",
+      "pt": "Redimensionar painéis divididos",
+      "ru": "Изменить размер разделённых панелей",
+      "sr": "Промени величину подељених панела",
+      "zh": "调整分屏大小"
+     }
     }
    ]
   },

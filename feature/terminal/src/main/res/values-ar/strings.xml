@@ -180,4 +180,8 @@
     <string name="terminal_sudo_entry_hint">لا توجد كلمة مرور محفوظة لهذا الاتصال بعد. أدخلها مرة واحدة لإرسالها مباشرة عبر SSH إلى هذه الطرفية. عند الحفظ، تبقى مشفرة في Android Keystore على هذا الجهاز، وتتطلب فتح القفل بالبصمة في كل مرة، ولا تُكشف أبداً لأدوات AI/MCP.</string>
     <string name="terminal_sudo_turn_off_detection">إيقاف اكتشاف مطالبات sudo</string>
     <string name="terminal_sudo_send_action">إرسال</string>
+    <string name="terminal_split_with_session">تقسيم الشاشة مع هذه الجلسة</string>
+    <string name="terminal_split_with_named">تقسيم الشاشة مع %1$s</string>
+    <string name="terminal_unsplit">إلغاء التقسيم</string>
+    <string name="terminal_resize_split_panes">تغيير حجم أجزاء الطرفية المقسّمة</string>
 </resources>

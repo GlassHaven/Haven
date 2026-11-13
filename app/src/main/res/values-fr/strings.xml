@@ -392,4 +392,8 @@
     <string name="app_desktop_dns_custom_err_invalid">Saisissez des adresses IP ou IP:port (p. ex. 1.1.1.1, 127.0.0.1:5400).</string>
     <string name="app_desktop_routing_block_direct_title">Bloquer le trafic hors proxy</string>
     <string name="app_desktop_routing_block_direct_description">Bloque les connexions sortantes directes et les requêtes DNS dans PRoot afin que les programmes invités ne contournent pas le proxy actif.</string>
+    <string name="app_guest_services_title">Services invités</string>
+    <string name="app_guest_services_description">Serveurs en arrière-plan dans la distribution Linux active sur loopback.</string>
+    <string name="app_guest_services_running">En cours · 127.0.0.1:%1$d</string>
+    <string name="app_guest_services_stopped">Arrêté · 127.0.0.1:%1$d</string>
 </resources>

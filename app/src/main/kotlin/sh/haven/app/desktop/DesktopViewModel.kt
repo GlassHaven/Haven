@@ -120,6 +120,8 @@ class DesktopViewModel @Inject constructor(
 
     private val prootManager: ProotManager get() = localSessionManager.prootManager
     private val desktopManager: DesktopManager get() = localSessionManager.desktopManager
+    private val guestServiceManager: sh.haven.core.local.GuestServiceManager
+        get() = localSessionManager.guestServiceManager
 
     val activeDistroId: StateFlow<String> get() = prootManager.activeDistroIdFlow
 
@@ -1036,6 +1038,103 @@ class DesktopViewModel @Inject constructor(
             } finally {
                 _installingPackIds.update { it - pack.id }
             }
+        }
+    }
+
+    // --- Guest services & one-tap service presets (#734) ---
+
+    val guestServices: StateFlow<List<sh.haven.core.local.GuestServiceManager.GuestServiceInstance>> =
+        combine(
+            guestServiceManager.services,
+            guestServiceManager.registryRevision,
+            prootManager.activeDistroIdFlow,
+        ) { live, _, _ ->
+            guestServiceManager.registered().map { spec ->
+                live[spec.id] ?: sh.haven.core.local.GuestServiceManager.GuestServiceInstance(
+                    spec = spec,
+                    state = sh.haven.core.local.GuestServiceManager.ServiceState.STOPPED,
+                )
+            }
+        }.stateIn(viewModelScope, SharingStarted.Eagerly, emptyList())
+
+    private val _installingServicePresetIds = MutableStateFlow<Set<String>>(emptySet())
+    val installingServicePresetIds: StateFlow<Set<String>> = _installingServicePresetIds.asStateFlow()
+
+    fun installServicePreset(preset: sh.haven.core.local.proot.GuestServicePreset) {
+        viewModelScope.launch(Dispatchers.IO) {
+            if (!prootManager.isRootfsInstalled) {
+                _userMessages.emit("Install a Linux distro first to set up ${preset.label}")
+                return@launch
+            }
+            val distro = prootManager.activeDistro
+            val pkgs = preset.packages[distro.family]
+            if (pkgs == null) {
+                _userMessages.emit("${preset.label} is not packaged for ${distro.label} (${distro.family})")
+                return@launch
+            }
+            if (preset.id in _installingServicePresetIds.value) return@launch
+            _installingServicePresetIds.update { it + preset.id }
+            try {
+                _userMessages.emit("Setting up ${preset.label}…")
+                val script = sh.haven.core.local.proot.buildServicePresetInstallScript(
+                    preset = preset,
+                    pkgs = pkgs,
+                    family = distro.family,
+                )
+                val proc = prootManager.startCommandInProot(script)
+                val tail = ArrayDeque<String>(16)
+                proc.inputStream.bufferedReader().forEachLine { line ->
+                    if (tail.size >= 16) tail.removeFirst()
+                    tail.addLast(line)
+                }
+                val code = proc.waitFor()
+                if (code != 0) {
+                    val lastLine = tail.lastOrNull { it.isNotBlank() } ?: "exit $code"
+                    _userMessages.emit("Couldn't set up ${preset.label}: $lastLine")
+                    return@launch
+                }
+                if (!preset.isBinaryPresent(prootManager.activeRootfsDir)) {
+                    _userMessages.emit("Couldn't set up ${preset.label}: server binary missing after install")
+                    return@launch
+                }
+                guestServiceManager.register(
+                    sh.haven.core.local.GuestServiceManager.GuestServiceSpec(
+                        id = preset.id,
+                        label = preset.label,
+                        command = preset.serviceCommand,
+                        port = preset.port,
+                        autostart = preset.autostart,
+                    ),
+                )
+                guestServiceManager.start(preset.id)
+                _userMessages.emit("${preset.label} running on 127.0.0.1:${preset.port}")
+            } catch (e: Exception) {
+                Log.w(TAG, "installServicePreset(${preset.id}) failed", e)
+                _userMessages.emit("Couldn't set up ${preset.label}: ${e.message}")
+            } finally {
+                _installingServicePresetIds.update { it - preset.id }
+            }
+        }
+    }
+
+    fun startGuestService(id: String) {
+        viewModelScope.launch(Dispatchers.IO) {
+            runCatching { guestServiceManager.start(id) }
+                .onFailure { _userMessages.emit("Couldn't start service: ${it.message}") }
+        }
+    }
+
+    fun stopGuestService(id: String) {
+        viewModelScope.launch(Dispatchers.IO) {
+            runCatching { guestServiceManager.stop(id) }
+                .onFailure { _userMessages.emit("Couldn't stop service: ${it.message}") }
+        }
+    }
+
+    fun deleteGuestService(id: String) {
+        viewModelScope.launch(Dispatchers.IO) {
+            runCatching { guestServiceManager.unregister(id) }
+                .onFailure { _userMessages.emit("Couldn't remove service: ${it.message}") }
         }
     }
 

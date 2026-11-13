@@ -71,6 +71,10 @@ class GuestServiceManager @Inject constructor(
     private val _services = MutableStateFlow<Map<String, GuestServiceInstance>>(emptyMap())
     val services: StateFlow<Map<String, GuestServiceInstance>> = _services.asStateFlow()
 
+    private val _registryRevision = MutableStateFlow(0)
+    /** Increments whenever [register] or [unregister] mutates `root/.haven-services`. */
+    val registryRevision: StateFlow<Int> = _registryRevision.asStateFlow()
+
     private val processes = mutableMapOf<String, Process>()
     private val logTails = mutableMapOf<String, ArrayDeque<String>>()
     private val logTailLimit = 30
@@ -128,6 +132,7 @@ class GuestServiceManager @Inject constructor(
     fun register(spec: GuestServiceSpec) {
         val updated = registered().filterNot { it.id == spec.id } + spec
         persist(updated)
+        _registryRevision.update { it + 1 }
     }
 
     /** Stop (if running) and remove a service from the registry. */
@@ -135,6 +140,7 @@ class GuestServiceManager @Inject constructor(
         stop(id)
         persist(registered().filterNot { it.id == id })
         _services.update { it - id }
+        _registryRevision.update { it + 1 }
     }
 
     // ---- supervision ----

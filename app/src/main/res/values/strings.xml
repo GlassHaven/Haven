@@ -431,4 +431,8 @@
     <string name="app_desktop_dns_custom_err_invalid">Enter IP or IP:port addresses (e.g. 1.1.1.1, 127.0.0.1:5400).</string>
     <string name="app_desktop_routing_block_direct_title">Block non-proxy traffic</string>
     <string name="app_desktop_routing_block_direct_description">Blocks direct outbound sockets and DNS queries in PRoot so guest programs cannot bypass the active proxy.</string>
+    <string name="app_guest_services_title">Guest services</string>
+    <string name="app_guest_services_description">Background servers running in the active Linux distro on loopback.</string>
+    <string name="app_guest_services_running">Running · 127.0.0.1:%1$d</string>
+    <string name="app_guest_services_stopped">Stopped · 127.0.0.1:%1$d</string>
 </resources>

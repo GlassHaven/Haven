@@ -406,4 +406,8 @@
     <string name="app_desktop_dns_custom_err_invalid">Введите адреса IP или IP:порт (например, 1.1.1.1, 127.0.0.1:5400).</string>
     <string name="app_desktop_routing_block_direct_title">Блокировать трафик мимо прокси</string>
     <string name="app_desktop_routing_block_direct_description">Блокирует прямые исходящие соединения и DNS-запросы в PRoot, чтобы программы гостя не обходили активный прокси.</string>
+    <string name="app_guest_services_title">Гостевые службы</string>
+    <string name="app_guest_services_description">Фоновые серверы на локальном интерфейсе в активном дистрибутиве Linux.</string>
+    <string name="app_guest_services_running">Работает · 127.0.0.1:%1$d</string>
+    <string name="app_guest_services_stopped">Остановлено · 127.0.0.1:%1$d</string>
 </resources>

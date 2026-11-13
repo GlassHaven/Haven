@@ -7311,6 +7311,86 @@
       "sr": "Blokira direktne odlazne sokete i DNS upite u PRoot okruženju kako programi gosta ne bi zaobišli aktivni proksi.",
       "zh": "在 PRoot 中拦截直接出站套接字与 DNS 查询，防止客户机程序绕过当前代理。"
      }
+    },
+    {
+     "name": "app_guest_services_title",
+     "en": "Guest services",
+     "comment": "Per-distro PRoot routing (#835)",
+     "args": [],
+     "t": {
+      "ar": "خدمات الضيف",
+      "bn": "গেস্ট সার্ভিস",
+      "de": "Gastdienste",
+      "es": "Servicios invitados",
+      "fr": "Services invités",
+      "hi": "गेस्ट सेवाएँ",
+      "ja": "ゲストサービス",
+      "ko": "게스트 서비스",
+      "pt": "Serviços do convidado",
+      "ru": "Гостевые службы",
+      "zh": "客户机服务"
+     }
+    },
+    {
+     "name": "app_guest_services_description",
+     "en": "Background servers running in the active Linux distro on loopback.",
+     "comment": "Per-distro PRoot routing (#835)",
+     "args": [],
+     "t": {
+      "ar": "خوادم تعمل في الخلفية داخل توزيعة Linux النشطة على الواجهة المحلية.",
+      "bn": "সক্রিয় Linux ডিস্ট্রোতে লুপব্যাকে চলমান ব্যাকগ্রাউন্ড সার্ভার।",
+      "de": "Hintergrundserver in der aktiven Linux-Distribution auf Loopback.",
+      "es": "Servidores en segundo plano en la distribución Linux activa por loopback.",
+      "fr": "Serveurs en arrière-plan dans la distribution Linux active sur loopback.",
+      "hi": "सक्रिय Linux डिस्ट्रो में लूपबैक पर चलने वाले बैकग्राउंड सर्वर।",
+      "ja": "有効な Linux ディストロ内でループバック動作するバックグラウンドサーバー。",
+      "ko": "활성 Linux 배포판의 루프백에서 실행되는 백그라운드 서버입니다.",
+      "pt": "Servidores em segundo plano na distribuição Linux ativa em loopback.",
+      "ru": "Фоновые серверы на локальном интерфейсе в активном дистрибутиве Linux.",
+      "zh": "在当前 Linux 发行版回环地址上运行的后台服务。"
+     }
+    },
+    {
+     "name": "app_guest_services_running",
+     "en": "Running · 127.0.0.1:%1$d",
+     "comment": "Per-distro PRoot routing (#835)",
+     "args": [
+      "%1$d"
+     ],
+     "t": {
+      "ar": "قيد التشغيل · 127.0.0.1:%1$d",
+      "bn": "চলমান · 127.0.0.1:%1$d",
+      "de": "Läuft · 127.0.0.1:%1$d",
+      "es": "En ejecución · 127.0.0.1:%1$d",
+      "fr": "En cours · 127.0.0.1:%1$d",
+      "hi": "चालू · 127.0.0.1:%1$d",
+      "ja": "実行中 · 127.0.0.1:%1$d",
+      "ko": "실행 중 · 127.0.0.1:%1$d",
+      "pt": "Em execução · 127.0.0.1:%1$d",
+      "ru": "Работает · 127.0.0.1:%1$d",
+      "zh": "运行中 · 127.0.0.1:%1$d"
+     }
+    },
+    {
+     "name": "app_guest_services_stopped",
+     "en": "Stopped · 127.0.0.1:%1$d",
+     "comment": "Per-distro PRoot routing (#835)",
+     "args": [
+      "%1$d"
+     ],
+     "t": {
+      "ar": "متوقف · 127.0.0.1:%1$d",
+      "bn": "বন্ধ · 127.0.0.1:%1$d",
+      "de": "Gestoppt · 127.0.0.1:%1$d",
+      "es": "Detenido · 127.0.0.1:%1$d",
+      "fr": "Arrêté · 127.0.0.1:%1$d",
+      "hi": "बंद · 127.0.0.1:%1$d",
+      "ja": "停止 · 127.0.0.1:%1$d",
+      "ko": "중지됨 · 127.0.0.1:%1$d",
+      "pt": "Parado · 127.0.0.1:%1$d",
+      "ru": "Остановлено · 127.0.0.1:%1$d",
+      "zh": "已停止 · 127.0.0.1:%1$d"
+     }
     }
    ]
   },

@@ -388,4 +388,8 @@
     <string name="app_desktop_dns_custom_err_invalid">请输入 IP 或 IP:端口 地址（例如 1.1.1.1, 127.0.0.1:5400）。</string>
     <string name="app_desktop_routing_block_direct_title">阻止非代理流量</string>
     <string name="app_desktop_routing_block_direct_description">在 PRoot 中拦截直接出站套接字与 DNS 查询，防止客户机程序绕过当前代理。</string>
+    <string name="app_guest_services_title">客户机服务</string>
+    <string name="app_guest_services_description">在当前 Linux 发行版回环地址上运行的后台服务。</string>
+    <string name="app_guest_services_running">运行中 · 127.0.0.1:%1$d</string>
+    <string name="app_guest_services_stopped">已停止 · 127.0.0.1:%1$d</string>
 </resources>

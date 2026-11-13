@@ -153,6 +153,8 @@ fun DesktopManagerScreen(viewModel: DesktopViewModel = hiltViewModel()) {
     val appWindowDefs by viewModel.appWindowDefs.collectAsState()
     val launchingIds by viewModel.launchingIds.collectAsState()
     val installingPackIds by viewModel.installingPackIds.collectAsState()
+    val guestServices by viewModel.guestServices.collectAsState()
+    val installingServicePresetIds by viewModel.installingServicePresetIds.collectAsState()
     val installedApps by viewModel.installedApps.collectAsState()
     val scanningApps by viewModel.scanningApps.collectAsState()
     val defaultResolution by viewModel.appWindowDefaultResolution.collectAsState()
@@ -278,6 +280,24 @@ fun DesktopManagerScreen(viewModel: DesktopViewModel = hiltViewModel()) {
             onSetDefaultResolution = { viewModel.setAppWindowDefaultResolution(it) },
             onSetDefaultScale = { viewModel.setAppWindowDefaultScale(it) },
         )
+
+        if (!quick || !viewModel.umlAvailable) {
+            val availableServicePresets = remember(activeFamilyForPacks, guestServices) {
+                sh.haven.core.local.proot.GuestServiceCatalog.PRESETS.filter { preset ->
+                    (activeFamilyForPacks == null || preset.packages.containsKey(activeFamilyForPacks)) &&
+                        guestServices.none { it.spec.id == preset.id }
+                }
+            }
+            GuestServicesSection(
+                services = guestServices,
+                availablePresets = availableServicePresets,
+                installingPresetIds = installingServicePresetIds,
+                onInstallPreset = { viewModel.installServicePreset(it) },
+                onStart = { viewModel.startGuestService(it) },
+                onStop = { viewModel.stopGuestService(it) },
+                onDelete = { viewModel.deleteGuestService(it) },
+            )
+        }
 
         // The QEMU system VM stays last: it's the slowest, most niche path
         // (TCG boot, one at a time) and promoting it would compete with the
@@ -597,6 +617,129 @@ private fun AppWindowsSection(
                 onSetResolution = onSetDefaultResolution,
                 onSetScale = onSetDefaultScale,
             )
+        }
+    }
+}
+
+@Composable
+private fun GuestServicesSection(
+    services: List<sh.haven.core.local.GuestServiceManager.GuestServiceInstance>,
+    availablePresets: List<sh.haven.core.local.proot.GuestServicePreset>,
+    installingPresetIds: Set<String>,
+    onInstallPreset: (sh.haven.core.local.proot.GuestServicePreset) -> Unit,
+    onStart: (String) -> Unit,
+    onStop: (String) -> Unit,
+    onDelete: (String) -> Unit,
+) {
+    if (services.isEmpty() && availablePresets.isEmpty()) return
+    Card(
+        modifier = Modifier
+            .fillMaxWidth()
+            .padding(horizontal = 16.dp, vertical = 8.dp),
+    ) {
+        Column(modifier = Modifier.padding(16.dp)) {
+            Text(stringResource(AppR.string.app_guest_services_title), style = MaterialTheme.typography.titleMedium)
+            Spacer(Modifier.height(4.dp))
+            Text(
+                stringResource(AppR.string.app_guest_services_description),
+                style = MaterialTheme.typography.bodySmall,
+                color = MaterialTheme.colorScheme.onSurfaceVariant,
+            )
+            Spacer(Modifier.height(8.dp))
+
+            services.forEach { inst ->
+                val spec = inst.spec
+                val statusText = when (inst.state) {
+                    sh.haven.core.local.GuestServiceManager.ServiceState.RUNNING ->
+                        if (spec.port > 0) stringResource(AppR.string.app_guest_services_running, spec.port)
+                        else stringResource(AppR.string.app_uml_desktop_installed)
+                    sh.haven.core.local.GuestServiceManager.ServiceState.STARTING ->
+                        stringResource(AppR.string.app_system_vm_starting)
+                    sh.haven.core.local.GuestServiceManager.ServiceState.ERROR ->
+                        inst.errorMessage?.takeIf { it.isNotBlank() } ?: stringResource(AppR.string.app_uml_desktop_failed)
+                    sh.haven.core.local.GuestServiceManager.ServiceState.STOPPED ->
+                        if (spec.port > 0) stringResource(AppR.string.app_guest_services_stopped, spec.port)
+                        else stringResource(AppR.string.app_uml_desktop_installed)
+                }
+                Row(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .padding(vertical = 6.dp),
+                    verticalAlignment = Alignment.CenterVertically,
+                ) {
+                    Column(modifier = Modifier.weight(1f)) {
+                        Text(spec.label, style = MaterialTheme.typography.bodyLarge, maxLines = 1)
+                        Text(
+                            statusText,
+                            style = MaterialTheme.typography.bodySmall,
+                            color = if (inst.state == sh.haven.core.local.GuestServiceManager.ServiceState.ERROR) {
+                                MaterialTheme.colorScheme.error
+                            } else {
+                                MaterialTheme.colorScheme.onSurfaceVariant
+                            },
+                            maxLines = 2,
+                            overflow = TextOverflow.Ellipsis,
+                        )
+                    }
+                    when (inst.state) {
+                        sh.haven.core.local.GuestServiceManager.ServiceState.STARTING -> {
+                            Box(modifier = Modifier.size(48.dp), contentAlignment = Alignment.Center) {
+                                CircularProgressIndicator(modifier = Modifier.size(24.dp))
+                            }
+                        }
+                        sh.haven.core.local.GuestServiceManager.ServiceState.RUNNING -> {
+                            TextButton(onClick = { onStop(spec.id) }) {
+                                Text(stringResource(AppR.string.app_system_vm_stop))
+                            }
+                        }
+                        else -> {
+                            IconButton(onClick = { onStart(spec.id) }) {
+                                Icon(
+                                    Icons.Filled.PlayArrow,
+                                    contentDescription = stringResource(AppR.string.app_system_vm_start_cd, spec.label),
+                                )
+                            }
+                        }
+                    }
+                    IconButton(onClick = { onDelete(spec.id) }) {
+                        Icon(
+                            Icons.Filled.Delete,
+                            contentDescription = stringResource(AppR.string.app_system_vm_delete_cd, spec.label),
+                        )
+                    }
+                }
+                HorizontalDivider()
+            }
+
+            availablePresets.forEach { preset ->
+                Row(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .padding(vertical = 6.dp),
+                    verticalAlignment = Alignment.CenterVertically,
+                ) {
+                    Column(modifier = Modifier.weight(1f)) {
+                        Text(preset.label, style = MaterialTheme.typography.bodyMedium, maxLines = 1)
+                        Text(
+                            preset.description,
+                            style = MaterialTheme.typography.bodySmall,
+                            color = MaterialTheme.colorScheme.onSurfaceVariant,
+                            maxLines = 2,
+                            overflow = TextOverflow.Ellipsis,
+                        )
+                    }
+                    if (preset.id in installingPresetIds) {
+                        Box(modifier = Modifier.size(48.dp), contentAlignment = Alignment.Center) {
+                            CircularProgressIndicator(modifier = Modifier.size(24.dp))
+                        }
+                    } else {
+                        IconButton(onClick = { onInstallPreset(preset) }) {
+                            Icon(Icons.Filled.Download, contentDescription = preset.label)
+                        }
+                    }
+                }
+                HorizontalDivider()
+            }
         }
     }
 }

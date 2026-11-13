@@ -388,4 +388,8 @@
     <string name="app_desktop_dns_custom_err_invalid">IP または IP:port アドレスを入力してください（例: 1.1.1.1, 127.0.0.1:5400）。</string>
     <string name="app_desktop_routing_block_direct_title">プロキシ以外の通信を遮断</string>
     <string name="app_desktop_routing_block_direct_description">PRoot 内の直接の発信ソケットと DNS クエリを遮断し、ゲストプログラムが有効なプロキシを迂回できないようにします。</string>
+    <string name="app_guest_services_title">ゲストサービス</string>
+    <string name="app_guest_services_description">有効な Linux ディストロ内でループバック動作するバックグラウンドサーバー。</string>
+    <string name="app_guest_services_running">実行中 · 127.0.0.1:%1$d</string>
+    <string name="app_guest_services_stopped">停止 · 127.0.0.1:%1$d</string>
 </resources>

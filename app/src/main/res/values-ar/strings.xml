@@ -408,4 +408,8 @@
     <string name="app_desktop_dns_custom_err_invalid">أدخل عناوين IP أو IP:port (مثل 1.1.1.1 أو 127.0.0.1:5400).</string>
     <string name="app_desktop_routing_block_direct_title">حظر حركة المرور خارج الوكيل</string>
     <string name="app_desktop_routing_block_direct_description">يحظر الاتصالات الصادرة المباشرة واستعلامات DNS داخل PRoot لمنع البرامج من تجاوز الوكيل النشط.</string>
+    <string name="app_guest_services_title">خدمات الضيف</string>
+    <string name="app_guest_services_description">خوادم تعمل في الخلفية داخل توزيعة Linux النشطة على الواجهة المحلية.</string>
+    <string name="app_guest_services_running">قيد التشغيل · 127.0.0.1:%1$d</string>
+    <string name="app_guest_services_stopped">متوقف · 127.0.0.1:%1$d</string>
 </resources>

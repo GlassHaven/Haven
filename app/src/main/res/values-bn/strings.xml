@@ -392,4 +392,8 @@
     <string name="app_desktop_dns_custom_err_invalid">IP অথবা IP:port ঠিকানা লিখুন (যেমন 1.1.1.1, 127.0.0.1:5400)।</string>
     <string name="app_desktop_routing_block_direct_title">প্রক্সি-বহির্ভূত ট্রাফিক ব্লক করুন</string>
     <string name="app_desktop_routing_block_direct_description">PRoot-এ সরাসরি আউটবাউন্ড সকেট ও DNS কুয়েরি ব্লক করে যাতে গেস্ট প্রোগ্রাম সক্রিয় প্রক্সি এড়িয়ে যেতে না পারে।</string>
+    <string name="app_guest_services_title">গেস্ট সার্ভিস</string>
+    <string name="app_guest_services_description">সক্রিয় Linux ডিস্ট্রোতে লুপব্যাকে চলমান ব্যাকগ্রাউন্ড সার্ভার।</string>
+    <string name="app_guest_services_running">চলমান · 127.0.0.1:%1$d</string>
+    <string name="app_guest_services_stopped">বন্ধ · 127.0.0.1:%1$d</string>
 </resources>

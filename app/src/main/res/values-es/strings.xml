@@ -398,4 +398,8 @@
     <string name="app_desktop_dns_custom_err_invalid">Introduce direcciones IP o IP:puerto (p. ej. 1.1.1.1, 127.0.0.1:5400).</string>
     <string name="app_desktop_routing_block_direct_title">Bloquear tráfico fuera del proxy</string>
     <string name="app_desktop_routing_block_direct_description">Bloquea los sockets salientes directos y las consultas DNS en PRoot para evitar que los programas omitan el proxy activo.</string>
+    <string name="app_guest_services_title">Servicios invitados</string>
+    <string name="app_guest_services_description">Servidores en segundo plano en la distribución Linux activa por loopback.</string>
+    <string name="app_guest_services_running">En ejecución · 127.0.0.1:%1$d</string>
+    <string name="app_guest_services_stopped">Detenido · 127.0.0.1:%1$d</string>
 </resources>

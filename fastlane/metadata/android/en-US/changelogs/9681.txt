@@ -1,0 +1,2 @@
+- Add a `Guest Services` card under `Desktop` with Start, Stop, and Remove controls plus a one-tap MariaDB `127.0.0.1:3306` preset across Alpine, Debian/Ubuntu, Arch, and Void (`--no-defaults --user=root --innodb-use-native-aio=0` and `/root/.my.cnf`) (#734, thanks @sugerpersion).
+- Add on-device ADB wireless pairing (`Ed25519` SPAKE2 and TLS 1.3 `PeerInfo` exchange) to `await_adb_pairing_code` and a non-root mTLS loopback bridge fallback in `expose_adb` (#575).

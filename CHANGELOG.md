@@ -5,6 +5,11 @@ the corresponding GitHub Release; a release can't ship without its section
 (enforced by `scripts/check-changelog.sh` in CI). The GitHub "Full Changelog"
 compare link is appended automatically — don't add it here.
 
+## v5.94.43
+
+- Add a `Guest Services` card under `Desktop` with Start, Stop, and Remove controls plus a one-tap MariaDB `127.0.0.1:3306` preset across Alpine, Debian/Ubuntu, Arch, and Void (`--no-defaults --user=root --innodb-use-native-aio=0` and `/root/.my.cnf`) (#734, thanks @sugerpersion).
+- Add on-device ADB wireless pairing (`Ed25519` SPAKE2 and TLS 1.3 `PeerInfo` exchange) to `await_adb_pairing_code` and a non-root mTLS loopback bridge fallback in `expose_adb` (#575).
+
 ## v5.94.42
 
 - Add a width-gated two-pane horizontal terminal split (`>= 600 dp`) via the tab context menu (`Split with...`) and tab-strip unsplit control, with independent PTY geometries, a draggable `0.2`..`0.8` divider (double-tap to reset to `50/50`), tap-to-focus IME routing, per-pane color schemes, and auto-collapse below `600 dp` or when either split tab closes (#141).

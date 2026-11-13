@@ -152,6 +152,104 @@ build_for_arch "aarch64" "aarch64-linux-android" "arm64-v8a"
 build_for_arch "x86_64" "x86_64-linux-android" "x86_64"
 build_for_arch "armv7a" "armv7a-linux-androideabi" "armeabi-v7a"
 
+# ---------------------------------------------------------------------------
+# chroot-ng (sylirre/fake-chroot-ng, Apache-2.0) — opt-in arm64-v8a container
+# engine (#573). Freestanding AArch64 C and assembly (no libc, -nostdlib),
+# built from pinned source verified by SHA256 on every run and installed as
+# arm64-v8a/libchrootng.so so Android's installer extracts it executable in
+# nativeLibraryDir.
+# ---------------------------------------------------------------------------
+CHROOTNG_VERSION="1.6.0"
+CHROOTNG_COMMIT="869c42b705e889a487a9503e219fedfab71f4d88"
+CHROOTNG_TARBALL_SHA256="cf289100ce2bf3de23b8a1ff273963f4d2b3a5ad20ff4a710bd5c397408b080a"
+CHROOTNG_TARBALL_URL="https://github.com/sylirre/fake-chroot-ng/archive/${CHROOTNG_COMMIT}.tar.gz"
+CHROOTNG_GIT_URL="https://github.com/sylirre/fake-chroot-ng.git"
+
+build_chrootng_arm64() {
+    if [ "${SKIP_CHROOTNG:-0}" = "1" ]; then
+        echo "Skipping chroot-ng build (SKIP_CHROOTNG=1)"
+        return 0
+    fi
+
+    echo ""
+    echo "=== Building chroot-ng ${CHROOTNG_VERSION} (${CHROOTNG_COMMIT:0:12}) for arm64-v8a ==="
+
+    local DL_DIR="dl"
+    local TARBALL="$DL_DIR/fake-chroot-ng-${CHROOTNG_COMMIT}.tar.gz"
+    local WORK_DIR="build-chrootng"
+    local SRC_DIR="$WORK_DIR/src"
+    mkdir -p "$DL_DIR"
+    rm -rf "$WORK_DIR"
+    mkdir -p "$SRC_DIR"
+
+    if [ ! -f "$TARBALL" ]; then
+        echo "  [fetch] $CHROOTNG_TARBALL_URL"
+        if ! curl -fsSL --retry 3 --retry-delay 3 --retry-connrefused --retry-all-errors \
+                --connect-timeout 20 --max-time 120 -o "$TARBALL.tmp" "$CHROOTNG_TARBALL_URL"; then
+            rm -f "$TARBALL.tmp"
+            echo "  tarball download failed — falling back to pinned git commit $CHROOTNG_COMMIT" >&2
+            if ! (
+                cd "$SRC_DIR" &&
+                git init -q . &&
+                git remote add origin "$CHROOTNG_GIT_URL" &&
+                timeout 120 git fetch --depth 1 -q origin "$CHROOTNG_COMMIT" &&
+                git checkout -q FETCH_HEAD
+            ); then
+                echo "ERROR: failed to fetch fake-chroot-ng $CHROOTNG_COMMIT via HTTPS tarball and git fallback" >&2
+                exit 1
+            fi
+            local GOT_COMMIT
+            GOT_COMMIT="$(git -C "$SRC_DIR" rev-parse HEAD)"
+            if [ "$GOT_COMMIT" != "$CHROOTNG_COMMIT" ]; then
+                echo "ERROR: fake-chroot-ng git commit mismatch: expected $CHROOTNG_COMMIT, got $GOT_COMMIT" >&2
+                exit 1
+            fi
+            rm -rf "$SRC_DIR/.git"
+        else
+            mv "$TARBALL.tmp" "$TARBALL"
+        fi
+    fi
+
+    # Verify SHA256 on EVERY run (cached or freshly downloaded) before unpacking.
+    if [ -f "$TARBALL" ]; then
+        local GOT_SHA
+        GOT_SHA="$(sha256sum "$TARBALL" | awk '{print $1}')"
+        if [ "$GOT_SHA" != "$CHROOTNG_TARBALL_SHA256" ]; then
+            echo "ERROR: SHA256 mismatch for $TARBALL" >&2
+            echo "  expected: $CHROOTNG_TARBALL_SHA256" >&2
+            echo "  got:      $GOT_SHA" >&2
+            exit 1
+        fi
+        tar -xzf "$TARBALL" -C "$SRC_DIR" --strip-components=1
+    fi
+
+    for p in "$PWD"/patches/chroot-ng/*.patch; do
+        [ -f "$p" ] || continue
+        echo "  [patch] $(basename "$p")"
+        if command -v patch >/dev/null 2>&1; then
+            patch -d "$SRC_DIR" -p1 < "$p"
+        else
+            (cd "$SRC_DIR" && git init -q && git apply "$p" && rm -rf .git)
+        fi
+    done
+
+    local CC="$TOOLCHAIN/bin/aarch64-linux-android${API}-clang"
+    local OBJCOPY="$TOOLCHAIN/bin/llvm-objcopy"
+    local STRIP="$TOOLCHAIN/bin/llvm-strip"
+
+    make -C "$SRC_DIR" -j"$(nproc)" \
+        CC="$CC" \
+        OBJCOPY="$OBJCOPY" \
+        2>&1 | tail -10
+
+    "$STRIP" "$SRC_DIR/build/chroot-ng"
+    mkdir -p "$PROOT_OUTPUT/arm64-v8a"
+    cp "$SRC_DIR/build/chroot-ng" "$PROOT_OUTPUT/arm64-v8a/libchrootng.so"
+    echo "Installed: $PROOT_OUTPUT/arm64-v8a/libchrootng.so ($(stat -c %s "$PROOT_OUTPUT/arm64-v8a/libchrootng.so") bytes)"
+}
+
+build_chrootng_arm64
+
 echo ""
-echo "Done. PRoot binaries installed to $PROOT_OUTPUT/"
-ls -la "$PROOT_OUTPUT"/*/libproot*.so
+echo "Done. Guest runtime binaries installed to $PROOT_OUTPUT/"
+ls -la "$PROOT_OUTPUT"/*/libproot*.so "$PROOT_OUTPUT"/arm64-v8a/libchrootng.so 2>/dev/null || true

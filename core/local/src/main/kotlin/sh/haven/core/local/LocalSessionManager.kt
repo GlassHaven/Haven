@@ -391,6 +391,58 @@ class LocalSessionManager @Inject constructor(
             val customBinds = prootManager.customBindShortArgs(targetDistro).toTypedArray()
             val guestUser = prootManager.ensureGuestUser(rootfsDir, targetDistro)
             ProotManager.ensureAptSandboxConfig(rootfsDir)
+            val netPolicy = prootManager.netPolicyArgs(targetDistro)
+            val effectiveLocale = resolveGuestLocale(rootfsDir, terminalLocale)
+            val chrootNgBin = prootManager.resolveChrootNgBinaryIfEligible(
+                distroId = targetDistro,
+                hasNetPolicy = netPolicy.isNotEmpty(),
+                allowPortRemapFallback = true,
+            )
+            if (chrootNgBin != null) {
+                val inv = buildChrootNgCommand(
+                    chrootNgBinary = chrootNgBin,
+                    rootfsDir = rootfsDir,
+                    guestUser = guestUser,
+                    workdir = guestUser.home,
+                    rawBindSpecs = buildList {
+                        add("/sys:/sys")
+                        add(prootManager.selinuxMaskBind(rootfsDir))
+                        addAll(storageBinds)
+                        addAll(customBinds)
+                        add("${context.cacheDir.absolutePath}:/tmp")
+                        addAll(prootManager.shizukuGuestBindArgs(rootfsDir, longForm = false))
+                        prootManager.deviceModelDevicetreeBind()?.let(::add)
+                        addAll(prootManager.androidSystemBindArgs(longForm = false))
+                    },
+                    guestEnv = buildList {
+                        add("HOME=${guestUser.home}")
+                        add("USER=${guestUser.username}")
+                        add("LOGNAME=${guestUser.username}")
+                        add("TERM=xterm-256color")
+                        add("LANG=$effectiveLocale")
+                        add("LC_ALL=$effectiveLocale")
+                        add("PATH=/usr/local/sbin:/usr/local/bin:/usr/sbin:/usr/bin:/sbin:/bin:${guestUser.home}/.local/bin:${guestUser.home}/.cargo/bin")
+                        add("SHELL=/bin/sh")
+                        add("TMPDIR=/tmp")
+                        add("XDG_RUNTIME_DIR=/tmp")
+                        add("XDG_DATA_HOME=${guestUser.home}/.local/share")
+                        add("XDG_DATA_DIRS=/usr/local/share:/usr/share")
+                        add("XDG_CONFIG_HOME=${guestUser.home}/.config")
+                        add("XDG_CACHE_HOME=${guestUser.home}/.cache")
+                        add("${ShizukuBridgeProtocol.SOCKET_ENV_VAR}=${ShizukuBridgeProtocol.GUEST_SOCKET_PATH}")
+                        addAll(ProotManager.PROOT_SANDBOX_ENV)
+                        tunnelEnv.forEach { (k, v) -> add("$k=$v") }
+                    },
+                    programAndArgs = shellArgs.toList(),
+                    cngTmpDir = prootManager.ensureChrootNgTmpDir(),
+                )
+                return Triple(
+                    inv.binary,
+                    inv.args.toTypedArray(),
+                    inv.hostEnv.map { (k, v) -> "$k=$v" }.toTypedArray(),
+                )
+            }
+
             val identityArgs = if (guestUser.isRoot) {
                 arrayOf("-0")
             } else {
@@ -405,7 +457,7 @@ class LocalSessionManager @Inject constructor(
                 // #325: foreign-arch rootfs runs through the bundled qemu-user
                 // loader. Empty for host-arch rootfses.
                 *prootManager.qemuUserArgs(targetDistro).toTypedArray(),
-                *prootManager.netPolicyArgs(targetDistro).toTypedArray(),
+                *netPolicy.toTypedArray(),
                 *portRemap,
                 "-r", rootfsDir.absolutePath,
                 "-b", "/dev",
@@ -442,7 +494,6 @@ class LocalSessionManager @Inject constructor(
                 *prootManager.androidSystemBindArgs(longForm = false),
                 "-w", guestUser.home,
             ) + shellArgs
-            val effectiveLocale = resolveGuestLocale(rootfsDir, terminalLocale)
             val env = arrayOf(
                 "HOME=${guestUser.home}",
                 "USER=${guestUser.username}",
@@ -850,7 +901,10 @@ class LocalSessionManager @Inject constructor(
      */
     fun killOrphanedGuestProot(): Int {
         val myPid = android.os.Process.myPid()
-        val launchers = descendantPidsOf(myPid).filter { commOf(it) == "libproot.so" }
+        val launchers = descendantPidsOf(myPid).filter {
+            val comm = commOf(it)
+            comm == "libproot.so" || comm == "libchrootng.so"
+        }
         for (pid in launchers) {
             val tracees = runCatching { descendantPidsOf(pid) }.getOrDefault(emptyList())
             runCatching { android.os.Process.killProcess(pid) }

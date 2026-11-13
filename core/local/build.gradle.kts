@@ -66,11 +66,13 @@ val buildProot by tasks.registering(Exec::class) {
     val prootScript = rootProject.file("build-proot/build.sh")
     val prootSrc = rootProject.file("build-proot/proot-termux/src")
     val tallocSrc = rootProject.file("build-proot/talloc")
+    val chrootNgPatches = rootProject.file("build-proot/patches/chroot-ng")
     val jniLibsDir = file("src/main/jniLibs")
 
     inputs.file(prootScript)
     inputs.dir(prootSrc)
     inputs.dir(tallocSrc)
+    inputs.dir(chrootNgPatches)
     outputs.dir(jniLibsDir)
 
     workingDir = rootProject.file("build-proot")

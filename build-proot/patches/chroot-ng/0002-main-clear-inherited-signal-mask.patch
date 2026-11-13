@@ -1,0 +1,18 @@
+diff --git a/src/main.c b/src/main.c
+index 1d82d19..7512854 100644
+--- a/src/main.c
++++ b/src/main.c
+@@ -834,6 +834,13 @@ static int add_env(char *spec, char **env_set, int *ne) {
+ /* --- entry point ---------------------------------------------------------- */
+ 
+ int cng_main(int argc, char **argv, char **envp, unsigned long *auxv) {
++    /* Processes spawned from Android's ART JVM (ProcessBuilder / fork+exec)
++     * inherit ART's blocked signal mask (SIGQUIT, SIGUSR1, ...), which persists
++     * across execve and leaves guest signal delivery broken. Start from an
++     * empty mask so guest programs and -t self-tests see clean POSIX defaults. */
++    unsigned long empty_mask = 0;
++    CNG_SYS(__NR_rt_sigprocmask, 2 /*SIG_SETMASK*/, &empty_mask, 0, 8, 0, 0);
++
+     const char *rootfs = 0;
+     const char *libprefix = 0;
+     const char *workdir = 0;   /* -w/--work-dir: initial guest cwd */

@@ -1145,4 +1145,35 @@ class McpToolsConsentTest {
         assertEquals(-32602, err.code)
         assertTrue(err.message!!.contains("list_sessions"))
     }
+
+    @Test
+    fun `proot_engine preference round-trips proot and chroot-ng and rejects unknown values`() {
+        var currentEngine = sh.haven.core.local.ProotManager.GuestEngine.PROOT
+        val prootManager = mockk<sh.haven.core.local.ProotManager>(relaxed = true)
+        every { prootManager.guestEngine } answers { currentEngine }
+        every { prootManager.setGuestEngine(any()) } answers {
+            currentEngine = firstArg()
+        }
+        val localSessionManager = mockk<LocalSessionManager>(relaxed = true)
+        every { localSessionManager.prootManager } returns prootManager
+        val tools = newTools(localSessionManager = localSessionManager)
+
+        val initial = runBlocking { tools.call("get_preference", JSONObject().put("key", "proot_engine")) }
+        assertEquals("proot", initial.getString("value"))
+
+        runBlocking {
+            tools.call("set_preference", JSONObject().put("key", "proot_engine").put("value", "chroot-ng"))
+        }
+        assertEquals(sh.haven.core.local.ProotManager.GuestEngine.CHROOT_NG, currentEngine)
+        val afterSet = runBlocking { tools.call("get_preference", JSONObject().put("key", "proot_engine")) }
+        assertEquals("chroot-ng", afterSet.getString("value"))
+
+        val bad = runCatching {
+            runBlocking {
+                tools.call("set_preference", JSONObject().put("key", "proot_engine").put("value", "docker"))
+            }
+        }.exceptionOrNull() as McpError
+        assertEquals(-32602, bad.code)
+        assertTrue(bad.message!!.contains("chroot-ng"))
+    }
 }

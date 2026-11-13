@@ -1,0 +1,56 @@
+From 0000000000000000000000000000000000000000 Mon Sep 17 00:00:00 2001
+From: Haven Maintainers <maintainers@haven.sh>
+Date: Fri, 13 Nov 2026 18:35:00 +0000
+Subject: [PATCH 3/3] monitor: report host-owned files as 0:0 while elevated
+ under --setuid-root
+
+Under `--fake-id=1000:1000 --setuid-root --setgid-root`, executing a
+`04755` setuid binary such as `/usr/bin/sudo` elevates `euid` and `suid`
+to `0`, but `sudo` immediately validates that `/etc/sudo.conf`,
+`/etc/sudoers`, `/etc/sudoers.d/*`, and `sudoers.so` are owned by UID 0
+(sometimes after temporarily toggling `euid` via `seteuid(ruid)` while
+keeping `suid == 0`). Because Android extracts the entire guest rootfs
+under a single unprivileged app UID, remapping `cng_g_host_uid` to fixed
+`cng_g_fake_uid` (1000) even when elevated causes `sudo` to abort with
+`/etc/sudo.conf is owned by uid 1000, should be 0`.
+
+Match PRoot `fake_id0`'s `suid`-aware stat remap: while the live
+synthetic credential set holds root (`euid == 0 || suid == 0`), remap
+`cng_g_host_uid`/`cng_g_host_gid` to `0`; unprivileged processes
+(`euid != 0 && suid != 0`, e.g. Sway checking `XDG_RUNTIME_DIR` or OpenSSH
+checking `~/.ssh/config`) continue to see `cng_g_fake_uid`/`cng_g_fake_gid`.
+---
+ include/cng/monitor.h | 16 ++++++++++++++--
+ 1 file changed, 14 insertions(+), 2 deletions(-)
+
+diff --git a/include/cng/monitor.h b/include/cng/monitor.h
+index 2436c2e..7d491cc 100644
+--- a/include/cng/monitor.h
++++ b/include/cng/monitor.h
+@@ -180,10 +180,22 @@ int cng_fake_root(void);
+  * user is shown as owned by the fake id; every other owner passes through. A
+  * no-op unless a fake identity is active. */
+ static inline unsigned cng_remap_uid(unsigned u) {
+-    return (cng_g_fake_id && u == cng_g_host_uid) ? cng_g_fake_uid : u;
++    if (!cng_g_fake_id || u != cng_g_host_uid)
++        return u;
++    if (cng_g_fake_uid == 0)
++        return 0;
++    struct cng_cred_ids id;
++    cng_cred_ids(&id);
++    return (id.euid == 0 || id.suid == 0) ? 0 : cng_g_fake_uid;
+ }
+ static inline unsigned cng_remap_gid(unsigned g) {
+-    return (cng_g_fake_id && g == cng_g_host_gid) ? cng_g_fake_gid : g;
++    if (!cng_g_fake_id || g != cng_g_host_gid)
++        return g;
++    if (cng_g_fake_gid == 0)
++        return 0;
++    struct cng_cred_ids id;
++    cng_cred_ids(&id);
++    return (id.egid == 0 || id.sgid == 0 || id.euid == 0 || id.suid == 0) ? 0 : cng_g_fake_gid;
+ }
+ 
+ /* Visible owner/group of a file with mode `mode`: a setuid/setgid *regular* file
+-- 
+2.47.0

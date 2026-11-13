@@ -1,0 +1,38 @@
+diff --git a/src/monitor/blocklist.c b/src/monitor/blocklist.c
+index 5fe7b73..25f7872 100644
+--- a/src/monitor/blocklist.c
++++ b/src/monitor/blocklist.c
+@@ -128,15 +128,30 @@ void cng_probe_blocked(void) {
+     long child = sys_fork();
+     if (child == 0) {
+         cng_sig_install(CNG_SIGSYS, probe_sigsys);
+-        for (int i = 0; i < NPROBE; i++)
++        for (int i = 0; i < NPROBE; i++) {
+             /* arg0 = -1: a seccomp filter matches on the syscall number before
+              * the kernel reads any argument, so a blocked call still traps —
+              * while an allowed one dies on EBADF/EFAULT instantly. Zeros here
+              * made arg0 name fd 0, and the probes really ran against stdin:
+              * utimensat(0, NULL, ...) is futimens and STAMPED it, fchown hit
+              * it, and recvfrom(0, NULL, 0, 0) blocked startup forever when
+-             * stdin was a silent datagram socket (ssh/CI harnesses). */
+-            cng_syscall6(-1, 0, 0, 0, 0, 0, probe_set[i]);
++             * stdin was a silent datagram socket (ssh/CI harnesses).
++             *
++             * For setre*id/setres*id, passing 0 in arg1/arg2 requests UID/GID 0
++             * (since -1 in arg0 means "leave real id unchanged"). Android's
++             * zygote filter allows __NR_setresuid through to the kernel, where
++             * targeting UID 0 from an app UID trips OPlus CONFIG_OPLUS_ROOT_CHECK
++             * and raises a system-wide security warning dialog. Passing -1 in
++             * arg1/arg2 leaves all ids unchanged while still probing seccomp. */
++            int nr = probe_set[i];
++            long a1 = 0, a2 = 0;
++            if (nr == __NR_setreuid || nr == __NR_setregid ||
++                nr == __NR_setresuid || nr == __NR_setresgid) {
++                a1 = -1;
++                a2 = -1;
++            }
++            cng_syscall6(-1, a1, a2, 0, 0, 0, nr);
++        }
+         sys_exit_group(0);
+     }
+     if (child > 0) {

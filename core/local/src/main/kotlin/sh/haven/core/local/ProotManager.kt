@@ -42,7 +42,8 @@ private const val TAG = "ProotManager"
 private const val PREF_ACTIVE_DISTRO_ID = "active_distro_id"
 private const val PREF_MIRROR_REGION = "mirror_region"
 
-/** Proot launch toggles for the local Linux sessions (#300 / #301). */
+/** Proot launch toggles for the local Linux sessions (#300 / #301 / #573). */
+private const val PREF_GUEST_ENGINE = "proot_engine"
 private const val PREF_REMAP_LOW_PORTS = "remap_low_ports"
 private const val PREF_SHARE_STORAGE = "share_storage_with_guest"
 private const val PREF_BIND_ANDROID_SYSTEM = "bind_android_system"
@@ -868,6 +869,33 @@ class ProotManager constructor(
         _shareStorageWithGuest.value = enabled
     }
 
+    /**
+     * Container engine backing local arm64 Linux shells, one-shot commands, and
+     * VNC/Wayland desktops (#573). Defaults to [PROOT]; when [CHROOT_NG] is
+     * selected on an `arm64-v8a` host and no PRoot-only option (`--qemu`,
+     * `--net-policy`, `-p` port remap) is active, Haven launches `libchrootng.so`
+     * (in-process seccomp `RET_TRAP -> SIGSYS`, ptrace-free).
+     */
+    enum class GuestEngine(val id: String) {
+        PROOT("proot"),
+        CHROOT_NG("chroot-ng");
+
+        companion object {
+            fun fromId(raw: String?): GuestEngine =
+                entries.firstOrNull { it.id.equals(raw?.trim(), ignoreCase = true) } ?: PROOT
+        }
+    }
+
+    private val _guestEngine = MutableStateFlow(GuestEngine.fromId(prefs.getString(PREF_GUEST_ENGINE, null)))
+    val guestEngineFlow: StateFlow<GuestEngine> = _guestEngine.asStateFlow()
+    val guestEngine: GuestEngine get() = _guestEngine.value
+
+    fun setGuestEngine(engine: GuestEngine) {
+        if (engine == _guestEngine.value) return
+        prefs.edit().putString(PREF_GUEST_ENGINE, engine.id).apply()
+        _guestEngine.value = engine
+    }
+
     private val _bindAndroidSystem = MutableStateFlow(prefs.getBoolean(PREF_BIND_ANDROID_SYSTEM, false))
 
     /**
@@ -1403,6 +1431,16 @@ class ProotManager constructor(
             val proot = File(nativeDir, "libproot.so")
             return if (proot.canExecute()) proot.absolutePath else null
         }
+
+    val chrootNgBinary: String?
+        get() {
+            val nativeDir = context.applicationInfo.nativeLibraryDir
+            val bin = File(nativeDir, "libchrootng.so")
+            return if (bin.canExecute()) bin.absolutePath else null
+        }
+
+    val isChrootNgAvailable: Boolean
+        get() = chrootNgBinary != null
 
     val isReady: Boolean
         get() = prootBinary != null && isRootfsInstalled
@@ -3780,6 +3818,47 @@ class ProotManager constructor(
     }
 
     /**
+     * Ensure an owner-only (`0700`) host runtime directory for `chroot-ng` (#573).
+     *
+     * `chroot-ng` validates that its `$TMPDIR` (used for synthesized `/dev/shm`,
+     * private `/proc` views, and the `--shared-proc` broker socket) is mode `0700`
+     * owned by the invoking UID; Android's `cacheDir` defaults to `0771`, which
+     * `chroot-ng` refuses. Placing `cng-tmp` under `filesDir` with explicit `0700`
+     * permissions keeps it isolated from guest `/tmp` (`cacheDir`).
+     */
+    fun ensureChrootNgTmpDir(): File {
+        val dir = File(context.filesDir, "cng-tmp")
+        if (!dir.exists()) dir.mkdirs()
+        dir.setReadable(false, false)
+        dir.setWritable(false, false)
+        dir.setExecutable(false, false)
+        dir.setReadable(true, true)
+        dir.setWritable(true, true)
+        dir.setExecutable(true, true)
+        applyPosixMode(dir, 0b111_000_000)
+        return dir
+    }
+
+    /**
+     * Return the executable `libchrootng.so` path when [guestEngine] is
+     * [GuestEngine.CHROOT_NG] and no PRoot-only feature (`--qemu`, `--net-policy`,
+     * or `-p` port remap) is active for [distroId]; otherwise `null` so the caller
+     * falls back to `libproot.so` (#573).
+     */
+    fun resolveChrootNgBinaryIfEligible(
+        distroId: String = activeDistroId,
+        hasNetPolicy: Boolean,
+        allowPortRemapFallback: Boolean = true,
+    ): String? {
+        if (guestEngine != GuestEngine.CHROOT_NG) return null
+        val bin = chrootNgBinary ?: return null
+        if (allowPortRemapFallback && remapLowPorts) return null
+        if (hasNetPolicy) return null
+        if (qemuUserArgs(distroId).isNotEmpty()) return null
+        return bin
+    }
+
+    /**
      * Bind value that masks the guest's `/sys/fs/selinux` with an empty dir,
      * i.e. `"<host>:/sys/fs/selinux"`.
      *
@@ -3875,6 +3954,60 @@ class ProotManager constructor(
         applyResolvConf(activeRootfsDir)
         applyMirrorConfig(activeRootfsDir, activeDistroId)
         ensureAptSandboxConfig(activeRootfsDir)
+        val routingCfg = routingConfig(activeDistroId)
+        val tunnelEnv = guestTunnelEnvVars(activeDistroId)
+        val effectiveCommand = ProotRouting.wrapShellCommandIfNeeded(
+            rootfsDir = activeRootfsDir,
+            config = routingCfg,
+            env = tunnelEnv,
+            command = command,
+        )
+        val netPolicy = netPolicyArgs(activeDistroId)
+        val sysSelinuxMask = selinuxMaskBind(activeRootfsDir)
+        val chrootNgBin = resolveChrootNgBinaryIfEligible(
+            distroId = activeDistroId,
+            hasNetPolicy = netPolicy.isNotEmpty(),
+            allowPortRemapFallback = false,
+        )
+        if (chrootNgBin != null) {
+            val inv = buildChrootNgCommand(
+                chrootNgBinary = chrootNgBin,
+                rootfsDir = activeRootfsDir,
+                guestUser = guestUser,
+                workdir = guestUser.home,
+                rawBindSpecs = buildList {
+                    add("/sys:/sys")
+                    add(sysSelinuxMask)
+                    add("${context.cacheDir.absolutePath}:/tmp")
+                    addAll(shizukuGuestBindArgs(activeRootfsDir, longForm = true))
+                    deviceModelDevicetreeBind()?.let(::add)
+                    addAll(androidSystemBindArgs(longForm = true))
+                    addAll(storageBindLongArgs())
+                    addAll(customBindLongArgs(activeDistroId))
+                },
+                guestEnv = buildList {
+                    add("HOME=${guestUser.home}")
+                    add("USER=${guestUser.username}")
+                    add("LOGNAME=${guestUser.username}")
+                    add("LANG=C.UTF-8")
+                    add("PATH=/usr/local/sbin:/usr/local/bin:/usr/sbin:/usr/bin:/sbin:/bin")
+                    add("TERM=xterm-256color")
+                    add("TMPDIR=/tmp")
+                    add("${ShizukuBridgeProtocol.SOCKET_ENV_VAR}=${ShizukuBridgeProtocol.GUEST_SOCKET_PATH}")
+                    addAll(PROOT_SANDBOX_ENV)
+                    tunnelEnv.forEach { (k, v) -> add("$k=$v") }
+                },
+                programAndArgs = listOf("/bin/sh", "-lc", effectiveCommand),
+                cngTmpDir = ensureChrootNgTmpDir(),
+            )
+            return ProcessBuilder(inv.args).apply {
+                environment().apply {
+                    inv.hostEnv.forEach { (k, v) -> put(k, v) }
+                }
+                redirectErrorStream(true)
+            }.start()
+        }
+
         val loaderPath = File(context.applicationInfo.nativeLibraryDir, "libproot_loader.so").absolutePath
         // Mirror termux/proot-distro v4.29.0's `run_proot_cmd` invocation
         // (distro-plugins runner). Empirically that's the proven pattern
@@ -3887,7 +4020,6 @@ class ProotManager constructor(
         // before. See proot-distro/proot-distro.sh:run_proot_cmd().
         val rootfsPath = activeRootfsDir.absolutePath
         val devShm = ensureDevShm()
-        val sysSelinuxMask = selinuxMaskBind(activeRootfsDir)
         val args = mutableListOf(
             prootBin,
             "-L",
@@ -3903,7 +4035,7 @@ class ProotManager constructor(
             // Inert unless the active rootfs is marked foreign AND its loader is
             // bundled — otherwise an empty spread.
             *qemuUserArgs(activeDistroId).toTypedArray(),
-            *netPolicyArgs(activeDistroId).toTypedArray(),
+            *netPolicy.toTypedArray(),
             "--rootfs=$rootfsPath",
             guestUser.prootLongIdentityArg,
             "--cwd=${guestUser.home}",
@@ -3944,17 +4076,7 @@ class ProotManager constructor(
             "TMPDIR=/tmp",
             "${ShizukuBridgeProtocol.SOCKET_ENV_VAR}=${ShizukuBridgeProtocol.GUEST_SOCKET_PATH}",
             *PROOT_SANDBOX_ENV.toTypedArray(),
-            *run {
-                val routingCfg = routingConfig(activeDistroId)
-                val tunnelEnv = guestTunnelEnvVars(activeDistroId)
-                val effectiveCommand = ProotRouting.wrapShellCommandIfNeeded(
-                    rootfsDir = activeRootfsDir,
-                    config = routingCfg,
-                    env = tunnelEnv,
-                    command = command,
-                )
-                (tunnelEnv.map { (k, v) -> "$k=$v" } + listOf("/bin/sh", "-lc", effectiveCommand)).toTypedArray()
-            },
+            *(tunnelEnv.map { (k, v) -> "$k=$v" } + listOf("/bin/sh", "-lc", effectiveCommand)).toTypedArray(),
         )
         return ProcessBuilder(args).apply {
             // proot/PROOT_LOADER vars must live in the OUTER env so
@@ -5785,4 +5907,164 @@ internal fun buildStorageBindArgs(
     } else {
         listOf("-b", "/storage", "-b", "$hostPath:/sdcard")
     }
+}
+
+private val CNG_BUILTIN_DEV_MOUNTS = setOf(
+    "/dev",
+    "/dev/shm",
+    "/dev/random",
+    "/dev/urandom",
+    "/dev/fd",
+    "/dev/stdin",
+    "/dev/stdout",
+    "/dev/stderr",
+)
+
+private const val CNG_MAX_BINDS = 64
+private const val CNG_MAX_ENV = 128
+
+internal data class ChrootNgInvocation(
+    val binary: String,
+    val args: List<String>,
+    val hostEnv: Map<String, String>,
+)
+
+/**
+ * Construct a `chroot-ng` CLI invocation and isolated host environment (#573).
+ *
+ * Key differences from `proot`:
+ * - Positional syntax: `chroot-ng [options] <rootfs> <program> [args...]` (no `-r`).
+ * - `<program>` must be an absolute guest path; relative commands (e.g. `proxychains4`)
+ *   are routed via `/usr/bin/env`.
+ * - Host `envp` is NOT inherited by the guest (only `TERM`/`COLORTERM`); guest env vars
+ *   are passed explicitly via `-E KEY=VAL` (up to 128), while `hostEnv["TMPDIR"]` points
+ *   `chroot-ng` itself at an owner-only `0700` host runtime directory (`cngTmpDir`).
+ * - `-b SRC:DST[:ro]` requires an explicit `:` and fails hard (`exit 2`) if `SRC` cannot
+ *   be `stat`ted on the host; `/dev` (including `/dev/shm`, `/dev/fd`, `/dev/std*`) and
+ *   `/proc` (including synthesized `stat`, `uptime`, `loadavg`, `version`) are provided
+ *   natively by `chroot-ng` and must not be shadowed with host `/dev` or `/proc` binds.
+ */
+internal fun buildChrootNgCommand(
+    chrootNgBinary: String,
+    rootfsDir: File,
+    guestUser: ProotManager.GuestUserSpec,
+    workdir: String,
+    rawBindSpecs: List<String>,
+    guestEnv: List<String>,
+    programAndArgs: List<String>,
+    cngTmpDir: File,
+    hostPathExists: (String) -> Boolean = { File(it).exists() },
+): ChrootNgInvocation {
+    require(programAndArgs.isNotEmpty()) { "programAndArgs must not be empty" }
+    val normalizedWorkdir = workdir.trim().let {
+        when {
+            it.isEmpty() -> "/"
+            it.startsWith("/") -> it
+            else -> "/$it"
+        }
+    }
+    if (rootfsDir.isDirectory && normalizedWorkdir != "/") {
+        runCatching { File(rootfsDir, normalizedWorkdir.trimStart('/')).mkdirs() }
+    }
+
+    // Normalize short (`-b`, `spec`), long (`--bind=spec`), and bare (`/sys`) bind tokens.
+    val extractedSpecs = mutableListOf<String>()
+    var idx = 0
+    while (idx < rawBindSpecs.size) {
+        val tok = rawBindSpecs[idx].trim()
+        when {
+            tok.isEmpty() -> Unit
+            tok == "-b" || tok == "--bind" -> {
+                if (idx + 1 < rawBindSpecs.size) {
+                    val next = rawBindSpecs[idx + 1].trim()
+                    if (next.isNotEmpty()) extractedSpecs.add(next)
+                    idx++
+                }
+            }
+            tok.startsWith("--bind=") -> {
+                val rest = tok.removePrefix("--bind=").trim()
+                if (rest.isNotEmpty()) extractedSpecs.add(rest)
+            }
+            tok.startsWith("-b") && tok.length > 2 -> {
+                val rest = tok.substring(2).trim()
+                if (rest.isNotEmpty()) extractedSpecs.add(rest)
+            }
+            else -> extractedSpecs.add(tok)
+        }
+        idx++
+    }
+
+    val dedupedBinds = LinkedHashMap<String, String>()
+    for (raw in extractedSpecs) {
+        val expanded = if (':' in raw) raw else "$raw:$raw"
+        val colon = expanded.indexOf(':')
+        if (colon <= 0) continue
+        val src = expanded.substring(0, colon).trim()
+        val dstAndOpts = expanded.substring(colon + 1).trim()
+        if (src.isEmpty() || src == "/" || !src.startsWith("/")) continue
+        val roSuffix = dstAndOpts.endsWith(":ro")
+        val rawDst = if (roSuffix) dstAndOpts.removeSuffix(":ro") else dstAndOpts
+        val dst = rawDst.trimEnd('/').ifEmpty { "/" }
+        if (!dst.startsWith("/") || dst == "/") continue
+        if (dst in CNG_BUILTIN_DEV_MOUNTS || dst == "/proc" || dst.startsWith("/proc/")) continue
+        if (!hostPathExists(src)) continue
+        val normalizedSpec = if (roSuffix) "$src:$dst:ro" else "$src:$dst"
+        // Keep the latest mount for a given guest target while preserving insertion order
+        // of overrides (e.g. `-b /sys:/sys` followed by `-b <empty>:/sys/fs/selinux`).
+        dedupedBinds.remove(dst)
+        dedupedBinds[dst] = normalizedSpec
+    }
+
+    val dedupedEnv = LinkedHashMap<String, String>()
+    for (entry in guestEnv) {
+        val eq = entry.indexOf('=')
+        if (eq <= 0) continue
+        val key = entry.substring(0, eq).trim()
+        if (key.isEmpty()) continue
+        val value = entry.substring(eq + 1)
+        dedupedEnv.remove(key)
+        dedupedEnv[key] = "$key=$value"
+    }
+
+    val effectiveProgram = if (programAndArgs.first().startsWith("/")) {
+        programAndArgs
+    } else {
+        listOf("/usr/bin/env") + programAndArgs
+    }
+
+    val args = buildList {
+        add(chrootNgBinary)
+        if (guestUser.isRoot) {
+            add("-u")
+        } else {
+            add("--fake-id=${guestUser.uid}:${guestUser.gid}")
+        }
+        add("--setuid-root")
+        add("--setgid-root")
+        add("-l")
+        add("--shared-proc")
+        for (spec in dedupedBinds.values.take(CNG_MAX_BINDS)) {
+            add("-b")
+            add(spec)
+        }
+        add("-w")
+        add(normalizedWorkdir)
+        for (envSpec in dedupedEnv.values.take(CNG_MAX_ENV)) {
+            add("-E")
+            add(envSpec)
+        }
+        add(rootfsDir.absolutePath)
+        addAll(effectiveProgram)
+    }
+
+    val termValue = dedupedEnv["TERM"]?.substringAfter('=') ?: "xterm-256color"
+    val hostEnv = linkedMapOf(
+        "TMPDIR" to cngTmpDir.absolutePath,
+        "TERM" to termValue,
+    )
+    return ChrootNgInvocation(
+        binary = chrootNgBinary,
+        args = args,
+        hostEnv = hostEnv,
+    )
 }

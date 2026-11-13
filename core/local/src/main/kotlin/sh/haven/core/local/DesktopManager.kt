@@ -1030,6 +1030,7 @@ class DesktopManager @Inject constructor(
                 // fall back to plain `dbus-launch --sh-syntax` when `--exit-with-x11`
                 // is unsupported (`--kill-on-exit` on proot still reaps the daemon).
                 "{ command -v dbus-launch >/dev/null 2>&1 && eval \"\$(dbus-launch --sh-syntax --exit-with-x11 2>/dev/null || dbus-launch --sh-syntax)\"; } || true; " +
+                "[ -n \"\${DBUS_SESSION_BUS_PID:-}\" ] && trap 'kill \"\$DBUS_SESSION_BUS_PID\" 2>/dev/null || true' EXIT; " +
                 "[ -f /etc/profile.d/pulse.sh ] && . /etc/profile.d/pulse.sh; " +
                 "[ -f /etc/profile.d/haven-tunnel.sh ] && . /etc/profile.d/haven-tunnel.sh; " +
                 // NO virgl — software rendering for VNC desktops. Force the
@@ -1041,6 +1042,40 @@ class DesktopManager @Inject constructor(
                 "xsetroot -solid '#202830' 2>/dev/null || true; " +
                 "$startCommands " +
                 "wait"
+
+        val netPolicy = prootManager.netPolicyArgs(prootManager.activeDistroId)
+        val chrootNgBin = prootManager.resolveChrootNgBinaryIfEligible(
+            distroId = prootManager.activeDistroId,
+            hasNetPolicy = netPolicy.isNotEmpty(),
+            allowPortRemapFallback = true,
+        )
+        if (chrootNgBin != null) {
+            val inv = buildChrootNgCommand(
+                chrootNgBinary = chrootNgBin,
+                rootfsDir = rootfsDir,
+                guestUser = guestUser,
+                workdir = guestUser.home,
+                rawBindSpecs = buildList {
+                    add("/sys:/sys")
+                    add(prootManager.selinuxMaskBind(rootfsDir))
+                    add("${context.cacheDir.absolutePath}:/tmp")
+                    addAll(prootManager.shizukuGuestBindArgs(rootfsDir, longForm = false))
+                    prootManager.deviceModelDevicetreeBind()?.let(::add)
+                    addAll(prootManager.androidSystemBindArgs(longForm = false))
+                    addAll(prootManager.storageBindShortArgs())
+                    addAll(prootManager.customBindShortArgs(prootManager.activeDistroId))
+                },
+                guestEnv = cleanGuestEnv(guestUser).drop(2),
+                programAndArgs = listOf("/bin/sh", "-c", shellCmd),
+                cngTmpDir = prootManager.ensureChrootNgTmpDir(),
+            )
+            return ProcessBuilder(inv.args).apply {
+                environment().apply {
+                    inv.hostEnv.forEach { (k, v) -> put(k, v) }
+                }
+                redirectErrorStream(true)
+            }.start()
+        }
 
         val identityArgs = if (guestUser.isRoot) {
             listOf("-0")
@@ -1058,7 +1093,7 @@ class DesktopManager @Inject constructor(
             "--kill-on-exit",
             // #325: foreign-arch rootfs runs through the bundled qemu-user loader.
             *prootManager.qemuUserArgs(prootManager.activeDistroId).toTypedArray(),
-            *prootManager.netPolicyArgs(prootManager.activeDistroId).toTypedArray(),
+            *netPolicy.toTypedArray(),
             "-r", rootfsDir.absolutePath,
             "-b", "/dev",
             "-b", "/dev/urandom:/dev/random",
@@ -1383,11 +1418,46 @@ class DesktopManager @Inject constructor(
         // seeded config stay readable, and the headless wlroots/pixman
         // path needs no real privileges. Verified: Sway now boots and
         // creates its HEADLESS-1 output.
+        val netPolicy = prootManager.netPolicyArgs(prootManager.activeDistroId)
+        val chrootNgBin = prootManager.resolveChrootNgBinaryIfEligible(
+            distroId = prootManager.activeDistroId,
+            hasNetPolicy = netPolicy.isNotEmpty(),
+            allowPortRemapFallback = true,
+        )
+        if (chrootNgBin != null) {
+            val inv = buildChrootNgCommand(
+                chrootNgBinary = chrootNgBin,
+                rootfsDir = rootfsDir,
+                guestUser = guestUser,
+                workdir = guestUser.home,
+                rawBindSpecs = buildList {
+                    add("/sys:/sys")
+                    add(prootManager.selinuxMaskBind(rootfsDir))
+                    add("${context.cacheDir.absolutePath}:/tmp")
+                    addAll(prootManager.shizukuGuestBindArgs(rootfsDir, longForm = false))
+                    prootManager.deviceModelDevicetreeBind()?.let(::add)
+                    addAll(prootManager.androidSystemBindArgs(longForm = false))
+                    addAll(prootManager.storageBindShortArgs())
+                    addAll(prootManager.customBindShortArgs(prootManager.activeDistroId))
+                },
+                guestEnv = cleanGuestEnv(guestUser).drop(2),
+                programAndArgs = listOf("/bin/sh", "-c", shellCmd),
+                cngTmpDir = prootManager.ensureChrootNgTmpDir(),
+            )
+            Log.d(TAG, "Starting $label (nested wayland, chroot-ng) on port $port (display $display)")
+            return ProcessBuilder(inv.args).apply {
+                environment().apply {
+                    inv.hostEnv.forEach { (k, v) -> put(k, v) }
+                }
+                redirectErrorStream(true)
+            }.start()
+        }
+
         val prootArgs = mutableListOf(
             prootBin, "-i", "${guestUser.uid}:${guestUser.gid}", "--kernel-release=6.2.1", "--link2symlink", "--sysvipc",
             // #325: foreign-arch rootfs runs through the bundled qemu-user loader.
             *prootManager.qemuUserArgs(prootManager.activeDistroId).toTypedArray(),
-            *prootManager.netPolicyArgs(prootManager.activeDistroId).toTypedArray(),
+            *netPolicy.toTypedArray(),
             "-r", rootfsDir.absolutePath,
             "-b", "/dev",
             "-b", "/dev/urandom:/dev/random",
@@ -2440,7 +2510,7 @@ internal fun xvncMatches(cmdline: String, display: Int?): Boolean {
     val argv = cmdline.trim().split(' ').filter { it.isNotEmpty() }
     val program = argv.firstOrNull()?.substringAfterLast('/') ?: return false
     val isPlainXvnc = program.startsWith("Xvnc")
-    val isProotHost = program.contains("libproot")
+    val isProotHost = program.contains("libproot") || program.contains("libchrootng")
     if (!isPlainXvnc && !isProotHost) return false
     if (display == null) return isPlainXvnc || cmdline.contains("Xvnc")
     // Whole-token display compare: ":1" must not claim ":10".

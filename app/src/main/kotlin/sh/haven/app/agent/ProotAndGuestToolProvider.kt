@@ -770,6 +770,8 @@ internal class ProotAndGuestToolProvider(
 
         return JSONObject().apply {
             put("activeDistroId", active.id)
+            put("guestEngine", pm.guestEngine.id)
+            put("chrootNgAvailable", pm.isChrootNgAvailable)
             put("distros", distrosJson)
             put("desktopEnvironments", desktopsJson)
             put("osSetupState", osSetupStateToJson(pm.state.value))
@@ -1502,6 +1504,44 @@ internal class ProotAndGuestToolProvider(
             distroId?.let { put("distroId", it) }
             put("sinceMs", sinceMs)
             put("events", arr)
+        }
+    }
+}
+
+internal fun applyProotStringPreference(
+    prootManager: sh.haven.core.local.ProotManager,
+    key: String,
+    rawValue: Any?,
+) {
+    when (key) {
+        "proot_engine" -> {
+            val raw = (rawValue as? String)?.trim()
+                ?: throw McpError(-32602, "value must be one of proot|chroot-ng for $key")
+            val engine = sh.haven.core.local.ProotManager.GuestEngine.entries
+                .firstOrNull { it.id.equals(raw, ignoreCase = true) }
+                ?: throw McpError(-32602, "Invalid guest engine \"$raw\" for $key (expected proot or chroot-ng)")
+            prootManager.setGuestEngine(engine)
+        }
+        "proot_dns_mode" -> {
+            val raw = (rawValue as? String)?.trim()
+                ?: throw McpError(-32602, "value must be one of system|public|custom for $key")
+            val mode = sh.haven.core.local.ProotDnsMode.entries.firstOrNull { it.id.equals(raw, ignoreCase = true) }
+                ?: throw McpError(-32602, "Invalid DNS mode \"$raw\" for $key (expected system, public or custom)")
+            prootManager.setDnsMode(mode)
+        }
+        "proot_dns_servers" -> {
+            val raw = (rawValue as? String)
+                ?: throw McpError(-32602, "value must be a string of IP or IP:port literals for $key")
+            // Reject early rather than writing a resolv.conf that silently never
+            // resolves - a hostname here cannot be resolved (#446, #838).
+            if (
+                raw.isNotBlank() &&
+                (sh.haven.core.local.ProotDns.invalidTokens(raw).isNotEmpty() ||
+                    sh.haven.core.local.ProotDns.parseServers(raw).isEmpty())
+            ) {
+                throw McpError(-32602, "Invalid DNS server entry in \"$raw\" for $key (expected IP or IP:port literals)")
+            }
+            prootManager.setDnsServers(raw)
         }
     }
 }

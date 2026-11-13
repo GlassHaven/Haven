@@ -44,4 +44,37 @@ class MergeEnvTest {
         val out = mergeEnv(base, emptyMap())
         assertEquals(base.toList(), out.toList())
     }
+
+    @Test
+    fun `buildAndroidShellPath preserves Android system PATH and appends root binary dirs`() {
+        val inherited = "/product/bin:/apex/com.android.runtime/bin:/system_ext/bin:/system/bin:/odm/bin:/vendor/bin"
+        val out = buildAndroidShellPath(inherited)
+        assertEquals(
+            listOf(
+                "/product/bin",
+                "/apex/com.android.runtime/bin",
+                "/system_ext/bin",
+                "/system/bin",
+                "/odm/bin",
+                "/vendor/bin",
+                "/system/xbin",
+                "/sbin",
+                "/su/bin",
+                "/debug_ramdisk",
+            ),
+            out.split(':'),
+        )
+    }
+
+    @Test
+    fun `buildAndroidShellPath falls back cleanly when inherited PATH is null or blank`() {
+        assertEquals(
+            "/system/bin:/system/xbin:/sbin:/su/bin:/debug_ramdisk:/vendor/bin",
+            buildAndroidShellPath(null),
+        )
+        assertEquals(
+            "/system/bin:/system/xbin:/sbin:/su/bin:/debug_ramdisk:/vendor/bin",
+            buildAndroidShellPath("  :  "),
+        )
+    }
 }

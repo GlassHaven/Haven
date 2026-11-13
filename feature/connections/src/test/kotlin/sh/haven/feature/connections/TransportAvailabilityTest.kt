@@ -15,7 +15,7 @@ class TransportAvailabilityTest {
     private val all = listOf(
         "SSH" to "SSH",
         "MOSH" to "Mosh",
-        "LOCAL" to "Local Shell (PRoot)",
+        "LOCAL" to "Local Shell",
         "GUEST" to "Linux Guest (UML)",
         "VNC" to "VNC (Desktop)",
         "RDP" to "RDP (Desktop)",

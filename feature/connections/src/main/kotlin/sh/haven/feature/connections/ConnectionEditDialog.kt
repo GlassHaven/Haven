@@ -1154,7 +1154,7 @@ fun ConnectionEditDialog(
                     "SSH" to "SSH",
                     "MOSH" to "Mosh",
                     "ET" to "Eternal Terminal",
-                    "LOCAL" to "Local Shell (PRoot)",
+                    "LOCAL" to "Local Shell",
                     "GUEST" to "Linux Guest (UML)",
                     "BTSERIAL" to "Bluetooth Serial",
                     "BLESERIAL" to "Bluetooth LE Serial",

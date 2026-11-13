@@ -73,6 +73,32 @@ internal fun mergeEnv(base: Array<String>, overlay: Map<String, String>): Array<
     return merged.map { (k, v) -> "$k=$v" }.toTypedArray()
 }
 
+private val ANDROID_SHELL_FALLBACK_DIRS = listOf(
+    "/system/bin",
+    "/system/xbin",
+    "/sbin",
+    "/su/bin",
+    "/debug_ramdisk",
+    "/vendor/bin",
+)
+
+/**
+ * Construct `PATH` for native Android local shells (`LocalShellMode.ANDROID_SHELL`, #842).
+ * Preserves Android's `init.environ.rc` directories (`System.getenv("PATH")`, e.g.
+ * `/product/bin`, `/apex/.../bin`, `/system_ext/bin`) in order while ensuring standard
+ * command and root-manager (`su`) paths (`/system/xbin`, `/sbin`, `/su/bin`,
+ * `/debug_ramdisk`) remain reachable on custom ROMs and Magisk/KernelSU/SuperSU setups.
+ */
+internal fun buildAndroidShellPath(inheritedPath: String? = System.getenv("PATH")): String {
+    val ordered = LinkedHashSet<String>()
+    inheritedPath?.split(':')
+        ?.map { it.trim() }
+        ?.filter { it.isNotEmpty() }
+        ?.forEach { ordered.add(it) }
+    ANDROID_SHELL_FALLBACK_DIRS.forEach { ordered.add(it) }
+    return ordered.joinToString(":")
+}
+
 /**
  * Resolve the effective locale to export into [rootfsDir] (#721).
  * On glibc distros (where `usr/lib/locale` exists), exporting `LC_ALL=en_US.UTF-8`
@@ -461,7 +487,7 @@ class LocalSessionManager @Inject constructor(
                 "TERM=xterm-256color",
                 "LANG=$terminalLocale",
                 "LC_ALL=$terminalLocale",
-                "PATH=/system/bin:/vendor/bin",
+                "PATH=${buildAndroidShellPath()}",
                 "SHELL=/system/bin/sh",
                 "TMPDIR=${context.cacheDir.absolutePath}",
             )

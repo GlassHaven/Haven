@@ -59,6 +59,58 @@ class KnockSequenceTest {
     }
 
     @Test
+    fun `icmp knockonports syntax and payload modes parse cleanly`() {
+        val seq = KnockSequence.parse(
+            "495x1:ICMP, 792x1:ICMP, 42x1:ICMP, 53x1:ICMP",
+            delayMs = 500,
+        ).getOrThrow()!!
+        assertEquals(500, seq.interKnockDelayMs)
+        assertEquals(
+            listOf(
+                KnockStep(495, KnockStep.Protocol.ICMP, KnockStep.IcmpSizeMode.PAYLOAD_ONLY),
+                KnockStep(792, KnockStep.Protocol.ICMP, KnockStep.IcmpSizeMode.PAYLOAD_ONLY),
+                KnockStep(42, KnockStep.Protocol.ICMP, KnockStep.IcmpSizeMode.PAYLOAD_ONLY),
+                KnockStep(53, KnockStep.Protocol.ICMP, KnockStep.IcmpSizeMode.PAYLOAD_ONLY),
+            ),
+            seq.steps,
+        )
+        assertEquals(495, seq.steps[0].icmpPayloadBytes(ipv6 = false))
+        assertEquals(495, seq.steps[0].icmpPayloadBytes(ipv6 = true))
+    }
+
+    @Test
+    fun `icmp header-inclusive modes and repeat counts expand and roundtrip`() {
+        val seq = KnockSequence.parse("0/icmp 503x2:icmp+h 523/icmp+ip").getOrThrow()!!
+        assertEquals(
+            listOf(
+                KnockStep(0, KnockStep.Protocol.ICMP, KnockStep.IcmpSizeMode.PAYLOAD_ONLY),
+                KnockStep(503, KnockStep.Protocol.ICMP, KnockStep.IcmpSizeMode.WITH_ICMP_HEADER),
+                KnockStep(503, KnockStep.Protocol.ICMP, KnockStep.IcmpSizeMode.WITH_ICMP_HEADER),
+                KnockStep(523, KnockStep.Protocol.ICMP, KnockStep.IcmpSizeMode.WITH_IP_AND_ICMP_HEADERS),
+            ),
+            seq.steps,
+        )
+        assertEquals(0, seq.steps[0].icmpPayloadBytes(ipv6 = false))
+        assertEquals(495, seq.steps[1].icmpPayloadBytes(ipv6 = false))
+        assertEquals(495, seq.steps[3].icmpPayloadBytes(ipv6 = false))
+        assertEquals(475, seq.steps[3].icmpPayloadBytes(ipv6 = true))
+
+        val reparsed = KnockSequence.parse(seq.format()).getOrThrow()!!
+        assertEquals(seq.steps, reparsed.steps)
+    }
+
+    @Test
+    fun `icmp invalid sizes and repeat counts fail`() {
+        assertTrue(KnockSequence.parse("-1/icmp").isFailure)
+        assertTrue(KnockSequence.parse("65508/icmp").isFailure)
+        assertTrue(KnockSequence.parse("7/icmp+h").isFailure)
+        assertTrue(KnockSequence.parse("27/icmp+ip").isFailure)
+        assertTrue(KnockSequence.parse("495x0:icmp").isFailure)
+        assertTrue(KnockSequence.parse("495x33:icmp").isFailure)
+        assertTrue(KnockSequence.parse("495xabc:icmp").isFailure)
+    }
+
+    @Test
     fun `delay is carried through`() {
         val seq = KnockSequence.parse("7000", delayMs = 250).getOrThrow()!!
         assertEquals(250, seq.interKnockDelayMs)
@@ -86,7 +138,7 @@ class KnockSequenceTest {
 
     @Test
     fun `format roundtrips through parse`() {
-        val original = KnockSequence.parse("7000/tcp 8000/udp 9000/tcp").getOrThrow()!!
+        val original = KnockSequence.parse("7000/tcp 8000/udp 495/icmp 9000/tcp").getOrThrow()!!
         val reparsed = KnockSequence.parse(original.format()).getOrThrow()!!
         assertEquals(original.steps, reparsed.steps)
     }

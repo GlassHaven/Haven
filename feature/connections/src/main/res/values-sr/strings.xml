@@ -300,7 +300,7 @@
     <string name="connections_renewing_cert">Обнављање серт за %1$s кроз %2$s…</string>
     <string name="connections_section_port_knock">Куцање на порт</string>
     <string name="connections_field_port_knock_sequence">Низ куцања (није обавезно)</string>
-    <string name="connections_hint_port_knock_sequence">нпр. 7000 8000 9000 или 7000/tcp 8000/udp</string>
+    <string name="connections_hint_port_knock_sequence">нпр. 7000 8000 9000, 7000/tcp 8000/udp или 495x1:icmp</string>
     <string name="connections_helper_port_knock_active">Шаље се пре сваког директног повезивања. Прескаче се на SSH/SOCKS-тунелованим путањама.</string>
     <string name="connections_helper_port_knock_blank">Оставите празно да се искључи.</string>
     <string name="connections_field_port_knock_delay">Пауза између куцања (ms)</string>

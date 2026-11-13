@@ -196,7 +196,7 @@ internal class ConnectionsToolProvider(
                 boolean("requestPty", "SSH only (#436): allocate a PTY for remoteCommand. Default true (tmux and other interactive programs need one); ignored when remoteCommand is omitted.")
                 boolean("ignoreSavedKeys", "SSH-family only: when true, authenticate with password (and keyboard-interactive) only — saved keystore keys are never offered to the server. Lets a profile target a password-only server without the auto-key-offer suppressing the password prompt (#121). Default false.")
                 stringArray("authMethods", "SSH only (#166): ordered multi-factor auth methods attempted in one connect, for servers requiring a chain like publickey,password. Each element is a token: \"PASSWORD\", \"KEY\" (any saved key), \"KEY:<keyId>\", \"KEYBOARD_INTERACTIVE\", or \"TOTP:<id>\" (auto-fill an OATH-TOTP code from list_totp_secrets, #178). Omit for the single-method default derived from keyId/password.")
-                string("portKnockSequence", "Optional port-knock sequence fired before the real connect. Format: whitespace/comma-separated 'port[/proto]' tokens — e.g. '7000 8000 9000' (all TCP) or '7000/tcp 8000/udp 9000/tcp'. Empty = disabled.")
+                string("portKnockSequence", "Optional port-knock sequence fired before the real connect. Format: whitespace/comma-separated 'port[/proto]' or 'size[xN]:icmp[+h|+ip]' tokens — e.g. '7000 8000 9000' (all TCP), '7000/tcp 8000/udp', or '495x1:icmp, 792x1:icmp' (ICMP Echo payload bytes; 'icmp+h' includes 8B ICMP header, 'icmp+ip' includes IP+ICMP headers). Empty = disabled.")
                 integer("portKnockDelayMs", "Inter-knock delay in ms (default 100). Ignored when portKnockSequence is empty.")
                 integer("usbBaudRate", "USBSERIAL only: serial baud rate (default 115200). Stored in `port`.")
                 integer("usbDataBits", "USBSERIAL only: data bits 5-8 (default 8).")
@@ -282,7 +282,7 @@ internal class ConnectionsToolProvider(
         ) { args -> updateConnection(args) },
 
         "set_port_knock" to ToolHandler(
-            description = "Update the port-knock fields on an existing profile. Pass portKnockSequence='' (empty) to disable knocking. Format: 'port[/proto]' tokens — e.g. '7000 8000 9000' or '7000/tcp 8000/udp'. Returns the updated profile summary.",
+            description = "Update the port-knock fields on an existing profile. Pass portKnockSequence='' (empty) to disable knocking. Format: 'port[/proto]' or 'size[xN]:icmp[+h|+ip]' tokens — e.g. '7000 8000 9000', '7000/tcp 8000/udp', or '495x1:icmp, 792x1:icmp'. Returns the updated profile summary.",
             inputSchema = objectSchema {
                 string("profileId", "Profile id from list_connections.", required = true)
                 string("portKnockSequence", "Sequence string ('' to disable).", required = true)
@@ -301,7 +301,7 @@ internal class ConnectionsToolProvider(
             description = "Send a port-knock sequence to a host without committing or connecting anything. Bypasses the saved profile state — pass host + sequence directly. Returns ok/sent/durationMs/error so an agent can verify a knockd config end-to-end without opening a real session.",
             inputSchema = objectSchema {
                 string("host", "Hostname or IP literal to knock against.", required = true)
-                string("portKnockSequence", "Sequence string — e.g. '7000 8000 9000' or '7000/tcp 8000/udp'.", required = true)
+                string("portKnockSequence", "Sequence string — e.g. '7000 8000 9000', '7000/tcp 8000/udp', or '495x1:icmp, 792x1:icmp'.", required = true)
                 integer("portKnockDelayMs", "Inter-knock delay in ms (default 100).")
             },
             consentLevel = ConsentLevel.ONCE_PER_SESSION,

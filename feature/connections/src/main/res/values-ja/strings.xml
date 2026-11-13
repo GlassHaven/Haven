@@ -256,7 +256,7 @@
     <!-- Port knocking -->
     <string name="connections_section_port_knock">ポートノッキング</string>
     <string name="connections_field_port_knock_sequence">ノックシーケンス (任意)</string>
-    <string name="connections_hint_port_knock_sequence">例: 7000 8000 9000 または 7000/tcp 8000/udp</string>
+    <string name="connections_hint_port_knock_sequence">例: 7000 8000 9000、7000/tcp 8000/udp、または 495x1:icmp</string>
     <string name="connections_helper_port_knock_active">直接接続のたびに送信されます。SSH/SOCKS トンネル経路ではスキップされます。</string>
     <string name="connections_helper_port_knock_blank">空欄で無効になります。</string>
     <string name="connections_field_port_knock_delay">ノック間の遅延 (ms)</string>

@@ -243,7 +243,7 @@ Create a saved connection profile. Supports connectionType=SSH, SMB, VNC, RDP, S
 - `password` (string) — Password (stored). Optional for SSH if a key is used; some VNC/SMB setups allow guest.
 - `port` (integer) — TCP port. Defaults: SSH 22, SMB 445, VNC 5900, RDP 3389, SPICE 5900, GLKVM 443. Type-specific vncPort/rdpPort/spicePort/glkvmPort override this.
 - `portKnockDelayMs` (integer) — Inter-knock delay in ms (default 100). Ignored when portKnockSequence is empty.
-- `portKnockSequence` (string) — Optional port-knock sequence fired before the real connect. Format: whitespace/comma-separated 'port[/proto]' tokens — e.g. '7000 8000 9000' (all TCP) or '7000/tcp 8000/udp 9000/tcp'. Empty = disabled.
+- `portKnockSequence` (string) — Optional port-knock sequence fired before the real connect. Format: whitespace/comma-separated 'port[/proto]' or 'size[xN]:icmp[+h|+ip]' tokens — e.g. '7000 8000 9000' (all TCP), '7000/tcp 8000/udp', or '495x1:icmp, 792x1:icmp' (ICMP Echo payload bytes; 'icmp+h' includes 8B ICMP header, 'icmp+ip' includes IP+ICMP headers). Empty = disabled.
 - `prootDistroId` (string) — LOCAL/PROOT only: installed distro id to pin to (omit for active distro).
 - `protocol` (string) — OPENAI only: wire protocol — OPENAI (default, OpenAI-compatible /v1/chat/completions), OLLAMA (native /api), ANTHROPIC (Messages API /v1/messages), or GEMINI (generativelanguage /v1beta/models/{model}:generateContent).
 - `rdpDomain` (string) — AD domain (RDP). Optional.
@@ -1994,7 +1994,7 @@ Delete a port-forward rule by id, and deactivate it on the live session if the o
 <details markdown="1">
 <summary><code>set_port_knock</code> · asks every call</summary>
 
-Update the port-knock fields on an existing profile. Pass portKnockSequence='' (empty) to disable knocking. Format: 'port[/proto]' tokens — e.g. '7000 8000 9000' or '7000/tcp 8000/udp'. Returns the updated profile summary.
+Update the port-knock fields on an existing profile. Pass portKnockSequence='' (empty) to disable knocking. Format: 'port[/proto]' or 'size[xN]:icmp[+h|+ip]' tokens — e.g. '7000 8000 9000', '7000/tcp 8000/udp', or '495x1:icmp, 792x1:icmp'. Returns the updated profile summary.
 
 - `portKnockSequence` (string, required) — Sequence string ('' to disable).
 - `profileId` (string, required) — Profile id from list_connections.
@@ -2050,7 +2050,7 @@ Tear down a serial↔TCP bridge started by bridge_serial_to_tcp, closing its lis
 Send a port-knock sequence to a host without committing or connecting anything. Bypasses the saved profile state — pass host + sequence directly. Returns ok/sent/durationMs/error so an agent can verify a knockd config end-to-end without opening a real session.
 
 - `host` (string, required) — Hostname or IP literal to knock against.
-- `portKnockSequence` (string, required) — Sequence string — e.g. '7000 8000 9000' or '7000/tcp 8000/udp'.
+- `portKnockSequence` (string, required) — Sequence string — e.g. '7000 8000 9000', '7000/tcp 8000/udp', or '495x1:icmp, 792x1:icmp'.
 - `portKnockDelayMs` (integer) — Inter-knock delay in ms (default 100).
 
 </details>

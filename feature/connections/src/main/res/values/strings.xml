@@ -377,7 +377,7 @@
     <!-- Port knocking (per-profile knock sequence sent before connect). -->
     <string name="connections_section_port_knock">Port knocking</string>
     <string name="connections_field_port_knock_sequence">Knock sequence (optional)</string>
-    <string name="connections_hint_port_knock_sequence">e.g. 7000 8000 9000 or 7000/tcp 8000/udp</string>
+    <string name="connections_hint_port_knock_sequence">e.g. 7000 8000 9000, 7000/tcp 8000/udp, or 495x1:icmp</string>
     <string name="connections_helper_port_knock_active">Sent before each direct connect. Skipped on SSH/SOCKS-tunneled paths.</string>
     <string name="connections_helper_port_knock_blank">Leave blank to disable.</string>
     <string name="connections_field_port_knock_delay">Delay between knocks (ms)</string>

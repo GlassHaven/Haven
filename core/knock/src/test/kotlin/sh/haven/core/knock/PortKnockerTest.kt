@@ -10,6 +10,7 @@ import org.junit.Assert.assertEquals
 import org.junit.Assert.assertNull
 import org.junit.Assert.assertTrue
 import org.junit.Test
+import java.io.IOException
 import java.net.DatagramPacket
 import java.net.DatagramSocket
 import java.net.ServerSocket
@@ -128,6 +129,75 @@ class PortKnockerTest {
         assertTrue("udp not received", withTimeout(2000) { udpReceived.await() })
         assertNull(result.error)
         assertEquals(2, result.sentSteps)
+    }
+
+    @Test
+    fun `icmp echo packet builder encodes v4 and v6 headers and exact payload length`() {
+        val v4 = buildIcmpEchoPacket(ipv6 = false, sequenceNumber = 0x0102, payloadBytes = 495)
+        assertEquals(503, v4.size)
+        assertEquals(8.toByte(), v4[0])
+        assertEquals(0.toByte(), v4[1])
+        assertEquals(0.toByte(), v4[2])
+        assertEquals(0.toByte(), v4[3])
+        assertEquals(1.toByte(), v4[6])
+        assertEquals(2.toByte(), v4[7])
+        assertTrue(v4.drop(8).all { it == 0.toByte() })
+
+        val v6 = buildIcmpEchoPacket(ipv6 = true, sequenceNumber = 7, payloadBytes = 42)
+        assertEquals(50, v6.size)
+        assertEquals(128.toByte(), v6[0])
+        assertEquals(0.toByte(), v6[6])
+        assertEquals(7.toByte(), v6[7])
+    }
+
+    @Test
+    fun `icmp knocks dispatch exact payload sizes and incrementing sequence numbers`() = runBlocking {
+        val sentEchos = CopyOnWriteArrayList<Triple<String, Int, Int>>()
+        val knocker = DefaultPortKnocker { addr, seqNum, payloadBytes ->
+            sentEchos += Triple(addr.hostAddress, seqNum, payloadBytes)
+        }
+        val sequence = KnockSequence.parse(
+            "495x1:ICMP, 792x1:ICMP, 503/icmp+h, 523/icmp+ip",
+            delayMs = 0,
+        ).getOrThrow()!!
+
+        val result = withTimeout(5000) {
+            knocker.knock("127.0.0.1", sequence)
+        }
+
+        assertNull("knock returned error: ${result.error}", result.error)
+        assertEquals(4, result.sentSteps)
+        assertEquals(
+            listOf(
+                Triple("127.0.0.1", 1, 495),
+                Triple("127.0.0.1", 2, 792),
+                Triple("127.0.0.1", 3, 495),
+                Triple("127.0.0.1", 4, 495),
+            ),
+            sentEchos.toList(),
+        )
+    }
+
+    @Test
+    fun `icmp ipv6 header-inclusive size below 48 bytes surfaces error in KnockResult`() = runBlocking {
+        val knocker = DefaultPortKnocker { _, _, _ -> }
+        val sequence = KnockSequence.parse("40/icmp+ip", delayMs = 0).getOrThrow()!!
+        val result = knocker.knock("::1", sequence)
+        assertTrue(!result.ok)
+        assertEquals(0, result.sentSteps)
+    }
+
+    @Test
+    fun `icmp sender IOException surfaces in KnockResult with partial sentSteps`() = runBlocking {
+        var calls = 0
+        val knocker = DefaultPortKnocker { _, _, _ ->
+            calls++
+            if (calls == 2) throw IOException("EACCES: ping_group_range")
+        }
+        val sequence = KnockSequence.parse("495x1:ICMP, 792x1:ICMP, 42x1:ICMP", delayMs = 0).getOrThrow()!!
+        val result = knocker.knock("127.0.0.1", sequence)
+        assertTrue(!result.ok)
+        assertEquals(1, result.sentSteps)
     }
 
     @Test

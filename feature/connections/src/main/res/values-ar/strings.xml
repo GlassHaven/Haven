@@ -256,7 +256,7 @@
     <!-- Port knocking -->
     <string name="connections_section_port_knock">الطرق على المنافذ</string>
     <string name="connections_field_port_knock_sequence">تسلسل الطرق (اختياري)</string>
-    <string name="connections_hint_port_knock_sequence">مثال: 7000 8000 9000 أو 7000/tcp 8000/udp</string>
+    <string name="connections_hint_port_knock_sequence">مثال: 7000 8000 9000 أو 7000/tcp 8000/udp أو 495x1:icmp</string>
     <string name="connections_helper_port_knock_active">يُرسل قبل كل اتصال مباشر. يُتجاوز على المسارات النفقية SSH/SOCKS.</string>
     <string name="connections_helper_port_knock_blank">اتركه فارغًا للتعطيل.</string>
     <string name="connections_field_port_knock_delay">التأخير بين الطرقات (مللي ثانية)</string>

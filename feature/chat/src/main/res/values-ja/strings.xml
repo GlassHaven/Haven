@@ -33,4 +33,13 @@
     <string name="chat_delete_conversation">会話を削除</string>
     <string name="chat_search_models">モデルを検索またはIDを入力</string>
     <string name="chat_use_custom_model">"%1$s" を使用</string>
+    <string name="chat_mcp_title">MCPツールサーバー</string>
+    <string name="chat_mcp_empty">外部MCPサーバーが設定されていません。下にStreamable HTTPのMCPエンドポイントを追加してください。</string>
+    <string name="chat_mcp_remove">MCPサーバーを削除</string>
+    <string name="chat_mcp_name_hint">サーバー名（任意）</string>
+    <string name="chat_mcp_url_hint">エンドポイントURL (https://example.com/mcp)</string>
+    <string name="chat_mcp_token_hint">Bearerトークン（任意）</string>
+    <string name="chat_mcp_add">サーバーを追加</string>
+    <string name="chat_mcp_calling_tool">MCPツールを実行中: %1$s</string>
+    <string name="chat_mcp_invalid_url">MCPエンドポイントURLは http:// または https:// で始まる必要があります</string>
 </resources>

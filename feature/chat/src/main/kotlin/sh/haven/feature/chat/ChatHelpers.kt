@@ -1,5 +1,7 @@
 package sh.haven.feature.chat
 
+import sh.haven.core.data.preferences.ChatMcpServerConfig
+import sh.haven.core.openai.ChatToolSpec
 import sh.haven.core.openai.ModelInfo
 
 /**
@@ -76,6 +78,7 @@ object ChatSlashCommands {
         MODEL,
         SAVE,
         HISTORY,
+        MCP,
     }
 
     data class SlashSuggestion(
@@ -89,6 +92,7 @@ object ChatSlashCommands {
         data object ClearTranscript : ParsedSlashCommand
         data object ToggleSave : ParsedSlashCommand
         data object OpenHistory : ParsedSlashCommand
+        data object OpenMcpServers : ParsedSlashCommand
         data class SelectModel(val modelOrFlavour: String?) : ParsedSlashCommand
     }
 
@@ -98,6 +102,7 @@ object ChatSlashCommands {
         SlashSuggestion("/model", CommandType.MODEL, takesArgument = true),
         SlashSuggestion("/save", CommandType.SAVE),
         SlashSuggestion("/history", CommandType.HISTORY),
+        SlashSuggestion("/mcp", CommandType.MCP),
     )
 
     /**
@@ -126,8 +131,72 @@ object ChatSlashCommands {
             "/clear" -> if (arg == null) ParsedSlashCommand.ClearTranscript else null
             "/save" -> if (arg == null) ParsedSlashCommand.ToggleSave else null
             "/history" -> if (arg == null) ParsedSlashCommand.OpenHistory else null
+            "/mcp" -> if (arg == null) ParsedSlashCommand.OpenMcpServers else null
             "/model" -> ParsedSlashCommand.SelectModel(arg)
             else -> null
         }
     }
+}
+
+/**
+ * Pure router mapping tools discovered across multiple external MCP servers
+ * into unique, API-valid (`^[a-zA-Z0-9_-]{1,64}$`) function specs (#807).
+ */
+object ChatMcpToolRouter {
+
+    data class BoundMcpTool(
+        val wireName: String,
+        val server: ChatMcpServerConfig,
+        val remoteToolName: String,
+        val spec: ChatToolSpec,
+    )
+
+    fun bindTools(
+        discovered: List<Pair<ChatMcpServerConfig, List<ChatToolSpec>>>,
+    ): Map<String, BoundMcpTool> {
+        val flat = discovered.flatMap { (server, tools) ->
+            tools.map { tool -> server to tool }
+        }
+        if (flat.isEmpty()) return emptyMap()
+
+        val slugCounts = flat.groupingBy { (_, tool) -> sanitizeIdentifier(tool.name) }.eachCount()
+        val result = LinkedHashMap<String, BoundMcpTool>(flat.size)
+
+        for ((server, tool) in flat) {
+            val cleanTool = sanitizeIdentifier(tool.name)
+            val baseWire = if ((slugCounts[cleanTool] ?: 0) > 1) {
+                val serverSlug = sanitizeIdentifier(server.name.lowercase()).take(24).trimEnd('_')
+                    .ifEmpty { "mcp" }
+                "${serverSlug}__${cleanTool}".take(64)
+            } else {
+                cleanTool.take(64)
+            }
+            var candidate = baseWire
+            var suffix = 2
+            while (result.containsKey(candidate)) {
+                val tail = "_$suffix"
+                candidate = baseWire.take(64 - tail.length) + tail
+                suffix++
+            }
+            val desc = if (tool.description.isNotBlank()) {
+                "[${server.name}] ${tool.description}"
+            } else {
+                "[${server.name}] ${tool.name}"
+            }
+            result[candidate] = BoundMcpTool(
+                wireName = candidate,
+                server = server,
+                remoteToolName = tool.name,
+                spec = ChatToolSpec(
+                    name = candidate,
+                    description = desc,
+                    inputSchemaJson = tool.inputSchemaJson,
+                ),
+            )
+        }
+        return result
+    }
+
+    private fun sanitizeIdentifier(raw: String): String =
+        raw.replace(Regex("[^a-zA-Z0-9_-]+"), "_").trim('_').ifEmpty { "tool" }
 }

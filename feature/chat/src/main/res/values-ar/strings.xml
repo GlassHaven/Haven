@@ -33,4 +33,13 @@
     <string name="chat_delete_conversation">حذف المحادثة</string>
     <string name="chat_search_models">ابحث أو أدخل معرّف النموذج</string>
     <string name="chat_use_custom_model">استخدام "%1$s"</string>
+    <string name="chat_mcp_title">خوادم أدوات MCP</string>
+    <string name="chat_mcp_empty">لم يتم إعداد أي خوادم MCP خارجية. أضف نقطة نهاية MCP عبر HTTP القابل للبث أدناه.</string>
+    <string name="chat_mcp_remove">إزالة خادم MCP</string>
+    <string name="chat_mcp_name_hint">اسم الخادم (اختياري)</string>
+    <string name="chat_mcp_url_hint">رابط نقطة النهاية (https://example.com/mcp)</string>
+    <string name="chat_mcp_token_hint">رمز Bearer (اختياري)</string>
+    <string name="chat_mcp_add">إضافة خادم</string>
+    <string name="chat_mcp_calling_tool">جاري تشغيل أداة MCP: %1$s</string>
+    <string name="chat_mcp_invalid_url">يجب أن يبدأ رابط نقطة نهاية MCP بـ http:// أو https://</string>
 </resources>

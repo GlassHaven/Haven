@@ -211,17 +211,18 @@ class OpenAiClient @Inject constructor() {
         maxTokens: Int? = null,
         temperature: Double? = null,
         protocol: AiProtocol = AiProtocol.OPENAI,
+        tools: List<ChatToolSpec> = emptyList(),
     ): String {
         val url = chatUrlFor(base, prefix, protocol, model, stream = false)
         val (code, body) = execute(
             client.newBuilder().readTimeout(120, TimeUnit.SECONDS).build(),
             url,
             apiKey,
-            chatPayload(model, messages, maxTokens, temperature, protocol, stream = false),
+            chatPayload(model, messages, maxTokens, temperature, protocol, stream = false, tools = tools),
             protocol = protocol,
         )
         if (code !in 200..299) throw mapHttpError(code, body)
-        return parseNonStreaming(body, protocol)
+        return parseNonStreamingChunk(body, protocol).delta
     }
 
     /**
@@ -240,8 +241,9 @@ class OpenAiClient @Inject constructor() {
         maxTokens: Int? = null,
         temperature: Double? = null,
         protocol: AiProtocol = AiProtocol.OPENAI,
+        tools: List<ChatToolSpec> = emptyList(),
     ): Flow<ChatChunk> = callbackFlow {
-        val payload = chatPayload(model, messages, maxTokens, temperature, protocol, stream = true)
+        val payload = chatPayload(model, messages, maxTokens, temperature, protocol, stream = true, tools = tools)
         val request = Request.Builder()
             .url(chatUrlFor(base, prefix, protocol, model, stream = true))
             .auth(apiKey, protocol)
@@ -270,10 +272,7 @@ class OpenAiClient @Inject constructor() {
                             !contentType.contains("ndjson") && protocol != AiProtocol.GEMINI
                         ) {
                             // Server ignored `stream: true` — one-shot JSON body.
-                            val chunk = ChatChunk(
-                                delta = parseNonStreaming(source.readUtf8(), protocol),
-                                finishReason = "stop",
-                            )
+                            val chunk = parseNonStreamingChunk(source.readUtf8(), protocol)
                             if (!call.isCanceled()) trySend(chunk)
                         } else {
                             val parser = newStreamParser(protocol)
@@ -303,7 +302,7 @@ class OpenAiClient @Inject constructor() {
         apiKey: String?,
         postBody: String? = null,
         protocol: AiProtocol = AiProtocol.OPENAI,
-    ): Pair<Int, String> = withContext(kotlinx.coroutines.Dispatchers.IO) {
+    ): Pair<Int, String> = withContext(Dispatchers.IO) {
         val builder = Request.Builder().url(url)
         val request = if (postBody != null) {
             builder.auth(apiKey, protocol).post(postBody.toRequestBody("application/json".toMediaType())).build()
@@ -319,12 +318,6 @@ class OpenAiClient @Inject constructor() {
      * Build the request body for [protocol]. The OpenAI and Ollama shapes are
      * message-lists; Anthropic takes `system` as a top-level field and
      * requires `max_tokens`; Gemini nests turns as `contents`/`parts`.
-     *
-     * Images (vision) change the shape per protocol: OpenAI turns into
-     * content-parts with data: URLs, Ollama keeps the string content and adds
-     * a raw-base64 `images` array, Anthropic adds image content blocks, and
-     * Gemini adds inlineData parts. Anthropic/Gemini hoist system text out of
-     * the message list, so images on system messages are dropped.
      */
     private fun chatPayload(
         model: String,
@@ -333,12 +326,16 @@ class OpenAiClient @Inject constructor() {
         temperature: Double?,
         protocol: AiProtocol,
         stream: Boolean,
+        tools: List<ChatToolSpec> = emptyList(),
     ): String = when (protocol) {
         AiProtocol.OPENAI -> JSONObject().apply {
             put("model", model)
             put("messages", JSONArray().apply {
                 messages.forEach { put(openAiMessageJson(it)) }
             })
+            if (tools.isNotEmpty()) {
+                put("tools", openAiToolsJson(tools))
+            }
             put("stream", stream)
             maxTokens?.let { put("max_tokens", it) }
             temperature?.let { put("temperature", it) }
@@ -346,15 +343,11 @@ class OpenAiClient @Inject constructor() {
         AiProtocol.OLLAMA -> JSONObject().apply {
             put("model", model)
             put("messages", JSONArray().apply {
-                messages.forEach { m ->
-                    val obj = JSONObject().put("role", m.role).put("content", m.content)
-                    if (m.images.isNotEmpty()) {
-                        // Ollama's native shape: raw base64 strings, no data: prefix.
-                        obj.put("images", JSONArray().apply { m.images.forEach { put(it.base64) } })
-                    }
-                    put(obj)
-                }
+                messages.forEach { m -> put(ollamaMessageJson(m)) }
             })
+            if (tools.isNotEmpty()) {
+                put("tools", openAiToolsJson(tools))
+            }
             put("stream", stream)
             if (maxTokens != null || temperature != null) {
                 put("options", JSONObject().apply {
@@ -368,11 +361,19 @@ class OpenAiClient @Inject constructor() {
             put("max_tokens", maxTokens ?: 1024) // Anthropic requires the field
             val system = messages.filter { it.role == "system" }.joinToString("\n") { it.content }
             if (system.isNotEmpty()) put("system", system)
-            put("messages", JSONArray().apply {
-                messages.filter { it.role != "system" }.forEach {
-                    put(JSONObject().put("role", it.role).put("content", anthropicContentJson(it)))
-                }
-            })
+            put("messages", anthropicMessagesJson(messages))
+            if (tools.isNotEmpty()) {
+                put("tools", JSONArray().apply {
+                    tools.forEach { t ->
+                        put(
+                            JSONObject()
+                                .put("name", t.name)
+                                .put("description", t.description)
+                                .put("input_schema", parseSchemaJson(t.inputSchemaJson)),
+                        )
+                    }
+                })
+            }
             put("stream", stream)
             temperature?.let { put("temperature", it) }
         }.toString()
@@ -383,16 +384,27 @@ class OpenAiClient @Inject constructor() {
                     system.forEach { put(JSONObject().put("text", it.content)) }
                 }))
             }
-            put("contents", JSONArray().apply {
-                messages.filter { it.role != "system" }.forEach {
-                    // Gemini uses "model" where OpenAI uses "assistant".
-                    put(
-                        JSONObject()
-                            .put("role", if (it.role == "assistant") "model" else it.role)
-                            .put("parts", geminiPartsJson(it)),
-                    )
-                }
-            })
+            put("contents", geminiContentsJson(messages))
+            if (tools.isNotEmpty()) {
+                put(
+                    "tools",
+                    JSONArray().put(
+                        JSONObject().put(
+                            "functionDeclarations",
+                            JSONArray().apply {
+                                tools.forEach { t ->
+                                    put(
+                                        JSONObject()
+                                            .put("name", t.name)
+                                            .put("description", t.description)
+                                            .put("parameters", sanitizeGeminiSchema(parseSchemaJson(t.inputSchemaJson))),
+                                    )
+                                }
+                            },
+                        ),
+                    ),
+                )
+            }
             if (maxTokens != null || temperature != null) {
                 put("generationConfig", JSONObject().apply {
                     maxTokens?.let { put("maxOutputTokens", it) }
@@ -402,13 +414,91 @@ class OpenAiClient @Inject constructor() {
         }.toString()
     }
 
+    private fun openAiToolsJson(tools: List<ChatToolSpec>): JSONArray = JSONArray().apply {
+        tools.forEach { t ->
+            put(
+                JSONObject()
+                    .put("type", "function")
+                    .put(
+                        "function",
+                        JSONObject()
+                            .put("name", t.name)
+                            .put("description", t.description)
+                            .put("parameters", parseSchemaJson(t.inputSchemaJson)),
+                    ),
+            )
+        }
+    }
+
+    private fun parseSchemaJson(raw: String): JSONObject =
+        runCatching { JSONObject(raw) }.getOrElse { JSONObject().put("type", "object") }
+
+    private fun parseArgsObject(raw: String): JSONObject =
+        runCatching { JSONObject(raw) }.getOrElse { JSONObject() }
+
+    /**
+     * Gemini `/v1beta` rejects `$schema` and `additionalProperties` inside
+     * `functionDeclarations.parameters`. Strip unsupported keys recursively.
+     */
+    private fun sanitizeGeminiSchema(node: JSONObject): JSONObject {
+        val out = JSONObject()
+        val keys = node.keys()
+        while (keys.hasNext()) {
+            val key = keys.next()
+            if (key == "\$schema" || key == "additionalProperties") continue
+            when (val v = node.opt(key)) {
+                is JSONObject -> out.put(key, sanitizeGeminiSchema(v))
+                is JSONArray -> out.put(
+                    key,
+                    JSONArray().apply {
+                        for (i in 0 until v.length()) {
+                            val elem = v.opt(i)
+                            put(if (elem is JSONObject) sanitizeGeminiSchema(elem) else elem)
+                        }
+                    },
+                )
+                else -> out.put(key, v)
+            }
+        }
+        return out
+    }
+
     /**
      * OpenAI message: `content` stays a plain string for text-only turns
      * (maximum server compatibility); with images it becomes a typed parts
-     * array with data: URLs.
+     * array with data: URLs; assistant tool-call turns emit `tool_calls` and
+     * tool results emit `tool_call_id` (#807).
      */
     private fun openAiMessageJson(m: ChatMessage): JSONObject {
+        if (m.role == "tool") {
+            return JSONObject()
+                .put("role", "tool")
+                .put("tool_call_id", m.toolCallId.orEmpty())
+                .put("content", m.content)
+        }
         val obj = JSONObject().put("role", m.role)
+        if (m.toolCalls.isNotEmpty()) {
+            obj.put("content", if (m.content.isEmpty()) JSONObject.NULL else m.content)
+            obj.put(
+                "tool_calls",
+                JSONArray().apply {
+                    m.toolCalls.forEach { tc ->
+                        put(
+                            JSONObject()
+                                .put("id", tc.id)
+                                .put("type", "function")
+                                .put(
+                                    "function",
+                                    JSONObject()
+                                        .put("name", tc.name)
+                                        .put("arguments", tc.argumentsJson),
+                                ),
+                        )
+                    }
+                },
+            )
+            return obj
+        }
         if (m.images.isEmpty()) {
             obj.put("content", m.content)
         } else {
@@ -426,14 +516,82 @@ class OpenAiClient @Inject constructor() {
         return obj
     }
 
+    private fun ollamaMessageJson(m: ChatMessage): JSONObject {
+        if (m.role == "tool") {
+            return JSONObject()
+                .put("role", "tool")
+                .put("content", m.content)
+                .apply {
+                    if (!m.toolName.isNullOrBlank()) put("tool_name", m.toolName)
+                }
+        }
+        val obj = JSONObject().put("role", m.role).put("content", m.content)
+        if (m.images.isNotEmpty()) {
+            // Ollama's native shape: raw base64 strings, no data: prefix.
+            obj.put("images", JSONArray().apply { m.images.forEach { put(it.base64) } })
+        }
+        if (m.toolCalls.isNotEmpty()) {
+            obj.put(
+                "tool_calls",
+                JSONArray().apply {
+                    m.toolCalls.forEach { tc ->
+                        put(
+                            JSONObject().put(
+                                "function",
+                                JSONObject()
+                                    .put("name", tc.name)
+                                    .put("arguments", parseArgsObject(tc.argumentsJson)),
+                            ),
+                        )
+                    }
+                },
+            )
+        }
+        return obj
+    }
+
+    /**
+     * Anthropic message list: coalesces consecutive `role == "tool"` messages
+     * into a single `"user"` message with multiple `tool_result` blocks so
+     * multi-call turns keep alternating user/assistant roles (#807).
+     */
+    private fun anthropicMessagesJson(messages: List<ChatMessage>): JSONArray {
+        val out = JSONArray()
+        val nonSystem = messages.filter { it.role != "system" }
+        var i = 0
+        while (i < nonSystem.size) {
+            val m = nonSystem[i]
+            if (m.role == "tool") {
+                val blocks = JSONArray()
+                while (i < nonSystem.size && nonSystem[i].role == "tool") {
+                    val tr = nonSystem[i]
+                    blocks.put(
+                        JSONObject()
+                            .put("type", "tool_result")
+                            .put("tool_use_id", tr.toolCallId.orEmpty())
+                            .put("content", tr.content),
+                    )
+                    i++
+                }
+                out.put(JSONObject().put("role", "user").put("content", blocks))
+            } else {
+                out.put(JSONObject().put("role", m.role).put("content", anthropicContentJson(m)))
+                i++
+            }
+        }
+        return out
+    }
+
     /**
      * Anthropic content: plain string for text-only turns (identical to
-     * today's shape), typed blocks when images are present.
+     * today's shape), typed blocks when images or `tool_use` calls are present.
      */
     private fun anthropicContentJson(m: ChatMessage): Any {
-        if (m.images.isEmpty()) return m.content
+        if (m.images.isEmpty() && m.toolCalls.isEmpty()) return m.content
         return JSONArray().apply {
-            put(JSONObject().put("type", "text").put("text", m.content))
+            if (m.content.isNotEmpty() || m.toolCalls.isEmpty()) {
+                put(JSONObject().put("type", "text").put("text", m.content))
+            }
             m.images.forEach { img ->
                 put(
                     JSONObject()
@@ -447,17 +605,75 @@ class OpenAiClient @Inject constructor() {
                         ),
                 )
             }
+            m.toolCalls.forEach { tc ->
+                put(
+                    JSONObject()
+                        .put("type", "tool_use")
+                        .put("id", tc.id)
+                        .put("name", tc.name)
+                        .put("input", parseArgsObject(tc.argumentsJson)),
+                )
+            }
         }
     }
 
-    /** Gemini parts: one text part plus an inlineData part per image. */
+    /**
+     * Gemini contents list: coalesces consecutive `role == "tool"` messages into
+     * a single `"user"` turn carrying `functionResponse` parts (#807).
+     */
+    private fun geminiContentsJson(messages: List<ChatMessage>): JSONArray {
+        val out = JSONArray()
+        val nonSystem = messages.filter { it.role != "system" }
+        var i = 0
+        while (i < nonSystem.size) {
+            val m = nonSystem[i]
+            if (m.role == "tool") {
+                val parts = JSONArray()
+                while (i < nonSystem.size && nonSystem[i].role == "tool") {
+                    val tr = nonSystem[i]
+                    parts.put(
+                        JSONObject().put(
+                            "functionResponse",
+                            JSONObject()
+                                .put("name", tr.toolName.orEmpty())
+                                .put("response", JSONObject().put("result", tr.content)),
+                        ),
+                    )
+                    i++
+                }
+                out.put(JSONObject().put("role", "user").put("parts", parts))
+            } else {
+                out.put(
+                    JSONObject()
+                        .put("role", if (m.role == "assistant") "model" else m.role)
+                        .put("parts", geminiPartsJson(m)),
+                )
+                i++
+            }
+        }
+        return out
+    }
+
+    /** Gemini parts: text, optional inlineData per image, and optional functionCall per tool call. */
     private fun geminiPartsJson(m: ChatMessage): JSONArray = JSONArray().apply {
-        put(JSONObject().put("text", m.content))
+        if (m.content.isNotEmpty() || m.toolCalls.isEmpty()) {
+            put(JSONObject().put("text", m.content))
+        }
         m.images.forEach { img ->
             put(
                 JSONObject().put(
                     "inlineData",
                     JSONObject().put("mimeType", img.mimeType).put("data", img.base64),
+                ),
+            )
+        }
+        m.toolCalls.forEach { tc ->
+            put(
+                JSONObject().put(
+                    "functionCall",
+                    JSONObject()
+                        .put("name", tc.name)
+                        .put("args", parseArgsObject(tc.argumentsJson)),
                 ),
             )
         }
@@ -521,27 +737,80 @@ class OpenAiClient @Inject constructor() {
         throw OpenAiException.BadResponse("Unparseable models body: ${e.message}")
     }
 
-    private fun parseNonStreaming(body: String, protocol: AiProtocol = AiProtocol.OPENAI): String = try {
+    private fun parseNonStreamingChunk(body: String, protocol: AiProtocol = AiProtocol.OPENAI): ChatChunk = try {
         when (protocol) {
             AiProtocol.OPENAI -> {
-                val choices = JSONObject(body).getJSONArray("choices")
-                optTextField(choices.getJSONObject(0).getJSONObject("message"), "content")
+                val choice = JSONObject(body).getJSONArray("choices").getJSONObject(0)
+                val message = choice.getJSONObject("message")
+                val calls = buildList {
+                    val arr = message.optJSONArray("tool_calls")
+                    if (arr != null) {
+                        for (i in 0 until arr.length()) {
+                            val tc = arr.optJSONObject(i) ?: continue
+                            val fn = tc.optJSONObject("function") ?: continue
+                            val name = optTextField(fn, "name")
+                            if (name.isEmpty()) continue
+                            add(
+                                ChatToolCall(
+                                    id = optTextField(tc, "id").ifEmpty { "call_$i" },
+                                    name = name,
+                                    argumentsJson = optTextField(fn, "arguments").ifBlank { "{}" },
+                                ),
+                            )
+                        }
+                    }
+                }
+                ChatChunk(
+                    delta = optTextField(message, "content"),
+                    finishReason = if (calls.isNotEmpty()) "tool_calls" else "stop",
+                    toolCalls = calls,
+                )
             }
-            AiProtocol.OLLAMA ->
-                optTextField(JSONObject(body).optJSONObject("message"), "content")
+            AiProtocol.OLLAMA -> {
+                val msg = JSONObject(body).optJSONObject("message")
+                var seq = 0
+                val calls = parseOllamaToolCalls(msg) { "ollama_call_${++seq}" }
+                ChatChunk(
+                    delta = optTextField(msg, "content"),
+                    finishReason = if (calls.isNotEmpty()) "tool_calls" else "stop",
+                    toolCalls = calls,
+                )
+            }
             AiProtocol.ANTHROPIC -> {
                 val content = JSONObject(body).getJSONArray("content")
-                (0 until content.length())
-                    .map { content.getJSONObject(it) }
-                    .filter { it.optString("type") == "text" }
+                val blocks = (0 until content.length()).map { content.getJSONObject(it) }
+                val text = blocks
+                    .filter { optTextField(it, "type") == "text" }
                     .joinToString("") { optTextField(it, "text") }
+                val calls = blocks
+                    .filter { optTextField(it, "type") == "tool_use" }
+                    .mapIndexed { idx, b ->
+                        ChatToolCall(
+                            id = optTextField(b, "id").ifEmpty { "toolu_$idx" },
+                            name = optTextField(b, "name"),
+                            argumentsJson = b.optJSONObject("input")?.toString() ?: "{}",
+                        )
+                    }
+                    .filter { it.name.isNotEmpty() }
+                ChatChunk(
+                    delta = text,
+                    finishReason = if (calls.isNotEmpty()) "tool_calls" else "stop",
+                    toolCalls = calls,
+                )
             }
             AiProtocol.GEMINI -> {
                 val parts = JSONObject(body).optJSONArray("candidates")
                     ?.optJSONObject(0)?.optJSONObject("content")
                     ?.optJSONArray("parts")
-                parts?.let { p -> (0 until p.length()).joinToString("") { optTextField(p.getJSONObject(it), "text") } }
+                val text = parts?.let { p -> (0 until p.length()).joinToString("") { optTextField(p.getJSONObject(it), "text") } }
                     .orEmpty()
+                var seq = 0
+                val calls = parseGeminiFunctionCalls(parts) { "gemini_call_${++seq}" }
+                ChatChunk(
+                    delta = text,
+                    finishReason = if (calls.isNotEmpty()) "tool_calls" else "stop",
+                    toolCalls = calls,
+                )
             }
         }
     } catch (e: Exception) {

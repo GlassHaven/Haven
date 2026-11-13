@@ -33,6 +33,7 @@ import androidx.compose.material.icons.filled.AddPhotoAlternate
 import androidx.compose.material.icons.filled.ArrowDropDown
 import androidx.compose.material.icons.filled.Bookmark
 import androidx.compose.material.icons.filled.BookmarkBorder
+import androidx.compose.material.icons.filled.Cable
 import androidx.compose.material.icons.filled.Close
 import androidx.compose.material.icons.filled.ContentCopy
 import androidx.compose.material.icons.filled.ContentPaste
@@ -54,6 +55,7 @@ import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.ModalBottomSheet
 import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.Scaffold
+import androidx.compose.material3.Switch
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
 import androidx.compose.material3.TopAppBar
@@ -114,6 +116,7 @@ fun ChatScreen(
     var attachSheetVisible by remember { mutableStateOf(false) }
     var modelSheetVisible by remember { mutableStateOf(false) }
     var historySheetVisible by remember { mutableStateOf(false) }
+    var mcpSheetVisible by remember { mutableStateOf(false) }
     var cameraOutputUri by remember { mutableStateOf<Uri?>(null) }
     val cameraLauncher = rememberLauncherForActivityResult(
         ActivityResultContracts.TakePicture(),
@@ -192,6 +195,21 @@ fun ChatScreen(
                         )
                     }
                     IconButton(
+                        onClick = { mcpSheetVisible = true },
+                        enabled = ui.profileId != null,
+                    ) {
+                        val hasEnabledMcp = ui.mcpServers.any { it.enabled }
+                        Icon(
+                            imageVector = Icons.Filled.Cable,
+                            contentDescription = stringResource(R.string.chat_mcp_title),
+                            tint = if (hasEnabledMcp) {
+                                MaterialTheme.colorScheme.primary
+                            } else {
+                                MaterialTheme.colorScheme.onSurface
+                            },
+                        )
+                    }
+                    IconButton(
                         onClick = { historySheetVisible = true },
                         enabled = ui.profileId != null,
                     ) {
@@ -255,6 +273,22 @@ fun ChatScreen(
                     .weight(1f)
                     .fillMaxWidth(),
             )
+            ui.activeToolCallSummary?.let { toolSummary ->
+                Row(
+                    verticalAlignment = Alignment.CenterVertically,
+                    horizontalArrangement = Arrangement.spacedBy(8.dp),
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .padding(horizontal = 16.dp, vertical = 4.dp),
+                ) {
+                    CircularProgressIndicator(modifier = Modifier.size(14.dp), strokeWidth = 2.dp)
+                    Text(
+                        text = stringResource(R.string.chat_mcp_calling_tool, toolSummary),
+                        style = MaterialTheme.typography.bodySmall,
+                        color = MaterialTheme.colorScheme.onSurfaceVariant,
+                    )
+                }
+            }
             Composer(
                 streaming = ui.streaming,
                 staged = ui.staged,
@@ -270,6 +304,7 @@ fun ChatScreen(
                         -> viewModel.newConversation()
                         ChatSlashCommands.ParsedSlashCommand.ToggleSave -> viewModel.toggleSave()
                         ChatSlashCommands.ParsedSlashCommand.OpenHistory -> historySheetVisible = true
+                        ChatSlashCommands.ParsedSlashCommand.OpenMcpServers -> mcpSheetVisible = true
                         is ChatSlashCommands.ParsedSlashCommand.SelectModel -> {
                             val arg = cmd.modelOrFlavour
                             when {
@@ -321,6 +356,16 @@ fun ChatScreen(
                 viewModel.newConversation()
                 historySheetVisible = false
             },
+        )
+    }
+
+    if (mcpSheetVisible) {
+        McpServersSheet(
+            servers = ui.mcpServers,
+            onDismiss = { mcpSheetVisible = false },
+            onAddServer = viewModel::addMcpServer,
+            onToggleServer = viewModel::toggleMcpServer,
+            onRemoveServer = viewModel::removeMcpServer,
         )
     }
 }
@@ -511,6 +556,108 @@ private fun ChatHistorySheet(
                                 .clickable { onSelectConversation(conv.id) },
                         )
                     }
+                }
+            }
+        }
+    }
+}
+
+@OptIn(androidx.compose.material3.ExperimentalMaterial3Api::class)
+@Composable
+private fun McpServersSheet(
+    servers: List<sh.haven.core.data.preferences.ChatMcpServerConfig>,
+    onDismiss: () -> Unit,
+    onAddServer: (name: String, url: String, bearerToken: String?) -> Unit,
+    onToggleServer: (id: String, enabled: Boolean) -> Unit,
+    onRemoveServer: (id: String) -> Unit,
+) {
+    var name by remember { mutableStateOf("") }
+    var url by remember { mutableStateOf("") }
+    var token by remember { mutableStateOf("") }
+
+    ModalBottomSheet(onDismissRequest = onDismiss) {
+        Column(
+            modifier = Modifier
+                .fillMaxWidth()
+                .padding(horizontal = 16.dp, vertical = 8.dp),
+            verticalArrangement = Arrangement.spacedBy(8.dp),
+        ) {
+            Text(
+                text = stringResource(R.string.chat_mcp_title),
+                style = MaterialTheme.typography.titleMedium,
+            )
+            if (servers.isEmpty()) {
+                Text(
+                    text = stringResource(R.string.chat_mcp_empty),
+                    style = MaterialTheme.typography.bodyMedium,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant,
+                    modifier = Modifier.padding(vertical = 4.dp),
+                )
+            } else {
+                LazyColumn(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .heightIn(max = 220.dp),
+                ) {
+                    items(servers, key = { it.id }) { srv ->
+                        ListItem(
+                            headlineContent = { Text(srv.name) },
+                            supportingContent = { Text(srv.url) },
+                            leadingContent = {
+                                Switch(
+                                    checked = srv.enabled,
+                                    onCheckedChange = { checked -> onToggleServer(srv.id, checked) },
+                                )
+                            },
+                            trailingContent = {
+                                IconButton(onClick = { onRemoveServer(srv.id) }) {
+                                    Icon(
+                                        Icons.Filled.Delete,
+                                        contentDescription = stringResource(R.string.chat_mcp_remove),
+                                    )
+                                }
+                            },
+                        )
+                    }
+                }
+            }
+            HorizontalDivider()
+            OutlinedTextField(
+                value = name,
+                onValueChange = { name = it },
+                placeholder = { Text(stringResource(R.string.chat_mcp_name_hint)) },
+                singleLine = true,
+                modifier = Modifier.fillMaxWidth(),
+            )
+            OutlinedTextField(
+                value = url,
+                onValueChange = { url = it },
+                placeholder = { Text(stringResource(R.string.chat_mcp_url_hint)) },
+                singleLine = true,
+                modifier = Modifier.fillMaxWidth(),
+            )
+            OutlinedTextField(
+                value = token,
+                onValueChange = { token = it },
+                placeholder = { Text(stringResource(R.string.chat_mcp_token_hint)) },
+                singleLine = true,
+                modifier = Modifier.fillMaxWidth(),
+            )
+            Row(
+                modifier = Modifier.fillMaxWidth(),
+                horizontalArrangement = Arrangement.End,
+            ) {
+                TextButton(
+                    onClick = {
+                        onAddServer(name, url, token)
+                        name = ""
+                        url = ""
+                        token = ""
+                    },
+                    enabled = url.isNotBlank(),
+                ) {
+                    Icon(Icons.Filled.Add, contentDescription = null)
+                    Text(stringResource(R.string.chat_mcp_add))
                 }
             }
         }

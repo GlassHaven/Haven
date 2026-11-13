@@ -9797,6 +9797,188 @@
       "sr": "Користи \"%1$s\"",
       "zh": "使用 \"%1$s\""
      }
+    },
+    {
+     "name": "chat_mcp_title",
+     "en": "MCP tool servers",
+     "comment": "",
+     "args": [],
+     "t": {
+      "ar": "خوادم أدوات MCP",
+      "bn": "MCP টুল সার্ভার",
+      "de": "MCP-Werkzeugserver",
+      "es": "Servidores de herramientas MCP",
+      "fr": "Serveurs d\\'outils MCP",
+      "hi": "MCP टूल सर्वर",
+      "ja": "MCPツールサーバー",
+      "ko": "MCP 도구 서버",
+      "pt": "Servidores de ferramentas MCP",
+      "ru": "Серверы инструментов MCP",
+      "sr": "Сервери MCP алата",
+      "zh": "MCP 工具服务器"
+     }
+    },
+    {
+     "name": "chat_mcp_empty",
+     "en": "No external MCP servers configured. Add a streamable-HTTP MCP endpoint below.",
+     "comment": "",
+     "args": [],
+     "t": {
+      "ar": "لم يتم إعداد أي خوادم MCP خارجية. أضف نقطة نهاية MCP عبر HTTP القابل للبث أدناه.",
+      "bn": "কোনো বাহ্যিক MCP সার্ভার কনফিগার করা হয়নি। নিচে একটি streamable-HTTP MCP এন্ডপয়েন্ট যোগ করুন।",
+      "de": "Keine externen MCP-Server konfiguriert. Unten einen Streamable-HTTP-MCP-Endpunkt hinzufügen.",
+      "es": "No hay servidores MCP externos configurados. Añade abajo un punto de acceso MCP streamable-HTTP.",
+      "fr": "Aucun serveur MCP externe configuré. Ajoutez un point d\\'accès MCP streamable-HTTP ci-dessous.",
+      "hi": "कोई बाहरी MCP सर्वर कॉन्फ़िगर नहीं है। नीचे एक streamable-HTTP MCP एंडपॉइंट जोड़ें।",
+      "ja": "外部MCPサーバーが設定されていません。下にStreamable HTTPのMCPエンドポイントを追加してください。",
+      "ko": "구성된 외부 MCP 서버가 없습니다. 아래에 streamable-HTTP MCP 엔드포인트를 추가하세요.",
+      "pt": "Nenhum servidor MCP externo configurado. Adicione abaixo um endpoint MCP streamable-HTTP.",
+      "ru": "Внешние серверы MCP не настроены. Добавьте ниже конечную точку MCP streamable-HTTP.",
+      "sr": "Нема подешених спољних MCP сервера. Додајте испод streamable-HTTP MCP крајњу тачку.",
+      "zh": "未配置外部 MCP 服务器。请在下方添加可流式传输 HTTP 的 MCP 端点。"
+     }
+    },
+    {
+     "name": "chat_mcp_remove",
+     "en": "Remove MCP server",
+     "comment": "",
+     "args": [],
+     "t": {
+      "ar": "إزالة خادم MCP",
+      "bn": "MCP সার্ভার সরান",
+      "de": "MCP-Server entfernen",
+      "es": "Quitar servidor MCP",
+      "fr": "Supprimer le serveur MCP",
+      "hi": "MCP सर्वर हटाएँ",
+      "ja": "MCPサーバーを削除",
+      "ko": "MCP 서버 제거",
+      "pt": "Remover servidor MCP",
+      "ru": "Удалить сервер MCP",
+      "sr": "Уклони MCP сервер",
+      "zh": "移除 MCP 服务器"
+     }
+    },
+    {
+     "name": "chat_mcp_name_hint",
+     "en": "Server name (optional)",
+     "comment": "",
+     "args": [],
+     "t": {
+      "ar": "اسم الخادم (اختياري)",
+      "bn": "সার্ভারের নাম (ঐচ্ছিক)",
+      "de": "Servername (optional)",
+      "es": "Nombre del servidor (opcional)",
+      "fr": "Nom du serveur (facultatif)",
+      "hi": "सर्वर नाम (वैकल्पिक)",
+      "ja": "サーバー名（任意）",
+      "ko": "서버 이름 (선택 사항)",
+      "pt": "Nome do servidor (opcional)",
+      "ru": "Имя сервера (необязательно)",
+      "sr": "Назив сервера (опционо)",
+      "zh": "服务器名称（可选）"
+     }
+    },
+    {
+     "name": "chat_mcp_url_hint",
+     "en": "Endpoint URL (https://example.com/mcp)",
+     "comment": "",
+     "args": [],
+     "t": {
+      "ar": "رابط نقطة النهاية (https://example.com/mcp)",
+      "bn": "এন্ডপয়েন্ট URL (https://example.com/mcp)",
+      "de": "Endpunkt-URL (https://example.com/mcp)",
+      "es": "URL del punto de acceso (https://example.com/mcp)",
+      "fr": "URL du point d\\'accès (https://example.com/mcp)",
+      "hi": "एंडपॉइंट URL (https://example.com/mcp)",
+      "ja": "エンドポイントURL (https://example.com/mcp)",
+      "ko": "엔드포인트 URL (https://example.com/mcp)",
+      "pt": "URL do endpoint (https://example.com/mcp)",
+      "ru": "URL конечной точки (https://example.com/mcp)",
+      "sr": "URL крајње тачке (https://example.com/mcp)",
+      "zh": "端点 URL (https://example.com/mcp)"
+     }
+    },
+    {
+     "name": "chat_mcp_token_hint",
+     "en": "Bearer token (optional)",
+     "comment": "",
+     "args": [],
+     "t": {
+      "ar": "رمز Bearer (اختياري)",
+      "bn": "Bearer টোকেন (ঐচ্ছিক)",
+      "de": "Bearer-Token (optional)",
+      "es": "Token Bearer (opcional)",
+      "fr": "Jeton Bearer (facultatif)",
+      "hi": "Bearer टोकन (वैकल्पिक)",
+      "ja": "Bearerトークン（任意）",
+      "ko": "Bearer 토큰 (선택 사항)",
+      "pt": "Token Bearer (opcional)",
+      "ru": "Токен Bearer (необязательно)",
+      "sr": "Bearer токен (опционо)",
+      "zh": "Bearer 令牌（可选）"
+     }
+    },
+    {
+     "name": "chat_mcp_add",
+     "en": "Add server",
+     "comment": "",
+     "args": [],
+     "t": {
+      "ar": "إضافة خادم",
+      "bn": "সার্ভার যোগ করুন",
+      "de": "Server hinzufügen",
+      "es": "Añadir servidor",
+      "fr": "Ajouter un serveur",
+      "hi": "सर्वर जोड़ें",
+      "ja": "サーバーを追加",
+      "ko": "서버 추가",
+      "pt": "Adicionar servidor",
+      "ru": "Добавить сервер",
+      "sr": "Додај сервер",
+      "zh": "添加服务器"
+     }
+    },
+    {
+     "name": "chat_mcp_calling_tool",
+     "en": "Running MCP tool: %1$s",
+     "comment": "",
+     "args": [
+      "%1$s"
+     ],
+     "t": {
+      "ar": "جاري تشغيل أداة MCP: %1$s",
+      "bn": "MCP টুল চলছে: %1$s",
+      "de": "MCP-Werkzeug wird ausgeführt: %1$s",
+      "es": "Ejecutando herramienta MCP: %1$s",
+      "fr": "Exécution de l\\'outil MCP : %1$s",
+      "hi": "MCP टूल चल रहा है: %1$s",
+      "ja": "MCPツールを実行中: %1$s",
+      "ko": "MCP 도구 실행 중: %1$s",
+      "pt": "Executando ferramenta MCP: %1$s",
+      "ru": "Выполнение инструмента MCP: %1$s",
+      "sr": "Покретање MCP алата: %1$s",
+      "zh": "正在运行 MCP 工具：%1$s"
+     }
+    },
+    {
+     "name": "chat_mcp_invalid_url",
+     "en": "MCP endpoint URL must start with http:// or https://",
+     "comment": "",
+     "args": [],
+     "t": {
+      "ar": "يجب أن يبدأ رابط نقطة نهاية MCP بـ http:// أو https://",
+      "bn": "MCP এন্ডপয়েন্ট URL অবশ্যই http:// বা https:// দিয়ে শুরু হতে হবে",
+      "de": "Die MCP-Endpunkt-URL muss mit http:// oder https:// beginnen",
+      "es": "La URL del punto de acceso MCP debe comenzar con http:// o https://",
+      "fr": "L\\'URL du point d\\'accès MCP doit commencer par http:// ou https://",
+      "hi": "MCP एंडपॉइंट URL को http:// या https:// से शुरू होना चाहिए",
+      "ja": "MCPエンドポイントURLは http:// または https:// で始まる必要があります",
+      "ko": "MCP 엔드포인트 URL은 http:// 또는 https://로 시작해야 합니다",
+      "pt": "A URL do endpoint MCP deve começar com http:// ou https://",
+      "ru": "URL конечной точки MCP должен начинаться с http:// или https://",
+      "sr": "URL MCP крајње тачке мора почињати са http:// или https://",
+      "zh": "MCP 端点 URL 必须以 http:// 或 https:// 开头"
+     }
     }
    ]
   },

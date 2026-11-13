@@ -30,10 +30,18 @@ internal fun optTextField(obj: JSONObject?, key: String): String {
  * Feed decoded text as it arrives — the parser keeps state across calls, so
  * lines split mid-JSON by TCP packet boundaries are fine. Emits chunks only
  * on complete `data:` lines; blank lines (SSE keep-alives / comment `:` lines)
- * are ignored.
+ * are ignored. Incremental `delta.tool_calls` fragments are assembled by index
+ * and flushed when `finish_reason` arrives (or at `[DONE]` / EOF, #807).
  */
 class OpenAiSseParser : ChatStreamParser {
+    private data class PendingToolCall(
+        var id: String = "",
+        var name: String = "",
+        val arguments: StringBuilder = StringBuilder(),
+    )
+
     private val lineBuffer = StringBuilder()
+    private val pendingToolCalls = LinkedHashMap<Int, PendingToolCall>()
     private var done = false
 
     override val isDone: Boolean get() = done
@@ -53,6 +61,10 @@ class OpenAiSseParser : ChatStreamParser {
                 if (finished) {
                     chunks += parseLine(lineBuffer.toString())
                     lineBuffer.setLength(0)
+                    val remainingCalls = flushPendingToolCalls()
+                    if (remainingCalls.isNotEmpty()) {
+                        chunks += ChatChunk(delta = "", finishReason = "tool_calls", toolCalls = remainingCalls)
+                    }
                 }
                 return chunks
             }
@@ -70,7 +82,12 @@ class OpenAiSseParser : ChatStreamParser {
         val payload = trimmed.removePrefix("data:").trim()
         if (payload == "[DONE]") {
             done = true
-            return emptyList()
+            val remainingCalls = flushPendingToolCalls()
+            return if (remainingCalls.isNotEmpty()) {
+                listOf(ChatChunk(delta = "", finishReason = "tool_calls", toolCalls = remainingCalls))
+            } else {
+                emptyList()
+            }
         }
         val chunk = parseChunkPayload(payload) ?: return emptyList()
         return listOf(chunk)
@@ -78,9 +95,9 @@ class OpenAiSseParser : ChatStreamParser {
 
     /**
      * Parse one `data:` payload into a [ChatChunk]. Returns null for shapes
-     * that carry no text (role-only chunks) or that we can't parse — servers
-     * that add extra fields keep working; malformed lines are skipped rather
-     * than aborting the stream.
+     * that carry no `choices` or that we can't parse — servers that add extra
+     * fields keep working; malformed lines are skipped rather than aborting
+     * the stream.
      */
     private fun parseChunkPayload(payload: String): ChatChunk? = try {
         val json = JSONObject(payload)
@@ -88,11 +105,45 @@ class OpenAiSseParser : ChatStreamParser {
         if (choices.length() == 0) return null
         val choice = choices.getJSONObject(0)
         val delta = choice.optJSONObject("delta")
+        val toolCallsArr = delta?.optJSONArray("tool_calls")
+        if (toolCallsArr != null) {
+            for (i in 0 until toolCallsArr.length()) {
+                val tc = toolCallsArr.optJSONObject(i) ?: continue
+                val index = tc.optInt("index", i)
+                val slot = pendingToolCalls.getOrPut(index) { PendingToolCall() }
+                val id = optTextField(tc, "id")
+                if (id.isNotEmpty()) slot.id = id
+                val fn = tc.optJSONObject("function")
+                if (fn != null) {
+                    val name = optTextField(fn, "name")
+                    if (name.isNotEmpty()) slot.name = name
+                    slot.arguments.append(optTextField(fn, "arguments"))
+                }
+            }
+        }
+        val finishReason = optTextField(choice, "finish_reason").takeIf { it.isNotEmpty() && it != "null" }
+        val flushedCalls = if (finishReason != null) flushPendingToolCalls() else emptyList()
         ChatChunk(
             delta = optTextField(delta, "content"),
-            finishReason = optTextField(choice, "finish_reason").takeIf { it.isNotEmpty() && it != "null" },
+            finishReason = finishReason,
+            toolCalls = flushedCalls,
         )
     } catch (_: Exception) {
         null
+    }
+
+    private fun flushPendingToolCalls(): List<ChatToolCall> {
+        if (pendingToolCalls.isEmpty()) return emptyList()
+        val out = pendingToolCalls.entries
+            .filter { (_, slot) -> slot.name.isNotEmpty() }
+            .map { (idx, slot) ->
+                ChatToolCall(
+                    id = slot.id.ifEmpty { "call_$idx" },
+                    name = slot.name,
+                    argumentsJson = slot.arguments.toString().ifBlank { "{}" },
+                )
+            }
+        pendingToolCalls.clear()
+        return out
     }
 }

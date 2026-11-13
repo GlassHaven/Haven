@@ -33,4 +33,13 @@
     <string name="chat_delete_conversation">बातचीत हटाएं</string>
     <string name="chat_search_models">मॉडल खोजें या आईडी दर्ज करें</string>
     <string name="chat_use_custom_model">"%1$s" का उपयोग करें</string>
+    <string name="chat_mcp_title">MCP टूल सर्वर</string>
+    <string name="chat_mcp_empty">कोई बाहरी MCP सर्वर कॉन्फ़िगर नहीं है। नीचे एक streamable-HTTP MCP एंडपॉइंट जोड़ें।</string>
+    <string name="chat_mcp_remove">MCP सर्वर हटाएँ</string>
+    <string name="chat_mcp_name_hint">सर्वर नाम (वैकल्पिक)</string>
+    <string name="chat_mcp_url_hint">एंडपॉइंट URL (https://example.com/mcp)</string>
+    <string name="chat_mcp_token_hint">Bearer टोकन (वैकल्पिक)</string>
+    <string name="chat_mcp_add">सर्वर जोड़ें</string>
+    <string name="chat_mcp_calling_tool">MCP टूल चल रहा है: %1$s</string>
+    <string name="chat_mcp_invalid_url">MCP एंडपॉइंट URL को http:// या https:// से शुरू होना चाहिए</string>
 </resources>

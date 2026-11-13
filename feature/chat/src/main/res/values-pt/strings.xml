@@ -33,4 +33,13 @@
     <string name="chat_delete_conversation">Excluir conversa</string>
     <string name="chat_search_models">Pesquisar ou inserir ID do modelo</string>
     <string name="chat_use_custom_model">Usar "%1$s"</string>
+    <string name="chat_mcp_title">Servidores de ferramentas MCP</string>
+    <string name="chat_mcp_empty">Nenhum servidor MCP externo configurado. Adicione abaixo um endpoint MCP streamable-HTTP.</string>
+    <string name="chat_mcp_remove">Remover servidor MCP</string>
+    <string name="chat_mcp_name_hint">Nome do servidor (opcional)</string>
+    <string name="chat_mcp_url_hint">URL do endpoint (https://example.com/mcp)</string>
+    <string name="chat_mcp_token_hint">Token Bearer (opcional)</string>
+    <string name="chat_mcp_add">Adicionar servidor</string>
+    <string name="chat_mcp_calling_tool">Executando ferramenta MCP: %1$s</string>
+    <string name="chat_mcp_invalid_url">A URL do endpoint MCP deve começar com http:// ou https://</string>
 </resources>

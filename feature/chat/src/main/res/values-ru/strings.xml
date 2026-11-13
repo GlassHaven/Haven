@@ -33,4 +33,13 @@
     <string name="chat_delete_conversation">Удалить диалог</string>
     <string name="chat_search_models">Поиск или ввод ID модели</string>
     <string name="chat_use_custom_model">Использовать "%1$s"</string>
+    <string name="chat_mcp_title">Серверы инструментов MCP</string>
+    <string name="chat_mcp_empty">Внешние серверы MCP не настроены. Добавьте ниже конечную точку MCP streamable-HTTP.</string>
+    <string name="chat_mcp_remove">Удалить сервер MCP</string>
+    <string name="chat_mcp_name_hint">Имя сервера (необязательно)</string>
+    <string name="chat_mcp_url_hint">URL конечной точки (https://example.com/mcp)</string>
+    <string name="chat_mcp_token_hint">Токен Bearer (необязательно)</string>
+    <string name="chat_mcp_add">Добавить сервер</string>
+    <string name="chat_mcp_calling_tool">Выполнение инструмента MCP: %1$s</string>
+    <string name="chat_mcp_invalid_url">URL конечной точки MCP должен начинаться с http:// или https://</string>
 </resources>

@@ -33,4 +33,13 @@
     <string name="chat_delete_conversation">删除对话</string>
     <string name="chat_search_models">搜索或输入模型 ID</string>
     <string name="chat_use_custom_model">使用 "%1$s"</string>
+    <string name="chat_mcp_title">MCP 工具服务器</string>
+    <string name="chat_mcp_empty">未配置外部 MCP 服务器。请在下方添加可流式传输 HTTP 的 MCP 端点。</string>
+    <string name="chat_mcp_remove">移除 MCP 服务器</string>
+    <string name="chat_mcp_name_hint">服务器名称（可选）</string>
+    <string name="chat_mcp_url_hint">端点 URL (https://example.com/mcp)</string>
+    <string name="chat_mcp_token_hint">Bearer 令牌（可选）</string>
+    <string name="chat_mcp_add">添加服务器</string>
+    <string name="chat_mcp_calling_tool">正在运行 MCP 工具：%1$s</string>
+    <string name="chat_mcp_invalid_url">MCP 端点 URL 必须以 http:// 或 https:// 开头</string>
 </resources>

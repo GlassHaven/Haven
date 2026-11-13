@@ -488,6 +488,21 @@ class BackupService @Inject constructor(
         // Settings (DataStore preferences)
         val settings = JSONObject()
         val prefs = dataStore.data.first()
+        val rawMcpServers = prefs[androidx.datastore.preferences.core.stringPreferencesKey(
+            sh.haven.core.data.preferences.ChatMcpServerConfig.PREF_KEY_NAME,
+        )]
+        val decodedMcpServers = sh.haven.core.data.preferences.ChatMcpServerConfig.decodeList(
+            rawMcpServers,
+            chatRepository::decryptSecretOrNull,
+        )
+        if (decodedMcpServers.isNotEmpty()) {
+            json.put(
+                "chatMcpServers",
+                JSONArray(
+                    sh.haven.core.data.preferences.ChatMcpServerConfig.encodeList(decodedMcpServers) { it },
+                ),
+            )
+        }
         prefs.asMap().forEach { (key, value) ->
             if (key.name in DEVICE_BOUND_PREF_KEYS) return@forEach
             when (value) {
@@ -1068,10 +1083,24 @@ class BackupService @Inject constructor(
 
         // Settings
         val settings = json.optJSONObject("settings")
-        if (settings != null) {
+        val chatMcpServersJson = json.optJSONArray("chatMcpServers")
+        if (settings != null || chatMcpServersJson != null) {
             dataStore.updateData { prefs ->
                 val mutable = prefs.toMutablePreferences()
-                settings.keys().forEach { key ->
+                if (chatMcpServersJson != null) {
+                    val portableServers = sh.haven.core.data.preferences.ChatMcpServerConfig.decodeList(
+                        chatMcpServersJson.toString(),
+                    ) { it }
+                    val reEncrypted = sh.haven.core.data.preferences.ChatMcpServerConfig.encodeList(
+                        portableServers,
+                        chatRepository::encryptSecret,
+                    )
+                    mutable[androidx.datastore.preferences.core.stringPreferencesKey(
+                        sh.haven.core.data.preferences.ChatMcpServerConfig.PREF_KEY_NAME,
+                    )] = reEncrypted
+                    count += portableServers.size
+                }
+                settings?.keys()?.forEach { key ->
                     if (key in DEVICE_BOUND_PREF_KEYS) return@forEach
                     val value = settings.get(key)
                     when {
@@ -1189,6 +1218,7 @@ class BackupService @Inject constructor(
         internal val DEVICE_BOUND_PREF_KEYS: Set<String> = setOf(
             "backup_sync_passphrase",
             "tasker_plugin_secret",
+            sh.haven.core.data.preferences.ChatMcpServerConfig.PREF_KEY_NAME,
         )
 
         /**

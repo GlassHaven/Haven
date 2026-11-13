@@ -33,4 +33,13 @@
     <string name="chat_delete_conversation">কথোপকথন মুছুন</string>
     <string name="chat_search_models">মডেল খুঁজুন বা আইডি লিখুন</string>
     <string name="chat_use_custom_model">"%1$s" ব্যবহার করুন</string>
+    <string name="chat_mcp_title">MCP টুল সার্ভার</string>
+    <string name="chat_mcp_empty">কোনো বাহ্যিক MCP সার্ভার কনফিগার করা হয়নি। নিচে একটি streamable-HTTP MCP এন্ডপয়েন্ট যোগ করুন।</string>
+    <string name="chat_mcp_remove">MCP সার্ভার সরান</string>
+    <string name="chat_mcp_name_hint">সার্ভারের নাম (ঐচ্ছিক)</string>
+    <string name="chat_mcp_url_hint">এন্ডপয়েন্ট URL (https://example.com/mcp)</string>
+    <string name="chat_mcp_token_hint">Bearer টোকেন (ঐচ্ছিক)</string>
+    <string name="chat_mcp_add">সার্ভার যোগ করুন</string>
+    <string name="chat_mcp_calling_tool">MCP টুল চলছে: %1$s</string>
+    <string name="chat_mcp_invalid_url">MCP এন্ডপয়েন্ট URL অবশ্যই http:// বা https:// দিয়ে শুরু হতে হবে</string>
 </resources>

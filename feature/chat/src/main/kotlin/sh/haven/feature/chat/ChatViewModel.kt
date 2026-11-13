@@ -17,16 +17,21 @@ import org.json.JSONObject
 import sh.haven.core.data.db.entities.ChatConversation
 import sh.haven.core.data.db.entities.ChatMessage as SavedChatMessage
 import sh.haven.core.data.images.ChatImagePrep
+import sh.haven.core.data.preferences.ChatMcpServerConfig
+import sh.haven.core.data.preferences.UserPreferencesRepository
 import sh.haven.core.data.repository.ChatRepository
 import sh.haven.core.data.repository.ConnectionRepository
 import sh.haven.core.openai.ChatChunk
 import sh.haven.core.openai.ChatImage
 import sh.haven.core.openai.ChatMessage
+import sh.haven.core.openai.ChatToolCall
+import sh.haven.core.openai.ExternalMcpClient
 import sh.haven.core.openai.ModelInfo
 import sh.haven.core.openai.OpenAiClient
 import sh.haven.core.openai.OpenAiSessionManager
 import sh.haven.core.tunnel.TunnelResolver
 import java.util.UUID
+import java.util.concurrent.ConcurrentHashMap
 import javax.inject.Inject
 
 /** One bubble in the chat transcript. [pending] = still streaming in. */
@@ -58,6 +63,10 @@ data class ChatUiState(
     val saveEnabled: Boolean = false,
     val activeConversationId: String? = null,
     val savedConversations: List<ChatConversation> = emptyList(),
+    /** External streamable-HTTP MCP servers configured for tool execution (#807). */
+    val mcpServers: List<ChatMcpServerConfig> = emptyList(),
+    /** Summary of the external MCP tool call currently running, if any (#807). */
+    val activeToolCallSummary: String? = null,
     /** Images staged in the composer, awaiting the next send. */
     val staged: List<StagedImage> = emptyList(),
     val error: String? = null,
@@ -72,7 +81,7 @@ data class ChatUiState(
  * the rows.
  */
 @HiltViewModel
-class ChatViewModel @Inject constructor(
+class ChatViewModel private constructor(
     private val openAiSessionManager: OpenAiSessionManager,
     private val connectionRepository: ConnectionRepository,
     private val chatRepository: ChatRepository,
@@ -80,21 +89,94 @@ class ChatViewModel @Inject constructor(
     private val tunnelResolver: TunnelResolver,
     private val chatAttachBroker: sh.haven.core.data.attach.ChatAttachBroker,
     private val chatRemoteReader: sh.haven.core.data.attach.ChatRemoteReader,
-    @ApplicationContext private val context: Context,
+    private val userPreferencesRepository: UserPreferencesRepository?,
+    private val context: Context,
+    unusedMarker: Boolean,
 ) : ViewModel() {
+
+    @Inject
+    constructor(
+        openAiSessionManager: OpenAiSessionManager,
+        connectionRepository: ConnectionRepository,
+        chatRepository: ChatRepository,
+        openAiClient: OpenAiClient,
+        tunnelResolver: TunnelResolver,
+        chatAttachBroker: sh.haven.core.data.attach.ChatAttachBroker,
+        chatRemoteReader: sh.haven.core.data.attach.ChatRemoteReader,
+        userPreferencesRepository: UserPreferencesRepository,
+        @ApplicationContext context: Context,
+    ) : this(
+        openAiSessionManager = openAiSessionManager,
+        connectionRepository = connectionRepository,
+        chatRepository = chatRepository,
+        openAiClient = openAiClient,
+        tunnelResolver = tunnelResolver,
+        chatAttachBroker = chatAttachBroker,
+        chatRemoteReader = chatRemoteReader,
+        userPreferencesRepository = userPreferencesRepository,
+        context = context,
+        unusedMarker = true,
+    )
+
+    /** Secondary constructor kept for unit tests that do not exercise MCP prefs. */
+    constructor(
+        openAiSessionManager: OpenAiSessionManager,
+        connectionRepository: ConnectionRepository,
+        chatRepository: ChatRepository,
+        openAiClient: OpenAiClient,
+        tunnelResolver: TunnelResolver,
+        chatAttachBroker: sh.haven.core.data.attach.ChatAttachBroker,
+        chatRemoteReader: sh.haven.core.data.attach.ChatRemoteReader,
+        context: Context,
+    ) : this(
+        openAiSessionManager = openAiSessionManager,
+        connectionRepository = connectionRepository,
+        chatRepository = chatRepository,
+        openAiClient = openAiClient,
+        tunnelResolver = tunnelResolver,
+        chatAttachBroker = chatAttachBroker,
+        chatRemoteReader = chatRemoteReader,
+        userPreferencesRepository = null,
+        context = context,
+        unusedMarker = false,
+    )
+
+    private data class McpClientCacheKey(
+        val url: String,
+        val bearerToken: String?,
+        val tunnelConfigId: String?,
+    )
 
     private val _ui = MutableStateFlow(ChatUiState())
     val ui: StateFlow<ChatUiState> = _ui.asStateFlow()
 
     private var streamJob: Job? = null
     private var conversationsJob: Job? = null
+    private var mcpServersJob: Job? = null
     private var conversationId: String? = null
+    private val mcpClients = ConcurrentHashMap<McpClientCacheKey, ExternalMcpClient>()
 
     /** Composer staging cap; bounds the request payload a single send can reach. */
     private val maxStagedImages = 4
 
     /** Remote-attach read cap, applied against the file's stat and its spooled bytes. */
     private val attachMaxBytes = 20L * 1024 * 1024
+
+    /** Maximum MCP tool-call roundtrips within a single user send (#807). */
+    private val maxToolRounds = 8
+
+    init {
+        val prefs = userPreferencesRepository
+        if (prefs != null) {
+            mcpServersJob = viewModelScope.launch {
+                runCatching {
+                    prefs.chatMcpServers.collect { servers ->
+                        _ui.update { it.copy(mcpServers = servers) }
+                    }
+                }
+            }
+        }
+    }
 
     /**
      * Point the screen at a profile (the OPENAI connect flow navigates here).
@@ -108,12 +190,15 @@ class ChatViewModel @Inject constructor(
         conversationId = null
         val session = openAiSessionManager.getSessionsForProfile(profileId)
             .firstOrNull { it.status == OpenAiSessionManager.SessionState.Status.CONNECTED }
-        _ui.value = ChatUiState(
-            profileId = profileId,
-            label = session?.label ?: profileId,
-            models = session?.models.orEmpty(),
-            selectedModel = session?.models?.firstOrNull()?.id,
-        )
+        _ui.update { current ->
+            ChatUiState(
+                profileId = profileId,
+                label = session?.label ?: profileId,
+                models = session?.models.orEmpty(),
+                selectedModel = session?.models?.firstOrNull()?.id,
+                mcpServers = current.mcpServers,
+            )
+        }
         conversationsJob = viewModelScope.launch {
             runCatching {
                 chatRepository.observeAll().collect { all ->
@@ -132,6 +217,48 @@ class ChatViewModel @Inject constructor(
         s.copy(selectedModel = ChatModelFlavours.toggleFlavour(current, suffix))
     }
 
+    fun addMcpServer(name: String, url: String, bearerToken: String?) {
+        val trimmedUrl = url.trim()
+        if (!trimmedUrl.startsWith("http://", ignoreCase = true) &&
+            !trimmedUrl.startsWith("https://", ignoreCase = true)
+        ) {
+            _ui.update { it.copy(error = context.getString(R.string.chat_mcp_invalid_url)) }
+            return
+        }
+        val entry = ChatMcpServerConfig(
+            id = UUID.randomUUID().toString(),
+            name = name.trim().ifEmpty { trimmedUrl },
+            url = trimmedUrl,
+            bearerToken = bearerToken?.trim()?.takeIf { it.isNotEmpty() },
+            enabled = true,
+        )
+        val updated = _ui.value.mcpServers + entry
+        _ui.update { it.copy(mcpServers = updated) }
+        userPreferencesRepository?.let { prefs ->
+            viewModelScope.launch { prefs.setChatMcpServers(updated) }
+        }
+    }
+
+    fun toggleMcpServer(id: String, enabled: Boolean) {
+        val updated = _ui.value.mcpServers.map { if (it.id == id) it.copy(enabled = enabled) else it }
+        _ui.update { it.copy(mcpServers = updated) }
+        userPreferencesRepository?.let { prefs ->
+            viewModelScope.launch { prefs.setChatMcpServers(updated) }
+        }
+    }
+
+    fun removeMcpServer(id: String) {
+        val removed = _ui.value.mcpServers.filter { it.id == id }
+        removed.forEach { s ->
+            mcpClients.keys.removeIf { it.url == s.url }
+        }
+        val updated = _ui.value.mcpServers.filterNot { it.id == id }
+        _ui.update { it.copy(mcpServers = updated) }
+        userPreferencesRepository?.let { prefs ->
+            viewModelScope.launch { prefs.setChatMcpServers(updated) }
+        }
+    }
+
     /** Start a fresh ephemeral session on the attached profile (#807). */
     fun newConversation() {
         streamJob?.cancel()
@@ -143,6 +270,7 @@ class ChatViewModel @Inject constructor(
                 streaming = false,
                 saveEnabled = false,
                 activeConversationId = null,
+                activeToolCallSummary = null,
                 staged = emptyList(),
                 error = null,
             )
@@ -177,6 +305,7 @@ class ChatViewModel @Inject constructor(
                     saveEnabled = true,
                     activeConversationId = id,
                     selectedModel = lastModel ?: s.selectedModel,
+                    activeToolCallSummary = null,
                     staged = emptyList(),
                     error = null,
                 )
@@ -225,8 +354,6 @@ class ChatViewModel @Inject constructor(
      * trip): arms the [ChatAttachBroker] pick and waits for the SFTP screen
      * to confirm a file, then reads it through the backend-agnostic
      * [ChatRemoteReader] (stat-capped) and stages it like any other image.
-     * Cancel or a read failure surfaces through the error slot; the cap
-     * guard in the staged insert below is the same one [stageImage] uses.
      */
     fun stageRemoteImage() {
         viewModelScope.launch {
@@ -266,10 +393,13 @@ class ChatViewModel @Inject constructor(
         if ((trimmed.isEmpty() && state.staged.isEmpty()) || state.streaming) return
 
         val stagedImages = state.staged.map { it.image }
-        val history = state.messages
-            .filter { !it.pending }
-            .map { ChatMessage(role = it.role, content = it.text, images = it.images) } +
-            ChatMessage("user", trimmed, stagedImages)
+        val workingHistory = (
+            state.messages
+                .filter { !it.pending }
+                .map { ChatMessage(role = it.role, content = it.text, images = it.images) } +
+                ChatMessage("user", trimmed, stagedImages)
+            ).toMutableList()
+
         val userMsg = ChatUiMessage(
             id = UUID.randomUUID().toString(),
             role = "user",
@@ -281,6 +411,8 @@ class ChatViewModel @Inject constructor(
             it.copy(
                 messages = it.messages + userMsg +
                     ChatUiMessage(id = assistantId, role = "assistant", text = "", pending = true),
+                streaming = true,
+                activeToolCallSummary = null,
                 staged = emptyList(),
                 error = null,
             )
@@ -304,25 +436,23 @@ class ChatViewModel @Inject constructor(
             }
         }
 
+        val enabledMcpServers = state.mcpServers.filter { it.enabled }
+
         streamJob = viewModelScope.launch {
             val profile = connectionRepository.getById(profileId) ?: run {
                 fail("Profile disappeared")
                 return@launch
             }
-            // Same fail-closed route contract as connect (AiRoute serves all
-            // three dial sites): a routed profile reuses the loopback factory
-            // the carrier's forward was established with, never re-resolving
-            // — and a configured route that isn't there refuses the dial
-            // rather than leaking a direct connection.
             val routed = sh.haven.core.openai.AiRoute.isRouted(
                 profile.aiRouteType, profile.aiRouteProfileId,
             )
             val session = openAiSessionManager.getSessionsForProfile(profileId)
                 .firstOrNull { it.status == OpenAiSessionManager.SessionState.Status.CONNECTED }
+            val tunnelFactory = if (routed) null else tunnelResolver.socketFactory(profile)
             val dial = sh.haven.core.openai.AiRoute.dialFactory(
                 routed = routed,
                 routeFactory = session?.routeSocketFactory,
-                tunnelFactory = if (routed) null else tunnelResolver.socketFactory(profile),
+                tunnelFactory = tunnelFactory,
                 tunnelConfigured = if (routed) false else profile.tunnelConfigId != null,
             )
             val client = when (val d = dial) {
@@ -332,18 +462,117 @@ class ChatViewModel @Inject constructor(
                 }
                 is sh.haven.core.openai.AiRoute.Dial.Via -> openAiClient.buildClient(d.factory)
             }
+            val protocol = sh.haven.core.openai.AiProtocol.fromStored(profile.aiProtocol)
+            val baseUrl = sessionBaseUrl(profileId)
+            val pathPrefix = profile.openaiPathPrefix?.ifBlank { null }
+            val apiKey = profile.openaiApiKey?.ifBlank { null }
+
             try {
-                openAiClient.chatCompletionStream(
-                    client,
-                    sessionBaseUrl(profileId),
-                    profile.openaiPathPrefix?.ifBlank { null },
-                    profile.openaiApiKey?.ifBlank { null },
-                    model,
-                    history,
-                    protocol = sh.haven.core.openai.AiProtocol.fromStored(profile.aiProtocol),
-                ).collect { chunk ->
-                    applyChunk(assistantId, chunk)
+                val mcpHttpClient by lazy {
+                    openAiClient.buildClient(if (routed) null else tunnelFactory)
                 }
+                fun clientForServer(srv: ChatMcpServerConfig): ExternalMcpClient {
+                    val key = McpClientCacheKey(
+                        url = srv.url,
+                        bearerToken = srv.bearerToken,
+                        tunnelConfigId = if (routed) null else profile.tunnelConfigId,
+                    )
+                    return mcpClients.getOrPut(key) {
+                        ExternalMcpClient(
+                            httpClient = mcpHttpClient,
+                            endpointUrl = srv.url,
+                            bearerToken = srv.bearerToken,
+                        )
+                    }
+                }
+
+                val boundTools = if (enabledMcpServers.isEmpty()) {
+                    emptyMap()
+                } else {
+                    val discovered = enabledMcpServers.map { srv ->
+                        try {
+                            srv to clientForServer(srv).listTools()
+                        } catch (e: kotlinx.coroutines.CancellationException) {
+                            throw e
+                        } catch (e: Exception) {
+                            throw IllegalStateException("${srv.name}: ${e.message ?: e.javaClass.simpleName}", e)
+                        }
+                    }
+                    ChatMcpToolRouter.bindTools(discovered)
+                }
+                val toolSpecs = boundTools.values.map { it.spec }
+
+                var round = 0
+                while (round < maxToolRounds) {
+                    val roundText = StringBuilder()
+                    val roundToolCalls = mutableListOf<ChatToolCall>()
+
+                    openAiClient.chatCompletionStream(
+                        client = client,
+                        base = baseUrl,
+                        prefix = pathPrefix,
+                        apiKey = apiKey,
+                        model = model,
+                        messages = workingHistory,
+                        protocol = protocol,
+                        tools = toolSpecs,
+                    ).collect { chunk ->
+                        if (chunk.delta.isNotEmpty()) {
+                            roundText.append(chunk.delta)
+                            applyChunk(assistantId, chunk)
+                        }
+                        if (chunk.toolCalls.isNotEmpty()) {
+                            roundToolCalls += chunk.toolCalls
+                        }
+                    }
+
+                    if (roundToolCalls.isEmpty() || boundTools.isEmpty()) {
+                        break
+                    }
+
+                    workingHistory += ChatMessage(
+                        role = "assistant",
+                        content = roundText.toString(),
+                        toolCalls = roundToolCalls,
+                    )
+                    if (roundText.isNotEmpty() && !roundText.endsWith("\n")) {
+                        applyChunk(assistantId, ChatChunk(delta = "\n\n"))
+                    }
+
+                    for (tc in roundToolCalls) {
+                        val bound = boundTools[tc.name]
+                        if (bound == null) {
+                            workingHistory += ChatMessage(
+                                role = "tool",
+                                content = "Unknown tool: ${tc.name}",
+                                toolCallId = tc.id,
+                                toolName = tc.name,
+                            )
+                            continue
+                        }
+                        _ui.update {
+                            it.copy(activeToolCallSummary = "${bound.server.name}: ${bound.remoteToolName}")
+                        }
+                        val argsObj = runCatching { JSONObject(tc.argumentsJson) }.getOrElse { JSONObject() }
+                        val resultText = try {
+                            val mcpRes = clientForServer(bound.server).callTool(bound.remoteToolName, argsObj)
+                            if (mcpRes.isError) "Error: ${mcpRes.content}" else mcpRes.content
+                        } catch (e: kotlinx.coroutines.CancellationException) {
+                            throw e
+                        } catch (e: Exception) {
+                            "MCP error: ${e.message ?: e.javaClass.simpleName}"
+                        }
+                        workingHistory += ChatMessage(
+                            role = "tool",
+                            content = resultText,
+                            toolCallId = tc.id,
+                            toolName = tc.name,
+                        )
+                    }
+                    _ui.update { it.copy(activeToolCallSummary = null) }
+                    round++
+                }
+
                 finalizeMessage(assistantId, model)
             } catch (e: kotlinx.coroutines.CancellationException) {
                 throw e
@@ -359,13 +588,16 @@ class ChatViewModel @Inject constructor(
         streamJob?.cancel()
         streamJob = null
         val pending = _ui.value.messages.filter { it.pending }
-        if (pending.isNotEmpty()) {
-            _ui.update { s ->
-                s.copy(
-                    messages = s.messages.map { if (it.pending) it.copy(pending = false) else it },
-                    streaming = false,
-                )
-            }
+        _ui.update { s ->
+            s.copy(
+                messages = if (pending.isNotEmpty()) {
+                    s.messages.map { if (it.pending) it.copy(pending = false) else it }
+                } else {
+                    s.messages
+                },
+                streaming = false,
+                activeToolCallSummary = null,
+            )
         }
     }
 
@@ -406,10 +638,6 @@ class ChatViewModel @Inject constructor(
         }
     }
 
-    /**
-     * The conversation row, created lazily when the first message is persisted
-     * after save is enabled. Null while ephemeral (or before a title exists).
-     */
     private fun ensureConversation(profileId: String, force: Boolean = false): String? {
         conversationId?.let { return it }
         val state = _ui.value
@@ -446,10 +674,9 @@ class ChatViewModel @Inject constructor(
                     if (m.id == assistantId) m.copy(pending = false, model = model) else m
                 },
                 streaming = false,
+                activeToolCallSummary = null,
             )
         }
-        // Persist the completed assistant bubble; the conversation id is only
-        // set when saving is on, so ephemeral chats stop here.
         val conversation = conversationId
         if (conversation != null && assistant != null && assistant.text.isNotBlank()) {
             viewModelScope.launch {
@@ -470,19 +697,18 @@ class ChatViewModel @Inject constructor(
         _ui.update { s ->
             s.copy(
                 streaming = false,
+                activeToolCallSummary = null,
                 messages = s.messages.map { if (it.pending) it.copy(pending = false) else it },
                 error = message,
             )
         }
     }
 
-    /** Base URL of the connected session for this profile (empty when absent). */
     private fun sessionBaseUrl(profileId: String): String =
         openAiSessionManager.getSessionsForProfile(profileId)
             .firstOrNull { it.status == OpenAiSessionManager.SessionState.Status.CONNECTED }
             ?.baseUrl.orEmpty()
 
-    /** JSON array of `{mimeType, base64}` for the attachments column; null for plain text turns. */
     private fun serializeAttachments(images: List<ChatImage>): String? {
         if (images.isEmpty()) return null
         return JSONArray().apply {
@@ -510,6 +736,7 @@ class ChatViewModel @Inject constructor(
     override fun onCleared() {
         streamJob?.cancel()
         conversationsJob?.cancel()
+        mcpServersJob?.cancel()
         super.onCleared()
     }
 }

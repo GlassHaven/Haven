@@ -33,4 +33,13 @@
     <string name="chat_delete_conversation">대화 삭제</string>
     <string name="chat_search_models">모델 검색 또는 ID 입력</string>
     <string name="chat_use_custom_model">"%1$s" 사용</string>
+    <string name="chat_mcp_title">MCP 도구 서버</string>
+    <string name="chat_mcp_empty">구성된 외부 MCP 서버가 없습니다. 아래에 streamable-HTTP MCP 엔드포인트를 추가하세요.</string>
+    <string name="chat_mcp_remove">MCP 서버 제거</string>
+    <string name="chat_mcp_name_hint">서버 이름 (선택 사항)</string>
+    <string name="chat_mcp_url_hint">엔드포인트 URL (https://example.com/mcp)</string>
+    <string name="chat_mcp_token_hint">Bearer 토큰 (선택 사항)</string>
+    <string name="chat_mcp_add">서버 추가</string>
+    <string name="chat_mcp_calling_tool">MCP 도구 실행 중: %1$s</string>
+    <string name="chat_mcp_invalid_url">MCP 엔드포인트 URL은 http:// 또는 https://로 시작해야 합니다</string>
 </resources>

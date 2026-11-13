@@ -33,4 +33,13 @@
     <string name="chat_delete_conversation">Обриши разговор</string>
     <string name="chat_search_models">Претражите или унесите ID модела</string>
     <string name="chat_use_custom_model">Користи "%1$s"</string>
+    <string name="chat_mcp_title">Сервери MCP алата</string>
+    <string name="chat_mcp_empty">Нема подешених спољних MCP сервера. Додајте испод streamable-HTTP MCP крајњу тачку.</string>
+    <string name="chat_mcp_remove">Уклони MCP сервер</string>
+    <string name="chat_mcp_name_hint">Назив сервера (опционо)</string>
+    <string name="chat_mcp_url_hint">URL крајње тачке (https://example.com/mcp)</string>
+    <string name="chat_mcp_token_hint">Bearer токен (опционо)</string>
+    <string name="chat_mcp_add">Додај сервер</string>
+    <string name="chat_mcp_calling_tool">Покретање MCP алата: %1$s</string>
+    <string name="chat_mcp_invalid_url">URL MCP крајње тачке мора почињати са http:// или https://</string>
 </resources>

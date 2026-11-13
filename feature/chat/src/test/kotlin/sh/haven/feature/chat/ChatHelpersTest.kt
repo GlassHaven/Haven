@@ -83,10 +83,14 @@ class ChatHelpersTest {
 
     @Test
     fun `slash commands suggest and parse composer commands`() {
-        assertEquals(5, ChatSlashCommands.suggestionsFor("/").size)
+        assertEquals(6, ChatSlashCommands.suggestionsFor("/").size)
         assertEquals(
             listOf("/model"),
             ChatSlashCommands.suggestionsFor("/mo").map { it.command },
+        )
+        assertEquals(
+            listOf("/mcp"),
+            ChatSlashCommands.suggestionsFor("/mc").map { it.command },
         )
         assertTrue(ChatSlashCommands.suggestionsFor("hello /model").isEmpty())
 
@@ -105,6 +109,10 @@ class ChatHelpersTest {
         assertEquals(
             ChatSlashCommands.ParsedSlashCommand.OpenHistory,
             ChatSlashCommands.parse("/history"),
+        )
+        assertEquals(
+            ChatSlashCommands.ParsedSlashCommand.OpenMcpServers,
+            ChatSlashCommands.parse("/mcp"),
         )
         assertEquals(
             ChatSlashCommands.ParsedSlashCommand.SelectModel(null),

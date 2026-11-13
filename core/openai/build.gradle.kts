@@ -24,6 +24,7 @@ android {
 
 dependencies {
     implementation(project(":core:data"))
+    implementation(project(":core:mcp"))
     implementation(libs.coroutines.core)
     implementation(libs.coroutines.android)
     // Socket-level tunnel routing: HttpURLConnection can't take a SocketFactory

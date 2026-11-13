@@ -1148,8 +1148,17 @@ class BackupServiceTest {
         val savedMsg = slot<sh.haven.core.data.db.entities.ChatMessage>()
         coEvery { chatRepository.saveConversation(capture(savedConv)) } returns Unit
         coEvery { chatRepository.saveMessage(capture(savedMsg)) } returns Unit
+        io.mockk.every { chatRepository.decryptSecretOrNull(any()) } answers { firstArg<String>().removePrefix("ENC:") }
+        io.mockk.every { chatRepository.encryptSecret(any()) } answers { "REENC:${firstArg<String>()}" }
+        dataStore.updateData { prefs ->
+            prefs.toMutablePreferences().apply {
+                this[androidx.datastore.preferences.core.stringPreferencesKey("chat_mcp_servers")] =
+                    """[{"id":"mcp-1","name":"KiCad","url":"https://kicad.lan/mcp","bearerToken":"ENC:tok-77","enabled":true}]"""
+            }
+        }
 
         val encrypted = service.export("pw123")
+        dataStore.updateData { prefs -> prefs.toMutablePreferences().apply { clear() } }
         val result = service.import(encrypted, "pw123")
 
         assertTrue(result.errors.isEmpty())
@@ -1161,6 +1170,12 @@ class BackupServiceTest {
         assertEquals("assistant", savedMsg.captured.role)
         assertEquals("Hello from deepseek:free", savedMsg.captured.content)
         assertEquals("deepseek/deepseek-chat:free", savedMsg.captured.model)
+        var restoredMcpRaw: String? = null
+        dataStore.updateData { prefs ->
+            restoredMcpRaw = prefs[androidx.datastore.preferences.core.stringPreferencesKey("chat_mcp_servers")]
+            prefs
+        }
+        assertTrue("expected re-encrypted token, got: $restoredMcpRaw", restoredMcpRaw?.contains("REENC:tok-77") == true)
     }
 
     @Test

@@ -4,9 +4,10 @@ package sh.haven.core.openai
  * Types for the OpenAI-compatible endpoint client (`sh.haven.core.openai`).
  *
  * Deliberately minimal: only the shapes this codebase consumes
- * (`/v1/models`, `/v1/chat/completions` streaming + one-shot). Anything the
- * server sends beyond these fields is ignored, so servers like llama-server
- * and CLIProxyAPI that add extra properties keep working.
+ * (`/v1/models`, `/v1/chat/completions` streaming + one-shot, plus tool
+ * definitions and tool-call turns for #807). Anything the server sends beyond
+ * these fields is ignored, so servers like llama-server and CLIProxyAPI that
+ * add extra properties keep working.
  */
 
 data class ModelInfo(
@@ -26,12 +27,37 @@ data class ChatImage(
     val base64: String,
 )
 
+/**
+ * Tool schema advertised to the model during chat completions (#807).
+ * [inputSchemaJson] is a JSON Schema object string (`{"type":"object",...}`).
+ */
+data class ChatToolSpec(
+    val name: String,
+    val description: String = "",
+    val inputSchemaJson: String = """{"type":"object","properties":{}}""",
+)
+
+/**
+ * One tool invocation emitted by the assistant (#807).
+ */
+data class ChatToolCall(
+    val id: String,
+    val name: String,
+    val argumentsJson: String,
+)
+
 data class ChatMessage(
-    /** "user" / "assistant" / "system". */
+    /** "user" / "assistant" / "system" / "tool". */
     val role: String,
     val content: String,
     /** Images attached to this turn (vision). Empty for plain text turns. */
     val images: List<ChatImage> = emptyList(),
+    /** Tool invocations requested on an "assistant" turn (#807). */
+    val toolCalls: List<ChatToolCall> = emptyList(),
+    /** Correlating call ID for a "tool" result turn (#807). */
+    val toolCallId: String? = null,
+    /** Function/tool name for a "tool" result turn (used by Ollama & Gemini, #807). */
+    val toolName: String? = null,
 )
 
 /**
@@ -42,6 +68,8 @@ data class ChatChunk(
     /** Text delta for this chunk; empty for role-only keep-alives. */
     val delta: String,
     val finishReason: String? = null,
+    /** Completed tool invocations flushed at end-of-turn (#807). */
+    val toolCalls: List<ChatToolCall> = emptyList(),
 )
 
 /**

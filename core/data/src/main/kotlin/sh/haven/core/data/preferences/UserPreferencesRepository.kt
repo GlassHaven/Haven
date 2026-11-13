@@ -103,6 +103,8 @@ class UserPreferencesRepository @Inject constructor(
     private val backupSyncPassphraseKey = stringPreferencesKey("backup_sync_passphrase")
     // CredentialEncryption-wrapped device secret signing Tasker/MacroDroid action bundles.
     private val taskerPluginSecretKey = stringPreferencesKey("tasker_plugin_secret")
+    // External streamable-HTTP MCP servers for AI chat tool execution (#807).
+    private val chatMcpServersKey = stringPreferencesKey(ChatMcpServerConfig.PREF_KEY_NAME)
     // Session command for the Custom (X11) desktop (#361).
     private val customDesktopCommandKey = stringPreferencesKey("custom_desktop_command")
     // Which backend the Desktop screen's primary "Start" uses: "quick" (UML)
@@ -558,6 +560,24 @@ class UserPreferencesRepository @Inject constructor(
             // CredentialEncryption.isEncrypted's catch.
             null
         }
+
+    /** External streamable-HTTP MCP servers configured for AI chat tool calls (#807). */
+    val chatMcpServers: Flow<List<ChatMcpServerConfig>> = dataStore.data.map { prefs ->
+        ChatMcpServerConfig.decodeList(prefs[chatMcpServersKey], ::decryptSyncPassphraseOrNull)
+    }
+
+    suspend fun setChatMcpServers(servers: List<ChatMcpServerConfig>) {
+        val encoded = ChatMcpServerConfig.encodeList(servers) { plain ->
+            CredentialEncryption.encrypt(context, plain)
+        }
+        dataStore.edit { prefs ->
+            if (servers.isEmpty()) {
+                prefs.remove(chatMcpServersKey)
+            } else {
+                prefs[chatMcpServersKey] = encoded
+            }
+        }
+    }
 
     /**
      * Emits the current state on collect and again on every preferences write —

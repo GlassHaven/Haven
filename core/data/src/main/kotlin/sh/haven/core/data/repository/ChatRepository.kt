@@ -66,6 +66,12 @@ class ChatRepository @Inject constructor(
         conversationDao.deleteByProfileId(profileId)
     }
 
+    /** Encrypt a chat-scoped secret (e.g. an external MCP server bearer token, #807). */
+    fun encryptSecret(plain: String): String = CredentialEncryption.encrypt(context, plain)
+
+    /** Decrypt a chat-scoped secret, returning null if unreadable on this device (#807). */
+    fun decryptSecretOrNull(cipher: String): String? = CredentialEncryption.decryptOrNull(context, cipher)
+
     private fun encryptConversation(conversation: ChatConversation) = conversation.copy(
         title = CredentialEncryption.encrypt(context, conversation.title),
     )

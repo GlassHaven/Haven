@@ -1036,7 +1036,17 @@ class TerminalViewModelTest {
             assertEquals(SplitSide.LEFT, swapped.focusedSide)
 
             // Closing s3 (left pane) auto-unsplits to Single and focuses surviving right pane s2 (now index 0).
+            // closeTab on an SSH tab hops to real Dispatchers.IO (explicit detach +
+            // syncSessions profile batch), so advanceUntilIdle alone can return
+            // before Dispatchers.IO posts back to testDispatcher (#465).
             vm.closeTab(s3)
+            val deadline = System.currentTimeMillis() + 2_000
+            while (vm.paneLayout.value != PaneLayout.Single &&
+                System.currentTimeMillis() < deadline
+            ) {
+                testDispatcher.scheduler.advanceUntilIdle()
+                Thread.sleep(10)
+            }
             testDispatcher.scheduler.advanceUntilIdle()
             assertEquals(PaneLayout.Single, vm.paneLayout.value)
             assertEquals(s2, vm.tabs.value[vm.activeTabIndex.value].sessionId)

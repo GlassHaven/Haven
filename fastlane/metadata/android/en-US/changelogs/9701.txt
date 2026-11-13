@@ -1,0 +1,2 @@
+- Add QEMU 11.1.3 + Virgl/Venus GPU acceleration (std, virgl, venus), OVMF UEFI firmware, swtpm TPM 2.0, and a one-tap /opt/qemu11 upgrade action for System VMs (#829, thanks @pixel4696).
+- Add a 100 ms hold delay before latched Swipe selection starts and tune command-line (48 dp) and horizontal cursor (18 dp) swipe thresholds (#736, thanks @excurso).

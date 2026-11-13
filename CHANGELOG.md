@@ -5,6 +5,11 @@ the corresponding GitHub Release; a release can't ship without its section
 (enforced by `scripts/check-changelog.sh` in CI). The GitHub "Full Changelog"
 compare link is appended automatically — don't add it here.
 
+## v5.94.45
+
+- Add QEMU 11.1.3 and Virgl/Venus GPU acceleration (`gpuMode = std | virgl | venus` via Android's native `libvirgl_render_server.so` socket), a PRoot `EGL_PLATFORM_SURFACELESS_MESA` + `EGL_PBUFFER_BIT` patch for `-display egl-headless`, OVMF UEFI `pflash` firmware, and `swtpm` TPM 2.0 support across System VM import/boot, `Desktop -> Manage -> System VM`, and MCP tools (`upgrade_system_vm_qemu`, `import_system_vm_image`, `start_system_vm`) (#829, thanks @pixel4696).
+- Add a 100 ms initial hold delay before latched `Swipe` selection activates, widen vertical command-line history swipe steps to `48 dp`, and widen horizontal character-cursor swipe steps to `18 dp` (#736, thanks @excurso).
+
 ## v5.94.44
 
 - Execute tools from external streamable-HTTP MCP (`2025-06-18`) servers during OpenAI, Ollama, Anthropic, and Gemini chat completions, with encrypted `Bearer` token storage, portable decrypted backup export and re-encrypted import, an `/mcp` slash command, and a bounded 8-round tool execution loop (#807, thanks @n1x0l4s).

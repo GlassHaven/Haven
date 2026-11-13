@@ -3070,7 +3070,21 @@ internal fun buildTerminalGestureCallback(
                 shift = isShiftActive(),
             )
 
-        override fun prefersRowHeightScrollQuantum(): Boolean = swipeArrowsMode
+        override fun prefersRowHeightScrollQuantum(): Boolean = swipeArrowsMode && isAltScreen
+
+        override fun verticalSingleTouchSwipeMode(): org.connectbot.terminal.SingleTouchSwipeMode =
+            when {
+                !swipeArrowsMode -> org.connectbot.terminal.SingleTouchSwipeMode.Default
+                isAltScreen -> org.connectbot.terminal.SingleTouchSwipeMode.TrackFingerByRowHeight
+                else -> org.connectbot.terminal.SingleTouchSwipeMode.SingleStepWithReversal
+            }
+
+        override fun horizontalSingleTouchSwipeMode(): org.connectbot.terminal.SingleTouchSwipeMode =
+            if (swipeArrowsMode) {
+                org.connectbot.terminal.SingleTouchSwipeMode.SingleStepWithReversal
+            } else {
+                org.connectbot.terminal.SingleTouchSwipeMode.Default
+            }
 
         override fun onHorizontalScroll(col: Int, row: Int, scrollLeft: Boolean): Boolean {
             if (!swipeArrowsMode) return false

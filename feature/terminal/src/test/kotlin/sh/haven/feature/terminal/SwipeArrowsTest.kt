@@ -226,13 +226,13 @@ class SwipeArrowsTest {
         }
 
     /**
-     * #736 second half: latched swipeArrowsMode requests row-height continuous
-     * drag quantization (`prefersRowHeightScrollQuantum() == true`) and maps
-     * single-touch `onHorizontalScroll` with the same prompt-literal vs
-     * alt-screen page-slide rule and Shift modifier as vertical/held swipes.
+     * #736 follow-up: latched swipeArrowsMode uses continuous row-height finger
+     * tracking only for vertical swipes inside an alt-screen TUI, while vertical
+     * swipes at the command line (`!isAltScreen`) and horizontal swipes in both
+     * TUI and command line use single-step-with-reversal (`SingleStepWithReversal`).
      */
     @Test
-    fun `latched swipeArrowsMode enables row-height quantum and routes horizontal continuous scroll`() =
+    fun `latched swipeArrowsMode uses TUI vertical row quantum and single-step command-line and horizontal modes`() =
         kotlinx.coroutines.test.runTest {
             val sent = mutableListOf<String>()
             var altScreen = true
@@ -250,7 +250,14 @@ class SwipeArrowsTest {
                 sendInput = { sent += String(it, Charsets.ISO_8859_1) },
             )!!
 
-            assertTrue(cb.prefersRowHeightScrollQuantum())
+            assertEquals(
+                org.connectbot.terminal.SingleTouchSwipeMode.TrackFingerByRowHeight,
+                cb.verticalSingleTouchSwipeMode(),
+            )
+            assertEquals(
+                org.connectbot.terminal.SingleTouchSwipeMode.SingleStepWithReversal,
+                cb.horizontalSingleTouchSwipeMode(),
+            )
             // Finger dragged LEFT (`scrollLeft = false`) inside alt-screen TUI (`htop`/`lnav`)
             // slides the page left -> view moves right -> Right arrow (`ESC[C`).
             assertTrue(cb.onHorizontalScroll(4, 2, scrollLeft = false))
@@ -263,7 +270,8 @@ class SwipeArrowsTest {
             assertEquals(listOf("\u001b[1;2C"), sent)
             sent.clear()
 
-            // At a bare shell prompt (`isAltScreen = false`), finger dragged LEFT sends literal Left (`ESC[D`).
+            // At a bare shell prompt (`isAltScreen = false`), both vertical and horizontal
+            // single-touch swipes use SingleStepWithReversal, and finger dragged LEFT sends literal Left (`ESC[D`).
             val promptCb = buildTerminalGestureCallback(
                 isMouseMode = false,
                 isAltScreen = false,
@@ -276,7 +284,14 @@ class SwipeArrowsTest {
                 coroutineScope = this,
                 sendInput = { sent += String(it, Charsets.ISO_8859_1) },
             )!!
-            assertTrue(promptCb.prefersRowHeightScrollQuantum())
+            assertEquals(
+                org.connectbot.terminal.SingleTouchSwipeMode.SingleStepWithReversal,
+                promptCb.verticalSingleTouchSwipeMode(),
+            )
+            assertEquals(
+                org.connectbot.terminal.SingleTouchSwipeMode.SingleStepWithReversal,
+                promptCb.horizontalSingleTouchSwipeMode(),
+            )
             assertTrue(promptCb.onHorizontalScroll(4, 2, scrollLeft = false))
             assertEquals(listOf("\u001b[D"), sent)
         }

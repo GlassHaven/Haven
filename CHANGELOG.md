@@ -5,6 +5,12 @@ the corresponding GitHub Release; a release can't ship without its section
 (enforced by `scripts/check-changelog.sh` in CI). The GitHub "Full Changelog"
 compare link is appended automatically — don't add it here.
 
+## v5.94.44
+
+- Execute tools from external streamable-HTTP MCP (`2025-06-18`) servers during OpenAI, Ollama, Anthropic, and Gemini chat completions, with encrypted `Bearer` token storage, portable decrypted backup export and re-encrypted import, an `/mcp` slash command, and a bounded 8-round tool execution loop (#807, thanks @n1x0l4s).
+- Rename the `LOCAL` transport dropdown label from `Local Shell (PRoot)` to `Local Shell` and preserve Android's inherited `PATH` alongside `/system/xbin`, `/sbin`, `/su/bin`, and `/debug_ramdisk` in `Android` shell mode (#842, thanks @zol-c).
+- Sync `wayland-android/virglrenderer` with 32 upstream `virgl/virglrenderer` commits covering guest integer-overflow bounds checks, Venus `vkr` SHM-fd resource allocation, and GLES `glReadPixels` cursor readback (#829, thanks @pixel4696).
+
 ## v5.94.43
 
 - Add a `Guest Services` card under `Desktop` with Start, Stop, and Remove controls plus a one-tap MariaDB `127.0.0.1:3306` preset across Alpine, Debian/Ubuntu, Arch, and Void (`--no-defaults --user=root --innodb-use-native-aio=0` and `/root/.my.cnf`) (#734, thanks @sugerpersion).

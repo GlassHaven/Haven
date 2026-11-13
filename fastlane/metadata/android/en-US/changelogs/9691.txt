@@ -1,0 +1,3 @@
+- Execute external streamable-HTTP MCP server tools during OpenAI, Ollama, Anthropic, and Gemini chat completions via `/mcp` and encrypted server profiles (#807, thanks @n1x0l4s).
+- Rename `Local Shell (PRoot)` to `Local Shell` in the transport picker and preserve Android's `PATH` plus `/system/xbin` and `/sbin` in `Android` shell mode (#842, thanks @zol-c).
+- Sync `virglrenderer` with 32 upstream security, Venus `vkr` SHM-fd, and GLES cursor fixes (#829).

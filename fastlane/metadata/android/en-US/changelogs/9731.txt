@@ -1,0 +1,1 @@
+- Omit non-shaping format controls such as U+FFF9 from terminal rendering so they no longer draw a missing-glyph box over the next cell.

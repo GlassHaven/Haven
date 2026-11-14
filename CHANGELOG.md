@@ -5,6 +5,10 @@ the corresponding GitHub Release; a release can't ship without its section
 (enforced by `scripts/check-changelog.sh` in CI). The GitHub "Full Changelog"
 compare link is appended automatically — don't add it here.
 
+## v5.94.48
+
+- Omit non-shaping format controls such as U+FFF9 from terminal rendering so they no longer draw a missing-glyph box over the next cell.
+
 ## v5.94.47
 
 - Add unprivileged ICMP and ICMPv6 Echo Request port knocking (`<size>/icmp`, `<size>x<count>:icmp`, `icmp+h`, and `icmp+ip`) across SSH, RDP, VNC, SPICE, GLKVM, SMB, and MCP tools (#846, thanks @NeshikRUS).

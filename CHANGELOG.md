@@ -5,6 +5,10 @@ the corresponding GitHub Release; a release can't ship without its section
 (enforced by `scripts/check-changelog.sh` in CI). The GitHub "Full Changelog"
 compare link is appended automatically — don't add it here.
 
+## v5.94.50
+
+- Surface the guest storage-share toggle in the local shell's connection editor, so you can stop the guest reaching your shared storage without opening the desktop settings (#849).
+
 ## v5.94.49
 
 - Refresh the system file picker's list of storage roots when sessions connect or disconnect, so newly connected remote storage appears without reopening the picker (#698).

@@ -14,6 +14,14 @@ import dagger.hilt.EntryPoint
 import dagger.hilt.InstallIn
 import dagger.hilt.android.EntryPointAccessors
 import dagger.hilt.components.SingletonComponent
+import kotlinx.coroutines.CoroutineScope
+import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.Job
+import kotlinx.coroutines.SupervisorJob
+import kotlinx.coroutines.flow.StateFlow
+import kotlinx.coroutines.flow.map
+import kotlinx.coroutines.flow.merge
+import kotlinx.coroutines.launch
 import kotlinx.coroutines.runBlocking
 import sh.haven.core.data.repository.ConnectionRepository
 import sh.haven.core.et.EtSessionManager
@@ -80,6 +88,10 @@ class HavenDocumentsProvider : DocumentsProvider() {
         )
     }
 
+    // Lives as long as the provider (process lifetime); the roots watcher
+    // collects session flows on it.
+    private val providerScope = CoroutineScope(SupervisorJob() + Dispatchers.Default)
+
     companion object {
         private val AUTHORITY = BuildConfig.APPLICATION_ID + ".provider"
         internal const val LOCAL_HOME_ROOT_ID = "local-home"
@@ -141,7 +153,27 @@ class HavenDocumentsProvider : DocumentsProvider() {
             }
     }
 
-    override fun onCreate(): Boolean = true
+    override fun onCreate(): Boolean {
+        // #698: an open picker keeps the roots it queried at open time, so a
+        // session connected afterwards never appears until it is reopened.
+        // Watch the session managers and notify the roots URI on change.
+        runCatching {
+            val ep = entryPoint
+            RootsChangeWatcher(
+                sessionFlows = listOf(
+                    ep.sshSessionManager().sessions,
+                    ep.moshSessionManager().sessions,
+                    ep.etSessionManager().sessions,
+                    ep.smbSessionManager().sessions,
+                    ep.rcloneSessionManager().sessions,
+                    ep.localSessionManager().sessions,
+                ),
+                rootsSnapshot = { collectRootDescriptors(ep, context!!.filesDir) },
+                onRootsChanged = ::notifyRootsChanged,
+            ).start(providerScope)
+        }.onFailure { Log.w(TAG, "Roots watcher not started", it) }
+        return true
+    }
 
     override fun queryRoots(projection: Array<out String>?): Cursor {
         val cols = projection ?: ROOT_PROJECTION
@@ -1082,5 +1114,37 @@ class HavenDocumentsProvider : DocumentsProvider() {
     private fun notifyChange(docId: String) {
         val uri = DocumentsContract.buildDocumentUri(AUTHORITY, docId)
         context?.contentResolver?.notifyChange(uri, null)
+    }
+
+    private fun notifyRootsChanged() {
+        val uri = DocumentsContract.buildRootsUri(AUTHORITY)
+        context?.contentResolver?.notifyChange(uri, null)
+    }
+}
+
+/**
+ * #698: the SAF picker queries roots once when it opens and never re-queries
+ * unless the roots URI is notified. Session state churns constantly
+ * (connecting/reconnecting), so compare full root snapshots and notify only
+ * when the visible root set actually changes.
+ */
+internal class RootsChangeWatcher(
+    private val sessionFlows: List<StateFlow<Map<String, *>>>,
+    private val rootsSnapshot: () -> List<HavenDocumentsProvider.RootDescriptor>,
+    private val onRootsChanged: () -> Unit,
+) {
+    private var lastRoots: List<HavenDocumentsProvider.RootDescriptor> = emptyList()
+
+    fun start(scope: CoroutineScope): Job {
+        lastRoots = rootsSnapshot()
+        return scope.launch {
+            sessionFlows.map { flow -> flow.map { } }.merge().collect {
+                val current = rootsSnapshot()
+                if (current != lastRoots) {
+                    lastRoots = current
+                    onRootsChanged()
+                }
+            }
+        }
     }
 }

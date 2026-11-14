@@ -4,7 +4,10 @@ import android.provider.DocumentsContract.Document
 import io.mockk.every
 import io.mockk.mockk
 import io.mockk.verify
+import kotlinx.coroutines.ExperimentalCoroutinesApi
 import kotlinx.coroutines.flow.MutableStateFlow
+import kotlinx.coroutines.test.advanceUntilIdle
+import kotlinx.coroutines.test.runTest
 import org.junit.After
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertFalse
@@ -325,5 +328,90 @@ class HavenDocumentsProviderTest {
 
         provider.deleteDoc("prof-gdrive:/docs/archive", entryPoint, filesDir)
         verify { rcloneClient.deleteDir("gdrive", "docs/archive") }
+    }
+
+    // --- #698: roots-change watcher ---
+
+    private fun sshSessionState(
+        sessionId: String,
+        profileId: String,
+        status: SshSessionManager.SessionState.Status,
+        label: String = "Test SSH",
+    ) = SshSessionManager.SessionState(
+        sessionId = sessionId,
+        profileId = profileId,
+        label = label,
+        status = status,
+        client = mockk(relaxed = true),
+    )
+
+    @OptIn(ExperimentalCoroutinesApi::class)
+    @Test
+    fun `roots watcher notifies on connect and disconnect`() = runTest {
+        val sshFlow = MutableStateFlow<Map<String, SshSessionManager.SessionState>>(emptyMap())
+        every { sshSessionManager.sessions } returns sshFlow
+        var notifications = 0
+        val watcherJob = RootsChangeWatcher(
+            sessionFlows = listOf(sshFlow),
+            rootsSnapshot = { provider.collectRootDescriptors(entryPoint, filesDir) },
+            onRootsChanged = { notifications++ },
+        ).start(this)
+        advanceUntilIdle()
+        // Baseline snapshot at start; the initial flow emission matches it.
+        assertEquals(0, notifications)
+
+        sshFlow.value = mapOf(
+            "s1" to sshSessionState("s1", "prof-1", SshSessionManager.SessionState.Status.CONNECTED),
+        )
+        advanceUntilIdle()
+        assertEquals(1, notifications)
+
+        sshFlow.value = emptyMap()
+        advanceUntilIdle()
+        assertEquals(2, notifications)
+        watcherJob.cancel()
+    }
+
+    @OptIn(ExperimentalCoroutinesApi::class)
+    @Test
+    fun `roots watcher ignores churn that leaves the root set unchanged`() = runTest {
+        val sshFlow = MutableStateFlow<Map<String, SshSessionManager.SessionState>>(emptyMap())
+        every { sshSessionManager.sessions } returns sshFlow
+        var notifications = 0
+        val watcherJob = RootsChangeWatcher(
+            sessionFlows = listOf(sshFlow),
+            rootsSnapshot = { provider.collectRootDescriptors(entryPoint, filesDir) },
+            onRootsChanged = { notifications++ },
+        ).start(this)
+        advanceUntilIdle()
+
+        // A connecting session is not a root yet, and neither is its label change.
+        sshFlow.value = mapOf(
+            "s1" to sshSessionState("s1", "prof-1", SshSessionManager.SessionState.Status.CONNECTING),
+        )
+        advanceUntilIdle()
+        sshFlow.value = mapOf(
+            "s1" to sshSessionState(
+                "s1", "prof-1", SshSessionManager.SessionState.Status.CONNECTING, label = "Renamed",
+            ),
+        )
+        advanceUntilIdle()
+        assertEquals(0, notifications)
+
+        // Connect: one notification.
+        sshFlow.value = mapOf(
+            "s1" to sshSessionState("s1", "prof-1", SshSessionManager.SessionState.Status.CONNECTED),
+        )
+        advanceUntilIdle()
+        assertEquals(1, notifications)
+
+        // An extra connecting session alongside the connected one changes nothing.
+        sshFlow.value = mapOf(
+            "s1" to sshSessionState("s1", "prof-1", SshSessionManager.SessionState.Status.CONNECTED),
+            "s2" to sshSessionState("s2", "prof-2", SshSessionManager.SessionState.Status.CONNECTING),
+        )
+        advanceUntilIdle()
+        assertEquals(1, notifications)
+        watcherJob.cancel()
     }
 }

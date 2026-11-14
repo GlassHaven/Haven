@@ -475,6 +475,8 @@
     <string name="connections_vm_terminal_not_found">Terminal-App nicht gefunden</string>
     <string name="connections_mcp_badge">MCP</string>
     <string name="connections_local_distro_label">In Betriebssystem öffnen</string>
+    <string name="connections_local_share_storage_title">Gerätespeicher freigeben</string>
+    <string name="connections_local_share_storage_description">Hängt Ihren freigegebenen Speicher unter /storage und /sdcard in den Gast ein, damit er auf Ihre Dateien zugreifen kann. Gilt für alle lokalen Shells beim nächsten Start. Ausschalten, um Ihre Fotos und Downloads vor dem Gast zu verbergen.</string>
     <string name="connections_local_distro_active_default">Aktive Distribution (Standard)</string>
 
     <string name="connections_section_openai">KI-Endpunkt</string>

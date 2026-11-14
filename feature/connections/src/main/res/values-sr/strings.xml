@@ -428,6 +428,8 @@
     <string name="connections_local_shell_android_desc">Покреће својствену Андроид љуску (/system/bin/sh). Приступа Андроид командама, фајл систему и root (ако је доступно).</string>
     <string name="connections_local_shell_proot_desc">Покреће Алпајн Линукс љуску локално помоћу PRoot. Приликом прве употребе преузима минимални rootfs (~4MB). Није потребан root приступ или мрежна веза.</string>
     <string name="connections_local_distro_label">Отвори у ОС</string>
+    <string name="connections_local_share_storage_title">Дели меморију уређаја</string>
+    <string name="connections_local_share_storage_description">Монтира дељену меморију у госту на /storage и /sdcard да би могао да приступи твојим датотекама. Важи за све локалне љуске при следећем покретању. Искључи да сакријеш слике и преузимања од госта.</string>
     <string name="connections_local_distro_active_default">Активна дистрибуција (подразумевано)</string>
     <string name="connections_dropdown_select_provider">Изаберите пружаоца…</string>
     <string name="connections_helper_rclone_signin">Пријавите се у свом прегледачу приликом првог повезивања.</string>

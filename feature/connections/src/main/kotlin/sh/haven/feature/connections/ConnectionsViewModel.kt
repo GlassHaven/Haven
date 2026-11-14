@@ -3659,6 +3659,19 @@ class ConnectionsViewModel @Inject constructor(
     }
 
     /**
+     * Guest-wide "share device storage" preference (#301, #849). Surfaced
+     * here so a LOCAL profile's editor can reach it without the desktop
+     * screen. Global, not per-profile: applies to every local shell on the
+     * next launch. Mirrors DesktopViewModel.shareStorageWithGuest.
+     */
+    val shareStorageWithGuest: StateFlow<Boolean> =
+        localSessionManager.prootManager.shareStorageWithGuestFlow
+
+    fun setShareStorageWithGuest(enabled: Boolean) {
+        localSessionManager.prootManager.setShareStorageWithGuest(enabled)
+    }
+
+    /**
      * Delete a distro's rootfs. Reclaims the disk space and is the
      * recovery path when an install lands in a broken state. If the
      * deleted distro was active, ProotManager switches to the first

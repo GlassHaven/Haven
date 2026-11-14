@@ -475,6 +475,8 @@
     <string name="connections_vm_terminal_not_found">ターミナルアプリが見つかりません</string>
     <string name="connections_mcp_badge">MCP</string>
     <string name="connections_local_distro_label">OSで開く</string>
+    <string name="connections_local_share_storage_title">デバイスのストレージを共有</string>
+    <string name="connections_local_share_storage_description">共有ストレージをゲストの /storage と /sdcard にマウントし、ファイルにアクセスできるようにします。次回の起動時にすべてのローカルシェルに適用されます。オフにすると、写真やダウンロードをゲストから隠せます。</string>
     <string name="connections_local_distro_active_default">アクティブなディストロ（デフォルト）</string>
 
     <string name="connections_section_openai">AIエンドポイント</string>

@@ -475,6 +475,8 @@
     <string name="connections_vm_terminal_not_found">Приложение «Терминал» не найдено</string>
     <string name="connections_mcp_badge">MCP</string>
     <string name="connections_local_distro_label">Открыть в ОС</string>
+    <string name="connections_local_share_storage_title">Открыть доступ к хранилищу устройства</string>
+    <string name="connections_local_share_storage_description">Подключает общее хранилище в гостевой системе в /storage и /sdcard, чтобы она могла читать ваши файлы. Применяется ко всем локальным оболочкам при следующем запуске. Отключите, чтобы скрыть фото и загрузки от гостевой системы.</string>
     <string name="connections_local_distro_active_default">Активный дистрибутив (по умолчанию)</string>
 
     <string name="connections_section_openai">AI-эндпоинт</string>

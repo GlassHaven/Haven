@@ -516,6 +516,8 @@
     <string name="connections_local_shell_android_desc">Runs the native Android shell (/system/bin/sh). Access Android commands, file system, and root (if available).</string>
     <string name="connections_local_shell_proot_desc">Runs an Alpine Linux shell locally via PRoot. Downloads a minimal rootfs (~4MB) on first use. No root or network connection needed.</string>
     <string name="connections_local_distro_label">Open in OS</string>
+    <string name="connections_local_share_storage_title">Share device storage</string>
+    <string name="connections_local_share_storage_description">Mounts your shared storage into the guest at /storage and /sdcard so it can reach your files. Applies to all local shells, on next launch. Turn off to hide your photos and downloads from the guest.</string>
     <string name="connections_local_distro_active_default">Active distro (default)</string>
     <string name="connections_dropdown_select_provider">Select provider…</string>
     <string name="connections_helper_rclone_signin">Sign in via your browser when you first connect.</string>

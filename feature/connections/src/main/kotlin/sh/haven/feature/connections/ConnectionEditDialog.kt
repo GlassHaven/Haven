@@ -142,6 +142,9 @@ fun ConnectionEditDialog(
     tunnelConfigs: List<sh.haven.core.data.db.entities.TunnelConfig> = emptyList(),
     /** Installed distros `(id, label)` for a LOCAL profile's "open in" picker. */
     availableDistros: List<Pair<String, String>> = emptyList(),
+    /** Guest-wide storage-share toggle (#849); live setting, not a profile field. */
+    shareStorageWithGuest: Boolean = true,
+    onSetShareStorageWithGuest: (Boolean) -> Unit = {},
     /** Attached phone USB devices `(vidPid, label)` for the SSH USB-forward picker. */
     usbDevices: List<Pair<String, String>> = emptyList(),
     /**
@@ -1455,6 +1458,19 @@ fun ConnectionEditDialog(
                                 }
                             }
                         }
+                    }
+                    // Guest-wide storage share (#849): reachable here so the
+                    // desktop screen is not required. Applies to all local
+                    // shells on next launch, so it writes through immediately
+                    // rather than waiting for Save.
+                    if (isProotShell) {
+                        Spacer(Modifier.height(8.dp))
+                        BooleanToggleRow(
+                            label = stringResource(R.string.connections_local_share_storage_title),
+                            description = stringResource(R.string.connections_local_share_storage_description),
+                            checked = shareStorageWithGuest,
+                            onCheckedChange = onSetShareStorageWithGuest,
+                        )
                     }
                 } else if (connectionType == "BTSERIAL") {
                     BtSerialDeviceField(

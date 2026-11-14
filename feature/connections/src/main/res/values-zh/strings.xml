@@ -473,6 +473,8 @@
     <string name="connections_vm_terminal_not_found">未找到终端应用</string>
     <string name="connections_mcp_badge">MCP</string>
     <string name="connections_local_distro_label">在系统中打开</string>
+    <string name="connections_local_share_storage_title">共享设备存储</string>
+    <string name="connections_local_share_storage_description">将你的共享存储挂载到客户机的 /storage 和 /sdcard，使其能够访问你的文件。下次启动时对所有本地 shell 生效。关闭可向客户机隐藏你的照片和下载内容。</string>
     <string name="connections_local_distro_active_default">活动发行版（默认）</string>
 
     <string name="connections_section_openai">AI 端点</string>

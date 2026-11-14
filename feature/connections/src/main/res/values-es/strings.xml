@@ -475,6 +475,8 @@
     <string name="connections_vm_terminal_not_found">App Terminal no encontrada</string>
     <string name="connections_mcp_badge">MCP</string>
     <string name="connections_local_distro_label">Abrir en SO</string>
+    <string name="connections_local_share_storage_title">Compartir almacenamiento del dispositivo</string>
+    <string name="connections_local_share_storage_description">Monta tu almacenamiento compartido en el invitado en /storage y /sdcard para que pueda acceder a tus archivos. Se aplica a todas las shells locales en el próximo inicio. Desactívalo para ocultar tus fotos y descargas al invitado.</string>
     <string name="connections_local_distro_active_default">Distro activa (predeterminado)</string>
 
     <string name="connections_section_openai">Punto de conexión de IA</string>

@@ -475,6 +475,8 @@
     <string name="connections_vm_terminal_not_found">Application Terminal introuvable</string>
     <string name="connections_mcp_badge">MCP</string>
     <string name="connections_local_distro_label">Ouvrir dans l\'OS</string>
+    <string name="connections_local_share_storage_title">Partager le stockage de l\'appareil</string>
+    <string name="connections_local_share_storage_description">Monte ton stockage partagé dans l\'invité à /storage et /sdcard pour qu\'il puisse accéder à tes fichiers. S\'applique à tous les shells locaux au prochain lancement. Désactive pour masquer tes photos et téléchargements à l\'invité.</string>
     <string name="connections_local_distro_active_default">Distribution active (par défaut)</string>
 
     <string name="connections_section_openai">Point de terminaison IA</string>

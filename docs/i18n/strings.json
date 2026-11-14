@@ -18844,6 +18844,46 @@
      }
     },
     {
+     "name": "connections_local_share_storage_title",
+     "en": "Share device storage",
+     "comment": "Connection edit dialog: remaining field labels, toggles and helper text.",
+     "args": [],
+     "t": {
+      "ar": "مشاركة تخزين الجهاز",
+      "bn": "ডিভাইস স্টোরেজ শেয়ার করুন",
+      "de": "Gerätespeicher freigeben",
+      "es": "Compartir almacenamiento del dispositivo",
+      "fr": "Partager le stockage de l\\'appareil",
+      "hi": "डिवाइस स्टोरेज साझा करें",
+      "ja": "デバイスのストレージを共有",
+      "ko": "기기 저장소 공유",
+      "pt": "Compartilhar armazenamento do dispositivo",
+      "ru": "Открыть доступ к хранилищу устройства",
+      "sr": "Дели меморију уређаја",
+      "zh": "共享设备存储"
+     }
+    },
+    {
+     "name": "connections_local_share_storage_description",
+     "en": "Mounts your shared storage into the guest at /storage and /sdcard so it can reach your files. Applies to all local shells, on next launch. Turn off to hide your photos and downloads from the guest.",
+     "comment": "Connection edit dialog: remaining field labels, toggles and helper text.",
+     "args": [],
+     "t": {
+      "ar": "يضمّن التخزين المشترك في النظام الضيف على /storage و/sdcard ليصل إلى ملفاتك. يسري على جميع الأصداف المحلية عند التشغيل التالي. أوقفه لإخفاء صورك وتنزيلاتك عن النظام الضيف.",
+      "bn": "আপনার শেয়ার করা স্টোরেজ গেস্টে /storage এবং /sdcard-এ মাউন্ট করে যাতে এটি আপনার ফাইল পড়তে পারে। পরবর্তী চালুতে সব লোকাল শেলে প্রযোজ্য। গেস্ট থেকে আপনার ছবি ও ডাউনলোড লুকাতে বন্ধ করুন।",
+      "de": "Hängt Ihren freigegebenen Speicher unter /storage und /sdcard in den Gast ein, damit er auf Ihre Dateien zugreifen kann. Gilt für alle lokalen Shells beim nächsten Start. Ausschalten, um Ihre Fotos und Downloads vor dem Gast zu verbergen.",
+      "es": "Monta tu almacenamiento compartido en el invitado en /storage y /sdcard para que pueda acceder a tus archivos. Se aplica a todas las shells locales en el próximo inicio. Desactívalo para ocultar tus fotos y descargas al invitado.",
+      "fr": "Monte ton stockage partagé dans l\\'invité à /storage et /sdcard pour qu\\'il puisse accéder à tes fichiers. S\\'applique à tous les shells locaux au prochain lancement. Désactive pour masquer tes photos et téléchargements à l\\'invité.",
+      "hi": "आपके साझा स्टोरेज को गेस्ट में /storage और /sdcard पर माउंट करता है ताकि वह आपकी फ़ाइलें पढ़ सके। अगले लॉन्च पर सभी लोकल शेल पर लागू। गेस्ट से अपनी फ़ोटो और डाउनलोड छिपाने के लिए बंद करें।",
+      "ja": "共有ストレージをゲストの /storage と /sdcard にマウントし、ファイルにアクセスできるようにします。次回の起動時にすべてのローカルシェルに適用されます。オフにすると、写真やダウンロードをゲストから隠せます。",
+      "ko": "공유 저장소를 게스트의 /storage 및 /sdcard에 마운트하여 파일에 접근할 수 있게 합니다. 다음 실행 시 모든 로컬 셸에 적용됩니다. 끄면 사진과 다운로드를 게스트에서 숨길 수 있습니다.",
+      "pt": "Monta seu armazenamento compartilhado no convidado em /storage e /sdcard para que ele acesse seus arquivos. Aplica-se a todos os shells locais na próxima inicialização. Desative para ocultar suas fotos e downloads do convidado.",
+      "ru": "Подключает общее хранилище в гостевой системе в /storage и /sdcard, чтобы она могла читать ваши файлы. Применяется ко всем локальным оболочкам при следующем запуске. Отключите, чтобы скрыть фото и загрузки от гостевой системы.",
+      "sr": "Монтира дељену меморију у госту на /storage и /sdcard да би могао да приступи твојим датотекама. Важи за све локалне љуске при следећем покретању. Искључи да сакријеш слике и преузимања од госта.",
+      "zh": "将你的共享存储挂载到客户机的 /storage 和 /sdcard，使其能够访问你的文件。下次启动时对所有本地 shell 生效。关闭可向客户机隐藏你的照片和下载内容。"
+     }
+    },
+    {
      "name": "connections_local_distro_active_default",
      "en": "Active distro (default)",
      "comment": "Connection edit dialog: remaining field labels, toggles and helper text.",

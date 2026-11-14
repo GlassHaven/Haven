@@ -475,6 +475,8 @@
     <string name="connections_vm_terminal_not_found">Terminal অ্যাপ পাওয়া যায়নি</string>
     <string name="connections_mcp_badge">MCP</string>
     <string name="connections_local_distro_label">ওএস-এ খুলুন</string>
+    <string name="connections_local_share_storage_title">ডিভাইস স্টোরেজ শেয়ার করুন</string>
+    <string name="connections_local_share_storage_description">আপনার শেয়ার করা স্টোরেজ গেস্টে /storage এবং /sdcard-এ মাউন্ট করে যাতে এটি আপনার ফাইল পড়তে পারে। পরবর্তী চালুতে সব লোকাল শেলে প্রযোজ্য। গেস্ট থেকে আপনার ছবি ও ডাউনলোড লুকাতে বন্ধ করুন।</string>
     <string name="connections_local_distro_active_default">সক্রিয় ডিস্ট্রো (ডিফল্ট)</string>
 
     <string name="connections_section_openai">AI এন্ডপয়েন্ট</string>

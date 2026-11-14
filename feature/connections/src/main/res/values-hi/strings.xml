@@ -475,6 +475,8 @@
     <string name="connections_vm_terminal_not_found">Terminal app नहीं मिला</string>
     <string name="connections_mcp_badge">MCP</string>
     <string name="connections_local_distro_label">OS में खोलें</string>
+    <string name="connections_local_share_storage_title">डिवाइस स्टोरेज साझा करें</string>
+    <string name="connections_local_share_storage_description">आपके साझा स्टोरेज को गेस्ट में /storage और /sdcard पर माउंट करता है ताकि वह आपकी फ़ाइलें पढ़ सके। अगले लॉन्च पर सभी लोकल शेल पर लागू। गेस्ट से अपनी फ़ोटो और डाउनलोड छिपाने के लिए बंद करें।</string>
     <string name="connections_local_distro_active_default">सक्रिय डिस्ट्रो (डिफ़ॉल्ट)</string>
 
     <string name="connections_section_openai">AI एंडपॉइंट</string>

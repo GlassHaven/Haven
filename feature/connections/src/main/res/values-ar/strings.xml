@@ -475,6 +475,8 @@
     <string name="connections_vm_terminal_not_found">تطبيق الطرفية غير موجود</string>
     <string name="connections_mcp_badge">MCP</string>
     <string name="connections_local_distro_label">فتح في نظام التشغيل</string>
+    <string name="connections_local_share_storage_title">مشاركة تخزين الجهاز</string>
+    <string name="connections_local_share_storage_description">يضمّن التخزين المشترك في النظام الضيف على /storage و/sdcard ليصل إلى ملفاتك. يسري على جميع الأصداف المحلية عند التشغيل التالي. أوقفه لإخفاء صورك وتنزيلاتك عن النظام الضيف.</string>
     <string name="connections_local_distro_active_default">التوزيعة النشطة (افتراضي)</string>
 
     <string name="connections_section_openai">نقطة نهاية الذكاء الاصطناعي</string>

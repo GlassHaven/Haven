@@ -184,6 +184,7 @@ fun ConnectionsScreen(
     // screen refreshes it.
     val availableLocalDistros = remember { viewModel.installedLocalDistros() }
     val availableUsbDevices = remember { viewModel.availableUsbDevices() }
+    val shareStorageWithGuest by viewModel.shareStorageWithGuest.collectAsState()
     var showTunnelsScreen by remember { mutableStateOf(false) }
     // When the user picks "+ New WireGuard tunnel" from a profile's
     // Route-through dropdown, navigate to the Tunnels screen with the
@@ -540,6 +541,8 @@ fun ConnectionsScreen(
             totpSecrets = totpSecrets,
             tunnelConfigs = tunnelConfigs,
             availableDistros = availableLocalDistros,
+            shareStorageWithGuest = shareStorageWithGuest,
+            onSetShareStorageWithGuest = { viewModel.setShareStorageWithGuest(it) },
             usbDevices = availableUsbDevices,
             onManageTunnels = { preselect ->
                 pendingTunnelAddType = preselect
@@ -733,6 +736,8 @@ fun ConnectionsScreen(
             totpSecrets = totpSecrets,
             tunnelConfigs = tunnelConfigs,
             availableDistros = availableLocalDistros,
+            shareStorageWithGuest = shareStorageWithGuest,
+            onSetShareStorageWithGuest = { viewModel.setShareStorageWithGuest(it) },
             usbDevices = availableUsbDevices,
             embeddedCloudflareTunnel = embeddedCf.value,
             mcpReverseTunnelEnabled = mcpReverseTunnel.value,

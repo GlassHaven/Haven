@@ -307,4 +307,6 @@
     <string name="sftp_remove_folder_message">%1$s は「ファイル」から削除されます。ファイル自体は削除されず、このフォルダーへの Haven のアクセスのみが解除されます。</string>
     <string name="sftp_remove_folder_confirm">削除</string>
     <string name="sftp_rename_not_supported">この場所は名前の変更に対応していません</string>
+    <string name="sftp_file_too_large_for_preview">ファイルが大きすぎるためプレビューできません（%1$s）。「編集」でエディタで開けます。</string>
+    <string name="sftp_preview_link_missing">リンク先のファイルが見つかりません: %1$s</string>
 </resources>

@@ -29100,6 +29100,372 @@
    ]
   },
   {
+   "module": "feature/preview",
+   "path": "feature/preview/src/main/res/values/strings.xml",
+   "strings": [
+    {
+     "name": "preview_markdown_outline",
+     "en": "Outline",
+     "comment": "",
+     "args": [],
+     "t": {
+      "ar": "المخطط",
+      "bn": "রূপরেখা",
+      "de": "Gliederung",
+      "es": "Esquema",
+      "fr": "Plan",
+      "hi": "रूपरेखा",
+      "ja": "アウトライン",
+      "ko": "개요",
+      "pt": "Estrutura",
+      "ru": "Оглавление",
+      "sr": "Структура",
+      "zh": "大纲"
+     }
+    },
+    {
+     "name": "preview_markdown_edit",
+     "en": "Edit",
+     "comment": "",
+     "args": [],
+     "t": {
+      "ar": "تعديل",
+      "bn": "সম্পাদনা",
+      "de": "Bearbeiten",
+      "es": "Editar",
+      "fr": "Modifier",
+      "hi": "संपादित करें",
+      "ja": "編集",
+      "ko": "편집",
+      "pt": "Editar",
+      "ru": "Изменить",
+      "sr": "Измени",
+      "zh": "编辑"
+     }
+    },
+    {
+     "name": "preview_markdown_more",
+     "en": "More options",
+     "comment": "",
+     "args": [],
+     "t": {
+      "ar": "خيارات إضافية",
+      "bn": "আরও বিকল্প",
+      "de": "Weitere Optionen",
+      "es": "Más opciones",
+      "fr": "Plus d\\'options",
+      "hi": "और विकल्प",
+      "ja": "その他のオプション",
+      "ko": "추가 옵션",
+      "pt": "Mais opções",
+      "ru": "Другие параметры",
+      "sr": "Још опција",
+      "zh": "更多选项"
+     }
+    },
+    {
+     "name": "preview_markdown_open_with",
+     "en": "Open with…",
+     "comment": "",
+     "args": [],
+     "t": {
+      "ar": "فتح باستخدام…",
+      "bn": "এর মাধ্যমে খুলুন…",
+      "de": "Öffnen mit…",
+      "es": "Abrir con…",
+      "fr": "Ouvrir avec…",
+      "hi": "इसके साथ खोलें…",
+      "ja": "アプリで開く…",
+      "ko": "다른 앱으로 열기…",
+      "pt": "Abrir com…",
+      "ru": "Открыть с помощью…",
+      "sr": "Отвори помоћу…",
+      "zh": "打开方式…"
+     }
+    },
+    {
+     "name": "preview_markdown_empty",
+     "en": "This file is empty",
+     "comment": "",
+     "args": [],
+     "t": {
+      "ar": "هذا الملف فارغ",
+      "bn": "এই ফাইলটি খালি",
+      "de": "Diese Datei ist leer",
+      "es": "Este archivo está vacío",
+      "fr": "Ce fichier est vide",
+      "hi": "यह फ़ाइल खाली है",
+      "ja": "このファイルは空です",
+      "ko": "빈 파일입니다",
+      "pt": "Este arquivo está vazio",
+      "ru": "Этот файл пуст",
+      "sr": "Ова датотека је празна",
+      "zh": "此文件为空"
+     }
+    },
+    {
+     "name": "preview_markdown_front_matter",
+     "en": "Front matter",
+     "comment": "",
+     "args": [],
+     "t": {
+      "ar": "البيانات التمهيدية",
+      "bn": "ফ্রন্ট ম্যাটার",
+      "de": "Front Matter",
+      "es": "Front matter",
+      "fr": "Front matter",
+      "hi": "फ्रंट मैटर",
+      "ja": "フロントマター",
+      "ko": "프런트 매터",
+      "pt": "Front matter",
+      "ru": "Front matter",
+      "sr": "Front matter",
+      "zh": "前置元数据"
+     }
+    },
+    {
+     "name": "preview_markdown_copy_code",
+     "en": "Copy code",
+     "comment": "",
+     "args": [],
+     "t": {
+      "ar": "نسخ الرمز",
+      "bn": "কোড কপি করুন",
+      "de": "Code kopieren",
+      "es": "Copiar código",
+      "fr": "Copier le code",
+      "hi": "कोड कॉपी करें",
+      "ja": "コードをコピー",
+      "ko": "코드 복사",
+      "pt": "Copiar código",
+      "ru": "Копировать код",
+      "sr": "Копирај код",
+      "zh": "复制代码"
+     }
+    },
+    {
+     "name": "preview_markdown_code_copied",
+     "en": "Copied",
+     "comment": "",
+     "args": [],
+     "t": {
+      "ar": "تم النسخ",
+      "bn": "কপি হয়েছে",
+      "de": "Kopiert",
+      "es": "Copiado",
+      "fr": "Copié",
+      "hi": "कॉपी हो गया",
+      "ja": "コピーしました",
+      "ko": "복사됨",
+      "pt": "Copiado",
+      "ru": "Скопировано",
+      "sr": "Копирано",
+      "zh": "已复制"
+     }
+    },
+    {
+     "name": "preview_markdown_back_to_top",
+     "en": "Back to top",
+     "comment": "",
+     "args": [],
+     "t": {
+      "ar": "العودة إلى الأعلى",
+      "bn": "শীর্ষে ফিরুন",
+      "de": "Nach oben",
+      "es": "Volver arriba",
+      "fr": "Haut de page",
+      "hi": "ऊपर जाएँ",
+      "ja": "トップへ戻る",
+      "ko": "맨 위로",
+      "pt": "Voltar ao topo",
+      "ru": "Наверх",
+      "sr": "На врх",
+      "zh": "回到顶部"
+     }
+    },
+    {
+     "name": "preview_markdown_remote_image",
+     "en": "Remote image, not loaded",
+     "comment": "",
+     "args": [],
+     "t": {
+      "ar": "صورة بعيدة، لم يتم تحميلها",
+      "bn": "দূরবর্তী ছবি, লোড করা হয়নি",
+      "de": "Externes Bild, nicht geladen",
+      "es": "Imagen remota, no cargada",
+      "fr": "Image distante, non chargée",
+      "hi": "रिमोट छवि, लोड नहीं की गई",
+      "ja": "リモート画像（未読み込み）",
+      "ko": "원격 이미지(불러오지 않음)",
+      "pt": "Imagem remota, não carregada",
+      "ru": "Удалённое изображение не загружено",
+      "sr": "Удаљена слика, није учитана",
+      "zh": "远程图片，未加载"
+     }
+    },
+    {
+     "name": "preview_markdown_image_unavailable",
+     "en": "Image unavailable",
+     "comment": "",
+     "args": [],
+     "t": {
+      "ar": "الصورة غير متاحة",
+      "bn": "ছবি উপলব্ধ নয়",
+      "de": "Bild nicht verfügbar",
+      "es": "Imagen no disponible",
+      "fr": "Image indisponible",
+      "hi": "छवि उपलब्ध नहीं",
+      "ja": "画像を表示できません",
+      "ko": "이미지를 사용할 수 없음",
+      "pt": "Imagem indisponível",
+      "ru": "Изображение недоступно",
+      "sr": "Слика није доступна",
+      "zh": "图片不可用"
+     }
+    },
+    {
+     "name": "preview_markdown_task_done",
+     "en": "Done",
+     "comment": "",
+     "args": [],
+     "t": {
+      "ar": "مكتمل",
+      "bn": "সম্পন্ন",
+      "de": "Erledigt",
+      "es": "Hecho",
+      "fr": "Fait",
+      "hi": "पूर्ण",
+      "ja": "完了",
+      "ko": "완료",
+      "pt": "Concluído",
+      "ru": "Готово",
+      "sr": "Урађено",
+      "zh": "已完成"
+     }
+    },
+    {
+     "name": "preview_markdown_task_open",
+     "en": "Not done",
+     "comment": "",
+     "args": [],
+     "t": {
+      "ar": "غير مكتمل",
+      "bn": "অসম্পন্ন",
+      "de": "Offen",
+      "es": "Pendiente",
+      "fr": "À faire",
+      "hi": "अपूर्ण",
+      "ja": "未完了",
+      "ko": "미완료",
+      "pt": "Pendente",
+      "ru": "Не готово",
+      "sr": "Није урађено",
+      "zh": "未完成"
+     }
+    },
+    {
+     "name": "preview_markdown_alert_note",
+     "en": "Note",
+     "comment": "",
+     "args": [],
+     "t": {
+      "ar": "ملاحظة",
+      "bn": "নোট",
+      "de": "Hinweis",
+      "es": "Nota",
+      "fr": "Remarque",
+      "hi": "नोट",
+      "ja": "注記",
+      "ko": "참고",
+      "pt": "Nota",
+      "ru": "Примечание",
+      "sr": "Напомена",
+      "zh": "注意"
+     }
+    },
+    {
+     "name": "preview_markdown_alert_tip",
+     "en": "Tip",
+     "comment": "",
+     "args": [],
+     "t": {
+      "ar": "تلميح",
+      "bn": "টিপ",
+      "de": "Tipp",
+      "es": "Consejo",
+      "fr": "Astuce",
+      "hi": "सुझाव",
+      "ja": "ヒント",
+      "ko": "팁",
+      "pt": "Dica",
+      "ru": "Совет",
+      "sr": "Савет",
+      "zh": "提示"
+     }
+    },
+    {
+     "name": "preview_markdown_alert_important",
+     "en": "Important",
+     "comment": "",
+     "args": [],
+     "t": {
+      "ar": "مهم",
+      "bn": "গুরুত্বপূর্ণ",
+      "de": "Wichtig",
+      "es": "Importante",
+      "fr": "Important",
+      "hi": "महत्वपूर्ण",
+      "ja": "重要",
+      "ko": "중요",
+      "pt": "Importante",
+      "ru": "Важно",
+      "sr": "Важно",
+      "zh": "重要"
+     }
+    },
+    {
+     "name": "preview_markdown_alert_warning",
+     "en": "Warning",
+     "comment": "",
+     "args": [],
+     "t": {
+      "ar": "تحذير",
+      "bn": "সতর্কতা",
+      "de": "Warnung",
+      "es": "Advertencia",
+      "fr": "Avertissement",
+      "hi": "चेतावनी",
+      "ja": "警告",
+      "ko": "경고",
+      "pt": "Aviso",
+      "ru": "Предупреждение",
+      "sr": "Упозорење",
+      "zh": "警告"
+     }
+    },
+    {
+     "name": "preview_markdown_alert_caution",
+     "en": "Caution",
+     "comment": "",
+     "args": [],
+     "t": {
+      "ar": "تنبيه",
+      "bn": "সাবধান",
+      "de": "Vorsicht",
+      "es": "Precaución",
+      "fr": "Attention",
+      "hi": "सावधान",
+      "ja": "注意",
+      "ko": "주의",
+      "pt": "Cuidado",
+      "ru": "Осторожно",
+      "sr": "Опрез",
+      "zh": "当心"
+     }
+    }
+   ]
+  },
+  {
    "module": "feature/rdp",
    "path": "feature/rdp/src/main/res/values/strings.xml",
    "strings": [
@@ -45991,6 +46357,50 @@
       "ru": "Поворот",
       "sr": "Ротација",
       "zh": "旋转"
+     }
+    },
+    {
+     "name": "sftp_file_too_large_for_preview",
+     "en": "File is too large to preview (%1$s). Use Edit to open it in the editor.",
+     "comment": "#135 third pass: hardcoded literals in SftpScreen + media UI",
+     "args": [
+      "%1$s"
+     ],
+     "t": {
+      "ar": "الملف كبير جدًا للمعاينة (%1$s). استخدم «تعديل» لفتحه في المحرر.",
+      "bn": "ফাইলটি প্রিভিউ করার জন্য খুব বড় (%1$s)। এডিটরে খুলতে সম্পাদনা ব্যবহার করুন।",
+      "de": "Datei ist zu groß für die Vorschau (%1$s). Mit „Bearbeiten“ im Editor öffnen.",
+      "es": "El archivo es demasiado grande para la vista previa (%1$s). Usa Editar para abrirlo en el editor.",
+      "fr": "Fichier trop volumineux pour l\\'aperçu (%1$s). Utilisez Modifier pour l\\'ouvrir dans l\\'éditeur.",
+      "hi": "फ़ाइल पूर्वावलोकन के लिए बहुत बड़ी है (%1$s)। एडिटर में खोलने के लिए संपादित करें का उपयोग करें।",
+      "ja": "ファイルが大きすぎるためプレビューできません（%1$s）。「編集」でエディタで開けます。",
+      "ko": "파일이 너무 커서 미리 볼 수 없습니다(%1$s). 편집을 눌러 편집기에서 여세요.",
+      "pt": "O arquivo é grande demais para pré-visualizar (%1$s). Use Editar para abri-lo no editor.",
+      "ru": "Файл слишком большой для просмотра (%1$s). Нажмите «Изменить», чтобы открыть его в редакторе.",
+      "sr": "Датотека је превелика за преглед (%1$s). Користите Измени да је отворите у уређивачу.",
+      "zh": "文件太大，无法预览（%1$s）。可点“编辑”在编辑器中打开。"
+     }
+    },
+    {
+     "name": "sftp_preview_link_missing",
+     "en": "Linked file not found: %1$s",
+     "comment": "#135 third pass: hardcoded literals in SftpScreen + media UI",
+     "args": [
+      "%1$s"
+     ],
+     "t": {
+      "ar": "لم يتم العثور على الملف المرتبط: %1$s",
+      "bn": "লিঙ্ক করা ফাইল পাওয়া যায়নি: %1$s",
+      "de": "Verlinkte Datei nicht gefunden: %1$s",
+      "es": "No se encontró el archivo enlazado: %1$s",
+      "fr": "Fichier lié introuvable : %1$s",
+      "hi": "लिंक की गई फ़ाइल नहीं मिली: %1$s",
+      "ja": "リンク先のファイルが見つかりません: %1$s",
+      "ko": "링크된 파일을 찾을 수 없음: %1$s",
+      "pt": "Arquivo vinculado não encontrado: %1$s",
+      "ru": "Связанный файл не найден: %1$s",
+      "sr": "Повезана датотека није пронађена: %1$s",
+      "zh": "找不到链接的文件：%1$s"
      }
     }
    ]

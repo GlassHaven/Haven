@@ -1,0 +1,21 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string name="preview_markdown_outline">रूपरेखा</string>
+    <string name="preview_markdown_edit">संपादित करें</string>
+    <string name="preview_markdown_more">और विकल्प</string>
+    <string name="preview_markdown_open_with">इसके साथ खोलें…</string>
+    <string name="preview_markdown_empty">यह फ़ाइल खाली है</string>
+    <string name="preview_markdown_front_matter">फ्रंट मैटर</string>
+    <string name="preview_markdown_copy_code">कोड कॉपी करें</string>
+    <string name="preview_markdown_code_copied">कॉपी हो गया</string>
+    <string name="preview_markdown_back_to_top">ऊपर जाएँ</string>
+    <string name="preview_markdown_remote_image">रिमोट छवि, लोड नहीं की गई</string>
+    <string name="preview_markdown_image_unavailable">छवि उपलब्ध नहीं</string>
+    <string name="preview_markdown_task_done">पूर्ण</string>
+    <string name="preview_markdown_task_open">अपूर्ण</string>
+    <string name="preview_markdown_alert_note">नोट</string>
+    <string name="preview_markdown_alert_tip">सुझाव</string>
+    <string name="preview_markdown_alert_important">महत्वपूर्ण</string>
+    <string name="preview_markdown_alert_warning">चेतावनी</string>
+    <string name="preview_markdown_alert_caution">सावधान</string>
+</resources>

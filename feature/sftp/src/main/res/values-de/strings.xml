@@ -308,4 +308,6 @@
     <string name="sftp_remove_folder_message">%1$s wird aus Dateien entfernt. Deine Dateien werden nicht gelöscht — nur Havens Zugriff auf diesen Ordner.</string>
     <string name="sftp_remove_folder_confirm">Entfernen</string>
     <string name="sftp_rename_not_supported">Dieser Speicherort unterstützt kein Umbenennen</string>
+    <string name="sftp_file_too_large_for_preview">Datei ist zu groß für die Vorschau (%1$s). Mit „Bearbeiten“ im Editor öffnen.</string>
+    <string name="sftp_preview_link_missing">Verlinkte Datei nicht gefunden: %1$s</string>
 </resources>

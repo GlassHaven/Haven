@@ -308,4 +308,6 @@
     <string name="sftp_remove_folder_message">%1$s sera supprimé de Fichiers. Vos fichiers ne sont pas supprimés — seul l\'accès de Haven à ce dossier.</string>
     <string name="sftp_remove_folder_confirm">Supprimer</string>
     <string name="sftp_rename_not_supported">Cet emplacement ne prend pas en charge le renommage</string>
+    <string name="sftp_file_too_large_for_preview">Fichier trop volumineux pour l\'aperçu (%1$s). Utilisez Modifier pour l\'ouvrir dans l\'éditeur.</string>
+    <string name="sftp_preview_link_missing">Fichier lié introuvable : %1$s</string>
 </resources>

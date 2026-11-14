@@ -308,4 +308,6 @@
     <string name="sftp_remove_folder_message">%1$s se quitará de Archivos. Tus archivos no se eliminan — solo el acceso de Haven a esta carpeta.</string>
     <string name="sftp_remove_folder_confirm">Quitar</string>
     <string name="sftp_rename_not_supported">Esta ubicación no admite cambiar el nombre</string>
+    <string name="sftp_file_too_large_for_preview">El archivo es demasiado grande para la vista previa (%1$s). Usa Editar para abrirlo en el editor.</string>
+    <string name="sftp_preview_link_missing">No se encontró el archivo enlazado: %1$s</string>
 </resources>

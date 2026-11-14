@@ -270,4 +270,6 @@
     <string name="sftp_compression_audio_bitrate">Аудио битски проток</string>
     <string name="sftp_filter_title">Филтери</string>
     <string name="sftp_filter_rotation">Ротација</string>
+    <string name="sftp_file_too_large_for_preview">Датотека је превелика за преглед (%1$s). Користите Измени да је отворите у уређивачу.</string>
+    <string name="sftp_preview_link_missing">Повезана датотека није пронађена: %1$s</string>
 </resources>

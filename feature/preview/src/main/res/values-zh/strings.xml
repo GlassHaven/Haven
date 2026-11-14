@@ -1,0 +1,21 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string name="preview_markdown_outline">大纲</string>
+    <string name="preview_markdown_edit">编辑</string>
+    <string name="preview_markdown_more">更多选项</string>
+    <string name="preview_markdown_open_with">打开方式…</string>
+    <string name="preview_markdown_empty">此文件为空</string>
+    <string name="preview_markdown_front_matter">前置元数据</string>
+    <string name="preview_markdown_copy_code">复制代码</string>
+    <string name="preview_markdown_code_copied">已复制</string>
+    <string name="preview_markdown_back_to_top">回到顶部</string>
+    <string name="preview_markdown_remote_image">远程图片，未加载</string>
+    <string name="preview_markdown_image_unavailable">图片不可用</string>
+    <string name="preview_markdown_task_done">已完成</string>
+    <string name="preview_markdown_task_open">未完成</string>
+    <string name="preview_markdown_alert_note">注意</string>
+    <string name="preview_markdown_alert_tip">提示</string>
+    <string name="preview_markdown_alert_important">重要</string>
+    <string name="preview_markdown_alert_warning">警告</string>
+    <string name="preview_markdown_alert_caution">当心</string>
+</resources>

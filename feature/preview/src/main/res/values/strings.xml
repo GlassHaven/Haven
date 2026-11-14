@@ -1,0 +1,21 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string name="preview_markdown_outline">Outline</string>
+    <string name="preview_markdown_edit">Edit</string>
+    <string name="preview_markdown_more">More options</string>
+    <string name="preview_markdown_open_with">Open with…</string>
+    <string name="preview_markdown_empty">This file is empty</string>
+    <string name="preview_markdown_front_matter">Front matter</string>
+    <string name="preview_markdown_copy_code">Copy code</string>
+    <string name="preview_markdown_code_copied">Copied</string>
+    <string name="preview_markdown_back_to_top">Back to top</string>
+    <string name="preview_markdown_remote_image">Remote image, not loaded</string>
+    <string name="preview_markdown_image_unavailable">Image unavailable</string>
+    <string name="preview_markdown_task_done">Done</string>
+    <string name="preview_markdown_task_open">Not done</string>
+    <string name="preview_markdown_alert_note">Note</string>
+    <string name="preview_markdown_alert_tip">Tip</string>
+    <string name="preview_markdown_alert_important">Important</string>
+    <string name="preview_markdown_alert_warning">Warning</string>
+    <string name="preview_markdown_alert_caution">Caution</string>
+</resources>

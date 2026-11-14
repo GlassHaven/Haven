@@ -1,0 +1,1 @@
+- Refresh the system file picker's list of storage roots when sessions connect or disconnect, so newly connected remote storage appears without reopening the picker (#698).

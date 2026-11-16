@@ -54,6 +54,20 @@ class GuestNotifyBridge @Inject constructor(
         server?.let { statusJson(it) } ?: JSONObject().put("running", false)
     }
 
+    /** The `list_bridges` row for this bridge (source/sink/transport + counters). */
+    fun bridgeRow(): JSONObject {
+        val s = statusJson()
+        return JSONObject()
+            .put("source", "Notifications").put("sourceKind", "notify")
+            .put("sink", "linux-guest").put("transport", "android-notification")
+            .put("state", "active")
+            .put("socketName", s.optString("socketName"))
+            .put("channel", s.optString("channel"))
+            .put("posted", s.optLong("posted"))
+            .put("rateLimited", s.optLong("rateLimited"))
+            .put("errors", s.optLong("errors"))
+    }
+
     companion object {
         /** Abstract-namespace socket name the guest `haven-notify` helper connects to. */
         const val SOCKET_NAME: String = "haven-notify"

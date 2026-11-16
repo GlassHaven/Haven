@@ -5172,16 +5172,7 @@ class McpTools private constructor(
         }
 
         // Guest notification bridge (#851): guest programs → Android shade.
-        if (notifyBridge.isRunning) {
-            val n = notifyBridge.statusJson()
-            add("Notifications", "notify", "linux-guest", "android-notification", "active") {
-                put("socketName", n.optString("socketName"))
-                put("channel", n.optString("channel"))
-                put("posted", n.optLong("posted"))
-                put("rateLimited", n.optLong("rateLimited"))
-                put("errors", n.optLong("errors"))
-            }
-        }
+        if (notifyBridge.isRunning) bridges.put(notifyBridge.bridgeRow())
 
         JSONObject().apply {
             put("bridges", bridges)

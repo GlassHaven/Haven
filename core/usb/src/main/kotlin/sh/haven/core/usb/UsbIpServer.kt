@@ -342,6 +342,8 @@ class UsbIpServer @Inject constructor(
         private const val TRANSFER_TIMEOUT_MS = 5_000
         /** Slice for polling an interrupt/bulk IN so an idle read never wedges its lane. */
         private const val IN_POLL_MS = 250
+        /** Idle-slice yield so a standing IN poll cannot starve the shared connection lock. */
+        private const val IN_YIELD_MS = 20L
 
         /**
          * Translate one SUBMIT into a backend transfer and encode the
@@ -396,6 +398,15 @@ class UsbIpServer @Inject constructor(
          * key's CCID status poll, or a FIDO key between commands) from wedging its
          * lane or disrupting the endpoint with a long timeout-failure. Returns the
          * RET_SUBMIT bytes once data arrives, or null if unlinked/interrupted first.
+         *
+         * A backend throw means "no data this slice" (NAK/timeout) and keeps the
+         * URB pending; a normal empty return is a zero-length packet, which
+         * COMPLETES the transfer with actualLength=0 — conflating the two left
+         * ZLP-terminated reads pending forever. Between idle slices the loop
+         * sleeps [IN_YIELD_MS]: every transfer shares the broker's per-connection
+         * monitor, and a tight release-and-reacquire poll starved the control/OUT
+         * lanes past their timeouts (a host rndis_host standing interrupt-IN on a
+         * forwarded Pluto+ made libiio's 1s control transfers time out, 11-16).
          */
         fun pollIn(urb: UsbIpProtocol.Urb.Submit, backend: UsbIpBackend, cancelled: Set<Int>, pollMs: Int): ByteArray? {
             val address = urb.ep or 0x80
@@ -406,10 +417,18 @@ class UsbIpServer @Inject constructor(
                 val data = try {
                     backend.bulk(address, urb.out, urb.transferBufferLength, pollMs)
                 } catch (e: Exception) {
-                    ByteArray(0) // NAK / no data this slice — keep the URB pending
+                    null // NAK / no data this slice — keep the URB pending
                 }
-                if (data.isNotEmpty()) {
+                if (data != null) {
                     return UsbIpProtocol.encodeSubmitReply(urb.seqnum, status = 0, actualLength = data.size, inData = data)
+                }
+                // Real window for the other lanes to take the connection monitor;
+                // a microsecond gap between slices was not enough to be scheduled.
+                try {
+                    Thread.sleep(IN_YIELD_MS)
+                } catch (e: InterruptedException) {
+                    Thread.currentThread().interrupt()
+                    return null
                 }
             }
             return null

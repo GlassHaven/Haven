@@ -15,10 +15,12 @@ class UsbIpServerTest {
         private val inData: ByteArray = ByteArray(0),
         private val fail: Boolean = false,
         @Volatile var alive: Boolean = true,
+        private val failFirstBulk: Int = 0,
     ) : UsbIpBackend {
         var lastControl: IntArray? = null
         var lastBulkEndpoint: Int? = null
         var lastOut: ByteArray? = null
+        var bulkCalls: Int = 0
 
         override fun isAlive(): Boolean = alive
 
@@ -30,7 +32,8 @@ class UsbIpServerTest {
         }
 
         override fun bulk(endpointAddress: Int, out: ByteArray, length: Int, timeoutMs: Int): ByteArray {
-            if (fail) throw java.io.IOException("boom")
+            bulkCalls++
+            if (fail || bulkCalls <= failFirstBulk) throw java.io.IOException("boom")
             lastBulkEndpoint = endpointAddress
             lastOut = out
             return inData
@@ -120,6 +123,32 @@ class UsbIpServerTest {
         val reply = UsbIpServer.pollIn(submit(6, UsbIpProtocol.DIR_IN, ep = 4, transferBufferLength = 64), backend, setOf(6), 10)
         assertNull(reply)
         assertNull(backend.lastBulkEndpoint) // never touched the device
+    }
+
+    @Test
+    fun `pollIn completes a zero-length packet instead of polling forever`() {
+        // A ZLP is a completed transfer with no payload (rc=0, empty return) —
+        // not a NAK. Treating it as "no data" left the URB pending forever.
+        val backend = FakeBackend(inData = ByteArray(0))
+        val reply = UsbIpServer.pollIn(submit(8, UsbIpProtocol.DIR_IN, ep = 4, transferBufferLength = 64), backend, emptySet(), 10)
+        assertNotNull(reply)
+        val (status, actualLength) = replyStatusAndLength(reply!!)
+        assertEquals(0, status)
+        assertEquals(0, actualLength)
+        assertEquals(48, reply.size) // header only, no payload
+        assertEquals(1, backend.bulkCalls) // completed on the first slice, no re-poll
+    }
+
+    @Test
+    fun `pollIn keeps the URB pending across timeout slices until data arrives`() {
+        // Backend throws (NAK/timeout) on the first two slices, then delivers.
+        val backend = FakeBackend(inData = byteArrayOf(0xCC.toByte()), failFirstBulk = 2)
+        val reply = UsbIpServer.pollIn(submit(9, UsbIpProtocol.DIR_IN, ep = 4, transferBufferLength = 64), backend, emptySet(), 10)
+        assertNotNull(reply)
+        val (status, actualLength) = replyStatusAndLength(reply!!)
+        assertEquals(0, status)
+        assertEquals(1, actualLength)
+        assertEquals(3, backend.bulkCalls)
     }
 
     @Test

@@ -10,6 +10,7 @@ import kotlinx.coroutines.delay
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
+import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.flow.update
 import kotlinx.coroutines.launch
 import sh.haven.core.data.db.entities.ConnectionLog
@@ -145,6 +146,7 @@ class LocalSessionManager @Inject constructor(
     private val preferences: UserPreferencesRepository,
     private val connectionLog: ConnectionLogRepository,
     private val shizukuPtyClient: ShizukuPtyClient,
+    private val notifyBridge: sh.haven.core.local.guestnotify.GuestNotifyBridge,
 ) {
 
     /**
@@ -176,6 +178,22 @@ class LocalSessionManager @Inject constructor(
         }
         prefScope.launch {
             preferences.terminalLocale.collect { terminalLocale = it }
+        }
+    }
+
+    /**
+     * Auto-start the guest notification bridge (#851) when a local session
+     * opens and the master opt-in is enabled, so `haven-notify` "just works"
+     * without an explicit MCP attach. Stages the helper (re-copy idiom) and
+     * binds the abstract socket; both are idempotent. The bridge is cheap (no
+     * hardware engine), so it simply runs while started; detach/pref-off stops
+     * it. Async on [prefScope] so session start is never blocked on DataStore.
+     */
+    private fun maybeStartNotifyBridge() {
+        prefScope.launch {
+            if (!preferences.notifyGuestExposureEnabled.first()) return@launch
+            prootManager.stageHavenNotifyArtifacts()
+            runCatching { notifyBridge.start() }
         }
     }
 
@@ -583,6 +601,8 @@ class LocalSessionManager @Inject constructor(
             val session = _sessions.value[sessionId] ?: return null
             if (session.status != SessionState.Status.CONNECTED) return null
             if (session.localSession != null) return null
+
+            maybeStartNotifyBridge()
 
         val isShizuku = session.localShellMode == ConnectionProfile.LocalShellMode.SHIZUKU
         val (cmd, args, baseEnv) = if (isShizuku) {

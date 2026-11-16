@@ -410,6 +410,9 @@
     <!-- GPS exposure -->
     <string name="settings_gps_guest_title">Expose GPS to the Linux guest</string>
     <string name="settings_gps_guest_subtitle">Stream the phone’s GPS position into the guest as an NMEA device (haven-gps). Once on, any guest process can read the position. Each attach still asks for consent.</string>
+    <!-- Guest notifications (#851) -->
+    <string name="settings_notify_guest_title">Guest notifications</string>
+    <string name="settings_notify_guest_subtitle">Let Linux guest programs post Android notifications via haven-notify. Once on, any guest process can add notifications to the shade. Each attach still asks for consent.</string>
     <string name="settings_tailscale_discovery_title">Tailscale peer discovery</string>
     <string name="settings_tailscale_discovery_subtitle">Look up hosts on your Tailscale network through its local API when scanning. Turn off to stop Haven from reading the peer list; Tailscale itself is unaffected.</string>
     <string name="settings_audio_bridge_title">Proot audio (experimental)</string>

@@ -36753,9 +36753,47 @@
      }
     },
     {
+     "name": "settings_notify_guest_title",
+     "en": "Guest notifications",
+     "comment": "Guest notifications (#851)",
+     "args": [],
+     "t": {
+      "ar": "إشعارات الضيف",
+      "bn": "গেস্ট বিজ্ঞপ্তি",
+      "de": "Gast-Benachrichtigungen",
+      "es": "Notificaciones del invitado",
+      "fr": "Notifications du guest",
+      "hi": "गेस्ट सूचनाएँ",
+      "ja": "ゲスト通知",
+      "ko": "게스트 알림",
+      "pt": "Notificações do convidado",
+      "ru": "Гостевые уведомления",
+      "zh": "客机通知"
+     }
+    },
+    {
+     "name": "settings_notify_guest_subtitle",
+     "en": "Let Linux guest programs post Android notifications via haven-notify. Once on, any guest process can add notifications to the shade. Each attach still asks for consent.",
+     "comment": "Guest notifications (#851)",
+     "args": [],
+     "t": {
+      "ar": "السماح لبرامج الضيف في Linux بنشر إشعارات Android عبر haven-notify. بعد التشغيل يمكن لأي عملية في الضيف إضافة إشعارات إلى الدرج. كل إرفاق يطلب الموافقة.",
+      "bn": "Linux গেস্ট প্রোগ্রামগুলোকে haven-notify এর মাধ্যমে Android বিজ্ঞপ্তি পোস্ট করতে দিন। চালু থাকলে গেস্টের যেকোনো প্রসেস শেডে বিজ্ঞপ্তি যোগ করতে পারে। প্রতিটি সংযুক্তিতে সম্মতি চাওয়া হয়।",
+      "de": "Linux-Gastprogrammen erlauben, Android-Benachrichtigungen über haven-notify zu senden. Einmal aktiv kann jeder Gast-Prozess Benachrichtigungen zur Leiste hinzufügen. Jede Verbindung erfordert weiterhin Zustimmung.",
+      "es": "Permite que los programas del invitado Linux publiquen notificaciones de Android mediante haven-notify. Una vez activado, cualquier proceso del invitado puede añadir notificaciones al panel. Cada conexión sigue solicitando consentimiento.",
+      "fr": "Autoriser les programmes du guest Linux à publier des notifications Android via haven-notify. Une fois activé, tout processus du guest peut ajouter des notifications au panneau. Chaque connexion demande confirmation.",
+      "hi": "Linux गेस्ट प्रोग्राम को haven-notify के ज़रिए Android सूचनाएँ पोस्ट करने दें। चालू होने पर guest की कोई भी process शेड में सूचनाएँ जोड़ सकती है। प्रत्येक attach पर consent माँगी जाती है।",
+      "ja": "Linux ゲストのプログラムが haven-notify 経由で Android 通知を投稿できるようにします。有効にするとゲスト内のどのプロセスでも通知を追加できます。各接続には同意が必要です。",
+      "ko": "Linux 게스트 프로그램이 haven-notify를 통해 Android 알림을 게시하도록 허용합니다. 켜면 게스트의 모든 프로세스가 알림을 추가할 수 있습니다. 각 연결 시 동의가 필요합니다.",
+      "pt": "Permite que programas do convidado Linux publiquem notificações do Android via haven-notify. Uma vez ativado, qualquer processo convidado pode adicionar notificações ao painel. Cada conexão ainda solicita consentimento.",
+      "ru": "Разрешить гостевым программам Linux отправлять уведомления Android через haven-notify. После включения любой гостевой процесс может добавлять уведомления в шторку. Каждое подключение запрашивает согласие.",
+      "zh": "允许 Linux 客机程序通过 haven-notify 发布 Android 通知。开启后客机内任何进程都可向通知栏添加通知。每次连接仍需确认。"
+     }
+    },
+    {
      "name": "settings_tailscale_discovery_title",
      "en": "Tailscale peer discovery",
-     "comment": "GPS exposure",
+     "comment": "Guest notifications (#851)",
      "args": [],
      "t": {
       "ar": "اكتشاف أقران Tailscale",
@@ -36774,7 +36812,7 @@
     {
      "name": "settings_tailscale_discovery_subtitle",
      "en": "Look up hosts on your Tailscale network through its local API when scanning. Turn off to stop Haven from reading the peer list; Tailscale itself is unaffected.",
-     "comment": "GPS exposure",
+     "comment": "Guest notifications (#851)",
      "args": [],
      "t": {
       "ar": "البحث عن مضيفين في شبكة Tailscale عبر واجهة API المحلية أثناء الفحص. أوقفه لمنع Haven من قراءة قائمة الأقران؛ لن يتأثر Tailscale نفسه.",
@@ -36793,7 +36831,7 @@
     {
      "name": "settings_audio_bridge_title",
      "en": "Proot audio (experimental)",
-     "comment": "GPS exposure",
+     "comment": "Guest notifications (#851)",
      "args": [],
      "t": {
       "ar": "صوت proot (تجريبي)",
@@ -36813,7 +36851,7 @@
     {
      "name": "settings_audio_bridge_subtitle",
      "en": "Play sound from Linux apps through the device speaker via an in-guest PulseAudio bridge. Output only. Streams continuously while on — turn off when not in use.",
-     "comment": "GPS exposure",
+     "comment": "Guest notifications (#851)",
      "args": [],
      "t": {
       "ar": "تشغيل الصوت من تطبيقات Linux عبر مكبّر صوت الجهاز من خلال جسر PulseAudio داخل الضيف. إخراج فقط. يبث باستمرار أثناء تفعيله — أوقفه عند عدم الاستخدام.",

@@ -176,6 +176,8 @@ class McpToolsConsentTest {
             // Teardown verbs: stopping the GPS→guest bridge (and the USB
             // proxy's detach_from_guest) only reduces exposure — no consent.
             "detach_gps_from_guest",
+            // Guest notification bridge teardown (#851) likewise reduces exposure.
+            "detach_notify_from_guest",
         )) {
             val c = tools.consentFor(name)
                 ?: error("$name not registered")
@@ -246,6 +248,10 @@ class McpToolsConsentTest {
             // one session grant on top, like the USB pair. Detach is the
             // teardown → NEVER.
             "attach_gps_to_guest",
+            // Guest notification bridge (#851): attach lets guest programs
+            // inject into the shade behind notify_guest_exposure_enabled —
+            // one session grant on top; detach is teardown → NEVER.
+            "attach_notify_to_guest",
         )) {
             val c = tools.consentFor(name)
                 ?: error("$name not registered")

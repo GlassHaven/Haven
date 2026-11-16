@@ -61,6 +61,7 @@ import androidx.compose.material.icons.filled.SwapVert
 import androidx.compose.material.icons.filled.Reorder
 import androidx.compose.material.icons.filled.Usb
 import androidx.compose.material.icons.filled.LocationOn
+import androidx.compose.material.icons.filled.Notifications
 import androidx.compose.material.icons.filled.VolumeUp
 import androidx.compose.material.icons.filled.ListAlt
 import androidx.compose.material.icons.filled.Image
@@ -1083,6 +1084,18 @@ fun SettingsScreen(
             subtitle = stringResource(R.string.settings_gps_guest_subtitle),
             checked = gpsGuestExposure,
             onCheckedChange = viewModel::setGpsGuestExposureEnabled,
+        )
+        // Guest notifications (#851): once on, any process in the Linux guest
+        // can post into the phone's notification shade via haven-notify. Off
+        // by default; each attach still asks for consent, and a rate limiter
+        // caps spam once enabled.
+        val notifyGuestExposure by viewModel.notifyGuestExposureEnabled.collectAsState()
+        SettingsToggleItem(
+            icon = Icons.Filled.Notifications,
+            title = stringResource(R.string.settings_notify_guest_title),
+            subtitle = stringResource(R.string.settings_notify_guest_subtitle),
+            checked = notifyGuestExposure,
+            onCheckedChange = viewModel::setNotifyGuestExposureEnabled,
         )
 
         // Tailscale peer discovery (#654): off stops the quad-100 LocalAPI

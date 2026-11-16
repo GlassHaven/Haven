@@ -51,6 +51,7 @@ dependencies {
     implementation(project(":core:data"))
     implementation(libs.coroutines.core)
     implementation(libs.coroutines.android)
+    implementation(libs.core.ktx)
     implementation(libs.hilt.android)
     ksp(libs.hilt.compiler)
     implementation(libs.shizuku.api)

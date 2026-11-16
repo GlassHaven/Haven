@@ -125,6 +125,7 @@ class UserPreferencesRepository @Inject constructor(
     private val alwaysShowAllTabsKey = booleanPreferencesKey("always_show_all_tabs")
     private val usbGuestExposureEnabledKey = booleanPreferencesKey("usb_guest_exposure_enabled")
     private val gpsGuestExposureEnabledKey = booleanPreferencesKey("gps_guest_exposure_enabled")
+    private val notifyGuestExposureEnabledKey = booleanPreferencesKey("notify_guest_exposure_enabled")
     private val tailscaleDiscoveryEnabledKey = booleanPreferencesKey("tailscale_discovery_enabled")
     private val remoteClipboardToLocalKey = booleanPreferencesKey("remote_clipboard_to_local")
     private val verboseLoggingEnabledKey = booleanPreferencesKey("verbose_logging_enabled")
@@ -744,6 +745,25 @@ class UserPreferencesRepository @Inject constructor(
     suspend fun setGpsGuestExposureEnabled(enabled: Boolean) {
         dataStore.edit { prefs ->
             prefs[gpsGuestExposureEnabledKey] = enabled
+        }
+    }
+
+    /**
+     * Master opt-in for the guest → Android notification bridge (#851): the
+     * \0haven-notify abstract socket + staged `haven-notify` helper that lets
+     * Linux guest programs post Android notifications. Default OFF: unlike GPS
+     * (which leaks position *out*), this lets *any* guest process inject content
+     * *into* the phone's notification shade — a phishing-shaped surface — so it
+     * stays off until explicitly enabled. The attach consent sheet still gates
+     * each attach, and a token-bucket rate limiter caps spam once enabled.
+     */
+    val notifyGuestExposureEnabled: Flow<Boolean> = dataStore.data.map { prefs ->
+        prefs[notifyGuestExposureEnabledKey] ?: false
+    }
+
+    suspend fun setNotifyGuestExposureEnabled(enabled: Boolean) {
+        dataStore.edit { prefs ->
+            prefs[notifyGuestExposureEnabledKey] = enabled
         }
     }
 

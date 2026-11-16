@@ -4830,6 +4830,37 @@ chmod +x /root/.vnc/xstartup""")
     /** Absolute in-guest path of the NMEA→PTY helper staged by [stageHavenGpsArtifacts]. */
     val havenGpsHelperGuestPath: String get() = "/usr/local/bin/haven-gps"
 
+    /**
+     * Stage the guest notification helper into the active rootfs at
+     * /usr/local/bin/haven-notify (#851). Text asset, ABI-independent;
+     * re-copied on every attach/session start (the stageHavenGpsArtifacts
+     * idiom) so an app update refreshes it. Returns the in-guest path, or null
+     * if there is no active rootfs — the bridge itself doesn't depend on staging.
+     */
+    fun stageHavenNotifyArtifacts(): String? {
+        if (!activeRootfsDir.isDirectory) {
+            Log.w(TAG, "[haven-notify] no active rootfs; helper not staged")
+            return null
+        }
+        val target = File(activeRootfsDir, "usr/local/bin/haven-notify")
+        return try {
+            target.parentFile?.mkdirs()
+            context.assets.open("haven-notify/haven-notify").use { input ->
+                target.outputStream().use { output -> input.copyTo(output) }
+            }
+            target.setReadable(true, false)
+            target.setExecutable(true, false)
+            Log.d(TAG, "[haven-notify] staged haven-notify (${target.length()} bytes)")
+            "/usr/local/bin/haven-notify"
+        } catch (e: Exception) {
+            Log.w(TAG, "[haven-notify] failed to stage haven-notify: ${e.message}")
+            null
+        }
+    }
+
+    /** Absolute in-guest path of the notification helper staged by [stageHavenNotifyArtifacts]. */
+    val havenNotifyHelperGuestPath: String get() = "/usr/local/bin/haven-notify"
+
     fun migrateDesktopConfigs(de: DesktopEnvironment) {
         // Refresh the shim on every start so an app update's newer shim
         // replaces a stale one in an existing rootfs (#162).

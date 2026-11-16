@@ -320,6 +320,8 @@
     <string name="settings_usb_guest_subtitle">Angeschlossene USB-Geräte über den haven-usb-Shim für Gast-Apps zugänglich machen. Jede Verbindung erfordert weiterhin Zustimmung.</string>
     <string name="settings_gps_guest_title">GPS dem Linux-Gast bereitstellen</string>
     <string name="settings_gps_guest_subtitle">Die GPS-Position des Telefons als NMEA-Gerät in den Gast streamen (haven-gps). Einmal aktiv kann jeder Gast-Prozess die Position lesen. Jede Verbindung erfordert weiterhin Zustimmung.</string>
+    <string name="settings_notify_guest_title">Gast-Benachrichtigungen</string>
+    <string name="settings_notify_guest_subtitle">Linux-Gastprogrammen erlauben, Android-Benachrichtigungen über haven-notify zu senden. Einmal aktiv kann jeder Gast-Prozess Benachrichtigungen zur Leiste hinzufügen. Jede Verbindung erfordert weiterhin Zustimmung.</string>
     <string name="settings_proot_install_log_title">PRoot-Installationsprotokoll anzeigen</string>
     <string name="settings_proot_install_log_subtitle">Phasenereignisse von Linux-Distributions-Installationen (Issue #162)</string>
     <string name="settings_logcat_capture_title">Logcat-Aufzeichnung</string>

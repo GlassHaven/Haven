@@ -5,6 +5,10 @@ the corresponding GitHub Release; a release can't ship without its section
 (enforced by `scripts/check-changelog.sh` in CI). The GitHub "Full Changelog"
 compare link is appended automatically — don't add it here.
 
+## v5.94.51
+
+- Let Linux guest programs post Android notifications through a new `haven-notify` helper, so scripts and long-running jobs in the proot guest can alert you on the phone. Off by default; enable it under Settings, or attach it on demand from the agent MCP surface (#851, thanks DragonXen).
+
 ## v5.94.50
 
 - Surface the guest storage-share toggle in the local shell's connection editor, so you can stop the guest reaching your shared storage without opening the desktop settings (#849).

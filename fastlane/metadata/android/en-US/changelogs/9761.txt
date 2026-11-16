@@ -1,0 +1,1 @@
+Guest Linux programs can now post Android notifications with the haven-notify helper, so scripts and long-running jobs in the proot guest can alert you on the phone. Off by default; enable it under Settings or attach it on demand from the agent MCP surface.

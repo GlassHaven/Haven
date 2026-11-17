@@ -36,7 +36,7 @@ internal class TunnelToolProvider(
         ) { _ -> listLiveTunnels() },
 
         "create_tunnel" to ToolHandler(
-            description = "Add a new WireGuard, Tailscale, NetBird, OpenVPN, AnyConnect, or Cloudflare Tunnel config. WIREGUARD: pass `configText` (wg-quick INI body). TAILSCALE: pass `tailscaleAuthKey` (and optional `tailscaleControlUrl` for Headscale). NETBIRD: pass `netbirdSetupKey` (and optional `netbirdManagementUrl` for a self-hosted management server). OPENVPN: pass `ovpnConfigText` (a full .ovpn profile); optional `ovpnUsername`/`ovpnPassword` when the profile uses auth-user-pass without inline credentials. ANYCONNECT (Cisco AnyConnect or ocserv): pass `anyconnectServer` and `anyconnectUsername`, usually `anyconnectPassword`; optional `anyconnectGroup`, a second factor via `anyconnectOtpSecret` (TOTP) or `anyconnectSecondaryPassword` (e.g. push), and `anyconnectServerCert` (pin-sha256:...) for self-signed gateways. CLOUDFLARE_ACCESS: pass `accessHostname`; for Access-protected routes also pass `accessJwt` (from `cloudflared access token --app https://<host>`); optional `accessJumpDestination` for bastion-mode multi-target tunnels. Returns the new tunnel id, which can then be passed to set_profile_routing.",
+            description = "Add a new WireGuard, Tailscale, NetBird, OpenVPN, AnyConnect, or Cloudflare Tunnel config. WIREGUARD: pass `configText` (wg-quick INI body). TAILSCALE: pass `tailscaleAuthKey` (and optional `tailscaleControlUrl` for Headscale). NETBIRD: pass `netbirdSetupKey` (and optional `netbirdManagementUrl` for a self-hosted management server, `netbirdRosenpass` for peers requiring post-quantum Rosenpass key exchange). OPENVPN: pass `ovpnConfigText` (a full .ovpn profile); optional `ovpnUsername`/`ovpnPassword` when the profile uses auth-user-pass without inline credentials. ANYCONNECT (Cisco AnyConnect or ocserv): pass `anyconnectServer` and `anyconnectUsername`, usually `anyconnectPassword`; optional `anyconnectGroup`, a second factor via `anyconnectOtpSecret` (TOTP) or `anyconnectSecondaryPassword` (e.g. push), and `anyconnectServerCert` (pin-sha256:...) for self-signed gateways. CLOUDFLARE_ACCESS: pass `accessHostname`; for Access-protected routes also pass `accessJwt` (from `cloudflared access token --app https://<host>`); optional `accessJumpDestination` for bastion-mode multi-target tunnels. Returns the new tunnel id, which can then be passed to set_profile_routing.",
             inputSchema = objectSchema {
                 string("label", "User-facing label (also used to derive the tunnel hostname).", required = true)
                 string("type", "WIREGUARD, TAILSCALE, NETBIRD, OPENVPN, ANYCONNECT, or CLOUDFLARE_ACCESS.", required = true)
@@ -45,6 +45,7 @@ internal class TunnelToolProvider(
                 string("tailscaleControlUrl", "Self-hosted Headscale coordination URL. Optional — empty defaults to controlplane.tailscale.com.")
                 string("netbirdSetupKey", "NetBird setup key from the NetBird dashboard. Required when type=NETBIRD.")
                 string("netbirdManagementUrl", "Self-hosted NetBird management URL (https://...). Optional — empty defaults to the hosted management.")
+                boolean("netbirdRosenpass", "Enable NetBird's post-quantum Rosenpass key exchange for this tunnel. Optional, default false; turn on when the peers you connect to require it.")
                 string("ovpnConfigText", "Full .ovpn profile text (client, dev tun, remote, inline ca/cert/key or tls-auth blocks, ...). Required when type=OPENVPN.")
                 string("ovpnUsername", "auth-user-pass username. Optional — only needed when the profile's server requires it without an inline credentials file.")
                 string("ovpnPassword", "auth-user-pass password. Optional, same condition as ovpnUsername.")
@@ -181,7 +182,8 @@ internal class TunnelToolProvider(
                     throw IllegalArgumentException("netbirdSetupKey required for NETBIRD type")
                 }
                 val managementUrl = args.optString("netbirdManagementUrl")
-                sh.haven.core.tunnel.NetbirdConfigBlob(setupKey, managementUrl).encode()
+                val rosenpass = args.optBoolean("netbirdRosenpass", false)
+                sh.haven.core.tunnel.NetbirdConfigBlob(setupKey, managementUrl, rosenpass).encode()
             }
             TunnelConfigType.OPENVPN -> {
                 val ovpnConfigText = args.optString("ovpnConfigText")

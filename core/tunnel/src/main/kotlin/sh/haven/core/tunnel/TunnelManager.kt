@@ -372,6 +372,7 @@ class DefaultTunnelFactory @Inject constructor(
                 stateDir = File(context.filesDir, "netbird-${config.id}").also { it.mkdirs() },
                 hostname = deriveHostname(config.label),
                 managementURL = parsed.managementURL,
+                rosenpass = parsed.rosenpass,
             )
         }
         TunnelConfigType.OPENVPN -> {

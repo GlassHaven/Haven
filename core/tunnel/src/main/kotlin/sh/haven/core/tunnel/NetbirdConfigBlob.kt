@@ -9,7 +9,7 @@ import org.json.JSONObject
  *
  * Format (UTF-8 JSON):
  * ```
- * { "setupKey": "…", "managementUrl": "https://netbird.example.com" }
+ * { "setupKey": "…", "managementUrl": "https://netbird.example.com", "rosenpass": true }
  * ```
  *
  * Auth is a setup key, not Tailscale's authkey — confirmed with the
@@ -27,11 +27,13 @@ import org.json.JSONObject
 data class NetbirdConfigBlob(
     val setupKey: String,
     val managementURL: String = "",
+    val rosenpass: Boolean = false,
 ) {
     fun encode(): ByteArray {
         val json = JSONObject().apply {
             put("setupKey", setupKey)
             if (managementURL.isNotBlank()) put("managementUrl", managementURL)
+            put("rosenpass", rosenpass)
         }
         return json.toString().toByteArray(Charsets.UTF_8)
     }
@@ -54,6 +56,7 @@ data class NetbirdConfigBlob(
                 else NetbirdConfigBlob(
                     setupKey = setupKey,
                     managementURL = json.optString("managementUrl", "").trim(),
+                    rosenpass = json.optBoolean("rosenpass", false),
                 )
             } catch (_: Throwable) {
                 null

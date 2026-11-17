@@ -49985,6 +49985,46 @@
      }
     },
     {
+     "name": "tunnel_netbird_rosenpass_label",
+     "en": "Post-quantum key exchange (Rosenpass)",
+     "comment": "Add tunnel dialog",
+     "args": [],
+     "t": {
+      "ar": "تبادل مفاتيح ما بعد الكم (Rosenpass)",
+      "bn": "পোস্ট-কোয়ান্টাম কী এক্সচেঞ্জ (Rosenpass)",
+      "de": "Post-Quanten-Schlüsselaustausch (Rosenpass)",
+      "es": "Intercambio de claves postcuántico (Rosenpass)",
+      "fr": "Échange de clés post-quantique (Rosenpass)",
+      "hi": "पोस्ट-क्वांटम की एक्सचेंज (Rosenpass)",
+      "ja": "耐量子鍵交換 (Rosenpass)",
+      "ko": "양자 내성 키 교환 (Rosenpass)",
+      "pt": "Troca de chaves pós-quântica (Rosenpass)",
+      "ru": "Постквантовый обмен ключами (Rosenpass)",
+      "sr": "Постквантна размена кључева (Rosenpass)",
+      "zh": "后量子密钥交换 (Rosenpass)"
+     }
+    },
+    {
+     "name": "tunnel_netbird_rosenpass_help",
+     "en": "Enable NetBird\\'s Rosenpass post-quantum key exchange. Turn on when the peer you connect to requires it; both sides must support Rosenpass.",
+     "comment": "Add tunnel dialog",
+     "args": [],
+     "t": {
+      "ar": "فعّل تبادل مفاتيح Rosenpass لما بعد الكم في NetBird. شغّله عندما يتطلب النظير الذي تتصل به ذلك؛ يجب أن يدعم الطرفان Rosenpass.",
+      "bn": "NetBird-এর Rosenpass পোস্ট-কোয়ান্টাম কী এক্সচেঞ্জ চালু করুন। যে পিয়ারের সাথে সংযোগ করছেন সেটি প্রয়োজন হলে চালু করুন; উভয় পক্ষকেই Rosenpass সমর্থন করতে হবে।",
+      "de": "Aktiviert NetBirds post-quantum Schlüsselaustausch Rosenpass. Einschalten, wenn die Gegenstelle ihn verlangt; beide Seiten müssen Rosenpass unterstützen.",
+      "es": "Activa el intercambio de claves postcuántico Rosenpass de NetBird. Actívalo cuando el peer al que te conectas lo requiera; ambos lados deben admitir Rosenpass.",
+      "fr": "Active l\\'échange de clés post-quantique Rosenpass de NetBird. À activer quand le pair distant l\\'exige ; les deux côtés doivent prendre en charge Rosenpass.",
+      "hi": "NetBird का Rosenpass पोस्ट-क्वांटम की एक्सचेंज सक्षम करें। जिस पीयर से आप जुड़ रहे हैं वह इसे आवश्यक करे तो चालू करें; दोनों पक्षों को Rosenpass समर्थन करना चाहिए।",
+      "ja": "NetBird の Rosenpass 耐量子鍵交換を有効にします。接続先ピアが要求している場合にオンにしてください。双方が Rosenpass に対応している必要があります。",
+      "ko": "NetBird의 Rosenpass 양자 내성 키 교환을 활성화합니다. 연결하는 피어에서 요구할 때 켜세요. 양쪽 모두 Rosenpass를 지원해야 합니다.",
+      "pt": "Ativa a troca de chaves pós-quântica Rosenpass do NetBird. Ligue quando o peer ao qual você se conecta exigir; ambos os lados precisam suportar Rosenpass.",
+      "ru": "Включает постквантовый обмен ключами Rosenpass в NetBird. Включите, если подключаемый узел этого требует; обе стороны должны поддерживать Rosenpass.",
+      "sr": "Укључује NetBird постквантну размену кључева Rosenpass. Укључите када вршњак са којим се повезујете то захтева; обе стране морају подржавати Rosenpass.",
+      "zh": "启用 NetBird 的 Rosenpass 后量子密钥交换。当所连接的对端要求时开启；双方都必须支持 Rosenpass。"
+     }
+    },
+    {
      "name": "tunnel_openvpn_help",
      "en": "Paste an .ovpn profile or load a file. If the profile uses auth-user-pass without an inline credentials file, enter a username and password below.",
      "comment": "Add tunnel dialog",

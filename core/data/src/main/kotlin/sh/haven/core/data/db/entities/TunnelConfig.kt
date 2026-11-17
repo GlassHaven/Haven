@@ -62,7 +62,8 @@ enum class TunnelConfigType {
     CLOUDFLARE_ACCESS,
 
     /** NetBird via its client/embed userspace netstack, gomobile-bound as
-     *  nbbridge. Setup-key auth, optional self-hosted management URL;
+     *  nbbridge. Setup-key auth, optional self-hosted management URL,
+     *  optional per-tunnel Rosenpass post-quantum key exchange (#662);
      *  per-config peer identity in filesDir/netbird-<id>. No VpnService
      *  and no second app. See GH #492. */
     NETBIRD,

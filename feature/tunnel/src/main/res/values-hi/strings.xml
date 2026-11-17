@@ -33,6 +33,8 @@
     <string name="tunnel_netbird_setup_key_label">Setup key</string>
     <string name="tunnel_netbird_management_url_label">Management URL (वैकल्पिक)</string>
     <string name="tunnel_netbird_management_url_help">NetBird के होस्टेड management के लिए खाली छोड़ें। स्व-होस्टेड management सेवा के लिए अपने सर्वर के URL पर सेट करें।</string>
+    <string name="tunnel_netbird_rosenpass_label">पोस्ट-क्वांटम की एक्सचेंज (Rosenpass)</string>
+    <string name="tunnel_netbird_rosenpass_help">NetBird का Rosenpass पोस्ट-क्वांटम की एक्सचेंज सक्षम करें। जिस पीयर से आप जुड़ रहे हैं वह इसे आवश्यक करे तो चालू करें; दोनों पक्षों को Rosenpass समर्थन करना चाहिए।</string>
     <string name="tunnel_openvpn_help">एक .ovpn प्रोफ़ाइल पेस्ट करें या फ़ाइल लोड करें। यदि प्रोफ़ाइल बिना इनलाइन क्रेडेंशियल फ़ाइल के auth-user-pass का उपयोग करती है, तो नीचे एक username और password दर्ज करें।</string>
     <string name="tunnel_openvpn_config_label">OpenVPN प्रोफ़ाइल (.ovpn)</string>
     <string name="tunnel_openvpn_username_label">Username (वैकल्पिक)</string>

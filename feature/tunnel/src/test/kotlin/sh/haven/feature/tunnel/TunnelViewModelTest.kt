@@ -189,13 +189,30 @@ class TunnelViewModelTest {
         val saved = slot<TunnelConfig>()
         coEvery { repository.save(capture(saved)) } just runs
 
-        viewModel.updateNetbirdConfig("t1", "New Label", " NBKEY-x ", " https://netbird.example.com ")
+        viewModel.updateNetbirdConfig(
+            "t1", "New Label", " NBKEY-x ", " https://netbird.example.com ", rosenpass = true,
+        )
         advanceUntilIdle()
 
         val parsed = NetbirdConfigBlob.parse(saved.captured.configText)
         assertEquals("NBKEY-x", parsed!!.setupKey)
         assertEquals("https://netbird.example.com", parsed.managementURL)
+        assertEquals(true, parsed.rosenpass)
         assertEquals("NETBIRD", saved.captured.type)
+    }
+
+    @Test
+    fun updateNetbird_withoutRosenpass_defaultsFalse() = runTest {
+        val existing = existingRow(TunnelConfigType.NETBIRD)
+        coEvery { repository.getById("t1") } returns existing
+        val saved = slot<TunnelConfig>()
+        coEvery { repository.save(capture(saved)) } just runs
+
+        viewModel.updateNetbirdConfig("t1", "New Label", "NBKEY-x", "")
+        advanceUntilIdle()
+
+        val parsed = NetbirdConfigBlob.parse(saved.captured.configText)
+        assertEquals(false, parsed!!.rosenpass)
     }
 
     @Test

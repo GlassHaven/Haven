@@ -415,9 +415,15 @@ class TunnelViewModel @Inject constructor(
      *
      * [managementURL] points at a self-hosted NetBird management server,
      * e.g. "https://netbird.example.com". Leave blank for NetBird's
-     * hosted default (#492).
+     * hosted default (#492). [rosenpass] enables NetBird's post-quantum
+     * Rosenpass key exchange for peers that require it (#662).
      */
-    fun addNetbirdConfig(label: String, setupKey: String, managementURL: String = "") {
+    fun addNetbirdConfig(
+        label: String,
+        setupKey: String,
+        managementURL: String = "",
+        rosenpass: Boolean = false,
+    ) {
         if (label.isBlank()) {
             _error.value = "Label is required"
             return
@@ -439,6 +445,7 @@ class TunnelViewModel @Inject constructor(
         val blob = sh.haven.core.tunnel.NetbirdConfigBlob(
             setupKey = setupKey.trim(),
             managementURL = trimmedUrl,
+            rosenpass = rosenpass,
         )
         save(label, TunnelConfigType.NETBIRD, blob.encode())
     }
@@ -627,8 +634,14 @@ class TunnelViewModel @Inject constructor(
         update(id, label, blob.encode())
     }
 
-    /** Overwrite an existing NetBird tunnel's label / setup key / management URL (#666). */
-    fun updateNetbirdConfig(id: String, label: String, setupKey: String, managementURL: String = "") {
+    /** Overwrite an existing NetBird tunnel's label / setup key / management URL / rosenpass (#666, #662). */
+    fun updateNetbirdConfig(
+        id: String,
+        label: String,
+        setupKey: String,
+        managementURL: String = "",
+        rosenpass: Boolean = false,
+    ) {
         if (label.isBlank()) {
             _error.value = "Label is required"
             return
@@ -648,6 +661,7 @@ class TunnelViewModel @Inject constructor(
         val blob = sh.haven.core.tunnel.NetbirdConfigBlob(
             setupKey = setupKey.trim(),
             managementURL = trimmedUrl,
+            rosenpass = rosenpass,
         )
         update(id, label, blob.encode())
     }

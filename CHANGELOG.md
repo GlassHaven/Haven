@@ -5,6 +5,10 @@ the corresponding GitHub Release; a release can't ship without its section
 (enforced by `scripts/check-changelog.sh` in CI). The GitHub "Full Changelog"
 compare link is appended automatically — don't add it here.
 
+## v5.94.53
+
+- Add a Rosenpass (post-quantum key exchange) toggle for NetBird tunnels, for networks whose peers require it. It is in the NetBird tunnel editor, and on the agent surface as `netbirdRosenpass` in `create_tunnel` (#662, thanks Slayerx96).
+
 ## v5.94.52
 
 - Fix USB/IP device forwarding stalling when the host keeps an interrupt endpoint polled (for example a forwarded SDR's RNDIS network function): idle IN polls now yield the shared connection lock and complete zero-length reads, so control and data transfers no longer time out (#854).

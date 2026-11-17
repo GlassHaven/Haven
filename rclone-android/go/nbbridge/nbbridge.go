@@ -28,11 +28,13 @@ package nbbridge
 
 import (
 	"context"
+	"encoding/json"
 	"errors"
 	"fmt"
 	"io"
 	"net"
 	"os"
+	"path/filepath"
 	"strconv"
 	"sync"
 	"time"
@@ -55,6 +57,13 @@ import (
 // fails without the variable and succeeds with it.
 func init() {
 	os.Setenv("NB_USE_NETSTACK_MODE", "true")
+	// Rosenpass (#662): the PQ key exchange runs on a host UDP socket, but
+	// in netstack mode the peer's overlay IP lives inside gvisor. Inbound
+	// exchange packets arrive through the tunnel addressed to our overlay
+	// IP; the uspfilter local forwarder is what bridges them to the host
+	// socket (and proxies the replies back). Without it the exchange never
+	// reaches the rosenpass server. See client/firewall/uspfilter/filter.go.
+	os.Setenv("NB_ENABLE_LOCAL_FORWARDING", "true")
 }
 
 // TunnelHandle is a running NetBird client. Mirrors tsbridge.TunnelHandle.
@@ -95,6 +104,50 @@ type Listener struct {
 // that is not instant. Matches the 60s tsbridge allows for the same reasons.
 const startTimeout = 60 * time.Second
 
+// setRosenpassInConfig merges RosenpassEnabled into the NetBird config.json at
+// path, preserving every other field. client/embed's Options carries no
+// Rosenpass knob and the ConfigInput it builds leaves RosenpassEnabled nil, so
+// profilemanager's update() (ReadJson -> apply()) keeps whatever is on disk:
+// apply() only overwrites the field when its input pointer is non-nil. Writing
+// the flag here, before embed.New reads the file, is therefore the only way to
+// set it from outside the module -- client/internal/profilemanager is a Go
+// internal package and cannot be imported from this bridge.
+//
+// The merge is a read-modify-write against the raw JSON object so a reconnect
+// keeps its persisted PrivateKey/identity rather than re-registering. Both true
+// and false are written explicitly, so turning the per-tunnel toggle off also
+// takes effect (the on-disk value is authoritative).
+func setRosenpassInConfig(path string, enabled bool) error {
+	raw := map[string]json.RawMessage{}
+	data, err := os.ReadFile(path)
+	switch {
+	case err == nil:
+		if err := json.Unmarshal(data, &raw); err != nil {
+			return fmt.Errorf("parse netbird config %s: %w", path, err)
+		}
+	case os.IsNotExist(err):
+		// First connect: no config yet. embed.New fills in the defaults
+		// (key, URLs, interface) when it reads this back.
+	default:
+		return fmt.Errorf("read netbird config %s: %w", path, err)
+	}
+
+	val, err := json.Marshal(enabled)
+	if err != nil {
+		return fmt.Errorf("encode rosenpass flag: %w", err)
+	}
+	raw["RosenpassEnabled"] = val
+
+	out, err := json.MarshalIndent(raw, "", "  ")
+	if err != nil {
+		return fmt.Errorf("encode netbird config: %w", err)
+	}
+	if err := os.MkdirAll(filepath.Dir(path), 0o700); err != nil {
+		return fmt.Errorf("create netbird state dir: %w", err)
+	}
+	return os.WriteFile(path, out, 0o600)
+}
+
 // StartTunnel joins a NetBird network with the given setup key and state
 // directory.
 //
@@ -109,9 +162,14 @@ const startTimeout = 60 * time.Second
 // NetBird's hosted default, so "both hosted and self-hosted" from #492 costs
 // nothing extra.
 //
+// rosenpass enables NetBird's post-quantum Rosenpass key exchange for this
+// tunnel (#662). It is a per-connection choice plumbed from the Kotlin
+// connection editor. client/embed exposes no Rosenpass option, so the flag is
+// merged into config.json before the client is built -- see setRosenpassInConfig.
+//
 // Blocks until the client has started, so a subsequent Dial has a netstack to
 // dial through.
-func StartTunnel(setupKey, stateDir, hostname, managementURL string) (*TunnelHandle, error) {
+func StartTunnel(setupKey, stateDir, hostname, managementURL string, rosenpass bool) (*TunnelHandle, error) {
 	if setupKey == "" {
 		return nil, errors.New("setup key required")
 	}
@@ -122,11 +180,16 @@ func StartTunnel(setupKey, stateDir, hostname, managementURL string) (*TunnelHan
 		hostname = "haven-android"
 	}
 
+	configPath := stateDir + "/config.json"
+	if err := setRosenpassInConfig(configPath, rosenpass); err != nil {
+		return nil, fmt.Errorf("configure rosenpass: %w", err)
+	}
+
 	c, err := netbird.New(netbird.Options{
 		DeviceName:    hostname,
 		SetupKey:      setupKey,
 		ManagementURL: managementURL, // empty = NetBird's hosted default
-		ConfigPath:    stateDir + "/config.json",
+		ConfigPath:    configPath,
 		StatePath:     stateDir + "/state.json",
 		// Userspace netstack is the default and is what lets us dial without a
 		// VpnService; NoUserspace would need privileges Haven does not have.

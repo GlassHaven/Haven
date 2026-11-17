@@ -136,7 +136,7 @@ jobs:
           cache-dependency-path: rclone-android/go/go.sum
       - name: Cache OpenVPN3 host test archive
         id: ovpn-host-cache
-        uses: actions/cache@27d5ce7f107fe9357f9df03efb73ab90386fccae  # v5.0.5
+        uses: actions/cache@55cc8345863c7cc4c66a329aec7e433d2d1c52a9  # v6.1.0
         with:
           path: openvpn3-core/host-test-lib
           key: openvpn3-host-amd64-${{ hashFiles('openvpn3-core/deps.lock', 'openvpn3-core/fetch-deps.sh', 'openvpn3-core/build-host-test.sh', 'openvpn3-core/CMakeLists.txt', 'openvpn3-core/adapter/**') }}

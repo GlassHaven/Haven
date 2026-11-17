@@ -91,12 +91,11 @@ jobs:
       - name: Run release unit tests
         # Same gating set as ci.yml: name :app:testArm64FullDebugUnitTest
         # explicitly because :app uses ABI+features product flavors (bare
-        # testDebugUnitTest matches no :app task). The sshlib contract tests are
-        # excluded here too because that engine's known CHANNEL_CLOSE flakiness
-        # (connectbot/cbssh#245, #448) is non-gating by design (#692).
+        # testDebugUnitTest matches no :app task). The sshlib contract tests
+        # are back in the gating set (#58) — the CHANNEL_CLOSE race (#448) is
+        # fixed upstream and the suite passes on a fixed sshlib pin.
         run: >-
           ./gradlew testDebugUnitTest :app:testArm64FullDebugUnitTest
-          -PexcludeSshlibContractTests=true
           -PskipWaylandNatives=true
           -PskipFfmpegNatives=true
           -PskipUml=true

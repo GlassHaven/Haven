@@ -239,38 +239,17 @@ jobs:
         # Name the flavor task explicitly (arm64 only — unit tests are
         # flavor-agnostic) so they actually run in CI.
         #
-        # The sshlib contract tests are excluded here and run in their own
-        # non-gating step below. They exercise the opt-in preview SSH engine
-        # against an upstream race in sshlib 0.4.1 — its output pump is
-        # cancelled on CHANNEL_CLOSE and drops whatever it is still holding, so
-        # a command's stdout or stderr comes back empty or truncated at random
-        # (connectbot/cbssh#245, tracked in #448). Haven narrows the window but
-        # cannot close it from outside the library, and 0.4.1 is the latest
-        # release. Three failures in one day, on three different assertions,
-        # blocked a release that changed nothing in core/ssh — so this engine's
-        # known flakiness no longer gates shipping for the default JSch engine.
-        # Restore it here the moment a fixed sshlib is out.
+        # The sshlib contract tests run in this gating set again (#58). The
+        # CHANNEL_CLOSE output race they used to hit (connectbot/cbssh#245,
+        # tracked in #448) was fixed upstream; the engine is pinned to a fixed
+        # sshlib and the contract suite passes on every release-branch push, so
+        # the 083faf102 non-gating carve-out is retired.
         run: >-
           ./gradlew testDebugUnitTest :app:testArm64FullDebugUnitTest
-          -PexcludeSshlibContractTests=true
           -PskipWaylandNatives=true
           -PskipFfmpegNatives=true
           -PskipUml=true
           -Pkotlin.compiler.execution.strategy=in-process
-      - name: Run sshlib contract tests (non-gating, connectbot/cbssh#245)
-        # Reported, never silent: a failure here is visible in the job summary
-        # and the uploaded results, it just does not fail the build. If these
-        # start failing *every* run rather than intermittently, that is a real
-        # regression and not the upstream race — check before dismissing it.
-        #
-        # That last sentence used to be the reader's job. Since #475 the
-        # test-retry plugin gives SshlibExecContractTest three attempts (and
-        # only that class — verified by making a test in another core:ssh class
-        # fail and watching it run once), so a red step here already means
-        # "failed three times in a row" rather than "flaked once". The signal
-        # is now worth acting on instead of squinting at.
-        continue-on-error: true
-        run: ./gradlew :core:ssh:testDebugUnitTest --tests 'sh.haven.core.ssh.sshlib.*' -PskipWaylandNatives=true -PskipFfmpegNatives=true -PskipUml=true
       - name: Upload test results
         if: always()
         uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9  # v7.0.2

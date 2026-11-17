@@ -5,6 +5,10 @@ the corresponding GitHub Release; a release can't ship without its section
 (enforced by `scripts/check-changelog.sh` in CI). The GitHub "Full Changelog"
 compare link is appended automatically — don't add it here.
 
+## v5.94.52
+
+- Fix USB/IP device forwarding stalling when the host keeps an interrupt endpoint polled (for example a forwarded SDR's RNDIS network function): idle IN polls now yield the shared connection lock and complete zero-length reads, so control and data transfers no longer time out (#854).
+
 ## v5.94.51
 
 - Let Linux guest programs post Android notifications through a new `haven-notify` helper, so scripts and long-running jobs in the proot guest can alert you on the phone. Off by default; enable it under Settings, or attach it on demand from the agent MCP surface (#851, thanks DragonXen).

@@ -25,6 +25,7 @@ import androidx.compose.foundation.gestures.detectHorizontalDragGestures
 import androidx.compose.foundation.gestures.detectTapGestures
 import androidx.compose.foundation.layout.fillMaxHeight
 import androidx.compose.foundation.layout.height
+import androidx.compose.foundation.layout.heightIn
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
@@ -86,6 +87,8 @@ import androidx.compose.material3.Surface
 import androidx.compose.material3.PrimaryScrollableTabRow
 import androidx.compose.material3.Tab
 import androidx.compose.material3.TabRowDefaults
+import androidx.compose.material3.LocalContentColor
+import androidx.compose.material3.LocalTextStyle
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
@@ -125,6 +128,7 @@ import sh.haven.core.ui.repairBrokenFocusChain
 import androidx.compose.ui.platform.LocalClipboardManager
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.platform.LocalView
+import androidx.compose.ui.text.TextStyle
 import androidx.compose.ui.text.font.FontFamily
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextOverflow
@@ -240,6 +244,54 @@ private fun tabContentColor(tabColor: Color?, selected: Boolean): Color {
     val surfaceLum = MaterialTheme.colorScheme.surface.luminance()
     val effectiveLum = surfaceLum * (1 - alpha) + bg.luminance() * alpha
     return if (effectiveLum > 0.5f) Color.Black else Color.White
+}
+
+/**
+ * A tab chip's fixed minimum height. A chip whose title gains a host line
+ * stays as tall as one without, so a strip mixing both stays level and the
+ * second line costs no terminal rows.
+ */
+private val TAB_CHIP_MIN_HEIGHT = 40.dp
+
+/**
+ * A tab's title, with the connection it belongs to in small type underneath
+ * when [subtitle] is set (see [resolveTabSubtitle]). Line heights are trimmed
+ * in the two-line form so both fit the chip height a single line used.
+ */
+@Composable
+private fun TabTitleText(
+    title: String,
+    subtitle: String?,
+    modifier: Modifier = Modifier,
+    centered: Boolean = true,
+    fontWeight: FontWeight? = null,
+    titleStyle: TextStyle = MaterialTheme.typography.labelLarge,
+) {
+    Column(
+        modifier = modifier,
+        horizontalAlignment = if (centered) Alignment.CenterHorizontally else Alignment.Start,
+    ) {
+        Text(
+            title,
+            maxLines = 1,
+            overflow = TextOverflow.Ellipsis,
+            fontWeight = fontWeight,
+            style = if (subtitle == null) titleStyle else titleStyle.copy(lineHeight = 17.sp),
+        )
+        if (subtitle != null) {
+            Text(
+                subtitle,
+                maxLines = 1,
+                overflow = TextOverflow.Ellipsis,
+                style = MaterialTheme.typography.labelSmall.copy(
+                    fontWeight = FontWeight.Normal,
+                    lineHeight = 14.sp,
+                    letterSpacing = 0.2.sp,
+                ),
+                color = LocalContentColor.current.copy(alpha = 0.72f),
+            )
+        }
+    }
 }
 
 /**
@@ -1408,6 +1460,7 @@ fun TerminalScreen(
                                 Surface(
                                     modifier = Modifier
                                         .fillMaxWidth()
+                                        .heightIn(min = TAB_CHIP_MIN_HEIGHT)
                                         .combinedClickable(
                                             onClick = { comboOpen = true },
                                             onLongClick = { tabMenuFor = comboTab.sessionId },
@@ -1421,21 +1474,23 @@ fun TerminalScreen(
                                     Row(
                                         modifier = Modifier.padding(
                                             horizontal = 12.dp,
-                                            vertical = 8.dp,
+                                            vertical = 2.dp,
                                         ),
                                         verticalAlignment = Alignment.CenterVertically,
                                     ) {
-                                        Text(
-                                            resolveTabTitle(
-                                                programTitle = comboTitle,
-                                                label = comboTab.label,
-                                                multiplexerName = comboTab.multiplexerName,
-                                                followSession = tabTitlesFollowSession,
-                                            ),
-                                            maxLines = 1,
-                                            overflow = TextOverflow.Ellipsis,
+                                        val comboText = resolveTabTitle(
+                                            programTitle = comboTitle,
+                                            label = comboTab.label,
+                                            multiplexerName = comboTab.multiplexerName,
+                                            followSession = tabTitlesFollowSession,
+                                        )
+                                        TabTitleText(
+                                            title = comboText,
+                                            subtitle = resolveTabSubtitle(comboText, comboTab.hostLabel),
                                             modifier = Modifier.weight(1f, fill = false),
-                                            style = MaterialTheme.typography.labelLarge,
+                                            // The chip is start-aligned (the dropdown arrow
+                                            // follows the text), so its lines are too.
+                                            centered = false,
                                         )
                                         Icon(
                                             Icons.Filled.ArrowDropDown,
@@ -1470,15 +1525,17 @@ fun TerminalScreen(
                                                                 .background(color, CircleShape),
                                                         )
                                                     }
-                                                    Text(
-                                                        resolveTabTitle(
-                                                            programTitle = listTitle,
-                                                            label = listTab.label,
-                                                            multiplexerName = listTab.multiplexerName,
-                                                            followSession = tabTitlesFollowSession,
-                                                        ),
-                                                        maxLines = 1,
-                                                        overflow = TextOverflow.Ellipsis,
+                                                    val listText = resolveTabTitle(
+                                                        programTitle = listTitle,
+                                                        label = listTab.label,
+                                                        multiplexerName = listTab.multiplexerName,
+                                                        followSession = tabTitlesFollowSession,
+                                                    )
+                                                    TabTitleText(
+                                                        title = listText,
+                                                        subtitle = resolveTabSubtitle(listText, listTab.hostLabel),
+                                                        centered = false,
+                                                        titleStyle = LocalTextStyle.current,
                                                         // The active row is marked by weight, not a
                                                         // check glyph — the trailing icons are
                                                         // actions (close), mixing a state indicator
@@ -1569,6 +1626,7 @@ fun TerminalScreen(
                                         modifier = Modifier
                                             .fillMaxWidth()
                                             .padding(horizontal = 2.dp)
+                                            .heightIn(min = TAB_CHIP_MIN_HEIGHT)
                                             .then(
                                                 if (inSplitUnfocused) {
                                                     Modifier.border(
@@ -1603,7 +1661,7 @@ fun TerminalScreen(
                                         Row(
                                             modifier = Modifier.padding(
                                                 horizontal = 12.dp,
-                                                vertical = 8.dp,
+                                                vertical = 2.dp,
                                             ),
                                             verticalAlignment = Alignment.CenterVertically,
                                             // Left-aligned text in a tab that now spans a
@@ -1618,20 +1676,19 @@ fun TerminalScreen(
                                                     tint = MaterialTheme.colorScheme.error,
                                                 )
                                             }
-                                            Text(
-                                                resolveTabTitle(
-                                                    programTitle = tabTitle,
-                                                    label = tab.label,
-                                                    multiplexerName = tab.multiplexerName,
-                                                    followSession = tabTitlesFollowSession,
-                                                ),
-                                                maxLines = 1,
-                                                // A stretched tab has a fixed width, so a long
-                                                // label must give way to the close button
-                                                // rather than push it off the edge.
-                                                overflow = TextOverflow.Ellipsis,
+                                            val stripText = resolveTabTitle(
+                                                programTitle = tabTitle,
+                                                label = tab.label,
+                                                multiplexerName = tab.multiplexerName,
+                                                followSession = tabTitlesFollowSession,
+                                            )
+                                            // A stretched tab has a fixed width, so a long
+                                            // label must give way to the close button
+                                            // rather than push it off the edge.
+                                            TabTitleText(
+                                                title = stripText,
+                                                subtitle = resolveTabSubtitle(stripText, tab.hostLabel),
                                                 modifier = Modifier.weight(1f, fill = false),
-                                                style = MaterialTheme.typography.labelLarge,
                                             )
                                             // #306: a one-tap close on the active tab so
                                             // ending a session no longer needs the

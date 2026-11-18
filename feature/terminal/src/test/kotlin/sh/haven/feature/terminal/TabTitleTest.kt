@@ -38,3 +38,21 @@ class TabTitleTest {
         assertEquals("srv", resolveTabTitle(null, "srv", null, true))
     }
 }
+class TabSubtitleTest {
+    @Test
+    fun `session-named tab shows its host`() {
+        assertEquals("prod-1", resolveTabSubtitle("default", "prod-1"))
+    }
+
+    @Test
+    fun `title that already is the host shows no subtitle`() {
+        assertEquals(null, resolveTabSubtitle("prod-1", "prod-1"))
+        assertEquals(null, resolveTabSubtitle("prod-1", " prod-1 "))
+    }
+
+    @Test
+    fun `tab without a host shows no subtitle`() {
+        assertEquals(null, resolveTabSubtitle("bash", null))
+        assertEquals(null, resolveTabSubtitle("bash", "  "))
+    }
+}

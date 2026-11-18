@@ -284,6 +284,11 @@ data class TerminalTab(
      *  tab strip uses it to let the user's multiplexer labelling win over
      *  program-set OSC titles when that preference is on. */
     val multiplexerName: String? = null,
+    /** The connection this tab belongs to (its profile/session label), kept
+     *  apart from [label] because a session-manager rename replaces that.
+     *  The tab strip shows it under the title when the two differ. Null for
+     *  on-device shells, which have no machine to name. */
+    val hostLabel: String? = null,
     /** Post-attach session-manager verification result (#731). Non-null when
      *  the shell came up but the session manager didn't (not installed / the
      *  start command failed), so the terminal can say why the user landed in
@@ -1418,6 +1423,7 @@ class TerminalViewModel @Inject constructor(
                     profileId = session.profileId,
                     colorTag = profile?.colorTag ?: 0,
                     label = tabLabel,
+                    hostLabel = session.label,
                     transportType = source.transportType,
                     emulator = emulator,
                     mouseMode = mouseTracker.mouseMode,
@@ -1532,6 +1538,7 @@ class TerminalViewModel @Inject constructor(
                     profileId = session.profileId,
                     colorTag = profile?.colorTag ?: 0,
                     label = tabLabel,
+                    hostLabel = session.label,
                     transportType = source.transportType,
                     emulator = emulator,
                     mouseMode = mouseTracker.mouseMode,
@@ -2068,6 +2075,7 @@ class TerminalViewModel @Inject constructor(
                     profileId = session.profileId,
                     colorTag = sshProfile?.colorTag ?: 0,
                     label = tabLabel,
+                    hostLabel = session.label,
                     transportType = "SSH",
                     emulator = b.emulator,
                     mouseMode = b.mouseTracker.mouseMode,
@@ -2174,6 +2182,7 @@ class TerminalViewModel @Inject constructor(
                     profileId = session.profileId,
                     colorTag = rnsProfile?.colorTag ?: 0,
                     label = tabLabel,
+                    hostLabel = session.label,
                     transportType = "RETICULUM",
                     emulator = emulator,
                     mouseMode = rnsMouseTracker.mouseMode,

@@ -5,6 +5,11 @@ the corresponding GitHub Release; a release can't ship without its section
 (enforced by `scripts/check-changelog.sh` in CI). The GitHub "Full Changelog"
 compare link is appended automatically — don't add it here.
 
+## v5.94.54
+
+- Show the connection a terminal tab belongs to under its session name, so a strip of tmux tabs no longer reads "default default default" with nothing saying which machine each one is (#862, thanks boyce-ywr).
+- Import post-quantum SSH keys such as ssh-mldsa44-ed25519 that the default engine's key parser rejects; use them with the sshlib engine (#859, thanks Slayerx96).
+
 ## v5.94.53
 
 - Add a Rosenpass (post-quantum key exchange) toggle for NetBird tunnels, for networks whose peers require it. It is in the NetBird tunnel editor, and on the agent surface as `netbirdRosenpass` in `create_tunnel` (#662, thanks Slayerx96).

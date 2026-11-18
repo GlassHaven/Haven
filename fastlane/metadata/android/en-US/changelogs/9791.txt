@@ -1,0 +1,1 @@
+Show the connection a terminal tab belongs to under its session name, so a strip of tmux tabs no longer reads "default default default". Import post-quantum SSH keys such as ssh-mldsa44-ed25519 that the default engine's key parser rejects; use them with the sshlib engine.

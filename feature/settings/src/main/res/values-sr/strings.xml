@@ -452,7 +452,7 @@
     <string name="settings_sshkey_reset_title">Поправити складиште SSH кључева?</string>
     <string name="settings_sshkey_reset_body">Ово прави нови кључ како би SSH кључеви поново могли да се генеришу.
 
-Сваки приватни кључ већ сачуван у Haven-у мораће поново да се увезе или генерише. Већ су нечитљиви — кључ који их је штитио је изгубљен, обично зато што је апликација поново инсталирана из другог извора — дакле ово враћа апликацију уместо да изгуби било шта даље.</string>
+        Сваки приватни кључ већ сачуван у Haven-у мораће поново да се увезе или генерише. Већ су нечитљиви — кључ који их је штитио је изгубљен, обично зато што је апликација поново инсталирана из другог извора — дакле ово враћа апликацију уместо да изгуби било шта даље.</string>
     <string name="settings_sshkey_reset_confirm">Поправи</string>
 
     <!-- Inline-image consent (#583) -->
@@ -512,4 +512,26 @@
     <string name="settings_mcp_https_p12_imported_toast">Произвољни HTTPS сертификат је увезен</string>
     <string name="settings_mcp_https_p12_import_failed_toast">Није успео увоз PKCS#12 пакета: %1$s</string>
     <string name="settings_mcp_https_p12_cleared_toast">Враћено на аутоматски генерисани корени CA</string>
+    <string name="settings_sudo_prompt_detection_title">Откривање упита за sudo лозинку</string>
+    <string name="settings_sudo_prompt_detection_subtitle">Приликом изврши-као и [sudo] упита, нуди биометријско ауто-попуњавање. Лозинке остају шифроване у Android Keystore на овом уређају, захтева се откључавање приликом сваке употребе, и никада се не излажу AI/MCP алатима.</string>
+    <string name="settings_bell_notification_title">Обавештење звонцем</string>
+    <string name="settings_bell_notification_subtitle">Када терминалски програм зазвони звонце док је Haven у позадини, објављује се обавештење које помиње картицу. Док гледате у терминал, ништа се не дешава</string>
+    <string name="settings_notify_guest_title">Обаветења госта</string>
+    <string name="settings_notify_guest_subtitle">Дозвољава да програми Линукс госта објављују Android обавештења кроз haven-notify. Када се укључи, било који процес госта можа да дода обавештења у сенку. Свако привезивање и даље тражи пристанак.</string>
+    <string name="settings_tailscale_discovery_title">Откривање Tailscale парњака</string>
+    <string name="settings_tailscale_discovery_subtitle">Претражује хостове на вашој Tailscale мрежи користећи његов локални локални API током скенирања. Искључите ако не желите да Haven чита листу парњака; сам Tailscale није обухваћен овиме.</string>
+    <string name="settings_mcp_tools_category_off_count">%1$d искључен</string>
+    <string name="settings_mcp_tools_cat_terminal">Терминал</string>
+    <string name="settings_mcp_tools_cat_connections">Везе</string>
+    <string name="settings_mcp_tools_cat_files">Фајлови</string>
+    <string name="settings_mcp_tools_cat_desktop">Десктоп</string>
+    <string name="settings_mcp_tools_cat_guest">Линукс гост</string>
+    <string name="settings_mcp_tools_cat_usb">USB и серијска</string>
+    <string name="settings_mcp_tools_cat_keys">Кључеви и приступни подаци</string>
+    <string name="settings_mcp_tools_cat_mail">Пошта</string>
+    <string name="settings_mcp_tools_cat_rclone">Складиште у облаку</string>
+    <string name="settings_mcp_tools_cat_senses">Сензори и локација</string>
+    <string name="settings_mcp_tools_cat_agent">Контрола агента и уређаја</string>
+    <string name="settings_mcp_tools_cat_other">Остало</string>
 </resources>
+

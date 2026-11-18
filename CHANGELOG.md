@@ -5,6 +5,10 @@ the corresponding GitHub Release; a release can't ship without its section
 (enforced by `scripts/check-changelog.sh` in CI). The GitHub "Full Changelog"
 compare link is appended automatically — don't add it here.
 
+## v5.94.55
+
+- Add IPv6-preferred and IPv4-preferred address-family modes for SSH connections: try the preferred family first and fall back to the other if it is unreachable, rather than the hard only-modes that fail outright (#855, thanks Az-1-2).
+
 ## v5.94.54
 
 - Show the connection a terminal tab belongs to under its session name, so a strip of tmux tabs no longer reads "default default default" with nothing saying which machine each one is (#862, thanks boyce-ywr).

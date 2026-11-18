@@ -1,0 +1,1 @@
+Add IPv6-preferred and IPv4-preferred address-family modes for SSH connections: try the preferred family first and fall back to the other if it is unreachable, rather than the hard only-modes that fail outright.

@@ -1,5 +1,6 @@
 package sh.haven.core.local.guestnotify
 
+import android.annotation.SuppressLint
 import android.app.NotificationChannel
 import android.app.NotificationManager
 import android.content.Context
@@ -37,6 +38,12 @@ class GuestNotifier @Inject constructor(
 
     private val nextId = AtomicInteger(50_000)
 
+    // POST_NOTIFICATIONS is guarded at runtime: areNotificationsEnabled() below
+    // returns false when the permission (or the channel) is off, and a revocation
+    // between that check and notify() is caught as SecurityException. Lint does
+    // not recognise areNotificationsEnabled() as a permission guard for
+    // NotificationManagerCompat.notify, hence the suppression.
+    @SuppressLint("MissingPermission")
     fun post(title: String, body: String): PostResult {
         val mgr = NotificationManagerCompat.from(context)
         if (!mgr.areNotificationsEnabled()) return PostResult.Disabled

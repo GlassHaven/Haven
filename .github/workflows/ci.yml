@@ -304,7 +304,11 @@ jobs:
   lint:
     if: github.event_name != 'push'
     runs-on: ubuntu-latest
-    timeout-minutes: 30
+    # 45, not 30: like the test job, lint's real spend ranges ~18-31m depending
+    # on runner load and Gradle cache hits, and a timed-out job stamps cancelled
+    # (looks red, tells you nothing about lint). Observed cancelled at 31m on PR
+    # #861 and #850. Clear the top of the spread, not sit on it.
+    timeout-minutes: 45
     steps:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1  # v7.0.1
         with:
@@ -421,7 +425,9 @@ jobs:
   release-r8-smoke:
     if: github.event_name != 'push'
     runs-on: ubuntu-latest
-    timeout-minutes: 30
+    # 45, not 30: R8 smoke reproducibly brushes the 30m cap on loaded runners
+    # (cancelled at 30m on PR #861 and #850); same rationale as lint/test.
+    timeout-minutes: 45
     steps:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1  # v7.0.1
         with:

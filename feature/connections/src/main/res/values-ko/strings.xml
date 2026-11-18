@@ -209,6 +209,8 @@
     <string name="connection_address_family_auto">자동</string>
     <string name="connection_address_family_ipv4_only">IPv4만</string>
     <string name="connection_address_family_ipv6_only">IPv6만</string>
+    <string name="connection_address_family_ipv6_preferred">IPv6 우선</string>
+    <string name="connection_address_family_ipv4_preferred">IPv4 우선</string>
     <string name="connection_address_family_ipv4_hint">AAAA 레코드를 건너뛰고 IPv4로 연결합니다. DNS가 IPv6를 반환하지만 네트워크에서 라우팅할 수 없을 때 유용합니다.</string>
     <string name="connection_address_family_ipv6_hint">A 레코드를 건너뛰고 IPv6로 연결합니다. IPv4 NAT가 깨진 IPv6 전용 네트워크에서 유용합니다.</string>
     <string name="connections_field_bind_address">로컬 바인드 주소</string>

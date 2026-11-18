@@ -335,6 +335,8 @@
     <string name="connection_address_family_auto">स्वतः</string>
     <string name="connection_address_family_ipv4_only">केवल IPv4</string>
     <string name="connection_address_family_ipv6_only">केवल IPv6</string>
+    <string name="connection_address_family_ipv6_preferred">IPv6 वरीयता</string>
+    <string name="connection_address_family_ipv4_preferred">IPv4 वरीयता</string>
     <string name="connection_address_family_ipv4_hint">AAAA रिकॉर्ड छोड़ें और IPv4 पर कनेक्ट करें। तब उपयोगी जब DNS IPv6 लौटाता है पर नेटवर्क उसे रूट नहीं कर सकता।</string>
     <string name="connection_address_family_ipv6_hint">A रिकॉर्ड छोड़ें और IPv6 पर कनेक्ट करें। केवल-IPv6 नेटवर्क पर उपयोगी जहाँ IPv4 NAT टूटा हुआ है।</string>
     <string name="connections_field_bind_address">लोकल बाइंड पता</string>

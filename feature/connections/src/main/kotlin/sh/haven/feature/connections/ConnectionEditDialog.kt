@@ -18,6 +18,7 @@ import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
+import androidx.compose.foundation.horizontalScroll
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
@@ -3384,8 +3385,15 @@ fun ConnectionEditDialog(
                         "AUTO" to stringResource(R.string.connection_address_family_auto),
                         "IPV4_ONLY" to stringResource(R.string.connection_address_family_ipv4_only),
                         "IPV6_ONLY" to stringResource(R.string.connection_address_family_ipv6_only),
+                        "IPV6_PREFERRED" to stringResource(R.string.connection_address_family_ipv6_preferred),
+                        "IPV4_PREFERRED" to stringResource(R.string.connection_address_family_ipv4_preferred),
                     )
-                    SingleChoiceSegmentedButtonRow(modifier = Modifier.fillMaxWidth()) {
+                    // Five options can exceed a portrait width; scroll rather than clip.
+                    SingleChoiceSegmentedButtonRow(
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .horizontalScroll(rememberScrollState()),
+                    ) {
                         addressFamilyOptions.forEachIndexed { index, (key, label) ->
                             SegmentedButton(
                                 selected = addressFamily == key,

@@ -13980,6 +13980,46 @@
      }
     },
     {
+     "name": "connection_address_family_ipv6_preferred",
+     "en": "IPv6 preferred",
+     "comment": "Group header",
+     "args": [],
+     "t": {
+      "ar": "IPv6 مفضّل",
+      "bn": "IPv6 পছন্দসই",
+      "de": "IPv6 bevorzugt",
+      "es": "IPv6 preferido",
+      "fr": "IPv6 préféré",
+      "hi": "IPv6 वरीयता",
+      "ja": "IPv6 優先",
+      "ko": "IPv6 우선",
+      "pt": "IPv6 preferido",
+      "ru": "IPv6 приоритет",
+      "sr": "IPv6 пожељно",
+      "zh": "IPv6 优先"
+     }
+    },
+    {
+     "name": "connection_address_family_ipv4_preferred",
+     "en": "IPv4 preferred",
+     "comment": "Group header",
+     "args": [],
+     "t": {
+      "ar": "IPv4 مفضّل",
+      "bn": "IPv4 পছন্দসই",
+      "de": "IPv4 bevorzugt",
+      "es": "IPv4 preferido",
+      "fr": "IPv4 préféré",
+      "hi": "IPv4 वरीयता",
+      "ja": "IPv4 優先",
+      "ko": "IPv4 우선",
+      "pt": "IPv4 preferido",
+      "ru": "IPv4 приоритет",
+      "sr": "IPv4 пожељно",
+      "zh": "IPv4 优先"
+     }
+    },
+    {
      "name": "connection_address_family_ipv4_hint",
      "en": "Skip AAAA records and connect over IPv4. Useful when DNS returns IPv6 but the network can\\'t route it.",
      "comment": "Group header",

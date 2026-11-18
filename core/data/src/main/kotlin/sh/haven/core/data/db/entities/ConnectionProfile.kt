@@ -825,7 +825,9 @@ data class ConnectionProfile @Ignore constructor(
     val fileTransportEnum: FileTransport
         get() = runCatching { FileTransport.valueOf(fileTransport) }.getOrDefault(FileTransport.AUTO)
 
-    enum class AddressFamily { AUTO, IPV4_ONLY, IPV6_ONLY }
+    // Names mirror core/ssh ConnectionConfig.AddressFamily by construction (#137);
+    // the two convert via name lookup, so keep them in lockstep.
+    enum class AddressFamily { AUTO, IPV4_ONLY, IPV6_ONLY, IPV6_PREFERRED, IPV4_PREFERRED }
 
     val addressFamilyEnum: AddressFamily
         get() = runCatching { AddressFamily.valueOf(addressFamily) }.getOrDefault(AddressFamily.AUTO)

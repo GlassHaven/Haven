@@ -335,6 +335,8 @@
     <string name="connection_address_family_auto">Automático</string>
     <string name="connection_address_family_ipv4_only">Apenas IPv4</string>
     <string name="connection_address_family_ipv6_only">Apenas IPv6</string>
+    <string name="connection_address_family_ipv6_preferred">IPv6 preferido</string>
+    <string name="connection_address_family_ipv4_preferred">IPv4 preferido</string>
     <string name="connection_address_family_ipv4_hint">Ignora registros AAAA e conecta via IPv4. Útil quando o DNS retorna IPv6 mas a rede não consegue roteá-lo.</string>
     <string name="connection_address_family_ipv6_hint">Ignora registros A e conecta via IPv6. Útil em redes apenas IPv6 onde o NAT de IPv4 está quebrado.</string>
     <string name="connections_field_bind_address">Endereço local de ligação</string>

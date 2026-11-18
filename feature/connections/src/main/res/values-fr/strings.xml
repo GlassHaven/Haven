@@ -335,6 +335,8 @@
     <string name="connection_address_family_auto">Auto</string>
     <string name="connection_address_family_ipv4_only">IPv4 uniquement</string>
     <string name="connection_address_family_ipv6_only">IPv6 uniquement</string>
+    <string name="connection_address_family_ipv6_preferred">IPv6 préféré</string>
+    <string name="connection_address_family_ipv4_preferred">IPv4 préféré</string>
     <string name="connection_address_family_ipv4_hint">Ignore les enregistrements AAAA et se connecte en IPv4. Utile lorsque le DNS renvoie de l\'IPv6 mais que le réseau ne peut pas l\'acheminer.</string>
     <string name="connection_address_family_ipv6_hint">Ignore les enregistrements A et se connecte en IPv6. Utile sur les réseaux uniquement IPv6 où le NAT IPv4 est défaillant.</string>
     <string name="connections_field_bind_address">Adresse locale de liaison</string>

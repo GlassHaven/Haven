@@ -208,6 +208,8 @@
     <string name="connection_address_family_auto">自动</string>
     <string name="connection_address_family_ipv4_only">仅 IPv4</string>
     <string name="connection_address_family_ipv6_only">仅 IPv6</string>
+    <string name="connection_address_family_ipv6_preferred">IPv6 优先</string>
+    <string name="connection_address_family_ipv4_preferred">IPv4 优先</string>
     <string name="connection_address_family_ipv4_hint">跳过 AAAA 记录，仅通过 IPv4 连接。适用于 DNS 返回 IPv6 但网络无法路由的情况。</string>
     <string name="connection_address_family_ipv6_hint">跳过 A 记录，仅通过 IPv6 连接。适用于 IPv4 NAT 损坏的纯 IPv6 网络。</string>
     <string name="connections_field_bind_address">本地绑定地址</string>

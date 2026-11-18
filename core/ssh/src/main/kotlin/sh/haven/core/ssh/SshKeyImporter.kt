@@ -3,6 +3,8 @@ package sh.haven.core.ssh
 import com.jcraft.jsch.JSch
 import com.jcraft.jsch.KeyPair
 import sh.haven.core.fido.SkKeyParser
+import java.nio.ByteBuffer
+import java.nio.ByteOrder
 import java.security.MessageDigest
 import java.util.Base64
 
@@ -52,7 +54,13 @@ object SshKeyImporter {
         val kpair = try {
             KeyPair.load(jsch, keyBytes, null)
         } catch (e: Exception) {
-            throw IllegalArgumentException("Unrecognised key format: ${e.message}", e)
+            // JSch does not know newer key types such as the hybrid
+            // post-quantum ssh-mldsa44-ed25519 (#859). The OpenSSH v1 format
+            // keeps the public-key section in plaintext for any key type, so
+            // fall back to a structural parse for the metadata. The original
+            // bytes are stored as-is and re-parsed by the sshlib engine at
+            // connect time — JSch (the default engine) cannot use these types.
+            return importOpenSshStructural(keyBytes, passphrase, e)
         }
 
         val encrypted = kpair.isEncrypted
@@ -108,4 +116,77 @@ object SshKeyImporter {
         if (len <= 0 || 4 + len > pubBlob.size) throw IllegalArgumentException("Invalid public key blob")
         return String(pubBlob, 4, len, Charsets.US_ASCII)
     }
+
+    /**
+     * Structural fallback for OpenSSH v1 private keys whose type JSch cannot
+     * parse (#859, e.g. ssh-mldsa44-ed25519). The format is
+     * `"openssh-key-v1\0" || cipher || kdf || kdf_options || num_keys ||
+     * public_section || private_section`; the public section is plaintext even
+     * when the private section is encrypted, so the type, public key and
+     * fingerprint can be read without any key-type-specific crypto.
+     *
+     * Encrypted keys are stored as-is with [ImportedKey.isEncrypted] set; the
+     * passphrase cannot be validated here (no crypto for the unknown type) and
+     * is checked by the sshlib engine at connect time.
+     */
+    private fun importOpenSshStructural(
+        keyBytes: ByteArray,
+        passphrase: String?,
+        cause: Exception,
+    ): ImportedKey {
+        fun unrecognized(): Nothing =
+            throw IllegalArgumentException("Unrecognised key format: ${cause.message}", cause)
+
+        val text = keyBytes.decodeToString()
+        val start = text.indexOf("-----BEGIN OPENSSH PRIVATE KEY-----")
+        val end = text.indexOf("-----END OPENSSH PRIVATE KEY-----")
+        if (start < 0 || end < 0) unrecognized()
+        val b64 = text.substring(start + "-----BEGIN OPENSSH PRIVATE KEY-----".length, end)
+            .replace(Regex("\\s+"), "")
+        val raw = try {
+            Base64.getDecoder().decode(b64)
+        } catch (_: Exception) {
+            unrecognized()
+        }
+
+        val magic = "openssh-key-v1\u0000"
+        if (raw.size < magic.length) unrecognized()
+        val buf = ByteBuffer.wrap(raw).order(ByteOrder.BIG_ENDIAN)
+        val magicBytes = ByteArray(magic.length)
+        buf.get(magicBytes)
+        if (String(magicBytes) != magic) unrecognized()
+
+        val cipherName = readSshString(buf)
+        readSshString(buf) // kdfname
+        readSshBytes(buf)  // kdfoptions
+        val numKeys = buf.int
+        if (numKeys != 1) throw IllegalArgumentException("Expected a single key, got $numKeys")
+        val pubBlob = readSshBytes(buf)
+
+        val keyType = readKeyTypeName(pubBlob)
+        val encrypted = cipherName != "none"
+        if (encrypted && passphrase.isNullOrEmpty()) throw EncryptedKeyException()
+
+        val pubB64 = Base64.getEncoder().encodeToString(pubBlob)
+        val digest = MessageDigest.getInstance("SHA-256").digest(pubBlob)
+        val fingerprint = "SHA256:" + Base64.getEncoder().withoutPadding().encodeToString(digest)
+
+        return ImportedKey(
+            keyType = keyType,
+            privateKeyBytes = keyBytes,
+            publicKeyOpenSsh = "$keyType $pubB64",
+            fingerprintSha256 = fingerprint,
+            isEncrypted = encrypted,
+        )
+    }
+
+    private fun readSshBytes(buf: ByteBuffer): ByteArray {
+        val len = buf.int
+        require(len >= 0 && len <= buf.remaining()) { "Invalid SSH string length: $len" }
+        val data = ByteArray(len)
+        buf.get(data)
+        return data
+    }
+
+    private fun readSshString(buf: ByteBuffer): String = String(readSshBytes(buf), Charsets.US_ASCII)
 }

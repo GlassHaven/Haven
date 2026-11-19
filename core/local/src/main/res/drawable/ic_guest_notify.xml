@@ -1,0 +1,19 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- Haven guest-notification small icon (#851): the brand terminal prompt ">_",
+     matching ic_launcher_monochrome. Notification small icons are alpha masks
+     tinted by the system, so the fill is white. -->
+<vector xmlns:android="http://schemas.android.com/apk/res/android"
+    android:width="24dp"
+    android:height="24dp"
+    android:viewportWidth="24"
+    android:viewportHeight="24">
+
+    <!-- Terminal prompt bracket > -->
+    <path
+        android:fillColor="#FFFFFFFF"
+        android:pathData="M4,5 L12,12 L4,19 L6.5,21 L17,12 L6.5,3 Z" />
+    <!-- Cursor underscore _ -->
+    <path
+        android:fillColor="#FFFFFFFF"
+        android:pathData="M15,18 L21,18 L21,20.5 L15,20.5 Z" />
+</vector>

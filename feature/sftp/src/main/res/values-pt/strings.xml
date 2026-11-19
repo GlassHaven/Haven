@@ -308,4 +308,6 @@
     <string name="sftp_remove_folder_message">%1$s será removido de Arquivos. Seus arquivos não são excluídos — apenas o acesso do Haven a esta pasta.</string>
     <string name="sftp_remove_folder_confirm">Remover</string>
     <string name="sftp_rename_not_supported">Este local não oferece suporte a renomear</string>
+    <string name="sftp_file_too_large_for_preview">O arquivo é grande demais para pré-visualizar (%1$s). Use Editar para abri-lo no editor.</string>
+    <string name="sftp_preview_link_missing">Arquivo vinculado não encontrado: %1$s</string>
 </resources>

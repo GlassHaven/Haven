@@ -307,4 +307,6 @@
     <string name="sftp_remove_folder_message">%1$s 将从「文件」中移除。不会删除你的文件——仅移除 Haven 对此文件夹的访问权限。</string>
     <string name="sftp_remove_folder_confirm">移除</string>
     <string name="sftp_rename_not_supported">此位置不支持重命名</string>
+    <string name="sftp_file_too_large_for_preview">文件太大，无法预览（%1$s）。可点“编辑”在编辑器中打开。</string>
+    <string name="sftp_preview_link_missing">找不到链接的文件：%1$s</string>
 </resources>

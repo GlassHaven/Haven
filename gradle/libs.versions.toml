@@ -14,6 +14,9 @@ sshlib = "0.6.9"
 smbj = "0.15.0"
 termlib = "0.0.22"
 sora-editor = "0.23.6"
+# commonmark-java (BSD-2, pure Java, no transitive deps beyond nibor autolink)
+# parses Markdown for the file browser's preview; rendering is our own Compose.
+commonmark = "0.32.0"
 bouncycastle = "1.84"
 # 5.19.1 to match prns/prns-host/bindings/jvm (JNA enforces jar↔jnidispatch
 # version pairing at load, so the AAR's native must match the strictest jar).
@@ -126,6 +129,14 @@ desugar-jdk-libs = { group = "com.android.tools", name = "desugar_jdk_libs", ver
 # Editor
 sora-editor = { group = "io.github.Rosemoe.sora-editor", name = "editor", version.ref = "sora-editor" }
 sora-editor-textmate = { group = "io.github.Rosemoe.sora-editor", name = "language-textmate", version.ref = "sora-editor" }
+
+# Markdown
+commonmark = { group = "org.commonmark", name = "commonmark", version.ref = "commonmark" }
+commonmark-ext-gfm-tables = { group = "org.commonmark", name = "commonmark-ext-gfm-tables", version.ref = "commonmark" }
+commonmark-ext-gfm-strikethrough = { group = "org.commonmark", name = "commonmark-ext-gfm-strikethrough", version.ref = "commonmark" }
+commonmark-ext-gfm-alerts = { group = "org.commonmark", name = "commonmark-ext-gfm-alerts", version.ref = "commonmark" }
+commonmark-ext-task-list-items = { group = "org.commonmark", name = "commonmark-ext-task-list-items", version.ref = "commonmark" }
+commonmark-ext-autolink = { group = "org.commonmark", name = "commonmark-ext-autolink", version.ref = "commonmark" }
 
 # Coroutines
 coroutines-core = { group = "org.jetbrains.kotlinx", name = "kotlinx-coroutines-core", version.ref = "coroutines" }

@@ -1,0 +1,21 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string name="preview_markdown_outline">Структура</string>
+    <string name="preview_markdown_edit">Измени</string>
+    <string name="preview_markdown_more">Још опција</string>
+    <string name="preview_markdown_open_with">Отвори помоћу…</string>
+    <string name="preview_markdown_empty">Ова датотека је празна</string>
+    <string name="preview_markdown_front_matter">Front matter</string>
+    <string name="preview_markdown_copy_code">Копирај код</string>
+    <string name="preview_markdown_code_copied">Копирано</string>
+    <string name="preview_markdown_back_to_top">На врх</string>
+    <string name="preview_markdown_remote_image">Удаљена слика, није учитана</string>
+    <string name="preview_markdown_image_unavailable">Слика није доступна</string>
+    <string name="preview_markdown_task_done">Урађено</string>
+    <string name="preview_markdown_task_open">Није урађено</string>
+    <string name="preview_markdown_alert_note">Напомена</string>
+    <string name="preview_markdown_alert_tip">Савет</string>
+    <string name="preview_markdown_alert_important">Важно</string>
+    <string name="preview_markdown_alert_warning">Упозорење</string>
+    <string name="preview_markdown_alert_caution">Опрез</string>
+</resources>

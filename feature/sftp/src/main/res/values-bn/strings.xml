@@ -307,5 +307,7 @@
     <string name="sftp_remove_folder_message">%1$s ফাইল থেকে সরানো হবে। আপনার ফাইল মুছে ফেলা হবে না — শুধু এই ফোল্ডারে Haven-এর অ্যাক্সেস।</string>
     <string name="sftp_remove_folder_confirm">সরান</string>
     <string name="sftp_rename_not_supported">এই অবস্থানটি নাম পরিবর্তন সমর্থন করে না</string>
+    <string name="sftp_file_too_large_for_preview">ফাইলটি প্রিভিউ করার জন্য খুব বড় (%1$s)। এডিটরে খুলতে সম্পাদনা ব্যবহার করুন।</string>
+    <string name="sftp_preview_link_missing">লিঙ্ক করা ফাইল পাওয়া যায়নি: %1$s</string>
 </resources>
 

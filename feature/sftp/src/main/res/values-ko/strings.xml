@@ -321,4 +321,6 @@
     <string name="sftp_remove_folder_message">%1$s이(가) 파일에서 제거됩니다. 파일은 삭제되지 않으며, 이 폴더에 대한 Haven의 접근 권한만 해제됩니다.</string>
     <string name="sftp_remove_folder_confirm">제거</string>
     <string name="sftp_rename_not_supported">이 위치는 이름 변경을 지원하지 않습니다</string>
+    <string name="sftp_file_too_large_for_preview">파일이 너무 커서 미리 볼 수 없습니다(%1$s). 편집을 눌러 편집기에서 여세요.</string>
+    <string name="sftp_preview_link_missing">링크된 파일을 찾을 수 없음: %1$s</string>
 </resources>

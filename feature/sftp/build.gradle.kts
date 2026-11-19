@@ -32,6 +32,7 @@ dependencies {
     implementation(project(":core:ssh"))
     implementation(project(":feature:editor"))
     implementation(project(":feature:imagetools"))
+    implementation(project(":feature:preview"))
     implementation(project(":core:mosh"))
     implementation(project(":core:et"))
     implementation(project(":core:reticulum"))

@@ -1,0 +1,21 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string name="preview_markdown_outline">রূপরেখা</string>
+    <string name="preview_markdown_edit">সম্পাদনা</string>
+    <string name="preview_markdown_more">আরও বিকল্প</string>
+    <string name="preview_markdown_open_with">এর মাধ্যমে খুলুন…</string>
+    <string name="preview_markdown_empty">এই ফাইলটি খালি</string>
+    <string name="preview_markdown_front_matter">ফ্রন্ট ম্যাটার</string>
+    <string name="preview_markdown_copy_code">কোড কপি করুন</string>
+    <string name="preview_markdown_code_copied">কপি হয়েছে</string>
+    <string name="preview_markdown_back_to_top">শীর্ষে ফিরুন</string>
+    <string name="preview_markdown_remote_image">দূরবর্তী ছবি, লোড করা হয়নি</string>
+    <string name="preview_markdown_image_unavailable">ছবি উপলব্ধ নয়</string>
+    <string name="preview_markdown_task_done">সম্পন্ন</string>
+    <string name="preview_markdown_task_open">অসম্পন্ন</string>
+    <string name="preview_markdown_alert_note">নোট</string>
+    <string name="preview_markdown_alert_tip">টিপ</string>
+    <string name="preview_markdown_alert_important">গুরুত্বপূর্ণ</string>
+    <string name="preview_markdown_alert_warning">সতর্কতা</string>
+    <string name="preview_markdown_alert_caution">সাবধান</string>
+</resources>

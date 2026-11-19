@@ -156,6 +156,7 @@ fun SftpScreen(
     pendingRcloneProfileId: String? = null,
     onEditorOpenChanged: (Boolean) -> Unit = {},
     onImageToolOpenChanged: (Boolean) -> Unit = {},
+    onMarkdownPreviewOpenChanged: (Boolean) -> Unit = {},
     /**
      * Applied to the screen's Scaffold. The NavHost uses this to install a
      * single pager-level gesture handler that both drives tab-swipe and
@@ -238,6 +239,11 @@ fun SftpScreen(
     val imageToolSaving by viewModel.imageToolSaving.collectAsState()
     val imageToolOpen = imageToolFile !is SftpViewModel.ImageToolFileState.Closed
     LaunchedEffect(imageToolOpen) { onImageToolOpenChanged(imageToolOpen) }
+
+    val markdownPreview by viewModel.markdownPreview.collectAsState()
+    val markdownPreviewNotice by viewModel.markdownPreviewNotice.collectAsState()
+    val markdownPreviewOpen = markdownPreview !is SftpViewModel.MarkdownPreviewFileState.Closed
+    LaunchedEffect(markdownPreviewOpen) { onMarkdownPreviewOpenChanged(markdownPreviewOpen) }
 
     val fileFilter by viewModel.fileFilter.collectAsState()
     val filterMode by viewModel.filterMode.collectAsState()
@@ -419,6 +425,37 @@ fun SftpScreen(
             onToggleWordWrap = { editorWordWrap = !editorWordWrap },
             onSave = { content -> viewModel.saveEditorContent(content) },
             onBack = { viewModel.closeEditor() },
+        )
+        return
+    }
+
+    // After the editor: Edit from the preview opens the editor on top, and
+    // closing it lands back here.
+    if (markdownPreviewOpen) {
+        androidx.activity.compose.BackHandler { viewModel.markdownPreviewBack() }
+        sh.haven.feature.preview.markdown.MarkdownPreviewScreen(
+            state = when (val mp = markdownPreview) {
+                is SftpViewModel.MarkdownPreviewFileState.Open -> sh.haven.feature.preview.markdown.MarkdownPreviewState.Loaded(
+                    fileName = mp.fileName,
+                    filePath = mp.filePath,
+                    content = mp.content,
+                    anchor = mp.anchor,
+                    restoreScroll = mp.restoreScroll,
+                )
+                is SftpViewModel.MarkdownPreviewFileState.Error ->
+                    sh.haven.feature.preview.markdown.MarkdownPreviewState.Error(mp.fileName, mp.message)
+                is SftpViewModel.MarkdownPreviewFileState.Loading ->
+                    sh.haven.feature.preview.markdown.MarkdownPreviewState.Loading(mp.fileName)
+                SftpViewModel.MarkdownPreviewFileState.Closed ->
+                    sh.haven.feature.preview.markdown.MarkdownPreviewState.Loading("")
+            },
+            readFile = viewModel::readMarkdownPreviewImage,
+            onBack = { viewModel.markdownPreviewBack() },
+            onOpenFile = { path, anchor -> viewModel.openMarkdownPreviewLink(path, anchor) },
+            onEdit = { viewModel.editMarkdownPreview() },
+            onOpenWith = { viewModel.openMarkdownPreviewWith() },
+            notice = markdownPreviewNotice,
+            onNoticeShown = { viewModel.dismissMarkdownPreviewNotice() },
         )
         return
     }
@@ -1310,6 +1347,10 @@ fun SftpScreen(
                                         if (entry.isDirectory) viewModel.navigateTo(entry.path)
                                     } else if (entry.isDirectory) {
                                         viewModel.navigateTo(entry.path)
+                                    } else if (sh.haven.feature.preview.markdown.MarkdownLinks.isMarkdownFile(entry.name)) {
+                                        // Markdown reads better rendered; Edit in the
+                                        // preview (or long-press) still opens the editor.
+                                        viewModel.openMarkdownPreview(entry)
                                     } else if (sh.haven.feature.editor.TextMateSupport.scopeForFileName(entry.name) != null) {
                                         viewModel.openInEditor(entry)
                                     } else if ((isRclone || viewModel.isSmbProfile() || viewModel.isRootProfile()) && entry.isMediaFile(mediaExtensions)) {
@@ -1396,6 +1437,9 @@ fun SftpScreen(
                                 } else null,
                                 onOpenInEditor = if (!entry.isDirectory) {
                                     { viewModel.openInEditor(entry) }
+                                } else null,
+                                onPreview = if (!entry.isDirectory && sh.haven.feature.preview.markdown.MarkdownLinks.isMarkdownFile(entry.name)) {
+                                    { viewModel.openMarkdownPreview(entry) }
                                 } else null,
                                 onOpenInImageTools = if (!entry.isDirectory && isImageFile(entry.name)) {
                                     { viewModel.openInImageTools(entry) }
@@ -2706,6 +2750,7 @@ private fun FileListItem(
     onShareLink: (() -> Unit)? = null,
     onFolderSize: (() -> Unit)? = null,
     onOpenInEditor: (() -> Unit)? = null,
+    onPreview: (() -> Unit)? = null,
     onOpenInImageTools: (() -> Unit)? = null,
     onEncrypt: (() -> Unit)? = null,
     onDecrypt: (() -> Unit)? = null,
@@ -2870,6 +2915,13 @@ private fun FileListItem(
                     text = { Text(stringResource(R.string.sftp_open_with)) },
                     leadingIcon = { Icon(Icons.AutoMirrored.Filled.OpenInNew, null) },
                     onClick = { showMenu = false; onOpenWith() },
+                )
+            }
+            if (onPreview != null) {
+                DropdownMenuItem(
+                    text = { Text(stringResource(R.string.sftp_preview)) },
+                    leadingIcon = { Icon(Icons.Filled.Visibility, null) },
+                    onClick = { showMenu = false; onPreview() },
                 )
             }
             if (onOpenInEditor != null) {

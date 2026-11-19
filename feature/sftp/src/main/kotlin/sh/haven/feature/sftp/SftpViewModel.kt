@@ -877,6 +877,10 @@ class SftpViewModel @Inject constructor(
                 val backend = currentFileBackend() ?: throw IllegalStateException("Not connected")
                 backend.writeBytes(entry.path, data)
                 _editorFile.value = EditorFileState.Open(entry.name, entry.path, content)
+                // Edited from the preview: show the saved text when the editor closes.
+                (_markdownPreview.value as? MarkdownPreviewFileState.Open)
+                    ?.takeIf { it.filePath == entry.path }
+                    ?.let { _markdownPreview.value = it.copy(content = content, anchor = null, restoreScroll = false) }
                 _message.value = appContext.getString(R.string.sftp_saved_file, entry.name)
             } catch (e: Exception) {
                 Log.e(TAG, "Failed to save file from editor", e)
@@ -890,6 +894,156 @@ class SftpViewModel @Inject constructor(
     fun closeEditor() {
         _editorFile.value = EditorFileState.Closed
         editorEntry = null
+    }
+
+    /** Markdown preview overlay state: a `.md` file rendered for reading. */
+    sealed class MarkdownPreviewFileState {
+        data object Closed : MarkdownPreviewFileState()
+        data class Loading(val fileName: String) : MarkdownPreviewFileState()
+        data class Open(
+            val fileName: String,
+            val filePath: String,
+            val content: String,
+            val anchor: String? = null,
+            val restoreScroll: Boolean = false,
+        ) : MarkdownPreviewFileState()
+        data class Error(val fileName: String, val message: String) : MarkdownPreviewFileState()
+    }
+    private val _markdownPreview = MutableStateFlow<MarkdownPreviewFileState>(MarkdownPreviewFileState.Closed)
+    val markdownPreview: StateFlow<MarkdownPreviewFileState> = _markdownPreview.asStateFlow()
+
+    /** One-shot notice shown inside the preview (the browser's snackbar is hidden under it). */
+    private val _markdownPreviewNotice = MutableStateFlow<String?>(null)
+    val markdownPreviewNotice: StateFlow<String?> = _markdownPreviewNotice.asStateFlow()
+    fun dismissMarkdownPreviewNotice() { _markdownPreviewNotice.value = null }
+
+    private var markdownPreviewEntry: SftpEntry? = null
+
+    /** Documents reached by following links, so Back retraces them before closing. */
+    private val markdownPreviewHistory = ArrayDeque<SftpEntry>()
+    private var markdownPreviewJob: Job? = null
+
+    /**
+     * Serialises the preview's reads. A README with a dozen screenshots
+     * would otherwise fire a dozen concurrent reads at one SFTP channel,
+     * which JSch does not tolerate (see [listMutex]).
+     */
+    private val markdownPreviewReadMutex = Mutex()
+
+    fun openMarkdownPreview(entry: SftpEntry) {
+        if (entry.isDirectory) return
+        markdownPreviewHistory.clear()
+        loadMarkdownPreview(entry, anchor = null, restoreScroll = false)
+    }
+
+    private fun loadMarkdownPreview(entry: SftpEntry, anchor: String?, restoreScroll: Boolean) {
+        markdownPreviewEntry = entry
+        markdownPreviewJob?.cancel()
+        _markdownPreview.value = MarkdownPreviewFileState.Loading(entry.name)
+        markdownPreviewJob = viewModelScope.launch {
+            try {
+                val backend = currentFileBackend() ?: throw IllegalStateException("Not connected")
+                val size = if (entry.size > 0L) entry.size else backend.stat(entry.path).size
+                if (size > MARKDOWN_PREVIEW_MAX_BYTES) {
+                    _markdownPreview.value = MarkdownPreviewFileState.Error(
+                        entry.name,
+                        appContext.getString(R.string.sftp_file_too_large_for_preview, formatSizeForMessage(size)),
+                    )
+                    return@launch
+                }
+                val bytes = markdownPreviewReadMutex.withLock { backend.readBytes(entry.path) }
+                _markdownPreview.value = MarkdownPreviewFileState.Open(
+                    fileName = entry.name,
+                    filePath = entry.path,
+                    content = bytes.toString(Charsets.UTF_8),
+                    anchor = anchor,
+                    restoreScroll = restoreScroll,
+                )
+            } catch (e: CancellationException) {
+                throw e
+            } catch (e: Exception) {
+                Log.e(TAG, "Failed to load file for preview", e)
+                _markdownPreview.value = MarkdownPreviewFileState.Error(entry.name, e.message ?: "Failed to load file")
+            }
+        }
+    }
+
+    /**
+     * Follows a relative link out of the previewed document: another
+     * Markdown file opens in place (Back returns), a folder is shown in the
+     * browser, anything else opens as a tap in the browser would open it.
+     */
+    fun openMarkdownPreviewLink(path: String, anchor: String?) {
+        viewModelScope.launch {
+            val backend = currentFileBackend() ?: return@launch
+            val target = try {
+                backend.stat(path).let { it.copy(path = path, name = it.name.ifEmpty { path.substringAfterLast('/') }) }
+            } catch (e: CancellationException) {
+                throw e
+            } catch (e: Exception) {
+                Log.w(TAG, "Preview link target missing: $path", e)
+                _markdownPreviewNotice.value = appContext.getString(R.string.sftp_preview_link_missing, path)
+                return@launch
+            }
+            when {
+                target.isDirectory -> {
+                    closeMarkdownPreview()
+                    navigateTo(target.path)
+                }
+                sh.haven.feature.preview.markdown.MarkdownLinks.isMarkdownFile(target.name) -> {
+                    markdownPreviewEntry?.let { markdownPreviewHistory.addLast(it) }
+                    loadMarkdownPreview(target, anchor, restoreScroll = false)
+                }
+                // The editor opens over the preview, so Back from it returns here.
+                sh.haven.feature.editor.TextMateSupport.scopeForFileName(target.name) != null -> openInEditor(target)
+                else -> openWithExternalApp(target)
+            }
+        }
+    }
+
+    /** Back from the preview: the document the reader came from, or close. */
+    fun markdownPreviewBack() {
+        val previous = markdownPreviewHistory.removeLastOrNull()
+        if (previous == null) {
+            closeMarkdownPreview()
+        } else {
+            loadMarkdownPreview(previous, anchor = null, restoreScroll = true)
+        }
+    }
+
+    fun closeMarkdownPreview() {
+        markdownPreviewJob?.cancel()
+        markdownPreviewJob = null
+        markdownPreviewEntry = null
+        markdownPreviewHistory.clear()
+        _markdownPreviewNotice.value = null
+        _markdownPreview.value = MarkdownPreviewFileState.Closed
+    }
+
+    /** Opens the previewed file in the editor, on top of the preview. */
+    fun editMarkdownPreview() {
+        markdownPreviewEntry?.let { openInEditor(it) }
+    }
+
+    fun openMarkdownPreviewWith() {
+        markdownPreviewEntry?.let { openWithExternalApp(it) }
+    }
+
+    /** Bytes of an image the previewed document references, or null if missing or too large. */
+    suspend fun readMarkdownPreviewImage(path: String): ByteArray? {
+        val backend = currentFileBackend() ?: return null
+        return try {
+            if (backend.stat(path).size > MARKDOWN_PREVIEW_IMAGE_MAX_BYTES) {
+                null
+            } else {
+                markdownPreviewReadMutex.withLock { backend.readBytes(path) }
+            }
+        } catch (e: CancellationException) {
+            throw e
+        } catch (e: Exception) {
+            Log.w(TAG, "Preview image unavailable: $path", e)
+            null
+        }
     }
 
     /** Image tools overlay state. */
@@ -6397,6 +6551,16 @@ class SftpViewModel @Inject constructor(
          * impractical anyway; refuse before reading a byte.
          */
         const val EDITOR_MAX_FILE_BYTES = 20L * 1024 * 1024
+
+        /**
+         * Largest Markdown file [openMarkdownPreview] renders. Far past any
+         * real document; past it, parsing and laying out the text costs more
+         * than reading it is worth, and Edit still opens it.
+         */
+        const val MARKDOWN_PREVIEW_MAX_BYTES = 5L * 1024 * 1024
+
+        /** Largest image the Markdown preview reads to show inline. */
+        const val MARKDOWN_PREVIEW_IMAGE_MAX_BYTES = 16L * 1024 * 1024
 
         /** Compact human-readable size for user-facing messages ("58 MB"). */
         internal fun formatSizeForMessage(bytes: Long): String {

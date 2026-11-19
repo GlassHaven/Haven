@@ -1,0 +1,21 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string name="preview_markdown_outline">Estrutura</string>
+    <string name="preview_markdown_edit">Editar</string>
+    <string name="preview_markdown_more">Mais opções</string>
+    <string name="preview_markdown_open_with">Abrir com…</string>
+    <string name="preview_markdown_empty">Este arquivo está vazio</string>
+    <string name="preview_markdown_front_matter">Front matter</string>
+    <string name="preview_markdown_copy_code">Copiar código</string>
+    <string name="preview_markdown_code_copied">Copiado</string>
+    <string name="preview_markdown_back_to_top">Voltar ao topo</string>
+    <string name="preview_markdown_remote_image">Imagem remota, não carregada</string>
+    <string name="preview_markdown_image_unavailable">Imagem indisponível</string>
+    <string name="preview_markdown_task_done">Concluído</string>
+    <string name="preview_markdown_task_open">Pendente</string>
+    <string name="preview_markdown_alert_note">Nota</string>
+    <string name="preview_markdown_alert_tip">Dica</string>
+    <string name="preview_markdown_alert_important">Importante</string>
+    <string name="preview_markdown_alert_warning">Aviso</string>
+    <string name="preview_markdown_alert_caution">Cuidado</string>
+</resources>

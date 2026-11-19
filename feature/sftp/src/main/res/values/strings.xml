@@ -341,4 +341,6 @@
     <string name="sftp_compression_audio_bitrate">Audio bitrate</string>
     <string name="sftp_filter_title">Filters</string>
     <string name="sftp_filter_rotation">Rotation</string>
+    <string name="sftp_file_too_large_for_preview">File is too large to preview (%1$s). Use Edit to open it in the editor.</string>
+    <string name="sftp_preview_link_missing">Linked file not found: %1$s</string>
 </resources>

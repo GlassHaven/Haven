@@ -295,6 +295,7 @@ dependencies {
     implementation(project(":feature:settings"))
     implementation(project(":feature:editor"))
     implementation(project(":feature:imagetools"))
+    implementation(project(":feature:preview"))
     implementation(project(":feature:vnc"))
     implementation(project(":feature:rdp"))
     // The app manifest declares CloudflareAccessLoginActivity, so app must

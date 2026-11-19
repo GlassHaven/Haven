@@ -307,4 +307,6 @@
     <string name="sftp_remove_folder_message">ستتم إزالة %1$s من الملفات. لن تُحذف ملفاتك — فقط وصول Haven إلى هذا المجلد.</string>
     <string name="sftp_remove_folder_confirm">إزالة</string>
     <string name="sftp_rename_not_supported">هذا الموقع لا يدعم إعادة التسمية</string>
+    <string name="sftp_file_too_large_for_preview">الملف كبير جدًا للمعاينة (%1$s). استخدم «تعديل» لفتحه في المحرر.</string>
+    <string name="sftp_preview_link_missing">لم يتم العثور على الملف المرتبط: %1$s</string>
 </resources>

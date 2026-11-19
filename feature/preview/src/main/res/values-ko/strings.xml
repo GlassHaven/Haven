@@ -1,0 +1,21 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string name="preview_markdown_outline">개요</string>
+    <string name="preview_markdown_edit">편집</string>
+    <string name="preview_markdown_more">추가 옵션</string>
+    <string name="preview_markdown_open_with">다른 앱으로 열기…</string>
+    <string name="preview_markdown_empty">빈 파일입니다</string>
+    <string name="preview_markdown_front_matter">프런트 매터</string>
+    <string name="preview_markdown_copy_code">코드 복사</string>
+    <string name="preview_markdown_code_copied">복사됨</string>
+    <string name="preview_markdown_back_to_top">맨 위로</string>
+    <string name="preview_markdown_remote_image">원격 이미지(불러오지 않음)</string>
+    <string name="preview_markdown_image_unavailable">이미지를 사용할 수 없음</string>
+    <string name="preview_markdown_task_done">완료</string>
+    <string name="preview_markdown_task_open">미완료</string>
+    <string name="preview_markdown_alert_note">참고</string>
+    <string name="preview_markdown_alert_tip">팁</string>
+    <string name="preview_markdown_alert_important">중요</string>
+    <string name="preview_markdown_alert_warning">경고</string>
+    <string name="preview_markdown_alert_caution">주의</string>
+</resources>

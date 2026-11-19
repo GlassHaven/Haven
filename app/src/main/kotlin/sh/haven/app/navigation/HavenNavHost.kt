@@ -638,9 +638,10 @@ fun HavenNavHost(
             inputMode = desktopInputMode,
         )
     }
-    // Disable pager swipe when SFTP text editor or image tools are open
+    // Disable pager swipe when SFTP text editor, image tools or Markdown preview are open
     var sftpEditorOpen by remember { mutableStateOf(false) }
     var sftpImageToolOpen by remember { mutableStateOf(false) }
+    var sftpMarkdownPreviewOpen by remember { mutableStateOf(false) }
 
     // Nav bar drag-to-reorder state
     var navDragIndex by remember { mutableIntStateOf(-1) }
@@ -670,7 +671,7 @@ fun HavenNavHost(
             // leaving the page and the nav selection inconsistent. The
             // built-in stays enabled on the other pages (Connections/Desktop/
             // Keys/Settings), which have no override and rely on it.
-            userScrollEnabled = !desktopFullscreen && !terminalFullscreen && !desktopConnected && !terminalSelectionActive && !sftpEditorOpen && !sftpImageToolOpen &&
+            userScrollEnabled = !desktopFullscreen && !terminalFullscreen && !desktopConnected && !terminalSelectionActive && !sftpEditorOpen && !sftpImageToolOpen && !sftpMarkdownPreviewOpen &&
                 selectedScreen != Screen.Terminal && selectedScreen != Screen.Sftp,
             modifier = modifier.nestedScroll(consumeHorizontalNestedScroll),
         ) { page ->
@@ -924,7 +925,7 @@ fun HavenNavHost(
                         .pagerSwipeOverride(
                             pagerState = pagerState,
                             scope = coroutineScope,
-                            isSelectionActive = { sftpSelectedPaths.isNotEmpty() || sftpEditorOpen || sftpImageToolOpen },
+                            isSelectionActive = { sftpSelectedPaths.isNotEmpty() || sftpEditorOpen || sftpImageToolOpen || sftpMarkdownPreviewOpen },
                             onSwipeActiveChange = { isUserSwiping = it },
                             onAdoptPage = { page -> screens.getOrNull(page)?.let { requestScreen(it) } },
                             onFlick = { rightward ->
@@ -945,6 +946,7 @@ fun HavenNavHost(
                         pendingRcloneProfileId = pendingRcloneProfileId,
                         onEditorOpenChanged = { sftpEditorOpen = it },
                         onImageToolOpenChanged = { sftpImageToolOpen = it },
+                        onMarkdownPreviewOpenChanged = { sftpMarkdownPreviewOpen = it },
                         sftpModifier = sftpModifier,
                         onAttachFinished = {
                             // Once the picker resolves (confirm or cancel)

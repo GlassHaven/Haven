@@ -172,6 +172,7 @@ fun ConnectionEditDialog(
      */
     onManageTunnels: ((preselect: sh.haven.core.data.db.entities.TunnelConfigType?) -> Unit)? = null,
     globalSessionManagerLabel: String = "None",
+    defaultAddressFamily: String = "AUTO",
     subnetScanning: Boolean = false,
     smbSubnetScanning: Boolean = false,
     reticulumScanning: Boolean = false,
@@ -442,7 +443,7 @@ fun ConnectionEditDialog(
         mcpReverseTunnel = mcpReverseTunnelEnabled
     }
     var forwardAgent by rememberSaveable { mutableStateOf(existing?.forwardAgent ?: false) }
-    var addressFamily by rememberSaveable { mutableStateOf(existing?.addressFamily ?: "AUTO") }
+    var addressFamily by rememberSaveable { mutableStateOf(existing?.addressFamily ?: defaultAddressFamily) }
     var bindAddress by rememberSaveable { mutableStateOf(existing?.bindAddress ?: "") }
     var selectedSessionManager by rememberSaveable { mutableStateOf(seed?.sessionManager) }
     var etPort by rememberSaveable { mutableStateOf(existing?.etPort?.toString() ?: "2022") }

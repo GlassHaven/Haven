@@ -241,6 +241,7 @@ fun ConnectionsScreen(
     val keyboardInteractiveAuth by viewModel.keyboardInteractiveAuth.collectAsState()
     val sshAuthBanner by viewModel.sshAuthBanner.collectAsState()
     val globalSessionManagerLabel by viewModel.globalSessionManagerLabel.collectAsState()
+    val defaultAddressFamily by viewModel.defaultAddressFamily.collectAsState()
     val newSessionProfileId by viewModel.newSessionProfileId.collectAsState()
     val subnetScanning by viewModel.subnetScanning.collectAsState()
     val jumpScanning by viewModel.jumpScanning.collectAsState()
@@ -549,6 +550,7 @@ fun ConnectionsScreen(
                 showTunnelsScreen = true
             },
             globalSessionManagerLabel = globalSessionManagerLabel,
+            defaultAddressFamily = defaultAddressFamily,
             subnetScanning = subnetScanning,
             smbSubnetScanning = smbSubnetScanning,
             reticulumScanning = reticulumScanning,
@@ -746,6 +748,7 @@ fun ConnectionsScreen(
                 showTunnelsScreen = true
             },
             globalSessionManagerLabel = globalSessionManagerLabel,
+            defaultAddressFamily = defaultAddressFamily,
             subnetScanning = subnetScanning,
             smbSubnetScanning = smbSubnetScanning,
             reticulumScanning = reticulumScanning,

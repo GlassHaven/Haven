@@ -56,6 +56,10 @@ class UserPreferencesRepository @Inject constructor(
     private val terminalLocaleKey = stringPreferencesKey("terminal_locale")
     private val themeKey = stringPreferencesKey("theme")
     private val sessionManagerKey = stringPreferencesKey("session_manager")
+    // Global default address family for NEW SSH connections (#855): one of the
+    // ConnectionProfile.AddressFamily names (AUTO/IPV4_ONLY/IPV6_ONLY/
+    // IPV6_PREFERRED/IPV4_PREFERRED). Existing profiles keep their own value.
+    private val defaultAddressFamilyKey = stringPreferencesKey("default_address_family")
     private val reticulumRpcKeyKey = stringPreferencesKey("reticulum_rpc_key")
     private val reticulumHostKey = stringPreferencesKey("reticulum_host")
     private val reticulumPortKey = intPreferencesKey("reticulum_port")
@@ -1852,6 +1856,17 @@ class UserPreferencesRepository @Inject constructor(
     suspend fun setSessionManager(manager: SessionManager) {
         dataStore.edit { prefs ->
             prefs[sessionManagerKey] = manager.name
+        }
+    }
+
+    /** Global default address family for new SSH connections (#855); "AUTO" when unset. */
+    val defaultAddressFamily: Flow<String> = dataStore.data.map { prefs ->
+        prefs[defaultAddressFamilyKey] ?: "AUTO"
+    }
+
+    suspend fun setDefaultAddressFamily(family: String) {
+        dataStore.edit { prefs ->
+            prefs[defaultAddressFamilyKey] = family
         }
     }
 

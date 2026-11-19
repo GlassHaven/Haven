@@ -528,6 +528,10 @@ class ConnectionsViewModel @Inject constructor(
         .map { it.label }
         .stateIn(viewModelScope, SharingStarted.WhileSubscribed(5000), "None")
 
+    /** Global default address family applied to NEW SSH connections (#855). */
+    val defaultAddressFamily: StateFlow<String> = preferencesRepository.defaultAddressFamily
+        .stateIn(viewModelScope, SharingStarted.WhileSubscribed(5000), "AUTO")
+
     val batteryPromptDismissed: StateFlow<Boolean> = preferencesRepository.batteryPromptDismissed
         .stateIn(viewModelScope, SharingStarted.WhileSubscribed(5000), true) // default true to avoid flash
 

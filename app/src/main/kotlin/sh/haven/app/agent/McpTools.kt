@@ -3122,6 +3122,7 @@ class McpTools private constructor(
         "terminal_tap_to_position_cursor",
         "terminal_bell_notification",
         "terminal_font_size",
+        "default_address_family",
         "terminal_horizontal_padding",
         "mouse_input_enabled",
         "terminal_right_click",
@@ -3280,6 +3281,7 @@ class McpTools private constructor(
             "terminal_tap_to_position_cursor" -> preferencesRepository.terminalTapToPositionCursor.first()
             "terminal_bell_notification" -> preferencesRepository.terminalBellNotification.first()
             "terminal_font_size" -> preferencesRepository.terminalFontSize.first()
+            "default_address_family" -> preferencesRepository.defaultAddressFamily.first()
             "terminal_horizontal_padding" -> preferencesRepository.terminalHorizontalPadding.first()
             "mouse_input_enabled" -> preferencesRepository.mouseInputEnabled.first()
             "terminal_right_click" -> preferencesRepository.terminalRightClick.first()
@@ -3407,6 +3409,17 @@ class McpTools private constructor(
                     throw McpError(-32602, "Invalid locale \"$locale\" for $key")
                 }
                 preferencesRepository.setTerminalLocale(locale)
+            }
+            "default_address_family" -> {
+                // Global default for NEW SSH connections (#855). One of the
+                // ConnectionProfile.AddressFamily names; existing profiles keep
+                // their own value.
+                val family = (rawValue as? String)?.trim()?.uppercase()
+                    ?: throw McpError(-32602, "value must be an address-family string for $key")
+                if (family !in setOf("AUTO", "IPV4_ONLY", "IPV6_ONLY", "IPV6_PREFERRED", "IPV4_PREFERRED")) {
+                    throw McpError(-32602, "Invalid address family \"$family\" for $key (AUTO/IPV4_ONLY/IPV6_ONLY/IPV6_PREFERRED/IPV4_PREFERRED)")
+                }
+                preferencesRepository.setDefaultAddressFamily(family)
             }
             "mcp_tunnel_endpoint_profile_id" ->
                 preferencesRepository.setMcpTunnelEndpointProfileId((rawValue as? String)?.ifBlank { null })

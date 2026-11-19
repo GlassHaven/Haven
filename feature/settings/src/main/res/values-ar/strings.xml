@@ -50,6 +50,13 @@
 
     <!-- Terminal section -->
     <string name="settings_session_persistence_title">استمرار الجلسة</string>
+    <string name="settings_default_address_family_title">عائلة العناوين الافتراضية</string>
+    <string name="settings_default_address_family_subtitle">لاتصالات SSH الجديدة</string>
+    <string name="settings_address_family_auto">تلقائي</string>
+    <string name="settings_address_family_ipv4_only">IPv4 فقط</string>
+    <string name="settings_address_family_ipv6_only">IPv6 فقط</string>
+    <string name="settings_address_family_ipv6_preferred">IPv6 مفضّل</string>
+    <string name="settings_address_family_ipv4_preferred">IPv4 مفضّل</string>
     <string name="settings_session_persistence_none">بلا</string>
     <string name="settings_font_size_title">حجم خط الطرفية</string>
     <string name="settings_font_size_subtitle">%1$dsp</string>
@@ -320,6 +327,8 @@
     <string name="settings_usb_guest_subtitle">السماح لأجهزة USB المتصلة بالوصول إلى تطبيقات الضيف عبر الوصلة haven-usb. كل إرفاق يطلب الموافقة.</string>
     <string name="settings_gps_guest_title">إتاحة GPS لضيف Linux</string>
     <string name="settings_gps_guest_subtitle">بث موقع GPS للهاتف إلى الضيف كجهاز NMEA (haven-gps). بعد التشغيل يمكن لأي عملية في الضيف قراءة الموقع. كل إرفاق يطلب الموافقة.</string>
+    <string name="settings_notify_guest_title">إشعارات الضيف</string>
+    <string name="settings_notify_guest_subtitle">السماح لبرامج الضيف في Linux بنشر إشعارات Android عبر haven-notify. بعد التشغيل يمكن لأي عملية في الضيف إضافة إشعارات إلى الدرج. كل إرفاق يطلب الموافقة.</string>
     <string name="settings_proot_install_log_title">عرض سجل تثبيت PRoot</string>
     <string name="settings_proot_install_log_subtitle">أحداث كل مرحلة من تثبيتات توزيعات Linux (المشكلة #162)</string>
     <string name="settings_logcat_capture_title">التقاط Logcat</string>

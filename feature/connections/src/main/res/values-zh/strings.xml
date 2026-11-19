@@ -208,6 +208,8 @@
     <string name="connection_address_family_auto">自动</string>
     <string name="connection_address_family_ipv4_only">仅 IPv4</string>
     <string name="connection_address_family_ipv6_only">仅 IPv6</string>
+    <string name="connection_address_family_ipv6_preferred">IPv6 优先</string>
+    <string name="connection_address_family_ipv4_preferred">IPv4 优先</string>
     <string name="connection_address_family_ipv4_hint">跳过 AAAA 记录，仅通过 IPv4 连接。适用于 DNS 返回 IPv6 但网络无法路由的情况。</string>
     <string name="connection_address_family_ipv6_hint">跳过 A 记录，仅通过 IPv6 连接。适用于 IPv4 NAT 损坏的纯 IPv6 网络。</string>
     <string name="connections_field_bind_address">本地绑定地址</string>
@@ -473,6 +475,8 @@
     <string name="connections_vm_terminal_not_found">未找到终端应用</string>
     <string name="connections_mcp_badge">MCP</string>
     <string name="connections_local_distro_label">在系统中打开</string>
+    <string name="connections_local_share_storage_title">共享设备存储</string>
+    <string name="connections_local_share_storage_description">将你的共享存储挂载到客户机的 /storage 和 /sdcard，使其能够访问你的文件。下次启动时对所有本地 shell 生效。关闭可向客户机隐藏你的照片和下载内容。</string>
     <string name="connections_local_distro_active_default">活动发行版（默认）</string>
 
     <string name="connections_section_openai">AI 端点</string>

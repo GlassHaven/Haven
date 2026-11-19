@@ -1,0 +1,1 @@
+Add a global default address family that new SSH connections inherit (Settings → Default address family), including IPv6-preferred / IPv4-preferred modes that fall back to the other family when the preferred one is unreachable. Existing connections keep their own setting.

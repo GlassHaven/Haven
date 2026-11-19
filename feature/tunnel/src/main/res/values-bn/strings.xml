@@ -26,6 +26,8 @@
     <string name="tunnel_netbird_setup_key_label">সেটআপ কী</string>
     <string name="tunnel_netbird_management_url_label">ম্যানেজমেন্ট URL (ঐচ্ছিক)</string>
     <string name="tunnel_netbird_management_url_help">NetBird-এর হোস্ট করা ম্যানেজমেন্টের জন্য খালি রাখুন। স্ব-হোস্ট করা ম্যানেজমেন্ট পরিষেবার জন্য আপনার সার্ভারের URL সেট করুন।</string>
+    <string name="tunnel_netbird_rosenpass_label">পোস্ট-কোয়ান্টাম কী এক্সচেঞ্জ (Rosenpass)</string>
+    <string name="tunnel_netbird_rosenpass_help">NetBird-এর Rosenpass পোস্ট-কোয়ান্টাম কী এক্সচেঞ্জ চালু করুন। যে পিয়ারের সাথে সংযোগ করছেন সেটি প্রয়োজন হলে চালু করুন; উভয় পক্ষকেই Rosenpass সমর্থন করতে হবে।</string>
     <string name="tunnel_openvpn_help">একটি .ovpn প্রোফাইল পেস্ট করুন অথবা একটি ফাইল লোড করুন। প্রোফাইলে যদি ইনলাইন ক্রেডেনশিয়াল ফাইল ছাড়া auth-user-pass ব্যবহার করা হয়, তাহলে নিচে একটি ব্যবহারকারীর নাম এবং পাসওয়ার্ড লিখুন।</string>
     <string name="tunnel_openvpn_config_label">OpenVPN প্রোফাইল (.ovpn)</string>
     <string name="tunnel_openvpn_username_label">ব্যবহারকারীর নাম (ঐচ্ছিক)</string>

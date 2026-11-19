@@ -335,6 +335,8 @@
     <string name="connection_address_family_auto">自動</string>
     <string name="connection_address_family_ipv4_only">IPv4のみ</string>
     <string name="connection_address_family_ipv6_only">IPv6のみ</string>
+    <string name="connection_address_family_ipv6_preferred">IPv6 優先</string>
+    <string name="connection_address_family_ipv4_preferred">IPv4 優先</string>
     <string name="connection_address_family_ipv4_hint">AAAAレコードをスキップしてIPv4で接続します。DNSがIPv6を返すがネットワークがそれをルーティングできない場合に便利です。</string>
     <string name="connection_address_family_ipv6_hint">AレコードをスキップしてIPv6で接続します。IPv4 NATが壊れているIPv6専用ネットワークで便利です。</string>
     <string name="connections_field_bind_address">ローカルバインドアドレス</string>
@@ -475,6 +477,8 @@
     <string name="connections_vm_terminal_not_found">ターミナルアプリが見つかりません</string>
     <string name="connections_mcp_badge">MCP</string>
     <string name="connections_local_distro_label">OSで開く</string>
+    <string name="connections_local_share_storage_title">デバイスのストレージを共有</string>
+    <string name="connections_local_share_storage_description">共有ストレージをゲストの /storage と /sdcard にマウントし、ファイルにアクセスできるようにします。次回の起動時にすべてのローカルシェルに適用されます。オフにすると、写真やダウンロードをゲストから隠せます。</string>
     <string name="connections_local_distro_active_default">アクティブなディストロ（デフォルト）</string>
 
     <string name="connections_section_openai">AIエンドポイント</string>

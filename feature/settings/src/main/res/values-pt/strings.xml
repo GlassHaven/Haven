@@ -50,6 +50,13 @@
 
     <!-- Terminal section -->
     <string name="settings_session_persistence_title">Persistência de sessão</string>
+    <string name="settings_default_address_family_title">Família de endereços padrão</string>
+    <string name="settings_default_address_family_subtitle">Para novas conexões SSH</string>
+    <string name="settings_address_family_auto">Auto</string>
+    <string name="settings_address_family_ipv4_only">Somente IPv4</string>
+    <string name="settings_address_family_ipv6_only">Somente IPv6</string>
+    <string name="settings_address_family_ipv6_preferred">IPv6 preferido</string>
+    <string name="settings_address_family_ipv4_preferred">IPv4 preferido</string>
     <string name="settings_session_persistence_none">Nenhuma</string>
     <string name="settings_font_size_title">Tamanho da fonte do terminal</string>
     <string name="settings_font_size_subtitle">%1$dsp</string>
@@ -320,6 +327,8 @@
     <string name="settings_usb_guest_subtitle">Permite que dispositivos USB conectados sejam acessados por apps convidados via shim haven-usb. Cada conexão ainda solicita consentimento.</string>
     <string name="settings_gps_guest_title">Expor o GPS ao convidado Linux</string>
     <string name="settings_gps_guest_subtitle">Transmite a posição GPS do telefone para o convidado como dispositivo NMEA (haven-gps). Uma vez ativado, qualquer processo convidado pode ler a posição. Cada conexão ainda solicita consentimento.</string>
+    <string name="settings_notify_guest_title">Notificações do convidado</string>
+    <string name="settings_notify_guest_subtitle">Permite que programas do convidado Linux publiquem notificações do Android via haven-notify. Uma vez ativado, qualquer processo convidado pode adicionar notificações ao painel. Cada conexão ainda solicita consentimento.</string>
     <string name="settings_proot_install_log_title">Ver registro de instalação do PRoot</string>
     <string name="settings_proot_install_log_subtitle">Eventos por fase de instalações de distros Linux (issue #162)</string>
     <string name="settings_logcat_capture_title">Captura do Logcat</string>

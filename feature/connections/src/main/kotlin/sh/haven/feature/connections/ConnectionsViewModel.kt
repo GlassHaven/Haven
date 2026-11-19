@@ -528,6 +528,10 @@ class ConnectionsViewModel @Inject constructor(
         .map { it.label }
         .stateIn(viewModelScope, SharingStarted.WhileSubscribed(5000), "None")
 
+    /** Global default address family applied to NEW SSH connections (#855). */
+    val defaultAddressFamily: StateFlow<String> = preferencesRepository.defaultAddressFamily
+        .stateIn(viewModelScope, SharingStarted.WhileSubscribed(5000), "AUTO")
+
     val batteryPromptDismissed: StateFlow<Boolean> = preferencesRepository.batteryPromptDismissed
         .stateIn(viewModelScope, SharingStarted.WhileSubscribed(5000), true) // default true to avoid flash
 
@@ -3656,6 +3660,19 @@ class ConnectionsViewModel @Inject constructor(
     /** Switch the active distro — affects which rootfs subsequent DE ops use. */
     fun switchActiveDistro(distroId: String) {
         localSessionManager.prootManager.setActiveDistroId(distroId)
+    }
+
+    /**
+     * Guest-wide "share device storage" preference (#301, #849). Surfaced
+     * here so a LOCAL profile's editor can reach it without the desktop
+     * screen. Global, not per-profile: applies to every local shell on the
+     * next launch. Mirrors DesktopViewModel.shareStorageWithGuest.
+     */
+    val shareStorageWithGuest: StateFlow<Boolean> =
+        localSessionManager.prootManager.shareStorageWithGuestFlow
+
+    fun setShareStorageWithGuest(enabled: Boolean) {
+        localSessionManager.prootManager.setShareStorageWithGuest(enabled)
     }
 
     /**

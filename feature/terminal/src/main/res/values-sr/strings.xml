@@ -31,7 +31,7 @@
     <string name="terminal_no_contact">Нема контакта са сервером већ %1$ds — покушава се поново</string>
     <string name="terminal_attach_notice_unavailable">Менаџер сесија %1$s није покренут — налазите се у обичној шкољци. Проверите да ли је инсталиран на домаћину, или поставите Команду сесије у уређивачу везе (напредно).</string>
     <string name="terminal_attach_notice_missing">Сесија "%2$s" менаџера %1$s није придружена — налазите се у обичној шкољци. Проверите команду покретања или поставите Команду сесије у уређивачу везе (напредно).</string>
-    <string name="terminal_attach_notice_dismiss">Отбаци</string>
+    <string name="terminal_attach_notice_dismiss">Одбаци</string>
     <string name="terminal_sessions">Сесије</string>
     <string name="terminal_move_left">Помери улево</string>
     <string name="terminal_move_right">Помери удесно</string>
@@ -158,4 +158,16 @@
     <string name="terminal_split_with_named">Подели са %1$s</string>
     <string name="terminal_unsplit">Затвори подељени приказ</string>
     <string name="terminal_resize_split_panes">Промени величину подељених панела</string>
+    <string name="terminal_bell_notification_title">Терминал</string>
+    <string name="terminal_bell_notification_body">Терминалски програм је зазвонио</string>
+    <string name="terminal_sudo_prompt_detected">Тражи се sudo лозинка</string>
+    <string name="terminal_sudo_prompt_subtitle">Android Keystore • Биометријско откључавање • Шаље се само при попуњавању</string>
+    <string name="terminal_sudo_fill_action">Попуњавање</string>
+    <string name="terminal_sudo_turn_off_action">Искључи</string>
+    <string name="terminal_sudo_disabled_toast">Искључена је детекција s упита (Подешавања → Безбедност &amp; приватност)</string>
+    <string name="terminal_sudo_entry_title">Sudo лозинка за %1$s</string>
+    <string name="terminal_sudo_entry_hint">За ову везу још увек није сачувана ниједна лозинка. Унесите је једном да се пошаље овом терминалу директно преко SSH. Ако се сачува, остаје шифрована у Android Keystore на овом уређају, захтева се биометријско откључавање приликом сваког коришћења и никада се не излаже AI/MCP алатима.</string>
+    <string name="terminal_sudo_turn_off_detection">Искључи детекцију sudo упита</string>
+    <string name="terminal_sudo_send_action">Пошаљи</string>
 </resources>
+

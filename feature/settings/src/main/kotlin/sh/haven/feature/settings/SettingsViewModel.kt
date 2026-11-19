@@ -569,6 +569,9 @@ class SettingsViewModel @Inject constructor(
     val gpsGuestExposureEnabled: StateFlow<Boolean> = preferencesRepository.gpsGuestExposureEnabled
         .stateIn(viewModelScope, SharingStarted.WhileSubscribed(5000), false)
 
+    val notifyGuestExposureEnabled: StateFlow<Boolean> = preferencesRepository.notifyGuestExposureEnabled
+        .stateIn(viewModelScope, SharingStarted.WhileSubscribed(5000), false)
+
     val tailscaleDiscoveryEnabled: StateFlow<Boolean> = preferencesRepository.tailscaleDiscoveryEnabled
         .stateIn(viewModelScope, SharingStarted.WhileSubscribed(5000), true)
 
@@ -891,6 +894,11 @@ class SettingsViewModel @Inject constructor(
                 UserPreferencesRepository.SessionManager.NONE,
             )
 
+    /** Global default address family for new SSH connections (#855). */
+    val defaultAddressFamily: StateFlow<String> =
+        preferencesRepository.defaultAddressFamily
+            .stateIn(viewModelScope, SharingStarted.WhileSubscribed(5000), "AUTO")
+
     val lockTimeout: StateFlow<UserPreferencesRepository.LockTimeout> =
         preferencesRepository.lockTimeout
             .stateIn(
@@ -1123,6 +1131,12 @@ class SettingsViewModel @Inject constructor(
         }
     }
 
+    fun setNotifyGuestExposureEnabled(enabled: Boolean) {
+        viewModelScope.launch {
+            preferencesRepository.setNotifyGuestExposureEnabled(enabled)
+        }
+    }
+
     fun setTailscaleDiscoveryEnabled(enabled: Boolean) {
         viewModelScope.launch {
             preferencesRepository.setTailscaleDiscoveryEnabled(enabled)
@@ -1342,6 +1356,12 @@ class SettingsViewModel @Inject constructor(
     fun setSessionManager(manager: UserPreferencesRepository.SessionManager) {
         viewModelScope.launch {
             preferencesRepository.setSessionManager(manager)
+        }
+    }
+
+    fun setDefaultAddressFamily(family: String) {
+        viewModelScope.launch {
+            preferencesRepository.setDefaultAddressFamily(family)
         }
     }
 

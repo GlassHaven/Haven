@@ -5,6 +5,11 @@ import org.junit.Assert.assertFalse
 import org.junit.Assert.assertNotNull
 import org.junit.Assert.assertTrue
 import org.junit.Test
+import java.io.ByteArrayOutputStream
+import java.nio.ByteBuffer
+import java.nio.ByteOrder
+import java.security.MessageDigest
+import java.util.Base64
 
 class SshKeyImporterTest {
 
@@ -284,5 +289,73 @@ class SshKeyImporterTest {
     fun `import unencrypted Ed25519 key returns ssh-ed25519 type`() {
         val result = SshKeyImporter.import(unencryptedEd25519Pem)
         assertEquals("ssh-ed25519", result.keyType)
+    }
+
+    // ---- structural fallback for key types JSch cannot parse (#859) ----
+
+    /**
+     * Build a synthetic openssh-key-v1 PEM with the given key type and cipher.
+     * The structural importer only reads the plaintext public section, so the
+     * key material after the type name is dummy bytes — enough to exercise the
+     * fallback for a type JSch rejects (e.g. the hybrid PQ ssh-mldsa44-ed25519)
+     * without needing a real post-quantum key.
+     */
+    private fun openSshKeyPem(keyType: String, cipher: String): ByteArray {
+        fun sshBytes(out: ByteArrayOutputStream, b: ByteArray) {
+            out.write(ByteBuffer.allocate(4).order(ByteOrder.BIG_ENDIAN).putInt(b.size).array())
+            out.write(b)
+        }
+        fun sshString(out: ByteArrayOutputStream, s: String) = sshBytes(out, s.toByteArray(Charsets.US_ASCII))
+        val pub = ByteArrayOutputStream()
+        sshString(pub, keyType)
+        sshString(pub, "dummy-public-material")
+        val raw = ByteArrayOutputStream()
+        raw.write("openssh-key-v1\u0000".toByteArray(Charsets.US_ASCII))
+        sshString(raw, cipher)
+        sshString(raw, if (cipher == "none") "none" else "bcrypt")
+        sshString(raw, "") // kdfoptions
+        raw.write(ByteBuffer.allocate(4).order(ByteOrder.BIG_ENDIAN).putInt(1).array())
+        sshBytes(raw, pub.toByteArray()) // public_section (binary)
+        sshBytes(raw, "dummy-private-section".toByteArray(Charsets.US_ASCII))
+        val b64 = Base64.getEncoder().encodeToString(raw.toByteArray())
+        val wrapped = b64.chunked(70).joinToString("\n")
+        return "-----BEGIN OPENSSH PRIVATE KEY-----\n$wrapped\n-----END OPENSSH PRIVATE KEY-----\n"
+            .toByteArray()
+    }
+
+    @Test
+    fun `import hybrid PQ key JSch rejects falls back to structural parse`() {
+        val pem = openSshKeyPem("ssh-mldsa44-ed25519", "none")
+        val result = SshKeyImporter.import(pem)
+        assertEquals("ssh-mldsa44-ed25519", result.keyType)
+        assertFalse("cipher none means unencrypted", result.isEncrypted)
+        assertTrue("original bytes preserved", pem.contentEquals(result.privateKeyBytes))
+        assertTrue(result.publicKeyOpenSsh.startsWith("ssh-mldsa44-ed25519 "))
+    }
+
+    @Test
+    fun `structural fallback fingerprint matches the public blob`() {
+        val pem = openSshKeyPem("ssh-mldsa44-ed25519", "none")
+        val result = SshKeyImporter.import(pem)
+        // Recompute the public blob from the stored public key line and check
+        // the fingerprint is its SHA-256, base64 without padding.
+        val pubBlob = Base64.getDecoder().decode(result.publicKeyOpenSsh.substringAfter(' '))
+        val digest = MessageDigest.getInstance("SHA-256").digest(pubBlob)
+        val expected = "SHA256:" + Base64.getEncoder().withoutPadding().encodeToString(digest)
+        assertEquals(expected, result.fingerprintSha256)
+    }
+
+    @Test
+    fun `structural fallback marks encrypted PQ key encrypted`() {
+        val pem = openSshKeyPem("ssh-mldsa44-ed25519", "aes256-ctr")
+        val result = SshKeyImporter.import(pem, passphrase = "hunter2")
+        assertTrue("cipher aes256-ctr means encrypted", result.isEncrypted)
+        assertEquals("ssh-mldsa44-ed25519", result.keyType)
+    }
+
+    @Test(expected = SshKeyImporter.EncryptedKeyException::class)
+    fun `structural fallback encrypted PQ key without passphrase prompts`() {
+        val pem = openSshKeyPem("ssh-mldsa44-ed25519", "aes256-ctr")
+        SshKeyImporter.import(pem)
     }
 }

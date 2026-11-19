@@ -61,6 +61,7 @@ import androidx.compose.material.icons.filled.SwapVert
 import androidx.compose.material.icons.filled.Reorder
 import androidx.compose.material.icons.filled.Usb
 import androidx.compose.material.icons.filled.LocationOn
+import androidx.compose.material.icons.filled.Notifications
 import androidx.compose.material.icons.filled.VolumeUp
 import androidx.compose.material.icons.filled.ListAlt
 import androidx.compose.material.icons.filled.Image
@@ -196,6 +197,7 @@ fun SettingsScreen(
     val scrollbackRows by viewModel.terminalScrollbackRows.collectAsState()
     val theme by viewModel.theme.collectAsState()
     val sessionManager by viewModel.sessionManager.collectAsState()
+    val defaultAddressFamily by viewModel.defaultAddressFamily.collectAsState()
     val colorScheme by viewModel.terminalColorScheme.collectAsState()
     val autoSwitchColorScheme by viewModel.terminalAutoSwitchScheme.collectAsState()
     val applySchemePalette by viewModel.terminalApplySchemePalette.collectAsState()
@@ -279,6 +281,7 @@ fun SettingsScreen(
     var showAmbiwidthModeDialog by remember { mutableStateOf(false) }
     var showScrollbackRowsDialog by remember { mutableStateOf(false) }
     var showSessionManagerDialog by remember { mutableStateOf(false) }
+    var showAddressFamilyDialog by remember { mutableStateOf(false) }
     var showThemeDialog by remember { mutableStateOf(false) }
     var showColorSchemeDialog by remember { mutableStateOf(false) }
     var showLightColorSchemeDialog by remember { mutableStateOf(false) }
@@ -838,6 +841,12 @@ fun SettingsScreen(
             onClick = { showSessionManagerDialog = true },
         )
         SettingsItem(
+            icon = Icons.Filled.Language,
+            title = stringResource(R.string.settings_default_address_family_title),
+            subtitle = addressFamilyLabel(defaultAddressFamily),
+            onClick = { showAddressFamilyDialog = true },
+        )
+        SettingsItem(
             icon = Icons.Filled.Terminal,
             title = stringResource(R.string.settings_prompt_chars_title),
             subtitle = if (terminalPromptChars.isBlank()) {
@@ -1083,6 +1092,18 @@ fun SettingsScreen(
             subtitle = stringResource(R.string.settings_gps_guest_subtitle),
             checked = gpsGuestExposure,
             onCheckedChange = viewModel::setGpsGuestExposureEnabled,
+        )
+        // Guest notifications (#851): once on, any process in the Linux guest
+        // can post into the phone's notification shade via haven-notify. Off
+        // by default; each attach still asks for consent, and a rate limiter
+        // caps spam once enabled.
+        val notifyGuestExposure by viewModel.notifyGuestExposureEnabled.collectAsState()
+        SettingsToggleItem(
+            icon = Icons.Filled.Notifications,
+            title = stringResource(R.string.settings_notify_guest_title),
+            subtitle = stringResource(R.string.settings_notify_guest_subtitle),
+            checked = notifyGuestExposure,
+            onCheckedChange = viewModel::setNotifyGuestExposureEnabled,
         )
 
         // Tailscale peer discovery (#654): off stops the quad-100 LocalAPI
@@ -2245,6 +2266,17 @@ fun SettingsScreen(
         )
     }
 
+    if (showAddressFamilyDialog) {
+        AddressFamilyDialog(
+            current = defaultAddressFamily,
+            onDismiss = { showAddressFamilyDialog = false },
+            onSelect = { selected ->
+                viewModel.setDefaultAddressFamily(selected)
+                showAddressFamilyDialog = false
+            },
+        )
+    }
+
     if (showFontSizeDialog) {
         FontSizeDialog(
             currentSize = fontSize,
@@ -3226,6 +3258,50 @@ private fun ColorSchemeDialog(
                 Text(stringResource(R.string.common_cancel))
             }
         },
+    )
+}
+
+@Composable
+private fun addressFamilyLabel(family: String): String = when (family) {
+    "IPV4_ONLY" -> stringResource(R.string.settings_address_family_ipv4_only)
+    "IPV6_ONLY" -> stringResource(R.string.settings_address_family_ipv6_only)
+    "IPV6_PREFERRED" -> stringResource(R.string.settings_address_family_ipv6_preferred)
+    "IPV4_PREFERRED" -> stringResource(R.string.settings_address_family_ipv4_preferred)
+    else -> stringResource(R.string.settings_address_family_auto)
+}
+
+/** Global default address family for new SSH connections (#855). */
+@Composable
+private fun AddressFamilyDialog(
+    current: String,
+    onDismiss: () -> Unit,
+    onSelect: (String) -> Unit,
+) {
+    val families = listOf("AUTO", "IPV4_ONLY", "IPV6_ONLY", "IPV6_PREFERRED", "IPV4_PREFERRED")
+    AlertDialog(
+        onDismissRequest = onDismiss,
+        title = { Text(stringResource(R.string.settings_default_address_family_title)) },
+        text = {
+            Column(modifier = Modifier.verticalScroll(rememberScrollState())) {
+                Text(
+                    stringResource(R.string.settings_default_address_family_subtitle),
+                    style = MaterialTheme.typography.bodySmall,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant,
+                )
+                families.forEach { family ->
+                    ListItem(
+                        headlineContent = { Text(addressFamilyLabel(family)) },
+                        leadingContent = {
+                            RadioButton(selected = family == current, onClick = null)
+                        },
+                        modifier = Modifier.clickable(role = Role.RadioButton) {
+                            onSelect(family)
+                        },
+                    )
+                }
+            }
+        },
+        confirmButton = {},
     )
 }
 

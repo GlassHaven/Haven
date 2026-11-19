@@ -1,0 +1,1 @@
+Fix USB/IP device forwarding stalling when the host keeps an interrupt endpoint polled (for example a forwarded SDR's RNDIS network function). Idle IN polls now yield the shared connection lock and complete zero-length reads, so control and data transfers no longer time out.

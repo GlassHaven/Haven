@@ -1370,7 +1370,9 @@ class SshClient : SshConnection {
                     " (no A record / IPv4 address found, IPv4-only enabled)"
                 ConnectionConfig.AddressFamily.IPV6_ONLY ->
                     " (no AAAA record / IPv6 address found, IPv6-only enabled)"
-                ConnectionConfig.AddressFamily.AUTO -> ""
+                ConnectionConfig.AddressFamily.AUTO,
+                ConnectionConfig.AddressFamily.IPV6_PREFERRED,
+                ConnectionConfig.AddressFamily.IPV4_PREFERRED -> ""
             }
             throw java.net.UnknownHostException("Could not resolve hostname: $hostname$why")
         }
@@ -1404,6 +1406,13 @@ class SshClient : SshConnection {
                     addresses.firstOrNull { it is java.net.Inet6Address }?.hostAddress
                 ConnectionConfig.AddressFamily.AUTO ->
                     selectAutoAddress(addresses) { addr -> probeTcp(addr, port) }?.hostAddress
+                // Prefer-not-force (#855): order the preferred family first, then
+                // run the same reachability selection as AUTO, so a preferred but
+                // unreachable address falls back to the other family.
+                ConnectionConfig.AddressFamily.IPV6_PREFERRED ->
+                    selectPreferredAddress(addresses, preferIpv6 = true) { addr -> probeTcp(addr, port) }?.hostAddress
+                ConnectionConfig.AddressFamily.IPV4_PREFERRED ->
+                    selectPreferredAddress(addresses, preferIpv6 = false) { addr -> probeTcp(addr, port) }?.hostAddress
             }
         }
 
@@ -1429,6 +1438,23 @@ class SshClient : SshConnection {
             }
             Log.w(TAG, "No address answered a connect probe; falling back to the first")
             return candidates.first()
+        }
+
+        /**
+         * Prefer-not-force address selection (#855). Stably orders the preferred
+         * family first (preserving DNS order within each family), then runs the
+         * same reachability selection as [selectAutoAddress]: a preferred but
+         * unreachable address falls back to a reachable one of the other family.
+         */
+        internal fun selectPreferredAddress(
+            candidates: List<InetAddress>,
+            preferIpv6: Boolean,
+            probe: (InetAddress) -> Boolean,
+        ): InetAddress? {
+            val ordered = candidates.sortedByDescending {
+                if (preferIpv6) it is java.net.Inet6Address else it is java.net.Inet4Address
+            }
+            return selectAutoAddress(ordered, probe)
         }
 
         /** Can this address complete a TCP handshake on [port] within the budget? */

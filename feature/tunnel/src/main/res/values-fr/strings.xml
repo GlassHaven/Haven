@@ -26,6 +26,8 @@
     <string name="tunnel_netbird_setup_key_label">Clé de configuration (setup key)</string>
     <string name="tunnel_netbird_management_url_label">URL de gestion (facultatif)</string>
     <string name="tunnel_netbird_management_url_help">Laissez vide pour la gestion hébergée de NetBird. Indiquez l\'URL de votre serveur pour un service de gestion auto-hébergé.</string>
+    <string name="tunnel_netbird_rosenpass_label">Échange de clés post-quantique (Rosenpass)</string>
+    <string name="tunnel_netbird_rosenpass_help">Active l\'échange de clés post-quantique Rosenpass de NetBird. À activer quand le pair distant l\'exige ; les deux côtés doivent prendre en charge Rosenpass.</string>
     <string name="tunnel_openvpn_help">Collez un profil .ovpn ou chargez un fichier. Si le profil utilise auth-user-pass sans fichier d\'identifiants intégré, saisissez un nom d\'utilisateur et un mot de passe ci-dessous.</string>
     <string name="tunnel_openvpn_config_label">Profil OpenVPN (.ovpn)</string>
     <string name="tunnel_openvpn_username_label">Nom d\'utilisateur (optionnel)</string>

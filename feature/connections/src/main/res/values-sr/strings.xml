@@ -71,11 +71,11 @@
     <string name="connections_mosh_not_found_message">На удаљеном хосту није инсталиран mosh-server. Mosh (Mobile Shell) одржава вашу сесију активном приликом промена мрежа и веза са великим кашњењем.</string>
     <string name="connections_mosh_install_prompt">Инсталирај га на сервер:</string>
     <string name="connections_mosh_install_commands">\u0020 Убунту/Дебијан: sudo apt install mosh \u0020 Федора/РХЕЛ: sudo dnf install mosh \u0020 Арк: sudo pacman -S mosh \u0020 мекОС: brew install mosh</string>
-    <string name="connections_mosh_firewall_note">"UDP порт 60001 мора бити отворен на мрежној баријери сервера. "</string>
+    <string name="connections_mosh_firewall_note">UDP порт 60001 мора бити отворен на мрежној баријери сервера.</string>
     <string name="connections_mosh_github">Mosh на GitHub</string>
     <string name="connections_mosh_client_missing_title">Није изграђен Mosh клијент</string>
     <string name="connections_mosh_client_missing_message">У овој изградњи се не налази mosh-client бинарни фајл. Мора да се унакрсно компајлира за Андроид помоћу NDK.</string>
-    <string name="connections_mosh_client_build_instructions">Покрените tools/build-mosh.sh са Андроид NDK r27+ да изградите mosh-client бинарни фајл, then rebuild the app.па затим поново изградите апликацију.</string>
+    <string name="connections_mosh_client_build_instructions">Покрените tools/build-mosh.sh са Андроид NDK r27+ да изградите mosh-client бинарни фајл, па затим поново изградите апликацију.</string>
     <string name="connections_sessions_title">%1$s сесије</string>
     <string name="connections_restore_previous_sessions">Врати %1$d претходних сесија</string>
     <string name="connections_rename_session">Преименуј сесију</string>
@@ -190,6 +190,8 @@
     <string name="connection_address_family_auto">Ауто</string>
     <string name="connection_address_family_ipv4_only">Само IPv4</string>
     <string name="connection_address_family_ipv6_only">Само IPv6</string>
+    <string name="connection_address_family_ipv6_preferred">IPv6 пожељно</string>
+    <string name="connection_address_family_ipv4_preferred">IPv4 пожељно</string>
     <string name="connection_address_family_ipv4_hint">Прескаче AAAA записе и повезује се преко IPv4. Корисно је када DNS враћа IPv6, али мрежа не може да га рутира.</string>
     <string name="connection_address_family_ipv6_hint">Прескаче A записе и повезује се преко IPv6. Корисно је на само-IPv6 мрежама где је неисправан IPv4 NAT.</string>
     <string name="connections_field_bind_address">Локална адреса везивања</string>
@@ -388,7 +390,7 @@
     <string name="connections_field_openai_host">Адреса сервера</string>
     <string name="connections_field_openai_host_hint">IP, име хоста или пун http:// URL</string>
     <string name="connections_field_openai_api_key">API кључ (опционо)</string>
-    <string name="connections_field_openai_api_key_hint">Шаље се као Bearer токен. Оставите празно за сервере без кључа.</string>
+    <string name="connections_field_openai_api_key_hint">Шаље се као Bearer жетон. Оставите празно за сервере без кључа.</string>
     <string name="connections_field_openai_path_prefix">Префикс путање (опционо)</string>
     <string name="connections_field_openai_path_prefix_hint">Убаци се пре /v1 — нпр. /api</string>    <string name="connections_field_openai_protocol">Протокол</string>
     <string name="connections_field_openai_protocol_hint">Подразумевано OpenAI-компатибилно; Ollama, Anthropic и Gemini мењају путање и аутентификацију.</string>
@@ -422,12 +424,14 @@
     <string name="connections_section_reticulum">Reticulum</string>
     <string name="connections_section_routing">Рутирање</string>
     <string name="connections_toggle_mcp_tunnel">Изложи уназад Haven-ов MCP овом хосту</string>
-    <string name="connections_helper_mcp_tunnel">"Тунелује уназад Haven-ов сопствени MCP сервер удаљном хосту, тако да проциси који се извршавају тамо (нпр. Claude Code који ради на серверу) могу да приступе http://127.0.0.1:8730/mcp и (преко loopback интерфејса) прескоче упаривање &amp; пристанак. Примењује се током успостављања везе. За континуирани приступ без отворене сесије, поставите ово као Увек активна MCP веза у Подешавања → Крајња тачка агента.\n"</string>
+    <string name="connections_helper_mcp_tunnel">"Тунелује уназад Haven-ов сопствени MCP сервер удаљеном хосту, тако да процеси који се извршавају тамо (нпр. Claude Code који ради на серверу) могу да приступе http://127.0.0.1:8730/mcp и (преко loopback интерфејса) прескоче упаривање &amp; пристанак. Примењује се током успостављања везе. За континуирани приступ без отворене сесије, поставите ово као Увек активна MCP веза у Подешавања → Крајња тачка агента.\n"</string>
     <string name="connections_section_reconnect">Повежи се поново</string>
     <string name="connections_section_mcp">AI агент (MCP)</string>
     <string name="connections_local_shell_android_desc">Покреће својствену Андроид љуску (/system/bin/sh). Приступа Андроид командама, фајл систему и root (ако је доступно).</string>
     <string name="connections_local_shell_proot_desc">Покреће Алпајн Линукс љуску локално помоћу PRoot. Приликом прве употребе преузима минимални rootfs (~4MB). Није потребан root приступ или мрежна веза.</string>
     <string name="connections_local_distro_label">Отвори у ОС</string>
+    <string name="connections_local_share_storage_title">Дели меморију уређаја</string>
+    <string name="connections_local_share_storage_description">Монтира дељену меморију у госту на /storage и /sdcard да би могао да приступи твојим датотекама. Важи за све локалне љуске при следећем покретању. Искључи да сакријеш слике и преузимања од госта.</string>
     <string name="connections_local_distro_active_default">Активна дистрибуција (подразумевано)</string>
     <string name="connections_dropdown_select_provider">Изаберите пружаоца…</string>
     <string name="connections_helper_rclone_signin">Пријавите се у свом прегледачу приликом првог повезивања.</string>
@@ -437,12 +441,12 @@
     <string name="connections_rclone_configure_first">Тапните „Конфигуриши &amp; потврди“ да сачувате овај удаљени пре него што будете могли да Сачувате везу.</string>
     <string name="connections_dropdown_select_ssh">Изаберите SSH везу</string>
     <string name="connections_helper_add_ssh_first">Најпре додајте SSH везу</string>
-    <string name="connections_ai_route_section">Носач ИИ руте</string>
+    <string name="connections_ai_route_section">Носач AI руте</string>
     <string name="connections_ai_route_via_ssh">Преко SSH</string>
     <string name="connections_ai_route_via_reticulum">Преко Reticulum</string>
     <string name="connections_field_ai_route_carrier">Носећа веза</string>
     <string name="connections_dropdown_select_carrier">Изабери везу</string>
-    <string name="connections_helper_ai_route">Руторира крајњу тачку преко носиоца: SSH отвара локално прослеђивање кроз сесију носиоца, Reticulum прави мост преко мреже. Носилац мора бити повезан за Reticulum руте.</string>
+    <string name="connections_helper_ai_route">Рутира крајњу тачку преко носиоца: SSH отвара локално прослеђивање кроз сесију носиоца, Reticulum прави мост преко мреже. Носилац мора бити повезан за Reticulum руте.</string>
     <string name="connections_helper_add_reticulum_first">Прво додајте Reticulum везу</string>
     <string name="connections_toggle_rdp_nla">Network Level Authentication (NLA)</string>
     <string name="connections_helper_mosh_required">На удаљеном хосту је потребан mosh-server</string>
@@ -537,10 +541,10 @@
     <string name="connections_identity_not_an_identity">Тај фајл није Reticulum идентитет. Ништа није измењено.</string>
     <string name="connections_identity_install_failed">Идентитет није могао да се инсталира: %1$s. Претходни је још увек на месту.</string>
     <string name="connections_identity_unreadable">Тај фајл није могао да се чита.</string>
-    <string name="connections_toggle_forward_x11">Prosledi X11 ekran</string>
-    <string name="connections_helper_forward_x11">Tuneluje udaljeni port 6010 ka X11 serveru na telefonu, pokreće instalirano X11 radno okruženje po potrebi i izvozi DISPLAY=localhost:10.0 u SSH školjci.</string>
-    <string name="connections_toggle_forward_pulseaudio">Prosledi PulseAudio</string>
-    <string name="connections_helper_forward_pulseaudio">Pokreće PulseAudio most na telefonu, tuneluje udaljeni port 14713 ka lokalnom portu 4713 i izvozi PULSE_SERVER=tcp:127.0.0.1:14713 u SSH školjci.</string>
+    <string name="connections_toggle_forward_x11">Проследи X11 екран</string>
+    <string name="connections_helper_forward_x11">Тунелује удаљени порт 6010 ка X11 серверу на телефону, покреће инсталирано X11 радно окружење по потреби и извози DISPLAY=localhost:10.0 у SSH љуски.</string>
+    <string name="connections_toggle_forward_pulseaudio">Проследи PulseAudio</string>
+    <string name="connections_helper_forward_pulseaudio">Покреће PulseAudio мост на телефону, тунелује удаљени порт 14713 ка локалном порту 4713 и извози PULSE_SERVER=tcp:127.0.0.1:14713 у SSH љуски.</string>
     <string name="connections_toggle_persist_rediscovered_host">Сачувај поново откривену LAN адресу</string>
     <string name="connections_helper_persist_rediscovered_host">Ажурира профил када локални рачунар понуди исти SSH кључ домаћина на новој IPv4 адреси. Искључите да бисте се повезали преко откривене адресе само за ту сесију и задржали подешени домаћин (нпр. WireGuard IP).</string>
     <string name="connections_auth_banner_title">SSH аутентификација</string>
@@ -554,4 +558,10 @@
     <string name="connections_local_mode_android">Android</string>
     <string name="connections_local_mode_shizuku">Shizuku</string>
     <string name="connections_local_shell_shizuku_desc">Покреће привилеговану Андроид љуску (/system/bin/sh) преко сервиса Shizuku (ADB uid 2000 или root). Потребно је да Shizuku буде покренут и одобрен.</string>
+    <string name="connections_section_glkvm">GLKVM / PiKVM подешавања</string>
+    <string name="connections_field_glkvm_layout">Распоред тастатуре циља</string>
+    <string name="connections_helper_glkvm">GLKVM и PiKVM (kvmd преко HTTPS) — покреће физичког миша и тастатуру циља. TLS користи поверење-при-првој-употреби и распоред тастатуре циља контролише откуцане карактере (надовежите ваш 6-цифрени 2FA кôд на лозинку ако је укључена PiKVM 2FA). Рутирајте кроз SSH тунел или WireGuard/Tailscale профил да му приступите ван LAN мреже.</string>
+    <string name="connections_field_saved_password">Сачувана лозинка (SSH / sudo)</string>
+    <string name="connections_helper_saved_password">Није обавезно. Шифрује се у Android Keystore и користи за SSH пријаву лозинком и биометријски-пропуштено sudo попуњавање у терминалу.</string>
 </resources>
+

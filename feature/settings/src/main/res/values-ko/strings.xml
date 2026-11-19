@@ -54,6 +54,13 @@
 
     <!-- Terminal section -->
     <string name="settings_session_persistence_title">세션 지속성</string>
+    <string name="settings_default_address_family_title">기본 주소 패밀리</string>
+    <string name="settings_default_address_family_subtitle">새 SSH 연결용</string>
+    <string name="settings_address_family_auto">자동</string>
+    <string name="settings_address_family_ipv4_only">IPv4 전용</string>
+    <string name="settings_address_family_ipv6_only">IPv6 전용</string>
+    <string name="settings_address_family_ipv6_preferred">IPv6 우선</string>
+    <string name="settings_address_family_ipv4_preferred">IPv4 우선</string>
     <string name="settings_session_persistence_none">없음</string>
     <string name="settings_font_size_title">터미널 글꼴 크기</string>
     <string name="settings_font_size_subtitle">%1$dsp</string>
@@ -320,6 +327,8 @@
     <string name="settings_usb_guest_subtitle">haven-usb 심을 통해 연결된 USB 장치를 게스트 앱에서 사용할 수 있습니다. 각 연결 시 동의가 필요합니다.</string>
     <string name="settings_gps_guest_title">GPS를 Linux 게스트에 노출</string>
     <string name="settings_gps_guest_subtitle">휴대폰의 GPS 위치를 NMEA 장치(haven-gps)로 게스트에 스트리밍합니다. 켜면 게스트의 모든 프로세스가 위치를 읽을 수 있습니다. 각 연결 시 동의가 필요합니다.</string>
+    <string name="settings_notify_guest_title">게스트 알림</string>
+    <string name="settings_notify_guest_subtitle">Linux 게스트 프로그램이 haven-notify를 통해 Android 알림을 게시하도록 허용합니다. 켜면 게스트의 모든 프로세스가 알림을 추가할 수 있습니다. 각 연결 시 동의가 필요합니다.</string>
     <string name="settings_proot_install_log_title">PRoot 설치 로그 보기</string>
     <string name="settings_proot_install_log_subtitle">Linux 배포판 설치 중 단계별 이벤트 (이슈 #162)</string>
     <string name="settings_logcat_capture_title">Logcat 캡처</string>

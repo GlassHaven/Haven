@@ -46,6 +46,12 @@ class SshlibKeyboardInteractiveContractTest {
     private var serverPort: Int = 0
     private val totpCode = "424242"
 
+    // A loaded CI runner can spend seconds just scheduling the embedded-server
+    // auth round-trips; 5s timed out prompterAnswersNonSecretChallenge in CI
+    // (run 44260256682) while passing idle locally. 20s tolerates scheduler
+    // latency without masking a real hang — a stuck auth still fails, just later.
+    private val connectTimeoutMs = 20_000
+
     /** What the current server instance will accept as the KI answer. */
     private lateinit var expectedAnswer: String
 
@@ -72,7 +78,7 @@ class SshlibKeyboardInteractiveContractTest {
             val hostKey = runBlocking {
                 connection.connect(
                     config = passwordConfig(""),
-                    connectTimeoutMs = 5_000,
+                    connectTimeoutMs = connectTimeoutMs,
                     proxy = null,
                     keyboardInteractivePrompter = { prompterCalled = true; null },
                     totpCodeProvider = { totpCode },
@@ -100,7 +106,7 @@ class SshlibKeyboardInteractiveContractTest {
             runBlocking {
                 connection.connect(
                     config = passwordConfig("hunter2"),
-                    connectTimeoutMs = 5_000,
+                    connectTimeoutMs = connectTimeoutMs,
                     proxy = null,
                     keyboardInteractivePrompter = { challenge ->
                         seenPrompt = challenge.prompts.singleOrNull()?.text
@@ -128,7 +134,7 @@ class SshlibKeyboardInteractiveContractTest {
             runBlocking {
                 connection.connect(
                     config = passwordConfig(""),
-                    connectTimeoutMs = 5_000,
+                    connectTimeoutMs = connectTimeoutMs,
                     proxy = null,
                     keyboardInteractivePrompter = { challenge ->
                         seenPrefill = challenge.prefilled
@@ -173,7 +179,7 @@ class SshlibKeyboardInteractiveContractTest {
             runBlocking {
                 connection.connect(
                     config = passwordConfig("wrong-password"),
-                    connectTimeoutMs = 5_000,
+                    connectTimeoutMs = connectTimeoutMs,
                     proxy = null,
                     keyboardInteractivePrompter = { listOf(expectedAnswer) },
                     totpCodeProvider = null,

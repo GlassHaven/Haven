@@ -26,6 +26,8 @@
     <string name="tunnel_netbird_setup_key_label">مفتاح الإعداد</string>
     <string name="tunnel_netbird_management_url_label">رابط الإدارة (اختياري)</string>
     <string name="tunnel_netbird_management_url_help">اتركه فارغًا للإدارة المستضافة من NetBird. اضبطه على رابط الخادم لخدمة إدارة ذاتية الاستضافة.</string>
+    <string name="tunnel_netbird_rosenpass_label">تبادل مفاتيح ما بعد الكم (Rosenpass)</string>
+    <string name="tunnel_netbird_rosenpass_help">فعّل تبادل مفاتيح Rosenpass لما بعد الكم في NetBird. شغّله عندما يتطلب النظير الذي تتصل به ذلك؛ يجب أن يدعم الطرفان Rosenpass.</string>
     <string name="tunnel_openvpn_help">الصق ملف تعريف .ovpn أو قم بتحميل ملف. إذا كان الملف يستخدم auth-user-pass بدون ملف بيانات اعتماد مضمّن، أدخل اسم المستخدم وكلمة المرور أدناه.</string>
     <string name="tunnel_openvpn_config_label">ملف تعريف OpenVPN (.ovpn)</string>
     <string name="tunnel_openvpn_username_label">اسم المستخدم (اختياري)</string>

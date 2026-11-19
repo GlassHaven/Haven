@@ -2,7 +2,7 @@
 <resources>
     <string name="tunnel_add">Додај тунел</string>
     <string name="tunnel_empty_title">Још увек није подешен ниједан тунел</string>
-    <string name="tunnel_empty_subtitle">Додаје WireGuard кофигурацију да се кроз њега рутирају поједини профили везе — није потребан VPN на нивоу система.</string>
+    <string name="tunnel_empty_subtitle">Додаје WireGuard конфигурацију да се кроз њега рутирају поједини профили везе — није потребан VPN на нивоу система.</string>
     <string name="tunnel_row_subtitle">%1$s · додат %2$s</string>
     <string name="tunnel_type_unknown">непознато</string>
     <string name="tunnel_cf_sign_in_again">Пријавите се поново</string>
@@ -26,6 +26,8 @@
     <string name="tunnel_netbird_setup_key_label">Кључ за подешавање</string>
     <string name="tunnel_netbird_management_url_label">URL управљања (опционо)</string>
     <string name="tunnel_netbird_management_url_help">Оставите празно за NetBird хостовану услугу управљања. Поставите на URL вашег сервера ако користите лично хостовану услугу управљања.</string>
+    <string name="tunnel_netbird_rosenpass_label">Постквантна размена кључева (Rosenpass)</string>
+    <string name="tunnel_netbird_rosenpass_help">Укључује NetBird постквантну размену кључева Rosenpass. Укључите када вршњак са којим се повезујете то захтева; обе стране морају подржавати Rosenpass.</string>
     <string name="cf_experimental_banner">Експериментално — Haven имплементира исти WebSocket жични протокол као и `cloudflared access ssh`. Тестирано на малом скупу станара; молимо вас да нерегуларности пријавите на GitHub проблем #154.</string>
     <string name="cf_intro_blurb">Рутира SSH име хоста коју објављује Cloudflare Tunnel — унутар-апликације еквивалент од `cloudflared access ssh --hostname &lt;хост&gt;`. Рутама јавног тунела је потребно само име хоста. Руте са заштићеним притупом додатно захтевају JWT — тапните Пријави се да ухватите једну посредством IdP вашег тима.</string>
     <string name="cf_field_hostname">Име хоста (нпр. ssh.example.com)</string>
@@ -48,17 +50,17 @@
     <string name="cf_field_jwt">Cloudflare Access JWT (није обавезно)</string>
     <string name="tunnel_anyconnect_help">Повежите се преко Cisco AnyConnect или ocserv (OpenConnect) VPN-а без Cisco апликације. Користе га само профили који се усмеравају кроз овај тунел; остатак телефона не. Подржани су корисничко име/лозинка, групе за аутентификацију и други фактор TOTP или push; SAML/SSO и клијентски сертификати нису.</string>
     <string name="tunnel_anyconnect_server_label">Сервер</string>
-    <string name="tunnel_anyconnect_server_help">Адреса гејтвеја као у Cisco апликацији, по потреби са :портом или путањом групе.</string>
+    <string name="tunnel_anyconnect_server_help">Адреса мрежног пролаза као у Cisco апликацији, по потреби са :портом или путањом групе.</string>
     <string name="tunnel_anyconnect_username_label">Корисничко име</string>
     <string name="tunnel_anyconnect_password_label">Лозинка</string>
-    <string name="tunnel_anyconnect_group_label">Група за аутентификацију (опционо)</string>
+    <string name="tunnel_anyconnect_group_label">Група за аутентификацију (није обавезно)</string>
     <string name="tunnel_anyconnect_group_help">Група или профил са листе сервера. Оставите празно за подразумевану.</string>
-    <string name="tunnel_anyconnect_otp_label">OTP тајна (опционо)</string>
+    <string name="tunnel_anyconnect_otp_label">OTP тајна (није обавезно)</string>
     <string name="tunnel_anyconnect_otp_help">Base32 тајна или otpauth:// веза из подешавања аутентификатора. Haven сам одговара на захтев за код, па се тунел може поново повезати без вас.</string>
     <string name="tunnel_anyconnect_secondary_label">Одговор за други фактор (опционо)</string>
     <string name="tunnel_anyconnect_secondary_help">Фиксни одговор на други захтев, нпр. push за Duo. Користи се само ако OTP тајна није постављена.</string>
     <string name="tunnel_anyconnect_cert_label">Сертификат сервера (опционо)</string>
-    <string name="tunnel_anyconnect_cert_help">Само за самопотписане гејтвеје: вредност pin-sha256:…. Ако сертификат није поуздан, грешка при повезивању приказује вредност коју треба налепити овде.</string>
+    <string name="tunnel_anyconnect_cert_help">Само за самопотписане мрежне пролазе вредност pin-sha256:…. Ако сертификат није поуздан, грешка при повезивању приказује вредност коју треба налепити овде.</string>
     <string name="tunnel_status_connected">Повезано</string>
     <string name="tunnel_sign_out">Одјави се</string>
     <string name="tunnel_anyconnect_password_help">Оставите празно да бисте били питани при пријави.</string>
@@ -77,6 +79,11 @@
     <string name="tunnel_port_forward_add">Додај прослеђивање</string>
     <string name="tunnel_port_forward_empty">Нема подешених прослеђивања портова за овај тунел.</string>
     <string name="tunnel_auto_proxy_title">Ауто-прокси за локални Linux кроз тунел</string>
-    <string name="tunnel_auto_proxy_subtitle">Извези ALL_PROXY / HTTP(S)_PROXY на SOCKS5 слушалац активног тунела у PRoot шкољкама и радним површинама (или користите `with-tunnel &lt;cmd&gt;` по потреби; у QEMU користите 10.0.2.2:&lt;port&gt;).</string>
+    <string name="tunnel_auto_proxy_subtitle">Извези ALL_PROXY / HTTP(S)_PROXY на SOCKS5 слушалац активног тунела у PRoot љускама и радним површинама (или користите `with-tunnel &lt;cmd&gt;` по потреби; у QEMU користите 10.0.2.2:&lt;port&gt;).</string>
     <string name="tunnel_close">Затвори</string>
+    <string name="tunnel_openvpn_help">Налепите .ovpn профил или учитајте фајл. Ако профил користи auth-user-pass без фајла приступних података у линији, унесите испод корисничко име и лозинку.</string>
+    <string name="tunnel_openvpn_config_label">OpenVPN профил (.ovpn)</string>
+    <string name="tunnel_openvpn_username_label">Корисничко име (није обавезно)</string>
+    <string name="tunnel_openvpn_password_label">Лозинка (није обавезна)</string>
 </resources>
+

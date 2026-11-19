@@ -34,6 +34,26 @@ class NetbirdConfigBlobTest {
     }
 
     @Test
+    fun `encode-decode round-trips rosenpass flag`() {
+        val on = NetbirdConfigBlob(setupKey = "k", rosenpass = true)
+        assertEquals(true, NetbirdConfigBlob.parse(on.encode())!!.rosenpass)
+        val off = NetbirdConfigBlob(setupKey = "k", rosenpass = false)
+        assertEquals(false, NetbirdConfigBlob.parse(off.encode())!!.rosenpass)
+    }
+
+    @Test
+    fun `rosenpass defaults to false`() {
+        assertEquals(false, NetbirdConfigBlob(setupKey = "k").rosenpass)
+    }
+
+    @Test
+    fun `old blob without rosenpass key parses as false`() {
+        val json = """{"setupKey":"k","managementUrl":"https://x.example.com"}"""
+        val parsed = NetbirdConfigBlob.parse(json.toByteArray())
+        assertEquals(false, parsed!!.rosenpass)
+    }
+
+    @Test
     fun `unknown keys are ignored`() {
         val json = """{"setupKey":"k","futureField":42,"managementUrl":"https://x.example.com"}"""
         val parsed = NetbirdConfigBlob.parse(json.toByteArray())

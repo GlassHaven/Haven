@@ -1,0 +1,40 @@
+#!/bin/sh
+# haven-notify — Haven guest notification bridge, guest side (#851).
+#
+# Posts an Android notification through Haven's abstract-namespace socket
+# \0haven-notify. Works in a bare PRoot terminal: no D-Bus, no session bus,
+# no desktop notification daemon required (the command-first half of #851;
+# notify-send/libnotify compatibility is a later layer on the same socket).
+#
+# Usage: haven-notify "Title" ["Body"]
+#
+# The host replies with a one-line JSON ack — {"ok":true,"id":N} on success
+# or {"ok":false,"error":"..."} on failure — printed here so a failed
+# delivery is a visible diagnostic, not a silent drop. If the bridge is not
+# attached, socat reports the connection failure on stderr.
+#
+# The socket is abstract-namespace, reachable only from processes sharing
+# Haven's network namespace. Needs socat (the only dependency):
+#   apt-get install socat
+
+set -e
+
+SOCK=haven-notify
+
+if ! command -v socat >/dev/null 2>&1; then
+    echo "haven-notify: socat is not installed." >&2
+    echo "  Install it with: apt-get install socat   (then re-run haven-notify)" >&2
+    exit 1
+fi
+
+if [ "$#" -lt 1 ] || [ -z "$1" ]; then
+    echo "usage: haven-notify TITLE [BODY]" >&2
+    exit 1
+fi
+
+title=$1
+body=${2:-}
+
+# Line-based request: title line, then body (the host reads until we half-close
+# the write side, which socat does on stdin EOF, then writes the ack back here).
+printf '%s\n%s\n' "$title" "$body" | socat - ABSTRACT-CONNECT:"$SOCK"

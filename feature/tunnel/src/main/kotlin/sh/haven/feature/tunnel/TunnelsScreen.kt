@@ -268,8 +268,8 @@ fun TunnelsScreen(
                 viewModel.addTailscaleConfig(label, authKey, controlUrl)
                 showAddDialog = false
             },
-            onSubmitNetbird = { label, setupKey, managementUrl ->
-                viewModel.addNetbirdConfig(label, setupKey, managementUrl)
+            onSubmitNetbird = { label, setupKey, managementUrl, rosenpass ->
+                viewModel.addNetbirdConfig(label, setupKey, managementUrl, rosenpass)
                 showAddDialog = false
             },
             onSubmitOpenVpn = { label, ovpnConfigText, username, password ->
@@ -295,8 +295,8 @@ fun TunnelsScreen(
                     viewModel.updateTailscaleConfig(existing.id, label, authKey, controlUrl)
                     editTarget = null; pendingEditId = null
                 },
-                onSubmitNetbird = { label, setupKey, managementUrl ->
-                    viewModel.updateNetbirdConfig(existing.id, label, setupKey, managementUrl)
+                onSubmitNetbird = { label, setupKey, managementUrl, rosenpass ->
+                    viewModel.updateNetbirdConfig(existing.id, label, setupKey, managementUrl, rosenpass)
                     editTarget = null; pendingEditId = null
                 },
                 onSubmitOpenVpn = { label, config, username, password ->
@@ -691,7 +691,7 @@ private fun AddTunnelDialog(
     onDismiss: () -> Unit,
     onSubmitWireguard: (label: String, configText: String) -> Unit,
     onSubmitTailscale: (label: String, authKey: String, controlUrl: String) -> Unit,
-    onSubmitNetbird: (label: String, setupKey: String, managementUrl: String) -> Unit,
+    onSubmitNetbird: (label: String, setupKey: String, managementUrl: String, rosenpass: Boolean) -> Unit,
     onSubmitOpenVpn: (label: String, ovpnConfigText: String, username: String, password: String) -> Unit,
     onSubmitAnyConnect: (label: String, form: AnyConnectForm) -> Unit,
 ) {
@@ -733,6 +733,13 @@ private fun AddTunnelDialog(
             existing?.takeIf { it.typeEnum == TunnelConfigType.NETBIRD }
                 ?.let { NetbirdConfigBlob.parse(it.configText)?.managementURL }
                 .orEmpty(),
+        )
+    }
+    var rosenpass by remember {
+        mutableStateOf(
+            existing?.takeIf { it.typeEnum == TunnelConfigType.NETBIRD }
+                ?.let { NetbirdConfigBlob.parse(it.configText)?.rosenpass }
+                ?: false,
         )
     }
     val existingOpenVpn = remember(existing?.id, existing?.configText) {
@@ -975,6 +982,27 @@ private fun AddTunnelDialog(
                             fontFamily = FontFamily.Monospace,
                         ),
                     )
+                    Row(
+                        verticalAlignment = Alignment.CenterVertically,
+                        horizontalArrangement = Arrangement.spacedBy(12.dp),
+                        modifier = Modifier.fillMaxWidth(),
+                    ) {
+                        Column(modifier = Modifier.weight(1f)) {
+                            Text(
+                                stringResource(R.string.tunnel_netbird_rosenpass_label),
+                                style = MaterialTheme.typography.bodyLarge,
+                            )
+                            Text(
+                                stringResource(R.string.tunnel_netbird_rosenpass_help),
+                                style = MaterialTheme.typography.bodySmall,
+                                color = MaterialTheme.colorScheme.onSurfaceVariant,
+                            )
+                        }
+                        Switch(
+                            checked = rosenpass,
+                            onCheckedChange = { rosenpass = it },
+                        )
+                    }
                     androidx.compose.foundation.layout.Spacer(Modifier.weight(1f))
                 }
                 TunnelConfigType.OPENVPN -> {
@@ -1074,7 +1102,7 @@ private fun AddTunnelDialog(
                             TunnelConfigType.TAILSCALE ->
                                 onSubmitTailscale(label, authKey, controlUrl)
                             TunnelConfigType.NETBIRD ->
-                                onSubmitNetbird(label, setupKey, managementUrl)
+                                onSubmitNetbird(label, setupKey, managementUrl, rosenpass)
                             TunnelConfigType.OPENVPN ->
                                 onSubmitOpenVpn(label, ovpnConfigText, ovpnUsername, ovpnPassword)
                             TunnelConfigType.ANYCONNECT ->

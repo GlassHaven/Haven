@@ -49,7 +49,17 @@ data class ConnectionConfig(
         require(username.isNotBlank()) { "Username must not be blank" }
     }
 
-    enum class AddressFamily { AUTO, IPV4_ONLY, IPV6_ONLY }
+    enum class AddressFamily {
+        AUTO,
+        IPV4_ONLY,
+        IPV6_ONLY,
+
+        /** Prefer IPv6 but fall back to IPv4 if no IPv6 address is reachable (#855). */
+        IPV6_PREFERRED,
+
+        /** Prefer IPv4 but fall back to IPv6 if no IPv4 address is reachable (#855). */
+        IPV4_PREFERRED,
+    }
 
     /**
      * One key exposed over the forwarded agent channel.

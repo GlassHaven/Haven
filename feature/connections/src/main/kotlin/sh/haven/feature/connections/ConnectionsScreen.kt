@@ -184,6 +184,7 @@ fun ConnectionsScreen(
     // screen refreshes it.
     val availableLocalDistros = remember { viewModel.installedLocalDistros() }
     val availableUsbDevices = remember { viewModel.availableUsbDevices() }
+    val shareStorageWithGuest by viewModel.shareStorageWithGuest.collectAsState()
     var showTunnelsScreen by remember { mutableStateOf(false) }
     // When the user picks "+ New WireGuard tunnel" from a profile's
     // Route-through dropdown, navigate to the Tunnels screen with the
@@ -240,6 +241,7 @@ fun ConnectionsScreen(
     val keyboardInteractiveAuth by viewModel.keyboardInteractiveAuth.collectAsState()
     val sshAuthBanner by viewModel.sshAuthBanner.collectAsState()
     val globalSessionManagerLabel by viewModel.globalSessionManagerLabel.collectAsState()
+    val defaultAddressFamily by viewModel.defaultAddressFamily.collectAsState()
     val newSessionProfileId by viewModel.newSessionProfileId.collectAsState()
     val subnetScanning by viewModel.subnetScanning.collectAsState()
     val jumpScanning by viewModel.jumpScanning.collectAsState()
@@ -540,12 +542,15 @@ fun ConnectionsScreen(
             totpSecrets = totpSecrets,
             tunnelConfigs = tunnelConfigs,
             availableDistros = availableLocalDistros,
+            shareStorageWithGuest = shareStorageWithGuest,
+            onSetShareStorageWithGuest = { viewModel.setShareStorageWithGuest(it) },
             usbDevices = availableUsbDevices,
             onManageTunnels = { preselect ->
                 pendingTunnelAddType = preselect
                 showTunnelsScreen = true
             },
             globalSessionManagerLabel = globalSessionManagerLabel,
+            defaultAddressFamily = defaultAddressFamily,
             subnetScanning = subnetScanning,
             smbSubnetScanning = smbSubnetScanning,
             reticulumScanning = reticulumScanning,
@@ -733,6 +738,8 @@ fun ConnectionsScreen(
             totpSecrets = totpSecrets,
             tunnelConfigs = tunnelConfigs,
             availableDistros = availableLocalDistros,
+            shareStorageWithGuest = shareStorageWithGuest,
+            onSetShareStorageWithGuest = { viewModel.setShareStorageWithGuest(it) },
             usbDevices = availableUsbDevices,
             embeddedCloudflareTunnel = embeddedCf.value,
             mcpReverseTunnelEnabled = mcpReverseTunnel.value,
@@ -741,6 +748,7 @@ fun ConnectionsScreen(
                 showTunnelsScreen = true
             },
             globalSessionManagerLabel = globalSessionManagerLabel,
+            defaultAddressFamily = defaultAddressFamily,
             subnetScanning = subnetScanning,
             smbSubnetScanning = smbSubnetScanning,
             reticulumScanning = reticulumScanning,

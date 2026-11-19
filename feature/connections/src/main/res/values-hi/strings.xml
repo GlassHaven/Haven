@@ -335,6 +335,8 @@
     <string name="connection_address_family_auto">स्वतः</string>
     <string name="connection_address_family_ipv4_only">केवल IPv4</string>
     <string name="connection_address_family_ipv6_only">केवल IPv6</string>
+    <string name="connection_address_family_ipv6_preferred">IPv6 वरीयता</string>
+    <string name="connection_address_family_ipv4_preferred">IPv4 वरीयता</string>
     <string name="connection_address_family_ipv4_hint">AAAA रिकॉर्ड छोड़ें और IPv4 पर कनेक्ट करें। तब उपयोगी जब DNS IPv6 लौटाता है पर नेटवर्क उसे रूट नहीं कर सकता।</string>
     <string name="connection_address_family_ipv6_hint">A रिकॉर्ड छोड़ें और IPv6 पर कनेक्ट करें। केवल-IPv6 नेटवर्क पर उपयोगी जहाँ IPv4 NAT टूटा हुआ है।</string>
     <string name="connections_field_bind_address">लोकल बाइंड पता</string>
@@ -475,6 +477,8 @@
     <string name="connections_vm_terminal_not_found">Terminal app नहीं मिला</string>
     <string name="connections_mcp_badge">MCP</string>
     <string name="connections_local_distro_label">OS में खोलें</string>
+    <string name="connections_local_share_storage_title">डिवाइस स्टोरेज साझा करें</string>
+    <string name="connections_local_share_storage_description">आपके साझा स्टोरेज को गेस्ट में /storage और /sdcard पर माउंट करता है ताकि वह आपकी फ़ाइलें पढ़ सके। अगले लॉन्च पर सभी लोकल शेल पर लागू। गेस्ट से अपनी फ़ोटो और डाउनलोड छिपाने के लिए बंद करें।</string>
     <string name="connections_local_distro_active_default">सक्रिय डिस्ट्रो (डिफ़ॉल्ट)</string>
 
     <string name="connections_section_openai">AI एंडपॉइंट</string>

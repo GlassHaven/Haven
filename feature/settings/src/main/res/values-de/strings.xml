@@ -50,6 +50,13 @@
 
     <!-- Terminal section -->
     <string name="settings_session_persistence_title">Sitzungspersistenz</string>
+    <string name="settings_default_address_family_title">Standard-Adressfamilie</string>
+    <string name="settings_default_address_family_subtitle">Für neue SSH-Verbindungen</string>
+    <string name="settings_address_family_auto">Auto</string>
+    <string name="settings_address_family_ipv4_only">Nur IPv4</string>
+    <string name="settings_address_family_ipv6_only">Nur IPv6</string>
+    <string name="settings_address_family_ipv6_preferred">IPv6 bevorzugt</string>
+    <string name="settings_address_family_ipv4_preferred">IPv4 bevorzugt</string>
     <string name="settings_session_persistence_none">Keine</string>
     <string name="settings_font_size_title">Terminal-Schriftgröße</string>
     <string name="settings_font_size_subtitle">%1$dsp</string>
@@ -320,6 +327,8 @@
     <string name="settings_usb_guest_subtitle">Angeschlossene USB-Geräte über den haven-usb-Shim für Gast-Apps zugänglich machen. Jede Verbindung erfordert weiterhin Zustimmung.</string>
     <string name="settings_gps_guest_title">GPS dem Linux-Gast bereitstellen</string>
     <string name="settings_gps_guest_subtitle">Die GPS-Position des Telefons als NMEA-Gerät in den Gast streamen (haven-gps). Einmal aktiv kann jeder Gast-Prozess die Position lesen. Jede Verbindung erfordert weiterhin Zustimmung.</string>
+    <string name="settings_notify_guest_title">Gast-Benachrichtigungen</string>
+    <string name="settings_notify_guest_subtitle">Linux-Gastprogrammen erlauben, Android-Benachrichtigungen über haven-notify zu senden. Einmal aktiv kann jeder Gast-Prozess Benachrichtigungen zur Leiste hinzufügen. Jede Verbindung erfordert weiterhin Zustimmung.</string>
     <string name="settings_proot_install_log_title">PRoot-Installationsprotokoll anzeigen</string>
     <string name="settings_proot_install_log_subtitle">Phasenereignisse von Linux-Distributions-Installationen (Issue #162)</string>
     <string name="settings_logcat_capture_title">Logcat-Aufzeichnung</string>

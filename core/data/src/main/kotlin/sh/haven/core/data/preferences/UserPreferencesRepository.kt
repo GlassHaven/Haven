@@ -56,6 +56,10 @@ class UserPreferencesRepository @Inject constructor(
     private val terminalLocaleKey = stringPreferencesKey("terminal_locale")
     private val themeKey = stringPreferencesKey("theme")
     private val sessionManagerKey = stringPreferencesKey("session_manager")
+    // Global default address family for NEW SSH connections (#855): one of the
+    // ConnectionProfile.AddressFamily names (AUTO/IPV4_ONLY/IPV6_ONLY/
+    // IPV6_PREFERRED/IPV4_PREFERRED). Existing profiles keep their own value.
+    private val defaultAddressFamilyKey = stringPreferencesKey("default_address_family")
     private val reticulumRpcKeyKey = stringPreferencesKey("reticulum_rpc_key")
     private val reticulumHostKey = stringPreferencesKey("reticulum_host")
     private val reticulumPortKey = intPreferencesKey("reticulum_port")
@@ -125,6 +129,7 @@ class UserPreferencesRepository @Inject constructor(
     private val alwaysShowAllTabsKey = booleanPreferencesKey("always_show_all_tabs")
     private val usbGuestExposureEnabledKey = booleanPreferencesKey("usb_guest_exposure_enabled")
     private val gpsGuestExposureEnabledKey = booleanPreferencesKey("gps_guest_exposure_enabled")
+    private val notifyGuestExposureEnabledKey = booleanPreferencesKey("notify_guest_exposure_enabled")
     private val tailscaleDiscoveryEnabledKey = booleanPreferencesKey("tailscale_discovery_enabled")
     private val remoteClipboardToLocalKey = booleanPreferencesKey("remote_clipboard_to_local")
     private val verboseLoggingEnabledKey = booleanPreferencesKey("verbose_logging_enabled")
@@ -744,6 +749,25 @@ class UserPreferencesRepository @Inject constructor(
     suspend fun setGpsGuestExposureEnabled(enabled: Boolean) {
         dataStore.edit { prefs ->
             prefs[gpsGuestExposureEnabledKey] = enabled
+        }
+    }
+
+    /**
+     * Master opt-in for the guest → Android notification bridge (#851): the
+     * \0haven-notify abstract socket + staged `haven-notify` helper that lets
+     * Linux guest programs post Android notifications. Default OFF: unlike GPS
+     * (which leaks position *out*), this lets *any* guest process inject content
+     * *into* the phone's notification shade — a phishing-shaped surface — so it
+     * stays off until explicitly enabled. The attach consent sheet still gates
+     * each attach, and a token-bucket rate limiter caps spam once enabled.
+     */
+    val notifyGuestExposureEnabled: Flow<Boolean> = dataStore.data.map { prefs ->
+        prefs[notifyGuestExposureEnabledKey] ?: false
+    }
+
+    suspend fun setNotifyGuestExposureEnabled(enabled: Boolean) {
+        dataStore.edit { prefs ->
+            prefs[notifyGuestExposureEnabledKey] = enabled
         }
     }
 
@@ -1832,6 +1856,17 @@ class UserPreferencesRepository @Inject constructor(
     suspend fun setSessionManager(manager: SessionManager) {
         dataStore.edit { prefs ->
             prefs[sessionManagerKey] = manager.name
+        }
+    }
+
+    /** Global default address family for new SSH connections (#855); "AUTO" when unset. */
+    val defaultAddressFamily: Flow<String> = dataStore.data.map { prefs ->
+        prefs[defaultAddressFamilyKey] ?: "AUTO"
+    }
+
+    suspend fun setDefaultAddressFamily(family: String) {
+        dataStore.edit { prefs ->
+            prefs[defaultAddressFamilyKey] = family
         }
     }
 

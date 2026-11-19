@@ -34,5 +34,7 @@
     <string name="vnc_compose_press_enter">Притисни Enter након слања</string>
     <string name="vnc_compose_show">Прикажи текст</string>
     <string name="vnc_compose_hide">Сакриј текст</string>
-    <string name="vnc_compose_untypeable">Истакнути знакови не могу да се укуцају преко VNC-а. Користите Налепи да бисте их послали.</string>
+    <string name="vnc_compose_untypeable">Истакнути знакови не могу да се унесу преко VNC-а. Користите Налепи да бисте их послали.</string>
+    <string name="vnc_cd_paste">Налепи оставу</string>
 </resources>
+

@@ -24,17 +24,20 @@ import java.net.InetSocketAddress
  * lives in [stateDir] (`config.json` + `state.json`) and is reused on
  * subsequent starts, so the key is not re-consumed. [managementURL]
  * points at a self-hosted NetBird management server; empty keeps the
- * hosted default.
+ * hosted default. [rosenpass] enables NetBird's post-quantum Rosenpass
+ * key exchange for this tunnel (#662); the bridge merges it into the
+ * persisted config.json before the client starts.
  */
 class NetbirdTunnel internal constructor(
     setupKey: String,
     stateDir: File,
     hostname: String,
     managementURL: String = "",
+    rosenpass: Boolean = false,
 ) : Tunnel {
 
     private val native: NativeHandle = try {
-        Nbbridge.startTunnel(setupKey, stateDir.absolutePath, hostname, managementURL)
+        Nbbridge.startTunnel(setupKey, stateDir.absolutePath, hostname, managementURL, rosenpass)
     } catch (e: Exception) {
         throw IOException("Failed to start NetBird tunnel: ${e.message}", e)
     }

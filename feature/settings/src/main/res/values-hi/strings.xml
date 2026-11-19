@@ -50,6 +50,13 @@
 
     <!-- Terminal section -->
     <string name="settings_session_persistence_title">सत्र स्थायित्व</string>
+    <string name="settings_default_address_family_title">डिफ़ॉल्ट एड्रेस फ़ैमिली</string>
+    <string name="settings_default_address_family_subtitle">नए SSH कनेक्शन के लिए</string>
+    <string name="settings_address_family_auto">ऑटो</string>
+    <string name="settings_address_family_ipv4_only">केवल IPv4</string>
+    <string name="settings_address_family_ipv6_only">केवल IPv6</string>
+    <string name="settings_address_family_ipv6_preferred">IPv6 वरीयता</string>
+    <string name="settings_address_family_ipv4_preferred">IPv4 वरीयता</string>
     <string name="settings_session_persistence_none">कोई नहीं</string>
     <string name="settings_font_size_title">टर्मिनल फ़ॉन्ट आकार</string>
     <string name="settings_font_size_subtitle">%1$dsp</string>
@@ -320,6 +327,8 @@
     <string name="settings_usb_guest_subtitle">haven-usb shim के माध्यम से guest apps को संलग्न USB devices तक पहुँचने दें। प्रत्येक attach पर consent माँगी जाती है।</string>
     <string name="settings_gps_guest_title">Linux guest को GPS expose करें</string>
     <string name="settings_gps_guest_subtitle">फ़ोन की GPS location को NMEA device (haven-gps) के रूप में guest में stream करें। चालू होने पर guest की कोई भी process location पढ़ सकती है। प्रत्येक attach पर consent माँगी जाती है।</string>
+    <string name="settings_notify_guest_title">गेस्ट सूचनाएँ</string>
+    <string name="settings_notify_guest_subtitle">Linux गेस्ट प्रोग्राम को haven-notify के ज़रिए Android सूचनाएँ पोस्ट करने दें। चालू होने पर guest की कोई भी process शेड में सूचनाएँ जोड़ सकती है। प्रत्येक attach पर consent माँगी जाती है।</string>
     <string name="settings_proot_install_log_title">PRoot install log देखें</string>
     <string name="settings_proot_install_log_subtitle">Linux distro installs के चरण-वार events (issue #162)</string>
     <string name="settings_logcat_capture_title">Logcat Capture</string>

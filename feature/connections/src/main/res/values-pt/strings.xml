@@ -335,6 +335,8 @@
     <string name="connection_address_family_auto">Automático</string>
     <string name="connection_address_family_ipv4_only">Apenas IPv4</string>
     <string name="connection_address_family_ipv6_only">Apenas IPv6</string>
+    <string name="connection_address_family_ipv6_preferred">IPv6 preferido</string>
+    <string name="connection_address_family_ipv4_preferred">IPv4 preferido</string>
     <string name="connection_address_family_ipv4_hint">Ignora registros AAAA e conecta via IPv4. Útil quando o DNS retorna IPv6 mas a rede não consegue roteá-lo.</string>
     <string name="connection_address_family_ipv6_hint">Ignora registros A e conecta via IPv6. Útil em redes apenas IPv6 onde o NAT de IPv4 está quebrado.</string>
     <string name="connections_field_bind_address">Endereço local de ligação</string>
@@ -475,6 +477,8 @@
     <string name="connections_vm_terminal_not_found">App Terminal não encontrado</string>
     <string name="connections_mcp_badge">MCP</string>
     <string name="connections_local_distro_label">Abrir no SO</string>
+    <string name="connections_local_share_storage_title">Compartilhar armazenamento do dispositivo</string>
+    <string name="connections_local_share_storage_description">Monta seu armazenamento compartilhado no convidado em /storage e /sdcard para que ele acesse seus arquivos. Aplica-se a todos os shells locais na próxima inicialização. Desative para ocultar suas fotos e downloads do convidado.</string>
     <string name="connections_local_distro_active_default">Distro ativa (padrão)</string>
 
     <string name="connections_section_openai">Endpoint de IA</string>

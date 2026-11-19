@@ -182,6 +182,18 @@ become **thin façades** over `create_bridge`, kept for ergonomics.
   abstract socket streams the chipset's NMEA into the guest, where the staged
   `haven-gps` helper (socat) materialises it as a PTY at `/run/haven/gps0`.
   Master opt-in + ONCE_PER_SESSION attach, mirroring the USB pair.)*
+
+**Reverse bridge — guest notifications (#851).** The sources above broker a phone
+capability *into* a guest; the notification bridge runs the other way, guest →
+Android. The staged `haven-notify "Title" "Body"` helper (socat) writes a line-based
+request to the `\0haven-notify` abstract socket; `NotifyGuestServer` reads it,
+rate-limits (token bucket ~1/s, burst 5), and posts on a dedicated
+`guest.notifications` channel with no tap intent (guest-supplied content is not
+given a launch intent). Command-first: it works in a bare PRoot terminal with no
+D-Bus or session bus; a freedesktop/libnotify `notify-send` daemon is a later layer
+on the same socket. Master opt-in (`notify_guest_exposure_enabled`) +
+ONCE_PER_SESSION attach (`attach_notify_to_guest`), and it auto-starts when a local
+session opens with the preference enabled. Lives in `core/local/guestnotify`.
 - Motion/environment sensors via an **iio or evdev** userspace shim (same
   `LD_PRELOAD`-+-socket trick as `haven-usb`).
 - `(sensor, agent)` over MCP — the agent can read the phone's real-world state.

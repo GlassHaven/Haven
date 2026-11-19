@@ -1,0 +1,1 @@
+- Surface the guest storage-share toggle in the local shell's connection editor, so you can stop the guest reaching your shared storage without opening the desktop settings (#849).

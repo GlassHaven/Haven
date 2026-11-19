@@ -335,6 +335,8 @@
     <string name="connection_address_family_auto">Automatisch</string>
     <string name="connection_address_family_ipv4_only">Nur IPv4</string>
     <string name="connection_address_family_ipv6_only">Nur IPv6</string>
+    <string name="connection_address_family_ipv6_preferred">IPv6 bevorzugt</string>
+    <string name="connection_address_family_ipv4_preferred">IPv4 bevorzugt</string>
     <string name="connection_address_family_ipv4_hint">AAAA-Einträge überspringen und über IPv4 verbinden. Nützlich, wenn DNS IPv6 zurückgibt, das Netzwerk es aber nicht routen kann.</string>
     <string name="connection_address_family_ipv6_hint">A-Einträge überspringen und über IPv6 verbinden. Nützlich in reinen IPv6-Netzwerken, in denen IPv4-NAT defekt ist.</string>
     <string name="connections_field_bind_address">Lokale Bindungsadresse</string>
@@ -475,6 +477,8 @@
     <string name="connections_vm_terminal_not_found">Terminal-App nicht gefunden</string>
     <string name="connections_mcp_badge">MCP</string>
     <string name="connections_local_distro_label">In Betriebssystem öffnen</string>
+    <string name="connections_local_share_storage_title">Gerätespeicher freigeben</string>
+    <string name="connections_local_share_storage_description">Hängt Ihren freigegebenen Speicher unter /storage und /sdcard in den Gast ein, damit er auf Ihre Dateien zugreifen kann. Gilt für alle lokalen Shells beim nächsten Start. Ausschalten, um Ihre Fotos und Downloads vor dem Gast zu verbergen.</string>
     <string name="connections_local_distro_active_default">Aktive Distribution (Standard)</string>
 
     <string name="connections_section_openai">KI-Endpunkt</string>

@@ -118,7 +118,8 @@ enum class McpToolCategory {
                 "start_rclone_sync", "update_rclone_remote",
             ),
             SENSES to listOf(
-                "attach_gps_to_guest", "capture_camera_frame", "detach_gps_from_guest",
+                "attach_gps_to_guest", "attach_notify_to_guest", "capture_camera_frame",
+                "detach_gps_from_guest", "detach_notify_from_guest",
                 "get_device_state", "get_gps_status", "get_location",
                 "get_location_precise", "list_gps_logs", "list_notifications",
                 "raise_notification", "read_gps_log", "read_sensors", "start_gps_log",

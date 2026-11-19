@@ -1,0 +1,1 @@
+Add a Rosenpass (post-quantum key exchange) toggle for NetBird tunnels, for networks whose peers require it. It is in the NetBird tunnel editor, and on the agent surface as netbirdRosenpass in create_tunnel.

@@ -335,6 +335,8 @@
     <string name="connection_address_family_auto">Авто</string>
     <string name="connection_address_family_ipv4_only">Только IPv4</string>
     <string name="connection_address_family_ipv6_only">Только IPv6</string>
+    <string name="connection_address_family_ipv6_preferred">IPv6 приоритет</string>
+    <string name="connection_address_family_ipv4_preferred">IPv4 приоритет</string>
     <string name="connection_address_family_ipv4_hint">Пропускает записи AAAA и подключается по IPv4. Полезно, когда DNS возвращает IPv6, но сеть не может его маршрутизировать.</string>
     <string name="connection_address_family_ipv6_hint">Пропускает записи A и подключается по IPv6. Полезно в сетях только с IPv6, где IPv4-NAT не работает.</string>
     <string name="connections_field_bind_address">Локальный адрес привязки</string>
@@ -475,6 +477,8 @@
     <string name="connections_vm_terminal_not_found">Приложение «Терминал» не найдено</string>
     <string name="connections_mcp_badge">MCP</string>
     <string name="connections_local_distro_label">Открыть в ОС</string>
+    <string name="connections_local_share_storage_title">Открыть доступ к хранилищу устройства</string>
+    <string name="connections_local_share_storage_description">Подключает общее хранилище в гостевой системе в /storage и /sdcard, чтобы она могла читать ваши файлы. Применяется ко всем локальным оболочкам при следующем запуске. Отключите, чтобы скрыть фото и загрузки от гостевой системы.</string>
     <string name="connections_local_distro_active_default">Активный дистрибутив (по умолчанию)</string>
 
     <string name="connections_section_openai">AI-эндпоинт</string>

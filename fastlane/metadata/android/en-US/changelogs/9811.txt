@@ -1,0 +1,1 @@
+Give guest notifications (posted by Linux guest programs via haven-notify) a Haven-branded terminal-prompt small icon instead of the generic system info icon.

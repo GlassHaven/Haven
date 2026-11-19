@@ -130,13 +130,13 @@ jobs:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1  # v7.0.1
         with:
           submodules: false
-      - uses: actions/setup-go@4a3601121dd01d1626a1e23e37211e3254c1c06c  # v6.4.0
+      - uses: actions/setup-go@b7ad1dad31e06c5925ef5d2fc7ad053ef454303e  # v7.0.0
         with:
           go-version: '1.27'
           cache-dependency-path: rclone-android/go/go.sum
       - name: Cache OpenVPN3 host test archive
         id: ovpn-host-cache
-        uses: actions/cache@27d5ce7f107fe9357f9df03efb73ab90386fccae  # v5.0.5
+        uses: actions/cache@55cc8345863c7cc4c66a329aec7e433d2d1c52a9  # v6.1.0
         with:
           path: openvpn3-core/host-test-lib
           key: openvpn3-host-amd64-${{ hashFiles('openvpn3-core/deps.lock', 'openvpn3-core/fetch-deps.sh', 'openvpn3-core/build-host-test.sh', 'openvpn3-core/CMakeLists.txt', 'openvpn3-core/adapter/**') }}
@@ -239,38 +239,17 @@ jobs:
         # Name the flavor task explicitly (arm64 only — unit tests are
         # flavor-agnostic) so they actually run in CI.
         #
-        # The sshlib contract tests are excluded here and run in their own
-        # non-gating step below. They exercise the opt-in preview SSH engine
-        # against an upstream race in sshlib 0.4.1 — its output pump is
-        # cancelled on CHANNEL_CLOSE and drops whatever it is still holding, so
-        # a command's stdout or stderr comes back empty or truncated at random
-        # (connectbot/cbssh#245, tracked in #448). Haven narrows the window but
-        # cannot close it from outside the library, and 0.4.1 is the latest
-        # release. Three failures in one day, on three different assertions,
-        # blocked a release that changed nothing in core/ssh — so this engine's
-        # known flakiness no longer gates shipping for the default JSch engine.
-        # Restore it here the moment a fixed sshlib is out.
+        # The sshlib contract tests run in this gating set again (#58). The
+        # CHANNEL_CLOSE output race they used to hit (connectbot/cbssh#245,
+        # tracked in #448) was fixed upstream; the engine is pinned to a fixed
+        # sshlib and the contract suite passes on every release-branch push, so
+        # the 083faf102 non-gating carve-out is retired.
         run: >-
           ./gradlew testDebugUnitTest :app:testArm64FullDebugUnitTest
-          -PexcludeSshlibContractTests=true
           -PskipWaylandNatives=true
           -PskipFfmpegNatives=true
           -PskipUml=true
           -Pkotlin.compiler.execution.strategy=in-process
-      - name: Run sshlib contract tests (non-gating, connectbot/cbssh#245)
-        # Reported, never silent: a failure here is visible in the job summary
-        # and the uploaded results, it just does not fail the build. If these
-        # start failing *every* run rather than intermittently, that is a real
-        # regression and not the upstream race — check before dismissing it.
-        #
-        # That last sentence used to be the reader's job. Since #475 the
-        # test-retry plugin gives SshlibExecContractTest three attempts (and
-        # only that class — verified by making a test in another core:ssh class
-        # fail and watching it run once), so a red step here already means
-        # "failed three times in a row" rather than "flaked once". The signal
-        # is now worth acting on instead of squinting at.
-        continue-on-error: true
-        run: ./gradlew :core:ssh:testDebugUnitTest --tests 'sh.haven.core.ssh.sshlib.*' -PskipWaylandNatives=true -PskipFfmpegNatives=true -PskipUml=true
       - name: Upload test results
         if: always()
         uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9  # v7.0.2
@@ -325,7 +304,11 @@ jobs:
   lint:
     if: github.event_name != 'push'
     runs-on: ubuntu-latest
-    timeout-minutes: 30
+    # 45, not 30: like the test job, lint's real spend ranges ~18-31m depending
+    # on runner load and Gradle cache hits, and a timed-out job stamps cancelled
+    # (looks red, tells you nothing about lint). Observed cancelled at 31m on PR
+    # #861 and #850. Clear the top of the spread, not sit on it.
+    timeout-minutes: 45
     steps:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1  # v7.0.1
         with:
@@ -442,7 +425,9 @@ jobs:
   release-r8-smoke:
     if: github.event_name != 'push'
     runs-on: ubuntu-latest
-    timeout-minutes: 30
+    # 45, not 30: R8 smoke reproducibly brushes the 30m cap on loaded runners
+    # (cancelled at 30m on PR #861 and #850); same rationale as lint/test.
+    timeout-minutes: 45
     steps:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1  # v7.0.1
         with:

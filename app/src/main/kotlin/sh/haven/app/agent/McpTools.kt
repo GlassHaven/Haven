@@ -103,6 +103,7 @@ class McpTools private constructor(
     private val usbDriveVmManager: sh.haven.app.usb.UsbDriveVmManager,
     private val usbProxyServer: sh.haven.core.usb.UsbProxyServer,
     private val usbRedirServer: sh.haven.core.usb.UsbRedirServer,
+    private val notifyBridge: sh.haven.core.local.guestnotify.GuestNotifyBridge,
     private val presentationManager: sh.haven.core.data.agent.AgentPresentationManager,
     private val havenUiBridge: HavenUiBridge,
     private val standingPolicyRepository: sh.haven.core.data.repository.StandingPolicyRepository,
@@ -148,6 +149,7 @@ class McpTools private constructor(
         usbDriveVmManager: sh.haven.app.usb.UsbDriveVmManager,
         usbProxyServer: sh.haven.core.usb.UsbProxyServer,
         usbRedirServer: sh.haven.core.usb.UsbRedirServer,
+        notifyBridge: sh.haven.core.local.guestnotify.GuestNotifyBridge,
         presentationManager: sh.haven.core.data.agent.AgentPresentationManager,
         havenUiBridge: HavenUiBridge,
         standingPolicyRepository: sh.haven.core.data.repository.StandingPolicyRepository,
@@ -189,6 +191,7 @@ class McpTools private constructor(
         usbDriveVmManager = usbDriveVmManager,
         usbProxyServer = usbProxyServer,
         usbRedirServer = usbRedirServer,
+        notifyBridge = notifyBridge,
         presentationManager = presentationManager,
         havenUiBridge = havenUiBridge,
         standingPolicyRepository = standingPolicyRepository,
@@ -276,6 +279,10 @@ class McpTools private constructor(
             sh.haven.core.usb.UsbRedirServer(usbBroker),
         usbProxyServer: sh.haven.core.usb.UsbProxyServer =
             sh.haven.core.usb.UsbProxyServer(usbBroker),
+        notifyBridge: sh.haven.core.local.guestnotify.GuestNotifyBridge =
+            sh.haven.core.local.guestnotify.GuestNotifyBridge(
+                sh.haven.core.local.guestnotify.GuestNotifier(context),
+            ),
         extraProviders: Set<ToolProvider> = emptySet(),
         adbBridgeController: AdbWirelessBridgeController = AdbWirelessBridgeController(context),
     ) : this(
@@ -379,6 +386,7 @@ class McpTools private constructor(
         usbDriveVmManager = usbDriveVmManager,
         usbProxyServer = usbProxyServer,
         usbRedirServer = usbRedirServer,
+        notifyBridge = notifyBridge,
         presentationManager = presentationManager,
         havenUiBridge = havenUiBridge,
         standingPolicyRepository = standingPolicyRepository,
@@ -474,6 +482,11 @@ class McpTools private constructor(
         preferencesRepository = preferencesRepository,
         localSessionManager = localSessionManager,
     )
+    private val notifyProvider = NotifyToolProvider(
+        preferencesRepository = preferencesRepository,
+        localSessionManager = localSessionManager,
+        notifyBridge = notifyBridge,
+    )
     private val notificationProvider = NotificationToolProvider(
         context = context,
         shizukuExec = { cmd ->
@@ -517,6 +530,7 @@ class McpTools private constructor(
         openAiProvider,
         sensesProvider,
         gpsProvider,
+        notifyProvider,
         notificationProvider,
         reflexProvider,
         havenUiAndPolicyProvider,
@@ -880,7 +894,7 @@ class McpTools private constructor(
         ) { _ -> readClipboard() },
 
         "get_preference" to ToolHandler(
-            description = "Read a Haven user preference by key. Whitelisted keys: terminal_scrollback_rows, terminal_tap_to_position_cursor, terminal_bell_notification (#753 bool, default true — post a notification naming the tab when a terminal rings BEL while Haven is backgrounded), terminal_font_size, terminal_horizontal_padding (#745: horizontal margin around the terminal grid in dp, 0..24 — the column count recalculates), terminal_color_scheme, terminal_auto_switch_scheme, terminal_light_color_scheme, terminal_dark_color_scheme, terminal_locale, terminal_inline_images (#583 inline-image consent: OFF / ASK (default) / ALWAYS — whether SSH programs' Kitty graphics / iTerm2 images render), mouse_input_enabled, terminal_right_click, terminal_tab_titles_follow_session (bool — tabs attached to tmux/zellij/screen show the session name instead of titles set by running programs; default true), mcp_tunnel_endpoint_profile_id, mcp_wireguard_enabled, mcp_lan_bind_enabled, mcp_wireguard_tunnel_config_id, usb_guest_exposure_enabled, gps_guest_exposure_enabled, connection_logging_enabled, verbose_logging_enabled, remap_low_ports (#300 proot launch toggle), share_storage_with_guest (#301 proot launch toggle), bind_android_system (#304 proot launch toggle), proot_engine (#573 - proot|chroot-ng), proot_dns_mode (#446 - system|public|custom), proot_dns_servers (custom nameservers), toolbar_layout (string — the terminal keyboard toolbar layout as JSON; see set_preference for the shape), custom_desktop_command (string — the Custom (X11) desktop's session command), update_check_enabled (bool — #578 opt-in launch-time update check; off by default, and inert on a copy not signed with the GitHub-release key), update_check_last_run_ms (long — epoch ms of the last launch-time check; the once-a-day throttle is measured from it), update_check_last_notified_version (string — the version the user was last notified about; blank if never). Returns { key, value } where value's type follows the preference's type (int / boolean / string). Colour-scheme values are TerminalColorScheme enum names.",
+            description = "Read a Haven user preference by key. Whitelisted keys: terminal_scrollback_rows, terminal_tap_to_position_cursor, terminal_bell_notification (#753 bool, default true — post a notification naming the tab when a terminal rings BEL while Haven is backgrounded), terminal_font_size, terminal_horizontal_padding (#745: horizontal margin around the terminal grid in dp, 0..24 — the column count recalculates), terminal_color_scheme, terminal_auto_switch_scheme, terminal_light_color_scheme, terminal_dark_color_scheme, terminal_locale, terminal_inline_images (#583 inline-image consent: OFF / ASK (default) / ALWAYS — whether SSH programs' Kitty graphics / iTerm2 images render), mouse_input_enabled, terminal_right_click, terminal_tab_titles_follow_session (bool — tabs attached to tmux/zellij/screen show the session name instead of titles set by running programs; default true), mcp_tunnel_endpoint_profile_id, mcp_wireguard_enabled, mcp_lan_bind_enabled, mcp_wireguard_tunnel_config_id, usb_guest_exposure_enabled, gps_guest_exposure_enabled, notify_guest_exposure_enabled, connection_logging_enabled, verbose_logging_enabled, remap_low_ports (#300 proot launch toggle), share_storage_with_guest (#301 proot launch toggle), bind_android_system (#304 proot launch toggle), proot_engine (#573 - proot|chroot-ng), proot_dns_mode (#446 - system|public|custom), proot_dns_servers (custom nameservers), toolbar_layout (string — the terminal keyboard toolbar layout as JSON; see set_preference for the shape), custom_desktop_command (string — the Custom (X11) desktop's session command), update_check_enabled (bool — #578 opt-in launch-time update check; off by default, and inert on a copy not signed with the GitHub-release key), update_check_last_run_ms (long — epoch ms of the last launch-time check; the once-a-day throttle is measured from it), update_check_last_notified_version (string — the version the user was last notified about; blank if never). Returns { key, value } where value's type follows the preference's type (int / boolean / string). Colour-scheme values are TerminalColorScheme enum names.",
             inputSchema = objectSchema {
                 string("key", "Preference key (see whitelist in description).", required = true)
             },
@@ -1046,7 +1060,7 @@ class McpTools private constructor(
         ) { args -> writeClipboard(args) },
 
         "set_preference" to ToolHandler(
-            description = "Write a Haven user preference. Whitelisted keys (and their types): terminal_scrollback_rows (int 100..25000), terminal_tap_to_position_cursor (bool), terminal_bell_notification (bool — #753, default true: post a notification naming the tab when a terminal rings BEL while Haven is backgrounded), terminal_font_size (int 8..32), terminal_horizontal_padding (int 0..24 dp — #745 horizontal margin around the terminal grid; the column count recalculates), mouse_input_enabled (bool), terminal_right_click (bool), terminal_tab_titles_follow_session (bool — tabs attached to tmux/zellij/screen show the session name instead of titles set by running programs), terminal_color_scheme (string — a TerminalColorScheme enum name, e.g. HAVEN, DRACULA, NORD, GRUVBOX; case-insensitive), terminal_auto_switch_scheme (bool — when true the active scheme follows system light/dark via the light/dark keys), terminal_light_color_scheme (string scheme name), terminal_dark_color_scheme (string scheme name), terminal_background_opacity (float 0.0..1.0 — below 1.0 the terminal renders over the device wallpaper), terminal_inline_images (string — TerminalInlineImages enum name #583: \"OFF\" renders nothing, \"ASK\" (default) shows a consent dialog per image, \"ALWAYS\" renders directly), terminal_locale (string, e.g. zh_CN.UTF-8 — exported to local terminal sessions as LANG/LC_ALL; glibc distros need the locale generated first), mcp_tunnel_endpoint_profile_id (string SSH profile id, empty to clear), mcp_wireguard_enabled (bool), mcp_lan_bind_enabled (bool — also bind the device Wi-Fi/LAN address for direct same-network reach), mcp_wireguard_tunnel_config_id (string tunnel config id the MCP server keeps up as its WG carrier, empty to clear), usb_guest_exposure_enabled (bool — master gate for usb_attach_to_guest), gps_guest_exposure_enabled (bool — master gate for attach_gps_to_guest), connection_logging_enabled (bool — audit-log connection lifecycle events to Settings → View connection log; off by default; enable before reproducing a connection issue, then read get_connection_log), verbose_logging_enabled (bool - per-session transport tracing, captured into each ConnectionLog entry's verboseLog; off by default. Needed AS WELL AS connection_logging_enabled: the RDP decode breakdown, the negotiated graphics capabilities and the discarded-bitmap detail exist nowhere else), gpu_use_venus (bool — experimental venus+zink GPU stack for accelerated desktops; off = virgl/virpipe), remap_low_ports (bool — #300 proot launch toggle: remap guest privileged ports +2000), share_storage_with_guest (bool — #301 proot launch toggle: mount /storage + /sdcard into the local guest; default on), bind_android_system (bool — #304 proot launch toggle: bind Android's read-only /system, /vendor, /apex, /product, /system_ext, /odm into the guest so it can run Android native binaries like getprop/toybox; default off, exposes device internals), proot_engine (string - #573: container engine for arm64 local Linux sessions; \"proot\" (default) or \"chroot-ng\" (seccomp SIGSYS, ptrace-free; falls back to proot when foreign-arch qemu, remap_low_ports, or --net-policy is active)), proot_dns_mode (string - #446: which resolvers the local Linux guest gets in /etc/resolv.conf. \"system\" (default) uses the network's own resolvers, \"public\" uses Google 8.8.8.8 + Cloudflare 1.1.1.1 (the old hardcoded pair), \"custom\" uses proot_dns_servers. Networks that block outbound port 53 to anything but their own resolver make \"public\" fail silently - package installs just hang), proot_dns_servers (string - comma/space separated IP literals for \"custom\"; hostnames are rejected because resolv.conf has no way to resolve them), toolbar_layout (string — the terminal keyboard toolbar as JSON: a 2-element array of rows, each row an array whose elements are either a built-in key id string (\"esc\", \"paste\", \"text_input\", \"arrow_up\", \"ctrl\", \"home\", … — see ToolbarKey) or a custom-key object {\"label\":\"…\",\"send\":\"…\"}; set validates against ToolbarLayout and replaces the WHOLE layout, so get_preference it first, edit, and write it back — e.g. add \"text_input\" to a row to surface the floating-text-input key), custom_desktop_command (string — the Custom (X11) desktop session command run at its next start; the command IS the session: when it exits the desktop stops, and a command that dies at startup surfaces its output in the desktop row's error state), update_check_enabled (bool — #578: look for a newer GitHub release when Haven opens, at most once an hour. Off by default. Turning it ON is what arms the launch-time path; check_for_update runs a check right now regardless)), update_check_last_run_ms (long epoch ms — set to 0 to CLEAR the once-an-hour throttle), update_check_last_notified_version (string — set to \"\" to CLEAR the already-told-you dedup). Those two exist so the launch path can be exercised for real: clear whichever gate you are testing, restart Haven, and watch checkOnLaunch run. check_for_update deliberately cannot substitute — it runs the on-demand check, which posts no notification and touches neither gate. Takes effect on the next local session/command. Returns { key, value }.",
+            description = "Write a Haven user preference. Whitelisted keys (and their types): terminal_scrollback_rows (int 100..25000), terminal_tap_to_position_cursor (bool), terminal_bell_notification (bool — #753, default true: post a notification naming the tab when a terminal rings BEL while Haven is backgrounded), terminal_font_size (int 8..32), terminal_horizontal_padding (int 0..24 dp — #745 horizontal margin around the terminal grid; the column count recalculates), mouse_input_enabled (bool), terminal_right_click (bool), terminal_tab_titles_follow_session (bool — tabs attached to tmux/zellij/screen show the session name instead of titles set by running programs), terminal_color_scheme (string — a TerminalColorScheme enum name, e.g. HAVEN, DRACULA, NORD, GRUVBOX; case-insensitive), terminal_auto_switch_scheme (bool — when true the active scheme follows system light/dark via the light/dark keys), terminal_light_color_scheme (string scheme name), terminal_dark_color_scheme (string scheme name), terminal_background_opacity (float 0.0..1.0 — below 1.0 the terminal renders over the device wallpaper), terminal_inline_images (string — TerminalInlineImages enum name #583: \"OFF\" renders nothing, \"ASK\" (default) shows a consent dialog per image, \"ALWAYS\" renders directly), terminal_locale (string, e.g. zh_CN.UTF-8 — exported to local terminal sessions as LANG/LC_ALL; glibc distros need the locale generated first), mcp_tunnel_endpoint_profile_id (string SSH profile id, empty to clear), mcp_wireguard_enabled (bool), mcp_lan_bind_enabled (bool — also bind the device Wi-Fi/LAN address for direct same-network reach), mcp_wireguard_tunnel_config_id (string tunnel config id the MCP server keeps up as its WG carrier, empty to clear), usb_guest_exposure_enabled (bool — master gate for usb_attach_to_guest), gps_guest_exposure_enabled (bool — master gate for attach_gps_to_guest), notify_guest_exposure_enabled (bool — master gate for attach_notify_to_guest, the guest → Android notification bridge #851; off by default), connection_logging_enabled (bool — audit-log connection lifecycle events to Settings → View connection log; off by default; enable before reproducing a connection issue, then read get_connection_log), verbose_logging_enabled (bool - per-session transport tracing, captured into each ConnectionLog entry's verboseLog; off by default. Needed AS WELL AS connection_logging_enabled: the RDP decode breakdown, the negotiated graphics capabilities and the discarded-bitmap detail exist nowhere else), gpu_use_venus (bool — experimental venus+zink GPU stack for accelerated desktops; off = virgl/virpipe), remap_low_ports (bool — #300 proot launch toggle: remap guest privileged ports +2000), share_storage_with_guest (bool — #301 proot launch toggle: mount /storage + /sdcard into the local guest; default on), bind_android_system (bool — #304 proot launch toggle: bind Android's read-only /system, /vendor, /apex, /product, /system_ext, /odm into the guest so it can run Android native binaries like getprop/toybox; default off, exposes device internals), proot_engine (string - #573: container engine for arm64 local Linux sessions; \"proot\" (default) or \"chroot-ng\" (seccomp SIGSYS, ptrace-free; falls back to proot when foreign-arch qemu, remap_low_ports, or --net-policy is active)), proot_dns_mode (string - #446: which resolvers the local Linux guest gets in /etc/resolv.conf. \"system\" (default) uses the network's own resolvers, \"public\" uses Google 8.8.8.8 + Cloudflare 1.1.1.1 (the old hardcoded pair), \"custom\" uses proot_dns_servers. Networks that block outbound port 53 to anything but their own resolver make \"public\" fail silently - package installs just hang), proot_dns_servers (string - comma/space separated IP literals for \"custom\"; hostnames are rejected because resolv.conf has no way to resolve them), toolbar_layout (string — the terminal keyboard toolbar as JSON: a 2-element array of rows, each row an array whose elements are either a built-in key id string (\"esc\", \"paste\", \"text_input\", \"arrow_up\", \"ctrl\", \"home\", … — see ToolbarKey) or a custom-key object {\"label\":\"…\",\"send\":\"…\"}; set validates against ToolbarLayout and replaces the WHOLE layout, so get_preference it first, edit, and write it back — e.g. add \"text_input\" to a row to surface the floating-text-input key), custom_desktop_command (string — the Custom (X11) desktop session command run at its next start; the command IS the session: when it exits the desktop stops, and a command that dies at startup surfaces its output in the desktop row's error state), update_check_enabled (bool — #578: look for a newer GitHub release when Haven opens, at most once an hour. Off by default. Turning it ON is what arms the launch-time path; check_for_update runs a check right now regardless)), update_check_last_run_ms (long epoch ms — set to 0 to CLEAR the once-an-hour throttle), update_check_last_notified_version (string — set to \"\" to CLEAR the already-told-you dedup). Those two exist so the launch path can be exercised for real: clear whichever gate you are testing, restart Haven, and watch checkOnLaunch run. check_for_update deliberately cannot substitute — it runs the on-demand check, which posts no notification and touches neither gate. Takes effect on the next local session/command. Returns { key, value }.",
             inputSchema = objectSchema {
                 string("key", "Preference key (see whitelist).", required = true)
                 property("value", JSONObject().put("description", "New value. Type must match the key's type — int for the *_rows / *_size keys, bool for the rest."), required = true)
@@ -3108,6 +3122,7 @@ class McpTools private constructor(
         "terminal_tap_to_position_cursor",
         "terminal_bell_notification",
         "terminal_font_size",
+        "default_address_family",
         "terminal_horizontal_padding",
         "mouse_input_enabled",
         "terminal_right_click",
@@ -3162,6 +3177,7 @@ class McpTools private constructor(
         // (gates attach_gps_to_guest). MCP-drivable so integration tests can
         // flip it, same reasoning as the USB key.
         "gps_guest_exposure_enabled",
+        "notify_guest_exposure_enabled",
         // Master switch for inbound-email automation (Mail Rules). MCP-drivable so
         // the engine can be armed without the Settings UI.
         "mail_automation_enabled",
@@ -3265,6 +3281,7 @@ class McpTools private constructor(
             "terminal_tap_to_position_cursor" -> preferencesRepository.terminalTapToPositionCursor.first()
             "terminal_bell_notification" -> preferencesRepository.terminalBellNotification.first()
             "terminal_font_size" -> preferencesRepository.terminalFontSize.first()
+            "default_address_family" -> preferencesRepository.defaultAddressFamily.first()
             "terminal_horizontal_padding" -> preferencesRepository.terminalHorizontalPadding.first()
             "mouse_input_enabled" -> preferencesRepository.mouseInputEnabled.first()
             "terminal_right_click" -> preferencesRepository.terminalRightClick.first()
@@ -3282,6 +3299,7 @@ class McpTools private constructor(
             "mcp_wireguard_tunnel_config_id" -> preferencesRepository.mcpWireguardTunnelConfigId.first() ?: ""
             "usb_guest_exposure_enabled" -> preferencesRepository.usbGuestExposureEnabled.first()
             "gps_guest_exposure_enabled" -> preferencesRepository.gpsGuestExposureEnabled.first()
+            "notify_guest_exposure_enabled" -> preferencesRepository.notifyGuestExposureEnabled.first()
             "mail_automation_enabled" -> preferencesRepository.mailAutomationEnabled.first()
             "connection_logging_enabled" -> preferencesRepository.connectionLoggingEnabled.first()
             "verbose_logging_enabled" -> preferencesRepository.verboseLoggingEnabled.first()
@@ -3392,6 +3410,8 @@ class McpTools private constructor(
                 }
                 preferencesRepository.setTerminalLocale(locale)
             }
+            "default_address_family" -> preferencesRepository.setDefaultAddressFamily( // #855 global default for new SSH connections
+                (rawValue as? String)?.trim()?.uppercase()?.takeIf { it in setOf("AUTO", "IPV4_ONLY", "IPV6_ONLY", "IPV6_PREFERRED", "IPV4_PREFERRED") } ?: throw McpError(-32602, "invalid address family for $key (AUTO/IPV4_ONLY/IPV6_ONLY/IPV6_PREFERRED/IPV4_PREFERRED)"))
             "mcp_tunnel_endpoint_profile_id" ->
                 preferencesRepository.setMcpTunnelEndpointProfileId((rawValue as? String)?.ifBlank { null })
             "mcp_wireguard_enabled" -> preferencesRepository.setMcpWireguardEnabled(coerceBool())
@@ -3400,6 +3420,7 @@ class McpTools private constructor(
                 preferencesRepository.setMcpWireguardTunnelConfigId((rawValue as? String)?.ifBlank { null })
             "usb_guest_exposure_enabled" -> preferencesRepository.setUsbGuestExposureEnabled(coerceBool())
             "gps_guest_exposure_enabled" -> preferencesRepository.setGpsGuestExposureEnabled(coerceBool())
+            "notify_guest_exposure_enabled" -> preferencesRepository.setNotifyGuestExposureEnabled(coerceBool())
             "mail_automation_enabled" -> preferencesRepository.setMailAutomationEnabled(coerceBool())
             "connection_logging_enabled" -> preferencesRepository.setConnectionLoggingEnabled(coerceBool())
             "verbose_logging_enabled" -> preferencesRepository.setVerboseLoggingEnabled(coerceBool())
@@ -5153,6 +5174,9 @@ class McpTools private constructor(
                 }
             }
         }
+
+        // Guest notification bridge (#851): guest programs → Android shade.
+        if (notifyBridge.isRunning) bridges.put(notifyBridge.bridgeRow())
 
         JSONObject().apply {
             put("bridges", bridges)

@@ -33,6 +33,8 @@
     <string name="tunnel_netbird_setup_key_label">セットアップキー</string>
     <string name="tunnel_netbird_management_url_label">管理 URL（省略可）</string>
     <string name="tunnel_netbird_management_url_help">NetBird のホスト型管理サービスを使う場合は空欄にしてください。セルフホストの管理サーバーを使う場合はその URL を設定してください。</string>
+    <string name="tunnel_netbird_rosenpass_label">耐量子鍵交換 (Rosenpass)</string>
+    <string name="tunnel_netbird_rosenpass_help">NetBird の Rosenpass 耐量子鍵交換を有効にします。接続先ピアが要求している場合にオンにしてください。双方が Rosenpass に対応している必要があります。</string>
     <string name="tunnel_openvpn_help">.ovpn プロファイルを貼り付けるか、ファイルを読み込んでください。プロファイルが認証情報を含まない auth-user-pass を使用している場合は、以下にユーザー名とパスワードを入力してください。</string>
     <string name="tunnel_openvpn_config_label">OpenVPN プロファイル (.ovpn)</string>
     <string name="tunnel_openvpn_username_label">ユーザー名（任意）</string>

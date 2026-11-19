@@ -18,6 +18,7 @@ import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
+import androidx.compose.foundation.horizontalScroll
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
@@ -142,6 +143,9 @@ fun ConnectionEditDialog(
     tunnelConfigs: List<sh.haven.core.data.db.entities.TunnelConfig> = emptyList(),
     /** Installed distros `(id, label)` for a LOCAL profile's "open in" picker. */
     availableDistros: List<Pair<String, String>> = emptyList(),
+    /** Guest-wide storage-share toggle (#849); live setting, not a profile field. */
+    shareStorageWithGuest: Boolean = true,
+    onSetShareStorageWithGuest: (Boolean) -> Unit = {},
     /** Attached phone USB devices `(vidPid, label)` for the SSH USB-forward picker. */
     usbDevices: List<Pair<String, String>> = emptyList(),
     /**
@@ -168,6 +172,7 @@ fun ConnectionEditDialog(
      */
     onManageTunnels: ((preselect: sh.haven.core.data.db.entities.TunnelConfigType?) -> Unit)? = null,
     globalSessionManagerLabel: String = "None",
+    defaultAddressFamily: String = "AUTO",
     subnetScanning: Boolean = false,
     smbSubnetScanning: Boolean = false,
     reticulumScanning: Boolean = false,
@@ -438,7 +443,7 @@ fun ConnectionEditDialog(
         mcpReverseTunnel = mcpReverseTunnelEnabled
     }
     var forwardAgent by rememberSaveable { mutableStateOf(existing?.forwardAgent ?: false) }
-    var addressFamily by rememberSaveable { mutableStateOf(existing?.addressFamily ?: "AUTO") }
+    var addressFamily by rememberSaveable { mutableStateOf(existing?.addressFamily ?: defaultAddressFamily) }
     var bindAddress by rememberSaveable { mutableStateOf(existing?.bindAddress ?: "") }
     var selectedSessionManager by rememberSaveable { mutableStateOf(seed?.sessionManager) }
     var etPort by rememberSaveable { mutableStateOf(existing?.etPort?.toString() ?: "2022") }
@@ -1455,6 +1460,19 @@ fun ConnectionEditDialog(
                                 }
                             }
                         }
+                    }
+                    // Guest-wide storage share (#849): reachable here so the
+                    // desktop screen is not required. Applies to all local
+                    // shells on next launch, so it writes through immediately
+                    // rather than waiting for Save.
+                    if (isProotShell) {
+                        Spacer(Modifier.height(8.dp))
+                        BooleanToggleRow(
+                            label = stringResource(R.string.connections_local_share_storage_title),
+                            description = stringResource(R.string.connections_local_share_storage_description),
+                            checked = shareStorageWithGuest,
+                            onCheckedChange = onSetShareStorageWithGuest,
+                        )
                     }
                 } else if (connectionType == "BTSERIAL") {
                     BtSerialDeviceField(
@@ -3368,8 +3386,15 @@ fun ConnectionEditDialog(
                         "AUTO" to stringResource(R.string.connection_address_family_auto),
                         "IPV4_ONLY" to stringResource(R.string.connection_address_family_ipv4_only),
                         "IPV6_ONLY" to stringResource(R.string.connection_address_family_ipv6_only),
+                        "IPV6_PREFERRED" to stringResource(R.string.connection_address_family_ipv6_preferred),
+                        "IPV4_PREFERRED" to stringResource(R.string.connection_address_family_ipv4_preferred),
                     )
-                    SingleChoiceSegmentedButtonRow(modifier = Modifier.fillMaxWidth()) {
+                    // Five options can exceed a portrait width; scroll rather than clip.
+                    SingleChoiceSegmentedButtonRow(
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .horizontalScroll(rememberScrollState()),
+                    ) {
                         addressFamilyOptions.forEachIndexed { index, (key, label) ->
                             SegmentedButton(
                                 selected = addressFamily == key,

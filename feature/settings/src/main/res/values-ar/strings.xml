@@ -50,6 +50,13 @@
 
     <!-- Terminal section -->
     <string name="settings_session_persistence_title">استمرار الجلسة</string>
+    <string name="settings_default_address_family_title">عائلة العناوين الافتراضية</string>
+    <string name="settings_default_address_family_subtitle">لاتصالات SSH الجديدة</string>
+    <string name="settings_address_family_auto">تلقائي</string>
+    <string name="settings_address_family_ipv4_only">IPv4 فقط</string>
+    <string name="settings_address_family_ipv6_only">IPv6 فقط</string>
+    <string name="settings_address_family_ipv6_preferred">IPv6 مفضّل</string>
+    <string name="settings_address_family_ipv4_preferred">IPv4 مفضّل</string>
     <string name="settings_session_persistence_none">بلا</string>
     <string name="settings_font_size_title">حجم خط الطرفية</string>
     <string name="settings_font_size_subtitle">%1$dsp</string>

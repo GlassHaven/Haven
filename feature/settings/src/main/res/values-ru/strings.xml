@@ -50,6 +50,13 @@
 
     <!-- Terminal section -->
     <string name="settings_session_persistence_title">Сохранение сессий</string>
+    <string name="settings_default_address_family_title">Семейство адресов по умолчанию</string>
+    <string name="settings_default_address_family_subtitle">Для новых SSH-подключений</string>
+    <string name="settings_address_family_auto">Авто</string>
+    <string name="settings_address_family_ipv4_only">Только IPv4</string>
+    <string name="settings_address_family_ipv6_only">Только IPv6</string>
+    <string name="settings_address_family_ipv6_preferred">IPv6 приоритет</string>
+    <string name="settings_address_family_ipv4_preferred">IPv4 приоритет</string>
     <string name="settings_session_persistence_none">Нет</string>
     <string name="settings_font_size_title">Размер шрифта терминала</string>
     <string name="settings_font_size_subtitle">%1$dsp</string>

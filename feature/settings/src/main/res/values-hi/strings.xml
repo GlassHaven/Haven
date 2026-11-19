@@ -50,6 +50,13 @@
 
     <!-- Terminal section -->
     <string name="settings_session_persistence_title">सत्र स्थायित्व</string>
+    <string name="settings_default_address_family_title">डिफ़ॉल्ट एड्रेस फ़ैमिली</string>
+    <string name="settings_default_address_family_subtitle">नए SSH कनेक्शन के लिए</string>
+    <string name="settings_address_family_auto">ऑटो</string>
+    <string name="settings_address_family_ipv4_only">केवल IPv4</string>
+    <string name="settings_address_family_ipv6_only">केवल IPv6</string>
+    <string name="settings_address_family_ipv6_preferred">IPv6 वरीयता</string>
+    <string name="settings_address_family_ipv4_preferred">IPv4 वरीयता</string>
     <string name="settings_session_persistence_none">कोई नहीं</string>
     <string name="settings_font_size_title">टर्मिनल फ़ॉन्ट आकार</string>
     <string name="settings_font_size_subtitle">%1$dsp</string>

@@ -50,6 +50,13 @@
 
     <!-- Terminal section -->
     <string name="settings_session_persistence_title">Persistance des sessions</string>
+    <string name="settings_default_address_family_title">Famille d\'adresses par défaut</string>
+    <string name="settings_default_address_family_subtitle">Pour les nouvelles connexions SSH</string>
+    <string name="settings_address_family_auto">Auto</string>
+    <string name="settings_address_family_ipv4_only">IPv4 uniquement</string>
+    <string name="settings_address_family_ipv6_only">IPv6 uniquement</string>
+    <string name="settings_address_family_ipv6_preferred">IPv6 préféré</string>
+    <string name="settings_address_family_ipv4_preferred">IPv4 préféré</string>
     <string name="settings_session_persistence_none">Aucune</string>
     <string name="settings_font_size_title">Taille de police du terminal</string>
     <string name="settings_font_size_subtitle">%1$dsp</string>

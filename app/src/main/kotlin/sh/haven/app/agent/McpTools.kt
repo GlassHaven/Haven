@@ -3410,17 +3410,8 @@ class McpTools private constructor(
                 }
                 preferencesRepository.setTerminalLocale(locale)
             }
-            "default_address_family" -> {
-                // Global default for NEW SSH connections (#855). One of the
-                // ConnectionProfile.AddressFamily names; existing profiles keep
-                // their own value.
-                val family = (rawValue as? String)?.trim()?.uppercase()
-                    ?: throw McpError(-32602, "value must be an address-family string for $key")
-                if (family !in setOf("AUTO", "IPV4_ONLY", "IPV6_ONLY", "IPV6_PREFERRED", "IPV4_PREFERRED")) {
-                    throw McpError(-32602, "Invalid address family \"$family\" for $key (AUTO/IPV4_ONLY/IPV6_ONLY/IPV6_PREFERRED/IPV4_PREFERRED)")
-                }
-                preferencesRepository.setDefaultAddressFamily(family)
-            }
+            "default_address_family" -> preferencesRepository.setDefaultAddressFamily( // #855 global default for new SSH connections
+                (rawValue as? String)?.trim()?.uppercase()?.takeIf { it in setOf("AUTO", "IPV4_ONLY", "IPV6_ONLY", "IPV6_PREFERRED", "IPV4_PREFERRED") } ?: throw McpError(-32602, "invalid address family for $key (AUTO/IPV4_ONLY/IPV6_ONLY/IPV6_PREFERRED/IPV4_PREFERRED)"))
             "mcp_tunnel_endpoint_profile_id" ->
                 preferencesRepository.setMcpTunnelEndpointProfileId((rawValue as? String)?.ifBlank { null })
             "mcp_wireguard_enabled" -> preferencesRepository.setMcpWireguardEnabled(coerceBool())

@@ -894,6 +894,11 @@ class SettingsViewModel @Inject constructor(
                 UserPreferencesRepository.SessionManager.NONE,
             )
 
+    /** Global default address family for new SSH connections (#855). */
+    val defaultAddressFamily: StateFlow<String> =
+        preferencesRepository.defaultAddressFamily
+            .stateIn(viewModelScope, SharingStarted.WhileSubscribed(5000), "AUTO")
+
     val lockTimeout: StateFlow<UserPreferencesRepository.LockTimeout> =
         preferencesRepository.lockTimeout
             .stateIn(
@@ -1351,6 +1356,12 @@ class SettingsViewModel @Inject constructor(
     fun setSessionManager(manager: UserPreferencesRepository.SessionManager) {
         viewModelScope.launch {
             preferencesRepository.setSessionManager(manager)
+        }
+    }
+
+    fun setDefaultAddressFamily(family: String) {
+        viewModelScope.launch {
+            preferencesRepository.setDefaultAddressFamily(family)
         }
     }
 

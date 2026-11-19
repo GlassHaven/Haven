@@ -50,6 +50,13 @@
 
     <!-- Terminal section -->
     <string name="settings_session_persistence_title">セッション保持</string>
+    <string name="settings_default_address_family_title">デフォルトのアドレスファミリー</string>
+    <string name="settings_default_address_family_subtitle">新しい SSH 接続用</string>
+    <string name="settings_address_family_auto">自動</string>
+    <string name="settings_address_family_ipv4_only">IPv4 のみ</string>
+    <string name="settings_address_family_ipv6_only">IPv6 のみ</string>
+    <string name="settings_address_family_ipv6_preferred">IPv6 優先</string>
+    <string name="settings_address_family_ipv4_preferred">IPv4 優先</string>
     <string name="settings_session_persistence_none">なし</string>
     <string name="settings_font_size_title">ターミナルのフォントサイズ</string>
     <string name="settings_font_size_subtitle">%1$dsp</string>

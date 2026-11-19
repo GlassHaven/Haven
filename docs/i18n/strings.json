@@ -31147,6 +31147,146 @@
      }
     },
     {
+     "name": "settings_default_address_family_title",
+     "en": "Default address family",
+     "comment": "Terminal section",
+     "args": [],
+     "t": {
+      "ar": "عائلة العناوين الافتراضية",
+      "bn": "ডিফল্ট অ্যাড্রেস ফ্যামিলি",
+      "de": "Standard-Adressfamilie",
+      "es": "Familia de direcciones predeterminada",
+      "fr": "Famille d\\'adresses par défaut",
+      "hi": "डिफ़ॉल्ट एड्रेस फ़ैमिली",
+      "ja": "デフォルトのアドレスファミリー",
+      "ko": "기본 주소 패밀리",
+      "pt": "Família de endereços padrão",
+      "ru": "Семейство адресов по умолчанию",
+      "sr": "Подразумевана фамилија адреса",
+      "zh": "默认地址族"
+     }
+    },
+    {
+     "name": "settings_default_address_family_subtitle",
+     "en": "For new SSH connections",
+     "comment": "Terminal section",
+     "args": [],
+     "t": {
+      "ar": "لاتصالات SSH الجديدة",
+      "bn": "নতুন SSH সংযোগের জন্য",
+      "de": "Für neue SSH-Verbindungen",
+      "es": "Para nuevas conexiones SSH",
+      "fr": "Pour les nouvelles connexions SSH",
+      "hi": "नए SSH कनेक्शन के लिए",
+      "ja": "新しい SSH 接続用",
+      "ko": "새 SSH 연결용",
+      "pt": "Para novas conexões SSH",
+      "ru": "Для новых SSH-подключений",
+      "sr": "За нове SSH везе",
+      "zh": "用于新的 SSH 连接"
+     }
+    },
+    {
+     "name": "settings_address_family_auto",
+     "en": "Auto",
+     "comment": "Terminal section",
+     "args": [],
+     "t": {
+      "ar": "تلقائي",
+      "bn": "অটো",
+      "de": "Auto",
+      "es": "Auto",
+      "fr": "Auto",
+      "hi": "ऑटो",
+      "ja": "自動",
+      "ko": "자동",
+      "pt": "Auto",
+      "ru": "Авто",
+      "sr": "Ауто",
+      "zh": "自动"
+     }
+    },
+    {
+     "name": "settings_address_family_ipv4_only",
+     "en": "IPv4 only",
+     "comment": "Terminal section",
+     "args": [],
+     "t": {
+      "ar": "IPv4 فقط",
+      "bn": "শুধু IPv4",
+      "de": "Nur IPv4",
+      "es": "Solo IPv4",
+      "fr": "IPv4 uniquement",
+      "hi": "केवल IPv4",
+      "ja": "IPv4 のみ",
+      "ko": "IPv4 전용",
+      "pt": "Somente IPv4",
+      "ru": "Только IPv4",
+      "sr": "Само IPv4",
+      "zh": "仅 IPv4"
+     }
+    },
+    {
+     "name": "settings_address_family_ipv6_only",
+     "en": "IPv6 only",
+     "comment": "Terminal section",
+     "args": [],
+     "t": {
+      "ar": "IPv6 فقط",
+      "bn": "শুধু IPv6",
+      "de": "Nur IPv6",
+      "es": "Solo IPv6",
+      "fr": "IPv6 uniquement",
+      "hi": "केवल IPv6",
+      "ja": "IPv6 のみ",
+      "ko": "IPv6 전용",
+      "pt": "Somente IPv6",
+      "ru": "Только IPv6",
+      "sr": "Само IPv6",
+      "zh": "仅 IPv6"
+     }
+    },
+    {
+     "name": "settings_address_family_ipv6_preferred",
+     "en": "IPv6 preferred",
+     "comment": "Terminal section",
+     "args": [],
+     "t": {
+      "ar": "IPv6 مفضّل",
+      "bn": "IPv6 পছন্দসই",
+      "de": "IPv6 bevorzugt",
+      "es": "IPv6 preferido",
+      "fr": "IPv6 préféré",
+      "hi": "IPv6 वरीयता",
+      "ja": "IPv6 優先",
+      "ko": "IPv6 우선",
+      "pt": "IPv6 preferido",
+      "ru": "IPv6 приоритет",
+      "sr": "IPv6 пожељно",
+      "zh": "IPv6 优先"
+     }
+    },
+    {
+     "name": "settings_address_family_ipv4_preferred",
+     "en": "IPv4 preferred",
+     "comment": "Terminal section",
+     "args": [],
+     "t": {
+      "ar": "IPv4 مفضّل",
+      "bn": "IPv4 পছন্দসই",
+      "de": "IPv4 bevorzugt",
+      "es": "IPv4 preferido",
+      "fr": "IPv4 préféré",
+      "hi": "IPv4 वरीयता",
+      "ja": "IPv4 優先",
+      "ko": "IPv4 우선",
+      "pt": "IPv4 preferido",
+      "ru": "IPv4 приоритет",
+      "sr": "IPv4 пожељно",
+      "zh": "IPv4 优先"
+     }
+    },
+    {
      "name": "settings_session_persistence_none",
      "en": "None",
      "comment": "Terminal section",

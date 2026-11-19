@@ -52,6 +52,13 @@
     <string name="settings_rdp_avc_title">RDP: H.264/AVC420 декодирање</string>
     <string name="settings_rdp_avc_subtitle">Подразумевано је укључено. Декодира H.264 графику тако да сервери који комуницирају само са H.264 — посебно KRDP (RDP сервер у KDE) — уместо црног екрана исцртавају како треба; хардверски се декодује на самом уређају кроз MediaCodec. Искључите ако се Windows или xrdp десктоп погрешно исцртава (#425)</string>
     <string name="settings_session_persistence_title">Постојаност сесије</string>
+    <string name="settings_default_address_family_title">Подразумевана фамилија адреса</string>
+    <string name="settings_default_address_family_subtitle">За нове SSH везе</string>
+    <string name="settings_address_family_auto">Ауто</string>
+    <string name="settings_address_family_ipv4_only">Само IPv4</string>
+    <string name="settings_address_family_ipv6_only">Само IPv6</string>
+    <string name="settings_address_family_ipv6_preferred">IPv6 пожељно</string>
+    <string name="settings_address_family_ipv4_preferred">IPv4 пожељно</string>
     <string name="settings_session_persistence_none">Ништа</string>
     <string name="settings_font_size_title">Величина фонта терминала</string>
     <string name="settings_font_size_subtitle">%1$dsp</string>

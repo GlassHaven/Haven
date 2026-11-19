@@ -5,6 +5,10 @@ the corresponding GitHub Release; a release can't ship without its section
 (enforced by `scripts/check-changelog.sh` in CI). The GitHub "Full Changelog"
 compare link is appended automatically — don't add it here.
 
+## v5.94.57
+
+- Add a global default address family that new SSH connections inherit (Settings → Default address family), including IPv6-preferred / IPv4-preferred modes that fall back to the other family when the preferred one is unreachable. Existing connections keep their own setting (#855, thanks Az-1-2).
+
 ## v5.94.56
 
 - Give guest notifications (posted by Linux guest programs via haven-notify) a Haven-branded terminal-prompt small icon instead of the generic system info icon (#851, thanks DragonXen).

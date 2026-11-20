@@ -150,22 +150,23 @@ class TunnelPortForwardManagerTest {
         val tunnel = forwardManager.connectStandalone("wg-1")
         assertNotNull(tunnel)
         assertTrue(tunnelManager.hasStandaloneDependents)
-        assertEquals(45678, forwardManager.socksPorts.value["wg-1"])
 
         val marker = File(cacheDir, TunnelPortForwardManager.GUEST_SOCKS_MARKER)
-        // The marker is written by the async live-flow collector, so poll for
-        // it rather than asserting immediately — that raced under CI load.
-        var appearAttempts = 0
-        while (!marker.isFile && appearAttempts++ < 100) {
+        // socksPorts and the marker file are settled by the async live-flow
+        // collector (which can overwrite connectStandalone's direct update),
+        // so poll for the stable end state rather than asserting immediately —
+        // that raced under CI load. Up to ~10s of headroom for a busy runner.
+        var attempts = 0
+        while ((forwardManager.socksPorts.value["wg-1"] != 45678 || !marker.isFile) && attempts++ < 500) {
             Thread.sleep(20)
         }
+        assertEquals(45678, forwardManager.socksPorts.value["wg-1"])
         assertTrue(marker.isFile)
         assertEquals("127.0.0.1:45678", marker.readText().trim())
 
         forwardManager.disconnectStandalone("wg-1")
-        // Wait for the live flow collector to clear the marker.
-        var attempts = 0
-        while (marker.exists() && attempts++ < 100) {
+        attempts = 0
+        while ((forwardManager.socksPorts.value.containsKey("wg-1") || marker.exists()) && attempts++ < 500) {
             Thread.sleep(20)
         }
         assertFalse(tunnelManager.hasStandaloneDependents)

@@ -50664,6 +50664,166 @@
      }
     },
     {
+     "name": "tunnel_yggdrasil_help",
+     "en": "Yggdrasil is a decentralized encrypted IPv6 mesh with no coordination server. Add at least one reachable peer (a node you can connect to directly). Your node gets a stable 200::/7 address derived from its key; connection profiles routed through this tunnel dial mesh addresses over it. The rest of your phone does not use the mesh.",
+     "comment": "Add tunnel dialog",
+     "args": [],
+     "t": {
+      "ar": "Yggdrasil شبكة IPv6 مشفرة لامركزية بدون خادم تنسيق. أضف نظيرًا واحدًا على الأقل يمكن الوصول إليه (عقدة يمكنك الاتصال بها مباشرة). تحصل عقدتك على عنوان 200::/7 مستقر مشتق من مفتاحها؛ ملفات تعريف الاتصال الموجهة عبر هذا النفق تطلب عناوين الشبكة من خلاله. لا يستخدم باقي هاتفك الشبكة.",
+      "bn": "Yggdrasil হলো সমন্বয় সার্ভারবিহীন একটি বিকেন্দ্রীভূত এনক্রিপ্টেড IPv6 মেশ। অন্তত একটি পৌঁছানোযোগ্য পিয়ার যোগ করুন (একটি নোড যাতে আপনি সরাসরি সংযোগ করতে পারেন)। আপনার নোড তার কী থেকে উদ্ভূত একটি স্থিতিশীল 200::/7 ঠিকানা পায়; এই টানেলের মাধ্যমে রুট করা সংযোগ প্রোফাইলগুলি এর উপর দিয়ে মেশ ঠিকানায় ডায়াল করে। আপনার ফোনের বাকি অংশ মেশ ব্যবহার করে না।",
+      "de": "Yggdrasil ist ein dezentrales verschlüsseltes IPv6-Mesh ohne Koordinationsserver. Füge mindestens einen erreichbaren Peer hinzu (einen Knoten, zu dem du direkt verbinden kannst). Dein Knoten erhält eine stabile 200::/7-Adresse, die aus seinem Schlüssel abgeleitet wird; Verbindungsprofile, die über diesen Tunnel geleitet werden, wählen Mesh-Adressen darüber. Der Rest deines Telefons nutzt das Mesh nicht.",
+      "es": "Yggdrasil es una malla IPv6 cifrada y descentralizada sin servidor de coordinación. Añade al menos un peer alcanzable (un nodo al que puedas conectarte directamente). Tu nodo obtiene una dirección 200::/7 estable derivada de su clave; los perfiles de conexión enrutados por este túnel marcan direcciones de malla a través de él. El resto de tu teléfono no usa la malla.",
+      "fr": "Yggdrasil est un maillage IPv6 chiffré et décentralisé sans serveur de coordination. Ajoutez au moins un pair joignable (un nœud auquel vous pouvez vous connecter directement). Votre nœud obtient une adresse 200::/7 stable dérivée de sa clé ; les profils de connexion routés via ce tunnel composent des adresses du maillage à travers lui. Le reste de votre téléphone n’utilise pas le maillage.",
+      "hi": "Yggdrasil एक विकेंद्रीकृत एन्क्रिप्टेड IPv6 मेश है जिसमें कोई समन्वय सर्वर नहीं होता। कम से कम एक पहुँच योग्य पीयर जोड़ें (एक नोड जिससे आप सीधे कनेक्ट कर सकें)। आपके नोड को उसकी कुंजी से व्युत्पन्न एक स्थिर 200::/7 पता मिलता है; इस टनल के माध्यम से रूट किए गए कनेक्शन प्रोफ़ाइल इसके ज़रिए मेश पतों पर डायल करते हैं। आपके फ़ोन का शेष भाग मेश का उपयोग नहीं करता।",
+      "ja": "Yggdrasil は調整サーバーのない分散型の暗号化 IPv6 メッシュです。到達可能なピア（直接接続できるノード）を少なくとも 1 つ追加してください。ノードはその鍵から派生した安定した 200::/7 アドレスを取得します。このトンネルを経由する接続プロファイルは、それを通じてメッシュアドレスにダイヤルします。電話機の残りの部分はメッシュを使用しません。",
+      "ko": "Yggdrasil은 조정 서버가 없는 분산형 암호화 IPv6 메시입니다. 도달 가능한 피어(직접 연결할 수 있는 노드)를 하나 이상 추가하세요. 노드는 해당 키에서 파생된 안정적인 200::/7 주소를 받습니다. 이 터널을 통해 라우팅되는 연결 프로필은 그것을 통해 메시 주소로 다이얼합니다. 휴대폰의 나머지 부분은 메시를 사용하지 않습니다.",
+      "pt": "Yggdrasil é uma malha IPv6 criptografada e descentralizada sem servidor de coordenação. Adicione pelo menos um peer acessível (um nó ao qual você possa se conectar diretamente). Seu nó recebe um endereço 200::/7 estável derivado de sua chave; perfis de conexão roteados por este túnel discam endereços da malha por ele. O resto do seu telefone não usa a malha.",
+      "ru": "Yggdrasil — это децентрализованная зашифрованная IPv6-сеть без сервера координации. Добавьте хотя бы один доступный пир (узел, к которому можно подключиться напрямую). Ваш узел получает стабильный адрес 200::/7, производный от его ключа; профили подключения, направляемые через этот туннель, набирают адреса сети через него. Остальная часть телефона сеть не использует.",
+      "sr": "Yggdrasil је децентрализована шифрована IPv6 мрежа без сервера за координацију. Додајте бар један доступан вршњак (чвор на који можете директно да се повежете). Ваш чвор добија стабилну 200::/7 адресу изведену из његовог кључа; профили везе усмерени кроз овај тунел бирају адресе мреже преко њега. Остатак вашег телефона не користи мрежу.",
+      "zh": "Yggdrasil 是一个去中心化的加密 IPv6 网状网络，无需协调服务器。请添加至少一个可达的对等节点（你可以直接连接的节点）。你的节点会获得一个由其密钥派生的稳定 200::/7 地址；通过此隧道路由的连接配置文件经它拨打网状地址。手机的其余部分不使用该网状网络。"
+     }
+    },
+    {
+     "name": "tunnel_yggdrasil_peers_label",
+     "en": "Peers",
+     "comment": "Add tunnel dialog",
+     "args": [],
+     "t": {
+      "ar": "الأقران",
+      "bn": "পিয়ার",
+      "de": "Peers",
+      "es": "Peers",
+      "fr": "Pairs",
+      "hi": "पीयर",
+      "ja": "ピア",
+      "ko": "피어",
+      "pt": "Peers",
+      "ru": "Пиры",
+      "sr": "Вршњаци",
+      "zh": "对等节点"
+     }
+    },
+    {
+     "name": "tunnel_yggdrasil_peers_help",
+     "en": "Outbound peer URIs, space- or newline-separated (e.g. tls://host:port). A node with no reachable peer is isolated.",
+     "comment": "Add tunnel dialog",
+     "args": [],
+     "t": {
+      "ar": "معرفات URI للأقران الصادرين، مفصولة بمسافات أو أسطر جديدة (مثل tls://host:port). العقدة بدون قرين يمكن الوصول إليه تكون معزولة.",
+      "bn": "আউটবাউন্ড পিয়ার URI, স্পেস বা নিউলাইন দ্বারা পৃথক (যেমন tls://host:port). পৌঁছানোযোগ্য পিয়ারবিহীন নোড বিচ্ছিন্ন থাকে।",
+      "de": "Ausgehende Peer-URIs, durch Leerzeichen oder Zeilenumbruch getrennt (z. B. tls://host:port). Ein Knoten ohne erreichbaren Peer ist isoliert.",
+      "es": "URIs de peers salientes, separados por espacios o saltos de línea (p. ej. tls://host:port). Un nodo sin un peer alcanzable está aislado.",
+      "fr": "URI de pairs sortants, séparés par des espaces ou des retours à la ligne (p. ex. tls://host:port). Un nœud sans pair joignable est isolé.",
+      "hi": "आउटबाउंड पीयर URI, स्पेस या नई पंक्ति से अलग (जैसे tls://host:port). पहुँच योग्य पीयर के बिना नोड अलग-थलग रहता है।",
+      "ja": "アウトバウンドピア URI。スペースまたは改行で区切ります（例: tls://host:port）。到達可能なピアのないノードは孤立します。",
+      "ko": "아웃바운드 피어 URI. 공백 또는 줄바꿈으로 구분합니다(예: tls://host:port). 도달 가능한 피어가 없는 노드는 고립됩니다.",
+      "pt": "URIs de peers de saída, separados por espaço ou quebra de linha (ex. tls://host:port). Um nó sem um peer acessível fica isolado.",
+      "ru": "URI исходящих пиров, разделённые пробелами или переносами строк (напр. tls://host:port). Узел без доступного пира изолирован.",
+      "sr": "URI одлазних вршњака, раздвојени размацима или новим редовима (нпр. tls://host:port). Чвор без доступног вршњака је изолован.",
+      "zh": "出站对等节点 URI，以空格或换行分隔（例如 tls://host:port）。没有可达对等节点的节点是孤立的。"
+     }
+    },
+    {
+     "name": "tunnel_yggdrasil_private_key_label",
+     "en": "Private key (optional)",
+     "comment": "Add tunnel dialog",
+     "args": [],
+     "t": {
+      "ar": "المفتاح الخاص (اختياري)",
+      "bn": "প্রাইভেট কী (ঐচ্ছিক)",
+      "de": "Privater Schlüssel (optional)",
+      "es": "Clave privada (opcional)",
+      "fr": "Clé privée (facultatif)",
+      "hi": "निजी कुंजी (वैकल्पिक)",
+      "ja": "秘密鍵（任意）",
+      "ko": "개인 키(선택)",
+      "pt": "Chave privada (opcional)",
+      "ru": "Закрытый ключ (необязательно)",
+      "sr": "Приватни кључ (опционо)",
+      "zh": "私钥（可选）"
+     }
+    },
+    {
+     "name": "tunnel_yggdrasil_private_key_help",
+     "en": "Hex ed25519 key. Leave blank to generate a new identity, but keep a key to preserve your mesh address across restarts.",
+     "comment": "Add tunnel dialog",
+     "args": [],
+     "t": {
+      "ar": "مفتاح ed25519 سداسي عشري. اتركه فارغًا لإنشاء هوية جديدة، لكن احتفظ بمفتاح للحفاظ على عنوان شبكتك عبر عمليات إعادة التشغيل.",
+      "bn": "হেক্স ed25519 কী। নতুন পরিচয় তৈরি করতে ফাঁকা রাখুন, তবে রিস্টার্টের পরেও মেশ ঠিকানা বজায় রাখতে একটি কী রাখুন।",
+      "de": "Hex-ed25519-Schlüssel. Leer lassen, um eine neue Identität zu erzeugen, aber behalte einen Schlüssel, um deine Mesh-Adresse über Neustarts hinweg beizubehalten.",
+      "es": "Clave ed25519 en hexadecimal. Déjalo en blanco para generar una identidad nueva, pero conserva una clave para mantener tu dirección de malla entre reinicios.",
+      "fr": "Clé ed25519 hexadécimale. Laissez vide pour générer une nouvelle identité, mais conservez une clé pour préserver votre adresse du maillage entre les redémarrages.",
+      "hi": "हेक्स ed25519 कुंजी। नई पहचान बनाने के लिए खाली छोड़ें, लेकिन रीस्टार्ट के बाद भी अपना मेश पता बनाए रखने के लिए कुंजी रखें।",
+      "ja": "16 進 ed25519 鍵。空欄にすると新しい ID を生成しますが、再起動後もメッシュアドレスを維持するには鍵を保持してください。",
+      "ko": "16진수 ed25519 키. 비워 두면 새 ID를 생성하지만, 재시작 후에도 메시 주소를 유지하려면 키를 보관하세요.",
+      "pt": "Chave ed25519 em hexadecimal. Deixe em branco para gerar uma nova identidade, mas mantenha uma chave para preservar seu endereço da malha entre reinicializações.",
+      "ru": "Ключ ed25519 в hex. Оставьте пустым, чтобы создать новую личность, но сохраните ключ, чтобы адрес сети сохранялся между перезапусками.",
+      "sr": "Hex ed25519 кључ. Оставите празно да генеришете нови идентитет, али задржите кључ да сачувате адресу мреже кроз поновна покретања.",
+      "zh": "十六进制 ed25519 密钥。留空以生成新身份，但保留密钥可在重启后保持你的网状地址。"
+     }
+    },
+    {
+     "name": "tunnel_yggdrasil_listen_label",
+     "en": "Listen addresses (optional)",
+     "comment": "Add tunnel dialog",
+     "args": [],
+     "t": {
+      "ar": "عناوين الاستماع (اختياري)",
+      "bn": "লিসেন ঠিকানা (ঐচ্ছিক)",
+      "de": "Listen-Adressen (optional)",
+      "es": "Direcciones de escucha (opcional)",
+      "fr": "Adresses d’écoute (facultatif)",
+      "hi": "लिसन पते (वैकल्पिक)",
+      "ja": "リッスンアドレス（任意）",
+      "ko": "수신 주소(선택)",
+      "pt": "Endereços de escuta (opcional)",
+      "ru": "Адреса прослушивания (необязательно)",
+      "sr": "Адресе слушања (опционо)",
+      "zh": "监听地址（可选）"
+     }
+    },
+    {
+     "name": "tunnel_yggdrasil_mtu_label",
+     "en": "MTU (optional)",
+     "comment": "Add tunnel dialog",
+     "args": [],
+     "t": {
+      "ar": "MTU (اختياري)",
+      "bn": "MTU (ঐচ্ছিক)",
+      "de": "MTU (optional)",
+      "es": "MTU (opcional)",
+      "fr": "MTU (facultatif)",
+      "hi": "MTU (वैकल्पिक)",
+      "ja": "MTU（任意）",
+      "ko": "MTU(선택)",
+      "pt": "MTU (opcional)",
+      "ru": "MTU (необязательно)",
+      "sr": "MTU (опционо)",
+      "zh": "MTU（可选）"
+     }
+    },
+    {
+     "name": "tunnel_yggdrasil_group_password_label",
+     "en": "Group password (optional)",
+     "comment": "Add tunnel dialog",
+     "args": [],
+     "t": {
+      "ar": "كلمة مرور المجموعة (اختياري)",
+      "bn": "গ্রুপ পাসওয়ার্ড (ঐচ্ছিক)",
+      "de": "Gruppenpasswort (optional)",
+      "es": "Contraseña de grupo (opcional)",
+      "fr": "Mot de passe de groupe (facultatif)",
+      "hi": "समूह पासवर्ड (वैकल्पिक)",
+      "ja": "グループパスワード（任意）",
+      "ko": "그룹 비밀번호(선택)",
+      "pt": "Senha de grupo (opcional)",
+      "ru": "Пароль группы (необязательно)",
+      "sr": "Лозинка групе (опционо)",
+      "zh": "组密码（可选）"
+     }
+    },
+    {
      "name": "tunnel_openvpn_help",
      "en": "Paste an .ovpn profile or load a file. If the profile uses auth-user-pass without an inline credentials file, enter a username and password below.",
      "comment": "Add tunnel dialog",

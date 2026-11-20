@@ -81,6 +81,15 @@ enum class TunnelConfigType {
      *  [WIREGUARD] — a socketpair fd stands in for the tun device OpenVPN3
      *  Core would otherwise expect, pumped into a userspace netstack. */
     OPENVPN,
+
+    /** Yggdrasil decentralized end-to-end-encrypted IPv6 mesh via yggdrasil-go,
+     *  gomobile-bound as yggbridge behind a gVisor netstack. No coordination
+     *  server; stable key-derived 200::/7 addressing. Manual peers
+     *  (tls://host:port); the node identity lives in the config PrivateKey.
+     *  Same no-VpnService userspace architecture as [WIREGUARD]/[NETBIRD] —
+     *  only profiles that pick this tunnel route over the mesh. Payload is
+     *  [sh.haven.core.tunnel.YggdrasilConfigBlob] JSON. */
+    YGGDRASIL,
     ;
 
     companion object {

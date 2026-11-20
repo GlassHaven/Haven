@@ -35,6 +35,14 @@
     <string name="tunnel_netbird_management_url_help">NetBird のホスト型管理サービスを使う場合は空欄にしてください。セルフホストの管理サーバーを使う場合はその URL を設定してください。</string>
     <string name="tunnel_netbird_rosenpass_label">耐量子鍵交換 (Rosenpass)</string>
     <string name="tunnel_netbird_rosenpass_help">NetBird の Rosenpass 耐量子鍵交換を有効にします。接続先ピアが要求している場合にオンにしてください。双方が Rosenpass に対応している必要があります。</string>
+    <string name="tunnel_yggdrasil_help">Yggdrasil は調整サーバーのない分散型の暗号化 IPv6 メッシュです。到達可能なピア（直接接続できるノード）を少なくとも 1 つ追加してください。ノードはその鍵から派生した安定した 200::/7 アドレスを取得します。このトンネルを経由する接続プロファイルは、それを通じてメッシュアドレスにダイヤルします。電話機の残りの部分はメッシュを使用しません。</string>
+    <string name="tunnel_yggdrasil_peers_label">ピア</string>
+    <string name="tunnel_yggdrasil_peers_help">アウトバウンドピア URI。スペースまたは改行で区切ります（例: tls://host:port）。到達可能なピアのないノードは孤立します。</string>
+    <string name="tunnel_yggdrasil_private_key_label">秘密鍵（任意）</string>
+    <string name="tunnel_yggdrasil_private_key_help">16 進 ed25519 鍵。空欄にすると新しい ID を生成しますが、再起動後もメッシュアドレスを維持するには鍵を保持してください。</string>
+    <string name="tunnel_yggdrasil_listen_label">リッスンアドレス（任意）</string>
+    <string name="tunnel_yggdrasil_mtu_label">MTU（任意）</string>
+    <string name="tunnel_yggdrasil_group_password_label">グループパスワード（任意）</string>
     <string name="tunnel_openvpn_help">.ovpn プロファイルを貼り付けるか、ファイルを読み込んでください。プロファイルが認証情報を含まない auth-user-pass を使用している場合は、以下にユーザー名とパスワードを入力してください。</string>
     <string name="tunnel_openvpn_config_label">OpenVPN プロファイル (.ovpn)</string>
     <string name="tunnel_openvpn_username_label">ユーザー名（任意）</string>

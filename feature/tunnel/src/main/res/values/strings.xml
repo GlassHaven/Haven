@@ -35,6 +35,14 @@
     <string name="tunnel_netbird_management_url_help">Leave blank for NetBird\'s hosted management. Set to your server\'s URL for a self-hosted management service.</string>
     <string name="tunnel_netbird_rosenpass_label">Post-quantum key exchange (Rosenpass)</string>
     <string name="tunnel_netbird_rosenpass_help">Enable NetBird\'s Rosenpass post-quantum key exchange. Turn on when the peer you connect to requires it; both sides must support Rosenpass.</string>
+    <string name="tunnel_yggdrasil_help">Yggdrasil is a decentralized encrypted IPv6 mesh with no coordination server. Add at least one reachable peer (a node you can connect to directly). Your node gets a stable 200::/7 address derived from its key; connection profiles routed through this tunnel dial mesh addresses over it. The rest of your phone does not use the mesh.</string>
+    <string name="tunnel_yggdrasil_peers_label">Peers</string>
+    <string name="tunnel_yggdrasil_peers_help">Outbound peer URIs, space- or newline-separated (e.g. tls://host:port). A node with no reachable peer is isolated.</string>
+    <string name="tunnel_yggdrasil_private_key_label">Private key (optional)</string>
+    <string name="tunnel_yggdrasil_private_key_help">Hex ed25519 key. Leave blank to generate a new identity, but keep a key to preserve your mesh address across restarts.</string>
+    <string name="tunnel_yggdrasil_listen_label">Listen addresses (optional)</string>
+    <string name="tunnel_yggdrasil_mtu_label">MTU (optional)</string>
+    <string name="tunnel_yggdrasil_group_password_label">Group password (optional)</string>
     <string name="tunnel_openvpn_help">Paste an .ovpn profile or load a file. If the profile uses auth-user-pass without an inline credentials file, enter a username and password below.</string>
     <string name="tunnel_openvpn_config_label">OpenVPN profile (.ovpn)</string>
     <string name="tunnel_openvpn_username_label">Username (optional)</string>

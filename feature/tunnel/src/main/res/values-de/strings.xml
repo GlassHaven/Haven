@@ -35,6 +35,14 @@
     <string name="tunnel_netbird_management_url_help">Leer lassen für NetBirds gehostetes Management. Für ein selbst gehostetes Management auf die URL deines Servers setzen.</string>
     <string name="tunnel_netbird_rosenpass_label">Post-Quanten-Schlüsselaustausch (Rosenpass)</string>
     <string name="tunnel_netbird_rosenpass_help">Aktiviert NetBirds post-quantum Schlüsselaustausch Rosenpass. Einschalten, wenn die Gegenstelle ihn verlangt; beide Seiten müssen Rosenpass unterstützen.</string>
+    <string name="tunnel_yggdrasil_help">Yggdrasil ist ein dezentrales verschlüsseltes IPv6-Mesh ohne Koordinationsserver. Füge mindestens einen erreichbaren Peer hinzu (einen Knoten, zu dem du direkt verbinden kannst). Dein Knoten erhält eine stabile 200::/7-Adresse, die aus seinem Schlüssel abgeleitet wird; Verbindungsprofile, die über diesen Tunnel geleitet werden, wählen Mesh-Adressen darüber. Der Rest deines Telefons nutzt das Mesh nicht.</string>
+    <string name="tunnel_yggdrasil_peers_label">Peers</string>
+    <string name="tunnel_yggdrasil_peers_help">Ausgehende Peer-URIs, durch Leerzeichen oder Zeilenumbruch getrennt (z. B. tls://host:port). Ein Knoten ohne erreichbaren Peer ist isoliert.</string>
+    <string name="tunnel_yggdrasil_private_key_label">Privater Schlüssel (optional)</string>
+    <string name="tunnel_yggdrasil_private_key_help">Hex-ed25519-Schlüssel. Leer lassen, um eine neue Identität zu erzeugen, aber behalte einen Schlüssel, um deine Mesh-Adresse über Neustarts hinweg beizubehalten.</string>
+    <string name="tunnel_yggdrasil_listen_label">Listen-Adressen (optional)</string>
+    <string name="tunnel_yggdrasil_mtu_label">MTU (optional)</string>
+    <string name="tunnel_yggdrasil_group_password_label">Gruppenpasswort (optional)</string>
     <string name="tunnel_openvpn_help">Füge ein .ovpn-Profil ein oder lade eine Datei. Wenn das Profil auth-user-pass ohne eingebettete Zugangsdaten verwendet, gib unten einen Benutzernamen und ein Passwort ein.</string>
     <string name="tunnel_openvpn_config_label">OpenVPN-Profil (.ovpn)</string>
     <string name="tunnel_openvpn_username_label">Benutzername (optional)</string>

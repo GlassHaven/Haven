@@ -667,6 +667,70 @@ class TunnelViewModel @Inject constructor(
     }
 
     /**
+     * Create a Yggdrasil mesh tunnel config. [peers] is whitespace-separated
+     * outbound peer URIs (e.g. "tls://host:port"); at least one reachable peer
+     * is required or the node is isolated. [privateKey] (hex) is optional —
+     * empty generates a fresh identity, but persist a key to keep the mesh
+     * IPv6 address stable. [listen] accepts inbound peerings; [groupPassword]
+     * forms a private sub-network.
+     */
+    fun addYggdrasilConfig(
+        label: String,
+        peers: String,
+        privateKey: String = "",
+        listen: String = "",
+        ifMTU: Int = 0,
+        groupPassword: String = "",
+    ) {
+        if (label.isBlank()) {
+            _error.value = "Label is required"
+            return
+        }
+        val peerList = peers.split(Regex("\\s+")).filter { it.isNotBlank() }
+        if (peerList.isEmpty()) {
+            _error.value = "At least one peer URI is required (e.g. tls://host:port)"
+            return
+        }
+        val blob = sh.haven.core.tunnel.YggdrasilConfigBlob(
+            privateKey = privateKey.trim(),
+            peers = peerList,
+            listen = listen.split(Regex("\\s+")).filter { it.isNotBlank() },
+            ifMTU = ifMTU,
+            groupPassword = groupPassword.trim(),
+        )
+        save(label, TunnelConfigType.YGGDRASIL, blob.encode())
+    }
+
+    /** Overwrite an existing Yggdrasil tunnel's label / peers / key / listen / MTU / group password. */
+    fun updateYggdrasilConfig(
+        id: String,
+        label: String,
+        peers: String,
+        privateKey: String = "",
+        listen: String = "",
+        ifMTU: Int = 0,
+        groupPassword: String = "",
+    ) {
+        if (label.isBlank()) {
+            _error.value = "Label is required"
+            return
+        }
+        val peerList = peers.split(Regex("\\s+")).filter { it.isNotBlank() }
+        if (peerList.isEmpty()) {
+            _error.value = "At least one peer URI is required (e.g. tls://host:port)"
+            return
+        }
+        val blob = sh.haven.core.tunnel.YggdrasilConfigBlob(
+            privateKey = privateKey.trim(),
+            peers = peerList,
+            listen = listen.split(Regex("\\s+")).filter { it.isNotBlank() },
+            ifMTU = ifMTU,
+            groupPassword = groupPassword.trim(),
+        )
+        update(id, label, blob.encode())
+    }
+
+    /**
      * Shared overwrite path. Id/key fields all come from the CURRENT row (a
      * re-fetched [TunnelConfig]), not from the caller — the dialog locks the
      * type in edit mode, so the payload never changes meaning under an

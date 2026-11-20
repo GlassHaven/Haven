@@ -35,6 +35,14 @@
     <string name="tunnel_netbird_management_url_help">NetBird के होस्टेड management के लिए खाली छोड़ें। स्व-होस्टेड management सेवा के लिए अपने सर्वर के URL पर सेट करें।</string>
     <string name="tunnel_netbird_rosenpass_label">पोस्ट-क्वांटम की एक्सचेंज (Rosenpass)</string>
     <string name="tunnel_netbird_rosenpass_help">NetBird का Rosenpass पोस्ट-क्वांटम की एक्सचेंज सक्षम करें। जिस पीयर से आप जुड़ रहे हैं वह इसे आवश्यक करे तो चालू करें; दोनों पक्षों को Rosenpass समर्थन करना चाहिए।</string>
+    <string name="tunnel_yggdrasil_help">Yggdrasil एक विकेंद्रीकृत एन्क्रिप्टेड IPv6 मेश है जिसमें कोई समन्वय सर्वर नहीं होता। कम से कम एक पहुँच योग्य पीयर जोड़ें (एक नोड जिससे आप सीधे कनेक्ट कर सकें)। आपके नोड को उसकी कुंजी से व्युत्पन्न एक स्थिर 200::/7 पता मिलता है; इस टनल के माध्यम से रूट किए गए कनेक्शन प्रोफ़ाइल इसके ज़रिए मेश पतों पर डायल करते हैं। आपके फ़ोन का शेष भाग मेश का उपयोग नहीं करता।</string>
+    <string name="tunnel_yggdrasil_peers_label">पीयर</string>
+    <string name="tunnel_yggdrasil_peers_help">आउटबाउंड पीयर URI, स्पेस या नई पंक्ति से अलग (जैसे tls://host:port). पहुँच योग्य पीयर के बिना नोड अलग-थलग रहता है।</string>
+    <string name="tunnel_yggdrasil_private_key_label">निजी कुंजी (वैकल्पिक)</string>
+    <string name="tunnel_yggdrasil_private_key_help">हेक्स ed25519 कुंजी। नई पहचान बनाने के लिए खाली छोड़ें, लेकिन रीस्टार्ट के बाद भी अपना मेश पता बनाए रखने के लिए कुंजी रखें।</string>
+    <string name="tunnel_yggdrasil_listen_label">लिसन पते (वैकल्पिक)</string>
+    <string name="tunnel_yggdrasil_mtu_label">MTU (वैकल्पिक)</string>
+    <string name="tunnel_yggdrasil_group_password_label">समूह पासवर्ड (वैकल्पिक)</string>
     <string name="tunnel_openvpn_help">एक .ovpn प्रोफ़ाइल पेस्ट करें या फ़ाइल लोड करें। यदि प्रोफ़ाइल बिना इनलाइन क्रेडेंशियल फ़ाइल के auth-user-pass का उपयोग करती है, तो नीचे एक username और password दर्ज करें।</string>
     <string name="tunnel_openvpn_config_label">OpenVPN प्रोफ़ाइल (.ovpn)</string>
     <string name="tunnel_openvpn_username_label">Username (वैकल्पिक)</string>

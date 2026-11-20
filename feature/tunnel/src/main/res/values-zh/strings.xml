@@ -28,6 +28,14 @@
     <string name="tunnel_netbird_management_url_help">留空则使用 NetBird 托管的管理服务。使用自托管管理服务器时，设为该服务器的 URL。</string>
     <string name="tunnel_netbird_rosenpass_label">后量子密钥交换 (Rosenpass)</string>
     <string name="tunnel_netbird_rosenpass_help">启用 NetBird 的 Rosenpass 后量子密钥交换。当所连接的对端要求时开启；双方都必须支持 Rosenpass。</string>
+    <string name="tunnel_yggdrasil_help">Yggdrasil 是一个去中心化的加密 IPv6 网状网络，无需协调服务器。请添加至少一个可达的对等节点（你可以直接连接的节点）。你的节点会获得一个由其密钥派生的稳定 200::/7 地址；通过此隧道路由的连接配置文件经它拨打网状地址。手机的其余部分不使用该网状网络。</string>
+    <string name="tunnel_yggdrasil_peers_label">对等节点</string>
+    <string name="tunnel_yggdrasil_peers_help">出站对等节点 URI，以空格或换行分隔（例如 tls://host:port）。没有可达对等节点的节点是孤立的。</string>
+    <string name="tunnel_yggdrasil_private_key_label">私钥（可选）</string>
+    <string name="tunnel_yggdrasil_private_key_help">十六进制 ed25519 密钥。留空以生成新身份，但保留密钥可在重启后保持你的网状地址。</string>
+    <string name="tunnel_yggdrasil_listen_label">监听地址（可选）</string>
+    <string name="tunnel_yggdrasil_mtu_label">MTU（可选）</string>
+    <string name="tunnel_yggdrasil_group_password_label">组密码（可选）</string>
     <string name="tunnel_openvpn_help">粘贴 .ovpn 配置文件或加载文件。如果配置文件使用 auth-user-pass 且未内置凭据文件，请在下方输入用户名和密码。</string>
     <string name="tunnel_openvpn_config_label">OpenVPN 配置文件 (.ovpn)</string>
     <string name="tunnel_openvpn_username_label">用户名（可选）</string>

@@ -77,6 +77,7 @@ import sh.haven.core.tunnel.AnyConnectConfigBlob
 import sh.haven.core.tunnel.NetbirdConfigBlob
 import sh.haven.core.tunnel.OpenVpnConfigBlob
 import sh.haven.core.tunnel.TailscaleConfigBlob
+import sh.haven.core.tunnel.YggdrasilConfigBlob
 import sh.haven.core.tunnel.TunnelForwardProtocol
 import sh.haven.core.tunnel.TunnelPortForwardRule
 import java.text.SimpleDateFormat
@@ -272,6 +273,10 @@ fun TunnelsScreen(
                 viewModel.addNetbirdConfig(label, setupKey, managementUrl, rosenpass)
                 showAddDialog = false
             },
+            onSubmitYggdrasil = { label, peers, privateKey, listen, ifMTU, groupPassword ->
+                viewModel.addYggdrasilConfig(label, peers, privateKey, listen, ifMTU, groupPassword)
+                showAddDialog = false
+            },
             onSubmitOpenVpn = { label, ovpnConfigText, username, password ->
                 viewModel.addOpenVpnConfig(label, ovpnConfigText, username, password)
                 showAddDialog = false
@@ -297,6 +302,10 @@ fun TunnelsScreen(
                 },
                 onSubmitNetbird = { label, setupKey, managementUrl, rosenpass ->
                     viewModel.updateNetbirdConfig(existing.id, label, setupKey, managementUrl, rosenpass)
+                    editTarget = null; pendingEditId = null
+                },
+                onSubmitYggdrasil = { label, peers, privateKey, listen, ifMTU, groupPassword ->
+                    viewModel.updateYggdrasilConfig(existing.id, label, peers, privateKey, listen, ifMTU, groupPassword)
                     editTarget = null; pendingEditId = null
                 },
                 onSubmitOpenVpn = { label, config, username, password ->
@@ -692,6 +701,7 @@ private fun AddTunnelDialog(
     onSubmitWireguard: (label: String, configText: String) -> Unit,
     onSubmitTailscale: (label: String, authKey: String, controlUrl: String) -> Unit,
     onSubmitNetbird: (label: String, setupKey: String, managementUrl: String, rosenpass: Boolean) -> Unit,
+    onSubmitYggdrasil: (label: String, peers: String, privateKey: String, listen: String, ifMTU: Int, groupPassword: String) -> Unit,
     onSubmitOpenVpn: (label: String, ovpnConfigText: String, username: String, password: String) -> Unit,
     onSubmitAnyConnect: (label: String, form: AnyConnectForm) -> Unit,
 ) {
@@ -741,6 +751,25 @@ private fun AddTunnelDialog(
                 ?.let { NetbirdConfigBlob.parse(it.configText)?.rosenpass }
                 ?: false,
         )
+    }
+    val existingYggdrasil = remember(existing?.id, existing?.configText) {
+        existing?.takeIf { it.typeEnum == TunnelConfigType.YGGDRASIL }
+            ?.let { YggdrasilConfigBlob.parse(it.configText) }
+    }
+    var yggPeers by remember(existing?.id) {
+        mutableStateOf(existingYggdrasil?.peers?.joinToString(" ").orEmpty())
+    }
+    var yggPrivateKey by remember(existing?.id) {
+        mutableStateOf(existingYggdrasil?.privateKey.orEmpty())
+    }
+    var yggListen by remember(existing?.id) {
+        mutableStateOf(existingYggdrasil?.listen?.joinToString(" ").orEmpty())
+    }
+    var yggIfMTU by remember(existing?.id) {
+        mutableStateOf(existingYggdrasil?.ifMTU?.takeIf { it > 0 }?.toString().orEmpty())
+    }
+    var yggGroupPassword by remember(existing?.id) {
+        mutableStateOf(existingYggdrasil?.groupPassword.orEmpty())
     }
     val existingOpenVpn = remember(existing?.id, existing?.configText) {
         existing?.takeIf { it.typeEnum == TunnelConfigType.OPENVPN }
@@ -1005,6 +1034,83 @@ private fun AddTunnelDialog(
                     }
                     androidx.compose.foundation.layout.Spacer(Modifier.weight(1f))
                 }
+                TunnelConfigType.YGGDRASIL -> {
+                    Text(
+                        stringResource(R.string.tunnel_yggdrasil_help),
+                        style = MaterialTheme.typography.bodySmall,
+                        color = MaterialTheme.colorScheme.onSurfaceVariant,
+                    )
+                    OutlinedTextField(
+                        value = yggPeers,
+                        onValueChange = { yggPeers = it },
+                        label = { Text(stringResource(R.string.tunnel_yggdrasil_peers_label)) },
+                        placeholder = {
+                            Text("tls://192.168.0.180:9001", fontFamily = FontFamily.Monospace)
+                        },
+                        supportingText = {
+                            Text(
+                                stringResource(R.string.tunnel_yggdrasil_peers_help),
+                                style = MaterialTheme.typography.bodySmall,
+                            )
+                        },
+                        singleLine = false,
+                        minLines = 2,
+                        modifier = Modifier.fillMaxWidth(),
+                        textStyle = MaterialTheme.typography.bodyMedium.copy(
+                            fontFamily = FontFamily.Monospace,
+                        ),
+                    )
+                    OutlinedTextField(
+                        value = yggPrivateKey,
+                        onValueChange = { yggPrivateKey = it },
+                        label = { Text(stringResource(R.string.tunnel_yggdrasil_private_key_label)) },
+                        supportingText = {
+                            Text(
+                                stringResource(R.string.tunnel_yggdrasil_private_key_help),
+                                style = MaterialTheme.typography.bodySmall,
+                            )
+                        },
+                        singleLine = true,
+                        modifier = Modifier.fillMaxWidth(),
+                        textStyle = MaterialTheme.typography.bodyMedium.copy(
+                            fontFamily = FontFamily.Monospace,
+                        ),
+                    )
+                    OutlinedTextField(
+                        value = yggListen,
+                        onValueChange = { yggListen = it },
+                        label = { Text(stringResource(R.string.tunnel_yggdrasil_listen_label)) },
+                        placeholder = {
+                            Text("tls://0.0.0.0:0", fontFamily = FontFamily.Monospace)
+                        },
+                        singleLine = true,
+                        modifier = Modifier.fillMaxWidth(),
+                        textStyle = MaterialTheme.typography.bodyMedium.copy(
+                            fontFamily = FontFamily.Monospace,
+                        ),
+                    )
+                    OutlinedTextField(
+                        value = yggIfMTU,
+                        onValueChange = { yggIfMTU = it.filter { c -> c.isDigit() } },
+                        label = { Text(stringResource(R.string.tunnel_yggdrasil_mtu_label)) },
+                        placeholder = {
+                            Text("65535", fontFamily = FontFamily.Monospace)
+                        },
+                        singleLine = true,
+                        modifier = Modifier.fillMaxWidth(),
+                        textStyle = MaterialTheme.typography.bodyMedium.copy(
+                            fontFamily = FontFamily.Monospace,
+                        ),
+                    )
+                    OutlinedTextField(
+                        value = yggGroupPassword,
+                        onValueChange = { yggGroupPassword = it },
+                        label = { Text(stringResource(R.string.tunnel_yggdrasil_group_password_label)) },
+                        singleLine = true,
+                        modifier = Modifier.fillMaxWidth(),
+                    )
+                    androidx.compose.foundation.layout.Spacer(Modifier.weight(1f))
+                }
                 TunnelConfigType.OPENVPN -> {
                     Text(
                         stringResource(R.string.tunnel_openvpn_help),
@@ -1089,6 +1195,7 @@ private fun AddTunnelDialog(
                     TunnelConfigType.WIREGUARD -> configText.isNotBlank()
                     TunnelConfigType.TAILSCALE -> authKey.isNotBlank()
                     TunnelConfigType.NETBIRD -> setupKey.isNotBlank()
+                    TunnelConfigType.YGGDRASIL -> yggPeers.isNotBlank()
                     TunnelConfigType.OPENVPN -> ovpnConfigText.isNotBlank()
                     TunnelConfigType.ANYCONNECT ->
                         anyConnect.server.isNotBlank() && anyConnect.username.isNotBlank()
@@ -1103,6 +1210,8 @@ private fun AddTunnelDialog(
                                 onSubmitTailscale(label, authKey, controlUrl)
                             TunnelConfigType.NETBIRD ->
                                 onSubmitNetbird(label, setupKey, managementUrl, rosenpass)
+                            TunnelConfigType.YGGDRASIL ->
+                                onSubmitYggdrasil(label, yggPeers, yggPrivateKey, yggListen, yggIfMTU.toIntOrNull() ?: 0, yggGroupPassword)
                             TunnelConfigType.OPENVPN ->
                                 onSubmitOpenVpn(label, ovpnConfigText, ovpnUsername, ovpnPassword)
                             TunnelConfigType.ANYCONNECT ->
@@ -1123,6 +1232,7 @@ private fun tunnelTypeLabel(t: TunnelConfigType): String =
         TunnelConfigType.WIREGUARD -> "WireGuard"
         TunnelConfigType.TAILSCALE -> "Tailscale"
         TunnelConfigType.NETBIRD -> "NetBird"
+        TunnelConfigType.YGGDRASIL -> "Yggdrasil"
         TunnelConfigType.OPENVPN -> "OpenVPN"
         TunnelConfigType.ANYCONNECT -> "AnyConnect"
         TunnelConfigType.CLOUDFLARE_ACCESS -> "Cloudflare Tunnel"

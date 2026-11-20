@@ -28,6 +28,14 @@
     <string name="tunnel_netbird_management_url_help">Оставите празно за NetBird хостовану услугу управљања. Поставите на URL вашег сервера ако користите лично хостовану услугу управљања.</string>
     <string name="tunnel_netbird_rosenpass_label">Постквантна размена кључева (Rosenpass)</string>
     <string name="tunnel_netbird_rosenpass_help">Укључује NetBird постквантну размену кључева Rosenpass. Укључите када вршњак са којим се повезујете то захтева; обе стране морају подржавати Rosenpass.</string>
+    <string name="tunnel_yggdrasil_help">Yggdrasil је децентрализована шифрована IPv6 мрежа без сервера за координацију. Додајте бар један доступан вршњак (чвор на који можете директно да се повежете). Ваш чвор добија стабилну 200::/7 адресу изведену из његовог кључа; профили везе усмерени кроз овај тунел бирају адресе мреже преко њега. Остатак вашег телефона не користи мрежу.</string>
+    <string name="tunnel_yggdrasil_peers_label">Вршњаци</string>
+    <string name="tunnel_yggdrasil_peers_help">URI одлазних вршњака, раздвојени размацима или новим редовима (нпр. tls://host:port). Чвор без доступног вршњака је изолован.</string>
+    <string name="tunnel_yggdrasil_private_key_label">Приватни кључ (опционо)</string>
+    <string name="tunnel_yggdrasil_private_key_help">Hex ed25519 кључ. Оставите празно да генеришете нови идентитет, али задржите кључ да сачувате адресу мреже кроз поновна покретања.</string>
+    <string name="tunnel_yggdrasil_listen_label">Адресе слушања (опционо)</string>
+    <string name="tunnel_yggdrasil_mtu_label">MTU (опционо)</string>
+    <string name="tunnel_yggdrasil_group_password_label">Лозинка групе (опционо)</string>
     <string name="cf_experimental_banner">Експериментално — Haven имплементира исти WebSocket жични протокол као и `cloudflared access ssh`. Тестирано на малом скупу станара; молимо вас да нерегуларности пријавите на GitHub проблем #154.</string>
     <string name="cf_intro_blurb">Рутира SSH име хоста коју објављује Cloudflare Tunnel — унутар-апликације еквивалент од `cloudflared access ssh --hostname &lt;хост&gt;`. Рутама јавног тунела је потребно само име хоста. Руте са заштићеним притупом додатно захтевају JWT — тапните Пријави се да ухватите једну посредством IdP вашег тима.</string>
     <string name="cf_field_hostname">Име хоста (нпр. ssh.example.com)</string>

@@ -35,6 +35,14 @@
     <string name="tunnel_netbird_management_url_help">Оставьте пустым для размещённого управления NetBird. Укажите URL вашего сервера для самостоятельно размещённой службы управления.</string>
     <string name="tunnel_netbird_rosenpass_label">Постквантовый обмен ключами (Rosenpass)</string>
     <string name="tunnel_netbird_rosenpass_help">Включает постквантовый обмен ключами Rosenpass в NetBird. Включите, если подключаемый узел этого требует; обе стороны должны поддерживать Rosenpass.</string>
+    <string name="tunnel_yggdrasil_help">Yggdrasil — это децентрализованная зашифрованная IPv6-сеть без сервера координации. Добавьте хотя бы один доступный пир (узел, к которому можно подключиться напрямую). Ваш узел получает стабильный адрес 200::/7, производный от его ключа; профили подключения, направляемые через этот туннель, набирают адреса сети через него. Остальная часть телефона сеть не использует.</string>
+    <string name="tunnel_yggdrasil_peers_label">Пиры</string>
+    <string name="tunnel_yggdrasil_peers_help">URI исходящих пиров, разделённые пробелами или переносами строк (напр. tls://host:port). Узел без доступного пира изолирован.</string>
+    <string name="tunnel_yggdrasil_private_key_label">Закрытый ключ (необязательно)</string>
+    <string name="tunnel_yggdrasil_private_key_help">Ключ ed25519 в hex. Оставьте пустым, чтобы создать новую личность, но сохраните ключ, чтобы адрес сети сохранялся между перезапусками.</string>
+    <string name="tunnel_yggdrasil_listen_label">Адреса прослушивания (необязательно)</string>
+    <string name="tunnel_yggdrasil_mtu_label">MTU (необязательно)</string>
+    <string name="tunnel_yggdrasil_group_password_label">Пароль группы (необязательно)</string>
     <string name="tunnel_openvpn_help">Вставьте профиль .ovpn или загрузите файл. Если профиль использует auth-user-pass без встроенного файла учётных данных, введите имя пользователя и пароль ниже.</string>
     <string name="tunnel_openvpn_config_label">Профиль OpenVPN (.ovpn)</string>
     <string name="tunnel_openvpn_username_label">Имя пользователя (необязательно)</string>

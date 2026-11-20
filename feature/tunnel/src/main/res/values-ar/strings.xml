@@ -28,6 +28,14 @@
     <string name="tunnel_netbird_management_url_help">اتركه فارغًا للإدارة المستضافة من NetBird. اضبطه على رابط الخادم لخدمة إدارة ذاتية الاستضافة.</string>
     <string name="tunnel_netbird_rosenpass_label">تبادل مفاتيح ما بعد الكم (Rosenpass)</string>
     <string name="tunnel_netbird_rosenpass_help">فعّل تبادل مفاتيح Rosenpass لما بعد الكم في NetBird. شغّله عندما يتطلب النظير الذي تتصل به ذلك؛ يجب أن يدعم الطرفان Rosenpass.</string>
+    <string name="tunnel_yggdrasil_help">Yggdrasil شبكة IPv6 مشفرة لامركزية بدون خادم تنسيق. أضف نظيرًا واحدًا على الأقل يمكن الوصول إليه (عقدة يمكنك الاتصال بها مباشرة). تحصل عقدتك على عنوان 200::/7 مستقر مشتق من مفتاحها؛ ملفات تعريف الاتصال الموجهة عبر هذا النفق تطلب عناوين الشبكة من خلاله. لا يستخدم باقي هاتفك الشبكة.</string>
+    <string name="tunnel_yggdrasil_peers_label">الأقران</string>
+    <string name="tunnel_yggdrasil_peers_help">معرفات URI للأقران الصادرين، مفصولة بمسافات أو أسطر جديدة (مثل tls://host:port). العقدة بدون قرين يمكن الوصول إليه تكون معزولة.</string>
+    <string name="tunnel_yggdrasil_private_key_label">المفتاح الخاص (اختياري)</string>
+    <string name="tunnel_yggdrasil_private_key_help">مفتاح ed25519 سداسي عشري. اتركه فارغًا لإنشاء هوية جديدة، لكن احتفظ بمفتاح للحفاظ على عنوان شبكتك عبر عمليات إعادة التشغيل.</string>
+    <string name="tunnel_yggdrasil_listen_label">عناوين الاستماع (اختياري)</string>
+    <string name="tunnel_yggdrasil_mtu_label">MTU (اختياري)</string>
+    <string name="tunnel_yggdrasil_group_password_label">كلمة مرور المجموعة (اختياري)</string>
     <string name="tunnel_openvpn_help">الصق ملف تعريف .ovpn أو قم بتحميل ملف. إذا كان الملف يستخدم auth-user-pass بدون ملف بيانات اعتماد مضمّن، أدخل اسم المستخدم وكلمة المرور أدناه.</string>
     <string name="tunnel_openvpn_config_label">ملف تعريف OpenVPN (.ovpn)</string>
     <string name="tunnel_openvpn_username_label">اسم المستخدم (اختياري)</string>

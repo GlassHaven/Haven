@@ -28,6 +28,14 @@
     <string name="tunnel_netbird_management_url_help">Déjalo en blanco para la gestión alojada de NetBird. Indica la URL de tu servidor para un servicio de gestión autoalojado.</string>
     <string name="tunnel_netbird_rosenpass_label">Intercambio de claves postcuántico (Rosenpass)</string>
     <string name="tunnel_netbird_rosenpass_help">Activa el intercambio de claves postcuántico Rosenpass de NetBird. Actívalo cuando el peer al que te conectas lo requiera; ambos lados deben admitir Rosenpass.</string>
+    <string name="tunnel_yggdrasil_help">Yggdrasil es una malla IPv6 cifrada y descentralizada sin servidor de coordinación. Añade al menos un peer alcanzable (un nodo al que puedas conectarte directamente). Tu nodo obtiene una dirección 200::/7 estable derivada de su clave; los perfiles de conexión enrutados por este túnel marcan direcciones de malla a través de él. El resto de tu teléfono no usa la malla.</string>
+    <string name="tunnel_yggdrasil_peers_label">Peers</string>
+    <string name="tunnel_yggdrasil_peers_help">URIs de peers salientes, separados por espacios o saltos de línea (p. ej. tls://host:port). Un nodo sin un peer alcanzable está aislado.</string>
+    <string name="tunnel_yggdrasil_private_key_label">Clave privada (opcional)</string>
+    <string name="tunnel_yggdrasil_private_key_help">Clave ed25519 en hexadecimal. Déjalo en blanco para generar una identidad nueva, pero conserva una clave para mantener tu dirección de malla entre reinicios.</string>
+    <string name="tunnel_yggdrasil_listen_label">Direcciones de escucha (opcional)</string>
+    <string name="tunnel_yggdrasil_mtu_label">MTU (opcional)</string>
+    <string name="tunnel_yggdrasil_group_password_label">Contraseña de grupo (opcional)</string>
     <string name="tunnel_openvpn_help">Pega un perfil .ovpn o carga un archivo. Si el perfil usa auth-user-pass sin un archivo de credenciales incluido, introduce un nombre de usuario y una contraseña a continuación.</string>
     <string name="tunnel_openvpn_config_label">Perfil de OpenVPN (.ovpn)</string>
     <string name="tunnel_openvpn_username_label">Usuario (opcional)</string>

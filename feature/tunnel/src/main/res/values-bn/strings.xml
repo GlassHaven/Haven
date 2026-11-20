@@ -28,6 +28,14 @@
     <string name="tunnel_netbird_management_url_help">NetBird-এর হোস্ট করা ম্যানেজমেন্টের জন্য খালি রাখুন। স্ব-হোস্ট করা ম্যানেজমেন্ট পরিষেবার জন্য আপনার সার্ভারের URL সেট করুন।</string>
     <string name="tunnel_netbird_rosenpass_label">পোস্ট-কোয়ান্টাম কী এক্সচেঞ্জ (Rosenpass)</string>
     <string name="tunnel_netbird_rosenpass_help">NetBird-এর Rosenpass পোস্ট-কোয়ান্টাম কী এক্সচেঞ্জ চালু করুন। যে পিয়ারের সাথে সংযোগ করছেন সেটি প্রয়োজন হলে চালু করুন; উভয় পক্ষকেই Rosenpass সমর্থন করতে হবে।</string>
+    <string name="tunnel_yggdrasil_help">Yggdrasil হলো সমন্বয় সার্ভারবিহীন একটি বিকেন্দ্রীভূত এনক্রিপ্টেড IPv6 মেশ। অন্তত একটি পৌঁছানোযোগ্য পিয়ার যোগ করুন (একটি নোড যাতে আপনি সরাসরি সংযোগ করতে পারেন)। আপনার নোড তার কী থেকে উদ্ভূত একটি স্থিতিশীল 200::/7 ঠিকানা পায়; এই টানেলের মাধ্যমে রুট করা সংযোগ প্রোফাইলগুলি এর উপর দিয়ে মেশ ঠিকানায় ডায়াল করে। আপনার ফোনের বাকি অংশ মেশ ব্যবহার করে না।</string>
+    <string name="tunnel_yggdrasil_peers_label">পিয়ার</string>
+    <string name="tunnel_yggdrasil_peers_help">আউটবাউন্ড পিয়ার URI, স্পেস বা নিউলাইন দ্বারা পৃথক (যেমন tls://host:port). পৌঁছানোযোগ্য পিয়ারবিহীন নোড বিচ্ছিন্ন থাকে।</string>
+    <string name="tunnel_yggdrasil_private_key_label">প্রাইভেট কী (ঐচ্ছিক)</string>
+    <string name="tunnel_yggdrasil_private_key_help">হেক্স ed25519 কী। নতুন পরিচয় তৈরি করতে ফাঁকা রাখুন, তবে রিস্টার্টের পরেও মেশ ঠিকানা বজায় রাখতে একটি কী রাখুন।</string>
+    <string name="tunnel_yggdrasil_listen_label">লিসেন ঠিকানা (ঐচ্ছিক)</string>
+    <string name="tunnel_yggdrasil_mtu_label">MTU (ঐচ্ছিক)</string>
+    <string name="tunnel_yggdrasil_group_password_label">গ্রুপ পাসওয়ার্ড (ঐচ্ছিক)</string>
     <string name="tunnel_openvpn_help">একটি .ovpn প্রোফাইল পেস্ট করুন অথবা একটি ফাইল লোড করুন। প্রোফাইলে যদি ইনলাইন ক্রেডেনশিয়াল ফাইল ছাড়া auth-user-pass ব্যবহার করা হয়, তাহলে নিচে একটি ব্যবহারকারীর নাম এবং পাসওয়ার্ড লিখুন।</string>
     <string name="tunnel_openvpn_config_label">OpenVPN প্রোফাইল (.ovpn)</string>
     <string name="tunnel_openvpn_username_label">ব্যবহারকারীর নাম (ঐচ্ছিক)</string>

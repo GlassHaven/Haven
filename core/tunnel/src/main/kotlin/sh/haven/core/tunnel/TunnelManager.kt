@@ -393,6 +393,13 @@ class DefaultTunnelFactory @Inject constructor(
                 )
             AnyConnectTunnel(parsed, label = config.label, authBroker = authBroker)
         }
+        TunnelConfigType.YGGDRASIL -> {
+            val parsed = YggdrasilConfigBlob.parse(config.configText)
+                ?: throw IOException(
+                    "Yggdrasil tunnel '${config.label}' has an invalid config — re-add the tunnel",
+                )
+            YggdrasilTunnel(configJSON = String(parsed.encode(), Charsets.UTF_8))
+        }
     }
 
     /**

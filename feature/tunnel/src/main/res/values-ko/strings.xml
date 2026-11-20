@@ -28,6 +28,14 @@
     <string name="tunnel_netbird_management_url_help">NetBird의 호스팅 관리 서비스를 사용하려면 비워 두세요. 자체 호스팅 관리 서버를 사용하려면 해당 URL을 입력하세요.</string>
     <string name="tunnel_netbird_rosenpass_label">양자 내성 키 교환 (Rosenpass)</string>
     <string name="tunnel_netbird_rosenpass_help">NetBird의 Rosenpass 양자 내성 키 교환을 활성화합니다. 연결하는 피어에서 요구할 때 켜세요. 양쪽 모두 Rosenpass를 지원해야 합니다.</string>
+    <string name="tunnel_yggdrasil_help">Yggdrasil은 조정 서버가 없는 분산형 암호화 IPv6 메시입니다. 도달 가능한 피어(직접 연결할 수 있는 노드)를 하나 이상 추가하세요. 노드는 해당 키에서 파생된 안정적인 200::/7 주소를 받습니다. 이 터널을 통해 라우팅되는 연결 프로필은 그것을 통해 메시 주소로 다이얼합니다. 휴대폰의 나머지 부분은 메시를 사용하지 않습니다.</string>
+    <string name="tunnel_yggdrasil_peers_label">피어</string>
+    <string name="tunnel_yggdrasil_peers_help">아웃바운드 피어 URI. 공백 또는 줄바꿈으로 구분합니다(예: tls://host:port). 도달 가능한 피어가 없는 노드는 고립됩니다.</string>
+    <string name="tunnel_yggdrasil_private_key_label">개인 키(선택)</string>
+    <string name="tunnel_yggdrasil_private_key_help">16진수 ed25519 키. 비워 두면 새 ID를 생성하지만, 재시작 후에도 메시 주소를 유지하려면 키를 보관하세요.</string>
+    <string name="tunnel_yggdrasil_listen_label">수신 주소(선택)</string>
+    <string name="tunnel_yggdrasil_mtu_label">MTU(선택)</string>
+    <string name="tunnel_yggdrasil_group_password_label">그룹 비밀번호(선택)</string>
     <string name="tunnel_openvpn_help">.ovpn 프로필을 붙여넣거나 파일을 불러오세요. 프로필이 인라인 자격 증명 파일 없이 auth-user-pass를 사용하는 경우, 아래에 사용자 이름과 비밀번호를 입력하세요.</string>
     <string name="tunnel_openvpn_config_label">OpenVPN 프로필 (.ovpn)</string>
     <string name="tunnel_openvpn_username_label">사용자 이름(선택 사항)</string>

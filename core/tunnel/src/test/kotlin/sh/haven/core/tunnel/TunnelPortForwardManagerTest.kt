@@ -153,13 +153,19 @@ class TunnelPortForwardManagerTest {
         assertEquals(45678, forwardManager.socksPorts.value["wg-1"])
 
         val marker = File(cacheDir, TunnelPortForwardManager.GUEST_SOCKS_MARKER)
+        // The marker is written by the async live-flow collector, so poll for
+        // it rather than asserting immediately — that raced under CI load.
+        var appearAttempts = 0
+        while (!marker.isFile && appearAttempts++ < 100) {
+            Thread.sleep(20)
+        }
         assertTrue(marker.isFile)
         assertEquals("127.0.0.1:45678", marker.readText().trim())
 
         forwardManager.disconnectStandalone("wg-1")
-        // Wait briefly for live flow collector to clear marker
+        // Wait for the live flow collector to clear the marker.
         var attempts = 0
-        while (marker.exists() && attempts++ < 20) {
+        while (marker.exists() && attempts++ < 100) {
             Thread.sleep(20)
         }
         assertFalse(tunnelManager.hasStandaloneDependents)

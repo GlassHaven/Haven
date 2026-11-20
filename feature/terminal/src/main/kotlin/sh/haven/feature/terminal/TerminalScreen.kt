@@ -1778,6 +1778,20 @@ fun TerminalScreen(
                                 )
                             }
                         }
+                        // While the strip is up the fullscreen toggle lives here, not
+                        // over the terminal: a TUI's own corner controls (herdr's
+                        // switch/close, a tmux status line) sat under the overlay and
+                        // a tap meant for them toggled fullscreen instead.
+                        IconButton(
+                            onClick = { fullscreen = true },
+                            modifier = Modifier.size(36.dp),
+                        ) {
+                            Icon(
+                                Icons.Filled.Fullscreen,
+                                contentDescription = stringResource(R.string.terminal_enter_fullscreen),
+                                modifier = Modifier.size(18.dp),
+                            )
+                        }
                     }
                 }
             }
@@ -2015,52 +2029,57 @@ fun TerminalScreen(
                     // disconnect banner's, so they never collide). Tap toggles
                     // fullscreen; hold-drag moves it to another corner, snapping
                     // to whichever it's released nearest and remembering it (#445).
-                    var fsDragOffset by remember { mutableStateOf(androidx.compose.ui.geometry.Offset.Zero) }
-                    var fsButtonCoords by remember {
-                        mutableStateOf<androidx.compose.ui.layout.LayoutCoordinates?>(null)
-                    }
-                    IconButton(
-                        onClick = { fullscreen = !fullscreen },
-                        modifier = Modifier
-                            .align(fullscreenButtonCorner.toComposeAlignment())
-                            .offset { androidx.compose.ui.unit.IntOffset(fsDragOffset.x.toInt(), fsDragOffset.y.toInt()) }
-                            .onGloballyPositioned { fsButtonCoords = it }
-                            .pointerInput(Unit) {
-                                detectDragGesturesAfterLongPress(
-                                    onDrag = { change, delta ->
-                                        change.consume()
-                                        fsDragOffset += delta
-                                    },
-                                    onDragEnd = {
-                                        val coords = fsButtonCoords
-                                        val parent = coords?.parentLayoutCoordinates
-                                        if (coords != null && parent != null) {
-                                            val c = coords.boundsInParent().center
-                                            onFullscreenButtonCornerChange(
-                                                sh.haven.core.data.preferences.FullscreenButtonCorner.nearest(
-                                                    c.x, c.y,
-                                                    parent.size.width.toFloat(),
-                                                    parent.size.height.toFloat(),
-                                                ),
-                                            )
-                                        }
-                                        fsDragOffset = androidx.compose.ui.geometry.Offset.Zero
-                                    },
-                                )
-                            }
-                            .padding(2.dp)
-                            .size(32.dp),
-                    ) {
-                        Icon(
-                            imageVector = if (fullscreen) Icons.Filled.FullscreenExit
-                            else Icons.Filled.Fullscreen,
-                            contentDescription = stringResource(
-                                if (fullscreen) R.string.terminal_exit_fullscreen
-                                else R.string.terminal_enter_fullscreen,
-                            ),
-                            tint = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.55f),
-                            modifier = Modifier.size(20.dp),
-                        )
+                    // Only when there is no tab strip to hold it — in fullscreen,
+                    // or with the strip turned off — since an overlay covers
+                    // whatever the remote draws in that corner.
+                    if (fullscreen || !showTabBar) {
+                        var fsDragOffset by remember { mutableStateOf(androidx.compose.ui.geometry.Offset.Zero) }
+                        var fsButtonCoords by remember {
+                            mutableStateOf<androidx.compose.ui.layout.LayoutCoordinates?>(null)
+                        }
+                        IconButton(
+                            onClick = { fullscreen = !fullscreen },
+                            modifier = Modifier
+                                .align(fullscreenButtonCorner.toComposeAlignment())
+                                .offset { androidx.compose.ui.unit.IntOffset(fsDragOffset.x.toInt(), fsDragOffset.y.toInt()) }
+                                .onGloballyPositioned { fsButtonCoords = it }
+                                .pointerInput(Unit) {
+                                    detectDragGesturesAfterLongPress(
+                                        onDrag = { change, delta ->
+                                            change.consume()
+                                            fsDragOffset += delta
+                                        },
+                                        onDragEnd = {
+                                            val coords = fsButtonCoords
+                                            val parent = coords?.parentLayoutCoordinates
+                                            if (coords != null && parent != null) {
+                                                val c = coords.boundsInParent().center
+                                                onFullscreenButtonCornerChange(
+                                                    sh.haven.core.data.preferences.FullscreenButtonCorner.nearest(
+                                                        c.x, c.y,
+                                                        parent.size.width.toFloat(),
+                                                        parent.size.height.toFloat(),
+                                                    ),
+                                                )
+                                            }
+                                            fsDragOffset = androidx.compose.ui.geometry.Offset.Zero
+                                        },
+                                    )
+                                }
+                                .padding(2.dp)
+                                .size(32.dp),
+                        ) {
+                            Icon(
+                                imageVector = if (fullscreen) Icons.Filled.FullscreenExit
+                                else Icons.Filled.Fullscreen,
+                                contentDescription = stringResource(
+                                    if (fullscreen) R.string.terminal_exit_fullscreen
+                                    else R.string.terminal_enter_fullscreen,
+                                ),
+                                tint = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.55f),
+                                modifier = Modifier.size(20.dp),
+                            )
+                        }
                     }
                 }
 

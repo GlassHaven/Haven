@@ -37,6 +37,7 @@ import kotlin.coroutines.resume
 class OidcAuthClient(
     private val appContext: Context,
     private val foregroundWatcher: ForegroundWatcher,
+    private val cancelGraceMs: Long = CANCEL_GRACE_MS,
 ) {
 
     @Inject constructor(@ApplicationContext appContext: Context) :
@@ -84,7 +85,7 @@ class OidcAuthClient(
         val deferred = OidcRedirectBus.register(state)
         val cancellationJob = launch {
             foregroundWatcher.awaitReturnToForeground()
-            delay(CANCEL_GRACE_MS)
+            delay(cancelGraceMs)
             OidcRedirectBus.fail(state, "OIDC sign-in cancelled")
         }
 

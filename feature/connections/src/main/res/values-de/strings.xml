@@ -613,6 +613,8 @@
     <string name="connections_helper_forward_pulseaudio">Startet die PulseAudio-Brücke des Telefons, tunnelt den entfernten Port 14713 zum lokalen Port 4713 und exportiert PULSE_SERVER=tcp:127.0.0.1:14713 in der SSH-Shell.</string>
     <string name="connections_toggle_persist_rediscovered_host">Wiederentdeckte LAN-Adresse speichern</string>
     <string name="connections_helper_persist_rediscovered_host">Aktualisiert das Profil, wenn ein lokaler Rechner denselben SSH-Hostschlüssel unter einer neuen IPv4-Adresse präsentiert. Deaktivieren, um die wiederentdeckte Adresse nur für diese Sitzung zu nutzen und den konfigurierten Host (z. B. eine WireGuard-IP) beizubehalten.</string>
+    <string name="connections_toggle_legacy_host_key_fallback">Mit altem ssh-rsa-Hostschlüssel erneut versuchen</string>
+    <string name="connections_helper_legacy_host_key_fallback">Wenn ein Server nur den alten SHA-1-Hostschlüssel ssh-rsa anbietet, wird die Verbindung einmal mit angehängtem Algorithmus wiederholt. Moderne Algorithmen werden weiterhin zuerst versucht, Server mit Unterstützung dafür sind also nicht betroffen. Ausschalten, um stattdessen zu scheitern, anstatt den Handshake zu schwächen.</string>
     <string name="connections_field_saved_password">Gespeichertes Passwort (SSH / sudo)</string>
     <string name="connections_helper_saved_password">Optional. Im Android Keystore verschlüsselt und für SSH-Passwortanmeldung sowie biometrisch geschütztes Ausfüllen von sudo im Terminal verwendet.</string>
     <string name="connections_auth_banner_title">SSH-Authentifizierung</string>

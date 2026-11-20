@@ -97,6 +97,7 @@ import sh.haven.core.data.preferences.UserPreferencesRepository
 import sh.haven.core.rclone.RCLONE_OAUTH_PROVIDERS
 import sh.haven.core.knock.KnockSequence
 import sh.haven.core.spa.SpaConfig
+import sh.haven.core.ssh.LegacyHostKeyFallback
 import sh.haven.feature.tunnel.CloudflareAccessLoginContract
 import sh.haven.feature.tunnel.CloudflareInlineFields
 import sh.haven.feature.tunnel.TunnelViewModel
@@ -3219,6 +3220,22 @@ fun ConnectionEditDialog(
                             )
                         },
                         description = stringResource(R.string.connections_helper_persist_rediscovered_host),
+                    )
+
+                    // Legacy ssh-rsa host key retry. On by default: an old server
+                    // that offers only the SHA-1 algorithm would otherwise fail
+                    // host key negotiation before authentication, while newer
+                    // clients (ConnectBot/Trilead) connect fine. Stored as a
+                    // `HavenLegacyHostKeyFallback no` directive in sshOptions, so
+                    // no DB schema change is needed.
+                    Spacer(Modifier.height(4.dp))
+                    BooleanToggleRow(
+                        label = stringResource(R.string.connections_toggle_legacy_host_key_fallback),
+                        checked = LegacyHostKeyFallback.isEnabledFromOptionsText(sshOptions),
+                        onCheckedChange = { enabled ->
+                            sshOptions = LegacyHostKeyFallback.setEnabledInOptions(sshOptions, enabled)
+                        },
+                        description = stringResource(R.string.connections_helper_legacy_host_key_fallback),
                     )
 
                     // Per-profile terminal colour scheme (#144). Null on the

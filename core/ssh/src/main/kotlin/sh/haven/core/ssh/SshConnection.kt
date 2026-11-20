@@ -58,6 +58,14 @@ interface SshConnection : Closeable {
     /** True when the last connect verified the host via a trusted CA host cert (#133). */
     val hostVerifiedByCa: Boolean
 
+    /**
+     * True when the last successful connect only got through by falling back
+     * to the SHA-1 `ssh-rsa` host key algorithm — see [LegacyHostKeyFallback].
+     * Callers surface it as a warning so the weakened algorithm is visible
+     * rather than silent.
+     */
+    val usedLegacyHostKeyFallback: Boolean
+
     suspend fun connect(
         config: ConnectionConfig,
         connectTimeoutMs: Int = 10_000,

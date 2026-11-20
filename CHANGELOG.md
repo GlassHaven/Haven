@@ -8,6 +8,7 @@ compare link is appended automatically — don't add it here.
 ## v5.94.57
 
 - Add a global default address family that new SSH connections inherit (Settings → Default address family), including IPv6-preferred / IPv4-preferred modes that fall back to the other family when the preferred one is unreachable. Existing connections keep their own setting (#855, thanks Az-1-2).
+- Connect to servers that only offer the legacy SHA-1 `ssh-rsa` host key. When host key negotiation fails, the connection is retried once with `ssh-rsa` appended to the proposal, so modern algorithms stay first and unaffected servers never see the retry. A "Retry with legacy ssh-rsa host key" switch in the connection's Terminal options (on by default) turns this off, and a warning names the weakened handshake when it is used.
 
 ## v5.94.56
 

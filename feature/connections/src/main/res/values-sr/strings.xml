@@ -547,6 +547,8 @@
     <string name="connections_helper_forward_pulseaudio">Покреће PulseAudio мост на телефону, тунелује удаљени порт 14713 ка локалном порту 4713 и извози PULSE_SERVER=tcp:127.0.0.1:14713 у SSH љуски.</string>
     <string name="connections_toggle_persist_rediscovered_host">Сачувај поново откривену LAN адресу</string>
     <string name="connections_helper_persist_rediscovered_host">Ажурира профил када локални рачунар понуди исти SSH кључ домаћина на новој IPv4 адреси. Искључите да бисте се повезали преко откривене адресе само за ту сесију и задржали подешени домаћин (нпр. WireGuard IP).</string>
+    <string name="connections_toggle_legacy_host_key_fallback">Понови покушај са старим ssh-rsa кључем домаћина</string>
+    <string name="connections_helper_legacy_host_key_fallback">Када сервер нуди само стари SHA-1 ssh-rsa кључ домаћина, веза се поново покушава једном са додатим тим алгоритмом. Модерни алгоритми се и даље покушавају први, тако да сервери који их подржавају нису погођени. Искључите да бисте добили грешку уместо да ослабите руковање.</string>
     <string name="connections_auth_banner_title">SSH аутентификација</string>
     <string name="connections_auth_banner_open_link">Отвори везу</string>
     <string name="connections_field_keyboard_layout">Распоред тастатуре</string>

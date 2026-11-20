@@ -23,6 +23,12 @@ private const val TAG = "OpenKeychainIdentity"
 class OpenKeychainIdentity(
     private val keyData: OpenKeychainKeyData,
     private val client: OpenKeychainClient,
+    // Logging seam (defaults to android.util.Log). Injected so a test can
+    // capture the provider's failure reason without mockkStatic(Log) — a
+    // global static mock shared across test classes that flakes under
+    // parallel execution. Production callers use the defaults.
+    private val logd: (String, String) -> Unit = { tag, msg -> Log.d(tag, msg) },
+    private val logw: (String, String) -> Unit = { tag, msg -> Log.w(tag, msg) },
 ) : Identity {
 
     override fun getAlgName(): String = keyData.algorithm
@@ -52,7 +58,7 @@ class OpenKeychainIdentity(
      * authentication is synchronous, so there is nowhere else to wait.
      */
     override fun getSignature(data: ByteArray, alg: String): ByteArray {
-        Log.d(TAG, "signing ${data.size} bytes as $alg via ${keyData.providerPackage}")
+        logd(TAG, "signing ${data.size} bytes as $alg via ${keyData.providerPackage}")
         val signature = try {
             client.sign(keyData.keyId, data, alg)
         } catch (e: Exception) {
@@ -65,10 +71,10 @@ class OpenKeychainIdentity(
             // The reason is the whole diagnosis here: too many interaction
             // rounds, a cancelled prompt and a provider error are three
             // different bugs that look identical from outside.
-            Log.w(TAG, "provider ${keyData.providerPackage} did not sign: ${e.javaClass.simpleName}: ${e.message}")
+            logw(TAG, "provider ${keyData.providerPackage} did not sign: ${e.javaClass.simpleName}: ${e.message}")
             throw e
         }
-        Log.d(TAG, "provider returned a ${signature.size} byte signature")
+        logd(TAG, "provider returned a ${signature.size} byte signature")
         return signature
     }
 }

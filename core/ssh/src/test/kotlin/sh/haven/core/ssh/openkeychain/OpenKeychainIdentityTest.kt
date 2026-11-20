@@ -1,10 +1,7 @@
 package sh.haven.core.ssh.openkeychain
 
-import android.util.Log
 import io.mockk.every
 import io.mockk.mockk
-import io.mockk.mockkStatic
-import io.mockk.unmockkStatic
 import io.mockk.slot
 import io.mockk.verify
 import org.junit.Assert.assertArrayEquals
@@ -109,21 +106,21 @@ class OpenKeychainIdentityTest {
      */
     @Test
     fun `a provider that refuses to sign says so in the log`() {
-        mockkStatic(Log::class)
-        val logged = slot<String>()
-        every { Log.d(any(), any<String>()) } returns 0
-        every { Log.w(any(), capture(logged)) } returns 0
+        // Capture the warning through the injected logging seam rather than
+        // mockkStatic(android.util.Log): a global static mock shared with the
+        // SshClient* tests flakes under parallel execution.
+        var captured: String? = null
+        val failingIdentity = OpenKeychainIdentity(keyData, client, logw = { _, msg -> captured = msg })
         every { client.sign(any(), any(), any()) } throws
             OpenKeychainException("asked for user interaction 4 times without completing the request")
 
-        val thrown = runCatching { identity.getSignature(byteArrayOf(1, 2, 3), "ssh-rsa") }.exceptionOrNull()
+        val thrown = runCatching { failingIdentity.getSignature(byteArrayOf(1, 2, 3), "ssh-rsa") }.exceptionOrNull()
 
         assertTrue("the failure must still reach JSch, got $thrown", thrown is OpenKeychainException)
         assertTrue(
-            "the log must carry the provider's reason, got '${logged.captured}'",
-            logged.isCaptured && logged.captured.contains("user interaction 4 times"),
+            "the log must carry the provider's reason, got '$captured'",
+            captured?.contains("user interaction 4 times") == true,
         )
-        unmockkStatic(Log::class)
     }
 
 }

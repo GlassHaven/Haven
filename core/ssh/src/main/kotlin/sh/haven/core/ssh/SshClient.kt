@@ -89,6 +89,25 @@ class SshClient : SshConnection {
     var tunnelPeerAddress: String? = null
         private set
 
+    /**
+     * True when the last successful [connect]/[connectBlocking] only got
+     * through by appending the SHA-1 `ssh-rsa` host key algorithm after a
+     * negotiation failure — see [LegacyHostKeyFallback]. Callers surface this
+     * as a warning so the weakened algorithm is visible rather than silent.
+     */
+    @Volatile
+    override var usedLegacyHostKeyFallback: Boolean = false
+        private set
+
+    /**
+     * The `server_host_key` proposal the session was using when its last
+     * connect attempt failed, so [legacyRetryProposal] can extend exactly the
+     * list the user configured instead of guessing at JSch's defaults.
+     * Captured in [connectOnce]'s catch, before the session is torn down.
+     */
+    @Volatile
+    private var failedHostKeyProposal: String? = null
+
     /** Whether the active session should set agent forwarding on newly opened shell/exec channels. */
     private var agentForwardingEnabled = false
 
@@ -439,6 +458,72 @@ class SshClient : SshConnection {
         preConnect: (suspend () -> Unit)?,
         trustedHostCaKeys: List<String>,
     ): KnownHostEntry? = withContext(Dispatchers.IO) {
+        usedLegacyHostKeyFallback = false
+        failedHostKeyProposal = null
+        try {
+            connectOnce(
+                config = config,
+                connectTimeoutMs = connectTimeoutMs,
+                proxy = proxy,
+                keyboardInteractivePrompter = keyboardInteractivePrompter,
+                totpCodeProvider = totpCodeProvider,
+                confirmOtp = confirmOtp,
+                preConnect = preConnect,
+                trustedHostCaKeys = trustedHostCaKeys,
+                extraHostKeyAlgorithms = null,
+            )
+        } catch (e: JSchException) {
+            // A server that offers only the SHA-1 ssh-rsa host key makes the
+            // first attempt fail before authentication. Retry once with that
+            // algorithm appended — see LegacyHostKeyFallback.
+            val retry = legacyRetryProposal(config, e)
+                ?: throw e
+            connectOnce(
+                config = config,
+                connectTimeoutMs = connectTimeoutMs,
+                proxy = proxy,
+                keyboardInteractivePrompter = keyboardInteractivePrompter,
+                totpCodeProvider = totpCodeProvider,
+                confirmOtp = confirmOtp,
+                preConnect = preConnect,
+                trustedHostCaKeys = trustedHostCaKeys,
+                extraHostKeyAlgorithms = retry,
+            )
+        }
+    }
+
+    /**
+     * The `server_host_key` value to retry with, or null when this failure
+     * should surface as-is. Reads the session's live proposal so user SSH
+     * Options that already narrowed or widened the list are respected.
+     */
+    private fun legacyRetryProposal(config: ConnectionConfig, e: JSchException): String? {
+        if (!LegacyHostKeyFallback.isEnabled(config.sshOptions)) return null
+        // Captured inside connectOnce's catch, before the session was torn down.
+        val current = failedHostKeyProposal
+        val proposal = LegacyHostKeyFallback.retryProposal(e, current) ?: return null
+        Log.i(TAG, "Host key negotiation failed; retrying with legacy ssh-rsa appended")
+        verboseLogger?.logInfo("[haven/legacy-host-key] retrying with server_host_key=$proposal")
+        usedLegacyHostKeyFallback = true
+        return proposal
+    }
+
+    /**
+     * One connect attempt. [extraHostKeyAlgorithms] is the full
+     * `server_host_key` proposal to force, or null to use the session default
+     * plus whatever user SSH Options set.
+     */
+    private suspend fun connectOnce(
+        config: ConnectionConfig,
+        connectTimeoutMs: Int,
+        proxy: HavenProxy?,
+        keyboardInteractivePrompter: KeyboardInteractivePrompter?,
+        totpCodeProvider: (() -> String)?,
+        confirmOtp: Boolean,
+        preConnect: (suspend () -> Unit)?,
+        trustedHostCaKeys: List<String>,
+        extraHostKeyAlgorithms: String?,
+    ): KnownHostEntry? {
         disconnect()
         hostVerifiedByCa = false
         verboseLogger?.let { jsch.setInstanceLogger(it) }
@@ -533,6 +618,9 @@ class SshClient : SshConnection {
         // translates OpenSSH directive names (KexAlgorithms, Ciphers, …)
         // to JSch's internal keys and handles +/-/^ list prefixes — see #155.
         SshOptionsApplier.apply(sess, config.sshOptions)
+        // Legacy retry: applied after user options so it wins, and only on the
+        // second attempt (null otherwise).
+        extraHostKeyAlgorithms?.let { sess.setConfig("server_host_key", it) }
 
         // Port-knock hook (when configured): runs after socket params are set
         // but before JSch opens the TCP connection. Throwing here aborts the
@@ -559,6 +647,10 @@ class SshClient : SshConnection {
             // signal for whether the peer ever sent its identification string,
             // and it throws rather than returning null when it didn't (#557).
             val serverBanner = runCatching { sess.serverVersion }.getOrNull()
+            // Capture the host key proposal this attempt used, so a legacy
+            // retry extends the user's list rather than JSch's defaults.
+            failedHostKeyProposal =
+                runCatching { sess.getConfig("server_host_key") }.getOrNull()
             // A proxied connect that timed out waiting for the target's first
             // byte fails here as a generic "session is down" — the channel was
             // torn down under JSch to unblock it. Say what actually happened
@@ -597,7 +689,7 @@ class SshClient : SshConnection {
         }
         session = sess
         registerAgentIdentities(config)
-        extractHostKey(sess, config.host, config.port, caRepo)
+        return extractHostKey(sess, config.host, config.port, caRepo)
     }
 
     /**
@@ -758,6 +850,49 @@ class SshClient : SshConnection {
         preConnect: (() -> Unit)?,
         trustedHostCaKeys: List<String>,
     ): KnownHostEntry? {
+        usedLegacyHostKeyFallback = false
+        failedHostKeyProposal = null
+        try {
+            return connectBlockingOnce(
+                config = config,
+                connectTimeoutMs = connectTimeoutMs,
+                proxy = proxy,
+                keyboardInteractivePrompter = keyboardInteractivePrompter,
+                totpCodeProvider = totpCodeProvider,
+                confirmOtp = confirmOtp,
+                preConnect = preConnect,
+                trustedHostCaKeys = trustedHostCaKeys,
+                extraHostKeyAlgorithms = null,
+            )
+        } catch (e: JSchException) {
+            // Mirror of the async connect() path — see LegacyHostKeyFallback.
+            val retry = legacyRetryProposal(config, e) ?: throw e
+            return connectBlockingOnce(
+                config = config,
+                connectTimeoutMs = connectTimeoutMs,
+                proxy = proxy,
+                keyboardInteractivePrompter = keyboardInteractivePrompter,
+                totpCodeProvider = totpCodeProvider,
+                confirmOtp = confirmOtp,
+                preConnect = preConnect,
+                trustedHostCaKeys = trustedHostCaKeys,
+                extraHostKeyAlgorithms = retry,
+            )
+        }
+    }
+
+    /** One blocking connect attempt; [extraHostKeyAlgorithms] as in [connectOnce]. */
+    private fun connectBlockingOnce(
+        config: ConnectionConfig,
+        connectTimeoutMs: Int,
+        proxy: HavenProxy?,
+        keyboardInteractivePrompter: KeyboardInteractivePrompter?,
+        totpCodeProvider: (() -> String)?,
+        confirmOtp: Boolean,
+        preConnect: (() -> Unit)?,
+        trustedHostCaKeys: List<String>,
+        extraHostKeyAlgorithms: String?,
+    ): KnownHostEntry? {
         disconnect()
         hostVerifiedByCa = false
         verboseLogger?.let { jsch.setInstanceLogger(it) }
@@ -837,6 +972,8 @@ class SshClient : SshConnection {
         }
 
         SshOptionsApplier.apply(sess, config.sshOptions)
+        // Legacy retry: see the mirror in connectOnce.
+        extraHostKeyAlgorithms?.let { sess.setConfig("server_host_key", it) }
 
         // See [connect] for the rationale on hook placement.
         timing.mark("setup")
@@ -859,6 +996,10 @@ class SshClient : SshConnection {
             // signal for whether the peer ever sent its identification string,
             // and it throws rather than returning null when it didn't (#557).
             val serverBanner = runCatching { sess.serverVersion }.getOrNull()
+            // Capture the host key proposal this attempt used, so a legacy
+            // retry extends the user's list rather than JSch's defaults.
+            failedHostKeyProposal =
+                runCatching { sess.getConfig("server_host_key") }.getOrNull()
             // Mirror of the async connect() path — see the comments there.
             val jump = (proxy?.jschProxy as? ProxyJump)
             if (jump?.timedOut == true) {

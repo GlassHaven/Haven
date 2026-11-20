@@ -46,6 +46,7 @@ import sh.haven.core.ssh.openkeychain.OpenKeychainKeyData
 import sh.haven.core.ssh.HostKeyAuthFailure
 import sh.haven.core.ssh.HostKeyResult
 import sh.haven.core.ssh.isSshNetworkError
+import sh.haven.core.ssh.LegacyHostKeyFallback
 import sh.haven.core.ssh.HostKeyVerifier
 import sh.haven.core.ssh.KeyboardInteractiveChallenge
 import sh.haven.core.ssh.KeyboardInteractivePrompter
@@ -4467,6 +4468,16 @@ class ConnectionsViewModel @Inject constructor(
                                 trustedHostCaKeys = hostKeyVerifier.trustedHostCaKeys(),
                             )
                             _sshAuthBanner.value = null
+                            // A server that only offers the SHA-1 ssh-rsa host key
+                            // connects via the legacy fallback (see
+                            // LegacyHostKeyFallback). Say so: the user should know
+                            // the handshake was weakened, and why.
+                            if (client.usedLegacyHostKeyFallback) {
+                                _warning.value = LegacyHostKeyFallback.degradedWarning(
+                                    config.host,
+                                    config.port,
+                                )
+                            }
                             runTofuVerification(hostKeyEntry, clientToDisconnectOnReject = client, autoAccept = profile.usbDriveSerial != null)
                         } catch (e: HostKeyAuthFailure) {
                             _sshAuthBanner.value = null

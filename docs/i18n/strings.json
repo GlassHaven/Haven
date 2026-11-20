@@ -21299,6 +21299,46 @@
      }
     },
     {
+     "name": "connections_toggle_legacy_host_key_fallback",
+     "en": "Retry with legacy ssh-rsa host key",
+     "comment": "#210 i18n sweep: VM-setup copy toasts and code-block copy action.",
+     "args": [],
+     "t": {
+      "ar": "إعادة المحاولة بمفتاح المضيف القديم ssh-rsa",
+      "bn": "পুরনো ssh-rsa হোস্ট কী দিয়ে আবার চেষ্টা করুন",
+      "de": "Mit altem ssh-rsa-Hostschlüssel erneut versuchen",
+      "es": "Reintentar con la clave de host ssh-rsa antigua",
+      "fr": "Réessayer avec l\\'ancienne clé d\\'hôte ssh-rsa",
+      "hi": "पुरानी ssh-rsa होस्ट कुंजी के साथ पुनः प्रयास करें",
+      "ja": "旧式の ssh-rsa ホストキーで再試行",
+      "ko": "레거시 ssh-rsa 호스트 키로 다시 시도",
+      "pt": "Tentar novamente com chave de host ssh-rsa antiga",
+      "ru": "Повторить с устаревшим ключом хоста ssh-rsa",
+      "sr": "Понови покушај са старим ssh-rsa кључем домаћина",
+      "zh": "使用旧式 ssh-rsa 主机密钥重试"
+     }
+    },
+    {
+     "name": "connections_helper_legacy_host_key_fallback",
+     "en": "When a server offers only the old SHA-1 ssh-rsa host key, retry the connection once with that algorithm appended. Modern algorithms are still tried first, so servers that support them are unaffected. Turn off to fail instead of weakening the handshake.",
+     "comment": "#210 i18n sweep: VM-setup copy toasts and code-block copy action.",
+     "args": [],
+     "t": {
+      "ar": "عندما يقدّم الخادم مفتاح المضيف القديم ssh-rsa (SHA-1) فقط، أعد محاولة الاتصال مرة واحدة بإضافة هذه الخوارزمية. تبقى الخوارزميات الحديثة أولاً، لذا لا تتأثر الخوادم التي تدعمها. أوقف هذا الخيار للفشل بدلاً من إضعاف المصافحة.",
+      "bn": "যখন সার্ভার শুধুমাত্র পুরনো SHA-1 ssh-rsa হোস্ট কী অফার করে, তখন এই অ্যালগরিদম যোগ করে একবার আবার সংযোগের চেষ্টা করুন। আধুনিক অ্যালগরিদম এখনও আগে চেষ্টা করা হয়, তাই যেসব সার্ভার সেগুলো সমর্থন করে সেগুলো প্রভাবিত হয় না। হ্যান্ডশেক দুর্বল করার বদলে ব্যর্থ হতে এটি বন্ধ করুন।",
+      "de": "Wenn ein Server nur den alten SHA-1-Hostschlüssel ssh-rsa anbietet, wird die Verbindung einmal mit angehängtem Algorithmus wiederholt. Moderne Algorithmen werden weiterhin zuerst versucht, Server mit Unterstützung dafür sind also nicht betroffen. Ausschalten, um stattdessen zu scheitern, anstatt den Handshake zu schwächen.",
+      "es": "Cuando un servidor solo ofrece la clave de host ssh-rsa (SHA-1) antigua, reintenta la conexión una vez añadiendo ese algoritmo. Los algoritmos modernos se siguen intentando primero, así que los servidores que los admiten no se ven afectados. Desactívalo para fallar en lugar de debilitar el handshake.",
+      "fr": "Lorsqu\\'un serveur ne propose que l\\'ancienne clé d\\'hôte ssh-rsa (SHA-1), la connexion est retentée une fois avec cet algorithme ajouté. Les algorithmes modernes restent essayés en premier, les serveurs qui les prennent en charge ne sont donc pas affectés. Désactivez pour échouer au lieu d\\'affaiblir la poignée de main.",
+      "hi": "जब कोई सर्वर केवल पुरानी SHA-1 ssh-rsa होस्ट कुंजी प्रदान करता है, तो उस एल्गोरिद्म को जोड़कर कनेक्शन एक बार फिर से आज़माएँ। आधुनिक एल्गोरिद्म अभी भी पहले आज़माए जाते हैं, इसलिए उन्हें समर्थन देने वाले सर्वर प्रभावित नहीं होते। हैंडशेक को कमज़ोर करने के बजाय विफल होने के लिए इसे बंद करें।",
+      "ja": "サーバーが旧式の SHA-1 ssh-rsa ホストキーのみを提供している場合、そのアルゴリズムを追加して接続を一度だけ再試行します。モダンなアルゴリズムが引き続き優先されるため、それらに対応したサーバーには影響しません。ハンドシェイクを弱める代わりに失敗させたい場合はオフにしてください。",
+      "ko": "서버가 오래된 SHA-1 ssh-rsa 호스트 키만 제공하는 경우 해당 알고리즘을 추가하여 연결을 한 번 더 시도합니다. 최신 알고리즘이 여전히 우선 시도되므로 이를 지원하는 서버는 영향을 받지 않습니다. 핸드셰이크를 약화시키는 대신 실패하게 하려면 끄십시오.",
+      "pt": "Quando um servidor oferece apenas a chave de host ssh-rsa (SHA-1) antiga, a conexão é repetida uma vez com esse algoritmo anexado. Os algoritmos modernos continuam sendo tentados primeiro, então servidores que os suportam não são afetados. Desative para falhar em vez de enfraquecer o handshake.",
+      "ru": "Если сервер предлагает только устаревший ключ хоста ssh-rsa (SHA-1), подключение повторяется один раз с добавлением этого алгоритма. Современные алгоритмы по-прежнему пробуются первыми, поэтому серверы с их поддержкой не затрагиваются. Отключите, чтобы завершать ошибкой вместо ослабления рукопожатия.",
+      "sr": "Када сервер нуди само стари SHA-1 ssh-rsa кључ домаћина, веза се поново покушава једном са додатим тим алгоритмом. Модерни алгоритми се и даље покушавају први, тако да сервери који их подржавају нису погођени. Искључите да бисте добили грешку уместо да ослабите руковање.",
+      "zh": "当服务器只提供旧的 SHA-1 ssh-rsa 主机密钥时，追加该算法后重试一次连接。现代算法仍会优先尝试，因此支持它们的服务器不受影响。关闭此项可在握手被削弱前直接失败。"
+     }
+    },
+    {
      "name": "connections_field_saved_password",
      "en": "Saved password (SSH / sudo)",
      "comment": "#210 i18n sweep: VM-setup copy toasts and code-block copy action.",

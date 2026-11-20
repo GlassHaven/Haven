@@ -111,6 +111,13 @@ internal class SshlibConnection : SshConnection {
     /** Always false: OpenSSH certificates are refused, so no host is CA-verified on this engine. */
     override val hostVerifiedByCa: Boolean = false
 
+    /**
+     * Always false: the ssh-rsa legacy fallback is a JSch-only mechanism
+     * ([LegacyHostKeyFallback]). This engine offers ssh-rsa natively or not at
+     * all, so it never degrades.
+     */
+    override val usedLegacyHostKeyFallback: Boolean = false
+
     override suspend fun connect(
         config: ConnectionConfig,
         connectTimeoutMs: Int,

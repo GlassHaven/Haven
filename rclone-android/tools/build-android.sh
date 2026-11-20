@@ -98,7 +98,7 @@ gomobile bind \
     -javapkg=sh.haven.rclone.binding \
     -androidapi=26 \
     -o "$AAR_DIR/rcbridge.aar" \
-    . ./wgbridge ./tsbridge ./mailbridge ./nbbridge ./ovpnbridge ./ocbridge
+    . ./wgbridge ./tsbridge ./mailbridge ./nbbridge ./yggbridge ./ovpnbridge ./ocbridge
 
 # Second bind WITHOUT the root package (`.` == rcbridge == rclone), for the
 # terminal build flavour (#510). rclone is the overwhelming bulk of this
@@ -115,7 +115,7 @@ gomobile bind \
     -javapkg=sh.haven.rclone.binding \
     -androidapi=26 \
     -o "$AAR_DIR/rcbridge-terminal.aar" \
-    ./wgbridge ./tsbridge ./mailbridge ./nbbridge ./ovpnbridge ./ocbridge
+    ./wgbridge ./tsbridge ./mailbridge ./nbbridge ./yggbridge ./ovpnbridge ./ocbridge
 
 echo ">>> Extracting native libraries from AAR"
 mkdir -p "$JNI_DIR"

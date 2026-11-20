@@ -15,6 +15,7 @@ class OscHandlerTest {
     private val hyperlinkResults = mutableListOf<String?>()
     private val notificationResults = mutableListOf<Pair<String, String>>()
     private val cwdResults = mutableListOf<String>()
+    private val colorQueryResults = mutableListOf<Pair<Int, String>>()
 
     @Before
     fun setUp() {
@@ -22,11 +23,13 @@ class OscHandlerTest {
         hyperlinkResults.clear()
         notificationResults.clear()
         cwdResults.clear()
+        colorQueryResults.clear()
         handler = OscHandler(
             onClipboardSet = { clipboardResults.add(it) },
             onHyperlink = { hyperlinkResults.add(it) },
             onNotification = { title, body -> notificationResults.add(title to body) },
             onCwdChanged = { cwdResults.add(it) },
+            onColorQuery = { osc, terminator -> colorQueryResults.add(osc to terminator) },
         )
     }
 
@@ -437,10 +440,14 @@ class OscHandlerTest {
     }
 
     @Test
-    fun `OSC 10 passes through unchanged`() {
-        val input = "\u001b]10;#ffffff\u0007"
-        val output = process(input)
-        assertEquals(input, String(output))
+    fun `OSC 10 color set is stripped without a query reply`() {
+        // OSC 10 is now handled (#867): a non-"?" payload (a color set) is
+        // consumed, not passed through, and triggers no query callback.
+        val esc = 27.toChar()
+        val bel = 7.toChar()
+        val output = process("$esc]10;#ffffff$bel")
+        assertEquals(0, output.size)
+        assertTrue(colorQueryResults.isEmpty())
     }
 
     @Test
@@ -537,5 +544,63 @@ class OscHandlerTest {
         // A non-digit, non-';' char flushes the giant seqBuf into outputBuf.
         handler.process(byteArrayOf('Z'.code.toByte()), 0, 1)
         assertTrue(handler.outputLen >= total)
+    }
+
+    // ========================================================================
+    // OSC 10 / 11 — foreground/background color queries (#867)
+    // ========================================================================
+
+    @Test
+    fun `OSC 11 background query with BEL dispatches query and is stripped`() {
+        val esc = 27.toChar()
+        val bel = 7.toChar()
+        val output = process("$esc]11;?$bel")
+        assertEquals(listOf(11 to bel.toString()), colorQueryResults)
+        assertEquals(0, output.size)
+    }
+
+    @Test
+    fun `OSC 10 foreground query with ST dispatches query with ST terminator`() {
+        val esc = 27.toChar()
+        val st = "$esc\\"
+        val output = process("$esc]10;?$st")
+        assertEquals(listOf(10 to st), colorQueryResults)
+        assertEquals(0, output.size)
+    }
+
+    @Test
+    fun `OSC 11 color set is not a query`() {
+        val esc = 27.toChar()
+        val bel = 7.toChar()
+        process("$esc]11;rgb:ffff/ffff/ffff$bel")
+        assertTrue(colorQueryResults.isEmpty())
+    }
+
+    @Test
+    fun `OSC 11 query split across chunks still dispatches`() {
+        val esc = 27.toChar()
+        val bel = 7.toChar()
+        handler.process("$esc]11;".toByteArray(), 0, 5)
+        val out = ByteArray(64)
+        val tail = "?$bel".toByteArray()
+        val len = handler.process(tail, 0, tail.size, out)
+        assertEquals(listOf(11 to bel.toString()), colorQueryResults)
+        assertEquals(0, len)
+    }
+
+    @Test
+    fun `formatColorReply expands 8-bit channels to 16-bit`() {
+        // #eff1f5 → rgb:efef/f1f1/f5f5 (the reporter's example).
+        val reply = OscHandler.formatColorReply(11, 0xFFEFF1F5L, 7.toChar().toString())
+        val esc = 27.toChar()
+        assertEquals("$esc]11;rgb:efef/f1f1/f5f5${7.toChar()}", reply)
+    }
+
+    @Test
+    fun `formatColorReply echoes ST terminator and handles black`() {
+        val esc = 27.toChar()
+        val st = "$esc\\"
+        val reply = OscHandler.formatColorReply(10, 0xFF000000L, st)
+        assertEquals("$esc]10;rgb:0000/0000/0000$st", reply)
     }
 }

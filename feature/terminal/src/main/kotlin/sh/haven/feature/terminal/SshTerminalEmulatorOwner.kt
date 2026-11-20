@@ -248,6 +248,17 @@ class SshTerminalEmulatorOwner @Inject constructor(
         val scheme = profile?.terminalColorScheme
             ?.let { runCatching { UserPreferencesRepository.TerminalColorScheme.valueOf(it) }.getOrNull() }
             ?: globalScheme
+        // OSC 10/11 color queries: reply with the active scheme's fg/bg so
+        // remote tools (bat, neovim, fzf…) detect light vs dark (#867). Read
+        // the scheme at query time so a later scheme change is reflected.
+        oscHandler.onColorQuery = { osc, terminator ->
+            val currentScheme = profile?.terminalColorScheme
+                ?.let { runCatching { UserPreferencesRepository.TerminalColorScheme.valueOf(it) }.getOrNull() }
+                ?: globalScheme
+            val color = if (osc == 10) currentScheme.foreground else currentScheme.background
+            val reply = OscHandler.formatColorReply(osc, color, terminator)
+            bundle.inputSink(reply.toByteArray(Charsets.UTF_8))
+        }
         val emulator = emulatorFactory.create(
             foreground = Color(scheme.foreground),
             background = Color(scheme.background),

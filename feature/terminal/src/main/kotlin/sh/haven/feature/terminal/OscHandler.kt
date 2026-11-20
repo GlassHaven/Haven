@@ -15,8 +15,9 @@ private const val TAG = "OscHandler"
  *    8 — hyperlinks
  *    9 — notifications (iTerm2-style)
  *  777 — notifications (rxvt-unicode-style)
+ * 10/11 — foreground/background color queries ("?" → onColorQuery, #867)
  *
- * Unrecognised OSC numbers (0, 1, 4, 10, etc.) pass through unchanged so
+ * Unrecognised OSC numbers (0, 1, 4, etc.) pass through unchanged so
  * the terminal emulator can handle them (e.g. OSC 0 sets the title).
  *
  * Format:
@@ -34,6 +35,9 @@ class OscHandler(
     var onHyperlink: (uri: String?) -> Unit = {},
     var onNotification: (title: String, body: String) -> Unit = { _, _ -> },
     var onCwdChanged: (String) -> Unit = {},
+    /** OSC 10/11 foreground/background color query ("?" payload). The owner
+     *  replies with the active scheme color via [formatColorReply] (#867). */
+    var onColorQuery: (osc: Int, terminator: String) -> Unit = { _, _ -> },
 ) {
 
     private enum class State {
@@ -55,7 +59,23 @@ class OscHandler(
         private const val MAX_SEQ_OVERHEAD = 64
 
         /** OSC numbers we handle (strip from output). */
-        private val HANDLED_OSC = setOf(7, 8, 9, 52, 777)
+        private val HANDLED_OSC = setOf(7, 8, 9, 10, 11, 52, 777)
+
+        /**
+         * Format an OSC 10/11 color query reply (#867). [argb] is the active
+         * scheme color (0xAARRGGBB); each 8-bit channel is expanded to xterm's
+         * 16-bit form (0xRR → 0xRRRR). [terminator] echoes the query's (BEL or
+         * ST). Example: argb 0xFFEFF1F5 → "rgb:efef/f1f1/f5f5".
+         */
+        fun formatColorReply(osc: Int, argb: Long, terminator: String): String {
+            fun chan(shift: Int): Int = ((argb shr shift) and 0xFF).toInt()
+            fun exp(v: Int): String = "%04x".format((v shl 8) or v)
+            val r = exp(chan(16))
+            val g = exp(chan(8))
+            val b = exp(chan(0))
+            val esc = 27.toChar()
+            return "$esc]$osc;rgb:$r/$g/$b$terminator"
+        }
     }
 
     private var state = State.GROUND
@@ -176,7 +196,7 @@ class OscHandler(
 
                 State.ST_ESC -> {
                     if (u == '\\'.code) {
-                        dispatchOsc()
+                        dispatchOsc(27.toChar().toString() + "\\")
                         state = State.GROUND
                     } else {
                         // Not a valid ST — flush everything
@@ -266,7 +286,7 @@ class OscHandler(
     private fun processPayloadByte(b: Byte, u: Int) {
         when {
             u == 0x07 -> {
-                dispatchOsc()
+                dispatchOsc(7.toChar().toString())
                 state = State.GROUND
             }
             u == 0x1B -> {
@@ -283,7 +303,7 @@ class OscHandler(
         }
     }
 
-    private fun dispatchOsc() {
+    private fun dispatchOsc(terminator: String) {
         val payload = payloadBuf.toByteArray()
         payloadBuf.reset()
         seqBuf.reset()
@@ -296,6 +316,10 @@ class OscHandler(
             8 -> dispatchOsc8(payloadStr)
             9 -> dispatchOsc9(payloadStr)
             777 -> dispatchOsc777(payloadStr)
+            // OSC 10/11 with a "?" payload is a foreground/background color
+            // query; reply via the owner so remote tools can detect light vs
+            // dark (#867). A non-"?" payload (a color set) is ignored.
+            10, 11 -> if (payloadStr == "?") onColorQuery(oscNumber, terminator)
         }
     }
 

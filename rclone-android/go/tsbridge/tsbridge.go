@@ -34,6 +34,7 @@ import (
 	"io"
 	"net"
 	"net/netip"
+	"os"
 	"strconv"
 	"sync"
 	"time"
@@ -301,6 +302,17 @@ func StartTunnel(authKey, stateDir, hostname, controlURL string) (*TunnelHandle,
 	}
 	if stateDir == "" {
 		return nil, errors.New("state directory required")
+	}
+	// Point Tailscale's log policy at the app-owned state dir. logpolicy.LogsDir
+	// otherwise falls back to os.UserCacheDir() / TMPDIR / cwd, which are all
+	// unwritable in some Android app environments (e.g. HyperOS), and panics
+	// "no safe place found to store log state" before the tunnel can start (#866).
+	// TS_LOGS_DIR is honored first by LogsDir, so this avoids the fallback chain.
+	if err := os.MkdirAll(stateDir, 0o700); err != nil {
+		return nil, fmt.Errorf("create tailscale state dir: %w", err)
+	}
+	if err := os.Setenv("TS_LOGS_DIR", stateDir); err != nil {
+		return nil, fmt.Errorf("set TS_LOGS_DIR: %w", err)
 	}
 	if hostname == "" {
 		hostname = "haven-android"

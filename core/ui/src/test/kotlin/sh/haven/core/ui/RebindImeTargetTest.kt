@@ -68,7 +68,7 @@ class RebindImeTargetTest {
                 restartInput = { restarted += it },
                 windowVisible = true,
             )
-            shadowOf(Looper.getMainLooper()).idle()
+            shadowOf(Looper.getMainLooper()).runToEndOfTasks()
         }
 
         private companion object {
@@ -127,6 +127,24 @@ class RebindImeTargetTest {
 
         assertEquals("retries once, never loops", 1, f.clears)
         assertTrue("never restarts input on a non-editor", f.restarted.isEmpty())
+    }
+
+    @Test
+    fun anEditorThatAttachesSeveralFramesLateIsStillRestarted() {
+        val f = Fixture(context)
+        assertTrue(f.other.requestFocus())
+        var requests = 0
+
+        // A tab switch recreates the pane; the fresh ImeInputView only takes
+        // focus a few frames later (#869). The old single retry gave up before
+        // then (restarted=false); the poll must keep trying until it lands.
+        f.rebind {
+            requests++
+            if (requests >= 4) f.editor.requestFocus()
+        }
+
+        assertSame(f.editor, f.root.findFocus())
+        assertEquals(listOf<View>(f.editor), f.restarted)
     }
 
     @Test

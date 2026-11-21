@@ -123,12 +123,36 @@ fun rebindImeTarget(
         }
         clearFocus()
         requestFocus()
-        root.post {
-            val editor = root.findFocus()?.takeIf { it.onCheckIsTextEditor() }
-            editor?.let(restartInput)
-            logRebind(rearmed, relinked, retried = true, restarted = editor != null)
-        }
+        // A tab switch recreates the pane (key(sessionId)); the fresh
+        // ImeInputView attaches a few frames later, so a single retry races
+        // it and gives up with restarted=false even though focus lands on
+        // the editor shortly after (#869). Poll across real frames (a plain
+        // post() drains faster than the frame rate) until the editor holds
+        // focus, then restart input on it.
+        pollRestartInput(root, requestFocus, restartInput, rearmed, relinked, attemptsLeft = 30)
     }
+}
+
+private fun pollRestartInput(
+    root: View,
+    requestFocus: () -> Unit,
+    restartInput: (View) -> Unit,
+    rearmed: Int,
+    relinked: Boolean,
+    attemptsLeft: Int,
+) {
+    val editor = root.findFocus()?.takeIf { it.onCheckIsTextEditor() }
+    if (editor != null) {
+        restartInput(editor)
+        logRebind(rearmed, relinked, retried = true, restarted = true)
+        return
+    }
+    if (attemptsLeft <= 0) {
+        logRebind(rearmed, relinked, retried = true, restarted = false)
+        return
+    }
+    requestFocus()
+    root.postDelayed({ pollRestartInput(root, requestFocus, restartInput, rearmed, relinked, attemptsLeft - 1) }, 16)
 }
 
 // Counts and booleans only — this line is meant for logs users attach to

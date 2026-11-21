@@ -128,14 +128,18 @@ fun rebindImeTarget(
         // it and gives up with restarted=false even though focus lands on
         // the editor shortly after (#869). Poll across real frames (a plain
         // post() drains faster than the frame rate) until the editor holds
-        // focus, then restart input on it.
-        pollRestartInput(root, requestFocus, restartInput, rearmed, relinked, attemptsLeft = 30)
+        // focus, then restart input on it. Each attempt re-clears focus
+        // first: on a slow IME (Samsung) a bare requestFocus is a no-op while
+        // Compose still believes the tab strip is focused, so forcing the
+        // clear is what actually moves focus onto the editor.
+        pollRestartInput(root, requestFocus, clearFocus, restartInput, rearmed, relinked, attemptsLeft = 60)
     }
 }
 
 private fun pollRestartInput(
     root: View,
     requestFocus: () -> Unit,
+    clearFocus: () -> Unit,
     restartInput: (View) -> Unit,
     rearmed: Int,
     relinked: Boolean,
@@ -151,8 +155,9 @@ private fun pollRestartInput(
         logRebind(rearmed, relinked, retried = true, restarted = false)
         return
     }
+    clearFocus()
     requestFocus()
-    root.postDelayed({ pollRestartInput(root, requestFocus, restartInput, rearmed, relinked, attemptsLeft - 1) }, 16)
+    root.postDelayed({ pollRestartInput(root, requestFocus, clearFocus, restartInput, rearmed, relinked, attemptsLeft - 1) }, 16)
 }
 
 // Counts and booleans only — this line is meant for logs users attach to

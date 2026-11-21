@@ -119,13 +119,13 @@ class RebindImeTargetTest {
     }
 
     @Test
-    fun withNoEditorToFocusItGivesUpAfterOneRetry() {
+    fun withNoEditorToFocusItPollsButNeverRestarts() {
         val f = Fixture(context)
         assertTrue(f.other.requestFocus())
 
         f.rebind { /* never lands on an editor (e.g. raw keyboard mode) */ }
 
-        assertEquals("retries once, never loops", 1, f.clears)
+        assertTrue("polls by re-clearing focus, never restarts on a non-editor", f.clears > 1)
         assertTrue("never restarts input on a non-editor", f.restarted.isEmpty())
     }
 

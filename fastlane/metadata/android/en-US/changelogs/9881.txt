@@ -1,0 +1,1 @@
+Add a "CJK compose mode by default" keyboard setting: new terminal sessions start in compose (中) mode so Chinese/Japanese/Korean input works without toggling 中 each session. The toolbar 中 key still overrides per session.

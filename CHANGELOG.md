@@ -5,6 +5,11 @@ the corresponding GitHub Release; a release can't ship without its section
 (enforced by `scripts/check-changelog.sh` in CI). The GitHub "Full Changelog"
 compare link is appended automatically — don't add it here.
 
+## v5.94.63
+
+- Add a "CJK compose mode by default" keyboard setting: new terminal sessions start in compose (中) mode so Chinese/Japanese/Korean input works without toggling 中 each session. The toolbar 中 key still overrides per session (#872, thanks Ign1x).
+- Release builds now ship the arm64 assets immediately and fill the rarer armv7/x64 assets nightly for the latest release.
+
 ## v5.94.62
 
 - Add a storage build: the terminal app plus rclone cloud storage (Filen, Mega, Google Drive and the other rclone remotes), without the desktop and media parts — a smaller option for remote-storage use (#848, thanks ghanan). Take the `-storage` APK from the release assets; the lean `-terminal` APK now correctly documents that it has SFTP files but not rclone cloud storage.

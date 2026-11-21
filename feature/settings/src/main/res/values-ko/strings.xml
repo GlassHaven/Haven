@@ -303,7 +303,7 @@
     <string name="settings_keyboard_mode_subtitle_custom">Custom — 사용자 선택 EditorInfo 플래그</string>
     <string name="settings_keyboard_mode_subtitle_secure">Secure — 기본값, 자동 교정 억제</string>
     <string name="settings_keyboard_mode_secure_label">Secure (기본값)</string>
-    <string name="settings_keyboard_mode_secure_desc">개인정보 플래그가 설정된 실제 소프트웨어 키보드: Gboard 마이크, 자동 교정, 스와이프 입력, 쓰기 보조가 억제됩니다. 비밀번호 입력에 적합하며 블루투스 키보드에서도 작동합니다.</string>
+    <string name="settings_keyboard_mode_secure_desc">개인정보 플래그가 설정된 실제 소프트웨어 키보드: Gboard 마이크, 자동 교정, 스와이프 입력, 쓰기 보조가 억제됩니다. 비밀번호 입력에 적합하며 블루투스 키보드에서도 작동합니다. 이 모드에서는 중국어/일본어/한국어 조합 입력이 비활성화됩니다. CJK 입력에는 도구 모음의 中(조합) 토글 또는 표준 모드를 사용하세요.</string>
     <string name="settings_keyboard_mode_standard_label">Standard</string>
     <string name="settings_keyboard_mode_standard_desc">전체 Gboard 기능 — 음성 입력, 스와이프 입력, 자동 교정, 단어 예측. Secure 모드에서 키보드가 작동하지 않거나 자동 교정이 필요할 때 선택하세요.</string>
     <string name="settings_keyboard_mode_raw_label">Raw — 블루투스/USB 전용</string>

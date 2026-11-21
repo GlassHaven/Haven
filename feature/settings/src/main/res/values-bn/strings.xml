@@ -303,7 +303,7 @@
     <string name="settings_keyboard_mode_subtitle_custom">Custom — ব্যবহারকারী-নির্বাচিত EditorInfo ফ্ল্যাগ</string>
     <string name="settings_keyboard_mode_subtitle_secure">Secure — ডিফল্ট, autocorrect দমন করে</string>
     <string name="settings_keyboard_mode_secure_label">Secure (ডিফল্ট)</string>
-    <string name="settings_keyboard_mode_secure_desc">গোপনীয়তা ফ্ল্যাগ সহ সফটওয়্যার কীবোর্ড: Gboard মাইক, autocorrect, swipe typing ও writing-assist দমন করা। পাসওয়ার্ড টাইপের জন্য সেরা; Bluetooth কীবোর্ডেও কাজ করে।</string>
+    <string name="settings_keyboard_mode_secure_desc">গোপনীয়তা ফ্ল্যাগ সহ সফটওয়্যার কীবোর্ড: Gboard মাইক, autocorrect, swipe typing ও writing-assist দমন করা। পাসওয়ার্ড টাইপের জন্য সেরা; Bluetooth কীবোর্ডেও কাজ করে। এই মোডে চীনা/জাপানি/কোরিয়ান composition নিষ্ক্রিয়। CJK ইনপুটের জন্য টুলবারের 中 (compose) টগল বা Standard মোড ব্যবহার করুন।</string>
     <string name="settings_keyboard_mode_standard_label">Standard</string>
     <string name="settings_keyboard_mode_standard_desc">সম্পূর্ণ Gboard সুবিধা — ভয়েস ইনপুট, swipe typing, autocorrect, শব্দ prediction। Secure মোডে কীবোর্ড কাজ না করলে বা autocorrect চাইলে এটি বেছে নিন।</string>
     <string name="settings_keyboard_mode_raw_label">Raw — Bluetooth/USB শুধু</string>

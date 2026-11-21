@@ -303,7 +303,7 @@
     <string name="settings_keyboard_mode_subtitle_custom">Personalizado — indicadores EditorInfo elegidos por el usuario</string>
     <string name="settings_keyboard_mode_subtitle_secure">Seguro — predeterminado, suprime autocorrección</string>
     <string name="settings_keyboard_mode_secure_label">Seguro (predeterminado)</string>
-    <string name="settings_keyboard_mode_secure_desc">Teclado de software real con indicadores de privacidad: micrófono de Gboard, autocorrección, escritura por deslizamiento y asistencia de escritura suprimidos. Ideal para escribir contraseñas; funciona también con teclados Bluetooth.</string>
+    <string name="settings_keyboard_mode_secure_desc">Teclado de software real con indicadores de privacidad: micrófono de Gboard, autocorrección, escritura por deslizamiento y asistencia de escritura suprimidos. Ideal para escribir contraseñas; funciona también con teclados Bluetooth. La composición chino/japonés/coreano está desactivada en este modo. Para entrada CJK, usa el botón 中 (componer) de la barra de herramientas o el modo Estándar.</string>
     <string name="settings_keyboard_mode_standard_label">Estándar</string>
     <string name="settings_keyboard_mode_standard_desc">Funciones completas de Gboard — entrada de voz, escritura por deslizamiento, autocorrección, predicciones. Elige esto si el teclado de software no funciona en modo Seguro o si quieres autocorrección.</string>
     <string name="settings_keyboard_mode_raw_label">Raw — solo Bluetooth/USB</string>

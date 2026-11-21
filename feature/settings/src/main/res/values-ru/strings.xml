@@ -303,7 +303,7 @@
     <string name="settings_keyboard_mode_subtitle_custom">Custom — выбранные пользователем флаги EditorInfo</string>
     <string name="settings_keyboard_mode_subtitle_secure">Secure — по умолчанию, подавляет автокоррекцию</string>
     <string name="settings_keyboard_mode_secure_label">Защищённый (по умолчанию)</string>
-    <string name="settings_keyboard_mode_secure_desc">Настоящая экранная клавиатура с флагами конфиденциальности: микрофон Gboard, автокоррекция, свайп-набор и помощник набора отключены. Лучший выбор для ввода паролей; работает и с Bluetooth-клавиатурами.</string>
+    <string name="settings_keyboard_mode_secure_desc">Настоящая экранная клавиатура с флагами конфиденциальности: микрофон Gboard, автокоррекция, свайп-набор и помощник набора отключены. Лучший выбор для ввода паролей; работает и с Bluetooth-клавиатурами. В этом режиме отключён ввод китайского/японского/корейского (CJK). Для ввода CJK используйте переключатель 中 (композиция) на панели инструментов или стандартный режим.</string>
     <string name="settings_keyboard_mode_standard_label">Стандартный</string>
     <string name="settings_keyboard_mode_standard_desc">Все возможности Gboard — голосовой ввод, свайп-набор, автокоррекция, предсказание слов. Выберите, если клавиатура не работает в защищённом режиме или нужна автокоррекция.</string>
     <string name="settings_keyboard_mode_raw_label">Raw — только Bluetooth/USB</string>

@@ -302,7 +302,7 @@
     <string name="settings_keyboard_mode_subtitle_custom">Custom — 用户自选 EditorInfo 标志</string>
     <string name="settings_keyboard_mode_subtitle_secure">Secure — 默认，禁止自动纠正</string>
     <string name="settings_keyboard_mode_secure_label">安全（默认）</string>
-    <string name="settings_keyboard_mode_secure_desc">真实软键盘并设置隐私标志：Gboard 麦克风、自动纠正、滑动输入和写作辅助均被禁止。最适合输入密码；蓝牙键盘同样适用。</string>
+    <string name="settings_keyboard_mode_secure_desc">真实软键盘并设置隐私标志：Gboard 麦克风、自动纠正、滑动输入和写作辅助均被禁止。最适合输入密码；蓝牙键盘同样适用。 此模式禁用中文/日文/韩文组合输入。如需输入 CJK，请使用工具栏的 中（组合）开关或标准模式。</string>
     <string name="settings_keyboard_mode_standard_label">标准</string>
     <string name="settings_keyboard_mode_standard_desc">完整 Gboard 功能——语音输入、滑动输入、自动纠正、词语预测。若软键盘在安全模式下无法使用，或需要自动纠正，请选此项。</string>
     <string name="settings_keyboard_mode_raw_label">Raw — 仅蓝牙/USB</string>

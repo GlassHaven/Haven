@@ -387,7 +387,7 @@
     <string name="settings_keyboard_mode_subtitle_custom">Custom — user-selected EditorInfo flags</string>
     <string name="settings_keyboard_mode_subtitle_secure">Secure — default, suppresses autocorrect</string>
     <string name="settings_keyboard_mode_secure_label">Secure (default)</string>
-    <string name="settings_keyboard_mode_secure_desc">Real software keyboard with privacy flags set: Gboard mic, autocorrect, swipe typing and writing-assist are suppressed. Best for typing passwords; works with Bluetooth keyboards too.</string>
+    <string name="settings_keyboard_mode_secure_desc">Real software keyboard with privacy flags set: Gboard mic, autocorrect, swipe typing and writing-assist are suppressed. Best for typing passwords; works with Bluetooth keyboards too. Chinese/Japanese/Korean composition is disabled in this mode. For CJK input, use the toolbar 中 (compose) toggle or Standard mode.</string>
     <string name="settings_keyboard_mode_standard_label">Standard</string>
     <string name="settings_keyboard_mode_standard_desc">Full Gboard features — voice input, swipe typing, autocorrect, word predictions. Pick this if your software keyboard isn\'t working in Secure mode, or if you want autocorrect.</string>
     <string name="settings_keyboard_mode_raw_label">Raw — Bluetooth/USB only</string>

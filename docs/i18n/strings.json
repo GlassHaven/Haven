@@ -36961,22 +36961,22 @@
     },
     {
      "name": "settings_keyboard_mode_secure_desc",
-     "en": "Real software keyboard with privacy flags set: Gboard mic, autocorrect, swipe typing and writing-assist are suppressed. Best for typing passwords; works with Bluetooth keyboards too.",
+     "en": "Real software keyboard with privacy flags set: Gboard mic, autocorrect, swipe typing and writing-assist are suppressed. Best for typing passwords; works with Bluetooth keyboards too. Chinese/Japanese/Korean composition is disabled in this mode. For CJK input, use the toolbar 中 (compose) toggle or Standard mode.",
      "comment": "Keyboard mode",
      "args": [],
      "t": {
-      "ar": "لوحة مفاتيح برمجية حقيقية مع تفعيل أعلام الخصوصية: يُكبت ميكروفون Gboard والتصحيح التلقائي والكتابة بالسحب ومساعدة الكتابة. الأفضل لكتابة كلمات المرور؛ يعمل مع لوحات Bluetooth أيضًا.",
-      "bn": "গোপনীয়তা ফ্ল্যাগ সহ সফটওয়্যার কীবোর্ড: Gboard মাইক, autocorrect, swipe typing ও writing-assist দমন করা। পাসওয়ার্ড টাইপের জন্য সেরা; Bluetooth কীবোর্ডেও কাজ করে।",
-      "de": "Echte Software-Tastatur mit Datenschutz-Flags: Gboard-Mikrofon, Autokorrektur, Wischtippen und Schreibassistent werden unterdrückt. Am besten für Passworteingaben; funktioniert auch mit Bluetooth-Tastaturen.",
-      "es": "Teclado de software real con indicadores de privacidad: micrófono de Gboard, autocorrección, escritura por deslizamiento y asistencia de escritura suprimidos. Ideal para escribir contraseñas; funciona también con teclados Bluetooth.",
-      "fr": "Clavier logiciel avec indicateurs de confidentialité : micro Gboard, correction automatique, saisie par glissement et aide à la rédaction désactivés. Idéal pour les mots de passe ; fonctionne aussi avec les claviers Bluetooth.",
-      "hi": "Privacy flags के साथ वास्तविक software keyboard: Gboard mic, autocorrect, swipe typing और writing-assist दबे रहते हैं। पासवर्ड टाइप करने के लिए सबसे उपयुक्त; Bluetooth keyboards के साथ भी काम करता है।",
-      "ja": "プライバシーフラグを設定した通常のソフトウェアキーボード: Gboard のマイク、自動修正、スワイプ入力、ライティングアシストを抑制。パスワード入力に最適。Bluetooth キーボードでも動作します。",
-      "ko": "개인정보 플래그가 설정된 실제 소프트웨어 키보드: Gboard 마이크, 자동 교정, 스와이프 입력, 쓰기 보조가 억제됩니다. 비밀번호 입력에 적합하며 블루투스 키보드에서도 작동합니다.",
-      "pt": "Teclado virtual real com flags de privacidade: microfone do Gboard, autocorreção, digitação por deslizamento e assistência de escrita suprimidos. Ideal para senhas; funciona com teclados Bluetooth também.",
-      "ru": "Настоящая экранная клавиатура с флагами конфиденциальности: микрофон Gboard, автокоррекция, свайп-набор и помощник набора отключены. Лучший выбор для ввода паролей; работает и с Bluetooth-клавиатурами.",
-      "sr": "Права софтверска тастатура са постављеним заставицама приватности: потиснути су Gboard микрофон, аутоисправљање, куцање превлачењем и помоћ при писању",
-      "zh": "真实软键盘并设置隐私标志：Gboard 麦克风、自动纠正、滑动输入和写作辅助均被禁止。最适合输入密码；蓝牙键盘同样适用。"
+      "ar": "لوحة مفاتيح برمجية حقيقية مع تفعيل أعلام الخصوصية: يُكبت ميكروفون Gboard والتصحيح التلقائي والكتابة بالسحب ومساعدة الكتابة. الأفضل لكتابة كلمات المرور؛ يعمل مع لوحات Bluetooth أيضًا. تركيب الأحرف الصينية/اليابانية/الكورية معطّل في هذا الوضع. لإدخال CJK، استخدم زر 中 (التركيب) في شريط الأدوات أو الوضع القياسي.",
+      "bn": "গোপনীয়তা ফ্ল্যাগ সহ সফটওয়্যার কীবোর্ড: Gboard মাইক, autocorrect, swipe typing ও writing-assist দমন করা। পাসওয়ার্ড টাইপের জন্য সেরা; Bluetooth কীবোর্ডেও কাজ করে। এই মোডে চীনা/জাপানি/কোরিয়ান composition নিষ্ক্রিয়। CJK ইনপুটের জন্য টুলবারের 中 (compose) টগল বা Standard মোড ব্যবহার করুন।",
+      "de": "Echte Software-Tastatur mit Datenschutz-Flags: Gboard-Mikrofon, Autokorrektur, Wischtippen und Schreibassistent werden unterdrückt. Am besten für Passworteingaben; funktioniert auch mit Bluetooth-Tastaturen. Chinesisch/Japanisch/Koreanisch-Komposition ist in diesem Modus deaktiviert. Für CJK-Eingabe den 中-(Compose)-Schalter in der Symbolleiste oder den Standardmodus verwenden.",
+      "es": "Teclado de software real con indicadores de privacidad: micrófono de Gboard, autocorrección, escritura por deslizamiento y asistencia de escritura suprimidos. Ideal para escribir contraseñas; funciona también con teclados Bluetooth. La composición chino/japonés/coreano está desactivada en este modo. Para entrada CJK, usa el botón 中 (componer) de la barra de herramientas o el modo Estándar.",
+      "fr": "Clavier logiciel avec indicateurs de confidentialité : micro Gboard, correction automatique, saisie par glissement et aide à la rédaction désactivés. Idéal pour les mots de passe ; fonctionne aussi avec les claviers Bluetooth. La composition chinois/japonais/coréen est désactivée dans ce mode. Pour la saisie CJK, utilisez le bouton 中 (composition) de la barre d\\'outils ou le mode Standard.",
+      "hi": "Privacy flags के साथ वास्तविक software keyboard: Gboard mic, autocorrect, swipe typing और writing-assist दबे रहते हैं। पासवर्ड टाइप करने के लिए सबसे उपयुक्त; Bluetooth keyboards के साथ भी काम करता है। इस मोड में चीनी/जापानी/कोरियाई composition अक्षम है। CJK इनपुट के लिए टूलबार का 中 (compose) टॉगल या Standard मोड उपयोग करें।",
+      "ja": "プライバシーフラグを設定した通常のソフトウェアキーボード: Gboard のマイク、自動修正、スワイプ入力、ライティングアシストを抑制。パスワード入力に最適。Bluetooth キーボードでも動作します。 このモードでは中国語・日本語・韓国語の変換入力が無効です。CJK入力にはツールバーの 中（変換）トグルまたは標準モードを使用してください。",
+      "ko": "개인정보 플래그가 설정된 실제 소프트웨어 키보드: Gboard 마이크, 자동 교정, 스와이프 입력, 쓰기 보조가 억제됩니다. 비밀번호 입력에 적합하며 블루투스 키보드에서도 작동합니다. 이 모드에서는 중국어/일본어/한국어 조합 입력이 비활성화됩니다. CJK 입력에는 도구 모음의 中(조합) 토글 또는 표준 모드를 사용하세요.",
+      "pt": "Teclado virtual real com flags de privacidade: microfone do Gboard, autocorreção, digitação por deslizamento e assistência de escrita suprimidos. Ideal para senhas; funciona com teclados Bluetooth também. A composição chinês/japonês/coreano está desativada neste modo. Para entrada CJK, use o botão 中 (compor) da barra de ferramentas ou o modo Padrão.",
+      "ru": "Настоящая экранная клавиатура с флагами конфиденциальности: микрофон Gboard, автокоррекция, свайп-набор и помощник набора отключены. Лучший выбор для ввода паролей; работает и с Bluetooth-клавиатурами. В этом режиме отключён ввод китайского/японского/корейского (CJK). Для ввода CJK используйте переключатель 中 (композиция) на панели инструментов или стандартный режим.",
+      "sr": "Права софтверска тастатура са постављеним заставицама приватности: потиснути су Gboard микрофон, аутоисправљање, куцање превлачењем и помоћ при писању Композиција кинеског/јапанског/корејског је онемогућена у овом режиму. За CJK унос користите 中 (композиција) пребацивање на траци са алаткама или Стандардни режим.",
+      "zh": "真实软键盘并设置隐私标志：Gboard 麦克风、自动纠正、滑动输入和写作辅助均被禁止。最适合输入密码；蓝牙键盘同样适用。 此模式禁用中文/日文/韩文组合输入。如需输入 CJK，请使用工具栏的 中（组合）开关或标准模式。"
      }
     },
     {

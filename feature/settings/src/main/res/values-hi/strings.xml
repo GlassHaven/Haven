@@ -303,7 +303,7 @@
     <string name="settings_keyboard_mode_subtitle_custom">Custom — user-चयनित EditorInfo flags</string>
     <string name="settings_keyboard_mode_subtitle_secure">Secure — default, autocorrect दबाता है</string>
     <string name="settings_keyboard_mode_secure_label">Secure (default)</string>
-    <string name="settings_keyboard_mode_secure_desc">Privacy flags के साथ वास्तविक software keyboard: Gboard mic, autocorrect, swipe typing और writing-assist दबे रहते हैं। पासवर्ड टाइप करने के लिए सबसे उपयुक्त; Bluetooth keyboards के साथ भी काम करता है।</string>
+    <string name="settings_keyboard_mode_secure_desc">Privacy flags के साथ वास्तविक software keyboard: Gboard mic, autocorrect, swipe typing और writing-assist दबे रहते हैं। पासवर्ड टाइप करने के लिए सबसे उपयुक्त; Bluetooth keyboards के साथ भी काम करता है। इस मोड में चीनी/जापानी/कोरियाई composition अक्षम है। CJK इनपुट के लिए टूलबार का 中 (compose) टॉगल या Standard मोड उपयोग करें।</string>
     <string name="settings_keyboard_mode_standard_label">Standard</string>
     <string name="settings_keyboard_mode_standard_desc">Gboard की सभी सुविधाएँ — voice input, swipe typing, autocorrect, word predictions। अगर Secure mode में software keyboard काम न करे, या autocorrect चाहिए, तो यह चुनें।</string>
     <string name="settings_keyboard_mode_raw_label">Raw — केवल Bluetooth/USB</string>

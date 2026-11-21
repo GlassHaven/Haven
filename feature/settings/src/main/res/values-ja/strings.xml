@@ -303,7 +303,7 @@
     <string name="settings_keyboard_mode_subtitle_custom">Custom — ユーザー指定の EditorInfo フラグ</string>
     <string name="settings_keyboard_mode_subtitle_secure">Secure — デフォルト、自動修正を抑制</string>
     <string name="settings_keyboard_mode_secure_label">セキュア（デフォルト）</string>
-    <string name="settings_keyboard_mode_secure_desc">プライバシーフラグを設定した通常のソフトウェアキーボード: Gboard のマイク、自動修正、スワイプ入力、ライティングアシストを抑制。パスワード入力に最適。Bluetooth キーボードでも動作します。</string>
+    <string name="settings_keyboard_mode_secure_desc">プライバシーフラグを設定した通常のソフトウェアキーボード: Gboard のマイク、自動修正、スワイプ入力、ライティングアシストを抑制。パスワード入力に最適。Bluetooth キーボードでも動作します。 このモードでは中国語・日本語・韓国語の変換入力が無効です。CJK入力にはツールバーの 中（変換）トグルまたは標準モードを使用してください。</string>
     <string name="settings_keyboard_mode_standard_label">スタンダード</string>
     <string name="settings_keyboard_mode_standard_desc">Gboard の全機能 — 音声入力、スワイプ入力、自動修正、単語予測。セキュアモードでソフトウェアキーボードが動作しない場合や自動修正を使いたい場合に選択してください。</string>
     <string name="settings_keyboard_mode_raw_label">Raw — Bluetooth/USB のみ</string>

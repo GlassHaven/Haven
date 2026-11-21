@@ -312,7 +312,7 @@
     <string name="settings_keyboard_mode_subtitle_custom">Произвољно — кориснички изабране EditorInfo заставице</string>
     <string name="settings_keyboard_mode_subtitle_secure">Безбедни — подразумевано, потискује аутоисправљање</string>
     <string name="settings_keyboard_mode_secure_label">Безбедни (подразумевано)</string>
-    <string name="settings_keyboard_mode_secure_desc">Права софтверска тастатура са постављеним заставицама приватности: потиснути су Gboard микрофон, аутоисправљање, куцање превлачењем и помоћ при писању</string>
+    <string name="settings_keyboard_mode_secure_desc">Права софтверска тастатура са постављеним заставицама приватности: потиснути су Gboard микрофон, аутоисправљање, куцање превлачењем и помоћ при писању Композиција кинеског/јапанског/корејског је онемогућена у овом режиму. За CJK унос користите 中 (композиција) пребацивање на траци са алаткама или Стандардни режим.</string>
     <string name="settings_keyboard_mode_standard_label">Стандардни</string>
     <string name="settings_keyboard_mode_standard_desc">Све Gboard функционалности — унос гласом, куцање превлачењем, аутоисправљање, предвиђање речи. Изаберите ово ако ваша софтверска тастатура не функционише у Безбедном режиму, или ако вам је потребно аутоисправљање.</string>
     <string name="settings_keyboard_mode_raw_label">Сирови — само Bluetooth/USB</string>

@@ -303,7 +303,7 @@
     <string name="settings_keyboard_mode_subtitle_custom">Personnalisé — indicateurs EditorInfo choisis par l\'utilisateur</string>
     <string name="settings_keyboard_mode_subtitle_secure">Sécurisé — par défaut, supprime la correction automatique</string>
     <string name="settings_keyboard_mode_secure_label">Sécurisé (par défaut)</string>
-    <string name="settings_keyboard_mode_secure_desc">Clavier logiciel avec indicateurs de confidentialité : micro Gboard, correction automatique, saisie par glissement et aide à la rédaction désactivés. Idéal pour les mots de passe ; fonctionne aussi avec les claviers Bluetooth.</string>
+    <string name="settings_keyboard_mode_secure_desc">Clavier logiciel avec indicateurs de confidentialité : micro Gboard, correction automatique, saisie par glissement et aide à la rédaction désactivés. Idéal pour les mots de passe ; fonctionne aussi avec les claviers Bluetooth. La composition chinois/japonais/coréen est désactivée dans ce mode. Pour la saisie CJK, utilisez le bouton 中 (composition) de la barre d\'outils ou le mode Standard.</string>
     <string name="settings_keyboard_mode_standard_label">Standard</string>
     <string name="settings_keyboard_mode_standard_desc">Toutes les fonctionnalités Gboard — saisie vocale, glissement, correction automatique, prédictions. Choisissez ce mode si votre clavier logiciel ne fonctionne pas en mode Sécurisé, ou si vous souhaitez la correction automatique.</string>
     <string name="settings_keyboard_mode_raw_label">Brut — Bluetooth/USB uniquement</string>

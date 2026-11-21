@@ -303,7 +303,7 @@
     <string name="settings_keyboard_mode_subtitle_custom">مخصص — أعلام EditorInfo التي يختارها المستخدم</string>
     <string name="settings_keyboard_mode_subtitle_secure">آمن — الافتراضي، يكبت التصحيح التلقائي</string>
     <string name="settings_keyboard_mode_secure_label">آمن (الافتراضي)</string>
-    <string name="settings_keyboard_mode_secure_desc">لوحة مفاتيح برمجية حقيقية مع تفعيل أعلام الخصوصية: يُكبت ميكروفون Gboard والتصحيح التلقائي والكتابة بالسحب ومساعدة الكتابة. الأفضل لكتابة كلمات المرور؛ يعمل مع لوحات Bluetooth أيضًا.</string>
+    <string name="settings_keyboard_mode_secure_desc">لوحة مفاتيح برمجية حقيقية مع تفعيل أعلام الخصوصية: يُكبت ميكروفون Gboard والتصحيح التلقائي والكتابة بالسحب ومساعدة الكتابة. الأفضل لكتابة كلمات المرور؛ يعمل مع لوحات Bluetooth أيضًا. تركيب الأحرف الصينية/اليابانية/الكورية معطّل في هذا الوضع. لإدخال CJK، استخدم زر 中 (التركيب) في شريط الأدوات أو الوضع القياسي.</string>
     <string name="settings_keyboard_mode_standard_label">قياسي</string>
     <string name="settings_keyboard_mode_standard_desc">ميزات Gboard الكاملة — الإدخال الصوتي والكتابة بالسحب والتصحيح التلقائي وتنبؤات الكلمات. اختره إذا لم تعمل لوحة المفاتيح البرمجية في الوضع الآمن، أو إذا أردت التصحيح التلقائي.</string>
     <string name="settings_keyboard_mode_raw_label">خام — Bluetooth/USB فقط</string>

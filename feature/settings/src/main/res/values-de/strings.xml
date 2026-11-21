@@ -303,7 +303,7 @@
     <string name="settings_keyboard_mode_subtitle_custom">Benutzerdefiniert — benutzerdefinierte EditorInfo-Flags</string>
     <string name="settings_keyboard_mode_subtitle_secure">Sicher — Standard, unterdrückt Autokorrektur</string>
     <string name="settings_keyboard_mode_secure_label">Sicher (Standard)</string>
-    <string name="settings_keyboard_mode_secure_desc">Echte Software-Tastatur mit Datenschutz-Flags: Gboard-Mikrofon, Autokorrektur, Wischtippen und Schreibassistent werden unterdrückt. Am besten für Passworteingaben; funktioniert auch mit Bluetooth-Tastaturen.</string>
+    <string name="settings_keyboard_mode_secure_desc">Echte Software-Tastatur mit Datenschutz-Flags: Gboard-Mikrofon, Autokorrektur, Wischtippen und Schreibassistent werden unterdrückt. Am besten für Passworteingaben; funktioniert auch mit Bluetooth-Tastaturen. Chinesisch/Japanisch/Koreanisch-Komposition ist in diesem Modus deaktiviert. Für CJK-Eingabe den 中-(Compose)-Schalter in der Symbolleiste oder den Standardmodus verwenden.</string>
     <string name="settings_keyboard_mode_standard_label">Standard</string>
     <string name="settings_keyboard_mode_standard_desc">Vollständige Gboard-Funktionen — Spracheingabe, Wischtippen, Autokorrektur, Wortvorhersagen. Auswählen, wenn die Software-Tastatur im Sicher-Modus nicht funktioniert oder Autokorrektur gewünscht wird.</string>
     <string name="settings_keyboard_mode_raw_label">Raw — nur Bluetooth/USB</string>

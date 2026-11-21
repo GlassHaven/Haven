@@ -5,6 +5,10 @@ the corresponding GitHub Release; a release can't ship without its section
 (enforced by `scripts/check-changelog.sh` in CI). The GitHub "Full Changelog"
 compare link is appended automatically — don't add it here.
 
+## v5.94.60
+
+- Clarify the Secure keyboard mode description: it now notes that Chinese/Japanese/Korean composition is disabled in Secure mode, and points to the toolbar 中 (compose) toggle or Standard mode for CJK input (#872, thanks Ign1x).
+
 ## v5.94.59
 
 - Fix Backspace, arrows and Enter being ignored or toggling fullscreen after switching between terminal tabs. The keyboard is now rebound to the newly-active session's editor once it is ready, rather than giving up before it attaches (#869, thanks Ign1x).

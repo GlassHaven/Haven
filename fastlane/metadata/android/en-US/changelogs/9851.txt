@@ -1,0 +1,1 @@
+Clarify the Secure keyboard mode description: it now notes that Chinese/Japanese/Korean composition is disabled in Secure mode, and points to the toolbar 中 (compose) toggle or Standard mode for CJK input.

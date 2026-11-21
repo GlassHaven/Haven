@@ -1,0 +1,131 @@
+name: Build release ABI
+
+# Reusable per-ABI release build (full APK+AAB, terminal APK, storage APK).
+# Called by release.yml (arm64, on tag) and release-nightly.yml (armv7/x64,
+# nightly for the latest tag). Extracted so the complex sequential-flavour
+# build with its daemon-restart memory pattern lives in exactly one place.
+on:
+  workflow_call:
+    inputs:
+      abi:
+        required: true
+        type: string
+      variant:
+        required: true
+        type: string
+      ref:
+        required: false
+        type: string
+        default: ''
+
+env:
+  FORCE_JAVASCRIPT_ACTIONS_TO_NODE24: "true"
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    timeout-minutes: 90
+    permissions:
+      contents: read
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1  # v7.0.1
+        with:
+          submodules: false
+          ref: ${{ inputs.ref }}
+      - uses: ./.github/actions/init-submodules-with-retry
+      - uses: ./.github/actions/setup-toolchain
+      - name: Decode release keystore
+        run: echo "${{ secrets.KEYSTORE_BASE64 }}" | base64 -d > haven-release.jks
+      # The three flavours run as SEQUENTIAL Gradle invocations, not one.
+      # With both in a single invocation, the terminal flavour's R8 ran
+      # concurrently with the full flavour's bundling/signing, and that
+      # overlap is where both armv7 host-OOM deaths sat (MEMSAMPLE showed
+      # 15.2G used of ~16G, 625M available at the kill). One R8/bundle
+      # peak at a time keeps the host inside its memory.
+      # The MEMSAMPLE loop prints host memory every 30s alongside the Gradle
+      # output, so an evicted runner leaves the ground truth in the log up to
+      # the moment of death.
+      - name: Build signed APK + AAB (${{ inputs.abi }})
+        run: |
+          ( while true; do
+              echo "MEMSAMPLE $(date -u +%H:%M:%S) $(free -m | awk '/^Mem:/{print "used="$3"M avail="$7"M"}')"
+              sleep 30
+            done ) &
+          MEMSAMPLER=$!
+          set +e
+          # No -PskipUml here: the full flavour ships the UML guest, so this
+          # job is where the pinned fetch (core/local/fetch-uml.sh) is proven.
+          # -Pkotlin.compiler.execution.strategy=in-process removes the
+          # separate Kotlin daemon JVM (~3.5G committed at idle): its compile
+          # memory lives inside the 8G-capped Gradle daemon instead, which
+          # frees it before R8 allocates.
+          ./gradlew :app:assemble${{ inputs.variant }}FullRelease \
+            -PtargetAbi=${{ inputs.abi }} \
+            -PnoLintVital \
+            -Pkotlin.compiler.execution.strategy=in-process
+          rc=$?
+          if [ "$rc" = "0" ]; then
+            # Restart the daemons before the bundle. A Gradle daemon never
+            # returns grown heap to the OS, so after assemble the host sat at
+            # ~15.5G used and the full flavour's packageBundle ran on top of
+            # it. A fresh daemon starts small and the bundle work is
+            # up-to-date-checked against assemble's outputs, so minify does
+            # not re-run. The Kotlin daemon outlives --stop on its own idle
+            # timer, so it is killed explicitly.
+            ./gradlew --stop
+            pkill -f KotlinCompileDaemon || true
+            sleep 5
+            ./gradlew :app:bundle${{ inputs.variant }}FullRelease \
+              -PtargetAbi=${{ inputs.abi }} -PnoLintVital
+            rc=$?
+          fi
+          if [ "$rc" = "0" ]; then
+            # Same daemon restart between the flavours: a fresh daemon starts
+            # small and the terminal flavour compiles mostly from cache.
+            ./gradlew --stop
+            pkill -f KotlinCompileDaemon || true
+            sleep 5
+            ./gradlew :app:assemble${{ inputs.variant }}TerminalRelease \
+              -PtargetAbi=${{ inputs.abi }} -PskipUml=true -PnoLintVital
+            rc=$?
+          fi
+          if [ "$rc" = "0" ]; then
+            # Storage flavour (#848): terminal + rclone cloud storage. Keeps
+            # the full libgojni.so (rclone present) but excludes the same
+            # desktop/media/UML payload as terminal. Compiles mostly from
+            # cache; restart the daemon so its R8 peak starts small.
+            ./gradlew --stop
+            pkill -f KotlinCompileDaemon || true
+            sleep 5
+            ./gradlew :app:assemble${{ inputs.variant }}StorageRelease \
+              -PtargetAbi=${{ inputs.abi }} -PskipUml=true -PnoLintVital
+            rc=$?
+          fi
+          kill "$MEMSAMPLER" 2>/dev/null
+          exit "$rc"
+        env:
+          GH_TOKEN: ${{ github.token }}
+          KEYSTORE_PASSWORD: ${{ secrets.KEYSTORE_PASSWORD }}
+          KEY_ALIAS: ${{ secrets.KEY_ALIAS }}
+          KEY_PASSWORD: ${{ secrets.KEY_PASSWORD }}
+      # R8 reflective-class survival check — ABI-agnostic (inspects the R8
+      # mapping), so run it once on arm64.
+      - name: Assert reflectively-loaded classes survived R8
+        if: inputs.abi == 'arm64'
+        run: ./scripts/check-r8-kept-classes.sh
+      # A stale committed .so fails to dlopen on-device (#469). Inspects
+      # checked-in binaries only, so run it once.
+      - name: Assert committed native libs resolve their stubs (#469)
+        if: inputs.abi == 'arm64'
+        run: ./scripts/check-native-libs.sh
+      - name: Upload artifacts
+        uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9  # v7.0.2
+        with:
+          name: haven-${{ inputs.abi }}-release
+          path: |
+            app/build/outputs/apk/${{ inputs.abi }}Full/release/haven-*-release.apk
+            app/build/outputs/apk/${{ inputs.abi }}Terminal/release/haven-*-terminal-release.apk
+            app/build/outputs/apk/${{ inputs.abi }}Storage/release/haven-*-storage-release.apk
+            app/build/outputs/bundle/${{ inputs.abi }}FullRelease/*.aab
+          if-no-files-found: error
+          retention-days: 7

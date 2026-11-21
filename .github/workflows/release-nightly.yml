@@ -1,0 +1,124 @@
+name: Release nightly (rare ABIs)
+
+# arm64 ships immediately on tag (release.yml). armv7/x64 are ~20% of
+# downloads and rare hardware, so they are built here nightly for the
+# LATEST published release and appended to it — batching the rare-ABI
+# builds instead of running them on every tag. Also runnable on demand.
+#
+# Security: this fills an already-published, gate-approved release with
+# additional ABI variants of the SAME tag (verified below), built with the
+# same keystore and tied to the commit by provenance attestation. It does
+# not create a release or bypass the signing gate that approved the tag.
+on:
+  schedule:
+    - cron: '17 3 * * *'   # nightly 03:17 UTC (off the hour to dodge fleet load)
+  workflow_dispatch:
+
+env:
+  FORCE_JAVASCRIPT_ACTIONS_TO_NODE24: "true"
+
+permissions:
+  contents: read
+
+jobs:
+  # Resolve the latest published release and decide whether its rare-ABI
+  # assets are still missing (skip the build if a prior nightly already
+  # filled this tag).
+  plan:
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    outputs:
+      tag: ${{ steps.plan.outputs.tag }}
+      needed: ${{ steps.plan.outputs.needed }}
+    steps:
+      - name: Resolve latest release + check rare-ABI assets
+        id: plan
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          tag=$(gh release view --repo "$GITHUB_REPOSITORY" --json tagName -q .tagName)
+          version="${tag#v}"
+          echo "Latest release: $tag"
+          if gh release view "$tag" --repo "$GITHUB_REPOSITORY" --json assets \
+               -q '.assets[].name' | grep -q "haven-${version}-armv7-release.apk"; then
+            echo "armv7 assets already present for $tag — nothing to do"
+            echo "needed=false" >> "$GITHUB_OUTPUT"
+          else
+            echo "needed=true" >> "$GITHUB_OUTPUT"
+          fi
+          echo "tag=$tag" >> "$GITHUB_OUTPUT"
+
+  build:
+    needs: plan
+    if: needs.plan.outputs.needed == 'true'
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - { abi: armv7, variant: Armv7 }
+          - { abi: x64,   variant: X64 }
+    uses: ./.github/workflows/build-release-abi.yml
+    with:
+      abi: ${{ matrix.abi }}
+      variant: ${{ matrix.variant }}
+      ref: ${{ needs.plan.outputs.tag }}
+    secrets: inherit
+
+  append:
+    needs: [plan, build]
+    if: needs.plan.outputs.needed == 'true'
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    permissions:
+      contents: write        # upload assets to the existing release
+      id-token: write         # OIDC for build-provenance attestation
+      attestations: write     # write the provenance attestation
+    steps:
+      - name: Download armv7 artifacts
+        uses: actions/download-artifact@9000827ccba6bdab643e8b6fd33ac0654aef8333  # v8.0.2
+        with:
+          name: haven-armv7-release
+          path: release/
+      - name: Download x64 artifacts
+        uses: actions/download-artifact@9000827ccba6bdab643e8b6fd33ac0654aef8333  # v8.0.2
+        with:
+          name: haven-x64-release
+          path: release/
+      - name: Attest build provenance
+        uses: actions/attest-build-provenance@4d101475d8b20a2381f78447822ac1eab6504dd8  # v4.2.2
+        with:
+          subject-path: |
+            release/**/*.apk
+            release/**/*.aab
+      - name: Append assets + regenerate SHA256SUMS
+        env:
+          GH_TOKEN: ${{ github.token }}
+          TAG: ${{ needs.plan.outputs.tag }}
+        run: |
+          set -euo pipefail
+          # Upload the new rare-ABI assets to the existing release.
+          find release -type f \( -name '*.apk' -o -name '*.aab' \) -print0 \
+            | xargs -0 gh release upload "$TAG" --repo "$GITHUB_REPOSITORY" --clobber
+          # Merge the existing manifest with the new hashes: keep arm64 lines,
+          # replace any prior armv7/x64 lines with the freshly built ones.
+          gh release download "$TAG" --repo "$GITHUB_REPOSITORY" -p SHA256SUMS -D existing --clobber
+          python3 - <<'PY'
+          import hashlib, os, glob
+          new = {}
+          for f in glob.glob("release/**/*.apk", recursive=True) + glob.glob("release/**/*.aab", recursive=True):
+              h = hashlib.sha256(open(f, "rb").read()).hexdigest()
+              new[os.path.basename(f)] = h
+          kept = []
+          if os.path.exists("existing/SHA256SUMS"):
+              for line in open("existing/SHA256SUMS"):
+                  line = line.rstrip("\n")
+                  if not line:
+                      continue
+                  name = line.split(None, 1)[1].lstrip("*")
+                  if name not in new:
+                      kept.append(line)
+          lines = kept + [f"{h}  {n}" for n, h in new.items()]
+          open("SHA256SUMS", "w").write("\n".join(sorted(lines)) + "\n")
+          print(open("SHA256SUMS").read())
+          PY
+          gh release upload "$TAG" --repo "$GITHUB_REPOSITORY" SHA256SUMS --clobber

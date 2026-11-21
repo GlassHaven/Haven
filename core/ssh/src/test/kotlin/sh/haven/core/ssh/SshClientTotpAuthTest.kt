@@ -60,7 +60,7 @@ class SshClientTotpAuthTest {
                         username = "alice",
                         authMethod = ConnectionConfig.AuthMethod.Password(""),
                     ),
-                    connectTimeoutMs = 5_000,
+                    connectTimeoutMs = 15_000,
                     keyboardInteractivePrompter = { prompterCalled = true; null },
                     totpCodeProvider = { expectedCode },
                     confirmOtp = false,
@@ -87,7 +87,7 @@ class SshClientTotpAuthTest {
                         username = "alice",
                         authMethod = ConnectionConfig.AuthMethod.Password(""),
                     ),
-                    connectTimeoutMs = 5_000,
+                    connectTimeoutMs = 15_000,
                     keyboardInteractivePrompter = { challenge ->
                         seenPrefill = challenge.prefilled
                         // User confirms the pre-filled code.

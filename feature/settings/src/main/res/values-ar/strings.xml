@@ -315,6 +315,8 @@
     <string name="settings_ctrl_shift_v_subtitle">Ctrl+Shift+V على لوحة المفاتيح الفيزيائية يلصق من حافظة Android. إيقافه يرسل المفاتيح إلى الصدفة البعيدة.</string>
     <string name="settings_auto_show_keyboard_title">إظهار لوحة المفاتيح عند فتح الطرفية</string>
     <string name="settings_auto_show_keyboard_subtitle">تظهر لوحة مفاتيح النظام تلقائيًا عند فتح جلسة طرفية أو التبديل إليها. أوقفها لإبقائها مخفية في جلسات القراءة فقط؛ لا يزال مفتاح لوحة المفاتيح في شريط الأدوات والنقر المزدوج يظهرانها</string>
+    <string name="settings_default_compose_mode_title">وضع التركيب CJK افتراضيًا</string>
+    <string name="settings_default_compose_mode_subtitle">ابدأ جلسات الطرفية الجديدة في وضع التركيب (中) ليعمل الإدخال الصيني/الياباني/الكوري دون تبديل 中 كل جلسة. مفتاح 中 في شريط الأدوات لا يزال يوقفه لكل جلسة</string>
 
     <!-- Navigation Tabs dialog -->
 

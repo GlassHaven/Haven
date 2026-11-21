@@ -315,6 +315,8 @@
     <string name="settings_ctrl_shift_v_subtitle">Ctrl+Shift+V no teclado físico cola da área de transferência do Android. Desativado encaminha as teclas para o shell remoto.</string>
     <string name="settings_auto_show_keyboard_title">Mostrar o teclado ao abrir um terminal</string>
     <string name="settings_auto_show_keyboard_subtitle">O teclado virtual aparece automaticamente ao abrir ou mudar para uma sessão de terminal. Desative para mantê-lo oculto em sessões somente leitura; a tecla de teclado da barra de ferramentas e um toque duplo ainda o exibem</string>
+    <string name="settings_default_compose_mode_title">Modo de composição CJK por padrão</string>
+    <string name="settings_default_compose_mode_subtitle">Inicia novas sessões de terminal no modo de composição (中) para que a entrada chinês/japonês/coreano funcione sem alternar 中 a cada sessão. A tecla 中 da barra de ferramentas ainda o desativa por sessão</string>
 
     <!-- Navigation Tabs dialog -->
 

@@ -315,6 +315,8 @@
     <string name="settings_ctrl_shift_v_subtitle">하드웨어 키보드 Ctrl+Shift+V로 Android 클립보드에서 붙여넣습니다. 끄면 키가 원격 셸로 전달됩니다.</string>
     <string name="settings_auto_show_keyboard_title">터미널 열 때 키보드 표시</string>
     <string name="settings_auto_show_keyboard_subtitle">터미널 세션을 열거나 전환하면 소프트웨어 키보드가 자동으로 올라옵니다. 읽기 전용 세션에서는 내려두세요. 도구모음의 키보드 키와 더블 탭으로 언제든 올릴 수 있습니다</string>
+    <string name="settings_default_compose_mode_title">기본 CJK 조합 모드</string>
+    <string name="settings_default_compose_mode_subtitle">매 세션마다 中을 토글하지 않고 중국어/일본어/한국어 입력이 작동하도록 새 터미널 세션을 조합(中) 모드로 시작합니다. 도구 모음의 中 키로 세션별로 끌 수 있습니다</string>
 
     <!-- Navigation Tabs dialog -->
 

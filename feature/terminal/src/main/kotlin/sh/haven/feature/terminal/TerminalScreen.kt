@@ -590,6 +590,7 @@ fun TerminalScreen(
     showCopyOutputButton: Boolean = false,
     keepScreenOnInTerminal: Boolean = false,
     autoShowKeyboardInTerminal: Boolean = true,
+    defaultComposeMode: Boolean = false,
     mouseInputEnabled: Boolean = true,
     terminalRightClick: Boolean = false,
     tapToPositionCursorOnPrompt: Boolean = false,
@@ -1907,6 +1908,7 @@ fun TerminalScreen(
                                         hackTypeface = hackTypeface,
                                         termlibAmbiwidthMode = termlibAmbiwidthMode,
                                         autoShowKeyboardInTerminal = autoShowKeyboardInTerminal,
+                                        defaultComposeMode = defaultComposeMode,
                                         imeRestoreTick = imeRestoreTick,
                                         reflowTerminalOnKeyboard = reflowTerminalOnKeyboard,
                                         mouseInputEnabled = mouseInputEnabled,
@@ -1966,6 +1968,7 @@ fun TerminalScreen(
                                         hackTypeface = hackTypeface,
                                         termlibAmbiwidthMode = termlibAmbiwidthMode,
                                         autoShowKeyboardInTerminal = autoShowKeyboardInTerminal,
+                                        defaultComposeMode = defaultComposeMode,
                                         imeRestoreTick = imeRestoreTick,
                                         reflowTerminalOnKeyboard = reflowTerminalOnKeyboard,
                                         mouseInputEnabled = mouseInputEnabled,
@@ -2003,6 +2006,7 @@ fun TerminalScreen(
                                 hackTypeface = hackTypeface,
                                 termlibAmbiwidthMode = termlibAmbiwidthMode,
                                 autoShowKeyboardInTerminal = autoShowKeyboardInTerminal,
+                                defaultComposeMode = defaultComposeMode,
                                 imeRestoreTick = imeRestoreTick,
                                 reflowTerminalOnKeyboard = reflowTerminalOnKeyboard,
                                 mouseInputEnabled = mouseInputEnabled,
@@ -2419,6 +2423,7 @@ private fun TerminalPaneHost(
     hackTypeface: android.graphics.Typeface,
     termlibAmbiwidthMode: org.connectbot.terminal.AmbiwidthMode,
     autoShowKeyboardInTerminal: Boolean,
+    defaultComposeMode: Boolean,
     imeRestoreTick: Int,
     reflowTerminalOnKeyboard: Boolean,
     mouseInputEnabled: Boolean,
@@ -2665,6 +2670,13 @@ private fun TerminalPaneHost(
                     localComposeController = it
                     composeControllers[tab.sessionId] = it
                     viewModel.terminalSessionRegistry.setComposeController(tab.sessionId, it)
+                    // #872: start new sessions in compose (中) mode when the
+                    // user defaults to it, so CJK input works without toggling
+                    // 中 each session. Compose mode is sticky within a session;
+                    // the toolbar toggle still overrides per session.
+                    if (defaultComposeMode && !it.isComposeModeActive) {
+                        it.startComposeMode()
+                    }
                 },
                 onTerminalTap = {
                     if (!isFocusedPane) onRequestPaneFocus()

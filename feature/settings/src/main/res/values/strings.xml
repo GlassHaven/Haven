@@ -403,6 +403,8 @@
     <string name="settings_ctrl_shift_v_subtitle">Hardware keyboard Ctrl+Shift+V pastes from the Android clipboard. Off forwards the keys to the remote shell.</string>
     <string name="settings_auto_show_keyboard_title">Show keyboard when a terminal opens</string>
     <string name="settings_auto_show_keyboard_subtitle">The soft keyboard rises automatically when you open or switch to a terminal session. Turn off to keep it down for read-only sessions; the toolbar keyboard key and a double-tap still bring it up</string>
+    <string name="settings_default_compose_mode_title">CJK compose mode by default</string>
+    <string name="settings_default_compose_mode_subtitle">Start new terminal sessions in compose (中) mode so Chinese/Japanese/Korean input works without toggling 中 each session. The toolbar 中 key still turns it off per session</string>
 
     <!-- Navigation Tabs dialog -->
 

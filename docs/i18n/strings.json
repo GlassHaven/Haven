@@ -37200,6 +37200,46 @@
      }
     },
     {
+     "name": "settings_default_compose_mode_title",
+     "en": "CJK compose mode by default",
+     "comment": "Ctrl+Shift+V paste",
+     "args": [],
+     "t": {
+      "ar": "وضع التركيب CJK افتراضيًا",
+      "bn": "ডিফল্ট CJK compose মোড",
+      "de": "CJK-Kompositionsmodus als Standard",
+      "es": "Modo de composición CJK por defecto",
+      "fr": "Mode de composition CJK par défaut",
+      "hi": "डिफ़ॉल्ट CJK compose मोड",
+      "ja": "CJK変換モードをデフォルトに",
+      "ko": "기본 CJK 조합 모드",
+      "pt": "Modo de composição CJK por padrão",
+      "ru": "Режим композиции CJK по умолчанию",
+      "sr": "Подразумевани CJK режим композиције",
+      "zh": "默认 CJK 组合模式"
+     }
+    },
+    {
+     "name": "settings_default_compose_mode_subtitle",
+     "en": "Start new terminal sessions in compose (中) mode so Chinese/Japanese/Korean input works without toggling 中 each session. The toolbar 中 key still turns it off per session",
+     "comment": "Ctrl+Shift+V paste",
+     "args": [],
+     "t": {
+      "ar": "ابدأ جلسات الطرفية الجديدة في وضع التركيب (中) ليعمل الإدخال الصيني/الياباني/الكوري دون تبديل 中 كل جلسة. مفتاح 中 في شريط الأدوات لا يزال يوقفه لكل جلسة",
+      "bn": "চীনা/জাপানি/কোরিয়ান ইনপুটের জন্য প্রতি সেশনে 中 টগল না করে নতুন টার্মিনাল সেশন compose (中) মোডে শুরু করুন। টুলবারের 中 কী প্রতি সেশনে এটি বন্ধ করতে পারে",
+      "de": "Neue Terminal-Sitzungen im Kompositionsmodus (中) starten, damit Chinesisch/Japanisch/Koreanisch-Eingabe funktioniert, ohne 中 jede Sitzung umzuschalten. Die 中-Taste in der Symbolleiste deaktiviert ihn weiterhin pro Sitzung",
+      "es": "Inicia las nuevas sesiones de terminal en modo de composición (中) para que la entrada chino/japonés/coreano funcione sin alternar 中 cada sesión. La tecla 中 de la barra de herramientas aún lo desactiva por sesión",
+      "fr": "Démarrer les nouvelles sessions de terminal en mode composition (中) pour que la saisie chinois/japonais/coréen fonctionne sans basculer 中 à chaque session. La touche 中 de la barre d\\'outils le désactive toujours par session",
+      "hi": "चीनी/जापानी/कोरियाई इनपुट के लिए हर सत्र में 中 टॉगल किए बिना नए टर्मिनल सत्र compose (中) मोड में शुरू करें। टूलबार की 中 कुंजी अभी भी प्रति सत्र इसे बंद करती है",
+      "ja": "新しいターミナルセッションを変換（中）モードで開始し、毎回中を切り替えずに中国語・日本語・韓国語を入力できます。ツールバーの中キーでセッションごとにオフにできます",
+      "ko": "매 세션마다 中을 토글하지 않고 중국어/일본어/한국어 입력이 작동하도록 새 터미널 세션을 조합(中) 모드로 시작합니다. 도구 모음의 中 키로 세션별로 끌 수 있습니다",
+      "pt": "Inicia novas sessões de terminal no modo de composição (中) para que a entrada chinês/japonês/coreano funcione sem alternar 中 a cada sessão. A tecla 中 da barra de ferramentas ainda o desativa por sessão",
+      "ru": "Запускать новые сеансы терминала в режиме композиции (中), чтобы ввод китайского/японского/корейского работал без переключения 中 каждый сеанс. Клавиша 中 на панели инструментов по-прежнему отключает его для сеанса",
+      "sr": "Покрећите нове сесије терминала у режиму композиције (中) тако да кинески/јапански/корејски унос ради без пребацивања 中 сваке сесије. Тастер 中 на траци са алаткама га и даље искључује по сесији",
+      "zh": "新终端会话默认以组合（中）模式启动，无需每次会话切换中即可输入中文/日文/韩文。工具栏的中键仍可按会话关闭"
+     }
+    },
+    {
      "name": "settings_nav_tab_visibility_auto_title",
      "en": "Auto",
      "comment": "Navigation Tabs dialog",

@@ -315,6 +315,8 @@
     <string name="settings_ctrl_shift_v_subtitle">Hardware-Tastatur Strg+Umschalt+V fügt aus der Android-Zwischenablage ein. Aus leitet die Tasten an die Remote-Shell weiter.</string>
     <string name="settings_auto_show_keyboard_title">Tastatur beim Öffnen eines Terminals anzeigen</string>
     <string name="settings_auto_show_keyboard_subtitle">Die Soft-Tastatur erscheint automatisch beim Öffnen oder Wechseln zu einer Terminal-Sitzung. Für schreibgeschützte Sitzungen deaktivieren; die Tastatur-Taste der Symbolleiste und ein Doppeltipp holen sie weiterhin hervor</string>
+    <string name="settings_default_compose_mode_title">CJK-Kompositionsmodus als Standard</string>
+    <string name="settings_default_compose_mode_subtitle">Neue Terminal-Sitzungen im Kompositionsmodus (中) starten, damit Chinesisch/Japanisch/Koreanisch-Eingabe funktioniert, ohne 中 jede Sitzung umzuschalten. Die 中-Taste in der Symbolleiste deaktiviert ihn weiterhin pro Sitzung</string>
 
     <!-- Navigation Tabs dialog -->
 

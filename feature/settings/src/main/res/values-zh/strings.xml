@@ -314,6 +314,8 @@
     <string name="settings_ctrl_shift_v_subtitle">硬件键盘 Ctrl+Shift+V 从 Android 剪贴板粘贴。关闭则将按键转发到远程 shell。</string>
     <string name="settings_auto_show_keyboard_title">打开终端时显示键盘</string>
     <string name="settings_auto_show_keyboard_subtitle">打开或切换到终端会话时自动弹出软键盘。只读会话可关闭；工具栏键盘键和双击仍可随时唤出</string>
+    <string name="settings_default_compose_mode_title">默认 CJK 组合模式</string>
+    <string name="settings_default_compose_mode_subtitle">新终端会话默认以组合（中）模式启动，无需每次会话切换中即可输入中文/日文/韩文。工具栏的中键仍可按会话关闭</string>
 
     <!-- Navigation Tabs dialog -->
 

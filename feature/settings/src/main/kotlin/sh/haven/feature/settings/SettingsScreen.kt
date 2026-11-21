@@ -217,6 +217,7 @@ fun SettingsScreen(
     val showCopyOutputButton by viewModel.showCopyOutputButton.collectAsState()
     val keepScreenOnInTerminal by viewModel.keepScreenOnInTerminal.collectAsState()
     val autoShowKeyboardInTerminal by viewModel.autoShowKeyboardInTerminal.collectAsState()
+    val defaultComposeMode by viewModel.defaultComposeMode.collectAsState()
     val hideNavBarInTerminal by viewModel.hideNavBarInTerminal.collectAsState()
     val connectionLoggingEnabled by viewModel.connectionLoggingEnabled.collectAsState()
     val excludeFromRecents by viewModel.excludeFromRecents.collectAsState()
@@ -826,6 +827,13 @@ fun SettingsScreen(
             subtitle = stringResource(R.string.settings_auto_show_keyboard_subtitle),
             checked = autoShowKeyboardInTerminal,
             onCheckedChange = viewModel::setAutoShowKeyboardInTerminal,
+        )
+        SettingsToggleItem(
+            icon = Icons.Filled.Language,
+            title = stringResource(R.string.settings_default_compose_mode_title),
+            subtitle = stringResource(R.string.settings_default_compose_mode_subtitle),
+            checked = defaultComposeMode,
+            onCheckedChange = viewModel::setDefaultComposeMode,
         )
 
         }

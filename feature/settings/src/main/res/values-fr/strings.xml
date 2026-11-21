@@ -315,6 +315,8 @@
     <string name="settings_ctrl_shift_v_subtitle">Ctrl+Maj+V sur clavier matériel colle depuis le presse-papiers Android. Désactivé, les touches sont transmises au shell distant.</string>
     <string name="settings_auto_show_keyboard_title">Afficher le clavier à l’ouverture d’un terminal</string>
     <string name="settings_auto_show_keyboard_subtitle">Le clavier virtuel apparaît automatiquement à l’ouverture ou au changement d’une session de terminal. Désactivez pour le garder masqué en lecture seule ; la touche clavier de la barre d’outils et un double-tap le font toujours apparaître</string>
+    <string name="settings_default_compose_mode_title">Mode de composition CJK par défaut</string>
+    <string name="settings_default_compose_mode_subtitle">Démarrer les nouvelles sessions de terminal en mode composition (中) pour que la saisie chinois/japonais/coréen fonctionne sans basculer 中 à chaque session. La touche 中 de la barre d\'outils le désactive toujours par session</string>
 
     <!-- Navigation Tabs dialog -->
 

@@ -1,0 +1,1 @@
+Fix Backspace, arrows and Enter being ignored or toggling fullscreen after switching between terminal tabs. The keyboard is now rebound to the newly-active session's editor once it is ready, rather than giving up before it attaches.

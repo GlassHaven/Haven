@@ -5,6 +5,10 @@ the corresponding GitHub Release; a release can't ship without its section
 (enforced by `scripts/check-changelog.sh` in CI). The GitHub "Full Changelog"
 compare link is appended automatically — don't add it here.
 
+## v5.94.59
+
+- Fix Backspace, arrows and Enter being ignored or toggling fullscreen after switching between terminal tabs. The keyboard is now rebound to the newly-active session's editor once it is ready, rather than giving up before it attaches (#869, thanks Ign1x).
+
 ## v5.94.58
 
 - Add Yggdrasil as a tunnel type: a decentralized, end-to-end-encrypted IPv6 mesh with no coordination server. Add peers manually in the tunnel editor, or use `create_tunnel` with type `YGGDRASIL`; SSH, SFTP and other backends then route over the mesh by its IPv6 address. Like the other tunnels it runs as an in-process proxy and does not take the system VPN slot.

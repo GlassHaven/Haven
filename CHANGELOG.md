@@ -5,10 +5,20 @@ the corresponding GitHub Release; a release can't ship without its section
 (enforced by `scripts/check-changelog.sh` in CI). The GitHub "Full Changelog"
 compare link is appended automatically — don't add it here.
 
+## v5.94.58
+
+- Add Yggdrasil as a tunnel type: a decentralized, end-to-end-encrypted IPv6 mesh with no coordination server. Add peers manually in the tunnel editor, or use `create_tunnel` with type `YGGDRASIL`; SSH, SFTP and other backends then route over the mesh by its IPv6 address. Like the other tunnels it runs as an in-process proxy and does not take the system VPN slot.
+- NetBird tunnels that use Rosenpass post-quantum key exchange now complete the handshake when the phone initiates it, as well as when the peer does (#662, thanks Slayerx96).
+- Connect to servers that only offer the legacy SHA-1 `ssh-rsa` host key. When host key negotiation fails, the connection is retried once with `ssh-rsa` appended to the proposal, so modern algorithms stay first and unaffected servers never see the retry. A "Retry with legacy ssh-rsa host key" switch in the connection's Terminal options (on by default) turns this off, and a warning names the weakened handshake when it is used (#865, thanks zy8270).
+- Preview Markdown files in a built-in viewer from the file browser (#850, thanks boyce-ywr).
+- Fix a crash when starting a Tailscale tunnel on devices whose default log-state directories are unwritable: the tunnel now sets a writable log directory before starting (#866, thanks ikizu-aep).
+- Answer OSC 10/11 foreground and background color queries so terminal programs can detect the active light or dark scheme (#867, thanks chmouel).
+- Move the terminal fullscreen toggle into the tab strip so it no longer overlaps TUI corners (#868, thanks boyce-ywr).
+- Fix an external keyboard's arrows, Backspace and Enter being ignored or toggling fullscreen in SSH sessions: the terminal editor is re-armed to take focus before the keyboard is raised (#869, #871, thanks boyce-ywr).
+
 ## v5.94.57
 
 - Add a global default address family that new SSH connections inherit (Settings → Default address family), including IPv6-preferred / IPv4-preferred modes that fall back to the other family when the preferred one is unreachable. Existing connections keep their own setting (#855, thanks Az-1-2).
-- Connect to servers that only offer the legacy SHA-1 `ssh-rsa` host key. When host key negotiation fails, the connection is retried once with `ssh-rsa` appended to the proposal, so modern algorithms stay first and unaffected servers never see the retry. A "Retry with legacy ssh-rsa host key" switch in the connection's Terminal options (on by default) turns this off, and a warning names the weakened handshake when it is used.
 
 ## v5.94.56
 

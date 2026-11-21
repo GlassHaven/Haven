@@ -155,9 +155,11 @@ class TunnelPortForwardManagerTest {
         // socksPorts and the marker file are settled by the async live-flow
         // collector (which can overwrite connectStandalone's direct update),
         // so poll for the stable end state rather than asserting immediately —
-        // that raced under CI load. Up to ~10s of headroom for a busy runner.
+        // that raced under CI load. The release -> live emission -> collector
+        // chain can stall well past 10s when native builds saturate the runner,
+        // so allow up to ~30s of headroom (this flaked three times at 10s).
         var attempts = 0
-        while ((forwardManager.socksPorts.value["wg-1"] != 45678 || !marker.isFile) && attempts++ < 500) {
+        while ((forwardManager.socksPorts.value["wg-1"] != 45678 || !marker.isFile) && attempts++ < 1500) {
             Thread.sleep(20)
         }
         assertEquals(45678, forwardManager.socksPorts.value["wg-1"])
@@ -166,7 +168,7 @@ class TunnelPortForwardManagerTest {
 
         forwardManager.disconnectStandalone("wg-1")
         attempts = 0
-        while ((forwardManager.socksPorts.value.containsKey("wg-1") || marker.exists()) && attempts++ < 500) {
+        while ((forwardManager.socksPorts.value.containsKey("wg-1") || marker.exists()) && attempts++ < 1500) {
             Thread.sleep(20)
         }
         assertFalse(tunnelManager.hasStandaloneDependents)

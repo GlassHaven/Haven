@@ -5,6 +5,10 @@ the corresponding GitHub Release; a release can't ship without its section
 (enforced by `scripts/check-changelog.sh` in CI). The GitHub "Full Changelog"
 compare link is appended automatically — don't add it here.
 
+## v5.94.62
+
+- Add a storage build: the terminal app plus rclone cloud storage (Filen, Mega, Google Drive and the other rclone remotes), without the desktop and media parts — a smaller option for remote-storage use (#848, thanks ghanan). Take the `-storage` APK from the release assets; the lean `-terminal` APK now correctly documents that it has SFTP files but not rclone cloud storage.
+
 ## v5.94.61
 
 - Fix Left/Right arrow keys navigating the tab strip instead of moving the terminal cursor after switching sessions on Samsung keyboards: the keyboard rebind now forces focus onto the terminal editor on slow IMEs (#869, thanks Ign1x).

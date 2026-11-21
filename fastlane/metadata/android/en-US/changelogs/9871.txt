@@ -1,0 +1,1 @@
+Add a storage build: the terminal app plus rclone cloud storage (Filen, Mega, Google Drive and other rclone remotes), without the desktop and media parts — a smaller option for remote-storage use. Take the -storage APK from the release assets.

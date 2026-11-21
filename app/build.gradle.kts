@@ -49,6 +49,16 @@ android {
             // stripping the libraries from EVERY variant. Measured: it made
             // the full flavour 55 MB too.
         }
+        create("storage") {
+            dimension = "features"
+            buildConfigField("boolean", "DESKTOP", "false")
+            // #848: terminal + rclone cloud storage, still without the
+            // desktop/media/UML payload. Unlike terminal it keeps the FULL
+            // libgojni.so (rclone present), so it takes :core:rclone's copy
+            // rather than the jniLibs-terminal source set below. NativeFeatures
+            // gates the UI by library presence, so rclone shows and desktop
+            // hides by construction.
+        }
     }
 
     // The terminal flavour's Go library lives outside the module, next to the
@@ -189,7 +199,9 @@ androidComponents {
     // So this rides existing contracts rather than inventing failure modes.
     // BuildConfig.DESKTOP hides the entry points so nothing offers a feature
     // that cannot run.
-    onVariants(selector().withFlavor("features" to "terminal")) { variant ->
+    onVariants { variant ->
+        val features = variant.productFlavors.firstOrNull { it.first == "features" }?.second
+        if (features != "terminal" && features != "storage") return@onVariants
         variant.packaging.jniLibs.excludes.addAll(
             // Remote desktop transports
             "**/librdp_transport.so",
@@ -228,7 +240,11 @@ androidComponents {
         val abiCode = abiCodes[abi]
         val base = android.defaultConfig.versionCode ?: 0
         val versionName = android.defaultConfig.versionName
-        val suffix = if (features == "terminal") "-terminal" else ""
+        val suffix = when (features) {
+            "terminal" -> "-terminal"
+            "storage" -> "-storage"
+            else -> ""
+        }
         variant.outputs.forEach { output ->
             if (abiCode != null) {
                 output.versionCode.set(base * 10 + abiCode)

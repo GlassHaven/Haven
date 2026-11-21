@@ -214,6 +214,19 @@ jobs:
               -PtargetAbi=${{ matrix.abi }} -PskipUml=true -PnoLintVital
             rc=$?
           fi
+          if [ "$rc" = "0" ]; then
+            # Storage flavour (#848): terminal + rclone cloud storage. Keeps
+            # the full libgojni.so (rclone present) but excludes the same
+            # desktop/media/UML payload as terminal. Compiles mostly from
+            # cache; restart the daemon so its R8 peak starts small, exactly
+            # as for the terminal flavour above.
+            ./gradlew --stop
+            pkill -f KotlinCompileDaemon || true
+            sleep 5
+            ./gradlew :app:assemble${{ matrix.variant }}StorageRelease \
+              -PtargetAbi=${{ matrix.abi }} -PskipUml=true -PnoLintVital
+            rc=$?
+          fi
           kill "$MEMSAMPLER" 2>/dev/null
           exit "$rc"
         env:
@@ -242,6 +255,7 @@ jobs:
           path: |
             app/build/outputs/apk/${{ matrix.abi }}Full/release/haven-*-release.apk
             app/build/outputs/apk/${{ matrix.abi }}Terminal/release/haven-*-terminal-release.apk
+            app/build/outputs/apk/${{ matrix.abi }}Storage/release/haven-*-storage-release.apk
             app/build/outputs/bundle/${{ matrix.abi }}FullRelease/*.aab
           if-no-files-found: error
           retention-days: 7
@@ -333,15 +347,20 @@ jobs:
           carries. If in doubt, take this one.
 
           **`haven-<version>-<abi>-terminal-release.apk`** — the same app with the
-          desktop and media parts left out, for people who only use Haven for SSH,
-          terminals, files and storage. Less than half the size on arm64. It drops
-          RDP and SPICE remote desktop, the native Wayland desktop, and ffmpeg — so
-          no media conversion, and no video previews or streaming in the file
-          browser. VNC is kept, so a Linux desktop running inside Haven's guest
-          still works.
+          desktop, media and rclone cloud-storage parts left out, for people who
+          only use Haven for SSH, terminals and SFTP files. The smallest build.
+          It drops RDP and SPICE remote desktop, the native Wayland desktop,
+          ffmpeg (no media conversion or video previews/streaming) and rclone
+          (no Filen/Mega/Google Drive cloud storage). VNC is kept, so a Linux
+          desktop running inside Haven's guest still works.
 
-          Both are signed with the same key and carry the same version number, so
-          you can install either over the other without losing connections, keys or
+          **`haven-<version>-<abi>-storage-release.apk`** — the terminal build plus
+          rclone cloud storage (Filen, Mega, Google Drive and the other rclone
+          remotes), still without the desktop and media parts. For people who want
+          remote storage in a small app without the full desktop payload.
+
+          All three are signed with the same key and carry the same version number,
+          so you can install any over another without losing connections, keys or
           your Linux guest. The shared version number does mean an updater will not
           offer to move you between them — switching is a deliberate download.
 

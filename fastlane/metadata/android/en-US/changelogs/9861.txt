@@ -1,0 +1,1 @@
+Fix Left/Right arrow keys navigating the tab strip instead of moving the terminal cursor after switching sessions on Samsung keyboards: the keyboard rebind now forces focus onto the terminal editor on slow IMEs.

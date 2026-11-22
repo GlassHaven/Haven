@@ -3238,6 +3238,21 @@ fun ConnectionEditDialog(
                         description = stringResource(R.string.connections_helper_legacy_host_key_fallback),
                     )
 
+                    // NetBird SSH JWT auth (#875). Off by default: a NetBird SSH
+                    // server (disable-ssh-auth off) authenticates a JWT obtained
+                    // via OIDC sign-in as the SSH password. Stored as a
+                    // `HavenNetbirdSshJwt yes` directive in sshOptions — no schema
+                    // change. Only applies when the connection rides a NetBird tunnel.
+                    Spacer(Modifier.height(4.dp))
+                    BooleanToggleRow(
+                        label = stringResource(R.string.connections_toggle_netbird_ssh_jwt),
+                        checked = sh.haven.core.tunnel.NetbirdSshJwt.isEnabledFromOptionsText(sshOptions),
+                        onCheckedChange = { enabled ->
+                            sshOptions = sh.haven.core.tunnel.NetbirdSshJwt.setEnabledInOptions(sshOptions, enabled)
+                        },
+                        description = stringResource(R.string.connections_helper_netbird_ssh_jwt),
+                    )
+
                     // Per-profile terminal colour scheme (#144). Null on the
                     // profile means "inherit the global setting"; setting a
                     // scheme here overrides only this profile so users can

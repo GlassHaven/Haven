@@ -615,6 +615,8 @@
     <string name="connections_helper_persist_rediscovered_host">Обновлять профиль, когда локальный узел предъявляет тот же SSH-ключ хоста по новому адресу IPv4. Отключите, чтобы подключаться по найденному адресу только на время сеанса и сохранять настроенный хост (например, IP WireGuard).</string>
     <string name="connections_toggle_legacy_host_key_fallback">Повторить с устаревшим ключом хоста ssh-rsa</string>
     <string name="connections_helper_legacy_host_key_fallback">Если сервер предлагает только устаревший ключ хоста ssh-rsa (SHA-1), подключение повторяется один раз с добавлением этого алгоритма. Современные алгоритмы по-прежнему пробуются первыми, поэтому серверы с их поддержкой не затрагиваются. Отключите, чтобы завершать ошибкой вместо ослабления рукопожатия.</string>
+    <string name="connections_toggle_netbird_ssh_jwt">Вход NetBird SSH (JWT)</string>
+    <string name="connections_helper_netbird_ssh_jwt">Для серверов NetBird SSH, требующих входа: войдите с помощью своей учётной записи NetBird в браузере и используйте полученный токен как пароль SSH. Применяется только когда это соединение использует туннель NetBird.</string>
     <string name="connections_field_saved_password">Сохранённый пароль (SSH / sudo)</string>
     <string name="connections_helper_saved_password">Необязательно. Зашифрован в Android Keystore и используется для входа по паролю SSH и биометрической автоподстановки sudo в терминале.</string>
     <string name="connections_auth_banner_title">Аутентификация SSH</string>

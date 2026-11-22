@@ -21339,6 +21339,46 @@
      }
     },
     {
+     "name": "connections_toggle_netbird_ssh_jwt",
+     "en": "NetBird SSH sign-in (JWT)",
+     "comment": "#210 i18n sweep: VM-setup copy toasts and code-block copy action.",
+     "args": [],
+     "t": {
+      "ar": "تسجيل دخول NetBird SSH (JWT)",
+      "bn": "NetBird SSH সাইন-ইন (JWT)",
+      "de": "NetBird-SSH-Anmeldung (JWT)",
+      "es": "Inicio de sesión SSH de NetBird (JWT)",
+      "fr": "Connexion SSH NetBird (JWT)",
+      "hi": "NetBird SSH साइन-इन (JWT)",
+      "ja": "NetBird SSH サインイン (JWT)",
+      "ko": "NetBird SSH 로그인 (JWT)",
+      "pt": "Login SSH do NetBird (JWT)",
+      "ru": "Вход NetBird SSH (JWT)",
+      "sr": "NetBird SSH пријава (JWT)",
+      "zh": "NetBird SSH 登录（JWT）"
+     }
+    },
+    {
+     "name": "connections_helper_netbird_ssh_jwt",
+     "en": "For NetBird SSH servers that require sign-in: authenticate with your NetBird identity in a browser and use the resulting token as the SSH password. Only applies when this connection uses a NetBird tunnel.",
+     "comment": "#210 i18n sweep: VM-setup copy toasts and code-block copy action.",
+     "args": [],
+     "t": {
+      "ar": "لخوادم NetBird SSH التي تتطلب تسجيل الدخول: صادق بهويتك في NetBird عبر متصفح واستخدم الرمز الناتج ككلمة مرور SSH. ينطبق فقط عندما يستخدم هذا الاتصال نفق NetBird.",
+      "bn": "যেসব NetBird SSH সার্ভারে সাইন-ইন প্রয়োজন: ব্রাউজারে আপনার NetBird পরিচয় দিয়ে authenticate করুন এবং প্রাপ্ত টোকেনকে SSH পাসওয়ার্ড হিসেবে ব্যবহার করুন। শুধুমাত্র তখনই প্রযোজ্য যখন এই সংযোগ NetBird টানেল ব্যবহার করে।",
+      "de": "Für NetBird-SSH-Server, die eine Anmeldung erfordern: Authentifizieren Sie sich mit Ihrer NetBird-Identität im Browser und verwenden Sie das resultierende Token als SSH-Passwort. Gilt nur, wenn diese Verbindung einen NetBird-Tunnel nutzt.",
+      "es": "Para servidores SSH de NetBird que requieren inicio de sesión: autentícate con tu identidad de NetBird en un navegador y usa el token resultante como contraseña SSH. Solo se aplica cuando esta conexión usa un túnel NetBird.",
+      "fr": "Pour les serveurs SSH NetBird nécessitant une connexion : authentifiez-vous avec votre identité NetBird dans un navigateur et utilisez le jeton obtenu comme mot de passe SSH. S\\'applique uniquement lorsque cette connexion utilise un tunnel NetBird.",
+      "hi": "उन NetBird SSH सर्वर के लिए जिन्हें साइन-इन चाहिए: ब्राउज़र में अपनी NetBird पहचान से authenticate करें और प्राप्त टोकन को SSH पासवर्ड के रूप में उपयोग करें। केवल तभी लागू जब यह कनेक्शन NetBird टनल उपयोग करता है।",
+      "ja": "サインインが必要な NetBird SSH サーバー向け：ブラウザで NetBird の ID で認証し、取得したトークンを SSH パスワードとして使用します。この接続が NetBird トンネルを使う場合のみ適用されます。",
+      "ko": "로그인이 필요한 NetBird SSH 서버용: 브라우저에서 NetBird ID로 인증하고 받은 토큰을 SSH 비밀번호로 사용합니다. 이 연결이 NetBird 터널을 사용할 때만 적용됩니다.",
+      "pt": "Para servidores SSH do NetBird que exigem login: autentique-se com sua identidade NetBird em um navegador e use o token resultante como senha SSH. Aplica-se apenas quando esta conexão usa um túnel NetBird.",
+      "ru": "Для серверов NetBird SSH, требующих входа: войдите с помощью своей учётной записи NetBird в браузере и используйте полученный токен как пароль SSH. Применяется только когда это соединение использует туннель NetBird.",
+      "sr": "За NetBird SSH сервере који захтевају пријаву: аутентификујте се својим NetBird идентитетом у прегледачу и користите добијени токен као SSH лозинку. Примењује се само када ова веза користи NetBird тунел.",
+      "zh": "适用于需要登录的 NetBird SSH 服务器：在浏览器中用您的 NetBird 身份认证，并将所得令牌用作 SSH 密码。仅在此连接使用 NetBird 隧道时适用。"
+     }
+    },
+    {
      "name": "connections_field_saved_password",
      "en": "Saved password (SSH / sudo)",
      "comment": "#210 i18n sweep: VM-setup copy toasts and code-block copy action.",

@@ -2763,6 +2763,38 @@ class ConnectionsViewModel @Inject constructor(
             )
             return
         }
+        // NetBird SSH JWT auth (#875): a NetBird SSH server authenticates a
+        // JWT (OIDC device flow) as the SSH password. Resolve it before
+        // connecting and hand it to connectSsh as the password.
+        if (profile.tunnelConfigId != null &&
+            sh.haven.core.tunnel.NetbirdSshJwt.isEnabledFromOptionsText(profile.sshOptions)
+        ) {
+            viewModelScope.launch {
+                _connectingProfileId.value = profile.id
+                _error.value = null
+                try {
+                    val jwt = withContext(Dispatchers.IO) {
+                        tunnelResolver.resolveNetbirdSshJwt(profile) { uri ->
+                            sh.haven.core.stepca.OidcAuthClient.DefaultLauncher(appContext)
+                                .launch(Uri.parse(uri))
+                        }
+                    }
+                    if (jwt.isNullOrBlank()) {
+                        _error.value = "NetBird SSH auth needs a NetBird tunnel on this connection"
+                        _connectingProfileId.value = null
+                        return@launch
+                    }
+                    connectSsh(
+                        profile, jwt, keyOnly = false, rememberPassword = false,
+                        usernameOverride = runtimeUsername, preselectedSessionName = sessionName,
+                    )
+                } catch (e: Exception) {
+                    _error.value = "NetBird SSH sign-in failed: ${e.message}"
+                    _connectingProfileId.value = null
+                }
+            }
+            return
+        }
         connectSsh(profile, password, keyOnly, rememberPassword, usernameOverride = runtimeUsername, preselectedSessionName = sessionName)
     }
 

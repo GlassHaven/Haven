@@ -137,6 +137,26 @@ class TunnelResolver @Inject constructor(
     }
 
     /**
+     * Resolve the NetBird SSH JWT for a profile opted into NetBird SSH JWT
+     * auth (#875). Acquires the NetBird tunnel, reuses a still-valid cached
+     * JWT, else runs the OIDC device flow: [launchBrowser] opens the
+     * verification URI and this blocks until the user completes sign-in.
+     * Returns the JWT to use as the SSH password, or null when the profile
+     * has no NetBird tunnel. The tunnel lease is refcounted and released by
+     * the normal disconnect path.
+     */
+    suspend fun resolveNetbirdSshJwt(
+        profile: ConnectionProfile,
+        launchBrowser: (String) -> Unit,
+    ): String? {
+        val tunnel = tunnelFor(profile) as? NetbirdTunnel ?: return null
+        tunnel.cachedSshJwt().takeIf { it.isNotBlank() }?.let { return it }
+        val info = tunnel.startSshAuth()
+        launchBrowser(info.verificationUriComplete)
+        return tunnel.waitSshAuth(info.deviceCode)
+    }
+
+    /**
      * Proxy / tunnel chain for a profile, as an opaque [HavenProxy] that
      * `SshClient` consumes. WireGuard / Tailscale tunnel takes precedence
      * over the legacy `proxyType` columns; both are mutually exclusive at

@@ -615,6 +615,8 @@
     <string name="connections_helper_persist_rediscovered_host">Actualiza el perfil cuando un equipo local presenta la misma clave de host SSH en una nueva dirección IPv4. Desactívalo para conectarte a la dirección redescubierta solo durante esa sesión y conservar el host configurado (p. ej., una IP de WireGuard).</string>
     <string name="connections_toggle_legacy_host_key_fallback">Reintentar con la clave de host ssh-rsa antigua</string>
     <string name="connections_helper_legacy_host_key_fallback">Cuando un servidor solo ofrece la clave de host ssh-rsa (SHA-1) antigua, reintenta la conexión una vez añadiendo ese algoritmo. Los algoritmos modernos se siguen intentando primero, así que los servidores que los admiten no se ven afectados. Desactívalo para fallar en lugar de debilitar el handshake.</string>
+    <string name="connections_toggle_netbird_ssh_jwt">Inicio de sesión SSH de NetBird (JWT)</string>
+    <string name="connections_helper_netbird_ssh_jwt">Para servidores SSH de NetBird que requieren inicio de sesión: autentícate con tu identidad de NetBird en un navegador y usa el token resultante como contraseña SSH. Solo se aplica cuando esta conexión usa un túnel NetBird.</string>
     <string name="connections_field_saved_password">Contraseña guardada (SSH / sudo)</string>
     <string name="connections_helper_saved_password">Opcional. Cifrada en Android Keystore y usada para el inicio de sesión SSH por contraseña y el autocompletado biométrico de sudo en la terminal.</string>
     <string name="connections_auth_banner_title">Autenticación SSH</string>

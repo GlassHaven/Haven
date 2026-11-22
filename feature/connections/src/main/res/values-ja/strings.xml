@@ -615,6 +615,8 @@
     <string name="connections_helper_persist_rediscovered_host">ローカルマシンが新しい IPv4 アドレスで同じ SSH ホスト鍵を提示したときにプロファイルを更新します。オフにすると、そのセッションのみ再検出されたアドレスで接続し、設定済みのホスト（WireGuard IP など）を保持します。</string>
     <string name="connections_toggle_legacy_host_key_fallback">旧式の ssh-rsa ホストキーで再試行</string>
     <string name="connections_helper_legacy_host_key_fallback">サーバーが旧式の SHA-1 ssh-rsa ホストキーのみを提供している場合、そのアルゴリズムを追加して接続を一度だけ再試行します。モダンなアルゴリズムが引き続き優先されるため、それらに対応したサーバーには影響しません。ハンドシェイクを弱める代わりに失敗させたい場合はオフにしてください。</string>
+    <string name="connections_toggle_netbird_ssh_jwt">NetBird SSH サインイン (JWT)</string>
+    <string name="connections_helper_netbird_ssh_jwt">サインインが必要な NetBird SSH サーバー向け：ブラウザで NetBird の ID で認証し、取得したトークンを SSH パスワードとして使用します。この接続が NetBird トンネルを使う場合のみ適用されます。</string>
     <string name="connections_field_saved_password">保存されたパスワード (SSH / sudo)</string>
     <string name="connections_helper_saved_password">任意。Android Keystore で暗号化され、SSH パスワードログインおよびターミナルでの生体認証付き sudo 自動入力に使用されます。</string>
     <string name="connections_auth_banner_title">SSH 認証</string>

@@ -615,6 +615,8 @@
     <string name="connections_helper_persist_rediscovered_host">تحديث ملف الاتصال عندما يقدّم جهاز محلي نفس مفتاح مضيف SSH على عنوان IPv4 جديد. أوقف هذا الخيار للاتصال بالعنوان المكتشف لتلك الجلسة فقط مع الاحتفاظ بالمضيف المُعدّ (مثل عنوان WireGuard).</string>
     <string name="connections_toggle_legacy_host_key_fallback">إعادة المحاولة بمفتاح المضيف القديم ssh-rsa</string>
     <string name="connections_helper_legacy_host_key_fallback">عندما يقدّم الخادم مفتاح المضيف القديم ssh-rsa (SHA-1) فقط، أعد محاولة الاتصال مرة واحدة بإضافة هذه الخوارزمية. تبقى الخوارزميات الحديثة أولاً، لذا لا تتأثر الخوادم التي تدعمها. أوقف هذا الخيار للفشل بدلاً من إضعاف المصافحة.</string>
+    <string name="connections_toggle_netbird_ssh_jwt">تسجيل دخول NetBird SSH (JWT)</string>
+    <string name="connections_helper_netbird_ssh_jwt">لخوادم NetBird SSH التي تتطلب تسجيل الدخول: صادق بهويتك في NetBird عبر متصفح واستخدم الرمز الناتج ككلمة مرور SSH. ينطبق فقط عندما يستخدم هذا الاتصال نفق NetBird.</string>
     <string name="connections_field_saved_password">كلمة المرور المحفوظة (SSH / sudo)</string>
     <string name="connections_helper_saved_password">اختياري. مشفرة في Android Keystore وتُستخدم لتسجيل دخول SSH ولملء sudo المحمي بالبصمة في الطرفية.</string>
     <string name="connections_auth_banner_title">مصادقة SSH</string>

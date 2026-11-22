@@ -95,7 +95,49 @@ class NetbirdTunnel internal constructor(
             // Best-effort teardown.
         }
     }
+
+    /**
+     * Begin the NetBird SSH JWT OIDC device flow (#875). Returns the browser
+     * verification URI and user code; open the URI, then call [waitSshAuth]
+     * with the device code. The resulting JWT is the SSH password for a
+     * NetBird SSH server.
+     */
+    fun startSshAuth(hint: String = "", timeoutMs: Int = 30_000): SshAuthInfo {
+        val info = try {
+            native.startSSHAuth(hint, timeoutMs.toLong())
+        } catch (e: Exception) {
+            throw IOException("NetBird SSH auth start failed: ${e.message}", e)
+        }
+        return SshAuthInfo(
+            verificationUri = info.verificationURI,
+            verificationUriComplete = info.verificationURIComplete,
+            userCode = info.userCode,
+            deviceCode = info.deviceCode,
+            expiresIn = info.expiresIn,
+        )
+    }
+
+    /** Block until the user completes the browser auth, returning the JWT. */
+    fun waitSshAuth(deviceCode: String, timeoutMs: Int = 300_000): String =
+        try {
+            native.waitSSHAuth(deviceCode, timeoutMs.toLong())
+        } catch (e: Exception) {
+            throw IOException("NetBird SSH auth wait failed: ${e.message}", e)
+        }
+
+    /** A still-valid JWT from a prior [waitSshAuth], or empty. */
+    fun cachedSshJwt(): String =
+        runCatching { native.cachedSSHJWT() }.getOrDefault("")
 }
+
+/** The OIDC device-flow details for NetBird SSH JWT auth (#875). */
+data class SshAuthInfo(
+    val verificationUri: String,
+    val verificationUriComplete: String,
+    val userCode: String,
+    val deviceCode: String,
+    val expiresIn: Long,
+)
 
 /**
  * Wraps a native [NativeConn] as [TunneledConnection]. Same gomobile

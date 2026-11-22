@@ -116,6 +116,8 @@ github.com/GlassOnTin/go-rosenpass v0.0.0-20261119213733-a4759ecf1451 h1:W9MhCpb
 github.com/GlassOnTin/go-rosenpass v0.0.0-20261119213733-a4759ecf1451/go.mod h1:YRBeyKOe/gWpSX2kpDUec5p9t0XOLsshTguId5gTGVg=
 github.com/GlassOnTin/netbird v0.0.0-20261119210840-51ad6f93b33e h1:2lOY0ksAB1PRgrddGomY/Xwmghh3Y9IZkWJJBA9y+bM=
 github.com/GlassOnTin/netbird v0.0.0-20261119210840-51ad6f93b33e/go.mod h1:v1hGAJhN/jMM6GgsnrwWHGpsYnxdu4SipVJeL3OVNfk=
+github.com/GlassOnTin/netbird v0.0.0-20261122095613-369a3c5636b2 h1:lRXF13KmLXwrJNOoZTo1OzkXo3l+YxZS8IhLfr9GDMc=
+github.com/GlassOnTin/netbird v0.0.0-20261122095613-369a3c5636b2/go.mod h1:67MncUqNo5IouOUawkozaPBjaDCnfh/A/FCCZ5BA2E4=
 github.com/GoogleCloudPlatform/opentelemetry-operations-go/detectors/gcp v1.35.0/go.mod h1:Yj5vHEz/aAepZGliRJsA6uvHAVAQyEwajq9ORCHPxzM=
 github.com/GoogleCloudPlatform/opentelemetry-operations-go/exporter/metric v0.55.0/go.mod h1:IA1C1U7jO/ENqm/vhi7V9YYpBsp+IMyqNrEN94N7tVc=
 github.com/GoogleCloudPlatform/opentelemetry-operations-go/internal/resourcemapping v0.55.0/go.mod h1:Mf6O40IAyB9zR/1J8nGDDPirZQQPbYJni8Yisy7NTMc=

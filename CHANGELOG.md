@@ -5,6 +5,10 @@ the corresponding GitHub Release; a release can't ship without its section
 (enforced by `scripts/check-changelog.sh` in CI). The GitHub "Full Changelog"
 compare link is appended automatically — don't add it here.
 
+## v5.94.64
+
+- Add NetBird SSH sign-in (JWT): for NetBird SSH servers that require authentication, a per-connection option signs in with your NetBird identity in a browser and uses the resulting token as the SSH password (#875, thanks Slayerx96).
+
 ## v5.94.63
 
 - Add a "CJK compose mode by default" keyboard setting: new terminal sessions start in compose (中) mode so Chinese/Japanese/Korean input works without toggling 中 each session. The toolbar 中 key still overrides per session (#872, thanks Ign1x).

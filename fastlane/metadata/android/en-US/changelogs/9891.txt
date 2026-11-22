@@ -1,0 +1,1 @@
+Add NetBird SSH sign-in (JWT): for NetBird SSH servers that require authentication, a per-connection option signs in with your NetBird identity in a browser and uses the resulting token as the SSH password.

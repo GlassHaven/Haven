@@ -1,0 +1,1 @@
+Cloud storage first-connect is more reliable: Haven raises rclone's connect timeout and retry counts so the initial Google Drive (and other OAuth remote) connection recovers from a brief network blip on its own instead of showing a timeout that a reconnect then clears (#839).

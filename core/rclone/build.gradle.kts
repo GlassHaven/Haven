@@ -46,6 +46,7 @@ dependencies {
 
     testImplementation(libs.junit)
     testImplementation(libs.orgjson)
+    testImplementation(libs.mockk)
 }
 
 kotlin {

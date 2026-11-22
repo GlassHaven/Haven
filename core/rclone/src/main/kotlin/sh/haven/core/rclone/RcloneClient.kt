@@ -33,7 +33,37 @@ class RcloneClient @Inject constructor(
         val configPath = File(configDir, "rclone.conf").absolutePath
         RcloneBridge.initialize(configPath)
         initialized = true
+        applyConnectResilience()
         Log.d(TAG, "Initialized with config: $configPath")
+    }
+
+    /**
+     * Raise rclone's connect timeout and retry counts above the library defaults
+     * (contimeout 60s, low-level-retries 10, retries 3) so the first storage
+     * connect — which on OAuth backends refreshes the token and lists the root
+     * in a single call — recovers from a transient network blip internally
+     * instead of surfacing a timeout that a manual reconnect then clears (#839).
+     *
+     * Applied through the RC `options/set` "main" block, which mutates rclone's
+     * live global config (verified against rclone v1.76.0 in
+     * rcbridge_options_test.go), so no native rebuild is needed. Best-effort:
+     * a failure here must not block initialization.
+     */
+    private fun applyConnectResilience() {
+        try {
+            rpc(
+                "options/set",
+                JSONObject().put(
+                    "main",
+                    JSONObject()
+                        .put("ConnectTimeout", "90s")
+                        .put("LowLevelRetries", 20)
+                        .put("Retries", 5),
+                ),
+            )
+        } catch (e: Exception) {
+            Log.w(TAG, "options/set connect resilience failed: ${e.message}")
+        }
     }
 
     /** Shut down the rclone library. */

@@ -43,7 +43,7 @@ class YggdrasilTunnel internal constructor(
         val conn = try {
             native.dial(host, port.toLong(), timeoutMs.toLong())
         } catch (e: Exception) {
-            throw IOException("Yggdrasil dial $host:$port failed: ${e.message}", e)
+            throw IOException(yggdrasilDialFailureMessage(host, port, e.message), e)
         }
         return YggdrasilConnection(conn)
     }
@@ -221,4 +221,20 @@ private class YggdrasilTunneledServerSocket(
             ln.close()
         } catch (_: Throwable) { /* idempotent */ }
     }
+}
+
+/**
+ * #876: a mesh dial timeout usually means the local node has no working
+ * peer link, not that the destination is down. LAN-only peer addresses
+ * are unreachable from a remote network (Haven's per-connection tunnels
+ * do not carry the tunnel's own underlay sockets), so name that case
+ * instead of leaving the user with a bare "context deadline exceeded".
+ */
+internal fun yggdrasilDialFailureMessage(host: String, port: Int, raw: String?): String {
+    val base = "Yggdrasil dial $host:$port failed: ${raw ?: "unknown error"}"
+    if (raw == null || !raw.contains("context deadline exceeded")) return base
+    return "$base. The mesh node could not reach that address within the dial timeout. " +
+        "Yggdrasil needs at least one working peer link: if the configured peers are LAN-only " +
+        "addresses, they are unreachable from a remote network. Connect the phone to that LAN, " +
+        "or add a public peer both ends can reach."
 }

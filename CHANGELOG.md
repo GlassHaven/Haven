@@ -5,6 +5,10 @@ the corresponding GitHub Release; a release can't ship without its section
 (enforced by `scripts/check-changelog.sh` in CI). The GitHub "Full Changelog"
 compare link is appended automatically — don't add it here.
 
+## v5.94.67
+
+- Fix the false "Connection timed out" on slow cloud-storage first-connects: storage connections get a five-minute watchdog instead of the generic 20 seconds, and Cancel now stops a pending storage connect even when it is a token refresh rather than a browser sign-in (#839, thanks ghanan).
+
 ## v5.94.66
 
 - Add a shortcut toolbar setting (Settings → Terminal): Always show, Always hide, or Auto, which hides the Ctrl/Alt/arrow rows while a physical keyboard is attached and usable. When the rows are hidden, a small handle at the bottom of the terminal brings them back for the session, and they return automatically while text is selected so copy/paste stays reachable (#870, thanks Ign1x).

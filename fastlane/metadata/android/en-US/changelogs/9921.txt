@@ -1,0 +1,1 @@
+Fix the false "Connection timed out" on slow cloud-storage first-connects: storage connections get a five-minute watchdog instead of 20 seconds, and Cancel now stops a pending storage connect even during a token refresh (#839).

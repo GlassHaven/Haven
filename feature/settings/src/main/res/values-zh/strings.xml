@@ -512,6 +512,11 @@
     </plurals>
     <string name="settings_hide_nav_bar_in_terminal_title">在终端中隐藏应用标签栏</string>
     <string name="settings_hide_nav_bar_in_terminal_subtitle">在终端屏幕上隐藏 Haven 的底部标签栏。Android 状态栏和导航栏保持可见。</string>
+    <string name="settings_shortcut_toolbar_title">快捷工具栏</string>
+    <string name="settings_shortcut_toolbar_subtitle">终端下方的额外按键行。“自动”会在连接实体键盘时隐藏它们。</string>
+    <string name="settings_shortcut_toolbar_show">始终显示</string>
+    <string name="settings_shortcut_toolbar_auto">自动</string>
+    <string name="settings_shortcut_toolbar_hide">始终隐藏</string>
     <string name="settings_credential_keystore_broken_title">凭据存储不可用</string>
     <string name="settings_credential_keystore_broken_subtitle">此设备的密钥库丢失了 Haven 的凭据密钥。已保存的密码无法读取,也无法保存新密码。点按以修复。</string>
     <string name="settings_credential_reset_title">修复凭据存储?</string>

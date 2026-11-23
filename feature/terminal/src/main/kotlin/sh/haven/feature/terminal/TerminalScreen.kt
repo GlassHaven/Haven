@@ -1,6 +1,8 @@
 package sh.haven.feature.terminal
 
 import sh.haven.core.toolbar.KeyboardToolbar
+import sh.haven.core.toolbar.shortcutToolbarBaseVisible
+import sh.haven.core.toolbar.shortcutToolbarVisible
 import android.app.Activity
 import android.content.ClipData
 import android.content.ClipboardManager
@@ -54,6 +56,8 @@ import androidx.compose.material.icons.filled.ContentCopy
 import androidx.compose.material.icons.filled.DriveFileRenameOutline
 import androidx.compose.material.icons.filled.Info
 import androidx.compose.material.icons.filled.Key
+import androidx.compose.material.icons.filled.KeyboardArrowDown
+import androidx.compose.material.icons.filled.KeyboardArrowUp
 import androidx.compose.material.icons.filled.Save
 import androidx.compose.material.icons.filled.Terminal
 import androidx.compose.material.icons.filled.Search
@@ -579,6 +583,14 @@ fun TerminalScreen(
      */
     terminalFontPath: String? = null,
     toolbarLayout: ToolbarLayout = ToolbarLayout.DEFAULT,
+    /**
+     * #870: visibility of the shortcut (extra keys) toolbar. SHOW keeps the
+     * rows always; AUTO hides them while a physical keyboard is attached and
+     * usable; HIDE always hides them. When hidden, a slim reveal handle
+     * brings the rows back for the session.
+     */
+    shortcutToolbarMode: sh.haven.core.data.preferences.UserPreferencesRepository.TerminalShortcutToolbar =
+        sh.haven.core.data.preferences.UserPreferencesRepository.TerminalShortcutToolbar.SHOW,
     navBlockMode: sh.haven.core.data.preferences.NavBlockMode = sh.haven.core.data.preferences.NavBlockMode.ALIGNED,
     toolbarUniformGrid: Boolean = false,
     editModeControlsPlacement: sh.haven.core.data.preferences.EditModeControlsPlacement = sh.haven.core.data.preferences.EditModeControlsPlacement.LEFT,
@@ -2149,155 +2161,169 @@ fun TerminalScreen(
                         }
                     }
 
-                    // Keep the extra key rows in fullscreen — Ctrl/Esc/arrows are
-                    // needed while typing. Fullscreen still hides the system + tab bars.
-                    KeyboardToolbar(
-                        onSendBytes = { bytes -> activeTab.sendInput(bytes) },
-                        // The toolbar folds its own sticky Shift into the mods it
-                        // passes (#665); this wrapper folds the tapped Ctrl/Alt the
-                        // toolbar can't see — bits 1 = Alt, 2 = Ctrl, per
-                        // Terminal.cpp's dispatchKey. libvterm builds the sequence:
-                        // Ctrl+End becomes ESC[1;5F, Shift+Left ESC[1;2D.
-                        onDispatchKey = { mods, key ->
-                            val tapped = viewModel.toolbarModifierMask()
-                            activeTab.emulator?.dispatchKey(mods or tapped, key)
-                            if (tapped != 0) viewModel.clearStickyModifiers()
-                        },
-                        focusRequester = focusRequester,
-                        ctrlActive = ctrlActive,
-                        altActive = altActive,
-                        ctrlLocked = ctrlLocked,
-                        altLocked = altLocked,
-                        // #736: Shift lives here now (was internal to
-                        // KeyboardToolbar) so the swipe path above reads the
-                        // same latch the arrow buttons do.
-                        shiftActive = shiftActive,
-                        onToggleShift = { shiftActive = !shiftActive },
-                        onShiftUsed = { shiftActive = false },
-                        bracketPasteMode = isBracketPaste,
-                        layout = toolbarLayout,
-                        navBlockMode = navBlockMode,
-                        uniformGrid = toolbarUniformGrid,
-                        editModeControlsPlacement = editModeControlsPlacement,
-                        desktopKeyPlacement = desktopKeyPlacement,
-                        minKeyWidth = toolbarMinKeyWidth.dp,
-                        keyScale = toolbarKeyScale,
-                        onToggleCtrl = viewModel::toggleCtrl,
-                        onToggleAlt = viewModel::toggleAlt,
-                        onVncTap = if (activeTab.transportType == "SSH") {{
-                            coroutineScope.launch {
-                                val info = viewModel.getActiveVncInfo() ?: return@launch
-                                if (info.stored) {
-                                    onNavigateToVnc(info.host, info.port, info.username, info.password, info.sshForward, info.sessionId, info.colorDepth)
-                                } else {
-                                    vncDialogInfo = info
-                                }
-                            }
-                        }} else if (activeTab.transportType == "LOCAL" && viewModel.isLocalDesktopInstalled) {{
-                            if (!localVncLoading) {
-                                localVncLoading = true
+                    // #870: the extra key rows can be hidden — always, or only
+                    // while a physical keyboard makes them redundant. The gate
+                    // is independent of fullscreen (which still hides the system
+                    // + tab bars). Selection forces the rows back because they
+                    // carry the copy/paste content; the reveal handle below
+                    // brings them back per session otherwise.
+                    var shortcutToolbarRevealed by rememberSaveable { mutableStateOf(false) }
+                    val shortcutToolbarBase = shortcutToolbarBaseVisible(shortcutToolbarMode, physicalKeyboardAttached)
+                    if (shortcutToolbarVisible(shortcutToolbarMode, physicalKeyboardAttached, shortcutToolbarRevealed, selectionActive)) {
+                        KeyboardToolbar(
+                            onSendBytes = { bytes -> activeTab.sendInput(bytes) },
+                            // The toolbar folds its own sticky Shift into the mods it
+                            // passes (#665); this wrapper folds the tapped Ctrl/Alt the
+                            // toolbar can't see — bits 1 = Alt, 2 = Ctrl, per
+                            // Terminal.cpp's dispatchKey. libvterm builds the sequence:
+                            // Ctrl+End becomes ESC[1;5F, Shift+Left ESC[1;2D.
+                            onDispatchKey = { mods, key ->
+                                val tapped = viewModel.toolbarModifierMask()
+                                activeTab.emulator?.dispatchKey(mods or tapped, key)
+                                if (tapped != 0) viewModel.clearStickyModifiers()
+                            },
+                            focusRequester = focusRequester,
+                            ctrlActive = ctrlActive,
+                            altActive = altActive,
+                            ctrlLocked = ctrlLocked,
+                            altLocked = altLocked,
+                            // #736: Shift lives here now (was internal to
+                            // KeyboardToolbar) so the swipe path above reads the
+                            // same latch the arrow buttons do.
+                            shiftActive = shiftActive,
+                            onToggleShift = { shiftActive = !shiftActive },
+                            onShiftUsed = { shiftActive = false },
+                            bracketPasteMode = isBracketPaste,
+                            layout = toolbarLayout,
+                            navBlockMode = navBlockMode,
+                            uniformGrid = toolbarUniformGrid,
+                            editModeControlsPlacement = editModeControlsPlacement,
+                            desktopKeyPlacement = desktopKeyPlacement,
+                            minKeyWidth = toolbarMinKeyWidth.dp,
+                            keyScale = toolbarKeyScale,
+                            onToggleCtrl = viewModel::toggleCtrl,
+                            onToggleAlt = viewModel::toggleAlt,
+                            onVncTap = if (activeTab.transportType == "SSH") {{
                                 coroutineScope.launch {
-                                    // try/finally so a failure (e.g. keystore decrypt,
-                                    // server start) can't leave the spinner stuck true and
-                                    // lock the button out forever. (#208 finding 17)
-                                    try {
-                                        viewModel.ensureLocalVncProfile()
-                                        viewModel.startLocalVncServer()
-                                        kotlinx.coroutines.delay(4000)
-                                        val pwd = viewModel.getLocalVncPassword()
-                                        onNavigateToVnc("localhost", 5901, null, pwd, false, null, "BPP_24_TRUE")
-                                    } catch (e: Exception) {
-                                        android.util.Log.e("TerminalScreen", "local VNC launch failed", e)
-                                        android.widget.Toast.makeText(
-                                            context,
-                                            localVncFailedMessage,
-                                            android.widget.Toast.LENGTH_LONG,
-                                        ).show()
-                                    } finally {
-                                        localVncLoading = false
+                                    val info = viewModel.getActiveVncInfo() ?: return@launch
+                                    if (info.stored) {
+                                        onNavigateToVnc(info.host, info.port, info.username, info.password, info.sshForward, info.sessionId, info.colorDepth)
+                                    } else {
+                                        vncDialogInfo = info
                                     }
                                 }
-                            }
-                        }} else null,
-                        vncLoading = localVncLoading,
-                        selectionController = selectionController,
-                        selectionActive = selectionActive,
-                        hyperlinkUri = currentHyperlinkUri,
-                        onPaste = { text -> activeTab.sendInput(text.toByteArray()) },
-                        reorderMode = reorderMode,
-                        onReorderModeChanged = {
-                            reorderMode = it
-                            onReorderModeChanged(it)
-                        },
-                        onToolbarLayoutChanged = onToolbarLayoutChanged,
-                        snippetLibrary = snippetLibrary,
-                        onSnippetLibraryChanged = onSnippetLibraryChanged,
-                        onOpenSettings = onOpenToolbarSettings,
-                        allowStandardKeyboard = allowStandardKeyboard,
-                        onToggleStandardKeyboard = onToggleStandardKeyboard,
-                        rawKeyboardMode = rawKeyboardMode,
-                        onToggleRawKeyboard = onToggleRawKeyboard,
-                        swipeArrowsActive = swipeArrowsMode,
-                        onToggleSwipeArrows = { viewModel.toggleSwipeArrows() },
-                        composeModeActive = composeController?.isComposeModeActive == true,
-                        onToggleComposeMode = { composeController?.toggleComposeMode() },
-                        onAttachTap = { attachSheetVisible = true },
-                        onOpenTextInput = { textInputDialogVisible = true },
-                        onSudoTap = { viewModel.triggerSudoFill(activeTab.sessionId) },
-                        onDictateTap = {
-                            // #604: resolve a speech recognizer explicitly rather
-                            // than startActivity(ACTION_RECOGNIZE_SPEECH) blind —
-                            // some devices (Supernote) ship none. Launching the
-                            // plain implicit intent (rather than wrapping it in
-                            // Intent.createChooser) lets Android's normal
-                            // default-app resolution apply: with one recognizer
-                            // installed it launches directly, and with several
-                            // installed the OS picker's "Just once / Always"
-                            // choice is remembered, so Dictate stops asking after
-                            // the first pick instead of prompting on every tap.
-                            val recognize = android.content.Intent(
-                                android.speech.RecognizerIntent.ACTION_RECOGNIZE_SPEECH,
-                            ).apply {
-                                putExtra(
-                                    android.speech.RecognizerIntent.EXTRA_LANGUAGE_MODEL,
-                                    android.speech.RecognizerIntent.LANGUAGE_MODEL_FREE_FORM,
+                            }} else if (activeTab.transportType == "LOCAL" && viewModel.isLocalDesktopInstalled) {{
+                                if (!localVncLoading) {
+                                    localVncLoading = true
+                                    coroutineScope.launch {
+                                        // try/finally so a failure (e.g. keystore decrypt,
+                                        // server start) can't leave the spinner stuck true and
+                                        // lock the button out forever. (#208 finding 17)
+                                        try {
+                                            viewModel.ensureLocalVncProfile()
+                                            viewModel.startLocalVncServer()
+                                            kotlinx.coroutines.delay(4000)
+                                            val pwd = viewModel.getLocalVncPassword()
+                                            onNavigateToVnc("localhost", 5901, null, pwd, false, null, "BPP_24_TRUE")
+                                        } catch (e: Exception) {
+                                            android.util.Log.e("TerminalScreen", "local VNC launch failed", e)
+                                            android.widget.Toast.makeText(
+                                                context,
+                                                localVncFailedMessage,
+                                                android.widget.Toast.LENGTH_LONG,
+                                            ).show()
+                                        } finally {
+                                            localVncLoading = false
+                                        }
+                                    }
+                                }
+                            }} else null,
+                            vncLoading = localVncLoading,
+                            selectionController = selectionController,
+                            selectionActive = selectionActive,
+                            hyperlinkUri = currentHyperlinkUri,
+                            onPaste = { text -> activeTab.sendInput(text.toByteArray()) },
+                            reorderMode = reorderMode,
+                            onReorderModeChanged = {
+                                reorderMode = it
+                                onReorderModeChanged(it)
+                            },
+                            onToolbarLayoutChanged = onToolbarLayoutChanged,
+                            snippetLibrary = snippetLibrary,
+                            onSnippetLibraryChanged = onSnippetLibraryChanged,
+                            onOpenSettings = onOpenToolbarSettings,
+                            allowStandardKeyboard = allowStandardKeyboard,
+                            onToggleStandardKeyboard = onToggleStandardKeyboard,
+                            rawKeyboardMode = rawKeyboardMode,
+                            onToggleRawKeyboard = onToggleRawKeyboard,
+                            swipeArrowsActive = swipeArrowsMode,
+                            onToggleSwipeArrows = { viewModel.toggleSwipeArrows() },
+                            composeModeActive = composeController?.isComposeModeActive == true,
+                            onToggleComposeMode = { composeController?.toggleComposeMode() },
+                            onAttachTap = { attachSheetVisible = true },
+                            onOpenTextInput = { textInputDialogVisible = true },
+                            onSudoTap = { viewModel.triggerSudoFill(activeTab.sessionId) },
+                            onDictateTap = {
+                                // #604: resolve a speech recognizer explicitly rather
+                                // than startActivity(ACTION_RECOGNIZE_SPEECH) blind —
+                                // some devices (Supernote) ship none. Launching the
+                                // plain implicit intent (rather than wrapping it in
+                                // Intent.createChooser) lets Android's normal
+                                // default-app resolution apply: with one recognizer
+                                // installed it launches directly, and with several
+                                // installed the OS picker's "Just once / Always"
+                                // choice is remembered, so Dictate stops asking after
+                                // the first pick instead of prompting on every tap.
+                                val recognize = android.content.Intent(
+                                    android.speech.RecognizerIntent.ACTION_RECOGNIZE_SPEECH,
+                                ).apply {
+                                    putExtra(
+                                        android.speech.RecognizerIntent.EXTRA_LANGUAGE_MODEL,
+                                        android.speech.RecognizerIntent.LANGUAGE_MODEL_FREE_FORM,
+                                    )
+                                }
+                                if (recognize.resolveActivity(context.packageManager) != null) {
+                                    dictateLauncher.launch(recognize)
+                                } else {
+                                    android.widget.Toast.makeText(
+                                        context,
+                                        dictateUnavailableMessage,
+                                        android.widget.Toast.LENGTH_LONG,
+                                    ).show()
+                                }
+                            },
+                            selectionContent = selectionController?.let { ctrl -> {
+                                // The long-press menu's macros section lists the
+                                // same set the toolbar's scissors sheet does —
+                                // toolbar-pinned snippets plus the off-toolbar
+                                // library — so the two stay in sync (#661).
+                                val macros = remember(toolbarLayout, snippetLibrary) {
+                                    sh.haven.core.data.preferences.SnippetOps.allSnippets(
+                                        toolbarLayout,
+                                        snippetLibrary,
+                                    )
+                                }
+                                SelectionToolbarContent(
+                                    controller = ctrl,
+                                    hyperlinkUri = currentHyperlinkUri,
+                                    bracketPasteMode = isBracketPaste,
+                                    onPaste = { text -> activeTab.sendInput(text.toByteArray()) },
+                                    snippets = macros,
+                                    onSendSnippet = { snippet ->
+                                        // Same path as a toolbar snippet tap.
+                                        activeTab.sendInput(snippet.send.toByteArray())
+                                    },
                                 )
-                            }
-                            if (recognize.resolveActivity(context.packageManager) != null) {
-                                dictateLauncher.launch(recognize)
-                            } else {
-                                android.widget.Toast.makeText(
-                                    context,
-                                    dictateUnavailableMessage,
-                                    android.widget.Toast.LENGTH_LONG,
-                                ).show()
-                            }
-                        },
-                        selectionContent = selectionController?.let { ctrl -> {
-                            // The long-press menu's macros section lists the
-                            // same set the toolbar's scissors sheet does —
-                            // toolbar-pinned snippets plus the off-toolbar
-                            // library — so the two stay in sync (#661).
-                            val macros = remember(toolbarLayout, snippetLibrary) {
-                                sh.haven.core.data.preferences.SnippetOps.allSnippets(
-                                    toolbarLayout,
-                                    snippetLibrary,
-                                )
-                            }
-                            SelectionToolbarContent(
-                                controller = ctrl,
-                                hyperlinkUri = currentHyperlinkUri,
-                                bracketPasteMode = isBracketPaste,
-                                onPaste = { text -> activeTab.sendInput(text.toByteArray()) },
-                                snippets = macros,
-                                onSendSnippet = { snippet ->
-                                    // Same path as a toolbar snippet tap.
-                                    activeTab.sendInput(snippet.send.toByteArray())
-                                },
-                            )
-                        } },
-                        modifier = Modifier.fillMaxWidth(),
-                    )
+                            } },
+                            modifier = Modifier.fillMaxWidth(),
+                        )
+                    }
+                    if (!shortcutToolbarBase && !selectionActive) {
+                        ShortcutToolbarRevealHandle(
+                            expanded = shortcutToolbarRevealed,
+                            onToggle = { shortcutToolbarRevealed = !shortcutToolbarRevealed },
+                        )
+                    }
 
                     // Floating text-input dialog — MUST stay inside the
                     // key(activeTab.sessionId) block: an active-tab change of
@@ -3456,6 +3482,44 @@ private fun AttachNoticeBanner(
                     )
                 }
             }
+        }
+    }
+}
+
+/**
+ * #870: the slim stand-in for a hidden shortcut toolbar. A single chevron
+ * strip at the bottom of the terminal — tap to reveal the extra key rows for
+ * this session, tap again to hide them. Kept deliberately short so the point
+ * of the setting (reclaimed vertical space) is not given back to a fat bar.
+ * The chevron direction mirrors the action: up = "pull the rows up", down =
+ * "put them away".
+ */
+@Composable
+private fun ShortcutToolbarRevealHandle(
+    expanded: Boolean,
+    onToggle: () -> Unit,
+) {
+    val description = stringResource(
+        if (expanded) R.string.terminal_shortcut_toolbar_hide else R.string.terminal_shortcut_toolbar_show,
+    )
+    Surface(
+        modifier = Modifier.fillMaxWidth(),
+        tonalElevation = 2.dp,
+    ) {
+        Box(
+            modifier = Modifier
+                .fillMaxWidth()
+                .height(20.dp)
+                .clickable(onClick = onToggle)
+                .semantics { contentDescription = description },
+            contentAlignment = Alignment.Center,
+        ) {
+            Icon(
+                imageVector = if (expanded) Icons.Filled.KeyboardArrowDown else Icons.Filled.KeyboardArrowUp,
+                contentDescription = null,
+                modifier = Modifier.size(18.dp),
+                tint = MaterialTheme.colorScheme.onSurfaceVariant,
+            )
         }
     }
 }

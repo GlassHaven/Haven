@@ -159,6 +159,8 @@
     <string name="terminal_details_unavailable">このタブの接続詳細を読み取れませんでした。</string>
     <string name="terminal_mouse_requested_but_disabled">このアプリがマウスを要求しています。使うには設定 → ターミナルで「TUIアプリでのマウス入力」をオンにしてください。</string>
     <string name="terminal_dictate_unavailable">このデバイスでは音声入力アプリを利用できません</string>
+    <string name="terminal_shortcut_toolbar_show">ショートカットツールバーを表示</string>
+    <string name="terminal_shortcut_toolbar_hide">ショートカットツールバーを隠す</string>
 
     <!-- Inline-image consent (#583) -->
     <string name="terminal_inline_image_title">インライン画像</string>

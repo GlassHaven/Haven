@@ -514,6 +514,11 @@
     </plurals>
     <string name="settings_hide_nav_bar_in_terminal_title">টার্মিনালে অ্যাপ ট্যাব বার লুকান</string>
     <string name="settings_hide_nav_bar_in_terminal_subtitle">টার্মিনাল স্ক্রিনে Haven-এর নিচের ট্যাব বার লুকায়। Android-এর স্ট্যাটাস ও নেভিগেশন বার দৃশ্যমান থাকে।</string>
+    <string name="settings_shortcut_toolbar_title">শর্টকাট টুলবার</string>
+    <string name="settings_shortcut_toolbar_subtitle">টার্মিনালের নিচে অতিরিক্ত কী সারি। ভৌত কীবোর্ড সংযুক্ত থাকলে স্বয়ংক্রিয় সেগুলো লুকায়।</string>
+    <string name="settings_shortcut_toolbar_show">সবসময় দেখান</string>
+    <string name="settings_shortcut_toolbar_auto">স্বয়ংক্রিয়</string>
+    <string name="settings_shortcut_toolbar_hide">সবসময় লুকান</string>
     <string name="settings_credential_keystore_broken_title">ক্রেডেনশিয়াল স্টোরেজ অনুপলব্ধ</string>
     <string name="settings_credential_keystore_broken_subtitle">এই ডিভাইসের কীস্টোর Haven-এর ক্রেডেনশিয়াল কী হারিয়েছে। সংরক্ষিত পাসওয়ার্ড পড়া যাবে না এবং নতুন সংরক্ষণ করা যাবে না। মেরামত করতে ট্যাপ করুন।</string>
     <string name="settings_credential_reset_title">ক্রেডেনশিয়াল স্টোরেজ মেরামত করবেন?</string>

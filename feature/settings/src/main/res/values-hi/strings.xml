@@ -514,6 +514,11 @@
     </plurals>
     <string name="settings_hide_nav_bar_in_terminal_title">टर्मिनल में ऐप टैब बार छिपाएँ</string>
     <string name="settings_hide_nav_bar_in_terminal_subtitle">टर्मिनल स्क्रीन पर Haven की निचली टैब बार छिपाता है। Android की स्थिति और नेविगेशन बार दिखाई देती रहती हैं।</string>
+    <string name="settings_shortcut_toolbar_title">शॉर्टकट टूलबार</string>
+    <string name="settings_shortcut_toolbar_subtitle">टर्मिनल के नीचे अतिरिक्त कुंजी पंक्तियाँ। भौतिक कीबोर्ड जुड़ा होने पर ऑटो इन्हें छिपा देता है।</string>
+    <string name="settings_shortcut_toolbar_show">हमेशा दिखाएँ</string>
+    <string name="settings_shortcut_toolbar_auto">ऑटो</string>
+    <string name="settings_shortcut_toolbar_hide">हमेशा छिपाएँ</string>
     <string name="settings_credential_keystore_broken_title">क्रेडेंशियल स्टोरेज उपलब्ध नहीं</string>
     <string name="settings_credential_keystore_broken_subtitle">इस डिवाइस के कीस्टोर ने Haven की क्रेडेंशियल कुंजी खो दी। सहेजे गए पासवर्ड पढ़े नहीं जा सकते और नए सहेजे नहीं जा सकते। मरम्मत के लिए टैप करें।</string>
     <string name="settings_credential_reset_title">क्रेडेंशियल स्टोरेज ठीक करें?</string>

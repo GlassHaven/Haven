@@ -269,6 +269,11 @@
     <string name="settings_show_terminal_tab_bar_subtitle">Изнад терминала се приказују картице сесије</string>
     <string name="settings_hide_nav_bar_in_terminal_title">Сакриј линију картица апликације у терминалу</string>
     <string name="settings_hide_nav_bar_in_terminal_subtitle">Скрива доњу линију картица апликације Haven на екрану терминала. Андроидова статусна линија и линија навигације остају видљиве.</string>
+    <string name="settings_shortcut_toolbar_title">Алатна линија пречица</string>
+    <string name="settings_shortcut_toolbar_subtitle">Додатни редови тастера испод терминала. Аутоматски их скрива док је физичка тастатура прикључена.</string>
+    <string name="settings_shortcut_toolbar_show">Увек прикажи</string>
+    <string name="settings_shortcut_toolbar_auto">Аутоматски</string>
+    <string name="settings_shortcut_toolbar_hide">Увек сакриј</string>
     <string name="settings_reflow_on_keyboard_title">Промени величину терминала за тастатуру</string>
     <string name="settings_reflow_on_keyboard_subtitle">Када се отвори тастатура, терминал мења величину тако да стане изнад ње, уместо да се приказ скролује навише. Помаже апликацијама пуног екрана које на врху приказују статусну линију; оставите искључено за просте љуске.</string>
     <string name="settings_tab_titles_follow_session_title">Приказуј имена сесије у насловима картица</string>

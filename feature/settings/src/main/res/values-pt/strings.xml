@@ -514,6 +514,11 @@
     </plurals>
     <string name="settings_hide_nav_bar_in_terminal_title">Ocultar a barra de abas do app no terminal</string>
     <string name="settings_hide_nav_bar_in_terminal_subtitle">Oculta a barra de abas inferior do Haven na tela do terminal. As barras de status e navegação do Android continuam visíveis.</string>
+    <string name="settings_shortcut_toolbar_title">Barra de atalhos</string>
+    <string name="settings_shortcut_toolbar_subtitle">Linhas de teclas extras abaixo do terminal. Auto oculta-as enquanto um teclado físico estiver conectado.</string>
+    <string name="settings_shortcut_toolbar_show">Mostrar sempre</string>
+    <string name="settings_shortcut_toolbar_auto">Auto</string>
+    <string name="settings_shortcut_toolbar_hide">Ocultar sempre</string>
     <string name="settings_credential_keystore_broken_title">Armazenamento de credenciais indisponível</string>
     <string name="settings_credential_keystore_broken_subtitle">O armazenamento de chaves deste dispositivo perdeu a chave de credenciais do Haven. As senhas salvas não podem ser lidas e novas não podem ser salvas. Toque para reparar.</string>
     <string name="settings_credential_reset_title">Reparar o armazenamento de credenciais?</string>

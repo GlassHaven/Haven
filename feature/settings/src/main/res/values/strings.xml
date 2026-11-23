@@ -332,6 +332,11 @@
     <string name="settings_show_terminal_tab_bar_subtitle">Show session tabs above the terminal</string>
     <string name="settings_hide_nav_bar_in_terminal_title">Hide app tab bar in terminal</string>
     <string name="settings_hide_nav_bar_in_terminal_subtitle">Hide Haven\'s bottom tab bar on the terminal screen. The Android status and navigation bars stay visible.</string>
+    <string name="settings_shortcut_toolbar_title">Shortcut toolbar</string>
+    <string name="settings_shortcut_toolbar_subtitle">Extra key rows below the terminal. Auto hides them while a physical keyboard is attached.</string>
+    <string name="settings_shortcut_toolbar_show">Always show</string>
+    <string name="settings_shortcut_toolbar_auto">Auto</string>
+    <string name="settings_shortcut_toolbar_hide">Always hide</string>
     <string name="settings_reflow_on_keyboard_title">Resize terminal for keyboard</string>
     <string name="settings_reflow_on_keyboard_subtitle">When the keyboard opens, resize the terminal to fit above it instead of scrolling the view up. Helps full-screen apps that show a status line at the top; leave off for plain shells.</string>
     <string name="settings_tab_titles_follow_session_title">Prefer session names in tab titles</string>

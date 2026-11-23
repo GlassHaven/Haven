@@ -159,6 +159,8 @@
     <string name="terminal_details_unavailable">Не удалось прочитать сведения о подключении для этой вкладки.</string>
     <string name="terminal_mouse_requested_but_disabled">Это приложение запрашивает мышь. Включите «Мышь в TUI-приложениях» в Настройках → Терминал.</string>
     <string name="terminal_dictate_unavailable">На этом устройстве нет доступного приложения для голосового ввода</string>
+    <string name="terminal_shortcut_toolbar_show">Показать панель ярлыков</string>
+    <string name="terminal_shortcut_toolbar_hide">Скрыть панель ярлыков</string>
 
     <!-- Inline-image consent (#583) -->
     <string name="terminal_inline_image_title">Встроенное изображение</string>

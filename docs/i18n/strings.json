@@ -36124,6 +36124,106 @@
      }
     },
     {
+     "name": "settings_shortcut_toolbar_title",
+     "en": "Shortcut toolbar",
+     "comment": "Common strings",
+     "args": [],
+     "t": {
+      "ar": "شريط الاختصارات",
+      "bn": "শর্টকাট টুলবার",
+      "de": "Shortcut-Toolbar",
+      "es": "Barra de atajos",
+      "fr": "Barre de raccourcis",
+      "hi": "शॉर्टकट टूलबार",
+      "ja": "ショートカットツールバー",
+      "ko": "바로가기 도구 모음",
+      "pt": "Barra de atalhos",
+      "ru": "Панель ярлыков",
+      "sr": "Алатна линија пречица",
+      "zh": "快捷工具栏"
+     }
+    },
+    {
+     "name": "settings_shortcut_toolbar_subtitle",
+     "en": "Extra key rows below the terminal. Auto hides them while a physical keyboard is attached.",
+     "comment": "Common strings",
+     "args": [],
+     "t": {
+      "ar": "صفوف المفاتيح الإضافية أسفل الطرفية. يخفيها الخيار التلقائي أثناء توصيل لوحة مفاتيح فعلية.",
+      "bn": "টার্মিনালের নিচে অতিরিক্ত কী সারি। ভৌত কীবোর্ড সংযুক্ত থাকলে স্বয়ংক্রিয় সেগুলো লুকায়।",
+      "de": "Zusätzliche Tastenreihen unter dem Terminal. Auto blendet sie aus, solange eine physische Tastatur angeschlossen ist.",
+      "es": "Filas de teclas adicionales bajo el terminal. Auto las oculta mientras haya un teclado físico conectado.",
+      "fr": "Rangées de touches supplémentaires sous le terminal. Auto les masque lorsqu\\'un clavier physique est connecté.",
+      "hi": "टर्मिनल के नीचे अतिरिक्त कुंजी पंक्तियाँ। भौतिक कीबोर्ड जुड़ा होने पर ऑटो इन्हें छिपा देता है।",
+      "ja": "ターミナル下の追加キー行。Auto は物理キーボードの接続中にこれらを非表示にします。",
+      "ko": "터미널 아래의 추가 키 행입니다. 자동은 물리 키보드가 연결되어 있는 동안 숨깁니다.",
+      "pt": "Linhas de teclas extras abaixo do terminal. Auto oculta-as enquanto um teclado físico estiver conectado.",
+      "ru": "Дополнительные ряды клавиш под терминалом. «Авто» скрывает их, пока подключена физическая клавиатура.",
+      "sr": "Додатни редови тастера испод терминала. Аутоматски их скрива док је физичка тастатура прикључена.",
+      "zh": "终端下方的额外按键行。“自动”会在连接实体键盘时隐藏它们。"
+     }
+    },
+    {
+     "name": "settings_shortcut_toolbar_show",
+     "en": "Always show",
+     "comment": "Common strings",
+     "args": [],
+     "t": {
+      "ar": "إظهار دائمًا",
+      "bn": "সবসময় দেখান",
+      "de": "Immer anzeigen",
+      "es": "Mostrar siempre",
+      "fr": "Toujours afficher",
+      "hi": "हमेशा दिखाएँ",
+      "ja": "常に表示",
+      "ko": "항상 표시",
+      "pt": "Mostrar sempre",
+      "ru": "Всегда показывать",
+      "sr": "Увек прикажи",
+      "zh": "始终显示"
+     }
+    },
+    {
+     "name": "settings_shortcut_toolbar_auto",
+     "en": "Auto",
+     "comment": "Common strings",
+     "args": [],
+     "t": {
+      "ar": "تلقائي",
+      "bn": "স্বয়ংক্রিয়",
+      "de": "Auto",
+      "es": "Auto",
+      "fr": "Auto",
+      "hi": "ऑटो",
+      "ja": "自動",
+      "ko": "자동",
+      "pt": "Auto",
+      "ru": "Авто",
+      "sr": "Аутоматски",
+      "zh": "自动"
+     }
+    },
+    {
+     "name": "settings_shortcut_toolbar_hide",
+     "en": "Always hide",
+     "comment": "Common strings",
+     "args": [],
+     "t": {
+      "ar": "إخفاء دائمًا",
+      "bn": "সবসময় লুকান",
+      "de": "Immer ausblenden",
+      "es": "Ocultar siempre",
+      "fr": "Toujours masquer",
+      "hi": "हमेशा छिपाएँ",
+      "ja": "常に隠す",
+      "ko": "항상 숨기기",
+      "pt": "Ocultar sempre",
+      "ru": "Всегда скрывать",
+      "sr": "Увек сакриј",
+      "zh": "始终隐藏"
+     }
+    },
+    {
      "name": "settings_reflow_on_keyboard_title",
      "en": "Resize terminal for keyboard",
      "comment": "Common strings",
@@ -47183,6 +47283,46 @@
       "ru": "На этом устройстве нет доступного приложения для голосового ввода",
       "sr": "На овом уређају нема апликације за унос гласом",
       "zh": "此设备上没有可用的语音输入应用"
+     }
+    },
+    {
+     "name": "terminal_shortcut_toolbar_show",
+     "en": "Show shortcut toolbar",
+     "comment": "Common",
+     "args": [],
+     "t": {
+      "ar": "إظهار شريط الاختصارات",
+      "bn": "শর্টকাট টুলবার দেখান",
+      "de": "Shortcut-Toolbar anzeigen",
+      "es": "Mostrar barra de atajos",
+      "fr": "Afficher la barre de raccourcis",
+      "hi": "शॉर्टकट टूलबार दिखाएँ",
+      "ja": "ショートカットツールバーを表示",
+      "ko": "바로가기 도구 모음 표시",
+      "pt": "Mostrar barra de atalhos",
+      "ru": "Показать панель ярлыков",
+      "sr": "Прикажи алатну линију пречица",
+      "zh": "显示快捷工具栏"
+     }
+    },
+    {
+     "name": "terminal_shortcut_toolbar_hide",
+     "en": "Hide shortcut toolbar",
+     "comment": "Common",
+     "args": [],
+     "t": {
+      "ar": "إخفاء شريط الاختصارات",
+      "bn": "শর্টকাট টুলবার লুকান",
+      "de": "Shortcut-Toolbar ausblenden",
+      "es": "Ocultar barra de atajos",
+      "fr": "Masquer la barre de raccourcis",
+      "hi": "शॉर्टकट टूलबार छिपाएँ",
+      "ja": "ショートカットツールバーを隠す",
+      "ko": "바로가기 도구 모음 숨기기",
+      "pt": "Ocultar barra de atalhos",
+      "ru": "Скрыть панель ярлыков",
+      "sr": "Сакриј алатну линију пречица",
+      "zh": "隐藏快捷工具栏"
      }
     },
     {

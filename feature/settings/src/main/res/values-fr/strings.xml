@@ -514,6 +514,11 @@
     </plurals>
     <string name="settings_hide_nav_bar_in_terminal_title">Masquer la barre d\'onglets de l\'appli dans le terminal</string>
     <string name="settings_hide_nav_bar_in_terminal_subtitle">Masque la barre d\'onglets inférieure de Haven sur l\'écran du terminal. Les barres d\'état et de navigation d\'Android restent visibles.</string>
+    <string name="settings_shortcut_toolbar_title">Barre de raccourcis</string>
+    <string name="settings_shortcut_toolbar_subtitle">Rangées de touches supplémentaires sous le terminal. Auto les masque lorsqu\'un clavier physique est connecté.</string>
+    <string name="settings_shortcut_toolbar_show">Toujours afficher</string>
+    <string name="settings_shortcut_toolbar_auto">Auto</string>
+    <string name="settings_shortcut_toolbar_hide">Toujours masquer</string>
     <string name="settings_credential_keystore_broken_title">Stockage des identifiants indisponible</string>
     <string name="settings_credential_keystore_broken_subtitle">Le magasin de clés de cet appareil a perdu la clé d\'identifiants de Haven. Les mots de passe enregistrés sont illisibles et aucun nouveau ne peut être enregistré. Touchez pour réparer.</string>
     <string name="settings_credential_reset_title">Réparer le stockage des identifiants ?</string>

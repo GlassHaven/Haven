@@ -1021,6 +1021,15 @@ class SettingsViewModel @Inject constructor(
                 UserPreferencesRepository.TerminalInlineImages.ASK,
             )
 
+    /** Shortcut-toolbar visibility policy for terminal sessions (#870). */
+    val terminalShortcutToolbar: StateFlow<UserPreferencesRepository.TerminalShortcutToolbar> =
+        preferencesRepository.terminalShortcutToolbar
+            .stateIn(
+                viewModelScope,
+                SharingStarted.WhileSubscribed(5000),
+                UserPreferencesRepository.TerminalShortcutToolbar.SHOW,
+            )
+
     val toolbarMinButtonWidth: StateFlow<Int> = preferencesRepository.toolbarMinButtonWidth
         .stateIn(
             viewModelScope,
@@ -1470,6 +1479,12 @@ class SettingsViewModel @Inject constructor(
     fun setTerminalInlineImages(mode: UserPreferencesRepository.TerminalInlineImages) {
         viewModelScope.launch {
             preferencesRepository.setTerminalInlineImages(mode)
+        }
+    }
+
+    fun setTerminalShortcutToolbar(mode: UserPreferencesRepository.TerminalShortcutToolbar) {
+        viewModelScope.launch {
+            preferencesRepository.setTerminalShortcutToolbar(mode)
         }
     }
 

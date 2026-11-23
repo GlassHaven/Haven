@@ -518,6 +518,11 @@
     </plurals>
     <string name="settings_hide_nav_bar_in_terminal_title">إخفاء شريط علامات تبويب التطبيق في الطرفية</string>
     <string name="settings_hide_nav_bar_in_terminal_subtitle">يخفي شريط علامات التبويب السفلي لـ Haven في شاشة الطرفية. يبقى شريطا الحالة والتنقل في Android ظاهرين.</string>
+    <string name="settings_shortcut_toolbar_title">شريط الاختصارات</string>
+    <string name="settings_shortcut_toolbar_subtitle">صفوف المفاتيح الإضافية أسفل الطرفية. يخفيها الخيار التلقائي أثناء توصيل لوحة مفاتيح فعلية.</string>
+    <string name="settings_shortcut_toolbar_show">إظهار دائمًا</string>
+    <string name="settings_shortcut_toolbar_auto">تلقائي</string>
+    <string name="settings_shortcut_toolbar_hide">إخفاء دائمًا</string>
     <string name="settings_credential_keystore_broken_title">تخزين بيانات الاعتماد غير متاح</string>
     <string name="settings_credential_keystore_broken_subtitle">فقد مخزن المفاتيح في هذا الجهاز مفتاح بيانات الاعتماد الخاص بـ Haven. لا يمكن قراءة كلمات المرور المحفوظة ولا حفظ كلمات جديدة. اضغط للإصلاح.</string>
     <string name="settings_credential_reset_title">إصلاح تخزين بيانات الاعتماد؟</string>

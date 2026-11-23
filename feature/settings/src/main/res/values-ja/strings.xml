@@ -513,6 +513,11 @@
     </plurals>
     <string name="settings_hide_nav_bar_in_terminal_title">ターミナルでアプリのタブバーを非表示</string>
     <string name="settings_hide_nav_bar_in_terminal_subtitle">ターミナル画面で Haven の下部タブバーを非表示にします。Android のステータスバーとナビゲーションバーは表示されたままです。</string>
+    <string name="settings_shortcut_toolbar_title">ショートカットツールバー</string>
+    <string name="settings_shortcut_toolbar_subtitle">ターミナル下の追加キー行。Auto は物理キーボードの接続中にこれらを非表示にします。</string>
+    <string name="settings_shortcut_toolbar_show">常に表示</string>
+    <string name="settings_shortcut_toolbar_auto">自動</string>
+    <string name="settings_shortcut_toolbar_hide">常に隠す</string>
     <string name="settings_credential_keystore_broken_title">認証情報ストレージを利用できません</string>
     <string name="settings_credential_keystore_broken_subtitle">この端末のキーストアが Haven の認証情報キーを失いました。保存済みのパスワードは読み取れず、新しいパスワードも保存できません。タップして修復してください。</string>
     <string name="settings_credential_reset_title">認証情報ストレージを修復しますか?</string>

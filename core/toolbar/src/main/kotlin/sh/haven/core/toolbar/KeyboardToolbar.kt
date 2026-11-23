@@ -71,6 +71,7 @@ import sh.haven.core.data.preferences.ToolbarItem
 import sh.haven.core.data.preferences.ToolbarKey
 import kotlinx.coroutines.delay
 import sh.haven.core.data.preferences.ToolbarLayout
+import sh.haven.core.data.preferences.UserPreferencesRepository.TerminalShortcutToolbar
 import android.view.HapticFeedbackConstants
 import androidx.activity.compose.BackHandler
 import androidx.compose.foundation.BorderStroke
@@ -746,6 +747,31 @@ fun stepDesktopImeVisibility(
         restoreSoftKeyboard = false,
     )
 }
+
+/**
+ * What the #870 visibility setting alone decides: SHOW keeps the extra key
+ * rows always, AUTO hides them while a physical keyboard is attached and
+ * usable (the caller passes the same Configuration test that suppresses
+ * soft-keyboard auto-show, #511), HIDE always hides them.
+ */
+fun shortcutToolbarBaseVisible(
+    mode: TerminalShortcutToolbar,
+    physicalKeyboardAttached: Boolean,
+): Boolean = mode == TerminalShortcutToolbar.SHOW ||
+    (mode == TerminalShortcutToolbar.AUTO && !physicalKeyboardAttached)
+
+/**
+ * The full #870 gate. The per-session reveal handle ([revealed]) and an
+ * active text selection override any hide: selection swaps the rows for the
+ * copy/paste content, so hiding it would strand selected text with no way to
+ * copy it.
+ */
+fun shortcutToolbarVisible(
+    mode: TerminalShortcutToolbar,
+    physicalKeyboardAttached: Boolean,
+    revealed: Boolean,
+    selectionActive: Boolean,
+): Boolean = shortcutToolbarBaseVisible(mode, physicalKeyboardAttached) || revealed || selectionActive
 
 /**
  * One column cell: stretches its key to the column width (the wider of the two

@@ -159,6 +159,8 @@
     <string name="terminal_details_unavailable">تعذّرت قراءة تفاصيل الاتصال لهذا التبويب.</string>
     <string name="terminal_mouse_requested_but_disabled">يطلب هذا التطبيق الماوس. فعّل “إدخال الماوس في تطبيقات TUI” من الإعدادات ← الطرفية.</string>
     <string name="terminal_dictate_unavailable">لا يتوفر أي تطبيق للإدخال الصوتي على هذا الجهاز</string>
+    <string name="terminal_shortcut_toolbar_show">إظهار شريط الاختصارات</string>
+    <string name="terminal_shortcut_toolbar_hide">إخفاء شريط الاختصارات</string>
 
     <!-- Inline-image consent (#583) -->
     <string name="terminal_inline_image_title">صورة مضمّنة</string>

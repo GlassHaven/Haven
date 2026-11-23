@@ -18,6 +18,8 @@
     <string name="common_port">Порт</string>
     <string name="common_host">Хост</string>
     <string name="terminal_dictate_unavailable">На овом уређају нема апликације за унос гласом</string>
+    <string name="terminal_shortcut_toolbar_show">Прикажи алатну линију пречица</string>
+    <string name="terminal_shortcut_toolbar_hide">Сакриј алатну линију пречица</string>
     <string name="common_username">Корисничко име</string>
     <string name="common_install">Инсталирај</string>
     <string name="common_reset">Ресетуј</string>

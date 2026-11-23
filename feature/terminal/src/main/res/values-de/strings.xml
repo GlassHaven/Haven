@@ -159,6 +159,8 @@
     <string name="terminal_details_unavailable">Verbindungsdetails für diesen Tab konnten nicht gelesen werden.</string>
     <string name="terminal_mouse_requested_but_disabled">Diese App fragt nach der Maus. Aktiviere „Mauseingabe in TUI-Apps“ unter Einstellungen → Terminal, um sie zu nutzen.</string>
     <string name="terminal_dictate_unavailable">Auf diesem Gerät ist keine App für Spracheingabe verfügbar</string>
+    <string name="terminal_shortcut_toolbar_show">Shortcut-Toolbar anzeigen</string>
+    <string name="terminal_shortcut_toolbar_hide">Shortcut-Toolbar ausblenden</string>
 
     <!-- Inline-image consent (#583) -->
     <string name="terminal_inline_image_title">Eingebettetes Bild</string>

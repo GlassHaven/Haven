@@ -159,6 +159,8 @@
     <string name="terminal_details_unavailable">Não foi possível ler os detalhes de conexão desta aba.</string>
     <string name="terminal_mouse_requested_but_disabled">Este app está pedindo o mouse. Ative “Entrada de mouse em apps TUI” em Configurações → Terminal para usá-lo.</string>
     <string name="terminal_dictate_unavailable">Nenhum app de entrada de voz está disponível neste dispositivo</string>
+    <string name="terminal_shortcut_toolbar_show">Mostrar barra de atalhos</string>
+    <string name="terminal_shortcut_toolbar_hide">Ocultar barra de atalhos</string>
 
     <!-- Inline-image consent (#583) -->
     <string name="terminal_inline_image_title">Imagem embutida</string>

@@ -514,6 +514,11 @@
     </plurals>
     <string name="settings_hide_nav_bar_in_terminal_title">App-Tableiste im Terminal ausblenden</string>
     <string name="settings_hide_nav_bar_in_terminal_subtitle">Blendet Havens untere Tableiste auf dem Terminal-Bildschirm aus. Status- und Navigationsleiste von Android bleiben sichtbar.</string>
+    <string name="settings_shortcut_toolbar_title">Shortcut-Toolbar</string>
+    <string name="settings_shortcut_toolbar_subtitle">Zusätzliche Tastenreihen unter dem Terminal. Auto blendet sie aus, solange eine physische Tastatur angeschlossen ist.</string>
+    <string name="settings_shortcut_toolbar_show">Immer anzeigen</string>
+    <string name="settings_shortcut_toolbar_auto">Auto</string>
+    <string name="settings_shortcut_toolbar_hide">Immer ausblenden</string>
     <string name="settings_credential_keystore_broken_title">Anmeldedaten-Speicher nicht verfügbar</string>
     <string name="settings_credential_keystore_broken_subtitle">Der Schlüsselspeicher dieses Geräts hat Havens Anmeldeschlüssel verloren. Gespeicherte Passwörter können nicht gelesen und neue nicht gespeichert werden. Zum Reparieren tippen.</string>
     <string name="settings_credential_reset_title">Anmeldedaten-Speicher reparieren?</string>

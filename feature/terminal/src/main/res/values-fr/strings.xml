@@ -159,6 +159,8 @@
     <string name="terminal_details_unavailable">Impossible de lire les détails de connexion de cet onglet.</string>
     <string name="terminal_mouse_requested_but_disabled">Cette appli demande la souris. Activez « Souris dans les applis TUI » dans Réglages → Terminal pour l’utiliser.</string>
     <string name="terminal_dictate_unavailable">Aucune application de saisie vocale n\'est disponible sur cet appareil</string>
+    <string name="terminal_shortcut_toolbar_show">Afficher la barre de raccourcis</string>
+    <string name="terminal_shortcut_toolbar_hide">Masquer la barre de raccourcis</string>
 
     <!-- Inline-image consent (#583) -->
     <string name="terminal_inline_image_title">Image intégrée</string>

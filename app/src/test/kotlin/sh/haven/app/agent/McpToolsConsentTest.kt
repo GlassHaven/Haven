@@ -1182,4 +1182,41 @@ class McpToolsConsentTest {
         assertEquals(-32602, bad.code)
         assertTrue(bad.message!!.contains("chroot-ng"))
     }
+
+    /** #870: the shortcut-toolbar visibility policy is MCP-drivable so the
+     *  hide/reveal path can be exercised without tapping through Settings. */
+    @Test
+    fun `terminal_shortcut_toolbar preference round-trips all modes and rejects unknown values`() {
+        var current = UserPreferencesRepository.TerminalShortcutToolbar.SHOW
+        val prefs = mockk<UserPreferencesRepository>(relaxed = true)
+        every { prefs.terminalShortcutToolbar } answers { flowOf(current) }
+        coEvery { prefs.setTerminalShortcutToolbar(any()) } answers { current = firstArg() }
+        val tools = newTools(prefs)
+
+        val initial = runBlocking { tools.call("get_preference", JSONObject().put("key", "terminal_shortcut_toolbar")) }
+        assertEquals("SHOW", initial.getString("value"))
+
+        for (mode in UserPreferencesRepository.TerminalShortcutToolbar.entries) {
+            runBlocking {
+                tools.call("set_preference", JSONObject().put("key", "terminal_shortcut_toolbar").put("value", mode.name))
+            }
+            assertEquals(mode, current)
+            val after = runBlocking { tools.call("get_preference", JSONObject().put("key", "terminal_shortcut_toolbar")) }
+            assertEquals(mode.name, after.getString("value"))
+        }
+
+        // Case-insensitive like the other enum coercers.
+        runBlocking {
+            tools.call("set_preference", JSONObject().put("key", "terminal_shortcut_toolbar").put("value", "auto"))
+        }
+        assertEquals(UserPreferencesRepository.TerminalShortcutToolbar.AUTO, current)
+
+        val bad = runCatching {
+            runBlocking {
+                tools.call("set_preference", JSONObject().put("key", "terminal_shortcut_toolbar").put("value", "sometimes"))
+            }
+        }.exceptionOrNull() as McpError
+        assertEquals(-32602, bad.code)
+        assertTrue(bad.message!!.contains("SHOW/AUTO/HIDE"))
+    }
 }

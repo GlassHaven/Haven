@@ -250,6 +250,7 @@ fun SettingsScreen(
     val reflowTerminalOnKeyboard by viewModel.reflowTerminalOnKeyboard.collectAsState()
     val terminalTabTitlesFollowSession by viewModel.terminalTabTitlesFollowSession.collectAsState()
     val terminalInlineImages by viewModel.terminalInlineImages.collectAsState()
+    val terminalShortcutToolbar by viewModel.terminalShortcutToolbar.collectAsState()
     val showTerminalTabBar by viewModel.showTerminalTabBar.collectAsState()
     val backupStatus by viewModel.backupStatus.collectAsState()
     val waylandShellCommand by viewModel.waylandShellCommand.collectAsState()
@@ -977,6 +978,17 @@ fun SettingsScreen(
             selected = terminalInlineImages,
             label = { mode -> stringResource(terminalInlineImagesLabel(mode)) },
             onChange = viewModel::setTerminalInlineImages,
+        )
+        // Shortcut (extra keys) toolbar visibility (#870): always show, hide
+        // while a physical keyboard is attached, or always hide.
+        SettingsChipsItem(
+            icon = Icons.Filled.Keyboard,
+            title = stringResource(R.string.settings_shortcut_toolbar_title),
+            subtitle = stringResource(R.string.settings_shortcut_toolbar_subtitle),
+            options = UserPreferencesRepository.TerminalShortcutToolbar.entries,
+            selected = terminalShortcutToolbar,
+            label = { mode -> stringResource(shortcutToolbarLabel(mode)) },
+            onChange = viewModel::setTerminalShortcutToolbar,
         )
 
         }
@@ -3825,6 +3837,14 @@ private fun terminalInlineImagesLabel(mode: UserPreferencesRepository.TerminalIn
     UserPreferencesRepository.TerminalInlineImages.OFF -> R.string.settings_inline_images_off
     UserPreferencesRepository.TerminalInlineImages.ASK -> R.string.settings_inline_images_ask
     UserPreferencesRepository.TerminalInlineImages.ALWAYS -> R.string.settings_inline_images_always
+}
+
+/** String resource for a [UserPreferencesRepository.TerminalShortcutToolbar] chip label (#870). */
+@androidx.annotation.StringRes
+private fun shortcutToolbarLabel(mode: UserPreferencesRepository.TerminalShortcutToolbar): Int = when (mode) {
+    UserPreferencesRepository.TerminalShortcutToolbar.SHOW -> R.string.settings_shortcut_toolbar_show
+    UserPreferencesRepository.TerminalShortcutToolbar.AUTO -> R.string.settings_shortcut_toolbar_auto
+    UserPreferencesRepository.TerminalShortcutToolbar.HIDE -> R.string.settings_shortcut_toolbar_hide
 }
 
 /** Assignment for a key in the toolbar config dialog. */

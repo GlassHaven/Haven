@@ -153,6 +153,7 @@ class UserPreferencesRepository @Inject constructor(
     private val reflowTerminalOnKeyboardKey = booleanPreferencesKey("reflow_terminal_on_keyboard")
     private val terminalTabTitlesFollowSessionKey = booleanPreferencesKey("terminal_tab_titles_follow_session")
     private val showTerminalTabBarKey = booleanPreferencesKey("show_terminal_tab_bar")
+    private val terminalShortcutToolbarKey = stringPreferencesKey("terminal_shortcut_toolbar")
     private val reorderHintShownKey = booleanPreferencesKey("reorder_hint_shown")
     private val screenOrderKey = stringPreferencesKey("screen_order")
     private val sshKeyOrderKey = stringPreferencesKey("ssh_key_order")
@@ -2302,6 +2303,17 @@ class UserPreferencesRepository @Inject constructor(
         }
     }
 
+    /** Shortcut-toolbar visibility policy (#870): SHOW (default) / AUTO / HIDE. */
+    val terminalShortcutToolbar: Flow<TerminalShortcutToolbar> = dataStore.data.map { prefs ->
+        TerminalShortcutToolbar.fromString(prefs[terminalShortcutToolbarKey])
+    }
+
+    suspend fun setTerminalShortcutToolbar(mode: TerminalShortcutToolbar) {
+        dataStore.edit { prefs ->
+            prefs[terminalShortcutToolbarKey] = mode.name
+        }
+    }
+
     /**
      * When true, the active terminal scheme follows the system light/dark
      * mode — [terminalLightColorScheme] in light, [terminalDarkColorScheme]
@@ -2713,6 +2725,23 @@ class UserPreferencesRepository @Inject constructor(
         companion object {
             fun fromString(value: String?): TerminalInlineImages =
                 entries.find { it.name == value } ?: ASK
+        }
+    }
+
+    /**
+     * Shortcut-toolbar (extra key rows) visibility policy for the terminal
+     * (#870). SHOW keeps the pre-#870 behaviour; AUTO hides the rows while a
+     * physical keyboard is attached and usable; HIDE always hides them. A
+     * slim reveal handle brings the rows back per session when hidden.
+     */
+    enum class TerminalShortcutToolbar {
+        SHOW,
+        AUTO,
+        HIDE;
+
+        companion object {
+            fun fromString(value: String?): TerminalShortcutToolbar =
+                entries.find { it.name == value } ?: SHOW
         }
     }
 

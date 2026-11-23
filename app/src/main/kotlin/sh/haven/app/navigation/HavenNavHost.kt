@@ -448,6 +448,8 @@ fun HavenNavHost(
         .collectAsState(initial = null)
     val toolbarLayout by preferencesRepository.toolbarLayout
         .collectAsState(initial = sh.haven.core.data.preferences.ToolbarLayout.DEFAULT)
+    val terminalShortcutToolbar by preferencesRepository.terminalShortcutToolbar
+        .collectAsState(initial = sh.haven.core.data.preferences.UserPreferencesRepository.TerminalShortcutToolbar.SHOW)
     val snippetLibrary by preferencesRepository.snippetLibrary
         .collectAsState(initial = emptyList())
     val navBlockMode by preferencesRepository.navBlockMode
@@ -757,6 +759,7 @@ fun HavenNavHost(
                         horizontalPaddingDp = terminalHorizontalPadding,
                         terminalFontPath = terminalFontPath,
                         toolbarLayout = toolbarLayout,
+                        shortcutToolbarMode = terminalShortcutToolbar,
                         navBlockMode = navBlockMode,
                         toolbarUniformGrid = toolbarUniformGrid,
                         editModeControlsPlacement = editModeControlsPlacement,

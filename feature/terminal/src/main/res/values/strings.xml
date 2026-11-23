@@ -19,6 +19,8 @@
     <string name="common_port">Port</string>
     <string name="common_host">Host</string>
     <string name="terminal_dictate_unavailable">No voice input app is available on this device</string>
+    <string name="terminal_shortcut_toolbar_show">Show shortcut toolbar</string>
+    <string name="terminal_shortcut_toolbar_hide">Hide shortcut toolbar</string>
     <string name="common_username">Username</string>
     <string name="common_install">Install</string>
     <string name="common_reset">Reset</string>

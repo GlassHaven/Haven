@@ -1,0 +1,1 @@
+New shortcut toolbar setting (Settings → Terminal): always show, always hide, or Auto (hide the extra key rows while a physical keyboard is attached). A small handle brings the rows back per session (#870).

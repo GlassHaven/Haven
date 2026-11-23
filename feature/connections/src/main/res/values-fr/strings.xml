@@ -223,6 +223,7 @@
     <string name="connections_action_tunnels">Tunnels</string>
     <string name="connections_action_reauthenticate">Re-authenticate</string>
     <string name="connections_action_cancel_oauth">Cancel OAuth</string>
+    <string name="connections_storage_connect_timeout">Délai de connexion au stockage dépassé — voir Paramètres → Journal des connexions</string>
 
     <string name="connections_hostkey_verify_hint">Vérifiez que cette empreinte correspond à la clé du serveur avant de lui faire confiance.</string>
     <string name="connections_hostkey_changed_title">Clé d’hôte modifiée</string>

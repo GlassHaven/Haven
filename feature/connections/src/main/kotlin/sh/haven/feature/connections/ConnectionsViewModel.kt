@@ -3153,6 +3153,13 @@ class ConnectionsViewModel @Inject constructor(
         rcloneSessionManager.getSessionsForProfile(profile.id).forEach {
             rcloneSessionManager.cancelPendingOAuth(it.sessionId)
         }
+        // #839: marking the manager session is not enough on the stored-token
+        // refresh path — connectRclone's connectSession call is still blocking
+        // and its finally (which clears this) only runs when that returns.
+        // Drop the UI wait state now so Cancel always stops the spinner.
+        if (_connectingProfileId.value == profile.id) {
+            _connectingProfileId.value = null
+        }
     }
 
     /**

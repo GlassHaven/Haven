@@ -223,6 +223,7 @@
     <string name="connections_action_tunnels">Tunnels</string>
     <string name="connections_action_reauthenticate">Re-authenticate</string>
     <string name="connections_action_cancel_oauth">Cancel OAuth</string>
+    <string name="connections_storage_connect_timeout">Tempo limite da conexão de armazenamento esgotado — veja Configurações → Registro de conexões</string>
 
     <string name="connections_hostkey_verify_hint">Verifique se esta impressão digital corresponde à chave do servidor antes de confiar.</string>
     <string name="connections_hostkey_changed_title">Chave de host alterada</string>

@@ -319,6 +319,7 @@
     <string name="connections_action_tunnels">隧道</string>
     <string name="connections_action_reauthenticate">重新认证</string>
     <string name="connections_action_cancel_oauth">取消 OAuth</string>
+    <string name="connections_storage_connect_timeout">存储连接超时 — 查看设置 → 连接日志</string>
 
     <!-- #133 phase 2b: cert renewal status banner -->
     <string name="connections_renewing_cert">正在通过 %2$s 续签 %1$s 的证书…</string>

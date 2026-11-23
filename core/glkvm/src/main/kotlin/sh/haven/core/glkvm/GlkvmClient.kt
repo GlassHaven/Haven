@@ -3,6 +3,7 @@ package sh.haven.core.glkvm
 import okhttp3.FormBody
 import okhttp3.HttpUrl
 import okhttp3.HttpUrl.Companion.toHttpUrl
+import okhttp3.MediaType.Companion.toMediaType
 import okhttp3.MultipartBody
 import okhttp3.OkHttpClient
 import okhttp3.Request
@@ -10,6 +11,7 @@ import okhttp3.RequestBody.Companion.toRequestBody
 import okhttp3.WebSocket
 import okhttp3.WebSocketListener
 import okio.ByteString
+import org.json.JSONArray
 import org.json.JSONObject
 import java.io.InterruptedIOException
 import java.net.SocketTimeoutException
@@ -318,22 +320,23 @@ class GlkvmClient private constructor(
         path: String,
         query: Map<String, String> = emptyMap(),
         body: String? = null,
+        contentType: String? = null,
         retry: Boolean = true,
     ): String {
         val auth = login(force = false)
         val (_, rb) = buildAuthedRequest(path, auth, query)
-        if (body != null) rb.post(body.toRequestBody(null))
+        if (body != null) rb.post(body.toRequestBody(contentType?.toMediaType()))
         http.newCall(rb.build()).execute().use { resp ->
             val text = resp.body?.string().orEmpty()
             when {
                 resp.code == 401 && retry -> {
                     login(force = true)
-                    return callText(method, path, query, body, retry = false)
+                    return callText(method, path, query, body, contentType, retry = false)
                 }
                 // GL fork: unknown-but-format-valid token -> 403 ForbiddenError.
                 resp.code == 403 && text.contains("ForbiddenError") && retry -> {
                     login(force = true)
-                    return callText(method, path, query, body, retry = false)
+                    return callText(method, path, query, body, contentType, retry = false)
                 }
                 resp.code >= 400 -> throw GlkvmException("$method $path -> HTTP ${resp.code}: ${text.take(200)}")
             }
@@ -351,6 +354,38 @@ class GlkvmClient private constructor(
         val json = callJson(path, query, body = "")
         if (!json.optBoolean("ok", true)) {
             throw GlkvmException("$path: ${json.optString("message").ifEmpty { json.toString().take(120) }}")
+        }
+    }
+
+    // -- mouse jiggler ---------------------------------------------------------
+
+    /**
+     * Mouse jiggler state from GET /api/hid: {enabled, active, interval, schedule}.
+     * Empty object on firmware that does not expose it. The GL fork's "wobble"
+     * runs when enabled AND (web-UI button state OR in-schedule); the button
+     * state is runtime-only and a reboot clears it, so headless use needs a
+     * schedule (see [setJigglerSchedule]) to stay active across reboots.
+     */
+    fun jigglerState(): JSONObject =
+        callJson("/api/hid").optJSONObject("result")?.optJSONObject("jiggler") ?: JSONObject()
+
+    /**
+     * Persist + activate a jiggler schedule. [periods] is a list of
+     * {"start":"HH:MM","end":"HH:MM"} day-windows. JSON-body endpoint
+     * (reads request.json) — a form body 500s. The schedule survives reboots.
+     */
+    fun setJigglerSchedule(periods: JSONArray) {
+        val body = JSONObject().put("periods", periods).toString()
+        val text = callText(
+            "POST", "/api/hid/set_jiggler_schedule",
+            body = body, contentType = "application/json",
+        )
+        val json = runCatching { JSONObject(text) }
+            .getOrElse { throw GlkvmException("/api/hid/set_jiggler_schedule: non-JSON body: ${text.take(120)}") }
+        if (!json.optBoolean("ok", true)) {
+            throw GlkvmException(
+                "/api/hid/set_jiggler_schedule: ${json.optString("message").ifEmpty { json.toString().take(120) }}",
+            )
         }
     }
 

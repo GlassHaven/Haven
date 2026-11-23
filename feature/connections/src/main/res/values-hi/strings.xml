@@ -223,6 +223,7 @@
     <string name="connections_action_tunnels">टनल</string>
     <string name="connections_action_reauthenticate">पुनः प्रमाणीकरण</string>
     <string name="connections_action_cancel_oauth">OAuth रद्द करें</string>
+    <string name="connections_storage_connect_timeout">स्टोरेज कनेक्शन का समय समाप्त — सेटिंग्स → कनेक्शन लॉग देखें</string>
 
     <string name="connections_hostkey_verify_hint">भरोसा करने से पहले सत्यापित करें कि यह फ़िंगरप्रिंट सर्वर की कुंजी से मेल खाता है।</string>
     <string name="connections_hostkey_changed_title">होस्ट कुंजी बदली</string>

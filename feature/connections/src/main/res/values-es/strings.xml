@@ -223,6 +223,7 @@
     <string name="connections_action_tunnels">Tunnels</string>
     <string name="connections_action_reauthenticate">Re-authenticate</string>
     <string name="connections_action_cancel_oauth">Cancel OAuth</string>
+    <string name="connections_storage_connect_timeout">Tiempo de espera de la conexión de almacenamiento agotado — consulta Ajustes → Registro de conexiones</string>
 
     <string name="connections_hostkey_verify_hint">Verifica que esta huella coincida con la clave del servidor antes de confiar.</string>
     <string name="connections_hostkey_changed_title">La clave de host cambió</string>

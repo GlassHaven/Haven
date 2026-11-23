@@ -223,6 +223,7 @@
     <string name="connections_action_tunnels">Tunnels</string>
     <string name="connections_action_reauthenticate">Re-authenticate</string>
     <string name="connections_action_cancel_oauth">Cancel OAuth</string>
+    <string name="connections_storage_connect_timeout">Speicher-Verbindung abgelaufen — siehe Einstellungen → Verbindungsprotokoll</string>
 
     <string name="connections_hostkey_verify_hint">Prüfe, ob dieser Fingerabdruck mit dem Schlüssel des Servers übereinstimmt, bevor du ihm vertraust.</string>
     <string name="connections_hostkey_changed_title">Hostschlüssel geändert</string>

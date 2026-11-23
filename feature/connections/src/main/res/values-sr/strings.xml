@@ -297,6 +297,7 @@
     <string name="connections_action_tunnels">Тунели</string>
     <string name="connections_action_reauthenticate">Поново потврди идентитет</string>
     <string name="connections_action_cancel_oauth">Откажи OAuth</string>
+    <string name="connections_storage_connect_timeout">Временско ограничење везе са складиштем је истекло — погледајте Подешавања → Дневник веза</string>
     <string name="connections_reveal_password_title">Откриј сачувану лозинку</string>
     <string name="connections_reveal_password_subtitle">Потврдите да сте то ви ако желите да се прикаже сачувана лозинка</string>
     <string name="connections_renewing_cert">Обнављање серт за %1$s кроз %2$s…</string>

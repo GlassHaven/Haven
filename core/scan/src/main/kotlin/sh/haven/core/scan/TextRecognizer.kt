@@ -78,13 +78,15 @@ class TextRecognizer @Inject constructor(
         bitmap: Bitmap,
         minScore: Float = 0.45f,
         forceRefresh: Boolean = false,
-    ): OcrScreenIndex = recognizeIndex(bitmap, minScore, forceRefresh, region = null)
+        wobbleExpected: Boolean = true,
+    ): OcrScreenIndex = recognizeIndex(bitmap, minScore, forceRefresh, region = null, wobbleExpected = wobbleExpected)
 
     suspend fun recognizeIndex(
         bitmap: Bitmap,
         minScore: Float = 0.45f,
         forceRefresh: Boolean = false,
         region: OcrBbox?,
+        wobbleExpected: Boolean = true,
     ): OcrScreenIndex = withContext(Dispatchers.Default) {
         val clampedRegion = region?.let { clampRegion(it, bitmap.width, bitmap.height) }
         val sig = TileGridSignature.compute(bitmap, clampedRegion)
@@ -92,7 +94,7 @@ class TextRecognizer @Inject constructor(
             val existing = cachedIndex
             val prevSig = cachedSig
             if (existing != null && prevSig != null && cachedMinScore == minScore) {
-                val diff = sig.diffAgainst(prevSig, existing)
+                val diff = sig.diffAgainst(prevSig, existing, wobbleExpected)
                 if (diff.identical || diff.wobbleOnly) {
                     lastCacheHit = true
                     lastWobbleIgnored = diff.wobbleOnly
@@ -107,7 +109,7 @@ class TextRecognizer @Inject constructor(
                 val existing = cachedIndex
                 val prevSig = cachedSig
                 if (existing != null && prevSig != null && cachedMinScore == minScore) {
-                    val diff = sig.diffAgainst(prevSig, existing)
+                    val diff = sig.diffAgainst(prevSig, existing, wobbleExpected)
                     if (diff.identical || diff.wobbleOnly) {
                         lastCacheHit = true
                         lastWobbleIgnored = diff.wobbleOnly
@@ -229,7 +231,11 @@ internal class TileGridSignature(
         val changedTileCount: Int,
     )
 
-    fun diffAgainst(other: TileGridSignature, cachedIndex: OcrScreenIndex?): FrameDiff {
+    fun diffAgainst(
+        other: TileGridSignature,
+        cachedIndex: OcrScreenIndex?,
+        wobbleExpected: Boolean = true,
+    ): FrameDiff {
         if (width != other.width || height != other.height || region != other.region) {
             return FrameDiff(identical = false, wobbleOnly = false, changedTileCount = GRID_W * GRID_H)
         }
@@ -272,7 +278,8 @@ internal class TileGridSignature(
         val effX = region?.x ?: 0
         val effY = region?.y ?: 0
 
-        if (changedCount in 1..4 &&
+        if (wobbleExpected &&
+            changedCount in 1..4 &&
             effW >= MIN_WOBBLE_FRAME_WIDTH &&
             effH >= MIN_WOBBLE_FRAME_HEIGHT &&
             cachedIndex != null &&

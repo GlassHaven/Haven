@@ -370,6 +370,7 @@
     <string name="connections_action_tunnels">Tunnels</string>
     <string name="connections_action_reauthenticate">Re-authenticate</string>
     <string name="connections_action_cancel_oauth">Cancel OAuth</string>
+    <string name="connections_storage_connect_timeout">Storage connection timed out — see Settings → View connection log</string>
     <string name="connections_reveal_password_title">Reveal saved password</string>
     <string name="connections_reveal_password_subtitle">Confirm it\'s you to show the saved password</string>
 

@@ -149,6 +149,16 @@ private val PROFILE_COLORS = listOf(
     Color(0xFF8D6E63), // brown
 )
 
+/**
+ * #839: how long the connect safety net waits before declaring a silent
+ * failure. Storage (rclone) first-connects refresh a token and list the
+ * remote root in one blocking call, which can legitimately exceed 20s on
+ * a slow network; they get the same 5-minute leash as the OAuth timeout
+ * in RcloneSessionManager. Everything else keeps the original 20s.
+ */
+internal fun connectSafetyNetDelayMs(isRclone: Boolean): Long =
+    if (isRclone) 300_000L else 20_000L
+
 @OptIn(ExperimentalMaterial3Api::class, ExperimentalFoundationApi::class)
 @Composable
 fun ConnectionsScreen(
@@ -391,16 +401,27 @@ fun ConnectionsScreen(
         }
     }
 
-    // Safety net: if a connection attempt spins for more than 20s without resolving
-    // to a terminal, error, or password dialog, it's a silent failure. Show a toast
-    // and clear the spinner. This catches all unhappy paths: DNS hangs, blocked
-    // coroutines, session manager failures, race conditions, etc.
+    // Safety net: if a connection attempt spins without resolving to a
+    // terminal, error, or password dialog, it's a silent failure. Show a
+    // toast. This catches all unhappy paths: DNS hangs, blocked coroutines,
+    // session manager failures, race conditions, etc.
+    //
+    // #839: storage first-connects do a token refresh + root listing in one
+    // blocking call and can legitimately exceed 20s on a slow network (a
+    // browser OAuth flow gets 5 min). The flat 20s net declared "timed out"
+    // while the connect kept going and later succeeded. Rclone gets the same
+    // 5-min leash as its OAuth timeout; the SSH family keeps 20s.
+    val storageConnectTimeoutMessage = stringResource(R.string.connections_storage_connect_timeout)
     LaunchedEffect(connectingProfileId) {
         if (connectingProfileId != null) {
-            kotlinx.coroutines.delay(20_000)
-            // Still spinning after 20s?
+            val isRclone = connections.firstOrNull { it.id == connectingProfileId }?.isRclone == true
+            kotlinx.coroutines.delay(connectSafetyNetDelayMs(isRclone))
+            // Still spinning after the leash?
             if (viewModel.connectingProfileId.value != null) {
-                viewModel.showError("Connection timed out — check host, port, and credentials")
+                viewModel.showError(
+                    if (isRclone) storageConnectTimeoutMessage
+                    else "Connection timed out — check host, port, and credentials",
+                )
             }
         }
     }

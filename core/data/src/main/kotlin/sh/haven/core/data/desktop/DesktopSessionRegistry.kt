@@ -44,6 +44,15 @@ class DesktopFrameHandle(
      * and `inspect_desktop_tab`.
      */
     val activeBounds: (() -> Pair<Int, Int>)? = null,
+    /**
+     * Optional predicate: is cursor "wobble" expected on this protocol right now?
+     * For GLKVM this reflects the server-side mouse jiggler's active state, so the
+     * OCR tile-cache only ignores small non-text changes when the jiggler is
+     * actually running — otherwise a real tiny change (caret blink, small toast)
+     * would be silently dropped from `mode=diff`. Null keeps the legacy heuristic
+     * for protocols without a known wobble source.
+     */
+    val wobbleExpected: (() -> Boolean)? = null,
 )
 
 /**

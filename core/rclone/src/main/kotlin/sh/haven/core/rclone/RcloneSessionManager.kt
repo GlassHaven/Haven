@@ -251,13 +251,22 @@ class RcloneSessionManager @Inject constructor(
     }
 
     /**
-     * Cancel the in-flight OAuth flow for [sessionId], if any. Marks
-     * the session ERROR and best-effort interrupts the worker thread.
-     * The underlying gomobile call may still be running; that thread
-     * will be reclaimed on app restart.
+     * Cancel the pending connect for [sessionId]. Marks the session ERROR
+     * and best-effort interrupts the worker thread. The underlying gomobile
+     * call may still be running; that thread will be reclaimed on app restart.
+     *
+     * #839: the pending operation is not always a browser OAuth flow — a
+     * stored-token refresh inside [connectSession]'s listDirectory call
+     * blocks the same way with no entry in [oauthFutures]. The session is
+     * marked ERROR either way so the card leaves CONNECTING; previously
+     * the no-future case returned early and Cancel appeared to do nothing.
      */
     fun cancelPendingOAuth(sessionId: String) {
-        val future = oauthFutures[sessionId] ?: return
+        val future = oauthFutures[sessionId]
+        if (future == null) {
+            failSession(sessionId, "Connection cancelled.")
+            return
+        }
         Log.i(TAG, "User cancelled OAuth for session $sessionId")
         future.cancel(true)
         // Cancelling the future does not interrupt the gomobile call, so

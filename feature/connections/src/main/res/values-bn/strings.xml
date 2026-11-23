@@ -223,6 +223,7 @@
     <string name="connections_action_tunnels">টানেল</string>
     <string name="connections_action_reauthenticate">পুনরায় প্রমাণীকরণ</string>
     <string name="connections_action_cancel_oauth">OAuth বাতিল করুন</string>
+    <string name="connections_storage_connect_timeout">স্টোরেজ সংযোগের সময়সীমা শেষ — সেটিংস → সংযোগ লগ দেখুন</string>
 
     <string name="connections_hostkey_verify_hint">বিশ্বাস করার আগে যাচাই করুন এই ফিঙ্গারপ্রিন্ট সার্ভারের কী-এর সঙ্গে মেলে।</string>
     <string name="connections_hostkey_changed_title">হোস্ট কী পরিবর্তিত</string>

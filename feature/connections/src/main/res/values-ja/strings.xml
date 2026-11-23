@@ -223,6 +223,7 @@
     <string name="connections_action_tunnels">トンネル</string>
     <string name="connections_action_reauthenticate">再認証</string>
     <string name="connections_action_cancel_oauth">OAuth をキャンセル</string>
+    <string name="connections_storage_connect_timeout">ストレージ接続がタイムアウトしました — 設定 → 接続ログを確認してください</string>
 
     <string name="connections_hostkey_verify_hint">信頼する前に、このフィンガープリントがサーバーの鍵と一致することを確認してください。</string>
     <string name="connections_hostkey_changed_title">ホスト鍵が変更されました</string>

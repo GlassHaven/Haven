@@ -249,6 +249,7 @@
     <string name="connections_open_plain_shell">기본 셸 열기</string>
     <string name="connections_action_back">뒤로</string>
     <string name="connections_action_cancel_oauth">OAuth 취소</string>
+    <string name="connections_storage_connect_timeout">스토리지 연결 시간 초과 — 설정 → 연결 로그 확인</string>
     <string name="connections_action_local_terminal">로컬 터미널</string>
     <string name="connections_action_reauthenticate">재인증</string>
     <string name="connections_action_tunnels">터널</string>

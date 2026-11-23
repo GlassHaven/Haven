@@ -223,6 +223,7 @@
     <string name="connections_action_tunnels">Туннели</string>
     <string name="connections_action_reauthenticate">Пройти проверку заново</string>
     <string name="connections_action_cancel_oauth">Отменить OAuth</string>
+    <string name="connections_storage_connect_timeout">Тайм-аут подключения к хранилищу — см. Настройки → Журнал подключений</string>
 
     <string name="connections_hostkey_verify_hint">Прежде чем доверять, убедитесь, что этот отпечаток совпадает с ключом сервера.</string>
     <string name="connections_hostkey_changed_title">Ключ хоста изменился</string>

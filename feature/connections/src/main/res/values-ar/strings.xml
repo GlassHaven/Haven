@@ -223,6 +223,7 @@
     <string name="connections_action_tunnels">الأنفاق</string>
     <string name="connections_action_reauthenticate">إعادة المصادقة</string>
     <string name="connections_action_cancel_oauth">إلغاء OAuth</string>
+    <string name="connections_storage_connect_timeout">انتهت مهلة اتصال التخزين — راجع الإعدادات ← سجل الاتصالات</string>
 
     <string name="connections_hostkey_verify_hint">تأكّد من تطابق هذه البصمة مع مفتاح الخادم قبل الوثوق به.</string>
     <string name="connections_hostkey_changed_title">تغيّر مفتاح المضيف</string>

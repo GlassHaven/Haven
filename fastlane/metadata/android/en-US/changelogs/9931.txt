@@ -1,0 +1,1 @@
+GLKVM desktop agent tools now report the mouse jiggler's state, last-sent pointer drift, and HID inactivity (upstream PiKVM). The OCR cache only ignores tiny changes as wobble while the jiggler is actually running, so real small changes are no longer dropped when it is off.

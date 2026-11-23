@@ -5,6 +5,10 @@ the corresponding GitHub Release; a release can't ship without its section
 (enforced by `scripts/check-changelog.sh` in CI). The GitHub "Full Changelog"
 compare link is appended automatically — don't add it here.
 
+## v5.94.68
+
+- GLKVM remote-desktop agent tools are now mouse-jiggler aware: capture_desktop_tab and inspect_desktop_tab report the jiggler's state, whether the pointer position is last-sent (the jiggler can drift it), and seconds since the last HID input on upstream PiKVM. The OCR cache only dismisses tiny screen changes as jiggler wobble while the jiggler is actually running, so real small changes are no longer dropped when it is off, for example after a KVM reboot.
+
 ## v5.94.67
 
 - Fix the false "Connection timed out" on slow cloud-storage first-connects: storage connections get a five-minute watchdog instead of the generic 20 seconds, and Cancel now stops a pending storage connect even when it is a token refresh rather than a browser sign-in (#839, thanks ghanan).

@@ -3153,6 +3153,9 @@ class DesktopViewModel @Inject constructor(
                             frame.value
                         },
                         activeBounds = { session.activeLeftPx to session.activeWidthPx },
+                        wobbleExpected = { session.jigglerActive() },
+                        hidInactivity = { session.hidInactivitySeconds() },
+                        jigglerState = { session.jigglerState() },
                     ),
                 )
                 desktopSessionRegistry.registerInputHandle(

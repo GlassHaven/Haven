@@ -12,6 +12,7 @@ import kotlinx.coroutines.test.runTest
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertFalse
 import org.junit.Assert.assertNotNull
+import org.junit.Assert.assertNotSame
 import org.junit.Assert.assertNull
 import org.junit.Assert.assertSame
 import org.junit.Assert.assertTrue
@@ -196,6 +197,55 @@ class TextRecognizerTest {
         assertEquals(2, engineCalls)
         assertFalse(recognizer.lastCacheHit)
         assertFalse(recognizer.lastWobbleIgnored)
+    }
+
+    /**
+     * GLKVM jiggler gating: the wobble-ignore heuristic must only fire when
+     * the server-side jiggler is actually active. With wobbleExpected=false
+     * (jiggler off — e.g. a reboot cleared the runtime web-UI button state),
+     * a small localized change is a real UI change and must re-recognize,
+     * not be silently dropped from mode=diff.
+     */
+    @Test
+    fun `recognizeIndex does not ignore small changes when wobble is not expected`() = runTest {
+        var engineCalls = 0
+        val engine = mockk<TextRecognizer.OcrEngine>(relaxed = true) {
+            every { detectAndRecognize(any()) } answers {
+                engineCalls++
+                listOf(
+                    OcrLineDetection(OcrBbox(40, 40, 200, 28), "TerminalReady", 0.97f),
+                )
+            }
+        }
+        val factory = TextRecognizer.OcrEngineFactory { _, _ -> engine }
+        val trainedData = mockk<TrainedDataManager> {
+            coEvery { ensureModels() } returns modelPaths
+        }
+        val recognizer = TextRecognizer(trainedData, factory)
+
+        val baseFrame = Bitmap.createBitmap(640, 480, Bitmap.Config.ARGB_8888)
+        baseFrame.eraseColor(Color.rgb(30, 32, 36))
+        recognizer.recognizeIndex(baseFrame, forceRefresh = false)
+        assertEquals(1, engineCalls)
+
+        val smallChange = baseFrame.copy(Bitmap.Config.ARGB_8888, true)
+        for (y in 360 until 380) {
+            for (x in 500 until 520) {
+                smallChange.setPixel(x, y, Color.WHITE)
+            }
+        }
+
+        // Jiggler active: the change is dismissed as wobble (legacy behaviour).
+        val idxWobble = recognizer.recognizeIndex(smallChange, forceRefresh = false, wobbleExpected = true)
+        assertEquals(1, engineCalls)
+        assertTrue(recognizer.lastWobbleIgnored)
+
+        // Jiggler off: the same change must reach OCR again.
+        val idxReal = recognizer.recognizeIndex(smallChange, forceRefresh = false, wobbleExpected = false)
+        assertEquals(2, engineCalls)
+        assertFalse(recognizer.lastCacheHit)
+        assertFalse(recognizer.lastWobbleIgnored)
+        assertNotSame(idxWobble, idxReal)
     }
 
     @Test

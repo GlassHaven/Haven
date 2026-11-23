@@ -389,6 +389,21 @@ class GlkvmClient private constructor(
         }
     }
 
+    /**
+     * Seconds since the last HID input on the target (any source: this client, a
+     * human at the KVM console, or another kvmd client). Null when the firmware
+     * does not expose the endpoint — the GL fork 404s `/api/hid/inactivity`, so
+     * this is an upstream-PiKVM signal that degrades gracefully on GLKVM.
+     */
+    fun hidInactivitySeconds(): Double? = try {
+        val j = callJson("/api/hid/inactivity")
+        val r = j.optJSONObject("result")
+        val v = r?.optDouble("inactivity", -1.0) ?: j.optDouble("inactivity", -1.0)
+        v.takeIf { it >= 0.0 }
+    } catch (e: GlkvmException) {
+        if (e.message?.contains("404") == true) null else throw e
+    }
+
     // -- HID -----------------------------------------------------------------
 
     /**

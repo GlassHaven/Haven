@@ -227,7 +227,7 @@ internal class DesktopToolProvider(
         ) { args -> captureDesktop(args) },
 
         "capture_desktop_tab" to ToolHandler(
-            description = "Capture what a remote-desktop VIEWER tab (RDP, VNC, SPICE, or GLKVM) is actually rendering, INLINE as an image — the framebuffer the user sees, with the server cursor composited on top at the tracked pointer position. This is distinct from capture_desktop, which screenshots an in-guest X11/VNC desktop; this one captures the RDP/VNC/SPICE client viewer (e.g. to verify colours and the cursor against a remote Windows/Linux server). Optionally pass regionX/regionY/regionWidth/regionHeight to crop to a specific region of interest. Pass profileId to pick a tab (from list_desktop_sessions); omit it when exactly one desktop tab is open. Returns the image plus { profileId, protocol, width, height, imageWidth, imageHeight, region?, hasCursor, cursorWidth?, cursorHeight?, hotspotX?, hotspotY?, pointerX?, pointerY?, format }.",
+            description = "Capture what a remote-desktop VIEWER tab (RDP, VNC, SPICE, or GLKVM) is actually rendering, INLINE as an image — the framebuffer the user sees, with the server cursor composited on top at the tracked pointer position. This is distinct from capture_desktop, which screenshots an in-guest X11/VNC desktop; this one captures the RDP/VNC/SPICE client viewer (e.g. to verify colours and the cursor against a remote Windows/Linux server). Optionally pass regionX/regionY/regionWidth/regionHeight to crop to a specific region of interest. Pass profileId to pick a tab (from list_desktop_sessions); omit it when exactly one desktop tab is open. Returns the image plus { profileId, protocol, width, height, imageWidth, imageHeight, region?, hasCursor, cursorWidth?, cursorHeight?, hotspotX?, hotspotY?, pointerX?, pointerY?, pointerIsLastSent?, jiggler?, hidInactivityS?, format }. pointerIsLastSent=true (GLKVM) means pointerX/Y is the last position Haven sent and the KVM mouse jiggler may have drifted it; jiggler reports the wobble {enabled,active,interval,schedule}; hidInactivityS (upstream PiKVM only, null on the GL fork) is seconds since any HID input.",
             inputSchema = objectSchema {
                 string("profileId", "Profile id of the desktop tab (from list_desktop_sessions). Omit when exactly one tab is open.")
                 integer("maxWidth", "Downscale so the image is at most this many pixels wide. Default 1920 (1:1 for 1080p desktops; clamped 160–4096).")
@@ -281,7 +281,7 @@ internal class DesktopToolProvider(
         ) { args -> tapDesktopTab(args) },
 
         "inspect_desktop_tab" to ToolHandler(
-            description = "Run RapidOCR + a 2D k-d tree spatial index over a remote-desktop VIEWER tab (VNC, RDP, SPICE, or GLKVM) in full framebuffer pixel coordinates (matching tap_desktop_tab). Uses perceptual tile-grid caching to ignore HDMI/JPEG noise and GLKVM hardware mouse-wobbler motion outside text boxes, plus per-line crop caching so partial screen updates only re-recognize changed lines. Pass regionX/regionY/regionWidth/regionHeight to restrict OCR to a region of interest while keeping coordinates in full-framebuffer space. Supports five query modes: (1) mode=\"at\" (or pass x and y): coordinate k-d tree lookup returning containing elements and k nearest neighbors; (2) mode=\"find\" (or pass query): text search (substring or exact=true, optionally restricted to minX..maxX / minY..maxY and ranked by nearX/nearY); (3) mode=\"lines\": compact flat list of detected lines [{id, text, score, bbox, center}] without per-word repetition; (4) mode=\"diff\": returns only addedLines, removedLines, and unchangedLineCount compared to the previous inspection on this tab; (5) mode=\"tree\" (default when no query or x/y given): full blocks -> lines -> words hierarchy.",
+            description = "Run RapidOCR + a 2D k-d tree spatial index over a remote-desktop VIEWER tab (VNC, RDP, SPICE, or GLKVM) in full framebuffer pixel coordinates (matching tap_desktop_tab). Uses perceptual tile-grid caching to ignore HDMI/JPEG noise and GLKVM mouse-wobbler motion outside text boxes (the wobble-ignore is gated on the KVM jiggler being active, so real tiny changes are not dropped when it is off), plus per-line crop caching so partial screen updates only re-recognize changed lines. Also returns pointerIsLastSent, jiggler state, and hidInactivityS (upstream PiKVM) to help tell wobble apart from a human or a real UI change. Pass regionX/regionY/regionWidth/regionHeight to restrict OCR to a region of interest while keeping coordinates in full-framebuffer space. Supports five query modes: (1) mode=\"at\" (or pass x and y): coordinate k-d tree lookup returning containing elements and k nearest neighbors; (2) mode=\"find\" (or pass query): text search (substring or exact=true, optionally restricted to minX..maxX / minY..maxY and ranked by nearX/nearY); (3) mode=\"lines\": compact flat list of detected lines [{id, text, score, bbox, center}] without per-word repetition; (4) mode=\"diff\": returns only addedLines, removedLines, and unchangedLineCount compared to the previous inspection on this tab; (5) mode=\"tree\" (default when no query or x/y given): full blocks -> lines -> words hierarchy.",
             inputSchema = objectSchema {
                 string("profileId", "Profile id of the desktop tab (from list_desktop_sessions). Omit when exactly one tab is open.")
                 string("mode", "Query mode: \"auto\" (default: coordinate lookup if x/y set, text search if query set, else full tree), \"at\", \"find\", \"lines\" (compact line list without word bloat), \"diff\" (added/removed lines since previous inspection), or \"tree\".", enum = listOf("auto", "at", "find", "lines", "diff", "tree"))
@@ -1060,6 +1060,11 @@ internal class DesktopToolProvider(
                 }
                 put("pointerX", px)
                 put("pointerY", py)
+                // GLKVM has no server-cursor tracking: pointerX/Y is the last position
+                // Haven sent, which the KVM's mouse jiggler can drift between actions.
+                put("pointerIsLastSent", handle.protocol == "GLKVM")
+                handle.hidInactivity?.invoke()?.let { put("hidInactivityS", it) }
+                handle.jigglerState?.invoke()?.let { put("jiggler", it) }
                 if (activeBounds != null) {
                     put("activeLeftPx", activeBounds.first)
                     put("activeWidthPx", activeBounds.second)
@@ -1288,11 +1293,12 @@ internal class DesktopToolProvider(
         } ?: handle.frame())
             ?: throw McpError(-32603, "Desktop '$pid' has not rendered a frame yet — wait for it to connect.")
         val region = args?.let { parseRegionArg(it, src.width, src.height) }
+        val wobbleExpected = handle.wobbleExpected?.invoke() ?: true
         return try {
             if (region != null) {
-                recognizer.recognizeIndex(src, forceRefresh = forceRefresh, region = region)
+                recognizer.recognizeIndex(src, forceRefresh = forceRefresh, region = region, wobbleExpected = wobbleExpected)
             } else {
-                recognizer.recognizeIndex(src, forceRefresh = forceRefresh)
+                recognizer.recognizeIndex(src, forceRefresh = forceRefresh, wobbleExpected = wobbleExpected)
             }
         } catch (e: Exception) {
             throw McpError(-32603, e.message ?: "RapidOCR failed on desktop '$pid'")
@@ -1359,6 +1365,9 @@ internal class DesktopToolProvider(
             put("wordCount", index.wordCount)
             put("pointerX", pointerX)
             put("pointerY", pointerY)
+            put("pointerIsLastSent", handle.protocol == "GLKVM")
+            handle.hidInactivity?.invoke()?.let { put("hidInactivityS", it) }
+            handle.jigglerState?.invoke()?.let { put("jiggler", it) }
             put("mode", resolvedMode)
             put("userInteractedSinceLastAgentAction", userInteractedSinceLastAgent)
             put("recentUserInteractions", recentUserJson)

@@ -15,6 +15,8 @@ import kotlinx.coroutines.launch
 import sh.haven.core.glkvm.GlkvmCertMismatch
 import sh.haven.core.glkvm.GlkvmClient
 import sh.haven.core.glkvm.GlkvmException
+import org.json.JSONArray
+import org.json.JSONObject
 import java.io.Closeable
 
 /**
@@ -310,6 +312,33 @@ class GlkvmDesktopSession(
 
     // kvmd has no remote-clipboard verb; keep the no-op explicit.
     override fun sendClipboardText(text: String) {}
+
+    /**
+     * Whether the server-side mouse jiggler ("wobble") is currently active.
+     * Gates the OCR tile-cache wobble-ignore heuristic so small non-text changes
+     * are only dismissed when the jiggler is actually running. False on firmware
+     * that does not expose the jiggler (e.g. stock PiKVM without it enabled).
+     */
+    fun jigglerActive(): Boolean =
+        runCatching { client.jigglerState().optBoolean("active", false) }.getOrDefault(false)
+
+    /**
+     * Seconds since the last target HID input from any source (this client, a
+     * human at the KVM console, or another kvmd client). Null on firmware without
+     * the endpoint — the GL fork 404s it, so this is an upstream-PiKVM signal.
+     * Note the mouse jiggler's own events also reset this counter.
+     */
+    fun hidInactivitySeconds(): Double? =
+        runCatching { client.hidInactivitySeconds() }.getOrNull()
+
+    /** Jiggler state {enabled, active, interval, schedule} for management. */
+    fun jigglerState(): JSONObject =
+        runCatching { client.jigglerState() }.getOrDefault(JSONObject())
+
+    /** Persist + activate a jiggler schedule (HH:MM day-windows); survives reboots. */
+    fun setJigglerSchedule(periods: JSONArray) {
+        client.setJigglerSchedule(periods)
+    }
 
     override fun pause() {
         paused = true

@@ -1,6 +1,7 @@
 package sh.haven.core.data.desktop
 
 import android.graphics.Bitmap
+import org.json.JSONObject
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
@@ -53,6 +54,18 @@ class DesktopFrameHandle(
      * for protocols without a known wobble source.
      */
     val wobbleExpected: (() -> Boolean)? = null,
+    /**
+     * Optional seconds-since-last-target-HID-input reader (upstream PiKVM; the GL
+     * fork 404s the endpoint and yields null). Advisory signal for a human or
+     * another client at the target; the mouse jiggler's own events also reset it.
+     */
+    val hidInactivity: (() -> Double?)? = null,
+    /**
+     * Optional mouse-jiggler state {enabled, active, interval, schedule} (GLKVM),
+     * surfaced so an agent can tell cursor wobble / pointer drift apart from a
+     * human or a real UI change. Null on protocols without a jiggler.
+     */
+    val jigglerState: (() -> JSONObject)? = null,
 )
 
 /**

@@ -5,6 +5,10 @@ the corresponding GitHub Release; a release can't ship without its section
 (enforced by `scripts/check-changelog.sh` in CI). The GitHub "Full Changelog"
 compare link is appended automatically — don't add it here.
 
+## v5.94.70
+
+- Yggdrasil mesh dial timeouts now explain the likely cause: the local node needs at least one working peer link, and LAN-only peer addresses are unreachable from a remote network. The error points at the fix (join that LAN, or add a public peer both ends can reach) instead of a bare timeout (#876).
+
 ## v5.94.69
 
 - When a self-hosted NetBird management server cannot be reached, Haven now explains the likely cause instead of showing a bare timeout: a LAN-only management address is unreachable from a remote network, so the phone needs to be on that LAN or on a VPN that routes to it. Timeouts against the hosted NetBird service point at the phone's connectivity instead (#876).

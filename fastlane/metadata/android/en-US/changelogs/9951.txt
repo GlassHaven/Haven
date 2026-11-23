@@ -1,0 +1,1 @@
+Yggdrasil mesh dial timeouts now explain the likely cause: the node needs a working peer link, and LAN-only peers are unreachable from a remote network. Join that LAN or add a public peer both ends can reach (#876).

@@ -39,7 +39,7 @@ class NetbirdTunnel internal constructor(
     private val native: NativeHandle = try {
         Nbbridge.startTunnel(setupKey, stateDir.absolutePath, hostname, managementURL, rosenpass)
     } catch (e: Exception) {
-        throw IOException("Failed to start NetBird tunnel: ${e.message}", e)
+        throw IOException(netbirdStartFailureMessage(e.message, managementURL), e)
     }
 
     @Volatile
@@ -267,5 +267,27 @@ private class NetbirdTunneledServerSocket(
         try {
             ln.close()
         } catch (_: Throwable) { /* idempotent */ }
+    }
+}
+
+/**
+ * #876: wrap the native start failure. A management dial timeout is
+ * usually an unreachable underlay, not a NetBird fault: a LAN-only
+ * management/relay address cannot be reached from a remote phone, because
+ * Haven's per-connection tunnels do not carry the tunnel's own underlay
+ * sockets. Name that case instead of leaving the user with a bare
+ * "context deadline exceeded".
+ */
+internal fun netbirdStartFailureMessage(raw: String?, managementURL: String): String {
+    val base = "Failed to start NetBird tunnel: ${raw ?: "unknown error"}"
+    if (raw == null || !raw.contains("dial context: context deadline exceeded")) return base
+    return if (managementURL.isNotBlank()) {
+        "$base. The management server ($managementURL) did not respond within the dial timeout. " +
+            "A LAN-only management address is unreachable from a remote network. Connect the phone " +
+            "to that LAN or a VPN that routes to it, then retry. Haven's per-connection tunnels do " +
+            "not carry the tunnel's own underlay traffic."
+    } else {
+        "$base. The hosted NetBird management server did not respond within the dial timeout; " +
+            "check the phone's network connectivity and retry."
     }
 }

@@ -1,0 +1,1 @@
+NetBird tunnel start failures now explain an unreachable management server: a LAN-only address needs the phone on that LAN or a VPN that routes to it, instead of a bare timeout (#876).

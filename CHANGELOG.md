@@ -5,6 +5,10 @@ the corresponding GitHub Release; a release can't ship without its section
 (enforced by `scripts/check-changelog.sh` in CI). The GitHub "Full Changelog"
 compare link is appended automatically — don't add it here.
 
+## v5.94.69
+
+- When a self-hosted NetBird management server cannot be reached, Haven now explains the likely cause instead of showing a bare timeout: a LAN-only management address is unreachable from a remote network, so the phone needs to be on that LAN or on a VPN that routes to it. Timeouts against the hosted NetBird service point at the phone's connectivity instead (#876).
+
 ## v5.94.68
 
 - GLKVM remote-desktop agent tools are now mouse-jiggler aware: capture_desktop_tab and inspect_desktop_tab report the jiggler's state, whether the pointer position is last-sent (the jiggler can drift it), and seconds since the last HID input on upstream PiKVM. The OCR cache only dismisses tiny screen changes as jiggler wobble while the jiggler is actually running, so real small changes are no longer dropped when it is off, for example after a KVM reboot.

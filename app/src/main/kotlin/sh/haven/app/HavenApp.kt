@@ -79,6 +79,13 @@ class HavenApp : Application(), Configuration.Provider {
         // on the sshlib engine. No-op on devices with a sane provider order (#451).
         sh.haven.core.ssh.RawKeyProviderOrder.apply()
 
+        // sshlib only offers the hybrid post-quantum key types when the platform
+        // JCA can perform the composite ML-DSA signature; most Android builds
+        // cannot, so the key imports but auth falls back to password. Register
+        // the bundled BouncyCastle when the service is missing (#859). No-op on
+        // devices whose platform already provides it.
+        sh.haven.core.ssh.MldsaProviderAvailability.apply()
+
         // Register the connect-time SSH emulator provider before any SSH session
         // can be created, so tmux's attach-time probes are answered live (#290 #2).
         sshTerminalEmulatorOwner.start()

@@ -41,6 +41,54 @@ internal fun stagedVersionAt(markerFile: File): Int {
 }
 
 /**
+ * Copy a rootfs image from [input] into [umlDir], crash-safe. Writes to a
+ * `.unpack` temp file, rejects a size mismatch (a truncated or wrong-version
+ * asset), then atomically renames into place and writes the version marker
+ * LAST — so a crash mid-unpack leaves no marker and the next call re-stages.
+ * On any failure the temp file is removed and the exception rethrown.
+ *
+ * Extracted from [UmlGuestManager.ensureRootfs] so the staging path (the part
+ * a "UML fails" report points at) is unit-testable without an Android Context.
+ */
+internal fun stageRootfsImage(
+    input: java.io.InputStream,
+    umlDir: File,
+    expectedSize: Long,
+    version: Int,
+    onProgress: (Int) -> Unit = {},
+) {
+    umlDir.mkdirs()
+    val tmp = File(umlDir, "rootfs.ext4.unpack")
+    val target = File(umlDir, "rootfs.ext4")
+    try {
+        FileOutputStream(tmp).use { out ->
+            val buf = ByteArray(UNPACK_BUFFER_SIZE)
+            var written = 0L
+            var read = input.read(buf)
+            while (read >= 0) {
+                out.write(buf, 0, read)
+                written += read
+                onProgress((written * 100 / expectedSize).toInt().coerceIn(0, 100))
+                read = input.read(buf)
+            }
+        }
+        if (tmp.length() != expectedSize) {
+            val actual = tmp.length()
+            tmp.delete()
+            throw IllegalStateException("Unpacked rootfs is $actual bytes, expected $expectedSize")
+        }
+        if (!tmp.renameTo(target)) {
+            tmp.delete()
+            throw IllegalStateException("Could not move the staged rootfs into place")
+        }
+        File(umlDir, "rootfs.version").writeText(version.toString())
+    } catch (e: Exception) {
+        tmp.delete()
+        throw e
+    }
+}
+
+/**
  * Manages UML guest sessions — a real Linux kernel running as a user process
  * in Haven's own sandbox (PROTOTYPE.md). Sessions follow the LOCAL pattern:
  * the guest boots with its console on a pty forked by PtyBridge.nativeForkPty,
@@ -122,42 +170,18 @@ class UmlGuestManager @Inject constructor(
                             "need ${ROOTFS_FREE_SPACE_BYTES / (1024 * 1024)} MB")
                 }
                 _state.value = SetupState.Unpacking(0)
-                context.filesDir.resolve("uml").mkdirs()
-                val tmp = File(context.filesDir, "uml/rootfs.ext4.unpack")
-                val asset = context.assets.open(ASSET_PATH)
-                asset.use { input ->
+                context.assets.open(ASSET_PATH).use { input ->
                     // The APK asset is the raw ext4, not the repo's .gz file:
                     // AGP's mergeAssets decompresses .gz assets during the
-                    // merge (verified on 9.2.1 — the packaged entry is the
-                    // plain 1 GiB image, DEFLATE'd by the zip layer). So the
-                    // unpack is a straight copy; the gzip step only ever
-                    // existed to keep the 512 MB image out of git.
-                    FileOutputStream(tmp).use { out ->
-                        val buf = ByteArray(UNPACK_BUFFER_SIZE)
-                        var written = 0L
-                        var read = input.read(buf)
-                        while (read >= 0) {
-                            out.write(buf, 0, read)
-                            written += read
-                            _state.value = SetupState.Unpacking(
-                                (written * 100 / ROOTFS_SIZE_BYTES).toInt().coerceIn(0, 100))
-                            read = input.read(buf)
-                        }
-                    }
+                    // merge, so the unpack is a straight copy.
+                    stageRootfsImage(
+                        input = input,
+                        umlDir = context.filesDir.resolve("uml"),
+                        expectedSize = ROOTFS_SIZE_BYTES,
+                        version = ROOTFS_VERSION,
+                        onProgress = { _state.value = SetupState.Unpacking(it) },
+                    )
                 }
-                if (tmp.length() != ROOTFS_SIZE_BYTES) {
-                    tmp.delete()
-                    throw IllegalStateException(
-                        "Unpacked rootfs is ${tmp.length()} bytes, expected $ROOTFS_SIZE_BYTES")
-                }
-                if (!tmp.renameTo(rootfsFile)) {
-                    tmp.delete()
-                    throw IllegalStateException("Could not move the staged rootfs into place")
-                }
-                // Written only after the rename so a crash mid-unpack leaves no
-                // version marker and the next ensureRootfs() re-stages.
-                File(context.filesDir, "uml/rootfs.version")
-                    .writeText(ROOTFS_VERSION.toString())
                 _state.value = SetupState.Ready
             } catch (e: Exception) {
                 File(context.filesDir, "uml/rootfs.ext4.unpack").delete()
@@ -552,7 +576,7 @@ class UmlGuestManager @Inject constructor(
 
         /** Space check before unpacking: image + headroom for writes. */
         const val ROOTFS_FREE_SPACE_BYTES = 2_600L * 1024 * 1024
-
-        private const val UNPACK_BUFFER_SIZE = 1 shl 16
     }
 }
+
+private const val UNPACK_BUFFER_SIZE = 1 shl 16

@@ -3046,6 +3046,14 @@ class TerminalViewModel @Inject constructor(
         }
     }
 
+    internal var sshClientFactory: () -> SshClient = {
+        SshClient().apply {
+            fidoAuthenticator = this@TerminalViewModel.fidoAuthenticator
+            hardwareKeySigner = this@TerminalViewModel.keystoreSshKeySigner
+            openKeychainClients = OpenKeychainClientFactory.from(appContext)
+        }
+    }
+
     /**
      * Add a new SSH tab for a profile by creating a fresh connection.
      * Called from [addTab] (clone current tab) and from the Connections screen
@@ -3070,6 +3078,7 @@ class TerminalViewModel @Inject constructor(
 
         viewModelScope.launch {
             _newTabLoading.value = true
+            var reusedClientChannelRejected = false
             // Named-reattach path (workspace restore / OpenTerminalSession with
             // a session name): the shared SshSessionAttacher rides the live
             // connection and is idempotent — relaunching a workspace reselects
@@ -3089,10 +3098,16 @@ class TerminalViewModel @Inject constructor(
                     return@launch
                 }
                 if (attach is sh.haven.core.ssh.SshSessionAttacher.Result.Failed) {
-                    _newTabMessage.value =
-                        appContext.getString(R.string.terminal_new_tab_connection_failed, attach.message)
-                    _newTabLoading.value = false
-                    return@launch
+                    if (attach.channelRejected && !config.authMethod.containsFidoKey()) {
+                        // #888: shared SSH client hit MaxSessions — fall through with
+                        // reuse suppressed so this named session dials an overflow client.
+                        reusedClientChannelRejected = true
+                    } else {
+                        _newTabMessage.value =
+                            appContext.getString(R.string.terminal_new_tab_connection_failed, attach.message)
+                        _newTabLoading.value = false
+                        return@launch
+                    }
                 }
             }
             // Reuse a live SSH connection to this profile instead of dialing a
@@ -3108,13 +3123,19 @@ class TerminalViewModel @Inject constructor(
             // an auto-opened jump host or a jump carrier whose terminal tab was
             // closed via closeShellOnly, #764), attach a shell directly to that
             // session instead of registering a second session and dialing again.
-            val existingShellLess = sessionManager.getSessionsForProfile(profileId).firstOrNull {
-                !it.headless &&
-                    it.status == SessionState.Status.CONNECTED &&
-                    it.shellChannel == null &&
-                    it.terminalSession == null
+            val existingShellLess = if (reusedClientChannelRejected) {
+                null
+            } else {
+                sessionManager.getSessionsForProfile(profileId).firstOrNull {
+                    !it.headless &&
+                        it.status == SessionState.Status.CONNECTED &&
+                        it.shellChannel == null &&
+                        it.terminalSession == null
+                }
             }
-            val reuseClient = if (existingShellLess != null) {
+            val reuseClient = if (reusedClientChannelRejected) {
+                null
+            } else if (existingShellLess != null) {
                 existingShellLess.client
             } else if (
                 connectionRepository.getById(profileId)?.tunnelConfigId != null ||
@@ -3125,13 +3146,9 @@ class TerminalViewModel @Inject constructor(
                 // racing a second dial.
                 sessionManager.awaitReusableClient(profileId)
             } else null
-            val client = reuseClient ?: SshClient().apply {
-                fidoAuthenticator = this@TerminalViewModel.fidoAuthenticator
-                hardwareKeySigner = this@TerminalViewModel.keystoreSshKeySigner
-                openKeychainClients = OpenKeychainClientFactory.from(appContext)
-            }
+            var activeClient = reuseClient ?: sshClientFactory()
             val sessionId = existingShellLess?.sessionId
-                ?: sessionManager.registerSession(profileId, label, client)
+                ?: sessionManager.registerSession(profileId, label, activeClient)
             try {
                 if (existingShellLess != null) {
                     Log.i(TAG, "Opening shell on existing shell-less session $sessionId for $label")
@@ -3148,7 +3165,7 @@ class TerminalViewModel @Inject constructor(
                     val proxy = connectionRepository.getById(profileId)
                         ?.let { tunnelResolver.havenProxy(it) }
                     val hostKeyEntry = withContext(Dispatchers.IO) {
-                        client.connect(config, proxy = proxy, trustedHostCaKeys = hostKeyVerifier.trustedHostCaKeys())
+                        activeClient.connect(config, proxy = proxy, trustedHostCaKeys = hostKeyVerifier.trustedHostCaKeys())
                     }
 
                     // Silent TOFU is fail-closed: a new tab never silently trusts
@@ -3157,7 +3174,7 @@ class TerminalViewModel @Inject constructor(
                     when (val hkResult = if (hostKeyEntry == null) HostKeyResult.Trusted else hostKeyVerifier.verify(hostKeyEntry)) {
                         is HostKeyResult.Trusted -> { /* matches — continue */ }
                         is HostKeyResult.NewHost -> {
-                            client.disconnect()
+                            activeClient.disconnect()
                             sessionManager.removeSession(sessionId)
                             Log.w(TAG, "Unknown host key for ${LogRedact.host(config.host, config.port)} — aborting new tab")
                             _newTabMessage.value = appContext.getString(
@@ -3168,7 +3185,7 @@ class TerminalViewModel @Inject constructor(
                             return@launch
                         }
                         is HostKeyResult.KeyChanged -> {
-                            client.disconnect()
+                            activeClient.disconnect()
                             sessionManager.removeSession(sessionId)
                             Log.w(TAG, "Host key changed for ${LogRedact.host(config.host, config.port)} — aborting new tab")
                             _newTabMessage.value = appContext.getString(
@@ -3211,10 +3228,26 @@ class TerminalViewModel @Inject constructor(
                 if (preselectedSessionName == null && listCmd != null) {
                     val existingSessions = withContext(Dispatchers.IO) {
                         try {
-                            val result = client.execCommand(listCmd)
+                            val result = activeClient.execCommand(listCmd)
                             if (result.exitStatus == 0) {
                                 SessionManager.parseSessionList(sshSessionMgr, result.stdout)
                             } else emptyList()
+                        } catch (_: sh.haven.core.ssh.SshChannelOpenRejectedException) {
+                            if (sessionManager.isClientShared(sessionId)) {
+                                val overflow = dialOverflowClientForSession(sessionId)
+                                if (overflow != null) {
+                                    activeClient = overflow
+                                    return@withContext try {
+                                        val retry = overflow.execCommand(listCmd)
+                                        if (retry.exitStatus == 0) {
+                                            SessionManager.parseSessionList(sshSessionMgr, retry.stdout)
+                                        } else emptyList()
+                                    } catch (_: Exception) {
+                                        emptyList()
+                                    }
+                                }
+                            }
+                            emptyList()
                         } catch (_: Exception) {
                             emptyList()
                         }
@@ -3966,8 +3999,18 @@ class TerminalViewModel @Inject constructor(
         // .finishConnect): only add + select the tab on a confirmed live shell;
         // on an immediate shell-close show a clear, navigation-surviving error
         // instead of leaving a blank tab / stranding on another. (#215 follow-up)
-        val outcome = withContext(Dispatchers.IO) {
+        var outcome = withContext(Dispatchers.IO) {
             sessionManager.openShellAndAwaitReady(sessionId)
+        }
+        // #888: when a reused SSH connection hits OpenSSH's MaxSessions cap (10
+        // by default), dial an overflow SshClient for this tab (unless auth
+        // requires an interactive FIDO touch that TerminalScreen cannot prompt)
+        // so tab #11+ opens cleanly and subsequent tabs ride the new client.
+        if (outcome is sh.haven.core.ssh.ShellOutcome.Failed &&
+            outcome.channelRejected &&
+            sessionManager.isClientShared(sessionId)
+        ) {
+            outcome = retryShellOnOverflowClient(sessionId) ?: outcome
         }
         when (outcome) {
             is sh.haven.core.ssh.ShellOutcome.Ready -> {
@@ -3983,6 +4026,56 @@ class TerminalViewModel @Inject constructor(
                 sessionManager.closeShellOrRemoveSession(sessionId)
                 userMessageBus.error(outcome.reason.ifBlank { "Failed to open the remote shell" })
             }
+        }
+    }
+
+    private suspend fun retryShellOnOverflowClient(sessionId: String): sh.haven.core.ssh.ShellOutcome? {
+        dialOverflowClientForSession(sessionId) ?: return null
+        return try {
+            withContext(Dispatchers.IO) {
+                sessionManager.openShellAndAwaitReady(sessionId)
+            }
+        } catch (e: Exception) {
+            Log.w(TAG, "Overflow SSH shell open failed for $sessionId: ${e.message}")
+            null
+        }
+    }
+
+    private suspend fun dialOverflowClientForSession(sessionId: String): SshClient? {
+        val current = sessionManager.getSession(sessionId) ?: return null
+        val profileId = current.profileId
+        val (config, sshSessionMgr) = sessionManager.getConnectionConfigForProfile(profileId) ?: return null
+        if (config.authMethod.containsFidoKey()) return null
+        val overflowClient = sshClientFactory()
+        return try {
+            Log.i(TAG, "Shared SSH client reached MaxSessions for ${LogRedact.of(current.label)} — dialing overflow client (#888)")
+            val proxy = connectionRepository.getById(profileId)?.let { tunnelResolver.havenProxy(it) }
+            val hostKeyEntry = withContext(Dispatchers.IO) {
+                overflowClient.connect(
+                    config,
+                    proxy = proxy,
+                    trustedHostCaKeys = hostKeyVerifier.trustedHostCaKeys(),
+                )
+            }
+            val hkResult = if (hostKeyEntry == null) HostKeyResult.Trusted else hostKeyVerifier.verify(hostKeyEntry)
+            if (hkResult !is HostKeyResult.Trusted) {
+                overflowClient.disconnect()
+                return null
+            }
+            val chosenName = current.chosenSessionName
+            val bypassMgr = current.bypassSessionManager
+            sessionManager.replaceSessionClient(sessionId, overflowClient)
+            sessionManager.storeConnectionConfig(sessionId, config, sshSessionMgr)
+            if (chosenName != null) sessionManager.setChosenSessionName(sessionId, chosenName)
+            if (bypassMgr) sessionManager.setBypassSessionManager(sessionId, true)
+            sessionManager.setReconnectProxyProvider(sessionId) {
+                connectionRepository.getById(profileId)?.let { tunnelResolver.havenProxy(it) }
+            }
+            overflowClient
+        } catch (e: Exception) {
+            Log.w(TAG, "Overflow SSH client dial failed for $sessionId: ${e.message}")
+            runCatching { overflowClient.disconnect() }
+            null
         }
     }
 }

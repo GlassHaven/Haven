@@ -242,4 +242,32 @@ class SshSessionAttacherTest {
         assertEquals(SshSessionAttacher.Result.Failed("channel dropped"), result)
         coVerify { sm.removeSession("s-new") }
     }
+
+    @Test
+    fun shellFailureFlagsChannelRejectedOnlyWhenClientIsShared() = runBlocking {
+        val sm = mockk<SshSessionManager>(relaxed = true)
+        every { sm.getSessionsForProfile("p1") } returns emptyList()
+        coEvery { sm.awaitReusableClient("p1", any()) } returns mockk<SshClient>()
+        every { sm.registerSession("p1", "host-1", any()) } returnsMany listOf("s-shared", "s-sole")
+        coEvery { sm.openShellAndAwaitReady("s-shared", any(), any()) } returns
+            ShellOutcome.Failed("s-shared", "no more sessions", channelRejected = true)
+        every { sm.isClientShared("s-shared") } returns true
+        coEvery { sm.openShellAndAwaitReady("s-sole", any(), any()) } returns
+            ShellOutcome.Failed("s-sole", "no more sessions", channelRejected = true)
+        every { sm.isClientShared("s-sole") } returns false
+        val (repo, prefs) = repos()
+        val attacher = SshSessionAttacher(sm, repo, prefs)
+
+        val sharedResult = attacher.ensureAttached("p1", "ten")
+        val soleResult = attacher.ensureAttached("p1", "one")
+
+        assertEquals(
+            SshSessionAttacher.Result.Failed("no more sessions", channelRejected = true),
+            sharedResult,
+        )
+        assertEquals(
+            SshSessionAttacher.Result.Failed("no more sessions", channelRejected = false),
+            soleResult,
+        )
+    }
 }

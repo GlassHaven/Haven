@@ -1,8 +1,24 @@
 package sh.haven.core.ssh
 
+import com.jcraft.jsch.JSchException
 import com.jcraft.jsch.Session
 import java.io.InputStream
 import java.io.OutputStream
+
+/**
+ * Thrown when an authenticated, still-connected SSH server actively rejects
+ * opening another session channel (`SSH_MSG_CHANNEL_OPEN_FAILURE`, RFC 4254
+ * §5.1) — most commonly OpenSSH's default `MaxSessions 10` ceiling when many
+ * terminal tabs share one connection (#888). Distinct from a broken socket so
+ * callers can dial an overflow connection instead of failing the new tab.
+ */
+class SshChannelOpenRejectedException(
+    val reasonCode: Int,
+    cause: Throwable? = null,
+) : RuntimeException(
+    "SSH server rejected opening another session channel (reason $reasonCode; server MaxSessions limit may be full)",
+    cause,
+)
 
 /**
  * An engine-neutral interactive shell channel (#58, phase 5).
@@ -56,7 +72,7 @@ internal fun openShellOn(
     if (agentForwarding) channel.setAgentForwarding(true)
     val input = channel.inputStream
     val output = channel.outputStream
-    channel.connect()
+    connectJschSessionChannel(session, channel)
     return ShellChannel(
         input = input,
         output = output,
@@ -94,7 +110,7 @@ internal fun openRemoteCommandOn(
     if (agentForwarding) channel.setAgentForwarding(true)
     val input = channel.inputStream
     val output = channel.outputStream
-    channel.connect()
+    connectJschSessionChannel(session, channel)
     return ShellChannel(
         input = input,
         output = output,
@@ -104,4 +120,17 @@ internal fun openRemoteCommandOn(
         closedProbe = { channel.isClosed },
         exitStatusProbe = { channel.exitStatus },
     )
+}
+
+private fun connectJschSessionChannel(session: Session, channel: com.jcraft.jsch.Channel) {
+    try {
+        channel.connect()
+    } catch (e: JSchException) {
+        val rejectedByLiveServer = session.isConnected && channel.isClosed && channel.exitStatus > 0
+        runCatching { channel.disconnect() }
+        if (rejectedByLiveServer) {
+            throw SshChannelOpenRejectedException(channel.exitStatus, e)
+        }
+        throw e
+    }
 }

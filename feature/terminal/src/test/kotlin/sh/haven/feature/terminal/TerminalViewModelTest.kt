@@ -21,6 +21,7 @@ import org.junit.After
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertNotNull
 import org.junit.Assert.assertNull
+import org.junit.Assert.assertTrue
 import org.junit.Before
 import org.junit.Test
 import sh.haven.core.et.EtSessionManager
@@ -1058,6 +1059,218 @@ class TerminalViewModelTest {
             assertEquals(PaneLayout.Single, vm.paneLayout.value)
             assertEquals(2, vm.tabs.value.size)
             assertEquals(s1, vm.tabs.value[vm.activeTabIndex.value].sessionId)
+        }
+
+    @Test
+    fun `addSshTabForProfile dials overflow SshClient when shared client rejects shell at MaxSessions`() =
+        runTest(testDispatcher) {
+            val latch = java.util.concurrent.CountDownLatch(1)
+            fun makeLiveShell(): sh.haven.core.ssh.ShellChannel {
+                val promptInput = object : java.io.InputStream() {
+                    private val greeting = "$ ".toByteArray()
+                    private var idx = 0
+                    override fun read(): Int {
+                        if (idx < greeting.size) return greeting[idx++].toInt() and 0xFF
+                        latch.await(5, java.util.concurrent.TimeUnit.SECONDS)
+                        return -1
+                    }
+                    override fun read(b: ByteArray, off: Int, len: Int): Int {
+                        if (len == 0) return 0
+                        if (idx < greeting.size) {
+                            val n = minOf(len, greeting.size - idx)
+                            System.arraycopy(greeting, idx, b, off, n)
+                            idx += n
+                            return n
+                        }
+                        latch.await(5, java.util.concurrent.TimeUnit.SECONDS)
+                        return -1
+                    }
+                    override fun close() {
+                        latch.countDown()
+                    }
+                }
+                return sh.haven.core.ssh.ShellChannel(
+                    input = promptInput,
+                    output = java.io.ByteArrayOutputStream(),
+                    resizeFn = { _, _ -> },
+                    disconnectFn = { latch.countDown() },
+                    connectedProbe = { latch.count > 0 },
+                    closedProbe = { latch.count == 0L },
+                    exitStatusProbe = { if (latch.count == 0L) 0 else -1 },
+                )
+            }
+
+            val firstTabCalls = java.util.concurrent.atomic.AtomicInteger(0)
+            val sharedClient = mockk<SshClient>(relaxed = true) {
+                every { isConnected } returns true
+                every { openShellChannel(any(), any(), any()) } answers {
+                    if (firstTabCalls.getAndIncrement() == 0) makeLiveShell()
+                    else throw sh.haven.core.ssh.SshChannelOpenRejectedException(1)
+                }
+                every { openTerminalChannel(any(), any(), any(), any(), any()) } answers {
+                    if (firstTabCalls.getAndIncrement() == 0) makeLiveShell()
+                    else throw sh.haven.core.ssh.SshChannelOpenRejectedException(1)
+                }
+            }
+            var overflowDials = 0
+            val overflowClient = mockk<SshClient>(relaxed = true) {
+                every { isConnected } returns true
+                coEvery { connect(any(), proxy = isNull(), trustedHostCaKeys = any()) } returns null
+                every { openShellChannel(any(), any(), any()) } answers { makeLiveShell() }
+                every { openTerminalChannel(any(), any(), any(), any(), any()) } answers { makeLiveShell() }
+            }
+
+            try {
+                val s1 = sessionManager.registerSession("p1", "msi-z790", sharedClient)
+                sessionManager.storeConnectionConfig(
+                    s1,
+                    sh.haven.core.ssh.ConnectionConfig(
+                        host = "10.1.0.2",
+                        port = 22,
+                        username = "ian",
+                        authMethod = sh.haven.core.ssh.ConnectionConfig.AuthMethod.Password("secret"),
+                    ),
+                    sh.haven.core.ssh.SessionManager.TMUX,
+                )
+                assertTrue(
+                    kotlinx.coroutines.withContext(Dispatchers.IO) {
+                        sessionManager.openShellAndAwaitReady(s1)
+                    } is sh.haven.core.ssh.ShellOutcome.Ready,
+                )
+                sessionManager.updateStatus(s1, SshSessionManager.SessionState.Status.CONNECTED)
+
+                coEvery { connectionRepository.getById("p1") } returns null
+                val vm = newViewModel().apply {
+                    sshClientFactory = {
+                        overflowDials++
+                        overflowClient
+                    }
+                }
+                vm.addSshTabForProfile("p1", plain = true)
+                testDispatcher.scheduler.advanceUntilIdle()
+
+                val deadline = System.currentTimeMillis() + 3_000
+                while (vm.newTabLoading.value && System.currentTimeMillis() < deadline) {
+                    testDispatcher.scheduler.advanceUntilIdle()
+                    Thread.sleep(10)
+                }
+                testDispatcher.scheduler.advanceUntilIdle()
+
+                assertEquals(1, overflowDials)
+                coVerify(exactly = 1) {
+                    overflowClient.connect(any(), proxy = isNull(), trustedHostCaKeys = any())
+                }
+                verify(exactly = 0) { sharedClient.disconnect() }
+                val sessions = sessionManager.getSessionsForProfile("p1")
+                assertEquals(2, sessions.size)
+                val overflowSession = sessions.first { it.sessionId != s1 }
+                assertEquals(SshSessionManager.SessionState.Status.CONNECTED, overflowSession.status)
+                assertTrue(overflowSession.client === overflowClient)
+            } finally {
+                latch.countDown()
+                sessionManager.disconnectAll()
+            }
+        }
+
+    @Test
+    fun `addSshTabForProfile does not dial overflow SshClient when profile uses FIDO key`() =
+        runTest(testDispatcher) {
+            val latch = java.util.concurrent.CountDownLatch(1)
+            val s1Shell = sh.haven.core.ssh.ShellChannel(
+                input = object : java.io.InputStream() {
+                    private val greeting = "$ ".toByteArray()
+                    private var idx = 0
+                    override fun read(): Int {
+                        if (idx < greeting.size) return greeting[idx++].toInt() and 0xFF
+                        latch.await(5, java.util.concurrent.TimeUnit.SECONDS)
+                        return -1
+                    }
+                    override fun read(b: ByteArray, off: Int, len: Int): Int {
+                        if (len == 0) return 0
+                        if (idx < greeting.size) {
+                            val n = minOf(len, greeting.size - idx)
+                            System.arraycopy(greeting, idx, b, off, n)
+                            idx += n
+                            return n
+                        }
+                        latch.await(5, java.util.concurrent.TimeUnit.SECONDS)
+                        return -1
+                    }
+                    override fun close() { latch.countDown() }
+                },
+                output = java.io.ByteArrayOutputStream(),
+                resizeFn = { _, _ -> },
+                disconnectFn = { latch.countDown() },
+                connectedProbe = { latch.count > 0 },
+                closedProbe = { latch.count == 0L },
+                exitStatusProbe = { -1 },
+            )
+            val firstTabCalls = java.util.concurrent.atomic.AtomicInteger(0)
+            val sharedClient = mockk<SshClient>(relaxed = true) {
+                every { isConnected } returns true
+                every { openShellChannel(any(), any(), any()) } answers {
+                    if (firstTabCalls.getAndIncrement() == 0) s1Shell
+                    else throw sh.haven.core.ssh.SshChannelOpenRejectedException(1)
+                }
+                every { openTerminalChannel(any(), any(), any(), any(), any()) } answers {
+                    if (firstTabCalls.getAndIncrement() == 0) s1Shell
+                    else throw sh.haven.core.ssh.SshChannelOpenRejectedException(1)
+                }
+            }
+            val overflowClient = mockk<SshClient>(relaxed = true)
+
+            try {
+                val s1 = sessionManager.registerSession("p1", "msi-z790", sharedClient)
+                sessionManager.storeConnectionConfig(
+                    s1,
+                    sh.haven.core.ssh.ConnectionConfig(
+                        host = "10.1.0.2",
+                        port = 22,
+                        username = "ian",
+                        authMethod = sh.haven.core.ssh.ConnectionConfig.AuthMethod.FidoKey(
+                            skKeyData = byteArrayOf(1, 2, 3),
+                        ),
+                    ),
+                    sh.haven.core.ssh.SessionManager.TMUX,
+                )
+                assertTrue(
+                    kotlinx.coroutines.withContext(Dispatchers.IO) {
+                        sessionManager.openShellAndAwaitReady(s1)
+                    } is sh.haven.core.ssh.ShellOutcome.Ready,
+                )
+                sessionManager.updateStatus(s1, SshSessionManager.SessionState.Status.CONNECTED)
+
+                coEvery { connectionRepository.getById("p1") } returns null
+                var fidoOverflowDials = 0
+                val vm = newViewModel().apply {
+                    sshClientFactory = {
+                        fidoOverflowDials++
+                        overflowClient
+                    }
+                }
+                vm.addSshTabForProfile("p1", plain = true)
+                testDispatcher.scheduler.advanceUntilIdle()
+
+                val deadline = System.currentTimeMillis() + 3_000
+                while (vm.newTabLoading.value && System.currentTimeMillis() < deadline) {
+                    testDispatcher.scheduler.advanceUntilIdle()
+                    Thread.sleep(10)
+                }
+                testDispatcher.scheduler.advanceUntilIdle()
+
+                assertEquals(0, fidoOverflowDials)
+                coVerify(exactly = 0) {
+                    overflowClient.connect(any(), proxy = isNull(), trustedHostCaKeys = any())
+                }
+                verify(exactly = 0) { sharedClient.disconnect() }
+                // Failed new session was cleaned up; original session remains intact.
+                val sessions = sessionManager.getSessionsForProfile("p1")
+                assertEquals(1, sessions.size)
+                assertEquals(s1, sessions.single().sessionId)
+            } finally {
+                latch.countDown()
+                sessionManager.disconnectAll()
+            }
         }
 }
 

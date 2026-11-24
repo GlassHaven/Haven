@@ -62,7 +62,10 @@ class SshSessionAttacher @Inject constructor(
          */
         data object NoLiveConnection : Result
 
-        data class Failed(val message: String) : Result
+        data class Failed(
+            val message: String,
+            val channelRejected: Boolean = false,
+        ) : Result
     }
 
     /**
@@ -113,8 +116,12 @@ class SshSessionAttacher @Inject constructor(
                     )
                 }
                 is ShellOutcome.Failed -> {
+                    val rejectedOnShared = outcome.channelRejected && sessionManager.isClientShared(sessionId)
                     sessionManager.removeSession(sessionId)
-                    Result.Failed(outcome.reason.ifBlank { "Failed to open the remote shell" })
+                    Result.Failed(
+                        message = outcome.reason.ifBlank { "Failed to open the remote shell" },
+                        channelRejected = rejectedOnShared,
+                    )
                 }
             }
         } catch (e: Exception) {

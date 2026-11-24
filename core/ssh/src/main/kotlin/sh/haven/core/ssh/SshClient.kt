@@ -146,6 +146,17 @@ class SshClient : SshConnection {
                 // throws once the bound elapses.
                 channel.connect(timeoutMs.toInt())
                 true
+            } catch (_: JSchException) {
+                // RFC 4254 §5.1 (#888): when a live server rejects opening
+                // another channel (e.g. OpenSSH MaxSessions=10 full when 10
+                // tmux tabs share one SshClient), Session.run() decrypts
+                // SSH_MSG_CHANNEL_OPEN_FAILURE, records the positive reason
+                // code in channel.exitStatus, and sets channel.close = true
+                // while sess.isConnected stays true. A stalled/dead socket
+                // times out with exitStatus == -1 and isClosed == false (or
+                // drops sess.isConnected). An authenticated server refusal
+                // proves the transport just completed a round-trip.
+                sess.isConnected && channel.isClosed && channel.exitStatus > 0
             } finally {
                 try { channel.disconnect() } catch (_: Throwable) { /* best effort */ }
             }
@@ -784,7 +795,16 @@ class SshClient : SshConnection {
         val stdout = channel.inputStream
         val stderr = channel.errStream
 
-        channel.connect()
+        try {
+            channel.connect()
+        } catch (e: JSchException) {
+            val rejectedByLiveServer = sess.isConnected && channel.isClosed && channel.exitStatus > 0
+            runCatching { channel.disconnect() }
+            if (rejectedByLiveServer) {
+                throw SshChannelOpenRejectedException(channel.exitStatus, e)
+            }
+            throw e
+        }
 
         val timedOut = java.util.concurrent.atomic.AtomicBoolean(false)
         // Drain stdout and stderr concurrently. JSch delivers both channels on

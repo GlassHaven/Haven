@@ -60,7 +60,12 @@ sealed interface ShellOutcome {
     /** Remote shell exited immediately (clean exit) — e.g. no session manager installed. */
     data class ShellClosed(override val sessionId: String, val exitStatus: Int) : ShellOutcome
     /** Opening the shell threw, or the channel dropped during connect. */
-    data class Failed(override val sessionId: String, val reason: String) : ShellOutcome
+    data class Failed(
+        override val sessionId: String,
+        val reason: String,
+        /** True when the live server rejected opening another channel (e.g. MaxSessions full, #888). */
+        val channelRejected: Boolean = false,
+    ) : ShellOutcome
 }
 
 /**
@@ -553,6 +558,13 @@ class SshSessionManager @Inject constructor(
                     val cfg = sess?.connectionConfig
                     if (cfg != null && cfg.reconnectPolicy.autoReconnect) {
                         reconnectExecutor.execute { attemptReconnect(sessionId) }
+                    } else if (sess?.status == SessionState.Status.RECONNECTING) {
+                        // #888: connection-reuse siblings carry autoReconnect=false
+                        // because the primary session owns reconnecting the shared
+                        // client. When previousClient.disconnect() closes the old
+                        // reader, keep RECONNECTING so TerminalViewModel does not
+                        // drop the sibling tab while the primary swaps channels.
+                        Log.d(TAG, "Sibling session $sessionId old reader ended during primary reconnect — keeping RECONNECTING")
                     } else {
                         if (cfg != null) {
                             Log.d(TAG, "Session $sessionId auto-reconnect disabled by profile policy")
@@ -597,7 +609,11 @@ class SshSessionManager @Inject constructor(
         } catch (e: Exception) {
             Log.w(TAG, "openShellChannel failed for $sessionId: ${e.message}")
             updateStatus(sessionId, SessionState.Status.ERROR)
-            return ShellOutcome.Failed(sessionId, e.message ?: "failed to open shell")
+            return ShellOutcome.Failed(
+                sessionId = sessionId,
+                reason = e.message ?: "failed to open shell",
+                channelRejected = e is SshChannelOpenRejectedException,
+            )
         }
         attachShellChannel(sessionId, channel)
         val connectSignal = CompletableDeferred<ShellOutcome>()
@@ -801,18 +817,45 @@ class SshSessionManager @Inject constructor(
         }
     }
 
+    private fun activeShellCount(client: SshConnection): Int =
+        _sessions.value.values.count {
+            it.client === client &&
+                it.shellChannel != null &&
+                it.status != SessionState.Status.DISCONNECTED &&
+                it.status != SessionState.Status.ERROR
+        }
+
+    /**
+     * Swap [sessionId] onto [newClient] (used when a reused client hits the
+     * server's `MaxSessions` cap and the caller dials an overflow client, #888).
+     */
+    fun replaceSessionClient(sessionId: String, newClient: SshConnection) {
+        _sessions.update { map ->
+            val existing = map[sessionId] ?: return@update map
+            map + (sessionId to existing.copy(client = newClient, status = SessionState.Status.CONNECTING))
+        }
+    }
+
     /**
      * Find a connected [SshClient] for this profile. Used by file-transfer
      * code paths that need shell exec (SCP, shell-ls browsing) — i.e. the
      * legacy transport for servers without an SFTP subsystem.
+     *
+     * Prefers the connected client with the fewest active shell channels so
+     * exec/SFTP requests use a connection with free `MaxSessions` headroom (#888).
      */
     fun getSshClientForProfile(profileId: String): SshConnection? {
         val values = _sessions.value.values
-        return (values.firstOrNull {
+        val interactive = values.filter {
             it.profileId == profileId && !it.headless && it.status == SessionState.Status.CONNECTED
-        } ?: values.firstOrNull {
-            it.profileId == profileId && it.status == SessionState.Status.CONNECTED
-        })?.client
+        }
+        if (interactive.isNotEmpty()) {
+            return interactive.minByOrNull { activeShellCount(it.client) }?.client
+        }
+        return values
+            .filter { it.profileId == profileId && it.status == SessionState.Status.CONNECTED }
+            .minByOrNull { activeShellCount(it.client) }
+            ?.client
     }
 
     /**
@@ -845,9 +888,13 @@ class SshSessionManager @Inject constructor(
      * session, so it never waits on itself.
      */
     suspend fun awaitReusableClient(profileId: String, timeoutMs: Long = 35_000): SshConnection? {
-        _sessions.value.values.firstOrNull {
-            it.profileId == profileId && !it.headless && it.status == SessionState.Status.CONNECTED
-        }?.client?.let { return it }
+        _sessions.value.values
+            .filter {
+                it.profileId == profileId && !it.headless && it.status == SessionState.Status.CONNECTED
+            }
+            .minByOrNull { activeShellCount(it.client) }
+            ?.client
+            ?.let { return it }
         val pending = _sessions.value.values.firstOrNull {
             it.profileId == profileId && !it.headless && it.status == SessionState.Status.CONNECTING
         } ?: return null
@@ -857,9 +904,12 @@ class SshSessionManager @Inject constructor(
                 val s = map[pending.sessionId]
                 s == null || s.status != SessionState.Status.CONNECTING
             }
-            _sessions.value.values.firstOrNull {
-                it.profileId == profileId && !it.headless && it.status == SessionState.Status.CONNECTED
-            }?.client
+            _sessions.value.values
+                .filter {
+                    it.profileId == profileId && !it.headless && it.status == SessionState.Status.CONNECTED
+                }
+                .minByOrNull { activeShellCount(it.client) }
+                ?.client
         }
     }
 
@@ -1049,6 +1099,21 @@ class SshSessionManager @Inject constructor(
         try {
         updateStatus(sessionId, SessionState.Status.RECONNECTING)
         breadcrumb(session.profileId, "attempt started → ${config.host}:${config.port}")
+
+        // #888: mark any connection-reuse siblings sharing session.client as
+        // RECONNECTING up front, BEFORE previousClient.disconnect() closes their
+        // old shell streams. Otherwise each sibling's old reader thread sees
+        // autoReconnect=false and flips the sibling to DISCONNECTED, causing
+        // TerminalViewModel.reconcileSessions() to drop its tab mid-reconnect.
+        val initialSharedClient = session.client
+        val initialSiblings = _sessions.value.values.filter {
+            it.sessionId != sessionId &&
+                it.client === initialSharedClient &&
+                (it.status == SessionState.Status.CONNECTED || it.status == SessionState.Status.DISCONNECTED)
+        }
+        for (sib in initialSiblings) {
+            updateStatus(sib.sessionId, SessionState.Status.RECONNECTING)
+        }
 
         // Proactively mark dependent sessions (that use this as jump host) as RECONNECTING
         // so the UI shows the reconnecting indicator immediately instead of waiting for keepalive timeout
@@ -1247,12 +1312,29 @@ class SshSessionManager @Inject constructor(
 
                 // Reattach shell channels for any connection-reuse sibling sessions
                 // that were sharing previousClient.
+                //
+                // #888: keep both the primary session and all siblings in
+                // RECONNECTING until EVERY sibling shell channel has opened.
+                // Flipping a sibling to CONNECTED inside this loop wakes
+                // McpNearCarrier mid-loop, whose recordTunnelSshPid opens an
+                // `exec` channel on newClient and steals OpenSSH's 10th
+                // MaxSessions slot from the 10th tab.
+                val reattachedSiblingIds = mutableListOf<String>()
+                val failedSiblingIds = mutableListOf<String>()
                 for (sibId in sharedSiblingIds) {
                     val sib = _sessions.value[sibId] ?: continue
                     if (sib.terminalSession != null || sib.shellChannel != null) {
                         runCatching {
                             val oldSibShell = sib.shellChannel
-                            val sibChannel = newClient.openTerminalChannel(sib.remoteCommand, sib.requestPty)
+                            val sibChannel = try {
+                                newClient.openTerminalChannel(sib.remoteCommand, sib.requestPty)
+                            } catch (firstErr: Exception) {
+                                if (!newClient.isConnected) throw firstErr
+                                // One brief retry in case a transient probe/exec channel
+                                // was releasing the server's last MaxSessions slot.
+                                Thread.sleep(150)
+                                newClient.openTerminalChannel(sib.remoteCommand, sib.requestPty)
+                            }
                             attachShellChannel(sibId, sibChannel)
                             runCatching { if (oldSibShell?.isConnected == true) oldSibShell.disconnect() }
                             val sibPending = if (sib.remoteCommand == null) {
@@ -1262,10 +1344,14 @@ class SshSessionManager @Inject constructor(
                                 sib.terminalSession?.setPendingCommands(sibPending)
                             }
                             sib.terminalSession?.reconnect(sibChannel, newClient)
-                            updateStatus(sibId, SessionState.Status.CONNECTED)
+                            reattachedSiblingIds.add(sibId)
                         }.onFailure { e ->
                             Log.w(TAG, "Failed to reattach reused sibling session $sibId: ${e.message}")
+                            breadcrumb(session.profileId, "sibling reattach failed ($sibId): ${e.message}")
+                            failedSiblingIds.add(sibId)
                         }
+                    } else {
+                        reattachedSiblingIds.add(sibId)
                     }
                 }
 
@@ -1295,7 +1381,25 @@ class SshSessionManager @Inject constructor(
                     return
                 }
 
-                updateStatus(sessionId, SessionState.Status.CONNECTED)
+                // Atomically publish CONNECTED for the primary session and all
+                // reattached siblings now that every shell channel is open (#888).
+                _sessions.update { map ->
+                    var updated = map
+                    updated[sessionId]?.let { cur ->
+                        updated = updated + (sessionId to cur.copy(status = SessionState.Status.CONNECTED))
+                    }
+                    for (sibId in reattachedSiblingIds) {
+                        updated[sibId]?.let { sib ->
+                            updated = updated + (sibId to sib.copy(status = SessionState.Status.CONNECTED))
+                        }
+                    }
+                    for (sibId in failedSiblingIds) {
+                        updated[sibId]?.let { sib ->
+                            updated = updated + (sibId to sib.copy(status = SessionState.Status.DISCONNECTED))
+                        }
+                    }
+                    updated
+                }
                 // Post-reconnect hooks (e.g. USB/IP host re-attach). Best-effort —
                 // a failing hook must never abort a successful reconnect.
                 reconnectHooks[sessionId]?.let { hook -> runCatching { runBlocking { hook() } } }
@@ -1313,7 +1417,21 @@ class SshSessionManager @Inject constructor(
         }
 
         Log.d(TAG, "Reconnect failed after $attempt attempts for $sessionId")
-        updateStatus(sessionId, SessionState.Status.DISCONNECTED)
+        val exhaustedClient = _sessions.value[sessionId]?.client
+        _sessions.update { map ->
+            var updated = map
+            updated[sessionId]?.let { cur ->
+                updated = updated + (sessionId to cur.copy(status = SessionState.Status.DISCONNECTED))
+            }
+            if (exhaustedClient != null) {
+                for ((id, sib) in updated) {
+                    if (id != sessionId && sib.client === exhaustedClient && sib.status == SessionState.Status.RECONNECTING) {
+                        updated = updated + (id to sib.copy(status = SessionState.Status.DISCONNECTED))
+                    }
+                }
+            }
+            updated
+        }
         } finally {
             reconnectThreads.remove(sessionId, currentThread)
             reconnectingInFlight.remove(sessionId)

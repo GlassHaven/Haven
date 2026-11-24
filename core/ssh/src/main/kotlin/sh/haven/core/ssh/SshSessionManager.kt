@@ -562,7 +562,13 @@ class SshSessionManager @Inject constructor(
                     Log.d(TAG, "Session $sessionId disconnected unexpectedly")
                     val sess = _sessions.value[sessionId]
                     val cfg = sess?.connectionConfig
-                    if (cfg != null && cfg.reconnectPolicy.autoReconnect) {
+                    if (sess?.shellChannel?.isConnected == true) {
+                        // #888: a reconnect already swapped this session onto a fresh
+                        // live shell, so this EOF is the stale old reader finishing.
+                        // Don't fire a second reconnect that would tear the new shell
+                        // down (and, with a capped server, exhaust overflow dials).
+                        Log.d(TAG, "Session $sessionId old reader ended but current shell is live — ignoring stale EOF")
+                    } else if (cfg != null && cfg.reconnectPolicy.autoReconnect) {
                         reconnectExecutor.execute { attemptReconnect(sessionId) }
                     } else if (sess?.status == SessionState.Status.RECONNECTING) {
                         // #888: connection-reuse siblings carry autoReconnect=false

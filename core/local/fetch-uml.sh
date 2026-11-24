@@ -19,15 +19,19 @@
 # NativeFeatures.uml probe hides the UI.
 #
 # Version-pinned release assets with sha256s (github.com/GlassOnTin/
-# uml-transport, tag uml-guest-10). The kernel is GPL-2.0; its source
+# uml-transport, tag uml-guest-11). The kernel is GPL-2.0; its source
 # (branch um-arm64 of zalexdev/linux-um-arm64 at 7edec4df1 plus the
 # stub-execve-fallback and android-app-compat patches, all published
 # there with the build recipes) is published, which satisfies the
 # distribution terms. The kernel link output is additionally neutered
 # for the syscalls Android's zygote seccomp filter force-kills
-# (set_robust_list, rseq) — the gate and the patch live in this repo's
-# releases repo, GlassOnTin/uml-transport, under tools/um-arm64/harness/.
+# (set_robust_list, rseq, close_range) — the gate and the patch live in
+# this repo's releases repo, GlassOnTin/uml-transport, under
+# tools/um-arm64/harness/.
 # uml-guest-10 adds usb-haven.config (USB/IP vhci_hcd + USB class drivers).
+# uml-guest-11 neuters close_range (436), which some Android seccomp
+# policies force-kills — fixes Haven #877 (UML "SIGSYS: blocked syscall
+# 436 / start_userspace failed").
 # When the pin is retired,
 # the fetch fails LOUDLY — bump UML_RELEASE and the sha256s together.
 # Skip with ./gradlew -PskipUml or SKIP_UML=1 (F-Droid).
@@ -39,14 +43,14 @@ set -euo pipefail
 cd "$(dirname "$0")"
 
 OUT="${UML_OUTPUT:-src/main/jniLibs}"
-BASE="${UML_RELEASE_MIRROR:-https://github.com/GlassOnTin/uml-transport/releases/download/uml-guest-10}"
+BASE="${UML_RELEASE_MIRROR:-https://github.com/GlassOnTin/uml-transport/releases/download/uml-guest-11}"
 
-# file | sha256 | github release asset id (uml-guest-10)
-# Sizes: libvmlinux.so 129634648 (13141144 stripped), libuml-stub.so 1920, libuml-passt.so 608472
+# file | sha256 | github release asset id (uml-guest-11)
+# Sizes: libvmlinux.so 91523968, libuml-stub.so 2000, libuml-passt.so 608472
 FILES=(
-  "libvmlinux.so|246d84a1401438b14766f5a70f1f11b67f8e9eb29d8cabff4922c6c7c774ab6c|690054160"
-  "libuml-stub.so|83f51f7c45133daa135b595562b09c5e2829f1d0f1e00b7fce2a7695370781fc|690054161"
-  "libuml-passt.so|17703eb787afcfc57475921f186bec6eae479db00cf60e1763c1a8459c055b36|690054159"
+  "libvmlinux.so|14d39961761cdbc9fe5478ae4881eb548d79d12720213d6b65e8385dcf6eee16|788638328"
+  "libuml-stub.so|731c48d5bf42ef25e26625af6a02627a5d658bf9f67d6f7fc443d6d644d6e52e|788638338"
+  "libuml-passt.so|17703eb787afcfc57475921f186bec6eae479db00cf60e1763c1a8459c055b36|788638327"
 )
 
 if [ "${SKIP_UML:-0}" = "1" ]; then

@@ -1,0 +1,1 @@
+Fix UML guest desktops failing to boot on some Android versions ("SIGSYS: blocked syscall 436"): the guest kernel now handles the close_range syscall those Android seccomp policies block (#877). Also adds a signed, non-bypassable internet-egress consent tool for sandboxed agents.

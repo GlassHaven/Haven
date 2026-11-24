@@ -5,6 +5,11 @@ the corresponding GitHub Release; a release can't ship without its section
 (enforced by `scripts/check-changelog.sh` in CI). The GitHub "Full Changelog"
 compare link is appended automatically — don't add it here.
 
+## v5.94.72
+
+- Fix UML guest desktops failing to boot on some Android versions ("SIGSYS: blocked syscall 436 / start_userspace failed"): the guest kernel now handles the close_range syscall that those Android seccomp policies block, so the guest boots instead of dying at startup (#877).
+- Add a controlled internet-egress consent tool for sandboxed agents: a root egress proxy can ask you to approve an arbitrary-host request on the phone (Allow once / Allow session / Deny), and the decision is cryptographically signed so a sandboxed agent cannot forge an approval.
+
 ## v5.94.71
 
 - Fix hybrid post-quantum SSH keys (ssh-mldsa44-ed25519) importing but then falling back to password: the sshlib engine only offers these key types when the device's crypto providers can perform the composite signature, which most Android builds cannot. Haven now registers its bundled BouncyCastle when the platform lacks the service, so the key is actually offered to the server (#859).

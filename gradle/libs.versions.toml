@@ -16,7 +16,7 @@ termlib = "0.0.22"
 sora-editor = "0.23.6"
 # commonmark-java (BSD-2, pure Java, no transitive deps beyond nibor autolink)
 # parses Markdown for the file browser's preview; rendering is our own Compose.
-commonmark = "0.32.0"
+commonmark = "0.33.0"
 bouncycastle = "1.84"
 # 5.19.1 to match prns/prns-host/bindings/jvm (JNA enforces jar↔jnidispatch
 # version pairing at load, so the AAR's native must match the strictest jar).

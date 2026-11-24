@@ -254,4 +254,200 @@ class SshSessionManagerMaxSessionsReconnectTest {
         )
         assertFalse(saturatedClient === lightlyLoadedClient)
     }
+
+    @Test
+    fun `attemptReconnect emits UserMessageBus error naming dropped tab when sibling hits MaxSessions on FIDO profile`(): Unit = runBlocking {
+        val messageBus = sh.haven.core.data.message.UserMessageBus()
+        val manager = SshSessionManager(mockk(relaxed = true), mockk(relaxed = true), messageBus)
+        manager.reconnectInitialDelayMs = 10L
+
+        val oldShells = CopyOnWriteArrayList<PipeShell>()
+        val oldClient = mockk<SshClient>(relaxed = true)
+        every { oldClient.isConnected } returns true
+        every { oldClient.openTerminalChannel(any(), any(), any(), any(), any()) } answers {
+            PipeShell().also { oldShells.add(it) }.toChannel()
+        }
+        every { oldClient.disconnect() } answers {
+            oldShells.forEach { it.simulateTransportDrop() }
+        }
+
+        val activeOnNew = AtomicInteger(0)
+        val newClient = mockk<SshClient>(relaxed = true)
+        every { newClient.isConnected } returns true
+        every { newClient.connectBlocking(any(), any(), any(), any(), any(), any(), any()) } returns null
+        every { newClient.openTerminalChannel(any(), any(), any(), any(), any()) } answers {
+            val n = activeOnNew.incrementAndGet()
+            if (n > 2) {
+                activeOnNew.decrementAndGet()
+                throw SshChannelOpenRejectedException(1)
+            }
+            PipeShell().toChannel(onClose = { activeOnNew.decrementAndGet() })
+        }
+        var factoryCalls = 0
+        manager.reconnectClientFactory = {
+            factoryCalls++
+            newClient
+        }
+
+        val emittedMessages = CopyOnWriteArrayList<sh.haven.core.data.message.UserMessage>()
+        val collectorScope = CoroutineScope(SupervisorJob() + Dispatchers.Unconfined)
+        collectorScope.launch {
+            messageBus.messages.collect { emittedMessages.add(it) }
+        }
+
+        val primaryId = manager.registerSession("p1", "msi-z790", oldClient)
+        manager.storeConnectionConfig(
+            primaryId,
+            ConnectionConfig(
+                host = "192.168.0.180",
+                port = 22,
+                username = "ian",
+                authMethod = ConnectionConfig.AuthMethod.FidoKey(skKeyData = byteArrayOf(1, 2, 3)),
+                reconnectPolicy = ConnectionConfig.ReconnectPolicy(autoReconnect = true),
+            ),
+            SessionManager.TMUX,
+        )
+        manager.setChosenSessionName(primaryId, "haven")
+        manager.openShellForSession(primaryId)
+        manager.createTerminalSession(primaryId, { _, _, _ -> })!!.start()
+        manager.updateStatus(primaryId, SshSessionManager.SessionState.Status.CONNECTED)
+
+        val siblingIds = listOf("cnc", "haven-2").map { name ->
+            val sid = manager.registerSession("p1", "msi-z790", oldClient)
+            manager.storeReuseConfig(sid, "p1", SessionManager.TMUX)
+            manager.setChosenSessionName(sid, name)
+            manager.openShellForSession(sid)
+            manager.createTerminalSession(sid, { _, _, _ -> })!!.start()
+            manager.updateStatus(sid, SshSessionManager.SessionState.Status.CONNECTED)
+            sid
+        }
+
+        try {
+            manager.updateStatus(primaryId, SshSessionManager.SessionState.Status.DISCONNECTED)
+            manager.requestReconnect(primaryId)
+
+            val deadline = System.currentTimeMillis() + 5_000L
+            while (System.currentTimeMillis() < deadline) {
+                if (manager.getSession(primaryId)?.status == SshSessionManager.SessionState.Status.CONNECTED &&
+                    manager.getSession(primaryId)?.client === newClient
+                ) {
+                    break
+                }
+                delay(20)
+            }
+
+            assertEquals(1, factoryCalls)
+            assertEquals(SshSessionManager.SessionState.Status.CONNECTED, manager.getSession(primaryId)?.status)
+            assertEquals(SshSessionManager.SessionState.Status.CONNECTED, manager.getSession(siblingIds[0])?.status)
+            assertEquals(SshSessionManager.SessionState.Status.DISCONNECTED, manager.getSession(siblingIds[1])?.status)
+            assertEquals(1, emittedMessages.size)
+            val text = emittedMessages.single().text
+            assertTrue("expected tab name in user error, got: $text", text.contains("'haven-2'"))
+            assertTrue("expected MaxSessions explanation in user error, got: $text", text.contains("MaxSessions"))
+        } finally {
+            collectorScope.cancel()
+            manager.disconnectAll()
+        }
+    }
+
+    @Test
+    fun `attemptReconnect dials overflow client when server MaxSessions shrank on non-FIDO profile`(): Unit = runBlocking {
+        val messageBus = sh.haven.core.data.message.UserMessageBus()
+        val manager = SshSessionManager(mockk(relaxed = true), mockk(relaxed = true), messageBus)
+        manager.reconnectInitialDelayMs = 10L
+
+        val oldShells = CopyOnWriteArrayList<PipeShell>()
+        val oldClient = mockk<SshClient>(relaxed = true)
+        every { oldClient.isConnected } returns true
+        every { oldClient.openTerminalChannel(any(), any(), any(), any(), any()) } answers {
+            PipeShell().also { oldShells.add(it) }.toChannel()
+        }
+        every { oldClient.disconnect() } answers {
+            oldShells.forEach { it.simulateTransportDrop() }
+        }
+
+        fun makeCappedClient(cap: Int): SshClient {
+            val count = AtomicInteger(0)
+            return mockk<SshClient>(relaxed = true) {
+                every { isConnected } returns true
+                every { connectBlocking(any(), any(), any(), any(), any(), any(), any()) } returns null
+                every { openTerminalChannel(any(), any(), any(), any(), any()) } answers {
+                    val n = count.incrementAndGet()
+                    if (n > cap) {
+                        count.decrementAndGet()
+                        throw SshChannelOpenRejectedException(1)
+                    }
+                    PipeShell().toChannel(onClose = { count.decrementAndGet() })
+                }
+            }
+        }
+
+        val newClient1 = makeCappedClient(cap = 2)
+        val newClient2 = makeCappedClient(cap = 2)
+        val clients = ArrayDeque(listOf(newClient1, newClient2))
+        manager.reconnectClientFactory = { clients.removeFirst() }
+
+        val emittedMessages = CopyOnWriteArrayList<sh.haven.core.data.message.UserMessage>()
+        val collectorScope = CoroutineScope(SupervisorJob() + Dispatchers.Unconfined)
+        collectorScope.launch {
+            messageBus.messages.collect { emittedMessages.add(it) }
+        }
+
+        val primaryId = manager.registerSession("p1", "msi-z790", oldClient)
+        manager.storeConnectionConfig(
+            primaryId,
+            ConnectionConfig(
+                host = "192.168.0.180",
+                port = 22,
+                username = "ian",
+                authMethod = ConnectionConfig.AuthMethod.Password("secret"),
+                reconnectPolicy = ConnectionConfig.ReconnectPolicy(autoReconnect = true),
+            ),
+            SessionManager.TMUX,
+        )
+        manager.setChosenSessionName(primaryId, "haven")
+        manager.openShellForSession(primaryId)
+        manager.createTerminalSession(primaryId, { _, _, _ -> })!!.start()
+        manager.updateStatus(primaryId, SshSessionManager.SessionState.Status.CONNECTED)
+
+        val siblingIds = listOf("cnc", "haven-2").map { name ->
+            val sid = manager.registerSession("p1", "msi-z790", oldClient)
+            manager.storeReuseConfig(sid, "p1", SessionManager.TMUX)
+            manager.setChosenSessionName(sid, name)
+            manager.openShellForSession(sid)
+            manager.createTerminalSession(sid, { _, _, _ -> })!!.start()
+            manager.updateStatus(sid, SshSessionManager.SessionState.Status.CONNECTED)
+            sid
+        }
+
+        try {
+            manager.updateStatus(primaryId, SshSessionManager.SessionState.Status.DISCONNECTED)
+            manager.requestReconnect(primaryId)
+
+            val deadline = System.currentTimeMillis() + 5_000L
+            while (System.currentTimeMillis() < deadline) {
+                if (manager.getSession(primaryId)?.status == SshSessionManager.SessionState.Status.CONNECTED &&
+                    manager.getSession(primaryId)?.client === newClient1
+                ) {
+                    break
+                }
+                delay(20)
+            }
+
+            assertEquals(SshSessionManager.SessionState.Status.CONNECTED, manager.getSession(primaryId)?.status)
+            assertEquals(SshSessionManager.SessionState.Status.CONNECTED, manager.getSession(siblingIds[0])?.status)
+            assertEquals(SshSessionManager.SessionState.Status.CONNECTED, manager.getSession(siblingIds[1])?.status)
+            assertSame(newClient1, manager.getSession(primaryId)?.client)
+            assertSame(newClient1, manager.getSession(siblingIds[0])?.client)
+            assertSame(newClient2, manager.getSession(siblingIds[1])?.client)
+            assertTrue(
+                "first sibling moved onto overflow client must own auto-reconnect for that client",
+                manager.getSession(siblingIds[1])?.connectionConfig?.reconnectPolicy?.autoReconnect == true,
+            )
+            assertTrue("expected zero user error messages when overflow succeeded, got: $emittedMessages", emittedMessages.isEmpty())
+        } finally {
+            collectorScope.cancel()
+            manager.disconnectAll()
+        }
+    }
 }

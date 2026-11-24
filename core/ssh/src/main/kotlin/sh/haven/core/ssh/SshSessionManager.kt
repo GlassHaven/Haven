@@ -19,6 +19,7 @@ import kotlinx.coroutines.launch
 import kotlinx.coroutines.runBlocking
 import kotlinx.coroutines.withTimeoutOrNull
 import sh.haven.core.data.db.entities.ConnectionLog
+import sh.haven.core.data.message.UserMessageBus
 import sh.haven.core.data.repository.ConnectionLogRepository
 import sh.haven.core.data.terminal.ScrollbackRing
 import sh.haven.core.ssh.sftp.JschSftpSession
@@ -125,7 +126,12 @@ fun interface TerminalAttachmentProvider {
 class SshSessionManager @Inject constructor(
     private val hostKeyVerifier: HostKeyVerifier,
     private val connectionLogRepository: ConnectionLogRepository,
+    private val userMessageBus: UserMessageBus,
 ) {
+    constructor(
+        hostKeyVerifier: HostKeyVerifier,
+        connectionLogRepository: ConnectionLogRepository,
+    ) : this(hostKeyVerifier, connectionLogRepository, UserMessageBus())
 
     // Off-thread sink for reconnect breadcrumbs — never blocks the reader /
     // ioExecutor; logEvent self-gates on the connection-logging preference.
@@ -1321,19 +1327,50 @@ class SshSessionManager @Inject constructor(
                 // MaxSessions slot from the 10th tab.
                 val reattachedSiblingIds = mutableListOf<String>()
                 val failedSiblingIds = mutableListOf<String>()
+                val failedSiblingDetails = mutableListOf<Pair<String, String>>()
+                var activeSiblingClient: SshConnection = newClient
+                val overflowOwnersAssigned = HashSet<SshConnection>()
                 for (sibId in sharedSiblingIds) {
                     val sib = _sessions.value[sibId] ?: continue
                     if (sib.terminalSession != null || sib.shellChannel != null) {
                         runCatching {
                             val oldSibShell = sib.shellChannel
+                            var targetClient: SshConnection = activeSiblingClient
                             val sibChannel = try {
-                                newClient.openTerminalChannel(sib.remoteCommand, sib.requestPty)
+                                targetClient.openTerminalChannel(sib.remoteCommand, sib.requestPty)
                             } catch (firstErr: Exception) {
-                                if (!newClient.isConnected) throw firstErr
-                                // One brief retry in case a transient probe/exec channel
-                                // was releasing the server's last MaxSessions slot.
-                                Thread.sleep(150)
-                                newClient.openTerminalChannel(sib.remoteCommand, sib.requestPty)
+                                if (firstErr is SshChannelOpenRejectedException &&
+                                    !config.authMethod.containsFidoKey()
+                                ) {
+                                    val overflow = dialReconnectOverflowClient(
+                                        sessionId = sessionId,
+                                        config = config,
+                                        proxy = proxy,
+                                        previousClient = previousClient,
+                                        currentThread = currentThread,
+                                    ) ?: throw firstErr
+                                    activeSiblingClient = overflow
+                                    targetClient = overflow
+                                    overflow.openTerminalChannel(sib.remoteCommand, sib.requestPty)
+                                } else {
+                                    if (!targetClient.isConnected) throw firstErr
+                                    // One brief retry in case a transient probe/exec channel
+                                    // was releasing the server's last MaxSessions slot.
+                                    Thread.sleep(150)
+                                    targetClient.openTerminalChannel(sib.remoteCommand, sib.requestPty)
+                                }
+                            }
+                            if (targetClient !== newClient) {
+                                val becomeOwner = overflowOwnersAssigned.add(targetClient)
+                                _sessions.update { map ->
+                                    val cur = map[sibId] ?: return@update map
+                                    val ownerCfg = if (becomeOwner) {
+                                        config.copy(authMethod = config.authMethod.deepCopy())
+                                    } else {
+                                        cur.connectionConfig
+                                    }
+                                    map + (sibId to cur.copy(client = targetClient, connectionConfig = ownerCfg))
+                                }
                             }
                             attachShellChannel(sibId, sibChannel)
                             runCatching { if (oldSibShell?.isConnected == true) oldSibShell.disconnect() }
@@ -1343,12 +1380,17 @@ class SshSessionManager @Inject constructor(
                             if (sibPending.isNotEmpty()) {
                                 sib.terminalSession?.setPendingCommands(sibPending)
                             }
-                            sib.terminalSession?.reconnect(sibChannel, newClient)
+                            sib.terminalSession?.reconnect(sibChannel, targetClient)
                             reattachedSiblingIds.add(sibId)
                         }.onFailure { e ->
                             Log.w(TAG, "Failed to reattach reused sibling session $sibId: ${e.message}")
                             breadcrumb(session.profileId, "sibling reattach failed ($sibId): ${e.message}")
                             failedSiblingIds.add(sibId)
+                            val displayName = sib.chosenSessionName?.takeIf { it.isNotBlank() }
+                                ?: sib.label.ifBlank { sibId.take(8) }
+                            val reason = e.message?.takeIf { it.isNotBlank() }
+                                ?: "failed to reopen remote shell"
+                            failedSiblingDetails.add(displayName to reason)
                         }
                     } else {
                         reattachedSiblingIds.add(sibId)
@@ -1371,6 +1413,7 @@ class SshSessionManager @Inject constructor(
                     if (!applyPortForwards(sessionId, forwards)) {
                         Log.w(TAG, "Critical port forward failed to re-bind for $sessionId — retrying")
                         try { newClient.disconnect() } catch (_: Throwable) {}
+                        overflowOwnersAssigned.forEach { c -> runCatching { c.disconnect() } }
                         delayMs = (delayMs * 2).coerceAtMost(RECONNECT_MAX_DELAY_MS)
                         continue
                     }
@@ -1378,6 +1421,7 @@ class SshSessionManager @Inject constructor(
 
                 if (_sessions.value[sessionId] == null || currentThread.isInterrupted) {
                     runCatching { newClient.disconnect() }
+                    overflowOwnersAssigned.forEach { c -> runCatching { c.disconnect() } }
                     return
                 }
 
@@ -1395,10 +1439,23 @@ class SshSessionManager @Inject constructor(
                     }
                     for (sibId in failedSiblingIds) {
                         updated[sibId]?.let { sib ->
-                            updated = updated + (sibId to sib.copy(status = SessionState.Status.DISCONNECTED))
+                            updated = updated + (sibId to sib.copy(
+                                status = SessionState.Status.DISCONNECTED,
+                                shellChannel = null,
+                            ))
                         }
                     }
                     updated
+                }
+                if (failedSiblingDetails.isNotEmpty()) {
+                    val firstReason = failedSiblingDetails.first().second
+                    val summary = if (failedSiblingDetails.size == 1) {
+                        "Tab '${failedSiblingDetails.single().first}' closed during reconnect: $firstReason"
+                    } else {
+                        val names = failedSiblingDetails.joinToString(", ") { "'${it.first}'" }
+                        "Closed ${failedSiblingDetails.size} tabs ($names) during reconnect: $firstReason"
+                    }
+                    userMessageBus.error(summary)
                 }
                 // Post-reconnect hooks (e.g. USB/IP host re-attach). Best-effort —
                 // a failing hook must never abort a successful reconnect.
@@ -1435,6 +1492,55 @@ class SshSessionManager @Inject constructor(
         } finally {
             reconnectThreads.remove(sessionId, currentThread)
             reconnectingInFlight.remove(sessionId)
+        }
+    }
+
+    /**
+     * Dial an overflow [SshConnection] during [attemptReconnect] when the
+     * newly-reconnected primary client rejects a sibling shell open with
+     * [SshChannelOpenRejectedException] (e.g. `MaxSessions` was lowered on the
+     * server while sessions were already open, #888). Returns null on any
+     * auth/network/host-key failure so the caller records and surfaces the
+     * original rejection reason.
+     */
+    private fun dialReconnectOverflowClient(
+        sessionId: String,
+        config: ConnectionConfig,
+        proxy: HavenProxy?,
+        previousClient: SshConnection?,
+        currentThread: Thread,
+    ): SshConnection? {
+        val overflow = reconnectClientFactory(config).apply {
+            fidoAuthenticator = previousClient?.fidoAuthenticator
+            openKeychainClients = previousClient?.openKeychainClients
+            hardwareKeySigner = previousClient?.hardwareKeySigner
+        }
+        return try {
+            val hostKeyEntry = overflow.connectBlocking(
+                config,
+                proxy = proxy,
+                trustedHostCaKeys = runBlocking { hostKeyVerifier.trustedHostCaKeys() },
+            )
+            if (hostKeyEntry != null) {
+                when (val hkResult = runBlocking { hostKeyVerifier.verify(hostKeyEntry) }) {
+                    is HostKeyResult.Trusted -> {}
+                    is HostKeyResult.NewHost -> runBlocking { hostKeyVerifier.accept(hkResult.entry) }
+                    is HostKeyResult.KeyChanged -> {
+                        Log.w(TAG, "Host key changed on overflow reconnect dial for $sessionId — aborting overflow")
+                        overflow.disconnect()
+                        return null
+                    }
+                }
+            }
+            if (_sessions.value[sessionId] == null || currentThread.isInterrupted) {
+                runCatching { overflow.disconnect() }
+                return null
+            }
+            overflow
+        } catch (e: Exception) {
+            Log.w(TAG, "Overflow reconnect dial failed for $sessionId: ${e.message}")
+            runCatching { overflow.disconnect() }
+            null
         }
     }
 

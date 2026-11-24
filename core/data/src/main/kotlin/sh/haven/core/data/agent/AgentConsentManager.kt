@@ -1,6 +1,7 @@
 package sh.haven.core.data.agent
 
 import android.util.Log
+import sh.haven.core.redact.LogRedact
 import kotlinx.coroutines.channels.BufferOverflow
 import kotlinx.coroutines.flow.MutableSharedFlow
 import kotlinx.coroutines.flow.MutableStateFlow
@@ -490,7 +491,7 @@ class AgentConsentManager @Inject constructor() {
             _pending.value = _pending.value + request
         }
         if (!foregroundState.value) {
-            Log.i(LOG_TAG, "requestEgressConsent(${target.host}:${target.port}) id=$id: holding for foreground (denied on timeout)")
+            Log.i(LOG_TAG, "requestEgressConsent(${LogRedact.host(target.host, target.port)}) id=$id: holding for foreground (denied on timeout)")
             _blockedWhileBackground.tryEmit(request)
         }
         val raw = try {
@@ -508,7 +509,7 @@ class AgentConsentManager @Inject constructor() {
             raw == null -> "no answer within ${timeoutMs}ms (foreground=${foregroundState.value})"
             else -> "user chose ${raw.name.lowercase()}"
         }
-        Log.i(LOG_TAG, "requestEgressConsent(${target.host}:${target.port}) id=$id -> $decision: $reason")
+        Log.i(LOG_TAG, "requestEgressConsent(${LogRedact.host(target.host, target.port)}) id=$id -> $decision: $reason")
         return decision
     }
 

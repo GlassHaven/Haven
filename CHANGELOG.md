@@ -5,6 +5,10 @@ the corresponding GitHub Release; a release can't ship without its section
 (enforced by `scripts/check-changelog.sh` in CI). The GitHub "Full Changelog"
 compare link is appended automatically — don't add it here.
 
+## v5.94.71
+
+- Fix hybrid post-quantum SSH keys (ssh-mldsa44-ed25519) importing but then falling back to password: the sshlib engine only offers these key types when the device's crypto providers can perform the composite signature, which most Android builds cannot. Haven now registers its bundled BouncyCastle when the platform lacks the service, so the key is actually offered to the server (#859).
+
 ## v5.94.70
 
 - Yggdrasil mesh dial timeouts now explain the likely cause: the local node needs at least one working peer link, and LAN-only peer addresses are unreachable from a remote network. The error points at the fix (join that LAN, or add a public peer both ends can reach) instead of a bare timeout (#876).

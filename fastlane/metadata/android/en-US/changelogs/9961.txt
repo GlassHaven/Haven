@@ -1,0 +1,1 @@
+Fix hybrid post-quantum SSH keys (ssh-mldsa44-ed25519) importing but falling back to password: Haven now registers its bundled BouncyCastle when the device's crypto providers cannot perform the composite signature, so the key is offered to the server (#859).

@@ -146,6 +146,10 @@
     <string name="app_agent_allow_for_minutes">%1$d 分間許可</string>
     <string name="app_agent_pair">ペアリング</string>
     <string name="app_agent_block_client">ブロック</string>
+    <string name="app_agent_egress_title">インターネットへの送信を許可しますか？</string>
+    <string name="app_agent_egress_scheme">スキーム: %1$s</string>
+    <string name="app_agent_egress_allow_once">一度だけ許可</string>
+    <string name="app_agent_egress_allow_session">セッション中許可</string>
     <string name="app_present_app_missing_details">アプリウィンドウの接続情報がありません。</string>
     <string name="app_present_dismiss">閉じる</string>
     <string name="app_present_image_shared_cd">エージェントが共有した画像</string>

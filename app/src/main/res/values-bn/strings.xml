@@ -146,6 +146,10 @@
     <string name="app_agent_allow_for_minutes">%1$dm-এর জন্য অনুমোদন করুন</string>
     <string name="app_agent_pair">পেয়ার</string>
     <string name="app_agent_block_client">ব্লক করুন</string>
+    <string name="app_agent_egress_title">ইন্টারনেট ইগ্রেস অনুমতি দেবেন?</string>
+    <string name="app_agent_egress_scheme">স্কিম: %1$s</string>
+    <string name="app_agent_egress_allow_once">একবার অনুমতি দিন</string>
+    <string name="app_agent_egress_allow_session">সেশনের জন্য অনুমতি দিন</string>
     <string name="app_present_app_missing_details">অ্যাপ উইন্ডোর সংযোগ বিবরণ অনুপস্থিত।</string>
     <string name="app_present_dismiss">বন্ধ করুন</string>
     <string name="app_present_image_shared_cd">Agent-এর শেয়ার করা ছবি</string>

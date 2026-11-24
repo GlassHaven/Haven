@@ -41,7 +41,7 @@ Tools are grouped into sections by what they touch, and each tool is collapsed �
 expand one for its description and arguments. The tag after each name is its
 consent level:
 
-- **asks every call** — side-effectful or sensitive; a consent sheet describing the specific action on every call (80 tools).
+- **asks every call** — side-effectful or sensitive; a consent sheet describing the specific action on every call (82 tools).
 - **asks once per session** — reversible actions and screen-reading; prompts the first time each session, then proceeds (70 tools).
 - **no per-call prompt** — read-only queries and tap-equivalent UI actions; still behind the endpoint being enabled and the client paired (94 tools).
 
@@ -55,7 +55,7 @@ consent level:
 - [**Cloud storage (rclone)**](#sec-rclone) — 15 tools
 - [**Email**](#sec-email) — 15 tools
 - [**Linux guest (proot) & desktops**](#sec-linux) — 55 tools
-- [**Networking — tunnels & port forwarding**](#sec-networking) — 14 tools
+- [**Networking — tunnels, port forwarding & egress**](#sec-networking) — 16 tools
 - [**USB & host-device brokers**](#sec-usb) — 21 tools
 - [**Security — SSH keys, host keys, TOTP & age**](#sec-security) — 17 tools
 - [**Agent ↔ you (attention & self-drive)**](#sec-agent-you) — 13 tools
@@ -1908,9 +1908,9 @@ Write a file into the ACTIVE proot guest. Supply `content` (UTF-8 text); for bin
 
 <a id="sec-networking"></a>
 
-## Networking — tunnels & port forwarding (14)
+## Networking — tunnels, port forwarding & egress (16)
 
-SSH tunnels, port forwards, the serial↔TCP bridge, and the port-knock / single-packet-auth gates.
+SSH tunnels, port forwards, the serial↔TCP bridge, the port-knock / single-packet-auth gates, and the controlled internet-egress consent gate.
 
 <details markdown="1">
 <summary><code>add_port_forward</code> · asks once per session</summary>
@@ -1982,6 +1982,13 @@ Delete a saved tunnel config by id. Profiles that referenced it via tunnelConfig
 </details>
 
 <details markdown="1">
+<summary><code>get_egress_signing_secret</code> · asks every call</summary>
+
+Reveal the egress decision signing secret so it can be provisioned root-owned (0600) to the host's /usr/local/lib/claude-egress/haven.key. Consent-gated: Ian approves the reveal on the phone. Returns the base64 secret, a key id, and the canonical message format. Haven never writes host root files itself.
+
+</details>
+
+<details markdown="1">
 <summary><code>list_live_tunnels</code> · no per-call prompt</summary>
 
 Return the live-tunnel snapshot from TunnelManager — every tunnel currently up, paired with the set of profile ids holding it. Useful for verifying refcount semantics in #149 integration tests: confirm the tunnel stays open while a sibling transport keeps it acquired, and that it tears down on the last release.
@@ -2008,6 +2015,20 @@ List saved WireGuard / Tailscale tunnel configs available for Route-through on c
 Delete a port-forward rule by id, and deactivate it on the live session if the owning profile is currently connected.
 
 - `ruleId` (string, required) — ID of the rule to remove.
+
+</details>
+
+<details markdown="1">
+<summary><code>request_egress_grant</code> · asks every call</summary>
+
+Request a human-approved internet-egress grant for a sandboxed agent's Bash request to host:port. Raises a dedicated non-bypassable consent sheet on the phone (Allow once / Allow session / Deny); fails closed to a signed deny on timeout or when Haven is unreachable. The decision is HMAC-SHA256 signed for the root egress proxy to verify against its provisioned secret. Called by the claude-egress-proxy client, not by the sandboxed model directly.
+
+- `host` (string, required) — Target host exactly as the proxy will dial it (no normalisation).
+- `port` (integer, required) — Target port.
+- `request_id` (string, required) — Proxy-generated unique id for this parked request.
+- `sandbox_id` (string, required) — Identifier of the requesting sandbox.
+- `scheme` (string, required, one of: https | http) — https or http.
+- `reason` (string) — Proxy-generated display reason (untrusted text).
 
 </details>
 

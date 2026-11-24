@@ -81,6 +81,8 @@ class StandingPolicyEnforcer @Inject constructor(
             "install_apk_from_url",
             "install_apk_from_backend",
             "unpair_mcp_client",
+            "request_egress_grant",
+            "get_egress_signing_secret",
         )
 
         /** Parse the JSON-array tool list; malformed JSON yields an empty set (no coverage). */

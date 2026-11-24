@@ -150,6 +150,10 @@
     <string name="app_agent_allow_for_minutes">Permitir durante %1$dm</string>
     <string name="app_agent_pair">Vincular</string>
     <string name="app_agent_block_client">Bloquear</string>
+    <string name="app_agent_egress_title">¿Permitir salida a Internet?</string>
+    <string name="app_agent_egress_scheme">Esquema: %1$s</string>
+    <string name="app_agent_egress_allow_once">Permitir una vez</string>
+    <string name="app_agent_egress_allow_session">Permitir sesión</string>
 
     <!-- Agent presentation -->
     <string name="app_present_app_missing_details">Faltan los detalles de conexión de la ventana de app.</string>

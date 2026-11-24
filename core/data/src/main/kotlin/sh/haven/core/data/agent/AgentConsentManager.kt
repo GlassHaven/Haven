@@ -35,6 +35,28 @@ enum class ConsentLevel { NEVER, ONCE_PER_SESSION, EVERY_CALL }
 enum class ConsentDecision { ALLOW, DENY }
 
 /**
+ * Three-way outcome of a controlled-egress consent prompt (Phase 2 of the
+ * internet-egress gate). Unlike [ConsentDecision] this distinguishes a
+ * single-use grant from a sandbox-lifetime one, because the proxy caches
+ * `session` grants but consumes `once` grants immediately.
+ */
+enum class EgressDecision { ONCE, SESSION, DENY }
+
+/**
+ * The target of an egress consent request, rendered prominently on the
+ * dedicated egress sheet. [reason] is proxy-generated display text and is
+ * treated as untrusted — never as instructions.
+ */
+data class EgressTarget(
+    val requestId: String,
+    val sandboxId: String,
+    val host: String,
+    val port: Int,
+    val scheme: String,
+    val reason: String,
+)
+
+/**
  * One pending consent request the UI is expected to render and resolve.
  * `id` lets the UI route a tap on "Allow" / "Deny" back to the right
  * waiting RPC even when several pile up.
@@ -58,6 +80,15 @@ data class ConsentRequest(
      * being interrupted on every queued message.
      */
     val offerTimedAllow: Boolean = false,
+    /**
+     * Non-null for a controlled-egress consent request: the UI renders a
+     * dedicated three-button sheet (Allow once / Allow session / Deny) showing
+     * [EgressTarget.host]:[EgressTarget.port], with no bypass checkbox and no
+     * timed-allow. Resolved via [AgentConsentManager.respondEgress], not
+     * [AgentConsentManager.respond]. Egress consent is non-bypassable — it
+     * never consults the persistent/session bypass sets or windowed allows.
+     */
+    val egress: EgressTarget? = null,
 )
 
 /**
@@ -107,6 +138,15 @@ class AgentConsentManager @Inject constructor() {
     )
 
     private val pendingEntries = mutableMapOf<Long, PendingEntry>()
+
+    /**
+     * Pending egress requests, keyed by request id. Separate from
+     * [pendingEntries] because egress resolves to a three-way [EgressDecision]
+     * via [respondEgress], not the binary [ConsentDecision] of [respond]. The
+     * shared [_pending] flow still carries the request so the sheet renders and
+     * the agent-injected-tap guard (which keys on `pending`) covers it.
+     */
+    private val egressDeferreds = mutableMapOf<Long, CompletableDeferred<EgressDecision>>()
     private val sessionAllowed = mutableSetOf<String>()
 
     /**
@@ -416,6 +456,74 @@ class AgentConsentManager @Inject constructor() {
     }
 
     /**
+     * NON-BYPASSABLE controlled-egress consent (Phase 2 of the internet-egress
+     * gate). Suspends until the user taps Allow once / Allow session / Deny on
+     * the dedicated egress sheet, or [timeoutMs] elapses (DENY).
+     *
+     * Deliberately does NOT consult [persistentBypassClients],
+     * [sessionBypassClients], [sessionAllowed], [windowedAllows] or
+     * [retryGrants]: a paired-client bypass must never short-circuit an egress
+     * grant, because that would let the sandboxed agent self-approve open
+     * internet. The proxy owns the session cache; Haven asks per decision.
+     *
+     * Like [requestConsent] it queues before the foreground wait so a
+     * backgrounded request holds (notification + sheet on resume) and DENYs
+     * only on timeout — never auto-ALLOWs. The request goes through [_pending],
+     * so the agent-injected-tap guard refuses self-confirmation while it shows.
+     */
+    suspend fun requestEgressConsent(
+        target: EgressTarget,
+        clientHint: String?,
+        timeoutMs: Long = 60_000,
+    ): EgressDecision {
+        val id = nextId.getAndIncrement()
+        val deferred = CompletableDeferred<EgressDecision>()
+        val request = ConsentRequest(
+            id = id,
+            toolName = EGRESS_TOOL_NAME,
+            clientHint = clientHint,
+            summary = "Bash egress to ${target.host}:${target.port}",
+            egress = target,
+        )
+        mutex.withLock {
+            egressDeferreds[id] = deferred
+            _pending.value = _pending.value + request
+        }
+        if (!foregroundState.value) {
+            Log.i(LOG_TAG, "requestEgressConsent(${target.host}:${target.port}) id=$id: holding for foreground (denied on timeout)")
+            _blockedWhileBackground.tryEmit(request)
+        }
+        val raw = try {
+            withTimeoutOrNull(timeoutMs) { deferred.await() }
+        } finally {
+            withContext(NonCancellable) {
+                mutex.withLock {
+                    egressDeferreds.remove(id)
+                    _pending.value = _pending.value.filterNot { it.id == id }
+                }
+            }
+        }
+        val decision = raw ?: EgressDecision.DENY
+        val reason = when {
+            raw == null -> "no answer within ${timeoutMs}ms (foreground=${foregroundState.value})"
+            else -> "user chose ${raw.name.lowercase()}"
+        }
+        Log.i(LOG_TAG, "requestEgressConsent(${target.host}:${target.port}) id=$id -> $decision: $reason")
+        return decision
+    }
+
+    /**
+     * Called by the egress sheet when the user taps Allow once / Allow session
+     * / Deny. Completes the matching [requestEgressConsent] waiter. No bypass
+     * or windowed-allow side effects — egress grants are never memoised here.
+     */
+    suspend fun respondEgress(requestId: Long, decision: EgressDecision) {
+        mutex.withLock {
+            egressDeferreds[requestId]?.complete(decision)
+        }
+    }
+
+    /**
      * Suspend until the user resolves a pairing prompt for a new MCP
      * client, or [timeoutMs] elapses. Distinct from [requestConsent] —
      * a paired client is a *connection-time* gate (in `initialize`),
@@ -711,6 +819,15 @@ class AgentConsentManager @Inject constructor() {
          * client even speak).
          */
         const val PAIRING_TOOL_NAME = "_pairing"
+
+        /**
+         * Tool name carried by controlled-egress consent requests so the UI
+         * renders the dedicated three-button egress sheet. The request is
+         * raised inside the `request_egress_grant` handler via
+         * [requestEgressConsent] (non-bypassable), not by the dispatcher's
+         * ordinary consent path.
+         */
+        const val EGRESS_TOOL_NAME = "request_egress_grant"
 
         private const val LOG_TAG = "AgentConsent"
 

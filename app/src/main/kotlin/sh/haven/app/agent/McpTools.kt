@@ -535,6 +535,7 @@ class McpTools private constructor(
         reflexProvider,
         havenUiAndPolicyProvider,
         prootAndGuestProvider,
+        EgressToolProvider(agentConsentManager, context, clientHintProvider = { currentClientHint }),
     )
 
     private val tools: Map<String, ToolHandler> = buildMap {
@@ -1640,26 +1641,22 @@ class McpTools private constructor(
         }
     }
 
+    /** True when the handler raises its own non-bypassable consent (egress gate). */
+    fun isNonBypassable(name: String): Boolean = tools[name]?.nonBypassable == true
+
     /**
-     * Per-call context that handlers can read. McpServer sets
-     * [currentClientHint] right before invoking [call]; handlers like
-     * `queue_terminal_input` consult it to thread the calling MCP
-     * client's name through to the AgentConsentManager pre-delivery
-     * prompt. Volatile because, while the JSON-RPC dispatcher is
-     * sequential per connection, multiple HTTP connections can race —
-     * the worst case is a stale hint, which is benign (the prompt
-     * just shows the wrong client name).
+     * Calling MCP client name, set by McpServer right before [call]; handlers
+     * (e.g. `queue_terminal_input`, egress) thread it to the consent prompt.
+     * Volatile: concurrent HTTP connections can race; a stale hint only
+     * mislabels the prompt's client name.
      */
     @Volatile
     private var currentClientHint: String? = null
 
     /**
-     * Which listener accepted the socket this call arrived on, set alongside
-     * [currentClientHint]. Reported by get_app_info as `mcpCarriers.servedVia`:
-     * the carrier list describes what is *configured*, and a reader who sees
-     * `near.active = false` next to a call that plainly succeeded has no way
-     * to tell which transport actually carried it. Same volatility caveat as
-     * [currentClientHint] — a stale value only mislabels a report.
+     * Which listener accepted this call's socket, set alongside
+     * [currentClientHint]; reported by get_app_info as `mcpCarriers.servedVia`.
+     * Same volatility caveat — a stale value only mislabels a report.
      */
     @Volatile
     private var currentOrigin: String? = null
@@ -5564,6 +5561,8 @@ class ToolHandler(
      * [sh.haven.core.data.agent.McpToolCategory.of] or [ToolProvider.defaultCategory].
      */
     val category: sh.haven.core.data.agent.McpToolCategory? = null,
+    /** Handler raises its own non-bypassable consent; dispatcher skips its bypassable path (egress gate). */
+    val nonBypassable: Boolean = false,
     /**
      * Builds the human-readable one-liner shown in the consent prompt
      * for non-NEVER tools. Default is just the tool name; per-tool
@@ -5589,6 +5588,7 @@ class ToolHandler(
         consentLevel = consentLevel,
         capability = capability,
         category = cat,
+        nonBypassable = nonBypassable,
         summarise = summarise,
         invoke = invoke,
     )

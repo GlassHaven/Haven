@@ -654,9 +654,9 @@ class McpToolsConsentTest {
             Section("linux", "Linux guest (proot) & desktops", 2,
                 "The on-device Linux distros, their desktop environments and windows, guest services, the audio bridge, and guest-file access.",
                 listOf("proot", "distro", "desktop", "guest", "system_vm", "audio_bridge", "gl_smoke", "custom_binds", "app_window", "app_pack", "launch_app_in_desktop", "inspect_proot")),
-            Section("networking", "Networking — tunnels & port forwarding", 5,
-                "SSH tunnels, port forwards, the serial↔TCP bridge, and the port-knock / single-packet-auth gates.",
-                listOf("tunnel", "port_forward", "_forward", "port_knock", "knock", "_spa", "profile_routing", "serial")),
+            Section("networking", "Networking — tunnels, port forwarding & egress", 5,
+                "SSH tunnels, port forwards, the serial↔TCP bridge, the port-knock / single-packet-auth gates, and the controlled internet-egress consent gate.",
+                listOf("tunnel", "port_forward", "_forward", "port_knock", "knock", "_spa", "profile_routing", "serial", "egress")),
             // Priority 1 (ahead of Linux guest) so usb_attach_to_guest files
             // here by its usb_ prefix, not under "guest".
             Section("usb", "USB & host-device brokers", 1,

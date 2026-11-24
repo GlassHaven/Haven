@@ -146,6 +146,10 @@
     <string name="app_agent_allow_for_minutes">سماح لمدة %1$d د</string>
     <string name="app_agent_pair">إقران</string>
     <string name="app_agent_block_client">حظر</string>
+    <string name="app_agent_egress_title">هل تسمح بالاتصال بالإنترنت؟</string>
+    <string name="app_agent_egress_scheme">النظام: %1$s</string>
+    <string name="app_agent_egress_allow_once">السماح مرة واحدة</string>
+    <string name="app_agent_egress_allow_session">السماح للجلسة</string>
     <string name="app_present_app_missing_details">نافذة التطبيق تفتقر إلى تفاصيل الاتصال.</string>
     <string name="app_present_dismiss">إغلاق</string>
     <string name="app_present_image_shared_cd">صورة مشاركة من الوكيل</string>

@@ -5551,6 +5551,88 @@
      }
     },
     {
+     "name": "app_agent_egress_title",
+     "en": "Allow internet egress?",
+     "comment": "Agent consent sheet",
+     "args": [],
+     "t": {
+      "ar": "هل تسمح بالاتصال بالإنترنت؟",
+      "bn": "ইন্টারনেট ইগ্রেস অনুমতি দেবেন?",
+      "de": "Internet-Egress erlauben?",
+      "es": "¿Permitir salida a Internet?",
+      "fr": "Autoriser l\\'accès Internet ?",
+      "hi": "इंटरनेट एgress की अनुमति दें?",
+      "ja": "インターネットへの送信を許可しますか？",
+      "ko": "인터넷 이그레스를 허용하시겠습니까?",
+      "pt": "Permitir saída para a Internet?",
+      "ru": "Разрешить выход в Интернет?",
+      "sr": "Дозволити излаз на интернет?",
+      "zh": "允许互联网出站？"
+     }
+    },
+    {
+     "name": "app_agent_egress_scheme",
+     "en": "Scheme: %1$s",
+     "comment": "Agent consent sheet",
+     "args": [
+      "%1$s"
+     ],
+     "t": {
+      "ar": "النظام: %1$s",
+      "bn": "স্কিম: %1$s",
+      "de": "Schema: %1$s",
+      "es": "Esquema: %1$s",
+      "fr": "Schéma : %1$s",
+      "hi": "स्कीम: %1$s",
+      "ja": "スキーム: %1$s",
+      "ko": "스킴: %1$s",
+      "pt": "Esquema: %1$s",
+      "ru": "Схема: %1$s",
+      "sr": "Шема: %1$s",
+      "zh": "协议：%1$s"
+     }
+    },
+    {
+     "name": "app_agent_egress_allow_once",
+     "en": "Allow once",
+     "comment": "Agent consent sheet",
+     "args": [],
+     "t": {
+      "ar": "السماح مرة واحدة",
+      "bn": "একবার অনুমতি দিন",
+      "de": "Einmal erlauben",
+      "es": "Permitir una vez",
+      "fr": "Autoriser une fois",
+      "hi": "एक बार अनुमति दें",
+      "ja": "一度だけ許可",
+      "ko": "한 번 허용",
+      "pt": "Permitir uma vez",
+      "ru": "Разрешить один раз",
+      "sr": "Дозволи једном",
+      "zh": "允许一次"
+     }
+    },
+    {
+     "name": "app_agent_egress_allow_session",
+     "en": "Allow session",
+     "comment": "Agent consent sheet",
+     "args": [],
+     "t": {
+      "ar": "السماح للجلسة",
+      "bn": "সেশনের জন্য অনুমতি দিন",
+      "de": "Sitzung erlauben",
+      "es": "Permitir sesión",
+      "fr": "Autoriser la session",
+      "hi": "सत्र के लिए अनुमति दें",
+      "ja": "セッション中許可",
+      "ko": "세션 동안 허용",
+      "pt": "Permitir sessão",
+      "ru": "Разрешить на сеанс",
+      "sr": "Дозволи за сесију",
+      "zh": "允许本次会话"
+     }
+    },
+    {
      "name": "app_present_app_missing_details",
      "en": "App window is missing its connection details.",
      "comment": "Agent presentation sheet",

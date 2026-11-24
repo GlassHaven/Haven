@@ -146,6 +146,10 @@
     <string name="app_agent_allow_for_minutes">%1$dm के लिए अनुमति दें</string>
     <string name="app_agent_pair">Pair</string>
     <string name="app_agent_block_client">ब्लॉक करें</string>
+    <string name="app_agent_egress_title">इंटरनेट एgress की अनुमति दें?</string>
+    <string name="app_agent_egress_scheme">स्कीम: %1$s</string>
+    <string name="app_agent_egress_allow_once">एक बार अनुमति दें</string>
+    <string name="app_agent_egress_allow_session">सत्र के लिए अनुमति दें</string>
     <string name="app_present_app_missing_details">ऐप विंडो में कनेक्शन विवरण गायब है।</string>
     <string name="app_present_dismiss">बंद करें</string>
     <string name="app_present_image_shared_cd">Agent द्वारा साझा की गई छवि</string>

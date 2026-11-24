@@ -146,6 +146,10 @@
     <string name="app_agent_allow_for_minutes">允许 %1$d 分钟</string>
     <string name="app_agent_pair">配对</string>
     <string name="app_agent_block_client">屏蔽</string>
+    <string name="app_agent_egress_title">允许互联网出站？</string>
+    <string name="app_agent_egress_scheme">协议：%1$s</string>
+    <string name="app_agent_egress_allow_once">允许一次</string>
+    <string name="app_agent_egress_allow_session">允许本次会话</string>
     <string name="app_present_app_missing_details">应用窗口缺少连接详情。</string>
     <string name="app_present_dismiss">关闭</string>
     <string name="app_present_image_shared_cd">代理分享的图片</string>

@@ -146,6 +146,10 @@
     <string name="app_agent_allow_for_minutes">Permitir por %1$dm</string>
     <string name="app_agent_pair">Parear</string>
     <string name="app_agent_block_client">Bloquear</string>
+    <string name="app_agent_egress_title">Permitir saída para a Internet?</string>
+    <string name="app_agent_egress_scheme">Esquema: %1$s</string>
+    <string name="app_agent_egress_allow_once">Permitir uma vez</string>
+    <string name="app_agent_egress_allow_session">Permitir sessão</string>
     <string name="app_present_app_missing_details">A janela do app não tem seus detalhes de conexão.</string>
     <string name="app_present_dismiss">Dispensar</string>
     <string name="app_present_image_shared_cd">Imagem compartilhada pelo agente</string>

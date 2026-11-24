@@ -1788,17 +1788,22 @@ class McpServer @Inject constructor(
         // prompt — but NOT the capability gate above, which is an explicit
         // feature on/off toggle, not consent, and stays regardless of origin.
         val consent = tools.consentFor(name)
+        // Non-bypassable tools (controlled-egress gate) raise their own consent
+        // inside the handler — skip the dispatcher's bypassable path entirely,
+        // including loopback-trust and standing policies, so a paired-client
+        // bypass can never self-approve an egress grant.
+        val nonBypassable = tools.isNonBypassable(name)
         // Tier-3 standing policy: a user-installed, scoped, rate-capped,
         // expiring grant covers this exact (client, tool, args) — skip the
         // prompt below. Still audited like every call; any non-match (incl.
         // a rate ceiling hit) falls through to the normal prompt. Only
         // evaluated where a prompt would otherwise be needed.
-        val policyAllowed = !trusted && consent != null && consent.level != ConsentLevel.NEVER &&
+        val policyAllowed = !trusted && !nonBypassable && consent != null && consent.level != ConsentLevel.NEVER &&
             runBlocking { standingPolicyEnforcer.permits(callerHint, name, arguments) }
         if (policyAllowed) {
             Log.i(TAG, "tools/call '$name' allowed by standing policy for '$callerHint'")
         }
-        if (!trusted && !policyAllowed && consent != null && consent.level != ConsentLevel.NEVER) {
+        if (!trusted && !policyAllowed && !nonBypassable && consent != null && consent.level != ConsentLevel.NEVER) {
             val summary = try {
                 consent.summary(arguments)
             } catch (e: Exception) {

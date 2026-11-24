@@ -317,6 +317,10 @@
     <string name="app_agent_allow_for_minutes">Allow for %1$dm</string>
     <string name="app_agent_pair">Pair</string>
     <string name="app_agent_block_client">Block</string>
+    <string name="app_agent_egress_title">Allow internet egress?</string>
+    <string name="app_agent_egress_scheme">Scheme: %1$s</string>
+    <string name="app_agent_egress_allow_once">Allow once</string>
+    <string name="app_agent_egress_allow_session">Allow session</string>
 
     <!-- Agent presentation sheet -->
     <string name="app_present_app_missing_details">App window is missing its connection details.</string>

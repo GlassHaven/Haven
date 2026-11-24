@@ -241,6 +241,10 @@
     <string name="app_agent_allow_for_minutes">Дозволи за %1$dм</string>
     <string name="app_agent_pair">Упари</string>
     <string name="app_agent_block_client">Блокирај</string>
+    <string name="app_agent_egress_title">Дозволити излаз на интернет?</string>
+    <string name="app_agent_egress_scheme">Шема: %1$s</string>
+    <string name="app_agent_egress_allow_once">Дозволи једном</string>
+    <string name="app_agent_egress_allow_session">Дозволи за сесију</string>
     <string name="app_present_app_missing_details">Недостају детаљи везе прозора апликације.</string>
     <string name="app_window_scale_saved">Сачувано као подразумевана величина ове апликације</string>
     <string name="app_present_dismiss">Одбаци</string>

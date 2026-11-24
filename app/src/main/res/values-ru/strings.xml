@@ -150,6 +150,10 @@
     <string name="app_agent_allow_for_minutes">Разрешить на %1$dм</string>
     <string name="app_agent_pair">Привязать</string>
     <string name="app_agent_block_client">Заблокировать</string>
+    <string name="app_agent_egress_title">Разрешить выход в Интернет?</string>
+    <string name="app_agent_egress_scheme">Схема: %1$s</string>
+    <string name="app_agent_egress_allow_once">Разрешить один раз</string>
+    <string name="app_agent_egress_allow_session">Разрешить на сеанс</string>
 
     <!-- Present / media overlay -->
     <string name="app_present_app_missing_details">В окне приложения отсутствуют данные подключения.</string>

@@ -46,6 +46,7 @@ import kotlinx.coroutines.launch
 import sh.haven.core.data.agent.AgentConsentManager
 import sh.haven.core.data.agent.ConsentDecision
 import sh.haven.core.data.agent.ConsentRequest
+import sh.haven.core.data.agent.EgressDecision
 import javax.inject.Inject
 
 /**
@@ -73,6 +74,11 @@ internal class ConsentHostViewModel @Inject constructor(
         viewModelScope.launch {
             consentManager.respond(requestId, decision, bypassClient, allowForMinutes, blockClient)
         }
+    }
+
+    /** Resolve a controlled-egress request (three-way, non-bypassable). */
+    fun respondEgress(requestId: Long, decision: EgressDecision) {
+        viewModelScope.launch { consentManager.respondEgress(requestId, decision) }
     }
 }
 
@@ -136,15 +142,17 @@ internal fun ConsentHost(viewModel: ConsentHostViewModel = hiltViewModel()) {
     val current = displayed ?: return
 
     val isPairing = current.toolName == AgentConsentManager.PAIRING_TOOL_NAME
+    val egress = current.egress
     val clientHint = current.clientHint?.takeIf { it.isNotBlank() }
 
     // "Allow all MCP requests from this client until app restart" — an
     // opt-in escape hatch for sessions where the user is iterating with
     // an agent and is happy to skip per-call prompts. Suppressed on
     // pairing requests (the user hasn't authorised the client at all
-    // yet — bypass on the same dialog would be a contradiction) and
-    // when there's no clientHint to key the bypass against.
-    val canOfferBypass = !isPairing && clientHint != null
+    // yet — bypass on the same dialog would be a contradiction), on
+    // egress requests (non-bypassable by design — a bypass must never
+    // self-approve open internet), and when there's no clientHint.
+    val canOfferBypass = !isPairing && egress == null && clientHint != null
     var bypassChecked by remember(current.id) { mutableStateOf(false) }
 
     // Marks the request the user has actually answered. Needed because
@@ -204,7 +212,11 @@ internal fun ConsentHost(viewModel: ConsentHostViewModel = hiltViewModel()) {
                 .padding(horizontal = 24.dp, vertical = 8.dp),
         ) {
             Text(
-                text = if (isPairing) stringResource(R.string.app_agent_pair_title) else stringResource(R.string.app_agent_action_requested),
+                text = when {
+                    egress != null -> stringResource(R.string.app_agent_egress_title)
+                    isPairing -> stringResource(R.string.app_agent_pair_title)
+                    else -> stringResource(R.string.app_agent_action_requested)
+                },
                 style = MaterialTheme.typography.titleMedium,
             )
             Spacer(Modifier.height(8.dp))
@@ -238,12 +250,35 @@ internal fun ConsentHost(viewModel: ConsentHostViewModel = hiltViewModel()) {
                     Spacer(Modifier.height(8.dp))
                 }
             }
-            Text(
-                text = current.summary,
-                style = MaterialTheme.typography.bodyLarge,
-            )
+            if (egress != null) {
+                // The target is the decision: show host:port prominently. The
+                // reason is proxy-generated display text — treated as untrusted.
+                Text(
+                    text = "${egress.host}:${egress.port}",
+                    style = MaterialTheme.typography.headlineSmall,
+                    color = MaterialTheme.colorScheme.primary,
+                )
+                Spacer(Modifier.height(4.dp))
+                Text(
+                    text = stringResource(R.string.app_agent_egress_scheme, egress.scheme),
+                    style = MaterialTheme.typography.bodyMedium,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant,
+                )
+                if (egress.reason.isNotBlank()) {
+                    Spacer(Modifier.height(8.dp))
+                    Text(
+                        text = egress.reason,
+                        style = MaterialTheme.typography.bodyMedium,
+                    )
+                }
+            } else {
+                Text(
+                    text = current.summary,
+                    style = MaterialTheme.typography.bodyLarge,
+                )
+            }
             Spacer(Modifier.height(8.dp))
-            if (!isPairing) {
+            if (!isPairing && egress == null) {
                 Text(
                     text = stringResource(R.string.app_agent_tool, current.toolName),
                     style = MaterialTheme.typography.bodySmall,
@@ -304,39 +339,68 @@ internal fun ConsentHost(viewModel: ConsentHostViewModel = hiltViewModel()) {
             }
 
             Spacer(Modifier.height(24.dp))
-            Row(
-                modifier = Modifier.fillMaxWidth(),
-                horizontalArrangement = Arrangement.spacedBy(12.dp, Alignment.End),
-            ) {
-                OutlinedButton(onClick = { resolve(ConsentDecision.DENY) }) {
-                    Text(stringResource(R.string.agent_deny))
-                }
-                // One-tap escape from a pairing-spam loop (#337): deny AND
-                // stop prompting for this client name for the session.
-                if (isPairing && clientHint != null) {
-                    OutlinedButton(
-                        onClick = { viewModel.respond(current.id, ConsentDecision.DENY, blockClient = true) },
-                        colors = ButtonDefaults.outlinedButtonColors(
-                            contentColor = MaterialTheme.colorScheme.error,
-                        ),
-                    ) {
-                        Text(stringResource(R.string.app_agent_block_client))
-                    }
-                }
-                if (current.offerTimedAllow) {
-                    OutlinedButton(
-                        onClick = { resolve(ConsentDecision.ALLOW, allowForMinutes = allowMinutes) },
-                    ) {
-                        Text(stringResource(R.string.app_agent_allow_for_minutes, allowMinutes))
-                    }
-                }
-                Button(
-                    onClick = { resolve(ConsentDecision.ALLOW) },
-                    colors = ButtonDefaults.buttonColors(),
+            if (egress != null) {
+                // Dedicated three-way egress choice. No bypass, no timed allow:
+                // "once" is a single grant the proxy consumes immediately,
+                // "session" is cached by the proxy for the sandbox lifetime.
+                Row(
+                    modifier = Modifier.fillMaxWidth(),
+                    horizontalArrangement = Arrangement.spacedBy(12.dp, Alignment.End),
                 ) {
-                    Text(
-                        if (isPairing) stringResource(R.string.app_agent_pair) else stringResource(R.string.common_allow),
-                    )
+                    OutlinedButton(onClick = {
+                        answeredId = current.id
+                        viewModel.respondEgress(current.id, EgressDecision.DENY)
+                    }) {
+                        Text(stringResource(R.string.agent_deny))
+                    }
+                    OutlinedButton(onClick = {
+                        answeredId = current.id
+                        viewModel.respondEgress(current.id, EgressDecision.SESSION)
+                    }) {
+                        Text(stringResource(R.string.app_agent_egress_allow_session))
+                    }
+                    Button(onClick = {
+                        answeredId = current.id
+                        viewModel.respondEgress(current.id, EgressDecision.ONCE)
+                    }) {
+                        Text(stringResource(R.string.app_agent_egress_allow_once))
+                    }
+                }
+            } else {
+                Row(
+                    modifier = Modifier.fillMaxWidth(),
+                    horizontalArrangement = Arrangement.spacedBy(12.dp, Alignment.End),
+                ) {
+                    OutlinedButton(onClick = { resolve(ConsentDecision.DENY) }) {
+                        Text(stringResource(R.string.agent_deny))
+                    }
+                    // One-tap escape from a pairing-spam loop (#337): deny AND
+                    // stop prompting for this client name for the session.
+                    if (isPairing && clientHint != null) {
+                        OutlinedButton(
+                            onClick = { viewModel.respond(current.id, ConsentDecision.DENY, blockClient = true) },
+                            colors = ButtonDefaults.outlinedButtonColors(
+                                contentColor = MaterialTheme.colorScheme.error,
+                            ),
+                        ) {
+                            Text(stringResource(R.string.app_agent_block_client))
+                        }
+                    }
+                    if (current.offerTimedAllow) {
+                        OutlinedButton(
+                            onClick = { resolve(ConsentDecision.ALLOW, allowForMinutes = allowMinutes) },
+                        ) {
+                            Text(stringResource(R.string.app_agent_allow_for_minutes, allowMinutes))
+                        }
+                    }
+                    Button(
+                        onClick = { resolve(ConsentDecision.ALLOW) },
+                        colors = ButtonDefaults.buttonColors(),
+                    ) {
+                        Text(
+                            if (isPairing) stringResource(R.string.app_agent_pair) else stringResource(R.string.common_allow),
+                        )
+                    }
                 }
             }
             Spacer(Modifier.height(16.dp))

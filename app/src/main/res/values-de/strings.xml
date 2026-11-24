@@ -146,6 +146,10 @@
     <string name="app_agent_allow_for_minutes">Für %1$d min erlauben</string>
     <string name="app_agent_pair">Koppeln</string>
     <string name="app_agent_block_client">Blockieren</string>
+    <string name="app_agent_egress_title">Internet-Egress erlauben?</string>
+    <string name="app_agent_egress_scheme">Schema: %1$s</string>
+    <string name="app_agent_egress_allow_once">Einmal erlauben</string>
+    <string name="app_agent_egress_allow_session">Sitzung erlauben</string>
     <string name="app_present_app_missing_details">Im App-Fenster fehlen die Verbindungsdetails.</string>
     <string name="app_present_dismiss">Schließen</string>
     <string name="app_present_image_shared_cd">Vom Agent geteiltes Bild</string>

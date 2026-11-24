@@ -154,6 +154,10 @@
     <string name="app_agent_allow_for_minutes">%1$d분 동안 허용</string>
     <string name="app_agent_pair">연결</string>
     <string name="app_agent_block_client">차단</string>
+    <string name="app_agent_egress_title">인터넷 이그레스를 허용하시겠습니까?</string>
+    <string name="app_agent_egress_scheme">스킴: %1$s</string>
+    <string name="app_agent_egress_allow_once">한 번 허용</string>
+    <string name="app_agent_egress_allow_session">세션 동안 허용</string>
 
     <!-- Present / app window overlay -->
     <string name="app_present_app_missing_details">앱 창에 연결 정보가 없습니다.</string>

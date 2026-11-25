@@ -1,0 +1,1 @@
+Fix SSH tabs dropping when a server lowers its MaxSessions limit with many tabs open: reconnecting dials an overflow connection for the extra tabs, and any tab that still cannot reopen is named in an error (#888). Also fix the agent consent sheet appearing blank until tapped; it now draws as soon as the request arrives.

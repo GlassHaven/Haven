@@ -5,6 +5,11 @@ the corresponding GitHub Release; a release can't ship without its section
 (enforced by `scripts/check-changelog.sh` in CI). The GitHub "Full Changelog"
 compare link is appended automatically — don't add it here.
 
+## v5.94.73
+
+- Fix SSH tabs dropping when a server lowers its MaxSessions limit while you have many tabs open: reconnecting now dials an overflow connection for the extra tabs instead of losing them silently, and any tab that still cannot reopen is named in an error message (#888).
+- Fix the agent consent sheet appearing blank until you tap it: the sheet now draws as soon as the request arrives.
+
 ## v5.94.72
 
 - Fix UML guest desktops failing to boot on some Android versions ("SIGSYS: blocked syscall 436 / start_userspace failed"): the guest kernel now handles the close_range syscall that those Android seccomp policies block, so the guest boots instead of dying at startup (#877).

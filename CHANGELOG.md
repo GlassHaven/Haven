@@ -5,6 +5,11 @@ the corresponding GitHub Release; a release can't ship without its section
 (enforced by `scripts/check-changelog.sh` in CI). The GitHub "Full Changelog"
 compare link is appended automatically — don't add it here.
 
+## v5.94.74
+
+- Add per-connection RDP sound and device redirection: choose remote audio routing (Play on this device, Play on remote PC, or Never), two-way text clipboard sync, single-folder sharing via Android's folder picker, location forwarding, and camera redirection (#890, thanks CXwudi).
+- Emit the dropped-tab error message before marking an SSH session reconnected when a server enforces MaxSessions (#888).
+
 ## v5.94.73
 
 - Fix SSH tabs dropping when a server lowers its MaxSessions limit while you have many tabs open: reconnecting now dials an overflow connection for the extra tabs instead of losing them silently, and any tab that still cannot reopen is named in an error message (#888).

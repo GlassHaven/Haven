@@ -1,0 +1,2 @@
+- Add per-connection RDP sound and device redirection: choose remote audio routing (Play on this device, Play on remote PC, or Never), two-way text clipboard sync, single-folder sharing via Android's folder picker, location forwarding, and camera redirection (#890, thanks CXwudi).
+- Emit the dropped-tab error message before marking an SSH session reconnected when a server enforces MaxSessions (#888).

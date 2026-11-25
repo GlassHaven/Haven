@@ -129,6 +129,7 @@ fn main() -> ExitCode {
         enable_clipboard: true,
         audio_mode: RdpAudioMode::Disabled,
         shared_folder_name: None,
+        enable_location: false,
     };
 
     let client = Arc::new(RdpClient::new(config));

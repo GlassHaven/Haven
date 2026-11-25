@@ -372,6 +372,25 @@ fun DesktopScreen(
                                     onDispose { lifecycleOwner.lifecycle.removeObserver(observer) }
                                 }
                             }
+                            if (tab.locationEnabled) {
+                                val rdpLocationPermLauncher = androidx.activity.compose.rememberLauncherForActivityResult(
+                                    androidx.activity.result.contract.ActivityResultContracts.RequestMultiplePermissions(),
+                                ) { grants ->
+                                    if (grants.values.any { it }) {
+                                        tab.session.ensureLocationForwarding()
+                                    }
+                                }
+                                LaunchedEffect(tab.id) {
+                                    if (!tab.session.ensureLocationForwarding()) {
+                                        rdpLocationPermLauncher.launch(
+                                            arrayOf(
+                                                android.Manifest.permission.ACCESS_FINE_LOCATION,
+                                                android.Manifest.permission.ACCESS_COARSE_LOCATION,
+                                            ),
+                                        )
+                                    }
+                                }
+                            }
                             RdpSessionContent(
                                 protocolLabel = tab.protocol,
                                 connected = tab.connected,

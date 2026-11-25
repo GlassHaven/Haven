@@ -132,6 +132,11 @@ data class ConnectionProfile @Ignore constructor(
      * drive redirection off by default.
      */
     val rdpSharedFolderUri: String? = null,
+    /**
+     * #890: negotiate `Microsoft::Windows::RDS::Location` (`MS-RDPEL`) and
+     * forward GNSS/network location fixes to this RDP host. Off by default.
+     */
+    val rdpLocation: Boolean = false,
     // SPICE-specific fields (#286). SPICE auth is a single ticket/password (no
     // username/domain); the framebuffer is always 32bpp so there's no color-depth knob.
     val spicePort: Int? = null,
@@ -512,6 +517,7 @@ data class ConnectionProfile @Ignore constructor(
         rdpClipboard: Boolean,
         rdpAudioMode: String,
         rdpSharedFolderUri: String?,
+        rdpLocation: Boolean,
         spicePort: Int?,
         spicePassword: String?,
         spiceSshForward: Boolean,
@@ -632,6 +638,7 @@ data class ConnectionProfile @Ignore constructor(
         rdpClipboard = rdpClipboard,
         rdpAudioMode = rdpAudioMode,
         rdpSharedFolderUri = rdpSharedFolderUri,
+        rdpLocation = rdpLocation,
         spicePort = spicePort,
         spicePassword = spicePassword,
         spiceSshForward = spiceSshForward,

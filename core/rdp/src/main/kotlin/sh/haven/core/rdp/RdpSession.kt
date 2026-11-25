@@ -109,6 +109,16 @@ class RdpSession(
      * connection profile. Owned and closed by this [RdpSession].
      */
     private val sharedDriveBackend: RdpSafDriveBackend? = null,
+    /**
+     * #890: negotiate the `Microsoft::Windows::RDS::Location` dynamic channel
+     * (`MS-RDPEL`) for forwarding GNSS/network location fixes. Off by default.
+     */
+    private val enableLocation: Boolean = false,
+    /**
+     * #890: optional Android GNSS/network location forwarder feeding [sendLocation]
+     * when [enableLocation] is active. Owned and closed by this [RdpSession].
+     */
+    private val locationForwarderFactory: ((RdpSession) -> RdpLocationForwarder)? = null,
 ) : Closeable {
 
     @Volatile
@@ -131,6 +141,8 @@ class RdpSession(
     private var avcDecoder: Avc420MediaCodecDecoder? = null
     // #890: non-blocking AudioTrack sink, created when audioMode == PLAY_ON_DEVICE.
     private var audioPlayer: RdpAudioPlayer? = null
+    // #890: GNSS/network location forwarder, created when enableLocation is true.
+    private var locationForwarder: RdpLocationForwarder? = null
     private val startTime = System.currentTimeMillis()
 
     private fun log(level: String, msg: String) {
@@ -260,6 +272,7 @@ class RdpSession(
                     RdpSoundMode.DISABLED -> RdpAudioMode.DISABLED
                 },
                 sharedFolderName = sharedDriveBackend?.shareName,
+                enableLocation = enableLocation,
             )
 
             // #477: record which settings this session actually ran with. Two
@@ -272,7 +285,8 @@ class RdpSession(
                 "RDP settings: avc420=${config.avcEnabled} progressiveUpgrade=" +
                     "${config.progressiveUpgrade} colorDepth=$colorDepth nla=$useNla " +
                     "klid=0x${config.keyboardLayout.toString(16)} clipboard=${config.enableClipboard} " +
-                    "audio=${config.audioMode} sharedDrive=${sharedDriveBackend != null}",
+                    "audio=${config.audioMode} sharedDrive=${sharedDriveBackend != null} " +
+                    "location=${config.enableLocation}",
             )
 
             val c = RdpClient(config)
@@ -421,6 +435,12 @@ class RdpSession(
 
             if (sharedDriveBackend != null) {
                 c.setDriveCallback(sharedDriveBackend)
+            }
+
+            if (enableLocation && locationForwarderFactory != null) {
+                val forwarder = locationForwarderFactory.invoke(this)
+                locationForwarder = forwarder
+                forwarder.startIfPermitted()
             }
 
             log("D", "Connecting to ${redactHost(host, port)} (worker thread will handle handshake, socks=${socksProxy != null})")
@@ -620,6 +640,17 @@ class RdpSession(
         client?.sendClipboardText(text)
     }
 
+    fun sendLocation(latitude: Double, longitude: Double, altitudeMeters: Int) {
+        if (closed || !enableLocation) return
+        client?.sendLocation(latitude, longitude, altitudeMeters)
+    }
+
+    /** Retry starting GNSS/network location updates after runtime permission is granted. */
+    fun ensureLocationForwarding(): Boolean {
+        if (closed || !enableLocation) return false
+        return locationForwarder?.startIfPermitted() == true
+    }
+
     fun sendTouchFrame(points: List<RdpTouchContactSample>) {
         if (closed || points.isEmpty()) return
         val nativePoints = points.map { pt ->
@@ -711,6 +742,12 @@ class RdpSession(
         } catch (e: Exception) {
             log("E", "Error releasing RDP shared drive: ${e.message}")
         }
+        try {
+            locationForwarder?.close()
+        } catch (e: Exception) {
+            log("E", "Error releasing RDP location forwarder: ${e.message}")
+        }
+        locationForwarder = null
         synchronized(this) {
             // #425: never recycle a bitmap the Compose viewer may still be
             // drawing (see onResize) — drop the ref and let GC reclaim it.

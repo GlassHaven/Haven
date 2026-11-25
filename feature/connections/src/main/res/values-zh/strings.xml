@@ -639,4 +639,6 @@
     <string name="connections_rdp_shared_folder_none">无</string>
     <string name="connections_button_choose_folder">选择文件夹</string>
     <string name="connections_helper_rdp_shared_folder">默认关闭。将所选的一个文件夹作为重定向驱动器暴露给远程电脑。</string>
+    <string name="connections_toggle_rdp_location">共享位置</string>
+    <string name="connections_helper_rdp_location">默认关闭。将设备的 GNSS/网络位置信息转发到远程会话。</string>
 </resources>

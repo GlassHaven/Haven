@@ -1351,6 +1351,7 @@ class DesktopViewModel @Inject constructor(
                         enableClipboard = profile.rdpClipboard,
                         audioMode = profile.rdpAudioMode,
                         sharedFolderUri = profile.rdpSharedFolderUri,
+                        enableLocation = profile.rdpLocation,
                     )
                 }
                 profile.isSpice -> {
@@ -2472,6 +2473,7 @@ class DesktopViewModel @Inject constructor(
         enableClipboard: Boolean? = null,
         audioMode: String? = null,
         sharedFolderUri: String? = null,
+        enableLocation: Boolean? = null,
     ) {
         viewModelScope.launch(Dispatchers.IO) {
             // Deduplicate: if a tab for the same connection exists, reuse or replace
@@ -2582,6 +2584,10 @@ class DesktopViewModel @Inject constructor(
                     }.getOrNull()
                 }
 
+                val effectiveLocation = enableLocation
+                    ?: storedProfile?.rdpLocation
+                    ?: false
+
                 val session = RdpSession(
                     sessionId = "rdp-$tabId",
                     host = actualHost,
@@ -2599,6 +2605,17 @@ class DesktopViewModel @Inject constructor(
                     enableClipboard = effectiveClipboard,
                     audioMode = effectiveAudioMode,
                     sharedDriveBackend = sharedDriveBackend,
+                    enableLocation = effectiveLocation,
+                    locationForwarderFactory = if (effectiveLocation) {
+                        { s ->
+                            sh.haven.core.rdp.RdpLocationForwarder.create(
+                                context = appContext,
+                                sink = { lat, lon, alt -> s.sendLocation(lat, lon, alt) },
+                            )
+                        }
+                    } else {
+                        null
+                    },
                 )
                 session.onFrameUpdate = { bitmap -> frame.value = bitmap }
                 session.onCursorUpdate = { bmp, hx, hy ->
@@ -2693,6 +2710,7 @@ class DesktopViewModel @Inject constructor(
                     profileId = profileId,
                     keyboardLayoutKlid = layoutKlid,
                     clipboardEnabled = effectiveClipboard,
+                    locationEnabled = effectiveLocation,
                 )
 
                 val tabs = _tabs.value.toMutableList()

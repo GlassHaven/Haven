@@ -104,6 +104,8 @@ sealed class DesktopTab {
         val keyboardLayoutKlid: UInt = sh.haven.core.rdp.keyboardLayoutKlid(),
         /** #890: true when two-way MS-RDPECLIP clipboard sharing is enabled on this connection. */
         val clipboardEnabled: Boolean = false,
+        /** #890: true when MS-RDPEL location sharing is enabled on this connection. */
+        val locationEnabled: Boolean = false,
     ) : DesktopTab() {
         override val connected: StateFlow<Boolean> get() = _connected
         override val frame: StateFlow<Bitmap?> get() = _frame

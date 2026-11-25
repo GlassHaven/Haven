@@ -641,4 +641,6 @@
     <string name="connections_rdp_shared_folder_none">কোনোটিই নয়</string>
     <string name="connections_button_choose_folder">ফোল্ডার বেছে নিন</string>
     <string name="connections_helper_rdp_shared_folder">ডিফল্টভাবে বন্ধ। নির্বাচিত একটি ফোল্ডারকে রিমোট পিসিতে রিডাইরেক্টেড ড্রাইভ হিসেবে দেখায়।</string>
+    <string name="connections_toggle_rdp_location">অবস্থান শেয়ার করুন</string>
+    <string name="connections_helper_rdp_location">ডিফল্টভাবে বন্ধ। ডিভাইসের GNSS/নেটওয়ার্ক অবস্থান রিমোট সেশনে পাঠায়।</string>
 </resources>

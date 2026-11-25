@@ -641,4 +641,6 @@
     <string name="connections_rdp_shared_folder_none">कोई नहीं</string>
     <string name="connections_button_choose_folder">फ़ोल्डर चुनें</string>
     <string name="connections_helper_rdp_shared_folder">डिफ़ॉल्ट रूप से बंद। चुने गए एक फ़ोल्डर को रिमोट पीसी पर रीडायरेक्ट किए गए ड्राइव के रूप में दिखाता है।</string>
+    <string name="connections_toggle_rdp_location">स्थान साझा करें</string>
+    <string name="connections_helper_rdp_location">डिफ़ॉल्ट रूप से बंद। डिवाइस के GNSS/नेटवर्क स्थान को रिमोट सत्र में भेजता है।</string>
 </resources>

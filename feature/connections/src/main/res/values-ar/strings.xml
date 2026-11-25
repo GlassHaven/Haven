@@ -641,4 +641,6 @@
     <string name="connections_rdp_shared_folder_none">بلا</string>
     <string name="connections_button_choose_folder">اختر مجلدًا</string>
     <string name="connections_helper_rdp_shared_folder">متوقف افتراضيًا. يعرض مجلدًا واحدًا مختارًا للكمبيوتر البعيد كمحرك أقراص مُعاد توجيهه.</string>
+    <string name="connections_toggle_rdp_location">مشاركة الموقع</string>
+    <string name="connections_helper_rdp_location">متوقف افتراضيًا. يعيد توجيه إحداثيات موقع الجهاز عبر GNSS/الشبكة إلى الجلسة البعيدة.</string>
 </resources>

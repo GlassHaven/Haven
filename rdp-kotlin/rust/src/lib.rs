@@ -7,6 +7,7 @@ mod cliprdr;
 mod egfx;
 mod rdpdr;
 mod rdpei;
+mod rdpel;
 mod rdpsnd;
 mod redirection;
 mod yuv;
@@ -251,6 +252,10 @@ pub struct RdpConfig {
     /// explicitly configured on the connection profile.
     #[uniffi(default = None)]
     pub shared_folder_name: Option<String>,
+    /// #890: negotiate the `Microsoft::Windows::RDS::Location` dynamic channel
+    /// (`MS-RDPEL`) for forwarding device location fixes. Off by default.
+    #[uniffi(default = false)]
+    pub enable_location: bool,
 }
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq, uniffi::Enum)]
@@ -647,6 +652,7 @@ pub struct RdpClient {
     touch_state: Arc<Mutex<TouchInputState>>,
     rdpei_active: Arc<std::sync::atomic::AtomicBool>,
     clipboard_state: Arc<Mutex<cliprdr::SharedCliprdrState>>,
+    location_state: Arc<Mutex<rdpel::SharedLocationState>>,
     session_thread: Mutex<Option<std::thread::JoinHandle<()>>>,
 }
 
@@ -686,6 +692,7 @@ impl RdpClient {
             touch_state: Arc::new(Mutex::new(TouchInputState::new())),
             rdpei_active: Arc::new(std::sync::atomic::AtomicBool::new(false)),
             clipboard_state: Arc::new(Mutex::new(cliprdr::SharedCliprdrState::new())),
+            location_state: Arc::new(Mutex::new(rdpel::SharedLocationState::new())),
             session_thread: Mutex::new(None),
         }
     }
@@ -753,6 +760,7 @@ impl RdpClient {
         let touch_state = Arc::clone(&self.touch_state);
         let rdpei_active = Arc::clone(&self.rdpei_active);
         let clipboard_state = Arc::clone(&self.clipboard_state);
+        let location_state = Arc::clone(&self.location_state);
         let server_name = host.clone();
         // #117: a followed redirection reconnects from inside the session
         // thread, through the same route (SOCKS or direct) as the original.
@@ -800,6 +808,7 @@ impl RdpClient {
                             &touch_state,
                             &rdpei_active,
                             &clipboard_state,
+                            &location_state,
                             &server_name,
                             server_addr,
                             redirect_plan.as_ref(),
@@ -1095,6 +1104,15 @@ impl RdpClient {
         }
         if let Ok(mut st) = self.clipboard_state.lock() {
             st.queue_local_text(text);
+        }
+    }
+
+    pub fn send_location(&self, latitude: f64, longitude: f64, altitude_meters: i32) {
+        if !self.config.enable_location {
+            return;
+        }
+        if let Ok(mut st) = self.location_state.lock() {
+            st.queue_location(latitude, longitude, altitude_meters);
         }
     }
 
@@ -1927,6 +1945,7 @@ fn run_rdp_session(
     touch_state: &Arc<Mutex<TouchInputState>>,
     rdpei_active: &Arc<std::sync::atomic::AtomicBool>,
     clipboard_state: &Arc<Mutex<cliprdr::SharedCliprdrState>>,
+    location_state: &Arc<Mutex<rdpel::SharedLocationState>>,
     server_name: &str,
     server_addr: SocketAddr,
     redirect: Option<&redirection::RedirectFollow>,
@@ -1945,6 +1964,9 @@ fn run_rdp_session(
     }
     if let Ok(mut cs) = clipboard_state.lock() {
         cs.reset_for_connection();
+    }
+    if let Ok(mut ls) = location_state.lock() {
+        ls.reset_for_connection();
     }
 
     let mut rdp_config = build_config(config);
@@ -2003,6 +2025,9 @@ fn run_rdp_session(
         drdynvc = drdynvc
             .with_dynamic_channel(audio_dvc.channel())
             .with_dynamic_channel(audio_dvc.lossy_channel());
+    }
+    if config.enable_location {
+        drdynvc = drdynvc.with_dynamic_channel(crate::rdpel::new_dvc_client());
     }
     let mut connector =
         ironrdp_connector::ClientConnector::new(rdp_config, server_addr).with_static_channel(drdynvc);
@@ -2532,6 +2557,14 @@ fn run_rdp_session(
             }
         }
 
+        if config.enable_location {
+            for bytes in crate::rdpel::flush_rdpel(&mut active_stage, location_state) {
+                if let Err(e) = tls_framed.write_all(&bytes) {
+                    error!("Write RDPEL error: {:?}", e);
+                }
+            }
+        }
+
         // Slow-path servers only — the fast-path case is handled on the input
         // thread, which leaves `pending_inputs` empty here (#477).
         if !pending_inputs.is_empty() {
@@ -2775,6 +2808,13 @@ fn run_rdp_session(
                                     for text in remote_texts {
                                         cb.on_remote_clipboard(text);
                                     }
+                                }
+                            }
+                        }
+                        if config.enable_location {
+                            for bytes in crate::rdpel::flush_rdpel(&mut active_stage, location_state) {
+                                if let Err(e) = tls_framed.write_all(&bytes) {
+                                    error!("Write RDPEL response error: {:?}", e);
                                 }
                             }
                         }
@@ -3732,6 +3772,7 @@ mod codec_advertisement_tests {
             enable_clipboard: true,
             audio_mode: super::RdpAudioMode::PlayOnDevice,
             shared_folder_name: None,
+            enable_location: false,
         }
     }
 
@@ -3792,6 +3833,7 @@ mod region_tests {
             enable_clipboard: true,
             audio_mode: super::RdpAudioMode::Disabled,
             shared_folder_name: None,
+            enable_location: false,
         });
         // Distinct value per pixel so a wrong row or column is detectable.
         let mut pixels = vec![0u8; w as usize * h as usize * 4];
@@ -3855,6 +3897,7 @@ mod region_tests {
             enable_clipboard: true,
             audio_mode: super::RdpAudioMode::Disabled,
             shared_folder_name: None,
+            enable_location: false,
         });
         assert!(client.get_framebuffer_region(0, 0, 4, 4).is_none());
     }

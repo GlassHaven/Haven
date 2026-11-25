@@ -677,4 +677,6 @@
     <string name="connections_rdp_shared_folder_none">None</string>
     <string name="connections_button_choose_folder">Choose folder</string>
     <string name="connections_helper_rdp_shared_folder">Off by default. Exposes one chosen folder to the remote PC as a redirected drive.</string>
+    <string name="connections_toggle_rdp_location">Share location</string>
+    <string name="connections_helper_rdp_location">Off by default. Forwards device GNSS/network location fixes to the remote session.</string>
 </resources>

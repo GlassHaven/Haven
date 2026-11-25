@@ -641,4 +641,6 @@
     <string name="connections_rdp_shared_folder_none">Nenhuma</string>
     <string name="connections_button_choose_folder">Escolher pasta</string>
     <string name="connections_helper_rdp_shared_folder">Desativado por padrão. Expõe uma pasta escolhida ao PC remoto como uma unidade redirecionada.</string>
+    <string name="connections_toggle_rdp_location">Compartilhar localização</string>
+    <string name="connections_helper_rdp_location">Desativado por padrão. Encaminha a localização GNSS/de rede do dispositivo para a sessão remota.</string>
 </resources>

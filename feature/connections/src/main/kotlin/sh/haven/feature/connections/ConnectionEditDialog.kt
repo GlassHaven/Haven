@@ -311,6 +311,7 @@ fun ConnectionEditDialog(
         )
     }
     var rdpSharedFolderUri by rememberSaveable { mutableStateOf(existing?.rdpSharedFolderUri) }
+    var rdpLocation by rememberSaveable { mutableStateOf(existing?.rdpLocation ?: false) }
     var spicePassword by rememberSaveable { mutableStateOf(existing?.spicePassword ?: "") }
     var spiceSshForward by rememberSaveable {
         mutableStateOf(existing?.let { strictTunnelInitialEnabled(it.connectionType, "SPICE", it.spiceSshForward, it.spiceSshProfileId) } ?: false)
@@ -2352,6 +2353,45 @@ fun ConnectionEditDialog(
                         style = MaterialTheme.typography.bodySmall,
                         color = MaterialTheme.colorScheme.onSurfaceVariant,
                     )
+                    Spacer(Modifier.height(8.dp))
+                    val rdpLocPermLauncher = rememberLauncherForActivityResult(
+                        ActivityResultContracts.RequestMultiplePermissions(),
+                    ) { _ -> }
+                    Row(verticalAlignment = Alignment.CenterVertically) {
+                        androidx.compose.material3.Checkbox(
+                            checked = rdpLocation,
+                            onCheckedChange = { checked ->
+                                rdpLocation = checked
+                                if (checked) {
+                                    val hasFine = androidx.core.content.ContextCompat.checkSelfPermission(
+                                        rdpSafContext,
+                                        android.Manifest.permission.ACCESS_FINE_LOCATION,
+                                    ) == android.content.pm.PackageManager.PERMISSION_GRANTED
+                                    val hasCoarse = androidx.core.content.ContextCompat.checkSelfPermission(
+                                        rdpSafContext,
+                                        android.Manifest.permission.ACCESS_COARSE_LOCATION,
+                                    ) == android.content.pm.PackageManager.PERMISSION_GRANTED
+                                    if (!hasFine && !hasCoarse) {
+                                        rdpLocPermLauncher.launch(
+                                            arrayOf(
+                                                android.Manifest.permission.ACCESS_FINE_LOCATION,
+                                                android.Manifest.permission.ACCESS_COARSE_LOCATION,
+                                            ),
+                                        )
+                                    }
+                                }
+                            },
+                        )
+                        Text(
+                            stringResource(R.string.connections_toggle_rdp_location),
+                            style = MaterialTheme.typography.bodyMedium,
+                        )
+                    }
+                    Text(
+                        stringResource(R.string.connections_helper_rdp_location),
+                        style = MaterialTheme.typography.bodySmall,
+                        color = MaterialTheme.colorScheme.onSurfaceVariant,
+                    )
                 } else if (connectionType == "SPICE") {
                     ConnectionSection(stringResource(R.string.connections_section_spice))
                     // SPICE: tunnel toggle first (changes what Host means), then
@@ -4207,6 +4247,7 @@ fun ConnectionEditDialog(
                                 rdpClipboard = rdpClipboard,
                                 rdpAudioMode = rdpAudioMode,
                                 rdpSharedFolderUri = rdpSharedFolderUri?.ifBlank { null },
+                                rdpLocation = rdpLocation,
                                 keyboardLayout = keyboardLayout.ifBlank { null },
                                 colorTag = colorTag,
                                 groupId = groupId,

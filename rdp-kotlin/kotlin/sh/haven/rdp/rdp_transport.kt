@@ -1003,6 +1003,8 @@ internal object IntegrityCheckingUniffiLib {
     ): Int
     external fun uniffi_rdp_transport_checksum_method_rdpclient_send_key(
     ): Int
+    external fun uniffi_rdp_transport_checksum_method_rdpclient_send_location(
+    ): Int
     external fun uniffi_rdp_transport_checksum_method_rdpclient_send_mouse_button(
     ): Int
     external fun uniffi_rdp_transport_checksum_method_rdpclient_send_mouse_move(
@@ -1171,6 +1173,8 @@ internal object UniffiLib {
     external fun uniffi_rdp_transport_fn_method_rdpclient_send_clipboard_text(`ptr`: Long,`text`: RustBuffer.ByValue,uniffi_out_err: UniffiRustCallStatus, 
     ): Unit
     external fun uniffi_rdp_transport_fn_method_rdpclient_send_key(`ptr`: Long,`scancode`: Short,`pressed`: Byte,uniffi_out_err: UniffiRustCallStatus, 
+    ): Unit
+    external fun uniffi_rdp_transport_fn_method_rdpclient_send_location(`ptr`: Long,`latitude`: Double,`longitude`: Double,`altitudeMeters`: Int,uniffi_out_err: UniffiRustCallStatus, 
     ): Unit
     external fun uniffi_rdp_transport_fn_method_rdpclient_send_mouse_button(`ptr`: Long,`button`: RustBuffer.ByValue,`pressed`: Byte,uniffi_out_err: UniffiRustCallStatus, 
     ): Unit
@@ -1430,6 +1434,9 @@ private fun uniffiCheckApiChecksums(lib: IntegrityCheckingUniffiLib) {
         throw RuntimeException("UniFFI API checksum mismatch: try cleaning and rebuilding your project")
     }
     if ((lib.uniffi_rdp_transport_checksum_method_rdpclient_send_key() and 0xFFFF) != 18692) {
+        throw RuntimeException("UniFFI API checksum mismatch: try cleaning and rebuilding your project")
+    }
+    if ((lib.uniffi_rdp_transport_checksum_method_rdpclient_send_location() and 0xFFFF) != 59597) {
         throw RuntimeException("UniFFI API checksum mismatch: try cleaning and rebuilding your project")
     }
     if ((lib.uniffi_rdp_transport_checksum_method_rdpclient_send_mouse_button() and 0xFFFF) != 8391) {
@@ -1863,6 +1870,29 @@ public object FfiConverterFloat: FfiConverter<Float, Float> {
 
     override fun write(value: Float, buf: ByteBuffer) {
         buf.putFloat(value)
+    }
+}
+
+/**
+ * @suppress
+ */
+public object FfiConverterDouble: FfiConverter<Double, Double> {
+    override fun lift(value: Double): Double {
+        return value
+    }
+
+    override fun read(buf: ByteBuffer): Double {
+        return buf.getDouble()
+    }
+
+    override fun lower(value: Double): Double {
+        return value
+    }
+
+    override fun allocationSize(value: Double) = 8UL
+
+    override fun write(value: Double, buf: ByteBuffer) {
+        buf.putDouble(value)
     }
 }
 
@@ -4568,6 +4598,8 @@ public interface RdpClientInterface {
     
     fun `sendKey`(`scancode`: kotlin.UShort, `pressed`: kotlin.Boolean)
     
+    fun `sendLocation`(`latitude`: kotlin.Double, `longitude`: kotlin.Double, `altitudeMeters`: kotlin.Int)
+    
     fun `sendMouseButton`(`button`: MouseButton, `pressed`: kotlin.Boolean)
     
     fun `sendMouseMove`(`x`: kotlin.UShort, `y`: kotlin.UShort)
@@ -4894,6 +4926,21 @@ open class RdpClient: Disposable, AutoCloseable, RdpClientInterface
         
         FfiConverterUShort.lower(`scancode`),
         FfiConverterBoolean.lower(`pressed`),_status)
+}
+    }
+    
+    
+
+    override fun `sendLocation`(`latitude`: kotlin.Double, `longitude`: kotlin.Double, `altitudeMeters`: kotlin.Int)
+        = 
+    callWithHandle {
+    uniffiRustCall() { _status ->
+    UniffiLib.uniffi_rdp_transport_fn_method_rdpclient_send_location(
+        it,
+        
+        FfiConverterDouble.lower(`latitude`),
+        FfiConverterDouble.lower(`longitude`),
+        FfiConverterInt.lower(`altitudeMeters`),_status)
 }
     }
     
@@ -5779,6 +5826,12 @@ data class RdpConfig (
      * explicitly configured on the connection profile.
      */
     var `sharedFolderName`: kotlin.String? = null 
+    , 
+    /**
+     * #890: negotiate the `Microsoft::Windows::RDS::Location` dynamic channel
+     * (`MS-RDPEL`) for forwarding device location fixes. Off by default.
+     */
+    var `enableLocation`: kotlin.Boolean = false 
     
 ){
     
@@ -5809,6 +5862,7 @@ public object FfiConverterTypeRdpConfig: FfiConverterRustBuffer<RdpConfig> {
             FfiConverterBoolean.read(buf),
             FfiConverterTypeRdpAudioMode.read(buf),
             FfiConverterOptionalString.read(buf),
+            FfiConverterBoolean.read(buf),
         )
     }
 
@@ -5826,7 +5880,8 @@ public object FfiConverterTypeRdpConfig: FfiConverterRustBuffer<RdpConfig> {
             FfiConverterUInt.allocationSize(value.`keyboardLayout`) +
             FfiConverterBoolean.allocationSize(value.`enableClipboard`) +
             FfiConverterTypeRdpAudioMode.allocationSize(value.`audioMode`) +
-            FfiConverterOptionalString.allocationSize(value.`sharedFolderName`)
+            FfiConverterOptionalString.allocationSize(value.`sharedFolderName`) +
+            FfiConverterBoolean.allocationSize(value.`enableLocation`)
     )
 
     override fun write(value: RdpConfig, buf: ByteBuffer) {
@@ -5844,6 +5899,7 @@ public object FfiConverterTypeRdpConfig: FfiConverterRustBuffer<RdpConfig> {
             FfiConverterBoolean.write(value.`enableClipboard`, buf)
             FfiConverterTypeRdpAudioMode.write(value.`audioMode`, buf)
             FfiConverterOptionalString.write(value.`sharedFolderName`, buf)
+            FfiConverterBoolean.write(value.`enableLocation`, buf)
     }
 }
 

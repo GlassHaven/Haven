@@ -58,7 +58,7 @@ import sh.haven.core.data.db.entities.WorkspaceProfile
         ChatConversation::class,
         ChatMessage::class,
     ],
-    version = 92,
+    version = 93,
     exportSchema = true,
 )
 abstract class HavenDatabase : RoomDatabase() {
@@ -1436,6 +1436,13 @@ abstract class HavenDatabase : RoomDatabase() {
         val MIGRATION_91_92 = object : Migration(91, 92) {
             override fun migrate(db: SupportSQLiteDatabase) {
                 addColumnIfMissing(db, "connection_profiles", "rdpSharedFolderUri", "TEXT DEFAULT NULL")
+            }
+        }
+
+        /** #890: per-profile MS-RDPEL location redirection toggle. */
+        val MIGRATION_92_93 = object : Migration(92, 93) {
+            override fun migrate(db: SupportSQLiteDatabase) {
+                addColumnIfMissing(db, "connection_profiles", "rdpLocation", "INTEGER NOT NULL DEFAULT 0")
             }
         }
 

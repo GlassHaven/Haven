@@ -21899,6 +21899,46 @@
       "sr": "Подразумевано искључено. Приказује једну изабрану фасциклу удаљеном рачунару као преусмерени диск.",
       "zh": "默认关闭。将所选的一个文件夹作为重定向驱动器暴露给远程电脑。"
      }
+    },
+    {
+     "name": "connections_toggle_rdp_location",
+     "en": "Share location",
+     "comment": "#210 i18n sweep: VM-setup copy toasts and code-block copy action.",
+     "args": [],
+     "t": {
+      "ar": "مشاركة الموقع",
+      "bn": "অবস্থান শেয়ার করুন",
+      "de": "Standort teilen",
+      "es": "Compartir ubicación",
+      "fr": "Partager la position",
+      "hi": "स्थान साझा करें",
+      "ja": "位置情報を共有",
+      "ko": "위치 공유",
+      "pt": "Compartilhar localização",
+      "ru": "Общая геопозиция",
+      "sr": "Дели локацију",
+      "zh": "共享位置"
+     }
+    },
+    {
+     "name": "connections_helper_rdp_location",
+     "en": "Off by default. Forwards device GNSS/network location fixes to the remote session.",
+     "comment": "#210 i18n sweep: VM-setup copy toasts and code-block copy action.",
+     "args": [],
+     "t": {
+      "ar": "متوقف افتراضيًا. يعيد توجيه إحداثيات موقع الجهاز عبر GNSS/الشبكة إلى الجلسة البعيدة.",
+      "bn": "ডিফল্টভাবে বন্ধ। ডিভাইসের GNSS/নেটওয়ার্ক অবস্থান রিমোট সেশনে পাঠায়।",
+      "de": "Standardmäßig aus. Leitet GNSS-/Netzwerk-Standortdaten des Geräts an die Remote-Sitzung weiter.",
+      "es": "Desactivado por defecto. Reenvía la ubicación GNSS/de red del dispositivo a la sesión remota.",
+      "fr": "Désactivé par défaut. Transmet la position GNSS/réseau de l\\'appareil à la session distante.",
+      "hi": "डिफ़ॉल्ट रूप से बंद। डिवाइस के GNSS/नेटवर्क स्थान को रिमोट सत्र में भेजता है।",
+      "ja": "既定ではオフです。デバイスの GNSS/ネットワーク位置情報をリモートセッションに転送します。",
+      "ko": "기본값은 꺼짐입니다. 기기의 GNSS/네트워크 위치 정보를 원격 세션으로 전달합니다.",
+      "pt": "Desativado por padrão. Encaminha a localização GNSS/de rede do dispositivo para a sessão remota.",
+      "ru": "По умолчанию выключено. Передаёт данные геопозиции GNSS/сети устройства в удалённый сеанс.",
+      "sr": "Подразумевано искључено. Прослеђује GNSS/мрежну локацију уређаја удаљеној сесији.",
+      "zh": "默认关闭。将设备的 GNSS/网络位置信息转发到远程会话。"
+     }
     }
    ]
   },

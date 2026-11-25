@@ -641,4 +641,6 @@
     <string name="connections_rdp_shared_folder_none">Keiner</string>
     <string name="connections_button_choose_folder">Ordner wählen</string>
     <string name="connections_helper_rdp_shared_folder">Standardmäßig aus. Stellt einen ausgewählten Ordner dem Remote-PC als umgeleitetes Laufwerk bereit.</string>
+    <string name="connections_toggle_rdp_location">Standort teilen</string>
+    <string name="connections_helper_rdp_location">Standardmäßig aus. Leitet GNSS-/Netzwerk-Standortdaten des Geräts an die Remote-Sitzung weiter.</string>
 </resources>

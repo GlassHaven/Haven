@@ -578,5 +578,7 @@
     <string name="connections_rdp_shared_folder_none">Ниједна</string>
     <string name="connections_button_choose_folder">Изабери фасциклу</string>
     <string name="connections_helper_rdp_shared_folder">Подразумевано искључено. Приказује једну изабрану фасциклу удаљеном рачунару као преусмерени диск.</string>
+    <string name="connections_toggle_rdp_location">Дели локацију</string>
+    <string name="connections_helper_rdp_location">Подразумевано искључено. Прослеђује GNSS/мрежну локацију уређаја удаљеној сесији.</string>
 </resources>
 

@@ -3,6 +3,7 @@ use std::sync::{Arc, Mutex, RwLock};
 use log::{debug, error, info, warn};
 
 mod bitmap_bridge;
+mod cliprdr;
 mod egfx;
 mod rdpei;
 mod redirection;
@@ -234,6 +235,11 @@ pub struct RdpConfig {
     /// servers inject raw scancodes and ignore this entirely. Pass 0 to get
     /// the previous behaviour (0x0409, US English).
     pub keyboard_layout: u32,
+    /// #890: negotiate the `cliprdr` static virtual channel (MS-RDPECLIP) for
+    /// two-way text clipboard sync. Defaults to true so callers that omit the
+    /// field preserve existing behaviour until per-profile toggles land.
+    #[uniffi(default = true)]
+    pub enable_clipboard: bool,
 }
 
 #[derive(Debug, Clone, uniffi::Record)]
@@ -506,7 +512,6 @@ enum InputEvent {
     MouseMove { x: u16, y: u16 },
     MouseButton { button: MouseButton, pressed: bool },
     MouseWheel { vertical: bool, delta: i16 },
-    ClipboardText(String),
 }
 
 /// Phase of a touch contact for MS-RDPEI multi-touch injection (#778).
@@ -557,6 +562,7 @@ pub struct RdpClient {
     input_queue: Arc<Mutex<Vec<InputEvent>>>,
     touch_state: Arc<Mutex<TouchInputState>>,
     rdpei_active: Arc<std::sync::atomic::AtomicBool>,
+    clipboard_state: Arc<Mutex<cliprdr::SharedCliprdrState>>,
     session_thread: Mutex<Option<std::thread::JoinHandle<()>>>,
 }
 
@@ -593,6 +599,7 @@ impl RdpClient {
             input_queue: Arc::new(Mutex::new(Vec::new())),
             touch_state: Arc::new(Mutex::new(TouchInputState::new())),
             rdpei_active: Arc::new(std::sync::atomic::AtomicBool::new(false)),
+            clipboard_state: Arc::new(Mutex::new(cliprdr::SharedCliprdrState::new())),
             session_thread: Mutex::new(None),
         }
     }
@@ -659,6 +666,7 @@ impl RdpClient {
         let input_queue = Arc::clone(&self.input_queue);
         let touch_state = Arc::clone(&self.touch_state);
         let rdpei_active = Arc::clone(&self.rdpei_active);
+        let clipboard_state = Arc::clone(&self.clipboard_state);
         let server_name = host.clone();
         // #117: a followed redirection reconnects from inside the session
         // thread, through the same route (SOCKS or direct) as the original.
@@ -705,6 +713,7 @@ impl RdpClient {
                             &input_queue,
                             &touch_state,
                             &rdpei_active,
+                            &clipboard_state,
                             &server_name,
                             server_addr,
                             redirect_plan.as_ref(),
@@ -995,8 +1004,11 @@ impl RdpClient {
     }
 
     pub fn send_clipboard_text(&self, text: String) {
-        if let Ok(mut q) = self.input_queue.lock() {
-            q.push(InputEvent::ClipboardText(text));
+        if !self.config.enable_clipboard {
+            return;
+        }
+        if let Ok(mut st) = self.clipboard_state.lock() {
+            st.queue_local_text(text);
         }
     }
 
@@ -1816,6 +1828,7 @@ fn run_rdp_session(
     input_queue: &Arc<Mutex<Vec<InputEvent>>>,
     touch_state: &Arc<Mutex<TouchInputState>>,
     rdpei_active: &Arc<std::sync::atomic::AtomicBool>,
+    clipboard_state: &Arc<Mutex<cliprdr::SharedCliprdrState>>,
     server_name: &str,
     server_addr: SocketAddr,
     redirect: Option<&redirection::RedirectFollow>,
@@ -1831,6 +1844,9 @@ fn run_rdp_session(
     if let Ok(mut ts) = touch_state.lock() {
         ts.builder.reset();
         ts.fallback_pointer_id = None;
+    }
+    if let Ok(mut cs) = clipboard_state.lock() {
+        cs.reset_for_connection();
     }
 
     let mut rdp_config = build_config(config);
@@ -1887,6 +1903,11 @@ fn run_rdp_session(
                 .with_dynamic_channel(display_control)
                 .with_dynamic_channel(crate::rdpei::RdpeiClient::new(Arc::clone(rdpei_active))),
         );
+    if config.enable_clipboard {
+        connector = connector.with_static_channel(crate::cliprdr::new_client(Arc::clone(
+            clipboard_state,
+        )));
+    }
 
     // Keep a clone of the underlying TCP stream so we can adjust the read
     // timeout out-of-band without having to reach through the TLS wrap.
@@ -2364,6 +2385,24 @@ fn run_rdp_session(
             }
         }
 
+        if config.enable_clipboard {
+            let (clip_frames, remote_texts) =
+                crate::cliprdr::flush_cliprdr(&mut active_stage, clipboard_state);
+            for bytes in clip_frames {
+                if let Err(e) = tls_framed.write_all(&bytes) {
+                    error!("Write CLIPRDR error: {:?}", e);
+                }
+            }
+            if !remote_texts.is_empty() {
+                let cb = state.read().ok().and_then(|s| s.clipboard_callback.clone());
+                if let Some(cb) = cb {
+                    for text in remote_texts {
+                        cb.on_remote_clipboard(text);
+                    }
+                }
+            }
+        }
+
         // Slow-path servers only — the fast-path case is handled on the input
         // thread, which leaves `pending_inputs` empty here (#477).
         if !pending_inputs.is_empty() {
@@ -2588,6 +2627,24 @@ fn run_rdp_session(
                                         );
                                     } else {
                                         return handle_server_redirect(&info, redirect_hops).map(Some);
+                                    }
+                                }
+                            }
+                        }
+                        if config.enable_clipboard {
+                            let (clip_frames, remote_texts) =
+                                crate::cliprdr::flush_cliprdr(&mut active_stage, clipboard_state);
+                            for bytes in clip_frames {
+                                if let Err(e) = tls_framed.write_all(&bytes) {
+                                    error!("Write CLIPRDR response error: {:?}", e);
+                                }
+                            }
+                            if !remote_texts.is_empty() {
+                                let cb =
+                                    state.read().ok().and_then(|s| s.clipboard_callback.clone());
+                                if let Some(cb) = cb {
+                                    for text in remote_texts {
+                                        cb.on_remote_clipboard(text);
                                     }
                                 }
                             }
@@ -2853,8 +2910,6 @@ fn fastpath_events_for(
                     },
                 )))
             }
-            // Clipboard travels on the CLIPRDR channel, not the input path.
-            InputEvent::ClipboardText(_) => smallvec::SmallVec::new(),
         };
         out.extend(ops);
     }
@@ -3545,6 +3600,7 @@ mod codec_advertisement_tests {
             progressive_upgrade: false,
             avc_enabled: true,
             keyboard_layout: 0,
+            enable_clipboard: true,
         }
     }
 
@@ -3602,6 +3658,7 @@ mod region_tests {
             progressive_upgrade: false,
             avc_enabled: false,
             keyboard_layout: 0,
+            enable_clipboard: true,
         });
         // Distinct value per pixel so a wrong row or column is detectable.
         let mut pixels = vec![0u8; w as usize * h as usize * 4];
@@ -3662,6 +3719,7 @@ mod region_tests {
             progressive_upgrade: false,
             avc_enabled: false,
             keyboard_layout: 0,
+            enable_clipboard: true,
         });
         assert!(client.get_framebuffer_region(0, 0, 4, 4).is_none());
     }

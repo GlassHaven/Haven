@@ -3,6 +3,7 @@ package sh.haven.core.rdp
 import android.graphics.Bitmap
 import android.graphics.Canvas
 import android.util.Log
+import sh.haven.rdp.ClipboardCallback
 import sh.haven.rdp.FrameCallback
 import sh.haven.rdp.FrameData
 import sh.haven.rdp.MouseButton
@@ -89,6 +90,12 @@ class RdpSession(
      * locale via [keyboardLayoutKlid].
      */
     private val keyboardLayout: String? = null,
+    /**
+     * #890: negotiate the `cliprdr` static virtual channel (MS-RDPECLIP) for
+     * two-way text clipboard sync. Defaults to true until per-profile toggles
+     * land.
+     */
+    private val enableClipboard: Boolean = true,
 ) : Closeable {
 
     @Volatile
@@ -157,6 +164,13 @@ class RdpSession(
     /** Last non-null cursor shape, re-emitted on PointerDefault. */
     private var lastCursor: Triple<Bitmap, Int, Int>? = null
 
+    /**
+     * Called when the server pushes text onto the remote clipboard via
+     * MS-RDPECLIP (#890). The caller gates local clipboard writes on the user's
+     * clipboard-sync preference (security-review #15).
+     */
+    var onRemoteClipboard: ((String) -> Unit)? = null
+
     /** Called when an error occurs. */
     var onError: ((Exception) -> Unit)? = null
 
@@ -224,6 +238,7 @@ class RdpSession(
                 // (or the device locale's layout when unset) for servers that
                 // honour the Client Core Data announcement.
                 keyboardLayout = keyboardLayoutKlidForTag(keyboardLayout),
+                enableClipboard = enableClipboard,
             )
 
             // #477: record which settings this session actually ran with. Two
@@ -235,7 +250,7 @@ class RdpSession(
                 "D",
                 "RDP settings: avc420=${config.avcEnabled} progressiveUpgrade=" +
                     "${config.progressiveUpgrade} colorDepth=$colorDepth nla=$useNla " +
-                    "klid=0x${config.keyboardLayout.toString(16)}",
+                    "klid=0x${config.keyboardLayout.toString(16)} clipboard=${config.enableClipboard}",
             )
 
             val c = RdpClient(config)
@@ -364,6 +379,17 @@ class RdpSession(
                     onCursorPosition?.invoke(x.toInt(), y.toInt())
                 }
             })
+
+            if (enableClipboard) {
+                c.setClipboardCallback(object : ClipboardCallback {
+                    override fun onRemoteClipboard(text: String) {
+                        if (closed || text.isEmpty()) return
+                        // Length only — never log clipboard contents (#518).
+                        log("D", "Remote clipboard received: ${text.length} chars")
+                        onRemoteClipboard?.invoke(text)
+                    }
+                })
+            }
 
             log("D", "Connecting to ${redactHost(host, port)} (worker thread will handle handshake, socks=${socksProxy != null})")
             c.connect(host, port.toUShort(), socksProxy)

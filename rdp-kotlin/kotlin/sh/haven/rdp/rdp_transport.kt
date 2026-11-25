@@ -4515,6 +4515,13 @@ data class RdpConfig (
      * the previous behaviour (0x0409, US English).
      */
     var `keyboardLayout`: kotlin.UInt
+    , 
+    /**
+     * #890: negotiate the `cliprdr` static virtual channel (MS-RDPECLIP) for
+     * two-way text clipboard sync. Defaults to true so callers that omit the
+     * field preserve existing behaviour until per-profile toggles land.
+     */
+    var `enableClipboard`: kotlin.Boolean = true 
     
 ){
     
@@ -4542,6 +4549,7 @@ public object FfiConverterTypeRdpConfig: FfiConverterRustBuffer<RdpConfig> {
             FfiConverterBoolean.read(buf),
             FfiConverterBoolean.read(buf),
             FfiConverterUInt.read(buf),
+            FfiConverterBoolean.read(buf),
         )
     }
 
@@ -4556,7 +4564,8 @@ public object FfiConverterTypeRdpConfig: FfiConverterRustBuffer<RdpConfig> {
             FfiConverterOptionalString.allocationSize(value.`pinnedCertSha256`) +
             FfiConverterBoolean.allocationSize(value.`progressiveUpgrade`) +
             FfiConverterBoolean.allocationSize(value.`avcEnabled`) +
-            FfiConverterUInt.allocationSize(value.`keyboardLayout`)
+            FfiConverterUInt.allocationSize(value.`keyboardLayout`) +
+            FfiConverterBoolean.allocationSize(value.`enableClipboard`)
     )
 
     override fun write(value: RdpConfig, buf: ByteBuffer) {
@@ -4571,6 +4580,7 @@ public object FfiConverterTypeRdpConfig: FfiConverterRustBuffer<RdpConfig> {
             FfiConverterBoolean.write(value.`progressiveUpgrade`, buf)
             FfiConverterBoolean.write(value.`avcEnabled`, buf)
             FfiConverterUInt.write(value.`keyboardLayout`, buf)
+            FfiConverterBoolean.write(value.`enableClipboard`, buf)
     }
 }
 

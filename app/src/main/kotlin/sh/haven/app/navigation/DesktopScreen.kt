@@ -338,66 +338,77 @@ fun DesktopScreen(
                             )
                         }
 
-                        is DesktopTab.Rdp -> RdpSessionContent(
-                            protocolLabel = tab.protocol,
-                            connected = tab.connected,
-                            frame = tab.frame,
-                            frameSeq = tab.frameSeq,
-                            error = tab.error,
-                            toolbarLayout = toolbarLayout,
-                            navBlockMode = navBlockMode,
-                            toolbarUniformGrid = toolbarUniformGrid,
-                            toolbarMinKeyWidth = toolbarMinKeyWidth,
-                            toolbarKeyScale = toolbarKeyScale,
-                            editModeControlsPlacement = editModeControlsPlacement,
-                            snippetLibrary = snippetLibrary,
-                            onToolbarLayoutChanged = onToolbarLayoutChanged,
-                            onSnippetLibraryChanged = onSnippetLibraryChanged,
-                            onOpenToolbarSettings = onOpenToolbarSettings,
-                            chipAnchor = rdpChipAnchor,
-                            onChipAnchorChange = onRdpChipAnchorChange,
-                            onTap = { x, y -> desktopViewModel.sendClick(x, y) },
-                            onMiddleClick = { x, y -> desktopViewModel.sendClick(x, y, button = 2) },
-                            onRightClick = { x, y -> desktopViewModel.sendClick(x, y, button = 3) },
-                            onDragStart = { x, y ->
-                                desktopViewModel.sendPointer(x, y)
-                                desktopViewModel.pressButton(1)
-                            },
-                            onDrag = { x, y -> desktopViewModel.sendPointer(x, y) },
-                            onDragEnd = { desktopViewModel.releaseButton(1) },
-                            onScrollUp = { desktopViewModel.scrollUp() },
-                            onScrollDown = { desktopViewModel.scrollDown() },
-                            onPressButton = { btn -> desktopViewModel.pressButton(btn) },
-                            onReleaseButton = { btn -> desktopViewModel.releaseButton(btn) },
-                            onTypeChar = { ch ->
-                                sh.haven.feature.rdp.typeRdpChar(
-                                    ch = ch,
-                                    sendKey = { sc, pressed -> desktopViewModel.sendRdpKey(sc, pressed) },
-                                    sendUnicode = { codepoint -> desktopViewModel.typeRdpUnicode(codepoint) },
-                                    layoutKlid = tab.keyboardLayoutKlid,
-                                )
-                            },
-                            onTypeText = { text -> desktopViewModel.typeRdpText(text) },
-                            onSendClipboard = { text -> desktopViewModel.sendRdpClipboardText(text) },
-                            onKeyDown = { scancode -> desktopViewModel.sendRdpKey(scancode, true) },
-                            onKeyUp = { scancode -> desktopViewModel.sendRdpKey(scancode, false) },
-                            onDisconnect = { desktopViewModel.closeTab(tab.id) },
-                            onFullscreenChanged = onFullscreenChanged,
-                            cursor = tab.cursor,
-                            pointerPos = tab.pointerPos,
-                            inputMode = inputMode,
-                            onSetInputMode = onSetInputMode,
-                            touchpadSensitivity = touchpadSensitivity,
-                            onSetTouchpadSensitivity = onSetTouchpadSensitivity,
-                            mouseGestures = mouseGestures,
-                            onTouchFrame = { contacts -> desktopViewModel.sendRdpTouchFrame(contacts) },
-                            onCancelTouches = { desktopViewModel.cancelRdpTouches() },
-                            currentOrientation = desktopOrientation,
-                            onCycleOrientation = { desktopViewModel.cycleDesktopOrientation() },
-                            onRetry = { desktopViewModel.retryTab(tab.id) },
-                            isActive = isActive,
-                            sessionKey = tab.id,
-                        )
+                        is DesktopTab.Rdp -> {
+                            val clipboardManager = androidx.compose.ui.platform.LocalClipboardManager.current
+                            val remoteClip by tab.remoteClipboard.collectAsState()
+                            LaunchedEffect(remoteClip) {
+                                val text = remoteClip
+                                if (!text.isNullOrEmpty()) {
+                                    clipboardManager.setText(androidx.compose.ui.text.AnnotatedString(text))
+                                    tab._remoteClipboard.value = null
+                                }
+                            }
+                            RdpSessionContent(
+                                protocolLabel = tab.protocol,
+                                connected = tab.connected,
+                                frame = tab.frame,
+                                frameSeq = tab.frameSeq,
+                                error = tab.error,
+                                toolbarLayout = toolbarLayout,
+                                navBlockMode = navBlockMode,
+                                toolbarUniformGrid = toolbarUniformGrid,
+                                toolbarMinKeyWidth = toolbarMinKeyWidth,
+                                toolbarKeyScale = toolbarKeyScale,
+                                editModeControlsPlacement = editModeControlsPlacement,
+                                snippetLibrary = snippetLibrary,
+                                onToolbarLayoutChanged = onToolbarLayoutChanged,
+                                onSnippetLibraryChanged = onSnippetLibraryChanged,
+                                onOpenToolbarSettings = onOpenToolbarSettings,
+                                chipAnchor = rdpChipAnchor,
+                                onChipAnchorChange = onRdpChipAnchorChange,
+                                onTap = { x, y -> desktopViewModel.sendClick(x, y) },
+                                onMiddleClick = { x, y -> desktopViewModel.sendClick(x, y, button = 2) },
+                                onRightClick = { x, y -> desktopViewModel.sendClick(x, y, button = 3) },
+                                onDragStart = { x, y ->
+                                    desktopViewModel.sendPointer(x, y)
+                                    desktopViewModel.pressButton(1)
+                                },
+                                onDrag = { x, y -> desktopViewModel.sendPointer(x, y) },
+                                onDragEnd = { desktopViewModel.releaseButton(1) },
+                                onScrollUp = { desktopViewModel.scrollUp() },
+                                onScrollDown = { desktopViewModel.scrollDown() },
+                                onPressButton = { btn -> desktopViewModel.pressButton(btn) },
+                                onReleaseButton = { btn -> desktopViewModel.releaseButton(btn) },
+                                onTypeChar = { ch ->
+                                    sh.haven.feature.rdp.typeRdpChar(
+                                        ch = ch,
+                                        sendKey = { sc, pressed -> desktopViewModel.sendRdpKey(sc, pressed) },
+                                        sendUnicode = { codepoint -> desktopViewModel.typeRdpUnicode(codepoint) },
+                                        layoutKlid = tab.keyboardLayoutKlid,
+                                    )
+                                },
+                                onTypeText = { text -> desktopViewModel.typeRdpText(text) },
+                                onSendClipboard = { text -> desktopViewModel.sendRdpClipboardText(text) },
+                                onKeyDown = { scancode -> desktopViewModel.sendRdpKey(scancode, true) },
+                                onKeyUp = { scancode -> desktopViewModel.sendRdpKey(scancode, false) },
+                                onDisconnect = { desktopViewModel.closeTab(tab.id) },
+                                onFullscreenChanged = onFullscreenChanged,
+                                cursor = tab.cursor,
+                                pointerPos = tab.pointerPos,
+                                inputMode = inputMode,
+                                onSetInputMode = onSetInputMode,
+                                touchpadSensitivity = touchpadSensitivity,
+                                onSetTouchpadSensitivity = onSetTouchpadSensitivity,
+                                mouseGestures = mouseGestures,
+                                onTouchFrame = { contacts -> desktopViewModel.sendRdpTouchFrame(contacts) },
+                                onCancelTouches = { desktopViewModel.cancelRdpTouches() },
+                                currentOrientation = desktopOrientation,
+                                onCycleOrientation = { desktopViewModel.cycleDesktopOrientation() },
+                                onRetry = { desktopViewModel.retryTab(tab.id) },
+                                isActive = isActive,
+                                sessionKey = tab.id,
+                            )
+                        }
 
                         // SPICE reuses the RDP content renderer: a bitmap canvas
                         // + PC set-1 scancode keyboard, which SPICE also uses.

@@ -2535,6 +2535,7 @@ class DesktopViewModel @Inject constructor(
                 val error = MutableStateFlow<String?>(null)
                 val cursor = MutableStateFlow<CursorOverlay?>(null)
                 val pointerPos = MutableStateFlow(0 to 0)
+                val remoteClipboard = MutableStateFlow<String?>(null)
 
                 val verboseEnabled = preferencesRepository.verboseLoggingEnabled.first()
                 val verboseBuffer = if (verboseEnabled) ConcurrentLinkedQueue<String>() else null
@@ -2569,6 +2570,17 @@ class DesktopViewModel @Inject constructor(
                     cursor.value = if (bmp == null) null else CursorOverlay(bmp, hx, hy)
                 }
                 session.onCursorPosition = { x, y -> pointerPos.value = x to y }
+                session.onRemoteClipboard = { text ->
+                    // Length only — never log clipboard contents (#518).
+                    Log.d(TAG, "RDP clipboard ($tabId): ${text.length} chars")
+                    if (text.isNotEmpty()) {
+                        viewModelScope.launch {
+                            if (preferencesRepository.remoteClipboardToLocalEnabled.first()) {
+                                remoteClipboard.value = text
+                            }
+                        }
+                    }
+                }
                 session.onError = { e ->
                     Log.e(TAG, "RDP error on tab $tabId", e)
                     error.value = describeRdpError(e, host, port)
@@ -2645,6 +2657,7 @@ class DesktopViewModel @Inject constructor(
                     _error = error,
                     _cursor = cursor,
                     _pointerPos = pointerPos,
+                    _remoteClipboard = remoteClipboard,
                     tunnelLease = tunnelLease,
                     profileId = profileId,
                     keyboardLayoutKlid = layoutKlid,

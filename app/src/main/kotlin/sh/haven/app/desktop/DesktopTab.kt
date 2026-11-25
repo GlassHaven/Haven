@@ -95,6 +95,8 @@ sealed class DesktopTab {
         val _cursor: MutableStateFlow<CursorOverlay?> = MutableStateFlow(null),
         /** Local pointer position we last sent — drives the touchpad-mode virtual cursor seed. */
         val _pointerPos: MutableStateFlow<Pair<Int, Int>> = MutableStateFlow(0 to 0),
+        /** Latest remote clipboard text pushed via MS-RDPECLIP (#890); consumed by UI. */
+        val _remoteClipboard: MutableStateFlow<String?> = MutableStateFlow(null),
         /** Lease tying this tab to its SSH tunnel; closing it releases the tunnel. */
         val tunnelLease: SshSessionManager.TunnelLease? = null,
         override val profileId: String? = null,
@@ -107,6 +109,7 @@ sealed class DesktopTab {
         override val remoteDesktop: RemoteDesktopSession = RdpDesktopSession(session)
         val cursor: StateFlow<CursorOverlay?> get() = _cursor
         val pointerPos: StateFlow<Pair<Int, Int>> get() = _pointerPos
+        val remoteClipboard: StateFlow<String?> get() = _remoteClipboard
 
         /** #422: [frame] carries one bitmap mutated in place, so its identity
          *  stops changing per update; the viewer repaints on this counter. */

@@ -126,6 +126,7 @@ fn main() -> ExitCode {
         // dropped (no Avc420Decoder registered); capture-only.
         avc_enabled: std::env::var("HAVEN_RDP_AVC").is_ok(),
         keyboard_layout: 0,
+        enable_clipboard: true,
     };
 
     let client = Arc::new(RdpClient::new(config));

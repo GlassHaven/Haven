@@ -170,4 +170,23 @@ class DesktopViewModelVncTypingTest {
         vm.setExternallyProjectedTabId(null)
         verify(atLeast = 1) { client1.paused = true }
     }
+
+    /**
+     * #890: sendRdpClipboardText routes to the active RDP tab's session, and
+     * DesktopTab.Rdp exposes _remoteClipboard via its read-only StateFlow.
+     */
+    @Test
+    fun `sendRdpClipboardText routes to active RDP session and remoteClipboard flow updates`() = runTest {
+        val rdpSession = mockk<sh.haven.core.rdp.RdpSession>(relaxed = true)
+        backgroundScope.launch { vm.activeTab.collect { } }
+        val tab = DesktopTab.Rdp(id = "rdp-1", label = "rdp-1", session = rdpSession)
+        vm.addTabForTest(tab)
+        advanceUntilIdle()
+
+        vm.sendRdpClipboardText("from-android")
+        verify(timeout = 3000, exactly = 1) { rdpSession.sendClipboardText("from-android") }
+
+        tab._remoteClipboard.value = "from-windows"
+        org.junit.Assert.assertEquals("from-windows", tab.remoteClipboard.value)
+    }
 }

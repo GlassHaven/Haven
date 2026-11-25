@@ -631,4 +631,10 @@
     <string name="connections_local_mode_android">Android</string>
     <string name="connections_local_mode_shizuku">Shizuku</string>
     <string name="connections_local_shell_shizuku_desc">Запускает привилегированную оболочку Android (/system/bin/sh) через Shizuku (ADB uid 2000 или root). Требуется запущенный и авторизованный сервис Shizuku.</string>
+    <string name="connections_field_rdp_audio">Воспроизведение звука</string>
+    <string name="connections_rdp_audio_device">На этом устройстве</string>
+    <string name="connections_rdp_audio_remote">На удалённом ПК</string>
+    <string name="connections_rdp_audio_disabled">Никогда</string>
+    <string name="connections_toggle_rdp_clipboard">Общий буфер обмена</string>
+    <string name="connections_helper_rdp_clipboard">По умолчанию выключено. Включает двустороннюю синхронизацию текстового буфера обмена между этим устройством и удалённым сеансом.</string>
 </resources>

@@ -60,7 +60,12 @@ class HavenDatabaseMigrationTest {
             HavenDatabase::class.java,
             dbName,
         )
-            .addMigrations(HavenDatabase.MIGRATION_87_88, HavenDatabase.MIGRATION_88_89, HavenDatabase.MIGRATION_89_90)
+            .addMigrations(
+                HavenDatabase.MIGRATION_87_88,
+                HavenDatabase.MIGRATION_88_89,
+                HavenDatabase.MIGRATION_89_90,
+                HavenDatabase.MIGRATION_90_91,
+            )
             .build()
 
         db.openHelper.writableDatabase // force open + migration
@@ -91,7 +96,11 @@ class HavenDatabaseMigrationTest {
             HavenDatabase::class.java,
             dbName,
         )
-            .addMigrations(HavenDatabase.MIGRATION_88_89, HavenDatabase.MIGRATION_89_90)
+            .addMigrations(
+                HavenDatabase.MIGRATION_88_89,
+                HavenDatabase.MIGRATION_89_90,
+                HavenDatabase.MIGRATION_90_91,
+            )
             .build()
 
         db.openHelper.writableDatabase
@@ -138,7 +147,7 @@ class HavenDatabaseMigrationTest {
             HavenDatabase::class.java,
             dbName,
         )
-            .addMigrations(HavenDatabase.MIGRATION_89_90)
+            .addMigrations(HavenDatabase.MIGRATION_89_90, HavenDatabase.MIGRATION_90_91)
             .build()
 
         db.openHelper.writableDatabase
@@ -223,6 +232,7 @@ class HavenDatabaseMigrationTest {
                 HavenDatabase.MIGRATION_87_88,
                 HavenDatabase.MIGRATION_88_89,
                 HavenDatabase.MIGRATION_89_90,
+                HavenDatabase.MIGRATION_90_91,
             )
             .build()
 
@@ -232,7 +242,7 @@ class HavenDatabaseMigrationTest {
                 // 87→88 landed: the seeded software row is NULL-aliased.
                 assertNull(db.sshKeyDao().getById("chain-1")?.hardwareAlias)
             }
-            // 86→87, 88→89, and 89→90 landed: GLKVM columns, keyboardLayout, and localShellMode exist.
+            // 86→87, 88→89, 89→90, and 90→91 landed.
             val profileColumns = db.openHelper.readableDatabase
                 .query("PRAGMA table_info(connection_profiles)").use { c ->
                     val idx = c.getColumnIndex("name")
@@ -244,11 +254,67 @@ class HavenDatabaseMigrationTest {
                     setOf(
                         "glkvmPort", "glkvmPassword", "glkvmTargetLayout",
                         "glkvmSshForward", "glkvmSshProfileId", "keyboardLayout",
-                        "localShellMode",
+                        "localShellMode", "rdpClipboard", "rdpAudioMode",
                     ),
                 ),
             )
             assertTrue(db.openHelper.readableDatabase.isDatabaseIntegrityOk)
+        } finally {
+            db.close()
+        }
+    }
+
+    @Test
+    fun `migration 90 to 91 adds rdpClipboard and rdpAudioMode with safe defaults`() {
+        val dbName = "migration-test-90.db"
+        helper.createDatabase(dbName, 90).close()
+
+        val db = Room.databaseBuilder(
+            ApplicationProvider.getApplicationContext(),
+            HavenDatabase::class.java,
+            dbName,
+        )
+            .addMigrations(HavenDatabase.MIGRATION_90_91)
+            .build()
+
+        db.openHelper.writableDatabase
+        try {
+            runBlocking {
+                val dao = db.connectionDao()
+                val customRdp = sh.haven.core.data.db.entities.ConnectionProfile(
+                    id = "rdp-custom-1",
+                    label = "Win11 Workstation",
+                    host = "192.168.1.50",
+                    port = 3389,
+                    username = "alice",
+                    connectionType = "RDP",
+                    rdpClipboard = true,
+                    rdpAudioMode = "PLAY_ON_SERVER",
+                )
+                dao.upsert(customRdp)
+                val loaded = dao.getById("rdp-custom-1")
+                assertEquals(true, loaded?.rdpClipboard)
+                assertEquals(
+                    sh.haven.core.data.db.entities.ConnectionProfile.RdpAudioMode.PLAY_ON_SERVER,
+                    loaded?.resolvedRdpAudioMode,
+                )
+
+                val defaultRdp = sh.haven.core.data.db.entities.ConnectionProfile(
+                    id = "rdp-default-1",
+                    label = "Default RDP",
+                    host = "192.168.1.51",
+                    port = 3389,
+                    username = "bob",
+                    connectionType = "RDP",
+                )
+                dao.upsert(defaultRdp)
+                val loadedDefault = dao.getById("rdp-default-1")
+                assertEquals(false, loadedDefault?.rdpClipboard)
+                assertEquals(
+                    sh.haven.core.data.db.entities.ConnectionProfile.RdpAudioMode.PLAY_ON_DEVICE,
+                    loadedDefault?.resolvedRdpAudioMode,
+                )
+            }
         } finally {
             db.close()
         }

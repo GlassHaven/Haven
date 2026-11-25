@@ -629,4 +629,10 @@
     <string name="connections_local_mode_android">Android</string>
     <string name="connections_local_mode_shizuku">Shizuku</string>
     <string name="connections_local_shell_shizuku_desc">通过 Shizuku（ADB uid 2000 或 root）运行特权 Android shell (/system/bin/sh)。需要 Shizuku 正在运行且已授权。</string>
+    <string name="connections_field_rdp_audio">声音播放</string>
+    <string name="connections_rdp_audio_device">在此设备上播放</string>
+    <string name="connections_rdp_audio_remote">在远程电脑上播放</string>
+    <string name="connections_rdp_audio_disabled">从不</string>
+    <string name="connections_toggle_rdp_clipboard">共享剪贴板</string>
+    <string name="connections_helper_rdp_clipboard">默认关闭。开启此设备与远程会话之间的双向文本剪贴板同步。</string>
 </resources>

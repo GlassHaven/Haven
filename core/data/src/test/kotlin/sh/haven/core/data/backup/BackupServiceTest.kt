@@ -1220,6 +1220,8 @@ class BackupServiceTest {
             rdpSshProfileId = "rdp-ssh-99",
             rdpUseNla = false,
             rdpColorDepth = 24,
+            rdpClipboard = true,
+            rdpAudioMode = "PLAY_ON_SERVER",
             spicePort = 5930,
             spicePassword = "spice-secret",
             spiceSshForward = true,
@@ -1305,7 +1307,7 @@ class BackupServiceTest {
         val defaults = ConnectionProfile(id = "default-id", label = "Default", host = "default.host", username = "default-user")
         val persistedFields = ConnectionProfile::class.java.declaredFields
             .filter { !java.lang.reflect.Modifier.isStatic(it.modifiers) && !it.isSynthetic && it.name != "ephemeral" }
-        assertEquals(116, persistedFields.size)
+        assertEquals(118, persistedFields.size)
         for (field in persistedFields) {
             field.isAccessible = true
             org.junit.Assert.assertNotEquals(
@@ -1346,6 +1348,8 @@ class BackupServiceTest {
         val legacyEnc = encryptForTest(legacyJson.toString().toByteArray(Charsets.UTF_8), "pw")
         service.import(legacyEnc, "pw")
         assertEquals(32, captured.captured.rdpColorDepth)
+        assertEquals(false, captured.captured.rdpClipboard)
+        assertEquals("PLAY_ON_DEVICE", captured.captured.rdpAudioMode)
     }
 
     @Test

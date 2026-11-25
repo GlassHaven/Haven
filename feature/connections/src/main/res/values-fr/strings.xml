@@ -631,4 +631,10 @@
     <string name="connections_local_mode_android">Android</string>
     <string name="connections_local_mode_shizuku">Shizuku</string>
     <string name="connections_local_shell_shizuku_desc">Exécute un shell Android privilégié (/system/bin/sh) via Shizuku (ADB uid 2000 ou root). Nécessite que le service Shizuku soit actif et autorisé.</string>
+    <string name="connections_field_rdp_audio">Lecture audio</string>
+    <string name="connections_rdp_audio_device">Lire sur cet appareil</string>
+    <string name="connections_rdp_audio_remote">Lire sur le PC distant</string>
+    <string name="connections_rdp_audio_disabled">Jamais</string>
+    <string name="connections_toggle_rdp_clipboard">Partager le presse-papiers</string>
+    <string name="connections_helper_rdp_clipboard">Désactivé par défaut. Active la synchronisation bidirectionnelle du texte du presse-papiers entre cet appareil et la session distante.</string>
 </resources>

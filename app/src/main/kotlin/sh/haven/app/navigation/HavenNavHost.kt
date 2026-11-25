@@ -327,6 +327,8 @@ fun HavenNavHost(
                 useNla = nav.useNla,
                 colorDepth = nav.colorDepth,
                 keyboardLayout = nav.keyboardLayout,
+                enableClipboard = nav.enableClipboard,
+                audioMode = nav.audioMode,
             )
             connectionsViewModel.onDesktopNavigated()
             requestScreen(Screen.Desktop)

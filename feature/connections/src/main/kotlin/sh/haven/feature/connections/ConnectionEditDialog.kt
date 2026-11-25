@@ -303,6 +303,13 @@ fun ConnectionEditDialog(
     var rdpSshProfileId by rememberSaveable { mutableStateOf(existing?.rdpSshProfileId) }
     var rdpUseNla by rememberSaveable { mutableStateOf(existing?.rdpUseNla ?: true) }
     var rdpColorDepth by rememberSaveable { mutableStateOf(existing?.rdpColorDepth ?: 32) }
+    var rdpClipboard by rememberSaveable { mutableStateOf(existing?.rdpClipboard ?: false) }
+    var rdpAudioMode by rememberSaveable {
+        mutableStateOf(
+            existing?.resolvedRdpAudioMode?.name
+                ?: ConnectionProfile.RdpAudioMode.PLAY_ON_DEVICE.name,
+        )
+    }
     var spicePassword by rememberSaveable { mutableStateOf(existing?.spicePassword ?: "") }
     var spiceSshForward by rememberSaveable {
         mutableStateOf(existing?.let { strictTunnelInitialEnabled(it.connectionType, "SPICE", it.spiceSshForward, it.spiceSshProfileId) } ?: false)
@@ -2224,6 +2231,63 @@ fun ConnectionEditDialog(
                         helperText = stringResource(R.string.connections_helper_keyboard_layout_rdp),
                         onSelect = { keyboardLayout = it },
                     )
+                    Spacer(Modifier.height(8.dp))
+                    val rdpAudioOptions = listOf(
+                        ConnectionProfile.RdpAudioMode.PLAY_ON_DEVICE.name to
+                            stringResource(R.string.connections_rdp_audio_device),
+                        ConnectionProfile.RdpAudioMode.PLAY_ON_SERVER.name to
+                            stringResource(R.string.connections_rdp_audio_remote),
+                        ConnectionProfile.RdpAudioMode.DISABLED.name to
+                            stringResource(R.string.connections_rdp_audio_disabled),
+                    )
+                    var rdpAudioExpanded by remember { mutableStateOf(false) }
+                    val selectedRdpAudio = rdpAudioOptions.firstOrNull { it.first == rdpAudioMode }
+                        ?: rdpAudioOptions.first()
+                    ExposedDropdownMenuBox(
+                        expanded = rdpAudioExpanded,
+                        onExpandedChange = { rdpAudioExpanded = it },
+                    ) {
+                        OutlinedTextField(
+                            value = selectedRdpAudio.second,
+                            onValueChange = {},
+                            readOnly = true,
+                            label = { Text(stringResource(R.string.connections_field_rdp_audio)) },
+                            trailingIcon = { ExposedDropdownMenuDefaults.TrailingIcon(rdpAudioExpanded) },
+                            modifier = Modifier
+                                .fillMaxWidth()
+                                .menuAnchor(MenuAnchorType.PrimaryNotEditable),
+                        )
+                        ExposedDropdownMenu(
+                            expanded = rdpAudioExpanded,
+                            onDismissRequest = { rdpAudioExpanded = false },
+                        ) {
+                            rdpAudioOptions.forEach { (value, optionLabel) ->
+                                DropdownMenuItem(
+                                    text = { Text(optionLabel) },
+                                    onClick = {
+                                        rdpAudioMode = value
+                                        rdpAudioExpanded = false
+                                    },
+                                )
+                            }
+                        }
+                    }
+                    Spacer(Modifier.height(8.dp))
+                    Row(verticalAlignment = Alignment.CenterVertically) {
+                        androidx.compose.material3.Checkbox(
+                            checked = rdpClipboard,
+                            onCheckedChange = { rdpClipboard = it },
+                        )
+                        Text(
+                            stringResource(R.string.connections_toggle_rdp_clipboard),
+                            style = MaterialTheme.typography.bodyMedium,
+                        )
+                    }
+                    Text(
+                        stringResource(R.string.connections_helper_rdp_clipboard),
+                        style = MaterialTheme.typography.bodySmall,
+                        color = MaterialTheme.colorScheme.onSurfaceVariant,
+                    )
                 } else if (connectionType == "SPICE") {
                     ConnectionSection(stringResource(R.string.connections_section_spice))
                     // SPICE: tunnel toggle first (changes what Host means), then
@@ -4076,6 +4140,8 @@ fun ConnectionEditDialog(
                                 rdpSshProfileId = tunnelCarrierForSave(rdpSshForward, rdpSshProfileId),
                                 rdpUseNla = rdpUseNla,
                                 rdpColorDepth = rdpColorDepth,
+                                rdpClipboard = rdpClipboard,
+                                rdpAudioMode = rdpAudioMode,
                                 keyboardLayout = keyboardLayout.ifBlank { null },
                                 colorTag = colorTag,
                                 groupId = groupId,

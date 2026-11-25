@@ -631,4 +631,10 @@
     <string name="connections_local_mode_android">Android</string>
     <string name="connections_local_mode_shizuku">Shizuku</string>
     <string name="connections_local_shell_shizuku_desc">Shizuku (ADB uid 2000 या root) के माध्यम से विशेषाधिकार प्राप्त Android शेल (/system/bin/sh) चलाता है। इसके लिए Shizuku का चालू और अधिकृत होना आवश्यक है।</string>
+    <string name="connections_field_rdp_audio">ध्वनि प्लेबैक</string>
+    <string name="connections_rdp_audio_device">इस डिवाइस पर चलाएं</string>
+    <string name="connections_rdp_audio_remote">रिमोट पीसी पर चलाएं</string>
+    <string name="connections_rdp_audio_disabled">कभी नहीं</string>
+    <string name="connections_toggle_rdp_clipboard">क्लिपबोर्ड साझा करें</string>
+    <string name="connections_helper_rdp_clipboard">डिफ़ॉल्ट रूप से बंद। इस डिवाइस और रिमोट सत्र के बीच दो-तरफ़ा टेक्स्ट क्लिपबोर्ड सिंक सक्षम करता है।</string>
 </resources>

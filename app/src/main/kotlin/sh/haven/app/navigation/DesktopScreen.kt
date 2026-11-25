@@ -348,6 +348,30 @@ fun DesktopScreen(
                                     tab._remoteClipboard.value = null
                                 }
                             }
+                            if (tab.clipboardEnabled) {
+                                val lifecycleOwner = androidx.lifecycle.compose.LocalLifecycleOwner.current
+                                val connectedState by tab.connected.collectAsState()
+                                LaunchedEffect(tab.id, connectedState) {
+                                    if (connectedState) {
+                                        val localText = clipboardManager.getText()?.text
+                                        if (!localText.isNullOrEmpty()) {
+                                            desktopViewModel.sendRdpClipboardText(localText)
+                                        }
+                                    }
+                                }
+                                androidx.compose.runtime.DisposableEffect(lifecycleOwner, tab.id) {
+                                    val observer = androidx.lifecycle.LifecycleEventObserver { _, event ->
+                                        if (event == androidx.lifecycle.Lifecycle.Event.ON_RESUME) {
+                                            val localText = clipboardManager.getText()?.text
+                                            if (!localText.isNullOrEmpty()) {
+                                                desktopViewModel.sendRdpClipboardText(localText)
+                                            }
+                                        }
+                                    }
+                                    lifecycleOwner.lifecycle.addObserver(observer)
+                                    onDispose { lifecycleOwner.lifecycle.removeObserver(observer) }
+                                }
+                            }
                             RdpSessionContent(
                                 protocolLabel = tab.protocol,
                                 connected = tab.connected,

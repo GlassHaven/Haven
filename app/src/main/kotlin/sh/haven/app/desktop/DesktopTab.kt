@@ -102,6 +102,8 @@ sealed class DesktopTab {
         override val profileId: String? = null,
         /** #606: resolved Windows KLID for character-to-scancode synthesis on this tab. */
         val keyboardLayoutKlid: UInt = sh.haven.core.rdp.keyboardLayoutKlid(),
+        /** #890: true when two-way MS-RDPECLIP clipboard sharing is enabled on this connection. */
+        val clipboardEnabled: Boolean = false,
     ) : DesktopTab() {
         override val connected: StateFlow<Boolean> get() = _connected
         override val frame: StateFlow<Bitmap?> get() = _frame

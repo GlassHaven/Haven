@@ -21699,6 +21699,126 @@
       "sr": "Покреће привилеговану Андроид љуску (/system/bin/sh) преко сервиса Shizuku (ADB uid 2000 или root). Потребно је да Shizuku буде покренут и одобрен.",
       "zh": "通过 Shizuku（ADB uid 2000 或 root）运行特权 Android shell (/system/bin/sh)。需要 Shizuku 正在运行且已授权。"
      }
+    },
+    {
+     "name": "connections_field_rdp_audio",
+     "en": "Sound playback",
+     "comment": "#210 i18n sweep: VM-setup copy toasts and code-block copy action.",
+     "args": [],
+     "t": {
+      "ar": "تشغيل الصوت",
+      "bn": "সাউন্ড প্লেব্যাক",
+      "de": "Audiowiedergabe",
+      "es": "Reproducción de sonido",
+      "fr": "Lecture audio",
+      "hi": "ध्वनि प्लेबैक",
+      "ja": "サウンド再生",
+      "ko": "사운드 재생",
+      "pt": "Reprodução de som",
+      "ru": "Воспроизведение звука",
+      "sr": "Репродукција звука",
+      "zh": "声音播放"
+     }
+    },
+    {
+     "name": "connections_rdp_audio_device",
+     "en": "Play on this device",
+     "comment": "#210 i18n sweep: VM-setup copy toasts and code-block copy action.",
+     "args": [],
+     "t": {
+      "ar": "التشغيل على هذا الجهاز",
+      "bn": "এই ডিভাইসে বাজান",
+      "de": "Auf diesem Gerät wiedergeben",
+      "es": "Reproducir en este dispositivo",
+      "fr": "Lire sur cet appareil",
+      "hi": "इस डिवाइस पर चलाएं",
+      "ja": "このデバイスで再生",
+      "ko": "이 기기에서 재생",
+      "pt": "Reproduzir neste dispositivo",
+      "ru": "На этом устройстве",
+      "sr": "Репродукуј на овом уређају",
+      "zh": "在此设备上播放"
+     }
+    },
+    {
+     "name": "connections_rdp_audio_remote",
+     "en": "Play on remote PC",
+     "comment": "#210 i18n sweep: VM-setup copy toasts and code-block copy action.",
+     "args": [],
+     "t": {
+      "ar": "التشغيل على الكمبيوتر البعيد",
+      "bn": "রিমোট পিসিতে বাজান",
+      "de": "Auf dem Remote-PC wiedergeben",
+      "es": "Reproducir en el PC remoto",
+      "fr": "Lire sur le PC distant",
+      "hi": "रिमोट पीसी पर चलाएं",
+      "ja": "リモート PC で再生",
+      "ko": "원격 PC에서 재생",
+      "pt": "Reproduzir no PC remoto",
+      "ru": "На удалённом ПК",
+      "sr": "Репродукуј на удаљеном рачунару",
+      "zh": "在远程电脑上播放"
+     }
+    },
+    {
+     "name": "connections_rdp_audio_disabled",
+     "en": "Never",
+     "comment": "#210 i18n sweep: VM-setup copy toasts and code-block copy action.",
+     "args": [],
+     "t": {
+      "ar": "أبدًا",
+      "bn": "কখনও না",
+      "de": "Nie",
+      "es": "Nunca",
+      "fr": "Jamais",
+      "hi": "कभी नहीं",
+      "ja": "再生しない",
+      "ko": "사용 안 함",
+      "pt": "Nunca",
+      "ru": "Никогда",
+      "sr": "Никад",
+      "zh": "从不"
+     }
+    },
+    {
+     "name": "connections_toggle_rdp_clipboard",
+     "en": "Share clipboard",
+     "comment": "#210 i18n sweep: VM-setup copy toasts and code-block copy action.",
+     "args": [],
+     "t": {
+      "ar": "مشاركة الحافظة",
+      "bn": "ক্লিপবোর্ড শেয়ার করুন",
+      "de": "Zwischenablage teilen",
+      "es": "Compartir portapapeles",
+      "fr": "Partager le presse-papiers",
+      "hi": "क्लिपबोर्ड साझा करें",
+      "ja": "クリップボードを共有",
+      "ko": "클립보드 공유",
+      "pt": "Compartilhar área de transferência",
+      "ru": "Общий буфер обмена",
+      "sr": "Дели привремену меморију",
+      "zh": "共享剪贴板"
+     }
+    },
+    {
+     "name": "connections_helper_rdp_clipboard",
+     "en": "Off by default. Enables two-way text clipboard sync between this device and the remote session.",
+     "comment": "#210 i18n sweep: VM-setup copy toasts and code-block copy action.",
+     "args": [],
+     "t": {
+      "ar": "متوقف افتراضيًا. يتيح مزامنة النصوص في الحافظة بالاتجاهين بين هذا الجهاز والجلسة البعيدة.",
+      "bn": "ডিফল্টভাবে বন্ধ। এই ডিভাইস এবং রিমোট সেশনের মধ্যে দ্বিমুখী টেক্সট ক্লিপবোর্ড সিঙ্ক চালু করে।",
+      "de": "Standardmäßig aus. Aktiviert die bidirektionale Text-Zwischenablage zwischen diesem Gerät und der Remote-Sitzung.",
+      "es": "Desactivado por defecto. Activa la sincronización bidireccional de texto del portapapeles entre este dispositivo y la sesión remota.",
+      "fr": "Désactivé par défaut. Active la synchronisation bidirectionnelle du texte du presse-papiers entre cet appareil et la session distante.",
+      "hi": "डिफ़ॉल्ट रूप से बंद। इस डिवाइस और रिमोट सत्र के बीच दो-तरफ़ा टेक्स्ट क्लिपबोर्ड सिंक सक्षम करता है।",
+      "ja": "既定ではオフです。このデバイスとリモートセッションの間でテキストの双方向クリップボード同期を有効にします。",
+      "ko": "기본값은 꺼짐입니다. 이 기기와 원격 세션 간 양방향 텍스트 클립보드 동기화를 활성화합니다.",
+      "pt": "Desativado por padrão. Ativa a sincronização bidirecional de texto da área de transferência entre este dispositivo e a sessão remota.",
+      "ru": "По умолчанию выключено. Включает двустороннюю синхронизацию текстового буфера обмена между этим устройством и удалённым сеансом.",
+      "sr": "Подразумевано искључено. Омогућава двосмерну синхронизацију текстуалне привремене меморије између овог уређаја и удаљене сесије.",
+      "zh": "默认关闭。开启此设备与远程会话之间的双向文本剪贴板同步。"
+     }
     }
    ]
   },

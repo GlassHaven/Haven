@@ -568,5 +568,11 @@
     <string name="connections_helper_glkvm">GLKVM и PiKVM (kvmd преко HTTPS) — покреће физичког миша и тастатуру циља. TLS користи поверење-при-првој-употреби и распоред тастатуре циља контролише откуцане карактере (надовежите ваш 6-цифрени 2FA кôд на лозинку ако је укључена PiKVM 2FA). Рутирајте кроз SSH тунел или WireGuard/Tailscale профил да му приступите ван LAN мреже.</string>
     <string name="connections_field_saved_password">Сачувана лозинка (SSH / sudo)</string>
     <string name="connections_helper_saved_password">Није обавезно. Шифрује се у Android Keystore и користи за SSH пријаву лозинком и биометријски-пропуштено sudo попуњавање у терминалу.</string>
+    <string name="connections_field_rdp_audio">Репродукција звука</string>
+    <string name="connections_rdp_audio_device">Репродукуј на овом уређају</string>
+    <string name="connections_rdp_audio_remote">Репродукуј на удаљеном рачунару</string>
+    <string name="connections_rdp_audio_disabled">Никад</string>
+    <string name="connections_toggle_rdp_clipboard">Дели привремену меморију</string>
+    <string name="connections_helper_rdp_clipboard">Подразумевано искључено. Омогућава двосмерну синхронизацију текстуалне привремене меморије између овог уређаја и удаљене сесије.</string>
 </resources>
 

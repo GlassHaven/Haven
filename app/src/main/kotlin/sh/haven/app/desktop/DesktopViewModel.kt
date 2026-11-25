@@ -1347,6 +1347,8 @@ class DesktopViewModel @Inject constructor(
                         useNla = profile.rdpUseNla,
                         colorDepth = profile.rdpColorDepth,
                         keyboardLayout = profile.keyboardLayout,
+                        enableClipboard = profile.rdpClipboard,
+                        audioMode = profile.rdpAudioMode,
                     )
                 }
                 profile.isSpice -> {
@@ -2465,6 +2467,8 @@ class DesktopViewModel @Inject constructor(
         useNla: Boolean = true,
         colorDepth: Int = 16,
         keyboardLayout: String? = null,
+        enableClipboard: Boolean? = null,
+        audioMode: String? = null,
     ) {
         viewModelScope.launch(Dispatchers.IO) {
             // Deduplicate: if a tab for the same connection exists, reuse or replace
@@ -2546,9 +2550,22 @@ class DesktopViewModel @Inject constructor(
                 // and never announces a resize).
                 val rdpWidth = preferencesRepository.rdpDesktopWidth.first()
                 val rdpHeight = preferencesRepository.rdpDesktopHeight.first()
-                val effectiveLayout = keyboardLayout
-                    ?: profileId?.let { connectionRepository.getById(it)?.keyboardLayout }
+                val storedProfile = profileId?.let { connectionRepository.getById(it) }
+                val effectiveLayout = keyboardLayout ?: storedProfile?.keyboardLayout
                 val layoutKlid = sh.haven.core.rdp.keyboardLayoutKlidForTag(effectiveLayout)
+                val effectiveClipboard = enableClipboard
+                    ?: storedProfile?.rdpClipboard
+                    ?: preferencesRepository.remoteClipboardToLocalEnabled.first()
+                val effectiveAudioMode = when (
+                    ConnectionProfile.RdpAudioMode.fromRaw(audioMode ?: storedProfile?.rdpAudioMode)
+                ) {
+                    ConnectionProfile.RdpAudioMode.PLAY_ON_DEVICE ->
+                        sh.haven.core.rdp.RdpSoundMode.PLAY_ON_DEVICE
+                    ConnectionProfile.RdpAudioMode.PLAY_ON_SERVER ->
+                        sh.haven.core.rdp.RdpSoundMode.PLAY_ON_SERVER
+                    ConnectionProfile.RdpAudioMode.DISABLED ->
+                        sh.haven.core.rdp.RdpSoundMode.DISABLED
+                }
 
                 val session = RdpSession(
                     sessionId = "rdp-$tabId",
@@ -2564,6 +2581,8 @@ class DesktopViewModel @Inject constructor(
                     verboseBuffer = verboseBuffer,
                     socksProxy = rdpSocksProxy,
                     keyboardLayout = effectiveLayout,
+                    enableClipboard = effectiveClipboard,
+                    audioMode = effectiveAudioMode,
                 )
                 session.onFrameUpdate = { bitmap -> frame.value = bitmap }
                 session.onCursorUpdate = { bmp, hx, hy ->
@@ -2573,12 +2592,8 @@ class DesktopViewModel @Inject constructor(
                 session.onRemoteClipboard = { text ->
                     // Length only — never log clipboard contents (#518).
                     Log.d(TAG, "RDP clipboard ($tabId): ${text.length} chars")
-                    if (text.isNotEmpty()) {
-                        viewModelScope.launch {
-                            if (preferencesRepository.remoteClipboardToLocalEnabled.first()) {
-                                remoteClipboard.value = text
-                            }
-                        }
+                    if (effectiveClipboard && text.isNotEmpty()) {
+                        remoteClipboard.value = text
                     }
                 }
                 session.onError = { e ->
@@ -2661,6 +2676,7 @@ class DesktopViewModel @Inject constructor(
                     tunnelLease = tunnelLease,
                     profileId = profileId,
                     keyboardLayoutKlid = layoutKlid,
+                    clipboardEnabled = effectiveClipboard,
                 )
 
                 val tabs = _tabs.value.toMutableList()

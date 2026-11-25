@@ -113,6 +113,19 @@ data class ConnectionProfile @Ignore constructor(
      * those tend to be xrdp / Linux-RDP setups.
      */
     val rdpColorDepth: Int = 32,
+    /**
+     * #890: negotiate MS-RDPECLIP (`cliprdr`) two-way clipboard sync for this
+     * RDP connection. Off by default so untrusted servers cannot read or write
+     * the device clipboard without explicit per-connection opt-in
+     * (security-review #15).
+     */
+    val rdpClipboard: Boolean = false,
+    /**
+     * #890: RDP sound playback routing: `"PLAY_ON_DEVICE"` (default, streams
+     * via `RDPSND` / `AUDIO_PLAYBACK_DVC`), `"PLAY_ON_SERVER"`
+     * (`INFO_REMOTECONSOLEAUDIO`), or `"DISABLED"` (`INFO_NOAUDIOPLAYBACK`).
+     */
+    val rdpAudioMode: String = "PLAY_ON_DEVICE",
     // SPICE-specific fields (#286). SPICE auth is a single ticket/password (no
     // username/domain); the framebuffer is always 32bpp so there's no color-depth knob.
     val spicePort: Int? = null,
@@ -449,7 +462,7 @@ data class ConnectionProfile @Ignore constructor(
     @get:Ignore
     var ephemeral: Boolean = false,
 ) {
-    /** Room persistence constructor matching the 116 database columns (leaves [ephemeral] false). */
+    /** Room persistence constructor matching the 118 database columns (leaves [ephemeral] false). */
     constructor(
         id: String,
         label: String,
@@ -490,6 +503,8 @@ data class ConnectionProfile @Ignore constructor(
         rdpSshProfileId: String?,
         rdpUseNla: Boolean,
         rdpColorDepth: Int,
+        rdpClipboard: Boolean,
+        rdpAudioMode: String,
         spicePort: Int?,
         spicePassword: String?,
         spiceSshForward: Boolean,
@@ -607,6 +622,8 @@ data class ConnectionProfile @Ignore constructor(
         rdpSshProfileId = rdpSshProfileId,
         rdpUseNla = rdpUseNla,
         rdpColorDepth = rdpColorDepth,
+        rdpClipboard = rdpClipboard,
+        rdpAudioMode = rdpAudioMode,
         spicePort = spicePort,
         spicePassword = spicePassword,
         spiceSshForward = spiceSshForward,
@@ -838,6 +855,19 @@ data class ConnectionProfile @Ignore constructor(
     val isEternalTerminal: Boolean get() = isSsh && useEternalTerminal
     val isVnc: Boolean get() = connectionType == "VNC"
     val isRdp: Boolean get() = connectionType == "RDP"
+    enum class RdpAudioMode {
+        PLAY_ON_DEVICE,
+        PLAY_ON_SERVER,
+        DISABLED;
+
+        companion object {
+            fun fromRaw(raw: String?): RdpAudioMode =
+                entries.firstOrNull { it.name == raw } ?: PLAY_ON_DEVICE
+        }
+    }
+
+    val resolvedRdpAudioMode: RdpAudioMode
+        get() = RdpAudioMode.fromRaw(rdpAudioMode)
     val isSpice: Boolean get() = connectionType == "SPICE"
     /** GLKVM (PiKVM-style KVM over the kvmd HTTPS API) — desktop viewer tab. */
     val isGlkvm: Boolean get() = connectionType == "GLKVM"

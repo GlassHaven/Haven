@@ -631,4 +631,10 @@
     <string name="connections_local_mode_android">Android</string>
     <string name="connections_local_mode_shizuku">Shizuku</string>
     <string name="connections_local_shell_shizuku_desc">يشغّل صدفة Android بصلاحيات مرتفعة (/system/bin/sh) عبر Shizuku (معرّف ADB 2000 أو root). يتطلب أن تكون خدمة Shizuku قيد التشغيل ومصرّحًا بها.</string>
+    <string name="connections_field_rdp_audio">تشغيل الصوت</string>
+    <string name="connections_rdp_audio_device">التشغيل على هذا الجهاز</string>
+    <string name="connections_rdp_audio_remote">التشغيل على الكمبيوتر البعيد</string>
+    <string name="connections_rdp_audio_disabled">أبدًا</string>
+    <string name="connections_toggle_rdp_clipboard">مشاركة الحافظة</string>
+    <string name="connections_helper_rdp_clipboard">متوقف افتراضيًا. يتيح مزامنة النصوص في الحافظة بالاتجاهين بين هذا الجهاز والجلسة البعيدة.</string>
 </resources>

@@ -631,4 +631,10 @@
     <string name="connections_local_mode_android">Android</string>
     <string name="connections_local_mode_shizuku">Shizuku</string>
     <string name="connections_local_shell_shizuku_desc">Führt eine privilegierte Android-Shell (/system/bin/sh) über Shizuku (ADB UID 2000 oder Root) aus. Erfordert einen laufenden und autorisierten Shizuku-Dienst.</string>
+    <string name="connections_field_rdp_audio">Audiowiedergabe</string>
+    <string name="connections_rdp_audio_device">Auf diesem Gerät wiedergeben</string>
+    <string name="connections_rdp_audio_remote">Auf dem Remote-PC wiedergeben</string>
+    <string name="connections_rdp_audio_disabled">Nie</string>
+    <string name="connections_toggle_rdp_clipboard">Zwischenablage teilen</string>
+    <string name="connections_helper_rdp_clipboard">Standardmäßig aus. Aktiviert die bidirektionale Text-Zwischenablage zwischen diesem Gerät und der Remote-Sitzung.</string>
 </resources>

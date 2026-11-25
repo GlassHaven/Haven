@@ -1214,7 +1214,23 @@ class ConnectionsViewModel @Inject constructor(
     val navigateToWayland: StateFlow<Boolean> = _navigateToWayland.asStateFlow()
 
     /** Emitted to navigate to RDP screen with connection params. */
-    data class RdpNavigation(val host: String, val port: Int, val username: String, val password: String, val domain: String, val sshForward: Boolean = false, val sshSessionId: String? = null, val profileId: String? = null, val useNla: Boolean = true, val colorDepth: Int = 32, val portKnockSequence: String? = null, val portKnockDelayMs: Int = 100, val keyboardLayout: String? = null)
+    data class RdpNavigation(
+        val host: String,
+        val port: Int,
+        val username: String,
+        val password: String,
+        val domain: String,
+        val sshForward: Boolean = false,
+        val sshSessionId: String? = null,
+        val profileId: String? = null,
+        val useNla: Boolean = true,
+        val colorDepth: Int = 32,
+        val portKnockSequence: String? = null,
+        val portKnockDelayMs: Int = 100,
+        val keyboardLayout: String? = null,
+        val enableClipboard: Boolean = false,
+        val audioMode: String = ConnectionProfile.RdpAudioMode.PLAY_ON_DEVICE.name,
+    )
     private val _navigateToRdp = MutableStateFlow<RdpNavigation?>(null)
     val navigateToRdp: StateFlow<RdpNavigation?> = _navigateToRdp.asStateFlow()
 
@@ -2897,6 +2913,8 @@ class ConnectionsViewModel @Inject constructor(
                         portKnockSequence = profile.portKnockSequence,
                         portKnockDelayMs = profile.portKnockDelayMs,
                         keyboardLayout = profile.keyboardLayout,
+                        enableClipboard = profile.rdpClipboard,
+                        audioMode = profile.rdpAudioMode,
                     )
                 } catch (e: Exception) {
                     Log.e(TAG, "Failed to connect SSH tunnel host for RDP", e)
@@ -2911,7 +2929,22 @@ class ConnectionsViewModel @Inject constructor(
                     _connectingProfileId.value = null
                 }
             } else {
-                _navigateToRdp.value = RdpNavigation(host, port, username, rdpPassword, domain, profile.rdpSshForward, profileId = profile.id, useNla = profile.rdpUseNla, colorDepth = profile.rdpColorDepth, portKnockSequence = profile.portKnockSequence, portKnockDelayMs = profile.portKnockDelayMs, keyboardLayout = profile.keyboardLayout)
+                _navigateToRdp.value = RdpNavigation(
+                    host,
+                    port,
+                    username,
+                    rdpPassword,
+                    domain,
+                    profile.rdpSshForward,
+                    profileId = profile.id,
+                    useNla = profile.rdpUseNla,
+                    colorDepth = profile.rdpColorDepth,
+                    portKnockSequence = profile.portKnockSequence,
+                    portKnockDelayMs = profile.portKnockDelayMs,
+                    keyboardLayout = profile.keyboardLayout,
+                    enableClipboard = profile.rdpClipboard,
+                    audioMode = profile.rdpAudioMode,
+                )
             }
         }
     }

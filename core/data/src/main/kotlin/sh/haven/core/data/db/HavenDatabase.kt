@@ -58,7 +58,7 @@ import sh.haven.core.data.db.entities.WorkspaceProfile
         ChatConversation::class,
         ChatMessage::class,
     ],
-    version = 90,
+    version = 91,
     exportSchema = true,
 )
 abstract class HavenDatabase : RoomDatabase() {
@@ -1416,6 +1416,19 @@ abstract class HavenDatabase : RoomDatabase() {
         val MIGRATION_89_90 = object : Migration(89, 90) {
             override fun migrate(db: SupportSQLiteDatabase) {
                 addColumnIfMissing(db, "connection_profiles", "localShellMode", "TEXT DEFAULT NULL")
+            }
+        }
+
+        /** #890: per-profile RDP clipboard sharing and sound playback routing. */
+        val MIGRATION_90_91 = object : Migration(90, 91) {
+            override fun migrate(db: SupportSQLiteDatabase) {
+                addColumnIfMissing(db, "connection_profiles", "rdpClipboard", "INTEGER NOT NULL DEFAULT 0")
+                addColumnIfMissing(
+                    db,
+                    "connection_profiles",
+                    "rdpAudioMode",
+                    "TEXT NOT NULL DEFAULT 'PLAY_ON_DEVICE'",
+                )
             }
         }
 

@@ -6,6 +6,7 @@ mod bitmap_bridge;
 mod cliprdr;
 mod egfx;
 mod rdpei;
+mod rdpsnd;
 mod redirection;
 mod yuv;
 
@@ -240,6 +241,17 @@ pub struct RdpConfig {
     /// field preserve existing behaviour until per-profile toggles land.
     #[uniffi(default = true)]
     pub enable_clipboard: bool,
+    /// #890: remote audio routing (`PlayOnDevice` via `RDPSND` /
+    /// `AUDIO_PLAYBACK_DVC`, `PlayOnServer` via `INFO_REMOTECONSOLEAUDIO`, or
+    /// `Disabled` via `INFO_NOAUDIOPLAYBACK`).
+    pub audio_mode: RdpAudioMode,
+}
+
+#[derive(Debug, Clone, Copy, PartialEq, Eq, uniffi::Enum)]
+pub enum RdpAudioMode {
+    PlayOnDevice,
+    PlayOnServer,
+    Disabled,
 }
 
 #[derive(Debug, Clone, uniffi::Record)]
@@ -283,6 +295,13 @@ pub trait FrameCallback: Send + Sync {
 #[uniffi::export(with_foreign)]
 pub trait ClipboardCallback: Send + Sync {
     fn on_remote_clipboard(&self, text: String);
+}
+
+#[uniffi::export(with_foreign)]
+pub trait AudioCallback: Send + Sync {
+    fn on_audio_pcm(&self, pcm_s16le: Vec<u8>, sample_rate: u32, channels: u16);
+    fn on_audio_volume(&self, left: f32, right: f32);
+    fn on_audio_close(&self);
 }
 
 /// #425: decodes one EGFX AVC420 (H.264 YUV420) access unit to RGBA. Rust owns
@@ -466,12 +485,13 @@ pub trait SessionCallback: Send + Sync {
 }
 
 /// Internal state for the RDP session.
-struct SessionState {
+pub(crate) struct SessionState {
     connected: bool,
     framebuffer: Option<FrameData>,
     dirty_rects: Vec<RdpRect>,
     frame_callback: Option<Arc<dyn FrameCallback>>,
     clipboard_callback: Option<Arc<dyn ClipboardCallback>>,
+    pub(crate) audio_callback: Option<Arc<dyn AudioCallback>>,
     session_callback: Option<Arc<dyn SessionCallback>>,
     pointer_callback: Option<Arc<dyn PointerCallback>>,
     /// #425: MediaCodec-backed H.264 decoder for EGFX AVC420 tiles (KRDP).
@@ -585,6 +605,7 @@ impl RdpClient {
                 dirty_rects: Vec::new(),
                 frame_callback: None,
                 clipboard_callback: None,
+                audio_callback: None,
                 session_callback: None,
                 pointer_callback: None,
             avc_decoder: None,
@@ -1018,6 +1039,12 @@ impl RdpClient {
         }
     }
 
+    pub fn set_audio_callback(&self, cb: Arc<dyn AudioCallback>) {
+        if let Ok(mut s) = self.state.write() {
+            s.audio_callback = Some(cb);
+        }
+    }
+
     /// #425: register the AVC420 (H.264) decoder used for EGFX tiles from
     /// H.264-only servers (KRDP). Must be set before `connect` when
     /// `RdpConfig.avc_enabled` is true, else negotiated AVC tiles are dropped.
@@ -1253,7 +1280,7 @@ fn build_config(config: &RdpConfig) -> ironrdp_connector::Config {
         hardware_id: None,
         request_data: None,
         autologon: true,
-        enable_audio_playback: false,
+        enable_audio_playback: !matches!(config.audio_mode, RdpAudioMode::Disabled),
         enable_audio_capture: false,
         performance_flags: ironrdp_pdu::rdp::client_info::PerformanceFlags::default(),
         license_cache: None,
@@ -1892,21 +1919,29 @@ fn run_rdp_session(
             let pdu: ironrdp_displaycontrol::pdu::DisplayControlPdu = layout.into();
             Ok(vec![Box::new(pdu)])
         });
-    let mut connector = ironrdp_connector::ClientConnector::new(rdp_config, server_addr)
-        .with_static_channel(
-            ironrdp_dvc::DrdynvcClient::new()
-                .with_dynamic_channel(crate::egfx::EgfxProcessor::new(
-                    state.clone(),
-                    config.progressive_upgrade,
-                    config.avc_enabled,
-                ))
-                .with_dynamic_channel(display_control)
-                .with_dynamic_channel(crate::rdpei::RdpeiClient::new(Arc::clone(rdpei_active))),
-        );
+    let mut drdynvc = ironrdp_dvc::DrdynvcClient::new()
+        .with_dynamic_channel(crate::egfx::EgfxProcessor::new(
+            state.clone(),
+            config.progressive_upgrade,
+            config.avc_enabled,
+        ))
+        .with_dynamic_channel(display_control)
+        .with_dynamic_channel(crate::rdpei::RdpeiClient::new(Arc::clone(rdpei_active)));
+    if config.audio_mode == RdpAudioMode::PlayOnDevice {
+        let audio_dvc = crate::rdpsnd::new_dvc_state(Arc::clone(state));
+        drdynvc = drdynvc
+            .with_dynamic_channel(audio_dvc.channel())
+            .with_dynamic_channel(audio_dvc.lossy_channel());
+    }
+    let mut connector =
+        ironrdp_connector::ClientConnector::new(rdp_config, server_addr).with_static_channel(drdynvc);
     if config.enable_clipboard {
         connector = connector.with_static_channel(crate::cliprdr::new_client(Arc::clone(
             clipboard_state,
         )));
+    }
+    if config.audio_mode == RdpAudioMode::PlayOnDevice {
+        connector = connector.with_static_channel(crate::rdpsnd::new_static_client(Arc::clone(state)));
     }
 
     // Keep a clone of the underlying TCP stream so we can adjust the read
@@ -1960,7 +1995,13 @@ fn run_rdp_session(
     }
 
     let tls_shared = SharedTls::new(rustls::StreamOwned::new(tls_conn, socket));
-    let mut tls_framed = Framed::new_with_leftover(tls_shared.clone(), leftover);
+    let mut handshake_framed = Framed::new_with_leftover(
+        crate::rdpsnd::HandshakeAudioStream::new(
+            tls_shared.clone(),
+            config.audio_mode == RdpAudioMode::PlayOnServer,
+        ),
+        leftover,
+    );
 
     let upgraded = mark_as_upgraded(should_upgrade, &mut connector);
 
@@ -2024,13 +2065,15 @@ fn run_rdp_session(
     let outcome = connect_finalize(
         upgraded,
         connector,
-        &mut tls_framed,
+        &mut handshake_framed,
         &mut network_client,
         sname,
         server_public_key,
         None, // no Kerberos config
     )
     .map_err(|e| diagnose_finalize_error(&e))?;
+    let (hs_stream, post_finalize_leftover) = handshake_framed.into_inner();
+    let mut tls_framed = Framed::new_with_leftover(hs_stream.into_inner(), post_finalize_leftover);
 
     let connection_result = match outcome {
         ironrdp_connector::ConnectionOutcome::Connected(res) => res,
@@ -3601,6 +3644,7 @@ mod codec_advertisement_tests {
             avc_enabled: true,
             keyboard_layout: 0,
             enable_clipboard: true,
+            audio_mode: super::RdpAudioMode::PlayOnDevice,
         }
     }
 
@@ -3659,6 +3703,7 @@ mod region_tests {
             avc_enabled: false,
             keyboard_layout: 0,
             enable_clipboard: true,
+            audio_mode: super::RdpAudioMode::Disabled,
         });
         // Distinct value per pixel so a wrong row or column is detectable.
         let mut pixels = vec![0u8; w as usize * h as usize * 4];
@@ -3720,6 +3765,7 @@ mod region_tests {
             avc_enabled: false,
             keyboard_layout: 0,
             enable_clipboard: true,
+            audio_mode: super::RdpAudioMode::Disabled,
         });
         assert!(client.get_framebuffer_region(0, 0, 4, 4).is_none());
     }
@@ -4097,6 +4143,7 @@ mod framebuffer_publish_tests {
             dirty_rects: Vec::new(),
             frame_callback: None,
             clipboard_callback: None,
+            audio_callback: None,
             session_callback: None,
             pointer_callback: None,
             avc_decoder: None,

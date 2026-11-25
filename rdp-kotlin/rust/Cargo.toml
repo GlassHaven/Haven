@@ -40,6 +40,7 @@ rustls = { version = "0.23", default-features = false, features = ["ring", "logg
 # one) — still pass our TOFU pin. See PinnedCertVerifier in lib.rs. (#422)
 webpki = { package = "rustls-webpki", version = "0.103", default-features = false, features = ["ring", "std"] }
 sha2 = "0.11"
+ironrdp-rdpsnd = "0.11"
 
 [[bin]]
 name = "uniffi-bindgen"

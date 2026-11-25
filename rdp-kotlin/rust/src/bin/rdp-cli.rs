@@ -18,9 +18,9 @@ use std::sync::atomic::{AtomicBool, AtomicU64, Ordering};
 use std::sync::Arc;
 use std::time::{Duration, Instant};
 
-use rdp_transport::{
-    ClipboardCallback, FrameCallback, RdpClient, RdpConfig, SessionCallback,
-};
+    use rdp_transport::{
+        ClipboardCallback, FrameCallback, RdpAudioMode, RdpClient, RdpConfig, SessionCallback,
+    };
 
 struct StderrFrameCb {
     frames: AtomicU64,
@@ -127,6 +127,7 @@ fn main() -> ExitCode {
         avc_enabled: std::env::var("HAVEN_RDP_AVC").is_ok(),
         keyboard_layout: 0,
         enable_clipboard: true,
+        audio_mode: RdpAudioMode::Disabled,
     };
 
     let client = Arc::new(RdpClient::new(config));

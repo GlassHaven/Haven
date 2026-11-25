@@ -200,6 +200,7 @@ mod tests {
             dirty_rects: Vec::new(),
             frame_callback: None,
             clipboard_callback: None,
+            audio_callback: None,
             session_callback: None,
             pointer_callback: None,
             avc_decoder: None,

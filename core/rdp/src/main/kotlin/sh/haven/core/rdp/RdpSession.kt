@@ -8,6 +8,7 @@ import sh.haven.rdp.FrameCallback
 import sh.haven.rdp.FrameData
 import sh.haven.rdp.MouseButton
 import sh.haven.rdp.PointerCallback
+import sh.haven.rdp.RdpAudioMode
 import sh.haven.rdp.RdpClient
 import sh.haven.rdp.RdpConfig
 import sh.haven.rdp.RdpException
@@ -96,6 +97,12 @@ class RdpSession(
      * land.
      */
     private val enableClipboard: Boolean = true,
+    /**
+     * #890: remote audio playback routing (`PLAY_ON_DEVICE`, `PLAY_ON_SERVER`,
+     * or `DISABLED`). Defaults to `PLAY_ON_DEVICE` so Windows/Linux RDP audio
+     * plays on the Android device unless configured otherwise on the profile.
+     */
+    private val audioMode: RdpSoundMode = RdpSoundMode.PLAY_ON_DEVICE,
 ) : Closeable {
 
     @Volatile
@@ -116,6 +123,8 @@ class RdpSession(
     private var fbHeight: Int = 0
     // #425: MediaCodec H.264 decoder, created only when AVC is enabled.
     private var avcDecoder: Avc420MediaCodecDecoder? = null
+    // #890: non-blocking AudioTrack sink, created when audioMode == PLAY_ON_DEVICE.
+    private var audioPlayer: RdpAudioPlayer? = null
     private val startTime = System.currentTimeMillis()
 
     private fun log(level: String, msg: String) {
@@ -239,6 +248,11 @@ class RdpSession(
                 // honour the Client Core Data announcement.
                 keyboardLayout = keyboardLayoutKlidForTag(keyboardLayout),
                 enableClipboard = enableClipboard,
+                audioMode = when (audioMode) {
+                    RdpSoundMode.PLAY_ON_DEVICE -> RdpAudioMode.PLAY_ON_DEVICE
+                    RdpSoundMode.PLAY_ON_SERVER -> RdpAudioMode.PLAY_ON_SERVER
+                    RdpSoundMode.DISABLED -> RdpAudioMode.DISABLED
+                },
             )
 
             // #477: record which settings this session actually ran with. Two
@@ -250,7 +264,8 @@ class RdpSession(
                 "D",
                 "RDP settings: avc420=${config.avcEnabled} progressiveUpgrade=" +
                     "${config.progressiveUpgrade} colorDepth=$colorDepth nla=$useNla " +
-                    "klid=0x${config.keyboardLayout.toString(16)} clipboard=${config.enableClipboard}",
+                    "klid=0x${config.keyboardLayout.toString(16)} clipboard=${config.enableClipboard} " +
+                    "audio=${config.audioMode}",
             )
 
             val c = RdpClient(config)
@@ -389,6 +404,12 @@ class RdpSession(
                         onRemoteClipboard?.invoke(text)
                     }
                 })
+            }
+
+            if (audioMode == RdpSoundMode.PLAY_ON_DEVICE) {
+                val player = RdpAudioPlayer(sessionId = sessionId, log = ::log)
+                audioPlayer = player
+                c.setAudioCallback(player)
             }
 
             log("D", "Connecting to ${redactHost(host, port)} (worker thread will handle handshake, socks=${socksProxy != null})")
@@ -668,6 +689,12 @@ class RdpSession(
             log("E", "Error releasing AVC decoder: ${e.message}")
         }
         avcDecoder = null
+        try {
+            audioPlayer?.close()
+        } catch (e: Exception) {
+            log("E", "Error releasing RDP audio player: ${e.message}")
+        }
+        audioPlayer = null
         synchronized(this) {
             // #425: never recycle a bitmap the Compose viewer may still be
             // drawing (see onResize) — drop the ref and let GC reclaim it.

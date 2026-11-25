@@ -665,6 +665,36 @@ internal interface UniffiCallbackInterfaceAvc420DecoderMethod0 : com.sun.jna.Cal
 internal interface UniffiCallbackInterfaceClipboardCallbackMethod0 : com.sun.jna.Callback {
     fun callback(`uniffiHandle`: Long,`text`: RustBuffer.ByValue,`uniffiOutReturn`: Pointer,uniffiCallStatus: UniffiRustCallStatus,)
 }
+internal interface UniffiCallbackInterfaceDriveCallbackMethod0 : com.sun.jna.Callback {
+    fun callback(`uniffiHandle`: Long,`path`: RustBuffer.ByValue,`uniffiOutReturn`: RustBuffer,uniffiCallStatus: UniffiRustCallStatus,)
+}
+internal interface UniffiCallbackInterfaceDriveCallbackMethod1 : com.sun.jna.Callback {
+    fun callback(`uniffiHandle`: Long,`path`: RustBuffer.ByValue,`uniffiOutReturn`: RustBuffer,uniffiCallStatus: UniffiRustCallStatus,)
+}
+internal interface UniffiCallbackInterfaceDriveCallbackMethod2 : com.sun.jna.Callback {
+    fun callback(`uniffiHandle`: Long,`path`: RustBuffer.ByValue,`uniffiOutReturn`: RustBuffer,uniffiCallStatus: UniffiRustCallStatus,)
+}
+internal interface UniffiCallbackInterfaceDriveCallbackMethod3 : com.sun.jna.Callback {
+    fun callback(`uniffiHandle`: Long,`path`: RustBuffer.ByValue,`overwrite`: Byte,`uniffiOutReturn`: RustBuffer,uniffiCallStatus: UniffiRustCallStatus,)
+}
+internal interface UniffiCallbackInterfaceDriveCallbackMethod4 : com.sun.jna.Callback {
+    fun callback(`uniffiHandle`: Long,`path`: RustBuffer.ByValue,`offset`: Long,`length`: Int,`uniffiOutReturn`: RustBuffer,uniffiCallStatus: UniffiRustCallStatus,)
+}
+internal interface UniffiCallbackInterfaceDriveCallbackMethod5 : com.sun.jna.Callback {
+    fun callback(`uniffiHandle`: Long,`path`: RustBuffer.ByValue,`offset`: Long,`data`: RustBuffer.ByValue,`uniffiOutReturn`: RustBuffer,uniffiCallStatus: UniffiRustCallStatus,)
+}
+internal interface UniffiCallbackInterfaceDriveCallbackMethod6 : com.sun.jna.Callback {
+    fun callback(`uniffiHandle`: Long,`path`: RustBuffer.ByValue,`size`: Long,`uniffiOutReturn`: RustBuffer,uniffiCallStatus: UniffiRustCallStatus,)
+}
+internal interface UniffiCallbackInterfaceDriveCallbackMethod7 : com.sun.jna.Callback {
+    fun callback(`uniffiHandle`: Long,`path`: RustBuffer.ByValue,`isDir`: Byte,`uniffiOutReturn`: RustBuffer,uniffiCallStatus: UniffiRustCallStatus,)
+}
+internal interface UniffiCallbackInterfaceDriveCallbackMethod8 : com.sun.jna.Callback {
+    fun callback(`uniffiHandle`: Long,`fromPath`: RustBuffer.ByValue,`toPath`: RustBuffer.ByValue,`replaceIfExists`: Byte,`uniffiOutReturn`: RustBuffer,uniffiCallStatus: UniffiRustCallStatus,)
+}
+internal interface UniffiCallbackInterfaceDriveCallbackMethod9 : com.sun.jna.Callback {
+    fun callback(`uniffiHandle`: Long,`path`: RustBuffer.ByValue,`uniffiOutReturn`: Pointer,uniffiCallStatus: UniffiRustCallStatus,)
+}
 internal interface UniffiCallbackInterfaceFrameCallbackMethod0 : com.sun.jna.Callback {
     fun callback(`uniffiHandle`: Long,`x`: Short,`y`: Short,`w`: Short,`h`: Short,`uniffiOutReturn`: Pointer,uniffiCallStatus: UniffiRustCallStatus,)
 }
@@ -755,6 +785,52 @@ internal open class UniffiVTableCallbackInterfaceClipboardCallback(
         `uniffiFree` = other.`uniffiFree`
         `uniffiClone` = other.`uniffiClone`
         `onRemoteClipboard` = other.`onRemoteClipboard`
+    }
+
+}
+@Structure.FieldOrder("uniffiFree", "uniffiClone", "stat", "listDir", "mkdir", "createFile", "readAt", "writeAt", "truncate", "deletePath", "renamePath", "closePath")
+internal open class UniffiVTableCallbackInterfaceDriveCallback(
+    @JvmField internal var `uniffiFree`: UniffiCallbackInterfaceFree? = null,
+    @JvmField internal var `uniffiClone`: UniffiCallbackInterfaceClone? = null,
+    @JvmField internal var `stat`: UniffiCallbackInterfaceDriveCallbackMethod0? = null,
+    @JvmField internal var `listDir`: UniffiCallbackInterfaceDriveCallbackMethod1? = null,
+    @JvmField internal var `mkdir`: UniffiCallbackInterfaceDriveCallbackMethod2? = null,
+    @JvmField internal var `createFile`: UniffiCallbackInterfaceDriveCallbackMethod3? = null,
+    @JvmField internal var `readAt`: UniffiCallbackInterfaceDriveCallbackMethod4? = null,
+    @JvmField internal var `writeAt`: UniffiCallbackInterfaceDriveCallbackMethod5? = null,
+    @JvmField internal var `truncate`: UniffiCallbackInterfaceDriveCallbackMethod6? = null,
+    @JvmField internal var `deletePath`: UniffiCallbackInterfaceDriveCallbackMethod7? = null,
+    @JvmField internal var `renamePath`: UniffiCallbackInterfaceDriveCallbackMethod8? = null,
+    @JvmField internal var `closePath`: UniffiCallbackInterfaceDriveCallbackMethod9? = null,
+) : Structure() {
+    class UniffiByValue(
+        `uniffiFree`: UniffiCallbackInterfaceFree? = null,
+        `uniffiClone`: UniffiCallbackInterfaceClone? = null,
+        `stat`: UniffiCallbackInterfaceDriveCallbackMethod0? = null,
+        `listDir`: UniffiCallbackInterfaceDriveCallbackMethod1? = null,
+        `mkdir`: UniffiCallbackInterfaceDriveCallbackMethod2? = null,
+        `createFile`: UniffiCallbackInterfaceDriveCallbackMethod3? = null,
+        `readAt`: UniffiCallbackInterfaceDriveCallbackMethod4? = null,
+        `writeAt`: UniffiCallbackInterfaceDriveCallbackMethod5? = null,
+        `truncate`: UniffiCallbackInterfaceDriveCallbackMethod6? = null,
+        `deletePath`: UniffiCallbackInterfaceDriveCallbackMethod7? = null,
+        `renamePath`: UniffiCallbackInterfaceDriveCallbackMethod8? = null,
+        `closePath`: UniffiCallbackInterfaceDriveCallbackMethod9? = null,
+    ): UniffiVTableCallbackInterfaceDriveCallback(`uniffiFree`,`uniffiClone`,`stat`,`listDir`,`mkdir`,`createFile`,`readAt`,`writeAt`,`truncate`,`deletePath`,`renamePath`,`closePath`,), Structure.ByValue
+
+   internal fun uniffiSetValue(other: UniffiVTableCallbackInterfaceDriveCallback) {
+        `uniffiFree` = other.`uniffiFree`
+        `uniffiClone` = other.`uniffiClone`
+        `stat` = other.`stat`
+        `listDir` = other.`listDir`
+        `mkdir` = other.`mkdir`
+        `createFile` = other.`createFile`
+        `readAt` = other.`readAt`
+        `writeAt` = other.`writeAt`
+        `truncate` = other.`truncate`
+        `deletePath` = other.`deletePath`
+        `renamePath` = other.`renamePath`
+        `closePath` = other.`closePath`
     }
 
 }
@@ -873,6 +949,26 @@ internal object IntegrityCheckingUniffiLib {
     ): Int
     external fun uniffi_rdp_transport_checksum_method_clipboardcallback_on_remote_clipboard(
     ): Int
+    external fun uniffi_rdp_transport_checksum_method_drivecallback_stat(
+    ): Int
+    external fun uniffi_rdp_transport_checksum_method_drivecallback_list_dir(
+    ): Int
+    external fun uniffi_rdp_transport_checksum_method_drivecallback_mkdir(
+    ): Int
+    external fun uniffi_rdp_transport_checksum_method_drivecallback_create_file(
+    ): Int
+    external fun uniffi_rdp_transport_checksum_method_drivecallback_read_at(
+    ): Int
+    external fun uniffi_rdp_transport_checksum_method_drivecallback_write_at(
+    ): Int
+    external fun uniffi_rdp_transport_checksum_method_drivecallback_truncate(
+    ): Int
+    external fun uniffi_rdp_transport_checksum_method_drivecallback_delete_path(
+    ): Int
+    external fun uniffi_rdp_transport_checksum_method_drivecallback_rename_path(
+    ): Int
+    external fun uniffi_rdp_transport_checksum_method_drivecallback_close_path(
+    ): Int
     external fun uniffi_rdp_transport_checksum_method_framecallback_on_frame_update(
     ): Int
     external fun uniffi_rdp_transport_checksum_method_framecallback_on_resize(
@@ -923,6 +1019,8 @@ internal object IntegrityCheckingUniffiLib {
     ): Int
     external fun uniffi_rdp_transport_checksum_method_rdpclient_set_clipboard_callback(
     ): Int
+    external fun uniffi_rdp_transport_checksum_method_rdpclient_set_drive_callback(
+    ): Int
     external fun uniffi_rdp_transport_checksum_method_rdpclient_set_frame_callback(
     ): Int
     external fun uniffi_rdp_transport_checksum_method_rdpclient_set_pointer_callback(
@@ -960,6 +1058,7 @@ internal object UniffiLib {
         uniffiCallbackInterfaceAudioCallback.register(this)
         uniffiCallbackInterfaceAvc420Decoder.register(this)
         uniffiCallbackInterfaceClipboardCallback.register(this)
+        uniffiCallbackInterfaceDriveCallback.register(this)
         uniffiCallbackInterfaceFrameCallback.register(this)
         uniffiCallbackInterfacePointerCallback.register(this)
         uniffiCallbackInterfaceSessionCallback.register(this)
@@ -994,6 +1093,32 @@ internal object UniffiLib {
     external fun uniffi_rdp_transport_fn_init_callback_vtable_clipboardcallback(`vtable`: UniffiVTableCallbackInterfaceClipboardCallback,
     ): Unit
     external fun uniffi_rdp_transport_fn_method_clipboardcallback_on_remote_clipboard(`ptr`: Long,`text`: RustBuffer.ByValue,uniffi_out_err: UniffiRustCallStatus, 
+    ): Unit
+    external fun uniffi_rdp_transport_fn_clone_drivecallback(`handle`: Long,uniffi_out_err: UniffiRustCallStatus, 
+    ): Long
+    external fun uniffi_rdp_transport_fn_free_drivecallback(`handle`: Long,uniffi_out_err: UniffiRustCallStatus, 
+    ): Unit
+    external fun uniffi_rdp_transport_fn_init_callback_vtable_drivecallback(`vtable`: UniffiVTableCallbackInterfaceDriveCallback,
+    ): Unit
+    external fun uniffi_rdp_transport_fn_method_drivecallback_stat(`ptr`: Long,`path`: RustBuffer.ByValue,uniffi_out_err: UniffiRustCallStatus, 
+    ): RustBuffer.ByValue
+    external fun uniffi_rdp_transport_fn_method_drivecallback_list_dir(`ptr`: Long,`path`: RustBuffer.ByValue,uniffi_out_err: UniffiRustCallStatus, 
+    ): RustBuffer.ByValue
+    external fun uniffi_rdp_transport_fn_method_drivecallback_mkdir(`ptr`: Long,`path`: RustBuffer.ByValue,uniffi_out_err: UniffiRustCallStatus, 
+    ): RustBuffer.ByValue
+    external fun uniffi_rdp_transport_fn_method_drivecallback_create_file(`ptr`: Long,`path`: RustBuffer.ByValue,`overwrite`: Byte,uniffi_out_err: UniffiRustCallStatus, 
+    ): RustBuffer.ByValue
+    external fun uniffi_rdp_transport_fn_method_drivecallback_read_at(`ptr`: Long,`path`: RustBuffer.ByValue,`offset`: Long,`length`: Int,uniffi_out_err: UniffiRustCallStatus, 
+    ): RustBuffer.ByValue
+    external fun uniffi_rdp_transport_fn_method_drivecallback_write_at(`ptr`: Long,`path`: RustBuffer.ByValue,`offset`: Long,`data`: RustBuffer.ByValue,uniffi_out_err: UniffiRustCallStatus, 
+    ): RustBuffer.ByValue
+    external fun uniffi_rdp_transport_fn_method_drivecallback_truncate(`ptr`: Long,`path`: RustBuffer.ByValue,`size`: Long,uniffi_out_err: UniffiRustCallStatus, 
+    ): RustBuffer.ByValue
+    external fun uniffi_rdp_transport_fn_method_drivecallback_delete_path(`ptr`: Long,`path`: RustBuffer.ByValue,`isDir`: Byte,uniffi_out_err: UniffiRustCallStatus, 
+    ): RustBuffer.ByValue
+    external fun uniffi_rdp_transport_fn_method_drivecallback_rename_path(`ptr`: Long,`fromPath`: RustBuffer.ByValue,`toPath`: RustBuffer.ByValue,`replaceIfExists`: Byte,uniffi_out_err: UniffiRustCallStatus, 
+    ): RustBuffer.ByValue
+    external fun uniffi_rdp_transport_fn_method_drivecallback_close_path(`ptr`: Long,`path`: RustBuffer.ByValue,uniffi_out_err: UniffiRustCallStatus, 
     ): Unit
     external fun uniffi_rdp_transport_fn_clone_framecallback(`handle`: Long,uniffi_out_err: UniffiRustCallStatus, 
     ): Long
@@ -1062,6 +1187,8 @@ internal object UniffiLib {
     external fun uniffi_rdp_transport_fn_method_rdpclient_set_avc_decoder(`ptr`: Long,`cb`: Long,uniffi_out_err: UniffiRustCallStatus, 
     ): Unit
     external fun uniffi_rdp_transport_fn_method_rdpclient_set_clipboard_callback(`ptr`: Long,`cb`: Long,uniffi_out_err: UniffiRustCallStatus, 
+    ): Unit
+    external fun uniffi_rdp_transport_fn_method_rdpclient_set_drive_callback(`ptr`: Long,`cb`: Long,uniffi_out_err: UniffiRustCallStatus, 
     ): Unit
     external fun uniffi_rdp_transport_fn_method_rdpclient_set_frame_callback(`ptr`: Long,`cb`: Long,uniffi_out_err: UniffiRustCallStatus, 
     ): Unit
@@ -1224,6 +1351,36 @@ private fun uniffiCheckApiChecksums(lib: IntegrityCheckingUniffiLib) {
     if ((lib.uniffi_rdp_transport_checksum_method_clipboardcallback_on_remote_clipboard() and 0xFFFF) != 26900) {
         throw RuntimeException("UniFFI API checksum mismatch: try cleaning and rebuilding your project")
     }
+    if ((lib.uniffi_rdp_transport_checksum_method_drivecallback_stat() and 0xFFFF) != 44082) {
+        throw RuntimeException("UniFFI API checksum mismatch: try cleaning and rebuilding your project")
+    }
+    if ((lib.uniffi_rdp_transport_checksum_method_drivecallback_list_dir() and 0xFFFF) != 56449) {
+        throw RuntimeException("UniFFI API checksum mismatch: try cleaning and rebuilding your project")
+    }
+    if ((lib.uniffi_rdp_transport_checksum_method_drivecallback_mkdir() and 0xFFFF) != 59433) {
+        throw RuntimeException("UniFFI API checksum mismatch: try cleaning and rebuilding your project")
+    }
+    if ((lib.uniffi_rdp_transport_checksum_method_drivecallback_create_file() and 0xFFFF) != 34173) {
+        throw RuntimeException("UniFFI API checksum mismatch: try cleaning and rebuilding your project")
+    }
+    if ((lib.uniffi_rdp_transport_checksum_method_drivecallback_read_at() and 0xFFFF) != 214) {
+        throw RuntimeException("UniFFI API checksum mismatch: try cleaning and rebuilding your project")
+    }
+    if ((lib.uniffi_rdp_transport_checksum_method_drivecallback_write_at() and 0xFFFF) != 11204) {
+        throw RuntimeException("UniFFI API checksum mismatch: try cleaning and rebuilding your project")
+    }
+    if ((lib.uniffi_rdp_transport_checksum_method_drivecallback_truncate() and 0xFFFF) != 52307) {
+        throw RuntimeException("UniFFI API checksum mismatch: try cleaning and rebuilding your project")
+    }
+    if ((lib.uniffi_rdp_transport_checksum_method_drivecallback_delete_path() and 0xFFFF) != 24143) {
+        throw RuntimeException("UniFFI API checksum mismatch: try cleaning and rebuilding your project")
+    }
+    if ((lib.uniffi_rdp_transport_checksum_method_drivecallback_rename_path() and 0xFFFF) != 5406) {
+        throw RuntimeException("UniFFI API checksum mismatch: try cleaning and rebuilding your project")
+    }
+    if ((lib.uniffi_rdp_transport_checksum_method_drivecallback_close_path() and 0xFFFF) != 20684) {
+        throw RuntimeException("UniFFI API checksum mismatch: try cleaning and rebuilding your project")
+    }
     if ((lib.uniffi_rdp_transport_checksum_method_framecallback_on_frame_update() and 0xFFFF) != 22386) {
         throw RuntimeException("UniFFI API checksum mismatch: try cleaning and rebuilding your project")
     }
@@ -1297,6 +1454,9 @@ private fun uniffiCheckApiChecksums(lib: IntegrityCheckingUniffiLib) {
         throw RuntimeException("UniFFI API checksum mismatch: try cleaning and rebuilding your project")
     }
     if ((lib.uniffi_rdp_transport_checksum_method_rdpclient_set_clipboard_callback() and 0xFFFF) != 53381) {
+        throw RuntimeException("UniFFI API checksum mismatch: try cleaning and rebuilding your project")
+    }
+    if ((lib.uniffi_rdp_transport_checksum_method_rdpclient_set_drive_callback() and 0xFFFF) != 55617) {
         throw RuntimeException("UniFFI API checksum mismatch: try cleaning and rebuilding your project")
     }
     if ((lib.uniffi_rdp_transport_checksum_method_rdpclient_set_frame_callback() and 0xFFFF) != 19537) {
@@ -2985,6 +3145,596 @@ public object FfiConverterTypeClipboardCallback: FfiConverter<ClipboardCallback,
 //
 
 
+public interface DriveCallback {
+    
+    fun `stat`(`path`: kotlin.String): RdpDriveEntry?
+    
+    fun `listDir`(`path`: kotlin.String): RdpDriveListResult
+    
+    fun `mkdir`(`path`: kotlin.String): RdpDriveStatus
+    
+    fun `createFile`(`path`: kotlin.String, `overwrite`: kotlin.Boolean): RdpDriveStatus
+    
+    fun `readAt`(`path`: kotlin.String, `offset`: kotlin.ULong, `length`: kotlin.UInt): RdpDriveReadResult
+    
+    fun `writeAt`(`path`: kotlin.String, `offset`: kotlin.ULong, `data`: kotlin.ByteArray): RdpDriveWriteResult
+    
+    fun `truncate`(`path`: kotlin.String, `size`: kotlin.ULong): RdpDriveStatus
+    
+    fun `deletePath`(`path`: kotlin.String, `isDir`: kotlin.Boolean): RdpDriveStatus
+    
+    fun `renamePath`(`fromPath`: kotlin.String, `toPath`: kotlin.String, `replaceIfExists`: kotlin.Boolean): RdpDriveStatus
+    
+    fun `closePath`(`path`: kotlin.String)
+    
+    companion object
+}
+
+open class DriveCallbackImpl: Disposable, AutoCloseable, DriveCallback
+{
+
+    @Suppress("UNUSED_PARAMETER")
+    /**
+     * @suppress
+     */
+    constructor(withHandle: UniffiWithHandle, handle: Long) {
+        this.handle = handle
+        this.cleanable = UniffiLib.CLEANER.register(this, UniffiCleanAction(handle))
+    }
+
+    /**
+     * @suppress
+     *
+     * This constructor can be used to instantiate a fake object. Only used for tests. Any
+     * attempt to actually use an object constructed this way will fail as there is no
+     * connected Rust object.
+     */
+    @Suppress("UNUSED_PARAMETER")
+    constructor(noHandle: NoHandle) {
+        this.handle = 0
+        this.cleanable = null
+    }
+
+    protected val handle: Long
+    protected val cleanable: UniffiCleaner.Cleanable?
+
+    private val wasDestroyed = AtomicBoolean(false)
+    private val callCounter = AtomicLong(1)
+
+    /**
+     * Whether the current object has been destroyed and its reference is gone in the Rust side.
+     */
+    val uniffiIsDestroyed: Boolean get() = wasDestroyed.get()
+
+    override fun destroy() {
+        // Only allow a single call to this method.
+        // TODO: maybe we should log a warning if called more than once?
+        if (this.wasDestroyed.compareAndSet(false, true)) {
+            // This decrement always matches the initial count of 1 given at creation time.
+            if (this.callCounter.decrementAndGet() == 0L) {
+                cleanable?.clean()
+            }
+        }
+    }
+
+    @Synchronized
+    override fun close() {
+        this.destroy()
+    }
+
+    internal inline fun <R> callWithHandle(block: (handle: Long) -> R): R {
+        // Check and increment the call counter, to keep the object alive.
+        // This needs a compare-and-set retry loop in case of concurrent updates.
+        do {
+            val c = this.callCounter.get()
+            if (c == 0L) {
+                throw IllegalStateException("${this.javaClass.simpleName} object has already been destroyed")
+            }
+            if (c == Long.MAX_VALUE) {
+                throw IllegalStateException("${this.javaClass.simpleName} call counter would overflow")
+            }
+        } while (! this.callCounter.compareAndSet(c, c + 1L))
+        // Now we can safely do the method call without the handle being freed concurrently.
+        try {
+            return block(this.uniffiCloneHandle())
+        } finally {
+            // This decrement always matches the increment we performed above.
+            if (this.callCounter.decrementAndGet() == 0L) {
+                cleanable?.clean()
+            }
+        }
+    }
+
+    // Use a static inner class instead of a closure so as not to accidentally
+    // capture `this` as part of the cleanable's action.
+    private class UniffiCleanAction(private val handle: Long) : Runnable {
+        override fun run() {
+            if (handle == 0.toLong()) {
+                // Fake object created with `NoHandle`, don't try to free.
+                return;
+            }
+            uniffiRustCall { status ->
+                UniffiLib.uniffi_rdp_transport_fn_free_drivecallback(handle, status)
+            }
+        }
+    }
+
+    /**
+     * @suppress
+     */
+    fun uniffiCloneHandle(): Long {
+        if (handle == 0.toLong()) {
+            throw InternalException("uniffiCloneHandle() called on NoHandle object");
+        }
+        return uniffiRustCall() { status ->
+            UniffiLib.uniffi_rdp_transport_fn_clone_drivecallback(handle, status)
+        }
+    }
+
+    override fun `stat`(`path`: kotlin.String): RdpDriveEntry? {
+            return FfiConverterOptionalTypeRdpDriveEntry.lift(
+    callWithHandle {
+    uniffiRustCall() { _status ->
+    UniffiLib.uniffi_rdp_transport_fn_method_drivecallback_stat(
+        it,
+        
+        FfiConverterString.lower(`path`),_status)
+}
+    }
+    )
+    }
+    
+
+    override fun `listDir`(`path`: kotlin.String): RdpDriveListResult {
+            return FfiConverterTypeRdpDriveListResult.lift(
+    callWithHandle {
+    uniffiRustCall() { _status ->
+    UniffiLib.uniffi_rdp_transport_fn_method_drivecallback_list_dir(
+        it,
+        
+        FfiConverterString.lower(`path`),_status)
+}
+    }
+    )
+    }
+    
+
+    override fun `mkdir`(`path`: kotlin.String): RdpDriveStatus {
+            return FfiConverterTypeRdpDriveStatus.lift(
+    callWithHandle {
+    uniffiRustCall() { _status ->
+    UniffiLib.uniffi_rdp_transport_fn_method_drivecallback_mkdir(
+        it,
+        
+        FfiConverterString.lower(`path`),_status)
+}
+    }
+    )
+    }
+    
+
+    override fun `createFile`(`path`: kotlin.String, `overwrite`: kotlin.Boolean): RdpDriveStatus {
+            return FfiConverterTypeRdpDriveStatus.lift(
+    callWithHandle {
+    uniffiRustCall() { _status ->
+    UniffiLib.uniffi_rdp_transport_fn_method_drivecallback_create_file(
+        it,
+        
+        FfiConverterString.lower(`path`),
+        FfiConverterBoolean.lower(`overwrite`),_status)
+}
+    }
+    )
+    }
+    
+
+    override fun `readAt`(`path`: kotlin.String, `offset`: kotlin.ULong, `length`: kotlin.UInt): RdpDriveReadResult {
+            return FfiConverterTypeRdpDriveReadResult.lift(
+    callWithHandle {
+    uniffiRustCall() { _status ->
+    UniffiLib.uniffi_rdp_transport_fn_method_drivecallback_read_at(
+        it,
+        
+        FfiConverterString.lower(`path`),
+        FfiConverterULong.lower(`offset`),
+        FfiConverterUInt.lower(`length`),_status)
+}
+    }
+    )
+    }
+    
+
+    override fun `writeAt`(`path`: kotlin.String, `offset`: kotlin.ULong, `data`: kotlin.ByteArray): RdpDriveWriteResult {
+            return FfiConverterTypeRdpDriveWriteResult.lift(
+    callWithHandle {
+    uniffiRustCall() { _status ->
+    UniffiLib.uniffi_rdp_transport_fn_method_drivecallback_write_at(
+        it,
+        
+        FfiConverterString.lower(`path`),
+        FfiConverterULong.lower(`offset`),
+        FfiConverterByteArray.lower(`data`),_status)
+}
+    }
+    )
+    }
+    
+
+    override fun `truncate`(`path`: kotlin.String, `size`: kotlin.ULong): RdpDriveStatus {
+            return FfiConverterTypeRdpDriveStatus.lift(
+    callWithHandle {
+    uniffiRustCall() { _status ->
+    UniffiLib.uniffi_rdp_transport_fn_method_drivecallback_truncate(
+        it,
+        
+        FfiConverterString.lower(`path`),
+        FfiConverterULong.lower(`size`),_status)
+}
+    }
+    )
+    }
+    
+
+    override fun `deletePath`(`path`: kotlin.String, `isDir`: kotlin.Boolean): RdpDriveStatus {
+            return FfiConverterTypeRdpDriveStatus.lift(
+    callWithHandle {
+    uniffiRustCall() { _status ->
+    UniffiLib.uniffi_rdp_transport_fn_method_drivecallback_delete_path(
+        it,
+        
+        FfiConverterString.lower(`path`),
+        FfiConverterBoolean.lower(`isDir`),_status)
+}
+    }
+    )
+    }
+    
+
+    override fun `renamePath`(`fromPath`: kotlin.String, `toPath`: kotlin.String, `replaceIfExists`: kotlin.Boolean): RdpDriveStatus {
+            return FfiConverterTypeRdpDriveStatus.lift(
+    callWithHandle {
+    uniffiRustCall() { _status ->
+    UniffiLib.uniffi_rdp_transport_fn_method_drivecallback_rename_path(
+        it,
+        
+        FfiConverterString.lower(`fromPath`),
+        FfiConverterString.lower(`toPath`),
+        FfiConverterBoolean.lower(`replaceIfExists`),_status)
+}
+    }
+    )
+    }
+    
+
+    override fun `closePath`(`path`: kotlin.String)
+        = 
+    callWithHandle {
+    uniffiRustCall() { _status ->
+    UniffiLib.uniffi_rdp_transport_fn_method_drivecallback_close_path(
+        it,
+        
+        FfiConverterString.lower(`path`),_status)
+}
+    }
+    
+    
+
+    
+
+    
+
+
+    
+    
+    /**
+     * @suppress
+     */
+    companion object
+    
+}
+
+
+
+// Put the implementation in an object so we don't pollute the top-level namespace
+internal object uniffiCallbackInterfaceDriveCallback {
+    internal object `stat`: UniffiCallbackInterfaceDriveCallbackMethod0 {
+        override fun callback(`uniffiHandle`: Long,`path`: RustBuffer.ByValue,`uniffiOutReturn`: RustBuffer,uniffiCallStatus: UniffiRustCallStatus,) {
+            val uniffiObj = FfiConverterTypeDriveCallback.handleMap.get(uniffiHandle)
+            val makeCall = { ->
+                uniffiObj.`stat`(
+                    FfiConverterString.lift(`path`),
+                )
+            }
+            val writeReturn = { value: RdpDriveEntry? -> uniffiOutReturn.setValue(FfiConverterOptionalTypeRdpDriveEntry.lower(value)) }
+            uniffiTraitInterfaceCall(uniffiCallStatus, makeCall, writeReturn)
+        }
+    }
+    internal object `listDir`: UniffiCallbackInterfaceDriveCallbackMethod1 {
+        override fun callback(`uniffiHandle`: Long,`path`: RustBuffer.ByValue,`uniffiOutReturn`: RustBuffer,uniffiCallStatus: UniffiRustCallStatus,) {
+            val uniffiObj = FfiConverterTypeDriveCallback.handleMap.get(uniffiHandle)
+            val makeCall = { ->
+                uniffiObj.`listDir`(
+                    FfiConverterString.lift(`path`),
+                )
+            }
+            val writeReturn = { value: RdpDriveListResult -> uniffiOutReturn.setValue(FfiConverterTypeRdpDriveListResult.lower(value)) }
+            uniffiTraitInterfaceCall(uniffiCallStatus, makeCall, writeReturn)
+        }
+    }
+    internal object `mkdir`: UniffiCallbackInterfaceDriveCallbackMethod2 {
+        override fun callback(`uniffiHandle`: Long,`path`: RustBuffer.ByValue,`uniffiOutReturn`: RustBuffer,uniffiCallStatus: UniffiRustCallStatus,) {
+            val uniffiObj = FfiConverterTypeDriveCallback.handleMap.get(uniffiHandle)
+            val makeCall = { ->
+                uniffiObj.`mkdir`(
+                    FfiConverterString.lift(`path`),
+                )
+            }
+            val writeReturn = { value: RdpDriveStatus -> uniffiOutReturn.setValue(FfiConverterTypeRdpDriveStatus.lower(value)) }
+            uniffiTraitInterfaceCall(uniffiCallStatus, makeCall, writeReturn)
+        }
+    }
+    internal object `createFile`: UniffiCallbackInterfaceDriveCallbackMethod3 {
+        override fun callback(`uniffiHandle`: Long,`path`: RustBuffer.ByValue,`overwrite`: Byte,`uniffiOutReturn`: RustBuffer,uniffiCallStatus: UniffiRustCallStatus,) {
+            val uniffiObj = FfiConverterTypeDriveCallback.handleMap.get(uniffiHandle)
+            val makeCall = { ->
+                uniffiObj.`createFile`(
+                    FfiConverterString.lift(`path`),
+                    FfiConverterBoolean.lift(`overwrite`),
+                )
+            }
+            val writeReturn = { value: RdpDriveStatus -> uniffiOutReturn.setValue(FfiConverterTypeRdpDriveStatus.lower(value)) }
+            uniffiTraitInterfaceCall(uniffiCallStatus, makeCall, writeReturn)
+        }
+    }
+    internal object `readAt`: UniffiCallbackInterfaceDriveCallbackMethod4 {
+        override fun callback(`uniffiHandle`: Long,`path`: RustBuffer.ByValue,`offset`: Long,`length`: Int,`uniffiOutReturn`: RustBuffer,uniffiCallStatus: UniffiRustCallStatus,) {
+            val uniffiObj = FfiConverterTypeDriveCallback.handleMap.get(uniffiHandle)
+            val makeCall = { ->
+                uniffiObj.`readAt`(
+                    FfiConverterString.lift(`path`),
+                    FfiConverterULong.lift(`offset`),
+                    FfiConverterUInt.lift(`length`),
+                )
+            }
+            val writeReturn = { value: RdpDriveReadResult -> uniffiOutReturn.setValue(FfiConverterTypeRdpDriveReadResult.lower(value)) }
+            uniffiTraitInterfaceCall(uniffiCallStatus, makeCall, writeReturn)
+        }
+    }
+    internal object `writeAt`: UniffiCallbackInterfaceDriveCallbackMethod5 {
+        override fun callback(`uniffiHandle`: Long,`path`: RustBuffer.ByValue,`offset`: Long,`data`: RustBuffer.ByValue,`uniffiOutReturn`: RustBuffer,uniffiCallStatus: UniffiRustCallStatus,) {
+            val uniffiObj = FfiConverterTypeDriveCallback.handleMap.get(uniffiHandle)
+            val makeCall = { ->
+                uniffiObj.`writeAt`(
+                    FfiConverterString.lift(`path`),
+                    FfiConverterULong.lift(`offset`),
+                    FfiConverterByteArray.lift(`data`),
+                )
+            }
+            val writeReturn = { value: RdpDriveWriteResult -> uniffiOutReturn.setValue(FfiConverterTypeRdpDriveWriteResult.lower(value)) }
+            uniffiTraitInterfaceCall(uniffiCallStatus, makeCall, writeReturn)
+        }
+    }
+    internal object `truncate`: UniffiCallbackInterfaceDriveCallbackMethod6 {
+        override fun callback(`uniffiHandle`: Long,`path`: RustBuffer.ByValue,`size`: Long,`uniffiOutReturn`: RustBuffer,uniffiCallStatus: UniffiRustCallStatus,) {
+            val uniffiObj = FfiConverterTypeDriveCallback.handleMap.get(uniffiHandle)
+            val makeCall = { ->
+                uniffiObj.`truncate`(
+                    FfiConverterString.lift(`path`),
+                    FfiConverterULong.lift(`size`),
+                )
+            }
+            val writeReturn = { value: RdpDriveStatus -> uniffiOutReturn.setValue(FfiConverterTypeRdpDriveStatus.lower(value)) }
+            uniffiTraitInterfaceCall(uniffiCallStatus, makeCall, writeReturn)
+        }
+    }
+    internal object `deletePath`: UniffiCallbackInterfaceDriveCallbackMethod7 {
+        override fun callback(`uniffiHandle`: Long,`path`: RustBuffer.ByValue,`isDir`: Byte,`uniffiOutReturn`: RustBuffer,uniffiCallStatus: UniffiRustCallStatus,) {
+            val uniffiObj = FfiConverterTypeDriveCallback.handleMap.get(uniffiHandle)
+            val makeCall = { ->
+                uniffiObj.`deletePath`(
+                    FfiConverterString.lift(`path`),
+                    FfiConverterBoolean.lift(`isDir`),
+                )
+            }
+            val writeReturn = { value: RdpDriveStatus -> uniffiOutReturn.setValue(FfiConverterTypeRdpDriveStatus.lower(value)) }
+            uniffiTraitInterfaceCall(uniffiCallStatus, makeCall, writeReturn)
+        }
+    }
+    internal object `renamePath`: UniffiCallbackInterfaceDriveCallbackMethod8 {
+        override fun callback(`uniffiHandle`: Long,`fromPath`: RustBuffer.ByValue,`toPath`: RustBuffer.ByValue,`replaceIfExists`: Byte,`uniffiOutReturn`: RustBuffer,uniffiCallStatus: UniffiRustCallStatus,) {
+            val uniffiObj = FfiConverterTypeDriveCallback.handleMap.get(uniffiHandle)
+            val makeCall = { ->
+                uniffiObj.`renamePath`(
+                    FfiConverterString.lift(`fromPath`),
+                    FfiConverterString.lift(`toPath`),
+                    FfiConverterBoolean.lift(`replaceIfExists`),
+                )
+            }
+            val writeReturn = { value: RdpDriveStatus -> uniffiOutReturn.setValue(FfiConverterTypeRdpDriveStatus.lower(value)) }
+            uniffiTraitInterfaceCall(uniffiCallStatus, makeCall, writeReturn)
+        }
+    }
+    internal object `closePath`: UniffiCallbackInterfaceDriveCallbackMethod9 {
+        override fun callback(`uniffiHandle`: Long,`path`: RustBuffer.ByValue,`uniffiOutReturn`: Pointer,uniffiCallStatus: UniffiRustCallStatus,) {
+            val uniffiObj = FfiConverterTypeDriveCallback.handleMap.get(uniffiHandle)
+            val makeCall = { ->
+                uniffiObj.`closePath`(
+                    FfiConverterString.lift(`path`),
+                )
+            }
+            val writeReturn = { _: Unit -> Unit }
+            uniffiTraitInterfaceCall(uniffiCallStatus, makeCall, writeReturn)
+        }
+    }
+
+    internal object uniffiFree: UniffiCallbackInterfaceFree {
+        override fun callback(handle: Long) {
+            FfiConverterTypeDriveCallback.handleMap.remove(handle)
+        }
+    }
+
+    internal object uniffiClone: UniffiCallbackInterfaceClone {
+        override fun callback(handle: Long): Long {
+            return FfiConverterTypeDriveCallback.handleMap.clone(handle)
+        }
+    }
+
+    internal var vtable = UniffiVTableCallbackInterfaceDriveCallback.UniffiByValue(
+        uniffiFree,
+        uniffiClone,
+        `stat`,
+        `listDir`,
+        `mkdir`,
+        `createFile`,
+        `readAt`,
+        `writeAt`,
+        `truncate`,
+        `deletePath`,
+        `renamePath`,
+        `closePath`,
+    )
+
+    // Registers the foreign callback with the Rust side.
+    // This method is generated for each callback interface.
+    internal fun register(lib: UniffiLib) {
+        lib.uniffi_rdp_transport_fn_init_callback_vtable_drivecallback(vtable)
+    }
+}
+
+/**
+ * @suppress
+ */
+public object FfiConverterTypeDriveCallback: FfiConverter<DriveCallback, Long> {
+    internal val handleMap = UniffiHandleMap<DriveCallback>()
+
+    override fun lower(value: DriveCallback): Long {
+        if (value is DriveCallbackImpl) {
+             // Rust-implemented object.  Clone the handle and return it
+            return value.uniffiCloneHandle()
+         } else {
+            // Kotlin object, generate a new vtable handle and return that.
+            return handleMap.insert(value)
+         }
+    }
+
+    override fun lift(value: Long): DriveCallback {
+        if ((value and 1.toLong()) == 0.toLong()) {
+            // Rust-generated handle, construct a new class that uses the handle to implement the
+            // interface
+            return DriveCallbackImpl(UniffiWithHandle, value)
+        } else {
+            // Kotlin-generated handle, get the object from the handle map
+            return handleMap.remove(value)
+        }
+    }
+
+    override fun read(buf: ByteBuffer): DriveCallback {
+        return lift(buf.getLong())
+    }
+
+    override fun allocationSize(value: DriveCallback) = 8UL
+
+    override fun write(value: DriveCallback, buf: ByteBuffer) {
+        buf.putLong(lower(value))
+    }
+}
+
+
+// This template implements a class for working with a Rust struct via a handle
+// to the live Rust struct on the other side of the FFI.
+//
+// There's some subtlety here, because we have to be careful not to operate on a Rust
+// struct after it has been dropped, and because we must expose a public API for freeing
+// theq Kotlin wrapper object in lieu of reliable finalizers. The core requirements are:
+//
+//   * Each instance holds an opaque handle to the underlying Rust struct.
+//     Method calls need to read this handle from the object's state and pass it in to
+//     the Rust FFI.
+//
+//   * When an instance is no longer needed, its handle should be passed to a
+//     special destructor function provided by the Rust FFI, which will drop the
+//     underlying Rust struct.
+//
+//   * Given an instance, calling code is expected to call the special
+//     `destroy` method in order to free it after use, either by calling it explicitly
+//     or by using a higher-level helper like the `use` method. Failing to do so risks
+//     leaking the underlying Rust struct.
+//
+//   * We can't assume that calling code will do the right thing, and must be prepared
+//     to handle Kotlin method calls executing concurrently with or even after a call to
+//     `destroy`, and to handle multiple (possibly concurrent!) calls to `destroy`.
+//
+//   * We must never allow Rust code to operate on the underlying Rust struct after
+//     the destructor has been called, and must never call the destructor more than once.
+//     Doing so may trigger memory unsafety.
+//
+//   * To mitigate many of the risks of leaking memory and use-after-free unsafety, a `Cleaner`
+//     is implemented to call the destructor when the Kotlin object becomes unreachable.
+//     This is done in a background thread. This is not a panacea, and client code should be aware that
+//      1. the thread may starve if some there are objects that have poorly performing
+//     `drop` methods or do significant work in their `drop` methods.
+//      2. the thread is shared across the whole library. This can be tuned by using `android_cleaner = true`,
+//         or `android = true` in the [`kotlin` section of the `uniffi.toml` file](https://mozilla.github.io/uniffi-rs/kotlin/configuration.html).
+//
+// If we try to implement this with mutual exclusion on access to the handle, there is the
+// possibility of a race between a method call and a concurrent call to `destroy`:
+//
+//    * Thread A starts a method call, reads the value of the handle, but is interrupted
+//      before it can pass the handle over the FFI to Rust.
+//    * Thread B calls `destroy` and frees the underlying Rust struct.
+//    * Thread A resumes, passing the already-read handle value to Rust and triggering
+//      a use-after-free.
+//
+// One possible solution would be to use a `ReadWriteLock`, with each method call taking
+// a read lock (and thus allowed to run concurrently) and the special `destroy` method
+// taking a write lock (and thus blocking on live method calls). However, we aim not to
+// generate methods with any hidden blocking semantics, and a `destroy` method that might
+// block if called incorrectly seems to meet that bar.
+//
+// So, we achieve our goals by giving each instance an associated `AtomicLong` counter to track
+// the number of in-flight method calls, and an `AtomicBoolean` flag to indicate whether `destroy`
+// has been called. These are updated according to the following rules:
+//
+//    * The initial value of the counter is 1, indicating a live object with no in-flight calls.
+//      The initial value for the flag is false.
+//
+//    * At the start of each method call, we atomically check the counter.
+//      If it is 0 then the underlying Rust struct has already been destroyed and the call is aborted.
+//      If it is nonzero them we atomically increment it by 1 and proceed with the method call.
+//
+//    * At the end of each method call, we atomically decrement and check the counter.
+//      If it has reached zero then we destroy the underlying Rust struct.
+//
+//    * When `destroy` is called, we atomically flip the flag from false to true.
+//      If the flag was already true we silently fail.
+//      Otherwise we atomically decrement and check the counter.
+//      If it has reached zero then we destroy the underlying Rust struct.
+//
+// Astute readers may observe that this all sounds very similar to the way that Rust's `Arc<T>` works,
+// and indeed it is, with the addition of a flag to guard against multiple calls to `destroy`.
+//
+// The overall effect is that the underlying Rust struct is destroyed only when `destroy` has been
+// called *and* all in-flight method calls have completed, avoiding violating any of the expectations
+// of the underlying Rust code.
+//
+// This makes a cleaner a better alternative to _not_ calling `destroy()` as
+// and when the object is finished with, but the abstraction is not perfect: if the Rust object's `drop`
+// method is slow, and/or there are many objects to cleanup, and it's on a low end Android device, then the cleaner
+// thread may be starved, and the app will leak memory.
+//
+// In this case, `destroy`ing manually may be a better solution.
+//
+// The cleaner can live side by side with the manual calling of `destroy`. In the order of responsiveness, uniffi objects
+// with Rust peers are reclaimed:
+//
+// 1. By calling the `destroy` method of the object, which calls `rustObject.free()`. If that doesn't happen:
+// 2. When the object becomes unreachable, AND the Cleaner thread gets to call `rustObject.free()`. If the thread is starved then:
+// 3. The memory is reclaimed when the process terminates.
+//
+// [1] https://stackoverflow.com/questions/24376768/can-java-finalize-an-object-when-it-is-still-in-scope/24380219
+//
+
+
 public interface FrameCallback {
     
     fun `onFrameUpdate`(`x`: kotlin.UShort, `y`: kotlin.UShort, `w`: kotlin.UShort, `h`: kotlin.UShort)
@@ -3847,6 +4597,8 @@ public interface RdpClientInterface {
     
     fun `setClipboardCallback`(`cb`: ClipboardCallback)
     
+    fun `setDriveCallback`(`cb`: DriveCallback)
+    
     fun `setFrameCallback`(`cb`: FrameCallback)
     
     fun `setPointerCallback`(`cb`: PointerCallback)
@@ -4263,6 +5015,19 @@ open class RdpClient: Disposable, AutoCloseable, RdpClientInterface
         it,
         
         FfiConverterTypeClipboardCallback.lower(`cb`),_status)
+}
+    }
+    
+    
+
+    override fun `setDriveCallback`(`cb`: DriveCallback)
+        = 
+    callWithHandle {
+    uniffiRustCall() { _status ->
+    UniffiLib.uniffi_rdp_transport_fn_method_rdpclient_set_drive_callback(
+        it,
+        
+        FfiConverterTypeDriveCallback.lower(`cb`),_status)
 }
     }
     
@@ -5007,6 +5772,13 @@ data class RdpConfig (
      * `Disabled` via `INFO_NOAUDIOPLAYBACK`).
      */
     var `audioMode`: RdpAudioMode
+    , 
+    /**
+     * #890: optional share name for SAF folder redirection (`MS-RDPEFS` over
+     * static `rdpdr` channel). `None` keeps drive redirection disabled unless
+     * explicitly configured on the connection profile.
+     */
+    var `sharedFolderName`: kotlin.String? = null 
     
 ){
     
@@ -5036,6 +5808,7 @@ public object FfiConverterTypeRdpConfig: FfiConverterRustBuffer<RdpConfig> {
             FfiConverterUInt.read(buf),
             FfiConverterBoolean.read(buf),
             FfiConverterTypeRdpAudioMode.read(buf),
+            FfiConverterOptionalString.read(buf),
         )
     }
 
@@ -5052,7 +5825,8 @@ public object FfiConverterTypeRdpConfig: FfiConverterRustBuffer<RdpConfig> {
             FfiConverterBoolean.allocationSize(value.`avcEnabled`) +
             FfiConverterUInt.allocationSize(value.`keyboardLayout`) +
             FfiConverterBoolean.allocationSize(value.`enableClipboard`) +
-            FfiConverterTypeRdpAudioMode.allocationSize(value.`audioMode`)
+            FfiConverterTypeRdpAudioMode.allocationSize(value.`audioMode`) +
+            FfiConverterOptionalString.allocationSize(value.`sharedFolderName`)
     )
 
     override fun write(value: RdpConfig, buf: ByteBuffer) {
@@ -5069,6 +5843,174 @@ public object FfiConverterTypeRdpConfig: FfiConverterRustBuffer<RdpConfig> {
             FfiConverterUInt.write(value.`keyboardLayout`, buf)
             FfiConverterBoolean.write(value.`enableClipboard`, buf)
             FfiConverterTypeRdpAudioMode.write(value.`audioMode`, buf)
+            FfiConverterOptionalString.write(value.`sharedFolderName`, buf)
+    }
+}
+
+
+
+data class RdpDriveEntry (
+    var `name`: kotlin.String
+    , 
+    var `isDir`: kotlin.Boolean
+    , 
+    var `size`: kotlin.ULong
+    , 
+    var `modifiedMs`: kotlin.Long
+    , 
+    var `readOnly`: kotlin.Boolean
+    
+){
+    
+
+    
+
+    
+    companion object
+}
+
+/**
+ * @suppress
+ */
+public object FfiConverterTypeRdpDriveEntry: FfiConverterRustBuffer<RdpDriveEntry> {
+    override fun read(buf: ByteBuffer): RdpDriveEntry {
+        return RdpDriveEntry(
+            FfiConverterString.read(buf),
+            FfiConverterBoolean.read(buf),
+            FfiConverterULong.read(buf),
+            FfiConverterLong.read(buf),
+            FfiConverterBoolean.read(buf),
+        )
+    }
+
+    override fun allocationSize(value: RdpDriveEntry) = (
+            FfiConverterString.allocationSize(value.`name`) +
+            FfiConverterBoolean.allocationSize(value.`isDir`) +
+            FfiConverterULong.allocationSize(value.`size`) +
+            FfiConverterLong.allocationSize(value.`modifiedMs`) +
+            FfiConverterBoolean.allocationSize(value.`readOnly`)
+    )
+
+    override fun write(value: RdpDriveEntry, buf: ByteBuffer) {
+            FfiConverterString.write(value.`name`, buf)
+            FfiConverterBoolean.write(value.`isDir`, buf)
+            FfiConverterULong.write(value.`size`, buf)
+            FfiConverterLong.write(value.`modifiedMs`, buf)
+            FfiConverterBoolean.write(value.`readOnly`, buf)
+    }
+}
+
+
+
+data class RdpDriveListResult (
+    var `status`: RdpDriveStatus
+    , 
+    var `entries`: List<RdpDriveEntry>
+    
+){
+    
+
+    
+
+    
+    companion object
+}
+
+/**
+ * @suppress
+ */
+public object FfiConverterTypeRdpDriveListResult: FfiConverterRustBuffer<RdpDriveListResult> {
+    override fun read(buf: ByteBuffer): RdpDriveListResult {
+        return RdpDriveListResult(
+            FfiConverterTypeRdpDriveStatus.read(buf),
+            FfiConverterSequenceTypeRdpDriveEntry.read(buf),
+        )
+    }
+
+    override fun allocationSize(value: RdpDriveListResult) = (
+            FfiConverterTypeRdpDriveStatus.allocationSize(value.`status`) +
+            FfiConverterSequenceTypeRdpDriveEntry.allocationSize(value.`entries`)
+    )
+
+    override fun write(value: RdpDriveListResult, buf: ByteBuffer) {
+            FfiConverterTypeRdpDriveStatus.write(value.`status`, buf)
+            FfiConverterSequenceTypeRdpDriveEntry.write(value.`entries`, buf)
+    }
+}
+
+
+
+data class RdpDriveReadResult (
+    var `status`: RdpDriveStatus
+    , 
+    var `data`: kotlin.ByteArray
+    
+){
+    
+
+    
+
+    
+    companion object
+}
+
+/**
+ * @suppress
+ */
+public object FfiConverterTypeRdpDriveReadResult: FfiConverterRustBuffer<RdpDriveReadResult> {
+    override fun read(buf: ByteBuffer): RdpDriveReadResult {
+        return RdpDriveReadResult(
+            FfiConverterTypeRdpDriveStatus.read(buf),
+            FfiConverterByteArray.read(buf),
+        )
+    }
+
+    override fun allocationSize(value: RdpDriveReadResult) = (
+            FfiConverterTypeRdpDriveStatus.allocationSize(value.`status`) +
+            FfiConverterByteArray.allocationSize(value.`data`)
+    )
+
+    override fun write(value: RdpDriveReadResult, buf: ByteBuffer) {
+            FfiConverterTypeRdpDriveStatus.write(value.`status`, buf)
+            FfiConverterByteArray.write(value.`data`, buf)
+    }
+}
+
+
+
+data class RdpDriveWriteResult (
+    var `status`: RdpDriveStatus
+    , 
+    var `written`: kotlin.UInt
+    
+){
+    
+
+    
+
+    
+    companion object
+}
+
+/**
+ * @suppress
+ */
+public object FfiConverterTypeRdpDriveWriteResult: FfiConverterRustBuffer<RdpDriveWriteResult> {
+    override fun read(buf: ByteBuffer): RdpDriveWriteResult {
+        return RdpDriveWriteResult(
+            FfiConverterTypeRdpDriveStatus.read(buf),
+            FfiConverterUInt.read(buf),
+        )
+    }
+
+    override fun allocationSize(value: RdpDriveWriteResult) = (
+            FfiConverterTypeRdpDriveStatus.allocationSize(value.`status`) +
+            FfiConverterUInt.allocationSize(value.`written`)
+    )
+
+    override fun write(value: RdpDriveWriteResult, buf: ByteBuffer) {
+            FfiConverterTypeRdpDriveStatus.write(value.`status`, buf)
+            FfiConverterUInt.write(value.`written`, buf)
     }
 }
 
@@ -5287,6 +6229,50 @@ public object FfiConverterTypeRdpAudioMode: FfiConverterRustBuffer<RdpAudioMode>
     override fun allocationSize(value: RdpAudioMode) = 4UL
 
     override fun write(value: RdpAudioMode, buf: ByteBuffer) {
+        buf.putInt(value.ordinal + 1)
+    }
+}
+
+
+
+
+
+
+enum class RdpDriveStatus {
+    
+    OK,
+    NOT_FOUND,
+    PATH_NOT_FOUND,
+    ALREADY_EXISTS,
+    NOT_A_DIRECTORY,
+    IS_A_DIRECTORY,
+    DIRECTORY_NOT_EMPTY,
+    ACCESS_DENIED,
+    WRITE_PROTECTED,
+    DISK_FULL,
+    INVALID_NAME,
+    IO_ERROR;
+
+    
+
+
+    companion object
+}
+
+
+/**
+ * @suppress
+ */
+public object FfiConverterTypeRdpDriveStatus: FfiConverterRustBuffer<RdpDriveStatus> {
+    override fun read(buf: ByteBuffer) = try {
+        RdpDriveStatus.values()[buf.getInt() - 1]
+    } catch (e: IndexOutOfBoundsException) {
+        throw RuntimeException("invalid enum value, something is very wrong!!", e)
+    }
+
+    override fun allocationSize(value: RdpDriveStatus) = 4UL
+
+    override fun write(value: RdpDriveStatus, buf: ByteBuffer) {
         buf.putInt(value.ordinal + 1)
     }
 }
@@ -5565,6 +6551,38 @@ public object FfiConverterOptionalTypeFrameData: FfiConverterRustBuffer<FrameDat
 /**
  * @suppress
  */
+public object FfiConverterOptionalTypeRdpDriveEntry: FfiConverterRustBuffer<RdpDriveEntry?> {
+    override fun read(buf: ByteBuffer): RdpDriveEntry? {
+        if (buf.get().toInt() == 0) {
+            return null
+        }
+        return FfiConverterTypeRdpDriveEntry.read(buf)
+    }
+
+    override fun allocationSize(value: RdpDriveEntry?): ULong {
+        if (value == null) {
+            return 1UL
+        } else {
+            return 1UL + FfiConverterTypeRdpDriveEntry.allocationSize(value)
+        }
+    }
+
+    override fun write(value: RdpDriveEntry?, buf: ByteBuffer) {
+        if (value == null) {
+            buf.put(0)
+        } else {
+            buf.put(1)
+            FfiConverterTypeRdpDriveEntry.write(value, buf)
+        }
+    }
+}
+
+
+
+
+/**
+ * @suppress
+ */
 public object FfiConverterOptionalTypeSocksProxyConfig: FfiConverterRustBuffer<SocksProxyConfig?> {
     override fun read(buf: ByteBuffer): SocksProxyConfig? {
         if (buf.get().toInt() == 0) {
@@ -5615,6 +6633,34 @@ public object FfiConverterSequenceString: FfiConverterRustBuffer<List<kotlin.Str
         buf.putInt(value.size)
         value.iterator().forEach {
             FfiConverterString.write(it, buf)
+        }
+    }
+}
+
+
+
+
+/**
+ * @suppress
+ */
+public object FfiConverterSequenceTypeRdpDriveEntry: FfiConverterRustBuffer<List<RdpDriveEntry>> {
+    override fun read(buf: ByteBuffer): List<RdpDriveEntry> {
+        val len = buf.getInt()
+        return List<RdpDriveEntry>(len) {
+            FfiConverterTypeRdpDriveEntry.read(buf)
+        }
+    }
+
+    override fun allocationSize(value: List<RdpDriveEntry>): ULong {
+        val sizeForLength = 4UL
+        val sizeForItems = value.map { FfiConverterTypeRdpDriveEntry.allocationSize(it) }.sum()
+        return sizeForLength + sizeForItems
+    }
+
+    override fun write(value: List<RdpDriveEntry>, buf: ByteBuffer) {
+        buf.putInt(value.size)
+        value.iterator().forEach {
+            FfiConverterTypeRdpDriveEntry.write(it, buf)
         }
     }
 }

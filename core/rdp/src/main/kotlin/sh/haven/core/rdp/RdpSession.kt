@@ -103,6 +103,12 @@ class RdpSession(
      * plays on the Android device unless configured otherwise on the profile.
      */
     private val audioMode: RdpSoundMode = RdpSoundMode.PLAY_ON_DEVICE,
+    /**
+     * #890: optional SAF folder redirection backend (`MS-RDPEFS` over `rdpdr`).
+     * Null keeps drive redirection disabled unless explicitly configured on the
+     * connection profile. Owned and closed by this [RdpSession].
+     */
+    private val sharedDriveBackend: RdpSafDriveBackend? = null,
 ) : Closeable {
 
     @Volatile
@@ -253,6 +259,7 @@ class RdpSession(
                     RdpSoundMode.PLAY_ON_SERVER -> RdpAudioMode.PLAY_ON_SERVER
                     RdpSoundMode.DISABLED -> RdpAudioMode.DISABLED
                 },
+                sharedFolderName = sharedDriveBackend?.shareName,
             )
 
             // #477: record which settings this session actually ran with. Two
@@ -265,7 +272,7 @@ class RdpSession(
                 "RDP settings: avc420=${config.avcEnabled} progressiveUpgrade=" +
                     "${config.progressiveUpgrade} colorDepth=$colorDepth nla=$useNla " +
                     "klid=0x${config.keyboardLayout.toString(16)} clipboard=${config.enableClipboard} " +
-                    "audio=${config.audioMode}",
+                    "audio=${config.audioMode} sharedDrive=${sharedDriveBackend != null}",
             )
 
             val c = RdpClient(config)
@@ -410,6 +417,10 @@ class RdpSession(
                 val player = RdpAudioPlayer(sessionId = sessionId, log = ::log)
                 audioPlayer = player
                 c.setAudioCallback(player)
+            }
+
+            if (sharedDriveBackend != null) {
+                c.setDriveCallback(sharedDriveBackend)
             }
 
             log("D", "Connecting to ${redactHost(host, port)} (worker thread will handle handshake, socks=${socksProxy != null})")
@@ -695,6 +706,11 @@ class RdpSession(
             log("E", "Error releasing RDP audio player: ${e.message}")
         }
         audioPlayer = null
+        try {
+            sharedDriveBackend?.close()
+        } catch (e: Exception) {
+            log("E", "Error releasing RDP shared drive: ${e.message}")
+        }
         synchronized(this) {
             // #425: never recycle a bitmap the Compose viewer may still be
             // drawing (see onResize) — drop the ref and let GC reclaim it.

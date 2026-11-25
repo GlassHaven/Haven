@@ -229,6 +229,12 @@ pub(crate) fn new_static_client(state: Arc<RwLock<crate::SessionState>>) -> Rdps
         .with_clock(monotonic_clock())
 }
 
+/// No-op static `rdpsnd` channel required alongside `rdpdr` when audio playback
+/// on this device is not active (`[MS-RDPEFS] Appendix A<1>`).
+pub(crate) fn new_noop_static_client() -> Rdpsnd {
+    Rdpsnd::new(Box::new(ironrdp_rdpsnd::client::NoopRdpsndBackend))
+}
+
 pub(crate) fn new_dvc_state(state: Arc<RwLock<crate::SessionState>>) -> RdpsndDvcState {
     RdpsndDvcState::new(Box::new(HavenRdpsndHandler::new(state)))
         .with_quality_mode(QualityMode::High)
@@ -363,6 +369,7 @@ mod tests {
             frame_callback: None,
             clipboard_callback: None,
             audio_callback: Some(cb),
+            drive_callback: None,
             session_callback: None,
             pointer_callback: None,
             avc_decoder: None,

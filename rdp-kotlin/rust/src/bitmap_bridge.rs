@@ -201,6 +201,7 @@ mod tests {
             frame_callback: None,
             clipboard_callback: None,
             audio_callback: None,
+            drive_callback: None,
             session_callback: None,
             pointer_callback: None,
             avc_decoder: None,

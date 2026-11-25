@@ -5,6 +5,7 @@ use log::{debug, error, info, warn};
 mod bitmap_bridge;
 mod cliprdr;
 mod egfx;
+mod rdpdr;
 mod rdpei;
 mod rdpsnd;
 mod redirection;
@@ -245,6 +246,11 @@ pub struct RdpConfig {
     /// `AUDIO_PLAYBACK_DVC`, `PlayOnServer` via `INFO_REMOTECONSOLEAUDIO`, or
     /// `Disabled` via `INFO_NOAUDIOPLAYBACK`).
     pub audio_mode: RdpAudioMode,
+    /// #890: optional share name for SAF folder redirection (`MS-RDPEFS` over
+    /// static `rdpdr` channel). `None` keeps drive redirection disabled unless
+    /// explicitly configured on the connection profile.
+    #[uniffi(default = None)]
+    pub shared_folder_name: Option<String>,
 }
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq, uniffi::Enum)]
@@ -302,6 +308,63 @@ pub trait AudioCallback: Send + Sync {
     fn on_audio_pcm(&self, pcm_s16le: Vec<u8>, sample_rate: u32, channels: u16);
     fn on_audio_volume(&self, left: f32, right: f32);
     fn on_audio_close(&self);
+}
+
+#[derive(Debug, Clone, PartialEq, Eq, uniffi::Record)]
+pub struct RdpDriveEntry {
+    pub name: String,
+    pub is_dir: bool,
+    pub size: u64,
+    pub modified_ms: i64,
+    pub read_only: bool,
+}
+
+#[derive(Debug, Clone, Copy, PartialEq, Eq, uniffi::Enum)]
+pub enum RdpDriveStatus {
+    Ok,
+    NotFound,
+    PathNotFound,
+    AlreadyExists,
+    NotADirectory,
+    IsADirectory,
+    DirectoryNotEmpty,
+    AccessDenied,
+    WriteProtected,
+    DiskFull,
+    InvalidName,
+    IoError,
+}
+
+#[derive(Debug, Clone, uniffi::Record)]
+pub struct RdpDriveListResult {
+    pub status: RdpDriveStatus,
+    pub entries: Vec<RdpDriveEntry>,
+}
+
+#[derive(Debug, Clone, uniffi::Record)]
+pub struct RdpDriveReadResult {
+    pub status: RdpDriveStatus,
+    pub data: Vec<u8>,
+}
+
+#[derive(Debug, Clone, uniffi::Record)]
+pub struct RdpDriveWriteResult {
+    pub status: RdpDriveStatus,
+    pub written: u32,
+}
+
+#[uniffi::export(with_foreign)]
+pub trait DriveCallback: Send + Sync {
+    fn stat(&self, path: String) -> Option<RdpDriveEntry>;
+    fn list_dir(&self, path: String) -> RdpDriveListResult;
+    fn mkdir(&self, path: String) -> RdpDriveStatus;
+    fn create_file(&self, path: String, overwrite: bool) -> RdpDriveStatus;
+    fn read_at(&self, path: String, offset: u64, length: u32) -> RdpDriveReadResult;
+    fn write_at(&self, path: String, offset: u64, data: Vec<u8>) -> RdpDriveWriteResult;
+    fn truncate(&self, path: String, size: u64) -> RdpDriveStatus;
+    fn delete_path(&self, path: String, is_dir: bool) -> RdpDriveStatus;
+    fn rename_path(&self, from_path: String, to_path: String, replace_if_exists: bool) -> RdpDriveStatus;
+    fn close_path(&self, path: String);
 }
 
 /// #425: decodes one EGFX AVC420 (H.264 YUV420) access unit to RGBA. Rust owns
@@ -492,6 +555,7 @@ pub(crate) struct SessionState {
     frame_callback: Option<Arc<dyn FrameCallback>>,
     clipboard_callback: Option<Arc<dyn ClipboardCallback>>,
     pub(crate) audio_callback: Option<Arc<dyn AudioCallback>>,
+    pub(crate) drive_callback: Option<Arc<dyn DriveCallback>>,
     session_callback: Option<Arc<dyn SessionCallback>>,
     pointer_callback: Option<Arc<dyn PointerCallback>>,
     /// #425: MediaCodec-backed H.264 decoder for EGFX AVC420 tiles (KRDP).
@@ -606,6 +670,7 @@ impl RdpClient {
                 frame_callback: None,
                 clipboard_callback: None,
                 audio_callback: None,
+                drive_callback: None,
                 session_callback: None,
                 pointer_callback: None,
             avc_decoder: None,
@@ -1042,6 +1107,12 @@ impl RdpClient {
     pub fn set_audio_callback(&self, cb: Arc<dyn AudioCallback>) {
         if let Ok(mut s) = self.state.write() {
             s.audio_callback = Some(cb);
+        }
+    }
+
+    pub fn set_drive_callback(&self, cb: Arc<dyn DriveCallback>) {
+        if let Ok(mut s) = self.state.write() {
+            s.drive_callback = Some(cb);
         }
     }
 
@@ -1940,8 +2011,23 @@ fn run_rdp_session(
             clipboard_state,
         )));
     }
+    let shared_drive_name = config
+        .shared_folder_name
+        .as_deref()
+        .filter(|name| !name.trim().is_empty())
+        .filter(|_| state.read().ok().is_some_and(|s| s.drive_callback.is_some()));
     if config.audio_mode == RdpAudioMode::PlayOnDevice {
         connector = connector.with_static_channel(crate::rdpsnd::new_static_client(Arc::clone(state)));
+    } else if shared_drive_name.is_some() {
+        // [MS-RDPEFS] Appendix A<1>: Windows RDP servers ignore `rdpdr` unless
+        // the `rdpsnd` static channel is also advertised in ClientNetworkData.
+        connector = connector.with_static_channel(crate::rdpsnd::new_noop_static_client());
+    }
+    if let Some(drive_name) = shared_drive_name {
+        connector = connector.with_static_channel(crate::rdpdr::new_static_client(
+            Arc::clone(state),
+            drive_name,
+        ));
     }
 
     // Keep a clone of the underlying TCP stream so we can adjust the read
@@ -3645,6 +3731,7 @@ mod codec_advertisement_tests {
             keyboard_layout: 0,
             enable_clipboard: true,
             audio_mode: super::RdpAudioMode::PlayOnDevice,
+            shared_folder_name: None,
         }
     }
 
@@ -3704,6 +3791,7 @@ mod region_tests {
             keyboard_layout: 0,
             enable_clipboard: true,
             audio_mode: super::RdpAudioMode::Disabled,
+            shared_folder_name: None,
         });
         // Distinct value per pixel so a wrong row or column is detectable.
         let mut pixels = vec![0u8; w as usize * h as usize * 4];
@@ -3766,6 +3854,7 @@ mod region_tests {
             keyboard_layout: 0,
             enable_clipboard: true,
             audio_mode: super::RdpAudioMode::Disabled,
+            shared_folder_name: None,
         });
         assert!(client.get_framebuffer_region(0, 0, 4, 4).is_none());
     }
@@ -4144,6 +4233,7 @@ mod framebuffer_publish_tests {
             frame_callback: None,
             clipboard_callback: None,
             audio_callback: None,
+            drive_callback: None,
             session_callback: None,
             pointer_callback: None,
             avc_decoder: None,

@@ -643,4 +643,6 @@
     <string name="connections_helper_rdp_shared_folder">Desativado por padrão. Expõe uma pasta escolhida ao PC remoto como uma unidade redirecionada.</string>
     <string name="connections_toggle_rdp_location">Compartilhar localização</string>
     <string name="connections_helper_rdp_location">Desativado por padrão. Encaminha a localização GNSS/de rede do dispositivo para a sessão remota.</string>
+    <string name="connections_toggle_rdp_camera">Compartilhar câmera</string>
+    <string name="connections_helper_rdp_camera">Desativado por padrão. Expõe as câmeras do dispositivo à sessão remota para captura de vídeo.</string>
 </resources>

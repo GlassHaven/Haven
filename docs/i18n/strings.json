@@ -21939,6 +21939,46 @@
       "sr": "Подразумевано искључено. Прослеђује GNSS/мрежну локацију уређаја удаљеној сесији.",
       "zh": "默认关闭。将设备的 GNSS/网络位置信息转发到远程会话。"
      }
+    },
+    {
+     "name": "connections_toggle_rdp_camera",
+     "en": "Share camera",
+     "comment": "#210 i18n sweep: VM-setup copy toasts and code-block copy action.",
+     "args": [],
+     "t": {
+      "ar": "مشاركة الكاميرا",
+      "bn": "ক্যামেরা শেয়ার করুন",
+      "de": "Kamera teilen",
+      "es": "Compartir cámara",
+      "fr": "Partager la caméra",
+      "hi": "कैमरा साझा करें",
+      "ja": "カメラを共有",
+      "ko": "카메라 공유",
+      "pt": "Compartilhar câmera",
+      "ru": "Общая камера",
+      "sr": "Дели камеру",
+      "zh": "共享摄像头"
+     }
+    },
+    {
+     "name": "connections_helper_rdp_camera",
+     "en": "Off by default. Exposes device cameras to the remote session for video capture.",
+     "comment": "#210 i18n sweep: VM-setup copy toasts and code-block copy action.",
+     "args": [],
+     "t": {
+      "ar": "متوقف افتراضيًا. يعرض كاميرات الجهاز للجلسة البعيدة لالتقاط الفيديو.",
+      "bn": "ডিফল্টভাবে বন্ধ। ভিডিও ক্যাপচারের জন্য ডিভাইসের ক্যামেরা রিমোট সেশনে উন্মুক্ত করে।",
+      "de": "Standardmäßig aus. Stellt die Gerätekameras der Remote-Sitzung für Videoaufnahmen bereit.",
+      "es": "Desactivado por defecto. Expone las cámaras del dispositivo a la sesión remota para captura de vídeo.",
+      "fr": "Désactivé par défaut. Expose les caméras de l\\'appareil à la session distante pour la capture vidéo.",
+      "hi": "डिफ़ॉल्ट रूप से बंद। वीडियो कैप्चर के लिए डिवाइस के कैमरों को रिमोट सत्र में उपलब्ध कराता है।",
+      "ja": "既定ではオフです。ビデオキャプチャ用にデバイスのカメラをリモートセッションに公開します。",
+      "ko": "기본값은 꺼짐입니다. 비디오 캡처를 위해 기기의 카메라를 원격 세션에 노출합니다.",
+      "pt": "Desativado por padrão. Expõe as câmeras do dispositivo à sessão remota para captura de vídeo.",
+      "ru": "По умолчанию выключено. Предоставляет камеры устройства удалённому сеансу для захвата видео.",
+      "sr": "Подразумевано искључено. Излаже камере уређаја удаљеној сесији за снимање видеа.",
+      "zh": "默认关闭。将设备的摄像头暴露给远程会话以进行视频捕获。"
+     }
     }
    ]
   },

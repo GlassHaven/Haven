@@ -58,7 +58,7 @@ import sh.haven.core.data.db.entities.WorkspaceProfile
         ChatConversation::class,
         ChatMessage::class,
     ],
-    version = 93,
+    version = 94,
     exportSchema = true,
 )
 abstract class HavenDatabase : RoomDatabase() {
@@ -1443,6 +1443,13 @@ abstract class HavenDatabase : RoomDatabase() {
         val MIGRATION_92_93 = object : Migration(92, 93) {
             override fun migrate(db: SupportSQLiteDatabase) {
                 addColumnIfMissing(db, "connection_profiles", "rdpLocation", "INTEGER NOT NULL DEFAULT 0")
+            }
+        }
+
+        /** #890: per-profile MS-RDPECAM camera redirection toggle. */
+        val MIGRATION_93_94 = object : Migration(93, 94) {
+            override fun migrate(db: SupportSQLiteDatabase) {
+                addColumnIfMissing(db, "connection_profiles", "rdpCamera", "INTEGER NOT NULL DEFAULT 0")
             }
         }
 

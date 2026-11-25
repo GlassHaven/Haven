@@ -1352,6 +1352,7 @@ class DesktopViewModel @Inject constructor(
                         audioMode = profile.rdpAudioMode,
                         sharedFolderUri = profile.rdpSharedFolderUri,
                         enableLocation = profile.rdpLocation,
+                        enableCamera = profile.rdpCamera,
                     )
                 }
                 profile.isSpice -> {
@@ -2474,6 +2475,7 @@ class DesktopViewModel @Inject constructor(
         audioMode: String? = null,
         sharedFolderUri: String? = null,
         enableLocation: Boolean? = null,
+        enableCamera: Boolean? = null,
     ) {
         viewModelScope.launch(Dispatchers.IO) {
             // Deduplicate: if a tab for the same connection exists, reuse or replace
@@ -2587,6 +2589,9 @@ class DesktopViewModel @Inject constructor(
                 val effectiveLocation = enableLocation
                     ?: storedProfile?.rdpLocation
                     ?: false
+                val effectiveCamera = enableCamera
+                    ?: storedProfile?.rdpCamera
+                    ?: false
 
                 val session = RdpSession(
                     sessionId = "rdp-$tabId",
@@ -2611,6 +2616,18 @@ class DesktopViewModel @Inject constructor(
                             sh.haven.core.rdp.RdpLocationForwarder.create(
                                 context = appContext,
                                 sink = { lat, lon, alt -> s.sendLocation(lat, lon, alt) },
+                            )
+                        }
+                    } else {
+                        null
+                    },
+                    enableCamera = effectiveCamera,
+                    cameraBackendFactory = if (effectiveCamera) {
+                        { s ->
+                            sh.haven.core.rdp.RdpCameraBackend.create(
+                                context = appContext,
+                                hasPendingRequest = { camId -> s.hasPendingCameraRequest(camId) },
+                                pushSample = { camId, bytes -> s.pushCameraSample(camId, bytes) },
                             )
                         }
                     } else {
@@ -2711,6 +2728,7 @@ class DesktopViewModel @Inject constructor(
                     keyboardLayoutKlid = layoutKlid,
                     clipboardEnabled = effectiveClipboard,
                     locationEnabled = effectiveLocation,
+                    cameraEnabled = effectiveCamera,
                 )
 
                 val tabs = _tabs.value.toMutableList()

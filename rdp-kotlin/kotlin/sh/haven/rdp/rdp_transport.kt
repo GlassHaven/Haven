@@ -662,6 +662,15 @@ internal interface UniffiCallbackInterfaceAudioCallbackMethod2 : com.sun.jna.Cal
 internal interface UniffiCallbackInterfaceAvc420DecoderMethod0 : com.sun.jna.Callback {
     fun callback(`uniffiHandle`: Long,`annexB`: RustBuffer.ByValue,`width`: Short,`height`: Short,`dstAddr`: Long,`dstLen`: Long,`uniffiOutReturn`: IntByReference,uniffiCallStatus: UniffiRustCallStatus,)
 }
+internal interface UniffiCallbackInterfaceCameraCallbackMethod0 : com.sun.jna.Callback {
+    fun callback(`uniffiHandle`: Long,`uniffiOutReturn`: RustBuffer,uniffiCallStatus: UniffiRustCallStatus,)
+}
+internal interface UniffiCallbackInterfaceCameraCallbackMethod1 : com.sun.jna.Callback {
+    fun callback(`uniffiHandle`: Long,`cameraId`: RustBuffer.ByValue,`mode`: RustBuffer.ByValue,`uniffiOutReturn`: ByteByReference,uniffiCallStatus: UniffiRustCallStatus,)
+}
+internal interface UniffiCallbackInterfaceCameraCallbackMethod2 : com.sun.jna.Callback {
+    fun callback(`uniffiHandle`: Long,`cameraId`: RustBuffer.ByValue,`uniffiOutReturn`: Pointer,uniffiCallStatus: UniffiRustCallStatus,)
+}
 internal interface UniffiCallbackInterfaceClipboardCallbackMethod0 : com.sun.jna.Callback {
     fun callback(`uniffiHandle`: Long,`text`: RustBuffer.ByValue,`uniffiOutReturn`: Pointer,uniffiCallStatus: UniffiRustCallStatus,)
 }
@@ -766,6 +775,31 @@ internal open class UniffiVTableCallbackInterfaceAvc420Decoder(
         `uniffiFree` = other.`uniffiFree`
         `uniffiClone` = other.`uniffiClone`
         `decodeInto` = other.`decodeInto`
+    }
+
+}
+@Structure.FieldOrder("uniffiFree", "uniffiClone", "listCameras", "startStream", "stopStream")
+internal open class UniffiVTableCallbackInterfaceCameraCallback(
+    @JvmField internal var `uniffiFree`: UniffiCallbackInterfaceFree? = null,
+    @JvmField internal var `uniffiClone`: UniffiCallbackInterfaceClone? = null,
+    @JvmField internal var `listCameras`: UniffiCallbackInterfaceCameraCallbackMethod0? = null,
+    @JvmField internal var `startStream`: UniffiCallbackInterfaceCameraCallbackMethod1? = null,
+    @JvmField internal var `stopStream`: UniffiCallbackInterfaceCameraCallbackMethod2? = null,
+) : Structure() {
+    class UniffiByValue(
+        `uniffiFree`: UniffiCallbackInterfaceFree? = null,
+        `uniffiClone`: UniffiCallbackInterfaceClone? = null,
+        `listCameras`: UniffiCallbackInterfaceCameraCallbackMethod0? = null,
+        `startStream`: UniffiCallbackInterfaceCameraCallbackMethod1? = null,
+        `stopStream`: UniffiCallbackInterfaceCameraCallbackMethod2? = null,
+    ): UniffiVTableCallbackInterfaceCameraCallback(`uniffiFree`,`uniffiClone`,`listCameras`,`startStream`,`stopStream`,), Structure.ByValue
+
+   internal fun uniffiSetValue(other: UniffiVTableCallbackInterfaceCameraCallback) {
+        `uniffiFree` = other.`uniffiFree`
+        `uniffiClone` = other.`uniffiClone`
+        `listCameras` = other.`listCameras`
+        `startStream` = other.`startStream`
+        `stopStream` = other.`stopStream`
     }
 
 }
@@ -947,6 +981,12 @@ internal object IntegrityCheckingUniffiLib {
     ): Int
     external fun uniffi_rdp_transport_checksum_method_avc420decoder_decode_into(
     ): Int
+    external fun uniffi_rdp_transport_checksum_method_cameracallback_list_cameras(
+    ): Int
+    external fun uniffi_rdp_transport_checksum_method_cameracallback_start_stream(
+    ): Int
+    external fun uniffi_rdp_transport_checksum_method_cameracallback_stop_stream(
+    ): Int
     external fun uniffi_rdp_transport_checksum_method_clipboardcallback_on_remote_clipboard(
     ): Int
     external fun uniffi_rdp_transport_checksum_method_drivecallback_stat(
@@ -995,9 +1035,13 @@ internal object IntegrityCheckingUniffiLib {
     ): Int
     external fun uniffi_rdp_transport_checksum_method_rdpclient_get_framebuffer_region(
     ): Int
+    external fun uniffi_rdp_transport_checksum_method_rdpclient_has_pending_camera_request(
+    ): Int
     external fun uniffi_rdp_transport_checksum_method_rdpclient_is_connected(
     ): Int
     external fun uniffi_rdp_transport_checksum_method_rdpclient_is_touch_ready(
+    ): Int
+    external fun uniffi_rdp_transport_checksum_method_rdpclient_push_camera_sample(
     ): Int
     external fun uniffi_rdp_transport_checksum_method_rdpclient_send_clipboard_text(
     ): Int
@@ -1018,6 +1062,8 @@ internal object IntegrityCheckingUniffiLib {
     external fun uniffi_rdp_transport_checksum_method_rdpclient_set_audio_callback(
     ): Int
     external fun uniffi_rdp_transport_checksum_method_rdpclient_set_avc_decoder(
+    ): Int
+    external fun uniffi_rdp_transport_checksum_method_rdpclient_set_camera_callback(
     ): Int
     external fun uniffi_rdp_transport_checksum_method_rdpclient_set_clipboard_callback(
     ): Int
@@ -1059,6 +1105,7 @@ internal object UniffiLib {
         Native.register(UniffiLib::class.java, findLibraryName(componentName = "rdp_transport"))
         uniffiCallbackInterfaceAudioCallback.register(this)
         uniffiCallbackInterfaceAvc420Decoder.register(this)
+        uniffiCallbackInterfaceCameraCallback.register(this)
         uniffiCallbackInterfaceClipboardCallback.register(this)
         uniffiCallbackInterfaceDriveCallback.register(this)
         uniffiCallbackInterfaceFrameCallback.register(this)
@@ -1088,6 +1135,18 @@ internal object UniffiLib {
     ): Unit
     external fun uniffi_rdp_transport_fn_method_avc420decoder_decode_into(`ptr`: Long,`annexB`: RustBuffer.ByValue,`width`: Short,`height`: Short,`dstAddr`: Long,`dstLen`: Long,uniffi_out_err: UniffiRustCallStatus, 
     ): Int
+    external fun uniffi_rdp_transport_fn_clone_cameracallback(`handle`: Long,uniffi_out_err: UniffiRustCallStatus, 
+    ): Long
+    external fun uniffi_rdp_transport_fn_free_cameracallback(`handle`: Long,uniffi_out_err: UniffiRustCallStatus, 
+    ): Unit
+    external fun uniffi_rdp_transport_fn_init_callback_vtable_cameracallback(`vtable`: UniffiVTableCallbackInterfaceCameraCallback,
+    ): Unit
+    external fun uniffi_rdp_transport_fn_method_cameracallback_list_cameras(`ptr`: Long,uniffi_out_err: UniffiRustCallStatus, 
+    ): RustBuffer.ByValue
+    external fun uniffi_rdp_transport_fn_method_cameracallback_start_stream(`ptr`: Long,`cameraId`: RustBuffer.ByValue,`mode`: RustBuffer.ByValue,uniffi_out_err: UniffiRustCallStatus, 
+    ): Byte
+    external fun uniffi_rdp_transport_fn_method_cameracallback_stop_stream(`ptr`: Long,`cameraId`: RustBuffer.ByValue,uniffi_out_err: UniffiRustCallStatus, 
+    ): Unit
     external fun uniffi_rdp_transport_fn_clone_clipboardcallback(`handle`: Long,uniffi_out_err: UniffiRustCallStatus, 
     ): Long
     external fun uniffi_rdp_transport_fn_free_clipboardcallback(`handle`: Long,uniffi_out_err: UniffiRustCallStatus, 
@@ -1166,9 +1225,13 @@ internal object UniffiLib {
     ): RustBuffer.ByValue
     external fun uniffi_rdp_transport_fn_method_rdpclient_get_framebuffer_region(`ptr`: Long,`x`: Short,`y`: Short,`w`: Short,`h`: Short,uniffi_out_err: UniffiRustCallStatus, 
     ): RustBuffer.ByValue
+    external fun uniffi_rdp_transport_fn_method_rdpclient_has_pending_camera_request(`ptr`: Long,`cameraId`: RustBuffer.ByValue,uniffi_out_err: UniffiRustCallStatus, 
+    ): Byte
     external fun uniffi_rdp_transport_fn_method_rdpclient_is_connected(`ptr`: Long,uniffi_out_err: UniffiRustCallStatus, 
     ): Byte
     external fun uniffi_rdp_transport_fn_method_rdpclient_is_touch_ready(`ptr`: Long,uniffi_out_err: UniffiRustCallStatus, 
+    ): Byte
+    external fun uniffi_rdp_transport_fn_method_rdpclient_push_camera_sample(`ptr`: Long,`cameraId`: RustBuffer.ByValue,`sample`: RustBuffer.ByValue,uniffi_out_err: UniffiRustCallStatus, 
     ): Byte
     external fun uniffi_rdp_transport_fn_method_rdpclient_send_clipboard_text(`ptr`: Long,`text`: RustBuffer.ByValue,uniffi_out_err: UniffiRustCallStatus, 
     ): Unit
@@ -1189,6 +1252,8 @@ internal object UniffiLib {
     external fun uniffi_rdp_transport_fn_method_rdpclient_set_audio_callback(`ptr`: Long,`cb`: Long,uniffi_out_err: UniffiRustCallStatus, 
     ): Unit
     external fun uniffi_rdp_transport_fn_method_rdpclient_set_avc_decoder(`ptr`: Long,`cb`: Long,uniffi_out_err: UniffiRustCallStatus, 
+    ): Unit
+    external fun uniffi_rdp_transport_fn_method_rdpclient_set_camera_callback(`ptr`: Long,`cb`: Long,uniffi_out_err: UniffiRustCallStatus, 
     ): Unit
     external fun uniffi_rdp_transport_fn_method_rdpclient_set_clipboard_callback(`ptr`: Long,`cb`: Long,uniffi_out_err: UniffiRustCallStatus, 
     ): Unit
@@ -1352,6 +1417,15 @@ private fun uniffiCheckApiChecksums(lib: IntegrityCheckingUniffiLib) {
     if ((lib.uniffi_rdp_transport_checksum_method_avc420decoder_decode_into() and 0xFFFF) != 19396) {
         throw RuntimeException("UniFFI API checksum mismatch: try cleaning and rebuilding your project")
     }
+    if ((lib.uniffi_rdp_transport_checksum_method_cameracallback_list_cameras() and 0xFFFF) != 48580) {
+        throw RuntimeException("UniFFI API checksum mismatch: try cleaning and rebuilding your project")
+    }
+    if ((lib.uniffi_rdp_transport_checksum_method_cameracallback_start_stream() and 0xFFFF) != 54851) {
+        throw RuntimeException("UniFFI API checksum mismatch: try cleaning and rebuilding your project")
+    }
+    if ((lib.uniffi_rdp_transport_checksum_method_cameracallback_stop_stream() and 0xFFFF) != 11917) {
+        throw RuntimeException("UniFFI API checksum mismatch: try cleaning and rebuilding your project")
+    }
     if ((lib.uniffi_rdp_transport_checksum_method_clipboardcallback_on_remote_clipboard() and 0xFFFF) != 26900) {
         throw RuntimeException("UniFFI API checksum mismatch: try cleaning and rebuilding your project")
     }
@@ -1424,10 +1498,16 @@ private fun uniffiCheckApiChecksums(lib: IntegrityCheckingUniffiLib) {
     if ((lib.uniffi_rdp_transport_checksum_method_rdpclient_get_framebuffer_region() and 0xFFFF) != 57500) {
         throw RuntimeException("UniFFI API checksum mismatch: try cleaning and rebuilding your project")
     }
+    if ((lib.uniffi_rdp_transport_checksum_method_rdpclient_has_pending_camera_request() and 0xFFFF) != 58697) {
+        throw RuntimeException("UniFFI API checksum mismatch: try cleaning and rebuilding your project")
+    }
     if ((lib.uniffi_rdp_transport_checksum_method_rdpclient_is_connected() and 0xFFFF) != 48249) {
         throw RuntimeException("UniFFI API checksum mismatch: try cleaning and rebuilding your project")
     }
     if ((lib.uniffi_rdp_transport_checksum_method_rdpclient_is_touch_ready() and 0xFFFF) != 2489) {
+        throw RuntimeException("UniFFI API checksum mismatch: try cleaning and rebuilding your project")
+    }
+    if ((lib.uniffi_rdp_transport_checksum_method_rdpclient_push_camera_sample() and 0xFFFF) != 55961) {
         throw RuntimeException("UniFFI API checksum mismatch: try cleaning and rebuilding your project")
     }
     if ((lib.uniffi_rdp_transport_checksum_method_rdpclient_send_clipboard_text() and 0xFFFF) != 1301) {
@@ -1458,6 +1538,9 @@ private fun uniffiCheckApiChecksums(lib: IntegrityCheckingUniffiLib) {
         throw RuntimeException("UniFFI API checksum mismatch: try cleaning and rebuilding your project")
     }
     if ((lib.uniffi_rdp_transport_checksum_method_rdpclient_set_avc_decoder() and 0xFFFF) != 17028) {
+        throw RuntimeException("UniFFI API checksum mismatch: try cleaning and rebuilding your project")
+    }
+    if ((lib.uniffi_rdp_transport_checksum_method_rdpclient_set_camera_callback() and 0xFFFF) != 5989) {
         throw RuntimeException("UniFFI API checksum mismatch: try cleaning and rebuilding your project")
     }
     if ((lib.uniffi_rdp_transport_checksum_method_rdpclient_set_clipboard_callback() and 0xFFFF) != 53381) {
@@ -2764,6 +2847,375 @@ public object FfiConverterTypeAvc420Decoder: FfiConverter<Avc420Decoder, Long> {
     override fun allocationSize(value: Avc420Decoder) = 8UL
 
     override fun write(value: Avc420Decoder, buf: ByteBuffer) {
+        buf.putLong(lower(value))
+    }
+}
+
+
+// This template implements a class for working with a Rust struct via a handle
+// to the live Rust struct on the other side of the FFI.
+//
+// There's some subtlety here, because we have to be careful not to operate on a Rust
+// struct after it has been dropped, and because we must expose a public API for freeing
+// theq Kotlin wrapper object in lieu of reliable finalizers. The core requirements are:
+//
+//   * Each instance holds an opaque handle to the underlying Rust struct.
+//     Method calls need to read this handle from the object's state and pass it in to
+//     the Rust FFI.
+//
+//   * When an instance is no longer needed, its handle should be passed to a
+//     special destructor function provided by the Rust FFI, which will drop the
+//     underlying Rust struct.
+//
+//   * Given an instance, calling code is expected to call the special
+//     `destroy` method in order to free it after use, either by calling it explicitly
+//     or by using a higher-level helper like the `use` method. Failing to do so risks
+//     leaking the underlying Rust struct.
+//
+//   * We can't assume that calling code will do the right thing, and must be prepared
+//     to handle Kotlin method calls executing concurrently with or even after a call to
+//     `destroy`, and to handle multiple (possibly concurrent!) calls to `destroy`.
+//
+//   * We must never allow Rust code to operate on the underlying Rust struct after
+//     the destructor has been called, and must never call the destructor more than once.
+//     Doing so may trigger memory unsafety.
+//
+//   * To mitigate many of the risks of leaking memory and use-after-free unsafety, a `Cleaner`
+//     is implemented to call the destructor when the Kotlin object becomes unreachable.
+//     This is done in a background thread. This is not a panacea, and client code should be aware that
+//      1. the thread may starve if some there are objects that have poorly performing
+//     `drop` methods or do significant work in their `drop` methods.
+//      2. the thread is shared across the whole library. This can be tuned by using `android_cleaner = true`,
+//         or `android = true` in the [`kotlin` section of the `uniffi.toml` file](https://mozilla.github.io/uniffi-rs/kotlin/configuration.html).
+//
+// If we try to implement this with mutual exclusion on access to the handle, there is the
+// possibility of a race between a method call and a concurrent call to `destroy`:
+//
+//    * Thread A starts a method call, reads the value of the handle, but is interrupted
+//      before it can pass the handle over the FFI to Rust.
+//    * Thread B calls `destroy` and frees the underlying Rust struct.
+//    * Thread A resumes, passing the already-read handle value to Rust and triggering
+//      a use-after-free.
+//
+// One possible solution would be to use a `ReadWriteLock`, with each method call taking
+// a read lock (and thus allowed to run concurrently) and the special `destroy` method
+// taking a write lock (and thus blocking on live method calls). However, we aim not to
+// generate methods with any hidden blocking semantics, and a `destroy` method that might
+// block if called incorrectly seems to meet that bar.
+//
+// So, we achieve our goals by giving each instance an associated `AtomicLong` counter to track
+// the number of in-flight method calls, and an `AtomicBoolean` flag to indicate whether `destroy`
+// has been called. These are updated according to the following rules:
+//
+//    * The initial value of the counter is 1, indicating a live object with no in-flight calls.
+//      The initial value for the flag is false.
+//
+//    * At the start of each method call, we atomically check the counter.
+//      If it is 0 then the underlying Rust struct has already been destroyed and the call is aborted.
+//      If it is nonzero them we atomically increment it by 1 and proceed with the method call.
+//
+//    * At the end of each method call, we atomically decrement and check the counter.
+//      If it has reached zero then we destroy the underlying Rust struct.
+//
+//    * When `destroy` is called, we atomically flip the flag from false to true.
+//      If the flag was already true we silently fail.
+//      Otherwise we atomically decrement and check the counter.
+//      If it has reached zero then we destroy the underlying Rust struct.
+//
+// Astute readers may observe that this all sounds very similar to the way that Rust's `Arc<T>` works,
+// and indeed it is, with the addition of a flag to guard against multiple calls to `destroy`.
+//
+// The overall effect is that the underlying Rust struct is destroyed only when `destroy` has been
+// called *and* all in-flight method calls have completed, avoiding violating any of the expectations
+// of the underlying Rust code.
+//
+// This makes a cleaner a better alternative to _not_ calling `destroy()` as
+// and when the object is finished with, but the abstraction is not perfect: if the Rust object's `drop`
+// method is slow, and/or there are many objects to cleanup, and it's on a low end Android device, then the cleaner
+// thread may be starved, and the app will leak memory.
+//
+// In this case, `destroy`ing manually may be a better solution.
+//
+// The cleaner can live side by side with the manual calling of `destroy`. In the order of responsiveness, uniffi objects
+// with Rust peers are reclaimed:
+//
+// 1. By calling the `destroy` method of the object, which calls `rustObject.free()`. If that doesn't happen:
+// 2. When the object becomes unreachable, AND the Cleaner thread gets to call `rustObject.free()`. If the thread is starved then:
+// 3. The memory is reclaimed when the process terminates.
+//
+// [1] https://stackoverflow.com/questions/24376768/can-java-finalize-an-object-when-it-is-still-in-scope/24380219
+//
+
+
+public interface CameraCallback {
+    
+    fun `listCameras`(): List<RdpCameraDevice>
+    
+    fun `startStream`(`cameraId`: kotlin.String, `mode`: RdpCameraMode): kotlin.Boolean
+    
+    fun `stopStream`(`cameraId`: kotlin.String)
+    
+    companion object
+}
+
+open class CameraCallbackImpl: Disposable, AutoCloseable, CameraCallback
+{
+
+    @Suppress("UNUSED_PARAMETER")
+    /**
+     * @suppress
+     */
+    constructor(withHandle: UniffiWithHandle, handle: Long) {
+        this.handle = handle
+        this.cleanable = UniffiLib.CLEANER.register(this, UniffiCleanAction(handle))
+    }
+
+    /**
+     * @suppress
+     *
+     * This constructor can be used to instantiate a fake object. Only used for tests. Any
+     * attempt to actually use an object constructed this way will fail as there is no
+     * connected Rust object.
+     */
+    @Suppress("UNUSED_PARAMETER")
+    constructor(noHandle: NoHandle) {
+        this.handle = 0
+        this.cleanable = null
+    }
+
+    protected val handle: Long
+    protected val cleanable: UniffiCleaner.Cleanable?
+
+    private val wasDestroyed = AtomicBoolean(false)
+    private val callCounter = AtomicLong(1)
+
+    /**
+     * Whether the current object has been destroyed and its reference is gone in the Rust side.
+     */
+    val uniffiIsDestroyed: Boolean get() = wasDestroyed.get()
+
+    override fun destroy() {
+        // Only allow a single call to this method.
+        // TODO: maybe we should log a warning if called more than once?
+        if (this.wasDestroyed.compareAndSet(false, true)) {
+            // This decrement always matches the initial count of 1 given at creation time.
+            if (this.callCounter.decrementAndGet() == 0L) {
+                cleanable?.clean()
+            }
+        }
+    }
+
+    @Synchronized
+    override fun close() {
+        this.destroy()
+    }
+
+    internal inline fun <R> callWithHandle(block: (handle: Long) -> R): R {
+        // Check and increment the call counter, to keep the object alive.
+        // This needs a compare-and-set retry loop in case of concurrent updates.
+        do {
+            val c = this.callCounter.get()
+            if (c == 0L) {
+                throw IllegalStateException("${this.javaClass.simpleName} object has already been destroyed")
+            }
+            if (c == Long.MAX_VALUE) {
+                throw IllegalStateException("${this.javaClass.simpleName} call counter would overflow")
+            }
+        } while (! this.callCounter.compareAndSet(c, c + 1L))
+        // Now we can safely do the method call without the handle being freed concurrently.
+        try {
+            return block(this.uniffiCloneHandle())
+        } finally {
+            // This decrement always matches the increment we performed above.
+            if (this.callCounter.decrementAndGet() == 0L) {
+                cleanable?.clean()
+            }
+        }
+    }
+
+    // Use a static inner class instead of a closure so as not to accidentally
+    // capture `this` as part of the cleanable's action.
+    private class UniffiCleanAction(private val handle: Long) : Runnable {
+        override fun run() {
+            if (handle == 0.toLong()) {
+                // Fake object created with `NoHandle`, don't try to free.
+                return;
+            }
+            uniffiRustCall { status ->
+                UniffiLib.uniffi_rdp_transport_fn_free_cameracallback(handle, status)
+            }
+        }
+    }
+
+    /**
+     * @suppress
+     */
+    fun uniffiCloneHandle(): Long {
+        if (handle == 0.toLong()) {
+            throw InternalException("uniffiCloneHandle() called on NoHandle object");
+        }
+        return uniffiRustCall() { status ->
+            UniffiLib.uniffi_rdp_transport_fn_clone_cameracallback(handle, status)
+        }
+    }
+
+    override fun `listCameras`(): List<RdpCameraDevice> {
+            return FfiConverterSequenceTypeRdpCameraDevice.lift(
+    callWithHandle {
+    uniffiRustCall() { _status ->
+    UniffiLib.uniffi_rdp_transport_fn_method_cameracallback_list_cameras(
+        it,
+        _status)
+}
+    }
+    )
+    }
+    
+
+    override fun `startStream`(`cameraId`: kotlin.String, `mode`: RdpCameraMode): kotlin.Boolean {
+            return FfiConverterBoolean.lift(
+    callWithHandle {
+    uniffiRustCall() { _status ->
+    UniffiLib.uniffi_rdp_transport_fn_method_cameracallback_start_stream(
+        it,
+        
+        FfiConverterString.lower(`cameraId`),
+        FfiConverterTypeRdpCameraMode.lower(`mode`),_status)
+}
+    }
+    )
+    }
+    
+
+    override fun `stopStream`(`cameraId`: kotlin.String)
+        = 
+    callWithHandle {
+    uniffiRustCall() { _status ->
+    UniffiLib.uniffi_rdp_transport_fn_method_cameracallback_stop_stream(
+        it,
+        
+        FfiConverterString.lower(`cameraId`),_status)
+}
+    }
+    
+    
+
+    
+
+    
+
+
+    
+    
+    /**
+     * @suppress
+     */
+    companion object
+    
+}
+
+
+
+// Put the implementation in an object so we don't pollute the top-level namespace
+internal object uniffiCallbackInterfaceCameraCallback {
+    internal object `listCameras`: UniffiCallbackInterfaceCameraCallbackMethod0 {
+        override fun callback(`uniffiHandle`: Long,`uniffiOutReturn`: RustBuffer,uniffiCallStatus: UniffiRustCallStatus,) {
+            val uniffiObj = FfiConverterTypeCameraCallback.handleMap.get(uniffiHandle)
+            val makeCall = { ->
+                uniffiObj.`listCameras`(
+                )
+            }
+            val writeReturn = { value: List<RdpCameraDevice> -> uniffiOutReturn.setValue(FfiConverterSequenceTypeRdpCameraDevice.lower(value)) }
+            uniffiTraitInterfaceCall(uniffiCallStatus, makeCall, writeReturn)
+        }
+    }
+    internal object `startStream`: UniffiCallbackInterfaceCameraCallbackMethod1 {
+        override fun callback(`uniffiHandle`: Long,`cameraId`: RustBuffer.ByValue,`mode`: RustBuffer.ByValue,`uniffiOutReturn`: ByteByReference,uniffiCallStatus: UniffiRustCallStatus,) {
+            val uniffiObj = FfiConverterTypeCameraCallback.handleMap.get(uniffiHandle)
+            val makeCall = { ->
+                uniffiObj.`startStream`(
+                    FfiConverterString.lift(`cameraId`),
+                    FfiConverterTypeRdpCameraMode.lift(`mode`),
+                )
+            }
+            val writeReturn = { value: kotlin.Boolean -> uniffiOutReturn.setValue(FfiConverterBoolean.lower(value)) }
+            uniffiTraitInterfaceCall(uniffiCallStatus, makeCall, writeReturn)
+        }
+    }
+    internal object `stopStream`: UniffiCallbackInterfaceCameraCallbackMethod2 {
+        override fun callback(`uniffiHandle`: Long,`cameraId`: RustBuffer.ByValue,`uniffiOutReturn`: Pointer,uniffiCallStatus: UniffiRustCallStatus,) {
+            val uniffiObj = FfiConverterTypeCameraCallback.handleMap.get(uniffiHandle)
+            val makeCall = { ->
+                uniffiObj.`stopStream`(
+                    FfiConverterString.lift(`cameraId`),
+                )
+            }
+            val writeReturn = { _: Unit -> Unit }
+            uniffiTraitInterfaceCall(uniffiCallStatus, makeCall, writeReturn)
+        }
+    }
+
+    internal object uniffiFree: UniffiCallbackInterfaceFree {
+        override fun callback(handle: Long) {
+            FfiConverterTypeCameraCallback.handleMap.remove(handle)
+        }
+    }
+
+    internal object uniffiClone: UniffiCallbackInterfaceClone {
+        override fun callback(handle: Long): Long {
+            return FfiConverterTypeCameraCallback.handleMap.clone(handle)
+        }
+    }
+
+    internal var vtable = UniffiVTableCallbackInterfaceCameraCallback.UniffiByValue(
+        uniffiFree,
+        uniffiClone,
+        `listCameras`,
+        `startStream`,
+        `stopStream`,
+    )
+
+    // Registers the foreign callback with the Rust side.
+    // This method is generated for each callback interface.
+    internal fun register(lib: UniffiLib) {
+        lib.uniffi_rdp_transport_fn_init_callback_vtable_cameracallback(vtable)
+    }
+}
+
+/**
+ * @suppress
+ */
+public object FfiConverterTypeCameraCallback: FfiConverter<CameraCallback, Long> {
+    internal val handleMap = UniffiHandleMap<CameraCallback>()
+
+    override fun lower(value: CameraCallback): Long {
+        if (value is CameraCallbackImpl) {
+             // Rust-implemented object.  Clone the handle and return it
+            return value.uniffiCloneHandle()
+         } else {
+            // Kotlin object, generate a new vtable handle and return that.
+            return handleMap.insert(value)
+         }
+    }
+
+    override fun lift(value: Long): CameraCallback {
+        if ((value and 1.toLong()) == 0.toLong()) {
+            // Rust-generated handle, construct a new class that uses the handle to implement the
+            // interface
+            return CameraCallbackImpl(UniffiWithHandle, value)
+        } else {
+            // Kotlin-generated handle, get the object from the handle map
+            return handleMap.remove(value)
+        }
+    }
+
+    override fun read(buf: ByteBuffer): CameraCallback {
+        return lift(buf.getLong())
+    }
+
+    override fun allocationSize(value: CameraCallback) = 8UL
+
+    override fun write(value: CameraCallback, buf: ByteBuffer) {
         buf.putLong(lower(value))
     }
 }
@@ -4586,6 +5038,8 @@ public interface RdpClientInterface {
      */
     fun `getFramebufferRegion`(`x`: kotlin.UShort, `y`: kotlin.UShort, `w`: kotlin.UShort, `h`: kotlin.UShort): FrameData?
     
+    fun `hasPendingCameraRequest`(`cameraId`: kotlin.String): kotlin.Boolean
+    
     fun `isConnected`(): kotlin.Boolean
     
     /**
@@ -4593,6 +5047,8 @@ public interface RdpClientInterface {
      * and is not currently suspended.
      */
     fun `isTouchReady`(): kotlin.Boolean
+    
+    fun `pushCameraSample`(`cameraId`: kotlin.String, `sample`: kotlin.ByteArray): kotlin.Boolean
     
     fun `sendClipboardText`(`text`: kotlin.String)
     
@@ -4626,6 +5082,8 @@ public interface RdpClientInterface {
      * `RdpConfig.avc_enabled` is true, else negotiated AVC tiles are dropped.
      */
     fun `setAvcDecoder`(`cb`: Avc420Decoder)
+    
+    fun `setCameraCallback`(`cb`: CameraCallback)
     
     fun `setClipboardCallback`(`cb`: ClipboardCallback)
     
@@ -4874,6 +5332,20 @@ open class RdpClient: Disposable, AutoCloseable, RdpClientInterface
     }
     
 
+    override fun `hasPendingCameraRequest`(`cameraId`: kotlin.String): kotlin.Boolean {
+            return FfiConverterBoolean.lift(
+    callWithHandle {
+    uniffiRustCall() { _status ->
+    UniffiLib.uniffi_rdp_transport_fn_method_rdpclient_has_pending_camera_request(
+        it,
+        
+        FfiConverterString.lower(`cameraId`),_status)
+}
+    }
+    )
+    }
+    
+
     override fun `isConnected`(): kotlin.Boolean {
             return FfiConverterBoolean.lift(
     callWithHandle {
@@ -4898,6 +5370,21 @@ open class RdpClient: Disposable, AutoCloseable, RdpClientInterface
     UniffiLib.uniffi_rdp_transport_fn_method_rdpclient_is_touch_ready(
         it,
         _status)
+}
+    }
+    )
+    }
+    
+
+    override fun `pushCameraSample`(`cameraId`: kotlin.String, `sample`: kotlin.ByteArray): kotlin.Boolean {
+            return FfiConverterBoolean.lift(
+    callWithHandle {
+    uniffiRustCall() { _status ->
+    UniffiLib.uniffi_rdp_transport_fn_method_rdpclient_push_camera_sample(
+        it,
+        
+        FfiConverterString.lower(`cameraId`),
+        FfiConverterByteArray.lower(`sample`),_status)
 }
     }
     )
@@ -5049,6 +5536,19 @@ open class RdpClient: Disposable, AutoCloseable, RdpClientInterface
         it,
         
         FfiConverterTypeAvc420Decoder.lower(`cb`),_status)
+}
+    }
+    
+    
+
+    override fun `setCameraCallback`(`cb`: CameraCallback)
+        = 
+    callWithHandle {
+    uniffiRustCall() { _status ->
+    UniffiLib.uniffi_rdp_transport_fn_method_rdpclient_set_camera_callback(
+        it,
+        
+        FfiConverterTypeCameraCallback.lower(`cb`),_status)
 }
     }
     
@@ -5746,6 +6246,97 @@ public object FfiConverterTypeFrameData: FfiConverterRustBuffer<FrameData> {
 
 
 
+data class RdpCameraDevice (
+    var `id`: kotlin.String
+    , 
+    var `name`: kotlin.String
+    , 
+    var `modes`: List<RdpCameraMode>
+    
+){
+    
+
+    
+
+    
+    companion object
+}
+
+/**
+ * @suppress
+ */
+public object FfiConverterTypeRdpCameraDevice: FfiConverterRustBuffer<RdpCameraDevice> {
+    override fun read(buf: ByteBuffer): RdpCameraDevice {
+        return RdpCameraDevice(
+            FfiConverterString.read(buf),
+            FfiConverterString.read(buf),
+            FfiConverterSequenceTypeRdpCameraMode.read(buf),
+        )
+    }
+
+    override fun allocationSize(value: RdpCameraDevice) = (
+            FfiConverterString.allocationSize(value.`id`) +
+            FfiConverterString.allocationSize(value.`name`) +
+            FfiConverterSequenceTypeRdpCameraMode.allocationSize(value.`modes`)
+    )
+
+    override fun write(value: RdpCameraDevice, buf: ByteBuffer) {
+            FfiConverterString.write(value.`id`, buf)
+            FfiConverterString.write(value.`name`, buf)
+            FfiConverterSequenceTypeRdpCameraMode.write(value.`modes`, buf)
+    }
+}
+
+
+
+data class RdpCameraMode (
+    var `format`: RdpCameraFormat
+    , 
+    var `width`: kotlin.UInt
+    , 
+    var `height`: kotlin.UInt
+    , 
+    var `fps`: kotlin.UInt
+    
+){
+    
+
+    
+
+    
+    companion object
+}
+
+/**
+ * @suppress
+ */
+public object FfiConverterTypeRdpCameraMode: FfiConverterRustBuffer<RdpCameraMode> {
+    override fun read(buf: ByteBuffer): RdpCameraMode {
+        return RdpCameraMode(
+            FfiConverterTypeRdpCameraFormat.read(buf),
+            FfiConverterUInt.read(buf),
+            FfiConverterUInt.read(buf),
+            FfiConverterUInt.read(buf),
+        )
+    }
+
+    override fun allocationSize(value: RdpCameraMode) = (
+            FfiConverterTypeRdpCameraFormat.allocationSize(value.`format`) +
+            FfiConverterUInt.allocationSize(value.`width`) +
+            FfiConverterUInt.allocationSize(value.`height`) +
+            FfiConverterUInt.allocationSize(value.`fps`)
+    )
+
+    override fun write(value: RdpCameraMode, buf: ByteBuffer) {
+            FfiConverterTypeRdpCameraFormat.write(value.`format`, buf)
+            FfiConverterUInt.write(value.`width`, buf)
+            FfiConverterUInt.write(value.`height`, buf)
+            FfiConverterUInt.write(value.`fps`, buf)
+    }
+}
+
+
+
 data class RdpConfig (
     var `username`: kotlin.String
     , 
@@ -5832,6 +6423,12 @@ data class RdpConfig (
      * (`MS-RDPEL`) for forwarding device location fixes. Off by default.
      */
     var `enableLocation`: kotlin.Boolean = false 
+    , 
+    /**
+     * #890: negotiate `RDCamera_Device_Enumerator` (`MS-RDPECAM`) for
+     * redirecting device cameras to the remote session. Off by default.
+     */
+    var `enableCamera`: kotlin.Boolean = false 
     
 ){
     
@@ -5863,6 +6460,7 @@ public object FfiConverterTypeRdpConfig: FfiConverterRustBuffer<RdpConfig> {
             FfiConverterTypeRdpAudioMode.read(buf),
             FfiConverterOptionalString.read(buf),
             FfiConverterBoolean.read(buf),
+            FfiConverterBoolean.read(buf),
         )
     }
 
@@ -5881,7 +6479,8 @@ public object FfiConverterTypeRdpConfig: FfiConverterRustBuffer<RdpConfig> {
             FfiConverterBoolean.allocationSize(value.`enableClipboard`) +
             FfiConverterTypeRdpAudioMode.allocationSize(value.`audioMode`) +
             FfiConverterOptionalString.allocationSize(value.`sharedFolderName`) +
-            FfiConverterBoolean.allocationSize(value.`enableLocation`)
+            FfiConverterBoolean.allocationSize(value.`enableLocation`) +
+            FfiConverterBoolean.allocationSize(value.`enableCamera`)
     )
 
     override fun write(value: RdpConfig, buf: ByteBuffer) {
@@ -5900,6 +6499,7 @@ public object FfiConverterTypeRdpConfig: FfiConverterRustBuffer<RdpConfig> {
             FfiConverterTypeRdpAudioMode.write(value.`audioMode`, buf)
             FfiConverterOptionalString.write(value.`sharedFolderName`, buf)
             FfiConverterBoolean.write(value.`enableLocation`, buf)
+            FfiConverterBoolean.write(value.`enableCamera`, buf)
     }
 }
 
@@ -6285,6 +6885,40 @@ public object FfiConverterTypeRdpAudioMode: FfiConverterRustBuffer<RdpAudioMode>
     override fun allocationSize(value: RdpAudioMode) = 4UL
 
     override fun write(value: RdpAudioMode, buf: ByteBuffer) {
+        buf.putInt(value.ordinal + 1)
+    }
+}
+
+
+
+
+
+
+enum class RdpCameraFormat {
+    
+    MJPG,
+    NV12;
+
+    
+
+
+    companion object
+}
+
+
+/**
+ * @suppress
+ */
+public object FfiConverterTypeRdpCameraFormat: FfiConverterRustBuffer<RdpCameraFormat> {
+    override fun read(buf: ByteBuffer) = try {
+        RdpCameraFormat.values()[buf.getInt() - 1]
+    } catch (e: IndexOutOfBoundsException) {
+        throw RuntimeException("invalid enum value, something is very wrong!!", e)
+    }
+
+    override fun allocationSize(value: RdpCameraFormat) = 4UL
+
+    override fun write(value: RdpCameraFormat, buf: ByteBuffer) {
         buf.putInt(value.ordinal + 1)
     }
 }
@@ -6689,6 +7323,62 @@ public object FfiConverterSequenceString: FfiConverterRustBuffer<List<kotlin.Str
         buf.putInt(value.size)
         value.iterator().forEach {
             FfiConverterString.write(it, buf)
+        }
+    }
+}
+
+
+
+
+/**
+ * @suppress
+ */
+public object FfiConverterSequenceTypeRdpCameraDevice: FfiConverterRustBuffer<List<RdpCameraDevice>> {
+    override fun read(buf: ByteBuffer): List<RdpCameraDevice> {
+        val len = buf.getInt()
+        return List<RdpCameraDevice>(len) {
+            FfiConverterTypeRdpCameraDevice.read(buf)
+        }
+    }
+
+    override fun allocationSize(value: List<RdpCameraDevice>): ULong {
+        val sizeForLength = 4UL
+        val sizeForItems = value.map { FfiConverterTypeRdpCameraDevice.allocationSize(it) }.sum()
+        return sizeForLength + sizeForItems
+    }
+
+    override fun write(value: List<RdpCameraDevice>, buf: ByteBuffer) {
+        buf.putInt(value.size)
+        value.iterator().forEach {
+            FfiConverterTypeRdpCameraDevice.write(it, buf)
+        }
+    }
+}
+
+
+
+
+/**
+ * @suppress
+ */
+public object FfiConverterSequenceTypeRdpCameraMode: FfiConverterRustBuffer<List<RdpCameraMode>> {
+    override fun read(buf: ByteBuffer): List<RdpCameraMode> {
+        val len = buf.getInt()
+        return List<RdpCameraMode>(len) {
+            FfiConverterTypeRdpCameraMode.read(buf)
+        }
+    }
+
+    override fun allocationSize(value: List<RdpCameraMode>): ULong {
+        val sizeForLength = 4UL
+        val sizeForItems = value.map { FfiConverterTypeRdpCameraMode.allocationSize(it) }.sum()
+        return sizeForLength + sizeForItems
+    }
+
+    override fun write(value: List<RdpCameraMode>, buf: ByteBuffer) {
+        buf.putInt(value.size)
+        value.iterator().forEach {
+            FfiConverterTypeRdpCameraMode.write(it, buf)
         }
     }
 }

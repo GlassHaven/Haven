@@ -312,6 +312,7 @@ fun ConnectionEditDialog(
     }
     var rdpSharedFolderUri by rememberSaveable { mutableStateOf(existing?.rdpSharedFolderUri) }
     var rdpLocation by rememberSaveable { mutableStateOf(existing?.rdpLocation ?: false) }
+    var rdpCamera by rememberSaveable { mutableStateOf(existing?.rdpCamera ?: false) }
     var spicePassword by rememberSaveable { mutableStateOf(existing?.spicePassword ?: "") }
     var spiceSshForward by rememberSaveable {
         mutableStateOf(existing?.let { strictTunnelInitialEnabled(it.connectionType, "SPICE", it.spiceSshForward, it.spiceSshProfileId) } ?: false)
@@ -2392,6 +2393,36 @@ fun ConnectionEditDialog(
                         style = MaterialTheme.typography.bodySmall,
                         color = MaterialTheme.colorScheme.onSurfaceVariant,
                     )
+                    Spacer(Modifier.height(8.dp))
+                    val rdpCamPermLauncher = rememberLauncherForActivityResult(
+                        ActivityResultContracts.RequestPermission(),
+                    ) { _ -> }
+                    Row(verticalAlignment = Alignment.CenterVertically) {
+                        androidx.compose.material3.Checkbox(
+                            checked = rdpCamera,
+                            onCheckedChange = { checked ->
+                                rdpCamera = checked
+                                if (checked) {
+                                    val hasCam = androidx.core.content.ContextCompat.checkSelfPermission(
+                                        rdpSafContext,
+                                        android.Manifest.permission.CAMERA,
+                                    ) == android.content.pm.PackageManager.PERMISSION_GRANTED
+                                    if (!hasCam) {
+                                        rdpCamPermLauncher.launch(android.Manifest.permission.CAMERA)
+                                    }
+                                }
+                            },
+                        )
+                        Text(
+                            stringResource(R.string.connections_toggle_rdp_camera),
+                            style = MaterialTheme.typography.bodyMedium,
+                        )
+                    }
+                    Text(
+                        stringResource(R.string.connections_helper_rdp_camera),
+                        style = MaterialTheme.typography.bodySmall,
+                        color = MaterialTheme.colorScheme.onSurfaceVariant,
+                    )
                 } else if (connectionType == "SPICE") {
                     ConnectionSection(stringResource(R.string.connections_section_spice))
                     // SPICE: tunnel toggle first (changes what Host means), then
@@ -4248,6 +4279,7 @@ fun ConnectionEditDialog(
                                 rdpAudioMode = rdpAudioMode,
                                 rdpSharedFolderUri = rdpSharedFolderUri?.ifBlank { null },
                                 rdpLocation = rdpLocation,
+                                rdpCamera = rdpCamera,
                                 keyboardLayout = keyboardLayout.ifBlank { null },
                                 colorTag = colorTag,
                                 groupId = groupId,

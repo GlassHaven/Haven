@@ -643,4 +643,6 @@
     <string name="connections_helper_rdp_shared_folder">По умолчанию выключено. Открывает одну выбранную папку на удалённом ПК как перенаправленный диск.</string>
     <string name="connections_toggle_rdp_location">Общая геопозиция</string>
     <string name="connections_helper_rdp_location">По умолчанию выключено. Передаёт данные геопозиции GNSS/сети устройства в удалённый сеанс.</string>
+    <string name="connections_toggle_rdp_camera">Общая камера</string>
+    <string name="connections_helper_rdp_camera">По умолчанию выключено. Предоставляет камеры устройства удалённому сеансу для захвата видео.</string>
 </resources>

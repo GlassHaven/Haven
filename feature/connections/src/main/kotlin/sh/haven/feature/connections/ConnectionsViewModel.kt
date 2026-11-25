@@ -1232,6 +1232,7 @@ class ConnectionsViewModel @Inject constructor(
         val audioMode: String = ConnectionProfile.RdpAudioMode.PLAY_ON_DEVICE.name,
         val sharedFolderUri: String? = null,
         val enableLocation: Boolean = false,
+        val enableCamera: Boolean = false,
     )
     private val _navigateToRdp = MutableStateFlow<RdpNavigation?>(null)
     val navigateToRdp: StateFlow<RdpNavigation?> = _navigateToRdp.asStateFlow()
@@ -2919,6 +2920,7 @@ class ConnectionsViewModel @Inject constructor(
                         audioMode = profile.rdpAudioMode,
                         sharedFolderUri = profile.rdpSharedFolderUri,
                         enableLocation = profile.rdpLocation,
+                        enableCamera = profile.rdpCamera,
                     )
                 } catch (e: Exception) {
                     Log.e(TAG, "Failed to connect SSH tunnel host for RDP", e)
@@ -2950,6 +2952,7 @@ class ConnectionsViewModel @Inject constructor(
                     audioMode = profile.rdpAudioMode,
                     sharedFolderUri = profile.rdpSharedFolderUri,
                     enableLocation = profile.rdpLocation,
+                    enableCamera = profile.rdpCamera,
                 )
             }
         }

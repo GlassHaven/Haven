@@ -580,5 +580,7 @@
     <string name="connections_helper_rdp_shared_folder">Подразумевано искључено. Приказује једну изабрану фасциклу удаљеном рачунару као преусмерени диск.</string>
     <string name="connections_toggle_rdp_location">Дели локацију</string>
     <string name="connections_helper_rdp_location">Подразумевано искључено. Прослеђује GNSS/мрежну локацију уређаја удаљеној сесији.</string>
+    <string name="connections_toggle_rdp_camera">Дели камеру</string>
+    <string name="connections_helper_rdp_camera">Подразумевано искључено. Излаже камере уређаја удаљеној сесији за снимање видеа.</string>
 </resources>
 

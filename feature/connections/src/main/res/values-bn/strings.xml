@@ -643,4 +643,6 @@
     <string name="connections_helper_rdp_shared_folder">ডিফল্টভাবে বন্ধ। নির্বাচিত একটি ফোল্ডারকে রিমোট পিসিতে রিডাইরেক্টেড ড্রাইভ হিসেবে দেখায়।</string>
     <string name="connections_toggle_rdp_location">অবস্থান শেয়ার করুন</string>
     <string name="connections_helper_rdp_location">ডিফল্টভাবে বন্ধ। ডিভাইসের GNSS/নেটওয়ার্ক অবস্থান রিমোট সেশনে পাঠায়।</string>
+    <string name="connections_toggle_rdp_camera">ক্যামেরা শেয়ার করুন</string>
+    <string name="connections_helper_rdp_camera">ডিফল্টভাবে বন্ধ। ভিডিও ক্যাপচারের জন্য ডিভাইসের ক্যামেরা রিমোট সেশনে উন্মুক্ত করে।</string>
 </resources>

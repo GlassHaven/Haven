@@ -643,4 +643,6 @@
     <string name="connections_helper_rdp_shared_folder">既定ではオフです。選択した1つのフォルダーをリダイレクトされたドライブとしてリモート PC に公開します。</string>
     <string name="connections_toggle_rdp_location">位置情報を共有</string>
     <string name="connections_helper_rdp_location">既定ではオフです。デバイスの GNSS/ネットワーク位置情報をリモートセッションに転送します。</string>
+    <string name="connections_toggle_rdp_camera">カメラを共有</string>
+    <string name="connections_helper_rdp_camera">既定ではオフです。ビデオキャプチャ用にデバイスのカメラをリモートセッションに公開します。</string>
 </resources>

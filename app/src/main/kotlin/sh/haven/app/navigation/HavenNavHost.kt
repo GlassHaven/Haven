@@ -331,6 +331,7 @@ fun HavenNavHost(
                 audioMode = nav.audioMode,
                 sharedFolderUri = nav.sharedFolderUri,
                 enableLocation = nav.enableLocation,
+                enableCamera = nav.enableCamera,
             )
             connectionsViewModel.onDesktopNavigated()
             requestScreen(Screen.Desktop)

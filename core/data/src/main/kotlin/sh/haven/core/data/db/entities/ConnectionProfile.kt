@@ -137,6 +137,11 @@ data class ConnectionProfile @Ignore constructor(
      * forward GNSS/network location fixes to this RDP host. Off by default.
      */
     val rdpLocation: Boolean = false,
+    /**
+     * #890: negotiate `RDCamera_Device_Enumerator` (`MS-RDPECAM`) and expose
+     * device cameras to this RDP host. Off by default.
+     */
+    val rdpCamera: Boolean = false,
     // SPICE-specific fields (#286). SPICE auth is a single ticket/password (no
     // username/domain); the framebuffer is always 32bpp so there's no color-depth knob.
     val spicePort: Int? = null,
@@ -518,6 +523,7 @@ data class ConnectionProfile @Ignore constructor(
         rdpAudioMode: String,
         rdpSharedFolderUri: String?,
         rdpLocation: Boolean,
+        rdpCamera: Boolean,
         spicePort: Int?,
         spicePassword: String?,
         spiceSshForward: Boolean,
@@ -639,6 +645,7 @@ data class ConnectionProfile @Ignore constructor(
         rdpAudioMode = rdpAudioMode,
         rdpSharedFolderUri = rdpSharedFolderUri,
         rdpLocation = rdpLocation,
+        rdpCamera = rdpCamera,
         spicePort = spicePort,
         spicePassword = spicePassword,
         spiceSshForward = spiceSshForward,

@@ -130,6 +130,7 @@ fn main() -> ExitCode {
         audio_mode: RdpAudioMode::Disabled,
         shared_folder_name: None,
         enable_location: false,
+        enable_camera: false,
     };
 
     let client = Arc::new(RdpClient::new(config));

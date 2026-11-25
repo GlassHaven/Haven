@@ -106,6 +106,8 @@ sealed class DesktopTab {
         val clipboardEnabled: Boolean = false,
         /** #890: true when MS-RDPEL location sharing is enabled on this connection. */
         val locationEnabled: Boolean = false,
+        /** #890: true when MS-RDPECAM camera sharing is enabled on this connection. */
+        val cameraEnabled: Boolean = false,
     ) : DesktopTab() {
         override val connected: StateFlow<Boolean> get() = _connected
         override val frame: StateFlow<Bitmap?> get() = _frame

@@ -119,6 +119,16 @@ class RdpSession(
      * when [enableLocation] is active. Owned and closed by this [RdpSession].
      */
     private val locationForwarderFactory: ((RdpSession) -> RdpLocationForwarder)? = null,
+    /**
+     * #890: negotiate `RDCamera_Device_Enumerator` (`MS-RDPECAM`) for
+     * redirecting device cameras to the remote session. Off by default.
+     */
+    private val enableCamera: Boolean = false,
+    /**
+     * #890: optional Android Camera2 backend serving `MS-RDPECAM` when
+     * [enableCamera] is active. Owned and closed by this [RdpSession].
+     */
+    private val cameraBackendFactory: ((RdpSession) -> RdpCameraBackend)? = null,
 ) : Closeable {
 
     @Volatile
@@ -143,6 +153,8 @@ class RdpSession(
     private var audioPlayer: RdpAudioPlayer? = null
     // #890: GNSS/network location forwarder, created when enableLocation is true.
     private var locationForwarder: RdpLocationForwarder? = null
+    // #890: Camera2 MS-RDPECAM backend, created when enableCamera is true.
+    private var cameraBackend: RdpCameraBackend? = null
     private val startTime = System.currentTimeMillis()
 
     private fun log(level: String, msg: String) {
@@ -273,6 +285,7 @@ class RdpSession(
                 },
                 sharedFolderName = sharedDriveBackend?.shareName,
                 enableLocation = enableLocation,
+                enableCamera = enableCamera,
             )
 
             // #477: record which settings this session actually ran with. Two
@@ -286,7 +299,7 @@ class RdpSession(
                     "${config.progressiveUpgrade} colorDepth=$colorDepth nla=$useNla " +
                     "klid=0x${config.keyboardLayout.toString(16)} clipboard=${config.enableClipboard} " +
                     "audio=${config.audioMode} sharedDrive=${sharedDriveBackend != null} " +
-                    "location=${config.enableLocation}",
+                    "location=${config.enableLocation} camera=${config.enableCamera}",
             )
 
             val c = RdpClient(config)
@@ -441,6 +454,12 @@ class RdpSession(
                 val forwarder = locationForwarderFactory.invoke(this)
                 locationForwarder = forwarder
                 forwarder.startIfPermitted()
+            }
+
+            if (enableCamera && cameraBackendFactory != null) {
+                val cam = cameraBackendFactory.invoke(this)
+                cameraBackend = cam
+                c.setCameraCallback(cam)
             }
 
             log("D", "Connecting to ${redactHost(host, port)} (worker thread will handle handshake, socks=${socksProxy != null})")
@@ -651,6 +670,21 @@ class RdpSession(
         return locationForwarder?.startIfPermitted() == true
     }
 
+    fun hasCameraPermission(): Boolean {
+        if (closed || !enableCamera) return true
+        return cameraBackend?.hasCameraPermission() == true
+    }
+
+    fun hasPendingCameraRequest(cameraId: String): Boolean {
+        if (closed || !enableCamera) return false
+        return client?.hasPendingCameraRequest(cameraId) == true
+    }
+
+    fun pushCameraSample(cameraId: String, sample: ByteArray): Boolean {
+        if (closed || !enableCamera) return false
+        return client?.pushCameraSample(cameraId, sample) == true
+    }
+
     fun sendTouchFrame(points: List<RdpTouchContactSample>) {
         if (closed || points.isEmpty()) return
         val nativePoints = points.map { pt ->
@@ -748,6 +782,12 @@ class RdpSession(
             log("E", "Error releasing RDP location forwarder: ${e.message}")
         }
         locationForwarder = null
+        try {
+            cameraBackend?.close()
+        } catch (e: Exception) {
+            log("E", "Error releasing RDP camera backend: ${e.message}")
+        }
+        cameraBackend = null
         synchronized(this) {
             // #425: never recycle a bitmap the Compose viewer may still be
             // drawing (see onResize) — drop the ref and let GC reclaim it.

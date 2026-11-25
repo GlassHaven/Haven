@@ -391,6 +391,16 @@ fun DesktopScreen(
                                     }
                                 }
                             }
+                            if (tab.cameraEnabled) {
+                                val rdpCameraPermLauncher = androidx.activity.compose.rememberLauncherForActivityResult(
+                                    androidx.activity.result.contract.ActivityResultContracts.RequestPermission(),
+                                ) { _ -> }
+                                LaunchedEffect(tab.id) {
+                                    if (!tab.session.hasCameraPermission()) {
+                                        rdpCameraPermLauncher.launch(android.Manifest.permission.CAMERA)
+                                    }
+                                }
+                            }
                             RdpSessionContent(
                                 protocolLabel = tab.protocol,
                                 connected = tab.connected,

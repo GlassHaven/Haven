@@ -673,4 +673,8 @@
     <string name="connections_rdp_audio_disabled">Never</string>
     <string name="connections_toggle_rdp_clipboard">Share clipboard</string>
     <string name="connections_helper_rdp_clipboard">Off by default. Enables two-way text clipboard sync between this device and the remote session.</string>
+    <string name="connections_field_rdp_shared_folder">Shared folder</string>
+    <string name="connections_rdp_shared_folder_none">None</string>
+    <string name="connections_button_choose_folder">Choose folder</string>
+    <string name="connections_helper_rdp_shared_folder">Off by default. Exposes one chosen folder to the remote PC as a redirected drive.</string>
 </resources>

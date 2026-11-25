@@ -637,4 +637,8 @@
     <string name="connections_rdp_audio_disabled">কখনও না</string>
     <string name="connections_toggle_rdp_clipboard">ক্লিপবোর্ড শেয়ার করুন</string>
     <string name="connections_helper_rdp_clipboard">ডিফল্টভাবে বন্ধ। এই ডিভাইস এবং রিমোট সেশনের মধ্যে দ্বিমুখী টেক্সট ক্লিপবোর্ড সিঙ্ক চালু করে।</string>
+    <string name="connections_field_rdp_shared_folder">শেয়ার করা ফোল্ডার</string>
+    <string name="connections_rdp_shared_folder_none">কোনোটিই নয়</string>
+    <string name="connections_button_choose_folder">ফোল্ডার বেছে নিন</string>
+    <string name="connections_helper_rdp_shared_folder">ডিফল্টভাবে বন্ধ। নির্বাচিত একটি ফোল্ডারকে রিমোট পিসিতে রিডাইরেক্টেড ড্রাইভ হিসেবে দেখায়।</string>
 </resources>

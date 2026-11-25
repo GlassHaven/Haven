@@ -1230,6 +1230,7 @@ class ConnectionsViewModel @Inject constructor(
         val keyboardLayout: String? = null,
         val enableClipboard: Boolean = false,
         val audioMode: String = ConnectionProfile.RdpAudioMode.PLAY_ON_DEVICE.name,
+        val sharedFolderUri: String? = null,
     )
     private val _navigateToRdp = MutableStateFlow<RdpNavigation?>(null)
     val navigateToRdp: StateFlow<RdpNavigation?> = _navigateToRdp.asStateFlow()
@@ -2915,6 +2916,7 @@ class ConnectionsViewModel @Inject constructor(
                         keyboardLayout = profile.keyboardLayout,
                         enableClipboard = profile.rdpClipboard,
                         audioMode = profile.rdpAudioMode,
+                        sharedFolderUri = profile.rdpSharedFolderUri,
                     )
                 } catch (e: Exception) {
                     Log.e(TAG, "Failed to connect SSH tunnel host for RDP", e)
@@ -2944,6 +2946,7 @@ class ConnectionsViewModel @Inject constructor(
                     keyboardLayout = profile.keyboardLayout,
                     enableClipboard = profile.rdpClipboard,
                     audioMode = profile.rdpAudioMode,
+                    sharedFolderUri = profile.rdpSharedFolderUri,
                 )
             }
         }

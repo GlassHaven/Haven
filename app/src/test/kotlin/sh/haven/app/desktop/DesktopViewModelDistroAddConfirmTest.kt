@@ -108,6 +108,7 @@ class DesktopViewModelDistroAddConfirmTest {
             systemVmManager = mockk<SystemVmManager>(relaxed = true),
             umlDesktopManager = umlDesktopManager,
             tlsCertVerifier = mockk(relaxed = true),
+            appContext = mockk(relaxed = true),
         )
     }
 

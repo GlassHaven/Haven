@@ -65,6 +65,7 @@ class HavenDatabaseMigrationTest {
                 HavenDatabase.MIGRATION_88_89,
                 HavenDatabase.MIGRATION_89_90,
                 HavenDatabase.MIGRATION_90_91,
+                HavenDatabase.MIGRATION_91_92,
             )
             .build()
 
@@ -100,6 +101,7 @@ class HavenDatabaseMigrationTest {
                 HavenDatabase.MIGRATION_88_89,
                 HavenDatabase.MIGRATION_89_90,
                 HavenDatabase.MIGRATION_90_91,
+                HavenDatabase.MIGRATION_91_92,
             )
             .build()
 
@@ -147,7 +149,11 @@ class HavenDatabaseMigrationTest {
             HavenDatabase::class.java,
             dbName,
         )
-            .addMigrations(HavenDatabase.MIGRATION_89_90, HavenDatabase.MIGRATION_90_91)
+            .addMigrations(
+                HavenDatabase.MIGRATION_89_90,
+                HavenDatabase.MIGRATION_90_91,
+                HavenDatabase.MIGRATION_91_92,
+            )
             .build()
 
         db.openHelper.writableDatabase
@@ -233,6 +239,7 @@ class HavenDatabaseMigrationTest {
                 HavenDatabase.MIGRATION_88_89,
                 HavenDatabase.MIGRATION_89_90,
                 HavenDatabase.MIGRATION_90_91,
+                HavenDatabase.MIGRATION_91_92,
             )
             .build()
 
@@ -254,7 +261,7 @@ class HavenDatabaseMigrationTest {
                     setOf(
                         "glkvmPort", "glkvmPassword", "glkvmTargetLayout",
                         "glkvmSshForward", "glkvmSshProfileId", "keyboardLayout",
-                        "localShellMode", "rdpClipboard", "rdpAudioMode",
+                        "localShellMode", "rdpClipboard", "rdpAudioMode", "rdpSharedFolderUri",
                     ),
                 ),
             )
@@ -265,7 +272,7 @@ class HavenDatabaseMigrationTest {
     }
 
     @Test
-    fun `migration 90 to 91 adds rdpClipboard and rdpAudioMode with safe defaults`() {
+    fun `migration 90 to 92 adds rdpClipboard rdpAudioMode and rdpSharedFolderUri with safe defaults`() {
         val dbName = "migration-test-90.db"
         helper.createDatabase(dbName, 90).close()
 
@@ -274,7 +281,7 @@ class HavenDatabaseMigrationTest {
             HavenDatabase::class.java,
             dbName,
         )
-            .addMigrations(HavenDatabase.MIGRATION_90_91)
+            .addMigrations(HavenDatabase.MIGRATION_90_91, HavenDatabase.MIGRATION_91_92)
             .build()
 
         db.openHelper.writableDatabase
@@ -290,6 +297,7 @@ class HavenDatabaseMigrationTest {
                     connectionType = "RDP",
                     rdpClipboard = true,
                     rdpAudioMode = "PLAY_ON_SERVER",
+                    rdpSharedFolderUri = "content://com.android.externalstorage.documents/tree/primary%3ADownload",
                 )
                 dao.upsert(customRdp)
                 val loaded = dao.getById("rdp-custom-1")
@@ -297,6 +305,10 @@ class HavenDatabaseMigrationTest {
                 assertEquals(
                     sh.haven.core.data.db.entities.ConnectionProfile.RdpAudioMode.PLAY_ON_SERVER,
                     loaded?.resolvedRdpAudioMode,
+                )
+                assertEquals(
+                    "content://com.android.externalstorage.documents/tree/primary%3ADownload",
+                    loaded?.rdpSharedFolderUri,
                 )
 
                 val defaultRdp = sh.haven.core.data.db.entities.ConnectionProfile(
@@ -314,6 +326,7 @@ class HavenDatabaseMigrationTest {
                     sh.haven.core.data.db.entities.ConnectionProfile.RdpAudioMode.PLAY_ON_DEVICE,
                     loadedDefault?.resolvedRdpAudioMode,
                 )
+                assertEquals(null, loadedDefault?.rdpSharedFolderUri)
             }
         } finally {
             db.close()

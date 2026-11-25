@@ -574,5 +574,9 @@
     <string name="connections_rdp_audio_disabled">Никад</string>
     <string name="connections_toggle_rdp_clipboard">Дели привремену меморију</string>
     <string name="connections_helper_rdp_clipboard">Подразумевано искључено. Омогућава двосмерну синхронизацију текстуалне привремене меморије између овог уређаја и удаљене сесије.</string>
+    <string name="connections_field_rdp_shared_folder">Дељена фасцикла</string>
+    <string name="connections_rdp_shared_folder_none">Ниједна</string>
+    <string name="connections_button_choose_folder">Изабери фасциклу</string>
+    <string name="connections_helper_rdp_shared_folder">Подразумевано искључено. Приказује једну изабрану фасциклу удаљеном рачунару као преусмерени диск.</string>
 </resources>
 

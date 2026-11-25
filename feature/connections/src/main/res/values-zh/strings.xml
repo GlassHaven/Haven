@@ -635,4 +635,8 @@
     <string name="connections_rdp_audio_disabled">从不</string>
     <string name="connections_toggle_rdp_clipboard">共享剪贴板</string>
     <string name="connections_helper_rdp_clipboard">默认关闭。开启此设备与远程会话之间的双向文本剪贴板同步。</string>
+    <string name="connections_field_rdp_shared_folder">共享文件夹</string>
+    <string name="connections_rdp_shared_folder_none">无</string>
+    <string name="connections_button_choose_folder">选择文件夹</string>
+    <string name="connections_helper_rdp_shared_folder">默认关闭。将所选的一个文件夹作为重定向驱动器暴露给远程电脑。</string>
 </resources>

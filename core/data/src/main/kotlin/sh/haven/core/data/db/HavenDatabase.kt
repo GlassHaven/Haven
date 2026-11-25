@@ -58,7 +58,7 @@ import sh.haven.core.data.db.entities.WorkspaceProfile
         ChatConversation::class,
         ChatMessage::class,
     ],
-    version = 91,
+    version = 92,
     exportSchema = true,
 )
 abstract class HavenDatabase : RoomDatabase() {
@@ -1429,6 +1429,13 @@ abstract class HavenDatabase : RoomDatabase() {
                     "rdpAudioMode",
                     "TEXT NOT NULL DEFAULT 'PLAY_ON_DEVICE'",
                 )
+            }
+        }
+
+        /** #890: per-profile SAF shared folder URI for MS-RDPEFS (`rdpdr`) drive redirection. */
+        val MIGRATION_91_92 = object : Migration(91, 92) {
+            override fun migrate(db: SupportSQLiteDatabase) {
+                addColumnIfMissing(db, "connection_profiles", "rdpSharedFolderUri", "TEXT DEFAULT NULL")
             }
         }
 

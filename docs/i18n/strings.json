@@ -21819,6 +21819,86 @@
       "sr": "Подразумевано искључено. Омогућава двосмерну синхронизацију текстуалне привремене меморије између овог уређаја и удаљене сесије.",
       "zh": "默认关闭。开启此设备与远程会话之间的双向文本剪贴板同步。"
      }
+    },
+    {
+     "name": "connections_field_rdp_shared_folder",
+     "en": "Shared folder",
+     "comment": "#210 i18n sweep: VM-setup copy toasts and code-block copy action.",
+     "args": [],
+     "t": {
+      "ar": "مجلد مشترك",
+      "bn": "শেয়ার করা ফোল্ডার",
+      "de": "Freigegebener Ordner",
+      "es": "Carpeta compartida",
+      "fr": "Dossier partagé",
+      "hi": "साझा फ़ोल्डर",
+      "ja": "共有フォルダー",
+      "ko": "공유 폴더",
+      "pt": "Pasta compartilhada",
+      "ru": "Общая папка",
+      "sr": "Дељена фасцикла",
+      "zh": "共享文件夹"
+     }
+    },
+    {
+     "name": "connections_rdp_shared_folder_none",
+     "en": "None",
+     "comment": "#210 i18n sweep: VM-setup copy toasts and code-block copy action.",
+     "args": [],
+     "t": {
+      "ar": "بلا",
+      "bn": "কোনোটিই নয়",
+      "de": "Keiner",
+      "es": "Ninguna",
+      "fr": "Aucun",
+      "hi": "कोई नहीं",
+      "ja": "なし",
+      "ko": "없음",
+      "pt": "Nenhuma",
+      "ru": "Нет",
+      "sr": "Ниједна",
+      "zh": "无"
+     }
+    },
+    {
+     "name": "connections_button_choose_folder",
+     "en": "Choose folder",
+     "comment": "#210 i18n sweep: VM-setup copy toasts and code-block copy action.",
+     "args": [],
+     "t": {
+      "ar": "اختر مجلدًا",
+      "bn": "ফোল্ডার বেছে নিন",
+      "de": "Ordner wählen",
+      "es": "Elegir carpeta",
+      "fr": "Choisir un dossier",
+      "hi": "फ़ोल्डर चुनें",
+      "ja": "フォルダーを選択",
+      "ko": "폴더 선택",
+      "pt": "Escolher pasta",
+      "ru": "Выбрать папку",
+      "sr": "Изабери фасциклу",
+      "zh": "选择文件夹"
+     }
+    },
+    {
+     "name": "connections_helper_rdp_shared_folder",
+     "en": "Off by default. Exposes one chosen folder to the remote PC as a redirected drive.",
+     "comment": "#210 i18n sweep: VM-setup copy toasts and code-block copy action.",
+     "args": [],
+     "t": {
+      "ar": "متوقف افتراضيًا. يعرض مجلدًا واحدًا مختارًا للكمبيوتر البعيد كمحرك أقراص مُعاد توجيهه.",
+      "bn": "ডিফল্টভাবে বন্ধ। নির্বাচিত একটি ফোল্ডারকে রিমোট পিসিতে রিডাইরেক্টেড ড্রাইভ হিসেবে দেখায়।",
+      "de": "Standardmäßig aus. Stellt einen ausgewählten Ordner dem Remote-PC als umgeleitetes Laufwerk bereit.",
+      "es": "Desactivado por defecto. Expone una carpeta elegida al PC remoto como unidad redirigida.",
+      "fr": "Désactivé par défaut. Expose un dossier choisi au PC distant comme lecteur redirigé.",
+      "hi": "डिफ़ॉल्ट रूप से बंद। चुने गए एक फ़ोल्डर को रिमोट पीसी पर रीडायरेक्ट किए गए ड्राइव के रूप में दिखाता है।",
+      "ja": "既定ではオフです。選択した1つのフォルダーをリダイレクトされたドライブとしてリモート PC に公開します。",
+      "ko": "기본값은 꺼짐입니다. 선택한 폴더 하나를 원격 PC에 리디렉션된 드라이브로 노출합니다.",
+      "pt": "Desativado por padrão. Expõe uma pasta escolhida ao PC remoto como uma unidade redirecionada.",
+      "ru": "По умолчанию выключено. Открывает одну выбранную папку на удалённом ПК как перенаправленный диск.",
+      "sr": "Подразумевано искључено. Приказује једну изабрану фасциклу удаљеном рачунару као преусмерени диск.",
+      "zh": "默认关闭。将所选的一个文件夹作为重定向驱动器暴露给远程电脑。"
+     }
     }
    ]
   },

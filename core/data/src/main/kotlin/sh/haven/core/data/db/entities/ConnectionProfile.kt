@@ -126,6 +126,12 @@ data class ConnectionProfile @Ignore constructor(
      * (`INFO_REMOTECONSOLEAUDIO`), or `"DISABLED"` (`INFO_NOAUDIOPLAYBACK`).
      */
     val rdpAudioMode: String = "PLAY_ON_DEVICE",
+    /**
+     * #890: optional persisted SAF tree URI (`OpenDocumentTree`) exposed to the
+     * remote PC as a redirected folder over `MS-RDPEFS` (`rdpdr`). Null keeps
+     * drive redirection off by default.
+     */
+    val rdpSharedFolderUri: String? = null,
     // SPICE-specific fields (#286). SPICE auth is a single ticket/password (no
     // username/domain); the framebuffer is always 32bpp so there's no color-depth knob.
     val spicePort: Int? = null,
@@ -505,6 +511,7 @@ data class ConnectionProfile @Ignore constructor(
         rdpColorDepth: Int,
         rdpClipboard: Boolean,
         rdpAudioMode: String,
+        rdpSharedFolderUri: String?,
         spicePort: Int?,
         spicePassword: String?,
         spiceSshForward: Boolean,
@@ -624,6 +631,7 @@ data class ConnectionProfile @Ignore constructor(
         rdpColorDepth = rdpColorDepth,
         rdpClipboard = rdpClipboard,
         rdpAudioMode = rdpAudioMode,
+        rdpSharedFolderUri = rdpSharedFolderUri,
         spicePort = spicePort,
         spicePassword = spicePassword,
         spiceSshForward = spiceSshForward,

@@ -637,4 +637,8 @@
     <string name="connections_rdp_audio_disabled">Nunca</string>
     <string name="connections_toggle_rdp_clipboard">Compartir portapapeles</string>
     <string name="connections_helper_rdp_clipboard">Desactivado por defecto. Activa la sincronización bidireccional de texto del portapapeles entre este dispositivo y la sesión remota.</string>
+    <string name="connections_field_rdp_shared_folder">Carpeta compartida</string>
+    <string name="connections_rdp_shared_folder_none">Ninguna</string>
+    <string name="connections_button_choose_folder">Elegir carpeta</string>
+    <string name="connections_helper_rdp_shared_folder">Desactivado por defecto. Expone una carpeta elegida al PC remoto como unidad redirigida.</string>
 </resources>

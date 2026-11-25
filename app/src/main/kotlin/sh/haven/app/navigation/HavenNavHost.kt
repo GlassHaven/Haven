@@ -329,6 +329,7 @@ fun HavenNavHost(
                 keyboardLayout = nav.keyboardLayout,
                 enableClipboard = nav.enableClipboard,
                 audioMode = nav.audioMode,
+                sharedFolderUri = nav.sharedFolderUri,
             )
             connectionsViewModel.onDesktopNavigated()
             requestScreen(Screen.Desktop)

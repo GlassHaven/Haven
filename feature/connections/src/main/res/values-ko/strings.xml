@@ -629,4 +629,8 @@
     <string name="connections_rdp_audio_disabled">사용 안 함</string>
     <string name="connections_toggle_rdp_clipboard">클립보드 공유</string>
     <string name="connections_helper_rdp_clipboard">기본값은 꺼짐입니다. 이 기기와 원격 세션 간 양방향 텍스트 클립보드 동기화를 활성화합니다.</string>
+    <string name="connections_field_rdp_shared_folder">공유 폴더</string>
+    <string name="connections_rdp_shared_folder_none">없음</string>
+    <string name="connections_button_choose_folder">폴더 선택</string>
+    <string name="connections_helper_rdp_shared_folder">기본값은 꺼짐입니다. 선택한 폴더 하나를 원격 PC에 리디렉션된 드라이브로 노출합니다.</string>
 </resources>

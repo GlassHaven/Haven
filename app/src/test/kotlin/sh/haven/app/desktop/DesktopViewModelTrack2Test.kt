@@ -88,6 +88,7 @@ class DesktopViewModelTrack2Test {
             systemVmManager = mockk<SystemVmManager>(relaxed = true),
             umlDesktopManager = umlDesktopManager,
             tlsCertVerifier = mockk(relaxed = true),
+            appContext = mockk(relaxed = true),
         )
     }
 

@@ -637,4 +637,8 @@
     <string name="connections_rdp_audio_disabled">Никогда</string>
     <string name="connections_toggle_rdp_clipboard">Общий буфер обмена</string>
     <string name="connections_helper_rdp_clipboard">По умолчанию выключено. Включает двустороннюю синхронизацию текстового буфера обмена между этим устройством и удалённым сеансом.</string>
+    <string name="connections_field_rdp_shared_folder">Общая папка</string>
+    <string name="connections_rdp_shared_folder_none">Нет</string>
+    <string name="connections_button_choose_folder">Выбрать папку</string>
+    <string name="connections_helper_rdp_shared_folder">По умолчанию выключено. Открывает одну выбранную папку на удалённом ПК как перенаправленный диск.</string>
 </resources>

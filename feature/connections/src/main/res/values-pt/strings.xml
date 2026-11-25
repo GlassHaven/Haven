@@ -637,4 +637,8 @@
     <string name="connections_rdp_audio_disabled">Nunca</string>
     <string name="connections_toggle_rdp_clipboard">Compartilhar área de transferência</string>
     <string name="connections_helper_rdp_clipboard">Desativado por padrão. Ativa a sincronização bidirecional de texto da área de transferência entre este dispositivo e a sessão remota.</string>
+    <string name="connections_field_rdp_shared_folder">Pasta compartilhada</string>
+    <string name="connections_rdp_shared_folder_none">Nenhuma</string>
+    <string name="connections_button_choose_folder">Escolher pasta</string>
+    <string name="connections_helper_rdp_shared_folder">Desativado por padrão. Expõe uma pasta escolhida ao PC remoto como uma unidade redirecionada.</string>
 </resources>

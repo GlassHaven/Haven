@@ -637,4 +637,8 @@
     <string name="connections_rdp_audio_disabled">أبدًا</string>
     <string name="connections_toggle_rdp_clipboard">مشاركة الحافظة</string>
     <string name="connections_helper_rdp_clipboard">متوقف افتراضيًا. يتيح مزامنة النصوص في الحافظة بالاتجاهين بين هذا الجهاز والجلسة البعيدة.</string>
+    <string name="connections_field_rdp_shared_folder">مجلد مشترك</string>
+    <string name="connections_rdp_shared_folder_none">بلا</string>
+    <string name="connections_button_choose_folder">اختر مجلدًا</string>
+    <string name="connections_helper_rdp_shared_folder">متوقف افتراضيًا. يعرض مجلدًا واحدًا مختارًا للكمبيوتر البعيد كمحرك أقراص مُعاد توجيهه.</string>
 </resources>

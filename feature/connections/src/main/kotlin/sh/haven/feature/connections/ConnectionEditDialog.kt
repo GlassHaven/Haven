@@ -310,6 +310,7 @@ fun ConnectionEditDialog(
                 ?: ConnectionProfile.RdpAudioMode.PLAY_ON_DEVICE.name,
         )
     }
+    var rdpSharedFolderUri by rememberSaveable { mutableStateOf(existing?.rdpSharedFolderUri) }
     var spicePassword by rememberSaveable { mutableStateOf(existing?.spicePassword ?: "") }
     var spiceSshForward by rememberSaveable {
         mutableStateOf(existing?.let { strictTunnelInitialEnabled(it.connectionType, "SPICE", it.spiceSshForward, it.spiceSshProfileId) } ?: false)
@@ -2288,6 +2289,69 @@ fun ConnectionEditDialog(
                         style = MaterialTheme.typography.bodySmall,
                         color = MaterialTheme.colorScheme.onSurfaceVariant,
                     )
+                    Spacer(Modifier.height(12.dp))
+                    val rdpSafContext = LocalContext.current
+                    val rdpFolderLauncher = rememberLauncherForActivityResult(
+                        ActivityResultContracts.OpenDocumentTree(),
+                    ) { pickedUri ->
+                        if (pickedUri != null) {
+                            runCatching {
+                                rdpSafContext.contentResolver.takePersistableUriPermission(
+                                    pickedUri,
+                                    android.content.Intent.FLAG_GRANT_READ_URI_PERMISSION or
+                                        android.content.Intent.FLAG_GRANT_WRITE_URI_PERMISSION,
+                                )
+                            }
+                            rdpSharedFolderUri = pickedUri.toString()
+                        }
+                    }
+                    val selectedRdpFolderLabel = remember(rdpSharedFolderUri) {
+                        rdpSharedFolderUri?.let { raw ->
+                            friendlyRdpSafFolderLabel(rdpSafContext, raw)
+                        }
+                    }
+                    Row(
+                        verticalAlignment = Alignment.CenterVertically,
+                        horizontalArrangement = Arrangement.spacedBy(8.dp),
+                        modifier = Modifier.fillMaxWidth(),
+                    ) {
+                        OutlinedTextField(
+                            value = selectedRdpFolderLabel
+                                ?: stringResource(R.string.connections_rdp_shared_folder_none),
+                            onValueChange = {},
+                            readOnly = true,
+                            singleLine = true,
+                            label = { Text(stringResource(R.string.connections_field_rdp_shared_folder)) },
+                            trailingIcon = if (rdpSharedFolderUri != null) {
+                                {
+                                    IconButton(onClick = { rdpSharedFolderUri = null }) {
+                                        Icon(
+                                            Icons.Default.Close,
+                                            contentDescription = stringResource(R.string.connections_rdp_shared_folder_none),
+                                        )
+                                    }
+                                }
+                            } else {
+                                null
+                            },
+                            modifier = Modifier.weight(1f),
+                        )
+                        OutlinedButton(
+                            onClick = {
+                                val initial = rdpSharedFolderUri?.let {
+                                    runCatching { android.net.Uri.parse(it) }.getOrNull()
+                                }
+                                rdpFolderLauncher.launch(initial)
+                            },
+                        ) {
+                            Text(stringResource(R.string.connections_button_choose_folder))
+                        }
+                    }
+                    Text(
+                        stringResource(R.string.connections_helper_rdp_shared_folder),
+                        style = MaterialTheme.typography.bodySmall,
+                        color = MaterialTheme.colorScheme.onSurfaceVariant,
+                    )
                 } else if (connectionType == "SPICE") {
                     ConnectionSection(stringResource(R.string.connections_section_spice))
                     // SPICE: tunnel toggle first (changes what Host means), then
@@ -4142,6 +4206,7 @@ fun ConnectionEditDialog(
                                 rdpColorDepth = rdpColorDepth,
                                 rdpClipboard = rdpClipboard,
                                 rdpAudioMode = rdpAudioMode,
+                                rdpSharedFolderUri = rdpSharedFolderUri?.ifBlank { null },
                                 keyboardLayout = keyboardLayout.ifBlank { null },
                                 colorTag = colorTag,
                                 groupId = groupId,
@@ -5697,4 +5762,29 @@ private fun DesktopKeyboardLayoutPicker(
         style = MaterialTheme.typography.bodySmall,
         color = MaterialTheme.colorScheme.onSurfaceVariant,
     )
+}
+
+internal fun friendlyRdpSafFolderLabel(context: android.content.Context, rawUri: String): String {
+    val parsed = runCatching { android.net.Uri.parse(rawUri) }.getOrNull() ?: return rawUri
+    val treeDocId = runCatching { android.provider.DocumentsContract.getTreeDocumentId(parsed) }.getOrNull()
+    if (treeDocId != null) {
+        val docUri = runCatching {
+            android.provider.DocumentsContract.buildDocumentUriUsingTree(parsed, treeDocId)
+        }.getOrNull()
+        if (docUri != null) {
+            val queried = runCatching {
+                context.contentResolver.query(
+                    docUri,
+                    arrayOf(android.provider.DocumentsContract.Document.COLUMN_DISPLAY_NAME),
+                    null,
+                    null,
+                    null,
+                )?.use { c -> if (c.moveToFirst()) c.getString(0) else null }
+            }.getOrNull()
+            if (!queried.isNullOrBlank()) return queried
+        }
+        val fromDocId = treeDocId.substringAfterLast(':').substringAfterLast('/')
+        if (fromDocId.isNotBlank()) return fromDocId
+    }
+    return parsed.lastPathSegment?.substringAfterLast('/')?.ifBlank { rawUri } ?: rawUri
 }

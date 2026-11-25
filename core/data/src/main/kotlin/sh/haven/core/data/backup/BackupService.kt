@@ -136,6 +136,7 @@ class BackupService @Inject constructor(
                 put("rdpColorDepth", p.rdpColorDepth)
                 put("rdpClipboard", p.rdpClipboard)
                 put("rdpAudioMode", p.rdpAudioMode)
+                put("rdpSharedFolderUri", p.rdpSharedFolderUri ?: JSONObject.NULL)
                 put("smbPort", p.smbPort)
                 put("smbShare", p.smbShare ?: JSONObject.NULL)
                 put("smbDomain", p.smbDomain ?: JSONObject.NULL)
@@ -776,6 +777,7 @@ class BackupService @Inject constructor(
                             rdpAudioMode = ConnectionProfile.RdpAudioMode.fromRaw(
                                 c.optStringOrNull("rdpAudioMode"),
                             ).name,
+                            rdpSharedFolderUri = c.optStringOrNull("rdpSharedFolderUri"),
                             smbPort = c.optInt("smbPort", 445),
                             smbShare = c.optStringOrNull("smbShare"),
                             smbDomain = c.optStringOrNull("smbDomain"),

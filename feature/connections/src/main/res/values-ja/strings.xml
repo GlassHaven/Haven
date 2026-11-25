@@ -637,4 +637,8 @@
     <string name="connections_rdp_audio_disabled">再生しない</string>
     <string name="connections_toggle_rdp_clipboard">クリップボードを共有</string>
     <string name="connections_helper_rdp_clipboard">既定ではオフです。このデバイスとリモートセッションの間でテキストの双方向クリップボード同期を有効にします。</string>
+    <string name="connections_field_rdp_shared_folder">共有フォルダー</string>
+    <string name="connections_rdp_shared_folder_none">なし</string>
+    <string name="connections_button_choose_folder">フォルダーを選択</string>
+    <string name="connections_helper_rdp_shared_folder">既定ではオフです。選択した1つのフォルダーをリダイレクトされたドライブとしてリモート PC に公開します。</string>
 </resources>

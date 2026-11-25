@@ -92,6 +92,7 @@ class DesktopViewModel @Inject constructor(
     private val systemVmManager: sh.haven.core.local.SystemVmManager,
     private val umlDesktopManager: sh.haven.core.local.uml.UmlDesktopManager,
     private val tlsCertVerifier: sh.haven.core.data.agent.TlsCertVerifier,
+    @dagger.hilt.android.qualifiers.ApplicationContext private val appContext: android.content.Context,
     private val agentActivityHolder: sh.haven.core.data.agent.AgentActivityHolder =
         sh.haven.core.data.agent.AgentActivityHolder(),
 ) : ViewModel() {
@@ -1349,6 +1350,7 @@ class DesktopViewModel @Inject constructor(
                         keyboardLayout = profile.keyboardLayout,
                         enableClipboard = profile.rdpClipboard,
                         audioMode = profile.rdpAudioMode,
+                        sharedFolderUri = profile.rdpSharedFolderUri,
                     )
                 }
                 profile.isSpice -> {
@@ -2469,6 +2471,7 @@ class DesktopViewModel @Inject constructor(
         keyboardLayout: String? = null,
         enableClipboard: Boolean? = null,
         audioMode: String? = null,
+        sharedFolderUri: String? = null,
     ) {
         viewModelScope.launch(Dispatchers.IO) {
             // Deduplicate: if a tab for the same connection exists, reuse or replace
@@ -2566,6 +2569,18 @@ class DesktopViewModel @Inject constructor(
                     ConnectionProfile.RdpAudioMode.DISABLED ->
                         sh.haven.core.rdp.RdpSoundMode.DISABLED
                 }
+                val effectiveSharedFolderUri = (sharedFolderUri ?: storedProfile?.rdpSharedFolderUri)
+                    ?.takeIf { it.isNotBlank() }
+                val sharedDriveBackend = effectiveSharedFolderUri?.let { rawUri ->
+                    runCatching {
+                        sh.haven.core.rdp.RdpSafDriveBackend.fromTreeUri(
+                            appContext,
+                            android.net.Uri.parse(rawUri),
+                        )
+                    }.onFailure { err ->
+                        Log.w(TAG, "Could not open RDP shared folder for tab $tabId: ${err.message}")
+                    }.getOrNull()
+                }
 
                 val session = RdpSession(
                     sessionId = "rdp-$tabId",
@@ -2583,6 +2598,7 @@ class DesktopViewModel @Inject constructor(
                     keyboardLayout = effectiveLayout,
                     enableClipboard = effectiveClipboard,
                     audioMode = effectiveAudioMode,
+                    sharedDriveBackend = sharedDriveBackend,
                 )
                 session.onFrameUpdate = { bitmap -> frame.value = bitmap }
                 session.onCursorUpdate = { bmp, hx, hy ->

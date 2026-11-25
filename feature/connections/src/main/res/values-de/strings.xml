@@ -637,4 +637,8 @@
     <string name="connections_rdp_audio_disabled">Nie</string>
     <string name="connections_toggle_rdp_clipboard">Zwischenablage teilen</string>
     <string name="connections_helper_rdp_clipboard">Standardmäßig aus. Aktiviert die bidirektionale Text-Zwischenablage zwischen diesem Gerät und der Remote-Sitzung.</string>
+    <string name="connections_field_rdp_shared_folder">Freigegebener Ordner</string>
+    <string name="connections_rdp_shared_folder_none">Keiner</string>
+    <string name="connections_button_choose_folder">Ordner wählen</string>
+    <string name="connections_helper_rdp_shared_folder">Standardmäßig aus. Stellt einen ausgewählten Ordner dem Remote-PC als umgeleitetes Laufwerk bereit.</string>
 </resources>

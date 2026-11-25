@@ -133,11 +133,19 @@ internal fun ConsentHost(viewModel: ConsentHostViewModel = hiltViewModel()) {
         val u = upstream
         if (u != null) {
             displayed = u
-            if (!sheetState.isVisible) sheetState.show()
         } else if (displayed != null) {
             runCatching { sheetState.hide() }
             displayed = null
         }
+    }
+    // Show the sheet only once it has actually composed. Setting `displayed`
+    // and calling show() in the same effect ran show() before the
+    // ModalBottomSheet's dialog window attached, so its first frame never drew
+    // until a touch in its bounds forced an invalidation (the "blank sheet
+    // until I tap the gap" report). Keying show() on `displayed` runs it after
+    // the recomposition that puts the sheet in the tree.
+    LaunchedEffect(displayed) {
+        if (displayed != null && !sheetState.isVisible) sheetState.show()
     }
     val current = displayed ?: return
 

@@ -1431,6 +1431,21 @@ class SshSessionManager @Inject constructor(
                     return
                 }
 
+                // Emit any dropped-sibling notice BEFORE publishing CONNECTED on
+                // _sessions so observers waking on the status transition already
+                // see the buffered UserMessageBus event (avoids a scheduling race
+                // between the reconnect thread and status-polling callers/tests).
+                if (failedSiblingDetails.isNotEmpty()) {
+                    val firstReason = failedSiblingDetails.first().second
+                    val summary = if (failedSiblingDetails.size == 1) {
+                        "Tab '${failedSiblingDetails.single().first}' closed during reconnect: $firstReason"
+                    } else {
+                        val names = failedSiblingDetails.joinToString(", ") { "'${it.first}'" }
+                        "Closed ${failedSiblingDetails.size} tabs ($names) during reconnect: $firstReason"
+                    }
+                    userMessageBus.error(summary)
+                }
+
                 // Atomically publish CONNECTED for the primary session and all
                 // reattached siblings now that every shell channel is open (#888).
                 _sessions.update { map ->
@@ -1452,16 +1467,6 @@ class SshSessionManager @Inject constructor(
                         }
                     }
                     updated
-                }
-                if (failedSiblingDetails.isNotEmpty()) {
-                    val firstReason = failedSiblingDetails.first().second
-                    val summary = if (failedSiblingDetails.size == 1) {
-                        "Tab '${failedSiblingDetails.single().first}' closed during reconnect: $firstReason"
-                    } else {
-                        val names = failedSiblingDetails.joinToString(", ") { "'${it.first}'" }
-                        "Closed ${failedSiblingDetails.size} tabs ($names) during reconnect: $firstReason"
-                    }
-                    userMessageBus.error(summary)
                 }
                 // Post-reconnect hooks (e.g. USB/IP host re-attach). Best-effort —
                 // a failing hook must never abort a successful reconnect.

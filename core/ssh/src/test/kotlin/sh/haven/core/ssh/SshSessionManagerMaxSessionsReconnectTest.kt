@@ -291,7 +291,7 @@ class SshSessionManagerMaxSessionsReconnectTest {
 
         val emittedMessages = CopyOnWriteArrayList<sh.haven.core.data.message.UserMessage>()
         val collectorScope = CoroutineScope(SupervisorJob() + Dispatchers.Unconfined)
-        collectorScope.launch {
+        collectorScope.launch(start = kotlinx.coroutines.CoroutineStart.UNDISPATCHED) {
             messageBus.messages.collect { emittedMessages.add(it) }
         }
 
@@ -389,7 +389,7 @@ class SshSessionManagerMaxSessionsReconnectTest {
 
         val emittedMessages = CopyOnWriteArrayList<sh.haven.core.data.message.UserMessage>()
         val collectorScope = CoroutineScope(SupervisorJob() + Dispatchers.Unconfined)
-        collectorScope.launch {
+        collectorScope.launch(start = kotlinx.coroutines.CoroutineStart.UNDISPATCHED) {
             messageBus.messages.collect { emittedMessages.add(it) }
         }
 

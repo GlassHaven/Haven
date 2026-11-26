@@ -5,6 +5,10 @@ the corresponding GitHub Release; a release can't ship without its section
 (enforced by `scripts/check-changelog.sh` in CI). The GitHub "Full Changelog"
 compare link is appended automatically — don't add it here.
 
+## v5.94.77
+
+- Show release notes inline in Settings -> About when a newer GitHub release is available, add a quiet badge dot on Settings and About instead of extra notifications, link F-Droid installs directly to Haven's F-Droid page, and document Haven's rolling-release cadence (#874, thanks n1x0l4s).
+
 ## v5.94.76
 
 - Verify SSH host keys during key exchange before sending user authentication credentials on both the JSch and sshlib engines, and fail closed on unknown host keys during background auto-reconnect and auto-deploy (#813).

@@ -1,0 +1,1 @@
+- Show release notes inline in Settings -> About when a newer GitHub release is available, add a quiet badge dot on Settings and About instead of extra notifications, link F-Droid installs directly to Haven's F-Droid page, and document Haven's rolling-release cadence (#874, thanks n1x0l4s).

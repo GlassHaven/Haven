@@ -457,4 +457,15 @@
     <string name="app_recipe_import_load_file">Load .json file</string>
     <string name="app_recipe_import_review">Review scripts</string>
     <string name="app_recipe_import_confirm">Add recipes</string>
+    <string name="widget_connections_title">Haven</string>
+    <string name="widget_connections_description">Quickly launch saved SSH, desktop, and storage connections.</string>
+    <string name="widget_connections_empty">No saved connections</string>
+    <string name="widget_connections_filter_action">Filter</string>
+    <string name="widget_config_title">Configure connections widget</string>
+    <string name="widget_config_group_heading">Show connections from</string>
+    <string name="widget_config_all_connections">All connections</string>
+    <string name="widget_config_sort_heading">Sort order</string>
+    <string name="widget_config_sort_saved">Saved order</string>
+    <string name="widget_config_sort_recent">Recently connected first</string>
+    <string name="widget_config_save">Save</string>
 </resources>

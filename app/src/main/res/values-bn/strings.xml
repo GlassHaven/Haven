@@ -417,4 +417,15 @@
     <string name="app_recipe_import_load_file">.json ফাইল লোড করুন</string>
     <string name="app_recipe_import_review">স্ক্রিপ্ট যাচাই করুন</string>
     <string name="app_recipe_import_confirm">রেসিপি যোগ করুন</string>
+    <string name="widget_connections_title">Haven</string>
+    <string name="widget_connections_description">সংরক্ষিত SSH, ডেস্কটপ ও স্টোরেজ সংযোগ দ্রুত চালু করুন।</string>
+    <string name="widget_connections_empty">কোনো সংরক্ষিত সংযোগ নেই</string>
+    <string name="widget_connections_filter_action">ফিল্টার</string>
+    <string name="widget_config_title">সংযোগ উইজেট কনফিগার করুন</string>
+    <string name="widget_config_group_heading">যেখান থেকে সংযোগ দেখাবেন</string>
+    <string name="widget_config_all_connections">সব সংযোগ</string>
+    <string name="widget_config_sort_heading">সাজানোর ক্রম</string>
+    <string name="widget_config_sort_saved">সংরক্ষিত ক্রম</string>
+    <string name="widget_config_sort_recent">সাম্প্রতিক সংযোগ আগে</string>
+    <string name="widget_config_save">সংরক্ষণ</string>
 </resources>

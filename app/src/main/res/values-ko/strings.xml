@@ -423,4 +423,15 @@
     <string name="app_recipe_import_load_file">.json 파일 불러오기</string>
     <string name="app_recipe_import_review">스크립트 검토</string>
     <string name="app_recipe_import_confirm">레시피 추가</string>
+    <string name="widget_connections_title">Haven</string>
+    <string name="widget_connections_description">저장된 SSH, 데스크톱 및 스토리지 연결을 빠르게 실행합니다.</string>
+    <string name="widget_connections_empty">저장된 연결 없음</string>
+    <string name="widget_connections_filter_action">필터</string>
+    <string name="widget_config_title">연결 위젯 설정</string>
+    <string name="widget_config_group_heading">연결 표시 대상</string>
+    <string name="widget_config_all_connections">모든 연결</string>
+    <string name="widget_config_sort_heading">정렬 순서</string>
+    <string name="widget_config_sort_saved">저장된 순서</string>
+    <string name="widget_config_sort_recent">최근 연결순</string>
+    <string name="widget_config_save">저장</string>
 </resources>

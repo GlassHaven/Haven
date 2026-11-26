@@ -417,4 +417,15 @@
     <string name="app_recipe_import_load_file">Carregar ficheiro .json</string>
     <string name="app_recipe_import_review">Rever scripts</string>
     <string name="app_recipe_import_confirm">Adicionar receitas</string>
+    <string name="widget_connections_title">Haven</string>
+    <string name="widget_connections_description">Inicie rapidamente ligações guardadas de SSH, ambiente gráfico e armazenamento.</string>
+    <string name="widget_connections_empty">Sem ligações guardadas</string>
+    <string name="widget_connections_filter_action">Filtrar</string>
+    <string name="widget_config_title">Configurar widget de ligações</string>
+    <string name="widget_config_group_heading">Mostrar ligações de</string>
+    <string name="widget_config_all_connections">Todas as ligações</string>
+    <string name="widget_config_sort_heading">Ordenação</string>
+    <string name="widget_config_sort_saved">Ordem guardada</string>
+    <string name="widget_config_sort_recent">Ligadas recentemente primeiro</string>
+    <string name="widget_config_save">Guardar</string>
 </resources>

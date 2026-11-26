@@ -423,4 +423,15 @@
     <string name="app_recipe_import_load_file">Cargar archivo .json</string>
     <string name="app_recipe_import_review">Revisar scripts</string>
     <string name="app_recipe_import_confirm">Añadir recetas</string>
+    <string name="widget_connections_title">Haven</string>
+    <string name="widget_connections_description">Inicie rápidamente conexiones guardadas de SSH, escritorio y almacenamiento.</string>
+    <string name="widget_connections_empty">No hay conexiones guardadas</string>
+    <string name="widget_connections_filter_action">Filtrar</string>
+    <string name="widget_config_title">Configurar widget de conexiones</string>
+    <string name="widget_config_group_heading">Mostrar conexiones de</string>
+    <string name="widget_config_all_connections">Todas las conexiones</string>
+    <string name="widget_config_sort_heading">Orden</string>
+    <string name="widget_config_sort_saved">Orden guardado</string>
+    <string name="widget_config_sort_recent">Conectadas recientemente primero</string>
+    <string name="widget_config_save">Guardar</string>
 </resources>

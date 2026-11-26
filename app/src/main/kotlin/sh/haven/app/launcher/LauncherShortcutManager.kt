@@ -123,6 +123,7 @@ class LauncherShortcutManager @Inject constructor(
             // exceeded (#775); never crash app startup over launcher shortcuts.
             Log.w(TAG, "setDynamicShortcuts failed: ${e.message}")
         }
+        sh.haven.app.widget.ConnectionsAppWidgetProvider.notifyDataChanged(context)
     }
 
     private fun connectionLaunchIntent(profileId: String): Intent =

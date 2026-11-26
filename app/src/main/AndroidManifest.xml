@@ -261,5 +261,31 @@
         <receiver
             android:name=".agent.ConsentActionReceiver"
             android:exported="false" />
+
+        <!-- Saved-connections home-screen widget (#852). -->
+        <receiver
+            android:name=".widget.ConnectionsAppWidgetProvider"
+            android:exported="true">
+            <intent-filter>
+                <action android:name="android.appwidget.action.APPWIDGET_UPDATE" />
+            </intent-filter>
+            <meta-data
+                android:name="android.appwidget.provider"
+                android:resource="@xml/connections_widget_info" />
+        </receiver>
+
+        <service
+            android:name=".widget.ConnectionsWidgetService"
+            android:exported="false"
+            android:permission="android.permission.BIND_REMOTEVIEWS" />
+
+        <activity
+            android:name=".widget.ConnectionsWidgetConfigActivity"
+            android:exported="true"
+            android:theme="@style/Theme.Haven">
+            <intent-filter>
+                <action android:name="android.appwidget.action.APPWIDGET_CONFIGURE" />
+            </intent-filter>
+        </activity>
     </application>
 </manifest>

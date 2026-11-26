@@ -417,4 +417,15 @@
     <string name="app_recipe_import_load_file">Charger un fichier .json</string>
     <string name="app_recipe_import_review">Vérifier les scripts</string>
     <string name="app_recipe_import_confirm">Ajouter les recettes</string>
+    <string name="widget_connections_title">Haven</string>
+    <string name="widget_connections_description">Lancez rapidement vos connexions SSH, bureau et stockage enregistrées.</string>
+    <string name="widget_connections_empty">Aucune connexion enregistrée</string>
+    <string name="widget_connections_filter_action">Filtrer</string>
+    <string name="widget_config_title">Configurer le widget de connexions</string>
+    <string name="widget_config_group_heading">Afficher les connexions de</string>
+    <string name="widget_config_all_connections">Toutes les connexions</string>
+    <string name="widget_config_sort_heading">Ordre de tri</string>
+    <string name="widget_config_sort_saved">Ordre enregistré</string>
+    <string name="widget_config_sort_recent">Récemment connectées d’abord</string>
+    <string name="widget_config_save">Enregistrer</string>
 </resources>

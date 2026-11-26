@@ -7825,6 +7825,226 @@
       "sr": "Додај рецепте",
       "zh": "添加配方"
      }
+    },
+    {
+     "name": "widget_connections_title",
+     "en": "Haven",
+     "comment": "Guest container engine (#573): arm64 opt-in seccomp SIGSYS engine vs default PRoot",
+     "args": [],
+     "t": {
+      "ar": "Haven",
+      "bn": "Haven",
+      "de": "Haven",
+      "es": "Haven",
+      "fr": "Haven",
+      "hi": "Haven",
+      "ja": "Haven",
+      "ko": "Haven",
+      "pt": "Haven",
+      "ru": "Haven",
+      "sr": "Haven",
+      "zh": "Haven"
+     }
+    },
+    {
+     "name": "widget_connections_description",
+     "en": "Quickly launch saved SSH, desktop, and storage connections.",
+     "comment": "Guest container engine (#573): arm64 opt-in seccomp SIGSYS engine vs default PRoot",
+     "args": [],
+     "t": {
+      "ar": "تشغيل سريع لاتصالات SSH وسطح المكتب والتخزين المحفوظة.",
+      "bn": "সংরক্ষিত SSH, ডেস্কটপ ও স্টোরেজ সংযোগ দ্রুত চালু করুন।",
+      "de": "Gespeicherte SSH-, Desktop- und Speicherverbindungen schnell starten.",
+      "es": "Inicie rápidamente conexiones guardadas de SSH, escritorio y almacenamiento.",
+      "fr": "Lancez rapidement vos connexions SSH, bureau et stockage enregistrées.",
+      "hi": "सहेजे गए SSH, डेस्कटॉप और स्टोरेज कनेक्शन तुरंत शुरू करें।",
+      "ja": "保存した SSH・デスクトップ・ストレージ接続をすばやく起動します。",
+      "ko": "저장된 SSH, 데스크톱 및 스토리지 연결을 빠르게 실행합니다.",
+      "pt": "Inicie rapidamente ligações guardadas de SSH, ambiente gráfico e armazenamento.",
+      "ru": "Быстрый запуск сохранённых подключений SSH, рабочего стола и хранилищ.",
+      "sr": "Брзо покрените сачуване SSH, десктоп и складишне везе.",
+      "zh": "快速启动已保存的 SSH、桌面和存储连接。"
+     }
+    },
+    {
+     "name": "widget_connections_empty",
+     "en": "No saved connections",
+     "comment": "Guest container engine (#573): arm64 opt-in seccomp SIGSYS engine vs default PRoot",
+     "args": [],
+     "t": {
+      "ar": "لا توجد اتصالات محفوظة",
+      "bn": "কোনো সংরক্ষিত সংযোগ নেই",
+      "de": "Keine gespeicherten Verbindungen",
+      "es": "No hay conexiones guardadas",
+      "fr": "Aucune connexion enregistrée",
+      "hi": "कोई सहेजा गया कनेक्शन नहीं",
+      "ja": "保存された接続はありません",
+      "ko": "저장된 연결 없음",
+      "pt": "Sem ligações guardadas",
+      "ru": "Нет сохранённых подключений",
+      "sr": "Нема сачуваних веза",
+      "zh": "暂无已保存的连接"
+     }
+    },
+    {
+     "name": "widget_connections_filter_action",
+     "en": "Filter",
+     "comment": "Guest container engine (#573): arm64 opt-in seccomp SIGSYS engine vs default PRoot",
+     "args": [],
+     "t": {
+      "ar": "تصفية",
+      "bn": "ফিল্টার",
+      "de": "Filter",
+      "es": "Filtrar",
+      "fr": "Filtrer",
+      "hi": "फ़िल्टर",
+      "ja": "絞り込み",
+      "ko": "필터",
+      "pt": "Filtrar",
+      "ru": "Фильтр",
+      "sr": "Филтер",
+      "zh": "筛选"
+     }
+    },
+    {
+     "name": "widget_config_title",
+     "en": "Configure connections widget",
+     "comment": "Guest container engine (#573): arm64 opt-in seccomp SIGSYS engine vs default PRoot",
+     "args": [],
+     "t": {
+      "ar": "ضبط أداة الاتصالات",
+      "bn": "সংযোগ উইজেট কনফিগার করুন",
+      "de": "Verbindungs-Widget einrichten",
+      "es": "Configurar widget de conexiones",
+      "fr": "Configurer le widget de connexions",
+      "hi": "कनेक्शन विजेट कॉन्फ़िगर करें",
+      "ja": "接続ウィジェットの設定",
+      "ko": "연결 위젯 설정",
+      "pt": "Configurar widget de ligações",
+      "ru": "Настройка виджета подключений",
+      "sr": "Подешавање виџета веза",
+      "zh": "配置连接小组件"
+     }
+    },
+    {
+     "name": "widget_config_group_heading",
+     "en": "Show connections from",
+     "comment": "Guest container engine (#573): arm64 opt-in seccomp SIGSYS engine vs default PRoot",
+     "args": [],
+     "t": {
+      "ar": "عرض الاتصالات من",
+      "bn": "যেখান থেকে সংযোগ দেখাবেন",
+      "de": "Verbindungen anzeigen aus",
+      "es": "Mostrar conexiones de",
+      "fr": "Afficher les connexions de",
+      "hi": "यहाँ से कनेक्शन दिखाएँ",
+      "ja": "表示する接続",
+      "ko": "연결 표시 대상",
+      "pt": "Mostrar ligações de",
+      "ru": "Показывать подключения из",
+      "sr": "Прикажи везе из",
+      "zh": "显示连接范围"
+     }
+    },
+    {
+     "name": "widget_config_all_connections",
+     "en": "All connections",
+     "comment": "Guest container engine (#573): arm64 opt-in seccomp SIGSYS engine vs default PRoot",
+     "args": [],
+     "t": {
+      "ar": "كل الاتصالات",
+      "bn": "সব সংযোগ",
+      "de": "Alle Verbindungen",
+      "es": "Todas las conexiones",
+      "fr": "Toutes les connexions",
+      "hi": "सभी कनेक्शन",
+      "ja": "すべての接続",
+      "ko": "모든 연결",
+      "pt": "Todas as ligações",
+      "ru": "Все подключения",
+      "sr": "Све везе",
+      "zh": "全部连接"
+     }
+    },
+    {
+     "name": "widget_config_sort_heading",
+     "en": "Sort order",
+     "comment": "Guest container engine (#573): arm64 opt-in seccomp SIGSYS engine vs default PRoot",
+     "args": [],
+     "t": {
+      "ar": "ترتيب الفرز",
+      "bn": "সাজানোর ক্রম",
+      "de": "Sortierung",
+      "es": "Orden",
+      "fr": "Ordre de tri",
+      "hi": "क्रम",
+      "ja": "並び順",
+      "ko": "정렬 순서",
+      "pt": "Ordenação",
+      "ru": "Сортировка",
+      "sr": "Редослед",
+      "zh": "排序方式"
+     }
+    },
+    {
+     "name": "widget_config_sort_saved",
+     "en": "Saved order",
+     "comment": "Guest container engine (#573): arm64 opt-in seccomp SIGSYS engine vs default PRoot",
+     "args": [],
+     "t": {
+      "ar": "الترتيب المحفوظ",
+      "bn": "সংরক্ষিত ক্রম",
+      "de": "Gespeicherte Reihenfolge",
+      "es": "Orden guardado",
+      "fr": "Ordre enregistré",
+      "hi": "सहेजा गया क्रम",
+      "ja": "保存順",
+      "ko": "저장된 순서",
+      "pt": "Ordem guardada",
+      "ru": "Сохранённый порядок",
+      "sr": "Сачувани редослед",
+      "zh": "已保存顺序"
+     }
+    },
+    {
+     "name": "widget_config_sort_recent",
+     "en": "Recently connected first",
+     "comment": "Guest container engine (#573): arm64 opt-in seccomp SIGSYS engine vs default PRoot",
+     "args": [],
+     "t": {
+      "ar": "المتصل بها مؤخرًا أولاً",
+      "bn": "সাম্প্রতিক সংযোগ আগে",
+      "de": "Zuletzt verbunden zuerst",
+      "es": "Conectadas recientemente primero",
+      "fr": "Récemment connectées d’abord",
+      "hi": "हाल ही में जुड़े पहले",
+      "ja": "最近の接続を優先",
+      "ko": "최근 연결순",
+      "pt": "Ligadas recentemente primeiro",
+      "ru": "Сначала недавние",
+      "sr": "Недавно повезане прво",
+      "zh": "最近连接优先"
+     }
+    },
+    {
+     "name": "widget_config_save",
+     "en": "Save",
+     "comment": "Guest container engine (#573): arm64 opt-in seccomp SIGSYS engine vs default PRoot",
+     "args": [],
+     "t": {
+      "ar": "حفظ",
+      "bn": "সংরক্ষণ",
+      "de": "Speichern",
+      "es": "Guardar",
+      "fr": "Enregistrer",
+      "hi": "सहेजें",
+      "ja": "保存",
+      "ko": "저장",
+      "pt": "Guardar",
+      "ru": "Сохранить",
+      "sr": "Сачувај",
+      "zh": "保存"
+     }
     }
    ]
   },

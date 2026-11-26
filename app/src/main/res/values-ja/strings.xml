@@ -413,4 +413,15 @@
     <string name="app_recipe_import_load_file">.json ファイルを読み込む</string>
     <string name="app_recipe_import_review">スクリプトを確認</string>
     <string name="app_recipe_import_confirm">レシピを追加</string>
+    <string name="widget_connections_title">Haven</string>
+    <string name="widget_connections_description">保存した SSH・デスクトップ・ストレージ接続をすばやく起動します。</string>
+    <string name="widget_connections_empty">保存された接続はありません</string>
+    <string name="widget_connections_filter_action">絞り込み</string>
+    <string name="widget_config_title">接続ウィジェットの設定</string>
+    <string name="widget_config_group_heading">表示する接続</string>
+    <string name="widget_config_all_connections">すべての接続</string>
+    <string name="widget_config_sort_heading">並び順</string>
+    <string name="widget_config_sort_saved">保存順</string>
+    <string name="widget_config_sort_recent">最近の接続を優先</string>
+    <string name="widget_config_save">保存</string>
 </resources>

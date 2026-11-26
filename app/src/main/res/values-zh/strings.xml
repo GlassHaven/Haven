@@ -413,4 +413,15 @@
     <string name="app_recipe_import_load_file">加载 .json 文件</string>
     <string name="app_recipe_import_review">检查脚本</string>
     <string name="app_recipe_import_confirm">添加配方</string>
+    <string name="widget_connections_title">Haven</string>
+    <string name="widget_connections_description">快速启动已保存的 SSH、桌面和存储连接。</string>
+    <string name="widget_connections_empty">暂无已保存的连接</string>
+    <string name="widget_connections_filter_action">筛选</string>
+    <string name="widget_config_title">配置连接小组件</string>
+    <string name="widget_config_group_heading">显示连接范围</string>
+    <string name="widget_config_all_connections">全部连接</string>
+    <string name="widget_config_sort_heading">排序方式</string>
+    <string name="widget_config_sort_saved">已保存顺序</string>
+    <string name="widget_config_sort_recent">最近连接优先</string>
+    <string name="widget_config_save">保存</string>
 </resources>

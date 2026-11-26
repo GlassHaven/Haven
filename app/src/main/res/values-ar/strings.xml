@@ -433,4 +433,15 @@
     <string name="app_recipe_import_load_file">تحميل ملف .json</string>
     <string name="app_recipe_import_review">مراجعة النصوص البرمجية</string>
     <string name="app_recipe_import_confirm">إضافة الوصفات</string>
+    <string name="widget_connections_title">Haven</string>
+    <string name="widget_connections_description">تشغيل سريع لاتصالات SSH وسطح المكتب والتخزين المحفوظة.</string>
+    <string name="widget_connections_empty">لا توجد اتصالات محفوظة</string>
+    <string name="widget_connections_filter_action">تصفية</string>
+    <string name="widget_config_title">ضبط أداة الاتصالات</string>
+    <string name="widget_config_group_heading">عرض الاتصالات من</string>
+    <string name="widget_config_all_connections">كل الاتصالات</string>
+    <string name="widget_config_sort_heading">ترتيب الفرز</string>
+    <string name="widget_config_sort_saved">الترتيب المحفوظ</string>
+    <string name="widget_config_sort_recent">المتصل بها مؤخرًا أولاً</string>
+    <string name="widget_config_save">حفظ</string>
 </resources>

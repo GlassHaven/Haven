@@ -417,4 +417,15 @@
     <string name="app_recipe_import_load_file">.json-Datei laden</string>
     <string name="app_recipe_import_review">Skripte prüfen</string>
     <string name="app_recipe_import_confirm">Rezepte hinzufügen</string>
+    <string name="widget_connections_title">Haven</string>
+    <string name="widget_connections_description">Gespeicherte SSH-, Desktop- und Speicherverbindungen schnell starten.</string>
+    <string name="widget_connections_empty">Keine gespeicherten Verbindungen</string>
+    <string name="widget_connections_filter_action">Filter</string>
+    <string name="widget_config_title">Verbindungs-Widget einrichten</string>
+    <string name="widget_config_group_heading">Verbindungen anzeigen aus</string>
+    <string name="widget_config_all_connections">Alle Verbindungen</string>
+    <string name="widget_config_sort_heading">Sortierung</string>
+    <string name="widget_config_sort_saved">Gespeicherte Reihenfolge</string>
+    <string name="widget_config_sort_recent">Zuletzt verbunden zuerst</string>
+    <string name="widget_config_save">Speichern</string>
 </resources>

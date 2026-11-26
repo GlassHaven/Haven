@@ -431,4 +431,15 @@
     <string name="app_recipe_import_load_file">Загрузить файл .json</string>
     <string name="app_recipe_import_review">Проверить скрипты</string>
     <string name="app_recipe_import_confirm">Добавить рецепты</string>
+    <string name="widget_connections_title">Haven</string>
+    <string name="widget_connections_description">Быстрый запуск сохранённых подключений SSH, рабочего стола и хранилищ.</string>
+    <string name="widget_connections_empty">Нет сохранённых подключений</string>
+    <string name="widget_connections_filter_action">Фильтр</string>
+    <string name="widget_config_title">Настройка виджета подключений</string>
+    <string name="widget_config_group_heading">Показывать подключения из</string>
+    <string name="widget_config_all_connections">Все подключения</string>
+    <string name="widget_config_sort_heading">Сортировка</string>
+    <string name="widget_config_sort_saved">Сохранённый порядок</string>
+    <string name="widget_config_sort_recent">Сначала недавние</string>
+    <string name="widget_config_save">Сохранить</string>
 </resources>

@@ -417,4 +417,15 @@
     <string name="app_recipe_import_load_file">.json फ़ाइल लोड करें</string>
     <string name="app_recipe_import_review">स्क्रिप्ट देखें</string>
     <string name="app_recipe_import_confirm">रेसिपी जोड़ें</string>
+    <string name="widget_connections_title">Haven</string>
+    <string name="widget_connections_description">सहेजे गए SSH, डेस्कटॉप और स्टोरेज कनेक्शन तुरंत शुरू करें।</string>
+    <string name="widget_connections_empty">कोई सहेजा गया कनेक्शन नहीं</string>
+    <string name="widget_connections_filter_action">फ़िल्टर</string>
+    <string name="widget_config_title">कनेक्शन विजेट कॉन्फ़िगर करें</string>
+    <string name="widget_config_group_heading">यहाँ से कनेक्शन दिखाएँ</string>
+    <string name="widget_config_all_connections">सभी कनेक्शन</string>
+    <string name="widget_config_sort_heading">क्रम</string>
+    <string name="widget_config_sort_saved">सहेजा गया क्रम</string>
+    <string name="widget_config_sort_recent">हाल ही में जुड़े पहले</string>
+    <string name="widget_config_save">सहेजें</string>
 </resources>

@@ -129,6 +129,7 @@ class MainActivity : AppCompatActivity() {
      * the coordinator emits ConnectProfile, otherwise the connect is dropped.
      */
     private val pendingTaskerRun = androidx.compose.runtime.mutableStateOf<Pair<String, String>?>(null)
+    private val pendingConnectionId = androidx.compose.runtime.mutableStateOf<String?>(null)
 
     private fun exitIfDisconnected() {
         // Only the service's own auto-launch (it carries
@@ -482,10 +483,8 @@ class MainActivity : AppCompatActivity() {
             sh.haven.app.launcher.LauncherShortcutManager.EXTRA_CONNECTION_ID,
         ) ?: return
         intent.removeExtra(sh.haven.app.launcher.LauncherShortcutManager.EXTRA_CONNECTION_ID)
-        Log.d("MainActivity", "connecting profile $profileId from launcher shortcut")
-        MainScope().launch {
-            agentUiCommandBus.emit(sh.haven.core.data.agent.AgentUiCommand.ConnectProfile(profileId))
-        }
+        Log.d("MainActivity", "connecting profile $profileId from shortcut/widget")
+        pendingConnectionId.value = profileId
     }
 
     private fun handleWorkspaceShortcut(intent: Intent?) {
@@ -657,6 +656,13 @@ class MainActivity : AppCompatActivity() {
                             mcpStatusHolder = mcpStatusHolder,
                             updateChecker = updateChecker,
                         )
+                        val pendingConnId by pendingConnectionId
+                        LaunchedEffect(pendingConnId) {
+                            pendingConnId?.let { id ->
+                                agentUiCommandBus.emit(sh.haven.core.data.agent.AgentUiCommand.ConnectProfile(id))
+                                pendingConnectionId.value = null
+                            }
+                        }
                         // Floats above whatever screen is active so an
                         // agent's consent prompt is unmissable. No-op when
                         // there are no pending requests.
